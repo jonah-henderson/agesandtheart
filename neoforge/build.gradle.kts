@@ -44,4 +44,5 @@ sourceSets.main.get().resources { srcDir("src/generated/resources") }
 
 dependencies {
     implementation(libs.kff)
+    // No runtime-dimension backend on NeoForge yet — see NeoForgeAgeBackend (unsupported stub).
 }

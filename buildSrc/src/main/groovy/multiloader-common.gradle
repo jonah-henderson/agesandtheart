@@ -44,6 +44,12 @@ repositories {
         name = "kotlinforforge"
         url = uri("https://thedarkcolour.github.io/KotlinForForge/")
     }
+    maven {
+        // Fantasy (NucleoidMC) — runtime dimension creation on Fabric.
+        name = "Nucleoid"
+        url = uri("https://maven.nucleoid.xyz/")
+        content { includeGroup("xyz.nucleoid") }
+    }
 }
 
 // Declare capabilities on the outgoing configurations.

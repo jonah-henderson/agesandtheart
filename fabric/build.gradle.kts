@@ -15,6 +15,9 @@ dependencies {
     modImplementation(libs.fabricApi)
 
     modImplementation(libs.flk)
+
+    // Fantasy: runtime dimension creation (the Fabric-only backend for Ages).
+    modImplementation(libs.fantasy)
 }
 
 loom {

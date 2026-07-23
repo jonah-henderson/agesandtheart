@@ -27,6 +27,10 @@ flk = "1.12.3+kotlin.2.0.21"
 mixin = "0.8.5"
 mixinExtras = "0.3.5"
 
+# Runtime dimension creation (Fabric-only) — https://github.com/NucleoidMC/fantasy
+# 0.6.4+1.21 targets MC 1.21 and is ABI-compatible with our 1.21.1.
+fantasy = "0.6.4+1.21"
+
 [libraries]
 minecraft = { group = "com.mojang", name = "minecraft", version.ref = "minecraft" }
 fabricLoader = { group = "net.fabricmc", name = "fabric-loader", version.ref = "fabricLoader" }
@@ -35,6 +39,8 @@ flk = { group = "net.fabricmc", name = "fabric-language-kotlin", version.ref = "
 kff = { group = "thedarkcolour", name = "kotlinforforge-neoforge", version.ref = "kff" }
 mixin = { group = "org.spongepowered", name = "mixin", version.ref = "mixin" }
 mixinExtras-common = { group = "io.github.llamalad7", name = "mixinextras-common", version.ref = "mixinExtras" }
+
+fantasy = { group = "xyz.nucleoid", name = "fantasy", version.ref = "fantasy" }
 
 [plugins]
 kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
