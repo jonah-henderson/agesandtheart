@@ -8,7 +8,6 @@ import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
-import net.minecraft.world.level.levelgen.Heightmap
 
 /**
  * The `/age` debug command — the spike's trigger for exercising Age creation and travel.
@@ -83,10 +82,7 @@ object AgeCommand {
             src.sendFailure(Component.literal("Could not open Age '$name'"))
             return 0
         }
-        // Force-generate the spawn chunk so the heightmap is valid, then stand on the surface.
-        level.getChunk(0, 0)
-        val y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, 0, 0)
-        player.teleportTo(level, 0.5, (y + 1).toDouble(), 0.5, player.yRot, player.xRot)
+        AgeManager.teleport(player, level)
         src.sendSuccess({ Component.literal("Travelled to Age '$name'") }, true)
         return 1
     }
