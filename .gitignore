@@ -1,0 +1,36 @@
+# Gradle
+.gradle/
+build/
+out/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Minecraft dev run directories (Loom)
+run/
+runs/
+run-*/
+*/run/
+
+# Loom / Architectury caches
+.architectury-transformer/
+*-remapped/
+
+# IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+!.vscode/extensions.json
+.settings/
+.classpath
+.project
+bin/
+.eclipse/
+
+# OS / misc
+.DS_Store
+Thumbs.db
+*.hprof
+
+# Local one-off helper scripts (not part of the mod)
+/rehome-session.sh
