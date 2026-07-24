@@ -15,7 +15,8 @@ pluginManagement {
                 }
             }
             filter {
-                includeGroup("net.fabricmc")
+                // Regex so subgroups (e.g. net.fabricmc.unpick, pulled by newer Loom) are covered too.
+                includeGroupByRegex("net\\.fabricmc.*")
                 includeGroup("fabric-loom")
             }
         }
