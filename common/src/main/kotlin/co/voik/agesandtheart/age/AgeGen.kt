@@ -1,6 +1,8 @@
 package co.voik.agesandtheart.age
 
+import co.voik.agesandtheart.location
 import net.minecraft.core.registries.Registries
+import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.levelgen.FlatLevelSource
@@ -16,6 +18,13 @@ import net.minecraft.world.level.levelgen.flat.FlatLevelGeneratorSettings
  * `common` and is reused by whichever platform backend creates the dimension.
  */
 object AgeGen {
+    /**
+     * The custom dimension type every Age uses (registered as a datapack dimension-type at load).
+     * Its `effects` id is this same location, which the client uses as a marker to attach the
+     * custom Age sky renderer.
+     */
+    val AGE_DIMENSION_TYPE: ResourceLocation = "age".location()
+
     fun chunkGenerator(server: MinecraftServer): ChunkGenerator {
         val access = server.registryAccess()
         return FlatLevelSource(

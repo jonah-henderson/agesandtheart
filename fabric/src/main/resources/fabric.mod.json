@@ -20,6 +20,12 @@
                 "adapter": "kotlin",
                 "value": "co.voik.agesandtheart.AgesAndTheArtKt::init"
             }
+        ],
+        "client": [
+            {
+                "adapter": "kotlin",
+                "value": "co.voik.agesandtheart.AgesAndTheArtClientKt::initClient"
+            }
         ]
     },
     "mixins": [
