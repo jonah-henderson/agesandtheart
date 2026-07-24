@@ -16,7 +16,7 @@ import net.minecraft.world.level.saveddata.SavedData
  * Runtime-dimension libraries (Fantasy included) do NOT auto-restore dynamic dimensions across
  * restarts — they only manage them while the server runs. So we track the set of Age ids
  * ourselves in vanilla [SavedData] (stored under the overworld's data storage), and replay them
- * via [AgeManager.reloadSavedAges] on boot.
+ * via [Ages.reloadSaved] on boot.
  *
  * For the spike we persist the id + a monotonic counter; in v1 this grows to store each Age's
  * ordered symbols + seed.
@@ -37,9 +37,9 @@ class AgeSavedData : SavedData() {
     }
 
     override fun save(tag: CompoundTag, registries: HolderLookup.Provider): CompoundTag {
-        val list = ListTag()
-        for (id in ages) list.add(StringTag.valueOf(id.toString()))
-        tag.put(KEY_AGES, list)
+        val agesTag = ListTag()
+        for (id in ages) agesTag.add(StringTag.valueOf(id.toString()))
+        tag.put(KEY_AGES, agesTag)
         tag.putInt(KEY_COUNTER, counter)
         return tag
     }
@@ -53,13 +53,13 @@ class AgeSavedData : SavedData() {
             Factory({ AgeSavedData() }, { tag, _ -> load(tag) }, null)
 
         private fun load(tag: CompoundTag): AgeSavedData {
-            val data = AgeSavedData()
-            val list = tag.getList(KEY_AGES, Tag.TAG_STRING.toInt())
-            for (i in 0 until list.size) {
-                ResourceLocation.tryParse(list.getString(i))?.let { data.ages.add(it) }
+            val restored = AgeSavedData()
+            val storedAges = tag.getList(KEY_AGES, Tag.TAG_STRING.toInt())
+            for (index in 0..<storedAges.size) {
+                ResourceLocation.tryParse(storedAges.getString(index))?.let { restored.ages.add(it) }
             }
-            data.counter = tag.getInt(KEY_COUNTER)
-            return data
+            restored.counter = tag.getInt(KEY_COUNTER)
+            return restored
         }
 
         /** Loads (or creates) the Age registry for this server, from the overworld's data storage. */

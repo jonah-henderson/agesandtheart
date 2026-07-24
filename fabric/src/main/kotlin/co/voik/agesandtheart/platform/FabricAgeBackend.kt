@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.platform
 
-import co.voik.agesandtheart.age.AgeGen
+import co.voik.agesandtheart.age.AgeGeneration
 import co.voik.agesandtheart.platform.services.AgeBackend
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
@@ -15,7 +15,7 @@ import xyz.nucleoid.fantasy.RuntimeWorldConfig
  *
  * Fantasy's persistent worlds save to disk but are not auto-restored on restart — [openAge]
  * is get-or-create, so calling it with a known id after a restart re-attaches the saved
- * chunks. Uses our custom [AgeGen.AGE_DIMENSION_TYPE] (registered as a datapack dimension-type
+ * chunks. Uses our custom [AgeGeneration.AGE_DIMENSION_TYPE] (registered as a datapack dimension-type
  * so its `effects` marker lets the client attach the Age sky renderer) plus our flat generator.
  */
 class FabricAgeBackend : AgeBackend {
@@ -23,8 +23,8 @@ class FabricAgeBackend : AgeBackend {
 
     override fun openAge(server: MinecraftServer, id: ResourceLocation): ServerLevel? {
         val config = RuntimeWorldConfig()
-            .setDimensionType(ResourceKey.create(Registries.DIMENSION_TYPE, AgeGen.AGE_DIMENSION_TYPE))
-            .setGenerator(AgeGen.chunkGenerator(server))
+            .setDimensionType(ResourceKey.create(Registries.DIMENSION_TYPE, AgeGeneration.AGE_DIMENSION_TYPE))
+            .setGenerator(AgeGeneration.chunkGenerator(server))
             .setSeed(id.hashCode().toLong())
         return Fantasy.get(server).getOrOpenPersistentWorld(id, config).asWorld()
     }

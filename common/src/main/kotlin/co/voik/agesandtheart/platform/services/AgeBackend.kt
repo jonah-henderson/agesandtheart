@@ -10,7 +10,7 @@ import net.minecraft.server.level.ServerLevel
  *
  * Runtime dimensions are done with Fantasy on Fabric (see `FabricAgeBackend`), which is
  * Fabric-only; NeoForge has no backend yet (`NeoForgeAgeBackend` is an unsupported stub).
- * Loaded via [co.voik.agesandtheart.platform.Services], like [PlatformHelper].
+ * Loaded via [co.voik.agesandtheart.platform.Services], like [Platform].
  */
 interface AgeBackend {
     /** Whether this loader can create runtime dimensions yet. */

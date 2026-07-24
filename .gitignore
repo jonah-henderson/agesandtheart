@@ -4,6 +4,9 @@ build/
 out/
 !gradle/wrapper/gradle-wrapper.jar
 
+# Kotlin 2.x build cache
+.kotlin/
+
 # Minecraft dev run directories (Loom)
 run/
 runs/

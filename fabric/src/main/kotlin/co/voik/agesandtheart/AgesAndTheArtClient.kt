@@ -1,6 +1,7 @@
 package co.voik.agesandtheart
 
-import co.voik.agesandtheart.age.AgeGen
+import co.voik.agesandtheart.age.AgeGeneration
+import co.voik.agesandtheart.client.AgeCloudRenderer
 import co.voik.agesandtheart.client.AgeDimensionEffects
 import co.voik.agesandtheart.client.AgeSkyRenderer
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
@@ -20,14 +21,15 @@ fun initClient() {
     Constants.LOG.info("Ages client init")
 
     // Steel-grey stormy fog for every Age (keyed by our shared effects marker).
-    DimensionRenderingRegistry.registerDimensionEffects(AgeGen.AGE_DIMENSION_TYPE, AgeDimensionEffects())
+    DimensionRenderingRegistry.registerDimensionEffects(AgeGeneration.AGE_DIMENSION_TYPE, AgeDimensionEffects())
 
     ClientTickEvents.END_CLIENT_TICK.register { mc ->
         val level = mc.level ?: return@register
         val key = level.dimension()
-        if (level.dimensionType().effectsLocation() == AgeGen.AGE_DIMENSION_TYPE && skyRegistered.add(key)) {
+        if (level.dimensionType().effectsLocation() == AgeGeneration.AGE_DIMENSION_TYPE && skyRegistered.add(key)) {
             DimensionRenderingRegistry.registerSkyRenderer(key, AgeSkyRenderer)
-            Constants.LOG.info("Registered Age sky renderer for {}", key.location())
+            DimensionRenderingRegistry.registerCloudRenderer(key, AgeCloudRenderer)
+            Constants.LOG.info("Registered Age sky + cloud renderers for {}", key.location())
         }
     }
 }

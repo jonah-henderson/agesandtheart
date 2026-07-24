@@ -2,11 +2,11 @@ package co.voik.agesandtheart.platform
 
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.platform.services.AgeBackend
-import co.voik.agesandtheart.platform.services.PlatformHelper
+import co.voik.agesandtheart.platform.services.Platform
 import java.util.ServiceLoader
 
 object Services {
-    val PLATFORM = load(PlatformHelper::class.java)
+    val PLATFORM = load(Platform::class.java)
 
     /** Runtime dimension backend — Fantasy on Fabric, unsupported stub on NeoForge. */
     val AGE_BACKEND = load(AgeBackend::class.java)

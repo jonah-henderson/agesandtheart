@@ -1,145 +1,128 @@
 package co.voik.agesandtheart.client
 
-import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.math.Sphere
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.BufferUploader
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.Tesselator
-import com.mojang.blaze3d.vertex.VertexConsumer
 import com.mojang.blaze3d.vertex.VertexFormat
 import com.mojang.math.Axis
 import net.fabricmc.fabric.api.client.rendering.v1.DimensionRenderingRegistry
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext
 import net.minecraft.client.renderer.GameRenderer
+import net.minecraft.world.phys.Vec3
 import org.joml.Matrix4f
 import java.util.Random
-import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.sin
-import kotlin.math.sqrt
 
 /**
- * Custom sky for Ages. Replaces vanilla sky rendering, so we draw everything ourselves.
- *
- * Currently: a dark storm-grey overcast dome (no sun/moon) plus a sparse, faint starfield that
- * drifts very slowly. The two cloud layers (which will eventually occlude the stars from below)
- * come next.
+ * Custom sky for Ages. Replaces vanilla sky rendering entirely, so we draw everything ourselves:
+ * a dark storm-grey overcast dome (no sun or moon) and a sparse, faintly drifting starfield.
+ * The two cloud layers (see [AgeCloudRenderer]) will eventually occlude the stars from below.
  */
 object AgeSkyRenderer : DimensionRenderingRegistry.SkyRenderer {
-    // dark desaturated storm-grey with a faint cold teal cast (Spire reference)
-    private const val R = 0.16f
-    private const val G = 0.19f
-    private const val B = 0.19f
+    private val OVERCAST_COLOR = Rgba(0.16f, 0.19f, 0.19f) // dark storm-grey, faint cold teal
+    private val STAR_COLOR = Rgba(0.85f, 0.88f, 0.95f, 0.75f) // pale, cool, faint
 
-    // sparse, faint, pale-cool stars
+    private const val DOME_RADIUS = 100.0f
+    private const val STAR_DRIFT_DEGREES_PER_TICK = 0.0015f
+
+    // Star field generation. Fixed seed keeps the sky identical every visit.
+    private const val STAR_SEED = 0xA6E57A25L
     private const val STAR_COUNT = 180
-    private const val STAR_R = 0.85f
-    private const val STAR_G = 0.88f
-    private const val STAR_B = 0.95f
-    private const val STAR_A = 0.75f
+    private const val STAR_DISTANCE = 100.0
+    private const val MIN_STAR_SIZE = 0.20
+    private const val STAR_SIZE_VARIATION = 0.15
+    private const val VERTICES_PER_STAR = 4
+    private val FULL_CIRCLE_RADIANS = 2.0 * Math.PI
 
-    /** Star corner positions (x,y,z per vertex, 4 verts per star), built once from a fixed seed. */
-    private val starVerts: FloatArray by lazy { buildStars() }
-    private var logged = false
+    /** The six faces of a box surrounding the camera; every inward face is [OVERCAST_COLOR]. */
+    private val OVERCAST_FACES: List<List<Vec3>> = surroundingCubeFaces(DOME_RADIUS)
+
+    /** Flattened star quad corners (x, y, z per vertex, four vertices per star). Built once. */
+    private val starVertices: FloatArray by lazy { buildStarVertices() }
 
     override fun render(context: WorldRenderContext) {
-        if (!logged) { Constants.LOG.info("AgeSkyRenderer drawing overcast + stars"); logged = true }
-        val pos = context.positionMatrix() // camera/frustum matrix (matrixStack is null during renderSky)
+        // matrixStack is null during 1.21.1's renderSky; the camera/frustum transform is positionMatrix.
+        val viewMatrix = context.positionMatrix()
 
         RenderSystem.depthMask(false)
         RenderSystem.disableDepthTest()
         RenderSystem.disableCull()
 
-        // 1. Opaque overcast dome.
         RenderSystem.disableBlend()
-        drawDome(pos)
+        drawOvercast(viewMatrix)
 
-        // 2. Blended stars, drifting very slowly.
         RenderSystem.enableBlend()
         RenderSystem.defaultBlendFunc()
-        val drift = context.world().gameTime.toFloat() * 0.0015f
-        drawStars(Matrix4f(pos).rotate(Axis.YP.rotationDegrees(drift)))
+        val driftDegrees = context.world().gameTime.toFloat() * STAR_DRIFT_DEGREES_PER_TICK
+        drawStars(Matrix4f(viewMatrix).rotate(Axis.YP.rotationDegrees(driftDegrees)))
 
-        // restore
         RenderSystem.disableBlend()
         RenderSystem.enableCull()
         RenderSystem.enableDepthTest()
         RenderSystem.depthMask(true)
     }
 
-    private fun drawDome(m: Matrix4f) {
+    private fun drawOvercast(matrix: Matrix4f) {
         RenderSystem.setShader(GameRenderer::getPositionColorShader)
-        val d = 100.0f
-        val buf = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR)
-        quad(buf, m, -d, d, -d, -d, d, d, d, d, d, d, d, -d)      // up
-        quad(buf, m, -d, -d, d, -d, -d, -d, d, -d, -d, d, -d, d)  // down
-        quad(buf, m, d, -d, -d, d, d, -d, d, d, d, d, -d, d)      // +x
-        quad(buf, m, -d, -d, d, -d, d, d, -d, d, -d, -d, -d, -d)  // -x
-        quad(buf, m, d, -d, d, d, d, d, -d, d, d, -d, -d, d)      // +z
-        quad(buf, m, -d, -d, -d, -d, d, -d, d, d, -d, d, -d, -d)  // -z
-        BufferUploader.drawWithShader(buf.buildOrThrow())
-    }
-
-    private fun drawStars(m: Matrix4f) {
-        RenderSystem.setShader(GameRenderer::getPositionColorShader)
-        val v = starVerts
-        val buf = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR)
-        var i = 0
-        while (i < v.size) {
-            buf.addVertex(m, v[i], v[i + 1], v[i + 2]).setColor(STAR_R, STAR_G, STAR_B, STAR_A)
-            i += 3
-        }
-        BufferUploader.drawWithShader(buf.buildOrThrow())
-    }
-
-    private fun quad(
-        b: VertexConsumer, m: Matrix4f,
-        x1: Float, y1: Float, z1: Float,
-        x2: Float, y2: Float, z2: Float,
-        x3: Float, y3: Float, z3: Float,
-        x4: Float, y4: Float, z4: Float,
-    ) {
-        b.addVertex(m, x1, y1, z1).setColor(R, G, B, 1.0f)
-        b.addVertex(m, x2, y2, z2).setColor(R, G, B, 1.0f)
-        b.addVertex(m, x3, y3, z3).setColor(R, G, B, 1.0f)
-        b.addVertex(m, x4, y4, z4).setColor(R, G, B, 1.0f)
-    }
-
-    /** Vanilla-style star tessellation, thinned out: random points on a sphere as small quads. */
-    private fun buildStars(): FloatArray {
-        val rng = Random(0xA6E57A25L)
-        val out = ArrayList<Float>(STAR_COUNT * 12)
-        var made = 0
-        var guard = 0
-        while (made < STAR_COUNT && guard < STAR_COUNT * 64) {
-            guard++
-            var x = rng.nextFloat().toDouble() * 2.0 - 1.0
-            var y = rng.nextFloat().toDouble() * 2.0 - 1.0
-            var z = rng.nextFloat().toDouble() * 2.0 - 1.0
-            val size = 0.20 + rng.nextFloat().toDouble() * 0.15 // a touch bigger than vanilla, for visibility
-            val len2 = x * x + y * y + z * z
-            if (len2 <= 0.010 || len2 >= 1.0) continue
-            val inv = 1.0 / sqrt(len2)
-            x *= inv; y *= inv; z *= inv
-            val cx = x * 100.0; val cy = y * 100.0; val cz = z * 100.0
-            val yaw = atan2(x, z); val sinYaw = sin(yaw); val cosYaw = cos(yaw)
-            val pitch = atan2(sqrt(x * x + z * z), y); val sinPitch = sin(pitch); val cosPitch = cos(pitch)
-            val spin = rng.nextDouble() * Math.PI * 2.0; val sinSpin = sin(spin); val cosSpin = cos(spin)
-            for (j in 0 until 4) {
-                val sx = ((j and 2) - 1).toDouble() * size
-                val sy = (((j + 1) and 2) - 1).toDouble() * size
-                val u = sx * cosSpin - sy * sinSpin
-                val w = sy * cosSpin + sx * sinSpin
-                val oy = u * sinPitch
-                val t = -u * cosPitch
-                val ox = t * sinYaw - w * cosYaw
-                val oz = w * sinYaw + t * cosYaw
-                out.add((cx + ox).toFloat())
-                out.add((cy + oy).toFloat())
-                out.add((cz + oz).toFloat())
+        val buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR)
+        for (face in OVERCAST_FACES) {
+            for (corner in face) {
+                buffer.addColoredVertex(matrix, corner, OVERCAST_COLOR)
             }
-            made++
         }
-        return out.toFloatArray()
+        BufferUploader.drawWithShader(buffer.buildOrThrow())
+    }
+
+    private fun drawStars(matrix: Matrix4f) {
+        RenderSystem.setShader(GameRenderer::getPositionColorShader)
+        val buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR)
+        for (vertexStart in starVertices.indices step 3) {
+            buffer.addColoredVertex(
+                matrix,
+                starVertices[vertexStart],
+                starVertices[vertexStart + 1],
+                starVertices[vertexStart + 2],
+                STAR_COLOR,
+            )
+        }
+        BufferUploader.drawWithShader(buffer.buildOrThrow())
+    }
+
+    /** The corners of a cube of the given radius, as six faces of four corners each. */
+    private fun surroundingCubeFaces(radius: Float): List<List<Vec3>> {
+        val low = -radius.toDouble()
+        val high = radius.toDouble()
+        // Winding is irrelevant here because culling is disabled while the dome is drawn.
+        return listOf(
+            listOf(Vec3(low, high, low), Vec3(low, high, high), Vec3(high, high, high), Vec3(high, high, low)), // top
+            listOf(Vec3(low, low, high), Vec3(low, low, low), Vec3(high, low, low), Vec3(high, low, high)), // bottom
+            listOf(Vec3(high, low, low), Vec3(high, high, low), Vec3(high, high, high), Vec3(high, low, high)), // east
+            listOf(Vec3(low, low, high), Vec3(low, high, high), Vec3(low, high, low), Vec3(low, low, low)), // west
+            listOf(Vec3(high, low, high), Vec3(high, high, high), Vec3(low, high, high), Vec3(low, low, high)), // south
+            listOf(Vec3(low, low, low), Vec3(low, high, low), Vec3(high, high, low), Vec3(high, low, low)), // north
+        )
+    }
+
+    /**
+     * Generates the star quads: [STAR_COUNT] random points on the sky sphere, each turned into a
+     * small square facing the centre and spun by a random angle, then flattened into the vertex
+     * buffer. All the spherical geometry lives in [Sphere], so this reads as just "place stars".
+     */
+    private fun buildStarVertices(): FloatArray {
+        val random = Random(STAR_SEED)
+        val starSphere = Sphere(STAR_DISTANCE)
+        val vertices = ArrayList<Float>(STAR_COUNT * VERTICES_PER_STAR * 3)
+        repeat(STAR_COUNT) {
+            val center = starSphere.randomSurfacePoint(random)
+            val halfSize = MIN_STAR_SIZE + random.nextDouble() * STAR_SIZE_VARIATION
+            val spin = random.nextDouble() * FULL_CIRCLE_RADIANS
+            for (corner in starSphere.tangentQuad(center, halfSize, spin)) {
+                vertices.add(corner.x.toFloat())
+                vertices.add(corner.y.toFloat())
+                vertices.add(corner.z.toFloat())
+            }
+        }
+        return vertices.toFloatArray()
     }
 }

@@ -13,8 +13,7 @@ import net.neoforged.neoforge.registries.RegisterEvent
 @Mod(Constants.MOD_ID)
 class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
     init {
-        Constants.LOG.info("Hello NeoForge world from Kotlin!")
-        CommonObject.init()
+        CommonSetup.init()
 
         // Content registration is a mod-bus event on NeoForge.
         eventBus.addListener(::onRegister)

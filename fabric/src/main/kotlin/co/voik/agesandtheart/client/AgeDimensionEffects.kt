@@ -9,7 +9,7 @@ import net.minecraft.world.phys.Vec3
  * this governs distance fog / horizon haze.
  */
 class AgeDimensionEffects : DimensionSpecialEffects(
-    Float.NaN,        // cloudLevel: NaN = no vanilla clouds (we'll draw our own layers later)
+    192.0f,           // cloudLevel: non-NaN so the cloud hook fires; our renderer draws the real layers
     true,             // hasGround
     SkyType.NONE,     // we render our own sky
     false,            // forceBrightLightmap

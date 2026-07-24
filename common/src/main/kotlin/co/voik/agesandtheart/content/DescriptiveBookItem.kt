@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.content
 
-import co.voik.agesandtheart.age.AgeManager
+import co.voik.agesandtheart.age.Ages
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
@@ -28,27 +28,24 @@ class DescriptiveBookItem(properties: Properties) : Item(properties) {
         }
         val server = level.server
 
-        if (!AgeManager.isSupported()) {
+        if (!Ages.isSupported()) {
             player.displayClientMessage(Component.literal("Ages aren't supported on this loader yet."), true)
             return InteractionResultHolder.fail(stack)
         }
 
-        var id = stack.get(AgeContent.AGE_ID)
-        val firstWrite = id == null
-        if (id == null) {
-            id = AgeManager.allocateAgeId(server)
-            stack.set(AgeContent.AGE_ID, id)
-        }
+        val existingAgeId = stack.get(AgeContent.AGE_ID)
+        val ageId = existingAgeId ?: Ages.allocateId(server).also { stack.set(AgeContent.AGE_ID, it) }
+        val isFirstWrite = existingAgeId == null
 
-        val age = AgeManager.ensureAge(server, id)
+        val age = Ages.ensure(server, ageId)
         if (age == null) {
             player.displayClientMessage(Component.literal("Could not open the Age."), true)
             return InteractionResultHolder.fail(stack)
         }
 
-        AgeManager.teleport(player, age)
-        val verb = if (firstWrite) "Wrote and entered" else "Linked to"
-        player.displayClientMessage(Component.literal("$verb Age '${id.path}'"), true)
+        Ages.teleport(player, age)
+        val verb = if (isFirstWrite) "Wrote and entered" else "Linked to"
+        player.displayClientMessage(Component.literal("$verb Age '${ageId.path}'"), true)
         return InteractionResultHolder.success(stack)
     }
 }
