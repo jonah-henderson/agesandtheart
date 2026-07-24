@@ -23,14 +23,20 @@ object Ages {
     fun isSupported(): Boolean = Services.AGE_BACKEND.isSupported
 
     /** Creates a brand-new Age and records it for persistence. Null if it exists or is unsupported. */
-    fun create(server: MinecraftServer, id: ResourceLocation): ServerLevel? {
+    fun create(server: MinecraftServer, id: ResourceLocation, generatorKey: String): ServerLevel? {
         val backend = Services.AGE_BACKEND
         if (!backend.isSupported) return null
         val dimensionKey = ResourceKey.create(Registries.DIMENSION, id)
         if (server.getLevel(dimensionKey) != null) return null // already loaded
-        val level = backend.openAge(server, id) ?: return null
-        AgeSavedData.get(server).add(id)
-        Constants.LOG.info("Created Age {}", id)
+        val saved = AgeSavedData.get(server)
+        // Record the kind *before* opening: the backend rebuilds the generator from this key.
+        saved.add(id, generatorKey)
+        val level = backend.openAge(server, id)
+        if (level == null) {
+            saved.remove(id)
+            return null
+        }
+        Constants.LOG.info("Created Age {} [{}]", id, generatorKey)
         return level
     }
 

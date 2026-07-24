@@ -23,11 +23,23 @@ import net.minecraft.world.level.saveddata.SavedData
  */
 class AgeSavedData : SavedData() {
     val ages: MutableSet<ResourceLocation> = linkedSetOf()
+    private val generatorKeys: MutableMap<ResourceLocation, String> = linkedMapOf()
     private var counter: Int = 0
 
-    fun add(id: ResourceLocation) {
-        if (ages.add(id)) setDirty()
+    fun add(id: ResourceLocation, generatorKey: String = AgeGeneration.GENERATOR_SPIRE) {
+        val added = ages.add(id)
+        val keyChanged = generatorKeys.put(id, generatorKey) != generatorKey
+        if (added || keyChanged) setDirty()
     }
+
+    fun remove(id: ResourceLocation) {
+        val removed = ages.remove(id)
+        val hadKey = generatorKeys.remove(id) != null
+        if (removed || hadKey) setDirty()
+    }
+
+    /** The generator kind persisted for [id] (defaults to Spire for pre-existing/legacy Ages). */
+    fun generatorKey(id: ResourceLocation): String = generatorKeys[id] ?: AgeGeneration.GENERATOR_SPIRE
 
     /** Returns the next distinct Age index (1, 2, 3, …), persisting the advance. */
     fun allocateIndex(): Int {
@@ -40,6 +52,9 @@ class AgeSavedData : SavedData() {
         val agesTag = ListTag()
         for (id in ages) agesTag.add(StringTag.valueOf(id.toString()))
         tag.put(KEY_AGES, agesTag)
+        val generatorsTag = CompoundTag()
+        for ((id, key) in generatorKeys) generatorsTag.putString(id.toString(), key)
+        tag.put(KEY_GENERATORS, generatorsTag)
         tag.putInt(KEY_COUNTER, counter)
         return tag
     }
@@ -47,6 +62,7 @@ class AgeSavedData : SavedData() {
     companion object {
         private const val NAME = "agesandtheart_ages"
         private const val KEY_AGES = "ages"
+        private const val KEY_GENERATORS = "generators"
         private const val KEY_COUNTER = "counter"
 
         private fun factory(): Factory<AgeSavedData> =
@@ -57,6 +73,11 @@ class AgeSavedData : SavedData() {
             val storedAges = tag.getList(KEY_AGES, Tag.TAG_STRING.toInt())
             for (index in 0..<storedAges.size) {
                 ResourceLocation.tryParse(storedAges.getString(index))?.let { restored.ages.add(it) }
+            }
+            // Per-Age generator kinds arrived after the id set; Ages missing here default to Spire.
+            val storedGenerators = tag.getCompound(KEY_GENERATORS)
+            for (key in storedGenerators.allKeys) {
+                ResourceLocation.tryParse(key)?.let { restored.generatorKeys[it] = storedGenerators.getString(key) }
             }
             restored.counter = tag.getInt(KEY_COUNTER)
             return restored

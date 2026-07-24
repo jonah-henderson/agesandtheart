@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.content
 
 import co.voik.agesandtheart.location
+import co.voik.agesandtheart.worldgen.FieldChunkGenerator
 import co.voik.agesandtheart.worldgen.SpireChunkGenerator
 import com.mojang.serialization.MapCodec
 import net.minecraft.core.component.DataComponentType
@@ -40,5 +41,6 @@ object AgeContent {
     /** Chunk-generator codecs (Ages persist via Fantasy, so their generator must be serializable). */
     val chunkGeneratorCodecs: List<Pair<ResourceLocation, MapCodec<out ChunkGenerator>>> = listOf(
         "spire".location() to SpireChunkGenerator.CODEC,
+        "field".location() to FieldChunkGenerator.CODEC,
     )
 }

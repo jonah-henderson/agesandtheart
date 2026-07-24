@@ -24,8 +24,8 @@ class FabricAgeBackend : AgeBackend {
     override fun openAge(server: MinecraftServer, id: ResourceLocation): ServerLevel? {
         val seed = id.hashCode().toLong()
         val config = RuntimeWorldConfig()
-            .setDimensionType(ResourceKey.create(Registries.DIMENSION_TYPE, AgeGeneration.AGE_DIMENSION_TYPE))
-            .setGenerator(AgeGeneration.chunkGenerator(server, seed))
+            .setDimensionType(ResourceKey.create(Registries.DIMENSION_TYPE, AgeGeneration.dimensionType(server, id)))
+            .setGenerator(AgeGeneration.chunkGenerator(server, id, seed))
             .setSeed(seed)
         return Fantasy.get(server).getOrOpenPersistentWorld(id, config).asWorld()
     }

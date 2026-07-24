@@ -7,8 +7,12 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
+import net.minecraft.core.BlockPos
+import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.server.level.ServerLevel
+import net.minecraft.world.level.levelgen.Heightmap
 
 /**
  * The `/age` debug command — the spike's trigger for exercising Age creation and travel. (The
@@ -18,9 +22,12 @@ import net.minecraft.resources.ResourceLocation
  * Brigadier is vanilla, so the whole command tree lives in `common`; each loader only has to hand
  * us its [CommandDispatcher] through its own command-registration event.
  *
- *   /age create <name>  — author a new Age and persist it
- *   /age tp <name>      — travel to an Age
- *   /age list           — list known Ages
+ *   /age create <name>           — author a new Age (Spire preset) and persist it
+ *   /age create field <name>     — a field-generator Age (the Spire island as a field tree)
+ *   /age create pyramids <name>  — a field-generator Age: instanced pyramids on a plain
+ *   /age tp <name>               — travel to an Age
+ *   /age gen <name>              — force-generate the spawn chunk and report what the generator made
+ *   /age list                    — list known Ages (with their generator kind)
  */
 object AgeCommand {
     private const val OPERATOR_PERMISSION_LEVEL = 2
@@ -36,18 +43,44 @@ object AgeCommand {
                 .requires { source -> source.hasPermission(OPERATOR_PERMISSION_LEVEL) }
                 .then(createSubcommand())
                 .then(teleportSubcommand())
+                .then(generateSubcommand())
                 .then(listSubcommand()),
         )
     }
 
     private fun createSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
-        Commands.literal("create").then(
-            Commands.argument(NAME_ARGUMENT, StringArgumentType.word()).executes(::runCreate),
-        )
+        Commands.literal("create")
+            .then(
+                Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
+                    .executes { context -> runCreate(context, AgeGeneration.GENERATOR_SPIRE) },
+            )
+            .then(
+                Commands.literal("field").then(
+                    Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
+                        .executes { context -> runCreate(context, AgeGeneration.GENERATOR_FIELD) },
+                ),
+            )
+            .then(
+                Commands.literal("pyramids").then(
+                    Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
+                        .executes { context -> runCreate(context, AgeGeneration.GENERATOR_PYRAMIDS) },
+                ),
+            )
+            .then(
+                Commands.literal("pyrings").then(
+                    Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
+                        .executes { context -> runCreate(context, AgeGeneration.GENERATOR_PYRINGS) },
+                ),
+            )
 
     private fun teleportSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("tp").then(
             Commands.argument(NAME_ARGUMENT, StringArgumentType.word()).executes(::runTeleport),
+        )
+
+    private fun generateSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        Commands.literal("gen").then(
+            Commands.argument(NAME_ARGUMENT, StringArgumentType.word()).executes(::runGenerate),
         )
 
     private fun listSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
@@ -56,7 +89,7 @@ object AgeCommand {
     private fun ageId(name: String): ResourceLocation =
         ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, name.lowercase())
 
-    private fun runCreate(context: CommandContext<CommandSourceStack>): Int {
+    private fun runCreate(context: CommandContext<CommandSourceStack>, generatorKey: String): Int {
         val source = context.source
         val name = StringArgumentType.getString(context, NAME_ARGUMENT)
         val id = ageId(name)
@@ -68,12 +101,12 @@ object AgeCommand {
             source.sendFailure(Component.literal("Age '$name' already exists"))
             return FAILURE
         }
-        val level = Ages.create(source.server, id)
+        val level = Ages.create(source.server, id, generatorKey)
         if (level == null) {
             source.sendFailure(Component.literal("Could not create Age '$name'"))
             return FAILURE
         }
-        source.sendSuccess({ Component.literal("Created Age '$name' ($id). Travel with /age tp $name") }, true)
+        source.sendSuccess({ Component.literal("Created Age '$name' [$generatorKey] ($id). Travel with /age tp $name") }, true)
         return SUCCESS
     }
 
@@ -96,13 +129,63 @@ object AgeCommand {
         return SUCCESS
     }
 
+    /**
+     * Force-generates the Age's spawn column (the real chunk-gen path, same as travel) and reports
+     * what the generator produced there — a headless sanity check for a generator without needing a
+     * player to travel. Reads the surface height and a few probe blocks (surface, sea, sky).
+     */
+    private fun runGenerate(context: CommandContext<CommandSourceStack>): Int {
+        val source = context.source
+        val name = StringArgumentType.getString(context, NAME_ARGUMENT)
+        val id = ageId(name)
+        if (id !in AgeSavedData.get(source.server).ages) {
+            source.sendFailure(Component.literal("No Age named '$name' — create it with /age create $name"))
+            return FAILURE
+        }
+        val level = Ages.open(source.server, id)
+        if (level == null) {
+            source.sendFailure(Component.literal("Could not open Age '$name'"))
+            return FAILURE
+        }
+        level.getChunk(0, 0) // force full generation of the spawn chunk
+        val surfaceY = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, 0, 0)
+        val surfaceBlock = blockName(level, 0, surfaceY - 1, 0)
+        // Scan the whole spawn chunk for its tallest column — reveals instanced geometry above the ground.
+        var peakY = Int.MIN_VALUE
+        var peakX = 0
+        var peakZ = 0
+        for (localX in 0..<16) {
+            for (localZ in 0..<16) {
+                val height = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, localX, localZ)
+                if (height > peakY) {
+                    peakY = height
+                    peakX = localX
+                    peakZ = localZ
+                }
+            }
+        }
+        val peakBlock = blockName(level, peakX, peakY - 1, peakZ)
+        source.sendSuccess({
+            Component.literal(
+                "Age '$name' spawn chunk: origin surface y=$surfaceY ($surfaceBlock); " +
+                    "tallest column y=$peakY at ($peakX,$peakZ) ($peakBlock)",
+            )
+        }, false)
+        return SUCCESS
+    }
+
+    private fun blockName(level: ServerLevel, x: Int, y: Int, z: Int): String =
+        BuiltInRegistries.BLOCK.getKey(level.getBlockState(BlockPos(x, y, z)).block).toString()
+
     private fun runList(context: CommandContext<CommandSourceStack>): Int {
         val source = context.source
-        val ages = AgeSavedData.get(source.server).ages
+        val saved = AgeSavedData.get(source.server)
+        val ages = saved.ages
         if (ages.isEmpty()) {
             source.sendSuccess({ Component.literal("No Ages yet — write one with /age create <name>") }, false)
         } else {
-            source.sendSuccess({ Component.literal("Ages (${ages.size}): " + ages.joinToString(", ")) }, false)
+            val listing = ages.joinToString(", ") { id -> "$id [${saved.generatorKey(id)}]" }
+            source.sendSuccess({ Component.literal("Ages (${ages.size}): $listing") }, false)
         }
         return SUCCESS
     }
