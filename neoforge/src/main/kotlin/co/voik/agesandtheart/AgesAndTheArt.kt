@@ -28,6 +28,9 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         event.register(Registries.ITEM) { helper ->
             AgeContent.items.forEach { (id, item) -> helper.register(id, item) }
         }
+        event.register(Registries.CHUNK_GENERATOR) { helper ->
+            AgeContent.chunkGeneratorCodecs.forEach { (id, codec) -> helper.register(id, codec) }
+        }
     }
 
     private fun onRegisterCommands(event: RegisterCommandsEvent) {

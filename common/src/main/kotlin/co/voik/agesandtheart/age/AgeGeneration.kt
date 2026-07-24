@@ -1,21 +1,21 @@
 package co.voik.agesandtheart.age
 
 import co.voik.agesandtheart.location
+import co.voik.agesandtheart.worldgen.SpireChunkGenerator
 import net.minecraft.core.registries.Registries
+import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
+import net.minecraft.world.level.biome.FixedBiomeSource
 import net.minecraft.world.level.chunk.ChunkGenerator
-import net.minecraft.world.level.levelgen.FlatLevelSource
-import net.minecraft.world.level.levelgen.flat.FlatLevelGeneratorSettings
 
 /**
- * Builds the generation recipe for a spike-era Age.
+ * Builds the generation recipe for an Age.
  *
- * For now every Age is a superflat world (built only from the server's registries, so it's
- * self-contained) — visually distinct from the overworld, which is enough to prove you travelled
- * somewhere new. v1 replaces this with real symbol-driven generation; the shape (`server ->
- * generator`) stays the same. Loader-agnostic vanilla code, reused by whichever platform backend
- * creates the dimension.
+ * Currently every Age is the "Spire" world — floating islands over a plasma sea (see
+ * [SpireChunkGenerator]) on our custom `plasma` biome. Loader-agnostic vanilla code, reused by
+ * whichever platform backend creates the dimension. v1 makes the choice symbol-driven, and there
+ * will be several generators.
  */
 object AgeGeneration {
     /**
@@ -25,14 +25,13 @@ object AgeGeneration {
      */
     val AGE_DIMENSION_TYPE: ResourceLocation = "age".location()
 
-    fun chunkGenerator(server: MinecraftServer): ChunkGenerator {
-        val registries = server.registryAccess()
-        return FlatLevelSource(
-            FlatLevelGeneratorSettings.getDefault(
-                registries.lookupOrThrow(Registries.BIOME),
-                registries.lookupOrThrow(Registries.STRUCTURE_SET),
-                registries.lookupOrThrow(Registries.PLACED_FEATURE),
-            ),
-        )
+    /** The custom biome (green plasma water), registered as a datapack biome at load. */
+    val PLASMA_BIOME: ResourceLocation = "plasma".location()
+
+    fun chunkGenerator(server: MinecraftServer, seed: Long): ChunkGenerator {
+        val plasma = server.registryAccess()
+            .lookupOrThrow(Registries.BIOME)
+            .getOrThrow(ResourceKey.create(Registries.BIOME, PLASMA_BIOME))
+        return SpireChunkGenerator(FixedBiomeSource(plasma), seed)
     }
 }

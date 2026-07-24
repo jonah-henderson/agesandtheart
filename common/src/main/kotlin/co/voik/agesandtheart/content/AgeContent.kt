@@ -1,16 +1,20 @@
 package co.voik.agesandtheart.content
 
 import co.voik.agesandtheart.location
+import co.voik.agesandtheart.worldgen.SpireChunkGenerator
+import com.mojang.serialization.MapCodec
 import net.minecraft.core.component.DataComponentType
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.item.Item
+import net.minecraft.world.level.chunk.ChunkGenerator
 
 /**
  * The mod's registered content, defined loader-agnostically.
  *
  * Instances are built eagerly here (constructing them needs no registry); the *registration*
  * is driven per loader — Fabric registers directly during init, NeoForge via `RegisterEvent` —
- * with each loader simply iterating [components] then [items]. See each loader's entrypoint.
+ * with each loader iterating [components], [items], and [chunkGeneratorCodecs]. See each loader's
+ * entrypoint.
  */
 object AgeContent {
     /**
@@ -31,5 +35,10 @@ object AgeContent {
 
     val items: List<Pair<ResourceLocation, Item>> = listOf(
         "descriptive_book".location() to DESCRIPTIVE_BOOK,
+    )
+
+    /** Chunk-generator codecs (Ages persist via Fantasy, so their generator must be serializable). */
+    val chunkGeneratorCodecs: List<Pair<ResourceLocation, MapCodec<out ChunkGenerator>>> = listOf(
+        "spire".location() to SpireChunkGenerator.CODEC,
     )
 }
