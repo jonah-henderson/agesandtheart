@@ -60,10 +60,10 @@ To add a new platform-divergent capability: add a method to `PlatformHelper`, im
 **3. Entrypoints differ per loader; both funnel into `common`.**
 - Fabric: `fabric.mod.json` `entrypoints.main` → `co.voik.agesandtheart.AgesAndTheArtKt::init` (a top-level `fun init()` in `fabric/.../AgesAndTheArt.kt`), using the `kotlin` adapter (Fabric Language Kotlin).
 - NeoForge: `@Mod("agesandtheart")` on the class in `neoforge/.../AgesAndTheArt.kt`; its constructor runs (Kotlin for Forge provides the Kotlin entry).
-Both immediately call `CommonObject.init()`. Keep loader entrypoints tiny; put logic in `common`.
+Both immediately call `CommonSetup.init()`. Keep loader entrypoints tiny; put logic in `common`.
 
-**4. Mixins are Java-only and registered per config.**
-Vanilla-class patching uses SpongePowered Mixin, written in **Java** (Kotlin is not viable here). Configs: `common/.../resources/agesandtheart.mixins.json` (shared), plus `agesandtheart.fabric.mixins.json` / `agesandtheart.neoforge.mixins.json` (loader-specific). Each config is referenced from that loader's metadata (`fabric.mod.json` `mixins`, `neoforge.mods.toml` `[[mixins]]`). Adding a Mixin = create the Java class under a `mixin/` package + list it in the appropriate `.mixins.json`. Prefer loader events/APIs over Mixins when an option exists.
+**4. No Mixins currently — add them Java-side only when needed.**
+The mod has **no Mixins** right now; everything goes through Fabric API hooks + the `ServiceLoader` split, so the template's demo mixins were removed. If you genuinely must patch a vanilla class: Mixins are written in **Java** (Kotlin isn't viable), one `*.mixins.json` config per module referenced from each loader's metadata (`fabric.mod.json`, `neoforge.mods.toml`). On **Loom 1.13** the mixin annotation processor / refmap is off by default — do **not** re-add a `loom { mixin { … } }` block. Always prefer a loader event/API over a Mixin when one exists.
 
 ## Ages / runtime dimensions
 
