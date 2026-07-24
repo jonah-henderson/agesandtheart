@@ -34,3 +34,10 @@ Thumbs.db
 
 # Local one-off helper scripts (not part of the mod)
 /rehome-session.sh
+
+# Reference images dropped in the repo root (kept locally, not committed).
+# Mod textures live under */src/main/resources/assets/ and are unaffected.
+/*.jpg
+/*.jpeg
+/*.png
+/*.webp
