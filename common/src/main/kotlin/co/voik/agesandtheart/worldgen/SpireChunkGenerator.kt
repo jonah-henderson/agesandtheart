@@ -242,7 +242,7 @@ class SpireChunkGenerator(private val biomes: BiomeSource, private val seed: Lon
             ).apply(instance, ::SpireChunkGenerator)
         }
 
-        private val TWO_PI = 2.0 * Math.PI
+        private const val TWO_PI = 2.0 * Math.PI
 
         // Vertical layout (matches the agesandtheart:age dimension type: min_y -64, height 384).
         private const val MIN_Y = -64
