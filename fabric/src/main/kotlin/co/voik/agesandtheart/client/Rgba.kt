@@ -10,6 +10,14 @@ import org.joml.Matrix4f
  */
 data class Rgba(val red: Float, val green: Float, val blue: Float, val alpha: Float = 1.0f)
 
+/** Linear interpolation toward [other]; [amount] 0 = this, 1 = other. */
+fun Rgba.lerp(other: Rgba, amount: Float): Rgba = Rgba(
+    red + (other.red - red) * amount,
+    green + (other.green - green) * amount,
+    blue + (other.blue - blue) * amount,
+    alpha + (other.alpha - alpha) * amount,
+)
+
 /** Adds a position vertex tinted with [color] — keeps draw loops reading like English. */
 fun VertexConsumer.addColoredVertex(matrix: Matrix4f, x: Float, y: Float, z: Float, color: Rgba): VertexConsumer =
     addVertex(matrix, x, y, z).setColor(color.red, color.green, color.blue, color.alpha)
