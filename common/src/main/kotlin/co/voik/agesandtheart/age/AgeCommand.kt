@@ -29,6 +29,7 @@ import net.minecraft.world.level.levelgen.Heightmap
  *   /age create pyrvaried <name> — the same, with each pyramid turned and resized
  *   /age create hills <name>     — a noise-heightmap Age: rolling hills over a sea
  *   /age create shapes <name>    — a walkable sampler of the shape vocabulary and its combinators
+ *   /age create pillars <name>   — colossal rectangular pillars on a jittered grid, over an ocean
  *   /age tp <name>               — travel to an Age
  *   /age gen <name>              — force-generate the spawn chunk and report what the generator made
  *   /age bench <name> [radius]   — time generating the chunks around the origin (ms/chunk)
@@ -101,6 +102,12 @@ object AgeCommand {
                 Commands.literal("shapes").then(
                     Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
                         .executes { context -> runCreate(context, AgeGeneration.GENERATOR_SHAPES) },
+                ),
+            )
+            .then(
+                Commands.literal("pillars").then(
+                    Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
+                        .executes { context -> runCreate(context, AgeGeneration.GENERATOR_PILLARS) },
                 ),
             )
 
