@@ -3,6 +3,7 @@ package co.voik.agesandtheart.worldgen.field
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
+import net.minecraft.core.Direction
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import net.minecraft.world.level.levelgen.synth.NormalNoise
 import kotlin.math.abs
@@ -170,6 +171,166 @@ data class Slab(val lowY: Int, val highY: Int) : TerrainField {
                 Codec.INT.fieldOf("low_y").forGetter(Slab::lowY),
                 Codec.INT.fieldOf("high_y").forGetter(Slab::highY),
             ).apply(instance, ::Slab)
+        }
+    }
+}
+
+/**
+ * Everything on one side of an infinite plane: solid where `normal · position >= distance`. The
+ * toolkit's most primitive primitive — on its own it is a ground plane or a tilted shear, but its real
+ * job is as a building block.
+ *
+ * **Convex polyhedra are an [Intersect] of these**, which is why there is no polyhedron primitive: a
+ * wedge is a box cut by one plane, an octahedron is eight planes, a cut gem is however many you like.
+ * A plane through a column fixes a single height, so the span stays analytic and exact.
+ *
+ * Solid everywhere horizontally, so like [Slab] it is never an instancing template.
+ */
+data class HalfSpace(
+    val normalX: Double,
+    val normalY: Double,
+    val normalZ: Double,
+    val distance: Double,
+) : TerrainField {
+    override val kind = FieldKind.HALF_SPACE
+    override val horizontalReach = Double.POSITIVE_INFINITY
+
+    override fun columnSpans(worldX: Int, worldZ: Int): Spans {
+        // What the vertical part of the normal has to account for, once x and z have had their say.
+        val remaining = distance - normalX * worldX - normalZ * worldZ
+        return when {
+            normalY > 0.0 -> Spans.of(boundedY(ceil(remaining / normalY)), Spans.HIGHEST_Y)
+            normalY < 0.0 -> Spans.of(Spans.LOWEST_Y, boundedY(floor(remaining / normalY)))
+            // A vertical face: the column is wholly on one side of it or the other.
+            remaining <= 0.0 -> Spans.EVERYWHERE
+            else -> Spans.EMPTY
+        }
+    }
+
+    // Saturates rather than overflowing when the plane is near-horizontal and the division blows up.
+    private fun boundedY(y: Double): Int = y.toInt().coerceIn(Spans.LOWEST_Y, Spans.HIGHEST_Y)
+
+    override fun resized(factor: Double, pivotY: Int) =
+        // Scaling moves the plane's offset with it, except along Y, where the pivot plane holds still.
+        copy(distance = distance * factor - normalY * pivotY * (factor - 1.0))
+
+    companion object {
+        val CODEC: MapCodec<HalfSpace> = RecordCodecBuilder.mapCodec { instance ->
+            instance.group(
+                Codec.DOUBLE.fieldOf("normal_x").forGetter(HalfSpace::normalX),
+                Codec.DOUBLE.fieldOf("normal_y").forGetter(HalfSpace::normalY),
+                Codec.DOUBLE.fieldOf("normal_z").forGetter(HalfSpace::normalZ),
+                Codec.DOUBLE.fieldOf("distance").forGetter(HalfSpace::distance),
+            ).apply(instance, ::HalfSpace)
+        }
+    }
+}
+
+/**
+ * A circular shaft of length `2 · halfLength` running along [axis], centred on ([centerX], [centerY],
+ * [centerZ]). Standing on [Direction.Axis.Y] it is a pillar, tower or mesa core; **lying on [X][
+ * Direction.Axis.X] or [Z][Direction.Axis.Z] it is a tunnel or the opening of an arch.**
+ *
+ * A lying cylinder has to be its own shape rather than a turned upright one: the field contract answers
+ * *vertical* extents for a column, so a quarter-turn about a horizontal axis would need the child's
+ * horizontal extent at a given height — a question `columnSpans` cannot ask. (Turning about Y is fine,
+ * which is why instancing can do yaw and not pitch.) Each orientation is analytic in its own right,
+ * so nothing is lost by naming them.
+ */
+data class Cylinder(
+    val axis: Direction.Axis,
+    val centerX: Int,
+    val centerY: Int,
+    val centerZ: Int,
+    val radius: Double,
+    val halfLength: Double,
+) : TerrainField {
+    override val kind = FieldKind.CYLINDER
+
+    override val horizontalReach = originDistance(centerX, centerZ) + when (axis) {
+        Direction.Axis.Y -> radius
+        // Lying down, the footprint is a rectangle: half its diagonal is the reach past the centre.
+        Direction.Axis.X, Direction.Axis.Z -> sqrt(halfLength * halfLength + radius * radius)
+    }
+
+    override fun columnSpans(worldX: Int, worldZ: Int): Spans = when (axis) {
+        // Upright: a circle in the horizontal plane, the same vertical run everywhere inside it.
+        Direction.Axis.Y ->
+            if (horizontalDistance(worldX, worldZ, centerX, centerZ) > radius) {
+                Spans.EMPTY
+            } else {
+                Spans.of(ceil(centerY - halfLength).toInt(), floor(centerY + halfLength).toInt())
+            }
+        // Lying down: within the shaft's length, the column cuts a chord of the circular cross-section.
+        Direction.Axis.X -> lyingSpans(along = worldX - centerX, across = worldZ - centerZ)
+        Direction.Axis.Z -> lyingSpans(along = worldZ - centerZ, across = worldX - centerX)
+    }
+
+    private fun lyingSpans(along: Int, across: Int): Spans {
+        if (abs(along) > halfLength || abs(across) > radius) return Spans.EMPTY
+        val reach = sqrt(radius * radius - across.toDouble() * across)
+        return Spans.of(ceil(centerY - reach).toInt(), floor(centerY + reach).toInt())
+    }
+
+    override fun resized(factor: Double, pivotY: Int) = copy(
+        centerX = scaled(centerX, factor),
+        centerY = scaledAbout(centerY, factor, pivotY),
+        centerZ = scaled(centerZ, factor),
+        radius = radius * factor,
+        halfLength = halfLength * factor,
+    )
+
+    companion object {
+        val CODEC: MapCodec<Cylinder> = RecordCodecBuilder.mapCodec { instance ->
+            instance.group(
+                Direction.Axis.CODEC.fieldOf("axis").forGetter(Cylinder::axis),
+                Codec.INT.fieldOf("center_x").forGetter(Cylinder::centerX),
+                Codec.INT.fieldOf("center_y").forGetter(Cylinder::centerY),
+                Codec.INT.fieldOf("center_z").forGetter(Cylinder::centerZ),
+                Codec.DOUBLE.fieldOf("radius").forGetter(Cylinder::radius),
+                Codec.DOUBLE.fieldOf("half_length").forGetter(Cylinder::halfLength),
+            ).apply(instance, ::Cylinder)
+        }
+    }
+}
+
+/** An axis-aligned cuboid — walls, plinths, monoliths, and the stock to carve other shapes from. */
+data class Box(
+    val minX: Int,
+    val minY: Int,
+    val minZ: Int,
+    val maxX: Int,
+    val maxY: Int,
+    val maxZ: Int,
+) : TerrainField {
+    override val kind = FieldKind.BOX
+
+    // The farthest solid point is whichever corner sits furthest from the local origin.
+    override val horizontalReach =
+        originDistance(maxOf(abs(minX), abs(maxX)), maxOf(abs(minZ), abs(maxZ)))
+
+    override fun columnSpans(worldX: Int, worldZ: Int): Spans =
+        if (worldX < minX || worldX > maxX || worldZ < minZ || worldZ > maxZ) Spans.EMPTY else Spans.of(minY, maxY)
+
+    override fun resized(factor: Double, pivotY: Int) = Box(
+        minX = scaled(minX, factor),
+        minY = scaledAbout(minY, factor, pivotY),
+        minZ = scaled(minZ, factor),
+        maxX = scaled(maxX, factor),
+        maxY = scaledAbout(maxY, factor, pivotY),
+        maxZ = scaled(maxZ, factor),
+    )
+
+    companion object {
+        val CODEC: MapCodec<Box> = RecordCodecBuilder.mapCodec { instance ->
+            instance.group(
+                Codec.INT.fieldOf("min_x").forGetter(Box::minX),
+                Codec.INT.fieldOf("min_y").forGetter(Box::minY),
+                Codec.INT.fieldOf("min_z").forGetter(Box::minZ),
+                Codec.INT.fieldOf("max_x").forGetter(Box::maxX),
+                Codec.INT.fieldOf("max_y").forGetter(Box::maxY),
+                Codec.INT.fieldOf("max_z").forGetter(Box::maxZ),
+            ).apply(instance, ::Box)
         }
     }
 }

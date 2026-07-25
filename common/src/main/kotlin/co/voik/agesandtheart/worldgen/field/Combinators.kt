@@ -23,6 +23,35 @@ data class Union(val fields: List<TerrainField>) : TerrainField {
     }
 }
 
+/**
+ * Solid only where *every* child is solid — the CSG intersection. The shaping workhorse: it clips one
+ * shape to another (a hillside cut to a circle becomes a mesa) and, given [HalfSpace] children, *is*
+ * the toolkit's convex polyhedron.
+ */
+data class Intersect(val fields: List<TerrainField>) : TerrainField {
+    override val kind = FieldKind.INTERSECT
+
+    // Intersecting can only remove solidity, so the tightest child bounds the result.
+    override val horizontalReach = fields.minOfOrNull { it.horizontalReach } ?: 0.0
+
+    override fun columnSpans(worldX: Int, worldZ: Int): Spans {
+        if (fields.isEmpty()) return Spans.EMPTY
+        return fields.fold(Spans.EVERYWHERE) { accumulated, field ->
+            if (accumulated.ranges.isEmpty()) accumulated else accumulated.intersect(field.columnSpans(worldX, worldZ))
+        }
+    }
+
+    override fun resized(factor: Double, pivotY: Int) = Intersect(fields.map { it.resized(factor, pivotY) })
+
+    companion object {
+        fun codec(self: Codec<TerrainField>): MapCodec<Intersect> = RecordCodecBuilder.mapCodec { instance ->
+            instance.group(
+                self.listOf().fieldOf("fields").forGetter(Intersect::fields),
+            ).apply(instance, ::Intersect)
+        }
+    }
+}
+
 /** Solid where [base] is solid but [cut] is not — the CSG difference (caves, canyons, cliff edges). */
 data class Subtract(val base: TerrainField, val cut: TerrainField) : TerrainField {
     override val kind = FieldKind.SUBTRACT

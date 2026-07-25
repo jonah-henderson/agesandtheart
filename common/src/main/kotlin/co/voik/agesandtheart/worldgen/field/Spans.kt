@@ -17,6 +17,27 @@ class Spans private constructor(val ranges: List<IntRange>) {
     /** Solid where either column is solid. */
     fun union(other: Spans): Spans = normalise(ranges + other.ranges)
 
+    /**
+     * Solid only where *both* columns are solid — the CSG intersection. Both sides are normalised and
+     * walked in order, so the overlaps come out normalised too.
+     */
+    fun intersect(other: Spans): Spans {
+        if (ranges.isEmpty() || other.ranges.isEmpty()) return EMPTY
+        val overlaps = ArrayList<IntRange>(minOf(ranges.size, other.ranges.size))
+        var mine = 0
+        var theirs = 0
+        while (mine < ranges.size && theirs < other.ranges.size) {
+            val ours = ranges[mine]
+            val yours = other.ranges[theirs]
+            val low = maxOf(ours.first, yours.first)
+            val high = minOf(ours.last, yours.last)
+            if (low <= high) overlaps += low..high
+            // Retire whichever ends first; the other may still overlap what comes next.
+            if (ours.last < yours.last) mine++ else theirs++
+        }
+        return if (overlaps.isEmpty()) EMPTY else Spans(overlaps)
+    }
+
     /** Solid where this column is solid but the cuts are not. */
     fun subtract(cuts: Spans): Spans {
         var remaining = ranges
@@ -37,6 +58,17 @@ class Spans private constructor(val ranges: List<IntRange>) {
 
     companion object {
         val EMPTY = Spans(emptyList())
+
+        /**
+         * The toolkit's "all the way down / all the way up". Far outside any Minecraft world height —
+         * the generator clips to the real one — but nowhere near `Int` overflow, so span arithmetic on
+         * an unbounded shape like [HalfSpace] stays safe.
+         */
+        const val LOWEST_Y = -4096
+        const val HIGHEST_Y = 4096
+
+        /** Solid everywhere in the column. */
+        val EVERYWHERE = Spans(listOf(LOWEST_Y..HIGHEST_Y))
 
         /** A single interval, inclusive; empty when [high] < [low]. */
         fun of(low: Int, high: Int): Spans = if (high < low) EMPTY else Spans(listOf(low..high))

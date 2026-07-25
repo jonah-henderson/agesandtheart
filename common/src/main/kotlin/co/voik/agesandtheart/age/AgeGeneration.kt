@@ -3,6 +3,7 @@ package co.voik.agesandtheart.age
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.worldgen.NoiseField
 import co.voik.agesandtheart.worldgen.PyramidField
+import co.voik.agesandtheart.worldgen.ShapesField
 import co.voik.agesandtheart.worldgen.SpireChunkGenerator
 import co.voik.agesandtheart.worldgen.SpireField
 import net.minecraft.core.registries.Registries
@@ -31,6 +32,7 @@ object AgeGeneration {
     const val GENERATOR_PYRINGS = "pyrings"
     const val GENERATOR_PYRVARIED = "pyrvaried"
     const val GENERATOR_HILLS = "hills"
+    const val GENERATOR_SHAPES = "shapes"
     /**
      * The Spire dimension type (registered as a datapack dimension-type at load). Its `effects` id is
      * `agesandtheart:age`, the marker the client watches to attach the custom Spire sky renderer.
@@ -65,6 +67,7 @@ object AgeGeneration {
             GENERATOR_PYRINGS -> PyramidField.ringsGenerator(biomes)
             GENERATOR_PYRVARIED -> PyramidField.variedGenerator(biomes)
             GENERATOR_HILLS -> NoiseField.hillsGenerator(biomes)
+            GENERATOR_SHAPES -> ShapesField.generator(biomes)
             else -> SpireChunkGenerator(biomes, seed)
         }
     }

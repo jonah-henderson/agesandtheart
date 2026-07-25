@@ -61,8 +61,12 @@ enum class FieldKind(private val makeCodec: (Codec<TerrainField>) -> MapCodec<ou
     CONE({ Cone.CODEC }),
     PYRAMID({ Pyramid.CODEC }),
     SLAB({ Slab.CODEC }),
+    HALF_SPACE({ HalfSpace.CODEC }),
+    CYLINDER({ Cylinder.CODEC }),
+    BOX({ Box.CODEC }),
     NOISE_HEIGHTMAP({ NoiseHeightmap.CODEC }),
     UNION({ self -> Union.codec(self) }),
+    INTERSECT({ self -> Intersect.codec(self) }),
     SUBTRACT({ self -> Subtract.codec(self) }),
     INSTANCED({ self -> Instanced.codec(self) });
 
