@@ -94,10 +94,16 @@ object Palette {
         solid(Blocks.STONE.defaultBlockState()),
     )
 
-    /** Bare weathered rock, no soil at all — for monoliths and the shape sampler. */
+    /**
+     * Bare weathered rock, no soil at all — for monoliths and the shape sampler.
+     *
+     * Every block here is deliberately carver-replaceable (`#minecraft:base_stone_overworld`). Cobble
+     * was the obvious choice for the crust and is *not* in that tag, so caves would have cut the rock
+     * and left cobblestone shells hanging in their mouths; tuff reads the same and carves cleanly.
+     */
     val BARE_ROCK: SurfaceRules.RuleSource = layers(
         where(atSurface(), Blocks.ANDESITE.defaultBlockState()),
-        where(withinDepth(CRUST_DEPTH), Blocks.COBBLESTONE.defaultBlockState()),
+        where(withinDepth(CRUST_DEPTH), Blocks.TUFF.defaultBlockState()),
         deepslateFloor(),
         solid(Blocks.STONE.defaultBlockState()),
     )

@@ -8,6 +8,7 @@ import co.voik.agesandtheart.worldgen.ShapesField
 import co.voik.agesandtheart.worldgen.VanillaDelegate
 import co.voik.agesandtheart.worldgen.SpireChunkGenerator
 import co.voik.agesandtheart.worldgen.SpireField
+import net.minecraft.core.HolderSet
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
@@ -15,6 +16,8 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.biome.Biomes
 import net.minecraft.world.level.biome.FixedBiomeSource
 import net.minecraft.world.level.chunk.ChunkGenerator
+import net.minecraft.world.level.levelgen.GenerationStep
+import net.minecraft.world.level.levelgen.carver.ConfiguredWorldCarver
 
 /**
  * Builds the generation recipe for an Age.
@@ -78,12 +81,32 @@ object AgeGeneration {
             GENERATOR_PYRAMIDS -> PyramidField.generator(biomes)
             GENERATOR_PYRINGS -> PyramidField.ringsGenerator(biomes)
             GENERATOR_PYRVARIED -> PyramidField.variedGenerator(biomes)
-            GENERATOR_HILLS -> NoiseField.hillsGenerator(biomes)
+            GENERATOR_HILLS -> NoiseField.hillsGenerator(biomes, undergroundCarvers(server))
             GENERATOR_SHAPES -> ShapesField.generator(biomes)
             GENERATOR_PILLARS -> PillarField.generator(biomes)
             else -> SpireChunkGenerator(biomes, seed)
         }
     }
+
+    /**
+     * Vanilla's cave and canyon carvers, resolved from the registry so an Age can name them in its own
+     * recipe. Carvers normally ride on a biome, but field Ages sit on the barren `the_void`, which
+     * carries none — and an Age already describes its whole world as replayable data, so its carvers
+     * belong there too. Keys are built by hand rather than taken from `net.minecraft.data.worldgen`,
+     * which is datagen territory.
+     */
+    private fun undergroundCarvers(server: MinecraftServer): Map<GenerationStep.Carving, HolderSet<ConfiguredWorldCarver<*>>> {
+        val configured = server.registryAccess().lookupOrThrow(Registries.CONFIGURED_CARVER)
+        val caves = HolderSet.direct(
+            configured.getOrThrow(vanillaCarver("cave")),
+            configured.getOrThrow(vanillaCarver("cave_extra_underground")),
+            configured.getOrThrow(vanillaCarver("canyon")),
+        )
+        return mapOf(GenerationStep.Carving.AIR to caves)
+    }
+
+    private fun vanillaCarver(name: String): ResourceKey<ConfiguredWorldCarver<*>> =
+        ResourceKey.create(Registries.CONFIGURED_CARVER, ResourceLocation.withDefaultNamespace(name))
 
     /** The dimension type (and thus sky) for an Age — only the Spire preset keeps the custom Age sky. */
     fun dimensionType(server: MinecraftServer, id: ResourceLocation): ResourceLocation =

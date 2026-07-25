@@ -4,8 +4,12 @@ import co.voik.agesandtheart.worldgen.field.AmbientMedium
 import co.voik.agesandtheart.worldgen.field.NoiseHeightmap
 import co.voik.agesandtheart.worldgen.field.Palette
 import co.voik.agesandtheart.worldgen.field.TerrainField
+import co.voik.agesandtheart.worldgen.field.WaterTable
+import net.minecraft.core.HolderSet
 import net.minecraft.world.level.biome.BiomeSource
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.levelgen.GenerationStep
+import net.minecraft.world.level.levelgen.carver.ConfiguredWorldCarver
 
 /**
  * The smooth-field preset: rolling hills over a sea, the counterpart to the toolkit's hard-edged CSG
@@ -28,14 +32,31 @@ object NoiseField {
         floorY = -64,
     )
 
-    fun hillsGenerator(biomeSource: BiomeSource): FieldChunkGenerator =
+    /**
+     * [carvers] cut caves and canyons out of the hills — supplied by the caller because configured
+     * carvers are registry objects, and an Age names them as part of its recipe rather than inheriting
+     * them from a biome (see [FieldChunkGenerator.applyCarvers]).
+     */
+    fun hillsGenerator(
+        biomeSource: BiomeSource,
+        carvers: Map<GenerationStep.Carving, HolderSet<ConfiguredWorldCarver<*>>> = emptyMap(),
+    ): FieldChunkGenerator =
         FieldChunkGenerator(
             biomeSource,
             hills(),
             AmbientMedium.sea(Blocks.WATER.defaultBlockState(), level = SEA_LEVEL),
             Palette.VERDANT,
+            carvers,
+            // Deep caves run mostly dry, with wet pockets where the rock is flooded, while the sea
+            // still wins just beneath the seabed so nothing hangs over a hollow.
+            WaterTable.matching(
+                AmbientMedium.sea(Blocks.WATER.defaultBlockState(), level = SEA_LEVEL),
+                seaLevel = SEA_LEVEL,
+                seed = TABLE_SEED,
+            ),
         )
 
     private const val TERRAIN_SEED = 0x1DEA_5EEDL
     private const val SEA_LEVEL = 63
+    private const val TABLE_SEED = 0xEBBED_1L
 }
