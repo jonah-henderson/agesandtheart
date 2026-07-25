@@ -30,6 +30,8 @@ import net.minecraft.world.level.levelgen.Heightmap
  *   /age create hills <name>     — a noise-heightmap Age: rolling hills over a sea
  *   /age create shapes <name>    — a walkable sampler of the shape vocabulary and its combinators
  *   /age create pillars <name>   — colossal rectangular pillars on a jittered grid, over an ocean
+ *   /age create vanilla <name>   — Minecraft's own overworld generation (Tier-B delegate; bench reference)
+ *   /age create vanillabare <n>  — the same pipeline over a barren biome, so nothing decorates
  *   /age tp <name>               — travel to an Age
  *   /age gen <name>              — force-generate the spawn chunk and report what the generator made
  *   /age bench <name> [radius]   — time generating the chunks around the origin (ms/chunk)
@@ -108,6 +110,18 @@ object AgeCommand {
                 Commands.literal("pillars").then(
                     Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
                         .executes { context -> runCreate(context, AgeGeneration.GENERATOR_PILLARS) },
+                ),
+            )
+            .then(
+                Commands.literal("vanilla").then(
+                    Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
+                        .executes { context -> runCreate(context, AgeGeneration.GENERATOR_VANILLA) },
+                ),
+            )
+            .then(
+                Commands.literal("vanillabare").then(
+                    Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
+                        .executes { context -> runCreate(context, AgeGeneration.GENERATOR_VANILLA_BARE) },
                 ),
             )
 

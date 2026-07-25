@@ -5,6 +5,7 @@ import co.voik.agesandtheart.worldgen.NoiseField
 import co.voik.agesandtheart.worldgen.PillarField
 import co.voik.agesandtheart.worldgen.PyramidField
 import co.voik.agesandtheart.worldgen.ShapesField
+import co.voik.agesandtheart.worldgen.VanillaDelegate
 import co.voik.agesandtheart.worldgen.SpireChunkGenerator
 import co.voik.agesandtheart.worldgen.SpireField
 import net.minecraft.core.registries.Registries
@@ -35,6 +36,10 @@ object AgeGeneration {
     const val GENERATOR_HILLS = "hills"
     const val GENERATOR_SHAPES = "shapes"
     const val GENERATOR_PILLARS = "pillars"
+
+    /** Tier-B vanilla delegates — real Minecraft generation, and our benchmark reference points. */
+    const val GENERATOR_VANILLA = "vanilla"
+    const val GENERATOR_VANILLA_BARE = "vanillabare"
     /**
      * The Spire dimension type (registered as a datapack dimension-type at load). Its `effects` id is
      * `agesandtheart:age`, the marker the client watches to attach the custom Spire sky renderer.
@@ -53,6 +58,11 @@ object AgeGeneration {
 
     fun chunkGenerator(server: MinecraftServer, id: ResourceLocation, seed: Long): ChunkGenerator {
         val generatorKey = AgeSavedData.get(server).generatorKey(id)
+        // Tier-B delegates bring their own biome source, so they answer before the fixed one is built.
+        when (generatorKey) {
+            GENERATOR_VANILLA -> return VanillaDelegate.overworld(server)
+            GENERATOR_VANILLA_BARE -> return VanillaDelegate.bareOverworld(server)
+        }
         // Spire uses the moody green plasma biome; field Ages use vanilla the_void — a bright, normal
         // sky with no features/structures/mobs. (Plains pulled in village structures, which crash on
         // our flat terrain with "Bound must be positive"; revisit when we enable real decoration.)
