@@ -6,6 +6,7 @@ import co.voik.agesandtheart.worldgen.field.Cylinder
 import co.voik.agesandtheart.worldgen.field.HalfSpace
 import co.voik.agesandtheart.worldgen.field.Intersect
 import co.voik.agesandtheart.worldgen.field.NoiseHeightmap
+import co.voik.agesandtheart.worldgen.field.Palette
 import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.Subtract
 import co.voik.agesandtheart.worldgen.field.TerrainField
@@ -31,7 +32,7 @@ object ShapesField {
     }
 
     fun generator(biomeSource: BiomeSource): FieldChunkGenerator =
-        FieldChunkGenerator(biomeSource, world(), AmbientMedium.VOID)
+        FieldChunkGenerator(biomeSource, world(), AmbientMedium.VOID, Palette.BARE_ROCK)
 
     /** Station 0 — a bare upright [Cylinder]. */
     private fun tower() = Cylinder(

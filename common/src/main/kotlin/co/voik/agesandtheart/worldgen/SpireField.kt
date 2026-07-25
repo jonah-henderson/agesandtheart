@@ -3,6 +3,7 @@ package co.voik.agesandtheart.worldgen
 import co.voik.agesandtheart.worldgen.field.AmbientMedium
 import co.voik.agesandtheart.worldgen.field.Cone
 import co.voik.agesandtheart.worldgen.field.Ellipsoid
+import co.voik.agesandtheart.worldgen.field.Palette
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Union
 import net.minecraft.world.level.biome.BiomeSource
@@ -38,5 +39,10 @@ object SpireField {
     }
 
     fun generator(biomeSource: BiomeSource): FieldChunkGenerator =
-        FieldChunkGenerator(biomeSource, island(), AmbientMedium.sea(Blocks.WATER.defaultBlockState(), level = 0))
+        FieldChunkGenerator(
+            biomeSource,
+            island(),
+            AmbientMedium.sea(Blocks.WATER.defaultBlockState(), level = 0),
+            Palette.VERDANT,
+        )
 }

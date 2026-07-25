@@ -2,6 +2,7 @@ package co.voik.agesandtheart.worldgen
 
 import co.voik.agesandtheart.worldgen.field.AmbientMedium
 import co.voik.agesandtheart.worldgen.field.NoiseHeightmap
+import co.voik.agesandtheart.worldgen.field.Palette
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import net.minecraft.world.level.biome.BiomeSource
 import net.minecraft.world.level.block.Blocks
@@ -32,6 +33,7 @@ object NoiseField {
             biomeSource,
             hills(),
             AmbientMedium.sea(Blocks.WATER.defaultBlockState(), level = SEA_LEVEL),
+            Palette.VERDANT,
         )
 
     private const val TERRAIN_SEED = 0x1DEA_5EEDL

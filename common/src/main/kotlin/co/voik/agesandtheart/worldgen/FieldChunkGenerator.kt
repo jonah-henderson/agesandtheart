@@ -1,10 +1,12 @@
 package co.voik.agesandtheart.worldgen
 
 import co.voik.agesandtheart.worldgen.field.AmbientMedium
+import co.voik.agesandtheart.worldgen.field.Palette
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.BlockPos
+import net.minecraft.core.registries.Registries
 import net.minecraft.server.level.WorldGenRegion
 import net.minecraft.world.level.LevelHeightAccessor
 import net.minecraft.world.level.NoiseColumn
@@ -15,9 +17,15 @@ import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
 import net.minecraft.world.level.chunk.ChunkGenerator
+import net.minecraft.world.level.levelgen.Aquifer
+import net.minecraft.world.level.levelgen.Beardifier
 import net.minecraft.world.level.levelgen.GenerationStep
 import net.minecraft.world.level.levelgen.Heightmap
+import net.minecraft.world.level.levelgen.NoiseChunk
+import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
 import net.minecraft.world.level.levelgen.RandomState
+import net.minecraft.world.level.levelgen.SurfaceRules
+import net.minecraft.world.level.levelgen.WorldGenerationContext
 import net.minecraft.world.level.levelgen.blending.Blender
 import java.util.concurrent.CompletableFuture
 
@@ -35,6 +43,7 @@ class FieldChunkGenerator(
     private val biomeSource: BiomeSource,
     private val field: TerrainField,
     private val ambient: AmbientMedium,
+    private val surfaceRule: SurfaceRules.RuleSource = Palette.PLAIN_STONE,
 ) : ChunkGenerator(biomeSource) {
 
     override fun codec(): MapCodec<out ChunkGenerator> = CODEC
@@ -90,9 +99,46 @@ class FieldChunkGenerator(
         return NoiseColumn(MIN_Y, column)
     }
 
-    // --- Next wiring: surface rules in buildSurface, biome carvers in applyCarvers. Stubbed for now. ---
+    /**
+     * Repaints the shape the field laid down, according to [surfaceRule] — vanilla's own
+     * [net.minecraft.world.level.levelgen.SurfaceSystem] doing the column walk for us (see [Palette]).
+     *
+     * The one piece it wants that a field Age has no use for is a [NoiseChunk]. We hand it one built on
+     * `NoiseGeneratorSettings.dummy()`, whose router is inert and whose aquifers are off — the same
+     * settings the game already used to build the [RandomState] it passes us, since this generator is
+     * not a `NoiseBasedChunkGenerator`. So nothing here consults noise; it is an access toll, paid once
+     * per chunk.
+     */
+    override fun buildSurface(level: WorldGenRegion, structureManager: StructureManager, randomState: RandomState, chunk: ChunkAccess) {
+        val noiseChunk = chunk.getOrCreateNoiseChunk { access ->
+            NoiseChunk.forChunk(
+                access,
+                randomState,
+                // The real beardifier rather than the inert marker: it is public, and it is what will
+                // let structures flatten the ground around themselves once they are switched on.
+                Beardifier.forStructuresInChunk(structureManager, access.pos),
+                NoiseGeneratorSettings.dummy(),
+                ambientFluid,
+                Blender.empty(),
+            )
+        }
+        randomState.surfaceSystem().buildSurface(
+            randomState,
+            level.biomeManager,
+            level.registryAccess().registryOrThrow(Registries.BIOME),
+            /* useLegacyRandomSource = */ false,
+            WorldGenerationContext(this, level),
+            chunk,
+            noiseChunk,
+            surfaceRule,
+        )
+    }
 
-    override fun buildSurface(level: WorldGenRegion, structureManager: StructureManager, randomState: RandomState, chunk: ChunkAccess) = Unit
+    // The ambient sea, in the shape the surface machinery asks for; aquifers are off, so this is only
+    // ever consulted as a plain answer to "what fluid is at this height", which the medium already knows.
+    private val ambientFluid = Aquifer.FluidPicker { _, _, _ -> Aquifer.FluidStatus(ambient.level, ambient.block) }
+
+    // --- Next wiring: biome carvers in applyCarvers. Stubbed for now. ---
 
     override fun applyCarvers(
         level: WorldGenRegion,
@@ -120,6 +166,9 @@ class FieldChunkGenerator(
                 BiomeSource.CODEC.fieldOf("biome_source").forGetter { it.biomeSource },
                 TerrainField.CODEC.fieldOf("field").forGetter { it.field },
                 AmbientMedium.CODEC.forGetter { it.ambient },
+                // Optional so field Ages serialised before palettes existed still load.
+                SurfaceRules.RuleSource.CODEC.optionalFieldOf("surface_rule", Palette.PLAIN_STONE)
+                    .forGetter { it.surfaceRule },
             ).apply(instance, ::FieldChunkGenerator)
         }
 

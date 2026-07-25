@@ -4,6 +4,7 @@ import co.voik.agesandtheart.worldgen.field.AmbientMedium
 import co.voik.agesandtheart.worldgen.field.Density
 import co.voik.agesandtheart.worldgen.field.Grid
 import co.voik.agesandtheart.worldgen.field.Instanced
+import co.voik.agesandtheart.worldgen.field.Palette
 import co.voik.agesandtheart.worldgen.field.Placement
 import co.voik.agesandtheart.worldgen.field.Pyramid
 import co.voik.agesandtheart.worldgen.field.Radial
@@ -24,12 +25,12 @@ object PyramidField {
 
     /** Density-gradient grid: pyramids crowd the origin and thin out with distance. */
     fun generator(biomeSource: BiomeSource): FieldChunkGenerator =
-        world(gradientGrid(), Variation.NONE).let { FieldChunkGenerator(biomeSource, it, AmbientMedium.VOID) }
+        world(gradientGrid(), Variation.NONE).let { FieldChunkGenerator(biomeSource, it, AmbientMedium.VOID, Palette.BARE_ROCK) }
 
     /** Concentric rings of pyramids around an empty centre. */
     fun ringsGenerator(biomeSource: BiomeSource): FieldChunkGenerator =
         world(Radial(ringSpacing = 64.0, arcSpacing = 56.0, jitter = 8.0, density = Density.uniform()), Variation.NONE)
-            .let { FieldChunkGenerator(biomeSource, it, AmbientMedium.VOID) }
+            .let { FieldChunkGenerator(biomeSource, it, AmbientMedium.VOID, Palette.BARE_ROCK) }
 
     /**
      * The same gradient grid, but every copy takes one of [YAW_STEPS] orientations and one of
@@ -46,7 +47,7 @@ object PyramidField {
                 scaleSteps = SCALE_STEPS,
                 pivotY = GROUND_TOP + 1,
             ),
-        ).let { FieldChunkGenerator(biomeSource, it, AmbientMedium.VOID) }
+        ).let { FieldChunkGenerator(biomeSource, it, AmbientMedium.VOID, Palette.BARE_ROCK) }
 
     private fun gradientGrid() =
         Grid(spacing = 40.0, jitter = 10.0, density = Density.radial(atOrigin = 1.0, atEdge = 0.1, falloffRadius = 420.0))

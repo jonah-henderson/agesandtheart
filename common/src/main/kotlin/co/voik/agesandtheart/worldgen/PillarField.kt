@@ -5,6 +5,7 @@ import co.voik.agesandtheart.worldgen.field.Box
 import co.voik.agesandtheart.worldgen.field.Density
 import co.voik.agesandtheart.worldgen.field.Grid
 import co.voik.agesandtheart.worldgen.field.Instanced
+import co.voik.agesandtheart.worldgen.field.Palette
 import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Union
@@ -46,6 +47,7 @@ object PillarField {
             biomeSource,
             world(),
             AmbientMedium.sea(Blocks.WATER.defaultBlockState(), level = SEA_LEVEL),
+            Palette.BARE_ROCK,
         )
 
     private const val WORLD_FLOOR = -64
