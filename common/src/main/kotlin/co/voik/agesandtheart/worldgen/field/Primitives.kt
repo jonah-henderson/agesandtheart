@@ -3,6 +3,8 @@ package co.voik.agesandtheart.worldgen.field
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
+import net.minecraft.world.level.levelgen.XoroshiroRandomSource
+import net.minecraft.world.level.levelgen.synth.NormalNoise
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -168,6 +170,73 @@ data class Slab(val lowY: Int, val highY: Int) : TerrainField {
                 Codec.INT.fieldOf("low_y").forGetter(Slab::lowY),
                 Codec.INT.fieldOf("high_y").forGetter(Slab::highY),
             ).apply(instance, ::Slab)
+        }
+    }
+}
+
+/**
+ * A smooth, organic surface: sampled noise mapped to a surface height, solid from [floorY] up to it.
+ * The toolkit's answer to rolling hills and dunes — the shapes CSG solids can't express.
+ *
+ * The noise is **Minecraft's own [NormalNoise]**, not a reimplementation, so [firstOctave] and
+ * [amplitudes] are vanilla's own vocabulary: octave wavelengths start at `2^-firstOctave` blocks and
+ * halve from there, each weighted by its amplitude (so `-7` with three amplitudes gives detail at
+ * roughly 128/64/32 blocks). [horizontalScale] then stretches the whole pattern, and [relief] is how
+ * far the surface swings either side of [baseY].
+ *
+ * Being a *heightmap*, a column is solid in one run: this can make hills, but never an overhang or a
+ * floating arch — those need 3D noise, which cannot be a single span. See `notes/terrain-architecture.md`.
+ *
+ * Solid everywhere horizontally, so like [Slab] it is never an instancing template.
+ */
+data class NoiseHeightmap(
+    val seed: Long,
+    val firstOctave: Int,
+    val amplitudes: List<Double>,
+    val horizontalScale: Double,
+    val baseY: Int,
+    val relief: Double,
+    val floorY: Int,
+) : TerrainField {
+    override val kind = FieldKind.NOISE_HEIGHTMAP
+    override val horizontalReach = Double.POSITIVE_INFINITY
+
+    // Vanilla forbids more amplitudes than the first octave leaves room for, and an empty list would
+    // leave the noise with nothing to sum. Both can arrive from a serialised tree, so settle them here.
+    private val weights = amplitudes.take(-firstOctave + 1).ifEmpty { listOf(1.0) }
+
+    // Built once and only read afterwards (all its state is written in its own constructor), so it is
+    // safe to share across the chunk workers sampling this field.
+    private val noise = NormalNoise.create(XoroshiroRandomSource(seed), firstOctave, *weights.toDoubleArray())
+
+    // A zero stretch would divide the sample coordinates to infinity.
+    private val stretch = horizontalScale.coerceAtLeast(SMALLEST_STRETCH)
+
+    override fun columnSpans(worldX: Int, worldZ: Int): Spans {
+        val sampled = noise.getValue(worldX / stretch, 0.0, worldZ / stretch)
+        return Spans.of(floorY, baseY + (sampled * relief).roundToInt())
+    }
+
+    override fun resized(factor: Double, pivotY: Int) = copy(
+        horizontalScale = horizontalScale * factor,
+        baseY = scaledAbout(baseY, factor, pivotY),
+        relief = relief * factor,
+        floorY = scaledAbout(floorY, factor, pivotY),
+    )
+
+    companion object {
+        private const val SMALLEST_STRETCH = 0.01
+
+        val CODEC: MapCodec<NoiseHeightmap> = RecordCodecBuilder.mapCodec { instance ->
+            instance.group(
+                Codec.LONG.fieldOf("seed").forGetter(NoiseHeightmap::seed),
+                Codec.INT.fieldOf("first_octave").forGetter(NoiseHeightmap::firstOctave),
+                Codec.DOUBLE.listOf().fieldOf("amplitudes").forGetter(NoiseHeightmap::amplitudes),
+                Codec.DOUBLE.fieldOf("horizontal_scale").forGetter(NoiseHeightmap::horizontalScale),
+                Codec.INT.fieldOf("base_y").forGetter(NoiseHeightmap::baseY),
+                Codec.DOUBLE.fieldOf("relief").forGetter(NoiseHeightmap::relief),
+                Codec.INT.fieldOf("floor_y").forGetter(NoiseHeightmap::floorY),
+            ).apply(instance, ::NoiseHeightmap)
         }
     }
 }

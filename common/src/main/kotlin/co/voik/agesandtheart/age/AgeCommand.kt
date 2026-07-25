@@ -27,6 +27,7 @@ import net.minecraft.world.level.levelgen.Heightmap
  *   /age create field <name>     — a field-generator Age (the Spire island as a field tree)
  *   /age create pyramids <name>  — a field-generator Age: instanced pyramids on a plain
  *   /age create pyrvaried <name> — the same, with each pyramid turned and resized
+ *   /age create hills <name>     — a noise-heightmap Age: rolling hills over a sea
  *   /age tp <name>               — travel to an Age
  *   /age gen <name>              — force-generate the spawn chunk and report what the generator made
  *   /age bench <name> [radius]   — time generating the chunks around the origin (ms/chunk)
@@ -87,6 +88,12 @@ object AgeCommand {
                 Commands.literal("pyrvaried").then(
                     Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
                         .executes { context -> runCreate(context, AgeGeneration.GENERATOR_PYRVARIED) },
+                ),
+            )
+            .then(
+                Commands.literal("hills").then(
+                    Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
+                        .executes { context -> runCreate(context, AgeGeneration.GENERATOR_HILLS) },
                 ),
             )
 
