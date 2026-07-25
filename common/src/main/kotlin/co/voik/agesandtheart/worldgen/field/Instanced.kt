@@ -27,22 +27,37 @@ data class Instanced(
     // An instanced field can place something anywhere, so it is never itself an instancing template.
     override val horizontalReach = Double.POSITIVE_INFINITY
 
-    // Scaled-up copies reach further than they were authored to, so the cell scan has to look further.
-    private val templateReach = (templates.maxOfOrNull { it.horizontalReach } ?: 0.0) * variation.reachFactor
+    /**
+     * Every template at every size [variation] allows, built once here rather than per instance —
+     * which is what lets a resized copy be a genuinely larger shape instead of a stretched sampling of
+     * a smaller one. Placing a copy is then just picking one of these.
+     */
+    private val posedTemplates = templates.flatMap { variation.sizesOf(it) }
+
+    // Exact, because the resized templates report their own reach — no scale fudge factor needed.
+    private val templateReach = posedTemplates.maxOfOrNull { it.horizontalReach } ?: 0.0
 
     // Deterministic per-coordinate RNG, built once from [seed]; immutable, so shared safely across threads.
     private val random = XoroshiroRandomSource(seed).forkPositional()
 
     override fun columnSpans(worldX: Int, worldZ: Int): Spans {
-        if (templates.isEmpty()) return Spans.EMPTY
+        if (posedTemplates.isEmpty()) return Spans.EMPTY
         // Hot path: accumulate the union across nearby instances in place rather than build a list.
         var solid = Spans.EMPTY
         placement.forEachInstanceNear(worldX, worldZ, templateReach, random) { originX, originZ, instanceRandom ->
-            val chosen = templates[instanceRandom.nextInt(templates.size)]
+            val chosen = posedTemplates[instanceRandom.nextInt(posedTemplates.size)]
             solid = solid.union(variation.sample(chosen, worldX - originX, worldZ - originZ, instanceRandom))
         }
         return solid
     }
+
+    // Resizing an instanced field resizes what it places and spreads the layout to match.
+    override fun resized(factor: Double, pivotY: Int) = Instanced(
+        templates.map { it.resized(factor, pivotY) },
+        placement.resized(factor),
+        variation,
+        seed,
+    )
 
     companion object {
         fun codec(self: Codec<TerrainField>): MapCodec<Instanced> = RecordCodecBuilder.mapCodec { instance ->

@@ -32,14 +32,20 @@ object PyramidField {
             .let { FieldChunkGenerator(biomeSource, it, AmbientMedium.VOID) }
 
     /**
-     * The same gradient grid, but every copy takes one of [YAW_STEPS] orientations and a size between
-     * [MIN_SCALE] and [MAX_SCALE] — the pose half of instancing variety, side by side with the plain
+     * The same gradient grid, but every copy takes one of [YAW_STEPS] orientations and one of
+     * [SCALE_STEPS] sizes — the pose half of instancing variety, side by side with the plain
      * [generator] for comparison.
      */
     fun variedGenerator(biomeSource: BiomeSource): FieldChunkGenerator =
         world(
             gradientGrid(),
-            Variation(yawSteps = YAW_STEPS, minScale = MIN_SCALE, maxScale = MAX_SCALE, pivotY = GROUND_TOP + 1),
+            Variation(
+                yawSteps = YAW_STEPS,
+                minScale = MIN_SCALE,
+                maxScale = MAX_SCALE,
+                scaleSteps = SCALE_STEPS,
+                pivotY = GROUND_TOP + 1,
+            ),
         ).let { FieldChunkGenerator(biomeSource, it, AmbientMedium.VOID) }
 
     private fun gradientGrid() =
@@ -66,4 +72,5 @@ object PyramidField {
     // merges neighbours into one mass rather than reading as distinct, differently-sized pyramids.
     private const val MIN_SCALE = 0.6
     private const val MAX_SCALE = 1.3
+    private const val SCALE_STEPS = 4
 }

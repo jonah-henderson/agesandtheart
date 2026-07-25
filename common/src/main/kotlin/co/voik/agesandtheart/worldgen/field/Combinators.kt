@@ -12,6 +12,8 @@ data class Union(val fields: List<TerrainField>) : TerrainField {
     override fun columnSpans(worldX: Int, worldZ: Int): Spans =
         fields.fold(Spans.EMPTY) { accumulated, field -> accumulated.union(field.columnSpans(worldX, worldZ)) }
 
+    override fun resized(factor: Double, pivotY: Int) = Union(fields.map { it.resized(factor, pivotY) })
+
     companion object {
         fun codec(self: Codec<TerrainField>): MapCodec<Union> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -28,6 +30,9 @@ data class Subtract(val base: TerrainField, val cut: TerrainField) : TerrainFiel
 
     override fun columnSpans(worldX: Int, worldZ: Int): Spans =
         base.columnSpans(worldX, worldZ).subtract(cut.columnSpans(worldX, worldZ))
+
+    override fun resized(factor: Double, pivotY: Int) =
+        Subtract(base.resized(factor, pivotY), cut.resized(factor, pivotY))
 
     companion object {
         fun codec(self: Codec<TerrainField>): MapCodec<Subtract> = RecordCodecBuilder.mapCodec { instance ->

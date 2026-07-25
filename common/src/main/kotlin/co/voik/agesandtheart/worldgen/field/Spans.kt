@@ -1,7 +1,5 @@
 package co.voik.agesandtheart.worldgen.field
 
-import kotlin.math.roundToInt
-
 /**
  * The solid vertical intervals of a single world column, kept normalised: non-overlapping,
  * non-touching, ascending. This is the tier-1 "analytic span" currency the field toolkit fills
@@ -28,24 +26,6 @@ class Spans private constructor(val ranges: List<IntRange>) {
         // Cutting only splits/shrinks existing ranges in place, so order and disjointness survive.
         return Spans(remaining)
     }
-
-    /**
-     * Stretch every interval away from (or toward) the [pivotY] plane by [factor] — the vertical half
-     * of an instance's size variation. Each interval's endpoints move, so a contiguous run stays
-     * contiguous however far it stretches; shrinking can push runs together, so the result is
-     * re-normalised.
-     */
-    fun scaledVertically(factor: Double, pivotY: Int): Spans {
-        if (factor == 1.0 || ranges.isEmpty()) return this
-        // Hot path: a single interval can't collide with anything, so skip the re-normalise.
-        val scaled = ranges.map { range ->
-            scaledY(range.first, factor, pivotY)..scaledY(range.last, factor, pivotY)
-        }
-        return if (scaled.size == 1) Spans(scaled) else normalise(scaled)
-    }
-
-    private fun scaledY(y: Int, factor: Double, pivotY: Int): Int =
-        pivotY + ((y - pivotY) * factor).roundToInt()
 
     private fun IntRange.without(cut: IntRange): List<IntRange> {
         if (cut.last < first || cut.first > last) return listOf(this)

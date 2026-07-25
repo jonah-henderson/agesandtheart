@@ -29,6 +29,17 @@ sealed interface TerrainField {
     /** The solid vertical intervals of the column at ([worldX], [worldZ]). Tier-1: analytic, exact. */
     fun columnSpans(worldX: Int, worldZ: Int): Spans
 
+    /**
+     * The same shape with its *dimensions* multiplied by [factor], measured about the [pivotY] plane
+     * (which stays put, so anything standing on it keeps its footing).
+     *
+     * This resizes the description, not the output: a resized [Pyramid] genuinely has more courses of
+     * blocks, where resampling a built one at a fractional rate would stretch its staircase into
+     * uneven two-block steps. Since a field is data, the resized copy is built once and reused — see
+     * [Instanced], which pre-builds every size it will ever place.
+     */
+    fun resized(factor: Double, pivotY: Int): TerrainField
+
     companion object {
         /** Self-referential so combinators can hold child fields. */
         val CODEC: Codec<TerrainField> = Codec.recursive("TerrainField") { self ->

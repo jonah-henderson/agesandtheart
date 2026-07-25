@@ -6,6 +6,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
+import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 /**
@@ -29,6 +30,14 @@ data class Ellipsoid(
         val reach = radiusY * sqrt(1.0 - fraction * fraction)
         return Spans.of(ceil(centerY - reach).toInt(), floor(centerY + reach).toInt())
     }
+
+    override fun resized(factor: Double, pivotY: Int) = Ellipsoid(
+        centerX = scaled(centerX, factor),
+        centerY = scaledAbout(centerY, factor, pivotY),
+        centerZ = scaled(centerZ, factor),
+        radiusXZ = radiusXZ * factor,
+        radiusY = radiusY * factor,
+    )
 
     companion object {
         val CODEC: MapCodec<Ellipsoid> = RecordCodecBuilder.mapCodec { instance ->
@@ -69,6 +78,14 @@ data class Cone(
         }
     }
 
+    override fun resized(factor: Double, pivotY: Int) = Cone(
+        baseX = scaled(baseX, factor),
+        baseZ = scaled(baseZ, factor),
+        baseRadius = baseRadius * factor,
+        baseY = scaledAbout(baseY, factor, pivotY),
+        tipY = scaledAbout(tipY, factor, pivotY),
+    )
+
     companion object {
         val CODEC: MapCodec<Cone> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -106,6 +123,17 @@ data class Pyramid(
         return Spans.of(baseY, baseY + reachAbove)
     }
 
+    // Resizing the taper's own integers is the whole point: a bigger pyramid gets more courses, each
+    // still exactly one block, where stretching a built one would give uneven two-block steps.
+    override fun resized(factor: Double, pivotY: Int) = Pyramid(
+        centerX = scaled(centerX, factor),
+        centerZ = scaled(centerZ, factor),
+        baseY = scaledAbout(baseY, factor, pivotY),
+        height = scaled(height, factor),
+        // The taper divides by this, so it can never round down to zero.
+        baseHalfWidth = scaled(baseHalfWidth, factor).coerceAtLeast(1),
+    )
+
     companion object {
         private val SQRT_TWO = sqrt(2.0)
 
@@ -131,6 +159,9 @@ data class Slab(val lowY: Int, val highY: Int) : TerrainField {
 
     override fun columnSpans(worldX: Int, worldZ: Int): Spans = Spans.of(lowY, highY)
 
+    override fun resized(factor: Double, pivotY: Int) =
+        Slab(lowY = scaledAbout(lowY, factor, pivotY), highY = scaledAbout(highY, factor, pivotY))
+
     companion object {
         val CODEC: MapCodec<Slab> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -149,3 +180,9 @@ private fun horizontalDistance(x1: Int, z1: Int, x2: Int, z2: Int): Double {
 
 /** Horizontal distance of a point from the local origin (0, 0). */
 private fun originDistance(x: Int, z: Int): Double = sqrt((x * x + z * z).toDouble())
+
+/** A length or an offset from the local origin, resized. */
+internal fun scaled(value: Int, factor: Double): Int = (value * factor).roundToInt()
+
+/** A height, resized about the [pivotY] plane — which itself stays exactly where it is. */
+internal fun scaledAbout(y: Int, factor: Double, pivotY: Int): Int = pivotY + ((y - pivotY) * factor).roundToInt()

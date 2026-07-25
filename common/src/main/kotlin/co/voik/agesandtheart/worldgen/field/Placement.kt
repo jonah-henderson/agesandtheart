@@ -43,6 +43,9 @@ sealed interface Placement {
         visit: (originX: Int, originZ: Int, instanceRandom: RandomSource) -> Unit,
     )
 
+    /** The same layout with every distance multiplied by [factor], so a resized field spreads to match. */
+    fun resized(factor: Double): Placement
+
     companion object {
         val CODEC: Codec<Placement> = PlacementKind.CODEC.dispatch(
             "type",
@@ -80,6 +83,9 @@ data class Density(val atOrigin: Double, val atEdge: Double, val falloffRadius: 
         val fraction = (radius / falloffRadius).coerceIn(0.0, 1.0)
         return atOrigin + (atEdge - atOrigin) * fraction
     }
+
+    /** Probabilities are unitless, so only the distance over which they fall off resizes. */
+    fun resized(factor: Double) = copy(falloffRadius = falloffRadius * factor)
 
     companion object {
         val CODEC: MapCodec<Density> = RecordCodecBuilder.mapCodec { instance ->
@@ -130,6 +136,9 @@ data class Grid(val spacing: Double, val jitter: Double, val density: Density) :
             }
         }
     }
+
+    override fun resized(factor: Double) =
+        Grid(spacing * factor, jitter * factor, density.resized(factor))
 
     companion object {
         val CODEC: MapCodec<Grid> = RecordCodecBuilder.mapCodec { instance ->
@@ -203,6 +212,9 @@ data class Radial(
             visit(originX, originZ, instanceRandom)
         }
     }
+
+    override fun resized(factor: Double) =
+        Radial(ringSpacing * factor, arcSpacing * factor, jitter * factor, density.resized(factor))
 
     companion object {
         val CODEC: MapCodec<Radial> = RecordCodecBuilder.mapCodec { instance ->
