@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age
 
 import co.voik.agesandtheart.Constants
 import com.mojang.brigadier.CommandDispatcher
+import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
@@ -25,13 +26,22 @@ import net.minecraft.world.level.levelgen.Heightmap
  *   /age create <name>           — author a new Age (Spire preset) and persist it
  *   /age create field <name>     — a field-generator Age (the Spire island as a field tree)
  *   /age create pyramids <name>  — a field-generator Age: instanced pyramids on a plain
+ *   /age create pyrvaried <name> — the same, with each pyramid turned and resized
  *   /age tp <name>               — travel to an Age
  *   /age gen <name>              — force-generate the spawn chunk and report what the generator made
+ *   /age bench <name> [radius]   — time generating the chunks around the origin (ms/chunk)
  *   /age list                    — list known Ages (with their generator kind)
  */
 object AgeCommand {
     private const val OPERATOR_PERMISSION_LEVEL = 2
     private const val NAME_ARGUMENT = "name"
+    private const val RADIUS_ARGUMENT = "radius"
+
+    // Big enough to be dominated by generation rather than level-open overhead, small enough to run
+    // on the server thread without tripping the watchdog.
+    private const val DEFAULT_BENCHMARK_RADIUS = 8
+    private const val MAX_BENCHMARK_RADIUS = 24
+    private const val NANOS_PER_MILLISECOND = 1_000_000.0
 
     // Brigadier command result codes.
     private const val SUCCESS = 1
@@ -44,6 +54,7 @@ object AgeCommand {
                 .then(createSubcommand())
                 .then(teleportSubcommand())
                 .then(generateSubcommand())
+                .then(benchmarkSubcommand())
                 .then(listSubcommand()),
         )
     }
@@ -72,6 +83,12 @@ object AgeCommand {
                         .executes { context -> runCreate(context, AgeGeneration.GENERATOR_PYRINGS) },
                 ),
             )
+            .then(
+                Commands.literal("pyrvaried").then(
+                    Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
+                        .executes { context -> runCreate(context, AgeGeneration.GENERATOR_PYRVARIED) },
+                ),
+            )
 
     private fun teleportSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("tp").then(
@@ -81,6 +98,18 @@ object AgeCommand {
     private fun generateSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("gen").then(
             Commands.argument(NAME_ARGUMENT, StringArgumentType.word()).executes(::runGenerate),
+        )
+
+    private fun benchmarkSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        Commands.literal("bench").then(
+            Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
+                .executes { context -> runBenchmark(context, DEFAULT_BENCHMARK_RADIUS) }
+                .then(
+                    Commands.argument(RADIUS_ARGUMENT, IntegerArgumentType.integer(1, MAX_BENCHMARK_RADIUS))
+                        .executes { context ->
+                            runBenchmark(context, IntegerArgumentType.getInteger(context, RADIUS_ARGUMENT))
+                        },
+                ),
         )
 
     private fun listSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
@@ -169,6 +198,43 @@ object AgeCommand {
             Component.literal(
                 "Age '$name' spawn chunk: origin surface y=$surfaceY ($surfaceBlock); " +
                     "tallest column y=$peakY at ($peakX,$peakZ) ($peakBlock)",
+            )
+        }, false)
+        return SUCCESS
+    }
+
+    /**
+     * Times full generation of the `(2·radius+1)²` chunks around the Age's origin — the measurement
+     * behind performance decisions like whether the instancer needs per-chunk memoisation. Centred on
+     * the origin deliberately: that's where a density gradient packs the most instances into a column,
+     * so it's the expensive case. Run it on a **freshly created** Age — chunks already generated come
+     * from the cache and would time nothing.
+     */
+    private fun runBenchmark(context: CommandContext<CommandSourceStack>, radius: Int): Int {
+        val source = context.source
+        val name = StringArgumentType.getString(context, NAME_ARGUMENT)
+        val id = ageId(name)
+        if (id !in AgeSavedData.get(source.server).ages) {
+            source.sendFailure(Component.literal("No Age named '$name' — create it with /age create $name"))
+            return FAILURE
+        }
+        val level = Ages.open(source.server, id)
+        if (level == null) {
+            source.sendFailure(Component.literal("Could not open Age '$name'"))
+            return FAILURE
+        }
+        val startedAt = System.nanoTime()
+        for (chunkX in -radius..radius) {
+            for (chunkZ in -radius..radius) {
+                level.getChunk(chunkX, chunkZ)
+            }
+        }
+        val elapsedMillis = (System.nanoTime() - startedAt) / NANOS_PER_MILLISECOND
+        val chunkCount = (2 * radius + 1) * (2 * radius + 1)
+        source.sendSuccess({
+            Component.literal(
+                "Age '$name': generated $chunkCount chunks in ${"%.0f".format(elapsedMillis)} ms " +
+                    "(${"%.2f".format(elapsedMillis / chunkCount)} ms/chunk)",
             )
         }, false)
         return SUCCESS

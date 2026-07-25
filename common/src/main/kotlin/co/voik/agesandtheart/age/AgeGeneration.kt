@@ -28,6 +28,7 @@ object AgeGeneration {
     const val GENERATOR_FIELD = "field"
     const val GENERATOR_PYRAMIDS = "pyramids"
     const val GENERATOR_PYRINGS = "pyrings"
+    const val GENERATOR_PYRVARIED = "pyrvaried"
     /**
      * The Spire dimension type (registered as a datapack dimension-type at load). Its `effects` id is
      * `agesandtheart:age`, the marker the client watches to attach the custom Spire sky renderer.
@@ -60,6 +61,7 @@ object AgeGeneration {
             GENERATOR_FIELD -> SpireField.generator(biomes)
             GENERATOR_PYRAMIDS -> PyramidField.generator(biomes)
             GENERATOR_PYRINGS -> PyramidField.ringsGenerator(biomes)
+            GENERATOR_PYRVARIED -> PyramidField.variedGenerator(biomes)
             else -> SpireChunkGenerator(biomes, seed)
         }
     }

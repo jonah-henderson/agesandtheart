@@ -8,16 +8,18 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 /**
  * Stamps copies of its [templates] across the world according to [placement] — the "big multiplier"
  * (grids of pyramids/columns, scattered monoliths). Each instance's cell deterministically picks one
- * template from the handful, so variety is *choice-from-a-set*, never per-instance CSG reshaping;
- * organic variation belongs to noise/carvers instead (see `notes/terrain-architecture.md`).
+ * template from the handful and poses it within [variation], so variety is *choice-from-a-set* plus a
+ * cheap affine pose — never per-instance CSG reshaping; organic variation belongs to noise/carvers
+ * instead (see `notes/terrain-architecture.md`).
  *
  * Templates are authored around their local origin `(0, 0)`; [placement] translates the query into
- * each instance's frame. The instance set is unbounded, so nothing is stored — [placement] regenerates
- * the nearby origins deterministically per column.
+ * each instance's frame and [variation] turns and sizes it there. The instance set is unbounded, so
+ * nothing is stored — [placement] regenerates the nearby origins deterministically per column.
  */
 data class Instanced(
     val templates: List<TerrainField>,
     val placement: Placement,
+    val variation: Variation,
     val seed: Long,
 ) : TerrainField {
     override val kind = FieldKind.INSTANCED
@@ -25,7 +27,8 @@ data class Instanced(
     // An instanced field can place something anywhere, so it is never itself an instancing template.
     override val horizontalReach = Double.POSITIVE_INFINITY
 
-    private val templateReach = templates.maxOfOrNull { it.horizontalReach } ?: 0.0
+    // Scaled-up copies reach further than they were authored to, so the cell scan has to look further.
+    private val templateReach = (templates.maxOfOrNull { it.horizontalReach } ?: 0.0) * variation.reachFactor
 
     // Deterministic per-coordinate RNG, built once from [seed]; immutable, so shared safely across threads.
     private val random = XoroshiroRandomSource(seed).forkPositional()
@@ -36,7 +39,7 @@ data class Instanced(
         var solid = Spans.EMPTY
         placement.forEachInstanceNear(worldX, worldZ, templateReach, random) { originX, originZ, instanceRandom ->
             val chosen = templates[instanceRandom.nextInt(templates.size)]
-            solid = solid.union(chosen.columnSpans(worldX - originX, worldZ - originZ))
+            solid = solid.union(variation.sample(chosen, worldX - originX, worldZ - originZ, instanceRandom))
         }
         return solid
     }
@@ -46,6 +49,8 @@ data class Instanced(
             instance.group(
                 self.listOf().fieldOf("templates").forGetter(Instanced::templates),
                 Placement.CODEC.fieldOf("placement").forGetter(Instanced::placement),
+                // Optional (and nested) so field trees serialised before poses existed still load.
+                Variation.CODEC.codec().optionalFieldOf("variation", Variation.NONE).forGetter(Instanced::variation),
                 Codec.LONG.fieldOf("seed").forGetter(Instanced::seed),
             ).apply(instance, ::Instanced)
         }
