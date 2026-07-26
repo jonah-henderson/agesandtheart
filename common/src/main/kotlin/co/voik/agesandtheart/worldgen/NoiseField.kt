@@ -26,10 +26,11 @@ object NoiseField {
         // Detail at roughly 128, 64 and 32 blocks — broad hills with a little shape on their flanks.
         firstOctave = -7,
         amplitudes = listOf(1.0, 0.5, 0.25),
-        horizontalScale = 1.0,
+        scaleX = 1.0,
+        scaleZ = 1.0,
         baseY = 68,
         relief = 30.0,
-        floorY = -64,
+        flatY = -64,
     )
 
     /**

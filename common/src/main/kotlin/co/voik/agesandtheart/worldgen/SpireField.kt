@@ -1,48 +1,207 @@
 package co.voik.agesandtheart.worldgen
 
 import co.voik.agesandtheart.worldgen.field.AmbientMedium
+import co.voik.agesandtheart.worldgen.field.Density
 import co.voik.agesandtheart.worldgen.field.Cone
 import co.voik.agesandtheart.worldgen.field.Ellipsoid
+import co.voik.agesandtheart.worldgen.field.Grid
+import co.voik.agesandtheart.worldgen.field.Instanced
+import co.voik.agesandtheart.worldgen.field.Intersect
+import co.voik.agesandtheart.worldgen.field.NoiseHeightmap
 import co.voik.agesandtheart.worldgen.field.Palette
+import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Union
+import co.voik.agesandtheart.worldgen.field.Variation
+import net.minecraft.core.HolderSet
 import net.minecraft.world.level.biome.BiomeSource
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.levelgen.GenerationStep
+import net.minecraft.world.level.levelgen.carver.ConfiguredWorldCarver
 
 /**
- * The Spire *shape* re-expressed as a Tier-A field tree — the first proof that the analytic-span
- * contract survives a non-trivial shape (a flattish body plus tapering spires above and below).
+ * The Spire archipelago, rebuilt: **blocky masses pared back by erosion** rather than assembled from
+ * ellipsoids and cones.
  *
- * This is deliberately a single hand-placed island, not the full scattered archipelago: it tests
- * shape composition (ellipsoid ∪ cones), which is the span-contract question. Generalising to the
- * scattered, per-island-randomised archipelago is the *instancing* layer, a separate next step.
- * The bespoke [SpireChunkGenerator] is untouched and stays as its own preset.
+ * Each island is a cluster of overlapping [Ellipsoid] lobes — thick at the middle, thinning to a lumpy,
+ * not-quite-circular rim. Four
+ * [NoiseHeightmap]s then cut it to a profile: one standing, giving a rolling peaked top; one hanging,
+ * giving a ragged underside of downward spikes. Both are clipped to the box's footprint, so an island
+ * keeps sheer rectangular flanks where it was cut — character the ellipsoid version could never have.
+ *
+ * Both noise fields are stretched along the wind axis, so the relief combs into long parallel ridges
+ * rather than isotropic lumps — the streamlined signature of wind-carved rock.
+ *
+ * The last pass belongs to [co.voik.agesandtheart.worldgen.carver.ErosionCarver], which asks of each
+ * block whether the wind there beats the rock's resistance, hollowing the undersides while sparing the
+ * caps. That is the part neither noise nor CSG reaches: they cannot undercut.
+ *
+ * The division of labour is deliberate. The field does the *gross* shape, because `getBaseHeight`
+ * answers from the field and decoration would otherwise place in mid-air; the carver only takes a
+ * modest fraction back out.
  */
 object SpireField {
 
-    /** One island centred on the origin: a walkable lens with stalagmite and stalactite spires. */
-    fun island(): TerrainField {
-        val centerY = 150
-        val bodyTop = centerY + 13
-        val bodyBottom = centerY - 13
+    fun world(): TerrainField {
+        // Rolling top: the noisy surface sits above the island's deck, so rock fills upward to it.
+        val peaks = NoiseHeightmap(
+            seed = PEAK_SEED,
+            firstOctave = -6,
+            amplitudes = listOf(1.0, 0.6, 0.3),
+            scaleX = WIND_STRETCH,
+            scaleZ = 1.5,
+            // Reaching much higher than the typical crown, so the rare column the wind spares stands far
+            // above its neighbours instead of level with them.
+            baseY = DECK_Y + TYPICAL_CROWN,
+            relief = PEAK_HEIGHT / 2.0,
+            flatY = DECK_Y,
+        )
+        // Ragged underside: the noisy surface sits *below* the deck, so the same primitive hangs.
+        val spikes = NoiseHeightmap(
+            seed = SPIKE_SEED,
+            firstOctave = -5,
+            amplitudes = listOf(1.0, 0.7),
+            scaleX = WIND_STRETCH,
+            scaleZ = 1.5,
+            baseY = DECK_Y - SPIKE_LENGTH / 2,
+            relief = SPIKE_LENGTH / 2.0,
+            flatY = DECK_Y,
+        )
+        // The envelope the mass is squeezed into: several overlapping lobes rather than one lens.
+        //
+        // A single ellipsoid reads as a circle the moment you see it, and clipping it with the box traded
+        // that for flat faces. Overlapping lobes give an outline that is round in character without being
+        // recognisably round, and they need no new primitive — a union of ellipsoids is exactly the sort of
+        // thing the toolkit is for. Dropping the box removes the flat faces at source.
+        //
+        // Thickness still does the important work: erosion knows nothing of where islands are, so a thick
+        // middle is what lets spires stand and a thinning rim is what keeps the edges low.
+        val envelope = Union(
+            LOBES.map { lobe ->
+                Ellipsoid(
+                    centerX = lobe.offsetX,
+                    centerZ = lobe.offsetZ,
+                    centerY = (PEAK_CEILING + SPIKE_FLOOR) / 2,
+                    radiusXZ = ISLAND_HALF_WIDTH * lobe.spread,
+                    radiusY = (PEAK_CEILING - SPIKE_FLOOR) / 2.0 * lobe.spread,
+                )
+            },
+        )
+        // Rare, thin, and far taller than the crowns: the *potential* for a standout needle.
+        //
+        // It has to live here rather than in the carver, and that is worth understanding. Erosion judges a
+        // whole column at once, so it can keep a column or remove it but never shorten one — every survivor
+        // stands at whatever height the field gave it. Height variation among spires is therefore the
+        // field's to provide. A fine scale keeps these a few blocks across; the wind then removes almost
+        // all of them, and the handful it spares tower over everything around.
+        val talons = NoiseHeightmap(
+            seed = TALON_SEED,
+            firstOctave = -2,
+            amplitudes = listOf(1.0, 0.4),
+            scaleX = TALON_SCALE,
+            scaleZ = TALON_SCALE,
+            baseY = DECK_Y + TALON_TYPICAL,
+            relief = TALL_REACH / 2.0,
+            flatY = DECK_Y,
+        )
+        // The same trick inverted, for the hanging needles beneath.
+        val roots = NoiseHeightmap(
+            seed = ROOT_SEED,
+            firstOctave = -2,
+            amplitudes = listOf(1.0, 0.4),
+            scaleX = TALON_SCALE,
+            scaleZ = TALON_SCALE,
+            baseY = DECK_Y - TALON_TYPICAL,
+            relief = TALL_REACH / 2.0,
+            flatY = DECK_Y,
+        )
+        // The connective body. Without it the two noisy surfaces meet wherever they happen to, and an
+        // island can thin to a single block between its top and its underside — fine to look at, useless to
+        // stand on or to build into. A slab through the deck sets a floor under that thickness.
+        val deck = Slab(lowY = DECK_Y - DECK_HALF_THICKNESS, highY = DECK_Y + DECK_HALF_THICKNESS)
 
-        val body = Ellipsoid(centerX = 0, centerY = centerY, centerZ = 0, radiusXZ = 100.0, radiusY = 32.0)
-        val upSpires = listOf(
-            Cone(baseX = -30, baseZ = 10, baseRadius = 18.0, baseY = bodyTop, tipY = bodyTop + 70),
-            Cone(baseX = 25, baseZ = -20, baseRadius = 14.0, baseY = bodyTop, tipY = bodyTop + 55),
+        // Extra material heaped over the middle, so the grandest spires are inland rather than scattered
+        // evenly. A cone because the wind, not the shape, is what makes spires — this only raises how much
+        // rock is available to be carved there. Deliberately upward only: the undersides stay as they were.
+        val rise = Cone(
+            baseX = 0,
+            baseZ = 0,
+            baseRadius = ISLAND_HALF_WIDTH * CENTRAL_SHARE,
+            baseY = DECK_Y,
+            tipY = DECK_Y + CENTRAL_RISE,
         )
-        val downSpires = listOf(
-            Cone(baseX = 0, baseZ = 0, baseRadius = 24.0, baseY = bodyBottom, tipY = bodyBottom - 120),
-            Cone(baseX = -15, baseZ = 20, baseRadius = 16.0, baseY = bodyBottom, tipY = bodyBottom - 80),
+        val island = Intersect(listOf(envelope, Union(listOf(deck, peaks, spikes, talons, roots, rise))))
+
+        return Instanced(
+            templates = listOf(island),
+            placement = Grid(spacing = ISLAND_SPACING, jitter = ISLAND_JITTER, density = Density.uniform(ISLAND_DENSITY)),
+            variation = Variation.NONE,
+            seed = ARCHIPELAGO_SEED,
         )
-        return Union(listOf(body) + upSpires + downSpires)
     }
 
-    fun generator(biomeSource: BiomeSource): FieldChunkGenerator =
+    fun generator(
+        biomeSource: BiomeSource,
+        carvers: Map<GenerationStep.Carving, HolderSet<ConfiguredWorldCarver<*>>> = emptyMap(),
+    ): FieldChunkGenerator =
         FieldChunkGenerator(
             biomeSource,
-            island(),
-            AmbientMedium.sea(Blocks.WATER.defaultBlockState(), level = 0),
-            Palette.VERDANT,
+            world(),
+            AmbientMedium.sea(Blocks.WATER.defaultBlockState(), level = SEA_LEVEL),
+            Palette.BARE_ROCK,
+            carvers,
         )
+
+    // The islands float well clear of the sea, so the whole mass reads as an archipelago in open air.
+    private const val DECK_Y = 168
+    private const val PEAK_HEIGHT = 126
+    private const val TYPICAL_CROWN = 45
+
+    // How far the rare needles may reach past the deck, up and down alike, and where they usually sit.
+    // Keeping the usual well short of [PEAK_HEIGHT] is what makes a tall one exceptional rather than normal.
+    private const val TALL_REACH = 144
+    private const val TALON_TYPICAL = 21
+    // Fine, so a needle is a few blocks across rather than a hill.
+    private const val TALON_SCALE = 0.75
+    private const val SPIKE_LENGTH = 126
+    private const val PEAK_CEILING = DECK_Y + PEAK_HEIGHT
+    private const val SPIKE_FLOOR = DECK_Y - SPIKE_LENGTH
+
+    private const val ISLAND_HALF_WIDTH = 84
+
+    /** One swelling of an island's envelope: how far off centre it sits, and how big a share it takes. */
+    private class Lobe(val offsetX: Int, val offsetZ: Int, val spread: Double)
+
+    // Hand-placed rather than scattered: an island is one reused template, so the lumps only need to be
+    // *a* pleasing irregular outline, not a different one each time.
+    private val LOBES = listOf(
+        Lobe(0, 0, 1.00),
+        Lobe(-41, 23, 0.80),
+        Lobe(35, -32, 0.74),
+        Lobe(17, 41, 0.68),
+        Lobe(-29, -38, 0.64),
+        Lobe(47, 20, 0.56),
+        Lobe(-12, 50, 0.50),
+    )
+    private const val ISLAND_SPACING = 330.0
+    private const val ISLAND_JITTER = 60.0
+    private const val ISLAND_DENSITY = 0.75
+
+    // Ridges comb down the X axis, matching the wind direction ErosionCarver works along.
+    private const val WIND_STRETCH = 6.0
+
+    private const val SEA_LEVEL = 0
+    private const val PEAK_SEED = 0x51DE_1L
+    private const val SPIKE_SEED = 0x5B1CEL
+    // A floor under the connective body's thickness. A gameplay figure — room to stand and build — so it
+    // is deliberately *not* scaled with the rest of the island.
+    private const val DECK_HALF_THICKNESS = 4
+
+    // How much of the island the central heap covers, and how far it lifts the middle.
+    private const val CENTRAL_SHARE = 0.55
+    private const val CENTRAL_RISE = 118
+
+    private const val TALON_SEED = 0x7A10_11L
+    private const val ROOT_SEED = 0x200_75L
+    private const val ARCHIPELAGO_SEED = 0xA2C41DL
 }

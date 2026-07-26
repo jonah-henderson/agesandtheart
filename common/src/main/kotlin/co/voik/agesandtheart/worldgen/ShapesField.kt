@@ -95,10 +95,11 @@ object ShapesField {
             seed = MESA_SEED,
             firstOctave = -5,
             amplitudes = listOf(1.0, 0.5),
-            horizontalScale = 1.0,
+            scaleX = 1.0,
+            scaleZ = 1.0,
             baseY = BASE_Y + 26,
             relief = 8.0,
-            floorY = FLOOR_Y,
+            flatY = FLOOR_Y,
         )
         val footprint = Cylinder(
             axis = Direction.Axis.Y,

@@ -336,8 +336,14 @@ data class Box(
 }
 
 /**
- * A smooth, organic surface: sampled noise mapped to a surface height, solid from [floorY] up to it.
- * The toolkit's answer to rolling hills and dunes — the shapes CSG solids can't express.
+ * A smooth, organic surface: sampled noise mapped to a height, with rock filling the gap between it
+ * and the flat bound at [flatY]. The toolkit's answer to rolling hills and dunes — the shapes CSG
+ * solids can't express.
+ *
+ * **Which way up it faces falls out of the geometry.** When the noisy surface sits *above* [flatY] this
+ * is ground: solid from the flat floor up to a rolling top. When it sits *below*, the same field hangs
+ * from a ceiling — solid from a ragged underside up to the flat bound — which is how stalactites and
+ * the undersides of floating islands are made. No flag decides it; the two heights do.
  *
  * The noise is **Minecraft's own [NormalNoise]**, not a reimplementation, so [firstOctave] and
  * [amplitudes] are vanilla's own vocabulary: octave wavelengths start at `2^-firstOctave` blocks and
@@ -354,10 +360,19 @@ data class NoiseHeightmap(
     val seed: Long,
     val firstOctave: Int,
     val amplitudes: List<Double>,
-    val horizontalScale: Double,
+    /**
+     * Blocks per unit of noise along X and Z *separately*. Equal values give the usual isotropic
+     * lumps; stretching one axis draws the relief out into long parallel ridges running that way —
+     * which is what wind-carved ground actually looks like. Yardangs are streamlined *along* the
+     * prevailing wind, so a wind-blown Age stretches the axis its wind runs down.
+     */
+    val scaleX: Double,
+    val scaleZ: Double,
+    /** The mean height of the noisy surface. */
     val baseY: Int,
     val relief: Double,
-    val floorY: Int,
+    /** The flat bound the rock reaches back to — a floor below [baseY], a ceiling above it. */
+    val flatY: Int,
 ) : TerrainField {
     override val kind = FieldKind.NOISE_HEIGHTMAP
     override val horizontalReach = Double.POSITIVE_INFINITY
@@ -371,18 +386,21 @@ data class NoiseHeightmap(
     private val noise = NormalNoise.create(XoroshiroRandomSource(seed), firstOctave, *weights.toDoubleArray())
 
     // A zero stretch would divide the sample coordinates to infinity.
-    private val stretch = horizontalScale.coerceAtLeast(SMALLEST_STRETCH)
+    private val stretchX = scaleX.coerceAtLeast(SMALLEST_STRETCH)
+    private val stretchZ = scaleZ.coerceAtLeast(SMALLEST_STRETCH)
 
     override fun columnSpans(worldX: Int, worldZ: Int): Spans {
-        val sampled = noise.getValue(worldX / stretch, 0.0, worldZ / stretch)
-        return Spans.of(floorY, baseY + (sampled * relief).roundToInt())
+        val sampled = noise.getValue(worldX / stretchX, 0.0, worldZ / stretchZ)
+        val surfaceY = baseY + (sampled * relief).roundToInt()
+        return if (baseY >= flatY) Spans.of(flatY, surfaceY) else Spans.of(surfaceY, flatY)
     }
 
     override fun resized(factor: Double, pivotY: Int) = copy(
-        horizontalScale = horizontalScale * factor,
+        scaleX = scaleX * factor,
+        scaleZ = scaleZ * factor,
         baseY = scaledAbout(baseY, factor, pivotY),
         relief = relief * factor,
-        floorY = scaledAbout(floorY, factor, pivotY),
+        flatY = scaledAbout(flatY, factor, pivotY),
     )
 
     companion object {
@@ -393,10 +411,11 @@ data class NoiseHeightmap(
                 Codec.LONG.fieldOf("seed").forGetter(NoiseHeightmap::seed),
                 Codec.INT.fieldOf("first_octave").forGetter(NoiseHeightmap::firstOctave),
                 Codec.DOUBLE.listOf().fieldOf("amplitudes").forGetter(NoiseHeightmap::amplitudes),
-                Codec.DOUBLE.fieldOf("horizontal_scale").forGetter(NoiseHeightmap::horizontalScale),
+                Codec.DOUBLE.fieldOf("scale_x").forGetter(NoiseHeightmap::scaleX),
+                Codec.DOUBLE.fieldOf("scale_z").forGetter(NoiseHeightmap::scaleZ),
                 Codec.INT.fieldOf("base_y").forGetter(NoiseHeightmap::baseY),
                 Codec.DOUBLE.fieldOf("relief").forGetter(NoiseHeightmap::relief),
-                Codec.INT.fieldOf("floor_y").forGetter(NoiseHeightmap::floorY),
+                Codec.INT.fieldOf("flat_y").forGetter(NoiseHeightmap::flatY),
             ).apply(instance, ::NoiseHeightmap)
         }
     }
