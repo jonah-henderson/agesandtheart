@@ -3,11 +3,14 @@ package co.voik.agesandtheart.content
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.worldgen.FieldChunkGenerator
 import co.voik.agesandtheart.worldgen.SpireChunkGenerator
+import co.voik.agesandtheart.worldgen.carver.ErosionCarver
 import com.mojang.serialization.MapCodec
 import net.minecraft.core.component.DataComponentType
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.item.Item
 import net.minecraft.world.level.chunk.ChunkGenerator
+import net.minecraft.world.level.levelgen.carver.CarverConfiguration
+import net.minecraft.world.level.levelgen.carver.WorldCarver
 
 /**
  * The mod's registered content, defined loader-agnostically.
@@ -42,5 +45,13 @@ object AgeContent {
     val chunkGeneratorCodecs: List<Pair<ResourceLocation, MapCodec<out ChunkGenerator>>> = listOf(
         "spire".location() to SpireChunkGenerator.CODEC,
         "field".location() to FieldChunkGenerator.CODEC,
+    )
+
+    /**
+     * Our own carvers. The configured instances that use them are datapack JSON under
+     * `data/agesandtheart/worldgen/configured_carver/`; this registers the carver *kinds* those refer to.
+     */
+    val carvers: List<Pair<ResourceLocation, WorldCarver<*>>> = listOf(
+        "erosion".location() to ErosionCarver(CarverConfiguration.CODEC.codec()),
     )
 }
