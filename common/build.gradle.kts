@@ -46,6 +46,14 @@ val main: SourceSet = sourceSets.main.get()
 preview.compileClasspath += main.compileClasspath + main.output
 preview.runtimeClasspath += main.compileClasspath + main.runtimeClasspath + main.output
 
+tasks.register<JavaExec>("noisebench") {
+    group = "verification"
+    description = "Times NormalNoise offline, to price a 3D-noise field before building one."
+    mainClass = "co.voik.agesandtheart.preview.NoiseBenchmarkKt"
+    classpath = preview.runtimeClasspath
+    javaLauncher = javaToolchains.launcherFor(java.toolchain)
+}
+
 tasks.register<JavaExec>("preview") {
     group = "documentation"
     description = "Renders terrain-shape previews to PNG (build/preview) without launching Minecraft."
