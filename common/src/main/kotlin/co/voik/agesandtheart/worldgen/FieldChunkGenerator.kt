@@ -9,6 +9,7 @@ import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Holder
+import net.minecraft.core.HolderLookup
 import net.minecraft.core.HolderSet
 import net.minecraft.core.registries.Registries
 import net.minecraft.core.RegistryCodecs
@@ -23,6 +24,7 @@ import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
 import net.minecraft.world.level.chunk.ChunkGenerator
+import net.minecraft.world.level.chunk.ChunkGeneratorStructureState
 import net.minecraft.world.level.chunk.ProtoChunk
 import net.minecraft.world.level.levelgen.Aquifer
 import net.minecraft.world.level.levelgen.Beardifier
@@ -43,6 +45,7 @@ import net.minecraft.world.level.levelgen.WorldgenRandom
 import net.minecraft.world.level.levelgen.blending.Blender
 import net.minecraft.world.level.levelgen.carver.CarvingContext
 import net.minecraft.world.level.levelgen.carver.ConfiguredWorldCarver
+import net.minecraft.world.level.levelgen.structure.StructureSet
 import java.util.Optional
 import java.util.concurrent.CompletableFuture
 
@@ -63,6 +66,7 @@ class FieldChunkGenerator(
     private val surfaceRule: SurfaceRules.RuleSource = Palette.PLAIN_STONE,
     private val carvers: Map<GenerationStep.Carving, HolderSet<ConfiguredWorldCarver<*>>> = emptyMap(),
     private val waterTable: WaterTable? = null,
+    private val structureSets: HolderSet<StructureSet> = HolderSet.direct(emptyList()),
 ) : ChunkGenerator(biomeSource) {
 
     override fun codec(): MapCodec<out ChunkGenerator> = CODEC
@@ -258,6 +262,27 @@ class FieldChunkGenerator(
         }
     }
 
+    /**
+     * Which structures may be placed in this Age — named by its own recipe, and empty by default.
+     *
+     * Vanilla takes every structure set in the registry whose structures list a biome the source can
+     * produce. That is fine for vanilla's terrain and wrong for ours: the moment real biomes arrive, so
+     * do villages, and `Structure.findValidGenerationPoint` fails with "Bound must be positive" when our
+     * flatter Ages give `nextInt` a non-positive bound. So structures are opt-in per Age, the same way
+     * carvers already are, and switch on once an Age is known to report enough relief for them.
+     *
+     * [ChunkGeneratorStructureState.createForFlat] is the public route that takes an explicit set rather
+     * than the whole registry — the same one superflat uses. Its one compromise is a fixed
+     * concentric-rings seed, so strongholds would ring every Age alike; harmless while the set is empty,
+     * worth revisiting when it isn't.
+     */
+    override fun createState(
+        structureSetLookup: HolderLookup<StructureSet>,
+        randomState: RandomState,
+        seed: Long,
+    ): ChunkGeneratorStructureState =
+        ChunkGeneratorStructureState.createForFlat(randomState, seed, biomeSource, structureSets.stream())
+
     override fun spawnOriginalMobs(level: WorldGenRegion) = Unit
 
     override fun addDebugScreenInfo(info: MutableList<String>, randomState: RandomState, pos: BlockPos) = Unit
@@ -283,8 +308,11 @@ class FieldChunkGenerator(
                 ).optionalFieldOf("carvers", emptyMap()).forGetter { it.carvers },
                 // Absent means "a flat table at the ambient sea", derived at construction.
                 WaterTable.CODEC.codec().optionalFieldOf("water_table").forGetter { Optional.ofNullable(it.waterTable) },
-            ).apply(instance) { biomes, field, ambient, rule, carvers, table ->
-                FieldChunkGenerator(biomes, field, ambient, rule, carvers, table.orElse(null))
+                RegistryCodecs.homogeneousList(Registries.STRUCTURE_SET)
+                    .optionalFieldOf("structure_sets", HolderSet.direct(emptyList()))
+                    .forGetter { it.structureSets },
+            ).apply(instance) { biomes, field, ambient, rule, carvers, table, structures ->
+                FieldChunkGenerator(biomes, field, ambient, rule, carvers, table.orElse(null), structures)
             }
         }
 

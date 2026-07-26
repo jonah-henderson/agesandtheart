@@ -3,11 +3,13 @@ package co.voik.agesandtheart.content
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.worldgen.FieldChunkGenerator
 import co.voik.agesandtheart.worldgen.SpireChunkGenerator
+import co.voik.agesandtheart.worldgen.biome.AgeBiomeSource
 import co.voik.agesandtheart.worldgen.carver.ErosionCarver
 import com.mojang.serialization.MapCodec
 import net.minecraft.core.component.DataComponentType
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.item.Item
+import net.minecraft.world.level.biome.BiomeSource
 import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.levelgen.carver.CarverConfiguration
 import net.minecraft.world.level.levelgen.carver.WorldCarver
@@ -45,6 +47,14 @@ object AgeContent {
     val chunkGeneratorCodecs: List<Pair<ResourceLocation, MapCodec<out ChunkGenerator>>> = listOf(
         "spire".location() to SpireChunkGenerator.CODEC,
         "field".location() to FieldChunkGenerator.CODEC,
+    )
+
+    /**
+     * Biome-source codecs. Like the generators, an Age's biome source is persisted with it, so the kind
+     * has to be nameable — `BiomeSource.CODEC` dispatches over this registry.
+     */
+    val biomeSourceCodecs: List<Pair<ResourceLocation, MapCodec<out BiomeSource>>> = listOf(
+        "age_biomes".location() to AgeBiomeSource.CODEC,
     )
 
     /**

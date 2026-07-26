@@ -41,12 +41,18 @@ object NoiseField {
     fun hillsGenerator(
         biomeSource: BiomeSource,
         carvers: Map<GenerationStep.Carving, HolderSet<ConfiguredWorldCarver<*>>> = emptyMap(),
-    ): FieldChunkGenerator =
-        FieldChunkGenerator(
+    ): FieldChunkGenerator {
+        // Built once and used twice — by the generator to shape the rock, and (when the biome source
+        // wants depth measured against it) to say how deeply buried a point is. One value, so the two
+        // cannot drift apart.
+        val terrain = hills()
+        return FieldChunkGenerator(
             biomeSource,
-            hills(),
+            terrain,
             AmbientMedium.sea(Blocks.WATER.defaultBlockState(), level = SEA_LEVEL),
-            Palette.VERDANT,
+            // Vanilla's own palette now that the Age has vanilla's biomes to hang it on: our hand-built
+            // VERDANT dressed every biome alike, which stops being the right answer here.
+            Palette.VANILLA_OVERWORLD,
             carvers,
             // Deep caves run mostly dry, with wet pockets where the rock is flooded, while the sea
             // still wins just beneath the seabed so nothing hangs over a hollow.
@@ -56,6 +62,7 @@ object NoiseField {
                 seed = TABLE_SEED,
             ),
         )
+    }
 
     private const val TERRAIN_SEED = 0x1DEA_5EEDL
     private const val SEA_LEVEL = 63

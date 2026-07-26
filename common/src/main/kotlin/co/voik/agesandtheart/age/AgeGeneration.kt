@@ -8,11 +8,14 @@ import co.voik.agesandtheart.worldgen.ShapesField
 import co.voik.agesandtheart.worldgen.VanillaDelegate
 import co.voik.agesandtheart.worldgen.SpireChunkGenerator
 import co.voik.agesandtheart.worldgen.SpireField
+import co.voik.agesandtheart.worldgen.biome.AgeBiomeSource
 import net.minecraft.core.HolderSet
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
+import net.minecraft.world.level.biome.Biome
+import net.minecraft.world.level.biome.BiomeSource
 import net.minecraft.world.level.biome.Biomes
 import net.minecraft.world.level.biome.FixedBiomeSource
 import net.minecraft.world.level.chunk.ChunkGenerator
@@ -66,19 +69,18 @@ object AgeGeneration {
             GENERATOR_VANILLA -> return VanillaDelegate.overworld(server)
             GENERATOR_VANILLA_BARE -> return VanillaDelegate.bareOverworld(server)
         }
-        // Spire uses the moody green plasma biome; field Ages use vanilla the_void — a bright, normal
-        // sky with no features/structures/mobs. (Plains pulled in village structures, which crash on
-        // our flat terrain with "Bound must be positive"; revisit when we enable real decoration.)
-        // Spire — bespoke preset and field rebuild alike — wears its own green plasma biome, since that
-        // world is what the whole look is being designed for. The other field Ages stay on vanilla
-        // the_void: a bright, neutral sky with no features or structures, which suits iterating on shape.
-        val biomeKey = if (generatorKey in SPIRE_KINDS) {
-            ResourceKey.create(Registries.BIOME, PLASMA_BIOME)
-        } else {
-            Biomes.THE_VOID
+        val biomes: BiomeSource = when (generatorKey) {
+            // Real biomes: vanilla's climate over vanilla's biome table, which is the sane default for an
+            // Age whose author has expressed no preference. See [AgeBiomeSource] for why we cannot just
+            // use vanilla's MultiNoiseBiomeSource.
+            GENERATOR_HILLS -> AgeBiomeSource.vanillaOverworld(server, seed)
+            // Spire — bespoke preset and field rebuild alike — wears its own green plasma biome, since
+            // that world is what the whole look is being designed for.
+            in SPIRE_KINDS -> fixedBiome(server, ResourceKey.create(Registries.BIOME, PLASMA_BIOME))
+            // The shape samplers stay on vanilla the_void: a bright, neutral sky with no features or
+            // structures, which suits iterating on form with nothing in the way.
+            else -> fixedBiome(server, Biomes.THE_VOID)
         }
-        val biome = server.registryAccess().lookupOrThrow(Registries.BIOME).getOrThrow(biomeKey)
-        val biomes = FixedBiomeSource(biome)
         return when (generatorKey) {
             GENERATOR_FIELD -> SpireField.generator(biomes, erosionCarvers(server))
             GENERATOR_PYRAMIDS -> PyramidField.generator(biomes)
@@ -90,6 +92,10 @@ object AgeGeneration {
             else -> SpireChunkGenerator(biomes, seed)
         }
     }
+
+    /** One biome everywhere — for the Ages whose look is the shape itself. */
+    private fun fixedBiome(server: MinecraftServer, biome: ResourceKey<Biome>) =
+        FixedBiomeSource(server.registryAccess().lookupOrThrow(Registries.BIOME).getOrThrow(biome))
 
     /**
      * Vanilla's cave and canyon carvers, resolved from the registry so an Age can name them in its own

@@ -14,6 +14,17 @@ class Spans private constructor(val ranges: List<IntRange>) {
 
     fun contains(y: Int): Boolean = ranges.any { y in it }
 
+    /**
+     * The top of the rock standing over [y] — the height of the lowest solid interval that reaches [y]
+     * or above. `null` when nothing is solid up there, i.e. [y] is under open sky.
+     *
+     * This is *how buried* a point is, and it is deliberately not [highestSolidY]: for a point in a
+     * cave it answers the roof of the rock above rather than the cave floor, and for a point beside a
+     * spire it answers that column's own low ceiling rather than the distant summit. Ranges are
+     * normalised ascending, so the first one that reaches [y] is the nearest.
+     */
+    fun roofOver(y: Int): Int? = ranges.firstOrNull { it.last >= y }?.last
+
     /** Solid where either column is solid. */
     fun union(other: Spans): Spans = normalise(ranges + other.ranges)
 

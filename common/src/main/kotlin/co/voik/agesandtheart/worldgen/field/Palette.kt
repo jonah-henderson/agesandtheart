@@ -1,6 +1,8 @@
 package co.voik.agesandtheart.worldgen.field
 
+import net.minecraft.data.worldgen.SurfaceRuleData
 import net.minecraft.resources.ResourceKey
+import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.SurfaceRules
@@ -18,10 +20,15 @@ import net.minecraft.world.level.levelgen.synth.NormalNoise
  *
  * **Why this wrapper exists.** Vanilla evaluates surface rules through machinery reachable only via a
  * noise pipeline, which a field Age does not have: it runs on `NoiseGeneratorSettings.dummy()`, whose
- * router is inert. Three of vanilla's rules read that router — `abovePreliminarySurface`, `hole` and
- * `bandlands` — so against a field Age they describe terrain that does not exist, and they do it
- * **silently**. Rather than trusting ourselves to remember that, this object re-exports only the sound
- * subset; the unsound ones are simply not reachable from our code.
+ * router is inert. Exactly one of vanilla's conditions reads that router — `abovePreliminarySurface`,
+ * which asks `NoiseChunk.preliminarySurfaceLevel`; against an inert router that returns
+ * `Integer.MAX_VALUE`, so the condition is false everywhere and anything beneath it is **silently**
+ * dead. Rather than trusting ourselves to remember that, it is simply not reachable from our code.
+ *
+ * It is the *only* one. `hole` and `bandlands` look like they should be in the same boat and are not:
+ * both read noise the `RandomState` instantiates for itself (`Noises.SURFACE` via
+ * `SurfaceSystem.getSurfaceDepth`, and the clay-bands noise) rather than anything from the router. So is
+ * `temperature`, which asks the *biome* whether it is `coldEnoughToSnow`. All three are sound here.
  *
  * Note the vocabulary is closed to us: `SurfaceRules.Context` is protected and `Condition` is
  * package-private, so we can *compose* vanilla's conditions but never write a new kind. Hence `and` is
@@ -45,7 +52,24 @@ object Palette {
     fun where(first: SurfaceRules.ConditionSource, second: SurfaceRules.ConditionSource, block: BlockState): SurfaceRules.RuleSource =
         SurfaceRules.ifTrue(first, where(second, block))
 
-    // --- Conditions: the sound subset ---
+    // --- Conditions: everything but `abovePreliminarySurface` ---
+
+    /** True only in the named biomes. Meaningless until an Age has more than one — see `AgeBiomeSource`. */
+    fun inBiomes(vararg biomes: ResourceKey<Biome>): SurfaceRules.ConditionSource =
+        SurfaceRules.isBiome(*biomes)
+
+    /**
+     * True where the biome at this position is cold enough for snow rather than rain — vanilla's own
+     * test, and the reason snowy slopes get powder snow while their neighbours get grass. Reads the
+     * biome, not the noise router, so it is sound for us.
+     */
+    fun coldEnoughToSnow(): SurfaceRules.ConditionSource = SurfaceRules.temperature()
+
+    /**
+     * True where the soil runs out — vanilla's `hole`, which is how ground that should be grassy comes
+     * out as bare stone in patches. Reads the surface-depth noise, which is real for us.
+     */
+    fun soilless(): SurfaceRules.ConditionSource = SurfaceRules.hole()
 
     /** The exposed skin of the terrain — the topmost solid block of a column. */
     fun atSurface(): SurfaceRules.ConditionSource = withinDepth(0)
@@ -82,7 +106,28 @@ object Palette {
 
     fun not(condition: SurfaceRules.ConditionSource): SurfaceRules.ConditionSource = SurfaceRules.not(condition)
 
+    /** Vanilla's banded badlands clay, as a rule rather than a condition. Sound: its own noise. */
+    fun clayBands(): SurfaceRules.RuleSource = SurfaceRules.bandlands()
+
     // --- Ready-made palettes ---
+
+    /**
+     * **Vanilla's own overworld palette**, biome for biome: grass and podzol and mycelium, red sand in
+     * the badlands with their clay banding, gravel and magma under the oceans, powder snow on the peaks.
+     * The natural partner to `AgeBiomeSource` — once an Age has real biomes, this dresses them the way a
+     * player expects without us re-deriving several hundred lines of rules.
+     *
+     * Note the `aboveGround = false`: that is not a description of the world but the switch that drops
+     * the `abovePreliminarySurface` wrapper vanilla otherwise puts around the whole tree, which would be
+     * dead here for the reason given above. Everything inside it is sound. `bedrockFloor = true` closes
+     * the bottom of the world at our own min-Y; `bedrockRoof = false` leaves the sky open.
+     *
+     * Taken from `net.minecraft.data.worldgen` deliberately rather than from the registry: the
+     * datapack-loaded `minecraft:overworld` noise settings carry the `aboveGround = true` variant, which
+     * is the one we cannot use.
+     */
+    val VANILLA_OVERWORLD: SurfaceRules.RuleSource =
+        SurfaceRuleData.overworldLike(/* aboveGround = */ false, /* bedrockRoof = */ false, /* bedrockFloor = */ true)
 
     /** Grass over dirt over stone, deepslate fading in at depth; bare gravel wherever the sea covers it. */
     val VERDANT: SurfaceRules.RuleSource = layers(
