@@ -69,7 +69,10 @@ object AgeGeneration {
         // Spire uses the moody green plasma biome; field Ages use vanilla the_void — a bright, normal
         // sky with no features/structures/mobs. (Plains pulled in village structures, which crash on
         // our flat terrain with "Bound must be positive"; revisit when we enable real decoration.)
-        val biomeKey = if (generatorKey == GENERATOR_SPIRE) {
+        // Spire — bespoke preset and field rebuild alike — wears its own green plasma biome, since that
+        // world is what the whole look is being designed for. The other field Ages stay on vanilla
+        // the_void: a bright, neutral sky with no features or structures, which suits iterating on shape.
+        val biomeKey = if (generatorKey in SPIRE_KINDS) {
             ResourceKey.create(Registries.BIOME, PLASMA_BIOME)
         } else {
             Biomes.THE_VOID
@@ -77,7 +80,7 @@ object AgeGeneration {
         val biome = server.registryAccess().lookupOrThrow(Registries.BIOME).getOrThrow(biomeKey)
         val biomes = FixedBiomeSource(biome)
         return when (generatorKey) {
-            GENERATOR_FIELD -> SpireField.generator(biomes)
+            GENERATOR_FIELD -> SpireField.generator(biomes, erosionCarvers(server))
             GENERATOR_PYRAMIDS -> PyramidField.generator(biomes)
             GENERATOR_PYRINGS -> PyramidField.ringsGenerator(biomes)
             GENERATOR_PYRVARIED -> PyramidField.variedGenerator(biomes)
@@ -105,13 +108,24 @@ object AgeGeneration {
         return mapOf(GenerationStep.Carving.AIR to caves)
     }
 
+    /** Our own erosion pass — the thing that pares Spire's blocky masses back to ribs and spires. */
+    private fun erosionCarvers(server: MinecraftServer): Map<GenerationStep.Carving, HolderSet<ConfiguredWorldCarver<*>>> {
+        val configured = server.registryAccess().lookupOrThrow(Registries.CONFIGURED_CARVER)
+        val erosion = ResourceKey.create(Registries.CONFIGURED_CARVER, "erosion".location())
+        return mapOf(GenerationStep.Carving.AIR to HolderSet.direct(configured.getOrThrow(erosion)))
+    }
+
     private fun vanillaCarver(name: String): ResourceKey<ConfiguredWorldCarver<*>> =
         ResourceKey.create(Registries.CONFIGURED_CARVER, ResourceLocation.withDefaultNamespace(name))
 
-    /** The dimension type (and thus sky) for an Age — only the Spire preset keeps the custom Age sky. */
+    /** The dimension type (and thus sky) for an Age — the Spire worlds keep the custom Age sky. */
     fun dimensionType(server: MinecraftServer, id: ResourceLocation): ResourceLocation =
-        when (AgeSavedData.get(server).generatorKey(id)) {
-            GENERATOR_SPIRE -> AGE_DIMENSION_TYPE
-            else -> AGE_PLAIN_DIMENSION_TYPE
+        if (AgeSavedData.get(server).generatorKey(id) in SPIRE_KINDS) {
+            AGE_DIMENSION_TYPE
+        } else {
+            AGE_PLAIN_DIMENSION_TYPE
         }
+
+    /** The two Spire worlds: the original bespoke preset, and its rebuild as a field tree. */
+    private val SPIRE_KINDS = setOf(GENERATOR_SPIRE, GENERATOR_FIELD)
 }
