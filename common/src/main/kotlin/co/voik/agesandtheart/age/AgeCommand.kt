@@ -9,10 +9,13 @@ import com.mojang.brigadier.context.CommandContext
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import net.minecraft.core.BlockPos
+import net.minecraft.core.QuartPos
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.world.level.biome.BiomeSource
+import net.minecraft.world.level.biome.Climate
 import net.minecraft.world.level.levelgen.Heightmap
 
 /**
@@ -265,6 +268,9 @@ object AgeCommand {
                     "tallest column y=$peakY at ($peakX,$peakZ) ($peakBlock)",
             )
         }, false)
+        surveyBiomes(level, SURVEY_RADIUS_CHUNKS).forEach { line ->
+            source.sendSuccess({ Component.literal("  $line") }, false)
+        }
         return SUCCESS
     }
 
@@ -307,6 +313,64 @@ object AgeCommand {
 
     private fun blockName(level: ServerLevel, x: Int, y: Int, z: Int): String =
         BuiltInRegistries.BLOCK.getKey(level.getBlockState(BlockPos(x, y, z)).block).toString()
+
+    /**
+     * What an Age's biome source would place over a wide area, asked of the source directly rather than
+     * read back out of generated chunks. A biome source is a pure function of position, so this needs no
+     * terrain at all and costs nothing — which is the only way to survey thousands of columns headlessly.
+     *
+     * Reports the two things that are actually in question: how varied the horizontal mosaic is, and
+     * whether biomes change with **depth** — the latter being entirely down to
+     * [co.voik.agesandtheart.worldgen.biome.ClimateDepth], since vanilla's underground biomes are reached
+     * by the depth parameter or not at all.
+     */
+    private fun surveyBiomes(level: ServerLevel, radiusChunks: Int): List<String> {
+        val source = level.chunkSource.generator.biomeSource
+        val climate = level.chunkSource.randomState().sampler()
+        val lowestQuartY = QuartPos.fromBlock(level.minBuildHeight)
+        val highestQuartY = QuartPos.fromBlock(level.maxBuildHeight - 1)
+
+        val everywhere = mutableSetOf<String>()
+        val deepOnly = mutableSetOf<String>()
+        var layeredColumns = 0
+        var columns = 0
+
+        val quartRadius = QuartPos.fromBlock(radiusChunks * BLOCKS_PER_CHUNK)
+        for (quartX in -quartRadius..quartRadius step SURVEY_QUART_STRIDE) {
+            for (quartZ in -quartRadius..quartRadius step SURVEY_QUART_STRIDE) {
+                columns++
+                val top = biomeName(source, climate, quartX, highestQuartY, quartZ)
+                everywhere += top
+                var layered = false
+                for (quartY in lowestQuartY..highestQuartY) {
+                    val here = biomeName(source, climate, quartX, quartY, quartZ)
+                    everywhere += here
+                    if (here != top) {
+                        deepOnly += here
+                        layered = true
+                    }
+                }
+                if (layered) layeredColumns++
+            }
+        }
+        return listOf(
+            "$columns columns sampled within $radiusChunks chunks: ${everywhere.size} distinct biomes",
+            "$layeredColumns of $columns columns change biome with depth",
+            if (deepOnly.isEmpty()) "no below-surface biomes" else "below the surface: ${deepOnly.sorted().joinToString(", ")}",
+        )
+    }
+
+    private fun biomeName(source: BiomeSource, climate: Climate.Sampler, quartX: Int, quartY: Int, quartZ: Int): String =
+        source.getNoiseBiome(quartX, quartY, quartZ, climate).unwrapKey()
+            .map { it.location().toString() }
+            .orElse("(unnamed)")
+
+    /** Every fourth quart cell, i.e. one column per 16 blocks — dense enough to find small biomes. */
+    private const val SURVEY_QUART_STRIDE = 4
+    private const val BLOCKS_PER_CHUNK = 16
+
+    /** Wide enough to cross several biomes at vanilla's scale, and free since nothing is generated. */
+    private const val SURVEY_RADIUS_CHUNKS = 64
 
     private fun runList(context: CommandContext<CommandSourceStack>): Int {
         val source = context.source

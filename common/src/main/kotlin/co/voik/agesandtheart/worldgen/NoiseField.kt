@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.worldgen
 
+import co.voik.agesandtheart.worldgen.biome.AgeBiomeSource
 import co.voik.agesandtheart.worldgen.field.AmbientMedium
 import co.voik.agesandtheart.worldgen.field.NoiseHeightmap
 import co.voik.agesandtheart.worldgen.field.Palette
@@ -37,17 +38,23 @@ object NoiseField {
      * [carvers] cut caves and canyons out of the hills — supplied by the caller because configured
      * carvers are registry objects, and an Age names them as part of its recipe rather than inheriting
      * them from a biome (see [FieldChunkGenerator.applyCarvers]).
+     *
+     * [biomeSource] is specifically an [AgeBiomeSource] rather than any [BiomeSource]: this preset dresses
+     * itself in [Palette.VANILLA_OVERWORLD], which only means anything over real biomes, and it grounds
+     * the biome layout in its own rock so the caves it carves get cave biomes.
      */
     fun hillsGenerator(
-        biomeSource: BiomeSource,
+        biomeSource: AgeBiomeSource,
         carvers: Map<GenerationStep.Carving, HolderSet<ConfiguredWorldCarver<*>>> = emptyMap(),
     ): FieldChunkGenerator {
-        // Built once and used twice — by the generator to shape the rock, and (when the biome source
-        // wants depth measured against it) to say how deeply buried a point is. One value, so the two
-        // cannot drift apart.
+        // Built once and used twice — by the generator to shape the rock, and by the biome source to say
+        // how deeply buried a point is. One value, so the two cannot drift apart.
         val terrain = hills()
         return FieldChunkGenerator(
-            biomeSource,
+            // Depth measured against this Age's own rock rather than pinned to the surface, so vanilla's
+            // table reaches its underground biomes: dripstone and lush caves through the middle of the
+            // rock, the deep dark only at the very bottom. The carvers below are what opens them up.
+            biomeSource.groundedIn(terrain),
             terrain,
             AmbientMedium.sea(Blocks.WATER.defaultBlockState(), level = SEA_LEVEL),
             // Vanilla's own palette now that the Age has vanilla's biomes to hang it on: our hand-built

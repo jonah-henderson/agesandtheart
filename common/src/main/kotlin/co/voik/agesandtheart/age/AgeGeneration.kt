@@ -15,7 +15,6 @@ import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.biome.Biome
-import net.minecraft.world.level.biome.BiomeSource
 import net.minecraft.world.level.biome.Biomes
 import net.minecraft.world.level.biome.FixedBiomeSource
 import net.minecraft.world.level.chunk.ChunkGenerator
@@ -64,29 +63,33 @@ object AgeGeneration {
 
     fun chunkGenerator(server: MinecraftServer, id: ResourceLocation, seed: Long): ChunkGenerator {
         val generatorKey = AgeSavedData.get(server).generatorKey(id)
-        // Tier-B delegates bring their own biome source, so they answer before the fixed one is built.
+        // Some presets bring their own biome source, so they answer before the fixed one is built: the
+        // Tier-B delegates wrap vanilla's whole pipeline, and `hills` wants real biomes of its own.
         when (generatorKey) {
             GENERATOR_VANILLA -> return VanillaDelegate.overworld(server)
             GENERATOR_VANILLA_BARE -> return VanillaDelegate.bareOverworld(server)
+            // Vanilla's climate over vanilla's biome table — the sane default for an Age whose author has
+            // expressed no preference. See [AgeBiomeSource] for why vanilla's own MultiNoiseBiomeSource
+            // cannot work for a generator like ours.
+            GENERATOR_HILLS -> return NoiseField.hillsGenerator(
+                AgeBiomeSource.vanillaOverworld(server, seed),
+                undergroundCarvers(server),
+            )
         }
-        val biomes: BiomeSource = when (generatorKey) {
-            // Real biomes: vanilla's climate over vanilla's biome table, which is the sane default for an
-            // Age whose author has expressed no preference. See [AgeBiomeSource] for why we cannot just
-            // use vanilla's MultiNoiseBiomeSource.
-            GENERATOR_HILLS -> AgeBiomeSource.vanillaOverworld(server, seed)
+        val biomes = if (generatorKey in SPIRE_KINDS) {
             // Spire — bespoke preset and field rebuild alike — wears its own green plasma biome, since
             // that world is what the whole look is being designed for.
-            in SPIRE_KINDS -> fixedBiome(server, ResourceKey.create(Registries.BIOME, PLASMA_BIOME))
+            fixedBiome(server, ResourceKey.create(Registries.BIOME, PLASMA_BIOME))
+        } else {
             // The shape samplers stay on vanilla the_void: a bright, neutral sky with no features or
             // structures, which suits iterating on form with nothing in the way.
-            else -> fixedBiome(server, Biomes.THE_VOID)
+            fixedBiome(server, Biomes.THE_VOID)
         }
         return when (generatorKey) {
             GENERATOR_FIELD -> SpireField.generator(biomes, erosionCarvers(server))
             GENERATOR_PYRAMIDS -> PyramidField.generator(biomes)
             GENERATOR_PYRINGS -> PyramidField.ringsGenerator(biomes)
             GENERATOR_PYRVARIED -> PyramidField.variedGenerator(biomes)
-            GENERATOR_HILLS -> NoiseField.hillsGenerator(biomes, undergroundCarvers(server))
             GENERATOR_SHAPES -> ShapesField.generator(biomes)
             GENERATOR_PILLARS -> PillarField.generator(biomes)
             else -> SpireChunkGenerator(biomes, seed)
