@@ -17,4 +17,9 @@ class NeoForgeAgeBackend : AgeBackend {
         Constants.LOG.warn("Runtime Ages aren't supported on NeoForge yet (requested {})", id)
         return null
     }
+
+    override fun deleteAge(server: MinecraftServer, id: ResourceLocation): Boolean {
+        Constants.LOG.warn("Runtime Ages aren't supported on NeoForge yet (asked to delete {})", id)
+        return false
+    }
 }

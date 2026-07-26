@@ -7,6 +7,9 @@ out/
 # Kotlin 2.x build cache
 .kotlin/
 
+# Logs written by anything that puts Minecraft on the classpath — including the terrain preview
+logs/
+
 # Minecraft dev run directories (Loom)
 run/
 runs/

@@ -22,4 +22,12 @@ interface AgeBackend {
      * reuses its saved chunks. Must be called on the server thread.
      */
     fun openAge(server: MinecraftServer, id: ResourceLocation): ServerLevel?
+
+    /**
+     * Unregisters the Age dimension with the given [id] and discards its saved chunks, returning whether
+     * it worked. Callers are responsible for getting players out first — see
+     * [co.voik.agesandtheart.age.Ages.delete], which owns that policy since it needs no loader-specific
+     * code. Must be called on the server thread.
+     */
+    fun deleteAge(server: MinecraftServer, id: ResourceLocation): Boolean
 }

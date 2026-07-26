@@ -33,6 +33,7 @@ import net.minecraft.world.level.levelgen.Heightmap
  *   /age create vanilla <name>   — Minecraft's own overworld generation (Tier-B delegate; bench reference)
  *   /age create vanillabare <n>  — the same pipeline over a barren biome, so nothing decorates
  *   /age tp <name>               — travel to an Age
+ *   /age delete <name>|all       — discard an Age (or every Age), chunks and all
  *   /age gen <name>              — force-generate the spawn chunk and report what the generator made
  *   /age bench <name> [radius]   — time generating the chunks around the origin (ms/chunk)
  *   /age list                    — list known Ages (with their generator kind)
@@ -58,6 +59,7 @@ object AgeCommand {
                 .requires { source -> source.hasPermission(OPERATOR_PERMISSION_LEVEL) }
                 .then(createSubcommand())
                 .then(teleportSubcommand())
+                .then(deleteSubcommand())
                 .then(generateSubcommand())
                 .then(benchmarkSubcommand())
                 .then(listSubcommand()),
@@ -147,6 +149,12 @@ object AgeCommand {
                 ),
         )
 
+    /** `all` is a literal rather than a name, so it cannot collide with an Age actually called "all". */
+    private fun deleteSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        Commands.literal("delete")
+            .then(Commands.literal("all").executes(::runDeleteAll))
+            .then(Commands.argument(NAME_ARGUMENT, StringArgumentType.word()).executes(::runDelete))
+
     private fun listSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("list").executes(::runList)
 
@@ -171,6 +179,28 @@ object AgeCommand {
             return FAILURE
         }
         source.sendSuccess({ Component.literal("Created Age '$name' [$generatorKey] ($id). Travel with /age tp $name") }, true)
+        return SUCCESS
+    }
+
+    private fun runDelete(context: CommandContext<CommandSourceStack>): Int {
+        val source = context.source
+        val name = StringArgumentType.getString(context, NAME_ARGUMENT)
+        if (!Ages.delete(source.server, ageId(name))) {
+            source.sendFailure(Component.literal("Could not delete Age '$name' — no such Age, or the loader can't"))
+            return FAILURE
+        }
+        source.sendSuccess({ Component.literal("Deleted Age '$name'") }, true)
+        return SUCCESS
+    }
+
+    private fun runDeleteAll(context: CommandContext<CommandSourceStack>): Int {
+        val source = context.source
+        val deleted = Ages.deleteAll(source.server)
+        if (deleted == 0) {
+            source.sendFailure(Component.literal("No Ages to delete"))
+            return FAILURE
+        }
+        source.sendSuccess({ Component.literal("Deleted $deleted Age(s)") }, true)
         return SUCCESS
     }
 

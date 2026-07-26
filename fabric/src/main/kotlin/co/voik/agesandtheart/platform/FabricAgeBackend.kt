@@ -29,4 +29,19 @@ class FabricAgeBackend : AgeBackend {
             .setSeed(seed)
         return Fantasy.get(server).getOrOpenPersistentWorld(id, config).asWorld()
     }
+
+    /**
+     * Fantasy hands out deletion through the world's *handle*, and the only route to a handle is
+     * get-or-open — so an Age that is not currently loaded is briefly opened in order to be discarded.
+     * Harmless, and it keeps deletion working after a restart, when nothing has been opened yet.
+     */
+    override fun deleteAge(server: MinecraftServer, id: ResourceLocation): Boolean {
+        val seed = id.hashCode().toLong()
+        val config = RuntimeWorldConfig()
+            .setDimensionType(ResourceKey.create(Registries.DIMENSION_TYPE, AgeGeneration.dimensionType(server, id)))
+            .setGenerator(AgeGeneration.chunkGenerator(server, id, seed))
+            .setSeed(seed)
+        Fantasy.get(server).getOrOpenPersistentWorld(id, config).delete()
+        return true
+    }
 }

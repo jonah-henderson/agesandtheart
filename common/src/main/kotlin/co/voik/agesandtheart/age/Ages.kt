@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age
 
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.platform.Services
+import net.minecraft.core.SectionPos
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
@@ -57,11 +58,87 @@ object Ages {
         return level
     }
 
-    /** Teleports a player onto the surface at the Age's origin. */
+    /**
+     * Puts a player down on solid ground in an Age — the arrival for travel by book as much as for the
+     * debug command, since both come through here.
+     *
+     * The origin is meant to be somewhere to stand: an Age has to *generate* one, because a
+     * per-dimension spawn point cannot be set afterwards (Fantasy's runtime worlds use
+     * `DerivedLevelData`, whose `setSpawn` does nothing at all). This searches outward anyway, so an Age
+     * whose origin turns out to be open sea or void drops nobody into it.
+     */
     fun teleport(player: ServerPlayer, level: ServerLevel) {
-        level.getChunk(0, 0) // force-generate the spawn chunk so the heightmap is valid
-        val surfaceY = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, 0, 0)
-        player.teleportTo(level, 0.5, (surfaceY + 1).toDouble(), 0.5, player.yRot, player.xRot)
+        val (landingX, landingZ) = findFooting(level)
+        level.getChunk(SectionPos.blockToSectionCoord(landingX), SectionPos.blockToSectionCoord(landingZ))
+        val surfaceY = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, landingX, landingZ)
+        player.teleportTo(level, landingX + 0.5, (surfaceY + 1).toDouble(), landingZ + 0.5, player.yRot, player.xRot)
+    }
+
+    /**
+     * The nearest column to the origin standing clear of the sea. Asks the *generator* rather than the
+     * world, so candidates cost an analytic height query each and no chunk is generated until one is
+     * chosen — which is what makes searching a wide area affordable.
+     */
+    private fun findFooting(level: ServerLevel): Pair<Int, Int> {
+        val generator = level.chunkSource.generator
+        val randomState = level.chunkSource.randomState()
+        val waterline = generator.seaLevel
+        for ((offsetX, offsetZ) in outwardFromOrigin()) {
+            val height = generator.getBaseHeight(offsetX, offsetZ, Heightmap.Types.WORLD_SURFACE_WG, level, randomState)
+            if (height > waterline) return offsetX to offsetZ
+        }
+        return 0 to 0
+    }
+
+    /** Coarse lattice of candidate columns, nearest ring first. */
+    private fun outwardFromOrigin(): Sequence<Pair<Int, Int>> = sequence {
+        yield(0 to 0)
+        for (ring in 1..FOOTING_RINGS) {
+            val extent = ring * FOOTING_STEP
+            for (along in -extent..extent step FOOTING_STEP) {
+                yield(along to -extent)
+                yield(along to extent)
+                yield(-extent to along)
+                yield(extent to along)
+            }
+        }
+    }
+
+    // A step under a chunk, out far enough to clear the widest island spacing we place.
+    private const val FOOTING_STEP = 12
+    private const val FOOTING_RINGS = 24
+
+    /**
+     * Discards an Age: its dimension and its saved chunks both go. Returns whether it existed and was
+     * removed.
+     *
+     * Anyone standing in it is sent home first — deleting a level out from under a player would strand
+     * them in a dimension that no longer exists. That eviction is policy rather than plumbing, so it
+     * lives here and not in the backend.
+     */
+    fun delete(server: MinecraftServer, id: ResourceLocation): Boolean {
+        val saved = AgeSavedData.get(server)
+        if (id !in saved.ages) return false
+        evict(server, id)
+        if (!Services.AGE_BACKEND.deleteAge(server, id)) return false
+        saved.remove(id)
+        Constants.LOG.info("Deleted Age {}", id)
+        return true
+    }
+
+    /** Discards every Age, returning how many went. */
+    fun deleteAll(server: MinecraftServer): Int =
+        // Copied first: deleting mutates the set we would otherwise be iterating.
+        AgeSavedData.get(server).ages.toList().count { delete(server, it) }
+
+    /** Sends anyone inside an Age back to the overworld spawn, so nothing is left in a dead dimension. */
+    private fun evict(server: MinecraftServer, id: ResourceLocation) {
+        val level = server.getLevel(ResourceKey.create(Registries.DIMENSION, id)) ?: return
+        val home = server.overworld()
+        val spawn = home.sharedSpawnPos
+        for (player in level.players().toList()) {
+            player.teleportTo(home, spawn.x + 0.5, spawn.y.toDouble(), spawn.z + 0.5, player.yRot, player.xRot)
+        }
     }
 
     /** Re-opens every persisted Age. Call once per server start (from a loader lifecycle hook). */

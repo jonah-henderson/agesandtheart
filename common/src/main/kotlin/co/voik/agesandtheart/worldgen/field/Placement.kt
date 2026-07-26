@@ -104,9 +104,15 @@ data class Density(val atOrigin: Double, val atEdge: Double, val falloffRadius: 
 }
 
 /**
- * A Cartesian lattice: one candidate instance per cell of side [spacing], at the cell centre plus a
- * random offset up to [jitter] blocks, kept with probability [density]. `jitter = 0` + `Density.uniform()`
- * is an exactly-regular grid; a radial [density] packs or thins the grid by distance from the origin.
+ * A Cartesian lattice: one candidate instance per lattice point, [spacing] blocks apart, offset by up to
+ * [jitter] blocks and kept with probability [density]. `jitter = 0` + `Density.uniform()` is an
+ * exactly-regular grid; a radial [density] packs or thins it by distance from the origin.
+ *
+ * **The lattice is centred on the world origin**, so `(0, 0)` is always a lattice point rather than the
+ * corner between four of them. That matters beyond tidiness: arrival in an Age happens at the origin, and
+ * a per-dimension spawn point cannot be set after the fact — Fantasy's runtime worlds use
+ * `DerivedLevelData`, whose `setSpawn` is an empty method. So an Age that wants somewhere to stand has to
+ * put it there during *generation*, and an origin-centred lattice gives that for free.
  */
 data class Grid(val spacing: Double, val jitter: Double, val density: Density) : Placement {
     override val kind = PlacementKind.GRID
@@ -118,7 +124,8 @@ data class Grid(val spacing: Double, val jitter: Double, val density: Density) :
         random: PositionalRandomFactory,
         visit: (originX: Int, originZ: Int, instanceRandom: RandomSource) -> Unit,
     ) {
-        // A cell's instance can sit up to `jitter` from centre and reach `templateReach` beyond that.
+        // An instance can sit up to `jitter` from its lattice point and reach `templateReach` beyond that.
+        // Flooring both ends is deliberately generous — it may scan one surplus cell, never one too few.
         val pad = templateReach + jitter
         val minCellX = floor((worldX - pad) / spacing).toInt()
         val maxCellX = floor((worldX + pad) / spacing).toInt()
@@ -128,8 +135,8 @@ data class Grid(val spacing: Double, val jitter: Double, val density: Density) :
         for (cellX in minCellX..maxCellX) {
             for (cellZ in minCellZ..maxCellZ) {
                 val instanceRandom = random.at(cellX, 0, cellZ)
-                val originX = (cellX * spacing + spacing / 2 + jittered(instanceRandom, jitter)).roundToInt()
-                val originZ = (cellZ * spacing + spacing / 2 + jittered(instanceRandom, jitter)).roundToInt()
+                val originX = (cellX * spacing + jittered(instanceRandom, jitter)).roundToInt()
+                val originZ = (cellZ * spacing + jittered(instanceRandom, jitter)).roundToInt()
                 if (instanceRandom.nextDouble() < density.keepProbability(originX, originZ)) {
                     visit(originX, originZ, instanceRandom)
                 }
