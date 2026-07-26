@@ -26,6 +26,19 @@ sealed interface TerrainField {
      */
     val horizontalReach: Double
 
+    /**
+     * Roughly what one [columnSpans] call costs, as a count of noise samples. Zero — the default — means
+     * the field answers in closed form and costs essentially nothing; a sampled field reports how much of
+     * the column it may have to walk.
+     *
+     * It exists so combinators can put their cheap children first. That is not a micro-optimisation:
+     * [Intersect] stops as soon as the running result is empty, so a sampled child evaluated *after* an
+     * analytic bound is skipped entirely on every column the bound misses — which is most of them. The
+     * same tree written the other way round pays full price everywhere. A relative ordering is all this
+     * needs to be right about, so an approximate count is enough.
+     */
+    val samplesPerColumn: Int get() = 0
+
     /** The solid vertical intervals of the column at ([worldX], [worldZ]). Tier-1: analytic, exact. */
     fun columnSpans(worldX: Int, worldZ: Int): Spans
 
@@ -65,6 +78,7 @@ enum class FieldKind(private val makeCodec: (Codec<TerrainField>) -> MapCodec<ou
     CYLINDER({ Cylinder.CODEC }),
     BOX({ Box.CODEC }),
     NOISE_HEIGHTMAP({ NoiseHeightmap.CODEC }),
+    NOISE_3D({ Noise3D.CODEC }),
     UNION({ self -> Union.codec(self) }),
     INTERSECT({ self -> Intersect.codec(self) }),
     SUBTRACT({ self -> Subtract.codec(self) }),

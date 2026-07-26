@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.preview
 
+import co.voik.agesandtheart.worldgen.CavernField
+import co.voik.agesandtheart.worldgen.ErodedField
 import co.voik.agesandtheart.worldgen.NoiseField
 import co.voik.agesandtheart.worldgen.PillarField
 import co.voik.agesandtheart.worldgen.ShapesField
@@ -62,6 +64,11 @@ private val subjects: Map<String, Subject> = mapOf(
     "hills" to Subject(NoiseField.hills(), Weathering.NONE, lowestY = 20, highestY = 120),
     "pillars" to Subject(PillarField.world(), Weathering.NONE, lowestY = -70, highestY = 80),
     "shapes" to Subject(ShapesField.world(), Weathering.NONE, lowestY = 55, highestY = 130, radius = 200),
+    "caverns" to Subject(CavernField.world(), Weathering.NONE, lowestY = -64, highestY = 110),
+    // The tunnels on their own. A cave system reads far better as a solid lattice hanging in space than
+    // as absence inside a hill, and the slices are where the network's connectedness actually shows.
+    "caverns-voids" to Subject(CavernField.caves(), Weathering.NONE, lowestY = -64, highestY = 70),
+    "eroded" to Subject(ErodedField.world(), Weathering.NONE, lowestY = -64, highestY = 100, radius = 200),
 )
 
 /**

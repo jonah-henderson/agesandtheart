@@ -1,6 +1,8 @@
 package co.voik.agesandtheart.age
 
 import co.voik.agesandtheart.location
+import co.voik.agesandtheart.worldgen.CavernField
+import co.voik.agesandtheart.worldgen.ErodedField
 import co.voik.agesandtheart.worldgen.NoiseField
 import co.voik.agesandtheart.worldgen.PillarField
 import co.voik.agesandtheart.worldgen.PyramidField
@@ -43,6 +45,8 @@ object AgeGeneration {
     const val GENERATOR_HILLS = "hills"
     const val GENERATOR_SHAPES = "shapes"
     const val GENERATOR_PILLARS = "pillars"
+    const val GENERATOR_CAVERNS = "caverns"
+    const val GENERATOR_ERODED = "eroded"
 
     /** Tier-B vanilla delegates — real Minecraft generation, and our benchmark reference points. */
     const val GENERATOR_VANILLA = "vanilla"
@@ -78,6 +82,9 @@ object AgeGeneration {
                 undergroundCarvers(server),
                 overworldStructures(server),
             )
+            // No vanilla carvers: this Age's caves are its field tree, and the point is to see what
+            // ridged noise alone makes of the rock without cave-and-canyon walks confusing the picture.
+            GENERATOR_CAVERNS -> return CavernField.generator(AgeBiomeSource.vanillaOverworld(server, seed))
         }
         val biomes = if (generatorKey in SPIRE_KINDS) {
             // Spire — bespoke preset and field rebuild alike — wears its own green plasma biome, since
@@ -95,6 +102,7 @@ object AgeGeneration {
             GENERATOR_PYRVARIED -> PyramidField.variedGenerator(biomes)
             GENERATOR_SHAPES -> ShapesField.generator(biomes)
             GENERATOR_PILLARS -> PillarField.generator(biomes)
+            GENERATOR_ERODED -> ErodedField.generator(biomes)
             else -> SpireChunkGenerator(biomes, seed)
         }
     }

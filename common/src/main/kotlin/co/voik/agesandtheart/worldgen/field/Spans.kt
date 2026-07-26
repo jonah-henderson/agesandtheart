@@ -84,6 +84,16 @@ class Spans private constructor(val ranges: List<IntRange>) {
         /** A single interval, inclusive; empty when [high] < [low]. */
         fun of(low: Int, high: Int): Spans = if (high < low) EMPTY else Spans(listOf(low..high))
 
+        /**
+         * Intervals the caller already knows satisfy the invariant — ascending, disjoint, and separated
+         * by at least one empty level. Skips the sort-and-merge of [normalise], which matters for a field
+         * that walks a column and emits runs as it goes, since such a walk cannot produce anything else.
+         *
+         * **The caller owns the invariant.** Handing this unsorted or touching ranges corrupts every
+         * later union, intersect and subtract, quietly. Use [normalise] via [of]/[union] when unsure.
+         */
+        fun ofAscending(ranges: List<IntRange>): Spans = if (ranges.isEmpty()) EMPTY else Spans(ranges)
+
         /** Merge arbitrary integer ranges into the normalised invariant (sorted, merged, disjoint). */
         private fun normalise(input: List<IntRange>): Spans {
             val sorted = input.filter { !it.isEmpty() }.sortedBy { it.first }

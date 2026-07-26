@@ -46,6 +46,14 @@ val main: SourceSet = sourceSets.main.get()
 preview.compileClasspath += main.compileClasspath + main.output
 preview.runtimeClasspath += main.compileClasspath + main.runtimeClasspath + main.output
 
+tasks.register<JavaExec>("noiseprofile") {
+    group = "documentation"
+    description = "Reports what fraction each noise character leaves solid, per threshold."
+    mainClass = "co.voik.agesandtheart.preview.NoiseProfileKt"
+    classpath = preview.runtimeClasspath
+    javaLauncher = javaToolchains.launcherFor(java.toolchain)
+}
+
 tasks.register<JavaExec>("noisebench") {
     group = "verification"
     description = "Times NormalNoise offline, to price a 3D-noise field before building one."

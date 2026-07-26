@@ -9,6 +9,10 @@ data class Union(val fields: List<TerrainField>) : TerrainField {
     override val kind = FieldKind.UNION
     override val horizontalReach = fields.maxOfOrNull { it.horizontalReach } ?: 0.0
 
+    // Every child is asked, always: a union cannot know a later one adds nothing. So ordering these
+    // would buy nothing, and unlike Intersect this genuinely pays for all of them.
+    override val samplesPerColumn = fields.sumOf { it.samplesPerColumn }
+
     override fun columnSpans(worldX: Int, worldZ: Int): Spans =
         fields.fold(Spans.EMPTY) { accumulated, field -> accumulated.union(field.columnSpans(worldX, worldZ)) }
 
@@ -34,9 +38,22 @@ data class Intersect(val fields: List<TerrainField>) : TerrainField {
     // Intersecting can only remove solidity, so the tightest child bounds the result.
     override val horizontalReach = fields.minOfOrNull { it.horizontalReach } ?: 0.0
 
+    override val samplesPerColumn = fields.sumOf { it.samplesPerColumn }
+
+    /**
+     * The children in the order it is cheapest to ask them, settled once here rather than per column.
+     *
+     * Intersection is order-independent as a *result*, but emphatically not as a *cost*: the fold below
+     * stops the moment nothing is left solid, so an analytic bound asked first skips a sampled child
+     * entirely on every column it misses — which, for scattered shapes, is nearly all of them. Sorting
+     * here rather than trusting the author to write them in a good order means the tree cannot be
+     * built wrong, only slowly. [fields] keeps its written order, so what serialises is unchanged.
+     */
+    private val cheapestFirst = fields.sortedBy { it.samplesPerColumn }
+
     override fun columnSpans(worldX: Int, worldZ: Int): Spans {
         if (fields.isEmpty()) return Spans.EMPTY
-        return fields.fold(Spans.EVERYWHERE) { accumulated, field ->
+        return cheapestFirst.fold(Spans.EVERYWHERE) { accumulated, field ->
             if (accumulated.ranges.isEmpty()) accumulated else accumulated.intersect(field.columnSpans(worldX, worldZ))
         }
     }
@@ -57,8 +74,15 @@ data class Subtract(val base: TerrainField, val cut: TerrainField) : TerrainFiel
     override val kind = FieldKind.SUBTRACT
     override val horizontalReach = base.horizontalReach // subtracting can only remove solidity
 
-    override fun columnSpans(worldX: Int, worldZ: Int): Spans =
-        base.columnSpans(worldX, worldZ).subtract(cut.columnSpans(worldX, worldZ))
+    override val samplesPerColumn = base.samplesPerColumn + cut.samplesPerColumn
+
+    override fun columnSpans(worldX: Int, worldZ: Int): Spans {
+        val solid = base.columnSpans(worldX, worldZ)
+        // Nothing here to cut, so do not pay to find out what would have been removed — which is the
+        // whole cost when the cut is a sampled field and the base is scattered.
+        if (solid.ranges.isEmpty()) return solid
+        return solid.subtract(cut.columnSpans(worldX, worldZ))
+    }
 
     override fun resized(factor: Double, pivotY: Int) =
         Subtract(base.resized(factor, pivotY), cut.resized(factor, pivotY))

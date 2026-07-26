@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.Direction
+import net.minecraft.util.StringRepresentable
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import net.minecraft.world.level.levelgen.synth.NormalNoise
 import kotlin.math.abs
@@ -377,6 +378,9 @@ data class NoiseHeightmap(
     override val kind = FieldKind.NOISE_HEIGHTMAP
     override val horizontalReach = Double.POSITIVE_INFINITY
 
+    // One sample per column, whatever the world's height — that is what being a heightmap buys.
+    override val samplesPerColumn = 1
+
     // Vanilla forbids more amplitudes than the first octave leaves room for, and an empty list would
     // leave the noise with nothing to sum. Both can arrive from a serialised tree, so settle them here.
     private val weights = amplitudes.take(-firstOctave + 1).ifEmpty { listOf(1.0) }
@@ -417,6 +421,148 @@ data class NoiseHeightmap(
                 Codec.DOUBLE.fieldOf("relief").forGetter(NoiseHeightmap::relief),
                 Codec.INT.fieldOf("flat_y").forGetter(NoiseHeightmap::flatY),
             ).apply(instance, ::NoiseHeightmap)
+        }
+    }
+}
+
+/**
+ * What shape the raw noise is bent into before it is thresholded. Each mode picks out a different part
+ * of the same noise field, and the difference is not decorative — it decides whether you get isolated
+ * lumps or a connected network.
+ *
+ * The set is open by design: a new character is one `when` branch and one enum constant, and every
+ * existing field tree keeps loading because the codec is by name.
+ */
+enum class NoiseCharacter : StringRepresentable {
+    /** The noise as it comes: smooth lumps and hollows. Erodes a bounded shape into ribs and overhangs. */
+    PLAIN {
+        override fun shape(sample: Double) = sample
+    },
+
+    /**
+     * `1 - 2|n|`, which peaks along the noise's *zero crossings* rather than at its extremes. Those
+     * crossings form continuous surfaces through the volume, so thresholding near the top of the range
+     * leaves a connected network of tubes and chambers — the reason this mode exists, and the same
+     * trick vanilla's spaghetti and noodle caves are built on. Read as rock it is a lattice of veins;
+     * subtracted from rock it is a cave system.
+     */
+    RIDGED {
+        override fun shape(sample: Double) = 1.0 - 2.0 * abs(sample)
+    },
+
+    /** `2|n| - 1` — the exact inverse of [RIDGED], picking out the extremes. Clumped, cauliflower rock. */
+    BILLOWY {
+        override fun shape(sample: Double) = 2.0 * abs(sample) - 1.0
+    };
+
+    /** Maps a raw noise sample onto the value the threshold is compared against. */
+    abstract fun shape(sample: Double): Double
+
+    override fun getSerializedName(): String = name.lowercase()
+
+    companion object {
+        val CODEC: Codec<NoiseCharacter> = StringRepresentable.fromEnum(NoiseCharacter::values)
+    }
+}
+
+/**
+ * Solid wherever three-dimensional noise, bent by [character], rises above [threshold] — the toolkit's
+ * one genuinely volumetric shape, and so the only one that can make an overhang, an arch or a cave.
+ *
+ * **It is deliberately global and world-anchored, and that is what makes it useful with [Instanced].**
+ * A template is queried in its own local coordinates, so a noise field used *as* a template would give
+ * every copy an identical form. Hoisted out instead — `Intersect(Instanced(shapes), Noise3D)` rather
+ * than `Instanced(Intersect(shape, Noise3D))` — the noise reads world coordinates, so every instance is
+ * cut from a different region of one continuous field: all different, and agreeing with each other
+ * where they meet. It also costs one evaluation per column however many instances overlap there.
+ *
+ * [lowY]/[highY] bound the walk and are the whole cost story: this samples once per block between them,
+ * so a band is cheap and the full world height is not. Outside the band the column is empty, which for
+ * an `Intersect` means *nothing* — so the band must cover whatever it is shaping.
+ *
+ * Unlike [NoiseHeightmap] a column here is not one run: noise can be solid, hollow, solid again, and
+ * [Spans] carries all of it. Scales are per-axis, so squashing [scaleY] draws caves out into wide flat
+ * chambers while stretching it gives shafts.
+ */
+data class Noise3D(
+    val seed: Long,
+    val firstOctave: Int,
+    val amplitudes: List<Double>,
+    val scaleX: Double,
+    val scaleY: Double,
+    val scaleZ: Double,
+    val character: NoiseCharacter,
+    /** Solid above this. Higher is sparser; with [NoiseCharacter.RIDGED], higher is *thinner* tubes. */
+    val threshold: Double,
+    val lowY: Int,
+    val highY: Int,
+) : TerrainField {
+    override val kind = FieldKind.NOISE_3D
+    override val horizontalReach = Double.POSITIVE_INFINITY
+
+    // One per block through the band. The reason combinators bother to order their children.
+    override val samplesPerColumn = (highY - lowY + 1).coerceAtLeast(0)
+
+    // Same settling as NoiseHeightmap: both can arrive from a serialised tree, so neither is trusted.
+    private val weights = amplitudes.take(-firstOctave + 1).ifEmpty { listOf(1.0) }
+
+    // Written entirely in its own constructor and only read afterwards, so it is safe to share across
+    // the chunk workers sampling this field.
+    private val noise = NormalNoise.create(XoroshiroRandomSource(seed), firstOctave, *weights.toDoubleArray())
+
+    private val stretchX = scaleX.coerceAtLeast(SMALLEST_STRETCH)
+    private val stretchY = scaleY.coerceAtLeast(SMALLEST_STRETCH)
+    private val stretchZ = scaleZ.coerceAtLeast(SMALLEST_STRETCH)
+
+    override fun columnSpans(worldX: Int, worldZ: Int): Spans {
+        if (highY < lowY) return Spans.EMPTY
+        val sampleX = worldX / stretchX
+        val sampleZ = worldZ / stretchZ
+        // Walked as runs rather than block by block into a list: a column is usually a handful of
+        // intervals, and building it in order means Spans needs no normalising pass afterwards.
+        val solid = ArrayList<IntRange>(EXPECTED_RUNS)
+        var runStart: Int? = null
+        for (y in lowY..highY) {
+            val isSolid = character.shape(noise.getValue(sampleX, y / stretchY, sampleZ)) > threshold
+            if (isSolid) {
+                if (runStart == null) runStart = y
+            } else if (runStart != null) {
+                solid += runStart..y - 1
+                runStart = null
+            }
+        }
+        runStart?.let { solid += it..highY }
+        return Spans.ofAscending(solid)
+    }
+
+    override fun resized(factor: Double, pivotY: Int) = copy(
+        scaleX = scaleX * factor,
+        scaleY = scaleY * factor,
+        scaleZ = scaleZ * factor,
+        lowY = scaledAbout(lowY, factor, pivotY),
+        highY = scaledAbout(highY, factor, pivotY),
+    )
+
+    companion object {
+        private const val SMALLEST_STRETCH = 0.01
+
+        // Enough for the usual few solid runs in a column; it grows if a column is unusually broken up.
+        private const val EXPECTED_RUNS = 8
+
+        val CODEC: MapCodec<Noise3D> = RecordCodecBuilder.mapCodec { instance ->
+            instance.group(
+                Codec.LONG.fieldOf("seed").forGetter(Noise3D::seed),
+                Codec.INT.fieldOf("first_octave").forGetter(Noise3D::firstOctave),
+                Codec.DOUBLE.listOf().fieldOf("amplitudes").forGetter(Noise3D::amplitudes),
+                Codec.DOUBLE.fieldOf("scale_x").forGetter(Noise3D::scaleX),
+                Codec.DOUBLE.fieldOf("scale_y").forGetter(Noise3D::scaleY),
+                Codec.DOUBLE.fieldOf("scale_z").forGetter(Noise3D::scaleZ),
+                // Optional so a tree written before a new character existed still loads as the old look.
+                NoiseCharacter.CODEC.optionalFieldOf("character", NoiseCharacter.PLAIN).forGetter(Noise3D::character),
+                Codec.DOUBLE.fieldOf("threshold").forGetter(Noise3D::threshold),
+                Codec.INT.fieldOf("low_y").forGetter(Noise3D::lowY),
+                Codec.INT.fieldOf("high_y").forGetter(Noise3D::highY),
+            ).apply(instance, ::Noise3D)
         }
     }
 }

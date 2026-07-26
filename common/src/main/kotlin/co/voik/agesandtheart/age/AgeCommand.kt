@@ -118,6 +118,18 @@ object AgeCommand {
                 ),
             )
             .then(
+                Commands.literal("caverns").then(
+                    Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
+                        .executes { context -> runCreate(context, AgeGeneration.GENERATOR_CAVERNS) },
+                ),
+            )
+            .then(
+                Commands.literal("eroded").then(
+                    Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
+                        .executes { context -> runCreate(context, AgeGeneration.GENERATOR_ERODED) },
+                ),
+            )
+            .then(
                 Commands.literal("vanilla").then(
                     Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
                         .executes { context -> runCreate(context, AgeGeneration.GENERATOR_VANILLA) },

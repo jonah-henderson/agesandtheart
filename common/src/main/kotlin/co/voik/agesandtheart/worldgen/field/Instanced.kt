@@ -37,6 +37,15 @@ data class Instanced(
     // Exact, because the resized templates report their own reach — no scale fudge factor needed.
     private val templateReach = posedTemplates.maxOfOrNull { it.horizontalReach } ?: 0.0
 
+    /**
+     * The dearest template, since a column near an instance pays for whichever one that cell picked.
+     * Columns near several pay more and columns near none pay nothing, so this is a rough figure — which
+     * is all an ordering hint has to be. It is also the number that says why sampled templates are a bad
+     * idea: hoisting the noise above the instancer costs one evaluation per column however many
+     * instances overlap it (see [Noise3D]).
+     */
+    override val samplesPerColumn = posedTemplates.maxOfOrNull { it.samplesPerColumn } ?: 0
+
     // Deterministic per-coordinate RNG, built once from [seed]; immutable, so shared safely across threads.
     private val random = XoroshiroRandomSource(seed).forkPositional()
 
