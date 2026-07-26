@@ -13,7 +13,9 @@ import net.minecraft.core.HolderLookup
 import net.minecraft.core.HolderSet
 import net.minecraft.core.registries.Registries
 import net.minecraft.core.RegistryCodecs
+import net.minecraft.resources.ResourceKey
 import net.minecraft.server.level.WorldGenRegion
+import net.minecraft.tags.TagKey
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.LevelHeightAccessor
 import net.minecraft.world.level.NoiseColumn
@@ -48,6 +50,7 @@ import net.minecraft.world.level.levelgen.carver.ConfiguredWorldCarver
 import net.minecraft.world.level.levelgen.structure.StructureSet
 import java.util.Optional
 import java.util.concurrent.CompletableFuture
+import java.util.stream.Stream
 
 /**
  * The Tier-A generator: it owns no shape of its own — it samples whatever [field] it is handed and
@@ -116,6 +119,8 @@ class FieldChunkGenerator(
         val oceanFloor = chunk.getOrCreateHeightmapUnprimed(Heightmap.Types.OCEAN_FLOOR_WG)
         val worldSurface = chunk.getOrCreateHeightmapUnprimed(Heightmap.Types.WORLD_SURFACE_WG)
         val cursor = BlockPos.MutableBlockPos()
+        // Null in almost every chunk, which is what makes asking it per block affordable.
+        val adaptation = TerrainAdaptation.around(structureManager, chunk.pos)
 
         for (localX in 0..<16) {
             for (localZ in 0..<16) {
@@ -124,8 +129,10 @@ class FieldChunkGenerator(
                 val spans = field.columnSpans(worldX, worldZ)
 
                 for (y in MIN_Y..<TOP_Y) {
+                    // The field decides, unless a structure standing here has an opinion of its own.
+                    val isRock = adaptation?.verdictAt(worldX, y, worldZ) ?: spans.contains(y)
                     val state = when {
-                        spans.contains(y) -> SOLID
+                        isRock -> SOLID
                         ambient.fillsAt(y) -> ambient.block
                         else -> null
                     } ?: continue
@@ -140,8 +147,30 @@ class FieldChunkGenerator(
 
     // --- Surface height contract: honest answers so structures/features land on the terrain. ---
 
-    override fun getBaseHeight(x: Int, z: Int, type: Heightmap.Types, level: LevelHeightAccessor, randomState: RandomState): Int =
-        field.columnSpans(x, z).highestSolidY?.plus(1) ?: ambient.level
+    /**
+     * The first Y *above* the topmost block this column has that [type] counts as ground. Structures place
+     * against this and nothing else, so it is answered exactly rather than approximated.
+     *
+     * Which blocks count is [type]'s own business and we ask it rather than guessing: a world-surface query
+     * counts anything that is not air, so a sea reads as its own surface, while an ocean-floor or
+     * motion-blocking query sees straight through the water to the rock below. Getting that wrong puts a
+     * shipwreck on the seabed and a village underwater.
+     *
+     * Two details are load-bearing and neither is cosmetic. Spans reach far outside any real world
+     * ([Spans.HIGHEST_Y]), because an unbounded shape like [co.voik.agesandtheart.worldgen.field.HalfSpace]
+     * has to be expressible, so the answer is **clamped** to the height the caller actually has. And a
+     * column holding nothing answers the world's floor — vanilla's own fallback — where the old
+     * `?: ambient.level` handed back [VOID][co.voik.agesandtheart.worldgen.field.AmbientMedium.VOID]'s
+     * `Int.MIN_VALUE`, which `getFirstOccupiedHeight` then decremented straight into overflow.
+     */
+    override fun getBaseHeight(x: Int, z: Int, type: Heightmap.Types, level: LevelHeightAccessor, randomState: RandomState): Int {
+        val counts = type.isOpaque()
+        // One below the world, so a column with nothing this query counts simply answers the floor.
+        val nothing = level.minBuildHeight - 1
+        val rockTop = if (counts.test(SOLID)) field.columnSpans(x, z).highestSolidY ?: nothing else nothing
+        val mediumTop = if (counts.test(ambient.block)) ambient.surfaceY ?: nothing else nothing
+        return (maxOf(rockTop, mediumTop) + 1).coerceIn(level.minBuildHeight, level.maxBuildHeight)
+    }
 
     override fun getBaseColumn(x: Int, z: Int, level: LevelHeightAccessor, randomState: RandomState): NoiseColumn {
         val spans = field.columnSpans(x, z)
@@ -266,22 +295,26 @@ class FieldChunkGenerator(
      * Which structures may be placed in this Age — named by its own recipe, and empty by default.
      *
      * Vanilla takes every structure set in the registry whose structures list a biome the source can
-     * produce. That is fine for vanilla's terrain and wrong for ours: the moment real biomes arrive, so
-     * do villages, and `Structure.findValidGenerationPoint` fails with "Bound must be positive" when our
-     * flatter Ages give `nextInt` a non-positive bound. So structures are opt-in per Age, the same way
-     * carvers already are, and switch on once an Age is known to report enough relief for them.
+     * produce. That is fine for vanilla's terrain and wrong for ours: the moment real biomes arrive, so do
+     * villages, in Ages whose terrain may be a field of pyramids or a flat plate. So structures are opt-in
+     * per Age, the same way carvers already are, and an Age names the ones it wants in its own recipe.
      *
-     * [ChunkGeneratorStructureState.createForFlat] is the public route that takes an explicit set rather
-     * than the whole registry — the same one superflat uses. Its one compromise is a fixed
-     * concentric-rings seed, so strongholds would ring every Age alike; harmless while the set is empty,
-     * worth revisiting when it isn't.
+     * Vanilla builds this state two ways and neither is quite what an Age wants: `createForNormal` reads
+     * the whole registry but seeds the concentric rings from the world seed, while `createForFlat` takes an
+     * explicit set but nails that seed to zero — which would put every Age's strongholds at the same
+     * bearings. Narrowing the *lookup* instead gets both: our set, and this Age's own rings.
      */
     override fun createState(
         structureSetLookup: HolderLookup<StructureSet>,
         randomState: RandomState,
         seed: Long,
     ): ChunkGeneratorStructureState =
-        ChunkGeneratorStructureState.createForFlat(randomState, seed, biomeSource, structureSets.stream())
+        ChunkGeneratorStructureState.createForNormal(
+            randomState,
+            seed,
+            biomeSource,
+            structureSetLookup.restrictedTo(structureSets),
+        )
 
     override fun spawnOriginalMobs(level: WorldGenRegion) = Unit
 
@@ -346,5 +379,28 @@ class FieldChunkGenerator(
         // What the field lays down before the palette repaints it.
         private val SOLID: BlockState = Blocks.STONE.defaultBlockState()
         private val AIR: BlockState = Blocks.AIR.defaultBlockState()
+    }
+}
+
+/**
+ * The same lookup, showing only the sets in [allowed] — the seam that lets an Age name its structures
+ * without giving up vanilla's own state builder (see [FieldChunkGenerator.createState] for why).
+ *
+ * Only [listElements] is narrowed for `createForNormal`'s sake; [get] is narrowed too so the view stays
+ * honest for anything else that reads it, while tags pass through untouched — nothing consults them here,
+ * and a half-filtered tag would be a worse answer than the real one.
+ */
+private fun HolderLookup<StructureSet>.restrictedTo(allowed: HolderSet<StructureSet>): HolderLookup<StructureSet> {
+    val whole = this
+    return object : HolderLookup<StructureSet> {
+        override fun listElements(): Stream<Holder.Reference<StructureSet>> =
+            whole.listElements().filter { allowed.contains(it) }
+
+        override fun listTags(): Stream<HolderSet.Named<StructureSet>> = whole.listTags()
+
+        override fun get(key: ResourceKey<StructureSet>): Optional<Holder.Reference<StructureSet>> =
+            whole.get(key).filter { allowed.contains(it) }
+
+        override fun get(tag: TagKey<StructureSet>): Optional<HolderSet.Named<StructureSet>> = whole.get(tag)
     }
 }

@@ -11,6 +11,7 @@ import net.minecraft.world.level.biome.BiomeSource
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.levelgen.GenerationStep
 import net.minecraft.world.level.levelgen.carver.ConfiguredWorldCarver
+import net.minecraft.world.level.levelgen.structure.StructureSet
 
 /**
  * The smooth-field preset: rolling hills over a sea, the counterpart to the toolkit's hard-edged CSG
@@ -42,10 +43,15 @@ object NoiseField {
      * [biomeSource] is specifically an [AgeBiomeSource] rather than any [BiomeSource]: this preset dresses
      * itself in [Palette.VANILLA_OVERWORLD], which only means anything over real biomes, and it grounds
      * the biome layout in its own rock so the caves it carves get cave biomes.
+     *
+     * [structures] is the third piece named the same way, and this preset is the first Age that can carry
+     * any: villages and their kind need somewhere to stand, and hills swinging thirty blocks either side
+     * of the waterline is the first terrain we have made that gives them one.
      */
     fun hillsGenerator(
         biomeSource: AgeBiomeSource,
         carvers: Map<GenerationStep.Carving, HolderSet<ConfiguredWorldCarver<*>>> = emptyMap(),
+        structures: HolderSet<StructureSet> = HolderSet.direct(emptyList()),
     ): FieldChunkGenerator {
         // Built once and used twice — by the generator to shape the rock, and by the biome source to say
         // how deeply buried a point is. One value, so the two cannot drift apart.
@@ -68,6 +74,7 @@ object NoiseField {
                 seaLevel = SEA_LEVEL,
                 seed = TABLE_SEED,
             ),
+            structures,
         )
     }
 

@@ -20,6 +20,8 @@ import net.minecraft.world.level.biome.FixedBiomeSource
 import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.levelgen.GenerationStep
 import net.minecraft.world.level.levelgen.carver.ConfiguredWorldCarver
+import net.minecraft.world.level.levelgen.structure.BuiltinStructureSets
+import net.minecraft.world.level.levelgen.structure.StructureSet
 
 /**
  * Builds the generation recipe for an Age.
@@ -74,6 +76,7 @@ object AgeGeneration {
             GENERATOR_HILLS -> return NoiseField.hillsGenerator(
                 AgeBiomeSource.vanillaOverworld(server, seed),
                 undergroundCarvers(server),
+                overworldStructures(server),
             )
         }
         val biomes = if (generatorKey in SPIRE_KINDS) {
@@ -126,6 +129,42 @@ object AgeGeneration {
 
     private fun vanillaCarver(name: String): ResourceKey<ConfiguredWorldCarver<*>> =
         ResourceKey.create(Registries.CONFIGURED_CARVER, ResourceLocation.withDefaultNamespace(name))
+
+    /**
+     * Everything vanilla builds on an overworld, named by the Age rather than inherited — the same rule
+     * carvers already follow, and for the same reason: an Age is replayable data, so what stands in it
+     * belongs in its recipe.
+     *
+     * The list is every set in [BuiltinStructureSets] bar the three that belong to the other dimensions.
+     * Naming the rest is not the same as placing them: the generator's state builder drops any set whose
+     * structures want a biome this Age's biome source cannot produce, so an Age with no jungle gets no
+     * jungle temples without anyone having to say so. Leaving the nether and end sets out is honesty
+     * rather than filtering — no overworld biome could ever admit them.
+     */
+    private fun overworldStructures(server: MinecraftServer): HolderSet<StructureSet> {
+        val sets = server.registryAccess().lookupOrThrow(Registries.STRUCTURE_SET)
+        return HolderSet.direct(OVERWORLD_STRUCTURE_SETS.map(sets::getOrThrow))
+    }
+
+    private val OVERWORLD_STRUCTURE_SETS = listOf(
+        BuiltinStructureSets.VILLAGES,
+        BuiltinStructureSets.DESERT_PYRAMIDS,
+        BuiltinStructureSets.IGLOOS,
+        BuiltinStructureSets.JUNGLE_TEMPLES,
+        BuiltinStructureSets.SWAMP_HUTS,
+        BuiltinStructureSets.PILLAGER_OUTPOSTS,
+        BuiltinStructureSets.OCEAN_MONUMENTS,
+        BuiltinStructureSets.WOODLAND_MANSIONS,
+        BuiltinStructureSets.BURIED_TREASURES,
+        BuiltinStructureSets.MINESHAFTS,
+        BuiltinStructureSets.RUINED_PORTALS,
+        BuiltinStructureSets.SHIPWRECKS,
+        BuiltinStructureSets.OCEAN_RUINS,
+        BuiltinStructureSets.ANCIENT_CITIES,
+        BuiltinStructureSets.STRONGHOLDS,
+        BuiltinStructureSets.TRAIL_RUINS,
+        BuiltinStructureSets.TRIAL_CHAMBERS,
+    )
 
     /** The dimension type (and thus sky) for an Age — the Spire worlds keep the custom Age sky. */
     fun dimensionType(server: MinecraftServer, id: ResourceLocation): ResourceLocation =

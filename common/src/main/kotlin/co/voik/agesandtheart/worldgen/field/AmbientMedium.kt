@@ -14,6 +14,12 @@ data class AmbientMedium(val block: BlockState, val level: Int) {
 
     fun fillsAt(y: Int): Boolean = y < level && !block.isAir
 
+    /**
+     * The highest block this medium fills, or `null` when it fills nothing — which is how [VOID] answers,
+     * and the reason no caller has to know that its [level] is a sentinel rather than a height.
+     */
+    val surfaceY: Int? = if (block.isAir) null else level - 1
+
     companion object {
         val CODEC: MapCodec<AmbientMedium> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
