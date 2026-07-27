@@ -29,6 +29,7 @@ import net.minecraft.world.level.levelgen.Heightmap
  *
  *   /age create <name> [seed]           — author a new Age (Spire preset) and persist it
  *   /age create <preset> <name> [seed]  — the same, from any [AgePreset]: `hills`, `caverns`, …
+ *   /age compose <name> [seed] <spec>   — author one out of slots: `landform=hills medium=sea`
  *   /age tp <name>                      — travel to an Age
  *   /age delete <name>|all              — discard an Age (or every Age), chunks and all
  *   /age gen <name>                     — force-generate the spawn chunk and report what it made
@@ -41,6 +42,7 @@ object AgeCommand {
     private const val NAME_ARGUMENT = "name"
     private const val RADIUS_ARGUMENT = "radius"
     private const val SEED_ARGUMENT = "seed"
+    private const val SPECIFICATION_ARGUMENT = "spec"
     private const val FIRST_ARGUMENT = "first"
     private const val SECOND_ARGUMENT = "second"
 
@@ -64,6 +66,7 @@ object AgeCommand {
             Commands.literal("age")
                 .requires { source -> source.hasPermission(OPERATOR_PERMISSION_LEVEL) }
                 .then(createSubcommand())
+                .then(composeSubcommand())
                 .then(teleportSubcommand())
                 .then(deleteSubcommand())
                 .then(generateSubcommand())
@@ -98,6 +101,29 @@ object AgeCommand {
                 Commands.argument(SEED_ARGUMENT, LongArgumentType.longArg())
                     .executes { context -> runCreate(context, preset, LongArgumentType.getLong(context, SEED_ARGUMENT)) },
             )
+
+    /**
+     * `/age compose <name> [<seed>] <spec>`, where the spec runs to the end of the line.
+     *
+     * The seed sits *before* the spec because a greedy argument can have nothing after it. Both tails
+     * are offered under the name, and the seeded one is registered first so that `compose age 42 …`
+     * reads the 42 as a seed rather than as the first word of a spec — which no spec could start with,
+     * since every token in one is `slot=preset`.
+     */
+    private fun composeSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        Commands.literal("compose").then(
+            Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
+                .then(
+                    Commands.argument(SEED_ARGUMENT, LongArgumentType.longArg()).then(
+                        Commands.argument(SPECIFICATION_ARGUMENT, StringArgumentType.greedyString())
+                            .executes { context -> runCompose(context, LongArgumentType.getLong(context, SEED_ARGUMENT)) },
+                    ),
+                )
+                .then(
+                    Commands.argument(SPECIFICATION_ARGUMENT, StringArgumentType.greedyString())
+                        .executes { context -> runCompose(context, seed = null) },
+                ),
+        )
 
     private fun teleportSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("tp").then(
@@ -147,7 +173,27 @@ object AgeCommand {
     private fun ageId(name: String): ResourceLocation =
         ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, name.lowercase())
 
-    private fun runCreate(context: CommandContext<CommandSourceStack>, preset: AgePreset, seed: Long?): Int {
+    private fun runCreate(context: CommandContext<CommandSourceStack>, preset: AgePreset, seed: Long?): Int =
+        write(context, AgeRecipe.worldFor(preset), seed)
+
+    /**
+     * `/age compose <name> [<seed>] <spec>` — writes an Age out of slots instead of naming a preset.
+     *
+     * The nearest thing to authorship the mod has before books exist: the spec is the same sentence a
+     * writer will eventually write with symbols, spelled `landform=hills medium=sea`. Failing loudly on
+     * a name nobody knows is right *here* and wrong in the pen — see [AgeComposition.Companion.parse].
+     */
+    private fun runCompose(context: CommandContext<CommandSourceStack>, seed: Long?): Int {
+        val specification = StringArgumentType.getString(context, SPECIFICATION_ARGUMENT)
+        val composition = AgeComposition.parse(specification).getOrElse { problem ->
+            context.source.sendFailure(Component.literal(problem.message ?: "Could not read '$specification'"))
+            return FAILURE
+        }
+        return write(context, AgeWorld.Composed(composition), seed)
+    }
+
+    /** Writes an Age down and opens it — the tail `create` and `compose` share. */
+    private fun write(context: CommandContext<CommandSourceStack>, world: AgeWorld, seed: Long?): Int {
         val source = context.source
         val name = StringArgumentType.getString(context, NAME_ARGUMENT)
         val id = ageId(name)
@@ -159,13 +205,13 @@ object AgeCommand {
             source.sendFailure(Component.literal("Age '$name' already exists"))
             return FAILURE
         }
-        val recipe = if (seed == null) AgeRecipe.forPreset(preset, id) else AgeRecipe(preset, seed)
+        val recipe = AgeRecipe(world, seed ?: AgeRecipe.seedFor(id))
         val level = Ages.create(source.server, id, recipe)
         if (level == null) {
             source.sendFailure(Component.literal("Could not create Age '$name'"))
             return FAILURE
         }
-        source.sendSuccess({ Component.literal("Created Age '$name' [${preset.key}] ($id). Travel with /age tp $name") }, true)
+        source.sendSuccess({ Component.literal("Created Age '$name' [$recipe] ($id). Travel with /age tp $name") }, true)
         return SUCCESS
     }
 
@@ -189,15 +235,14 @@ object AgeCommand {
         val firstName = StringArgumentType.getString(context, FIRST_ARGUMENT)
         val secondName = StringArgumentType.getString(context, SECOND_ARGUMENT)
 
-        val first = openForCompare(context, firstName) ?: return FAILURE
-        val second = openForCompare(context, secondName) ?: return FAILURE
+        val first = openNamedAge(source, firstName) ?: return FAILURE
+        val second = openNamedAge(source, secondName) ?: return FAILURE
 
         val firstRecipe = saved.recipe(ageId(firstName))
         val secondRecipe = saved.recipe(ageId(secondName))
         source.sendSuccess({
             Component.literal(
-                "Comparing '$firstName' [${firstRecipe.preset.key} seed=${firstRecipe.seed}] " +
-                    "with '$secondName' [${secondRecipe.preset.key} seed=${secondRecipe.seed}]",
+                "Comparing '$firstName' [$firstRecipe] with '$secondName' [$secondRecipe]",
             )
         }, false)
 
@@ -207,14 +252,9 @@ object AgeCommand {
         for ((chunkX, chunkZ) in chunks) first.getChunk(chunkX, chunkZ)
         for ((chunkX, chunkZ) in chunks) second.getChunk(chunkX, chunkZ)
 
-        var differingBlocks = 0
-        var differingChunks = 0
-        val examples = mutableListOf<String>()
-        for ((chunkX, chunkZ) in chunks) {
-            val differences = compareChunk(first, second, chunkX, chunkZ, examples)
-            if (differences > 0) differingChunks++
-            differingBlocks += differences
-        }
+        val differences = chunks.map { (chunkX, chunkZ) -> compareChunk(first, second, chunkX, chunkZ) }
+        val differingBlocks = differences.sumOf { it.blocks }
+        val differingChunks = differences.count { it.blocks > 0 }
 
         val verdict = if (differingBlocks == 0) {
             "identical: ${chunks.size} chunks agree block for block"
@@ -222,33 +262,51 @@ object AgeCommand {
             "$differingBlocks block(s) differ across $differingChunks of ${chunks.size} chunks"
         }
         source.sendSuccess({ Component.literal("  $verdict") }, false)
-        examples.forEach { example -> source.sendSuccess({ Component.literal("  $example") }, false) }
+        differences.flatMap { it.examples }.take(MAX_REPORTED_DIFFERENCES).forEach { example ->
+            source.sendSuccess({ Component.literal("  $example") }, false)
+        }
         return SUCCESS
     }
 
-    /** Opens an Age for comparison, complaining in the way the other subcommands do if it cannot. */
-    private fun openForCompare(context: CommandContext<CommandSourceStack>, name: String): ServerLevel? {
-        val source = context.source
+    /**
+     * The Age called [name], opened — or null, having already said why. Every subcommand that takes an
+     * Age by name starts here, so they all fail the same way and in the same words.
+     */
+    private fun openNamedAge(source: CommandSourceStack, name: String): ServerLevel? {
         val id = ageId(name)
         if (id !in AgeSavedData.get(source.server).ages) {
             source.sendFailure(Component.literal("No Age named '$name' — create it with /age create $name"))
             return null
         }
-        return Ages.open(source.server, id)
-            ?: null.also { source.sendFailure(Component.literal("Could not open Age '$name'")) }
+        val level = Ages.open(source.server, id)
+        if (level == null) source.sendFailure(Component.literal("Could not open Age '$name'"))
+        return level
     }
 
-    /** Every block of one chunk against the other's, collecting the first few disagreements. */
-    private fun compareChunk(
-        first: ServerLevel,
-        second: ServerLevel,
-        chunkX: Int,
-        chunkZ: Int,
-        examples: MutableList<String>,
-    ): Int {
+    /** A column of the spawn chunk, by its local position and how high it stands. */
+    private data class Column(val x: Int, val z: Int, val height: Int)
+
+    /** The spawn chunk's tallest column — which is what reveals instanced geometry above the ground. */
+    private fun tallestColumn(level: ServerLevel): Column {
+        var tallest = Column(0, 0, Int.MIN_VALUE)
+        for (localX in 0..<BLOCKS_PER_CHUNK) {
+            for (localZ in 0..<BLOCKS_PER_CHUNK) {
+                val height = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, localX, localZ)
+                if (height > tallest.height) tallest = Column(localX, localZ, height)
+            }
+        }
+        return tallest
+    }
+
+    /** How far apart one chunk is in two Ages: how many blocks, and a few of them named. */
+    private data class ChunkDifference(val blocks: Int, val examples: List<String>)
+
+    /** Every block of one chunk against the other's, keeping the first few disagreements. */
+    private fun compareChunk(first: ServerLevel, second: ServerLevel, chunkX: Int, chunkZ: Int): ChunkDifference {
         val here = first.getChunk(chunkX, chunkZ)
         val there = second.getChunk(chunkX, chunkZ)
         val cursor = BlockPos.MutableBlockPos()
+        val examples = mutableListOf<String>()
         var differences = 0
 
         for (localX in 0..<BLOCKS_PER_CHUNK) {
@@ -266,7 +324,7 @@ object AgeCommand {
                 }
             }
         }
-        return differences
+        return ChunkDifference(differences, examples)
     }
 
     private fun runDelete(context: CommandContext<CommandSourceStack>): Int {
@@ -295,16 +353,7 @@ object AgeCommand {
         val source = context.source
         val player = source.playerOrException
         val name = StringArgumentType.getString(context, NAME_ARGUMENT)
-        val id = ageId(name)
-        if (id !in AgeSavedData.get(source.server).ages) {
-            source.sendFailure(Component.literal("No Age named '$name' — create it with /age create $name"))
-            return FAILURE
-        }
-        val level = Ages.open(source.server, id)
-        if (level == null) {
-            source.sendFailure(Component.literal("Could not open Age '$name'"))
-            return FAILURE
-        }
+        val level = openNamedAge(source, name) ?: return FAILURE
         Ages.teleport(player, level)
         source.sendSuccess({ Component.literal("Travelled to Age '$name'") }, true)
         return SUCCESS
@@ -318,38 +367,16 @@ object AgeCommand {
     private fun runGenerate(context: CommandContext<CommandSourceStack>): Int {
         val source = context.source
         val name = StringArgumentType.getString(context, NAME_ARGUMENT)
-        val id = ageId(name)
-        if (id !in AgeSavedData.get(source.server).ages) {
-            source.sendFailure(Component.literal("No Age named '$name' — create it with /age create $name"))
-            return FAILURE
-        }
-        val level = Ages.open(source.server, id)
-        if (level == null) {
-            source.sendFailure(Component.literal("Could not open Age '$name'"))
-            return FAILURE
-        }
+        val level = openNamedAge(source, name) ?: return FAILURE
         level.getChunk(0, 0) // force full generation of the spawn chunk
         val surfaceY = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, 0, 0)
         val surfaceBlock = blockName(level, 0, surfaceY - 1, 0)
-        // Scan the whole spawn chunk for its tallest column — reveals instanced geometry above the ground.
-        var peakY = Int.MIN_VALUE
-        var peakX = 0
-        var peakZ = 0
-        for (localX in 0..<16) {
-            for (localZ in 0..<16) {
-                val height = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, localX, localZ)
-                if (height > peakY) {
-                    peakY = height
-                    peakX = localX
-                    peakZ = localZ
-                }
-            }
-        }
-        val peakBlock = blockName(level, peakX, peakY - 1, peakZ)
+        val peak = tallestColumn(level)
+        val peakBlock = blockName(level, peak.x, peak.height - 1, peak.z)
         source.sendSuccess({
             Component.literal(
                 "Age '$name' spawn chunk: origin surface y=$surfaceY ($surfaceBlock); " +
-                    "tallest column y=$peakY at ($peakX,$peakZ) ($peakBlock)",
+                    "tallest column y=${peak.height} at (${peak.x},${peak.z}) ($peakBlock)",
             )
         }, false)
         surveyBiomes(level, SURVEY_RADIUS_CHUNKS).forEach { line ->
@@ -368,16 +395,7 @@ object AgeCommand {
     private fun runBenchmark(context: CommandContext<CommandSourceStack>, radius: Int): Int {
         val source = context.source
         val name = StringArgumentType.getString(context, NAME_ARGUMENT)
-        val id = ageId(name)
-        if (id !in AgeSavedData.get(source.server).ages) {
-            source.sendFailure(Component.literal("No Age named '$name' — create it with /age create $name"))
-            return FAILURE
-        }
-        val level = Ages.open(source.server, id)
-        if (level == null) {
-            source.sendFailure(Component.literal("Could not open Age '$name'"))
-            return FAILURE
-        }
+        val level = openNamedAge(source, name) ?: return FAILURE
         val startedAt = System.nanoTime()
         for (chunkX in -radius..radius) {
             for (chunkZ in -radius..radius) {
@@ -456,15 +474,29 @@ object AgeCommand {
     /** Wide enough to cross several biomes at vanilla's scale, and free since nothing is generated. */
     private const val SURVEY_RADIUS_CHUNKS = 64
 
+    /**
+     * Every Age and the recipe it is rebuilt from, one to a line — because a composed recipe is a
+     * whole sentence now and no longer fits alongside eleven others on one.
+     *
+     * Options nobody recognises are called out rather than left silent, which is the only way a
+     * misspelt knob is distinguishable from one that simply had no effect.
+     */
     private fun runList(context: CommandContext<CommandSourceStack>): Int {
         val source = context.source
         val saved = AgeSavedData.get(source.server)
         val ages = saved.ages
         if (ages.isEmpty()) {
             source.sendSuccess({ Component.literal("No Ages yet — write one with /age create <name>") }, false)
-        } else {
-            val listing = ages.joinToString(", ") { id -> "$id [${saved.recipe(id).preset.key}]" }
-            source.sendSuccess({ Component.literal("Ages (${ages.size}): $listing") }, false)
+            return SUCCESS
+        }
+        source.sendSuccess({ Component.literal("Ages (${ages.size}):") }, false)
+        for (id in ages) {
+            val recipe = saved.recipe(id)
+            source.sendSuccess({ Component.literal("  $id — $recipe") }, false)
+            val unknown = recipe.composition?.unknownOptions.orEmpty()
+            if (unknown.isNotEmpty()) {
+                source.sendSuccess({ Component.literal("    (ignored, unrecognised: ${unknown.joinToString(" ")})") }, false)
+            }
         }
         return SUCCESS
     }

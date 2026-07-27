@@ -37,7 +37,7 @@ object Ages {
             saved.remove(id)
             return null
         }
-        Constants.LOG.info("Created Age {} [{}]", id, recipe.preset.key)
+        Constants.LOG.info("Created Age {} [{}]", id, recipe)
         return level
     }
 

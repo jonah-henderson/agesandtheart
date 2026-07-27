@@ -29,7 +29,7 @@ object PyramidField {
 
     /** Concentric rings of pyramids around an empty centre. */
     fun ringsGenerator(biomeSource: BiomeSource): FieldChunkGenerator =
-        world(Radial(ringSpacing = 64.0, arcSpacing = 56.0, jitter = 8.0, density = Density.uniform()), Variation.NONE)
+        world(rings(), Variation.NONE)
             .let { FieldChunkGenerator(biomeSource, it, AmbientMedium.VOID, Palette.BARE_ROCK) }
 
     /**
@@ -38,19 +38,43 @@ object PyramidField {
      * [generator] for comparison.
      */
     fun variedGenerator(biomeSource: BiomeSource): FieldChunkGenerator =
-        world(
-            gradientGrid(),
-            Variation(
-                yawSteps = YAW_STEPS,
-                minScale = MIN_SCALE,
-                maxScale = MAX_SCALE,
-                scaleSteps = SCALE_STEPS,
-                pivotY = GROUND_TOP + 1,
-            ),
-        ).let { FieldChunkGenerator(biomeSource, it, AmbientMedium.VOID, Palette.BARE_ROCK) }
+        world(gradientGrid(), variedPoses())
+            .let { FieldChunkGenerator(biomeSource, it, AmbientMedium.VOID, Palette.BARE_ROCK) }
 
-    private fun gradientGrid() =
-        Grid(spacing = 40.0, jitter = 10.0, density = Density.radial(atOrigin = 1.0, atEdge = 0.1, falloffRadius = 420.0))
+    private fun gradientGrid() = Grid(
+        spacing = GRID_SPACING,
+        jitter = GRID_JITTER,
+        density = Density.radial(
+            atOrigin = DENSITY_AT_ORIGIN,
+            atEdge = DENSITY_AT_EDGE,
+            falloffRadius = DENSITY_FALLOFF_RADIUS,
+        ),
+    )
+
+    private fun rings() = Radial(
+        ringSpacing = RING_SPACING,
+        arcSpacing = ARC_SPACING,
+        jitter = RING_JITTER,
+        density = Density.uniform(),
+    )
+
+    /**
+     * The pyramids, arranged as asked. The three arrangements were three separate presets before slots
+     * existed; they are one preset and one enumerated question now, which is what §3.2 is for.
+     */
+    fun world(arrangement: String): TerrainField = when (arrangement) {
+        "rings" -> world(rings(), Variation.NONE)
+        "varied" -> world(gradientGrid(), variedPoses())
+        else -> world(gradientGrid(), Variation.NONE)
+    }
+
+    private fun variedPoses() = Variation(
+        yawSteps = YAW_STEPS,
+        minScale = MIN_SCALE,
+        maxScale = MAX_SCALE,
+        scaleSteps = SCALE_STEPS,
+        pivotY = GROUND_TOP + 1,
+    )
 
     private fun world(placement: Placement, variation: Variation): TerrainField {
         val pyramids = PYRAMID_HEIGHTS.map { height ->
@@ -66,6 +90,23 @@ object PyramidField {
     private const val FLOOR_Y = -64
     private const val GROUND_TOP = 63
     private const val SCATTER_SEED = 0x5EED_C0DEL
+
+    // Wide enough that the largest pyramid still stands clear of its neighbours away from the origin,
+    // with enough jitter to break the lattice without disguising that it is one.
+    private const val GRID_SPACING = 40.0
+    private const val GRID_JITTER = 10.0
+
+    // Packed at the origin and thinning to near-empty by the falloff radius — the gradient is the
+    // whole point of this world, so it runs the full range rather than a subtle one.
+    private const val DENSITY_AT_ORIGIN = 1.0
+    private const val DENSITY_AT_EDGE = 0.1
+    private const val DENSITY_FALLOFF_RADIUS = 420.0
+
+    // Rings far enough apart to walk between, and spaced along their arc so a ring reads as a row of
+    // separate pyramids rather than a wall.
+    private const val RING_SPACING = 64.0
+    private const val ARC_SPACING = 56.0
+    private const val RING_JITTER = 8.0
 
     // Enough orientations to read as freely turned, but a fixed set so the yaw table stays tiny.
     private const val YAW_STEPS = 16

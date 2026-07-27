@@ -39,7 +39,7 @@ class AgeSavedData : SavedData() {
      * The recipe [id] was written from — defaulting, for an Age we have somehow lost the record of, to
      * the Spire preset that every Age was before recipes existed.
      */
-    fun recipe(id: ResourceLocation): AgeRecipe = recipes[id] ?: AgeRecipe.forPreset(AgePreset.SPIRE, id)
+    fun recipe(id: ResourceLocation): AgeRecipe = recipes[id] ?: AgeRecipe.of(AgePreset.SPIRE, id)
 
     /** Returns the next distinct Age index (1, 2, 3, …), persisting the advance. */
     fun allocateIndex(): Int {
@@ -67,6 +67,15 @@ class AgeSavedData : SavedData() {
         private const val KEY_LEGACY_AGES = "ages"
         private const val KEY_LEGACY_KINDS = "generators"
 
+        /**
+         * Ages carry no vanilla data-fixer type — the recipe format is ours, and nothing in Mojang's
+         * schema knows how to migrate it, so [restoreLegacy] does that job instead.
+         *
+         * Vanilla marks this parameter `@Nullable` and passes null for its own untyped data, but the
+         * annotation is stripped from the artifact we compile against, so Kotlin reads the parameter as
+         * non-null and objects to the only value that is correct here.
+         */
+        @Suppress("TYPE_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
         private fun factory(): Factory<AgeSavedData> =
             Factory({ AgeSavedData() }, { tag, _ -> load(tag) }, null)
 
@@ -98,7 +107,7 @@ class AgeSavedData : SavedData() {
             for (index in 0..<storedAges.size) {
                 val id = ResourceLocation.tryParse(storedAges.getString(index)) ?: continue
                 val preset = AgePreset.byKey(storedKinds.getString(id.toString())) ?: AgePreset.SPIRE
-                restored.recipes[id] = AgeRecipe.forPreset(preset, id)
+                restored.recipes[id] = AgeRecipe.of(preset, id)
             }
             Constants.LOG.info("Migrated {} Age(s) from generator kinds to recipes", restored.recipes.size)
         }

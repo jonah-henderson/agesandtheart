@@ -41,7 +41,7 @@ class DescriptiveBookItem(properties: Properties) : Item(properties) {
 
         // Every book writes the same world for now. This is where the words a player wrote will be
         // resolved into a recipe, and it is the whole point of the Art: see notes/the-art-design.md.
-        val age = Ages.ensure(server, ageId, AgeRecipe.forPreset(AgePreset.SPIRE, ageId))
+        val age = Ages.ensure(server, ageId, AgeRecipe.of(AgePreset.SPIRE, ageId))
         if (age == null) {
             player.displayClientMessage(Component.literal("Could not open the Age."), true)
             return InteractionResultHolder.fail(stack)

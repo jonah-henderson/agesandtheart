@@ -14,9 +14,14 @@ import net.minecraft.util.StringRepresentable
  *
  * **Renaming a [key] orphans every Age already written with it**, which is what `recipecheck` guards.
  *
- * Every entry is presently a whole world. Phase 2 of the Art (see `notes/the-art-implementation-plan.md`)
- * types presets by the *slot* they fill instead, so a recipe names several at once — a landform, a
- * medium, a dressing — rather than exactly one of these.
+ * **Most of these are no longer generators.** Slots arrived (see [co.voik.agesandtheart.age.slot.Slot])
+ * and all but three became *compositions* — a landform, a medium, a subsurface, a dressing and a sky,
+ * named separately. What survives here is the name each classic demo goes by, which
+ * [AgeRecipe.worldFor] turns into the composition it describes, and which every Age written before
+ * slots existed still says on disk.
+ *
+ * Only [SPIRE], [VANILLA] and [VANILLA_BARE] remain whole generators, because they genuinely are not
+ * assembled from parts — see [AgeWorld].
  */
 enum class AgePreset(val key: String) : StringRepresentable {
     /** The bespoke floating-island generator, kept as an easter egg rather than a field tree. */
