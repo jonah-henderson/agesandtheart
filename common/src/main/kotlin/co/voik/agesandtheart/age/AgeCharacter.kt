@@ -8,6 +8,7 @@ import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.server.MinecraftServer
+import net.minecraft.util.RandomSource
 import net.minecraft.util.StringRepresentable
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 
@@ -75,7 +76,7 @@ data class AgeCharacter(
         fun drawn(server: MinecraftServer, seed: Long): AgeCharacter {
             val random = XoroshiroRandomSource(seed xor CHARACTER_SALT)
             return AgeCharacter(
-                seam = Seam.entries[random.nextInt(Seam.entries.size)],
+                seam = Seam.drawn(random),
                 alignment = Alignment.entries[random.nextInt(Alignment.entries.size)],
                 regionBlocks = BiomeScale.regionBlocks(server),
             )
@@ -132,19 +133,21 @@ enum class Alignment(val key: String) : StringRepresentable {
  * island straddling a boundary is cut off flat in mid-air with open sky beneath it. That is not a defect
  * to be softened away; it is the impossible geometry the whole feature exists to produce, and the wider
  * settings are the *concession*, not the other way round.
+ *
+ * Which is why these are **not drawn evenly** — see [frequency].
  */
-enum class Seam(val key: String, val share: Double) : StringRepresentable {
+enum class Seam(val key: String, val share: Double, val frequency: Int) : StringRepresentable {
     /** No transition at all. Two worlds pushed together, and the cut shows. */
-    SHEARED("sheared", 0.0),
+    SHEARED("sheared", 0.0, 40),
 
     /** A few columns of interlocking, so the cut reads as broken rather than sawn. */
-    KEEN("keen", 0.04),
+    KEEN("keen", 0.04, 35),
 
     /** A visible band where the two shapes contend. */
-    SOFT("soft", 0.12),
+    SOFT("soft", 0.12, 18),
 
     /** A wide dissolve; from the ground you would struggle to say where one ends. */
-    BLURRED("blurred", 0.30),
+    BLURRED("blurred", 0.30, 7),
     ;
 
     /** The transition width in blocks for a territory [regionBlocks] across. */
@@ -154,5 +157,27 @@ enum class Seam(val key: String, val share: Double) : StringRepresentable {
 
     companion object {
         val CODEC: Codec<Seam> = StringRepresentable.fromEnum(Seam::values)
+
+        /**
+         * A seam drawn against its [frequency] — three Ages in four come out cut or nearly cut.
+         *
+         * Observed 2026-07-27: with every slot divided at once, a wide seam on *each* of them compounds,
+         * and an Age reads less as strange than as disintegrating. The bias is the fix. It is not a retreat
+         * from the header's argument but the same argument counted: if the sheared cut is the thing the
+         * feature exists to produce, drawing it a quarter of the time was never what was meant. The wide
+         * settings stay, at the weight of an oddity — an Age that dissolves is worth meeting occasionally,
+         * which is not the same as one world in four.
+         *
+         * Frequencies are out of [TOTAL_FREQUENCY] so they read as the percentages they are.
+         */
+        fun drawn(random: RandomSource): Seam {
+            // Bands laid end to end in declaration order; the roll lands in exactly one, and the last band
+            // starting at or before it is that one.
+            val roll = random.nextInt(TOTAL_FREQUENCY)
+            val bandStarts = entries.runningFold(0) { covered, seam -> covered + seam.frequency }
+            return entries.last { seam -> roll >= bandStarts[seam.ordinal] }
+        }
+
+        private val TOTAL_FREQUENCY = entries.sumOf(Seam::frequency)
     }
 }
