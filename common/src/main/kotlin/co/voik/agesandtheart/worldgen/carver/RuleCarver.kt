@@ -15,8 +15,34 @@ import net.minecraft.world.level.levelgen.carver.WorldCarver
 import org.apache.commons.lang3.mutable.MutableBoolean
 
 /**
- * Wind erosion that leaves spires, approximated by the mechanism that actually shapes rock rather than
- * by simulating air.
+ * Whether a block is cut away, as a pure function of where it is.
+ *
+ * The two rules that exist are not variations on one idea — [Weathering] wears a mass back to spires,
+ * [Porosity] riddles solid rock with pockets — but they are carved out by the same loop, and that loop is
+ * the fiddly part: the mask, the aquifer, the per-source-chunk seeding and the position-purity argument in
+ * [RuleCarver]. So the loop is shared and the *judgement* is not.
+ *
+ * Purity is the load-bearing property, not tidiness. Nothing an implementation does may touch a chunk, a
+ * registry or a running server, which is what lets the terrain preview evaluate the **exact object** that
+ * generates and therefore be unable to lie about it.
+ */
+interface CarvingRule {
+    /** The band this rule works in; rock outside it is untouched. */
+    val fromY: Int
+    val toY: Int
+
+    /** Whether the block at this position is cut away. */
+    fun cuts(worldX: Int, worldY: Int, worldZ: Int): Boolean
+}
+
+/**
+ * Cuts rock away wherever a [CarvingRule] says so.
+ *
+ * Was `ErosionCarver`, and named for the one rule it had. It is the loop rather than the judgement, so it
+ * is named for that now.
+ *
+ * The rule it was written for — wind erosion that leaves spires, approximated by the mechanism that
+ * actually shapes rock rather than by simulating air:
  *
  * Erosion does not carve spires — **differential** erosion does. A hoodoo is soft rock that happened to
  * be capped by something harder; its neighbours had no such shield and went. So this asks of the *rock*,
@@ -43,10 +69,10 @@ import org.apache.commons.lang3.mutable.MutableBoolean
  * chunk being built, rather than once per surrounding source chunk — which is what keeps a per-block test
  * affordable.
  */
-class ErosionCarver(
+class RuleCarver(
     codec: Codec<CarverConfiguration>,
-    /** The rule itself, held separately so the offline preview can evaluate the same object. */
-    private val weathering: Weathering = Weathering.SPIRE,
+    /** The judgement itself, held separately so the offline preview can evaluate the same object. */
+    private val rule: CarvingRule,
 ) : WorldCarver<CarverConfiguration>(codec) {
 
     override fun isStartChunk(config: CarverConfiguration, random: RandomSource): Boolean =
@@ -66,13 +92,13 @@ class ErosionCarver(
         // only when asked about the chunk actually being built.
         if (chunkPos != chunk.pos) return false
 
-        val lowestY = maxOf(context.minGenY + 1, weathering.fromY)
-        val highestY = minOf(context.minGenY + context.genDepth - 2, weathering.toY)
+        val lowestY = maxOf(context.minGenY + 1, rule.fromY)
+        val highestY = minOf(context.minGenY + context.genDepth - 2, rule.toY)
         if (highestY <= lowestY) return false
 
         val position = BlockPos.MutableBlockPos()
         val below = BlockPos.MutableBlockPos()
-        var erodedAnything = false
+        var cutAnything = false
 
         for (localX in 0..<CHUNK_WIDTH) {
             val worldX = chunkPos.minBlockX + localX
@@ -80,20 +106,24 @@ class ErosionCarver(
                 val worldZ = chunkPos.minBlockZ + localZ
 
                 for (worldY in lowestY..highestY) {
-                    if (!weathering.erodes(worldX, worldY, worldZ)) continue
                     if (carvingMask.get(localX, worldY, localZ)) continue
+                    // Air first, and deliberately before the rule: a rule is noise, and most of a tall
+                    // column is sky. Asking the cheap question first is what keeps a whole-world band
+                    // affordable — see the band [Porosity] works over.
+                    position.set(worldX, worldY, worldZ)
+                    if (chunk.getBlockState(position).isAir) continue
+                    if (!rule.cuts(worldX, worldY, worldZ)) continue
 
                     carvingMask.set(localX, worldY, localZ)
-                    position.set(worldX, worldY, worldZ)
                     val reachedSurface = MutableBoolean(false)
-                    val eroded = carveBlock(
+                    val cut = carveBlock(
                         context, config, chunk, biomeAccessor, carvingMask, position, below, aquifer, reachedSurface,
                     )
-                    erodedAnything = eroded || erodedAnything
+                    cutAnything = cut || cutAnything
                 }
             }
         }
-        return erodedAnything
+        return cutAnything
     }
 
     companion object {

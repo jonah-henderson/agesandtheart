@@ -35,8 +35,8 @@ import net.minecraft.world.level.levelgen.synth.NormalNoise
  */
 class Weathering(
     /** The band the wind reaches; rock outside it is untouched. */
-    val fromY: Int,
-    val toY: Int,
+    override val fromY: Int,
+    override val toY: Int,
     /**
      * How much resistance the rock must beat to stand. The most important dial by some way: raise it and
      * a mass thins toward isolated towers, lower it and it fills back in solid.
@@ -97,14 +97,21 @@ class Weathering(
     val seed: Long,
     val firstOctave: Int,
     val amplitudes: DoubleArray,
-) {
+) : CarvingRule {
     // Shared and immutable: resistance is a property of the rock in a place, not of a chunk.
     private val resistance = NormalNoise.create(XoroshiroRandomSource(seed), firstOctave, *amplitudes)
 
     // A separate, finer pattern picking out the few places that survive whatever the wind does.
     private val needles = NormalNoise.create(XoroshiroRandomSource(seed * 31 + 17), firstOctave, *amplitudes)
 
-    /** Whether the wind takes the block at this position. */
+    override fun cuts(worldX: Int, worldY: Int, worldZ: Int): Boolean = erodes(worldX, worldY, worldZ)
+
+    /**
+     * Whether the wind takes the block at this position.
+     *
+     * Kept alongside [cuts] rather than replaced by it: the offline preview reads *erosion* specifically,
+     * and a name that says which agent is at work is worth more there than one that says only "cut".
+     */
     fun erodes(worldX: Int, worldY: Int, worldZ: Int): Boolean {
         if (worldY !in fromY..toY) return false
         val standing = profile(worldY) + if (isNeedle(worldX, worldZ)) needleBonus else 0.0

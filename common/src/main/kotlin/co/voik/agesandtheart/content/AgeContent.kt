@@ -6,7 +6,9 @@ import co.voik.agesandtheart.worldgen.SpireChunkGenerator
 import co.voik.agesandtheart.worldgen.biome.AgeBiomeSource
 import co.voik.agesandtheart.worldgen.biome.RegionBiomeSource
 import co.voik.agesandtheart.worldgen.field.RegionRule
-import co.voik.agesandtheart.worldgen.carver.ErosionCarver
+import co.voik.agesandtheart.worldgen.carver.Porosity
+import co.voik.agesandtheart.worldgen.carver.RuleCarver
+import co.voik.agesandtheart.worldgen.carver.Weathering
 import com.mojang.serialization.MapCodec
 import net.minecraft.core.component.DataComponentType
 import net.minecraft.resources.ResourceLocation
@@ -75,6 +77,7 @@ object AgeContent {
      * `data/agesandtheart/worldgen/configured_carver/`; this registers the carver *kinds* those refer to.
      */
     val carvers: List<Pair<ResourceLocation, WorldCarver<*>>> = listOf(
-        "erosion".location() to ErosionCarver(CarverConfiguration.CODEC.codec()),
+        "erosion".location() to RuleCarver(CarverConfiguration.CODEC.codec(), Weathering.SPIRE),
+        "porosity".location() to RuleCarver(CarverConfiguration.CODEC.codec(), Porosity.VUGS),
     )
 }

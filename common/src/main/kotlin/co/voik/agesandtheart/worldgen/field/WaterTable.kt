@@ -47,6 +47,17 @@ data class WaterTable(
     val seed: Long,
     val firstOctave: Int,
     val amplitudes: List<Double>,
+    /**
+     * Whether everything below the waterline simply floods, with no dry pockets anywhere.
+     *
+     * What `flooded_caves` always claimed and never did: it returned *no* table, and the generator's
+     * substitute for an absent one is the same wandering three-way table `caves` gets — so the pair
+     * differed by a noise seed and nothing else, which a walk found and could not explain.
+     *
+     * A flag rather than a tuned set of thresholds because it is a different *claim*, not an extreme of the
+     * same one: "everything down there is underwater" has no wet-and-dry distribution to describe.
+     */
+    val floods: Boolean = false,
 ) {
     private val floodedness = fieldNoise(seed, firstOctave, amplitudes)
     private val acrossStretch = horizontalScale.coerceAtLeast(SMALLEST_STRETCH)
@@ -54,6 +65,26 @@ data class WaterTable(
 
     /** A fresh aquifer for one carving pass; caches the column, whose surface is the costly part. */
     fun aquiferFor(field: TerrainField): Aquifer = ColumnAquifer(field)
+
+    /**
+     * One aquifer per territory, asked whichever owns the column being carved.
+     *
+     * [shouldScheduleFluidUpdate] forwards to whichever was last consulted rather than answering for itself,
+     * because vanilla asks it immediately after each [Aquifer.computeSubstance] and means "did *that* call
+     * place a drop" — answering for the wrong delegate would either leave water hanging unsettled or
+     * schedule ticks for blocks nobody placed.
+     */
+    private class RegionalAquifer(private val byTerritory: List<Aquifer>, private val territories: RegionMap) : Aquifer {
+        private var lastAsked: Aquifer = byTerritory.first()
+
+        override fun computeSubstance(context: DensityFunction.FunctionContext, substance: Double): BlockState? {
+            val here = byTerritory[territories.memberAt(context.blockX(), context.blockZ()).coerceIn(byTerritory.indices)]
+            lastAsked = here
+            return here.computeSubstance(context, substance)
+        }
+
+        override fun shouldScheduleFluidUpdate(): Boolean = lastAsked.shouldScheduleFluidUpdate()
+    }
 
     private inner class ColumnAquifer(private val field: TerrainField) : Aquifer {
         private var placedFluid = false
@@ -76,6 +107,8 @@ data class WaterTable(
         }
 
         private fun standingLevel(worldX: Int, worldY: Int, worldZ: Int): Int {
+            // No thresholds to consult: a flooded table says the same thing everywhere.
+            if (floods) return seaLevel
             // 1 just beneath a submerged surface, falling to 0 [dryingDepth] blocks down. Land columns
             // start at 0, so rock under a hill is judged by the deep thresholds straight away.
             val nearness = if (columnSubmerged) {
@@ -122,6 +155,24 @@ data class WaterTable(
     }
 
     companion object {
+        /**
+         * Several tables, each answering for its own territory — **hydrology divides** (Jonah's call,
+         * design §3.4, reversing an earlier decision).
+         *
+         * The old rule kept one table for the whole Age, on the grounds that a stepped water level would
+         * read as a bug rather than as impossible geometry. Three things retired that argument: a table is a
+         * *threshold* consulted only where something is being carved, not a height, so a division cannot
+         * produce a cliff of water; the seam is a knife edge 85% of the time now, so the boundary is visible
+         * in the rock and a flooded gallery ending at a sheared face reads as deliberate; and
+         * [Aquifer.shouldScheduleFluidUpdate] already lets water settle where a wet pocket meets a dry one.
+         *
+         * Without this, `caves` beside `flooded_caves` divided into territories identical by construction —
+         * the resolver believed it had split the world and the ground was uniform.
+         */
+        fun aquiferFor(tables: List<WaterTable>, field: TerrainField, territories: RegionMap): Aquifer =
+            tables.singleOrNull()?.aquiferFor(field)
+                ?: RegionalAquifer(tables.map { it.aquiferFor(field) }, territories)
+
         private val AIR: BlockState = Blocks.AIR.defaultBlockState()
 
         /** Nothing sits below this, so it reads as "no water in this rock at all". */
@@ -175,6 +226,7 @@ data class WaterTable(
                 Codec.LONG.fieldOf("seed").forGetter(WaterTable::seed),
                 Codec.INT.fieldOf("first_octave").forGetter(WaterTable::firstOctave),
                 Codec.DOUBLE.listOf().fieldOf("amplitudes").forGetter(WaterTable::amplitudes),
+                Codec.BOOL.optionalFieldOf("floods", false).forGetter(WaterTable::floods),
             ).apply(instance, ::WaterTable)
         }
     }

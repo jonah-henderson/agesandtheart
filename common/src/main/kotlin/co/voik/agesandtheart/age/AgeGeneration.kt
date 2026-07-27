@@ -88,7 +88,7 @@ object AgeGeneration {
             RegionRule.of(composition.dressings.map { it.palette(dressingOptions) }, cover),
             composition.subsurfaces.map { it.carvers(server) },
             below,
-            waterTableOf(composition, ambient, seed),
+            waterTablesOf(composition, ambient, seed),
             // Union, not per-territory: vanilla places structures against the whole dimension, and its
             // own biome predicates already keep a village out of the territory that has no villages in it.
             HolderSet.direct(
@@ -98,24 +98,22 @@ object AgeGeneration {
     }
 
     /**
-     * Where water stands in this Age's rock — **one answer for the whole Age**, drawn from the seed
-     * where its subsurfaces disagree.
+     * Where water stands in this Age's rock — **one table per subsurface**, each answering for its own
+     * territory (Jonah's call, design §3.4, reversing an earlier decision).
      *
-     * The one place a set-valued slot does *not* divide, and deliberately. What has been cut out of the
-     * rock is visible and belongs to its territory; where the water table sits is invisible detail, and
-     * a table that stepped up and down across a boundary would not read as impossible geometry — it
-     * would read as a bug, because water finding its own level is the one thing everyone expects it to
-     * do. Carving splits; hydrology does not.
+     * This used to draw a single table from the seed, on the grounds that a stepped water level would read
+     * as a bug rather than as impossible geometry. What that actually produced was `caves` beside
+     * `flooded_caves` dividing into territories identical by construction — the resolver believed it had
+     * split the world and the ground was uniform. See [WaterTable.aquiferFor] for why the original argument
+     * no longer holds.
+     *
+     * A subsurface with no table of its own contributes the ambient one, so the list always lines up with
+     * the territory map index for index.
      */
-    private fun waterTableOf(composition: AgeComposition, ambient: AmbientMedium, seed: Long): WaterTable? {
-        val choices = composition.subsurfaces
-        val chosen = choices.singleOrNull()
-            ?: choices[XoroshiroRandomSource(seed xor TABLE_SALT).nextInt(choices.size)]
-        return chosen.waterTable(ambient, seed)
-    }
-
-    // So which subsurface's hydrology wins is decorrelated from everything else this seed decides.
-    private const val TABLE_SALT = 0x7AB_1E5L
+    private fun waterTablesOf(composition: AgeComposition, ambient: AmbientMedium, seed: Long): List<WaterTable> =
+        composition.subsurfaces.map { subsurface ->
+            subsurface.waterTable(ambient, seed) ?: WaterTable.matching(ambient, ambient.level, seed)
+        }
 
     /**
      * Where this Age's sea sits when its landforms disagree about it — or whether there is one at all.

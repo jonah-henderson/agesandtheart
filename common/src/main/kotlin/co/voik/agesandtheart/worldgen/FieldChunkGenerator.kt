@@ -85,7 +85,11 @@ class FieldChunkGenerator(
     private val carvers: List<Map<GenerationStep.Carving, HolderSet<ConfiguredWorldCarver<*>>>> = listOf(emptyMap()),
     /** Which subsurface owns which ground. Consulted by [carvers] only, at chunk granularity. */
     private val underground: RegionMap = RegionMap.whole(),
-    private val waterTable: WaterTable? = null,
+    /**
+     * Where water stands, **one table per subsurface** — hydrology divides on the same [underground] map as
+     * the carving it belongs to (design §3.4). Empty means "a flat table at the ambient sea", derived below.
+     */
+    private val waterTables: List<WaterTable> = emptyList(),
     private val structureSets: HolderSet<StructureSet> = HolderSet.direct(emptyList()),
 ) : ChunkGenerator(biomes) {
 
@@ -101,7 +105,10 @@ class FieldChunkGenerator(
         carvers: Map<GenerationStep.Carving, HolderSet<ConfiguredWorldCarver<*>>>,
         waterTable: WaterTable? = null,
         structureSets: HolderSet<StructureSet> = HolderSet.direct(emptyList()),
-    ) : this(biomes, field, ambient, surfaceRule, listOf(carvers), RegionMap.whole(), waterTable, structureSets)
+    ) : this(
+        biomes, field, ambient, surfaceRule, listOf(carvers), RegionMap.whole(),
+        listOfNotNull(waterTable), structureSets,
+    )
 
     override fun codec(): MapCodec<out ChunkGenerator> = CODEC
 
@@ -248,7 +255,8 @@ class FieldChunkGenerator(
      * below, dry above — which an Age can replace with a wandering one for dry deep caves and perched
      * pockets. It mints a fresh aquifer per carving pass, since that object carries state.
      */
-    private val table: WaterTable = waterTable ?: WaterTable.matching(ambient, seaLevel)
+    private val tables: List<WaterTable> =
+        waterTables.ifEmpty { listOf(WaterTable.matching(ambient, seaLevel)) }
 
     // Only ever consulted by the NoiseChunk's own (disabled, unused) aquifer — carving uses [aquifer].
     private val ambientFluid =
@@ -317,7 +325,7 @@ class FieldChunkGenerator(
         val carvingMask = protoChunk.getOrCreateCarvingMask(step)
         // Fresh per pass: it caches a column and tracks whether the water it just placed needs to
         // settle, so it must not be shared between chunk workers.
-        val aquifer = table.aquiferFor(field)
+        val aquifer = WaterTable.aquiferFor(tables, field, underground)
         // Seeded per *source* chunk rather than per target, so one cave system crosses chunk borders
         // identically however the chunks happen to be generated. The reach matches vanilla's.
         val random = WorldgenRandom(LegacyRandomSource(RandomSupport.generateUniqueSeed()))
@@ -400,15 +408,20 @@ class FieldChunkGenerator(
                     .optionalFieldOf("carvers", listOf(emptyMap())).forGetter { it.carvers },
                 RegionMap.MAP_CODEC.codec().optionalFieldOf("underground", RegionMap.whole())
                     .forGetter { it.underground },
-                // Absent means "a flat table at the ambient sea", derived at construction.
-                WaterTable.CODEC.codec().optionalFieldOf("water_table").forGetter { Optional.ofNullable(it.waterTable) },
+                // Absent means "a flat table at the ambient sea", derived at construction. A list, since
+                // hydrology divides with the carving it belongs to, and still readable as the single table
+                // it was — one table is exactly what an Age with one subsurface has.
+                Codec.either(WaterTable.CODEC.codec().listOf(), WaterTable.CODEC.codec())
+                    .xmap(
+                        { either -> either.map({ many -> many }, ::listOf) },
+                        { many -> if (many.size == 1) Either.right(many.first()) else Either.left(many) },
+                    )
+                    .optionalFieldOf("water_table", emptyList()).forGetter { it.waterTables },
                 RegistryCodecs.homogeneousList(Registries.STRUCTURE_SET)
                     .optionalFieldOf("structure_sets", HolderSet.direct(emptyList()))
                     .forGetter { it.structureSets },
-            ).apply(instance) { biomes, field, ambient, rule, carvers, underground, table, structures ->
-                FieldChunkGenerator(
-                    biomes, field, ambient, rule, carvers, underground, table.orElse(null), structures,
-                )
+            ).apply(instance) { biomes, field, ambient, rule, carvers, underground, tables, structures ->
+                FieldChunkGenerator(biomes, field, ambient, rule, carvers, underground, tables, structures)
             }
         }
 
