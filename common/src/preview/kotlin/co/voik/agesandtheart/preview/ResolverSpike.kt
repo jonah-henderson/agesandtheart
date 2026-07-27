@@ -363,7 +363,7 @@ private fun <T> List<T>.pairs(): List<Pair<T, T>> =
 
 private fun compose(chosen: Map<Slot, SlotPreset>): AgeComposition {
     val landform = chosen[Slot.LANDFORM] as? Landform ?: error("the landform slot resolved to nothing")
-    var composition = AgeComposition(landform = landform)
+    var composition = AgeComposition(landforms = listOf(landform))
     for ((slot, preset) in chosen) composition = composition.withPreset(slot, preset.key)
     return composition
 }

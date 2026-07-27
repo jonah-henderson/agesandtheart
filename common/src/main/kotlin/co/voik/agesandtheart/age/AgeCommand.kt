@@ -205,7 +205,7 @@ object AgeCommand {
             source.sendFailure(Component.literal("Age '$name' already exists"))
             return FAILURE
         }
-        val recipe = AgeRecipe(world, seed ?: AgeRecipe.seedFor(id))
+        val recipe = AgeRecipe.written(source.server, world, seed ?: AgeRecipe.seedFor(id))
         val level = Ages.create(source.server, id, recipe)
         if (level == null) {
             source.sendFailure(Component.literal("Could not create Age '$name'"))

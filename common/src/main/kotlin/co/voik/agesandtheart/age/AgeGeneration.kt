@@ -1,6 +1,8 @@
 package co.voik.agesandtheart.age
 
 import co.voik.agesandtheart.age.slot.Slot
+import co.voik.agesandtheart.worldgen.field.Regions
+import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.worldgen.FieldChunkGenerator
 import co.voik.agesandtheart.worldgen.SpireChunkGenerator
@@ -11,6 +13,7 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.biome.FixedBiomeSource
 import net.minecraft.world.level.chunk.ChunkGenerator
+import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 
 /**
  * Turns an [AgeRecipe] into the generator that builds its world.
@@ -41,14 +44,15 @@ object AgeGeneration {
     val PLASMA_BIOME: ResourceLocation = "plasma".location()
 
     fun chunkGenerator(server: MinecraftServer, recipe: AgeRecipe): ChunkGenerator = when (val world = recipe.world) {
-        is AgeWorld.Composed -> assemble(server, world.composition, recipe.seed)
+        is AgeWorld.Composed -> assemble(server, world.composition, recipe)
         is AgeWorld.Bespoke -> bespoke(server, world.preset, recipe.seed)
     }
 
     /** One preset per slot, each answering for its own part of the world. */
-    private fun assemble(server: MinecraftServer, composition: AgeComposition, seed: Long): ChunkGenerator {
-        val landform = composition.landform.field(composition.options.of(Slot.LANDFORM))
-        val ambient = composition.medium.over(composition.landform, composition.options.of(Slot.MEDIUM))
+    private fun assemble(server: MinecraftServer, composition: AgeComposition, recipe: AgeRecipe): ChunkGenerator {
+        val seed = recipe.seed
+        val landform = shapeOf(composition, recipe.character, seed)
+        val ambient = composition.medium.over(waterlineOf(composition, seed), composition.options.of(Slot.MEDIUM))
         val dressing = composition.dressing
         return FieldChunkGenerator(
             dressing.biomes(server, landform, seed),
@@ -60,6 +64,45 @@ object AgeGeneration {
             dressing.structures(server, composition.options.of(Slot.DRESSING)),
         )
     }
+
+    /**
+     * The rock, from however many landforms the Age names.
+     *
+     * One landform is simply itself; several divide the world between them, which is what lets a
+     * contradiction be survived by coexistence rather than by one term going quietly missing (§3.4).
+     * Territory size and seam both come from the Age's **frozen** [AgeCharacter] rather than from the
+     * world it is being opened in, so an Age keeps the geography it was written with even if the host
+     * world's climate settings later change.
+     */
+    private fun shapeOf(composition: AgeComposition, character: AgeCharacter, seed: Long): TerrainField {
+        val options = composition.options.of(Slot.LANDFORM)
+        val shapes = composition.landforms.map { it.field(options) }
+        if (shapes.size == 1) return shapes.first()
+        return Regions(
+            members = shapes,
+            scale = character.regionBlocks.toDouble(),
+            blend = character.seam.blendBlocks(character.regionBlocks),
+            seed = seed,
+        )
+    }
+
+    /**
+     * Where this Age's sea sits when its landforms disagree about it — or whether there is one at all.
+     *
+     * Each shape declares its own waterline, or none for one that stands in open air, and **one of them
+     * simply wins**, drawn from the seed and so not predictable to the writer. That is §3.5's ruling
+     * applied to geography: a pyramid field half-drowned by the sea its neighbour brought is precisely
+     * the sort of thing a set-valued landform exists to make possible. A shape that wanted no sea can
+     * win too, leaving the others standing dry above a floor that expected water.
+     */
+    private fun waterlineOf(composition: AgeComposition, seed: Long): Int? {
+        val claimed = composition.landforms.map { it.waterline }
+        if (claimed.size == 1) return claimed.first()
+        return claimed[XoroshiroRandomSource(seed xor WATERLINE_SALT).nextInt(claimed.size)]
+    }
+
+    // So which sea wins is decorrelated from everything else this seed decides.
+    private const val WATERLINE_SALT = 0x5EA_1E7EL
 
     /**
      * The few Ages that are a whole generator rather than an assembly of parts.

@@ -1,9 +1,11 @@
 package co.voik.agesandtheart.preview
 
+import co.voik.agesandtheart.age.AgeCharacter
 import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.AgePreset
 import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.AgeWorld
+import co.voik.agesandtheart.age.Seam
 import co.voik.agesandtheart.age.slot.Dressing
 import co.voik.agesandtheart.age.slot.Landform
 import co.voik.agesandtheart.age.slot.Medium
@@ -32,6 +34,8 @@ fun main() {
     roundTripsOptionsItCannotUnderstand()
     spellsCompositionsTheWayItReadsThem()
     readsRecipesWrittenBeforeSlots()
+    roundTripsASetValuedLandform()
+    readsRecipesWrittenBeforeRegions()
     keepsEveryWrittenKind()
     stampsTheGeneratorVersion()
     println(
@@ -56,7 +60,7 @@ private fun roundTripsEveryPreset() {
  */
 private fun roundTripsEverySlotPreset() {
     for (preset in everySlotPreset()) {
-        val composition = AgeComposition(landform = Landform.HILLS).withPreset(preset.slot, preset.key)
+        val composition = AgeComposition(landforms = listOf(Landform.HILLS)).withPreset(preset.slot, preset.key)
         roundTrips(AgeRecipe(AgeWorld.Composed(composition), seed = SAMPLE_SEED), "${preset.slot.key}=${preset.key}")
     }
 }
@@ -69,7 +73,7 @@ private fun roundTripsEverySlotPreset() {
  * save, since the recipe is all there is. It has to survive the *write* as well as the read.
  */
 private fun roundTripsOptionsItCannotUnderstand() {
-    val composition = AgeComposition(landform = Landform.PYRAMIDS)
+    val composition = AgeComposition(landforms = listOf(Landform.PYRAMIDS))
         .withOption(Slot.LANDFORM, Landform.ARRANGEMENT.name, "rings")
         .withOption(Slot.LANDFORM, "elevation", "towering")
     check(composition.unknownOptions == listOf("landform.elevation")) {
@@ -90,8 +94,8 @@ private fun roundTripsOptionsItCannotUnderstand() {
  */
 private fun spellsCompositionsTheWayItReadsThem() {
     val compositions = everySlotPreset().map { preset ->
-        AgeComposition(landform = Landform.HILLS).withPreset(preset.slot, preset.key)
-    } + AgeComposition(landform = Landform.PYRAMIDS)
+        AgeComposition(landforms = listOf(Landform.HILLS)).withPreset(preset.slot, preset.key)
+    } + AgeComposition(landforms = listOf(Landform.PYRAMIDS))
         .withOption(Slot.LANDFORM, Landform.ARRANGEMENT.name, "rings")
         .withOption(Slot.MEDIUM, Medium.DEPTH.name, "deep")
 
@@ -124,6 +128,63 @@ private fun readsRecipesWrittenBeforeSlots() {
             "Migration overwrote the stamp on '${preset.key}', which is how an Age forgets what made it"
         }
     }
+}
+
+/**
+ * A landform slot holding several presets survives, and prints in a form the composer reads back.
+ *
+ * The set is the whole point of regions (§3.4), and it is the part of the recipe most recently changed
+ * shape — so it is the part most likely to round-trip as *something*, just not the same something.
+ */
+private fun roundTripsASetValuedLandform() {
+    val composition = AgeComposition(landforms = listOf(Landform.HILLS, Landform.PILLARS, Landform.CAVERNS))
+        .withPreset(Slot.MEDIUM, Medium.SEA.key)
+    val recipe = AgeRecipe(AgeWorld.Composed(composition), seed = SAMPLE_SEED, character = SAMPLE_CHARACTER)
+    val decoded = roundTrips(recipe, "a three-landform Age")
+
+    check(decoded.composition?.landforms == composition.landforms) {
+        "The landform set came back as ${decoded.composition?.landforms}, not ${composition.landforms}"
+    }
+    check(decoded.character == SAMPLE_CHARACTER) {
+        "An Age's character did not survive: ${decoded.character}, not $SAMPLE_CHARACTER"
+    }
+
+    val spelling = composition.toString()
+    check("landform=hills,pillars,caverns" in spelling) { "A set should print comma-joined, got '$spelling'" }
+    check(AgeComposition.parse(spelling).getOrThrow() == composition) {
+        "'$spelling' does not read back as what wrote it"
+    }
+}
+
+/**
+ * An Age written before landform was a set still opens, as the single-landform Age it was.
+ *
+ * Its `landform` is a bare string where today's is a list, and both spellings have to keep working —
+ * this is the second time that field has changed shape, and the first migration is still load-bearing.
+ */
+private fun readsRecipesWrittenBeforeRegions() {
+    val written = CompoundTag().apply {
+        put(
+            "world",
+            CompoundTag().apply {
+                put("kind", StringTag.valueOf("composed"))
+                put("landform", StringTag.valueOf(Landform.ERODED.key))
+                put("medium", StringTag.valueOf(Medium.SEA.key))
+            },
+        )
+        putLong("seed", SAMPLE_SEED)
+        putInt(GENERATOR_VERSION_KEY, PRE_REGIONS_GENERATOR_VERSION)
+    }
+    val decoded = AgeRecipe.CODEC.parse(NbtOps.INSTANCE, written)
+        .getOrThrow { problem -> IllegalStateException("a pre-regions recipe would not load: $problem") }
+
+    check(decoded.composition?.landforms == listOf(Landform.ERODED)) {
+        "A pre-regions landform read back as ${decoded.composition?.landforms}"
+    }
+    check(decoded.character == AgeCharacter.LEGACY) {
+        "A recipe with no character should read as LEGACY, not ${decoded.character}"
+    }
+    check(decoded.generatorVersion == PRE_REGIONS_GENERATOR_VERSION) { "Migration overwrote the stamp" }
 }
 
 /**
@@ -184,9 +245,15 @@ private val LEGACY_KINDS = listOf(
     "vanilla", "vanillabare",
 )
 
+/** A character unlike the default in every field, so a lazy round trip cannot pass by accident. */
+private val SAMPLE_CHARACTER = AgeCharacter(seam = Seam.BLURRED, regionBlocks = 1600)
+
 private const val GENERATOR_VERSION_KEY = "generator_version"
 
 /** What every Age written before slots is stamped with. */
 private const val PRE_SLOTS_GENERATOR_VERSION = 1
+
+/** And what every Age written after slots but before regions is stamped with. */
+private const val PRE_REGIONS_GENERATOR_VERSION = 2
 
 private const val SAMPLE_SEED = 0x5EED_A9EL

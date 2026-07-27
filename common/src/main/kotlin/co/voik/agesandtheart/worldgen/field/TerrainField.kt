@@ -86,7 +86,8 @@ enum class FieldKind(private val makeCodec: (Codec<TerrainField>) -> MapCodec<ou
     UNION({ self -> Union.codec(self) }),
     INTERSECT({ self -> Intersect.codec(self) }),
     SUBTRACT({ self -> Subtract.codec(self) }),
-    INSTANCED({ self -> Instanced.codec(self) });
+    INSTANCED({ self -> Instanced.codec(self) }),
+    REGIONS({ self -> Regions.codec(self) });
 
     fun codec(self: Codec<TerrainField>): MapCodec<out TerrainField> = makeCodec(self)
 

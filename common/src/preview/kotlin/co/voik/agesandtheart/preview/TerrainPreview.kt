@@ -6,7 +6,9 @@ import co.voik.agesandtheart.worldgen.NoiseField
 import co.voik.agesandtheart.worldgen.PillarField
 import co.voik.agesandtheart.worldgen.ShapesField
 import co.voik.agesandtheart.worldgen.SpireField
+import co.voik.agesandtheart.age.Seam
 import co.voik.agesandtheart.worldgen.carver.Weathering
+import co.voik.agesandtheart.worldgen.field.Regions
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import java.awt.image.BufferedImage
 import java.io.File
@@ -72,6 +74,22 @@ private val subjects: Map<String, Subject> = mapOf(
     // as absence inside a hill, and the slices are where the network's connectedness actually shows.
     "caverns-voids" to Subject(CavernField.caves(), Weathering.NONE, lowestY = -64, highestY = 70),
     "eroded" to Subject(ErodedField.world(), Weathering.NONE, lowestY = 30, highestY = 195, radius = 200),
+
+    // Two landforms sharing a world. The top-down view is the one to read: it shows the territories and
+    // what the seam does to whatever it cuts through. Region size here is the default one, so this is
+    // what an Age written in a default world looks like.
+    "regions" to Subject(
+        Regions(
+            members = listOf(NoiseField.hills(), PillarField.world()),
+            scale = 400.0,
+            blend = Seam.KEEN.blendBlocks(400),
+            seed = 0x4E6109L,
+        ),
+        Weathering.NONE,
+        lowestY = 30,
+        highestY = 185,
+        radius = 420,
+    ),
 )
 
 /**

@@ -24,7 +24,14 @@ import net.minecraft.util.StringRepresentable
  * generic iteration badly enough to pay for it.
  */
 data class AgeComposition(
-    val landform: Landform,
+    /**
+     * The shapes of the rock — **plural**, because landform is a *positional* slot and so holds a set
+     * (§3.4). Two landforms divide the world between them, which is how a contradiction gets satisfied
+     * by coexistence rather than by one term silently going missing.
+     *
+     * Never empty; [parse] and the codec both guarantee at least one.
+     */
+    val landforms: List<Landform>,
     val medium: Medium = Medium.VOID,
     val subsurface: Subsurface = Subsurface.SOLID,
     val dressing: Dressing = Dressing.BARE_ROCK,
@@ -32,7 +39,10 @@ data class AgeComposition(
     val options: SlotOptions = SlotOptions(),
 ) {
     /** Every preset this composition names, in slot order — for listing, costing and diagnosis. */
-    val presets: List<SlotPreset> get() = listOf(landform, medium, subsurface, dressing, sky)
+    val presets: List<SlotPreset> get() = landforms + listOf(medium, subsurface, dressing, sky)
+
+    /** The one landform, where there is only one — for the many places that still reasonably assume so. */
+    val landform: Landform get() = landforms.first()
 
     /**
      * Options no preset here understands, spelled `dressing.settlment` — a typo, or a knob some later
@@ -50,8 +60,23 @@ data class AgeComposition(
      * The `when` is exhaustive over [Slot], which is the whole reason the fields are named rather than
      * a map: adding a slot stops the build here, at the one place that must learn how to fill it.
      */
-    fun withPreset(slot: Slot, key: String): AgeComposition = when (slot) {
-        Slot.LANDFORM -> copy(landform = named(slot, key, Landform.entries))
+    fun withPreset(slot: Slot, key: String): AgeComposition = withPresets(slot, listOf(key))
+
+    /**
+     * This composition with [slot] filled by the presets named in [keys].
+     *
+     * A set-valued slot takes them all; a singular one takes the last, rather than refusing. Refusing
+     * would be the pen validating a sentence, which §2 forbids on the grounds that it makes precision
+     * risk-free — and "sky=plain,storm" is a writer asking for something the world cannot be, which is
+     * a job for the instability index rather than for an error message.
+     */
+    fun withPresets(slot: Slot, keys: List<String>): AgeComposition = when (slot) {
+        Slot.LANDFORM -> copy(landforms = keys.map { named(slot, it, Landform.entries) })
+        else -> withSingle(slot, keys.last())
+    }
+
+    private fun withSingle(slot: Slot, key: String): AgeComposition = when (slot) {
+        Slot.LANDFORM -> copy(landforms = listOf(named(slot, key, Landform.entries)))
         Slot.MEDIUM -> copy(medium = named(slot, key, Medium.entries))
         Slot.SUBSURFACE -> copy(subsurface = named(slot, key, Subsurface.entries))
         Slot.DRESSING -> copy(dressing = named(slot, key, Dressing.entries))
@@ -77,11 +102,13 @@ data class AgeComposition(
      * is the only record of an Age and "what did this leave unsaid?" is the wrong question to have to
      * ask of one.
      */
-    override fun toString(): String = presets.flatMap { preset ->
-        listOf("${preset.slot.key}=${preset.key}") +
-            options.of(preset.slot).chosen.entries.sortedBy { it.key }
-                .map { (parameter, option) -> "${preset.slot.key}.$parameter=$option" }
-    }.joinToString(" ")
+    override fun toString(): String = presets.groupBy { it.slot }.entries
+        .sortedBy { (slot, _) -> slot.ordinal }
+        .flatMap { (slot, filling) ->
+            listOf("${slot.key}=${filling.joinToString(",") { it.key }}") +
+                options.of(slot).chosen.entries.sortedBy { it.key }
+                    .map { (parameter, option) -> "${slot.key}.$parameter=$option" }
+        }.joinToString(" ")
 
     companion object {
         /**
@@ -98,7 +125,7 @@ data class AgeComposition(
             // A stand-in landform, so options may be read in any order relative to the presets they
             // steer. Either the sentence names one over the top of it, or it is rejected below for
             // having named none — so which one this is can never reach a world.
-            var composition = AgeComposition(landform = Landform.SHAPES)
+            var composition = AgeComposition(landforms = listOf(Landform.SHAPES))
             var namedALandform = false
 
             for (token in specification.split(' ').filter(String::isNotBlank)) {
@@ -111,7 +138,8 @@ data class AgeComposition(
                     composition.withOption(slot, key.substringAfter('.'), value)
                 } else {
                     namedALandform = namedALandform || slot == Slot.LANDFORM
-                    composition.withPreset(slot, value)
+                    // Commas are how a set-valued slot is written: `landform=hills,pillars`.
+                    composition.withPresets(slot, value.split(',').filter(String::isNotBlank))
                 }
             }
             require(namedALandform) { "An Age needs a landform. Try `landform=${Landform.HILLS.key}`" }
@@ -120,7 +148,14 @@ data class AgeComposition(
 
         val MAP_CODEC: MapCodec<AgeComposition> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
-                enumCodec<Landform>().fieldOf("landform").forGetter(AgeComposition::landform),
+                // A list now, but one written before landform was a set is a bare string, so both
+                // spellings are read. Never empty: an empty list would give a world with no shape at all.
+                Codec.either(enumCodec<Landform>().listOf(), enumCodec<Landform>())
+                    .xmap(
+                        { either -> either.map({ many -> many.ifEmpty { listOf(Landform.SHAPES) } }, ::listOf) },
+                        { many -> if (many.size == 1) com.mojang.datafixers.util.Either.right(many.first()) else com.mojang.datafixers.util.Either.left(many) },
+                    )
+                    .fieldOf("landform").forGetter(AgeComposition::landforms),
                 enumCodec<Medium>().optionalFieldOf("medium", Medium.VOID).forGetter(AgeComposition::medium),
                 enumCodec<Subsurface>().optionalFieldOf("subsurface", Subsurface.SOLID)
                     .forGetter(AgeComposition::subsurface),

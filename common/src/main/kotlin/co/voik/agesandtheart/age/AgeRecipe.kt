@@ -11,6 +11,7 @@ import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.server.MinecraftServer
 import java.util.Optional
 
 /**
@@ -27,6 +28,12 @@ import java.util.Optional
 data class AgeRecipe(
     val world: AgeWorld,
     val seed: Long,
+    /**
+     * What this Age is *like*, as opposed to what it is made of — drawn from the seed and the world it
+     * was written in, then frozen here. Defaults to [AgeCharacter.LEGACY] so a recipe written before
+     * character existed keeps the world it already had.
+     */
+    val character: AgeCharacter = AgeCharacter.LEGACY,
     val generatorVersion: Int = CURRENT_GENERATOR_VERSION,
 ) {
     /** The composition this Age was assembled from, or null for the few that are not assembled. */
@@ -46,8 +53,11 @@ data class AgeRecipe(
          *
          * **2 — slots.** The presets that were whole worlds became compositions of parts, and several
          * demo Ages generate differently as a result.
+         *
+         * **3 — regions.** Landform became a set, every sea moved to 63, and Spire was retuned around
+         * its cloud decks. Nearly every demo Age generates differently.
          */
-        const val CURRENT_GENERATOR_VERSION = 2
+        const val CURRENT_GENERATOR_VERSION = 3
 
         val MAP_CODEC: MapCodec<AgeRecipe> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -62,8 +72,12 @@ data class AgeRecipe(
                 // back claiming whatever version is current when it is *read* — which is exactly the
                 // question the stamp exists to answer.
                 Codec.INT.fieldOf("generator_version").forGetter(AgeRecipe::generatorVersion),
-            ).apply(instance) { world, legacyPreset, seed, version ->
-                AgeRecipe(world.orElseGet { worldFor(legacyPreset.orElse(AgePreset.SPIRE)) }, seed, version)
+                // Optional so recipes written before character existed still load, as the knife-edged
+                // default-sized Ages they were generated as.
+                AgeCharacter.MAP_CODEC.codec().optionalFieldOf("character", AgeCharacter.LEGACY)
+                    .forGetter(AgeRecipe::character),
+            ).apply(instance) { world, legacyPreset, seed, version, character ->
+                AgeRecipe(world.orElseGet { worldFor(legacyPreset.orElse(AgePreset.SPIRE)) }, seed, character, version)
             }
         }
 
@@ -76,6 +90,15 @@ data class AgeRecipe(
          */
         fun of(preset: AgePreset, id: ResourceLocation): AgeRecipe =
             AgeRecipe(worldFor(preset), seedFor(id))
+
+        /**
+         * A fresh recipe, with its character drawn from [seed] and the world [server] is running.
+         *
+         * The one construction site that can resolve character, because character reads the host
+         * world's climate scale — everywhere else builds recipes from data that already has one.
+         */
+        fun written(server: MinecraftServer, world: AgeWorld, seed: Long): AgeRecipe =
+            AgeRecipe(world, seed, AgeCharacter.drawn(server, seed))
 
         /**
          * The seed an Age gets when nothing has chosen one for it.
@@ -102,7 +125,7 @@ data class AgeRecipe(
 
                 // The Spire islands as a field tree: weathered rock over its green sea, under its own sky.
                 AgePreset.FIELD -> AgeComposition(
-                    landform = Landform.SPIRE_ISLANDS,
+                    landforms = listOf(Landform.SPIRE_ISLANDS),
                     medium = Medium.SEA,
                     subsurface = Subsurface.WEATHERED,
                     dressing = Dressing.PLASMA,
@@ -111,11 +134,11 @@ data class AgeRecipe(
                 AgePreset.PYRAMIDS -> pyramids("grid")
                 AgePreset.PYRINGS -> pyramids("rings")
                 AgePreset.PYRVARIED -> pyramids("varied")
-                AgePreset.SHAPES -> AgeComposition(landform = Landform.SHAPES)
-                AgePreset.PILLARS -> AgeComposition(landform = Landform.PILLARS, medium = Medium.SEA)
-                AgePreset.ERODED -> AgeComposition(landform = Landform.ERODED, medium = Medium.SEA)
+                AgePreset.SHAPES -> AgeComposition(landforms = listOf(Landform.SHAPES))
+                AgePreset.PILLARS -> AgeComposition(landforms = listOf(Landform.PILLARS), medium = Medium.SEA)
+                AgePreset.ERODED -> AgeComposition(landforms = listOf(Landform.ERODED), medium = Medium.SEA)
                 AgePreset.HILLS -> AgeComposition(
-                    landform = Landform.HILLS,
+                    landforms = listOf(Landform.HILLS),
                     medium = Medium.SEA,
                     subsurface = Subsurface.CAVES,
                     dressing = Dressing.OVERWORLD,
@@ -126,7 +149,7 @@ data class AgeRecipe(
                 )
                 // Its caves are its shape, so nothing is carved — but the rock still runs wet and dry.
                 AgePreset.CAVERNS -> AgeComposition(
-                    landform = Landform.CAVERNS,
+                    landforms = listOf(Landform.CAVERNS),
                     medium = Medium.SEA,
                     subsurface = Subsurface.POROUS,
                     dressing = Dressing.OVERWORLD,
@@ -136,7 +159,7 @@ data class AgeRecipe(
         }
 
         private fun pyramids(arrangement: String) = AgeComposition(
-            landform = Landform.PYRAMIDS,
+            landforms = listOf(Landform.PYRAMIDS),
             options = SlotOptions().with(
                 Slot.LANDFORM,
                 Options(mapOf(Landform.ARRANGEMENT.name to arrangement)),
