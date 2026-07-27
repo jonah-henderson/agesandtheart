@@ -1,6 +1,8 @@
 package co.voik.agesandtheart.age
 
+import co.voik.agesandtheart.age.slot.Slot
 import co.voik.agesandtheart.worldgen.biome.BiomeScale
+import co.voik.agesandtheart.worldgen.field.RegionMap
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -20,12 +22,17 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource
  * back, which caps the progression axis somewhere nobody chose. They are stored rather than re-derived
  * from the seed precisely because a writer will one day name them instead.
  *
- * **Expect this to grow.** Two more are already designed — how far the region maps of different slots
- * agree, and whether an Age's sea is one substance or two — and neither is here yet, because nothing
- * reads them until the slots they govern become set-valued.
+ * **Expect this to grow.** One more is already designed — whether an Age's sea is one substance or two —
+ * and is not here yet, because nothing reads it until the medium slot becomes set-valued too.
  */
 data class AgeCharacter(
     val seam: Seam,
+    /**
+     * How far the territory maps of different slots agree. **One property for all of them**, not one per
+     * pairing — with several positional slots the pairings would multiply out of hand, and "this Age is
+     * jumbled" is one fact about it rather than three.
+     */
+    val alignment: Alignment,
     /**
      * How wide a territory runs, in blocks, resolved from the world this Age was written in
      * ([BiomeScale]) and then **frozen**. Never re-read on open: a datapack that retuned climate would
@@ -33,18 +40,46 @@ data class AgeCharacter(
      */
     val regionBlocks: Int,
 ) {
+    /**
+     * The territories [slot] divides itself into, when it holds [members] presets.
+     *
+     * Where the maps of two slots sit relative to each other is [alignment]'s business: the same
+     * territories for everything, the same shape shifted so the ground changes a little before its
+     * dressing does, or maps that share nothing at all.
+     */
+    fun mapFor(slot: Slot, members: Int, seed: Long): RegionMap {
+        if (members <= 1) return RegionMap.whole()
+        val stride = slot.ordinal
+        return RegionMap(
+            members = members,
+            scale = regionBlocks.toDouble(),
+            blend = seam.blendBlocks(regionBlocks),
+            originX = if (alignment == Alignment.OFFSET) stride * regionBlocks / OFFSET_SHARE else 0,
+            originZ = if (alignment == Alignment.OFFSET) stride * regionBlocks / (OFFSET_SHARE + 1) else 0,
+            seed = if (alignment == Alignment.INDEPENDENT) seed + stride * SLOT_STRIDE else seed,
+        )
+    }
+
     companion object {
+        // Far enough that the two boundaries are plainly not the same line, near enough that they still
+        // read as related. A whole territory apart would just be independence with extra steps.
+        private const val OFFSET_SHARE = 3
+
+        // Arbitrary, and only ever needs to be big enough that two slots' claims share no structure.
+        private const val SLOT_STRIDE = 0x5B1F_7A3L
+
         /** The character an Age written now, here, with this [seed] comes out with. */
         fun drawn(server: MinecraftServer, seed: Long): AgeCharacter {
             val random = XoroshiroRandomSource(seed xor CHARACTER_SALT)
             return AgeCharacter(
                 seam = Seam.entries[random.nextInt(Seam.entries.size)],
+                alignment = Alignment.entries[random.nextInt(Alignment.entries.size)],
                 regionBlocks = BiomeScale.regionBlocks(server),
             )
         }
 
         /** What an Age written before character existed had: a knife edge, at the default region size. */
-        val LEGACY = AgeCharacter(Seam.SHEARED, BiomeScale.DEFAULT_REGION_BLOCKS)
+        val LEGACY = AgeCharacter(Seam.SHEARED, Alignment.SHARED, BiomeScale.DEFAULT_REGION_BLOCKS)
 
         // So the character is decorrelated from everything else the seed drives.
         private const val CHARACTER_SALT = 0x0C7A_5AC7L
@@ -52,10 +87,35 @@ data class AgeCharacter(
         val MAP_CODEC: MapCodec<AgeCharacter> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
                 Seam.CODEC.optionalFieldOf("seam", Seam.SHEARED).forGetter(AgeCharacter::seam),
+                Alignment.CODEC.optionalFieldOf("alignment", Alignment.SHARED).forGetter(AgeCharacter::alignment),
                 Codec.INT.optionalFieldOf("region_blocks", BiomeScale.DEFAULT_REGION_BLOCKS)
                     .forGetter(AgeCharacter::regionBlocks),
             ).apply(instance, ::AgeCharacter)
         }
+    }
+}
+
+/**
+ * How far the territory maps of different slots agree.
+ *
+ * Per §1 this owes the player a word, like everything else drawn per Age — *ordered* through to
+ * *jumbled* — and is stored rather than re-derived from the seed for exactly that reason.
+ */
+enum class Alignment(val key: String) : StringRepresentable {
+    /** One map for every slot. The ground, its dressing and its caves all change along one line. */
+    SHARED("shared"),
+
+    /** The same territories, shifted per slot, so one thing changes shortly after another. */
+    OFFSET("offset"),
+
+    /** Nothing in common. Four kinds of place from two landforms and two dressings. */
+    INDEPENDENT("independent"),
+    ;
+
+    override fun getSerializedName(): String = key
+
+    companion object {
+        val CODEC: Codec<Alignment> = StringRepresentable.fromEnum(Alignment::values)
     }
 }
 

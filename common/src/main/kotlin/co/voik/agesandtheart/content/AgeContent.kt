@@ -4,6 +4,8 @@ import co.voik.agesandtheart.location
 import co.voik.agesandtheart.worldgen.FieldChunkGenerator
 import co.voik.agesandtheart.worldgen.SpireChunkGenerator
 import co.voik.agesandtheart.worldgen.biome.AgeBiomeSource
+import co.voik.agesandtheart.worldgen.biome.RegionBiomeSource
+import co.voik.agesandtheart.worldgen.field.RegionRule
 import co.voik.agesandtheart.worldgen.carver.ErosionCarver
 import com.mojang.serialization.MapCodec
 import net.minecraft.core.component.DataComponentType
@@ -11,6 +13,7 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.item.Item
 import net.minecraft.world.level.biome.BiomeSource
 import net.minecraft.world.level.chunk.ChunkGenerator
+import net.minecraft.world.level.levelgen.SurfaceRules
 import net.minecraft.world.level.levelgen.carver.CarverConfiguration
 import net.minecraft.world.level.levelgen.carver.WorldCarver
 
@@ -55,6 +58,16 @@ object AgeContent {
      */
     val biomeSourceCodecs: List<Pair<ResourceLocation, MapCodec<out BiomeSource>>> = listOf(
         "age_biomes".location() to AgeBiomeSource.CODEC,
+        "region_biomes".location() to RegionBiomeSource.CODEC,
+    )
+
+    /**
+     * Surface-rule kinds. Ours paints each territory with its own dressing's rules, and like the
+     * generator it is persisted with the Age, so the kind has to be nameable — `RuleSource.CODEC`
+     * dispatches over this registry.
+     */
+    val surfaceRuleCodecs: List<Pair<ResourceLocation, MapCodec<out SurfaceRules.RuleSource>>> = listOf(
+        "region".location() to RegionRule.CODEC,
     )
 
     /**

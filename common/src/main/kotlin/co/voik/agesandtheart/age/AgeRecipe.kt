@@ -56,8 +56,11 @@ data class AgeRecipe(
          *
          * **3 — regions.** Landform became a set, every sea moved to 63, and Spire was retuned around
          * its cloud decks. Nearly every demo Age generates differently.
+         *
+         * **4 — dressing regions.** Dressing became a set too, and an Age's territory maps now depend on
+         * its drawn alignment, so where a seam falls moved even for Ages that name a single dressing.
          */
-        const val CURRENT_GENERATOR_VERSION = 3
+        const val CURRENT_GENERATOR_VERSION = 4
 
         val MAP_CODEC: MapCodec<AgeRecipe> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -128,7 +131,7 @@ data class AgeRecipe(
                     landforms = listOf(Landform.SPIRE_ISLANDS),
                     medium = Medium.SEA,
                     subsurface = Subsurface.WEATHERED,
-                    dressing = Dressing.PLASMA,
+                    dressings = listOf(Dressing.PLASMA),
                     sky = Sky.STORM,
                 )
                 AgePreset.PYRAMIDS -> pyramids("grid")
@@ -141,7 +144,7 @@ data class AgeRecipe(
                     landforms = listOf(Landform.HILLS),
                     medium = Medium.SEA,
                     subsurface = Subsurface.CAVES,
-                    dressing = Dressing.OVERWORLD,
+                    dressings = listOf(Dressing.OVERWORLD),
                     options = SlotOptions().with(
                         Slot.DRESSING,
                         Options(mapOf(Dressing.SETTLEMENT.name to "vanilla")),
@@ -152,7 +155,7 @@ data class AgeRecipe(
                     landforms = listOf(Landform.CAVERNS),
                     medium = Medium.SEA,
                     subsurface = Subsurface.POROUS,
-                    dressing = Dressing.OVERWORLD,
+                    dressings = listOf(Dressing.OVERWORLD),
                 )
             }
             return AgeWorld.Composed(composition)

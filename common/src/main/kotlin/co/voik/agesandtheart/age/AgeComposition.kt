@@ -8,6 +8,7 @@ import co.voik.agesandtheart.age.slot.Sky
 import co.voik.agesandtheart.age.slot.Slot
 import co.voik.agesandtheart.age.slot.SlotPreset
 import co.voik.agesandtheart.age.slot.Subsurface
+import com.mojang.datafixers.util.Either
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -34,15 +35,22 @@ data class AgeComposition(
     val landforms: List<Landform>,
     val medium: Medium = Medium.VOID,
     val subsurface: Subsurface = Subsurface.SOLID,
-    val dressing: Dressing = Dressing.BARE_ROCK,
+    /**
+     * What it all looks and grows like — **plural**, like [landforms], because dressing is positional
+     * too. Two dressings divide the world between them, painting and populating their own territories.
+     */
+    val dressings: List<Dressing> = listOf(Dressing.BARE_ROCK),
     val sky: Sky = Sky.PLAIN,
     val options: SlotOptions = SlotOptions(),
 ) {
     /** Every preset this composition names, in slot order — for listing, costing and diagnosis. */
-    val presets: List<SlotPreset> get() = landforms + listOf(medium, subsurface, dressing, sky)
+    val presets: List<SlotPreset> get() = landforms + listOf(medium, subsurface) + dressings + listOf(sky)
 
     /** The one landform, where there is only one — for the many places that still reasonably assume so. */
     val landform: Landform get() = landforms.first()
+
+    /** Likewise the one dressing. */
+    val dressing: Dressing get() = dressings.first()
 
     /**
      * Options no preset here understands, spelled `dressing.settlment` — a typo, or a knob some later
@@ -72,6 +80,7 @@ data class AgeComposition(
      */
     fun withPresets(slot: Slot, keys: List<String>): AgeComposition = when (slot) {
         Slot.LANDFORM -> copy(landforms = keys.map { named(slot, it, Landform.entries) })
+        Slot.DRESSING -> copy(dressings = keys.map { named(slot, it, Dressing.entries) })
         else -> withSingle(slot, keys.last())
     }
 
@@ -79,7 +88,7 @@ data class AgeComposition(
         Slot.LANDFORM -> copy(landforms = listOf(named(slot, key, Landform.entries)))
         Slot.MEDIUM -> copy(medium = named(slot, key, Medium.entries))
         Slot.SUBSURFACE -> copy(subsurface = named(slot, key, Subsurface.entries))
-        Slot.DRESSING -> copy(dressing = named(slot, key, Dressing.entries))
+        Slot.DRESSING -> copy(dressings = listOf(named(slot, key, Dressing.entries)))
         Slot.SKY -> copy(sky = named(slot, key, Sky.entries))
     }
 
@@ -148,19 +157,14 @@ data class AgeComposition(
 
         val MAP_CODEC: MapCodec<AgeComposition> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
-                // A list now, but one written before landform was a set is a bare string, so both
-                // spellings are read. Never empty: an empty list would give a world with no shape at all.
-                Codec.either(enumCodec<Landform>().listOf(), enumCodec<Landform>())
-                    .xmap(
-                        { either -> either.map({ many -> many.ifEmpty { listOf(Landform.SHAPES) } }, ::listOf) },
-                        { many -> if (many.size == 1) com.mojang.datafixers.util.Either.right(many.first()) else com.mojang.datafixers.util.Either.left(many) },
-                    )
+                setOrSingle(enumCodec<Landform>(), Landform.SHAPES)
                     .fieldOf("landform").forGetter(AgeComposition::landforms),
                 enumCodec<Medium>().optionalFieldOf("medium", Medium.VOID).forGetter(AgeComposition::medium),
                 enumCodec<Subsurface>().optionalFieldOf("subsurface", Subsurface.SOLID)
                     .forGetter(AgeComposition::subsurface),
-                enumCodec<Dressing>().optionalFieldOf("dressing", Dressing.BARE_ROCK)
-                    .forGetter(AgeComposition::dressing),
+                setOrSingle(enumCodec<Dressing>(), Dressing.BARE_ROCK)
+                    .optionalFieldOf("dressing", listOf(Dressing.BARE_ROCK))
+                    .forGetter(AgeComposition::dressings),
                 enumCodec<Sky>().optionalFieldOf("sky", Sky.PLAIN).forGetter(AgeComposition::sky),
                 SlotOptions.CODEC.optionalFieldOf("options", SlotOptions()).forGetter(AgeComposition::options),
             ).apply(instance, ::AgeComposition)
@@ -194,6 +198,20 @@ data class SlotOptions(private val bySlot: Map<Slot, Options> = emptyMap()) {
 private fun <T : SlotPreset> named(slot: Slot, key: String, family: List<T>): T =
     family.firstOrNull { it.key == key }
         ?: error("No ${slot.key} called '$key'. Try: ${family.joinToString(" ") { it.key }}")
+
+/**
+ * A set-valued slot's codec: reads a list, and also a bare single value for recipes written before that
+ * slot held sets. Writes a bare value back when there is only one, so a one-preset Age is spelled the way
+ * it always was and stays readable by anything that only ever understood the old shape.
+ *
+ * Never empty — an empty slot is a world missing a part, so [fallback] stands in rather than letting the
+ * recipe describe nothing.
+ */
+private fun <T> setOrSingle(single: Codec<T>, fallback: T): Codec<List<T>> =
+    Codec.either(single.listOf(), single).xmap(
+        { either -> either.map({ many -> many.ifEmpty { listOf(fallback) } }, ::listOf) },
+        { many -> if (many.size == 1) Either.right(many.first()) else Either.left(many) },
+    )
 
 /** A codec over any of our slot-preset enums, which all serialise by their own [SlotPreset.key]. */
 private inline fun <reified E> enumCodec(): Codec<E> where E : Enum<E>, E : StringRepresentable =

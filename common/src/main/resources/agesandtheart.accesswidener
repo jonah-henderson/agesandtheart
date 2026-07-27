@@ -1,0 +1,15 @@
+accessWidener v2 named
+
+# Region-aware surface painting (co.voik.agesandtheart.worldgen.field.RegionRule).
+#
+# Both of these are declared `protected` INSIDE SurfaceRules, which makes every extension point in the
+# surface system unreachable from outside Mojang's package: a custom RuleSource cannot name the type it
+# returns, and a custom ConditionSource cannot read the column it is being asked about.
+#
+# Note that `javap` reports them as public — a nested type's class file carries its own flags, while the
+# real nesting modifier lives in the outer class's InnerClasses attribute. Kotlin reads the latter.
+#
+# We only need to *name* these; no members are touched. RegionRule passes the Context straight through to
+# its children and takes its coordinates from tryApply's arguments instead.
+accessible	class	net/minecraft/world/level/levelgen/SurfaceRules$Context
+accessible	class	net/minecraft/world/level/levelgen/SurfaceRules$SurfaceRule

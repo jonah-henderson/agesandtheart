@@ -1,12 +1,14 @@
 package co.voik.agesandtheart.age
 
 import co.voik.agesandtheart.age.slot.Slot
+import co.voik.agesandtheart.worldgen.biome.RegionBiomeSource
+import co.voik.agesandtheart.worldgen.field.RegionRule
 import co.voik.agesandtheart.worldgen.field.Regions
-import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.worldgen.FieldChunkGenerator
 import co.voik.agesandtheart.worldgen.SpireChunkGenerator
 import co.voik.agesandtheart.worldgen.VanillaDelegate
+import net.minecraft.core.HolderSet
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.ResourceLocation
@@ -48,41 +50,39 @@ object AgeGeneration {
         is AgeWorld.Bespoke -> bespoke(server, world.preset, recipe.seed)
     }
 
-    /** One preset per slot, each answering for its own part of the world. */
+    /**
+     * One preset per slot, each answering for its own part of the world — and where a slot holds
+     * several, the territories they divide it into.
+     *
+     * Note that three separate things consult a territory map here: the field lays the rock, the surface
+     * rule paints it, and the biome source decides what the place *is*. They read [AgeCharacter.mapFor],
+     * so the seams agree to the column — three maps drawn independently would put one boundary in three
+     * nearly-identical places and read as three faults rather than one edge.
+     */
     private fun assemble(server: MinecraftServer, composition: AgeComposition, recipe: AgeRecipe): ChunkGenerator {
         val seed = recipe.seed
-        val landform = shapeOf(composition, recipe.character, seed)
+        val character = recipe.character
+        val landformOptions = composition.options.of(Slot.LANDFORM)
+        val dressingOptions = composition.options.of(Slot.DRESSING)
+
+        val ground = character.mapFor(Slot.LANDFORM, composition.landforms.size, seed)
+        val shape = Regions.of(composition.landforms.map { it.field(landformOptions) }, ground)
+
         val ambient = composition.medium.over(waterlineOf(composition, seed), composition.options.of(Slot.MEDIUM))
-        val dressing = composition.dressing
+
+        val cover = character.mapFor(Slot.DRESSING, composition.dressings.size, seed)
         return FieldChunkGenerator(
-            dressing.biomes(server, landform, seed),
-            landform,
+            RegionBiomeSource.of(composition.dressings.map { it.biomes(server, shape, seed) }, cover),
+            shape,
             ambient,
-            dressing.palette(),
+            RegionRule.of(composition.dressings.map { it.palette() }, cover),
             composition.subsurface.carvers(server),
             composition.subsurface.waterTable(ambient, seed),
-            dressing.structures(server, composition.options.of(Slot.DRESSING)),
-        )
-    }
-
-    /**
-     * The rock, from however many landforms the Age names.
-     *
-     * One landform is simply itself; several divide the world between them, which is what lets a
-     * contradiction be survived by coexistence rather than by one term going quietly missing (§3.4).
-     * Territory size and seam both come from the Age's **frozen** [AgeCharacter] rather than from the
-     * world it is being opened in, so an Age keeps the geography it was written with even if the host
-     * world's climate settings later change.
-     */
-    private fun shapeOf(composition: AgeComposition, character: AgeCharacter, seed: Long): TerrainField {
-        val options = composition.options.of(Slot.LANDFORM)
-        val shapes = composition.landforms.map { it.field(options) }
-        if (shapes.size == 1) return shapes.first()
-        return Regions(
-            members = shapes,
-            scale = character.regionBlocks.toDouble(),
-            blend = character.seam.blendBlocks(character.regionBlocks),
-            seed = seed,
+            // Union, not per-territory: vanilla places structures against the whole dimension, and its
+            // own biome predicates already keep a village out of the territory that has no villages in it.
+            HolderSet.direct(
+                composition.dressings.flatMap { it.structures(server, dressingOptions).toList() }.distinct(),
+            ),
         )
     }
 

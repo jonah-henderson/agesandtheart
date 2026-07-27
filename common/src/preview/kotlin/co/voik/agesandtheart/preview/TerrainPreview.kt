@@ -8,6 +8,7 @@ import co.voik.agesandtheart.worldgen.ShapesField
 import co.voik.agesandtheart.worldgen.SpireField
 import co.voik.agesandtheart.age.Seam
 import co.voik.agesandtheart.worldgen.carver.Weathering
+import co.voik.agesandtheart.worldgen.field.RegionMap
 import co.voik.agesandtheart.worldgen.field.Regions
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import java.awt.image.BufferedImage
@@ -81,9 +82,14 @@ private val subjects: Map<String, Subject> = mapOf(
     "regions" to Subject(
         Regions(
             members = listOf(NoiseField.hills(), PillarField.world()),
-            scale = 400.0,
-            blend = Seam.KEEN.blendBlocks(400),
-            seed = 0x4E6109L,
+            map = RegionMap(
+                members = 2,
+                scale = 400.0,
+                blend = Seam.KEEN.blendBlocks(400),
+                originX = 0,
+                originZ = 0,
+                seed = 0x4E6109L,
+            ),
         ),
         Weathering.NONE,
         lowestY = 30,

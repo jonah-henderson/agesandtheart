@@ -1,0 +1,29 @@
+# Set-valued slots: do territories generate, and does the custom surface rule survive a real server?
+# Run with: scripts/drive-server.sh scripts/checks/regions.txt
+#
+# The load-bearing risk here is registration. RegionRule is a custom SurfaceRules.RuleSource reached
+# through an access widener, and RegionBiomeSource a custom BiomeSource; if either fails to register or
+# the widened access is missing at runtime, generation throws rather than looking wrong. So the first
+# thing to read is simply whether these finish.
+
+# One dressing over two landforms: the shape splits, the painting does not.
+age compose ground 7 landform=hills,pillars medium=sea subsurface=solid dressing=bare_rock sky=plain
+age gen ground
+
+# Two dressings over one landform: the painting splits, the shape does not. This is the one that
+# exercises RegionRule — expect grass in some territories and bare stone in others.
+age compose cover 7 landform=hills medium=sea subsurface=solid dressing=verdant,bare_rock sky=plain
+age gen cover
+
+# Both at once, so all three consumers of a territory map are live together.
+age compose bothways 7 landform=hills,pillars medium=sea subsurface=caves dressing=verdant,overworld sky=storm
+age gen bothways
+age bench bothways 4
+
+# Same sentence, same seed, twice. Regions must not have cost us reproducibility.
+age compose repeatA 99 landform=hills,pillars medium=sea dressing=verdant,bare_rock
+age compose repeatB 99 landform=hills,pillars medium=sea dressing=verdant,bare_rock
+age compare repeatA repeatB 2
+
+# Every recipe should print its territory character, and paste back into /age compose.
+age list

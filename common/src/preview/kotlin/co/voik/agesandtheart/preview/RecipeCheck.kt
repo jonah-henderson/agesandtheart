@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.preview
 
 import co.voik.agesandtheart.age.AgeCharacter
+import co.voik.agesandtheart.age.Alignment
 import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.AgePreset
 import co.voik.agesandtheart.age.AgeRecipe
@@ -139,11 +140,15 @@ private fun readsRecipesWrittenBeforeSlots() {
 private fun roundTripsASetValuedLandform() {
     val composition = AgeComposition(landforms = listOf(Landform.HILLS, Landform.PILLARS, Landform.CAVERNS))
         .withPreset(Slot.MEDIUM, Medium.SEA.key)
+        .withPresets(Slot.DRESSING, listOf(Dressing.VERDANT.key, Dressing.BARE_ROCK.key))
     val recipe = AgeRecipe(AgeWorld.Composed(composition), seed = SAMPLE_SEED, character = SAMPLE_CHARACTER)
     val decoded = roundTrips(recipe, "a three-landform Age")
 
     check(decoded.composition?.landforms == composition.landforms) {
         "The landform set came back as ${decoded.composition?.landforms}, not ${composition.landforms}"
+    }
+    check(decoded.composition?.dressings == composition.dressings) {
+        "The dressing set came back as ${decoded.composition?.dressings}, not ${composition.dressings}"
     }
     check(decoded.character == SAMPLE_CHARACTER) {
         "An Age's character did not survive: ${decoded.character}, not $SAMPLE_CHARACTER"
@@ -151,6 +156,7 @@ private fun roundTripsASetValuedLandform() {
 
     val spelling = composition.toString()
     check("landform=hills,pillars,caverns" in spelling) { "A set should print comma-joined, got '$spelling'" }
+    check("dressing=verdant,bare_rock" in spelling) { "So should a dressing set, got '$spelling'" }
     check(AgeComposition.parse(spelling).getOrThrow() == composition) {
         "'$spelling' does not read back as what wrote it"
     }
@@ -246,7 +252,8 @@ private val LEGACY_KINDS = listOf(
 )
 
 /** A character unlike the default in every field, so a lazy round trip cannot pass by accident. */
-private val SAMPLE_CHARACTER = AgeCharacter(seam = Seam.BLURRED, regionBlocks = 1600)
+private val SAMPLE_CHARACTER =
+    AgeCharacter(seam = Seam.BLURRED, alignment = Alignment.INDEPENDENT, regionBlocks = 1600)
 
 private const val GENERATOR_VERSION_KEY = "generator_version"
 

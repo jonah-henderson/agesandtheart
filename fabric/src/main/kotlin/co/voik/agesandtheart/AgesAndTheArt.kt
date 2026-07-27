@@ -16,6 +16,7 @@ fun init() {
     AgeContent.items.forEach { (id, item) -> Registry.register(BuiltInRegistries.ITEM, id, item) }
     AgeContent.chunkGeneratorCodecs.forEach { (id, codec) -> Registry.register(BuiltInRegistries.CHUNK_GENERATOR, id, codec) }
     AgeContent.biomeSourceCodecs.forEach { (id, codec) -> Registry.register(BuiltInRegistries.BIOME_SOURCE, id, codec) }
+    AgeContent.surfaceRuleCodecs.forEach { (id, codec) -> Registry.register(BuiltInRegistries.MATERIAL_RULE, id, codec) }
     AgeContent.carvers.forEach { (id, carver) -> Registry.register(BuiltInRegistries.CARVER, id, carver) }
 
     // Loader-specific glue: hand the common command tree Fabric's dispatcher.
