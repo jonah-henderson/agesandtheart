@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.slot
 
 import co.voik.agesandtheart.worldgen.field.AmbientMedium
+import co.voik.agesandtheart.worldgen.field.RegionMap
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 
@@ -57,7 +58,31 @@ enum class Medium(override val key: String, private val block: () -> BlockState)
         return AmbientMedium.sea(block(), level = waterline + shift)
     }
 
+    /** What this medium is made of; air for [VOID], which is how "nothing" joins a set of substances. */
+    fun substance(): BlockState = block()
+
     companion object {
+        /**
+         * Several mediums poured to one [waterline], each filling its own territory.
+         *
+         * The height is shared and the substance is not, which is the design's asymmetry rather than a
+         * shortcut: a landform declares where its sea belongs, so an Age has exactly one waterline, but
+         * *what the sea is* can change across it. Water meeting lava along a line at the same level,
+         * with no barrier, is a thing Minecraft otherwise cannot show you.
+         *
+         * A [VOID] among them contributes air, so "sea here, nothing there" is an ordinary sentence and
+         * leaves genuine open space on one side of the seam.
+         */
+        fun pour(mediums: List<Medium>, waterline: Int?, options: Options, map: RegionMap): AmbientMedium {
+            if (waterline == null || mediums.all { it == VOID }) return AmbientMedium.VOID
+            val shift = when (options.of(DEPTH)) {
+                "shallow" -> -DEPTH_STEP
+                "deep" -> DEPTH_STEP
+                else -> 0
+            }
+            return AmbientMedium.seas(mediums.map { it.substance() }, waterline + shift, map)
+        }
+
         val DEPTH = Parameter("depth", "normal", "shallow", "deep")
 
         /** Enough to redraw a coastline without drowning or stranding what the landform built. */

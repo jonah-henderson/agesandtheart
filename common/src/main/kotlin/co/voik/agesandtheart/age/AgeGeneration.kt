@@ -1,5 +1,8 @@
 package co.voik.agesandtheart.age
 
+import co.voik.agesandtheart.age.slot.Medium
+import co.voik.agesandtheart.worldgen.field.AmbientMedium
+import co.voik.agesandtheart.worldgen.field.WaterTable
 import co.voik.agesandtheart.age.slot.Slot
 import co.voik.agesandtheart.worldgen.biome.RegionBiomeSource
 import co.voik.agesandtheart.worldgen.field.RegionRule
@@ -68,16 +71,24 @@ object AgeGeneration {
         val ground = character.mapFor(Slot.LANDFORM, composition.landforms.size, seed)
         val shape = Regions.of(composition.landforms.map { it.field(landformOptions) }, ground)
 
-        val ambient = composition.medium.over(waterlineOf(composition, seed), composition.options.of(Slot.MEDIUM))
+        val flow = character.mapFor(Slot.MEDIUM, composition.mediums.size, seed)
+        val ambient = Medium.pour(
+            composition.mediums,
+            waterlineOf(composition, seed),
+            composition.options.of(Slot.MEDIUM),
+            flow,
+        )
 
         val cover = character.mapFor(Slot.DRESSING, composition.dressings.size, seed)
+        val below = character.mapFor(Slot.SUBSURFACE, composition.subsurfaces.size, seed)
         return FieldChunkGenerator(
             RegionBiomeSource.of(composition.dressings.map { it.biomes(server, shape, seed) }, cover),
             shape,
             ambient,
             RegionRule.of(composition.dressings.map { it.palette() }, cover),
-            composition.subsurface.carvers(server),
-            composition.subsurface.waterTable(ambient, seed),
+            composition.subsurfaces.map { it.carvers(server) },
+            below,
+            waterTableOf(composition, ambient, seed),
             // Union, not per-territory: vanilla places structures against the whole dimension, and its
             // own biome predicates already keep a village out of the territory that has no villages in it.
             HolderSet.direct(
@@ -85,6 +96,26 @@ object AgeGeneration {
             ),
         )
     }
+
+    /**
+     * Where water stands in this Age's rock — **one answer for the whole Age**, drawn from the seed
+     * where its subsurfaces disagree.
+     *
+     * The one place a set-valued slot does *not* divide, and deliberately. What has been cut out of the
+     * rock is visible and belongs to its territory; where the water table sits is invisible detail, and
+     * a table that stepped up and down across a boundary would not read as impossible geometry — it
+     * would read as a bug, because water finding its own level is the one thing everyone expects it to
+     * do. Carving splits; hydrology does not.
+     */
+    private fun waterTableOf(composition: AgeComposition, ambient: AmbientMedium, seed: Long): WaterTable? {
+        val choices = composition.subsurfaces
+        val chosen = choices.singleOrNull()
+            ?: choices[XoroshiroRandomSource(seed xor TABLE_SALT).nextInt(choices.size)]
+        return chosen.waterTable(ambient, seed)
+    }
+
+    // So which subsurface's hydrology wins is decorrelated from everything else this seed decides.
+    private const val TABLE_SALT = 0x7AB_1E5L
 
     /**
      * Where this Age's sea sits when its landforms disagree about it — or whether there is one at all.

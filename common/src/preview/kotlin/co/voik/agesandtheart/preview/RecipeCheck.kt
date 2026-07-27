@@ -141,6 +141,8 @@ private fun roundTripsASetValuedLandform() {
     val composition = AgeComposition(landforms = listOf(Landform.HILLS, Landform.PILLARS, Landform.CAVERNS))
         .withPreset(Slot.MEDIUM, Medium.SEA.key)
         .withPresets(Slot.DRESSING, listOf(Dressing.VERDANT.key, Dressing.BARE_ROCK.key))
+        .withPresets(Slot.MEDIUM, listOf(Medium.SEA.key, Medium.LAVA.key))
+        .withPresets(Slot.SUBSURFACE, listOf(Subsurface.CAVES.key, Subsurface.SOLID.key))
     val recipe = AgeRecipe(AgeWorld.Composed(composition), seed = SAMPLE_SEED, character = SAMPLE_CHARACTER)
     val decoded = roundTrips(recipe, "a three-landform Age")
 
@@ -150,6 +152,12 @@ private fun roundTripsASetValuedLandform() {
     check(decoded.composition?.dressings == composition.dressings) {
         "The dressing set came back as ${decoded.composition?.dressings}, not ${composition.dressings}"
     }
+    check(decoded.composition?.mediums == composition.mediums) {
+        "The medium set came back as ${decoded.composition?.mediums}"
+    }
+    check(decoded.composition?.subsurfaces == composition.subsurfaces) {
+        "The subsurface set came back as ${decoded.composition?.subsurfaces}"
+    }
     check(decoded.character == SAMPLE_CHARACTER) {
         "An Age's character did not survive: ${decoded.character}, not $SAMPLE_CHARACTER"
     }
@@ -157,6 +165,8 @@ private fun roundTripsASetValuedLandform() {
     val spelling = composition.toString()
     check("landform=hills,pillars,caverns" in spelling) { "A set should print comma-joined, got '$spelling'" }
     check("dressing=verdant,bare_rock" in spelling) { "So should a dressing set, got '$spelling'" }
+    check("medium=sea,lava" in spelling) { "And a medium set, got '$spelling'" }
+    check("subsurface=caves,solid" in spelling) { "And a subsurface set, got '$spelling'" }
     check(AgeComposition.parse(spelling).getOrThrow() == composition) {
         "'$spelling' does not read back as what wrote it"
     }

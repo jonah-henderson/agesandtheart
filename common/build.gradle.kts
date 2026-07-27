@@ -94,6 +94,11 @@ instrument(
 )
 
 instrument(
+    "codeccheck", "verification", "co.voik.agesandtheart.preview.CodecCheckKt",
+    "Builds every registered codec, catching companion-initialisation order before a server boot does.",
+)
+
+instrument(
     "recipecheck", "verification", "co.voik.agesandtheart.preview.RecipeCheckKt",
     "Checks Age recipes round-trip through NBT, and that written generator kinds still resolve.",
 )

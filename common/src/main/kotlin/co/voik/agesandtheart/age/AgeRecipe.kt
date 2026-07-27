@@ -59,8 +59,11 @@ data class AgeRecipe(
          *
          * **4 — dressing regions.** Dressing became a set too, and an Age's territory maps now depend on
          * its drawn alignment, so where a seam falls moved even for Ages that name a single dressing.
+         *
+         * **5 — every positional slot.** Medium and subsurface became sets as well, which completes the
+         * set: only the sky, being a dimension type, stays singular.
          */
-        const val CURRENT_GENERATOR_VERSION = 4
+        const val CURRENT_GENERATOR_VERSION = 5
 
         val MAP_CODEC: MapCodec<AgeRecipe> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -129,8 +132,8 @@ data class AgeRecipe(
                 // The Spire islands as a field tree: weathered rock over its green sea, under its own sky.
                 AgePreset.FIELD -> AgeComposition(
                     landforms = listOf(Landform.SPIRE_ISLANDS),
-                    medium = Medium.SEA,
-                    subsurface = Subsurface.WEATHERED,
+                    mediums = listOf(Medium.SEA),
+                    subsurfaces = listOf(Subsurface.WEATHERED),
                     dressings = listOf(Dressing.PLASMA),
                     sky = Sky.STORM,
                 )
@@ -138,12 +141,12 @@ data class AgeRecipe(
                 AgePreset.PYRINGS -> pyramids("rings")
                 AgePreset.PYRVARIED -> pyramids("varied")
                 AgePreset.SHAPES -> AgeComposition(landforms = listOf(Landform.SHAPES))
-                AgePreset.PILLARS -> AgeComposition(landforms = listOf(Landform.PILLARS), medium = Medium.SEA)
-                AgePreset.ERODED -> AgeComposition(landforms = listOf(Landform.ERODED), medium = Medium.SEA)
+                AgePreset.PILLARS -> AgeComposition(landforms = listOf(Landform.PILLARS), mediums = listOf(Medium.SEA))
+                AgePreset.ERODED -> AgeComposition(landforms = listOf(Landform.ERODED), mediums = listOf(Medium.SEA))
                 AgePreset.HILLS -> AgeComposition(
                     landforms = listOf(Landform.HILLS),
-                    medium = Medium.SEA,
-                    subsurface = Subsurface.CAVES,
+                    mediums = listOf(Medium.SEA),
+                    subsurfaces = listOf(Subsurface.CAVES),
                     dressings = listOf(Dressing.OVERWORLD),
                     options = SlotOptions().with(
                         Slot.DRESSING,
@@ -153,8 +156,8 @@ data class AgeRecipe(
                 // Its caves are its shape, so nothing is carved — but the rock still runs wet and dry.
                 AgePreset.CAVERNS -> AgeComposition(
                     landforms = listOf(Landform.CAVERNS),
-                    medium = Medium.SEA,
-                    subsurface = Subsurface.POROUS,
+                    mediums = listOf(Medium.SEA),
+                    subsurfaces = listOf(Subsurface.POROUS),
                     dressings = listOf(Dressing.OVERWORLD),
                 )
             }

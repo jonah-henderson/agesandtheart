@@ -144,9 +144,16 @@ data class WaterTable(
         const val DEFAULT_DRYING_DEPTH = 64
         const val DEFAULT_SURFACE_MARGIN = 8
 
-        /** An Age's default: vanilla-shaped, seeded per Age so two Ages are not wet in the same places. */
+        /**
+         * An Age's default: vanilla-shaped, seeded per Age so two Ages are not wet in the same places.
+         *
+         * Takes the medium's representative substance rather than asking per column, because a table is
+         * one answer for the whole Age by design — see `AgeGeneration.waterTableOf`. So an Age whose sea
+         * is water beside lava has water in its rock throughout, which is the sane reading: the
+         * impossible part is meant to be the surface, not the groundwater.
+         */
         fun matching(ambient: AmbientMedium, seaLevel: Int, seed: Long = 0L) = WaterTable(
-            fluid = if (ambient.block.isAir) Blocks.WATER.defaultBlockState() else ambient.block,
+            fluid = ambient.representative.takeUnless { it.isAir } ?: Blocks.WATER.defaultBlockState(),
             seaLevel = seaLevel,
             dryingDepth = DEFAULT_DRYING_DEPTH,
             surfaceMargin = DEFAULT_SURFACE_MARGIN,

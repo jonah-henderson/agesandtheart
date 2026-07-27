@@ -27,3 +27,21 @@ age compare repeatA repeatB 2
 
 # Every recipe should print its territory character, and paste back into /age compose.
 age list
+
+# --- Medium and subsurface, the last two positional slots ---------------------------------------
+# An ocean of water meeting an ocean of lava at the same level, with no barrier between them. This is
+# the one that has no vanilla equivalent at all, so it is the one worth walking to.
+age compose twoseas 11 landform=hills medium=sea,lava subsurface=solid dressing=bare_rock sky=plain
+age gen twoseas
+
+# Caves in some territories and solid rock in others. Carvers are chosen per chunk rather than per
+# column, so expect the seam here to follow chunk edges — that is known and accepted.
+age compose halfhollow 11 landform=hills medium=sea subsurface=caves,solid dressing=overworld sky=plain
+age gen halfhollow
+age bench halfhollow 4
+
+# Everything set-valued at once: four slots dividing the same world, only the sky undivided.
+age compose everything 11 landform=hills,pillars medium=sea,lava subsurface=caves,solid dressing=verdant,overworld sky=storm
+age gen everything
+age compare everything everything 1
+age list

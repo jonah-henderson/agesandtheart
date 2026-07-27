@@ -2,15 +2,18 @@ package co.voik.agesandtheart.worldgen
 
 import co.voik.agesandtheart.worldgen.field.AmbientMedium
 import co.voik.agesandtheart.worldgen.field.Palette
+import co.voik.agesandtheart.worldgen.field.RegionMap
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.WaterTable
 import com.mojang.serialization.Codec
+import com.mojang.datafixers.util.Either
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Holder
 import net.minecraft.core.HolderLookup
 import net.minecraft.core.HolderSet
+import net.minecraft.core.SectionPos
 import net.minecraft.core.registries.Registries
 import net.minecraft.core.RegistryCodecs
 import net.minecraft.resources.ResourceKey
@@ -70,10 +73,35 @@ class FieldChunkGenerator(
     private val field: TerrainField,
     private val ambient: AmbientMedium,
     private val surfaceRule: SurfaceRules.RuleSource = Palette.PLAIN_STONE,
-    private val carvers: Map<GenerationStep.Carving, HolderSet<ConfiguredWorldCarver<*>>> = emptyMap(),
+    /**
+     * What is cut back out of the rock, per subsurface territory.
+     *
+     * **Chosen per chunk rather than per column**, which is the one place a seam is coarser than
+     * elsewhere. A carver is a stateful random walk that starts in one chunk and tunnels outward
+     * through its neighbours, so there is no column at which to ask the question — vanilla picks per
+     * chunk for the same reason, from the biome at the chunk's origin. A cave system that begins in a
+     * riddled territory and breaks through into a solid one is the honest consequence, and a good one.
+     */
+    private val carvers: List<Map<GenerationStep.Carving, HolderSet<ConfiguredWorldCarver<*>>>> = listOf(emptyMap()),
+    /** Which subsurface owns which ground. Consulted by [carvers] only, at chunk granularity. */
+    private val underground: RegionMap = RegionMap.whole(),
     private val waterTable: WaterTable? = null,
     private val structureSets: HolderSet<StructureSet> = HolderSet.direct(emptyList()),
 ) : ChunkGenerator(biomes) {
+
+    /**
+     * The same generator with one subsurface everywhere — what a Tier-B preset means, since a preset is
+     * a whole hand-tuned world rather than an assembly of territories.
+     */
+    constructor(
+        biomes: BiomeSource,
+        field: TerrainField,
+        ambient: AmbientMedium,
+        surfaceRule: SurfaceRules.RuleSource = Palette.PLAIN_STONE,
+        carvers: Map<GenerationStep.Carving, HolderSet<ConfiguredWorldCarver<*>>>,
+        waterTable: WaterTable? = null,
+        structureSets: HolderSet<StructureSet> = HolderSet.direct(emptyList()),
+    ) : this(biomes, field, ambient, surfaceRule, listOf(carvers), RegionMap.whole(), waterTable, structureSets)
 
     override fun codec(): MapCodec<out ChunkGenerator> = CODEC
 
@@ -90,7 +118,7 @@ class FieldChunkGenerator(
     private val generationSettings = NoiseGeneratorSettings(
         NoiseSettings.create(MIN_Y, GEN_HEIGHT, NOISE_CELLS_HORIZONTAL, NOISE_CELLS_VERTICAL),
         SOLID,
-        ambient.block,
+        ambient.representative,
         INERT_ROUTER,
         surfaceRule,
         emptyList(),
@@ -130,13 +158,16 @@ class FieldChunkGenerator(
                 val worldX = chunkMinX + localX
                 val worldZ = chunkMinZ + localZ
                 val spans = field.columnSpans(worldX, worldZ)
+                // Once per column, not once per block: which territory a column is in costs a noise
+                // sample per medium, and the answer cannot change as you go down it.
+                val medium = ambient.blockAt(worldX, worldZ)
 
                 for (y in MIN_Y..<TOP_Y) {
                     // The field decides, unless a structure standing here has an opinion of its own.
                     val isRock = adaptation?.verdictAt(worldX, y, worldZ) ?: spans.contains(y)
                     val state = when {
                         isRock -> SOLID
-                        ambient.fillsAt(y) -> ambient.block
+                        ambient.fillsAt(y) -> medium
                         else -> null
                     } ?: continue
                     chunk.setBlockState(cursor.set(worldX, y, worldZ), state, false)
@@ -171,17 +202,18 @@ class FieldChunkGenerator(
         // One below the world, so a column with nothing this query counts simply answers the floor.
         val nothing = level.minBuildHeight - 1
         val rockTop = if (counts.test(SOLID)) field.columnSpans(x, z).highestSolidY ?: nothing else nothing
-        val mediumTop = if (counts.test(ambient.block)) ambient.surfaceY ?: nothing else nothing
+        val mediumTop = if (counts.test(ambient.blockAt(x, z))) ambient.surfaceY ?: nothing else nothing
         return (maxOf(rockTop, mediumTop) + 1).coerceIn(level.minBuildHeight, level.maxBuildHeight)
     }
 
     override fun getBaseColumn(x: Int, z: Int, level: LevelHeightAccessor, randomState: RandomState): NoiseColumn {
         val spans = field.columnSpans(x, z)
+        val medium = ambient.blockAt(x, z)
         val column = Array(GEN_HEIGHT) { index ->
             val y = MIN_Y + index
             when {
                 spans.contains(y) -> SOLID
-                ambient.fillsAt(y) -> ambient.block
+                ambient.fillsAt(y) -> medium
                 else -> AIR
             }
         }
@@ -219,7 +251,8 @@ class FieldChunkGenerator(
     private val table: WaterTable = waterTable ?: WaterTable.matching(ambient, seaLevel)
 
     // Only ever consulted by the NoiseChunk's own (disabled, unused) aquifer — carving uses [aquifer].
-    private val ambientFluid = Aquifer.FluidPicker { _, _, _ -> Aquifer.FluidStatus(seaLevel, ambient.block) }
+    private val ambientFluid =
+        Aquifer.FluidPicker { x, _, z -> Aquifer.FluidStatus(seaLevel, ambient.blockAt(x, z)) }
 
     /** Cached on the chunk, so surfacing and carving share one — it is the access toll, paid once. */
     private fun noiseChunkFor(chunk: ChunkAccess, randomState: RandomState, structureManager: StructureManager): NoiseChunk =
@@ -255,7 +288,15 @@ class FieldChunkGenerator(
         chunk: ChunkAccess,
         step: GenerationStep.Carving,
     ) {
-        val stepCarvers = carvers[step]?.toList().orEmpty()
+        // The chunk's centre decides, so a chunk belongs wholly to one subsurface even where the
+        // territory boundary crosses it.
+        val here = carvers[
+            underground.memberAt(
+                SectionPos.sectionToBlockCoord(chunk.pos.x, BLOCKS_PER_SECTION / 2),
+                SectionPos.sectionToBlockCoord(chunk.pos.z, BLOCKS_PER_SECTION / 2),
+            ).coerceIn(carvers.indices),
+        ]
+        val stepCarvers = here[step]?.toList().orEmpty()
         if (stepCarvers.isEmpty()) return
         val protoChunk = chunk as? ProtoChunk ?: return
 
@@ -332,6 +373,15 @@ class FieldChunkGenerator(
     override fun getMinY(): Int = MIN_Y
 
     companion object {
+        // Declared before CODEC, and it has to be: a companion initialises top to bottom, so CODEC
+        // reading this from below would read a null. Cost us a server boot to find, because nothing
+        // offline touches the generator's codec.
+        private val CARVER_SETS: Codec<Map<GenerationStep.Carving, HolderSet<ConfiguredWorldCarver<*>>>> =
+            Codec.unboundedMap(
+                GenerationStep.Carving.CODEC,
+                RegistryCodecs.homogeneousList(Registries.CONFIGURED_CARVER),
+            )
+
         val CODEC: MapCodec<FieldChunkGenerator> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
                 BiomeSource.CODEC.fieldOf("biome_source").forGetter { it.biomes },
@@ -340,19 +390,30 @@ class FieldChunkGenerator(
                 // Optional so field Ages serialised before palettes existed still load.
                 SurfaceRules.RuleSource.CODEC.optionalFieldOf("surface_rule", Palette.PLAIN_STONE)
                     .forGetter { it.surfaceRule },
-                Codec.unboundedMap(
-                    GenerationStep.Carving.CODEC,
-                    RegistryCodecs.homogeneousList(Registries.CONFIGURED_CARVER),
-                ).optionalFieldOf("carvers", emptyMap()).forGetter { it.carvers },
+                // A list now that subsurface is set-valued, and still readable as the single map it
+                // was: one carver set is exactly what an Age with one subsurface has.
+                Codec.either(CARVER_SETS.listOf(), CARVER_SETS)
+                    .xmap(
+                        { either -> either.map({ many -> many }, ::listOf) },
+                        { many -> if (many.size == 1) Either.right(many.first()) else Either.left(many) },
+                    )
+                    .optionalFieldOf("carvers", listOf(emptyMap())).forGetter { it.carvers },
+                RegionMap.MAP_CODEC.codec().optionalFieldOf("underground", RegionMap.whole())
+                    .forGetter { it.underground },
                 // Absent means "a flat table at the ambient sea", derived at construction.
                 WaterTable.CODEC.codec().optionalFieldOf("water_table").forGetter { Optional.ofNullable(it.waterTable) },
                 RegistryCodecs.homogeneousList(Registries.STRUCTURE_SET)
                     .optionalFieldOf("structure_sets", HolderSet.direct(emptyList()))
                     .forGetter { it.structureSets },
-            ).apply(instance) { biomes, field, ambient, rule, carvers, table, structures ->
-                FieldChunkGenerator(biomes, field, ambient, rule, carvers, table.orElse(null), structures)
+            ).apply(instance) { biomes, field, ambient, rule, carvers, underground, table, structures ->
+                FieldChunkGenerator(
+                    biomes, field, ambient, rule, carvers, underground, table.orElse(null), structures,
+                )
             }
         }
+
+        /** Half a chunk, so a chunk is judged by its middle rather than its corner. */
+        private const val BLOCKS_PER_SECTION = 16
 
         // Vertical layout matches the agesandtheart:age dimension type (min_y -64, height 384).
         private const val MIN_Y = -64

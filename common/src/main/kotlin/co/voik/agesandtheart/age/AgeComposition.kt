@@ -33,8 +33,10 @@ data class AgeComposition(
      * Never empty; [parse] and the codec both guarantee at least one.
      */
     val landforms: List<Landform>,
-    val medium: Medium = Medium.VOID,
-    val subsurface: Subsurface = Subsurface.SOLID,
+    /** What fills the space the shapes leave — positional, so a sea may be two substances at once. */
+    val mediums: List<Medium> = listOf(Medium.VOID),
+    /** What has been cut back out of the rock, and where water stands in it. Positional too. */
+    val subsurfaces: List<Subsurface> = listOf(Subsurface.SOLID),
     /**
      * What it all looks and grows like — **plural**, like [landforms], because dressing is positional
      * too. Two dressings divide the world between them, painting and populating their own territories.
@@ -44,13 +46,15 @@ data class AgeComposition(
     val options: SlotOptions = SlotOptions(),
 ) {
     /** Every preset this composition names, in slot order — for listing, costing and diagnosis. */
-    val presets: List<SlotPreset> get() = landforms + listOf(medium, subsurface) + dressings + listOf(sky)
+    val presets: List<SlotPreset> get() = landforms + mediums + subsurfaces + dressings + listOf(sky)
 
     /** The one landform, where there is only one — for the many places that still reasonably assume so. */
     val landform: Landform get() = landforms.first()
 
-    /** Likewise the one dressing. */
+    /** Likewise the one dressing, medium and subsurface. */
     val dressing: Dressing get() = dressings.first()
+    val medium: Medium get() = mediums.first()
+    val subsurface: Subsurface get() = subsurfaces.first()
 
     /**
      * Options no preset here understands, spelled `dressing.settlment` — a typo, or a knob some later
@@ -81,13 +85,15 @@ data class AgeComposition(
     fun withPresets(slot: Slot, keys: List<String>): AgeComposition = when (slot) {
         Slot.LANDFORM -> copy(landforms = keys.map { named(slot, it, Landform.entries) })
         Slot.DRESSING -> copy(dressings = keys.map { named(slot, it, Dressing.entries) })
+        Slot.MEDIUM -> copy(mediums = keys.map { named(slot, it, Medium.entries) })
+        Slot.SUBSURFACE -> copy(subsurfaces = keys.map { named(slot, it, Subsurface.entries) })
         else -> withSingle(slot, keys.last())
     }
 
     private fun withSingle(slot: Slot, key: String): AgeComposition = when (slot) {
         Slot.LANDFORM -> copy(landforms = listOf(named(slot, key, Landform.entries)))
-        Slot.MEDIUM -> copy(medium = named(slot, key, Medium.entries))
-        Slot.SUBSURFACE -> copy(subsurface = named(slot, key, Subsurface.entries))
+        Slot.MEDIUM -> copy(mediums = listOf(named(slot, key, Medium.entries)))
+        Slot.SUBSURFACE -> copy(subsurfaces = listOf(named(slot, key, Subsurface.entries)))
         Slot.DRESSING -> copy(dressings = listOf(named(slot, key, Dressing.entries)))
         Slot.SKY -> copy(sky = named(slot, key, Sky.entries))
     }
@@ -159,9 +165,11 @@ data class AgeComposition(
             instance.group(
                 setOrSingle(enumCodec<Landform>(), Landform.SHAPES)
                     .fieldOf("landform").forGetter(AgeComposition::landforms),
-                enumCodec<Medium>().optionalFieldOf("medium", Medium.VOID).forGetter(AgeComposition::medium),
-                enumCodec<Subsurface>().optionalFieldOf("subsurface", Subsurface.SOLID)
-                    .forGetter(AgeComposition::subsurface),
+                setOrSingle(enumCodec<Medium>(), Medium.VOID)
+                    .optionalFieldOf("medium", listOf(Medium.VOID)).forGetter(AgeComposition::mediums),
+                setOrSingle(enumCodec<Subsurface>(), Subsurface.SOLID)
+                    .optionalFieldOf("subsurface", listOf(Subsurface.SOLID))
+                    .forGetter(AgeComposition::subsurfaces),
                 setOrSingle(enumCodec<Dressing>(), Dressing.BARE_ROCK)
                     .optionalFieldOf("dressing", listOf(Dressing.BARE_ROCK))
                     .forGetter(AgeComposition::dressings),
