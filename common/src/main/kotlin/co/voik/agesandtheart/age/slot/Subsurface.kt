@@ -26,7 +26,20 @@ import net.minecraft.world.level.levelgen.carver.ConfiguredWorldCarver
  * belong in the recipe. See [co.voik.agesandtheart.worldgen.FieldChunkGenerator.applyCarvers].
  */
 enum class Subsurface(override val key: String) : SlotPreset {
-    /** Solid rock. Whatever the shape laid down stays there. */
+    /**
+     * Solid rock. Whatever the shape laid down stays there.
+     *
+     * **The empty set, and therefore the identity of the union** (Jonah's call, design §3.4). Carving is
+     * populative: every seated subsurface's carvers run, so `solid` names no members and `solid ∪ caves` is
+     * `caves`. That is correct set semantics rather than a word being dropped — "nothing is cut" contributes
+     * nothing to cut.
+     *
+     * **The known gap it leaves:** there is no way to say *"caves here, solid ground there"* any more, which
+     * the old per-chunk selection could express by accident. That is a claim about *absence in a place*, and
+     * absence is what `except` is for — a grammar modifier (Phase 4), not a preset. Until then, a sentence
+     * naming both gets the caves and `solid` is inert. Recorded rather than worked around, because the
+     * workaround would be reinstating a selection the union is better than.
+     */
     SOLID("solid"),
 
     /**

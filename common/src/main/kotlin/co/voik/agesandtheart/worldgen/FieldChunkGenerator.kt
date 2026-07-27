@@ -74,16 +74,22 @@ class FieldChunkGenerator(
     private val ambient: AmbientMedium,
     private val surfaceRule: SurfaceRules.RuleSource = Palette.PLAIN_STONE,
     /**
-     * What is cut back out of the rock, per subsurface territory.
+     * What is cut back out of the rock, one set per subsurface — **and they all run** (Jonah's call,
+     * design §3.4).
      *
-     * **Chosen per chunk rather than per column**, which is the one place a seam is coarser than
-     * elsewhere. A carver is a stateful random walk that starts in one chunk and tunnels outward
-     * through its neighbours, so there is no column at which to ask the question — vanilla picks per
-     * chunk for the same reason, from the biome at the chunk's origin. A cave system that begins in a
-     * riddled territory and breaks through into a solid one is the honest consequence, and a good one.
+     * These used to be selected between, one per chunk, on the [underground] map. Jonah asked why two
+     * carver sets could not both run and the answer was that nothing stopped them: carvers cut air out of
+     * rock and share one [CarvingMask], so running two sets over a chunk simply yields both cave systems.
+     * The argument that *is* sound — a carver is a stateful walk that starts in one chunk and tunnels
+     * outward, so there is no column at which to ask which set applies — argues against selecting **per
+     * column**, and says nothing about selecting at all.
+     *
+     * So carving is *populative* (§3.2): "caves and wind erosion" means an Age with both throughout rather
+     * than two territories with one each. Only the water table still divides, which is why [underground]
+     * survives.
      */
     private val carvers: List<Map<GenerationStep.Carving, HolderSet<ConfiguredWorldCarver<*>>>> = listOf(emptyMap()),
-    /** Which subsurface owns which ground. Consulted by [carvers] only, at chunk granularity. */
+    /** Which subsurface's *hydrology* owns which ground. Carving no longer asks; see [carvers]. */
     private val underground: RegionMap = RegionMap.whole(),
     /**
      * Where water stands, **one table per subsurface** — hydrology divides on the same [underground] map as
@@ -258,6 +264,20 @@ class FieldChunkGenerator(
     private val tables: List<WaterTable> =
         waterTables.ifEmpty { listOf(WaterTable.matching(ambient, seaLevel)) }
 
+    /**
+     * Every subsurface's carvers together, per step — the union described on [carvers].
+     *
+     * Built once rather than per chunk, and **in composition order**, which is not incidental: a carver is
+     * seeded by its *index* in the list it is run from, so a stable order is what keeps an Age reproducible.
+     * `distinct()` because two subsurfaces naming the same vanilla carver should run it once, not twice with
+     * different seeds — that would double its density rather than combine two ideas.
+     */
+    private val carving: Map<GenerationStep.Carving, List<Holder<ConfiguredWorldCarver<*>>>> by lazy {
+        GenerationStep.Carving.entries.associateWith { step ->
+            carvers.flatMap { perSubsurface -> perSubsurface[step]?.toList().orEmpty() }.distinct()
+        }
+    }
+
     // Only ever consulted by the NoiseChunk's own (disabled, unused) aquifer — carving uses [aquifer].
     private val ambientFluid =
         Aquifer.FluidPicker { x, _, z -> Aquifer.FluidStatus(seaLevel, ambient.blockAt(x, z)) }
@@ -298,13 +318,7 @@ class FieldChunkGenerator(
     ) {
         // The chunk's centre decides, so a chunk belongs wholly to one subsurface even where the
         // territory boundary crosses it.
-        val here = carvers[
-            underground.memberAt(
-                SectionPos.sectionToBlockCoord(chunk.pos.x, BLOCKS_PER_SECTION / 2),
-                SectionPos.sectionToBlockCoord(chunk.pos.z, BLOCKS_PER_SECTION / 2),
-            ).coerceIn(carvers.indices),
-        ]
-        val stepCarvers = here[step]?.toList().orEmpty()
+        val stepCarvers = carving[step].orEmpty()
         if (stepCarvers.isEmpty()) return
         val protoChunk = chunk as? ProtoChunk ?: return
 

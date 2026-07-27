@@ -105,8 +105,15 @@ data class AgeRecipe(
          * see `Medium.FORMER_KEYS`). No Age changes shape from the rename alone, but the candidate pool
          * for the slot is now read from `preset_tags/medium.json` in sorted key order rather than from an
          * enum's declaration order, so an unconstrained medium can draw differently at the same seed.
+         *
+         * **10 — the subsurface, three ways.** Carving is now the **union** of every seated subsurface's
+         * carvers rather than one set selected per chunk, so an Age naming two of them gets both throughout
+         * and the carver *seeds* shift with the list. Hydrology **divides** on the region map instead of one
+         * table being drawn for the whole Age. `porous` cuts small vugs where it used to cut nothing at all,
+         * and `flooded_caves` floods where it used to differ from `caves` by a noise seed. Every Age with a
+         * subsurface other than `solid` generates differently.
          */
-        const val CURRENT_GENERATOR_VERSION = 9
+        const val CURRENT_GENERATOR_VERSION = 10
 
         val MAP_CODEC: MapCodec<AgeRecipe> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
