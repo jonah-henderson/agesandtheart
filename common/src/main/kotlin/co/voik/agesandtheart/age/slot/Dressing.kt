@@ -77,7 +77,11 @@ enum class Dressing(override val key: String) : SlotPreset {
      */
     override fun honours(parameter: Parameter): Boolean = when (parameter.name) {
         STONE.name -> !ignoresMaterial
-        BIOMES.name -> !ignoresClimate
+        // Every dressing can grow a named biome now that the barren ones carry a climate table rather than
+        // a single fixed biome — so nothing should steer a biome word away from them any more.
+        BIOMES.name -> true
+        // Climate is different, and still only the overworld's: bending the climate of a table whose every
+        // entry is the same biome changes which entry wins and therefore nothing at all.
         in ClimateAxis.entries.map { it.key } -> !ignoresClimate
         else -> super.honours(parameter)
     }
@@ -90,13 +94,17 @@ enum class Dressing(override val key: String) : SlotPreset {
      * rock, the deep dark at the very bottom. Everything else is one biome everywhere, because for those
      * Ages the shape *is* the subject.
      */
-    fun biomes(server: MinecraftServer, landform: TerrainField, seed: Long, options: Options): BiomeSource = when (this) {
-        OVERWORLD -> AgeBiomeSource.vanillaOverworld(server, seed)
+    fun biomes(server: MinecraftServer, landform: TerrainField, seed: Long, options: Options): BiomeSource {
+        val source = AgeBiomeSource.vanillaOverworld(server, seed)
             .told(climateIn(options), preferencesIn(options))
             .groundedIn(landform)
-        PLASMA -> fixedBiome(server, ResourceKey.create(Registries.BIOME, AgeGeneration.PLASMA_BIOME))
-        // Vanilla's barren `the_void`: a bright, neutral sky, and nothing in the way of the shape.
-        BARE_ROCK, VERDANT -> fixedBiome(server, Biomes.THE_VOID)
+        val only = when (this) {
+            OVERWORLD -> null
+            PLASMA -> ResourceKey.create(Registries.BIOME, AgeGeneration.PLASMA_BIOME)
+            // Vanilla's barren `the_void`: a bright, neutral sky, and nothing in the way of the shape.
+            BARE_ROCK, VERDANT -> Biomes.THE_VOID
+        } ?: return source
+        return source.flattenedTo(server.registryAccess().lookupOrThrow(Registries.BIOME).getOrThrow(only))
     }
 
     /**
@@ -112,11 +120,18 @@ enum class Dressing(override val key: String) : SlotPreset {
      */
     fun palette(options: Options): SurfaceRules.RuleSource {
         val stones = materialsIn(options)
-        return when (this) {
-            OVERWORLD -> Palette.VANILLA_OVERWORLD
+        val ground = when (this) {
+            OVERWORLD -> return Palette.VANILLA_OVERWORLD
             VERDANT -> if (stones.isEmpty()) Palette.VERDANT else Palette.verdantOver(stones)
             BARE_ROCK, PLASMA -> if (stones.isEmpty()) Palette.BARE_ROCK else Palette.madeOf(stones)
         }
+        // A biome named against a barren dressing gets a few blocks of soil under it, so cherry trees have
+        // something to stand in rather than sprouting from andesite (Jonah's call). Surface rules are
+        // per-block, so this really is *a few blocks* and not the whole column — the rock resumes
+        // underneath, which is what "a bare stone world with cherry groves" ought to mean.
+        val named = namedBiomesIn(options)
+        if (named.isEmpty()) return ground
+        return Palette.layers(Palette.soilIn(named), ground)
     }
 
     /**
@@ -160,6 +175,11 @@ enum class Dressing(override val key: String) : SlotPreset {
      * what `only` is for, and `only` is a modifier the grammar will bring. So a bare list is all positive
      * weights, and the machinery for removal sits unused until there is a word that means it.
      */
+    /** The biomes this Age was told to grow, as registry keys — for the palette to give them ground. */
+    private fun namedBiomesIn(options: Options): List<ResourceKey<Biome>> =
+        preferencesIn(options).filterNot { it.removes }
+            .map { ResourceKey.create(Registries.BIOME, it.biome) }
+
     private fun preferencesIn(options: Options): List<BiomePreference> = options.allOf(BIOMES)
         .filter { it != Parameter.UNCHANGED }
         .mapNotNull(ResourceLocation::tryParse)

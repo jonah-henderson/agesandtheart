@@ -110,6 +110,26 @@ object Palette {
     /** Vanilla's banded badlands clay, as a rule rather than a condition. Sound: its own noise. */
     fun clayBands(): SurfaceRules.RuleSource = SurfaceRules.bandlands()
 
+    /**
+     * The floor of the world — bedrock, fading out just above the bottom, exactly as vanilla closes its own.
+     *
+     * **Goes first in every palette, so nothing can paint over it.** Jonah's rule, 2026-07-27: a world
+     * boundary is not the palette's to decide, and a *material* least of all — "a world of blackstone"
+     * should mean the rock is blackstone, not that the world has no bottom. Removing the floor deliberately
+     * is a thing the language should eventually be able to say ("no bedrock"), and that is a very different
+     * act from a material quietly dissolving it.
+     *
+     * Relative anchors rather than our own min-Y, so this stays correct if an Age's height band ever moves.
+     */
+    fun worldFloor(): SurfaceRules.RuleSource = SurfaceRules.ifTrue(
+        SurfaceRules.verticalGradient(
+            "bedrock_floor",
+            VerticalAnchor.bottom(),
+            VerticalAnchor.aboveBottom(BEDROCK_FADE),
+        ),
+        solid(Blocks.BEDROCK.defaultBlockState()),
+    )
+
     // --- Ready-made palettes ---
 
     /**
@@ -132,10 +152,21 @@ object Palette {
 
     /** Grass over dirt over stone, deepslate fading in at depth; bare gravel wherever the sea covers it. */
     val VERDANT: SurfaceRules.RuleSource =
-        layers(soil(), deepslateFloor(), solid(Blocks.STONE.defaultBlockState()))
+        layers(worldFloor(), soil(), deepslateFloor(), solid(Blocks.STONE.defaultBlockState()))
 
     /** The same soil, over whatever rock the Age was said to be made of — see [madeOf]. */
-    fun verdantOver(stones: List<BlockState>): SurfaceRules.RuleSource = layers(soil(), mingled(stones))
+    fun verdantOver(stones: List<BlockState>): SurfaceRules.RuleSource =
+        layers(worldFloor(), soil(), mingled(stones))
+
+    /**
+     * Soil, but only inside the named biomes — how a barren dressing gives a named biome somewhere to grow.
+     *
+     * Deliberately *only the soil layers*: whatever this is laid over resumes a few blocks down, so a
+     * cherry grove in a stone world is a patch of ground on rock rather than a column of it. Goes before
+     * the rock in [layers], since the first matching rule wins.
+     */
+    fun soilIn(biomes: List<ResourceKey<Biome>>): SurfaceRules.RuleSource =
+        SurfaceRules.ifTrue(inBiomes(*biomes.toTypedArray()), soil())
 
     /** Grass and dirt where it is dry, gravel where the sea covers it. */
     private fun soil(): SurfaceRules.RuleSource = layers(
@@ -153,6 +184,7 @@ object Palette {
      * and left cobblestone shells hanging in their mouths; tuff reads the same and carves cleanly.
      */
     val BARE_ROCK: SurfaceRules.RuleSource = layers(
+        worldFloor(),
         where(atSurface(), Blocks.ANDESITE.defaultBlockState()),
         where(withinDepth(CRUST_DEPTH), Blocks.TUFF.defaultBlockState()),
         deepslateFloor(),
@@ -172,7 +204,7 @@ object Palette {
      * scale, not given a region each. Division is what naming two *dressings* does, so reading a list as
      * territories would give one piece of geography two spellings and leave mingling with none.
      */
-    fun madeOf(stones: List<BlockState>): SurfaceRules.RuleSource = mingled(stones)
+    fun madeOf(stones: List<BlockState>): SurfaceRules.RuleSource = layers(worldFloor(), mingled(stones))
 
     /**
      * Several blocks mottled through one another, the last standing as the ground everything else is
@@ -211,7 +243,8 @@ object Palette {
     private val MOTTLE_RANGE = -1.0 to 1.0
 
     /** The fallback when an Age names no palette — what every field Age looked like before palettes. */
-    val PLAIN_STONE: SurfaceRules.RuleSource = solid(Blocks.STONE.defaultBlockState())
+    val PLAIN_STONE: SurfaceRules.RuleSource =
+        layers(worldFloor(), solid(Blocks.STONE.defaultBlockState()))
 
     private fun deepslateFloor(): SurfaceRules.RuleSource =
         where(
@@ -221,6 +254,9 @@ object Palette {
 
     private const val SOIL_DEPTH = 3
     private const val CRUST_DEPTH = 2
+    /** How far the bedrock floor dissolves upward, matching vanilla's own five-block fade. */
+    private const val BEDROCK_FADE = 5
+
     private const val DEEPSLATE_SOLID_BELOW = -8
     private const val DEEPSLATE_ABSENT_ABOVE = 8
 }

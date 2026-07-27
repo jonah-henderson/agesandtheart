@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.worldgen.biome
 
 import co.voik.agesandtheart.worldgen.field.TerrainField
+import com.mojang.datafixers.util.Pair
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -20,6 +21,7 @@ import net.minecraft.world.level.levelgen.DensityFunction
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
 import net.minecraft.world.level.levelgen.RandomState
 import net.minecraft.world.level.levelgen.synth.NormalNoise
+import java.util.Optional
 import java.util.stream.Stream
 
 /**
@@ -63,6 +65,18 @@ class AgeBiomeSource(
      * for this class to arbitrate, so both are applied as written.
      */
     private val preferences: List<BiomePreference> = emptyList(),
+    /**
+     * One biome for the whole table, before any preference is applied — how a *barren* dressing gets a
+     * climate table instead of a single fixed biome.
+     *
+     * Vanilla's climate *positions* are kept and only the biome at each is replaced, which is what makes
+     * this three lines rather than a mechanism: anchoring, the surface filter and everything else in
+     * [BiomePreference] then work exactly as they do over the overworld. Naming a biome against a barren
+     * Age therefore gives isolated patches of it in the waste, which is what a writer means by "a bare
+     * stone world with cherry groves" (Jonah, 2026-07-27) — and what a [FixedBiomeSource] could never do,
+     * because a single biome has no table to enrich.
+     */
+    private val flattenedTo: Holder<Biome>? = null,
     private val noiseParameters: HolderGetter<NormalNoise.NoiseParameters>,
     private val biomeLookup: HolderGetter<Biome>,
 ) : BiomeSource() {
@@ -72,12 +86,19 @@ class AgeBiomeSource(
     /** The same climate and table, with [depth] measured against [terrain] — see [BelowTerrain]. */
     fun groundedIn(terrain: TerrainField): AgeBiomeSource =
         AgeBiomeSource(
-            biomes, climateSettings, seed, BelowTerrain(terrain), bias, preferences, noiseParameters, biomeLookup,
+            biomes, climateSettings, seed, BelowTerrain(terrain), bias, preferences, flattenedTo,
+            noiseParameters, biomeLookup,
         )
 
     /** The same source, told what to grow — see [BiomePreference] and [ClimateBias]. */
     fun told(bias: ClimateBias, preferences: List<BiomePreference>): AgeBiomeSource =
-        AgeBiomeSource(biomes, climateSettings, seed, depth, bias, preferences, noiseParameters, biomeLookup)
+        AgeBiomeSource(
+            biomes, climateSettings, seed, depth, bias, preferences, flattenedTo, noiseParameters, biomeLookup,
+        )
+
+    /** The same climate, but one biome everywhere until something is named — see [flattenedTo]. */
+    fun flattenedTo(only: Holder<Biome>): AgeBiomeSource =
+        AgeBiomeSource(biomes, climateSettings, seed, depth, bias, preferences, only, noiseParameters, biomeLookup)
 
     /**
      * Vanilla's climate-to-biome table with this Age's preferences folded in.
@@ -87,7 +108,11 @@ class AgeBiomeSource(
      * decode. A round trip must not pay for that.
      */
     private val table: Climate.ParameterList<Holder<Biome>> by lazy {
-        BiomePreference.applied(biomes.value().parameters(), preferences, biomeLookup, seed)
+        val base = biomes.value().parameters()
+        val flattened = flattenedTo?.let { only ->
+            Climate.ParameterList(base.values().map { entry -> Pair.of(entry.first, only) })
+        } ?: base
+        BiomePreference.applied(flattened, preferences, biomeLookup, seed)
     }
 
     /**
@@ -141,10 +166,15 @@ class AgeBiomeSource(
                 ClimateBias.CODEC.optionalFieldOf("bias", ClimateBias.NONE).forGetter { it.bias },
                 BiomePreference.CODEC.listOf().optionalFieldOf("preferences", emptyList())
                     .forGetter { it.preferences },
+                Biome.CODEC.optionalFieldOf("flattened_to").forGetter { Optional.ofNullable(it.flattenedTo) },
                 // Not stored fields: retrieved from the ops on decode, absent on encode.
                 RegistryOps.retrieveGetter<NormalNoise.NoiseParameters, AgeBiomeSource>(Registries.NOISE),
                 RegistryOps.retrieveGetter<Biome, AgeBiomeSource>(Registries.BIOME),
-            ).apply(instance, ::AgeBiomeSource)
+            ).apply(instance) { table, climate, seed, depth, bias, preferences, flattened, noise, lookup ->
+                AgeBiomeSource(
+                    table, climate, seed, depth, bias, preferences, flattened.orElse(null), noise, lookup,
+                )
+            }
         }
 
         /**
@@ -169,6 +199,7 @@ class AgeBiomeSource(
                 AtSurface,
                 ClimateBias.NONE,
                 emptyList(),
+                null,
                 registries.lookupOrThrow(Registries.NOISE),
                 registries.lookupOrThrow(Registries.BIOME),
             )

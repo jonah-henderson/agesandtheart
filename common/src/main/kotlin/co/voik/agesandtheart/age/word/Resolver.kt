@@ -79,10 +79,18 @@ object Resolver {
     // sake. High enough that a word brings in what it means rather than everything it tolerates.
     private const val COMPANY_SHARE_OF_BEST = 0.75
 
-    // What being able to honour everything the sentence set is worth in a draw. Comfortably larger than
-    // BASE_WEIGHT, so a capable preset wins the ordinary case, and small enough that a word which
-    // genuinely narrows still decides.
-    private const val FULLY_CAPABLE_BONUS = 0.9
+    // A preset that can do everything the sentence asked keeps its full claim.
+    private const val FULLY_CAPABLE = 1.0
+
+    // What one that can do none of it keeps. **Scaled down rather than out-bid**, which an added bonus was
+    // and which measurement showed was the wrong shape: "cherry_grove" landed on a dressing with no biome
+    // table at *half* of twelve seeds, because a flat bonus only has to beat one rival at a time and there
+    // are three. A factor bites however many rivals there are and however strongly they are liked.
+    //
+    // Small but never zero, for the same reason FAINTEST_CHANCE is not zero: a word that merely sets a
+    // parameter must not be able to *eliminate* a preset (design §3.2 — it does not narrow), only make it a
+    // poor answer. So a sentence can still land somewhere that cannot honour it, rarely, and be charged.
+    private const val INCAPABLE_FACTOR = 0.04
 
     // Arbitrary large odds, only ever needed to decorrelate one draw from another.
     private const val SLOT_STRIDE = 0x1F3B_5D79L
@@ -315,8 +323,8 @@ object Resolver {
         val named = speaking.filter { it.tier.narrows }
             .maxOfOrNull { it.pullOn(preset, tags) * it.tier.weight } ?: 0.0
         val liked = speaking.filter { !it.tier.narrows }.sumOf { it.affinityFor(tags) }
-        return (BASE_WEIGHT * vocabulary.readinessOf(preset) + named + liked + capabilityBonus(preset, speaking))
-            .coerceAtLeast(FAINTEST_CHANCE)
+        val wanted = BASE_WEIGHT * vocabulary.readinessOf(preset) + named + liked
+        return (wanted * capabilityFactor(preset, speaking)).coerceAtLeast(FAINTEST_CHANCE)
     }
 
     /**
@@ -333,11 +341,12 @@ object Resolver {
      * still gets floating islands, and the fact that they have no biomes is then a real contradiction for
      * [wordsNothingHonours] to charge rather than an arbitrary silence.
      */
-    private fun capabilityBonus(preset: SlotPreset, speaking: List<Word>): Double {
+    private fun capabilityFactor(preset: SlotPreset, speaking: List<Word>): Double {
         val parametersAsked = speaking.flatMap { it.sets.keys }.distinct()
-        if (parametersAsked.isEmpty()) return 0.0
+        if (parametersAsked.isEmpty()) return FULLY_CAPABLE
         val honoured = parametersAsked.count(preset::honoursParameterNamed)
-        return FULLY_CAPABLE_BONUS * honoured / parametersAsked.size
+        val share = honoured.toDouble() / parametersAsked.size
+        return INCAPABLE_FACTOR + (FULLY_CAPABLE - INCAPABLE_FACTOR) * share
     }
 
     /**
