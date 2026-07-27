@@ -7,8 +7,6 @@ import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.Aquifer
 import net.minecraft.world.level.levelgen.DensityFunction
-import net.minecraft.world.level.levelgen.XoroshiroRandomSource
-import net.minecraft.world.level.levelgen.synth.NormalNoise
 import java.lang.Math.floorDiv
 import kotlin.math.roundToInt
 
@@ -50,8 +48,7 @@ data class WaterTable(
     val firstOctave: Int,
     val amplitudes: List<Double>,
 ) {
-    private val weights = amplitudes.take(-firstOctave + 1).ifEmpty { listOf(1.0) }
-    private val floodedness = NormalNoise.create(XoroshiroRandomSource(seed), firstOctave, *weights.toDoubleArray())
+    private val floodedness = fieldNoise(seed, firstOctave, amplitudes)
     private val acrossStretch = horizontalScale.coerceAtLeast(SMALLEST_STRETCH)
     private val downStretch = verticalScale.coerceAtLeast(SMALLEST_STRETCH)
 
@@ -126,7 +123,6 @@ data class WaterTable(
 
     companion object {
         private val AIR: BlockState = Blocks.AIR.defaultBlockState()
-        private const val SMALLEST_STRETCH = 0.01
 
         /** Nothing sits below this, so it reads as "no water in this rock at all". */
         private const val BONE_DRY = -4096
@@ -145,8 +141,8 @@ data class WaterTable(
         private fun slide(nearness: Double, whenShallow: Double, whenDeep: Double) =
             whenDeep + (whenShallow - whenDeep) * nearness
 
-        val DEFAULT_DRYING_DEPTH = 64
-        val DEFAULT_SURFACE_MARGIN = 8
+        const val DEFAULT_DRYING_DEPTH = 64
+        const val DEFAULT_SURFACE_MARGIN = 8
 
         /** An Age's default: vanilla-shaped, seeded per Age so two Ages are not wet in the same places. */
         fun matching(ambient: AmbientMedium, seaLevel: Int, seed: Long = 0L) = WaterTable(

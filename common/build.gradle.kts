@@ -46,60 +46,55 @@ val main: SourceSet = sourceSets.main.get()
 preview.compileClasspath += main.compileClasspath + main.output
 preview.runtimeClasspath += main.compileClasspath + main.runtimeClasspath + main.output
 
-tasks.register<JavaExec>("noiseprofile") {
-    group = "documentation"
-    description = "Reports what fraction each noise character leaves solid, per threshold."
-    mainClass = "co.voik.agesandtheart.preview.NoiseProfileKt"
-    classpath = preview.runtimeClasspath
-    javaLauncher = javaToolchains.launcherFor(java.toolchain)
-}
+/**
+ * Registers one of the offline developer instruments — a `main()` in the `preview` source set, run
+ * without launching Minecraft.
+ *
+ * They divide into two kinds, which is what the Gradle group records: a **verification** instrument
+ * asserts something and fails the build when it is wrong; a **documentation** instrument only reports,
+ * and is read rather than trusted.
+ */
+fun instrument(name: String, group: String, mainClassName: String, description: String) =
+    tasks.register<JavaExec>(name) {
+        this.group = group
+        this.description = description
+        mainClass = mainClassName
+        classpath = preview.runtimeClasspath
+        javaLauncher = javaToolchains.launcherFor(java.toolchain)
+    }
 
-tasks.register<JavaExec>("noisebench") {
-    group = "verification"
-    description = "Times NormalNoise offline, to price a 3D-noise field before building one."
-    mainClass = "co.voik.agesandtheart.preview.NoiseBenchmarkKt"
-    classpath = preview.runtimeClasspath
-    javaLauncher = javaToolchains.launcherFor(java.toolchain)
-}
+instrument(
+    "noiseprofile", "documentation", "co.voik.agesandtheart.preview.NoiseProfileKt",
+    "Reports what fraction each noise character leaves solid, per threshold.",
+)
 
-tasks.register<JavaExec>("preview") {
-    group = "documentation"
-    description = "Renders terrain-shape previews to PNG (build/preview) without launching Minecraft."
-    mainClass = "co.voik.agesandtheart.preview.TerrainPreviewKt"
-    classpath = preview.runtimeClasspath
-    // Pass a preset name through, e.g. ./gradlew :common:preview --args=hills
-    javaLauncher = javaToolchains.launcherFor(java.toolchain)
-}
+instrument(
+    "noisebench", "documentation", "co.voik.agesandtheart.preview.NoiseBenchmarkKt",
+    "Times NormalNoise offline, to price a 3D-noise field before building one.",
+)
 
-tasks.register<JavaExec>("spanscheck") {
-    group = "verification"
-    description = "Differential check of Spans interval algebra against a per-block reference."
-    mainClass = "co.voik.agesandtheart.preview.SpansCheckKt"
-    classpath = preview.runtimeClasspath
-    javaLauncher = javaToolchains.launcherFor(java.toolchain)
-}
+instrument(
+    "preview", "documentation", "co.voik.agesandtheart.preview.TerrainPreviewKt",
+    "Renders terrain-shape previews to PNG (build/preview). Takes a preset, e.g. --args=hills",
+)
 
-tasks.register<JavaExec>("terraindiff") {
-    group = "verification"
-    description = "Compares two saved worlds Age by Age, block for block — what a generation refactor is checked against."
-    mainClass = "co.voik.agesandtheart.preview.TerrainDiffKt"
-    classpath = preview.runtimeClasspath
-    // Two world folders, e.g. ./gradlew :common:terraindiff --args="before/world after/world"
-    javaLauncher = javaToolchains.launcherFor(java.toolchain)
-}
+instrument(
+    "spanscheck", "verification", "co.voik.agesandtheart.preview.SpansCheckKt",
+    "Differential check of Spans interval algebra against a per-block reference.",
+)
 
-tasks.register<JavaExec>("recipecheck") {
-    group = "verification"
-    description = "Checks Age recipes round-trip through NBT, and that written generator kinds still resolve."
-    mainClass = "co.voik.agesandtheart.preview.RecipeCheckKt"
-    classpath = preview.runtimeClasspath
-    javaLauncher = javaToolchains.launcherFor(java.toolchain)
-}
+instrument(
+    "depthcachecheck", "verification", "co.voik.agesandtheart.preview.DepthCacheCheckKt",
+    "Checks BelowTerrain's column cache is actually hit (guards a silent indexing bug).",
+)
 
-tasks.register<JavaExec>("depthcachecheck") {
-    group = "verification"
-    description = "Checks BelowTerrain's column cache is actually hit (guards a silent indexing bug)."
-    mainClass = "co.voik.agesandtheart.preview.DepthCacheCheckKt"
-    classpath = preview.runtimeClasspath
-    javaLauncher = javaToolchains.launcherFor(java.toolchain)
-}
+instrument(
+    "recipecheck", "verification", "co.voik.agesandtheart.preview.RecipeCheckKt",
+    "Checks Age recipes round-trip through NBT, and that written generator kinds still resolve.",
+)
+
+instrument(
+    "terraindiff", "verification", "co.voik.agesandtheart.preview.TerrainDiffKt",
+    "Compares two saved worlds Age by Age, block for block. Takes two world folders, " +
+        "e.g. --args=\"before/world after/world\" (absolute paths — Gradle runs from this module).",
+)

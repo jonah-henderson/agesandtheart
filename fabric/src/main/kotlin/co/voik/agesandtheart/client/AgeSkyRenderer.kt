@@ -15,6 +15,7 @@ import net.minecraft.client.renderer.GameRenderer
 import net.minecraft.world.phys.Vec3
 import org.joml.Matrix4f
 import java.util.Random
+import kotlin.math.PI
 import kotlin.math.sin
 
 /**
@@ -37,6 +38,9 @@ object AgeSkyRenderer : DimensionRenderingRegistry.SkyRenderer {
     private const val DOME_SEGMENTS = 8
     private const val STAR_DRIFT_DEGREES_PER_TICK = 0.0015f
 
+    // Below this much reveal the stars are too faint to be worth the draw call.
+    private const val STARS_WORTH_DRAWING = 0.01f
+
     // Stars only appear above the upper cloud deck (~y192); fade across this band.
     private const val STAR_REVEAL_LOW = 190.0
     private const val STAR_REVEAL_HIGH = 212.0
@@ -54,9 +58,9 @@ object AgeSkyRenderer : DimensionRenderingRegistry.SkyRenderer {
     private const val STAR_DISTANCE = 100.0
     private const val MIN_STAR_SIZE = 0.20
     private const val STAR_SIZE_VARIATION = 0.15
-    private val FULL_CIRCLE_RADIANS = 2.0 * Math.PI
+    private const val FULL_CIRCLE_RADIANS = 2.0 * PI
 
-    private class Star(val corners: List<Vec3>, val baseColor: Rgba, val twinklePhase: Float, val twinkleSpeed: Float)
+    private data class Star(val corners: List<Vec3>, val baseColor: Rgba, val twinklePhase: Float, val twinkleSpeed: Float)
 
     /** Subdivided box surrounding the camera; each vertex coloured by its elevation angle. */
     private val domeQuads: List<List<Vec3>> = subdividedCube(DOME_RADIUS, DOME_SEGMENTS)
@@ -77,7 +81,7 @@ object AgeSkyRenderer : DimensionRenderingRegistry.SkyRenderer {
         RenderSystem.disableBlend()
         drawOvercast(viewMatrix, envelopment = 1.0f - aboveTopDeck)
 
-        if (aboveTopDeck > 0.01f) {
+        if (aboveTopDeck > STARS_WORTH_DRAWING) {
             RenderSystem.enableBlend()
             RenderSystem.defaultBlendFunc()
             val driftedView = Matrix4f(viewMatrix).rotate(Axis.YP.rotationDegrees(gameTime * STAR_DRIFT_DEGREES_PER_TICK))

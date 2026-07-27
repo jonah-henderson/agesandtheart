@@ -209,7 +209,6 @@ private fun draw(blocksWide: Int, blocksHigh: Int, shade: (Int, Int) -> Int): Bu
 private fun report(name: String, solid: BooleanArray, subject: Subject, output: File) {
     val width = subject.radius * 2
     val columns = width * width
-    var standing = 0
     var occupied = 0
     var tallest = Int.MIN_VALUE
 
@@ -223,8 +222,7 @@ private fun report(name: String, solid: BooleanArray, subject: Subject, output: 
             }
         }
     }
-    standing = solid.count { it }
-
+    val standing = solid.count { it }
     val area = if (occupied == 0) "no rock in window" else "${occupied * 100 / columns}% of columns hold rock"
     val peak = if (tallest == Int.MIN_VALUE) "—" else tallest.toString()
     println("$name: $area, ${standing} solid blocks, tallest y=$peak")

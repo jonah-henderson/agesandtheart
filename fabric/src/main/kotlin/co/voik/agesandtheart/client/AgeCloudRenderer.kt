@@ -44,7 +44,7 @@ object AgeCloudRenderer : DimensionRenderingRegistry.CloudRenderer {
     private const val CONTRAST = 1.6f // spreads the noise toward its extremes for defined spots
 
     /** One cloud layer: where it sits, its two roiling tones, how fast it drifts, and its noise region. */
-    private class Deck(
+    private data class Deck(
         val height: Double,
         val low: Rgba,
         val high: Rgba,
@@ -53,9 +53,16 @@ object AgeCloudRenderer : DimensionRenderingRegistry.CloudRenderer {
         val noiseOffsetZ: Double,
     )
 
+    /**
+     * World Y of the upper deck. Also this dimension's registered cloud level (see [AgeDimensionEffects])
+     * and the height [AgeSkyRenderer]'s star-reveal band is built around — one fact, named once, because
+     * three copies of it would drift apart the first time the deck is retuned.
+     */
+    const val UPPER_DECK_HEIGHT = 192.0
+
     // Upper deck: mostly light grey, with cool blue-grey darker spots. Drifts faster.
     private val UPPER_DECK = Deck(
-        height = 192.0,
+        height = UPPER_DECK_HEIGHT,
         low = Rgba(0.16f, 0.17f, 0.22f),
         high = Rgba(0.47f, 0.50f, 0.51f),
         driftSpeed = 0.045f,
@@ -166,6 +173,10 @@ object AgeCloudRenderer : DimensionRenderingRegistry.CloudRenderer {
         corner(-RADIUS, top, -RADIUS); corner(RADIUS, top, -RADIUS); corner(RADIUS, bottom, -RADIUS); corner(-RADIUS, bottom, -RADIUS)
     }
 
+    // The four sine amplitudes below, summed — what the total has to be divided by to land back in
+    // -1..1. Derived, so it must be updated with them; the frequencies themselves are free.
+    private const val SINE_AMPLITUDE_SUM = 1.0 + 0.7 + 0.5 + 0.4
+
     /** Slowly-animating value noise in `0.0..1.0` — a cheap sum of drifting sines at [driftSpeed]. */
     private fun cloudDensity(x: Double, z: Double, time: Float, driftSpeed: Float): Float {
         val t = time * driftSpeed
@@ -173,6 +184,6 @@ object AgeCloudRenderer : DimensionRenderingRegistry.CloudRenderer {
         value += 0.7 * sin(z * 0.021 - t * 0.9)
         value += 0.5 * sin((x + z) * 0.012 + t * 1.4)
         value += 0.4 * cos((x - z) * 0.015 - t * 0.7)
-        return ((value / 2.6) * 0.5 + 0.5).toFloat().coerceIn(0.0f, 1.0f)
+        return ((value / SINE_AMPLITUDE_SUM) * 0.5 + 0.5).toFloat().coerceIn(0.0f, 1.0f)
     }
 }

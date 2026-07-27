@@ -35,7 +35,7 @@ class TerrainAdaptation private constructor(
      * which makes one of these safe to reuse down a chunk but never to share between chunk workers.
      */
     fun verdictAt(x: Int, y: Int, z: Int): Boolean? {
-        if (y < lowY || y > highY) return null
+        if (y !in lowY..highY) return null
         val beard = beardifier.compute(DensityFunction.SinglePointContext(x, y, z))
         return when {
             beard > BEARD_DECIDES -> true

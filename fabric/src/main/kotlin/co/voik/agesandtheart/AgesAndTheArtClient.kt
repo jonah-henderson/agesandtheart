@@ -23,8 +23,8 @@ fun initClient() {
     // Steel-grey stormy fog for every Age (keyed by our shared effects marker).
     DimensionRenderingRegistry.registerDimensionEffects(AgeGeneration.AGE_DIMENSION_TYPE, AgeDimensionEffects())
 
-    ClientTickEvents.END_CLIENT_TICK.register { mc ->
-        val level = mc.level ?: return@register
+    ClientTickEvents.END_CLIENT_TICK.register { client ->
+        val level = client.level ?: return@register
         val key = level.dimension()
         if (level.dimensionType().effectsLocation() == AgeGeneration.AGE_DIMENSION_TYPE && skyRegistered.add(key)) {
             DimensionRenderingRegistry.registerSkyRenderer(key, AgeSkyRenderer)

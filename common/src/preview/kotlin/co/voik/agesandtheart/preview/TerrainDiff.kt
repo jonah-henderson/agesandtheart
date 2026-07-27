@@ -36,9 +36,11 @@ fun main(arguments: Array<String>) {
 
     for (age in leftAges.keys - rightAges.keys) println("only in ${left.name}: $age")
     for (age in rightAges.keys - leftAges.keys) println("only in ${right.name}: $age")
+    check(shared.isNotEmpty()) { "The two saves share no Age names, so there is nothing to compare" }
 
     var identical = 0
     var moved = 0
+    var unchecked = 0
     var chunksCompared = 0
     var unfinished = 0
 
@@ -54,6 +56,14 @@ fun main(arguments: Array<String>) {
             .filter { before.getValue(it).status == FULL && after.getValue(it).status == FULL }
         unfinished += before.keys.intersect(after.keys).size - finished.size
         chunksCompared += finished.size
+
+        // An Age neither save finished a chunk of has not been checked, and must not be counted as
+        // agreeing — a comparison of nothing is the one result this tool must never report as a pass.
+        if (finished.isEmpty()) {
+            println("  %-14s NOT CHECKED — no chunk is finished in both saves".format(age))
+            unchecked++
+            continue
+        }
 
         val differing = finished.filter { before[it]?.sections != after[it]?.sections }.sorted()
         if (differing.isEmpty()) {
@@ -76,6 +86,8 @@ fun main(arguments: Array<String>) {
     println()
     println("$chunksCompared finished chunks compared across ${shared.size} Ages: $identical unchanged, $moved changed.")
     println("($unfinished chunk(s) skipped as unfinished in one save or the other.)")
+    if (unchecked > 0) println("$unchecked Age(s) could not be checked at all.")
+    check(chunksCompared > 0) { "Not one finished chunk was compared — this checked nothing" }
     check(moved == 0) { "$moved Age(s) generate different terrain than before" }
 }
 

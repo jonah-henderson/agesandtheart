@@ -61,6 +61,10 @@ tasks.named("dokkaJavadoc", DokkaTask) {
     dependsOn(configurations.commonJava)
     dependsOn(configurations.commonKotlin)
     dokkaSourceSets.configureEach {
-        sourceRoots.from(configurations.commonJava.singleFile, configurations.commonKotlin.singleFile)
+        // Only the roots that are actually there. `common` has no Java sources, so `src/main/java` is an
+        // empty directory — which git cannot track, so it is absent from a fresh clone and Dokka refuses
+        // to walk it. Filtering here keeps "this directory must exist" from being an unwritten build
+        // requirement that only shows up after cloning.
+        sourceRoots.from([configurations.commonJava.singleFile, configurations.commonKotlin.singleFile].findAll { it.exists() })
     }
 }

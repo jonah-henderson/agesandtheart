@@ -59,18 +59,21 @@ import java.util.stream.Stream
  * Unlike [SpireChunkGenerator] (a bespoke Tier-B preset kept alongside), this participates in the
  * vanilla decoration pipeline: it reports honest surface heights ([getBaseHeight]/[getBaseColumn])
  * and primes the world-surface heightmaps during fill, so inherited `applyBiomeDecoration` places
- * features and structures on the terrain rather than in the sea. Surface rules and carvers are the
- * next wiring (see `notes/terrain-architecture.md`); for now fill lays a single solid block.
+ * features and structures on the terrain rather than in the sea.
+ *
+ * Fill lays one solid block everywhere the field claims; [buildSurface] then repaints that shape
+ * according to the Age's [Palette], and [applyCarvers] cuts caves and canyons back out of it. See
+ * `notes/terrain-architecture.md` for how the three fit together.
  */
 class FieldChunkGenerator(
-    private val biomeSource: BiomeSource,
+    private val biomes: BiomeSource,
     private val field: TerrainField,
     private val ambient: AmbientMedium,
     private val surfaceRule: SurfaceRules.RuleSource = Palette.PLAIN_STONE,
     private val carvers: Map<GenerationStep.Carving, HolderSet<ConfiguredWorldCarver<*>>> = emptyMap(),
     private val waterTable: WaterTable? = null,
     private val structureSets: HolderSet<StructureSet> = HolderSet.direct(emptyList()),
-) : ChunkGenerator(biomeSource) {
+) : ChunkGenerator(biomes) {
 
     override fun codec(): MapCodec<out ChunkGenerator> = CODEC
 
@@ -106,7 +109,7 @@ class FieldChunkGenerator(
      * are *ours*. Composition rather than inheritance: we stay a peer of the noise generator instead of
      * a subclass inheriting behaviour we never asked for.
      */
-    private val carvingStandIn = NoiseBasedChunkGenerator(biomeSource, Holder.direct(generationSettings))
+    private val carvingStandIn = NoiseBasedChunkGenerator(biomes, Holder.direct(generationSettings))
 
     override fun fillFromNoise(
         blender: Blender,
@@ -256,8 +259,10 @@ class FieldChunkGenerator(
         if (stepCarvers.isEmpty()) return
         val protoChunk = chunk as? ProtoChunk ?: return
 
-        val biomes = biomeManager.withDifferentSource { quartX, quartY, quartZ ->
-            biomeSource.getNoiseBiome(quartX, quartY, quartZ, randomState.sampler())
+        // A biome manager reading this Age's own source rather than the level's, which a carver asks
+        // per position to decide what it may cut through.
+        val carvingBiomes = biomeManager.withDifferentSource { quartX, quartY, quartZ ->
+            biomes.getNoiseBiome(quartX, quartY, quartZ, randomState.sampler())
         }
         val noiseChunk = noiseChunkFor(chunk, randomState, structureManager)
         val context = CarvingContext(
@@ -284,7 +289,7 @@ class FieldChunkGenerator(
                     if (carver.value().isStartChunk(random)) {
                         // Our own aquifer, not the NoiseChunk's: vanilla's reads noise from the
                         // RandomState's router, which is inert for a generator like ours.
-                        carver.value().carve(context, chunk, biomes::getBiome, random, aquifer, source, carvingMask)
+                        carver.value().carve(context, chunk, carvingBiomes::getBiome, random, aquifer, source, carvingMask)
                     }
                 }
             }
@@ -312,7 +317,7 @@ class FieldChunkGenerator(
         ChunkGeneratorStructureState.createForNormal(
             randomState,
             seed,
-            biomeSource,
+            biomes,
             structureSetLookup.restrictedTo(structureSets),
         )
 
@@ -329,7 +334,7 @@ class FieldChunkGenerator(
     companion object {
         val CODEC: MapCodec<FieldChunkGenerator> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
-                BiomeSource.CODEC.fieldOf("biome_source").forGetter { it.biomeSource },
+                BiomeSource.CODEC.fieldOf("biome_source").forGetter { it.biomes },
                 TerrainField.CODEC.fieldOf("field").forGetter { it.field },
                 AmbientMedium.CODEC.forGetter { it.ambient },
                 // Optional so field Ages serialised before palettes existed still load.

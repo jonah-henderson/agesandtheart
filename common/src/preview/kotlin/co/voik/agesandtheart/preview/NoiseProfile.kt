@@ -19,7 +19,7 @@ import net.minecraft.world.level.levelgen.synth.NormalNoise
  */
 fun main() {
     println("Fill fraction by threshold — ${SAMPLES / 1000}k samples per character, octaves $OCTAVES\n")
-    println("            " + THRESHOLDS.joinToString("") { "%7.2f".format(it) })
+    println("            ${THRESHOLDS.joinToString("") { "%7.2f".format(it) }}")
 
     for (character in NoiseCharacter.entries) {
         val noise = NormalNoise.create(XoroshiroRandomSource(PROFILE_SEED), FIRST_OCTAVE, *AMPLITUDES)

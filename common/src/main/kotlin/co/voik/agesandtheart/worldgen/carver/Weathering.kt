@@ -106,7 +106,7 @@ class Weathering(
 
     /** Whether the wind takes the block at this position. */
     fun erodes(worldX: Int, worldY: Int, worldZ: Int): Boolean {
-        if (worldY < fromY || worldY > toY) return false
+        if (worldY !in fromY..toY) return false
         val standing = profile(worldY) + if (isNeedle(worldX, worldZ)) needleBonus else 0.0
         return resistanceAt(worldX, worldY, worldZ) + standing <= bite
     }

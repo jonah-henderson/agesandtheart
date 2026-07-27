@@ -5,7 +5,6 @@ import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.Direction
 import net.minecraft.util.StringRepresentable
-import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import net.minecraft.world.level.levelgen.synth.NormalNoise
 import kotlin.math.abs
 import kotlin.math.ceil
@@ -311,7 +310,7 @@ data class Box(
         originDistance(maxOf(abs(minX), abs(maxX)), maxOf(abs(minZ), abs(maxZ)))
 
     override fun columnSpans(worldX: Int, worldZ: Int): Spans =
-        if (worldX < minX || worldX > maxX || worldZ < minZ || worldZ > maxZ) Spans.EMPTY else Spans.of(minY, maxY)
+        if (worldX !in minX..maxX || worldZ !in minZ..maxZ) Spans.EMPTY else Spans.of(minY, maxY)
 
     override fun resized(factor: Double, pivotY: Int) = Box(
         minX = scaled(minX, factor),
@@ -381,15 +380,10 @@ data class NoiseHeightmap(
     // One sample per column, whatever the world's height — that is what being a heightmap buys.
     override val samplesPerColumn = 1
 
-    // Vanilla forbids more amplitudes than the first octave leaves room for, and an empty list would
-    // leave the noise with nothing to sum. Both can arrive from a serialised tree, so settle them here.
-    private val weights = amplitudes.take(-firstOctave + 1).ifEmpty { listOf(1.0) }
-
     // Built once and only read afterwards (all its state is written in its own constructor), so it is
     // safe to share across the chunk workers sampling this field.
-    private val noise = NormalNoise.create(XoroshiroRandomSource(seed), firstOctave, *weights.toDoubleArray())
+    private val noise = fieldNoise(seed, firstOctave, amplitudes)
 
-    // A zero stretch would divide the sample coordinates to infinity.
     private val stretchX = scaleX.coerceAtLeast(SMALLEST_STRETCH)
     private val stretchZ = scaleZ.coerceAtLeast(SMALLEST_STRETCH)
 
@@ -408,8 +402,6 @@ data class NoiseHeightmap(
     )
 
     companion object {
-        private const val SMALLEST_STRETCH = 0.01
-
         val CODEC: MapCodec<NoiseHeightmap> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
                 Codec.LONG.fieldOf("seed").forGetter(NoiseHeightmap::seed),
@@ -503,12 +495,9 @@ data class Noise3D(
     // One per block through the band. The reason combinators bother to order their children.
     override val samplesPerColumn = (highY - lowY + 1).coerceAtLeast(0)
 
-    // Same settling as NoiseHeightmap: both can arrive from a serialised tree, so neither is trusted.
-    private val weights = amplitudes.take(-firstOctave + 1).ifEmpty { listOf(1.0) }
-
     // Written entirely in its own constructor and only read afterwards, so it is safe to share across
     // the chunk workers sampling this field.
-    private val noise = NormalNoise.create(XoroshiroRandomSource(seed), firstOctave, *weights.toDoubleArray())
+    private val noise = fieldNoise(seed, firstOctave, amplitudes)
 
     private val stretchX = scaleX.coerceAtLeast(SMALLEST_STRETCH)
     private val stretchY = scaleY.coerceAtLeast(SMALLEST_STRETCH)
@@ -544,8 +533,6 @@ data class Noise3D(
     )
 
     companion object {
-        private const val SMALLEST_STRETCH = 0.01
-
         // Enough for the usual few solid runs in a column; it grows if a column is unusually broken up.
         private const val EXPECTED_RUNS = 8
 

@@ -17,21 +17,28 @@ fun main() {
         val base = randomSpans(random)
         val cut = randomSpans(random)
 
-        verify("subtract", base, cut) { inBase, inCut -> inBase && !inCut }
-        verify("intersect", base, cut) { inBase, inCut -> inBase && inCut }
-        verify("union", base, cut) { inBase, inCut -> inBase || inCut }
+        verify("subtract", base, cut, Spans::subtract) { inBase, inCut -> inBase && !inCut }
+        verify("intersect", base, cut, Spans::intersect) { inBase, inCut -> inBase && inCut }
+        verify("union", base, cut, Spans::union) { inBase, inCut -> inBase || inCut }
         checked += 3
     }
 
     println("$checked operations agreed with the per-block reference over $CASES random span pairs.")
 }
 
-private fun verify(name: String, base: Spans, cut: Spans, expected: (Boolean, Boolean) -> Boolean) {
-    val actual = when (name) {
-        "subtract" -> base.subtract(cut)
-        "intersect" -> base.intersect(cut)
-        else -> base.union(cut)
-    }
+/**
+ * [operation] is passed in rather than looked up by [name], so the name is only ever a label. Choosing
+ * the operation from its name needed a catch-all branch, and a catch-all is how a future operation gets
+ * quietly checked against the wrong predicate — the exact failure a differential check exists to avoid.
+ */
+private fun verify(
+    name: String,
+    base: Spans,
+    cut: Spans,
+    operation: (Spans, Spans) -> Spans,
+    expected: (Boolean, Boolean) -> Boolean,
+) {
+    val actual = operation(base, cut)
     for (y in LOW - 2..HIGH + 2) {
         val want = expected(base.contains(y), cut.contains(y))
         check(actual.contains(y) == want) { "$name disagreed at y=$y\n  base ${base.ranges}\n  cut  ${cut.ranges}\n  got  ${actual.ranges}" }
