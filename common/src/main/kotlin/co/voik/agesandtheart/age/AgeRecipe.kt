@@ -92,8 +92,15 @@ data class AgeRecipe(
          * [co.voik.agesandtheart.age.slot.Share], so a strongly-claimed preset takes most of an Age and a
          * weakly-claimed one turns up as scarce islands. Territory boundaries move for every Age that holds
          * more than one preset in a slot, and blended seams shift very slightly even for those that do not.
+         *
+         * **8 — the Spire archipelago became two populations.** Its islands are laid out on a far harder
+         * jitter and are now free to merge, and a second layer of small noise-cut blobs hangs between the
+         * cloud decks. Every Age whose landform is `spire_islands` generates differently — the shape of an
+         * individual big island is untouched, but where they sit is not, and there is new terrain between
+         * them. Note the *seam bias* drawn the same day needs no bump: an Age's seam is frozen in its
+         * character when it is written, so existing recipes keep the seam they were made with.
          */
-        const val CURRENT_GENERATOR_VERSION = 7
+        const val CURRENT_GENERATOR_VERSION = 8
 
         val MAP_CODEC: MapCodec<AgeRecipe> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(

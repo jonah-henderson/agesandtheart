@@ -17,9 +17,12 @@ import kotlin.math.sqrt
 
 /**
  * How an [Instanced] field lays its template copies out across the world. The contract is one method:
- * for a queried column, visit every instance origin whose footprint could reach it. Strategies differ
- * only in *where* the origins fall — a Cartesian [Grid] or concentric [Radial] rings — but both share a
- * [Density] (see `notes/terrain-architecture.md`).
+ * for a queried column, visit every instance origin whose footprint could reach it.
+ *
+ * [Grid] and [Radial] differ only in *where* the origins fall — a Cartesian lattice or concentric rings —
+ * and both place about one per cell. [Scatter] is the one that also varies *how many*, which is what
+ * separates a layout that clumps from one that merely looks irregular. All three share a [Density]
+ * (see `notes/terrain-architecture.md`).
  *
  * Placement is data (serialised via [CODEC]); instance randomness comes from a [PositionalRandomFactory]
  * (Minecraft's own deterministic per-coordinate RNG — well-mixed and thread-safe) supplied by the
@@ -57,7 +60,8 @@ sealed interface Placement {
 
 enum class PlacementKind(private val makeCodec: () -> MapCodec<out Placement>) : StringRepresentable {
     GRID({ Grid.CODEC }),
-    RADIAL({ Radial.CODEC });
+    RADIAL({ Radial.CODEC }),
+    SCATTER({ Scatter.CODEC });
 
     fun codec(): MapCodec<out Placement> = makeCodec()
 
@@ -231,6 +235,101 @@ data class Radial(
                 Codec.DOUBLE.fieldOf("jitter").forGetter(Radial::jitter),
                 Density.CODEC.forGetter(Radial::density),
             ).apply(instance, ::Radial)
+        }
+    }
+}
+
+/**
+ * Free scatter: each [cellSize] square of the world draws its **own number** of instances, anywhere
+ * inside itself. The cell is bookkeeping — a way to ask a deterministic question about a bounded piece
+ * of an unbounded world — not a position anything is placed at.
+ *
+ * **What this has that a jittered [Grid] cannot.** A grid, however hard it is jittered, still places
+ * about one instance per cell: positions look random close up while the *count* stays even, so at a
+ * distance the layout keeps a rhythm — which is exactly what reads as "laid out" rather than "scattered".
+ * Here the count itself varies over [leastPerCell]`..`[mostPerCell], so with a least of zero you get
+ * genuinely empty stretches and knots of several together, and the rhythm goes. That is the whole reason
+ * this exists; if you do not want clumping, [Grid] is cheaper and says what it means.
+ *
+ * Instances may land on top of one another, and nothing here prevents it. For a [TerrainField] that is
+ * a union, so two overlapping copies read as one larger irregular mass — often the point.
+ *
+ * **It gives up the origin guarantee**, which [Grid] documents and some Ages lean on: nothing is
+ * promised at `(0, 0)`, so an Age placed only this way may have nothing to stand on where a player
+ * arrives. `Ages.findFooting` searches outward and will cope, but "you arrive on an island" stops being
+ * true by construction and becomes true by luck.
+ *
+ * Cost is the scanned cells times how many instances each holds, so [mostPerCell] is a multiplier on
+ * every column near anything — keep it small and let [cellSize] do the work.
+ */
+data class Scatter(
+    val cellSize: Double,
+    /** Zero is the interesting floor: it is what buys empty ground. */
+    val leastPerCell: Int,
+    val mostPerCell: Int,
+    /**
+     * Kept for what it does that counts cannot: [Density]'s *radial* form thins or packs the scatter with
+     * distance from the origin, which is a different question from how many a cell holds.
+     */
+    val density: Density,
+) : Placement {
+    override val kind = PlacementKind.SCATTER
+
+    // Coerced rather than required: this arrives from a codec, and a decoded field tree that throws in
+    // its constructor would fail an Age's *load* rather than report a bad number. Nonsense clamps to the
+    // nearest sane layout instead.
+    private val fewest = leastPerCell.coerceAtLeast(0)
+    private val most = mostPerCell.coerceAtLeast(fewest)
+
+    override fun forEachInstanceNear(
+        worldX: Int,
+        worldZ: Int,
+        templateReach: Double,
+        random: PositionalRandomFactory,
+        visit: (originX: Int, originZ: Int, instanceRandom: RandomSource) -> Unit,
+    ) {
+        // No jitter term, unlike [Grid]: a cell already contains every instance it draws, so a cell whose
+        // own bounds come within reach of the column is exactly the set that can touch it.
+        val minCellX = floor((worldX - templateReach) / cellSize).toInt()
+        val maxCellX = floor((worldX + templateReach) / cellSize).toInt()
+        val minCellZ = floor((worldZ - templateReach) / cellSize).toInt()
+        val maxCellZ = floor((worldZ + templateReach) / cellSize).toInt()
+
+        for (cellX in minCellX..maxCellX) {
+            for (cellZ in minCellZ..maxCellZ) {
+                // The count gets its own slot in the positional RNG's spare axis so it cannot correlate
+                // with any instance's own stream; the instances then take slots 0, 1, 2… of the same
+                // cell. Every draw below is a pure function of (cell, index), which is what keeps two
+                // chunk workers agreeing about a cell they both overlap.
+                val counting = random.at(cellX, COUNT_SLOT, cellZ)
+                val count = if (most == fewest) fewest else fewest + counting.nextInt(most - fewest + 1)
+                for (index in 0..<count) {
+                    val instanceRandom = random.at(cellX, index, cellZ)
+                    val originX = ((cellX + instanceRandom.nextDouble()) * cellSize).roundToInt()
+                    val originZ = ((cellZ + instanceRandom.nextDouble()) * cellSize).roundToInt()
+                    if (instanceRandom.nextDouble() < density.keepProbability(originX, originZ)) {
+                        visit(originX, originZ, instanceRandom)
+                    }
+                }
+            }
+        }
+    }
+
+    // Counts are unitless — a bigger world holds the same number per (bigger) cell, which is what keeps
+    // a resized scatter looking like the same scatter rather than a denser one.
+    override fun resized(factor: Double) = copy(cellSize = cellSize * factor, density = density.resized(factor))
+
+    companion object {
+        // Any value no instance index can take. Instances count up from zero, so below zero is free.
+        private const val COUNT_SLOT = -1
+
+        val CODEC: MapCodec<Scatter> = RecordCodecBuilder.mapCodec { instance ->
+            instance.group(
+                Codec.DOUBLE.fieldOf("cell_size").forGetter(Scatter::cellSize),
+                Codec.INT.fieldOf("least_per_cell").forGetter(Scatter::leastPerCell),
+                Codec.INT.fieldOf("most_per_cell").forGetter(Scatter::mostPerCell),
+                Density.CODEC.forGetter(Scatter::density),
+            ).apply(instance, ::Scatter)
         }
     }
 }

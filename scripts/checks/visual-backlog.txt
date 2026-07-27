@@ -1,0 +1,124 @@
+# The visual backlog: everything built headlessly that still wants a pair of eyes, in priority order.
+#
+# NOT a drive-server script. `scripts/drive-server.sh` writes to a throwaway world, so an Age it creates is
+# not one you can walk. Paste these into a **client** chat (`./gradlew :fabric:runClient`), then `/age tp
+# <name>` each in turn. Every line is deliberately seeded so what you see is what the next person sees.
+#
+# What each is FOR is written above it. If something looks wrong, the seed and the sentence together are the
+# whole repro — `/age list` prints both, and pasting a printed composition into `/age compose` rebuilds it.
+#
+# ── WALKED END TO END 2026-07-27. Every line below carries its verdict. Two things came out of it ──────
+#   CHANGED   `Seam` is drawn biased low, 40/35/18/7 instead of evenly (design 3.4). Wide seams compound
+#             across divided slots and an Age read as disintegrating rather than alien.
+#   CHANGED   `SpireField` island spacing 330 -> 250, jitter 60 -> 20, density 0.75 -> 0.85. No neighbour
+#             was visible from the starter island at all. Not re-walked in a client yet.
+#   OPEN      `solid` + `porous` (and `caves` + `flooded_caves`) divide into territories that are identical
+#             by construction. A real gap, written up in design 3.4, to settle during 3c.
+#   OPEN      the seam probably wants to be read off the instability index rather than the seed. Deferred
+#             to the instability pass, and it is now step 0 of Phase 6 in the implementation plan.
+#   NOT PROVEN  the `needle` line. The search was cut short, so 1%-findability is still unanswered.
+
+# ── 1. Impossible geometry, and the thing with no vanilla equivalent ─────────────────────────────
+# An ocean of water meeting an ocean of lava at ONE level with no barrier between them. Look along the seam.
+# CHECKED 2026-07-27 — passes. The fuzzy transition takes a moment to get used to; the small pools of mixed
+# water and lava along it read as weird, and that is the weirdness this is meant to enable. Do not tidy the
+# seam (see `irregularities-are-a-feature`) — if it is ever revisited, it is a deliberate change, not a fix.
+/age compose twoseas 7 landform=hills medium=sea,lava subsurface=solid dressing=bare_rock sky=plain
+/age tp twoseas
+
+# All four positional slots divided at once — the busiest world the model can describe. The question is
+# whether it reads as varied or as noise; if it is noise, that is what `Share` and the per-slot appetite for
+# company exist to tune (design 3.4).
+# CHECKED 2026-07-27 — passes as an *instability* reading: weird, fragmented, clearly wrong, which is the
+# alien-geometry-means-instability principle doing its job. One change came out of it: wide seams compound
+# across slots, so `Seam` is now drawn biased low (sheared 40 / keen 35 / soft 18 / blurred 7) instead of
+# evenly, and mid-to-high is the oddity rather than half of all Ages. Design 3.4 records the reasoning.
+# NOTE: that draw is part of the character, so this line re-composed today will NOT have the seam it had
+# when it was looked at — expect it cut or nearly cut now. `/age list` prints what it actually got.
+/age compose everything 7 landform=hills,pillars medium=sea,lava subsurface=caves,solid dressing=verdant,bare_rock sky=storm
+/age tp everything
+
+# ── 2. Weighted territories: the newest mechanic, and the least looked at ────────────────────────
+# Mostly hills with scattered pillars, then the same pair evenly. The pillars should be somewhere you have to
+# WALK to in the first and unmissable in the second. If "scattered" feels like "absent", the ladder in
+# `Share` is what to move — but read `rarity-is-an-incentive` in memory first, because low is deliberate.
+# CHECKED 2026-07-27 — working as intended. The ladder stands; nothing to move.
+/age compose mostlyhills 7 landform=hills,pillars:scattered medium=sea dressing=overworld sky=plain
+/age compose evenhills 7 landform=hills,pillars medium=sea dressing=overworld sky=plain
+/age tp mostlyhills
+
+# A rare territory at the floor: 1% of the world. This is the one that answers "is 1% findable?" — fly out.
+# CHECKED 2026-07-27 — INCONCLUSIVE, and deliberately left that way. The needle was not found, but the
+# search was cut short rather than exhausted, so this is not evidence the floor is too low. **Do not raise
+# `Share.LEAST_SHARE_OF_A_WORLD` on the strength of this line** — Jonah's explicit call. Re-run it when
+# there is time to actually hunt; a real failure looks like a long deliberate search coming up empty.
+/age compose needle 7 landform=hills,spire_islands:rare medium=sea dressing=overworld sky=plain
+/age tp needle
+
+# ── 3. Words: does a sentence make a world you would have written? ──────────────────────────────
+# The whole point of Phase 3b. Nothing here is about correctness — the checks cover that — it is about whether
+# the tag weights and readiness produce Ages that feel like their sentences.
+# CHECKED 2026-07-27 — the whole section, to satisfaction. The vocabulary works *for the options it
+# currently has to choose from*, which is the honest scope of the result: a handful of presets per slot.
+# Phase 3c multiplies that corpus, so this section is worth re-walking once derived words land — passing
+# here does not predict passing there.
+/age write lovely 7 beautiful
+/age write bleak 7 desolate foreboding
+/age write grand 7 wondrous colossal
+/age write gentle 7 homely verdant
+/age tp lovely
+
+# A contradiction the world absorbs: cherry-grove-abutting-desert, which is the tags-over-axes argument
+# (3.3) standing or falling in front of you. The exact word should hold most of the ground.
+/age write bothways 7 verdant lifeless
+/age tp bothways
+
+# Harmony: one vague word that liked several answers, charged nothing. Seeded to a case that actually divides.
+# CHECKED 2026-07-27 — divided the subsurface into `solid` + `porous`, and the porous half could not be
+# found. NOT bad luck, and not a generation bug: those two presets carve nothing at all, a subsurface
+# territory is consulted by carvers ONLY, and the water table — the sole difference between them — is
+# deliberately one-per-Age. The two territories are therefore identical by construction. Same goes for
+# `caves` + `flooded_caves`. Written up as OPEN in design 3.4; do not go hunting for it again until that
+# is settled, because there is nothing there to find.
+/age write manifold 12 beautiful
+/age tp manifold
+
+# ── 4. The retuned Spire, and Phase 2's novel compositions ──────────────────────────────────────
+# New cloud band at 145/265, sea at 63, islands varying in size and hang. The untested dial is crossing
+# FREQUENCY — whether you can get from island to island without flying.
+# CHECKED 2026-07-27 — FAILS, and worse than "hard to cross": no second island was VISIBLE from the
+# starter one. `SpireField.ISLAND_SPACING` is 330 blocks with `ISLAND_DENSITY` 0.75, so the nearest
+# neighbour averages well beyond a 12-chunk (192-block) view distance and a quarter of the cells are empty
+# on top of that. The preset's own doc wants "an archipelago sitting between the cloud decks" seen from a
+# distance — at 330 that picture cannot be seen at all at default settings.
+# RETUNED to 250 / 20 / 0.85. Not lower: `spacing - 2*jitter` must clear 210 blocks (two islands at
+# maxScale) or neighbours merge into one landmass, which is what the old 330/60 was quietly protecting.
+# Jitter paid for the tightening, so the lattice reads a little more regular. Verified with
+# `./gradlew :common:preview --args=spire`: separate islands, ~40 blocks of air between edges.
+# THEN REBUILT the same day, because at 250/20 it read as too regular. Now TWO POPULATIONS: the big
+# carved islands on a hard-jittered grid (250/105/0.85, and merging is now WANTED — a merged pair is
+# simply a bigger island), plus a dense shoal of small noise blobs hung anywhere between the cloud decks.
+# NOT WALKED IN A CLIENT AT ALL YET — everything above is the offline previewer. What to judge:
+#   1. does the archipelago still read as laid out? if so the fix is `Scatter` (built, unused here yet),
+#      because a grid randomises WHERE an island is but never HOW MANY, and that rhythm survives jitter;
+#   2. are the small islands too fragmented NOW? they were halved and broken up deliberately (envelope
+#      17x9, threshold 0.05 for a bit under half the envelope kept) because at 72% kept they still read
+#      as ellipsoids. `BLOB_THRESHOLD` is the dial; some now come out as two or three loose pieces;
+#   3. can you actually get between things now, and does the vertical spread read or just look chaotic.
+# TIMED 2026-07-27: 64 ms/chunk, measured in game. That is UNDER the ~90 ms vanilla reference, so the
+# second layer cost far less than feared — the Intersect short-circuit is doing its job and the noise band
+# is only walked inside envelopes. No perf work wanted here.
+/age create field spire7 7
+/age tp spire7
+
+# Spire islands over ordinary water instead of plasma, and a lava sea under pillars: two sentences nobody
+# hand-wrote before slots existed.
+# CHECKED 2026-07-27 — both good, signed off.
+/age compose spireocean 7 landform=spire_islands medium=sea subsurface=weathered dressing=bare_rock sky=storm
+/age compose lavapillar 7 landform=pillars medium=lava subsurface=solid dressing=verdant sky=plain
+/age tp spireocean
+
+# ── 5. Free while you are in there ─────────────────────────────────────────────── CHECKED 2026-07-27 ──
+# Every Age above with its sentence, composition and instability index on one line each. Anything printed
+# here pastes straight back into `/age compose`.
+/age list
