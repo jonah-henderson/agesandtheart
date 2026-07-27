@@ -1,5 +1,5 @@
 {
-  "void": {
+  "minecraft:air": {
     "readiness": 0.6,
     "tags": {
       "empty": 1.0,
@@ -8,7 +8,7 @@
       "solid": 0.2
     }
   },
-  "sea": {
+  "minecraft:water": {
     "tags": {
       "watery": 1.0,
       "ordinary": 0.7,
@@ -16,7 +16,7 @@
       "lovely": 0.3
     }
   },
-  "lava": {
+  "minecraft:lava": {
     "readiness": 0.2,
     "tags": {
       "molten": 1.0,

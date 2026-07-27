@@ -4,7 +4,9 @@ import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.Flaw
 import co.voik.agesandtheart.age.Instability
 import co.voik.agesandtheart.age.Register
+import co.voik.agesandtheart.age.slot.Dressing
 import co.voik.agesandtheart.age.slot.Landform
+import co.voik.agesandtheart.age.slot.Parameter
 import co.voik.agesandtheart.age.slot.Share
 import co.voik.agesandtheart.age.slot.Slot
 import co.voik.agesandtheart.age.slot.SlotPreset
@@ -77,6 +79,11 @@ object Resolver {
     // sake. High enough that a word brings in what it means rather than everything it tolerates.
     private const val COMPANY_SHARE_OF_BEST = 0.75
 
+    // What being able to honour everything the sentence set is worth in a draw. Comfortably larger than
+    // BASE_WEIGHT, so a capable preset wins the ordinary case, and small enough that a word which
+    // genuinely narrows still decides.
+    private const val FULLY_CAPABLE_BONUS = 0.9
+
     // Arbitrary large odds, only ever needed to decorrelate one draw from another.
     private const val SLOT_STRIDE = 0x1F3B_5D79L
     private const val TERRITORY_STRIDE = 0x4C9E_1A2BL
@@ -99,7 +106,7 @@ object Resolver {
         flaws += tensions(vocabulary, sentence, filled.mapValues { (_, filling) -> filling.map { it.preset } })
 
         return Resolution(
-            composition = compose(filled),
+            composition = steer(vocabulary, compose(filled), sentence, draw, flaws),
             instability = Instability(flaws.toList()),
             cost = sentence.sumOf { word -> word.tier.cost * slotsSpokenTo(vocabulary, word).size },
             words = sentence,
@@ -122,9 +129,10 @@ object Resolver {
         flaws: MutableList<Flaw>,
     ): List<Filling> {
         val speaking = sentence.filter { slot in slotsSpokenTo(vocabulary, it) }
-        val tilt = speaking.filter { !it.tier.narrows }
         // Most precise first, and where precision ties the seed decides — never the writer's word order.
-        val narrowing = speaking.filter { it.tier.narrows }
+        // A word that only sets a parameter narrows nothing however precise it is: it has no opinion about
+        // *which* preset fills the slot, only about how that preset is made.
+        val narrowing = speaking.filter { it.tier.narrows && it.constrainsPresets }
             .sortedWith(compareByDescending<Word> { it.tier }.thenBy { tieBreak(draw, slot, it) })
 
         val territories = mutableListOf<Territory>()
@@ -154,7 +162,9 @@ object Resolver {
         for ((index, territory) in kept.withIndex()) {
             chosen += pick(vocabulary, territory.candidates, speaking, draw, slot, seat = index)
         }
-        if (chosen.isEmpty()) chosen += pick(vocabulary, slot.presets, speaking, draw, slot, seat = 0)
+        if (chosen.isEmpty()) {
+            chosen += pick(vocabulary, vocabulary.candidatesFor(slot), speaking, draw, slot, seat = 0)
+        }
 
         chosen += company(vocabulary, slot, kept, speaking, chosen, room, draw)
         return sharedOut(vocabulary, slot, chosen, speaking)
@@ -220,11 +230,14 @@ object Resolver {
         draw: Long,
     ): List<SlotPreset> {
         if (!slot.positional || seated.size >= room) return emptyList()
-        if (speaking.any { it.tier == Tier.EXACT }) return emptyList()
+        // An exact word about *the preset* forbids company. One that merely sets a parameter does not: it
+        // expressed no view on how many kinds of place the slot holds, and treating it as though it had
+        // would make naming a material quietly suppress harmony everywhere.
+        if (speaking.any { it.tier == Tier.EXACT && it.constrainsPresets }) return emptyList()
 
         // Whatever the narrowing words left, or the whole slot where none spoke: company can only ever be
         // something the sentence would have accepted in the first place.
-        val eligible = territories.flatMap { it.candidates }.ifEmpty { slot.presets }
+        val eligible = territories.flatMap { it.candidates }.ifEmpty { vocabulary.candidatesFor(slot) }
         val bar = COMPANY_SHARE_OF_BEST * seated.maxOf { strengthOf(vocabulary, it, speaking) }
         val welcome = eligible.filter { it !in seated && strengthOf(vocabulary, it, speaking) >= bar }
         if (welcome.isEmpty()) return emptyList()
@@ -281,7 +294,8 @@ object Resolver {
      */
     private fun claimOn(vocabulary: Vocabulary, preset: SlotPreset, speaking: List<Word>): Double {
         val tags = vocabulary.tagsOf(preset)
-        val named = speaking.filter { it.tier.narrows }.maxOfOrNull { it.pull(tags) * it.tier.weight } ?: 0.0
+        val named = speaking.filter { it.tier.narrows }
+            .maxOfOrNull { it.pullOn(preset, tags) * it.tier.weight } ?: 0.0
         val liked = speaking.filter { !it.tier.narrows }.sumOf { it.affinityFor(tags) }
         return (named + liked).coerceAtLeast(0.0)
     }
@@ -298,9 +312,32 @@ object Resolver {
      */
     private fun strengthOf(vocabulary: Vocabulary, preset: SlotPreset, speaking: List<Word>): Double {
         val tags = vocabulary.tagsOf(preset)
-        val named = speaking.filter { it.tier.narrows }.maxOfOrNull { it.pull(tags) * it.tier.weight } ?: 0.0
+        val named = speaking.filter { it.tier.narrows }
+            .maxOfOrNull { it.pullOn(preset, tags) * it.tier.weight } ?: 0.0
         val liked = speaking.filter { !it.tier.narrows }.sumOf { it.affinityFor(tags) }
-        return (BASE_WEIGHT * vocabulary.readinessOf(preset) + named + liked).coerceAtLeast(FAINTEST_CHANCE)
+        return (BASE_WEIGHT * vocabulary.readinessOf(preset) + named + liked + capabilityBonus(preset, speaking))
+            .coerceAtLeast(FAINTEST_CHANCE)
+    }
+
+    /**
+     * How much of what the sentence *set* this preset could actually honour.
+     *
+     * Without this, "a cherry grove Age" draws a dressing at random and lands on `bare_rock` two times in
+     * three — a dressing with no biome table at all — so the word sets a parameter that nothing reads and
+     * the writer gets grey rock. The word was neither dropped nor charged; it simply evaporated, which is
+     * §3.3's silent drop by the newest route.
+     *
+     * A *tilt* rather than a filter, deliberately. Parameter-setting words are not supposed to choose
+     * presets — that is the whole of [Word.constrainsPresets] — so this leans the draw toward a preset that
+     * can honour them without ever forbidding one that cannot. A writer who says "cherry grove floating"
+     * still gets floating islands, and the fact that they have no biomes is then a real contradiction for
+     * [wordsNothingHonours] to charge rather than an arbitrary silence.
+     */
+    private fun capabilityBonus(preset: SlotPreset, speaking: List<Word>): Double {
+        val parametersAsked = speaking.flatMap { it.sets.keys }.distinct()
+        if (parametersAsked.isEmpty()) return 0.0
+        val honoured = parametersAsked.count(preset::honoursParameterNamed)
+        return FULLY_CAPABLE_BONUS * honoured / parametersAsked.size
     }
 
     /**
@@ -329,7 +366,9 @@ object Resolver {
         if (word.slots.isNotEmpty()) return word.slots.sortedBy { it.ordinal }
         // An evocative word declares no slot, meaning anywhere it can find a foothold — spanning slots is
         // what makes a word evocative in the first place.
-        return Slot.entries.filter { slot -> slot.presets.any { word.pull(vocabulary.tagsOf(it)) > 0.0 } }
+        return Slot.entries.filter { slot ->
+            vocabulary.candidatesFor(slot).any { word.pull(vocabulary.tagsOf(it)) > 0.0 }
+        }
     }
 
     /**
@@ -419,6 +458,86 @@ object Resolver {
             composition = composition.withPresets(slot, filling.map { it.preset.key }, filling.map { it.share })
         }
         return composition
+    }
+
+    /**
+     * The composition with every parameter the sentence chose applied — materials, and any later knob a
+     * word learns to turn (design §3.2).
+     *
+     * Runs after the presets are settled rather than alongside them, and that ordering is the whole design:
+     * a parameter steers whatever filled the slot, so it cannot be resolved until something has. It also
+     * means a material never influences *which* preset was drawn, which is right — "a world of blackstone"
+     * says what the rock is, not whether the world has hills.
+     *
+     * **Two words setting one parameter is a contradiction with nowhere to go.** A parameter holds one
+     * value, and unlike a positional slot it cannot divide — options are per slot, not per territory — so
+     * this is the singular case §3.4 describes, and it charges the same way a contested sky does. The
+     * seed picks the survivor, never the writer's word order (§3.5).
+     */
+    private fun steer(
+        vocabulary: Vocabulary,
+        composition: AgeComposition,
+        sentence: List<Word>,
+        draw: Long,
+        flaws: MutableList<Flaw>,
+    ): AgeComposition {
+        var steered = composition
+        for (slot in Slot.entries) {
+            val setting = sentence.filter { it.sets.isNotEmpty() && slot in slotsSpokenTo(vocabulary, it) }
+            if (setting.isEmpty()) continue
+            for (parameter in setting.flatMap { it.sets.keys }.distinct()) {
+                val contenders = setting.filter { parameter in it.sets }
+                    .sortedWith(compareByDescending<Word> { it.tier }.thenBy { tieBreak(draw, slot, it) })
+                steered = if (isPopulative(steered, slot, parameter)) {
+                    // "There are cherry groves" and "there are deserts" do not conflict, so nothing is
+                    // charged and nothing is dropped — every word's value simply joins the set (§3.2).
+                    // Distinct, because saying a thing twice is emphasis the weighting has no way to register.
+                    steered.withOptions(slot, parameter, contenders.map { it.sets.getValue(parameter) }.distinct())
+                } else {
+                    val winner = contenders.first()
+                    for (loser in contenders.drop(1)) {
+                        flaws += flaw(Register.DISPLACED, listOf(loser, winner), slot, emptyList(), loser.tier)
+                    }
+                    steered.withOption(slot, parameter, winner.sets.getValue(parameter))
+                }
+            }
+            flaws += wordsNothingHonours(steered, slot, setting)
+        }
+        return steered
+    }
+
+    /**
+     * Whether [parameter] accumulates rather than contends — asked of the presets actually seated in
+     * [slot], since the parameter is theirs to declare (§3.2).
+     *
+     * Unknown to every seated preset counts as predicative, which is the safe reading: an option nobody
+     * understands is kept and reported (see [co.voik.agesandtheart.age.slot.Options]), and quietly
+     * accumulating values for a knob that does not exist would make a typo look deliberate.
+     */
+    private fun isPopulative(composition: AgeComposition, slot: Slot, parameter: String): Boolean =
+        composition.presets.filter { it.slot == slot }
+            .flatMap { it.parameters }
+            .any { it.name == parameter && it.kind == Parameter.Kind.POPULATIVE }
+
+    /**
+     * A material named at something that cannot wear it — reported rather than ignored (§3.3).
+     *
+     * Vanilla's overworld palette is a rule tree we do not own and cannot substitute a stone into, so
+     * `dressing=overworld` painted in blackstone is a sentence the world cannot honour. Silence there
+     * would be the failure the whole vocabulary check exists to prevent, so it charges as an unbacked word:
+     * the writer said something true of the language that this Age had no way to be.
+     */
+    private fun wordsNothingHonours(
+        composition: AgeComposition,
+        slot: Slot,
+        setting: List<Word>,
+    ): List<Flaw> {
+        val seated = composition.presets.filter { it.slot == slot }
+        // Charged only where *every* seated preset ignores the word. One territory that honours it is
+        // enough: the Age does what was asked somewhere, which is what a divided slot is for.
+        fun anythingSeatedHonours(parameter: String) = seated.any { it.honoursParameterNamed(parameter) }
+        val wentUnheeded = setting.filter { word -> word.sets.keys.none(::anythingSeatedHonours) }
+        return wentUnheeded.map { word -> flaw(Register.UNBACKED, listOf(word), slot, emptyList(), word.tier) }
     }
 
     /**

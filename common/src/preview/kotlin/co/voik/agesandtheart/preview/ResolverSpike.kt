@@ -255,7 +255,8 @@ private data class Resolution(
 
 private fun presetsOf(slot: Slot): List<SlotPreset> = when (slot) {
     Slot.LANDFORM -> Landform.entries
-    Slot.MEDIUM -> Medium.entries
+    // The three the spike was written against, now that the slot is open and has no enum to list.
+    Slot.MEDIUM -> listOf(Medium.VOID, Medium.SEA, Medium.LAVA)
     Slot.SUBSURFACE -> Subsurface.entries
     Slot.DRESSING -> Dressing.entries
     Slot.SKY -> Sky.entries

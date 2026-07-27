@@ -50,7 +50,7 @@
 # the Age. So the first bias (40/35/18/7) was treating fuzziness as a flavour to sample fairly when it is
 # an exception: `Seam` is now sheared 85 / keen 9 / soft 4 / blurred 2. Instability will bias it upward
 # later, which is the whole reason a rare default is the right shape (design 5).
-/age compose mostlyhills 7 landform=hills,pillars:scattered medium=sea dressing=overworld sky=plain
+/age compose mostlyhills 7 landform=hills,pillars@scattered medium=sea dressing=overworld sky=plain
 /age compose evenhills 7 landform=hills,pillars medium=sea dressing=overworld sky=plain
 /age tp mostlyhills
 
@@ -59,7 +59,7 @@
 # search was cut short rather than exhausted, so this is not evidence the floor is too low. **Do not raise
 # `Share.LEAST_SHARE_OF_A_WORLD` on the strength of this line** — Jonah's explicit call. Re-run it when
 # there is time to actually hunt; a real failure looks like a long deliberate search coming up empty.
-/age compose needle 7 landform=hills,spire_islands:rare medium=sea dressing=overworld sky=plain
+/age compose needle 7 landform=hills,spire_islands@rare medium=sea dressing=overworld sky=plain
 /age tp needle
 
 # ── 3. Words: does a sentence make a world you would have written? ──────────────────────────────

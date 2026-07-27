@@ -99,8 +99,14 @@ data class AgeRecipe(
          * individual big island is untouched, but where they sit is not, and there is new terrain between
          * them. Note the *seam bias* drawn the same day needs no bump: an Age's seam is frozen in its
          * character when it is written, so existing recipes keep the seam they were made with.
+         *
+         * **9 — the medium slot opened.** A medium is now a block id rather than one of three named
+         * presets, so `medium=sea` is written `medium=minecraft:water` (the old spellings still read —
+         * see `Medium.FORMER_KEYS`). No Age changes shape from the rename alone, but the candidate pool
+         * for the slot is now read from `preset_tags/medium.json` in sorted key order rather than from an
+         * enum's declaration order, so an unconstrained medium can draw differently at the same seed.
          */
-        const val CURRENT_GENERATOR_VERSION = 8
+        const val CURRENT_GENERATOR_VERSION = 9
 
         val MAP_CODEC: MapCodec<AgeRecipe> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -214,7 +220,7 @@ data class AgeRecipe(
                     dressings = listOf(Dressing.OVERWORLD),
                     options = SlotOptions().with(
                         Slot.DRESSING,
-                        Options(mapOf(Dressing.SETTLEMENT.name to "vanilla")),
+                        Options(mapOf(Dressing.SETTLEMENT.name to listOf("vanilla"))),
                     ),
                 )
                 // Its caves are its shape, so nothing is carved — but the rock still runs wet and dry.
@@ -232,7 +238,7 @@ data class AgeRecipe(
             landforms = listOf(Landform.PYRAMIDS),
             options = SlotOptions().with(
                 Slot.LANDFORM,
-                Options(mapOf(Landform.ARRANGEMENT.name to arrangement)),
+                Options(mapOf(Landform.ARRANGEMENT.name to listOf(arrangement))),
             ),
         )
     }

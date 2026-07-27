@@ -50,16 +50,45 @@ class AgeBiomeSource(
     private val climateSettings: Holder<NoiseGeneratorSettings>,
     private val seed: Long,
     private val depth: ClimateDepth,
+    /**
+     * What this Age is *like* — the vague half of biome authoring, applied to the climate before the table
+     * is asked (design §3.2). Idle for an Age whose author said nothing about it.
+     */
+    private val bias: ClimateBias = ClimateBias.NONE,
+    /**
+     * The biomes this Age was told to grow, or not to — the exact half, applied to the table itself.
+     *
+     * Both halves are wanted and they can disagree: a hot dry world that excludes deserts is a sentence
+     * somebody will write. That is a contradiction for the instability index to price (§5), not something
+     * for this class to arbitrate, so both are applied as written.
+     */
+    private val preferences: List<BiomePreference> = emptyList(),
     private val noiseParameters: HolderGetter<NormalNoise.NoiseParameters>,
+    private val biomeLookup: HolderGetter<Biome>,
 ) : BiomeSource() {
 
     override fun codec(): MapCodec<out BiomeSource> = CODEC
 
     /** The same climate and table, with [depth] measured against [terrain] — see [BelowTerrain]. */
     fun groundedIn(terrain: TerrainField): AgeBiomeSource =
-        AgeBiomeSource(biomes, climateSettings, seed, BelowTerrain(terrain), noiseParameters)
+        AgeBiomeSource(
+            biomes, climateSettings, seed, BelowTerrain(terrain), bias, preferences, noiseParameters, biomeLookup,
+        )
 
-    private val table: Climate.ParameterList<Holder<Biome>> by lazy { biomes.value().parameters() }
+    /** The same source, told what to grow — see [BiomePreference] and [ClimateBias]. */
+    fun told(bias: ClimateBias, preferences: List<BiomePreference>): AgeBiomeSource =
+        AgeBiomeSource(biomes, climateSettings, seed, depth, bias, preferences, noiseParameters, biomeLookup)
+
+    /**
+     * Vanilla's climate-to-biome table with this Age's preferences folded in.
+     *
+     * Lazy for the same reason [climate] is, and it matters more here than it looks: applying preferences
+     * rebuilds an RTree over some seven and a half thousand entries, and construction happens during codec
+     * decode. A round trip must not pay for that.
+     */
+    private val table: Climate.ParameterList<Holder<Biome>> by lazy {
+        BiomePreference.applied(biomes.value().parameters(), preferences, biomeLookup, seed)
+    }
 
     /**
      * Vanilla's climate functions, seeded with this Age's seed. Built on first use rather than in the
@@ -83,14 +112,17 @@ class AgeBiomeSource(
         val blockY = QuartPos.toBlock(quartY)
         val blockZ = QuartPos.toBlock(quartZ)
         val point = DensityFunction.SinglePointContext(blockX, blockY, blockZ)
+        // Bent on the way past, which is the whole of "a hot, dry world": vanilla's own table then answers
+        // with deserts and badlands, and nothing had to name one. Depth is left alone — it is ours, not
+        // the climate's (see [ClimateDepth]).
         return table.findValue(
             Climate.target(
-                climate.temperature().compute(point).toFloat(),
-                climate.humidity().compute(point).toFloat(),
-                climate.continentalness().compute(point).toFloat(),
-                climate.erosion().compute(point).toFloat(),
+                bias.shift(ClimateAxis.TEMPERATURE, climate.temperature().compute(point).toFloat()),
+                bias.shift(ClimateAxis.HUMIDITY, climate.humidity().compute(point).toFloat()),
+                bias.shift(ClimateAxis.CONTINENTALNESS, climate.continentalness().compute(point).toFloat()),
+                bias.shift(ClimateAxis.EROSION, climate.erosion().compute(point).toFloat()),
                 depth.at(blockX, blockY, blockZ),
-                climate.weirdness().compute(point).toFloat(),
+                bias.shift(ClimateAxis.WEIRDNESS, climate.weirdness().compute(point).toFloat()),
             ),
         )
     }
@@ -104,8 +136,12 @@ class AgeBiomeSource(
                 NoiseGeneratorSettings.CODEC.fieldOf("climate").forGetter { it.climateSettings },
                 Codec.LONG.fieldOf("seed").forGetter { it.seed },
                 ClimateDepth.CODEC.optionalFieldOf("depth", AtSurface).forGetter { it.depth },
-                // Not a stored field: retrieved from the ops on decode, absent on encode.
+                ClimateBias.CODEC.optionalFieldOf("bias", ClimateBias.NONE).forGetter { it.bias },
+                BiomePreference.CODEC.listOf().optionalFieldOf("preferences", emptyList())
+                    .forGetter { it.preferences },
+                // Not stored fields: retrieved from the ops on decode, absent on encode.
                 RegistryOps.retrieveGetter<NormalNoise.NoiseParameters, AgeBiomeSource>(Registries.NOISE),
+                RegistryOps.retrieveGetter<Biome, AgeBiomeSource>(Registries.BIOME),
             ).apply(instance, ::AgeBiomeSource)
         }
 
@@ -129,7 +165,10 @@ class AgeBiomeSource(
                 registries.lookupOrThrow(Registries.NOISE_SETTINGS).getOrThrow(climate),
                 seed,
                 AtSurface,
+                ClimateBias.NONE,
+                emptyList(),
                 registries.lookupOrThrow(Registries.NOISE),
+                registries.lookupOrThrow(Registries.BIOME),
             )
         }
     }

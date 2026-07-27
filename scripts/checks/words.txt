@@ -41,7 +41,7 @@ age write pinned 7 colossal molten flooded lifeless stormy
 age gen pinned
 
 # Harmony: a vague word that likes several things may get several of them, sharing the ground unevenly, and
-# is charged nothing for it. Read the recipe for `:scattered` or `:rare` suffixes and for an empty flaw list.
+# is charged nothing for it. Read the recipe for `@scattered` or `@rare` suffixes and for an empty flaw list.
 age write manifold 12 beautiful
 age gen manifold
 

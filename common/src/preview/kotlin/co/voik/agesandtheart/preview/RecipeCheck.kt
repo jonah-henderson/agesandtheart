@@ -21,6 +21,7 @@ import co.voik.agesandtheart.age.slot.Subsurface
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.NbtOps
 import net.minecraft.nbt.StringTag
+import net.minecraft.resources.ResourceLocation
 
 /**
  * Checks the one thing about [AgeRecipe] that cannot be checked by looking at a world: that what we
@@ -37,6 +38,7 @@ fun main() {
     roundTripsEveryPreset()
     roundTripsEverySlotPreset()
     roundTripsOptionsItCannotUnderstand()
+    roundTripsAMingledParameter()
     spellsCompositionsTheWayItReadsThem()
     readsRecipesWrittenBeforeSlots()
     roundTripsASetValuedLandform()
@@ -88,9 +90,47 @@ private fun roundTripsOptionsItCannotUnderstand() {
         "Expected 'elevation' to be reported as unrecognised, got ${composition.unknownOptions}"
     }
     val decoded = roundTrips(AgeRecipe(AgeWorld.Composed(composition), seed = SAMPLE_SEED), "unknown options")
-    check(decoded.composition?.options?.of(Slot.LANDFORM)?.chosen?.get("elevation") == "towering") {
+    check(decoded.composition?.options?.of(Slot.LANDFORM)?.chosen?.get("elevation") == listOf("towering")) {
         "An unrecognised option was dropped in the round trip: $decoded"
     }
+}
+
+/**
+ * A parameter holding several values survives — and one holding a single value is spelled exactly as it
+ * always was.
+ *
+ * The second half is the load-bearing one. Several values on a parameter is what a grammatical
+ * *conjunction* will resolve to (design §3.2 — "blackstone and tuff" is two words joined, never one word
+ * meaning both), so `Options` had to start holding lists before the grammar exists. That change was made
+ * free by spelling a lone value as a bare string, which is what every recipe already on disk contains —
+ * so no generator version had to move. If that ever regresses, every Age ever written reads back wrong,
+ * and nothing else would notice.
+ */
+private fun roundTripsAMingledParameter() {
+    val one = AgeComposition(landforms = listOf(Landform.HILLS))
+        .withPreset(Slot.DRESSING, Dressing.BARE_ROCK.key)
+        .withOption(Slot.DRESSING, Dressing.STONE.name, "minecraft:blackstone")
+    val encoded = AgeRecipe.CODEC.encodeStart(NbtOps.INSTANCE, AgeRecipe(AgeWorld.Composed(one), SAMPLE_SEED))
+        .getOrThrow { problem -> IllegalStateException("a single material would not encode: $problem") }
+    check("[" !in encoded.toString()) {
+        "A lone option was written as a list, so every recipe on disk now reads differently: $encoded"
+    }
+    roundTrips(AgeRecipe(AgeWorld.Composed(one), SAMPLE_SEED), "one material")
+
+    val mingled = one.withOptions(
+        Slot.DRESSING,
+        Dressing.STONE.name,
+        listOf("minecraft:blackstone", "minecraft:tuff"),
+    )
+    val decoded = roundTrips(AgeRecipe(AgeWorld.Composed(mingled), SAMPLE_SEED), "two mingled materials")
+    check(decoded.composition?.options?.of(Slot.DRESSING)?.allOf(Dressing.STONE)?.size == 2) {
+        "A mingled parameter came back as ${decoded.composition?.options?.of(Slot.DRESSING)}"
+    }
+    val spelling = mingled.toString()
+    check("dressing.stone=minecraft:blackstone,minecraft:tuff" in spelling) {
+        "A mingled parameter spells itself wrong: '$spelling'"
+    }
+    check(AgeComposition.parse(spelling).getOrThrow() == mingled) { "'$spelling' does not read back as itself" }
 }
 
 /**
@@ -172,7 +212,8 @@ private fun roundTripsASetValuedLandform() {
     val spelling = composition.toString()
     check("landform=hills,pillars,caverns" in spelling) { "A set should print comma-joined, got '$spelling'" }
     check("dressing=verdant,bare_rock" in spelling) { "So should a dressing set, got '$spelling'" }
-    check("medium=sea,lava" in spelling) { "And a medium set, got '$spelling'" }
+    // Ids, because the medium slot is open (design §3.1) — the referent is the value, not a preset naming it.
+    check("medium=minecraft:water,minecraft:lava" in spelling) { "And a medium set, got '$spelling'" }
     check("subsurface=caves,solid" in spelling) { "And a subsurface set, got '$spelling'" }
     check(AgeComposition.parse(spelling).getOrThrow() == composition) {
         "'$spelling' does not read back as what wrote it"
@@ -266,7 +307,7 @@ private fun roundTripsAnUnevenDivision() {
     }
 
     val spelling = uneven.toString()
-    check("dressing=overworld,bare_rock:scattered,verdant:rare" in spelling) {
+    check("dressing=overworld,bare_rock@scattered,verdant@rare" in spelling) {
         "an uneven division spells itself wrong: '$spelling'"
     }
     check(AgeComposition.parse(spelling).getOrThrow() == uneven) { "'$spelling' does not read back as itself" }
@@ -274,7 +315,7 @@ private fun roundTripsAnUnevenDivision() {
     // An even division says nothing about shares at all, which is what keeps a hand-composed Age — and every
     // recipe written before shares existed — spelled exactly as it was.
     val even = AgeComposition(landforms = listOf(Landform.HILLS, Landform.PILLARS))
-    check(":" !in even.toString()) { "an even division should not mention shares: '$even'" }
+    check("@" !in even.toString()) { "an even division should not mention shares: '$even'" }
     check(even.sharesOf(Slot.LANDFORM) == listOf(Share.DOMINANT, Share.DOMINANT)) {
         "an unmentioned division should be even, not ${even.sharesOf(Slot.LANDFORM)}"
     }
@@ -351,9 +392,17 @@ private fun roundTrips(recipe: AgeRecipe, what: String): AgeRecipe {
     return decoded
 }
 
-/** Every preset of every slot, which is every word a composition can currently be written from. */
+/**
+ * Every preset a composition can currently be written from: every authored one, the three mediums the mod
+ * names, and one referent naming content this pack does not have.
+ *
+ * That last is the point of the list now that a slot can be open (design §3.1) — a recipe must be able to
+ * hold an id from a mod that is not installed and give it back unchanged, because a save moving between
+ * modpacks is ordinary and an Age that quietly lost its sea would be the worst kind of data loss.
+ */
 private fun everySlotPreset(): List<SlotPreset> =
-    Landform.entries + Medium.entries + Subsurface.entries + Dressing.entries + Sky.entries
+    Slot.entries.flatMap { it.authored } +
+        listOf(Medium.VOID, Medium.SEA, Medium.LAVA, Medium(ResourceLocation.parse("examplemod:creosote")))
 
 /** Every generator kind that has ever been written into a save. Append-only; never edit a line. */
 private val LEGACY_KINDS = listOf(

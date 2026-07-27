@@ -82,10 +82,10 @@ object AgeGeneration {
         val cover = character.mapFor(Slot.DRESSING, composition.sharesOf(Slot.DRESSING), seed)
         val below = character.mapFor(Slot.SUBSURFACE, composition.sharesOf(Slot.SUBSURFACE), seed)
         return FieldChunkGenerator(
-            RegionBiomeSource.of(composition.dressings.map { it.biomes(server, shape, seed) }, cover),
+            RegionBiomeSource.of(composition.dressings.map { it.biomes(server, shape, seed, dressingOptions) }, cover),
             shape,
             ambient,
-            RegionRule.of(composition.dressings.map { it.palette() }, cover),
+            RegionRule.of(composition.dressings.map { it.palette(dressingOptions) }, cover),
             composition.subsurfaces.map { it.carvers(server) },
             below,
             waterTableOf(composition, ambient, seed),

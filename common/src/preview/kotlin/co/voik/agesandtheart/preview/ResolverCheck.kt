@@ -11,7 +11,9 @@ import co.voik.agesandtheart.age.word.Resolver
 import co.voik.agesandtheart.age.word.Tier
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.Word
+import net.minecraft.SharedConstants
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.server.Bootstrap
 
 /**
  * Asks whether the resolver keeps the promises the design makes on its behalf.
@@ -21,10 +23,13 @@ import net.minecraft.resources.ResourceLocation
  * Phase 3b: *same words and seed give the same Age, "lush barren" yields both biome families with a
  * diagnosable reason, and a vague sentence varies across seeds.*
  *
- * Offline and registry-free, reading the shipped vocabulary through [shippedData] — so it exercises the
- * real corpus rather than a toy one, and a badly-judged tag weight shows up here rather than in a world.
+ * Offline, reading the shipped vocabulary through [shippedData] — so it exercises the real corpus rather
+ * than a toy one, and a badly-judged tag weight shows up here rather than in a world. The corpus now
+ * includes §8's words derived from the game's own registries, which is what the bootstrap is for.
  */
 fun main() {
+    SharedConstants.tryDetectVersion()
+    Bootstrap.bootStrap()
     val vocabulary = Vocabulary.load(shippedData())
     check(vocabulary.problems.isEmpty()) { "vocabulary problems: ${vocabulary.problems}" }
 
@@ -39,10 +44,12 @@ fun main() {
     precisionCostsMore(vocabulary)
     anUnaskedDrawPrefersTheOrdinary(vocabulary)
     aStrongClaimTakesMoreGround(vocabulary)
-    harmonyIsFreeAndTheLandformIsReluctant(vocabulary)
+    harmonyIsFreeAndTheDressingIsNowTheReluctantOne(vocabulary)
     anExactWordAdmitsNoCompany(vocabulary)
+    aDerivedWordNamesItsReferent(vocabulary)
+    aMaterialSteersWithoutChoosing(vocabulary)
 
-    println("Resolver: all thirteen properties hold over the shipped ${vocabulary.words.size}-word vocabulary.")
+    println("Resolver: all fifteen properties hold over the shipped ${vocabulary.words.size}-word vocabulary.")
 }
 
 /**
@@ -297,14 +304,24 @@ private fun aStrongClaimTakesMoreGround(vocabulary: Vocabulary) {
 }
 
 /**
- * A sentence that merely *likes* several things may get several of them, and is charged nothing for it.
+ * A sentence that merely *likes* several things may get several of them, is charged nothing for it, and
+ * **rarely gets a seam for its trouble**.
  *
- * The harmonious division: "beautiful" reaching a beach and a field of flowers is not incoherent, it is the
- * word doing its job, so no flaw is charged. And the landform is the reluctant slot, because two shapes in
- * one world is the hardest coexistence to look at — so over many seeds, dressings should double up
- * considerably more often than landforms do.
+ * Two halves. Harmony is free: "beautiful" reaching a beach and a field of flowers is not incoherent, it is
+ * the word doing its job, so no flaw is charged.
+ *
+ * The second half **inverted on 2026-07-27** and is the more interesting one. This used to assert that
+ * dressings double up *more* than landforms, on the reasoning that spreading several kinds of place across
+ * a map is what biomes do anyway. That reasoning was an argument for biomes doing it, borrowed to justify
+ * the dressing slot dividing — see design §3.4, "what regions are for". Now that variety belongs to biomes,
+ * **a dressing seam is reserved for two policies that cannot share a climate table**, so dressing should be
+ * the *rarest* slot to double up, not the commonest.
+ *
+ * Kept as a comparison rather than a hard count because the numbers are taste, and the ordering is the
+ * design claim: whatever the tuning, a second dressing must be rarer than a second landform, and a second
+ * landform is already meant to be a thing you remember.
  */
-private fun harmonyIsFreeAndTheLandformIsReluctant(vocabulary: Vocabulary) {
+private fun harmonyIsFreeAndTheDressingIsNowTheReluctantOne(vocabulary: Vocabulary) {
     var dressingsDoubled = 0
     var landformsDoubled = 0
     for (seed in 1L..HARMONY_SEEDS) {
@@ -317,10 +334,9 @@ private fun harmonyIsFreeAndTheLandformIsReluctant(vocabulary: Vocabulary) {
                 "${resolution.instability.flaws} — liking two things is not a contradiction"
         }
     }
-    check(dressingsDoubled > 0) { "no seed ever gave \"beautiful\" two dressings, so harmony never happens" }
-    check(landformsDoubled < dressingsDoubled) {
-        "landforms doubled up $landformsDoubled times against dressings' $dressingsDoubled, " +
-            "but two shapes in one world should be the rarer thing"
+    check(dressingsDoubled < landformsDoubled) {
+        "dressings doubled up $dressingsDoubled times against landforms' $landformsDoubled, but a dressing " +
+            "seam is now the rarest thing in an Age — variety belongs to biomes (design §3.4)"
     }
     println(
         "  \"beautiful\" over $HARMONY_SEEDS seeds: two dressings $dressingsDoubled times, " +
@@ -340,6 +356,88 @@ private fun anExactWordAdmitsNoCompany(vocabulary: Vocabulary) {
         check(composition.dressings == listOf(Dressing.BARE_ROCK)) {
             "an exact dressing came out as ${composition.dressings} at seed $seed"
         }
+    }
+}
+
+/**
+ * A word derived from the registry gives you exactly the thing it names — §8's whole promise, end to end.
+ *
+ * Three properties in one, because they only mean anything together. The word **exists** at all, which is
+ * derivation running. Naming it **gets it**, at every seed, which is what "precision can reach anything"
+ * cashes out as. And naming it **beside a vaguer word takes the world**, which is the part that needed
+ * [Word.pullOn]: a derived word carries no tags, so scored on tag weights alone it would have claimed
+ * nothing and been given the *scarce* territory while `beautiful` took the ground it was named against.
+ *
+ * `lava` is the one to test on rather than `water`, since it is the derived word most likely to collide
+ * with the curated pool's opinions — `beautiful` pushes hard against `hostile`, which is exactly the
+ * tension a named word has to win.
+ */
+private fun aDerivedWordNamesItsReferent(vocabulary: Vocabulary) {
+    val lava = vocabulary.word("lava") ?: error("no derived word 'lava' — is derivation running?")
+    check(lava.tier == Tier.EXACT) { "a derived word must be exact, not ${lava.tier.key}" }
+    check(lava.names == Medium.LAVA.key) { "'lava' names ${lava.names}, not ${Medium.LAVA.key}" }
+    check(vocabulary.word("minecraft:lava") == lava) { "a derived word must also answer to its full id" }
+
+    for (seed in 0L..<SEEDS_SAMPLED) {
+        val alone = resolve(vocabulary, "lava", seed).composition
+        check(alone.mediums == listOf(Medium.LAVA)) {
+            "'lava' gave ${alone.mediums} at seed $seed, and an exact word pins one value"
+        }
+        val contested = resolve(vocabulary, "beautiful lava", seed).composition
+        check(contested.mediums.first() == Medium.LAVA) {
+            "'beautiful lava' let ${contested.mediums.first()} take the widest share at seed $seed, " +
+                "so naming a thing outright is claiming it less hard than merely liking one"
+        }
+    }
+}
+
+/**
+ * A **material** steers the preset that was chosen without choosing it — design §3.2, and the three ways
+ * that could go quietly wrong.
+ *
+ * `basalt` sets `dressing.stone` and says nothing else. So: it must **not narrow** the dressing (it has no
+ * carriers, and the naive reading of an empty carrier set is "unbacked", which would report a perfectly
+ * good word as a content bug); it must **not suppress harmony** despite being exact, since it expressed no
+ * view on how many kinds of place the Age holds; and it must **not go silent** when the dressing it landed
+ * on cannot wear it, which is the `overworld` case.
+ *
+ * The last is the one worth a check rather than an argument: vanilla's overworld palette is a rule tree we
+ * do not own, so there is nothing to substitute a stone into. That has to charge rather than no-op.
+ */
+private fun aMaterialSteersWithoutChoosing(vocabulary: Vocabulary) {
+    val basalt = vocabulary.word("basalt") ?: error("no word 'basalt' — is the material hook wired?")
+    check(basalt.sets == mapOf(Dressing.STONE.name to "minecraft:blackstone")) {
+        "'basalt' sets ${basalt.sets}, which is not the material it is for"
+    }
+    check(!basalt.constrainsPresets) { "a word that only sets a parameter must not narrow presets" }
+
+    var sawADressingThatIgnoresMaterials = false
+    var sawADressingThatAppliesMaterials = false
+    for (seed in 0L..<SEEDS_SAMPLED) {
+        val resolution = resolve(vocabulary, "basalt", seed)
+        val composition = resolution.composition
+        check(composition.options.of(Slot.DRESSING).chosen[Dressing.STONE.name] == listOf("minecraft:blackstone")) {
+            "'basalt' did not set the stone at seed $seed: ${composition.options.of(Slot.DRESSING)}"
+        }
+        check(composition.unknownOptions.isEmpty()) {
+            "'basalt' set an option no preset understands at seed $seed: ${composition.unknownOptions}"
+        }
+        // Every dressing ignores it, and the word had nothing to show for itself: that must be charged.
+        if (composition.dressings.all { it.ignoresMaterial }) {
+            sawADressingThatIgnoresMaterials = true
+            check(resolution.instability.flaws.any { it.register == Register.UNBACKED }) {
+                "'basalt' went unhonoured on ${composition.dressings} at seed $seed and was charged nothing"
+            }
+        } else {
+            sawADressingThatAppliesMaterials = true
+            check(resolution.instability.isCoherent) {
+                "'basalt' was charged for landing somewhere that can wear it, at seed $seed"
+            }
+        }
+    }
+    check(sawADressingThatIgnoresMaterials && sawADressingThatAppliesMaterials) {
+        "over $SEEDS_SAMPLED seeds 'basalt' never met both a dressing that can wear a material and one " +
+            "that cannot, so this check proved only half of what it claims"
     }
 }
 

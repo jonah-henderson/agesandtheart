@@ -3,7 +3,9 @@ package co.voik.agesandtheart.preview
 import co.voik.agesandtheart.age.slot.Slot
 import co.voik.agesandtheart.age.word.Resolver
 import co.voik.agesandtheart.age.word.Vocabulary
+import net.minecraft.SharedConstants
 import net.minecraft.network.chat.Component
+import net.minecraft.server.Bootstrap
 import net.minecraft.server.packs.PackLocationInfo
 import net.minecraft.server.packs.PackType
 import net.minecraft.server.packs.PathPackResources
@@ -24,10 +26,17 @@ import kotlin.io.path.isDirectory
  * nothing, and the player simply got a world their sentence did not describe. Words are datapack data
  * now, so nothing but a check like this stands between a typo in a JSON file and that experience.
  *
- * Offline and registry-free: the corpus is plain data read through a resource manager over the module's
- * own `src/main/resources`, which is also a rehearsal of the loading path the game uses.
+ * Offline: the corpus is plain data read through a resource manager over the module's own
+ * `src/main/resources`, which is also a rehearsal of the loading path the game uses. It does now need the
+ * game's *built-in* registries, since §8's derived vocabulary is read from them — but those come from
+ * `Bootstrap`, not from a server, so this still runs in a second and still needs no world.
  */
 fun main() {
+    // Blocks and fluids are registered at class-init rather than loaded from a datapack, so a bootstrap is
+    // the whole of what deriving vocabulary needs. Biomes will not be so easy — they are datapack content,
+    // and reading them means a server. Version detection first, for the reason CodecCheck spells out.
+    SharedConstants.tryDetectVersion()
+    Bootstrap.bootStrap()
     val vocabulary = Vocabulary.load(shippedData())
 
     everyFileWasUnderstood(vocabulary)
@@ -36,10 +45,12 @@ fun main() {
     everySlotHasWords(vocabulary)
     everyPresetCanBeAskedFor(vocabulary)
     everyAntonymCouldFire(vocabulary)
+    vaguenessCannotReachDerivedContent(vocabulary)
 
     println(
         "Vocabulary: ${vocabulary.words.size} words over ${Slot.entries.size} slots, " +
-            "${vocabulary.carriedTags.size} tags carried by ${Slot.entries.sumOf { it.presets.size }} presets, " +
+            "${vocabulary.carriedTags.size} tags carried by " +
+            "${Slot.entries.sumOf { vocabulary.candidatesFor(it).size }} curated presets, " +
             "${vocabulary.antonyms.size} antonym pairs — all backed, all reachable.",
     )
 }
@@ -79,6 +90,25 @@ private fun everyWordIsBackedByTheWorld(vocabulary: Vocabulary) {
         // and having found purchase anywhere is what it promised.
         val declared = if (word.slots.isEmpty()) emptyList() else slots
         for (slot in declared) {
+            // "Backed" means something different for a word that *steers* rather than *chooses* (§3.2):
+            // it constrains no presets, so it has no carriers by construction and asking for one would
+            // condemn every material word. What it needs instead is a preset that offers the knob.
+            if (!word.constrainsPresets) {
+                for (parameter in word.sets.keys) {
+                    val offered = vocabulary.candidatesFor(slot)
+                        .flatMap { it.parameters }
+                        .filter { it.name == parameter }
+                    check(offered.isNotEmpty()) {
+                        "'${word.name}' sets ${slot.key}.$parameter, which no ${slot.key} offers"
+                    }
+                    for (option in word.sets.values) {
+                        check(offered.any { it.accepts(option) }) {
+                            "'${word.name}' sets ${slot.key}.$parameter to '$option', which it does not take"
+                        }
+                    }
+                }
+                continue
+            }
             val carriers = vocabulary.carriersOf(word, slot)
             check(carriers.isNotEmpty()) {
                 "'${word.name}' is ${word.tier.key} about ${slot.key}, but no ${slot.key} carries " +
@@ -104,6 +134,37 @@ private fun everyNarrowingWordSaysWhatItIsAbout(vocabulary: Vocabulary) {
     }
 }
 
+/**
+ * The promise of §8.2, asserted rather than trusted: **vagueness draws only from the curated pool.**
+ *
+ * It holds structurally — the curated pool is what `preset_tags` names, and a derived word arrives with its
+ * carrier in hand rather than searching — so this check should never fire. That is exactly why it is worth
+ * having: a structural guarantee is one refactor away from becoming a convention, and the failure it would
+ * become is quiet. "A beautiful world" that draws a sea of somebody's radioactive sludge is the promise
+ * broken, and nobody would think to look here for the reason.
+ *
+ * The other half of the promise, that precision *can* reach anything, is [everyWordIsBackedByTheWorld]'s
+ * carrier assertion applied to derived words: each has a carrier because it names one.
+ */
+private fun vaguenessCannotReachDerivedContent(vocabulary: Vocabulary) {
+    val curated = Slot.entries.flatMap { slot -> vocabulary.candidatesFor(slot).map { it.key } }.toSet()
+    val derived = vocabulary.words.filter { it.names != null }
+    check(derived.isNotEmpty()) {
+        "No derived words at all — the pack has fluids, so this means derivation is not running"
+    }
+    for (word in derived) {
+        for (slot in word.slots) {
+            val reachable = vocabulary.words.any { vague ->
+                !vague.tier.narrows && word.names in vocabulary.carriersOf(vague, slot).map { it.key }
+            }
+            check(!reachable || word.names in curated) {
+                "'${word.name}' is derived content a vague word can reach in ${slot.key}, and it was never " +
+                    "curated — which is §8.2's promise broken, and invisible from the outside"
+            }
+        }
+    }
+}
+
 /** Every slot has at least one word about it, or part of the world is unwritable. */
 private fun everySlotHasWords(vocabulary: Vocabulary) {
     for (slot in Slot.entries) {
@@ -121,7 +182,9 @@ private fun everySlotHasWords(vocabulary: Vocabulary) {
  */
 private fun everyPresetCanBeAskedFor(vocabulary: Vocabulary) {
     for (slot in Slot.entries) {
-        for (preset in slot.presets) {
+        // The curated pool, not the registry: a derived word reaches every referent by construction, so
+        // the only presets that can go unreachable are the ones somebody chose to curate (design §8.2).
+        for (preset in vocabulary.candidatesFor(slot)) {
             val reachable = vocabulary.words.any { word ->
                 slot in Resolver.slotsSpokenTo(vocabulary, word) && word.tier.narrows &&
                     preset in vocabulary.carriersOf(word, slot)

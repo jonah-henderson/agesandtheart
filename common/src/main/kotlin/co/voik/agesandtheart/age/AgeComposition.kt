@@ -11,6 +11,7 @@ import co.voik.agesandtheart.age.slot.SlotPreset
 import co.voik.agesandtheart.age.slot.Subsurface
 import com.mojang.datafixers.util.Either
 import com.mojang.serialization.Codec
+import com.mojang.serialization.DataResult
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.util.StringRepresentable
@@ -105,21 +106,21 @@ data class AgeComposition(
      */
     fun withPresets(slot: Slot, keys: List<String>, shares: List<Share> = emptyList()): AgeComposition {
         val filled = when (slot) {
-            Slot.LANDFORM -> copy(landforms = keys.map { named(slot, it, Landform.entries) })
-            Slot.DRESSING -> copy(dressings = keys.map { named(slot, it, Dressing.entries) })
-            Slot.MEDIUM -> copy(mediums = keys.map { named(slot, it, Medium.entries) })
-            Slot.SUBSURFACE -> copy(subsurfaces = keys.map { named(slot, it, Subsurface.entries) })
+            Slot.LANDFORM -> copy(landforms = keys.map { named<Landform>(slot, it) })
+            Slot.DRESSING -> copy(dressings = keys.map { named<Dressing>(slot, it) })
+            Slot.MEDIUM -> copy(mediums = keys.map { named<Medium>(slot, it) })
+            Slot.SUBSURFACE -> copy(subsurfaces = keys.map { named<Subsurface>(slot, it) })
             else -> withSingle(slot, keys.last())
         }
         return filled.copy(shares = filled.shares.with(slot, shares))
     }
 
     private fun withSingle(slot: Slot, key: String): AgeComposition = when (slot) {
-        Slot.LANDFORM -> copy(landforms = listOf(named(slot, key, Landform.entries)))
-        Slot.MEDIUM -> copy(mediums = listOf(named(slot, key, Medium.entries)))
-        Slot.SUBSURFACE -> copy(subsurfaces = listOf(named(slot, key, Subsurface.entries)))
-        Slot.DRESSING -> copy(dressings = listOf(named(slot, key, Dressing.entries)))
-        Slot.SKY -> copy(sky = named(slot, key, Sky.entries))
+        Slot.LANDFORM -> copy(landforms = listOf(named<Landform>(slot, key)))
+        Slot.MEDIUM -> copy(mediums = listOf(named<Medium>(slot, key)))
+        Slot.SUBSURFACE -> copy(subsurfaces = listOf(named<Subsurface>(slot, key)))
+        Slot.DRESSING -> copy(dressings = listOf(named<Dressing>(slot, key)))
+        Slot.SKY -> copy(sky = named<Sky>(slot, key))
     }
 
     /**
@@ -130,7 +131,14 @@ data class AgeComposition(
      * lose part of itself.
      */
     fun withOption(slot: Slot, parameter: String, option: String): AgeComposition =
-        copy(options = options.with(slot, Options(options.of(slot).chosen + (parameter to option))))
+        withOptions(slot, parameter, listOf(option))
+
+    /**
+     * The same, where a writer named several — which for a material means them **mingled** through one
+     * another rather than given a region each (design §3.2).
+     */
+    fun withOptions(slot: Slot, parameter: String, chosen: List<String>): AgeComposition =
+        copy(options = options.with(slot, Options(options.of(slot).chosen + (parameter to chosen))))
 
     /**
      * How a writer would have said it: `landform=hills landform.arrangement=grid medium=sea …`.
@@ -148,11 +156,13 @@ data class AgeComposition(
                 // A share is only spelled where it says something: an even division, and the largest share
                 // of an uneven one, are both left unsaid so that the common case reads as it always did.
                 val share = shares.of(slot).getOrNull(index)
-                if (share == null || share == Share.DOMINANT) preset.key else "${preset.key}:${share.key}"
+                if (share == null || share == Share.DOMINANT) preset.key else "${preset.key}$SHARE_MARK${share.key}"
             }
             listOf("${slot.key}=${written.joinToString(",")}") +
                 options.of(slot).chosen.entries.sortedBy { it.key }
-                    .map { (parameter, option) -> "${slot.key}.$parameter=$option" }
+                    // Comma-joined like a set-valued slot, and read back the same way — several values on
+                    // one parameter mingle (§3.2), where several presets on one slot divide.
+                    .map { (parameter, chosen) -> "${slot.key}.$parameter=${chosen.joinToString(",")}" }
         }.joinToString(" ")
 
     companion object {
@@ -180,17 +190,21 @@ data class AgeComposition(
                     ?: error("No slot called '${key.substringBefore('.')}'. Slots: ${Slot.entries.joinToString(" ") { it.key }}")
 
                 composition = if ('.' in key) {
-                    composition.withOption(slot, key.substringAfter('.'), value)
+                    composition.withOptions(
+                        slot,
+                        key.substringAfter('.'),
+                        value.split(',').filter(String::isNotBlank),
+                    )
                 } else {
                     namedALandform = namedALandform || slot == Slot.LANDFORM
-                    // Commas are how a set-valued slot is written: `landform=hills,pillars`. A colon after
-                    // a preset is how much ground it covers: `dressing=verdant,bare_rock:rare`.
+                    // Commas are how a set-valued slot is written: `landform=hills,pillars`. An `@` after
+                    // a preset is how much ground it covers: `dressing=verdant,bare_rock@rare`.
                     val filling = value.split(',').filter(String::isNotBlank)
                     composition.withPresets(
                         slot,
-                        filling.map { it.substringBefore(':') },
+                        filling.map { it.substringBefore(SHARE_MARK) },
                         filling.map { named ->
-                            val share = named.substringAfter(':', missingDelimiterValue = "")
+                            val share = named.substringAfter(SHARE_MARK, missingDelimiterValue = "")
                             if (share.isEmpty()) Share.DOMINANT else namedShare(share)
                         },
                     )
@@ -204,7 +218,7 @@ data class AgeComposition(
             instance.group(
                 setOrSingle(enumCodec<Landform>(), Landform.SHAPES)
                     .fieldOf("landform").forGetter(AgeComposition::landforms),
-                setOrSingle(enumCodec<Medium>(), Medium.VOID)
+                setOrSingle(presetCodec<Medium>(Slot.MEDIUM), Medium.VOID)
                     .optionalFieldOf("medium", listOf(Medium.VOID)).forGetter(AgeComposition::mediums),
                 setOrSingle(enumCodec<Subsurface>(), Subsurface.SOLID)
                     .optionalFieldOf("subsurface", listOf(Subsurface.SOLID))
@@ -257,19 +271,42 @@ data class SlotShares(private val bySlot: Map<Slot, List<Share>> = emptyMap()) {
     }
 }
 
+/**
+ * How much ground a preset covers, written after it: `dressing=verdant,bare_rock@rare`.
+ *
+ * It was a colon until the medium slot opened, and a colon is now the thing that tells a registry id from
+ * an authored key (`namesReferent`) — so `medium=minecraft:air` read as the preset `minecraft` covering an
+ * `air` share of the world. Caught by `:common:recipecheck`'s round trip, which is exactly the collision
+ * that check exists to find. Nothing persisted moves: shares travel as their own codec field, and this
+ * spelling is only ever what `/age list` prints and `/age compose` reads.
+ */
+private const val SHARE_MARK = '@'
+
 /** The share called [key], loud about a name nobody knows for the same reason [named] is. */
 private fun namedShare(key: String): Share = Share.entries.firstOrNull { it.key == key }
     ?: error("No share called '$key'. Try: ${Share.entries.joinToString(" ") { it.key }}")
 
 /**
- * The member of [family] called [key], or a failure naming every alternative.
+ * The preset [slot] calls [key], or a failure saying what it could have been.
  *
  * Loud rather than lenient, for the same reason [AgeComposition.Companion.parse] is: this only ever
- * runs behind a command, where a name nobody recognises is a typo rather than an utterance.
+ * runs behind a command, where a name nobody recognises is a typo rather than an utterance. An **open**
+ * slot has no list to offer instead, so it says what shape it wanted — every id is a legitimate answer
+ * there, including one naming content this pack does not have (design §3.1).
  */
-private fun <T : SlotPreset> named(slot: Slot, key: String, family: List<T>): T =
-    family.firstOrNull { it.key == key }
-        ?: error("No ${slot.key} called '$key'. Try: ${family.joinToString(" ") { it.key }}")
+private inline fun <reified T : SlotPreset> named(slot: Slot, key: String): T {
+    val preset = slot.presetFor(key)
+        ?: error(
+            if (slot.open) {
+                "'$key' is no ${slot.key}. An open slot takes a `namespace:path` id, like `minecraft:water`"
+            } else {
+                "No ${slot.key} called '$key'. Try: ${slot.authored.joinToString(" ") { it.key }}"
+            },
+        )
+    // Cannot happen unless a slot's `presetFor` and this call site disagree about the slot's own type,
+    // which the exhaustive `when` in `withSingle` is there to prevent.
+    return preset as? T ?: error("The ${slot.key} slot answered '$key' with a ${preset::class.simpleName}")
+}
 
 /**
  * A set-valued slot's codec: reads a list, and also a bare single value for recipes written before that
@@ -288,3 +325,24 @@ private fun <T> setOrSingle(single: Codec<T>, fallback: T): Codec<List<T>> =
 /** A codec over any of our slot-preset enums, which all serialise by their own [SlotPreset.key]. */
 private inline fun <reified E> enumCodec(): Codec<E> where E : Enum<E>, E : StringRepresentable =
     StringRepresentable.fromEnum { enumValues<E>() }
+
+/**
+ * A codec over one slot's presets, reading and writing the same key `/age compose` spells.
+ *
+ * What an *open* slot needs that [enumCodec] cannot give it: the set of legal values is not knowable in
+ * advance, so the key has to be handed to the slot to interpret rather than matched against a list. It is
+ * written for both kinds anyway, since going through [Slot.presetFor] is what stops a recipe, a
+ * `preset_tags` file and a command from ever disagreeing about how a preset is spelled.
+ *
+ * A key an open slot cannot read is a *malformed* recipe rather than missing content — an id naming a block
+ * this pack does not have parses perfectly well here and is complained about where it is used.
+ */
+private inline fun <reified T : SlotPreset> presetCodec(slot: Slot): Codec<T> = Codec.STRING.comapFlatMap(
+    { key ->
+        when (val preset = slot.presetFor(key)) {
+            is T -> DataResult.success(preset)
+            else -> DataResult.error { "'$key' is no ${slot.key}" }
+        }
+    },
+    SlotPreset::key,
+)

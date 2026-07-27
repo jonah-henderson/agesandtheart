@@ -96,9 +96,57 @@ data class Word(
      * independently rather than cancelling to mush.
      */
     val query: Map<String, Double>,
+    /**
+     * The one preset this word names **outright**, by its key — what makes a word *referential* rather
+     * than evaluative (design §8.1).
+     *
+     * Every derived word has one, because a derived word exists only by naming something real. An authored
+     * word may set it too, and that is the escape hatch §8 asks for: the handful of blocks worth a word of
+     * our own — fire, lava — get one without the query having to be tuned until it happens to land there.
+     *
+     * A word that names a preset **does not search** for its carriers, which is what keeps §8.2 structural:
+     * it arrives with its answer in hand, so the registry never has to be enumerated to find it, and a
+     * vague word can never reach it because a vague word has no name to arrive with.
+     *
+     * Kept as the key rather than a resolved [SlotPreset] so that a word stays plain data: resolving needs
+     * the slot, the slot is known at every use site, and an id naming content this pack lacks must survive
+     * being read rather than failing to load.
+     */
+    val names: String? = null,
+    /**
+     * Parameters this word chooses, by name — how a word reaches a **material** (§3.2) or any other knob.
+     *
+     * Words could previously only choose *presets*; every option that existed came from a command or from
+     * a hand-written recipe. That was a real gap rather than an omission: "a world of blackstone" names no
+     * dressing, it names the rock the dressing is painted on, and there was no way to say so.
+     *
+     * Applied to every slot the word speaks to, since a parameter name only means anything within a slot
+     * anyway ([co.voik.agesandtheart.age.SlotOptions] keeps them apart for exactly that reason).
+     *
+     * **One value per parameter — a word names one thing.** There is no word meaning "blackstone and tuff";
+     * there is `blackstone`, there is `tuff`, and what joins them is a *conjunction* in the grammar (§4.3,
+     * Phase 4). The set therefore arrives at [co.voik.agesandtheart.age.slot.Options], which does hold
+     * several, rather than being something a single word could ever carry.
+     */
+    val sets: Map<String, String> = emptyMap(),
 ) {
     /** What a writer says to use it. */
     val name: String get() = id.path
+
+    /** The preset this word names in [slot], if it names one that slot can hold. */
+    fun namedPreset(slot: Slot): SlotPreset? = names?.let(slot::presetFor)
+
+    /**
+     * Whether this word has anything to say about *which preset* fills a slot, as opposed to how that
+     * preset is steered.
+     *
+     * A word that only sets a parameter constrains no presets, and must not be treated as narrowing: with
+     * no query and no [names] its carrier set is empty, and an empty carrier set is how the resolver
+     * recognises a word the world cannot satisfy (§3.3). Reporting "a world of blackstone" as an unbacked
+     * word would be precisely the wrong complaint — the world can be that, it just is not a *choice of
+     * dressing*.
+     */
+    val constrainsPresets: Boolean get() = names != null || query.values.any { it > 0.0 }
 
     /** The tags this word wants, which are the ones that must have a carrier somewhere (§3.3). */
     val wanted: Set<String> get() = query.filterValues { it > 0.0 }.keys
@@ -125,6 +173,18 @@ data class Word(
         query.entries.sumOf { (tag, weight) -> weight * (tags[tag] ?: 0.0) }
 
     /**
+     * How strongly this word claims one *particular* preset — [pull], except that a word naming a preset
+     * claims it absolutely.
+     *
+     * Without this a derived word would be scored on its tags, and a derived word has none: "a sea of
+     * creosote oil beside a lava sea" would give creosote the *smaller* share, having claimed nothing,
+     * while the vaguer word took the world. Naming a thing is the strongest claim the language has, so it
+     * reads as one.
+     */
+    fun pullOn(preset: SlotPreset, tags: Map<String, Double>): Double =
+        if (names == preset.key) NAMED_OUTRIGHT else pull(tags)
+
+    /**
      * Whether this preset qualifies for this word at its own tier's strictness.
      *
      * The `> 0` is not redundant with the threshold: [Tier.EVOCATIVE]'s threshold is zero, and a preset
@@ -138,6 +198,9 @@ data class Word(
     override fun toString(): String = name
 
     companion object {
+        /** What naming a thing outright is worth, against a tag weight, which never exceeds one. */
+        private const val NAMED_OUTRIGHT = 1.0
+
         /**
          * A word as its file says it, the id coming from where the file *is* — the same convention every
          * vanilla datapack registry follows, and one less thing a content author can spell inconsistently.
@@ -146,8 +209,17 @@ data class Word(
             instance.group(
                 Tier.CODEC.fieldOf("tier").forGetter(Word::tier),
                 SLOT_SET_CODEC.optionalFieldOf("slots", emptySet()).forGetter(Word::slots),
-                Codec.unboundedMap(Codec.STRING, Codec.DOUBLE).fieldOf("query").forGetter(Word::query),
-            ).apply(instance) { tier, slots, query -> Word(id, tier, slots, query) }
+                // Optional, because a word that names a preset outright is asking for that one thing and
+                // has nothing to ask of tag space. Both together is legal and means "this, and it is also
+                // like these", which the antonym table can then talk about.
+                Codec.unboundedMap(Codec.STRING, Codec.DOUBLE).optionalFieldOf("query", emptyMap())
+                    .forGetter(Word::query),
+                Codec.STRING.optionalFieldOf("names").forGetter { Optional.ofNullable(it.names) },
+                Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("sets", emptyMap())
+                    .forGetter(Word::sets),
+            ).apply(instance) { tier, slots, query, names, sets ->
+                Word(id, tier, slots, query, names.orElse(null), sets)
+            }
         }
 
         private val SLOT_CODEC: Codec<Slot> = StringRepresentable.fromEnum(Slot::values)

@@ -5,6 +5,7 @@ import net.minecraft.resources.ResourceKey
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.levelgen.Noises
 import net.minecraft.world.level.levelgen.SurfaceRules
 import net.minecraft.world.level.levelgen.VerticalAnchor
 import net.minecraft.world.level.levelgen.placement.CaveSurface
@@ -130,13 +131,18 @@ object Palette {
         SurfaceRuleData.overworldLike(/* aboveGround = */ false, /* bedrockRoof = */ false, /* bedrockFloor = */ true)
 
     /** Grass over dirt over stone, deepslate fading in at depth; bare gravel wherever the sea covers it. */
-    val VERDANT: SurfaceRules.RuleSource = layers(
+    val VERDANT: SurfaceRules.RuleSource =
+        layers(soil(), deepslateFloor(), solid(Blocks.STONE.defaultBlockState()))
+
+    /** The same soil, over whatever rock the Age was said to be made of — see [madeOf]. */
+    fun verdantOver(stones: List<BlockState>): SurfaceRules.RuleSource = layers(soil(), mingled(stones))
+
+    /** Grass and dirt where it is dry, gravel where the sea covers it. */
+    private fun soil(): SurfaceRules.RuleSource = layers(
         where(atSurface(), aboveWater(), Blocks.GRASS_BLOCK.defaultBlockState()),
         where(withinDepth(SOIL_DEPTH), aboveWater(), Blocks.DIRT.defaultBlockState()),
         // Only reachable when the layers above failed their dryness test, i.e. under the sea.
         where(withinDepth(SOIL_DEPTH), Blocks.GRAVEL.defaultBlockState()),
-        deepslateFloor(),
-        solid(Blocks.STONE.defaultBlockState()),
     )
 
     /**
@@ -152,6 +158,57 @@ object Palette {
         deepslateFloor(),
         solid(Blocks.STONE.defaultBlockState()),
     )
+
+    /**
+     * Bare rock made of the named blocks, all the way down — a **material** (design §3.2) applied to the
+     * palette, and the first consumer of that hook.
+     *
+     * Deliberately *not* [BARE_ROCK] with its floor swapped: the andesite crust and the deepslate floor are
+     * both statements about what the rock is, and keeping them over a named stone would say "this world is
+     * blackstone" while showing three other rocks. A writer who named a substance meant it, so the whole
+     * column is that substance. The layering is what you get when you *do not* name one.
+     *
+     * **Several stones mingle rather than divide** (§3.2): they are mottled through one another at block
+     * scale, not given a region each. Division is what naming two *dressings* does, so reading a list as
+     * territories would give one piece of geography two spellings and leave mingling with none.
+     */
+    fun madeOf(stones: List<BlockState>): SurfaceRules.RuleSource = mingled(stones)
+
+    /**
+     * Several blocks mottled through one another, the last standing as the ground everything else is
+     * scattered over.
+     *
+     * Bands of one noise rather than a noise each, so the proportions are exact and no two materials can
+     * ever want the same block — nested `mottled` conditions would leave the second material's share
+     * depending on where the first happened to fall.
+     *
+     * Divided **evenly**, which is what an unqualified list should mean and matches the resolver's own rule
+     * that an even division is the honest outcome when nothing said otherwise. Weighting these by the share
+     * ladder wants the noise's distribution measured first, the way `ClaimTilt` measures the region noise —
+     * see design §3.2.
+     */
+    fun mingled(blocks: List<BlockState>): SurfaceRules.RuleSource {
+        val ground = blocks.lastOrNull() ?: return PLAIN_STONE
+        val scattered = blocks.dropLast(1)
+        if (scattered.isEmpty()) return solid(ground)
+        val bandWidth = (MOTTLE_RANGE.second - MOTTLE_RANGE.first) / blocks.size
+        return layers(
+            *scattered.mapIndexed { band, block ->
+                val from = MOTTLE_RANGE.first + band * bandWidth
+                where(mottled(Noises.SURFACE, from, from + bandWidth), block)
+            }.toTypedArray(),
+            solid(ground),
+        )
+    }
+
+    /**
+     * The noise the mottling reads, borrowed rather than registered.
+     *
+     * Vanilla uses `Noises.SURFACE` in its *own* surface rules, which would be a correlation worth worrying
+     * about — except that the palettes taking a material are ours, and vanilla's rules never run over an Age
+     * wearing one. [VANILLA_OVERWORLD] cannot take a material at all, so the two never meet.
+     */
+    private val MOTTLE_RANGE = -1.0 to 1.0
 
     /** The fallback when an Age names no palette — what every field Age looked like before palettes. */
     val PLAIN_STONE: SurfaceRules.RuleSource = solid(Blocks.STONE.defaultBlockState())
