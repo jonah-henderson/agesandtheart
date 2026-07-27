@@ -70,3 +70,19 @@ tasks.register<JavaExec>("preview") {
     // Pass a preset name through, e.g. ./gradlew :common:preview --args=hills
     javaLauncher = javaToolchains.launcherFor(java.toolchain)
 }
+
+tasks.register<JavaExec>("spanscheck") {
+    group = "verification"
+    description = "Differential check of Spans interval algebra against a per-block reference."
+    mainClass = "co.voik.agesandtheart.preview.SpansCheckKt"
+    classpath = preview.runtimeClasspath
+    javaLauncher = javaToolchains.launcherFor(java.toolchain)
+}
+
+tasks.register<JavaExec>("depthcachecheck") {
+    group = "verification"
+    description = "Checks BelowTerrain's column cache is actually hit (guards a silent indexing bug)."
+    mainClass = "co.voik.agesandtheart.preview.DepthCacheCheckKt"
+    classpath = preview.runtimeClasspath
+    javaLauncher = javaToolchains.launcherFor(java.toolchain)
+}

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.worldgen.biome
 
+import co.voik.agesandtheart.worldgen.field.Spans
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
@@ -76,10 +77,66 @@ data class BelowTerrain(
 
     override val kind = DepthKind.BELOW_TERRAIN
 
+    /**
+     * One [ColumnCache] per chunk worker. Depth is asked per *quart* cell, so a chunk asks 384 times
+     * about only 16 distinct columns — and vanilla walks them x, then y, then z, so the same column
+     * comes back around every fourth call rather than on the next one.
+     *
+     * That redundancy cost nothing while this sat on a heightmap, where a column is one noise sample.
+     * On a [co.voik.agesandtheart.worldgen.field.Noise3D] field a column is a walk of the whole band,
+     * and recomputing it two dozen times is most of what the Age spends. Measured: `caverns` at 139%
+     * of the vanilla budget against `hills` at 101%, for terrain that is otherwise cheaper.
+     *
+     * Per-thread rather than shared, because a biome source is used by every chunk worker at once and
+     * this is the toolkit's first piece of mutable state. Keeping it thread-confined means it needs no
+     * synchronisation and can never publish a half-written entry.
+     */
+    private val columnCache = ThreadLocal.withInitial { ColumnCache() }
+
     override fun at(blockX: Int, blockY: Int, blockZ: Int): Float {
+        val spans = columnCache.get().spansAt(blockX, blockZ, terrain)
         // No rock overhead means open sky, which is the surface by any reading.
-        val roofY = terrain.columnSpans(blockX, blockZ).roofOver(blockY) ?: return 0.0f
+        val roofY = spans.roofOver(blockY) ?: return 0.0f
         return (roofY - blockY).toFloat() / blocksPerUnit
+    }
+
+    /**
+     * The columns of one chunk, remembered while its biomes are laid out. Direct-mapped and fixed-size,
+     * so a lookup is an array index and nothing is ever evicted deliberately or allocated per chunk.
+     *
+     * **The indexing is exact rather than approximate, but it has to read the right bits.** Biomes are
+     * sampled per quart cell and [AgeBiomeSource] multiplies back up before asking, so the coordinates
+     * arriving here are block coordinates that only ever take *every fourth* value: 0, 4, 8, 12 within
+     * a chunk. Their low two bits are therefore always zero, and indexing on those would drop all
+     * sixteen columns into one slot and thrash — measured, and worth exactly nothing. Shifting back down
+     * to the quart index first gives four consecutive values per axis, and so sixteen columns in
+     * sixteen slots with no collisions. Entries from an earlier chunk fail the key check and are
+     * overwritten.
+     */
+    private class ColumnCache {
+        private val keys = LongArray(SLOTS) { EMPTY_KEY }
+        private val spans = arrayOfNulls<Spans>(SLOTS)
+
+        fun spansAt(x: Int, z: Int, terrain: TerrainField): Spans {
+            val key = (x.toLong() shl Int.SIZE_BITS) or (z.toLong() and UNSIGNED_INT)
+            val slot = (((x shr QUART_BITS) and 3) shl 2) or ((z shr QUART_BITS) and 3)
+            spans[slot]?.let { if (keys[slot] == key) return it }
+            return terrain.columnSpans(x, z).also {
+                keys[slot] = key
+                spans[slot] = it
+            }
+        }
+
+        private companion object {
+            const val SLOTS = 16
+            const val UNSIGNED_INT = 0xFFFF_FFFFL
+
+            // Block coordinates back down to the quart cell they came from — four blocks to a cell.
+            const val QUART_BITS = 2
+
+            // A key no real column can produce, so an untouched slot cannot match by accident.
+            const val EMPTY_KEY = Long.MIN_VALUE
+        }
     }
 
     companion object {

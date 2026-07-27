@@ -49,22 +49,36 @@ class Spans private constructor(val ranges: List<IntRange>) {
         return if (overlaps.isEmpty()) EMPTY else Spans(overlaps)
     }
 
-    /** Solid where this column is solid but the cuts are not. */
+    /**
+     * Solid where this column is solid but the cuts are not.
+     *
+     * Both sides are normalised ascending, so this is one ordered walk like [intersect] — each side
+     * read once, one list built. It used to re-derive the whole column *per cut range*, allocating a
+     * fresh list each pass and another for every range that survived it, which is invisible while a
+     * cut is one interval and quadratic-ish once it is a cave system with a dozen. That is the shape
+     * a [co.voik.agesandtheart.worldgen.field.Noise3D] cut has, and it made this a hot spot.
+     */
     fun subtract(cuts: Spans): Spans {
-        var remaining = ranges
-        for (cut in cuts.ranges) {
-            remaining = remaining.flatMap { it.without(cut) }
+        if (ranges.isEmpty() || cuts.ranges.isEmpty()) return this
+        val kept = ArrayList<IntRange>(ranges.size + cuts.ranges.size)
+        var firstLiveCut = 0
+        for (range in ranges) {
+            // Cuts ending below this range can never meet it or any later one, since both sides ascend.
+            while (firstLiveCut < cuts.ranges.size && cuts.ranges[firstLiveCut].last < range.first) firstLiveCut++
+            var low = range.first
+            var cutIndex = firstLiveCut
+            while (cutIndex < cuts.ranges.size && low <= range.last) {
+                val cut = cuts.ranges[cutIndex]
+                if (cut.first > range.last) break
+                if (cut.first > low) kept += low..minOf(cut.first - 1, range.last)
+                low = maxOf(low, cut.last + 1)
+                cutIndex++
+            }
+            if (low <= range.last) kept += low..range.last
         }
-        // Cutting only splits/shrinks existing ranges in place, so order and disjointness survive.
-        return Spans(remaining)
-    }
-
-    private fun IntRange.without(cut: IntRange): List<IntRange> {
-        if (cut.last < first || cut.first > last) return listOf(this)
-        val pieces = ArrayList<IntRange>(2)
-        if (first < cut.first) pieces += first..minOf(cut.first - 1, last)
-        if (last > cut.last) pieces += maxOf(cut.last + 1, first)..last
-        return pieces
+        // Pieces come out ascending, and are separated either by the cut between them or by the gap
+        // that already separated their parent ranges — the invariant, without a normalising pass.
+        return ofAscending(kept)
     }
 
     companion object {
