@@ -126,6 +126,8 @@ The overriding goal is **readability** — a reader should understand code witho
 - UpperCamelCase types; lowerCamelCase functions/properties/locals; **SCREAMING_SNAKE_CASE** for `const val` and `object`/top-level `val` constants.
 - Booleans read as predicates (`isSupported`, `hasSkyLight`, `canReach`). Functions are verbs, properties are nouns — property access must be cheap and side-effect-free.
 - Never name a file/class `Util`/`Helper`/`Manager`/`Misc` for *new* code (existing `AgeManager`/`Util.kt` are grandfathered; don't add to the pattern). Multi-declaration files get a descriptive name (`Rgba.kt`).
+- **Prefer slightly verbose and unambiguous over clever and compact.** A cute name passes review because its author still holds the metaphor in their head; the cost lands later on someone who doesn't. `capabilityBonus` not `capability` when it returns a score; `climatePointsFromOtherPresets` not `climatesElsewhere`; `sawADressingThatIgnoresMaterials` not `reachedAListeningOne`. Extra characters are cheap; a re-read is not. Applies to comments as much as identifiers. **Exception:** where a metaphor is already load-bearing across the codebase (`steer` a preset, `territory`, `seam`, `mingled`, `readiness`), keep it — consistency beats a lone improvement.
+- **Never use a term naming a real population as a metaphor for inability.** "A preset *deaf to* a parameter" became "a preset that *ignores* a parameter". The domain usually already has the neutral verb — here `ignoresMaterial`/`ignoresClimate` were sitting right there.
 
 **Immutability**
 - `val` unless a `var` is provably required. Compute a value once with an `if`/`when` expression instead of reassigning a `var` across branches.
@@ -136,6 +138,29 @@ The overriding goal is **readability** — a reader should understand code witho
 - Prefer **pure functions** (output depends only on input, no side effects) for calculation — they're unit-testable without a running server. Keep world/entity mutation in thin, clearly-named functions at the edges.
 - Single-expression functions use expression bodies (`fun area(w: Int, h: Int) = w * h`); state return types on public API.
 - Return values instead of mutating parameters. Extract named helpers over inline comments — a well-named call *is* the comment. No giant imperative functions.
+- **Build complex booleans from named intermediates**, so each piece reads on its own. This applies **first and foremost to ordinary conditionals** — every `if`, `return` and `while` whose condition has more than one clause:
+  ```kotlin
+  // Not this — you have to decode it before you can judge it:
+  fun accepts(option: String): Boolean =
+      option in options || (open && namesReferent(option) && ResourceLocation.tryParse(option) != null)
+
+  // This — each clause says what it means, and the last line reads as the rule:
+  fun accepts(option: String): Boolean {
+      val isOneOfTheNamedOptions = option in options
+      val looksLikeARegistryId = namesReferent(option) && ResourceLocation.tryParse(option) != null
+      return isOneOfTheNamedOptions || (open && looksLikeARegistryId)
+  }
+  ```
+  It applies equally to **lambdas** passed to `filter`/`none`/`any`/`count`/`sortedBy`, where nesting is the usual culprit — give each level a named local function:
+  ```kotlin
+  // Not this — three levels to hold in your head at once:
+  setting.filter { word -> word.sets.keys.none { name -> seated.any { it.honoursParameterNamed(name) } } }
+
+  // This:
+  fun anythingSeatedHonours(parameter: String) = seated.any { it.honoursParameterNamed(parameter) }
+  val wentUnheeded = setting.filter { word -> word.sets.keys.none(::anythingSeatedHonours) }
+  ```
+  **Be judicious** — a single-clause condition (`if (chosen.isEmpty())`) or a short lambda (`filter { it.slot == slot }`) is already readable, and naming it only adds noise.
 - Default arguments over overloads; named arguments when passing multiple same-typed/boolean args.
 
 **Control flow**
@@ -153,6 +178,8 @@ The overriding goal is **readability** — a reader should understand code witho
 **Scope functions** — by intent, never nested, never chained >2 deep: `apply` (configure & return), `also` (side effect in a chain), `let` (null-guard/transform), `run`/`with` (configure & compute). If a block grows past a few lines, extract a named function.
 
 **Anti-patterns to avoid** (common in mod code): `!!`; `lateinit` abuse (prefer `val` + constructor or `by lazy`); companion-object soup; **mutable global state** in `object`s/companions; magic numbers; deeply nested scope-function chains; `MutableList` leaking through public API; `when` + `else` on sealed/enum types silently swallowing new cases.
+
+**Save compatibility — not yet a constraint (2026-07-27, revisit at first release).** The mod is still in initial development with no players and no saves worth keeping, so **renaming slot keys, changing codec shapes and bumping `generatorVersion` are all free** — say so and move on. Do *not* add `FORMER_KEYS`-style alias tables, either-or codecs chosen purely to keep old files byte-identical, or treat "no version had to move" as a design goal; prefer the clearer shape and let test Ages break. Still true regardless: a recipe must round-trip *within* a version (`:common:recipecheck`), which is correctness rather than compatibility.
 
 **When to break the rules:** hot per-tick loops may justify a plain `for`, a `var` accumulator, or primitive arrays (measure first, comment why); Java/MC interop forces platform types and mutable builders (contain them at the boundary). Immutability and functional style are defaults, not religion — but a break should be **local and commented**, never the ambient style.
 
