@@ -24,6 +24,11 @@ import kotlin.random.Random
  * than the antonym table, negative query weights) are deliberately **not** implemented here, because
  * implementing them is Phase 3's job and not a spike's.
  *
+ * **One fact here is now stale.** [SET_VALUED] names landform and dressing; since 3a the answer is all
+ * four *positional* slots — landform, dressing, medium and subsurface — with only the sky singular. It
+ * is left as it was so the reported findings still match what this file prints; the design doc is right
+ * and this is a record of an argument, not a description of the world.
+ *
  * **Do not build on this.** Nothing here is tuned, the vocabulary is a dozen words invented to exercise
  * the mechanism, and the tag weights are guesses. What it is for is answering four questions:
  *
