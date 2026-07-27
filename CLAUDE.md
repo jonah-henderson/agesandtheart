@@ -35,7 +35,16 @@ export JAVA_HOME="$HOME/.sdkman/candidates/java/current"; export PATH="$JAVA_HOM
 
 # NeoForge data generation
 ./gradlew :neoforge:runData
+
+# Drive the headless server through a list of /age commands and stop it (see scripts/checks/)
+scripts/drive-server.sh scripts/checks/slots.txt
 ```
+
+**Headless checks go through `scripts/drive-server.sh`.** It waits for each command to *finish*
+before sending the next — by echoing a unique token back through `say`, since console commands are
+drained by the server thread in order — rather than sleeping a guessed interval. It also writes to a
+throwaway world by default (`--level` to override) and restores `server.properties` on the way out,
+so a check can never disturb a save. It drives a server; it does not assert, so read the output.
 
 Run directories are `runs/` (Fabric) and `run/` (NeoForge), both git-ignored. The first build/run downloads Minecraft, mappings, and the loader toolchains — slow once, then cached.
 
