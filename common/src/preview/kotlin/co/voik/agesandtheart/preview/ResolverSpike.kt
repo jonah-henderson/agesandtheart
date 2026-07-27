@@ -16,12 +16,13 @@ import kotlin.random.Random
  * the resolver against a toy slot set… if constraint satisfaction over weighted tags turns out awkward,
  * it is far better to learn that here"*).
  *
- * **All six of its findings were settled on 2026-07-27 — the answers are `notes/the-art-design.md` §11,
- * and that section, not this file, is what Phase 3 gets built from.** This is kept only as the evidence
- * behind those decisions: it still runs each sentence under the naive policy, which is what makes the
- * failures visible rather than merely asserted. Several resolutions (set-valued landform and dressing,
- * detection from data rather than the antonym table, negative query weights) are deliberately **not**
- * implemented here, because implementing them is Phase 3's job and not a spike's.
+ * **All six of its findings were settled on 2026-07-27, and the rulings are written into
+ * `notes/the-art-design.md` itself — §3.3, §3.4, §3.5, §4.4 and §4.6. That document, not this file, is
+ * what Phase 3 gets built from.** This is kept only as the evidence behind those decisions: it still
+ * runs each sentence under the naive policy, which is what makes the failures visible rather than
+ * merely asserted. Several resolutions (set-valued landform and dressing, detection from data rather
+ * than the antonym table, negative query weights) are deliberately **not** implemented here, because
+ * implementing them is Phase 3's job and not a spike's.
  *
  * **Do not build on this.** Nothing here is tuned, the vocabulary is a dozen words invented to exercise
  * the mechanism, and the tag weights are guesses. What it is for is answering four questions:
