@@ -83,10 +83,10 @@ object ErodedField {
         )
 
     private const val WORLD_FLOOR = -64
-    private const val SEABED_TOP = -56
-    private const val SEA_LEVEL = -30
+    private const val SEABED_TOP = 37
+    private const val SEA_LEVEL = 63
 
-    private const val MASS_CENTER_Y = 60
+    private const val MASS_CENTER_Y = 153
     private const val MASS_RADIUS_XZ = 30.0
     private const val MASS_RADIUS_Y = 22.0
     private const val SPACING = 96.0

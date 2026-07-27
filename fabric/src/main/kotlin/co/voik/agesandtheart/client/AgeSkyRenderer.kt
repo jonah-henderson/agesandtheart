@@ -41,9 +41,10 @@ object AgeSkyRenderer : DimensionRenderingRegistry.SkyRenderer {
     // Below this much reveal the stars are too faint to be worth the draw call.
     private const val STARS_WORTH_DRAWING = 0.01f
 
-    // Stars only appear above the upper cloud deck (~y192); fade across this band.
-    private const val STAR_REVEAL_LOW = 190.0
-    private const val STAR_REVEAL_HIGH = 212.0
+    // Stars only appear above the upper cloud deck; fade across this band. Derived from the deck rather
+    // than written out, so retuning the sky's height cannot leave the stars behind at the old one.
+    private const val STAR_REVEAL_LOW = AgeCloudRenderer.UPPER_DECK_HEIGHT - 2.0
+    private const val STAR_REVEAL_HIGH = AgeCloudRenderer.UPPER_DECK_HEIGHT + 20.0
 
     // Stars vary along a warm→cool axis; each twinkles at its own phase and rate.
     private val WARM_STAR = Rgba(0.95f, 0.87f, 0.76f)

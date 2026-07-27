@@ -25,6 +25,19 @@ class Spans private constructor(val ranges: List<IntRange>) {
      */
     fun roofOver(y: Int): Int? = ranges.firstOrNull { it.last >= y }?.last
 
+    /**
+     * This column moved [blocks] up, or down when negative.
+     *
+     * Exact and cheap: translating an interval is adding to both its ends, so nothing is resampled and
+     * the normalised order and gaps survive untouched. That is precisely why an instance's *lift* can
+     * be drawn per copy where its *size* cannot — resizing a built shape at a fractional rate stretches
+     * its one-block staircase into uneven steps, which is why [TerrainField.resized] pre-builds sizes
+     * instead. A lift has no such problem and needs no pre-building.
+     */
+    fun shifted(blocks: Int): Spans =
+        if (blocks == 0 || ranges.isEmpty()) this
+        else ofAscending(ranges.map { (it.first + blocks)..(it.last + blocks) })
+
     /** Solid where either column is solid. */
     fun union(other: Spans): Spans = normalise(ranges + other.ranges)
 

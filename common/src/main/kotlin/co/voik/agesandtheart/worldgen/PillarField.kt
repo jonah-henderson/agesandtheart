@@ -54,11 +54,11 @@ object PillarField {
 
     // 64 wide: -32..31 inclusive. Centre-to-centre spacing of 96 leaves ~32-block channels between them.
     private const val PILLAR_HALF_WIDTH = 32
-    private const val PILLAR_TOP = 63
+    private const val PILLAR_TOP = 166
     private const val SPACING = 96.0
     private const val JITTER = 8.0
 
-    private const val SEABED_TOP = -60
-    private const val SEA_LEVEL = -40
+    private const val SEABED_TOP = 43
+    private const val SEA_LEVEL = 63
     private const val PILLAR_SEED = 0xC01_1055L
 }

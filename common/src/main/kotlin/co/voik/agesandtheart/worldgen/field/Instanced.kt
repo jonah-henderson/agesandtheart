@@ -64,7 +64,9 @@ data class Instanced(
     override fun resized(factor: Double, pivotY: Int) = Instanced(
         templates.map { it.resized(factor, pivotY) },
         placement.resized(factor),
-        variation,
+        // Lifts are absolute blocks, so they scale with everything else; the scale factors are ratios
+        // and must not, or resizing would compound them.
+        variation.resized(factor),
         seed,
     )
 

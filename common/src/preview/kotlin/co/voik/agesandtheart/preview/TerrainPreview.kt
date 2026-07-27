@@ -58,17 +58,20 @@ private class Subject(
 )
 
 private val subjects: Map<String, Subject> = mapOf(
-    "spire" to Subject(SpireField.world(), Weathering.SPIRE, lowestY = 30, highestY = 300, radius = 180),
+    // Wide enough to hold more than one island, because size and lift variation is a thing you can only
+    // see by comparing copies; and tall enough to reach the world ceiling, so a spire that runs into it
+    // reads as a clipped flat top rather than as the window's edge.
+    "spire" to Subject(SpireField.world(), Weathering.SPIRE, lowestY = 100, highestY = 320, radius = 300),
     // The same islands with weathering switched off — the pair shows what erosion is actually contributing.
-    "spire-nowind" to Subject(SpireField.world(), Weathering.NONE, lowestY = 30, highestY = 300, radius = 180),
+    "spire-nowind" to Subject(SpireField.world(), Weathering.NONE, lowestY = 100, highestY = 320, radius = 300),
     "hills" to Subject(NoiseField.hills(), Weathering.NONE, lowestY = 20, highestY = 120),
-    "pillars" to Subject(PillarField.world(), Weathering.NONE, lowestY = -70, highestY = 80),
+    "pillars" to Subject(PillarField.world(), Weathering.NONE, lowestY = 30, highestY = 185),
     "shapes" to Subject(ShapesField.world(), Weathering.NONE, lowestY = 55, highestY = 130, radius = 200),
     "caverns" to Subject(CavernField.world(), Weathering.NONE, lowestY = -64, highestY = 110),
     // The tunnels on their own. A cave system reads far better as a solid lattice hanging in space than
     // as absence inside a hill, and the slices are where the network's connectedness actually shows.
     "caverns-voids" to Subject(CavernField.caves(), Weathering.NONE, lowestY = -64, highestY = 70),
-    "eroded" to Subject(ErodedField.world(), Weathering.NONE, lowestY = -64, highestY = 100, radius = 200),
+    "eroded" to Subject(ErodedField.world(), Weathering.NONE, lowestY = 30, highestY = 195, radius = 200),
 )
 
 /**

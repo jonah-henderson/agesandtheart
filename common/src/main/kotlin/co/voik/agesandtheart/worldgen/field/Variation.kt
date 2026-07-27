@@ -34,6 +34,12 @@ data class Variation(
     val scaleSteps: Int,
     /** The Y plane resizing is anchored at — copies grow away from it, so bases stay planted. */
     val pivotY: Int,
+    /** How far a copy may sit below where its template puts it, in blocks. */
+    val minLift: Int = 0,
+    /** How far a copy may sit above it. */
+    val maxLift: Int = 0,
+    /** How many distinct heights to spread across [minLift]…[maxLift]; 1 = every copy at its template's. */
+    val liftSteps: Int = 1,
 ) {
     // Bounded because it sizes the yaw table below, and the value can arrive from a serialised tree.
     private val turns = yawSteps.coerceIn(1, MOST_YAW_STEPS)
@@ -49,9 +55,28 @@ data class Variation(
      */
     val scaleFactors: List<Double> = spreadScaleFactors()
 
+    /**
+     * The heights copies may sit at, relative to where their template puts them.
+     *
+     * Unlike [scaleFactors] these need no pre-built templates, because a lift is an exact integer
+     * translation of the sampled column ([Spans.shifted]) rather than a resampling. So where sizes cost
+     * one built field each, heights cost nothing — which is why this dial can be generous.
+     */
+    val liftOffsets: List<Int> = spreadLifts()
+
+    // Whether a copy's height is ever anything but its template's, so the common case draws no
+    // randomness at all and fields written before lifts existed keep the exact worlds they had.
+    private val lifts = liftOffsets.size > 1 || liftOffsets.first() != 0
+
     /** Every size of [template] this variation can place, ready to be chosen between. */
     fun sizesOf(template: TerrainField): List<TerrainField> =
         scaleFactors.map { factor -> template.resized(factor, pivotY) }
+
+    /** This variation with its lifts scaled by [factor], for when the whole instanced field is resized. */
+    fun resized(factor: Double): Variation = copy(
+        minLift = (minLift * factor).roundToInt(),
+        maxLift = (maxLift * factor).roundToInt(),
+    )
 
     /**
      * Sample an already-resized [template] for the column at ([localX], [localZ]) — an offset from the
@@ -60,6 +85,12 @@ data class Variation(
      * the template's frame.
      */
     fun sample(template: TerrainField, localX: Int, localZ: Int, instanceRandom: RandomSource): Spans {
+        val standing = turned(template, localX, localZ, instanceRandom)
+        if (!lifts) return standing
+        return standing.shifted(liftOffsets[instanceRandom.nextInt(liftOffsets.size)])
+    }
+
+    private fun turned(template: TerrainField, localX: Int, localZ: Int, instanceRandom: RandomSource): Spans {
         if (!rotates) return template.columnSpans(localX, localZ)
 
         val step = instanceRandom.nextInt(turns)
@@ -71,6 +102,14 @@ data class Variation(
         val templateX = (localX * cosine + localZ * sine).roundToInt()
         val templateZ = (localZ * cosine - localX * sine).roundToInt()
         return template.columnSpans(templateX, templateZ)
+    }
+
+    private fun spreadLifts(): List<Int> {
+        val lowest = minOf(minLift, maxLift)
+        val highest = maxOf(minLift, maxLift)
+        val heights = liftSteps.coerceIn(1, MOST_LIFT_STEPS)
+        if (heights == 1 || lowest == highest) return listOf(lowest)
+        return (0..<heights).map { step -> lowest + (highest - lowest) * step / (heights - 1) }
     }
 
     private fun spreadScaleFactors(): List<Double> {
@@ -92,6 +131,7 @@ data class Variation(
         private const val SMALLEST_SCALE = 0.01
         private const val MOST_YAW_STEPS = 256
         private const val MOST_SCALE_STEPS = 64
+        private const val MOST_LIFT_STEPS = 64
 
         val CODEC: MapCodec<Variation> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -100,6 +140,11 @@ data class Variation(
                 Codec.DOUBLE.fieldOf("max_scale").forGetter(Variation::maxScale),
                 Codec.INT.fieldOf("scale_steps").forGetter(Variation::scaleSteps),
                 Codec.INT.fieldOf("pivot_y").forGetter(Variation::pivotY),
+                // Optional, so field trees serialised before lifts existed still load — and read back
+                // as no lift at all, which is the world they were generated with.
+                Codec.INT.optionalFieldOf("min_lift", 0).forGetter(Variation::minLift),
+                Codec.INT.optionalFieldOf("max_lift", 0).forGetter(Variation::maxLift),
+                Codec.INT.optionalFieldOf("lift_steps", 1).forGetter(Variation::liftSteps),
             ).apply(instance, ::Variation)
         }
     }

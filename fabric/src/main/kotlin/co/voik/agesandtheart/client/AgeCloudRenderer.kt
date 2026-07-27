@@ -58,7 +58,15 @@ object AgeCloudRenderer : DimensionRenderingRegistry.CloudRenderer {
      * and the height [AgeSkyRenderer]'s star-reveal band is built around — one fact, named once, because
      * three copies of it would drift apart the first time the deck is retuned.
      */
-    const val UPPER_DECK_HEIGHT = 192.0
+    const val UPPER_DECK_HEIGHT = 265.0
+
+    /**
+     * World Y of the lower deck. The 120-block gap up to [UPPER_DECK_HEIGHT] is close to vanilla's own
+     * ground-to-cloud distance, which is the point: the band should feel like a sky you are inside
+     * rather than a lid. Both decks sit high above the sea at y=63, so the archipelago reads as being
+     * genuinely far up rather than hovering over the water.
+     */
+    const val LOWER_DECK_HEIGHT = 145.0
 
     // Upper deck: mostly light grey, with cool blue-grey darker spots. Drifts faster.
     private val UPPER_DECK = Deck(
@@ -73,7 +81,7 @@ object AgeCloudRenderer : DimensionRenderingRegistry.CloudRenderer {
     // Lower deck: mostly near-black, with lighter grey foam. Drifts slower, and offset far into the
     // noise field so its pattern is uncorrelated with the upper deck's.
     private val LOWER_DECK = Deck(
-        height = 72.0,
+        height = LOWER_DECK_HEIGHT,
         low = Rgba(0.12f, 0.14f, 0.15f),
         high = Rgba(0.42f, 0.44f, 0.45f),
         driftSpeed = 0.015f,

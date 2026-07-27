@@ -135,7 +135,7 @@ object SpireField {
         return Instanced(
             templates = listOf(island),
             placement = Grid(spacing = ISLAND_SPACING, jitter = ISLAND_JITTER, density = Density.uniform(ISLAND_DENSITY)),
-            variation = Variation.NONE,
+            variation = ISLAND_VARIATION,
             seed = ARCHIPELAGO_SEED,
         )
     }
@@ -152,8 +152,10 @@ object SpireField {
             carvers,
         )
 
-    // The islands float well clear of the sea, so the whole mass reads as an archipelago in open air.
-    private const val DECK_Y = 168
+    // Where an island's body sits. Chosen against the sky rather than the ground: it centres a typical
+    // island in the band between the two cloud decks (see AgeCloudRenderer), so most of the archipelago
+    // lives between them and only the large or low-hung copies cross either one.
+    private const val DECK_Y = 190
     private const val PEAK_HEIGHT = 126
     private const val TYPICAL_CROWN = 45
 
@@ -187,10 +189,44 @@ object SpireField {
     private const val ISLAND_JITTER = 60.0
     private const val ISLAND_DENSITY = 0.75
 
+    /**
+     * How islands differ from one another: how big, and how high they hang.
+     *
+     * Both dials exist to serve one picture — from a distance you should see an archipelago sitting
+     * *between* the cloud decks, with the occasional island large enough or hung low enough that its
+     * roots trail out beneath the lower one. That silhouette is the thing worth flying towards, and it
+     * falls out of these two numbers rather than needing a special kind of island.
+     *
+     * The numbers are set against the *carved* shape rather than the field's, which is the trap here:
+     * erosion trims perhaps thirty blocks off an island's underside and almost nothing off its crown, so
+     * centring the raw field in the band leaves every island floating too high to reach the lower deck.
+     * Measure with `./gradlew :common:preview --args=spire`, which renders through the same weathering
+     * the world does, and tune against what that reports.
+     *
+     * No yaw: an island is a lumpy mass whose outline reads the same turned, so rotating copies would
+     * cost the staircase aliasing [Variation] warns about and buy nothing.
+     */
+    private val ISLAND_VARIATION = Variation(
+        yawSteps = 1,
+        minScale = 0.85,
+        maxScale = 1.15,
+        scaleSteps = 4,
+        // Copies grow about their own deck, so a bigger island gets taller *and* deeper rather than
+        // sinking — which is what keeps the whole family centred in the band between the decks.
+        pivotY = DECK_Y,
+        // Asymmetric on purpose. Erosion hollows undersides and spares caps, so an island's carved
+        // shape reaches far further above its deck than below it; hanging copies *down* is therefore the
+        // only way to get one whose roots trail beneath the lower cloud deck, and that silhouette is the
+        // whole point. Lifting up mostly just risks the world ceiling, so it gets a shorter leash.
+        minLift = -30,
+        maxLift = 15,
+        liftSteps = 6,
+    )
+
     // Ridges comb down the X axis, matching the wind direction ErosionCarver works along.
     private const val WIND_STRETCH = 6.0
 
-    private const val SEA_LEVEL = 0
+    private const val SEA_LEVEL = 63
     private const val PEAK_SEED = 0x51DE_1L
     private const val SPIKE_SEED = 0x5B1CEL
     // A floor under the connective body's thickness. A gameplay figure — room to stand and build — so it
@@ -199,7 +235,7 @@ object SpireField {
 
     // How much of the island the central heap covers, and how far it lifts the middle.
     private const val CENTRAL_SHARE = 0.55
-    private const val CENTRAL_RISE = 118
+    private const val CENTRAL_RISE = 100
 
     private const val TALON_SEED = 0x7A10_11L
     private const val ROOT_SEED = 0x200_75L

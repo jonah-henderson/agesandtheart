@@ -18,11 +18,14 @@ import co.voik.agesandtheart.worldgen.field.TerrainField
  * landform *is* `SpireField.world()` plus the one fact a composer needs to place anything else against
  * it — its [waterline].
  *
- * A shape knows where its own sea belongs: Spire's islands float above y=0, the pillars stand out of an
- * ocean at y=-40, the hills break a surface at y=63. No independent medium slot could guess any of
- * that. So the landform declares the height and the [Medium] chooses only the *substance*, which is
- * what lets "Spire islands over water rather than plasma" be an ordinary sentence instead of a special
- * case.
+ * A shape knows where its own sea belongs, and the [Medium] chooses only the *substance* — which is what
+ * lets "Spire islands over water rather than plasma" be an ordinary sentence instead of a special case.
+ *
+ * Every shape that wants a sea now puts it at vanilla's **63**. That is a convention rather than a rule:
+ * each landform was retuned so its own relief sits correctly around that height, precisely so that a
+ * future shape wanting its sea somewhere odd can simply say so. Standardising matters because two
+ * landforms can now share one Age, and a shared waterline is what keeps a seam between them from
+ * drowning half the world.
  */
 enum class Landform(
     override val key: String,
@@ -30,7 +33,7 @@ enum class Landform(
     private val build: (String) -> TerrainField,
 ) : SlotPreset {
     /** Floating islands over open air: lobed masses, talons and roots, weathered to ribs. */
-    SPIRE_ISLANDS("spire_islands", waterline = 0, build = { SpireField.world() }),
+    SPIRE_ISLANDS("spire_islands", waterline = 63, build = { SpireField.world() }),
 
     /** Rolling noise hills breaking a sea — the closest thing here to ordinary ground. */
     HILLS("hills", waterline = 63, build = { NoiseField.hills() }),
@@ -38,11 +41,11 @@ enum class Landform(
     /** Rock riddled by ridged 3D noise: this Age's caves *are* its shape, not something cut from it. */
     CAVERNS("caverns", waterline = 63, build = { CavernField.world() }),
 
-    /** Billowy noise weathered into mesa-like relief, standing out of a low sea. */
-    ERODED("eroded", waterline = -30, build = { ErodedField.world() }),
+    /** Billowy noise weathered into mesa-like relief, hanging clear above the water. */
+    ERODED("eroded", waterline = 63, build = { ErodedField.world() }),
 
-    /** Colossal rectangular monoliths on a jittered grid, over a deep ocean. */
-    PILLARS("pillars", waterline = -40, build = { PillarField.world() }),
+    /** Colossal rectangular monoliths on a jittered grid, standing a hundred blocks out of the sea. */
+    PILLARS("pillars", waterline = 63, build = { PillarField.world() }),
 
     /**
      * Instanced pyramids on a plain. The one landform with a real parameter: the same shapes arranged
