@@ -2,6 +2,18 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Design documents
+
+`notes/` holds the design record, and it is **normative** — where code and these documents disagree,
+that is a bug in one of them, so revise the doc rather than letting the code drift away from it. Read the
+relevant one before working in its area; most of the value is in the *reasoning*, not the conclusions.
+
+- **`notes/terrain-architecture.md`** — the two-tier terrain system (composable field toolkit + bespoke
+  presets), and why each piece is shaped the way it is. Built and shipped.
+- **`notes/the-art-design.md`** — "the Art": the books, the language, slots and tags, consequences,
+  book editing, the economy. Phases 1–2 are built; everything from the resolver on is design only.
+- **`notes/the-art-implementation-plan.md`** — the eight phases and what each has to prove.
+
 ## What this is
 
 **Ages and the Art** — a Minecraft mod (Mystcraft-inspired: author dimensional "Ages" from written Symbol pages, link between them) for **Minecraft 1.21.1**, built as a **multiloader** mod running on both **Fabric** and **NeoForge** from one codebase. Mod id `agesandtheart`, root package `co.voik.agesandtheart`.
