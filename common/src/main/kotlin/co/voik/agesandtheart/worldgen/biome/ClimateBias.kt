@@ -18,6 +18,22 @@ import kotlin.math.abs
  * shifts weights across every candidate, which is exactly what an offset here does, and only an exact word
  * names a value. It is also cheap, because `AgeBiomeSource` already computes the six climate parameters
  * itself — the inert-sampler problem forced us to own that path, and this is the dividend.
+ *
+ * **Three of vanilla's six parameters are deliberately absent, and the reason generalises.** Each of the six
+ * does two jobs: it feeds the noise router that shapes terrain, *and* it indexes the biome table. An Age
+ * takes its shape from a [co.voik.agesandtheart.worldgen.field.TerrainField], so only the second job
+ * transfers — and how much of it survives differs sharply per axis.
+ *
+ * - **Temperature and humidity** partition the table into whole families (snowy → taiga → plains → savanna
+ *   → desert). That survives intact, and is what makes "a hot, dry world" work.
+ * - **Weirdness** picks the odd variant over the ordinary one within a family. Subtler, but real, and it
+ *   describes a property of the *biomes* rather than of the ground — so it belongs here.
+ * - **Continentalness and erosion were cut** (Jonah, 2026-07-27, after walking them and seeing nothing).
+ *   They describe *shape* — how much sea, how much relief — and an Age's shape does not come from climate.
+ *   Worse than invisible, continentalness is incoherent: shifting it toward ocean returns ocean biomes over
+ *   ground that stayed dry hills, because nothing made an ocean. `oceanic` and `jagged` are **landform**
+ *   words wearing climate clothing, and their real home is a landform preset that delegates to vanilla's
+ *   noise generation — which does not exist yet. See `notes/the-art-design.md` §3.2.
  */
 enum class ClimateAxis(val key: String, private vararg val ladder: Pair<String, Double>) : StringRepresentable {
     /** Cold to hot. */
@@ -26,14 +42,17 @@ enum class ClimateAxis(val key: String, private vararg val ladder: Pair<String, 
     /** Dry to wet. */
     HUMIDITY("humidity", "dry" to -0.35, "arid" to -0.6, "damp" to 0.35, "drenched" to 0.6),
 
-    /** Ocean to deep inland — how much of an Age is sea. */
-    CONTINENTALNESS("continentalness", "coastal" to -0.35, "oceanic" to -0.6, "inland" to 0.35, "landlocked" to 0.6),
-
-    /** Jagged to worn. */
-    EROSION("erosion", "jagged" to -0.35, "sheer" to -0.6, "rolling" to 0.35, "worn" to 0.6),
-
-    /** How often the odd variant wins over the ordinary one. */
-    WEIRDNESS("weirdness", "plain" to -0.4, "odd" to 0.4, "uncanny" to 0.7),
+    /**
+     * How often the odd variant of a biome wins over the ordinary one — old-growth over ordinary birch,
+     * windswept over plain, the badlands' stranger cousins.
+     *
+     * The steps say how *remarkable* the world is rather than how weird, because "weirdness" is vanilla's
+     * word for the noise and not a thing a writer would ever say. Note [NATURAL] and `familiar` are not the
+     * same: the first is the writer saying nothing and leaving vanilla's own mix alone, the second is the
+     * writer actively asking for the ordinary. `normal` was the obvious name for that and is too easily
+     * read as the default it is not.
+     */
+    WEIRDNESS("weirdness", "familiar" to -0.4, "unusual" to 0.4, "exceptional" to 0.7),
     ;
 
     /**
@@ -77,14 +96,17 @@ enum class ClimateAxis(val key: String, private vararg val ladder: Pair<String, 
 /**
  * What one axis was told to do: move, and optionally stop varying.
  *
- * **[offset] composes; [narrowing] does not, and that asymmetry is the important part.** Two words that
- * offset one axis in opposite directions cancel to no shift and leave the world's full range of biomes
- * intact — jungles *and* deserts, which is the right reading of "verdant lifeless". Two words that *narrow*
- * in opposite directions collapse the range toward a point, which is precisely the "bipolar axes give
- * temperate mush" failure §3.3 rejected axes to avoid.
+ * **One shift per axis, always.** A climate axis is an enumerated *predicative* parameter (design §3.2) —
+ * "the world **is** hot" conflicts with "the world **is** cold" exactly as "the rock **is** blackstone"
+ * conflicts with tuff — so two words about one axis **contend**: the seed picks and the loser is charged
+ * as displaced. There is no combining step, and nothing here ever merges two shifts.
  *
- * Climate really is a bipolar scalar, so it is the one place that rejected model can creep back in. Hence:
- * **offsets are free and additive; opposing narrowings are a contradiction and are charged.**
+ * An earlier draft had opposing offsets *sum*, cancelling to a full-range world charged nothing, on the
+ * grounds that §3.3 rejected bipolar axes for averaging contradictions into mush. **That was over-anxious
+ * and it was wrong.** §3.3's objection is to averaging *inside one word's effect*, where the player wrote
+ * something wild and got temperate nothing; two words competing is a different situation, and the settled
+ * answer for it everywhere else in this design is contention priced by the instability index. Summing would
+ * also have made climate the one parameter kind that behaves unlike every other predicative one.
  */
 data class ClimateShift(
     /** How far along the axis the whole world moves. Zero leaves it where vanilla put it. */
@@ -133,25 +155,6 @@ data class ClimateShift(
 data class ClimateBias(private val byAxis: Map<ClimateAxis, ClimateShift> = emptyMap()) {
     /** [value] on [axis], as this Age reads it — untouched where nothing was said. */
     fun shift(axis: ClimateAxis, value: Float): Float = byAxis[axis]?.applyTo(value) ?: value
-
-    val isIdle: Boolean get() = byAxis.values.all { it.isIdle }
-
-    /** This bias with [shift] added to [axis] — offsets summing, narrowings taking the strongest. */
-    fun with(axis: ClimateAxis, shift: ClimateShift): ClimateBias {
-        val standing = byAxis[axis] ?: ClimateShift()
-        return ClimateBias(
-            byAxis + (
-                axis to ClimateShift(
-                    // Summed, so two words pushing the same way push harder and two pushing opposite ways
-                    // cancel to the world's own range rather than to mush.
-                    offset = standing.offset + shift.offset,
-                    // Taken at its strongest rather than summed: narrowing is a *ceiling* on variation, and
-                    // two words each asking for less variation should not compound into none at all.
-                    narrowing = maxOf(standing.narrowing, shift.narrowing),
-                )
-                ),
-        )
-    }
 
     companion object {
         val NONE = ClimateBias()

@@ -95,11 +95,19 @@ private fun everyWordIsBackedByTheWorld(vocabulary: Vocabulary) {
             // condemn every material word. What it needs instead is a preset that offers the knob.
             if (!word.constrainsPresets) {
                 for (parameter in word.sets.keys) {
-                    val offered = vocabulary.candidatesFor(slot)
-                        .flatMap { it.parameters }
-                        .filter { it.name == parameter }
+                    val presets = vocabulary.candidatesFor(slot)
+                    val offered = presets.flatMap { it.parameters }.filter { it.name == parameter }
                     check(offered.isNotEmpty()) {
                         "'${word.name}' sets ${slot.key}.$parameter, which no ${slot.key} offers"
+                    }
+                    // Declaring a knob and turning it are different things (`SlotPreset.honours`), and only
+                    // the second makes a word mean anything. Continentalness and erosion shipped as climate
+                    // axes that nothing could honour and were invisible in game for a whole session — this
+                    // is the check that would have caught them before they were written.
+                    val anythingTurnsIt = presets.any { it.honoursParameterNamed(parameter) }
+                    check(anythingTurnsIt) {
+                        "'${word.name}' sets ${slot.key}.$parameter, which every ${slot.key} declares and " +
+                            "none acts on — so writing it would change nothing and say nothing"
                     }
                     for (option in word.sets.values) {
                         check(offered.any { it.accepts(option) }) {

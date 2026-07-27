@@ -140,12 +140,18 @@ enum class Dressing(override val key: String) : SlotPreset {
      */
     val ignoresClimate: Boolean get() = this != OVERWORLD
 
-    /** What the writer said this Age is *like* — the vague half (design §3.2). */
-    private fun climateIn(options: Options): ClimateBias =
-        ClimateAxis.entries.fold(ClimateBias.NONE) { bias, axis ->
-            val chosen = options.of(axis.parameter)
-            if (chosen == ClimateAxis.NATURAL) bias else bias.with(axis, axis.shiftFor(chosen))
-        }
+    /**
+     * What the writer said this Age is *like* — the vague half (design §3.2).
+     *
+     * One shift per axis and no combining, because a climate axis is predicative: two words about the
+     * temperature contend and the resolver has already picked a winner by the time this reads the option.
+     * Idle axes are dropped so a recipe only records what was actually said.
+     */
+    private fun climateIn(options: Options): ClimateBias = ClimateBias(
+        ClimateAxis.entries
+            .associateWith { axis -> axis.shiftFor(options.of(axis.parameter)) }
+            .filterValues { !it.isIdle },
+    )
 
     /**
      * The biomes the writer named — the exact half, and **never exclusive**.

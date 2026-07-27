@@ -38,6 +38,7 @@ import net.minecraft.world.level.levelgen.Heightmap
  *   /age delete <name>|all              — discard an Age (or every Age), chunks and all
  *   /age gen <name>                     — force-generate the spawn chunk and report what it made
  *   /age bench <name> [radius]          — time generating the chunks around the origin (ms/chunk)
+ *   /age biomes <name> [radius]         — what share of the surface each biome covers (for weight tuning)
  *   /age compare <a> <b> [radius]       — do two Ages generate the same world, block for block?
  *   /age list                           — list known Ages (with their recipe)
  */
@@ -77,6 +78,7 @@ object AgeCommand {
                 .then(teleportSubcommand())
                 .then(deleteSubcommand())
                 .then(generateSubcommand())
+                .then(biomeCensusSubcommand())
                 .then(benchmarkSubcommand())
                 .then(compareSubcommand())
                 .then(listSubcommand()),
@@ -171,6 +173,18 @@ object AgeCommand {
     private fun generateSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("gen").then(
             Commands.argument(NAME_ARGUMENT, StringArgumentType.word()).executes(::runGenerate),
+        )
+
+    private fun biomeCensusSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        Commands.literal("biomes").then(
+            Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
+                .executes { context -> runBiomeCensus(context, SURVEY_RADIUS_CHUNKS) }
+                .then(
+                    Commands.argument(RADIUS_ARGUMENT, IntegerArgumentType.integer(1, MAX_CENSUS_RADIUS))
+                        .executes { context ->
+                            runBiomeCensus(context, IntegerArgumentType.getInteger(context, RADIUS_ARGUMENT))
+                        },
+                ),
         )
 
     private fun benchmarkSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
@@ -552,6 +566,52 @@ object AgeCommand {
      * [co.voik.agesandtheart.worldgen.biome.ClimateDepth], since vanilla's underground biomes are reached
      * by the depth parameter or not at all.
      */
+    /**
+     * What share of the surface each biome actually covers — the instrument for tuning biome weights.
+     *
+     * [surveyBiomes] answers "which biomes exist here", which is the wrong question for weighting: naming
+     * `cherry_grove` is meant to make cherry grove *commoner*, and a set tells you nothing about commoner.
+     * Written after a walk where a named biome's nearest instance sat at the same distance as in an Age that
+     * had never named it — which could equally mean the weighting did a little or did nothing at all, and
+     * guessing between those two would have meant tuning a constant that might not be the problem.
+     *
+     * Samples the **biome source directly** rather than generated chunks, so it costs no chunk generation
+     * and measures the climate table alone — decoration, carvers and structures cannot muddy the answer.
+     * Surface only, since that is where biome weighting is judged; [surveyBiomes] is still the one to ask
+     * about the underground.
+     */
+    private fun runBiomeCensus(context: CommandContext<CommandSourceStack>, radiusChunks: Int): Int {
+        val source = context.source
+        val name = StringArgumentType.getString(context, NAME_ARGUMENT)
+        val level = openNamedAge(source, name) ?: return FAILURE
+
+        val biomes = level.chunkSource.generator.biomeSource
+        val climate = level.chunkSource.randomState().sampler()
+        val surfaceQuartY = QuartPos.fromBlock(level.maxBuildHeight - 1)
+        val quartRadius = QuartPos.fromBlock(radiusChunks * BLOCKS_PER_CHUNK)
+
+        val counts = mutableMapOf<String, Int>()
+        for (quartX in -quartRadius..quartRadius step SURVEY_QUART_STRIDE) {
+            for (quartZ in -quartRadius..quartRadius step SURVEY_QUART_STRIDE) {
+                val here = biomeName(biomes, climate, quartX, surfaceQuartY, quartZ)
+                counts[here] = (counts[here] ?: 0) + 1
+            }
+        }
+        val sampled = counts.values.sum()
+        source.sendSuccess({
+            Component.literal(
+                "Age '$name' surface biomes: $sampled samples within $radiusChunks chunks, " +
+                    "${counts.size} distinct",
+            )
+        }, false)
+        // Commonest first, because the question is nearly always "did the thing I named take more ground".
+        for ((biome, count) in counts.entries.sortedByDescending { it.value }) {
+            val share = PERCENT * count / sampled
+            source.sendSuccess({ Component.literal("  ${"%5.2f".format(share)}%  $biome ($count)") }, false)
+        }
+        return SUCCESS
+    }
+
     private fun surveyBiomes(level: ServerLevel, radiusChunks: Int): List<String> {
         val source = level.chunkSource.generator.biomeSource
         val climate = level.chunkSource.randomState().sampler()
@@ -595,6 +655,14 @@ object AgeCommand {
 
     /** Every fourth quart cell, i.e. one column per 16 blocks — dense enough to find small biomes. */
     private const val SURVEY_QUART_STRIDE = 4
+
+    /**
+     * How far a census may reach. Larger than the benchmark's cap because this generates nothing — it asks
+     * the biome source directly — so the only cost is arithmetic, and a rare biome needs ground to be rare in.
+     */
+    private const val MAX_CENSUS_RADIUS = 512
+
+    private const val PERCENT = 100.0
     private const val BLOCKS_PER_CHUNK = 16
 
     /** Wide enough to cross several biomes at vanilla's scale, and free since nothing is generated. */

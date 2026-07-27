@@ -113,14 +113,22 @@ data class BiomePreference(val biome: ResourceLocation, val weight: Double) {
                     Constants.LOG.warn("An Age asked for biome '{}', which this pack does not have", preference.biome)
                     return emptyList()
                 }
-            val elsewhere = climatePointsFromOtherPresets(preference.biome)
-            if (elsewhere.isEmpty()) {
-                return listOf(Pair(syntheticPoint(preference.biome, seed).widenedBy(reach), holder))
-            }
-            // Normalised: a biome arriving with one coarse box gets the same footing as one arriving with
-            // sixty fine ones, rather than however many its home dimension happened to spend on it.
-            val share = CLIMATE_POINTS_FOR_A_BORROWED_BIOME.toDouble() / elsewhere.size
-            return elsewhere.map { point -> Pair(point.widenedBy(reach * share), holder) }
+            // A biome from elsewhere is given a home in climate this world actually reaches, and its own
+            // dimension's coordinates are deliberately not used.
+            //
+            // Two censuses were needed to see why. A nether biome's parameters describe *the Nether's*
+            // climate field, and reusing them here assumes the two spaces are comparable — they are not, so
+            // the point lands wherever those numbers happen to fall in ours, which is usually somewhere the
+            // noise never visits. Worse, its home preset gives one point where a native biome has dozens, so
+            // even a well-placed entry loses to seven thousand neighbours. Both censuses showed a summoned
+            // biome changing the world not at all.
+            //
+            // So: anchor on entries already in the table, which are reachable by construction, and take
+            // enough of them to compete. End biomes reach this path too and always did — they have no
+            // climate anywhere, and it turns out neither does anything else, in any sense that helps.
+            val homes = homesFor(preference.biome, table, seed)
+            val halfWidth = quantized(BORROWED_HALF_WIDTH * (1.0 + preference.weight))
+            return homes.map { point -> Pair(point.grownTo(halfWidth), holder) }
         }
 
         /** A biome's climate wherever vanilla knows one — its own dimension's preset, usually. */
@@ -129,20 +137,52 @@ data class BiomePreference(val biome: ResourceLocation, val weight: Double) {
                 .flatMap { list -> list.values().filter { it.second.location() == biome }.map { it.first } }
 
         /**
-         * Somewhere in climate space for a biome that has no climate anywhere, drawn from the Age's seed
-         * and the biome's own name so it is stable for a given Age and different between Ages.
+         * Where to put a biome that has no climate anywhere — End biomes, and mod biomes placed by wrapping
+         * the biome source rather than extending the parameter list.
+         *
+         * **Anchored on a climate the world actually reaches**, not drawn uniformly at random. The six
+         * parameters are noise, so the values a world visits cluster on a small part of the cube; a uniform
+         * point lands in a region the noise never produces, and the biome then exists in the table and
+         * nowhere in the ground — which is what a census caught for `end_highlands`. Borrowing an existing
+         * entry's coordinates guarantees somewhere reachable, and the seed and the biome's own name pick
+         * *which*, so it is stable for an Age and different between Ages.
          */
-        private fun syntheticPoint(biome: ResourceLocation, seed: Long): Climate.ParameterPoint {
+        private fun homesFor(
+            biome: ResourceLocation,
+            table: List<Pair<Climate.ParameterPoint, Holder<Biome>>>,
+            seed: Long,
+        ): List<Climate.ParameterPoint> {
+            // Surface entries only. The table is mostly *cave* biomes by count, and an anchor taken from
+            // those carries their depth — a third census caught a summoned biome sitting at depth 1.0,
+            // which no surface sample can ever reach, so it existed in the table and nowhere anybody walks.
+            val atSurface = table.filter { it.first.depth().min() <= SURFACE_DEPTH }
+            val homes = atSurface.ifEmpty { table }
             val random = XoroshiroRandomSource(seed xor (biome.hashCode().toLong() * BIOME_MIXER))
-            fun axis(): Climate.Parameter {
-                val middle = random.nextDouble().toFloat() * 2f - 1f
-                return Climate.Parameter(
-                    Climate.quantizeCoord(middle - SYNTHETIC_HALF_WIDTH),
-                    Climate.quantizeCoord(middle + SYNTHETIC_HALF_WIDTH),
-                )
+            // Several, clustered around one anchor rather than scattered: a biome should arrive as a *place*
+            // somewhere in the world, not as confetti through every climate it happens to be nearest to.
+            val anchor = random.nextInt(homes.size)
+            return (0..<HOMES_FOR_A_BORROWED_BIOME).map { step ->
+                homes[(anchor + step * HOME_STRIDE) % homes.size].first
             }
-            return Climate.ParameterPoint(axis(), axis(), axis(), axis(), FULL_DEPTH, axis(), 0L)
         }
+
+        /** Every axis widened to the same half-width about its own middle, leaving depth alone. */
+        private fun Climate.ParameterPoint.grownTo(halfWidth: Long) = Climate.ParameterPoint(
+            temperature().grownTo(halfWidth),
+            humidity().grownTo(halfWidth),
+            continentalness().grownTo(halfWidth),
+            erosion().grownTo(halfWidth),
+            depth(),
+            weirdness().grownTo(halfWidth),
+            offset(),
+        )
+
+        private fun Climate.Parameter.grownTo(halfWidth: Long): Climate.Parameter {
+            val middle = (min() + max()) / 2
+            return Climate.Parameter(middle - halfWidth, middle + halfWidth)
+        }
+
+        private fun quantized(climateUnits: Double): Long = Climate.quantizeCoord(climateUnits.toFloat())
 
         /**
          * One climate box grown about its own middle.
@@ -169,16 +209,28 @@ data class BiomePreference(val biome: ResourceLocation, val weight: Double) {
         }
 
         /** How much of a box's half-width one unit of weight adds. Taste; expect Jonah to retune it. */
-        private const val WIDENING_PER_WEIGHT = 0.6
+        private const val WIDENING_PER_WEIGHT = 1.5
 
-        /** How many points' worth of climate a biome summoned from another dimension is given. */
-        private const val CLIMATE_POINTS_FOR_A_BORROWED_BIOME = 8
+        /**
+         * How wide a niche a biome borrowed from another dimension (or invented for one with no climate)
+         * is given, in climate units either side of its centre, before its weight scales it.
+         */
+        private const val BORROWED_HALF_WIDTH = 0.10
 
-        /** How wide a synthetic box is, in climate units, before weighting widens it further. */
-        private const val SYNTHETIC_HALF_WIDTH = 0.15f
+        /**
+         * How many climate points a biome from elsewhere is given.
+         *
+         * A native biome holds dozens — cherry grove has sixty — so one entry is invisible however wide its
+         * box. This is the number that decides whether a summoned biome is findable at all; a census is the
+         * only honest way to set it.
+         */
+        private const val HOMES_FOR_A_BORROWED_BIOME = 96
 
-        /** A synthetic biome spans the whole column, since nothing tells us where it belongs vertically. */
-        private val FULL_DEPTH = Climate.Parameter(Climate.quantizeCoord(-1f), Climate.quantizeCoord(1f))
+        /** Spacing between borrowed homes in the table, so they are neighbours rather than one spot. */
+        private const val HOME_STRIDE = 7
+
+        /** Depth at or below which an entry is one you can stand on rather than one you have to dig to. */
+        private val SURFACE_DEPTH = Climate.quantizeCoord(0.1f)
 
         private const val BIOME_MIXER = -0x61c8_8646_80b5_83ebL
 

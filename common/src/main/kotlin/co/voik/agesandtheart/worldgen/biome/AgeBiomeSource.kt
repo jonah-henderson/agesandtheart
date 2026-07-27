@@ -119,8 +119,10 @@ class AgeBiomeSource(
             Climate.target(
                 bias.shift(ClimateAxis.TEMPERATURE, climate.temperature().compute(point).toFloat()),
                 bias.shift(ClimateAxis.HUMIDITY, climate.humidity().compute(point).toFloat()),
-                bias.shift(ClimateAxis.CONTINENTALNESS, climate.continentalness().compute(point).toFloat()),
-                bias.shift(ClimateAxis.EROSION, climate.erosion().compute(point).toFloat()),
+                // Continentalness and erosion pass through untouched: they describe shape, and an Age's
+                // shape is the field tree's, not the climate's. See [ClimateAxis].
+                climate.continentalness().compute(point).toFloat(),
+                climate.erosion().compute(point).toFloat(),
                 depth.at(blockX, blockY, blockZ),
                 bias.shift(ClimateAxis.WEIRDNESS, climate.weirdness().compute(point).toFloat()),
             ),
