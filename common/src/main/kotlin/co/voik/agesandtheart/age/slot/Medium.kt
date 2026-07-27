@@ -38,18 +38,19 @@ enum class Medium(override val key: String, private val block: () -> BlockState)
     override fun getSerializedName(): String = key
 
     /**
-     * This medium poured over [landform]. A landform standing in open air (no [Landform.wantsMedium])
-     * fills nothing whatever is named here — the shape's own contract wins over the sentence, because
-     * a sea at no particular height is not a thing the world can be.
+     * This medium poured over [landform]. A landform standing in open air has no [Landform.waterline],
+     * and then nothing is filled whatever is named here — the shape's own contract wins over the
+     * sentence, because a sea at no particular height is not a thing the world can be.
      */
     fun over(landform: Landform, options: Options): AmbientMedium {
-        if (this == VOID || !landform.wantsMedium) return AmbientMedium.VOID
+        val waterline = landform.waterline ?: return AmbientMedium.VOID
+        if (this == VOID) return AmbientMedium.VOID
         val shift = when (options.of(DEPTH)) {
             "shallow" -> -DEPTH_STEP
             "deep" -> DEPTH_STEP
             else -> 0
         }
-        return AmbientMedium.sea(block(), level = landform.waterline + shift)
+        return AmbientMedium.sea(block(), level = waterline + shift)
     }
 
     companion object {

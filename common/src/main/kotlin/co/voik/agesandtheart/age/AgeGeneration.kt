@@ -61,13 +61,23 @@ object AgeGeneration {
         )
     }
 
-    /** The few Ages that are a whole generator rather than an assembly of parts. */
+    /**
+     * The few Ages that are a whole generator rather than an assembly of parts.
+     *
+     * Exhaustive rather than `else`-terminated, and deliberately: [AgeRecipe.worldFor] is what decides
+     * which arm a preset lands in, and the two would otherwise be free to disagree in silence — a new
+     * bespoke preset would have quietly generated Spire's world. Now it fails to compile.
+     */
     private fun bespoke(server: MinecraftServer, preset: AgePreset, seed: Long): ChunkGenerator = when (preset) {
         AgePreset.VANILLA -> VanillaDelegate.overworld(server)
         AgePreset.VANILLA_BARE -> VanillaDelegate.bareOverworld(server)
         // Spire wears its own green plasma biome, since that world is what its whole look was designed
         // around. Everything else that once lived here is a composition now.
-        else -> SpireChunkGenerator(plasmaBiome(server), seed)
+        AgePreset.SPIRE -> SpireChunkGenerator(plasmaBiome(server), seed)
+
+        AgePreset.FIELD, AgePreset.PYRAMIDS, AgePreset.PYRINGS, AgePreset.PYRVARIED, AgePreset.HILLS,
+        AgePreset.SHAPES, AgePreset.PILLARS, AgePreset.CAVERNS, AgePreset.ERODED,
+        -> error("'${preset.key}' names a composition, so AgeRecipe.worldFor should never have sent it here")
     }
 
     private fun plasmaBiome(server: MinecraftServer) = FixedBiomeSource(
