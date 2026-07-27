@@ -3,6 +3,7 @@ package co.voik.agesandtheart.age
 import co.voik.agesandtheart.Constants
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.IntegerArgumentType
+import com.mojang.brigadier.arguments.LongArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
@@ -26,31 +27,33 @@ import net.minecraft.world.level.levelgen.Heightmap
  * Brigadier is vanilla, so the whole command tree lives in `common`; each loader only has to hand
  * us its [CommandDispatcher] through its own command-registration event.
  *
- *   /age create <name>           — author a new Age (Spire preset) and persist it
- *   /age create field <name>     — a field-generator Age (the Spire island as a field tree)
- *   /age create pyramids <name>  — a field-generator Age: instanced pyramids on a plain
- *   /age create pyrvaried <name> — the same, with each pyramid turned and resized
- *   /age create hills <name>     — a noise-heightmap Age: rolling hills over a sea
- *   /age create shapes <name>    — a walkable sampler of the shape vocabulary and its combinators
- *   /age create pillars <name>   — colossal rectangular pillars on a jittered grid, over an ocean
- *   /age create vanilla <name>   — Minecraft's own overworld generation (Tier-B delegate; bench reference)
- *   /age create vanillabare <n>  — the same pipeline over a barren biome, so nothing decorates
- *   /age tp <name>               — travel to an Age
- *   /age delete <name>|all       — discard an Age (or every Age), chunks and all
- *   /age gen <name>              — force-generate the spawn chunk and report what the generator made
- *   /age bench <name> [radius]   — time generating the chunks around the origin (ms/chunk)
- *   /age list                    — list known Ages (with their generator kind)
+ *   /age create <name> [seed]           — author a new Age (Spire preset) and persist it
+ *   /age create <preset> <name> [seed]  — the same, from any [AgePreset]: `hills`, `caverns`, …
+ *   /age tp <name>                      — travel to an Age
+ *   /age delete <name>|all              — discard an Age (or every Age), chunks and all
+ *   /age gen <name>                     — force-generate the spawn chunk and report what it made
+ *   /age bench <name> [radius]          — time generating the chunks around the origin (ms/chunk)
+ *   /age compare <a> <b> [radius]       — do two Ages generate the same world, block for block?
+ *   /age list                           — list known Ages (with their recipe)
  */
 object AgeCommand {
     private const val OPERATOR_PERMISSION_LEVEL = 2
     private const val NAME_ARGUMENT = "name"
     private const val RADIUS_ARGUMENT = "radius"
+    private const val SEED_ARGUMENT = "seed"
+    private const val FIRST_ARGUMENT = "first"
+    private const val SECOND_ARGUMENT = "second"
 
     // Big enough to be dominated by generation rather than level-open overhead, small enough to run
     // on the server thread without tripping the watchdog.
     private const val DEFAULT_BENCHMARK_RADIUS = 8
     private const val MAX_BENCHMARK_RADIUS = 24
     private const val NANOS_PER_MILLISECOND = 1_000_000.0
+
+    // A comparison reads every block of every chunk in range, so it stays small by default.
+    private const val DEFAULT_COMPARE_RADIUS = 2
+    private const val MAX_COMPARE_RADIUS = 8
+    private const val MAX_REPORTED_DIFFERENCES = 3
 
     // Brigadier command result codes.
     private const val SUCCESS = 1
@@ -65,81 +68,35 @@ object AgeCommand {
                 .then(deleteSubcommand())
                 .then(generateSubcommand())
                 .then(benchmarkSubcommand())
+                .then(compareSubcommand())
                 .then(listSubcommand()),
         )
     }
 
-    private fun createSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
-        Commands.literal("create")
+    /**
+     * `/age create [<preset>] <name> [<seed>]` — one branch per [AgePreset], built from the enum rather
+     * than listed by hand, so a new preset is offered here the moment it exists. The bare form (no
+     * preset) stays Spire, as it always has been.
+     *
+     * The optional seed is what makes `/age compare` worth anything: an Age normally seeds itself from
+     * its own name, so two Ages can never be the same world by accident. Naming the seed is the only
+     * way to write the *same* recipe twice.
+     */
+    private fun createSubcommand(): LiteralArgumentBuilder<CommandSourceStack> {
+        val create = Commands.literal("create").then(namedAge(AgePreset.SPIRE))
+        for (preset in AgePreset.entries) {
+            create.then(Commands.literal(preset.key).then(namedAge(preset)))
+        }
+        return create
+    }
+
+    /** `<name> [<seed>]`, the tail every `create` branch ends in. */
+    private fun namedAge(preset: AgePreset) =
+        Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
+            .executes { context -> runCreate(context, preset, seed = null) }
             .then(
-                Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
-                    .executes { context -> runCreate(context, AgeGeneration.GENERATOR_SPIRE) },
-            )
-            .then(
-                Commands.literal("field").then(
-                    Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
-                        .executes { context -> runCreate(context, AgeGeneration.GENERATOR_FIELD) },
-                ),
-            )
-            .then(
-                Commands.literal("pyramids").then(
-                    Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
-                        .executes { context -> runCreate(context, AgeGeneration.GENERATOR_PYRAMIDS) },
-                ),
-            )
-            .then(
-                Commands.literal("pyrings").then(
-                    Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
-                        .executes { context -> runCreate(context, AgeGeneration.GENERATOR_PYRINGS) },
-                ),
-            )
-            .then(
-                Commands.literal("pyrvaried").then(
-                    Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
-                        .executes { context -> runCreate(context, AgeGeneration.GENERATOR_PYRVARIED) },
-                ),
-            )
-            .then(
-                Commands.literal("hills").then(
-                    Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
-                        .executes { context -> runCreate(context, AgeGeneration.GENERATOR_HILLS) },
-                ),
-            )
-            .then(
-                Commands.literal("shapes").then(
-                    Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
-                        .executes { context -> runCreate(context, AgeGeneration.GENERATOR_SHAPES) },
-                ),
-            )
-            .then(
-                Commands.literal("pillars").then(
-                    Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
-                        .executes { context -> runCreate(context, AgeGeneration.GENERATOR_PILLARS) },
-                ),
-            )
-            .then(
-                Commands.literal("caverns").then(
-                    Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
-                        .executes { context -> runCreate(context, AgeGeneration.GENERATOR_CAVERNS) },
-                ),
-            )
-            .then(
-                Commands.literal("eroded").then(
-                    Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
-                        .executes { context -> runCreate(context, AgeGeneration.GENERATOR_ERODED) },
-                ),
-            )
-            .then(
-                Commands.literal("vanilla").then(
-                    Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
-                        .executes { context -> runCreate(context, AgeGeneration.GENERATOR_VANILLA) },
-                ),
-            )
-            .then(
-                Commands.literal("vanillabare").then(
-                    Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
-                        .executes { context -> runCreate(context, AgeGeneration.GENERATOR_VANILLA_BARE) },
-                ),
+                Commands.argument(SEED_ARGUMENT, LongArgumentType.longArg())
+                    .executes { context -> runCreate(context, preset, LongArgumentType.getLong(context, SEED_ARGUMENT)) },
             )
 
     private fun teleportSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
@@ -164,6 +121,20 @@ object AgeCommand {
                 ),
         )
 
+    private fun compareSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        Commands.literal("compare").then(
+            Commands.argument(FIRST_ARGUMENT, StringArgumentType.word()).then(
+                Commands.argument(SECOND_ARGUMENT, StringArgumentType.word())
+                    .executes { context -> runCompare(context, DEFAULT_COMPARE_RADIUS) }
+                    .then(
+                        Commands.argument(RADIUS_ARGUMENT, IntegerArgumentType.integer(0, MAX_COMPARE_RADIUS))
+                            .executes { context ->
+                                runCompare(context, IntegerArgumentType.getInteger(context, RADIUS_ARGUMENT))
+                            },
+                    ),
+            ),
+        )
+
     /** `all` is a literal rather than a name, so it cannot collide with an Age actually called "all". */
     private fun deleteSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("delete")
@@ -176,7 +147,7 @@ object AgeCommand {
     private fun ageId(name: String): ResourceLocation =
         ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, name.lowercase())
 
-    private fun runCreate(context: CommandContext<CommandSourceStack>, generatorKey: String): Int {
+    private fun runCreate(context: CommandContext<CommandSourceStack>, preset: AgePreset, seed: Long?): Int {
         val source = context.source
         val name = StringArgumentType.getString(context, NAME_ARGUMENT)
         val id = ageId(name)
@@ -188,13 +159,114 @@ object AgeCommand {
             source.sendFailure(Component.literal("Age '$name' already exists"))
             return FAILURE
         }
-        val level = Ages.create(source.server, id, generatorKey)
+        val recipe = if (seed == null) AgeRecipe.forPreset(preset, id) else AgeRecipe(preset, seed)
+        val level = Ages.create(source.server, id, recipe)
         if (level == null) {
             source.sendFailure(Component.literal("Could not create Age '$name'"))
             return FAILURE
         }
-        source.sendSuccess({ Component.literal("Created Age '$name' [$generatorKey] ($id). Travel with /age tp $name") }, true)
+        source.sendSuccess({ Component.literal("Created Age '$name' [${preset.key}] ($id). Travel with /age tp $name") }, true)
         return SUCCESS
+    }
+
+    /**
+     * Generates the same square of chunks in two Ages and compares them block for block.
+     *
+     * The instrument for the one property everything else assumes: **an Age is its recipe**, so the
+     * same recipe and the same seed must give the same world. Write two Ages with a shared seed
+     * (`/age create hills a 42` and `/age create hills b 42`) and this says whether they agree.
+     *
+     * Both are generated *in one server run*, one after the other, which is what makes it cheap enough
+     * to use while iterating: no baseline save to keep, no second boot, no comparison of saved region
+     * files. It answers for the generator, not for the save format.
+     *
+     * It reads every block rather than sampling, because the differences worth catching are small: a
+     * scatter of ore in one chunk, a tree that moved. Radius stays low by default for the same reason.
+     */
+    private fun runCompare(context: CommandContext<CommandSourceStack>, radius: Int): Int {
+        val source = context.source
+        val saved = AgeSavedData.get(source.server)
+        val firstName = StringArgumentType.getString(context, FIRST_ARGUMENT)
+        val secondName = StringArgumentType.getString(context, SECOND_ARGUMENT)
+
+        val first = openForCompare(context, firstName) ?: return FAILURE
+        val second = openForCompare(context, secondName) ?: return FAILURE
+
+        val firstRecipe = saved.recipe(ageId(firstName))
+        val secondRecipe = saved.recipe(ageId(secondName))
+        source.sendSuccess({
+            Component.literal(
+                "Comparing '$firstName' [${firstRecipe.preset.key} seed=${firstRecipe.seed}] " +
+                    "with '$secondName' [${secondRecipe.preset.key} seed=${secondRecipe.seed}]",
+            )
+        }, false)
+
+        // Each world generated whole before the other is touched, so this asks whether the recipe
+        // reproduces — not whether two worlds interleaved on the chunk workers happen to agree.
+        val chunks = (-radius..radius).flatMap { chunkX -> (-radius..radius).map { chunkZ -> chunkX to chunkZ } }
+        for ((chunkX, chunkZ) in chunks) first.getChunk(chunkX, chunkZ)
+        for ((chunkX, chunkZ) in chunks) second.getChunk(chunkX, chunkZ)
+
+        var differingBlocks = 0
+        var differingChunks = 0
+        val examples = mutableListOf<String>()
+        for ((chunkX, chunkZ) in chunks) {
+            val differences = compareChunk(first, second, chunkX, chunkZ, examples)
+            if (differences > 0) differingChunks++
+            differingBlocks += differences
+        }
+
+        val verdict = if (differingBlocks == 0) {
+            "identical: ${chunks.size} chunks agree block for block"
+        } else {
+            "$differingBlocks block(s) differ across $differingChunks of ${chunks.size} chunks"
+        }
+        source.sendSuccess({ Component.literal("  $verdict") }, false)
+        examples.forEach { example -> source.sendSuccess({ Component.literal("  $example") }, false) }
+        return SUCCESS
+    }
+
+    /** Opens an Age for comparison, complaining in the way the other subcommands do if it cannot. */
+    private fun openForCompare(context: CommandContext<CommandSourceStack>, name: String): ServerLevel? {
+        val source = context.source
+        val id = ageId(name)
+        if (id !in AgeSavedData.get(source.server).ages) {
+            source.sendFailure(Component.literal("No Age named '$name' — create it with /age create $name"))
+            return null
+        }
+        return Ages.open(source.server, id)
+            ?: null.also { source.sendFailure(Component.literal("Could not open Age '$name'")) }
+    }
+
+    /** Every block of one chunk against the other's, collecting the first few disagreements. */
+    private fun compareChunk(
+        first: ServerLevel,
+        second: ServerLevel,
+        chunkX: Int,
+        chunkZ: Int,
+        examples: MutableList<String>,
+    ): Int {
+        val here = first.getChunk(chunkX, chunkZ)
+        val there = second.getChunk(chunkX, chunkZ)
+        val cursor = BlockPos.MutableBlockPos()
+        var differences = 0
+
+        for (localX in 0..<BLOCKS_PER_CHUNK) {
+            for (localZ in 0..<BLOCKS_PER_CHUNK) {
+                for (y in here.minBuildHeight..<here.maxBuildHeight) {
+                    cursor.set(chunkX * BLOCKS_PER_CHUNK + localX, y, chunkZ * BLOCKS_PER_CHUNK + localZ)
+                    val mine = here.getBlockState(cursor)
+                    val theirs = there.getBlockState(cursor)
+                    if (mine == theirs) continue
+                    differences++
+                    if (examples.size < MAX_REPORTED_DIFFERENCES) {
+                        examples += "at (${cursor.x}, ${cursor.y}, ${cursor.z}): " +
+                            "${BuiltInRegistries.BLOCK.getKey(mine.block)} vs ${BuiltInRegistries.BLOCK.getKey(theirs.block)}"
+                    }
+                }
+            }
+        }
+        return differences
     }
 
     private fun runDelete(context: CommandContext<CommandSourceStack>): Int {
@@ -391,7 +463,7 @@ object AgeCommand {
         if (ages.isEmpty()) {
             source.sendSuccess({ Component.literal("No Ages yet — write one with /age create <name>") }, false)
         } else {
-            val listing = ages.joinToString(", ") { id -> "$id [${saved.generatorKey(id)}]" }
+            val listing = ages.joinToString(", ") { id -> "$id [${saved.recipe(id).preset.key}]" }
             source.sendSuccess({ Component.literal("Ages (${ages.size}): $listing") }, false)
         }
         return SUCCESS

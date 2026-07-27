@@ -69,13 +69,14 @@ The mod has **no Mixins** right now; everything goes through Fabric API hooks + 
 
 The core mechanic — creating dimensions ("Ages") at runtime and persisting them — lives in `common/.../age/`, with the one loader-specific piece behind the `AgeBackend` service:
 
-- **`AgeGen`** — builds the generation recipe (currently a superflat `ChunkGenerator` from `server.registryAccess()`). Loader-agnostic; v1 replaces this with symbol-driven generation, same `server -> generator` shape.
-- **`AgeSavedData`** — vanilla `SavedData` on the overworld's data storage, persisting the set of Age ids. Runtime-dimension libraries do **not** auto-restore dimensions on restart, so we track ids ourselves.
-- **`AgeManager`** — loader-agnostic policy: `createAge` / `openAge` (delegates to `Services.AGE_BACKEND`) and `reloadSavedAges` (replay on boot).
-- **`AgeCommand`** — the `/age create|tp|list` Brigadier tree (vanilla, so it's in `common`); the debug trigger until books exist.
+- **`AgeRecipe`** — **what an Age is, as data**: the preset it was written from, its seed, and the generator version that made it. Codec-serialised, and the *only* record of an Age — the dimension is rebuilt from it on every open. `AgePreset` names the generation presets; its `key` is the save format, so renaming one orphans every Age already written with it (`:common:recipecheck` guards this).
+- **`AgeGeneration`** — turns a recipe into a `ChunkGenerator`, in an exhaustive `when` over `AgePreset`. A pure function of the recipe (plus the server, for registries), because an Age must rebuild identically on every open.
+- **`AgeSavedData`** — vanilla `SavedData` on the overworld's data storage, persisting each Age's recipe. Runtime-dimension libraries do **not** auto-restore dimensions on restart, so we track them ourselves. Reads the pre-recipe format (an id list plus generator-kind strings) and migrates it.
+- **`Ages`** — loader-agnostic policy: `create` / `open` / `ensure` / `delete` (delegating to `Services.AGE_BACKEND`) and `reloadSaved` (replay on boot).
+- **`AgeCommand`** — the `/age` Brigadier tree (vanilla, so it's in `common`); the debug trigger until books exist. `/age compare <a> <b>` generates two Ages and diffs them block for block — write two with the same seed to check a recipe reproduces.
 - **`AgeBackend`** (service) — `FabricAgeBackend` implements it with **Fantasy** (`Fantasy.get(server).getOrOpenPersistentWorld(id, config)`); `NeoForgeAgeBackend` is an `isSupported = false` stub, so `/age create` on NeoForge reports "not supported yet" instead of crashing.
 
-Reload trigger is loader-specific: Fabric's `SERVER_STARTED` event calls `AgeManager.reloadSavedAges`. Fantasy must be called on the server thread (commands and lifecycle events already are). **Fantasy is Fabric-only**, so all Fantasy references stay in the `fabric` module — never in `common`.
+Reload trigger is loader-specific: Fabric's `SERVER_STARTED` event calls `Ages.reloadSaved`. Fantasy must be called on the server thread (commands and lifecycle events already are). **Fantasy is Fabric-only**, so all Fantasy references stay in the `fabric` module — never in `common`.
 
 ## Conventions
 

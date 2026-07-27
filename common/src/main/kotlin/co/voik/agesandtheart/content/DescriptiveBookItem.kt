@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.content
 
+import co.voik.agesandtheart.age.AgePreset
+import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.Ages
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
@@ -37,7 +39,9 @@ class DescriptiveBookItem(properties: Properties) : Item(properties) {
         val ageId = existingAgeId ?: Ages.allocateId(server).also { stack.set(AgeContent.AGE_ID, it) }
         val isFirstWrite = existingAgeId == null
 
-        val age = Ages.ensure(server, ageId)
+        // Every book writes the same world for now. This is where the words a player wrote will be
+        // resolved into a recipe, and it is the whole point of the Art: see notes/the-art-design.md.
+        val age = Ages.ensure(server, ageId, AgeRecipe.forPreset(AgePreset.SPIRE, ageId))
         if (age == null) {
             player.displayClientMessage(Component.literal("Could not open the Age."), true)
             return InteractionResultHolder.fail(stack)

@@ -79,6 +79,23 @@ tasks.register<JavaExec>("spanscheck") {
     javaLauncher = javaToolchains.launcherFor(java.toolchain)
 }
 
+tasks.register<JavaExec>("terraindiff") {
+    group = "verification"
+    description = "Compares two saved worlds Age by Age, block for block — what a generation refactor is checked against."
+    mainClass = "co.voik.agesandtheart.preview.TerrainDiffKt"
+    classpath = preview.runtimeClasspath
+    // Two world folders, e.g. ./gradlew :common:terraindiff --args="before/world after/world"
+    javaLauncher = javaToolchains.launcherFor(java.toolchain)
+}
+
+tasks.register<JavaExec>("recipecheck") {
+    group = "verification"
+    description = "Checks Age recipes round-trip through NBT, and that written generator kinds still resolve."
+    mainClass = "co.voik.agesandtheart.preview.RecipeCheckKt"
+    classpath = preview.runtimeClasspath
+    javaLauncher = javaToolchains.launcherFor(java.toolchain)
+}
+
 tasks.register<JavaExec>("depthcachecheck") {
     group = "verification"
     description = "Checks BelowTerrain's column cache is actually hit (guards a silent indexing bug)."

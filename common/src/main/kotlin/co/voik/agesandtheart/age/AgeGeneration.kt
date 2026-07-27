@@ -26,31 +26,17 @@ import net.minecraft.world.level.levelgen.structure.BuiltinStructureSets
 import net.minecraft.world.level.levelgen.structure.StructureSet
 
 /**
- * Builds the generation recipe for an Age.
+ * Turns an [AgeRecipe] into the generator that builds its world.
  *
- * An Age's generator is chosen by a persisted generator-kind key (see [AgeSavedData]) so the same
- * kind is rebuilt on every open, including restart-replay. Two kinds exist today, both on the custom
- * `plasma` biome: [GENERATOR_SPIRE] (the bespoke [SpireChunkGenerator] preset — the floating-island
- * "Spire" world) and [GENERATOR_FIELD] (the composable [co.voik.agesandtheart.worldgen.FieldChunkGenerator],
- * currently driving the [SpireField] island preset — our first field-toolkit world). v1 makes the
- * choice symbol-driven; the key mechanism is the seam that grows into that.
+ * This is the one place a recipe becomes machinery, and it is deliberately a *pure function of the
+ * recipe* (plus the server, for the registries the presets need): an Age is replayable data, so the
+ * same recipe must give the same world on every open, restart-replay included.
+ *
+ * Each preset is presently a whole world. Phase 2 of the Art splits them by slot, at which point this
+ * function assembles a generator from several rather than choosing one — the `when` below is the seam
+ * that grows into that.
  */
 object AgeGeneration {
-    /** Persisted generator-kind keys (stored per Age in [AgeSavedData], selected at open time). */
-    const val GENERATOR_SPIRE = "spire"
-    const val GENERATOR_FIELD = "field"
-    const val GENERATOR_PYRAMIDS = "pyramids"
-    const val GENERATOR_PYRINGS = "pyrings"
-    const val GENERATOR_PYRVARIED = "pyrvaried"
-    const val GENERATOR_HILLS = "hills"
-    const val GENERATOR_SHAPES = "shapes"
-    const val GENERATOR_PILLARS = "pillars"
-    const val GENERATOR_CAVERNS = "caverns"
-    const val GENERATOR_ERODED = "eroded"
-
-    /** Tier-B vanilla delegates — real Minecraft generation, and our benchmark reference points. */
-    const val GENERATOR_VANILLA = "vanilla"
-    const val GENERATOR_VANILLA_BARE = "vanillabare"
     /**
      * The Spire dimension type (registered as a datapack dimension-type at load). Its `effects` id is
      * `agesandtheart:age`, the marker the client watches to attach the custom Spire sky renderer.
@@ -67,45 +53,41 @@ object AgeGeneration {
     /** The custom biome (green plasma water), registered as a datapack biome at load. */
     val PLASMA_BIOME: ResourceLocation = "plasma".location()
 
-    fun chunkGenerator(server: MinecraftServer, id: ResourceLocation, seed: Long): ChunkGenerator {
-        val generatorKey = AgeSavedData.get(server).generatorKey(id)
-        // Some presets bring their own biome source, so they answer before the fixed one is built: the
-        // Tier-B delegates wrap vanilla's whole pipeline, and `hills` wants real biomes of its own.
-        when (generatorKey) {
-            GENERATOR_VANILLA -> return VanillaDelegate.overworld(server)
-            GENERATOR_VANILLA_BARE -> return VanillaDelegate.bareOverworld(server)
-            // Vanilla's climate over vanilla's biome table — the sane default for an Age whose author has
-            // expressed no preference. See [AgeBiomeSource] for why vanilla's own MultiNoiseBiomeSource
-            // cannot work for a generator like ours.
-            GENERATOR_HILLS -> return NoiseField.hillsGenerator(
-                AgeBiomeSource.vanillaOverworld(server, seed),
-                undergroundCarvers(server),
-                overworldStructures(server),
-            )
-            // No vanilla carvers: this Age's caves are its field tree, and the point is to see what
-            // ridged noise alone makes of the rock without cave-and-canyon walks confusing the picture.
-            GENERATOR_CAVERNS -> return CavernField.generator(AgeBiomeSource.vanillaOverworld(server, seed))
-        }
-        val biomes = if (generatorKey in SPIRE_KINDS) {
-            // Spire — bespoke preset and field rebuild alike — wears its own green plasma biome, since
-            // that world is what the whole look is being designed for.
-            fixedBiome(server, ResourceKey.create(Registries.BIOME, PLASMA_BIOME))
-        } else {
-            // The shape samplers stay on vanilla the_void: a bright, neutral sky with no features or
-            // structures, which suits iterating on form with nothing in the way.
-            fixedBiome(server, Biomes.THE_VOID)
-        }
-        return when (generatorKey) {
-            GENERATOR_FIELD -> SpireField.generator(biomes, erosionCarvers(server))
-            GENERATOR_PYRAMIDS -> PyramidField.generator(biomes)
-            GENERATOR_PYRINGS -> PyramidField.ringsGenerator(biomes)
-            GENERATOR_PYRVARIED -> PyramidField.variedGenerator(biomes)
-            GENERATOR_SHAPES -> ShapesField.generator(biomes)
-            GENERATOR_PILLARS -> PillarField.generator(biomes)
-            GENERATOR_ERODED -> ErodedField.generator(biomes)
-            else -> SpireChunkGenerator(biomes, seed)
-        }
+    fun chunkGenerator(server: MinecraftServer, recipe: AgeRecipe): ChunkGenerator = when (recipe.preset) {
+        // The Tier-B delegates wrap vanilla's whole pipeline, biome source and all.
+        AgePreset.VANILLA -> VanillaDelegate.overworld(server)
+        AgePreset.VANILLA_BARE -> VanillaDelegate.bareOverworld(server)
+        // Vanilla's climate over vanilla's biome table — the sane default for an Age whose author has
+        // expressed no preference. See [AgeBiomeSource] for why vanilla's own MultiNoiseBiomeSource
+        // cannot work for a generator like ours.
+        AgePreset.HILLS -> NoiseField.hillsGenerator(
+            AgeBiomeSource.vanillaOverworld(server, recipe.seed),
+            undergroundCarvers(server),
+            overworldStructures(server),
+        )
+        // No vanilla carvers: this Age's caves are its field tree, and the point is to see what
+        // ridged noise alone makes of the rock without cave-and-canyon walks confusing the picture.
+        AgePreset.CAVERNS -> CavernField.generator(AgeBiomeSource.vanillaOverworld(server, recipe.seed))
+        // Spire — bespoke preset and field rebuild alike — wears its own green plasma biome, since
+        // that world is what the whole look is being designed for.
+        AgePreset.SPIRE -> SpireChunkGenerator(plasmaBiome(server), recipe.seed)
+        AgePreset.FIELD -> SpireField.generator(plasmaBiome(server), erosionCarvers(server))
+        // The shape samplers stay on vanilla the_void: a bright, neutral sky with no features or
+        // structures, which suits iterating on form with nothing in the way.
+        AgePreset.PYRAMIDS -> PyramidField.generator(voidBiome(server))
+        AgePreset.PYRINGS -> PyramidField.ringsGenerator(voidBiome(server))
+        AgePreset.PYRVARIED -> PyramidField.variedGenerator(voidBiome(server))
+        AgePreset.SHAPES -> ShapesField.generator(voidBiome(server))
+        AgePreset.PILLARS -> PillarField.generator(voidBiome(server))
+        AgePreset.ERODED -> ErodedField.generator(voidBiome(server))
     }
+
+    /** Spire's own green plasma sea. */
+    private fun plasmaBiome(server: MinecraftServer) =
+        fixedBiome(server, ResourceKey.create(Registries.BIOME, PLASMA_BIOME))
+
+    /** Vanilla's barren `the_void`: a bright, neutral sky and nothing growing in the way of the shape. */
+    private fun voidBiome(server: MinecraftServer) = fixedBiome(server, Biomes.THE_VOID)
 
     /** One biome everywhere — for the Ages whose look is the shape itself. */
     private fun fixedBiome(server: MinecraftServer, biome: ResourceKey<Biome>) =
@@ -174,14 +156,15 @@ object AgeGeneration {
         BuiltinStructureSets.TRIAL_CHAMBERS,
     )
 
-    /** The dimension type (and thus sky) for an Age — the Spire worlds keep the custom Age sky. */
-    fun dimensionType(server: MinecraftServer, id: ResourceLocation): ResourceLocation =
-        if (AgeSavedData.get(server).generatorKey(id) in SPIRE_KINDS) {
-            AGE_DIMENSION_TYPE
-        } else {
-            AGE_PLAIN_DIMENSION_TYPE
-        }
+    /**
+     * The dimension type (and thus sky) an Age wears — the Spire worlds keep the custom Age sky.
+     *
+     * Derived from the preset for now. Sky is a slot of its own in the design (§3.1), so this becomes
+     * something the recipe *names* rather than something inferred from its landform.
+     */
+    fun dimensionType(recipe: AgeRecipe): ResourceLocation =
+        if (recipe.preset in SPIRE_PRESETS) AGE_DIMENSION_TYPE else AGE_PLAIN_DIMENSION_TYPE
 
     /** The two Spire worlds: the original bespoke preset, and its rebuild as a field tree. */
-    private val SPIRE_KINDS = setOf(GENERATOR_SPIRE, GENERATOR_FIELD)
+    private val SPIRE_PRESETS = setOf(AgePreset.SPIRE, AgePreset.FIELD)
 }

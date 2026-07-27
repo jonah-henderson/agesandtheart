@@ -24,20 +24,20 @@ object Ages {
     fun isSupported(): Boolean = Services.AGE_BACKEND.isSupported
 
     /** Creates a brand-new Age and records it for persistence. Null if it exists or is unsupported. */
-    fun create(server: MinecraftServer, id: ResourceLocation, generatorKey: String): ServerLevel? {
+    fun create(server: MinecraftServer, id: ResourceLocation, recipe: AgeRecipe): ServerLevel? {
         val backend = Services.AGE_BACKEND
         if (!backend.isSupported) return null
         val dimensionKey = ResourceKey.create(Registries.DIMENSION, id)
         if (server.getLevel(dimensionKey) != null) return null // already loaded
         val saved = AgeSavedData.get(server)
-        // Record the kind *before* opening: the backend rebuilds the generator from this key.
-        saved.add(id, generatorKey)
+        // Record the recipe *before* opening: the backend builds the world from what is recorded.
+        saved.add(id, recipe)
         val level = backend.openAge(server, id)
         if (level == null) {
             saved.remove(id)
             return null
         }
-        Constants.LOG.info("Created Age {} [{}]", id, generatorKey)
+        Constants.LOG.info("Created Age {} [{}]", id, recipe.preset.key)
         return level
     }
 
@@ -49,14 +49,16 @@ object Ages {
     fun allocateId(server: MinecraftServer): ResourceLocation =
         ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "age_${AgeSavedData.get(server).allocateIndex()}")
 
-    /** Get-or-create the Age for [id] and record it for persistence. Null if unsupported/failed. */
-    fun ensure(server: MinecraftServer, id: ResourceLocation): ServerLevel? {
-        val backend = Services.AGE_BACKEND
-        if (!backend.isSupported) return null
-        val level = backend.openAge(server, id) ?: return null
-        AgeSavedData.get(server).add(id)
-        return level
-    }
+    /**
+     * The Age [id], written from [recipe] if it does not exist yet. Null if unsupported or it failed.
+     *
+     * An Age that already exists keeps the recipe it was written from — [recipe] describes what to
+     * write, not what to become. (The older version of this recorded the Age *after* opening it, which
+     * meant a book's Age was always built from the default recipe rather than the one asked for, and
+     * re-entering an existing Age overwrote its recipe with the default.)
+     */
+    fun ensure(server: MinecraftServer, id: ResourceLocation, recipe: AgeRecipe): ServerLevel? =
+        if (id in AgeSavedData.get(server).ages) open(server, id) else create(server, id, recipe)
 
     /**
      * Puts a player down on solid ground in an Age — the arrival for travel by book as much as for the

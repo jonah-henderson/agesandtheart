@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.platform
 
 import co.voik.agesandtheart.age.AgeGeneration
+import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.platform.services.AgeBackend
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
@@ -21,14 +22,8 @@ import xyz.nucleoid.fantasy.RuntimeWorldConfig
 class FabricAgeBackend : AgeBackend {
     override val isSupported: Boolean = true
 
-    override fun openAge(server: MinecraftServer, id: ResourceLocation): ServerLevel? {
-        val seed = id.hashCode().toLong()
-        val config = RuntimeWorldConfig()
-            .setDimensionType(ResourceKey.create(Registries.DIMENSION_TYPE, AgeGeneration.dimensionType(server, id)))
-            .setGenerator(AgeGeneration.chunkGenerator(server, id, seed))
-            .setSeed(seed)
-        return Fantasy.get(server).getOrOpenPersistentWorld(id, config).asWorld()
-    }
+    override fun openAge(server: MinecraftServer, id: ResourceLocation): ServerLevel? =
+        Fantasy.get(server).getOrOpenPersistentWorld(id, configFor(server, id)).asWorld()
 
     /**
      * Fantasy hands out deletion through the world's *handle*, and the only route to a handle is
@@ -36,12 +31,19 @@ class FabricAgeBackend : AgeBackend {
      * Harmless, and it keeps deletion working after a restart, when nothing has been opened yet.
      */
     override fun deleteAge(server: MinecraftServer, id: ResourceLocation): Boolean {
-        val seed = id.hashCode().toLong()
-        val config = RuntimeWorldConfig()
-            .setDimensionType(ResourceKey.create(Registries.DIMENSION_TYPE, AgeGeneration.dimensionType(server, id)))
-            .setGenerator(AgeGeneration.chunkGenerator(server, id, seed))
-            .setSeed(seed)
-        Fantasy.get(server).getOrOpenPersistentWorld(id, config).delete()
+        Fantasy.get(server).getOrOpenPersistentWorld(id, configFor(server, id)).delete()
         return true
+    }
+
+    /**
+     * Fantasy's description of an Age's world, built from the recipe the Age was written from — the
+     * one place a recipe becomes a live dimension.
+     */
+    private fun configFor(server: MinecraftServer, id: ResourceLocation): RuntimeWorldConfig {
+        val recipe = AgeSavedData.get(server).recipe(id)
+        return RuntimeWorldConfig()
+            .setDimensionType(ResourceKey.create(Registries.DIMENSION_TYPE, AgeGeneration.dimensionType(recipe)))
+            .setGenerator(AgeGeneration.chunkGenerator(server, recipe))
+            .setSeed(recipe.seed)
     }
 }
