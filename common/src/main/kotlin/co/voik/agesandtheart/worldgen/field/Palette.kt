@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.worldgen.field
 
+import co.voik.agesandtheart.location
+import net.minecraft.core.registries.Registries
 import net.minecraft.data.worldgen.SurfaceRuleData
 import net.minecraft.resources.ResourceKey
 import net.minecraft.world.level.biome.Biome
@@ -227,11 +229,26 @@ object Palette {
         return layers(
             *scattered.mapIndexed { band, block ->
                 val from = MOTTLE_RANGE.first + band * bandWidth
-                where(mottled(Noises.SURFACE, from, from + bandWidth), block)
+                where(mottled(MINGLE_NOISE, from, from + bandWidth), block)
             }.toTypedArray(),
             solid(ground),
         )
     }
+
+    /**
+     * Our own noise, at a deliberately tiny scale — two blocks or so, which is as close to *evenly
+     * intermixed* as surface rules can get (Jonah's call, 2026-07-27, after walking it).
+     *
+     * `Noises.SURFACE` was the first choice, borrowed because it was available. It gave patches of maybe
+     * sixty blocks, which read well but read as *patches* — and patch size turns out to be a thing worth
+     * saying deliberately rather than inheriting from whichever noise we happened to reach for. So mingling
+     * defaults to as fine as it goes, and the coarse version comes back as a **quantifier in the grammar**
+     * (see `notes/the-art-implementation-plan.md`, Phase 4) rather than as a constant nobody chose.
+     *
+     * Registered as datapack content, so a pack can retune the scale without touching code.
+     */
+    private val MINGLE_NOISE: ResourceKey<NormalNoise.NoiseParameters> =
+        ResourceKey.create(Registries.NOISE, "mingle".location())
 
     /**
      * The noise the mottling reads, borrowed rather than registered.
