@@ -138,16 +138,16 @@ enum class Alignment(val key: String) : StringRepresentable {
  */
 enum class Seam(val key: String, val share: Double, val frequency: Int) : StringRepresentable {
     /** No transition at all. Two worlds pushed together, and the cut shows. */
-    SHEARED("sheared", 0.0, 40),
+    SHEARED("sheared", 0.0, 85),
 
     /** A few columns of interlocking, so the cut reads as broken rather than sawn. */
-    KEEN("keen", 0.04, 35),
+    KEEN("keen", 0.04, 9),
 
     /** A visible band where the two shapes contend. */
-    SOFT("soft", 0.12, 18),
+    SOFT("soft", 0.12, 4),
 
     /** A wide dissolve; from the ground you would struggle to say where one ends. */
-    BLURRED("blurred", 0.30, 7),
+    BLURRED("blurred", 0.30, 2),
     ;
 
     /** The transition width in blocks for a territory [regionBlocks] across. */
@@ -159,14 +159,20 @@ enum class Seam(val key: String, val share: Double, val frequency: Int) : String
         val CODEC: Codec<Seam> = StringRepresentable.fromEnum(Seam::values)
 
         /**
-         * A seam drawn against its [frequency] — three Ages in four come out cut or nearly cut.
+         * A seam drawn against its [frequency]. **The knife edge is not the common case, it is the
+         * default: 85% of Ages, with every softer seam rare and the two widest barely present.**
          *
-         * Observed 2026-07-27: with every slot divided at once, a wide seam on *each* of them compounds,
-         * and an Age reads less as strange than as disintegrating. The bias is the fix. It is not a retreat
-         * from the header's argument but the same argument counted: if the sheared cut is the thing the
-         * feature exists to produce, drawing it a quarter of the time was never what was meant. The wide
-         * settings stay, at the weight of an oddity — an Age that dissolves is worth meeting occasionally,
-         * which is not the same as one world in four.
+         * Arrived at in two steps on 2026-07-27, and the second step is the informative one. An even draw
+         * went first, once an Age with all four slots divided showed that wide seams *compound* — one
+         * diffuse boundary is strange, four at once reads as a world coming apart. Biasing to 40/35/18/7
+         * was not enough: a single Age that drew a fuzzy seam still read as too weird and unstable *on its
+         * own*, with nothing else unusual about it. So the fuzziness is not a flavour of the mechanism to
+         * be sampled evenly-ish; it is the exception, and the cut is what the feature actually is.
+         *
+         * That is also why this is the right shape for instability to take over (design §5): a property
+         * whose default is one value and whose other values are rare is exactly a *floor* waiting to be
+         * pushed up by something. An Age at odds with itself should be the one that dissolves at its
+         * seams — but until that wire exists, a rare draw is the honest stand-in, not a common one.
          *
          * Frequencies are out of [TOTAL_FREQUENCY] so they read as the percentages they are.
          */

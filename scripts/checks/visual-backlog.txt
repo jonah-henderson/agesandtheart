@@ -8,10 +8,12 @@
 # whole repro — `/age list` prints both, and pasting a printed composition into `/age compose` rebuilds it.
 #
 # ── WALKED END TO END 2026-07-27. Every line below carries its verdict. Two things came out of it ──────
-#   CHANGED   `Seam` is drawn biased low, 40/35/18/7 instead of evenly (design 3.4). Wide seams compound
-#             across divided slots and an Age read as disintegrating rather than alien.
-#   CHANGED   `SpireField` island spacing 330 -> 250, jitter 60 -> 20, density 0.75 -> 0.85. No neighbour
-#             was visible from the starter island at all. Not re-walked in a client yet.
+#   CHANGED   `Seam` is now sheared 85 / keen 9 / soft 4 / blurred 2 — the knife edge is the DEFAULT and
+#             every softness is rare (design 3.4). It took two rounds: wide seams compound across divided
+#             slots, and then a single fuzzy Age still read as too unstable on its own.
+#   CHANGED   `SpireField` rebuilt as two populations — big carved islands, hard-jittered and free to
+#             merge, plus a shoal of small noise blobs between the cloud decks. VERIFIED IN GAME, and it
+#             costs 64 ms/chunk. `Scatter` was built for this and proved unnecessary; it is on the shelf.
 #   OPEN      `solid` + `porous` (and `caves` + `flooded_caves`) divide into territories that are identical
 #             by construction. A real gap, written up in design 3.4, to settle during 3c.
 #   OPEN      the seam probably wants to be read off the instability index rather than the seed. Deferred
@@ -43,6 +45,11 @@
 # WALK to in the first and unmissable in the second. If "scattered" feels like "absent", the ladder in
 # `Share` is what to move — but read `rarity-is-an-incentive` in memory first, because low is deliberate.
 # CHECKED 2026-07-27 — working as intended. The ladder stands; nothing to move.
+# RE-WALKED later the same day, and this is what settled the seam. `evenhills` came up with one of the
+# fuzzy variants and read as too weird and unstable ON ITS OWN — no compounding, nothing else odd about
+# the Age. So the first bias (40/35/18/7) was treating fuzziness as a flavour to sample fairly when it is
+# an exception: `Seam` is now sheared 85 / keen 9 / soft 4 / blurred 2. Instability will bias it upward
+# later, which is the whole reason a rare default is the right shape (design 5).
 /age compose mostlyhills 7 landform=hills,pillars:scattered medium=sea dressing=overworld sky=plain
 /age compose evenhills 7 landform=hills,pillars medium=sea dressing=overworld sky=plain
 /age tp mostlyhills
@@ -105,6 +112,8 @@
 #      17x9, threshold 0.05 for a bit under half the envelope kept) because at 72% kept they still read
 #      as ellipsoids. `BLOB_THRESHOLD` is the dial; some now come out as two or three loose pieces;
 #   3. can you actually get between things now, and does the vertical spread read or just look chaotic.
+# VERIFIED IN GAME 2026-07-27 — satisfactory. Both populations read, and the layout no longer looks laid
+# out, so `Scatter` was NOT needed here after all; it stays on the shelf for whatever wants it next.
 # TIMED 2026-07-27: 64 ms/chunk, measured in game. That is UNDER the ~90 ms vanilla reference, so the
 # second layer cost far less than feared — the Intersect short-circuit is doing its job and the noise band
 # is only walked inside envelopes. No perf work wanted here.
