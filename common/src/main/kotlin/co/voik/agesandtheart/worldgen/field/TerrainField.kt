@@ -47,9 +47,13 @@ sealed interface TerrainField {
      * (which stays put, so anything standing on it keeps its footing).
      *
      * This resizes the description, not the output: a resized [Pyramid] genuinely has more courses of
-     * blocks, where resampling a built one at a fractional rate would stretch its staircase into
-     * uneven two-block steps. Since a field is data, the resized copy is built once and reused — see
-     * [Instanced], which pre-builds every size it will ever place.
+     * blocks, where *resampling* a built one would stretch its staircase into uneven two-block steps.
+     *
+     * **Any [factor] is exact, fractional ones included** — it scales parameters, not samples, so there
+     * is no artefact to avoid and no reason to prefer whole numbers. What a caller must budget for is
+     * that each distinct size is a whole rebuilt tree: see [Instanced], which pre-builds every size it
+     * will ever place, and then samples exactly one of them per column. So sizes cost construction and
+     * memory, never per-chunk time.
      */
     fun resized(factor: Double, pivotY: Int): TerrainField
 

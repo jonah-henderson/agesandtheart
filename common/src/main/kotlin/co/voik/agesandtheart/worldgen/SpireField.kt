@@ -208,9 +208,14 @@ object SpireField {
      */
     private val ISLAND_VARIATION = Variation(
         yawSteps = 1,
-        minScale = 0.85,
-        maxScale = 1.15,
-        scaleSteps = 4,
+        // Wider and finer than a geometric shape would want, and it costs nothing per chunk: a column
+        // samples whichever single size its instance drew, so more sizes are paid for once at
+        // construction and never again. Organic shapes take the extra steps especially well, because
+        // resizing a NoiseHeightmap scales its *wavelength* — so a larger island is a genuinely
+        // different island rather than a magnified one.
+        minScale = 0.8,
+        maxScale = 1.25,
+        scaleSteps = 8,
         // Copies grow about their own deck, so a bigger island gets taller *and* deeper rather than
         // sinking — which is what keeps the whole family centred in the band between the decks.
         pivotY = DECK_Y,
