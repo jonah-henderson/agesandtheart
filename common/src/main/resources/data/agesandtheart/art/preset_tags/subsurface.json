@@ -1,0 +1,43 @@
+{
+  "solid": {
+    "tags": {
+      "solid": 1.0,
+      "ordinary": 0.5,
+      "gentle": 0.3
+    }
+  },
+  "porous": {
+    "readiness": 0.8,
+    "tags": {
+      "porous": 1.0,
+      "cavernous": 0.4,
+      "watery": 0.3,
+      "strange": 0.2
+    }
+  },
+  "caves": {
+    "tags": {
+      "cavernous": 0.9,
+      "gloomy": 0.5,
+      "ordinary": 0.5
+    }
+  },
+  "flooded_caves": {
+    "readiness": 0.5,
+    "tags": {
+      "cavernous": 0.8,
+      "watery": 0.8,
+      "gloomy": 0.6,
+      "hostile": 0.5
+    }
+  },
+  "weathered": {
+    "readiness": 0.7,
+    "tags": {
+      "eroded": 0.9,
+      "wild": 0.5,
+      "sheer": 0.4,
+      "dry": 0.4
+    }
+  }
+}

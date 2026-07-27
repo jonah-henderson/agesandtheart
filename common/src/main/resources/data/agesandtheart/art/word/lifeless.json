@@ -1,0 +1,9 @@
+{
+  "tier": "exact",
+  "slots": [
+    "dressing"
+  ],
+  "query": {
+    "barren": 1.0
+  }
+}

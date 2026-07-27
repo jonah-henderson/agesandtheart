@@ -1,0 +1,68 @@
+{
+  "spire_islands": {
+    "tags": {
+      "floating": 1.0,
+      "sheer": 0.8,
+      "dramatic": 0.9,
+      "mountainous": 0.6,
+      "wild": 0.6,
+      "strange": 0.5
+    }
+  },
+  "hills": {
+    "tags": {
+      "ordinary": 0.9,
+      "gentle": 0.8,
+      "flat": 0.4,
+      "mountainous": 0.3,
+      "lush": 0.3
+    }
+  },
+  "caverns": {
+    "tags": {
+      "cavernous": 1.0,
+      "gloomy": 0.7,
+      "solid": 0.6,
+      "strange": 0.4,
+      "wild": 0.4
+    }
+  },
+  "eroded": {
+    "tags": {
+      "eroded": 1.0,
+      "wild": 0.7,
+      "mountainous": 0.6,
+      "barren": 0.6,
+      "dry": 0.6,
+      "dramatic": 0.5
+    }
+  },
+  "pillars": {
+    "tags": {
+      "monumental": 1.0,
+      "sheer": 0.9,
+      "dramatic": 0.8,
+      "mountainous": 0.7,
+      "ordered": 0.6,
+      "barren": 0.4
+    }
+  },
+  "pyramids": {
+    "tags": {
+      "ordered": 1.0,
+      "flat": 0.7,
+      "monumental": 0.7,
+      "solid": 0.5,
+      "dramatic": 0.4,
+      "strange": 0.3
+    }
+  },
+  "shapes": {
+    "readiness": 0.15,
+    "tags": {
+      "ordered": 0.8,
+      "strange": 0.6,
+      "flat": 0.5
+    }
+  }
+}

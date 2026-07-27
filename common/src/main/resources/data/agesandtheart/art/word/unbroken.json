@@ -1,0 +1,9 @@
+{
+  "tier": "exact",
+  "slots": [
+    "subsurface"
+  ],
+  "query": {
+    "solid": 1.0
+  }
+}

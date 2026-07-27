@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.slot.Dressing
 import co.voik.agesandtheart.age.slot.Landform
 import co.voik.agesandtheart.age.slot.Medium
 import co.voik.agesandtheart.age.slot.Options
+import co.voik.agesandtheart.age.slot.Share
 import co.voik.agesandtheart.age.slot.Sky
 import co.voik.agesandtheart.age.slot.Slot
 import co.voik.agesandtheart.age.slot.SlotPreset
@@ -44,7 +45,27 @@ data class AgeComposition(
     val dressings: List<Dressing> = listOf(Dressing.BARE_ROCK),
     val sky: Sky = Sky.PLAIN,
     val options: SlotOptions = SlotOptions(),
+    /**
+     * How much ground each preset of a set-valued slot covers, where they do not cover it equally.
+     *
+     * Kept beside the presets rather than inside them, like [options], because a share is not a property of
+     * a preset — the same hills are dominant in one Age and scattered in another. Empty for a slot means an
+     * even division, which is what a hand-composed Age gets.
+     */
+    val shares: SlotShares = SlotShares(),
 ) {
+    /**
+     * The share each of [slot]'s presets covers, one per preset — an even division where none was named.
+     *
+     * The shape generation wants: a share per member, never a shorter list, so a map can be built without
+     * asking whether anyone said anything about it.
+     */
+    fun sharesOf(slot: Slot): List<Share> {
+        val filling = presets.count { it.slot == slot }
+        val named = shares.of(slot)
+        return List(filling) { member -> named.getOrElse(member) { Share.DOMINANT } }
+    }
+
     /** Every preset this composition names, in slot order — for listing, costing and diagnosis. */
     val presets: List<SlotPreset> get() = landforms + mediums + subsurfaces + dressings + listOf(sky)
 
@@ -82,12 +103,15 @@ data class AgeComposition(
      * risk-free — and "sky=plain,storm" is a writer asking for something the world cannot be, which is
      * a job for the instability index rather than for an error message.
      */
-    fun withPresets(slot: Slot, keys: List<String>): AgeComposition = when (slot) {
-        Slot.LANDFORM -> copy(landforms = keys.map { named(slot, it, Landform.entries) })
-        Slot.DRESSING -> copy(dressings = keys.map { named(slot, it, Dressing.entries) })
-        Slot.MEDIUM -> copy(mediums = keys.map { named(slot, it, Medium.entries) })
-        Slot.SUBSURFACE -> copy(subsurfaces = keys.map { named(slot, it, Subsurface.entries) })
-        else -> withSingle(slot, keys.last())
+    fun withPresets(slot: Slot, keys: List<String>, shares: List<Share> = emptyList()): AgeComposition {
+        val filled = when (slot) {
+            Slot.LANDFORM -> copy(landforms = keys.map { named(slot, it, Landform.entries) })
+            Slot.DRESSING -> copy(dressings = keys.map { named(slot, it, Dressing.entries) })
+            Slot.MEDIUM -> copy(mediums = keys.map { named(slot, it, Medium.entries) })
+            Slot.SUBSURFACE -> copy(subsurfaces = keys.map { named(slot, it, Subsurface.entries) })
+            else -> withSingle(slot, keys.last())
+        }
+        return filled.copy(shares = filled.shares.with(slot, shares))
     }
 
     private fun withSingle(slot: Slot, key: String): AgeComposition = when (slot) {
@@ -120,7 +144,13 @@ data class AgeComposition(
     override fun toString(): String = presets.groupBy { it.slot }.entries
         .sortedBy { (slot, _) -> slot.ordinal }
         .flatMap { (slot, filling) ->
-            listOf("${slot.key}=${filling.joinToString(",") { it.key }}") +
+            val written = filling.mapIndexed { index, preset ->
+                // A share is only spelled where it says something: an even division, and the largest share
+                // of an uneven one, are both left unsaid so that the common case reads as it always did.
+                val share = shares.of(slot).getOrNull(index)
+                if (share == null || share == Share.DOMINANT) preset.key else "${preset.key}:${share.key}"
+            }
+            listOf("${slot.key}=${written.joinToString(",")}") +
                 options.of(slot).chosen.entries.sortedBy { it.key }
                     .map { (parameter, option) -> "${slot.key}.$parameter=$option" }
         }.joinToString(" ")
@@ -153,8 +183,17 @@ data class AgeComposition(
                     composition.withOption(slot, key.substringAfter('.'), value)
                 } else {
                     namedALandform = namedALandform || slot == Slot.LANDFORM
-                    // Commas are how a set-valued slot is written: `landform=hills,pillars`.
-                    composition.withPresets(slot, value.split(',').filter(String::isNotBlank))
+                    // Commas are how a set-valued slot is written: `landform=hills,pillars`. A colon after
+                    // a preset is how much ground it covers: `dressing=verdant,bare_rock:rare`.
+                    val filling = value.split(',').filter(String::isNotBlank)
+                    composition.withPresets(
+                        slot,
+                        filling.map { it.substringBefore(':') },
+                        filling.map { named ->
+                            val share = named.substringAfter(':', missingDelimiterValue = "")
+                            if (share.isEmpty()) Share.DOMINANT else namedShare(share)
+                        },
+                    )
                 }
             }
             require(namedALandform) { "An Age needs a landform. Try `landform=${Landform.HILLS.key}`" }
@@ -175,6 +214,7 @@ data class AgeComposition(
                     .forGetter(AgeComposition::dressings),
                 enumCodec<Sky>().optionalFieldOf("sky", Sky.PLAIN).forGetter(AgeComposition::sky),
                 SlotOptions.CODEC.optionalFieldOf("options", SlotOptions()).forGetter(AgeComposition::options),
+                SlotShares.CODEC.optionalFieldOf("shares", SlotShares()).forGetter(AgeComposition::shares),
             ).apply(instance, ::AgeComposition)
         }
     }
@@ -196,6 +236,30 @@ data class SlotOptions(private val bySlot: Map<Slot, Options> = emptyMap()) {
                 .xmap(::SlotOptions, SlotOptions::bySlot)
     }
 }
+
+/**
+ * How much of the world each preset of a slot covers, kept per slot beside [SlotOptions] and for the same
+ * reasons.
+ *
+ * An absent slot is an even division, and so is one whose shares are all [Share.DOMINANT] — normalised away
+ * on the way in, so that "equal" has exactly one spelling in a recipe rather than five.
+ */
+data class SlotShares(private val bySlot: Map<Slot, List<Share>> = emptyMap()) {
+    fun of(slot: Slot): List<Share> = bySlot[slot] ?: emptyList()
+
+    fun with(slot: Slot, shares: List<Share>): SlotShares =
+        SlotShares(if (shares.all { it == Share.DOMINANT }) bySlot - slot else bySlot + (slot to shares))
+
+    companion object {
+        val CODEC: Codec<SlotShares> =
+            Codec.unboundedMap(StringRepresentable.fromEnum(Slot::values), Share.CODEC.listOf())
+                .xmap(::SlotShares, SlotShares::bySlot)
+    }
+}
+
+/** The share called [key], loud about a name nobody knows for the same reason [named] is. */
+private fun namedShare(key: String): Share = Share.entries.firstOrNull { it.key == key }
+    ?: error("No share called '$key'. Try: ${Share.entries.joinToString(" ") { it.key }}")
 
 /**
  * The member of [family] called [key], or a failure naming every alternative.

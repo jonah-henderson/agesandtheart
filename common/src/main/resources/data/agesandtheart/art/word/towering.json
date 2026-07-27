@@ -1,0 +1,10 @@
+{
+  "tier": "restrictive",
+  "slots": [
+    "landform"
+  ],
+  "query": {
+    "mountainous": 1.0,
+    "sheer": 0.6
+  }
+}

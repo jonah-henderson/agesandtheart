@@ -68,10 +68,10 @@ object AgeGeneration {
         val landformOptions = composition.options.of(Slot.LANDFORM)
         val dressingOptions = composition.options.of(Slot.DRESSING)
 
-        val ground = character.mapFor(Slot.LANDFORM, composition.landforms.size, seed)
+        val ground = character.mapFor(Slot.LANDFORM, composition.sharesOf(Slot.LANDFORM), seed)
         val shape = Regions.of(composition.landforms.map { it.field(landformOptions) }, ground)
 
-        val flow = character.mapFor(Slot.MEDIUM, composition.mediums.size, seed)
+        val flow = character.mapFor(Slot.MEDIUM, composition.sharesOf(Slot.MEDIUM), seed)
         val ambient = Medium.pour(
             composition.mediums,
             waterlineOf(composition, seed),
@@ -79,8 +79,8 @@ object AgeGeneration {
             flow,
         )
 
-        val cover = character.mapFor(Slot.DRESSING, composition.dressings.size, seed)
-        val below = character.mapFor(Slot.SUBSURFACE, composition.subsurfaces.size, seed)
+        val cover = character.mapFor(Slot.DRESSING, composition.sharesOf(Slot.DRESSING), seed)
+        val below = character.mapFor(Slot.SUBSURFACE, composition.sharesOf(Slot.SUBSURFACE), seed)
         return FieldChunkGenerator(
             RegionBiomeSource.of(composition.dressings.map { it.biomes(server, shape, seed) }, cover),
             shape,
@@ -120,16 +120,21 @@ object AgeGeneration {
     /**
      * Where this Age's sea sits when its landforms disagree about it — or whether there is one at all.
      *
-     * Each shape declares its own waterline, or none for one that stands in open air, and **one of them
-     * simply wins**, drawn from the seed and so not predictable to the writer. That is §3.5's ruling
-     * applied to geography: a pyramid field half-drowned by the sea its neighbour brought is precisely
-     * the sort of thing a set-valued landform exists to make possible. A shape that wanted no sea can
-     * win too, leaving the others standing dry above a floor that expected water.
+     * Each shape declares its own waterline, or none for one that stands in open air, and **the shape that
+     * covers the most ground wins**: it is its coastline that most of the world has, so it is the sea most
+     * of the world should be at. A pyramid field half-drowned by the sea its dominant neighbour brought is
+     * precisely the sort of thing a set-valued landform exists to make possible, and a shape that wanted no
+     * sea can win too, leaving the others standing dry above a floor that expected water.
+     *
+     * The seed decides only where shares tie, which is the ordinary case of two equal claims (§3.5).
      */
     private fun waterlineOf(composition: AgeComposition, seed: Long): Int? {
         val claimed = composition.landforms.map { it.waterline }
         if (claimed.size == 1) return claimed.first()
-        return claimed[XoroshiroRandomSource(seed xor WATERLINE_SALT).nextInt(claimed.size)]
+        val shares = composition.sharesOf(Slot.LANDFORM)
+        val widest = shares.maxOf { it.weight }
+        val contenders = claimed.indices.filter { shares[it].weight == widest }
+        return claimed[contenders[XoroshiroRandomSource(seed xor WATERLINE_SALT).nextInt(contenders.size)]]
     }
 
     // So which sea wins is decorrelated from everything else this seed decides.

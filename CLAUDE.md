@@ -11,7 +11,8 @@ relevant one before working in its area; most of the value is in the *reasoning*
 - **`notes/terrain-architecture.md`** — the two-tier terrain system (composable field toolkit + bespoke
   presets), and why each piece is shaped the way it is. Built and shipped.
 - **`notes/the-art-design.md`** — "the Art": the books, the language, slots and tags, consequences,
-  book editing, the economy. Phases 1–2 are built; everything from the resolver on is design only.
+  book editing, the economy. Built through Phase 3b (words resolve to a world); the grammar, the items and
+  everything after them are design only.
 - **`notes/the-art-implementation-plan.md`** — the eight phases and what each has to prove.
 
 ## What this is
@@ -90,11 +91,19 @@ The mod has **no Mixins** right now; everything goes through Fabric API hooks + 
 
 The core mechanic — creating dimensions ("Ages") at runtime and persisting them — lives in `common/.../age/`, with the one loader-specific piece behind the `AgeBackend` service:
 
-- **`AgeRecipe`** — **what an Age is, as data**: the preset it was written from, its seed, and the generator version that made it. Codec-serialised, and the *only* record of an Age — the dimension is rebuilt from it on every open. `AgePreset` names the generation presets; its `key` is the save format, so renaming one orphans every Age already written with it (`:common:recipecheck` guards this).
+- **`AgeRecipe`** — **what an Age is, as data**: the world it was written from (a composition of slot presets, or one of the few bespoke generators), its seed, the character drawn for it, the instability and words it was written with, and the generator version that made it. Codec-serialised, and the *only* record of an Age — the dimension is rebuilt from it on every open. `AgePreset` names the generation presets; its `key` is the save format, so renaming one orphans every Age already written with it (`:common:recipecheck` guards this).
 - **`AgeGeneration`** — turns a recipe into a `ChunkGenerator`, in an exhaustive `when` over `AgePreset`. A pure function of the recipe (plus the server, for registries), because an Age must rebuild identically on every open.
 - **`AgeSavedData`** — vanilla `SavedData` on the overworld's data storage, persisting each Age's recipe. Runtime-dimension libraries do **not** auto-restore dimensions on restart, so we track them ourselves. Reads the pre-recipe format (an id list plus generator-kind strings) and migrates it.
 - **`Ages`** — loader-agnostic policy: `create` / `open` / `ensure` / `delete` (delegating to `Services.AGE_BACKEND`) and `reloadSaved` (replay on boot).
-- **`AgeCommand`** — the `/age` Brigadier tree (vanilla, so it's in `common`); the debug trigger until books exist. `/age compare <a> <b>` generates two Ages and diffs them block for block — write two with the same seed to check a recipe reproduces.
+- **`age/word/`** — **the Art's language.** `Word` (tier, the slots it may fill, a signed tag query),
+  `PresetProfile`/`PresetTags` (what the world is like), `Vocabulary` (the corpus, **loaded from datapack
+  JSON** under `data/<namespace>/art/` — words, per-slot tag tables, antonym pages), and `Resolver`
+  (words + seed → composition, cost and instability). Resolution is a **pure function of (vocabulary, words,
+  seed)**; the resolved composition is what persists, never the words (design §4.6).
+- **`Instability`** — how far an Age is at odds with itself, in four registers, each `Flaw` naming the words,
+  slot and tags involved. Provenance is the point: a flaw has to be diagnosable, and §5's consequences read
+  this long after the book was written. Part of the recipe.
+- **`AgeCommand`** — the `/age` Brigadier tree (vanilla, so it's in `common`); the debug trigger until books exist. `/age write <name> [seed] <words…>` authors an Age from a sentence and `/age words` lists the vocabulary. `/age compare <a> <b>` generates two Ages and diffs them block for block — write two with the same seed to check a recipe reproduces.
 - **`AgeBackend`** (service) — `FabricAgeBackend` implements it with **Fantasy** (`Fantasy.get(server).getOrOpenPersistentWorld(id, config)`); `NeoForgeAgeBackend` is an `isSupported = false` stub, so `/age create` on NeoForge reports "not supported yet" instead of crashing.
 
 Reload trigger is loader-specific: Fabric's `SERVER_STARTED` event calls `Ages.reloadSaved`. Fantasy must be called on the server thread (commands and lifecycle events already are). **Fantasy is Fabric-only**, so all Fantasy references stay in the `fabric` module — never in `common`.

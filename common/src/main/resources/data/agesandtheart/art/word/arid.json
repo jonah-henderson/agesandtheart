@@ -1,0 +1,11 @@
+{
+  "tier": "restrictive",
+  "slots": [
+    "dressing",
+    "landform"
+  ],
+  "query": {
+    "dry": 1.0,
+    "barren": 0.6
+  }
+}

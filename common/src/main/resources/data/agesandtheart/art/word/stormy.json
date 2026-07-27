@@ -1,0 +1,9 @@
+{
+  "tier": "exact",
+  "slots": [
+    "sky"
+  ],
+  "query": {
+    "gloomy": 1.0
+  }
+}

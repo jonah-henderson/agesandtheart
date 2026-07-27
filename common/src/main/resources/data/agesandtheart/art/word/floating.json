@@ -1,0 +1,9 @@
+{
+  "tier": "restrictive",
+  "slots": [
+    "landform"
+  ],
+  "query": {
+    "floating": 1.0
+  }
+}

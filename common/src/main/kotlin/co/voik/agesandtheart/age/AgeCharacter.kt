@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age
 
+import co.voik.agesandtheart.age.slot.Share
 import co.voik.agesandtheart.age.slot.Slot
 import co.voik.agesandtheart.worldgen.biome.BiomeScale
 import co.voik.agesandtheart.worldgen.field.RegionMap
@@ -41,17 +42,19 @@ data class AgeCharacter(
     val regionBlocks: Int,
 ) {
     /**
-     * The territories [slot] divides itself into, when it holds [members] presets.
+     * The territories [slot] divides itself into, one per preset it holds, each covering the ground its
+     * [Share] asks for.
      *
      * Where the maps of two slots sit relative to each other is [alignment]'s business: the same
      * territories for everything, the same shape shifted so the ground changes a little before its
      * dressing does, or maps that share nothing at all.
      */
-    fun mapFor(slot: Slot, members: Int, seed: Long): RegionMap {
-        if (members <= 1) return RegionMap.whole()
+    fun mapFor(slot: Slot, shares: List<Share>, seed: Long): RegionMap {
+        if (shares.size <= 1) return RegionMap.whole()
         val stride = slot.ordinal
         return RegionMap(
-            members = members,
+            members = shares.size,
+            shares = shares.map { it.weight },
             scale = regionBlocks.toDouble(),
             blend = seam.blendBlocks(regionBlocks),
             originX = if (alignment == Alignment.OFFSET) stride * regionBlocks / OFFSET_SHARE else 0,

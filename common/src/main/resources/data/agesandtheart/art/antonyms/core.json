@@ -1,0 +1,53 @@
+{
+  "pairs": [
+    {
+      "first": "lush",
+      "second": "barren"
+    },
+    {
+      "first": "lush",
+      "second": "dry"
+    },
+    {
+      "first": "flat",
+      "second": "mountainous"
+    },
+    {
+      "first": "bright",
+      "second": "gloomy"
+    },
+    {
+      "first": "ordered",
+      "second": "wild"
+    },
+    {
+      "first": "watery",
+      "second": "molten"
+    },
+    {
+      "first": "watery",
+      "second": "empty"
+    },
+    {
+      "first": "ordinary",
+      "second": "strange"
+    },
+    {
+      "first": "floating",
+      "second": "solid"
+    },
+    {
+      "first": "gentle",
+      "second": "hostile"
+    },
+    {
+      "first": "lovely",
+      "second": "hostile"
+    },
+    {
+      "first": "cavernous",
+      "second": "solid",
+      "severity": 2
+    }
+  ]
+}

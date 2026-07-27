@@ -104,7 +104,22 @@ instrument(
 )
 
 instrument(
+    "vocabularycheck", "verification", "co.voik.agesandtheart.preview.VocabularyCheckKt",
+    "Checks every word of the Art is backed by something the world can be, and every preset askable for.",
+)
+
+instrument(
+    "resolvercheck", "verification", "co.voik.agesandtheart.preview.ResolverCheckKt",
+    "Checks the resolver's promises: pure, order-blind, diagnosable, and vaguer sentences vary more.",
+)
+
+instrument(
     "terraindiff", "verification", "co.voik.agesandtheart.preview.TerrainDiffKt",
     "Compares two saved worlds Age by Age, block for block. Takes two world folders, " +
         "e.g. --args=\"before/world after/world\" (absolute paths — Gradle runs from this module).",
+)
+
+instrument(
+    "regionsharecheck", "verification", "co.voik.agesandtheart.preview.RegionShareCheckKt",
+    "Measures the ground each weighted territory actually covers, and reprints ClaimTilt's table.",
 )

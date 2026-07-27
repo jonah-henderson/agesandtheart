@@ -7,6 +7,7 @@ import co.voik.agesandtheart.age.slot.Options
 import co.voik.agesandtheart.age.slot.Sky
 import co.voik.agesandtheart.age.slot.Slot
 import co.voik.agesandtheart.age.slot.Subsurface
+import co.voik.agesandtheart.age.word.Resolution
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -34,12 +35,31 @@ data class AgeRecipe(
      * character existed keeps the world it already had.
      */
     val character: AgeCharacter = AgeCharacter.LEGACY,
+    /**
+     * How far this Age is at odds with itself, and why — resolved once when it was written and kept.
+     *
+     * Persisted for the same reason the composition is (§4.6): §5's consequences read it long afterwards,
+     * and re-deriving it would mean re-running the words through whatever tag data is current, so an
+     * edited datapack could quietly make a stable Age unstable. Empty for every Age not written from
+     * words, which is every Age that exists before the pen does.
+     */
+    val instability: Instability = Instability.NONE,
+    /**
+     * What the book said, as **provenance only** (§4.6). Nothing reads it to decide anything — the
+     * composition is what the Age is — but an Age whose recipe cannot say what was written for it could
+     * never explain itself to its author.
+     */
+    val words: List<String> = emptyList(),
     val generatorVersion: Int = CURRENT_GENERATOR_VERSION,
 ) {
     /** The composition this Age was assembled from, or null for the few that are not assembled. */
     val composition: AgeComposition? get() = (world as? AgeWorld.Composed)?.composition
 
-    override fun toString(): String = "$world seed=$seed"
+    override fun toString(): String = buildString {
+        if (words.isNotEmpty()) append("\"${words.joinToString(" ")}\" → ")
+        append("$world seed=$seed")
+        if (!instability.isCoherent) append(" [${instability.index}]")
+    }
 
     companion object {
         /**
@@ -62,8 +82,18 @@ data class AgeRecipe(
          *
          * **5 — every positional slot.** Medium and subsurface became sets as well, which completes the
          * set: only the sky, being a dimension type, stays singular.
+         *
+         * **6 — written Ages.** A recipe carries the words it came from and the instability they resolved
+         * to. Nothing about generation moved, so no existing Age looks different; the bump is honest
+         * anyway, because a version stamp that only moves when terrain moves cannot be used to tell
+         * whether a recipe's *own shape* is one this code understands.
+         *
+         * **7 — shares.** A set-valued slot's presets no longer divide the world evenly: each carries a
+         * [co.voik.agesandtheart.age.slot.Share], so a strongly-claimed preset takes most of an Age and a
+         * weakly-claimed one turns up as scarce islands. Territory boundaries move for every Age that holds
+         * more than one preset in a slot, and blended seams shift very slightly even for those that do not.
          */
-        const val CURRENT_GENERATOR_VERSION = 5
+        const val CURRENT_GENERATOR_VERSION = 7
 
         val MAP_CODEC: MapCodec<AgeRecipe> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -82,8 +112,20 @@ data class AgeRecipe(
                 // default-sized Ages they were generated as.
                 AgeCharacter.MAP_CODEC.codec().optionalFieldOf("character", AgeCharacter.LEGACY)
                     .forGetter(AgeRecipe::character),
-            ).apply(instance) { world, legacyPreset, seed, version, character ->
-                AgeRecipe(world.orElseGet { worldFor(legacyPreset.orElse(AgePreset.SPIRE)) }, seed, character, version)
+                // Both optional, and absent on every Age not written from words — which is every Age
+                // written before the resolver existed, and still every Age made by `/age create`.
+                Instability.CODEC.optionalFieldOf("instability", Instability.NONE)
+                    .forGetter(AgeRecipe::instability),
+                Codec.STRING.listOf().optionalFieldOf("words", emptyList()).forGetter(AgeRecipe::words),
+            ).apply(instance) { world, legacyPreset, seed, version, character, instability, words ->
+                AgeRecipe(
+                    world.orElseGet { worldFor(legacyPreset.orElse(AgePreset.SPIRE)) },
+                    seed,
+                    character,
+                    instability,
+                    words,
+                    version,
+                )
             }
         }
 
@@ -105,6 +147,21 @@ data class AgeRecipe(
          */
         fun written(server: MinecraftServer, world: AgeWorld, seed: Long): AgeRecipe =
             AgeRecipe(world, seed, AgeCharacter.drawn(server, seed))
+
+        /**
+         * A fresh recipe for an Age somebody actually *wrote* — the resolved composition, plus the words
+         * and the instability as the record of how it was arrived at.
+         *
+         * The composition rather than the words is what gets rebuilt from, which is the whole of §4.6:
+         * words re-resolved on every open would let a retuned tag shift somebody's beloved world.
+         */
+        fun written(server: MinecraftServer, resolution: Resolution, seed: Long): AgeRecipe = AgeRecipe(
+            AgeWorld.Composed(resolution.composition),
+            seed,
+            AgeCharacter.drawn(server, seed),
+            resolution.instability,
+            resolution.sentence,
+        )
 
         /**
          * The seed an Age gets when nothing has chosen one for it.

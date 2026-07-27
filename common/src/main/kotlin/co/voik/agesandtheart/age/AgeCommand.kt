@@ -1,6 +1,8 @@
 package co.voik.agesandtheart.age
 
 import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.age.word.Resolver
+import co.voik.agesandtheart.age.word.Vocabulary
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.LongArgumentType
@@ -30,6 +32,8 @@ import net.minecraft.world.level.levelgen.Heightmap
  *   /age create <name> [seed]           — author a new Age (Spire preset) and persist it
  *   /age create <preset> <name> [seed]  — the same, from any [AgePreset]: `hills`, `caverns`, …
  *   /age compose <name> [seed] <spec>   — author one out of slots: `landform=hills medium=sea`
+ *   /age write <name> [seed] <words>    — author one out of *words*: `beautiful floating riddled`
+ *   /age words                          — the vocabulary the Art currently knows
  *   /age tp <name>                      — travel to an Age
  *   /age delete <name>|all              — discard an Age (or every Age), chunks and all
  *   /age gen <name>                     — force-generate the spawn chunk and report what it made
@@ -43,6 +47,7 @@ object AgeCommand {
     private const val RADIUS_ARGUMENT = "radius"
     private const val SEED_ARGUMENT = "seed"
     private const val SPECIFICATION_ARGUMENT = "spec"
+    private const val SENTENCE_ARGUMENT = "words"
     private const val FIRST_ARGUMENT = "first"
     private const val SECOND_ARGUMENT = "second"
 
@@ -67,6 +72,8 @@ object AgeCommand {
                 .requires { source -> source.hasPermission(OPERATOR_PERMISSION_LEVEL) }
                 .then(createSubcommand())
                 .then(composeSubcommand())
+                .then(writeSubcommand())
+                .then(vocabularySubcommand())
                 .then(teleportSubcommand())
                 .then(deleteSubcommand())
                 .then(generateSubcommand())
@@ -124,6 +131,37 @@ object AgeCommand {
                         .executes { context -> runCompose(context, seed = null) },
                 ),
         )
+
+    /**
+     * `/age write <name> [<seed>] <words…>` — the first command that authors an Age the way a *writer*
+     * will, out of words rather than out of slot names.
+     *
+     * Shaped exactly like `compose` (greedy tail, optional seed in front of it) so the two can be diffed
+     * against each other: what this resolves to prints in `compose`'s own spelling, so pasting that into
+     * `/age compose` with the same seed must give the same world. A free harness for the one property
+     * everything downstream leans on.
+     *
+     * No parsing beyond splitting on spaces — grammar is Phase 4. A word nobody knows is refused *here*,
+     * because this is a command and a typo is a mistake; the pen proper must never refuse a sentence
+     * (design §2), since validation would make precision risk-free.
+     */
+    private fun writeSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        Commands.literal("write").then(
+            Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
+                .then(
+                    Commands.argument(SEED_ARGUMENT, LongArgumentType.longArg()).then(
+                        Commands.argument(SENTENCE_ARGUMENT, StringArgumentType.greedyString())
+                            .executes { context -> runWrite(context, LongArgumentType.getLong(context, SEED_ARGUMENT)) },
+                    ),
+                )
+                .then(
+                    Commands.argument(SENTENCE_ARGUMENT, StringArgumentType.greedyString())
+                        .executes { context -> runWrite(context, seed = null) },
+                ),
+        )
+
+    private fun vocabularySubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        Commands.literal("words").executes(::runVocabulary)
 
     private fun teleportSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("tp").then(
@@ -197,15 +235,25 @@ object AgeCommand {
         val source = context.source
         val name = StringArgumentType.getString(context, NAME_ARGUMENT)
         val id = ageId(name)
+        if (!canWrite(source, name, id)) return FAILURE
+        return open(source, name, id, AgeRecipe.written(source.server, world, seed ?: AgeRecipe.seedFor(id)))
+    }
+
+    /** Whether an Age called [name] can be written here at all — having said why, if not. */
+    private fun canWrite(source: CommandSourceStack, name: String, id: ResourceLocation): Boolean {
         if (!Ages.isSupported()) {
             source.sendFailure(Component.literal("Runtime Ages aren't supported on this loader yet (NeoForge backend pending)"))
-            return FAILURE
+            return false
         }
         if (id in AgeSavedData.get(source.server).ages) {
             source.sendFailure(Component.literal("Age '$name' already exists"))
-            return FAILURE
+            return false
         }
-        val recipe = AgeRecipe.written(source.server, world, seed ?: AgeRecipe.seedFor(id))
+        return true
+    }
+
+    /** Persists a recipe and opens its dimension — the last step of every way of authoring an Age. */
+    private fun open(source: CommandSourceStack, name: String, id: ResourceLocation, recipe: AgeRecipe): Int {
         val level = Ages.create(source.server, id, recipe)
         if (level == null) {
             source.sendFailure(Component.literal("Could not create Age '$name'"))
@@ -213,6 +261,84 @@ object AgeCommand {
         }
         source.sendSuccess({ Component.literal("Created Age '$name' [$recipe] ($id). Travel with /age tp $name") }, true)
         return SUCCESS
+    }
+
+    /**
+     * `/age write <name> [<seed>] <words…>` — a sentence in, an Age out. The first time the mod does the
+     * thing it is *for*.
+     *
+     * Everything interesting happens in [Resolver]; this reads the words, hands them over, and then says
+     * out loud what came back — the composition in `/age compose`'s own spelling, what the sentence cost
+     * in fine inks, and every flaw with its reason. That last part is the design's central promise: a
+     * flawed Age must be **diagnosable**, which is what separates this from arbitrary punishment.
+     */
+    private fun runWrite(context: CommandContext<CommandSourceStack>, seed: Long?): Int {
+        val source = context.source
+        val name = StringArgumentType.getString(context, NAME_ARGUMENT)
+        val id = ageId(name)
+        if (!canWrite(source, name, id)) return FAILURE
+
+        val vocabulary = Vocabulary.of(source.server)
+        reportProblems(source, vocabulary)
+        val sentence = StringArgumentType.getString(context, SENTENCE_ARGUMENT)
+            .split(' ').filter(String::isNotBlank)
+        val words = sentence.map { token ->
+            vocabulary.word(token) ?: run {
+                source.sendFailure(Component.literal("The Art knows no word '$token'. See /age words"))
+                return FAILURE
+            }
+        }
+        if (words.isEmpty()) {
+            source.sendFailure(Component.literal("An Age needs at least one word"))
+            return FAILURE
+        }
+
+        val chosenSeed = seed ?: AgeRecipe.seedFor(id)
+        val resolution = Resolver.resolve(vocabulary, words, chosenSeed)
+        val result = open(source, name, id, AgeRecipe.written(source.server, resolution, chosenSeed))
+        if (result == FAILURE) return FAILURE
+
+        source.sendSuccess({ Component.literal("  cost ${resolution.cost}, ${resolution.instability}") }, false)
+        for (flaw in resolution.instability.flaws) {
+            source.sendSuccess({ Component.literal("  ! $flaw") }, false)
+        }
+        return SUCCESS
+    }
+
+    /**
+     * `/age words` — the whole vocabulary, since which words exist is otherwise invisible until books do.
+     *
+     * Prints the tier and the slots each word may fill, because those two are what make a sentence
+     * behave the way it does: a word about the sky cannot pin the ground, and a vague word cannot fail.
+     */
+    private fun runVocabulary(context: CommandContext<CommandSourceStack>): Int {
+        val source = context.source
+        val vocabulary = Vocabulary.of(source.server)
+        reportProblems(source, vocabulary)
+        if (vocabulary.words.isEmpty()) {
+            source.sendFailure(Component.literal("The Art knows no words at all — is the mod's data pack loaded?"))
+            return FAILURE
+        }
+        source.sendSuccess({ Component.literal("The Art knows ${vocabulary.words.size} words:") }, false)
+        for (word in vocabulary.words) {
+            val about = if (word.slots.isEmpty()) "anywhere" else word.slots.joinToString(" ") { it.key }
+            val asks = word.query.entries.sortedBy { it.key }
+                .joinToString(" ") { (tag, weight) -> if (weight < 0) "-$tag" else tag }
+            source.sendSuccess({ Component.literal("  ${word.name} — ${word.tier.key}, $about: $asks") }, false)
+        }
+        return SUCCESS
+    }
+
+    /**
+     * Anything wrong with the loaded vocabulary, said before it can cause confusion.
+     *
+     * §3.3's one hard requirement: a word that could not be read must be *reported*, never silently
+     * absent — a corpus quietly missing a word is indistinguishable from a resolver that ignored it.
+     */
+    private fun reportProblems(source: CommandSourceStack, vocabulary: Vocabulary) {
+        for (problem in vocabulary.problems) {
+            source.sendFailure(Component.literal("Vocabulary problem: $problem"))
+        }
     }
 
     /**

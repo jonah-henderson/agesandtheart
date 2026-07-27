@@ -1,0 +1,9 @@
+{
+  "tier": "evocative",
+  "query": {
+    "eroded": 1.0,
+    "monumental": 0.7,
+    "ordered": 0.5,
+    "lush": -0.3
+  }
+}

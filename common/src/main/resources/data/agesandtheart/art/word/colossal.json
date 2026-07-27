@@ -1,0 +1,9 @@
+{
+  "tier": "exact",
+  "slots": [
+    "landform"
+  ],
+  "query": {
+    "monumental": 1.0
+  }
+}

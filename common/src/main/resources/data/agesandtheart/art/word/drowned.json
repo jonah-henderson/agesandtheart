@@ -1,0 +1,10 @@
+{
+  "tier": "restrictive",
+  "slots": [
+    "medium",
+    "subsurface"
+  ],
+  "query": {
+    "watery": 1.0
+  }
+}

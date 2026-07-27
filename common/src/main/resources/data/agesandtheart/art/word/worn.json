@@ -1,0 +1,10 @@
+{
+  "tier": "restrictive",
+  "slots": [
+    "landform",
+    "subsurface"
+  ],
+  "query": {
+    "eroded": 1.0
+  }
+}

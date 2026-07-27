@@ -1,0 +1,10 @@
+{
+  "tier": "evocative",
+  "query": {
+    "lovely": 1.0,
+    "lush": 0.9,
+    "bright": 0.6,
+    "hostile": -0.8,
+    "gloomy": -0.4
+  }
+}

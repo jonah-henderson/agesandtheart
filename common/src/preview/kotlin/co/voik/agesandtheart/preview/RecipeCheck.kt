@@ -6,10 +6,14 @@ import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.AgePreset
 import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.AgeWorld
+import co.voik.agesandtheart.age.Flaw
+import co.voik.agesandtheart.age.Instability
+import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.age.Seam
 import co.voik.agesandtheart.age.slot.Dressing
 import co.voik.agesandtheart.age.slot.Landform
 import co.voik.agesandtheart.age.slot.Medium
+import co.voik.agesandtheart.age.slot.Share
 import co.voik.agesandtheart.age.slot.Sky
 import co.voik.agesandtheart.age.slot.Slot
 import co.voik.agesandtheart.age.slot.SlotPreset
@@ -37,6 +41,9 @@ fun main() {
     readsRecipesWrittenBeforeSlots()
     roundTripsASetValuedLandform()
     readsRecipesWrittenBeforeRegions()
+    roundTripsAWrittenAge()
+    roundTripsAnUnevenDivision()
+    readsRecipesWrittenBeforeWords()
     keepsEveryWrittenKind()
     stampsTheGeneratorVersion()
     println(
@@ -204,6 +211,100 @@ private fun readsRecipesWrittenBeforeRegions() {
 }
 
 /**
+ * An Age somebody *wrote* keeps its words and its flaws.
+ *
+ * Both are new to version 6 and both are provenance: nothing rebuilds a world from them, which is exactly
+ * why they are easy to lose without noticing. The words are the only record of what a book said, and the
+ * flaws are what makes an unstable Age diagnosable rather than merely punished — a wound has to be sited
+ * at the contradiction (§5.1), and the contradiction is only written down here.
+ */
+private fun roundTripsAWrittenAge() {
+    val composition = AgeComposition(landforms = listOf(Landform.HILLS))
+        .withPresets(Slot.DRESSING, listOf(Dressing.BARE_ROCK.key, Dressing.VERDANT.key))
+    val instability = Instability(
+        listOf(
+            Flaw(Register.DIVISION, listOf("lifeless", "verdant"), Slot.DRESSING, listOf("barren", "lush"), severity = 3),
+            Flaw(Register.TENSION, listOf("lifeless", "verdant"), Slot.DRESSING, listOf("barren", "lush"), severity = 1),
+        ),
+    )
+    val recipe = AgeRecipe(
+        AgeWorld.Composed(composition),
+        seed = SAMPLE_SEED,
+        character = SAMPLE_CHARACTER,
+        instability = instability,
+        words = listOf("verdant", "lifeless"),
+    )
+    val decoded = roundTrips(recipe, "a written Age")
+
+    check(decoded.words == listOf("verdant", "lifeless")) { "the words were lost: ${decoded.words}" }
+    check(decoded.instability.flaws == instability.flaws) { "the flaws were lost: ${decoded.instability.flaws}" }
+    check(decoded.instability.index == instability.index) {
+        "the index came back as ${decoded.instability.index}, not ${instability.index}"
+    }
+    // The severity is stored rather than recomputed, so retuning the charges cannot rewrite an Age that
+    // has already been written — the same argument as persisting the recipe rather than the words (§4.6).
+    check(instability.index == EXPECTED_SAMPLE_INDEX) { "the sample flaws no longer sum to what they did" }
+}
+
+/**
+ * An Age whose slots divide unevenly keeps its shares, through NBT and through its own spelling.
+ *
+ * Shares are generation inputs — they decide how much ground each territory covers — so losing one silently
+ * would hand back a different world on the next open. And an even division has to keep spelling itself the
+ * way it always did, or every recipe written before shares existed would read as something else.
+ */
+private fun roundTripsAnUnevenDivision() {
+    val uneven = AgeComposition(landforms = listOf(Landform.HILLS))
+        .withPresets(
+            Slot.DRESSING,
+            listOf(Dressing.OVERWORLD.key, Dressing.BARE_ROCK.key, Dressing.VERDANT.key),
+            listOf(Share.DOMINANT, Share.SCATTERED, Share.RARE),
+        )
+    val decoded = roundTrips(AgeRecipe(AgeWorld.Composed(uneven), seed = SAMPLE_SEED), "an uneven division")
+    check(decoded.composition?.sharesOf(Slot.DRESSING) == listOf(Share.DOMINANT, Share.SCATTERED, Share.RARE)) {
+        "the shares came back as ${decoded.composition?.sharesOf(Slot.DRESSING)}"
+    }
+
+    val spelling = uneven.toString()
+    check("dressing=overworld,bare_rock:scattered,verdant:rare" in spelling) {
+        "an uneven division spells itself wrong: '$spelling'"
+    }
+    check(AgeComposition.parse(spelling).getOrThrow() == uneven) { "'$spelling' does not read back as itself" }
+
+    // An even division says nothing about shares at all, which is what keeps a hand-composed Age — and every
+    // recipe written before shares existed — spelled exactly as it was.
+    val even = AgeComposition(landforms = listOf(Landform.HILLS, Landform.PILLARS))
+    check(":" !in even.toString()) { "an even division should not mention shares: '$even'" }
+    check(even.sharesOf(Slot.LANDFORM) == listOf(Share.DOMINANT, Share.DOMINANT)) {
+        "an unmentioned division should be even, not ${even.sharesOf(Slot.LANDFORM)}"
+    }
+}
+
+/**
+ * An Age written before words existed still opens, and opens as a coherent Age with nothing to say for
+ * itself — which is the truth about it, since nobody wrote it from a sentence.
+ */
+private fun readsRecipesWrittenBeforeWords() {
+    val written = CompoundTag().apply {
+        put(
+            "world",
+            CompoundTag().apply {
+                put("kind", StringTag.valueOf("composed"))
+                put("landform", StringTag.valueOf(Landform.HILLS.key))
+            },
+        )
+        putLong("seed", SAMPLE_SEED)
+        putInt(GENERATOR_VERSION_KEY, PRE_WORDS_GENERATOR_VERSION)
+    }
+    val decoded = AgeRecipe.CODEC.parse(NbtOps.INSTANCE, written)
+        .getOrThrow { problem -> IllegalStateException("a pre-words recipe would not load: $problem") }
+
+    check(decoded.words.isEmpty()) { "a recipe with no words read back with ${decoded.words}" }
+    check(decoded.instability == Instability.NONE) { "a recipe with no flaws read back as ${decoded.instability}" }
+    check(decoded.generatorVersion == PRE_WORDS_GENERATOR_VERSION) { "Migration overwrote the stamp" }
+}
+
+/**
  * Every generator-kind string ever persisted still names a preset.
  *
  * The list is frozen history, not a mirror of the enum — that is the entire point. Renaming an
@@ -272,5 +373,11 @@ private const val PRE_SLOTS_GENERATOR_VERSION = 1
 
 /** And what every Age written after slots but before regions is stamped with. */
 private const val PRE_REGIONS_GENERATOR_VERSION = 2
+
+/** And what every Age written after every slot became positional but before words could write one is. */
+private const val PRE_WORDS_GENERATOR_VERSION = 5
+
+/** What the sample flaws add up to: a division at exact precision, plus the tension behind it. */
+private const val EXPECTED_SAMPLE_INDEX = 4
 
 private const val SAMPLE_SEED = 0x5EED_A9EL

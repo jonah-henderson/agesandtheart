@@ -1,0 +1,9 @@
+{
+  "tier": "evocative",
+  "query": {
+    "barren": 1.0,
+    "empty": 0.7,
+    "dry": 0.5,
+    "lush": -0.8
+  }
+}

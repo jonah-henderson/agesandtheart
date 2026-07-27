@@ -1,0 +1,9 @@
+{
+  "tier": "restrictive",
+  "slots": [
+    "dressing"
+  ],
+  "query": {
+    "lush": 1.0
+  }
+}

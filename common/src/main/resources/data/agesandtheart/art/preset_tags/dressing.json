@@ -1,0 +1,36 @@
+{
+  "bare_rock": {
+    "tags": {
+      "barren": 0.9,
+      "dry": 0.5,
+      "gloomy": 0.3,
+      "ordinary": 0.2
+    }
+  },
+  "verdant": {
+    "tags": {
+      "lush": 0.9,
+      "lovely": 0.6,
+      "bright": 0.5,
+      "gentle": 0.4
+    }
+  },
+  "plasma": {
+    "readiness": 0.3,
+    "tags": {
+      "strange": 0.95,
+      "dramatic": 0.5,
+      "gloomy": 0.4,
+      "hostile": 0.3
+    }
+  },
+  "overworld": {
+    "tags": {
+      "ordinary": 0.95,
+      "lush": 0.6,
+      "lovely": 0.5,
+      "gentle": 0.5,
+      "bright": 0.4
+    }
+  }
+}

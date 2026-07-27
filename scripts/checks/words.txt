@@ -1,0 +1,54 @@
+# The resolver on a real server: does a sentence make a world?
+# Run with: scripts/drive-server.sh scripts/checks/words.txt
+#
+# The load-bearing risk here is loading, not resolving — the resolver itself is covered offline by
+# `:common:resolvercheck` and `:common:vocabularycheck`, which read the same files this will. What only a
+# server can answer is whether the vocabulary is *found* when the mod is a jar rather than a source tree:
+# the corpus comes from `server.resourceManager` over `data/agesandtheart/art/`, and a wrong path fails by
+# the Art knowing no words at all. So the first thing to read is the word count below.
+
+# Every word the Art knows. Expect 29, and no "Vocabulary problem:" lines.
+age words
+
+# The plainest sentence there is: one restrictive word about the ground, everything else left to the seed.
+age write floater 7 floating beautiful
+age gen floater
+
+# The acceptance test, in a world rather than in a check: lush against barren in a slot that can divide.
+# Expect two dressings in the recipe, a division charged, and the tension behind it named.
+age write bothways 7 verdant lifeless
+age gen bothways
+
+# The same sentence reversed, at the same seed, must be the same Age — word order decides nothing (3.5).
+# Expect the two recipes to print identically, including the instability index.
+age write reversed 7 lifeless verdant
+age list
+
+# And the same again down at the blocks. A *different* pair, deliberately: "verdant lifeless" reaches
+# vanilla's dressing, and a decorating Age differs from itself run to run (design 6.5, measured) — so
+# comparing that pair would measure vanilla's decoration rather than the resolver. These two divide the
+# dressing between bare rock and plasma, neither of which decorates, so any difference at all is ours.
+age write dividedA 7 arid uncanny
+age write dividedB 7 uncanny arid
+age compare dividedA dividedB 2
+
+# A contradiction in the one slot that cannot divide: one sky wins, the other is displaced and said so.
+age write onesky 7 stormy clear
+age gen onesky
+
+# Precise about all five slots at once, which is the sentence with the least left to chance.
+age write pinned 7 colossal molten flooded lifeless stormy
+age gen pinned
+
+# Harmony: a vague word that likes several things may get several of them, sharing the ground unevenly, and
+# is charged nothing for it. Read the recipe for `:scattered` or `:rare` suffixes and for an empty flaw list.
+age write manifold 12 beautiful
+age gen manifold
+
+# Everything vague. This is the branch that has to stay safe and cheap, so: no flaws, and a world that
+# generates. What it *is* varies with the seed, which is the point of writing vaguely.
+age write dreamt 7 beautiful wondrous
+age gen dreamt
+
+# What was written, as recipes: every line should print its sentence, its composition and its index.
+age list

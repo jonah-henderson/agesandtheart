@@ -1,0 +1,9 @@
+{
+  "tier": "exact",
+  "slots": [
+    "medium"
+  ],
+  "query": {
+    "molten": 1.0
+  }
+}

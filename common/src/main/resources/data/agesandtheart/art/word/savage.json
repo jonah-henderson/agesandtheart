@@ -1,0 +1,9 @@
+{
+  "tier": "evocative",
+  "query": {
+    "wild": 1.0,
+    "hostile": 0.6,
+    "sheer": 0.5,
+    "gentle": -0.7
+  }
+}
