@@ -79,6 +79,11 @@ instrument(
 )
 
 instrument(
+    "resolverspike", "documentation", "co.voik.agesandtheart.preview.ResolverSpikeKt",
+    "THROWAWAY: does constraint satisfaction over weighted tags work? Read it, don't build on it.",
+)
+
+instrument(
     "spanscheck", "verification", "co.voik.agesandtheart.preview.SpansCheckKt",
     "Differential check of Spans interval algebra against a per-block reference.",
 )
