@@ -74,22 +74,34 @@ class FieldChunkGenerator(
     private val ambient: AmbientMedium,
     private val surfaceRule: SurfaceRules.RuleSource = Palette.PLAIN_STONE,
     /**
-     * What is cut back out of the rock, one set per subsurface — **and they all run** (Jonah's call,
-     * design §3.4).
+     * What is cut back out of the rock, one set per subsurface — **and they all run**, except where a
+     * subsurface asserting the rock is *uncut* holds the ground (design §3.4, and [uncarvedTerritories]).
      *
-     * These used to be selected between, one per chunk, on the [underground] map. Jonah asked why two
-     * carver sets could not both run and the answer was that nothing stopped them: carvers cut air out of
-     * rock and share one [CarvingMask], so running two sets over a chunk simply yields both cave systems.
-     * The argument that *is* sound — a carver is a stateful walk that starts in one chunk and tunnels
-     * outward, so there is no column at which to ask which set applies — argues against selecting **per
-     * column**, and says nothing about selecting at all.
+     * Carving has been three things in turn, and the two it stopped being were wrong in ways worth keeping
+     * written down. It began as a selection **per chunk**, which was an accident of how this was written
+     * rather than a decision, and it made naming two subsurfaces silently exclusive. It then became a plain
+     * **union** — every set running everywhere — on the argument that carving is populative (§3.2), since
+     * carvers cut air out of rock and share one [CarvingMask], so two sets simply yield both cave systems.
      *
-     * So carving is *populative* (§3.2): "caves and wind erosion" means an Age with both throughout rather
-     * than two territories with one each. Only the water table still divides, which is why [underground]
-     * survives.
+     * The union is right, and it is what still happens between any two subsurfaces that *cut* something:
+     * porosity leaving small holes through a colonnade another subsurface stripped out is two ideas
+     * combining, which is what a union is for. Its one flaw is `solid`, which carries no carvers and so is
+     * the union's *identity* rather than a member of it: `caves solid` was measured to differ from `caves`
+     * by two blocks, both of them water, and the writer was told nothing. That is §3.3's silent drop, and it
+     * left "caves here, solid ground there" — an entirely ordinary thing to want — unsayable.
+     *
+     * So the union was not too strong, it was applied to one claim that is not populative at all. See
+     * [uncarvedTerritories] for the line, which is §3.2's own.
+     *
+     * What survives from the union argument either way is the part about **columns**: a carver is a stateful
+     * walk, so there is no column at which to ask whether it may cut. [applyCarvers] therefore asks at the
+     * walk's *origin*, which is the one position a walk has.
      */
     private val carvers: List<Map<GenerationStep.Carving, HolderSet<ConfiguredWorldCarver<*>>>> = listOf(emptyMap()),
-    /** Which subsurface's *hydrology* owns which ground. Carving no longer asks; see [carvers]. */
+    /**
+     * Which subsurface owns which ground — read by **carving and hydrology alike**, so that the caves and
+     * the water standing in them belong to the same territory rather than to two maps that nearly agree.
+     */
     private val underground: RegionMap = RegionMap.whole(),
     /**
      * Where water stands, **one table per subsurface** — hydrology divides on the same [underground] map as
@@ -265,7 +277,7 @@ class FieldChunkGenerator(
         waterTables.ifEmpty { listOf(WaterTable.matching(ambient, seaLevel)) }
 
     /**
-     * Every subsurface's carvers together, per step — the union described on [carvers].
+     * Every carving subsurface's carvers together, per step — the union described on [carvers].
      *
      * Built once rather than per chunk, and **in composition order**, which is not incidental: a carver is
      * seeded by its *index* in the list it is run from, so a stable order is what keeps an Age reproducible.
@@ -276,6 +288,27 @@ class FieldChunkGenerator(
         GenerationStep.Carving.entries.associateWith { step ->
             carvers.flatMap { perSubsurface -> perSubsurface[step]?.toList().orEmpty() }.distinct()
         }
+    }
+
+    /**
+     * The territories where **nothing starts a walk** — the subsurfaces that cut nothing anywhere.
+     *
+     * This is the whole of how a division and a union coexist, and the line it draws is §3.2's own, read one
+     * level down at the preset instead of at the parameter. `caves`, `porous` and `weathered` each assert
+     * that something *exists* underground, which is a populative claim, so they accumulate and their union is
+     * the right answer: porosity leaving small holes through a colonnade that something else stripped out is
+     * two ideas combining, not two ideas competing. `solid` asserts an *absence* — that the rock is uncut —
+     * and an absence cannot accumulate with anything. It is predicative, so it contends, and what it contends
+     * for is ground.
+     *
+     * Inferred rather than declared, and exactly rather than heuristically: a subsurface that cuts nothing at
+     * any step *is* one asserting the rock is uncut, so a subsurface added by a datapack lands on the right
+     * side of this without having to say anything.
+     */
+    private val uncarvedTerritories: Set<Int> by lazy {
+        fun cutsNothing(subsurface: Map<GenerationStep.Carving, HolderSet<ConfiguredWorldCarver<*>>>): Boolean =
+            subsurface.values.all { step -> step.size() == 0 }
+        carvers.indices.filter { territory -> cutsNothing(carvers[territory]) }.toSet()
     }
 
     // Only ever consulted by the NoiseChunk's own (disabled, unused) aquifer — carving uses [aquifer].
@@ -306,6 +339,22 @@ class FieldChunkGenerator(
      * Unlike vanilla this reads its carvers from the Age's own recipe rather than from the biome. Field
      * Ages sit on a barren biome that carries none, and an Age already describes its whole world as
      * replayable data, so its carvers belong there too.
+     *
+     * **Whether anything may start a walk is decided at the walk's origin** — the source chunk — rather than
+     * per column, which is what makes uncut ground affordable at all (see [carvers]). Two consequences
+     * follow, and both are wanted:
+     *
+     * - A tunnel starting outside keeps going across the boundary, up to [CARVE_REACH_CHUNKS] chunks. So the
+     *   two meet as a **gradient rather than a wall**, and uncut ground is not perfectly uncut at its edge.
+     *   A hard mask would instead shear tunnels off flat against an invisible line.
+     * - Ground much narrower than that reach is **swamped by what bleeds into it**. The default territory is
+     *   400 blocks across against a reach of 128, so an even division reads clearly and a scarce one fades —
+     *   a real limit on how small an uncut territory can usefully be, and the reason [underground] is not
+     *   simply handed the share ladder's 1% floor to work with.
+     *
+     * The generalisation this is the first case of: a territory carves the union unless it was asked to keep
+     * ground of its own, and `solid` is the degenerate version where its own set is empty. Asking is the
+     * grammar's `and` (§3.2), which does not exist yet, so nothing here reads a flag that nothing can set.
      */
     override fun applyCarvers(
         level: WorldGenRegion,
@@ -316,8 +365,6 @@ class FieldChunkGenerator(
         chunk: ChunkAccess,
         step: GenerationStep.Carving,
     ) {
-        // The chunk's centre decides, so a chunk belongs wholly to one subsurface even where the
-        // territory boundary crosses it.
         val stepCarvers = carving[step].orEmpty()
         if (stepCarvers.isEmpty()) return
         val protoChunk = chunk as? ProtoChunk ?: return
@@ -347,6 +394,11 @@ class FieldChunkGenerator(
         for (offsetX in -CARVE_REACH_CHUNKS..CARVE_REACH_CHUNKS) {
             for (offsetZ in -CARVE_REACH_CHUNKS..CARVE_REACH_CHUNKS) {
                 val source = ChunkPos(chunk.pos.x + offsetX, chunk.pos.z + offsetZ)
+                // The source chunk's centre decides, so a chunk is wholly inside or outside the uncut ground
+                // even where a boundary crosses it. [RegionMap.memberAt] has already frayed that boundary by
+                // the Age's seam, so the two interlock at chunk grain without anything here saying so.
+                val territory = underground.memberAt(source.middleBlockX, source.middleBlockZ)
+                if (territory in uncarvedTerritories) continue
                 stepCarvers.forEachIndexed { index, carver ->
                     random.setLargeFeatureSeed(seed + index, source.x, source.z)
                     if (carver.value().isStartChunk(random)) {

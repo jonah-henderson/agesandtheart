@@ -1,0 +1,40 @@
+# Does uncut ground exist? — the one number that says whether generator version 11 did anything.
+# Run with: scripts/drive-server.sh scripts/checks/uncut-ground.txt
+#
+# Under the plain union, `solid` carried no carvers and so was the union's *identity*: it could not lose an
+# argument, it simply vanished. Measured then, `riddled` against `riddled unbroken` differed by **two
+# blocks, and both of them were water** — the water coming from hydrology, which already divided.
+#
+# A subsurface that cuts nothing anywhere now holds a territory in which no walk starts, so the second
+# sentence should differ from the first over a large share of its caves. Same seed throughout, so nothing
+# but the subsurface can be responsible for a difference.
+
+# Caves throughout, and caves against uncut ground. `compose` rather than `write` so the subsurface is
+# stated outright and no resolver draw can quietly seat a third preset.
+age compose riddledonly 7 landform=hills medium=minecraft:water subsurface=caves dressing=overworld sky=plain
+age compose riddledsolid 7 landform=hills medium=minecraft:water subsurface=caves,solid dressing=overworld sky=plain
+
+# THE NUMBER. Two blocks means the union is still swallowing `solid`; a large count means uncut ground
+# exists. Expect the difference to be air-versus-stone rather than water, which is what tells uncut ground
+# apart from the hydrology division that was already there.
+#
+# MEASURED 2026-07-27, generator version 11: **248,734 blocks over 284 of 289 chunks** at radius 8, against
+# two under the plain union. Uncut ground exists.
+age compare riddledonly riddledsolid 6
+
+# And the control: two subsurfaces that both *cut* must still union, so this pair should differ from
+# `riddledonly` by whatever porosity adds, not by territory.
+#
+# MEASURED: 65,779 blocks over 73 of 169 chunks at radius 6 — porosity's scattered vugs added on top of the
+# caves, in the chunks it reached. The union between two cutting subsurfaces is untouched.
+age compose riddledporous 7 landform=hills medium=minecraft:water subsurface=caves,porous dressing=overworld sky=plain
+age compare riddledonly riddledporous 6
+
+age list
+
+# WHAT THIS CHECK CANNOT SHOW, so do not read it as more than it is. `/age compare` caps at radius 8, which
+# is 272 blocks, and a territory is 400 across — so the sample cannot straddle a boundary reliably. At seed
+# 7 it sits nearly wholly *inside* the uncut ground: `caves,solid` against an all-`solid` Age differs by only
+# 1,118 blocks, where `caves` against either differs by ~249,000. So this measures **suppression**, and only
+# glances the seam. Whether the division reads well across a whole world is a walk, not a number.
+

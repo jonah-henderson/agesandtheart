@@ -112,8 +112,14 @@ data class AgeRecipe(
          * table being drawn for the whole Age. `porous` cuts small vugs where it used to cut nothing at all,
          * and `flooded_caves` floods where it used to differ from `caves` by a noise seed. Every Age with a
          * subsurface other than `solid` generates differently.
+         *
+         * **11 — uncut ground.** A subsurface that cuts nothing anywhere now holds its own territory, in
+         * which no carver starts, where 10 let it vanish into the union's identity. Two subsurfaces that
+         * both cut are unaffected and still union throughout. So only an Age naming `solid` *alongside*
+         * something else changes, and it changes into what it always claimed to be: caves here, solid ground
+         * there.
          */
-        const val CURRENT_GENERATOR_VERSION = 10
+        const val CURRENT_GENERATOR_VERSION = 11
 
         val MAP_CODEC: MapCodec<AgeRecipe> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
