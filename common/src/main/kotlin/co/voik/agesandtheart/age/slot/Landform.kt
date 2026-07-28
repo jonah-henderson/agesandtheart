@@ -7,7 +7,9 @@ import co.voik.agesandtheart.worldgen.PillarField
 import co.voik.agesandtheart.worldgen.PyramidField
 import co.voik.agesandtheart.worldgen.ShapesField
 import co.voik.agesandtheart.worldgen.SpireField
+import co.voik.agesandtheart.worldgen.field.Palette
 import co.voik.agesandtheart.worldgen.field.TerrainField
+import net.minecraft.world.level.levelgen.SurfaceRules
 
 /**
  * The shape of an Age's rock — the slot that carries the most meaning, and the one whose family of
@@ -61,14 +63,38 @@ enum class Landform(
     override val slot = Slot.LANDFORM
 
     override val parameters: List<Parameter>
-        get() = if (this == PYRAMIDS) listOf(ARRANGEMENT) else emptyList()
+        get() = listOfNotNull(ARRANGEMENT.takeIf { this == PYRAMIDS }, STONE)
 
     override fun getSerializedName(): String = key
 
     /** The rock this landform lays down, steered by whichever [options] it understands. */
     fun field(options: Options): TerrainField = build(options.of(ARRANGEMENT))
 
+    /**
+     * What this landform is *made of*, as a surface rule painted over its own territory — or
+     * [Palette.NOTHING] where the sentence never said, leaving the rock to the dressing.
+     *
+     * Sits **between the dressing's cover and the dressing's rock** ([Palette.verdantOver]), which is what
+     * makes "copper spires and andesite hills" behave the way a writer means it: the spires are copper where
+     * they stand, and they still take grass on top in a world that grows things. A material says what the
+     * substance is, never whether anything lives on it.
+     */
+    fun stone(options: Options): SurfaceRules.RuleSource {
+        val stones = Palette.materialsNamed(options.allOf(STONE))
+        return if (stones.isEmpty()) Palette.NOTHING else Palette.mingled(stones)
+    }
+
     companion object {
         val ARRANGEMENT = Parameter("arrangement", "grid", "rings", "varied")
+
+        /**
+         * Deliberately the same name as [Dressing.STONE], so that **one word reaches both**.
+         *
+         * A writer does not distinguish the rock a landform is made of from the rock a dressing paints, and
+         * should not have to (design §4.3.1): "the land is andesite" is one thought. Two parameter names
+         * would force every material word to declare both and would leak our internal seam into the
+         * vocabulary. Which of them a word actually steers is decided by where it is aimed, not by spelling.
+         */
+        val STONE = Parameter.material("stone")
     }
 }

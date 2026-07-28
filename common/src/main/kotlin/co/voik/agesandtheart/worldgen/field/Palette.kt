@@ -1,9 +1,13 @@
 package co.voik.agesandtheart.worldgen.field
 
+import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.age.slot.Parameter
 import co.voik.agesandtheart.location
+import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
 import net.minecraft.data.worldgen.SurfaceRuleData
 import net.minecraft.resources.ResourceKey
+import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
@@ -152,13 +156,42 @@ object Palette {
     val VANILLA_OVERWORLD: SurfaceRules.RuleSource =
         SurfaceRuleData.overworldLike(/* aboveGround = */ false, /* bedrockRoof = */ false, /* bedrockFloor = */ true)
 
+    /**
+     * A rule that never matches, so whatever follows it decides.
+     *
+     * How "this landform named no material" is spelled: a [RegionRule] member that declines leaves the column
+     * to the rule beneath it, which is the dressing's own rock.
+     *
+     * Spelled as *below the bottom of the world*, which no block ever is. The obvious spelling — an empty
+     * [layers] — is not available: vanilla's `sequence` rejects an empty list outright ("Need at least 1 rule
+     * for a sequence"), and it does so at class-initialisation time, so it fails a long way from here. A
+     * `RuleSource` of our own would need registering to serialise, which is a great deal of ceremony for a
+     * rule whose entire job is to do nothing.
+     */
+    val NOTHING: SurfaceRules.RuleSource = SurfaceRules.ifTrue(
+        SurfaceRules.not(SurfaceRules.yBlockCheck(VerticalAnchor.bottom(), 0)),
+        solid(Blocks.AIR.defaultBlockState()),
+    )
+
+    /** What a verdant dressing shows below the soil when nothing named a material. */
+    val VERDANT_ROCK: SurfaceRules.RuleSource =
+        layers(deepslateFloor(), solid(Blocks.STONE.defaultBlockState()))
+
     /** Grass over dirt over stone, deepslate fading in at depth; bare gravel wherever the sea covers it. */
-    val VERDANT: SurfaceRules.RuleSource =
-        layers(worldFloor(), soil(), deepslateFloor(), solid(Blocks.STONE.defaultBlockState()))
+    val VERDANT: SurfaceRules.RuleSource = verdantOver(VERDANT_ROCK)
 
     /** The same soil, over whatever rock the Age was said to be made of — see [madeOf]. */
-    fun verdantOver(stones: List<BlockState>): SurfaceRules.RuleSource =
-        layers(worldFloor(), soil(), mingled(stones))
+    fun verdantOver(stones: List<BlockState>): SurfaceRules.RuleSource = verdantOver(mingled(stones))
+
+    /**
+     * The same soil, over whatever [rock] the layers below settle on.
+     *
+     * Taking a rule rather than a block list is what lets a **landform**'s material sit between the soil and
+     * the dressing's own rock: copper spires keep their grass, because the cover is decided above the
+     * substance and always was — this only makes the substance something more than one thing can answer for.
+     */
+    fun verdantOver(rock: SurfaceRules.RuleSource): SurfaceRules.RuleSource =
+        layers(worldFloor(), soil(), rock)
 
     /**
      * Soil, but only inside the named biomes — how a barren dressing gives a named biome somewhere to grow.
@@ -179,19 +212,26 @@ object Palette {
     )
 
     /**
-     * Bare weathered rock, no soil at all — for monoliths and the shape sampler.
+     * The rock a bare dressing shows when nothing named a material: an andesite skin over a tuff crust,
+     * then deepslate at depth.
      *
-     * Every block here is deliberately carver-replaceable (`#minecraft:base_stone_overworld`). Cobble
-     * was the obvious choice for the crust and is *not* in that tag, so caves would have cut the rock
-     * and left cobblestone shells hanging in their mouths; tuff reads the same and carves cleanly.
+     * Every block here is deliberately carver-replaceable (`#minecraft:base_stone_overworld`). Cobble was
+     * the obvious choice for the crust and is *not* in that tag, so caves would have cut the rock and left
+     * cobblestone shells hanging in their mouths; tuff reads the same and carves cleanly.
+     *
+     * **Declared above [BARE_ROCK], which reads it.** An `object`'s properties initialise in source order,
+     * so the other way round leaves this null at startup — the exact failure `:common:codeccheck` exists to
+     * catch, and one that surfaces as an unexplained crash a long way from here.
      */
-    val BARE_ROCK: SurfaceRules.RuleSource = layers(
-        worldFloor(),
+    val BARE_ROCK_LAYERS: SurfaceRules.RuleSource = layers(
         where(atSurface(), Blocks.ANDESITE.defaultBlockState()),
         where(withinDepth(CRUST_DEPTH), Blocks.TUFF.defaultBlockState()),
         deepslateFloor(),
         solid(Blocks.STONE.defaultBlockState()),
     )
+
+    /** Bare weathered rock, no soil at all — for monoliths and the shape sampler. */
+    val BARE_ROCK: SurfaceRules.RuleSource = madeOf(BARE_ROCK_LAYERS)
 
     /**
      * Bare rock made of the named blocks, all the way down — a **material** (design §3.2) applied to the
@@ -206,7 +246,27 @@ object Palette {
      * scale, not given a region each. Division is what naming two *dressings* does, so reading a list as
      * territories would give one piece of geography two spellings and leave mingling with none.
      */
-    fun madeOf(stones: List<BlockState>): SurfaceRules.RuleSource = layers(worldFloor(), mingled(stones))
+    fun madeOf(stones: List<BlockState>): SurfaceRules.RuleSource = madeOf(mingled(stones))
+
+    /** The same, over whatever [rock] the layers below settle on — see [verdantOver] for why that matters. */
+    fun madeOf(rock: SurfaceRules.RuleSource): SurfaceRules.RuleSource = layers(worldFloor(), rock)
+
+    /**
+     * The blocks these registry ids name, dropping any this pack does not have.
+     *
+     * Shared by every slot that wears a material (design §3.2), so a landform and a dressing resolve one the
+     * same way. A block a mod has since removed is dropped with a complaint rather than failing the Age:
+     * an Age must still open, and the rest of a mingling still reads.
+     */
+    fun materialsNamed(names: List<String>): List<BlockState> = names
+        .filter { it != Parameter.UNCHANGED }
+        .mapNotNull { named ->
+            val id = ResourceLocation.tryParse(named) ?: return@mapNotNull null
+            BuiltInRegistries.BLOCK.getOptional(id).map { block -> block.defaultBlockState() }.orElseGet {
+                Constants.LOG.warn("An Age names a block this pack does not have: {}", named)
+                null
+            }
+        }
 
     /**
      * Several blocks mottled through one another, the last standing as the ground everything else is

@@ -87,6 +87,10 @@ object AgeGeneration {
             flow,
         )
 
+        val landformStone = RegionRule.of(
+            composition.landforms.mapIndexed { member, landform -> landform.stone(landformOptions(member)) },
+            ground,
+        )
         val cover = character.mapFor(Slot.DRESSING, composition.sharesOf(Slot.DRESSING), seed)
         val below = character.mapFor(Slot.SUBSURFACE, composition.sharesOf(Slot.SUBSURFACE), seed)
         return FieldChunkGenerator(
@@ -98,8 +102,13 @@ object AgeGeneration {
             ),
             shape,
             ambient,
+            // Two region maps meeting in one rule: the landform's material is painted over the **landform's**
+            // territories, layered inside a palette divided by the **dressing's**. Which is the whole point —
+            // copper follows the spires that are made of it, not whichever dressing happens to cover them.
             RegionRule.of(
-                composition.dressings.mapIndexed { member, dressing -> dressing.palette(dressingOptions(member)) },
+                composition.dressings.mapIndexed { member, dressing ->
+                    dressing.palette(dressingOptions(member), landformStone)
+                },
                 cover,
             ),
             composition.subsurfaces.map { it.carvers(server) },

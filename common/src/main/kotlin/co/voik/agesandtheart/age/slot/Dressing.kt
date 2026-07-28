@@ -118,12 +118,16 @@ enum class Dressing(override val key: String) : SlotPreset {
      *
      * [OVERWORLD] cannot honour one and does not pretend to — see [ignoresMaterial].
      */
-    fun palette(options: Options): SurfaceRules.RuleSource {
+    fun palette(options: Options, landformStone: SurfaceRules.RuleSource = Palette.NOTHING): SurfaceRules.RuleSource {
         val stones = materialsIn(options)
+        // The landform's own rock goes *above* this dressing's, so a copper spire is copper where it stands
+        // and the dressing answers everywhere the landform said nothing (see `Landform.stone`). Below the
+        // soil either way: a material says what the substance is, never whether anything grows on it.
+        val rock = Palette.layers(landformStone, if (stones.isEmpty()) nativeRock() else Palette.mingled(stones))
         val ground = when (this) {
             OVERWORLD -> return Palette.VANILLA_OVERWORLD
-            VERDANT -> if (stones.isEmpty()) Palette.VERDANT else Palette.verdantOver(stones)
-            BARE_ROCK, PLASMA -> if (stones.isEmpty()) Palette.BARE_ROCK else Palette.madeOf(stones)
+            VERDANT -> Palette.verdantOver(rock)
+            BARE_ROCK, PLASMA -> Palette.madeOf(rock)
         }
         // A biome named against a barren dressing gets a few blocks of soil under it, so cherry trees have
         // something to stand in rather than sprouting from andesite (Jonah's call). Surface rules are
@@ -193,6 +197,15 @@ enum class Dressing(override val key: String) : SlotPreset {
      * complaint rather than failing the Age: a mod removed since the Age was written must not stop the
      * world opening, and the rest of a mingling still reads.
      */
+    /** What this dressing's rock is when nothing named a material — its own layering, unchanged. */
+    private fun nativeRock(): SurfaceRules.RuleSource = when (this) {
+        VERDANT -> Palette.VERDANT_ROCK
+        BARE_ROCK, PLASMA -> Palette.BARE_ROCK_LAYERS
+        // Never reached: `palette` returns vanilla's whole rule tree before asking, since it is not ours to
+        // layer into. Kept exhaustive so a new dressing has to answer here rather than defaulting silently.
+        OVERWORLD -> Palette.NOTHING
+    }
+
     private fun materialsIn(options: Options): List<BlockState> = options.allOf(STONE)
         .filter { it != Parameter.UNCHANGED }
         .mapNotNull { named ->
