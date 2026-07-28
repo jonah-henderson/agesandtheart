@@ -27,10 +27,15 @@ enum class Production(val key: String, val available: Boolean = true) : StringRe
      */
     CONJUNCTION("conjunction"),
 
-    /** `only` — this and nothing else. The pin that naming alone deliberately never does. */
+    /**
+     * `only` — this and nothing else. The pin that naming alone deliberately never does.
+     *
+     * Parsed before the resolver can act on it, which is fine while this is being built; [available] is
+     * what will gate it for *players*, once there is a skill tree to gate against.
+     */
     RESTRICTION("only"),
 
-    /** `except` — anything but this. Already expressible beneath, since preference weights are signed. */
+    /** `except` — anything but this. Already half-expressible beneath, since preference weights are signed. */
     EXCEPTION("except"),
     ;
 

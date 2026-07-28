@@ -34,11 +34,13 @@ fun main() {
     joiningIsNotJuxtaposition(vocabulary)
     onlyAndExceptReachTheirValues(vocabulary)
     anUnreadablePageBecomesVaguenessNotAnError(vocabulary)
+    nothingVanishesInSilence(vocabulary)
+    aBookThatOnlySteersStillSaysSomething(vocabulary)
     theParserNeverRefuses(vocabulary)
 
     println(
         "Grammar: ${vocabulary.grammarWords.size} structural words, the parser boundary is intact, " +
-            "and all eight readings hold.",
+            "and all ten readings hold.",
     )
 }
 
@@ -65,10 +67,15 @@ private fun theBoundaryHolds() {
     }
 }
 
-/** A production nothing spells is a structure no writer can reach — a content bug, like an unbacked word. */
+/**
+ * A production nothing spells is a structure no writer can reach — a content bug, like an unbacked word.
+ *
+ * Asked only of the **available** ones, since an unavailable production is deliberately unreachable.
+ */
 private fun everyProductionHasAWord(vocabulary: Vocabulary) {
     val spelled = vocabulary.grammarWords.map { it.production }.toSet()
-    val unreachable = co.voik.agesandtheart.age.word.grammar.Production.entries.filter { it !in spelled }
+    val unreachable = co.voik.agesandtheart.age.word.grammar.Production.entries
+        .filter { it.available && it !in spelled }
     check(unreachable.isEmpty()) {
         "no word spells ${unreachable.joinToString { it.key }}, so the structure cannot be written"
     }
@@ -116,13 +123,13 @@ private fun aNarrowingWordIsConfined(vocabulary: Vocabulary) {
  * "and" would mean nothing, and there would be no way left to say *keep both*.
  */
 private fun joiningIsNotJuxtaposition(vocabulary: Vocabulary) {
-    val joined = Grammar.read(vocabulary, listOf("verdant", "basalt", "and", "molten"))
+    val joined = Grammar.read(vocabulary, listOf("verdant", "basalt", "and", "slate"))
     val groups = joined.constraints.mapNotNull { it.group }.distinct()
     check(groups.size == 1) { "'basalt and molten' should share one group, got ${joined.constraints}" }
     val grouped = joined.constraints.filter { it.group != null }.map { it.word.name }
     check(grouped.size == 2) { "expected two words in the group, got $grouped" }
 
-    val unjoined = Grammar.read(vocabulary, listOf("verdant", "basalt", "molten"))
+    val unjoined = Grammar.read(vocabulary, listOf("verdant", "basalt", "slate"))
     check(unjoined.constraints.all { it.group == null }) {
         "unjoined juxtaposition was read as a group, which would leave 'and' meaning nothing"
     }
@@ -152,6 +159,65 @@ private fun anUnreadablePageBecomesVaguenessNotAnError(vocabulary: Vocabulary) {
     check("zzzznotaword" in read.dropped) { "an unknown page was not reported: ${read.dropped}" }
     check(read.constraints.any { it.word.name == "floating" }) {
         "one unreadable page cost the whole book: ${read.constraints}"
+    }
+}
+
+/**
+ * **Nothing vanishes in silence** — the invariant, rather than one example of breaking it.
+ *
+ * Every content page a writer laid down is either *used* (it produced a constraint) or *reported* (it went
+ * unread and the Age is vaguer for it). §3.3's one hard requirement, and the failure it forbids is precisely
+ * a page that does neither: the writer gets a world their sentence did not describe and is told nothing.
+ *
+ * Written as an invariant over malformed books on purpose. The first version asserted that one particular
+ * trailing word was *dropped* — and then a grammar fix made that word legitimately usable, so the check
+ * failed while the behaviour improved. A property about what may never happen survives the parser changing
+ * its mind; a property about one parse does not.
+ *
+ * Structural pages are exempt: `and` earns its keep by joining two words that speak, not by speaking.
+ */
+private fun nothingVanishesInSilence(vocabulary: Vocabulary) {
+    val books = listOf(
+        listOf("floating", "beautiful"),
+        listOf("basalt", "and"),
+        listOf("and", "basalt"),
+        listOf("floating", "zzzznotaword", "beautiful"),
+        listOf("verdant", "and", "and", "basalt"),
+        listOf("beautiful", "and", "floating"),
+        listOf("only", "except", "and"),
+        listOf("basalt", "floating", "verdant", "slate"),
+    )
+    for (pages in books) {
+        val read = Grammar.read(vocabulary, pages)
+        val accountedFor = read.words.map { it.name }.toSet() + read.dropped.toSet()
+        val content = pages.filter { vocabulary.grammarWord(it) == null }
+        val lost = content.filterNot { it in accountedFor }
+        check(lost.isEmpty()) {
+            "'${pages.joinToString(" ")}' lost ${lost.joinToString()} — neither used nor reported, which is " +
+                "the one failure §3.3 forbids"
+        }
+    }
+    // The joining word owes no constraint of its own, so it must never be reported as unread.
+    val joined = Grammar.read(vocabulary, listOf("verdant", "basalt", "and", "slate"))
+    check(joined.dropped.isEmpty()) { "a structural page was reported as unread: ${joined.dropped}" }
+}
+
+/**
+ * "A world of blackstone" — a book with no subject at all.
+ *
+ * It names no dressing; it names the rock a dressing is painted on, which is the sentence the material hook
+ * was built for (§3.2). A grammar demanding a subject in every section left a writer holding only material
+ * pages unable to say anything, and `/age write basalt` came back refused — found on a server, not here.
+ *
+ * With nothing aimed at them, such words fall back to the slots they declare themselves, which is exactly
+ * what an unaimed word has always meant.
+ */
+private fun aBookThatOnlySteersStillSaysSomething(vocabulary: Vocabulary) {
+    val read = Grammar.read(vocabulary, listOf("basalt"))
+    check(read.dropped.isEmpty()) { "'basalt' alone was unreadable: ${read.dropped}" }
+    val basalt = read.constraints.singleOrNull() ?: error("'basalt' alone gave ${read.constraints}")
+    check(Slot.DRESSING in basalt.scope.reaches(emptyList())) {
+        "an unaimed material lost its own declared slot: ${basalt.scope}"
     }
 }
 

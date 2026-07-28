@@ -9,7 +9,12 @@ import co.voik.agesandtheart.age.slot.Slot
 import co.voik.agesandtheart.age.word.Resolution
 import co.voik.agesandtheart.age.word.Resolver
 import co.voik.agesandtheart.age.word.Tier
+import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.word.Vocabulary
+import co.voik.agesandtheart.age.word.grammar.Constraint
+import co.voik.agesandtheart.age.word.grammar.Group
+import co.voik.agesandtheart.age.word.grammar.Scope
+import co.voik.agesandtheart.age.word.grammar.Sentence
 import co.voik.agesandtheart.age.word.Word
 import net.minecraft.SharedConstants
 import net.minecraft.resources.ResourceLocation
@@ -48,8 +53,9 @@ fun main() {
     anExactWordAdmitsNoCompany(vocabulary)
     aDerivedWordNamesItsReferent(vocabulary)
     aMaterialSteersWithoutChoosing(vocabulary)
+    joiningTwoMaterialsMinglesThemAndCostsNothing(vocabulary)
 
-    println("Resolver: all fifteen properties hold over the shipped ${vocabulary.words.size}-word vocabulary.")
+    println("Resolver: all sixteen properties hold over the shipped ${vocabulary.words.size}-word vocabulary.")
 }
 
 /**
@@ -99,7 +105,7 @@ private fun wordOrderDecidesNothing(vocabulary: Vocabulary) {
  */
 private fun oneWordIsNeverIncoherent(vocabulary: Vocabulary) {
     for (word in vocabulary.words) {
-        val resolution = Resolver.resolve(vocabulary, listOf(word), SAMPLE_SEED)
+        val resolution = Resolver.resolve(vocabulary, Sentence.flat(listOf(word)), SAMPLE_SEED)
         check(resolution.instability.isCoherent) {
             "'${word.name}' alone was charged ${resolution.instability.index}: ${resolution.instability.flaws}"
         }
@@ -193,7 +199,7 @@ private fun anUnbackedWordIsReportedNotDropped(vocabulary: Vocabulary) {
         setOf(Slot.SKY),
         mapOf("moonless" to 1.0),
     )
-    val resolution = Resolver.resolve(vocabulary, listOf(moonless), SAMPLE_SEED)
+    val resolution = Resolver.resolve(vocabulary, Sentence.flat(listOf(moonless)), SAMPLE_SEED)
     val unbacked = resolution.instability.flaws.firstOrNull { it.register == Register.UNBACKED }
     checkNotNull(unbacked) { "an impossible word passed in silence, which is the one thing forbidden" }
     check(unbacked.words == listOf("moonless")) { "the report does not name the word: ${unbacked.words}" }
@@ -449,7 +455,9 @@ private fun resolve(vocabulary: Vocabulary, sentence: String, seed: Long = SAMPL
     val words = sentence.split(" ").filter(String::isNotBlank).map { name ->
         vocabulary.word(name) ?: error("the shipped vocabulary has no word '$name'")
     }
-    return Resolver.resolve(vocabulary, words, seed)
+    // Flat, so every property below still asks what it always asked: these are sentences without
+    // structure, which is what a book was before the grammar existed. Structure has its own check.
+    return Resolver.resolve(vocabulary, Sentence.flat(words), seed)
 }
 
 /**
@@ -480,3 +488,53 @@ private const val PERCENT = 100.0
 // One in five is generous; uniform would be one in three, and something under a tenth is what the tuning
 // actually gives. The point of the bound is to catch readiness being ignored, not to pin a number.
 private const val MOST_UNASKED_LAVA = 5
+
+/**
+ * **The conjunction**, and the thing 3c left waiting: joining two claims on one parameter keeps both, and
+ * charges nothing.
+ *
+ * The asymmetry is what matters, so both halves are asserted together. Unjoined, `blackstone tuff` is two
+ * answers to a question that has room for one — the seed picks and the loser is charged as displaced.
+ * Joined, it is one rock made of both, which `Options` has been able to hold since 3a and `Palette.mingled`
+ * has been able to paint for just as long; the conjunction is only the wire between them.
+ *
+ * If this ever passes with juxtaposition also mingling, `and` has stopped meaning anything — that is the
+ * failure to watch for, not a crash.
+ */
+private fun joiningTwoMaterialsMinglesThemAndCostsNothing(vocabulary: Vocabulary) {
+    val verdant = vocabulary.word("verdant") ?: error("the shipped vocabulary lost 'verdant'")
+    fun material(name: String, block: String) = Word(
+        ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, name),
+        Tier.EXACT,
+        setOf(Slot.DRESSING),
+        emptyMap(),
+        null,
+        mapOf(Dressing.STONE.name to block),
+    )
+
+    val dressing = Constraint(verdant, Scope.Confined(setOf(Slot.DRESSING)))
+    val first = material("firststone", "minecraft:blackstone")
+    val second = material("secondstone", "minecraft:tuff")
+    fun sentence(group: Group?) = Sentence(
+        listOf(
+            dressing,
+            Constraint(first, Scope.Confined(setOf(Slot.DRESSING)), group = group),
+            Constraint(second, Scope.Confined(setOf(Slot.DRESSING)), group = group),
+        ),
+    )
+
+    val apart = Resolver.resolve(vocabulary, sentence(group = null), SAMPLE_SEED)
+    val heldApart = apart.composition.optionsFor(Slot.DRESSING, 0).allOf(Dressing.STONE)
+    check(heldApart.size == 1) { "unjoined materials did not contend: they gave $heldApart" }
+    check(apart.instability.flaws.any { it.register == Register.DISPLACED }) {
+        "a material lost the argument and was not charged for it: ${apart.instability.flaws}"
+    }
+
+    val joined = Resolver.resolve(vocabulary, sentence(group = Group(0)), SAMPLE_SEED)
+    val mingled = joined.composition.optionsFor(Slot.DRESSING, 0).allOf(Dressing.STONE)
+    check(mingled.size == 2) { "joined materials did not mingle: they gave $mingled" }
+    check(joined.instability.flaws.none { it.register == Register.DISPLACED }) {
+        "the conjunction charged for harmony: ${joined.instability.flaws}"
+    }
+    check(joined.instability.isCoherent) { "joining two materials made an incoherent Age" }
+}

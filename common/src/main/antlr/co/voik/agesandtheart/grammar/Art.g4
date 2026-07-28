@@ -35,8 +35,19 @@ sentence  : section* EOF ;
  * Sections are *discovered* rather than declared: whichever word opens one decides which part of the world
  * it is about. So the slot list stays out of the grammar, sections may appear in any order and any number,
  * and adding a slot later costs nothing here.
+ *
+ * The second alternative is a section with **no subject** — a book that only steers. "A world of blackstone"
+ * names no dressing; it names the rock the dressing is painted on, and it is the sentence the material hook
+ * was built for. Without this a writer holding only material pages could say nothing at all.
+ *
+ * The two alternatives overlap on a leading PRESET, and ordered choice settles it: a word that names a
+ * preset always prefers to *open* a section rather than to steer one, which is the reading anybody would
+ * expect. That is a deliberate use of ordered choice, not an ambiguity left lying around — there is exactly
+ * one reading, it is the obvious one, and it never depends on the seed.
  */
-section   : descriptor* subject modifier* ;
+section   : descriptor* subject modifier*
+          | modifier+
+          ;
 
 /** Evocative words, which precede their subject and are scoped to it — gently (§4.3.1's tier rule). */
 descriptor : EVOCATIVE ;

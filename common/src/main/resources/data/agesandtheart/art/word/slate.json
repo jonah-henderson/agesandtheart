@@ -1,0 +1,9 @@
+{
+  "tier": "exact",
+  "slots": [
+    "dressing"
+  ],
+  "sets": {
+    "stone": "minecraft:deepslate"
+  }
+}

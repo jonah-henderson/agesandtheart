@@ -10,6 +10,9 @@ import co.voik.agesandtheart.age.slot.Parameter
 import co.voik.agesandtheart.age.slot.Share
 import co.voik.agesandtheart.age.slot.Slot
 import co.voik.agesandtheart.age.slot.SlotPreset
+import co.voik.agesandtheart.age.word.grammar.Constraint
+import co.voik.agesandtheart.age.word.grammar.Scope
+import co.voik.agesandtheart.age.word.grammar.Sentence
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 
 /**
@@ -25,6 +28,8 @@ data class Resolution(
     /** Fine inks: precision tier × slots constrained, summed over the sentence (§4.4). */
     val cost: Int,
     val words: List<Word>,
+    /** Pages the Art could not read. Vagueness, never instability (design §4.3) — carried so a writer sees it. */
+    val dropped: List<String> = emptyList(),
 ) {
     val sentence: List<String> get() = words.map { it.name }
 }
@@ -92,6 +97,11 @@ object Resolver {
     // poor answer. So a sentence can still land somewhere that cannot honour it, rarely, and be charged.
     private const val INCAPABLE_FACTOR = 0.04
 
+    // What an evocative word is worth where it was not aimed, and where it was. Aiming leans the draw; it
+    // never decides it, which is what keeps an aimed evocative word evocative (§4.3.1).
+    private const val UNEMPHASISED = 1.0
+    private const val AIMED_AT_THIS_SLOT = 2.0
+
     // Arbitrary large odds, only ever needed to decorrelate one draw from another.
     private const val SLOT_STRIDE = 0x1F3B_5D79L
     private const val TERRITORY_STRIDE = 0x4C9E_1A2BL
@@ -105,20 +115,45 @@ object Resolver {
      * depend on what another slot happened to draw, or the same sentence would resolve differently
      * depending on the order the slots are visited in.
      */
-    fun resolve(vocabulary: Vocabulary, sentence: List<Word>, seed: Long): Resolution {
+    fun resolve(vocabulary: Vocabulary, sentence: Sentence, seed: Long): Resolution {
+        val said = sentence.constraints
         // §4.6: what is unconstrained should still vary with what was written, or two entirely different
         // sentences at one seed draw identical filler wherever neither of them constrains anything.
-        val draw = seed xor saltOf(sentence)
+        val draw = seed xor saltOf(sentence.words)
         val flaws = mutableListOf<Flaw>()
-        val filled = Slot.entries.associateWith { slot -> fill(vocabulary, slot, sentence, draw, flaws) }
-        flaws += tensions(vocabulary, sentence, filled.mapValues { (_, filling) -> filling.map { it.preset } })
+        val filled = Slot.entries.associateWith { slot -> fill(vocabulary, slot, said, draw, flaws) }
+        flaws += tensions(vocabulary, said, filled.mapValues { (_, filling) -> filling.map { it.preset } })
 
         return Resolution(
-            composition = steer(vocabulary, compose(filled), sentence, draw, flaws),
+            composition = steer(vocabulary, compose(filled), said, draw, flaws),
             instability = Instability(flaws.toList()),
-            cost = sentence.sumOf { word -> word.tier.cost * slotsSpokenTo(vocabulary, word).size },
-            words = sentence,
+            cost = said.sumOf { it.word.tier.cost * reachOf(vocabulary, it).size },
+            words = sentence.words,
+            dropped = sentence.dropped,
         )
+    }
+
+    /**
+     * Which slots a constraint actually speaks to — **the grammar's answer, not a search**.
+     *
+     * Where the resolver used to ask [slotsSpokenTo] what a *word* was about, it now asks what the
+     * *sentence* decided, because attachment is precisely what a grammar is for (design §4.3.1). The old
+     * question survives underneath as the meaning of "anywhere": an unaimed word still reaches wherever it
+     * finds purchase, which is what [Scope.Everywhere] resolves against.
+     */
+    private fun reachOf(vocabulary: Vocabulary, constraint: Constraint): List<Slot> =
+        constraint.scope.reaches(slotsSpokenTo(vocabulary, constraint.word))
+
+    /**
+     * How much louder an evocative word is where the writer aimed it (§4.3.1's tier rule).
+     *
+     * A tilt and never a fence: `beautiful sky` still shifts weights over every candidate in the world, it
+     * simply shifts them hardest overhead. Confining it instead would demote it to a restrictive word, which
+     * is the one thing its tier is defined as not being.
+     */
+    private fun emphasis(constraint: Constraint, slot: Slot): Double {
+        val aimed = constraint.scope as? Scope.Everywhere ?: return UNEMPHASISED
+        return if (slot in aimed.emphasised) AIMED_AT_THIS_SLOT else UNEMPHASISED
     }
 
     /**
@@ -132,31 +167,31 @@ object Resolver {
     private fun fill(
         vocabulary: Vocabulary,
         slot: Slot,
-        sentence: List<Word>,
+        sentence: List<Constraint>,
         draw: Long,
         flaws: MutableList<Flaw>,
     ): List<Filling> {
-        val speaking = sentence.filter { slot in slotsSpokenTo(vocabulary, it) }
+        val speaking = sentence.filter { slot in reachOf(vocabulary, it) }
         // Most precise first, and where precision ties the seed decides — never the writer's word order.
         // A word that only sets a parameter narrows nothing however precise it is: it has no opinion about
         // *which* preset fills the slot, only about how that preset is made.
-        val narrowing = speaking.filter { it.tier.narrows && it.constrainsPresets }
-            .sortedWith(compareByDescending<Word> { it.tier }.thenBy { tieBreak(draw, slot, it) })
+        val narrowing = speaking.filter { it.word.tier.narrows && it.word.constrainsPresets }
+            .sortedWith(compareByDescending<Constraint> { it.word.tier }.thenBy { tieBreak(draw, slot, it.word) })
 
         val territories = mutableListOf<Territory>()
-        for (word in narrowing) {
-            val carriers = vocabulary.carriersOf(word, slot)
+        for (said in narrowing) {
+            val carriers = vocabulary.carriersOf(said.word, slot)
             if (carriers.isEmpty()) {
                 // Word against *world*: nothing in the slot can be this, so no arrangement of the others
                 // is to blame. A content bug per §3.3, and reported rather than dropped.
-                flaws += flaw(Register.UNBACKED, listOf(word), slot, emptyList(), word.tier)
+                flaws += flaw(Register.UNBACKED, listOf(said), slot, emptyList(), said.word.tier)
                 continue
             }
             val home = territories.indexOfFirst { it.candidates.any { candidate -> candidate in carriers } }
             if (home < 0) {
-                territories += Territory(listOf(word), carriers)
+                territories += Territory(listOf(said), carriers)
             } else {
-                territories[home] += Territory(listOf(word), carriers)
+                territories[home] += Territory(listOf(said), carriers)
             }
         }
 
@@ -195,18 +230,38 @@ object Resolver {
         val leading = kept.firstOrNull()?.words?.firstOrNull() ?: return
         for (territory in kept.drop(1)) {
             val contender = territory.words.first()
+            // **A division the writer asked for costs nothing.** `and` means "keep both, and keep them
+            // apart" (§3.2), so two territories a writer joined are harmony rather than contradiction —
+            // the same reason [company] is free. Unjoined, they are still two words the world could not
+            // reconcile, and still charged.
+            if (wereJoined(contender, leading)) continue
             flaws += flaw(
                 Register.DIVISION,
                 listOf(contender, leading),
                 slot,
                 opposedTags(vocabulary, contender, leading),
-                maxOf(contender.tier, leading.tier),
+                maxOf(contender.word.tier, leading.word.tier),
             )
         }
-        for (word in lost.flatMap { it.words }) {
-            flaws += flaw(Register.DISPLACED, listOf(word, leading), slot, opposedTags(vocabulary, word, leading), word.tier)
+        for (said in lost.flatMap { it.words }) {
+            flaws += flaw(
+                Register.DISPLACED,
+                listOf(said, leading),
+                slot,
+                opposedTags(vocabulary, said, leading),
+                said.word.tier,
+            )
         }
     }
+
+    /**
+     * Whether a writer joined these two with `and`.
+     *
+     * Both being ungrouped is emphatically **not** a join: unjoined juxtaposition has to keep meaning
+     * contention, because if standing side by side already meant "and" then "and" would mean nothing.
+     */
+    private fun wereJoined(one: Constraint, other: Constraint): Boolean =
+        one.group != null && one.group == other.group
 
     /**
      * The presets a slot takes on **because the sentence liked several of them**, not because it contradicted
@@ -232,7 +287,7 @@ object Resolver {
         vocabulary: Vocabulary,
         slot: Slot,
         territories: List<Territory>,
-        speaking: List<Word>,
+        speaking: List<Constraint>,
         seated: List<SlotPreset>,
         room: Int,
         draw: Long,
@@ -241,13 +296,13 @@ object Resolver {
         // An exact word about *the preset* forbids company. One that merely sets a parameter does not: it
         // expressed no view on how many kinds of place the slot holds, and treating it as though it had
         // would make naming a material quietly suppress harmony everywhere.
-        if (speaking.any { it.tier == Tier.EXACT && it.constrainsPresets }) return emptyList()
+        if (speaking.any { it.word.tier == Tier.EXACT && it.word.constrainsPresets }) return emptyList()
 
         // Whatever the narrowing words left, or the whole slot where none spoke: company can only ever be
         // something the sentence would have accepted in the first place.
         val eligible = territories.flatMap { it.candidates }.ifEmpty { vocabulary.candidatesFor(slot) }
-        val bar = COMPANY_SHARE_OF_BEST * seated.maxOf { strengthOf(vocabulary, it, speaking) }
-        val welcome = eligible.filter { it !in seated && strengthOf(vocabulary, it, speaking) >= bar }
+        val bar = COMPANY_SHARE_OF_BEST * seated.maxOf { strengthOf(vocabulary, it, speaking, slot) }
+        val welcome = eligible.filter { it !in seated && strengthOf(vocabulary, it, speaking, slot) >= bar }
         if (welcome.isEmpty()) return emptyList()
 
         val random = XoroshiroRandomSource(draw xor (slot.ordinal * SLOT_STRIDE) xor COMPANY_SALT)
@@ -275,9 +330,9 @@ object Resolver {
         vocabulary: Vocabulary,
         slot: Slot,
         chosen: List<SlotPreset>,
-        speaking: List<Word>,
+        speaking: List<Constraint>,
     ): List<Filling> {
-        val claims = chosen.map { claimOn(vocabulary, it, speaking) }
+        val claims = chosen.map { claimOn(vocabulary, it, speaking, slot) }
         val strongest = claims.max()
         // Nothing in the sentence had anything to say about this slot, so nothing justifies favouring one of
         // its answers over another: an even division is the honest outcome.
@@ -300,11 +355,17 @@ object Resolver {
      * division. So this is the association strength and nothing else: a word that names something at `0.9`
      * against one that allows it at `0.3` really does give mostly the first.
      */
-    private fun claimOn(vocabulary: Vocabulary, preset: SlotPreset, speaking: List<Word>): Double {
+    private fun claimOn(
+        vocabulary: Vocabulary,
+        preset: SlotPreset,
+        speaking: List<Constraint>,
+        slot: Slot,
+    ): Double {
         val tags = vocabulary.tagsOf(preset)
-        val named = speaking.filter { it.tier.narrows }
-            .maxOfOrNull { it.pullOn(preset, tags) * it.tier.weight } ?: 0.0
-        val liked = speaking.filter { !it.tier.narrows }.sumOf { it.affinityFor(tags) }
+        val named = speaking.filter { it.word.tier.narrows }
+            .maxOfOrNull { it.word.pullOn(preset, tags) * it.word.tier.weight } ?: 0.0
+        val liked = speaking.filter { !it.word.tier.narrows }
+            .sumOf { it.word.affinityFor(tags) * emphasis(it, slot) }
         return (named + liked).coerceAtLeast(0.0)
     }
 
@@ -318,11 +379,17 @@ object Resolver {
      * merely allows it; and the summed **affinity** of the evocative words, which may be negative, so
      * "beautiful" pushes lava away as surely as it pulls flowers in.
      */
-    private fun strengthOf(vocabulary: Vocabulary, preset: SlotPreset, speaking: List<Word>): Double {
+    private fun strengthOf(
+        vocabulary: Vocabulary,
+        preset: SlotPreset,
+        speaking: List<Constraint>,
+        slot: Slot,
+    ): Double {
         val tags = vocabulary.tagsOf(preset)
-        val named = speaking.filter { it.tier.narrows }
-            .maxOfOrNull { it.pullOn(preset, tags) * it.tier.weight } ?: 0.0
-        val liked = speaking.filter { !it.tier.narrows }.sumOf { it.affinityFor(tags) }
+        val named = speaking.filter { it.word.tier.narrows }
+            .maxOfOrNull { it.word.pullOn(preset, tags) * it.word.tier.weight } ?: 0.0
+        val liked = speaking.filter { !it.word.tier.narrows }
+            .sumOf { it.word.affinityFor(tags) * emphasis(it, slot) }
         val wanted = BASE_WEIGHT * vocabulary.readinessOf(preset) + named + liked
         return (wanted * capabilityFactor(preset, speaking)).coerceAtLeast(FAINTEST_CHANCE)
     }
@@ -341,8 +408,8 @@ object Resolver {
      * still gets floating islands, and the fact that they have no biomes is then a real contradiction for
      * [wordsNothingHonours] to charge rather than an arbitrary silence.
      */
-    private fun capabilityFactor(preset: SlotPreset, speaking: List<Word>): Double {
-        val parametersAsked = speaking.flatMap { it.sets.keys }.distinct()
+    private fun capabilityFactor(preset: SlotPreset, speaking: List<Constraint>): Double {
+        val parametersAsked = speaking.flatMap { it.word.sets.keys }.distinct()
         if (parametersAsked.isEmpty()) return FULLY_CAPABLE
         val honoured = parametersAsked.count(preset::honoursParameterNamed)
         val share = honoured.toDouble() / parametersAsked.size
@@ -360,7 +427,7 @@ object Resolver {
     /** One preset a slot ended up holding, and how much of the world it covers. */
     private data class Filling(val preset: SlotPreset, val share: Share)
 
-    private data class Territory(val words: List<Word>, val candidates: List<SlotPreset>) {
+    private data class Territory(val words: List<Constraint>, val candidates: List<SlotPreset>) {
         operator fun plus(joining: Territory) =
             Territory(words + joining.words, candidates.filter { it in joining.candidates })
     }
@@ -389,13 +456,13 @@ object Resolver {
     private fun pick(
         vocabulary: Vocabulary,
         candidates: List<SlotPreset>,
-        speaking: List<Word>,
+        speaking: List<Constraint>,
         draw: Long,
         slot: Slot,
         seat: Int,
     ): SlotPreset {
         candidates.singleOrNull()?.let { return it }
-        val scores = candidates.map { preset -> strengthOf(vocabulary, preset, speaking) }
+        val scores = candidates.map { preset -> strengthOf(vocabulary, preset, speaking, slot) }
         val random = XoroshiroRandomSource(draw xor (slot.ordinal * SLOT_STRIDE) xor (seat * TERRITORY_STRIDE))
         var remaining = random.nextDouble() * scores.sum()
         for ((index, score) in scores.withIndex()) {
@@ -417,20 +484,23 @@ object Resolver {
      */
     private fun tensions(
         vocabulary: Vocabulary,
-        sentence: List<Word>,
+        sentence: List<Constraint>,
         filled: Map<Slot, List<SlotPreset>>,
     ): List<Flaw> = buildList {
         for ((first, second) in sentence.pairs()) {
-            val shared = slotsSpokenTo(vocabulary, first).intersect(slotsSpokenTo(vocabulary, second).toSet())
+            // Joined words are not in tension: a writer who said "keep both" was not contradicting himself,
+            // and charging it would make the conjunction cost something it was defined as not costing.
+            if (wereJoined(first, second)) continue
+            val shared = reachOf(vocabulary, first).intersect(reachOf(vocabulary, second).toSet())
             for (slot in shared) {
                 val chosen = filled[slot].orEmpty()
-                if (chosen.none { first.accepts(vocabulary.tagsOf(it)) }) continue
-                if (chosen.none { second.accepts(vocabulary.tagsOf(it)) }) continue
+                if (chosen.none { first.word.accepts(vocabulary.tagsOf(it)) }) continue
+                if (chosen.none { second.word.accepts(vocabulary.tagsOf(it)) }) continue
                 val opposition = oppositionBetween(vocabulary, first, second) ?: continue
                 add(
                     Flaw(
                         Register.TENSION,
-                        listOf(first.name, second.name),
+                        listOf(first.word.name, second.word.name),
                         slot,
                         listOf(opposition.first, opposition.second),
                         opposition.severity,
@@ -441,17 +511,17 @@ object Resolver {
     }
 
     /** The first known opposition between what two words ask for, if the table has heard of one. */
-    private fun oppositionBetween(vocabulary: Vocabulary, first: Word, second: Word): Antonym? =
-        first.wanted.firstNotNullOfOrNull { wanted ->
-            second.wanted.firstNotNullOfOrNull { against -> vocabulary.opposition(wanted, against) }
+    private fun oppositionBetween(vocabulary: Vocabulary, first: Constraint, second: Constraint): Antonym? =
+        first.word.wanted.firstNotNullOfOrNull { wanted ->
+            second.word.wanted.firstNotNullOfOrNull { against -> vocabulary.opposition(wanted, against) }
         }
 
     /** The two tags that disagreed, where the table knows them — for the explanation, not the detection. */
-    private fun opposedTags(vocabulary: Vocabulary, first: Word, second: Word): List<String> =
+    private fun opposedTags(vocabulary: Vocabulary, first: Constraint, second: Constraint): List<String> =
         oppositionBetween(vocabulary, first, second)?.let { listOf(it.first, it.second) } ?: emptyList()
 
-    private fun flaw(register: Register, words: List<Word>, slot: Slot, tags: List<String>, tier: Tier) =
-        Flaw(register, words.map { it.name }, slot, tags, register.charge(tier))
+    private fun flaw(register: Register, said: List<Constraint>, slot: Slot, tags: List<String>, tier: Tier) =
+        Flaw(register, said.map { it.word.name }, slot, tags, register.charge(tier))
 
     /**
      * The composition these fillings describe.
@@ -486,33 +556,55 @@ object Resolver {
     private fun steer(
         vocabulary: Vocabulary,
         composition: AgeComposition,
-        sentence: List<Word>,
+        sentence: List<Constraint>,
         draw: Long,
         flaws: MutableList<Flaw>,
     ): AgeComposition {
         var steered = composition
         for (slot in Slot.entries) {
-            val setting = sentence.filter { it.sets.isNotEmpty() && slot in slotsSpokenTo(vocabulary, it) }
+            val setting = sentence.filter { it.word.sets.isNotEmpty() && slot in reachOf(vocabulary, it) }
             if (setting.isEmpty()) continue
-            for (parameter in setting.flatMap { it.sets.keys }.distinct()) {
-                val contenders = setting.filter { parameter in it.sets }
-                    .sortedWith(compareByDescending<Word> { it.tier }.thenBy { tieBreak(draw, slot, it) })
+            for (parameter in setting.flatMap { it.word.sets.keys }.distinct()) {
+                val contenders = setting.filter { parameter in it.word.sets }
+                    .sortedWith(compareByDescending<Constraint> { it.word.tier }.thenBy { tieBreak(draw, slot, it.word) })
                 steered = if (isPopulative(steered, slot, parameter)) {
                     // "There are cherry groves" and "there are deserts" do not conflict, so nothing is
                     // charged and nothing is dropped — every word's value simply joins the set (§3.2).
                     // Distinct, because saying a thing twice is emphasis the weighting has no way to register.
-                    steered.withOptions(slot, parameter, contenders.map { it.sets.getValue(parameter) }.distinct())
+                    steered.withOptions(slot, parameter, contenders.map { it.word.sets.getValue(parameter) }.distinct())
                 } else {
-                    val winner = contenders.first()
-                    for (loser in contenders.drop(1)) {
-                        flaws += flaw(Register.DISPLACED, listOf(loser, winner), slot, emptyList(), loser.tier)
-                    }
-                    steered.withOption(slot, parameter, winner.sets.getValue(parameter))
+                    steered.contended(slot, parameter, contenders, flaws)
                 }
             }
             flaws += wordsNothingHonours(steered, slot, setting)
         }
         return steered
+    }
+
+    /**
+     * A predicative parameter with more than one claimant — where **`and` earns its place** (§3.2).
+     *
+     * A parameter holds one answer, so unjoined claims contend: the most precise wins, the seed breaks a
+     * tie, and every loser is charged as displaced. Joining them changes what was asked for rather than who
+     * wins — "the rock is blackstone **and** tuff" is one rock made of both, which [Options] has been able
+     * to hold since 3a and `Palette.mingled` has been able to paint for just as long. This is the wire
+     * between them, and it is the whole of what the conjunction needed.
+     *
+     * Only the winner's *own* group joins it. A second group in the same parameter is a genuinely different
+     * claim about one thing, and still loses.
+     */
+    private fun AgeComposition.contended(
+        slot: Slot,
+        parameter: String,
+        contenders: List<Constraint>,
+        flaws: MutableList<Flaw>,
+    ): AgeComposition {
+        val winner = contenders.first()
+        val mingled = contenders.filter { it == winner || wereJoined(it, winner) }
+        for (loser in contenders - mingled.toSet()) {
+            flaws += flaw(Register.DISPLACED, listOf(loser, winner), slot, emptyList(), loser.word.tier)
+        }
+        return withOptions(slot, parameter, mingled.map { it.word.sets.getValue(parameter) }.distinct())
     }
 
     /**
@@ -539,14 +631,14 @@ object Resolver {
     private fun wordsNothingHonours(
         composition: AgeComposition,
         slot: Slot,
-        setting: List<Word>,
+        setting: List<Constraint>,
     ): List<Flaw> {
         val seated = composition.presets.filter { it.slot == slot }
         // Charged only where *every* seated preset ignores the word. One territory that honours it is
         // enough: the Age does what was asked somewhere, which is what a divided slot is for.
         fun anythingSeatedHonours(parameter: String) = seated.any { it.honoursParameterNamed(parameter) }
-        val wentUnheeded = setting.filter { word -> word.sets.keys.none(::anythingSeatedHonours) }
-        return wentUnheeded.map { word -> flaw(Register.UNBACKED, listOf(word), slot, emptyList(), word.tier) }
+        val wentUnheeded = setting.filter { said -> said.word.sets.keys.none(::anythingSeatedHonours) }
+        return wentUnheeded.map { said -> flaw(Register.UNBACKED, listOf(said), slot, emptyList(), said.word.tier) }
     }
 
     /**

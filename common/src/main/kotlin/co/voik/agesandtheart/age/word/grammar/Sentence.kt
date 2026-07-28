@@ -33,7 +33,11 @@ sealed interface Scope {
      * the land and nothing else.
      */
     data class Confined(val slots: Set<Slot>) : Scope {
-        override fun reaches(everywhere: List<Slot>): List<Slot> = slots.sortedBy { it.ordinal }
+        // An empty confinement means "nothing was declared and nothing aimed it", which has to read as
+        // *wherever it finds purchase* rather than as nowhere — a word confined to no slot at all could
+        // never be satisfied, and would be charged as unbacked for a fault of the grammar's.
+        override fun reaches(everywhere: List<Slot>): List<Slot> =
+            slots.ifEmpty { return everywhere }.sortedBy { it.ordinal }
     }
 }
 
@@ -96,6 +100,22 @@ data class Sentence(
     val dropped: List<String> = emptyList(),
 ) {
     val words: List<Word> get() = constraints.map { it.word }
+
+    companion object {
+        /**
+         * A book with no structure — every word standing alone, unaimed.
+         *
+         * What a flat list of pages meant before the grammar existed, and what a check means when it wants
+         * to exercise the resolver without a parser. That it can be built here at all is the boundary
+         * earning its keep: `:common:resolvercheck` needs no grammar to run.
+         */
+        fun flat(words: List<Word>): Sentence = Sentence(
+            words.map { word ->
+                val scope = if (word.tier.narrows) Scope.Confined(word.slots) else Scope.Everywhere()
+                Constraint(word, scope)
+            },
+        )
+    }
 
     /** Whether anything at all was understood. An unreadable book still opens an Age — the pen never refuses. */
     val isEmpty: Boolean get() = constraints.isEmpty()

@@ -3,6 +3,9 @@ package co.voik.agesandtheart.age
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.word.Resolver
 import co.voik.agesandtheart.age.word.Vocabulary
+import co.voik.agesandtheart.age.word.grammar.Grammar
+import co.voik.agesandtheart.age.word.grammar.Scope
+import co.voik.agesandtheart.age.word.grammar.Sentence
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.LongArgumentType
@@ -294,21 +297,17 @@ object AgeCommand {
 
         val vocabulary = Vocabulary.of(source.server)
         reportProblems(source, vocabulary)
-        val sentence = StringArgumentType.getString(context, SENTENCE_ARGUMENT)
+        val pages = StringArgumentType.getString(context, SENTENCE_ARGUMENT)
             .split(' ').filter(String::isNotBlank)
-        val words = sentence.map { token ->
-            vocabulary.word(token) ?: run {
-                source.sendFailure(Component.literal("The Art knows no word '$token'. See /age words"))
-                return FAILURE
-            }
-        }
-        if (words.isEmpty()) {
-            source.sendFailure(Component.literal("An Age needs at least one word"))
+        val read = Grammar.read(vocabulary, pages)
+        if (read.isEmpty) {
+            source.sendFailure(Component.literal("An Age needs at least one word the Art can read"))
             return FAILURE
         }
+        reportParse(source, read)
 
         val chosenSeed = seed ?: AgeRecipe.seedFor(id)
-        val resolution = Resolver.resolve(vocabulary, words, chosenSeed)
+        val resolution = Resolver.resolve(vocabulary, read, chosenSeed)
         val result = open(source, name, id, AgeRecipe.written(source.server, resolution, chosenSeed))
         if (result == FAILURE) return FAILURE
 
@@ -317,6 +316,37 @@ object AgeCommand {
             source.sendSuccess({ Component.literal("  ! $flaw") }, false)
         }
         return SUCCESS
+    }
+
+    /**
+     * What the Art made of the book, said out loud before the Age is opened.
+     *
+     * **The mitigation for the grammar having no punctuation** (design §4.3.1). A writer lays out a flat row
+     * of pages and the sections exist only in the parser, so without this the rules are invisible and Phase 4
+     * is being tested blind. Scratch mode does it properly in Phase 5; until then, this is it.
+     *
+     * The fiction makes the honest version legal: a player already knows the concepts and lacks only the
+     * D'ni words for them (§4.5), so telling them what was read is a translation, not hand-holding.
+     */
+    private fun reportParse(source: CommandSourceStack, read: Sentence) {
+        for (said in read.constraints) {
+            val aimed = when (val scope = said.scope) {
+                is Scope.Everywhere ->
+                    if (scope.emphasised.isEmpty()) "everywhere"
+                    else "everywhere, most of all ${scope.emphasised.joinToString(" ") { it.key }}"
+                is Scope.Confined -> scope.slots.joinToString(" ") { it.key }.ifEmpty { "wherever it fits" }
+            }
+            val joined = said.group?.let { " (joined)" } ?: ""
+            source.sendSuccess({ Component.literal("  ${said.word.name} → $aimed$joined") }, false)
+        }
+        // Vagueness, never instability: what could not be read makes the Age less determined and is charged
+        // nothing at all (§4.3). Said plainly so a typo is visible rather than merely ineffective.
+        if (read.dropped.isNotEmpty()) {
+            source.sendSuccess(
+                { Component.literal("  unread, so the Age comes out vaguer: ${read.dropped.joinToString(" ")}") },
+                false,
+            )
+        }
     }
 
     /**
