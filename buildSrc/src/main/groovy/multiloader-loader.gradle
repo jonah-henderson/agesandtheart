@@ -65,6 +65,6 @@ tasks.named("dokkaJavadoc", DokkaTask) {
         // empty directory — which git cannot track, so it is absent from a fresh clone and Dokka refuses
         // to walk it. Filtering here keeps "this directory must exist" from being an unwritten build
         // requirement that only shows up after cloning.
-        sourceRoots.from([configurations.commonJava.singleFile, configurations.commonKotlin.singleFile].findAll { it.exists() })
+        sourceRoots.from((configurations.commonJava + configurations.commonKotlin).findAll { it.exists() })
     }
 }

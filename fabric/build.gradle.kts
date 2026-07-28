@@ -18,6 +18,11 @@ dependencies {
 
     // Fantasy: runtime dimension creation (the Fabric-only backend for Ages).
     modImplementation(libs.fantasy)
+
+    // The Art's parser runtime. Loom nests it and synthesises a fabric.mod.json for the non-mod jar
+    // itself, so Fabric's half of bundling really is two lines.
+    implementation(libs.antlrRuntime)
+    include(libs.antlrRuntime)
 }
 
 loom {

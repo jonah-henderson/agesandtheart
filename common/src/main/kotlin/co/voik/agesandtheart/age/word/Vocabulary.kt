@@ -3,6 +3,7 @@ package co.voik.agesandtheart.age.word
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.slot.Slot
 import co.voik.agesandtheart.age.slot.SlotPreset
+import co.voik.agesandtheart.age.word.grammar.GrammarWord
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
 import com.mojang.serialization.Codec
@@ -83,6 +84,8 @@ private data class AntonymPage(val pairs: List<Antonym>) {
  */
 data class Vocabulary(
     private val byName: Map<String, Word>,
+    /** The structural words — `and`, `only`, `except` — keyed by what a writer says (§4.5). */
+    private val structural: Map<String, GrammarWord>,
     private val tagsBySlot: Map<Slot, PresetTags>,
     val antonyms: List<Antonym>,
     /** What could not be read, in the words a content author needs to hear. Empty in a healthy pack. */
@@ -93,6 +96,18 @@ data class Vocabulary(
 
     /** The word a writer means by [name], or null if the corpus has never heard of it. */
     fun word(name: String): Word? = byName[name]
+
+    /** Every structural word the Art knows, for `/age words` and for the grammar check. */
+    val grammarWords: List<GrammarWord> get() = structural.values.sortedBy { it.name }
+
+    /**
+     * The structural word [name] spells, if it is one.
+     *
+     * Asked **before** [word], so a pack that also defines an ordinary word called `and` cannot quietly
+     * make the conjunction unsayable — structure wins, because losing it costs the whole grammar where
+     * losing one content word costs one word.
+     */
+    fun grammarWord(name: String): GrammarWord? = structural[name]
 
     /** What [preset] is like — an empty profile being a preset no word can currently reach. */
     fun profileOf(preset: SlotPreset): PresetProfile =
@@ -160,6 +175,9 @@ data class Vocabulary(
         /** Where a pack puts antonym pages. */
         const val ANTONYM_DIRECTORY = "art/antonyms"
 
+        /** Where a pack puts the structural words — one file per word, naming a production. */
+        const val GRAMMAR_DIRECTORY = "art/grammar"
+
         private const val JSON_SUFFIX = ".json"
 
         /**
@@ -192,8 +210,9 @@ data class Vocabulary(
             // content, so a corpus read without a server has the medium half of §8 and not the dressing
             // half. Absent rather than wrong, which is what lets `:common:vocabularycheck` stay offline.
             val words = derived(DerivedWords.mediums() + registries?.let(DerivedWords::biomes).orEmpty()) + authored
+            val structural = readGrammarWords(resources, problems)
             for (problem in problems) Constants.LOG.error("Art vocabulary: {}", problem)
-            return Vocabulary(words, tags, antonyms, problems)
+            return Vocabulary(words, structural, tags, antonyms, problems)
         }
 
         /**
@@ -273,6 +292,23 @@ data class Vocabulary(
                 }
             }
             return bySlot.mapValues { (_, merged) -> PresetTags(merged.toMap()) }
+        }
+
+        private fun readGrammarWords(
+            resources: ResourceManager,
+            problems: MutableList<String>,
+        ): Map<String, GrammarWord> {
+            val structural = mutableMapOf<String, GrammarWord>()
+            for ((file, resource) in resources.listResources(GRAMMAR_DIRECTORY) { it.path.endsWith(JSON_SUFFIX) }) {
+                val id = idOf(file, GRAMMAR_DIRECTORY)
+                val word = parse(resource, file, GrammarWord.mapCodec(id).codec(), problems) ?: continue
+                val existing = structural[word.name]
+                if (existing != null && existing.id != word.id) {
+                    problems += "two structural words are both called '${word.name}': ${existing.id} and ${word.id}"
+                }
+                structural[word.name] = word
+            }
+            return structural
         }
 
         private fun readAntonyms(resources: ResourceManager, problems: MutableList<String>): List<Antonym> {
