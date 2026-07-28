@@ -233,7 +233,7 @@ data class AgeRecipe(
                     dressings = listOf(Dressing.OVERWORLD),
                     options = SlotOptions().with(
                         Slot.DRESSING,
-                        Options(mapOf(Dressing.SETTLEMENT.name to listOf("vanilla"))),
+                        listOf(Options(mapOf(Dressing.SETTLEMENT.name to listOf("vanilla")))),
                     ),
                 )
                 // Its caves are its shape, so nothing is carved — but the rock still runs wet and dry.
@@ -251,7 +251,7 @@ data class AgeRecipe(
             landforms = listOf(Landform.PYRAMIDS),
             options = SlotOptions().with(
                 Slot.LANDFORM,
-                Options(mapOf(Landform.ARRANGEMENT.name to listOf(arrangement))),
+                listOf(Options(mapOf(Landform.ARRANGEMENT.name to listOf(arrangement)))),
             ),
         )
     }

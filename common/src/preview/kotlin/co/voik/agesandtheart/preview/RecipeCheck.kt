@@ -39,6 +39,7 @@ fun main() {
     roundTripsEverySlotPreset()
     roundTripsOptionsItCannotUnderstand()
     roundTripsAMingledParameter()
+    steersTwoTerritoriesApart()
     spellsCompositionsTheWayItReadsThem()
     readsRecipesWrittenBeforeSlots()
     roundTripsASetValuedLandform()
@@ -131,6 +132,49 @@ private fun roundTripsAMingledParameter() {
         "A mingled parameter spells itself wrong: '$spelling'"
     }
     check(AgeComposition.parse(spelling).getOrThrow() == mingled) { "'$spelling' does not read back as itself" }
+}
+
+/**
+ * Two territories of one slot, steered differently — copper spires beside andesite hills.
+ *
+ * The property a slot-wide `Options` could not hold at all: one parameter named twice with two values, which
+ * used to contend so that one won and painted both territories. A sentence that reads perfectly and quietly
+ * does something else, so nothing but this notices if it comes back.
+ *
+ * Checks both directions, because the collapse is as load-bearing as the division: territories that *agree*
+ * must still spell themselves once, or every recipe already on disk reads differently.
+ */
+private fun steersTwoTerritoriesApart() {
+    val divided = AgeComposition(landforms = listOf(Landform.HILLS))
+        .withPresets(Slot.DRESSING, listOf(Dressing.VERDANT.key, Dressing.BARE_ROCK.key))
+        .withOptionsFor(Slot.DRESSING, 0, Dressing.STONE.name, listOf("minecraft:copper_block"))
+        .withOptionsFor(Slot.DRESSING, 1, Dressing.STONE.name, listOf("minecraft:andesite"))
+
+    for ((member, expected) in listOf("minecraft:copper_block", "minecraft:andesite").withIndex()) {
+        val held = divided.optionsFor(Slot.DRESSING, member).allOf(Dressing.STONE)
+        check(held == listOf(expected)) { "Territory $member holds $held rather than $expected" }
+    }
+
+    val spelling = divided.toString()
+    check("dressing=verdant{stone=minecraft:copper_block},bare_rock{stone=minecraft:andesite}" in spelling) {
+        "Two steered territories spell themselves wrong: '$spelling'"
+    }
+    check(AgeComposition.parse(spelling).getOrThrow() == divided) { "'$spelling' does not read back as itself" }
+
+    val decoded = roundTrips(AgeRecipe(AgeWorld.Composed(divided), SAMPLE_SEED), "two territories steered apart")
+    check(decoded.composition?.optionsFor(Slot.DRESSING, 1)?.allOf(Dressing.STONE) == listOf("minecraft:andesite")) {
+        "The second territory's material did not survive the codec: ${decoded.composition}"
+    }
+
+    // The other half: territories that agree collapse back to one entry, spelled the way they always were.
+    val agreeing = AgeComposition(landforms = listOf(Landform.HILLS))
+        .withPresets(Slot.DRESSING, listOf(Dressing.VERDANT.key, Dressing.BARE_ROCK.key))
+        .withOption(Slot.DRESSING, Dressing.STONE.name, "minecraft:tuff")
+    val together = agreeing.toString()
+    check("dressing.stone=minecraft:tuff" in together) {
+        "Agreeing territories stopped spelling themselves once: '$together'"
+    }
+    check(AgeComposition.parse(together).getOrThrow() == agreeing) { "'$together' does not read back as itself" }
 }
 
 /**

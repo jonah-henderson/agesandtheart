@@ -65,34 +65,52 @@ object AgeGeneration {
     private fun assemble(server: MinecraftServer, composition: AgeComposition, recipe: AgeRecipe): ChunkGenerator {
         val seed = recipe.seed
         val character = recipe.character
-        val landformOptions = composition.options.of(Slot.LANDFORM)
-        val dressingOptions = composition.options.of(Slot.DRESSING)
+        // Per territory, not per slot: "copper spires and andesite hills" names one parameter twice, and a
+        // slot-wide answer has nowhere to put the second (see [SlotOptions]).
+        fun landformOptions(member: Int) = composition.optionsFor(Slot.LANDFORM, member)
+        fun dressingOptions(member: Int) = composition.optionsFor(Slot.DRESSING, member)
 
         val ground = character.mapFor(Slot.LANDFORM, composition.sharesOf(Slot.LANDFORM), seed)
-        val shape = Regions.of(composition.landforms.map { it.field(landformOptions) }, ground)
+        val shape = Regions.of(
+            composition.landforms.mapIndexed { member, landform -> landform.field(landformOptions(member)) },
+            ground,
+        )
 
         val flow = character.mapFor(Slot.MEDIUM, composition.sharesOf(Slot.MEDIUM), seed)
         val ambient = Medium.pour(
             composition.mediums,
             waterlineOf(composition, seed),
-            composition.options.of(Slot.MEDIUM),
+            // The first territory's, deliberately: `depth` shifts the **waterline**, which is one number for
+            // the whole Age, so a sea cannot be deep in one territory and shallow in the next however the
+            // sentence is aimed. The substance divides; the level does not.
+            composition.optionsFor(Slot.MEDIUM, 0),
             flow,
         )
 
         val cover = character.mapFor(Slot.DRESSING, composition.sharesOf(Slot.DRESSING), seed)
         val below = character.mapFor(Slot.SUBSURFACE, composition.sharesOf(Slot.SUBSURFACE), seed)
         return FieldChunkGenerator(
-            RegionBiomeSource.of(composition.dressings.map { it.biomes(server, shape, seed, dressingOptions) }, cover),
+            RegionBiomeSource.of(
+                composition.dressings.mapIndexed { member, dressing ->
+                    dressing.biomes(server, shape, seed, dressingOptions(member))
+                },
+                cover,
+            ),
             shape,
             ambient,
-            RegionRule.of(composition.dressings.map { it.palette(dressingOptions) }, cover),
+            RegionRule.of(
+                composition.dressings.mapIndexed { member, dressing -> dressing.palette(dressingOptions(member)) },
+                cover,
+            ),
             composition.subsurfaces.map { it.carvers(server) },
             below,
             waterTablesOf(composition, ambient, seed),
             // Union, not per-territory: vanilla places structures against the whole dimension, and its
             // own biome predicates already keep a village out of the territory that has no villages in it.
             HolderSet.direct(
-                composition.dressings.flatMap { it.structures(server, dressingOptions).toList() }.distinct(),
+                composition.dressings
+                    .flatMapIndexed { member, dressing -> dressing.structures(server, dressingOptions(member)).toList() }
+                    .distinct(),
             ),
         )
     }
