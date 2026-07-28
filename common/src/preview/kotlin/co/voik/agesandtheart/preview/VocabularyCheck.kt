@@ -93,7 +93,12 @@ private fun everyWordIsBackedByTheWorld(vocabulary: Vocabulary) {
             // "Backed" means something different for a word that *steers* rather than *chooses* (§3.2):
             // it constrains no presets, so it has no carriers by construction and asking for one would
             // condemn every material word. What it needs instead is a preset that offers the knob.
-            if (!word.constrainsPresets) {
+            //
+            // Asked **per slot**, because a derived block word does both: it names a medium, where the
+            // slot's value simply *is* a block, and sets a material on the landform and the dressing, which
+            // hold nothing called `minecraft:copper_block`. Asking globally condemned every block in the
+            // game for failing to be a landform.
+            if (!word.constrainsPresetsIn(slot)) {
                 for (parameter in word.sets.keys) {
                     val presets = vocabulary.candidatesFor(slot)
                     val offered = presets.flatMap { it.parameters }.filter { it.name == parameter }

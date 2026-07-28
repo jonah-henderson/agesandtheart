@@ -175,7 +175,7 @@ object Resolver {
         // Most precise first, and where precision ties the seed decides — never the writer's word order.
         // A word that only sets a parameter narrows nothing however precise it is: it has no opinion about
         // *which* preset fills the slot, only about how that preset is made.
-        val narrowing = speaking.filter { it.word.tier.narrows && it.word.constrainsPresets }
+        val narrowing = speaking.filter { it.word.tier.narrows && it.word.constrainsPresetsIn(slot) }
             .sortedWith(compareByDescending<Constraint> { it.word.tier }.thenBy { tieBreak(draw, slot, it.word) })
 
         val territories = mutableListOf<Territory>()
@@ -296,7 +296,7 @@ object Resolver {
         // An exact word about *the preset* forbids company. One that merely sets a parameter does not: it
         // expressed no view on how many kinds of place the slot holds, and treating it as though it had
         // would make naming a material quietly suppress harmony everywhere.
-        if (speaking.any { it.word.tier == Tier.EXACT && it.word.constrainsPresets }) return emptyList()
+        if (speaking.any { it.word.tier == Tier.EXACT && it.word.constrainsPresetsIn(slot) }) return emptyList()
 
         // Whatever the narrowing words left, or the whole slot where none spoke: company can only ever be
         // something the sentence would have accepted in the first place.
@@ -564,7 +564,7 @@ object Resolver {
         for (slot in Slot.entries) {
             val setting = sentence.filter { it.word.sets.isNotEmpty() && slot in reachOf(vocabulary, it) }
             if (setting.isEmpty()) continue
-            for (parameter in setting.flatMap { it.word.sets.keys }.distinct()) {
+            for (parameter in setting.flatMap { it.word.sets.keys }.distinct().filter { holds(steered, slot, it) }) {
                 val contenders = setting.filter { parameter in it.word.sets }
                     .sortedWith(compareByDescending<Constraint> { it.word.tier }.thenBy { tieBreak(draw, slot, it.word) })
                 steered = if (isPopulative(steered, slot, parameter)) {
@@ -608,6 +608,26 @@ object Resolver {
     }
 
     /**
+     * Whether this slot has such a knob at all.
+     *
+     * One word may speak to several slots and carries **one** `sets` map, so a derived block word setting a
+     * material reaches the medium as well — and a medium does not *wear* a substance, it **is** one. Without
+     * this, naming lava wrote `medium.stone=minecraft:lava` into the recipe and charged the sentence for a
+     * knob the slot never had, which is the resolver inventing a fault out of a word doing exactly its job.
+     *
+     * Asked of what the seated presets **declare**, not of what they honour — the two come apart on purpose.
+     * A slot that has never heard of the knob is simply not being addressed; one that declares it and does
+     * nothing with it is a sentence the world could not honour, and [wordsNothingHonours] still charges for
+     * that. Note this does not soften the *recipe's* own report: an option nobody understands still reaches
+     * `AgeComposition.unknownOptions` and `/age list`, because a hand-written typo is a different thing from
+     * a word reaching past its slot.
+     */
+    private fun holds(composition: AgeComposition, slot: Slot, parameter: String): Boolean =
+        composition.presets.filter { it.slot == slot }.any { preset ->
+            preset.parameters.any { it.name == parameter }
+        }
+
+    /**
      * Whether [parameter] accumulates rather than contends — asked of the presets actually seated in
      * [slot], since the parameter is theirs to declare (§3.2).
      *
@@ -637,7 +657,13 @@ object Resolver {
         // Charged only where *every* seated preset ignores the word. One territory that honours it is
         // enough: the Age does what was asked somewhere, which is what a divided slot is for.
         fun anythingSeatedHonours(parameter: String) = seated.any { it.honoursParameterNamed(parameter) }
-        val wentUnheeded = setting.filter { said -> said.word.sets.keys.none(::anythingSeatedHonours) }
+        // And only where the word was addressing this slot's knobs in the first place. A derived block word
+        // carries one `sets` map across every slot it speaks to, so naming lava reaches the medium — which
+        // holds no material, because a medium *is* its block rather than being made of one. Charging that
+        // told a writer their perfectly good sentence had failed. See [holds] for why declared and honoured
+        // are different questions.
+        val addressing = setting.filter { said -> said.word.sets.keys.any { holds(composition, slot, it) } }
+        val wentUnheeded = addressing.filter { said -> said.word.sets.keys.none(::anythingSeatedHonours) }
         return wentUnheeded.map { said -> flaw(Register.UNBACKED, listOf(said), slot, emptyList(), said.word.tier) }
     }
 

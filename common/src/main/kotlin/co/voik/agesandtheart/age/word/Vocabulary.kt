@@ -209,7 +209,7 @@ data class Vocabulary(
             // Fluids come from the built-in registries and so are always available; biomes are datapack
             // content, so a corpus read without a server has the medium half of §8 and not the dressing
             // half. Absent rather than wrong, which is what lets `:common:vocabularycheck` stay offline.
-            val words = derived(DerivedWords.mediums() + registries?.let(DerivedWords::biomes).orEmpty()) + authored
+            val words = derived(DerivedWords.materials() + registries?.let(DerivedWords::biomes).orEmpty()) + authored
             val structural = readGrammarWords(resources, problems)
             for (problem in problems) Constants.LOG.error("Art vocabulary: {}", problem)
             return Vocabulary(words, structural, tags, antonyms, problems)

@@ -12,7 +12,7 @@ import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.tags.TagKey
 import net.minecraft.world.level.biome.Biome
-import net.minecraft.world.level.material.Fluid
+import net.minecraft.world.level.block.Block
 
 /**
  * Vocabulary the pack gives us for free: a word for everything a writer could point at (design §8).
@@ -45,27 +45,63 @@ object DerivedWords {
      */
     val FORBIDDEN: ResourceLocation = "forbidden".location()
 
-    private val FORBIDDEN_FLUIDS: TagKey<Fluid> = TagKey.create(Registries.FLUID, FORBIDDEN)
+    private val FORBIDDEN_BLOCKS: TagKey<Block> = TagKey.create(Registries.BLOCK, FORBIDDEN)
 
     /**
-     * Every word this pack's fluids give the medium slot.
+     * **A word for every block in the pack** — the whole of what a writer can point at and say "made of
+     * that" or "a sea of that".
      *
-     * **Fluids rather than every block**, which is the distinction between what a slot can *hold* and what
-     * the pack hands us a word for. The medium slot is open, so an exact word can name any block at all and
-     * a sea of packed ice is a legitimate if strange Age; but the things that obviously want a word are the
-     * things you can have a *sea* of, and that is the fluid registry. Vanilla gives two; a pack gives as
-     * many as it ships.
+     * Every block, with no filter beyond [FORBIDDEN], because every block being representable is part of
+     * what the mod promises. Any filter we invented would exclude somebody's obvious choice: "spikes made of
+     * copper blocks" (Jonah) is not a stone, and a sea of packed ice is not a fluid.
      *
-     * Flowing variants are skipped: `minecraft:flowing_water` is an implementation detail of the same
-     * substance, and a vocabulary offering both would be offering a writer a distinction that does not
-     * exist. Tags are unbound until a server has loaded its datapacks and an unbound tag answers false, so
-     * deriving offline fences nothing — the right default for a check asking what words *could* exist.
+     * **One word, three capabilities, which is what dissolves a collision that would otherwise bite.** These
+     * used to be two derivations — a word per *fluid* naming a medium, and nothing at all for materials. Add
+     * the second naively and every fluid collides with its own block, because a fluid and its block share an
+     * id throughout vanilla; [Vocabulary] would withdraw both bare names to keep mod load order from
+     * deciding what `lava` means, and `a sea of lava` would stop being sayable. The collision is not real:
+     * "lava" is *one concept*, and whether it is a sea or a substance is decided by where the word is aimed,
+     * exactly as `stone` means one thing across the landform and the dressing (§4.3.1).
+     *
+     * So a block word [names] the medium — an open slot whose value *is* a block — and [sets] the material
+     * on the slots that wear one.
+     *
+     * **Only a liquid volunteers for the medium unprompted** (Jonah), and that carve-out is worth its
+     * keep. Reaching all three slots unaimed is the *logical* reading of "an Age of copper" — copper ground,
+     * copper spires, a copper sea — and it is also a surprise nobody asked for the first time a beginner
+     * names a block. So the slots a word speaks to **unaimed** are narrowed to the material, while the
+     * medium is left reachable by *aiming*: `Medium` is named for every block, so a sea of packed ice stays
+     * sayable, it simply has to be asked for. Water and lava are unaffected, since a sea is what naming them
+     * plainly has always meant.
+     *
+     * Blocks are registered at class-init, so unlike [biomes] this needs no server.
      */
-    fun mediums(): List<Word> = BuiltInRegistries.FLUID.holders()
-        .filter { holder -> holder.value().isSource(holder.value().defaultFluidState()) }
-        .filter { holder -> !holder.`is`(FORBIDDEN_FLUIDS) }
-        .map { holder -> referring(holder.key().location(), Slot.MEDIUM, ::Medium) }
+    fun materials(): List<Word> = BuiltInRegistries.BLOCK.holders()
+        .filter { holder -> !holder.`is`(FORBIDDEN_BLOCKS) }
+        .map { holder -> substance(holder.key().location(), pours = holder.value().defaultBlockState().fluidState.isSource) }
         .toList()
+
+    /**
+     * A block, said as a word: the medium it could be, and the material it could be made into.
+     *
+     * [Word.names] carries the medium because an open slot's value *is* the referent (§3.1); [Word.sets]
+     * carries the material because a closed slot's preset *consumes* one (§3.2). A word doing both is the
+     * two halves of §8.1.1's "which slot does `minecraft:deepslate` fill?" — the answer was always more than
+     * one, and this is that answer written down.
+     *
+     * The landform and the dressing share the parameter name deliberately, so this sets one key and reaches
+     * both.
+     */
+    private fun substance(id: ResourceLocation, pours: Boolean) = Word(
+        id = id,
+        tier = Tier.EXACT,
+        // Where it speaks when nobody aimed it. The medium joins only for something that actually pours;
+        // every block can still *be* the medium, but naming a paving slab should not flood the world.
+        slots = if (pours) setOf(Slot.MEDIUM, Slot.LANDFORM, Slot.DRESSING) else setOf(Slot.LANDFORM, Slot.DRESSING),
+        query = emptyMap(),
+        names = Medium(id).key,
+        sets = mapOf(Dressing.STONE.name to id.toString()),
+    )
 
     private val FORBIDDEN_BIOMES: TagKey<Biome> = TagKey.create(Registries.BIOME, FORBIDDEN)
 

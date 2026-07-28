@@ -148,6 +148,17 @@ data class Word(
      */
     val constrainsPresets: Boolean get() = names != null || query.values.any { it > 0.0 }
 
+    /**
+     * The same question asked **of one slot**, which is the honest form of it.
+     *
+     * A derived block word names a *medium* — an open slot whose value is a block — and merely *sets* a
+     * material on the landform and the dressing, which are closed and hold nothing called
+     * `minecraft:copper_block`. Asked globally it therefore claims to narrow every slot it speaks to, finds
+     * no carrier in most of them, and is charged as unbacked for an opinion it never had.
+     */
+    fun constrainsPresetsIn(slot: Slot): Boolean =
+        namedPreset(slot) != null || query.values.any { it > 0.0 }
+
     /** The tags this word wants, which are the ones that must have a carrier somewhere (§3.3). */
     val wanted: Set<String> get() = query.filterValues { it > 0.0 }.keys
 

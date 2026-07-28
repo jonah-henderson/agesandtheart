@@ -363,12 +363,33 @@ object AgeCommand {
             source.sendFailure(Component.literal("The Art knows no words at all — is the mod's data pack loaded?"))
             return FAILURE
         }
-        source.sendSuccess({ Component.literal("The Art knows ${vocabulary.words.size} words:") }, false)
-        for (word in vocabulary.words) {
+        // Authored words are listed; derived ones are *counted*. There is a word for every block in the
+        // pack, so printing them all is thousands of lines of chat that bury the handful anyone needs to
+        // read — and a derived word needs no explanation anyway, since it names exactly the thing it spells.
+        val authored = vocabulary.words.filter { it.id.namespace == Constants.MOD_ID }
+        source.sendSuccess({ Component.literal("The Art knows ${vocabulary.words.size} words.") }, false)
+        source.sendSuccess({ Component.literal("${authored.size} written by hand:") }, false)
+        for (word in authored) {
             val about = if (word.slots.isEmpty()) "anywhere" else word.slots.joinToString(" ") { it.key }
             val asks = word.query.entries.sortedBy { it.key }
                 .joinToString(" ") { (tag, weight) -> if (weight < 0) "-$tag" else tag }
             source.sendSuccess({ Component.literal("  ${word.name} — ${word.tier.key}, $about: $asks") }, false)
+        }
+        val structural = vocabulary.grammarWords
+        if (structural.isNotEmpty()) {
+            source.sendSuccess(
+                { Component.literal("${structural.size} structural: ${structural.joinToString(" ") { it.name }}") },
+                false,
+            )
+        }
+        // Counted per namespace, which is the useful cut: it says at a glance whether a mod's content
+        // reached the vocabulary at all, which is the interop promise §8 makes.
+        val derivedByPack = vocabulary.words.filter { it.id.namespace != Constants.MOD_ID }
+            .groupingBy { it.id.namespace }.eachCount().entries.sortedByDescending { it.value }
+        if (derivedByPack.isNotEmpty()) {
+            val counts = derivedByPack.joinToString(", ") { (pack, many) -> "$pack $many" }
+            source.sendSuccess({ Component.literal("${vocabulary.words.size - authored.size} derived — $counts") }, false)
+            source.sendSuccess({ Component.literal("  say any block or biome by name, e.g. 'copper_block'") }, false)
         }
         return SUCCESS
     }

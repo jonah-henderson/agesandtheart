@@ -104,10 +104,18 @@ private fun wordOrderDecidesNothing(vocabulary: Vocabulary) {
  * something in the world can satisfy it — so any flaw here would be the resolver inventing one.
  */
 private fun oneWordIsNeverIncoherent(vocabulary: Vocabulary) {
+    // UNBACKED is the exception, and it is not the resolver inventing a disagreement: a word that only sets
+    // a material can land on a dressing that cannot wear one (`overworld` has no stone to substitute), and
+    // charging that is the design — a sentence the world could not honour is reported rather than dropped.
+    // Every *other* register needs two words to be possible at all, so a lone word triggering one would be
+    // a real fault. This used to assert coherence outright and passed by luck, back when the only material
+    // words were the two written by hand; deriving one per block sampled enough draws to find the case.
+    val needsTwoWords = Register.entries.filter { it != Register.UNBACKED }
     for (word in vocabulary.words) {
         val resolution = Resolver.resolve(vocabulary, Sentence.flat(listOf(word)), SAMPLE_SEED)
-        check(resolution.instability.isCoherent) {
-            "'${word.name}' alone was charged ${resolution.instability.index}: ${resolution.instability.flaws}"
+        val invented = resolution.instability.flaws.filter { it.register in needsTwoWords }
+        check(invented.isEmpty()) {
+            "'${word.name}' alone was charged for disagreeing with nothing: $invented"
         }
     }
 }
