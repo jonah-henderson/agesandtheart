@@ -97,9 +97,18 @@ The core mechanic — creating dimensions ("Ages") at runtime and persisting the
 - **`Ages`** — loader-agnostic policy: `create` / `open` / `ensure` / `delete` (delegating to `Services.AGE_BACKEND`) and `reloadSaved` (replay on boot).
 - **`age/word/`** — **the Art's language.** `Word` (tier, the slots it may fill, a signed tag query),
   `PresetProfile`/`PresetTags` (what the world is like), `Vocabulary` (the corpus, **loaded from datapack
-  JSON** under `data/<namespace>/art/` — words, per-slot tag tables, antonym pages), and `Resolver`
-  (words + seed → composition, cost and instability). Resolution is a **pure function of (vocabulary, words,
-  seed)**; the resolved composition is what persists, never the words (design §4.6).
+  JSON** under `data/<namespace>/art/` — words, per-slot tag tables, antonym pages, structural words), and
+  `Resolver` (a parsed sentence + seed → composition, cost and instability). `DerivedWords` gives **every
+  block and biome in the pack a word of its own**, so the corpus is ~1100 offline and more on a server.
+  Resolution is a **pure function of (vocabulary, sentence, seed)**; the resolved composition is what
+  persists, never the words (design §4.6).
+- **`age/word/grammar/`** — **the parser**, and a boundary worth respecting. `Grammar.read(vocabulary,
+  pages) → Sentence` is the entire port; `Sentence`/`Constraint`/`Scope`/`Polarity`/`Group` are ours and
+  carry no parser concepts, which is what lets checks build sentences by hand and lets the parser be
+  replaced by rewriting one file. **`ArtGrammar.kt` is the only file in the mod that may import
+  `org.antlr`** — `:common:grammarcheck` fails the build if any other does. The grammar itself is
+  `common/src/main/antlr/.../Art.g4`; it has **no lexer rules**, because the input is a list of pages
+  already looked up in the `Vocabulary` and stamped with a class.
 - **`Instability`** — how far an Age is at odds with itself, in four registers, each `Flaw` naming the words,
   slot and tags involved. Provenance is the point: a flaw has to be diagnosable, and §5's consequences read
   this long after the book was written. Part of the recipe.
@@ -111,6 +120,7 @@ Reload trigger is loader-specific: Fabric's `SERVER_STARTED` event calls `Ages.r
 ## Conventions
 
 - **Versions live in `libs.versions.toml`** (Gradle version catalog) — the single source of truth. Change dependency/loader versions there, not in module build files.
+- **Bundling a third-party library is a solved problem — copy the ANTLR wiring rather than inventing one.** It is the mod's only bundled dependency and the pattern is in the build files with the reasoning attached. In short: Fabric needs `implementation` + `include` (Loom synthesises a `fabric.mod.json` for the nested jar itself); NeoForge needs the dependency **three times** — `implementation`, `jarJar` with a **version range** (never a pin, or jar-in-jar cannot pick one copy when two mods bundle it), and `additionalRuntimeClasspath`, because on 1.21.1 it will not otherwise load in a run. **Prefer a library with no dependencies of its own.** A Kotlin library is the hard case: KFF supplies the stdlib as a *mod*, which lives in NeoForge's game module layer where an ordinary library cannot see it, so `kotlin.Pair` goes missing at runtime and `FMLModType` does not rescue it.
 - **Mod identity lives in `gradle.properties`** (`modId`, `modName`, `group`, `version`, `license`, etc.). Metadata files (`fabric.mod.json`, `neoforge.mods.toml`, `pack.mcmeta`, `*.mixins.json`) are **templated**: their `${...}` placeholders are filled at build time by `processResources` (see `buildSrc/.../multiloader-common.gradle`). Edit identity/versions in `gradle.properties` + the catalog, not by hand in the manifests.
 - Shared build logic is in `buildSrc/` convention plugins (`multiloader-common`, `multiloader-loader`); per-module `build.gradle.kts` files stay small.
 - Use `Constants.LOG` (SLF4J) for logging and `Constants.MOD_ID` as the namespace. `Util.kt` provides `String.location()` to build `agesandtheart:<path>` `ResourceLocation`s.
