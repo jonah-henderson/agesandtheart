@@ -1,8 +1,27 @@
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+
 plugins {
     id("multiloader-common")
     alias(libs.plugins.moddev)
     // Gradle's own ANTLR plugin, so generating the parser needs no third-party Gradle plugin.
     antlr
+    alias(libs.plugins.powerAssert)
+}
+
+/**
+ * `check` and `require` become diagrammed assertions — **in the tests only**.
+ *
+ * This is what let the checks move onto Kotest without rewriting their assertions. Every one of them was
+ * already written as `check(condition) { "a sentence saying what went wrong" }`, and those sentences are
+ * the point: the KDoc beside them explains what each is *for*. Power-Assert keeps the sentence and appends
+ * a rendering of every subexpression in the condition, so the diagnostics got better without a rewrite.
+ *
+ * Deliberately not applied to `main`: there `check` is a cheap guard on a hot path, not a report.
+ */
+@OptIn(ExperimentalKotlinGradlePluginApi::class)
+powerAssert {
+    functions = listOf("kotlin.check", "kotlin.require")
+    includedSourceSets = listOf("test")
 }
 
 neoForge {
@@ -90,6 +109,62 @@ val main: SourceSet = sourceSets.main.get()
 preview.compileClasspath += main.compileClasspath + main.output
 preview.runtimeClasspath += main.compileClasspath + main.runtimeClasspath + main.output
 
+// ---------------------------------------------------------------------------------------------------
+// The tests. One task, tagged — see `MinecraftRegistries.kt` for what the tag means and why.
+// ---------------------------------------------------------------------------------------------------
+
+/**
+ * Kotest brings its own JUnit Platform engine, and its own version of it.
+ *
+ * Deliberately no `junit-bom` here. The platform's version line went to 6 alongside JUnit 6 while Kotest
+ * is still built against the 1.x line, so pinning both from one BOM makes them disagree. Letting Kotest
+ * choose is the whole of the compatibility story.
+ */
+dependencies {
+    testImplementation(libs.kotestRunner)
+    testImplementation(libs.kotestAssertions)
+    testImplementation(libs.kotestProperty)
+}
+
+/** The one tag. Must match `NEEDS_REGISTRIES` in `common/src/test/kotlin/.../MinecraftRegistries.kt`. */
+val NEEDS_REGISTRIES_TAG = "NeedsRegistries"
+
+val test: SourceSet = sourceSets.test.get()
+// Minecraft arrives compile-only under ModDevGradle, exactly as for `preview`. The *runtime* half is not
+// optional and is not obvious: `Bootstrap.bootStrap()` reads `en_us.json` off the classpath, and without
+// it the bootstrap throws — then silently returns early on every later call, because it sets its own
+// done-flag before doing the work. Tests then pass against a half-built registry. See NeedsRegistries.
+test.compileClasspath += main.compileClasspath + main.output
+test.runtimeClasspath += main.compileClasspath + main.runtimeClasspath + main.output
+
+// The `antlr` plugin adds a grammar task per source set; the same undeclared-output trap as `preview`.
+tasks.named("compileTestKotlin") { dependsOn(tasks.named("generateTestGrammarSource")) }
+
+tasks.named<Test>("test") {
+    useJUnitPlatform()
+
+    // Kotest runs specs concurrently on this many threads. The default of one left fifteen cores idle
+    // while the slowest check ran alone; the checks are independent, so this is nearly free wall-clock.
+    systemProperty("kotest.framework.parallelism", Runtime.getRuntime().availableProcessors().toString())
+
+    // `-Pfast` skips everything that needs the Minecraft registries, which is the only slow part left.
+    if (project.hasProperty("fast")) {
+        systemProperty("kotest.tags", "!$NEEDS_REGISTRIES_TAG")
+    }
+
+    // Measured, not guessed: RegionShare samples four million columns and the registries are not small.
+    // At the Gradle default of 512m this task dies; 2g leaves headroom without crowding the daemon.
+    maxHeapSize = "2g"
+
+    testLogging {
+        events("failed")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        // Power-Assert's diagram is the failure message, and it is many lines. Truncating it would throw
+        // away the thing that makes a failure diagnosable from the console alone.
+        showStackTraces = true
+    }
+}
+
 // The `antlr` plugin adds a grammar task *per source set*, so creating `preview` also created
 // `generatePreviewGrammarSource` and put its output directory on the source set — even though every grammar
 // we have lives in `src/main/antlr` and this one therefore generates nothing. Kotlin still reads that
@@ -134,50 +209,14 @@ instrument(
     "THROWAWAY: does constraint satisfaction over weighted tags work? Read it, don't build on it.",
 )
 
-instrument(
-    "spanscheck", "verification", "co.voik.agesandtheart.preview.SpansCheckKt",
-    "Differential check of Spans interval algebra against a per-block reference.",
-)
 
-instrument(
-    "depthcachecheck", "verification", "co.voik.agesandtheart.preview.DepthCacheCheckKt",
-    "Checks BelowTerrain's column cache is actually hit (guards a silent indexing bug).",
-)
 
-instrument(
-    "choosecheck", "verification", "co.voik.agesandtheart.preview.ChooseCheckKt",
-    "Checks Choose/Chance draw reproducibly, honour their counts, weights and probabilities.",
-)
 
-instrument(
-    "faultcheck", "verification", "co.voik.agesandtheart.preview.FaultCheckKt",
-    "Checks a fault displaces rock exactly, and that a rift's band is the seam the territories draw.",
-)
 
-instrument(
-    "codeccheck", "verification", "co.voik.agesandtheart.preview.CodecCheckKt",
-    "Builds every registered codec, catching companion-initialisation order before a server boot does.",
-)
 
-instrument(
-    "recipecheck", "verification", "co.voik.agesandtheart.preview.RecipeCheckKt",
-    "Checks Age recipes round-trip through NBT, and that written generator kinds still resolve.",
-)
 
-instrument(
-    "vocabularycheck", "verification", "co.voik.agesandtheart.preview.VocabularyCheckKt",
-    "Checks every word of the Art is backed by something the world can be, and every preset askable for.",
-)
 
-instrument(
-    "grammarcheck", "verification", "co.voik.agesandtheart.preview.GrammarCheckKt",
-    "Checks the Art's grammar reads a book as designed, and that the parser stays behind its boundary.",
-)
 
-instrument(
-    "resolvercheck", "verification", "co.voik.agesandtheart.preview.ResolverCheckKt",
-    "Checks the resolver's promises: pure, order-blind, diagnosable, and vaguer sentences vary more.",
-)
 
 instrument(
     "terraindiff", "verification", "co.voik.agesandtheart.preview.TerrainDiffKt",
@@ -186,12 +225,7 @@ instrument(
 )
 
 instrument(
-    "regionsharecheck", "verification", "co.voik.agesandtheart.preview.RegionShareCheckKt",
-    "Measures the ground each weighted territory actually covers, and reprints ClaimTilt's table.",
+    "claimprofile", "documentation", "co.voik.agesandtheart.preview.ClaimProfileKt",
+    "Reports the claim-value distribution and reprints ClaimTilt's table, ready to paste.",
 )
 
-instrument(
-    "skycheck", "verification", "co.voik.agesandtheart.preview.SkyCheckKt",
-    "Checks an Age's sky reproduces from its seed, that a one-sun Age keeps vanilla's own orbit, " +
-        "and that nothing drawn is degenerate.",
-)

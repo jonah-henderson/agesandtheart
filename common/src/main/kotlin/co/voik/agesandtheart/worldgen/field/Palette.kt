@@ -229,7 +229,7 @@ object Palette {
      * cobblestone shells hanging in their mouths; tuff reads the same and carves cleanly.
      *
      * **Declared above [BARE_ROCK], which reads it.** An `object`'s properties initialise in source order,
-     * so the other way round leaves this null at startup — the exact failure `:common:codeccheck` exists to
+     * so the other way round leaves this null at startup — the exact failure `CodecCheck` exists to
      * catch, and one that surfaces as an unexplained crash a long way from here.
      */
     /**

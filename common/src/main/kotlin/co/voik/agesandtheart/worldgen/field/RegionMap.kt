@@ -226,14 +226,15 @@ data class RegionMap(
  * world" mean whatever it happened to mean.
  *
  * So the distribution is **measured** ([CLAIMS] is the claim value at each of [PROBABILITIES], sampled over
- * millions of columns by `:common:regionsharecheck`) and every claim is mapped first to its own percentile
+ * millions of columns by `./gradlew :common:claimprofile`) and every claim is mapped first to its own percentile
  * and then to a **Gumbel** value. That second step is what buys exactness: the largest of several Gumbel
  * values, each shifted by the log of a weight, wins in precisely the proportion of those weights. No
  * per-Age calibration, no dependence on how many members there are.
  *
  * **The table is only true of the noise it was measured against.** Change [RegionMap]'s octave or
- * amplitudes and every share drifts; `:common:regionsharecheck` is what notices, and it prints a
- * replacement table when it does.
+ * amplitudes and every share drifts. `RegionShareCheck` is what notices — it asserts each share against the
+ * ground it actually takes — and `./gradlew :common:claimprofile` is what prints a replacement table. The
+ * two used to be one file; the measuring half is a tool you run when the asserting half fails.
  */
 object ClaimTilt {
     /**
@@ -248,7 +249,7 @@ object ClaimTilt {
 
     /**
      * The claim value found at each of [PROBABILITIES]. **Measured, not derived** — regenerate with
-     * `./gradlew :common:regionsharecheck`, which prints this array when the shares it measures drift.
+     * `./gradlew :common:claimprofile`, which prints this array ready to paste.
      */
     private val CLAIMS = doubleArrayOf(
         -1.0839, -0.9828, -0.9350, -0.8828, -0.8043, -0.7365, -0.6596, -0.5376, -0.4241, -0.2818, -0.1768, -0.0856,

@@ -189,7 +189,7 @@ data class AgeComposition(
      *
      * Deliberately the exact spelling [parse] reads, so that what `/age list` prints can be pasted
      * straight back into `/age compose` — and so the pair can be checked by round-trip rather than by
-     * eye (`:common:recipecheck`). Every aspect is named even where it holds its default, since a recipe
+     * eye (`RecipeCheck`). Every aspect is named even where it holds its default, since a recipe
      * is the only record of an Age and "what did this leave unsaid?" is the wrong question to have to
      * ask of one.
      */
@@ -410,7 +410,7 @@ data class SlotShares(private val bySlot: Map<Aspect, List<Share>> = emptyMap())
  *
  * It was a colon until the sea aspect opened, and a colon is now the thing that tells a registry id from
  * an authored key (`namesReferent`) — so `sea=minecraft:air` read as the preset `minecraft` covering an
- * `air` share of the world. Caught by `:common:recipecheck`'s round trip, which is exactly the collision
+ * `air` share of the world. Caught by `RecipeCheck`'s round trip, which is exactly the collision
  * that check exists to find. Nothing persisted moves: shares travel as their own codec field, and this
  * spelling is only ever what `/age list` prints and `/age compose` reads.
  */

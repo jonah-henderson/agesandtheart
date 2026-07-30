@@ -68,7 +68,7 @@ sealed interface Appearance {
      *
      * [columns] × [rows] divides the texture into equal cells, which is how a phase picks its shape — vanilla's
      * moon is 4×2 and its sun is the degenerate 1×1. A body whose [CelestialBody.phase] has more steps than
-     * there are cells would index past the atlas, so `:common:skycheck` holds the two in agreement.
+     * there are cells would index past the atlas, so `SkyCheck` holds the two in agreement.
      */
     data class Sprite(
         override val tint: Rgba,
@@ -134,7 +134,7 @@ sealed interface Appearance {
  * has to say *which cell*.
  *
  * [steps] is how many distinct shapes the cycle passes through, and it must match the sprite's cell count or
- * [stepAt] indexes past the atlas — `:common:skycheck` holds them in agreement. Vanilla's eight is a default
+ * [stepAt] indexes past the atlas — `SkyCheck` holds them in agreement. Vanilla's eight is a default
  * rather than a rule: nothing outside the renderer can observe a phase, since `getMoonPhase()` is consulted only
  * by `LevelRenderer.renderSky`, so a moon may have its own count once we have a texture with its own grid.
  */

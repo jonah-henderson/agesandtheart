@@ -76,7 +76,7 @@ data class Substance(
         // **Declared before [PLAIN], and that ordering is load-bearing.** A companion initialises in source
         // order, and constructing a `Substance` reads these — so a `PLAIN` above them is built while they are
         // still null, which fails at class-init with a bare NullPointerException about `amplitudes`. Exactly the
-        // trap `:common:codeccheck` exists to catch, and it caught this one.
+        // trap `CodecCheck` exists to catch, and it caught this one.
         //
         // Its own seed, so what the rock is made of is decorrelated from where the rock is.
         private const val MINGLE_SEED = 0x5704_D1EDL

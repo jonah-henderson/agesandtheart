@@ -14,7 +14,7 @@ import net.minecraft.world.level.levelgen.SurfaceRules
  * moved into the fill as a [Substance] in step 4, so a composed Age now wears one plain palette. Its sibling
  * `RegionBiomeSource` was deleted in step 7 for exactly this reason, and the difference is that per-territory
  * *painting* is expected back: the biome pass wants somewhere to put a crust, and design §9's bare-rock item
- * is still open. It stays registered in `AgeContent` and covered by `:common:codeccheck`, so it cannot rot
+ * is still open. It stays registered in `AgeContent` and covered by `CodecCheck`, so it cannot rot
  * silently while it waits.
  *
  * It is also what the first two lines of the access widener are for — `SurfaceRules$Context` and

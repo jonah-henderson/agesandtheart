@@ -67,7 +67,7 @@ enum class Register(
      * Nothing in the aspect could *ever* be what the word asked for.
      *
      * Per §3.3 this is a **content bug rather than a play outcome** — we only make words we can back up,
-     * and `:common:vocabularycheck` exists to keep it from shipping. It is a register anyway because of
+     * and `VocabularyCheck` exists to keep it from shipping. It is a register anyway because of
      * the one hard requirement: if a word ever slips through, it must resolve as vacuous and be *reported*,
      * never silently dropped.
      */

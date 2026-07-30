@@ -49,19 +49,62 @@ export JAVA_HOME="$HOME/.sdkman/candidates/java/current"; export PATH="$JAVA_HOM
 # NeoForge data generation
 ./gradlew :neoforge:runData
 
+# The offline test suite (Kotest) — see "Tests" below
+./gradlew :common:test
+./gradlew :common:test -Pfast
+
 # Drive the headless server through a list of /age commands and stop it (see scripts/checks/)
-scripts/drive-server.sh scripts/checks/slots.txt
+scripts/drive-server.sh scripts/checks/regions.txt
+scripts/drive-server-check.sh          # checks drive-server's own expectation layer, no server needed
 ```
 
 **Headless checks go through `scripts/drive-server.sh`.** It waits for each command to *finish*
 before sending the next — by echoing a unique token back through `say`, since console commands are
 drained by the server thread in order — rather than sleeping a guessed interval. It also writes to a
 throwaway world by default (`--level` to override) and restores `server.properties` on the way out,
-so a check can never disturb a save. It drives a server; it does not assert, so read the output.
+so a check can never disturb a save.
+
+**It now asserts as well as drives.** A `#?` line in a command file is a claim about the output of the
+command below it, so a recorded measurement can be written down as something that fails rather than as
+prose somebody has to read:
+
+```
+#? at-least 10000 block\(s\) differ
+age compare riddledonly riddledsolid 6
+```
+
+The verbs are `expect` / `reject` (an extended regex against the command's own output) and
+`at-least` / `at-most` (the first number on the matching line, commas stripped). Several may stack on one
+command. They are evaluated against the log after the server stops, and a failure exits 1. **A file with
+no expectations behaves exactly as before** — it drives, and you read the output, which is still the right
+shape for the exploratory ones. The slicing that gives each command its own output is itself checked by
+`scripts/drive-server-check.sh`, because a slicing bug would make every expectation pass silently.
 
 Run directories are `runs/` (Fabric) and `run/` (NeoForge), both git-ignored. The first build/run downloads Minecraft, mappings, and the loader toolchains — slow once, then cached.
 
-**Tests:** there is no test suite yet; `./gradlew test` is currently a no-op. When tests are added, prefer putting loader-agnostic logic tests in `common` and run a single one with `./gradlew :common:test --tests "co.voik.agesandtheart.SomeTest"`.
+**Tests:** `:common:test` is the whole offline suite — **Kotest**, one task, ~135 tests in about 16 seconds.
+
+```bash
+./gradlew :common:test                    # everything
+./gradlew :common:test -Pfast             # skip the specs that need Minecraft's registries (~5s)
+./gradlew :common:test --tests "*Grammar*" # one spec
+```
+
+The specs live in `common/src/test/kotlin/`, in packages mirroring the code they check. They are the
+former `preview` "check" instruments — same assertions, same hand-written failure messages, now discovered
+and reported individually. Two things about how they are written:
+
+- **Assertions are plain `check(condition) { "what went wrong" }`.** The Kotlin **Power-Assert** compiler
+  plugin is on for the `test` source set only, so a failure prints that sentence *and* a diagram of every
+  subexpression. Kotest's matchers are available and used where they read better, but `check` is the house
+  style here because the messages were the point and they ported unchanged.
+- **`@Tags(NEEDS_REGISTRIES)` marks a spec that needs `Bootstrap.bootStrap()`** — a few seconds, paid once
+  per JVM, and the only slow thing in the suite. The annotation form matters: Kotest constructs a spec to
+  discover its tests, so a fixture built in the constructor would be paid even under `-Pfast`. Anything
+  expensive inside a spec should be `by lazy`.
+
+Property-based tests use `kotest-property` (`checkAll`) — see `SpansCheck`, and note it generates the
+*recipe* for a value rather than the value, because that is what shrinks and what prints legibly.
 
 ## Architecture
 
@@ -91,7 +134,7 @@ The mod has **no Mixins** right now; everything goes through Fabric API hooks + 
 
 The core mechanic — creating dimensions ("Ages") at runtime and persisting them — lives in `common/.../age/`, with the one loader-specific piece behind the `AgeBackend` service:
 
-- **`AgeRecipe`** — **what an Age is, as data**: the world it was written from (a composition of slot presets, or one of the few bespoke generators), its seed, the character drawn for it, the instability and words it was written with, and the generator version that made it. Codec-serialised, and the *only* record of an Age — the dimension is rebuilt from it on every open. `AgePreset` names the generation presets; its `key` is the save format, so renaming one orphans every Age already written with it (`:common:recipecheck` guards this).
+- **`AgeRecipe`** — **what an Age is, as data**: the world it was written from (a composition of slot presets, or one of the few bespoke generators), its seed, the character drawn for it, the instability and words it was written with, and the generator version that made it. Codec-serialised, and the *only* record of an Age — the dimension is rebuilt from it on every open. `AgePreset` names the generation presets; its `key` is the save format, so renaming one orphans every Age already written with it (`RecipeCheck` guards this).
 - **`AgeGeneration`** — turns a recipe into a `ChunkGenerator`, in an exhaustive `when` over `AgePreset`. A pure function of the recipe (plus the server, for registries), because an Age must rebuild identically on every open.
 - **`AgeSavedData`** — vanilla `SavedData` on the overworld's data storage, persisting each Age's recipe. Runtime-dimension libraries do **not** auto-restore dimensions on restart, so we track them ourselves. Reads the pre-recipe format (an id list plus generator-kind strings) and migrates it.
 - **`Ages`** — loader-agnostic policy: `create` / `open` / `ensure` / `delete` (delegating to `Services.AGE_BACKEND`) and `reloadSaved` (replay on boot).
@@ -106,7 +149,7 @@ The core mechanic — creating dimensions ("Ages") at runtime and persisting the
   pages) → Sentence` is the entire port; `Sentence`/`Constraint`/`Scope`/`Polarity`/`Group` are ours and
   carry no parser concepts, which is what lets checks build sentences by hand and lets the parser be
   replaced by rewriting one file. **`ArtGrammar.kt` is the only file in the mod that may import
-  `org.antlr`** — `:common:grammarcheck` fails the build if any other does. The grammar itself is
+  `org.antlr`** — `GrammarCheck` fails the build if any other does. The grammar itself is
   `common/src/main/antlr/.../Art.g4`; it has **no lexer rules**, because the input is a list of pages
   already looked up in the `Vocabulary` and stamped with a class.
 - **`Instability`** — how far an Age is at odds with itself, in four registers, each `Flaw` naming the words,
@@ -190,7 +233,7 @@ The overriding goal is **readability** — a reader should understand code witho
 
 **Anti-patterns to avoid** (common in mod code): `!!`; `lateinit` abuse (prefer `val` + constructor or `by lazy`); companion-object soup; **mutable global state** in `object`s/companions; magic numbers; deeply nested scope-function chains; `MutableList` leaking through public API; `when` + `else` on sealed/enum types silently swallowing new cases.
 
-**Save compatibility — not yet a constraint (2026-07-27, revisit at first release).** The mod is still in initial development with no players and no saves worth keeping, so **renaming slot keys, changing codec shapes and bumping `generatorVersion` are all free** — say so and move on. Do *not* add `FORMER_KEYS`-style alias tables, either-or codecs chosen purely to keep old files byte-identical, or treat "no version had to move" as a design goal; prefer the clearer shape and let test Ages break. Still true regardless: a recipe must round-trip *within* a version (`:common:recipecheck`), which is correctness rather than compatibility.
+**Save compatibility — not yet a constraint (2026-07-27, revisit at first release).** The mod is still in initial development with no players and no saves worth keeping, so **renaming slot keys, changing codec shapes and bumping `generatorVersion` are all free** — say so and move on. Do *not* add `FORMER_KEYS`-style alias tables, either-or codecs chosen purely to keep old files byte-identical, or treat "no version had to move" as a design goal; prefer the clearer shape and let test Ages break. Still true regardless: a recipe must round-trip *within* a version (`RecipeCheck`), which is correctness rather than compatibility.
 
 **When to break the rules:** hot per-tick loops may justify a plain `for`, a `var` accumulator, or primitive arrays (measure first, comment why); Java/MC interop forces platform types and mutable builders (contain them at the boundary). Immutability and functional style are defaults, not religion — but a break should be **local and commented**, never the ambient style.
 

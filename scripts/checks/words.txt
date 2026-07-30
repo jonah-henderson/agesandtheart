@@ -2,15 +2,23 @@
 # Run with: scripts/drive-server.sh scripts/checks/words.txt
 #
 # The load-bearing risk here is loading, not resolving — the resolver itself is covered offline by
-# `:common:resolvercheck` and `:common:vocabularycheck`, which read the same files this will. What only a
+# `ResolverCheck` and `VocabularyCheck`, which read the same files this will. What only a
 # server can answer is whether the vocabulary is *found* when the mod is a jar rather than a source tree:
 # the corpus comes from `server.resourceManager` over `data/agesandtheart/art/`, and a wrong path fails by
 # the Art knowing no words at all. So the first thing to read is the word count below.
 
-# Every word the Art knows. Expect the count `:common:vocabularycheck` reports for the same corpus — 1097
-# with no other mods loaded, and more on a server that has some, since every block and biome in the pack
-# gets a word of its own. No "Vocabulary problem:" lines. (This said "expect 29" until 2026-07-29, from
-# before `DerivedWords` existed; a hardcoded corpus size is a number that goes stale on its own.)
+# Every word the Art knows. Expect the count `:common:test --tests VocabularyCheck` reports for the same
+# corpus — 1097 with no other mods loaded, and more on a server that has some, since every block and biome
+# in the pack gets a word of its own. (This said "expect 29" until 2026-07-29, from before `DerivedWords`
+# existed; a hardcoded corpus size is a number that goes stale on its own.)
+#
+# The floor is deliberately far below the real count and the ceiling absent: what this catches is the
+# failure mode the header describes — the corpus not being *found* when the mod is a jar, which shows up
+# as no words at all or as the handful written by hand. A pack with more mods pushes the real number up,
+# and that must never fail.
+#? at-least 100 The Art knows [0-9]+ words
+#? reject Vocabulary problem
+#? reject The Art knows no words at all
 age words
 
 # The plainest sentence there is: one restrictive word about the ground, everything else left to the seed.
@@ -19,7 +27,7 @@ age gen floater
 
 # The acceptance test, in a world rather than in a check: lush against barren, in whichever aspect these two
 # words actually contend over. Expect a division in the recipe, charged, with the tension behind it named.
-# `:common:resolvercheck` measures this pair at 8 of 60 seeds, so a seed that does NOT divide is not a bug.
+# `ResolverCheck` measures this pair at 8 of 60 seeds, so a seed that does NOT divide is not a bug.
 age write bothways 7 verdant lifeless
 age gen bothways
 
@@ -40,6 +48,9 @@ age write dividedB 7 uncanny arid
 age compare dividedA dividedB 2
 
 # A contradiction in the one aspect that cannot divide: one sky wins, the other is displaced and said so.
+# The displacement being *said* is the assertion — a word losing in silence is §3.3's forbidden failure,
+# and it would look identical from the outside to the sky simply having been drawn.
+#? expect ! displaced \+[0-9]+:
 age write onesky 7 stormy clear
 age gen onesky
 

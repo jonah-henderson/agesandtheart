@@ -1,8 +1,9 @@
-package co.voik.agesandtheart.preview
+package co.voik.agesandtheart.worldgen.biome
 
 import co.voik.agesandtheart.worldgen.CavernField
-import co.voik.agesandtheart.worldgen.biome.BelowTerrain
 import co.voik.agesandtheart.worldgen.field.TerrainField
+import io.kotest.core.annotation.Isolate
+import io.kotest.core.spec.style.FunSpec
 import net.minecraft.core.QuartPos
 import kotlin.system.measureNanoTime
 
@@ -19,33 +20,40 @@ import kotlin.system.measureNanoTime
  * The measurement is a ratio rather than a time, so it means the same thing on any machine: the work a
  * chunk's depth queries cost, over the work its distinct columns cost. One is perfect. Without the cache
  * it is the redundancy factor, which this prints so the saving is legible.
+ *
+ * **[Isolate] is load-bearing, and is the one thing the port had to add.** Specs otherwise run concurrently
+ * across every core, and a ratio between two timings taken while fifteen other specs compete for the same
+ * CPU is not a measurement of anything. This spec runs alone.
  */
-fun main() {
-    val terrain = CavernField.world()
-    val depth = BelowTerrain(terrain)
+@Isolate
+class DepthCacheCheck : FunSpec({
 
-    // Warm both paths together so neither is measured cold against the other.
-    repeat(WARMUP_ROUNDS) { round -> queryChunk(depth, round); readColumns(terrain, round) }
+    test("a chunk's depth queries cost about what its distinct columns do") {
+        val terrain = CavernField.world()
+        val depth = BelowTerrain(terrain)
 
-    // **Every round is a different chunk, and that matters.** Repeating one chunk would leave its
-    // columns cached from the round before, so the queries would measure pure hits and report a saving
-    // no real generation could see. A fresh chunk each round pays what generation actually pays: each
-    // of its columns computed once, then answered from the cache for the other ninety-five levels.
-    val queried = bestOfFreshChunks { round -> queryChunk(depth, round) }
-    val columns = bestOfFreshChunks { round -> readColumns(terrain, round) }
-    val ratio = queried.toDouble() / columns
+        // Warm both paths together so neither is measured cold against the other.
+        repeat(WARMUP_ROUNDS) { round -> queryChunk(depth, round); readColumns(terrain, round) }
 
-    println("A chunk asks $QUERIES_PER_CHUNK depth queries about $COLUMNS_PER_CHUNK distinct columns.")
-    println("  redundancy if uncached : ${QUERIES_PER_CHUNK / COLUMNS_PER_CHUNK}x")
-    println("  cost of the queries    : ${queried / 1000} us")
-    println("  cost of the columns    : ${columns / 1000} us")
-    println("  ratio                  : %.2fx".format(ratio))
+        // **Every round is a different chunk, and that matters.** Repeating one chunk would leave its
+        // columns cached from the round before, so the queries would measure pure hits and report a saving
+        // no real generation could see. A fresh chunk each round pays what generation actually pays: each
+        // of its columns computed once, then answered from the cache for the other ninety-five levels.
+        val queried = bestOfFreshChunks { round -> queryChunk(depth, round) }
+        val columns = bestOfFreshChunks { round -> readColumns(terrain, round) }
+        val ratio = queried.toDouble() / columns
 
-    check(ratio < ACCEPTABLE_RATIO) {
-        "depth queries cost %.1fx their distinct columns — the column cache is not being hit".format(ratio)
+        println("A chunk asks $QUERIES_PER_CHUNK depth queries about $COLUMNS_PER_CHUNK distinct columns.")
+        println("  redundancy if uncached : ${QUERIES_PER_CHUNK / COLUMNS_PER_CHUNK}x")
+        println("  cost of the queries    : ${queried / 1000} us")
+        println("  cost of the columns    : ${columns / 1000} us")
+        println("  ratio                  : %.2fx".format(ratio))
+
+        check(ratio < ACCEPTABLE_RATIO) {
+            "depth queries cost %.1fx their distinct columns — the column cache is not being hit".format(ratio)
+        }
     }
-    println("\nCache is working: the queries cost about what their distinct columns do.")
-}
+})
 
 /** One chunk's depth queries, in vanilla's own order — x, then y, then z, section by section. */
 private fun queryChunk(depth: BelowTerrain, chunk: Int) {

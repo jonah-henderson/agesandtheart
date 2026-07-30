@@ -54,7 +54,7 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource
  * transition *widths*, with a fault chosen separately and layered over whichever width an Age drew. Jonah's
  * call was to make the softening one of the fault's own **forms** instead — so a seam is a scarp, a rift or a
  * fuzz, and never two at once. A blended map and a throw cannot co-occur, so the picket fence cannot be
- * built. `:common:faultcheck` asserts the exclusion directly (`noSeamBothBlendsAndDisplaces`), because that
+ * built. `FaultCheck` asserts the exclusion directly (`noSeamBothBlendsAndDisplaces`), because that
  * property is now the whole of what keeps it away.
  *
  * One interaction to know rather than to guard: a *raised* throw can push rock through the top of an Age's

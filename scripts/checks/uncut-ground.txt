@@ -23,16 +23,30 @@ age compose riddledsolid 7 terrain=hills sea=minecraft:water carvers=caves,solid
 # exists. Expect the difference to be air-versus-stone rather than water, which is what tells uncut ground
 # apart from the hydrology division that was already there.
 #
-# MEASURED 2026-07-27, generator version 11: **248,734 blocks over 284 of 289 chunks** at radius 8, against
+# MEASURED 2026-07-27, generator version 11: **248,734 blocks over 284 of 289 chunks** at radius 8 (and
+# 174,329 over all 169 at the radius 6 used below, re-measured 2026-07-30), against
 # two under the plain union. Uncut ground exists.
+#
+# The bound is the *regression* it guards against rather than the measurement: two blocks was the old
+# behaviour, and anything in that neighbourhood means `solid` is being swallowed again. Six orders of
+# magnitude sit between the two readings, so a loose floor loses nothing and survives retuning.
+#? at-least 10000 block\(s\) differ
 age compare riddledonly riddledsolid 6
 
 # And the control: two carvers that both *cut* must still union, so this pair should differ from
 # `riddledonly` by whatever porosity adds, not by territory.
 #
 # MEASURED: 65,779 blocks over 73 of 169 chunks at radius 6 — porosity's scattered vugs added on top of the
-# caves, in the chunks it reached. The union between two cutting carvers is untouched.
+# caves, in the chunks it reached. The union between two cutting carvers is untouched. (Re-measured
+# 2026-07-30 while these expectations were being written: 67,138 over 68 of 169. Same reading.)
+#
+# Bounded on both sides, because this one is a control and both directions mean something. Nothing at all
+# would say porosity stopped adding anything; a count up near the uncut-ground reading — 174,329 over all
+# 169 chunks at this radius — would say the two cutting carvers had stopped unioning and started dividing
+# territory, which is the bug next door. The ceiling sits between the two readings.
 age compose riddledporous 7 terrain=hills sea=minecraft:water carvers=caves,porous sky=plain
+#? at-least 1000 block\(s\) differ
+#? at-most 150000 block\(s\) differ
 age compare riddledonly riddledporous 6
 
 age list

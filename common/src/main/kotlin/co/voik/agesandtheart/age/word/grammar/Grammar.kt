@@ -39,7 +39,7 @@ data class Page(val written: String, val kind: PageClass?, val word: Word? = nul
  * Pages in, a [Sentence] out — **the whole of the port** (design §4.3.1).
  *
  * Everything on this side of it is ours: [Page] going in, [Constraint] and [Scope] coming out. The parser
- * behind it is an implementation detail, and `:common:grammarcheck` fails the build if any file but
+ * behind it is an implementation detail, and `GrammarCheck` fails the build if any file but
  * [ArtGrammar] so much as imports it. So replacing the parser means rewriting one file, which is the only
  * kind of "abstraction layer" worth having — a narrow boundary with a single implementation, rather than a
  * plugin point for a future that may never arrive.

@@ -1,9 +1,11 @@
 # Phase 4.5 step 9 acceptance: a seam is a fault you can walk to, and an Age that has no seam must not have
 # moved a block. Run with: scripts/drive-server.sh scripts/checks/faults.txt
 #
-# Read the output rather than trusting an exit code — this drives a server, it does not assert. What to look
-# for is noted against each group. The offline half is `:common:faultcheck` (thirteen properties) and
-# `:common:preview --args=fault|rift|fuzz` (the pictures); this is the half that needs a world.
+# **Mostly read, partly asserted.** The must-not-move control below carries `#?` expectations and will fail
+# the run on its own; everything after it is a number to read, because what those groups are about is how a
+# seam *looks*, and no bound expresses that. What to look for is noted against each group. The offline half
+# is `FaultCheck` (thirteen properties) and `:common:preview --args=fault|rift|fuzz` (the pictures); this is
+# the half that needs a world.
 #
 # A seam takes one of FOUR forms, drawn per Age into its character: rift 40%, scarp 40%, sheared 15%,
 # fuzzed 5% (design 3.4). `terrain.seam=` pins one, which is the only way to see a given form on purpose —
@@ -35,7 +37,16 @@ age compose lonerift 4242 terrain=hills sea=water terrain.seam=rift
 age gen lonelevel
 age gen lonescarp
 age gen lonerift
+# **The step's acceptance criterion, as an assertion.** A one-territory Age has no seam, so a fault asked
+# for in one must build no node at all — `FaultCheck`'s "an unasked fault leaves the shape alone" proves
+# that of the field tree offline, and this is the same claim measured in a world.
+#
+# The ceiling is set where the two outcomes cannot be confused rather than at the measurement. Decoration
+# noise at radius 2 runs to tens of blocks (generator-parity.txt has the control numbers); a whole-world
+# throw of 32 moves every column in all 25 chunks, which is hundreds of thousands. Nothing lands between.
+#? at-most 2000 block\(s\) differ
 age compare lonelevel lonescarp 2
+#? at-most 2000 block\(s\) differ
 age compare lonelevel lonerift 2
 
 # --- The four forms on one pair of territories, against their own control -------------------------

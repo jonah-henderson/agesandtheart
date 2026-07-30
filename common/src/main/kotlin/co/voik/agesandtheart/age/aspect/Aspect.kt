@@ -225,7 +225,7 @@ data class Parameter(
          * They **fracture** instead when the words genuinely disagree, and what decides that is the **antonym
          * table** — the same `oppositionBetween` the instability index already consults. Without an opposition
          * between them, two spans miles apart would silently broaden into exactly the mush §3.3 exists to
-         * prevent, which is why `:common:vocabularycheck` enforces that disjoint spans have an antonym between
+         * prevent, which is why `VocabularyCheck` enforces that disjoint spans have an antonym between
          * them.
          */
         RANGED,
@@ -300,7 +300,7 @@ interface AspectPreset : StringRepresentable {
     /**
      * Whether a *sentence* may ask for this preset, as opposed to only a **pinned recipe** naming it outright.
      *
-     * Almost every preset is askable, and `:common:vocabularycheck` insists on it: a preset no word can reach is
+     * Almost every preset is askable, and `VocabularyCheck` insists on it: a preset no word can reach is
      * content nobody can use, since it will still turn up when the seed draws an unconstrained aspect but a writer
      * who wants it has no way to say so.
      *

@@ -79,7 +79,7 @@ private data class AntonymPage(val pairs: List<Antonym>) {
  * reprinting its neighbours.
  *
  * **A word that fails to load is reported, never silently absent** (§3.3's one hard requirement). Any
- * problem found while reading lands in [problems], which `/age words` prints and `:common:vocabularycheck`
+ * problem found while reading lands in [problems], which `/age words` prints and `VocabularyCheck`
  * fails the build over.
  */
 data class Vocabulary(
@@ -165,7 +165,7 @@ data class Vocabulary(
      * merely declaring it.
      *
      * The question "has this word anything to do here at all?" for a word that steers rather than chooses. Both
-     * the resolver and `:common:vocabularycheck` ask it, because a word may narrow presets in one aspect and only
+     * the resolver and `VocabularyCheck` ask it, because a word may narrow presets in one aspect and only
      * turn a knob in another, and treating the second as unbacked condemns a sentence that works.
      */
     fun turnsAKnob(aspect: Aspect, parameter: String): Boolean =
@@ -219,7 +219,7 @@ data class Vocabulary(
             val antonyms = readAntonyms(resources, problems)
             // Blocks come from the built-in registries and so are always available; biomes and structures are
             // datapack content, so a corpus read without a server has §8's material half and neither
-            // population. Absent rather than wrong, which is what lets `:common:vocabularycheck` stay offline.
+            // population. Absent rather than wrong, which is what lets `VocabularyCheck` stay offline.
             val fromRegistries = registries?.let { DerivedWords.biomes(it) + DerivedWords.structures(it) }.orEmpty()
             val words = derived(DerivedWords.materials() + fromRegistries) + authored
             val structural = readGrammarWords(resources, problems)

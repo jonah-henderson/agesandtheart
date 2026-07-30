@@ -106,7 +106,7 @@ enum class Sky(override val key: String, val ownDimensionType: ResourceLocation)
         /**
          * The first option of each is its default, and **the four defaults together must draw exactly
          * [SkySpec.VANILLA]** — that is what lets an unremarkable Age keep vanilla's own sky rather than a
-         * lookalike. `:common:skycheck` holds it, because it would otherwise break silently the first time
+         * lookalike. `SkyCheck` holds it, because it would otherwise break silently the first time
          * anyone reordered an option list.
          */
         val SUNS = Parameter("suns", "one", "two", "three", "many")

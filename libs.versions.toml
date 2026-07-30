@@ -27,6 +27,10 @@ flk = "1.13.13+kotlin.2.4.10"
 mixin = "0.8.5"
 mixinExtras = "0.3.5"
 
+# Testing. Kotest brings its own JUnit Platform engine, so the platform is deliberately not versioned here
+# — see the note beside the test dependencies in common/build.gradle.kts.
+kotest = "6.2.3"
+
 # Runtime dimension creation (Fabric-only) — https://github.com/NucleoidMC/fantasy
 # 0.6.4+1.21 targets MC 1.21 and is ABI-compatible with our 1.21.1.
 fantasy = "0.6.4+1.21"
@@ -51,8 +55,14 @@ fantasy = { group = "xyz.nucleoid", name = "fantasy", version.ref = "fantasy" }
 antlrTool = { group = "org.antlr", name = "antlr4", version.ref = "antlr" }
 antlrRuntime = { group = "org.antlr", name = "antlr4-runtime", version.ref = "antlr" }
 
+kotestRunner = { group = "io.kotest", name = "kotest-runner-junit5", version.ref = "kotest" }
+kotestAssertions = { group = "io.kotest", name = "kotest-assertions-core", version.ref = "kotest" }
+kotestProperty = { group = "io.kotest", name = "kotest-property", version.ref = "kotest" }
+
 [plugins]
 kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+# Ships with the Kotlin compiler, so it is versioned with it rather than on its own.
+powerAssert = { id = "org.jetbrains.kotlin.plugin.power-assert", version.ref = "kotlin" }
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
 moddev = { id = "net.neoforged.moddev", version.ref = "moddev" }
 loom = { id = "fabric-loom", version.ref = "loom" }

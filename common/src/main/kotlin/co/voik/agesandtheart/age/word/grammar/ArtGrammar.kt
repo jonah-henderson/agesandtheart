@@ -17,7 +17,7 @@ import org.antlr.v4.runtime.misc.Pair
 /**
  * The one file that knows the parser exists.
  *
- * **Nothing else in the mod may import `org.antlr`**, and `:common:grammarcheck` fails the build if
+ * **Nothing else in the mod may import `org.antlr`**, and `GrammarCheck` fails the build if
  * anything does — see [Grammar] for why the boundary is drawn here and what it buys. Everything crossing it
  * is ours: [Page] in, [Sentence] out.
  *

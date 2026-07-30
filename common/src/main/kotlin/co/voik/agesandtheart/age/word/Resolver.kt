@@ -443,7 +443,7 @@ object Resolver {
     /**
      * Which aspects this word has a say in: the ones it is about, or wherever it finds purchase.
      *
-     * Public because it is also what a word *costs* (§4.4) and what `:common:vocabularycheck` has to know
+     * Public because it is also what a word *costs* (§4.4) and what `VocabularyCheck` has to know
      * to tell a word with no carrier from a word about a aspect it cannot reach.
      */
     fun aspectsSpokenTo(vocabulary: Vocabulary, word: Word): List<Aspect> {

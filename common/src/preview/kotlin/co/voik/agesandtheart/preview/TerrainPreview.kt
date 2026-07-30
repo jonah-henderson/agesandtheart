@@ -91,7 +91,7 @@ private class Subject(
  * The two shapes the divided subjects share, so a fault and a rift are read against the same `regions`.
  *
  * Declared **above** [subjects] and not below it: top-level properties initialise in file order, and one
- * read from above its declaration is simply null — the exact failure `:common:codeccheck` exists to catch
+ * read from above its declaration is simply null — the exact failure `CodecCheck` exists to catch
  * in companions.
  */
 private val dividedTerrains = listOf(NoiseField.hills(), PillarField.world())
@@ -207,7 +207,7 @@ private val subjects: Map<String, Subject> = mapOf(
     // show it as a chasm rather than as a stripe of missing map. Two shapes here rather than one, since a
     // chasm cutting through both is what a written Age will usually look like.
     //
-    // **`:common:faultcheck` prints the band's width in blocks**, which is the number to tune
+    // **`FaultCheck` prints the band's width in blocks**, which is the number to tune
     // `Rift.DEFAULT_HALF_WIDTH` against — the seam distance it is measured in is proportionate rather than
     // surveyed, so what the constant means on the ground is something to read off, not to reason about.
     "rift" to Subject(

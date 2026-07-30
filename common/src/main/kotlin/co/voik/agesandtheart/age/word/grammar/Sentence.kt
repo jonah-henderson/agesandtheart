@@ -58,7 +58,7 @@ value class Group(val index: Int)
  *
  * **No parser concepts appear here, deliberately.** This is the boundary described in §4.3.1: the resolver
  * consumes these and never sees a parse tree, so the parser can be replaced by rewriting one file. It is
- * also what lets `:common:resolvercheck` build sentences by hand without a parser at all.
+ * also what lets `ResolverCheck` build sentences by hand without a parser at all.
  */
 data class Constraint(
     val word: Word,
@@ -91,7 +91,7 @@ data class Sentence(
          *
          * What a flat list of pages meant before the grammar existed, and what a check means when it wants
          * to exercise the resolver without a parser. That it can be built here at all is the boundary
-         * earning its keep: `:common:resolvercheck` needs no grammar to run.
+         * earning its keep: `ResolverCheck` needs no grammar to run.
          */
         fun flat(words: List<Word>): Sentence = Sentence(
             words.map { word ->

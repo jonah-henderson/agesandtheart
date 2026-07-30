@@ -113,7 +113,7 @@ data class SkySpec(val bodies: List<CelestialBody>, val stars: StarField) {
          * leaves the lightmap on `DimensionType.timeOfDay`, so the world still brightens and dims on vanilla's
          * schedule; if the primary sun drifted off that schedule, noon would be bright with the sun somewhere
          * off to the side. A one-sun Age therefore looks exactly like an ordinary world, and every additional
-         * body is a departure from a correct baseline. `:common:skycheck` holds this.
+         * body is a departure from a correct baseline. `SkyCheck` holds this.
          *
          * [spread] is how far the extra bodies wander from that first orbit, in `0.0..1.0` — 0 puts them all in
          * vanilla's plane at different phases, 1 scatters their inclinations across the sky.
@@ -145,7 +145,7 @@ data class SkySpec(val bodies: List<CelestialBody>, val stars: StarField) {
                         periodTicks = Orbit.TICKS_PER_VANILLA_DAY * random.nextIntBetweenInclusive(2, LONGEST_PHASE_DAYS),
                         offsetTicks = random.nextInt(Orbit.TICKS_PER_VANILLA_DAY),
                         // Vanilla's atlas has eight cells, so a cycle through it has eight steps. Held by
-                        // `:common:skycheck`, because a mismatch would index past the texture.
+                        // `SkyCheck`, because a mismatch would index past the texture.
                         steps = Appearance.MOON_COLUMNS * Appearance.MOON_ROWS,
                     ),
                 )
