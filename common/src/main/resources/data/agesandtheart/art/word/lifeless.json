@@ -1,9 +1,13 @@
 {
   "tier": "exact",
-  "slots": [
-    "dressing"
+  "aspects": [
+    "climate"
   ],
   "query": {
     "barren": 1.0
+  },
+  "sets": {
+    "temperature": "-0.9..-0.4",
+    "humidity": "-0.9..-0.4"
   }
 }

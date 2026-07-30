@@ -108,9 +108,9 @@ data class BelowTerrain(
      * sampled per quart cell and [AgeBiomeSource] multiplies back up before asking, so the coordinates
      * arriving here are block coordinates that only ever take *every fourth* value: 0, 4, 8, 12 within
      * a chunk. Their low two bits are therefore always zero, and indexing on those would drop all
-     * sixteen columns into one slot and thrash — measured, and worth exactly nothing. Shifting back down
+     * sixteen columns into one aspect and thrash — measured, and worth exactly nothing. Shifting back down
      * to the quart index first gives four consecutive values per axis, and so sixteen columns in
-     * sixteen slots with no collisions. Entries from an earlier chunk fail the key check and are
+     * sixteen aspects with no collisions. Entries from an earlier chunk fail the key check and are
      * overwritten.
      */
     private class ColumnCache {
@@ -119,11 +119,11 @@ data class BelowTerrain(
 
         fun spansAt(x: Int, z: Int, terrain: TerrainField): Spans {
             val key = (x.toLong() shl Int.SIZE_BITS) or (z.toLong() and UNSIGNED_INT)
-            val slot = (((x shr QUART_BITS) and 3) shl 2) or ((z shr QUART_BITS) and 3)
-            spans[slot]?.let { if (keys[slot] == key) return it }
+            val aspect = (((x shr QUART_BITS) and 3) shl 2) or ((z shr QUART_BITS) and 3)
+            spans[aspect]?.let { if (keys[aspect] == key) return it }
             return terrain.columnSpans(x, z).also {
-                keys[slot] = key
-                spans[slot] = it
+                keys[aspect] = key
+                spans[aspect] = it
             }
         }
 
@@ -134,7 +134,7 @@ data class BelowTerrain(
             // Block coordinates back down to the quart cell they came from — four blocks to a cell.
             const val QUART_BITS = 2
 
-            // A key no real column can produce, so an untouched slot cannot match by accident.
+            // A key no real column can produce, so an untouched aspect cannot match by accident.
             const val EMPTY_KEY = Long.MIN_VALUE
         }
     }

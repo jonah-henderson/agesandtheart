@@ -1,11 +1,15 @@
 {
   "tier": "restrictive",
-  "slots": [
-    "dressing",
-    "landform"
+  "aspects": [
+    "climate",
+    "terrain"
   ],
   "query": {
     "dry": 1.0,
     "barren": 0.6
+  },
+  "sets": {
+    "temperature": "0.2..0.8",
+    "humidity": "-0.95..-0.5"
   }
 }

@@ -1,7 +1,7 @@
 {
   "tier": "exact",
-  "slots": [
-    "subsurface"
+  "aspects": [
+    "carvers"
   ],
   "query": {
     "watery": 1.0

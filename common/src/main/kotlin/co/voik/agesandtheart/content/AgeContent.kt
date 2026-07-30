@@ -1,14 +1,12 @@
 package co.voik.agesandtheart.content
 
 import co.voik.agesandtheart.location
-import co.voik.agesandtheart.worldgen.FieldChunkGenerator
+import co.voik.agesandtheart.worldgen.AgeChunkGenerator
 import co.voik.agesandtheart.worldgen.SpireChunkGenerator
 import co.voik.agesandtheart.worldgen.biome.AgeBiomeSource
-import co.voik.agesandtheart.worldgen.biome.RegionBiomeSource
 import co.voik.agesandtheart.worldgen.field.RegionRule
 import co.voik.agesandtheart.worldgen.carver.Porosity
 import co.voik.agesandtheart.worldgen.carver.RuleCarver
-import co.voik.agesandtheart.worldgen.carver.Weathering
 import com.mojang.serialization.MapCodec
 import net.minecraft.core.component.DataComponentType
 import net.minecraft.resources.ResourceLocation
@@ -51,7 +49,9 @@ object AgeContent {
     /** Chunk-generator codecs (Ages persist via Fantasy, so their generator must be serializable). */
     val chunkGeneratorCodecs: List<Pair<ResourceLocation, MapCodec<out ChunkGenerator>>> = listOf(
         "spire".location() to SpireChunkGenerator.CODEC,
-        "field".location() to FieldChunkGenerator.CODEC,
+        // Renamed from `field` with the class: the generator reaches past field terrain now. Save formats
+        // are still free to move (CLAUDE.md), so this is a rename rather than an alias.
+        "age".location() to AgeChunkGenerator.CODEC,
     )
 
     /**
@@ -60,7 +60,6 @@ object AgeContent {
      */
     val biomeSourceCodecs: List<Pair<ResourceLocation, MapCodec<out BiomeSource>>> = listOf(
         "age_biomes".location() to AgeBiomeSource.CODEC,
-        "region_biomes".location() to RegionBiomeSource.CODEC,
     )
 
     /**
@@ -77,7 +76,6 @@ object AgeContent {
      * `data/agesandtheart/worldgen/configured_carver/`; this registers the carver *kinds* those refer to.
      */
     val carvers: List<Pair<ResourceLocation, WorldCarver<*>>> = listOf(
-        "erosion".location() to RuleCarver(CarverConfiguration.CODEC.codec(), Weathering.SPIRE),
         "porosity".location() to RuleCarver(CarverConfiguration.CODEC.codec(), Porosity.VUGS),
     )
 }

@@ -7,15 +7,19 @@
 # the corpus comes from `server.resourceManager` over `data/agesandtheart/art/`, and a wrong path fails by
 # the Art knowing no words at all. So the first thing to read is the word count below.
 
-# Every word the Art knows. Expect 29, and no "Vocabulary problem:" lines.
+# Every word the Art knows. Expect the count `:common:vocabularycheck` reports for the same corpus — 1097
+# with no other mods loaded, and more on a server that has some, since every block and biome in the pack
+# gets a word of its own. No "Vocabulary problem:" lines. (This said "expect 29" until 2026-07-29, from
+# before `DerivedWords` existed; a hardcoded corpus size is a number that goes stale on its own.)
 age words
 
 # The plainest sentence there is: one restrictive word about the ground, everything else left to the seed.
 age write floater 7 floating beautiful
 age gen floater
 
-# The acceptance test, in a world rather than in a check: lush against barren in a slot that can divide.
-# Expect two dressings in the recipe, a division charged, and the tension behind it named.
+# The acceptance test, in a world rather than in a check: lush against barren, in whichever aspect these two
+# words actually contend over. Expect a division in the recipe, charged, with the tension behind it named.
+# `:common:resolvercheck` measures this pair at 8 of 60 seeds, so a seed that does NOT divide is not a bug.
 age write bothways 7 verdant lifeless
 age gen bothways
 
@@ -24,19 +28,23 @@ age gen bothways
 age write reversed 7 lifeless verdant
 age list
 
-# And the same again down at the blocks. A *different* pair, deliberately: "verdant lifeless" reaches
-# vanilla's dressing, and a decorating Age differs from itself run to run (design 6.5, measured) — so
-# comparing that pair would measure vanilla's decoration rather than the resolver. These two divide the
-# dressing between bare rock and plasma, neither of which decorates, so any difference at all is ours.
+# And the same again down at the blocks — word order must decide nothing at the block level either.
+#
+# **This used to be exact, and cannot be any more.** It named a pair that divided the dressing between bare
+# rock and plasma, neither of which decorated, so any difference at all was ours. Those presets are deleted
+# and every composed Age decorates now, so read a small count against a control rather than expecting zero
+# (generator-parity.txt has the method). What still holds absolutely is the *recipes* printing identically,
+# which is checked above and is the stronger claim: identical recipes cannot generate different worlds.
 age write dividedA 7 arid uncanny
 age write dividedB 7 uncanny arid
 age compare dividedA dividedB 2
 
-# A contradiction in the one slot that cannot divide: one sky wins, the other is displaced and said so.
+# A contradiction in the one aspect that cannot divide: one sky wins, the other is displaced and said so.
 age write onesky 7 stormy clear
 age gen onesky
 
-# Precise about all five slots at once, which is the sentence with the least left to chance.
+# Precise about as many aspects at once as one sentence can pin, which is the sentence with the least left
+# to chance. (Said "all five aspects" until 2026-07-29; there are seven now, and this names five of them.)
 age write pinned 7 colossal molten flooded lifeless stormy
 age gen pinned
 

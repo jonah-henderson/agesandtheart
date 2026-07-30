@@ -11,5 +11,25 @@ accessWidener v2 named
 #
 # We only need to *name* these; no members are touched. RegionRule passes the Context straight through to
 # its children and takes its coordinates from tryApply's arguments instead.
+#
+# RETAINED ON PURPOSE, 2026-07-29: nothing constructs a RegionRule at the moment. Deleting the dressing left a
+# composed Age wearing one plain palette, and materials moved into the fill in step 4. Jonah's call is to keep
+# both the class and these two lines, because per-territory painting is expected back in the biome pass. If
+# that ever stops being true, RegionRule and these two lines go together and only the NoiseBasedChunkGenerator
+# line below is load-bearing.
 accessible	class	net/minecraft/world/level/levelgen/SurfaceRules$Context
 accessible	class	net/minecraft/world/level/levelgen/SurfaceRules$SurfaceRule
+
+# So AgeChunkGenerator can BE a noise generator rather than sit beside one.
+#
+# The class is `final`; every method we override is already public and non-final, so this one line is the
+# whole toll. What it buys is the `instanceof NoiseBasedChunkGenerator` branch in `ChunkMap`, which decides
+# whether the game builds our RandomState from our own settings or from `NoiseGeneratorSettings.dummy()`.
+# A peer can never be handed a real climate sampler; a subclass is.
+#
+# Well-trodden ground rather than a novel liberty: Botania, Bumblezone, Twilight Forest and moderner-beta
+# all ship this exact line. (Botania's NeoForge half is `public-f` on the same class, as ours is.)
+#
+# Beware: the decompiled sources DROP the `final` from the class declaration. Only `javap` and the compiler
+# tell the truth about modifiers here.
+extendable	class	net/minecraft/world/level/levelgen/NoiseBasedChunkGenerator

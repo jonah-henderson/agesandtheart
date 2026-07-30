@@ -6,7 +6,20 @@ import net.minecraft.util.KeyDispatchDataCodec
 import net.minecraft.world.level.levelgen.SurfaceRules
 
 /**
- * Paints each territory with its own dressing's rules.
+ * Paints each territory with its own rules.
+ *
+ * **Nothing constructs one today, and that is deliberate — do not delete it as dead code** (Jonah,
+ * 2026-07-29: *"keep it for now, I suspect we may want to make use of surface rules in the future"*). It was
+ * built for the **dressing**, which divided the painting; the dressing is deleted, and what the rock *is*
+ * moved into the fill as a [Substance] in step 4, so a composed Age now wears one plain palette. Its sibling
+ * `RegionBiomeSource` was deleted in step 7 for exactly this reason, and the difference is that per-territory
+ * *painting* is expected back: the biome pass wants somewhere to put a crust, and design §9's bare-rock item
+ * is still open. It stays registered in `AgeContent` and covered by `:common:codeccheck`, so it cannot rot
+ * silently while it waits.
+ *
+ * It is also what the first two lines of the access widener are for — `SurfaceRules$Context` and
+ * `SurfaceRules$SurfaceRule` — so those are retained on the same reasoning, not because anything needs them
+ * right now.
  *
  * **Why this is a rule source and not a condition.** The natural way to express "only here" in vanilla's
  * surface system is a `ConditionSource`, and that route is closed: a condition is handed a

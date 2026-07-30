@@ -1,7 +1,7 @@
 {
   "tier": "restrictive",
-  "slots": [
-    "medium"
+  "aspects": [
+    "sea"
   ],
   "query": {
     "empty": 1.0

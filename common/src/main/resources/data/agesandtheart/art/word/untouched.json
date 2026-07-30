@@ -1,0 +1,9 @@
+{
+  "tier": "restrictive",
+  "aspects": [
+    "structures"
+  ],
+  "query": {
+    "empty": 1.0
+  }
+}

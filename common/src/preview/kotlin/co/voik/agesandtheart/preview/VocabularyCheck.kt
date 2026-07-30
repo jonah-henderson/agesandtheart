@@ -1,6 +1,9 @@
 package co.voik.agesandtheart.preview
 
-import co.voik.agesandtheart.age.slot.Slot
+import co.voik.agesandtheart.age.AgePreset
+import co.voik.agesandtheart.age.AgeRecipe
+import co.voik.agesandtheart.age.AgeWorld
+import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.word.Resolver
 import co.voik.agesandtheart.age.word.Vocabulary
 import net.minecraft.SharedConstants
@@ -44,13 +47,14 @@ fun main() {
     everyNarrowingWordSaysWhatItIsAbout(vocabulary)
     everySlotHasWords(vocabulary)
     everyPresetCanBeAskedFor(vocabulary)
+    everyUnaskablePresetIsPinnedByARecipe(vocabulary)
     everyAntonymCouldFire(vocabulary)
     vaguenessCannotReachDerivedContent(vocabulary)
 
     println(
-        "Vocabulary: ${vocabulary.words.size} words over ${Slot.entries.size} slots, " +
+        "Vocabulary: ${vocabulary.words.size} words over ${Aspect.entries.size} aspects, " +
             "${vocabulary.carriedTags.size} tags carried by " +
-            "${Slot.entries.sumOf { vocabulary.candidatesFor(it).size }} curated presets, " +
+            "${Aspect.entries.sumOf { vocabulary.candidatesFor(it).size }} curated presets, " +
             "${vocabulary.antonyms.size} antonym pairs — all backed, all reachable.",
     )
 }
@@ -69,12 +73,12 @@ private fun everyFileWasUnderstood(vocabulary: Vocabulary) {
 }
 
 /**
- * Every word has something in the world that can satisfy it, in every slot it claims to be about.
+ * Every word has something in the world that can satisfy it, in every aspect it claims to be about.
  *
  * The check this file exists for. Two ways to fail it, and they want telling apart: a word asking for a
- * tag nothing carries (a misspelt tag, usually), and a word about a slot whose presets happen not to carry
+ * tag nothing carries (a misspelt tag, usually), and a word about a aspect whose presets happen not to carry
  * the tag it asks for at its own tier's strictness (an *exact* word aimed at a weak carrier — the subtler
- * one, because the tag is real and the slot is real and the pair of them still cannot meet).
+ * one, because the tag is real and the aspect is real and the pair of them still cannot meet).
  */
 private fun everyWordIsBackedByTheWorld(vocabulary: Vocabulary) {
     for (word in vocabulary.words) {
@@ -82,49 +86,57 @@ private fun everyWordIsBackedByTheWorld(vocabulary: Vocabulary) {
         check(unknownTags.isEmpty()) {
             "'${word.name}' asks for ${unknownTags.joinToString(" ")}, which nothing in the world carries"
         }
-        val slots = Resolver.slotsSpokenTo(vocabulary, word)
-        check(slots.isNotEmpty()) {
-            "'${word.name}' has a say in no slot at all, so writing it would do nothing and cost nothing"
+        val aspects = Resolver.aspectsSpokenTo(vocabulary, word)
+        check(aspects.isNotEmpty()) {
+            "'${word.name}' has a say in no aspect at all, so writing it would do nothing and cost nothing"
         }
-        // A word that named its slots must be satisfiable in each of them; an evocative word named none,
+        // A word that named its aspects must be satisfiable in each of them; an evocative word named none,
         // and having found purchase anywhere is what it promised.
-        val declared = if (word.slots.isEmpty()) emptyList() else slots
-        for (slot in declared) {
+        val declared = if (word.aspects.isEmpty()) emptyList() else aspects
+        for (aspect in declared) {
             // "Backed" means something different for a word that *steers* rather than *chooses* (§3.2):
             // it constrains no presets, so it has no carriers by construction and asking for one would
             // condemn every material word. What it needs instead is a preset that offers the knob.
             //
-            // Asked **per slot**, because a derived block word does both: it names a medium, where the
-            // slot's value simply *is* a block, and sets a material on the landform and the dressing, which
+            // Asked **per aspect**, because a derived block word does both: it names a sea, where the
+            // aspect's value simply *is* a block, and sets a material on the terrain and the dressing, which
             // hold nothing called `minecraft:copper_block`. Asking globally condemned every block in the
-            // game for failing to be a landform.
-            if (!word.constrainsPresetsIn(slot)) {
+            // game for failing to be a terrain.
+            // A word may *narrow* in one aspect and merely *steer* in another, and then having no carrier here is
+            // no fault at all: `arid` narrows the terrain on `dry`/`barren` tags and bounds the climate's axes
+            // with spans, which is two real jobs. What the check is actually for is a word with *nothing* to do
+            // in an aspect it claims — so the question is whether it turns a knob this aspect holds, not whether
+            // it happens to also carry a query.
+            val turnsAKnobHere = word.sets.keys.any { parameter ->
+                vocabulary.candidatesFor(aspect).any { it.honoursParameterNamed(parameter) }
+            }
+            if (!word.constrainsPresetsIn(aspect) || turnsAKnobHere) {
                 for (parameter in word.sets.keys) {
-                    val presets = vocabulary.candidatesFor(slot)
+                    val presets = vocabulary.candidatesFor(aspect)
                     val offered = presets.flatMap { it.parameters }.filter { it.name == parameter }
                     check(offered.isNotEmpty()) {
-                        "'${word.name}' sets ${slot.key}.$parameter, which no ${slot.key} offers"
+                        "'${word.name}' sets ${aspect.key}.$parameter, which no ${aspect.key} offers"
                     }
-                    // Declaring a knob and turning it are different things (`SlotPreset.honours`), and only
+                    // Declaring a knob and turning it are different things (`AspectPreset.honours`), and only
                     // the second makes a word mean anything. Continentalness and erosion shipped as climate
                     // axes that nothing could honour and were invisible in game for a whole session — this
                     // is the check that would have caught them before they were written.
                     val anythingTurnsIt = presets.any { it.honoursParameterNamed(parameter) }
                     check(anythingTurnsIt) {
-                        "'${word.name}' sets ${slot.key}.$parameter, which every ${slot.key} declares and " +
+                        "'${word.name}' sets ${aspect.key}.$parameter, which every ${aspect.key} declares and " +
                             "none acts on — so writing it would change nothing and say nothing"
                     }
                     for (option in word.sets.values) {
                         check(offered.any { it.accepts(option) }) {
-                            "'${word.name}' sets ${slot.key}.$parameter to '$option', which it does not take"
+                            "'${word.name}' sets ${aspect.key}.$parameter to '$option', which it does not take"
                         }
                     }
                 }
                 continue
             }
-            val carriers = vocabulary.carriersOf(word, slot)
+            val carriers = vocabulary.carriersOf(word, aspect)
             check(carriers.isNotEmpty()) {
-                "'${word.name}' is ${word.tier.key} about ${slot.key}, but no ${slot.key} carries " +
+                "'${word.name}' is ${word.tier.key} about ${aspect.key}, but no ${aspect.key} carries " +
                     "${word.wanted.joinToString(" ")} strongly enough (needs ${word.tier.threshold})"
             }
         }
@@ -132,16 +144,16 @@ private fun everyWordIsBackedByTheWorld(vocabulary: Vocabulary) {
 }
 
 /**
- * Every word that narrows says which slots it narrows.
+ * Every word that narrows says which aspects it narrows.
  *
  * The spike's worst finding, guarded at the content layer where it is now possible to reintroduce by
- * forgetting a line of JSON: an unscoped precise word gets a say in every slot its tags happen to touch,
- * so `stormy` pins the landform to caverns and throws `floating` away in silence.
+ * forgetting a line of JSON: an unscoped precise word gets a say in every aspect its tags happen to touch,
+ * so `stormy` pins the terrain to caverns and throws `floating` away in silence.
  */
 private fun everyNarrowingWordSaysWhatItIsAbout(vocabulary: Vocabulary) {
     for (word in vocabulary.words.filter { it.tier.narrows }) {
-        check(word.slots.isNotEmpty()) {
-            "'${word.name}' is ${word.tier.key} but names no slot, so it would narrow every slot its tags " +
+        check(word.aspects.isNotEmpty()) {
+            "'${word.name}' is ${word.tier.key} but names no aspect, so it would narrow every aspect its tags " +
                 "reach — which is how a word about the sky ends up choosing the ground"
         }
     }
@@ -160,29 +172,29 @@ private fun everyNarrowingWordSaysWhatItIsAbout(vocabulary: Vocabulary) {
  * carrier assertion applied to derived words: each has a carrier because it names one.
  */
 private fun vaguenessCannotReachDerivedContent(vocabulary: Vocabulary) {
-    val curated = Slot.entries.flatMap { slot -> vocabulary.candidatesFor(slot).map { it.key } }.toSet()
+    val curated = Aspect.entries.flatMap { aspect -> vocabulary.candidatesFor(aspect).map { it.key } }.toSet()
     val derived = vocabulary.words.filter { it.names != null }
     check(derived.isNotEmpty()) {
         "No derived words at all — the pack has fluids, so this means derivation is not running"
     }
     for (word in derived) {
-        for (slot in word.slots) {
+        for (aspect in word.aspects) {
             val reachable = vocabulary.words.any { vague ->
-                !vague.tier.narrows && word.names in vocabulary.carriersOf(vague, slot).map { it.key }
+                !vague.tier.narrows && word.names in vocabulary.carriersOf(vague, aspect).map { it.key }
             }
             check(!reachable || word.names in curated) {
-                "'${word.name}' is derived content a vague word can reach in ${slot.key}, and it was never " +
+                "'${word.name}' is derived content a vague word can reach in ${aspect.key}, and it was never " +
                     "curated — which is §8.2's promise broken, and invisible from the outside"
             }
         }
     }
 }
 
-/** Every slot has at least one word about it, or part of the world is unwritable. */
+/** Every aspect has at least one word about it, or part of the world is unwritable. */
 private fun everySlotHasWords(vocabulary: Vocabulary) {
-    for (slot in Slot.entries) {
-        val about = vocabulary.words.count { slot in it.slots }
-        check(about > 0) { "No word is about the ${slot.key} slot, so nothing a writer says can steer it" }
+    for (aspect in Aspect.entries) {
+        val about = vocabulary.words.count { aspect in it.aspects }
+        check(about > 0) { "No word is about the ${aspect.key} aspect, so nothing a writer says can steer it" }
     }
 }
 
@@ -190,21 +202,56 @@ private fun everySlotHasWords(vocabulary: Vocabulary) {
  * Every preset can be reached by some word.
  *
  * A preset no sentence can ask for is content nobody can use: it will still turn up when the seed draws
- * an unconstrained slot, but a writer who wants it has no way to say so. Cheap to fix (a word, or a tag
+ * an unconstrained aspect, but a writer who wants it has no way to say so. Cheap to fix (a word, or a tag
  * weight nudged) and invisible without asking.
  */
 private fun everyPresetCanBeAskedFor(vocabulary: Vocabulary) {
-    for (slot in Slot.entries) {
+    for (aspect in Aspect.entries) {
+        // An aspect with a single candidate needs no word to ask for it, and demanding one asks the wrong
+        // question. This check exists because a preset nobody can name "will still turn up when the seed draws
+        // an unconstrained aspect" — but where there is nothing to draw *between*, no chance is involved and the
+        // preset arrives by construction. Climate is the case: one preset, and all of its writing happens in
+        // ranged parameters (see [co.voik.agesandtheart.age.aspect.Climate]).
+        if (vocabulary.candidatesFor(aspect).size <= 1) continue
         // The curated pool, not the registry: a derived word reaches every referent by construction, so
         // the only presets that can go unreachable are the ones somebody chose to curate (design §8.2).
-        for (preset in vocabulary.candidatesFor(slot)) {
+        for (preset in vocabulary.candidatesFor(aspect)) {
+            // A preset that says it is unaskable is exempt from needing a word — but not from scrutiny: the
+            // pinned-preset check below insists it really is pinned somewhere, so a careless `false` still fails.
+            if (!preset.askableInASentence) continue
             val reachable = vocabulary.words.any { word ->
-                slot in Resolver.slotsSpokenTo(vocabulary, word) && word.tier.narrows &&
-                    preset in vocabulary.carriersOf(word, slot)
+                aspect in Resolver.aspectsSpokenTo(vocabulary, word) && word.tier.narrows &&
+                    preset in vocabulary.carriersOf(word, aspect)
             }
             check(reachable) {
-                "No word can ask for ${slot.key}=${preset.key}, so it can only ever arrive by chance. " +
-                    "Its tags are ${vocabulary.tagsOf(preset)}"
+                "No word can ask for ${aspect.key}=${preset.key}, so it can only ever arrive by chance. " +
+                    "Its tags are ${vocabulary.tagsOf(preset)}. If that is deliberate — a preset only a pinned " +
+                    "recipe names — say so with `askableInASentence = false` rather than adding a word for it."
+            }
+        }
+    }
+}
+
+/**
+ * Every preset that opted out of being askable is actually **pinned by a recipe**.
+ *
+ * The other half of [everyPresetCanBeAskedFor]'s exemption, and the reason that exemption is safe. An omission and
+ * an intention look identical from outside — a preset with no word and no tags could be an easter egg or an
+ * oversight — so `askableInASentence = false` buys an exemption from *one* check and immediately owes this one.
+ *
+ * A preset that is neither askable nor pinned is reachable by nothing at all: dead content that still occupies a
+ * candidate slot and can still be drawn by an unconstrained aspect.
+ */
+private fun everyUnaskablePresetIsPinnedByARecipe(vocabulary: Vocabulary) {
+    val pinned = AgePreset.entries
+        .mapNotNull { preset -> (AgeRecipe.worldFor(preset) as? AgeWorld.Composed)?.composition }
+        .flatMap { composition -> composition.presets }
+        .toSet()
+    for (aspect in Aspect.entries) {
+        for (preset in vocabulary.candidatesFor(aspect).filterNot { it.askableInASentence }) {
+            check(preset in pinned) {
+                "${aspect.key}=${preset.key} says it is unaskable, but no pinned recipe names it either — so " +
+                    "nothing can reach it deliberately. Either pin it in `AgeRecipe.worldFor` or give it a word."
             }
         }
     }

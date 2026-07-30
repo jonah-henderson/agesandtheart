@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.word.grammar
 
-import co.voik.agesandtheart.age.slot.Slot
+import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.grammar.ArtParser
 import org.antlr.v4.runtime.CharStream
@@ -128,13 +129,13 @@ internal object ArtGrammar {
 
         private fun constraintsIn(section: ArtParser.SectionContext): List<Constraint> {
             // Null where the section named no subject — a book that only steers, like "blackstone" alone.
-            // Its modifiers then aim at nothing in particular and fall back to the slots they declare
+            // Its modifiers then aim at nothing in particular and fall back to the aspects they declare
             // themselves, which is what an unaimed word has always meant.
             val subject = wordAt(section.subject()?.PRESET()?.symbol)
             // What the section is about, and therefore what everything in it is aimed at. This is the whole
             // of "position decides attachment": no word is searched for a home, it simply has the one it
             // was laid down in.
-            val aim = subject?.slots.orEmpty()
+            val aim = subject?.aspects.orEmpty()
 
             val descriptors = section.descriptor().mapNotNull { descriptor ->
                 val word = wordAt(descriptor.EVOCATIVE().symbol) ?: return@mapNotNull null
@@ -146,7 +147,7 @@ internal object ArtGrammar {
             return descriptors + head + section.modifier().flatMap { modifier -> constraintsIn(modifier, aim) }
         }
 
-        private fun constraintsIn(modifier: ArtParser.ModifierContext, aim: Set<Slot>): List<Constraint> {
+        private fun constraintsIn(modifier: ArtParser.ModifierContext, aim: Set<Aspect>): List<Constraint> {
             val polarity = when {
                 modifier.ONLY() != null -> Polarity.ONLY
                 modifier.EXCEPT() != null -> Polarity.EXCEPT
@@ -164,8 +165,8 @@ internal object ArtGrammar {
         }
 
         /** §4.3.1's tier rule: a word that cannot narrow candidates cannot narrow its own scope either. */
-        private fun scopeFor(word: Word, aim: Set<Slot>): Scope =
-            if (word.tier.narrows) Scope.Confined(word.slots.ifEmpty { aim }) else Scope.Everywhere(aim)
+        private fun scopeFor(word: Word, aim: Set<Aspect>): Scope =
+            if (word.tier.narrows) Scope.Confined(word.aspects.ifEmpty { aim }) else Scope.Everywhere(aim)
 
         private fun wordAt(token: Token?): Word? = pages.getOrNull(token?.tokenIndex ?: return null)?.word
     }

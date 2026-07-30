@@ -1,47 +1,59 @@
-# Set-valued slots: do territories generate, and does the custom surface rule survive a real server?
+# Set-valued aspects: do territories generate, and do the aspects that divide agree on their seams?
 # Run with: scripts/drive-server.sh scripts/checks/regions.txt
 #
-# The load-bearing risk here is registration. RegionRule is a custom SurfaceRules.RuleSource reached
-# through an access widener, and RegionBiomeSource a custom BiomeSource; if either fails to register or
-# the widened access is missing at runtime, generation throws rather than looking wrong. So the first
-# thing to read is simply whether these finish.
+# **The load-bearing risk moved on 2026-07-29, and this header is the record of it.** It used to be
+# *registration*: territory division ran through a custom `BiomeSource` (`RegionBiomeSource`) and a custom
+# `SurfaceRules.RuleSource` (`RegionRule`) reached through an access widener, either of which throws rather
+# than looking wrong when it fails to register. Both existed because the **dressing** divided the painting,
+# and deleting the dressing left a composed Age wearing vanilla's palette with one biome source for the whole
+# world. `RegionBiomeSource` is gone; what the rock *is* now travels through `Substance` in the fill instead.
+#
+# So what is left to check is the thing that was always the real risk: the four **positional** aspects —
+# terrain, sea, carvers, climate — all read `AgeCharacter.mapFor`, and if they disagreed about where a seam
+# is, one boundary would land in four nearly-identical places and read as four edges rather than one.
 
-# One dressing over two landforms: the shape splits, the painting does not.
-age compose ground 7 landform=hills,pillars medium=sea subsurface=solid dressing=bare_rock sky=plain
+# Two terrains, one sea: the shape splits and nothing else does.
+age compose ground 7 terrain=hills,pillars sea=water carvers=solid sky=plain
 age gen ground
 
-# Two dressings over one landform: the painting splits, the shape does not. This is the one that
-# exercises RegionRule — expect grass in some territories and bare stone in others.
-age compose cover 7 landform=hills medium=sea subsurface=solid dressing=verdant,bare_rock sky=plain
+# Two climates over one terrain: the *character* of the place splits where the shape does not. This is the
+# modern counterpart of two dressings — climate drives the biome table, so expect a hot stretch and a cold
+# one over continuous hills, with the biome change carrying fog, grass colour and mobs along with it.
+age compose cover 7 terrain=hills sea=water carvers=solid climate=natural{temperature=0.7..0.9},natural{temperature=-0.9..-0.5} sky=plain
 age gen cover
 
-# Both at once, so all three consumers of a territory map are live together.
-age compose bothways 7 landform=hills,pillars medium=sea subsurface=caves dressing=verdant,overworld sky=storm
+# Both at once, so two independent territory maps are live together and must not be confused for each other.
+age compose bothways 7 terrain=hills,pillars sea=water carvers=caves climate=natural{humidity=0.5..0.9},natural{humidity=-0.9..-0.5} sky=storm
 age gen bothways
 age bench bothways 4
 
-# Same sentence, same seed, twice. Regions must not have cost us reproducibility.
-age compose repeatA 99 landform=hills,pillars medium=sea dressing=verdant,bare_rock
-age compose repeatB 99 landform=hills,pillars medium=sea dressing=verdant,bare_rock
+# Same sentence, same seed, twice. Territories must not have cost us reproducibility.
+#
+# NOTE since the dressing went: every composed Age decorates, and decoration does not reproduce block for
+# block (design 6.5, measured). So expect a *small* count here rather than zero, and read it the way
+# generator-parity.txt says to — against a control of the same Age against itself, never against zero.
+age compose repeatA 99 terrain=hills,pillars sea=water carvers=caves,solid
+age compose repeatB 99 terrain=hills,pillars sea=water carvers=caves,solid
 age compare repeatA repeatB 2
 
 # Every recipe should print its territory character, and paste back into /age compose.
 age list
 
-# --- Medium and subsurface, the last two positional slots ---------------------------------------
-# An ocean of water meeting an ocean of lava at the same level, with no barrier between them. This is
-# the one that has no vanilla equivalent at all, so it is the one worth walking to.
-age compose twoseas 11 landform=hills medium=sea,lava subsurface=solid dressing=bare_rock sky=plain
+# --- The two divisions with no vanilla equivalent at all ---------------------------------------
+# An ocean of water meeting an ocean of lava at the same level, with no barrier and no obsidian between
+# them. This is the one worth walking to, because nothing in Minecraft can show it.
+age compose twoseas 11 terrain=hills sea=water,lava carvers=solid sky=plain
 age gen twoseas
 
-# Caves in some territories and solid rock in others. Carvers are chosen per chunk rather than per
-# column, so expect the seam here to follow chunk edges — that is known and accepted.
-age compose halfhollow 11 landform=hills medium=sea subsurface=caves,solid dressing=overworld sky=plain
+# Caves in some territories and solid rock in others — `solid` holding ground of its own rather than
+# vanishing into the union's identity (design 3.4, generator version 11). The seam follows the territory
+# map now, not chunk edges: carving is a union asked at each walk's origin, not a per-chunk selection.
+age compose halfhollow 11 terrain=hills sea=water carvers=caves,solid sky=plain
 age gen halfhollow
 age bench halfhollow 4
 
-# Everything set-valued at once: four slots dividing the same world, only the sky undivided.
-age compose everything 11 landform=hills,pillars medium=sea,lava subsurface=caves,solid dressing=verdant,overworld sky=storm
+# All four positional aspects dividing one world at once; only sky and structures stay whole.
+age compose everything 11 terrain=hills,pillars sea=water,lava carvers=caves,solid climate=natural{temperature=0.6..0.9},natural{temperature=-0.9..-0.6} sky=storm
 age gen everything
 age compare everything everything 1
 age list

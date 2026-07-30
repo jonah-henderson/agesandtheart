@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.worldgen
 
-import co.voik.agesandtheart.worldgen.field.AmbientMedium
+import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.Density
 import co.voik.agesandtheart.worldgen.field.Cone
 import co.voik.agesandtheart.worldgen.field.Ellipsoid
@@ -215,11 +215,11 @@ object SpireField {
     fun generator(
         biomeSource: BiomeSource,
         carvers: Map<GenerationStep.Carving, HolderSet<ConfiguredWorldCarver<*>>> = emptyMap(),
-    ): FieldChunkGenerator =
-        FieldChunkGenerator(
+    ): AgeChunkGenerator =
+        AgeChunkGenerator(
             biomeSource,
             world(),
-            AmbientMedium.sea(Blocks.WATER.defaultBlockState(), level = SEA_LEVEL),
+            SeaFill.of(Blocks.WATER.defaultBlockState(), level = SEA_LEVEL),
             Palette.BARE_ROCK,
             carvers,
         )
@@ -227,8 +227,16 @@ object SpireField {
     // Where an island's body sits. Chosen against the sky rather than the ground: it centres a typical
     // island in the band between the two cloud decks (see AgeCloudRenderer), so most of the archipelago
     // lives between them and only the large or low-hung copies cross either one.
-    private const val DECK_Y = 190
-    private const val PEAK_HEIGHT = 126
+    // **Lowered from 190 on 2026-07-29 to buy a 2:1 split** (Jonah: spires above about two thirds of the
+    // overall height, below one third). Two hard limits box this in and are worth stating, because they are
+    // what decides the number rather than taste:
+    //   - the world ends at **y=320** (`age.json`: `min_y -64`, `height 384`), so nothing may reach past it;
+    //   - the undersides must stop at the **sea, y=63**, or the hanging spires drown.
+    // With `below = DECK_Y - 64` and `above = 2 × below ≤ 318 - DECK_Y`, the deck can sit no higher than 148.
+    // So: below 84, above 168, floor 64, ceiling 316 — the same 252 blocks of island as before, split two to
+    // one instead of evenly.
+    internal const val DECK_Y = 148
+    private const val PEAK_HEIGHT = 148
     private const val TYPICAL_CROWN = 45
 
     // How far the rare needles may reach past the deck, up and down alike, and where they usually sit.
@@ -237,9 +245,18 @@ object SpireField {
     private const val TALON_TYPICAL = 21
     // Fine, so a needle is a few blocks across rather than a hill.
     private const val TALON_SCALE = 0.75
-    private const val SPIKE_LENGTH = 126
-    private const val PEAK_CEILING = DECK_Y + PEAK_HEIGHT
-    private const val SPIKE_FLOOR = DECK_Y - SPIKE_LENGTH
+    // **Not half of [PEAK_HEIGHT], and the reason is worth knowing before retuning it.** The two-to-one split
+    // is a fact about the rock that *survives*, and erosion cannot help set it: the rule judges a whole column
+    // at once, so it keeps or removes a spire but never shortens one (see `Weathering`). Every hanging needle
+    // therefore stands at whatever depth the field gave it, and the *floor* is the field's alone.
+    //
+    // So this is set from the measurement rather than from arithmetic: 80 puts [SPIKE_FLOOR] at 68, the envelope
+    // clips the roots there, and `./gradlew :common:preview --args=spire` reports rock standing y=63..302 —
+    // 64% above the deck and 35% below, with the undersides stopping exactly at the sea. Halving [PEAK_HEIGHT]
+    // instead let roots hang to y=57, which is *under* the waterline and drowns them.
+    private const val SPIKE_LENGTH = 80
+    internal const val PEAK_CEILING = DECK_Y + PEAK_HEIGHT
+    internal const val SPIKE_FLOOR = DECK_Y - SPIKE_LENGTH
 
     private const val ISLAND_HALF_WIDTH = 84
 
@@ -415,8 +432,19 @@ object SpireField {
     private const val DECK_HALF_THICKNESS = 4
 
     // How much of the island the central heap covers, and how far it lifts the middle.
-    private const val CENTRAL_SHARE = 0.55
-    private const val CENTRAL_RISE = 100
+    //
+    // **Both changed on 2026-07-29, and the share is the more interesting one.** At 0.55 the cone was much
+    // narrower than the envelope it sat in, so it read as an *inverted ice-cream cone* — a steep spike planted
+    // on a flat lens, with a visible break where the two met. At 0.85 it is only 15% narrower than the
+    // envelope's radius (Jonah's figure), so its flank runs almost the whole way out and the island grades
+    // gradually toward its middle instead of stepping up to it.
+    //
+    // The rise is doubled. It reaches past [PEAK_CEILING] and the envelope clips it there, which is deliberate
+    // rather than waste: a cone cut by an ellipsoid near the ellipsoid's own top comes back rounded, so the
+    // summit is domed rather than pointed and the wind is left to make the points. Poking through the upper
+    // cloud deck is accepted (Jonah).
+    private const val CENTRAL_SHARE = 0.85
+    private const val CENTRAL_RISE = 200
 
     private const val TALON_SEED = 0x7A10_11L
     private const val ROOT_SEED = 0x200_75L

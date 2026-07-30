@@ -1,0 +1,10 @@
+{
+  "tier": "restrictive",
+  "aspects": [
+    "climate"
+  ],
+  "sets": {
+    "temperature": "-0.95..-0.45",
+    "humidity": "-0.3..0.3"
+  }
+}

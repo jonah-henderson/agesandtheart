@@ -7,7 +7,7 @@ import net.minecraft.util.StringRepresentable
 /**
  * A composable description of world *shape*: for a column it answers which vertical intervals are
  * solid ([columnSpans]). Primitives (ellipsoid, cone, …) answer analytically; combinators (union,
- * subtract, …) combine their children's spans. Material/ambient medium are separate concerns, held
+ * subtract, …) combine their children's spans. Material and sea fill are separate concerns, held
  * by the generator — this interface is pure shape.
  *
  * The tree is *data*, not code: it serialises through [CODEC] (a dispatch over [FieldKind]), so a
@@ -83,6 +83,12 @@ enum class FieldKind(private val makeCodec: (Codec<TerrainField>) -> MapCodec<ou
     BOX({ Box.CODEC }),
     NOISE_HEIGHTMAP({ NoiseHeightmap.CODEC }),
     NOISE_3D({ Noise3D.CODEC }),
+    WEATHERED({ self -> Weathered.codec(self) }),
+    RAISED({ self -> Raised.codec(self) }),
+    FAULT({ self -> Fault.codec(self) }),
+    RIFT({ Rift.CODEC }),
+    CHANCE({ self -> Chance.codec(self) }),
+    CHOOSE({ self -> Choose.codec(self) }),
     UNION({ self -> Union.codec(self) }),
     INTERSECT({ self -> Intersect.codec(self) }),
     SUBTRACT({ self -> Subtract.codec(self) }),

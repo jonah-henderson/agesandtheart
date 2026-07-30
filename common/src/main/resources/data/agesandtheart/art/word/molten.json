@@ -1,7 +1,7 @@
 {
   "tier": "exact",
-  "slots": [
-    "medium"
+  "aspects": [
+    "sea"
   ],
   "query": {
     "molten": 1.0

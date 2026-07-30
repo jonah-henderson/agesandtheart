@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.age
 
-import co.voik.agesandtheart.age.slot.Share
-import co.voik.agesandtheart.age.slot.Slot
+import co.voik.agesandtheart.age.aspect.Share
+import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.worldgen.biome.BiomeScale
 import co.voik.agesandtheart.worldgen.field.RegionMap
 import com.mojang.serialization.Codec
@@ -25,13 +25,13 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource
  * from the seed precisely because a writer will one day name them instead.
  *
  * **Expect this to grow.** One more is already designed — whether an Age's sea is one substance or two —
- * and is not here yet, because nothing reads it until the medium slot becomes set-valued too.
+ * and is not here yet, because nothing reads it until the sea aspect becomes set-valued too.
  */
 data class AgeCharacter(
     val seam: Seam,
     /**
-     * How far the territory maps of different slots agree. **One property for all of them**, not one per
-     * pairing — with several positional slots the pairings would multiply out of hand, and "this Age is
+     * How far the territory maps of different aspects agree. **One property for all of them**, not one per
+     * pairing — with several positional aspects the pairings would multiply out of hand, and "this Age is
      * jumbled" is one fact about it rather than three.
      */
     val alignment: Alignment,
@@ -43,16 +43,16 @@ data class AgeCharacter(
     val regionBlocks: Int,
 ) {
     /**
-     * The territories [slot] divides itself into, one per preset it holds, each covering the ground its
+     * The territories [aspect] divides itself into, one per preset it holds, each covering the ground its
      * [Share] asks for.
      *
-     * Where the maps of two slots sit relative to each other is [alignment]'s business: the same
+     * Where the maps of two aspects sit relative to each other is [alignment]'s business: the same
      * territories for everything, the same shape shifted so the ground changes a little before its
      * dressing does, or maps that share nothing at all.
      */
-    fun mapFor(slot: Slot, shares: List<Share>, seed: Long): RegionMap {
+    fun mapFor(aspect: Aspect, shares: List<Share>, seed: Long): RegionMap {
         if (shares.size <= 1) return RegionMap.whole()
-        val stride = slot.ordinal
+        val stride = aspect.ordinal
         return RegionMap(
             members = shares.size,
             shares = shares.map { it.weight },
@@ -60,7 +60,7 @@ data class AgeCharacter(
             blend = seam.blendBlocks(regionBlocks),
             originX = if (alignment == Alignment.OFFSET) stride * regionBlocks / OFFSET_SHARE else 0,
             originZ = if (alignment == Alignment.OFFSET) stride * regionBlocks / (OFFSET_SHARE + 1) else 0,
-            seed = if (alignment == Alignment.INDEPENDENT) seed + stride * SLOT_STRIDE else seed,
+            seed = if (alignment == Alignment.INDEPENDENT) seed + stride * ASPECT_STRIDE else seed,
         )
     }
 
@@ -69,8 +69,8 @@ data class AgeCharacter(
         // read as related. A whole territory apart would just be independence with extra steps.
         private const val OFFSET_SHARE = 3
 
-        // Arbitrary, and only ever needs to be big enough that two slots' claims share no structure.
-        private const val SLOT_STRIDE = 0x5B1F_7A3L
+        // Arbitrary, and only ever needs to be big enough that two aspects' claims share no structure.
+        private const val ASPECT_STRIDE = 0x5B1F_7A3L
 
         /** The character an Age written now, here, with this [seed] comes out with. */
         fun drawn(server: MinecraftServer, seed: Long): AgeCharacter {
@@ -100,19 +100,19 @@ data class AgeCharacter(
 }
 
 /**
- * How far the territory maps of different slots agree.
+ * How far the territory maps of different aspects agree.
  *
  * Per §1 this owes the player a word, like everything else drawn per Age — *ordered* through to
  * *jumbled* — and is stored rather than re-derived from the seed for exactly that reason.
  */
 enum class Alignment(val key: String) : StringRepresentable {
-    /** One map for every slot. The ground, its dressing and its caves all change along one line. */
+    /** One map for every aspect. The ground, its dressing and its caves all change along one line. */
     SHARED("shared"),
 
-    /** The same territories, shifted per slot, so one thing changes shortly after another. */
+    /** The same territories, shifted per aspect, so one thing changes shortly after another. */
     OFFSET("offset"),
 
-    /** Nothing in common. Four kinds of place from two landforms and two dressings. */
+    /** Nothing in common. Four kinds of place from two terrains and two dressings. */
     INDEPENDENT("independent"),
     ;
 
@@ -124,34 +124,85 @@ enum class Alignment(val key: String) : StringRepresentable {
 }
 
 /**
- * What happens where two territories meet, as a share of the region's own width.
+ * What happens where two territories meet — **which of the three forms a fault takes there**.
  *
- * Proportional rather than absolute so the look survives Large Biomes: a seam that is a tenth of a
- * territory stays a tenth of a territory when territories are four times wider.
+ * ## This used to be a width, and moving it was Jonah's call (2026-07-29)
  *
- * [SHEARED] is the one to understand — at zero width the region is decided outright per column, so an
- * island straddling a boundary is cut off flat in mid-air with open sky beneath it. That is not a defect
- * to be softened away; it is the impossible geometry the whole feature exists to produce, and the wider
- * settings are the *concession*, not the other way round.
+ * It was four transition *widths*: sheared, keen, soft, blurred, drawn 85/9/4/2, with the softening an
+ * innate property of any territory boundary and the fault a separate thing layered on top. That was
+ * conceptually the wrong shape, and it showed up as a defect nobody predicted: a displacement pushed
+ * through a frayed boundary throws the interlocking columns alternately up and down, so the seam came out
+ * as a strip of one-block spikes as tall as the throw instead of as a cliff.
  *
- * Which is why these are **not drawn evenly** — see [frequency].
+ * *"The conceptually consistent thing to do is to move the softened border from an innate region/territory
+ * mechanic and instead make it a rare form of fault."* — and the defect is then **structurally impossible**
+ * rather than merely rare, because a seam is one form or another and never both. That is the argument for
+ * this shape, and it is a better one than the tidiness: [FUZZED] and the two displacements are mutually
+ * exclusive by construction, so no combination of draws can produce the picket fence.
+ *
+ * ## The distribution — Jonah, 2026-07-29, amended the same day
+ *
+ * **Rift 40 / scarp 40 / sheared 15 / fuzzed 5.** So a boundary is a chasm or a cliff four times in five,
+ * simply a cut about one time in seven, and dissolves rarely.
+ *
+ * The first pass had no [SHEARED] in the draw at all — every seam was a fault, 47.5/47.5/5 — and putting it
+ * back at 15% is the better shape: an ordinary meeting of two shapes is *already* impossible geometry (an
+ * island straddling one is cut off flat in mid-air), so a divided Age that gets nothing further is not a
+ * wasted draw. It also leaves the two dramatic forms room to *be* dramatic, which they are not if every
+ * divided Age has one.
+ *
+ * The old reasoning for biasing *away* from softness still holds and is what keeps the fuzz at 5% rather
+ * than a quarter: wide seams **compound** across divided aspects — one diffuse boundary is strange, four at
+ * once reads as a world coming apart — and a single fuzzy Age read as too weird on its own with nothing else
+ * unusual about it. What changed is that softness is no longer the *concession* to a knife edge; it is a
+ * fourth outcome alongside three others.
  */
 enum class Seam(val key: String, val share: Double, val frequency: Int) : StringRepresentable {
-    /** No transition at all. Two worlds pushed together, and the cut shows. */
-    SHEARED("sheared", 0.0, 85),
+    /**
+     * No transition and no displacement. Two worlds pushed together, and the cut shows.
+     *
+     * The only value that says *nothing happens here*, which is why it is also what a pre-character Age
+     * carries and what `terrain.seam=sheared` pins. **Drawn at 15%** — see the class KDoc for why it went
+     * from unreachable back into the draw.
+     */
+    SHEARED("sheared", 0.0, 15),
 
-    /** A few columns of interlocking, so the cut reads as broken rather than sawn. */
-    KEEN("keen", 0.04, 9),
+    /** One side thrown up against the other: a cliff, `Fault`'s business. */
+    SCARP("scarp", 0.0, 40),
 
-    /** A visible band where the two shapes contend. */
-    SOFT("soft", 0.12, 4),
+    /** The ground pulled apart along the boundary and dropped, usually into water: `Rift`'s business. */
+    RIFT("rift", 0.0, 40),
 
-    /** A wide dissolve; from the ground you would struggle to say where one ends. */
-    BLURRED("blurred", 0.30, 2),
+    /**
+     * The two shapes interlock through a band of stochastic columns, so one dissolves into the other.
+     *
+     * **The only form that is a width rather than a displacement**, which is exactly why it cannot coexist
+     * with the other two.
+     *
+     * **0.04 — the narrowest width the old four ever had, and narrow on purpose** (Jonah, amending the same
+     * day it was first set to 0.12): *"the wide fuzziness can be absolutely overwhelming to the point of
+     * incomprehensibility in game, which isn't fun. No more than 16 blocks of transition is probably about
+     * the sweet spot."* A dissolve you cannot see the far side of does not read as a boundary at all; it
+     * reads as the world having stopped making sense. Sixteen blocks is a band you can stand in and still
+     * see both sides of.
+     */
+    FUZZED("fuzzed", 0.04, 5),
     ;
 
-    /** The transition width in blocks for a territory [regionBlocks] across. */
-    fun blendBlocks(regionBlocks: Int): Int = (regionBlocks * share).toInt()
+    /**
+     * The transition width in blocks for a territory [regionBlocks] across. Zero for every displacement.
+     *
+     * Proportional to the territory **and then capped**, which is two rules rather than one because they
+     * answer different questions. [share] keeps a seam the same *fraction* of a territory as territories
+     * change size, so the look survives a datapack that shrinks biomes. [WIDEST_FUZZ_BLOCKS] answers the
+     * question a fraction cannot: how much dissolve a person can actually stand in and still understand
+     * where they are. That one is absolute — a player in Large Biomes does not find a 64-block fray any more
+     * comprehensible for its being a fortieth of a territory — so the cap wins wherever the two disagree.
+     *
+     * At the default 400-block territory the two land in exactly the same place, at 16.
+     */
+    fun blendBlocks(regionBlocks: Int): Int =
+        (regionBlocks * share).toInt().coerceAtMost(WIDEST_FUZZ_BLOCKS)
 
     override fun getSerializedName(): String = key
 
@@ -159,31 +210,47 @@ enum class Seam(val key: String, val share: Double, val frequency: Int) : String
         val CODEC: Codec<Seam> = StringRepresentable.fromEnum(Seam::values)
 
         /**
-         * A seam drawn against its [frequency]. **The knife edge is not the common case, it is the
-         * default: 85% of Ages, with every softer seam rare and the two widest barely present.**
+         * The widest band of dissolve any seam may have, in blocks — **an absolute limit, not a proportion**.
          *
-         * Arrived at in two steps on 2026-07-27, and the second step is the informative one. An even draw
-         * went first, once an Age with all four slots divided showed that wide seams *compound* — one
-         * diffuse boundary is strange, four at once reads as a world coming apart. Biasing to 40/35/18/7
-         * was not enough: a single Age that drew a fuzzy seam still read as too weird and unstable *on its
-         * own*, with nothing else unusual about it. So the fuzziness is not a flavour of the mechanism to
-         * be sampled evenly-ish; it is the exception, and the cut is what the feature actually is.
-         *
-         * That is also why this is the right shape for instability to take over (design §5): a property
-         * whose default is one value and whose other values are rare is exactly a *floor* waiting to be
-         * pushed up by something. An Age at odds with itself should be the one that dissolves at its
-         * seams — but until that wire exists, a rare draw is the honest stand-in, not a common one.
+         * Jonah's number, and his reason is about a person rather than about a territory: past about this
+         * much, a fray stops reading as a boundary and starts reading as the world having stopped making
+         * sense. See [blendBlocks] for why it sits alongside [share] rather than replacing it.
+         */
+        const val WIDEST_FUZZ_BLOCKS = 16
+
+        /** The seam this [key] names, or null where it names none — how a pinned `terrain.seam` is read. */
+        fun named(key: String): Seam? = entries.firstOrNull { it.key == key }
+
+        /**
+         * A seam drawn against its [frequency] — **a chasm or a cliff four times in five, a plain cut about
+         * one time in seven, a dissolve rarely.**
          *
          * Frequencies are out of [TOTAL_FREQUENCY] so they read as the percentages they are.
+         *
+         * This stays the right shape for instability to take over (design §5), but what it will take over
+         * changed with the forms: a drawn form is now *which* drama a seam carries, and instability is meant
+         * to decide **how much** — the throw of a scarp, the depth of a rift, the width of a fuzz. So the
+         * draw here is not a floor waiting to be pushed up; it is a choice that stays a choice, and the
+         * magnitudes beside it are the floors. Phase 6 step 0.
          */
         fun drawn(random: RandomSource): Seam {
-            // Bands laid end to end in declaration order; the roll lands in exactly one, and the last band
-            // starting at or before it is that one.
-            val roll = random.nextInt(TOTAL_FREQUENCY)
-            val bandStarts = entries.runningFold(0) { covered, seam -> covered + seam.frequency }
-            return entries.last { seam -> roll >= bandStarts[seam.ordinal] }
+            // Spend the roll down through the bands in declaration order; whichever one takes it past zero
+            // owns it. Same shape as `Choose.pickWeighted`. Over the *drawable* entries, which is currently
+            // all of them — the filter is what makes a frequency of zero mean genuinely unreachable rather
+            // than reachable at one exact roll, so a pin-only form stays expressible without a trap.
+            var remaining = random.nextInt(TOTAL_FREQUENCY)
+            for (seam in DRAWABLE) {
+                remaining -= seam.frequency
+                if (remaining < 0) return seam
+            }
+            // Unreachable while the roll is bounded by the total, and a definite answer rather than a throw
+            // if that ever stops being true.
+            return DRAWABLE.last()
         }
 
-        private val TOTAL_FREQUENCY = entries.sumOf(Seam::frequency)
+        /** The forms chance can produce — everything with a frequency, which is everything but [SHEARED]. */
+        private val DRAWABLE = entries.filter { it.frequency > 0 }
+
+        private val TOTAL_FREQUENCY = DRAWABLE.sumOf(Seam::frequency)
     }
 }

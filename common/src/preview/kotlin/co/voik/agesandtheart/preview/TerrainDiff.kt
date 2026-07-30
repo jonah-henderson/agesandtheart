@@ -134,8 +134,8 @@ private fun chunksIn(region: File): List<Pair<String, CompoundTag>> {
     if (bytes.size < SECTOR_BYTES) return emptyList()
     val chunks = mutableListOf<Pair<String, CompoundTag>>()
 
-    for (slot in 0..<CHUNKS_PER_REGION) {
-        val location = readInt(bytes, slot * Int.SIZE_BYTES)
+    for (aspect in 0..<CHUNKS_PER_REGION) {
+        val location = readInt(bytes, aspect * Int.SIZE_BYTES)
         val sector = location ushr 8
         if (sector == 0) continue // never written
 
@@ -151,7 +151,7 @@ private fun chunksIn(region: File): List<Pair<String, CompoundTag>> {
             else -> ByteArrayInputStream(payload)
         }
         val chunk = DataInputStream(stream).use { NbtIo.read(it, NbtAccounter.unlimitedHeap()) }
-        chunks += "${region.nameWithoutExtension}#$slot" to chunk
+        chunks += "${region.nameWithoutExtension}#$aspect" to chunk
     }
     return chunks
 }

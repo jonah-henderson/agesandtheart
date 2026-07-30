@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.age.word
 
-import co.voik.agesandtheart.age.slot.Slot
-import co.voik.agesandtheart.age.slot.SlotPreset
+import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.AspectPreset
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -18,7 +18,7 @@ import java.util.Optional
  */
 enum class Tier(
     val key: String,
-    /** Fine inks per slot constrained. Value-derived, the value being freedom removed (§4.4). */
+    /** Fine inks per aspect constrained. Value-derived, the value being freedom removed (§4.4). */
     val cost: Int,
     /**
      * How strongly a preset must answer to a word for the word to keep it.
@@ -74,18 +74,18 @@ data class Word(
     val id: ResourceLocation,
     val tier: Tier,
     /**
-     * The slots this word may fill — **empty meaning anywhere**.
+     * The aspects this word may fill — **empty meaning anywhere**.
      *
-     * The spike's single most important finding (§4.4): without this, a word gets a say in every slot
+     * The spike's single most important finding (§4.4): without this, a word gets a say in every aspect
      * where any preset happens to carry any of its tags, so `stormy` — a word about the sky — pinned the
-     * *landform* to caverns and discarded `floating` in silence. It cannot be derived from tag data,
-     * because that a tag legitimately describes a landform is exactly what tagging a landform with it
-     * says; which slot a word is *about* is authorial intent and lives nowhere else.
+     * *terrain* to caverns and discarded `floating` in silence. It cannot be derived from tag data,
+     * because that a tag legitimately describes a terrain is exactly what tagging a terrain with it
+     * says; which aspect a word is *about* is authorial intent and lives nowhere else.
      *
-     * Empty is right for evocative words specifically: spanning slots is what makes a word evocative.
+     * Empty is right for evocative words specifically: spanning aspects is what makes a word evocative.
      * Phase 4 will absorb this into grammatical role, so treat it as a placeholder rather than a schema.
      */
-    val slots: Set<Slot>,
+    val aspects: Set<Aspect>,
     /**
      * The tags this word asks for, weighted — and **signed**, because a query may push away as well as
      * pull (§3.3). Without negative weights "beautiful" reliably produced an ocean of lava, lava being
@@ -108,8 +108,8 @@ data class Word(
      * it arrives with its answer in hand, so the registry never has to be enumerated to find it, and a
      * vague word can never reach it because a vague word has no name to arrive with.
      *
-     * Kept as the key rather than a resolved [SlotPreset] so that a word stays plain data: resolving needs
-     * the slot, the slot is known at every use site, and an id naming content this pack lacks must survive
+     * Kept as the key rather than a resolved [AspectPreset] so that a word stays plain data: resolving needs
+     * the aspect, the aspect is known at every use site, and an id naming content this pack lacks must survive
      * being read rather than failing to load.
      */
     val names: String? = null,
@@ -120,12 +120,12 @@ data class Word(
      * a hand-written recipe. That was a real gap rather than an omission: "a world of blackstone" names no
      * dressing, it names the rock the dressing is painted on, and there was no way to say so.
      *
-     * Applied to every slot the word speaks to, since a parameter name only means anything within a slot
-     * anyway ([co.voik.agesandtheart.age.SlotOptions] keeps them apart for exactly that reason).
+     * Applied to every aspect the word speaks to, since a parameter name only means anything within a aspect
+     * anyway ([co.voik.agesandtheart.age.AspectOptions] keeps them apart for exactly that reason).
      *
      * **One value per parameter — a word names one thing.** There is no word meaning "blackstone and tuff";
      * there is `blackstone`, there is `tuff`, and what joins them is a *conjunction* in the grammar (§4.3,
-     * Phase 4). The set therefore arrives at [co.voik.agesandtheart.age.slot.Options], which does hold
+     * Phase 4). The set therefore arrives at [co.voik.agesandtheart.age.aspect.Options], which does hold
      * several, rather than being something a single word could ever carry.
      */
     val sets: Map<String, String> = emptyMap(),
@@ -133,11 +133,11 @@ data class Word(
     /** What a writer says to use it. */
     val name: String get() = id.path
 
-    /** The preset this word names in [slot], if it names one that slot can hold. */
-    fun namedPreset(slot: Slot): SlotPreset? = names?.let(slot::presetFor)
+    /** The preset this word names in [aspect], if it names one that aspect can hold. */
+    fun namedPreset(aspect: Aspect): AspectPreset? = names?.let(aspect::presetFor)
 
     /**
-     * Whether this word has anything to say about *which preset* fills a slot, as opposed to how that
+     * Whether this word has anything to say about *which preset* fills a aspect, as opposed to how that
      * preset is steered.
      *
      * A word that only sets a parameter constrains no presets, and must not be treated as narrowing: with
@@ -149,15 +149,15 @@ data class Word(
     val constrainsPresets: Boolean get() = names != null || query.values.any { it > 0.0 }
 
     /**
-     * The same question asked **of one slot**, which is the honest form of it.
+     * The same question asked **of one aspect**, which is the honest form of it.
      *
-     * A derived block word names a *medium* — an open slot whose value is a block — and merely *sets* a
-     * material on the landform and the dressing, which are closed and hold nothing called
-     * `minecraft:copper_block`. Asked globally it therefore claims to narrow every slot it speaks to, finds
+     * A derived block word names a *sea* — an open aspect whose value is a block — and merely *sets* a
+     * material on the terrain and the dressing, which are closed and hold nothing called
+     * `minecraft:copper_block`. Asked globally it therefore claims to narrow every aspect it speaks to, finds
      * no carrier in most of them, and is charged as unbacked for an opinion it never had.
      */
-    fun constrainsPresetsIn(slot: Slot): Boolean =
-        namedPreset(slot) != null || query.values.any { it > 0.0 }
+    fun constrainsPresetsIn(aspect: Aspect): Boolean =
+        namedPreset(aspect) != null || query.values.any { it > 0.0 }
 
     /** The tags this word wants, which are the ones that must have a carrier somewhere (§3.3). */
     val wanted: Set<String> get() = query.filterValues { it > 0.0 }.keys
@@ -192,7 +192,7 @@ data class Word(
      * while the vaguer word took the world. Naming a thing is the strongest claim the language has, so it
      * reads as one.
      */
-    fun pullOn(preset: SlotPreset, tags: Map<String, Double>): Double =
+    fun pullOn(preset: AspectPreset, tags: Map<String, Double>): Double =
         if (names == preset.key) NAMED_OUTRIGHT else pull(tags)
 
     /**
@@ -219,7 +219,7 @@ data class Word(
         fun mapCodec(id: ResourceLocation): MapCodec<Word> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
                 Tier.CODEC.fieldOf("tier").forGetter(Word::tier),
-                SLOT_SET_CODEC.optionalFieldOf("slots", emptySet()).forGetter(Word::slots),
+                ASPECT_SET_CODEC.optionalFieldOf("aspects", emptySet()).forGetter(Word::aspects),
                 // Optional, because a word that names a preset outright is asking for that one thing and
                 // has nothing to ask of tag space. Both together is legal and means "this, and it is also
                 // like these", which the antonym table can then talk about.
@@ -228,16 +228,16 @@ data class Word(
                 Codec.STRING.optionalFieldOf("names").forGetter { Optional.ofNullable(it.names) },
                 Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("sets", emptyMap())
                     .forGetter(Word::sets),
-            ).apply(instance) { tier, slots, query, names, sets ->
-                Word(id, tier, slots, query, names.orElse(null), sets)
+            ).apply(instance) { tier, aspects, query, names, sets ->
+                Word(id, tier, aspects, query, names.orElse(null), sets)
             }
         }
 
-        private val SLOT_CODEC: Codec<Slot> = StringRepresentable.fromEnum(Slot::values)
+        private val ASPECT_CODEC: Codec<Aspect> = StringRepresentable.fromEnum(Aspect::values)
 
-        // A set rather than a list: a word saying "landform landform" means nothing, and pricing counts
-        // slots constrained.
-        private val SLOT_SET_CODEC: Codec<Set<Slot>> = SLOT_CODEC.listOf().xmap({ it.toSet() }, { it.toList() })
+        // A set rather than a list: a word saying "terrain terrain" means nothing, and pricing counts
+        // aspects constrained.
+        private val ASPECT_SET_CODEC: Codec<Set<Aspect>> = ASPECT_CODEC.listOf().xmap({ it.toSet() }, { it.toList() })
     }
 }
 
@@ -259,7 +259,7 @@ data class PresetProfile(
      * its siblings. One is ordinary; a quarter is something it would rather not do unbidden.
      *
      * This is not in the design as written, and the implementation wanted it badly enough to be worth
-     * adding: without a prior, an unconstrained slot draws uniformly, so a sentence that said nothing
+     * adding: without a prior, an unconstrained aspect draws uniformly, so a sentence that said nothing
      * about the sea got a sea of *lava* one time in three. That is not the generator being wild, it is the
      * generator ignoring the plain reading of a vague sentence — and §8.2's "vagueness draws only from the
      * curated pool" is exactly the promise being broken. Precision still reaches anything: a writer who
@@ -287,9 +287,9 @@ data class PresetProfile(
     }
 }
 
-/** One slot's worth of profiles, which is one `art/preset_tags/<slot>.json`. */
+/** One aspect's worth of profiles, which is one `art/preset_tags/<aspect>.json`. */
 data class PresetTags(private val byPreset: Map<String, PresetProfile>) {
-    fun of(preset: SlotPreset): PresetProfile = byKey(preset.key)
+    fun of(preset: AspectPreset): PresetProfile = byKey(preset.key)
 
     /** The same, where only the preset's name is known — which is all a file being loaded has. */
     fun byKey(key: String): PresetProfile = byPreset[key] ?: EMPTY_PROFILE

@@ -1,7 +1,11 @@
 package co.voik.agesandtheart.age
 
 import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.word.Resolver
+import co.voik.agesandtheart.sky.Skies
+import co.voik.agesandtheart.sky.SkySpec
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.age.word.grammar.Scope
@@ -34,7 +38,7 @@ import net.minecraft.world.level.levelgen.Heightmap
  *
  *   /age create <name> [seed]           — author a new Age (Spire preset) and persist it
  *   /age create <preset> <name> [seed]  — the same, from any [AgePreset]: `hills`, `caverns`, …
- *   /age compose <name> [seed] <spec>   — author one out of slots: `landform=hills medium=sea`
+ *   /age compose <name> [seed] <spec>   — author one out of aspects: `terrain=hills sea=water`
  *   /age write <name> [seed] <words>    — author one out of *words*: `beautiful floating riddled`
  *   /age words                          — the vocabulary the Art currently knows
  *   /age tp <name>                      — travel to an Age
@@ -43,6 +47,7 @@ import net.minecraft.world.level.levelgen.Heightmap
  *   /age bench <name> [radius]          — time generating the chunks around the origin (ms/chunk)
  *   /age biomes <name> [radius]         — what share of the surface each biome covers (for weight tuning)
  *   /age compare <a> <b> [radius]       — do two Ages generate the same world, block for block?
+ *   /age sky <name> [<spec>]            — read an Age's suns and moons, or preview different ones in it
  *   /age list                           — list known Ages (with their recipe)
  */
 object AgeCommand {
@@ -66,6 +71,15 @@ object AgeCommand {
     private const val MAX_COMPARE_RADIUS = 8
     private const val MAX_REPORTED_DIFFERENCES = 3
 
+    /** What `/age sky`'s preview spec may name, and the prefix its parameters carry. */
+    private const val SKY_ASPECT = "sky"
+
+    /**
+     * A terrain to satisfy `AgeComposition.parse`, which refuses a composition without one. Read by nothing —
+     * see [previewSpec].
+     */
+    private const val PREVIEW_SCAFFOLD = "terrain=hills"
+
     // Brigadier command result codes.
     private const val SUCCESS = 1
     private const val FAILURE = 0
@@ -84,6 +98,7 @@ object AgeCommand {
                 .then(biomeCensusSubcommand())
                 .then(benchmarkSubcommand())
                 .then(compareSubcommand())
+                .then(skySubcommand())
                 .then(listSubcommand()),
         )
     }
@@ -120,7 +135,7 @@ object AgeCommand {
      * The seed sits *before* the spec because a greedy argument can have nothing after it. Both tails
      * are offered under the name, and the seeded one is registered first so that `compose age 42 …`
      * reads the 42 as a seed rather than as the first word of a spec — which no spec could start with,
-     * since every token in one is `slot=preset`.
+     * since every token in one is `aspect=preset`.
      */
     private fun composeSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("compose").then(
@@ -139,7 +154,7 @@ object AgeCommand {
 
     /**
      * `/age write <name> [<seed>] <words…>` — the first command that authors an Age the way a *writer*
-     * will, out of words rather than out of slot names.
+     * will, out of words rather than out of aspect names.
      *
      * Shaped exactly like `compose` (greedy tail, optional seed in front of it) so the two can be diffed
      * against each other: what this resolves to prints in `compose`'s own spelling, so pasting that into
@@ -171,6 +186,29 @@ object AgeCommand {
     private fun teleportSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("tp").then(
             Commands.argument(NAME_ARGUMENT, StringArgumentType.word()).executes(::runTeleport),
+        )
+
+    /**
+     * `/age sky <name> [<spec>]` — read an Age's sky, or *preview* a different one in it.
+     *
+     * The instrument that makes orbits tunable. An orbit is a thing you have to see to judge, and
+     * re-authoring an Age to move a sun ten degrees would make that loop useless — so the spec form sends a
+     * sky to everyone standing in the Age and changes nothing about the Age itself. Walk out and back in and
+     * the recipe's own sky returns, which makes the preview self-cancelling.
+     *
+     * The spec is read by [AgeComposition.parse], the same parser `/age compose` uses, so it is written the
+     * same way — `sky=storm sky.suns=three sky.orbits=wild` — and cannot drift out of step with it.
+     */
+    private fun skySubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        Commands.literal("sky").then(
+            Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
+                .executes { context -> runSkyReport(context, preview = null) }
+                .then(
+                    Commands.argument(SPECIFICATION_ARGUMENT, StringArgumentType.greedyString())
+                        .executes { context ->
+                            runSkyReport(context, StringArgumentType.getString(context, SPECIFICATION_ARGUMENT))
+                        },
+                ),
         )
 
     private fun generateSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
@@ -232,10 +270,10 @@ object AgeCommand {
         write(context, AgeRecipe.worldFor(preset), seed)
 
     /**
-     * `/age compose <name> [<seed>] <spec>` — writes an Age out of slots instead of naming a preset.
+     * `/age compose <name> [<seed>] <spec>` — writes an Age out of aspects instead of naming a preset.
      *
      * The nearest thing to authorship the mod has before books exist: the spec is the same sentence a
-     * writer will eventually write with symbols, spelled `landform=hills medium=sea`. Failing loudly on
+     * writer will eventually write with symbols, spelled `terrain=hills sea=water`. Failing loudly on
      * a name nobody knows is right *here* and wrong in the pen — see [AgeComposition.Companion.parse].
      */
     private fun runCompose(context: CommandContext<CommandSourceStack>, seed: Long?): Int {
@@ -334,7 +372,7 @@ object AgeCommand {
                 is Scope.Everywhere ->
                     if (scope.emphasised.isEmpty()) "everywhere"
                     else "everywhere, most of all ${scope.emphasised.joinToString(" ") { it.key }}"
-                is Scope.Confined -> scope.slots.joinToString(" ") { it.key }.ifEmpty { "wherever it fits" }
+                is Scope.Confined -> scope.aspects.joinToString(" ") { it.key }.ifEmpty { "wherever it fits" }
             }
             val joined = said.group?.let { " (joined)" } ?: ""
             source.sendSuccess({ Component.literal("  ${said.word.name} → $aimed$joined") }, false)
@@ -352,7 +390,7 @@ object AgeCommand {
     /**
      * `/age words` — the whole vocabulary, since which words exist is otherwise invisible until books do.
      *
-     * Prints the tier and the slots each word may fill, because those two are what make a sentence
+     * Prints the tier and the aspects each word may fill, because those two are what make a sentence
      * behave the way it does: a word about the sky cannot pin the ground, and a vague word cannot fail.
      */
     private fun runVocabulary(context: CommandContext<CommandSourceStack>): Int {
@@ -370,7 +408,7 @@ object AgeCommand {
         source.sendSuccess({ Component.literal("The Art knows ${vocabulary.words.size} words.") }, false)
         source.sendSuccess({ Component.literal("${authored.size} written by hand:") }, false)
         for (word in authored) {
-            val about = if (word.slots.isEmpty()) "anywhere" else word.slots.joinToString(" ") { it.key }
+            val about = if (word.aspects.isEmpty()) "anywhere" else word.aspects.joinToString(" ") { it.key }
             val asks = word.query.entries.sortedBy { it.key }
                 .joinToString(" ") { (tag, weight) -> if (weight < 0) "-$tag" else tag }
             source.sendSuccess({ Component.literal("  ${word.name} — ${word.tier.key}, $about: $asks") }, false)
@@ -389,7 +427,10 @@ object AgeCommand {
         if (derivedByPack.isNotEmpty()) {
             val counts = derivedByPack.joinToString(", ") { (pack, many) -> "$pack $many" }
             source.sendSuccess({ Component.literal("${vocabulary.words.size - authored.size} derived — $counts") }, false)
-            source.sendSuccess({ Component.literal("  say any block or biome by name, e.g. 'copper_block'") }, false)
+            source.sendSuccess(
+                { Component.literal("  say any block, biome or structure by name, e.g. 'copper_block', 'mansion'") },
+                false,
+            )
         }
         return SUCCESS
     }
@@ -538,6 +579,95 @@ object AgeCommand {
         }
         source.sendSuccess({ Component.literal("Deleted $deleted Age(s)") }, true)
         return SUCCESS
+    }
+
+    /**
+     * Prints an Age's sky, and when [preview] is given, shows that one instead.
+     *
+     * Both halves print, because seeing the numbers is most of the value: "three suns" says nothing about why
+     * two of them ended up bunched together, and the tilts do.
+     */
+    private fun runSkyReport(context: CommandContext<CommandSourceStack>, preview: String?): Int {
+        val source = context.source
+        val name = StringArgumentType.getString(context, NAME_ARGUMENT)
+        val level = openNamedAge(source, name) ?: return FAILURE
+        val recipe = AgeSavedData.get(source.server).recipe(ageId(name))
+
+        val spec = if (preview == null) {
+            AgeGeneration.skySpec(recipe)
+        } else {
+            previewSpec(source, preview, recipe.seed) ?: return FAILURE
+        }
+
+        if (preview != null) Skies.preview(level, spec)
+        val heading = if (preview == null) "Age '$name' sky" else "Previewing in '$name' (reverts on re-entry)"
+        source.sendSuccess({ Component.literal(heading) }, false)
+        for (line in spec.described()) {
+            source.sendSuccess({ Component.literal("  $line") }, false)
+        }
+        return SUCCESS
+    }
+
+    /**
+     * The sky a preview spec asks for, or null having said why.
+     *
+     * **Reuses `/age compose`'s parser, which needs propping up to do it.** `AgeComposition.parse` refuses a
+     * composition with no terrain — rightly, since an Age needs one — so a sky-only spec like `sky.suns=two` is
+     * rejected out of hand. Discovered by running it rather than by reading it: the first version of this command
+     * was unusable for exactly this reason.
+     *
+     * So a throwaway terrain is prepended and then ignored. The alternative was a second parser for sky options
+     * alone, which would be one more thing to keep in step with `compose`'s spelling for no gain.
+     *
+     * The scaffold is *invisible* to the writer, which makes naming any other aspect a trap: `terrain=pillars`
+     * would be silently overridden and the writer told nothing. So anything that is not the sky is **refused**
+     * rather than dropped — §3.3's rule, applied to a debug command because the argument holds there too.
+     */
+    private fun previewSpec(source: CommandSourceStack, preview: String, seed: Long): SkySpec? {
+        val strayAspects = preview.split(' ')
+            .filter { token -> token.isNotBlank() }
+            .map { token -> token.substringBefore('=') }
+            .filterNot { named -> named == SKY_ASPECT || named.startsWith("$SKY_ASPECT.") }
+        if (strayAspects.isNotEmpty()) {
+            source.sendFailure(
+                Component.literal(
+                    "`/age sky` previews the sky only, but you named ${strayAspects.joinToString(" ")}. " +
+                        "Write it as `sky=plain sky.suns=three`, and use `/age compose` to change anything else.",
+                ),
+            )
+            return null
+        }
+        // **An unknown option value is refused here, where `/age compose` keeps it.** That difference is
+        // deliberate and the two are right for different reasons. A composition is a *save*: it must keep saying
+        // what it said even when this pack no longer understands a word, so `compose` records an unrecognised
+        // option and reports it through `/age list`. A preview is an *instrument*, and an instrument that
+        // silently ignores `orbits=wilde` and shows you the default is worse than one that refuses — you would
+        // stand there wondering why nothing moved. Found by running it: `sky.suns=nonsense` previewed one sun and
+        // said nothing.
+        val skyParameters = Sky.PLAIN.parameters.associateBy { parameter -> parameter.name }
+        val unreadable = preview.split(' ')
+            .filter { token -> token.isNotBlank() && token.startsWith("$SKY_ASPECT.") }
+            .mapNotNull { token ->
+                val name = token.substringBefore('=').removePrefix("$SKY_ASPECT.")
+                val value = token.substringAfter('=', missingDelimiterValue = "")
+                val parameter = skyParameters[name]
+                    ?: return@mapNotNull "$name — no such sky parameter. Try: ${skyParameters.keys.joinToString(" ")}"
+                if (parameter.accepts(value)) null
+                else "$name=$value — try: ${parameter.options.joinToString(" ")}"
+            }
+        if (unreadable.isNotEmpty()) {
+            source.sendFailure(Component.literal(unreadable.joinToString("; ")))
+            return null
+        }
+
+        // The terrain here is scaffolding for the parser and is read by nothing.
+        val composition = AgeComposition.parse("$PREVIEW_SCAFFOLD $preview").getOrElse { problem ->
+            source.sendFailure(Component.literal(problem.message ?: "Could not read '$preview'"))
+            return null
+        }
+        // The Age's own seed, so a preview differs from the real sky only where the *words* differ — which is what
+        // makes two previews comparable to each other and to the Age.
+        return composition.sky.specFor(composition.optionsFor(Aspect.SKY, 0), seed)
     }
 
     private fun runTeleport(context: CommandContext<CommandSourceStack>): Int {

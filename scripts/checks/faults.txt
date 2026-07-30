@@ -1,0 +1,129 @@
+# Phase 4.5 step 9 acceptance: a seam is a fault you can walk to, and an Age that has no seam must not have
+# moved a block. Run with: scripts/drive-server.sh scripts/checks/faults.txt
+#
+# Read the output rather than trusting an exit code — this drives a server, it does not assert. What to look
+# for is noted against each group. The offline half is `:common:faultcheck` (thirteen properties) and
+# `:common:preview --args=fault|rift|fuzz` (the pictures); this is the half that needs a world.
+#
+# A seam takes one of FOUR forms, drawn per Age into its character: rift 40%, scarp 40%, sheared 15%,
+# fuzzed 5% (design 3.4). `terrain.seam=` pins one, which is the only way to see a given form on purpose —
+# an Age's own seam is invisible, since nothing prints it.
+#
+# ►► READ THE COMPARE RADIUS BEFORE READING ANY NUMBER HERE. A territory runs about 400 blocks
+# (`BiomeScale.DEFAULT_REGION_BLOCKS`), and `age compare <a> <b> <radius>` samples a square of `2*radius+1`
+# CHUNKS — so the default radius of 2 is 80 blocks, comfortably inside one territory, and will usually find no
+# seam at all. That is fine for the must-not-move control below, where the point is that nothing changed
+# anywhere; it is useless for a rift or a fuzz, whose whole effect is AT a seam. Those use radius 8 (272
+# blocks), which is the maximum the command allows and is about as wide as a territory is across.
+#
+# The scarp is the exception: it displaces whole territories, so it shows at any radius.
+
+# --- The property the step is accepted against: one territory must not move -----------------------
+# Same seed, same terrain, and one of them pinning a form that has no seam to run along. `Fault.of` and
+# `Rift.opened` both refuse a one-member map, so these are the *same* generation — which makes the comparison
+# a self-comparison control in the sense generator-parity.txt describes.
+#
+# EXPECT: `age gen` reports the identical origin surface y and identical tallest column for all three, and
+# `age compare` lands in the usual small control band (a decorating Age does not reproduce block for block —
+# see generator-parity.txt's header). A whole-world shift of 32 would be unmissable here.
+# **Every line must name the SAME sea.** The first version of this group left `sea=water` off the two pinned
+# Ages, so they defaulted to `Sea.NONE` and the "control" was comparing a watered world with a dry one — 1526
+# blocks of difference that had nothing to do with faults. An aspect left unsaid is not an aspect held equal.
+age compose lonelevel 4242 terrain=hills sea=water
+age compose lonescarp 4242 terrain=hills sea=water terrain.seam=scarp
+age compose lonerift 4242 terrain=hills sea=water terrain.seam=rift
+age gen lonelevel
+age gen lonescarp
+age gen lonerift
+age compare lonelevel lonescarp 2
+age compare lonelevel lonerift 2
+
+# --- The four forms on one pair of territories, against their own control -------------------------
+# Two territories of the SAME terrain, so the form is the only thing that differs between the sides and the
+# seam is invisible without one. `sheared` is the control: ordinary hills all the way across.
+#
+# EXPECT: `sheared` to read as one landscape. `scarp` to have a 64-block cliff wandering through it, and its
+# origin surface to sit 32 above or below `sheared`'s depending which side the origin fell on. `rift` to have
+# a flooded chasm along the seam. `fuzzed` to be nearly indistinguishable from `sheared` — the two sides are
+# the same shape, and interlocking a shape with itself reproduces it. That last is expected, not a bug; see
+# the `mixed` group below for a fuzz that shows.
+age compose seamsheared 4242 terrain=hills,hills sea=water terrain.seam=sheared
+age compose seamscarp 4242 terrain=hills,hills sea=water terrain.seam=scarp
+age compose seamrift 4242 terrain=hills,hills sea=water terrain.seam=rift
+age compose seamfuzzed 4242 terrain=hills,hills sea=water terrain.seam=fuzzed
+age gen seamsheared
+age gen seamscarp
+age gen seamrift
+age gen seamfuzzed
+# EXPECT LARGE — most chunks differing is the feature, not a regression. A scarp displaces whole territories,
+# so radius 2 is enough to see it.
+age compare seamsheared seamscarp 2
+# Radius 8, or the sample never reaches a seam and a working rift reads as no rift at all (measured: 51 blocks
+# at radius 2, which is the control band).
+age compare seamsheared seamrift 8
+# EXPECT the control band even at radius 8: a fuzz between two IDENTICAL shapes has nothing to interlock, so
+# it does nothing. Read this against `mixedfuzzed` below, which is the same form with something to dissolve.
+age compare seamsheared seamfuzzed 8
+
+# ►► AND THE CONTROL THAT MAKES THE TWO NUMBERS ABOVE READABLE. `seamtwin` is `seamsheared` written twice
+# under another name — same seed, same sentence, so the same generation. Whatever it reports is what "no
+# difference" costs at radius 8, and a decorating Age never reports zero (generator-parity.txt's header).
+# The first run had no control and the fuzzed pair came back at 5952 blocks / 56 of 289 chunks, which could not
+# be told from noise. MEASURED 2026-07-29 with it: control 5335 / 61, fuzzed 3103 / 58 — BELOW the control, so
+# a fuzz between two identical shapes does nothing at all — rift 81699 / 108, and `mixedfuzzed` 72890 / 79.
+# Read every radius-8 number against the control, never against zero.
+age compose seamtwin 4242 terrain=hills,hills sea=water terrain.seam=sheared
+age gen seamtwin
+age compare seamsheared seamtwin 8
+
+# --- The same forms between two genuinely different shapes, which a written Age usually is --------
+# Read these knowing design 3.4 is already true here — two terrains meet at a cliff anyway, since Regions
+# blends no heights — so what to judge is what each form ADDS to a step that was there.
+#
+# EXPECT `mixedfuzzed` to be the one that finally shows a dissolve, and to differ substantially from
+# `mixedsheared`: this is the pairing the fuzz needs.
+age compose mixedsheared 4242 terrain=hills,pillars sea=water terrain.seam=sheared
+age compose mixedscarp 4242 terrain=hills,pillars sea=water terrain.seam=scarp
+age compose mixedrift 4242 terrain=hills,pillars sea=water terrain.seam=rift
+age compose mixedfuzzed 4242 terrain=hills,pillars sea=water terrain.seam=fuzzed
+age gen mixedsheared
+age gen mixedscarp
+age gen mixedrift
+age gen mixedfuzzed
+# EXPECT this to be the fuzz that DOES something, and by a wide margin over `seamfuzzed` above — the same form,
+# the only difference being that there are two unlike shapes to interlock.
+age compare mixedsheared mixedfuzzed 8
+age compare mixedsheared mixedrift 8
+
+# --- The form an Age draws for itself, which is what almost every Age will use --------------------
+# No `terrain.seam` at all, so each takes whatever its character drew. Four seeds, so the sample is likely to
+# contain both displacements; a fuzz at 5% probably will not appear and that is the point of it.
+#
+# EXPECT each to generate, and their origin surfaces to differ from one another in ways only the drawn form
+# explains. There is no way to tell from the output WHICH form an Age drew — that gap is real and noted in the
+# design; the pinned Ages above are how a form is examined deliberately.
+age compose drawnA 1 terrain=hills,pillars sea=water
+age compose drawnB 2 terrain=hills,pillars sea=water
+age compose drawnC 3 terrain=hills,pillars sea=water
+age compose drawnD 4 terrain=hills,pillars sea=water
+age gen drawnA
+age gen drawnB
+age gen drawnC
+age gen drawnD
+
+# --- A rift below the waterline should FLOOD with no help -----------------------------------------
+# `Terrain.RIFT_FLOOR` is y=40, under the 63 every composed terrain puts its sea at, so the chasm fills with
+# whatever the Age's sea is made of — design 7.8's star fissure, generated rather than authored.
+#
+# EXPECT the lava one to generate too, and to be worth a look. What a smoke test cannot show is the chasm, so
+# probe it: there is no vanilla command that PRINTS a block, so candidates have to be tested one at a time.
+#   execute in agesandtheart:seamrift run forceload add 0 0
+#   execute in agesandtheart:seamrift if block 0 50 0 minecraft:water run say FLOODED
+age compose riftlava 4242 terrain=hills,hills sea=lava terrain.seam=rift
+age gen riftlava
+
+# --- What got written ----------------------------------------------------------------------------
+# EXPECT every line to be pasteable straight back into `/age compose`, with `terrain.seam=` spelled against
+# the aspect rather than per territory. Run this file twice against the same --level to check the recipes
+# survive a restart.
+age list

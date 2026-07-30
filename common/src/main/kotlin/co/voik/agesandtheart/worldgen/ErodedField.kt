@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.worldgen
 
-import co.voik.agesandtheart.worldgen.field.AmbientMedium
+import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.Density
 import co.voik.agesandtheart.worldgen.field.Ellipsoid
 import co.voik.agesandtheart.worldgen.field.Grid
@@ -74,11 +74,11 @@ object ErodedField {
         return Union(listOf(seabed, Intersect(listOf(masses, weathering))))
     }
 
-    fun generator(biomeSource: BiomeSource): FieldChunkGenerator =
-        FieldChunkGenerator(
+    fun generator(biomeSource: BiomeSource): AgeChunkGenerator =
+        AgeChunkGenerator(
             biomeSource,
             world(),
-            AmbientMedium.sea(Blocks.WATER.defaultBlockState(), level = SEA_LEVEL),
+            SeaFill.of(Blocks.WATER.defaultBlockState(), level = SEA_LEVEL),
             Palette.BARE_ROCK,
         )
 

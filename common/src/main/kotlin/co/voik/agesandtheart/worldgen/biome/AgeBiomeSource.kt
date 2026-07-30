@@ -10,7 +10,6 @@ import net.minecraft.core.HolderGetter
 import net.minecraft.core.QuartPos
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.RegistryOps
-import net.minecraft.resources.ResourceKey
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.biome.BiomeSource
@@ -18,30 +17,30 @@ import net.minecraft.world.level.biome.Climate
 import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterList
 import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterLists
 import net.minecraft.world.level.levelgen.DensityFunction
-import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
 import net.minecraft.world.level.levelgen.RandomState
-import net.minecraft.world.level.levelgen.synth.NormalNoise
 import java.util.Optional
 import java.util.stream.Stream
 
 /**
- * Which biome stands where in an Age. It exists because vanilla's [net.minecraft.world.level.biome.MultiNoiseBiomeSource]
- * cannot work for us, for a reason worth writing down.
+ * Which biome stands where in an Age: vanilla's climate, read through a table this Age is allowed to bend.
  *
- * A biome source is handed a [Climate.Sampler] and expected to read the six climate parameters out of
- * it. But the sampler is not ours to choose: [net.minecraft.server.level.ChunkMap] builds the level's
- * [RandomState] from `NoiseGeneratorSettings.dummy()` for any generator that is not a
- * `NoiseBasedChunkGenerator`, and derives the sampler from *that* settings' noise router — which is
- * inert. So the sampler we are given reports zero for every parameter at every position, and a
- * multi-noise source fed from it would return one biome for the whole world.
+ * A biome source is handed a [Climate.Sampler] and expected to read the six climate parameters out of it,
+ * and **that sampler is now real**, so this simply does what a biome source is meant to do. It was not
+ * always: [net.minecraft.server.level.ChunkMap] builds the level's [RandomState] from
+ * `NoiseGeneratorSettings.dummy()` for any generator that is not a `NoiseBasedChunkGenerator`, whose router
+ * is inert — so the sampler reported zero everywhere and this class had to build a whole private
+ * [RandomState] from vanilla's overworld settings to get a climate at all.
  *
- * The way out is not to patch the game: [RandomState.create] is public, so we build our own from
- * vanilla's real overworld noise settings and take the climate half of its router. That gives an Age
- * *bit-identical* climate to vanilla — same noise, same domain warping, same continents and biome
- * sizes — with nothing to tune. The Age's terrain is still entirely ours; only the question "what grows
- * here" is answered vanilla's way, which is the sane default when a player has expressed no preference.
+ * `AgeChunkGenerator` is a `NoiseBasedChunkGenerator` now, and carries vanilla's real climate functions in
+ * its router (2026-07-28), so the private copy is gone and the handed sampler is the same climate it used
+ * to build for itself — same noise, same domain warping, same continents and biome sizes, seeded from the
+ * Age's own seed because Fantasy sets the dimension seed from the recipe. The Age's terrain is still
+ * entirely ours; only "what grows here" is answered vanilla's way.
  *
- * Two seams for when they do express one:
+ * **[depth] is still ours and must stay so**, which is why the generator leaves that one aspect of the router
+ * at zero: vanilla's depth describes vanilla's relief, and ours has to be measured against the field tree.
+ *
+ * Two seams for when a writer expresses a preference:
  * - [biomes] is the climate-to-biome table. It is a registry holder, so a datapack can define a new
  *   `multi_noise_biome_source_parameter_list` and an Age can name it — swapping the whole table without
  *   a line of code.
@@ -49,14 +48,13 @@ import java.util.stream.Stream
  */
 class AgeBiomeSource(
     private val biomes: Holder<MultiNoiseBiomeSourceParameterList>,
-    private val climateSettings: Holder<NoiseGeneratorSettings>,
     private val seed: Long,
     private val depth: ClimateDepth,
     /**
      * What this Age is *like* — the vague half of biome authoring, applied to the climate before the table
      * is asked (design §3.2). Idle for an Age whose author said nothing about it.
      */
-    private val bias: ClimateBias = ClimateBias.NONE,
+    private val bent: RegionalClimate = RegionalClimate.NONE,
     /**
      * The biomes this Age was told to grow, or not to — the exact half, applied to the table itself.
      *
@@ -65,6 +63,15 @@ class AgeBiomeSource(
      * for this class to arbitrate, so both are applied as written.
      */
     private val preferences: List<BiomePreference> = emptyList(),
+    /**
+     * Whether the sentence **singled biomes out**, so everything it did not name is struck from the table —
+     * `only cherry groves` (design §4.3.1's `only`).
+     *
+     * A flag rather than a preference per unwanted biome, because the writer named what they *did* want and
+     * the table is the only thing that knows what else was in it. It composes with [preferences] rather than
+     * replacing them: `only` decides what survives, and a mention among the survivors still strengthens.
+     */
+    private val keepsOnlyNamed: Boolean = false,
     /**
      * One biome for the whole table, before any preference is applied — how a *barren* dressing gets a
      * climate table instead of a single fixed biome.
@@ -77,66 +84,50 @@ class AgeBiomeSource(
      * because a single biome has no table to enrich.
      */
     private val flattenedTo: Holder<Biome>? = null,
-    private val noiseParameters: HolderGetter<NormalNoise.NoiseParameters>,
     private val biomeLookup: HolderGetter<Biome>,
 ) : BiomeSource() {
 
     override fun codec(): MapCodec<out BiomeSource> = CODEC
 
-    /** The same climate and table, with [depth] measured against [terrain] — see [BelowTerrain]. */
+    /** The same table, with [depth] measured against [terrain] — see [BelowTerrain]. */
     fun groundedIn(terrain: TerrainField): AgeBiomeSource =
-        AgeBiomeSource(
-            biomes, climateSettings, seed, BelowTerrain(terrain), bias, preferences, flattenedTo,
-            noiseParameters, biomeLookup,
-        )
+        AgeBiomeSource(biomes, seed, BelowTerrain(terrain), bent, preferences, keepsOnlyNamed, flattenedTo, biomeLookup)
 
-    /** The same source, told what to grow — see [BiomePreference] and [ClimateBias]. */
-    fun told(bias: ClimateBias, preferences: List<BiomePreference>): AgeBiomeSource =
-        AgeBiomeSource(
-            biomes, climateSettings, seed, depth, bias, preferences, flattenedTo, noiseParameters, biomeLookup,
-        )
+    /** The same source, told what to grow — see [BiomePreference] and [RegionalClimate]. */
+    fun told(bent: RegionalClimate, preferences: List<BiomePreference>, keepsOnlyNamed: Boolean = false) =
+        AgeBiomeSource(biomes, seed, depth, bent, preferences, keepsOnlyNamed, flattenedTo, biomeLookup)
 
-    /** The same climate, but one biome everywhere until something is named — see [flattenedTo]. */
+    /** The same table, but one biome everywhere until something is named — see [flattenedTo]. */
     fun flattenedTo(only: Holder<Biome>): AgeBiomeSource =
-        AgeBiomeSource(biomes, climateSettings, seed, depth, bias, preferences, only, noiseParameters, biomeLookup)
+        AgeBiomeSource(biomes, seed, depth, bent, preferences, keepsOnlyNamed, only, biomeLookup)
 
     /**
      * Vanilla's climate-to-biome table with this Age's preferences folded in.
      *
-     * Lazy for the same reason [climate] is, and it matters more here than it looks: applying preferences
-     * rebuilds an RTree over some seven and a half thousand entries, and construction happens during codec
-     * decode. A round trip must not pay for that.
+     * Lazy, and it matters more than it looks: applying preferences rebuilds an RTree over some seven and a
+     * half thousand entries, and construction happens during codec decode. A round trip must not pay for it.
      */
     private val table: Climate.ParameterList<Holder<Biome>> by lazy {
         val base = biomes.value().parameters()
         val flattened = flattenedTo?.let { only ->
             Climate.ParameterList(base.values().map { entry -> Pair.of(entry.first, only) })
         } ?: base
-        BiomePreference.applied(flattened, preferences, biomeLookup, seed)
+        BiomePreference.applied(flattened, preferences, keepsOnlyNamed, biomeLookup, seed)
     }
 
     /**
-     * Vanilla's climate functions, seeded with this Age's seed. Built on first use rather than in the
-     * constructor because construction happens during codec decode, and instantiating a router's worth
-     * of noise is not something a round-trip should pay for.
-     *
-     * Safe to share across chunk workers: [RandomState] strips the caching `Marker` and `HolderHolder`
-     * wrappers when it assembles its sampler, leaving stateless functions — which is exactly why
-     * vanilla shares one sampler across all of its own.
+     * Coordinates arrive quartered (one sample per 4 blocks, as biomes are stored), and [climate] is the
+     * level's own sampler — real, and cached per cell by vanilla, which the private one this replaced was
+     * not.
      */
-    private val climate: Climate.Sampler by lazy {
-        RandomState.create(climateSettings.value(), noiseParameters, seed).sampler()
-    }
-
-    /**
-     * Coordinates arrive quartered (one sample per 4 blocks, as biomes are stored). The sampler we are
-     * handed is the inert one described above; we ignore it and read our own.
-     */
-    override fun getNoiseBiome(quartX: Int, quartY: Int, quartZ: Int, inertSampler: Climate.Sampler): Holder<Biome> {
+    override fun getNoiseBiome(quartX: Int, quartY: Int, quartZ: Int, climate: Climate.Sampler): Holder<Biome> {
         val blockX = QuartPos.toBlock(quartX)
         val blockY = QuartPos.toBlock(quartY)
         val blockZ = QuartPos.toBlock(quartZ)
         val point = DensityFunction.SinglePointContext(blockX, blockY, blockZ)
+        // Which climate governs *here*, since an Age may have fractured into more than one (see
+        // [RegionalClimate]). One climate answers without consulting a map at all.
+        val bias = bent.at(quartX, quartZ)
         // Bent on the way past, which is the whole of "a hot, dry world": vanilla's own table then answers
         // with deserts and badlands, and nothing had to name one. Depth is left alone — it is ours, not
         // the climate's (see [ClimateDepth]).
@@ -149,7 +140,9 @@ class AgeBiomeSource(
                 climate.continentalness().compute(point).toFloat(),
                 climate.erosion().compute(point).toFloat(),
                 depth.at(blockX, blockY, blockZ),
-                bias.shift(ClimateAxis.WEIRDNESS, climate.weirdness().compute(point).toFloat()),
+                // Weirdness passes through too, now that its vocabulary belongs to Biomes rather than to
+                // Climate — step 5 picks it up. See [ClimateAxis].
+                climate.weirdness().compute(point).toFloat(),
             ),
         )
     }
@@ -160,48 +153,41 @@ class AgeBiomeSource(
         val CODEC: MapCodec<AgeBiomeSource> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
                 MultiNoiseBiomeSourceParameterList.CODEC.fieldOf("biomes").forGetter { it.biomes },
-                NoiseGeneratorSettings.CODEC.fieldOf("climate").forGetter { it.climateSettings },
                 Codec.LONG.fieldOf("seed").forGetter { it.seed },
                 ClimateDepth.CODEC.optionalFieldOf("depth", AtSurface).forGetter { it.depth },
-                ClimateBias.CODEC.optionalFieldOf("bias", ClimateBias.NONE).forGetter { it.bias },
+                RegionalClimate.CODEC.optionalFieldOf("bias", RegionalClimate.NONE).forGetter { it.bent },
                 BiomePreference.CODEC.listOf().optionalFieldOf("preferences", emptyList())
                     .forGetter { it.preferences },
+                Codec.BOOL.optionalFieldOf("keeps_only_named", false).forGetter { it.keepsOnlyNamed },
                 Biome.CODEC.optionalFieldOf("flattened_to").forGetter { Optional.ofNullable(it.flattenedTo) },
-                // Not stored fields: retrieved from the ops on decode, absent on encode.
-                RegistryOps.retrieveGetter<NormalNoise.NoiseParameters, AgeBiomeSource>(Registries.NOISE),
+                // Not a stored field: retrieved from the ops on decode, absent on encode.
                 RegistryOps.retrieveGetter<Biome, AgeBiomeSource>(Registries.BIOME),
-            ).apply(instance) { table, climate, seed, depth, bias, preferences, flattened, noise, lookup ->
-                AgeBiomeSource(
-                    table, climate, seed, depth, bias, preferences, flattened.orElse(null), noise, lookup,
-                )
+            ).apply(instance) { table, seed, depth, bias, preferences, onlyNamed, flattened, lookup ->
+                AgeBiomeSource(table, seed, depth, bias, preferences, onlyNamed, flattened.orElse(null), lookup)
             }
         }
 
         /**
-         * Vanilla's overworld biomes under vanilla's overworld climate, at the Age's own [seed]. The
-         * default for an Age that names no biome preferences.
+         * Vanilla's overworld biome table, at the Age's own [seed]. The default for an Age that names no
+         * biome preferences.
          *
-         * Note `NoiseGeneratorSettings.OVERWORLD` is consulted for nothing but the climate half of its
-         * router — its terrain functions are never evaluated, since the field tree shapes our world.
-         * [NoiseGeneratorSettings.LARGE_BIOMES] differs only in climate scale, so it is a drop-in here.
+         * The *climate* those biomes are looked up at no longer comes from here — it is whatever
+         * `AgeChunkGenerator` put in its router, which the game turns into the level's sampler. Which
+         * settings supply it (`OVERWORLD`, or `LARGE_BIOMES`, which differs only in climate scale) is that
+         * generator's choice now, and the table below is a separate one.
          */
-        fun vanillaOverworld(
-            server: MinecraftServer,
-            seed: Long,
-            climate: ResourceKey<NoiseGeneratorSettings> = NoiseGeneratorSettings.OVERWORLD,
-        ): AgeBiomeSource {
+        fun vanillaOverworld(server: MinecraftServer, seed: Long): AgeBiomeSource {
             val registries = server.registryAccess()
             return AgeBiomeSource(
                 registries.lookupOrThrow(Registries.MULTI_NOISE_BIOME_SOURCE_PARAMETER_LIST)
                     .getOrThrow(MultiNoiseBiomeSourceParameterLists.OVERWORLD),
-                registries.lookupOrThrow(Registries.NOISE_SETTINGS).getOrThrow(climate),
                 seed,
                 AtSurface,
-                ClimateBias.NONE,
+                RegionalClimate.NONE,
                 emptyList(),
-                null,
-                registries.lookupOrThrow(Registries.NOISE),
-                registries.lookupOrThrow(Registries.BIOME),
+                keepsOnlyNamed = false,
+                flattenedTo = null,
+                biomeLookup = registries.lookupOrThrow(Registries.BIOME),
             )
         }
     }

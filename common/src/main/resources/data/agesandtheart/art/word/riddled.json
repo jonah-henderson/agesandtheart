@@ -1,7 +1,7 @@
 {
   "tier": "restrictive",
-  "slots": [
-    "subsurface"
+  "aspects": [
+    "carvers"
   ],
   "query": {
     "cavernous": 1.0

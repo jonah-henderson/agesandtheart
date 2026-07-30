@@ -1,18 +1,10 @@
 package co.voik.agesandtheart.worldgen
 
-import co.voik.agesandtheart.worldgen.biome.AgeBiomeSource
-import co.voik.agesandtheart.worldgen.field.AmbientMedium
 import co.voik.agesandtheart.worldgen.field.Noise3D
 import co.voik.agesandtheart.worldgen.field.NoiseCharacter
 import co.voik.agesandtheart.worldgen.field.NoiseHeightmap
-import co.voik.agesandtheart.worldgen.field.Palette
 import co.voik.agesandtheart.worldgen.field.Subtract
 import co.voik.agesandtheart.worldgen.field.TerrainField
-import co.voik.agesandtheart.worldgen.field.WaterTable
-import net.minecraft.core.HolderSet
-import net.minecraft.world.level.block.Blocks
-import net.minecraft.world.level.levelgen.GenerationStep
-import net.minecraft.world.level.levelgen.carver.ConfiguredWorldCarver
 
 /**
  * Hills hollowed out from beneath by a network of tunnels and chambers — the preset that exists to show
@@ -70,30 +62,7 @@ object CavernField {
         highY = CAVE_HIGHEST_Y,
     )
 
-    fun generator(
-        biomeSource: AgeBiomeSource,
-        carvers: Map<GenerationStep.Carving, HolderSet<ConfiguredWorldCarver<*>>> = emptyMap(),
-    ): FieldChunkGenerator {
-        val terrain = world()
-        return FieldChunkGenerator(
-            // Grounded in the terrain, so the caves this Age is built around get vanilla's cave biomes
-            // rather than whatever is overhead.
-            biomeSource.groundedIn(terrain),
-            terrain,
-            AmbientMedium.sea(Blocks.WATER.defaultBlockState(), level = SEA_LEVEL),
-            Palette.VANILLA_OVERWORLD,
-            carvers,
-            // Mostly dry, so the tunnels are walkable, with flooded pockets where the rock is wet.
-            WaterTable.matching(
-                AmbientMedium.sea(Blocks.WATER.defaultBlockState(), level = SEA_LEVEL),
-                seaLevel = SEA_LEVEL,
-                seed = TABLE_SEED,
-            ),
-        )
-    }
-
     private const val WORLD_FLOOR = -64
-    private const val SEA_LEVEL = 63
     private const val SURFACE_Y = 78
     private const val SURFACE_RELIEF = 26.0
 

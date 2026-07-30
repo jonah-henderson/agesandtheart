@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.word.grammar
 
-import co.voik.agesandtheart.age.slot.Slot
+import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.word.Word
 
 /**
@@ -11,8 +12,8 @@ import co.voik.agesandtheart.age.word.Word
  * word would quietly demote it to a restrictive one.
  */
 sealed interface Scope {
-    /** The slots this word actually reaches, given [everywhere] as what "anywhere" means for it. */
-    fun reaches(everywhere: List<Slot>): List<Slot>
+    /** The aspects this word actually reaches, given [everywhere] as what "anywhere" means for it. */
+    fun reaches(everywhere: List<Aspect>): List<Aspect>
 
     /**
      * Everywhere it can find purchase, leaning hardest on [emphasised] — what an **evocative** word gets,
@@ -22,40 +23,23 @@ sealed interface Scope {
      * world, it simply shifts them hardest overhead. So the beginner's `beautiful floating` keeps meaning
      * what it always meant, and precision bought by placement is a tilt rather than a fence.
      */
-    data class Everywhere(val emphasised: Set<Slot> = emptySet()) : Scope {
-        override fun reaches(everywhere: List<Slot>): List<Slot> = everywhere
+    data class Everywhere(val emphasised: Set<Aspect> = emptySet()) : Scope {
+        override fun reaches(everywhere: List<Aspect>): List<Aspect> = everywhere
     }
 
     /**
-     * Confined to these slots — what a **restrictive or exact** word gets.
+     * Confined to these aspects — what a **restrictive or exact** word gets.
      *
      * A word that narrows candidates narrows where it speaks, which is what makes `flat land` a claim about
      * the land and nothing else.
      */
-    data class Confined(val slots: Set<Slot>) : Scope {
+    data class Confined(val aspects: Set<Aspect>) : Scope {
         // An empty confinement means "nothing was declared and nothing aimed it", which has to read as
-        // *wherever it finds purchase* rather than as nowhere — a word confined to no slot at all could
+        // *wherever it finds purchase* rather than as nowhere — a word confined to no aspect at all could
         // never be satisfied, and would be charged as unbacked for a fault of the grammar's.
-        override fun reaches(everywhere: List<Slot>): List<Slot> =
-            slots.ifEmpty { return everywhere }.sortedBy { it.ordinal }
+        override fun reaches(everywhere: List<Aspect>): List<Aspect> =
+            aspects.ifEmpty { return everywhere }.sortedBy { it.ordinal }
     }
-}
-
-/**
- * What a writer asked to happen to a value — the `only`/`except` axis (design §4.3.1).
- *
- * Separate from the word rather than a property of it, because the same word means different things under
- * each: `andesite` names a substance, `only andesite` says the ground wears nothing else.
- */
-enum class Polarity {
-    /** Said plainly. Adds or strengthens; removes nothing. */
-    ASSERTED,
-
-    /** This and nothing else — the pin that naming alone deliberately never does (Jonah). */
-    ONLY,
-
-    /** Anything but this. Expressible today because `BiomePreference` weights are already signed. */
-    EXCEPT,
 }
 
 /**
@@ -111,7 +95,7 @@ data class Sentence(
          */
         fun flat(words: List<Word>): Sentence = Sentence(
             words.map { word ->
-                val scope = if (word.tier.narrows) Scope.Confined(word.slots) else Scope.Everywhere()
+                val scope = if (word.tier.narrows) Scope.Confined(word.aspects) else Scope.Everywhere()
                 Constraint(word, scope)
             },
         )

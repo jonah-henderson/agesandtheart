@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.worldgen.field
 
 import co.voik.agesandtheart.Constants
-import co.voik.agesandtheart.age.slot.Parameter
+import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.location
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
@@ -98,7 +98,7 @@ object Palette {
     fun fadingBelowY(name: String, solidBelowY: Int, absentAboveY: Int): SurfaceRules.ConditionSource =
         SurfaceRules.verticalGradient(name, VerticalAnchor.absolute(solidBelowY), VerticalAnchor.absolute(absentAboveY))
 
-    /** True where the column is dry — i.e. not beneath the ambient sea. */
+    /** True where the column is dry — i.e. not beneath the sea. */
     fun aboveWater(): SurfaceRules.ConditionSource = SurfaceRules.waterBlockCheck(-1, 0)
 
     /** True on sharply sloping ground: the seam where soil gives way to bare rock. */
@@ -159,7 +159,7 @@ object Palette {
     /**
      * A rule that never matches, so whatever follows it decides.
      *
-     * How "this landform named no material" is spelled: a [RegionRule] member that declines leaves the column
+     * How "this terrain named no material" is spelled: a [RegionRule] member that declines leaves the column
      * to the rule beneath it, which is the dressing's own rock.
      *
      * Spelled as *below the bottom of the world*, which no block ever is. The obvious spelling — an empty
@@ -173,9 +173,18 @@ object Palette {
         solid(Blocks.AIR.defaultBlockState()),
     )
 
-    /** What a verdant dressing shows below the soil when nothing named a material. */
-    val VERDANT_ROCK: SurfaceRules.RuleSource =
-        layers(deepslateFloor(), solid(Blocks.STONE.defaultBlockState()))
+    /**
+     * What a verdant dressing shows below the soil — the deepslate gradient, and then nothing.
+     *
+     * **The unconditional `solid(STONE)` that used to end this is gone, and its absence is the point** (step 4).
+     * A rule with no condition answers at *every* block, so it swallowed the whole column below the soil and the
+     * material a writer named could never show. Declining instead lets the fill's block stand, which is exactly
+     * how vanilla gets stone into its own bulk: from `default_block`, not from a rule.
+     *
+     * The deepslate gradient stays, and stays *conditioned*, because that is what vanilla does — see [Substance]
+     * for the check.
+     */
+    val VERDANT_ROCK: SurfaceRules.RuleSource = deepslateFloor()
 
     /** Grass over dirt over stone, deepslate fading in at depth; bare gravel wherever the sea covers it. */
     val VERDANT: SurfaceRules.RuleSource = verdantOver(VERDANT_ROCK)
@@ -186,7 +195,7 @@ object Palette {
     /**
      * The same soil, over whatever [rock] the layers below settle on.
      *
-     * Taking a rule rather than a block list is what lets a **landform**'s material sit between the soil and
+     * Taking a rule rather than a block list is what lets a **terrain**'s material sit between the soil and
      * the dressing's own rock: copper spires keep their grass, because the cover is decided above the
      * substance and always was — this only makes the substance something more than one thing can answer for.
      */
@@ -223,11 +232,23 @@ object Palette {
      * so the other way round leaves this null at startup — the exact failure `:common:codeccheck` exists to
      * catch, and one that surfaces as an unexplained crash a long way from here.
      */
+    /**
+     * A **crust**, and since step 4 that is all it is: andesite at the face, tuff for [CRUST_DEPTH] below it,
+     * the deepslate gradient far down — and **no unconditional fallback**, so beneath the crust the rock the Age
+     * was made of shows through (Jonah's design, 2026-07-29).
+     *
+     * The tail used to be `solid(STONE)`, which answered at every block and swallowed the column, so a material
+     * was invisible under any dressing that painted rock. Removing it is what turns a whole-column repaint into a
+     * crust — and the layering falls out of `sequence` being first-non-null-wins alternation: each rule declines
+     * once its depth condition stops holding, and the next one, or finally the fill, answers.
+     *
+     * The same shape works under a biome's own rules: they are more specific and come first, so they take the
+     * top few blocks and this shows below them.
+     */
     val BARE_ROCK_LAYERS: SurfaceRules.RuleSource = layers(
         where(atSurface(), Blocks.ANDESITE.defaultBlockState()),
         where(withinDepth(CRUST_DEPTH), Blocks.TUFF.defaultBlockState()),
         deepslateFloor(),
-        solid(Blocks.STONE.defaultBlockState()),
     )
 
     /** Bare weathered rock, no soil at all — for monoliths and the shape sampler. */
@@ -254,7 +275,7 @@ object Palette {
     /**
      * The blocks these registry ids name, dropping any this pack does not have.
      *
-     * Shared by every slot that wears a material (design §3.2), so a landform and a dressing resolve one the
+     * Shared by every aspect that wears a material (design §3.2), so a terrain and a dressing resolve one the
      * same way. A block a mod has since removed is dropped with a complaint rather than failing the Age:
      * an Age must still open, and the rest of a mingling still reads.
      */
@@ -330,7 +351,25 @@ object Palette {
         )
 
     private const val SOIL_DEPTH = 3
-    private const val CRUST_DEPTH = 2
+
+    /**
+     * How far a crust reaches below the face, in blocks.
+     *
+     * **A crust is now a real stratum rather than a detail of the skin**, which is what removing the
+     * unconditional tail from [BARE_ROCK_LAYERS] bought: a biome's own soil still wins the top few blocks — a
+     * more specific rule comes first — this shows beneath it, and the Age's own material shows beneath *that*.
+     * Verified block by block: andesite at the face, tuff below it, blackstone deeper.
+     *
+     * **Fifteen, and the barren Ages moving with it is accepted** (Jonah, 2026-07-29). Measured before taking it:
+     * at fifteen the parity set loses `pbare` (40 of 81 chunks) and `pvoid` (81 of 81), neither of which names a
+     * material — so step 4's *"must not move: any Age that names no material"* is deliberately broken here, and
+     * only here. At two the mechanism alone is parity-clean, which is how the two changes were told apart.
+     *
+     * **A hard number is a placeholder.** The vocabulary pass wants layering that can express *"an Age made of
+     * layers of granite, tuff, blackstone, gold ore"* and behave sensibly, which is a stratum *list* rather than
+     * one depth — see the tooling backlog. Not needed yet.
+     */
+    private const val CRUST_DEPTH = 15
     /** How far the bedrock floor dissolves upward, matching vanilla's own five-block fade. */
     private const val BEDROCK_FADE = 5
 

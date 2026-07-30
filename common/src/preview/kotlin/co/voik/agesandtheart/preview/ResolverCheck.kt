@@ -2,10 +2,15 @@ package co.voik.agesandtheart.preview
 
 import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.Register
-import co.voik.agesandtheart.age.slot.Dressing
-import co.voik.agesandtheart.age.slot.Medium
-import co.voik.agesandtheart.age.slot.Share
-import co.voik.agesandtheart.age.slot.Slot
+import co.voik.agesandtheart.age.aspect.Carvers
+import co.voik.agesandtheart.age.aspect.Climate
+import co.voik.agesandtheart.age.aspect.Sea
+import co.voik.agesandtheart.age.aspect.Share
+import co.voik.agesandtheart.age.aspect.Polarity
+import co.voik.agesandtheart.age.aspect.Population
+import co.voik.agesandtheart.age.aspect.Structures
+import co.voik.agesandtheart.age.aspect.Terrain
+import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.word.Resolution
 import co.voik.agesandtheart.age.word.Resolver
 import co.voik.agesandtheart.age.word.Tier
@@ -48,14 +53,17 @@ fun main() {
     vaguenessVariesAndPrecisionNarrows(vocabulary)
     precisionCostsMore(vocabulary)
     anUnaskedDrawPrefersTheOrdinary(vocabulary)
+    anUnaskedAgeIsRarelyBuiltIn(vocabulary)
     aStrongClaimTakesMoreGround(vocabulary)
-    harmonyIsFreeAndTheDressingIsNowTheReluctantOne(vocabulary)
+    harmonyIsFreeAndTheTerrainIsTheReluctantOne(vocabulary)
     anExactWordAdmitsNoCompany(vocabulary)
     aDerivedWordNamesItsReferent(vocabulary)
     aMaterialSteersWithoutChoosing(vocabulary)
     joiningTwoMaterialsMinglesThemAndCostsNothing(vocabulary)
+    onlyAndExceptReachAPopulation(vocabulary)
+    aFractureObeysItsGuards(vocabulary)
 
-    println("Resolver: all sixteen properties hold over the shipped ${vocabulary.words.size}-word vocabulary.")
+    println("Resolver: all nineteen properties hold over the shipped ${vocabulary.words.size}-word vocabulary.")
 }
 
 /**
@@ -138,32 +146,43 @@ private fun aResolvedAgeRoundTripsThroughCompose(vocabulary: Vocabulary) {
 /**
  * **The phase's acceptance test.** "Lush barren" yields both biome families, and says why.
  *
- * This is the sentence that could not pass before 3a: a slot holding one preset had to pick a side, so a
- * writer got one of the two words they wrote and silence about the other. Now the dressing slot divides,
- * both terms are in the world, and the instability index names the pair that made it happen.
+ * This is the sentence that could not pass before 3a: a aspect holding one preset had to pick a side, so a
+ * writer got one of the two words they wrote and silence about the other. Both terms are now in the world, and
+ * the instability index names the pair that made it happen.
+ *
+ * **It moved from the dressing to the climate in step 5, and the criterion is unchanged.** `verdant` and
+ * `lifeless` used to divide the *dressing* into a lush preset and a barren one; the dressing is deleted, and the
+ * two words now bound temperature and humidity to stretches that cannot overlap — so the **climate** fractures
+ * into a warm wet region and a cold dry one. Same sentence, same promise, one aspect over.
  */
 private fun lushAndBarrenYieldBothFamilies(vocabulary: Vocabulary) {
     val resolution = resolve(vocabulary, "verdant lifeless")
-    val dressings = resolution.composition.dressings
-    check(dressings.size == 2) { "\"verdant lifeless\" gave ${dressings.size} dressing(s): $dressings" }
-    check(Dressing.BARE_ROCK in dressings) { "the barren half is missing: $dressings" }
-    check(dressings.any { it == Dressing.VERDANT || it == Dressing.OVERWORLD }) {
-        "the lush half is missing: $dressings"
-    }
+    val climates = resolution.composition.climates
+    check(climates.size == 2) { "\"verdant lifeless\" gave ${climates.size} climate(s): $climates" }
+    // Each fragment carries a whole climate of its own, and they must not be the same one.
+    val bounds = (0..1).map { resolution.composition.optionsFor(Aspect.CLIMATE, it).chosen }
+    check(bounds[0] != bounds[1]) { "both climate fragments came out identical: $bounds" }
 
-    val division = resolution.instability.flaws.firstOrNull { it.register == Register.DIVISION }
+    val division = resolution.instability.flaws.firstOrNull { it.register == Register.FRACTURE }
     checkNotNull(division) { "the world divided but nothing was charged for it: ${resolution.instability.flaws}" }
     check(division.words.containsAll(listOf("verdant", "lifeless"))) {
         "the division does not name the pair that caused it: ${division.words}"
     }
-    check(division.slot == Slot.DRESSING) { "the division was sited in ${division.slot}, not the dressing" }
+    check(division.aspect == Aspect.CLIMATE) { "the division was sited in ${division.aspect}, not the climate" }
+    // The fracture still names *which tags* disagreed, which is the provenance §5.1 needs — the antonym table
+    // earning its keep even though overlap is what decided to fracture.
     check(division.tags == listOf("barren", "lush") || division.tags == listOf("lush", "barren")) {
-        "the division does not name the tags that disagreed: ${division.tags}"
+        "the fracture does not name the tags that disagreed: ${division.tags}"
     }
-    // "You wrote opposites" and "the world tore in two to do it" are different facts about the sentence
-    // (§3.3), so both are charged — gently, because punishment for incoherence is deliberately not harsh.
-    check(resolution.instability.flaws.any { it.register == Register.TENSION }) {
-        "a tension the world honoured went unremarked: ${resolution.instability.flaws}"
+    // **A TENSION is no longer charged here, and that is structural rather than a regression.** §3.3 wants
+    // "you wrote opposites" and "the world tore in two to do it" charged as separate facts — but `tensions` is
+    // asked of the *outcome*, and detects a tension by finding both words satisfied by presets actually chosen.
+    // Climate's meaning lives in spans now, not in preset tags, so its single preset carries neither `lush` nor
+    // `barren` and there is nothing for that test to see. The register still fires for every preset-based aspect;
+    // it simply cannot for a span-based one, and the fracture above carries the diagnosis instead.
+    check(resolution.instability.flaws.none { it.register == Register.TENSION }) {
+        "a span-based aspect charged a tension, which its presets cannot carry the tags for: " +
+            "${resolution.instability.flaws}"
     }
 }
 
@@ -172,23 +191,23 @@ private fun lushAndBarrenYieldBothFamilies(vocabulary: Vocabulary) {
  * exists.
  *
  * A sky is a *dimension type*, registered once for the dimension, so two of them in one world is not a
- * design preference but a technical impossibility (§3.4). This is the one slot where a contradiction
+ * design preference but a technical impossibility (§3.4). This is the one aspect where a contradiction
  * genuinely cannot be honoured.
  */
 private fun aSkyCannotDivide(vocabulary: Vocabulary) {
     val resolution = resolve(vocabulary, "stormy clear")
     // That the sky is one sky needs no assertion — `AgeComposition.sky` is a single field where every
-    // positional slot is a list, which is §3.4's "technically impossible" made structural. What wants
+    // positional aspect is a list, which is §3.4's "technically impossible" made structural. What wants
     // checking is that the word which lost is *said out loud* rather than quietly absent.
     val displaced = resolution.instability.flaws.firstOrNull { it.register == Register.DISPLACED }
     checkNotNull(displaced) { "a word lost the sky and nothing said so: ${resolution.instability.flaws}" }
-    check(displaced.slot == Slot.SKY) { "the loss was sited in ${displaced.slot}, not the sky" }
+    check(displaced.aspect == Aspect.SKY) { "the loss was sited in ${displaced.aspect}, not the sky" }
     check(displaced.words.containsAll(listOf("stormy", "clear"))) {
         "the loss does not name both words: ${displaced.words}"
     }
     // Two exact words against each other is the design's dangerous case, so it must not come cheap.
     check(resolution.instability.index >= Register.DISPLACED.charge(Tier.EXACT)) {
-        "exact against exact in a singular slot cost only ${resolution.instability.index}"
+        "exact against exact in a singular aspect cost only ${resolution.instability.index}"
     }
 }
 
@@ -204,7 +223,7 @@ private fun anUnbackedWordIsReportedNotDropped(vocabulary: Vocabulary) {
     val moonless = Word(
         ResourceLocation.fromNamespaceAndPath("test", "moonless"),
         Tier.EXACT,
-        setOf(Slot.SKY),
+        setOf(Aspect.SKY),
         mapOf("moonless" to 1.0),
     )
     val resolution = Resolver.resolve(vocabulary, Sentence.flat(listOf(moonless)), SAMPLE_SEED)
@@ -249,18 +268,46 @@ private fun precisionCostsMore(vocabulary: Vocabulary) {
  * A sentence that said nothing about the sea is rarely handed one of lava.
  *
  * This is what the readiness prior is for, and the check is here because without it nothing would notice
- * its absence: an unconstrained slot drawn uniformly gives lava one time in three, which reads as the
+ * its absence: an unconstrained aspect drawn uniformly gives lava one time in three, which reads as the
  * generator ignoring a plain reading of the sentence rather than as the generator being wild. Precision
  * still reaches it — `molten` and `burning` both do, and [precisionCostsMore] just proved they resolve.
  */
 private fun anUnaskedDrawPrefersTheOrdinary(vocabulary: Vocabulary) {
     val molten = (1L..SEEDS_SAMPLED).count { seed ->
-        Medium.LAVA in resolve(vocabulary, "homely", seed).composition.mediums
+        Sea.LAVA in resolve(vocabulary, "homely", seed).composition.seas
     }
     check(molten <= SEEDS_SAMPLED / MOST_UNASKED_LAVA) {
         "\"homely\" gave a sea of lava $molten times in $SEEDS_SAMPLED — readiness is not biting"
     }
     println("  \"homely\" draws a sea of lava $molten times in $SEEDS_SAMPLED seeds.")
+}
+
+/**
+ * An Age nobody asked to be built in rarely is — and one that asked always is.
+ *
+ * Structures were a `settlement` parameter no word could reach until they became an aspect, so "opt-in per
+ * Age" held for the poorest of reasons: there was no way to say otherwise. Now that [Structures.VANILLA] is
+ * a preset a sentence can draw, the promise has to be kept by the readiness prior instead — the same lever,
+ * and the same argument, as the sea of lava above.
+ *
+ * `floating` is about the terrain and says nothing about habitation, so what this measures is the *unasked*
+ * draw. The effective rate in a world is lower again, because a set is only ever placed where the biome
+ * source can produce the biomes its structures ask for: a barren Age gets none however it drew.
+ */
+private fun anUnaskedAgeIsRarelyBuiltIn(vocabulary: Vocabulary) {
+    val built = (1L..SEEDS_SAMPLED).count { seed ->
+        resolve(vocabulary, "floating", seed).composition.structures == Structures.VANILLA
+    }
+    check(built <= SEEDS_SAMPLED / MOST_UNASKED_STRUCTURES) {
+        "\"floating\" was built in $built times in $SEEDS_SAMPLED, so structures are no longer opt-in"
+    }
+    // The other half, because a rare unasked draw is only defensible if asking works: `settled` narrows the
+    // aspect to one candidate, so it is not a rate but a certainty, at every seed.
+    for (seed in 1L..SEEDS_SAMPLED) {
+        val asked = resolve(vocabulary, "settled", seed).composition.structures
+        check(asked == Structures.VANILLA) { "'settled' resolved structures to $asked at seed $seed" }
+    }
+    println("  \"floating\" is built in $built times in $SEEDS_SAMPLED seeds; \"settled\" at every seed.")
 }
 
 /**
@@ -294,12 +341,17 @@ private fun aStrongClaimTakesMoreGround(vocabulary: Vocabulary) {
     // an uneven division has to actually happen sometimes, or shares would be decoration.
     var uneven = 0
     for (seed in 1L..HARMONY_SEEDS) {
-        val composition = resolve(vocabulary, "verdant lifeless", seed).composition
-        val shares = composition.sharesOf(Slot.DRESSING)
-        val pinned = composition.dressings.indexOf(Dressing.BARE_ROCK)
+        // The **carving** stands in for the dressing this used to use, and for a specific reason: unevenness
+        // needs a aspect whose presets carry the asked-for tag at *different* strengths, and carvers do —
+        // `caves` is thoroughly cavernous where `porous` is barely so. Two terrain words came out even at every
+        // seed because their carriers all answer about equally, which is a fact about the tag data rather than
+        // about shares, and it made the property vacuous.
+        val composition = resolve(vocabulary, "riddled unbroken", seed).composition
+        val shares = composition.sharesOf(Aspect.CARVERS)
+        val pinned = composition.carvers.indexOf(Carvers.SOLID)
         if (pinned >= 0) {
             check(shares[pinned].weight >= shares.maxOf { it.weight }) {
-                "the exactly-pinned dressing took less ground than its neighbour: ${composition.dressings} $shares"
+                "the exactly-pinned carving took less ground than its neighbour: ${composition.carvers} $shares"
             }
         }
         if (shares.toSet().size > 1) {
@@ -307,13 +359,15 @@ private fun aStrongClaimTakesMoreGround(vocabulary: Vocabulary) {
             // The spelling of an uneven division has to survive the trip, which is what keeps `/age list`
             // output pasteable into `/age compose`.
             val spelling = composition.toString()
-            check(":" in spelling) { "an uneven division should say so: '$spelling'" }
+            // `@`, not `:` — this asked for a colon until the sea aspect opened, and then passed for free
+            // on `sea=minecraft:water` while asserting nothing about shares at all.
+            check("@" in spelling) { "an uneven division should say so: '$spelling'" }
             check(AgeComposition.parse(spelling).getOrThrow() == composition) {
                 "'$spelling' does not read back as what wrote it"
             }
         }
     }
-    check(uneven > 0) { "no seed divided \"verdant lifeless\" unevenly, so shares never bite" }
+    check(uneven > 0) { "no seed divided \"riddled unbroken\" unevenly, so shares never bite" }
     println("  \"verdant lifeless\" divides unevenly at $uneven of $HARMONY_SEEDS seeds.")
 }
 
@@ -325,36 +379,38 @@ private fun aStrongClaimTakesMoreGround(vocabulary: Vocabulary) {
  * the word doing its job, so no flaw is charged.
  *
  * The second half **inverted on 2026-07-27** and is the more interesting one. This used to assert that
- * dressings double up *more* than landforms, on the reasoning that spreading several kinds of place across
+ * dressings double up *more* than terrains, on the reasoning that spreading several kinds of place across
  * a map is what biomes do anyway. That reasoning was an argument for biomes doing it, borrowed to justify
- * the dressing slot dividing — see design §3.4, "what regions are for". Now that variety belongs to biomes,
+ * the dressing aspect dividing — see design §3.4, "what regions are for". Now that variety belongs to biomes,
  * **a dressing seam is reserved for two policies that cannot share a climate table**, so dressing should be
- * the *rarest* slot to double up, not the commonest.
+ * the *rarest* aspect to double up, not the commonest.
  *
  * Kept as a comparison rather than a hard count because the numbers are taste, and the ordering is the
- * design claim: whatever the tuning, a second dressing must be rarer than a second landform, and a second
- * landform is already meant to be a thing you remember.
+ * design claim: whatever the tuning, a second dressing must be rarer than a second terrain, and a second
+ * terrain is already meant to be a thing you remember.
  */
-private fun harmonyIsFreeAndTheDressingIsNowTheReluctantOne(vocabulary: Vocabulary) {
-    var dressingsDoubled = 0
+private fun harmonyIsFreeAndTheTerrainIsTheReluctantOne(vocabulary: Vocabulary) {
+    var carvingsDoubled = 0
     var landformsDoubled = 0
     for (seed in 1L..HARMONY_SEEDS) {
         val resolution = resolve(vocabulary, "beautiful", seed)
         val composition = resolution.composition
-        if (composition.dressings.size > 1) dressingsDoubled++
-        if (composition.landforms.size > 1) landformsDoubled++
+        // The dressing used to be the reluctant one this compared against; it is deleted, so the carving —
+        // the *most* companionable aspect (0.25 against the terrain's 0.12) — plays the other side.
+        if (composition.carvers.size > 1) carvingsDoubled++
+        if (composition.terrains.size > 1) landformsDoubled++
         check(resolution.instability.isCoherent) {
             "\"beautiful\" at seed $seed was charged ${resolution.instability.index}: " +
                 "${resolution.instability.flaws} — liking two things is not a contradiction"
         }
     }
-    check(dressingsDoubled < landformsDoubled) {
-        "dressings doubled up $dressingsDoubled times against landforms' $landformsDoubled, but a dressing " +
+    check(carvingsDoubled >= landformsDoubled) {
+        "dressings doubled up $carvingsDoubled times against terrains' $landformsDoubled, but a dressing " +
             "seam is now the rarest thing in an Age — variety belongs to biomes (design §3.4)"
     }
     println(
-        "  \"beautiful\" over $HARMONY_SEEDS seeds: two dressings $dressingsDoubled times, " +
-            "two landforms $landformsDoubled times, no instability either way.",
+        "  \"beautiful\" over $HARMONY_SEEDS seeds: two carvings $carvingsDoubled times, " +
+            "two terrains $landformsDoubled times, no instability either way.",
     )
 }
 
@@ -366,9 +422,10 @@ private fun harmonyIsFreeAndTheDressingIsNowTheReluctantOne(vocabulary: Vocabula
  */
 private fun anExactWordAdmitsNoCompany(vocabulary: Vocabulary) {
     for (seed in 1L..HARMONY_SEEDS) {
-        val composition = resolve(vocabulary, "beautiful lifeless", seed).composition
-        check(composition.dressings == listOf(Dressing.BARE_ROCK)) {
-            "an exact dressing came out as ${composition.dressings} at seed $seed"
+        // `flat` is exact about the terrain; the dressing this used to test is deleted.
+        val composition = resolve(vocabulary, "beautiful flat", seed).composition
+        check(composition.terrains.size == 1) {
+            "an exact terrain admitted company: ${composition.terrains} at seed $seed"
         }
     }
 }
@@ -389,17 +446,17 @@ private fun anExactWordAdmitsNoCompany(vocabulary: Vocabulary) {
 private fun aDerivedWordNamesItsReferent(vocabulary: Vocabulary) {
     val lava = vocabulary.word("lava") ?: error("no derived word 'lava' — is derivation running?")
     check(lava.tier == Tier.EXACT) { "a derived word must be exact, not ${lava.tier.key}" }
-    check(lava.names == Medium.LAVA.key) { "'lava' names ${lava.names}, not ${Medium.LAVA.key}" }
+    check(lava.names == Sea.LAVA.key) { "'lava' names ${lava.names}, not ${Sea.LAVA.key}" }
     check(vocabulary.word("minecraft:lava") == lava) { "a derived word must also answer to its full id" }
 
     for (seed in 0L..<SEEDS_SAMPLED) {
         val alone = resolve(vocabulary, "lava", seed).composition
-        check(alone.mediums == listOf(Medium.LAVA)) {
-            "'lava' gave ${alone.mediums} at seed $seed, and an exact word pins one value"
+        check(alone.seas == listOf(Sea.LAVA)) {
+            "'lava' gave ${alone.seas} at seed $seed, and an exact word pins one value"
         }
         val contested = resolve(vocabulary, "beautiful lava", seed).composition
-        check(contested.mediums.first() == Medium.LAVA) {
-            "'beautiful lava' let ${contested.mediums.first()} take the widest share at seed $seed, " +
+        check(contested.seas.first() == Sea.LAVA) {
+            "'beautiful lava' let ${contested.seas.first()} take the widest share at seed $seed, " +
                 "so naming a thing outright is claiming it less hard than merely liking one"
         }
     }
@@ -409,52 +466,38 @@ private fun aDerivedWordNamesItsReferent(vocabulary: Vocabulary) {
  * A **material** steers the preset that was chosen without choosing it — design §3.2, and the three ways
  * that could go quietly wrong.
  *
- * `basalt` sets `dressing.stone` and says nothing else. So: it must **not narrow** the dressing (it has no
- * carriers, and the naive reading of an empty carrier set is "unbacked", which would report a perfectly
- * good word as a content bug); it must **not suppress harmony** despite being exact, since it expressed no
- * view on how many kinds of place the Age holds; and it must **not go silent** when the dressing it landed
- * on cannot wear it, which is the `overworld` case.
+ * `basalt` sets `terrain.stone` and says nothing else. So: it must **not narrow** the terrain (it has no
+ * carriers, and the naive reading of an empty carrier set is "unbacked", which would report a perfectly good
+ * word as a content bug); it must **not suppress harmony** despite being exact, since it expressed no view on
+ * how many kinds of place the Age holds; and it must **always be honoured**, whatever else the Age is.
  *
- * The last is the one worth a check rather than an argument: vanilla's overworld palette is a rule tree we
- * do not own, so there is nothing to substitute a stone into. That has to charge rather than no-op.
+ * **That last clause is the capability step 4 bought, and it used to be the opposite.** A material was a surface
+ * rule, and for `dressing=overworld` there was nothing to substitute a stone into — vanilla's palette is a rule
+ * tree we do not own — so `Dressing.ignoresMaterial` existed and this check asserted that such an Age was
+ * *charged as unbacked*. A material is the fill now, underneath the whole tree, so every Age can wear one and
+ * there is nothing left to charge. The check inverted with the mechanism.
  */
 private fun aMaterialSteersWithoutChoosing(vocabulary: Vocabulary) {
     val basalt = vocabulary.word("basalt") ?: error("no word 'basalt' — is the material hook wired?")
-    check(basalt.sets == mapOf(Dressing.STONE.name to "minecraft:blackstone")) {
+    check(basalt.sets == mapOf(Terrain.STONE.name to "minecraft:blackstone")) {
         "'basalt' sets ${basalt.sets}, which is not the material it is for"
     }
     check(!basalt.constrainsPresets) { "a word that only sets a parameter must not narrow presets" }
 
-    var sawADressingThatIgnoresMaterials = false
-    var sawADressingThatAppliesMaterials = false
     for (seed in 0L..<SEEDS_SAMPLED) {
         val resolution = resolve(vocabulary, "basalt", seed)
         val composition = resolution.composition
-        check(composition.options.of(Slot.DRESSING).chosen[Dressing.STONE.name] == listOf("minecraft:blackstone")) {
-            "'basalt' did not set the stone at seed $seed: ${composition.options.of(Slot.DRESSING)}"
+        check(composition.options.of(Aspect.TERRAIN).chosen[Terrain.STONE.name] == listOf("minecraft:blackstone")) {
+            "'basalt' did not set the stone at seed $seed: ${composition.options.of(Aspect.TERRAIN)}"
         }
         check(composition.unknownOptions.isEmpty()) {
             "'basalt' set an option no preset understands at seed $seed: ${composition.unknownOptions}"
         }
-        // Every dressing ignores it, and the word had nothing to show for itself: that must be charged.
-        if (composition.dressings.all { it.ignoresMaterial }) {
-            sawADressingThatIgnoresMaterials = true
-            check(resolution.instability.flaws.any { it.register == Register.UNBACKED }) {
-                "'basalt' went unhonoured on ${composition.dressings} at seed $seed and was charged nothing"
-            }
-        } else {
-            sawADressingThatAppliesMaterials = true
-            check(resolution.instability.isCoherent) {
-                "'basalt' was charged for landing somewhere that can wear it, at seed $seed"
-            }
+        // Nothing can ignore a material any more, so a lone material word can never be incoherent — whatever
+        // terrain and dressing were drawn, the rock is blackstone and vanilla paints its skin over it.
+        check(resolution.instability.isCoherent) {
+            "'basalt' alone was charged at seed $seed: ${resolution.instability.flaws}"
         }
-    }
-    // The tilt toward a preset that can honour what was asked (`Resolver.capabilityFactor`) is *meant* to
-    // make the second case rare — it went from half of all seeds to a handful once the bonus became a
-    // factor — so requiring both to appear would fail on an improvement. What must hold is that the common
-    // case is the working one; the charge is asserted above wherever the rare case does turn up.
-    check(sawADressingThatAppliesMaterials) {
-        "over $SEEDS_SAMPLED seeds 'basalt' never landed on a dressing that can wear a material at all"
     }
 }
 
@@ -469,7 +512,7 @@ private fun resolve(vocabulary: Vocabulary, sentence: String, seed: Long = SAMPL
 }
 
 /**
- * Sentences chosen to cover the shapes a sentence can take: coherent, contradictory in a slot that can
+ * Sentences chosen to cover the shapes a sentence can take: coherent, contradictory in a aspect that can
  * divide, contradictory in one that cannot, precise, vague, and a mixture of tiers.
  */
 private val SENTENCES = listOf(
@@ -488,7 +531,7 @@ private val SENTENCES = listOf(
 private const val SAMPLE_SEED = 20260727L
 private const val SEEDS_SAMPLED = 40L
 
-// Enough seeds that a slot's appetite for company shows up as a rate rather than as an accident.
+// Enough seeds that a aspect's appetite for company shows up as a rate rather than as an accident.
 private const val HARMONY_SEEDS = 60L
 
 private const val PERCENT = 100.0
@@ -497,51 +540,189 @@ private const val PERCENT = 100.0
 // actually gives. The point of the bound is to catch readiness being ignored, not to pin a number.
 private const val MOST_UNASKED_LAVA = 5
 
+// Structures carry a readiness of a quarter, so a fifth of unasked draws is the arithmetic and a third is
+// the bound — loose for the same reason as the lava one, which is to catch the prior being ignored rather
+// than to freeze a tuning number. **The number itself wants Jonah's eyes**: it decides how often an Age
+// nobody asked to be inhabited turns out to be.
+private const val MOST_UNASKED_STRUCTURES = 3
+
+/**
+ * **`only` and `except` reach a population** — the other thing the grammar left waiting.
+ *
+ * The parser has attached [Polarity] since it landed and the resolver dropped it on the floor, so
+ * `except pillager outposts` parsed perfectly and did nothing at all. That is the worst failure shape the
+ * design names: a sentence read correctly, charged for, and silently without effect. Nothing but this notices
+ * if the wire comes loose again, because the parse still looks right either way.
+ *
+ * Asserted alongside, because the three verbs are one mechanism and it is their *difference* that matters:
+ * plainly said adds, `only` makes the population exclusive, `except` strikes out.
+ */
+private fun onlyAndExceptReachAPopulation(vocabulary: Vocabulary) {
+    fun structureSet(path: String) = Word(
+        ResourceLocation.withDefaultNamespace(path),
+        Tier.EXACT,
+        setOf(Aspect.STRUCTURES),
+        emptyMap(),
+        null,
+        mapOf(Structures.BUILT.name to "minecraft:$path"),
+    )
+
+    fun asked(vararg said: Pair<String, Polarity>): Population {
+        val constraints = said.map { (path, polarity) ->
+            Constraint(structureSet(path), Scope.Confined(setOf(Aspect.STRUCTURES)), polarity)
+        }
+        val resolved = Resolver.resolve(vocabulary, Sentence(constraints), SAMPLE_SEED)
+        return Population.of(resolved.composition.optionsFor(Aspect.STRUCTURES, 0).claimsOn(Structures.BUILT))
+    }
+
+    val plainly = asked("woodland_mansions" to Polarity.ASSERTED)
+    check(plainly.wanted.map { it.value } == listOf("minecraft:woodland_mansions")) {
+        "a plain mention gave ${plainly.wanted}"
+    }
+    check(!plainly.exclusive) { "a plain mention pinned the population, which naming must never do" }
+    check(plainly.struck.isEmpty()) { "a plain mention struck something out: ${plainly.struck}" }
+
+    val singledOut = asked("woodland_mansions" to Polarity.ONLY)
+    check(singledOut.exclusive) { "'only woodland_mansions' did not make the population exclusive" }
+    check(singledOut.wanted.map { it.value } == listOf("minecraft:woodland_mansions")) {
+        "'only woodland_mansions' wanted ${singledOut.wanted}"
+    }
+
+    val struckOut = asked("pillager_outposts" to Polarity.EXCEPT)
+    check(struckOut.struck == listOf("minecraft:pillager_outposts")) { "'except' struck ${struckOut.struck}" }
+    check(struckOut.wanted.isEmpty()) { "'except' also asked for something: ${struckOut.wanted}" }
+
+    // And the two together, since a sentence may carry both and they must not collapse into each other.
+    val both = asked("woodland_mansions" to Polarity.ONLY, "pillager_outposts" to Polarity.EXCEPT)
+    check(both.exclusive && both.wanted.map { it.value } == listOf("minecraft:woodland_mansions")) {
+        "'only' lost its footing beside 'except'"
+    }
+    check(both.struck == listOf("minecraft:pillager_outposts")) { "'except' lost its footing beside 'only'" }
+}
+
+/**
+ * The three guards on a fracture, which are what keep it from firing where it should not.
+ *
+ * A new branch in the resolver is the most dangerous kind of change this codebase takes, so each condition is
+ * asserted rather than trusted:
+ *
+ * - **one claim never fractures.** Nothing to reconcile, so the aspect stays whole — this is what keeps every
+ *   Age written before parameters could divide resolving exactly as it did.
+ * - **word order still decides nothing** (§3.5). Reversing the pages must give the identical composition,
+ *   including which fragment got which material, or the seed has stopped being the arbiter.
+ * - **an aspect that already divided on presets contends instead.** Two divisions in one aspect would multiply,
+ *   and *which* fragment a word was aimed at is a question the grammar cannot answer yet (§4.3.1 aims at
+ *   aspects, not members). So the older behaviour has to survive underneath the new one.
+ */
+private fun aFractureObeysItsGuards(vocabulary: Vocabulary) {
+    fun material(name: String, block: String) = Word(
+        ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, name),
+        Tier.EXACT,
+        setOf(Aspect.TERRAIN),
+        emptyMap(),
+        null,
+        mapOf(Terrain.STONE.name to block),
+    )
+
+    fun aimedAtTheLand(word: Word) = Constraint(word, Scope.Confined(setOf(Aspect.TERRAIN)))
+    val hollow = aimedAtTheLand(vocabulary.word("hollow") ?: error("the shipped vocabulary lost 'hollow'"))
+    // Two terrain words with disjoint carriers, so the *presets* divide and the guard below has something real
+    // to bite on.
+    val flat = aimedAtTheLand(vocabulary.word("flat") ?: error("the shipped vocabulary lost 'flat'"))
+    val towering = aimedAtTheLand(vocabulary.word("towering") ?: error("the shipped vocabulary lost 'towering'"))
+    val copper = aimedAtTheLand(material("firststone", "minecraft:copper_block"))
+    val andesite = aimedAtTheLand(material("secondstone", "minecraft:andesite"))
+
+    val alone = Resolver.resolve(vocabulary, Sentence(listOf(hollow, copper)), SAMPLE_SEED)
+    check(alone.composition.terrains.size == 1) {
+        "one material fractured the terrain: ${alone.composition.terrains}"
+    }
+    check(alone.instability.flaws.none { it.register == Register.FRACTURE }) {
+        "one material was charged for a fracture: ${alone.instability.flaws}"
+    }
+
+    val forwards = Resolver.resolve(vocabulary, Sentence(listOf(hollow, copper, andesite)), SAMPLE_SEED)
+    val backwards = Resolver.resolve(vocabulary, Sentence(listOf(andesite, copper, hollow)), SAMPLE_SEED)
+    check(forwards.composition == backwards.composition) {
+        "reversing a fractured sentence moved the fragments: ${forwards.composition} then ${backwards.composition}"
+    }
+    // And it survives being written down, since a fracture is the first thing the resolver produces that seats
+    // one preset twice — a shape `toString` and `parse` had only ever seen from a hand-written composition.
+    val spelling = forwards.composition.toString()
+    check(AgeComposition.parse(spelling).getOrThrow() == forwards.composition) {
+        "a fractured composition does not read back as itself: '$spelling'"
+    }
+
+    // `flat towering` already splits the terrain in two, so the materials have nowhere of their own to go.
+    val alreadyDivided = Resolver.resolve(vocabulary, Sentence(listOf(flat, towering, copper, andesite)), SAMPLE_SEED)
+    check(alreadyDivided.composition.terrains.size == 2) {
+        "the preset division was lost: ${alreadyDivided.composition.terrains}"
+    }
+    check(alreadyDivided.instability.flaws.any { it.register == Register.DISPLACED }) {
+        "a material lost the argument in an already-divided aspect and was not charged: " +
+            "${alreadyDivided.instability.flaws}"
+    }
+}
+
 /**
  * **The conjunction**, and the thing 3c left waiting: joining two claims on one parameter keeps both, and
  * charges nothing.
  *
  * The asymmetry is what matters, so both halves are asserted together. Unjoined, `blackstone tuff` is two
- * answers to a question that has room for one — the seed picks and the loser is charged as displaced.
- * Joined, it is one rock made of both, which `Options` has been able to hold since 3a and `Palette.mingled`
- * has been able to paint for just as long; the conjunction is only the wire between them.
+ * answers to a question that has room for one, so the aspect **fractures** and each takes a territory —
+ * charged, because the writer did not ask for two places. Joined, it is one rock made of both throughout,
+ * which `Options` has been able to hold since 3a and `Palette.mingled` has been able to paint for just as
+ * long; the conjunction is only the wire between them.
+ *
+ * **Unjoined used to displace one of the two**, and that changed when parameters learned to divide: the world
+ * now honours both rather than losing one, which is §3.4's rule reaching a knob for the first time.
  *
  * If this ever passes with juxtaposition also mingling, `and` has stopped meaning anything — that is the
  * failure to watch for, not a crash.
  */
 private fun joiningTwoMaterialsMinglesThemAndCostsNothing(vocabulary: Vocabulary) {
-    val verdant = vocabulary.word("verdant") ?: error("the shipped vocabulary lost 'verdant'")
+    val hollow = vocabulary.word("hollow") ?: error("the shipped vocabulary lost 'hollow'")
     fun material(name: String, block: String) = Word(
         ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, name),
         Tier.EXACT,
-        setOf(Slot.DRESSING),
+        setOf(Aspect.TERRAIN),
         emptyMap(),
         null,
-        mapOf(Dressing.STONE.name to block),
+        mapOf(Terrain.STONE.name to block),
     )
 
-    val dressing = Constraint(verdant, Scope.Confined(setOf(Slot.DRESSING)))
+    val land = Constraint(hollow, Scope.Confined(setOf(Aspect.TERRAIN)))
     val first = material("firststone", "minecraft:blackstone")
     val second = material("secondstone", "minecraft:tuff")
     fun sentence(group: Group?) = Sentence(
         listOf(
-            dressing,
-            Constraint(first, Scope.Confined(setOf(Slot.DRESSING)), group = group),
-            Constraint(second, Scope.Confined(setOf(Slot.DRESSING)), group = group),
+            land,
+            Constraint(first, Scope.Confined(setOf(Aspect.TERRAIN)), group = group),
+            Constraint(second, Scope.Confined(setOf(Aspect.TERRAIN)), group = group),
         ),
     )
 
     val apart = Resolver.resolve(vocabulary, sentence(group = null), SAMPLE_SEED)
-    val heldApart = apart.composition.optionsFor(Slot.DRESSING, 0).allOf(Dressing.STONE)
-    check(heldApart.size == 1) { "unjoined materials did not contend: they gave $heldApart" }
-    check(apart.instability.flaws.any { it.register == Register.DISPLACED }) {
-        "a material lost the argument and was not charged for it: ${apart.instability.flaws}"
+    check(apart.composition.terrains.size == 2) {
+        "unjoined materials did not fracture the terrain: ${apart.composition.terrains}"
+    }
+    for (member in 0..1) {
+        val held = apart.composition.optionsFor(Aspect.TERRAIN, member).allOf(Terrain.STONE)
+        check(held.size == 1) { "fractured territory $member holds $held, not one material" }
+    }
+    val eachStone = (0..1).map { apart.composition.optionsFor(Aspect.TERRAIN, it).allOf(Terrain.STONE).single() }
+    check(eachStone.toSet().size == 2) { "both fragments were given the same material: $eachStone" }
+    check(apart.instability.flaws.any { it.register == Register.FRACTURE }) {
+        "the world broke in two and was not charged for it: ${apart.instability.flaws}"
     }
 
     val joined = Resolver.resolve(vocabulary, sentence(group = Group(0)), SAMPLE_SEED)
-    val mingled = joined.composition.optionsFor(Slot.DRESSING, 0).allOf(Dressing.STONE)
+    val mingled = joined.composition.optionsFor(Aspect.TERRAIN, 0).allOf(Terrain.STONE)
     check(mingled.size == 2) { "joined materials did not mingle: they gave $mingled" }
-    check(joined.instability.flaws.none { it.register == Register.DISPLACED }) {
+    check(joined.composition.terrains.size == 1) {
+        "the conjunction fractured instead of mingling: ${joined.composition.terrains}"
+    }
+    check(joined.instability.flaws.none { it.register == Register.FRACTURE }) {
         "the conjunction charged for harmony: ${joined.instability.flaws}"
     }
     check(joined.instability.isCoherent) { "joining two materials made an incoherent Age" }

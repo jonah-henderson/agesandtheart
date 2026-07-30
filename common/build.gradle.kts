@@ -90,6 +90,13 @@ val main: SourceSet = sourceSets.main.get()
 preview.compileClasspath += main.compileClasspath + main.output
 preview.runtimeClasspath += main.compileClasspath + main.runtimeClasspath + main.output
 
+// The `antlr` plugin adds a grammar task *per source set*, so creating `preview` also created
+// `generatePreviewGrammarSource` and put its output directory on the source set — even though every grammar
+// we have lives in `src/main/antlr` and this one therefore generates nothing. Kotlin still reads that
+// directory, and without this edge Gradle intermittently fails the build for consuming another task's output
+// undeclared. It presented as "compilePreviewKotlin is flaky" for weeks and cost a check run more than once.
+tasks.named("compilePreviewKotlin") { dependsOn(tasks.named("generatePreviewGrammarSource")) }
+
 /**
  * Registers one of the offline developer instruments — a `main()` in the `preview` source set, run
  * without launching Minecraft.
@@ -138,6 +145,16 @@ instrument(
 )
 
 instrument(
+    "choosecheck", "verification", "co.voik.agesandtheart.preview.ChooseCheckKt",
+    "Checks Choose/Chance draw reproducibly, honour their counts, weights and probabilities.",
+)
+
+instrument(
+    "faultcheck", "verification", "co.voik.agesandtheart.preview.FaultCheckKt",
+    "Checks a fault displaces rock exactly, and that a rift's band is the seam the territories draw.",
+)
+
+instrument(
     "codeccheck", "verification", "co.voik.agesandtheart.preview.CodecCheckKt",
     "Builds every registered codec, catching companion-initialisation order before a server boot does.",
 )
@@ -171,4 +188,10 @@ instrument(
 instrument(
     "regionsharecheck", "verification", "co.voik.agesandtheart.preview.RegionShareCheckKt",
     "Measures the ground each weighted territory actually covers, and reprints ClaimTilt's table.",
+)
+
+instrument(
+    "skycheck", "verification", "co.voik.agesandtheart.preview.SkyCheckKt",
+    "Checks an Age's sky reproduces from its seed, that a one-sun Age keeps vanilla's own orbit, " +
+        "and that nothing drawn is degenerate.",
 )

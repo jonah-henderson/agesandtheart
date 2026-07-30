@@ -7,10 +7,18 @@
 # What each is FOR is written above it. If something looks wrong, the seed and the sentence together are the
 # whole repro — `/age list` prints both, and pasting a printed composition into `/age compose` rebuilds it.
 #
+# **Every "CHECKED 2026-07-27" verdict below predates the dressing's deletion (2026-07-29).** The `dressing=`
+# tokens are gone from these lines and each Age now wears vanilla's biome table, so what you see will differ
+# from what was signed off — the *shapes* are unchanged, the cover over them is not. Treat the verdicts as
+# evidence about the shape and the seam, not about how the world looks now.
+#
 # ── WALKED END TO END 2026-07-27. Every line below carries its verdict. Two things came out of it ──────
 #   CHANGED   `Seam` is now sheared 85 / keen 9 / soft 4 / blurred 2 — the knife edge is the DEFAULT and
 #             every softness is rare (design 3.4). It took two rounds: wide seams compound across divided
-#             slots, and then a single fuzzy Age still read as too unstable on its own.
+#             aspects, and then a single fuzzy Age still read as too unstable on its own.
+#             **SUPERSEDED 2026-07-29 — `Seam` is no longer widths at all.** It is the four forms a fault
+#             takes: rift 40 / scarp 40 / sheared 15 / fuzzed 5, the fuzz capped at 16 blocks. The reasoning
+#             did not go away — it is what makes the fuzz 5% and 16 blocks wide. See section 0.
 #   CHANGED   `SpireField` rebuilt as two populations — big carved islands, hard-jittered and free to
 #             merge, plus a shoal of small noise blobs between the cloud decks. VERIFIED IN GAME, and it
 #             costs 64 ms/chunk. `Scatter` was built for this and proved unnecessary; it is on the shelf.
@@ -20,24 +28,77 @@
 #             to the instability pass, and it is now step 0 of Phase 6 in the implementation plan.
 #   NOT PROVEN  the `needle` line. The search was cut short, so 1%-findability is still unanswered.
 
+# ── 0. FAULTS — the newest thing here and the only one whose walk IS the acceptance test ─────────
+# Numbered zero rather than appended, because this file is in priority order and everything below has been
+# looked at at least once. Built 2026-07-29 (Phase 4.5 step 9), never seen in a client.
+#
+# The plan is explicit that this step can be cleanly DELETED: "if a scarp reads as broken rather than
+# dramatic, delete the node and nothing else in the phase moves". So the question is not "is anything wrong"
+# but "is this worth keeping" — and nothing is wired to instability until after you answer.
+#
+# A seam now takes ONE OF FOUR FORMS, drawn per Age: rift 40%, scarp 40%, sheared 15%, fuzzed 5%.
+# `terrain.seam=` pins one, and pinning is the only way to see a given form on purpose, because nothing prints
+# what an Age drew. All four lines below are the SAME terrain either side, so the form is the only difference
+# between the sides, and `seamsheared` is the control — it should read as one ordinary landscape.
+#   1. drama or breakage? that is the whole call, and it is mostly about `seamscarp`.
+#   2. is 32 blocks (Terrain.SCARP_THROW) the right size, either way, giving a 64-block cliff?
+#      `HIGH_ALTITUDE_LIFT` was a guess of the same standing and turned out wrong by about a hundred blocks.
+#   3. `seamrift` should be FLOODED with no help — RIFT_FLOOR is y=40, under the waterline. Its floor was set
+#      to keep the chasm SWIMMABLE, so a rift divides an Age without partitioning it. Deep enough? too deep?
+#   4. `seamfuzzed` will look almost exactly like `seamsheared` and that is expected, not a bug: interlocking
+#      a shape with itself reproduces it. The fuzz only shows between two DIFFERENT shapes — see `mixedfuzzed`.
+/age compose seamsheared 4242 terrain=hills,hills sea=water terrain.seam=sheared
+/age compose seamscarp 4242 terrain=hills,hills sea=water terrain.seam=scarp
+/age compose seamrift 4242 terrain=hills,hills sea=water terrain.seam=rift
+/age compose seamfuzzed 4242 terrain=hills,hills sea=water terrain.seam=fuzzed
+/age tp seamscarp
+
+# The forms between two genuinely DIFFERENT shapes, which is what a written Age usually is. Design 3.4
+# is already true here — two terrains meet at a cliff anyway, since Regions blends no heights — so what to
+# judge is what each form ADDS to a step that was already there. `mixedfuzzed` is the one where the fuzz
+# finally has something to dissolve, so it is the one to look at for the rare form.
+/age compose mixedscarp 4242 terrain=hills,pillars sea=water terrain.seam=scarp
+/age compose mixedrift 4242 terrain=hills,pillars sea=water terrain.seam=rift
+/age compose mixedfuzzed 4242 terrain=hills,pillars sea=water terrain.seam=fuzzed
+/age tp mixedfuzzed
+
+# Structures across a scarp. Vanilla WILL straddle one — it takes a height at a single column and builds from
+# there. Vanilla has the same problem at its own biome edges and mostly gets away with it; a scarp is sharper.
+# Look once before calling it broken. A village half on and half off a 64-block cliff might be the best thing
+# in here or the worst.
+/age compose scarpbuilt 4242 terrain=hills,hills sea=water terrain.seam=scarp structures=vanilla
+/age tp scarpbuilt
+
+# What an Age draws for ITSELF, which is what almost every Age will do. No `terrain.seam`, four seeds. There is
+# no way to tell from in game which form one drew — that gap is real and noted in the design.
+/age compose drawnA 1 terrain=hills,pillars sea=water
+/age compose drawnB 2 terrain=hills,pillars sea=water
+/age tp drawnA
+
+# ALSO WORTH ONE OFFLINE LOOK, because a picture settles the forms faster than a walk does, and the
+# three subjects are the same territories with only the form changed:
+#   ./gradlew :common:preview --args=fault    (scarp)
+#   ./gradlew :common:preview --args=rift
+#   ./gradlew :common:preview --args=fuzz     (read against --args=regions, the same pair knife-edged)
+
 # ── 1. Impossible geometry, and the thing with no vanilla equivalent ─────────────────────────────
 # An ocean of water meeting an ocean of lava at ONE level with no barrier between them. Look along the seam.
 # CHECKED 2026-07-27 — passes. The fuzzy transition takes a moment to get used to; the small pools of mixed
 # water and lava along it read as weird, and that is the weirdness this is meant to enable. Do not tidy the
 # seam (see `irregularities-are-a-feature`) — if it is ever revisited, it is a deliberate change, not a fix.
-/age compose twoseas 7 landform=hills medium=sea,lava subsurface=solid dressing=bare_rock sky=plain
+/age compose twoseas 7 terrain=hills sea=water,lava carvers=solid sky=plain
 /age tp twoseas
 
-# All four positional slots divided at once — the busiest world the model can describe. The question is
-# whether it reads as varied or as noise; if it is noise, that is what `Share` and the per-slot appetite for
+# All four positional aspects divided at once — the busiest world the model can describe. The question is
+# whether it reads as varied or as noise; if it is noise, that is what `Share` and the per-aspect appetite for
 # company exist to tune (design 3.4).
 # CHECKED 2026-07-27 — passes as an *instability* reading: weird, fragmented, clearly wrong, which is the
 # alien-geometry-means-instability principle doing its job. One change came out of it: wide seams compound
-# across slots, so `Seam` is now drawn biased low (sheared 40 / keen 35 / soft 18 / blurred 7) instead of
+# across aspects, so `Seam` is now drawn biased low (sheared 40 / keen 35 / soft 18 / blurred 7) instead of
 # evenly, and mid-to-high is the oddity rather than half of all Ages. Design 3.4 records the reasoning.
 # NOTE: that draw is part of the character, so this line re-composed today will NOT have the seam it had
 # when it was looked at — expect it cut or nearly cut now. `/age list` prints what it actually got.
-/age compose everything 7 landform=hills,pillars medium=sea,lava subsurface=caves,solid dressing=verdant,bare_rock sky=storm
+/age compose everything 7 terrain=hills,pillars sea=water,lava carvers=caves,solid climate=natural{temperature=0.6..0.9},natural{temperature=-0.9..-0.6} sky=storm
 /age tp everything
 
 # ── 2. Weighted territories: the newest mechanic, and the least looked at ────────────────────────
@@ -48,10 +109,12 @@
 # RE-WALKED later the same day, and this is what settled the seam. `evenhills` came up with one of the
 # fuzzy variants and read as too weird and unstable ON ITS OWN — no compounding, nothing else odd about
 # the Age. So the first bias (40/35/18/7) was treating fuzziness as a flavour to sample fairly when it is
-# an exception: `Seam` is now sheared 85 / keen 9 / soft 4 / blurred 2. Instability will bias it upward
-# later, which is the whole reason a rare default is the right shape (design 5).
-/age compose mostlyhills 7 landform=hills,pillars@scattered medium=sea dressing=overworld sky=plain
-/age compose evenhills 7 landform=hills,pillars medium=sea dressing=overworld sky=plain
+# an exception: `Seam` became sheared 85 / keen 9 / soft 4 / blurred 2.
+# STILL THE REASONING, DIFFERENT SHAPE (2026-07-29): `Seam` is now three fault forms rather than four widths,
+# and the fuzz is 5% of them. This walk is why it is 5 and not a third. Re-walking these two lines is worth it
+# — they will now come up with a scarp or a rift roughly half the time each, which they never used to.
+/age compose mostlyhills 7 terrain=hills,pillars@scattered sea=water sky=plain
+/age compose evenhills 7 terrain=hills,pillars sea=water sky=plain
 /age tp mostlyhills
 
 # A rare territory at the floor: 1% of the world. This is the one that answers "is 1% findable?" — fly out.
@@ -59,14 +122,14 @@
 # search was cut short rather than exhausted, so this is not evidence the floor is too low. **Do not raise
 # `Share.LEAST_SHARE_OF_A_WORLD` on the strength of this line** — Jonah's explicit call. Re-run it when
 # there is time to actually hunt; a real failure looks like a long deliberate search coming up empty.
-/age compose needle 7 landform=hills,spire_islands@rare medium=sea dressing=overworld sky=plain
+/age compose needle 7 terrain=hills,spire_islands@rare sea=water sky=plain
 /age tp needle
 
 # ── 3. Words: does a sentence make a world you would have written? ──────────────────────────────
 # The whole point of Phase 3b. Nothing here is about correctness — the checks cover that — it is about whether
 # the tag weights and readiness produce Ages that feel like their sentences.
 # CHECKED 2026-07-27 — the whole section, to satisfaction. The vocabulary works *for the options it
-# currently has to choose from*, which is the honest scope of the result: a handful of presets per slot.
+# currently has to choose from*, which is the honest scope of the result: a handful of presets per aspect.
 # Phase 3c multiplies that corpus, so this section is worth re-walking once derived words land — passing
 # here does not predict passing there.
 /age write lovely 7 beautiful
@@ -81,8 +144,8 @@
 /age tp bothways
 
 # Harmony: one vague word that liked several answers, charged nothing. Seeded to a case that actually divides.
-# CHECKED 2026-07-27 — divided the subsurface into `solid` + `porous`, and the porous half could not be
-# found. NOT bad luck, and not a generation bug: those two presets carve nothing at all, a subsurface
+# CHECKED 2026-07-27 — divided the carvers into `solid` + `porous`, and the porous half could not be
+# found. NOT bad luck, and not a generation bug: those two presets carve nothing at all, a carvers
 # territory is consulted by carvers ONLY, and the water table — the sole difference between them — is
 # deliberately one-per-Age. The two territories are therefore identical by construction. Same goes for
 # `caves` + `flooded_caves`. Written up as OPEN in design 3.4; do not go hunting for it again until that
@@ -121,10 +184,10 @@
 /age tp spire7
 
 # Spire islands over ordinary water instead of plasma, and a lava sea under pillars: two sentences nobody
-# hand-wrote before slots existed.
+# hand-wrote before aspects existed.
 # CHECKED 2026-07-27 — both good, signed off.
-/age compose spireocean 7 landform=spire_islands medium=sea subsurface=weathered dressing=bare_rock sky=storm
-/age compose lavapillar 7 landform=pillars medium=lava subsurface=solid dressing=verdant sky=plain
+/age compose spireocean 7 terrain=spire_islands sea=water carvers=weathered sky=storm
+/age compose lavapillar 7 terrain=pillars sea=lava carvers=solid sky=plain
 /age tp spireocean
 
 # ── 5. Free while you are in there ─────────────────────────────────────────────── CHECKED 2026-07-27 ──

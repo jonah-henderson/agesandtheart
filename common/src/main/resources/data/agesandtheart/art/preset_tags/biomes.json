@@ -1,0 +1,9 @@
+{
+  "vanilla": {
+    "tags": {
+      "ordinary": 0.6,
+      "lush": 0.4,
+      "lovely": 0.3
+    }
+  }
+}

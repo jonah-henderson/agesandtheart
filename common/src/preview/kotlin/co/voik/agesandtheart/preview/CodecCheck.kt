@@ -1,24 +1,29 @@
 package co.voik.agesandtheart.preview
 
+import co.voik.agesandtheart.sky.SkySpec
 import co.voik.agesandtheart.age.Flaw
 import co.voik.agesandtheart.age.Instability
 import co.voik.agesandtheart.age.word.Antonym
 import co.voik.agesandtheart.age.word.PresetTags
-import co.voik.agesandtheart.age.slot.Share
+import co.voik.agesandtheart.age.aspect.Share
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.location
-import co.voik.agesandtheart.worldgen.FieldChunkGenerator
+import co.voik.agesandtheart.worldgen.AgeChunkGenerator
 import co.voik.agesandtheart.worldgen.SpireChunkGenerator
 import co.voik.agesandtheart.worldgen.biome.AgeBiomeSource
-import co.voik.agesandtheart.worldgen.biome.RegionBiomeSource
 import co.voik.agesandtheart.worldgen.field.Density
+import co.voik.agesandtheart.worldgen.field.Fault
 import co.voik.agesandtheart.worldgen.field.Grid
+import co.voik.agesandtheart.worldgen.field.Rift
 import co.voik.agesandtheart.worldgen.field.Placement
 import co.voik.agesandtheart.worldgen.field.PlacementKind
 import co.voik.agesandtheart.worldgen.field.Radial
 import co.voik.agesandtheart.worldgen.field.RegionMap
+import co.voik.agesandtheart.worldgen.field.Chance
+import co.voik.agesandtheart.worldgen.field.Choose
 import co.voik.agesandtheart.worldgen.field.RegionRule
 import co.voik.agesandtheart.worldgen.field.Scatter
+import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import com.mojang.serialization.JsonOps
 import net.minecraft.SharedConstants
@@ -29,7 +34,7 @@ import net.minecraft.server.Bootstrap
  *
  * It exists because of a specific bug that reached a server boot. A codec lives in a companion object,
  * a companion initialises top to bottom, and a field declared *below* one that reads it is simply null
- * at that moment — so `FieldChunkGenerator.CODEC` came out referencing a null helper and the game
+ * at that moment — so `AgeChunkGenerator.CODEC` came out referencing a null helper and the game
  * refused to start. Nothing caught it earlier because no offline check had reason to load those
  * classes: [RecipeCheck] deliberately stays registry-free and so never touches a generator.
  *
@@ -51,12 +56,12 @@ fun main() {
     Bootstrap.bootStrap()
 
     val codecs = listOf(
-        "chunk generator (field)" to FieldChunkGenerator.CODEC,
+        "chunk generator (field)" to AgeChunkGenerator.CODEC,
         "chunk generator (spire)" to SpireChunkGenerator.CODEC,
         "biome source (age)" to AgeBiomeSource.CODEC,
-        "biome source (regions)" to RegionBiomeSource.CODEC,
         "surface rule (regions)" to RegionRule.CODEC,
         "field tree" to TerrainField.CODEC,
+        "sky spec" to SkySpec.CODEC,
         "instability" to Instability.CODEC,
         "flaw" to Flaw.CODEC,
         "word" to Word.mapCodec("floating".location()).codec(),
@@ -73,8 +78,75 @@ fun main() {
     }
 
     placementsSurviveAWrite()
+    theRandomisedCombinatorsSurviveAWrite()
+    theFaultNodesSurviveAWrite()
 
     println("Codecs: all ${codecs.size} build, so no companion reads a field declared below it.")
+}
+
+/**
+ * `Chance` and `Choose`, written and read back — the same exception, earned the same way.
+ *
+ * No preset composes either yet (they are capability ahead of vocabulary, like `Terrain.ALTITUDE`), so nothing
+ * else in the build writes them and a field named wrong would wait for the first Age that used one. `Choose`
+ * has the more breakable shape of the two: a nested list of records whose `weight` is optional, so the
+ * round-trip below deliberately includes one alternative that states a weight and one that leaves it out.
+ *
+ * Their *behaviour* — reproducibility, counts, weights, probabilities — is `ChooseCheck`'s business, not this
+ * file's. This only asks whether the bytes survive.
+ */
+/**
+ * `Fault` and `Rift`, written and read back — and the case for them is stronger than for the two above.
+ *
+ * Both embed a whole `RegionMap` rather than a scalar, so a getter pointed at the wrong property or a field
+ * name that drifts loses an Age's *territories* and not just a number. And `Rift` is the toolkit's only
+ * node with a map and no children, so it is the one whose codec is built the other way round (a plain
+ * `CODEC`, not a `codec(self)`) — a mistake there would be invisible until an Age used one.
+ *
+ * `FaultCheck` owns their behaviour. This only asks whether the bytes survive.
+ */
+private fun theFaultNodesSurviveAWrite() {
+    val territories = RegionMap(
+        members = 2, scale = 400.0, blend = 12, originX = 40, originZ = -80, seed = 0x4E6109L,
+        shares = listOf(3.0, 1.0),
+    )
+    val cases = listOf<TerrainField>(
+        Fault(base = Slab(lowY = 60, highY = 70), map = territories, throws = listOf(32, -32)),
+        Rift(map = territories, halfWidth = 16.0, floorY = 40),
+    )
+    for (field in cases) {
+        val written = TerrainField.CODEC.encodeStart(JsonOps.INSTANCE, field).getOrThrow {
+            error("${field.kind} would not encode: $it")
+        }
+        val read = TerrainField.CODEC.parse(JsonOps.INSTANCE, written).getOrThrow {
+            error("${field.kind} encoded to $written and would not read back: $it")
+        }
+        check(read == field) { "${field.kind} came back changed: wrote $field, read $read" }
+    }
+}
+
+private fun theRandomisedCombinatorsSurviveAWrite() {
+    val cases = listOf<TerrainField>(
+        Chance(child = Slab(lowY = 0, highY = 8), probability = 0.3, seed = 12_345L),
+        Choose(
+            alternatives = listOf(
+                Choose.Alternative(Slab(lowY = 0, highY = 4), weight = 3.0),
+                Choose.Alternative(Slab(lowY = 10, highY = 14)),
+            ),
+            leastPlaced = 1,
+            mostPlaced = 2,
+            seed = 6_789L,
+        ),
+    )
+    for (field in cases) {
+        val written = TerrainField.CODEC.encodeStart(JsonOps.INSTANCE, field).getOrThrow {
+            error("${field.kind} would not encode: $it")
+        }
+        val read = TerrainField.CODEC.parse(JsonOps.INSTANCE, written).getOrThrow {
+            error("${field.kind} encoded to $written and would not read back: $it")
+        }
+        check(read == field) { "${field.kind} came back changed: wrote $field, read $read" }
+    }
 }
 
 /**

@@ -1,9 +1,14 @@
 {
   "tier": "restrictive",
-  "slots": [
-    "dressing"
+  "aspects": [
+    "climate",
+    "biomes"
   ],
   "query": {
     "lush": 1.0
+  },
+  "sets": {
+    "temperature": "0.0..0.6",
+    "humidity": "0.3..0.9"
   }
 }

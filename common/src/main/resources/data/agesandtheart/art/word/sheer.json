@@ -1,7 +1,7 @@
 {
   "tier": "exact",
-  "slots": [
-    "landform"
+  "aspects": [
+    "terrain"
   ],
   "query": {
     "sheer": 1.0

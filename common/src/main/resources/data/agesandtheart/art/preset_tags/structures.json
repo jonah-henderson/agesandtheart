@@ -1,0 +1,15 @@
+{
+  "none": {
+    "tags": {
+      "empty": 0.9
+    }
+  },
+  "vanilla": {
+    "readiness": 0.25,
+    "tags": {
+      "inhabited": 0.9,
+      "ordinary": 0.7,
+      "monumental": 0.3
+    }
+  }
+}

@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.worldgen
 
-import co.voik.agesandtheart.worldgen.field.AmbientMedium
+import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.Density
 import co.voik.agesandtheart.worldgen.field.Grid
 import co.voik.agesandtheart.worldgen.field.Instanced
@@ -24,22 +24,22 @@ import net.minecraft.world.level.biome.BiomeSource
 object PyramidField {
 
     /** Density-gradient grid: pyramids crowd the origin and thin out with distance. */
-    fun generator(biomeSource: BiomeSource): FieldChunkGenerator =
-        world(gradientGrid(), Variation.NONE).let { FieldChunkGenerator(biomeSource, it, AmbientMedium.VOID, Palette.BARE_ROCK) }
+    fun generator(biomeSource: BiomeSource): AgeChunkGenerator =
+        world(gradientGrid(), Variation.NONE).let { AgeChunkGenerator(biomeSource, it, SeaFill.NONE, Palette.BARE_ROCK) }
 
     /** Concentric rings of pyramids around an empty centre. */
-    fun ringsGenerator(biomeSource: BiomeSource): FieldChunkGenerator =
+    fun ringsGenerator(biomeSource: BiomeSource): AgeChunkGenerator =
         world(rings(), Variation.NONE)
-            .let { FieldChunkGenerator(biomeSource, it, AmbientMedium.VOID, Palette.BARE_ROCK) }
+            .let { AgeChunkGenerator(biomeSource, it, SeaFill.NONE, Palette.BARE_ROCK) }
 
     /**
      * The same gradient grid, but every copy takes one of [YAW_STEPS] orientations and one of
      * [SCALE_STEPS] sizes — the pose half of instancing variety, side by side with the plain
      * [generator] for comparison.
      */
-    fun variedGenerator(biomeSource: BiomeSource): FieldChunkGenerator =
+    fun variedGenerator(biomeSource: BiomeSource): AgeChunkGenerator =
         world(gradientGrid(), variedPoses())
-            .let { FieldChunkGenerator(biomeSource, it, AmbientMedium.VOID, Palette.BARE_ROCK) }
+            .let { AgeChunkGenerator(biomeSource, it, SeaFill.NONE, Palette.BARE_ROCK) }
 
     private fun gradientGrid() = Grid(
         spacing = GRID_SPACING,
@@ -59,7 +59,7 @@ object PyramidField {
     )
 
     /**
-     * The pyramids, arranged as asked. The three arrangements were three separate presets before slots
+     * The pyramids, arranged as asked. The three arrangements were three separate presets before aspects
      * existed; they are one preset and one enumerated question now, which is what §3.2 is for.
      */
     fun world(arrangement: String): TerrainField = when (arrangement) {

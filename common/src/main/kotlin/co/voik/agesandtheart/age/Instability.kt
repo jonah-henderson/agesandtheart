@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.age
 
-import co.voik.agesandtheart.age.slot.Slot
+import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.word.Tier
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
@@ -36,26 +36,35 @@ enum class Register(
     TENSION("tension", base = 1),
 
     /**
-     * A slot had to divide itself in two to honour everything asked of it.
+     * A aspect had to **break into fragments** to honour everything asked of it.
      *
      * The world is intact and both words are in it, but the sentence described a place that cannot be one
      * place — so the ground shears mid-air at a boundary, or a sea of water meets a sea of lava at one
-     * level. Exactly the impossible geometry the set-valued slots exist to produce.
+     * level. Exactly the impossible geometry the set-valued aspects exist to produce.
+     *
+     * **Called a fracture rather than a division, and the scarcity is the point** (Jonah, 2026-07-29). A aspect
+     * divides for two quite different reasons: because it could not reconcile a contradiction, which is this;
+     * and because a vague word simply *liked* two answers, which is harmony, charged nothing, and produces no
+     * flaw at all (see [co.voik.agesandtheart.age.aspect.Aspect.appetiteForCompany]). Naming both of them
+     * "division" made the word describe every divided world including the pretty ones. Reserved for the charged
+     * case, "this Age is fragmented" *means* something — you wrote a contradiction the world had to break to
+     * honour — which is also the reading §5's consequences want. The mechanism keeps its own neutral names:
+     * `region` and `territory` stay what they are.
      */
-    DIVISION("division", base = 1),
+    FRACTURE("fracture", base = 1),
 
     /**
-     * A word lost outright: it asked for something the slot could have been, and something else already
-     * had the slot.
+     * A word lost outright: it asked for something the aspect could have been, and something else already
+     * had the aspect.
      *
-     * Where a positional slot would have divided, a singular one cannot — and a sky can only be one sky.
+     * Where a positional aspect would have divided, a singular one cannot — and a sky can only be one sky.
      * This is the register the harsher consequences of §5 hang off, because the world genuinely does not
      * contain what the writer asked for.
      */
     DISPLACED("displaced", base = 2),
 
     /**
-     * Nothing in the slot could *ever* be what the word asked for.
+     * Nothing in the aspect could *ever* be what the word asked for.
      *
      * Per §3.3 this is a **content bug rather than a play outcome** — we only make words we can back up,
      * and `:common:vocabularycheck` exists to keep it from shipping. It is a register anyway because of
@@ -80,7 +89,7 @@ enum class Register(
  *
  * **Provenance is the point** (§4.6): an index alone can never be made diagnosable, and diagnosability is
  * the whole difference between this and arbitrary punishment. A wound has to be *sited at* the
- * contradiction (§5.1), which means knowing which words fought, over which tags, in which slot.
+ * contradiction (§5.1), which means knowing which words fought, over which tags, in which aspect.
  *
  * Stored structurally, with the English generated at reading time — a save file is no place for prose that
  * will want translating.
@@ -90,7 +99,7 @@ data class Flaw(
     /** The words involved, most responsible first. One for a word that failed alone, two for a fight. */
     val words: List<String>,
     /** Where it happened, or null for a flaw the whole sentence owns. */
-    val slot: Slot?,
+    val aspect: Aspect?,
     /** The tags that disagreed, where two did. */
     val tags: List<String>,
     /** What it cost, frozen — so retuning the charges cannot rewrite an Age already written. */
@@ -101,10 +110,10 @@ data class Flaw(
         val quoted = words.map { "'$it'" }
         val both = quoted.joinToString(" and ")
         val over = if (tags.size == 2) " (${tags[0]} against ${tags[1]})" else ""
-        val where = slot?.key ?: "the sentence"
+        val where = aspect?.key ?: "the sentence"
         return when (register) {
             Register.TENSION -> "$both pull opposite ways in $where$over, and the world made room for both"
-            Register.DIVISION -> "the $where divided so that $both could both stand$over"
+            Register.FRACTURE -> "the $where fractured so that $both could both stand$over"
             Register.DISPLACED -> "${quoted.firstOrNull() ?: "a word"} was crowded out of $where" +
                 quoted.drop(1).firstOrNull().orEmpty().let { if (it.isEmpty()) "" else " by $it" } + over
             Register.UNBACKED -> "nothing in $where can be ${quoted.firstOrNull() ?: "that"} — " +
@@ -119,17 +128,17 @@ data class Flaw(
             instance.group(
                 Register.CODEC.fieldOf("register").forGetter(Flaw::register),
                 Codec.STRING.listOf().fieldOf("words").forGetter(Flaw::words),
-                SLOT_CODEC.optionalFieldOf("slot").forGetter { Optional.ofNullable(it.slot) },
+                ASPECT_CODEC.optionalFieldOf("aspect").forGetter { Optional.ofNullable(it.aspect) },
                 Codec.STRING.listOf().optionalFieldOf("tags", emptyList()).forGetter(Flaw::tags),
                 Codec.INT.fieldOf("severity").forGetter(Flaw::severity),
-            ).apply(instance) { register, words, slot, tags, severity ->
-                Flaw(register, words, slot.orElse(null), tags, severity)
+            ).apply(instance) { register, words, aspect, tags, severity ->
+                Flaw(register, words, aspect.orElse(null), tags, severity)
             }
         }
     }
 }
 
-private val SLOT_CODEC: Codec<Slot> = StringRepresentable.fromEnum(Slot::values)
+private val ASPECT_CODEC: Codec<Aspect> = StringRepresentable.fromEnum(Aspect::values)
 
 /**
  * How far an Age is at odds with itself, and why — part of its recipe, because §5's consequences have to

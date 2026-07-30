@@ -44,6 +44,9 @@ data class BiomePreference(val biome: ResourceLocation, val weight: Double) {
         /** What a bare mention is worth, before any quantifier exists to say otherwise. */
         const val WEIGHT_OF_A_MENTION = 1.0
 
+        /** What `except` is worth — see [removes], and why removal shares the field rather than a flag. */
+        const val STRUCK_OUT = 0.0
+
         val CODEC: Codec<BiomePreference> = RecordCodecBuilder.create { instance ->
             instance.group(
                 ResourceLocation.CODEC.fieldOf("biome").forGetter(BiomePreference::biome),
@@ -56,25 +59,56 @@ data class BiomePreference(val biome: ResourceLocation, val weight: Double) {
          *
          * Removals are resolved first, so `except` beats a mention of the same biome rather than depending
          * on which the writer said first — §3.5's rule that word order decides nothing, applied here.
+         *
+         * [keepsOnlyNamed] is `only`: everything the sentence did not name goes, which the table has to decide
+         * because it is the only thing that knows what else was in it. A mention among the survivors still
+         * widens, so `only cherry_grove` is a world of cherry groves and `only cherry_grove desert` is a world
+         * of two places.
          */
         fun applied(
             table: Climate.ParameterList<Holder<Biome>>,
             preferences: List<BiomePreference>,
+            keepsOnlyNamed: Boolean,
             biomes: HolderGetter<Biome>,
             seed: Long,
         ): Climate.ParameterList<Holder<Biome>> {
-            if (preferences.isEmpty()) return table
+            if (preferences.isEmpty() && !keepsOnlyNamed) return table
+            val named = preferences.filterNot { it.removes }.map { it.biome }.toSet()
             val removed = preferences.filter { it.removes }.map { it.biome }.toSet()
-            val kept = table.values().filterNot { entry -> idOf(entry.second) in removed }
+            val survives = { entry: Pair<Climate.ParameterPoint, Holder<Biome>> ->
+                val id = idOf(entry.second)
+                val struckOut = id in removed
+                val leftOutOfAnOnly = keepsOnlyNamed && id !in named
+                !struckOut && !leftOutOfAnOnly
+            }
+            // **Add first, restrict second — and that order is the whole of expressing "only this biome".**
+            //
+            // It used to be the other way round, and the bug it caused is worth keeping written down. `only`
+            // filtered vanilla's table and *then* additions were anchored against whatever survived, so naming a
+            // biome the table has no entry for — a datapack biome, a nether or End one — emptied it, tripped the
+            // guard below, and threw the whole narrowing away. An Age asking for "only plasma" silently got
+            // vanilla's twenty-two biomes, complete with their decoration. That is precisely §3.3's silent drop,
+            // and it hid behind a warning nobody reads.
+            //
+            // Anchoring additions against the **unfiltered** table instead makes one mechanism cover everything
+            // (Jonah: *"eventually just subsets of biomes too, we need to be able to express all"*):
+            //   - `only plasma`        → plasma is added, then everything else is dropped: one biome everywhere.
+            //   - `only ocean beach`   → a subset, as before.
+            //   - `plasma`             → added to vanilla's table and mingled with it.
+            //   - `except desert`      → struck out, as before.
+            // The additions are what `entriesFor` earns a biome, including a synthetic climate point for one the
+            // table has never heard of — which is exactly why it must see the full table to place it.
+            val added = preferences.filterNot { it.removes }
+                .flatMap { preference -> entriesFor(preference, table.values(), biomes, seed) }
+            val kept = (table.values() + added).filter(survives)
             if (kept.isEmpty()) {
-                // Every biome struck out. A world with nothing in it is not a world, so the exclusions are
-                // refused wholesale rather than leaving a table that cannot answer a query at all.
-                Constants.LOG.warn("An Age excluded every biome it had; the exclusions are ignored")
+                // Still reachable: every biome struck out by `except`, or an `only` naming nothing at all. A world
+                // with nothing in it is not a world, so the narrowing is refused wholesale rather than leaving a
+                // table that cannot answer a query.
+                Constants.LOG.warn("An Age narrowed its biomes down to none; the narrowing is ignored")
                 return table
             }
-            val added = preferences.filterNot { it.removes }
-                .flatMap { preference -> entriesFor(preference, kept, biomes, seed) }
-            return Climate.ParameterList(kept + added)
+            return Climate.ParameterList(kept)
         }
 
         /**

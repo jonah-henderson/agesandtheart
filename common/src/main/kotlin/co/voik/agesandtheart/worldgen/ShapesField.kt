@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.worldgen
 
-import co.voik.agesandtheart.worldgen.field.AmbientMedium
+import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.Box
 import co.voik.agesandtheart.worldgen.field.Cylinder
 import co.voik.agesandtheart.worldgen.field.HalfSpace
@@ -31,8 +31,8 @@ object ShapesField {
         return Union(listOf(ground, tower(), monolith(), octahedron(), ramp(), mesa(), arch()))
     }
 
-    fun generator(biomeSource: BiomeSource): FieldChunkGenerator =
-        FieldChunkGenerator(biomeSource, world(), AmbientMedium.VOID, Palette.BARE_ROCK)
+    fun generator(biomeSource: BiomeSource): AgeChunkGenerator =
+        AgeChunkGenerator(biomeSource, world(), SeaFill.NONE, Palette.BARE_ROCK)
 
     /** Station 0 — a bare upright [Cylinder]. */
     private fun tower() = Cylinder(

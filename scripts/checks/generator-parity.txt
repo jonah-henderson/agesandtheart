@@ -1,0 +1,59 @@
+# Does a change to the generator move any terrain? Run with: scripts/drive-server.sh --level <name>
+#
+# The protocol, and the third step is not optional:
+#
+#   git checkout main   && scripts/drive-server.sh --level parity-base    < scripts/checks/generator-parity.txt
+#   git checkout <work> && scripts/drive-server.sh --level parity-new     < scripts/checks/generator-parity.txt
+#   git checkout main   && scripts/drive-server.sh --level parity-control < scripts/checks/generator-parity.txt
+#   ./gradlew :common:terraindiff --args="<runs>/parity-base <runs>/parity-new"
+#   ./gradlew :common:terraindiff --args="<runs>/parity-base <runs>/parity-control"
+#
+# **Read the two diffs together.** Ages that decorate do NOT reproduce block-for-block even against
+# themselves (design §6.5, and Phase 1's acceptance said so), so `pvanilla` differing is meaningless on its
+# own — what matters is whether it differs from the *rewrite* by more than it differs from *itself*. During
+# the 2026-07-28 subclassing work this exact figure was 16 against a control of 15, and without the control
+# it read as a regression twice.
+#
+# **The baseline was reset after Phase 4.5 step 5** (Jonah, 2026-07-29: *"it is acceptable for some overturn
+# while we are still in early development, so rather than alter the checks, let's just reset the baseline to
+# after the aspect drop"*). Deleting the dressing changed nearly every composed Age, so a baseline from before it
+# would only ever report noise. Regenerate `parity-base` from the current commit before measuring a later step.
+#
+# **The control is now mandatory for EVERY Age, not just `pvanilla`.** Deleting the barren dressings means every
+# composed Age uses vanilla's biome table and palette — so every composed Age *decorates*, and decoration does not
+# reproduce block for block. Measured immediately after the reset, base against control on identical code:
+#
+#   pbare 2 · pmaterial 5 · pdivided 8 · pvoid 10 · pvanilla 11 · pspire 0
+#
+# `pspire` is the only true zero left, being a bespoke Tier-B generator on its own biome. So "5 of 6 identical" is
+# gone as a pass condition: read each Age against its own control number and look for a figure outside that band.
+#
+# Each Age below covers a different path.
+# ONE RUN PER WORLD. Re-running into a world that already has these Ages composes nothing and benches
+# already-generated chunks, which looks like a pass and tests nothing.
+
+# Vanilla's biome table, real structures, carvers, an aquifer — the widest path, and the one that decorates.
+age compose pvanilla 4242 terrain=hills sea=water carvers=caves structures=vanilla sky=plain
+age bench pvanilla 4
+
+# A narrowed climate: the biome table bounded to a hot dry stretch, with a fractured pair below.
+age compose pbare 4242 terrain=spire_islands sea=water carvers=weathered climate.temperature=0.4..0.9 sky=storm
+age bench pbare 4
+
+# A material in the fill, a lava sea, porosity — the substance path.
+age compose pmaterial 4242 terrain=pillars sea=lava carvers=porous terrain.stone=minecraft:blackstone sky=plain
+age bench pmaterial 4
+
+# Divided: two carvers and two terrains with a material each, so RegionMap and Substance both do real work.
+age compose pdivided 4242 terrain=eroded{stone=minecraft:tuff},pillars{stone=minecraft:andesite} sea=water carvers=caves,solid sky=plain
+age bench pdivided 4
+
+# A VOID sea, whose `level` is Int.MIN_VALUE — the sentinel that reaches getSeaLevel and the world floor.
+age compose pvoid 4242 terrain=pyramids sea=void carvers=solid sky=plain
+age bench pvoid 4
+
+# The control that is not a composed Age at all: a bespoke Tier-B generator, which must never move.
+age create spire pspire 4242
+age bench pspire 4
+
+age list

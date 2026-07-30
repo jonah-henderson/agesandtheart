@@ -1,9 +1,9 @@
 package co.voik.agesandtheart.preview
 
-import co.voik.agesandtheart.age.slot.Slot
+import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.grammar.Grammar
-import co.voik.agesandtheart.age.word.grammar.Polarity
+import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.word.grammar.Scope
 import co.voik.agesandtheart.age.word.grammar.Sentence
 import net.minecraft.SharedConstants
@@ -95,7 +95,7 @@ private fun aSectionAttachesItsModifiers(vocabulary: Vocabulary) {
  * §4.3.1's tier rule, first half — and the one that protects the beginner's sentence.
  *
  * `beautiful floating` must leave "beautiful" reaching the whole world, merely leaning hardest on the
- * landform. Confining it here would make the commonest thing anyone writes the *narrow* reading, which
+ * terrain. Confining it here would make the commonest thing anyone writes the *narrow* reading, which
  * inverts "vague is free and precision is paid for".
  */
 private fun anEvocativeWordStaysGlobalWhenAimed(vocabulary: Vocabulary) {
@@ -103,8 +103,8 @@ private fun anEvocativeWordStaysGlobalWhenAimed(vocabulary: Vocabulary) {
     val beautiful = read.constraints.first { it.word.name == "beautiful" }
     val scope = beautiful.scope as? Scope.Everywhere
         ?: error("an aimed evocative word was confined to ${beautiful.scope}, which demotes it to restrictive")
-    check(Slot.LANDFORM in scope.emphasised) {
-        "'beautiful' before a landform should lean on the landform, but emphasises ${scope.emphasised}"
+    check(Aspect.TERRAIN in scope.emphasised) {
+        "'beautiful' before a terrain should lean on the terrain, but emphasises ${scope.emphasised}"
     }
 }
 
@@ -113,7 +113,7 @@ private fun aNarrowingWordIsConfined(vocabulary: Vocabulary) {
     val read = Grammar.read(vocabulary, listOf("floating"))
     val floating = read.constraints.single()
     val scope = floating.scope as? Scope.Confined ?: error("'floating' was left global at ${floating.scope}")
-    check(scope.slots == setOf(Slot.LANDFORM)) { "'floating' reaches ${scope.slots}" }
+    check(scope.aspects == setOf(Aspect.TERRAIN)) { "'floating' reaches ${scope.aspects}" }
 }
 
 /**
@@ -205,19 +205,19 @@ private fun nothingVanishesInSilence(vocabulary: Vocabulary) {
 /**
  * "A world of blackstone" — a book with no subject at all.
  *
- * It names no dressing; it names the rock a dressing is painted on, which is the sentence the material hook
- * was built for (§3.2). A grammar demanding a subject in every section left a writer holding only material
- * pages unable to say anything, and `/age write basalt` came back refused — found on a server, not here.
+ * It names no shape; it names what the rock a shape is made of, which is the sentence the material hook was
+ * built for (§3.2). A grammar demanding a subject in every section left a writer holding only material pages
+ * unable to say anything, and `/age write basalt` came back refused — found on a server, not here.
  *
- * With nothing aimed at them, such words fall back to the slots they declare themselves, which is exactly
+ * With nothing aimed at them, such words fall back to the aspects they declare themselves, which is exactly
  * what an unaimed word has always meant.
  */
 private fun aBookThatOnlySteersStillSaysSomething(vocabulary: Vocabulary) {
     val read = Grammar.read(vocabulary, listOf("basalt"))
     check(read.dropped.isEmpty()) { "'basalt' alone was unreadable: ${read.dropped}" }
     val basalt = read.constraints.singleOrNull() ?: error("'basalt' alone gave ${read.constraints}")
-    check(Slot.DRESSING in basalt.scope.reaches(emptyList())) {
-        "an unaimed material lost its own declared slot: ${basalt.scope}"
+    check(Aspect.TERRAIN in basalt.scope.reaches(emptyList())) {
+        "an unaimed material lost its own declared aspect: ${basalt.scope}"
     }
 }
 

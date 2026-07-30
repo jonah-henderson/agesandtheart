@@ -1,0 +1,15 @@
+{
+  "structures": [
+    {
+      "structure": "minecraft:bastion_remnant",
+      "weight": 1
+    }
+  ],
+  "placement": {
+    "type": "minecraft:random_spread",
+    "spacing": 35,
+    "separation": 5,
+    "spread_type": "linear",
+    "salt": 30084234
+  }
+}

@@ -7,10 +7,15 @@ import co.voik.agesandtheart.worldgen.PillarField
 import co.voik.agesandtheart.worldgen.ShapesField
 import co.voik.agesandtheart.worldgen.SpireField
 import co.voik.agesandtheart.age.Seam
+import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.worldgen.carver.Weathering
+import co.voik.agesandtheart.worldgen.field.Fault
+import co.voik.agesandtheart.worldgen.field.Raised
 import co.voik.agesandtheart.worldgen.field.RegionMap
 import co.voik.agesandtheart.worldgen.field.Regions
+import co.voik.agesandtheart.worldgen.field.Rift
 import co.voik.agesandtheart.worldgen.field.TerrainField
+import co.voik.agesandtheart.worldgen.field.Weathered
 import java.awt.image.BufferedImage
 import java.io.File
 import javax.imageio.ImageIO
@@ -58,15 +63,99 @@ private class Subject(
     val lowestY: Int,
     val highestY: Int,
     val radius: Int = 128,
+    /**
+     * How far up the world this subject floats, matching what a recipe pins — see `Terrain.ALTITUDE`.
+     *
+     * Carried here rather than baked into [field] because a lift has to reach the *weathering* too: erosion's
+     * keel and band are absolute heights, so a shape raised without its wind would sail straight over the band
+     * and come out unweathered. One number, applied to both, exactly as the generator does it.
+     */
+    val lift: Int = 0,
+) {
+    /**
+     * The field as it will actually generate — the shape with its weathering wrapped around it, or the bare shape
+     * when the wind is switched off.
+     *
+     * Built through `Weathered.spire`, the same factory the generator uses, so there is no second set of numbers
+     * to drift. An earlier version repeated them here and excused it on the grounds that a disagreement would
+     * show up as the preview differing from the game — which is precisely the failure this node exists to make
+     * impossible.
+     */
+    fun weathered(): TerrainField {
+        val raised = if (lift == 0) field else Raised(field, lift)
+        return if (weathering === Weathering.NONE) raised else Weathered.spire(raised, lift)
+    }
+}
+
+/**
+ * The two shapes the divided subjects share, so a fault and a rift are read against the same `regions`.
+ *
+ * Declared **above** [subjects] and not below it: top-level properties initialise in file order, and one
+ * read from above its declaration is simply null — the exact failure `:common:codeccheck` exists to catch
+ * in companions.
+ */
+private val dividedTerrains = listOf(NoiseField.hills(), PillarField.world())
+
+/**
+ * And one landscape either side, for the three seam-form subjects.
+ *
+ * The same terrain twice on purpose: it makes the boundary invisible until a form is applied, so each picture
+ * shows the form and nothing else. Two *different* shapes already meet at a cliff of their own.
+ */
+private val twoOfOneTerrain = listOf(NoiseField.hills(), NoiseField.hills())
+
+/**
+ * The one territory map they read, since a seam has to be the same seam in every picture.
+ *
+ * A knife edge, which is what every form but [Seam.FUZZED] draws — see [fuzzedTerritories] for the third.
+ */
+private val territories = RegionMap(
+    members = 2,
+    scale = 400.0,
+    blend = Seam.SCARP.blendBlocks(400),
+    originX = 0,
+    originZ = 0,
+    seed = 0x4E6109L,
 )
+
+/**
+ * The same territories fuzzed — the rare form, and the only one that is a *width* rather than a displacement,
+ * so it is the only one visible in the map instead of in a node over the shape.
+ *
+ * It gets a subject of its own because it used to be a *combination* rather than a form: a fault layered over
+ * an independently-drawn transition width, which threw the interlocking columns alternately up and down and
+ * produced a strip of one-block spikes as tall as the throw. That is unrepresentable now — a seam is one form
+ * or another — and the pictures are what the change is best judged by, so both survive as subjects.
+ *
+ * **It is 16 blocks wide, not the 48 it was first built at**, which is worth knowing before reading the render:
+ * a band this narrow is a detail of a boundary rather than a feature you can see from above. Jonah's call, and
+ * about a person rather than a territory — past about this much a dissolve stops reading as a boundary and
+ * starts reading as the world having stopped making sense. See [Seam.WIDEST_FUZZ_BLOCKS].
+ */
+private val fuzzedTerritories = territories.copy(blend = Seam.FUZZED.blendBlocks(400))
 
 private val subjects: Map<String, Subject> = mapOf(
     // Wide enough to hold more than one island, because size and lift variation is a thing you can only
     // see by comparing copies; and tall enough to reach the world ceiling, so a spire that runs into it
     // reads as a clipped flat top rather than as the window's edge.
-    "spire" to Subject(SpireField.world(), Weathering.SPIRE, lowestY = 100, highestY = 320, radius = 300),
+    //
+    // **The floor followed the deck down on 2026-07-29 and must keep following it.** It was 100, which was
+    // comfortably below an island when the deck sat at y=190; once the deck dropped to 148 to buy the 2:1
+    // split, the hanging spires reached past it and the readout started reporting the *window's* edge as the
+    // rock's. A measurement that silently clips is worse than none — 56 sits just under the sea at 63, which
+    // is as low as an island is ever allowed to hang.
+    // **The window follows the Age's own vertical band**, which for the Spire is `VerticalWindow.LIFTED` —
+    // y 0..383 rather than -64..319 — because the recipe pins `altitude=high`. Keeping 320 here would have
+    // reported the window's edge as the rock's, the same silent clip the note above warns about.
+    "spire" to Subject(
+        SpireField.world(), Weathering.SPIRE, lowestY = 56, highestY = 383, radius = 300,
+        lift = Terrain.HIGH_ALTITUDE_LIFT,
+    ),
     // The same islands with weathering switched off — the pair shows what erosion is actually contributing.
-    "spire-nowind" to Subject(SpireField.world(), Weathering.NONE, lowestY = 100, highestY = 320, radius = 300),
+    "spire-nowind" to Subject(
+        SpireField.world(), Weathering.NONE, lowestY = 56, highestY = 383, radius = 300,
+        lift = Terrain.HIGH_ALTITUDE_LIFT,
+    ),
     "hills" to Subject(NoiseField.hills(), Weathering.NONE, lowestY = 20, highestY = 120),
     "pillars" to Subject(PillarField.world(), Weathering.NONE, lowestY = 30, highestY = 185),
     "shapes" to Subject(ShapesField.world(), Weathering.NONE, lowestY = 55, highestY = 130, radius = 200),
@@ -76,21 +165,81 @@ private val subjects: Map<String, Subject> = mapOf(
     "caverns-voids" to Subject(CavernField.caves(), Weathering.NONE, lowestY = -64, highestY = 70),
     "eroded" to Subject(ErodedField.world(), Weathering.NONE, lowestY = 30, highestY = 195, radius = 200),
 
-    // Two landforms sharing a world. The top-down view is the one to read: it shows the territories and
+    // Two terrains sharing a world. The top-down view is the one to read: it shows the territories and
     // what the seam does to whatever it cuts through. Region size here is the default one, so this is
     // what an Age written in a default world looks like.
     "regions" to Subject(
-        Regions(
-            members = listOf(NoiseField.hills(), PillarField.world()),
-            map = RegionMap(
-                members = 2,
-                scale = 400.0,
-                blend = Seam.KEEN.blendBlocks(400),
-                originX = 0,
-                originZ = 0,
-                seed = 0x4E6109L,
-            ),
+        Regions(members = dividedTerrains, map = territories),
+        Weathering.NONE,
+        lowestY = 30,
+        highestY = 185,
+        radius = 420,
+    ),
+
+    // **`fault`, `rift` and `fuzz` are the three forms a seam can take, and they are a set to read together.**
+    // Each is `Seam.SCARP`, `Seam.RIFT` or `Seam.FUZZED` applied to the SAME two territories, so the pictures
+    // differ by nothing but the form. Whether a scarp reads as drama or as breakage is the entire acceptance
+    // test for Phase 4.5 step 9, and these three plus `hills` are what it is read from.
+
+    // A scarp: `Seam.SCARP`. **Read against `hills` above**, and note that both territories are the same
+    // terrain — the point of the picture rather than laziness. The first version divided hills from pillars,
+    // as `regions` does, and showed nothing: those two already stand about ninety blocks apart, so a throw of
+    // thirty-two disappeared into a step that was there anyway (design §3.4's "terrain-vs-terrain faults
+    // already happen", met from the wrong end). With one landscape either side the seam is invisible without
+    // a throw and a clean sixty-four-block cliff with one, so the picture shows the node and nothing else.
+    //
+    // The window opens by the throw at both ends, so a thrown territory cannot be clipped by the *picture* and
+    // read as clipped by the world — the silent-clip trap `spire`'s floor note warns about.
+    "fault" to Subject(
+        Fault(
+            base = Regions(members = twoOfOneTerrain, map = territories),
+            map = territories,
+            // The same helper the generator uses, so the picture cannot disagree about which side rises.
+            throws = Fault.alternatingThrows(members = 2, throwBlocks = Terrain.SCARP_THROW, seed = 1L),
         ),
+        Weathering.NONE,
+        lowestY = 20 - Terrain.SCARP_THROW,
+        highestY = 120 + Terrain.SCARP_THROW,
+        radius = 420,
+    ),
+
+    // A rift: `Seam.RIFT`. The top-down view shows how wide the band comes out and how far it runs; the slices
+    // show it as a chasm rather than as a stripe of missing map. Two shapes here rather than one, since a
+    // chasm cutting through both is what a written Age will usually look like.
+    //
+    // **`:common:faultcheck` prints the band's width in blocks**, which is the number to tune
+    // `Rift.DEFAULT_HALF_WIDTH` against — the seam distance it is measured in is proportionate rather than
+    // surveyed, so what the constant means on the ground is something to read off, not to reason about.
+    "rift" to Subject(
+        Rift.opened(
+            base = Regions(members = dividedTerrains, map = territories),
+            map = territories,
+            floorY = Terrain.RIFT_FLOOR,
+        ),
+        Weathering.NONE,
+        lowestY = 30,
+        highestY = 185,
+        radius = 420,
+    ),
+
+    // The fuzz: `Seam.FUZZED`, the rare form and the only one that is a *width*. There is no node — the whole
+    // of it is in the map, so this is a plain `Regions` over a blended one, and what to look at is the band
+    // where the two shapes dissolve into each other instead of meeting. Read it against `regions`, which is
+    // the same pair knife-edged.
+    //
+    // **Two DIFFERENT shapes here, where `fault` needs one shape twice, and the asymmetry is the finding.**
+    // Fuzzing one terrain against itself is invisible by construction: interlocking two identical shapes
+    // column by column reproduces that shape exactly, and the first version of this subject came out as plain
+    // hills. So the three forms are not quite peers — a scarp and a rift *make* geology and show up between
+    // any two territories, while the fuzz only softens a boundary that was already there and does nothing
+    // wherever the two sides happen to be similar. Worth knowing before reading "5% of Ages get a fuzzed
+    // border" as though it always delivered as much as the other two.
+    //
+    // **Worth reading against `fault` in particular**, because the pair is the argument for the whole reshape:
+    // these two used to be able to happen at once, and the combination threw the interlocking columns
+    // alternately up and down into a picket fence of one-block spikes. A seam is one form or the other now.
+    "fuzz" to Subject(
+        Regions(members = dividedTerrains, map = fuzzedTerritories),
         Weathering.NONE,
         lowestY = 30,
         highestY = 185,
@@ -99,23 +248,28 @@ private val subjects: Map<String, Subject> = mapOf(
 )
 
 /**
- * Solidity for the whole window, resolved once. Mirrors generation exactly: the field lays rock down and
- * the weathering takes some back out.
+ * Solidity for the whole window, resolved once.
+ *
+ * **Asks the very field generation asks, and that is now the whole point.** It used to walk the shape and apply
+ * the weathering itself, which was a faithful mirror only for as long as the two stayed identical — and they did
+ * not: once erosion learned to spare a column by how thick its rock stands (see `Weathered`), a preview applying
+ * the bare rule showed a world nobody would ever generate. Building the same node the generator builds means
+ * there is no second implementation to drift.
  */
 private fun solidity(subject: Subject): BooleanArray {
     val width = subject.radius * 2
     val height = subject.highestY - subject.lowestY + 1
     val solid = BooleanArray(width * width * height)
+    val shape = subject.weathered()
 
     for (imageX in 0..<width) {
         val worldX = imageX - subject.radius
         for (imageZ in 0..<width) {
             val worldZ = imageZ - subject.radius
-            val spans = subject.field.columnSpans(worldX, worldZ)
+            val spans = shape.columnSpans(worldX, worldZ)
             if (spans.ranges.isEmpty()) continue
             for (worldY in subject.lowestY..subject.highestY) {
                 if (!spans.contains(worldY)) continue
-                if (subject.weathering.erodes(worldX, worldY, worldZ)) continue
                 solid[index(subject, imageX, worldY, imageZ)] = true
             }
         }
@@ -236,27 +390,51 @@ private fun draw(blocksWide: Int, blocksHigh: Int, shade: (Int, Int) -> Int): Bu
 private fun report(name: String, solid: BooleanArray, subject: Subject, output: File) {
     val width = subject.radius * 2
     val columns = width * width
-    var occupied = 0
-    var tallest = Int.MIN_VALUE
+    val tops = ArrayList<Int>()
 
     for (imageX in 0..<width) {
         for (imageZ in 0..<width) {
             val top = (subject.highestY downTo subject.lowestY)
                 .firstOrNull { solid[index(subject, imageX, it, imageZ)] }
-            if (top != null) {
-                occupied++
-                tallest = maxOf(tallest, top)
-            }
+            if (top != null) tops += top
         }
     }
     val standing = solid.count { it }
-    val area = if (occupied == 0) "no rock in window" else "${occupied * 100 / columns}% of columns hold rock"
-    val peak = if (tallest == Int.MIN_VALUE) "—" else tallest.toString()
+    val area = if (tops.isEmpty()) "no rock in window" else "${tops.size * 100 / columns}% of columns hold rock"
+    val peak = tops.maxOrNull()?.toString() ?: "—"
     println("$name: $area, ${standing} solid blocks, tallest y=$peak")
+    reportTops(tops)
     reportResistance(subject)
     println("  window ±${subject.radius} blocks, y ${subject.lowestY}..${subject.highestY}")
     println("  wrote ${output.absolutePath}/$name-view-{y,z,x}.png")
 }
+
+/**
+ * Where the rock's *surfaces* actually sit, which is a different question from how tall the tallest column is.
+ *
+ * The single peak is the one instance that got the biggest roll on its own axis, and reading altitude off it is
+ * misleading by a wide margin: `PEAK_CEILING` said 296 while most island tops were nowhere near it. Since the
+ * brief for the Spire is written against the cloud decks — *"the highest points of the ellipsoids are just below
+ * the upper cloud layer"* — a percentile spread plus a count of what breaks each deck is the readout that
+ * actually answers it.
+ */
+private fun reportTops(tops: List<Int>) {
+    if (tops.isEmpty()) return
+    val sorted = tops.sorted()
+    fun at(fraction: Double) = sorted[(sorted.size * fraction).toInt().coerceAtMost(sorted.size - 1)]
+    val overUpper = tops.count { it > UPPER_CLOUD_DECK }
+    val overLower = tops.count { it > LOWER_CLOUD_DECK }
+    println("  column tops: p10 ${at(0.10)}, median ${at(0.50)}, p90 ${at(0.90)}, p99 ${at(0.99)}")
+    println(
+        "  above the lower cloud deck ($LOWER_CLOUD_DECK): ${overLower * 100 / tops.size}%" +
+            ", above the upper ($UPPER_CLOUD_DECK): ${overUpper * 100 / tops.size}%"
+    )
+}
+
+// Mirrored from `AgeCloudRenderer`, which is client-side and so out of this module's reach. Only ever read for
+// the printed comparison above — nothing here generates against them.
+private const val UPPER_CLOUD_DECK = 265
+private const val LOWER_CLOUD_DECK = 217
 
 /**
  * The spread of the resistance noise, which every threshold in [Weathering] is judged against. Worth

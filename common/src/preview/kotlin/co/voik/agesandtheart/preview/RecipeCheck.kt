@@ -10,14 +10,16 @@ import co.voik.agesandtheart.age.Flaw
 import co.voik.agesandtheart.age.Instability
 import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.age.Seam
-import co.voik.agesandtheart.age.slot.Dressing
-import co.voik.agesandtheart.age.slot.Landform
-import co.voik.agesandtheart.age.slot.Medium
-import co.voik.agesandtheart.age.slot.Share
-import co.voik.agesandtheart.age.slot.Sky
-import co.voik.agesandtheart.age.slot.Slot
-import co.voik.agesandtheart.age.slot.SlotPreset
-import co.voik.agesandtheart.age.slot.Subsurface
+import co.voik.agesandtheart.age.aspect.Terrain
+import co.voik.agesandtheart.age.aspect.Sea
+import co.voik.agesandtheart.age.aspect.Share
+import co.voik.agesandtheart.age.aspect.Sky
+import co.voik.agesandtheart.age.aspect.Density
+import co.voik.agesandtheart.age.aspect.Population
+import co.voik.agesandtheart.age.aspect.Structures
+import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.AspectPreset
+import co.voik.agesandtheart.age.aspect.Carvers
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.NbtOps
 import net.minecraft.nbt.StringTag
@@ -39,6 +41,7 @@ fun main() {
     roundTripsEverySlotPreset()
     roundTripsOptionsItCannotUnderstand()
     roundTripsAMingledParameter()
+    roundTripsAnExcludedStructure()
     steersTwoTerritoriesApart()
     spellsCompositionsTheWayItReadsThem()
     readsRecipesWrittenBeforeSlots()
@@ -50,7 +53,7 @@ fun main() {
     keepsEveryWrittenKind()
     stampsTheGeneratorVersion()
     println(
-        "Recipes: ${AgePreset.entries.size} presets and ${everySlotPreset().size} slot presets round-trip, " +
+        "Recipes: ${AgePreset.entries.size} presets and ${everyAspectPreset().size} aspect presets round-trip, " +
             "all ${LEGACY_KINDS.size} written kinds still resolve.",
     )
 }
@@ -63,35 +66,35 @@ private fun roundTripsEveryPreset() {
 }
 
 /**
- * Every preset of every slot survives too.
+ * Every preset of every aspect survives too.
  *
  * Presets are no longer whole worlds, so "every [AgePreset] round-trips" no longer reaches most of
- * what a recipe can say: a slot preset only appears above if some classic demo Age happens to name it.
+ * what a recipe can say: a aspect preset only appears above if some classic demo Age happens to name it.
  * This asks each one directly, so a family can gain a member without gaining a blind spot.
  */
 private fun roundTripsEverySlotPreset() {
-    for (preset in everySlotPreset()) {
-        val composition = AgeComposition(landforms = listOf(Landform.HILLS)).withPreset(preset.slot, preset.key)
-        roundTrips(AgeRecipe(AgeWorld.Composed(composition), seed = SAMPLE_SEED), "${preset.slot.key}=${preset.key}")
+    for (preset in everyAspectPreset()) {
+        val composition = AgeComposition(terrains = listOf(Terrain.HILLS)).withPreset(preset.aspect, preset.key)
+        roundTrips(AgeRecipe(AgeWorld.Composed(composition), seed = SAMPLE_SEED), "${preset.aspect.key}=${preset.key}")
     }
 }
 
 /**
  * An option nobody recognises comes back out again.
  *
- * The invariant [co.voik.agesandtheart.age.slot.Options] promises, and the one most easily lost to a
+ * The invariant [co.voik.agesandtheart.age.aspect.Options] promises, and the one most easily lost to a
  * well-meant cleanup: dropping an unreadable option on load is how a save quietly becomes a different
  * save, since the recipe is all there is. It has to survive the *write* as well as the read.
  */
 private fun roundTripsOptionsItCannotUnderstand() {
-    val composition = AgeComposition(landforms = listOf(Landform.PYRAMIDS))
-        .withOption(Slot.LANDFORM, Landform.ARRANGEMENT.name, "rings")
-        .withOption(Slot.LANDFORM, "elevation", "towering")
-    check(composition.unknownOptions == listOf("landform.elevation")) {
+    val composition = AgeComposition(terrains = listOf(Terrain.PYRAMIDS))
+        .withOption(Aspect.TERRAIN, Terrain.ARRANGEMENT.name, "rings")
+        .withOption(Aspect.TERRAIN, "elevation", "towering")
+    check(composition.unknownOptions == listOf("terrain.elevation")) {
         "Expected 'elevation' to be reported as unrecognised, got ${composition.unknownOptions}"
     }
     val decoded = roundTrips(AgeRecipe(AgeWorld.Composed(composition), seed = SAMPLE_SEED), "unknown options")
-    check(decoded.composition?.options?.of(Slot.LANDFORM)?.chosen?.get("elevation") == listOf("towering")) {
+    check(decoded.composition?.options?.of(Aspect.TERRAIN)?.chosen?.get("elevation") == listOf("towering")) {
         "An unrecognised option was dropped in the round trip: $decoded"
     }
 }
@@ -108,9 +111,8 @@ private fun roundTripsOptionsItCannotUnderstand() {
  * and nothing else would notice.
  */
 private fun roundTripsAMingledParameter() {
-    val one = AgeComposition(landforms = listOf(Landform.HILLS))
-        .withPreset(Slot.DRESSING, Dressing.BARE_ROCK.key)
-        .withOption(Slot.DRESSING, Dressing.STONE.name, "minecraft:blackstone")
+    val one = AgeComposition(terrains = listOf(Terrain.HILLS))
+        .withOption(Aspect.TERRAIN, Terrain.STONE.name, "minecraft:blackstone")
     val encoded = AgeRecipe.CODEC.encodeStart(NbtOps.INSTANCE, AgeRecipe(AgeWorld.Composed(one), SAMPLE_SEED))
         .getOrThrow { problem -> IllegalStateException("a single material would not encode: $problem") }
     check("[" !in encoded.toString()) {
@@ -119,25 +121,62 @@ private fun roundTripsAMingledParameter() {
     roundTrips(AgeRecipe(AgeWorld.Composed(one), SAMPLE_SEED), "one material")
 
     val mingled = one.withOptions(
-        Slot.DRESSING,
-        Dressing.STONE.name,
+        Aspect.TERRAIN,
+        Terrain.STONE.name,
         listOf("minecraft:blackstone", "minecraft:tuff"),
     )
     val decoded = roundTrips(AgeRecipe(AgeWorld.Composed(mingled), SAMPLE_SEED), "two mingled materials")
-    check(decoded.composition?.options?.of(Slot.DRESSING)?.allOf(Dressing.STONE)?.size == 2) {
-        "A mingled parameter came back as ${decoded.composition?.options?.of(Slot.DRESSING)}"
+    check(decoded.composition?.options?.of(Aspect.TERRAIN)?.allOf(Terrain.STONE)?.size == 2) {
+        "A mingled parameter came back as ${decoded.composition?.options?.of(Aspect.TERRAIN)}"
     }
     val spelling = mingled.toString()
-    check("dressing.stone=minecraft:blackstone,minecraft:tuff" in spelling) {
+    check("terrain.stone=minecraft:blackstone,minecraft:tuff" in spelling) {
         "A mingled parameter spells itself wrong: '$spelling'"
     }
     check(AgeComposition.parse(spelling).getOrThrow() == mingled) { "'$spelling' does not read back as itself" }
 }
 
 /**
- * Two territories of one slot, steered differently — copper spires beside andesite hills.
+ * A population's `only` and `except` survive the trip — the marks [Claim] spells them with.
  *
- * The property a slot-wide `Options` could not hold at all: one parameter named twice with two values, which
+ * The recipe is the only record of an Age (§4.6), so an exclusion that failed to round-trip would be an Age
+ * that quietly regained the thing it was written to be without. It nearly *did* fail: a marked value is not a
+ * well-formed `ResourceLocation`, so reading it through `allOf` filters it out and the exclusion simply does
+ * not happen — which is why [Options.claimsOn] strips the mark before validating and this asserts the result
+ * rather than the spelling alone.
+ */
+private fun roundTripsAnExcludedStructure() {
+    val written = AgeComposition(terrains = listOf(Terrain.HILLS))
+        .withPreset(Aspect.STRUCTURES, Structures.VANILLA.key)
+        .withOptions(
+            Aspect.STRUCTURES,
+            Structures.BUILT.name,
+            listOf("!minecraft:villages@teeming", "minecraft:woodland_mansions", "-minecraft:ocean_monuments"),
+        )
+    val decoded = roundTrips(AgeRecipe(AgeWorld.Composed(written), SAMPLE_SEED), "a steered population")
+    val asked = Population.of(decoded.composition?.optionsFor(Aspect.STRUCTURES, 0)?.claimsOn(Structures.BUILT).orEmpty())
+    check(asked.exclusive) { "'only' did not survive the round trip: $asked" }
+    check(asked.wanted.map { it.value } == listOf("minecraft:villages", "minecraft:woodland_mansions")) {
+        "the wanted sets came back as ${asked.wanted}"
+    }
+    // All three marks at once, because they are read from one string and a greedy parse would eat the others.
+    check(asked.wanted.first().density == Density.TEEMING) {
+        "a density rung did not survive beside an 'only': ${asked.wanted.first()}"
+    }
+    check(asked.wanted.last().density == Density.ORDINARY) { "an unmarked value invented a density rung" }
+    check(asked.struck == listOf("minecraft:ocean_monuments")) { "the struck sets came back as ${asked.struck}" }
+
+    val spelling = written.toString()
+    check("structures.built=!minecraft:villages@teeming,minecraft:woodland_mansions,-minecraft:ocean_monuments" in spelling) {
+        "a steered population spells itself wrong: '$spelling'"
+    }
+    check(AgeComposition.parse(spelling).getOrThrow() == written) { "'$spelling' does not read back as itself" }
+}
+
+/**
+ * Two territories of one aspect, steered differently — copper spires beside andesite hills.
+ *
+ * The property a aspect-wide `Options` could not hold at all: one parameter named twice with two values, which
  * used to contend so that one won and painted both territories. A sentence that reads perfectly and quietly
  * does something else, so nothing but this notices if it comes back.
  *
@@ -145,33 +184,31 @@ private fun roundTripsAMingledParameter() {
  * must still spell themselves once, or every recipe already on disk reads differently.
  */
 private fun steersTwoTerritoriesApart() {
-    val divided = AgeComposition(landforms = listOf(Landform.HILLS))
-        .withPresets(Slot.DRESSING, listOf(Dressing.VERDANT.key, Dressing.BARE_ROCK.key))
-        .withOptionsFor(Slot.DRESSING, 0, Dressing.STONE.name, listOf("minecraft:copper_block"))
-        .withOptionsFor(Slot.DRESSING, 1, Dressing.STONE.name, listOf("minecraft:andesite"))
+    val divided = AgeComposition(terrains = listOf(Terrain.SPIRE_ISLANDS, Terrain.HILLS))
+        .withOptionsFor(Aspect.TERRAIN, 0, Terrain.STONE.name, listOf("minecraft:copper_block"))
+        .withOptionsFor(Aspect.TERRAIN, 1, Terrain.STONE.name, listOf("minecraft:andesite"))
 
     for ((member, expected) in listOf("minecraft:copper_block", "minecraft:andesite").withIndex()) {
-        val held = divided.optionsFor(Slot.DRESSING, member).allOf(Dressing.STONE)
+        val held = divided.optionsFor(Aspect.TERRAIN, member).allOf(Terrain.STONE)
         check(held == listOf(expected)) { "Territory $member holds $held rather than $expected" }
     }
 
     val spelling = divided.toString()
-    check("dressing=verdant{stone=minecraft:copper_block},bare_rock{stone=minecraft:andesite}" in spelling) {
+    check("terrain=spire_islands{stone=minecraft:copper_block},hills{stone=minecraft:andesite}" in spelling) {
         "Two steered territories spell themselves wrong: '$spelling'"
     }
     check(AgeComposition.parse(spelling).getOrThrow() == divided) { "'$spelling' does not read back as itself" }
 
     val decoded = roundTrips(AgeRecipe(AgeWorld.Composed(divided), SAMPLE_SEED), "two territories steered apart")
-    check(decoded.composition?.optionsFor(Slot.DRESSING, 1)?.allOf(Dressing.STONE) == listOf("minecraft:andesite")) {
+    check(decoded.composition?.optionsFor(Aspect.TERRAIN, 1)?.allOf(Terrain.STONE) == listOf("minecraft:andesite")) {
         "The second territory's material did not survive the codec: ${decoded.composition}"
     }
 
     // The other half: territories that agree collapse back to one entry, spelled the way they always were.
-    val agreeing = AgeComposition(landforms = listOf(Landform.HILLS))
-        .withPresets(Slot.DRESSING, listOf(Dressing.VERDANT.key, Dressing.BARE_ROCK.key))
-        .withOption(Slot.DRESSING, Dressing.STONE.name, "minecraft:tuff")
+    val agreeing = AgeComposition(terrains = listOf(Terrain.SPIRE_ISLANDS, Terrain.HILLS))
+        .withOption(Aspect.TERRAIN, Terrain.STONE.name, "minecraft:tuff")
     val together = agreeing.toString()
-    check("dressing.stone=minecraft:tuff" in together) {
+    check("terrain.stone=minecraft:tuff" in together) {
         "Agreeing territories stopped spelling themselves once: '$together'"
     }
     check(AgeComposition.parse(together).getOrThrow() == agreeing) { "'$together' does not read back as itself" }
@@ -185,11 +222,11 @@ private fun steersTwoTerritoriesApart() {
  * thing that survives for months, because each half looks right on its own.
  */
 private fun spellsCompositionsTheWayItReadsThem() {
-    val compositions = everySlotPreset().map { preset ->
-        AgeComposition(landforms = listOf(Landform.HILLS)).withPreset(preset.slot, preset.key)
-    } + AgeComposition(landforms = listOf(Landform.PYRAMIDS))
-        .withOption(Slot.LANDFORM, Landform.ARRANGEMENT.name, "rings")
-        .withOption(Slot.MEDIUM, Medium.DEPTH.name, "deep")
+    val compositions = everyAspectPreset().map { preset ->
+        AgeComposition(terrains = listOf(Terrain.HILLS)).withPreset(preset.aspect, preset.key)
+    } + AgeComposition(terrains = listOf(Terrain.PYRAMIDS))
+        .withOption(Aspect.TERRAIN, Terrain.ARRANGEMENT.name, "rings")
+        .withOption(Aspect.SEA, Sea.DEPTH.name, "deep")
 
     for (composition in compositions) {
         val spelling = composition.toString()
@@ -199,7 +236,7 @@ private fun spellsCompositionsTheWayItReadsThem() {
 }
 
 /**
- * An Age written before slots existed still opens, and opens as the same Age.
+ * An Age written before aspects existed still opens, and opens as the same Age.
  *
  * The migration lives in a codec default rather than anywhere obvious, so it is exactly the kind of
  * path that goes unexercised until somebody's save is the thing exercising it.
@@ -212,9 +249,9 @@ private fun readsRecipesWrittenBeforeSlots() {
             putInt(GENERATOR_VERSION_KEY, PRE_SLOTS_GENERATOR_VERSION)
         }
         val decoded = AgeRecipe.CODEC.parse(NbtOps.INSTANCE, written)
-            .getOrThrow { problem -> IllegalStateException("a pre-slots '${preset.key}' would not load: $problem") }
+            .getOrThrow { problem -> IllegalStateException("a pre-aspects '${preset.key}' would not load: $problem") }
         check(decoded.world == AgeRecipe.worldFor(preset)) {
-            "A pre-slots '${preset.key}' migrated to ${decoded.world}, not ${AgeRecipe.worldFor(preset)}"
+            "A pre-aspects '${preset.key}' migrated to ${decoded.world}, not ${AgeRecipe.worldFor(preset)}"
         }
         check(decoded.generatorVersion == PRE_SLOTS_GENERATOR_VERSION) {
             "Migration overwrote the stamp on '${preset.key}', which is how an Age forgets what made it"
@@ -223,51 +260,47 @@ private fun readsRecipesWrittenBeforeSlots() {
 }
 
 /**
- * A landform slot holding several presets survives, and prints in a form the composer reads back.
+ * A terrain aspect holding several presets survives, and prints in a form the composer reads back.
  *
  * The set is the whole point of regions (§3.4), and it is the part of the recipe most recently changed
  * shape — so it is the part most likely to round-trip as *something*, just not the same something.
  */
 private fun roundTripsASetValuedLandform() {
-    val composition = AgeComposition(landforms = listOf(Landform.HILLS, Landform.PILLARS, Landform.CAVERNS))
-        .withPreset(Slot.MEDIUM, Medium.SEA.key)
-        .withPresets(Slot.DRESSING, listOf(Dressing.VERDANT.key, Dressing.BARE_ROCK.key))
-        .withPresets(Slot.MEDIUM, listOf(Medium.SEA.key, Medium.LAVA.key))
-        .withPresets(Slot.SUBSURFACE, listOf(Subsurface.CAVES.key, Subsurface.SOLID.key))
+    val composition = AgeComposition(terrains = listOf(Terrain.HILLS, Terrain.PILLARS, Terrain.CAVERNS))
+        .withPreset(Aspect.SEA, Sea.WATER.key)
+        .withPresets(Aspect.SEA, listOf(Sea.WATER.key, Sea.LAVA.key))
+        .withPresets(Aspect.CARVERS, listOf(Carvers.CAVES.key, Carvers.SOLID.key))
     val recipe = AgeRecipe(AgeWorld.Composed(composition), seed = SAMPLE_SEED, character = SAMPLE_CHARACTER)
-    val decoded = roundTrips(recipe, "a three-landform Age")
+    val decoded = roundTrips(recipe, "a three-terrain Age")
 
-    check(decoded.composition?.landforms == composition.landforms) {
-        "The landform set came back as ${decoded.composition?.landforms}, not ${composition.landforms}"
+    check(decoded.composition?.terrains == composition.terrains) {
+        "The terrain set came back as ${decoded.composition?.terrains}, not ${composition.terrains}"
     }
-    check(decoded.composition?.dressings == composition.dressings) {
-        "The dressing set came back as ${decoded.composition?.dressings}, not ${composition.dressings}"
+    check(decoded.composition?.seas == composition.seas) {
+        "The sea set came back as ${decoded.composition?.seas}"
     }
-    check(decoded.composition?.mediums == composition.mediums) {
-        "The medium set came back as ${decoded.composition?.mediums}"
-    }
-    check(decoded.composition?.subsurfaces == composition.subsurfaces) {
-        "The subsurface set came back as ${decoded.composition?.subsurfaces}"
+    check(decoded.composition?.carvers == composition.carvers) {
+        "The carving set came back as ${decoded.composition?.carvers}"
     }
     check(decoded.character == SAMPLE_CHARACTER) {
         "An Age's character did not survive: ${decoded.character}, not $SAMPLE_CHARACTER"
     }
 
     val spelling = composition.toString()
-    check("landform=hills,pillars,caverns" in spelling) { "A set should print comma-joined, got '$spelling'" }
-    check("dressing=verdant,bare_rock" in spelling) { "So should a dressing set, got '$spelling'" }
-    // Ids, because the medium slot is open (design §3.1) — the referent is the value, not a preset naming it.
-    check("medium=minecraft:water,minecraft:lava" in spelling) { "And a medium set, got '$spelling'" }
-    check("subsurface=caves,solid" in spelling) { "And a subsurface set, got '$spelling'" }
+    check("terrain=hills,pillars,caverns" in spelling) { "A set should print comma-joined, got '$spelling'" }
+    check("carvers=caves,solid" in spelling) { "So should a carving set, got '$spelling'" }
+    // Ids, because the sea aspect is open (design §3.1) — the referent is the value, not a preset naming it.
+    check("sea=minecraft:water,minecraft:lava" in spelling) { "And a sea set, got '$spelling'" }
+    check("carvers=caves,solid" in spelling) { "And a carving set, got '$spelling'" }
     check(AgeComposition.parse(spelling).getOrThrow() == composition) {
         "'$spelling' does not read back as what wrote it"
     }
 }
 
 /**
- * An Age written before landform was a set still opens, as the single-landform Age it was.
+ * An Age written before terrain was a set still opens, as the single-terrain Age it was.
  *
- * Its `landform` is a bare string where today's is a list, and both spellings have to keep working —
+ * Its `terrain` is a bare string where today's is a list, and both spellings have to keep working —
  * this is the second time that field has changed shape, and the first migration is still load-bearing.
  */
 private fun readsRecipesWrittenBeforeRegions() {
@@ -276,8 +309,8 @@ private fun readsRecipesWrittenBeforeRegions() {
             "world",
             CompoundTag().apply {
                 put("kind", StringTag.valueOf("composed"))
-                put("landform", StringTag.valueOf(Landform.ERODED.key))
-                put("medium", StringTag.valueOf(Medium.SEA.key))
+                put("terrain", StringTag.valueOf(Terrain.ERODED.key))
+                put("sea", StringTag.valueOf(Sea.WATER.key))
             },
         )
         putLong("seed", SAMPLE_SEED)
@@ -286,8 +319,8 @@ private fun readsRecipesWrittenBeforeRegions() {
     val decoded = AgeRecipe.CODEC.parse(NbtOps.INSTANCE, written)
         .getOrThrow { problem -> IllegalStateException("a pre-regions recipe would not load: $problem") }
 
-    check(decoded.composition?.landforms == listOf(Landform.ERODED)) {
-        "A pre-regions landform read back as ${decoded.composition?.landforms}"
+    check(decoded.composition?.terrains == listOf(Terrain.ERODED)) {
+        "A pre-regions terrain read back as ${decoded.composition?.terrains}"
     }
     check(decoded.character == AgeCharacter.LEGACY) {
         "A recipe with no character should read as LEGACY, not ${decoded.character}"
@@ -304,12 +337,12 @@ private fun readsRecipesWrittenBeforeRegions() {
  * at the contradiction (§5.1), and the contradiction is only written down here.
  */
 private fun roundTripsAWrittenAge() {
-    val composition = AgeComposition(landforms = listOf(Landform.HILLS))
-        .withPresets(Slot.DRESSING, listOf(Dressing.BARE_ROCK.key, Dressing.VERDANT.key))
+    val composition = AgeComposition(terrains = listOf(Terrain.HILLS))
+        .withPresets(Aspect.CARVERS, listOf(Carvers.CAVES.key, Carvers.SOLID.key))
     val instability = Instability(
         listOf(
-            Flaw(Register.DIVISION, listOf("lifeless", "verdant"), Slot.DRESSING, listOf("barren", "lush"), severity = 3),
-            Flaw(Register.TENSION, listOf("lifeless", "verdant"), Slot.DRESSING, listOf("barren", "lush"), severity = 1),
+            Flaw(Register.FRACTURE, listOf("riddled", "unbroken"), Aspect.CARVERS, listOf("cavernous", "solid"), severity = 3),
+            Flaw(Register.TENSION, listOf("riddled", "unbroken"), Aspect.CARVERS, listOf("cavernous", "solid"), severity = 1),
         ),
     )
     val recipe = AgeRecipe(
@@ -332,36 +365,36 @@ private fun roundTripsAWrittenAge() {
 }
 
 /**
- * An Age whose slots divide unevenly keeps its shares, through NBT and through its own spelling.
+ * An Age whose aspects divide unevenly keeps its shares, through NBT and through its own spelling.
  *
  * Shares are generation inputs — they decide how much ground each territory covers — so losing one silently
  * would hand back a different world on the next open. And an even division has to keep spelling itself the
  * way it always did, or every recipe written before shares existed would read as something else.
  */
 private fun roundTripsAnUnevenDivision() {
-    val uneven = AgeComposition(landforms = listOf(Landform.HILLS))
+    val uneven = AgeComposition(terrains = listOf(Terrain.HILLS))
         .withPresets(
-            Slot.DRESSING,
-            listOf(Dressing.OVERWORLD.key, Dressing.BARE_ROCK.key, Dressing.VERDANT.key),
+            Aspect.CARVERS,
+            listOf(Carvers.CAVES.key, Carvers.POROUS.key, Carvers.WEATHERED.key),
             listOf(Share.DOMINANT, Share.SCATTERED, Share.RARE),
         )
     val decoded = roundTrips(AgeRecipe(AgeWorld.Composed(uneven), seed = SAMPLE_SEED), "an uneven division")
-    check(decoded.composition?.sharesOf(Slot.DRESSING) == listOf(Share.DOMINANT, Share.SCATTERED, Share.RARE)) {
-        "the shares came back as ${decoded.composition?.sharesOf(Slot.DRESSING)}"
+    check(decoded.composition?.sharesOf(Aspect.CARVERS) == listOf(Share.DOMINANT, Share.SCATTERED, Share.RARE)) {
+        "the shares came back as ${decoded.composition?.sharesOf(Aspect.CARVERS)}"
     }
 
     val spelling = uneven.toString()
-    check("dressing=overworld,bare_rock@scattered,verdant@rare" in spelling) {
+    check("carvers=caves,porous@scattered,weathered@rare" in spelling) {
         "an uneven division spells itself wrong: '$spelling'"
     }
     check(AgeComposition.parse(spelling).getOrThrow() == uneven) { "'$spelling' does not read back as itself" }
 
     // An even division says nothing about shares at all, which is what keeps a hand-composed Age — and every
     // recipe written before shares existed — spelled exactly as it was.
-    val even = AgeComposition(landforms = listOf(Landform.HILLS, Landform.PILLARS))
+    val even = AgeComposition(terrains = listOf(Terrain.HILLS, Terrain.PILLARS))
     check("@" !in even.toString()) { "an even division should not mention shares: '$even'" }
-    check(even.sharesOf(Slot.LANDFORM) == listOf(Share.DOMINANT, Share.DOMINANT)) {
-        "an unmentioned division should be even, not ${even.sharesOf(Slot.LANDFORM)}"
+    check(even.sharesOf(Aspect.TERRAIN) == listOf(Share.DOMINANT, Share.DOMINANT)) {
+        "an unmentioned division should be even, not ${even.sharesOf(Aspect.TERRAIN)}"
     }
 }
 
@@ -375,7 +408,7 @@ private fun readsRecipesWrittenBeforeWords() {
             "world",
             CompoundTag().apply {
                 put("kind", StringTag.valueOf("composed"))
-                put("landform", StringTag.valueOf(Landform.HILLS.key))
+                put("terrain", StringTag.valueOf(Terrain.HILLS.key))
             },
         )
         putLong("seed", SAMPLE_SEED)
@@ -437,16 +470,16 @@ private fun roundTrips(recipe: AgeRecipe, what: String): AgeRecipe {
 }
 
 /**
- * Every preset a composition can currently be written from: every authored one, the three mediums the mod
+ * Every preset a composition can currently be written from: every authored one, the three seas the mod
  * names, and one referent naming content this pack does not have.
  *
- * That last is the point of the list now that a slot can be open (design §3.1) — a recipe must be able to
+ * That last is the point of the list now that a aspect can be open (design §3.1) — a recipe must be able to
  * hold an id from a mod that is not installed and give it back unchanged, because a save moving between
  * modpacks is ordinary and an Age that quietly lost its sea would be the worst kind of data loss.
  */
-private fun everySlotPreset(): List<SlotPreset> =
-    Slot.entries.flatMap { it.authored } +
-        listOf(Medium.VOID, Medium.SEA, Medium.LAVA, Medium(ResourceLocation.parse("examplemod:creosote")))
+private fun everyAspectPreset(): List<AspectPreset> =
+    Aspect.entries.flatMap { it.authored } +
+        listOf(Sea.NONE, Sea.WATER, Sea.LAVA, Sea(ResourceLocation.parse("examplemod:creosote")))
 
 /** Every generator kind that has ever been written into a save. Append-only; never edit a line. */
 private val LEGACY_KINDS = listOf(
@@ -457,17 +490,17 @@ private val LEGACY_KINDS = listOf(
 
 /** A character unlike the default in every field, so a lazy round trip cannot pass by accident. */
 private val SAMPLE_CHARACTER =
-    AgeCharacter(seam = Seam.BLURRED, alignment = Alignment.INDEPENDENT, regionBlocks = 1600)
+    AgeCharacter(seam = Seam.FUZZED, alignment = Alignment.INDEPENDENT, regionBlocks = 1600)
 
 private const val GENERATOR_VERSION_KEY = "generator_version"
 
-/** What every Age written before slots is stamped with. */
+/** What every Age written before aspects is stamped with. */
 private const val PRE_SLOTS_GENERATOR_VERSION = 1
 
-/** And what every Age written after slots but before regions is stamped with. */
+/** And what every Age written after aspects but before regions is stamped with. */
 private const val PRE_REGIONS_GENERATOR_VERSION = 2
 
-/** And what every Age written after every slot became positional but before words could write one is. */
+/** And what every Age written after every aspect became positional but before words could write one is. */
 private const val PRE_WORDS_GENERATOR_VERSION = 5
 
 /** What the sample flaws add up to: a division at exact precision, plus the tension behind it. */

@@ -1,7 +1,7 @@
 {
   "tier": "restrictive",
-  "slots": [
-    "landform"
+  "aspects": [
+    "terrain"
   ],
   "query": {
     "mountainous": 1.0,

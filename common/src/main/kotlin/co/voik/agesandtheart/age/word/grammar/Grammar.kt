@@ -15,7 +15,7 @@ enum class PageClass {
     /** Tilts weights and never narrows, so it precedes a subject and colours it (design §4.4). */
     EVOCATIVE,
 
-    /** Chooses which preset fills a slot, so it *opens* a section. */
+    /** Chooses which preset fills a aspect, so it *opens* a section. */
     PRESET,
 
     /** Steers a preset's parameter — a material, a population. Attaches to whatever section it sits in. */
@@ -75,7 +75,7 @@ object Grammar {
      *
      * The line between a subject and a modifier is [Word.constrainsPresets], which already existed and
      * already means the right thing: a word with a query or a name has an opinion about *which* preset
-     * fills a slot, and one that only sets a parameter has an opinion about how that preset is made. So the
+     * fills a aspect, and one that only sets a parameter has an opinion about how that preset is made. So the
      * grammar's most load-bearing distinction costs no new field on a word.
      */
     private val Word.pageClass: PageClass

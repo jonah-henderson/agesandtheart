@@ -1,8 +1,8 @@
 package co.voik.agesandtheart.age.word
 
 import co.voik.agesandtheart.Constants
-import co.voik.agesandtheart.age.slot.Slot
-import co.voik.agesandtheart.age.slot.SlotPreset
+import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.AspectPreset
 import co.voik.agesandtheart.age.word.grammar.GrammarWord
 import com.google.gson.JsonElement
 import com.google.gson.JsonParser
@@ -20,7 +20,7 @@ import net.minecraft.server.packs.resources.ResourceManager
  *
  * **This is not the contradiction detector.** What actually breaks an Age is an *empty intersection*: two
  * words with no preset satisfying both, which the [Resolver] finds in the tag data itself. `floating` and
- * `flat` are opposites in no dictionary and nobody would think to list them here, yet no landform is
+ * `flat` are opposites in no dictionary and nobody would think to list them here, yet no terrain is
  * both — so a table-driven detector would silently drop a word the writer wrote. It fails the other way
  * too: were a preset to carry `lush 0.3` and `barren 0.3`, a table would charge for a contradiction the
  * world absorbed without complaint.
@@ -61,7 +61,7 @@ private data class AntonymPage(val pairs: List<Antonym>) {
  *
  * **Loaded from datapacks** rather than compiled in, which is Jonah's call and the right one for this
  * layer: tag weights are the most taste-driven and most often retuned data in the mod, a pack that adds
- * a landform will want to tag it, and §8's vocabulary derived from Minecraft's own tags has to arrive at
+ * a terrain will want to tag it, and §8's vocabulary derived from Minecraft's own tags has to arrive at
  * runtime anyway — so authored and derived words meeting in one corpus is the seam that makes that
  * addition small. It sits inside the established "leaf content as data, composition as Kotlin" policy:
  * the resolver is composition and stays Kotlin.
@@ -70,11 +70,11 @@ private data class AntonymPage(val pairs: List<Antonym>) {
  *
  * | path | holds |
  * |---|---|
- * | `word/<name>.json` | one word — its tier, the slots it may fill, its tag query |
- * | `preset_tags/<slot>.json` | the tags every preset in that slot carries |
+ * | `word/<name>.json` | one word — its tier, the aspects it may fill, its tag query |
+ * | `preset_tags/<aspect>.json` | the tags every preset in that aspect carries |
  * | `antonyms/<page>.json` | pairs of tags that mean opposite things |
  *
- * One file per word so a pack can add or replace a single one; one file per *slot* of tags because tag
+ * One file per word so a pack can add or replace a single one; one file per *aspect* of tags because tag
  * weights are only sensible read side by side, and stacked so a pack can retune a preset without
  * reprinting its neighbours.
  *
@@ -86,7 +86,7 @@ data class Vocabulary(
     private val byName: Map<String, Word>,
     /** The structural words — `and`, `only`, `except` — keyed by what a writer says (§4.5). */
     private val structural: Map<String, GrammarWord>,
-    private val tagsBySlot: Map<Slot, PresetTags>,
+    private val tagsBySlot: Map<Aspect, PresetTags>,
     val antonyms: List<Antonym>,
     /** What could not be read, in the words a content author needs to hear. Empty in a healthy pack. */
     val problems: List<String>,
@@ -110,24 +110,24 @@ data class Vocabulary(
     fun grammarWord(name: String): GrammarWord? = structural[name]
 
     /** What [preset] is like — an empty profile being a preset no word can currently reach. */
-    fun profileOf(preset: SlotPreset): PresetProfile =
-        tagsBySlot[preset.slot]?.of(preset) ?: PresetTags.EMPTY_PROFILE
+    fun profileOf(preset: AspectPreset): PresetProfile =
+        tagsBySlot[preset.aspect]?.of(preset) ?: PresetTags.EMPTY_PROFILE
 
     /** The tags [preset] carries — empty being a preset no word can currently reach. */
-    fun tagsOf(preset: SlotPreset): Map<String, Double> = profileOf(preset).tags
+    fun tagsOf(preset: AspectPreset): Map<String, Double> = profileOf(preset).tags
 
     /** How willingly the Art reaches for [preset] when nothing asked for it. */
-    fun readinessOf(preset: SlotPreset): Double =
+    fun readinessOf(preset: AspectPreset): Double =
         profileOf(preset).readiness ?: PresetProfile.ORDINARY_READINESS
 
     /** Every tag anything in the world carries, which bounds what any word can meaningfully ask for. */
     val carriedTags: Set<String> get() = tagsBySlot.values.flatMap { it.carried }.toSet()
 
     /**
-     * **The curated pool** — everything a *vague* word may draw from in [slot] (design §8.2).
+     * **The curated pool** — everything a *vague* word may draw from in [aspect] (design §8.2).
      *
-     * For a closed slot this is its authored presets, as it always was. For an open one it is exactly what
-     * `preset_tags/<slot>.json` has an entry for: that file already carried the tags and the readiness, and
+     * For a closed aspect this is its authored presets, as it always was. For an open one it is exactly what
+     * `preset_tags/<aspect>.json` has an entry for: that file already carried the tags and the readiness, and
      * it is now also the definition of the pool rather than an annotation on an enum that was.
      *
      * **The registry is deliberately not here**, and that is what makes §8.2 structural instead of a check
@@ -139,26 +139,37 @@ data class Vocabulary(
      * A pack that wants its own block reachable by *vague* words adds it to `preset_tags` with tags of its
      * own, which promotes it into this pool — the interop story is a file, not a feature.
      */
-    fun candidatesFor(slot: Slot): List<SlotPreset> {
-        if (!slot.open) return slot.authored
+    fun candidatesFor(aspect: Aspect): List<AspectPreset> {
+        if (!aspect.open) return aspect.authored
         // Sorted, because a draw is made by index and the file's own key order is not a thing anyone
-        // should be able to change a world by editing. A closed slot gets the same guarantee from its
+        // should be able to change a world by editing. A closed aspect gets the same guarantee from its
         // enum's declaration order.
-        return tagsBySlot[slot]?.described.orEmpty().sorted().mapNotNull(slot::presetFor)
+        return tagsBySlot[aspect]?.described.orEmpty().sorted().mapNotNull(aspect::presetFor)
     }
 
     /**
-     * The presets in [slot] this word would keep, at its own tier's strictness.
+     * The presets in [aspect] this word would keep, at its own tier's strictness.
      *
      * A word that **names** a preset never searches: it has its answer already, so the curated pool is not
      * consulted and the registry never is (design §8.2). That is the whole of what keeps derived vocabulary
      * from costing anything at resolve time — a pack of forty thousand blocks makes this function no slower
      * than vanilla does.
      */
-    fun carriersOf(word: Word, slot: Slot): List<SlotPreset> {
-        word.namedPreset(slot)?.let { return listOf(it) }
-        return candidatesFor(slot).filter { word.accepts(tagsOf(it)) }
+    fun carriersOf(word: Word, aspect: Aspect): List<AspectPreset> {
+        word.namedPreset(aspect)?.let { return listOf(it) }
+        return candidatesFor(aspect).filter { word.accepts(tagsOf(it)) }
     }
+
+    /**
+     * Whether anything in [aspect] would actually *act* on a parameter called [parameter] — as opposed to
+     * merely declaring it.
+     *
+     * The question "has this word anything to do here at all?" for a word that steers rather than chooses. Both
+     * the resolver and `:common:vocabularycheck` ask it, because a word may narrow presets in one aspect and only
+     * turn a knob in another, and treating the second as unbacked condemns a sentence that works.
+     */
+    fun turnsAKnob(aspect: Aspect, parameter: String): Boolean =
+        candidatesFor(aspect).any { it.honoursParameterNamed(parameter) }
 
     /** Whether these two tags are known opposites, and how badly. */
     fun opposition(first: String, second: String): Antonym? = antonyms.firstOrNull { antonym ->
@@ -169,7 +180,7 @@ data class Vocabulary(
         /** Where a pack puts words. */
         const val WORD_DIRECTORY = "art/word"
 
-        /** Where a pack puts the tags a slot's presets carry, one file per slot key. */
+        /** Where a pack puts the tags a aspect's presets carry, one file per aspect key. */
         const val PRESET_TAGS_DIRECTORY = "art/preset_tags"
 
         /** Where a pack puts antonym pages. */
@@ -206,10 +217,11 @@ data class Vocabulary(
             val authored = readWords(resources, problems)
             val tags = readPresetTags(resources, problems)
             val antonyms = readAntonyms(resources, problems)
-            // Fluids come from the built-in registries and so are always available; biomes are datapack
-            // content, so a corpus read without a server has the medium half of §8 and not the dressing
-            // half. Absent rather than wrong, which is what lets `:common:vocabularycheck` stay offline.
-            val words = derived(DerivedWords.materials() + registries?.let(DerivedWords::biomes).orEmpty()) + authored
+            // Blocks come from the built-in registries and so are always available; biomes and structures are
+            // datapack content, so a corpus read without a server has §8's material half and neither
+            // population. Absent rather than wrong, which is what lets `:common:vocabularycheck` stay offline.
+            val fromRegistries = registries?.let { DerivedWords.biomes(it) + DerivedWords.structures(it) }.orEmpty()
+            val words = derived(DerivedWords.materials() + fromRegistries) + authored
             val structural = readGrammarWords(resources, problems)
             for (problem in problems) Constants.LOG.error("Art vocabulary: {}", problem)
             return Vocabulary(words, structural, tags, antonyms, problems)
@@ -255,34 +267,34 @@ data class Vocabulary(
 
         /**
          * The tag tables, stacked lowest-priority pack first so a higher one overrides preset by preset
-         * rather than replacing a whole slot's table.
+         * rather than replacing a whole aspect's table.
          */
         private fun readPresetTags(
             resources: ResourceManager,
             problems: MutableList<String>,
-        ): Map<Slot, PresetTags> {
+        ): Map<Aspect, PresetTags> {
             val stacks = resources.listResourceStacks(PRESET_TAGS_DIRECTORY) { it.path.endsWith(JSON_SUFFIX) }
-            val bySlot = mutableMapOf<Slot, MutableMap<String, PresetProfile>>()
+            val bySlot = mutableMapOf<Aspect, MutableMap<String, PresetProfile>>()
             for ((file, layers) in stacks) {
                 val slotKey = idOf(file, PRESET_TAGS_DIRECTORY).path
-                val slot = Slot.entries.firstOrNull { it.key == slotKey }
-                if (slot == null) {
-                    problems += "$file names no slot ('$slotKey'); slots are ${Slot.entries.joinToString(" ") { it.key }}"
+                val aspect = Aspect.entries.firstOrNull { it.key == slotKey }
+                if (aspect == null) {
+                    problems += "$file names no aspect ('$slotKey'); aspects are ${Aspect.entries.joinToString(" ") { it.key }}"
                     continue
                 }
-                val merged = bySlot.getOrPut(slot) { mutableMapOf() }
+                val merged = bySlot.getOrPut(aspect) { mutableMapOf() }
                 for (layer in layers) {
                     val table = parse(layer, file, PresetTags.CODEC, problems) ?: continue
                     for (preset in table.described) {
-                        // An open slot takes any well-formed registry id, since naming content this pack
+                        // An open aspect takes any well-formed registry id, since naming content this pack
                         // may not have is exactly what it is for — a `preset_tags` entry for a block from
                         // a mod that is not installed is a pack covering more ground than this instance
-                        // runs, not a mistake. A closed slot still has to name one of its own.
-                        if (slot.presetFor(preset) == null) {
-                            problems += if (slot.open) {
+                        // runs, not a mistake. A closed aspect still has to name one of its own.
+                        if (aspect.presetFor(preset) == null) {
+                            problems += if (aspect.open) {
                                 "$file tags '$preset', which is not a `namespace:path` id"
                             } else {
-                                "$file tags '$preset', which is no ${slot.key}"
+                                "$file tags '$preset', which is no ${aspect.key}"
                             }
                             continue
                         }

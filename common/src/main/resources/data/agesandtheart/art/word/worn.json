@@ -1,8 +1,8 @@
 {
   "tier": "restrictive",
-  "slots": [
-    "landform",
-    "subsurface"
+  "aspects": [
+    "terrain",
+    "carvers"
   ],
   "query": {
     "eroded": 1.0

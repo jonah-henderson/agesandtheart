@@ -1,7 +1,7 @@
 {
   "tier": "exact",
-  "slots": [
-    "dressing"
+  "aspects": [
+    "terrain"
   ],
   "sets": {
     "stone": "minecraft:blackstone"

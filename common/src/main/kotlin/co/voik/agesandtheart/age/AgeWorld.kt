@@ -5,14 +5,14 @@ import com.mojang.serialization.MapCodec
 import net.minecraft.util.StringRepresentable
 
 /**
- * What kind of thing an Age's world is: assembled from slots, or one of the handful that are not
+ * What kind of thing an Age's world is: assembled from aspects, or one of the handful that are not
  * assembled from anything.
  *
  * The split is the terrain architecture's own two tiers made explicit in the save format. Almost every
- * Age is [Composed] — a landform, a medium, a subsurface, a dressing and a sky, chosen independently.
+ * Age is [Composed] — a terrain, a sea, a carving, a dressing and a sky, chosen independently.
  * A few are [Bespoke]: `spire` is a hand-written generator kept as an easter egg, and the two vanilla
  * delegates *are* Minecraft's own pipeline, biome source and all. Trying to express those as
- * compositions would mean inventing slots that exist only to hold them.
+ * compositions would mean inventing aspects that exist only to hold them.
  *
  * Keeping the door open matters beyond the three: the design wants canonical Ages recognisable as
  * easter eggs (§7.6), and a bespoke arm is where such a thing lands without contorting the grammar.
@@ -20,7 +20,7 @@ import net.minecraft.util.StringRepresentable
 sealed interface AgeWorld {
     val kind: Kind
 
-    /** An Age assembled from one preset per slot — what the Art will eventually write. */
+    /** An Age assembled from one preset per aspect — what the Art will eventually write. */
     data class Composed(val composition: AgeComposition) : AgeWorld {
         override val kind = Kind.COMPOSED
         override fun toString(): String = composition.toString()

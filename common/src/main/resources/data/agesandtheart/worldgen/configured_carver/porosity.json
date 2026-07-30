@@ -4,11 +4,17 @@
     "probability": 1.0,
     "y": {
       "type": "minecraft:uniform",
-      "min_inclusive": { "absolute": -64 },
-      "max_inclusive": { "absolute": 320 }
+      "min_inclusive": {
+        "absolute": -64
+      },
+      "max_inclusive": {
+        "absolute": 320
+      }
     },
     "yScale": 0.0,
-    "lava_level": { "absolute": -1000 },
-    "replaceable": "#minecraft:base_stone_overworld"
+    "lava_level": {
+      "absolute": -1000
+    },
+    "replaceable": "#agesandtheart:erodible"
   }
 }

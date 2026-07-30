@@ -7,7 +7,7 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import kotlin.math.ln
 
 /**
- * How an Age divides itself between the several presets a set-valued slot names — the territories, and
+ * How an Age divides itself between the several presets a set-valued aspect names — the territories, and
  * nothing else.
  *
  * Deliberately separate from anything that *uses* it, because more than one thing does: [Regions] asks
@@ -37,7 +37,7 @@ data class RegionMap(
      */
     val blend: Int,
     /**
-     * Where this map's territories sit. Two slots partitioning with the same seed but different origins
+     * Where this map's territories sit. Two aspects partitioning with the same seed but different origins
      * get boundaries near each other without being coincident — the ground changing, then shortly after
      * the vegetation, which is how landscapes tend to behave.
      */
@@ -86,6 +86,54 @@ data class RegionMap(
     /** Which member owns this column: the loudest claim, softened to a coin-flip inside the seam. */
     fun memberAt(worldX: Int, worldZ: Int): Int {
         if (claims.size <= 1) return 0
+        val contest = contestAt(worldX, worldZ)
+        if (margin <= 0.0 || contest.contested >= margin) return contest.winner
+        // Deep in the band the two are equally likely; at its edge the winner takes it outright. So the
+        // seam frays into the losing member rather than stopping along a drawn line.
+        val oddsOfUpset = HALF * (1.0 - contest.contested / margin)
+        return if (dither.at(worldX, 0, worldZ).nextDouble() < oddsOfUpset) contest.runnerUp else contest.winner
+    }
+
+    /**
+     * How far this column stands from the nearest seam, in blocks — infinite where there is only one
+     * territory and so no seam anywhere.
+     *
+     * **The number [memberAt] has always computed and thrown away**, and exposing it is what makes a rift
+     * expressible: "how near am I to a boundary" becomes a query, so a field can claim a band along one
+     * (see [Rift]). It is the margin between the top two claims, converted back into blocks by the same
+     * arithmetic that keeps [blend] an honest distance rather than a distance in tilted units.
+     *
+     * Read on the same footing as [blend], which is to say **proportionate rather than surveyed**: the
+     * conversion assumes the claim noise moves at its local rate, so this is exact in the bulk of the
+     * distribution and a little narrow out in its tails, where hardly any seam falls. Good enough to say
+     * "a chasm about thirty blocks across"; not good enough to promise thirty-one.
+     *
+     * Measured **before** the dither in [memberAt] frays the boundary, so it is a distance to where the
+     * seam *is* rather than to whichever side of it a given column happened to fall on. That makes it
+     * symmetric, which is what lets one band straddle a seam instead of tracking one member's edge.
+     */
+    fun blocksFromSeamAt(worldX: Int, worldZ: Int): Double {
+        if (claims.size <= 1) return Double.POSITIVE_INFINITY
+        return contestAt(worldX, worldZ).contested * stretch
+    }
+
+    /**
+     * Who won a column, who came second, and by how much — the argmax, written once because both public
+     * questions above need it and neither wants the other's answer.
+     *
+     * **It allocates, and that is a considered trade rather than an oversight.** [memberAt] is asked *per
+     * block* (see [Substance.blockAt]), where it already pays one noise sample per member — so a
+     * short-lived object of three fields is a couple of percent of what that caller was spending anyway,
+     * and usually nothing at all, the object never escaping the method that made it. The alternative was
+     * two copies of the loop, which is the more expensive kind of cost. If it ever shows up in a bench,
+     * the fix is a thread-confined per-column memo of the whole answer — the shape `BelowTerrain` already
+     * uses for depth — which would save far more than this costs.
+     *
+     * [contested] is in **claim units, not blocks**, deliberately: it is what [memberAt] compares against
+     * [margin], and converting here would put a multiply and a divide between two numbers that used to be
+     * compared directly. [blocksFromSeamAt] does the conversion instead.
+     */
+    private fun contestAt(worldX: Int, worldZ: Int): Contest {
         val sampleX = (worldX - originX) / stretch
         val sampleZ = (worldZ - originZ) / stretch
 
@@ -110,15 +158,12 @@ data class RegionMap(
         }
 
         // Back into claim units before the seam is measured, so [blend] stays an honest distance in blocks
-        // rather than a distance in tilted units — which vary in scale across the claim's range. Exact in
-        // the bulk of the distribution and a little narrow out in its tails, where hardly any seam falls.
-        val contested = (bestTilted - runnerUpTilted) / ClaimTilt.slopeAt(bestClaim)
-        if (margin <= 0.0 || contested >= margin) return best
-        // Deep in the band the two are equally likely; at its edge the winner takes it outright. So the
-        // seam frays into the losing member rather than stopping along a drawn line.
-        val oddsOfUpset = HALF * (1.0 - contested / margin)
-        return if (dither.at(worldX, 0, worldZ).nextDouble() < oddsOfUpset) runnerUp else best
+        // rather than a distance in tilted units — which vary in scale across the claim's range.
+        return Contest(best, runnerUp, (bestTilted - runnerUpTilted) / ClaimTilt.slopeAt(bestClaim))
     }
+
+    /** See [contestAt]. [contested] is the winner's margin over the runner-up, in claim units. */
+    private data class Contest(val winner: Int, val runnerUp: Int, val contested: Double)
 
     /**
      * One member's raw claim at a column, before any share tilts it — for the offline share check, which
@@ -139,7 +184,7 @@ data class RegionMap(
     )
 
     companion object {
-        /** One member owns everything — what a slot with a single preset gets, and costs nothing. */
+        /** One member owns everything — what a aspect with a single preset gets, and costs nothing. */
         fun whole(): RegionMap = RegionMap(members = 1, scale = 1.0, blend = 0, originX = 0, originZ = 0, seed = 0)
 
         // Wavelength one in claim space, so a claim's extent is exactly [scale] blocks. The second

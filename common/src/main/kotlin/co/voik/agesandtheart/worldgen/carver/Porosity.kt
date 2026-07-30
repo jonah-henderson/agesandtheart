@@ -54,8 +54,8 @@ class Porosity(
         /**
          * The shipped rule: small vugs through the whole rock column.
          *
-         * The band spans the world rather than a tuned slice, because `porous` is a *subsurface* and may be
-         * paired with any landform — Spire islands sit above y=100 where hills sit below y=100, and a fixed
+         * The band spans the world rather than a tuned slice, because `porous` is a *carving* and may be
+         * paired with any terrain — Spire islands sit above y=100 where hills sit below y=100, and a fixed
          * band would quietly do nothing for one of them. `RuleCarver` skips air before asking, so a band
          * this wide costs about what the rock in it costs rather than what the sky does.
          */

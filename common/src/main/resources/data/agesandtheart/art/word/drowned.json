@@ -1,8 +1,8 @@
 {
   "tier": "restrictive",
-  "slots": [
-    "medium",
-    "subsurface"
+  "aspects": [
+    "sea",
+    "carvers"
   ],
   "query": {
     "watery": 1.0

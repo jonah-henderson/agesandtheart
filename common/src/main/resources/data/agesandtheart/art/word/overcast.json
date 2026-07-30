@@ -1,6 +1,6 @@
 {
   "tier": "restrictive",
-  "slots": [
+  "aspects": [
     "sky"
   ],
   "query": {

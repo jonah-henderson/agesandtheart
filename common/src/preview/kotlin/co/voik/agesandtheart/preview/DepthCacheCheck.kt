@@ -12,7 +12,7 @@ import kotlin.system.measureNanoTime
  *
  * **This exists because the bug it guards against is invisible.** The cache was first indexed on the low
  * bits of the *block* coordinate, but biomes are sampled per quart cell and the coordinate is multiplied
- * back up before it arrives — so those bits are always zero, every column landed in one slot, and the
+ * back up before it arrives — so those bits are always zero, every column landed in one aspect, and the
  * cache did nothing at all. Nothing broke; the terrain was identical. It only showed up as a benchmark
  * that refused to move, which is an expensive way to find out and an easy thing to reintroduce.
  *

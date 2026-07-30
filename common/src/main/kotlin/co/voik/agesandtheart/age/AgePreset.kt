@@ -14,11 +14,11 @@ import net.minecraft.util.StringRepresentable
  *
  * **Renaming a [key] orphans every Age already written with it**, which is what `recipecheck` guards.
  *
- * **Most of these are no longer generators.** Slots arrived (see [co.voik.agesandtheart.age.slot.Slot])
- * and all but three became *compositions* — a landform, a medium, a subsurface, a dressing and a sky,
+ * **Most of these are no longer generators.** Slots arrived (see [co.voik.agesandtheart.age.aspect.Aspect])
+ * and all but three became *compositions* — a terrain, a sea, a carving, a dressing and a sky,
  * named separately. What survives here is the name each classic demo goes by, which
  * [AgeRecipe.worldFor] turns into the composition it describes, and which every Age written before
- * slots existed still says on disk.
+ * aspects existed still says on disk.
  *
  * Only [SPIRE], [VANILLA] and [VANILLA_BARE] remain whole generators, because they genuinely are not
  * assembled from parts — see [AgeWorld].

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.client
 
+import co.voik.agesandtheart.math.Rgba
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.BufferUploader
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
@@ -53,20 +54,30 @@ object AgeCloudRenderer : DimensionRenderingRegistry.CloudRenderer {
         val noiseOffsetZ: Double,
     )
 
+    /** Nudged off the block grid — see the note in [drawDeck]. */
+    private const val DECK_LIFT = 0.5
+
     /**
      * World Y of the upper deck. Also this dimension's registered cloud level (see [AgeDimensionEffects])
      * and the height [AgeSkyRenderer]'s star-reveal band is built around — one fact, named once, because
      * three copies of it would drift apart the first time the deck is retuned.
+     *
+     * **Unmoved when the archipelago floated up, because the islands came to meet it.** Measured, the island
+     * tops now reach a ninetieth percentile of 248 with about one column in twenty carrying on past this —
+     * which is what "hides the peaks" below was always meant to describe and, at a median top of 157, never did.
      */
     const val UPPER_DECK_HEIGHT = 265.0
 
     /**
-     * World Y of the lower deck. The 120-block gap up to [UPPER_DECK_HEIGHT] is close to vanilla's own
-     * ground-to-cloud distance, which is the point: the band should feel like a sky you are inside
-     * rather than a lid. Both decks sit high above the sea at y=63, so the archipelago reads as being
-     * genuinely far up rather than hovering over the water.
+     * World Y of the lower deck: level with the islands' own waist, so it hides the hanging spires beneath them
+     * and leaves the walkable bodies in the clear gap up to [UPPER_DECK_HEIGHT].
+     *
+     * **Rides with the terrain.** It was 145 against a deck slab at y=148, and `Terrain.ALTITUDE` lifting the
+     * archipelago 72 blocks left it below the deepest root — a cloud floor under everything instead of clouds
+     * lapping at the island's edge. Raised by the same 72, which keeps the arrangement Jonah has been walking
+     * around rather than inventing a new one.
      */
-    const val LOWER_DECK_HEIGHT = 145.0
+    const val LOWER_DECK_HEIGHT = 217.0
 
     // Upper deck: mostly light grey, with cool blue-grey darker spots. Drifts faster.
     private val UPPER_DECK = Deck(
@@ -111,7 +122,11 @@ object AgeCloudRenderer : DimensionRenderingRegistry.CloudRenderer {
 
     /** A flat, closed cloud slab centred on the camera, roiling between the deck's two tones. */
     private fun drawDeck(buffer: VertexConsumer, matrix: Matrix4f, deck: Deck, camera: Vec3, time: Float) {
-        val baseY = (deck.height - camera.y).toFloat()
+        // **Half a block up, to stop the decks z-fighting with terrain at the same level** (Jonah,
+        // 2026-07-29). A deck drawn at a whole Y sits exactly on the face of the block at that height, so the
+        // two planes are coplanar and which one wins is down to depth-buffer precision — it flickers as you
+        // move. Offsetting by half a block puts the sheet inside the block's own space, where nothing else is.
+        val baseY = (deck.height + DECK_LIFT - camera.y).toFloat()
         drawSurface(buffer, matrix, baseY + HALF_THICKNESS, deck, camera, time, TOP_BRIGHTNESS)
         drawSurface(buffer, matrix, baseY - HALF_THICKNESS, deck, camera, time, BOTTOM_BRIGHTNESS)
         drawWalls(buffer, matrix, baseY, deck)

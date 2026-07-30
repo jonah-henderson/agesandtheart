@@ -199,7 +199,7 @@ data class Radial(
             val minSlot = floor((queryAngle - halfWindow) / angleStep).toInt()
             val maxSlot = ceil((queryAngle + halfWindow) / angleStep).toInt()
             if (fullRing || maxSlot - minSlot + 1 >= count) {
-                for (slot in 0..<count) emitSlot(ring, slot, ringRadius, angleStep, random, visit)
+                for (aspect in 0..<count) emitSlot(ring, aspect, ringRadius, angleStep, random, visit)
             } else {
                 for (rawSlot in minSlot..maxSlot) emitSlot(ring, Math.floorMod(rawSlot, count), ringRadius, angleStep, random, visit)
             }
@@ -208,14 +208,14 @@ data class Radial(
 
     private fun emitSlot(
         ring: Int,
-        slot: Int,
+        aspect: Int,
         ringRadius: Double,
         angleStep: Double,
         random: PositionalRandomFactory,
         visit: (originX: Int, originZ: Int, instanceRandom: RandomSource) -> Unit,
     ) {
-        val instanceRandom = random.at(ring, 0, slot)
-        val angle = slot * angleStep + jittered(instanceRandom, jitter / ringRadius)
+        val instanceRandom = random.at(ring, 0, aspect)
+        val angle = aspect * angleStep + jittered(instanceRandom, jitter / ringRadius)
         val radius = ringRadius + jittered(instanceRandom, jitter)
         val originX = (cos(angle) * radius).roundToInt()
         val originZ = (sin(angle) * radius).roundToInt()
@@ -297,8 +297,8 @@ data class Scatter(
 
         for (cellX in minCellX..maxCellX) {
             for (cellZ in minCellZ..maxCellZ) {
-                // The count gets its own slot in the positional RNG's spare axis so it cannot correlate
-                // with any instance's own stream; the instances then take slots 0, 1, 2… of the same
+                // The count gets its own aspect in the positional RNG's spare axis so it cannot correlate
+                // with any instance's own stream; the instances then take aspects 0, 1, 2… of the same
                 // cell. Every draw below is a pure function of (cell, index), which is what keeps two
                 // chunk workers agreeing about a cell they both overlap.
                 val counting = random.at(cellX, COUNT_SLOT, cellZ)

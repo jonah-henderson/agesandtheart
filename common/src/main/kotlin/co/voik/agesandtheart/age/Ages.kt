@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age
 
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.platform.Services
+import co.voik.agesandtheart.sky.Skies
 import net.minecraft.core.SectionPos
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
@@ -70,6 +71,10 @@ object Ages {
      * whose origin turns out to be open sea or void drops nobody into it.
      */
     fun teleport(player: ServerPlayer, level: ServerLevel) {
+        // Before the move, not after, and the ordering is load-bearing rather than tidy: one TCP stream carries
+        // both, so a sky sent first cannot arrive after the dimension change and the client has it before the
+        // first frame. See `Skies.tellAbout`.
+        Skies.tellAbout(player, level)
         val (landingX, landingZ) = findFooting(level)
         level.getChunk(SectionPos.blockToSectionCoord(landingX), SectionPos.blockToSectionCoord(landingZ))
         val surfaceY = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, landingX, landingZ)

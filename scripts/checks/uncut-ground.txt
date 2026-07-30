@@ -5,14 +5,19 @@
 # argument, it simply vanished. Measured then, `riddled` against `riddled unbroken` differed by **two
 # blocks, and both of them were water** — the water coming from hydrology, which already divided.
 #
-# A subsurface that cuts nothing anywhere now holds a territory in which no walk starts, so the second
+# A carvers that cuts nothing anywhere now holds a territory in which no walk starts, so the second
 # sentence should differ from the first over a large share of its caves. Same seed throughout, so nothing
-# but the subsurface can be responsible for a difference.
+# but the carvers can be responsible for a difference.
 
-# Caves throughout, and caves against uncut ground. `compose` rather than `write` so the subsurface is
+# Caves throughout, and caves against uncut ground. `compose` rather than `write` so the carvers is
 # stated outright and no resolver draw can quietly seat a third preset.
-age compose riddledonly 7 landform=hills medium=minecraft:water subsurface=caves dressing=overworld sky=plain
-age compose riddledsolid 7 landform=hills medium=minecraft:water subsurface=caves,solid dressing=overworld sky=plain
+#
+# The recorded numbers below were measured with `dressing=overworld`, which the dressing's deletion removed
+# from these lines (2026-07-29). Both Ages now decorate, which puts a small non-zero floor under every
+# comparison here — irrelevant at this scale, since the signal is ~249,000 blocks against a floor in the
+# tens, but worth knowing before reading the control pair as exact.
+age compose riddledonly 7 terrain=hills sea=minecraft:water carvers=caves sky=plain
+age compose riddledsolid 7 terrain=hills sea=minecraft:water carvers=caves,solid sky=plain
 
 # THE NUMBER. Two blocks means the union is still swallowing `solid`; a large count means uncut ground
 # exists. Expect the difference to be air-versus-stone rather than water, which is what tells uncut ground
@@ -22,12 +27,12 @@ age compose riddledsolid 7 landform=hills medium=minecraft:water subsurface=cave
 # two under the plain union. Uncut ground exists.
 age compare riddledonly riddledsolid 6
 
-# And the control: two subsurfaces that both *cut* must still union, so this pair should differ from
+# And the control: two carvers that both *cut* must still union, so this pair should differ from
 # `riddledonly` by whatever porosity adds, not by territory.
 #
 # MEASURED: 65,779 blocks over 73 of 169 chunks at radius 6 — porosity's scattered vugs added on top of the
-# caves, in the chunks it reached. The union between two cutting subsurfaces is untouched.
-age compose riddledporous 7 landform=hills medium=minecraft:water subsurface=caves,porous dressing=overworld sky=plain
+# caves, in the chunks it reached. The union between two cutting carvers is untouched.
+age compose riddledporous 7 terrain=hills sea=minecraft:water carvers=caves,porous sky=plain
 age compare riddledonly riddledporous 6
 
 age list

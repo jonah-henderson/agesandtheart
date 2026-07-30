@@ -8,7 +8,7 @@ import net.minecraft.world.level.levelgen.DensityFunction
 import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator
 
 /**
- * How wide a *region* is, when an Age divides itself between several landforms — read off the world the
+ * How wide a *region* is, when an Age divides itself between several terrains — read off the world the
  * Age was written in rather than guessed at.
  *
  * The design (`notes/the-art-design.md` §3.4) asks for a region roughly the size of one vanilla biome,
@@ -89,7 +89,7 @@ object BiomeScale {
     private const val DEFAULT_XZ_SCALE = 0.25
 
     // A region below a couple of chunks would read as noise rather than geography; one above this would
-    // put the second landform beyond any distance a player would travel to find it.
+    // put the second terrain beyond any distance a player would travel to find it.
     private const val SMALLEST = 64
     private const val LARGEST = 8192
 }
