@@ -12,13 +12,10 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.saveddata.SavedData
 
 /**
- * Persists which Ages exist and the [AgeRecipe] each was written from (plus a counter for minting
- * distinct Age ids), so every one of them can be rebuilt on server restart.
+ * Persists which Ages exist and the [AgeRecipe] each was written from, plus a counter for minting ids,
+ * so every one can be rebuilt on restart. Vanilla [SavedData] under the overworld's data storage.
  *
- * Runtime-dimension libraries (Fantasy included) do NOT auto-restore dynamic dimensions across
- * restarts — they only manage them while the server runs. So we track Ages ourselves in vanilla
- * [SavedData] (stored under the overworld's data storage), and replay them via [Ages.reloadSaved] on
- * boot. The recipe is the *whole* description: nothing about an Age's world lives anywhere else.
+ * The recipe is the whole description: nothing about an Age's world lives anywhere else.
  */
 class AgeSavedData : SavedData() {
     private val recipes: MutableMap<ResourceLocation, AgeRecipe> = linkedMapOf()
@@ -68,12 +65,9 @@ class AgeSavedData : SavedData() {
         private const val KEY_LEGACY_KINDS = "generators"
 
         /**
-         * Ages carry no vanilla data-fixer type — the recipe format is ours, and nothing in Mojang's
-         * schema knows how to migrate it, so [restoreLegacy] does that job instead.
-         *
-         * Vanilla marks this parameter `@Nullable` and passes null for its own untyped data, but the
-         * annotation is stripped from the artifact we compile against, so Kotlin reads the parameter as
-         * non-null and objects to the only value that is correct here.
+         * Ages carry no vanilla data-fixer type, so [restoreLegacy] does that job. The null is correct:
+         * vanilla marks the parameter `@Nullable`, but the annotation is stripped from the artifact we
+         * compile against, so Kotlin reads it as non-null.
          */
         @Suppress("TYPE_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
         private fun factory(): Factory<AgeSavedData> =
@@ -93,12 +87,9 @@ class AgeSavedData : SavedData() {
         }
 
         /**
-         * Rebuilds recipes for Ages saved before they existed, so those worlds come back unchanged.
-         *
-         * Both halves of the old scheme reproduce exactly: the kind string names the preset, and the
-         * seed is the one the backend used to derive from the id anyway ([AgeRecipe.seedFor]). An Age
-         * whose kind is missing or no longer known falls back to Spire, which is what the old
-         * `generatorKey` accessor did for the same cases.
+         * Rebuilds recipes for Ages saved before they existed, so those worlds come back unchanged: the
+         * kind string names the preset, and the seed is the one the backend derived from the id anyway.
+         * A missing or unknown kind falls back to Spire, as the old `generatorKey` accessor did.
          */
         private fun restoreLegacy(tag: CompoundTag, restored: AgeSavedData) {
             val storedAges = tag.getList(KEY_LEGACY_AGES, Tag.TAG_STRING.toInt())

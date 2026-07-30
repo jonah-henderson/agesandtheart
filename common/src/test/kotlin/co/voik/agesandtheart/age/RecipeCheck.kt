@@ -17,17 +17,12 @@ import net.minecraft.nbt.StringTag
 import net.minecraft.resources.ResourceLocation
 
 /**
- * Checks the one thing about [AgeRecipe] that cannot be checked by looking at a world: that what we
- * write to disk is what we read back, and that an Age already written still names something.
+ * That what we write to disk is what we read back, and that an Age already written still names
+ * something. A recipe is the *only* record of what an Age is, so one that fails to round-trip does not
+ * corrupt a save — it silently replaces someone's world with a different one.
  *
- * A recipe is the *only* record of what an Age is — the dimension is rebuilt from it on every open —
- * so a recipe that fails to round-trip does not corrupt a save, it silently replaces someone's world
- * with a different one. That makes this worth a check of its own rather than a wait for symptoms.
- *
- * Registry-free by design, so it runs offline in a second: recipes are plain data, and none of the
- * codecs here reach for a registry. That is also why it carries no `NeedsRegistries` tag while
- * [CodecCheck] does — and why `CodecCheck` exists at all, since staying registry-free means this file
- * never loads a chunk generator.
+ * **Registry-free by design**, so it runs offline in a second. That is also why [CodecCheck] exists:
+ * staying registry-free means this file never loads a chunk generator.
  */
 class RecipeCheck : FunSpec({
 
@@ -37,11 +32,9 @@ class RecipeCheck : FunSpec({
     }
 
     /**
-     * Every preset of every aspect survives too.
-     *
-     * Presets are no longer whole worlds, so "every [AgePreset] round-trips" no longer reaches most of
-     * what a recipe can say: an aspect preset only appears above if some classic demo Age happens to name
-     * it. This asks each one directly, so a family can gain a member without gaining a blind spot.
+     * Every preset of every aspect survives too. "Every [AgePreset] round-trips" no longer reaches most of
+     * what a recipe can say, an aspect preset only appearing above if some demo Age names it — so each is
+     * asked directly, and a family can gain a member without gaining a blind spot.
      */
     withData(
         nameFn = { "the '${it.aspect.key}=${it.key}' aspect preset round-trips" },
@@ -55,11 +48,8 @@ class RecipeCheck : FunSpec({
     }
 
     /**
-     * An option nobody recognises comes back out again.
-     *
-     * The invariant [co.voik.agesandtheart.age.aspect.Options] promises, and the one most easily lost to a
-     * well-meant cleanup: dropping an unreadable option on load is how a save quietly becomes a different
-     * save, since the recipe is all there is. It has to survive the *write* as well as the read.
+     * An option nobody recognises comes back out again — the invariant most easily lost to a well-meant
+     * cleanup, and it has to survive the *write* as well as the read.
      */
     test("options it cannot understand round-trip") {
         val composition = AgeComposition(terrains = listOf(Terrain.PYRAMIDS))
@@ -75,15 +65,10 @@ class RecipeCheck : FunSpec({
     }
 
     /**
-     * A parameter holding several values survives — and one holding a single value is spelled exactly as it
-     * always was.
-     *
-     * The second half is the load-bearing one. Several values on a parameter is what a grammatical
-     * *conjunction* will resolve to (design §3.2 — "blackstone and tuff" is two words joined, never one word
-     * meaning both), so `Options` had to start holding lists before the grammar exists. That change was made
-     * free by spelling a lone value as a bare string, which is what every recipe already on disk contains —
-     * so no generator version had to move. If that ever regresses, every Age ever written reads back wrong,
-     * and nothing else would notice.
+     * A parameter holding several values survives, **and one holding a single value is spelled exactly as
+     * it always was** — the load-bearing half. A lone value spells as a bare string, which is what every
+     * recipe on disk contains; if that regresses, every Age ever written reads back wrong and nothing else
+     * would notice.
      */
     test("a mingled parameter round-trips") {
         val one = AgeComposition(terrains = listOf(Terrain.HILLS))
@@ -112,13 +97,10 @@ class RecipeCheck : FunSpec({
     }
 
     /**
-     * A population's `only` and `except` survive the trip — the marks `Claim` spells them with.
-     *
-     * The recipe is the only record of an Age (§4.6), so an exclusion that failed to round-trip would be an
-     * Age that quietly regained the thing it was written to be without. It nearly *did* fail: a marked value
-     * is not a well-formed `ResourceLocation`, so reading it through `allOf` filters it out and the exclusion
-     * simply does not happen — which is why `Options.claimsOn` strips the mark before validating and this
-     * asserts the result rather than the spelling alone.
+     * A population's `only` and `except` survive the trip. A marked value is not a well-formed
+     * `ResourceLocation`, so reading it through `allOf` filters it out and the exclusion simply does not
+     * happen — which is why `Options.claimsOn` strips the mark first, and why this asserts the result
+     * rather than the spelling.
      */
     test("an excluded structure round-trips") {
         val written = AgeComposition(terrains = listOf(Terrain.HILLS))
@@ -154,14 +136,10 @@ class RecipeCheck : FunSpec({
     }
 
     /**
-     * Two territories of one aspect, steered differently — copper spires beside andesite hills.
-     *
-     * The property an aspect-wide `Options` could not hold at all: one parameter named twice with two values,
-     * which used to contend so that one won and painted both territories. A sentence that reads perfectly and
-     * quietly does something else, so nothing but this notices if it comes back.
-     *
-     * Checks both directions, because the collapse is as load-bearing as the division: territories that
-     * *agree* must still spell themselves once, or every recipe already on disk reads differently.
+     * Two territories of one aspect, steered differently — copper spires beside andesite hills, which an
+     * aspect-wide `Options` could not hold at all. Both directions, because the collapse is as
+     * load-bearing as the division: territories that *agree* must still spell themselves once, or every
+     * recipe on disk reads differently.
      */
     test("two territories are steered apart") {
         val divided = AgeComposition(terrains = listOf(Terrain.SPIRE_ISLANDS, Terrain.HILLS))
@@ -197,11 +175,9 @@ class RecipeCheck : FunSpec({
     }
 
     /**
-     * What a composition prints is what the composer reads back.
-     *
-     * These are two hand-written halves of one grammar, and nothing but this makes them agree. The cost of
-     * their drifting apart is that `/age list` prints recipes `/age compose` cannot accept — the sort of
-     * thing that survives for months, because each half looks right on its own.
+     * What a composition prints is what the composer reads back — two hand-written halves of one grammar,
+     * and nothing but this makes them agree. Drifting apart means `/age list` prints recipes
+     * `/age compose` cannot accept, which survives for months because each half looks right alone.
      */
     test("compositions are spelled the way they are read") {
         val compositions = everyAspectPreset().map { preset ->
@@ -312,12 +288,9 @@ class RecipeCheck : FunSpec({
     }
 
     /**
-     * An Age somebody *wrote* keeps its words and its flaws.
-     *
-     * Both are new to version 6 and both are provenance: nothing rebuilds a world from them, which is exactly
-     * why they are easy to lose without noticing. The words are the only record of what a book said, and the
-     * flaws are what makes an unstable Age diagnosable rather than merely punished — a wound has to be sited
-     * at the contradiction (§5.1), and the contradiction is only written down here.
+     * An Age somebody *wrote* keeps its words and its flaws. Both are provenance — nothing rebuilds a
+     * world from them, which is exactly why they are easy to lose without noticing, and the flaws are what
+     * makes an unstable Age diagnosable rather than merely punished (§5.1).
      */
     test("a written Age keeps its words and its flaws") {
         val composition = AgeComposition(terrains = listOf(Terrain.HILLS))
@@ -355,10 +328,9 @@ class RecipeCheck : FunSpec({
 
     /**
      * An Age whose aspects divide unevenly keeps its shares, through NBT and through its own spelling.
-     *
-     * Shares are generation inputs — they decide how much ground each territory covers — so losing one
-     * silently would hand back a different world on the next open. And an even division has to keep spelling
-     * itself the way it always did, or every recipe written before shares existed would read as something else.
+     * Shares are generation inputs, so losing one hands back a different world on the next open — and an
+     * even division must keep its old spelling, or every recipe written before shares reads as something
+     * else.
      */
     test("an uneven division round-trips") {
         val uneven = AgeComposition(terrains = listOf(Terrain.HILLS))
@@ -416,11 +388,9 @@ class RecipeCheck : FunSpec({
     }
 
     /**
-     * Every generator-kind string ever persisted still names a preset.
-     *
-     * The list is frozen history, not a mirror of the enum — that is the entire point. Renaming an
-     * [AgePreset.key] compiles perfectly and orphans every Age already written with the old name, sending
-     * it to the fallback preset and quietly handing the player a different world.
+     * Every generator-kind string ever persisted still names a preset. **The list is frozen history, not a
+     * mirror of the enum** — renaming an [AgePreset.key] compiles perfectly and orphans every Age written
+     * with the old name, sending it to the fallback and handing the player a different world.
      */
     test("every written kind still resolves") {
         for (kind in LEGACY_KINDS) {
@@ -432,12 +402,9 @@ class RecipeCheck : FunSpec({
     }
 
     /**
-     * The generator stamp is actually written down.
-     *
-     * Guards a specific trap: had the field been declared `optionalFieldOf(name, default)`, the codec
-     * would *omit* it whenever it matched the current version, and an old Age would then be read back
-     * claiming to have been made by whatever code is current — which is the one question the stamp exists
-     * to answer (design §6.5).
+     * The generator stamp is actually written down. Declared `optionalFieldOf(name, default)` the codec
+     * would *omit* it whenever it matched the current version, so an old Age would read back claiming to
+     * have been made by whatever code is current — the one question the stamp exists to answer.
      */
     test("the generator version is stamped") {
         val recipe = AgeRecipe(AgeRecipe.worldFor(AgePreset.SPIRE), seed = SAMPLE_SEED)
@@ -466,12 +433,9 @@ private fun roundTrips(recipe: AgeRecipe, what: String): AgeRecipe {
 }
 
 /**
- * Every preset a composition can currently be written from: every authored one, the three seas the mod
- * names, and one referent naming content this pack does not have.
- *
- * That last is the point of the list now that an aspect can be open (design §3.1) — a recipe must be able to
- * hold an id from a mod that is not installed and give it back unchanged, because a save moving between
- * modpacks is ordinary and an Age that quietly lost its sea would be the worst kind of data loss.
+ * Every preset a composition can be written from: every authored one, the three seas the mod names, and
+ * **one referent naming content this pack does not have** — a recipe must hold an id from an uninstalled
+ * mod and give it back unchanged, a save moving between modpacks being ordinary.
  */
 private fun everyAspectPreset(): List<AspectPreset> =
     Aspect.entries.flatMap { it.authored } +

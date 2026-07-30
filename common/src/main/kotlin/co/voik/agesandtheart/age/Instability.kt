@@ -11,65 +11,34 @@ import java.util.Optional
 /**
  * The four ways a sentence can be at odds with the world, in ascending order of how much trouble it is.
  *
- * Registers rather than one severity dial, because they are *different facts about a sentence* and a
- * writer needs to be told which one happened. Two of them are the spike's hardest-won lesson: "nothing
- * carries this word" and "an earlier word crowded it out" look identical from the outside and must not be
- * charged as though they were the same complaint.
+ * Registers rather than one severity dial: "nothing carries this word" and "an earlier word crowded it
+ * out" look identical from outside and must not be charged as the same complaint.
  */
 enum class Register(
     val key: String,
-    /**
-     * What this costs before precision is taken into account. Deliberately small — punishment for
-     * incoherence is *not harsh* (design §2): a world that tells you something is wrong, not one that
-     * takes your afternoon away. §5 and Phase 6 decide what an index of 6 versus 20 actually *does*;
-     * these numbers only have to order sensibly against each other until then.
-     */
+    /** What this costs before precision is taken into account. Only has to order sensibly for now. */
     private val base: Int,
 ) : StringRepresentable {
-    /**
-     * Two words meant opposite things and the world honoured both anyway — cherry grove abutting desert.
-     *
-     * The gentlest register, and pointedly not a punishment: this is the generator doing the most
-     * interesting thing it knows how to do. It is charged at all only because a writer *did* write a
-     * tension, and §3.5 needs that to cost something even where the world absorbed it.
-     */
+    /** Two words meant opposite things and the world honoured both anyway. */
     TENSION("tension", base = 1),
 
     /**
-     * A aspect had to **break into fragments** to honour everything asked of it.
+     * An aspect had to break into fragments to honour everything asked of it.
      *
-     * The world is intact and both words are in it, but the sentence described a place that cannot be one
-     * place — so the ground shears mid-air at a boundary, or a sea of water meets a sea of lava at one
-     * level. Exactly the impossible geometry the set-valued aspects exist to produce.
-     *
-     * **Called a fracture rather than a division, and the scarcity is the point** (Jonah, 2026-07-29). A aspect
-     * divides for two quite different reasons: because it could not reconcile a contradiction, which is this;
-     * and because a vague word simply *liked* two answers, which is harmony, charged nothing, and produces no
-     * flaw at all (see [co.voik.agesandtheart.age.aspect.Aspect.appetiteForCompany]). Naming both of them
-     * "division" made the word describe every divided world including the pretty ones. Reserved for the charged
-     * case, "this Age is fragmented" *means* something — you wrote a contradiction the world had to break to
-     * honour — which is also the reading §5's consequences want. The mechanism keeps its own neutral names:
-     * `region` and `territory` stay what they are.
+     * A fracture, never a division: an aspect also divides because a vague word simply *liked* two
+     * answers, which is harmony and charged nothing (see [Aspect.appetiteForCompany]). Only the charged
+     * case is a flaw.
      */
     FRACTURE("fracture", base = 1),
 
-    /**
-     * A word lost outright: it asked for something the aspect could have been, and something else already
-     * had the aspect.
-     *
-     * Where a positional aspect would have divided, a singular one cannot — and a sky can only be one sky.
-     * This is the register the harsher consequences of §5 hang off, because the world genuinely does not
-     * contain what the writer asked for.
-     */
+    /** A word lost outright: something else already had the aspect, and the aspect cannot divide. */
     DISPLACED("displaced", base = 2),
 
     /**
-     * Nothing in the aspect could *ever* be what the word asked for.
+     * Nothing in the aspect could ever be what the word asked for.
      *
-     * Per §3.3 this is a **content bug rather than a play outcome** — we only make words we can back up,
-     * and `VocabularyCheck` exists to keep it from shipping. It is a register anyway because of
-     * the one hard requirement: if a word ever slips through, it must resolve as vacuous and be *reported*,
-     * never silently dropped.
+     * A content bug rather than a play outcome (design §3.3) — `VocabularyCheck` keeps it from shipping.
+     * A register anyway, because a word that slips through must be reported, never silently dropped.
      */
     UNBACKED("unbacked", base = 4),
     ;
@@ -85,14 +54,10 @@ enum class Register(
 }
 
 /**
- * One thing wrong with a sentence, kept in full rather than reduced to a number.
+ * One thing wrong with a sentence, kept in full rather than reduced to a number, so that a wound can be
+ * sited at the contradiction that caused it (design §5.1).
  *
- * **Provenance is the point** (§4.6): an index alone can never be made diagnosable, and diagnosability is
- * the whole difference between this and arbitrary punishment. A wound has to be *sited at* the
- * contradiction (§5.1), which means knowing which words fought, over which tags, in which aspect.
- *
- * Stored structurally, with the English generated at reading time — a save file is no place for prose that
- * will want translating.
+ * Stored structurally; the English is generated at reading time.
  */
 data class Flaw(
     val register: Register,
@@ -141,15 +106,10 @@ data class Flaw(
 private val ASPECT_CODEC: Codec<Aspect> = StringRepresentable.fromEnum(Aspect::values)
 
 /**
- * How far an Age is at odds with itself, and why — part of its recipe, because §5's consequences have to
- * read it long after the book was written.
+ * How far an Age is at odds with itself, and why. Part of the recipe, and never re-derived (design §4.6).
  *
- * It persists for the same reason the resolved composition does (§4.6): re-deriving it would mean keeping
- * the words *and* re-running them through whatever tag data is current, so a retuned weight or an edited
- * datapack could quietly make someone's stable Age unstable. What was written is what it is.
- *
- * The index is the sum of the flaws rather than a field of its own, so the number and the reasons can
- * never disagree about what happened.
+ * The index is the sum of the flaws rather than a field of its own, so the number and the reasons cannot
+ * disagree.
  */
 data class Instability(val flaws: List<Flaw>) {
     val index: Int get() = flaws.sumOf { it.severity }

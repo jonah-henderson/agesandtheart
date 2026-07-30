@@ -5,14 +5,12 @@ import com.mojang.serialization.MapCodec
 import net.minecraft.util.StringRepresentable
 
 /**
- * A composable description of world *shape*: for a column it answers which vertical intervals are
- * solid ([columnSpans]). Primitives (ellipsoid, cone, …) answer analytically; combinators (union,
- * subtract, …) combine their children's spans. Material and sea fill are separate concerns, held
- * by the generator — this interface is pure shape.
+ * A composable description of world *shape*: for a column, which vertical intervals are solid.
+ * Primitives answer analytically, combinators combine their children's spans. Material and sea fill are
+ * the generator's concern — this interface is pure shape.
  *
- * The tree is *data*, not code: it serialises through [CODEC] (a dispatch over [FieldKind]), so a
- * field tree can be persisted as part of an Age recipe and replayed on load. See
- * `notes/terrain-architecture.md` for the design and the three evaluation tiers.
+ * The tree is **data**, serialising through [CODEC] (a dispatch over [FieldKind]), so it persists in an
+ * Age recipe and replays on load. See `notes/terrain-architecture.md`.
  */
 sealed interface TerrainField {
 
@@ -27,15 +25,11 @@ sealed interface TerrainField {
     val horizontalReach: Double
 
     /**
-     * Roughly what one [columnSpans] call costs, as a count of noise samples. Zero — the default — means
-     * the field answers in closed form and costs essentially nothing; a sampled field reports how much of
-     * the column it may have to walk.
+     * Roughly what one [columnSpans] call costs, as a count of noise samples. Zero means closed form.
      *
-     * It exists so combinators can put their cheap children first. That is not a micro-optimisation:
-     * [Intersect] stops as soon as the running result is empty, so a sampled child evaluated *after* an
-     * analytic bound is skipped entirely on every column the bound misses — which is most of them. The
-     * same tree written the other way round pays full price everywhere. A relative ordering is all this
-     * needs to be right about, so an approximate count is enough.
+     * Exists so combinators put their cheap children first, which is not a micro-optimisation: [Intersect]
+     * stops as soon as the running result is empty, so a sampled child after an analytic bound is skipped
+     * on every column the bound misses. Only the relative ordering has to be right.
      */
     val samplesPerColumn: Int get() = 0
 
@@ -43,17 +37,13 @@ sealed interface TerrainField {
     fun columnSpans(worldX: Int, worldZ: Int): Spans
 
     /**
-     * The same shape with its *dimensions* multiplied by [factor], measured about the [pivotY] plane
-     * (which stays put, so anything standing on it keeps its footing).
+     * The same shape with its *dimensions* multiplied by [factor], about the [pivotY] plane — which stays
+     * put, so anything standing on it keeps its footing.
      *
-     * This resizes the description, not the output: a resized [Pyramid] genuinely has more courses of
-     * blocks, where *resampling* a built one would stretch its staircase into uneven two-block steps.
-     *
-     * **Any [factor] is exact, fractional ones included** — it scales parameters, not samples, so there
-     * is no artefact to avoid and no reason to prefer whole numbers. What a caller must budget for is
-     * that each distinct size is a whole rebuilt tree: see [Instanced], which pre-builds every size it
-     * will ever place, and then samples exactly one of them per column. So sizes cost construction and
-     * memory, never per-chunk time.
+     * **This resizes the description, not the output**: a resized [Pyramid] genuinely has more courses of
+     * blocks, where resampling a built one stretches its staircase into uneven steps. Any factor is
+     * therefore exact, fractional included. What a caller budgets for is that each distinct size is a
+     * whole rebuilt tree, so sizes cost construction and memory rather than per-chunk time.
      */
     fun resized(factor: Double, pivotY: Int): TerrainField
 

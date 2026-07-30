@@ -18,28 +18,17 @@ import net.minecraft.world.level.levelgen.placement.CaveSurface
 import net.minecraft.world.level.levelgen.synth.NormalNoise
 
 /**
- * What an Age's terrain is *made of*, as opposed to what shape it is. Shape comes from a
- * [TerrainField], which lays a single placeholder block; this repaints it afterwards, so the two
- * concerns never touch (see `notes/terrain-architecture.md`).
+ * What an Age's terrain is *made of*, as opposed to what shape it is — written in vanilla's own
+ * [SurfaceRules] language, so a palette is serialisable and travels in a recipe.
  *
- * Palettes are written in vanilla's own [SurfaceRules] language — reused rather than reinvented, and
- * serialisable, so a palette can travel in an Age recipe like everything else.
+ * **Why this wrapper exists: `abovePreliminarySurface` is unsound here** and only re-exporting the safe
+ * subset makes it unreachable. It asks `NoiseChunk.preliminarySurfaceLevel`, which against our inert
+ * router returns `Integer.MAX_VALUE`, so the condition is false everywhere and anything beneath it dies
+ * silently. It is the *only* one — `hole`, `bandlands` and `temperature` read noise the `RandomState`
+ * makes for itself, or the biome, and are all sound.
  *
- * **Why this wrapper exists.** Vanilla evaluates surface rules through machinery reachable only via a
- * noise pipeline, which a field Age does not have: it runs on `NoiseGeneratorSettings.dummy()`, whose
- * router is inert. Exactly one of vanilla's conditions reads that router — `abovePreliminarySurface`,
- * which asks `NoiseChunk.preliminarySurfaceLevel`; against an inert router that returns
- * `Integer.MAX_VALUE`, so the condition is false everywhere and anything beneath it is **silently**
- * dead. Rather than trusting ourselves to remember that, it is simply not reachable from our code.
- *
- * It is the *only* one. `hole` and `bandlands` look like they should be in the same boat and are not:
- * both read noise the `RandomState` instantiates for itself (`Noises.SURFACE` via
- * `SurfaceSystem.getSurfaceDepth`, and the clay-bands noise) rather than anything from the router. So is
- * `temperature`, which asks the *biome* whether it is `coldEnoughToSnow`. All three are sound here.
- *
- * Note the vocabulary is closed to us: `SurfaceRules.Context` is protected and `Condition` is
- * package-private, so we can *compose* vanilla's conditions but never write a new kind. Hence `and` is
- * expressed by nesting rather than by a combinator of our own.
+ * The vocabulary is closed to us: `SurfaceRules.Context` is protected and `Condition` package-private, so
+ * we compose vanilla's conditions and never write a new kind. Hence `and` is nesting.
  */
 object Palette {
 
@@ -117,15 +106,11 @@ object Palette {
     fun clayBands(): SurfaceRules.RuleSource = SurfaceRules.bandlands()
 
     /**
-     * The floor of the world — bedrock, fading out just above the bottom, exactly as vanilla closes its own.
+     * The floor of the world — bedrock, fading out just above the bottom, as vanilla closes its own.
      *
-     * **Goes first in every palette, so nothing can paint over it.** Jonah's rule, 2026-07-27: a world
-     * boundary is not the palette's to decide, and a *material* least of all — "a world of blackstone"
-     * should mean the rock is blackstone, not that the world has no bottom. Removing the floor deliberately
-     * is a thing the language should eventually be able to say ("no bedrock"), and that is a very different
-     * act from a material quietly dissolving it.
-     *
-     * Relative anchors rather than our own min-Y, so this stays correct if an Age's height band ever moves.
+     * **Goes first in every palette, so nothing can paint over it**: a world boundary is not the palette's
+     * to decide, and a material least of all. Relative anchors rather than our own min-Y, so this stays
+     * correct if an Age's height band moves.
      */
     fun worldFloor(): SurfaceRules.RuleSource = SurfaceRules.ifTrue(
         SurfaceRules.verticalGradient(
@@ -139,34 +124,21 @@ object Palette {
     // --- Ready-made palettes ---
 
     /**
-     * **Vanilla's own overworld palette**, biome for biome: grass and podzol and mycelium, red sand in
-     * the badlands with their clay banding, gravel and magma under the oceans, powder snow on the peaks.
-     * The natural partner to `AgeBiomeSource` — once an Age has real biomes, this dresses them the way a
-     * player expects without us re-deriving several hundred lines of rules.
+     * **Vanilla's own overworld palette**, biome for biome.
      *
-     * Note the `aboveGround = false`: that is not a description of the world but the switch that drops
-     * the `abovePreliminarySurface` wrapper vanilla otherwise puts around the whole tree, which would be
-     * dead here for the reason given above. Everything inside it is sound. `bedrockFloor = true` closes
-     * the bottom of the world at our own min-Y; `bedrockRoof = false` leaves the sky open.
-     *
-     * Taken from `net.minecraft.data.worldgen` deliberately rather than from the registry: the
-     * datapack-loaded `minecraft:overworld` noise settings carry the `aboveGround = true` variant, which
-     * is the one we cannot use.
+     * `aboveGround = false` is not a description of the world: it drops the `abovePreliminarySurface`
+     * wrapper vanilla puts around the whole tree, which would be dead here. Taken from
+     * `net.minecraft.data.worldgen` rather than the registry, because the datapack-loaded
+     * `minecraft:overworld` settings carry the `aboveGround = true` variant we cannot use.
      */
     val VANILLA_OVERWORLD: SurfaceRules.RuleSource =
         SurfaceRuleData.overworldLike(/* aboveGround = */ false, /* bedrockRoof = */ false, /* bedrockFloor = */ true)
 
     /**
-     * A rule that never matches, so whatever follows it decides.
+     * A rule that never matches, so whatever follows it decides — how "named no material" is spelled.
      *
-     * How "this terrain named no material" is spelled: a [RegionRule] member that declines leaves the column
-     * to the rule beneath it, which is the dressing's own rock.
-     *
-     * Spelled as *below the bottom of the world*, which no block ever is. The obvious spelling — an empty
-     * [layers] — is not available: vanilla's `sequence` rejects an empty list outright ("Need at least 1 rule
-     * for a sequence"), and it does so at class-initialisation time, so it fails a long way from here. A
-     * `RuleSource` of our own would need registering to serialise, which is a great deal of ceremony for a
-     * rule whose entire job is to do nothing.
+     * Written as *below the bottom of the world*, which no block is. An empty [layers] is not available:
+     * vanilla's `sequence` rejects an empty list at class-initialisation time, so it fails far from here.
      */
     val NOTHING: SurfaceRules.RuleSource = SurfaceRules.ifTrue(
         SurfaceRules.not(SurfaceRules.yBlockCheck(VerticalAnchor.bottom(), 0)),
@@ -176,13 +148,9 @@ object Palette {
     /**
      * What a verdant dressing shows below the soil — the deepslate gradient, and then nothing.
      *
-     * **The unconditional `solid(STONE)` that used to end this is gone, and its absence is the point** (step 4).
-     * A rule with no condition answers at *every* block, so it swallowed the whole column below the soil and the
-     * material a writer named could never show. Declining instead lets the fill's block stand, which is exactly
-     * how vanilla gets stone into its own bulk: from `default_block`, not from a rule.
-     *
-     * The deepslate gradient stays, and stays *conditioned*, because that is what vanilla does — see [Substance]
-     * for the check.
+     * **No unconditional tail, deliberately.** A rule with no condition answers at *every* block, so it
+     * swallows the column below the soil and a named material never shows. Declining lets the fill's block
+     * stand, which is how vanilla gets stone into its own bulk: from `default_block`, not a rule.
      */
     val VERDANT_ROCK: SurfaceRules.RuleSource = deepslateFloor()
 
@@ -193,21 +161,16 @@ object Palette {
     fun verdantOver(stones: List<BlockState>): SurfaceRules.RuleSource = verdantOver(mingled(stones))
 
     /**
-     * The same soil, over whatever [rock] the layers below settle on.
-     *
-     * Taking a rule rather than a block list is what lets a **terrain**'s material sit between the soil and
-     * the dressing's own rock: copper spires keep their grass, because the cover is decided above the
-     * substance and always was — this only makes the substance something more than one thing can answer for.
+     * The same soil, over whatever [rock] the layers below settle on. Taking a rule rather than a block
+     * list is what lets a terrain's material sit between the soil and the dressing's own rock.
      */
     fun verdantOver(rock: SurfaceRules.RuleSource): SurfaceRules.RuleSource =
         layers(worldFloor(), soil(), rock)
 
     /**
-     * Soil, but only inside the named biomes — how a barren dressing gives a named biome somewhere to grow.
-     *
-     * Deliberately *only the soil layers*: whatever this is laid over resumes a few blocks down, so a
-     * cherry grove in a stone world is a patch of ground on rock rather than a column of it. Goes before
-     * the rock in [layers], since the first matching rule wins.
+     * Soil, but only inside the named biomes. Only the soil *layers*, so whatever this is laid over
+     * resumes a few blocks down — a cherry grove in a stone world is a patch of ground on rock rather than
+     * a column of it. Goes before the rock in [layers], since the first matching rule wins.
      */
     fun soilIn(biomes: List<ResourceKey<Biome>>): SurfaceRules.RuleSource =
         SurfaceRules.ifTrue(inBiomes(*biomes.toTypedArray()), soil())
@@ -221,29 +184,17 @@ object Palette {
     )
 
     /**
-     * The rock a bare dressing shows when nothing named a material: an andesite skin over a tuff crust,
-     * then deepslate at depth.
+     * A **crust**: andesite at the face, tuff for [CRUST_DEPTH] below it, the deepslate gradient far down —
+     * and **no unconditional fallback**, so the rock the Age is made of shows through beneath it. The
+     * layering falls out of `sequence` being first-non-null-wins: each rule declines once its depth
+     * condition stops holding, and the next one, or finally the fill, answers.
      *
-     * Every block here is deliberately carver-replaceable (`#minecraft:base_stone_overworld`). Cobble was
-     * the obvious choice for the crust and is *not* in that tag, so caves would have cut the rock and left
-     * cobblestone shells hanging in their mouths; tuff reads the same and carves cleanly.
+     * Every block here is carver-replaceable (`#minecraft:base_stone_overworld`). Cobble is the obvious
+     * choice for the crust and is *not* in that tag, so caves would leave cobblestone shells in their
+     * mouths; tuff reads the same and carves cleanly.
      *
-     * **Declared above [BARE_ROCK], which reads it.** An `object`'s properties initialise in source order,
-     * so the other way round leaves this null at startup — the exact failure `CodecCheck` exists to
-     * catch, and one that surfaces as an unexplained crash a long way from here.
-     */
-    /**
-     * A **crust**, and since step 4 that is all it is: andesite at the face, tuff for [CRUST_DEPTH] below it,
-     * the deepslate gradient far down — and **no unconditional fallback**, so beneath the crust the rock the Age
-     * was made of shows through (Jonah's design, 2026-07-29).
-     *
-     * The tail used to be `solid(STONE)`, which answered at every block and swallowed the column, so a material
-     * was invisible under any dressing that painted rock. Removing it is what turns a whole-column repaint into a
-     * crust — and the layering falls out of `sequence` being first-non-null-wins alternation: each rule declines
-     * once its depth condition stops holding, and the next one, or finally the fill, answers.
-     *
-     * The same shape works under a biome's own rules: they are more specific and come first, so they take the
-     * top few blocks and this shows below them.
+     * **Declared above [BARE_ROCK], which reads it** — an `object`'s properties initialise in source order,
+     * so the other way round leaves this null at startup.
      */
     val BARE_ROCK_LAYERS: SurfaceRules.RuleSource = layers(
         where(atSurface(), Blocks.ANDESITE.defaultBlockState()),
@@ -255,17 +206,12 @@ object Palette {
     val BARE_ROCK: SurfaceRules.RuleSource = madeOf(BARE_ROCK_LAYERS)
 
     /**
-     * Bare rock made of the named blocks, all the way down — a **material** (design §3.2) applied to the
-     * palette, and the first consumer of that hook.
+     * Bare rock made of the named blocks, all the way down — a material (§3.2) applied to the palette.
      *
-     * Deliberately *not* [BARE_ROCK] with its floor swapped: the andesite crust and the deepslate floor are
-     * both statements about what the rock is, and keeping them over a named stone would say "this world is
-     * blackstone" while showing three other rocks. A writer who named a substance meant it, so the whole
-     * column is that substance. The layering is what you get when you *do not* name one.
-     *
-     * **Several stones mingle rather than divide** (§3.2): they are mottled through one another at block
-     * scale, not given a region each. Division is what naming two *dressings* does, so reading a list as
-     * territories would give one piece of geography two spellings and leave mingling with none.
+     * Not [BARE_ROCK] with its floor swapped: the andesite crust and deepslate floor are both statements
+     * about what the rock is, so keeping them over a named stone would say "this world is blackstone"
+     * while showing three other rocks. **Several stones mingle rather than divide**, mottled at block
+     * scale — division is what naming two presets does.
      */
     fun madeOf(stones: List<BlockState>): SurfaceRules.RuleSource = madeOf(mingled(stones))
 
@@ -273,11 +219,8 @@ object Palette {
     fun madeOf(rock: SurfaceRules.RuleSource): SurfaceRules.RuleSource = layers(worldFloor(), rock)
 
     /**
-     * The blocks these registry ids name, dropping any this pack does not have.
-     *
-     * Shared by every aspect that wears a material (design §3.2), so a terrain and a dressing resolve one the
-     * same way. A block a mod has since removed is dropped with a complaint rather than failing the Age:
-     * an Age must still open, and the rest of a mingling still reads.
+     * The blocks these registry ids name. A block a mod has since removed is dropped with a complaint
+     * rather than failing the Age: it must still open, and the rest of a mingling still reads.
      */
     fun materialsNamed(names: List<String>): List<BlockState> = names
         .filter { it != Parameter.UNCHANGED }
@@ -290,17 +233,11 @@ object Palette {
         }
 
     /**
-     * Several blocks mottled through one another, the last standing as the ground everything else is
-     * scattered over.
+     * Several blocks mottled through one another, the last standing as the ground the rest scatter over.
      *
-     * Bands of one noise rather than a noise each, so the proportions are exact and no two materials can
-     * ever want the same block — nested `mottled` conditions would leave the second material's share
-     * depending on where the first happened to fall.
-     *
-     * Divided **evenly**, which is what an unqualified list should mean and matches the resolver's own rule
-     * that an even division is the honest outcome when nothing said otherwise. Weighting these by the share
-     * ladder wants the noise's distribution measured first, the way `ClaimTilt` measures the region noise —
-     * see design §3.2.
+     * Bands of **one** noise rather than a noise each, so the proportions are exact and no two materials
+     * can want the same block — nested `mottled` conditions would leave the second material's share
+     * depending on where the first fell. Divided evenly, which is what an unqualified list should mean.
      */
     fun mingled(blocks: List<BlockState>): SurfaceRules.RuleSource {
         val ground = blocks.lastOrNull() ?: return PLAIN_STONE
@@ -317,27 +254,13 @@ object Palette {
     }
 
     /**
-     * Our own noise, at a deliberately tiny scale — two blocks or so, which is as close to *evenly
-     * intermixed* as surface rules can get (Jonah's call, 2026-07-27, after walking it).
-     *
-     * `Noises.SURFACE` was the first choice, borrowed because it was available. It gave patches of maybe
-     * sixty blocks, which read well but read as *patches* — and patch size turns out to be a thing worth
-     * saying deliberately rather than inheriting from whichever noise we happened to reach for. So mingling
-     * defaults to as fine as it goes, and the coarse version comes back as a **quantifier in the grammar**
-     * (see `notes/the-art-implementation-plan.md`, Phase 4) rather than as a constant nobody chose.
-     *
-     * Registered as datapack content, so a pack can retune the scale without touching code.
+     * Our own noise, at a deliberately tiny scale — two blocks or so, which is as close to evenly
+     * intermixed as surface rules get. Registered as datapack content, so a pack can retune the scale.
      */
     private val MINGLE_NOISE: ResourceKey<NormalNoise.NoiseParameters> =
         ResourceKey.create(Registries.NOISE, "mingle".location())
 
-    /**
-     * The noise the mottling reads, borrowed rather than registered.
-     *
-     * Vanilla uses `Noises.SURFACE` in its *own* surface rules, which would be a correlation worth worrying
-     * about — except that the palettes taking a material are ours, and vanilla's rules never run over an Age
-     * wearing one. [VANILLA_OVERWORLD] cannot take a material at all, so the two never meet.
-     */
+    /** The full span of [MINGLE_NOISE]'s output, divided into one band per material. */
     private val MOTTLE_RANGE = -1.0 to 1.0
 
     /** The fallback when an Age names no palette — what every field Age looked like before palettes. */
@@ -353,21 +276,11 @@ object Palette {
     private const val SOIL_DEPTH = 3
 
     /**
-     * How far a crust reaches below the face, in blocks.
+     * How far a crust reaches below the face, in blocks: a biome's own soil wins the top few blocks, this
+     * shows beneath it, and the Age's own material shows beneath that.
      *
-     * **A crust is now a real stratum rather than a detail of the skin**, which is what removing the
-     * unconditional tail from [BARE_ROCK_LAYERS] bought: a biome's own soil still wins the top few blocks — a
-     * more specific rule comes first — this shows beneath it, and the Age's own material shows beneath *that*.
-     * Verified block by block: andesite at the face, tuff below it, blackstone deeper.
-     *
-     * **Fifteen, and the barren Ages moving with it is accepted** (Jonah, 2026-07-29). Measured before taking it:
-     * at fifteen the parity set loses `pbare` (40 of 81 chunks) and `pvoid` (81 of 81), neither of which names a
-     * material — so step 4's *"must not move: any Age that names no material"* is deliberately broken here, and
-     * only here. At two the mechanism alone is parity-clean, which is how the two changes were told apart.
-     *
-     * **A hard number is a placeholder.** The vocabulary pass wants layering that can express *"an Age made of
-     * layers of granite, tuff, blackstone, gold ore"* and behave sensibly, which is a stratum *list* rather than
-     * one depth — see the tooling backlog. Not needed yet.
+     * **A placeholder.** Real strata want a *list* of layers rather than one depth — see the tooling
+     * backlog.
      */
     private const val CRUST_DEPTH = 15
     /** How far the bedrock floor dissolves upward, matching vanilla's own five-block fade. */

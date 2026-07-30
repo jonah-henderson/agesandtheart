@@ -7,15 +7,11 @@ import net.minecraft.server.Bootstrap
 import kotlin.math.sqrt
 
 /**
- * Reports what a single territory claim's values actually look like, and reprints `ClaimTilt`'s table.
+ * Reports what a single territory claim's values look like, and reprints `ClaimTilt`'s table.
  *
- * **A tool, not a check** — which is why it lives here and not beside `RegionShareCheck`. The mapping from
- * a promised share to the bias that wins it is built from a *measured* distribution, because how much
- * ground a biased claim takes is a property of the claim noise's own distribution and vanilla's
- * `NormalNoise` does not publish one. This is where that measurement comes from.
- *
- * Run it when `RegionShareCheck` fails after a change to `RegionMap`'s octave or amplitudes: the shares
- * drift because the distribution moved, and the fix is to paste the table below into `ClaimTilt`.
+ * **A tool, not a check.** Run it when `RegionShareCheck` fails after a change to `RegionMap`'s octave or
+ * amplitudes — the shares drift because the distribution moved, and the fix is to paste the printed table
+ * into `ClaimTilt`.
  *
  * ```
  * ./gradlew :common:claimprofile

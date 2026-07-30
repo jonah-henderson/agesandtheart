@@ -14,37 +14,29 @@ import kotlin.math.roundToInt
 /**
  * How often an Age builds a thing — [Density] applied to a structure set's *placement*.
  *
- * **This is the emphasis knob for structures** (Jonah, 2026-07-29), and it works where the obvious one does
- * not. A set's selection weights look like emphasis and are almost inert: vanilla rolls a weighted entry, tries
- * it, and on failure **removes it and re-rolls until one fits the biome** — so raising a desert village's weight
- * cannot do anything the biome had not already decided. Placement is where "more of them" actually lives.
+ * **Placement, not selection weights.** A set's weights look like emphasis and are almost inert: vanilla
+ * rolls a weighted entry, tries it, and on failure removes it and re-rolls until one fits the biome — so
+ * raising a desert village's weight cannot do what the biome had not already decided.
  *
- * Two placement shapes, and both are honest density controls:
- *
- * - **[RandomSpreadStructurePlacement]** — 19 of vanilla's 20 sets. Sites sit on a grid of `spacing` chunks,
- *   jittered, no closer than `separation`. Fewer chunks per cell is more structures.
- * - **[ConcentricRingsStructurePlacement]** — strongholds alone. `count` is literally how many there are, so
- *   density needs no arithmetic at all.
+ * Two placement shapes, both honest density controls: [RandomSpreadStructurePlacement] (19 of vanilla's 20
+ * sets) where fewer chunks per cell is more structures, and [ConcentricRingsStructurePlacement]
+ * (strongholds) whose `count` is literally how many there are.
  *
  * **Rebuilt through the codec, which is why this needs no access widener.** A faithful rebuild wants
- * `salt`, `frequency`, the frequency-reduction method and any exclusion zone, and all four accessors are
- * `protected` — three of vanilla's sets carry non-default ones (`pillager_outposts` has two exclusion zones,
- * `buried_treasures` and `mineshafts` each a legacy reduction method), so dropping them would quietly change
- * more than density. `StructurePlacement.CODEC` is public and round-trips every field, so editing the one
- * number in the serialised form preserves the rest by construction.
+ * `salt`, `frequency`, the reduction method and any exclusion zone, and all four accessors are protected —
+ * three of vanilla's sets carry non-default ones, so dropping them would change more than density.
+ * `StructurePlacement.CODEC` round-trips every field, so editing one number preserves the rest.
  */
 object StructureDensity {
     /**
-     * [set] rebuilt to occur as often as [density] asks — or [set] itself, untouched, at
-     * [Density.ORDINARY].
+     * [set] rebuilt to occur as often as [density] asks, or [set] itself untouched at [Density.ORDINARY].
      *
-     * **A rebuilt set is a *direct* holder**, because no registry has heard of it and none can: registries
-     * freeze at startup and an Age is written long afterwards. That is what
-     * [co.voik.agesandtheart.worldgen.AgeChunkGenerator.createState] has to branch on, and the note there about
-     * upgrading to forged registry references applies to every set this function returns.
+     * **A rebuilt set is a *direct* holder**, no registry having heard of it — registries freeze at startup
+     * and an Age is written long afterwards. That is what
+     * [co.voik.agesandtheart.worldgen.AgeChunkGenerator.createState] branches on.
      *
-     * Returns [set] unchanged on any failure rather than dropping it: an Age that asked for more villages and
-     * got the usual number is a disappointment, where an Age that lost its villages is a broken sentence.
+     * Returns [set] unchanged on failure rather than dropping it: an Age that asked for more villages and
+     * got the usual number is a disappointment, where one that lost its villages is a broken sentence.
      */
     fun applied(set: Holder<StructureSet>, density: Density): Holder<StructureSet> {
         if (density.isOrdinary) return set
@@ -69,10 +61,9 @@ object StructureDensity {
     }
 
     /**
-     * What [placement]'s spacing becomes at this rung, kept legal.
-     *
-     * Vanilla requires `separation < spacing`, and a rung dense enough to violate it would fail the codec on
-     * the way back in, so the floor is one chunk above the separation rather than one chunk absolute.
+     * What [placement]'s spacing becomes at this rung, kept legal. Vanilla requires
+     * `separation < spacing`, and a rung dense enough to violate it fails the codec on the way back in, so
+     * the floor is one chunk above the separation rather than one chunk absolute.
      */
     private fun spacingFor(placement: RandomSpreadStructurePlacement, density: Density): Int {
         val asked = (placement.spacing() * density.spacingScale).roundToInt()
@@ -80,11 +71,9 @@ object StructureDensity {
     }
 
     /**
-     * The same spread placement at a new [spacing], every other field carried across by the codec.
-     *
-     * The one narrow step out: encode, change one number, decode. It is worth preferring over the public
-     * four-argument constructor because that one defaults `frequency` to 1, the reduction method to `DEFAULT`
-     * and the exclusion zone to absent — which would silently un-tune the three sets that set them.
+     * The same spread placement at a new [spacing], every other field carried across by the codec —
+     * encode, change one number, decode. Preferred over the public four-argument constructor, which
+     * defaults `frequency`, the reduction method and the exclusion zone, silently un-tuning three sets.
      */
     private fun RandomSpreadStructurePlacement.spacedBy(spacing: Int): StructurePlacement? {
         val written = StructurePlacement.CODEC.encodeStart(JsonOps.INSTANCE, this).result().orElse(null)

@@ -8,38 +8,26 @@ import net.minecraft.world.level.levelgen.DensityFunction
 import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator
 
 /**
- * How wide a *region* is, when an Age divides itself between several terrains — read off the world the
- * Age was written in rather than guessed at.
+ * How wide a *region* is when an Age divides itself between several terrains — read off the world the Age
+ * was written in rather than guessed at (design §3.4).
  *
- * The design (`notes/the-art-design.md` §3.4) asks for a region roughly the size of one vanilla biome,
- * and for Large Biomes to widen it accordingly. Minecraft makes that awkward, because **there is no
- * biome-size parameter to read**: a biome's extent is emergent from six climate noises partitioned by a
- * search tree, and nothing anywhere declares "biomes are N blocks across".
+ * **There is no biome-size parameter to read**: a biome's extent is emergent from six climate noises
+ * partitioned by a search tree. What *is* declared is the thing Large Biomes changes — the overworld's
+ * temperature function is a shifted noise whose `xz_scale` is the rate its coordinates are sampled at,
+ * `0.25` normally and `0.0625` under Large Biomes.
  *
- * What *is* declared is the thing Large Biomes actually changes. The overworld's temperature function is
- * a shifted noise, and its `xz_scale` is the rate its coordinates are sampled at — `0.25` in the
- * overworld, `0.0625` under Large Biomes, so a quarter of the rate and four times the biome.
- *
- * Reading it takes one indirection, and the reason is worth recording so nobody tries the obvious thing
- * again: `DensityFunctions.ShiftedNoise` is **protected**, so the type cannot be named from outside and
- * an `is` check will not compile. But `DensityFunction.DIRECT_CODEC` is public, and a function that came
- * out of a datapack must by definition go back into one — so encoding the setting and reading the field
- * out of the JSON gets the number through the front door. It works for any datapack or mod that changes
- * climate scale, not merely for vanilla's own Large Biomes.
- *
- * So one chosen figure for default settings, scaled by the ratio. The figure is a constant we would have
- * had to pick either way; what this avoids is *measuring* biome widths per world, which would be slow,
- * noisy, and wrong on any world whose oceans happened to dominate the sample.
+ * **Read through the codec, because `DensityFunctions.ShiftedNoise` is protected** — the type cannot be
+ * named from outside and an `is` check will not compile. `DensityFunction.DIRECT_CODEC` is public, and a
+ * function that came out of a datapack must go back into one, so encoding the setting and reading the
+ * field out of the JSON gets the number through the front door. Works for any datapack that changes
+ * climate scale, not merely vanilla's own Large Biomes.
  */
 object BiomeScale {
 
     /**
-     * How wide a region should be in [server]'s worlds, in blocks.
-     *
-     * Read once when an Age is written and then **frozen into its recipe** — never re-read on open. A
-     * datapack update that retunes climate would otherwise silently redraw the territories of every Age
-     * already written, which is the same trap §4.6 avoids by persisting the resolved recipe rather than
-     * the words.
+     * How wide a region should be in [server]'s worlds, in blocks. Read once when an Age is written and
+     * then **frozen into its recipe**, never re-read on open — a datapack that retunes climate would
+     * otherwise silently redraw the territories of every Age already written.
      */
     fun regionBlocks(server: MinecraftServer): Int {
         val scale = climateXzScale(server)?.takeIf { it > 0.0 } ?: return DEFAULT_REGION_BLOCKS
@@ -48,13 +36,12 @@ object BiomeScale {
 
     /**
      * The rate the overworld samples its temperature noise at, or null where there is nothing to read —
-     * a superflat world, a world whose generator is not noise-based, or a datapack whose climate is
-     * built from some other shape of function entirely. All of those fall back to the default, which is
-     * the right answer: an unreadable world is not a wrongly-sized one.
+     * a superflat world, a non-noise generator, or a datapack whose climate is some other shape entirely.
+     * All fall back to the default: an unreadable world is not a wrongly-sized one.
      *
-     * Read from the *settings* rather than the live router on purpose. By the time a router is running
-     * its nodes have been wrapped in caches and markers, which need not survive a round trip; the
-     * settings hold the function as the datapack declared it, which must.
+     * Read from the *settings* rather than the live router: a running router's nodes are wrapped in
+     * caches and markers that need not survive a round trip, where the settings hold the function as the
+     * datapack declared it.
      */
     private fun climateXzScale(server: MinecraftServer): Double? = runCatching {
         val generator = server.overworld().chunkSource.generator as? NoiseBasedChunkGenerator ?: return null
@@ -78,10 +65,8 @@ object BiomeScale {
     private const val XZ_SCALE = "xz_scale"
 
     /**
-     * What a region is at vanilla's default settings — roughly one biome. Tune here, once.
-     *
-     * Also what an unreadable world gets, and what an Age written before regions existed is taken to
-     * have had, so the fallback and the history are the same number by construction.
+     * What a region is at vanilla's default settings — roughly one biome. Also what an unreadable world
+     * gets, so the fallback and the default are one number by construction.
      */
     const val DEFAULT_REGION_BLOCKS = 400
 

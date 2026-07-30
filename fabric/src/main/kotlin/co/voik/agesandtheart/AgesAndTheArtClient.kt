@@ -16,10 +16,8 @@ import net.minecraft.resources.ResourceKey
 import net.minecraft.world.level.Level
 
 /**
- * Keys we have already attached the Age sky renderer to.
- *
- * Kept for the log line rather than for correctness — Fabric's registry is `putIfAbsent`, so registering twice is
- * a silent no-op and this only stops us saying so every tick.
+ * Keys we have already attached the Age sky renderer to. For the log line rather than correctness —
+ * Fabric's registry is `putIfAbsent`, so registering twice is a silent no-op.
  */
 private val skyRegistered = HashSet<ResourceKey<Level>>()
 

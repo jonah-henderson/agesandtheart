@@ -6,18 +6,11 @@ import kotlin.math.abs
 import kotlin.math.ln
 
 /**
- * How much of an Age one preset covers, relative to the others in its aspect.
+ * How much of an Age one preset covers, relative to the others in its aspect. Named steps rather than a
+ * number (design §3.2), spelled as a writer would say them, since §4.5's quantifiers attach here.
  *
- * Named steps rather than a number, for the reason every exposed knob here is enumerated (design §3.2): a
- * writer says a word, not a fraction. It is also what the *quantifiers* of §4.5 will attach to — "mostly
- * desert with scattered forest" needs something in the world model to mean, and this is it, so the rungs
- * are named as a writer would say them rather than as the code would.
- *
- * The ladder is geometric, ×4 a rung, which is what makes the extremes worth having: two presets at
- * [DOMINANT] and [RARE] divide a world 98.5% to 1.5%, and 1.5% of an infinite world is a place you have to
- * go looking for. That is the point — Jonah's call, and the reasoning generalises: *rarity is an
- * exploration incentive*, the same pleasure as vanilla's hunt for a jungle. A territory you can see from the
- * arrival point is not somewhere you travelled to.
+ * The ladder is geometric, ×4 a rung, which is what makes the extremes worth having: [DOMINANT] against
+ * [RARE] divides a world 98.5% to 1.5%, and 1.5% of an infinite world is somewhere you go looking for.
  */
 enum class Share(val key: String, val weight: Double) : StringRepresentable {
     /** Most of the world. What a preset gets when nothing competes with it. */
@@ -49,12 +42,9 @@ enum class Share(val key: String, val weight: Double) : StringRepresentable {
         }
 
         /**
-         * These shares with the smallest raised until it covers at least [LEAST_SHARE_OF_A_WORLD].
-         *
-         * A word a writer wrote must be *findable*. The ladder alone can go below that — two dominant
-         * territories and one rare leaves the rare one under a percent — and at that point it is close
-         * enough to the silent drop §3.3 forbids, only spatial. One rung up is enough, and the floor is
-         * deliberately low: rare should mean *rare*.
+         * These shares with the smallest raised until it covers at least [LEAST_SHARE_OF_A_WORLD]. A word
+         * a writer wrote must be findable, and the ladder alone can go below that — two dominant
+         * territories and one rare leaves the rare one under a percent, which is a spatial silent drop.
          */
         fun findable(shares: List<Share>): List<Share> {
             if (shares.size <= 1) return shares

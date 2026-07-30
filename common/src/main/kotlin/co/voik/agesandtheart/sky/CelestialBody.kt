@@ -11,10 +11,9 @@ import net.minecraft.util.Mth
  * One sun or moon: where it goes ([orbit]), what it looks like ([appearance]), and whether it waxes and wanes
  * ([phase]).
  *
- * The three are separate on purpose. Orbits are the interesting part and the part the writer is really choosing
- * between; appearance is the part most likely to change when the mod grows a texture pipeline; and a phase is a
- * property only some bodies have. Keeping them apart is what lets [Appearance] gain a variant without any of the
- * orbital maths, the codec shape or the vocabulary noticing (see the plan's Tier 1 notes).
+ * Separate on purpose: appearance is the part most likely to change when the mod grows a texture
+ * pipeline, and a phase is a property only some bodies have, so [Appearance] can gain a variant without
+ * the orbital maths or the codec shape noticing.
  */
 data class CelestialBody(
     val orbit: Orbit,
@@ -36,23 +35,15 @@ data class CelestialBody(
 /**
  * What a body looks like.
  *
- * **Tier 1 ships [Sprite] only, and it borrows vanilla's own two textures** (Jonah, 2026-07-29: *"can we reuse
- * vanilla's texture for our moons for now?"*). `textures/environment/sun.png` (32×32) and `moon_phases.png`
- * (128×64, a 4×2 grid of 32×32 tiles) both ship in the jar, `RenderSystem.setShaderTexture(int,
- * ResourceLocation)` is public, and `TextureManager.getTexture` loads on demand — so this needs no asset
- * directory, no access widener and no atlas of our own.
+ * **[Sprite] borrows vanilla's own two textures** — `sun.png` and `moon_phases.png` both ship in the jar
+ * and load on demand, so this needs no asset directory, no access widener and no atlas of our own. It
+ * also buys **real crescents**: a phase is a *shape*, and under additive blending a flat disc has nothing
+ * to subtract darkness with, so borrowing the atlas gets it for free.
  *
- * It also buys the thing a coloured disc could not: **real crescents.** A phase is a *shape*, vanilla makes it by
- * picking a sub-rectangle of the moon atlas, and under additive blending a flat disc has nothing to subtract
- * darkness with. Borrowing the atlas gets the shape for free. See [PhaseCycle].
+ * One consequence: a resource pack that retextures the moon retextures ours too.
  *
- * The one consequence to know: a resource pack that retextures the moon retextures ours too. That is arguably
- * right — an Age should look like it belongs to the player's Minecraft — but it is a coupling, not an accident.
- *
- * Kept **sealed** with a dispatching codec even at one variant, because appearance is where growth is expected:
- * our own textures when the asset pipeline exists for custom mobs, and plausibly a procedural form for bodies
- * that are neither sun nor moon. A new variant is a key and a [MapCodec], and the renderer batches by vertex
- * format, so nothing above this type has to change.
+ * **Sealed** with a dispatching codec even at one variant, since a new one is a key and a [MapCodec] and
+ * the renderer batches by vertex format.
  */
 sealed interface Appearance {
     val tint: Rgba
@@ -64,11 +55,9 @@ sealed interface Appearance {
     val kindKey: String
 
     /**
-     * A textured quad, tinted.
-     *
-     * [columns] × [rows] divides the texture into equal cells, which is how a phase picks its shape — vanilla's
-     * moon is 4×2 and its sun is the degenerate 1×1. A body whose [CelestialBody.phase] has more steps than
-     * there are cells would index past the atlas, so `SkyCheck` holds the two in agreement.
+     * A textured quad, tinted. [columns] × [rows] divides the texture into equal cells, which is how a
+     * phase picks its shape — vanilla's moon is 4×2 and its sun the degenerate 1×1. A body whose
+     * [CelestialBody.phase] has more steps than cells would index past the atlas; `SkyCheck` holds them.
      */
     data class Sprite(
         override val tint: Rgba,
@@ -112,10 +101,9 @@ sealed interface Appearance {
         private val KINDS: Map<String, MapCodec<out Appearance>> = mapOf(SPRITE to Sprite.MAP_CODEC)
 
         /**
-         * Dispatched on a `kind` field, so a future variant is additive rather than a format break.
-         *
-         * An unknown kind falls back to [Sprite]'s codec, which then fails on the missing fields — a loud
-         * failure at the right place, rather than a silent one here.
+         * Dispatched on a `kind` field, so a future variant is additive rather than a format break. An
+         * unknown kind falls back to [Sprite]'s codec and fails there on the missing fields, which is a
+         * loud failure in the right place rather than a silent one here.
          */
         val CODEC: Codec<Appearance> = Codec.STRING.dispatch(
             "kind",
@@ -125,30 +113,18 @@ sealed interface Appearance {
 }
 
 /**
- * A body that waxes and wanes.
+ * A body that waxes and wanes. **A phase is a shape, not a brightness** — the shape lives in
+ * `moon_phases.png`, so this only says *which cell*.
  *
- * **A phase is a shape, and borrowing vanilla's moon atlas is what makes that possible.** An earlier draft made
- * a phase a *brightness*, because Tier 1 was going to draw untextured discs and a flat disc under additive
- * blending has nothing to subtract darkness with — a crescent is a disc with a bite taken out of it, and there
- * was nothing to bite with. Reusing `moon_phases.png` dissolved that: the shape is in the texture, so this only
- * has to say *which cell*.
- *
- * [steps] is how many distinct shapes the cycle passes through, and it must match the sprite's cell count or
- * [stepAt] indexes past the atlas — `SkyCheck` holds them in agreement. Vanilla's eight is a default
- * rather than a rule: nothing outside the renderer can observe a phase, since `getMoonPhase()` is consulted only
- * by `LevelRenderer.renderSky`, so a moon may have its own count once we have a texture with its own grid.
+ * [steps] must match the sprite's cell count or [stepAt] indexes past the atlas; `SkyCheck` holds them.
+ * Vanilla's eight is a default rather than a rule, nothing outside the renderer being able to observe a
+ * phase.
  */
 data class PhaseCycle(val periodTicks: Int, val offsetTicks: Int, val steps: Int = VANILLA_PHASES) {
 
     /**
-     * Which shape this body is showing, in `0..<steps`.
-     *
-     * Quantised rather than continuous so the stepping is legible instead of an imperceptible crawl — the same
-     * reason vanilla has eight discrete phases rather than a smooth terminator.
-     *
-     * A brightness form, if a future untextured body ever wants one, is `0.5 + 0.5·cos(2π · step / steps)` — the
-     * continuous shape of vanilla's `MOON_BRIGHTNESS_PER_PHASE` table, which passes through 1.0, 0.5 and 0.0 at
-     * the same points its eight entries do. Not written until something needs it.
+     * Which shape this body is showing, in `0..<steps`. Quantised rather than continuous so the stepping
+     * is legible instead of an imperceptible crawl, which is why vanilla has eight discrete phases.
      */
     fun stepAt(dayTime: Long): Int {
         if (steps <= 1) return 0

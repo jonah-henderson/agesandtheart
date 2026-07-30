@@ -21,26 +21,16 @@ import java.io.File
 import javax.imageio.ImageIO
 
 /**
- * Draws an Age's terrain *shape* to PNGs, offline, in about a second — so a change to a field tree or to
- * the weathering can be looked at without building a jar and booting a server.
+ * Draws an Age's terrain *shape* to PNGs, offline, in about a second. Possible because field evaluation
+ * and [Weathering] reach only for noise and plain maths — so it can show **nothing material**: palettes,
+ * surface rules and water all live behind the registries. A geometry instrument, and only that.
  *
- * It gets away with this because the shape half of the toolkit needs no Minecraft runtime at all: field
- * evaluation and [Weathering] reach only for noise and plain maths, never a registry or a chunk. What it
- * therefore *cannot* show is anything material — palettes, surface rules, water — which live behind the
- * registries. This is a geometry instrument, and only that.
+ * It renders from the **same** [TerrainField] and [Weathering] objects that generate the world, so a
+ * preview cannot quietly disagree with the game.
  *
- * Crucially it renders from the **same** [TerrainField] and [Weathering] objects that generate the world,
- * so a preview cannot quietly disagree with the game.
- *
- * Three orthogonal views, named for the axis you are looking down:
- * - `view-y.png` — from above: the plan, shaded by height. Shows layout, ridge direction, how spires are
- *   distributed.
- * - `view-z.png` — a slice on the XZ=0 plane, looking along Z. Shows vertical structure.
- * - `view-x.png` — a slice looking along X. Paired with the above it distinguishes a wall from a spire,
- *   and reveals anisotropy, since a wind-stretched world should look different down its two axes.
- *
- * The slices are the point. A single surface height cannot tell a sheer wall from a gentle slope; a
- * cross-section shows it at a glance.
+ * Three orthogonal views named for the axis you look down: `view-y.png` from above shaded by height, and
+ * `view-z.png`/`view-x.png` as slices. **The slices are the point** — a surface height cannot tell a
+ * sheer wall from a gentle slope, and the pair reveals anisotropy in a wind-stretched world.
  */
 fun main(arguments: Array<String>) {
     val name = arguments.firstOrNull() ?: "spire"
@@ -64,22 +54,15 @@ private class Subject(
     val highestY: Int,
     val radius: Int = 128,
     /**
-     * How far up the world this subject floats, matching what a recipe pins — see `Terrain.ALTITUDE`.
-     *
-     * Carried here rather than baked into [field] because a lift has to reach the *weathering* too: erosion's
-     * keel and band are absolute heights, so a shape raised without its wind would sail straight over the band
-     * and come out unweathered. One number, applied to both, exactly as the generator does it.
+     * How far up the world this subject floats — see `Terrain.ALTITUDE`. Carried here rather than baked
+     * into [field] because **a lift has to reach the weathering too**: erosion's keel and band are absolute
+     * heights, so a shape raised without its wind sails over the band and comes out unweathered.
      */
     val lift: Int = 0,
 ) {
     /**
-     * The field as it will actually generate — the shape with its weathering wrapped around it, or the bare shape
-     * when the wind is switched off.
-     *
-     * Built through `Weathered.spire`, the same factory the generator uses, so there is no second set of numbers
-     * to drift. An earlier version repeated them here and excused it on the grounds that a disagreement would
-     * show up as the preview differing from the game — which is precisely the failure this node exists to make
-     * impossible.
+     * The field as it will actually generate. Built through `Weathered.spire`, **the same factory the
+     * generator uses**, so there is no second set of numbers to drift.
      */
     fun weathered(): TerrainField {
         val raised = if (lift == 0) field else Raised(field, lift)
@@ -88,11 +71,9 @@ private class Subject(
 }
 
 /**
- * The two shapes the divided subjects share, so a fault and a rift are read against the same `regions`.
- *
- * Declared **above** [subjects] and not below it: top-level properties initialise in file order, and one
- * read from above its declaration is simply null — the exact failure `CodecCheck` exists to catch
- * in companions.
+ * The two shapes the divided subjects share, so a fault and a rift read against the same `regions`.
+ * Declared **above** [subjects]: top-level properties initialise in file order, and one read from above
+ * its declaration is null.
  */
 private val dividedTerrains = listOf(NoiseField.hills(), PillarField.world())
 
@@ -119,18 +100,11 @@ private val territories = RegionMap(
 )
 
 /**
- * The same territories fuzzed — the rare form, and the only one that is a *width* rather than a displacement,
- * so it is the only one visible in the map instead of in a node over the shape.
+ * The same territories fuzzed — the rare form, and the only one that is a *width* rather than a
+ * displacement, so the only one visible in the map instead of a node over the shape.
  *
- * It gets a subject of its own because it used to be a *combination* rather than a form: a fault layered over
- * an independently-drawn transition width, which threw the interlocking columns alternately up and down and
- * produced a strip of one-block spikes as tall as the throw. That is unrepresentable now — a seam is one form
- * or another — and the pictures are what the change is best judged by, so both survive as subjects.
- *
- * **It is 16 blocks wide, not the 48 it was first built at**, which is worth knowing before reading the render:
- * a band this narrow is a detail of a boundary rather than a feature you can see from above. Jonah's call, and
- * about a person rather than a territory — past about this much a dissolve stops reading as a boundary and
- * starts reading as the world having stopped making sense. See [Seam.WIDEST_FUZZ_BLOCKS].
+ * **16 blocks wide**, which is worth knowing before reading the render: a band this narrow is a detail of
+ * a boundary rather than something you can see from above. See [Seam.WIDEST_FUZZ_BLOCKS].
  */
 private val fuzzedTerritories = territories.copy(blend = Seam.FUZZED.blendBlocks(400))
 
@@ -248,13 +222,9 @@ private val subjects: Map<String, Subject> = mapOf(
 )
 
 /**
- * Solidity for the whole window, resolved once.
- *
- * **Asks the very field generation asks, and that is now the whole point.** It used to walk the shape and apply
- * the weathering itself, which was a faithful mirror only for as long as the two stayed identical — and they did
- * not: once erosion learned to spare a column by how thick its rock stands (see `Weathered`), a preview applying
- * the bare rule showed a world nobody would ever generate. Building the same node the generator builds means
- * there is no second implementation to drift.
+ * Solidity for the whole window, resolved once. **Asks the very field generation asks** — applying the
+ * weathering rule itself was a faithful mirror only while the two stayed identical, and once erosion
+ * learned to spare a column by how thick its rock stands the preview showed a world nobody would generate.
  */
 private fun solidity(subject: Subject): BooleanArray {
     val width = subject.radius * 2
@@ -283,11 +253,9 @@ private fun index(subject: Subject, imageX: Int, worldY: Int, imageZ: Int): Int 
 }
 
 /**
- * Looking down: the topmost solid block per column, shaded by how high it stands.
- *
- * Shaded across the range the rock actually occupies, not the whole window. Ranging over the window makes
- * every surface come out the same brightness — the first version did, and hid the very height variation it
- * was drawn to show.
+ * Looking down: the topmost solid block per column, shaded across **the range the rock actually
+ * occupies** rather than the whole window — ranging over the window makes every surface the same
+ * brightness and hides the height variation this is drawn to show.
  */
 private fun fromAbove(solid: BooleanArray, subject: Subject): BufferedImage {
     val width = subject.radius * 2
@@ -410,13 +378,10 @@ private fun report(name: String, solid: BooleanArray, subject: Subject, output: 
 }
 
 /**
- * Where the rock's *surfaces* actually sit, which is a different question from how tall the tallest column is.
- *
- * The single peak is the one instance that got the biggest roll on its own axis, and reading altitude off it is
- * misleading by a wide margin: `PEAK_CEILING` said 296 while most island tops were nowhere near it. Since the
- * brief for the Spire is written against the cloud decks — *"the highest points of the ellipsoids are just below
- * the upper cloud layer"* — a percentile spread plus a count of what breaks each deck is the readout that
- * actually answers it.
+ * Where the rock's *surfaces* actually sit — a different question from how tall the tallest column is.
+ * **Reading altitude off the single peak is misleading by a wide margin**: `PEAK_CEILING` said 296 while
+ * most island tops were nowhere near it. A percentile spread plus a count of what breaks each cloud deck
+ * is the readout that answers the brief.
  */
 private fun reportTops(tops: List<Int>) {
     if (tops.isEmpty()) return

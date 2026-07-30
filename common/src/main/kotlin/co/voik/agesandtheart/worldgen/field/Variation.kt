@@ -10,20 +10,17 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 
 /**
- * How much each copy of an [Instanced] template may differ in *pose* — how far it is turned, and how
- * big it is. This is the cheap half of instancing variety (the other half being choose-from-a-handful
- * of templates), so both dials are deliberately drawn from **finite sets**: a copy's pose is a choice,
- * never a continuous knob.
+ * How much each copy of an [Instanced] template may differ in *pose* — how far it is turned, and how big
+ * it is. Both dials draw from **finite sets**: a copy's pose is a choice, never a continuous knob.
  *
  * That is what keeps the geometry honest. Sizes are a fixed set because [Instanced] pre-builds a
- * genuinely resized template for each one ([TerrainField.resized]) — a bigger pyramid gets *more
- * courses of blocks*. Scaling a copy by a continuous factor instead would mean resampling a built
- * shape at a fractional rate, which stretches its exact one-block staircase into uneven two-block
- * steps, horizontally and vertically. Turning is quantised for the same reason plus a cheaper one:
- * a small set of angles means the sines and cosines are precomputed, so the hot path does no trig.
+ * genuinely resized template for each ([TerrainField.resized]), so a bigger pyramid gets *more courses of
+ * blocks* — resampling a built shape at a fractional rate would stretch its one-block staircase into
+ * uneven two-block steps. Turning is quantised for that reason and a cheaper one: a small set of angles
+ * means precomputed sines and cosines, so the hot path does no trig.
  *
- * Because a template is authored in *absolute* Y (a [Pyramid] owns its `baseY`), resizing needs an
- * explicit [pivotY]: the plane copies stand on, which stays put while they grow or shrink.
+ * A template is authored in *absolute* Y, so resizing needs an explicit [pivotY] — the plane copies stand
+ * on, which stays put while they grow.
  */
 data class Variation(
     /** Allowed orientations per full turn: 1 = axis-aligned only, 4 = quarter turns, 16 ≈ free. */
@@ -56,11 +53,9 @@ data class Variation(
     val scaleFactors: List<Double> = spreadScaleFactors()
 
     /**
-     * The heights copies may sit at, relative to where their template puts them.
-     *
-     * Unlike [scaleFactors] these need no pre-built templates, because a lift is an exact integer
-     * translation of the sampled column ([Spans.shifted]) rather than a resampling. So where sizes cost
-     * one built field each, heights cost nothing — which is why this dial can be generous.
+     * The heights copies may sit at, relative to where their template puts them. Unlike [scaleFactors]
+     * these need no pre-built templates, a lift being an exact integer translation ([Spans.shifted]) — so
+     * where sizes cost one built field each, heights cost nothing, and this dial can be generous.
      */
     val liftOffsets: List<Int> = spreadLifts()
 
@@ -79,10 +74,9 @@ data class Variation(
     )
 
     /**
-     * Sample an already-resized [template] for the column at ([localX], [localZ]) — an offset from the
-     * instance's own origin — turned by an angle drawn from [instanceRandom]. Turning is the one part
-     * of a pose that can't be pre-built, so it is done here by inverse-rotating the query column into
-     * the template's frame.
+     * Sample an already-resized [template] at ([localX], [localZ]) — an offset from the instance's own
+     * origin — turned by an angle from [instanceRandom]. Turning is the one part of a pose that cannot be
+     * pre-built, so it inverse-rotates the query column into the template's frame.
      */
     fun sample(template: TerrainField, localX: Int, localZ: Int, instanceRandom: RandomSource): Spans {
         val standing = turned(template, localX, localZ, instanceRandom)

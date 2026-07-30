@@ -12,12 +12,9 @@ import xyz.nucleoid.fantasy.Fantasy
 import xyz.nucleoid.fantasy.RuntimeWorldConfig
 
 /**
- * Fabric runtime-dimension backend, implemented with Fantasy (NucleoidMC).
- *
- * Fantasy's persistent worlds save to disk but are not auto-restored on restart — [openAge]
- * is get-or-create, so calling it with a known id after a restart re-attaches the saved
- * chunks. Uses our custom [AgeGeneration.AGE_DIMENSION_TYPE] (registered as a datapack dimension-type
- * so its `effects` marker lets the client attach the Age sky renderer) plus our flat generator.
+ * Fabric runtime-dimension backend, implemented with Fantasy (NucleoidMC). Fantasy's persistent worlds
+ * save to disk but are **not auto-restored on restart** — [openAge] is get-or-create, so calling it with a
+ * known id after a restart re-attaches the saved chunks.
  */
 class FabricAgeBackend : AgeBackend {
     override val isSupported: Boolean = true

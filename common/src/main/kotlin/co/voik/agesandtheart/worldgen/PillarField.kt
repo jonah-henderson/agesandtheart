@@ -18,10 +18,9 @@ import net.minecraft.world.level.block.Blocks
  * lightly jittered grid, over an ocean at the bottom of the world. One of the archetypes the toolkit
  * was drawn up to reach, and it needs no new machinery: a [Box] template, a [Grid], and an ocean.
  *
- * The pillars are deliberately identical. Regularity *is* the aesthetic here (the instancing decision
- * in `notes/terrain-architecture.md`); the jitter only breaks the horizon into something less
- * mechanical than perfect ranks. Note a square footprint is symmetric under quarter turns, so yaw
- * [Variation] would do nothing for these — non-square boxes are what would make turning visible.
+ * The pillars are deliberately identical — regularity *is* the aesthetic, and the jitter only breaks the
+ * horizon into something less mechanical than perfect ranks. A square footprint is symmetric under
+ * quarter turns, so yaw [Variation] would do nothing here.
  */
 object PillarField {
 

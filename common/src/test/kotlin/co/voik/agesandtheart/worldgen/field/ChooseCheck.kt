@@ -4,28 +4,19 @@ import io.kotest.core.spec.style.FunSpec
 import kotlin.math.abs
 
 /**
- * Properties of the two randomised combinators, [Choose] and [Chance].
+ * Properties of the two randomised combinators, [Choose] and [Chance]. **These get a check where most
+ * primitives do not**, because they produce a *distribution* — a weighted pick ignoring its weights, a
+ * count overrunning its bound, a `resized` that re-rolls the dice — none of which shows up in one picture.
  *
- * **Why these get a check when most primitives do not.** A primitive's output is inspectable — you render it and
- * look. These two produce *a distribution*, and a distribution is exactly the kind of thing that looks plausible
- * while being wrong: a weighted pick that quietly ignores its weights, a count range that occasionally overruns
- * its bound, a `resized` that re-rolls the dice and so hands `Instanced` a different subset at every size. None
- * of those show up in one picture, and all of them are cheap to assert over many seeds.
- *
- * [co.voik.agesandtheart.age.CodecCheck] covers the round-trip for the same reason it covers unused placement
- * kinds: nothing else writes them yet.
- *
- * **The children are one-block [Slab]s at distinct heights**, so a column's spans say exactly which alternatives
- * were placed. That is the whole trick that makes these assertions direct rather than statistical stand-ins.
+ * **The children are one-block [Slab]s at distinct heights**, so a column's spans say exactly which
+ * alternatives were placed, which is what makes these assertions direct rather than statistical.
  */
 class ChooseCheck : FunSpec({
 
     /**
-     * The property everything else rests on: a draw is a function of its inputs, so the same node built twice
-     * agrees.
-     *
-     * Ages rebuild from their recipe on every open, so a node that drew differently the second time would give a
-     * player a different world each time they walked back through the same book.
+     * The property everything else rests on: a draw is a function of its inputs, so the same node built
+     * twice agrees. A node that drew differently the second time gives a player a different world each
+     * time they walk back through the same book.
      */
     test("the same seed draws the same subset") {
         for (seed in 1L..200L) {

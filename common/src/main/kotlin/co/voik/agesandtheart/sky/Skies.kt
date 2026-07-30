@@ -19,15 +19,10 @@ import net.minecraft.world.level.Level
 object Skies {
 
     /**
-     * Tells [player] about one Age, and **must be called before the player is moved into it**.
-     *
-     * Ordering is the whole point. Both packets go down one TCP stream in the order they are written, and the
-     * client drains its task queue to empty before each frame — so a payload sent before the teleport cannot
-     * arrive after the dimension change, and the sky is known before the first frame is drawn. Sending afterwards
-     * would work almost always, which is a different thing from working.
-     *
-     * (There is slack even so: `ReceivingLevelScreen` covers the whole transition opaquely until chunks arrive
-     * and the player's own section is meshed. Relying on that would be relying on a screen nobody promised.)
+     * Tells [player] about one Age, and **must be called before the player is moved into it**. Both packets
+     * go down one TCP stream in write order and the client drains its queue before each frame, so a
+     * payload sent first cannot arrive after the dimension change. Sending afterwards would work almost
+     * always, which is a different thing from working.
      */
     fun tellAbout(player: ServerPlayer, level: ServerLevel) {
         val server = player.server ?: return
@@ -36,11 +31,9 @@ object Skies {
     }
 
     /**
-     * Tells [player] about every Age this server knows, which is what a joining player gets.
-     *
-     * Sent whole rather than lazily so that re-entering an Age needs no packet at all, and so a player who
-     * arrives by any route the mod does not control — a book, a portal, `/execute in` — still has the sky. It is
-     * a few hundred bytes per Age against a 1 MiB ceiling.
+     * Tells [player] about every Age this server knows, which is what a joining player gets. Whole rather
+     * than lazily, so a player arriving by a route the mod does not control — a book, a portal,
+     * `/execute in` — still has the sky. A few hundred bytes per Age against a 1 MiB ceiling.
      */
     fun tellAboutEverything(player: ServerPlayer) {
         val server = player.server ?: return
@@ -52,16 +45,10 @@ object Skies {
     }
 
     /**
-     * Shows [spec] to everyone standing in [level], without changing what the Age actually is.
-     *
-     * **The tuning instrument, and deliberately stateless.** Orbits are the kind of thing that has to be *seen*
-     * to be judged, and re-authoring an Age to move a sun by ten degrees would make that loop useless. So this
-     * sends a spec and stores nothing: tweak, look, tweak again. Walking out and back in re-sends the recipe's
-     * own sky, which makes the preview self-cancelling rather than something you can forget you left on.
-     *
-     * That also avoids the mutable server-side override map the obvious design wants, which would be exactly the
-     * global mutable state the Kotlin conventions name as an anti-pattern — and would have needed a story for
-     * what happens on restart, for a debug feature that should not have one.
+     * Shows [spec] to everyone standing in [level], without changing what the Age is — **the tuning
+     * instrument, and deliberately stateless**. Walking out and back in re-sends the recipe's own sky, so
+     * the preview is self-cancelling rather than something you can forget you left on, and there is no
+     * server-side override map to keep or to restore on restart.
      */
     fun preview(level: ServerLevel, spec: SkySpec) {
         val payload = SkyPayload(listOf(SkyPayload.Entry(level.dimension(), spec)))
@@ -69,11 +56,9 @@ object Skies {
     }
 
     /**
-     * The sky of the Age at [dimension], or null when that dimension is not an Age of ours.
-     *
-     * An ordinary sky is deliberately still *sent*. It costs nothing and it means the client's answer to "what is
-     * the sky here" is never "I was not told" — which matters because the renderer treats an unknown Age and an
-     * ordinary one differently, and conflating them would make a missing packet look like a design decision.
+     * The sky of the Age at [dimension], or null when that dimension is not an Age of ours. An ordinary sky
+     * is still *sent*, so the client's answer is never "I was not told" — the renderer treats an unknown
+     * Age and an ordinary one differently, and conflating them would make a lost packet look deliberate.
      */
     private fun entryFor(server: MinecraftServer, dimension: ResourceKey<Level>): SkyPayload.Entry? {
         val saved = AgeSavedData.get(server)

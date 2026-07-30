@@ -8,24 +8,17 @@ import org.joml.Quaternionf
 /**
  * The path one celestial body travels, as a great circle around the camera.
  *
- * **Vanilla is the degenerate case of this, exactly**, which is the property to hold on to when changing it.
- * `LevelRenderer.renderSky` places its sun at local `(0, +100, 0)` and applies
- * `R_y(-90°) · R_x(timeOfDay · 360°)`, so it sweeps one circle about the world +Z axis: east, zenith, west.
- * Here that is [inclinationDegrees] `= 0`, [ascendingNodeDegrees] `= -90`, [distance] `= 100`, and a period of
- * one Minecraft day. Anything else is a tilt and a turn away from it, which is what buys a sky nothing in
- * Minecraft can show.
+ * **Vanilla is exactly the degenerate case**, which is the property to hold on to: its sun sits at local
+ * `(0, +100, 0)` under `R_y(-90°) · R_x(timeOfDay · 360°)`, so [inclinationDegrees] `= 0`,
+ * [ascendingNodeDegrees] `= -90`, [distance] `= 100`, one Minecraft day.
  *
- * The composite is `R_y(ascendingNode) · R_z(inclination) · R_x(angle)`, read right to left:
+ * The composite is `R_y(ascendingNode) · R_z(inclination) · R_x(angle)`, right to left: sweep around the
+ * circle, tip the plane off the zenith, then spin the arrangement about the vertical to choose which
+ * compass direction the tilt leans toward.
  *
- * 1. `R_x(angle)` sweeps the body around its circle, in the plane containing the vertical.
- * 2. `R_z(inclination)` tips that plane over, so the circle no longer passes through the zenith.
- * 3. `R_y(ascendingNode)` spins the whole arrangement about the vertical, choosing which compass direction the
- *    tilt leans toward — the free choice that makes two identically-tilted orbits look unrelated.
- *
- * **The angle is eased with vanilla's own curve rather than advancing uniformly** (see [progressAt]), and that
- * is deliberate rather than mimicry. Tier 1 leaves the lightmap alone, so the world still brightens and dims on
- * `DimensionType.timeOfDay`; a body on a one-day period therefore has to *be* vanilla's sun, or noon would be
- * bright while the sun sat somewhere off to the side. Reusing the curve makes that exact rather than close.
+ * **The angle is eased with vanilla's own curve** (see [progressAt]): the lightmap still runs on
+ * `DimensionType.timeOfDay`, so a body on a one-day period has to *be* vanilla's sun or noon would be
+ * bright with the sun off to one side.
  */
 data class Orbit(
     /** How far the circle is tipped out of the plane through the zenith. 0 is vanilla's overhead sweep. */
@@ -45,24 +38,14 @@ data class Orbit(
     /**
      * Where along its circle this body is, in `0.0..1.0`, at [dayTime].
      *
-     * **Steps once per tick, like vanilla, and an earlier version of this was wrong to interpolate.** It took
-     * `partialTick` as well and advanced on `dayTime + partialTick`, on the reasoning that
-     * `LevelTimeAccess.getTimeOfDay(float)` discards its argument and ours need not. Jonah walked it and saw
-     * bodies "slide forward and then tick backwards" — because `partialTick` resets to zero at every tick
-     * boundary, and if the value it is added to has not incremented in the same instant, each boundary is a step
-     * *backwards*. A sawtooth, not a smooth arc.
+     * **Steps once per tick, and must never add `partialTick`.** That fraction resets to zero at every
+     * tick boundary, so if the value it is added to has not incremented in the same instant each boundary
+     * is a step *backwards* — a sawtooth, not a smooth arc. An Age gets `DerivedLevelData`, so its day
+     * time is the overworld's and the server syncs it only every 20 ticks, which makes that very likely.
+     * One tick is 0.015° of arc anyway, so there is nothing to gain.
      *
-     * It very likely does not increment in step, for a reason worth keeping: an Age gets `DerivedLevelData`, so
-     * its `getDayTime()` reads the **overworld's**, and the server synchronises time per level only every 20
-     * ticks. The value can therefore advance in twenty-tick jumps while a smooth fraction ramps between them.
-     *
-     * Vanilla discarding `partialTick` now reads as the deliberate choice it probably always was. One tick is
-     * 0.015° of arc on a day-long orbit, so there is nothing to see; interpolating a server-authoritative counter
-     * needs the previous-and-current pattern entities use, not an addition, and that is not worth carrying for an
-     * invisible gain.
-     *
-     * The easing is `DimensionType.timeOfDay`'s, which is what makes a body linger near the horizon and hurry
-     * through the zenith. See the class KDoc for why it is shared rather than reinvented.
+     * The easing is `DimensionType.timeOfDay`'s, which makes a body linger near the horizon and hurry
+     * through the zenith.
      */
     fun progressAt(dayTime: Long): Float {
         val revolutions = dayTime.toDouble() / periodTicks
@@ -73,11 +56,10 @@ data class Orbit(
     }
 
     /**
-     * The rotation placing a body at `(0, distance, 0)` onto its circle at [dayTime].
-     *
-     * Returned as a quaternion rather than applied to a `PoseStack`, so the caller can bake it straight into
-     * vertices — which it must, because `RenderSystem.getModelViewMatrix()` is the identity during the sky pass
-     * and the transform has nowhere else to live. See `notes/per-age-skies-research.md` §3.
+     * The rotation placing a body at `(0, distance, 0)` onto its circle at [dayTime]. A quaternion rather
+     * than a `PoseStack` push, so the caller bakes it into vertices — which it **must**, because
+     * `RenderSystem.getModelViewMatrix()` is the identity during the sky pass and the transform has
+     * nowhere else to live (`notes/per-age-skies-research.md` §3).
      */
     fun rotationAt(dayTime: Long): Quaternionf =
         Quaternionf()

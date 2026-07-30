@@ -15,33 +15,23 @@ import java.util.Optional
 import kotlin.io.path.isDirectory
 
 /**
- * Marks a spec that needs Minecraft's registries standing up before it can say anything.
+ * Marks a spec that needs Minecraft's registries standing up — the only slow thing in the suite, a few
+ * seconds paid once per JVM. `./gradlew :common:test -Pfast` skips them.
  *
- * It is the only slow thing left in the suite — a few seconds, paid once per JVM however many specs ask
- * for it — so it is also the only tag worth having. Everything else is arithmetic and runs in milliseconds.
- *
- * ```
- * ./gradlew :common:test            # everything
- * ./gradlew :common:test -Pfast     # skip these, for the tight loop
- * ```
- *
- * **Written as `@Tags(NEEDS_REGISTRIES)` on the class, deliberately, rather than `tags(…)` in the spec
- * body.** Kotest has to *construct* a spec to discover the tests inside it, so anything the constructor
- * touches is paid before any filter applies — a corpus loaded there would cost the whole bootstrap even
- * under `-Pfast`, which is the one thing the tag exists to avoid. The annotation is read off the class,
- * so a filtered-out spec is never built. Fixtures inside a spec should still be `by lazy` for the same
- * reason: nothing expensive at construction time.
+ * **Written as `@Tags(NEEDS_REGISTRIES)` on the class, never `tags(…)` in the spec body.** Kotest
+ * *constructs* a spec to discover its tests, so anything the constructor touches is paid before any
+ * filter applies — the annotation is read off the class, so a filtered-out spec is never built. Fixtures
+ * inside a spec should be `by lazy` for the same reason.
  */
 const val NEEDS_REGISTRIES = "NeedsRegistries"
 
 /**
  * Minecraft's registries, stood up once per JVM.
  *
- * **Why this is not just a call to `Bootstrap.bootStrap()`.** That method sets its own done-flag *before*
- * doing the work, so if it throws — most easily by not finding `en_us.json`, which it reads off the
- * classpath — every later call returns early and reports success. The registries are then half built:
- * present enough that a test looks like it ran, empty enough that what it checked was nothing. Three of
- * four tests passed that way while this was being written, which is why the check below exists.
+ * **Not just a call to `Bootstrap.bootStrap()`**, which sets its own done-flag *before* doing the work: if
+ * it throws — most easily by not finding `en_us.json` on the classpath — every later call returns early
+ * and reports success over half-built registries. A test then looks like it ran and checked nothing, which
+ * is what the assertion below exists to catch.
  */
 object MinecraftRegistries {
 

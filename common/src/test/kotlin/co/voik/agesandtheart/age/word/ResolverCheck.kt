@@ -22,16 +22,12 @@ import io.kotest.core.spec.style.FunSpec
 import net.minecraft.resources.ResourceLocation
 
 /**
- * Asks whether the resolver keeps the promises the design makes on its behalf.
+ * Asks whether the resolver keeps the promises `notes/the-art-design.md` makes on its behalf — each check
+ * below is one of them turned into an assertion.
  *
- * Every check below is a sentence from `notes/the-art-design.md` turned into an assertion, and most of
- * them are guarding against a specific way the Phase 3 spike went wrong. It is the acceptance test for
- * Phase 3b: *same words and seed give the same Age, "lush barren" yields both biome families with a
- * diagnosable reason, and a vague sentence varies across seeds.*
- *
- * Offline, reading the shipped vocabulary through [MinecraftRegistries.shippedData] — so it exercises the
- * real corpus rather than a toy one, and a badly-judged tag weight shows up here rather than in a world.
- * The corpus includes §8's words derived from the game's own registries, which is what the bootstrap is for.
+ * Offline, reading the **shipped** vocabulary through [MinecraftRegistries.shippedData], so a
+ * badly-judged tag weight shows up here rather than in a world. The corpus includes §8's derived words,
+ * which is what the registry bootstrap is for.
  */
 @Tags(NEEDS_REGISTRIES)
 class ResolverCheck : FunSpec({
@@ -43,10 +39,9 @@ class ResolverCheck : FunSpec({
     }
 
     /**
-     * The same sentence at the same seed resolves identically, every time.
-     *
-     * Everything downstream leans on this: an Age is rebuilt from its recipe on every open, so a resolver
-     * that wandered would be a world that changed under the people living in it.
+     * The same sentence at the same seed resolves identically. Everything downstream leans on it: an Age
+     * is rebuilt from its recipe on every open, so a wandering resolver is a world that changes under the
+     * people living in it.
      */
     test("resolution is pure") {
         for (sentence in SENTENCES) {
@@ -62,11 +57,9 @@ class ResolverCheck : FunSpec({
     }
 
     /**
-     * Reversing a sentence changes nothing.
-     *
-     * §3.5 rejected "later word wins" deliberately — page order as an override would make equal-precision
-     * contradiction completely safe and largely evaporate the risk half of the precision axis. So word order
-     * must not decide who yields, and it must not leak into the seed either.
+     * Reversing a sentence changes nothing. §3.5 rejected "later word wins", which would make
+     * equal-precision contradiction safe and evaporate the risk half of the precision axis — so word order
+     * must not decide who yields, and must not leak into the seed either.
      */
     test("word order decides nothing") {
         for (sentence in SENTENCES) {
@@ -82,10 +75,9 @@ class ResolverCheck : FunSpec({
     }
 
     /**
-     * A single word can never make an incoherent Age.
-     *
-     * There is nothing for it to disagree with, and [VocabularyCheck] has already established that
-     * something in the world can satisfy it — so any flaw here would be the resolver inventing one.
+     * A single word can never make an incoherent Age. Nothing for it to disagree with, and
+     * [VocabularyCheck] has established something can satisfy it — so a flaw here is one the resolver
+     * invented.
      */
     test("one word is never incoherent") {
         // UNBACKED is the exception, and it is not the resolver inventing a disagreement: a word that only
@@ -106,10 +98,8 @@ class ResolverCheck : FunSpec({
     }
 
     /**
-     * What the resolver produced can be written down and read back by `/age compose`.
-     *
-     * A free harness, and the reason it is free is worth keeping: `AgeComposition.toString` is exactly what
-     * `parse` reads, so a resolved Age can be pasted into the composer and diffed against the written one.
+     * What the resolver produced can be written down and read back by `/age compose` —
+     * `AgeComposition.toString` being exactly what `parse` reads.
      */
     test("a resolved Age round-trips through compose") {
         for (sentence in SENTENCES) {
@@ -121,17 +111,9 @@ class ResolverCheck : FunSpec({
     }
 
     /**
-     * **The phase's acceptance test.** "Lush barren" yields both biome families, and says why.
-     *
-     * This is the sentence that could not pass before 3a: an aspect holding one preset had to pick a side, so
-     * a writer got one of the two words they wrote and silence about the other. Both terms are now in the
-     * world, and the instability index names the pair that made it happen.
-     *
-     * **It moved from the dressing to the climate in step 5, and the criterion is unchanged.** `verdant` and
-     * `lifeless` used to divide the *dressing* into a lush preset and a barren one; the dressing is deleted,
-     * and the two words now bound temperature and humidity to stretches that cannot overlap — so the
-     * **climate** fractures into a warm wet region and a cold dry one. Same sentence, same promise, one
-     * aspect over.
+     * **The acceptance test.** "Lush barren" yields both biome families, and says why: `verdant` and
+     * `lifeless` bound temperature and humidity to stretches that cannot overlap, so the climate fractures
+     * into a warm wet region and a cold dry one, and the instability index names the pair.
      */
     test("lush and barren yield both families") {
         val resolution = resolve(vocabulary, "verdant lifeless")
@@ -170,12 +152,9 @@ class ResolverCheck : FunSpec({
     }
 
     /**
-     * The sky cannot divide, so one of two sky words is displaced — the harsher register, and the reason it
-     * exists.
-     *
-     * A sky is a *dimension type*, registered once for the dimension, so two of them in one world is not a
-     * design preference but a technical impossibility (§3.4). This is the one aspect where a contradiction
-     * genuinely cannot be honoured.
+     * The sky cannot divide, so one of two sky words is displaced — the harsher register, and why it
+     * exists. A world has one sky over it and no second place to put another (§3.4), which makes this the
+     * one aspect where a contradiction genuinely cannot be honoured.
      */
     test("a sky cannot divide") {
         val resolution = resolve(vocabulary, "stormy clear")
@@ -195,12 +174,9 @@ class ResolverCheck : FunSpec({
     }
 
     /**
-     * A word the world cannot satisfy resolves as vacuous but is **reported**.
-     *
-     * §3.3's one hard requirement, and the spike's second-worst finding: "moonless" contradicted no other
-     * word, so an antonym table saw nothing, and the word came out free, silent and undiagnosed. The word
-     * used here is invented rather than shipped — [VocabularyCheck] exists to stop one like it shipping,
-     * and this checks what happens if one ever does.
+     * A word the world cannot satisfy resolves as vacuous but is **reported** — §3.3's one hard
+     * requirement. The word here is invented rather than shipped: [VocabularyCheck] stops one like it
+     * shipping, and this checks what happens if one ever does.
      */
     test("an unbacked word is reported, not dropped") {
         val moonless = Word(
@@ -217,10 +193,9 @@ class ResolverCheck : FunSpec({
     }
 
     /**
-     * Vagueness buys variety; precision takes it away.
-     *
-     * The progression axis, measured rather than assumed: if a vague sentence did not vary, imprecision would
-     * be strictly worse than precision and the cheap half of the design would be dead content.
+     * Vagueness buys variety; precision takes it away — the progression axis, measured. If a vague
+     * sentence did not vary, imprecision would be strictly worse than precision and the cheap half of the
+     * design would be dead content.
      */
     test("vagueness varies and precision narrows") {
         val vague = spread(vocabulary, "beautiful")
@@ -234,11 +209,8 @@ class ResolverCheck : FunSpec({
     }
 
     /**
-     * The exact word costs more than its restrictive synonym.
-     *
-     * `burning` and `molten` name the same tag at different rungs of the ladder, which is §3.3's
-     * synonyms-as-a-lever and §4.4's value-derived cost in one pair of files. If they priced the same, the
-     * ladder would be decoration.
+     * The exact word costs more than its restrictive synonym. `burning` and `molten` name the same tag at
+     * different rungs; if they priced the same, the ladder would be decoration.
      */
     test("precision costs more") {
         val vague = resolve(vocabulary, "burning").cost
@@ -247,12 +219,9 @@ class ResolverCheck : FunSpec({
     }
 
     /**
-     * A sentence that said nothing about the sea is rarely handed one of lava.
-     *
-     * This is what the readiness prior is for, and the check is here because without it nothing would notice
-     * its absence: an unconstrained aspect drawn uniformly gives lava one time in three, which reads as the
-     * generator ignoring a plain reading of the sentence rather than as the generator being wild. Precision
-     * still reaches it — `molten` and `burning` both do, and "precision costs more" just proved they resolve.
+     * A sentence that said nothing about the sea is rarely handed one of lava — what the readiness prior
+     * is for. Drawn uniformly an unconstrained aspect gives lava one time in three, and nothing but this
+     * would notice the prior's absence. Precision still reaches it.
      */
     test("an unasked draw prefers the ordinary") {
         val molten = (1L..SEEDS_SAMPLED).count { seed ->
@@ -265,16 +234,12 @@ class ResolverCheck : FunSpec({
     }
 
     /**
-     * An Age nobody asked to be built in rarely is — and one that asked always is.
+     * An Age nobody asked to be built in rarely is, and one that asked always is. Now that
+     * [Structures.VANILLA] is a preset a sentence can draw, "opt-in per Age" is kept by the readiness
+     * prior — the same lever as the sea of lava above.
      *
-     * Structures were a `settlement` parameter no word could reach until they became an aspect, so "opt-in
-     * per Age" held for the poorest of reasons: there was no way to say otherwise. Now that
-     * [Structures.VANILLA] is a preset a sentence can draw, the promise has to be kept by the readiness prior
-     * instead — the same lever, and the same argument, as the sea of lava above.
-     *
-     * `floating` is about the terrain and says nothing about habitation, so what this measures is the
-     * *unasked* draw. The effective rate in a world is lower again, because a set is only ever placed where
-     * the biome source can produce the biomes its structures ask for: a barren Age gets none however it drew.
+     * `floating` says nothing about habitation, so this measures the *unasked* draw. The effective rate in
+     * a world is lower again, a set only being placed where the biome source can produce its biomes.
      */
     test("an unasked Age is rarely built in") {
         val built = (1L..SEEDS_SAMPLED).count { seed ->
@@ -293,12 +258,9 @@ class ResolverCheck : FunSpec({
     }
 
     /**
-     * The preset a word claims strongly takes more ground than one it claims weakly.
-     *
-     * Jonah's requirement, and the point of shares: "a word strongly associated with overworld paired with a
-     * word weakly associated with pillars" should give mostly overworld with scarce pillars, not half of
-     * each. Checked at the recipe rather than by counting columns — [RegionShareCheck] is what proves a share
-     * turns into ground.
+     * The preset a word claims strongly takes more ground than one it claims weakly — the point of shares.
+     * Checked at the recipe rather than by counting columns; [RegionShareCheck] proves a share turns into
+     * ground.
      */
     test("a strong claim takes more ground") {
         // The ladder itself, which is where "strongly associated" turns into ground. Deliberately checked
@@ -357,22 +319,12 @@ class ResolverCheck : FunSpec({
     }
 
     /**
-     * A sentence that merely *likes* several things may get several of them, is charged nothing for it, and
-     * **rarely gets a seam for its trouble**.
+     * A sentence that merely *likes* several things may get several, is charged nothing, and **rarely gets
+     * a seam for its trouble**. Harmony is free: "beautiful" reaching a beach and a field of flowers is
+     * the word doing its job.
      *
-     * Two halves. Harmony is free: "beautiful" reaching a beach and a field of flowers is not incoherent, it
-     * is the word doing its job, so no flaw is charged.
-     *
-     * The second half **inverted on 2026-07-27** and is the more interesting one. This used to assert that
-     * dressings double up *more* than terrains, on the reasoning that spreading several kinds of place across
-     * a map is what biomes do anyway. That reasoning was an argument for biomes doing it, borrowed to justify
-     * the dressing aspect dividing — see design §3.4, "what regions are for". Now that variety belongs to
-     * biomes, **a dressing seam is reserved for two policies that cannot share a climate table**, so dressing
-     * should be the *rarest* aspect to double up, not the commonest.
-     *
-     * Kept as a comparison rather than a hard count because the numbers are taste, and the ordering is the
-     * design claim: whatever the tuning, a second dressing must be rarer than a second terrain, and a second
-     * terrain is already meant to be a thing you remember.
+     * Kept as a comparison rather than a hard count, because the numbers are taste and the *ordering* is
+     * the design claim (§3.4).
      */
     test("harmony is free and the terrain is the reluctant one") {
         var carvingsDoubled = 0
@@ -400,10 +352,8 @@ class ResolverCheck : FunSpec({
     }
 
     /**
-     * An exact word admits no company at all — it *pins one value* (§4.4).
-     *
-     * The line between generosity and disobedience: a writer who said something precisely gets that thing and
-     * nothing beside it, however much the rest of the sentence might have liked a neighbour.
+     * An exact word admits no company at all — it *pins one value* (§4.4). The line between generosity and
+     * disobedience: precision gets that thing and nothing beside it.
      */
     test("an exact word admits no company") {
         for (seed in 1L..HARMONY_SEEDS) {
@@ -416,17 +366,13 @@ class ResolverCheck : FunSpec({
     }
 
     /**
-     * A word derived from the registry gives you exactly the thing it names — §8's whole promise, end to end.
+     * A word derived from the registry gives exactly the thing it names — §8's promise end to end. Three
+     * properties that only mean anything together: the word **exists**, naming it **gets it** at every
+     * seed, and naming it **beside a vaguer word takes the world** — the part that needed [Word.pullOn],
+     * since a derived word carries no tags and would otherwise claim nothing.
      *
-     * Three properties in one, because they only mean anything together. The word **exists** at all, which is
-     * derivation running. Naming it **gets it**, at every seed, which is what "precision can reach anything"
-     * cashes out as. And naming it **beside a vaguer word takes the world**, which is the part that needed
-     * [Word.pullOn]: a derived word carries no tags, so scored on tag weights alone it would have claimed
-     * nothing and been given the *scarce* territory while `beautiful` took the ground it was named against.
-     *
-     * `lava` is the one to test on rather than `water`, since it is the derived word most likely to collide
-     * with the curated pool's opinions — `beautiful` pushes hard against `hostile`, which is exactly the
-     * tension a named word has to win.
+     * `lava` rather than `water`, being the derived word most likely to collide with the curated pool's
+     * opinions: `beautiful` pushes hard against `hostile`.
      */
     test("a derived word names its referent") {
         val lava = vocabulary.word("lava") ?: error("no derived word 'lava' — is derivation running?")
@@ -448,20 +394,10 @@ class ResolverCheck : FunSpec({
     }
 
     /**
-     * A **material** steers the preset that was chosen without choosing it — design §3.2, and the three ways
-     * that could go quietly wrong.
-     *
-     * `basalt` sets `terrain.stone` and says nothing else. So: it must **not narrow** the terrain (it has no
-     * carriers, and the naive reading of an empty carrier set is "unbacked", which would report a perfectly
-     * good word as a content bug); it must **not suppress harmony** despite being exact, since it expressed
-     * no view on how many kinds of place the Age holds; and it must **always be honoured**, whatever else the
-     * Age is.
-     *
-     * **That last clause is the capability step 4 bought, and it used to be the opposite.** A material was a
-     * surface rule, and for `dressing=overworld` there was nothing to substitute a stone into — vanilla's
-     * palette is a rule tree we do not own — so `Dressing.ignoresMaterial` existed and this check asserted
-     * that such an Age was *charged as unbacked*. A material is the fill now, underneath the whole tree, so
-     * every Age can wear one and there is nothing left to charge. The check inverted with the mechanism.
+     * A **material** steers the preset that was chosen without choosing it (§3.2) — and the three ways that
+     * could go quietly wrong. `basalt` sets `terrain.stone` and nothing else, so it must **not narrow** the
+     * terrain (an empty carrier set naively reads as "unbacked"), must **not suppress harmony** despite
+     * being exact, and must **always be honoured** whatever else the Age is.
      */
     test("a material steers without choosing") {
         val basalt = vocabulary.word("basalt") ?: error("no word 'basalt' — is the material hook wired?")
@@ -491,20 +427,13 @@ class ResolverCheck : FunSpec({
     }
 
     /**
-     * **The conjunction**, and the thing 3c left waiting: joining two claims on one parameter keeps both, and
-     * charges nothing.
+     * **The conjunction**: joining two claims on one parameter keeps both and charges nothing. The
+     * asymmetry is what matters, so both halves are asserted together — unjoined, `blackstone tuff`
+     * **fractures** and each takes a territory, charged, because the writer did not ask for two places;
+     * joined, it is one rock made of both throughout.
      *
-     * The asymmetry is what matters, so both halves are asserted together. Unjoined, `blackstone tuff` is two
-     * answers to a question that has room for one, so the aspect **fractures** and each takes a territory —
-     * charged, because the writer did not ask for two places. Joined, it is one rock made of both throughout,
-     * which `Options` has been able to hold since 3a and `Palette.mingled` has been able to paint for just as
-     * long; the conjunction is only the wire between them.
-     *
-     * **Unjoined used to displace one of the two**, and that changed when parameters learned to divide: the
-     * world now honours both rather than losing one, which is §3.4's rule reaching a knob for the first time.
-     *
-     * If this ever passes with juxtaposition also mingling, `and` has stopped meaning anything — that is the
-     * failure to watch for, not a crash.
+     * **If this ever passes with juxtaposition also mingling, `and` has stopped meaning anything** — that
+     * is the failure to watch for, not a crash.
      */
     test("joining two materials mingles them and costs nothing") {
         val hollow = vocabulary.word("hollow") ?: error("the shipped vocabulary lost 'hollow'")
@@ -548,15 +477,12 @@ class ResolverCheck : FunSpec({
     }
 
     /**
-     * **`only` and `except` reach a population** — the other thing the grammar left waiting.
+     * **`only` and `except` reach a population.** The parser attached [Polarity] while the resolver dropped
+     * it, so `except pillager outposts` parsed perfectly and did nothing — a sentence read correctly,
+     * charged for, and silently without effect. **Nothing but this notices if the wire comes loose again**,
+     * the parse looking right either way.
      *
-     * The parser has attached [Polarity] since it landed and the resolver dropped it on the floor, so
-     * `except pillager outposts` parsed perfectly and did nothing at all. That is the worst failure shape the
-     * design names: a sentence read correctly, charged for, and silently without effect. Nothing but this
-     * notices if the wire comes loose again, because the parse still looks right either way.
-     *
-     * Asserted alongside, because the three verbs are one mechanism and it is their *difference* that
-     * matters: plainly said adds, `only` makes the population exclusive, `except` strikes out.
+     * All three verbs together, because it is their *difference* that matters.
      */
     test("only and except reach a population") {
         fun asked(vararg said: Pair<String, Polarity>): Population {
@@ -593,18 +519,12 @@ class ResolverCheck : FunSpec({
     }
 
     /**
-     * The three guards on a fracture, which are what keep it from firing where it should not.
+     * The three guards on a fracture, each asserted rather than trusted:
      *
-     * A new branch in the resolver is the most dangerous kind of change this codebase takes, so each condition
-     * is asserted rather than trusted:
-     *
-     * - **one claim never fractures.** Nothing to reconcile, so the aspect stays whole — this is what keeps
-     *   every Age written before parameters could divide resolving exactly as it did.
-     * - **word order still decides nothing** (§3.5). Reversing the pages must give the identical composition,
-     *   including which fragment got which material, or the seed has stopped being the arbiter.
-     * - **an aspect that already divided on presets contends instead.** Two divisions in one aspect would
-     *   multiply, and *which* fragment a word was aimed at is a question the grammar cannot answer yet
-     *   (§4.3.1 aims at aspects, not members). So the older behaviour has to survive underneath the new one.
+     * - **one claim never fractures** — nothing to reconcile, so the aspect stays whole;
+     * - **word order still decides nothing** (§3.5), including which fragment got which material;
+     * - **an aspect that already divided on presets contends instead**, two divisions in one aspect
+     *   multiplying, and *which* fragment a word was aimed at being a question the grammar cannot answer.
      */
     test("a fracture obeys its guards") {
         fun aimedAtTheLand(word: Word) = Constraint(word, Scope.Confined(setOf(Aspect.TERRAIN)))

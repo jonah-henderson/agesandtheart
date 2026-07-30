@@ -40,15 +40,10 @@ class Sphere(val radius: Double) {
         private const val NEAR_VERTICAL = 0.99
 
         /**
-         * A uniformly-distributed random unit vector.
-         *
-         * We pick a random point in the cube `[-1, 1]^3` and keep only those inside the unit sphere
-         * before normalising. Simply normalising a random cube point would NOT be uniform: the
-         * cube's corners sit farther from the centre (up to `sqrt(3)`) than its faces, so more
-         * points fall in the corner directions and the result clumps toward the eight cube
-         * diagonals. Discarding everything outside the sphere first removes that bias (a uniform
-         * ball projects to a uniform surface). The near-zero guard avoids normalising a degenerate
-         * vector.
+         * A uniformly-distributed random unit vector: a random point in the cube `[-1, 1]^3`, kept only
+         * if inside the unit sphere, then normalised. **Normalising a cube point directly is not
+         * uniform** — the corners sit up to `sqrt(3)` from the centre against the faces' 1, so the result
+         * clumps toward the eight diagonals. Rejecting outside the sphere removes that bias.
          */
         fun randomDirection(random: Random): Vec3 {
             while (true) {

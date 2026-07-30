@@ -51,14 +51,12 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
     }
 
     /**
-     * The version string is what NeoForge compares between two modded ends — bump it whenever the payload's codec
-     * or handler semantics change, or two versions will negotiate a channel they disagree about.
+     * **Bump the version string whenever the payload's codec or handler semantics change**, or two modded
+     * ends will negotiate a channel they disagree about.
      *
-     * The handler lands the spec in [KnownSkies], where `AgeSky` reads it per frame. It runs on the client — the
-     * registrar's default is `HandlerThread.MAIN`, which wraps it in `context.enqueueWork` — and [KnownSkies] is
-     * plain data in `common` with no client types, so nothing here is dist-sensitive. That is why this stays on the
-     * server-side class rather than moving to `AgesAndTheArtClient`: Fabric likewise requires the payload *type* on
-     * both sides, and splitting the two loaders' registration differently would be a difference without a reason.
+     * The handler lands the spec in [KnownSkies], which is plain data in `common` with no client types, so
+     * nothing here is dist-sensitive — which is why it stays on the server-side class rather than moving to
+     * `AgesAndTheArtClient`.
      */
     private fun onRegisterPayloads(event: RegisterPayloadHandlersEvent) {
         event.registrar(PAYLOAD_VERSION).playToClient(

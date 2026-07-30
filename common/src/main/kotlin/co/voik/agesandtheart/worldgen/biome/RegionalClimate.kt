@@ -7,19 +7,13 @@ import com.mojang.serialization.codecs.RecordCodecBuilder
 /**
  * An Age's climate, which may be **more than one** — a hot half and a cold half, with a seam between them.
  *
- * This is the piece the climate aspect could not be built without. Every other divided aspect divides on a map
- * the generator already holds: the terrain's, the dressing's, the carving's. Climate needs its **own** map,
- * independent of all of them, because *which* climate a column has is a different question from which dressing
- * paints it — and a writer who asked for "hot and cold" was talking about the climate, not about the ground.
+ * Climate needs its **own** map rather than borrowing the terrain's or the carving's, because *which*
+ * climate a column has is a different question from what paints it. A single bias needs no map and gets
+ * [RegionMap.whole], so the common case costs one array lookup returning member zero.
  *
- * A single bias needs no map and gets [RegionMap.whole], so the common case — every Age that named at most one
- * climate word — costs one array lookup returning member zero, and no Age that existed before climate became an
- * aspect changes by a block.
- *
- * **Why the fracture happens at all** is [co.voik.agesandtheart.age.aspect.Parameter.Kind.RANGED]: two words
- * bounding one axis to stretches that do not overlap cannot both be honoured in one climate, so each takes
- * ground of its own. The seam between them is an ordinary region seam, which is what makes the jump in climate
- * read as *impossible geography* rather than as a glitch — the same reading a terrain seam already has.
+ * The fracture itself is [co.voik.agesandtheart.age.aspect.Parameter.Kind.RANGED]'s: two words bounding one
+ * axis to non-overlapping stretches cannot both be honoured in one climate, so each takes ground of its
+ * own, and the seam between them is an ordinary region seam.
  */
 data class RegionalClimate(
     /** One per region of [where], in the order [where] numbers them. Never empty. */

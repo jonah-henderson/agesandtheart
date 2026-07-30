@@ -5,17 +5,9 @@ import com.mojang.serialization.MapCodec
 import net.minecraft.util.StringRepresentable
 
 /**
- * What kind of thing an Age's world is: assembled from aspects, or one of the handful that are not
- * assembled from anything.
+ * What kind of thing an Age's world is: assembled from aspects, or one of the handful that are not.
  *
- * The split is the terrain architecture's own two tiers made explicit in the save format. Almost every
- * Age is [Composed] — a terrain, a sea, a carving, a dressing and a sky, chosen independently.
- * A few are [Bespoke]: `spire` is a hand-written generator kept as an easter egg, and the two vanilla
- * delegates *are* Minecraft's own pipeline, biome source and all. Trying to express those as
- * compositions would mean inventing aspects that exist only to hold them.
- *
- * Keeping the door open matters beyond the three: the design wants canonical Ages recognisable as
- * easter eggs (§7.6), and a bespoke arm is where such a thing lands without contorting the grammar.
+ * The terrain architecture's two tiers, made explicit in the save format.
  */
 sealed interface AgeWorld {
     val kind: Kind
@@ -44,9 +36,8 @@ sealed interface AgeWorld {
         private val KIND_CODEC: Codec<Kind> = StringRepresentable.fromEnum(Kind::values)
 
         /**
-         * Dispatched on a `kind` field so the two arms stay distinguishable forever, rather than being
-         * told apart by which other fields happen to be present. The casts are safe because the
-         * dispatch already decided which arm it is; DFU has no way to say so in the type.
+         * Dispatched on a `kind` field rather than on which other fields happen to be present. The casts
+         * are safe because the dispatch already decided the arm; DFU cannot say so in the type.
          */
         val MAP_CODEC: MapCodec<AgeWorld> = KIND_CODEC.dispatchMap("kind", AgeWorld::kind) { kind ->
             when (kind) {

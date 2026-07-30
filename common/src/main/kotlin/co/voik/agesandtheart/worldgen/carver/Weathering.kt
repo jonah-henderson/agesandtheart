@@ -7,45 +7,20 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import net.minecraft.world.level.levelgen.synth.NormalNoise
 
 /**
- * Which rock survives being worn away, and which does not — the rule [ErosionCarver] applies.
+ * Which rock survives being worn away, and which does not. Read by
+ * [co.voik.agesandtheart.worldgen.field.Weathered], which subtracts it from the shape.
  *
- * Kept apart from the carver because the rule is *pure*: whether a block goes depends only on where it is.
- * Nothing here touches a chunk, a registry or a running server, so the terrain preview can evaluate this
- * **exact object** offline and draw what it will do. What we look at therefore cannot drift from what
- * generates — a preview that reimplemented the rule would eventually lie about the very thing it was built
- * to judge.
+ * The rule is **pure** — whether a block goes depends only on where it is — so the terrain preview
+ * evaluates this exact object offline and cannot drift from what generates.
  *
- * **On the name, and what is really being modelled.** This began as wind erosion and is no longer that, so
- * it is worth being straight about which parts are physics and which are invention:
- * - *Genuinely wind:* [windStretch]. Yardangs really are streamlined parallel to the prevailing wind, and
- *   that directional bias is what combs the rock into aligned fins rather than isotropic lumps.
- * - *Generic to all weathering:* the resistance threshold itself. Rock survives where it is tougher than
- *   whatever is working on it. Hoodoos are largely the work of water and frost, not wind; nothing about
- *   differential resistance belongs to any one agent.
- * - *Frankly unphysical:* the vertical profile. Real abrasion is fiercest near the ground and eases upward —
- *   monotonic — which yields gentle slopes, not spires. This instead spares a keel and attacks *both*
- *   extremes, which no natural process does, because it is what makes crowns above and hanging needles
- *   below. [needleBonus] is likewise a device for drama, not a mechanism.
+ * What is physics and what is invention: [windStretch] is genuinely wind, since yardangs really are
+ * streamlined along it; the resistance threshold is generic to all weathering; the vertical profile is
+ * frankly unphysical, since real abrasion is monotonic and yields slopes, where this spares a keel and
+ * attacks both extremes to make crowns above and hanging needles below. [needleBonus] likewise.
  *
- * Hence `Weathering`: the umbrella term for rock breaking down in place, deliberately agnostic about the
- * agent, which is honest for a rule whose only agent-specific feature is a directional bias. The
- * wind-named parameters keep their names, since that part really is wind.
- *
- * On *why* it is shaped the way it is — a threshold judged per column and extruded, rather than a surface
- * sliding up one — see [ErosionCarver].
- *
- * **What the offline preview CANNOT show you, and it cost a whole tuning round.** The preview applies this rule
- * to the field's geometry, which is what makes it trustworthy about *shape* — but a carver in the game does not
- * cut on this rule alone. Every cut goes through vanilla's `WorldCarver.carveBlock`, which first asks
- * `canReplaceBlock(config, state)` — `state.is(config.replaceable)`. A block outside that tag is **never
- * removed, however hard the wind blows.**
- *
- * So a preview showing heavy erosion and a world showing an intact mass is not a contradiction: it means the
- * rock is not in the tag. That is exactly what happened when the Spire's substance became basalt, blackstone and
- * gravel — none of which is in `#minecraft:base_stone_overworld`, so the carver could cut nothing at all while
- * the preview looked right. The configured carvers now name `#agesandtheart:erodible`, which is ours to keep in
- * step with what a writer can put in the ground. **When the preview and the game disagree about how eroded
- * something is, check the tag before touching a number here.**
+ * **If a cut ever runs through a carver rather than the shape, check the `replaceable` tag before touching
+ * a number here** — a block outside it is never removed however hard the wind blows, which once made the
+ * preview and the game disagree completely.
  */
 class Weathering(
     /** The band the wind reaches; rock outside it is untouched. */
@@ -77,12 +52,9 @@ class Weathering(
      */
     val taper: Double,
     /**
-     * Over how many blocks above and below the keel the advantage decays — *separately* from the band.
-     *
-     * These are two different ideas and tying them together is a trap. The band must cover every block of
-     * rock, or whatever it fails to reach is left floating above the gaps opened beneath it. The taper wants
-     * to finish quickly, or crowns stay welded into a lump. A tall band with the taper measured against it
-     * cannot do both; measured against its own reach, it can.
+     * Over how many blocks above and below the keel the advantage decays — **separately from the band**,
+     * which is not a tidiness: the band must cover every block of rock or the remainder floats above the
+     * gaps opened beneath it, where the taper must finish quickly or crowns weld into a lump.
      */
     val taperReachAbove: Int,
     val taperReachBelow: Int,
@@ -120,23 +92,15 @@ class Weathering(
 
     override fun cuts(worldX: Int, worldY: Int, worldZ: Int): Boolean = erodes(worldX, worldY, worldZ)
 
-    /**
-     * Whether the wind takes the block at this position.
-     *
-     * Kept alongside [cuts] rather than replaced by it: the offline preview reads *erosion* specifically,
-     * and a name that says which agent is at work is worth more there than one that says only "cut".
-     */
+    /** Whether the wind takes the block at this position. */
     fun erodes(worldX: Int, worldY: Int, worldZ: Int): Boolean =
         erodesGiven(worldX, worldY, worldZ, favour = 0.0)
 
     /**
-     * The same question, with an extra [favour] the caller has worked out for itself.
-     *
-     * It exists for one reason: **this rule cannot see where an island is, and something has to.**
-     * `Weathered` measures how thick the rock in a column stands and hands the answer back here, so a column deep
-     * in an island's middle survives where a thin one on its rim does not — which is how the central landmass
-     * holds together while the edges wear away. Kept as an argument rather than a field because it is a property
-     * of a *place in a shape*, and this rule is deliberately ignorant of shapes.
+     * The same question, with an extra [favour] the caller worked out for itself — because **this rule
+     * cannot see where an island is, and something has to.** `Weathered` measures how thick a column's rock
+     * stands and hands the answer back, so a column deep in an island survives where a thin one on the rim
+     * does not. An argument rather than a field, since this rule is deliberately ignorant of shapes.
      */
     fun erodesGiven(worldX: Int, worldY: Int, worldZ: Int, favour: Double): Boolean {
         if (worldY !in fromY..toY) return false
@@ -145,13 +109,9 @@ class Weathering(
     }
 
     /**
-     * The same wind, blowing [lift] blocks higher up the world — the companion to
-     * [co.voik.agesandtheart.worldgen.field.Raised].
-     *
-     * Only the three absolute heights move. The noise scales, the bite and the profile's own shape are all
-     * *relative*, so raising them would change how the rock erodes rather than merely where. (The resistance
-     * pattern does shift, since it is sampled at world `y` — which is a different noise field, not a different
-     * character of erosion.)
+     * The same wind, blowing [lift] blocks higher — the companion to
+     * [co.voik.agesandtheart.worldgen.field.Raised]. Only the three absolute heights move; the scales, the
+     * bite and the profile are relative, so raising them would change *how* the rock erodes.
      */
     fun raisedBy(lift: Int): Weathering {
         if (lift == 0) return this
@@ -166,13 +126,9 @@ class Weathering(
     }
 
     /**
-     * How much of a *column's* survival bonus reaches this height — all of it at the keel, none at the taper reach.
-     *
-     * Without this, a bonus earned by a column being deep applied over the column's whole height, so a central
-     * column survived from its root to its crown and came out a monolith. The point of favouring deep rock was
-     * to hold the **deck** together, and a deck is a band, not a column — above it the wind should be as harsh as
-     * anywhere. Fading over the same reach [profile] uses keeps the two in step: one leniency ridge at the keel,
-     * not two arguing about where the middle is.
+     * How much of a *column's* survival bonus reaches this height — all of it at the keel, none at the
+     * taper reach. Without it a deep column survives root to crown and comes out a monolith: the point of
+     * favouring deep rock is to hold the **deck** together, and a deck is a band, not a column.
      */
     fun keelShare(worldY: Int): Double {
         val reach = (if (worldY >= keelY) taperReachAbove else taperReachBelow).coerceAtLeast(1)
@@ -193,12 +149,9 @@ class Weathering(
         resistance.getValue(worldX / (scale * windStretch), worldY / verticalScale, worldZ / scale)
 
     /**
-     * The rock's advantage at a given height: generous at and below the keel, falling away above it.
-     *
-     * This is the shape of a spire: a ridge of leniency at the keel that falls away in both directions.
-     * A *rising* profile — survival growing with height — would broaden tops into plateaus and cut the bases
-     * from under them, which reads as loose columns rather than spires on common ground. Sparing everything
-     * below the keel instead is the other failure: it welds the whole underside into one lump.
+     * The rock's advantage at a given height — a ridge of leniency at the keel falling away in both
+     * directions, which is the shape of a spire. A *rising* profile broadens tops into plateaus and cuts
+     * their bases away; sparing everything below the keel welds the underside into one lump.
      */
     private fun profile(worldY: Int): Double {
         val rising = worldY >= keelY
@@ -220,64 +173,42 @@ class Weathering(
             seed = 0L, firstOctave = -1, amplitudes = doubleArrayOf(1.0),
         )
 
-        /**
-         * The wind over the Spire archipelago. The band spans an island completely on purpose: one that
-         * stopped short would leave the untouched remainder floating above the gaps it opened below.
-         */
-        // Chosen against the measured spread of the resistance noise, which runs about -1.0 to +0.8 with
-        // its tenth and ninetieth percentiles near ∓0.39. Thresholds only mean something relative to that:
-        // an earlier set sat around ±0.1, far too tight to select anything, so the profile did nothing and
-        // roughly half of every column eroded regardless of height. `./gradlew :common:preview` prints the
-        // distribution — read it before moving these.
+        // A margin below the floor is harmless; a band stopping short of the ceiling is not.
         private const val BAND_MARGIN = 4
 
+        /**
+         * The wind over the Spire archipelago.
+         *
+         * These thresholds only mean anything against the measured spread of the resistance noise, which
+         * runs about -1.0 to +0.8 with its tenth and ninetieth percentiles near ∓0.39.
+         * `./gradlew :common:preview` prints the distribution — **read it before moving any of them.**
+         */
         val SPIRE = Weathering(
-            // **Read from `SpireField` rather than written out, because they went stale once already.** The band
-            // covers every block an island can occupy — nothing may be left untouched above a gap — and an
-            // island's extent is the field's business, not the wind's. Hardcoded, these said 38..296 against a
-            // deck at y=190; when the deck moved to 148 to buy a two-to-one split they silently described the
-            // wrong world, and [keelY] with them. A margin below the floor is harmless (there is no rock there
-            // to spare); a band that stops short of the ceiling is not.
+            // Read from `SpireField` rather than written out, because an island's extent is the field's
+            // business and hardcoding these left them silently describing the wrong world once already.
             fromY = SpireField.SPIKE_FLOOR - BAND_MARGIN,
             toY = SpireField.PEAK_CEILING + BAND_MARGIN,
-            // **0.085 → 0.28**: Jonah asked for erosion "aggressive enough that it is difficult to recognise the
-            // primitives", and this is the dial the docs above call the most important by some way. Measured
-            // against the wind switched off (`--args=spire-nowind`, 8.83M solid blocks), this now removes **74%**
-            // of the mass where the old setting removed 65%.
-            //
-            // Raise it together with [atTheKeel]: their *difference* is the threshold at the deck, so moving one
-            // alone either dissolves the slab or stops the tips eroding. `bite - atTheKeel = -0.38` is what keeps
-            // a stable deck while the extremes are eaten.
+            // Raise this together with [atTheKeel]: their *difference* is the threshold at the deck, so
+            // moving one alone either dissolves the slab or stops the tips eroding.
             bite = 0.28,
-            // Spared up to just above the deck, so the islands keep a body; punished hard toward the top.
-            // [toY] matters more than it looks: the taper is measured against `toY - keelY`, so a band
-            // reaching far above where rock actually stands leaves the taper only part-finished at the
-            // summit — a solid mass with notches rather than spires. The preview prints where rock tops out.
-            // **At the deck, which is the point of a keel.** It was 168 — twenty-two blocks below a deck that
-            // then sat at 190 — and stayed there when the deck dropped, so the wind was sparing a band of open
-            // sky and eating the slab. Tied to the deck now.
+            // At the deck, which is the point of a keel — a keel below it spares open sky and eats the slab.
             keelY = SpireField.DECK_Y,
             atTheKeel = 0.66,
             atTheTip = -0.05,
             // Mirrored on the tip, so the underside narrows into hanging needles the way the crowns rise.
             atTheRoot = -0.15,
             taper = 0.5,
-            // **Short, and shorter than they were** (57/51), because Jonah asked for "a relatively narrow stable
-            // deck/slab in the middle" with the mass above and below worn to spires. The reach is how far the
-            // keel's protection extends before the wind takes over, so it *is* the width of that stable slab —
-            // shortening it is what makes the deck read as a deck rather than as a thick middle.
+            // How far the keel's protection extends before the wind takes over, so this *is* the width of
+            // the stable deck.
             taperReachAbove = 32,
             taperReachBelow = 28,
-            // Pillar-scale, not island-scale: ~24-block features with crags at 12 and 6. An earlier
-            // scale of 34 gave 270-block features, wider than an island, so each read as one smooth slope.
+            // Pillar-scale, not island-scale: ~24-block features with crags at 12 and 6. A scale of 34 gave
+            // 270-block features, wider than an island, so each read as one smooth slope.
             scale = 0.9,
             windStretch = 2.0,
-            // **60 → 22, and this is what finally made them read as spires.** Erosion cannot taper a column —
-            // it keeps or removes whole ones — so at 60 the resistance barely drifted with height and every
-            // survivor stood at its full field height with a flat top: a forest of rectangular pillars. At 22 the
-            // threshold wanders enough vertically for a column to be taken in its upper reaches and spared lower
-            // down, which is what puts a point on a spire and what stops the underlying noise heightmap reading
-            // as a periodic row of teeth. Lower still starts closing hollows over into arches.
+            // Erosion keeps or removes whole columns rather than tapering them, so this is what puts a
+            // point on a spire: enough vertical drift for a column to be taken high and spared low. Much
+            // larger gives a forest of flat-topped rectangular pillars; lower closes hollows into arches.
             verticalScale = 22.0,
             needleScale = 1.5,
             needleThreshold = 0.62,

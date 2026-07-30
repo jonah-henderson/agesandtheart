@@ -16,27 +16,19 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import kotlin.math.abs
 
 /**
- * What an Age was told to grow, applied to vanilla's climate-to-biome table (design §3.2, §8).
+ * What an Age was told to grow, applied to vanilla's climate-to-biome table (design §3.2, §8). A biome
+ * word enriches rather than replaces: naming adds it if absent and strengthens it if present.
  *
- * A biome word does **not** replace an Age's biomes; it enriches them — "adds it if it wasn't there
- * already, or makes it more likely if it was" (Jonah). That is the *populative* half of §3.2 and the
- * precision ladder applied to a list: naming shifts weights, and `only`/`except` narrow, arriving with the
- * grammar rather than as machinery of their own.
- *
- * **Weighting happens in climate space rather than by carving out regions.** A named biome keeps landing
+ * **Weighting happens in climate space rather than by carving out regions**, so a named biome still lands
  * where it belongs — cherry groves in mild bands, a summoned nether biome where the overworld climate most
- * resembles the nether — so the world still reads as a place rather than an assembly of patches. It also
- * makes exclusion trivial and correct: **removing a biome is deleting its entries**, after which vanilla's
- * nearest-neighbour search fills the gap with whatever is climatically adjacent. A world without swamps
- * gets more marsh-adjacent forest, not a hole.
+ * resembles the nether. It also makes exclusion correct: **removing a biome is deleting its entries**,
+ * after which vanilla's nearest-neighbour search fills the gap with what is climatically adjacent, so a
+ * world without swamps gets more marsh-adjacent forest rather than a hole.
  */
 data class BiomePreference(val biome: ResourceLocation, val weight: Double) {
     /**
-     * Signed, in the same language as a word's tag query (§3.3, "queries may push away as well as pull"):
-     * positive strengthens or introduces, anything at or below zero removes.
-     *
-     * Keeping removal in the same field rather than a separate flag is what makes `except` a *parser*
-     * change later instead of a mechanism change.
+     * Signed, like a word's tag query (§3.3): positive strengthens or introduces, at or below zero
+     * removes. Sharing one field rather than adding a flag is what made `except` a parser change.
      */
     val removes: Boolean get() = weight <= 0.0
 
@@ -55,15 +47,9 @@ data class BiomePreference(val biome: ResourceLocation, val weight: Double) {
         }
 
         /**
-         * [table] with every preference applied.
-         *
-         * Removals are resolved first, so `except` beats a mention of the same biome rather than depending
-         * on which the writer said first — §3.5's rule that word order decides nothing, applied here.
-         *
-         * [keepsOnlyNamed] is `only`: everything the sentence did not name goes, which the table has to decide
-         * because it is the only thing that knows what else was in it. A mention among the survivors still
-         * widens, so `only cherry_grove` is a world of cherry groves and `only cherry_grove desert` is a world
-         * of two places.
+         * [table] with every preference applied. Removals resolve first, so `except` beats a mention of the
+         * same biome whatever order the writer said them in (§3.5). [keepsOnlyNamed] is `only`: everything
+         * unnamed goes, and a mention among the survivors still widens.
          */
         fun applied(
             table: Climate.ParameterList<Holder<Biome>>,
@@ -112,23 +98,18 @@ data class BiomePreference(val biome: ResourceLocation, val weight: Double) {
         }
 
         /**
-         * The entries one strengthened biome earns — which is three different jobs wearing one name.
+         * The entries one strengthened biome earns — three jobs under one name.
          *
-         * - **Already here:** widened copies of its own points. Duplicates would win nothing, since the
-         *   table is searched by nearest neighbour; only a wider box covers more climate, and covering more
-         *   climate is exactly what "more likely" means.
-         * - **Known elsewhere:** its points from whichever preset does have them, so a nether biome lands
-         *   where the overworld climate most resembles the nether. This is what makes cross-dimension
-         *   mixing nearly free.
-         * - **Known nowhere:** a seeded synthetic point. End biomes have no climate at all (the End does
-         *   not use a multi-noise source) and nor do mod biomes placed by wrapping the biome source. They
-         *   land somewhere arbitrary but *stable*, which is impossible geography rather than a bug.
+         * - **Already here:** widened copies of its own points. Duplicates win nothing, the table being
+         *   searched by nearest neighbour; only a wider box covers more climate.
+         * - **Known elsewhere:** its points from whichever preset has them, so a nether biome lands where
+         *   the overworld climate most resembles the nether.
+         * - **Known nowhere:** a seeded synthetic point. End biomes have no climate at all, nor do mod
+         *   biomes placed by wrapping the source; they land somewhere arbitrary but *stable*.
          *
-         * The widening count is **normalised against how much of the table the biome already holds**, which
-         * the access probe showed is not a detail: vanilla's overworld list carries ~60 points for cherry
-         * grove and the nether list carries **one** for crimson forest. A flat multiplier would leave a
-         * summoned nether biome either invisible or swallowing the world, depending on nothing the writer
-         * said.
+         * The widening count is **normalised against how much of the table the biome already holds**:
+         * vanilla's overworld list carries ~60 points for cherry grove and the nether list carries **one**
+         * for crimson forest, so a flat multiplier leaves a summoned biome invisible or world-swallowing.
          */
         private fun entriesFor(
             preference: BiomePreference,
@@ -172,14 +153,12 @@ data class BiomePreference(val biome: ResourceLocation, val weight: Double) {
 
         /**
          * Where to put a biome that has no climate anywhere — End biomes, and mod biomes placed by wrapping
-         * the biome source rather than extending the parameter list.
+         * the source rather than extending the parameter list.
          *
-         * **Anchored on a climate the world actually reaches**, not drawn uniformly at random. The six
-         * parameters are noise, so the values a world visits cluster on a small part of the cube; a uniform
-         * point lands in a region the noise never produces, and the biome then exists in the table and
-         * nowhere in the ground — which is what a census caught for `end_highlands`. Borrowing an existing
-         * entry's coordinates guarantees somewhere reachable, and the seed and the biome's own name pick
-         * *which*, so it is stable for an Age and different between Ages.
+         * **Anchored on a climate the world actually reaches**, never drawn uniformly: the six parameters
+         * are noise, so a world's values cluster on a small part of the cube and a uniform point lands
+         * where the noise never goes — the biome then exists in the table and nowhere in the ground, which
+         * a census caught for `end_highlands`.
          */
         private fun homesFor(
             biome: ResourceLocation,
@@ -219,11 +198,9 @@ data class BiomePreference(val biome: ResourceLocation, val weight: Double) {
         private fun quantized(climateUnits: Double): Long = Climate.quantizeCoord(climateUnits.toFloat())
 
         /**
-         * One climate box grown about its own middle.
-         *
-         * `depth` is left alone: it is the one parameter an Age answers for itself ([ClimateDepth]), and
-         * widening it would let a surface biome claim the rock below or a cave biome surface — which reads
-         * as broken rather than as strange.
+         * One climate box grown about its own middle. `depth` is left alone, being the one parameter an
+         * Age answers for itself ([ClimateDepth]) — widening it would let a surface biome claim the rock
+         * below, or a cave biome surface.
          */
         private fun Climate.ParameterPoint.widenedBy(reach: Double) = Climate.ParameterPoint(
             temperature().widenedBy(reach),
@@ -252,11 +229,8 @@ data class BiomePreference(val biome: ResourceLocation, val weight: Double) {
         private const val BORROWED_HALF_WIDTH = 0.10
 
         /**
-         * How many climate points a biome from elsewhere is given.
-         *
-         * A native biome holds dozens — cherry grove has sixty — so one entry is invisible however wide its
-         * box. This is the number that decides whether a summoned biome is findable at all; a census is the
-         * only honest way to set it.
+         * How many climate points a biome from elsewhere is given. A native biome holds dozens, so one
+         * entry is invisible however wide its box — `/age biomes` is the only honest way to set this.
          */
         private const val HOMES_FOR_A_BORROWED_BIOME = 96
 
@@ -272,9 +246,8 @@ data class BiomePreference(val biome: ResourceLocation, val weight: Double) {
 
         /**
          * Every biome vanilla knows a climate for, across all its presets — overworld *and* nether.
-         *
-         * Registry-free and static, which the access probe confirmed: `knownPresets` builds its lists from
-         * `ResourceKey`s through an identity function, so a check can ask this offline without a server.
+         * Registry-free and static: `knownPresets` builds its lists from `ResourceKey`s through an identity
+         * function, so a check can ask this offline without a server.
          */
         val BIOMES_WITH_A_KNOWN_CLIMATE: Set<ResourceLocation> by lazy {
             MultiNoiseBiomeSourceParameterList.knownPresets().values

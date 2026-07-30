@@ -18,23 +18,18 @@ import kotlin.math.PI
 import kotlin.math.sin
 
 /**
- * The Spire's own sky, and **nothing else's** — a storm-grey overcast dome with a starfield that fades in only
+ * The Spire's own sky, and **nothing else's** — a storm-grey overcast dome whose starfield fades in only
  * once you climb above the upper cloud deck.
  *
- * **Deliberately bespoke, and split out of the general renderer on 2026-07-29** (Jonah, after walking it): this
- * was written for the one handcrafted Age, and its concepts — two cloud decks, stars hidden beneath them —
- * *"should not be part of the assumption for anything else"*. While the two shared a renderer, every generated
- * Age inherited a cloud model it had no say in and a star reveal keyed to a deck height it did not have.
+ * **Deliberately bespoke**, so its coupling to [AgeCloudRenderer] is kept on purpose: the two cloud decks
+ * and the star reveal keyed to them are the handcrafted Age's concepts, and a generated Age cannot express
+ * them. [AgeSkyRenderer] draws whatever an Age's [co.voik.agesandtheart.sky.SkySpec] asks for instead.
  *
- * So this keeps its coupling to [AgeCloudRenderer] on purpose. A generated Age cannot express any of it, which is
- * accepted rather than regretted — *"part of the excitement of an easter egg"*.
+ * **No celestial bodies** — the Spire has never had a sun or a moon. If it ever wants some, the honest way
+ * is to give it a spec like anything else.
  *
- * **No celestial bodies.** The Spire has never had a sun or a moon and gains none here: it is a Tier-B world
- * whose look is its own, where [AgeSkyRenderer] draws whatever an Age's [co.voik.agesandtheart.sky.SkySpec] asks
- * for. If the Spire ever wants suns, the honest way is to give it a spec like anything else.
- *
- * The dome is a subdivided box coloured by *elevation angle* (not cube-`y`), so the gradient is spherical and the
- * cube seams disappear.
+ * The dome is a subdivided box coloured by *elevation angle* rather than cube-`y`, so the gradient is
+ * spherical and the cube seams disappear.
  */
 object SpireSkyRenderer : DimensionRenderingRegistry.SkyRenderer {
     private val ZENITH_COLOR = Rgba(0.13f, 0.16f, 0.16f) // darker overhead

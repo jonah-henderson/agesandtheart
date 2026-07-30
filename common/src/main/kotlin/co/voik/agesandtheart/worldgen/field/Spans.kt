@@ -15,24 +15,16 @@ class Spans private constructor(val ranges: List<IntRange>) {
     fun contains(y: Int): Boolean = ranges.any { y in it }
 
     /**
-     * The top of the rock standing over [y] — the height of the lowest solid interval that reaches [y]
-     * or above. `null` when nothing is solid up there, i.e. [y] is under open sky.
-     *
-     * This is *how buried* a point is, and it is deliberately not [highestSolidY]: for a point in a
-     * cave it answers the roof of the rock above rather than the cave floor, and for a point beside a
-     * spire it answers that column's own low ceiling rather than the distant summit. Ranges are
-     * normalised ascending, so the first one that reaches [y] is the nearest.
+     * The top of the rock standing over [y], or null under open sky — *how buried* a point is, and
+     * deliberately not [highestSolidY]: for a point in a cave it answers the roof above rather than the
+     * cave floor, and beside a spire that column's own low ceiling rather than the distant summit.
      */
     fun roofOver(y: Int): Int? = ranges.firstOrNull { it.last >= y }?.last
 
     /**
-     * This column moved [blocks] up, or down when negative.
-     *
-     * Exact and cheap: translating an interval is adding to both its ends, so nothing is resampled and
-     * the normalised order and gaps survive untouched. That is precisely why an instance's *lift* can
-     * be drawn per copy where its *size* cannot — resizing a built shape at a fractional rate stretches
-     * its one-block staircase into uneven steps, which is why [TerrainField.resized] pre-builds sizes
-     * instead. A lift has no such problem and needs no pre-building.
+     * This column moved [blocks] up, or down when negative. Exact and cheap — translating an interval is
+     * adding to both ends, so nothing is resampled. That is why an instance's *lift* can be drawn per copy
+     * where its *size* cannot, and why [TerrainField.resized] pre-builds sizes instead.
      */
     fun shifted(blocks: Int): Spans =
         if (blocks == 0 || ranges.isEmpty()) this
@@ -63,13 +55,10 @@ class Spans private constructor(val ranges: List<IntRange>) {
     }
 
     /**
-     * Solid where this column is solid but the cuts are not.
-     *
-     * Both sides are normalised ascending, so this is one ordered walk like [intersect] — each side
-     * read once, one list built. It used to re-derive the whole column *per cut range*, allocating a
-     * fresh list each pass and another for every range that survived it, which is invisible while a
-     * cut is one interval and quadratic-ish once it is a cave system with a dozen. That is the shape
-     * a [co.voik.agesandtheart.worldgen.field.Noise3D] cut has, and it made this a hot spot.
+     * Solid where this column is solid but the cuts are not. **One ordered walk**, both sides being
+     * normalised ascending — re-deriving the column per cut range instead is invisible while a cut is one
+     * interval and quadratic once it is a cave system with a dozen, which is the shape a
+     * [co.voik.agesandtheart.worldgen.field.Noise3D] cut has.
      */
     fun subtract(cuts: Spans): Spans {
         if (ranges.isEmpty() || cuts.ranges.isEmpty()) return this
@@ -112,12 +101,12 @@ class Spans private constructor(val ranges: List<IntRange>) {
         fun of(low: Int, high: Int): Spans = if (high < low) EMPTY else Spans(listOf(low..high))
 
         /**
-         * Intervals the caller already knows satisfy the invariant — ascending, disjoint, and separated
-         * by at least one empty level. Skips the sort-and-merge of [normalise], which matters for a field
-         * that walks a column and emits runs as it goes, since such a walk cannot produce anything else.
+         * Intervals the caller already knows are ascending, disjoint and separated by an empty level,
+         * skipping [normalise]'s sort-and-merge — which a field walking a column and emitting runs cannot
+         * violate anyway.
          *
-         * **The caller owns the invariant.** Handing this unsorted or touching ranges corrupts every
-         * later union, intersect and subtract, quietly. Use [normalise] via [of]/[union] when unsure.
+         * **The caller owns the invariant**: unsorted or touching ranges quietly corrupt every later
+         * union, intersect and subtract. Use [of]/[union] when unsure.
          */
         fun ofAscending(ranges: List<IntRange>): Spans = if (ranges.isEmpty()) EMPTY else Spans(ranges)
 

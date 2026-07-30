@@ -29,12 +29,8 @@ import net.minecraft.world.level.biome.Climate
 import net.minecraft.world.level.levelgen.Heightmap
 
 /**
- * The `/age` debug command — the spike's trigger for exercising Age creation and travel. (The
- * player-facing Descriptive/Linking Books are the real interface; commands are the fast way to
- * drive the mechanic.)
- *
- * Brigadier is vanilla, so the whole command tree lives in `common`; each loader only has to hand
- * us its [CommandDispatcher] through its own command-registration event.
+ * The `/age` debug command, until the player-facing books exist. Brigadier is vanilla, so the tree
+ * lives in `common`; each loader hands us its [CommandDispatcher].
  *
  *   /age create <name> [seed]           — author a new Age (Spire preset) and persist it
  *   /age create <preset> <name> [seed]  — the same, from any [AgePreset]: `hills`, `caverns`, …
@@ -74,10 +70,7 @@ object AgeCommand {
     /** What `/age sky`'s preview spec may name, and the prefix its parameters carry. */
     private const val SKY_ASPECT = "sky"
 
-    /**
-     * A terrain to satisfy `AgeComposition.parse`, which refuses a composition without one. Read by nothing —
-     * see [previewSpec].
-     */
+    /** A terrain to satisfy `AgeComposition.parse`, which refuses a composition without one. Read by nothing. */
     private const val PREVIEW_SCAFFOLD = "terrain=hills"
 
     // Brigadier command result codes.
@@ -104,13 +97,11 @@ object AgeCommand {
     }
 
     /**
-     * `/age create [<preset>] <name> [<seed>]` — one branch per [AgePreset], built from the enum rather
-     * than listed by hand, so a new preset is offered here the moment it exists. The bare form (no
-     * preset) stays Spire, as it always has been.
+     * `/age create [<preset>] <name> [<seed>]` — one branch per [AgePreset], built from the enum, so a
+     * new preset is offered the moment it exists. The bare form stays Spire.
      *
-     * The optional seed is what makes `/age compare` worth anything: an Age normally seeds itself from
-     * its own name, so two Ages can never be the same world by accident. Naming the seed is the only
-     * way to write the *same* recipe twice.
+     * The optional seed is what makes `/age compare` worth anything: an Age otherwise seeds itself from
+     * its own name, so naming the seed is the only way to write the same recipe twice.
      */
     private fun createSubcommand(): LiteralArgumentBuilder<CommandSourceStack> {
         val create = Commands.literal("create").then(namedAge(AgePreset.SPIRE))
@@ -132,10 +123,8 @@ object AgeCommand {
     /**
      * `/age compose <name> [<seed>] <spec>`, where the spec runs to the end of the line.
      *
-     * The seed sits *before* the spec because a greedy argument can have nothing after it. Both tails
-     * are offered under the name, and the seeded one is registered first so that `compose age 42 …`
-     * reads the 42 as a seed rather than as the first word of a spec — which no spec could start with,
-     * since every token in one is `aspect=preset`.
+     * The seed sits before the spec because a greedy argument can have nothing after it, and the seeded
+     * tail is registered first so `compose age 42 …` reads the 42 as a seed.
      */
     private fun composeSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("compose").then(
@@ -153,17 +142,10 @@ object AgeCommand {
         )
 
     /**
-     * `/age write <name> [<seed>] <words…>` — the first command that authors an Age the way a *writer*
-     * will, out of words rather than out of aspect names.
+     * `/age write <name> [<seed>] <words…>` — authors an Age out of words rather than aspect names.
      *
-     * Shaped exactly like `compose` (greedy tail, optional seed in front of it) so the two can be diffed
-     * against each other: what this resolves to prints in `compose`'s own spelling, so pasting that into
-     * `/age compose` with the same seed must give the same world. A free harness for the one property
-     * everything downstream leans on.
-     *
-     * No parsing beyond splitting on spaces — grammar is Phase 4. A word nobody knows is refused *here*,
-     * because this is a command and a typo is a mistake; the pen proper must never refuse a sentence
-     * (design §2), since validation would make precision risk-free.
+     * Shaped like `compose` so the two can be diffed: what this resolves to prints in `compose`'s own
+     * spelling, and pasting that back with the same seed must give the same world.
      */
     private fun writeSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("write").then(
@@ -189,15 +171,10 @@ object AgeCommand {
         )
 
     /**
-     * `/age sky <name> [<spec>]` — read an Age's sky, or *preview* a different one in it.
+     * `/age sky <name> [<spec>]` — read an Age's sky, or preview a different one in it.
      *
-     * The instrument that makes orbits tunable. An orbit is a thing you have to see to judge, and
-     * re-authoring an Age to move a sun ten degrees would make that loop useless — so the spec form sends a
-     * sky to everyone standing in the Age and changes nothing about the Age itself. Walk out and back in and
-     * the recipe's own sky returns, which makes the preview self-cancelling.
-     *
-     * The spec is read by [AgeComposition.parse], the same parser `/age compose` uses, so it is written the
-     * same way — `sky=storm sky.suns=three sky.orbits=wild` — and cannot drift out of step with it.
+     * The spec form sends a sky to everyone standing in the Age and changes nothing about the Age, so
+     * walking out and back in reverts it. Read by [AgeComposition.parse], so it is spelled like `compose`.
      */
     private fun skySubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("sky").then(
@@ -269,13 +246,7 @@ object AgeCommand {
     private fun runCreate(context: CommandContext<CommandSourceStack>, preset: AgePreset, seed: Long?): Int =
         write(context, AgeRecipe.worldFor(preset), seed)
 
-    /**
-     * `/age compose <name> [<seed>] <spec>` — writes an Age out of aspects instead of naming a preset.
-     *
-     * The nearest thing to authorship the mod has before books exist: the spec is the same sentence a
-     * writer will eventually write with symbols, spelled `terrain=hills sea=water`. Failing loudly on
-     * a name nobody knows is right *here* and wrong in the pen — see [AgeComposition.Companion.parse].
-     */
+    /** `/age compose <name> [<seed>] <spec>` — writes an Age out of aspects instead of naming a preset. */
     private fun runCompose(context: CommandContext<CommandSourceStack>, seed: Long?): Int {
         val specification = StringArgumentType.getString(context, SPECIFICATION_ARGUMENT)
         val composition = AgeComposition.parse(specification).getOrElse { problem ->
@@ -319,13 +290,8 @@ object AgeCommand {
     }
 
     /**
-     * `/age write <name> [<seed>] <words…>` — a sentence in, an Age out. The first time the mod does the
-     * thing it is *for*.
-     *
-     * Everything interesting happens in [Resolver]; this reads the words, hands them over, and then says
-     * out loud what came back — the composition in `/age compose`'s own spelling, what the sentence cost
-     * in fine inks, and every flaw with its reason. That last part is the design's central promise: a
-     * flawed Age must be **diagnosable**, which is what separates this from arbitrary punishment.
+     * `/age write <name> [<seed>] <words…>` — a sentence in, an Age out. [Resolver] does the work; this
+     * reads the words and reports the composition, the cost, and every flaw with its reason.
      */
     private fun runWrite(context: CommandContext<CommandSourceStack>, seed: Long?): Int {
         val source = context.source
@@ -357,14 +323,8 @@ object AgeCommand {
     }
 
     /**
-     * What the Art made of the book, said out loud before the Age is opened.
-     *
-     * **The mitigation for the grammar having no punctuation** (design §4.3.1). A writer lays out a flat row
-     * of pages and the sections exist only in the parser, so without this the rules are invisible and Phase 4
-     * is being tested blind. Scratch mode does it properly in Phase 5; until then, this is it.
-     *
-     * The fiction makes the honest version legal: a player already knows the concepts and lacks only the
-     * D'ni words for them (§4.5), so telling them what was read is a translation, not hand-holding.
+     * What the Art made of the book, said out loud before the Age is opened — the stand-in for the
+     * grammar having no punctuation (design §4.3.1), until scratch mode does it properly.
      */
     private fun reportParse(source: CommandSourceStack, read: Sentence) {
         for (said in read.constraints) {
@@ -377,8 +337,7 @@ object AgeCommand {
             val joined = said.group?.let { " (joined)" } ?: ""
             source.sendSuccess({ Component.literal("  ${said.word.name} → $aimed$joined") }, false)
         }
-        // Vagueness, never instability: what could not be read makes the Age less determined and is charged
-        // nothing at all (§4.3). Said plainly so a typo is visible rather than merely ineffective.
+        // Vagueness, never instability (§4.3) — but said plainly, so a typo is visible.
         if (read.dropped.isNotEmpty()) {
             source.sendSuccess(
                 { Component.literal("  unread, so the Age comes out vaguer: ${read.dropped.joinToString(" ")}") },
@@ -387,12 +346,7 @@ object AgeCommand {
         }
     }
 
-    /**
-     * `/age words` — the whole vocabulary, since which words exist is otherwise invisible until books do.
-     *
-     * Prints the tier and the aspects each word may fill, because those two are what make a sentence
-     * behave the way it does: a word about the sky cannot pin the ground, and a vague word cannot fail.
-     */
+    /** `/age words` — the whole vocabulary, with each word's tier and the aspects it may fill. */
     private fun runVocabulary(context: CommandContext<CommandSourceStack>): Int {
         val source = context.source
         val vocabulary = Vocabulary.of(source.server)
@@ -401,9 +355,7 @@ object AgeCommand {
             source.sendFailure(Component.literal("The Art knows no words at all — is the mod's data pack loaded?"))
             return FAILURE
         }
-        // Authored words are listed; derived ones are *counted*. There is a word for every block in the
-        // pack, so printing them all is thousands of lines of chat that bury the handful anyone needs to
-        // read — and a derived word needs no explanation anyway, since it names exactly the thing it spells.
+        // Authored words are listed; derived ones are counted, since there is one per block in the pack.
         val authored = vocabulary.words.filter { it.id.namespace == Constants.MOD_ID }
         source.sendSuccess({ Component.literal("The Art knows ${vocabulary.words.size} words.") }, false)
         source.sendSuccess({ Component.literal("${authored.size} written by hand:") }, false)
@@ -420,8 +372,7 @@ object AgeCommand {
                 false,
             )
         }
-        // Counted per namespace, which is the useful cut: it says at a glance whether a mod's content
-        // reached the vocabulary at all, which is the interop promise §8 makes.
+        // Per namespace, which says at a glance whether a mod's content reached the vocabulary (§8).
         val derivedByPack = vocabulary.words.filter { it.id.namespace != Constants.MOD_ID }
             .groupingBy { it.id.namespace }.eachCount().entries.sortedByDescending { it.value }
         if (derivedByPack.isNotEmpty()) {
@@ -436,10 +387,8 @@ object AgeCommand {
     }
 
     /**
-     * Anything wrong with the loaded vocabulary, said before it can cause confusion.
-     *
-     * §3.3's one hard requirement: a word that could not be read must be *reported*, never silently
-     * absent — a corpus quietly missing a word is indistinguishable from a resolver that ignored it.
+     * Anything wrong with the loaded vocabulary. A word that could not be read must be reported, never
+     * silently absent (design §3.3).
      */
     private fun reportProblems(source: CommandSourceStack, vocabulary: Vocabulary) {
         for (problem in vocabulary.problems) {
@@ -448,18 +397,11 @@ object AgeCommand {
     }
 
     /**
-     * Generates the same square of chunks in two Ages and compares them block for block.
+     * Generates the same square of chunks in two Ages and compares them block for block — the instrument
+     * for "an Age is its recipe". Write two with a shared seed and this says whether they agree.
      *
-     * The instrument for the one property everything else assumes: **an Age is its recipe**, so the
-     * same recipe and the same seed must give the same world. Write two Ages with a shared seed
-     * (`/age create hills a 42` and `/age create hills b 42`) and this says whether they agree.
-     *
-     * Both are generated *in one server run*, one after the other, which is what makes it cheap enough
-     * to use while iterating: no baseline save to keep, no second boot, no comparison of saved region
-     * files. It answers for the generator, not for the save format.
-     *
-     * It reads every block rather than sampling, because the differences worth catching are small: a
-     * scatter of ore in one chunk, a tree that moved. Radius stays low by default for the same reason.
+     * Answers for the generator, not the save format: both are generated in one server run. Reads every
+     * block rather than sampling, because the differences worth catching are small.
      */
     private fun runCompare(context: CommandContext<CommandSourceStack>, radius: Int): Int {
         val source = context.source
@@ -479,7 +421,7 @@ object AgeCommand {
         }, false)
 
         // Each world generated whole before the other is touched, so this asks whether the recipe
-        // reproduces — not whether two worlds interleaved on the chunk workers happen to agree.
+        // reproduces rather than whether two interleaved worlds happen to agree.
         val chunks = (-radius..radius).flatMap { chunkX -> (-radius..radius).map { chunkZ -> chunkX to chunkZ } }
         for ((chunkX, chunkZ) in chunks) first.getChunk(chunkX, chunkZ)
         for ((chunkX, chunkZ) in chunks) second.getChunk(chunkX, chunkZ)
@@ -500,10 +442,7 @@ object AgeCommand {
         return SUCCESS
     }
 
-    /**
-     * The Age called [name], opened — or null, having already said why. Every subcommand that takes an
-     * Age by name starts here, so they all fail the same way and in the same words.
-     */
+    /** The Age called [name], opened — or null, having already said why. */
     private fun openNamedAge(source: CommandSourceStack, name: String): ServerLevel? {
         val id = ageId(name)
         if (id !in AgeSavedData.get(source.server).ages) {
@@ -581,12 +520,7 @@ object AgeCommand {
         return SUCCESS
     }
 
-    /**
-     * Prints an Age's sky, and when [preview] is given, shows that one instead.
-     *
-     * Both halves print, because seeing the numbers is most of the value: "three suns" says nothing about why
-     * two of them ended up bunched together, and the tilts do.
-     */
+    /** Prints an Age's sky, and when [preview] is given, shows that one instead. */
     private fun runSkyReport(context: CommandContext<CommandSourceStack>, preview: String?): Int {
         val source = context.source
         val name = StringArgumentType.getString(context, NAME_ARGUMENT)
@@ -611,17 +545,9 @@ object AgeCommand {
     /**
      * The sky a preview spec asks for, or null having said why.
      *
-     * **Reuses `/age compose`'s parser, which needs propping up to do it.** `AgeComposition.parse` refuses a
-     * composition with no terrain — rightly, since an Age needs one — so a sky-only spec like `sky.suns=two` is
-     * rejected out of hand. Discovered by running it rather than by reading it: the first version of this command
-     * was unusable for exactly this reason.
-     *
-     * So a throwaway terrain is prepended and then ignored. The alternative was a second parser for sky options
-     * alone, which would be one more thing to keep in step with `compose`'s spelling for no gain.
-     *
-     * The scaffold is *invisible* to the writer, which makes naming any other aspect a trap: `terrain=pillars`
-     * would be silently overridden and the writer told nothing. So anything that is not the sky is **refused**
-     * rather than dropped — §3.3's rule, applied to a debug command because the argument holds there too.
+     * Reuses `/age compose`'s parser, which refuses a composition with no terrain — so [PREVIEW_SCAFFOLD]
+     * is prepended and ignored. Since that scaffold is invisible, naming any other aspect is refused
+     * rather than silently overridden.
      */
     private fun previewSpec(source: CommandSourceStack, preview: String, seed: Long): SkySpec? {
         val strayAspects = preview.split(' ')
@@ -637,13 +563,9 @@ object AgeCommand {
             )
             return null
         }
-        // **An unknown option value is refused here, where `/age compose` keeps it.** That difference is
-        // deliberate and the two are right for different reasons. A composition is a *save*: it must keep saying
-        // what it said even when this pack no longer understands a word, so `compose` records an unrecognised
-        // option and reports it through `/age list`. A preview is an *instrument*, and an instrument that
-        // silently ignores `orbits=wilde` and shows you the default is worse than one that refuses — you would
-        // stand there wondering why nothing moved. Found by running it: `sky.suns=nonsense` previewed one sun and
-        // said nothing.
+        // An unknown option value is refused here, where `/age compose` keeps it: a composition is a save
+        // and must keep saying what it said, but an instrument that silently ignores `orbits=wilde` and
+        // shows the default is worse than one that refuses.
         val skyParameters = Sky.PLAIN.parameters.associateBy { parameter -> parameter.name }
         val unreadable = preview.split(' ')
             .filter { token -> token.isNotBlank() && token.startsWith("$SKY_ASPECT.") }
@@ -665,8 +587,7 @@ object AgeCommand {
             source.sendFailure(Component.literal(problem.message ?: "Could not read '$preview'"))
             return null
         }
-        // The Age's own seed, so a preview differs from the real sky only where the *words* differ — which is what
-        // makes two previews comparable to each other and to the Age.
+        // The Age's own seed, so a preview differs from the real sky only where the words differ.
         return composition.sky.specFor(composition.optionsFor(Aspect.SKY, 0), seed)
     }
 
@@ -681,9 +602,8 @@ object AgeCommand {
     }
 
     /**
-     * Force-generates the Age's spawn column (the real chunk-gen path, same as travel) and reports
-     * what the generator produced there — a headless sanity check for a generator without needing a
-     * player to travel. Reads the surface height and a few probe blocks (surface, sea, sky).
+     * Force-generates the Age's spawn chunk by the real chunk-gen path and reports what it made — a
+     * headless sanity check needing no player.
      */
     private fun runGenerate(context: CommandContext<CommandSourceStack>): Int {
         val source = context.source
@@ -707,11 +627,9 @@ object AgeCommand {
     }
 
     /**
-     * Times full generation of the `(2·radius+1)²` chunks around the Age's origin — the measurement
-     * behind performance decisions like whether the instancer needs per-chunk memoisation. Centred on
-     * the origin deliberately: that's where a density gradient packs the most instances into a column,
-     * so it's the expensive case. Run it on a **freshly created** Age — chunks already generated come
-     * from the cache and would time nothing.
+     * Times full generation of the `(2·radius+1)²` chunks around the Age's origin — the expensive case,
+     * since a density gradient packs the most instances there. Run it on a freshly created Age: chunks
+     * already generated come from the cache and time nothing.
      */
     private fun runBenchmark(context: CommandContext<CommandSourceStack>, radius: Int): Int {
         val source = context.source
@@ -738,28 +656,11 @@ object AgeCommand {
         BuiltInRegistries.BLOCK.getKey(level.getBlockState(BlockPos(x, y, z)).block).toString()
 
     /**
-     * What an Age's biome source would place over a wide area, asked of the source directly rather than
-     * read back out of generated chunks. A biome source is a pure function of position, so this needs no
-     * terrain at all and costs nothing — which is the only way to survey thousands of columns headlessly.
+     * What share of the surface each biome covers — the instrument for tuning biome weights, where
+     * [surveyBiomes]'s "which biomes exist here" is the wrong question.
      *
-     * Reports the two things that are actually in question: how varied the horizontal mosaic is, and
-     * whether biomes change with **depth** — the latter being entirely down to
-     * [co.voik.agesandtheart.worldgen.biome.ClimateDepth], since vanilla's underground biomes are reached
-     * by the depth parameter or not at all.
-     */
-    /**
-     * What share of the surface each biome actually covers — the instrument for tuning biome weights.
-     *
-     * [surveyBiomes] answers "which biomes exist here", which is the wrong question for weighting: naming
-     * `cherry_grove` is meant to make cherry grove *commoner*, and a set tells you nothing about commoner.
-     * Written after a walk where a named biome's nearest instance sat at the same distance as in an Age that
-     * had never named it — which could equally mean the weighting did a little or did nothing at all, and
-     * guessing between those two would have meant tuning a constant that might not be the problem.
-     *
-     * Samples the **biome source directly** rather than generated chunks, so it costs no chunk generation
-     * and measures the climate table alone — decoration, carvers and structures cannot muddy the answer.
-     * Surface only, since that is where biome weighting is judged; [surveyBiomes] is still the one to ask
-     * about the underground.
+     * Samples the biome source directly rather than generated chunks, so it measures the climate table
+     * alone and costs no generation. Surface only.
      */
     private fun runBiomeCensus(context: CommandContext<CommandSourceStack>, radiusChunks: Int): Int {
         val source = context.source
@@ -785,7 +686,7 @@ object AgeCommand {
                     "${counts.size} distinct",
             )
         }, false)
-        // Commonest first, because the question is nearly always "did the thing I named take more ground".
+        // Commonest first: the question is nearly always "did the thing I named take more ground".
         for ((biome, count) in counts.entries.sortedByDescending { it.value }) {
             val share = PERCENT * count / sampled
             source.sendSuccess({ Component.literal("  ${"%5.2f".format(share)}%  $biome ($count)") }, false)
@@ -793,6 +694,10 @@ object AgeCommand {
         return SUCCESS
     }
 
+    /**
+     * Which biomes an Age's source places over a wide area, and whether they change with depth — the
+     * latter being down to [co.voik.agesandtheart.worldgen.biome.ClimateDepth] alone.
+     */
     private fun surveyBiomes(level: ServerLevel, radiusChunks: Int): List<String> {
         val source = level.chunkSource.generator.biomeSource
         val climate = level.chunkSource.randomState().sampler()
@@ -837,10 +742,7 @@ object AgeCommand {
     /** Every fourth quart cell, i.e. one column per 16 blocks — dense enough to find small biomes. */
     private const val SURVEY_QUART_STRIDE = 4
 
-    /**
-     * How far a census may reach. Larger than the benchmark's cap because this generates nothing — it asks
-     * the biome source directly — so the only cost is arithmetic, and a rare biome needs ground to be rare in.
-     */
+    /** How far a census may reach. Larger than the benchmark's cap because this generates nothing. */
     private const val MAX_CENSUS_RADIUS = 512
 
     private const val PERCENT = 100.0
@@ -850,11 +752,8 @@ object AgeCommand {
     private const val SURVEY_RADIUS_CHUNKS = 64
 
     /**
-     * Every Age and the recipe it is rebuilt from, one to a line — because a composed recipe is a
-     * whole sentence now and no longer fits alongside eleven others on one.
-     *
-     * Options nobody recognises are called out rather than left silent, which is the only way a
-     * misspelt knob is distinguishable from one that simply had no effect.
+     * Every Age and the recipe it is rebuilt from, one to a line. Unrecognised options are called out,
+     * so a misspelt knob is distinguishable from one that had no effect.
      */
     private fun runList(context: CommandContext<CommandSourceStack>): Int {
         val source = context.source

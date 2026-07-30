@@ -12,19 +12,16 @@ import net.minecraft.world.level.Level
 /**
  * What an Age's sky looks like, on its way to the client.
  *
- * **This payload is the whole reason per-Age skies are possible**, and it exists because the obvious route is
- * closed. A `DimensionType` cannot be composed per Age — `DimensionType.STREAM_CODEC` is
- * `ByteBufCodecs.holderRegistry`, which writes registry ids only, so an unregistered one cannot be encoded in the
- * join packet at all (the plan's step 8). Registries freeze at startup and Ages are made at runtime, so no
- * registry can hold this. Plain data on a channel can.
+ * **The whole reason per-Age skies are possible.** `DimensionType.STREAM_CODEC` is
+ * `ByteBufCodecs.holderRegistry` and writes registry ids only, so a per-Age dimension type cannot be
+ * encoded in the join packet at all; registries freeze at startup and Ages are made at runtime, so no
+ * registry can hold one. Plain data on a channel can.
  *
- * **One payload type carries both jobs**, rather than one for "this Age" and one for "everything you know":
- * a list of entries covers a single Age before travel *and* the whole set on join, and a second type would be
- * two codecs to keep in step for no gain.
+ * **One payload type for both jobs** — a list of entries covers a single Age before travel and the whole
+ * set on join, where a second type would be two codecs to keep in step.
  *
- * Clientbound payloads cap at 1 MiB and a sky is a few hundred bytes, so even a player with a hundred Ages fits
- * comfortably. A client without the mod decodes this as vanilla's `DiscardedPayload` and ignores it rather than
- * disconnecting — worth knowing, because it means sending is safe but arrival is not guaranteed.
+ * A client without the mod decodes this as `DiscardedPayload` and ignores it rather than disconnecting, so
+ * sending is safe but arrival is not guaranteed.
  */
 data class SkyPayload(val skies: List<Entry>) : CustomPacketPayload {
 
@@ -43,11 +40,9 @@ data class SkyPayload(val skies: List<Entry>) : CustomPacketPayload {
         )
 
         /**
-         * A dimension key writes as a bare `ResourceLocation`, needing no registry — which matters, since the
-         * whole point is that these Ages are in no registry the client can look up.
-         *
-         * The spec itself rides through [ByteBufCodecs.fromCodec], reusing the DFU codec rather than being
-         * hand-written a second time. It costs an NBT round-trip and buys one definition of the format.
+         * A dimension key writes as a bare `ResourceLocation`, needing no registry — the whole point being
+         * that these Ages are in none the client can look up. The spec rides through
+         * [ByteBufCodecs.fromCodec], costing an NBT round-trip and buying one definition of the format.
          */
         private val ENTRY_STREAM_CODEC: StreamCodec<io.netty.buffer.ByteBuf, Entry> = StreamCodec.composite(
             ResourceKey.streamCodec(Registries.DIMENSION),

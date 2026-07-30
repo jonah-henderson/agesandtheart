@@ -8,22 +8,16 @@ import net.minecraft.core.QuartPos
 import kotlin.system.measureNanoTime
 
 /**
- * Checks that [BelowTerrain] answers a chunk's worth of depth queries for about the cost of the columns
- * it actually needs, rather than recomputing each one for every level it is asked about.
+ * That [BelowTerrain] answers a chunk's depth queries for about the cost of its distinct columns, rather
+ * than recomputing each per level.
  *
- * **This exists because the bug it guards against is invisible.** The cache was first indexed on the low
- * bits of the *block* coordinate, but biomes are sampled per quart cell and the coordinate is multiplied
- * back up before it arrives — so those bits are always zero, every column landed in one aspect, and the
- * cache did nothing at all. Nothing broke; the terrain was identical. It only showed up as a benchmark
- * that refused to move, which is an expensive way to find out and an easy thing to reintroduce.
+ * **The bug it guards against is invisible**: indexed on the low bits of the *block* coordinate the cache
+ * did nothing at all — those bits are always zero, biomes being sampled per quart cell — and the terrain
+ * was identical either way. It showed up only as a benchmark that refused to move.
  *
- * The measurement is a ratio rather than a time, so it means the same thing on any machine: the work a
- * chunk's depth queries cost, over the work its distinct columns cost. One is perfect. Without the cache
- * it is the redundancy factor, which this prints so the saving is legible.
- *
- * **[Isolate] is load-bearing, and is the one thing the port had to add.** Specs otherwise run concurrently
- * across every core, and a ratio between two timings taken while fifteen other specs compete for the same
- * CPU is not a measurement of anything. This spec runs alone.
+ * The measurement is a **ratio** rather than a time, so it means the same on any machine. **[Isolate] is
+ * load-bearing**: a ratio between two timings taken while fifteen other specs compete for the CPU is not a
+ * measurement of anything.
  */
 @Isolate
 class DepthCacheCheck : FunSpec({

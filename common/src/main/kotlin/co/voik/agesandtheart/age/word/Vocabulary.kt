@@ -18,20 +18,14 @@ import net.minecraft.server.packs.resources.ResourceManager
 /**
  * Two tags that mean opposite things — the authored table of them (§3.3).
  *
- * **This is not the contradiction detector.** What actually breaks an Age is an *empty intersection*: two
- * words with no preset satisfying both, which the [Resolver] finds in the tag data itself. `floating` and
- * `flat` are opposites in no dictionary and nobody would think to list them here, yet no terrain is
- * both — so a table-driven detector would silently drop a word the writer wrote. It fails the other way
- * too: were a preset to carry `lush 0.3` and `barren 0.3`, a table would charge for a contradiction the
- * world absorbed without complaint.
- *
- * What the table is for is **explaining** a tension and pricing it when it knows the pair. Gaps in it
- * therefore cost clarity, never correctness — which is what makes it affordable to author by hand.
+ * **Not the contradiction detector.** What breaks an Age is an empty intersection, which [Resolver] finds
+ * in the tag data itself: `floating` and `flat` are opposites in no dictionary, yet no terrain is both.
+ * The table **explains** a tension and prices it where it knows the pair, so gaps in it cost clarity
+ * rather than correctness — which is what makes it affordable to author by hand.
  */
 data class Antonym(val first: String, val second: String, val severity: Int) {
     companion object {
-        // Tension the world absorbed is charged gently by default: "you wrote opposites and got both" is
-        // a remark, not an accusation. A pair that deserves more says so in its own file.
+        // Tension the world absorbed is charged gently: a remark, not an accusation.
         private const val ORDINARY_SEVERITY = 1
 
         val CODEC: Codec<Antonym> = RecordCodecBuilder.create { instance ->
@@ -57,30 +51,21 @@ private data class AntonymPage(val pairs: List<Antonym>) {
 
 /**
  * Everything the Art knows how to say, and everything the world knows how to be: the words, the tags the
- * presets carry, and the antonym table.
- *
- * **Loaded from datapacks** rather than compiled in, which is Jonah's call and the right one for this
- * layer: tag weights are the most taste-driven and most often retuned data in the mod, a pack that adds
- * a terrain will want to tag it, and §8's vocabulary derived from Minecraft's own tags has to arrive at
- * runtime anyway — so authored and derived words meeting in one corpus is the seam that makes that
- * addition small. It sits inside the established "leaf content as data, composition as Kotlin" policy:
- * the resolver is composition and stays Kotlin.
- *
- * Files, all under `data/<namespace>/art/`:
+ * presets carry, and the antonym table. Loaded from datapacks under `data/<namespace>/art/`:
  *
  * | path | holds |
  * |---|---|
  * | `word/<name>.json` | one word — its tier, the aspects it may fill, its tag query |
  * | `preset_tags/<aspect>.json` | the tags every preset in that aspect carries |
  * | `antonyms/<page>.json` | pairs of tags that mean opposite things |
+ * | `grammar/<name>.json` | one structural word, naming a production |
  *
- * One file per word so a pack can add or replace a single one; one file per *aspect* of tags because tag
- * weights are only sensible read side by side, and stacked so a pack can retune a preset without
- * reprinting its neighbours.
+ * One file per word so a pack can replace a single one; one per *aspect* of tags because tag weights are
+ * only sensible read side by side, and stacked so a pack can retune a preset without reprinting its
+ * neighbours.
  *
- * **A word that fails to load is reported, never silently absent** (§3.3's one hard requirement). Any
- * problem found while reading lands in [problems], which `/age words` prints and `VocabularyCheck`
- * fails the build over.
+ * **A word that fails to load is reported, never silently absent** (§3.3). Problems land in [problems],
+ * which `/age words` prints and `VocabularyCheck` fails the build over.
  */
 data class Vocabulary(
     private val byName: Map<String, Word>,
@@ -101,11 +86,8 @@ data class Vocabulary(
     val grammarWords: List<GrammarWord> get() = structural.values.sortedBy { it.name }
 
     /**
-     * The structural word [name] spells, if it is one.
-     *
-     * Asked **before** [word], so a pack that also defines an ordinary word called `and` cannot quietly
-     * make the conjunction unsayable — structure wins, because losing it costs the whole grammar where
-     * losing one content word costs one word.
+     * The structural word [name] spells, if it is one. Asked **before** [word], so a pack defining an
+     * ordinary word called `and` cannot make the conjunction unsayable.
      */
     fun grammarWord(name: String): GrammarWord? = structural[name]
 
@@ -124,36 +106,23 @@ data class Vocabulary(
     val carriedTags: Set<String> get() = tagsBySlot.values.flatMap { it.carried }.toSet()
 
     /**
-     * **The curated pool** — everything a *vague* word may draw from in [aspect] (design §8.2).
+     * **The curated pool** — everything a *vague* word may draw from in [aspect] (§8.2). A closed aspect's
+     * authored presets; for an open one, exactly what `preset_tags/<aspect>.json` has an entry for.
      *
-     * For a closed aspect this is its authored presets, as it always was. For an open one it is exactly what
-     * `preset_tags/<aspect>.json` has an entry for: that file already carried the tags and the readiness, and
-     * it is now also the definition of the pool rather than an annotation on an enum that was.
-     *
-     * **The registry is deliberately not here**, and that is what makes §8.2 structural instead of a check
-     * somebody has to remember. A derived word names one referent and arrives with its carrier already in
-     * hand, so it never asks this question; vagueness draws only from the curated pool because vagueness
-     * has nothing else to draw from. It also bounds the resolver's work by our curation rather than by the
-     * size of the modpack.
-     *
-     * A pack that wants its own block reachable by *vague* words adds it to `preset_tags` with tags of its
-     * own, which promotes it into this pool — the interop story is a file, not a feature.
+     * **The registry is deliberately not here**, which is what makes §8.2 structural rather than a rule to
+     * remember: vagueness draws only from the curated pool because it has nothing else to draw from, and
+     * the resolver's work is bounded by our curation rather than by the size of the modpack.
      */
     fun candidatesFor(aspect: Aspect): List<AspectPreset> {
         if (!aspect.open) return aspect.authored
-        // Sorted, because a draw is made by index and the file's own key order is not a thing anyone
-        // should be able to change a world by editing. A closed aspect gets the same guarantee from its
-        // enum's declaration order.
+        // Sorted, because a draw is made by index and nobody should change a world by reordering a file.
+        // A closed aspect gets the same guarantee from its enum's declaration order.
         return tagsBySlot[aspect]?.described.orEmpty().sorted().mapNotNull(aspect::presetFor)
     }
 
     /**
-     * The presets in [aspect] this word would keep, at its own tier's strictness.
-     *
-     * A word that **names** a preset never searches: it has its answer already, so the curated pool is not
-     * consulted and the registry never is (design §8.2). That is the whole of what keeps derived vocabulary
-     * from costing anything at resolve time — a pack of forty thousand blocks makes this function no slower
-     * than vanilla does.
+     * The presets in [aspect] this word would keep, at its tier's strictness. A word that **names** a
+     * preset never searches, which is what keeps derived vocabulary free at resolve time (§8.2).
      */
     fun carriersOf(word: Word, aspect: Aspect): List<AspectPreset> {
         word.namedPreset(aspect)?.let { return listOf(it) }
@@ -161,12 +130,10 @@ data class Vocabulary(
     }
 
     /**
-     * Whether anything in [aspect] would actually *act* on a parameter called [parameter] — as opposed to
-     * merely declaring it.
-     *
-     * The question "has this word anything to do here at all?" for a word that steers rather than chooses. Both
-     * the resolver and `VocabularyCheck` ask it, because a word may narrow presets in one aspect and only
-     * turn a knob in another, and treating the second as unbacked condemns a sentence that works.
+     * Whether anything in [aspect] would actually *act* on [parameter], as opposed to declaring it — "has
+     * this word anything to do here at all?" for a word that steers rather than chooses. A word may narrow
+     * presets in one aspect and only turn a knob in another, and treating the second as unbacked condemns
+     * a sentence that works.
      */
     fun turnsAKnob(aspect: Aspect, parameter: String): Boolean =
         candidatesFor(aspect).any { it.honoursParameterNamed(parameter) }
@@ -192,34 +159,26 @@ data class Vocabulary(
         private const val JSON_SUFFIX = ".json"
 
         /**
-         * The corpus this server is currently running.
-         *
-         * Read from the resource manager each time rather than cached, deliberately: it happens once when
-         * an Age is written, it is a few dozen small files, and a cache would need invalidating on
-         * `/reload` — mutable state to save nothing measurable. If that ever stops being true, measure it
-         * first (`/age bench` exists because of that rule).
+         * The corpus this server is currently running. Read fresh each time rather than cached: it happens
+         * once when an Age is written, and a cache would need invalidating on `/reload`.
          */
         fun of(server: MinecraftServer): Vocabulary = load(server.resourceManager, server.registryAccess())
 
         /**
          * The corpus in [resources] — the whole of the loading, and usable offline.
          *
-         * Authored and derived words meet here in **one map**, which is the seam that made §8 an addition
-         * rather than a mechanism: a derived word is an ordinary [Word] from a second source, and nothing
-         * downstream can tell them apart or needs to.
-         *
-         * Authored wins every collision. A pack that deliberately writes a word called `water` meant it,
-         * and the derived one is still reachable by its full id — where the reverse would let a block
-         * added by some mod quietly redefine a word of the Art.
+         * Authored and derived words meet in one map, so nothing downstream can tell them apart. Authored
+         * wins every collision, and the derived word stays reachable by its full id — the reverse would
+         * let a block from some mod quietly redefine a word of the Art.
          */
         fun load(resources: ResourceManager, registries: RegistryAccess? = null): Vocabulary {
             val problems = mutableListOf<String>()
             val authored = readWords(resources, problems)
             val tags = readPresetTags(resources, problems)
             val antonyms = readAntonyms(resources, problems)
-            // Blocks come from the built-in registries and so are always available; biomes and structures are
-            // datapack content, so a corpus read without a server has §8's material half and neither
-            // population. Absent rather than wrong, which is what lets `VocabularyCheck` stay offline.
+            // Blocks are built-in and always available; biomes and structures are datapack content, so a
+            // corpus read without a server has §8's material half and neither population. Absent rather
+            // than wrong, which is what lets `VocabularyCheck` stay offline.
             val fromRegistries = registries?.let { DerivedWords.biomes(it) + DerivedWords.structures(it) }.orEmpty()
             val words = derived(DerivedWords.materials() + fromRegistries) + authored
             val structural = readGrammarWords(resources, problems)
@@ -229,15 +188,11 @@ data class Vocabulary(
 
         /**
          * Derived words under the names a writer may say them by: the bare registry path, and always the
-         * full `namespace:path` (design §8.1.1).
+         * full `namespace:path` (§8.1.1).
          *
-         * **A path two packs both ship stops being offered bare**, and neither of them gets it — offering
-         * it to whichever loaded first would make what `creosote` means depend on mod load order, which is
-         * the kind of bug nobody ever finds. The full id still reaches both, so nothing becomes
-         * unreachable; it just has to be said unambiguously, which is exactly what the situation is.
-         *
-         * No problem is reported for a collision. It is not a content bug — two mods are allowed to both
-         * have creosote — and it is not ours to fix.
+         * **A path two packs both ship stops being offered bare**, since giving it to whichever loaded
+         * first would make what `creosote` means depend on mod load order. The full id still reaches both.
+         * Not reported as a problem — two mods are allowed to both have creosote.
          */
         private fun derived(words: List<Word>): Map<String, Word> {
             val ambiguous = words.groupingBy { it.name }.eachCount().filterValues { it > 1 }.keys
@@ -254,8 +209,8 @@ data class Vocabulary(
             for ((file, resource) in resources.listResources(WORD_DIRECTORY) { it.path.endsWith(JSON_SUFFIX) }) {
                 val id = idOf(file, WORD_DIRECTORY)
                 val word = parse(resource, file, Word.mapCodec(id).codec(), problems) ?: continue
-                // Two packs both defining "floating" would otherwise leave which one a writer gets down
-                // to map iteration order, so it is called out as the content collision it is.
+                // Two packs both defining "floating" would otherwise leave the winner to map iteration
+                // order, so it is called out as the content collision it is.
                 val existing = words[word.name]
                 if (existing != null && existing.id != word.id) {
                     problems += "two words are both called '${word.name}': ${existing.id} and ${word.id}"
@@ -286,10 +241,9 @@ data class Vocabulary(
                 for (layer in layers) {
                     val table = parse(layer, file, PresetTags.CODEC, problems) ?: continue
                     for (preset in table.described) {
-                        // An open aspect takes any well-formed registry id, since naming content this pack
-                        // may not have is exactly what it is for — a `preset_tags` entry for a block from
-                        // a mod that is not installed is a pack covering more ground than this instance
-                        // runs, not a mistake. A closed aspect still has to name one of its own.
+                        // An open aspect takes any well-formed id: an entry for a block from a mod that is
+                        // not installed is a pack covering more ground than this instance runs, not a
+                        // mistake. A closed aspect still has to name one of its own.
                         if (aspect.presetFor(preset) == null) {
                             problems += if (aspect.open) {
                                 "$file tags '$preset', which is not a `namespace:path` id"
@@ -338,10 +292,9 @@ data class Vocabulary(
             )
 
         /**
-         * One file through one codec, or null having said why.
-         *
-         * Every failure is collected rather than thrown: one malformed word must not cost a writer the
-         * other twenty-nine, and a corpus that quietly lost a word is the exact failure §3.3 forbids.
+         * One file through one codec, or null having said why. Failures are collected rather than thrown:
+         * one malformed word must not cost a writer the rest, and a corpus that quietly lost a word is
+         * exactly what §3.3 forbids.
          */
         private fun <T> parse(
             resource: Resource,

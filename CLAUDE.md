@@ -8,12 +8,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 that is a bug in one of them, so revise the doc rather than letting the code drift away from it. Read the
 relevant one before working in its area; most of the value is in the *reasoning*, not the conclusions.
 
+**Unbuilt work keeps its full reasoning; finished work is compressed to two lines in `decisions.md`.** When
+something lands, move it — do not leave the narrative of building it behind, and do not let a document
+correct itself in place. Rewrite the paragraph that is now wrong.
+
+- **`notes/the-art-design.md`** — "the Art": the books, the language, aspects and tags, consequences,
+  book editing, the economy. The normative design, and the one document that is not compressed.
+- **`notes/the-art-implementation-plan.md`** — the phases and what each has to prove. Phases 1–4.5 are
+  done and are a status line each; Phase 4's remainder and Phases 5–8 carry their full context.
 - **`notes/terrain-architecture.md`** — the two-tier terrain system (composable field toolkit + bespoke
-  presets), and why each piece is shaped the way it is. Built and shipped.
-- **`notes/the-art-design.md`** — "the Art": the books, the language, slots and tags, consequences,
-  book editing, the economy. Built through Phase 3b (words resolve to a world); the grammar, the items and
-  everything after them are design only.
-- **`notes/the-art-implementation-plan.md`** — the eight phases and what each has to prove.
+  presets): the evaluation contract, where things live, the performance budget. Built and shipped.
+- **`notes/decisions.md`** — the compact ledger of settled decisions and hard-won learnings, one line each
+  for the decision and the reason. Read it before re-proposing anything; several entries exist because an
+  idea was tried and collapsed.
+- **`notes/generator-versions.md`** — what moved at each `CURRENT_GENERATOR_VERSION` bump, and which Ages
+  it moved. Read it when bumping the stamp, and add a row.
+- **`notes/per-age-skies-research.md`** — verified 1.21.1 reference for the sky renderer: the render-state
+  traps and what a per-Age sky cannot change. Read §3 before touching the renderer.
 
 ## What this is
 
@@ -228,6 +239,17 @@ The overriding goal is **readability** — a reader should understand code witho
 
 **Data modeling**
 - `data class` for anything holding data (all-`val` unless mutation is required); `sealed`/`enum` for closed hierarchies (pairs with exhaustive `when`); `object` for stateless singletons and pure-function registries; `@JvmInline value class` for typed ids/units.
+
+**Comments describe the code, and nothing else.** A KDoc says what a thing is and how to use it; the
+reasoning, the history, the alternatives rejected and the dated quotes belong in `notes/` — `decisions.md`
+for a settled call, the design doc or the plan for anything unbuilt. Keep at the code only what would bite
+an editor *at that spot*: an ordering that must not change, a trap already fallen into, a constraint whose
+violation is silent. State it in a clause, not a section, and let `notes/` carry the argument.
+
+Concretely: no `##` headings inside a KDoc, no changelogs, no "this used to be X and Y changed it", no
+dates or attributions. Prefer no KDoc at all where the name already says it — `/** The shape of the
+rock. */` on `TERRAIN` earns nothing. A `(design §3.4)` pointer is worth keeping where the design
+genuinely constrains the code, and worth dropping from ordinary description.
 
 **Scope functions** — by intent, never nested, never chained >2 deep: `apply` (configure & return), `also` (side effect in a chain), `let` (null-guard/transform), `run`/`with` (configure & compute). If a block grows past a few lines, extract a named function.
 

@@ -194,3 +194,11 @@
 # Every Age above with its sentence, composition and instability index on one line each. Anything printed
 # here pastes straight back into `/age compose`.
 /age list
+
+# ── SCARP_THROW is a guess ─────────────────────────────────────────────────────────── OPEN 2026-07-30 ──
+# `Terrain.SCARP_THROW = 32` (a 64-block cliff where two territories throw opposite ways) was never
+# measured — the same standing HIGH_ALTITUDE_LIFT had before it was walked, and that one turned out wrong
+# by about a hundred blocks. `./gradlew :common:preview --args=fault` draws it without booting a server.
+# A scarp needs a divided TERRAIN, which is rare, so write until one turns up or pin the seam:
+/age compose scarp1 7 terrain=hills,pillars terrain.seam=scarp
+/age tp scarp1

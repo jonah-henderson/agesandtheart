@@ -9,21 +9,14 @@ import io.kotest.property.arbitrary.pair
 import io.kotest.property.checkAll
 
 /**
- * Differential check of [Spans] interval algebra against a brute-force per-block reference.
+ * Differential check of [Spans] interval algebra against a brute-force per-block reference. The reference
+ * asks, block by block, the question each operation is *defined* by, so it cannot inherit a bug from what
+ * it is checking.
  *
- * The reference is deliberately not the previous implementation: it asks, block by block, the question
- * the operation is *defined* by, so it cannot inherit a bug from what it is checking.
- *
- * **Now property-based, which is what the port bought.** The old version drew 20,000 pairs from a seeded
- * `Random` and, on a failure, printed whichever tangle of ranges happened to break it. `checkAll` shrinks:
- * it reduces a failing case until removing anything more makes it pass, so what lands in the output is the
- * *smallest* disagreement rather than the first.
- *
- * **The generated value is the recipe, not the [Spans].** Two reasons, both learned here. `Spans` has no
- * `toString`, so a failure reported its argument as `Spans@724c5cbe` and told you nothing; and a value
- * built inside an `arbitrary { }` block carries no shrinker, so the first attempt reported "failed after
- * 1 attempts" and shrank nothing. A list of `(start, length)` pairs prints legibly and is a shape Kotest
- * already knows how to shrink — fewer pieces first, then smaller ones.
+ * **The generated value is the recipe — a list of `(start, length)` pairs — not the [Spans].** `Spans` has
+ * no `toString`, so a failure reported `Spans@724c5cbe` and told you nothing; and a value built inside an
+ * `arbitrary { }` block carries no shrinker, so nothing shrank. Pairs print legibly and are a shape Kotest
+ * knows how to shrink.
  */
 class SpansCheck : FunSpec({
 

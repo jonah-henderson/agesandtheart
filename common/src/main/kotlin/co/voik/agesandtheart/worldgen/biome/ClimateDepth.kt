@@ -8,19 +8,13 @@ import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.util.StringRepresentable
 
 /**
- * How buried a point is — the sixth climate parameter, and the only one of the six that our worlds
- * have to answer for themselves.
+ * How buried a point is — the sixth climate parameter, and the only one our worlds answer for themselves.
+ * The other five are honest functions of horizontal position, so [AgeBiomeSource] borrows vanilla's; depth
+ * is derived from *vanilla's* terrain, which is not the landscape a [TerrainField] made.
  *
- * The other five (temperature, humidity, continentalness, erosion, weirdness) are honest functions of
- * horizontal position, so [AgeBiomeSource] borrows vanilla's outright. Depth is different: vanilla
- * derives it from *vanilla's* terrain, projecting a surface it shaped itself. Our surface comes from a
- * [TerrainField] instead, so borrowing vanilla's depth would measure our columns against a landscape
- * that isn't there.
- *
- * The scale is vanilla's, so vanilla's biome table reads it correctly: `0` at the surface, rising
- * downward, `1.0` about [BLOCKS_PER_UNIT] below it. That is what puts the cave biomes where they
- * belong — vanilla registers surface biomes across depth `0.0`–`1.0`, dripstone and lush caves at
- * `0.2`–`0.9`, and the deep dark at `1.1`.
+ * The scale is vanilla's, so vanilla's table reads it correctly: `0` at the surface, rising downward,
+ * `1.0` about [BLOCKS_PER_UNIT] below. That is what puts the cave biomes where they belong — surface
+ * biomes span `0.0`–`1.0`, dripstone and lush caves `0.2`–`0.9`, the deep dark `1.1`.
  */
 sealed interface ClimateDepth {
 
@@ -46,11 +40,8 @@ sealed interface ClimateDepth {
 }
 
 /**
- * Every column is treated as surface, however deep the rock goes. Vanilla's table then never reaches
- * its cave biomes, so an Age gets its surface biome from top to bottom.
- *
- * This is the right default for an Age whose caves are incidental, and it costs nothing to evaluate.
- * Swap in [BelowTerrain] to open up the underground.
+ * Every column is treated as surface, however deep the rock goes, so vanilla's table never reaches its
+ * cave biomes. The right default where caves are incidental, and free to evaluate.
  */
 data object AtSurface : ClimateDepth {
     override val kind = DepthKind.AT_SURFACE
@@ -58,17 +49,12 @@ data object AtSurface : ClimateDepth {
 }
 
 /**
- * Depth measured against the Age's own rock, via [TerrainField.roofOver][co.voik.agesandtheart.worldgen.field.Spans.roofOver]
- * — so dripstone and lush caves appear where an Age is genuinely deep, and the deep dark only at the
- * very bottom.
+ * Depth measured against the Age's own rock, so dripstone and lush caves appear where an Age is genuinely
+ * deep and the deep dark only at the very bottom. More accurate than vanilla, which estimates its surface
+ * with `preliminarySurfaceLevel` where our spans are exact.
  *
- * [terrain] is normally the same field the generator shapes with, and a preset should pass the one
- * value to both so they cannot drift. It is a separate parameter rather than a reference to the
- * generator's field because the two are not required to agree: an Age could lay its biomes out against
- * the base landmass while spires punch through it, and that is a legitimate thing to want.
- *
- * Note this is *more* accurate than vanilla, which estimates its surface with `preliminarySurfaceLevel`
- * where our spans are exact.
+ * [terrain] is normally the field the generator shapes with, but is a separate parameter because the two
+ * need not agree: an Age could lay its biomes out against the base landmass while spires punch through it.
  */
 data class BelowTerrain(
     val terrain: TerrainField,
@@ -78,18 +64,13 @@ data class BelowTerrain(
     override val kind = DepthKind.BELOW_TERRAIN
 
     /**
-     * One [ColumnCache] per chunk worker. Depth is asked per *quart* cell, so a chunk asks 384 times
-     * about only 16 distinct columns — and vanilla walks them x, then y, then z, so the same column
-     * comes back around every fourth call rather than on the next one.
+     * One [ColumnCache] per chunk worker. Depth is asked per *quart* cell, so a chunk asks 384 times about
+     * 16 distinct columns — free on a heightmap, but on a [co.voik.agesandtheart.worldgen.field.Noise3D]
+     * field a column is a walk of the whole band, and recomputing it two dozen times was most of what an
+     * Age spent (`caverns` measured at 139% of the vanilla budget against `hills` at 101%).
      *
-     * That redundancy cost nothing while this sat on a heightmap, where a column is one noise sample.
-     * On a [co.voik.agesandtheart.worldgen.field.Noise3D] field a column is a walk of the whole band,
-     * and recomputing it two dozen times is most of what the Age spends. Measured: `caverns` at 139%
-     * of the vanilla budget against `hills` at 101%, for terrain that is otherwise cheaper.
-     *
-     * Per-thread rather than shared, because a biome source is used by every chunk worker at once and
-     * this is the toolkit's first piece of mutable state. Keeping it thread-confined means it needs no
-     * synchronisation and can never publish a half-written entry.
+     * **Per-thread rather than shared**: a biome source is used by every chunk worker at once, and
+     * thread-confinement is what lets this need no synchronisation.
      */
     private val columnCache = ThreadLocal.withInitial { ColumnCache() }
 
@@ -101,17 +82,13 @@ data class BelowTerrain(
     }
 
     /**
-     * The columns of one chunk, remembered while its biomes are laid out. Direct-mapped and fixed-size,
-     * so a lookup is an array index and nothing is ever evicted deliberately or allocated per chunk.
+     * The columns of one chunk, remembered while its biomes are laid out. Direct-mapped and fixed-size, so
+     * a lookup is an array index and nothing is allocated per chunk.
      *
-     * **The indexing is exact rather than approximate, but it has to read the right bits.** Biomes are
-     * sampled per quart cell and [AgeBiomeSource] multiplies back up before asking, so the coordinates
-     * arriving here are block coordinates that only ever take *every fourth* value: 0, 4, 8, 12 within
-     * a chunk. Their low two bits are therefore always zero, and indexing on those would drop all
-     * sixteen columns into one aspect and thrash — measured, and worth exactly nothing. Shifting back down
-     * to the quart index first gives four consecutive values per axis, and so sixteen columns in
-     * sixteen aspects with no collisions. Entries from an earlier chunk fail the key check and are
-     * overwritten.
+     * **The indexing must shift down to the quart index first.** Coordinates arriving here are block
+     * coordinates taking only every fourth value — 0, 4, 8, 12 within a chunk — so their low two bits are
+     * always zero, and indexing on those drops all sixteen columns into one slot and thrashes. Shifting
+     * gives four consecutive values per axis and sixteen slots with no collisions.
      */
     private class ColumnCache {
         private val keys = LongArray(SLOTS) { EMPTY_KEY }

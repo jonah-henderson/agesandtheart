@@ -9,12 +9,10 @@ import net.minecraft.world.level.material.FogType
 import net.minecraft.world.phys.Vec3
 
 /**
- * The few things every sky renderer needs, whichever loader is asking and whichever Age it is drawing.
- *
- * Only three qualify, and keeping it to three is the point: a camera-surrounding box, a fade curve, and the
- * question of whether a sky should be drawn at all. Cloud decks, star reveals and celestial bodies all belong to
- * one renderer or another — hoisting any of them here would quietly rebuild the coupling the Spire/general split
- * exists to remove.
+ * The few things every sky renderer needs: a camera-surrounding box, a fade curve, and whether a sky
+ * should be drawn at all. Keeping it to three is the point — cloud decks, star reveals and celestial
+ * bodies belong to one renderer or another, and hoisting any here would rebuild the coupling the
+ * Spire/general split exists to remove.
  */
 object SkyShapes {
 
@@ -52,17 +50,13 @@ object SkyShapes {
     }
 
     /**
-     * The cases vanilla refuses to draw a sky in, restored.
+     * The cases vanilla refuses to draw a sky in, restored. Both loaders' hooks fire *before* vanilla's own
+     * checks and then suppress the rest of the method, so without this a custom sky draws straight through
+     * lava, powder snow, blindness and darkness.
      *
-     * Both loaders' hooks fire *before* vanilla's own checks and then suppress the rest of the method, so without
-     * this a custom sky draws straight through lava, powder snow, blindness and darkness — which ours did until
-     * 2026-07-29.
-     *
-     * **[isFoggy] is the one asymmetry between the loaders, and it points the right way.** Vanilla computes it in
-     * `renderLevel` from `effects().isFoggyAt(...)` and the boss-bar overlay. NeoForge's hook is *handed* it, so it
-     * passes the real value; Fabric's `WorldRenderContext` does not carry it, so Fabric passes `false`. Both halves
-     * are false for an Age today, so nothing is lost yet — but a future Age with real fog will honour it on
-     * NeoForge and cannot on Fabric, and that is a property of Fabric's hook rather than a bug in ours.
+     * **[isFoggy] is the one asymmetry between the loaders**: NeoForge's hook is handed the real value where
+     * Fabric's `WorldRenderContext` does not carry it and passes `false`. Both halves are false for an Age
+     * today, so an Age with real fog will honour it on NeoForge and cannot on Fabric.
      */
     fun isSkyHidden(camera: Camera, isFoggy: Boolean): Boolean {
         if (isFoggy) return true

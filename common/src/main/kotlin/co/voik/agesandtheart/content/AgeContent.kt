@@ -63,9 +63,8 @@ object AgeContent {
     )
 
     /**
-     * Surface-rule kinds. Ours paints each territory with its own dressing's rules, and like the
-     * generator it is persisted with the Age, so the kind has to be nameable — `RuleSource.CODEC`
-     * dispatches over this registry.
+     * Surface-rule kinds. Ours is persisted with the Age like the generator, so the kind has to be
+     * nameable — `RuleSource.CODEC` dispatches over this registry.
      */
     val surfaceRuleCodecs: List<Pair<ResourceLocation, MapCodec<out SurfaceRules.RuleSource>>> = listOf(
         "region".location() to RegionRule.CODEC,

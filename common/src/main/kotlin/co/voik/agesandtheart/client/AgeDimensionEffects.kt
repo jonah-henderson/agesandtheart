@@ -6,21 +6,16 @@ import net.minecraft.world.phys.Vec3
 /**
  * Atmosphere for a **generated** Age: vanilla's, as nearly as this class can say it.
  *
- * **Deliberately unremarkable.** An Age reaches our renderer because it has *suns* vanilla cannot draw, not
- * because it wants different weather or a different haze — so everything here matches `OverworldEffects` and the
- * only departure is `SkyType.NONE`, which stops vanilla drawing a sky underneath the one [AgeSkyRenderer] draws.
+ * **Deliberately unremarkable.** An Age reaches our renderer because it has *suns* vanilla cannot draw,
+ * not because it wants different weather — so everything matches `OverworldEffects` and the only departure
+ * is `SkyType.NONE`, which stops vanilla drawing a sky under [AgeSky]'s.
  *
- * This class used to be the Spire's storm atmosphere, applied to every Age because the two shared one effects
- * marker. That is now `SpireDimensionEffects` under `agesandtheart:spire` (2026-07-29), which stays on the Fabric
- * side because the Spire's sky is Fabric-only.
+ * **In `common` so both loaders register the same atmosphere.** NeoForge subclasses it to add its
+ * `renderSky` override, that hook being an interface NeoForge patches on and so unnameable here; Fabric
+ * uses this directly and hangs its sky off a separate `SkyRenderer`.
  *
- * **In `common` since step 7**, so both loaders register the same atmosphere. NeoForge subclasses it to add its
- * `renderSky` override — that hook is an interface NeoForge patches onto `DimensionSpecialEffects`, so it cannot be
- * named here — while Fabric uses this directly and hangs its sky off a separate `SkyRenderer`.
- *
- * `cloudLevel` is vanilla's 192 rather than `NaN`, and that is the load-bearing line: **NaN would disable clouds
- * entirely.** A generated Age has no cloud renderer of its own registered, so leaving the height real means
- * *vanilla's* clouds draw — which is the right default until clouds become authorable in their own right.
+ * **`cloudLevel` is vanilla's 192 rather than `NaN`**, which would disable clouds entirely. A generated
+ * Age registers no cloud renderer, so a real height means vanilla's clouds draw.
  */
 open class AgeDimensionEffects : DimensionSpecialEffects(
     VANILLA_CLOUD_LEVEL,

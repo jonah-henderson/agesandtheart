@@ -13,13 +13,12 @@ import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.level.levelgen.Heightmap
 
 /**
- * Loader-agnostic lifecycle for Ages. Actual dimension creation is delegated to the platform
- * [co.voik.agesandtheart.platform.services.AgeBackend] (Fantasy on Fabric); this layer owns the
- * "which Ages exist" bookkeeping and the persistence-replay policy.
+ * Loader-agnostic lifecycle for Ages. Dimension creation is delegated to the platform
+ * [co.voik.agesandtheart.platform.services.AgeBackend]; this layer owns the bookkeeping and the
+ * persistence-replay policy.
  *
- * Persistence note: neither backend auto-restores dimensions on restart, so we track Age ids in
- * [AgeSavedData] and re-open them via [reloadSaved], which each loader calls from its own
- * "server started" event.
+ * No backend auto-restores dimensions on restart, so Age ids are tracked in [AgeSavedData] and
+ * re-opened via [reloadSaved] from each loader's "server started" event.
  */
 object Ages {
     fun isSupported(): Boolean = Services.AGE_BACKEND.isSupported
@@ -52,28 +51,22 @@ object Ages {
 
     /**
      * The Age [id], written from [recipe] if it does not exist yet. Null if unsupported or it failed.
-     *
-     * An Age that already exists keeps the recipe it was written from — [recipe] describes what to
-     * write, not what to become. (The older version of this recorded the Age *after* opening it, which
-     * meant a book's Age was always built from the default recipe rather than the one asked for, and
-     * re-entering an existing Age overwrote its recipe with the default.)
+     * An Age that already exists keeps the recipe it was written from — [recipe] says what to write,
+     * not what to become.
      */
     fun ensure(server: MinecraftServer, id: ResourceLocation, recipe: AgeRecipe): ServerLevel? =
         if (id in AgeSavedData.get(server).ages) open(server, id) else create(server, id, recipe)
 
     /**
-     * Puts a player down on solid ground in an Age — the arrival for travel by book as much as for the
-     * debug command, since both come through here.
+     * Puts a player down on solid ground in an Age.
      *
-     * The origin is meant to be somewhere to stand: an Age has to *generate* one, because a
-     * per-dimension spawn point cannot be set afterwards (Fantasy's runtime worlds use
-     * `DerivedLevelData`, whose `setSpawn` does nothing at all). This searches outward anyway, so an Age
-     * whose origin turns out to be open sea or void drops nobody into it.
+     * A per-dimension spawn point cannot be set afterwards (Fantasy's runtime worlds use
+     * `DerivedLevelData`, whose `setSpawn` does nothing), so footing is searched for outward from the
+     * origin instead.
      */
     fun teleport(player: ServerPlayer, level: ServerLevel) {
-        // Before the move, not after, and the ordering is load-bearing rather than tidy: one TCP stream carries
-        // both, so a sky sent first cannot arrive after the dimension change and the client has it before the
-        // first frame. See `Skies.tellAbout`.
+        // Before the move, not after: one TCP stream carries both, so a sky sent first cannot arrive after
+        // the dimension change. See `Skies.tellAbout`.
         Skies.tellAbout(player, level)
         val (landingX, landingZ) = findFooting(level)
         level.getChunk(SectionPos.blockToSectionCoord(landingX), SectionPos.blockToSectionCoord(landingZ))
@@ -82,9 +75,8 @@ object Ages {
     }
 
     /**
-     * The nearest column to the origin standing clear of the sea. Asks the *generator* rather than the
-     * world, so candidates cost an analytic height query each and no chunk is generated until one is
-     * chosen — which is what makes searching a wide area affordable.
+     * The nearest column to the origin standing clear of the sea. Asks the generator rather than the
+     * world, so no chunk is generated until one is chosen — which is what makes a wide search affordable.
      */
     private fun findFooting(level: ServerLevel): Pair<Int, Int> {
         val generator = level.chunkSource.generator
@@ -117,11 +109,7 @@ object Ages {
 
     /**
      * Discards an Age: its dimension and its saved chunks both go. Returns whether it existed and was
-     * removed.
-     *
-     * Anyone standing in it is sent home first — deleting a level out from under a player would strand
-     * them in a dimension that no longer exists. That eviction is policy rather than plumbing, so it
-     * lives here and not in the backend.
+     * removed. Anyone standing in it is [evict]ed first.
      */
     fun delete(server: MinecraftServer, id: ResourceLocation): Boolean {
         val saved = AgeSavedData.get(server)

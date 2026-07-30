@@ -43,13 +43,12 @@ data class Intersect(val fields: List<TerrainField>) : TerrainField {
     override val samplesPerColumn = fields.sumOf { it.samplesPerColumn }
 
     /**
-     * The children in the order it is cheapest to ask them, settled once here rather than per column.
+     * The children in the order it is cheapest to ask them, settled once rather than per column.
      *
-     * Intersection is order-independent as a *result*, but emphatically not as a *cost*: the fold below
-     * stops the moment nothing is left solid, so an analytic bound asked first skips a sampled child
-     * entirely on every column it misses — which, for scattered shapes, is nearly all of them. Sorting
-     * here rather than trusting the author to write them in a good order means the tree cannot be
-     * built wrong, only slowly. [fields] keeps its written order, so what serialises is unchanged.
+     * Intersection is order-independent as a *result* and not as a *cost*: the fold stops the moment
+     * nothing is solid, so an analytic bound asked first skips a sampled child on every column it misses.
+     * Sorted here rather than trusted to the author, so the tree cannot be built wrong, only slowly.
+     * [fields] keeps its written order, so what serialises is unchanged.
      */
     private val cheapestFirst = fields.sortedBy { it.samplesPerColumn }
 
@@ -72,34 +71,19 @@ data class Intersect(val fields: List<TerrainField>) : TerrainField {
 }
 
 /**
- * [child], present or absent for the whole Age with probability [probability] — *"maybe place or maybe omit"*.
+ * [child], present or absent **for the whole Age** with probability [probability]. The draw is resolved
+ * once from the seed at construction, since `columnSpans` is pure and an Age must rebuild identically:
+ * per column would riddle a shape with holes, and per instance already exists as [Density.keepProbability].
  *
- * ## The draw is resolved once, from the seed, and that is the whole design
+ * Two traps:
  *
- * `columnSpans` is a pure function of position and Ages are required to rebuild identically on every open, so
- * "randomly" cannot mean a draw at query time. It means **a deterministic function of a seed**, and the unit it
- * is keyed on is the choice that gives this node its character. Per column would riddle a shape with
- * salt-and-pepper holes; per instance already exists (see the trap below). Per **Age** is what Jonah asked for:
- * `Chance(cone, 0.3)` means three Ages in ten have a central cone, and within any one Age it is uniform.
+ * - **Never use this as an [Instanced] template.** Templates are queried in local coordinates and this
+ *   resolves once, so every copy gets the *same* answer — all present or all absent.
+ * - **Salt the seed per node.** Two nodes handed one seed draw the same number and agree every time,
+ *   which reads as coincidence rather than the bug it is.
  *
- * So the draw happens at construction. Everything downstream — [horizontalReach], [samplesPerColumn],
- * [columnSpans] — then reports on what was actually kept, exactly rather than defensively, because the object is
- * immutable and the answer can never change under it.
- *
- * ## Two traps worth naming
- *
- * **Do not use this as an [Instanced] template.** Templates are queried in local coordinates and this resolves
- * once, so every copy would get the *same* answer — all present or all absent, which is the identical-clones
- * failure `Noise3D`'s documentation describes from the other direction. Per-instance omission is
- * [Density.keepProbability]'s job and has been since instancing landed; per-instance *choice between* shapes is
- * `Instanced`'s own template pick.
- *
- * **Salt the seed per node.** Two nodes handed the same seed draw the same number and so agree every time, which
- * reads as a coincidence rather than the bug it is. Derive them apart the way `Weathering` does for its second
- * noise — `seed * 31 + 17` — or from separate named constants.
- *
- * A single-child [Choose] cannot replace this: its count is drawn *uniformly* over a range, so `0..1` is a coin
- * flip and there is nowhere to put a probability of 0.3.
+ * A single-child [Choose] cannot replace this: its count is drawn uniformly, so `0..1` is a coin flip
+ * with nowhere to put a probability of 0.3.
  */
 data class Chance(val child: TerrainField, val probability: Double, val seed: Long) : TerrainField {
     override val kind = FieldKind.CHANCE
@@ -133,18 +117,14 @@ data class Chance(val child: TerrainField, val probability: Double, val seed: Lo
  * Places between [leastPlaced] and [mostPlaced] of its [alternatives] and skips the rest — *"selects some subset
  * of its children to place and others to skip"*.
  *
- * Drawn once from [seed] at construction, for the reasons set out on [Chance]; both of that class's traps apply
+ * Drawn once from [seed] at construction, for the reasons set out on [Chance]; both of its traps apply
  * here unchanged.
  *
- * ## Why this is a node and not `Union` of [Chance]
+ * **Not `Union` of [Chance]**, because independent draws cannot express a *constraint across the
+ * children* — `leastPlaced = mostPlaced = 2` places exactly two of five, which no per-child probability
+ * can promise.
  *
- * If every child decided independently, `Choose` would be exactly `Union(Chance(a, p), Chance(b, q), …)` and
- * would deserve the fate of the `Invert` idea in `notes/terrain-architecture.md` — proposed, then found to
- * collapse into what already existed. What independent draws cannot express is a **constraint across the
- * children**, and that is what this carries: a count. `leastPlaced = mostPlaced = 2` places exactly two of five,
- * which no per-child probability can promise.
- *
- * One node covers all three spellings Jonah wanted:
+ * One node covers all three spellings:
  *
  * | want | spelling |
  * |---|---|
@@ -152,10 +132,9 @@ data class Chance(val child: TerrainField, val probability: Double, val seed: Lo
  * | one of *n*, weighted | `leastPlaced = mostPlaced = 1`, with [Alternative.weight]s |
  * | somewhere between | `leastPlaced = a`, `mostPlaced = b` |
  *
- * Weights are per alternative rather than a parallel list, so a length mismatch is not expressible; they default
- * to 1.0, which is the plain "any of these, equally likely". A weight of zero means *never*, and if that leaves
- * fewer eligible alternatives than the count asks for, every eligible one is placed and no more — a count is a
- * request, and the alternatives are what there is to satisfy it with.
+ * Weights are per alternative rather than a parallel list, so a length mismatch is not expressible. A
+ * weight of zero means *never*, and where that leaves fewer eligible alternatives than the count asks
+ * for, every eligible one is placed and no more — a count is a request.
  */
 data class Choose(
     val alternatives: List<Alternative>,
@@ -180,9 +159,8 @@ data class Choose(
         chosen.fold(Spans.EMPTY) { accumulated, field -> accumulated.union(field.columnSpans(worldX, worldZ)) }
 
     /**
-     * Carries the alternatives. **The same subset comes back**, because the draw reads only the seed, the count
-     * bounds and the weights — none of which resizing touches. A resized `Choose` is therefore the same choice
-     * at a different size, rather than a fresh roll of the dice at every instanced size.
+     * Carries the alternatives. **The same subset comes back**, since the draw reads only the seed, the
+     * bounds and the weights — so a resized `Choose` is one choice at a different size, not a fresh roll.
      */
     override fun resized(factor: Double, pivotY: Int) = copy(
         alternatives = alternatives.map { it.copy(field = it.field.resized(factor, pivotY)) },
@@ -236,17 +214,14 @@ data class Choose(
 }
 
 /**
- * [base], moved [lift] blocks up the world and otherwise untouched — the one transform the toolkit was missing.
+ * [base], moved [lift] blocks up the world and otherwise untouched.
  *
- * `resized` could already make a shape bigger about a pivot, but nothing could simply *move* one, so a preset's
- * altitude was wherever its constants happened to put it. That became a problem when the Spire archipelago
- * needed to sit higher: its heights are `const val`s that `Weathering.SPIRE` derives its own band from, so
- * changing them in place would have moved the shape for **every** Age using `spire_islands` — including ones
- * whose dimension type has no headroom for it (see [co.voik.agesandtheart.worldgen.VerticalWindow]).
+ * Wrapping rather than editing a preset's own height constants, which `Weathering.SPIRE` derives its band
+ * from: changing them in place would move the shape for **every** Age using that terrain, including ones
+ * whose dimension type has no headroom (see [co.voik.agesandtheart.worldgen.VerticalWindow]).
  *
- * Wrapping instead keeps the preset's tuning exactly where it is and makes the altitude a decision of whoever
- * assembles the world. Note that a wrapped shape must be weathered by an equally raised profile — erosion's
- * keel and band are absolute heights — which is what `Weathered.spire(base, lift)` exists to keep in step.
+ * **A raised shape must be weathered by an equally raised profile**, erosion's keel and band being
+ * absolute heights — which is what `Weathered.spire(base, lift)` keeps in step.
  */
 data class Raised(val base: TerrainField, val lift: Int) : TerrainField {
     override val kind = FieldKind.RAISED
@@ -262,10 +237,8 @@ data class Raised(val base: TerrainField, val lift: Int) : TerrainField {
     }
 
     /**
-     * Scaling reaches the child, and the lift scales with it.
-     *
-     * A lift is a distance in the same space the child's own heights live in, so leaving it alone would move
-     * the shape relative to itself — exactly the drift this class exists to avoid.
+     * Scaling reaches the child, and the lift scales with it: a lift is a distance in the space the
+     * child's own heights live in, so leaving it alone would move the shape relative to itself.
      */
     override fun resized(factor: Double, pivotY: Int) =
         Raised(base.resized(factor, pivotY), (lift * factor).toInt())

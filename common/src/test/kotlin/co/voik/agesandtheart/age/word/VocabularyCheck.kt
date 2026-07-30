@@ -10,21 +10,16 @@ import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
 /**
- * Reads the Art's vocabulary the way a server would and asks whether it is *sound content* —
- * a different question from whether the resolver works, which is [ResolverCheck]'s.
+ * Reads the Art's vocabulary the way a server would and asks whether it is *sound content* — a different
+ * question from whether the resolver works, which is [ResolverCheck]'s.
  *
- * It exists because of one rule (design §3.3): **we only make words we can back up.** A word nothing in
- * the world can satisfy is a content bug rather than a play outcome, and the Phase 3 spike showed what
- * that failure looks like from the outside — "moonless" cost nothing, changed nothing, was reported as
- * nothing, and the player simply got a world their sentence did not describe. Words are datapack data
- * now, so nothing but a check like this stands between a typo in a JSON file and that experience.
+ * It enforces §3.3's rule: **we only make words we can back up.** A word nothing in the world can satisfy
+ * costs nothing, changes nothing and is reported as nothing, so the player gets a world their sentence did
+ * not describe — and words are datapack data, so nothing else stands between a typo and that.
  *
- * Offline: the corpus is plain data read through a resource manager over the module's own
- * `src/main/resources`, which is also a rehearsal of the loading path the game uses. It does need the
- * game's *built-in* registries, since §8's derived vocabulary is read from them — blocks and fluids are
- * registered at class-init rather than loaded from a datapack, so a bootstrap is the whole of what
- * deriving vocabulary needs. Biomes will not be so easy: they are datapack content, and reading them
- * means a server.
+ * Offline over the module's own `src/main/resources`, which also rehearses the game's loading path. It
+ * needs the *built-in* registries because §8's derived vocabulary is read from them; biomes are datapack
+ * content and would need a server.
  */
 @Tags(NEEDS_REGISTRIES)
 class VocabularyCheck : FunSpec({
@@ -46,11 +41,9 @@ class VocabularyCheck : FunSpec({
 
     /**
      * Every word has something in the world that can satisfy it, in every aspect it claims to be about.
-     *
-     * The check this file exists for. Two ways to fail it, and they want telling apart: a word asking for a
-     * tag nothing carries (a misspelt tag, usually), and a word about an aspect whose presets happen not to
-     * carry the tag it asks for at its own tier's strictness (an *exact* word aimed at a weak carrier — the
-     * subtler one, because the tag is real and the aspect is real and the pair of them still cannot meet).
+     * Two ways to fail, told apart: a word asking for a tag nothing carries, and a word about an aspect
+     * whose presets do not carry its tag *at its own tier's strictness* — the subtler one, the tag and the
+     * aspect both being real.
      */
     test("every word is backed by the world") {
         for (word in vocabulary.words) {
@@ -116,11 +109,9 @@ class VocabularyCheck : FunSpec({
     }
 
     /**
-     * Every word that narrows says which aspects it narrows.
-     *
-     * The spike's worst finding, guarded at the content layer where it is now possible to reintroduce by
-     * forgetting a line of JSON: an unscoped precise word gets a say in every aspect its tags happen to touch,
-     * so `stormy` pins the terrain to caverns and throws `floating` away in silence.
+     * Every word that narrows says which aspects it narrows — guarded at the content layer, where a
+     * forgotten line of JSON reintroduces it: an unscoped precise word gets a say in every aspect its tags
+     * touch, so `stormy` pins the terrain to caverns and throws `floating` away in silence.
      */
     test("every narrowing word says what it is about") {
         for (word in vocabulary.words.filter { it.tier.narrows }) {
@@ -140,11 +131,8 @@ class VocabularyCheck : FunSpec({
     }
 
     /**
-     * Every preset can be reached by some word.
-     *
-     * A preset no sentence can ask for is content nobody can use: it will still turn up when the seed draws
-     * an unconstrained aspect, but a writer who wants it has no way to say so. Cheap to fix (a word, or a tag
-     * weight nudged) and invisible without asking.
+     * Every preset can be reached by some word. One no sentence can ask for is content nobody can use — it
+     * still turns up on an unconstrained draw, but a writer who wants it cannot say so.
      */
     test("every preset can be asked for") {
         for (aspect in Aspect.entries) {
@@ -175,15 +163,10 @@ class VocabularyCheck : FunSpec({
     }
 
     /**
-     * Every preset that opted out of being askable is actually **pinned by a recipe**.
-     *
-     * The other half of the exemption above, and the reason that exemption is safe. An omission and an
-     * intention look identical from outside — a preset with no word and no tags could be an easter egg or an
-     * oversight — so `askableInASentence = false` buys an exemption from *one* check and immediately owes this
-     * one.
-     *
-     * A preset that is neither askable nor pinned is reachable by nothing at all: dead content that still
-     * occupies a candidate slot and can still be drawn by an unconstrained aspect.
+     * Every preset that opted out of being askable is actually **pinned by a recipe** — the other half of
+     * the exemption above, and what makes it safe. An omission and an intention look identical from
+     * outside, so `askableInASentence = false` buys an exemption from one check and immediately owes this
+     * one. Neither askable nor pinned is dead content that can still be drawn.
      */
     test("every unaskable preset is pinned by a recipe") {
         val pinned = AgePreset.entries
@@ -223,16 +206,10 @@ class VocabularyCheck : FunSpec({
     }
 
     /**
-     * The promise of §8.2, asserted rather than trusted: **vagueness draws only from the curated pool.**
-     *
-     * It holds structurally — the curated pool is what `preset_tags` names, and a derived word arrives with its
-     * carrier in hand rather than searching — so this check should never fire. That is exactly why it is worth
-     * having: a structural guarantee is one refactor away from becoming a convention, and the failure it would
-     * become is quiet. "A beautiful world" that draws a sea of somebody's radioactive sludge is the promise
-     * broken, and nobody would think to look here for the reason.
-     *
-     * The other half of the promise, that precision *can* reach anything, is the carrier assertion in
-     * "every word is backed by the world" applied to derived words: each has a carrier because it names one.
+     * §8.2's promise, asserted rather than trusted: **vagueness draws only from the curated pool.** It
+     * holds structurally and so should never fire — which is why it is worth having, a structural
+     * guarantee being one refactor from a convention, and the failure being quiet. "A beautiful world"
+     * that draws a sea of somebody's radioactive sludge is the promise broken.
      */
     test("vagueness cannot reach derived content") {
         val curated = Aspect.entries.flatMap { aspect -> vocabulary.candidatesFor(aspect).map { it.key } }.toSet()

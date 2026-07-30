@@ -13,16 +13,12 @@ import java.util.zip.GZIPInputStream
 import java.util.zip.InflaterInputStream
 
 /**
- * Compares the terrain of two saved worlds, Age by Age, block for block.
+ * Compares the terrain of two saved worlds, Age by Age, block for block — the instrument a refactor of
+ * the generation pipeline is checked against.
  *
- * The instrument a refactor of the generation pipeline is checked against: generate a set of Ages,
- * change the code, generate them again from the same starting save, and ask whether *anything* moved.
- * A probe of the spawn column can only ever sample; this reads every chunk both worlds have written.
- *
- * It hashes each section's `block_states` and `biomes` — the terrain and its dressing, and nothing
- * else. Deliberately not the whole chunk: `LastUpdate` and `InhabitedTime` count ticks, so they differ
- * between two runs of the same world for reasons that have nothing to do with generation, and stored
- * lighting depends on how far the light engine had got when the chunk was saved.
+ * Hashes each section's `block_states` and `biomes` and **nothing else**: `LastUpdate` and
+ * `InhabitedTime` count ticks and so differ between two runs for reasons unrelated to generation, and
+ * stored lighting depends on how far the light engine had got when the chunk was saved.
  *
  *     ./gradlew :common:terraindiff --args="<world-a> <world-b>"
  */
@@ -92,12 +88,10 @@ fun main(arguments: Array<String>) {
 }
 
 /**
- * Every Age in a save, by name, pointing at its region folder.
- *
- * Insists on finding some, because the failure this guards against is silent: a mistyped path reads as
- * a world with no Ages, every comparison is then vacuous, and the check passes having compared
- * nothing. (Gradle runs this from the module directory, so a path relative to the repo root is exactly
- * the mistake to expect.)
+ * Every Age in a save, by name, pointing at its region folder. **Insists on finding some**: a mistyped
+ * path reads as a world with no Ages, so every comparison is vacuous and the check passes having compared
+ * nothing. Gradle runs this from the module directory, so a repo-root-relative path is the mistake to
+ * expect.
  */
 private fun agesIn(world: File): Map<String, File> {
     require(world.isDirectory) { "No such world folder: ${world.absolutePath}" }
@@ -125,9 +119,7 @@ private fun terrainOf(regionFolder: File): Map<String, ChunkTerrain> {
 /**
  * Reads a region file's chunks straight out of the container format: a 4 KiB header of 1024 packed
  * `(offset, sectors)` locations, then each chunk as a length, a compression byte and a payload.
- *
- * Hand-rolled because vanilla's own [net.minecraft.world.level.chunk.storage.RegionFile] wants a live
- * storage context to be built, and this is only reading.
+ * Hand-rolled because vanilla's `RegionFile` wants a live storage context, and this is only reading.
  */
 private fun chunksIn(region: File): List<Pair<String, CompoundTag>> {
     val bytes = region.readBytes()

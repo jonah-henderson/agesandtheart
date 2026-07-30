@@ -10,38 +10,21 @@ import kotlin.math.abs
 /**
  * Properties of the two nodes that make a region seam visible — [Fault] and [Rift].
  *
- * **Why these get a check when most shapes do not.** A shape's output is inspectable: you render it and
- * look, which `:common:preview` is for. What these two carry that a picture cannot settle is a *contract
- * with something else* — the seam a [Rift] cuts along has to be the seam the territories actually meet at,
- * and a [Fault] has to displace rock without inventing or losing any. Both are the kind of claim that looks
- * right in a render while being wrong by a constant factor.
+ * **These get a check where most shapes do not**, because they carry a contract with something else rather
+ * than a look: the seam a [Rift] cuts along has to be the seam the territories actually meet at, and a
+ * [Fault] has to displace rock without inventing or losing any. Both look right in a render while being
+ * wrong by a constant factor.
  *
- * The one most worth having is "the distance measure finds the same boundary the map draws". [RegionMap]
- * measures how far a column stands from a seam in *claim* units and converts to blocks by the same
- * proportionate arithmetic `blend` rides on — so a rift asked for sixteen blocks either side could quietly
- * take a quarter of the world, or nothing at all, and a render of one Age would not tell you which. Two
- * independent routes to the same boundary is what settles it: the distance the map reports, against the
- * columns where the winning member actually changes.
- *
- * It also **prints the width a default rift comes out**, because the conversion is proportionate rather
- * than surveyed and that number is the one to tune [Rift.DEFAULT_HALF_WIDTH] against.
- *
- * `CodecCheck` covers the round-trip, for the reason it covers `Choose` and `Chance` — nothing else in the
- * build writes these nodes yet.
+ * It also **prints the width a default rift comes out**, the conversion being proportionate rather than
+ * surveyed, and that is the number to tune [Rift.DEFAULT_HALF_WIDTH] against.
  */
 class FaultCheck : FunSpec({
 
     /**
-     * **The property that retired a defect.** No seam both frays a boundary and displaces it.
-     *
-     * A blended boundary interlocks two shapes column by column; a displacement through that fray throws the
-     * interlocking columns alternately up and down, so the seam comes out as a strip of one-block spikes as
-     * tall as the throw. That was real, it was found by looking at a render, and no assertion caught it.
-     *
-     * Jonah's fix was to stop layering a fault over an independently-drawn transition *width* and make the
-     * softening one of the fault's own **forms** — so the combination is not rare, it is unrepresentable.
-     * This is that claim written down, and it is the reason the fix is a fix rather than a mitigation:
-     * [Seam.FUZZED] is the only form with a width, and it is the only one that builds no node.
+     * **The property that retired a defect.** No seam both frays a boundary and displaces it — a
+     * displacement through a fray throws the interlocking columns alternately up and down, so the seam
+     * comes out as a strip of one-block spikes. Holding here is what makes it unrepresentable rather than
+     * merely rare: [Seam.FUZZED] is the only form with a width, and the only one that builds no node.
      */
     test("no seam both blends and displaces") {
         for (seam in Seam.entries) {
@@ -57,11 +40,9 @@ class FaultCheck : FunSpec({
     }
 
     /**
-     * The forms come out in the proportions Jonah asked for — **rift 40 / scarp 40 / sheared 15 / fuzzed 5**.
-     *
-     * Asserted as a frequency because that is what a weight means. The rare one matters most: a 5% form is
-     * precisely what a bug in a weighted draw hides in, since 5 and 0 and 15 all look like "hardly ever" until
-     * somebody counts.
+     * The forms come out in their declared proportions — **rift 40 / scarp 40 / sheared 15 / fuzzed 5**.
+     * The rare one matters most: a bug in a weighted draw hides in a 5% form, since 5 and 0 and 15 all look
+     * like "hardly ever" until somebody counts.
      */
     test("the forms are drawn in the proportions asked") {
         val counts = Seam.entries.associateWith { 0 }.toMutableMap()
@@ -83,16 +64,10 @@ class FaultCheck : FunSpec({
     }
 
     /**
-     * A dissolve is never wider than [Seam.WIDEST_FUZZ_BLOCKS], **whatever size the territories are**.
-     *
-     * Jonah's constraint, and it is about a person rather than a territory: *"the wide fuzziness can be
-     * absolutely overwhelming to the point of incomprehensibility in game, which isn't fun. No more than 16
-     * blocks of transition."* A proportional width alone cannot promise that — at Large Biomes a fortieth of
-     * a territory is 64 blocks — so the cap is what actually holds the promise, and the cap is what this
-     * checks.
-     *
-     * The proportional half is checked too, at the small end, because a bare `min` would have been the wrong
-     * fix: it would make the fray a *fixed* 16 blocks even where a territory is barely wider than that.
+     * A dissolve is never wider than [Seam.WIDEST_FUZZ_BLOCKS], **whatever size the territories are** — a
+     * proportional width alone cannot promise that, a fortieth of a Large Biomes territory being 64 blocks.
+     * The proportional half is checked at the small end too, since a bare `min` would fix the fray at 16
+     * even where a territory is barely wider.
      */
     test("a dissolve is never wider than a person can stand in") {
         // Default, Large Biomes (x4), and a datapack that shrank them — see `BiomeScale`.
@@ -120,12 +95,9 @@ class FaultCheck : FunSpec({
     }
 
     /**
-     * A scarp's throws alternate, so **adjacent territories always stand at different heights** — and which
-     * parity rises is the seed's business, never the order a sentence named its terrains in.
-     *
-     * The first half is what stops a scarp silently not being one: independent signs per territory would agree
-     * half the time for two territories, giving a fault that displaced the whole world uniformly and showed
-     * nothing. The second is the resolver's own promise (*word order decides nothing*) applied to geology.
+     * A scarp's throws alternate, so **adjacent territories always stand at different heights**, and which
+     * parity rises is the seed's business. Independent signs would agree half the time for two territories,
+     * giving a fault that displaced the whole world uniformly and showed nothing.
      */
     test("a scarp always disagrees across a seam") {
         var evenRose = 0
@@ -150,12 +122,9 @@ class FaultCheck : FunSpec({
     }
 
     /**
-     * The property Phase 4.5 step 9 is accepted against: *must not move — any Age with one territory*, and by
-     * extension any Age that named no fault at all.
-     *
-     * Asserted as **identity of the field tree** rather than as equal output, deliberately. Equal output would
-     * pass with a node that shifts by zero, and that node still costs a territory lookup per column and still
-     * changes what a recipe writes out. The promise is that a fault nobody asked for is not there.
+     * An Age with one territory must not move, nor one that named no fault. Asserted as **identity of the
+     * field tree** rather than equal output: a node shifting by zero would pass on output while still
+     * costing a territory lookup per column and changing what the recipe writes.
      */
     test("an unasked fault leaves the shape alone") {
         val map = twoTerritories()
@@ -196,11 +165,8 @@ class FaultCheck : FunSpec({
     }
 
     /**
-     * A fault *displaces* rock; it never creates or destroys any.
-     *
-     * Worth asserting separately from the exactness above because it is the property a reader would check by
-     * eye and could not: span arithmetic that welded two runs together, or dropped one that landed on a
-     * boundary, would show up here and nowhere else in this file.
+     * A fault *displaces* rock; it never creates or destroys any. Span arithmetic that welded two runs
+     * together, or dropped one landing on a boundary, shows up here and nowhere else in this file.
      */
     test("a scarp neither adds nor loses rock") {
         val faulted = Fault.of(landscape, twoTerritories(), THROWS)
@@ -219,12 +185,9 @@ class FaultCheck : FunSpec({
     }
 
     /**
-     * The height a structure is placed against moves with the scarp.
-     *
-     * `AgeChunkGenerator.getBaseHeight` reads `columnSpans().highestSolidY`, so this follows from the fault
-     * being a field at all — which is the point. It is asserted anyway because it is the reason the fault is a
-     * *shape* rather than a pass over one: a scarp the terrain knew about and structures did not would put
-     * villages in mid-air, and nothing else here would notice.
+     * The height a structure is placed against moves with the scarp — which follows from the fault being a
+     * field, and is the reason it is one: a scarp the terrain knew about and structures did not would put
+     * villages in mid-air.
      */
     test("the height contract follows the throw") {
         val map = twoTerritories()
@@ -239,19 +202,13 @@ class FaultCheck : FunSpec({
     }
 
     /**
-     * **The one that matters.** The distance [RegionMap.blocksFromSeamAt] reports and the boundary
-     * [RegionMap.memberAt] draws must be the same boundary — measured two independent ways.
+     * **The one that matters.** [RegionMap.blocksFromSeamAt]'s distance and [RegionMap.memberAt]'s boundary
+     * must be the same boundary, measured two independent ways. Both directions are asserted, each
+     * catching a different failure: too large a conversion and a rift takes almost nothing, too small and
+     * it takes a quarter of the world while a render still looks plausible.
      *
-     * Both directions are asserted, because each catches a different way of being wrong:
-     * - every column whose neighbour belongs to another territory reports a *small* distance, which fails if
-     *   the conversion out of claim units comes out too large (a rift would then take almost nothing);
-     * - every column reporting a small distance really is beside such a column, which fails if it comes out
-     *   too small (a rift would take a quarter of the world, and a render of one Age would look plausible).
-     *
-     * The tolerances are loose on purpose. The measure is proportionate rather than surveyed — it reads a
-     * claim's margin at the local rate of the tilt table, not of the noise — so it runs a few blocks wide of
-     * the truth. What is checked is that it is right within a few blocks, never to the block. The **printed**
-     * band width is what says how wide a rift actually comes out.
+     * Tolerances are loose on purpose — the measure is proportionate rather than surveyed, so it runs a few
+     * blocks wide of the truth.
      */
     test("the distance measure finds the same boundary the map draws") {
         val map = twoTerritories()
@@ -307,10 +264,8 @@ class FaultCheck : FunSpec({
     }
 
     /**
-     * A rift claims the band along a seam and nothing else, and claims it from its floor upwards.
-     *
-     * Asserted against the map's own distance rather than against a second notion of "near a seam", because a
-     * second notion of it is what this file exists to make unnecessary.
+     * A rift claims the band along a seam and nothing else, from its floor upwards. Asserted against the
+     * map's own distance rather than a second notion of "near a seam".
      */
     test("a rift takes only the band along a seam") {
         val map = twoTerritories()
@@ -332,11 +287,9 @@ class FaultCheck : FunSpec({
     }
 
     /**
-     * A rift cuts down to its floor and stops. Rock below survives, which is what makes the floor a floor.
-     *
-     * This is the property that keeps `deep` from meaning "delete the territory": a band reaching the bottom
-     * of the span arithmetic would leave a hole with no bottom, and every column in it would answer the
-     * world's floor to the height contract.
+     * A rift cuts down to its floor and stops, rock below surviving. What keeps `deep` from meaning "delete
+     * the territory": a band reaching the bottom of the span arithmetic leaves a hole with no bottom, and
+     * every column in it answers the world's floor to the height contract.
      */
     test("a rift leaves everything below its floor") {
         val floorY = 40
@@ -352,12 +305,9 @@ class FaultCheck : FunSpec({
     }
 
     /**
-     * Resizing carries the throw and the band, so a fault in a resized world stays the same fault.
-     *
-     * Neither node is a sensible instancing template — a seam runs right across an Age — so nothing calls this
-     * today. It is asserted because a throw left unscaled would move a territory relative to itself, exactly
-     * the drift `Raised` documents having to avoid, and because the day something does resize a world is not
-     * the day to find that out.
+     * Resizing carries the throw and the band, so a fault in a resized world stays the same fault. Nothing
+     * calls this today, neither node being a sensible instancing template — but a throw left unscaled
+     * would move a territory relative to itself.
      */
     test("resizing carries the throw and the band") {
         val map = twoTerritories()
@@ -376,19 +326,13 @@ class FaultCheck : FunSpec({
 })
 
 /**
- * How wide a default rift actually comes out, measured by walking straight lines across it.
+ * How wide a default rift actually comes out, measured by walking straight lines across it. Reported
+ * rather than asserted: [Rift.DEFAULT_HALF_WIDTH] is a distance in a proportionate measure, so what it
+ * means in blocks is something to read off.
  *
- * Reported rather than asserted, and left inside the boundary test on purpose: it is the same measurement
- * that test makes, read out in blocks. [Rift.DEFAULT_HALF_WIDTH] is a distance in a proportionate measure,
- * so what it means in blocks is something to read off rather than to reason about. `:common:preview
- * --args=rift` is the picture; this is the number. **Measured 2026-07-29: a half-width of 16 comes out a
- * median of 31 blocks across**, so the conversion is very nearly exact and the constant can be read as the
- * distance it says it is.
- *
- * **Read the median and the share, never the widest.** A straight line crossing a seam at a glancing angle
- * runs along inside the band for as far as the seam stays parallel to it, so the longest crossing measures
- * the *walk's* geometry rather than the band's — 280 blocks against a median of 31, on the same data. The
- * share of columns inside the band is the artefact-free number, being an area rather than a chord.
+ * **Read the median and the share, never the widest.** A line crossing a seam at a glancing angle runs
+ * inside the band for as long as the seam stays parallel to it, so the longest crossing measures the
+ * *walk's* geometry rather than the band's. The share of columns inside is artefact-free, being an area.
  */
 private fun reportTheBandWidth(map: RegionMap) {
     val widths = mutableListOf<Int>()

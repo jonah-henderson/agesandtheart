@@ -6,18 +6,11 @@ import com.mojang.serialization.JsonOps
 import io.kotest.core.spec.style.FunSpec
 
 /**
- * Does a sky reproduce, and does a one-sun Age still look like an ordinary world?
+ * Does a sky reproduce, and does a one-sun Age still look like an ordinary world? Offline, because
+ * [SkySpec.drawn] is a pure function — which is why it takes plain integers rather than resolved options.
  *
- * Offline, because [SkySpec.drawn] is a pure function — the whole reason it takes plain integers rather than
- * resolved options is so this needs no vocabulary and no booted game.
- *
- * The properties are the ones a per-Age sky could plausibly break silently. A sky that fails to reproduce would
- * show up as an Age looking different after a restart, which is exactly the class of bug the recipe model exists
- * to prevent and exactly the kind nobody notices for a month.
- *
- * **The port dissolved this file's failure accumulator.** It used to collect every complaint into a list and
- * `error()` at the end, so that one broken property did not hide the other ten. Eleven separate tests give that
- * for free and give it better: each is named, each fails on its own, and the runner reports all of them.
+ * The properties are the ones a per-Age sky could break silently: a sky that fails to reproduce shows up
+ * as an Age looking different after a restart, which nobody notices for a month.
  */
 class SkyCheck : FunSpec({
 
@@ -86,15 +79,13 @@ class SkyCheck : FunSpec({
     }
 
     /**
-     * Spread does what it says: zero puts every body on ONE SHARED PATH, so an Age can ask for three suns
-     * strung along a single arc like beads.
+     * Spread does what it says: zero puts every body on **one shared path**, so an Age can ask for three
+     * suns strung along a single arc like beads.
      *
-     * **This check used to assert only the inclination, and that blind spot shipped a bug.** At spread 0 every
-     * orbit was untilted but each still drew a random ascending node, which rotates the plane about the
-     * vertical — so "shared" gave several distinct great circles that merely happened to contain the zenith.
-     * Jonah spotted it in game; the check had passed. An orbit is a *plane*, and a plane needs both angles.
-     * The period is here for the same reason over a longer timescale: unequal periods drift apart, so bodies
-     * could not hold the formation the word promises.
+     * **All three of inclination, ascending node and period**, because asserting the inclination alone
+     * shipped a bug: a random ascending node rotates an untilted plane about the vertical, so "shared" gave
+     * several distinct great circles that merely contained the zenith. An orbit is a *plane*, and a plane
+     * needs both angles; unequal periods drift apart over a longer timescale.
      */
     test("at spread zero every body shares one path") {
         for (seed in SEEDS) {
@@ -188,11 +179,9 @@ class SkyCheck : FunSpec({
     }
 
     /**
-     * THE ONE THAT DECIDES WHETHER PLAIN AGES REGRESS.
-     *
-     * The Sky aspect's four defaults must draw exactly vanilla's sky, because that is what makes
-     * `Sky.dimensionType` hand an unremarkable Age back to vanilla's own renderer. Reordering any option list
-     * would break it silently and every plain Age would quietly start wearing our sky instead.
+     * **The one that decides whether plain Ages regress.** The Sky aspect's four defaults must draw exactly
+     * vanilla's sky, which is what makes `Sky.dimensionType` hand an unremarkable Age back to vanilla's own
+     * renderer. Reordering any option list breaks it silently.
      */
     test("the sky aspect's defaults draw an ordinary sky") {
         for (sky in Sky.entries) {

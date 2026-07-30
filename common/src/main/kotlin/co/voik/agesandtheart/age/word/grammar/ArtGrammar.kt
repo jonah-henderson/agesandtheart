@@ -15,27 +15,19 @@ import org.antlr.v4.runtime.TokenSource
 import org.antlr.v4.runtime.misc.Pair
 
 /**
- * The one file that knows the parser exists.
+ * The one file that knows the parser exists. **Nothing else in the mod may import `org.antlr`** —
+ * `GrammarCheck` fails the build if anything does. Everything crossing the boundary is ours: [Page] in,
+ * [Sentence] out.
  *
- * **Nothing else in the mod may import `org.antlr`**, and `GrammarCheck` fails the build if
- * anything does — see [Grammar] for why the boundary is drawn here and what it buys. Everything crossing it
- * is ours: [Page] in, [Sentence] out.
- *
- * Two things about driving ANTLR this way are worth knowing:
- *
- * - **No lexing happens.** Our input is a list of pages, each already classified, so a [ListTokenSource]
- *   feeds the parser token types directly and the grammar declares no lexer rules at all. ANTLR is doing
- *   only the job we actually want from it — deciding structure.
- * - **Errors are collected, never thrown.** ANTLR's default behaviour is to print to standard error and
- *   recover; both halves are wrong here. A book that cannot be read must still make an Age (design §2), and
- *   what could not be read has to be *reported* to the writer rather than shouted at a log nobody sees.
+ * **No lexing happens**: the input is a list of already-classified pages, so [PageTokens] feeds the parser
+ * token types directly and the grammar declares no lexer rules. **Errors are collected, never thrown** —
+ * a book that cannot be read must still make an Age (design §2), and what went unread is reported.
  */
 internal object ArtGrammar {
 
     fun parse(pages: List<Page>): Sentence {
-        // A page nobody recognises never reaches the parser: it has no token type to be given, and letting
-        // ANTLR discover that would turn a vague sentence into a syntax error. Dropped here, reported, and
-        // the Age comes out less determined for it — which is exactly what §4.3 asks for.
+        // A page nobody recognises never reaches the parser: it has no token type, and letting ANTLR
+        // discover that would turn a vague sentence into a syntax error (§4.3).
         val unreadable = pages.filter { it.kind == null }
         val readable = pages.filter { it.kind != null }
         if (readable.isEmpty()) return Sentence(emptyList(), unreadable.map { it.written })
@@ -47,23 +39,22 @@ internal object ArtGrammar {
 
         val constraints = Reading(readable).of(parser.sentence())
 
-        // What went unread is worked out from the **outcome**, not from ANTLR's error tokens: a page that
-        // reached the parser and produced no constraint is a page the Art could not use, however the parser
-        // chose to describe that. Asking the error listener instead missed a trailing evocative word with no
-        // subject — it was quietly discarded during recovery and reported nowhere, which is precisely the
-        // silent drop §3.3 forbids. A structural page is exempt: `and` is meant to yield no constraint of
-        // its own, having done its work by joining two that do.
+        // What went unread comes from the **outcome**, not ANTLR's error tokens: a page that reached the
+        // parser and produced no constraint is one the Art could not use. Asking the error listener instead
+        // missed a trailing evocative word with no subject, discarded during recovery and reported nowhere.
         val used = constraints.map { it.word }.toSet()
         val unused = readable.filter { page -> page.kind in SPEAKS_FOR_ITSELF && page.word !in used }
         return Sentence(constraints, (unreadable + unused).map { it.written })
     }
 
-    // Token types come from the **parser**, not from a lexer: the grammar declares them with `tokens {}` and
-    // has no lexer rules at all, so any `ArtLexer` on disk is a leftover. Reading them from there once left
-    // the numbering silently off by one past PRESET, which surfaced as a syntax error on an innocent page.
     /** The classes that owe a constraint. A structural page does its work by joining others. */
     private val SPEAKS_FOR_ITSELF = setOf(PageClass.EVOCATIVE, PageClass.PRESET, PageClass.SETTER)
 
+    /**
+     * Token types come from **`ArtParser`**, never an `ArtLexer`: the grammar declares them with `tokens {}`
+     * and has no lexer rules, so any lexer on disk is a leftover whose numbering runs off by one past
+     * `PRESET` — which surfaces as a syntax error on an innocent page.
+     */
     private fun typeOf(page: Page): Int = when (page.kind) {
         PageClass.EVOCATIVE -> ArtParser.EVOCATIVE
         PageClass.PRESET -> ArtParser.PRESET
@@ -78,15 +69,10 @@ internal object ArtGrammar {
     /**
      * The pages, handed to the parser as tokens.
      *
-     * **A token source of our own rather than `ListTokenSource` over hand-built `CommonToken`s**, and the
-     * difference is not cosmetic: `CommonToken(type, text)` leaves the token's source *null*, and ANTLR
-     * dereferences it while composing a syntax-error message. So that shortcut works perfectly until the
-     * first unreadable book and then throws — on exactly the path where a dropped fragment is supposed to
-     * become vagueness, which is designed behaviour rather than an edge case. A server found it; the offline
-     * check had not, because its unknown page was filtered out before the parser ever saw a problem.
-     *
-     * [inputStream] answers with an empty stream rather than null for the same reason: every error-reporting
-     * path in ANTLR is then walking real objects.
+     * **A token source of our own, never `ListTokenSource` over hand-built `CommonToken`s**:
+     * `CommonToken(type, text)` leaves the token's source null and ANTLR dereferences it while composing a
+     * syntax-error message, so that shortcut throws on the first unreadable book. [inputStream] answers
+     * with an empty stream rather than null for the same reason.
      */
     private class PageTokens(private val pages: List<Page>) : TokenSource {
         private var next = 0
@@ -115,11 +101,9 @@ internal object ArtGrammar {
     private val EMPTY_TEXT: CharStream = CharStreams.fromString("")
 
     /**
-     * Walks the parse tree once, turning sections into [Constraint]s.
-     *
-     * Kept as a class holding [pages] because ANTLR's tokens carry only text and type, and two pages may be
-     * written the same — `blackstone and blackstone` — so the *index* is what identifies which page a token
-     * came from. Matching by text would silently collapse them.
+     * Walks the parse tree once, turning sections into [Constraint]s. Holds [pages] because ANTLR's tokens
+     * carry only text and type, and two pages may be written the same — `blackstone and blackstone` — so
+     * the token *index* is what identifies which page it came from.
      */
     private class Reading(private val pages: List<Page>) {
         private var nextGroup = 0
@@ -129,18 +113,14 @@ internal object ArtGrammar {
 
         private fun constraintsIn(section: ArtParser.SectionContext): List<Constraint> {
             // Null where the section named no subject — a book that only steers, like "blackstone" alone.
-            // Its modifiers then aim at nothing in particular and fall back to the aspects they declare
-            // themselves, which is what an unaimed word has always meant.
             val subject = wordAt(section.subject()?.PRESET()?.symbol)
-            // What the section is about, and therefore what everything in it is aimed at. This is the whole
-            // of "position decides attachment": no word is searched for a home, it simply has the one it
-            // was laid down in.
+            // What everything in the section is aimed at: position decides attachment, so no word is
+            // searched for a home — it has the one it was laid down in.
             val aim = subject?.aspects.orEmpty()
 
             val descriptors = section.descriptor().mapNotNull { descriptor ->
                 val word = wordAt(descriptor.EVOCATIVE().symbol) ?: return@mapNotNull null
-                // Aimed, and still global. An evocative word tilts and never narrows, so narrowing its
-                // scope would be a category error against its own tier (§4.3.1).
+                // Aimed, and still global: an evocative word tilts and never narrows (§4.3.1).
                 Constraint(word, Scope.Everywhere(emphasised = aim))
             }
             val head = subject?.let { listOf(Constraint(it, scopeFor(it, aim))) }.orEmpty()
@@ -172,11 +152,8 @@ internal object ArtGrammar {
     }
 
     /**
-     * Swallows ANTLR's complaints.
-     *
-     * Not the source of what went unread — that is worked out from the outcome, above. This exists only so a
-     * malformed book does not print to standard error: ANTLR's default listener shouts at a log nobody
-     * reads, and a book the Art cannot read is an ordinary event here rather than a fault.
+     * Swallows ANTLR's complaints, so a malformed book does not print to standard error. Not the source of
+     * what went unread — that comes from the outcome, above.
      */
     private object SilentErrorListener : org.antlr.v4.runtime.BaseErrorListener()
 }

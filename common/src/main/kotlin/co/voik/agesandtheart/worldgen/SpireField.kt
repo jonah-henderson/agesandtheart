@@ -23,57 +23,42 @@ import net.minecraft.world.level.levelgen.carver.ConfiguredWorldCarver
 import kotlin.math.roundToInt
 
 /**
- * The Spire archipelago, rebuilt: **blocky masses pared back by erosion** rather than assembled from
- * ellipsoids and cones.
+ * The Spire archipelago: **blocky masses pared back by erosion** rather than assembled from ellipsoids
+ * and cones.
  *
- * Each island is a cluster of overlapping [Ellipsoid] lobes — thick at the middle, thinning to a lumpy,
- * not-quite-circular rim. Four
- * [NoiseHeightmap]s then cut it to a profile: one standing, giving a rolling peaked top; one hanging,
- * giving a ragged underside of downward spikes. Both are clipped to the box's footprint, so an island
- * keeps sheer rectangular flanks where it was cut — character the ellipsoid version could never have.
+ * Each island is a cluster of overlapping [Ellipsoid] lobes, cut to profile by [NoiseHeightmap]s — one
+ * standing for a rolling peaked top, one hanging for a ragged underside — both stretched along the wind
+ * axis so the relief combs into parallel ridges.
  *
- * Both noise fields are stretched along the wind axis, so the relief combs into long parallel ridges
- * rather than isotropic lumps — the streamlined signature of wind-carved rock.
- *
- * The last pass belongs to [co.voik.agesandtheart.worldgen.carver.ErosionCarver], which asks of each
- * block whether the wind there beats the rock's resistance, hollowing the undersides while sparing the
- * caps. That is the part neither noise nor CSG reaches: they cannot undercut.
- *
- * The division of labour is deliberate. The field does the *gross* shape, because `getBaseHeight`
- * answers from the field and decoration would otherwise place in mid-air; the carver only takes a
- * modest fraction back out.
+ * The last pass is [co.voik.agesandtheart.worldgen.field.Weathered], which undercuts, the one thing
+ * neither noise nor CSG reaches. The field does the *gross* shape, because `getBaseHeight` answers from
+ * the field and decoration would otherwise place in mid-air.
  */
 object SpireField {
 
     /**
-     * The archipelago is **two populations, not one** (2026-07-27): a sparse scatter of the big carved
-     * islands above, and a much denser shoal of small noise blobs threaded between them.
+     * The archipelago is **two populations, not one**: a sparse scatter of big carved islands, and a
+     * denser shoal of small noise blobs between them.
      *
-     * They are separate layers rather than two templates in one [Instanced] for two reasons the class
-     * cannot get around: it picks uniformly across `templates × sizes`, so one layer could not make the
-     * small ones commoner than the big ones; and it carries **one** [Variation], so one layer could not
-     * give the small ones the wide vertical freedom that is the whole point of them while keeping the big
-     * ones near their deck. Two layers unioned costs nothing — a [Union] is what an island already is.
+     * Separate layers rather than two templates in one [Instanced], which cannot express it: it picks
+     * uniformly across `templates × sizes`, so the small ones could not be commoner, and it carries one
+     * [Variation], so they could not have wider vertical freedom than the big ones.
      */
     fun world(): TerrainField = Union(listOf(bigIslands(), smallIslands()))
 
     /**
-     * The small islands: simple envelopes cut out of one continuous field of three-dimensional noise.
+     * The small islands: simple envelopes cut out of one continuous field of 3D noise.
      *
-     * **The noise is hoisted above the instancer, and it has to be.** A template is queried in its own
-     * local coordinates, so a [Noise3D] used *as* a template would give every copy the identical form —
-     * `Intersect(Instanced(envelopes), noise)` instead reads world coordinates, so each blob is cut from a
-     * different region of one field: all different, and agreeing with each other wherever two overlap.
-     * [Noise3D]'s own documentation makes the argument; this is the first thing to use it.
+     * **The noise is hoisted above the instancer, and has to be.** A template is queried in its own local
+     * coordinates, so a [Noise3D] used *as* a template gives every copy an identical form;
+     * `Intersect(Instanced(envelopes), noise)` reads world coordinates, so each blob is cut from a
+     * different region of one field and neighbours agree where they overlap.
      *
-     * It is also why this is affordable. [Intersect] asks its cheapest child first and stops the moment
-     * nothing is solid, and an [Ellipsoid] is analytic while the noise costs a sample per block of its
-     * band — so the band is walked only on columns where an envelope already stands, and not at all in
-     * the open sky between them.
+     * It is also what makes this affordable: [Intersect] asks its cheapest child first, so the noise band
+     * is walked only where an envelope already stands.
      */
     private fun smallIslands(): TerrainField {
-        // Three aspects rather than one, because scaling alone only ever makes the same island bigger: a
-        // flat lens, a rounder lump, and a narrow shard that stands taller than it is wide.
+        // Three shapes rather than one, because scaling alone only makes the same island bigger.
         val envelopes = listOf(
             SMALL_HALF_WIDTH to SMALL_RADIUS_Y * LENS_FLATTEN,
             SMALL_HALF_WIDTH * LUMP_SHARE to SMALL_RADIUS_Y,
@@ -93,17 +78,15 @@ object SpireField {
                 Noise3D(
                     seed = BLOB_SEED,
                     firstOctave = -5,
-                    // A third octave the caves do not have: it is the fine one, and fine detail is what
-                    // roughens an edge that would otherwise follow the envelope's arc smoothly.
+                    // The third octave is the fine one, which roughens an edge that would otherwise follow
+                    // the envelope's arc smoothly.
                     amplitudes = listOf(1.0, 0.5, 0.25),
                     scaleX = BLOB_SCALE,
-                    // Squashed, so a blob breaks up into stacked flattish masses rather than vertical
-                    // shafts — these are meant to read as islands, not as columns.
+                    // Squashed, so a blob breaks into stacked flattish masses rather than vertical shafts.
                     scaleY = BLOB_SCALE * BLOB_SQUASH,
                     scaleZ = BLOB_SCALE,
-                    // PLAIN, not BILLOWY: billowy picks out the noise's extremes and most of a normal
-                    // field sits near the middle, so it would leave these as thin scraps. Plain noise
-                    // thresholded a little below zero keeps most of the envelope and takes bites out of it.
+                    // PLAIN, not BILLOWY: billowy picks out the extremes and most of a normal field sits
+                    // near the middle, so it would leave these as thin scraps.
                     character = NoiseCharacter.PLAIN,
                     threshold = BLOB_THRESHOLD,
                     lowY = SMALL_BAND_LOW,
@@ -122,8 +105,7 @@ object SpireField {
             amplitudes = listOf(1.0, 0.6, 0.3),
             scaleX = WIND_STRETCH,
             scaleZ = 1.5,
-            // Reaching much higher than the typical crown, so the rare column the wind spares stands far
-            // above its neighbours instead of level with them.
+            // Higher than the typical crown, so a column the wind spares stands far above its neighbours.
             baseY = DECK_Y + TYPICAL_CROWN,
             relief = PEAK_HEIGHT / 2.0,
             flatY = DECK_Y,
@@ -139,15 +121,9 @@ object SpireField {
             relief = SPIKE_LENGTH / 2.0,
             flatY = DECK_Y,
         )
-        // The envelope the mass is squeezed into: several overlapping lobes rather than one lens.
-        //
-        // A single ellipsoid reads as a circle the moment you see it, and clipping it with the box traded
-        // that for flat faces. Overlapping lobes give an outline that is round in character without being
-        // recognisably round, and they need no new primitive — a union of ellipsoids is exactly the sort of
-        // thing the toolkit is for. Dropping the box removes the flat faces at source.
-        //
-        // Thickness still does the important work: erosion knows nothing of where islands are, so a thick
-        // middle is what lets spires stand and a thinning rim is what keeps the edges low.
+        // The envelope the mass is squeezed into: overlapping lobes rather than one lens, since a single
+        // ellipsoid reads as a circle the moment you see it. Thickness does the important work — erosion
+        // knows nothing of where islands are, so a thick middle is what lets spires stand.
         val envelope = Union(
             LOBES.map { lobe ->
                 Ellipsoid(
@@ -159,13 +135,9 @@ object SpireField {
                 )
             },
         )
-        // Rare, thin, and far taller than the crowns: the *potential* for a standout needle.
-        //
-        // It has to live here rather than in the carver, and that is worth understanding. Erosion judges a
-        // whole column at once, so it can keep a column or remove it but never shorten one — every survivor
-        // stands at whatever height the field gave it. Height variation among spires is therefore the
-        // field's to provide. A fine scale keeps these a few blocks across; the wind then removes almost
-        // all of them, and the handful it spares tower over everything around.
+        // Rare, thin, far taller than the crowns: the *potential* for a standout needle. It belongs to the
+        // field rather than the wind, because erosion judges a whole column at once and so can keep or
+        // remove one but never shorten it — height variation among spires is the field's to provide.
         val talons = NoiseHeightmap(
             seed = TALON_SEED,
             firstOctave = -2,
@@ -187,14 +159,12 @@ object SpireField {
             relief = TALL_REACH / 2.0,
             flatY = DECK_Y,
         )
-        // The connective body. Without it the two noisy surfaces meet wherever they happen to, and an
-        // island can thin to a single block between its top and its underside — fine to look at, useless to
-        // stand on or to build into. A slab through the deck sets a floor under that thickness.
+        // The connective body: without it the two noisy surfaces meet wherever they happen to and an island
+        // can thin to a single block, which is useless to stand on. A slab sets a floor under the thickness.
         val deck = Slab(lowY = DECK_Y - DECK_HALF_THICKNESS, highY = DECK_Y + DECK_HALF_THICKNESS)
 
-        // Extra material heaped over the middle, so the grandest spires are inland rather than scattered
-        // evenly. A cone because the wind, not the shape, is what makes spires — this only raises how much
-        // rock is available to be carved there. Deliberately upward only: the undersides stay as they were.
+        // Extra material heaped over the middle, so the grandest spires are inland. Upward only, so the
+        // undersides are unchanged — this raises how much rock is available to carve, nothing more.
         val rise = Cone(
             baseX = 0,
             baseZ = 0,
@@ -224,17 +194,11 @@ object SpireField {
             carvers,
         )
 
-    // Where an island's body sits. Chosen against the sky rather than the ground: it centres a typical
-    // island in the band between the two cloud decks (see AgeCloudRenderer), so most of the archipelago
-    // lives between them and only the large or low-hung copies cross either one.
-    // **Lowered from 190 on 2026-07-29 to buy a 2:1 split** (Jonah: spires above about two thirds of the
-    // overall height, below one third). Two hard limits box this in and are worth stating, because they are
-    // what decides the number rather than taste:
-    //   - the world ends at **y=320** (`age.json`: `min_y -64`, `height 384`), so nothing may reach past it;
-    //   - the undersides must stop at the **sea, y=63**, or the hanging spires drown.
-    // With `below = DECK_Y - 64` and `above = 2 × below ≤ 318 - DECK_Y`, the deck can sit no higher than 148.
-    // So: below 84, above 168, floor 64, ceiling 316 — the same 252 blocks of island as before, split two to
-    // one instead of evenly.
+    // Where an island's body sits, centring a typical island between the two cloud decks (see
+    // AgeCloudRenderer). Two hard limits decide the number rather than taste: the world ends at y=320, and
+    // the undersides must stop at the sea, y=63, or the hanging spires drown. With `below = DECK_Y - 64`
+    // and `above = 2 × below ≤ 318 - DECK_Y`, the deck can sit no higher than this — giving a 2:1 split of
+    // 168 above and 84 below.
     internal const val DECK_Y = 148
     private const val PEAK_HEIGHT = 148
     private const val TYPICAL_CROWN = 45
@@ -245,15 +209,10 @@ object SpireField {
     private const val TALON_TYPICAL = 21
     // Fine, so a needle is a few blocks across rather than a hill.
     private const val TALON_SCALE = 0.75
-    // **Not half of [PEAK_HEIGHT], and the reason is worth knowing before retuning it.** The two-to-one split
-    // is a fact about the rock that *survives*, and erosion cannot help set it: the rule judges a whole column
-    // at once, so it keeps or removes a spire but never shortens one (see `Weathering`). Every hanging needle
-    // therefore stands at whatever depth the field gave it, and the *floor* is the field's alone.
-    //
-    // So this is set from the measurement rather than from arithmetic: 80 puts [SPIKE_FLOOR] at 68, the envelope
-    // clips the roots there, and `./gradlew :common:preview --args=spire` reports rock standing y=63..302 —
-    // 64% above the deck and 35% below, with the undersides stopping exactly at the sea. Halving [PEAK_HEIGHT]
-    // instead let roots hang to y=57, which is *under* the waterline and drowns them.
+    // **Not half of [PEAK_HEIGHT].** Erosion keeps or removes a whole column but never shortens one, so the
+    // floor is the field's alone and this is measured rather than derived: 80 puts [SPIKE_FLOOR] at 68 and
+    // the undersides stop exactly at the sea. Halving [PEAK_HEIGHT] instead let roots hang to y=57, under
+    // the waterline, and drowned them.
     private const val SPIKE_LENGTH = 80
     internal const val PEAK_CEILING = DECK_Y + PEAK_HEIGHT
     internal const val SPIKE_FLOOR = DECK_Y - SPIKE_LENGTH
@@ -275,24 +234,12 @@ object SpireField {
         Lobe(-12, 50, 0.50),
     )
     /**
-     * How the big islands are laid out.
-     *
-     * **History, because both moves matter and the second reverses a constraint the first invented.**
-     * At the original 330/60/0.75 no second island was visible from the starter one — its near edge stood
-     * 246 blocks off, past a default 12-chunk (192-block) view — so the picture this preset exists for
-     * could not be seen at all without raising render distance. Spacing came down to 250, and jitter with
-     * it, to keep worst-case neighbours from merging: `spacing - 2 * jitter >= 2 * ISLAND_HALF_WIDTH *
-     * maxScale`, which is 210.
-     *
-     * **That constraint is now deliberately abandoned.** The tightened lattice read as *too regular*, and
-     * the reason is that a grid randomises where an island sits but not how many there are, so a rhythm
-     * survives however hard it is jittered. Jitter is therefore pushed most of the way to half the
-     * spacing, and **islands merging into one larger irregular mass is wanted, not prevented** — a union
-     * is what an island is made of anyway, so a merged pair is simply a bigger island.
+     * How the big islands are laid out. Spacing is set so a neighbour is visible from the starter island
+     * at a default 12-chunk view, and **jitter is pushed most of the way to half the spacing, with islands
+     * merging wanted rather than prevented** — a union is what an island is made of anyway.
      *
      * What jitter cannot buy is *clumping*: one per cell still holds, so there are no empty quarters and
-     * no knots of five. `Scatter` exists for that and is the next thing to try here if this still reads
-     * as laid out.
+     * no knots of five. `Scatter` is the next thing to try if this still reads as laid out.
      */
     private const val ISLAND_SPACING = 250.0
     private const val ISLAND_JITTER = 105.0
@@ -321,48 +268,34 @@ object SpireField {
     private const val SHARD_STRETCH = 1.4
 
     /**
-     * Feature size within a blob — and **not in blocks**, which is the trap here and cost a render to
-     * find. The scale divides world coordinates *before* the noise's own octave frequency applies, so
-     * what you get is `2^-firstOctave * scale` blocks a feature: at `firstOctave = -5` that is `32 *
-     * scale`, making this about 22. `ErodedField` erodes a mass of almost exactly this size and lands on
-     * 0.55 for the same reason.
+     * Feature size within a blob, and **not in blocks**: the scale divides world coordinates *before* the
+     * octave frequency applies, so a feature is `2^-firstOctave × scale` blocks — about 22 here. Written
+     * as 26 it gives some 830 blocks, wider than an island, so every blob sees one near-constant value and
+     * is kept or deleted **whole**. Several features must fit across an island for the noise to *shape* it
+     * rather than merely select it, so this is tied to [SMALL_HALF_WIDTH] and must move with it.
      *
-     * Written as 26 (thinking in blocks) it gives a wavelength of some 830 blocks — far wider than an
-     * island — so every blob sees one near-constant value and is kept or deleted **whole**, which reads
-     * as a handful of smooth intact ellipsoids and a lot of missing ones. Several features have to fit
-     * across an island for the noise to shape it rather than merely select it.
-     *
-     * **So this is tied to [SMALL_HALF_WIDTH] and must move with it.** Halving the envelope without
-     * halving this walks straight back into the same failure with fewer features to hide it.
-     *
-     * [BLOB_SQUASH] is below one so vertical detail is *finer* than horizontal: the lumps stratify into
-     * flattish stacked masses rather than standing up as columns.
+     * [BLOB_SQUASH] is below one so vertical detail is finer than horizontal, stratifying the lumps into
+     * flattish stacked masses rather than columns.
      */
     private const val BLOB_SCALE = 0.32
     private const val BLOB_SQUASH = 0.6
 
     /**
-     * How much of the envelope survives — **the dial that decides whether these read as islands or as
-     * ellipsoids**, and the one that was most wrong.
+     * How much of the envelope survives — the dial deciding whether these read as islands or ellipsoids.
+     * A bit under half: higher shatters a blob into floating scraps, lower and the noise goes back to
+     * merely selecting.
      *
-     * `:common:noiseprofile` tabulates fill against threshold, but only for non-negative values, and
-     * plain noise is symmetric about zero: a *negative* threshold `-t` keeps `1 - fill(t)`. So the first
-     * draft's −0.18 was not "a little over half" as written but about **72%** — nearly three-quarters of
-     * each envelope left intact, which is precisely why the ellipsoid outline kept showing through. Read
-     * the table, then remember which side of zero you are on.
-     *
-     * Slightly positive now, for a bit under half. Higher shatters a blob into scraps floating near each
-     * other; lower and the noise stops shaping and goes back to merely selecting.
+     * `:common:noiseprofile` tabulates fill against threshold **for non-negative values only**, and plain
+     * noise is symmetric about zero, so a negative threshold `-t` keeps `1 - fill(t)`. Read the table, then
+     * remember which side of zero you are on.
      */
     private const val BLOB_THRESHOLD = 0.05
 
     /**
-     * How the small islands differ from one another — and the reason they are their own layer.
-     *
-     * Sizes reach far lower than the big islands' 0.8 and lifts range across most of the gap between the
-     * cloud decks (at 145 and 265, with the deck at [DECK_Y] = 190), which is what puts one at eye level
-     * and the next one far above or below it. The big islands cannot have this: they are massive enough
-     * that hanging them anywhere but near their own deck would put them through a cloud layer.
+     * How the small islands differ from one another — and the reason they are their own layer. Sizes reach
+     * far lower than the big islands' and lifts range across most of the gap between the cloud decks,
+     * which puts one at eye level and the next far above or below. The big islands cannot have this: they
+     * are massive enough that hanging them away from their own deck puts them through a cloud layer.
      */
     private val SMALL_VARIATION = Variation(
         yawSteps = 1,
@@ -383,45 +316,36 @@ object SpireField {
     private val SMALL_BAND_HIGH = DECK_Y + SMALL_VARIATION.maxLift + SMALL_BAND_REACH
 
     /**
-     * How islands differ from one another: how big, and how high they hang.
+     * How islands differ from one another: how big, and how high they hang. Both serve one picture — an
+     * archipelago sitting *between* the cloud decks, with the occasional island hung low enough that its
+     * roots trail beneath the lower one.
      *
-     * Both dials exist to serve one picture — from a distance you should see an archipelago sitting
-     * *between* the cloud decks, with the occasional island large enough or hung low enough that its
-     * roots trail out beneath the lower one. That silhouette is the thing worth flying towards, and it
-     * falls out of these two numbers rather than needing a special kind of island.
+     * **Set against the *carved* shape rather than the field's**, which is the trap: erosion trims maybe
+     * thirty blocks off an underside and almost nothing off a crown, so centring the raw field leaves
+     * every island too high. `./gradlew :common:preview --args=spire` renders through the same weathering.
      *
-     * The numbers are set against the *carved* shape rather than the field's, which is the trap here:
-     * erosion trims perhaps thirty blocks off an island's underside and almost nothing off its crown, so
-     * centring the raw field in the band leaves every island floating too high to reach the lower deck.
-     * Measure with `./gradlew :common:preview --args=spire`, which renders through the same weathering
-     * the world does, and tune against what that reports.
-     *
-     * No yaw: an island is a lumpy mass whose outline reads the same turned, so rotating copies would
-     * cost the staircase aliasing [Variation] warns about and buy nothing.
+     * No yaw: a lumpy mass reads the same turned, so rotating copies would only cost the staircase
+     * aliasing [Variation] warns about.
      */
     private val ISLAND_VARIATION = Variation(
         yawSteps = 1,
-        // Wider and finer than a geometric shape would want, and it costs nothing per chunk: a column
-        // samples whichever single size its instance drew, so more sizes are paid for once at
-        // construction and never again. Organic shapes take the extra steps especially well, because
-        // resizing a NoiseHeightmap scales its *wavelength* — so a larger island is a genuinely
-        // different island rather than a magnified one.
+        // More steps than a geometric shape would want, and free per chunk: a column samples whichever
+        // size its instance drew. Organic shapes take them well, since resizing a NoiseHeightmap scales
+        // its *wavelength* — a larger island is a different island rather than a magnified one.
         minScale = 0.8,
         maxScale = 1.25,
         scaleSteps = 8,
         // Copies grow about their own deck, so a bigger island gets taller *and* deeper rather than
-        // sinking — which is what keeps the whole family centred in the band between the decks.
+        // sinking, which keeps the family centred in the band between the decks.
         pivotY = DECK_Y,
-        // Asymmetric on purpose. Erosion hollows undersides and spares caps, so an island's carved
-        // shape reaches far further above its deck than below it; hanging copies *down* is therefore the
-        // only way to get one whose roots trail beneath the lower cloud deck, and that silhouette is the
-        // whole point. Lifting up mostly just risks the world ceiling, so it gets a shorter leash.
+        // Asymmetric on purpose: erosion hollows undersides and spares caps, so hanging copies *down* is
+        // the only way to get roots beneath the lower cloud deck. Lifting up risks the world ceiling.
         minLift = -30,
         maxLift = 15,
         liftSteps = 6,
     )
 
-    // Ridges comb down the X axis, matching the wind direction ErosionCarver works along.
+    // Ridges comb down the X axis, matching the wind direction `Weathering` works along.
     private const val WIND_STRETCH = 6.0
 
     private const val SEA_LEVEL = 63
@@ -431,18 +355,12 @@ object SpireField {
     // is deliberately *not* scaled with the rest of the island.
     private const val DECK_HALF_THICKNESS = 4
 
-    // How much of the island the central heap covers, and how far it lifts the middle.
+    // How much of the island the central heap covers, and how far it lifts the middle. Only 15% narrower
+    // than the envelope's radius, so its flank runs almost the whole way out and the island grades toward
+    // its middle rather than stepping up to it; much narrower reads as a spike planted on a flat lens.
     //
-    // **Both changed on 2026-07-29, and the share is the more interesting one.** At 0.55 the cone was much
-    // narrower than the envelope it sat in, so it read as an *inverted ice-cream cone* — a steep spike planted
-    // on a flat lens, with a visible break where the two met. At 0.85 it is only 15% narrower than the
-    // envelope's radius (Jonah's figure), so its flank runs almost the whole way out and the island grades
-    // gradually toward its middle instead of stepping up to it.
-    //
-    // The rise is doubled. It reaches past [PEAK_CEILING] and the envelope clips it there, which is deliberate
-    // rather than waste: a cone cut by an ellipsoid near the ellipsoid's own top comes back rounded, so the
-    // summit is domed rather than pointed and the wind is left to make the points. Poking through the upper
-    // cloud deck is accepted (Jonah).
+    // The rise reaches past [PEAK_CEILING] and is clipped by the envelope, which is deliberate: a cone cut
+    // near an ellipsoid's own top comes back domed rather than pointed, leaving the wind to make the points.
     private const val CENTRAL_SHARE = 0.85
     private const val CENTRAL_RISE = 200
 

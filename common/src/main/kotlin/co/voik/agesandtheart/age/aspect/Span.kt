@@ -3,18 +3,13 @@ package co.voik.agesandtheart.age.aspect
 /**
  * A stretch of a continuous axis a word will allow — `beautiful` keeping temperature between 0.4 and 0.6.
  *
- * **The one place numbers reach the world model, and design §3.2 permits it** — read that section's opening
- * before assuming otherwise. Its rule is *no numbers exposed to the **player***, not no numbers anywhere in
- * resolution: a span is named by the word that carries it, priced by that word's tier, and gated by whether the
- * player has the page, so everything §3.2 was protecting survives. What it forbids is a knob with no name, no
- * cost and nothing to say. A writer never types one of these.
+ * **Numbers here are permitted.** Design §3.2 forbids numbers exposed to the *player*, not numbers in
+ * resolution: a span is named by the word carrying it, priced by that word's tier, and gated on holding
+ * the page. A writer never types one.
  *
- * **Why a span rather than a named band** (Jonah, 2026-07-29). Climate's axes could have been given ladders of
- * named steps, and that was tried three ways; every version needed a *preset* per combination of axes, which
- * explodes as the axes come back. Putting the numbers on the word instead keeps the vocabulary **linear** — six
- * axes cost six ranges per word — and, more importantly, **makes the word the correlation**: `beautiful` names
- * temperature *and* humidity in one breath, so nothing can draw the two independently and hand somebody a
- * desert.
+ * A span rather than a ladder of named bands because named steps need a preset per combination of axes,
+ * which explodes as axes are added — and because it makes the word the correlation: `beautiful` names
+ * temperature *and* humidity in one breath, so nothing can draw the two independently.
  */
 data class Span(val least: Double, val most: Double) {
     init {
@@ -28,20 +23,15 @@ data class Span(val least: Double, val most: Double) {
     fun overlaps(other: Span): Boolean = least <= other.most && other.least <= most
 
     /**
-     * The smallest span holding both — what several words that do not disagree compose to.
-     *
-     * **The convex hull rather than a set union**, deliberately: a set union of two disjoint spans is two
-     * spans, and an axis that holds two disjoint stretches is a *fracture*, which is the resolver's business
-     * rather than this type's. Where words genuinely disagree they are given ground of their own instead.
+     * The smallest span holding both — what several words that do not disagree compose to. The convex hull
+     * rather than a set union: two disjoint stretches on one axis is a *fracture*, which is the resolver's
+     * business rather than this type's.
      */
     fun broadenedTo(other: Span): Span = Span(minOf(least, other.least), maxOf(most, other.most))
 
     /**
-     * [value] remapped from the axis's natural full range into this span.
-     *
-     * Linear, so the *spatial* structure of the climate noise survives untouched — a warm world still has its
-     * warmer and cooler places, they simply all lie inside the span. That is what makes a single span read as a
-     * coherent climate rather than as a flat one.
+     * [value] remapped from the axis's natural full range into this span. Linear, so the spatial structure
+     * of the climate noise survives — a warm world still has its warmer and cooler places.
      */
     fun remap(value: Float): Float {
         val fraction = ((value - NATURAL_LEAST) / NATURAL_WIDTH).coerceIn(0.0, 1.0)

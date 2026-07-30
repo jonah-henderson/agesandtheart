@@ -16,27 +16,22 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 /**
- * How an [Instanced] field lays its template copies out across the world. The contract is one method:
- * for a queried column, visit every instance origin whose footprint could reach it.
+ * How an [Instanced] field lays its template copies out across the world: for a queried column, visit
+ * every instance origin whose footprint could reach it.
  *
- * [Grid] and [Radial] differ only in *where* the origins fall — a Cartesian lattice or concentric rings —
- * and both place about one per cell. [Scatter] is the one that also varies *how many*, which is what
- * separates a layout that clumps from one that merely looks irregular. All three share a [Density]
- * (see `notes/terrain-architecture.md`).
- *
- * Placement is data (serialised via [CODEC]); instance randomness comes from a [PositionalRandomFactory]
- * (Minecraft's own deterministic per-coordinate RNG — well-mixed and thread-safe) supplied by the
- * caller, so nothing is stored per instance.
+ * [Grid] and [Radial] differ only in *where* origins fall and both place about one per cell; [Scatter]
+ * also varies *how many*, which is what separates a layout that clumps from one that merely looks
+ * irregular. Randomness comes from a caller-supplied [PositionalRandomFactory], so nothing is stored per
+ * instance.
  */
 sealed interface Placement {
 
     val kind: PlacementKind
 
     /**
-     * Invoke [visit] for each surviving instance origin near ([worldX], [worldZ]) — every origin within
-     * [templateReach] (the template's [TerrainField.horizontalReach]) of the column, so no covering
-     * instance is missed. Each visit carries the instance's own deterministic [RandomSource] (from
-     * [random]`.at(cell)`), already advanced past this placement's own draws, for template choice.
+     * Invoke [visit] for each surviving instance origin within [templateReach] of ([worldX], [worldZ]), so
+     * no covering instance is missed. Each visit carries that instance's own deterministic [RandomSource],
+     * already advanced past this placement's draws, for the template choice.
      */
     fun forEachInstanceNear(
         worldX: Int,
@@ -109,14 +104,12 @@ data class Density(val atOrigin: Double, val atEdge: Double, val falloffRadius: 
 
 /**
  * A Cartesian lattice: one candidate instance per lattice point, [spacing] blocks apart, offset by up to
- * [jitter] blocks and kept with probability [density]. `jitter = 0` + `Density.uniform()` is an
- * exactly-regular grid; a radial [density] packs or thins it by distance from the origin.
+ * [jitter] and kept with probability [density].
  *
  * **The lattice is centred on the world origin**, so `(0, 0)` is always a lattice point rather than the
- * corner between four of them. That matters beyond tidiness: arrival in an Age happens at the origin, and
- * a per-dimension spawn point cannot be set after the fact — Fantasy's runtime worlds use
- * `DerivedLevelData`, whose `setSpawn` is an empty method. So an Age that wants somewhere to stand has to
- * put it there during *generation*, and an origin-centred lattice gives that for free.
+ * corner between four. Arrival happens at the origin and a per-dimension spawn point cannot be set after
+ * the fact (Fantasy's worlds use `DerivedLevelData`, whose `setSpawn` does nothing), so an Age that wants
+ * somewhere to stand must put it there during *generation*.
  */
 data class Grid(val spacing: Double, val jitter: Double, val density: Density) : Placement {
     override val kind = PlacementKind.GRID
@@ -244,23 +237,16 @@ data class Radial(
  * inside itself. The cell is bookkeeping — a way to ask a deterministic question about a bounded piece
  * of an unbounded world — not a position anything is placed at.
  *
- * **What this has that a jittered [Grid] cannot.** A grid, however hard it is jittered, still places
- * about one instance per cell: positions look random close up while the *count* stays even, so at a
- * distance the layout keeps a rhythm — which is exactly what reads as "laid out" rather than "scattered".
- * Here the count itself varies over [leastPerCell]`..`[mostPerCell], so with a least of zero you get
- * genuinely empty stretches and knots of several together, and the rhythm goes. That is the whole reason
- * this exists; if you do not want clumping, [Grid] is cheaper and says what it means.
+ * **What a jittered [Grid] cannot do.** However hard it is jittered a grid still places about one
+ * instance per cell, so positions look random close up while the *count* stays even and the layout keeps
+ * a rhythm at a distance. Here the count itself varies, so a least of zero gives genuinely empty
+ * stretches and knots of several together. If you do not want clumping, [Grid] is cheaper.
  *
- * Instances may land on top of one another, and nothing here prevents it. For a [TerrainField] that is
- * a union, so two overlapping copies read as one larger irregular mass — often the point.
+ * **It gives up [Grid]'s origin guarantee**: nothing is promised at `(0, 0)`, so an Age placed only this
+ * way may have nothing to stand on where a player arrives. `Ages.findFooting` copes, but "you arrive on
+ * an island" stops being true by construction.
  *
- * **It gives up the origin guarantee**, which [Grid] documents and some Ages lean on: nothing is
- * promised at `(0, 0)`, so an Age placed only this way may have nothing to stand on where a player
- * arrives. `Ages.findFooting` searches outward and will cope, but "you arrive on an island" stops being
- * true by construction and becomes true by luck.
- *
- * Cost is the scanned cells times how many instances each holds, so [mostPerCell] is a multiplier on
- * every column near anything — keep it small and let [cellSize] do the work.
+ * Cost is scanned cells times instances per cell, so [mostPerCell] multiplies every column near anything.
  */
 data class Scatter(
     val cellSize: Double,

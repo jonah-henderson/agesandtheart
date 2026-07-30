@@ -20,24 +20,15 @@ import net.minecraft.world.level.block.Blocks
  * Weathered rock masses hanging over an ocean — a grid of identical ellipsoids, every one of which
  * comes out a different shape.
  *
- * **This preset exists to demonstrate one structural decision, and its whole point is where the noise
- * sits.** The obvious way to write it is to make each mass a template that is *itself* eroded:
- * `Instanced(Intersect(Ellipsoid, Noise3D))`. That produces a field of identical clones, because
- * [Instanced] queries its templates in local coordinates, so every copy samples the same corner of the
- * noise. Hoisting the noise above the instancer instead — `Intersect(Instanced(Ellipsoid), Noise3D)` —
- * leaves it reading world coordinates, so each mass is cut from a different region of one continuous
- * field. All different, and agreeing with one another where two happen to meet.
+ * **The point is where the noise sits.** `Instanced(Intersect(Ellipsoid, Noise3D))` gives identical
+ * clones, [Instanced] querying its templates in local coordinates so every copy samples the same corner.
+ * Hoisting it — `Intersect(Instanced(Ellipsoid), Noise3D)` — leaves the noise reading world coordinates,
+ * so each mass is cut from a different region and neighbours agree where they meet. It also costs one
+ * evaluation per column however many masses overlap, and the analytic grid is asked first so most
+ * columns never sample noise at all.
  *
- * Three things fall out of that arrangement for nothing. The noise costs one evaluation per column no
- * matter how many masses overlap there, where a templated one would cost one per instance. The
- * `Intersect` is ordered so the analytic grid is asked first (see
- * [co.voik.agesandtheart.worldgen.field.TerrainField.samplesPerColumn]), and since most columns land
- * between the masses, most columns never sample noise at all. And the erosion needs no per-instance
- * state whatsoever, which is what the instancing design ruled out from the start.
- *
- * The noise wavelength is chosen against the mass radius on purpose: too broad and each ellipsoid sits
- * inside a single lobe and survives or vanishes whole, too fine and it dissolves into gravel. Roughly a
- * third of the radius is what carves ribs and hollows out of something still recognisably a mass.
+ * The noise wavelength is chosen against the mass radius: too broad and each ellipsoid sits inside one
+ * lobe and survives or vanishes whole, too fine and it dissolves into gravel.
  */
 object ErodedField {
 

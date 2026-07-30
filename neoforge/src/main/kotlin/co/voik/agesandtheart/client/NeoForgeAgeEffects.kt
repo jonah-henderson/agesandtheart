@@ -5,30 +5,22 @@ import net.minecraft.client.multiplayer.ClientLevel
 import org.joml.Matrix4f
 
 /**
- * NeoForge's hook onto [AgeSky], which on this loader is a method on the atmosphere rather than a separate renderer.
+ * NeoForge's hook onto [AgeSky], which here is a method on the atmosphere rather than a separate renderer:
+ * NeoForge has no per-dimension render hook at all, calling `renderSky` on the `DimensionSpecialEffects`
+ * registered for the dimension type's `effects` id. That is why the design is *one* renderer dispatching
+ * on `level.dimension()` — it is the only shape that ports.
  *
- * Where Fabric keys a `SkyRenderer` on `ResourceKey<Level>`, NeoForge has no per-dimension render hook at all — it
- * calls `renderSky` on the `DimensionSpecialEffects` registered for the dimension type's `effects` id. That is why
- * the design settled on *one* renderer dispatching on `level.dimension()`: it is the only shape that ports, and
- * [AgeSky] reads the Age's spec from `KnownSkies` per frame rather than being bound to a dimension.
- *
- * **Two asymmetries against Fabric, both load-bearing.**
- *
- * NeoForge calls this **before** `setupFog.run()`, where Fabric injects *after* it — so this must run the fog
- * itself or an Age gets whatever fog the previous pass left. Fabric's adapter must *not*.
- *
- * And NeoForge is handed **`isFoggy`**, which Fabric's `WorldRenderContext` does not carry. So the fifth suppression
- * case in `SkyShapes.isSkyHidden` — vanilla's "do not draw a sky in a fog volume" — is honoured here and cannot be
- * on Fabric. That is a property of Fabric's hook, not a defect in ours.
+ * **Two asymmetries against Fabric, both load-bearing.** NeoForge calls this **before** `setupFog.run()`
+ * where Fabric injects after, so this must run the fog itself and Fabric's adapter must not. And NeoForge
+ * is handed **`isFoggy`**, so `SkyShapes.isSkyHidden`'s fog case is honoured here and cannot be on Fabric.
  */
 class NeoForgeAgeEffects : AgeDimensionEffects() {
 
     /**
      * Returns true when we drew, which is how NeoForge is told to skip the rest of vanilla's `renderSky`.
-     *
-     * Returning [AgeSky.draw]'s own answer rather than a bare `true` is deliberate: it declines in the cases vanilla
-     * declines too, and then letting vanilla proceed is the *correct* outcome rather than a fallback — vanilla will
-     * also draw nothing, and it will get the void plane and the sunrise glow right, which we do not attempt.
+     * Forwarding [AgeSky.draw]'s own answer rather than a bare `true` is deliberate: where it declines,
+     * letting vanilla proceed is *correct* rather than a fallback — vanilla gets the void plane and the
+     * sunrise glow right, which we do not attempt.
      */
     override fun renderSky(
         level: ClientLevel,

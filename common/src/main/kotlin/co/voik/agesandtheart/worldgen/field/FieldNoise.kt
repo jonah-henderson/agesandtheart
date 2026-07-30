@@ -4,21 +4,15 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import net.minecraft.world.level.levelgen.synth.NormalNoise
 
 /**
- * The noise every sampling field is built on, in one place.
- *
- * [NoiseHeightmap], [Noise3D] and [WaterTable] all want the same thing — vanilla's own [NormalNoise],
- * seeded per field, from an octave and a list of amplitudes that may have arrived from a serialised
- * recipe. They each used to build it themselves, identically, and the three copies were exactly as
- * useful as one.
+ * The noise every sampling field is built on, in one place: vanilla's own [NormalNoise], seeded per
+ * field, from an octave and amplitudes that may have arrived from a serialised recipe.
  */
 
 /**
- * Vanilla's [NormalNoise], with its two hostile inputs settled first.
- *
- * Neither is trusted, because both can come out of a serialised field tree: vanilla forbids more
- * amplitudes than the first octave leaves room for, an empty list would leave the noise nothing to sum,
- * and a positive [firstOctave] would ask for a negative number of amplitudes — which `take` rejects
- * outright, failing in the constructor rather than anywhere informative.
+ * Vanilla's [NormalNoise], with its two hostile inputs settled first — neither is trusted, both being
+ * able to arrive from a serialised field tree. Vanilla forbids more amplitudes than the first octave
+ * leaves room for, an empty list leaves the noise nothing to sum, and a positive [firstOctave] asks for
+ * a negative count, which `take` rejects somewhere uninformative.
  */
 internal fun fieldNoise(seed: Long, firstOctave: Int, amplitudes: List<Double>): NormalNoise {
     val weights = amplitudes.take((-firstOctave + 1).coerceAtLeast(0)).ifEmpty { listOf(1.0) }

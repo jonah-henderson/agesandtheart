@@ -6,18 +6,12 @@ import net.minecraft.world.level.levelgen.synth.NormalNoise
 import kotlin.system.measureNanoTime
 
 /**
- * Times [NormalNoise] — the one thing a 3D-noise primitive would do per *block* rather than per column —
- * so the decision to build one is made on a number instead of an intuition.
+ * Times [NormalNoise], so **how much of the column a 3D field can afford to sample** is a number rather
+ * than an intuition — a heightmap samples 256 times a chunk where a 3D field samples up to 98,304.
  *
- * It runs offline for the same reason the terrain preview does: noise reaches for no registry and no
- * chunk, so measuring it needs no server. What it therefore cannot tell us is the true cost in a running
- * generator (allocation pressure, cache contention with everything else in a chunk worker); the
- * calibration row exists to bound that error, by timing the sampling `hills` already does at a rate we
- * have measured in the game.
- *
- * The question it answers: **how much of the column can a 3D field afford to sample?** A heightmap
- * samples once per column, 256 times a chunk. A 3D field samples per block — up to 98,304 — and the
- * strategies in between are what the projection table prices.
+ * Offline, so it cannot report the true cost in a running generator (allocation pressure, cache
+ * contention). The calibration row bounds that error by timing the sampling `hills` already does at a rate
+ * measured in the game.
  */
 fun main() {
     println("Sampling ${SAMPLE_VOLUME} positions per round, ${TIMED_ROUNDS} timed rounds after ${WARMUP_ROUNDS} warm-up.\n")

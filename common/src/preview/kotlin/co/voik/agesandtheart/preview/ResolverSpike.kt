@@ -13,37 +13,14 @@ import co.voik.agesandtheart.age.aspect.Carvers
 import kotlin.random.Random
 
 /**
- * A SPIKE. Not the resolver — a thing built to find out whether the resolver can be built, and to be
- * thrown away once it has answered (`notes/the-art-implementation-plan.md`, Phase 3: *"consider spiking
- * the resolver against a toy aspect set… if constraint satisfaction over weighted tags turns out awkward,
- * it is far better to learn that here"*).
+ * **A SPIKE — do not build on this.** It was built to find out whether the resolver could be built, and
+ * its findings are settled in `notes/the-art-design.md` §§3.3, 3.4, 3.5, 4.4 and 4.6. That document, not
+ * this file, is what Phase 3 was built from; this is kept as the evidence, and still runs each sentence
+ * under the *naive* policy, which is what makes the failures visible rather than merely asserted.
  *
- * **All six of its findings were settled on 2026-07-27, and the rulings are written into
- * `notes/the-art-design.md` itself — §3.3, §3.4, §3.5, §4.4 and §4.6. That document, not this file, is
- * what Phase 3 gets built from.** This is kept only as the evidence behind those decisions: it still
- * runs each sentence under the naive policy, which is what makes the failures visible rather than
- * merely asserted. Several resolutions (set-valued terrain and dressing, detection from data rather
- * than the antonym table, negative query weights) are deliberately **not** implemented here, because
- * implementing them is Phase 3's job and not a spike's.
- *
- * **One fact here is now stale.** [SET_VALUED] names terrain and dressing; since 3a the answer is all
- * four *positional* aspects — terrain, dressing, sea and carving — with only the sky singular. It
- * is left as it was so the reported findings still match what this file prints; the design doc is right
- * and this is a record of an argument, not a description of the world.
- *
- * **Do not build on this.** Nothing here is tuned, the vocabulary is a dozen words invented to exercise
- * the mechanism, and the tag weights are guesses. What it is for is answering four questions:
- *
- *  1. Does one uniform mechanism really carry all three precision tiers (design §4.4)?
- *  2. Does an authored antonym table find contradictions without a geometry (§3.3)?
- *  3. Does severity fall out of set-valued-versus-singular rather than being tuned per pair (§3.4)?
- *  4. Is resolution a pure function of (words, seed) (§4.6)?
- *
- * **Deliberately spiked against the real aspect set rather than a toy one.** Five aspects and twenty-one
- * presets is already toy-sized, and using the real ones answers a question a toy cannot: whether the
- * presets we actually shipped can be given sensible tags at all. The tags live in this file rather than
- * on the enums, so the spike stays disposable and the shipped aspects stay uncontaminated — which also
- * proves the tagging can be done from outside, as §8 will need when it comes from Minecraft's own tags.
+ * Nothing here is tuned, the vocabulary is invented, and the tag weights are guesses. **[SET_VALUED] is
+ * deliberately stale** — it names two aspects where the answer is now all four positional ones — so that
+ * the reported findings still match what this file prints.
  */
 fun main() {
     reportVocabulary()
@@ -104,11 +81,8 @@ private val ANTONYMS = listOf(
 )
 
 /**
- * Whether a aspect can satisfy a contradiction **by coexistence** (§3.4).
- *
- * This is where severity is supposed to come from for free: biomes are distributed across space, so
- * "lush, barren" can be honoured in two places and the world merely gets strange. A sky has nowhere to
- * put a second answer, so the same disagreement there has to go somewhere harsher.
+ * Whether an aspect can satisfy a contradiction **by coexistence** (§3.4) — where severity comes from
+ * for free: a sky has nowhere to put a second answer, so the same disagreement goes somewhere harsher.
  */
 private val SET_VALUED = setOf(Aspect.TERRAIN, Aspect.BIOMES)
 
@@ -191,11 +165,9 @@ private data class Conflict(val first: Word, val second: Word, val tags: Pair<St
 }
 
 /**
- * A constraint the world had no way to satisfy — "floating" where nothing in the aspect floats.
- *
- * The first run of this spike had no such concept, and that was its most alarming result: an
- * impossible word was dropped in silence, so the player got a world their sentence never described
- * and an instability index of zero to explain it. Unmeetable is not the same as uncontradicted.
+ * A constraint the world had no way to satisfy. The spike's most alarming result was having no such
+ * concept: an impossible word was dropped in silence, and the player got a world their sentence never
+ * described with an instability index of zero. **Unmeetable is not the same as uncontradicted.**
  */
 private enum class Unmeetable(val explanation: String) {
     /**
@@ -286,11 +258,8 @@ private fun slotsConstrainedBy(word: Word, policy: Policy = Policy.NAIVE): List<
 }
 
 /**
- * Words in, composition out, deterministically (§4.6).
- *
- * One mechanism for all three tiers: each word scores every candidate, and the tier decides only how
- * hard that score bites — Exact keeps the best, Restrictive keeps anything that qualifies, Evocative
- * keeps everything and merely tilts the draw.
+ * Words in, composition out, deterministically (§4.6) — one mechanism for all three tiers, each word
+ * scoring every candidate and the tier deciding only how hard that score bites.
  */
 private fun resolve(sentence: List<String>, seed: Long, policy: Policy = Policy.CORRECTED): Resolution {
     val words = sentence.map(::word)

@@ -24,27 +24,15 @@ import java.util.stream.Stream
 /**
  * Which biome stands where in an Age: vanilla's climate, read through a table this Age is allowed to bend.
  *
- * A biome source is handed a [Climate.Sampler] and expected to read the six climate parameters out of it,
- * and **that sampler is now real**, so this simply does what a biome source is meant to do. It was not
- * always: [net.minecraft.server.level.ChunkMap] builds the level's [RandomState] from
- * `NoiseGeneratorSettings.dummy()` for any generator that is not a `NoiseBasedChunkGenerator`, whose router
- * is inert — so the sampler reported zero everywhere and this class had to build a whole private
- * [RandomState] from vanilla's overworld settings to get a climate at all.
+ * The handed [Climate.Sampler] is real, because `AgeChunkGenerator` is a `NoiseBasedChunkGenerator` and
+ * carries vanilla's climate functions in its router — same noise, same warping, seeded from the Age's own
+ * seed. The terrain is still entirely ours; only "what grows here" is answered vanilla's way.
  *
- * `AgeChunkGenerator` is a `NoiseBasedChunkGenerator` now, and carries vanilla's real climate functions in
- * its router (2026-07-28), so the private copy is gone and the handed sampler is the same climate it used
- * to build for itself — same noise, same domain warping, same continents and biome sizes, seeded from the
- * Age's own seed because Fantasy sets the dimension seed from the recipe. The Age's terrain is still
- * entirely ours; only "what grows here" is answered vanilla's way.
+ * **[depth] is ours and must stay so**, which is why the generator leaves that one slot of the router at
+ * zero: vanilla's depth describes vanilla's relief, and ours is measured against the field tree.
  *
- * **[depth] is still ours and must stay so**, which is why the generator leaves that one aspect of the router
- * at zero: vanilla's depth describes vanilla's relief, and ours has to be measured against the field tree.
- *
- * Two seams for when a writer expresses a preference:
- * - [biomes] is the climate-to-biome table. It is a registry holder, so a datapack can define a new
- *   `multi_noise_biome_source_parameter_list` and an Age can name it — swapping the whole table without
- *   a line of code.
- * - [depth] is the one parameter we must answer ourselves; see [ClimateDepth].
+ * [biomes] is a registry holder, so a datapack can define a new
+ * `multi_noise_biome_source_parameter_list` and an Age can name it, swapping the table without code.
  */
 class AgeBiomeSource(
     private val biomes: Holder<MultiNoiseBiomeSourceParameterList>,
@@ -56,32 +44,23 @@ class AgeBiomeSource(
      */
     private val bent: RegionalClimate = RegionalClimate.NONE,
     /**
-     * The biomes this Age was told to grow, or not to — the exact half, applied to the table itself.
-     *
-     * Both halves are wanted and they can disagree: a hot dry world that excludes deserts is a sentence
-     * somebody will write. That is a contradiction for the instability index to price (§5), not something
-     * for this class to arbitrate, so both are applied as written.
+     * The biomes this Age was told to grow, or not to — the exact half, applied to the table itself. A hot
+     * dry world that excludes deserts is a contradiction for the instability index to price (§5), not one
+     * for this class to arbitrate, so both halves are applied as written.
      */
     private val preferences: List<BiomePreference> = emptyList(),
     /**
-     * Whether the sentence **singled biomes out**, so everything it did not name is struck from the table —
-     * `only cherry groves` (design §4.3.1's `only`).
-     *
-     * A flag rather than a preference per unwanted biome, because the writer named what they *did* want and
-     * the table is the only thing that knows what else was in it. It composes with [preferences] rather than
-     * replacing them: `only` decides what survives, and a mention among the survivors still strengthens.
+     * Whether the sentence **singled biomes out**, so everything it did not name is struck from the table
+     * (§4.3.1's `only`). A flag rather than a preference per unwanted biome, because the writer named what
+     * they *did* want and only the table knows what else was in it. `only` decides what survives, and a
+     * mention among the survivors still strengthens.
      */
     private val keepsOnlyNamed: Boolean = false,
     /**
-     * One biome for the whole table, before any preference is applied — how a *barren* dressing gets a
-     * climate table instead of a single fixed biome.
-     *
-     * Vanilla's climate *positions* are kept and only the biome at each is replaced, which is what makes
-     * this three lines rather than a mechanism: anchoring, the surface filter and everything else in
-     * [BiomePreference] then work exactly as they do over the overworld. Naming a biome against a barren
-     * Age therefore gives isolated patches of it in the waste, which is what a writer means by "a bare
-     * stone world with cherry groves" (Jonah, 2026-07-27) — and what a [FixedBiomeSource] could never do,
-     * because a single biome has no table to enrich.
+     * One biome for the whole table, before any preference is applied. Vanilla's climate *positions* are
+     * kept and only the biome at each is replaced, so anchoring and the surface filter work exactly as
+     * they do over the overworld — which is what a [FixedBiomeSource] could never offer, having no table
+     * to enrich.
      */
     private val flattenedTo: Holder<Biome>? = null,
     private val biomeLookup: HolderGetter<Biome>,
@@ -102,10 +81,9 @@ class AgeBiomeSource(
         AgeBiomeSource(biomes, seed, depth, bent, preferences, keepsOnlyNamed, only, biomeLookup)
 
     /**
-     * Vanilla's climate-to-biome table with this Age's preferences folded in.
-     *
-     * Lazy, and it matters more than it looks: applying preferences rebuilds an RTree over some seven and a
-     * half thousand entries, and construction happens during codec decode. A round trip must not pay for it.
+     * Vanilla's climate-to-biome table with this Age's preferences folded in. **Lazy**, because applying
+     * preferences rebuilds an RTree over some seven thousand entries and construction happens during codec
+     * decode — a round trip must not pay for it.
      */
     private val table: Climate.ParameterList<Holder<Biome>> by lazy {
         val base = biomes.value().parameters()
@@ -168,13 +146,9 @@ class AgeBiomeSource(
         }
 
         /**
-         * Vanilla's overworld biome table, at the Age's own [seed]. The default for an Age that names no
-         * biome preferences.
-         *
-         * The *climate* those biomes are looked up at no longer comes from here — it is whatever
-         * `AgeChunkGenerator` put in its router, which the game turns into the level's sampler. Which
-         * settings supply it (`OVERWORLD`, or `LARGE_BIOMES`, which differs only in climate scale) is that
-         * generator's choice now, and the table below is a separate one.
+         * Vanilla's overworld biome table, at the Age's own [seed] — the default for an Age naming no
+         * preferences. The *climate* those biomes are looked up at comes from the generator's router, not
+         * from here.
          */
         fun vanillaOverworld(server: MinecraftServer, seed: Long): AgeBiomeSource {
             val registries = server.registryAccess()

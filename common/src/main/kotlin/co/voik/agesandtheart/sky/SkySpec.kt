@@ -9,39 +9,28 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 /**
  * Everything an Age's sky is, as data: its celestial bodies and its stars.
  *
- * **This is what crosses to the client**, and it is the whole reason per-Age skies are possible at all. A
- * `DimensionType` cannot be composed per Age — its network codec writes registry ids only, so an unregistered one
- * cannot even be encoded in the join packet (the plan's step 8). But nothing here is a registry object. It is
- * plain data on a custom payload, so the frozen-registry problem never touches it. See
- * `notes/per-age-skies-research.md` §1.
+ * **What crosses to the client**, and nothing here is a registry object — see [SkyPayload] for why that
+ * matters, and `notes/per-age-skies-research.md` §1.
  *
- * **Derived, never stored.** [drawn] is a pure function of its arguments, so an Age rebuilds the same sky on
- * every open from its recipe alone — the same contract `AgeGeneration.chunkGenerator` holds. The codec here
- * exists to *send* a spec, not to persist one; what persists is the recipe that produces it.
+ * **Derived, never stored**: [drawn] is a pure function, so an Age rebuilds the same sky on every open
+ * from its recipe. The codec exists to *send* a spec, not to persist one.
  */
 data class SkySpec(val bodies: List<CelestialBody>, val stars: StarField) {
 
     /**
-     * Whether this is an ordinary sky — vanilla's sun, vanilla's moon, vanilla's stars, nothing added.
+     * Whether this is an ordinary sky — vanilla's sun, moon and stars, nothing added. An Age only needs
+     * *our* renderer for something vanilla cannot draw, so when this is true it keeps vanilla's own
+     * `effects` and gets vanilla's sky exactly rather than an imitation.
      *
-     * **What this is for:** an Age only needs *our* renderer if it has something vanilla cannot draw. When this
-     * is true, `AgeGeneration` gives the Age vanilla's own `effects` and the client attaches nothing, so a plain
-     * Age keeps vanilla's sky exactly rather than an imitation of it. The moment a writer asks for a second sun
-     * or takes the stars away, the Age switches to our renderer. That is what keeps "plain" honest without
-     * either regressing every ordinary Age or silently dropping a request (§3.3).
-     *
-     * The star *seed* is deliberately not compared: a different arrangement of the same number of stars is not
-     * a thing vanilla cannot draw, and vanilla's own field is a fixed seed anyway.
+     * The star *seed* is deliberately not compared: a different arrangement of the same number of stars is
+     * not something vanilla cannot draw.
      */
     val isOrdinary: Boolean
         get() = bodies == VANILLA.bodies && stars.count == VANILLA.stars.count
 
     /**
-     * This sky in a line per body, for `/age sky`.
-     *
-     * Numbers and all, which §3.2 permits without argument: that section forbids showing numbers to the
-     * **player**, and this is a developer instrument behind an operator permission. Spelling the orbit out is the
-     * entire point — "three suns" tells you nothing about why two of them are bunched together.
+     * This sky in a line per body, for `/age sky` — numbers and all, which §3.2 permits: it forbids
+     * showing numbers to the **player**, and this is a developer instrument behind an operator permission.
      */
     fun described(): List<String> = bodies.map { body ->
         val orbit = body.orbit
@@ -99,24 +88,18 @@ data class SkySpec(val bodies: List<CelestialBody>, val stars: StarField) {
         }
 
         /**
-         * The sky an Age gets, drawn from its seed.
+         * The sky an Age gets, drawn from its seed — **the writer names the character and the seed decides
+         * the specifics**, so two Ages with the same words at different seeds differ.
          *
-         * **The writer names the character and the seed decides the specifics**, which is the division terrain
-         * arrangements already use: "three suns" is the sentence, and *where* those three suns hang is the Age's
-         * own. Two Ages with the same words at different seeds get different skies, which is the point.
+         * Counts arrive as plain integers rather than [co.voik.agesandtheart.age.aspect.Parameter] values,
+         * which is what lets this be checked offline without a vocabulary.
          *
-         * The counts arrive as plain integers rather than as [co.voik.agesandtheart.age.aspect.Parameter] values
-         * on purpose — mapping enumerated words onto them is the Sky aspect's business, and keeping it out of
-         * here is what lets this be checked offline without a vocabulary.
+         * **The first sun is exactly vanilla's**, and that is load-bearing: the lightmap still runs on
+         * `DimensionType.timeOfDay`, so a primary sun off that schedule would leave noon bright with the
+         * sun to one side. `SkyCheck` holds it.
          *
-         * **The first sun is exactly vanilla's**, and that invariant is load-bearing rather than tidy. Tier 1
-         * leaves the lightmap on `DimensionType.timeOfDay`, so the world still brightens and dims on vanilla's
-         * schedule; if the primary sun drifted off that schedule, noon would be bright with the sun somewhere
-         * off to the side. A one-sun Age therefore looks exactly like an ordinary world, and every additional
-         * body is a departure from a correct baseline. `SkyCheck` holds this.
-         *
-         * [spread] is how far the extra bodies wander from that first orbit, in `0.0..1.0` — 0 puts them all in
-         * vanilla's plane at different phases, 1 scatters their inclinations across the sky.
+         * [spread] is how far the extra bodies wander from that first orbit — 0 puts them all in vanilla's
+         * plane at different phases, 1 scatters their inclinations across the sky.
          */
         fun drawn(suns: Int, moons: Int, starCount: Int, spread: Float, seed: Long): SkySpec {
             val random = XoroshiroRandomSource(seed xor SKY_SALT)
@@ -160,18 +143,14 @@ data class SkySpec(val bodies: List<CelestialBody>, val stars: StarField) {
         /**
          * An orbit that departs from vanilla's by [spread].
          *
-         * **Three things scale with [spread], not one, and getting that wrong was a real bug.** Until Jonah
-         * walked it, only the *inclination* was gated: at `spread 0` every body sat in a plane containing the
-         * zenith, but each still drew a random **ascending node**, which rotates that plane about the vertical.
-         * So "shared" produced several distinct great circles that merely happened to be untilted — visibly
-         * different orbits, exactly as reported. The **period** matters for the same reason over a longer
-         * timescale: bodies with unequal periods drift apart, so they could not hold the formation the word
-         * promises. At `spread 0` all three now collapse onto vanilla's own orbit, and only the *phase* stays
-         * random — which is what strings the bodies out along one arc like beads.
+         * **Inclination, ascending node and period all scale with it, not inclination alone.** A random
+         * ascending node rotates an untilted plane about the vertical, so gating only the inclination gave
+         * "shared" several visibly distinct great circles; unequal periods drift apart over a longer
+         * timescale. At `spread 0` all three collapse onto vanilla's orbit and only the *phase* stays
+         * random, which strings the bodies along one arc like beads.
          *
-         * Distance varies regardless of spread, deliberately: two bodies on exactly one radius would flicker
-         * against each other on draw order, since the sky pass has no z-buffer at all (research §3.1). At
-         * `spread 0` that reads as concentric circles on one path, which is the intent rather than a compromise.
+         * **Distance varies regardless of spread**, because two bodies at one radius flicker against each
+         * other on draw order — the sky pass has no z-buffer at all (research §3.1).
          */
         private fun wanderingOrbit(random: RandomSource, spread: Float, periodSpread: Float): Orbit {
             val period = Orbit.TICKS_PER_VANILLA_DAY * (1.0f + symmetric(random) * periodSpread * spread)
@@ -247,13 +226,11 @@ data class SkySpec(val bodies: List<CelestialBody>, val stars: StarField) {
 }
 
 /**
- * The stars, as a count and an arrangement seed.
+ * The stars, as a count and an arrangement seed. Zero is "no stars", which a writer can ask for; the seed
+ * is per Age, so two Ages with the same number still get different constellations.
  *
- * A count of zero is "no stars", which is a thing a writer can ask for. The seed is per Age, so two Ages with the
- * same number of stars still have different constellations — the cheapest possible way to make every sky its own.
- *
- * Brightness is not here because our renderer owns it outright: `ClientLevel.getStarBrightness` is read **only**
- * by `LevelRenderer.renderSky` (research §4.3), and Tier 1 replaces that method entirely.
+ * Brightness is absent because our renderer owns it outright — `ClientLevel.getStarBrightness` is read
+ * only by `LevelRenderer.renderSky` (research §4.3), which we replace entirely.
  */
 data class StarField(val count: Int, val seed: Long) {
     companion object {

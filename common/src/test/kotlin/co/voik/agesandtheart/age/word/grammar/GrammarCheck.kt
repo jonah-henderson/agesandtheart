@@ -14,11 +14,9 @@ import kotlin.io.path.readText
 import kotlin.io.path.walk
 
 /**
- * Whether the grammar reads a book the way design §4.3.1 says it should — and whether its boundary holds.
- *
- * Offline, like every other check here: parsing is a pure function of (vocabulary, pages), so it needs no
- * world and no server. The resolver is deliberately not involved; this asks only what the *parser* decided,
- * which is the whole point of [Sentence] being our own type.
+ * Whether the grammar reads a book the way design §4.3.1 says, and whether its boundary holds. The
+ * resolver is deliberately not involved — this asks only what the *parser* decided, which is the point of
+ * [Sentence] being our own type.
  */
 @Tags(NEEDS_REGISTRIES)
 class GrammarCheck : FunSpec({
@@ -30,11 +28,8 @@ class GrammarCheck : FunSpec({
     }
 
     /**
-     * **Nothing but `ArtGrammar.kt` may import `org.antlr`.**
-     *
-     * The one guard that keeps the abstraction from eroding, and mechanical for the reason every guard here
-     * is: a boundary defended only by a comment is a boundary that lasts until someone is in a hurry.
-     * Swapping the parser is meant to cost one file, and this is what keeps that true.
+     * **Nothing but `ArtGrammar.kt` may import `org.antlr`.** Swapping the parser is meant to cost one
+     * file, and a boundary defended only by a comment lasts until someone is in a hurry.
      */
     test("the parser boundary holds") {
         val adapter = "ArtGrammar.kt"
@@ -80,11 +75,9 @@ class GrammarCheck : FunSpec({
     }
 
     /**
-     * §4.3.1's tier rule, first half — and the one that protects the beginner's sentence.
-     *
-     * `beautiful floating` must leave "beautiful" reaching the whole world, merely leaning hardest on the
-     * terrain. Confining it here would make the commonest thing anyone writes the *narrow* reading, which
-     * inverts "vague is free and precision is paid for".
+     * §4.3.1's tier rule, and the one protecting the beginner's sentence: `beautiful floating` must leave
+     * "beautiful" reaching the whole world, merely leaning hardest on the terrain. Confining it makes the
+     * commonest thing anyone writes the *narrow* reading.
      */
     test("an evocative word stays global when aimed") {
         val read = Grammar.read(vocabulary, listOf("beautiful", "floating"))
@@ -135,12 +128,9 @@ class GrammarCheck : FunSpec({
     }
 
     /**
-     * §4.3's first failure channel: what the Art cannot read is **dropped and reported**, and costs vagueness
-     * rather than instability.
-     *
-     * Note what is *not* asserted — that the rest of the book survives. It does here, but recovery is ANTLR's
-     * own strategy and a garbled middle may cost the pages around it; that is a designed tolerance, not a
-     * promise, so pinning it would make the check a description of the parser rather than of the design.
+     * §4.3's first failure channel: what the Art cannot read is **dropped and reported**, costing vagueness
+     * rather than instability. Note what is *not* asserted — that the rest of the book survives. Recovery
+     * is ANTLR's own strategy, so pinning it would describe the parser rather than the design.
      */
     test("an unreadable page becomes vagueness, not an error") {
         val read = Grammar.read(vocabulary, listOf("floating", "zzzznotaword", "basalt"))
@@ -151,19 +141,12 @@ class GrammarCheck : FunSpec({
     }
 
     /**
-     * **Nothing vanishes in silence** — the invariant, rather than one example of breaking it.
+     * **Nothing vanishes in silence.** Every content page is either *used* or *reported*; a page that does
+     * neither means a writer gets a world their sentence did not describe and is told nothing (§3.3).
      *
-     * Every content page a writer laid down is either *used* (it produced a constraint) or *reported* (it went
-     * unread and the Age is vaguer for it). §3.3's one hard requirement, and the failure it forbids is
-     * precisely a page that does neither: the writer gets a world their sentence did not describe and is told
-     * nothing.
-     *
-     * Written as an invariant over malformed books on purpose. The first version asserted that one particular
-     * trailing word was *dropped* — and then a grammar fix made that word legitimately usable, so the check
-     * failed while the behaviour improved. A property about what may never happen survives the parser changing
-     * its mind; a property about one parse does not.
-     *
-     * Structural pages are exempt: `and` earns its keep by joining two words that speak, not by speaking.
+     * Written as an invariant over malformed books on purpose: an earlier version asserted one particular
+     * word was *dropped*, and a grammar fix that made it usable failed the check while improving the
+     * behaviour. Structural pages are exempt — `and` speaks by joining two words that do.
      */
     test("nothing vanishes in silence") {
         val books = listOf(
@@ -192,14 +175,10 @@ class GrammarCheck : FunSpec({
     }
 
     /**
-     * "A world of blackstone" — a book with no subject at all.
-     *
-     * It names no shape; it names what the rock a shape is made of, which is the sentence the material hook was
-     * built for (§3.2). A grammar demanding a subject in every section left a writer holding only material
-     * pages unable to say anything, and `/age write basalt` came back refused — found on a server, not here.
-     *
-     * With nothing aimed at them, such words fall back to the aspects they declare themselves, which is exactly
-     * what an unaimed word has always meant.
+     * "A world of blackstone" — a book with **no subject at all**, naming what the rock is made of rather
+     * than a shape (§3.2). A grammar demanding a subject in every section left a writer holding only
+     * material pages unable to say anything. With nothing aimed at them, such words fall back to the
+     * aspects they declare themselves.
      */
     test("a book that only steers still says something") {
         val read = Grammar.read(vocabulary, listOf("basalt"))
@@ -231,12 +210,9 @@ class GrammarCheck : FunSpec({
 })
 
 /**
- * The module's Kotlin sources, for the boundary scan.
- *
- * **Filtered to the roots that exist, and the caller asserts it found some.** The old version hard-coded two
- * relative paths and silently scanned nothing if the working directory moved — a boundary check that passes
- * because it looked nowhere is worse than none. The test source root is included: a check that imported the
- * parser to "verify" something would breach the boundary exactly as a production file would.
+ * The module's Kotlin sources, for the boundary scan. **Filtered to the roots that exist, and the caller
+ * asserts it found some** — a boundary check that passes because it looked nowhere is worse than none. The
+ * test root is included: a check importing the parser breaches the boundary as a production file would.
  */
 private fun sourceRoots(): List<Path> = listOf(
     Path.of("src/main/kotlin"),

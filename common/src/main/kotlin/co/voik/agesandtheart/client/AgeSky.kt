@@ -27,27 +27,17 @@ import kotlin.math.sin
  * The sky **any** generated Age can have: whatever suns and moons it was written with, its own stars, and a dome
  * borrowing vanilla's own sky colour.
  *
- * **In `common` so both loaders draw the same sky**, which is the whole of step 7. Each loader owns only its hook —
- * Fabric a `DimensionRenderingRegistry.SkyRenderer`, NeoForge an `IDimensionSpecialEffectsExtension.renderSky` —
- * and both call [draw]. The parameters are the intersection of what those two hooks are handed, which is why they
- * are a `Matrix4f`, a `ClientLevel`, a `Camera`, a partial tick and an `isFoggy` flag rather than either loader's
- * own context object.
+ * **In `common` so both loaders draw the same sky.** Each owns only its hook — Fabric a
+ * `DimensionRenderingRegistry.SkyRenderer`, NeoForge an `IDimensionSpecialEffectsExtension.renderSky` —
+ * and both call [draw], whose parameters are the intersection of what the two hooks are handed.
  *
- * `common` compiles against the merged jar, so `RenderSystem` and friends resolve here. The rule that keeps that
- * honest: **nothing server-side may reach this class**, and nothing does — the only callers are the two loader
- * hooks, reached from client entrypoints.
+ * `common` compiles against the merged jar, so `RenderSystem` resolves here. The rule keeping that honest:
+ * **nothing server-side may reach this class**, and nothing does.
  *
- * **Assumes nothing beyond the Age's [SkySpec].** Its ancestor was written for the handcrafted Spire and carried
- * Spire's ideas — two cloud decks, stars only above the upper one, a permanent overcast. A generated Age has no
- * decks and no reason to be overcast, so those stayed with the Spire's own renderer. Three consequences, all
- * deliberate:
- *
- * - **The dome is `ClientLevel.getSkyColor`**, vanilla's biome-blended, time-of-day colour. So an ordinary Age that
- *   merely happens to have three suns looks like an ordinary sky with three suns in it.
- * - **Star visibility is `ClientLevel.getStarBrightness`**, vanilla's own night curve, rather than a height band
- *   over a cloud deck. That method is read *only* by the `renderSky` we replace, so it is free to use.
- * - **No sunrise glow and no void plane.** Both are vanilla's, both live in the method the hooks suppress. The glow
- *   is Tier 2's business, where the fog stops assuming one sun on the world ±X axis.
+ * **Assumes nothing beyond the Age's [SkySpec]** — the Spire's cloud decks and overcast stayed with the
+ * Spire's own renderer. So the dome is `ClientLevel.getSkyColor` and star visibility is
+ * `getStarBrightness`, both vanilla's; and there is no sunrise glow or void plane, both of which live in
+ * the method the hooks suppress.
  */
 object AgeSky {
 
@@ -75,19 +65,16 @@ object AgeSky {
     private val domeQuads: List<List<Vec3>> = SkyShapes.subdividedCube(DOME_RADIUS, DOME_SEGMENTS)
 
     /**
-     * Built star fields, keyed by the field that asked for them.
-     *
-     * Two Ages with the same count and seed share one, and an Age keeps its own across a session. Never cleared: a
-     * field is a few thousand small records and a player visits a bounded number of Ages, so the bookkeeping to
-     * evict would cost more than the memory it saves.
+     * Built star fields, keyed by the field that asked for them, so two Ages with the same count and seed
+     * share one. Never cleared: a field is a few thousand small records and a player visits a bounded
+     * number of Ages, so eviction bookkeeping would cost more than the memory it saves.
      */
     private val starFields = mutableMapOf<StarField, List<Star>>()
 
     /**
-     * Draws the sky. Returns false when it drew nothing, so a caller may let vanilla proceed.
-     *
-     * [view] must be camera **rotation only** — vanilla's `frustumMatrix`, which both hooks supply. Adding the
-     * camera position would slide the sky around the world instead of surrounding the viewer.
+     * Draws the sky. Returns false when it drew nothing, so a caller may let vanilla proceed. [view] must
+     * be camera **rotation only** — vanilla's `frustumMatrix`, which both hooks supply; adding the camera
+     * position would slide the sky around the world instead of surrounding the viewer.
      */
     fun draw(view: Matrix4f, level: ClientLevel, camera: Camera, partialTick: Float, isFoggy: Boolean): Boolean {
         if (SkyShapes.isSkyHidden(camera, isFoggy)) return false
@@ -155,10 +142,9 @@ object AgeSky {
     }
 
     /**
-     * Every sun and moon the Age has, in as few draws as there are distinct textures.
-     *
-     * **Sorted far to near before grouping**, which buys nothing under additive blending and is where an eclipse
-     * would hook in — ordering is the only tool available, the sky pass being forbidden from writing depth.
+     * Every sun and moon the Age has, in as few draws as there are distinct textures. **Sorted far to near
+     * before grouping**, which buys nothing under additive blending and is where an eclipse would hook in —
+     * ordering being the only tool available, the sky pass writing no depth.
      */
     private fun drawBodies(view: Matrix4f, spec: SkySpec, dayTime: Long, brightness: Float) {
         RenderSystem.setShader(GameRenderer::getPositionTexColorShader)
@@ -172,12 +158,10 @@ object AgeSky {
     }
 
     /**
-     * One body as a quad facing the camera, its orbit baked into the vertices.
-     *
-     * Baked per vertex rather than pushed as a matrix because `RenderSystem.getModelViewMatrix()` is the identity
-     * during the sky pass — the transform has nowhere else to live, which is why vanilla does the same. The quad
-     * lies flat at `y = distance` and is spun into place by the orbit, matching vanilla's corner and UV order so a
-     * one-day body is indistinguishable from vanilla's own sun.
+     * One body as a quad facing the camera, its orbit **baked into the vertices** because
+     * `RenderSystem.getModelViewMatrix()` is the identity during the sky pass and the transform has
+     * nowhere else to live. The quad lies flat at `y = distance` and matches vanilla's corner and UV
+     * order, so a one-day body is indistinguishable from vanilla's own sun.
      */
     private fun emitBody(
         buffer: BufferBuilder,

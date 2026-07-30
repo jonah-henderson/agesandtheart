@@ -11,15 +11,13 @@ import net.minecraft.world.level.levelgen.structure.TerrainAdjustment
  * and clears the headroom above it, so a jigsaw build lands on a hillside instead of half-floating and
  * half-buried in it.
  *
- * **This is the one place vanilla's density model reaches into our span model.** Vanilla adds the beard
- * to its terrain noise and keeps whatever ends up above zero; a field has no density to add to, only
- * solid and not-solid. So we read the beard's *sign* instead: firmly positive means "this block is
- * ground", firmly negative means "this block is clear", and anything in between leaves the field's own
- * answer exactly as it was. The structure wins where it means to and nowhere else.
+ * **The one place vanilla's density model reaches into our span model.** Vanilla adds the beard to its
+ * terrain noise and keeps whatever lands above zero; a field has no density to add to, only solid and
+ * not-solid. So this reads the beard's *sign*: firmly positive is ground, firmly negative is clear, and
+ * anything between leaves the field's own answer alone.
  *
- * The maths is [Beardifier]'s, not ours — the kernel, the bury/beard/encapsulate cases and their
- * weights all stay vanilla's, because the shapes they produce are what every vanilla structure was
- * designed and tested against.
+ * The maths is [Beardifier]'s — the kernel and the bury/beard/encapsulate weights stay vanilla's, because
+ * the shapes they produce are what every vanilla structure was designed against.
  */
 class TerrainAdaptation private constructor(
     private val beardifier: Beardifier,
@@ -28,11 +26,9 @@ class TerrainAdaptation private constructor(
 ) {
 
     /**
-     * Whether the block at ([x], [y], [z]) is ground, or `null` where the beard has no opinion and the
-     * terrain field's own answer should stand.
-     *
-     * Stateful, and deliberately so: [Beardifier] walks its piece list on every call and rewinds after,
-     * which makes one of these safe to reuse down a chunk but never to share between chunk workers.
+     * Whether the block at ([x], [y], [z]) is ground, or null where the beard has no opinion. **Stateful**:
+     * [Beardifier] walks its piece list per call and rewinds, so one of these is safe to reuse down a chunk
+     * and never to share between chunk workers.
      */
     fun verdictAt(x: Int, y: Int, z: Int): Boolean? {
         if (y !in lowY..highY) return null
@@ -46,10 +42,9 @@ class TerrainAdaptation private constructor(
 
     companion object {
         /**
-         * How much beard it takes to overrule the field. Vanilla thresholds a *sum* at zero, which a
-         * binary field cannot do, so this stands in for it: low enough that a piece's own pad and
-         * headroom land, high enough that the kernel's long tail does not quietly reshape terrain a dozen
-         * blocks away. The one tuning knob in the whole adaptation.
+         * How much beard it takes to overrule the field — the one tuning knob here. Low enough that a
+         * piece's own pad and headroom land, high enough that the kernel's long tail does not quietly
+         * reshape terrain a dozen blocks away.
          */
         private const val BEARD_DECIDES = 0.1
 
@@ -57,12 +52,9 @@ class TerrainAdaptation private constructor(
         private const val REACH = Beardifier.BEARD_KERNEL_RADIUS
 
         /**
-         * The adaptation [chunkPos] needs, or `null` when nothing standing in it asked for any — which is
-         * almost every chunk, and the reason the fill loop can afford to consult this per block.
-         *
-         * The height band is what makes the rest affordable: a bearded chunk asks about the forty-odd
-         * levels its pieces actually reach rather than all 384. Narrowing horizontally too would buy
-         * little, since a village's pieces are scattered across the whole chunk anyway.
+         * The adaptation [chunkPos] needs, or null when nothing in it asked for any — which is almost
+         * every chunk, and why the fill loop can afford to consult this per block. The height band does
+         * the rest: a bearded chunk asks about the forty-odd levels its pieces reach rather than all 384.
          */
         fun around(structureManager: StructureManager, chunkPos: ChunkPos): TerrainAdaptation? {
             val boxes = structureManager

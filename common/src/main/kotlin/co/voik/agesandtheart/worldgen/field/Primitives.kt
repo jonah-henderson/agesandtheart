@@ -176,13 +176,10 @@ data class Slab(val lowY: Int, val highY: Int) : TerrainField {
 }
 
 /**
- * Everything on one side of an infinite plane: solid where `normal · position >= distance`. The
- * toolkit's most primitive primitive — on its own it is a ground plane or a tilted shear, but its real
- * job is as a building block.
+ * Everything on one side of an infinite plane: solid where `normal · position >= distance`.
  *
- * **Convex polyhedra are an [Intersect] of these**, which is why there is no polyhedron primitive: a
- * wedge is a box cut by one plane, an octahedron is eight planes, a cut gem is however many you like.
- * A plane through a column fixes a single height, so the span stays analytic and exact.
+ * **Convex polyhedra are an [Intersect] of these**, which is why there is no polyhedron primitive. A
+ * plane through a column fixes a single height, so the span stays analytic and exact.
  *
  * Solid everywhere horizontally, so like [Slab] it is never an instancing template.
  */
@@ -227,15 +224,13 @@ data class HalfSpace(
 }
 
 /**
- * A circular shaft of length `2 · halfLength` running along [axis], centred on ([centerX], [centerY],
- * [centerZ]). Standing on [Direction.Axis.Y] it is a pillar, tower or mesa core; **lying on [X][
- * Direction.Axis.X] or [Z][Direction.Axis.Z] it is a tunnel or the opening of an arch.**
+ * A circular shaft of length `2 · halfLength` running along [axis]. Standing on Y it is a pillar or mesa
+ * core; lying on X or Z it is a tunnel or the opening of an arch.
  *
- * A lying cylinder has to be its own shape rather than a turned upright one: the field contract answers
- * *vertical* extents for a column, so a quarter-turn about a horizontal axis would need the child's
- * horizontal extent at a given height — a question `columnSpans` cannot ask. (Turning about Y is fine,
- * which is why instancing can do yaw and not pitch.) Each orientation is analytic in its own right,
- * so nothing is lost by naming them.
+ * **A lying cylinder is its own shape rather than a turned upright one**: the contract answers *vertical*
+ * extents for a column, so a quarter-turn about a horizontal axis would need the child's horizontal extent
+ * at a height — a question `columnSpans` cannot ask. (Turning about Y is fine, which is why instancing
+ * does yaw and not pitch.)
  */
 data class Cylinder(
     val axis: Direction.Axis,
@@ -336,24 +331,17 @@ data class Box(
 }
 
 /**
- * A smooth, organic surface: sampled noise mapped to a height, with rock filling the gap between it
- * and the flat bound at [flatY]. The toolkit's answer to rolling hills and dunes — the shapes CSG
- * solids can't express.
+ * A smooth, organic surface: sampled noise mapped to a height, with rock filling the gap between it and
+ * the flat bound at [flatY].
  *
- * **Which way up it faces falls out of the geometry.** When the noisy surface sits *above* [flatY] this
- * is ground: solid from the flat floor up to a rolling top. When it sits *below*, the same field hangs
- * from a ceiling — solid from a ragged underside up to the flat bound — which is how stalactites and
- * the undersides of floating islands are made. No flag decides it; the two heights do.
+ * **Which way up it faces falls out of the geometry** — no flag decides it. Above [flatY] this is ground
+ * rising to a rolling top; below, the same field hangs from a ceiling, which is how stalactites and the
+ * undersides of floating islands are made.
  *
- * The noise is **Minecraft's own [NormalNoise]**, not a reimplementation, so [firstOctave] and
- * [amplitudes] are vanilla's own vocabulary: octave wavelengths start at `2^-firstOctave` blocks and
- * halve from there, each weighted by its amplitude (so `-7` with three amplitudes gives detail at
- * roughly 128/64/32 blocks). [horizontalScale] then stretches the whole pattern, and [relief] is how
- * far the surface swings either side of [baseY].
+ * The noise is Minecraft's own [NormalNoise], so [firstOctave] and [amplitudes] are vanilla's vocabulary:
+ * wavelengths start at `2^-firstOctave` blocks and halve from there, each weighted by its amplitude.
  *
- * Being a *heightmap*, a column is solid in one run: this can make hills, but never an overhang or a
- * floating arch — those need 3D noise, which cannot be a single span. See `notes/terrain-architecture.md`.
- *
+ * Being a heightmap, a column is solid in one run — never an overhang or an arch, which need 3D noise.
  * Solid everywhere horizontally, so like [Slab] it is never an instancing template.
  */
 data class NoiseHeightmap(
@@ -361,10 +349,9 @@ data class NoiseHeightmap(
     val firstOctave: Int,
     val amplitudes: List<Double>,
     /**
-     * Blocks per unit of noise along X and Z *separately*. Equal values give the usual isotropic
-     * lumps; stretching one axis draws the relief out into long parallel ridges running that way —
-     * which is what wind-carved ground actually looks like. Yardangs are streamlined *along* the
-     * prevailing wind, so a wind-blown Age stretches the axis its wind runs down.
+     * Blocks per unit of noise along X and Z *separately*. Equal values give isotropic lumps; stretching
+     * one axis draws the relief into long parallel ridges, which is what wind-carved ground looks like —
+     * yardangs are streamlined *along* the prevailing wind.
      */
     val scaleX: Double,
     val scaleZ: Double,
@@ -418,12 +405,11 @@ data class NoiseHeightmap(
 }
 
 /**
- * What shape the raw noise is bent into before it is thresholded. Each mode picks out a different part
- * of the same noise field, and the difference is not decorative — it decides whether you get isolated
- * lumps or a connected network.
+ * What shape the raw noise is bent into before it is thresholded. Each mode picks out a different part of
+ * the same field, deciding whether you get isolated lumps or a connected network.
  *
- * The set is open by design: a new character is one `when` branch and one enum constant, and every
- * existing field tree keeps loading because the codec is by name.
+ * Open by design: a new character is one `when` branch and one constant, and every existing field tree
+ * keeps loading because the codec is by name.
  */
 enum class NoiseCharacter : StringRepresentable {
     /** The noise as it comes: smooth lumps and hollows. Erodes a bounded shape into ribs and overhangs. */
@@ -432,11 +418,9 @@ enum class NoiseCharacter : StringRepresentable {
     },
 
     /**
-     * `1 - 2|n|`, which peaks along the noise's *zero crossings* rather than at its extremes. Those
-     * crossings form continuous surfaces through the volume, so thresholding near the top of the range
-     * leaves a connected network of tubes and chambers — the reason this mode exists, and the same
-     * trick vanilla's spaghetti and noodle caves are built on. Read as rock it is a lattice of veins;
-     * subtracted from rock it is a cave system.
+     * `1 - 2|n|`, peaking along the noise's *zero crossings* rather than its extremes. Those crossings
+     * form continuous surfaces through the volume, so thresholding near the top of the range leaves a
+     * connected network of tubes and chambers — the same trick vanilla's spaghetti caves use.
      */
     RIDGED {
         override fun shape(sample: Double) = 1.0 - 2.0 * abs(sample)
@@ -458,23 +442,20 @@ enum class NoiseCharacter : StringRepresentable {
 }
 
 /**
- * Solid wherever three-dimensional noise, bent by [character], rises above [threshold] — the toolkit's
- * one genuinely volumetric shape, and so the only one that can make an overhang, an arch or a cave.
+ * Solid wherever 3D noise, bent by [character], rises above [threshold] — the toolkit's one genuinely
+ * volumetric shape, and so the only one that can make an overhang, an arch or a cave.
  *
- * **It is deliberately global and world-anchored, and that is what makes it useful with [Instanced].**
- * A template is queried in its own local coordinates, so a noise field used *as* a template would give
- * every copy an identical form. Hoisted out instead — `Intersect(Instanced(shapes), Noise3D)` rather
- * than `Instanced(Intersect(shape, Noise3D))` — the noise reads world coordinates, so every instance is
- * cut from a different region of one continuous field: all different, and agreeing with each other
- * where they meet. It also costs one evaluation per column however many instances overlap there.
+ * **Deliberately global and world-anchored, which is what makes it useful with [Instanced].** A template
+ * is queried in local coordinates, so a noise field used *as* a template gives every copy an identical
+ * form; hoisted out — `Intersect(Instanced(shapes), Noise3D)` — it reads world coordinates, so every
+ * instance is cut from a different region of one field and neighbours agree where they meet.
  *
- * [lowY]/[highY] bound the walk and are the whole cost story: this samples once per block between them,
- * so a band is cheap and the full world height is not. Outside the band the column is empty, which for
- * an `Intersect` means *nothing* — so the band must cover whatever it is shaping.
+ * [lowY]/[highY] bound the walk and are the whole cost story: one sample per block between them, so a
+ * band is cheap and the full world height is not. **Outside the band a column is empty**, which inside an
+ * `Intersect` means nothing at all — so the band must cover whatever it is shaping.
  *
- * Unlike [NoiseHeightmap] a column here is not one run: noise can be solid, hollow, solid again, and
- * [Spans] carries all of it. Scales are per-axis, so squashing [scaleY] draws caves out into wide flat
- * chambers while stretching it gives shafts.
+ * Unlike [NoiseHeightmap] a column is not one run. Scales are per-axis, so squashing [scaleY] draws caves
+ * into wide flat chambers while stretching it gives shafts.
  */
 data class Noise3D(
     val seed: Long,

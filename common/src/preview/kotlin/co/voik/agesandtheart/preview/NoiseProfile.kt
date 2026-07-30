@@ -5,17 +5,14 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import net.minecraft.world.level.levelgen.synth.NormalNoise
 
 /**
- * What fraction of a volume each [NoiseCharacter] leaves solid at a given threshold — the readout to
- * consult *before* tuning a [co.voik.agesandtheart.worldgen.field.Noise3D], for the same reason the
- * terrain preview reports its weathering distribution.
+ * What fraction of a volume each [NoiseCharacter] leaves solid at a given threshold — consult it *before*
+ * tuning a [co.voik.agesandtheart.worldgen.field.Noise3D].
  *
- * Guessing thresholds does not work, because the number means something different in every mode.
- * `NormalNoise` clusters hard around zero, so a plain threshold of 0 keeps about half the volume while
- * a *ridged* one — which peaks exactly where the raw noise is near zero — keeps almost all of it, and
- * only starts making tunnels up in the nineties. That inversion is not obvious from the formula and it
- * is expensive to find by rebuilding worlds.
+ * **The same number means something different in every mode.** `NormalNoise` clusters hard around zero, so
+ * a plain threshold of 0 keeps about half the volume where a *ridged* one — peaking exactly where the raw
+ * noise is near zero — keeps almost all of it and only makes tunnels up in the nineties.
  *
- * Read the table by picking the character you want and the fill you want, not by picking a threshold.
+ * Read the table by picking the character and the fill you want, never by picking a threshold.
  */
 fun main() {
     println("Fill fraction by threshold — ${SAMPLES / 1000}k samples per character, octaves $OCTAVES\n")

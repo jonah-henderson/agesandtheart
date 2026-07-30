@@ -5,16 +5,12 @@ import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 
 /**
- * Divides the world's *rock* between several shapes, so an Age can be two terrains at once.
+ * Divides the world's *rock* between several shapes, so an Age can be two terrains at once — the
+ * machinery behind set-valued aspects (design §3.4), where a contradiction is satisfied **by coexistence**
+ * rather than by one term winning and the other going silently missing.
  *
- * This is one of three things that read the same [RegionMap] — the others paint the surface and choose
- * the biomes — and it is the machinery behind set-valued aspects (`notes/the-art-design.md` §3.4). Where a
- * writer names two terrains, the contradiction is satisfied **by coexistence** — plains running into
- * sheer walls — rather than by one term winning and the other going silently missing. It is the reason
- * tags were chosen over bipolar axes in the first place, so it is worth more than its size suggests.
- *
- * **A member is asked for a column only when it wins it.** Regions therefore cost one map lookup plus
- * one winner's evaluation — not the sum of everything the Age could have been.
+ * **A member is asked for a column only when it wins it**, so this costs one map lookup plus one winner's
+ * evaluation, not the sum of everything the Age could have been.
  */
 data class Regions(
     val members: List<TerrainField>,

@@ -30,23 +30,12 @@ import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
 /**
- * Builds every codec the mod registers, and nothing else.
+ * Builds every codec the mod registers, and nothing else. **Loading the class is the test** — a companion
+ * initialises top to bottom, so a field declared below one that reads it is null at that moment, and the
+ * assertions below exist only to stop the compiler eliding the loads.
  *
- * It exists because of a specific bug that reached a server boot. A codec lives in a companion object,
- * a companion initialises top to bottom, and a field declared *below* one that reads it is simply null
- * at that moment — so `AgeChunkGenerator.CODEC` came out referencing a null helper and the game
- * refused to start. Nothing caught it earlier because no offline check had reason to load those
- * classes: [RecipeCheck] deliberately stays registry-free and so never touches a generator.
- *
- * **Loading the class is the test.** The assertions below exist only to stop the compiler eliding the
- * loads; if one of these companions is misordered, the check dies on the way in rather than failing an
- * assertion.
- *
- * Two things it deliberately does not do. It does not bootstrap *lightly* — a codec that mentions a
- * block needs the registries, so this pays a few seconds where the other checks pay milliseconds, which
- * is still far cheaper than finding out from a server. And it does not iterate `AgeContent`, because that
- * object eagerly constructs an `Item` and an item cannot be built once the registries have frozen. The
- * cost is that this list is maintained by hand: **add a codec, add it here.**
+ * It does not iterate `AgeContent`, which eagerly constructs an `Item` that cannot be built once the
+ * registries have frozen. The cost is a hand-maintained list: **add a codec, add it here.**
  */
 @Tags(NEEDS_REGISTRIES)
 class CodecCheck : FunSpec({
@@ -78,13 +67,9 @@ class CodecCheck : FunSpec({
     }
 
     /**
-     * One real write-and-read per placement kind — the exception to this file's "loading the class is the
-     * test" rule, and it earns the exception.
-     *
-     * Every other codec listed above is reached by something that already round-trips it: a preset uses it,
-     * and [RecipeCheck] writes that preset out and reads it back. A placement kind no preset has adopted yet
-     * has nothing doing that for it, so a field named wrong or a getter pointed at the wrong property would
-     * sit undiscovered until the first Age using it failed to load — which is to say, in a save.
+     * One real write-and-read per placement kind — the exception to "loading the class is the test", and
+     * it earns it: no preset has adopted these yet, so nothing else round-trips them and a field named
+     * wrong would wait for the first Age that used one.
      */
     test("placements survive a write") {
         MinecraftRegistries.ensureStoodUp()
@@ -108,16 +93,11 @@ class CodecCheck : FunSpec({
     }
 
     /**
-     * `Chance` and `Choose`, written and read back — the same exception, earned the same way.
+     * `Chance` and `Choose`, written and read back — the same exception, earned the same way. `Choose` has
+     * the more breakable shape: a nested list of records whose `weight` is optional, so the round-trip
+     * includes one alternative stating a weight and one leaving it out.
      *
-     * No preset composes either yet (they are capability ahead of vocabulary, like `Terrain.ALTITUDE`), so
-     * nothing else in the build writes them and a field named wrong would wait for the first Age that used
-     * one. `Choose` has the more breakable shape of the two: a nested list of records whose `weight` is
-     * optional, so the round-trip below deliberately includes one alternative that states a weight and one
-     * that leaves it out.
-     *
-     * Their *behaviour* — reproducibility, counts, weights, probabilities — is `ChooseCheck`'s business, not
-     * this file's. This only asks whether the bytes survive.
+     * Their *behaviour* is `ChooseCheck`'s business. This asks only whether the bytes survive.
      */
     test("the randomised combinators survive a write") {
         MinecraftRegistries.ensureStoodUp()
@@ -137,14 +117,10 @@ class CodecCheck : FunSpec({
     }
 
     /**
-     * `Fault` and `Rift`, written and read back — and the case for them is stronger than for the two above.
-     *
-     * Both embed a whole `RegionMap` rather than a scalar, so a getter pointed at the wrong property or a
-     * field name that drifts loses an Age's *territories* and not just a number. And `Rift` is the toolkit's
-     * only node with a map and no children, so it is the one whose codec is built the other way round (a
-     * plain `CODEC`, not a `codec(self)`) — a mistake there would be invisible until an Age used one.
-     *
-     * `FaultCheck` owns their behaviour. This only asks whether the bytes survive.
+     * `Fault` and `Rift`, written and read back — a stronger case than the two above: both embed a whole
+     * `RegionMap`, so a drifting field name loses an Age's *territories* rather than a number, and `Rift`
+     * is the toolkit's only node with a map and no children, so its codec is built the other way round (a
+     * plain `CODEC`, not a `codec(self)`).
      */
     test("the fault nodes survive a write") {
         MinecraftRegistries.ensureStoodUp()

@@ -10,17 +10,13 @@ import co.voik.agesandtheart.worldgen.field.TerrainField
  * Hills hollowed out from beneath by a network of tunnels and chambers — the preset that exists to show
  * what [NoiseCharacter.RIDGED] is for, and the first Age whose interesting half is underground.
  *
- * **The caves are shape, not carving, and that is the point.** Everything hollow the toolkit could make
- * until now came from a [co.voik.agesandtheart.worldgen.carver.Weathering] pass or a vanilla carver —
- * stateful walks bolted on after the terrain existed, because a heightmap column is one solid run and
- * cannot express a roof. Ridged noise gives a column as many runs as it likes, so the caves are in the
- * field tree itself: composable, resizable, and visible in the offline preview like any other shape.
+ * **The caves are shape, not carving.** A heightmap column is one solid run and cannot express a roof,
+ * so everything hollow used to need a carver; ridged noise gives a column as many runs as it likes, and
+ * the caves live in the field tree — composable, resizable, and visible in the offline preview.
  *
- * Ridged noise peaks along its zero crossings, which are continuous surfaces rather than isolated
- * lumps, so thresholding near the top of the range leaves a connected network rather than a scatter of
- * pockets. Read as rock that would be a lattice of veins; subtracted from rock it is somewhere to walk.
- * [CAVE_SCALE_Y] is squashed against the horizontal ones deliberately: chambers come out wider than
- * they are tall, which reads as caves rather than as shafts.
+ * Ridged noise peaks along its zero crossings, which are continuous surfaces rather than isolated lumps,
+ * so thresholding near the top of the range leaves a connected network. [CAVE_SCALE_Y] is squashed
+ * against the horizontal scales, so chambers come out wider than tall and read as caves, not shafts.
  */
 object CavernField {
 

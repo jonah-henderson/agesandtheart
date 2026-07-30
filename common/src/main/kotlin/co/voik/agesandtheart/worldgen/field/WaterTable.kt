@@ -14,24 +14,17 @@ import kotlin.math.roundToInt
  * Whether a hollow opened underground is flooded or dry — an Age's aquifer, mirroring the shape of
  * vanilla's rather than inventing one, because the behaviour is subtler than "water below a line".
  *
- * The decision is **three-way**, not a water height:
- * - **The sea**, where a *floodedness* noise runs high. Near the surface of a submerged column this is
- *   nearly always the answer, which is what stops a carver hollowing out ground beneath an ocean and
- *   leaving air with water resting on it.
- * - **A perched pocket** at a local level, where floodedness is middling.
- * - **Bone dry** otherwise — and deep underground this is the *common* case.
+ * The decision is **three-way, not a water height**: the sea where a *floodedness* noise runs high, a
+ * perched pocket where it is middling, bone dry otherwise — and deep underground dry is the common case.
  *
- * The two thresholds slide with depth. Just under a submerged surface they sit low, so water almost
- * always wins; [dryingDepth] blocks further down they rise, so only strongly flooded rock holds water.
- * Under *land* they start deep immediately — which is why caves below a hill run dry even when they are
- * beneath sea level. Without that third branch every cave below the water line floods, however the
- * levels are tuned; the dryness is a threshold, not a height.
+ * The two thresholds slide with depth: low just under a submerged surface so water almost always wins,
+ * rising [dryingDepth] blocks down so only strongly flooded rock holds water, and starting deep under
+ * *land*, which is why caves below a hill run dry even beneath sea level. **Without that third branch
+ * every cave below the waterline floods however the levels are tuned** — dryness is a threshold, not a
+ * height.
  *
- * We can do one thing vanilla cannot: its surface comes from `preliminarySurfaceLevel`, an estimate off
- * the noise router, while ours is read from the field tree and is exact.
- *
- * The class is the serialisable *description*; [aquiferFor] mints the short-lived per-carve object that
- * answers queries, since that one carries state and must not be shared between chunk workers.
+ * The class is the serialisable *description*; [aquiferFor] mints the short-lived per-carve object, which
+ * carries state and must not be shared between chunk workers.
  */
 data class WaterTable(
     val fluid: BlockState,
@@ -48,14 +41,9 @@ data class WaterTable(
     val firstOctave: Int,
     val amplitudes: List<Double>,
     /**
-     * Whether everything below the waterline simply floods, with no dry pockets anywhere.
-     *
-     * What `flooded_caves` always claimed and never did: it returned *no* table, and the generator's
-     * substitute for an absent one is the same wandering three-way table `caves` gets — so the pair
-     * differed by a noise seed and nothing else, which a walk found and could not explain.
-     *
-     * A flag rather than a tuned set of thresholds because it is a different *claim*, not an extreme of the
-     * same one: "everything down there is underwater" has no wet-and-dry distribution to describe.
+     * Whether everything below the waterline simply floods, with no dry pockets anywhere. A flag rather
+     * than a tuned set of thresholds, because it is a different *claim* and not an extreme of the same
+     * one: "everything down there is underwater" has no wet-and-dry distribution to describe.
      */
     val floods: Boolean = false,
 ) {
@@ -156,18 +144,13 @@ data class WaterTable(
 
     companion object {
         /**
-         * Several tables, each answering for its own territory — **hydrology divides** (Jonah's call,
-         * design §3.4, reversing an earlier decision).
+         * Several tables, each answering for its own territory — **hydrology divides** (design §3.4).
          *
-         * The old rule kept one table for the whole Age, on the grounds that a stepped water level would
-         * read as a bug rather than as impossible geometry. Three things retired that argument: a table is a
-         * *threshold* consulted only where something is being carved, not a height, so a division cannot
-         * produce a cliff of water; the seam is a knife edge 85% of the time now, so the boundary is visible
-         * in the rock and a flooded gallery ending at a sheared face reads as deliberate; and
-         * [Aquifer.shouldScheduleFluidUpdate] already lets water settle where a wet pocket meets a dry one.
+         * A division cannot produce a cliff of water, because a table is a *threshold* consulted only
+         * where something is carved rather than a height; the seam is visible in the rock anyway; and
+         * [Aquifer.shouldScheduleFluidUpdate] lets water settle where a wet pocket meets a dry one.
          *
-         * Without this, `caves` beside `flooded_caves` divided into territories identical by construction —
-         * the resolver believed it had split the world and the ground was uniform.
+         * Without this, `caves` beside `flooded_caves` divided into territories identical by construction.
          */
         fun aquiferFor(tables: List<WaterTable>, field: TerrainField, territories: RegionMap): Aquifer =
             tables.singleOrNull()?.aquiferFor(field)
@@ -197,11 +180,9 @@ data class WaterTable(
 
         /**
          * An Age's default: vanilla-shaped, seeded per Age so two Ages are not wet in the same places.
-         *
-         * Takes the sea's representative substance rather than asking per column, because a table is
-         * one answer for the whole Age by design — see `AgeGeneration.waterTableOf`. So an Age whose sea
-         * is water beside lava has water in its rock throughout, which is the sane reading: the
-         * impossible part is meant to be the surface, not the groundwater.
+         * Takes the sea's *representative* substance rather than asking per column, so an Age whose sea is
+         * water beside lava has water in its rock throughout — the impossible part is meant to be the
+         * surface, not the groundwater.
          */
         fun matching(seaFill: SeaFill, seaLevel: Int, seed: Long = 0L) = WaterTable(
             fluid = seaFill.representative.takeUnless { it.isAir } ?: Blocks.WATER.defaultBlockState(),

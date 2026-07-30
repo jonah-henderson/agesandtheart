@@ -16,24 +16,16 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * Two dense overcast cloud layers for Ages (Spire). Replaces vanilla cloud rendering.
+ * Two dense overcast cloud layers for the Spire, replacing vanilla cloud rendering. The lower deck hides
+ * the hanging spires and the upper one the peaks, leaving the walkable island bodies in the gap between.
  *
- * The lower deck sits above the sea and hides the lower reaches of the hanging spires; the upper
- * deck hides the peaks — leaving the walkable island bodies in the clear gap between them. Each
- * deck is a flat, near-opaque slab about vanilla-cloud thick (top + bottom surfaces + walled edges
- * so it isn't hollow), shaded a little lighter on top than underneath.
+ * Each deck is a flat near-opaque slab with walled edges, coloured by slowly-animating value noise sampled
+ * in world space so it roils between two tones. The decks drift at different speeds and sample different
+ * regions, so the two never mirror each other.
  *
- * Colour comes from slowly-animating value noise (sampled in world space, then contrast-curved) so
- * each deck roils between two tones: the upper deck between cool blue-grey dark spots and light
- * grey; the lower deck between near-black and lighter grey foam. Each deck drifts at its own speed
- * and samples a different region of the noise field, so the two layers never mirror each other. The
- * surfaces stay flat — no lumps.
- *
- * The decks write depth (depthMask on) so they properly occlude the terrain and each other — without
- * that, looking down through the upper deck from above shows everything below it.
- *
- * Unlike the sky (renderSky, raw matrices), renderClouds provides a MatrixStack, and that is the
- * transform which keeps the layers world-horizontal as the camera turns.
+ * **The decks write depth**, or looking down through the upper one shows everything below it. And unlike
+ * `renderSky`, `renderClouds` provides a `MatrixStack` — that is the transform keeping the layers
+ * world-horizontal as the camera turns.
  */
 object AgeCloudRenderer : DimensionRenderingRegistry.CloudRenderer {
     private const val RADIUS = 512.0f
@@ -58,24 +50,16 @@ object AgeCloudRenderer : DimensionRenderingRegistry.CloudRenderer {
     private const val DECK_LIFT = 0.5
 
     /**
-     * World Y of the upper deck. Also this dimension's registered cloud level (see [AgeDimensionEffects])
-     * and the height [AgeSkyRenderer]'s star-reveal band is built around — one fact, named once, because
-     * three copies of it would drift apart the first time the deck is retuned.
-     *
-     * **Unmoved when the archipelago floated up, because the islands came to meet it.** Measured, the island
-     * tops now reach a ninetieth percentile of 248 with about one column in twenty carrying on past this —
-     * which is what "hides the peaks" below was always meant to describe and, at a median top of 157, never did.
+     * World Y of the upper deck — also this dimension's registered cloud level and the height the
+     * star-reveal band is built around. **One fact, named once**, since three copies would drift apart the
+     * first time the deck is retuned.
      */
     const val UPPER_DECK_HEIGHT = 265.0
 
     /**
-     * World Y of the lower deck: level with the islands' own waist, so it hides the hanging spires beneath them
-     * and leaves the walkable bodies in the clear gap up to [UPPER_DECK_HEIGHT].
-     *
-     * **Rides with the terrain.** It was 145 against a deck slab at y=148, and `Terrain.ALTITUDE` lifting the
-     * archipelago 72 blocks left it below the deepest root — a cloud floor under everything instead of clouds
-     * lapping at the island's edge. Raised by the same 72, which keeps the arrangement Jonah has been walking
-     * around rather than inventing a new one.
+     * World Y of the lower deck: level with the islands' waist, so it hides the hanging spires and leaves
+     * the walkable bodies in the gap up to [UPPER_DECK_HEIGHT]. **Rides with the terrain** — if the
+     * archipelago is lifted, this must move by the same amount or it becomes a floor under everything.
      */
     const val LOWER_DECK_HEIGHT = 217.0
 

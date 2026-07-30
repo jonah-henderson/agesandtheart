@@ -16,13 +16,8 @@ import net.minecraft.world.level.biome.BiomeSource
 
 /**
  * A walkable sampler of the shape vocabulary: one composition per station, strung out along +X from
- * the spawn so they can be compared side by side. Its point is *composability*, not scenery — each
- * station past the first is two or more fields combined, so what is on show is whether the combinators
- * behave when the pieces underneath them differ.
- *
- * Read from the origin outward: a bare primitive, another bare primitive, then a polyhedron that is
- * nothing but planes, a primitive sliced by a plane, a primitive clipped to another, and finally one
- * hollowed out by another.
+ * spawn. Its point is *composability* rather than scenery — each station past the first combines two or
+ * more fields, so what is on show is whether the combinators behave when their pieces differ.
  */
 object ShapesField {
 
@@ -110,9 +105,8 @@ object ShapesField {
     }
 
     /**
-     * Station 5 — a [Box] with a **lying** [Cylinder] taken out of it: a true arched opening you can
-     * walk through along the row, rather than the upright bore this station started as. Centring the
-     * shaft on the ground leaves the top half as the arch.
+     * Station 5 — a [Box] with a **lying** [Cylinder] taken out of it: an arched opening you can walk
+     * through along the row. Centring the shaft on the ground leaves the top half as the arch.
      */
     private fun arch(): TerrainField {
         val block = Box(

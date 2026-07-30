@@ -15,16 +15,11 @@ import net.minecraft.world.level.levelgen.carver.WorldCarver
 import org.apache.commons.lang3.mutable.MutableBoolean
 
 /**
- * Whether a block is cut away, as a pure function of where it is.
+ * Whether a block is cut away, as a pure function of where it is. The loop is the fiddly part — the mask,
+ * the aquifer, the per-source-chunk seeding — so it is shared and the *judgement* is not.
  *
- * The two rules that exist are not variations on one idea — [Weathering] wears a mass back to spires,
- * [Porosity] riddles solid rock with pockets — but they are carved out by the same loop, and that loop is
- * the fiddly part: the mask, the aquifer, the per-source-chunk seeding and the position-purity argument in
- * [RuleCarver]. So the loop is shared and the *judgement* is not.
- *
- * Purity is the load-bearing property, not tidiness. Nothing an implementation does may touch a chunk, a
- * registry or a running server, which is what lets the terrain preview evaluate the **exact object** that
- * generates and therefore be unable to lie about it.
+ * **Purity is load-bearing, not tidiness**: nothing an implementation does may touch a chunk, a registry
+ * or a running server, which is what lets the terrain preview evaluate the exact object that generates.
  */
 interface CarvingRule {
     /** The band this rule works in; rock outside it is untouched. */
@@ -36,38 +31,11 @@ interface CarvingRule {
 }
 
 /**
- * Cuts rock away wherever a [CarvingRule] says so.
+ * Cuts rock away wherever a [CarvingRule] says so — the loop, not the judgement.
  *
- * Was `ErosionCarver`, and named for the one rule it had. It is the loop rather than the judgement, so it
- * is named for that now.
- *
- * The rule it was written for — wind erosion that leaves spires, approximated by the mechanism that
- * actually shapes rock rather than by simulating air:
- *
- * Erosion does not carve spires — **differential** erosion does. A hoodoo is soft rock that happened to
- * be capped by something harder; its neighbours had no such shield and went. So this asks of the *rock*,
- * not of the shape: how well does the stone here hold out against the wind? Where it holds, a spire is
- * left standing its full height. Where it does not, the column goes entirely.
- *
- * **That the decision is made per column, and barely varies with height, is the whole trick.** A
- * threshold that slides smoothly up a column crosses it exactly once, and one crossing per column is a
- * heightmap — gentle slopes, never a vertical face. Keeping the judgement essentially two-dimensional and
- * extruding it is what produces sheer walls and standing pillars instead.
- *
- * Two touches of real aeolian behaviour give it character, deliberately kept *weak* so they modulate the
- * shape rather than govern it:
- * - **Abrasion bites low**, since wind-borne grains travel close to a surface. A spire is therefore
- *   pinched at the waist and broader at the cap — the pedestal profile of a mushroom rock.
- * - **Wind combs rock into ridges along its own direction.** Yardangs are streamlined *parallel* to the
- *   prevailing wind, so resistance is stretched [WIND_STRETCH]× down the wind axis: survivors come out as
- *   aligned fins and files of pillars rather than an even scatter.
- *
- * The judgement itself lives in [Weathering], which is pure and therefore previewable offline.
- *
- * **Being a pure function of position has a pleasant consequence:** it needs no neighbourhood and cannot
- * seam, since two chunks asking about one block must get the same answer. So it runs *once*, for the
- * chunk being built, rather than once per surrounding source chunk — which is what keeps a per-block test
- * affordable.
+ * **Because a rule is a pure function of position it cannot seam**, two chunks asking about one block
+ * necessarily agreeing. So this runs *once* for the chunk being built rather than once per surrounding
+ * source chunk, which is what keeps a per-block test affordable.
  */
 class RuleCarver(
     codec: Codec<CarverConfiguration>,

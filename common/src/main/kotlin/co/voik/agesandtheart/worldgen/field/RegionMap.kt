@@ -7,23 +7,13 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import kotlin.math.ln
 
 /**
- * How an Age divides itself between the several presets a set-valued aspect names — the territories, and
- * nothing else.
+ * How an Age divides itself between the presets a set-valued aspect names — the territories, and nothing
+ * else. Separate from everything that uses it, because several do and they must agree to the column, or
+ * one seam lands in three slightly different places and reads as three faults.
  *
- * Deliberately separate from anything that *uses* it, because more than one thing does: [Regions] asks
- * it which shape lays the rock, the surface rule asks it which dressing paints, and the biome source
- * asks it which biomes belong here. They must all agree to the column, or a seam would land in three
- * slightly different places and read as three faults rather than one boundary.
- *
- * Each member gets its own low-frequency noise and the loudest claim at a column wins. Argmax rather
- * than a threshold, deliberately: cutting a single noise field into intervals would make the territories
- * *bands*, so two members either side of a third could never meet, where argmax gives an organic mosaic in
- * which every pair shares a border.
- *
- * How much ground each member gets is [shares]. Equal shares divide the world evenly, which is what argmax
- * does unaided; an uneven set tilts the claims so one member's territories merge into a majority while
- * another's survive as scarce islands around its own loudest points. The mosaic character is the same
- * either way — only the level at which each member wins moves.
+ * Each member gets its own low-frequency noise and the loudest claim at a column wins. **Argmax rather
+ * than a threshold**: cutting one noise field into intervals would make the territories *bands*, so two
+ * members either side of a third could never meet. Argmax gives a mosaic where every pair shares a border.
  */
 data class RegionMap(
     val members: Int,
@@ -37,21 +27,15 @@ data class RegionMap(
      */
     val blend: Int,
     /**
-     * Where this map's territories sit. Two aspects partitioning with the same seed but different origins
-     * get boundaries near each other without being coincident — the ground changing, then shortly after
-     * the vegetation, which is how landscapes tend to behave.
+     * Where this map's territories sit. Two aspects with the same seed but different origins get
+     * boundaries near each other without being coincident — the ground changing, then the vegetation.
      */
     val originX: Int,
     val originZ: Int,
     val seed: Long,
     /**
-     * How much ground each member gets, relative to the others — empty meaning an equal division.
-     *
-     * Not a fraction but a weight: `[64, 1]` is a dominant territory with scarce islands of the second,
-     * and what a share of the world that works out to depends on how many members there are. The resolver
-     * derives these from how strongly each word claims its preset (design §3.4), so a strong association
-     * takes most of the map and a weak one turns up rarely — which is what makes an Age worth walking
-     * across rather than looking at from the arrival point.
+     * How much ground each member gets relative to the others — empty meaning an equal division. A weight
+     * rather than a fraction: `[64, 1]` is a dominant territory with scarce islands of the second.
      */
     val shares: List<Double> = emptyList(),
 ) {
@@ -73,12 +57,9 @@ data class RegionMap(
     private val dither = XoroshiroRandomSource(seed).forkPositional()
 
     /**
-     * What each member's share adds to its claim, in [ClaimTilt]'s units.
-     *
-     * The log of the share, which is what makes the arithmetic come out exact: tilted claims are
-     * Gumbel-distributed by construction, and the largest of several Gumbels shifted by log-weights wins in
-     * exactly the proportion of those weights. So a share of 64 against a share of 1 really does take 64
-     * columns in 65, with no per-Age calibration and no dependence on the member count.
+     * What each member's share adds to its claim, in [ClaimTilt]'s units — **the log of the share**, which
+     * is what makes the arithmetic exact: tilted claims are Gumbel-distributed by construction, and the
+     * largest of several Gumbels shifted by log-weights wins in exactly the proportion of those weights.
      */
     private val tilts = shares.map { share -> ln(share.coerceAtLeast(FAINTEST_SHARE)) }
         .ifEmpty { List(members.coerceAtLeast(1)) { 0.0 } }
@@ -95,22 +76,15 @@ data class RegionMap(
     }
 
     /**
-     * How far this column stands from the nearest seam, in blocks — infinite where there is only one
-     * territory and so no seam anywhere.
+     * How far this column stands from the nearest seam, in blocks — infinite where there is no seam. The
+     * margin between the top two claims, converted back into blocks; what makes a [Rift] expressible.
      *
-     * **The number [memberAt] has always computed and thrown away**, and exposing it is what makes a rift
-     * expressible: "how near am I to a boundary" becomes a query, so a field can claim a band along one
-     * (see [Rift]). It is the margin between the top two claims, converted back into blocks by the same
-     * arithmetic that keeps [blend] an honest distance rather than a distance in tilted units.
+     * **Proportionate rather than surveyed**, like [blend]: the conversion assumes the claim noise moves
+     * at its local rate, so this is exact in the bulk and a little narrow in the tails. Good enough for "a
+     * chasm about thirty blocks across", not for promising thirty-one.
      *
-     * Read on the same footing as [blend], which is to say **proportionate rather than surveyed**: the
-     * conversion assumes the claim noise moves at its local rate, so this is exact in the bulk of the
-     * distribution and a little narrow out in its tails, where hardly any seam falls. Good enough to say
-     * "a chasm about thirty blocks across"; not good enough to promise thirty-one.
-     *
-     * Measured **before** the dither in [memberAt] frays the boundary, so it is a distance to where the
-     * seam *is* rather than to whichever side of it a given column happened to fall on. That makes it
-     * symmetric, which is what lets one band straddle a seam instead of tracking one member's edge.
+     * Measured **before** [memberAt]'s dither frays the boundary, so it is symmetric about where the seam
+     * *is* — which is what lets one band straddle it rather than tracking one member's edge.
      */
     fun blocksFromSeamAt(worldX: Int, worldZ: Int): Double {
         if (claims.size <= 1) return Double.POSITIVE_INFINITY
@@ -119,19 +93,11 @@ data class RegionMap(
 
     /**
      * Who won a column, who came second, and by how much — the argmax, written once because both public
-     * questions above need it and neither wants the other's answer.
+     * questions need it. It allocates, which is a considered trade: [memberAt] is asked per block and
+     * already pays a noise sample per member, and the object never escapes.
      *
-     * **It allocates, and that is a considered trade rather than an oversight.** [memberAt] is asked *per
-     * block* (see [Substance.blockAt]), where it already pays one noise sample per member — so a
-     * short-lived object of three fields is a couple of percent of what that caller was spending anyway,
-     * and usually nothing at all, the object never escaping the method that made it. The alternative was
-     * two copies of the loop, which is the more expensive kind of cost. If it ever shows up in a bench,
-     * the fix is a thread-confined per-column memo of the whole answer — the shape `BelowTerrain` already
-     * uses for depth — which would save far more than this costs.
-     *
-     * [contested] is in **claim units, not blocks**, deliberately: it is what [memberAt] compares against
-     * [margin], and converting here would put a multiply and a divide between two numbers that used to be
-     * compared directly. [blocksFromSeamAt] does the conversion instead.
+     * [contested] is in **claim units, not blocks** — that is what [memberAt] compares against [margin].
+     * [blocksFromSeamAt] does the conversion.
      */
     private fun contestAt(worldX: Int, worldZ: Int): Contest {
         val sampleX = (worldX - originX) / stretch
@@ -220,21 +186,15 @@ data class RegionMap(
 /**
  * The monotone map from a raw claim to the scale a share is expressed in.
  *
- * The problem it solves: a share is only meaningful as *ground covered*, and how much ground a biased claim
- * wins depends on the shape of the claim noise's own distribution — which vanilla's `NormalNoise` does not
- * publish, and which is not any standard distribution anyway. Guessing at it would make "a quarter of the
- * world" mean whatever it happened to mean.
- *
- * So the distribution is **measured** ([CLAIMS] is the claim value at each of [PROBABILITIES], sampled over
- * millions of columns by `./gradlew :common:claimprofile`) and every claim is mapped first to its own percentile
- * and then to a **Gumbel** value. That second step is what buys exactness: the largest of several Gumbel
- * values, each shifted by the log of a weight, wins in precisely the proportion of those weights. No
- * per-Age calibration, no dependence on how many members there are.
+ * A share is only meaningful as *ground covered*, and how much ground a biased claim wins depends on the
+ * claim noise's own distribution, which `NormalNoise` does not publish and which is not standard anyway.
+ * So it is **measured** ([CLAIMS] at each of [PROBABILITIES], by `./gradlew :common:claimprofile`), and
+ * every claim maps first to its percentile and then to a **Gumbel** value — the largest of several
+ * Gumbels shifted by log-weights wins in precisely the proportion of those weights.
  *
  * **The table is only true of the noise it was measured against.** Change [RegionMap]'s octave or
- * amplitudes and every share drifts. `RegionShareCheck` is what notices — it asserts each share against the
- * ground it actually takes — and `./gradlew :common:claimprofile` is what prints a replacement table. The
- * two used to be one file; the measuring half is a tool you run when the asserting half fails.
+ * amplitudes and every share drifts; `RegionShareCheck` is what notices, and `claimprofile` prints a
+ * replacement.
  */
 object ClaimTilt {
     /**
@@ -262,11 +222,8 @@ object ClaimTilt {
 
     /**
      * [claim] on the tilted scale, interpolated between the knots and **extrapolated** past the outermost.
-     *
-     * Extrapolated rather than clamped, which was a real bug rather than a nicety: clamping flattens the top
-     * of the scale, and the top of the scale is precisely where a scarce territory has to outbid a dominant
-     * one. Flattened, a share of one against sixty-four came out at half the ground it asked for, because it
-     * could never bid high enough to win the columns that were rightfully its own.
+     * Extrapolated rather than clamped: clamping flattens the top of the scale, which is precisely where a
+     * scarce territory has to outbid a dominant one, and it came out at half the ground it asked for.
      */
     fun of(claim: Double): Double {
         val knot = segmentBelow(claim)

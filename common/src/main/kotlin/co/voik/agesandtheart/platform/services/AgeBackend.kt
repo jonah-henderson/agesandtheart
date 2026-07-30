@@ -5,12 +5,8 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 
 /**
- * Platform abstraction for runtime dimension creation — the one part of the Age mechanic that
- * genuinely differs per loader.
- *
- * Runtime dimensions are done with Fantasy on Fabric (see `FabricAgeBackend`), which is
- * Fabric-only; NeoForge has no backend yet (`NeoForgeAgeBackend` is an unsupported stub).
- * Loaded via [co.voik.agesandtheart.platform.Services], like [Platform].
+ * Platform abstraction for runtime dimension creation — the one part of the Age mechanic that genuinely
+ * differs per loader. Fantasy on Fabric, which is Fabric-only; NeoForge has an unsupported stub.
  */
 interface AgeBackend {
     /** Whether this loader can create runtime dimensions yet. */
@@ -24,10 +20,9 @@ interface AgeBackend {
     fun openAge(server: MinecraftServer, id: ResourceLocation): ServerLevel?
 
     /**
-     * Unregisters the Age dimension with the given [id] and discards its saved chunks, returning whether
-     * it worked. Callers are responsible for getting players out first — see
-     * [co.voik.agesandtheart.age.Ages.delete], which owns that policy since it needs no loader-specific
-     * code. Must be called on the server thread.
+     * Unregisters the Age dimension [id] and discards its saved chunks, returning whether it worked.
+     * Callers get players out first — see [co.voik.agesandtheart.age.Ages.delete], which owns that policy.
+     * Must be called on the server thread.
      */
     fun deleteAge(server: MinecraftServer, id: ResourceLocation): Boolean
 }
