@@ -76,35 +76,53 @@ class BookScreen(
 
         var y = top + TEXT_Y
         linesOf().forEach { line ->
-            scaled(graphics, x, y, SCRIPT_SCALE) {
-                graphics.text(font, KnownWords.scriptText(line), 0, 0, INK, false)
+            var column = x
+            line.forEach { gloss ->
+                scaled(graphics, column, y, SCRIPT_SCALE) {
+                    graphics.text(font, gloss.script, 0, 0, INK, false)
+                }
+                scaled(graphics, column, y + scriptHeight(), READING_SCALE) {
+                    graphics.text(font, gloss.reading, 0, 0, FAINT_INK, false)
+                }
+                column += gloss.width
             }
-            y += (font.lineHeight * SCRIPT_SCALE).toInt() + 1
-            scaled(graphics, x, y, READING_SCALE) {
-                val read = line.joinToString(" ") { WordNames.readable(it).string }
-                graphics.text(font, read, 0, 0, FAINT_INK, false)
-            }
-            y += (font.lineHeight * READING_SCALE).toInt() + PHRASE_GAP
+            y += scriptHeight() + readingHeight() + PHRASE_GAP
         }
     }
 
+    private fun scriptHeight() = (font.lineHeight * SCRIPT_SCALE).toInt() + 1
+
+    private fun readingHeight() = (font.lineHeight * READING_SCALE).toInt()
+
     /**
-     * The words packed into lines that fit the column, so each script line has a reading of its own.
+     * One word set over its own reading.
      *
-     * Measured unscaled, since that is what the font reports; [SCRIPT_SCALE] is applied when drawing.
+     * [width] is the wider of the two at their own scales, so the pair occupies a column and the next pair
+     * starts clear of it — which is what keeps a reading under the phrase it belongs to rather than under
+     * whatever happens to be above it.
      */
-    private fun linesOf(): List<List<Identifier>> {
-        val room = COLUMN_WIDTH / SCRIPT_SCALE
-        val lines = mutableListOf<List<Identifier>>()
-        var line = mutableListOf<Identifier>()
-        words.forEach { word ->
-            val candidate = line + word
-            if (line.isNotEmpty() && font.width(KnownWords.scriptText(candidate)) > room) {
+    private inner class Gloss(word: Identifier) {
+        val script: Component = KnownWords.scriptText(word)
+        val reading: String = WordNames.readable(word).string
+        val width: Int = maxOf(
+            (font.width(script) * SCRIPT_SCALE).toInt(),
+            (font.width(reading) * READING_SCALE).toInt(),
+        ) + GLOSS_GAP
+    }
+
+    /** The glosses packed into lines that fit the column. */
+    private fun linesOf(): List<List<Gloss>> {
+        val lines = mutableListOf<List<Gloss>>()
+        var line = mutableListOf<Gloss>()
+        var used = 0
+        words.map(::Gloss).forEach { gloss ->
+            if (line.isNotEmpty() && used + gloss.width > COLUMN_WIDTH) {
                 lines += line
-                line = mutableListOf(word)
-            } else {
-                line = candidate.toMutableList()
+                line = mutableListOf()
+                used = 0
             }
+            line += gloss
+            used += gloss.width
         }
         if (line.isNotEmpty()) lines += line
         return lines
@@ -158,8 +176,11 @@ class BookScreen(
         const val SCRIPT_SCALE = 0.9f
         const val READING_SCALE = 0.7f
 
-        /** Between one script-and-reading pair and the next. */
+        /** Between one line of glosses and the next. */
         const val PHRASE_GAP = 5
+
+        /** Clear space after a gloss, so adjacent columns do not read as one word. */
+        const val GLOSS_GAP = 4
 
         val PARCHMENT = 0xFFE9DFC3.toInt()
         val EDGE = 0xFF8B7B55.toInt()

@@ -131,11 +131,40 @@ class WritersDeskMenu(
         val original = moved.copy()
         val playerSlots = FIRST_PLAYER_SLOT until slots.size
         val ours = 0 until FIRST_PLAYER_SLOT
+
+        // On a tab with no intake slot, the desk itself is the destination — otherwise shift-clicking a
+        // page on the archive tab has nowhere to go and silently does nothing.
+        if (index in playerSlots && !hasOpenIntake()) {
+            val handed = handToDesk(player, slot, moved) ?: return ItemStack.EMPTY
+            return handed
+        }
+
         val destination = if (index in ours) playerSlots else ours
         if (!moveItemStackTo(moved, destination.first, destination.last + 1, index in ours)) {
             return ItemStack.EMPTY
         }
         if (moved.isEmpty) slot.setByPlayer(ItemStack.EMPTY) else slot.setChanged()
+        return original
+    }
+
+    private fun hasOpenIntake(): Boolean = openTab == SUPPLIES_TAB
+
+    /**
+     * Hands [moved] straight to the desk's stores, the way the intake slot would have.
+     *
+     * @return what was taken, or null if the desk wanted none of it.
+     */
+    private fun handToDesk(player: Player, slot: Slot, moved: ItemStack): ItemStack? {
+        val serverPlayer = player as? ServerPlayer ?: return null
+        val desk = deskOf(serverPlayer) ?: return null
+        val original = moved.copy()
+        val result = DeskIntake.offer(desk, moved)
+        if (!result.took) return null
+        slot.setByPlayer(result.remainder)
+        if (!result.returned.isEmpty && !player.inventory.add(result.returned)) {
+            player.drop(result.returned, false)
+        }
+        DeskCommands.sync(serverPlayer, this, desk)
         return original
     }
 
