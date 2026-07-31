@@ -2,9 +2,6 @@
   "item.agesandtheart.descriptive_book": "Descriptive Book",
   "item.agesandtheart.page": "Page",
   "item.agesandtheart.notebook": "Notebook",
-  "item.agesandtheart.notebook.gathered": "Gathered %s pages",
-  "item.agesandtheart.notebook.tipped_out": "Tipped out %s pages",
-  "item.agesandtheart.notebook.nothing": "Nothing to gather",
   "toast.agesandtheart.word_learned": "Word Learned",
   "word.agesandtheart.aloft": "aloft",
   "word.agesandtheart.ancient": "ancient",
@@ -99,5 +96,9 @@
   "book.agesandtheart.bound": "This book now leads to %s",
   "book.agesandtheart.no_destination": "That place cannot be reached",
   "book.agesandtheart.same_world": "A linking book leads between worlds, not within one",
-  "item.agesandtheart.fine_ink_bottle": "Fine Ink Bottle"
+  "item.agesandtheart.fine_ink_bottle": "Fine Ink Bottle",
+  "screen.agesandtheart.page": "\"%s\" Page",
+  "toast.agesandtheart.words_learned": "Words Learned",
+  "item.agesandtheart.notebook.empty": "Empty",
+  "item.agesandtheart.notebook.count": "%s pages"
 }

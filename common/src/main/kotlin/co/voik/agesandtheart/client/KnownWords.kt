@@ -5,7 +5,6 @@ import co.voik.agesandtheart.age.word.LexiconPayload
 import co.voik.agesandtheart.age.word.Script
 import co.voik.agesandtheart.age.word.WordNames
 import net.minecraft.client.Minecraft
-import net.minecraft.client.gui.components.toasts.SystemToast
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.FontDescription
 import net.minecraft.network.chat.Style
@@ -20,8 +19,6 @@ import net.minecraft.resources.Identifier
 object KnownWords {
     private var known: Script = Script.NONE
     private val learned = LinkedHashSet<Identifier>()
-
-    private val WORD_LEARNED = SystemToast.SystemToastId()
 
     val script: Script get() = known
 
@@ -65,14 +62,8 @@ object KnownWords {
         return Style.EMPTY.withFont(FontDescription.Resource(font))
     }
 
-    /** `add` rather than `addOrUpdate`: gathering a chest teaches several words, and each is news. */
+    /** One toast that cycles, not one per word — emptying a notebook can teach a dozen at once. */
     private fun announce(word: Identifier) {
-        val minecraft = Minecraft.getInstance()
-        SystemToast.add(
-            minecraft.toastManager,
-            WORD_LEARNED,
-            Component.translatable("toast.agesandtheart.word_learned"),
-            WordNames.readable(word),
-        )
+        WordToast.show(Minecraft.getInstance().toastManager, word)
     }
 }

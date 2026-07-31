@@ -5,6 +5,7 @@ import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.screens.Screen
+import net.minecraft.network.chat.Component
 import net.minecraft.resources.Identifier
 import net.minecraft.world.item.ItemStack
 
@@ -15,7 +16,7 @@ import net.minecraft.world.item.ItemStack
  * Nothing here decides anything — the word was rolled when the page was made and learnt when it was
  * picked up. This is what a page is *for* as an object.
  */
-class PageScreen(private val word: Identifier) : Screen(WordNames.readable(word)) {
+class PageScreen(private val word: Identifier) : Screen(titleFor(word)) {
 
     override fun extractRenderState(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, a: Float) {
         super.extractRenderState(graphics, mouseX, mouseY, a)
@@ -31,13 +32,28 @@ class PageScreen(private val word: Identifier) : Screen(WordNames.readable(word)
         graphics.pose().pushMatrix()
         graphics.pose().translate(middle.toFloat(), (top + SCRIPT_BASELINE).toFloat())
         graphics.pose().scale(SCRIPT_SCALE, SCRIPT_SCALE)
-        graphics.centeredText(font, KnownWords.scriptText(word), 0, 0, INK)
+        centeredNoShadow(graphics, KnownWords.scriptText(word), 0, 0, INK)
         graphics.pose().popMatrix()
 
-        graphics.centeredText(font, WordNames.readable(word), middle, top + NAME_BASELINE, FAINT_INK)
+        centeredNoShadow(graphics, WordNames.readable(word), middle, top + NAME_BASELINE, FAINT_INK)
+    }
+
+    /**
+     * Centred text with no drop shadow.
+     *
+     * `centeredText` has no shadow flag, so the centring is done here and the `text` overload that does
+     * is called directly. Ink on a page does not cast a shadow.
+     */
+    private fun centeredNoShadow(graphics: GuiGraphicsExtractor, text: Component, x: Int, y: Int, colour: Int) {
+        val ordered = text.visualOrderText
+        graphics.text(font, ordered, x - font.width(ordered) / 2, y, colour, false)
     }
 
     companion object {
+        /** Quoted, because the title names the word rather than describing it. */
+        private fun titleFor(word: Identifier): Component =
+            Component.translatable("screen.agesandtheart.page", WordNames.readable(word))
+
         private const val PAGE_WIDTH = 148
         private const val PAGE_HEIGHT = 180
         private const val SCRIPT_BASELINE = 70

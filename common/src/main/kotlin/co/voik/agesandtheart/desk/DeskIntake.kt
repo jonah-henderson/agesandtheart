@@ -2,9 +2,9 @@ package co.voik.agesandtheart.desk
 
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.content.NotebookItem
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.platform.Services
-import net.minecraft.core.component.DataComponents
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
 import net.minecraft.tags.TagKey
@@ -12,7 +12,6 @@ import net.minecraft.world.item.BucketItem
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
-import net.minecraft.world.item.component.ItemContainerContents
 
 /**
  * Putting something into the desk.
@@ -70,8 +69,7 @@ object DeskIntake {
      * is a separate returned item.
      */
     private fun acceptNotebook(desk: WritersDeskBlockEntity, stack: ItemStack): Result {
-        val held = stack.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY)
-            .nonEmptyItemCopyStream().toList()
+        val held = NotebookItem.pagesIn(stack)
         var took = false
         for (page in held) {
             val word = pageWordOf(page) ?: continue
@@ -80,7 +78,7 @@ object DeskIntake {
         }
         if (!took) return Result.untouched(stack)
         val emptied = stack.copyWithCount(1)
-        emptied.set(DataComponents.CONTAINER, ItemContainerContents.EMPTY)
+        emptied.remove(AgeContent.NOTEBOOK_PAGES)
         return Result(stack.copyWithCount(stack.count - 1), emptied, took = true)
     }
 

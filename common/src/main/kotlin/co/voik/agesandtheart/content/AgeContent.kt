@@ -30,6 +30,7 @@ import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.Item
+import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.SoundType
@@ -124,6 +125,17 @@ object AgeContent {
             .setId(ResourceKey.create(Registries.ITEM, LINKING_BOOK_ID))
             .stacksTo(1),
     )
+
+    /**
+     * The pages a notebook holds, oldest first and **uncapped**.
+     *
+     * Not `BUNDLE_CONTENTS`: a bundle's capacity is enforced in a private weight check, which would cap a
+     * notebook at sixty-four pages — a pocket rather than a catalogue.
+     */
+    val NOTEBOOK_PAGES: DataComponentType<List<ItemStack>> = DataComponentType.builder<List<ItemStack>>()
+        .persistent(ItemStack.CODEC.listOf())
+        .networkSynchronized(ItemStack.STREAM_CODEC.apply(ByteBufCodecs.list()))
+        .build()
 
     private val INK_BOTTLE_ID: Identifier = "ink_bottle".location()
 
@@ -234,6 +246,7 @@ object AgeContent {
         "book_words".location() to BOOK_WORDS,
         "book_title".location() to BOOK_TITLE,
         "link_target".location() to LINK_TARGET,
+        "notebook_pages".location() to NOTEBOOK_PAGES,
     )
 
     val items: List<Pair<Identifier, Item>> = listOf(
