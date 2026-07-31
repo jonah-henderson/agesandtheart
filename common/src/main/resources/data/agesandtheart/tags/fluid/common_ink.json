@@ -1,0 +1,11 @@
+{
+  "_comment": [
+    "What the desk accepts as ordinary ink. Reads the convention we publish at c:ink.",
+    "Fine and masterwork ink are NOT tags -- they are our fluids and nothing else, which is what stops",
+    "the upper rungs being satisfied by a modded substitute."
+  ],
+  "replace": false,
+  "values": [
+    "#c:ink"
+  ]
+}

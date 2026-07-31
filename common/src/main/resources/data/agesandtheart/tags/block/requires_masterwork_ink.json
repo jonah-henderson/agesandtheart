@@ -1,0 +1,29 @@
+{
+  "_comment": [
+    "Blocks so potent that only the finest ink can hold them (design 7.1.1: 'a small ink cannot hold a",
+    "mighty one'). This is also the always-on brake on treasure Ages -- a sea of diamonds costs a sea of",
+    "the rarest ink. Other mods extend this with their own materials by adding to the tag.",
+    "Entries are optional-safe: a block from a mod that is not installed is simply skipped."
+  ],
+  "replace": false,
+  "values": [
+    "minecraft:diamond_block",
+    "minecraft:emerald_block",
+    "minecraft:netherite_block",
+    "minecraft:ancient_debris",
+    "minecraft:beacon",
+    "minecraft:conduit",
+    "minecraft:dragon_egg",
+    "minecraft:end_portal_frame",
+    "minecraft:reinforced_deepslate",
+    "minecraft:budding_amethyst",
+    "minecraft:sculk_catalyst",
+    "minecraft:heavy_core",
+    "minecraft:trial_spawner",
+    "minecraft:vault",
+    "minecraft:spawner",
+    "minecraft:bedrock",
+    "minecraft:command_block",
+    "minecraft:barrier"
+  ]
+}

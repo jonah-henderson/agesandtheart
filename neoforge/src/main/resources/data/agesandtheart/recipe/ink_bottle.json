@@ -1,0 +1,20 @@
+{
+  "_comment": "NeoForge dialect of the same recipe -- see the Fabric copy for why this is loader-specific.",
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "group": "agesandtheart_ink",
+  "ingredients": [
+    {
+      "type": "neoforge:components",
+      "items": "minecraft:potion",
+      "components": {
+        "minecraft:potion_contents": { "potion": "minecraft:water" }
+      }
+    },
+    "#c:dyes/black"
+  ],
+  "result": {
+    "id": "agesandtheart:ink_bottle",
+    "count": 1
+  }
+}

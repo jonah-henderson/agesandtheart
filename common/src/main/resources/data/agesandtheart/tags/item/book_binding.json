@@ -1,0 +1,12 @@
+{
+  "_comment": [
+    "What can bind a finished book. c:leathers is a real convention on both loaders, unlike paper and ink.",
+    "Note the leading # -- without it this reads as an item id rather than a tag reference, and an",
+    "optional entry pointing at a nonexistent item fails silently."
+  ],
+  "replace": false,
+  "values": [
+    "minecraft:leather",
+    { "id": "#c:leathers", "required": false }
+  ]
+}

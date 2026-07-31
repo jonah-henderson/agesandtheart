@@ -1,0 +1,12 @@
+{
+  "_comment": "Landmark structures -- worth more than a village, short of the summit.",
+  "replace": false,
+  "values": [
+    "minecraft:woodland_mansions",
+    "minecraft:ocean_monuments",
+    "minecraft:trial_chambers",
+    "minecraft:nether_complexes",
+    "minecraft:pillager_outposts",
+    "minecraft:trail_ruins"
+  ]
+}

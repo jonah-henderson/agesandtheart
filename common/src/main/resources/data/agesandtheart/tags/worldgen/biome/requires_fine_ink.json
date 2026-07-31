@@ -1,0 +1,21 @@
+{
+  "_comment": "Biomes that take some finding, or that are dramatic enough to be worth more than a plain forest.",
+  "replace": false,
+  "values": [
+    "minecraft:cherry_grove",
+    "minecraft:lush_caves",
+    "minecraft:dripstone_caves",
+    "minecraft:bamboo_jungle",
+    "minecraft:ice_spikes",
+    "minecraft:eroded_badlands",
+    "minecraft:jagged_peaks",
+    "minecraft:frozen_peaks",
+    "minecraft:mangrove_swamp",
+    "minecraft:warped_forest",
+    "minecraft:crimson_forest",
+    "minecraft:basalt_deltas",
+    "minecraft:soul_sand_valley",
+    "minecraft:warm_ocean",
+    "minecraft:deep_frozen_ocean"
+  ]
+}

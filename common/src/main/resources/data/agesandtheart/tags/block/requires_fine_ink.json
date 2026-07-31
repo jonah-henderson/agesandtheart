@@ -1,0 +1,31 @@
+{
+  "_comment": [
+    "Useful and worked materials -- worth more than common ink, short of the summit. Ores sit here rather",
+    "than at master because finding them is already the game's own gate; what master ink guards is the",
+    "extravagant Age, not the ordinary one."
+  ],
+  "replace": false,
+  "values": [
+    "minecraft:iron_block",
+    "minecraft:gold_block",
+    "minecraft:copper_block",
+    "minecraft:redstone_block",
+    "minecraft:lapis_block",
+    "minecraft:amethyst_block",
+    "minecraft:obsidian",
+    "minecraft:crying_obsidian",
+    "minecraft:glowstone",
+    "minecraft:sea_lantern",
+    "minecraft:prismarine",
+    "minecraft:quartz_block",
+    "minecraft:honey_block",
+    "minecraft:slime_block",
+    "minecraft:sculk",
+    "minecraft:shroomlight",
+    "minecraft:ochre_froglight",
+    "minecraft:verdant_froglight",
+    "minecraft:pearlescent_froglight",
+    "minecraft:lava",
+    "minecraft:powder_snow"
+  ]
+}

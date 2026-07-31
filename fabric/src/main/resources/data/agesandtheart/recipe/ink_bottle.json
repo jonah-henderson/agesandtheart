@@ -1,0 +1,26 @@
+{
+  "_comment": [
+    "Water bottle + any black dye. Vanilla Ingredient is item-only (test() is literally input.is(values)),",
+    "so matching the water INSIDE the bottle needs a loader ingredient -- Fabric's fabric:components here,",
+    "NeoForge's neoforge:components in its own copy of this file. Same recipe, two dialects.",
+    "Kept as an ordinary shapeless recipe so JEI and EMI show it with no plugin from us.",
+    "c:dyes/black holds only black dye, so squid ink still routes through the dye step first."
+  ],
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "group": "agesandtheart_ink",
+  "ingredients": [
+    {
+      "fabric:type": "fabric:components",
+      "base": "minecraft:potion",
+      "components": {
+        "minecraft:potion_contents": { "potion": "minecraft:water" }
+      }
+    },
+    "#c:dyes/black"
+  ],
+  "result": {
+    "id": "agesandtheart:ink_bottle",
+    "count": 1
+  }
+}

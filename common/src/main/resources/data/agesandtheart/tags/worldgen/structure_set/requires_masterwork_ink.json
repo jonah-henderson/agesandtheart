@@ -1,0 +1,9 @@
+{
+  "_comment": "Structures that anchor a world rather than decorate it.",
+  "replace": false,
+  "values": [
+    "minecraft:end_cities",
+    "minecraft:ancient_cities",
+    "minecraft:strongholds"
+  ]
+}

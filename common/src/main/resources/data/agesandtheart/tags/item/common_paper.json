@@ -1,0 +1,11 @@
+{
+  "_comment": [
+    "What the desk accepts as ordinary paper. Reads the convention we publish at c:papers, so any mod",
+    "adopting it works with no change here. This layer exists so a pack can allow something for the",
+    "desk's purposes without declaring it globally to be paper."
+  ],
+  "replace": false,
+  "values": [
+    "#c:papers"
+  ]
+}

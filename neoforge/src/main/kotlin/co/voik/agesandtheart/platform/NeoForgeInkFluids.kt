@@ -1,0 +1,127 @@
+package co.voik.agesandtheart.platform
+
+import co.voik.agesandtheart.age.word.InkTier
+import co.voik.agesandtheart.content.AgeFluids
+import co.voik.agesandtheart.platform.services.InkFluids
+import net.minecraft.core.registries.Registries
+import net.minecraft.resources.ResourceKey
+import net.minecraft.world.item.BucketItem
+import net.minecraft.world.item.Item
+import net.minecraft.world.item.Items
+import net.minecraft.world.level.block.LiquidBlock
+import net.minecraft.world.level.block.SoundType
+import net.minecraft.world.level.block.state.BlockBehaviour
+import net.minecraft.world.level.material.Fluid
+import net.minecraft.world.level.material.MapColor
+import net.minecraft.world.level.material.PushReaction
+import net.neoforged.neoforge.fluids.BaseFlowingFluid
+import net.neoforged.neoforge.fluids.FluidType
+import net.neoforged.neoforge.registries.RegisterEvent
+
+/**
+ * NeoForge's half of [InkFluids].
+ *
+ * Shorter than Fabric's because NeoForge ships `BaseFlowingFluid` and its builder — the behaviour Fabric
+ * needed a hand-written class for is four calls here. What NeoForge adds instead is [FluidType], which is
+ * mandatory and is the reason none of this could live in common.
+ */
+class NeoForgeInkFluids : InkFluids {
+    /** NeoForge counts millibuckets: 1,000 to the bucket, and 250 for a bottle by modded convention. */
+    override val unitsPerBucket: Long = FluidType.BUCKET_VOLUME.toLong()
+    override val unitsPerBottle: Long = FluidType.BUCKET_VOLUME.toLong() / 4
+
+    override fun still(tier: InkTier): Fluid = Companion.still(tier)
+    override fun flowing(tier: InkTier): Fluid = Companion.flowing(tier)
+    override fun bucket(tier: InkTier): Item = Companion.bucket(tier)
+    override fun tierOf(fluid: Fluid): InkTier? = byFluid[fluid]
+
+    companion object {
+        private val types = mutableMapOf<InkTier, FluidType>()
+        private val still = mutableMapOf<InkTier, BaseFlowingFluid.Source>()
+        private val flowing = mutableMapOf<InkTier, BaseFlowingFluid.Flowing>()
+        private val blocks = mutableMapOf<InkTier, LiquidBlock>()
+        private val buckets = mutableMapOf<InkTier, Item>()
+        private val byFluid = mutableMapOf<Fluid, InkTier>()
+
+        fun still(tier: InkTier): BaseFlowingFluid.Source = still.getValue(tier)
+        fun flowing(tier: InkTier): BaseFlowingFluid.Flowing = flowing.getValue(tier)
+        fun block(tier: InkTier): LiquidBlock = blocks.getValue(tier)
+        fun bucket(tier: InkTier): Item = buckets.getValue(tier)
+
+        /**
+         * Builds every ink. Suppliers rather than direct references throughout, because the pair is
+         * mutually recursive — the still fluid names the flowing one and back again.
+         */
+        fun build() {
+            if (still.isNotEmpty()) return
+            for ((tier, identity) in AgeFluids.INKS) {
+                types[tier] = FluidType(FluidType.Properties.create())
+
+                val properties = BaseFlowingFluid.Properties(
+                    { types.getValue(tier) },
+                    { still.getValue(tier) },
+                    { flowing.getValue(tier) },
+                )
+                    .bucket { buckets.getValue(tier) }
+                    .block { blocks.getValue(tier) }
+                    // Thick: it pools rather than running for the horizon. Water is 4 and 1.
+                    .slopeFindDistance(SLOPE_DISTANCE)
+                    .levelDecreasePerBlock(DROP_OFF)
+                    .tickRate(TICK_DELAY)
+                    .explosionResistance(EXPLOSION_RESISTANCE)
+
+                still[tier] = BaseFlowingFluid.Source(properties)
+                flowing[tier] = BaseFlowingFluid.Flowing(properties)
+                byFluid[still.getValue(tier)] = tier
+                byFluid[flowing.getValue(tier)] = tier
+
+                blocks[tier] = LiquidBlock(
+                    still.getValue(tier),
+                    BlockBehaviour.Properties.of()
+                        .setId(ResourceKey.create(Registries.BLOCK, identity.block))
+                        .mapColor(MapColor.COLOR_BLACK)
+                        .replaceable()
+                        .noCollision()
+                        .strength(WORLD_STRENGTH)
+                        .pushReaction(PushReaction.DESTROY)
+                        .noLootTable()
+                        .liquid()
+                        .sound(SoundType.EMPTY),
+                )
+                buckets[tier] = BucketItem(
+                    still.getValue(tier),
+                    Item.Properties()
+                        .setId(ResourceKey.create(Registries.ITEM, identity.bucket))
+                        .craftRemainder(Items.BUCKET)
+                        .stacksTo(1),
+                )
+            }
+        }
+
+        /** Registration is a mod-bus event here, so it is driven from the entrypoint rather than init. */
+        fun register(event: RegisterEvent) {
+            build()
+            event.register(net.neoforged.neoforge.registries.NeoForgeRegistries.Keys.FLUID_TYPES) { helper ->
+                AgeFluids.INKS.forEach { (tier, identity) -> helper.register(identity.still, types.getValue(tier)) }
+            }
+            event.register(Registries.FLUID) { helper ->
+                AgeFluids.INKS.forEach { (tier, identity) ->
+                    helper.register(identity.still, still.getValue(tier))
+                    helper.register(identity.flowing, flowing.getValue(tier))
+                }
+            }
+            event.register(Registries.BLOCK) { helper ->
+                AgeFluids.INKS.forEach { (tier, identity) -> helper.register(identity.block, blocks.getValue(tier)) }
+            }
+            event.register(Registries.ITEM) { helper ->
+                AgeFluids.INKS.forEach { (tier, identity) -> helper.register(identity.bucket, buckets.getValue(tier)) }
+            }
+        }
+
+        private const val SLOPE_DISTANCE = 2
+        private const val DROP_OFF = 2
+        private const val TICK_DELAY = 12
+        private const val EXPLOSION_RESISTANCE = 100.0f
+        private const val WORLD_STRENGTH = 100.0f
+    }
+}

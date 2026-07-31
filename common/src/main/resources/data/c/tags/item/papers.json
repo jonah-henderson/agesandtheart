@@ -1,0 +1,13 @@
+{
+  "_comment": [
+    "We publish this, because nobody else has. There is no c:papers convention on either loader yet --",
+    "only c:dyes and friends -- so a mod with its own paper has nothing to tag it into. Declaring it the",
+    "name the convention WOULD have (Fabric pluralises item tags) means that if anyone else adopts it we",
+    "already match, and meanwhile we read it ourselves. This is what Create and Immersive Engineering did",
+    "with forge:ingots/copper years before vanilla had copper."
+  ],
+  "replace": false,
+  "values": [
+    "minecraft:paper"
+  ]
+}

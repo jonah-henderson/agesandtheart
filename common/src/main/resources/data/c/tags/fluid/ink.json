@@ -1,0 +1,14 @@
+{
+  "_comment": [
+    "Published for the same reason as c:papers. Fluid conventions are singular (c:water, c:lava, c:milk),",
+    "so c:ink is the name this would have.",
+    "ONLY ordinary ink belongs here. Fine and masterwork ink are deliberately absent -- they are ours",
+    "alone by design, and advertising them as generic ink would let another mod treat the summit ink as",
+    "an ordinary consumable."
+  ],
+  "replace": false,
+  "values": [
+    "agesandtheart:ink",
+    "agesandtheart:flowing_ink"
+  ]
+}
