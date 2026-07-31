@@ -21,7 +21,7 @@ import co.voik.agesandtheart.age.word.grammar.Scope
 import co.voik.agesandtheart.age.word.grammar.Sentence
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
-import net.minecraft.resources.ResourceLocation
+import net.minecraft.resources.Identifier
 
 /**
  * Asks whether the resolver keeps the promises `notes/the-art-design.md` makes on its behalf — each check
@@ -182,7 +182,7 @@ class ResolverCheck : FunSpec({
      */
     test("an unbacked word is reported, not dropped") {
         val moonless = Word(
-            ResourceLocation.fromNamespaceAndPath("test", "moonless"),
+            Identifier.fromNamespaceAndPath("test", "moonless"),
             Tier.EXACT,
             setOf(Aspect.SKY),
             mapOf("moonless" to 1.0),
@@ -642,7 +642,7 @@ private fun spread(vocabulary: Vocabulary, sentence: String): Int =
 
 /** A word that only sets the terrain's stone — what §3.2 calls a material. */
 private fun material(name: String, block: String) = Word(
-    ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, name),
+    Identifier.fromNamespaceAndPath(Constants.MOD_ID, name),
     Tier.EXACT,
     setOf(Aspect.TERRAIN),
     emptyMap(),
@@ -652,7 +652,7 @@ private fun material(name: String, block: String) = Word(
 
 /** A word that asks for one vanilla structure set by name. */
 private fun structureSet(path: String) = Word(
-    ResourceLocation.withDefaultNamespace(path),
+    Identifier.withDefaultNamespace(path),
     Tier.EXACT,
     setOf(Aspect.STRUCTURES),
     emptyMap(),

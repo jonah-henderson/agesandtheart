@@ -42,7 +42,7 @@ data class Claim(
     }
 
     companion object {
-        /** `-minecraft:pillager_outposts` — struck out. A `ResourceLocation` never starts with a hyphen. */
+        /** `-minecraft:pillager_outposts` — struck out. A `Identifier` never starts with a hyphen. */
         const val EXCEPT_MARK = '-'
 
         /** `!minecraft:villages` — this, and nothing the sentence did not also single out. */

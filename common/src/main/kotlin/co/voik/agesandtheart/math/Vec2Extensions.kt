@@ -4,7 +4,7 @@ import net.minecraft.world.phys.Vec2
 
 /**
  * Ergonomic, Godot-style arithmetic operators for Minecraft's immutable [Vec2] (a float 2D
- * vector), mirroring [Vec3Extensions]. Built directly from the public `x`/`y` fields so the
+ * vector), mirroring `Vec3Extensions.kt`. Built directly from the public `x`/`y` fields so the
  * operators are independent of Vec2's (fairly sparse) method set.
  */
 operator fun Vec2.plus(other: Vec2): Vec2 = Vec2(x + other.x, y + other.y)

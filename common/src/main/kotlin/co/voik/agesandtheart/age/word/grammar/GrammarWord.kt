@@ -5,7 +5,7 @@ import com.mojang.serialization.Codec
 import com.mojang.serialization.DataResult
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
-import net.minecraft.resources.ResourceLocation
+import net.minecraft.resources.Identifier
 import net.minecraft.util.StringRepresentable
 import java.util.Optional
 
@@ -56,14 +56,14 @@ enum class Production(val key: String, val available: Boolean = true) : StringRe
  * joining word while the *productions* stay ours.
  */
 data class GrammarWord(
-    val id: ResourceLocation,
+    val id: Identifier,
     val production: Production,
     /**
      * Which rung a [Production.QUANTIFICATION] page names, and null for every other production.
      *
      * The exception to "a structural word carries no value", and it earns it: the *ability* to quantify is
      * one production, but a writer needs a page per rung to say which — so the production is the unlock and
-     * this is the word. [Polarity] made the same crossing in the other direction (§4.3.1).
+     * this is the word. `Polarity` made the same crossing in the other direction (§4.3.1).
      */
     val rung: Density? = null,
 ) {
@@ -73,7 +73,7 @@ data class GrammarWord(
     override fun toString(): String = name
 
     companion object {
-        fun mapCodec(id: ResourceLocation): MapCodec<GrammarWord> = RecordCodecBuilder.mapCodec { instance ->
+        fun mapCodec(id: Identifier): MapCodec<GrammarWord> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
                 Production.CODEC.fieldOf("production").forGetter(GrammarWord::production),
                 DENSITY_CODEC.optionalFieldOf("rung").forGetter { Optional.ofNullable(it.rung) },

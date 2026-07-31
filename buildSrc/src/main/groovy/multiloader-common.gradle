@@ -1,10 +1,13 @@
-import org.jetbrains.dokka.gradle.DokkaTaskPartial
+import org.jetbrains.dokka.gradle.engine.parameters.VisibilityModifier
 
 plugins {
     id 'java-library'
     id 'maven-publish'
     id "org.jetbrains.kotlin.jvm"
+    // Two ids from one artifact: the second is what adds the Javadoc *format*, which in Dokka 1.x was a
+    // task the base plugin always registered.
     id "org.jetbrains.dokka"
+    id "org.jetbrains.dokka-javadoc"
 }
 
 base {
@@ -23,18 +26,11 @@ kotlin {
 
 repositories {
     mavenCentral()
-    exclusiveContent {
-        forRepositories(
-                maven {
-                    name = 'ParchmentMC'
-                    url = 'https://maven.parchmentmc.org/'
-                },
-                maven {
-                    name = "NeoForge"
-                    url = 'https://maven.neoforged.net/releases'
-                }
-        )
-        filter { includeGroup('org.parchmentmc.data') }
+    // No ParchmentMC repository: Mojang stopped obfuscating Java Edition at 26.1, so there is nothing
+    // left for it to deobfuscate and it publishes nothing for this line.
+    maven {
+        name = "NeoForge"
+        url = 'https://maven.neoforged.net/releases'
     }
     maven {
         name = 'BlameJared'
@@ -89,13 +85,14 @@ jar {
     }
 }
 
-tasks.withType(DokkaTaskPartial).configureEach {
+// Dokka 2 configures documentation through an extension rather than by reaching for the task, and every
+// setting is a lazy property. `documentedVisibilities` is what `includeNonPublic = false` used to say.
+dokka {
     dokkaSourceSets.configureEach {
-        includeNonPublic = false
-        skipDeprecated = false
-        reportUndocumented = false
-        jdkVersion = Integer.parseInt(libs.versions.java.get())
-        sourceRoots.from(sourceSets.main.allSource)
+        documentedVisibilities.set([VisibilityModifier.Public])
+        skipDeprecated.set(false)
+        reportUndocumented.set(false)
+        jdkVersion.set(Integer.parseInt(libs.versions.java.get()))
     }
 }
 
@@ -105,10 +102,10 @@ tasks.named("javadoc", Javadoc) {
     enabled = false
 }
 
-// Make the javadoc jar take in the Dokka output
+// Make the javadoc jar take in the Dokka output. The task that produces it is
+// `dokkaGeneratePublicationJavadoc` in Dokka 2 — `dokkaJavadoc` no longer exists.
 tasks.named("javadocJar", Jar) {
-    dependsOn(tasks.named("dokkaJavadoc"))
-    from(tasks.named("dokkaJavadoc"))
+    from(tasks.named("dokkaGeneratePublicationJavadoc"))
 }
 
 processResources {

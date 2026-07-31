@@ -13,8 +13,8 @@ import co.voik.agesandtheart.worldgen.field.TerrainField
  */
 object NoiseField {
 
-    fun hills(): TerrainField = NoiseHeightmap(
-        seed = TERRAIN_SEED,
+    fun hills(salt: Long = 0L): TerrainField = NoiseHeightmap(
+        seed = TERRAIN_SEED xor salt,
         // Detail at roughly 128, 64 and 32 blocks — broad hills with a little shape on their flanks.
         firstOctave = -7,
         amplitudes = listOf(1.0, 0.5, 0.25),

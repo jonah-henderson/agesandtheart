@@ -24,7 +24,7 @@ import net.minecraft.world.level.block.Blocks
  */
 object PillarField {
 
-    fun world(): TerrainField {
+    fun world(salt: Long = 0L): TerrainField {
         // Authored around the local origin; the instancer translates each copy into place.
         val pillar = Box(
             minX = -PILLAR_HALF_WIDTH, minY = WORLD_FLOOR, minZ = -PILLAR_HALF_WIDTH,
@@ -34,7 +34,7 @@ object PillarField {
             templates = listOf(pillar),
             placement = Grid(spacing = SPACING, jitter = JITTER, density = Density.uniform()),
             variation = Variation.NONE,
-            seed = PILLAR_SEED,
+            seed = PILLAR_SEED xor salt,
         )
         // A shallow floor so the ocean rests on ground rather than on the bottom of the world.
         val seabed = Slab(lowY = WORLD_FLOOR, highY = SEABED_TOP)

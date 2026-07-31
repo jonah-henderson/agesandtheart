@@ -5,7 +5,9 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.word.Resolver
 import co.voik.agesandtheart.sky.Skies
+import co.voik.agesandtheart.worldgen.field.RegionMap
 import co.voik.agesandtheart.sky.SkySpec
+import co.voik.agesandtheart.age.word.BookGenerator
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.age.word.grammar.Readout
@@ -25,7 +27,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.QuartPos
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.network.chat.Component
-import net.minecraft.resources.ResourceLocation
+import net.minecraft.resources.Identifier
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.biome.BiomeSource
 import net.minecraft.world.level.biome.Climate
@@ -33,30 +35,44 @@ import net.minecraft.world.level.levelgen.Heightmap
 
 /**
  * The `/age` debug command, until the player-facing books exist. Brigadier is vanilla, so the tree
- * lives in `common`; each loader hands us its [CommandDispatcher].
+ * lives in `common`; each loader hands us its [CommandDispatcher]. The preset named by `create` is an
+ * [AgePreset].
  *
- *   /age create <name> [seed]           — author a new Age (Spire preset) and persist it
- *   /age create <preset> <name> [seed]  — the same, from any [AgePreset]: `hills`, `caverns`, …
- *   /age compose <name> [seed] <spec>   — author one out of aspects: `terrain=hills sea=water`
- *   /age write <name> [seed] <words>    — author one out of *words*: `beautiful floating riddled`
- *   /age words                          — the vocabulary the Art currently knows
- *   /age tp <name>                      — travel to an Age
- *   /age delete <name>|all              — discard an Age (or every Age), chunks and all
- *   /age gen <name>                     — force-generate the spawn chunk and report what it made
- *   /age bench <name> [radius]          — time generating the chunks around the origin (ms/chunk)
- *   /age biomes <name> [radius]         — what share of the surface each biome covers (for weight tuning)
- *   /age compare <a> <b> [radius]       — do two Ages generate the same world, block for block?
- *   /age sky <name> [<spec>]            — read an Age's suns and moons, or preview different ones in it
- *   /age list                           — list known Ages (with their recipe)
+ * **Fenced because it is a usage synopsis**, where `[seed]` means an optional argument — outside a fence
+ * KDoc reads every one of those as a link and reports it unresolved.
+ *
+ * ```
+ * /age create <name> [seed]           — author a new Age (Spire preset) and persist it
+ * /age create <preset> <name> [seed]  — the same, from any preset: hills, caverns, …
+ * /age compose <name> [seed] <spec>   — author one out of aspects: terrain=hills sea=water
+ * /age write <name> [seed] <words>    — author one out of *words*: beautiful floating riddled
+ * /age words                          — the vocabulary the Art currently knows
+ * /age tp <name>                      — travel to an Age
+ * /age delete <name>|all              — discard an Age (or every Age), chunks and all
+ * /age gen <name>                     — force-generate the spawn chunk and report what it made
+ * /age bench <name> [radius]          — time generating the chunks around the origin (ms/chunk)
+ * /age biomes <name> [radius]         — what share of the surface each biome covers (for weight tuning)
+ * /age locate <name> <preset>         — how far to the nearest territory of that terrain, from where you stand
+ * /age book [seed]                    — a book the Art could have written, for reading rather than using
+ * /age compare <a> <b> [radius]       — do two Ages generate the same world, block for block?
+ * /age sky <name> [<spec>]            — read an Age's suns and moons, or preview different ones in it
+ * /age list                           — list known Ages (with their recipe)
+ * ```
  */
 object AgeCommand {
-    private const val OPERATOR_PERMISSION_LEVEL = 2
+    /**
+     * Level 2, as it always was — but a named check now rather than an integer. Vanilla replaced numeric
+     * permission levels with a [net.minecraft.server.permissions.PermissionSet], and `LEVEL_GAMEMASTERS`
+     * is the one that used to be spelled `hasPermission(2)`.
+     */
+    private val OPERATOR_PERMISSION = Commands.hasPermission<CommandSourceStack>(Commands.LEVEL_GAMEMASTERS)
     private const val NAME_ARGUMENT = "name"
     private const val RADIUS_ARGUMENT = "radius"
     private const val SEED_ARGUMENT = "seed"
     private const val SPECIFICATION_ARGUMENT = "spec"
     private const val SENTENCE_ARGUMENT = "words"
     private const val FIRST_ARGUMENT = "first"
+    private const val PRESET_ARGUMENT = "preset"
     private const val SECOND_ARGUMENT = "second"
 
     // Big enough to be dominated by generation rather than level-open overhead, small enough to run
@@ -72,6 +88,16 @@ object AgeCommand {
 
     /** What `/age sky`'s preview spec may name, and the prefix its parameters carry. */
     private const val SKY_ASPECT = "sky"
+
+    /** What `/age sky` prefixes the Age's clock reading with, and what `SkyClockCheck` looks for. */
+    const val CLOCK_LABEL = "clock"
+
+    /**
+     * How far `/age locate` looks, and how finely. The stride is far below the smallest territory a share
+     * can produce, so it cannot step over one.
+     */
+    private const val LOCATE_RADIUS_BLOCKS = 20_000
+    private const val LOCATE_STRIDE_BLOCKS = 64
 
     /** A terrain to satisfy `AgeComposition.parse`, which refuses a composition without one. Read by nothing. */
     private const val PREVIEW_SCAFFOLD = "terrain=hills"
@@ -109,7 +135,7 @@ object AgeCommand {
     fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
         dispatcher.register(
             Commands.literal("age")
-                .requires { source -> source.hasPermission(OPERATOR_PERMISSION_LEVEL) }
+                .requires(OPERATOR_PERMISSION)
                 .then(createSubcommand())
                 .then(composeSubcommand())
                 .then(writeSubcommand())
@@ -117,6 +143,8 @@ object AgeCommand {
                 .then(teleportSubcommand())
                 .then(deleteSubcommand())
                 .then(generateSubcommand())
+                .then(locateSubcommand())
+                .then(bookSubcommand())
                 .then(biomeCensusSubcommand())
                 .then(benchmarkSubcommand())
                 .then(compareSubcommand())
@@ -225,6 +253,21 @@ object AgeCommand {
                 ),
         )
 
+    private fun locateSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        Commands.literal("locate").then(
+            Commands.argument(NAME_ARGUMENT, StringArgumentType.word()).then(
+                Commands.argument(PRESET_ARGUMENT, StringArgumentType.word()).executes(::runLocate),
+            ),
+        )
+
+    private fun bookSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        Commands.literal("book")
+            .executes { context -> runBook(context, seed = context.source.level.gameTime) }
+            .then(
+                Commands.argument(SEED_ARGUMENT, LongArgumentType.longArg())
+                    .executes { context -> runBook(context, LongArgumentType.getLong(context, SEED_ARGUMENT)) },
+            )
+
     private fun generateSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("gen").then(
             Commands.argument(NAME_ARGUMENT, StringArgumentType.word()).executes(::runGenerate),
@@ -283,8 +326,8 @@ object AgeCommand {
                     .executes { context -> runList(context, Report.structured(context.source)) },
             )
 
-    private fun ageId(name: String): ResourceLocation =
-        ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, name.lowercase())
+    private fun ageId(name: String): Identifier =
+        Identifier.fromNamespaceAndPath(Constants.MOD_ID, name.lowercase())
 
     private fun runCreate(context: CommandContext<CommandSourceStack>, preset: AgePreset, seed: Long?): Int =
         write(context, AgeRecipe.worldFor(preset), seed)
@@ -311,7 +354,7 @@ object AgeCommand {
     }
 
     /** Whether an Age called [name] can be written here at all — having said why, if not. */
-    private fun canWrite(source: CommandSourceStack, name: String, id: ResourceLocation, report: Report): Boolean {
+    private fun canWrite(source: CommandSourceStack, name: String, id: Identifier, report: Report): Boolean {
         if (!Ages.isSupported()) {
             report.fail("Runtime Ages aren't supported on this loader yet (NeoForge backend pending)")
             return false
@@ -324,7 +367,7 @@ object AgeCommand {
     }
 
     /** Persists a recipe and opens its dimension — the last step of every way of authoring an Age. */
-    private fun open(source: CommandSourceStack, name: String, id: ResourceLocation, recipe: AgeRecipe, report: Report): Int {
+    private fun open(source: CommandSourceStack, name: String, id: Identifier, recipe: AgeRecipe, report: Report): Int {
         val level = Ages.create(source.server, id, recipe)
         if (level == null) return report.fail("Could not create Age '$name'")
         report.say { "Created Age '$name' [$recipe] ($id). Travel with /age tp $name" }
@@ -557,7 +600,7 @@ object AgeCommand {
 
         for (localX in 0..<BLOCKS_PER_CHUNK) {
             for (localZ in 0..<BLOCKS_PER_CHUNK) {
-                for (y in here.minBuildHeight..<here.maxBuildHeight) {
+                for (y in here.minY..here.maxY) {
                     cursor.set(chunkX * BLOCKS_PER_CHUNK + localX, y, chunkZ * BLOCKS_PER_CHUNK + localZ)
                     val mine = here.getBlockState(cursor)
                     val theirs = there.getBlockState(cursor)
@@ -614,6 +657,9 @@ object AgeCommand {
         for (line in spec.described()) {
             source.sendSuccess({ Component.literal("  $line") }, false)
         }
+        // The Age's own clock — what every moving thing above reads, and the only way to tell an Age
+        // following the overworld from one frozen at dawn.
+        source.sendSuccess({ Component.literal("  $CLOCK_LABEL ${level.defaultClockTime}") }, false)
         return SUCCESS
     }
 
@@ -737,6 +783,113 @@ object AgeCommand {
      * Samples the biome source directly rather than generated chunks, so it measures the climate table
      * alone and costs no generation. Surface only.
      */
+    /**
+     * `/age locate <name> <preset>` — how far to the nearest territory of that terrain.
+     *
+     * The instrument for "is a rare share findable". Answered from [RegionMap] alone, which is a pure
+     * function of the column, so this searches far beyond a `/locate` and generates nothing.
+     */
+    private fun runLocate(context: CommandContext<CommandSourceStack>): Int {
+        val source = context.source
+        val name = StringArgumentType.getString(context, NAME_ARGUMENT)
+        val wanted = StringArgumentType.getString(context, PRESET_ARGUMENT)
+        val recipe = AgeSavedData.get(source.server).recipe(ageId(name))
+
+        val world = recipe.world
+        if (world !is AgeWorld.Composed) {
+            source.sendFailure(Component.literal("'$name' is a bespoke Age, so it has no territories to find."))
+            return FAILURE
+        }
+        val composition = world.composition
+        val member = composition.terrains.indexOfFirst { it.key == wanted }
+        if (member < 0) {
+            val present = composition.terrains.joinToString(" ") { it.key }
+            source.sendFailure(Component.literal("'$name' has no '$wanted' territory. It has: $present"))
+            return FAILURE
+        }
+        if (composition.terrains.size <= 1) {
+            source.sendFailure(Component.literal("'$name' is undivided, so '$wanted' is everywhere."))
+            return FAILURE
+        }
+
+        val map = recipe.character.mapFor(Aspect.TERRAIN, composition.sharesOf(Aspect.TERRAIN), recipe.seed)
+        val from = BlockPos.containing(source.position)
+        val found = nearestColumnOf(map, member, from.x, from.z)
+        if (found == null) {
+            source.sendFailure(
+                Component.literal(
+                    "No '$wanted' column within $LOCATE_RADIUS_BLOCKS blocks of you. That is a real answer " +
+                        "about its share, not a failure to look.",
+                ),
+            )
+            return FAILURE
+        }
+        val distance = Math.sqrt(
+            ((found.x - from.x).toDouble() * (found.x - from.x) + (found.z - from.z).toDouble() * (found.z - from.z)),
+        )
+        source.sendSuccess({
+            Component.literal(
+                "Nearest '$wanted' in '$name': ${found.x}, ${found.z} — about %.0f blocks away".format(distance),
+            )
+        }, false)
+        return SUCCESS
+    }
+
+    /**
+     * The nearest column belonging to [member], or null within [LOCATE_RADIUS_BLOCKS].
+     *
+     * Rings outward on a stride rather than testing every column: a territory is hundreds of blocks
+     * across, so a stride far below that cannot step over one, and it is the difference between a
+     * millisecond and a minute.
+     */
+    private fun nearestColumnOf(map: RegionMap, member: Int, fromX: Int, fromZ: Int): BlockPos? {
+        if (map.memberAt(fromX, fromZ) == member) return BlockPos(fromX, 0, fromZ)
+        var ring = LOCATE_STRIDE_BLOCKS
+        while (ring <= LOCATE_RADIUS_BLOCKS) {
+            var nearest: BlockPos? = null
+            var nearestDistance = Double.MAX_VALUE
+            for (step in -ring..ring step LOCATE_STRIDE_BLOCKS) {
+                for (candidate in ringColumnsAt(fromX, fromZ, ring, step)) {
+                    if (map.memberAt(candidate.x, candidate.z) != member) continue
+                    val away = (candidate.x - fromX).toDouble() * (candidate.x - fromX) +
+                        (candidate.z - fromZ).toDouble() * (candidate.z - fromZ)
+                    if (away < nearestDistance) {
+                        nearestDistance = away
+                        nearest = candidate
+                    }
+                }
+            }
+            if (nearest != null) return nearest
+            ring += LOCATE_STRIDE_BLOCKS
+        }
+        return null
+    }
+
+    /** The four columns [step] along each side of the square ring at [ring] blocks out. */
+    private fun ringColumnsAt(fromX: Int, fromZ: Int, ring: Int, step: Int): List<BlockPos> = listOf(
+        BlockPos(fromX + step, 0, fromZ - ring),
+        BlockPos(fromX + step, 0, fromZ + ring),
+        BlockPos(fromX - ring, 0, fromZ + step),
+        BlockPos(fromX + ring, 0, fromZ + step),
+    )
+
+    /** `/age book [<seed>]` — a book the Art could have written, run through the same parser a player's is. */
+    private fun runBook(context: CommandContext<CommandSourceStack>, seed: Long): Int {
+        val source = context.source
+        val vocabulary = Vocabulary.of(source.server)
+        val pages = BookGenerator.write(vocabulary, seed)
+        source.sendSuccess({ Component.literal("A book at seed $seed, ${pages.size} pages:") }, false)
+        source.sendSuccess({ Component.literal("  ${pages.joinToString(" ")}") }, false)
+        // Said back through the readout, so what it *means* is visible beside what it says — which is the
+        // only way to judge whether a generated book is a good one.
+        val sentence = Grammar.read(vocabulary, pages)
+        source.sendSuccess({ Component.literal("  reads as: ${Readout.of(sentence)}") }, false)
+        source.sendSuccess({
+            Component.literal("  write it with: /age write book$seed $seed ${pages.joinToString(" ")}")
+        }, false)
+        return SUCCESS
+    }
+
     private fun runBiomeCensus(context: CommandContext<CommandSourceStack>, radiusChunks: Int): Int {
         val source = context.source
         val name = StringArgumentType.getString(context, NAME_ARGUMENT)
@@ -744,7 +897,7 @@ object AgeCommand {
 
         val biomes = level.chunkSource.generator.biomeSource
         val climate = level.chunkSource.randomState().sampler()
-        val surfaceQuartY = QuartPos.fromBlock(level.maxBuildHeight - 1)
+        val surfaceQuartY = QuartPos.fromBlock(level.maxY)
         val quartRadius = QuartPos.fromBlock(radiusChunks * BLOCKS_PER_CHUNK)
 
         val counts = mutableMapOf<String, Int>()
@@ -776,8 +929,8 @@ object AgeCommand {
     private fun surveyBiomes(level: ServerLevel, radiusChunks: Int): List<String> {
         val source = level.chunkSource.generator.biomeSource
         val climate = level.chunkSource.randomState().sampler()
-        val lowestQuartY = QuartPos.fromBlock(level.minBuildHeight)
-        val highestQuartY = QuartPos.fromBlock(level.maxBuildHeight - 1)
+        val lowestQuartY = QuartPos.fromBlock(level.minY)
+        val highestQuartY = QuartPos.fromBlock(level.maxY)
 
         val everywhere = mutableSetOf<String>()
         val deepOnly = mutableSetOf<String>()
@@ -811,7 +964,7 @@ object AgeCommand {
 
     private fun biomeName(source: BiomeSource, climate: Climate.Sampler, quartX: Int, quartY: Int, quartZ: Int): String =
         source.getNoiseBiome(quartX, quartY, quartZ, climate).unwrapKey()
-            .map { it.location().toString() }
+            .map { it.identifier().toString() }
             .orElse("(unnamed)")
 
     /** Every fourth quart cell, i.e. one column per 16 blocks — dense enough to find small biomes. */

@@ -55,17 +55,21 @@ data class Orbit(
         return ((raw * 2.0 + eased) / 3.0).toFloat()
     }
 
+    /** The rotation placing a body at `(0, distance, 0)` onto its circle at [dayTime]. */
+    fun rotationAt(dayTime: Long): Quaternionf = rotationAtProgress(progressAt(dayTime))
+
     /**
-     * The rotation placing a body at `(0, distance, 0)` onto its circle at [dayTime]. A quaternion rather
-     * than a `PoseStack` push, so the caller bakes it into vertices — which it **must**, because
-     * `RenderSystem.getModelViewMatrix()` is the identity during the sky pass and the transform has
-     * nowhere else to live (`notes/per-age-skies-research.md` §3).
+     * The rotation placing a body at `(0, distance, 0)` onto its circle, [progress] of the way around it.
+     *
+     * Separate from [rotationAt] so a body on **vanilla's own path can be turned by vanilla's own angle**
+     * rather than by our reconstruction of it: the sun and moon angles are handed to the renderer, and
+     * taking them is both exact and immune to vanilla moving its day curve.
      */
-    fun rotationAt(dayTime: Long): Quaternionf =
+    fun rotationAtProgress(progress: Float): Quaternionf =
         Quaternionf()
             .rotateY(Math.toRadians(ascendingNodeDegrees.toDouble()).toFloat())
             .rotateZ(Math.toRadians(inclinationDegrees.toDouble()).toFloat())
-            .rotateX(progressAt(dayTime) * TWO_PI)
+            .rotateX(progress * TWO_PI)
 
     companion object {
         const val TICKS_PER_VANILLA_DAY = 24000
@@ -79,6 +83,18 @@ data class Orbit(
             retrograde = false,
             distance = 100.0f,
         )
+
+        /**
+         * Vanilla's own moon: the sun's path, half a turn behind it — but **nearer**, so that it passes in
+         * front like every other moon. Only the radius departs from vanilla, and nothing reads a radius but
+         * the draw order.
+         */
+        val VANILLA_MOON = VANILLA_SUN.copy(phaseDegrees = HALF_TURN, distance = MOON_DISTANCE)
+
+        private const val HALF_TURN = 180.0f
+
+        /** Inside every sun's radius. See `SkySpec.MOON_BAND`, which this sits in the middle of. */
+        const val MOON_DISTANCE = 92.0f
 
         private const val DEGREES_PER_TURN = 360.0
         private const val TWO_PI = (Math.PI * 2).toFloat()

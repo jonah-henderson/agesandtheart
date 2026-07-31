@@ -6,7 +6,7 @@ import net.minecraft.network.codec.ByteBufCodecs
 import net.minecraft.network.codec.StreamCodec
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.resources.ResourceKey
-import net.minecraft.resources.ResourceLocation
+import net.minecraft.resources.Identifier
 import net.minecraft.world.level.Level
 
 /**
@@ -32,15 +32,15 @@ data class SkyPayload(val skies: List<Entry>) : CustomPacketPayload {
 
     companion object {
         /**
-         * Built with [ResourceLocation.fromNamespaceAndPath] rather than `CustomPacketPayload.createType`,
+         * Built with [Identifier.fromNamespaceAndPath] rather than `CustomPacketPayload.createType`,
          * because that helper is `withDefaultNamespace` — it would silently claim `minecraft:skies`.
          */
         val TYPE: CustomPacketPayload.Type<SkyPayload> = CustomPacketPayload.Type(
-            ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "skies"),
+            Identifier.fromNamespaceAndPath(Constants.MOD_ID, "skies"),
         )
 
         /**
-         * A dimension key writes as a bare `ResourceLocation`, needing no registry — the whole point being
+         * A dimension key writes as a bare `Identifier`, needing no registry — the whole point being
          * that these Ages are in none the client can look up. The spec rides through
          * [ByteBufCodecs.fromCodec], costing an NBT round-trip and buying one definition of the format.
          */

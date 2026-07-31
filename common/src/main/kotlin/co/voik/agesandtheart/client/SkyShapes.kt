@@ -2,17 +2,16 @@ package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.math.plus
 import co.voik.agesandtheart.math.times
-import net.minecraft.client.Camera
-import net.minecraft.world.effect.MobEffects
-import net.minecraft.world.entity.LivingEntity
-import net.minecraft.world.level.material.FogType
 import net.minecraft.world.phys.Vec3
 
 /**
- * The few things every sky renderer needs: a camera-surrounding box, a fade curve, and whether a sky
- * should be drawn at all. Keeping it to three is the point — cloud decks, star reveals and celestial
- * bodies belong to one renderer or another, and hoisting any here would rebuild the coupling the
- * Spire/general split exists to remove.
+ * The geometry a sky renderer needs that is not about any one sky: a camera-surrounding box and a fade
+ * curve. Keeping it small is the point — cloud decks, star reveals and celestial bodies belong to a
+ * renderer, and hoisting any here would rebuild the coupling the Spire/general split exists to remove.
+ *
+ * There used to be a third, `isSkyHidden`, restoring the cases vanilla refuses to draw a sky in. It is
+ * gone because vanilla now makes that check itself in `LevelRenderer.addSkyPass`, before anything of ours
+ * is reached.
  */
 object SkyShapes {
 
@@ -47,23 +46,6 @@ object SkyShapes {
             }
         }
         return quads
-    }
-
-    /**
-     * The cases vanilla refuses to draw a sky in, restored. Both loaders' hooks fire *before* vanilla's own
-     * checks and then suppress the rest of the method, so without this a custom sky draws straight through
-     * lava, powder snow, blindness and darkness.
-     *
-     * **[isFoggy] is the one asymmetry between the loaders**: NeoForge's hook is handed the real value where
-     * Fabric's `WorldRenderContext` does not carry it and passes `false`. Both halves are false for an Age
-     * today, so an Age with real fog will honour it on NeoForge and cannot on Fabric.
-     */
-    fun isSkyHidden(camera: Camera, isFoggy: Boolean): Boolean {
-        if (isFoggy) return true
-        val submerged = camera.fluidInCamera
-        if (submerged == FogType.POWDER_SNOW || submerged == FogType.LAVA) return true
-        val viewer = camera.entity as? LivingEntity ?: return false
-        return viewer.hasEffect(MobEffects.BLINDNESS) || viewer.hasEffect(MobEffects.DARKNESS)
     }
 
     /** Hermite fade from 0 at [edge0] to 1 at [edge1]. */

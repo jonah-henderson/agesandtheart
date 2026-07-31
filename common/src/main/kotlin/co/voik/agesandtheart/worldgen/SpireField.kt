@@ -18,7 +18,6 @@ import co.voik.agesandtheart.worldgen.field.Variation
 import net.minecraft.core.HolderSet
 import net.minecraft.world.level.biome.BiomeSource
 import net.minecraft.world.level.block.Blocks
-import net.minecraft.world.level.levelgen.GenerationStep
 import net.minecraft.world.level.levelgen.carver.ConfiguredWorldCarver
 import kotlin.math.roundToInt
 
@@ -44,7 +43,7 @@ object SpireField {
      * uniformly across `templates × sizes`, so the small ones could not be commoner, and it carries one
      * [Variation], so they could not have wider vertical freedom than the big ones.
      */
-    fun world(): TerrainField = Union(listOf(bigIslands(), smallIslands()))
+    fun world(salt: Long = 0L): TerrainField = Union(listOf(bigIslands(salt), smallIslands(salt)))
 
     /**
      * The small islands: simple envelopes cut out of one continuous field of 3D noise.
@@ -57,7 +56,7 @@ object SpireField {
      * It is also what makes this affordable: [Intersect] asks its cheapest child first, so the noise band
      * is walked only where an envelope already stands.
      */
-    private fun smallIslands(): TerrainField {
+    private fun smallIslands(salt: Long): TerrainField {
         // Three shapes rather than one, because scaling alone only makes the same island bigger.
         val envelopes = listOf(
             SMALL_HALF_WIDTH to SMALL_RADIUS_Y * LENS_FLATTEN,
@@ -73,10 +72,10 @@ object SpireField {
                     templates = envelopes,
                     placement = Grid(SMALL_SPACING, SMALL_JITTER, Density.uniform(SMALL_DENSITY)),
                     variation = SMALL_VARIATION,
-                    seed = SHOAL_SEED,
+                    seed = SHOAL_SEED xor salt,
                 ),
                 Noise3D(
-                    seed = BLOB_SEED,
+                    seed = BLOB_SEED xor salt,
                     firstOctave = -5,
                     // The third octave is the fine one, which roughens an edge that would otherwise follow
                     // the envelope's arc smoothly.
@@ -97,10 +96,10 @@ object SpireField {
     }
 
     /** The big carved islands — the original archipelago, unchanged in shape and only laid out differently. */
-    private fun bigIslands(): TerrainField {
+    private fun bigIslands(salt: Long): TerrainField {
         // Rolling top: the noisy surface sits above the island's deck, so rock fills upward to it.
         val peaks = NoiseHeightmap(
-            seed = PEAK_SEED,
+            seed = PEAK_SEED xor salt,
             firstOctave = -6,
             amplitudes = listOf(1.0, 0.6, 0.3),
             scaleX = WIND_STRETCH,
@@ -112,7 +111,7 @@ object SpireField {
         )
         // Ragged underside: the noisy surface sits *below* the deck, so the same primitive hangs.
         val spikes = NoiseHeightmap(
-            seed = SPIKE_SEED,
+            seed = SPIKE_SEED xor salt,
             firstOctave = -5,
             amplitudes = listOf(1.0, 0.7),
             scaleX = WIND_STRETCH,
@@ -139,7 +138,7 @@ object SpireField {
         // field rather than the wind, because erosion judges a whole column at once and so can keep or
         // remove one but never shorten it — height variation among spires is the field's to provide.
         val talons = NoiseHeightmap(
-            seed = TALON_SEED,
+            seed = TALON_SEED xor salt,
             firstOctave = -2,
             amplitudes = listOf(1.0, 0.4),
             scaleX = TALON_SCALE,
@@ -150,7 +149,7 @@ object SpireField {
         )
         // The same trick inverted, for the hanging needles beneath.
         val roots = NoiseHeightmap(
-            seed = ROOT_SEED,
+            seed = ROOT_SEED xor salt,
             firstOctave = -2,
             amplitudes = listOf(1.0, 0.4),
             scaleX = TALON_SCALE,
@@ -178,13 +177,13 @@ object SpireField {
             templates = listOf(island),
             placement = Grid(spacing = ISLAND_SPACING, jitter = ISLAND_JITTER, density = Density.uniform(ISLAND_DENSITY)),
             variation = ISLAND_VARIATION,
-            seed = ARCHIPELAGO_SEED,
+            seed = ARCHIPELAGO_SEED xor salt,
         )
     }
 
     fun generator(
         biomeSource: BiomeSource,
-        carvers: Map<GenerationStep.Carving, HolderSet<ConfiguredWorldCarver<*>>> = emptyMap(),
+        carvers: HolderSet<ConfiguredWorldCarver<*>> = HolderSet.direct(),
     ): AgeChunkGenerator =
         AgeChunkGenerator(
             biomeSource,
@@ -194,8 +193,8 @@ object SpireField {
             carvers,
         )
 
-    // Where an island's body sits, centring a typical island between the two cloud decks (see
-    // AgeCloudRenderer). Two hard limits decide the number rather than taste: the world ends at y=320, and
+    // Where an island's body sits, centring a typical island between the two cloud decks the Spire's sky
+    // draws. Two hard limits decide the number rather than taste: the world ends at y=320, and
     // the undersides must stop at the sea, y=63, or the hanging spires drown. With `below = DECK_Y - 64`
     // and `above = 2 × below ≤ 318 - DECK_Y`, the deck can sit no higher than this — giving a 2:1 split of
     // 168 above and 84 below.

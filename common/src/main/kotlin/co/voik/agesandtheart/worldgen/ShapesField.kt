@@ -21,9 +21,9 @@ import net.minecraft.world.level.biome.BiomeSource
  */
 object ShapesField {
 
-    fun world(): TerrainField {
+    fun world(salt: Long = 0L): TerrainField {
         val ground = Slab(lowY = FLOOR_Y, highY = GROUND_TOP)
-        return Union(listOf(ground, tower(), monolith(), octahedron(), ramp(), mesa(), arch()))
+        return Union(listOf(ground, tower(), monolith(), octahedron(), ramp(), mesa(salt), arch()))
     }
 
     fun generator(biomeSource: BiomeSource): AgeChunkGenerator =
@@ -85,9 +85,9 @@ object ShapesField {
      * The one station where the two children are genuinely different *kinds* of field, which is the
      * composability question worth answering.
      */
-    private fun mesa(): TerrainField {
+    private fun mesa(salt: Long): TerrainField {
         val bumpyTop = NoiseHeightmap(
-            seed = MESA_SEED,
+            seed = MESA_SEED xor salt,
             firstOctave = -5,
             amplitudes = listOf(1.0, 0.5),
             scaleX = 1.0,

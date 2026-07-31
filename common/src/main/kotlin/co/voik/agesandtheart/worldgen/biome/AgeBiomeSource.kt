@@ -59,7 +59,7 @@ class AgeBiomeSource(
     /**
      * One biome for the whole table, before any preference is applied. Vanilla's climate *positions* are
      * kept and only the biome at each is replaced, so anchoring and the surface filter work exactly as
-     * they do over the overworld — which is what a [FixedBiomeSource] could never offer, having no table
+     * they do over the overworld — which is what a `FixedBiomeSource` could never offer, having no table
      * to enrich.
      */
     private val flattenedTo: Holder<Biome>? = null,

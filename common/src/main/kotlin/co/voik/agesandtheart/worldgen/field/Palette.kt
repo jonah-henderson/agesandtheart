@@ -7,7 +7,7 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
 import net.minecraft.data.worldgen.SurfaceRuleData
 import net.minecraft.resources.ResourceKey
-import net.minecraft.resources.ResourceLocation
+import net.minecraft.resources.Identifier
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
@@ -225,11 +225,15 @@ object Palette {
     fun materialsNamed(names: List<String>): List<BlockState> = names
         .filter { it != Parameter.UNCHANGED }
         .mapNotNull { named ->
-            val id = ResourceLocation.tryParse(named) ?: return@mapNotNull null
-            BuiltInRegistries.BLOCK.getOptional(id).map { block -> block.defaultBlockState() }.orElseGet {
+            val id = Identifier.tryParse(named) ?: return@mapNotNull null
+            // `orElseGet { null }` no longer compiles: Minecraft ships nullness annotations now, so Kotlin
+            // holds `Optional`'s supplier to returning something. Reads better as a guard in any case.
+            val block = BuiltInRegistries.BLOCK.getOptional(id).orElse(null)
+            if (block == null) {
                 Constants.LOG.warn("An Age names a block this pack does not have: {}", named)
-                null
+                return@mapNotNull null
             }
+            block.defaultBlockState()
         }
 
     /**

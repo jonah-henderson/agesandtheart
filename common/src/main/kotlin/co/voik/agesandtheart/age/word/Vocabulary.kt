@@ -10,7 +10,7 @@ import com.mojang.serialization.Codec
 import com.mojang.serialization.JsonOps
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.RegistryAccess
-import net.minecraft.resources.ResourceLocation
+import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.packs.resources.Resource
 import net.minecraft.server.packs.resources.ResourceManager
@@ -285,8 +285,8 @@ data class Vocabulary(
         }
 
         /** A file's id without its directory or suffix: `…/art/word/floating.json` → `…:floating`. */
-        private fun idOf(file: ResourceLocation, directory: String): ResourceLocation =
-            ResourceLocation.fromNamespaceAndPath(
+        private fun idOf(file: Identifier, directory: String): Identifier =
+            Identifier.fromNamespaceAndPath(
                 file.namespace,
                 file.path.removePrefix("$directory/").removeSuffix(JSON_SUFFIX),
             )
@@ -298,7 +298,7 @@ data class Vocabulary(
          */
         private fun <T> parse(
             resource: Resource,
-            file: ResourceLocation,
+            file: Identifier,
             codec: Codec<T>,
             problems: MutableList<String>,
         ): T? {

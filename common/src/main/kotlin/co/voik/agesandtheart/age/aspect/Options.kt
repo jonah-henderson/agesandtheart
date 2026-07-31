@@ -28,7 +28,7 @@ value class Options(val chosen: Map<String, List<String>> = emptyMap()) {
     /**
      * Every value chosen for [parameter] with what the writer asked of it — what a populative parameter
      * reads instead of [allOf] (§4.3.1, [Claim]). The mark is stripped before the value is validated, or
-     * a struck-out value would fail `ResourceLocation.tryParse` and the exclusion would not happen.
+     * a struck-out value would fail `Identifier.tryParse` and the exclusion would not happen.
      */
     fun claimsOn(parameter: Parameter): List<Claim> =
         chosen[parameter.name].orEmpty().map(Claim::read).filter { parameter.accepts(it.value) }

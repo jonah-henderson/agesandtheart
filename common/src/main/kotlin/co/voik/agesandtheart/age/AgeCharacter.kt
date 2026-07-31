@@ -96,10 +96,16 @@ enum class Seam(val key: String, val share: Double, val frequency: Int) : String
     SHEARED("sheared", 0.0, 15),
 
     /** One side thrown up against the other: a cliff, `Fault`'s business. */
-    SCARP("scarp", 0.0, 40),
+    SCARP("scarp", 0.0, 30),
 
-    /** The ground pulled apart along the boundary and dropped, usually into water: `Rift`'s business. */
-    RIFT("rift", 0.0, 40),
+    /** The ground pulled apart along the boundary and dropped: `Rift`'s business. */
+    RIFT("rift", 0.0, 30),
+
+    /**
+     * Both sides left level and a jagged wall standing between them — the rift inverted, and `Ridge`'s
+     * business.
+     */
+    WALL("wall", 0.0, 20),
 
     /**
      * The two shapes interlock through a band of stochastic columns, so one dissolves into the other.

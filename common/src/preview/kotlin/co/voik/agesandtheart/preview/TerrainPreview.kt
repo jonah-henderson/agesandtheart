@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.preview
 
+import co.voik.agesandtheart.sky.SpireSky
 import co.voik.agesandtheart.worldgen.CavernField
 import co.voik.agesandtheart.worldgen.ErodedField
 import co.voik.agesandtheart.worldgen.NoiseField
@@ -13,6 +14,7 @@ import co.voik.agesandtheart.worldgen.field.Fault
 import co.voik.agesandtheart.worldgen.field.Raised
 import co.voik.agesandtheart.worldgen.field.RegionMap
 import co.voik.agesandtheart.worldgen.field.Regions
+import co.voik.agesandtheart.worldgen.field.Ridge
 import co.voik.agesandtheart.worldgen.field.Rift
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Weathered
@@ -184,11 +186,26 @@ private val subjects: Map<String, Subject> = mapOf(
     // **`FaultCheck` prints the band's width in blocks**, which is the number to tune
     // `Rift.DEFAULT_HALF_WIDTH` against — the seam distance it is measured in is proportionate rather than
     // surveyed, so what the constant means on the ground is something to read off, not to reason about.
+    "wall" to Subject(
+        Ridge.raised(
+            base = Regions(members = twoOfOneTerrain, map = territories),
+            map = territories,
+            footingY = Terrain.WALL_FOOTING,
+            crestY = Terrain.WALL_CREST,
+        ),
+        Weathering.NONE,
+        lowestY = 30,
+        highestY = 185,
+        // The same window as `rift`, so the two forms can be read against each other.
+        radius = 420,
+    ),
+
     "rift" to Subject(
         Rift.opened(
-            base = Regions(members = dividedTerrains, map = territories),
+            base = Regions(members = twoOfOneTerrain, map = territories),
             map = territories,
             floorY = Terrain.RIFT_FLOOR,
+            rimY = Terrain.RIFT_RIM,
         ),
         Weathering.NONE,
         lowestY = 30,
@@ -396,10 +413,11 @@ private fun reportTops(tops: List<Int>) {
     )
 }
 
-// Mirrored from `AgeCloudRenderer`, which is client-side and so out of this module's reach. Only ever read for
-// the printed comparison above — nothing here generates against them.
-private const val UPPER_CLOUD_DECK = 265
-private const val LOWER_CLOUD_DECK = 217
+// The Spire's own deck heights, read rather than copied: they used to be mirrored here because the only
+// place they existed was a client-side renderer, and now they are data in `common` like the rest of its
+// sky. Only ever read for the printed comparison above — nothing here generates against them.
+private val UPPER_CLOUD_DECK = SpireSky.UPPER_DECK_HEIGHT
+private val LOWER_CLOUD_DECK = SpireSky.LOWER_DECK_HEIGHT
 
 /**
  * The spread of the resistance noise, which every threshold in [Weathering] is judged against. Worth

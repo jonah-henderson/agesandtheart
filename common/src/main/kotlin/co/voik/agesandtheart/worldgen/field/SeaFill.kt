@@ -16,7 +16,20 @@ import net.minecraft.world.level.block.state.BlockState
  * What varies across it is *what the sea is made of* — an ocean of water meeting one of lava along a line
  * at the same level, with no barrier and no obsidian, which nothing in Minecraft does.
  */
-data class SeaFill(val blocks: List<BlockState>, val level: Int, val map: RegionMap = RegionMap.whole()) {
+data class SeaFill(
+    val blocks: List<BlockState>,
+    val level: Int,
+    val map: RegionMap = RegionMap.whole(),
+    /**
+     * Space the sea does not reach however far below [level] it lies — a rift, so a chasm cut through
+     * land comes out dry. Where it cuts a coast the surrounding sea is already there and unaffected,
+     * which is the only way water should get in.
+     */
+    val dry: TerrainField? = null,
+) {
+
+    /** Which part of this column the sea is kept out of. Asked once per column, like [blockAt]. */
+    fun drynessAt(worldX: Int, worldZ: Int): Spans = dry?.columnSpans(worldX, worldZ) ?: Spans.EMPTY
 
     /** What fills the empty space at this column. */
     fun blockAt(worldX: Int, worldZ: Int): BlockState =
@@ -30,6 +43,9 @@ data class SeaFill(val blocks: List<BlockState>, val level: Int, val map: Region
     val representative: BlockState = blocks.firstOrNull() ?: Blocks.AIR.defaultBlockState()
 
     fun fillsAt(y: Int): Boolean = y < level && !representative.isAir
+
+    /** The same question for a column whose [dryness] has already been read. */
+    fun fillsAt(y: Int, dryness: Spans): Boolean = fillsAt(y) && !dryness.contains(y)
 
     /**
      * The highest block this sea fills, or `null` when it fills nothing — which is how [NONE] answers, and the
@@ -51,7 +67,9 @@ data class SeaFill(val blocks: List<BlockState>, val level: Int, val map: Region
                 Codec.INT.fieldOf("level").forGetter(SeaFill::level),
                 RegionMap.MAP_CODEC.codec().optionalFieldOf("regions", RegionMap.whole())
                     .forGetter(SeaFill::map),
-            ).apply(instance, ::SeaFill)
+                TerrainField.CODEC.optionalFieldOf("dry")
+                    .forGetter { fill -> java.util.Optional.ofNullable(fill.dry) },
+            ).apply(instance) { blocks, level, map, dry -> SeaFill(blocks, level, map, dry.orElse(null)) }
         }
 
         /** Empty space all the way down. */

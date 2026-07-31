@@ -19,7 +19,7 @@ data class VerticalWindow(val minY: Int, val height: Int) {
     val topY: Int get() = minY + height
 
     companion object {
-        /** What every Age had before this was a choice — matches `agesandtheart:age` and `age_plain`. */
+        /** What every Age had before this was a choice — matches `agesandtheart:age`. */
         val DEFAULT = VerticalWindow(minY = -64, height = 384)
 
         /**

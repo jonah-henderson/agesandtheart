@@ -25,11 +25,11 @@ object PyramidField {
 
     /** Density-gradient grid: pyramids crowd the origin and thin out with distance. */
     fun generator(biomeSource: BiomeSource): AgeChunkGenerator =
-        world(gradientGrid(), Variation.NONE).let { AgeChunkGenerator(biomeSource, it, SeaFill.NONE, Palette.BARE_ROCK) }
+        world(gradientGrid(), Variation.NONE, salt = 0L).let { AgeChunkGenerator(biomeSource, it, SeaFill.NONE, Palette.BARE_ROCK) }
 
     /** Concentric rings of pyramids around an empty centre. */
     fun ringsGenerator(biomeSource: BiomeSource): AgeChunkGenerator =
-        world(rings(), Variation.NONE)
+        world(rings(), Variation.NONE, salt = 0L)
             .let { AgeChunkGenerator(biomeSource, it, SeaFill.NONE, Palette.BARE_ROCK) }
 
     /**
@@ -38,7 +38,7 @@ object PyramidField {
      * [generator] for comparison.
      */
     fun variedGenerator(biomeSource: BiomeSource): AgeChunkGenerator =
-        world(gradientGrid(), variedPoses())
+        world(gradientGrid(), variedPoses(), salt = 0L)
             .let { AgeChunkGenerator(biomeSource, it, SeaFill.NONE, Palette.BARE_ROCK) }
 
     private fun gradientGrid() = Grid(
@@ -62,10 +62,10 @@ object PyramidField {
      * The pyramids, arranged as asked. The three arrangements were three separate presets before aspects
      * existed; they are one preset and one enumerated question now, which is what §3.2 is for.
      */
-    fun world(arrangement: String): TerrainField = when (arrangement) {
-        "rings" -> world(rings(), Variation.NONE)
-        "varied" -> world(gradientGrid(), variedPoses())
-        else -> world(gradientGrid(), Variation.NONE)
+    fun world(arrangement: String, salt: Long = 0L): TerrainField = when (arrangement) {
+        "rings" -> world(rings(), Variation.NONE, salt)
+        "varied" -> world(gradientGrid(), variedPoses(), salt)
+        else -> world(gradientGrid(), Variation.NONE, salt)
     }
 
     private fun variedPoses() = Variation(
@@ -76,12 +76,12 @@ object PyramidField {
         pivotY = GROUND_TOP + 1,
     )
 
-    private fun world(placement: Placement, variation: Variation): TerrainField {
+    private fun world(placement: Placement, variation: Variation, salt: Long): TerrainField {
         val pyramids = PYRAMID_HEIGHTS.map { height ->
             // Authored around the local origin; the instancer translates each copy into place.
             Pyramid(centerX = 0, centerZ = 0, baseY = GROUND_TOP + 1, height = height, baseHalfWidth = height)
         }
-        val scattered = Instanced(pyramids, placement, variation, seed = SCATTER_SEED)
+        val scattered = Instanced(pyramids, placement, variation, seed = SCATTER_SEED xor salt)
         val ground = Slab(lowY = FLOOR_Y, highY = GROUND_TOP)
         return Union(listOf(ground, scattered))
     }

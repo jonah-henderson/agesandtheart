@@ -284,7 +284,7 @@ data class AspectOptions(private val bySlot: Map<Aspect, List<Options>> = emptyM
         return perMember.singleOrNull() ?: perMember.getOrElse(member) { Options.NONE }
     }
 
-    /** Every member's options as stored — one entry where they agree, [members] of them where they differ. */
+    /** Every member's options as stored — one entry where they agree, one per member where they differ. */
     fun allOf(aspect: Aspect): List<Options> = bySlot[aspect].orEmpty()
 
     /** The same, padded out to one entry per member, so a caller may steer any of them. */

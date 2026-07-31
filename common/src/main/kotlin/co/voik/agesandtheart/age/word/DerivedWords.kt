@@ -11,7 +11,7 @@ import co.voik.agesandtheart.location
 import net.minecraft.core.RegistryAccess
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
-import net.minecraft.resources.ResourceLocation
+import net.minecraft.resources.Identifier
 import net.minecraft.tags.TagKey
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.block.Block
@@ -33,7 +33,7 @@ object DerivedWords {
      * at *derivation* — a forbidden thing refused at resolution would be §3.3's silent drop wearing a
      * diagnostic, where one never derived is honestly absent. Shipped empty.
      */
-    val FORBIDDEN: ResourceLocation = "forbidden".location()
+    val FORBIDDEN: Identifier = "forbidden".location()
 
     private val FORBIDDEN_BLOCKS: TagKey<Block> = TagKey.create(Registries.BLOCK, FORBIDDEN)
 
@@ -51,9 +51,9 @@ object DerivedWords {
      *
      * Blocks are registered at class-init, so unlike [biomes] this needs no server.
      */
-    fun materials(): List<Word> = BuiltInRegistries.BLOCK.holders()
+    fun materials(): List<Word> = BuiltInRegistries.BLOCK.listElements()
         .filter { holder -> !holder.`is`(FORBIDDEN_BLOCKS) }
-        .map { holder -> substance(holder.key().location(), pours = holder.value().defaultBlockState().fluidState.isSource) }
+        .map { holder -> substance(holder.key().identifier(), pours = holder.value().defaultBlockState().fluidState.isSource) }
         .toList()
 
     /**
@@ -61,7 +61,7 @@ object DerivedWords {
      * carries the sea because an open aspect's value *is* the referent (§3.1); [Word.sets] carries the
      * material because a closed aspect's preset *consumes* one (§3.2).
      */
-    private fun substance(id: ResourceLocation, pours: Boolean) = Word(
+    private fun substance(id: Identifier, pours: Boolean) = Word(
         id = id,
         tier = Tier.EXACT,
         // Where it speaks when nobody aimed it. The sea joins only for something that actually pours;
@@ -86,7 +86,7 @@ object DerivedWords {
     fun biomes(registries: RegistryAccess): List<Word> = registries.lookupOrThrow(Registries.BIOME)
         .listElements()
         .filter { holder -> !holder.`is`(FORBIDDEN_BIOMES) }
-        .map { holder -> setting(holder.key().location(), Aspect.BIOMES, Biomes.GROWN) }
+        .map { holder -> setting(holder.key().identifier(), Aspect.BIOMES, Biomes.GROWN) }
         .toList()
 
     private val FORBIDDEN_STRUCTURE_SETS: TagKey<StructureSet> = TagKey.create(Registries.STRUCTURE_SET, FORBIDDEN)
@@ -100,7 +100,7 @@ object DerivedWords {
     fun structures(registries: RegistryAccess): List<Word> = registries.lookupOrThrow(Registries.STRUCTURE_SET)
         .listElements()
         .filter { holder -> !holder.`is`(FORBIDDEN_STRUCTURE_SETS) }
-        .map { holder -> setting(holder.key().location(), Aspect.STRUCTURES, Structures.BUILT) }
+        .map { holder -> setting(holder.key().identifier(), Aspect.STRUCTURES, Structures.BUILT) }
         .toList()
 
     /**
@@ -108,7 +108,7 @@ object DerivedWords {
      * The value is the full `namespace:path`, never the bare one: a recipe is read back long after the
      * word that set it is forgotten, so it must be unambiguous even where the word could be short.
      */
-    private fun setting(id: ResourceLocation, aspect: Aspect, parameter: Parameter) = Word(
+    private fun setting(id: Identifier, aspect: Aspect, parameter: Parameter) = Word(
         id = id,
         tier = Tier.EXACT,
         aspects = setOf(aspect),
@@ -120,6 +120,6 @@ object DerivedWords {
      * One word naming one thing. The word's id is the referent's, so [Word.name] is the registry path and
      * a writer says `creosote`; [Vocabulary] decides whether that bare path is unambiguous enough to offer.
      */
-    private fun referring(id: ResourceLocation, aspect: Aspect, referent: (ResourceLocation) -> AspectPreset) =
+    private fun referring(id: Identifier, aspect: Aspect, referent: (Identifier) -> AspectPreset) =
         Word(id = id, tier = Tier.EXACT, aspects = setOf(aspect), query = emptyMap(), names = referent(id).key)
 }

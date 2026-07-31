@@ -14,7 +14,7 @@ import io.kotest.datatest.withData
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.NbtOps
 import net.minecraft.nbt.StringTag
-import net.minecraft.resources.ResourceLocation
+import net.minecraft.resources.Identifier
 
 /**
  * That what we write to disk is what we read back, and that an Age already written still names
@@ -98,7 +98,7 @@ class RecipeCheck : FunSpec({
 
     /**
      * A population's `only` and `except` survive the trip. A marked value is not a well-formed
-     * `ResourceLocation`, so reading it through `allOf` filters it out and the exclusion simply does not
+     * `Identifier`, so reading it through `allOf` filters it out and the exclusion simply does not
      * happen — which is why `Options.claimsOn` strips the mark first, and why this asserts the result
      * rather than the spelling.
      */
@@ -415,9 +415,11 @@ class RecipeCheck : FunSpec({
             "A written recipe carries no '$GENERATOR_VERSION_KEY', so its generation could never be told " +
                 "apart from today's"
         }
-        check(fields.getInt(GENERATOR_VERSION_KEY) == AgeRecipe.CURRENT_GENERATOR_VERSION) {
-            "Stamped generation ${fields.getInt(GENERATOR_VERSION_KEY)}, " +
-                "expected ${AgeRecipe.CURRENT_GENERATOR_VERSION}"
+        // `getInt` answers with an `Optional` now, so the absent case has to be named; -1 is a stamp no
+        // generation ever has, and the message beside it says which it was.
+        val stamped = fields.getIntOr(GENERATOR_VERSION_KEY, NOT_STAMPED)
+        check(stamped == AgeRecipe.CURRENT_GENERATOR_VERSION) {
+            "Stamped generation $stamped, expected ${AgeRecipe.CURRENT_GENERATOR_VERSION}"
         }
     }
 })
@@ -439,7 +441,7 @@ private fun roundTrips(recipe: AgeRecipe, what: String): AgeRecipe {
  */
 private fun everyAspectPreset(): List<AspectPreset> =
     Aspect.entries.flatMap { it.authored } +
-        listOf(Sea.NONE, Sea.WATER, Sea.LAVA, Sea(ResourceLocation.parse("examplemod:creosote")))
+        listOf(Sea.NONE, Sea.WATER, Sea.LAVA, Sea(Identifier.parse("examplemod:creosote")))
 
 /** Every generator kind that has ever been written into a save. Append-only; never edit a line. */
 private val LEGACY_KINDS = listOf(
@@ -453,6 +455,9 @@ private val SAMPLE_CHARACTER =
     AgeCharacter(seam = Seam.FUZZED, alignment = Alignment.INDEPENDENT, regionBlocks = 1600)
 
 private const val GENERATOR_VERSION_KEY = "generator_version"
+
+/** A stamp no generation ever has, so an absent one fails the comparison rather than passing by accident. */
+private const val NOT_STAMPED = -1
 
 /** What every Age written before aspects is stamped with. */
 private const val PRE_SLOTS_GENERATOR_VERSION = 1

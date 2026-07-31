@@ -9,7 +9,9 @@ import co.voik.agesandtheart.worldgen.carver.Porosity
 import co.voik.agesandtheart.worldgen.carver.RuleCarver
 import com.mojang.serialization.MapCodec
 import net.minecraft.core.component.DataComponentType
-import net.minecraft.resources.ResourceLocation
+import net.minecraft.core.registries.Registries
+import net.minecraft.resources.Identifier
+import net.minecraft.resources.ResourceKey
 import net.minecraft.world.item.Item
 import net.minecraft.world.level.biome.BiomeSource
 import net.minecraft.world.level.chunk.ChunkGenerator
@@ -30,24 +32,36 @@ object AgeContent {
      * Data component stored on a Descriptive Book stack: the id of the Age it links to.
      * `persistent` = saved to disk; `networkSynchronized` = sent to the client.
      */
-    val AGE_ID: DataComponentType<ResourceLocation> = DataComponentType.builder<ResourceLocation>()
-        .persistent(ResourceLocation.CODEC)
-        .networkSynchronized(ResourceLocation.STREAM_CODEC)
+    val AGE_ID: DataComponentType<Identifier> = DataComponentType.builder<Identifier>()
+        .persistent(Identifier.CODEC)
+        .networkSynchronized(Identifier.STREAM_CODEC)
         .build()
 
-    /** Unstackable so each book keeps its own [AGE_ID] identity. */
-    val DESCRIPTIVE_BOOK: Item = DescriptiveBookItem(Item.Properties().stacksTo(1))
+    /**
+     * **An item must know its own id before it is constructed.** `Item.Properties.setId` is not optional:
+     * the constructor derives the description id and the component initialisers from it and throws
+     * "Item id not set" without one. So the id is named here and the registration below reuses it, rather
+     * than being spelled twice.
+     */
+    private val DESCRIPTIVE_BOOK_ID: Identifier = "descriptive_book".location()
 
-    val components: List<Pair<ResourceLocation, DataComponentType<*>>> = listOf(
+    /** Unstackable so each book keeps its own [AGE_ID] identity. */
+    val DESCRIPTIVE_BOOK: Item = DescriptiveBookItem(
+        Item.Properties()
+            .setId(ResourceKey.create(Registries.ITEM, DESCRIPTIVE_BOOK_ID))
+            .stacksTo(1),
+    )
+
+    val components: List<Pair<Identifier, DataComponentType<*>>> = listOf(
         "age_id".location() to AGE_ID,
     )
 
-    val items: List<Pair<ResourceLocation, Item>> = listOf(
-        "descriptive_book".location() to DESCRIPTIVE_BOOK,
+    val items: List<Pair<Identifier, Item>> = listOf(
+        DESCRIPTIVE_BOOK_ID to DESCRIPTIVE_BOOK,
     )
 
     /** Chunk-generator codecs (Ages persist via Fantasy, so their generator must be serializable). */
-    val chunkGeneratorCodecs: List<Pair<ResourceLocation, MapCodec<out ChunkGenerator>>> = listOf(
+    val chunkGeneratorCodecs: List<Pair<Identifier, MapCodec<out ChunkGenerator>>> = listOf(
         "spire".location() to SpireChunkGenerator.CODEC,
         // Renamed from `field` with the class: the generator reaches past field terrain now. Save formats
         // are still free to move (CLAUDE.md), so this is a rename rather than an alias.
@@ -58,7 +72,7 @@ object AgeContent {
      * Biome-source codecs. Like the generators, an Age's biome source is persisted with it, so the kind
      * has to be nameable — `BiomeSource.CODEC` dispatches over this registry.
      */
-    val biomeSourceCodecs: List<Pair<ResourceLocation, MapCodec<out BiomeSource>>> = listOf(
+    val biomeSourceCodecs: List<Pair<Identifier, MapCodec<out BiomeSource>>> = listOf(
         "age_biomes".location() to AgeBiomeSource.CODEC,
     )
 
@@ -66,7 +80,7 @@ object AgeContent {
      * Surface-rule kinds. Ours is persisted with the Age like the generator, so the kind has to be
      * nameable — `RuleSource.CODEC` dispatches over this registry.
      */
-    val surfaceRuleCodecs: List<Pair<ResourceLocation, MapCodec<out SurfaceRules.RuleSource>>> = listOf(
+    val surfaceRuleCodecs: List<Pair<Identifier, MapCodec<out SurfaceRules.RuleSource>>> = listOf(
         "region".location() to RegionRule.CODEC,
     )
 
@@ -74,7 +88,7 @@ object AgeContent {
      * Our own carvers. The configured instances that use them are datapack JSON under
      * `data/agesandtheart/worldgen/configured_carver/`; this registers the carver *kinds* those refer to.
      */
-    val carvers: List<Pair<ResourceLocation, WorldCarver<*>>> = listOf(
+    val carvers: List<Pair<Identifier, WorldCarver<*>>> = listOf(
         "porosity".location() to RuleCarver(CarverConfiguration.CODEC.codec(), Porosity.VUGS),
     )
 }

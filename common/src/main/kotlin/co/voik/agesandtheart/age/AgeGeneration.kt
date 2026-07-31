@@ -6,12 +6,14 @@ import co.voik.agesandtheart.worldgen.field.WaterTable
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.sky.SkySpec
+import co.voik.agesandtheart.sky.SpireSky
 import co.voik.agesandtheart.worldgen.biome.AgeBiomeSource
 import co.voik.agesandtheart.worldgen.biome.RegionalClimate
 import co.voik.agesandtheart.worldgen.field.Fault
 import co.voik.agesandtheart.worldgen.field.Palette
 import co.voik.agesandtheart.worldgen.field.RegionMap
 import co.voik.agesandtheart.worldgen.field.Regions
+import co.voik.agesandtheart.worldgen.field.Ridge
 import co.voik.agesandtheart.worldgen.field.Rift
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Weathered
@@ -23,7 +25,7 @@ import co.voik.agesandtheart.worldgen.VerticalWindow
 import co.voik.agesandtheart.worldgen.VanillaDelegate
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
-import net.minecraft.resources.ResourceLocation
+import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.biome.FixedBiomeSource
 import net.minecraft.world.level.chunk.ChunkGenerator
@@ -35,30 +37,14 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource
  * server, for registries), because an Age must rebuild identically on every open.
  */
 object AgeGeneration {
-    /** The dimension type a generated Age wears when it has a sky vanilla cannot draw. */
-    val AGE_DIMENSION_TYPE: ResourceLocation = "age".location()
+    /** The dimension type every generated Age wears. */
+    val AGE_DIMENSION_TYPE: Identifier = "age".location()
 
-    /** The Spire's own dimension type, so its bespoke sky cannot leak into generated Ages. */
-    val AGE_SPIRE_DIMENSION_TYPE: ResourceLocation = "age_spire".location()
-
-    /**
-     * The **effects** ids — a different namespace from the dimension-type ids above, and not to be
-     * confused with them.
-     *
-     * A dimension type is named by its file; its `effects` field is free-form, unvalidated, and what
-     * `DimensionSpecialEffects` is keyed on. They happen to match for [AGE_DIMENSION_TYPE] and do not for
-     * the Spire, which is why they are separate constants.
-     */
-    val AGE_EFFECTS: ResourceLocation = "age".location()
-
-    /** See [AGE_EFFECTS]. Matches `age_spire.json`'s `effects` field. */
-    val SPIRE_EFFECTS: ResourceLocation = "spire".location()
-
-    /** Identical layout, but vanilla (`minecraft:overworld`) effects, so it gets the normal sky. */
-    val AGE_PLAIN_DIMENSION_TYPE: ResourceLocation = "age_plain".location()
+    /** The Spire's own dimension type, which differs only in the band of world it admits. */
+    val AGE_SPIRE_DIMENSION_TYPE: Identifier = "age_spire".location()
 
     /** The custom biome (green plasma water), registered as a datapack biome at load. */
-    val PLASMA_BIOME: ResourceLocation = "plasma".location()
+    val PLASMA_BIOME: Identifier = "plasma".location()
 
     fun chunkGenerator(server: MinecraftServer, recipe: AgeRecipe): ChunkGenerator = when (val world = recipe.world) {
         is AgeWorld.Composed -> assemble(server, world.composition, recipe)
@@ -90,7 +76,7 @@ object AgeGeneration {
 
         val ground = character.mapFor(Aspect.TERRAIN, composition.sharesOf(Aspect.TERRAIN), seed)
         val unweathered = Regions.of(
-            composition.terrains.mapIndexed { member, terrain -> terrain.field(terrainOptions(member), window) },
+            composition.terrains.mapIndexed { member, terrain -> terrain.field(terrainOptions(member), window, saltFor(seed, member)) },
             ground,
         )
         // Erosion is part of the shape rather than a carving pass, so `getBaseHeight` answers from the eroded
@@ -105,6 +91,8 @@ object AgeGeneration {
         // The fault comes last, over the finished rock. A territory lifted before the wind reached it would
         // be weathered by a profile aimed at where it used to be — see [Fault].
         val shape = faulted(weathered, character.seam, ground, seed)
+        // The chasm a rift opened, so the sea can be kept out of it. Null for every other form.
+        val chasm = riftVolume(character.seam, ground)
 
         val flow = character.mapFor(Aspect.SEA, composition.sharesOf(Aspect.SEA), seed)
         val seaFill = Sea.pour(
@@ -114,7 +102,7 @@ object AgeGeneration {
             // The substance divides; the level does not.
             composition.optionsFor(Aspect.SEA, 0),
             flow,
-        )
+        ).copy(dry = chasm)
 
         // What the rock *is*, on the terrain's own map, laid by the fill rather than painted by a rule — which
         // is what lets vanilla's surface tree keep its skin over our substance (see [Substance]).
@@ -170,8 +158,19 @@ object AgeGeneration {
         // `SHEARED` asks for no fault; `FUZZED` already happened, in the width `mapFor` took off the seam.
         Seam.SHEARED, Seam.FUZZED -> rock
         Seam.SCARP -> Fault.of(rock, ground, Fault.alternatingThrows(ground.members, Terrain.SCARP_THROW, seed))
-        Seam.RIFT -> Rift.opened(rock, ground, Terrain.RIFT_FLOOR)
+        Seam.RIFT -> Rift.opened(rock, ground, Terrain.RIFT_FLOOR, Terrain.RIFT_RIM)
+        Seam.WALL -> Ridge.raised(rock, ground, Terrain.WALL_FOOTING, Terrain.WALL_CREST)
     }
+
+    /**
+     * The volume a rift took out, for the sea to be kept out of — and nothing for any other seam.
+     *
+     * Built from the same numbers [faulted] cuts with, so the dry space and the chasm are the same shape
+     * by construction rather than by two constants agreeing.
+     */
+    private fun riftVolume(seam: Seam, ground: RegionMap): TerrainField? =
+        if (seam != Seam.RIFT || ground.members <= 1) null
+        else Rift(ground, Rift.DEFAULT_HALF_WIDTH, Terrain.RIFT_FLOOR, Terrain.RIFT_RIM)
 
     /**
      * Where water stands in this Age's rock — one table per carving, each answering for its own territory
@@ -221,12 +220,25 @@ object AgeGeneration {
     )
 
     /**
-     * The dimension type — and so whether the client attaches our sky renderer — an Age wears. A composed
-     * Age decides from what its sky turned out to be, not from its preset. See [Sky.dimensionType].
+     * The seed a territory's shape is built from: the Age's own, mixed with which territory it is.
+     *
+     * Two things depend on this. A terrain preset carries fixed noise seeds, so without a salt every
+     * `hills` Age would raise the same hills; and two territories of the same preset in one Age would be
+     * identical, leaving nothing for a seam to divide.
      */
-    fun dimensionType(recipe: AgeRecipe): ResourceLocation = when (val world = recipe.world) {
-        is AgeWorld.Composed -> world.composition.sky.dimensionType(skySpec(recipe))
-        is AgeWorld.Bespoke -> if (world.preset == AgePreset.SPIRE) AGE_SPIRE_DIMENSION_TYPE else AGE_PLAIN_DIMENSION_TYPE
+    private fun saltFor(seed: Long, member: Int): Long = seed * TERRITORY_SALT_STRIDE + member
+
+    /** Odd and large, so consecutive members land far apart in the noise rather than adjacent. */
+    private val TERRITORY_SALT_STRIDE = 0x9E37_79B9_7F4A_7C15uL.toLong()
+
+    /**
+     * The dimension type an Age wears. It no longer decides anything about the sky — the renderer reads
+     * each Age's spec per frame from [co.voik.agesandtheart.sky.KnownSkies] — so the only thing left to
+     * choose between is the band of world, and only the Spire wants a different one.
+     */
+    fun dimensionType(recipe: AgeRecipe): Identifier = when (val world = recipe.world) {
+        is AgeWorld.Composed -> world.composition.sky.dimensionType()
+        is AgeWorld.Bespoke -> if (world.preset == AgePreset.SPIRE) AGE_SPIRE_DIMENSION_TYPE else AGE_DIMENSION_TYPE
     }
 
     /**
@@ -236,15 +248,20 @@ object AgeGeneration {
      * dimension type's JSON, and nothing in vanilla checks the two agree — a mismatch is silently dropped
      * blocks. Adding a band means adding both halves together.
      */
-    fun windowFor(dimensionType: ResourceLocation): VerticalWindow =
+    fun windowFor(dimensionType: Identifier): VerticalWindow =
         if (dimensionType == AGE_SPIRE_DIMENSION_TYPE) VerticalWindow.LIFTED else VerticalWindow.DEFAULT
 
-    /** The sky an Age has, as data the client can be told. A pure function of the recipe. */
+    /**
+     * The sky an Age has, as data the client can be told. A pure function of the recipe.
+     *
+     * The Spire is reached here as well as through [Sky.SPIRE], because the handcrafted Age is bespoke and
+     * never passes through a composition. Both answer with the same [SpireSky.SPEC].
+     */
     fun skySpec(recipe: AgeRecipe): SkySpec = when (val world = recipe.world) {
         is AgeWorld.Composed -> world.composition.sky.specFor(
             world.composition.optionsFor(Aspect.SKY, 0),
             recipe.seed,
         )
-        is AgeWorld.Bespoke -> SkySpec.VANILLA
+        is AgeWorld.Bespoke -> if (world.preset == AgePreset.SPIRE) SpireSky.SPEC else SkySpec.VANILLA
     }
 }

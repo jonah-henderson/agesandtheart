@@ -1,5 +1,3 @@
-import org.jetbrains.dokka.gradle.DokkaTask
-
 plugins {
     id 'multiloader-common'
     id "org.jetbrains.kotlin.jvm"
@@ -54,17 +52,22 @@ tasks.named('sourcesJar', Jar) {
     from(configurations.commonResources)
 }
 
-// Use dokka to generate javadoc for both Java and Kotlin sources
-// instead of using the builtin javadoc tools. This allows mixing
-// Kotlin and Java
-tasks.named("dokkaJavadoc", DokkaTask) {
-    dependsOn(configurations.commonJava)
-    dependsOn(configurations.commonKotlin)
+// Use dokka to generate javadoc for both Java and Kotlin sources instead of using the builtin javadoc
+// tools. This allows mixing Kotlin and Java — and here it is also the only way a loader's docs can cover
+// `common`, whose sources are compiled *into* this jar rather than consumed as one.
+dokka {
     dokkaSourceSets.configureEach {
-        // Only the roots that are actually there. `common` has no Java sources, so `src/main/java` is an
-        // empty directory — which git cannot track, so it is absent from a fresh clone and Dokka refuses
-        // to walk it. Filtering here keeps "this directory must exist" from being an unwritten build
-        // requirement that only shows up after cloning.
+        // Only the roots that are actually there. A source directory that git cannot track — an empty one
+        // — is absent from a fresh clone, and Dokka refuses to walk a root that does not exist. Filtering
+        // here keeps "this directory must exist" from being an unwritten build requirement that only shows
+        // up after cloning.
         sourceRoots.from((configurations.commonJava + configurations.commonKotlin).findAll { it.exists() })
     }
+}
+
+// Resolving those configurations is what builds the generated sources they carry, so the task that reads
+// them has to wait for it.
+tasks.named("dokkaGenerateModuleJavadoc") {
+    dependsOn(configurations.commonJava)
+    dependsOn(configurations.commonKotlin)
 }

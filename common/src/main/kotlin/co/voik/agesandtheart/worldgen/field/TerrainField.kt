@@ -77,6 +77,7 @@ enum class FieldKind(private val makeCodec: (Codec<TerrainField>) -> MapCodec<ou
     RAISED({ self -> Raised.codec(self) }),
     FAULT({ self -> Fault.codec(self) }),
     RIFT({ Rift.CODEC }),
+    RIDGE({ Ridge.CODEC }),
     CHANCE({ self -> Chance.codec(self) }),
     CHOOSE({ self -> Choose.codec(self) }),
     UNION({ self -> Union.codec(self) }),

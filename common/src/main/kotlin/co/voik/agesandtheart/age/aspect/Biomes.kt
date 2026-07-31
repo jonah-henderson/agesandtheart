@@ -3,7 +3,7 @@ package co.voik.agesandtheart.age.aspect
 import co.voik.agesandtheart.worldgen.biome.BiomePreference
 import co.voik.agesandtheart.worldgen.field.Palette
 import net.minecraft.world.level.levelgen.SurfaceRules
-import net.minecraft.resources.ResourceLocation
+import net.minecraft.resources.Identifier
 
 /**
  * Which biomes an Age grows — what a place *is*, as opposed to how hot it is or what shape it takes.
@@ -45,7 +45,7 @@ enum class Biomes(override val key: String) : AspectPreset {
     fun preferencesIn(options: Options): List<BiomePreference> {
         val asked = Population.of(options.claimsOn(GROWN))
         fun named(values: List<String>) =
-            values.filter { it != Parameter.UNCHANGED }.mapNotNull(ResourceLocation::tryParse)
+            values.filter { it != Parameter.UNCHANGED }.mapNotNull(Identifier::tryParse)
         return named(asked.wanted.map { it.value }).map { BiomePreference(it, BiomePreference.WEIGHT_OF_A_MENTION) } +
             named(asked.struck).map { biome -> BiomePreference(biome, BiomePreference.STRUCK_OUT) }
     }

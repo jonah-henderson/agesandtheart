@@ -3,27 +3,29 @@ plugins {
     alias(libs.plugins.loom)
 }
 
-val modId: String by project
+val modId = project.property("modId") as String
 
 /** Where the dedicated server runs, shared by Loom's run config and the launch spec the checks read. */
 val SERVER_RUN_DIR = "runs/server"
 
 dependencies {
     minecraft(libs.minecraft)
-    mappings(loom.layered {
-        officialMojangMappings()
-        parchment("org.parchmentmc.data:parchment-${libs.versions.parchmentMC.get()}:${libs.versions.parchment.get()}@zip")
-    })
-    modImplementation(libs.fabricLoader)
-    modImplementation(libs.fabricApi)
+    // NO MAPPINGS AT ALL. Mojang stopped obfuscating Java Edition at 26.1, so there are no official
+    // mappings published for this version and nothing for them to have mapped — Loom reports exactly that
+    // if you ask for them ("Failed to find official mojang mappings for 26.1.2").
+    implementation(libs.fabricLoader)
+    implementation(libs.fabricApi)
 
-    modImplementation(libs.flk)
+    implementation(libs.flk)
 
     // Fantasy: runtime dimension creation (the Fabric-only backend for Ages).
-    modImplementation(libs.fantasy)
+    implementation(libs.fantasy)
 
     // The Art's parser runtime. Loom nests it and synthesises a fabric.mod.json for the non-mod jar
     // itself, so Fabric's half of bundling really is two lines.
+    //
+    // `modImplementation` is gone along with remapping: from 26.1 Minecraft and mods alike are
+    // unobfuscated, so the plain configurations are the only ones there are.
     implementation(libs.antlrRuntime)
     include(libs.antlrRuntime)
 }
@@ -58,6 +60,15 @@ val exportServerLaunch = tasks.register("exportServerLaunch") {
     inputs.files(runClasspath)
     outputs.file(launchFile)
 
+    /**
+     * **`configureLaunch` is what makes the JVM arguments readable at all.** Loom supplies them through a
+     * `jvmArgumentProvider` that throws "Cannot get MinecraftProvider before it has been setup" until the
+     * game is configured, and an unprimed provider silently contributed *nothing* — which wrote a launch
+     * with no `-Dfabric.dli.*` at all, so devlaunchinjector had no config and the server died on start
+     * before it could even open a log.
+     */
+    dependsOn("configureLaunch")
+
     val runDirectory = file(SERVER_RUN_DIR)
 
     doLast {
@@ -69,7 +80,9 @@ val exportServerLaunch = tasks.register("exportServerLaunch") {
             add("mainClass\t${runServer.mainClass.get()}")
             // The first of these is an `@argfile` holding `-classpath …`, so the classpath rides along with
             // the JVM arguments and needs no `-cp` of its own.
-            runServer.jvmArgs.orEmpty().forEach { add("jvmArg\t$it") }
+            val declaredDirectly = runServer.jvmArgs.orEmpty()
+            val fromLoomsProvider = runServer.jvmArgumentProviders.flatMap { it.asArguments() }
+            (declaredDirectly + fromLoomsProvider).forEach { add("jvmArg\t$it") }
             // Headless. Loom adds this as the run starts, the same way it does the working directory, and a
             // server that opens a window is a server no check can drive.
             add("arg\tnogui")

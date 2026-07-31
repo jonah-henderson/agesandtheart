@@ -96,8 +96,8 @@ data class RegionMap(
      * questions need it. It allocates, which is a considered trade: [memberAt] is asked per block and
      * already pays a noise sample per member, and the object never escapes.
      *
-     * [contested] is in **claim units, not blocks** — that is what [memberAt] compares against [margin].
-     * [blocksFromSeamAt] does the conversion.
+     * `Contest.contested` is in **claim units, not blocks** — that is what [memberAt] compares against
+     * [margin]. [blocksFromSeamAt] does the conversion.
      */
     private fun contestAt(worldX: Int, worldZ: Int): Contest {
         val sampleX = (worldX - originX) / stretch

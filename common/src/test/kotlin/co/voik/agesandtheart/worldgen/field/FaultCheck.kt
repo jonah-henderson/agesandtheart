@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.Seam
 import co.voik.agesandtheart.worldgen.NoiseField
 import co.voik.agesandtheart.worldgen.PillarField
 import io.kotest.core.spec.style.FunSpec
+import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import kotlin.math.abs
 
@@ -40,7 +41,7 @@ class FaultCheck : FunSpec({
     }
 
     /**
-     * The forms come out in their declared proportions — **rift 40 / scarp 40 / sheared 15 / fuzzed 5**.
+     * The forms come out in their declared proportions — **scarp 30 / rift 30 / wall 20 / sheared 15 / fuzzed 5**.
      * The rare one matters most: a bug in a weighted draw hides in a 5% form, since 5 and 0 and 15 all look
      * like "hardly ever" until somebody counts.
      */
@@ -51,7 +52,13 @@ class FaultCheck : FunSpec({
             counts[drawn] = counts.getValue(drawn) + 1
         }
 
-        val expected = mapOf(Seam.SCARP to 0.40, Seam.RIFT to 0.40, Seam.SHEARED to 0.15, Seam.FUZZED to 0.05)
+        val expected = mapOf(
+            Seam.SCARP to 0.30,
+            Seam.RIFT to 0.30,
+            Seam.WALL to 0.20,
+            Seam.SHEARED to 0.15,
+            Seam.FUZZED to 0.05,
+        )
         check(expected.keys == Seam.entries.toSet()) {
             "a seam form has no expected share here — add one, or the distribution is only partly checked"
         }
@@ -129,7 +136,7 @@ class FaultCheck : FunSpec({
     test("an unasked fault leaves the shape alone") {
         val map = twoTerritories()
         check(Fault.of(plate, map, listOf(0, 0)) === plate) { "a throw of zero still built a Fault node" }
-        check(Rift.opened(plate, map, floorY = 40, halfWidth = 0.0) === plate) {
+        check(Rift.opened(plate, map, floorY = 40, rimY = 72, halfWidth = 0.0) === plate) {
             "a rift of no width still built a Rift node"
         }
     }
@@ -137,11 +144,11 @@ class FaultCheck : FunSpec({
     /** A one-member map has no seam, so a throw applied to it would displace the world, not fault it. */
     test("a single territory cannot fault") {
         check(Fault.of(plate, wholeWorld, listOf(32)) === plate) { "a one-territory Age was faulted" }
-        check(Rift.opened(plate, wholeWorld, floorY = 40) === plate) { "a one-territory Age was riven" }
+        check(Rift.opened(plate, wholeWorld, floorY = 40, rimY = 72) === plate) { "a one-territory Age was riven" }
 
         // And the node built directly still claims nothing — the guards above are a convenience, where this is
         // the actual promise, since a recipe could name the node outright.
-        val rift = Rift(wholeWorld, halfWidth = Rift.DEFAULT_HALF_WIDTH, floorY = 40)
+        val rift = Rift(wholeWorld, halfWidth = Rift.DEFAULT_HALF_WIDTH, floorY = 40, rimY = 72)
         for ((x, z) in walk) {
             check(rift.columnSpans(x, z).ranges.isEmpty()) { "a rift on a whole-world map cut ($x, $z)" }
         }
@@ -264,26 +271,57 @@ class FaultCheck : FunSpec({
     }
 
     /**
-     * A rift claims the band along a seam and nothing else, from its floor upwards. Asserted against the
-     * map's own distance rather than a second notion of "near a seam".
+     * A rift claims a wedge along a seam and nothing else: deepest at the seam, rising to the rim, and
+     * never reaching past the band its rim may wander to.
      */
-    test("a rift takes only the band along a seam") {
+    test("a rift cuts a V along a seam and nothing else") {
         val map = twoTerritories()
         val floorY = 40
-        val rift = Rift(map, halfWidth = Rift.DEFAULT_HALF_WIDTH, floorY = floorY)
+        val rimY = 72
+        val rift = Rift(map, halfWidth = Rift.DEFAULT_HALF_WIDTH, floorY = floorY, rimY = rimY)
+        val reachOfTheRim = Rift.DEFAULT_HALF_WIDTH + Rift.DEFAULT_RIM_WANDER
         var claimed = 0
+        var deepest = Int.MAX_VALUE
         for ((x, z) in walk) {
             val ranges = rift.columnSpans(x, z).ranges
-            if (map.blocksFromSeamAt(x, z) > Rift.DEFAULT_HALF_WIDTH) {
-                check(ranges.isEmpty()) { "($x, $z) is outside the band and the rift claimed $ranges" }
+            if (map.blocksFromSeamAt(x, z) > reachOfTheRim) {
+                check(ranges.isEmpty()) { "($x, $z) is beyond any wander of the rim and the rift claimed $ranges" }
                 continue
             }
+            if (ranges.isEmpty()) continue
             claimed++
-            check(ranges.size == 1 && ranges.single().first == floorY) {
-                "($x, $z) is in the band and the rift claimed $ranges rather than one run from its floor"
+            val floorHere = ranges.single().first
+            check(ranges.size == 1 && floorHere in floorY..rimY) {
+                "($x, $z) is in the band and the rift claimed $ranges rather than one run between its floor and rim"
             }
+            deepest = minOf(deepest, floorHere)
         }
         check(claimed > 0) { "the walk found no rift band at all — widen it before trusting this" }
+        check(deepest == floorY) { "the rift never reached its floor: the deepest cut was y=$deepest, not $floorY" }
+    }
+
+    /** The wall form: the rift inverted, standing highest at the seam and nowhere outside its band. */
+    test("a wall stands along a seam and nowhere else") {
+        val map = twoTerritories()
+        val footingY = 60
+        val crestY = 108
+        val ridge = Ridge(map, halfWidth = Ridge.DEFAULT_HALF_WIDTH, footingY = footingY, crestY = crestY)
+        val reachOfTheCrest = Ridge.DEFAULT_HALF_WIDTH + Rift.DEFAULT_RIM_WANDER
+        var highest = Int.MIN_VALUE
+        for ((x, z) in walk) {
+            val ranges = ridge.columnSpans(x, z).ranges
+            if (map.blocksFromSeamAt(x, z) > reachOfTheCrest) {
+                check(ranges.isEmpty()) { "($x, $z) is beyond the wall's band and it claimed $ranges" }
+                continue
+            }
+            if (ranges.isEmpty()) continue
+            val run = ranges.single()
+            check(ranges.size == 1 && run.first == footingY && run.last <= crestY) {
+                "($x, $z) is in the band and the wall claimed $ranges rather than one run up from its footing"
+            }
+            highest = maxOf(highest, run.last)
+        }
+        check(highest == crestY) { "the wall never reached its crest: the highest was y=$highest, not $crestY" }
     }
 
     /**
@@ -294,7 +332,7 @@ class FaultCheck : FunSpec({
     test("a rift leaves everything below its floor") {
         val floorY = 40
         val deepPlate = Slab(lowY = 0, highY = 90)
-        val riven = Rift.opened(deepPlate, twoTerritories(), floorY = floorY)
+        val riven = Rift.opened(deepPlate, twoTerritories(), floorY = floorY, rimY = 72)
         check(riven is Subtract) { "a rift should compose as a Subtract and came out ${riven::class.simpleName}" }
         for ((x, z) in walk) {
             val left = riven.columnSpans(x, z)
@@ -302,6 +340,39 @@ class FaultCheck : FunSpec({
                 check(left.contains(y)) { "($x, $z) lost the block at y=$y, below the rift's floor" }
             }
         }
+    }
+
+    /**
+     * **A rift stays dry.** The chasm cuts well below the waterline, so without the sea being told to keep
+     * out it fills to the brim — which is what happened, twice, and neither the shape checks nor the
+     * server checks could see it because both stop at where the rock is.
+     *
+     * Outside the chasm the same sea must still fill, or this would pass by draining the Age.
+     */
+    test("the sea keeps out of a rift and fills everywhere else") {
+        val map = twoTerritories()
+        val waterline = 63
+        val chasm = Rift(map, Rift.DEFAULT_HALF_WIDTH, floorY = 40, rimY = 72)
+        val sea = SeaFill(listOf(Blocks.WATER.defaultBlockState()), level = waterline, map = RegionMap.whole(), dry = chasm)
+
+        var keptOut = 0
+        var filled = 0
+        for ((x, z) in walk) {
+            val dryness = sea.drynessAt(x, z)
+            val insideTheChasm = !dryness.ranges.isEmpty()
+            // A level under the waterline and under the rim, so it is a level the sea would reach.
+            val y = 50
+            val fills = sea.fillsAt(y, dryness)
+            if (insideTheChasm && dryness.contains(y)) {
+                check(!fills) { "($x, $z) is inside the chasm at y=$y and the sea filled it" }
+                keptOut++
+            } else {
+                check(fills) { "($x, $z) is outside the chasm at y=$y and the sea did not fill it" }
+                filled++
+            }
+        }
+        check(keptOut > 0) { "the walk never entered the chasm, so this checked nothing" }
+        check(filled > 0) { "the walk never left the chasm, so the sea was never asked to fill" }
     }
 
     /**
@@ -317,11 +388,12 @@ class FaultCheck : FunSpec({
         }
         check(resizedFault.map == map.resized(2.0)) { "resizing a fault left its territories the old size" }
 
-        val resizedRift = Rift(map, halfWidth = 16.0, floorY = 40).resized(2.0, pivotY = 0)
+        val resizedRift = Rift(map, halfWidth = 16.0, floorY = 40, rimY = 72).resized(2.0, pivotY = 0)
         check(abs(resizedRift.halfWidth - 32.0) < 1.0e-9) {
             "resizing a rift by two gave a half-width of ${resizedRift.halfWidth}"
         }
         check(resizedRift.floorY == 80) { "resizing a rift about y=0 put its floor at ${resizedRift.floorY}" }
+        check(resizedRift.rimY == 144) { "resizing a rift about y=0 put its rim at ${resizedRift.rimY}" }
     }
 })
 

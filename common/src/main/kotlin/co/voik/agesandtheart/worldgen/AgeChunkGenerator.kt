@@ -33,7 +33,6 @@ import net.minecraft.world.level.chunk.ChunkGeneratorStructureState
 import net.minecraft.world.level.chunk.ProtoChunk
 import net.minecraft.world.level.levelgen.Aquifer
 import net.minecraft.world.level.levelgen.Beardifier
-import net.minecraft.world.level.levelgen.GenerationStep
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.levelgen.LegacyRandomSource
 import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator
@@ -66,7 +65,7 @@ import java.util.stream.Stream
  * 4. [applyCarvers], because an Age's carvers come from its **recipe**, not its biome. Otherwise vanilla's
  *    own algorithm, with one substitution: the source of the list.
  *
- * Not an exit: dividing the world by territory goes through a custom [RegionRule], vanilla's own
+ * Not an exit: dividing the world by territory goes through a custom `RegionRule`, vanilla's own
  * registered extension point. See `notes/terrain-architecture.md` for how the stages fit together.
  */
 class AgeChunkGenerator(
@@ -85,7 +84,7 @@ class AgeChunkGenerator(
      * A carver is a stateful walk, so there is no column at which to ask whether it may cut; [applyCarvers]
      * asks at the walk's *origin*, the one position a walk has.
      */
-    private val carvers: List<Map<GenerationStep.Carving, HolderSet<ConfiguredWorldCarver<*>>>> = listOf(emptyMap()),
+    private val carvers: List<HolderSet<ConfiguredWorldCarver<*>>> = listOf(HolderSet.direct()),
     /**
      * Which carving owns which ground — read by **carving and hydrology alike**, so that the caves and
      * the water standing in them belong to the same territory rather than to two maps that nearly agree.
@@ -122,7 +121,7 @@ class AgeChunkGenerator(
         field: TerrainField,
         seaFill: SeaFill,
         surfaceRule: SurfaceRules.RuleSource = Palette.PLAIN_STONE,
-        carvers: Map<GenerationStep.Carving, HolderSet<ConfiguredWorldCarver<*>>>,
+        carvers: HolderSet<ConfiguredWorldCarver<*>>,
         waterTable: WaterTable? = null,
         structureSets: List<Holder<StructureSet>> = emptyList(),
     ) : this(
@@ -164,6 +163,7 @@ class AgeChunkGenerator(
                 // Once per column, not once per block: which territory a column is in costs a noise
                 // sample per sea, and the answer cannot change as you go down it.
                 val sea = seaFill.blockAt(worldX, worldZ)
+                val dryness = seaFill.drynessAt(worldX, worldZ)
 
                 for (y in window.minY..<window.topY) {
                     // The field decides, unless a structure standing here has an opinion of its own.
@@ -172,10 +172,10 @@ class AgeChunkGenerator(
                         // What the rock *is*, which is vanilla's `default_block` and now ours — the surface
                         // system paints its skin over this afterwards, exactly as it does for vanilla.
                         isRock -> substance.blockAt(worldX, y, worldZ)
-                        seaFill.fillsAt(y) -> sea
+                        seaFill.fillsAt(y, dryness) -> sea
                         else -> null
                     } ?: continue
-                    chunk.setBlockState(cursor.set(worldX, y, worldZ), state, false)
+                    chunk.setBlockState(cursor.set(worldX, y, worldZ), state)
                     oceanFloor.update(localX, y, localZ, state)
                     worldSurface.update(localX, y, localZ, state)
                 }
@@ -192,27 +192,28 @@ class AgeChunkGenerator(
      * count is [type]'s business and is asked rather than guessed — getting it wrong puts a shipwreck on
      * the seabed and a village underwater.
      *
-     * Two load-bearing details: spans reach far outside any real world ([Spans.HIGHEST_Y]), so the answer
+     * Two load-bearing details: spans reach far outside any real world (`Spans.HIGHEST_Y`), so the answer
      * is **clamped** to the height the caller has; and a column holding nothing answers the world's floor
      * rather than the sea level, which for a void sea was `Int.MIN_VALUE` and overflowed.
      */
     override fun getBaseHeight(x: Int, z: Int, type: Heightmap.Types, level: LevelHeightAccessor, randomState: RandomState): Int {
         val counts = type.isOpaque()
         // One below the world, so a column with nothing this query counts simply answers the floor.
-        val nothing = level.minBuildHeight - 1
+        val nothing = level.minY - 1
         val rockTop = if (counts.test(substance.representative)) field.columnSpans(x, z).highestSolidY ?: nothing else nothing
         val mediumTop = if (counts.test(seaFill.blockAt(x, z))) seaFill.surfaceY ?: nothing else nothing
-        return (maxOf(rockTop, mediumTop) + 1).coerceIn(level.minBuildHeight, level.maxBuildHeight)
+        return (maxOf(rockTop, mediumTop) + 1).coerceIn(level.minY, level.maxY + 1)
     }
 
     override fun getBaseColumn(x: Int, z: Int, level: LevelHeightAccessor, randomState: RandomState): NoiseColumn {
         val spans = field.columnSpans(x, z)
         val sea = seaFill.blockAt(x, z)
+        val dryness = seaFill.drynessAt(x, z)
         val column = Array(window.height) { index ->
             val y = window.minY + index
             when {
                 spans.contains(y) -> substance.blockAt(x, y, z)
-                seaFill.fillsAt(y) -> sea
+                seaFill.fillsAt(y, dryness) -> sea
                 else -> AIR
             }
         }
@@ -228,15 +229,13 @@ class AgeChunkGenerator(
         waterTables.ifEmpty { listOf(WaterTable.matching(seaFill, seaLevel)) }
 
     /**
-     * Every carving's carvers together, per step — the union described on [carvers]. Built once and **in
-     * composition order**, because a carver is seeded by its *index* in the list it runs from, so a stable
-     * order is what keeps an Age reproducible. `distinct()` so a carver named twice runs once, rather than
-     * twice at different seeds, which would double its density.
+     * Every carving's carvers together — the union described on [carvers]. Built once and **in composition
+     * order**, because a carver is seeded by its *index* in the list it runs from, so a stable order is
+     * what keeps an Age reproducible. `distinct()` so a carver named twice runs once, rather than twice at
+     * different seeds, which would double its density.
      */
-    private val carving: Map<GenerationStep.Carving, List<Holder<ConfiguredWorldCarver<*>>>> by lazy {
-        GenerationStep.Carving.entries.associateWith { step ->
-            carvers.flatMap { perSubsurface -> perSubsurface[step]?.toList().orEmpty() }.distinct()
-        }
+    private val carving: List<Holder<ConfiguredWorldCarver<*>>> by lazy {
+        carvers.flatMap { perSubsurface -> perSubsurface.toList() }.distinct()
     }
 
     /**
@@ -244,13 +243,11 @@ class AgeChunkGenerator(
      * read one level down: `caves` and `porous` assert something *exists* underground and so accumulate,
      * where `solid` asserts an absence, which cannot accumulate and so contends for ground.
      *
-     * Inferred rather than declared, and exactly: a carving that cuts nothing at any step *is* one
-     * asserting the rock is uncut, so a datapack's carving lands on the right side without saying anything.
+     * Inferred rather than declared, and exactly: a carving that cuts nothing *is* one asserting the rock
+     * is uncut, so a datapack's carving lands on the right side without saying anything.
      */
     private val uncarvedTerritories: Set<Int> by lazy {
-        fun cutsNothing(carving: Map<GenerationStep.Carving, HolderSet<ConfiguredWorldCarver<*>>>): Boolean =
-            carving.values.all { step -> step.size() == 0 }
-        carvers.indices.filter { territory -> cutsNothing(carvers[territory]) }.toSet()
+        carvers.indices.filter { territory -> carvers[territory].size() == 0 }.toSet()
     }
 
     // Only ever consulted by the NoiseChunk's own (disabled, unused) aquifer — carving uses [aquifer].
@@ -292,10 +289,8 @@ class AgeChunkGenerator(
         biomeManager: BiomeManager,
         structureManager: StructureManager,
         chunk: ChunkAccess,
-        step: GenerationStep.Carving,
     ) {
-        val stepCarvers = carving[step].orEmpty()
-        if (stepCarvers.isEmpty()) return
+        if (carving.isEmpty()) return
         val protoChunk = chunk as? ProtoChunk ?: return
 
         // A biome manager reading this Age's own source rather than the level's, which a carver asks
@@ -313,7 +308,7 @@ class AgeChunkGenerator(
             randomState,
             surfaceRule,
         )
-        val carvingMask = protoChunk.getOrCreateCarvingMask(step)
+        val carvingMask = protoChunk.getOrCreateCarvingMask()
         // Fresh per pass: it caches a column and tracks whether the water it just placed needs to
         // settle, so it must not be shared between chunk workers.
         val aquifer = WaterTable.aquiferFor(tables, field, underground)
@@ -328,7 +323,7 @@ class AgeChunkGenerator(
                 // ground. [RegionMap.memberAt] has already frayed that boundary by the Age's seam.
                 val territory = underground.memberAt(source.middleBlockX, source.middleBlockZ)
                 if (territory in uncarvedTerritories) continue
-                stepCarvers.forEachIndexed { index, carver ->
+                carving.forEachIndexed { index, carver ->
                     random.setLargeFeatureSeed(seed + index, source.x, source.z)
                     if (carver.value().isStartChunk(random)) {
                         // Our own aquifer, not the NoiseChunk's: vanilla's reads noise from the
@@ -384,11 +379,10 @@ class AgeChunkGenerator(
     companion object {
         // Declared before CODEC, and it must be: a companion initialises top to bottom, so CODEC reading
         // this from below would read a null.
-        private val CARVER_SETS: Codec<Map<GenerationStep.Carving, HolderSet<ConfiguredWorldCarver<*>>>> =
-            Codec.unboundedMap(
-                GenerationStep.Carving.CODEC,
-                RegistryCodecs.homogeneousList(Registries.CONFIGURED_CARVER),
-            )
+        // One set per territory. It was a map keyed by `GenerationStep.Carving` until vanilla collapsed
+        // its two carving passes into one; only the air half was ever populated, so nothing was lost.
+        private val CARVER_SETS: Codec<HolderSet<ConfiguredWorldCarver<*>>> =
+            RegistryCodecs.homogeneousList(Registries.CONFIGURED_CARVER)
 
         val CODEC: MapCodec<AgeChunkGenerator> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -405,7 +399,7 @@ class AgeChunkGenerator(
                         { either -> either.map({ many -> many }, ::listOf) },
                         { many -> if (many.size == 1) Either.right(many.first()) else Either.left(many) },
                     )
-                    .optionalFieldOf("carvers", listOf(emptyMap())).forGetter { it.carvers },
+                    .optionalFieldOf("carvers", listOf(HolderSet.direct())).forGetter { it.carvers },
                 RegionMap.MAP_CODEC.codec().optionalFieldOf("underground", RegionMap.whole())
                     .forGetter { it.underground },
                 // Absent means "a flat table at the sea's own level", derived at construction. A list, since

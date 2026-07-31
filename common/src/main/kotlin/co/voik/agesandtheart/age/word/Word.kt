@@ -5,7 +5,7 @@ import co.voik.agesandtheart.age.aspect.AspectPreset
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
-import net.minecraft.resources.ResourceLocation
+import net.minecraft.resources.Identifier
 import net.minecraft.util.StringRepresentable
 import java.util.Optional
 
@@ -60,7 +60,7 @@ enum class Tier(
  */
 data class Word(
     /** Where the word was defined. Its path is what a writer says: `agesandtheart:floating` → "floating". */
-    val id: ResourceLocation,
+    val id: Identifier,
     val tier: Tier,
     /**
      * The aspects this word may fill — **empty meaning anywhere**.
@@ -172,7 +172,7 @@ data class Word(
         private const val NAMED_OUTRIGHT = 1.0
 
         /** A word as its file says it, the id coming from where the file *is*, like every vanilla registry. */
-        fun mapCodec(id: ResourceLocation): MapCodec<Word> = RecordCodecBuilder.mapCodec { instance ->
+        fun mapCodec(id: Identifier): MapCodec<Word> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
                 Tier.CODEC.fieldOf("tier").forGetter(Word::tier),
                 ASPECT_SET_CODEC.optionalFieldOf("aspects", emptySet()).forGetter(Word::aspects),

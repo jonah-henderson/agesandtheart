@@ -25,15 +25,11 @@ powerAssert {
 }
 
 neoForge {
-    neoFormVersion = libs.versions.neoForm
+    neoFormVersion = libs.versions.neoForm.get()
     // Automatically enable AccessTransformers if the file exists
     val at = file("src/main/resources/META-INF/accesstransformer.cfg")
     if (at.exists()) {
         accessTransformers.from(at.absolutePath)
-    }
-    parchment {
-        minecraftVersion = libs.versions.parchmentMC
-        mappingsVersion = libs.versions.parchment
     }
 }
 
@@ -55,6 +51,11 @@ configurations {
 dependencies {
     antlr(libs.antlrTool)
     implementation(libs.antlrRuntime)
+
+    // Annotations only, and only to compile `src/main/java`'s one Mixin. Each loader supplies the real
+    // implementation at runtime, so this must never reach a runtime classpath. Nothing is generated here:
+    // Minecraft is unobfuscated from 26.1, so there is no refmap for the annotation processor to write.
+    compileOnly(libs.mixin)
 }
 
 /**
@@ -81,7 +82,7 @@ tasks.named<org.gradle.api.plugins.antlr.AntlrTask>("generateGrammarSource") {
 // Everything in this module that walks its own source directories now reads a *generated* one too, and
 // Gradle rightly refuses to guess the ordering. The loaders need no equivalent: they read the `commonJava`
 // configuration, whose artifacts already name the generating task as their builder.
-for (readsTheSources in listOf("compileKotlin", "dokkaJavadoc", "sourcesJar")) {
+for (readsTheSources in listOf("compileKotlin", "dokkaGenerateModuleJavadoc", "sourcesJar")) {
     tasks.named(readsTheSources) { dependsOn("generateGrammarSource") }
 }
 
@@ -102,7 +103,7 @@ artifacts {
 
 // A developer tool, deliberately in its own source set: the loaders only ever pull `main`'s directories
 // (see the artifacts above), so nothing here can end up in a shipped jar.
-val preview: SourceSet by sourceSets.creating
+val preview: SourceSet = sourceSets.create("preview")
 
 val main: SourceSet = sourceSets.main.get()
 // Minecraft arrives compile-only under ModDevGradle, so it has to be forced onto the runtime side too.

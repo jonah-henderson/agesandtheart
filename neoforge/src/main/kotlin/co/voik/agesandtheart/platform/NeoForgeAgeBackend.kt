@@ -2,7 +2,7 @@ package co.voik.agesandtheart.platform
 
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.platform.services.AgeBackend
-import net.minecraft.resources.ResourceLocation
+import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 
@@ -13,12 +13,12 @@ import net.minecraft.server.level.ServerLevel
 class NeoForgeAgeBackend : AgeBackend {
     override val isSupported: Boolean = false
 
-    override fun openAge(server: MinecraftServer, id: ResourceLocation): ServerLevel? {
+    override fun openAge(server: MinecraftServer, id: Identifier): ServerLevel? {
         Constants.LOG.warn("Runtime Ages aren't supported on NeoForge yet (requested {})", id)
         return null
     }
 
-    override fun deleteAge(server: MinecraftServer, id: ResourceLocation): Boolean {
+    override fun deleteAge(server: MinecraftServer, id: Identifier): Boolean {
         Constants.LOG.warn("Runtime Ages aren't supported on NeoForge yet (asked to delete {})", id)
         return false
     }

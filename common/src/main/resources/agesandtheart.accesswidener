@@ -1,4 +1,8 @@
-accessWidener v2 named
+accessWidener v2 official
+
+# `official` rather than `named`, and there is no longer a difference: Minecraft is unobfuscated from 26.1,
+# so there is one namespace and Loom expects it to be called this. It says so plainly if it is not —
+# "Expected official namespace for access widener entry, found: named".
 
 # Region-aware surface painting (co.voik.agesandtheart.worldgen.field.RegionRule).
 #

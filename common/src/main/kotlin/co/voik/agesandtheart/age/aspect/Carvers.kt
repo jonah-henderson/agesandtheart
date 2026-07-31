@@ -8,9 +8,8 @@ import co.voik.agesandtheart.worldgen.field.WaterTable
 import net.minecraft.core.HolderSet
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
-import net.minecraft.resources.ResourceLocation
+import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
-import net.minecraft.world.level.levelgen.GenerationStep
 import net.minecraft.world.level.levelgen.carver.ConfiguredWorldCarver
 
 /**
@@ -47,18 +46,24 @@ enum class Carvers(override val key: String) : AspectPreset {
 
     override fun getSerializedName(): String = key
 
-    /** The carvers this preset runs, resolved from the registry the Age is being opened against. */
-    fun configuredCarvers(server: MinecraftServer): Map<GenerationStep.Carving, HolderSet<ConfiguredWorldCarver<*>>> {
+    /**
+     * The carvers this preset runs, resolved from the registry the Age is being opened against.
+     *
+     * **One set rather than a map per step.** Vanilla used to run carving twice — an air pass and a liquid
+     * one, keyed by `GenerationStep.Carving` — and collapsed the two into a single pass. We only ever
+     * populated the air half, so the change costs nothing here and removes a map that had one key.
+     */
+    fun configuredCarvers(server: MinecraftServer): HolderSet<ConfiguredWorldCarver<*>> {
         val configured = server.registryAccess().lookupOrThrow(Registries.CONFIGURED_CARVER)
         val keys = when (this) {
-            SOLID -> return emptyMap()
+            SOLID -> return HolderSet.direct()
             CAVES, FLOODED_CAVES -> UNDERGROUND_CARVERS.map(::vanillaCarver)
             // Weathering is subtracted from the shape rather than run here — see [weathering], `Weathered`.
-            WEATHERED -> return emptyMap()
+            WEATHERED -> return HolderSet.direct()
             // Small vugs rather than tunnels, which gives this preset's water table something to stand in.
             POROUS -> listOf(ResourceKey.create(Registries.CONFIGURED_CARVER, POROSITY))
         }
-        return mapOf(GenerationStep.Carving.AIR to HolderSet.direct(keys.map(configured::getOrThrow)))
+        return HolderSet.direct(keys.map(configured::getOrThrow))
     }
 
     /**
@@ -83,9 +88,9 @@ enum class Carvers(override val key: String) : AspectPreset {
 
     companion object {
         private val UNDERGROUND_CARVERS = listOf("cave", "cave_extra_underground", "canyon")
-        private val POROSITY: ResourceLocation = "porosity".location()
+        private val POROSITY: Identifier = "porosity".location()
 
         private fun vanillaCarver(name: String): ResourceKey<ConfiguredWorldCarver<*>> =
-            ResourceKey.create(Registries.CONFIGURED_CARVER, ResourceLocation.withDefaultNamespace(name))
+            ResourceKey.create(Registries.CONFIGURED_CARVER, Identifier.withDefaultNamespace(name))
     }
 }

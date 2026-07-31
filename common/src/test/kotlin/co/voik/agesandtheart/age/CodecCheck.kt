@@ -130,7 +130,7 @@ class CodecCheck : FunSpec({
         )
         val cases = listOf<TerrainField>(
             Fault(base = Slab(lowY = 60, highY = 70), map = territories, throws = listOf(32, -32)),
-            Rift(map = territories, halfWidth = 16.0, floorY = 40),
+            Rift(map = territories, halfWidth = 16.0, floorY = 40, rimY = 72),
         )
         for (field in cases) roundTrips(field)
     }

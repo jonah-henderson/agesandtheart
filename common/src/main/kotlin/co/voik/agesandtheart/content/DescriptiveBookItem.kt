@@ -7,7 +7,7 @@ import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.InteractionHand
-import net.minecraft.world.InteractionResultHolder
+import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
@@ -22,17 +22,17 @@ import net.minecraft.world.level.Level
  * the same book always links back to its own.
  */
 class DescriptiveBookItem(properties: Properties) : Item(properties) {
-    override fun use(level: Level, player: Player, hand: InteractionHand): InteractionResultHolder<ItemStack> {
+    override fun use(level: Level, player: Player, hand: InteractionHand): InteractionResult {
         val stack = player.getItemInHand(hand)
         // Run the real logic only on the server; the client just predicts the arm swing.
         if (level !is ServerLevel || player !is ServerPlayer) {
-            return InteractionResultHolder.success(stack)
+            return InteractionResult.SUCCESS
         }
         val server = level.server
 
         if (!Ages.isSupported()) {
-            player.displayClientMessage(Component.literal("Ages aren't supported on this loader yet."), true)
-            return InteractionResultHolder.fail(stack)
+            player.sendSystemMessage(Component.literal("Ages aren't supported on this loader yet."), true)
+            return InteractionResult.FAIL
         }
 
         val existingAgeId = stack.get(AgeContent.AGE_ID)
@@ -43,13 +43,13 @@ class DescriptiveBookItem(properties: Properties) : Item(properties) {
         // resolved into a recipe, and it is the whole point of the Art: see notes/the-art-design.md.
         val age = Ages.ensure(server, ageId, AgeRecipe.of(AgePreset.SPIRE, ageId))
         if (age == null) {
-            player.displayClientMessage(Component.literal("Could not open the Age."), true)
-            return InteractionResultHolder.fail(stack)
+            player.sendSystemMessage(Component.literal("Could not open the Age."), true)
+            return InteractionResult.FAIL
         }
 
         Ages.teleport(player, age)
         val verb = if (isFirstWrite) "Wrote and entered" else "Linked to"
-        player.displayClientMessage(Component.literal("$verb Age '${ageId.path}'"), true)
-        return InteractionResultHolder.success(stack)
+        player.sendSystemMessage(Component.literal("$verb Age '${ageId.path}'"), true)
+        return InteractionResult.SUCCESS
     }
 }

@@ -1,228 +1,151 @@
 package co.voik.agesandtheart.client
 
-import co.voik.agesandtheart.math.Rgba
-import co.voik.agesandtheart.math.Sphere
 import co.voik.agesandtheart.sky.Appearance
 import co.voik.agesandtheart.sky.CelestialBody
 import co.voik.agesandtheart.sky.KnownSkies
+import co.voik.agesandtheart.sky.Orbit
 import co.voik.agesandtheart.sky.SkySpec
-import co.voik.agesandtheart.sky.StarField
-import com.mojang.blaze3d.platform.GlStateManager
-import com.mojang.blaze3d.systems.RenderSystem
-import com.mojang.blaze3d.vertex.BufferBuilder
-import com.mojang.blaze3d.vertex.BufferUploader
-import com.mojang.blaze3d.vertex.DefaultVertexFormat
-import com.mojang.blaze3d.vertex.Tesselator
-import com.mojang.blaze3d.vertex.VertexFormat
-import net.minecraft.client.Camera
-import net.minecraft.client.multiplayer.ClientLevel
-import net.minecraft.client.renderer.GameRenderer
-import net.minecraft.world.phys.Vec3
-import org.joml.Matrix4f
-import java.util.Random
-import kotlin.math.PI
-import kotlin.math.sin
+import net.minecraft.client.Minecraft
+import net.minecraft.world.level.MoonPhase
+import org.joml.Quaternionf
 
 /**
- * The sky **any** generated Age can have: whatever suns and moons it was written with, its own stars, and a dome
- * borrowing vanilla's own sky colour.
+ * The sky **any** generated Age can have: whatever suns and moons it was written with, and its own stars.
  *
- * **In `common` so both loaders draw the same sky.** Each owns only its hook — Fabric a
- * `DimensionRenderingRegistry.SkyRenderer`, NeoForge an `IDimensionSpecialEffectsExtension.renderSky` —
- * and both call [draw], whose parameters are the intersection of what the two hooks are handed.
+ * This is the painter — it decides which bodies go where and how bright, and says so to a [SkyCanvas]. It
+ * knows nothing about how a frame is drawn, which is what keeps the whole of Blaze3D inside
+ * [Blaze3dSkyCanvas].
  *
- * `common` compiles against the merged jar, so `RenderSystem` resolves here. The rule keeping that honest:
- * **nothing server-side may reach this class**, and nothing does.
+ * **In `common` so both loaders draw the same sky.** Each owns only the mixin that calls [draw]; the
+ * arguments are the ones vanilla's own `SkyRenderer.renderSunMoonAndStars` is given, so nothing is
+ * reconstructed that vanilla already worked out.
  *
- * **Assumes nothing beyond the Age's [SkySpec]** — the Spire's cloud decks and overcast stayed with the
- * Spire's own renderer. So the dome is `ClientLevel.getSkyColor` and star visibility is
- * `getStarBrightness`, both vanilla's; and there is no sunrise glow or void plane, both of which live in
- * the method the hooks suppress.
+ * **Only the bodies and the stars.** The sky disc, the sunrise glow and the dark disc are vanilla's own
+ * calls and are left running — per-Age colour is data now (`minecraft:visual/sky_color` and friends on the
+ * dimension type or the biome), so taking them over would buy nothing.
  */
 object AgeSky {
 
-    private const val DOME_RADIUS = 100.0
-    private const val DOME_SEGMENTS = 4
-
-    // Below this much brightness the stars are too faint to be worth the draw call.
+    /** Below this the stars are too faint to be worth the draw. */
     private const val STARS_WORTH_DRAWING = 0.01f
 
-    // Stars vary along a warm→cool axis; each twinkles at its own phase and rate.
-    private val WARM_STAR = Rgba(0.95f, 0.87f, 0.76f)
-    private val COOL_STAR = Rgba(0.78f, 0.85f, 1.0f)
-    private const val STAR_MIN_BRIGHTNESS = 0.35f
-    private const val MIN_TWINKLE_SPEED = 0.04f
-    private const val MAX_TWINKLE_SPEED = 0.12f
+    private const val FULL_TURN_RADIANS = (2.0 * Math.PI).toFloat()
 
-    private const val STAR_DISTANCE = 100.0
-    private const val MIN_STAR_SIZE = 0.20
-    private const val STAR_SIZE_VARIATION = 0.15
-    private const val FULL_CIRCLE_RADIANS = 2.0 * PI
-
-    private data class Star(val corners: List<Vec3>, val baseColor: Rgba, val twinklePhase: Float, val twinkleSpeed: Float)
-
-    /** Camera-surrounding box for the dome. Coarse, since this one is a flat colour rather than a gradient. */
-    private val domeQuads: List<List<Vec3>> = SkyShapes.subdividedCube(DOME_RADIUS, DOME_SEGMENTS)
+    /** Vanilla reaches the axis it swings its sky about with this turn about the vertical. */
+    private const val SKY_AXIS_DEGREES = -90.0f
 
     /**
-     * Built star fields, keyed by the field that asked for them, so two Ages with the same count and seed
-     * share one. Never cleared: a field is a few thousand small records and a player visits a bounded
-     * number of Ages, so eviction bookkeeping would cost more than the memory it saves.
+     * Draws the Age's bodies and stars, or returns **false** having drawn nothing.
+     *
+     * False means "vanilla should draw this one", and it is the ordinary answer in three cases: the level
+     * is not an Age, the server has not told us its sky yet, or the sky it told us is one vanilla can
+     * already draw. Falling through is better than imitating in all three — a plain Age then runs
+     * vanilla's own code rather than our copy of it.
+     *
+     * [sunAngle], [moonAngle] and [starAngle] are vanilla's, in radians, and are used verbatim for bodies
+     * on vanilla's own path. Everything else turns on the Age's own clock.
      */
-    private val starFields = mutableMapOf<StarField, List<Star>>()
+    fun draw(
+        canvas: SkyCanvas,
+        sunAngle: Float,
+        moonAngle: Float,
+        starAngle: Float,
+        moonPhase: MoonPhase,
+        rainBrightness: Float,
+        starBrightness: Float,
+    ): Boolean {
+        val level = Minecraft.getInstance().level ?: return false
+        val spec = KnownSkies.of(level.dimension()) ?: return false
+        if (spec.isOrdinary) return false
 
-    /**
-     * Draws the sky. Returns false when it drew nothing, so a caller may let vanilla proceed. [view] must
-     * be camera **rotation only** — vanilla's `frustumMatrix`, which both hooks supply; adding the camera
-     * position would slide the sky around the world instead of surrounding the viewer.
-     */
-    fun draw(view: Matrix4f, level: ClientLevel, camera: Camera, partialTick: Float, isFoggy: Boolean): Boolean {
-        if (SkyShapes.isSkyHidden(camera, isFoggy)) return false
+        val clockTime = level.defaultClockTime
+        drawBodies(canvas, spec, clockTime, sunAngle, moonAngle, moonPhase, rainBrightness)
 
-        val time = level.gameTime.toFloat() + partialTick
-        // Null for an Age nobody told us about, which the first frames of a first connection genuinely are. The
-        // dome still goes up, because the caller has already suppressed vanilla's sky and returning here would
-        // leave a black void.
-        val spec = KnownSkies.of(level.dimension())
-        val unrained = 1.0f - level.getRainLevel(partialTick)
-
-        RenderSystem.depthMask(false)
-        RenderSystem.disableDepthTest()
-        RenderSystem.disableCull()
-
-        RenderSystem.disableBlend()
-        drawDome(Matrix4f(view), level.getSkyColor(camera.position, partialTick))
-
-        if (spec != null) {
-            // Vanilla's own additive blend: bodies add light to the sky rather than being pasted over it, which is
-            // why its sun reads as a light source. It also means overlapping bodies brighten instead of occluding —
-            // Tier 1 accepts that, and the far-to-near ordering in `drawBodies` is where an eclipse would hook in.
-            RenderSystem.enableBlend()
-            RenderSystem.blendFuncSeparate(
-                GlStateManager.SourceFactor.SRC_ALPHA,
-                GlStateManager.DestFactor.ONE,
-                GlStateManager.SourceFactor.ONE,
-                GlStateManager.DestFactor.ZERO,
-            )
-            // `partialTick` reaches the *brightness* but never the orbit. A rain level is a smoothed value and
-            // interpolates correctly; a tick counter is not, and adding a fraction to one ratchets — see
-            // `Orbit.progressAt`, where that bug is written up.
-            drawBodies(Matrix4f(view), spec, level.dayTime(), unrained)
-            RenderSystem.disableBlend()
-            RenderSystem.defaultBlendFunc()
+        val stars = spec.stars
+        // A reveal dims by where the viewer is, on top of vanilla's night curve.
+        val revealed = stars.reveal?.visibilityAt(eyeHeight()) ?: 1.0f
+        val visibility = starBrightness * revealed
+        if (stars.count > 0 && visibility > STARS_WORTH_DRAWING) {
+            canvas.drawStarfield(stars.seed, stars.count, aroundVanillasAxis(starAngle), visibility, clockTime)
         }
-
-        // Vanilla's own night curve, and ours to use freely: `getStarBrightness` is read only by the method our
-        // callers suppress. Rain dims the stars the same way it dims the bodies.
-        val starlight = level.getStarBrightness(partialTick) * unrained
-        val stars = spec?.stars
-        if (stars != null && stars.count > 0 && starlight > STARS_WORTH_DRAWING) {
-            RenderSystem.enableBlend()
-            RenderSystem.defaultBlendFunc()
-            drawStars(Matrix4f(view), starsOf(stars), time, starlight)
-            RenderSystem.disableBlend()
-        }
-
-        RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f)
-        RenderSystem.enableCull()
-        RenderSystem.enableDepthTest()
-        RenderSystem.depthMask(true)
         return true
     }
 
-    /** Vanilla's sky colour over the whole box — flat, as vanilla's own sky disc is. */
-    private fun drawDome(matrix: Matrix4f, skyColor: Vec3) {
-        RenderSystem.setShader(GameRenderer::getPositionColorShader)
-        val color = Rgba(skyColor.x.toFloat(), skyColor.y.toFloat(), skyColor.z.toFloat())
-        val buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR)
-        for (quad in domeQuads) {
-            for (corner in quad) buffer.addColoredVertex(matrix, corner, color)
-        }
-        BufferUploader.drawWithShader(buffer.buildOrThrow())
-    }
+    /**
+     * Where the viewer's eye is, for a [co.voik.agesandtheart.sky.StarReveal] to read.
+     *
+     * The *camera*, not the player: in third person or spectator the sky should answer to where it is
+     * being looked at from, and that is also the only position available while no player is embodied.
+     */
+    private fun eyeHeight(): Double = Minecraft.getInstance().gameRenderer.mainCamera.position().y
 
     /**
-     * Every sun and moon the Age has, in as few draws as there are distinct textures. **Sorted far to near
-     * before grouping**, which buys nothing under additive blending and is where an eclipse would hook in —
-     * ordering being the only tool available, the sky pass writing no depth.
+     * Every sun and moon the Age has, **farthest first**, which is what lets a moon cover a sun behind it:
+     * moons orbit inside every sun and do not draw additively. Ordering is the only tool available, the sky
+     * pass writing no depth.
      */
-    private fun drawBodies(view: Matrix4f, spec: SkySpec, dayTime: Long, brightness: Float) {
-        RenderSystem.setShader(GameRenderer::getPositionTexColorShader)
-        val farthestFirst = spec.bodies.sortedByDescending { it.orbit.distance }
-        for ((texture, bodies) in farthestFirst.groupBy { (it.appearance as Appearance.Sprite).texture }) {
-            RenderSystem.setShaderTexture(0, texture)
-            val buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR)
-            for (body in bodies) emitBody(buffer, view, body, dayTime, brightness)
-            BufferUploader.drawWithShader(buffer.buildOrThrow())
-        }
-    }
-
-    /**
-     * One body as a quad facing the camera, its orbit **baked into the vertices** because
-     * `RenderSystem.getModelViewMatrix()` is the identity during the sky pass and the transform has
-     * nowhere else to live. The quad lies flat at `y = distance` and matches vanilla's corner and UV
-     * order, so a one-day body is indistinguishable from vanilla's own sun.
-     */
-    private fun emitBody(
-        buffer: BufferBuilder,
-        view: Matrix4f,
-        body: CelestialBody,
-        dayTime: Long,
-        brightness: Float,
+    private fun drawBodies(
+        canvas: SkyCanvas,
+        spec: SkySpec,
+        clockTime: Long,
+        sunAngle: Float,
+        moonAngle: Float,
+        moonPhase: MoonPhase,
+        rainBrightness: Float,
     ) {
-        val sprite = body.appearance as Appearance.Sprite
-        val placed = Matrix4f(view).rotate(body.orbit.rotationAt(dayTime))
-        val distance = body.orbit.distance
-        val half = sprite.angularSize
-
-        val cell = body.phase?.stepAt(dayTime) ?: 0
-        val column = cell % sprite.columns
-        val row = (cell / sprite.columns) % sprite.rows
-        val u0 = column.toFloat() / sprite.columns
-        val u1 = (column + 1).toFloat() / sprite.columns
-        val v0 = row.toFloat() / sprite.rows
-        val v1 = (row + 1).toFloat() / sprite.rows
-
-        val tint = sprite.tint
-        fun corner(x: Float, z: Float, u: Float, v: Float) {
-            buffer.addVertex(placed, x, distance, z)
-                .setUv(u, v)
-                .setColor(tint.red, tint.green, tint.blue, tint.alpha * brightness)
-        }
-        corner(-half, -half, u0, v0)
-        corner(half, -half, u1, v0)
-        corner(half, half, u1, v1)
-        corner(-half, half, u0, v1)
-    }
-
-    private fun drawStars(matrix: Matrix4f, stars: List<Star>, time: Float, visibility: Float) {
-        RenderSystem.setShader(GameRenderer::getPositionColorShader)
-        val buffer = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR)
-        for (star in stars) {
-            val twinkle = STAR_MIN_BRIGHTNESS +
-                (1.0f - STAR_MIN_BRIGHTNESS) * (0.5f + 0.5f * sin(time * star.twinkleSpeed + star.twinklePhase))
-            val color = star.baseColor.copy(alpha = twinkle * visibility)
-            for (corner in star.corners) buffer.addColoredVertex(matrix, corner, color)
-        }
-        BufferUploader.drawWithShader(buffer.buildOrThrow())
-    }
-
-    /** This Age's stars, built once and kept. */
-    private fun starsOf(field: StarField): List<Star> = starFields.getOrPut(field) { buildStars(field) }
-
-    /** Places [StarField.count] stars on the sky sphere, each a coloured, twinkling billboarded quad. */
-    private fun buildStars(field: StarField): List<Star> {
-        val random = Random(field.seed)
-        val starSphere = Sphere(STAR_DISTANCE)
-        return (0..<field.count).map {
-            val center = starSphere.randomSurfacePoint(random)
-            val halfSize = MIN_STAR_SIZE + random.nextDouble() * STAR_SIZE_VARIATION
-            val spin = random.nextDouble() * FULL_CIRCLE_RADIANS
-            val corners = starSphere.tangentQuad(center, halfSize, spin)
-            val baseColor = WARM_STAR.lerp(COOL_STAR, random.nextFloat())
-            val twinklePhase = (random.nextFloat() * FULL_CIRCLE_RADIANS).toFloat()
-            val twinkleSpeed = MIN_TWINKLE_SPEED + random.nextFloat() * (MAX_TWINKLE_SPEED - MIN_TWINKLE_SPEED)
-            Star(corners, baseColor, twinklePhase, twinkleSpeed)
+        for (body in spec.bodies.sortedByDescending { it.orbit.distance }) {
+            val sprite = body.appearance as? Appearance.Sprite ?: continue
+            val progress = progressOf(body, clockTime, sunAngle, moonAngle)
+            val shape = sprite.shapes[shapeIndexOf(body, sprite, clockTime, moonPhase)]
+            val tint = sprite.tint
+            canvas.drawBody(
+                shape = shape,
+                orientation = body.orbit.rotationAtProgress(progress),
+                distance = body.orbit.distance,
+                angularSize = sprite.angularSize,
+                tint = tint.copy(alpha = tint.alpha * rainBrightness),
+                // A body that waxes and wanes is lit rather than luminous, and so covers rather than glows.
+                emitsOwnLight = body.phase == null,
+            )
         }
     }
+
+    /**
+     * How far around its circle a body is, in `0.0..1.0`.
+     *
+     * **A body on vanilla's own path takes vanilla's own angle.** That is exact where reconstructing the
+     * day curve would only be close, and it survives vanilla changing that curve — which it has, the sun's
+     * schedule now being a timeline rather than a formula. Everything else turns on the Age's clock.
+     */
+    private fun progressOf(body: CelestialBody, clockTime: Long, sunAngle: Float, moonAngle: Float): Float =
+        when (body.orbit) {
+            Orbit.VANILLA_SUN -> sunAngle / FULL_TURN_RADIANS
+            Orbit.VANILLA_MOON -> moonAngle / FULL_TURN_RADIANS
+            else -> body.orbit.progressAt(clockTime)
+        }
+
+    /**
+     * Which of the body's shapes it is showing. A body with one shape never changes; vanilla's own moon
+     * takes vanilla's phase, for the same reason its orbit does.
+     */
+    private fun shapeIndexOf(
+        body: CelestialBody,
+        sprite: Appearance.Sprite,
+        clockTime: Long,
+        moonPhase: MoonPhase,
+    ): Int {
+        val step = when {
+            body.orbit == Orbit.VANILLA_MOON -> moonPhase.index()
+            else -> body.phase?.stepAt(clockTime) ?: 0
+        }
+        return step.coerceIn(0, sprite.shapes.size - 1)
+    }
+
+    /**
+     * Vanilla turns its sky about the world's ±X axis, reaching it with a quarter turn about the vertical
+     * first. An [Orbit] carries that turn in its own ascending node, so this is only for the starfield,
+     * which has no orbit.
+     */
+    private fun aroundVanillasAxis(angle: Float): Quaternionf =
+        Quaternionf().rotateY(Math.toRadians(SKY_AXIS_DEGREES.toDouble()).toFloat()).rotateX(angle)
 }

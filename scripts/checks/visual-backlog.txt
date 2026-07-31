@@ -202,3 +202,78 @@
 # A scarp needs a divided TERRAIN, which is rare, so write until one turns up or pin the seam:
 /age compose scarp1 7 terrain=hills,pillars terrain.seam=scarp
 /age tp scarp1
+
+# ── SKY POLISH, after the first 26.1 walk ────────────────────────── OPEN 2026-07-30, DEFERRED ──
+# Jonah's call: park these until the main mod has more headway. Recorded now because they came out of a
+# walk and the leads are fresh; none is a bug, all three are "it works, and it should be better".
+
+# 1. THE CLOUD DECKS ARE A SQUARE IN A ROUND WORLD.
+# A deck is a 1024x1024 slab centred on the camera, and recent Minecraft fades loaded chunks into the fog
+# in a CIRCLE — so the deck's corners reach past where the world itself has faded out and the oblong reads
+# as an obvious edge. Want it to match the underlying fog as closely as possible; a plain radial fade is
+# the fallback if matching properly is not reachable.
+# THE LEAD: `cloud_deck.vsh`/`.fsh` deliberately do NOT import `minecraft:fog.glsl` — fog was left out
+# because it could not be checked without a client. That is exactly the hook. Adding a `Fog` uniform to
+# CLOUD_DECK_PIPELINE and running the deck through vanilla's own `fog_distance`/`apply_fog` would fade it
+# on the same curve as terrain rather than on a curve of ours. Check `RenderSystem.setShaderFog` is set
+# during the cloud pass before relying on it; `addCloudsPass` does not obviously set it the way
+# `addSkyPass` does.
+
+# 2. THE SPIRE SHOULD BE PERMANENTLY DUSK, WITH ITS STARS ALWAYS OUT.
+# It has no sun and nothing else, so a day/night cycle buys it nothing. Wanted: stars visible at ALL times,
+# light EVEN across the whole cycle at roughly dusk intensity, and time still PROGRESSING so the stars
+# rotate. Today it is on the overworld's clock and goes properly dark and properly bright.
+# THE LEAD, and the one real unknown: `star_angle` and `star_brightness` come from the SAME timeline
+# (`#minecraft:in_overworld`), so the rotation and the fading cannot be separated by dropping the timeline
+# — that would freeze the stars in place, which is the opposite of what is wanted. The question to settle
+# first is whether a constant `EnvironmentAttributeMap` entry on `age_spire.json` OVERRIDES a timeline
+# track or is merely another layer under it (`EnvironmentAttributeSystem.bakeLayerSampler` is where to
+# read). If it overrides, this is data only: pin `star_brightness` and the light attributes, leave
+# `star_angle` to the timeline. If it does not, the painter has to stop reading vanilla's `starBrightness`
+# for an Age that says so — which probably means `StarField` carrying its own constant brightness, and the
+# `StarReveal` going away entirely rather than being widened.
+
+# 3. THE WARM/COOL STAR AXIS IS TOO SUBTLE TO SEE.
+# `WARM_STAR` (0.95, 0.87, 0.76) and `COOL_STAR` (0.78, 0.85, 1.0) are both nearly white, so the variation
+# reads as noise rather than as colour. Push both toward saturation.
+# WORTH KNOWING BEFORE TURNING THAT DIAL: the tint is `WARM.lerp(COOL, random.nextFloat())`, and a uniform
+# draw puts most stars in the MIDDLE of the axis — i.e. neutral — however far apart the ends are. Biasing
+# the draw toward the ends will do at least as much as widening the axis, and probably more.
+
+# ── SEAMS, after the walk ──────────────────────────────── A/B/C DONE 2026-07-30, UNWALKED ─────────
+# A, B and C below are built. D stands as a verdict. What to look at, all four seeded 4242 so the pairs
+# are comparable:
+/age compose seamsheared 4242 terrain=hills,hills sea=water terrain.seam=sheared
+/age compose seamrift 4242 terrain=hills,hills sea=water terrain.seam=rift
+/age compose seamwall 4242 terrain=hills,hills sea=water terrain.seam=wall
+/age compose seamfuzzed 4242 terrain=hills,hills sea=water terrain.seam=fuzzed
+/age tp seamwall
+#   1. `seamsheared` and `seamfuzzed` should now SHOW something — that is the whole of A.
+#   2. the rift should be a V with a wandering rim, and DRY — the sea is now told to keep out of the chasm
+#      rather than the chasm being lifted above it, so its depth against the terrain is untouched.
+#   3. the wall is 48 wide and Hermite-tapered, so it has a broad crest and flanks that ease into the
+#      ground. `Ridge.DEFAULT_HALF_WIDTH` is the dial; height (`WALL_CREST`=108) is signed off.
+# Offline first if it is faster: ./gradlew :common:preview --args=rift  and  --args=wall
+
+# ── SEAMS, the original findings ──────────────────────────────────── OPEN 2026-07-30, Jonah's calls ──
+# The forms were walked and mostly land. Four things came out of it, in the order they should be done.
+
+# A. TWO TERRITORIES OF THE SAME TERRAIN ARE BYTE-IDENTICAL, so `seamsheared` and `seamfuzzed` show
+# nothing at all. Not a seam bug: `Terrain.field(options, window)` takes NO SEED, so `terrain=hills,hills`
+# builds the same field twice and there is genuinely no boundary to see. Salt the field per member — the
+# member index into the Age's seed — and every same-terrain pair starts working. Do this FIRST: it is the
+# reason two of the four forms could not be judged, and `mixedfuzzed` (which reads well) is only readable
+# because its two sides differ by preset.
+
+# B. THE RIFT IS TOO TIDY. Wanted: the border noised up rather than precise; deeper; V-shaped rather than
+# flat-floored; and NOT filled with water. Jonah: unnatural is the point, "especially if a sea ends up
+# spilling into it". Note that dropping the fill contradicts `Rift`'s current RIFT_FLOOR=y40 reasoning,
+# which put the floor under the waterline deliberately to keep a rift SWIMMABLE and so non-partitioning —
+# so crossing it becomes an open question again, and the V helps (you can walk down and up).
+
+# C. A FIFTH FORM: THE INVERSE OF THE RIFT. Like the scarp, but with the land either side at the SAME
+# level, so what sits between them is a jagged cliff — a wall along the boundary rather than a step across
+# it. The scarp itself is good and is not to be changed.
+
+# D. `seamfuzzed` IS THE RIGHT WIDTH — "clearly distorted, but resolves quickly enough it's recognisable
+# as a border and not a glitch". WIDEST_FUZZ_BLOCKS = 16 stands; do not retune it.

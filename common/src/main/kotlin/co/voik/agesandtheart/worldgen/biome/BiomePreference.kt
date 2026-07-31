@@ -8,7 +8,7 @@ import net.minecraft.core.Holder
 import net.minecraft.core.HolderGetter
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
-import net.minecraft.resources.ResourceLocation
+import net.minecraft.resources.Identifier
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.biome.Climate
 import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterList
@@ -25,7 +25,7 @@ import kotlin.math.abs
  * after which vanilla's nearest-neighbour search fills the gap with what is climatically adjacent, so a
  * world without swamps gets more marsh-adjacent forest rather than a hole.
  */
-data class BiomePreference(val biome: ResourceLocation, val weight: Double) {
+data class BiomePreference(val biome: Identifier, val weight: Double) {
     /**
      * Signed, like a word's tag query (§3.3): positive strengthens or introduces, at or below zero
      * removes. Sharing one field rather than adding a flag is what made `except` a parser change.
@@ -41,7 +41,7 @@ data class BiomePreference(val biome: ResourceLocation, val weight: Double) {
 
         val CODEC: Codec<BiomePreference> = RecordCodecBuilder.create { instance ->
             instance.group(
-                ResourceLocation.CODEC.fieldOf("biome").forGetter(BiomePreference::biome),
+                Identifier.CODEC.fieldOf("biome").forGetter(BiomePreference::biome),
                 Codec.DOUBLE.optionalFieldOf("weight", WEIGHT_OF_A_MENTION).forGetter(BiomePreference::weight),
             ).apply(instance, ::BiomePreference)
         }
@@ -147,9 +147,9 @@ data class BiomePreference(val biome: ResourceLocation, val weight: Double) {
         }
 
         /** A biome's climate wherever vanilla knows one — its own dimension's preset, usually. */
-        private fun climatePointsFromOtherPresets(biome: ResourceLocation): List<Climate.ParameterPoint> =
+        private fun climatePointsFromOtherPresets(biome: Identifier): List<Climate.ParameterPoint> =
             MultiNoiseBiomeSourceParameterList.knownPresets().values
-                .flatMap { list -> list.values().filter { it.second.location() == biome }.map { it.first } }
+                .flatMap { list -> list.values().filter { it.second.identifier() == biome }.map { it.first } }
 
         /**
          * Where to put a biome that has no climate anywhere — End biomes, and mod biomes placed by wrapping
@@ -161,7 +161,7 @@ data class BiomePreference(val biome: ResourceLocation, val weight: Double) {
          * a census caught for `end_highlands`.
          */
         private fun homesFor(
-            biome: ResourceLocation,
+            biome: Identifier,
             table: List<Pair<Climate.ParameterPoint, Holder<Biome>>>,
             seed: Long,
         ): List<Climate.ParameterPoint> {
@@ -242,16 +242,16 @@ data class BiomePreference(val biome: ResourceLocation, val weight: Double) {
 
         private const val BIOME_MIXER = -0x61c8_8646_80b5_83ebL
 
-        private fun idOf(biome: Holder<Biome>): ResourceLocation? = biome.unwrapKey().orElse(null)?.location()
+        private fun idOf(biome: Holder<Biome>): Identifier? = biome.unwrapKey().orElse(null)?.identifier()
 
         /**
          * Every biome vanilla knows a climate for, across all its presets — overworld *and* nether.
          * Registry-free and static: `knownPresets` builds its lists from `ResourceKey`s through an identity
          * function, so a check can ask this offline without a server.
          */
-        val BIOMES_WITH_A_KNOWN_CLIMATE: Set<ResourceLocation> by lazy {
+        val BIOMES_WITH_A_KNOWN_CLIMATE: Set<Identifier> by lazy {
             MultiNoiseBiomeSourceParameterList.knownPresets().values
-                .flatMap { list -> list.values().map { it.second.location() } }
+                .flatMap { list -> list.values().map { it.second.identifier() } }
                 .toSet()
         }
     }

@@ -7,7 +7,7 @@ import net.minecraft.core.Holder
 import net.minecraft.core.HolderLookup
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
-import net.minecraft.resources.ResourceLocation
+import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.levelgen.structure.BuiltinStructureSets
 import net.minecraft.world.level.levelgen.structure.StructureSet
@@ -47,12 +47,12 @@ enum class Structures(override val key: String) : AspectPreset {
     fun structureSets(server: MinecraftServer, options: Options): List<Holder<StructureSet>> {
         val sets = server.registryAccess().lookupOrThrow(Registries.STRUCTURE_SET)
         val asked = Population.of(options.claimsOn(BUILT))
-        val seated = LinkedHashMap<ResourceLocation, Holder<StructureSet>>()
+        val seated = LinkedHashMap<Identifier, Holder<StructureSet>>()
         if (!asked.exclusive) {
-            for (key in baseSets()) seated[key.location()] = sets.get(key).orElse(null) ?: continue
+            for (key in baseSets()) seated[key.identifier()] = sets.get(key).orElse(null) ?: continue
         }
         for (claim in asked.wanted) {
-            val named = ResourceLocation.tryParse(claim.value) ?: continue
+            val named = Identifier.tryParse(claim.value) ?: continue
             val found = sets.get(ResourceKey.create(Registries.STRUCTURE_SET, named)).orElse(null)
             if (found == null) {
                 Constants.LOG.warn("An Age asked to build '{}', which is no structure set in this pack", named)
@@ -61,7 +61,7 @@ enum class Structures(override val key: String) : AspectPreset {
             seated[named] = StructureDensity.applied(found, claim.density)
         }
         for (struck in asked.struck) {
-            ResourceLocation.tryParse(struck)?.let(seated::remove)
+            Identifier.tryParse(struck)?.let(seated::remove)
         }
         return seated.values.toList()
     }

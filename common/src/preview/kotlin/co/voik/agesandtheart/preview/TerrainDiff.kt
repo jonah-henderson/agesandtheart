@@ -3,7 +3,6 @@ package co.voik.agesandtheart.preview
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.NbtAccounter
 import net.minecraft.nbt.NbtIo
-import net.minecraft.nbt.Tag
 import java.io.ByteArrayInputStream
 import java.io.DataInputStream
 import java.io.File
@@ -110,7 +109,7 @@ private fun terrainOf(regionFolder: File): Map<String, ChunkTerrain> {
     val terrain = mutableMapOf<String, ChunkTerrain>()
     for (region in regionFolder.listFiles().orEmpty().filter { it.extension == "mca" }.sortedBy { it.name }) {
         for ((position, chunk) in chunksIn(region)) {
-            terrain[position] = ChunkTerrain(terrainDigest(chunk), chunk.getString("Status"))
+            terrain[position] = ChunkTerrain(terrainDigest(chunk), chunk.getStringOr("Status", UNRECORDED_STATUS))
         }
     }
     return terrain
@@ -148,15 +147,21 @@ private fun chunksIn(region: File): List<Pair<String, CompoundTag>> {
     return chunks
 }
 
-/** What generation actually put in a chunk: the blocks and the biomes, digested one section at a time. */
+/**
+ * What generation actually put in a chunk: the blocks and the biomes, digested one section at a time.
+ *
+ * The NBT accessors answer with `Optional` now, and the `…OrEmpty` forms are the direct reading. A missing
+ * section field digests as an empty compound rather than throwing, which is right here: this instrument
+ * compares two worlds, and "one of them has nothing there" is an answer it should be able to print.
+ */
 private fun terrainDigest(chunk: CompoundTag): Map<Int, String> {
-    val sections = chunk.getList("sections", Tag.TAG_COMPOUND.toInt())
+    val sections = chunk.getListOrEmpty("sections")
     return (0..<sections.size).associate { index ->
-        val section = sections.getCompound(index)
+        val section = sections.getCompoundOrEmpty(index)
         val digest = MessageDigest.getInstance("SHA-256")
-        digest.update(section.getCompound("block_states").toString().toByteArray())
-        digest.update(section.getCompound("biomes").toString().toByteArray())
-        section.getByte("Y").toInt() to HexFormat.of().formatHex(digest.digest())
+        digest.update(section.getCompoundOrEmpty("block_states").toString().toByteArray())
+        digest.update(section.getCompoundOrEmpty("biomes").toString().toByteArray())
+        section.getByte("Y").orElse(0).toInt() to HexFormat.of().formatHex(digest.digest())
     }
 }
 
@@ -168,6 +173,9 @@ private fun readInt(bytes: ByteArray, at: Int): Int =
 
 /** The only chunk status whose contents generation is finished answering for. */
 private const val FULL = "minecraft:full"
+
+/** A chunk whose NBT carries no `Status` at all, which is a thing worth seeing rather than defaulting away. */
+private const val UNRECORDED_STATUS = "(no status)"
 private const val MAX_REPORTED = 8
 private const val SECTION_BLOCKS = 16
 private const val SECTOR_BYTES = 4096

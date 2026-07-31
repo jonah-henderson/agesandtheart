@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
+import kotlin.math.roundToInt
 
 /**
  * [base], displaced vertically per territory — a region seam made visible as a scarp (design §3.4). It
@@ -101,12 +102,16 @@ data class Fault(
 }
 
 /**
- * The band of ground within [halfWidth] blocks of a territory seam, solid from [floorY] upwards — the cut
- * a rift is made of (§3.4). Meant to be [Subtract]ed from a shape, so what it adds to the toolkit is only
- * "near a seam": [RegionMap.blocksFromSeamAt] made into a field.
+ * The wedge of ground near a territory seam, solid upwards from a floor that **rises with distance from
+ * it** — the cut a rift is made of (§3.4), and a V rather than a trench. Meant to be [Subtract]ed from a
+ * shape, so what it adds to the toolkit is only "near a seam": [RegionMap.blocksFromSeamAt] made into a
+ * field.
  *
- * Claiming everything from [floorY] upwards is what makes the chasm's *floor* the thing described rather
- * than its depth — whatever rock stood in the band goes, and the floor comes out flat at `floorY - 1`.
+ * The rim wanders, because a chasm ruled straight across a world reads as a trench someone dug. [FieldNoise]
+ * moves the measured distance either way by up to [rimWander] blocks.
+ *
+ * **The floor is not put under the waterline.** A rift used to flood by construction; leaving it dry is
+ * what lets a sea spill in only where the rift actually cuts a coast, which is the thing worth seeing.
  *
  * **Never an instancing template**, like [Regions]: a seam runs right across an Age, so there is no
  * bounded neighbourhood to scan for.
@@ -119,23 +124,37 @@ data class Rift(
      * Proportionate rather than surveyed; see [RegionMap.blocksFromSeamAt] for what that costs.
      */
     val halfWidth: Double,
-    /** The lowest level the rift takes, so the chasm's floor is the block beneath it. */
+    /** The lowest level the rift takes, at the seam itself. The chasm's floor is the block beneath it. */
     val floorY: Int,
+    /** Where the rift meets the surrounding ground, and so where the V stops cutting. */
+    val rimY: Int,
+    /** How far the rim wanders either way, in blocks. Zero rules the chasm straight. */
+    val rimWander: Double = DEFAULT_RIM_WANDER,
 ) : TerrainField {
     override val kind = FieldKind.RIFT
 
     override val horizontalReach = Double.POSITIVE_INFINITY
 
-    override val samplesPerColumn = map.members
+    override val samplesPerColumn = map.members + 1
 
-    override fun columnSpans(worldX: Int, worldZ: Int): Spans =
-        if (map.blocksFromSeamAt(worldX, worldZ) > halfWidth) Spans.EMPTY
-        else Spans.of(floorY, Spans.HIGHEST_Y)
+    override fun columnSpans(worldX: Int, worldZ: Int): Spans {
+        val wandered = map.blocksFromSeamAt(worldX, worldZ) +
+            rimNoise.getValue(worldX / RIM_NOISE_STRETCH, 0.0, worldZ / RIM_NOISE_STRETCH) * rimWander
+        if (wandered > halfWidth) return Spans.EMPTY
+        // Deepest at the seam and rising to the rim, so the chasm comes out V-shaped rather than trenched.
+        val acrossToRim = (wandered / halfWidth).coerceIn(0.0, 1.0)
+        val floorHere = floorY + ((rimY - floorY) * acrossToRim).roundToInt()
+        return Spans.of(floorHere, Spans.HIGHEST_Y)
+    }
+
+    private val rimNoise = fieldNoise(RIM_NOISE_SEED, RIM_NOISE_OCTAVE, RIM_NOISE_AMPLITUDES)
 
     override fun resized(factor: Double, pivotY: Int) = Rift(
         map.resized(factor),
         halfWidth * factor,
         scaledAbout(floorY, factor, pivotY),
+        scaledAbout(rimY, factor, pivotY),
+        rimWander * factor,
     )
 
     companion object {
@@ -146,6 +165,15 @@ data class Rift(
          */
         const val DEFAULT_HALF_WIDTH = 16.0
 
+        /** How far the rim wanders either way. Enough to break the ruled line without hiding the chasm. */
+        const val DEFAULT_RIM_WANDER = 6.0
+
+        // A wavelength of a few tens of blocks: the rim meanders rather than fraying per column.
+        private const val RIM_NOISE_SEED = 0x21F7_0FFL
+        private const val RIM_NOISE_OCTAVE = -4
+        private val RIM_NOISE_AMPLITUDES = listOf(1.0, 0.5)
+        private const val RIM_NOISE_STRETCH = 1.0
+
         /**
          * [base] with a rift opened along [map]'s seams, or [base] itself where there is no seam. The
          * one-member collapse is the same acceptance property [Fault.of] enforces: an Age with one
@@ -155,11 +183,12 @@ data class Rift(
             base: TerrainField,
             map: RegionMap,
             floorY: Int,
+            rimY: Int,
             halfWidth: Double = DEFAULT_HALF_WIDTH,
         ): TerrainField {
             val thereIsNoSeam = map.members <= 1
             val takesNoGround = halfWidth <= 0.0
-            return if (thereIsNoSeam || takesNoGround) base else Subtract(base, Rift(map, halfWidth, floorY))
+            return if (thereIsNoSeam || takesNoGround) base else Subtract(base, Rift(map, halfWidth, floorY, rimY))
         }
 
         /** No children, so no need for the recursive field codec — the same shape [Slab] has. */
@@ -168,7 +197,105 @@ data class Rift(
                 RegionMap.MAP_CODEC.forGetter(Rift::map),
                 Codec.DOUBLE.fieldOf("half_width").forGetter(Rift::halfWidth),
                 Codec.INT.fieldOf("floor_y").forGetter(Rift::floorY),
+                Codec.INT.fieldOf("rim_y").forGetter(Rift::rimY),
+                Codec.DOUBLE.optionalFieldOf("rim_wander", DEFAULT_RIM_WANDER).forGetter(Rift::rimWander),
             ).apply(instance, ::Rift)
+        }
+    }
+}
+
+/**
+ * The inverse of a [Rift]: a jagged wall standing *along* a territory seam, with the ground either side
+ * left where it was. Meant to be [Union]ed with a shape.
+ *
+ * Where a scarp steps between two levels and a rift drops between them, this leaves both sides equal and
+ * puts the drama in what divides them — so it reads as a wall built along the boundary rather than as
+ * geology either side of it.
+ *
+ * Highest at the seam and falling to nothing at the rim, and the crest wanders exactly as a rift's rim
+ * does, so it is a ridge rather than a fence.
+ */
+data class Ridge(
+    /** Whose seams the wall runs along. A one-member map has none, and this claims nothing at all. */
+    val map: RegionMap,
+    /** How far either side of the seam the wall stands, so it is twice this thick at the base. */
+    val halfWidth: Double,
+    /** The level the wall is founded on, low enough to meet the ground it stands in. */
+    val footingY: Int,
+    /** The level the crest reaches at the seam itself. */
+    val crestY: Int,
+    /** How far the crest wanders either way, in blocks. */
+    val crestWander: Double = Rift.DEFAULT_RIM_WANDER,
+    /** What share of the half-width stands at full height before the flanks start falling away. */
+    val crestShare: Double = DEFAULT_CREST_SHARE,
+) : TerrainField {
+    override val kind = FieldKind.RIDGE
+
+    override val horizontalReach = Double.POSITIVE_INFINITY
+
+    override val samplesPerColumn = map.members + 1
+
+    override fun columnSpans(worldX: Int, worldZ: Int): Spans {
+        val wandered = map.blocksFromSeamAt(worldX, worldZ) +
+            crestNoise.getValue(worldX / CREST_NOISE_STRETCH, 0.0, worldZ / CREST_NOISE_STRETCH) * crestWander
+        if (wandered > halfWidth) return Spans.EMPTY
+        val outToRim = (wandered / halfWidth).coerceIn(0.0, 1.0)
+        // Full height across the middle, then Hermite down to the footing. A taper that starts at the
+        // crest buries most of its own height in the ground it stands in and leaves a needle showing;
+        // the plateau is what makes it read as a wall with flanks rather than a spike.
+        val downTheFlank = ((outToRim - crestShare) / (1.0 - crestShare)).coerceIn(0.0, 1.0)
+        val standing = 1.0 - downTheFlank
+        val profile = standing * standing * (3.0 - 2.0 * standing)
+        val topHere = footingY + ((crestY - footingY) * profile).roundToInt()
+        return if (topHere <= footingY) Spans.EMPTY else Spans.of(footingY, topHere)
+    }
+
+    private val crestNoise = fieldNoise(CREST_NOISE_SEED, CREST_NOISE_OCTAVE, CREST_NOISE_AMPLITUDES)
+
+    override fun resized(factor: Double, pivotY: Int) = Ridge(
+        map.resized(factor),
+        halfWidth * factor,
+        scaledAbout(footingY, factor, pivotY),
+        scaledAbout(crestY, factor, pivotY),
+        crestWander * factor,
+        crestShare,
+    )
+
+    companion object {
+        /** Half again a rift's, so the wall reads as a landform rather than a fence. */
+        const val DEFAULT_HALF_WIDTH = 24.0
+
+        /** The flat share of the top. Zero would taper from the crest itself and leave a needle. */
+        const val DEFAULT_CREST_SHARE = 0.45
+
+        // Its own seed, or the wall would meander in step with a rift's rim.
+        private const val CREST_NOISE_SEED = 0x3B1D_6E5L
+        private const val CREST_NOISE_OCTAVE = -4
+        private val CREST_NOISE_AMPLITUDES = listOf(1.0, 0.5)
+        private const val CREST_NOISE_STRETCH = 1.0
+
+        /** [base] with a wall raised along [map]'s seams, or [base] itself where there is no seam. */
+        fun raised(
+            base: TerrainField,
+            map: RegionMap,
+            footingY: Int,
+            crestY: Int,
+            halfWidth: Double = DEFAULT_HALF_WIDTH,
+        ): TerrainField {
+            val thereIsNoSeam = map.members <= 1
+            val standsNowhere = halfWidth <= 0.0 || crestY <= footingY
+            return if (thereIsNoSeam || standsNowhere) base else Union(listOf(base, Ridge(map, halfWidth, footingY, crestY)))
+        }
+
+        val CODEC: MapCodec<Ridge> = RecordCodecBuilder.mapCodec { instance ->
+            instance.group(
+                RegionMap.MAP_CODEC.forGetter(Ridge::map),
+                Codec.DOUBLE.fieldOf("half_width").forGetter(Ridge::halfWidth),
+                Codec.INT.fieldOf("footing_y").forGetter(Ridge::footingY),
+                Codec.INT.fieldOf("crest_y").forGetter(Ridge::crestY),
+                Codec.DOUBLE.optionalFieldOf("crest_wander", Rift.DEFAULT_RIM_WANDER).forGetter(Ridge::crestWander),
+                Codec.DOUBLE.optionalFieldOf("crest_share", DEFAULT_CREST_SHARE).forGetter(Ridge::crestShare),
+            ).apply(instance, ::Ridge)
         }
     }
 }

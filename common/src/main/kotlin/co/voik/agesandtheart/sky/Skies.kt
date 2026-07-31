@@ -25,7 +25,7 @@ object Skies {
      * always, which is a different thing from working.
      */
     fun tellAbout(player: ServerPlayer, level: ServerLevel) {
-        val server = player.server ?: return
+        val server = level.server
         val entry = entryFor(server, level.dimension()) ?: return
         Services.NETWORK.sendToPlayer(player, SkyPayload(listOf(entry)))
     }
@@ -36,7 +36,7 @@ object Skies {
      * `/execute in` — still has the sky. A few hundred bytes per Age against a 1 MiB ceiling.
      */
     fun tellAboutEverything(player: ServerPlayer) {
-        val server = player.server ?: return
+        val server = player.level().server ?: return
         val entries = AgeSavedData.get(server).ages.mapNotNull { id ->
             entryFor(server, ResourceKey.create(Registries.DIMENSION, id))
         }
@@ -62,7 +62,7 @@ object Skies {
      */
     private fun entryFor(server: MinecraftServer, dimension: ResourceKey<Level>): SkyPayload.Entry? {
         val saved = AgeSavedData.get(server)
-        val id = dimension.location()
+        val id = dimension.identifier()
         if (id !in saved.ages) return null
         return SkyPayload.Entry(dimension, AgeGeneration.skySpec(saved.recipe(id)))
     }

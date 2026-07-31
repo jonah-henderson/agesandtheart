@@ -25,28 +25,28 @@ import net.minecraft.world.level.block.state.BlockState
 enum class Terrain(
     override val key: String,
     val waterline: Int?,
-    private val build: (String) -> TerrainField,
+    private val build: (String, Long) -> TerrainField,
 ) : AspectPreset {
     /** Floating islands over open air: lobed masses, talons and roots, weathered to ribs. */
-    SPIRE_ISLANDS("spire_islands", waterline = 63, build = { SpireField.world() }),
+    SPIRE_ISLANDS("spire_islands", waterline = 63, build = { _, salt -> SpireField.world(salt) }),
 
     /** Rolling noise hills breaking a sea — the closest thing here to ordinary ground. */
-    HILLS("hills", waterline = 63, build = { NoiseField.hills() }),
+    HILLS("hills", waterline = 63, build = { _, salt -> NoiseField.hills(salt) }),
 
     /** Rock riddled by ridged 3D noise: this Age's caves *are* its shape, not something cut from it. */
-    CAVERNS("caverns", waterline = 63, build = { CavernField.world() }),
+    CAVERNS("caverns", waterline = 63, build = { _, salt -> CavernField.world(salt) }),
 
     /** Billowy noise weathered into mesa-like relief, hanging clear above the water. */
-    ERODED("eroded", waterline = 63, build = { ErodedField.world() }),
+    ERODED("eroded", waterline = 63, build = { _, salt -> ErodedField.world(salt) }),
 
     /** Colossal rectangular monoliths on a jittered grid, standing a hundred blocks out of the sea. */
-    PILLARS("pillars", waterline = 63, build = { PillarField.world() }),
+    PILLARS("pillars", waterline = 63, build = { _, salt -> PillarField.world(salt) }),
 
     /** Instanced pyramids on a plain — the one terrain with a real parameter, its [ARRANGEMENT]. */
-    PYRAMIDS("pyramids", waterline = null, build = { arrangement -> PyramidField.world(arrangement) }),
+    PYRAMIDS("pyramids", waterline = null, build = { arrangement, salt -> PyramidField.world(arrangement, salt) }),
 
     /** A walkable sampler of the shape vocabulary and its combinators — a reference, not a world. */
-    SHAPES("shapes", waterline = null, build = { ShapesField.world() }),
+    SHAPES("shapes", waterline = null, build = { _, salt -> ShapesField.world(salt) }),
     ;
 
     override val aspect = Aspect.TERRAIN
@@ -65,10 +65,11 @@ enum class Terrain(
     /**
      * The rock this terrain lays down, steered by whichever [options] it understands.
      *
-     * Takes the Age's [window] because altitude is only offerable where there is room for it — see [lift].
+     * Takes the Age's [window] because altitude is only offerable where there is room for it — see [lift],
+     * and a [salt] because two territories of the *same* preset must not build the same rock.
      */
-    fun field(options: Options, window: VerticalWindow): TerrainField {
-        val shape = build(options.of(ARRANGEMENT))
+    fun field(options: Options, window: VerticalWindow, salt: Long): TerrainField {
+        val shape = build(options.of(ARRANGEMENT), salt)
         val lift = lift(options, window)
         return if (lift == 0) shape else Raised(shape, lift)
     }
@@ -157,6 +158,19 @@ enum class Terrain(
          * every seam would sever the territories outright.
          */
         const val RIFT_FLOOR = 40
+
+        /**
+         * Where a rift stops cutting. **Above the waterline on purpose**: a rift no longer floods by
+         * construction, so a sea reaches one only where it actually cuts a coast.
+         */
+        const val RIFT_RIM = 72
+
+        /**
+         * Deep enough to be under any ground the wall crosses. Founded at the surface it floats over
+         * every dip, and the gap is only visible in profile.
+         */
+        const val WALL_FOOTING = 30
+        const val WALL_CREST = 108
 
         /**
          * How far `altitude=high` lifts an archipelago. Measured: the island tops' ninetieth percentile

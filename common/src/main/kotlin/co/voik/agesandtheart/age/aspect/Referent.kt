@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.age.aspect
 
-import net.minecraft.resources.ResourceLocation
+import net.minecraft.resources.Identifier
 
 /**
  * An aspect preset whose value **is** a registry object — a block for the sea (design §3.1). An open
@@ -13,7 +13,7 @@ import net.minecraft.resources.ResourceLocation
  */
 interface Referent : AspectPreset {
     /** The registry entry this names. Its `namespace:path` spelling is also the key a recipe records. */
-    val id: ResourceLocation
+    val id: Identifier
 
     override val key: String get() = id.toString()
 

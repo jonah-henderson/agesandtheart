@@ -32,7 +32,7 @@ import net.minecraft.world.level.block.Blocks
  */
 object ErodedField {
 
-    fun world(): TerrainField {
+    fun world(salt: Long = 0L): TerrainField {
         val mass = Ellipsoid(
             centerX = 0,
             centerY = MASS_CENTER_Y,
@@ -44,11 +44,11 @@ object ErodedField {
             templates = listOf(mass),
             placement = Grid(spacing = SPACING, jitter = JITTER, density = Density.uniform()),
             variation = Variation.NONE,
-            seed = LAYOUT_SEED,
+            seed = LAYOUT_SEED xor salt,
         )
         // The erosion, global and world-anchored. Its band need only cover where masses can reach.
         val weathering = Noise3D(
-            seed = EROSION_SEED,
+            seed = EROSION_SEED xor salt,
             firstOctave = -5,
             amplitudes = listOf(1.0, 0.5, 0.25),
             scaleX = EROSION_SCALE,

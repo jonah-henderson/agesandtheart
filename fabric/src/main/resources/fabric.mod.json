@@ -28,6 +28,9 @@
             }
         ]
     },
+    "mixins": [
+        "agesandtheart.mixins.json"
+    ],
     "depends": {
         "fabricloader": ">=${fabric_loader_version}",
         "fabric-api": "*",

@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "package": "co.voik.agesandtheart.mixin",
+  "compatibilityLevel": "JAVA_${java_version}",
+  "client": [
+    "client.CloudRendererMixin",
+    "client.SkyRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

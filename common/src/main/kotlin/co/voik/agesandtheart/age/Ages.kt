@@ -6,7 +6,7 @@ import co.voik.agesandtheart.sky.Skies
 import net.minecraft.core.SectionPos
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
-import net.minecraft.resources.ResourceLocation
+import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
@@ -24,7 +24,7 @@ object Ages {
     fun isSupported(): Boolean = Services.AGE_BACKEND.isSupported
 
     /** Creates a brand-new Age and records it for persistence. Null if it exists or is unsupported. */
-    fun create(server: MinecraftServer, id: ResourceLocation, recipe: AgeRecipe): ServerLevel? {
+    fun create(server: MinecraftServer, id: Identifier, recipe: AgeRecipe): ServerLevel? {
         val backend = Services.AGE_BACKEND
         if (!backend.isSupported) return null
         val dimensionKey = ResourceKey.create(Registries.DIMENSION, id)
@@ -42,19 +42,19 @@ object Ages {
     }
 
     /** Opens an existing Age (get-or-open). Used for travel and restart-replay. */
-    fun open(server: MinecraftServer, id: ResourceLocation): ServerLevel? =
+    fun open(server: MinecraftServer, id: Identifier): ServerLevel? =
         Services.AGE_BACKEND.openAge(server, id)
 
     /** Mints a fresh, distinct Age id (`agesandtheart:age_<n>`) from the persistent counter. */
-    fun allocateId(server: MinecraftServer): ResourceLocation =
-        ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, "age_${AgeSavedData.get(server).allocateIndex()}")
+    fun allocateId(server: MinecraftServer): Identifier =
+        Identifier.fromNamespaceAndPath(Constants.MOD_ID, "age_${AgeSavedData.get(server).allocateIndex()}")
 
     /**
      * The Age [id], written from [recipe] if it does not exist yet. Null if unsupported or it failed.
      * An Age that already exists keeps the recipe it was written from — [recipe] says what to write,
      * not what to become.
      */
-    fun ensure(server: MinecraftServer, id: ResourceLocation, recipe: AgeRecipe): ServerLevel? =
+    fun ensure(server: MinecraftServer, id: Identifier, recipe: AgeRecipe): ServerLevel? =
         if (id in AgeSavedData.get(server).ages) open(server, id) else create(server, id, recipe)
 
     /**
@@ -71,7 +71,12 @@ object Ages {
         val (landingX, landingZ) = findFooting(level)
         level.getChunk(SectionPos.blockToSectionCoord(landingX), SectionPos.blockToSectionCoord(landingZ))
         val surfaceY = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, landingX, landingZ)
-        player.teleportTo(level, landingX + 0.5, (surfaceY + 1).toDouble(), landingZ + 0.5, player.yRot, player.xRot)
+        // `teleportTo` gained a relative-movement set and a "set camera" flag. Nothing here is relative and
+        // the camera should follow, which is the empty set and `true`.
+        player.teleportTo(
+            level, landingX + 0.5, (surfaceY + 1).toDouble(), landingZ + 0.5,
+            emptySet(), player.yRot, player.xRot, true,
+        )
     }
 
     /**
@@ -111,7 +116,7 @@ object Ages {
      * Discards an Age: its dimension and its saved chunks both go. Returns whether it existed and was
      * removed. Anyone standing in it is [evict]ed first.
      */
-    fun delete(server: MinecraftServer, id: ResourceLocation): Boolean {
+    fun delete(server: MinecraftServer, id: Identifier): Boolean {
         val saved = AgeSavedData.get(server)
         if (id !in saved.ages) return false
         evict(server, id)
@@ -127,12 +132,16 @@ object Ages {
         AgeSavedData.get(server).ages.toList().count { delete(server, it) }
 
     /** Sends anyone inside an Age back to the overworld spawn, so nothing is left in a dead dimension. */
-    private fun evict(server: MinecraftServer, id: ResourceLocation) {
+    private fun evict(server: MinecraftServer, id: Identifier) {
         val level = server.getLevel(ResourceKey.create(Registries.DIMENSION, id)) ?: return
         val home = server.overworld()
-        val spawn = home.sharedSpawnPos
+        // The world spawn moved behind `LevelData.RespawnData`, which carries a `GlobalPos`.
+        val spawn = home.levelData.respawnData.pos()
         for (player in level.players().toList()) {
-            player.teleportTo(home, spawn.x + 0.5, spawn.y.toDouble(), spawn.z + 0.5, player.yRot, player.xRot)
+            player.teleportTo(
+                home, spawn.x + 0.5, spawn.y.toDouble(), spawn.z + 0.5,
+                emptySet(), player.yRot, player.xRot, true,
+            )
         }
     }
 

@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.age.aspect
 
-import net.minecraft.resources.ResourceLocation
+import net.minecraft.resources.Identifier
 import net.minecraft.util.StringRepresentable
 
 /**
@@ -158,7 +158,7 @@ data class Parameter(
      */
     fun accepts(option: String): Boolean {
         val isOneOfTheNamedOptions = option in options
-        val looksLikeARegistryId = namesReferent(option) && ResourceLocation.tryParse(option) != null
+        val looksLikeARegistryId = namesReferent(option) && Identifier.tryParse(option) != null
         val looksLikeASpan = kind == Kind.RANGED && Span.describes(option)
         return isOneOfTheNamedOptions || looksLikeASpan || (open && looksLikeARegistryId)
     }

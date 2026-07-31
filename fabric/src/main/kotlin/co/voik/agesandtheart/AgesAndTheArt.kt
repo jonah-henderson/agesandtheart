@@ -25,7 +25,7 @@ fun init() {
 
     // The payload type, registered here rather than in the client entrypoint: Fabric requires it on *both*
     // sides, and registering twice throws. Common init is the only place that is true of.
-    PayloadTypeRegistry.playS2C().register(SkyPayload.TYPE, SkyPayload.STREAM_CODEC)
+    PayloadTypeRegistry.clientboundPlay().register(SkyPayload.TYPE, SkyPayload.STREAM_CODEC)
 
     // A joining player is told every Age's sky at once, so arriving by any route — book, portal, `/execute in`
     // — already has one. See `Skies.tellAboutEverything`.

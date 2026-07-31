@@ -12,7 +12,7 @@ import co.voik.agesandtheart.age.word.Resolution
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
-import net.minecraft.resources.ResourceLocation
+import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
 import java.util.Optional
 
@@ -78,7 +78,7 @@ data class AgeRecipe(
         val CODEC: Codec<AgeRecipe> = MAP_CODEC.codec()
 
         /** A fresh recipe for one of the classic demo presets. */
-        fun of(preset: AgePreset, id: ResourceLocation): AgeRecipe =
+        fun of(preset: AgePreset, id: Identifier): AgeRecipe =
             AgeRecipe(worldFor(preset), seedFor(id))
 
         /** A fresh recipe, with its character drawn from [seed] and the world [server] is running. */
@@ -95,7 +95,7 @@ data class AgeRecipe(
         )
 
         /** The seed an Age gets when nothing has chosen one for it. */
-        fun seedFor(id: ResourceLocation): Long = id.hashCode().toLong()
+        fun seedFor(id: Identifier): Long = id.hashCode().toLong()
 
         /** The world a classic preset names — also what a pre-aspects recipe migrates to. */
         fun worldFor(preset: AgePreset): AgeWorld {

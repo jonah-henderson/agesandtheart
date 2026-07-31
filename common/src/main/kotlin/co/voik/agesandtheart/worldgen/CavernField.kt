@@ -20,9 +20,9 @@ import co.voik.agesandtheart.worldgen.field.TerrainField
  */
 object CavernField {
 
-    fun world(): TerrainField = Subtract(
+    fun world(salt: Long = 0L): TerrainField = Subtract(
         base = NoiseHeightmap(
-            seed = LAND_SEED,
+            seed = LAND_SEED xor salt,
             firstOctave = -7,
             amplitudes = listOf(1.0, 0.5, 0.25),
             scaleX = 1.0,
@@ -38,8 +38,8 @@ object CavernField {
      * The tunnels alone. Public because the preview draws it on its own: a cave system is much easier to
      * read as a solid lattice hanging in space than as absence inside a hill.
      */
-    fun caves(): Noise3D = Noise3D(
-        seed = CAVE_SEED,
+    fun caves(salt: Long = 0L): Noise3D = Noise3D(
+        seed = CAVE_SEED xor salt,
         // Detail at roughly 64 and 32 blocks. Coarse on purpose: with RIDGED the passage *width* is set
         // by how steeply the noise crosses zero, so broader features cross more gently and leave
         // something walkable, where finer ones cut the same volume as cracks too thin to squeeze through.

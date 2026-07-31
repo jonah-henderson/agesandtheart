@@ -1,27 +1,30 @@
 [versions]
-java = "21"
+java = "25"
 kotlin = "2.4.0"
-moddev = "1.0.21"
-loom = "1.13.6"
-dokka = "1.9.20"
+moddev = "2.0.143"
+loom = "1.17.17"
+# Dokka 2 is not optional at this Java level: 1.9.20 embeds a Kotlin compiler whose `isAtLeastJava9`
+# cannot parse a "25.0.4" version string and throws, so `dokkaJavadoc` fails on Java 25 before it reads a
+# line of source. 2.x is also a different plugin — see the two ids in `multiloader-common.gradle`.
+dokka = "2.2.0"
 
-minecraft = "1.21.1"
-minecraftRange = "[1.21.1, 1.21.2)"
+minecraft = "26.1.2"
+minecraftRange = "[26.1.2, 26.2)"
 
-# The version of ParchmentMC that is used, see https://parchmentmc.org/docs/getting-started#choose-a-version for new versions
-parchment = "2024.11.10"
-parchmentMC = "1.21"
+# NO PARCHMENT, and none is needed: Mojang removed obfuscation from Java Edition, 1.21.11 being the last
+# obfuscated release and 26.1 the first unobfuscated one. There is nothing left for it to deobfuscate,
+# which is also why it publishes nothing for this line.
 
-neoforge = "21.1.80"
-neoforgeRange = "[21.1, 21.2)"
+neoforge = "26.1.2.93"
+neoforgeRange = "[26.1, 26.2)"
 ## This is the version of minecraft that the 'common' project uses, you can find a list of all versions here
 ## https://projects.neoforged.net/neoforged/neoform
-neoForm = "1.21.1-20240808.144430"
-kff = "5.12.0"
-kffRange = "[5.6, )"
+neoForm = "26.1.2-1"
+kff = "6.3.0"
+kffRange = "[6.3, )"
 
-fabricLoader = "0.16.9"
-fabricApi = "0.109.0+1.21.1"
+fabricLoader = "0.19.3"
+fabricApi = "0.155.2+26.1.2"
 flk = "1.13.13+kotlin.2.4.10"
 
 mixin = "0.8.5"
@@ -32,8 +35,7 @@ mixinExtras = "0.3.5"
 kotest = "6.2.3"
 
 # Runtime dimension creation (Fabric-only) — https://github.com/NucleoidMC/fantasy
-# 0.6.4+1.21 targets MC 1.21 and is ABI-compatible with our 1.21.1.
-fantasy = "0.6.4+1.21"
+fantasy = "0.8.0+26.1.2"
 
 # ANTLR, for the Art's grammar. Plain Java rather than the Kotlin-targeted `antlr-kotlin`, deliberately:
 # that one needs kotlin.Pair from a stdlib which KFF supplies as a *mod*, so it lives in NeoForge's game
@@ -65,4 +67,6 @@ kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 powerAssert = { id = "org.jetbrains.kotlin.plugin.power-assert", version.ref = "kotlin" }
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
 moddev = { id = "net.neoforged.moddev", version.ref = "moddev" }
-loom = { id = "fabric-loom", version.ref = "loom" }
+# The NON-REMAPPING Loom plugin, which is a different id from the old `fabric-loom`. Minecraft is
+# unobfuscated from 26.1, so there is nothing to remap and this plugin does not try.
+loom = { id = "net.fabricmc.fabric-loom", version.ref = "loom" }

@@ -4,8 +4,9 @@ import co.voik.agesandtheart.math.Rgba
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
-import net.minecraft.resources.ResourceLocation
+import net.minecraft.resources.Identifier
 import net.minecraft.util.Mth
+import net.minecraft.world.level.MoonPhase
 
 /**
  * One sun or moon: where it goes ([orbit]), what it looks like ([appearance]), and whether it waxes and wanes
@@ -35,10 +36,10 @@ data class CelestialBody(
 /**
  * What a body looks like.
  *
- * **[Sprite] borrows vanilla's own two textures** — `sun.png` and `moon_phases.png` both ship in the jar
- * and load on demand, so this needs no asset directory, no access widener and no atlas of our own. It
- * also buys **real crescents**: a phase is a *shape*, and under additive blending a flat disc has nothing
- * to subtract darkness with, so borrowing the atlas gets it for free.
+ * **[Sprite] borrows vanilla's own celestial sprites** — the sun and the eight moon shapes are all stitched
+ * into the `minecraft:celestials` atlas, so this needs no asset directory, no access widener and no atlas
+ * of our own. It also buys **real crescents**: a phase is a *shape*, and under additive blending a flat
+ * disc has nothing to subtract darkness with, so borrowing vanilla's shapes gets it for free.
  *
  * One consequence: a resource pack that retextures the moon retextures ours too.
  *
@@ -55,30 +56,27 @@ sealed interface Appearance {
     val kindKey: String
 
     /**
-     * A textured quad, tinted. [columns] × [rows] divides the texture into equal cells, which is how a
-     * phase picks its shape — vanilla's moon is 4×2 and its sun the degenerate 1×1. A body whose
-     * [CelestialBody.phase] has more steps than cells would index past the atlas; `SkyCheck` holds them.
+     * A quad drawn from the celestials atlas, tinted. [shapes] is every shape this body can show, in the
+     * order a phase steps through them — one for a body that never changes, vanilla's eight for a moon. A
+     * body whose [CelestialBody.phase] has more steps than shapes would index past the end; `SkyCheck`
+     * holds them.
      */
     data class Sprite(
         override val tint: Rgba,
         override val angularSize: Float,
-        val texture: ResourceLocation,
-        val columns: Int = 1,
-        val rows: Int = 1,
+        val shapes: List<Identifier>,
     ) : Appearance {
         override val kindKey: String get() = SPRITE
 
-        /** How many distinct shapes this texture can show. */
-        val cells: Int get() = columns * rows
+        /** How many distinct shapes this body can show. */
+        val cells: Int get() = shapes.size
 
         companion object {
             val MAP_CODEC: MapCodec<Sprite> = RecordCodecBuilder.mapCodec { instance ->
                 instance.group(
                     Rgba.CODEC.optionalFieldOf("tint", Rgba.WHITE).forGetter(Sprite::tint),
                     Codec.FLOAT.fieldOf("size").forGetter(Sprite::angularSize),
-                    ResourceLocation.CODEC.fieldOf("texture").forGetter(Sprite::texture),
-                    Codec.INT.optionalFieldOf("columns", 1).forGetter(Sprite::columns),
-                    Codec.INT.optionalFieldOf("rows", 1).forGetter(Sprite::rows),
+                    Identifier.CODEC.listOf().fieldOf("shapes").forGetter(Sprite::shapes),
                 ).apply(instance, ::Sprite)
             }
         }
@@ -87,16 +85,16 @@ sealed interface Appearance {
     companion object {
         const val SPRITE = "sprite"
 
-        /** Vanilla's own sun: one cell, no phases. */
-        val SUN_TEXTURE: ResourceLocation =
-            ResourceLocation.withDefaultNamespace("textures/environment/sun.png")
+        /** Vanilla's own sun sprite: one shape, no phases. */
+        val SUN_SHAPES: List<Identifier> = listOf(Identifier.withDefaultNamespace("sun"))
 
-        /** Vanilla's moon atlas: eight phases as a 4×2 grid, which is why [MOON_COLUMNS] × [MOON_ROWS] is 8. */
-        val MOON_TEXTURE: ResourceLocation =
-            ResourceLocation.withDefaultNamespace("textures/environment/moon_phases.png")
-
-        const val MOON_COLUMNS = 4
-        const val MOON_ROWS = 2
+        /**
+         * Vanilla's eight moon shapes, **in `MoonPhase` index order**, which is the order a [PhaseCycle]
+         * walks and so the order full → waning → new → waxing reads correctly in.
+         */
+        val MOON_SHAPES: List<Identifier> = MoonPhase.values()
+            .sortedBy { it.index() }
+            .map { Identifier.withDefaultNamespace("moon/${it.serializedName}") }
 
         private val KINDS: Map<String, MapCodec<out Appearance>> = mapOf(SPRITE to Sprite.MAP_CODEC)
 
@@ -113,10 +111,10 @@ sealed interface Appearance {
 }
 
 /**
- * A body that waxes and wanes. **A phase is a shape, not a brightness** — the shape lives in
- * `moon_phases.png`, so this only says *which cell*.
+ * A body that waxes and wanes. **A phase is a shape, not a brightness** — each shape is its own sprite in
+ * the celestials atlas, so this only says *which one*.
  *
- * [steps] must match the sprite's cell count or [stepAt] indexes past the atlas; `SkyCheck` holds them.
+ * [steps] must match the sprite's shape count or [stepAt] indexes past the end; `SkyCheck` holds them.
  * Vanilla's eight is a default rather than a rule, nothing outside the renderer being able to observe a
  * phase.
  */
@@ -133,7 +131,8 @@ data class PhaseCycle(val periodTicks: Int, val offsetTicks: Int, val steps: Int
     }
 
     companion object {
-        const val VANILLA_PHASES = 8
+        /** Not `const`: `MoonPhase.COUNT` is `values().length`, so it is not a compile-time constant. */
+        val VANILLA_PHASES = MoonPhase.COUNT
 
         val CODEC: Codec<PhaseCycle> = RecordCodecBuilder.create { instance ->
             instance.group(

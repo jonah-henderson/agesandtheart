@@ -4,7 +4,7 @@ import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.RegionMap
 import net.minecraft.core.registries.BuiltInRegistries
-import net.minecraft.resources.ResourceLocation
+import net.minecraft.resources.Identifier
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 
@@ -17,7 +17,7 @@ import net.minecraft.world.level.block.state.BlockState
  * The aspect chooses the substance only; the height comes from the [Terrain], which is what lets any sea
  * be poured over any terrain and land at a sensible level. [DEPTH] is the writer's one lever over it.
  */
-data class Sea(override val id: ResourceLocation) : Referent {
+data class Sea(override val id: Identifier) : Referent {
     override val aspect = Aspect.SEA
 
     /**
@@ -55,18 +55,18 @@ data class Sea(override val id: ResourceLocation) : Referent {
          * The three the mod refers to by name. Spelled out rather than read from [Blocks], which
          * initialises a large slice of the game — a `Sea` must be constructible without a booted Minecraft.
          */
-        val NONE = Sea(ResourceLocation.withDefaultNamespace("air"))
+        val NONE = Sea(Identifier.withDefaultNamespace("air"))
 
         /** Every way the game spells nothing, all of which mean a shape standing in open air. */
         private val EMPTY_IDS = setOf("air", "cave_air", "void_air")
-            .map(ResourceLocation::withDefaultNamespace)
+            .map(Identifier::withDefaultNamespace)
             .toSet()
 
         /** An ordinary sea. */
-        val WATER = Sea(ResourceLocation.withDefaultNamespace("water"))
+        val WATER = Sea(Identifier.withDefaultNamespace("water"))
 
         /** A sea of lava — survivable only from a distance. */
-        val LAVA = Sea(ResourceLocation.withDefaultNamespace("lava"))
+        val LAVA = Sea(Identifier.withDefaultNamespace("lava"))
 
         /**
          * Names for "no sea at all", the one value an id cannot spell for itself — every other sea is
@@ -79,7 +79,7 @@ data class Sea(override val id: ResourceLocation) : Referent {
          * for a key that is neither, which is malformed rather than missing content.
          */
         fun named(key: String): Sea? =
-            NAMES_FOR_NOTHING[key] ?: ResourceLocation.tryParse(key)?.let(::Sea)
+            NAMES_FOR_NOTHING[key] ?: Identifier.tryParse(key)?.let(::Sea)
 
         /**
          * Several seas poured to one [waterline], each filling its own territory. The height is shared and

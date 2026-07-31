@@ -14,7 +14,6 @@ import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
 import net.minecraft.world.level.chunk.ChunkGenerator
-import net.minecraft.world.level.levelgen.GenerationStep
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.levelgen.RandomState
 import net.minecraft.world.level.levelgen.blending.Blender
@@ -74,7 +73,7 @@ class SpireChunkGenerator(private val biomes: BiomeSource, private val seed: Lon
 
                 // The plasma sea fills everything below sea level.
                 for (y in MIN_Y..<SEA_LEVEL) {
-                    chunk.setBlockState(cursor.set(worldX, y, worldZ), SEA_FLUID, false)
+                    chunk.setBlockState(cursor.set(worldX, y, worldZ), SEA_FLUID)
                 }
 
                 for (island in islands) {
@@ -113,7 +112,7 @@ class SpireChunkGenerator(private val biomes: BiomeSource, private val seed: Lon
         val bottom = max(ceil(yLow).toInt(), MIN_Y)
         val top = min(floor(yHigh).toInt(), TOP_Y - 1)
         for (y in bottom..top) {
-            chunk.setBlockState(cursor.set(worldX, y, worldZ), rockAt(worldX, y, worldZ), false)
+            chunk.setBlockState(cursor.set(worldX, y, worldZ), rockAt(worldX, y, worldZ))
         }
     }
 
@@ -212,7 +211,6 @@ class SpireChunkGenerator(private val biomes: BiomeSource, private val seed: Lon
         biomeManager: BiomeManager,
         structureManager: StructureManager,
         chunk: ChunkAccess,
-        step: GenerationStep.Carving,
     ) = Unit
 
     override fun buildSurface(level: WorldGenRegion, structureManager: StructureManager, randomState: RandomState, chunk: ChunkAccess) = Unit
