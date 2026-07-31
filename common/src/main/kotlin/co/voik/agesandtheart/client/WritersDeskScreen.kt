@@ -225,7 +225,7 @@ class WritersDeskScreen(
                 columns = DeskLayout.SURFACE_COLUMNS,
                 cellHeight = DeskLayout.CELL_HEIGHT,
                 gutterHeight = DeskLayout.GUTTER_HEIGHT,
-                script = { KnownWords.scriptText(it) },
+                script = { KnownWords.scriptLines(it) },
                 translation = { WordNames.readable(it).string },
                 onReorder = { from, onto -> send(DeskAction.MOVE_IN_BOOK, index = from, target = onto) },
                 onRemove = { index -> send(DeskAction.RETURN_TO_ARCHIVE, index = index) },

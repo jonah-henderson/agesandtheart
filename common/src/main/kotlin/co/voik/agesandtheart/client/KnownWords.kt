@@ -55,6 +55,23 @@ object KnownWords {
     fun scriptText(word: Identifier): Component =
         Component.literal(known.spell(word.path)).setStyle(scriptStyle())
 
+    /**
+     * [word] as the script writes it, one part per line.
+     *
+     * Somewhere to break matters because a derived word is a block id — `polished_deepslate` is three times
+     * the length of `sea`, and scaling the long ones to fit a page is what makes them unreadable. The
+     * transliteration rules already turn `_` into a space, so the parts are there to be found.
+     */
+    fun scriptLines(word: Identifier): List<Component> {
+        val style = scriptStyle()
+        return known.spell(word.path)
+            .split(PART_SEPARATOR)
+            .filter { it.isNotBlank() }
+            .map { Component.literal(it).setStyle(style) }
+    }
+
+    private val PART_SEPARATOR = Regex("[\\s_]+")
+
     private fun scriptStyle(): Style {
         val font = known.font ?: return Style.EMPTY
         val asset = known.fontAsset ?: return Style.EMPTY

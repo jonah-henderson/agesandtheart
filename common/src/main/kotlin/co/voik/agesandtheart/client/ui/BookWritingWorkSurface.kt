@@ -28,8 +28,8 @@ class BookWritingWorkSurface<T : Any>(
     private val columns: Int,
     private val cellHeight: Int,
     private val gutterHeight: Int,
-    /** Null leaves the page blank, which is what it reads as while the script is switched off. */
-    private val script: (T) -> Component?,
+    /** One line per part, so a long word stacks rather than shrinking. Empty leaves the page blank. */
+    private val script: (T) -> List<Component>,
     private val translation: (T) -> String,
     private val onReorder: (from: Int, to: Int) -> Unit,
     private val onRemove: (index: Int) -> Unit,
