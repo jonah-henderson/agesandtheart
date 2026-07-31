@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.content
 
+import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.book.BookEntity
 import co.voik.agesandtheart.book.LinkTarget
 import co.voik.agesandtheart.sky.Skies
@@ -131,6 +132,7 @@ class LinkingBookItem(properties: Properties) : Item(properties) {
          * What to call the place. An Age's id path is the name its writer gave it; anywhere else falls
          * back to the dimension's own, so a book written in the Overworld reads sensibly too.
          */
-        fun nameOf(level: ServerLevel): String = level.dimension().identifier().path.replace('_', ' ')
+        fun nameOf(level: ServerLevel): String =
+            WordNames.titleCase(level.dimension().identifier().path.replace('_', ' '))
     }
 }

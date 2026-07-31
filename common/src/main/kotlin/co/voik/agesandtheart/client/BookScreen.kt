@@ -57,29 +57,46 @@ class BookScreen(
         if (overPanel(mouseX.toDouble(), mouseY.toDouble())) {
             graphics.fill(x, y, x + PANEL_WIDTH, y + PANEL_HEIGHT, PANEL_LIT)
         }
-        graphics.centeredText(
-            font,
-            Component.translatable("book.agesandtheart.link"),
-            x + PANEL_WIDTH / 2,
-            y + PANEL_HEIGHT + 4,
-            FAINT_INK,
-        )
     }
 
     /**
-     * The sentence, a readable word under each written one.
+     * The sentence, set as running text.
+     *
+     * A book is prose, not a glossary — a word to a line made it read as a word list, which is what a
+     * writer's *desk* shows and what a finished book should not. The script runs on and wraps, and the
+     * reading follows underneath in fainter ink, so the page has the shape of a page.
      *
      * Only the pages actually in the book for now. The inferred particles the readout adds — the `of`,
      * `over`, `with` a writer was spared — are the next piece, and they want the grammar settled first.
      */
     private fun drawSentence(graphics: GuiGraphicsExtractor, left: Int, top: Int) {
         val x = left + TEXT_X
-        graphics.text(font, book.hoverName, x, top + TITLE_Y, INK)
-        words.forEachIndexed { index, word ->
-            val y = top + TEXT_Y + index * (LINE * 2 + 2)
-            graphics.text(font, KnownWords.scriptText(word), x, y, INK)
-            graphics.text(font, WordNames.readable(word), x + INDENT, y + LINE, FAINT_INK)
+        graphics.text(font, book.hoverName, x, top + TITLE_Y, INK, false)
+        if (words.isEmpty()) return
+
+        val written = KnownWords.scriptText(words)
+        var y = top + TEXT_Y
+        y = flow(graphics, written, x, y, INK)
+
+        y += PARAGRAPH_GAP
+        val read = words.joinToString(" ") { WordNames.readable(it).string }
+        flow(graphics, Component.literal(read), x, y, FAINT_INK)
+    }
+
+    /** Wraps [text] into the page's column and returns the line after it. */
+    private fun flow(
+        graphics: GuiGraphicsExtractor,
+        text: Component,
+        x: Int,
+        top: Int,
+        colour: Int,
+    ): Int {
+        var y = top
+        font.split(text, COLUMN_WIDTH).forEach { line ->
+            graphics.text(font, line, x, y, colour, false)
+            y += LINE
         }
+        return y
     }
 
     private fun overPanel(mouseX: Double, mouseY: Double): Boolean {
@@ -112,7 +129,10 @@ class BookScreen(
         const val TITLE_Y = 16
         const val TEXT_Y = 34
         const val LINE = 10
-        const val INDENT = 6
+
+        /** The right page's writing column, clear of the spine and the outer edge. */
+        const val COLUMN_WIDTH = WIDTH / 2 - 30
+        const val PARAGRAPH_GAP = 8
 
         val PARCHMENT = 0xFFE9DFC3.toInt()
         val EDGE = 0xFF8B7B55.toInt()

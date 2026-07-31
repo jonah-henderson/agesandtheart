@@ -55,6 +55,10 @@ object KnownWords {
     fun scriptText(word: Identifier): Component =
         Component.literal(known.spell(word.path)).setStyle(scriptStyle())
 
+    /** A whole sentence as the script writes it, for setting as running text. */
+    fun scriptText(words: List<Identifier>): Component =
+        Component.literal(words.joinToString(" ") { known.spell(it.path) }).setStyle(scriptStyle())
+
     /**
      * [word] as the script writes it, one part per line.
      *

@@ -1,0 +1,37 @@
+{
+  "_comment": [
+    "A recipe with no advancement is only unlocked by vanilla's fallback -- obtaining the result -- so it",
+    "appears in the book *after* you have made one, which is useless. This is what makes it show up when",
+    "you first hold an ink bottle instead."
+  ],
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_ink_bottle": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:ink_bottle"
+          }
+        ]
+      }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipe": "agesandtheart:fine_ink_bottle"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_ink_bottle",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "agesandtheart:fine_ink_bottle"
+    ]
+  }
+}

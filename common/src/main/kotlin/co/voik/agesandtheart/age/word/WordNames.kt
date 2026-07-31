@@ -18,7 +18,8 @@ object WordNames {
     fun readable(word: Identifier): Component =
         Component.translatableWithFallback(key(word), titleCase(word.path.replace('_', ' ')))
 
-    private fun titleCase(text: String): String = text
+    /** Title-cased for display. A place or a word of the Art is a name, and names take capitals. */
+    fun titleCase(text: String): String = text
         .split(' ')
         .joinToString(" ") { part -> part.replaceFirstChar(Char::titlecase) }
 }

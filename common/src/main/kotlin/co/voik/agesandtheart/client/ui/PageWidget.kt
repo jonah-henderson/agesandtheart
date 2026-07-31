@@ -30,9 +30,11 @@ class PageWidget(private val lines: List<Component>) {
         if (widest <= 0) return
         val stacked = ordered.size * font.lineHeight
 
-        // Constrained by both, or a two-line word would overflow the cell it was made to fit the width of.
+        // One size for every page, not one that fits each. Scaling each word to its cell made a short word
+        // three times the size of a long one, and a row of pages at three sizes reads as a mistake. The
+        // fit is a *ceiling*, so an unusually long part still shrinks rather than running over the edge.
         val scale = minOf(
-            MAX_SCALE,
+            SCRIPT_SCALE,
             (at.width - MARGIN * 2).toFloat() / widest,
             (at.height - MARGIN * 2).toFloat() / stacked,
         )
@@ -59,7 +61,13 @@ class PageWidget(private val lines: List<Component>) {
         /** Clear space around the script, so it never touches the edge. */
         const val MARGIN = 4
 
-        /** As large as a short word may go; longer ones shrink to fit. */
-        const val MAX_SCALE = 2.0f
+        /**
+         * The size the script is written at, everywhere.
+         *
+         * Taken from what a ten-glyph word needed to fit a cell — the size the majority were landing at
+         * anyway — so uniformity costs the short words their bulk rather than costing the long ones
+         * legibility.
+         */
+        const val SCRIPT_SCALE = 0.61f
     }
 }

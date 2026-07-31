@@ -111,13 +111,8 @@ class NotebookItem(properties: Properties) : Item(properties) {
         builder.accept(Component.translatable("item.agesandtheart.notebook.count", held.sumOf { it.count }))
     }
 
-    override fun isBarVisible(stack: ItemStack): Boolean = pagesIn(stack).isNotEmpty()
-
-    /** There is no full, so the bar shows *something held* rather than a proportion. */
-    override fun getBarWidth(stack: ItemStack): Int =
-        if (pagesIn(stack).isEmpty()) 0 else FULL_BAR
-
-    override fun getBarColor(stack: ItemStack): Int = BAR_COLOUR
+    // No fill bar. A bar states a proportion and this has no full, so it could only ever have said
+    // "not empty" — which the tooltip already says, in words, with the count.
 
     private fun play(player: Player, filing: Boolean) {
         val sound = if (filing) SoundEvents.BUNDLE_INSERT else SoundEvents.BUNDLE_REMOVE_ONE
@@ -126,8 +121,6 @@ class NotebookItem(properties: Properties) : Item(properties) {
 
     companion object {
         private const val PREVIEWED = 12
-        private const val FULL_BAR = 13
-        private const val BAR_COLOUR = 0x5C93FF
         private const val SOUND_VOLUME = 0.8f
         private const val SOUND_PITCH = 0.8f
 

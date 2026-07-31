@@ -1,0 +1,35 @@
+{
+  "_comment": [
+    "Keyed on the book, not on dye: everyone has dye long before they have a book to tint with it."
+  ],
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_descriptive_book": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:descriptive_book"
+          }
+        ]
+      }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipe": "agesandtheart:dye_descriptive_book"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_descriptive_book",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "agesandtheart:dye_descriptive_book"
+    ]
+  }
+}
