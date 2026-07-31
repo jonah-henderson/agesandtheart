@@ -2,6 +2,9 @@
   "required": true,
   "package": "co.voik.agesandtheart.mixin",
   "compatibilityLevel": "JAVA_${java_version}",
+  "mixins": [
+    "ServerPlayerMixin"
+  ],
   "client": [
     "client.CloudRendererMixin",
     "client.SkyRendererMixin"
