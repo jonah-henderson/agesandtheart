@@ -101,13 +101,30 @@ class BookScreen(
      * starts clear of it — which is what keeps a reading under the phrase it belongs to rather than under
      * whatever happens to be above it.
      */
-    private inner class Gloss(word: Identifier) {
-        val script: Component = KnownWords.scriptText(word)
-        val reading: String = WordNames.readable(word).string
+    private inner class Gloss(val script: Component, val reading: String) {
         val width: Int = maxOf(
             (font.width(script) * SCRIPT_SCALE).toInt(),
             (font.width(reading) * READING_SCALE).toInt(),
         ) + GLOSS_GAP
+    }
+
+    /**
+     * A word split into its parts, each part glossed on its own.
+     *
+     * A derived word is a block id, so `polished_deepslate` is two words wearing one name — and glossing
+     * it whole puts "Polished Deepslate" under a script that plainly has two pieces. The transliteration
+     * already renders `_` as a space, so both sides divide the same way.
+     *
+     * Where they do not divide alike — an authored spelling need not follow the id — the word is glossed
+     * whole rather than paired up wrongly.
+     */
+    private fun glossesOf(word: Identifier): List<Gloss> {
+        val script = KnownWords.scriptLines(word)
+        val reading = WordNames.readable(word).string.split(' ').filter { it.isNotBlank() }
+        if (script.size != reading.size || script.isEmpty()) {
+            return listOf(Gloss(KnownWords.scriptText(word), reading.joinToString(" ")))
+        }
+        return script.indices.map { Gloss(script[it], reading[it]) }
     }
 
     /** The glosses packed into lines that fit the column. */
@@ -115,7 +132,7 @@ class BookScreen(
         val lines = mutableListOf<List<Gloss>>()
         var line = mutableListOf<Gloss>()
         var used = 0
-        words.map(::Gloss).forEach { gloss ->
+        words.flatMap(::glossesOf).forEach { gloss ->
             if (line.isNotEmpty() && used + gloss.width > COLUMN_WIDTH) {
                 lines += line
                 line = mutableListOf()
