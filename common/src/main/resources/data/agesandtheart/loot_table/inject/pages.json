@@ -1,0 +1,29 @@
+{
+  "_comment": [
+    "What a container with pages in it yields. Referenced by the injection into vanilla tables, and",
+    "usable directly by any pack: reference agesandtheart:inject/pages, or just copy the entry below",
+    "into a table of your own. The roll_page_word function is what writes the word.",
+    "Which vanilla containers get pages, and how often, is the injection's business — not this file's."
+  ],
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:page",
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": { "type": "minecraft:uniform", "min": 1, "max": 2 }
+            },
+            {
+              "function": "agesandtheart:roll_page_word"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

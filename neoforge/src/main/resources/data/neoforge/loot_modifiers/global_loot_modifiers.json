@@ -1,0 +1,26 @@
+{
+  "replace": false,
+  "entries": [
+    "agesandtheart:stronghold_library",
+    "agesandtheart:ancient_city",
+    "agesandtheart:woodland_mansion",
+    "agesandtheart:desert_pyramid",
+    "agesandtheart:jungle_temple",
+    "agesandtheart:bastion_treasure",
+    "agesandtheart:stronghold_crossing",
+    "agesandtheart:stronghold_corridor",
+    "agesandtheart:pillager_outpost",
+    "agesandtheart:underwater_ruin_big",
+    "agesandtheart:village_village_temple",
+    "agesandtheart:village_village_cartographer",
+    "agesandtheart:ruined_portal",
+    "agesandtheart:simple_dungeon",
+    "agesandtheart:abandoned_mineshaft",
+    "agesandtheart:shipwreck_map",
+    "agesandtheart:stronghold_library_notebook",
+    "agesandtheart:ancient_city_notebook",
+    "agesandtheart:woodland_mansion_notebook",
+    "agesandtheart:village_village_cartographer_notebook",
+    "agesandtheart:bastion_treasure_notebook"
+  ]
+}
