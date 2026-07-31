@@ -170,7 +170,8 @@ class WritersDeskScreen(
         val index = entry.ordinal
         val x = leftPos + index * TAB_SPACING
         val y = topPos - TAB_LIFT
-        val sprite = if (entry == tab) SELECTED_TABS[index] else UNSELECTED_TABS[index]
+        val sprites = if (entry == tab) SELECTED_TABS else UNSELECTED_TABS
+        val sprite = sprites[index.coerceIn(sprites.indices)]
         graphics.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, x, y, TAB_WIDTH, TAB_HEIGHT)
 
         val iconX = x + TAB_ICON_INSET
@@ -487,12 +488,23 @@ class WritersDeskScreen(
         private val CHEST: Identifier =
             Identifier.withDefaultNamespace("textures/gui/container/generic_54.png")
 
-        private val SELECTED_TABS = (1..3).map {
-            Identifier.withDefaultNamespace("container/creative_inventory/tab_top_selected_$it")
-        }
-        private val UNSELECTED_TABS = (1..3).map {
-            Identifier.withDefaultNamespace("container/creative_inventory/tab_top_unselected_$it")
-        }
+        /**
+         * One sprite per tab, sized off the tab list rather than a literal.
+         *
+         * Vanilla ships seven of each and each is drawn differently — they are positional, not
+         * interchangeable — so the index has to track the tab's own ordinal. Deriving the count here is
+         * what stops a fifth tab crashing the screen the way the fourth just did.
+         */
+        private val SELECTED_TABS = tabSprites("selected")
+        private val UNSELECTED_TABS = tabSprites("unselected")
+
+        /** Vanilla only has seven; clamped so an over-long tab list degrades rather than throwing. */
+        private fun tabSprites(state: String): List<Identifier> =
+            (1..DeskTab.entries.size.coerceAtMost(VANILLA_TAB_SPRITES)).map {
+                Identifier.withDefaultNamespace("container/creative_inventory/tab_top_${state}_$it")
+            }
+
+        private const val VANILLA_TAB_SPRITES = 7
 
         // The creative inventory's own numbers.
         private const val TAB_WIDTH = 26
