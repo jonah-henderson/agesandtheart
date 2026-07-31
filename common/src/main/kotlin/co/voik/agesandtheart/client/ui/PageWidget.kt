@@ -12,19 +12,20 @@ import net.minecraft.network.chat.Component
  * widget: a work surface owns many of these and scrolls them behind a scissor, so they are drawn on demand
  * at a rectangle rather than registered and positioned individually.
  *
- * One line per part. No lines at all leaves the parchment blank.
+ * The parts run on and wrap only when the next will not fit. No parts at all leaves the parchment blank.
  */
-class PageWidget(private val lines: List<Component>) {
+class PageWidget(private val parts: List<Component>) {
 
     fun draw(graphics: GuiGraphicsExtractor, at: Rect, dimmed: Boolean = false) {
         ParchmentSurface.draw(graphics, at)
-        if (lines.isEmpty()) return
+        if (parts.isEmpty()) return
 
         val font = Minecraft.getInstance().font
-        val ordered = lines.map { it.visualOrderText }
+        val ordered = wrapped(font, at).map { it.visualOrderText }
         val widest = ordered.maxOf(font::width)
         if (widest <= 0) return
-        val stacked = ordered.size * font.lineHeight
+        val step = font.lineHeight + LINE_GAP
+        val stacked = ordered.size * step - LINE_GAP
 
         // One size for every page; the fit is a ceiling so an over-long part still shrinks to its cell.
         val scale = minOf(
@@ -43,7 +44,7 @@ class PageWidget(private val lines: List<Component>) {
             graphics.text(
                 font, line,
                 -font.width(line) / 2,
-                -stacked / 2 + index * font.lineHeight,
+                -stacked / 2 + index * step,
                 colour,
                 false,
             )
@@ -51,9 +52,34 @@ class PageWidget(private val lines: List<Component>) {
         graphics.pose().popMatrix()
     }
 
+    /**
+     * The parts packed into lines that fit [at] at [SCRIPT_SCALE].
+     *
+     * Measured in unscaled units, since that is what the font reports and the scale is applied afterwards.
+     */
+    private fun wrapped(font: net.minecraft.client.gui.Font, at: Rect): List<Component> {
+        val room = (at.width - MARGIN * 2) / SCRIPT_SCALE
+        val lines = mutableListOf<Component>()
+        var line: Component? = null
+        parts.forEach { part ->
+            val joined = line?.copy()?.append(" ")?.append(part)
+            if (joined != null && font.width(joined) <= room) {
+                line = joined
+            } else {
+                line?.let(lines::add)
+                line = part
+            }
+        }
+        line?.let(lines::add)
+        return lines
+    }
+
     private companion object {
         /** Clear space around the script, so it never touches the edge. */
         const val MARGIN = 4
+
+        /** Breathing room between stacked lines. */
+        const val LINE_GAP = 2
 
         /** The size the script is written at, everywhere. */
         const val SCRIPT_SCALE = 0.61f

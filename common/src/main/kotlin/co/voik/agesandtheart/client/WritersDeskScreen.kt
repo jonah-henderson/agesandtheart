@@ -154,7 +154,7 @@ class WritersDeskScreen(
         // Overlapping the panel's border rather than painting over it: the wing's own top and bottom edges
         // then run the whole way across, so the two borders meet instead of stopping short of each other.
         wing.sized(wing.width + Palette.BORDER, wing.height)
-        wing.setPosition(layout.panel.x + Palette.BORDER - wing.width, layout.panel.y)
+        wing.setPosition(layout.panel.x + Palette.BORDER - wing.width, layout.panel.y + WING_DROP)
         wing.arrangeElements()
         wing.visitWidgets(::addRenderableWidget)
     }
@@ -304,6 +304,9 @@ class WritersDeskScreen(
     private fun showTab() {
         inventoryLabelY = layout.inventoryLabelY(tab)
         perTab.forEach { (widget, showsOn) -> widget.visible = showsOn(tab) }
+        // Keys reach a widget only through the screen's focus, so an unfocused search box lets `e` fall
+        // through to "close the inventory". The creative screen focuses its search for the same reason.
+        if (search.visible) focused = search
         columns[tab]?.arrangeElements()
         if (tab == DeskTab.WRITE_BOOK) {
             val row = layout.bindingRow()
@@ -501,6 +504,9 @@ class WritersDeskScreen(
         // The wing's contents. Its padding is asymmetric because the border eats the left edge and not the
         // open right, and because the gauges want more room above them than the stocks want below.
         val WING_PADDING = Insets(left = 7, top = 12, right = 4, bottom = 6)
+
+        /** Clear of the selected tab's border, which reaches the panel's top-left corner. */
+        const val WING_DROP = 4
         const val GAUGE_WIDTH = 9
         const val GAUGE_HEIGHT = 58
         const val GAUGE_GAP = 4

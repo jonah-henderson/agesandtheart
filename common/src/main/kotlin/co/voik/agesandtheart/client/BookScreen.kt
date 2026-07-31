@@ -69,32 +69,54 @@ class BookScreen(
      */
     private fun drawSentence(graphics: GuiGraphicsExtractor, left: Int, top: Int) {
         val x = left + TEXT_X
-        graphics.text(font, book.hoverName, x, top + TITLE_Y, INK, false)
+        scaled(graphics, x, top + TITLE_Y, TITLE_SCALE) {
+            graphics.text(font, book.hoverName, 0, 0, INK, false)
+        }
         if (words.isEmpty()) return
 
-        val written = KnownWords.scriptText(words)
         var y = top + TEXT_Y
-        y = flow(graphics, written, x, y, INK)
-
-        y += PARAGRAPH_GAP
-        val read = words.joinToString(" ") { WordNames.readable(it).string }
-        flow(graphics, Component.literal(read), x, y, FAINT_INK)
+        linesOf().forEach { line ->
+            scaled(graphics, x, y, SCRIPT_SCALE) {
+                graphics.text(font, KnownWords.scriptText(line), 0, 0, INK, false)
+            }
+            y += (font.lineHeight * SCRIPT_SCALE).toInt() + 1
+            scaled(graphics, x, y, READING_SCALE) {
+                val read = line.joinToString(" ") { WordNames.readable(it).string }
+                graphics.text(font, read, 0, 0, FAINT_INK, false)
+            }
+            y += (font.lineHeight * READING_SCALE).toInt() + PHRASE_GAP
+        }
     }
 
-    /** Wraps [text] into the page's column and returns the line after it. */
-    private fun flow(
-        graphics: GuiGraphicsExtractor,
-        text: Component,
-        x: Int,
-        top: Int,
-        colour: Int,
-    ): Int {
-        var y = top
-        font.split(text, COLUMN_WIDTH).forEach { line ->
-            graphics.text(font, line, x, y, colour, false)
-            y += LINE
+    /**
+     * The words packed into lines that fit the column, so each script line has a reading of its own.
+     *
+     * Measured unscaled, since that is what the font reports; [SCRIPT_SCALE] is applied when drawing.
+     */
+    private fun linesOf(): List<List<Identifier>> {
+        val room = COLUMN_WIDTH / SCRIPT_SCALE
+        val lines = mutableListOf<List<Identifier>>()
+        var line = mutableListOf<Identifier>()
+        words.forEach { word ->
+            val candidate = line + word
+            if (line.isNotEmpty() && font.width(KnownWords.scriptText(candidate)) > room) {
+                lines += line
+                line = mutableListOf(word)
+            } else {
+                line = candidate.toMutableList()
+            }
         }
-        return y
+        if (line.isNotEmpty()) lines += line
+        return lines
+    }
+
+    /** Draws [body] at [scale] with the origin moved to ([x], [y]), since text is placed by its corner. */
+    private fun scaled(graphics: GuiGraphicsExtractor, x: Int, y: Int, scale: Float, body: () -> Unit) {
+        graphics.pose().pushMatrix()
+        graphics.pose().translate(x.toFloat(), y.toFloat())
+        graphics.pose().scale(scale, scale)
+        body()
+        graphics.pose().popMatrix()
     }
 
     private fun overPanel(mouseX: Double, mouseY: Double): Boolean {
@@ -130,7 +152,14 @@ class BookScreen(
 
         /** The right page's writing column, clear of the spine and the outer edge. */
         const val COLUMN_WIDTH = WIDTH / 2 - 30
-        const val PARAGRAPH_GAP = 8
+
+        /** Title, script, reading — each a step down, so the hierarchy is the size. */
+        const val TITLE_SCALE = 1.15f
+        const val SCRIPT_SCALE = 0.9f
+        const val READING_SCALE = 0.7f
+
+        /** Between one script-and-reading pair and the next. */
+        const val PHRASE_GAP = 5
 
         val PARCHMENT = 0xFFE9DFC3.toInt()
         val EDGE = 0xFF8B7B55.toInt()

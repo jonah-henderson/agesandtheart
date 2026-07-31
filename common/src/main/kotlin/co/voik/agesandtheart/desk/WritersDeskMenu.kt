@@ -56,7 +56,7 @@ class WritersDeskMenu(
     val composing: MutableList<Identifier> = mutableListOf()
 
     /** Mirrors `DeskTab.showsInventory` on the client; the two must agree. */
-    private val showsPlayerInventory: Boolean get() = openTab == SUPPLIES_TAB
+    private val showsPlayerInventory: Boolean get() = openTab == SUPPLIES_TAB || openTab == ARCHIVE_TAB
 
     init {
         // The general doorway: everything the desk understands, binding included, on the supplies tab.
@@ -190,6 +190,7 @@ class WritersDeskMenu(
 
     companion object {
         /** Tab ordinals, shared with the screen's `DeskTab` — the menu only needs to compare them. */
+        const val ARCHIVE_TAB = 0
         const val BOOK_TAB = 2
         const val SUPPLIES_TAB = 3
 

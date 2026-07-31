@@ -32,8 +32,8 @@ class DeskLayout(private val left: Int, private val top: Int) {
     fun content(tab: DeskTab): Rect {
         val bottom = when (tab) {
             DeskTab.WRITE_BOOK -> DeskSlots.BINDING_ROW_Y - GAP
-            DeskTab.SUPPLIES -> DeskSlots.INVENTORY_LABEL_Y - GAP
-            DeskTab.ARCHIVE, DeskTab.WRITE_PAGE -> DeskSlots.PANEL_HEIGHT - Palette.BORDER - GAP
+            DeskTab.SUPPLIES, DeskTab.ARCHIVE -> DeskSlots.INVENTORY_LABEL_Y - GAP
+            DeskTab.WRITE_PAGE -> DeskSlots.PANEL_HEIGHT - Palette.BORDER - GAP
         }
         return Rect(
             left + INSET, top + CONTENT_TOP,

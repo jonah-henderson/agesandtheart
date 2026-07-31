@@ -16,10 +16,10 @@ enum class DeskTab(val key: String, val icon: () -> ItemStack) {
     /**
      * The tabs that show the player their own inventory.
      *
-     * Supplies only, at this panel height. A page can still be laid out from hand — the carried stack
-     * survives a tab switch — but the rows themselves do not fit beside a work surface.
+     * Not the book tab: its work surface needs the room. A page can still be laid out from hand there,
+     * since a carried stack survives a tab switch.
      */
-    val showsInventory: Boolean get() = this == SUPPLIES
+    val showsInventory: Boolean get() = this == SUPPLIES || this == ARCHIVE
 
     val title: Component get() = Component.translatable("container.agesandtheart.writers_desk.$key")
 }
