@@ -225,9 +225,7 @@ class WritersDeskScreen(
                 columns = DeskLayout.SURFACE_COLUMNS,
                 cellHeight = DeskLayout.CELL_HEIGHT,
                 gutterHeight = DeskLayout.GUTTER_HEIGHT,
-                // The script is off for this pass; the gutter carries the meaning. Putting it back is
-                // restoring `KnownWords.scriptText(it)` here and nothing else.
-                script = { null },
+                script = { KnownWords.scriptText(it) },
                 translation = { WordNames.readable(it).string },
                 onReorder = { from, onto -> send(DeskAction.MOVE_IN_BOOK, index = from, target = onto) },
                 onRemove = { index -> send(DeskAction.RETURN_TO_ARCHIVE, index = index) },
