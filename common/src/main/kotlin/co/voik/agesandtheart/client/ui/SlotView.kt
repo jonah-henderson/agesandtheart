@@ -8,11 +8,9 @@ import net.minecraft.network.chat.CommonComponents
 /**
  * An inventory slot, as it looks.
  *
- * The recess is not decoration applied to a slot — it is what an empty slot *is*, so the two are one thing
- * and a slot always brings its own. Built from the item position the menu already states, because that is
- * the number that has to agree; the widget covers the 18×18 frame around that 16×16.
+ * Built from the item position the menu states; the widget covers the 18×18 frame around that 16×16.
  *
- * It never takes input: the menu's own `Slot` is what a click resolves against, and answering here would
+ * Never takes input: the menu's own `Slot` is what a click resolves against, and answering here would
  * shadow it.
  */
 class SlotView(itemX: Int, itemY: Int) : AbstractWidget(

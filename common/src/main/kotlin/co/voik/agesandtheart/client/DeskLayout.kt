@@ -49,7 +49,6 @@ class DeskLayout(private val left: Int, private val top: Int) {
 
     // The item areas the menu addresses, brought into screen coordinates.
     val intakeSlot = itemArea(DeskSlots.INTAKE_X, DeskSlots.INTAKE_Y)
-    val bindingSlot = itemArea(DeskSlots.BINDING_X, DeskSlots.BINDING_Y)
     val outputSlot = itemArea(DeskSlots.OUTPUT_X, DeskSlots.OUTPUT_Y)
     val playerInventory = itemArea(DeskSlots.INVENTORY_X, DeskSlots.INVENTORY_Y)
 
@@ -58,7 +57,7 @@ class DeskLayout(private val left: Int, private val top: Int) {
     /** The slots a tab shows, which is exactly the set the menu makes active for it. */
     fun slotsOn(tab: DeskTab): List<Rect> = when (tab) {
         DeskTab.SUPPLIES -> listOf(intakeSlot)
-        DeskTab.WRITE_BOOK -> listOf(bindingSlot, outputSlot)
+        DeskTab.WRITE_BOOK -> listOf(outputSlot)
         DeskTab.ARCHIVE, DeskTab.WRITE_PAGE -> emptyList()
     }
 

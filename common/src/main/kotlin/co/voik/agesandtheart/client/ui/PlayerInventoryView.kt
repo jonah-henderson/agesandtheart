@@ -8,11 +8,8 @@ import net.minecraft.network.chat.CommonComponents
 /**
  * The player's own inventory: three rows, with the hotbar set below them.
  *
- * Drawn as slots rather than lifted from a container texture, so a screen showing the player's inventory
- * does not have to blit a whole chest and then paint most of it back out. The gap above the hotbar is
- * vanilla's four pixels, which is what makes the block read as the one every other screen shows.
- *
- * Positions only — the slots that hold items are the menu's, and this is what sits behind them.
+ * The gap above the hotbar is vanilla's four pixels. Positions only — the slots that hold items are the
+ * menu's, and this is what sits behind them.
  */
 class PlayerInventoryView(
     itemX: Int,

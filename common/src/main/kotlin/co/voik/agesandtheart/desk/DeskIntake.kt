@@ -47,6 +47,7 @@ object DeskIntake {
         }
         if (stack.item === AgeContent.NOTEBOOK) return acceptNotebook(desk, stack)
         paperTierOf(stack)?.let { return acceptPaper(desk, stack, it) }
+        if (stack.`is`(BookBinding.TAG)) return acceptBinding(desk, stack)
         inkOf(stack)?.let { (tier, perContainer, emptied) ->
             return acceptInk(desk, stack, tier, perContainer, emptied)
         }
@@ -58,7 +59,14 @@ object DeskIntake {
         pageWordOf(stack) != null ||
             stack.item === AgeContent.NOTEBOOK ||
             paperTierOf(stack) != null ||
+            stack.`is`(BookBinding.TAG) ||
             inkOf(stack) != null
+
+    private fun acceptBinding(desk: WritersDeskBlockEntity, stack: ItemStack): Result {
+        val rejected = desk.addBinding(stack.count)
+        if (rejected == stack.count) return Result.untouched(stack)
+        return Result(stack.copyWithCount(rejected), ItemStack.EMPTY, took = true)
+    }
 
     private fun pageWordOf(stack: ItemStack): Identifier? =
         if (stack.item === AgeContent.PAGE) stack.get(AgeContent.PAGE_WORD) else null

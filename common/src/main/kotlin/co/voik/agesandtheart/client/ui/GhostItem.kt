@@ -9,12 +9,10 @@ import net.minecraft.world.item.ItemStack
 /**
  * What belongs in an empty slot, shown as a hint rather than a thing.
  *
- * The real item rather than a GUI sprite of one, since item textures live on another atlas — and drawing
- * the actual item means a resource pack restyling it restyles this too.
+ * The real item, not a GUI sprite: item textures live on another atlas.
  *
- * [options] returning several cycles between them, the way a recipe viewer cycles a tag, so a slot that
- * accepts a category shows what the category holds rather than always promising one member of it. Returning
- * nothing draws nothing, which is how a filled slot hides its own hint.
+ * [options] returning several cycles between them, the way a recipe viewer cycles a tag. Returning nothing
+ * draws nothing.
  */
 class GhostItem(
     private val options: () -> List<ItemStack>,

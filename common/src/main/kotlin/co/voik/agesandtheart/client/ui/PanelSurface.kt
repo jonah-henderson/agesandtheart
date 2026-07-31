@@ -6,9 +6,6 @@ import net.minecraft.client.gui.GuiGraphicsExtractor
  * Vanilla's raised panel, drawn rather than blitted: a pixel of black, two of white above and left, two of
  * grey below and right, `C6` between.
  *
- * Drawing it rather than using `generic_54.png` means a panel can be any size, and that nothing has to be
- * painted back out afterwards — the texture carries a slot grid we would only have to hide.
- *
  * An [openOn] edge keeps its fills running to the rectangle's limit instead of stopping short for a border,
  * so a panel abutting another reads as one shape rather than growing a seam.
  */

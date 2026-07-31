@@ -38,10 +38,8 @@ object DeskSlots {
     /** The label above the player's inventory, which is also where the desk's own contents must stop. */
     const val INVENTORY_LABEL_Y = INVENTORY_Y - 11
 
-    /** The binding and the book it produces, on the row above that label. */
+    /** The book being produced, on the row above that label, beside the name it is given. */
     const val BINDING_ROW_Y = INVENTORY_LABEL_Y - 25
-    const val BINDING_X = 116
-    const val BINDING_Y = BINDING_ROW_Y
     const val OUTPUT_X = 142
     const val OUTPUT_Y = BINDING_ROW_Y
 

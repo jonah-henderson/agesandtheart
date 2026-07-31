@@ -5,9 +5,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor
 /**
  * Written-on paper: a warm off-white with a darker edge.
  *
- * Not a picture of a page — the cell *is* the parchment, which is what leaves the whole cell free for the
- * script. Drawing a smaller page inside a cell would spend a third of the width on framing, and the script
- * is the thing that has to be legible.
+ * The cell *is* the parchment; nothing draws a smaller page inside it.
  */
 object ParchmentSurface : Decoration {
     val PARCHMENT = 0xFFE9DFC3.toInt()

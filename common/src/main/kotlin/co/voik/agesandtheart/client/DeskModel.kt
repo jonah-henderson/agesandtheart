@@ -61,6 +61,9 @@ object DeskModel {
 
     fun paper(tier: InkTier): Int = state?.paper?.get(tier) ?: 0
 
+    /** Bindings held. A counted stock like paper, not a slot. */
+    fun binding(): Int = state?.binding ?: 0
+
     fun can(capability: DeskCapability): Boolean = state?.capabilities?.contains(capability) == true
 
     fun composing(): List<Identifier> = state?.composing.orEmpty()

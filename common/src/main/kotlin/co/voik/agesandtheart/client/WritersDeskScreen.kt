@@ -10,7 +10,6 @@ import co.voik.agesandtheart.client.ui.DecoratedBox
 import co.voik.agesandtheart.client.ui.DecorationWidget
 import co.voik.agesandtheart.client.ui.Edge
 import co.voik.agesandtheart.client.ui.FlexColumn
-import co.voik.agesandtheart.client.ui.GhostItem
 import co.voik.agesandtheart.client.ui.Insets
 import co.voik.agesandtheart.client.ui.LabelledList
 import co.voik.agesandtheart.client.ui.Palette
@@ -43,13 +42,8 @@ import net.minecraft.world.item.Items
 /**
  * The desk, assembled from `client/ui` pieces.
  *
- * This class composes and decides; it draws nothing at all. Widgets are added **back to front** — the
- * order of [build] is the order they stack — so there is one list to reason about rather than a background
- * pass and a widget pass that have to be kept in step.
- *
- * It draws its own panel rather than blitting `generic_54.png`. The texture carried a six-by-nine slot grid
- * that had to be painted back out, and every leftover strip and unsuppressable border came from that; a
- * panel we draw is the size we say, and the slots that exist are the ones we place.
+ * Composes and decides; draws nothing itself. Widgets are added **back to front** — the order of [build]
+ * is the order they stack.
  */
 class WritersDeskScreen(
     menu: WritersDeskMenu,
@@ -80,9 +74,7 @@ class WritersDeskScreen(
     /**
      * Widgets only some tabs show, each with the rule that decides.
      *
-     * Registered at the moment a widget is added rather than toggled in a list further down, because the
-     * two drifting apart is not a visible mistake — a widget nobody hid simply appears everywhere, which is
-     * how the binding slot's hint came to be drawn on all four tabs.
+     * Registered where a widget is added, so the two cannot drift apart.
      */
     private val perTab = mutableListOf<Pair<AbstractWidget, (DeskTab) -> Boolean>>()
 
@@ -145,6 +137,9 @@ class WritersDeskScreen(
                 CountedItem(STOCK_WIDTH, STOCK_LINE, icon = { paperIcon(tier) }, count = { DeskModel.paper(tier) }),
             )
         }
+        stocks.addChild(
+            CountedItem(STOCK_WIDTH, STOCK_LINE, icon = { BINDING_ICON }, count = { DeskModel.binding() }),
+        )
 
         val contents = LinearLayout.vertical().spacing(GROUP_GAP)
         contents.addChild(gauges)
@@ -183,12 +178,6 @@ class WritersDeskScreen(
             }
         }
 
-        // The binding slot says what it wants, until it has it.
-        addShownOn(
-            GhostItem { if (menu.getSlot(BINDING_SLOT).item.isEmpty) BINDINGS else emptyList() }
-                .also { it.coverItemAt(layout.bindingSlot.x, layout.bindingSlot.y) },
-            ::binds,
-        )
     }
 
     /** Adds a widget and says in the same breath which tabs it belongs to. */
@@ -484,14 +473,8 @@ class WritersDeskScreen(
     }
 
     private companion object {
-        /** Matches the menu's slot order. */
-        const val BINDING_SLOT = 1
-
-        /**
-         * What may bind a book, cycled the way a recipe viewer cycles a tag — so a pack allowing something
-         * else shows what it allows rather than always promising leather.
-         */
-        val BINDINGS = listOf(ItemStack(Items.LEATHER))
+        /** What a binding looks like in the stock column. */
+        val BINDING_ICON = ItemStack(Items.LEATHER)
 
         const val LINE = 12
         const val GAP = 4

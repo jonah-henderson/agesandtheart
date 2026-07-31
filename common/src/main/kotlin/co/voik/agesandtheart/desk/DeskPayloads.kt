@@ -19,6 +19,7 @@ data class DeskSyncPayload(
     val archive: Map<Identifier, Int>,
     val ink: Map<InkTier, Long>,
     val paper: Map<InkTier, Int>,
+    val binding: Int,
     val inkCapacity: Long,
     val capabilities: Set<DeskCapability>,
     /** Null meaning no limit, which is the complete desk. */
@@ -54,6 +55,7 @@ data class DeskSyncPayload(
                 ARCHIVE_STREAM.encode(buffer, LinkedHashMap(value.archive))
                 INK_STREAM.encode(buffer, LinkedHashMap(value.ink))
                 PAPER_STREAM.encode(buffer, LinkedHashMap(value.paper))
+                ByteBufCodecs.VAR_INT.encode(buffer, value.binding)
                 ByteBufCodecs.VAR_LONG.encode(buffer, value.inkCapacity)
                 CAPABILITY_STREAM.apply(ByteBufCodecs.list()).encode(buffer, value.capabilities.toList())
                 ByteBufCodecs.optional(ByteBufCodecs.VAR_INT).encode(buffer, java.util.Optional.ofNullable(value.pageLimit))
@@ -64,6 +66,7 @@ data class DeskSyncPayload(
                     archive = ARCHIVE_STREAM.decode(buffer),
                     ink = INK_STREAM.decode(buffer),
                     paper = PAPER_STREAM.decode(buffer),
+                    binding = ByteBufCodecs.VAR_INT.decode(buffer),
                     inkCapacity = ByteBufCodecs.VAR_LONG.decode(buffer),
                     capabilities = CAPABILITY_STREAM.apply(ByteBufCodecs.list()).decode(buffer).toSet(),
                     pageLimit = ByteBufCodecs.optional(ByteBufCodecs.VAR_INT).decode(buffer).orElse(null),

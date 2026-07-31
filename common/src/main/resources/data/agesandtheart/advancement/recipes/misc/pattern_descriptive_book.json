@@ -1,0 +1,35 @@
+{
+  "_comment": [
+    "Keyed on the book rather than on banners, for the same reason as dyeing: banners arrive first."
+  ],
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_descriptive_book": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:descriptive_book"
+          }
+        ]
+      }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipe": "agesandtheart:pattern_descriptive_book"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_descriptive_book",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "agesandtheart:pattern_descriptive_book"
+    ]
+  }
+}

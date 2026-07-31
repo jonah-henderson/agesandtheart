@@ -12,16 +12,11 @@ import net.minecraft.network.chat.Component
 /**
  * Where a book is laid out: pages in a wrapped row, rearranged by dragging.
  *
- * **The order is the content.** Page order is word order, so this is a sequence that happens to wrap, not a
- * grid — an insertion goes *between* two pages and pushes the rest along, rather than swapping cells. The
- * columns exist to use the width, and nothing may depend on which column a page lands in.
+ * **The order is the content.** Page order is word order, so this is a sequence that wraps, not a grid: an
+ * insertion goes *between* two pages and pushes the rest along. Nothing may depend on which column a page
+ * lands in.
  *
- * Scrolls, because a book outgrows any fixed height, and grows a row whenever the last one fills. Dragging
- * near an edge scrolls the surface, or a page could never reach a row that is off screen.
- *
- * Drops from elsewhere — the word list, the player's inventory — are the screen's to route: it knows where
- * a drag began, so it asks [insertionAt] where the drop would land and calls back. That keeps this
- * ignorant of everything except the sequence it holds.
+ * Drops from elsewhere are the screen's to route — it asks [insertionAt] where a drop would land.
  */
 class BookWritingWorkSurface<T : Any>(
     bounds: Rect,

@@ -1,0 +1,16 @@
+{
+  "_comment": [
+    "Banner patterns onto a book, and no code at all: 26.1's shield-decoration recipe takes its `target`",
+    "from data rather than being hardcoded to shields, so pointing it at a book is the whole change. It",
+    "copies the banner's layers and base colour, and `createWithOriginalComponents` keeps the book's own",
+    "components -- its words, its Age, its dye -- which a plain shapeless recipe would discard.",
+    "Like the shield, it only patterns an *unpatterned* book. Nothing renders the pattern yet; this stores",
+    "it, and the 3D model is what will read it."
+  ],
+  "type": "minecraft:crafting_special_shielddecoration",
+  "banner": "#minecraft:banners",
+  "target": "agesandtheart:descriptive_book",
+  "result": {
+    "id": "agesandtheart:descriptive_book"
+  }
+}

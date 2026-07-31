@@ -8,14 +8,9 @@ import java.util.function.Consumer
 /**
  * A vertical stack of a known height, where some children take whatever the others leave.
  *
- * **This is the one thing vanilla's layouts cannot express.** `GridLayout` and `LinearLayout` size
- * themselves *to* their contents, so "the list fills the rest of the panel" has nowhere to live — which is
- * why a screen that wants it ends up writing down where the list stops instead, and then writing it down
- * again for every variation of the screen. Give the column a height and mark the child that stretches, and
- * the positions stop being facts anybody has to state.
- *
  * Children are laid out top to bottom, full width unless they are narrower and aligned. Filling children
- * split the leftover height evenly.
+ * split the leftover height evenly. Vanilla's own layouts size themselves to their contents and have no
+ * equivalent.
  */
 class FlexColumn(width: Int, height: Int) : AbstractLayout(0, 0, width, height) {
 

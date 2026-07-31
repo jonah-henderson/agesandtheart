@@ -3,9 +3,8 @@ package co.voik.agesandtheart.client.ui
 /**
  * Space held clear on each side of something.
  *
- * Ours rather than vanilla's because `LayoutSettings` carries padding only *inside* a layout, for one child
- * of it — there is no standalone value a [DecoratedBox] can hold. The four sides are separate because a
- * bordered panel rarely wants the same gap on all of them: a border eats into one side and not the others.
+ * The four sides are separate: a bordered panel rarely wants the same gap on all of them. Vanilla's
+ * `LayoutSettings` carries padding only inside a layout, so it cannot be held as a value.
  */
 data class Insets(val left: Int, val top: Int, val right: Int, val bottom: Int) {
 

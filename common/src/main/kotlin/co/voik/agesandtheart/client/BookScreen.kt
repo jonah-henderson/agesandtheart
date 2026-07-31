@@ -62,9 +62,7 @@ class BookScreen(
     /**
      * The sentence, set as running text.
      *
-     * A book is prose, not a glossary — a word to a line made it read as a word list, which is what a
-     * writer's *desk* shows and what a finished book should not. The script runs on and wraps, and the
-     * reading follows underneath in fainter ink, so the page has the shape of a page.
+     * The script runs on and wraps; the reading follows underneath in fainter ink.
      *
      * Only the pages actually in the book for now. The inferred particles the readout adds — the `of`,
      * `over`, `with` a writer was spared — are the next piece, and they want the grammar settled first.

@@ -12,11 +12,7 @@ import net.minecraft.network.chat.Component
  * widget: a work surface owns many of these and scrolls them behind a scissor, so they are drawn on demand
  * at a rectangle rather than registered and positioned individually.
  *
- * **One line per part**, because the alternative is scaling a long word until it is a smudge: a derived
- * word is a block id, and `polished_deepslate` set on one line is a third the size of `sea`. Stacking the
- * parts spends the cell's height, which is otherwise mostly empty, and keeps both readable.
- *
- * No lines at all leaves the parchment blank.
+ * One line per part. No lines at all leaves the parchment blank.
  */
 class PageWidget(private val lines: List<Component>) {
 
@@ -30,9 +26,7 @@ class PageWidget(private val lines: List<Component>) {
         if (widest <= 0) return
         val stacked = ordered.size * font.lineHeight
 
-        // One size for every page, not one that fits each. Scaling each word to its cell made a short word
-        // three times the size of a long one, and a row of pages at three sizes reads as a mistake. The
-        // fit is a *ceiling*, so an unusually long part still shrinks rather than running over the edge.
+        // One size for every page; the fit is a ceiling so an over-long part still shrinks to its cell.
         val scale = minOf(
             SCRIPT_SCALE,
             (at.width - MARGIN * 2).toFloat() / widest,
@@ -61,13 +55,7 @@ class PageWidget(private val lines: List<Component>) {
         /** Clear space around the script, so it never touches the edge. */
         const val MARGIN = 4
 
-        /**
-         * The size the script is written at, everywhere.
-         *
-         * Taken from what a ten-glyph word needed to fit a cell — the size the majority were landing at
-         * anyway — so uniformity costs the short words their bulk rather than costing the long ones
-         * legibility.
-         */
+        /** The size the script is written at, everywhere. */
         const val SCRIPT_SCALE = 0.61f
     }
 }

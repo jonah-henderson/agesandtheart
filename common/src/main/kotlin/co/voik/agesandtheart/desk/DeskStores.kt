@@ -39,18 +39,35 @@ data class PageArchive(private val counts: Map<Identifier, Int>) {
 }
 
 /**
- * The three ink tanks and the three paper stacks.
+ * The three ink tanks, the three paper stacks, and the binding.
  *
  * Ink is counted in the units both loaders' fluid APIs use, so nothing has to convert at the boundary;
- * paper is counted in sheets. Both are capped, because the desk is a workspace rather than a warehouse.
+ * paper is counted in sheets. All are capped, because the desk is a workspace rather than a warehouse.
  */
 data class DeskStores(
     private val ink: Map<InkTier, Long>,
     private val paper: Map<InkTier, Int>,
+    private val binding: Int = 0,
 ) {
     fun ink(tier: InkTier): Long = ink[tier] ?: 0L
 
     fun paper(tier: InkTier): Int = paper[tier] ?: 0
+
+    fun binding(): Int = binding
+
+    fun bindingSpace(): Int = BINDING_CAPACITY - binding
+
+    /** @return this plus what fits, and how much did not. */
+    fun addingBinding(count: Int): Pair<DeskStores, Int> {
+        val accepted = count.coerceAtMost(bindingSpace()).coerceAtLeast(0)
+        return copy(binding = binding + accepted) to (count - accepted)
+    }
+
+    /** @return this less one binding, or null if there is none — so binding cannot go halfway. */
+    fun spendingBinding(): DeskStores? {
+        if (binding <= 0) return null
+        return copy(binding = binding - 1)
+    }
 
     /** Room left in a tank. [capacity] is passed in because the unit belongs to the loader, not to us. */
     fun inkSpace(tier: InkTier, capacity: Long): Long = capacity - ink(tier)
@@ -85,7 +102,10 @@ data class DeskStores(
         /** Sheets per quality. Three digits so the readout never has to shorten a number. */
         const val PAPER_CAPACITY = 999
 
-        val EMPTY = DeskStores(emptyMap(), emptyMap())
+        /** Bindings, on the same three-digit reasoning. */
+        const val BINDING_CAPACITY = 999
+
+        val EMPTY = DeskStores(emptyMap(), emptyMap(), 0)
 
         private val TIER_CODEC: Codec<InkTier> = InkTier.CODEC
 
@@ -95,6 +115,7 @@ data class DeskStores(
                     .forGetter { it.ink },
                 Codec.unboundedMap(TIER_CODEC, Codec.INT).optionalFieldOf("paper", emptyMap())
                     .forGetter { it.paper },
+                Codec.INT.optionalFieldOf("binding", 0).forGetter { it.binding },
             ).apply(instance, ::DeskStores)
         }
     }

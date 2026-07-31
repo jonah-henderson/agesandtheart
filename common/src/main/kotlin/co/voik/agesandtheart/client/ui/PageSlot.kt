@@ -6,12 +6,10 @@ import net.minecraft.client.gui.GuiGraphicsExtractor
 /**
  * One place a page can be: the cell that holds it, and the gutter beneath that says what it means.
  *
- * Two parts because they answer different questions — the cell shows the word as it is *written*, the
- * gutter as it is *read*. Keeping the gutter attached to the cell rather than putting names in a legend is
- * what makes a laid-out sentence scannable.
+ * The cell shows the word as it is *written*, the gutter as it is *read*.
  *
- * Like [PageWidget] this is drawn on demand rather than being a widget, because a work surface owns a
- * shifting number of them behind a scissor and positions them itself.
+ * Drawn on demand rather than being a widget: a work surface owns a shifting number of them behind a
+ * scissor and positions them itself.
  */
 class PageSlot(val cell: Rect, val gutter: Rect) {
 

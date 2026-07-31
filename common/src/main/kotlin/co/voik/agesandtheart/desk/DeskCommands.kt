@@ -209,15 +209,15 @@ object DeskCommands {
         if (menu.composing.isEmpty()) return complain(player, "no_pages")
         val title = payload.title.trim()
         if (title.isEmpty()) return complain(player, "no_name")
-        if (menu.bindingStack().isEmpty) return complain(player, "no_binding")
         if (!menu.outputIsFree()) return complain(player, "output_full")
+        // Last, so nothing is consumed until every other check has passed.
+        if (!desk.spendBinding()) return complain(player, "no_binding")
 
         // No ink here on purpose: it was spent writing each page, and charging again at the binding
         // would tax the same words twice.
         val book = ItemStack(AgeContent.DESCRIPTIVE_BOOK)
         book.set(AgeContent.BOOK_WORDS, menu.composing.toList())
         book.set(AgeContent.BOOK_TITLE, title)
-        menu.consumeBinding()
         menu.composing.clear()
         // Into the output slot rather than the inventory: a book you take is a book you saw being made.
         menu.putOutput(book)

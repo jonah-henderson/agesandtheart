@@ -41,9 +41,6 @@ class WritersDeskMenu(
     /** Anything the desk understands, routed by [DeskIntake] the moment it lands. */
     private val intake: Container = SimpleContainer(1)
 
-    /** The binding, held rather than consumed until the book is actually made. */
-    private val binding: Container = SimpleContainer(1)
-
     /** Where a finished book lands, so binding produces something you take rather than something you find. */
     private val output: Container = SimpleContainer(1)
 
@@ -67,15 +64,10 @@ class WritersDeskMenu(
     private val showsPlayerInventory: Boolean get() = openTab == SUPPLIES_TAB || openTab == BOOK_TAB
 
     init {
-        // The general doorway: everything you hand the desk except the binding, on the supplies tab.
+        // The general doorway: everything the desk understands, binding included, on the supplies tab.
         addSlot(object : Slot(intake, 0, INTAKE_X, INTAKE_Y) {
             override fun mayPlace(stack: ItemStack): Boolean = isActive && DeskIntake.accepts(stack)
             override fun isActive(): Boolean = openTab == SUPPLIES_TAB
-        })
-        // The binding and what it produces, both on the book tab where the decision is made.
-        addSlot(object : Slot(binding, 0, BINDING_X, BINDING_Y) {
-            override fun mayPlace(stack: ItemStack): Boolean = isActive && stack.`is`(BookBinding.TAG)
-            override fun isActive(): Boolean = openTab == BOOK_TAB
         })
         addSlot(object : Slot(output, 0, OUTPUT_X, OUTPUT_Y) {
             /** Take-only: a finished book is produced here, never placed here. */
@@ -155,7 +147,7 @@ class WritersDeskMenu(
     override fun stillValid(player: Player): Boolean =
         access.evaluate({ level, pos -> level.getBlockState(pos).block is WritersDeskBlock }, true)
 
-    /** Closing puts everything back: the binding to the player, the laid-out pages to the archive. */
+    /** Closing puts everything back: what is in a slot to the player, the laid-out pages to the archive. */
     override fun removed(player: Player) {
         super.removed(player)
         access.execute { _, _ ->
@@ -165,7 +157,7 @@ class WritersDeskMenu(
                 for (word in composing) desk.addPages(word, 1)
             }
             composing.clear()
-            for (container in listOf(binding, intake, output)) {
+            for (container in listOf(intake, output)) {
                 val held = container.removeItemNoUpdate(0)
                 if (!held.isEmpty && !player.inventory.add(held)) player.drop(held, false)
             }
@@ -179,12 +171,6 @@ class WritersDeskMenu(
             Optional.empty(),
         ).orElse(null)
 
-    fun bindingStack(): ItemStack = binding.getItem(0)
-
-    fun consumeBinding() {
-        binding.removeItem(0, 1)
-    }
-
     fun outputIsFree(): Boolean = output.getItem(0).isEmpty
 
     fun putOutput(stack: ItemStack) {
@@ -197,6 +183,7 @@ class WritersDeskMenu(
             archive = desk.archive.words.associateWith { desk.archive.count(it) },
             ink = InkTier.entries.associateWith { desk.stores.ink(it) },
             paper = InkTier.entries.associateWith { desk.stores.paper(it) },
+            binding = desk.stores.binding(),
             inkCapacity = desk.inkCapacity,
             capabilities = capabilities.capabilities,
             pageLimit = capabilities.pageLimit,
@@ -215,8 +202,6 @@ class WritersDeskMenu(
         // two must agree. Aliased here only so the slot declarations above stay readable.
         private const val INTAKE_X = DeskSlots.INTAKE_X
         private const val INTAKE_Y = DeskSlots.INTAKE_Y
-        private const val BINDING_X = DeskSlots.BINDING_X
-        private const val BINDING_Y = DeskSlots.BINDING_Y
         private const val OUTPUT_X = DeskSlots.OUTPUT_X
         private const val OUTPUT_Y = DeskSlots.OUTPUT_Y
         private const val INVENTORY_X = DeskSlots.INVENTORY_X
@@ -224,7 +209,7 @@ class WritersDeskMenu(
         private const val HOTBAR_Y = DeskSlots.HOTBAR_Y
 
         /** Our two slots come first, so everything from here is the player's. */
-        private const val FIRST_PLAYER_SLOT = 3
+        private const val FIRST_PLAYER_SLOT = 2
 
         fun vocabularyFor(player: ServerPlayer): Vocabulary = Vocabulary.of(player.level().server)
 

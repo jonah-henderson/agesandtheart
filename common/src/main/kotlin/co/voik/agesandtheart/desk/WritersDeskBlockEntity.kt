@@ -82,6 +82,22 @@ class WritersDeskBlockEntity(pos: BlockPos, state: BlockState) :
         return rejected
     }
 
+    /** @return what would not fit. */
+    fun addBinding(count: Int): Int {
+        val (updated, rejected) = stores.addingBinding(count)
+        stores = updated
+        setChanged()
+        return rejected
+    }
+
+    /** @return whether a binding was available to spend. */
+    fun spendBinding(): Boolean {
+        val remaining = stores.spendingBinding() ?: return false
+        stores = remaining
+        setChanged()
+        return true
+    }
+
     /** @return whether the whole cost could be paid; nothing is spent unless all of it can be. */
     fun spend(inkTier: InkTier, inkUnits: Long, paperTier: InkTier, sheets: Int): Boolean {
         val remaining = stores.spending(inkTier, inkUnits, paperTier, sheets) ?: return false

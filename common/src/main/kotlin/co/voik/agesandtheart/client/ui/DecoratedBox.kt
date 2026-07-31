@@ -10,9 +10,8 @@ import java.util.function.Consumer
  * Compose it like any other layout — give it a child (usually a `LinearLayout` or `GridLayout`) and it
  * sizes itself around it, or fix its size with [sized] and the child is placed inside the padding.
  *
- * **The surface is visited before the child**, which is the whole trick. A screen wires a layout up with
- * `visitWidgets(::addRenderableWidget)`, widgets render in the order they were added, so the decoration
- * lands behind its contents without anyone maintaining a separate background pass.
+ * **The surface is visited before the child.** Widgets render in the order they were added, so a screen
+ * calling `visitWidgets(::addRenderableWidget)` gets the decoration behind its contents.
  */
 class DecoratedBox(
     decoration: Decoration,
