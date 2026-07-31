@@ -24,6 +24,10 @@ import net.minecraft.ChatFormatting
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import net.minecraft.core.BlockPos
+import net.minecraft.core.SectionPos
+import net.minecraft.resources.ResourceKey
+import net.minecraft.world.level.Level
+import net.minecraft.world.phys.Vec3
 import net.minecraft.core.QuartPos
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.network.chat.Component
@@ -71,6 +75,11 @@ object AgeCommand {
     private const val SEED_ARGUMENT = "seed"
     private const val SPECIFICATION_ARGUMENT = "spec"
     private const val SENTENCE_ARGUMENT = "words"
+
+    /** Vanilla's End arrival platform, which is where a portal would have put you. */
+    private const val END_PLATFORM_X = 100.5
+    private const val END_PLATFORM_Y = 49.0
+    private const val END_PLATFORM_Z = 0.5
     private const val FIRST_ARGUMENT = "first"
     private const val PRESET_ARGUMENT = "preset"
     private const val SECOND_ARGUMENT = "second"
@@ -231,9 +240,13 @@ object AgeCommand {
             )
 
     private fun teleportSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
-        Commands.literal("tp").then(
-            Commands.argument(NAME_ARGUMENT, StringArgumentType.word()).executes(::runTeleport),
-        )
+        Commands.literal("tp")
+            // Literals resolve before arguments, so these never shadow an Age that happens to share a
+            // name — and they tab-complete, which is the whole point of having them.
+            .then(Commands.literal("overworld").executes { runVanillaTeleport(it, Level.OVERWORLD) })
+            .then(Commands.literal("nether").executes { runVanillaTeleport(it, Level.NETHER) })
+            .then(Commands.literal("end").executes { runVanillaTeleport(it, Level.END) })
+            .then(Commands.argument(NAME_ARGUMENT, StringArgumentType.word()).executes(::runTeleport))
 
     /**
      * `/age sky <name> [<spec>]` — read an Age's sky, or preview a different one in it.
@@ -720,6 +733,58 @@ object AgeCommand {
         Ages.teleport(player, level)
         source.sendSuccess({ Component.literal("Travelled to Age '$name'") }, true)
         return SUCCESS
+    }
+
+    /**
+     * `/age tp overworld|nether|end` — back out of an Age without hunting for a book.
+     *
+     * A testing convenience, and it lands differently per dimension because one rule would be wrong
+     * somewhere: the Overworld has a respawn point worth using, the Nether's surface heightmap finds the
+     * bedrock roof, and the End has no terrain at all until you reach an island.
+     */
+    private fun runVanillaTeleport(
+        context: CommandContext<CommandSourceStack>,
+        target: ResourceKey<Level>,
+    ): Int {
+        val source = context.source
+        val player = source.playerOrException
+        val level = source.server.getLevel(target)
+            ?: return Report.prose(source).fail("This world has no ${target.identifier().path}")
+
+        val landing = when (target) {
+            Level.OVERWORLD -> {
+                val respawn = source.server.respawnData.globalPos().pos()
+                Vec3(respawn.x + 0.5, respawn.y.toDouble(), respawn.z + 0.5)
+            }
+            // The obsidian platform, which is where a portal would have put you.
+            Level.END -> Vec3(END_PLATFORM_X, END_PLATFORM_Y, END_PLATFORM_Z)
+            else -> standingRoom(level, player.blockX, player.blockZ)
+        }
+        player.teleportTo(
+            level, landing.x, landing.y, landing.z,
+            emptySet(), player.yRot, player.xRot, true,
+        )
+        source.sendSuccess({ Component.literal("Travelled to ${target.identifier().path}") }, true)
+        return SUCCESS
+    }
+
+    /**
+     * The lowest gap with solid ground under it, searched downward.
+     *
+     * Downward rather than off the heightmap because the Nether's ceiling *is* its surface — the
+     * heightmap would land you on top of the world.
+     */
+    private fun standingRoom(level: ServerLevel, x: Int, z: Int): Vec3 {
+        level.getChunk(SectionPos.blockToSectionCoord(x), SectionPos.blockToSectionCoord(z))
+        val cursor = BlockPos.MutableBlockPos()
+        for (y in level.maxY - 1 downTo level.minY + 1) {
+            cursor.set(x, y, z)
+            val head = level.getBlockState(cursor).isAir
+            val feet = level.getBlockState(cursor.setY(y - 1)).isAir
+            val floor = !level.getBlockState(cursor.setY(y - 2)).isAir
+            if (head && feet && floor) return Vec3(x + 0.5, (y - 1).toDouble(), z + 0.5)
+        }
+        return Vec3(x + 0.5, (level.minY + 1).toDouble(), z + 0.5)
     }
 
     /**
