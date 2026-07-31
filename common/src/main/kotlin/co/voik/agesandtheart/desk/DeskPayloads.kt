@@ -133,6 +133,14 @@ enum class DeskAction {
     /** Move an archived page into the composer. */
     COMPOSE_FROM_ARCHIVE,
 
+    /**
+     * Lay the page being carried into the composer at [DeskCommandPayload.index].
+     *
+     * The carried stack rather than a named slot, because picking an item up is vanilla's own gesture and
+     * dropping it on the work surface is the same motion continued — no second drag mechanic to invent.
+     */
+    COMPOSE_FROM_HAND,
+
     /** Take a page out of the composer, returning it to the archive. */
     RETURN_TO_ARCHIVE,
 

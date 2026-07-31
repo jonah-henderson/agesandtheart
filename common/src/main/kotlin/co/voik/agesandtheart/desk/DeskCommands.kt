@@ -3,6 +3,7 @@ package co.voik.agesandtheart.desk
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.content.NotebookItem
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.platform.Services
 import net.minecraft.core.BlockPos
@@ -58,6 +59,7 @@ object DeskCommands {
             DeskAction.WRITE_TO_ARCHIVE -> write(player, menu, desk, payload, toBook = false)
             DeskAction.WRITE_TO_BOOK -> write(player, menu, desk, payload, toBook = true)
             DeskAction.COMPOSE_FROM_ARCHIVE -> composeFromArchive(menu, desk, payload)
+            DeskAction.COMPOSE_FROM_HAND -> composeFromHand(player, menu, desk, payload)
             DeskAction.RETURN_TO_ARCHIVE -> returnToArchive(menu, desk, payload)
             DeskAction.WITHDRAW -> withdraw(player, desk, payload)
             // No sync afterwards: the tab is the client's own state and it already knows.
@@ -124,6 +126,29 @@ object DeskCommands {
         val word = payload.word ?: return
         if (!desk.takePages(word, 1)) return
         menu.composing += word
+    }
+
+    /**
+     * A page carried in hand, laid straight onto the work surface.
+     *
+     * One page off the stack, inserted where it was dropped rather than appended — the position *is* the
+     * meaning, so dropping between two words has to put it between them. The rest of the stack stays in
+     * hand, which is what makes laying out several in a row bearable.
+     */
+    private fun composeFromHand(
+        player: ServerPlayer,
+        menu: WritersDeskMenu,
+        desk: WritersDeskBlockEntity,
+        payload: DeskCommandPayload,
+    ) {
+        val carried = menu.carried
+        if (!NotebookItem.isPage(carried)) return
+        val word = carried.get(AgeContent.PAGE_WORD) ?: return
+        if (!roomInBook(player, menu, desk)) return
+        val at = payload.index.coerceIn(0, menu.composing.size)
+        menu.composing.add(at, word)
+        carried.shrink(1)
+        menu.carried = carried
     }
 
     /**

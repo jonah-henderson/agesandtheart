@@ -58,6 +58,14 @@ class WritersDeskMenu(
     /** Words laid out, in order. Order is word order, so this is a list and never a set. */
     val composing: MutableList<Identifier> = mutableListOf()
 
+    /**
+     * The tabs where the player's own slots exist.
+     *
+     * The book tab included, because a page can be laid out straight from a pocket — which needs the slots
+     * to be real, not merely drawn. Mirrors `DeskTab.showsInventory` on the client.
+     */
+    private val showsPlayerInventory: Boolean get() = openTab == SUPPLIES_TAB || openTab == BOOK_TAB
+
     init {
         // The general doorway: everything you hand the desk except the binding, on the supplies tab.
         addSlot(object : Slot(intake, 0, INTAKE_X, INTAKE_Y) {
@@ -83,7 +91,7 @@ class WritersDeskMenu(
                         INVENTORY_X + column * 18,
                         INVENTORY_Y + row * 18,
                     ) {
-                        override fun isActive(): Boolean = openTab == SUPPLIES_TAB
+                        override fun isActive(): Boolean = showsPlayerInventory
                     },
                 )
             }
@@ -91,7 +99,7 @@ class WritersDeskMenu(
         for (column in 0 until 9) {
             addSlot(
                 object : Slot(playerInventory, column, INVENTORY_X + column * 18, HOTBAR_Y) {
-                    override fun isActive(): Boolean = openTab == SUPPLIES_TAB
+                    override fun isActive(): Boolean = showsPlayerInventory
                 },
             )
         }
@@ -203,19 +211,17 @@ class WritersDeskMenu(
         const val BOOK_TAB = 2
         const val SUPPLIES_TAB = 3
 
-        /** Centred on the supplies tab, which is the only place it appears. */
-        private const val INTAKE_X = 79
-        private const val INTAKE_Y = 60
-
-        /** Beneath the composition on the book tab: what binds it, and what comes out. */
-        private const val BINDING_X = 110
-        private const val BINDING_Y = 152
-        private const val OUTPUT_X = 140
-        private const val OUTPUT_Y = 152
-
-        private const val INVENTORY_X = 8
-        private const val INVENTORY_Y = 139
-        private const val HOTBAR_Y = 197
+        // Positions live in `DeskSlots`, because the screen draws a recess behind every one of them and the
+        // two must agree. Aliased here only so the slot declarations above stay readable.
+        private const val INTAKE_X = DeskSlots.INTAKE_X
+        private const val INTAKE_Y = DeskSlots.INTAKE_Y
+        private const val BINDING_X = DeskSlots.BINDING_X
+        private const val BINDING_Y = DeskSlots.BINDING_Y
+        private const val OUTPUT_X = DeskSlots.OUTPUT_X
+        private const val OUTPUT_Y = DeskSlots.OUTPUT_Y
+        private const val INVENTORY_X = DeskSlots.INVENTORY_X
+        private const val INVENTORY_Y = DeskSlots.INVENTORY_Y
+        private const val HOTBAR_Y = DeskSlots.HOTBAR_Y
 
         /** Our two slots come first, so everything from here is the player's. */
         private const val FIRST_PLAYER_SLOT = 3

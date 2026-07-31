@@ -2,459 +2,406 @@ package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.WordNames
+import co.voik.agesandtheart.client.ui.BookWritingWorkSurface
+import co.voik.agesandtheart.client.ui.CapsuleGauge
+import co.voik.agesandtheart.client.ui.ColourSurface
+import co.voik.agesandtheart.client.ui.CountedItem
+import co.voik.agesandtheart.client.ui.DecoratedBox
+import co.voik.agesandtheart.client.ui.DecorationWidget
+import co.voik.agesandtheart.client.ui.Edge
+import co.voik.agesandtheart.client.ui.GhostItem
+import co.voik.agesandtheart.client.ui.Insets
+import co.voik.agesandtheart.client.ui.LabelledList
+import co.voik.agesandtheart.client.ui.Palette
+import co.voik.agesandtheart.client.ui.PanelSurface
+import co.voik.agesandtheart.client.ui.PlayerInventoryView
+import co.voik.agesandtheart.client.ui.Rect
+import co.voik.agesandtheart.client.ui.SlotView
+import co.voik.agesandtheart.client.ui.TabStrip
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.AgeFluids
+import co.voik.agesandtheart.content.NotebookItem
 import co.voik.agesandtheart.desk.DeskAction
 import co.voik.agesandtheart.desk.DeskCommandPayload
+import co.voik.agesandtheart.desk.DeskSlots
 import co.voik.agesandtheart.desk.WritersDeskMenu
+import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
+import net.minecraft.client.gui.components.AbstractWidget
 import net.minecraft.client.gui.components.Button
 import net.minecraft.client.gui.components.EditBox
+import net.minecraft.client.gui.layouts.LinearLayout
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
-import net.minecraft.client.renderer.RenderPipelines
+import net.minecraft.client.input.MouseButtonEvent
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.Identifier
 import net.minecraft.world.entity.player.Inventory
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
 
-/** The three things a desk is for. */
-enum class DeskTab(val title: String, val icon: () -> ItemStack) {
-    ARCHIVE("archive", { ItemStack(AgeContent.PAGE) }),
-    WRITE_PAGE("write_page", { ItemStack(Items.PAPER) }),
-    WRITE_BOOK("write_book", { ItemStack(AgeContent.DESCRIPTIVE_BOOK) }),
-    SUPPLIES("supplies", { ItemStack(Items.CHEST) }),
-    ;
-
-    /** Only the supplies tab shows the player their own inventory; the rest need the room. */
-    val showsInventory: Boolean get() = this == SUPPLIES
-}
-
 /**
- * The desk, dressed as vanilla.
+ * The desk, assembled from `client/ui` pieces.
  *
- * Large-chest proportions exactly — 176×222, the player's half pixel-identical to a double chest — so the
- * half of the screen a player already knows behaves like the thing they know. Where a chest puts six rows
- * of slots, this puts whichever tab is open.
+ * This class composes and decides; it draws nothing at all. Widgets are added **back to front** — the
+ * order of [build] is the order they stack — so there is one list to reason about rather than a background
+ * pass and a widget pass that have to be kept in step.
  *
- * The tabs are the creative inventory's, sprite for sprite and at its geometry. The stock panel hangs off
- * the left edge, drawn with vanilla's own nine-patch: a pixel of black, two of white on the top and left,
- * two of grey on the bottom and right, `C6C6C6` between — all sampled from `generic_54.png` rather than
- * guessed at.
+ * It draws its own panel rather than blitting `generic_54.png`. The texture carried a six-by-nine slot grid
+ * that had to be painted back out, and every leftover strip and unsuppressable border came from that; a
+ * panel we draw is the size we say, and the slots that exist are the ones we place.
  */
 class WritersDeskScreen(
     menu: WritersDeskMenu,
     inventory: Inventory,
     title: Component,
-) : AbstractContainerScreen<WritersDeskMenu>(menu, inventory, title, WIDTH, HEIGHT) {
+) : AbstractContainerScreen<WritersDeskMenu>(
+    menu, inventory, title, DeskLayout.WIDTH, DeskLayout.HEIGHT,
+) {
 
     private var tab = DeskTab.ARCHIVE
-    private var filter = ""
-    private var scroll = 0
-    private var selected: Identifier? = null
-    private var name: EditBox? = null
-    private var dragFrom: Int? = null
-    private var dragMoved = false
+    private var selectedWord: Identifier? = null
 
-    /** Only the supplies tab has an inventory to label; elsewhere the words go where the label was. */
-    private fun placeInventoryLabel() {
-        inventoryLabelY = if (tab.showsInventory) HEIGHT - 94 else OFFSCREEN
-    }
+    // What the lists are showing, so they are only rebuilt when the answer actually changes.
+    private var shownWords: List<WordRow> = emptyList()
+    private var shownComposition: List<Identifier> = emptyList()
+
+    private lateinit var layout: DeskLayout
+    private lateinit var tabs: TabStrip<DeskTab>
+    private lateinit var wordList: LabelledList<WordRow>
+    private lateinit var composition: BookWritingWorkSurface<Identifier>
+    private lateinit var search: EditBox
+    private lateinit var ageName: EditBox
+    private lateinit var paperButtons: List<Button>
+    private lateinit var bindButton: Button
+
+    /**
+     * Widgets only some tabs show, each with the rule that decides.
+     *
+     * Registered at the moment a widget is added rather than toggled in a list further down, because the
+     * two drifting apart is not a visible mistake — a widget nobody hid simply appears everywhere, which is
+     * how the binding slot's hint came to be drawn on all four tabs.
+     */
+    private val perTab = mutableListOf<Pair<AbstractWidget, (DeskTab) -> Boolean>>()
 
     override fun init() {
         super.init()
-        // The menu opens on the archive tab, and the server has to agree about which slots exist.
+        // Vanilla centres the panel alone, but the tabs stand above it — so the whole thing sat high enough
+        // to clip them off the top. What has to be centred is panel *plus* lift, and moving down by half
+        // the lift is the same statement.
+        topPos += TabStrip.LIFT / 2
+        layout = DeskLayout(leftPos, topPos)
+        build()
+        showTab()
+        // The server has to agree about which slots exist.
         menu.openTab = tab.ordinal
-        send(DeskAction.SET_TAB, null, InkTier.COMMON, index = tab.ordinal)
-        placeInventoryLabel()
-        rebuild()
+        send(DeskAction.SET_TAB, index = tab.ordinal)
     }
 
-    private fun rebuild() {
+    /** Back to front. Everything below is added in the order it stacks. */
+    private fun build() {
+        val keptFilter = if (::search.isInitialized) search.value else ""
         clearWidgets()
-        addSearch()
-        if (tab != DeskTab.ARCHIVE) addPaperButtons()
-        if (tab == DeskTab.WRITE_BOOK) addBookControls()
-    }
+        // In step with `clearWidgets`, or a resize would leave rules pointing at widgets no longer shown.
+        perTab.clear()
 
-    private fun addSearch() {
-        val box = EditBox(font, leftPos + PANEL_X, topPos + SEARCH_Y, PANEL_WIDTH, LINE, Component.empty())
-        box.setHint(Component.translatable("container.agesandtheart.writers_desk.search"))
-        box.value = filter
-        box.setResponder { typed ->
-            filter = typed
-            scroll = 0
-        }
-        addRenderableWidget(box)
-    }
-
-    /** Three prices for the same word: which resource you would rather spend (design §7.4). */
-    private fun addPaperButtons() {
-        InkTier.entries.forEachIndexed { index, paper ->
-            val button = Button.builder(Component.literal(paperGlyph(paper))) {
-                val into = if (tab == DeskTab.WRITE_BOOK) DeskAction.WRITE_TO_BOOK else DeskAction.WRITE_TO_ARCHIVE
-                selected?.let { word -> send(into, word, paper) }
-            }.bounds(
-                leftPos + PANEL_X + index * (PAPER_BUTTON + 2),
-                topPos + BUTTON_Y,
-                PAPER_BUTTON,
-                LINE + 2,
-            ).build()
-            button.active = selected != null && DeskModel.paper(paper) > 0 && affordable(paper)
-            addRenderableWidget(button)
-        }
-    }
-
-    private fun addBookControls() {
-        val box = EditBox(font, leftPos + COMPOSE_X, topPos + NAME_Y, NAME_WIDTH, LINE, Component.empty())
-        box.setHint(Component.translatable("container.agesandtheart.writers_desk.name"))
-        box.setMaxLength(DeskCommandPayload.MAX_TITLE)
-        name = box
-        addRenderableWidget(box)
-        addRenderableWidget(
-            Button.builder(Component.translatable("container.agesandtheart.writers_desk.bind")) {
-                send(DeskAction.FINALISE, null, InkTier.COMMON, title = name?.value.orEmpty())
-            }.bounds(leftPos + COMPOSE_X + NAME_WIDTH + 2, topPos + NAME_Y, BIND_WIDTH, LINE).build(),
+        tabs = TabStrip(
+            layout.tabsX, layout.tabsY, DeskTab.entries, tab,
+            icon = { it.icon() },
+            label = { it.title },
+            onSelect = ::openTab,
         )
+        tabs.pulsedAt = { if (it == DeskTab.ARCHIVE) DeskModel.archiveGrewAt else 0L }
+
+        // Unselected tabs tuck under the panel, so they go on before it.
+        addRenderableWidget(tabs.backdrop)
+        addRenderableWidget(surface(PanelSurface.RAISED, layout.panel))
+        addWing()
+        addSlots()
+        // The strip itself last of the chrome, so the selected tab sits proud of the panel.
+        addRenderableWidget(tabs)
+
+        addControls(keptFilter)
     }
 
-    override fun extractBackground(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, a: Float) {
-        super.extractBackground(graphics, mouseX, mouseY, a)
+    private fun addWing() {
+        val gauges = LinearLayout.horizontal().spacing(GAUGE_GAP)
+        InkTier.entries.forEach { tier ->
+            gauges.addChild(
+                CapsuleGauge(
+                    GAUGE_WIDTH, GAUGE_HEIGHT,
+                    reading = { DeskModel.ink(tier).toFloat() / DeskModel.inkCapacity().coerceAtLeast(1) },
+                    colour = { AgeFluids.INKS[tier]?.tint ?: Palette.TEXT },
+                    tooltip = { inkTooltip(tier) },
+                ),
+            )
+        }
 
-        // Unselected tabs first so the panel covers their base, exactly as the creative screen does.
-        DeskTab.entries.filter { it != tab }.forEach { extractTab(graphics, it, mouseX, mouseY) }
+        val stocks = LinearLayout.vertical()
+        InkTier.entries.forEach { tier ->
+            stocks.addChild(
+                CountedItem(STOCK_WIDTH, STOCK_LINE, icon = { paperIcon(tier) }, count = { DeskModel.paper(tier) }),
+            )
+        }
 
-        graphics.blit(RenderPipelines.GUI_TEXTURED, CHEST, leftPos, topPos, 0f, 0f, WIDTH, CHEST_TOP, 256, 256)
-        graphics.blit(
-            RenderPipelines.GUI_TEXTURED, CHEST,
-            leftPos, topPos + CHEST_TOP, 0f, 126f, WIDTH, CHEST_BOTTOM, 256, 256,
+        val contents = LinearLayout.vertical().spacing(GROUP_GAP)
+        contents.addChild(gauges)
+        contents.addChild(stocks)
+
+        // Asymmetric because the border eats the left edge but not the open right, and because the gauges
+        // want more room above them than the stocks want below. These four numbers, the two group sizes and
+        // the spacings are the whole of the wing's layout — its width and height fall out of them.
+        val wing = DecoratedBox(PanelSurface(openOn = Edge.RIGHT), WING_PADDING)
+        wing.holding(contents)
+        // Sized by arranging, then hung off the panel's left edge — so nothing has to state how wide it is.
+        wing.arrangeElements()
+        wing.setPosition(layout.panel.x - wing.width, layout.panel.y)
+        wing.visitWidgets(::addRenderableWidget)
+
+        // The panel the wing abuts draws a border of its own and nothing can suppress part of one, so it is
+        // painted over. Added after the wing, or the wing's own surface would cover it.
+        val seam = Rect(
+            wing.x + wing.width, wing.y + Palette.BORDER,
+            Palette.BORDER, wing.height - Palette.BORDER * 2,
         )
-        // Paint out the chest's own slot grid; ours is not six rows. The lower grid stays only on the
-        // supplies tab, which is the one that shows the player their inventory.
-        graphics.fill(leftPos + 7, topPos + 17, leftPos + WIDTH - 7, topPos + CHEST_TOP, PANEL)
-        if (!tab.showsInventory) {
-            graphics.fill(leftPos + 7, topPos + CHEST_TOP, leftPos + WIDTH - 7, topPos + CONTENT_BOTTOM, PANEL)
-        }
-
-        extractStockWing(graphics, mouseX, mouseY)
-        if (tab != DeskTab.SUPPLIES) extractRows(graphics)
-        if (tab == DeskTab.WRITE_PAGE || tab == DeskTab.WRITE_BOOK) extractPrices(graphics)
-        if (tab == DeskTab.WRITE_BOOK) {
-            extractComposition(graphics)
-            extractBindingHint(graphics)
-        }
-        // The selected tab last, so it sits proud of the panel the others tuck behind.
-        extractTab(graphics, tab, mouseX, mouseY)
+        addRenderableWidget(surface(ColourSurface.PANEL, seam))
     }
 
-    /**
-     * Leather, ghosted into the empty binding slot.
-     *
-     * The item itself rather than a sprite of one: `getNoItemIcon` wants the GUI atlas and item textures
-     * live on another, and drawing the real thing means a resource pack restyling leather restyles this
-     * too. It cycles the binding tag rather than naming leather, so a pack that allows something else
-     * shows what it allows.
-     */
-    private fun extractBindingHint(graphics: GuiGraphicsExtractor) {
-        if (!menu.getSlot(BINDING_SLOT).item.isEmpty) return
-        val showing = BINDINGS[((System.currentTimeMillis() / BINDING_CYCLE_MS) % BINDINGS.size).toInt()]
-        val x = leftPos + BINDING_SLOT_X
-        val y = topPos + BINDING_SLOT_Y
-        // Vanilla's own ghosting, values and order included: darken, draw, then wash out.
-        graphics.fill(x, y, x + ICON, y + ICON, GHOST_UNDER)
-        graphics.fakeItem(showing, x, y)
-        graphics.fill(x, y, x + ICON, y + ICON, GHOST_OVER)
-    }
+    private fun addSlots() {
+        addShownOn(
+            PlayerInventoryView(
+                layout.playerInventory.x, layout.playerInventory.y, DeskSlots.HOTBAR_DROP,
+            ),
+        ) { it.showsInventory }
 
-    private fun extractTab(graphics: GuiGraphicsExtractor, entry: DeskTab, mouseX: Int, mouseY: Int) {
-        val index = entry.ordinal
-        val x = leftPos + index * TAB_SPACING
-        val y = topPos - TAB_LIFT
-        val sprites = if (entry == tab) SELECTED_TABS else UNSELECTED_TABS
-        val sprite = sprites[index.coerceIn(sprites.indices)]
-        graphics.blitSprite(RenderPipelines.GUI_TEXTURED, sprite, x, y, TAB_WIDTH, TAB_HEIGHT)
-
-        val iconX = x + TAB_ICON_INSET
-        val iconY = y + TAB_ICON_TOP
-        val pop = popScale(entry)
-        if (pop == null) {
-            graphics.item(entry.icon(), iconX, iconY)
-        } else {
-            // Vanilla's own squash: narrower as it stretches, so it reads as a bounce rather than a zoom.
-            graphics.pose().pushMatrix()
-            graphics.pose().translate(iconX + HALF_ICON, iconY + HALF_ICON)
-            graphics.pose().scale(1f / pop, (pop + 1f) / 2f)
-            graphics.pose().translate(-(iconX + HALF_ICON), -(iconY + HALF_ICON))
-            graphics.item(entry.icon(), iconX, iconY)
-            graphics.pose().popMatrix()
-        }
-        if (mouseX in x..(x + TAB_WIDTH) && mouseY in y..(y + TAB_HEIGHT)) {
-            graphics.setTooltipForNextFrame(Component.translatable(tabKey(entry)), mouseX, mouseY)
-        }
-    }
-
-    /** How far through a pop the archive icon is, or null if it is not popping. */
-    private fun popScale(entry: DeskTab): Float? {
-        if (entry != DeskTab.ARCHIVE) return null
-        val since = System.currentTimeMillis() - DeskModel.archiveGrewAt
-        if (DeskModel.archiveGrewAt == 0L || since > POP_MS) return null
-        return 1f + (1f - since.toFloat() / POP_MS) * POP_DEPTH
-    }
-
-    /**
-     * The stocks, on a panel hanging off the left edge.
-     *
-     * Outside the main panel because they belong to every tab — the tab decides what you are doing, the
-     * wing says what you have to do it with, and that should not move when you switch.
-     */
-    private fun extractStockWing(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int) {
-        val x = leftPos - WING_WIDTH
-        val y = topPos
-        wingPanel(graphics, x, y, WING_WIDTH, WING_HEIGHT)
-
-        InkTier.entries.forEachIndexed { index, tier ->
-            val barX = x + WING_PAD + index * (BAR_WIDTH + BAR_GAP)
-            val barY = y + BAR_TOP
-            val held = DeskModel.ink(tier)
-            val filled = (BAR_HEIGHT * held.toDouble() / DeskModel.inkCapacity().coerceAtLeast(1)).toInt()
-            gauge(graphics, barX, barY, filled, tint(tier))
-            if (mouseX in barX..(barX + BAR_WIDTH) && mouseY in barY..(barY + BAR_HEIGHT)) {
-                graphics.setTooltipForNextFrame(inkTooltip(tier, held), mouseX, mouseY)
+        // A recess per slot, shown exactly when the menu makes that slot active.
+        DeskTab.entries.forEach { owner ->
+            layout.slotsOn(owner).forEach { area ->
+                addShownOn(SlotView(area.x, area.y)) { it == owner }
             }
         }
 
-        InkTier.entries.forEachIndexed { index, tier ->
-            val rowY = y + PAPER_TOP + index * PAPER_LINE
-            graphics.item(paperIcon(tier), x + WING_PAD, rowY)
-            // Right-aligned, so the digits line up rather than the labels.
-            val count = "${DeskModel.paper(tier)}"
-            val right = x + WING_WIDTH - WING_PAD
-            graphics.text(font, count, right - font.width(count), rowY + PAPER_TEXT_DROP, TEXT, false)
+        // The binding slot says what it wants, until it has it.
+        addShownOn(
+            GhostItem { if (menu.getSlot(BINDING_SLOT).item.isEmpty) BINDINGS else emptyList() }
+                .also { it.coverItemAt(layout.bindingSlot.x, layout.bindingSlot.y) },
+            ::binds,
+        )
+    }
+
+    /** Adds a widget and says in the same breath which tabs it belongs to. */
+    private fun <T : AbstractWidget> addShownOn(widget: T, showsOn: (DeskTab) -> Boolean): T {
+        addRenderableWidget(widget)
+        perTab += widget to showsOn
+        return widget
+    }
+
+    private fun lists(tab: DeskTab) = tab != DeskTab.SUPPLIES
+
+    private fun writes(tab: DeskTab) = tab == DeskTab.WRITE_PAGE || tab == DeskTab.WRITE_BOOK
+
+    private fun binds(tab: DeskTab) = tab == DeskTab.WRITE_BOOK
+
+    private fun addControls(keptFilter: String) {
+        search = EditBox(
+            font, layout.search.x, layout.search.y, layout.search.width, layout.search.height,
+            Component.empty(),
+        )
+        search.setHint(translated("search"))
+        search.value = keptFilter
+        search.setResponder {
+            wordList.resetScroll()
+            refreshWords(force = true)
         }
+        addShownOn(search, ::lists)
+
+        wordList = addShownOn(
+            LabelledList(Minecraft.getInstance(), layout.wordList(tab), ::chooseWord), ::lists,
+        )
+
+        composition = addShownOn(
+            BookWritingWorkSurface(
+                layout.workSurface,
+                columns = DeskLayout.SURFACE_COLUMNS,
+                cellHeight = DeskLayout.CELL_HEIGHT,
+                gutterHeight = DeskLayout.GUTTER_HEIGHT,
+                script = { KnownWords.scriptText(it) },
+                translation = { WordNames.readable(it).string },
+                onReorder = { from, onto -> send(DeskAction.MOVE_IN_BOOK, index = from, target = onto) },
+                onRemove = { index -> send(DeskAction.RETURN_TO_ARCHIVE, index = index) },
+                capacity = { DeskModel.pageLimit() },
+            ),
+            ::binds,
+        )
+
+        paperButtons = InkTier.entries.mapIndexed { index, paper ->
+            val at = layout.paperButton(index)
+            val button = Button.builder(Component.literal(paperGlyph(paper))) {
+                val into =
+                    if (tab == DeskTab.WRITE_BOOK) DeskAction.WRITE_TO_BOOK else DeskAction.WRITE_TO_ARCHIVE
+                selectedWord?.let { send(into, word = it, paper = paper) }
+            }.bounds(at.x, at.y, at.width, at.height).build()
+            addShownOn(button, ::writes)
+        }
+
+        ageName = EditBox(
+            font, layout.nameBox.x, layout.nameBox.y, layout.nameBox.width, layout.nameBox.height,
+            Component.empty(),
+        )
+        ageName.setHint(translated("name"))
+        ageName.setMaxLength(DeskCommandPayload.MAX_TITLE)
+        addShownOn(ageName, ::binds)
+
+        bindButton = addShownOn(
+            Button.builder(translated("bind")) {
+                send(DeskAction.FINALISE, title = ageName.value)
+            }.bounds(
+                layout.bindButton.x, layout.bindButton.y, layout.bindButton.width, layout.bindButton.height,
+            ).build(),
+            ::binds,
+        )
+    }
+
+    private fun surface(decoration: co.voik.agesandtheart.client.ui.Decoration, at: Rect): AbstractWidget =
+        DecorationWidget(decoration).also {
+            it.setPosition(at.x, at.y)
+            it.setSize(at.width, at.height)
+        }
+
+    /** Applies every registered rule, so nothing can be shown by having been forgotten. */
+    private fun showTab() {
+        inventoryLabelY = layout.inventoryLabelY(tab)
+        perTab.forEach { (widget, showsOn) -> widget.visible = showsOn(tab) }
+        if (wordList.visible) wordList.place(layout.wordList(tab))
+
+        refreshWords(force = true)
+        refreshComposition(force = true)
+    }
+
+    private fun openTab(entry: DeskTab) {
+        tab = entry
+        menu.openTab = entry.ordinal
+        send(DeskAction.SET_TAB, index = entry.ordinal)
+        showTab()
     }
 
     /**
-     * A recessed gauge, filled from the bottom — the brewing stand's fuel groove rather than a flat bar.
+     * A page held in hand, dropped onto the work surface.
      *
-     * The inset is what makes it read as a gauge: dark on the top and left, light on the bottom and
-     * right, which is the panel's own bevel turned inside out. Colours sampled from `brewing_stand.png`.
+     * Checked before the widgets get the click, because the surface would otherwise read it as the start of
+     * a drag. Carrying an item is vanilla's own gesture — picked up from the player's inventory or from the
+     * archive — so laying one out is that same motion continued rather than a second drag mechanic.
      */
-    private fun gauge(graphics: GuiGraphicsExtractor, x: Int, y: Int, filled: Int, colour: Int) {
-        graphics.fill(x - 1, y - 1, x + BAR_WIDTH + 1, y + BAR_HEIGHT + 1, GROOVE_EDGE)
-        graphics.fill(x, y, x + BAR_WIDTH + 1, y + BAR_HEIGHT + 1, GROOVE_LIP)
-        graphics.fill(x, y, x + BAR_WIDTH, y + BAR_HEIGHT, GROOVE)
-        if (filled > 0) {
-            graphics.fill(x, y + BAR_HEIGHT - filled, x + BAR_WIDTH, y + BAR_HEIGHT, colour)
+    override fun mouseClicked(event: MouseButtonEvent, doubleClick: Boolean): Boolean {
+        if (composition.visible && NotebookItem.isPage(menu.carried)) {
+            val at = composition.insertionAt(event.x, event.y)
+            if (at != null) {
+                if (!composition.isFull) send(DeskAction.COMPOSE_FROM_HAND, index = at)
+                return true
+            }
+        }
+        return super.mouseClicked(event, doubleClick)
+    }
+
+    override fun containerTick() {
+        super.containerTick()
+        refreshWords(force = false)
+        refreshComposition(force = false)
+        paperButtons.forEachIndexed { index, button ->
+            button.active = canWrite(InkTier.entries[index])
         }
     }
 
-    /**
-     * The wing, bordered on three sides only.
-     *
-     * Its right edge runs into the main panel, so giving it one there would draw a seam through what
-     * should read as a single shape.
-     */
-    private fun wingPanel(graphics: GuiGraphicsExtractor, x: Int, y: Int, width: Int, height: Int) {
-        graphics.fill(x, y, x + width, y + height, OUTLINE)
-        graphics.fill(x + 1, y + 1, x + width, y + height - 1, HIGHLIGHT)
-        graphics.fill(x + 3, y + height - 3, x + width, y + height - 1, SHADOW)
-        graphics.fill(x + 3, y + 3, x + width, y + height - 3, PANEL)
+    private fun refreshWords(force: Boolean) {
+        if (!wordList.visible) return
+        val rows = if (tab == DeskTab.ARCHIVE) {
+            DeskModel.archiveRows(search.value)
+        } else {
+            DeskModel.writableRows(search.value)
+        }
+        if (!force && rows == shownWords) return
+        shownWords = rows
+        wordList.show(rows, label = { it.readable }, count = { it.inArchive }, key = { it.word })
     }
 
-    /** Exactly what the tank holds, since a bar can only ever say roughly. */
-    private fun inkTooltip(tier: InkTier, held: Long): Component {
+    private fun refreshComposition(force: Boolean) {
+        if (!composition.visible) return
+        val words = DeskModel.composing()
+        if (!force && words == shownComposition) return
+        shownComposition = words
+        composition.show(words)
+    }
+
+    /** Picking a word asks what it costs, and on the tabs where a click means something, does that too. */
+    private fun chooseWord(row: WordRow) {
+        if (selectedWord != row.word) {
+            selectedWord = row.word
+            send(DeskAction.PRICE, word = row.word)
+        }
+        when (tab) {
+            DeskTab.ARCHIVE -> send(DeskAction.WITHDRAW, word = row.word)
+            DeskTab.WRITE_BOOK ->
+                if (row.inArchive > 0) send(DeskAction.COMPOSE_FROM_ARCHIVE, word = row.word)
+            DeskTab.WRITE_PAGE, DeskTab.SUPPLIES -> Unit
+        }
+    }
+
+    private fun canWrite(paper: InkTier): Boolean {
+        if (selectedWord == null || DeskModel.paper(paper) <= 0) return false
+        val (inkTier, units) = DeskModel.priceFor(selectedWord, paper) ?: return true
+        return DeskModel.ink(inkTier) >= units
+    }
+
+    /** The only drawing left, and it is all text over widgets that have already placed themselves. */
+    override fun extractBackground(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, a: Float) {
+        super.extractBackground(graphics, mouseX, mouseY, a)
+        if (tab == DeskTab.WRITE_PAGE || tab == DeskTab.WRITE_BOOK) extractPrices(graphics)
+        if (tab == DeskTab.WRITE_BOOK) extractCompositionHeader(graphics)
+    }
+
+    /** What each paper choice would cost in ink, under its button and red when it is out of reach. */
+    private fun extractPrices(graphics: GuiGraphicsExtractor) {
+        val word = selectedWord ?: return
+        InkTier.entries.forEachIndexed { index, paper ->
+            val price = DeskModel.priceFor(word, paper) ?: return@forEachIndexed
+            val at = layout.priceLabel(index)
+            val colour = if (DeskModel.ink(price.first) >= price.second) Palette.TEXT else Palette.WARNING
+            graphics.text(font, inkGlyph(price.first), at.x, at.y, colour, false)
+        }
+    }
+
+    private fun extractCompositionHeader(graphics: GuiGraphicsExtractor) {
+        val written = DeskModel.composing().size
+        val limit = DeskModel.pageLimit()
+        val header = if (limit == null) "$written" else "$written / $limit"
+        val at = layout.compositionHeader
+        graphics.text(font, header, at.x, at.y, Palette.FAINT, false)
+    }
+
+    /** Exactly what the tank holds, since a gauge can only ever say roughly. */
+    private fun inkTooltip(tier: InkTier): Component {
+        val held = DeskModel.ink(tier)
         val perBucket = (DeskModel.inkCapacity() / AgeFluids.TANK_CAPACITY_BUCKETS).coerceAtLeast(1)
         return Component.translatable(
             "container.agesandtheart.writers_desk.ink",
-            Component.translatable("container.agesandtheart.writers_desk.ink.${tier.key}"),
+            translated("ink.${tier.key}"),
             String.format("%.2f", held.toDouble() / perBucket),
             AgeFluids.TANK_CAPACITY_BUCKETS,
         )
     }
 
-    /** Vanilla's nine-patch, drawn rather than blitted: black, white highlight, grey shadow, C6 fill. */
-    private fun vanillaPanel(graphics: GuiGraphicsExtractor, x: Int, y: Int, width: Int, height: Int) {
-        graphics.fill(x, y, x + width, y + height, OUTLINE)
-        graphics.fill(x + 1, y + 1, x + width - 1, y + height - 1, HIGHLIGHT)
-        graphics.fill(x + 3, y + 3, x + width - 1, y + height - 1, SHADOW)
-        graphics.fill(x + 3, y + 3, x + width - 3, y + height - 3, PANEL)
-    }
-
-    /** The word list is full width, except on the book tab where the sentence sits beside it. */
-    private fun listWidth(): Int = if (tab == DeskTab.WRITE_BOOK) HALF_WIDTH else PANEL_WIDTH
-
-    /**
-     * How many rows fit, which differs per tab because each keeps a different amount of room below.
-     *
-     * The player's inventory is hidden everywhere but the supplies tab, and this is what that bought.
-     */
-    private fun visibleRows(): Int = when (tab) {
-        DeskTab.ARCHIVE -> ARCHIVE_ROWS
-        DeskTab.WRITE_PAGE -> PAGE_ROWS
-        DeskTab.WRITE_BOOK -> BOOK_ROWS
-        DeskTab.SUPPLIES -> 0
-    }
-
-    private fun rows(): List<WordRow> = when (tab) {
-        DeskTab.ARCHIVE -> DeskModel.archiveRows(filter)
-        else -> DeskModel.writableRows(filter)
-    }
-
-    private fun extractRows(graphics: GuiGraphicsExtractor) {
-        rows().drop(scroll).take(visibleRows()).forEachIndexed { index, row ->
-            val y = topPos + ROWS_Y + index * LINE
-            if (row.word == selected) {
-                graphics.fill(leftPos + PANEL_X, y - 1, leftPos + PANEL_X + listWidth(), y + LINE - 2, SELECTION)
-            }
-            graphics.text(font, row.readable, leftPos + PANEL_X + 2, y, TEXT, false)
-            if (row.inArchive > 0) {
-                graphics.text(
-                    font, "${row.inArchive}",
-                    leftPos + PANEL_X + listWidth() - COUNT_INSET, y, FAINT, false,
-                )
-            }
-        }
-    }
-
-    private fun extractPrices(graphics: GuiGraphicsExtractor) {
-        val word = selected ?: return
-        InkTier.entries.forEachIndexed { index, paper ->
-            val price = DeskModel.priceFor(word, paper) ?: return@forEachIndexed
-            val x = leftPos + PANEL_X + index * (PAPER_BUTTON + 2)
-            val colour = if (DeskModel.ink(price.first) >= price.second) TEXT else SHORT
-            graphics.text(font, inkGlyph(price.first), x, topPos + BUTTON_Y + LINE + 4, colour, false)
-        }
-    }
-
-    private fun extractComposition(graphics: GuiGraphicsExtractor) {
-        val words = DeskModel.composing()
-        val limit = DeskModel.pageLimit()
-        val header = if (limit == null) "${words.size}" else "${words.size} / $limit"
-        graphics.text(font, header, leftPos + COMPOSE_X, topPos + COMPOSE_HEADER_Y, FAINT, false)
-        words.take(visibleRows()).forEachIndexed { index, word ->
-            val y = topPos + ROWS_Y + index * LINE
-            graphics.text(font, "${index + 1}. ", leftPos + COMPOSE_X, y, FAINT, false)
-            graphics.text(font, WordNames.readable(word), leftPos + COMPOSE_X + ORDINAL_WIDTH, y, TEXT, false)
-        }
-    }
-
-    private fun composedCellAt(mouseX: Double, mouseY: Double): Int? {
-        if (tab != DeskTab.WRITE_BOOK) return null
-        DeskModel.composing().indices.take(visibleRows()).forEach { index ->
-            val x = leftPos + COMPOSE_X
-            val y = topPos + ROWS_Y + index * LINE
-            if (mouseX >= x && mouseX <= x + HALF_WIDTH && mouseY >= y && mouseY <= y + LINE) return index
-        }
-        return null
-    }
-
-    override fun mouseClicked(event: net.minecraft.client.input.MouseButtonEvent, doubleClick: Boolean): Boolean {
-        if (clickTab(event.x, event.y)) return true
-        composedCellAt(event.x, event.y)?.let {
-            dragFrom = it
-            dragMoved = false
-            return true
-        }
-        if (clickRow(event.x, event.y)) return true
-        return super.mouseClicked(event, doubleClick)
-    }
-
-    private fun clickTab(mouseX: Double, mouseY: Double): Boolean {
-        DeskTab.entries.forEachIndexed { index, entry ->
-            val x = leftPos + index * TAB_SPACING
-            val y = topPos - TAB_LIFT
-            if (mouseX >= x && mouseX <= x + TAB_WIDTH && mouseY >= y && mouseY <= y + TAB_HEIGHT) {
-                if (entry != tab) {
-                    tab = entry
-                    scroll = 0
-                    menu.openTab = entry.ordinal
-                    send(DeskAction.SET_TAB, null, InkTier.COMMON, index = entry.ordinal)
-                    placeInventoryLabel()
-                    rebuild()
-                }
-                return true
-            }
-        }
-        return false
-    }
-
-    private fun clickRow(mouseX: Double, mouseY: Double): Boolean {
-        rows().drop(scroll).take(visibleRows()).forEachIndexed { index, row ->
-            val y = topPos + ROWS_Y + index * LINE
-            val inside = mouseX >= leftPos + PANEL_X && mouseX <= leftPos + PANEL_X + listWidth() &&
-                mouseY >= y - 1 && mouseY <= y + LINE - 2
-            if (!inside) return@forEachIndexed
-            if (selected != row.word) {
-                selected = row.word
-                send(DeskAction.PRICE, row.word, InkTier.COMMON)
-                rebuild()
-            }
-            when (tab) {
-                DeskTab.WRITE_BOOK ->
-                    if (row.inArchive > 0) send(DeskAction.COMPOSE_FROM_ARCHIVE, row.word, InkTier.COMMON)
-                DeskTab.ARCHIVE -> send(DeskAction.WITHDRAW, row.word, InkTier.COMMON)
-                DeskTab.WRITE_PAGE, DeskTab.SUPPLIES -> Unit
-            }
-            return true
-        }
-        return false
-    }
-
-    override fun mouseDragged(
-        event: net.minecraft.client.input.MouseButtonEvent,
-        dragX: Double,
-        dragY: Double,
-    ): Boolean {
-        if (dragFrom != null) {
-            if (kotlin.math.abs(dragX) + kotlin.math.abs(dragY) > DRAG_SLOP) dragMoved = true
-            return true
-        }
-        return super.mouseDragged(event, dragX, dragY)
-    }
-
-    /** Dropped elsewhere it is a reorder; barely moved it is the click that takes the page back. */
-    override fun mouseReleased(event: net.minecraft.client.input.MouseButtonEvent): Boolean {
-        val from = dragFrom
-        if (from != null) {
-            dragFrom = null
-            val onto = composedCellAt(event.x, event.y)
-            if (dragMoved && onto != null && onto != from) {
-                ClientDeskNetwork.send(
-                    DeskCommandPayload(DeskAction.MOVE_IN_BOOK, null, InkTier.COMMON, from, onto, ""),
-                )
-            } else if (!dragMoved) {
-                ClientDeskNetwork.send(
-                    DeskCommandPayload(DeskAction.RETURN_TO_ARCHIVE, null, InkTier.COMMON, from, -1, ""),
-                )
-            }
-            dragMoved = false
-            return true
-        }
-        return super.mouseReleased(event)
-    }
-
-    override fun mouseScrolled(mouseX: Double, mouseY: Double, deltaX: Double, deltaY: Double): Boolean {
-        val most = (rows().size - visibleRows()).coerceAtLeast(0)
-        scroll = (scroll - deltaY.toInt()).coerceIn(0, most)
-        return true
-    }
-
-    private fun affordable(paper: InkTier): Boolean {
-        val (inkTier, units) = DeskModel.priceFor(selected, paper) ?: return true
-        return DeskModel.ink(inkTier) >= units
-    }
-
     private fun send(
         action: DeskAction,
-        word: Identifier?,
-        paper: InkTier,
-        title: String = "",
+        word: Identifier? = null,
+        paper: InkTier = InkTier.COMMON,
         index: Int = -1,
+        target: Int = -1,
+        title: String = "",
     ) {
-        ClientDeskNetwork.send(DeskCommandPayload(action, word, paper, index, target = -1, title = title))
+        ClientDeskNetwork.send(DeskCommandPayload(action, word, paper, index, target, title))
     }
 
-    private fun tint(tier: InkTier): Int = AgeFluids.INKS[tier]?.tint ?: TEXT
+    private fun translated(suffix: String): Component =
+        Component.translatable("container.agesandtheart.writers_desk.$suffix")
 
     private fun paperIcon(tier: InkTier): ItemStack = when (tier) {
         InkTier.COMMON -> ItemStack(Items.PAPER)
@@ -474,127 +421,24 @@ class WritersDeskScreen(
         InkTier.MASTERWORK -> "iii"
     }
 
-    private fun tabKey(entry: DeskTab) = "container.agesandtheart.writers_desk.${entry.title}"
-
-    companion object {
-        /** A double chest exactly, so the player's half is the one they already know. */
-        const val WIDTH = 176
-        const val HEIGHT = 222
-
-        /** Where the chest texture splits: six rows of slots plus the header. */
-        private const val CHEST_TOP = 6 * 18 + 17
-        private const val CHEST_BOTTOM = 96
-
-        private val CHEST: Identifier =
-            Identifier.withDefaultNamespace("textures/gui/container/generic_54.png")
+    private companion object {
+        /** Matches the menu's slot order. */
+        const val BINDING_SLOT = 1
 
         /**
-         * One sprite per tab, sized off the tab list rather than a literal.
-         *
-         * Vanilla ships seven of each and each is drawn differently — they are positional, not
-         * interchangeable — so the index has to track the tab's own ordinal. Deriving the count here is
-         * what stops a fifth tab crashing the screen the way the fourth just did.
+         * What may bind a book, cycled the way a recipe viewer cycles a tag — so a pack allowing something
+         * else shows what it allows rather than always promising leather.
          */
-        private val SELECTED_TABS = tabSprites("selected")
-        private val UNSELECTED_TABS = tabSprites("unselected")
+        val BINDINGS = listOf(ItemStack(Items.LEATHER))
 
-        /** Vanilla only has seven; clamped so an over-long tab list degrades rather than throwing. */
-        private fun tabSprites(state: String): List<Identifier> =
-            (1..DeskTab.entries.size.coerceAtMost(VANILLA_TAB_SPRITES)).map {
-                Identifier.withDefaultNamespace("container/creative_inventory/tab_top_${state}_$it")
-            }
-
-        private const val VANILLA_TAB_SPRITES = 7
-
-        // The creative inventory's own numbers.
-        private const val TAB_WIDTH = 26
-        private const val TAB_HEIGHT = 32
-        private const val TAB_SPACING = 27
-        private const val TAB_LIFT = 28
-        private const val TAB_ICON_INSET = 5
-        private const val TAB_ICON_TOP = 9
-
-        private const val PANEL_X = 8
-        private const val PANEL_WIDTH = 160
-        private const val SEARCH_Y = 20
-        private const val ROWS_Y = 38
-        private const val LINE = 12
-        private const val COUNT_INSET = 20
-
-        private const val ARCHIVE_ROWS = 14
-        private const val PAGE_ROWS = 12
-        private const val BOOK_ROWS = 9
-
-        private const val BUTTON_Y = 192
-        private const val PAPER_BUTTON = 30
-
-        /** The book tab is two columns: words you could add on the left, the sentence on the right. */
-        private const val HALF_WIDTH = 76
-        private const val COMPOSE_X = PANEL_X + HALF_WIDTH + 8
-        private const val COMPOSE_HEADER_Y = 26
-        private const val ORDINAL_WIDTH = 12
-
-        private const val NAME_Y = 174
-        private const val NAME_WIDTH = 48
-        private const val BIND_WIDTH = 24
-        private const val DRAG_SLOP = 3.0
-
-        /** Where the panel's inner area ends when the player's inventory is hidden. */
-        private const val CONTENT_BOTTOM = 212
-
-        /** Far enough down that the label is simply not drawn. */
-        private const val OFFSCREEN = 10_000
-
-        /** Matches the menu's slot order and coordinates. */
-        private const val BINDING_SLOT = 1
-        private const val BINDING_SLOT_X = 110
-        private const val BINDING_SLOT_Y = 152
-
-        private const val ICON = 16
-        private const val HALF_ICON = 8f
-
-        /**
-         * What may bind a book, cycled the way a recipe viewer cycles a tag — so a pack that allows
-         * something else shows what it allows rather than always promising leather.
-         */
-        private val BINDINGS = listOf(ItemStack(Items.LEATHER))
-        private const val BINDING_CYCLE_MS = 1000L
-
-        // Vanilla's ghost-slot wash, taken from GhostSlots verbatim.
-        private const val GHOST_UNDER = 822018048
-        private const val GHOST_OVER = 822083583
-
-        /** A pop of a quarter, decaying over a fifth of a second. */
-        private const val POP_MS = 200f
-        private const val POP_DEPTH = 0.25f
-
-        // The wing overlaps the main panel by its border so the two read as one shape.
-        // Top of the panel down to just above the Inventory label, and running into the panel's left edge.
-        private const val WING_WIDTH = 46
-        private const val WING_HEIGHT = 124
-        private const val WING_PAD = 6
-        private const val BAR_TOP = 12
-        private const val BAR_WIDTH = 9
-        private const val BAR_GAP = 4
-        private const val BAR_HEIGHT = 58
-        private const val PAPER_TOP = 78
-        private const val PAPER_LINE = 14
-        private const val PAPER_TEXT_DROP = 5
-
-        // Sampled from generic_54.png rather than guessed.
-        private val PANEL = 0xFFC6C6C6.toInt()
-        private val SLOT = 0xFF8B8B8B.toInt()
-        private val OUTLINE = 0xFF000000.toInt()
-        private val HIGHLIGHT = 0xFFFFFFFF.toInt()
-        private val SHADOW = 0xFF555555.toInt()
-
-        // The brewing stand's fuel groove: dark lip above and left, light below and right.
-        private val GROOVE_EDGE = 0xFF373737.toInt()
-        private val GROOVE_LIP = 0xFFFFFFFF.toInt()
-        private val GROOVE = 0xFF8B8B8B.toInt()
-        private val TEXT = 0xFF404040.toInt()
-        private val FAINT = 0xFF808080.toInt()
-        private val SHORT = 0xFF8B2E2E.toInt()
-        private val SELECTION = 0x60000000
+        // The wing's contents. Its padding is asymmetric because the border eats the left edge and not the
+        // open right, and because the gauges want more room above them than the stocks want below.
+        val WING_PADDING = Insets(left = 7, top = 12, right = 4, bottom = 6)
+        const val GAUGE_WIDTH = 9
+        const val GAUGE_HEIGHT = 58
+        const val GAUGE_GAP = 4
+        const val GROUP_GAP = 6
+        const val STOCK_WIDTH = 35
+        const val STOCK_LINE = 14
     }
 }
