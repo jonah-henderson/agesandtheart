@@ -55,13 +55,8 @@ class WritersDeskMenu(
     /** Words laid out, in order. Order is word order, so this is a list and never a set. */
     val composing: MutableList<Identifier> = mutableListOf()
 
-    /**
-     * The tabs where the player's own slots exist.
-     *
-     * The book tab included, because a page can be laid out straight from a pocket — which needs the slots
-     * to be real, not merely drawn. Mirrors `DeskTab.showsInventory` on the client.
-     */
-    private val showsPlayerInventory: Boolean get() = openTab == SUPPLIES_TAB || openTab == BOOK_TAB
+    /** Mirrors `DeskTab.showsInventory` on the client; the two must agree. */
+    private val showsPlayerInventory: Boolean get() = openTab == SUPPLIES_TAB
 
     init {
         // The general doorway: everything the desk understands, binding included, on the supplies tab.

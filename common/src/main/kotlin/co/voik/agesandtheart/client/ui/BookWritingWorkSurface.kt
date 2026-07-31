@@ -196,9 +196,11 @@ class BookWritingWorkSurface<T : Any>(
         // Clears the scrollbar's own drag state; skipping it leaves the bar stuck to the cursor.
         super.onRelease(event)
         val from = carrying ?: return
+        // Read before releasing: `release` clears `moved`, so testing it afterwards is always false.
         val target = dropAt
+        val dragged = moved
         release()
-        if (!moved) return
+        if (!dragged) return
         if (target == null) {
             onRemove(from)
             return

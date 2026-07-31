@@ -57,7 +57,9 @@ object Linking {
             return complain(player, "unsupported")
         }
         val existing = stack.get(AgeContent.AGE_ID)
-        val ageId = existing ?: Ages.allocateId(server).also { stack.set(AgeContent.AGE_ID, it) }
+        val ageId = existing
+            ?: Ages.allocateId(server, stack.get(AgeContent.BOOK_TITLE).orEmpty())
+                .also { stack.set(AgeContent.AGE_ID, it) }
         val age = Ages.ensure(server, ageId, recipeFor(stack, server, ageId))
         if (age == null) return complain(player, "failed")
 

@@ -16,8 +16,8 @@ package co.voik.agesandtheart.desk
 object DeskSlots {
     const val PANEL_WIDTH = 176
 
-    /** Taller than a container: the book tab stacks a source list, the work surface, binding and inventory. */
-    const val PANEL_HEIGHT = 270
+    /** A large chest's, which is as tall as the game's default GUI scale has room for. */
+    const val PANEL_HEIGHT = 222
 
     const val INVENTORY_COLUMNS = 9
     const val INVENTORY_ROWS = 3
@@ -38,8 +38,13 @@ object DeskSlots {
     /** The label above the player's inventory, which is also where the desk's own contents must stop. */
     const val INVENTORY_LABEL_Y = INVENTORY_Y - 11
 
-    /** The book being produced, on the row above that label, beside the name it is given. */
-    const val BINDING_ROW_Y = INVENTORY_LABEL_Y - 25
+    /**
+     * The book being produced, beside the name it is given.
+     *
+     * Anchored to the panel's foot rather than to the inventory label: the book tab has no inventory, so
+     * the row sits as low as the bottom border allows.
+     */
+    const val BINDING_ROW_Y = PANEL_HEIGHT - 32
     const val OUTPUT_X = 142
     const val OUTPUT_Y = BINDING_ROW_Y
 

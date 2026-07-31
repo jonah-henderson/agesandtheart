@@ -29,14 +29,19 @@ class LabelledRow<T : Any>(
         a: Float,
     ) {
         val font = Minecraft.getInstance().font
+        val washed = hovered || isFocused
         if (hovered) graphics.fill(x, y, x + width, y + height, Palette.HOVER)
         val baseline = y + (height - font.lineHeight) / 2
         graphics.text(font, label, x + TEXT_INSET, baseline, Palette.TEXT, false)
         if (count != null && count > 0) {
             val shown = "$count"
+            // Faint grey on the selection wash is close to unreadable, so a washed row states its count
+            // in the same ink as its name.
             graphics.text(
                 font, shown,
-                x + width - TEXT_INSET - font.width(shown), baseline, Palette.FAINT, false,
+                x + width - TEXT_INSET - font.width(shown), baseline,
+                if (washed) Palette.TEXT else Palette.FAINT,
+                false,
             )
         }
     }

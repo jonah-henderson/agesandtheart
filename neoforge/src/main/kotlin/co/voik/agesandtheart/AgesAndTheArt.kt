@@ -9,6 +9,7 @@ import co.voik.agesandtheart.desk.DeskCommandPayload
 import co.voik.agesandtheart.desk.DeskCommands
 import co.voik.agesandtheart.book.LinkRequest
 import co.voik.agesandtheart.book.Linking
+import co.voik.agesandtheart.desk.DeskNoticePayload
 import co.voik.agesandtheart.desk.DeskPricePayload
 import co.voik.agesandtheart.desk.DeskSyncPayload
 import co.voik.agesandtheart.content.AgeContent
@@ -121,6 +122,9 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
             co.voik.agesandtheart.client.DeskModel.remember(payload)
         }
         registrar.playToClient(DeskPricePayload.TYPE, DeskPricePayload.STREAM_CODEC) { payload, _ ->
+            co.voik.agesandtheart.client.DeskModel.remember(payload)
+        }
+        registrar.playToClient(DeskNoticePayload.TYPE, DeskNoticePayload.STREAM_CODEC) { payload, _ ->
             co.voik.agesandtheart.client.DeskModel.remember(payload)
         }
         // The desk's instructions, re-checked server-side whatever the screen believed.

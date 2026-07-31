@@ -9,6 +9,7 @@ import co.voik.agesandtheart.client.DeskModel
 import co.voik.agesandtheart.client.KnownWords
 import co.voik.agesandtheart.client.WritersDeskScreen
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.desk.DeskNoticePayload
 import co.voik.agesandtheart.desk.DeskPricePayload
 import co.voik.agesandtheart.desk.DeskSyncPayload
 import net.minecraft.client.gui.screens.MenuScreens
@@ -43,6 +44,9 @@ fun initClient() {
         DeskModel.remember(payload)
     }
     ClientPlayNetworking.registerGlobalReceiver(DeskPricePayload.TYPE) { payload, _ ->
+        DeskModel.remember(payload)
+    }
+    ClientPlayNetworking.registerGlobalReceiver(DeskNoticePayload.TYPE) { payload, _ ->
         DeskModel.remember(payload)
     }
 

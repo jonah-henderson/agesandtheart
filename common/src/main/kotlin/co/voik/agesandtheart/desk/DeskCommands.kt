@@ -224,7 +224,8 @@ object DeskCommands {
         Constants.LOG.debug("{} bound the Age '{}'", player.gameProfile.name, title)
     }
 
+    /** To the screen, not the action bar: an open screen covers the action bar. */
     private fun complain(player: ServerPlayer, reason: String) {
-        player.sendSystemMessage(Component.translatable("container.agesandtheart.writers_desk.$reason"), true)
+        Services.NETWORK.sendToPlayer(player, DeskNoticePayload(reason))
     }
 }

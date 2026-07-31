@@ -84,6 +84,28 @@ data class DeskSyncPayload(
  * on the referent and the amount from the resolver's cost number, and neither is on this side. One small
  * round trip when a word is selected is cheaper than syncing a price table for a corpus of eleven hundred.
  */
+/**
+ * Why the desk refused.
+ *
+ * A screen covers the action bar, so a refusal sent there is invisible exactly when the player is looking
+ * for it. [reason] is the suffix of a `container.agesandtheart.writers_desk.` key.
+ */
+data class DeskNoticePayload(val reason: String) : CustomPacketPayload {
+
+    override fun type(): CustomPacketPayload.Type<DeskNoticePayload> = TYPE
+
+    companion object {
+        val TYPE: CustomPacketPayload.Type<DeskNoticePayload> = CustomPacketPayload.Type(
+            Identifier.fromNamespaceAndPath(Constants.MOD_ID, "desk_notice"),
+        )
+
+        val STREAM_CODEC: StreamCodec<ByteBuf, DeskNoticePayload> = StreamCodec.of(
+            { buffer, value -> ByteBufCodecs.STRING_UTF8.encode(buffer, value.reason) },
+            { buffer -> DeskNoticePayload(ByteBufCodecs.STRING_UTF8.decode(buffer)) },
+        )
+    }
+}
+
 data class DeskPricePayload(
     val word: Identifier,
     /** Per paper tier: which ink it demands, and how much. */

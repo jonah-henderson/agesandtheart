@@ -49,10 +49,23 @@ object DeskModel {
         return quote.prices[paper]
     }
 
+    /** The last refusal and when it arrived, so the screen can show it and let it fade. */
+    var notice: String? = null
+        private set
+    var noticeAt: Long = 0L
+        private set
+
+    fun remember(notice: co.voik.agesandtheart.desk.DeskNoticePayload) {
+        this.notice = notice.reason
+        noticeAt = System.currentTimeMillis()
+    }
+
     fun forget() {
         state = null
         price = null
         archiveGrewAt = 0L
+        notice = null
+        noticeAt = 0L
     }
 
     fun ink(tier: InkTier): Long = state?.ink?.get(tier) ?: 0L

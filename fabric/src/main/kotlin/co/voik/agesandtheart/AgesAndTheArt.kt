@@ -15,6 +15,7 @@ import net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorage
 import net.fabricmc.fabric.api.transfer.v1.storage.base.CombinedStorage
 import co.voik.agesandtheart.desk.DeskCommandPayload
 import co.voik.agesandtheart.desk.DeskCommands
+import co.voik.agesandtheart.desk.DeskNoticePayload
 import co.voik.agesandtheart.desk.DeskPricePayload
 import co.voik.agesandtheart.desk.DeskSyncPayload
 import co.voik.agesandtheart.content.AgeContent
@@ -56,6 +57,7 @@ fun init() {
     PayloadTypeRegistry.clientboundPlay().register(LearnedWordsPayload.TYPE, LearnedWordsPayload.STREAM_CODEC)
     PayloadTypeRegistry.clientboundPlay().register(DeskSyncPayload.TYPE, DeskSyncPayload.STREAM_CODEC)
     PayloadTypeRegistry.clientboundPlay().register(DeskPricePayload.TYPE, DeskPricePayload.STREAM_CODEC)
+    PayloadTypeRegistry.clientboundPlay().register(DeskNoticePayload.TYPE, DeskNoticePayload.STREAM_CODEC)
     PayloadTypeRegistry.serverboundPlay().register(DeskCommandPayload.TYPE, DeskCommandPayload.STREAM_CODEC)
     PayloadTypeRegistry.serverboundPlay().register(LinkRequest.TYPE, LinkRequest.STREAM_CODEC)
 

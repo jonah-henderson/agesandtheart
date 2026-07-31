@@ -150,18 +150,13 @@ class WritersDeskScreen(
         // the spacings are the whole of the wing's layout — its width and height fall out of them.
         val wing = DecoratedBox(PanelSurface(openOn = Edge.RIGHT), WING_PADDING)
         wing.holding(contents)
-        // Sized by arranging, then hung off the panel's left edge — so nothing has to state how wide it is.
         wing.arrangeElements()
-        wing.setPosition(layout.panel.x - wing.width, layout.panel.y)
+        // Overlapping the panel's border rather than painting over it: the wing's own top and bottom edges
+        // then run the whole way across, so the two borders meet instead of stopping short of each other.
+        wing.sized(wing.width + Palette.BORDER, wing.height)
+        wing.setPosition(layout.panel.x + Palette.BORDER - wing.width, layout.panel.y)
+        wing.arrangeElements()
         wing.visitWidgets(::addRenderableWidget)
-
-        // The panel the wing abuts draws a border of its own and nothing can suppress part of one, so it is
-        // painted over. Added after the wing, or the wing's own surface would cover it.
-        val seam = Rect(
-            wing.x + wing.width, wing.y + Palette.BORDER,
-            Palette.BORDER, wing.height - Palette.BORDER * 2,
-        )
-        addRenderableWidget(surface(ColourSurface.PANEL, seam))
     }
 
     private fun addSlots() {
@@ -399,6 +394,7 @@ class WritersDeskScreen(
         super.extractBackground(graphics, mouseX, mouseY, a)
         if (tab == DeskTab.WRITE_PAGE || tab == DeskTab.WRITE_BOOK) extractPrices(graphics)
         if (tab == DeskTab.WRITE_BOOK) extractCompositionHeader(graphics)
+        extractNotice(graphics)
     }
 
     /**
@@ -418,6 +414,20 @@ class WritersDeskScreen(
                 button.x, button.y + button.height + PRICE_DROP, colour, false,
             )
         }
+    }
+
+    /** Why the desk refused, across the foot of the panel, fading after a few seconds. */
+    private fun extractNotice(graphics: GuiGraphicsExtractor) {
+        val reason = DeskModel.notice ?: return
+        if (System.currentTimeMillis() - DeskModel.noticeAt > NOTICE_MS) return
+        val text = translated(reason)
+        graphics.text(
+            font, text,
+            layout.panel.x + (layout.panel.width - font.width(text)) / 2,
+            layout.panel.bottom - NOTICE_LIFT,
+            Palette.WARNING,
+            false,
+        )
     }
 
     /** Sits in the line the column left above the work surface for it. */
@@ -482,6 +492,8 @@ class WritersDeskScreen(
         const val NAME_WIDTH = 60
         const val BIND_WIDTH = 30
         const val PRICE_DROP = 4
+        const val NOTICE_MS = 4000L
+        const val NOTICE_LIFT = 14
 
         /** Three rows: enough to pick from with the search box doing the finding. */
         const val BOOK_WORD_LIST_HEIGHT = 36

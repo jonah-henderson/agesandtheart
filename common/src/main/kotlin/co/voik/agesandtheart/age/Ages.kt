@@ -46,8 +46,35 @@ object Ages {
         Services.AGE_BACKEND.openAge(server, id)
 
     /** Mints a fresh, distinct Age id (`agesandtheart:age_<n>`) from the persistent counter. */
-    fun allocateId(server: MinecraftServer): Identifier =
-        Identifier.fromNamespaceAndPath(Constants.MOD_ID, "age_${AgeSavedData.get(server).allocateIndex()}")
+    /**
+     * An id for a new Age, taken from what its writer [called] it where that can be made into one.
+     *
+     * A dimension id may only hold `[a-z0-9/._-]`, so a name is folded to that and numbered if it is
+     * already taken. Anything left with nothing usable — punctuation, another script — falls back to the
+     * counter. The id is also the seed source, so two Ages of the same name still differ.
+     */
+    fun allocateId(server: MinecraftServer, called: String = ""): Identifier {
+        val data = AgeSavedData.get(server)
+        val stem = folded(called)
+        if (stem.isNotEmpty()) {
+            for (attempt in 1..NAME_ATTEMPTS) {
+                val path = if (attempt == 1) stem else "${stem}_$attempt"
+                val candidate = Identifier.fromNamespaceAndPath(Constants.MOD_ID, path)
+                if (candidate !in data.ages) return candidate
+            }
+        }
+        return Identifier.fromNamespaceAndPath(Constants.MOD_ID, "age_${data.allocateIndex()}")
+    }
+
+    private fun folded(name: String): String =
+        name.lowercase()
+            .map { if (it in 'a'..'z' || it in '0'..'9') it else '_' }
+            .joinToString("")
+            .split('_')
+            .filter { it.isNotEmpty() }
+            .joinToString("_")
+            .take(MAX_NAME_LENGTH)
+            .trim('_')
 
     /**
      * The Age [id], written from [recipe] if it does not exist yet. Null if unsupported or it failed.
@@ -111,6 +138,10 @@ object Ages {
     // A step under a chunk, out far enough to clear the widest island spacing we place.
     private const val FOOTING_STEP = 12
     private const val FOOTING_RINGS = 24
+
+    /** How many numbered variants of a name to try before falling back to the counter. */
+    private const val NAME_ATTEMPTS = 64
+    private const val MAX_NAME_LENGTH = 48
 
     /**
      * Discards an Age: its dimension and its saved chunks both go. Returns whether it existed and was
