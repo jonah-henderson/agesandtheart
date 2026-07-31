@@ -1,0 +1,13 @@
+{
+  "_comment": [
+    "Dyeing is data in 26.1: `crafting_dye` takes a target, a dye and a result, so a book tints exactly",
+    "the way leather armour does with no code from us. The cover colour lives in minecraft:dyed_color."
+  ],
+  "type": "minecraft:crafting_dye",
+  "category": "misc",
+  "target": "agesandtheart:descriptive_book",
+  "dye": "#c:dyes",
+  "result": {
+    "id": "agesandtheart:descriptive_book"
+  }
+}

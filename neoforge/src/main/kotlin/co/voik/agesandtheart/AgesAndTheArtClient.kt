@@ -1,6 +1,8 @@
 package co.voik.agesandtheart
 
+import co.voik.agesandtheart.client.BookEntityRenderer
 import co.voik.agesandtheart.client.ClientDeskNetwork
+import net.neoforged.neoforge.client.event.EntityRenderersEvent
 import co.voik.agesandtheart.client.DeskModel
 import co.voik.agesandtheart.client.KnownWords
 import co.voik.agesandtheart.client.WritersDeskScreen
@@ -42,6 +44,7 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
         NeoForge.EVENT_BUS.addListener(::onLoggingOut)
         eventBus.addListener(::onRegisterScreens)
         eventBus.addListener(::onRegisterFluidModels)
+        eventBus.addListener(::onRegisterRenderers)
         ClientDeskNetwork.sender = { payload -> ClientPacketDistributor.sendToServer(payload) }
     }
 
@@ -53,6 +56,10 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
      * What ink looks like in the world: water's textures, tinted per ink. Without it a pool draws as the
      * missing texture, since 26.1 renders fluids from a model rather than from a handler.
      */
+    private fun onRegisterRenderers(event: EntityRenderersEvent.RegisterRenderers) {
+        event.registerEntityRenderer(AgeContent.BOOK_ENTITY, ::BookEntityRenderer)
+    }
+
     private fun onRegisterFluidModels(event: RegisterFluidModelsEvent) {
         for ((tier, identity) in AgeFluids.INKS) {
             val model = FluidModel.Unbaked(

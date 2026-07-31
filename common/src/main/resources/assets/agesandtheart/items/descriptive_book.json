@@ -1,6 +1,10 @@
 {
+  "_comment": "Two layers: a cover tinted by the dye component, and untitled detail over it.",
   "model": {
     "type": "minecraft:model",
-    "model": "agesandtheart:item/descriptive_book"
+    "model": "agesandtheart:item/descriptive_book",
+    "tints": [
+      { "type": "minecraft:dye", "default": -8170446 }
+    ]
   }
 }

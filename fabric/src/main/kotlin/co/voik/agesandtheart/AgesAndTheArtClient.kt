@@ -2,7 +2,9 @@ package co.voik.agesandtheart
 
 import co.voik.agesandtheart.age.word.LearnedWordsPayload
 import co.voik.agesandtheart.age.word.LexiconPayload
+import co.voik.agesandtheart.client.BookEntityRenderer
 import co.voik.agesandtheart.client.ClientDeskNetwork
+import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry
 import co.voik.agesandtheart.client.DeskModel
 import co.voik.agesandtheart.client.KnownWords
 import co.voik.agesandtheart.client.WritersDeskScreen
@@ -34,6 +36,7 @@ fun initClient() {
         Constants.LOG.debug("Learned {} Age skies", payload.skies.size)
     }
     co.voik.agesandtheart.platform.FabricInkRendering.register()
+    EntityRendererRegistry.register(AgeContent.BOOK_ENTITY, ::BookEntityRenderer)
     MenuScreens.register(AgeContent.WRITERS_DESK_MENU, ::WritersDeskScreen)
     ClientDeskNetwork.sender = { payload -> ClientPlayNetworking.send(payload) }
     ClientPlayNetworking.registerGlobalReceiver(DeskSyncPayload.TYPE) { payload, _ ->

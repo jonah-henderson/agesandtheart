@@ -7,6 +7,8 @@ import co.voik.agesandtheart.age.word.LexiconPayload
 import co.voik.agesandtheart.age.word.PageLearning
 import co.voik.agesandtheart.age.word.PageLoot
 import co.voik.agesandtheart.age.word.InkTier
+import co.voik.agesandtheart.book.LinkRequest
+import co.voik.agesandtheart.book.Linking
 import co.voik.agesandtheart.desk.WritersDeskBlock
 import co.voik.agesandtheart.platform.FabricInkTank
 import net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorage
@@ -38,6 +40,7 @@ fun init() {
     AgeContent.components.forEach { (id, comp) -> Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, id, comp) }
     AgeContent.blocks.forEach { (id, block) -> Registry.register(BuiltInRegistries.BLOCK, id, block) }
     AgeContent.items.forEach { (id, item) -> Registry.register(BuiltInRegistries.ITEM, id, item) }
+    AgeContent.entities.forEach { (id, type) -> Registry.register(BuiltInRegistries.ENTITY_TYPE, id, type) }
     AgeContent.blockEntities.forEach { (id, type) -> Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, id, type) }
     AgeContent.menus.forEach { (id, type) -> Registry.register(BuiltInRegistries.MENU, id, type) }
     AgeContent.chunkGeneratorCodecs.forEach { (id, codec) -> Registry.register(BuiltInRegistries.CHUNK_GENERATOR, id, codec) }
@@ -54,6 +57,11 @@ fun init() {
     PayloadTypeRegistry.clientboundPlay().register(DeskSyncPayload.TYPE, DeskSyncPayload.STREAM_CODEC)
     PayloadTypeRegistry.clientboundPlay().register(DeskPricePayload.TYPE, DeskPricePayload.STREAM_CODEC)
     PayloadTypeRegistry.serverboundPlay().register(DeskCommandPayload.TYPE, DeskCommandPayload.STREAM_CODEC)
+    PayloadTypeRegistry.serverboundPlay().register(LinkRequest.TYPE, LinkRequest.STREAM_CODEC)
+
+    ServerPlayNetworking.registerGlobalReceiver(LinkRequest.TYPE) { payload, context ->
+        context.server().execute { Linking.handle(context.player(), payload) }
+    }
 
     // The desk's instructions arrive here; every one of them is re-checked server-side.
     ServerPlayNetworking.registerGlobalReceiver(DeskCommandPayload.TYPE) { payload, context ->

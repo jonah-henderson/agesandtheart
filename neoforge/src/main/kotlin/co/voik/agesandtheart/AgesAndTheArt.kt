@@ -7,6 +7,8 @@ import co.voik.agesandtheart.age.word.PageLearning
 import co.voik.agesandtheart.client.KnownWords
 import co.voik.agesandtheart.desk.DeskCommandPayload
 import co.voik.agesandtheart.desk.DeskCommands
+import co.voik.agesandtheart.book.LinkRequest
+import co.voik.agesandtheart.book.Linking
 import co.voik.agesandtheart.desk.DeskPricePayload
 import co.voik.agesandtheart.desk.DeskSyncPayload
 import co.voik.agesandtheart.content.AgeContent
@@ -67,6 +69,9 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         event.register(Registries.ITEM) { helper ->
             AgeContent.items.forEach { (id, item) -> helper.register(id, item) }
         }
+        event.register(Registries.ENTITY_TYPE) { helper ->
+            AgeContent.entities.forEach { (id, type) -> helper.register(id, type) }
+        }
         event.register(Registries.BLOCK_ENTITY_TYPE) { helper ->
             AgeContent.blockEntities.forEach { (id, type) -> helper.register(id, type) }
         }
@@ -122,6 +127,11 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         registrar.playToServer(DeskCommandPayload.TYPE, DeskCommandPayload.STREAM_CODEC) { payload, context ->
             (context.player() as? net.minecraft.server.level.ServerPlayer)?.let {
                 DeskCommands.handle(it, payload)
+            }
+        }
+        registrar.playToServer(LinkRequest.TYPE, LinkRequest.STREAM_CODEC) { payload, context ->
+            (context.player() as? net.minecraft.server.level.ServerPlayer)?.let {
+                Linking.handle(it, payload)
             }
         }
     }

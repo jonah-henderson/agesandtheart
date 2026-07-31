@@ -2,6 +2,7 @@ package co.voik.agesandtheart.content
 
 import co.voik.agesandtheart.age.word.FillNotebookFunction
 import co.voik.agesandtheart.age.word.PageWordFunction
+import co.voik.agesandtheart.book.BookEntity
 import co.voik.agesandtheart.desk.WritersDeskBlock
 import co.voik.agesandtheart.desk.WritersDeskBlockEntity
 import co.voik.agesandtheart.desk.WritersDeskMenu
@@ -22,6 +23,8 @@ import net.minecraft.world.inventory.ContainerLevelAccess
 import net.minecraft.world.inventory.MenuType
 import net.minecraft.resources.Identifier
 import net.minecraft.resources.ResourceKey
+import net.minecraft.world.entity.EntityType
+import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.Items
@@ -141,6 +144,21 @@ object AgeContent {
     /** Built here but registered per loader, like everything else in this object. */
     val WRITERS_DESK_ENTITY: BlockEntityType<WritersDeskBlockEntity> =
         BlockEntityType({ pos, state -> WritersDeskBlockEntity(pos, state) }, setOf(WRITERS_DESK_BLOCK))
+
+    /** Where a linked-from book comes to rest. See [co.voik.agesandtheart.book.BookEntity]. */
+    val BOOK_ENTITY: EntityType<BookEntity> = EntityType.Builder
+        .of({ type, level -> BookEntity(type, level) }, MobCategory.MISC)
+        .sized(BOOK_ENTITY_WIDTH, BOOK_ENTITY_HEIGHT)
+        .clientTrackingRange(BOOK_TRACKING_CHUNKS)
+        .build(ResourceKey.create(Registries.ENTITY_TYPE, "descriptive_book".location()))
+
+    private const val BOOK_ENTITY_WIDTH = 0.4f
+    private const val BOOK_ENTITY_HEIGHT = 0.15f
+    private const val BOOK_TRACKING_CHUNKS = 8
+
+    val entities: List<Pair<Identifier, EntityType<*>>> = listOf(
+        "descriptive_book".location() to BOOK_ENTITY,
+    )
 
     val blocks: List<Pair<Identifier, Block>> = listOf(
         WRITERS_DESK_ID to WRITERS_DESK_BLOCK,

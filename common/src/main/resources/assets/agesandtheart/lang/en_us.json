@@ -86,5 +86,11 @@
   "tag.item.c.papers": "Papers",
   "tag.fluid.c.ink": "Ink",
   "container.agesandtheart.writers_desk.in": "In",
-  "container.agesandtheart.writers_desk.bind_slot": "Bind"
+  "container.agesandtheart.writers_desk.bind_slot": "Bind",
+  "item.agesandtheart.descriptive_book.named": "%s",
+  "book.agesandtheart.link": "Touch the panel",
+  "book.agesandtheart.linked": "Linked to %s",
+  "book.agesandtheart.unsupported": "Ages aren't supported on this loader yet",
+  "book.agesandtheart.failed": "The Age would not open",
+  "entity.agesandtheart.descriptive_book": "Descriptive Book"
 }

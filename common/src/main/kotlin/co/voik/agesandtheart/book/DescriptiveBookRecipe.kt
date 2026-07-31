@@ -1,0 +1,32 @@
+package co.voik.agesandtheart.book
+
+import co.voik.agesandtheart.age.AgePreset
+import co.voik.agesandtheart.age.AgeRecipe
+import co.voik.agesandtheart.age.word.Resolver
+import co.voik.agesandtheart.age.word.Vocabulary
+import co.voik.agesandtheart.age.word.grammar.Grammar
+import co.voik.agesandtheart.content.AgeContent
+import net.minecraft.resources.Identifier
+import net.minecraft.server.MinecraftServer
+import net.minecraft.world.item.ItemStack
+
+/** Turning a book's pages back into the Age they describe. */
+object DescriptiveBookRecipe {
+    /**
+     * The Age this book describes.
+     *
+     * Page order is word order, so the stored list *is* the sentence — it goes through the same grammar
+     * and resolver a written `/age` command does, which is what makes a desk-bound book and a typed
+     * command the same act.
+     */
+    fun of(stack: ItemStack, server: MinecraftServer, ageId: Identifier): AgeRecipe {
+        val words = stack.get(AgeContent.BOOK_WORDS).orEmpty()
+        if (words.isEmpty()) return AgeRecipe.of(AgePreset.SPIRE, ageId)
+        val vocabulary = Vocabulary.of(server)
+        val spoken = words.map { it.path }
+        val read = Grammar.read(vocabulary, spoken)
+        if (read.isEmpty) return AgeRecipe.of(AgePreset.SPIRE, ageId)
+        val seed = AgeRecipe.seedFor(ageId)
+        return AgeRecipe.written(server, Resolver.resolve(vocabulary, read, seed), seed)
+    }
+}

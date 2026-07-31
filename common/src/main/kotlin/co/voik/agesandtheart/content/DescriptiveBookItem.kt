@@ -1,16 +1,12 @@
 package co.voik.agesandtheart.content
 
-import co.voik.agesandtheart.age.AgePreset
-import co.voik.agesandtheart.age.AgeRecipe
-import co.voik.agesandtheart.age.Ages
-import co.voik.agesandtheart.age.word.Resolver
-import co.voik.agesandtheart.age.word.Vocabulary
-import co.voik.agesandtheart.age.word.grammar.Grammar
-import net.minecraft.resources.Identifier
-import net.minecraft.server.MinecraftServer
+import co.voik.agesandtheart.age.word.WordNames
+import co.voik.agesandtheart.client.BookScreenOpener
+import net.minecraft.ChatFormatting
+import net.minecraft.world.item.TooltipFlag
+import net.minecraft.world.item.component.TooltipDisplay
+import java.util.function.Consumer
 import net.minecraft.network.chat.Component
-import net.minecraft.server.level.ServerLevel
-import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.player.Player
@@ -29,51 +25,43 @@ import net.minecraft.world.level.Level
 class DescriptiveBookItem(properties: Properties) : Item(properties) {
 
     /**
-     * The Age this book describes.
+     * A book is called by the Age it describes.
      *
-     * Page order is word order, so the stored list *is* the sentence — it goes through the same grammar
-     * and resolver a written `/age` command does, which is what makes a desk-bound book and a typed
-     * command the same act.
+     * Overridden rather than set as a component when the book is bound, so renaming an Age later renames
+     * every book of it — and so an anvil rename still wins, since a custom name takes priority over this.
      */
-    private fun recipeFor(stack: ItemStack, server: MinecraftServer, ageId: Identifier): AgeRecipe {
-        val words = stack.get(AgeContent.BOOK_WORDS).orEmpty()
-        if (words.isEmpty()) return AgeRecipe.of(AgePreset.SPIRE, ageId)
-        val vocabulary = Vocabulary.of(server)
-        val spoken = words.map { it.path }
-        val read = Grammar.read(vocabulary, spoken)
-        if (read.isEmpty) return AgeRecipe.of(AgePreset.SPIRE, ageId)
-        val seed = AgeRecipe.seedFor(ageId)
-        return AgeRecipe.written(server, Resolver.resolve(vocabulary, read, seed), seed)
+    override fun getName(itemStack: ItemStack): Component {
+        val title = itemStack.get(AgeContent.BOOK_TITLE) ?: return super.getName(itemStack)
+        return Component.translatable("item.agesandtheart.descriptive_book.named", title)
     }
+
+    override fun appendHoverText(
+        stack: ItemStack,
+        context: TooltipContext,
+        display: TooltipDisplay,
+        builder: Consumer<Component>,
+        flag: TooltipFlag,
+    ) {
+        val words = stack.get(AgeContent.BOOK_WORDS).orEmpty()
+        if (words.isEmpty()) return
+        // The sentence itself, so a shelf of books is readable without opening any of them.
+        builder.accept(
+            Component.literal(words.joinToString(" ") { WordNames.readable(it).string })
+                .withStyle(ChatFormatting.DARK_GRAY),
+        )
+    }
+
+    /**
+     * Opens the book rather than linking outright.
+     *
+     * Linking is now a click on the panel inside (see [co.voik.agesandtheart.book.Linking]) — it spends
+     * the book and can strand you, so it should not be one misclick away from a hotbar slot.
+     */
     override fun use(level: Level, player: Player, hand: InteractionHand): InteractionResult {
         val stack = player.getItemInHand(hand)
-        // Run the real logic only on the server; the client just predicts the arm swing.
-        if (level !is ServerLevel || player !is ServerPlayer) {
-            return InteractionResult.SUCCESS
-        }
-        val server = level.server
-
-        if (!Ages.isSupported()) {
-            player.sendSystemMessage(Component.literal("Ages aren't supported on this loader yet."), true)
-            return InteractionResult.FAIL
-        }
-
-        val existingAgeId = stack.get(AgeContent.AGE_ID)
-        val ageId = existingAgeId ?: Ages.allocateId(server).also { stack.set(AgeContent.AGE_ID, it) }
-        val isFirstWrite = existingAgeId == null
-
-        // A book bound at the desk carries its sentence; one from creative or a command has none and
-        // still gets the old fixed world, so `/give` keeps working as a debug route.
-        val age = Ages.ensure(server, ageId, recipeFor(stack, server, ageId))
-        if (age == null) {
-            player.sendSystemMessage(Component.literal("Could not open the Age."), true)
-            return InteractionResult.FAIL
-        }
-
-        Ages.teleport(player, age)
-        val verb = if (isFirstWrite) "Wrote and entered" else "Linked to"
-        val called = stack.get(AgeContent.BOOK_TITLE) ?: ageId.path
-        player.sendSystemMessage(Component.literal("$verb Age '$called'"), true)
+        // Guarded so the screen class is never loaded on a dedicated server.
+        if (level.isClientSide) BookScreenOpener.open(stack, hand)
         return InteractionResult.SUCCESS
     }
+
 }

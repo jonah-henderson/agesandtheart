@@ -1,0 +1,12 @@
+{
+  "_comment": [
+    "Vanilla lecterns gate placement on this tag (LecternBlock.useItemOn), so one file is the whole of",
+    "lectern support -- a Descriptive Book can be set down on any lectern in the world.",
+    "Note vanilla lecterns have no open/closed state and always draw an open book; the podium that gets",
+    "that right is later work (design 7.8)."
+  ],
+  "replace": false,
+  "values": [
+    "agesandtheart:descriptive_book"
+  ]
+}
