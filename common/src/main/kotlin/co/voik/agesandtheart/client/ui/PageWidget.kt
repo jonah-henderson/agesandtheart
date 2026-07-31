@@ -14,13 +14,17 @@ import net.minecraft.network.chat.Component
  *
  * The script is scaled to fit rather than drawn at a fixed size. Word lengths run from three glyphs to
  * fifteen, and a fixed scale either overflows the long ones or wastes the cell on the short ones.
+ *
+ * A null script leaves the parchment blank, which is what the page reads as while the script is switched
+ * off — the slot's gutter is carrying the meaning either way.
  */
-class PageWidget(private val script: Component) {
+class PageWidget(private val script: Component?) {
 
     fun draw(graphics: GuiGraphicsExtractor, at: Rect, dimmed: Boolean = false) {
         ParchmentSurface.draw(graphics, at)
+        val writing = script ?: return
         val font = Minecraft.getInstance().font
-        val ordered = script.visualOrderText
+        val ordered = writing.visualOrderText
         val drawn = font.width(ordered).toFloat()
         if (drawn <= 0f) return
 

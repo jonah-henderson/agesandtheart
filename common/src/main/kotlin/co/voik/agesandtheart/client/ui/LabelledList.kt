@@ -63,12 +63,15 @@ class LabelledList<T : Any>(
     minecraft: Minecraft,
     bounds: Rect,
     private val onSelect: (T) -> Unit,
-) : ObjectSelectionList<LabelledRow<T>>(minecraft, bounds.width, bounds.height, bounds.y, ROW_HEIGHT) {
+) : ObjectSelectionList<LabelledRow<T>>(minecraft, bounds.width, bounds.height, bounds.y, ROW_HEIGHT), Resized {
 
     init {
         centerListVertically = false
         updateSizeAndPosition(bounds.width, bounds.height, bounds.x, bounds.y)
     }
+
+    /** Entries are positioned when the list is, so a layout moving it has to say so. */
+    override fun onResized(bounds: Rect) = place(bounds)
 
     /**
      * Replaces the contents, keeping the selection where [key] still identifies a row.

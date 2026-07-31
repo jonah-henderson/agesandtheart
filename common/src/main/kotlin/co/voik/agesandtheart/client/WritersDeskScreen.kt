@@ -9,6 +9,7 @@ import co.voik.agesandtheart.client.ui.CountedItem
 import co.voik.agesandtheart.client.ui.DecoratedBox
 import co.voik.agesandtheart.client.ui.DecorationWidget
 import co.voik.agesandtheart.client.ui.Edge
+import co.voik.agesandtheart.client.ui.FlexColumn
 import co.voik.agesandtheart.client.ui.GhostItem
 import co.voik.agesandtheart.client.ui.Insets
 import co.voik.agesandtheart.client.ui.LabelledList
@@ -73,6 +74,8 @@ class WritersDeskScreen(
     private lateinit var ageName: EditBox
     private lateinit var paperButtons: List<Button>
     private lateinit var bindButton: Button
+    private lateinit var columns: Map<DeskTab, FlexColumn>
+    private lateinit var bindingRow: LinearLayout
 
     /**
      * Widgets only some tabs show, each with the rule that decides.
@@ -202,10 +205,8 @@ class WritersDeskScreen(
     private fun binds(tab: DeskTab) = tab == DeskTab.WRITE_BOOK
 
     private fun addControls(keptFilter: String) {
-        search = EditBox(
-            font, layout.search.x, layout.search.y, layout.search.width, layout.search.height,
-            Component.empty(),
-        )
+        // Sizes only — where any of this goes is the columns' business, below.
+        search = EditBox(font, 0, 0, 0, LINE, Component.empty())
         search.setHint(translated("search"))
         search.value = keptFilter
         search.setResponder {
@@ -215,16 +216,18 @@ class WritersDeskScreen(
         addShownOn(search, ::lists)
 
         wordList = addShownOn(
-            LabelledList(Minecraft.getInstance(), layout.wordList(tab), ::chooseWord), ::lists,
+            LabelledList(Minecraft.getInstance(), Rect(0, 0, 0, 0), ::chooseWord), ::lists,
         )
 
         composition = addShownOn(
             BookWritingWorkSurface(
-                layout.workSurface,
+                Rect(0, 0, 0, 0),
                 columns = DeskLayout.SURFACE_COLUMNS,
                 cellHeight = DeskLayout.CELL_HEIGHT,
                 gutterHeight = DeskLayout.GUTTER_HEIGHT,
-                script = { KnownWords.scriptText(it) },
+                // The script is off for this pass; the gutter carries the meaning. Putting it back is
+                // restoring `KnownWords.scriptText(it)` here and nothing else.
+                script = { null },
                 translation = { WordNames.readable(it).string },
                 onReorder = { from, onto -> send(DeskAction.MOVE_IN_BOOK, index = from, target = onto) },
                 onRemove = { index -> send(DeskAction.RETURN_TO_ARCHIVE, index = index) },
@@ -233,20 +236,16 @@ class WritersDeskScreen(
             ::binds,
         )
 
-        paperButtons = InkTier.entries.mapIndexed { index, paper ->
-            val at = layout.paperButton(index)
+        paperButtons = InkTier.entries.map { paper ->
             val button = Button.builder(Component.literal(paperGlyph(paper))) {
                 val into =
                     if (tab == DeskTab.WRITE_BOOK) DeskAction.WRITE_TO_BOOK else DeskAction.WRITE_TO_ARCHIVE
                 selectedWord?.let { send(into, word = it, paper = paper) }
-            }.bounds(at.x, at.y, at.width, at.height).build()
+            }.bounds(0, 0, PAPER_BUTTON_WIDTH, LINE + 2).build()
             addShownOn(button, ::writes)
         }
 
-        ageName = EditBox(
-            font, layout.nameBox.x, layout.nameBox.y, layout.nameBox.width, layout.nameBox.height,
-            Component.empty(),
-        )
+        ageName = EditBox(font, 0, 0, NAME_WIDTH, LINE, Component.empty())
         ageName.setHint(translated("name"))
         ageName.setMaxLength(DeskCommandPayload.MAX_TITLE)
         addShownOn(ageName, ::binds)
@@ -254,12 +253,58 @@ class WritersDeskScreen(
         bindButton = addShownOn(
             Button.builder(translated("bind")) {
                 send(DeskAction.FINALISE, title = ageName.value)
-            }.bounds(
-                layout.bindButton.x, layout.bindButton.y, layout.bindButton.width, layout.bindButton.height,
-            ).build(),
+            }.bounds(0, 0, BIND_WIDTH, LINE).build(),
             ::binds,
         )
+
+        columns = DeskTab.entries.associateWith(::columnFor)
+        bindingRow = LinearLayout.horizontal().spacing(GAP).apply {
+            addChild(ageName)
+            addChild(bindButton)
+        }
     }
+
+    /**
+     * How a tab stacks, and the only statement of it.
+     *
+     * No position appears here — a column is told its room and which child stretches, and works the rest
+     * out. Which is why the same four widgets can sit at four different heights without anyone writing down
+     * where any of them stops.
+     */
+    private fun columnFor(entry: DeskTab): FlexColumn {
+        val room = layout.content(entry)
+        val column = FlexColumn(room.width, room.height)
+        when (entry) {
+            DeskTab.ARCHIVE -> {
+                column.add(search, height = LINE)
+                column.gap(GAP)
+                column.fill(wordList)
+            }
+            DeskTab.WRITE_PAGE -> {
+                column.add(search, height = LINE)
+                column.gap(GAP)
+                column.fill(wordList)
+                column.gap(GAP)
+                column.add(paperRow())
+                column.gap(LINE) // the ink price under each button, drawn rather than a widget
+            }
+            DeskTab.WRITE_BOOK -> {
+                column.add(search, height = LINE)
+                column.gap(GAP)
+                // Short, because the surface is what this tab is for.
+                column.add(wordList, height = BOOK_WORD_LIST_HEIGHT)
+                column.gap(GAP)
+                column.gap(LINE) // the "n / limit" header, drawn rather than a widget
+                column.fill(composition)
+            }
+            DeskTab.SUPPLIES -> Unit
+        }
+        column.setPosition(room.x, room.y)
+        return column
+    }
+
+    private fun paperRow(): LinearLayout =
+        LinearLayout.horizontal().spacing(GAP).apply { paperButtons.forEach(::addChild) }
 
     private fun surface(decoration: co.voik.agesandtheart.client.ui.Decoration, at: Rect): AbstractWidget =
         DecorationWidget(decoration).also {
@@ -267,11 +312,22 @@ class WritersDeskScreen(
             it.setSize(at.width, at.height)
         }
 
-    /** Applies every registered rule, so nothing can be shown by having been forgotten. */
+    /**
+     * Applies every registered rule, so nothing can be shown by having been forgotten, then lets this
+     * tab's column place what it shows.
+     *
+     * Arranging rather than rebuilding: the widgets are shared between tabs and only their arrangement
+     * differs, and rebuilding would mutate the widget list that the dispatching click is iterating.
+     */
     private fun showTab() {
         inventoryLabelY = layout.inventoryLabelY(tab)
         perTab.forEach { (widget, showsOn) -> widget.visible = showsOn(tab) }
-        if (wordList.visible) wordList.place(layout.wordList(tab))
+        columns[tab]?.arrangeElements()
+        if (tab == DeskTab.WRITE_BOOK) {
+            val row = layout.bindingRow()
+            bindingRow.arrangeElements()
+            bindingRow.setPosition(row.x, row.y)
+        }
 
         refreshWords(force = true)
         refreshComposition(force = true)
@@ -358,23 +414,31 @@ class WritersDeskScreen(
         if (tab == DeskTab.WRITE_BOOK) extractCompositionHeader(graphics)
     }
 
-    /** What each paper choice would cost in ink, under its button and red when it is out of reach. */
+    /**
+     * What each paper choice would cost in ink, under its button and red when it is out of reach.
+     *
+     * Read off the button rather than placed: the column decided where the row went, so asking it is the
+     * only way this cannot drift.
+     */
     private fun extractPrices(graphics: GuiGraphicsExtractor) {
         val word = selectedWord ?: return
         InkTier.entries.forEachIndexed { index, paper ->
             val price = DeskModel.priceFor(word, paper) ?: return@forEachIndexed
-            val at = layout.priceLabel(index)
+            val button = paperButtons[index]
             val colour = if (DeskModel.ink(price.first) >= price.second) Palette.TEXT else Palette.WARNING
-            graphics.text(font, inkGlyph(price.first), at.x, at.y, colour, false)
+            graphics.text(
+                font, inkGlyph(price.first),
+                button.x, button.y + button.height + PRICE_DROP, colour, false,
+            )
         }
     }
 
+    /** Sits in the line the column left above the work surface for it. */
     private fun extractCompositionHeader(graphics: GuiGraphicsExtractor) {
         val written = DeskModel.composing().size
         val limit = DeskModel.pageLimit()
         val header = if (limit == null) "$written" else "$written / $limit"
-        val at = layout.compositionHeader
-        graphics.text(font, header, at.x, at.y, Palette.FAINT, false)
+        graphics.text(font, header, composition.x, composition.y - LINE, Palette.FAINT, false)
     }
 
     /** Exactly what the tank holds, since a gauge can only ever say roughly. */
@@ -430,6 +494,16 @@ class WritersDeskScreen(
          * else shows what it allows rather than always promising leather.
          */
         val BINDINGS = listOf(ItemStack(Items.LEATHER))
+
+        const val LINE = 12
+        const val GAP = 4
+        const val PAPER_BUTTON_WIDTH = 30
+        const val NAME_WIDTH = 60
+        const val BIND_WIDTH = 30
+        const val PRICE_DROP = 4
+
+        /** Three rows: enough to pick from with the search box doing the finding. */
+        const val BOOK_WORD_LIST_HEIGHT = 36
 
         // The wing's contents. Its padding is asymmetric because the border eats the left edge and not the
         // open right, and because the gauges want more room above them than the stocks want below.

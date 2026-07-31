@@ -28,7 +28,8 @@ class BookWritingWorkSurface<T : Any>(
     private val columns: Int,
     private val cellHeight: Int,
     private val gutterHeight: Int,
-    private val script: (T) -> Component,
+    /** Null leaves the page blank, which is what it reads as while the script is switched off. */
+    private val script: (T) -> Component?,
     private val translation: (T) -> String,
     private val onReorder: (from: Int, to: Int) -> Unit,
     private val onRemove: (index: Int) -> Unit,
@@ -37,7 +38,9 @@ class BookWritingWorkSurface<T : Any>(
 ) : AbstractScrollArea(
     bounds.x, bounds.y, bounds.width, bounds.height,
     Component.empty(), defaultSettings(SCROLL_RATE),
-) {
+), Resized {
+
+    override fun onResized(bounds: Rect) = place(bounds)
 
     private var pages: List<T> = emptyList()
     private var carrying: Int? = null
