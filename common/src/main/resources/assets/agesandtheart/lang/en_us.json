@@ -92,5 +92,10 @@
   "book.agesandtheart.linked": "Linked to %s",
   "book.agesandtheart.unsupported": "Ages aren't supported on this loader yet",
   "book.agesandtheart.failed": "The Age would not open",
-  "entity.agesandtheart.descriptive_book": "Descriptive Book"
+  "entity.agesandtheart.descriptive_book": "Descriptive Book",
+  "item.agesandtheart.linking_book": "Linking Book",
+  "item.agesandtheart.linking_book.bound": "%s Linking Book",
+  "item.agesandtheart.linking_book.blank": "Blank — use it to write where you stand",
+  "book.agesandtheart.bound": "This book now leads to %s",
+  "book.agesandtheart.no_destination": "That place cannot be reached"
 }

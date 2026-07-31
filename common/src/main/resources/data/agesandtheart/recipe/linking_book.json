@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "Leather, paper, a quill and ink. Subject to revision -- the ink bottle ties it to the ink economy,",
+    "which is probably right, but the ratio has had no balancing thought yet.",
+    "The result is blank; writing it in is using it, which costs nothing but the place you stand."
+  ],
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "group": "agesandtheart_books",
+  "ingredients": [
+    "minecraft:leather",
+    "minecraft:paper",
+    "minecraft:feather",
+    "agesandtheart:ink_bottle"
+  ],
+  "result": {
+    "id": "agesandtheart:linking_book",
+    "count": 1
+  }
+}

@@ -3,6 +3,7 @@ package co.voik.agesandtheart.content
 import co.voik.agesandtheart.age.word.FillNotebookFunction
 import co.voik.agesandtheart.age.word.PageWordFunction
 import co.voik.agesandtheart.book.BookEntity
+import co.voik.agesandtheart.book.LinkTarget
 import co.voik.agesandtheart.desk.WritersDeskBlock
 import co.voik.agesandtheart.desk.WritersDeskBlockEntity
 import co.voik.agesandtheart.desk.WritersDeskMenu
@@ -107,6 +108,21 @@ object AgeContent {
 
     val MASTERWORK_PAPER: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, MASTERWORK_PAPER_ID)))
 
+    /** Where a Linking Book goes. Absent means blank — see [LinkingBookItem]. */
+    val LINK_TARGET: DataComponentType<LinkTarget> = DataComponentType.builder<LinkTarget>()
+        .persistent(LinkTarget.CODEC)
+        .networkSynchronized(LinkTarget.STREAM_CODEC)
+        .build()
+
+    private val LINKING_BOOK_ID: Identifier = "linking_book".location()
+
+    /** Unstackable: each one is a different door, even before it is written in. */
+    val LINKING_BOOK: Item = LinkingBookItem(
+        Item.Properties()
+            .setId(ResourceKey.create(Registries.ITEM, LINKING_BOOK_ID))
+            .stacksTo(1),
+    )
+
     private val INK_BOTTLE_ID: Identifier = "ink_bottle".location()
 
     /**
@@ -194,6 +210,7 @@ object AgeContent {
         "page_word".location() to PAGE_WORD,
         "book_words".location() to BOOK_WORDS,
         "book_title".location() to BOOK_TITLE,
+        "link_target".location() to LINK_TARGET,
     )
 
     val items: List<Pair<Identifier, Item>> = listOf(
@@ -201,6 +218,7 @@ object AgeContent {
         PAGE_ID to PAGE,
         NOTEBOOK_ID to NOTEBOOK,
         WRITERS_DESK_ID to WRITERS_DESK,
+        LINKING_BOOK_ID to LINKING_BOOK,
         INK_BOTTLE_ID to INK_BOTTLE,
         FINE_PAPER_ID to FINE_PAPER,
         MASTERWORK_PAPER_ID to MASTERWORK_PAPER,
