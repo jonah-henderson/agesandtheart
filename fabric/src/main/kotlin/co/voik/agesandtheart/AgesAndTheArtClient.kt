@@ -1,5 +1,15 @@
 package co.voik.agesandtheart
 
+import co.voik.agesandtheart.age.word.LearnedWordsPayload
+import co.voik.agesandtheart.age.word.LexiconPayload
+import co.voik.agesandtheart.client.ClientDeskNetwork
+import co.voik.agesandtheart.client.DeskModel
+import co.voik.agesandtheart.client.KnownWords
+import co.voik.agesandtheart.client.WritersDeskScreen
+import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.desk.DeskPricePayload
+import co.voik.agesandtheart.desk.DeskSyncPayload
+import net.minecraft.client.gui.screens.MenuScreens
 import co.voik.agesandtheart.sky.KnownSkies
 import co.voik.agesandtheart.sky.SkyPayload
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents
@@ -23,6 +33,27 @@ fun initClient() {
         KnownSkies.remember(payload)
         Constants.LOG.debug("Learned {} Age skies", payload.skies.size)
     }
+    co.voik.agesandtheart.platform.FabricInkRendering.register()
+    MenuScreens.register(AgeContent.WRITERS_DESK_MENU, ::WritersDeskScreen)
+    ClientDeskNetwork.sender = { payload -> ClientPlayNetworking.send(payload) }
+    ClientPlayNetworking.registerGlobalReceiver(DeskSyncPayload.TYPE) { payload, _ ->
+        DeskModel.remember(payload)
+    }
+    ClientPlayNetworking.registerGlobalReceiver(DeskPricePayload.TYPE) { payload, _ ->
+        DeskModel.remember(payload)
+    }
+
+    ClientPlayNetworking.registerGlobalReceiver(LexiconPayload.TYPE) { payload, _ ->
+        KnownWords.remember(payload)
+    }
+    ClientPlayNetworking.registerGlobalReceiver(LearnedWordsPayload.TYPE) { payload, _ ->
+        KnownWords.remember(payload)
+    }
+
     // These keys mean nothing on the next server, and an Age id can be reused.
-    ClientPlayConnectionEvents.DISCONNECT.register { _, _ -> KnownSkies.forgetAll() }
+    ClientPlayConnectionEvents.DISCONNECT.register { _, _ ->
+        KnownSkies.forgetAll()
+        KnownWords.forgetAll()
+        DeskModel.forget()
+    }
 }

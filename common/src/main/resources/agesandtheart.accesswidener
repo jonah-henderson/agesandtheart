@@ -37,3 +37,19 @@ accessible	class	net/minecraft/world/level/levelgen/SurfaceRules$SurfaceRule
 # Beware: the decompiled sources DROP the `final` from the class declaration. Only `javap` and the compiler
 # tell the truth about modifiers here.
 extendable	class	net/minecraft/world/level/levelgen/NoiseBasedChunkGenerator
+
+# So a BlockEntityType can be built in `common` (co.voik.agesandtheart.content.AgeContent).
+#
+# 26.1 made the constructor private and deleted `BlockEntityType.Builder`, leaving vanilla's own
+# construct-and-register-in-one-expression as the only sanctioned route. Each loader offers a substitute —
+# Fabric's `FabricBlockEntityTypeBuilder`, NeoForge's registry helpers — but taking those would push
+# construction into both loader modules and need a service to hand the type back to common, which is a lot
+# of machinery to avoid one line.
+#
+# Safe because registration still happens during mod init, before the registry freezes: the intrusive
+# holder the constructor creates is bound by `Registry.register` exactly as vanilla's is.
+accessible	method	net/minecraft/world/level/block/entity/BlockEntityType	<init>	(Lnet/minecraft/world/level/block/entity/BlockEntityType$BlockEntitySupplier;Ljava/util/Set;)V
+
+# So a MenuType can be built in `common`, for the same reason as BlockEntityType above — 26.1 keeps the
+# constructor private and offers only vanilla's private `register`.
+accessible	method	net/minecraft/world/inventory/MenuType	<init>	(Lnet/minecraft/world/inventory/MenuType$MenuSupplier;Lnet/minecraft/world/flag/FeatureFlagSet;)V

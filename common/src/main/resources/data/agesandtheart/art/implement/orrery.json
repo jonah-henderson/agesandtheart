@@ -1,0 +1,5 @@
+{
+  "_comment": "Furniture. Counts toward the tier.",
+  "blocks": ["minecraft:end_rod", "minecraft:amethyst_cluster"],
+  "grants": []
+}

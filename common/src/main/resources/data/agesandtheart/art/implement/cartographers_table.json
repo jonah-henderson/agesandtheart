@@ -1,0 +1,5 @@
+{
+  "_comment": "Furniture: grants no named capability, but counts toward the desk's tier. Most implements should be like this -- the room matters as a room.",
+  "blocks": ["minecraft:cartography_table"],
+  "grants": []
+}

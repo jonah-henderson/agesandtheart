@@ -1,5 +1,20 @@
 package co.voik.agesandtheart
 
+import co.voik.agesandtheart.client.ClientDeskNetwork
+import co.voik.agesandtheart.client.DeskModel
+import co.voik.agesandtheart.client.KnownWords
+import co.voik.agesandtheart.client.WritersDeskScreen
+import co.voik.agesandtheart.content.AgeContent
+import net.minecraft.client.gui.screens.MenuScreens
+import co.voik.agesandtheart.content.AgeFluids
+import co.voik.agesandtheart.platform.NeoForgeInkFluids
+import net.minecraft.client.color.block.BlockTintSource
+import net.minecraft.client.renderer.block.FluidModel
+import net.minecraft.client.resources.model.sprite.Material
+import net.minecraft.resources.Identifier
+import net.neoforged.neoforge.client.event.RegisterFluidModelsEvent
+import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent
+import net.neoforged.neoforge.client.network.ClientPacketDistributor
 import co.voik.agesandtheart.sky.KnownSkies
 import net.neoforged.api.distmarker.Dist
 import net.neoforged.bus.api.IEventBus
@@ -19,15 +34,40 @@ import net.neoforged.neoforge.common.NeoForge
  * **The Spire is still Fabric-only**, NeoForge being unable to open an Age at all while Fantasy is.
  */
 @Mod(value = Constants.MOD_ID, dist = [Dist.CLIENT])
-class AgesAndTheArtClient(@Suppress("UNUSED_PARAMETER") eventBus: IEventBus) {
+class AgesAndTheArtClient(eventBus: IEventBus) {
     init {
         Constants.LOG.info("Ages client init (NeoForge)")
         // Forgetting the cache is a game-bus concern: these dimension keys mean nothing on the next server,
         // and an Age id can be reused, so one world's sky could otherwise appear in another's.
         NeoForge.EVENT_BUS.addListener(::onLoggingOut)
+        eventBus.addListener(::onRegisterScreens)
+        eventBus.addListener(::onRegisterFluidModels)
+        ClientDeskNetwork.sender = { payload -> ClientPacketDistributor.sendToServer(payload) }
+    }
+
+    private fun onRegisterScreens(event: RegisterMenuScreensEvent) {
+        event.register(AgeContent.WRITERS_DESK_MENU, ::WritersDeskScreen)
+    }
+
+    /**
+     * What ink looks like in the world: water's textures, tinted per ink. Without it a pool draws as the
+     * missing texture, since 26.1 renders fluids from a model rather than from a handler.
+     */
+    private fun onRegisterFluidModels(event: RegisterFluidModelsEvent) {
+        for ((tier, identity) in AgeFluids.INKS) {
+            val model = FluidModel.Unbaked(
+                Material(Identifier.withDefaultNamespace("block/water_still")),
+                Material(Identifier.withDefaultNamespace("block/water_flow")),
+                null,
+                BlockTintSource { identity.tint },
+            )
+            event.register(model, NeoForgeInkFluids.still(tier), NeoForgeInkFluids.flowing(tier))
+        }
     }
 
     private fun onLoggingOut(event: ClientPlayerNetworkEvent.LoggingOut) {
         KnownSkies.forgetAll()
+        KnownWords.forgetAll()
+        DeskModel.forget()
     }
 }

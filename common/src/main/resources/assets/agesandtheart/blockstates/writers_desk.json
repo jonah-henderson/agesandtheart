@@ -1,0 +1,43 @@
+{
+  "variants": {
+    "facing=north,part=centre": {
+      "model": "minecraft:block/lectern"
+    },
+    "facing=north,part=left": {
+      "model": "minecraft:block/bookshelf"
+    },
+    "facing=north,part=right": {
+      "model": "minecraft:block/bookshelf"
+    },
+    "facing=east,part=centre": {
+      "model": "minecraft:block/lectern",
+      "y": 90
+    },
+    "facing=east,part=left": {
+      "model": "minecraft:block/bookshelf"
+    },
+    "facing=east,part=right": {
+      "model": "minecraft:block/bookshelf"
+    },
+    "facing=south,part=centre": {
+      "model": "minecraft:block/lectern",
+      "y": 180
+    },
+    "facing=south,part=left": {
+      "model": "minecraft:block/bookshelf"
+    },
+    "facing=south,part=right": {
+      "model": "minecraft:block/bookshelf"
+    },
+    "facing=west,part=centre": {
+      "model": "minecraft:block/lectern",
+      "y": 270
+    },
+    "facing=west,part=left": {
+      "model": "minecraft:block/bookshelf"
+    },
+    "facing=west,part=right": {
+      "model": "minecraft:block/bookshelf"
+    }
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "_comment": "The D'ni grammar guide -- adds the inferable particles so a row of words reads as a sentence.",
+  "tag": "minecraft:bookshelves",
+  "grants": ["readable_grammar"]
+}

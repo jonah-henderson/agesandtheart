@@ -3,6 +3,11 @@ package co.voik.agesandtheart.content
 import co.voik.agesandtheart.age.AgePreset
 import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.Ages
+import co.voik.agesandtheart.age.word.Resolver
+import co.voik.agesandtheart.age.word.Vocabulary
+import co.voik.agesandtheart.age.word.grammar.Grammar
+import net.minecraft.resources.Identifier
+import net.minecraft.server.MinecraftServer
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
@@ -22,6 +27,24 @@ import net.minecraft.world.level.Level
  * the same book always links back to its own.
  */
 class DescriptiveBookItem(properties: Properties) : Item(properties) {
+
+    /**
+     * The Age this book describes.
+     *
+     * Page order is word order, so the stored list *is* the sentence — it goes through the same grammar
+     * and resolver a written `/age` command does, which is what makes a desk-bound book and a typed
+     * command the same act.
+     */
+    private fun recipeFor(stack: ItemStack, server: MinecraftServer, ageId: Identifier): AgeRecipe {
+        val words = stack.get(AgeContent.BOOK_WORDS).orEmpty()
+        if (words.isEmpty()) return AgeRecipe.of(AgePreset.SPIRE, ageId)
+        val vocabulary = Vocabulary.of(server)
+        val spoken = words.map { it.path }
+        val read = Grammar.read(vocabulary, spoken)
+        if (read.isEmpty) return AgeRecipe.of(AgePreset.SPIRE, ageId)
+        val seed = AgeRecipe.seedFor(ageId)
+        return AgeRecipe.written(server, Resolver.resolve(vocabulary, read, seed), seed)
+    }
     override fun use(level: Level, player: Player, hand: InteractionHand): InteractionResult {
         val stack = player.getItemInHand(hand)
         // Run the real logic only on the server; the client just predicts the arm swing.
@@ -39,9 +62,9 @@ class DescriptiveBookItem(properties: Properties) : Item(properties) {
         val ageId = existingAgeId ?: Ages.allocateId(server).also { stack.set(AgeContent.AGE_ID, it) }
         val isFirstWrite = existingAgeId == null
 
-        // Every book writes the same world for now. This is where the words a player wrote will be
-        // resolved into a recipe, and it is the whole point of the Art: see notes/the-art-design.md.
-        val age = Ages.ensure(server, ageId, AgeRecipe.of(AgePreset.SPIRE, ageId))
+        // A book bound at the desk carries its sentence; one from creative or a command has none and
+        // still gets the old fixed world, so `/give` keeps working as a debug route.
+        val age = Ages.ensure(server, ageId, recipeFor(stack, server, ageId))
         if (age == null) {
             player.sendSystemMessage(Component.literal("Could not open the Age."), true)
             return InteractionResult.FAIL
@@ -49,7 +72,8 @@ class DescriptiveBookItem(properties: Properties) : Item(properties) {
 
         Ages.teleport(player, age)
         val verb = if (isFirstWrite) "Wrote and entered" else "Linked to"
-        player.sendSystemMessage(Component.literal("$verb Age '${ageId.path}'"), true)
+        val called = stack.get(AgeContent.BOOK_TITLE) ?: ageId.path
+        player.sendSystemMessage(Component.literal("$verb Age '$called'"), true)
         return InteractionResult.SUCCESS
     }
 }

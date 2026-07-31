@@ -1,0 +1,5 @@
+{
+  "_comment": "Reveals contradictions before the ink is spent. Enchanting tables read as arcane instruments; a pack may point this at its own device instead.",
+  "blocks": ["minecraft:enchanting_table"],
+  "grants": ["reveal_conflicts"]
+}

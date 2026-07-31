@@ -1,0 +1,14 @@
+{
+  "_comment": [
+    "How furnishing the study pays off. `implements` is how many DISTINCT implements must stand within",
+    "`radius` of the desk to reach that rung; `pages` is the book length it allows, absent meaning no",
+    "limit. Thresholds are counts on purpose and never 'all' -- if the top rung meant every implement in",
+    "existence, installing a mod that adds one would silently demote a finished desk."
+  ],
+  "radius": 5,
+  "tiers": [
+    { "implements": 0, "pages": 5 },
+    { "implements": 3, "pages": 20 },
+    { "implements": 6 }
+  ]
+}

@@ -4,10 +4,7 @@ import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.AspectPreset
 import co.voik.agesandtheart.age.word.grammar.GrammarWord
-import com.google.gson.JsonElement
-import com.google.gson.JsonParser
 import com.mojang.serialization.Codec
-import com.mojang.serialization.JsonOps
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.RegistryAccess
 import net.minecraft.resources.Identifier
@@ -73,6 +70,14 @@ data class Vocabulary(
     private val structural: Map<String, GrammarWord>,
     private val tagsBySlot: Map<Aspect, PresetTags>,
     val antonyms: List<Antonym>,
+    /** The script words are written in. Optional content — see [Script]. */
+    val script: Script,
+    /** How likely each word is to be found on a page. Nothing about resolution reads this. */
+    val rarity: WordRarity,
+    /** Which ink each word demands. The first reader of the resolver's cost number (design 7.1.1). */
+    val ink: InkRequirement,
+    /** Which words came from registry content rather than from a `art/word/` file. See [isDerived]. */
+    private val derivedIds: Set<Identifier>,
     /** What could not be read, in the words a content author needs to hear. Empty in a healthy pack. */
     val problems: List<String>,
 ) {
@@ -81,6 +86,21 @@ data class Vocabulary(
 
     /** The word a writer means by [name], or null if the corpus has never heard of it. */
     fun word(name: String): Word? = byName[name]
+
+    /**
+     * Whether this word was read off a block, biome or structure rather than authored (§8.1).
+     *
+     * What it buys is proportion: derived words outnumber authored ones by better than twenty to one, so
+     * anything drawing a word uniformly draws content vocabulary essentially always. [WordRarity] treats
+     * the whole derived corpus as one weighted entry because of this.
+     */
+    fun isDerived(word: Word): Boolean = word.id in derivedIds
+
+    /** The words a pack authored, which are the ones worth naming individually in a rarity bucket. */
+    val authoredWords: List<Word> get() = words.filterNot(::isDerived)
+
+    /** The words read off content — one anonymous mass, deliberately. */
+    val derivedWords: List<Word> get() = words.filter(::isDerived)
 
     /** Every structural word the Art knows, for `/age words` and for the grammar check. */
     val grammarWords: List<GrammarWord> get() = structural.values.sortedBy { it.name }
@@ -180,10 +200,17 @@ data class Vocabulary(
             // corpus read without a server has §8's material half and neither population. Absent rather
             // than wrong, which is what lets `VocabularyCheck` stay offline.
             val fromRegistries = registries?.let { DerivedWords.biomes(it) + DerivedWords.structures(it) }.orEmpty()
-            val words = derived(DerivedWords.materials() + fromRegistries) + authored
+            val fromContent = DerivedWords.materials() + fromRegistries
+            val words = derived(fromContent) + authored
             val structural = readGrammarWords(resources, problems)
+            val script = Script.load(resources, problems)
+            val rarity = WordRarity.load(resources, problems)
+            val ink = InkRequirement.load(resources, problems)
             for (problem in problems) Constants.LOG.error("Art vocabulary: {}", problem)
-            return Vocabulary(words, structural, tags, antonyms, problems)
+            // Authored wins every collision above, so a derived id that an authored word displaced is not
+            // in `words` and must not be counted derived.
+            val derivedIds = fromContent.map { it.id }.toSet() - authored.values.map { it.id }.toSet()
+            return Vocabulary(words, structural, tags, antonyms, script, rarity, ink, derivedIds, problems)
         }
 
         /**
@@ -291,26 +318,11 @@ data class Vocabulary(
                 file.path.removePrefix("$directory/").removeSuffix(JSON_SUFFIX),
             )
 
-        /**
-         * One file through one codec, or null having said why. Failures are collected rather than thrown:
-         * one malformed word must not cost a writer the rest, and a corpus that quietly lost a word is
-         * exactly what §3.3 forbids.
-         */
         private fun <T> parse(
             resource: Resource,
             file: Identifier,
             codec: Codec<T>,
             problems: MutableList<String>,
-        ): T? {
-            val json: JsonElement = try {
-                resource.openAsReader().use(JsonParser::parseReader)
-            } catch (failure: Exception) {
-                problems += "$file could not be read: ${failure.message}"
-                return null
-            }
-            return codec.parse(JsonOps.INSTANCE, json)
-                .resultOrPartial { error -> problems += "$file could not be understood: $error" }
-                .orElse(null)
-        }
+        ): T? = ResourceParsing.parse(resource, file, codec, problems)
     }
 }
