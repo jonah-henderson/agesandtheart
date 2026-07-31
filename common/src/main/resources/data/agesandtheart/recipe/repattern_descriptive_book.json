@@ -1,0 +1,8 @@
+{
+  "_comment": [
+    "Re-marking an already-marked book. Vanilla's shield decoration refuses a target that already carries",
+    "patterns, so it covers the blank book and this covers the rest -- and this one hands the old pattern",
+    "back as the banner it came from, which a data-driven recipe has no way to express."
+  ],
+  "type": "agesandtheart:repattern_descriptive_book"
+}

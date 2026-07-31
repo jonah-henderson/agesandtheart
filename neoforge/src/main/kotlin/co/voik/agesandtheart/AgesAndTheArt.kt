@@ -79,6 +79,9 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         event.register(Registries.MENU) { helper ->
             AgeContent.menus.forEach { (id, type) -> helper.register(id, type) }
         }
+        event.register(Registries.RECIPE_SERIALIZER) { helper ->
+            AgeContent.recipeSerializers.forEach { (id, serializer) -> helper.register(id, serializer) }
+        }
         event.register(Registries.CHUNK_GENERATOR) { helper ->
             AgeContent.chunkGeneratorCodecs.forEach { (id, codec) -> helper.register(id, codec) }
         }

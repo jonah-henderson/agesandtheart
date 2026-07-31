@@ -44,6 +44,9 @@ fun init() {
     AgeContent.entities.forEach { (id, type) -> Registry.register(BuiltInRegistries.ENTITY_TYPE, id, type) }
     AgeContent.blockEntities.forEach { (id, type) -> Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, id, type) }
     AgeContent.menus.forEach { (id, type) -> Registry.register(BuiltInRegistries.MENU, id, type) }
+    AgeContent.recipeSerializers.forEach { (id, serializer) ->
+        Registry.register(BuiltInRegistries.RECIPE_SERIALIZER, id, serializer)
+    }
     AgeContent.chunkGeneratorCodecs.forEach { (id, codec) -> Registry.register(BuiltInRegistries.CHUNK_GENERATOR, id, codec) }
     AgeContent.biomeSourceCodecs.forEach { (id, codec) -> Registry.register(BuiltInRegistries.BIOME_SOURCE, id, codec) }
     AgeContent.surfaceRuleCodecs.forEach { (id, codec) -> Registry.register(BuiltInRegistries.MATERIAL_RULE, id, codec) }

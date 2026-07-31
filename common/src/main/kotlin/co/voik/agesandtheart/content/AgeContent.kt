@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.word.PageWordFunction
 import co.voik.agesandtheart.book.BindLinkingBookFunction
 import co.voik.agesandtheart.book.BookEntity
 import co.voik.agesandtheart.book.LinkTarget
+import co.voik.agesandtheart.book.RepatternBookRecipe
 import co.voik.agesandtheart.desk.WritersDeskBlock
 import co.voik.agesandtheart.desk.WritersDeskBlockEntity
 import co.voik.agesandtheart.desk.WritersDeskMenu
@@ -32,6 +33,7 @@ import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
+import net.minecraft.world.item.crafting.RecipeSerializer
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.SoundType
 import net.minecraft.world.level.block.entity.BlockEntityType
@@ -239,6 +241,9 @@ object AgeContent {
     val menus: List<Pair<Identifier, MenuType<*>>> = listOf(
         WRITERS_DESK_ID to WRITERS_DESK_MENU,
     )
+
+    val recipeSerializers: List<Pair<Identifier, RecipeSerializer<*>>> =
+        listOf("repattern_descriptive_book".location() to RepatternBookRecipe.SERIALIZER)
 
     val components: List<Pair<Identifier, DataComponentType<*>>> = listOf(
         "age_id".location() to AGE_ID,
