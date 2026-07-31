@@ -35,6 +35,9 @@ class WritersDeskMenu(
     private val access: ContainerLevelAccess,
 ) : AbstractContainerMenu(AgeContent.WRITERS_DESK_MENU, containerId) {
 
+    /** Whoever has this open. Taken from the inventory, so it is never unset. */
+    private val owner: Player = playerInventory.player
+
     /** Anything the desk understands, routed by [DeskIntake] the moment it lands. */
     private val intake: Container = SimpleContainer(1)
 
@@ -61,30 +64,37 @@ class WritersDeskMenu(
         }
     }
 
-    /** Swallows whatever was put in the intake slot, then hands back what the desk declined. */
-    fun drainIntake(player: ServerPlayer) {
-        val desk = deskOf(player) ?: return
+    /** @return whether anything was taken, so the caller only re-syncs when there is news. */
+    fun drainIntake(player: ServerPlayer): Boolean {
+        val desk = deskOf(player) ?: return false
         val offered = intake.getItem(0)
-        if (offered.isEmpty) return
+        if (offered.isEmpty) return false
         val result = DeskIntake.offer(desk, offered)
-        if (!result.took) return
+        if (!result.took) return false
         intake.setItem(0, result.remainder)
         if (!result.returned.isEmpty && !player.inventory.add(result.returned)) {
             player.drop(result.returned, false)
         }
+        return true
     }
 
-    /** Anything landing in the intake slot is swallowed at once — the slot is a doorway, not storage. */
-    override fun slotsChanged(container: Container) {
-        super.slotsChanged(container)
-        if (container !== intake) return
-        val player = holder ?: return
-        drainIntake(player)
-        deskOf(player)?.let { DeskCommands.sync(player, this, it) }
+    /**
+     * Anything in the intake slot is swallowed here.
+     *
+     * **Not `slotsChanged`**, which never fires for this: `SimpleContainer.setChanged()` is empty, and a
+     * menu only hears about a container it was explicitly wired into — vanilla's crafting container holds
+     * its menu and calls `slotsChanged` by hand. `broadcastChanges` runs every tick for the open menu, so
+     * the doorway empties within a tick of something landing in it.
+     */
+    override fun broadcastChanges() {
+        val player = owner as? ServerPlayer
+        if (player != null && !intake.getItem(0).isEmpty) {
+            if (drainIntake(player)) {
+                deskOf(player)?.let { DeskCommands.sync(player, this, it) }
+            }
+        }
+        super.broadcastChanges()
     }
-
-    /** Whoever has this open, for the paths that need to hand something back. */
-    var holder: ServerPlayer? = null
 
     override fun quickMoveStack(player: Player, index: Int): ItemStack {
         val slot = slots.getOrNull(index) ?: return ItemStack.EMPTY

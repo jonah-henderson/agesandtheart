@@ -47,7 +47,6 @@ object DeskCommands {
     /** Called once the screen is up, so it has something to draw before the player touches anything. */
     fun opened(player: ServerPlayer) {
         val menu = player.containerMenu as? WritersDeskMenu ?: return
-        menu.holder = player
         val desk = menu.deskOf(player) ?: return
         sync(player, menu, desk)
     }

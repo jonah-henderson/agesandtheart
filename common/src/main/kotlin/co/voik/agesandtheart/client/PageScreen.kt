@@ -29,13 +29,27 @@ class PageScreen(private val word: Identifier) : Screen(titleFor(word)) {
         val middle = width / 2
         // Drawn at the origin and moved by the transform: `centeredText` centres on the coordinate it is
         // given, and a scaled coordinate would put the glyphs somewhere else entirely.
+        val script = KnownWords.scriptText(word)
         graphics.pose().pushMatrix()
         graphics.pose().translate(middle.toFloat(), (top + SCRIPT_BASELINE).toFloat())
-        graphics.pose().scale(SCRIPT_SCALE, SCRIPT_SCALE)
-        centeredNoShadow(graphics, KnownWords.scriptText(word), 0, 0, INK)
+        graphics.pose().scale(scriptScale(script), scriptScale(script))
+        centeredNoShadow(graphics, script, 0, 0, INK)
         graphics.pose().popMatrix()
 
         centeredNoShadow(graphics, WordNames.readable(word), middle, top + NAME_BASELINE, FAINT_INK)
+    }
+
+    /**
+     * Big, but never wider than the page.
+     *
+     * A fixed multiplier is fine until a long word arrives — `floating` already ran off both edges at
+     * three times. This takes the largest scale that still fits the writing area, so the glyphs are as
+     * large as they can be rather than as large as the shortest word allowed.
+     */
+    private fun scriptScale(text: Component): Float {
+        val drawn = font.width(text.visualOrderText).toFloat()
+        if (drawn <= 0f) return MAX_SCRIPT_SCALE
+        return kotlin.math.min(MAX_SCRIPT_SCALE, (PAGE_WIDTH - WRITING_MARGIN) / drawn)
     }
 
     /**
@@ -58,7 +72,11 @@ class PageScreen(private val word: Identifier) : Screen(titleFor(word)) {
         private const val PAGE_HEIGHT = 180
         private const val SCRIPT_BASELINE = 70
         private const val NAME_BASELINE = 128
-        private const val SCRIPT_SCALE = 3.0f
+        /** As large as a short word may go; longer ones shrink to fit. */
+        private const val MAX_SCRIPT_SCALE = 2.5f
+
+        /** Clear space either side of the script, so it never touches the border. */
+        private const val WRITING_MARGIN = 24f
 
         private val PARCHMENT = 0xFFE9DFC3.toInt()
         private val EDGE = 0xFF8B7B55.toInt()
