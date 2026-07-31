@@ -100,5 +100,9 @@
   "screen.agesandtheart.page": "\"%s\" Page",
   "toast.agesandtheart.words_learned": "Words Learned",
   "item.agesandtheart.notebook.empty": "Empty",
-  "item.agesandtheart.notebook.count": "%s pages"
+  "item.agesandtheart.notebook.count": "%s pages",
+  "container.agesandtheart.writers_desk.ink": "%s: %s / %s buckets",
+  "container.agesandtheart.writers_desk.ink.common": "Ink",
+  "container.agesandtheart.writers_desk.ink.fine": "Fine Ink",
+  "container.agesandtheart.writers_desk.ink.masterwork": "D'ni Ink"
 }

@@ -160,14 +160,16 @@ class WritersDeskMenu(
     fun knows(player: ServerPlayer, word: Identifier): Boolean = player.learnedWords.knows(word)
 
     companion object {
-        private const val INTAKE_X = 8
-        private const val INTAKE_Y = 140
-        private const val BINDING_X = 30
-        private const val BINDING_Y = 140
+        // Large-chest geometry throughout: the player's half is pixel-identical to a double chest, and
+        // our two slots sit in the bottom right of the panel above it.
+        private const val INTAKE_X = 133
+        private const val INTAKE_Y = 111
+        private const val BINDING_X = 151
+        private const val BINDING_Y = 111
 
-        private const val INVENTORY_X = 48
-        private const val INVENTORY_Y = 174
-        private const val HOTBAR_Y = 232
+        private const val INVENTORY_X = 8
+        private const val INVENTORY_Y = 139
+        private const val HOTBAR_Y = 197
 
         /** Our two slots come first, so everything from here is the player's. */
         private const val FIRST_PLAYER_SLOT = 2
