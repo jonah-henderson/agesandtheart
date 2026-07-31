@@ -23,20 +23,27 @@ correct itself in place. Rewrite the paragraph that is now wrong.
   idea was tried and collapsed.
 - **`notes/generator-versions.md`** — what moved at each `CURRENT_GENERATOR_VERSION` bump, and which Ages
   it moved. Read it when bumping the stamp, and add a row.
-- **`notes/per-age-skies-research.md`** — verified 1.21.1 reference for the sky renderer: the render-state
-  traps and what a per-Age sky cannot change. Read §3 before touching the renderer.
+- **`notes/per-age-skies-research.md`** — the sky renderer's reference: render-state traps and what a
+  per-Age sky cannot change. Read §3 before touching the renderer. **Its API details were verified against
+  the 1.21.1 jar** and the renderer was rebuilt for 26.1 during the upgrade — so trust its *conclusions*
+  about what a sky can and cannot do, and re-check any signature it quotes.
+- **`notes/version-upgrade.md`** — the 1.21.1 → 26.1.2 move: the dependency matrix, what the build chain
+  cost, and the two 26.1 subsystems (retained-mode GUI, model-based fluids) that changed what is worth
+  building. Read it before assuming any pre-upgrade note still holds.
+- **`notes/ui-libraries-research.md`** — why the screens are vanilla widgets and not a UI framework, and
+  the component layer that decision implies. Read it before proposing a library or hand-drawing a screen.
 
 ## What this is
 
-**Ages and the Art** — a Minecraft mod (Mystcraft-inspired: author dimensional "Ages" from written Symbol pages, link between them) for **Minecraft 1.21.1**, built as a **multiloader** mod running on both **Fabric** and **NeoForge** from one codebase. Mod id `agesandtheart`, root package `co.voik.agesandtheart`.
+**Ages and the Art** — a Minecraft mod (Mystcraft-inspired: author dimensional "Ages" from written Symbol pages, link between them) for **Minecraft 26.1.2**, built as a **multiloader** mod running on both **Fabric** and **NeoForge** from one codebase. Mod id `agesandtheart`, root package `co.voik.agesandtheart`.
 
-Current state: a working **runtime-dimension spike** exists (see "Ages / runtime dimensions" below) — `/age create|tp|list` authors a persistent dimension that survives restart. It's **command-driven and Fabric-only** for now; the player-facing books, the symbol grammar, and a NeoForge backend are still to come. The rest is template scaffolding (a demo title-screen Mixin, hello-world logging).
+Current state: Phases 1–4.5 are done and Phase 5 (the playable slice) is in progress. The Art's language, grammar, resolver and terrain system are built and checked; `/age write` authors an Age from a sentence. Phase 5 has added word pages, the notebook, the writer's desk with its screen, descriptive and linking books, and the book entity. **Runtime dimensions are still Fabric-only** — `NeoForgeAgeBackend` is an `isSupported = false` stub, so `/age create` reports "not supported yet" rather than crashing.
 
-The version is pinned to 1.21.1. **That pin's original cause is gone** — it was Fantasy, which has since kept pace with Minecraft all the way to 26.2 — so what holds us here now is *our own* code: the sky renderer is a verified 1.21.1 reference, and `AgeChunkGenerator`'s access-widener/transformer lines, the surface rules and the structure-placement codecs are all version-shaped. Upgrading is a piece of work with the sky renderer as its acceptance test, not a version bump. See `notes/ui-libraries-research.md`.
+**26.1 is the first unobfuscated Minecraft release**, which is why there is no Parchment in the catalog: 1.21.11 was the last obfuscated one and there is nothing left to deobfuscate. Mappings-related advice written for the 1.21 line does not transfer.
 
 ## Requirements
 
-Java 21 (Temurin, via SDKMAN). Gradle comes from the wrapper — always use `./gradlew`, never a system Gradle.
+Java 25 (Temurin, via SDKMAN). Gradle comes from the wrapper — always use `./gradlew`, never a system Gradle. Note that the Java level is real: Dokka 1.x cannot parse a "25.x" version string and fails before reading a line of source, which is why the catalog pins Dokka 2.
 
 **Non-interactive shell gotcha:** SDKMAN's init lives in `~/.bashrc` and may not be sourced in non-login shells, so `java` can be missing from `PATH`. Before running Gradle, ensure Java is available, e.g.:
 ```bash
@@ -46,7 +53,7 @@ export JAVA_HOME="$HOME/.sdkman/candidates/java/current"; export PATH="$JAVA_HOM
 ## Commands
 
 ```bash
-# Build + remap both loaders (produces */build/libs/agesandtheart-<loader>-1.21.1-<version>.jar)
+# Build + remap both loaders (produces */build/libs/agesandtheart-<loader>-26.1.2-<version>.jar)
 ./gradlew build
 
 # Launch the game in a dev sandbox (requires a graphical display)
@@ -102,7 +109,7 @@ hour off the timestamp, so `at-least 100` could never pass and `at-most 2000` co
 
 Run directories are `runs/` (Fabric) and `run/` (NeoForge), both git-ignored. The first build/run downloads Minecraft, mappings, and the loader toolchains — slow once, then cached.
 
-**Tests:** `:common:test` is the whole offline suite — **Kotest**, one task, ~135 tests in about 16 seconds.
+**Tests:** `:common:test` is the whole offline suite — **Kotest**, one task, ~180 tests in about 45 seconds from cold.
 
 ```bash
 ./gradlew :common:test                    # everything
@@ -147,8 +154,13 @@ To add a new platform-divergent capability: add a method to `PlatformHelper`, im
 - NeoForge: `@Mod("agesandtheart")` on the class in `neoforge/.../AgesAndTheArt.kt`; its constructor runs (Kotlin for Forge provides the Kotlin entry).
 Both immediately call `CommonSetup.init()`. Keep loader entrypoints tiny; put logic in `common`.
 
-**4. No Mixins currently — add them Java-side only when needed.**
-The mod has **no Mixins** right now; everything goes through Fabric API hooks + the `ServiceLoader` split, so the template's demo mixins were removed. **One is planned and already justified** — the Fabric side of an Age's selective spawn policy, because the natural-versus-player-directed distinction exists only as `MobSpawnType` at the spawn call site and no Fabric API event carries it (every module was checked). See the implementation plan, Phase 4.5. Do not treat that as licence: the rule below stands, and that exception earned its place by enumerating the alternatives and solving two thirds of the problem without one. If you genuinely must patch a vanilla class: Mixins are written in **Java** (Kotlin isn't viable), one `*.mixins.json` config per module referenced from each loader's metadata (`fabric.mod.json`, `neoforge.mods.toml`). On **Loom 1.13** the mixin annotation processor / refmap is off by default — do **not** re-add a `loom { mixin { … } }` block. Always prefer a loader event/API over a Mixin when one exists.
+**4. Three Mixins, all in `common`, all Java.**
+`common/src/main/resources/agesandtheart.mixins.json` declares them, and each earned its place by there being no loader event that carries what it needs:
+
+- **`ServerPlayerMixin`** (common) — the learned-word set. Four injectors: `readAdditionalSaveData` / `addAdditionalSaveData` persist it, `restoreFrom` carries it through death, and `initMenu` attaches the `ContainerListener` that notices a page arriving in the inventory. That last one is vanilla's own `inventory_changed` seam, which is why it beats polling.
+- **`client/CloudRendererMixin`**, **`client/SkyRendererMixin`** — per-Age skies. Declared under the config's `"client"` array, not `"mixins"`.
+
+**Always prefer a loader event or vanilla API over a Mixin when one exists**, and say in the commit which alternatives were checked. Mixins are written in **Java** (Kotlin isn't viable). On **Loom 1.17** the mixin annotation processor / refmap is off by default and 26.1 is unobfuscated anyway — do **not** re-add a `loom { mixin { … } }` block.
 
 ## Ages / runtime dimensions
 
@@ -187,8 +199,15 @@ Reload trigger is loader-specific: Fabric's `SERVER_STARTED` event calls `Ages.r
 ## Conventions
 
 - **Versions live in `libs.versions.toml`** (Gradle version catalog) — the single source of truth. Change dependency/loader versions there, not in module build files.
-- **Bundling a third-party library is a solved problem — copy the ANTLR wiring rather than inventing one.** It is the mod's only bundled dependency and the pattern is in the build files with the reasoning attached. In short: Fabric needs `implementation` + `include` (Loom synthesises a `fabric.mod.json` for the nested jar itself); NeoForge needs the dependency **three times** — `implementation`, `jarJar` with a **version range** (never a pin, or jar-in-jar cannot pick one copy when two mods bundle it), and `additionalRuntimeClasspath`, because on 1.21.1 it will not otherwise load in a run. **Prefer a library with no dependencies of its own.** A Kotlin library is the hard case: KFF supplies the stdlib as a *mod*, which lives in NeoForge's game module layer where an ordinary library cannot see it, so `kotlin.Pair` goes missing at runtime and `FMLModType` does not rescue it.
+- **Bundling a third-party library is a solved problem — copy the ANTLR wiring rather than inventing one.** It is the mod's only bundled dependency and the pattern is in the build files with the reasoning attached. In short: Fabric needs `implementation` + `include` (Loom synthesises a `fabric.mod.json` for the nested jar itself); NeoForge needs it **twice** — `implementation`, and `jarJar` with a **version range** (never a pin, or jar-in-jar cannot pick one copy when two mods bundle it). The third declaration this used to need, `additionalRuntimeClasspath`, was a 1.21.1 workaround and is gone: NeoForge fixed nested-artifact loading in 1.21.9. **Prefer a library with no dependencies of its own.** A Kotlin library is the hard case: KFF supplies the stdlib as a *mod*, which lives in NeoForge's game module layer where an ordinary library cannot see it, so `kotlin.Pair` goes missing at runtime and `FMLModType` does not rescue it.
 - **Widening vanilla access takes two files, both in `common`.** `common/src/main/resources/agesandtheart.accesswidener` (Fabric/Loom) and `common/src/main/resources/META-INF/accesstransformer.cfg` (NeoForge/MDG) must be kept in step — `common` itself compiles against the **AT**, so that is the one that decides whether shared code even builds. Prefer composing vanilla's public API; widen only with a comment saying what it buys. Note `javap` misreports nested-type visibility (the real modifier lives in the outer class's `InnerClasses` attribute) and **decompiled sources drop `final` from class declarations** — trust the compiler, not the sources.
+- **Screens are composed from `client/ui/`, never hand-drawn.** The model is Flutter-shaped and deliberately thin over vanilla:
+  - **Vanilla owns arrangement.** `GridLayout`, `LinearLayout`, `FrameLayout` and `LayoutSettings` (which already carries padding *and* alignment) do the positioning. Do not write a layout engine — the one place ours was needed, standalone padding on a decorated box, is `Insets`.
+  - **We own decoration**, the one concept vanilla's GUI lacks. A `Decoration` draws into a rectangle (`PanelSurface`, `SlotSurface`, `ColourSurface`); `DecorationWidget` makes one renderable; `DecoratedBox` is a `Layout` that puts one behind a child. It visits its surface **before** its child, so `visitWidgets(::addRenderableWidget)` stacks them correctly with no separate background pass.
+  - **A thing brings its own appearance.** `SlotView` is a slot *and* its recess, because an empty slot's recess is not decoration applied to a slot — it is what one looks like. Don't re-split these.
+  - **Add widgets back-to-front in one list.** Render order is insertion order; there should be no second drawing hook to keep in step. Decorative widgets return `isMouseOver = false` so they never shadow a click meant for what they sit behind.
+  - **Never state a position twice.** A rectangle used for drawing and re-derived for hit-testing is the defect this layer exists to prevent, and it caused every bug the desk screen shipped. Slot positions live in `desk/DeskSlots.kt` because the menu needs them too and cannot see client code. Prefer deriving a size (the wing's 46×124 falls out of its contents) over declaring it.
+  - Two traps, both already paid for: `AbstractContainerWidget` routes clicks and scrolls straight to its children **without consulting its own `visible` flag**, so a hidden list still answers them unless the guards in `LabelledList` are copied; and switching tabs must toggle `visible` rather than rebuild widgets, because a rebuild mutates the widget list that the dispatching click is iterating.
 - **Mod identity lives in `gradle.properties`** (`modId`, `modName`, `group`, `version`, `license`, etc.). Metadata files (`fabric.mod.json`, `neoforge.mods.toml`, `pack.mcmeta`, `*.mixins.json`) are **templated**: their `${...}` placeholders are filled at build time by `processResources` (see `buildSrc/.../multiloader-common.gradle`). Edit identity/versions in `gradle.properties` + the catalog, not by hand in the manifests.
 - Shared build logic is in `buildSrc/` convention plugins (`multiloader-common`, `multiloader-loader`); per-module `build.gradle.kts` files stay small.
 - Use `Constants.LOG` (SLF4J) for logging and `Constants.MOD_ID` as the namespace. `Util.kt` provides `String.location()` to build `agesandtheart:<path>` `ResourceLocation`s.
