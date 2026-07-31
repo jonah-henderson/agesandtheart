@@ -26,23 +26,20 @@
 #   age compose bareB 777 landform=eroded medium=sea dressing=bare_rock
 #   age compare bareA bareB 2
 #
-# EXPECTATIONS. A line beginning `#?` is a claim about the output of the next command, and turns this
-# from a thing you read into a thing that passes or fails. What a check file used to record in prose —
-# "MEASURED 2026-07-27: 248,734 blocks" — can be written as one of these instead:
+# IT ASSERTS NOTHING, AND THAT IS THE POINT. This drives a server and prints what it says; whether an
+# answer is right is `./gradlew :common:serverTest`'s business, where a Kotest failure carries a real
+# diagnostic instead of "nothing matched /at-least 10000/".
 #
-#   #? expect    <extended regex>       the command's output must contain a line matching this
-#   #? reject    <extended regex>       it must not
-#   #? at-least  <number> <regex>       the first number on the matching line is >= number
-#   #? at-most   <number> <regex>       ...is <= number
+# It used to carry an assertion layer of its own — `#? expect`, `#? at-least` and friends. That layer read
+# the *first integer on the matching line*, which on every line a real server writes is the hour off the
+# timestamp: `at-least 100` could never pass and `at-most 2000` could never fail. Its own self-check could
+# not see it, having written fixture lines with no timestamps. The layer is gone; `#?` lines are skipped so
+# an old file still drives.
 #
-# Several may stack on one command; all must hold. `at-least`/`at-most` read the first integer on the
-# matching line, commas and all, so `248,734 block(s) differ` reads as 248734.
-#
-#   #? at-least 100000 block\(s\) differ
-#   age compare riddledonly riddledsolid 6
-#
-# They are evaluated after the server stops, against the log, and a failure makes this script exit 1.
-# A file with no expectations behaves exactly as it always did: it drives, and you read the output.
+# So what remains here is the exploratory half: files that are meant to be *read* — `aspects.txt`,
+# `regions.txt`, `generator-parity.txt`. Anything that should pass or fail belongs in a spec beside
+# `common/src/test/kotlin/.../server/`, which drives a server over RCON and gets each command's output back
+# on its own rather than sliced out of a shared log.
 set -euo pipefail
 
 readonly REPOSITORY=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
@@ -90,9 +87,8 @@ parse_arguments() {
 
 # Commands are read up front, because this script's own stdin becomes the server's once it starts.
 #
-# `#?` lines are gathered as they are passed and attached to the command that follows, so an expectation
-# reads above the command it is about — the same place the prose it replaces already sat. Every other
-# comment is stripped as before.
+# `#?` lines are skipped, so a file written for the old assertion layer still drives; comments and blank
+# lines go the same way.
 read_commands() {
     local source=${1:-/dev/stdin}
     if [[ -z ${1:-} ]]; then
@@ -102,24 +98,18 @@ read_commands() {
     fi
 
     commands=()
-    expectations=()
-    local pending="" line
+    local line
     while IFS= read -r line; do
-        if [[ $line =~ ^[[:space:]]*#\?[[:space:]]*(.*)$ ]]; then
-            local directive=${BASH_REMATCH[1]%"${BASH_REMATCH[1]##*[![:space:]]}"}
-            [[ $directive ]] && pending+="$directive"$'\n'
-            continue
-        fi
+        # `#?` lines were an assertion layer; acceptance is Kotest's now (:common:serverTest). They are
+        # skipped rather than rejected, so an old check file still drives.
+        [[ $line =~ ^[[:space:]]*#\? ]] && continue
         line=${line%%#*}
         line=${line%"${line##*[![:space:]]}"}
         [[ $line ]] || continue
         commands+=("$line")
-        expectations+=("$pending")
-        pending=""
     done < "$source"
 
     ((${#commands[@]} > 0)) || fail "no commands to run"
-    [[ -z $pending ]] || fail "expectations at the end of the file name no command: $pending"
 }
 
 # Point the server at the throwaway world, and undo that whatever happens next. Minecraft rewrites
@@ -179,112 +169,9 @@ drive() {
     note "drive-server: done, stopping"
 }
 
-# The output of command [index], read out of the finished log.
-#
-# Sliced on the barrier tokens the driving already emits: the token after command N lands in the log
-# once N has finished, so everything between token N-1 and token N is N's output and nothing else. That
-# is the same fact the waiting relies on, used a second time.
-# The driving numbers barriers from one, so the command at [index] is followed by token index+1 and
-# preceded by token index — and the very first command has the top of the log in front of it instead.
-output_of() {
-    local index=$1
-    local before="drive-server-$$-$index" after="drive-server-$$-$((index + 1))"
-    # The barrier lines themselves are dropped: they carry this script's pid, which is a number, and
-    # `at-least` reads the first number on whatever line it matched. A slightly loose pattern would
-    # otherwise be measuring the process id.
-    if ((index == 0)); then
-        sed -n "1,/$after/p" "$LOG" | grep -vF "drive-server-$$-"
-    else
-        sed -n "/$before/,/$after/p" "$LOG" | grep -vF "drive-server-$$-"
-    fi
-}
 
-# The first integer on [line], commas stripped — so "248,734 block(s) differ" reads as 248734.
-first_number_in() {
-    local found
-    found=$(printf '%s' "$1" | tr -d ',' | grep -oE '[0-9]+' | head -1)
-    printf '%s' "${found:-}"
-}
 
-# Every expectation, against the log the run just wrote. Returns non-zero if any failed.
-check_expectations() {
-    local failures=0 index directive verb number pattern slice matched observed
-    for index in "${!commands[@]}"; do
-        [[ ${expectations[index]} ]] || continue
-        # `|| true` because a command that printed nothing leaves `output_of`'s filter with nothing to
-        # pass through, and grep says 1 for that. Under `set -e` an empty slice would end the run rather
-        # than fail the expectation it should fail.
-        slice=$(output_of "$index") || true
-        while IFS= read -r directive; do
-            [[ $directive ]] || continue
-            verb=${directive%% *}
-            case $verb in
-                expect | reject) pattern=${directive#* } ;;
-                at-least | at-most)
-                    number=${directive#* }
-                    number=${number%% *}
-                    pattern=${directive#* }
-                    pattern=${pattern#* }
-                    ;;
-                *)
-                    note "drive-server: unknown expectation '$verb' on '${commands[index]}'"
-                    failures=$((failures + 1))
-                    continue
-                    ;;
-            esac
 
-            matched=$(grep -E -- "$pattern" <<< "$slice" | head -1) || true
-            case $verb in
-                expect)
-                    [[ $matched ]] || {
-                        note "  FAILED  '${commands[index]}' — nothing matched /$pattern/"
-                        failures=$((failures + 1))
-                    }
-                    ;;
-                reject)
-                    [[ -z $matched ]] || {
-                        note "  FAILED  '${commands[index]}' — /$pattern/ matched: $matched"
-                        failures=$((failures + 1))
-                    }
-                    ;;
-                at-least | at-most)
-                    if [[ -z $matched ]]; then
-                        note "  FAILED  '${commands[index]}' — nothing matched /$pattern/, so there is no number to check"
-                        failures=$((failures + 1))
-                        continue
-                    fi
-                    observed=$(first_number_in "$matched")
-                    if [[ -z $observed ]]; then
-                        note "  FAILED  '${commands[index]}' — no number on the matching line: $matched"
-                        failures=$((failures + 1))
-                    elif [[ $verb == at-least ]] && ((observed < number)); then
-                        note "  FAILED  '${commands[index]}' — expected at least $number, got $observed: $matched"
-                        failures=$((failures + 1))
-                    elif [[ $verb == at-most ]] && ((observed > number)); then
-                        note "  FAILED  '${commands[index]}' — expected at most $number, got $observed: $matched"
-                        failures=$((failures + 1))
-                    fi
-                    ;;
-            esac
-        done <<< "${expectations[index]}"
-    done
-
-    if ((failures > 0)); then
-        note "drive-server: $failures expectation(s) failed"
-        return 1
-    fi
-    return 0
-}
-
-# How many expectations the file carries at all, so a run says whether it asserted anything.
-count_expectations() {
-    local total=0 block
-    for block in "${expectations[@]}"; do
-        [[ $block ]] || continue
-        total=$((total + $(grep -c . <<< "$block")))
-    done
-    printf '%s' "$total"
-}
 
 main() {
     parse_arguments "$@"
@@ -302,20 +189,7 @@ main() {
     # Process substitution rather than a pipe, so a failing gradle run is this script's exit status.
     "$REPOSITORY/gradlew" :fabric:runServer --console=plain < <(drive)
 
-    # Expectations are evaluated here rather than inside `drive`, deliberately: `drive` runs in the
-    # subshell feeding the server's stdin, where anything printed becomes a command and an exit status
-    # goes nowhere. The log is complete by now, and the barrier tokens are still in it.
-    local declared
-    declared=$(count_expectations)
-    if ((declared == 0)); then
-        note "drive-server: no expectations in this file — read the output above."
-        return 0
-    fi
-    if check_expectations; then
-        note "drive-server: all $declared expectation(s) held."
-    else
-        return 1
-    fi
+    note "drive-server: done — read the output above."
 }
 
 # Sourcing gets you the functions and nothing else, which is how the waiting above is tested.

@@ -24,7 +24,7 @@
  */
 grammar Art;
 // Declared, not lexed. `ArtGrammar` supplies these from the vocabulary; see the note at the top.
-tokens { EVOCATIVE, PRESET, SETTER, AND, ONLY, EXCEPT }
+tokens { EVOCATIVE, SUBJECT, PRESET, SETTER, QUANTIFIER, AND, ONLY, EXCEPT }
 
 /** A book is sections, and nothing else. An empty one is legal: the pen never refuses (design §2). */
 sentence  : section* EOF ;
@@ -32,20 +32,26 @@ sentence  : section* EOF ;
 /**
  * A subject and the modifiers that follow it — the whole of the structure.
  *
- * Sections are *discovered* rather than declared: whichever word opens one decides which part of the world
- * it is about. So the slot list stays out of the grammar, sections may appear in any order and any number,
- * and adding a slot later costs nothing here.
+ * Sections are *discovered* rather than declared: a page naming a part of the world opens one, and
+ * everything after it belongs to that part until the next such page. So the aspect list stays out of the
+ * grammar, sections may appear in any order and any number, and adding an aspect later costs nothing here.
  *
- * The second alternative is a section with **no subject** — a book that only steers. "A world of blackstone"
- * names no dressing; it names the rock the dressing is painted on, and it is the sentence the material hook
- * was built for. Without this a writer holding only material pages could say nothing at all.
+ * **A section is opened by an aiming page, never by a word that fills something.** Players do not write
+ * presets — presets are ours, an internal tool a word is mapped onto at our leisure — so the pages that
+ * carve a book into sections are the *targets* a writer aims at: `landmass`, `climate`, `sky`.
  *
- * The two alternatives overlap on a leading PRESET, and ordered choice settles it: a word that names a
- * preset always prefers to *open* a section rather than to steer one, which is the reading anybody would
- * expect. That is a deliberate use of ordered choice, not an ambiguity left lying around — there is exactly
- * one reading, it is the obvious one, and it never depends on the seed.
+ * The other two alternatives are sections with **no subject at all**, and both are the beginner's book,
+ * which is the commonest thing anyone writes:
+ *
+ * - `descriptor+ modifier*` — evocative words with nothing to aim them, which say what the whole Age is like.
+ * - `modifier+` — "a world of blackstone", naming what the rock is made of and no shape at all. Without it a
+ *   writer holding only material pages could say nothing.
+ *
+ * Each alternative demands at least one page, so none of them matches the empty string — `section*` over a
+ * rule that could match nothing would never terminate.
  */
 section   : descriptor* subject modifier*
+          | descriptor+ modifier*
           | modifier+
           ;
 
@@ -53,13 +59,13 @@ section   : descriptor* subject modifier*
 descriptor : EVOCATIVE ;
 
 /**
- * What the section is about: a word that chooses which preset fills a slot.
+ * What the section is about: a page naming a part of the world and supplying no value of its own, whose
+ * entire job is to aim what follows it (design §4.3.1).
  *
- * Subject *pages* — `sky`, `land`, a word naming a part of the world rather than a filling of it — belong
- * here too (§4.3.1) and are deliberately absent until the vocabulary has any, on the project's standing
- * rule that a thing the grammar can name and nothing can fill is worse than one that does not exist yet.
+ * These are found pages and cost ink, which is what keeps aiming a *precision lever* rather than free: a
+ * beginner holding none of them writes one unaimed section, and everything they say is about the Age.
  */
-subject   : PRESET ;
+subject   : SUBJECT ;
 
 /**
  * Anything that steers the subject. `only` and `except` bind tighter than juxtaposition and looser than
@@ -78,4 +84,12 @@ modifier  : ONLY conjunction
  */
 conjunction : term (AND term)* ;
 
-term      : SETTER | PRESET ;
+/**
+ * One thing said about the section, optionally with how much of it there should be.
+ *
+ * The quantifier **precedes what it counts** — `teeming villages` — which is the third rung of §4.5's skill
+ * tree and the only production so far that binds one page to one other page rather than joining peers. It
+ * is deliberately not a word of its own class in the world model: what it modifies is a *claim*, so the
+ * rung travels with the value into the recipe (`minecraft:villages@teeming`).
+ */
+term      : QUANTIFIER? (SETTER | PRESET) ;

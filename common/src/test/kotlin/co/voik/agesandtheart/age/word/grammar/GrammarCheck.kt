@@ -3,6 +3,7 @@ package co.voik.agesandtheart.age.word.grammar
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Density
 import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.word.Vocabulary
 import io.kotest.core.annotation.Tags
@@ -75,12 +76,102 @@ class GrammarCheck : FunSpec({
     }
 
     /**
-     * §4.3.1's tier rule, and the one protecting the beginner's sentence: `beautiful floating` must leave
+     * **An aiming page opens a section; a word that fills something does not.** Players do not write
+     * presets — those are ours — so what carves a book into parts is the target a writer aimed at.
+     *
+     * Written as a pair on purpose: the same two content words are one section or two depending on nothing
+     * but whether an aiming page stands in front of them, which is the whole of what position decides.
+     */
+    test("an aiming page opens a section") {
+        val aimed = Grammar.read(vocabulary, listOf("landmass", "floating", "sea", "molten"))
+        check(aimed.phrases.size == 2) {
+            "two aiming pages made ${aimed.phrases.size} section(s): ${aimed.phrases}"
+        }
+        check(aimed.phrases.map { it.subject?.word?.name } == listOf("landmass", "sea")) {
+            "the sections were opened by the wrong pages: ${aimed.phrases.map { it.subject?.word?.name }}"
+        }
+        check(aimed.phrases.first().modifiers.map { it.word.name } == listOf("floating")) {
+            "'floating' did not stay with the landmass: ${aimed.phrases.first().modifiers}"
+        }
+
+        val unaimed = Grammar.read(vocabulary, listOf("floating", "molten"))
+        check(unaimed.phrases.size == 1) {
+            "a book with no aiming page split into ${unaimed.phrases.size} sections: ${unaimed.phrases}"
+        }
+        check(unaimed.phrases.single().subject == null) { "a section was given a subject nobody wrote" }
+    }
+
+    /**
+     * The beginner's book, which is the commonest thing anyone writes: no aiming pages at all, so every
+     * word is about the whole Age. Aiming is a found page (§4.5), and a grammar that demanded one would
+     * make the first book unwritable.
+     */
+    test("a book that aims at nothing still says everything in it") {
+        val read = Grammar.read(vocabulary, listOf("beautiful", "floating", "basalt"))
+        check(read.dropped.isEmpty()) { "an unaimed book lost pages: ${read.dropped}" }
+        check(read.words.map { it.name } == listOf("beautiful", "floating", "basalt")) {
+            "the reading reordered or dropped an unaimed book: ${read.words}"
+        }
+    }
+
+    /**
+     * **Aiming confines, and this is what it is for.** A word's scope is its own declared aspects ∩ what
+     * the section aims at (§4.3.1).
+     *
+     * `lava` declares both the sea and the terrain, since a fluid is a sea and also a block a landmass can
+     * be made of. Written under `sea` it must be the sea only — without the intersection it silently made
+     * the *land* out of lava as well, and the readout said nothing about it because the parse looked right.
+     */
+    test("aiming confines a word to what it was aimed at") {
+        val underTheSea = Grammar.read(vocabulary, listOf("sea", "lava"))
+        val confined = underTheSea.constraints.first { it.word.name == "lava" }
+        check(confined.scope.reaches(emptyList()) == listOf(Aspect.SEA)) {
+            "'sea lava' let lava reach ${confined.scope.reaches(emptyList())}"
+        }
+
+        // And unaimed it keeps everything it declares, or aiming would be the only way to say anything.
+        val unaimed = Grammar.read(vocabulary, listOf("lava"))
+        val loose = unaimed.constraints.first { it.word.name == "lava" }
+        check(Aspect.TERRAIN in loose.scope.reaches(emptyList())) {
+            "an unaimed word lost an aspect it declares: ${loose.scope.reaches(emptyList())}"
+        }
+    }
+
+    /**
+     * The other side of aiming: a word aimed where it says nothing reaches **nothing at all**, and is
+     * charged rather than quietly re-homed to somewhere it would have worked (§4.3.1). A parser allowed to
+     * relocate a word to make a sentence work is the misreading this design exists to avoid.
+     */
+    test("a word aimed where it says nothing is not re-homed") {
+        val read = Grammar.read(vocabulary, listOf("landmass", "starless"))
+        val starless = read.constraints.first { it.word.name == "starless" }
+        check(starless.scope.reaches(emptyList()).isEmpty()) {
+            "a sky word aimed at the land was re-homed to ${starless.scope.reaches(emptyList())}"
+        }
+    }
+
+    /**
+     * §4.5's third rung: a quantifier binds to **the term after it**, and to no other. The rung travels on
+     * the claim rather than the word, so what the parser owes is putting it on the right constraint.
+     */
+    test("a quantifier binds to the term it precedes") {
+        val read = Grammar.read(vocabulary, listOf("landmass", "basalt", "and", "teeming", "slate"))
+        check(read.dropped.isEmpty()) { "a quantified book lost pages: ${read.dropped}" }
+        val counted = read.constraints.first { it.word.name == "slate" }
+        check(counted.density == Density.TEEMING) { "'teeming slate' resolved to ${counted.density}" }
+        val uncounted = read.constraints.first { it.word.name == "basalt" }
+        check(uncounted.density == Density.ORDINARY) {
+            "the rung leaked onto the term before it, which is not the one it counts"
+        }
+    }
+
+    /**
+     * §4.3.1's tier rule, and the one protecting the beginner's sentence: `beautiful landmass` must leave
      * "beautiful" reaching the whole world, merely leaning hardest on the terrain. Confining it makes the
      * commonest thing anyone writes the *narrow* reading.
      */
     test("an evocative word stays global when aimed") {
-        val read = Grammar.read(vocabulary, listOf("beautiful", "floating"))
+        val read = Grammar.read(vocabulary, listOf("beautiful", "landmass", "floating"))
         val beautiful = read.constraints.first { it.word.name == "beautiful" }
         val scope = beautiful.scope as? Scope.Everywhere
             ?: error("an aimed evocative word was confined to ${beautiful.scope}, which demotes it to restrictive")

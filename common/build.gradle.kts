@@ -126,8 +126,11 @@ dependencies {
     testImplementation(libs.kotestProperty)
 }
 
-/** The one tag. Must match `NEEDS_REGISTRIES` in `common/src/test/kotlin/.../MinecraftRegistries.kt`. */
+/** Must match `NEEDS_REGISTRIES` in `common/src/test/kotlin/.../MinecraftRegistries.kt`. */
 val NEEDS_REGISTRIES_TAG = "NeedsRegistries"
+
+/** Must match `NEEDS_SERVER` in `common/src/test/kotlin/.../server/DrivenServer.kt`. */
+val NEEDS_SERVER_TAG = "NeedsServer"
 
 val test: SourceSet = sourceSets.test.get()
 // Minecraft arrives compile-only under ModDevGradle, exactly as for `preview`. The *runtime* half is not
@@ -147,10 +150,11 @@ tasks.named<Test>("test") {
     // while the slowest check ran alone; the checks are independent, so this is nearly free wall-clock.
     systemProperty("kotest.framework.parallelism", Runtime.getRuntime().availableProcessors().toString())
 
-    // `-Pfast` skips everything that needs the Minecraft registries, which is the only slow part left.
-    if (project.hasProperty("fast")) {
-        systemProperty("kotest.tags", "!$NEEDS_REGISTRIES_TAG")
-    }
+    // The server checks start a real server, which is minutes. They are their own task; this is the loop
+    // anyone runs a hundred times a day and it stays at seconds.
+    // `-Pfast` drops the registries too, which is the only slow thing left in what remains.
+    val excluded = listOfNotNull(NEEDS_SERVER_TAG, NEEDS_REGISTRIES_TAG.takeIf { project.hasProperty("fast") })
+    systemProperty("kotest.tags", excluded.joinToString(" & ") { "!$it" })
 
     // Measured, not guessed: RegionShare samples four million columns and the registries are not small.
     // At the Gradle default of 512m this task dies; 2g leaves headroom without crowding the daemon.
@@ -161,6 +165,37 @@ tasks.named<Test>("test") {
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
         // Power-Assert's diagram is the failure message, and it is many lines. Truncating it would throw
         // away the thing that makes a failure diagnosable from the console alone.
+        showStackTraces = true
+    }
+}
+
+/**
+ * The checks that need a real server — `./gradlew :common:serverTest`.
+ *
+ * Same source set and same Kotest suite as `test`, selected by tag rather than split into a source set of
+ * its own: they are the same kind of thing written the same way, and only what they *cost* differs.
+ *
+ * It depends on `:fabric:exportServerLaunch` because [co.voik.agesandtheart.server.DrivenServer] starts the
+ * server itself rather than through Gradle — a nested build would wait forever on this one's locks.
+ */
+tasks.register<Test>("serverTest") {
+    group = "verification"
+    description = "Runs the checks that drive a real dedicated server over RCON."
+    useJUnitPlatform()
+
+    testClassesDirs = test.output.classesDirs
+    classpath = test.runtimeClasspath
+    dependsOn(":fabric:exportServerLaunch")
+
+    systemProperty("kotest.tags", NEEDS_SERVER_TAG)
+    // One server, driven in sequence. Specs sharing a JVM would otherwise each start one and fight over
+    // the same `server.properties` and the same world directory.
+    systemProperty("kotest.framework.parallelism", "1")
+    maxHeapSize = "2g"
+
+    testLogging {
+        events("failed", "passed")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
         showStackTraces = true
     }
 }

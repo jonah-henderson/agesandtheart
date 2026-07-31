@@ -106,6 +106,15 @@ data class Word(
     fun namedPreset(aspect: Aspect): AspectPreset? = names?.let(aspect::presetFor)
 
     /**
+     * Whether this word says nothing except which part of the world it is about — an **aiming page**
+     * (§4.3.1), whose whole job is to open a section and scope what follows it.
+     *
+     * Recognised by shape rather than by a flag, because that shape *is* the definition: a word with no
+     * query, no named preset and no parameter has nothing to contribute but its aspects.
+     */
+    val aims: Boolean get() = query.isEmpty() && names == null && sets.isEmpty() && aspects.isNotEmpty()
+
+    /**
      * Whether this word has anything to say about *which* preset fills an aspect, as opposed to how that
      * preset is steered. A word that only sets a parameter must not be treated as narrowing: an empty
      * carrier set is how the resolver recognises a word the world cannot satisfy (§3.3).

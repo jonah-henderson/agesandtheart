@@ -1,0 +1,9 @@
+{
+  "tier": "exact",
+  "aspects": [
+    "terrain"
+  ],
+  "sets": {
+    "mingling": "fine"
+  }
+}

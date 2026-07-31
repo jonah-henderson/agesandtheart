@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.word.grammar
 
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Density
 import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.grammar.ArtParser
@@ -37,18 +38,26 @@ internal object ArtGrammar {
         parser.removeErrorListeners()
         parser.addErrorListener(SilentErrorListener)
 
-        val constraints = Reading(readable).of(parser.sentence())
+        val phrases = Reading(readable).of(parser.sentence())
 
         // What went unread comes from the **outcome**, not ANTLR's error tokens: a page that reached the
         // parser and produced no constraint is one the Art could not use. Asking the error listener instead
         // missed a trailing evocative word with no subject, discarded during recovery and reported nowhere.
-        val used = constraints.map { it.word }.toSet()
+        val used = phrases.flatMap { it.said }.map { it.word }.toSet()
         val unused = readable.filter { page -> page.kind in SPEAKS_FOR_ITSELF && page.word !in used }
-        return Sentence(constraints, (unreadable + unused).map { it.written })
+        // Written order, not unreadable-then-unused: the readout lays these back beside the row they came
+        // from, and a writer scanning for their typo is looking at the book rather than at our two reasons.
+        val dropped = (unreadable + unused).sortedBy(pages::indexOf).map { it.written }
+        return Sentence(phrases, dropped)
     }
 
-    /** The classes that owe a constraint. A structural page does its work by joining others. */
-    private val SPEAKS_FOR_ITSELF = setOf(PageClass.EVOCATIVE, PageClass.PRESET, PageClass.SETTER)
+    /**
+     * The classes that owe a constraint. A structural page does its work by joining or marking others; an
+     * aiming page owes one because it is a page a writer spent ink on, and one that reached nothing has to
+     * be reported like any other.
+     */
+    private val SPEAKS_FOR_ITSELF =
+        setOf(PageClass.EVOCATIVE, PageClass.SUBJECT, PageClass.PRESET, PageClass.SETTER)
 
     /**
      * Token types come from **`ArtParser`**, never an `ArtLexer`: the grammar declares them with `tokens {}`
@@ -57,11 +66,13 @@ internal object ArtGrammar {
      */
     private fun typeOf(page: Page): Int = when (page.kind) {
         PageClass.EVOCATIVE -> ArtParser.EVOCATIVE
+        PageClass.SUBJECT -> ArtParser.SUBJECT
         PageClass.PRESET -> ArtParser.PRESET
         PageClass.SETTER -> ArtParser.SETTER
         PageClass.JOINER -> ArtParser.AND
         PageClass.RESTRICTOR -> ArtParser.ONLY
         PageClass.EXCLUDER -> ArtParser.EXCEPT
+        PageClass.QUANTIFIER -> ArtParser.QUANTIFIER
         // Filtered out before this is reached; the branch exists so a new class breaks the build here.
         null -> error("an unreadable page reached the parser")
     }
@@ -101,19 +112,19 @@ internal object ArtGrammar {
     private val EMPTY_TEXT: CharStream = CharStreams.fromString("")
 
     /**
-     * Walks the parse tree once, turning sections into [Constraint]s. Holds [pages] because ANTLR's tokens
+     * Walks the parse tree once, turning sections into [Phrase]s. Holds [pages] because ANTLR's tokens
      * carry only text and type, and two pages may be written the same — `blackstone and blackstone` — so
      * the token *index* is what identifies which page it came from.
      */
     private class Reading(private val pages: List<Page>) {
         private var nextGroup = 0
 
-        fun of(sentence: ArtParser.SentenceContext): List<Constraint> =
-            sentence.section().flatMap(::constraintsIn)
+        fun of(sentence: ArtParser.SentenceContext): List<Phrase> = sentence.section().map(::phraseOf)
 
-        private fun constraintsIn(section: ArtParser.SectionContext): List<Constraint> {
-            // Null where the section named no subject — a book that only steers, like "blackstone" alone.
-            val subject = wordAt(section.subject()?.PRESET()?.symbol)
+        private fun phraseOf(section: ArtParser.SectionContext): Phrase {
+            // Null where the writer aimed at nothing — the beginner's book, in which everything is about
+            // the whole Age, and the book that only steers ("blackstone" alone).
+            val subject = wordAt(section.subject()?.SUBJECT()?.symbol)
             // What everything in the section is aimed at: position decides attachment, so no word is
             // searched for a home — it has the one it was laid down in.
             val aim = subject?.aspects.orEmpty()
@@ -123,8 +134,11 @@ internal object ArtGrammar {
                 // Aimed, and still global: an evocative word tilts and never narrows (§4.3.1).
                 Constraint(word, Scope.Everywhere(emphasised = aim))
             }
-            val head = subject?.let { listOf(Constraint(it, scopeFor(it, aim))) }.orEmpty()
-            return descriptors + head + section.modifier().flatMap { modifier -> constraintsIn(modifier, aim) }
+            return Phrase(
+                descriptors = descriptors,
+                subject = subject?.let { Constraint(it, scopeFor(it, aim)) },
+                modifiers = section.modifier().flatMap { modifier -> constraintsIn(modifier, aim) },
+            )
         }
 
         private fun constraintsIn(modifier: ArtParser.ModifierContext, aim: Set<Aspect>): List<Constraint> {
@@ -140,13 +154,28 @@ internal object ArtGrammar {
             val group = if (terms.size > 1) Group(nextGroup++) else null
             return terms.mapNotNull { term ->
                 val word = wordAt(term.SETTER()?.symbol ?: term.PRESET()?.symbol) ?: return@mapNotNull null
-                Constraint(word, scopeFor(word, aim), polarity, group)
+                // The rung sits on the page before the term it counts, and travels with the value from here
+                // on: what a quantifier modifies is the *claim*, never the word (§3.2).
+                val rung = pages.getOrNull(term.QUANTIFIER()?.symbol?.tokenIndex ?: -1)?.rung
+                Constraint(word, scopeFor(word, aim), polarity, group, rung ?: Density.ORDINARY)
             }
         }
 
-        /** §4.3.1's tier rule: a word that cannot narrow candidates cannot narrow its own scope either. */
-        private fun scopeFor(word: Word, aim: Set<Aspect>): Scope =
-            if (word.tier.narrows) Scope.Confined(word.aspects.ifEmpty { aim }) else Scope.Everywhere(aim)
+        /**
+         * §4.3.1's tier rule: a word that cannot narrow candidates cannot narrow its own scope either, so
+         * an evocative word stays global however it was aimed.
+         *
+         * A narrowing word's scope is **its own declared aspects ∩ what the section aims at**. Without the
+         * intersection, aiming decided section boundaries and nothing else: `sea molten lava` put lava in
+         * the sea *and* made the land out of it, because `lava` declares both and nothing confined it.
+         * An empty intersection is left empty on purpose — charged, never re-homed.
+         */
+        private fun scopeFor(word: Word, aim: Set<Aspect>): Scope {
+            if (!word.tier.narrows) return Scope.Everywhere(aim)
+            val declared = word.aspects
+            if (aim.isEmpty()) return Scope.Confined(declared)
+            return Scope.Confined(declared.ifEmpty { aim }.intersect(aim))
+        }
 
         private fun wordAt(token: Token?): Word? = pages.getOrNull(token?.tokenIndex ?: return null)?.word
     }

@@ -7,6 +7,8 @@ import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Carvers
+import co.voik.agesandtheart.age.aspect.Claim
+import co.voik.agesandtheart.age.aspect.Density
 import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.aspect.Population
 import co.voik.agesandtheart.age.aspect.Sea
@@ -440,7 +442,7 @@ class ResolverCheck : FunSpec({
         val land = Constraint(hollow, Scope.Confined(setOf(Aspect.TERRAIN)))
         val first = material("firststone", "minecraft:blackstone")
         val second = material("secondstone", "minecraft:tuff")
-        fun sentence(group: Group?) = Sentence(
+        fun sentence(group: Group?) = Sentence.of(
             listOf(
                 land,
                 Constraint(first, Scope.Confined(setOf(Aspect.TERRAIN)), group = group),
@@ -489,7 +491,7 @@ class ResolverCheck : FunSpec({
             val constraints = said.map { (path, polarity) ->
                 Constraint(structureSet(path), Scope.Confined(setOf(Aspect.STRUCTURES)), polarity)
             }
-            val resolved = Resolver.resolve(vocabulary, Sentence(constraints), SAMPLE_SEED)
+            val resolved = Resolver.resolve(vocabulary, Sentence.of(constraints), SAMPLE_SEED)
             return Population.of(resolved.composition.optionsFor(Aspect.STRUCTURES, 0).claimsOn(Structures.BUILT))
         }
 
@@ -519,6 +521,58 @@ class ResolverCheck : FunSpec({
     }
 
     /**
+     * A word aimed where it says nothing is **charged, and charged once** — the price of aiming being a
+     * precision lever (§4.3.1). The failure this guards against is silence: the word reaches no aspect, so
+     * every other register is out of earshot, and an uncharged misaim is a page spent for nothing with
+     * nothing said about it.
+     */
+    test("a misaimed word is charged rather than ignored") {
+        val skyWordAtTheLand = Constraint(
+            vocabulary.word("starless") ?: error("the shipped vocabulary lost 'starless'"),
+            Scope.Confined(emptySet()),
+        )
+        val resolved = Resolver.resolve(vocabulary, Sentence.of(listOf(skyWordAtTheLand)), SAMPLE_SEED)
+        val misaimed = resolved.instability.flaws.filter { it.register == Register.MISAIMED }
+        check(misaimed.size == 1) { "a misaimed word gave ${misaimed.size} flaws: ${resolved.instability.flaws}" }
+        check(misaimed.single().words == listOf("starless")) { "the flaw named ${misaimed.single().words}" }
+
+        // And a word that landed somewhere is never charged for it, or every ordinary sentence would be.
+        val landed = resolve(vocabulary, "starless")
+        check(landed.instability.flaws.none { it.register == Register.MISAIMED }) {
+            "a word that found its aspect was charged as misaimed: ${landed.instability.flaws}"
+        }
+    }
+
+    /**
+     * **A rung reaches a population**, which is the other half of the quantifier: the parser binds it to a
+     * term and this is what carries it into the recipe. Exactly the wire [Polarity] was missing above —
+     * `teeming villages` would parse perfectly, cost ink and place vanilla's own number of villages.
+     *
+     * Asserted through [Claim] rather than the spelling, because the mark is a recipe detail where the rung
+     * is the claim.
+     */
+    test("a rung reaches a population") {
+        fun askedFor(rung: Density): Claim {
+            val said = Constraint(
+                structureSet("villages"),
+                Scope.Confined(setOf(Aspect.STRUCTURES)),
+                density = rung,
+            )
+            val resolved = Resolver.resolve(vocabulary, Sentence.of(listOf(said)), SAMPLE_SEED)
+            val population = Population.of(
+                resolved.composition.optionsFor(Aspect.STRUCTURES, 0).claimsOn(Structures.BUILT),
+            )
+            return population.wanted.singleOrNull() ?: error("'villages' at $rung gave ${population.wanted}")
+        }
+
+        for (rung in Density.entries) {
+            val claim = askedFor(rung)
+            check(claim.value == "minecraft:villages") { "the rung ate the value: ${claim.value}" }
+            check(claim.density == rung) { "asking for $rung villages gave ${claim.density}" }
+        }
+    }
+
+    /**
      * The three guards on a fracture, each asserted rather than trusted:
      *
      * - **one claim never fractures** — nothing to reconcile, so the aspect stays whole;
@@ -537,7 +591,7 @@ class ResolverCheck : FunSpec({
         val copper = aimedAtTheLand(material("firststone", "minecraft:copper_block"))
         val andesite = aimedAtTheLand(material("secondstone", "minecraft:andesite"))
 
-        val alone = Resolver.resolve(vocabulary, Sentence(listOf(hollow, copper)), SAMPLE_SEED)
+        val alone = Resolver.resolve(vocabulary, Sentence.of(listOf(hollow, copper)), SAMPLE_SEED)
         check(alone.composition.terrains.size == 1) {
             "one material fractured the terrain: ${alone.composition.terrains}"
         }
@@ -545,8 +599,8 @@ class ResolverCheck : FunSpec({
             "one material was charged for a fracture: ${alone.instability.flaws}"
         }
 
-        val forwards = Resolver.resolve(vocabulary, Sentence(listOf(hollow, copper, andesite)), SAMPLE_SEED)
-        val backwards = Resolver.resolve(vocabulary, Sentence(listOf(andesite, copper, hollow)), SAMPLE_SEED)
+        val forwards = Resolver.resolve(vocabulary, Sentence.of(listOf(hollow, copper, andesite)), SAMPLE_SEED)
+        val backwards = Resolver.resolve(vocabulary, Sentence.of(listOf(andesite, copper, hollow)), SAMPLE_SEED)
         check(forwards.composition == backwards.composition) {
             "reversing a fractured sentence moved the fragments: " +
                 "${forwards.composition} then ${backwards.composition}"
@@ -561,7 +615,7 @@ class ResolverCheck : FunSpec({
 
         // `flat towering` already splits the terrain in two, so the materials have nowhere of their own to go.
         val alreadyDivided =
-            Resolver.resolve(vocabulary, Sentence(listOf(flat, towering, copper, andesite)), SAMPLE_SEED)
+            Resolver.resolve(vocabulary, Sentence.of(listOf(flat, towering, copper, andesite)), SAMPLE_SEED)
         check(alreadyDivided.composition.terrains.size == 2) {
             "the preset division was lost: ${alreadyDivided.composition.terrains}"
         }

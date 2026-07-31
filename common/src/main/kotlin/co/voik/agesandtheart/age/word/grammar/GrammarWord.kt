@@ -1,10 +1,13 @@
 package co.voik.agesandtheart.age.word.grammar
 
+import co.voik.agesandtheart.age.aspect.Density
 import com.mojang.serialization.Codec
+import com.mojang.serialization.DataResult
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.util.StringRepresentable
+import java.util.Optional
 
 /**
  * A structure the language can express — and the unit mastery unlocks (design §4.5). [available] is the
@@ -26,6 +29,15 @@ enum class Production(val key: String, val available: Boolean = true) : StringRe
 
     /** `except` — anything but this. Already half-expressible beneath, since preference weights are signed. */
     EXCEPTION("except"),
+
+    /**
+     * `teeming villages` — **how much of the thing there is**, bound to the term that follows it.
+     *
+     * The first production that binds one page to one other page rather than joining peers, and §4.5's
+     * third rung. What it modifies is a claim, so the rung travels with the value into the recipe rather
+     * than becoming a word of its own in the world model.
+     */
+    QUANTIFICATION("quantifier"),
     ;
 
     override fun getSerializedName(): String = key
@@ -43,7 +55,18 @@ enum class Production(val key: String, val available: Boolean = true) : StringRe
  * Datapack content (`data/<namespace>/art/grammar/<name>.json`), so a pack may rename or translate the
  * joining word while the *productions* stay ours.
  */
-data class GrammarWord(val id: ResourceLocation, val production: Production) {
+data class GrammarWord(
+    val id: ResourceLocation,
+    val production: Production,
+    /**
+     * Which rung a [Production.QUANTIFICATION] page names, and null for every other production.
+     *
+     * The exception to "a structural word carries no value", and it earns it: the *ability* to quantify is
+     * one production, but a writer needs a page per rung to say which — so the production is the unlock and
+     * this is the word. [Polarity] made the same crossing in the other direction (§4.3.1).
+     */
+    val rung: Density? = null,
+) {
     /** What a writer says to use it. */
     val name: String get() = id.path
 
@@ -53,7 +76,17 @@ data class GrammarWord(val id: ResourceLocation, val production: Production) {
         fun mapCodec(id: ResourceLocation): MapCodec<GrammarWord> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
                 Production.CODEC.fieldOf("production").forGetter(GrammarWord::production),
-            ).apply(instance) { production -> GrammarWord(id, production) }
+                DENSITY_CODEC.optionalFieldOf("rung").forGetter { Optional.ofNullable(it.rung) },
+            ).apply(instance) { production, rung -> GrammarWord(id, production, rung.orElse(null)) }
         }
+
+        private val DENSITY_CODEC: Codec<Density> =
+            Codec.STRING.comapFlatMap(
+                { key ->
+                    val rung = Density.named(key)
+                    if (rung == null) DataResult.error { "no rung called '$key'" } else DataResult.success(rung)
+                },
+                Density::key,
+            )
     }
 }

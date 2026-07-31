@@ -35,6 +35,16 @@ enum class Register(
     DISPLACED("displaced", base = 2),
 
     /**
+     * A word was aimed at a part of the world it says nothing about — `flat sky`.
+     *
+     * The writer's own mistake, and the price of aiming being a precision lever: it is **never re-homed**
+     * to somewhere it would have worked (§4.3.1), because a parser allowed to relocate a word to make a
+     * sentence work is the misreading this whole design avoids. Cheap, since the page was spent and
+     * nothing else went wrong.
+     */
+    MISAIMED("misaimed", base = 1),
+
+    /**
      * Nothing in the aspect could ever be what the word asked for.
      *
      * A content bug rather than a play outcome (design §3.3) — `VocabularyCheck` keeps it from shipping.
@@ -81,6 +91,8 @@ data class Flaw(
             Register.FRACTURE -> "the $where fractured so that $both could both stand$over"
             Register.DISPLACED -> "${quoted.firstOrNull() ?: "a word"} was crowded out of $where" +
                 quoted.drop(1).firstOrNull().orEmpty().let { if (it.isEmpty()) "" else " by $it" } + over
+            Register.MISAIMED -> "${quoted.firstOrNull() ?: "a word"} says nothing about $where, " +
+                "and it was written where nothing else could hear it"
             Register.UNBACKED -> "nothing in $where can be ${quoted.firstOrNull() ?: "that"} — " +
                 "a gap in the vocabulary, not something you did"
         }

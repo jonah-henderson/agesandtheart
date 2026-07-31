@@ -1,0 +1,56 @@
+# Phase 4 remainder: the aiming pages, the quantifier production, and the readout that shows both.
+# Run with: scripts/drive-server.sh scripts/checks/quantifiers.txt
+#
+# Server-side because the words this is about are DERIVED — biomes and structure sets come from the
+# dynamic registries, so `villages` and `jungle` do not exist in the offline corpus at all.
+
+# --- The readout ---------------------------------------------------------------------------------
+# The whole point of the prose is that it shows where each page landed. Two aiming pages, two
+# sections, and each material must come back under the part it was written against.
+#? expect landmass floating of basalt, over sea molten of lava
+age write readsback landmass floating basalt sea molten lava
+
+# The same content words with no aiming page in front of them are one section, and the readout has
+# to say so rather than inventing a division nobody wrote.
+#? expect floating of basalt
+age write unaimed floating basalt
+
+# It prettifies, it never launders: an unreadable page must be absent from the prose and named under
+# it. Nice prose hiding a misparse is the failure §4.3.1 rejects ambiguity to avoid.
+#? reject zzzznotaword.*floating
+#? expect unread, so the Age comes out vaguer
+age write laundered landmass zzzznotaword basalt
+
+# --- The quantifier ------------------------------------------------------------------------------
+# `teeming villages` is what the production exists for, and it is the thing that was /age compose
+# only until now. The rung must reach the recipe on the claim, spelled with the `@` mark.
+#? expect villages@teeming
+age write manyvillages structures teeming villages
+
+#? expect villages@scarce
+age write fewvillages structures scarce villages
+
+# A rung binds to ONE term. Joined with another value, only the quantified one carries it.
+#? expect villages@teeming
+#? reject woodland_mansions@
+age write onlyoneteems structures woodland_mansions and teeming villages
+
+# `only` and a rung on the same value — the two axes are independent and must not eat each other.
+#? expect !minecraft:villages@teeming
+age write onlyteeming structures only teeming villages
+
+# --- The three knobs no word could reach -------------------------------------------------------
+# Each was pinned into a recipe and unreachable from a sentence. Read the composition back.
+#? expect mingling=fine
+age write finemingle landmass finely basalt and slate
+
+#? expect skin=bare
+age write bareskin biomes bare
+
+# Altitude is offered by spire_islands alone, so the word has to land on that terrain to mean
+# anything — `floating` is what gets us there.
+#? expect altitude=high
+age write highislands landmass floating aloft
+
+# --- What the writer sees ------------------------------------------------------------------------
+age list

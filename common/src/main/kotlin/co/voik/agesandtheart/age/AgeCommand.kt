@@ -8,14 +8,17 @@ import co.voik.agesandtheart.sky.Skies
 import co.voik.agesandtheart.sky.SkySpec
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.grammar.Grammar
+import co.voik.agesandtheart.age.word.grammar.Readout
 import co.voik.agesandtheart.age.word.grammar.Scope
 import co.voik.agesandtheart.age.word.grammar.Sentence
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.LongArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
+import com.mojang.brigadier.builder.ArgumentBuilder
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
+import net.minecraft.ChatFormatting
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import net.minecraft.core.BlockPos
@@ -75,7 +78,33 @@ object AgeCommand {
 
     // Brigadier command result codes.
     private const val SUCCESS = 1
-    private const val FAILURE = 0
+    internal const val FAILURE = 0
+
+    /**
+     * A subcommand that can answer either way: as prose, or — written `/age <name> json …` — as one
+     * structured document (see [Report]).
+     *
+     * **The literal goes immediately after the subcommand, not at the end**, and `/age write` is why: its
+     * sentence is a greedy string, so anything after it is swallowed as another word. One position for all
+     * of them beats a rule with an exception in it.
+     *
+     * [arguments] is called *twice* to build two independent subtrees. That is the point of taking a
+     * builder rather than a node: a Brigadier node cannot be hung in two places, and writing the tree out
+     * twice is the duplication that would drift.
+     *
+     * **Only commands that really build a document get one**, so a `json` that parses always means
+     * structure exists behind it.
+     */
+    private fun reporting(
+        name: String,
+        arguments: (ReportFor) -> ArgumentBuilder<CommandSourceStack, *>,
+    ): LiteralArgumentBuilder<CommandSourceStack> =
+        Commands.literal(name)
+            .then(arguments { context -> Report.prose(context.source) })
+            .then(
+                Commands.literal(Report.STRUCTURED_LITERAL)
+                    .then(arguments { context -> Report.structured(context.source) }),
+            )
 
     fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
         dispatcher.register(
@@ -148,22 +177,30 @@ object AgeCommand {
      * spelling, and pasting that back with the same seed must give the same world.
      */
     private fun writeSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
-        Commands.literal("write").then(
+        reporting("write") { reportFor ->
             Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
                 .then(
                     Commands.argument(SEED_ARGUMENT, LongArgumentType.longArg()).then(
                         Commands.argument(SENTENCE_ARGUMENT, StringArgumentType.greedyString())
-                            .executes { context -> runWrite(context, LongArgumentType.getLong(context, SEED_ARGUMENT)) },
+                            .executes { context ->
+                                val seed = LongArgumentType.getLong(context, SEED_ARGUMENT)
+                                runWrite(context, seed, reportFor(context))
+                            },
                     ),
                 )
                 .then(
                     Commands.argument(SENTENCE_ARGUMENT, StringArgumentType.greedyString())
-                        .executes { context -> runWrite(context, seed = null) },
-                ),
-        )
+                        .executes { context -> runWrite(context, seed = null, report = reportFor(context)) },
+                )
+        }
 
     private fun vocabularySubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
-        Commands.literal("words").executes(::runVocabulary)
+        Commands.literal("words")
+            .executes { context -> runVocabulary(context, Report.prose(context.source)) }
+            .then(
+                Commands.literal(Report.STRUCTURED_LITERAL)
+                    .executes { context -> runVocabulary(context, Report.structured(context.source)) },
+            )
 
     private fun teleportSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("tp").then(
@@ -218,18 +255,19 @@ object AgeCommand {
         )
 
     private fun compareSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
-        Commands.literal("compare").then(
+        reporting("compare") { reportFor ->
             Commands.argument(FIRST_ARGUMENT, StringArgumentType.word()).then(
                 Commands.argument(SECOND_ARGUMENT, StringArgumentType.word())
-                    .executes { context -> runCompare(context, DEFAULT_COMPARE_RADIUS) }
+                    .executes { context -> runCompare(context, DEFAULT_COMPARE_RADIUS, reportFor(context)) }
                     .then(
                         Commands.argument(RADIUS_ARGUMENT, IntegerArgumentType.integer(0, MAX_COMPARE_RADIUS))
                             .executes { context ->
-                                runCompare(context, IntegerArgumentType.getInteger(context, RADIUS_ARGUMENT))
+                                val radius = IntegerArgumentType.getInteger(context, RADIUS_ARGUMENT)
+                                runCompare(context, radius, reportFor(context))
                             },
                     ),
-            ),
-        )
+            )
+        }
 
     /** `all` is a literal rather than a name, so it cannot collide with an Age actually called "all". */
     private fun deleteSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
@@ -238,7 +276,12 @@ object AgeCommand {
             .then(Commands.argument(NAME_ARGUMENT, StringArgumentType.word()).executes(::runDelete))
 
     private fun listSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
-        Commands.literal("list").executes(::runList)
+        Commands.literal("list")
+            .executes { context -> runList(context, Report.prose(context.source)) }
+            .then(
+                Commands.literal(Report.STRUCTURED_LITERAL)
+                    .executes { context -> runList(context, Report.structured(context.source)) },
+            )
 
     private fun ageId(name: String): ResourceLocation =
         ResourceLocation.fromNamespaceAndPath(Constants.MOD_ID, name.lowercase())
@@ -259,33 +302,32 @@ object AgeCommand {
     /** Writes an Age down and opens it — the tail `create` and `compose` share. */
     private fun write(context: CommandContext<CommandSourceStack>, world: AgeWorld, seed: Long?): Int {
         val source = context.source
+        val report = Report.prose(source)
         val name = StringArgumentType.getString(context, NAME_ARGUMENT)
         val id = ageId(name)
-        if (!canWrite(source, name, id)) return FAILURE
-        return open(source, name, id, AgeRecipe.written(source.server, world, seed ?: AgeRecipe.seedFor(id)))
+        if (!canWrite(source, name, id, report)) return FAILURE
+        val recipe = AgeRecipe.written(source.server, world, seed ?: AgeRecipe.seedFor(id))
+        return open(source, name, id, recipe, report)
     }
 
     /** Whether an Age called [name] can be written here at all — having said why, if not. */
-    private fun canWrite(source: CommandSourceStack, name: String, id: ResourceLocation): Boolean {
+    private fun canWrite(source: CommandSourceStack, name: String, id: ResourceLocation, report: Report): Boolean {
         if (!Ages.isSupported()) {
-            source.sendFailure(Component.literal("Runtime Ages aren't supported on this loader yet (NeoForge backend pending)"))
+            report.fail("Runtime Ages aren't supported on this loader yet (NeoForge backend pending)")
             return false
         }
         if (id in AgeSavedData.get(source.server).ages) {
-            source.sendFailure(Component.literal("Age '$name' already exists"))
+            report.fail("Age '$name' already exists")
             return false
         }
         return true
     }
 
     /** Persists a recipe and opens its dimension — the last step of every way of authoring an Age. */
-    private fun open(source: CommandSourceStack, name: String, id: ResourceLocation, recipe: AgeRecipe): Int {
+    private fun open(source: CommandSourceStack, name: String, id: ResourceLocation, recipe: AgeRecipe, report: Report): Int {
         val level = Ages.create(source.server, id, recipe)
-        if (level == null) {
-            source.sendFailure(Component.literal("Could not create Age '$name'"))
-            return FAILURE
-        }
-        source.sendSuccess({ Component.literal("Created Age '$name' [$recipe] ($id). Travel with /age tp $name") }, true)
+        if (level == null) return report.fail("Could not create Age '$name'")
+        report.say { "Created Age '$name' [$recipe] ($id). Travel with /age tp $name" }
         return SUCCESS
     }
 
@@ -293,40 +335,55 @@ object AgeCommand {
      * `/age write <name> [<seed>] <words…>` — a sentence in, an Age out. [Resolver] does the work; this
      * reads the words and reports the composition, the cost, and every flaw with its reason.
      */
-    private fun runWrite(context: CommandContext<CommandSourceStack>, seed: Long?): Int {
+    private fun runWrite(context: CommandContext<CommandSourceStack>, seed: Long?, report: Report): Int {
         val source = context.source
         val name = StringArgumentType.getString(context, NAME_ARGUMENT)
         val id = ageId(name)
-        if (!canWrite(source, name, id)) return FAILURE
+        if (!canWrite(source, name, id, report)) return FAILURE
 
         val vocabulary = Vocabulary.of(source.server)
-        reportProblems(source, vocabulary)
+        reportProblems(report, vocabulary)
         val pages = StringArgumentType.getString(context, SENTENCE_ARGUMENT)
             .split(' ').filter(String::isNotBlank)
         val read = Grammar.read(vocabulary, pages)
-        if (read.isEmpty) {
-            source.sendFailure(Component.literal("An Age needs at least one word the Art can read"))
-            return FAILURE
-        }
-        reportParse(source, read)
+        if (read.isEmpty) return report.fail("An Age needs at least one word the Art can read")
+        reportParse(report, read)
 
         val chosenSeed = seed ?: AgeRecipe.seedFor(id)
         val resolution = Resolver.resolve(vocabulary, read, chosenSeed)
-        val result = open(source, name, id, AgeRecipe.written(source.server, resolution, chosenSeed))
+        val recipe = AgeRecipe.written(source.server, resolution, chosenSeed)
+        val result = open(source, name, id, recipe, report)
         if (result == FAILURE) return FAILURE
 
-        source.sendSuccess({ Component.literal("  cost ${resolution.cost}, ${resolution.instability}") }, false)
+        report.only("age", id)
+        report.only("recipe", recipe.world)
+        report.only("seed", chosenSeed)
+        report.fact("cost", resolution.cost) { "  cost ${resolution.cost}, ${resolution.instability}" }
+        report.only("instability", resolution.instability.index)
         for (flaw in resolution.instability.flaws) {
-            source.sendSuccess({ Component.literal("  ! $flaw") }, false)
+            val fields = mapOf(
+                "register" to flaw.register.key,
+                "words" to flaw.words,
+                "aspect" to flaw.aspect?.key,
+                "severity" to flaw.severity,
+            )
+            report.entry("flaws", fields) { "  ! $flaw" }
         }
+        report.finish()
         return SUCCESS
     }
 
     /**
-     * What the Art made of the book, said out loud before the Age is opened — the stand-in for the
-     * grammar having no punctuation (design §4.3.1), until scratch mode does it properly.
+     * What the Art made of the book, said out loud before the Age is opened — the stand-in for the desk's
+     * scratch mode (design §7.5) until it exists, and the only way the grammar's attachment is visible at
+     * all, since a book carries no punctuation to show it.
+     *
+     * The prose is the readout proper; the lines under it are this command's own, because `/age write` is
+     * a debug tool and *where* a word reaches is what an author of the vocabulary needs to see. A desk
+     * shows the prose alone.
      */
-    private fun reportParse(source: CommandSourceStack, read: Sentence) {
+    private fun reportParse(report: Report, read: Sentence) {
+        report.fact("readout", Readout.of(read)) { "  “${Readout.of(read)}”" }
         for (said in read.constraints) {
             val aimed = when (val scope = said.scope) {
                 is Scope.Everywhere ->
@@ -335,54 +392,67 @@ object AgeCommand {
                 is Scope.Confined -> scope.aspects.joinToString(" ") { it.key }.ifEmpty { "wherever it fits" }
             }
             val joined = said.group?.let { " (joined)" } ?: ""
-            source.sendSuccess({ Component.literal("  ${said.word.name} → $aimed$joined") }, false)
-        }
-        // Vagueness, never instability (§4.3) — but said plainly, so a typo is visible.
-        if (read.dropped.isNotEmpty()) {
-            source.sendSuccess(
-                { Component.literal("  unread, so the Age comes out vaguer: ${read.dropped.joinToString(" ")}") },
-                false,
+            val fields = mapOf(
+                "word" to said.word.name,
+                "reaches" to said.scope.reaches(emptyList()).map { it.key },
+                "polarity" to said.polarity.name.lowercase(),
+                "density" to said.density.key,
+                "joined" to (said.group != null),
             )
+            report.entry("said", fields) { "    ${said.word.name} → $aimed$joined" }
+        }
+        // Vagueness, never instability (§4.3) — but struck through and said plainly, because the readout
+        // above renders only what parsed, and prose that quietly omitted a page would read as though it
+        // had worked (§4.3.1).
+        report.only("dropped", read.dropped)
+        if (read.dropped.isNotEmpty()) {
+            report.styled {
+                val unread = Component.literal(read.dropped.joinToString(" "))
+                    .withStyle(ChatFormatting.STRIKETHROUGH)
+                Component.literal("  unread, so the Age comes out vaguer: ").append(unread)
+            }
         }
     }
 
     /** `/age words` — the whole vocabulary, with each word's tier and the aspects it may fill. */
-    private fun runVocabulary(context: CommandContext<CommandSourceStack>): Int {
+    private fun runVocabulary(context: CommandContext<CommandSourceStack>, report: Report): Int {
         val source = context.source
         val vocabulary = Vocabulary.of(source.server)
-        reportProblems(source, vocabulary)
+        reportProblems(report, vocabulary)
         if (vocabulary.words.isEmpty()) {
-            source.sendFailure(Component.literal("The Art knows no words at all — is the mod's data pack loaded?"))
-            return FAILURE
+            return report.fail("The Art knows no words at all — is the mod's data pack loaded?")
         }
         // Authored words are listed; derived ones are counted, since there is one per block in the pack.
         val authored = vocabulary.words.filter { it.id.namespace == Constants.MOD_ID }
-        source.sendSuccess({ Component.literal("The Art knows ${vocabulary.words.size} words.") }, false)
-        source.sendSuccess({ Component.literal("${authored.size} written by hand:") }, false)
+        report.fact("words", vocabulary.words.size) { "The Art knows ${vocabulary.words.size} words." }
+        report.fact("authored", authored.size) { "${authored.size} written by hand:" }
         for (word in authored) {
             val about = if (word.aspects.isEmpty()) "anywhere" else word.aspects.joinToString(" ") { it.key }
             val asks = word.query.entries.sortedBy { it.key }
                 .joinToString(" ") { (tag, weight) -> if (weight < 0) "-$tag" else tag }
-            source.sendSuccess({ Component.literal("  ${word.name} — ${word.tier.key}, $about: $asks") }, false)
+            val fields = mapOf(
+                "word" to word.name,
+                "tier" to word.tier.key,
+                "aspects" to word.aspects.map { it.key },
+                "aims" to word.aims,
+            )
+            report.entry("authoredWords", fields) { "  ${word.name} — ${word.tier.key}, $about: $asks" }
         }
         val structural = vocabulary.grammarWords
+        report.only("structural", structural.map { it.name })
         if (structural.isNotEmpty()) {
-            source.sendSuccess(
-                { Component.literal("${structural.size} structural: ${structural.joinToString(" ") { it.name }}") },
-                false,
-            )
+            report.say { "${structural.size} structural: ${structural.joinToString(" ") { it.name }}" }
         }
         // Per namespace, which says at a glance whether a mod's content reached the vocabulary (§8).
         val derivedByPack = vocabulary.words.filter { it.id.namespace != Constants.MOD_ID }
             .groupingBy { it.id.namespace }.eachCount().entries.sortedByDescending { it.value }
+        report.only("derived", vocabulary.words.size - authored.size)
         if (derivedByPack.isNotEmpty()) {
             val counts = derivedByPack.joinToString(", ") { (pack, many) -> "$pack $many" }
-            source.sendSuccess({ Component.literal("${vocabulary.words.size - authored.size} derived — $counts") }, false)
-            source.sendSuccess(
-                { Component.literal("  say any block, biome or structure by name, e.g. 'copper_block', 'mansion'") },
-                false,
-            )
+            report.say { "${vocabulary.words.size - authored.size} derived — $counts" }
+            report.say { "  say any block, biome or structure by name, e.g. 'copper_block', 'mansion'" }
         }
+        report.finish()
         return SUCCESS
     }
 
@@ -390,9 +460,10 @@ object AgeCommand {
      * Anything wrong with the loaded vocabulary. A word that could not be read must be reported, never
      * silently absent (design §3.3).
      */
-    private fun reportProblems(source: CommandSourceStack, vocabulary: Vocabulary) {
+    private fun reportProblems(report: Report, vocabulary: Vocabulary) {
+        report.only("problems", vocabulary.problems)
         for (problem in vocabulary.problems) {
-            source.sendFailure(Component.literal("Vocabulary problem: $problem"))
+            report.say { "Vocabulary problem: $problem" }
         }
     }
 
@@ -403,22 +474,18 @@ object AgeCommand {
      * Answers for the generator, not the save format: both are generated in one server run. Reads every
      * block rather than sampling, because the differences worth catching are small.
      */
-    private fun runCompare(context: CommandContext<CommandSourceStack>, radius: Int): Int {
+    private fun runCompare(context: CommandContext<CommandSourceStack>, radius: Int, report: Report): Int {
         val source = context.source
         val saved = AgeSavedData.get(source.server)
         val firstName = StringArgumentType.getString(context, FIRST_ARGUMENT)
         val secondName = StringArgumentType.getString(context, SECOND_ARGUMENT)
 
-        val first = openNamedAge(source, firstName) ?: return FAILURE
-        val second = openNamedAge(source, secondName) ?: return FAILURE
+        val first = openNamedAge(source, firstName, report) ?: return FAILURE
+        val second = openNamedAge(source, secondName, report) ?: return FAILURE
 
         val firstRecipe = saved.recipe(ageId(firstName))
         val secondRecipe = saved.recipe(ageId(secondName))
-        source.sendSuccess({
-            Component.literal(
-                "Comparing '$firstName' [$firstRecipe] with '$secondName' [$secondRecipe]",
-            )
-        }, false)
+        report.say { "Comparing '$firstName' [$firstRecipe] with '$secondName' [$secondRecipe]" }
 
         // Each world generated whole before the other is touched, so this asks whether the recipe
         // reproduces rather than whether two interleaved worlds happen to agree.
@@ -430,27 +497,35 @@ object AgeCommand {
         val differingBlocks = differences.sumOf { it.blocks }
         val differingChunks = differences.count { it.blocks > 0 }
 
-        val verdict = if (differingBlocks == 0) {
-            "identical: ${chunks.size} chunks agree block for block"
-        } else {
-            "$differingBlocks block(s) differ across $differingChunks of ${chunks.size} chunks"
+        // The prose says one of two sentences and the document always says the same three numbers: a
+        // reader should not have to notice that "identical" is where the zero went.
+        report.fact("differingBlocks", differingBlocks) {
+            val verdict = if (differingBlocks == 0) {
+                "identical: ${chunks.size} chunks agree block for block"
+            } else {
+                "$differingBlocks block(s) differ across $differingChunks of ${chunks.size} chunks"
+            }
+            "  $verdict"
         }
-        source.sendSuccess({ Component.literal("  $verdict") }, false)
-        differences.flatMap { it.examples }.take(MAX_REPORTED_DIFFERENCES).forEach { example ->
-            source.sendSuccess({ Component.literal("  $example") }, false)
+        report.only("differingChunks", differingChunks)
+        report.only("chunks", chunks.size)
+        report.only("identical", differingBlocks == 0)
+        for (example in differences.flatMap { it.examples }.take(MAX_REPORTED_DIFFERENCES)) {
+            report.entry("examples", mapOf("at" to example)) { "  $example" }
         }
+        report.finish()
         return SUCCESS
     }
 
     /** The Age called [name], opened — or null, having already said why. */
-    private fun openNamedAge(source: CommandSourceStack, name: String): ServerLevel? {
+    private fun openNamedAge(source: CommandSourceStack, name: String, report: Report): ServerLevel? {
         val id = ageId(name)
         if (id !in AgeSavedData.get(source.server).ages) {
-            source.sendFailure(Component.literal("No Age named '$name' — create it with /age create $name"))
+            report.fail("No Age named '$name' — create it with /age create $name")
             return null
         }
         val level = Ages.open(source.server, id)
-        if (level == null) source.sendFailure(Component.literal("Could not open Age '$name'"))
+        if (level == null) report.fail("Could not open Age '$name'")
         return level
     }
 
@@ -524,7 +599,7 @@ object AgeCommand {
     private fun runSkyReport(context: CommandContext<CommandSourceStack>, preview: String?): Int {
         val source = context.source
         val name = StringArgumentType.getString(context, NAME_ARGUMENT)
-        val level = openNamedAge(source, name) ?: return FAILURE
+        val level = openNamedAge(source, name, Report.prose(source)) ?: return FAILURE
         val recipe = AgeSavedData.get(source.server).recipe(ageId(name))
 
         val spec = if (preview == null) {
@@ -595,7 +670,7 @@ object AgeCommand {
         val source = context.source
         val player = source.playerOrException
         val name = StringArgumentType.getString(context, NAME_ARGUMENT)
-        val level = openNamedAge(source, name) ?: return FAILURE
+        val level = openNamedAge(source, name, Report.prose(source)) ?: return FAILURE
         Ages.teleport(player, level)
         source.sendSuccess({ Component.literal("Travelled to Age '$name'") }, true)
         return SUCCESS
@@ -608,7 +683,7 @@ object AgeCommand {
     private fun runGenerate(context: CommandContext<CommandSourceStack>): Int {
         val source = context.source
         val name = StringArgumentType.getString(context, NAME_ARGUMENT)
-        val level = openNamedAge(source, name) ?: return FAILURE
+        val level = openNamedAge(source, name, Report.prose(source)) ?: return FAILURE
         level.getChunk(0, 0) // force full generation of the spawn chunk
         val surfaceY = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, 0, 0)
         val surfaceBlock = blockName(level, 0, surfaceY - 1, 0)
@@ -634,7 +709,7 @@ object AgeCommand {
     private fun runBenchmark(context: CommandContext<CommandSourceStack>, radius: Int): Int {
         val source = context.source
         val name = StringArgumentType.getString(context, NAME_ARGUMENT)
-        val level = openNamedAge(source, name) ?: return FAILURE
+        val level = openNamedAge(source, name, Report.prose(source)) ?: return FAILURE
         val startedAt = System.nanoTime()
         for (chunkX in -radius..radius) {
             for (chunkZ in -radius..radius) {
@@ -665,7 +740,7 @@ object AgeCommand {
     private fun runBiomeCensus(context: CommandContext<CommandSourceStack>, radiusChunks: Int): Int {
         val source = context.source
         val name = StringArgumentType.getString(context, NAME_ARGUMENT)
-        val level = openNamedAge(source, name) ?: return FAILURE
+        val level = openNamedAge(source, name, Report.prose(source)) ?: return FAILURE
 
         val biomes = level.chunkSource.generator.biomeSource
         val climate = level.chunkSource.randomState().sampler()
@@ -755,23 +830,34 @@ object AgeCommand {
      * Every Age and the recipe it is rebuilt from, one to a line. Unrecognised options are called out,
      * so a misspelt knob is distinguishable from one that had no effect.
      */
-    private fun runList(context: CommandContext<CommandSourceStack>): Int {
+    private fun runList(context: CommandContext<CommandSourceStack>, report: Report): Int {
         val source = context.source
         val saved = AgeSavedData.get(source.server)
         val ages = saved.ages
+        report.only("count", ages.size)
         if (ages.isEmpty()) {
-            source.sendSuccess({ Component.literal("No Ages yet — write one with /age create <name>") }, false)
+            report.say { "No Ages yet — write one with /age create <name>" }
+            report.finish()
             return SUCCESS
         }
-        source.sendSuccess({ Component.literal("Ages (${ages.size}):") }, false)
+        report.say { "Ages (${ages.size}):" }
         for (id in ages) {
             val recipe = saved.recipe(id)
-            source.sendSuccess({ Component.literal("  $id — $recipe") }, false)
             val unknown = recipe.composition?.unknownOptions.orEmpty()
+            val fields = mapOf(
+                "age" to id,
+                "recipe" to recipe.world,
+                "seed" to recipe.seed,
+                "sentence" to recipe.words.joinToString(" "),
+                "instability" to recipe.instability.index,
+                "unrecognised" to unknown,
+            )
+            report.entry("ages", fields) { "  $id — $recipe" }
             if (unknown.isNotEmpty()) {
-                source.sendSuccess({ Component.literal("    (ignored, unrecognised: ${unknown.joinToString(" ")})") }, false)
+                report.say { "    (ignored, unrecognised: ${unknown.joinToString(" ")})" }
             }
         }
+        report.finish()
         return SUCCESS
     }
 }

@@ -32,7 +32,7 @@ correct itself in place. Rewrite the paragraph that is now wrong.
 
 Current state: a working **runtime-dimension spike** exists (see "Ages / runtime dimensions" below) — `/age create|tp|list` authors a persistent dimension that survives restart. It's **command-driven and Fabric-only** for now; the player-facing books, the symbol grammar, and a NeoForge backend are still to come. The rest is template scaffolding (a demo title-screen Mixin, hello-world logging).
 
-The version is pinned to 1.21.1 because Fabric's Fantasy `0.6.4+1.21` (our runtime-dimension library) targets it — do not bump Minecraft versions without revisiting that constraint.
+The version is pinned to 1.21.1. **That pin's original cause is gone** — it was Fantasy, which has since kept pace with Minecraft all the way to 26.2 — so what holds us here now is *our own* code: the sky renderer is a verified 1.21.1 reference, and `AgeChunkGenerator`'s access-widener/transformer lines, the surface rules and the structure-placement codecs are all version-shaped. Upgrading is a piece of work with the sky renderer as its acceptance test, not a version bump. See `notes/ui-libraries-research.md`.
 
 ## Requirements
 
@@ -64,32 +64,41 @@ export JAVA_HOME="$HOME/.sdkman/candidates/java/current"; export PATH="$JAVA_HOM
 ./gradlew :common:test
 ./gradlew :common:test -Pfast
 
-# Drive the headless server through a list of /age commands and stop it (see scripts/checks/)
+# The server checks — boots a real server, drives it over RCON, asserts in Kotest
+./gradlew :common:serverTest
+
+# Drive a headless server through a list of /age commands and read the output (see scripts/checks/)
 scripts/drive-server.sh scripts/checks/regions.txt
-scripts/drive-server-check.sh          # checks drive-server's own expectation layer, no server needed
 ```
 
-**Headless checks go through `scripts/drive-server.sh`.** It waits for each command to *finish*
-before sending the next — by echoing a unique token back through `say`, since console commands are
-drained by the server thread in order — rather than sleeping a guessed interval. It also writes to a
-throwaway world by default (`--level` to override) and restores `server.properties` on the way out,
-so a check can never disturb a save.
+**Server checks are `./gradlew :common:serverTest`, and they own their own acceptance.** A Kotest spec
+tagged `NEEDS_SERVER` uses `DrivenServer` (in `common/src/test/kotlin/.../server/`) to boot a dedicated
+server, drive it over **RCON**, and assert on what comes back. The concerns are split on purpose: the
+driver starts, sends and stops, and *asserts nothing*; Kotest decides whether an answer is right, so a
+failure carries a Power-Assert diagram rather than "nothing matched".
 
-**It now asserts as well as drives.** A `#?` line in a command file is a claim about the output of the
-command below it, so a recorded measurement can be written down as something that fails rather than as
-prose somebody has to read:
+RCON is what makes that possible. `DedicatedServer.runCommand` is `prepareForCommand()` /
+`executeBlocking(…)` / `getCommandResponse()`, so each command runs on the server thread, the call waits
+for it, and the reply holds **that command's output and nothing else** — no barrier tokens, no slicing a
+shared log, no timestamps to strip. Failures come back too (`RconConsoleSource.acceptsFailure()`).
 
-```
-#? at-least 10000 block\(s\) differ
-age compare riddledonly riddledsolid 6
-```
+Two things that follow, and both are load-bearing:
 
-The verbs are `expect` / `reject` (an extended regex against the command's own output) and
-`at-least` / `at-most` (the first number on the matching line, commas stripped). Several may stack on one
-command. They are evaluated against the log after the server stops, and a failure exits 1. **A file with
-no expectations behaves exactly as before** — it drives, and you read the output, which is still the right
-shape for the exploratory ones. The slicing that gives each command its own output is itself checked by
-`scripts/drive-server-check.sh`, because a slicing bug would make every expectation pass silently.
+- **The commands can answer in JSON**, written `/age <subcommand> json …` (the literal goes straight after
+  the subcommand because `/age write`'s sentence is greedy). Prose stays the default and is unchanged in
+  game. A structured answer is *one* message, which matters because RCON concatenates a command's messages
+  with no separator — so the buffer *is* the document. See `age/Report.kt`.
+- **The server is started without Gradle.** These specs run inside a Gradle-launched JVM and a nested
+  `./gradlew` would wait on the outer build's locks, so `:fabric:exportServerLaunch` writes the launch
+  command down and `DrivenServer` starts the JVM itself. It writes to a fresh `checks-…` world, restores
+  `server.properties`, and removes that world afterwards — the only deletion in the harness, fenced on the
+  name and location so it can never reach a world a person plays.
+
+**`scripts/drive-server.sh` remains, as a driver only.** It runs a list of `/age` commands against a
+server and prints what they say, for the exploratory files that are meant to be *read* — `aspects.txt`,
+`regions.txt`, `generator-parity.txt`. Its old `#?` assertion layer is gone (`#?` lines are skipped so old
+files still drive): it read the first integer on the matching line, which on a real server log is the
+hour off the timestamp, so `at-least 100` could never pass and `at-most 2000` could never fail.
 
 Run directories are `runs/` (Fabric) and `run/` (NeoForge), both git-ignored. The first build/run downloads Minecraft, mappings, and the loader toolchains — slow once, then cached.
 
@@ -157,12 +166,16 @@ The core mechanic — creating dimensions ("Ages") at runtime and persisting the
   Resolution is a **pure function of (vocabulary, sentence, seed)**; the resolved composition is what
   persists, never the words (design §4.6).
 - **`age/word/grammar/`** — **the parser**, and a boundary worth respecting. `Grammar.read(vocabulary,
-  pages) → Sentence` is the entire port; `Sentence`/`Constraint`/`Scope`/`Polarity`/`Group` are ours and
-  carry no parser concepts, which is what lets checks build sentences by hand and lets the parser be
-  replaced by rewriting one file. **`ArtGrammar.kt` is the only file in the mod that may import
+  pages) → Sentence` is the entire port; `Sentence`/`Phrase`/`Constraint`/`Scope`/`Polarity`/`Group` are
+  ours and carry no parser concepts, which is what lets checks build sentences by hand and lets the parser
+  be replaced by rewriting one file. **`ArtGrammar.kt` is the only file in the mod that may import
   `org.antlr`** — `GrammarCheck` fails the build if any other does. The grammar itself is
   `common/src/main/antlr/.../Art.g4`; it has **no lexer rules**, because the input is a list of pages
-  already looked up in the `Vocabulary` and stamped with a class.
+  already looked up in the `Vocabulary` and stamped with a class. A section is opened by an **aiming page**
+  (`landmass`, `climate`, `sky`) and never by a word that fills something — presets are ours, not the
+  player's. `Readout.of(sentence)` says the parse back as prose, which is how attachment is visible at all.
+- **`age/word/BookGenerator.kt`** — the pipeline run backwards: a vocabulary and a seed in, a well-formed
+  book out. Content (Phase 7's found books) and test harness (`BookCheck` fuzzes 2000 a run) in one build.
 - **`Instability`** — how far an Age is at odds with itself, in four registers, each `Flaw` naming the words,
   slot and tags involved. Provenance is the point: a flaw has to be diagnosable, and §5's consequences read
   this long after the book was written. Part of the recipe.

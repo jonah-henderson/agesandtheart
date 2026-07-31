@@ -95,6 +95,7 @@ object Resolver {
         // one seed draw identical filler wherever neither constrains anything.
         val draw = seed xor saltOf(sentence.words)
         val flaws = mutableListOf<Flaw>()
+        flaws += misaimed(vocabulary, said)
         val filled = Aspect.entries.associateWith { aspect -> fill(vocabulary, aspect, said, draw, flaws) }
         flaws += tensions(vocabulary, said, filled.mapValues { (_, filling) -> filling.map { it.preset } })
 
@@ -106,6 +107,18 @@ object Resolver {
             dropped = sentence.dropped,
         )
     }
+
+    /**
+     * Words aimed where they say nothing — `flat sky`, the empty intersection of §4.3.1.
+     *
+     * Found here rather than inside [fill], because a word that reaches no aspect at all is in no aspect's
+     * hearing and every other register is charged from *within* one. Left uncharged it is the worst of
+     * both: a page spent, a cost paid, and silence.
+     */
+    private fun misaimed(vocabulary: Vocabulary, sentence: List<Constraint>): List<Flaw> =
+        sentence.filter { reachOf(vocabulary, it).isEmpty() }.map { said ->
+            flaw(Register.MISAIMED, listOf(said), aspect = null, tags = emptyList(), tier = said.word.tier)
+        }
 
     /**
      * Which aspects a constraint speaks to — the grammar's answer, not a search (§4.3.1). "Anywhere"
@@ -442,7 +455,7 @@ object Resolver {
     private fun opposedTags(vocabulary: Vocabulary, first: Constraint, second: Constraint): List<String> =
         oppositionBetween(vocabulary, first, second)?.let { listOf(it.first, it.second) } ?: emptyList()
 
-    private fun flaw(register: Register, said: List<Constraint>, aspect: Aspect, tags: List<String>, tier: Tier) =
+    private fun flaw(register: Register, said: List<Constraint>, aspect: Aspect?, tags: List<String>, tier: Tier) =
         Flaw(register, said.map { it.word.name }, aspect, tags, register.charge(tier))
 
     /**
@@ -683,10 +696,11 @@ object Resolver {
 
     /**
      * What this constraint asks of [parameter], spelled the way a recipe holds it. Only a populative
-     * parameter reads the polarity back — `only` on a material is not built (§3.2).
+     * parameter reads the polarity and the rung back — `only` on a material is not built, and neither is
+     * "a great deal of blackstone" (§3.2).
      */
     private fun Constraint.claimed(parameter: String): String =
-        Claim(word.sets.getValue(parameter), polarity).spelled()
+        Claim(word.sets.getValue(parameter), polarity, density).spelled()
 
     /**
      * A predicative parameter with more than one claimant — where `and` earns its place (§3.2).
