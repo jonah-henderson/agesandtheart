@@ -44,23 +44,56 @@ class WritersDeskMenu(
     /** The binding, held rather than consumed until the book is actually made. */
     private val binding: Container = SimpleContainer(1)
 
+    /** Where a finished book lands, so binding produces something you take rather than something you find. */
+    private val output: Container = SimpleContainer(1)
+
+    /**
+     * Which tab the screen is showing.
+     *
+     * The menu needs it because slots cannot move — `Slot.x` and `y` are final — so each slot sits where
+     * its own tab wants it and is simply *inactive* on the others. The client says which tab it is on.
+     */
+    var openTab: Int = 0
+
     /** Words laid out, in order. Order is word order, so this is a list and never a set. */
     val composing: MutableList<Identifier> = mutableListOf()
 
     init {
+        // The general doorway: everything you hand the desk except the binding, on the supplies tab.
         addSlot(object : Slot(intake, 0, INTAKE_X, INTAKE_Y) {
-            override fun mayPlace(stack: ItemStack): Boolean = DeskIntake.accepts(stack)
+            override fun mayPlace(stack: ItemStack): Boolean = isActive && DeskIntake.accepts(stack)
+            override fun isActive(): Boolean = openTab == SUPPLIES_TAB
         })
+        // The binding and what it produces, both on the book tab where the decision is made.
         addSlot(object : Slot(binding, 0, BINDING_X, BINDING_Y) {
-            override fun mayPlace(stack: ItemStack): Boolean = stack.`is`(BookBinding.TAG)
+            override fun mayPlace(stack: ItemStack): Boolean = isActive && stack.`is`(BookBinding.TAG)
+            override fun isActive(): Boolean = openTab == BOOK_TAB
+        })
+        addSlot(object : Slot(output, 0, OUTPUT_X, OUTPUT_Y) {
+            /** Take-only: a finished book is produced here, never placed here. */
+            override fun mayPlace(stack: ItemStack): Boolean = false
+            override fun isActive(): Boolean = openTab == BOOK_TAB
         })
         for (row in 0 until 3) {
             for (column in 0 until 9) {
-                addSlot(Slot(playerInventory, column + row * 9 + 9, INVENTORY_X + column * 18, INVENTORY_Y + row * 18))
+                addSlot(
+                    object : Slot(
+                        playerInventory,
+                        column + row * 9 + 9,
+                        INVENTORY_X + column * 18,
+                        INVENTORY_Y + row * 18,
+                    ) {
+                        override fun isActive(): Boolean = openTab == SUPPLIES_TAB
+                    },
+                )
             }
         }
         for (column in 0 until 9) {
-            addSlot(Slot(playerInventory, column, INVENTORY_X + column * 18, HOTBAR_Y))
+            addSlot(
+                object : Slot(playerInventory, column, INVENTORY_X + column * 18, HOTBAR_Y) {
+                    override fun isActive(): Boolean = openTab == SUPPLIES_TAB
+                },
+            )
         }
     }
 
@@ -124,10 +157,10 @@ class WritersDeskMenu(
                 for (word in composing) desk.addPages(word, 1)
             }
             composing.clear()
-            val held = binding.removeItemNoUpdate(0)
-            if (!held.isEmpty && !player.inventory.add(held)) player.drop(held, false)
-            val leftover = intake.removeItemNoUpdate(0)
-            if (!leftover.isEmpty && !player.inventory.add(leftover)) player.drop(leftover, false)
+            for (container in listOf(binding, intake, output)) {
+                val held = container.removeItemNoUpdate(0)
+                if (!held.isEmpty && !player.inventory.add(held)) player.drop(held, false)
+            }
         }
     }
 
@@ -142,6 +175,12 @@ class WritersDeskMenu(
 
     fun consumeBinding() {
         binding.removeItem(0, 1)
+    }
+
+    fun outputIsFree(): Boolean = output.getItem(0).isEmpty
+
+    fun putOutput(stack: ItemStack) {
+        output.setItem(0, stack)
     }
 
     /** What the screen should be showing right now. */
@@ -160,19 +199,26 @@ class WritersDeskMenu(
     fun knows(player: ServerPlayer, word: Identifier): Boolean = player.learnedWords.knows(word)
 
     companion object {
-        // Large-chest geometry throughout: the player's half is pixel-identical to a double chest, and
-        // our two slots sit in the bottom right of the panel above it.
-        private const val INTAKE_X = 133
-        private const val INTAKE_Y = 111
-        private const val BINDING_X = 151
-        private const val BINDING_Y = 111
+        /** Tab ordinals, shared with the screen's `DeskTab` — the menu only needs to compare them. */
+        const val BOOK_TAB = 2
+        const val SUPPLIES_TAB = 3
+
+        /** Centred on the supplies tab, which is the only place it appears. */
+        private const val INTAKE_X = 79
+        private const val INTAKE_Y = 60
+
+        /** Beneath the composition on the book tab: what binds it, and what comes out. */
+        private const val BINDING_X = 110
+        private const val BINDING_Y = 152
+        private const val OUTPUT_X = 140
+        private const val OUTPUT_Y = 152
 
         private const val INVENTORY_X = 8
         private const val INVENTORY_Y = 139
         private const val HOTBAR_Y = 197
 
         /** Our two slots come first, so everything from here is the player's. */
-        private const val FIRST_PLAYER_SLOT = 2
+        private const val FIRST_PLAYER_SLOT = 3
 
         fun vocabularyFor(player: ServerPlayer): Vocabulary = Vocabulary.of(player.level().server)
 

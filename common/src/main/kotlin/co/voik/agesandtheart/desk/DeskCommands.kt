@@ -60,6 +60,8 @@ object DeskCommands {
             DeskAction.COMPOSE_FROM_ARCHIVE -> composeFromArchive(menu, desk, payload)
             DeskAction.RETURN_TO_ARCHIVE -> returnToArchive(menu, desk, payload)
             DeskAction.WITHDRAW -> withdraw(player, desk, payload)
+            // No sync afterwards: the tab is the client's own state and it already knows.
+            DeskAction.SET_TAB -> { menu.openTab = payload.index; return }
             DeskAction.PRICE -> return quote(player, payload)
             DeskAction.MOVE_IN_BOOK -> moveInBook(menu, payload)
             DeskAction.FINALISE -> finalise(player, menu, desk, payload)
@@ -183,6 +185,7 @@ object DeskCommands {
         val title = payload.title.trim()
         if (title.isEmpty()) return complain(player, "no_name")
         if (menu.bindingStack().isEmpty) return complain(player, "no_binding")
+        if (!menu.outputIsFree()) return complain(player, "output_full")
 
         // No ink here on purpose: it was spent writing each page, and charging again at the binding
         // would tax the same words twice.
@@ -191,7 +194,8 @@ object DeskCommands {
         book.set(AgeContent.BOOK_TITLE, title)
         menu.consumeBinding()
         menu.composing.clear()
-        if (!player.inventory.add(book)) player.drop(book, false)
+        // Into the output slot rather than the inventory: a book you take is a book you saw being made.
+        menu.putOutput(book)
         Constants.LOG.debug("{} bound the Age '{}'", player.gameProfile.name, title)
     }
 

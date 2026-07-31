@@ -23,7 +23,14 @@ object DeskModel {
     var state: DeskSyncPayload? = null
         private set
 
+    /** When the archive last grew, so the tab that owns it can react. */
+    var archiveGrewAt: Long = 0L
+        private set
+
     fun remember(payload: DeskSyncPayload) {
+        val before = state?.archive?.values?.sum() ?: 0
+        val after = payload.archive.values.sum()
+        if (after > before) archiveGrewAt = System.currentTimeMillis()
         state = payload
     }
 
@@ -45,6 +52,7 @@ object DeskModel {
     fun forget() {
         state = null
         price = null
+        archiveGrewAt = 0L
     }
 
     fun ink(tier: InkTier): Long = state?.ink?.get(tier) ?: 0L

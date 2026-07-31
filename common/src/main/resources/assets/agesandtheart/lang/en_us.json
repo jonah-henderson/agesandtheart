@@ -104,5 +104,7 @@
   "container.agesandtheart.writers_desk.ink": "%s: %s / %s buckets",
   "container.agesandtheart.writers_desk.ink.common": "Ink",
   "container.agesandtheart.writers_desk.ink.fine": "Fine Ink",
-  "container.agesandtheart.writers_desk.ink.masterwork": "D'ni Ink"
+  "container.agesandtheart.writers_desk.ink.masterwork": "D'ni Ink",
+  "container.agesandtheart.writers_desk.supplies": "Add Supplies",
+  "container.agesandtheart.writers_desk.output_full": "Take the finished book first"
 }

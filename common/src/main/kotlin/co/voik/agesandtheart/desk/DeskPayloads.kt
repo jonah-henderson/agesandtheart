@@ -139,6 +139,9 @@ enum class DeskAction {
     /** Give the player a physical page from the archive. */
     WITHDRAW,
 
+    /** Tell the desk which tab is open, so it knows which slots exist. */
+    SET_TAB,
+
     /** Ask what a word would cost. Answered with [DeskPricePayload]; changes nothing. */
     PRICE,
 
