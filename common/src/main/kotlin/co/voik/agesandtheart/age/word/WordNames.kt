@@ -11,7 +11,14 @@ object WordNames {
     /**
      * The translated name, falling back to the id itself — which is what a derived word gets, there being
      * some hundreds of them and no reason to translate `minecraft:blackstone` twice.
+     *
+     * Title-cased, because a word of the Art is a name. The authored half is capitalised in the language
+     * file so translators keep control of it; only the derived fallback is cased here.
      */
     fun readable(word: Identifier): Component =
-        Component.translatableWithFallback(key(word), word.path.replace('_', ' '))
+        Component.translatableWithFallback(key(word), titleCase(word.path.replace('_', ' ')))
+
+    private fun titleCase(text: String): String = text
+        .split(' ')
+        .joinToString(" ") { part -> part.replaceFirstChar(Char::titlecase) }
 }
