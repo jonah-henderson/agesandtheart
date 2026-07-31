@@ -16,3 +16,11 @@
 *.pyd binary
 *.cfg text eol=lf
 *.jks binary
+
+# Fonts. Without these the catch-all `* text eol=lf` above rewrites line endings inside a binary
+# and quietly corrupts the file — verified: the first commit of DniFont.ttf did not match the
+# working copy.
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary

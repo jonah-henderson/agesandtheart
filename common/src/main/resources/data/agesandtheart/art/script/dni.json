@@ -1,0 +1,36 @@
+{
+  "_comment": [
+    "Words the D'ni Lexicon actually attests, in the typeface's encoding. Everything absent here is",
+    "approximated by art/transliteration.json instead, so this table is free to stay small.",
+    "Source: the D'ni Lexicon (eldalamberon.com/dni_dict.htm), whose entries pair a romanisation",
+    "with its typeface spelling — e.g. delahn / Delan, 'sky'."
+  ],
+  "spellings": {
+    "ancient": "ogla",
+    "arid": "Kirin",
+    "basalt": "abxEex",
+    "beautiful": "åtinoret",
+    "climate": "aca",
+    "colossal": "para",
+    "frozen": "torinI",
+    "hollow": "galpo",
+    "landmass": "bantano",
+    "molten": "anotam",
+    "sea": "birano",
+    "sky": "Delan",
+    "slate": "pråD",
+    "stormy": "garKalex",
+    "structures": "garEsen",
+    "temperate": "cEco",
+    "towering": "xanlE",
+    "tropical": "hAvu",
+    "uncanny": "bel'ka",
+
+    "and": "ga",
+    "only": "Kåt",
+    "except": "rUb",
+    "plentiful": "Kosu",
+    "scarce": "ka",
+    "teeming": "lESa"
+  }
+}

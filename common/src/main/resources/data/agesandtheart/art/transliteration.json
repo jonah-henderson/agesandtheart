@@ -1,0 +1,55 @@
+{
+  "_comment": [
+    "How an English word is approximated in D'ni when nobody has spelled it (art/dni/*.json).",
+    "Rewrites are tried in this order at each position, so longer sequences come first.",
+    "The right-hand side is the TYPEFACE's encoding, not a romanisation: capitals are separate",
+    "glyphs, and the font has no 'q'. Derived from the paired forms in the D'ni Lexicon, which",
+    "these rules reproduce for about 88% of its entries."
+  ],
+  "font": "agesandtheart:script",
+  "rules": [
+    { "from": "_", "to": " " },
+
+    { "from": "tch", "to": "c" },
+    { "from": "igh", "to": "I" },
+
+    { "from": "kh", "to": "k" },
+    { "from": "dh", "to": "d" },
+    { "from": "ch", "to": "c" },
+    { "from": "sh", "to": "S" },
+    { "from": "th", "to": "T" },
+    { "from": "ph", "to": "f" },
+    { "from": "ck", "to": "K" },
+    { "from": "qu", "to": "Kw" },
+    { "from": "ts", "to": "x" },
+    { "from": "wh", "to": "w" },
+
+    { "from": "ee", "to": "E" },
+    { "from": "ea", "to": "E" },
+    { "from": "ie", "to": "E" },
+    { "from": "oo", "to": "U" },
+    { "from": "ou", "to": "U" },
+    { "from": "ay", "to": "A" },
+    { "from": "ai", "to": "A" },
+    { "from": "oy", "to": "O" },
+    { "from": "oi", "to": "O" },
+    { "from": "oa", "to": "o" },
+
+    { "from": "ah", "to": "a" },
+    { "from": "eh", "to": "e" },
+    { "from": "uh", "to": "u" },
+    { "from": "oh", "to": "o" },
+    { "from": "ih", "to": "i" },
+
+    { "from": "ce", "to": "se" },
+    { "from": "ci", "to": "si" },
+    { "from": "cy", "to": "sy" },
+
+    { "from": "c", "to": "K" },
+    { "from": "q", "to": "K" },
+    { "from": "x", "to": "Ks" },
+    { "from": "d", "to": "D" },
+    { "from": "k", "to": "K" },
+    { "from": "a", "to": "å" }
+  ]
+}

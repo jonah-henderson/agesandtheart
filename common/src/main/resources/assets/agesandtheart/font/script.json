@@ -1,0 +1,17 @@
+{
+  "_comment": [
+    "The typeface the Art's script is drawn in. Named by data/agesandtheart/art/transliteration.json,",
+    "not by code — point that file's `font` at a different id and this becomes unused.",
+    "Deleting this file and the .ttf beside it degrades the page screen to plain letters, which is the",
+    "intended escape hatch if the typeface ever has to go."
+  ],
+  "providers": [
+    {
+      "type": "ttf",
+      "file": "agesandtheart:DniFont.ttf",
+      "shift": [0, 0],
+      "size": 11,
+      "oversample": 4
+    }
+  ]
+}
