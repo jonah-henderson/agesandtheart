@@ -21,6 +21,14 @@
     "agesandtheart:ancient_city_notebook",
     "agesandtheart:woodland_mansion_notebook",
     "agesandtheart:village_village_cartographer_notebook",
-    "agesandtheart:bastion_treasure_notebook"
+    "agesandtheart:bastion_treasure_notebook",
+    "agesandtheart:stronghold_library_linking_book",
+    "agesandtheart:ancient_city_linking_book",
+    "agesandtheart:woodland_mansion_linking_book",
+    "agesandtheart:stronghold_corridor_linking_book",
+    "agesandtheart:desert_pyramid_linking_book",
+    "agesandtheart:jungle_temple_linking_book",
+    "agesandtheart:village_village_cartographer_linking_book",
+    "agesandtheart:simple_dungeon_linking_book"
   ]
 }

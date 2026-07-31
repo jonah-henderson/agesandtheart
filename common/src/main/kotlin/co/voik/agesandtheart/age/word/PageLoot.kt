@@ -34,6 +34,17 @@ object PageLoot {
         ResourceKey.create(Registries.LOOT_TABLE, "inject/notebook".location())
 
     /**
+     * A way home, left by someone who had one. Rarer than pages by some way — a page is a word, this is
+     * the thing that decides whether you dare go anywhere.
+     *
+     * Seeded at all because a linking book you must *craft* cannot be your first one: fine ink and fine
+     * paper are mid-game, and going somewhere is early-game. Later these belong in the library structures
+     * rather than scattered (design backlog), and the scatter should thin out as that lands.
+     */
+    val LINKING_BOOK: ResourceKey<LootTable> =
+        ResourceKey.create(Registries.LOOT_TABLE, "inject/linking_book".location())
+
+    /**
      * Chosen for places someone once wrote in: libraries and temples over mineshafts, and nothing that
      * would make pages a mob drop. Chances are per-container, not per-chest-slot.
      */
@@ -61,6 +72,16 @@ object PageLoot {
         vanilla("chests/woodland_mansion", 0.07f, NOTEBOOK),
         vanilla("chests/village/village_cartographer", 0.05f, NOTEBOOK),
         vanilla("chests/bastion_treasure", 0.04f, NOTEBOOK),
+
+        // Linking books: rarer than pages everywhere, and only where somebody kept their things.
+        vanilla("chests/stronghold_library", 0.20f, LINKING_BOOK),
+        vanilla("chests/ancient_city", 0.14f, LINKING_BOOK),
+        vanilla("chests/woodland_mansion", 0.12f, LINKING_BOOK),
+        vanilla("chests/stronghold_corridor", 0.10f, LINKING_BOOK),
+        vanilla("chests/desert_pyramid", 0.08f, LINKING_BOOK),
+        vanilla("chests/jungle_temple", 0.08f, LINKING_BOOK),
+        vanilla("chests/village/village_cartographer", 0.08f, LINKING_BOOK),
+        vanilla("chests/simple_dungeon", 0.05f, LINKING_BOOK),
     )
 
     /** Every target for a table, since pages and a notebook may both reach the same container. */

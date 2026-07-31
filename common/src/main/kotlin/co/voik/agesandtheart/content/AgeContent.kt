@@ -2,6 +2,7 @@ package co.voik.agesandtheart.content
 
 import co.voik.agesandtheart.age.word.FillNotebookFunction
 import co.voik.agesandtheart.age.word.PageWordFunction
+import co.voik.agesandtheart.book.BindLinkingBookFunction
 import co.voik.agesandtheart.book.BookEntity
 import co.voik.agesandtheart.book.LinkTarget
 import co.voik.agesandtheart.desk.WritersDeskBlock
@@ -255,6 +256,7 @@ object AgeContent {
     val lootFunctions: List<Pair<Identifier, MapCodec<out LootItemFunction>>> = listOf(
         "roll_page_word".location() to PageWordFunction.MAP_CODEC,
         "fill_notebook".location() to FillNotebookFunction.MAP_CODEC,
+        "bind_linking_book".location() to BindLinkingBookFunction.MAP_CODEC,
     )
 
     /**

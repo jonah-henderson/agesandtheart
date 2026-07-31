@@ -45,18 +45,21 @@ class PageLootCheck : FunSpec({
 
     /** Every modifier adds one of ours, never something that happens to parse. */
     test("every modifier adds a shipped table") {
-        val ours = setOf(PageLoot.PAGES, PageLoot.NOTEBOOK).map { it.identifier().toString() }
+        val ours = setOf(PageLoot.PAGES, PageLoot.NOTEBOOK, PageLoot.LINKING_BOOK)
+            .map { it.identifier().toString() }
         val tables = modifierDirectory.listFiles { file -> file.extension == "json" }.orEmpty()
             .map { JsonParser.parseString(it.readText()).asJsonObject["table"].asString }
         check(tables.all { it in ours }) { "A modifier adds something that is not ours: $tables" }
     }
 
-    /** A notebook is a hoard, so it must stay markedly rarer than loose pages in the same container. */
-    test("notebooks are rarer than pages wherever both appear") {
+    /** A page is a word; a notebook is a hoard and a linking book is a way home. Both outrank a page. */
+    test("notebooks and linking books are rarer than pages wherever both appear") {
         val pages = PageLoot.TARGETS.filter { it.injected == PageLoot.PAGES }.associate { it.table to it.chance }
         val tooCommon = PageLoot.TARGETS
-            .filter { it.injected == PageLoot.NOTEBOOK }
-            .filter { notebook -> pages[notebook.table]?.let { notebook.chance >= it } ?: false }
-        check(tooCommon.isEmpty()) { "Notebooks are no rarer than pages in: ${tooCommon.map { it.table.identifier() }}" }
+            .filter { it.injected != PageLoot.PAGES }
+            .filter { rarer -> pages[rarer.table]?.let { rarer.chance >= it } ?: false }
+        check(tooCommon.isEmpty()) {
+            "These are no rarer than pages: ${tooCommon.map { it.table.identifier() to it.injected.identifier() }}"
+        }
     }
 })

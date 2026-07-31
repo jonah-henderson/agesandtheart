@@ -1,17 +1,19 @@
 {
   "_comment": [
-    "Leather, paper, a quill and ink. Subject to revision -- the ink bottle ties it to the ink economy,",
-    "which is probably right, but the ratio has had no balancing thought yet.",
-    "The result is blank; writing it in is using it, which costs nothing but the place you stand."
+    "Fine ink and fine paper, so a linking book is a mid-tier reward rather than a consumable.",
+    "The ink is a BUCKET because ink is a fluid and a crafting ingredient must be an item -- a bucket for",
+    "one book is almost certainly too much, and the right unit is a fine ink bottle, which needs the desk",
+    "to be able to fill bottles from a tank. Ratio is explicitly unbalanced; the shape is the point.",
+    "The empty bucket comes back via the item's craft remainder."
   ],
   "type": "minecraft:crafting_shapeless",
   "category": "misc",
   "group": "agesandtheart_books",
   "ingredients": [
     "minecraft:leather",
-    "minecraft:paper",
+    "agesandtheart:fine_paper",
     "minecraft:feather",
-    "agesandtheart:ink_bottle"
+    "agesandtheart:fine_ink_bucket"
   ],
   "result": {
     "id": "agesandtheart:linking_book",

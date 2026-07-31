@@ -61,6 +61,12 @@ class LinkingBookItem(properties: Properties) : Item(properties) {
         player: ServerPlayer,
         hand: InteractionHand,
     ): InteractionResult {
+        // Linking is travel *between* worlds. A book that moves you within one is not a linking book —
+        // which is both the lore and, incidentally, what stops this being an overland taxi.
+        if (target.dimension == level.dimension()) {
+            player.sendSystemMessage(Component.translatable("book.agesandtheart.same_world"), true)
+            return InteractionResult.FAIL
+        }
         val destination = level.server.getLevel(target.dimension)
         if (destination == null) {
             player.sendSystemMessage(Component.translatable("book.agesandtheart.no_destination"), true)
