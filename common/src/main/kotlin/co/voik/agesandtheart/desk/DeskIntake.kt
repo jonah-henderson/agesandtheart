@@ -100,8 +100,8 @@ object DeskIntake {
     /** The ink a container holds: its tier, how much, and what one of them leaves behind. */
     private fun inkOf(stack: ItemStack): Triple<InkTier, Long, ItemStack>? {
         val fluids = Services.INK_FLUIDS
-        if (stack.item === AgeContent.INK_BOTTLE) {
-            return Triple(InkTier.COMMON, fluids.unitsPerBottle, ItemStack(Items.GLASS_BOTTLE))
+        AgeContent.INK_BOTTLES.entries.firstOrNull { stack.item === it.value }?.let { (tier, _) ->
+            return Triple(tier, fluids.unitsPerBottle, ItemStack(Items.GLASS_BOTTLE))
         }
         if (stack.item !is BucketItem) return null
         return InkTier.entries

@@ -1,0 +1,19 @@
+{
+  "_comment": [
+    "STUB. Glowstone dust stands in for whatever actually makes an ink fine -- the shape is 'ordinary ink",
+    "plus something semi-rare', and only the second ingredient is undecided.",
+    "Two of them because refining should cost more than the ink itself, not less."
+  ],
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "group": "agesandtheart_ink",
+  "ingredients": [
+    "agesandtheart:ink_bottle",
+    "minecraft:glowstone_dust",
+    "minecraft:glowstone_dust"
+  ],
+  "result": {
+    "id": "agesandtheart:fine_ink_bottle",
+    "count": 1
+  }
+}

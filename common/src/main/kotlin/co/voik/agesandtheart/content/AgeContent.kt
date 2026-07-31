@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.content
 
 import co.voik.agesandtheart.age.word.FillNotebookFunction
+import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.PageWordFunction
 import co.voik.agesandtheart.book.BindLinkingBookFunction
 import co.voik.agesandtheart.book.BookEntity
@@ -139,6 +140,27 @@ object AgeContent {
             .stacksTo(16),
     )
 
+    private val FINE_INK_BOTTLE_ID: Identifier = "fine_ink_bottle".location()
+
+    /**
+     * Fine ink by the bottle — the unit a recipe can actually name, where the tank holds a fluid.
+     *
+     * Masterwork has none yet: nothing needs to *craft* with it, and adding a bottle nobody consumes
+     * would be an item to explain rather than an item to use.
+     */
+    val FINE_INK_BOTTLE: Item = Item(
+        Item.Properties()
+            .setId(ResourceKey.create(Registries.ITEM, FINE_INK_BOTTLE_ID))
+            .craftRemainder(Items.GLASS_BOTTLE)
+            .stacksTo(16),
+    )
+
+    /** Which ink a bottle holds. One place, so the desk and the recipes cannot disagree. */
+    val INK_BOTTLES: Map<InkTier, Item> = mapOf(
+        InkTier.COMMON to INK_BOTTLE,
+        InkTier.FINE to FINE_INK_BOTTLE,
+    )
+
     private val WRITERS_DESK_ID: Identifier = "writers_desk".location()
 
     /** Three blocks wide; see [co.voik.agesandtheart.desk.WritersDeskBlock]. */
@@ -221,6 +243,7 @@ object AgeContent {
         WRITERS_DESK_ID to WRITERS_DESK,
         LINKING_BOOK_ID to LINKING_BOOK,
         INK_BOTTLE_ID to INK_BOTTLE,
+        FINE_INK_BOTTLE_ID to FINE_INK_BOTTLE,
         FINE_PAPER_ID to FINE_PAPER,
         MASTERWORK_PAPER_ID to MASTERWORK_PAPER,
     )

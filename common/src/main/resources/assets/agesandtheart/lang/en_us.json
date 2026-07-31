@@ -98,5 +98,6 @@
   "item.agesandtheart.linking_book.blank": "Blank — use it to write where you stand",
   "book.agesandtheart.bound": "This book now leads to %s",
   "book.agesandtheart.no_destination": "That place cannot be reached",
-  "book.agesandtheart.same_world": "A linking book leads between worlds, not within one"
+  "book.agesandtheart.same_world": "A linking book leads between worlds, not within one",
+  "item.agesandtheart.fine_ink_bottle": "Fine Ink Bottle"
 }
