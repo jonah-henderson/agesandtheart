@@ -456,6 +456,8 @@ enum class NoiseCharacter : StringRepresentable {
  *
  * Unlike [NoiseHeightmap] a column is not one run. Scales are per-axis, so squashing [scaleY] draws caves
  * into wide flat chambers while stretching it gives shafts.
+ *
+ * **A level threshold gives sponge; a *graded* one gives ground** — see [thresholdAtTop].
  */
 data class Noise3D(
     val seed: Long,
@@ -469,6 +471,21 @@ data class Noise3D(
     val threshold: Double,
     val lowY: Int,
     val highY: Int,
+    /**
+     * The threshold at [highY], where [threshold] is the one at [lowY] — or null for one level throughout,
+     * which is what a cave network wants and what every field written before this had.
+     *
+     * **This is what turns 3D noise into a landscape rather than a sponge.** With one level the same
+     * fraction of every height is solid, so the result has no up: rock and air are equally likely at the
+     * bedrock and at the cloud line, and it reads as foam. Grading the level from *almost everything
+     * solid* at the bottom to *almost nothing* at the top makes the same noise describe a surface — one
+     * that still answers per voxel, so it keeps the overhangs, arches and stacks a heightmap cannot say.
+     * It is the same thing vanilla's terrain does by adding a height-dependent offset to its density.
+     *
+     * The two levels are the whole silhouette: how far apart they are decides how much vertical relief
+     * there is, and where they sit in the noise's range decides how much of the band is ground at all.
+     */
+    val thresholdAtTop: Double? = null,
 ) : TerrainField {
     override val kind = FieldKind.NOISE_3D
     override val horizontalReach = Double.POSITIVE_INFINITY
@@ -484,6 +501,16 @@ data class Noise3D(
     private val stretchY = scaleY.coerceAtLeast(SMALLEST_STRETCH)
     private val stretchZ = scaleZ.coerceAtLeast(SMALLEST_STRETCH)
 
+    // The threshold at each level of the band, so the walk below compares rather than interpolates. One
+    // shape of loop whether or not the field is graded, and a band is a few hundred doubles at worst.
+    private val thresholds: DoubleArray = run {
+        val levels = (highY - lowY + 1).coerceAtLeast(0)
+        val top = thresholdAtTop ?: threshold
+        DoubleArray(levels) { level ->
+            if (levels == 1) threshold else threshold + (top - threshold) * level / (levels - 1)
+        }
+    }
+
     override fun columnSpans(worldX: Int, worldZ: Int): Spans {
         if (highY < lowY) return Spans.EMPTY
         val sampleX = worldX / stretchX
@@ -493,7 +520,7 @@ data class Noise3D(
         val solid = ArrayList<IntRange>(EXPECTED_RUNS)
         var runStart: Int? = null
         for (y in lowY..highY) {
-            val isSolid = character.shape(noise.getValue(sampleX, y / stretchY, sampleZ)) > threshold
+            val isSolid = character.shape(noise.getValue(sampleX, y / stretchY, sampleZ)) > thresholds[y - lowY]
             if (isSolid) {
                 if (runStart == null) runStart = y
             } else if (runStart != null) {
@@ -530,7 +557,16 @@ data class Noise3D(
                 Codec.DOUBLE.fieldOf("threshold").forGetter(Noise3D::threshold),
                 Codec.INT.fieldOf("low_y").forGetter(Noise3D::lowY),
                 Codec.INT.fieldOf("high_y").forGetter(Noise3D::highY),
-            ).apply(instance, ::Noise3D)
+                // Absent for an ungraded field, which is every cave network.
+                Codec.DOUBLE.optionalFieldOf("threshold_at_top")
+                    .forGetter { field -> java.util.Optional.ofNullable(field.thresholdAtTop) },
+            ).apply(instance) { seed, octave, amplitudes, scaleX, scaleY, scaleZ, character, threshold,
+                                lowY, highY, atTop ->
+                Noise3D(
+                    seed, octave, amplitudes, scaleX, scaleY, scaleZ, character, threshold,
+                    lowY, highY, atTop.orElse(null),
+                )
+            }
         }
     }
 }
