@@ -205,7 +205,7 @@ class ResolverCheck : FunSpec({
         check(vague > precise) { "precision narrowed nothing: vague $vague, precise $precise" }
         check(precise > 0) { "a precise sentence resolved to nothing at all" }
         println(
-            "  \"beautiful\" gives $vague distinct Ages over $SEEDS_SAMPLED seeds; " +
+            "  \"beautiful\" gives $vague distinct Ages over $SEEDS_FOR_A_SPREAD seeds; " +
                 "four precise words give $precise.",
         )
     }
@@ -636,9 +636,16 @@ private fun resolve(vocabulary: Vocabulary, sentence: String, seed: Long = SAMPL
     return Resolver.resolve(vocabulary, Sentence.flat(words), seed)
 }
 
-/** How many distinct Ages a sentence gives across many seeds. */
+/**
+ * How many distinct Ages a sentence gives across many seeds.
+ *
+ * **Sampled far more widely than the counting checks**, because this one measures a *difference* between
+ * two spreads rather than a rate. At forty seeds both sentences came back in the high thirties — the
+ * question was being asked against a ceiling of forty, so the honest margin between them was one Age and
+ * any change to the draw pool could tip it either way. The ceiling has to sit well above both.
+ */
 private fun spread(vocabulary: Vocabulary, sentence: String): Int =
-    (1L..SEEDS_SAMPLED).map { seed -> resolve(vocabulary, sentence, seed).composition }.toSet().size
+    (1L..SEEDS_FOR_A_SPREAD).map { seed -> resolve(vocabulary, sentence, seed).composition }.toSet().size
 
 /** A word that only sets the terrain's stone — what §3.2 calls a material. */
 private fun material(name: String, block: String) = Word(
@@ -679,6 +686,9 @@ private val SENTENCES = listOf(
 
 private const val SAMPLE_SEED = 20260727L
 private const val SEEDS_SAMPLED = 40L
+
+/** See [spread]: a difference between two counts needs headroom that a rate does not. */
+private const val SEEDS_FOR_A_SPREAD = 600L
 
 // Enough seeds that an aspect's appetite for company shows up as a rate rather than as an accident.
 private const val HARMONY_SEEDS = 60L
