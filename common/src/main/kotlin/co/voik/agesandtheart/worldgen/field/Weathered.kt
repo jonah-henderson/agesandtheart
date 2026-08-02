@@ -2,6 +2,7 @@ package co.voik.agesandtheart.worldgen.field
 
 import co.voik.agesandtheart.worldgen.carver.Weathering
 import com.mojang.serialization.Codec
+import com.mojang.serialization.DataResult
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 
@@ -41,6 +42,27 @@ data class Weathered(
     val crownPenalty: Double,
     /** How far above the keel a column must reach to earn the whole of [crownPenalty]. */
     val crownReach: Int,
+    /**
+     * How far under the rock above it the wind reaches at all, in blocks. **Zero lets it reach any
+     * depth**, which is what an archipelago wants — an island is thin enough to be worked right through.
+     *
+     * A solid world is not. Without this, erosion in one riddles the whole mass with pockets, because
+     * resistance is positional and cannot tell an exposed face from bedrock a hundred blocks in. With it,
+     * the wind only ever sculpts what is already open to the air — and the walk skips everything deeper,
+     * which is most of the world.
+     */
+    val shelterReach: Int = NO_SHELTER,
+    /** How much a block just short of [shelterReach] is favoured, tapering to nothing at the surface. */
+    val shelterBonus: Double = 0.0,
+    /**
+     * The level at which rock is roofed by the world rather than open to the air. A run reaching it has no
+     * surface for the weather to work back from, so it stands whole and the walk skips it entirely.
+     *
+     * [Spans.HIGHEST_Y] by default, which nothing reaches — an archipelago has open sky over every island
+     * and wants no such rule. A world filled to its own ceiling is the case this exists for: without it the
+     * weather pits a roof nothing can ever stand on, and does it for every column in the world.
+     */
+    val roofY: Int = Spans.HIGHEST_Y,
 ) : TerrainField {
     override val kind = FieldKind.WEATHERED
 
@@ -50,7 +72,37 @@ data class Weathered(
     override val samplesPerColumn =
         base.samplesPerColumn + (weathering.toY - weathering.fromY + 1).coerceAtLeast(0)
 
+    /**
+     * The columns of a chunk and the ring around it, remembered — the same shape and the same reason as
+     * [MountainRange]'s, one node further out.
+     *
+     * **A cache on the child is not enough**, which is the thing worth knowing: a chunk asks for the same
+     * column from four directions — the fill, `Grounding`'s probes, `ClimateDepth` and the carvers — and
+     * every one of those asks the *outermost* field. Memoising underneath saves the child's work and leaves
+     * this walk of the whole band to be repeated in full each time.
+     *
+     * Cheap for the presets whose base is a single noise sample, and the difference between a playable Age
+     * and an unplayable one where it is not.
+     */
+    private class ColumnCache {
+        val keys = LongArray(SLOTS) { EMPTY_KEY }
+        val spans = arrayOfNulls<Spans>(SLOTS)
+    }
+
+    private val remembered = ThreadLocal.withInitial { ColumnCache() }
+
     override fun columnSpans(worldX: Int, worldZ: Int): Spans {
+        val cache = remembered.get()
+        val key = (worldX.toLong() shl Int.SIZE_BITS) or (worldZ.toLong() and UNSIGNED_INT)
+        val slot = ((worldX and SLOT_MASK) shl SLOT_BITS) or (worldZ and SLOT_MASK)
+        if (cache.keys[slot] == key) cache.spans[slot]?.let { return it }
+        val derived = weather(worldX, worldZ)
+        cache.keys[slot] = key
+        cache.spans[slot] = derived
+        return derived
+    }
+
+    private fun weather(worldX: Int, worldZ: Int): Spans {
         val rock = base.columnSpans(worldX, worldZ)
         if (rock.ranges.isEmpty()) return Spans.EMPTY
         if (weathering.toY < weathering.fromY) return rock
@@ -74,14 +126,24 @@ data class Weathered(
         val kept = ArrayList<IntRange>(EXPECTED_RUNS)
         var runStart: Int? = null
         for (range in rock.ranges) {
+            if (range.last >= roofY) {
+                kept += range
+                continue
+            }
             for (y in range) {
+                // How far this block lies under the rock above it in its own run — its own surface rather
+                // than the column's, so a block under an overhang is judged by what actually covers it.
+                val buried = range.last - y
+                val outOfReach = shelterReach > NO_SHELTER && buried >= shelterReach
                 // Bonus and penalty are complementary about the keel, which is what keeps them from arguing:
                 // at the deck a deep column is fully protected, and past the taper reach — where the profile
                 // has stopped helping anyway — a lofty one is fully punished. See [Weathering.keelShare].
                 val share = weathering.keelShare(y)
                 val punishable = y >= weathering.keelY
-                val here = favour * share - if (punishable) penalty * (1.0 - share) else 0.0
-                val survives = y !in weathering.fromY..weathering.toY ||
+                val sheltered = if (shelterReach <= NO_SHELTER) 0.0 else
+                    shelterBonus * (buried.toDouble() / shelterReach).coerceIn(0.0, 1.0)
+                val here = favour * share - (if (punishable) penalty * (1.0 - share) else 0.0) + sheltered
+                val survives = outOfReach || y !in weathering.fromY..weathering.toY ||
                     !weathering.erodesGiven(worldX, y, worldZ, here)
                 if (survives) {
                     if (runStart == null) runStart = y
@@ -108,10 +170,55 @@ data class Weathered(
     companion object {
         private const val EXPECTED_RUNS = 8
 
+        /** A 32×32 block square: a chunk, and the ring its biome probes and carvers reach into. */
+        private const val SLOT_BITS = 5
+        private const val SLOTS = 1 shl (SLOT_BITS * 2)
+        private const val SLOT_MASK = (1 shl SLOT_BITS) - 1
+        private const val UNSIGNED_INT = 0xFFFF_FFFFL
+
+        /** A packed position no world reaches, since the border stops well short of `Int.MIN_VALUE`. */
+        private const val EMPTY_KEY = Long.MIN_VALUE
+
+        /** The wind reaches all the way down, however thick the rock. */
+        const val NO_SHELTER = 0
+
         /** The Spire's weathering, configured — **the one place these numbers live.** */
         fun spire(base: TerrainField, lift: Int = 0) = Weathered(
             base, Weathering.SPIRE.raisedBy(lift), CORE_BONUS, CORE_THICKNESS, CROWN_PENALTY, CROWN_REACH,
         )
+
+        /**
+         * Weather that works an **exposed face** — the shape every landform but the archipelago wants.
+         *
+         * [coreBonus] and [crownPenalty] are zero throughout: both measure a column against an island,
+         * and in a world of solid rock every column is as thick as the world and answers the same. The
+         * whole of the discrimination is [shelterReach], and the profile in [weathering] decides which
+         * heights the weather is fiercest at.
+         */
+        fun sculpting(
+            base: TerrainField,
+            weathering: Weathering,
+            shelterReach: Int,
+            roofY: Int = Spans.HIGHEST_Y,
+        ) = Weathered(
+            base,
+            weathering,
+            coreBonus = 0.0,
+            coreThickness = 1,
+            crownPenalty = 0.0,
+            crownReach = 1,
+            shelterReach = shelterReach,
+            shelterBonus = SHELTER_BONUS,
+            roofY = roofY,
+        )
+
+        /**
+         * What a block at the full reach is favoured by — comfortably past the resistance noise's own
+         * floor, so the taper reaches nothing rather than merely thinning towards it. One number for
+         * every sculpting profile: what varies between them is *how deep* the weather reaches, not how
+         * completely it gives up at the bottom.
+         */
+        private const val SHELTER_BONUS = 1.5
 
         /** How much a column standing in deep rock is favoured. Read against the printed resistance spread. */
         private const val CORE_BONUS = 0.40
@@ -132,20 +239,30 @@ data class Weathered(
         private const val CROWN_REACH = 150
 
         /**
-         * The weathering itself is **not** a codec field: `Weathering` carries eighteen tuned numbers, and
-         * there is exactly one curated profile, so the codec names it implicitly. A second profile is the
-         * moment this becomes a dispatch on a name, like [FieldKind].
+         * The profile is named rather than written out: `Weathering` carries nineteen tuned numbers, and
+         * a recipe naming them all would be a copy of ours that could never be retuned. The dispatch is
+         * what its being implicit was always waiting on — a second curated profile.
          */
+        private val WEATHERING_CODEC: Codec<Weathering> = Codec.STRING.comapFlatMap(
+            { key ->
+                val profile = Weathering.named(key)
+                if (profile == null) DataResult.error { "no weathering called '$key'" } else DataResult.success(profile)
+            },
+            Weathering::key,
+        )
+
         fun codec(self: Codec<TerrainField>): MapCodec<Weathered> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
                 self.fieldOf("base").forGetter(Weathered::base),
+                WEATHERING_CODEC.fieldOf("weathering").forGetter(Weathered::weathering),
                 Codec.DOUBLE.fieldOf("core_bonus").forGetter(Weathered::coreBonus),
                 Codec.INT.fieldOf("core_thickness").forGetter(Weathered::coreThickness),
                 Codec.DOUBLE.fieldOf("crown_penalty").forGetter(Weathered::crownPenalty),
                 Codec.INT.fieldOf("crown_reach").forGetter(Weathered::crownReach),
-            ).apply(instance) { base, bonus, thickness, penalty, reach ->
-                Weathered(base, Weathering.SPIRE, bonus, thickness, penalty, reach)
-            }
+                Codec.INT.optionalFieldOf("shelter_reach", NO_SHELTER).forGetter(Weathered::shelterReach),
+                Codec.DOUBLE.optionalFieldOf("shelter_bonus", 0.0).forGetter(Weathered::shelterBonus),
+                Codec.INT.optionalFieldOf("roof_y", Spans.HIGHEST_Y).forGetter(Weathered::roofY),
+            ).apply(instance, ::Weathered)
         }
     }
 }

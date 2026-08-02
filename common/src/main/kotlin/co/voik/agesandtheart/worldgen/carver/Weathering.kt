@@ -1,5 +1,10 @@
 package co.voik.agesandtheart.worldgen.carver
 
+import co.voik.agesandtheart.worldgen.AlpsField
+import co.voik.agesandtheart.worldgen.CanyonField
+import co.voik.agesandtheart.worldgen.CanyonlandsField
+import co.voik.agesandtheart.worldgen.CliffField
+import co.voik.agesandtheart.worldgen.RiverlandsField
 import co.voik.agesandtheart.worldgen.SpireField
 import kotlin.math.abs
 import kotlin.math.pow
@@ -23,6 +28,8 @@ import net.minecraft.world.level.levelgen.synth.NormalNoise
  * preview and the game disagree completely.
  */
 class Weathering(
+    /** What a recipe names this profile by — see [named]. */
+    val key: String,
     /** The band the wind reaches; rock outside it is untouched. */
     override val fromY: Int,
     override val toY: Int,
@@ -116,6 +123,7 @@ class Weathering(
     fun raisedBy(lift: Int): Weathering {
         if (lift == 0) return this
         return Weathering(
+            key = key,
             fromY = fromY + lift, toY = toY + lift, bite = bite, keelY = keelY + lift,
             atTheKeel = atTheKeel, atTheTip = atTheTip, atTheRoot = atTheRoot, taper = taper,
             taperReachAbove = taperReachAbove, taperReachBelow = taperReachBelow,
@@ -165,6 +173,7 @@ class Weathering(
     companion object {
         /** Nothing erodes — for previewing a field's own shape with the wind switched off. */
         val NONE = Weathering(
+            key = "none",
             fromY = 0, toY = 1, bite = -Double.MAX_VALUE,
             keelY = 0, atTheKeel = 0.0, atTheTip = 0.0, atTheRoot = 0.0, taper = 1.0,
             taperReachAbove = 1, taperReachBelow = 1,
@@ -184,6 +193,7 @@ class Weathering(
          * `./gradlew :common:preview` prints the distribution — **read it before moving any of them.**
          */
         val SPIRE = Weathering(
+            key = "spire",
             // Read from `SpireField` rather than written out, because an island's extent is the field's
             // business and hardcoding these left them silently describing the wrong world once already.
             fromY = SpireField.SPIKE_FLOOR - BAND_MARGIN,
@@ -217,5 +227,221 @@ class Weathering(
             firstOctave = -3,
             amplitudes = doubleArrayOf(1.0, 0.5, 0.25),
         )
+
+        /**
+         * The weather in a canyon, which is water and frost rather than wind — and so a **different
+         * mechanism from [SPIRE]'s**, not a retuning of it.
+         *
+         * The Spire's numbers all serve one question: how thick is this column, and how far is it above
+         * the deck? In a world that is solid rock every column is as thick as the world and every plateau
+         * column reaches the ceiling, so both measures answer the same thing everywhere and discriminate
+         * nothing. What discriminates in a canyon is **how deeply buried a block is under its own
+         * surface** — which is why this profile leans on `Weathered`'s shelter and leaves the core bonus
+         * and crown penalty at zero.
+         *
+         * The vertical profile spares the gorge and attacks the rim, so the benches break up into buttes
+         * and spurs near the top while the river's valley keeps its walls.
+         */
+        val CANYON = Weathering(
+            key = "canyon",
+            // Read from `CanyonField` for the same reason the Spire reads from `SpireField`. Below the
+            // floor is the eighty blocks of bedrock the canyon deliberately leaves whole.
+            fromY = CanyonField.FLOOR_Y,
+            toY = CanyonField.WORLD_CEILING,
+            // Against a resistance spread running about ∓0.39 at the tenth and ninetieth percentiles, this
+            // takes well over half of an exposed face and almost nothing a dozen blocks behind it — the
+            // steep falloff being `Weathered`'s shelter rather than anything here.
+            bite = 0.05,
+            // At the floor, so the profile's protection is strongest in the gorge and weakest at the rim —
+            // the reverse of a spire, where the keel is the middle of the band.
+            keelY = CanyonField.FLOOR_Y,
+            atTheKeel = 0.35,
+            atTheTip = -0.12,
+            // Nothing lies below the keel: the band starts there.
+            atTheRoot = 0.0,
+            taper = 1.0,
+            taperReachAbove = CanyonField.WORLD_CEILING - CanyonField.FLOOR_Y,
+            taperReachBelow = 1,
+            // Alcove-scale rather than pillar-scale: features some tens of blocks across, so a bench is
+            // broken into spurs rather than sanded or bitten in half.
+            scale = 1.6,
+            windStretch = 1.0,
+            // Large, so the rock is taken or spared in whole vertical faces. Small values would drill
+            // horizontal pockets into a cliff, which reads as damage rather than as erosion.
+            verticalScale = 48.0,
+            needleScale = 1.5,
+            needleThreshold = 0.7,
+            needleBonus = 0.6,
+            seed = 0xCA_1907_D15EL,
+            firstOctave = -3,
+            amplitudes = doubleArrayOf(1.0, 0.5, 0.25),
+        )
+
+        /**
+         * The weather on a sea cliff, and **the shape every later table-and-face landform reuses**: a
+         * protected tabletop, a fiercely worked face under it, and a protected floor under that.
+         *
+         * [taper] is what makes it a table rather than a ridge. A linear profile eases off gently either
+         * way from the keel, which would leave the plateau's own surface half-eroded; cubed, the middle of
+         * the band stays at [atTheKeel] nearly all the way out and only swings to the edges at the very
+         * top and bottom. So the tableland stays walkable and the face still gets bitten hard.
+         */
+        val CLIFFS = Weathering(
+            key = "cliffs",
+            // The band starts at the waterline: below it the face is under thirty blocks of ocean, and
+            // weather nobody can see is only a cost.
+            fromY = CliffField.SEA_LEVEL,
+            toY = CliffField.PLATEAU_Y + BAND_MARGIN,
+            bite = 0.05,
+            keelY = (CliffField.SEA_LEVEL + CliffField.PLATEAU_Y) / 2,
+            // Negative at the keel and strongly positive at the edges: the reverse of a spire, whose keel
+            // is the thing being spared.
+            atTheKeel = -0.25,
+            // High enough that the tableland comes out rocky and pitted rather than cratered — read it
+            // against the shelter reach, which is what bounds how deep any one pit goes.
+            atTheTip = 0.45,
+            // Milder than the tip, so the foot of the cliff keeps a little working — sea caves and notches
+            // where the waves would be.
+            atTheRoot = 0.3,
+            taper = 2.5,
+            taperReachAbove = (CliffField.PLATEAU_Y - CliffField.SEA_LEVEL) / 2,
+            taperReachBelow = (CliffField.PLATEAU_Y - CliffField.SEA_LEVEL) / 2,
+            // Buttress-scale: gullies and ribs some tens of blocks across, rather than a sanded face.
+            scale = 1.2,
+            windStretch = 1.0,
+            // Small against the other profiles', because here the reach is shallow: over ten blocks a
+            // large one takes all or nothing, and what a rocky surface wants is part of a column.
+            verticalScale = 20.0,
+            needleScale = 1.5,
+            // Rare and strongly favoured, which is what leaves a stack standing off a headland.
+            needleThreshold = 0.72,
+            needleBonus = 0.7,
+            seed = 0xC11FF_A1EL,
+            firstOctave = -3,
+            amplitudes = doubleArrayOf(1.0, 0.5, 0.25),
+        )
+
+        /**
+         * And the same shape over a mesa country — [CLIFFS]' profile against a shorter face, since a
+         * canyonlands wall is a hundred and forty blocks rather than a hundred and seventy.
+         *
+         * Not [CLIFFS] shifted with [raisedBy]: the two spans differ, so a shift would put the keel and
+         * the reaches in the wrong places and tie two presets' heights together for good.
+         */
+        val CANYONLANDS = Weathering(
+            key = "canyonlands",
+            fromY = CanyonlandsField.FLOOR_Y,
+            toY = CanyonlandsField.PLATEAU_Y + BAND_MARGIN,
+            bite = 0.05,
+            keelY = (CanyonlandsField.FLOOR_Y + CanyonlandsField.PLATEAU_Y) / 2,
+            atTheKeel = -0.15,
+            atTheTip = 0.9,
+            // Gentler than a sea cliff's foot: a canyon floor is where the rubble goes, not where it is cut.
+            atTheRoot = 0.45,
+            taper = 2.5,
+            taperReachAbove = (CanyonlandsField.PLATEAU_Y - CanyonlandsField.FLOOR_Y) / 2,
+            taperReachBelow = (CanyonlandsField.PLATEAU_Y - CanyonlandsField.FLOOR_Y) / 2,
+            scale = 1.2,
+            windStretch = 1.0,
+            verticalScale = 56.0,
+            needleScale = 1.5,
+            // More common and better rewarded than a sea stack's: a hoodoo standing in a canyon is the
+            // one thing this landform is named for.
+            needleThreshold = 0.68,
+            needleBonus = 0.8,
+            seed = 0xE5A_B0DEL,
+            firstOctave = -3,
+            amplitudes = doubleArrayOf(1.0, 0.5, 0.25),
+        )
+
+        /**
+         * A river country's weather, and **the mildest of these by a long way**. The others are working a
+         * face; this is only roughening a surface, so what it wants is a small bite over a shallow reach —
+         * a hillside gone lumpy and a valley side gone ragged, not alcoves and buttes.
+         *
+         * The keel sits at the waterline and spares it, so the beds the rivers run down are left alone:
+         * erosion in a channel only deepens a pool nobody can see the bottom of.
+         */
+        val RIVERLANDS = Weathering(
+            key = "riverlands",
+            fromY = RiverlandsField.WATERLINE - BAND_MARGIN,
+            toY = RiverlandsField.LAND_Y + RiverlandsField.RELIEF.toInt() + BAND_MARGIN,
+            bite = -0.18,
+            keelY = RiverlandsField.WATERLINE,
+            atTheKeel = 0.4,
+            atTheTip = 0.0,
+            atTheRoot = 0.4,
+            taper = 1.5,
+            taperReachAbove = RiverlandsField.LAND_Y + RiverlandsField.RELIEF.toInt() - RiverlandsField.WATERLINE,
+            taperReachBelow = 1,
+            // Boulder-scale rather than landform-scale: this is texture on a hillside.
+            scale = 0.7,
+            windStretch = 1.0,
+            // Small, so a column loses part of itself rather than all of it — which over a shallow reach
+            // is the difference between a rough surface and a field of postholes.
+            verticalScale = 12.0,
+            needleScale = 1.5,
+            needleThreshold = 0.75,
+            needleBonus = 0.4,
+            seed = 0x21_5EA5_D1EL,
+            firstOctave = -3,
+            amplitudes = doubleArrayOf(1.0, 0.5, 0.25),
+        )
+
+        /**
+         * A mountain range's weather — **frost, and the one profile here whose subject is the high ground.**
+         *
+         * The others work a face that a landform put there. This one works the *tops*: rock above the
+         * snowline is shattered by freeze and thaw and shed as scree, while a valley floor two hundred
+         * blocks below is under soil and does nothing of the sort. So the keel sits at the valley floors and
+         * spares them, the punishment lands at the tip, and the reach above the keel is long enough to cover
+         * the whole climb.
+         *
+         * [needleThreshold] and [needleBonus] earn more here than anywhere but the Spire: a rock that shrugs
+         * off the frost while its ridge is cut down around it is a gendarme, which is a thing alpine ridges
+         * are actually made of.
+         */
+        val ALPS = Weathering(
+            key = "alps",
+            fromY = AlpsField.WORLD_FLOOR + BAND_MARGIN,
+            toY = AlpsField.SNOWLINE_Y + SUMMITS_ABOVE_THE_SNOWLINE,
+            // Firmer than a river country's and far gentler than a canyon's: the shape already has its
+            // large forms, and what is wanted is damage rather than sculpture.
+            bite = -0.05,
+            keelY = ALPINE_VALLEY_FLOOR,
+            atTheKeel = 0.5,
+            atTheTip = 0.0,
+            atTheRoot = 0.5,
+            taper = 2.0,
+            // Long above and short below, because the climb is where the subject is. A symmetric reach
+            // would spend half of itself on bedrock nobody sees.
+            taperReachAbove = AlpsField.SNOWLINE_Y - ALPINE_VALLEY_FLOOR,
+            taperReachBelow = 40,
+            // Gully-and-buttress scale: ribs and couloirs some tens of blocks across, not a sanded face.
+            scale = 1.0,
+            windStretch = 1.0,
+            // Large against the shelter reach, so resistance holds over most of a face and a whole rib
+            // survives or goes rather than the surface coming out pitted.
+            verticalScale = 30.0,
+            needleScale = 1.5,
+            needleThreshold = 0.74,
+            needleBonus = 0.6,
+            seed = 0xA_1BE_D0CL,
+            firstOctave = -3,
+            amplitudes = doubleArrayOf(1.0, 0.5, 0.25),
+        )
+
+        /** How far over the snowline the band still has to reach, since the tallest massifs stand clear. */
+        private const val SUMMITS_ABOVE_THE_SNOWLINE = 80
+
+        /** Where an alpine trunk valley runs, which is the level the frost is asked to spare. */
+        private const val ALPINE_VALLEY_FLOOR = 70
+
+        /** The profiles a recipe may name, which is what makes [Weathered] serialisable. */
+        private val BY_KEY =
+            listOf(NONE, SPIRE, CANYON, CLIFFS, CANYONLANDS, RIVERLANDS, ALPS).associateBy(Weathering::key)
+
+        /** The profile [key] names, or null for one this version does not have. */
+        fun named(key: String): Weathering? = BY_KEY[key]
     }
 }
