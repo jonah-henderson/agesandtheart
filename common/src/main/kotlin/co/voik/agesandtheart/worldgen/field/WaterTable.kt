@@ -46,6 +46,12 @@ data class WaterTable(
      * one: "everything down there is underwater" has no wet-and-dry distribution to describe.
      */
     val floods: Boolean = false,
+    /**
+     * Water the shape carries itself — the same field `SeaFill.wet` pours. A column under a river is
+     * **submerged** too, however far over the waterline its bed lies, and a carver cutting into one must
+     * find water rather than air or it opens a hole in the river.
+     */
+    val standing: TerrainField? = null,
 ) {
     private val floodedness = fieldNoise(seed, firstOctave, amplitudes)
     private val acrossStretch = horizontalScale.coerceAtLeast(SMALLEST_STRETCH)
@@ -81,6 +87,15 @@ data class WaterTable(
         private var columnSurface = 0
         private var columnSubmerged = false
 
+        /**
+         * What water stands over this column — the sea, or higher where the shape carries its own.
+         *
+         * **The level has to travel with the branch.** Deciding that a river bed is submerged and then
+         * answering with the *sea's* height leaves every block between the two dry, which is the same hole
+         * by a longer road.
+         */
+        private var columnWaterY = 0
+
         override fun computeSubstance(context: DensityFunction.FunctionContext, substance: Double): BlockState? {
             // Positive means solid: nothing is being removed here, so the block stands as it is.
             if (substance > 0.0) return null
@@ -96,7 +111,7 @@ data class WaterTable(
 
         private fun standingLevel(worldX: Int, worldY: Int, worldZ: Int): Int {
             // No thresholds to consult: a flooded table says the same thing everywhere.
-            if (floods) return seaLevel
+            if (floods) return columnWaterY
             // 1 just beneath a submerged surface, falling to 0 [dryingDepth] blocks down. Land columns
             // start at 0, so rock under a hill is judged by the deep thresholds straight away.
             val nearness = if (columnSubmerged) {
@@ -109,7 +124,7 @@ data class WaterTable(
                 .getValue(worldX / acrossStretch, worldY / downStretch, worldZ / acrossStretch)
                 .coerceIn(-1.0, 1.0)
             return when {
-                wetness > slide(nearness, SEA_WHEN_SHALLOW, SEA_WHEN_DEEP) -> seaLevel
+                wetness > slide(nearness, SEA_WHEN_SHALLOW, SEA_WHEN_DEEP) -> columnWaterY
                 wetness > slide(nearness, PERCHED_WHEN_SHALLOW, PERCHED_WHEN_DEEP) -> perchedLevel(worldX, worldY, worldZ)
                 else -> BONE_DRY
             }
@@ -132,7 +147,11 @@ data class WaterTable(
             columnX = worldX
             columnZ = worldZ
             columnSurface = field.columnSpans(worldX, worldZ).highestSolidY ?: seaLevel
-            columnSubmerged = columnSurface < seaLevel
+            // Under the sea, or under water the shape carries itself. Both are "there is water over this
+            // ground"; only one of them is a level.
+            val carried = standing?.columnSpans(worldX, worldZ)?.highestSolidY ?: Int.MIN_VALUE
+            columnWaterY = maxOf(seaLevel, carried)
+            columnSubmerged = columnSurface < columnWaterY
         }
 
         /**
@@ -162,8 +181,16 @@ data class WaterTable(
         private const val BONE_DRY = -4096
 
         // How flooded rock must be to hold water, just under a submerged surface versus far below it.
-        // Shallow values are low so the sea nearly always wins; deep values are high so dry is normal.
-        private const val SEA_WHEN_SHALLOW = -0.3
+        //
+        // **The shallow one is past the noise's own floor, so it is not a threshold at all**: rock just
+        // under water always holds water. It used to be -0.3, which let two seabed blocks in five come out
+        // dry — and a carver cutting there put an air pocket in the ocean. What keeps caves under *land*
+        // dry is the branch above, which starts a column at the deep value unless something is over it.
+        //
+        // **Past the floor at the surface itself, not at the margin.** `nearness` is measured from
+        // [surfaceMargin] *above* the ground, so it never reaches one — at the surface it is about 0.875,
+        // and a value that only clears the noise at 1.0 still leaves one block in fourteen dry.
+        private const val SEA_WHEN_SHALLOW = -1.6
         private const val SEA_WHEN_DEEP = 0.8
         private const val PERCHED_WHEN_SHALLOW = -0.8
         private const val PERCHED_WHEN_DEEP = 0.4
@@ -194,6 +221,8 @@ data class WaterTable(
             seed = seed,
             firstOctave = -3,
             amplitudes = listOf(1.0, 1.0),
+            // Whatever the shape pours for itself, so a carver under a river finds the river.
+            standing = seaFill.wet,
         )
 
         val CODEC: MapCodec<WaterTable> = RecordCodecBuilder.mapCodec { instance ->
@@ -208,7 +237,14 @@ data class WaterTable(
                 Codec.INT.fieldOf("first_octave").forGetter(WaterTable::firstOctave),
                 Codec.DOUBLE.listOf().fieldOf("amplitudes").forGetter(WaterTable::amplitudes),
                 Codec.BOOL.optionalFieldOf("floods", false).forGetter(WaterTable::floods),
-            ).apply(instance, ::WaterTable)
+                TerrainField.CODEC.optionalFieldOf("standing")
+                    .forGetter { table -> java.util.Optional.ofNullable(table.standing) },
+            ).apply(instance) { fluid, level, drying, margin, across, down, seed, octave, amplitudes, floods, standing ->
+                WaterTable(
+                    fluid, level, drying, margin, across, down, seed, octave, amplitudes, floods,
+                    standing.orElse(null),
+                )
+            }
         }
     }
 }

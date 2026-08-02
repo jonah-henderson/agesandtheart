@@ -26,10 +26,22 @@ data class SeaFill(
      * which is the only way water should get in.
      */
     val dry: TerrainField? = null,
+    /**
+     * Space that fills **however far above [level] it lies** — the mirror of [dry], and what a river needs.
+     *
+     * The asymmetry the class doc describes has a limit: one waterline can pour an ocean, but not a river
+     * system, because a network runs downhill everywhere and a plane meets it only where it happens to
+     * cross. So a shape that carries its own water hands it over as a field, and the level stays what the
+     * *sea* stands at. See [co.voik.agesandtheart.worldgen.field.Drainage.describes].
+     */
+    val wet: TerrainField? = null,
 ) {
 
     /** Which part of this column the sea is kept out of. Asked once per column, like [blockAt]. */
     fun drynessAt(worldX: Int, worldZ: Int): Spans = dry?.columnSpans(worldX, worldZ) ?: Spans.EMPTY
+
+    /** And which part of it holds water whatever the level says. Asked once per column, the same way. */
+    fun wetnessAt(worldX: Int, worldZ: Int): Spans = wet?.columnSpans(worldX, worldZ) ?: Spans.EMPTY
 
     /** What fills the empty space at this column. */
     fun blockAt(worldX: Int, worldZ: Int): BlockState =
@@ -44,8 +56,13 @@ data class SeaFill(
 
     fun fillsAt(y: Int): Boolean = y < level && !representative.isAir
 
-    /** The same question for a column whose [dryness] has already been read. */
-    fun fillsAt(y: Int, dryness: Spans): Boolean = fillsAt(y) && !dryness.contains(y)
+    /** The same question for a column whose [dryness] and [wetness] have already been read. */
+    fun fillsAt(y: Int, dryness: Spans, wetness: Spans): Boolean {
+        if (representative.isAir) return false
+        // A shape's own water is not subject to the waterline, so it is asked first and answers outright.
+        if (wetness.contains(y)) return true
+        return fillsAt(y) && !dryness.contains(y)
+    }
 
     /**
      * The highest block this sea fills, or `null` when it fills nothing — which is how [NONE] answers, and the
@@ -69,7 +86,11 @@ data class SeaFill(
                     .forGetter(SeaFill::map),
                 TerrainField.CODEC.optionalFieldOf("dry")
                     .forGetter { fill -> java.util.Optional.ofNullable(fill.dry) },
-            ).apply(instance) { blocks, level, map, dry -> SeaFill(blocks, level, map, dry.orElse(null)) }
+                TerrainField.CODEC.optionalFieldOf("wet")
+                    .forGetter { fill -> java.util.Optional.ofNullable(fill.wet) },
+            ).apply(instance) { blocks, level, map, dry, wet ->
+                SeaFill(blocks, level, map, dry.orElse(null), wet.orElse(null))
+            }
         }
 
         /** Empty space all the way down. */

@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.WaterTable
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.sky.SkySpec
 import co.voik.agesandtheart.sky.SpireSky
@@ -16,6 +17,7 @@ import co.voik.agesandtheart.worldgen.field.Regions
 import co.voik.agesandtheart.worldgen.field.Ridge
 import co.voik.agesandtheart.worldgen.field.Rift
 import co.voik.agesandtheart.worldgen.field.TerrainField
+import co.voik.agesandtheart.worldgen.field.Union
 import co.voik.agesandtheart.worldgen.field.Weathered
 import co.voik.agesandtheart.worldgen.field.Substance
 import co.voik.agesandtheart.location
@@ -94,6 +96,7 @@ object AgeGeneration {
         // The chasm a rift opened, so the sea can be kept out of it. Null for every other form.
         val chasm = riftVolume(character.seam, ground)
 
+        val standing = carriedWater(composition, ::terrainOptions, window, character, ground, seed)
         val flow = character.mapFor(Aspect.SEA, composition.sharesOf(Aspect.SEA), seed)
         val seaFill = Sea.pour(
             composition.seas,
@@ -102,7 +105,7 @@ object AgeGeneration {
             // The substance divides; the level does not.
             composition.optionsFor(Aspect.SEA, 0),
             flow,
-        ).copy(dry = chasm)
+        ).copy(dry = chasm, wet = standing)
 
         // What the rock *is*, on the terrain's own map, laid by the fill rather than painted by a rule — which
         // is what lets vanilla's surface tree keep its skin over our substance (see [Substance]).
@@ -154,6 +157,30 @@ object AgeGeneration {
      * Only the terrain's seams: a displacement needs rock to displace, so an Age divided in its sea or its
      * climate alone has no scarp to throw however its character drew.
      */
+    /**
+     * The water an Age's terrains carry themselves, divided on the terrain's own map — so a territory
+     * whose shape has no water of its own contributes none, rather than the whole Age being wet wherever
+     * one of them has a river.
+     *
+     * **Only a scarp reaches it.** A rift is already kept out by `SeaFill.dry`, and a wall *adds* rock,
+     * which must not put a wall of water up alongside it.
+     */
+    private fun carriedWater(
+        composition: AgeComposition,
+        optionsFor: (Int) -> Options,
+        window: VerticalWindow,
+        character: AgeCharacter,
+        ground: RegionMap,
+        seed: Long,
+    ): TerrainField? {
+        val carried = composition.terrains.mapIndexed { member, terrain ->
+            terrain.standingWater(optionsFor(member), window, saltFor(seed, member))
+        }
+        if (carried.all { it == null }) return null
+        val divided = Regions.of(carried.map { it ?: Union(emptyList()) }, ground)
+        return if (character.seam == Seam.SCARP) faulted(divided, character.seam, ground, seed) else divided
+    }
+
     private fun faulted(rock: TerrainField, seam: Seam, ground: RegionMap, seed: Long): TerrainField = when (seam) {
         // `SHEARED` asks for no fault; `FUZZED` already happened, in the width `mapFor` took off the seam.
         Seam.SHEARED, Seam.FUZZED -> rock

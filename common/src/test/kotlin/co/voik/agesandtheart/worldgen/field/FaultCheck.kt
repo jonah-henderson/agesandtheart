@@ -362,7 +362,7 @@ class FaultCheck : FunSpec({
             val insideTheChasm = !dryness.ranges.isEmpty()
             // A level under the waterline and under the rim, so it is a level the sea would reach.
             val y = 50
-            val fills = sea.fillsAt(y, dryness)
+            val fills = sea.fillsAt(y, dryness, Spans.EMPTY)
             if (insideTheChasm && dryness.contains(y)) {
                 check(!fills) { "($x, $z) is inside the chasm at y=$y and the sea filled it" }
                 keptOut++

@@ -145,6 +145,23 @@ enum class Terrain(
     }
 
     /**
+     * Water this terrain carries **itself**, or null where a waterline is all it needs.
+     *
+     * A river system's water follows its own beds, which run downhill everywhere, so no single level can
+     * pour it — see `SeaFill.wet`. Raised with the shape for the same reason the shape is raised at all.
+     */
+    fun standingWater(options: Options, window: VerticalWindow, salt: Long): TerrainField? {
+        // Most terrains carry none, and a new one should not have to say so.
+        val water = when (this) {
+            RIVERLANDS -> RiverlandsField.water(salt)
+            ALPS -> AlpsField.water(salt)
+            else -> null
+        } ?: return null
+        val lift = lift(options, window)
+        return if (lift == 0) water else Raised(water, lift)
+    }
+
+    /**
      * How far up the world this terrain sits — see [ALTITUDE].
      *
      * Conditioned on the [window], so a terrain in a band with no room simply sits where it always did:

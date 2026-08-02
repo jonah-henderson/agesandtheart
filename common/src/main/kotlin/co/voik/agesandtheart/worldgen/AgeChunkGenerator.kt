@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.worldgen
 
 import co.voik.agesandtheart.worldgen.field.SeaFill
+import co.voik.agesandtheart.worldgen.field.Spans
 import co.voik.agesandtheart.worldgen.field.Palette
 import co.voik.agesandtheart.worldgen.field.RegionMap
 import co.voik.agesandtheart.worldgen.field.Substance
@@ -38,6 +39,7 @@ import net.minecraft.world.level.levelgen.LegacyRandomSource
 import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator
 import net.minecraft.world.level.levelgen.NoiseChunk
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
+import net.minecraft.world.level.levelgen.DensityFunction
 import net.minecraft.world.level.levelgen.DensityFunctions
 import net.minecraft.world.level.levelgen.NoiseRouter
 import net.minecraft.world.level.levelgen.NoiseSettings
@@ -155,15 +157,26 @@ class AgeChunkGenerator(
         // Null in almost every chunk, which is what makes asking it per block affordable.
         val adaptation = TerrainAdaptation.around(structureManager, chunk.pos)
 
+        // **A band, not a chunk.** A fluid can only be told to move if we know whether its neighbours left
+        // it anywhere to go, and the columns beside a chunk's edge are outside it — so this reads one
+        // column of margin all round. Measured at +24% of the field's own cost against a budget in which
+        // that field is a few milliseconds, which is what made it worth having over letting the walls
+        // stand. Read once per column and not once per block: the answer cannot change going down one.
+        val band = ColumnBand(chunkMinX, chunkMinZ, field, seaFill, hollows)
+        // One per chunk, because the object carries a column memo — the same reason carving mints its own.
+        val water = WaterTable.aquiferFor(tables, field, underground)
+
         for (localX in 0..<16) {
             for (localZ in 0..<16) {
                 val worldX = chunkMinX + localX
                 val worldZ = chunkMinZ + localZ
-                val spans = field.columnSpans(worldX, worldZ)
-                // Once per column, not once per block: which territory a column is in costs a noise
-                // sample per sea, and the answer cannot change as you go down it.
+                val at = band.indexOf(localX, localZ)
+                val spans = band.spans(at)
                 val sea = seaFill.blockAt(worldX, worldZ)
-                val dryness = seaFill.drynessAt(worldX, worldZ)
+
+                // Whether the block just below came out empty, so a fluid placed on top of nothing can be
+                // told to fall. Nothing is below the window's floor, which is as good as open for this.
+                var nothingBelow = true
 
                 for (y in window.minY..<window.topY) {
                     // The field decides, unless a structure standing here has an opinion of its own.
@@ -172,16 +185,94 @@ class AgeChunkGenerator(
                         // What the rock *is*, which is vanilla's `default_block` and now ours — the surface
                         // system paints its skin over this afterwards, exactly as it does for vanilla.
                         isRock -> substance.blockAt(worldX, y, worldZ)
-                        seaFill.fillsAt(y, dryness) -> sea
+                        // Inside the rock a cave system opened: the table answers, not the waterline. Asked
+                        // before the sea, since this space is under it and the sea would otherwise take it.
+                        band.hollow(at, y) -> water.computeSubstance(
+                            DensityFunction.SinglePointContext(worldX, y, worldZ),
+                            HOLLOW,
+                        )
+                        band.fills(at, y) -> sea
                         else -> null
-                    } ?: continue
-                    chunk.setBlockState(cursor.set(worldX, y, worldZ), state)
+                    }?.takeUnless { it.isAir }
+                    if (state == null) {
+                        nothingBelow = true
+                        continue
+                    }
+                    cursor.set(worldX, y, worldZ)
+                    // **A fluid with anywhere to go is asked to go there.** Where a channel drops faster
+                    // than its own surface does, the shape leaves water standing over a step or against a
+                    // wall of open air — and no arrangement of *levels* can fix that, because the gap is
+                    // where the water is moving. Marked for post-processing, vanilla gives the source its
+                    // first tick on load and it finds its own way down, which is a waterfall.
+                    val perched = nothingBelow || band.openBeside(localX, localZ, y)
+                    if (perched && !state.fluidState.isEmpty) chunk.markPosForPostprocessing(cursor)
+                    nothingBelow = false
+                    chunk.setBlockState(cursor, state)
                     oceanFloor.update(localX, y, localZ, state)
                     worldSurface.update(localX, y, localZ, state)
                 }
             }
         }
         return CompletableFuture.completedFuture(chunk)
+    }
+
+    /**
+     * A chunk's columns and one of margin all round, read once.
+     *
+     * The margin is the whole point: whether a fluid has somewhere to go is a question about its
+     * *neighbours*, and a sixteenth of a chunk's columns have neighbours outside it. Reading a band costs a
+     * quarter more than reading a chunk, where asking four extra columns per block would cost five times.
+     *
+     * Structure adaptation is deliberately not consulted for a neighbour. It is a local override on one
+     * chunk's own rock, and letting it decide whether a river spills would make a village change the water
+     * two chunks away.
+     */
+    private class ColumnBand(
+        chunkMinX: Int,
+        chunkMinZ: Int,
+        field: TerrainField,
+        private val seaFill: SeaFill,
+        hollows: TerrainField?,
+    ) {
+        private val spans = arrayOfNulls<Spans>(SIDE * SIDE)
+        private val dryness = arrayOfNulls<Spans>(SIDE * SIDE)
+        private val wetness = arrayOfNulls<Spans>(SIDE * SIDE)
+        private val hollowness = arrayOfNulls<Spans>(SIDE * SIDE)
+
+        init {
+            for (bandX in 0..<SIDE) {
+                for (bandZ in 0..<SIDE) {
+                    val worldX = chunkMinX + bandX - MARGIN
+                    val worldZ = chunkMinZ + bandZ - MARGIN
+                    val at = bandX * SIDE + bandZ
+                    spans[at] = field.columnSpans(worldX, worldZ)
+                    dryness[at] = seaFill.drynessAt(worldX, worldZ)
+                    wetness[at] = seaFill.wetnessAt(worldX, worldZ)
+                    hollowness[at] = hollows?.columnSpans(worldX, worldZ) ?: Spans.EMPTY
+                }
+            }
+        }
+
+        /** Whether this level is inside the rock a cave system was cut from — see [hollows]. */
+        fun hollow(at: Int, y: Int): Boolean = hollowness[at]!!.contains(y)
+
+        fun indexOf(localX: Int, localZ: Int): Int = (localX + MARGIN) * SIDE + (localZ + MARGIN)
+
+        fun spans(at: Int): Spans = spans[at]!!
+
+        fun fills(at: Int, y: Int): Boolean = seaFill.fillsAt(y, dryness[at]!!, wetness[at]!!)
+
+        /** Whether any of the four columns beside this one left this level open. */
+        fun openBeside(localX: Int, localZ: Int, y: Int): Boolean =
+            isOpen(indexOf(localX - 1, localZ), y) || isOpen(indexOf(localX + 1, localZ), y) ||
+                isOpen(indexOf(localX, localZ - 1), y) || isOpen(indexOf(localX, localZ + 1), y)
+
+        private fun isOpen(at: Int, y: Int): Boolean = !spans[at]!!.contains(y) && !fills(at, y)
+
+        private companion object {
+            const val MARGIN = 1
+            const val SIDE = 16 + 2 * MARGIN
+        }
     }
 
     // --- Surface height contract: honest answers so structures/features land on the terrain. ---
@@ -201,7 +292,10 @@ class AgeChunkGenerator(
         // One below the world, so a column with nothing this query counts simply answers the floor.
         val nothing = level.minY - 1
         val rockTop = if (counts.test(substance.representative)) field.columnSpans(x, z).highestSolidY ?: nothing else nothing
-        val mediumTop = if (counts.test(seaFill.blockAt(x, z))) seaFill.surfaceY ?: nothing else nothing
+        // A river stands over the waterline, so its own surface is what a structure has to be told about.
+        val mediumTop = if (!counts.test(seaFill.blockAt(x, z))) nothing else {
+            maxOf(seaFill.surfaceY ?: nothing, seaFill.wetnessAt(x, z).highestSolidY ?: nothing)
+        }
         return (maxOf(rockTop, mediumTop) + 1).coerceIn(level.minY, level.maxY + 1)
     }
 
@@ -209,11 +303,12 @@ class AgeChunkGenerator(
         val spans = field.columnSpans(x, z)
         val sea = seaFill.blockAt(x, z)
         val dryness = seaFill.drynessAt(x, z)
+        val wetness = seaFill.wetnessAt(x, z)
         val column = Array(window.height) { index ->
             val y = window.minY + index
             when {
                 spans.contains(y) -> substance.blockAt(x, y, z)
-                seaFill.fillsAt(y, dryness) -> sea
+                seaFill.fillsAt(y, dryness, wetness) -> sea
                 else -> AIR
             }
         }
