@@ -115,7 +115,17 @@ class AgeChunkGenerator(
     private val substance: Substance = Substance.PLAIN,
     /** The band of world this Age generates into — see [VerticalWindow] for why it is per-Age. */
     private val window: VerticalWindow = VerticalWindow.DEFAULT,
-) : NoiseBasedChunkGenerator(biomes, Holder.direct(settingsFor(seaFill, surfaceRule, climate, substance, window))) {
+    /**
+     * The rock a cave system was cut out of, or null for an Age with no such caves.
+     *
+     * **Space inside this is the aquifer's to answer for, not the waterline's.** A carved cave meets
+     * [WaterTable] on its way out of the rock; one that is part of the *shape* never does, so a flat sea
+     * fills it to the roof. Handing the fill the volume the terrain would have occupied is what lets the
+     * same three-way table decide there too — bone dry deep down, a perched pocket sometimes, and flooded
+     * only where the sea genuinely reaches.
+     */
+    private val hollows: TerrainField? = null,
+) : NoiseBasedChunkGenerator(biomes, Holder.direct(settingsFor(seaFill, surfaceRule, climate, substance, window, field))) {
 
     /** The same generator with one carving everywhere — what a Tier-B preset means. */
     constructor(
@@ -517,11 +527,13 @@ class AgeChunkGenerator(
                 Substance.CODEC.optionalFieldOf("substance", Substance.PLAIN).forGetter { it.substance },
                 // Absent means the layout every Age had before the band became a choice — see [VerticalWindow].
                 VerticalWindow.CODEC.optionalFieldOf("window", VerticalWindow.DEFAULT).forGetter { it.window },
+                // Absent for every Age without shape-cut caves, which is almost all of them.
+                TerrainField.CODEC.optionalFieldOf("hollows").forGetter { Optional.ofNullable(it.hollows) },
             ).apply(instance) { biomes, field, seaFill, rule, carvers, underground, tables, structures, climate,
-                                substance, window ->
+                                substance, window, hollows ->
                 AgeChunkGenerator(
                     biomes, field, seaFill, rule, carvers, underground, tables, structures,
-                    climate.orElse(null), substance, window,
+                    climate.orElse(null), substance, window, hollows.orElse(null),
                 )
             }
         }
@@ -608,6 +620,9 @@ class AgeChunkGenerator(
 
         // Carvers reach this many chunks out, so a cave system crosses borders. Vanilla's own figure.
         private const val CARVE_REACH_CHUNKS = 8
+
+        /** What an aquifer is told about a block being *removed*, so it answers with a fluid or with air. */
+        private const val HOLLOW = -1.0
 
         // What the field lays down before the palette repaints it.
         private val SOLID: BlockState = Blocks.STONE.defaultBlockState()

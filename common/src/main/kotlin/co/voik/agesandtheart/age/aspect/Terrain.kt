@@ -17,6 +17,7 @@ import co.voik.agesandtheart.worldgen.ShatteredField
 import co.voik.agesandtheart.worldgen.SpireField
 import co.voik.agesandtheart.worldgen.VerticalWindow
 import co.voik.agesandtheart.worldgen.biome.Elevation
+import co.voik.agesandtheart.worldgen.field.Caved
 import co.voik.agesandtheart.worldgen.field.Palette
 import co.voik.agesandtheart.worldgen.field.Raised
 import co.voik.agesandtheart.worldgen.field.Substance
@@ -138,10 +139,34 @@ enum class Terrain(
             BEARING.takeIf { this == CANYON || this == CLIFFS },
             EXTENT.takeIf { this == ISLANDS },
             ALTITUDE.takeIf { this == SPIRE_ISLANDS },
+            UNDERGROUND.takeIf { hasRoomUnderground() },
             STONE,
             MINGLING,
             SEAM,
         )
+
+    /**
+     * Whether there is enough rock beneath this terrain's surface for an underground to be worth cutting.
+     *
+     * A landform's own declaration, like [hasSandyShores] — and **offered wherever there is rock for it**,
+     * since it is opt-in either way and a writer who does not ask for caves does not get them. What is
+     * excluded is only what could not carry them or would make no sense of them:
+     *
+     * - **[ALPS]** spends its whole vertical budget on the landform and leaves about sixteen blocks under a
+     *   valley floor, so caves there would be holes in the bedrock rather than a country under the ground.
+     * - **[CAVERNS]** is the opposite case: its caves already *are* its shape, and **[INVERSE_CAVES]** is
+     *   that taken to its limit — cutting caves into the cast of a cave system would only erase it.
+     * - **[SPIRE_ISLANDS]** hangs in open air and is thin enough to be worked through by the weather alone.
+     * - **[SHAPES]** is a reference for the vocabulary, not a world.
+     *
+     * **[CANYON] belongs in rather than out**, which is easy to get backwards: the gorge does reach the
+     * world's floor, but everything either side of it is solid to the ceiling, so it has more rock than any
+     * other terrain here — and its walls are exactly where the entrance rule will open cave mouths.
+     */
+    fun hasRoomUnderground(): Boolean = when (this) {
+        HILLS, RIVERLANDS, CANYONLANDS, SHATTERED, CLIFFS, ISLANDS, ERODED, CANYON, PYRAMIDS, PILLARS -> true
+        SPIRE_ISLANDS, CAVERNS, ALPS, SHAPES, INVERSE_CAVES -> false
+    }
 
     override fun getSerializedName(): String = key
 
@@ -154,7 +179,21 @@ enum class Terrain(
     fun field(options: Options, window: VerticalWindow, salt: Long): TerrainField {
         val shape = build(options, salt)
         val lift = lift(options, window)
-        return if (lift == 0) shape else Raised(shape, lift)
+        val raised = if (lift == 0) shape else Raised(shape, lift)
+        return hollowed(raised, options, window, salt)
+    }
+
+    /**
+     * [rock] with vanilla's noise caves cut into it, where this terrain offers them and the writer asked —
+     * see [UNDERGROUND] and [co.voik.agesandtheart.worldgen.field.Caved].
+     *
+     * **The band is the whole world**, which sounds profligate and is not: `Caved` only ever walks rock the
+     * base actually has, and its own entrance rule keeps the cut away from the surface. Naming a ceiling
+     * here would be a second, worse copy of a decision the node already makes better.
+     */
+    private fun hollowed(rock: TerrainField, options: Options, window: VerticalWindow, salt: Long): TerrainField {
+        if (options.of(UNDERGROUND) != NOISE_CAVES) return rock
+        return Caved.of(rock, CAVE_SEED xor salt, window.minY + BEDROCK_MARGIN, window.topY)
     }
 
     /**
@@ -267,6 +306,27 @@ enum class Terrain(
             IslandsField.Extent.BROAD.key,
             IslandsField.Extent.VAST.key,
         )
+
+        /**
+         * What lies under a terrain's surface — nothing, or Minecraft's own noise caves.
+         *
+         * Offered only by the terrains with room for one ([hasRoomUnderground]), which is the shape the
+         * whole idea wants: an underground is a *layer* a landform either has or does not, rather than a
+         * property of every world. No word reaches it yet; it exists to be pinned by a recipe.
+         *
+         * Caves are the **default** where they are offered at all, since a world with room under it and
+         * nothing in that room is the odder of the two answers.
+         */
+        val UNDERGROUND = Parameter("underground", NOISE_CAVES, UNDERGROUND_NONE)
+
+        const val UNDERGROUND_NONE = "none"
+        const val NOISE_CAVES = "noise_caves"
+
+        /** Left whole, so the bedrock a cave might otherwise open through stays bedrock. */
+        private const val BEDROCK_MARGIN = 5
+
+        // So an Age's caves are its own, and decorrelated from the rock they are cut into.
+        private const val CAVE_SEED = 0xCA_7E5L
 
         /** The one material parameter — the whole of what a writer means by "the land is andesite". */
         val STONE = Parameter.material("stone")

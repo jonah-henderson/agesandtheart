@@ -17,6 +17,7 @@ import co.voik.agesandtheart.worldgen.SpireField
 import co.voik.agesandtheart.age.Seam
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.worldgen.carver.Weathering
+import co.voik.agesandtheart.worldgen.field.Caved
 import co.voik.agesandtheart.worldgen.field.Fault
 import co.voik.agesandtheart.worldgen.field.Raised
 import co.voik.agesandtheart.worldgen.field.RegionMap
@@ -257,6 +258,27 @@ private val subjects: Map<String, Subject> = mapOf(
     // **Read the slices, and only the slices.** Caves are absence inside rock: from above a hollowed
     // riverlands is a riverlands, and every cave in it is invisible. The pair with `riverlands` above is
     // the whole point — same shape, one of them hollow.
+    "riverlands-caved" to Subject(
+        Caved.of(RiverlandsField.world(), 0xCA_7E5L, -59, 320),
+        Weathering.NONE,
+        lowestY = -64,
+        highestY = RiverlandsField.LAND_Y + 60,
+        radius = 360,
+    ),
+
+    // The caves alone, hanging in space — a cave system reads far better as a solid lattice than as
+    // absence inside a hill, which is the lesson `caverns-voids` already paid for.
+    "riverlands-caves" to Subject(
+        Subtract(RiverlandsField.world(), Caved.of(RiverlandsField.world(), 0xCA_7E5L, -59, 320)),
+        Weathering.NONE,
+        lowestY = -64,
+        highestY = RiverlandsField.LAND_Y + 60,
+        radius = 360,
+    ),
+
+    // **The plan view is the picture.** What a drainage network is for is the branching, and a slice
+    // shows one arbitrary valley. Wide, because a catchment is several reaches across and the thing worth
+    // seeing is streams joining into trunks.
     "riverlands" to Subject(
         RiverlandsField.world(),
         Weathering.NONE,

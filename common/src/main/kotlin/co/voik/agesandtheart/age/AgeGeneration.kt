@@ -11,6 +11,7 @@ import co.voik.agesandtheart.sky.SpireSky
 import co.voik.agesandtheart.worldgen.biome.AgeBiomeSource
 import co.voik.agesandtheart.worldgen.biome.Grounding
 import co.voik.agesandtheart.worldgen.biome.RegionalClimate
+import co.voik.agesandtheart.worldgen.field.Caved
 import co.voik.agesandtheart.worldgen.field.Fault
 import co.voik.agesandtheart.worldgen.field.Palette
 import co.voik.agesandtheart.worldgen.field.RegionMap
@@ -78,10 +79,10 @@ object AgeGeneration {
         val window = windowFor(dimensionType(recipe))
 
         val ground = character.mapFor(Aspect.TERRAIN, composition.sharesOf(Aspect.TERRAIN), seed)
-        val unweathered = Regions.of(
-            composition.terrains.mapIndexed { member, terrain -> terrain.field(terrainOptions(member), window, saltFor(seed, member)) },
-            ground,
-        )
+        val rocks = composition.terrains.mapIndexed { member, terrain ->
+            terrain.field(terrainOptions(member), window, saltFor(seed, member))
+        }
+        val unweathered = Regions.of(rocks, ground)
         // Erosion is part of the shape rather than a carving pass, so `getBaseHeight` answers from the eroded
         // rock and the surface system paints what the wind left. See [Weathered].
         //
@@ -96,6 +97,11 @@ object AgeGeneration {
         val shape = faulted(weathered, character.seam, ground, seed)
         // The chasm a rift opened, so the sea can be kept out of it. Null for every other form.
         val chasm = riftVolume(character.seam, ground)
+        // And the rock the caves were cut out of — **handed to the generator rather than to the sea**. A
+        // flat waterline fills any empty space beneath it, so a shape-cut cave comes out flooded to the
+        // roof; making it simply *dry* instead would only trade one uniform answer for the other. What that
+        // space wants is the same three-way `WaterTable` a carved cave already meets.
+        val hollows = hollowedRock(rocks, ground)
 
         val standing = carriedWater(composition, ::terrainOptions, window, character, ground, seed)
         val flow = character.mapFor(Aspect.SEA, composition.sharesOf(Aspect.SEA), seed)
@@ -169,6 +175,7 @@ object AgeGeneration {
                 .getOrThrow(NoiseGeneratorSettings.OVERWORLD),
             substance,
             window,
+            hollows,
         )
     }
 
@@ -263,6 +270,17 @@ object AgeGeneration {
         AgePreset.CLIFFS, AgePreset.CANYONLANDS, AgePreset.SHATTERED, AgePreset.RIVERLANDS,
         AgePreset.ISLANDS, AgePreset.ALPS, AgePreset.INVERSE_CAVES,
         -> error("'${preset.key}' names a composition, so AgeRecipe.worldFor should never have sent it here")
+    }
+
+    /**
+     * The rock as it stood **before** its caves were cut, or null where no territory has any.
+     *
+     * Read off the `Caved` nodes themselves rather than rebuilt, so the base is the very instance the shape
+     * is using and answers from its cache — building a second copy would pay for the whole landform twice.
+     */
+    private fun hollowedRock(rocks: List<TerrainField>, ground: RegionMap): TerrainField? {
+        if (rocks.none { it is Caved }) return null
+        return Regions.of(rocks.map { (it as? Caved)?.base ?: Union(emptyList()) }, ground)
     }
 
     private fun plasmaBiome(server: MinecraftServer) = FixedBiomeSource(
