@@ -171,6 +171,21 @@ data class AgeRecipe(
                     terrains = listOf(Terrain.INVERSE_CAVES),
                     carvers = listOf(Carvers.CAVES),
                 )
+                // Grounded, because the whole of what is above ground here is meant to read as ordinary —
+                // the halls are the strange part and they are better for arriving under somewhere real.
+                // Carved as well as halled: vanilla's caves are what connect the surface down into them,
+                // and a hall you cannot find from above is a hall nobody visits.
+                AgePreset.HALLS -> grounded(
+                    AgeComposition(
+                        terrains = listOf(Terrain.OVERWORLD),
+                        seas = listOf(Sea.WATER),
+                        carvers = listOf(Carvers.CAVES),
+                        options = AspectOptions().with(
+                            Aspect.TERRAIN,
+                            listOf(Options(mapOf(Terrain.UNDERGROUND.name to listOf(Terrain.GREAT_HALLS)))),
+                        ),
+                    ),
+                )
             }
             return AgeWorld.Composed(composition)
         }

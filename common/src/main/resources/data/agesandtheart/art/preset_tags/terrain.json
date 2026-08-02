@@ -10,6 +10,16 @@
       "scattered": 0.6
     }
   },
+  "overworld": {
+    "tags": {
+      "ordinary": 1.0,
+      "lush": 0.6,
+      "gentle": 0.5,
+      "wild": 0.4,
+      "mountainous": 0.4,
+      "sheer": 0.3
+    }
+  },
   "hills": {
     "tags": {
       "ordinary": 0.9,

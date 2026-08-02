@@ -7,9 +7,11 @@ import co.voik.agesandtheart.worldgen.CanyonlandsField
 import co.voik.agesandtheart.worldgen.CavernField
 import co.voik.agesandtheart.worldgen.CliffField
 import co.voik.agesandtheart.worldgen.ErodedField
+import co.voik.agesandtheart.worldgen.GreatHalls
 import co.voik.agesandtheart.worldgen.InverseCavesField
 import co.voik.agesandtheart.worldgen.IslandsField
 import co.voik.agesandtheart.worldgen.NoiseField
+import co.voik.agesandtheart.worldgen.OverworldField
 import co.voik.agesandtheart.worldgen.PillarField
 import co.voik.agesandtheart.worldgen.PyramidField
 import co.voik.agesandtheart.worldgen.RiverlandsField
@@ -21,6 +23,7 @@ import co.voik.agesandtheart.worldgen.biome.Elevation
 import co.voik.agesandtheart.worldgen.field.Caved
 import co.voik.agesandtheart.worldgen.field.Palette
 import co.voik.agesandtheart.worldgen.field.Raised
+import co.voik.agesandtheart.worldgen.field.Subtract
 import co.voik.agesandtheart.worldgen.field.Substance
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import net.minecraft.world.level.block.state.BlockState
@@ -139,6 +142,17 @@ enum class Terrain(
         build = { _, salt -> InverseCavesField.world(salt) },
     ),
 
+    /**
+     * Continents, seas and hills — ordinary ground, with the overhangs a volumetric field can say and a
+     * heightmap cannot. Minecraft's own overworld approximated rather than reproduced, and it sits high
+     * so that there is room for an [UNDERGROUND] beneath it.
+     */
+    OVERWORLD(
+        "overworld",
+        waterline = OverworldField.WATERLINE,
+        build = { _, salt -> OverworldField.world(salt) },
+    ),
+
     /** A walkable sampler of the shape vocabulary and its combinators — a reference, not a world. */
     SHAPES("shapes", waterline = null, build = { _, salt -> ShapesField.world(salt) }),
     ;
@@ -176,9 +190,24 @@ enum class Terrain(
      * other terrain here — and its walls are exactly where the entrance rule will open cave mouths.
      */
     fun hasRoomUnderground(): Boolean = when (this) {
-        HILLS, RIVERLANDS, CANYONLANDS, SHATTERED, CLIFFS, ISLANDS, ERODED, CANYON, PYRAMIDS, PILLARS -> true
+        HILLS, RIVERLANDS, CANYONLANDS, SHATTERED, CLIFFS, ISLANDS, ERODED, CANYON, PYRAMIDS, PILLARS,
+        OVERWORLD,
+        -> true
         SPIRE_ISLANDS, CAVERNS, ALPS, SHAPES, INVERSE_CAVES -> false
     }
+
+    /**
+     * How high an underground of this terrain's may reach — the ceiling [GREAT_HALLS] stacks its storeys
+     * up to, and the one thing standing between a hall and the open air.
+     *
+     * **Measured down from the waterline, which is a stand-in rather than the right question.** What the
+     * halls actually want to know is where the *lowest ground* is, and for a terrain with a sea those are
+     * nearly the same place. For one whose waterline means something else they are not: [CANYON] is solid
+     * to the world's ceiling either side of a gorge whose river sits near the floor, so this hands it far
+     * less room than it has. Revisit when a landform wants halls that this rule cannot give it.
+     */
+    private fun undergroundRoofY(window: VerticalWindow): Int =
+        (waterline ?: window.minY + window.height / 2) - ROOF_BELOW_THE_WATERLINE
 
     override fun getSerializedName(): String = key
 
@@ -188,25 +217,53 @@ enum class Terrain(
      * Takes the Age's [window] because altitude is only offerable where there is room for it — see [lift],
      * and a [salt] because two territories of the *same* preset must not build the same rock.
      */
-    fun field(options: Options, window: VerticalWindow, salt: Long): TerrainField {
+    fun field(options: Options, window: VerticalWindow, salt: Long): TerrainField =
+        ground(options, window, salt).shape
+
+    /**
+     * The rock this terrain lays down **and** the rock it was cut from, which a generator needs both of.
+     *
+     * They share their nodes rather than being built twice: the cut holds the uncut field as its own child,
+     * so asking for both costs one landform and answers from one cache. Building a second copy would pay
+     * for the whole thing again, which for a [MountainRange] or a [Caved] is most of the generator's time.
+     */
+    fun ground(options: Options, window: VerticalWindow, salt: Long): Ground {
         val shape = build(options, salt)
         val lift = lift(options, window)
-        val raised = if (lift == 0) shape else Raised(shape, lift)
-        return hollowed(raised, options, window, salt)
+        val uncut = if (lift == 0) shape else Raised(shape, lift)
+        val cut = hollowed(uncut, options, window, salt)
+        return Ground(cut, hollows = uncut.takeIf { cut !== uncut })
     }
 
     /**
-     * [rock] with vanilla's noise caves cut into it, where this terrain offers them and the writer asked —
-     * see [UNDERGROUND] and [co.voik.agesandtheart.worldgen.field.Caved].
+     * [rock] with whatever underground this terrain offers and the writer asked for taken out of it — see
+     * [UNDERGROUND].
      *
-     * **The band is the whole world**, which sounds profligate and is not: `Caved` only ever walks rock the
-     * base actually has, and its own entrance rule keeps the cut away from the surface. Naming a ceiling
-     * here would be a second, worse copy of a decision the node already makes better.
+     * **[NOISE_CAVES] gets the whole world as its band**, which sounds profligate and is not:
+     * [co.voik.agesandtheart.worldgen.field.Caved] only ever walks rock the base actually has, and its own
+     * entrance rule keeps the cut away from the surface. Naming a ceiling there would be a second, worse
+     * copy of a decision the node already makes better. [GREAT_HALLS] is the opposite case and does need
+     * one — see [undergroundRoofY].
      */
-    private fun hollowed(rock: TerrainField, options: Options, window: VerticalWindow, salt: Long): TerrainField {
-        if (options.of(UNDERGROUND) != NOISE_CAVES) return rock
-        return Caved.of(rock, CAVE_SEED xor salt, window.minY + BEDROCK_MARGIN, window.topY)
-    }
+    private fun hollowed(rock: TerrainField, options: Options, window: VerticalWindow, salt: Long): TerrainField =
+        when (options.of(UNDERGROUND)) {
+            NOISE_CAVES -> Caved.of(rock, CAVE_SEED xor salt, window.minY + BEDROCK_MARGIN, window.topY)
+            GREAT_HALLS -> Subtract(rock, hallsIn(window, salt))
+            else -> rock
+        }
+
+    private fun hallsIn(window: VerticalWindow, salt: Long): TerrainField =
+        GreatHalls.voidBetween(window.minY + BEDROCK_MARGIN, undergroundRoofY(window), HALL_SEED xor salt)
+
+    /**
+     * A terrain's rock, and the volume its underground was taken out of.
+     *
+     * [hollows] is null where nothing was taken out, and is otherwise **the rock as it stood before the
+     * cut** — which is what the generator hands its aquifer, so that the space inside answers to a water
+     * table rather than to the waterline. A flat level fills any emptiness beneath it, so without this a
+     * shape-cut hall comes out flooded to its ceiling.
+     */
+    data class Ground(val shape: TerrainField, val hollows: TerrainField?)
 
     /**
      * Water this terrain carries **itself**, or null where a waterline is all it needs.
@@ -320,25 +377,38 @@ enum class Terrain(
         )
 
         /**
-         * What lies under a terrain's surface — nothing, or Minecraft's own noise caves.
+         * What lies under a terrain's surface — nothing, Minecraft's own noise caves, or storey upon
+         * storey of pillared hall.
          *
          * Offered only by the terrains with room for one ([hasRoomUnderground]), which is the shape the
          * whole idea wants: an underground is a *layer* a landform either has or does not, rather than a
-         * property of every world. No word reaches it yet; it exists to be pinned by a recipe.
+         * property of every world — and it is why [GREAT_HALLS] is a value here rather than a landform of
+         * its own, since what is over the halls should be able to be any world at all. No word reaches it
+         * yet; it exists to be pinned by a recipe.
          *
          * Caves are the **default** where they are offered at all, since a world with room under it and
          * nothing in that room is the odder of the two answers.
          */
-        val UNDERGROUND = Parameter("underground", NOISE_CAVES, UNDERGROUND_NONE)
+        val UNDERGROUND = Parameter("underground", NOISE_CAVES, GREAT_HALLS, UNDERGROUND_NONE)
 
         const val UNDERGROUND_NONE = "none"
         const val NOISE_CAVES = "noise_caves"
+        const val GREAT_HALLS = "great_halls"
 
         /** Left whole, so the bedrock a cave might otherwise open through stays bedrock. */
         private const val BEDROCK_MARGIN = 5
 
+        /**
+         * How far under the waterline the highest hall's ceiling sits — see [undergroundRoofY], and read
+         * it with `GreatHalls.HALL_HEIGHT`, since together they decide how many storeys a world gets.
+         */
+        private const val ROOF_BELOW_THE_WATERLINE = 40
+
         // So an Age's caves are its own, and decorrelated from the rock they are cut into.
         private const val CAVE_SEED = 0xCA_7E5L
+
+        // And its halls likewise, decorrelated from both.
+        private const val HALL_SEED = 0x4A_115L
 
         /** The one material parameter — the whole of what a writer means by "the land is andesite". */
         val STONE = Parameter.material("stone")

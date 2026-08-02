@@ -61,6 +61,9 @@ enum class AgePreset(val key: String) : StringRepresentable {
     /** Minecraft's noise caves inside out: solid where they carve, open air everywhere else. */
     INVERSE_CAVES("inversecaves"),
 
+    /** Ordinary ground, with storey upon storey of pillared hall taken out from under it. */
+    HALLS("halls"),
+
     /** Tier-B delegates to Minecraft's own generation — our benchmark reference points. */
     VANILLA("vanilla"),
     VANILLA_BARE("vanillabare"),

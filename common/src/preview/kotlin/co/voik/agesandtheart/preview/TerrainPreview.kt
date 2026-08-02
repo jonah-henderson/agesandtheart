@@ -7,8 +7,10 @@ import co.voik.agesandtheart.worldgen.CanyonlandsField
 import co.voik.agesandtheart.worldgen.CavernField
 import co.voik.agesandtheart.worldgen.CliffField
 import co.voik.agesandtheart.worldgen.ErodedField
+import co.voik.agesandtheart.worldgen.GreatHalls
 import co.voik.agesandtheart.worldgen.IslandsField
 import co.voik.agesandtheart.worldgen.NoiseField
+import co.voik.agesandtheart.worldgen.OverworldField
 import co.voik.agesandtheart.worldgen.PillarField
 import co.voik.agesandtheart.worldgen.RiverlandsField
 import co.voik.agesandtheart.worldgen.ShapesField
@@ -168,6 +170,11 @@ private val fuzzedTerritories = territories.copy(blend = Seam.FUZZED.blendBlocks
 private const val INVERSE_FLOOR = -64
 private const val INVERSE_CEILING = 320
 
+// The band the halls stand in under `overworld`, which is what `Terrain` works out for itself at
+// generation. Spelled again here because the preview has no Age to ask.
+private const val HALL_FLOOR = -59
+private const val HALL_ROOF = OverworldField.WATERLINE - 40
+
 private val subjects: Map<String, Subject> = mapOf(
     // Wide enough to hold more than one island, because size and lift variation is a thing you can only
     // see by comparing copies; and tall enough to reach the world ceiling, so a spire that runs into it
@@ -284,6 +291,44 @@ private val subjects: Map<String, Subject> = mapOf(
         highestY = INVERSE_CEILING,
         radius = 200,
     ),
+    // **Read the plan view for the surface and the slice for everything under it.** Two pictures of two
+    // different worlds that happen to share a file: from above this is an ordinary coastline, and the
+    // only place the halls exist is the transect.
+    "halls" to Subject(
+        Subtract(
+            OverworldField.world(),
+            GreatHalls.voidBetween(HALL_FLOOR, HALL_ROOF, 0L),
+        ),
+        Weathering.NONE,
+        lowestY = -64,
+        highestY = 176,
+        // Wide enough to hold several bays of piers and a stretch of coast over them.
+        radius = 320,
+        sliceAtZ = 0,
+    ),
+
+    // The halls alone, with nothing over them. A storey is mostly emptiness, so what there is to look at
+    // is the piers and the slabs — and against the rock they are cut from neither reads at all.
+    "halls-alone" to Subject(
+        GreatHalls.voidBetween(HALL_FLOOR, HALL_ROOF, 0L),
+        Weathering.NONE,
+        lowestY = HALL_FLOOR,
+        highestY = HALL_ROOF,
+        radius = 160,
+        sliceAtZ = 0,
+    ),
+
+    // The surface on its own: what a graded `Noise3D` actually draws, without the slab under it deciding
+    // how much of the picture is solid. The dial to read this against is `thresholdAtTop`.
+    "overworld" to Subject(
+        OverworldField.surface(),
+        Weathering.NONE,
+        lowestY = OverworldField.SOLID_TOP,
+        highestY = 176,
+        radius = 320,
+        sliceAtZ = 0,
+    ),
+
     "riverlands-caves" to Subject(
         Subtract(RiverlandsField.world(), Caved.of(RiverlandsField.world(), 0xCA_7E5L, -59, 320)),
         Weathering.NONE,
