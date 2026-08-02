@@ -142,5 +142,15 @@
       "strange": 0.6,
       "flat": 0.5
     }
+  },
+  "inverse_caves": {
+    "readiness": 0.15,
+    "tags": {
+      "strange": 1.0,
+      "wild": 0.8,
+      "dramatic": 0.7,
+      "sheer": 0.7,
+      "scattered": 0.55
+    }
   }
 }

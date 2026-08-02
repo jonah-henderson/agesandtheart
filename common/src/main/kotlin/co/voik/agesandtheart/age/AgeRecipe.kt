@@ -163,6 +163,14 @@ data class AgeRecipe(
                     seas = listOf(Sea.WATER),
                     carvers = listOf(Carvers.POROUS),
                 )
+                // No sea named at all, since the terrain claims no waterline for one to stand at. Carved,
+                // though: a carver reaching the cast severs it, and a bridge that is out is a better
+                // problem to be given than a bridge that was never there. Ungrounded, because grounding
+                // reads erosion off the local fall and every face here is a cliff.
+                AgePreset.INVERSE_CAVES -> AgeComposition(
+                    terrains = listOf(Terrain.INVERSE_CAVES),
+                    carvers = listOf(Carvers.CAVES),
+                )
             }
             return AgeWorld.Composed(composition)
         }

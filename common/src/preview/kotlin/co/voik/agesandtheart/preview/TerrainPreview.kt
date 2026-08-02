@@ -164,6 +164,10 @@ private val territories = RegionMap(
  */
 private val fuzzedTerritories = territories.copy(blend = Seam.FUZZED.blendBlocks(400))
 
+/** The band an "inverse caves" world would stand in — see the `inverse-caves` subject. */
+private const val INVERSE_FLOOR = -64
+private const val INVERSE_CEILING = 320
+
 private val subjects: Map<String, Subject> = mapOf(
     // Wide enough to hold more than one island, because size and lift variation is a thing you can only
     // see by comparing copies; and tall enough to reach the world ceiling, so a spire that runs into it
@@ -268,6 +272,18 @@ private val subjects: Map<String, Subject> = mapOf(
 
     // The caves alone, hanging in space — a cave system reads far better as a solid lattice than as
     // absence inside a hill, which is the lesson `caverns-voids` already paid for.
+    // The cave volume on its own, standing in open air rather than cut out of anything — what an
+    // "inverse caves" Age would be. `Subtract(slab, Caved(slab))` is the whole shape: no new node.
+    "inverse-caves" to Subject(
+        Subtract(
+            Slab(lowY = INVERSE_FLOOR, highY = INVERSE_CEILING),
+            Caved.of(Slab(lowY = INVERSE_FLOOR, highY = INVERSE_CEILING), 0xCA_7E5L, INVERSE_FLOOR, INVERSE_CEILING),
+        ),
+        Weathering.NONE,
+        lowestY = INVERSE_FLOOR,
+        highestY = INVERSE_CEILING,
+        radius = 200,
+    ),
     "riverlands-caves" to Subject(
         Subtract(RiverlandsField.world(), Caved.of(RiverlandsField.world(), 0xCA_7E5L, -59, 320)),
         Weathering.NONE,

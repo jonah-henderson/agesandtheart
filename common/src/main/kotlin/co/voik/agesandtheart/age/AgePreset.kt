@@ -58,6 +58,9 @@ enum class AgePreset(val key: String) : StringRepresentable {
     /** An alpine range: a foreland plain, foothills, and a glaciated crest behind them. */
     ALPS("alps"),
 
+    /** Minecraft's noise caves inside out: solid where they carve, open air everywhere else. */
+    INVERSE_CAVES("inversecaves"),
+
     /** Tier-B delegates to Minecraft's own generation — our benchmark reference points. */
     VANILLA("vanilla"),
     VANILLA_BARE("vanillabare"),

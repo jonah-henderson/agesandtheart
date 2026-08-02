@@ -7,6 +7,7 @@ import co.voik.agesandtheart.worldgen.CanyonlandsField
 import co.voik.agesandtheart.worldgen.CavernField
 import co.voik.agesandtheart.worldgen.CliffField
 import co.voik.agesandtheart.worldgen.ErodedField
+import co.voik.agesandtheart.worldgen.InverseCavesField
 import co.voik.agesandtheart.worldgen.IslandsField
 import co.voik.agesandtheart.worldgen.NoiseField
 import co.voik.agesandtheart.worldgen.PillarField
@@ -125,6 +126,17 @@ enum class Terrain(
         "alps",
         waterline = AlpsField.WATERLINE,
         build = { _, salt -> AlpsField.world(salt) },
+    ),
+
+    /**
+     * Minecraft's noise caves with the rock and the air exchanged — the cast of a cave system hanging in
+     * open air. No waterline, because a sea would fill every pocket under it and most of this world is
+     * under anything.
+     */
+    INVERSE_CAVES(
+        "inverse_caves",
+        waterline = null,
+        build = { _, salt -> InverseCavesField.world(salt) },
     ),
 
     /** A walkable sampler of the shape vocabulary and its combinators — a reference, not a world. */
