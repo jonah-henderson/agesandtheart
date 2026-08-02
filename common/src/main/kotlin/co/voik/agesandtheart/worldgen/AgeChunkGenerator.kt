@@ -555,6 +555,7 @@ class AgeChunkGenerator(
             climate: Holder<NoiseGeneratorSettings>?,
             substance: Substance,
             window: VerticalWindow,
+            field: TerrainField,
         ) = NoiseGeneratorSettings(
             NoiseSettings.create(window.minY, window.height, NOISE_CELLS_HORIZONTAL, NOISE_CELLS_VERTICAL),
             // The Age's own material, not a constant, which is what makes a surface rule fire over it:
@@ -563,7 +564,7 @@ class AgeChunkGenerator(
             // Age, so several materials are recognised over [Substance.representative] only.
             substance.representative,
             seaFill.representative,
-            routerFor(climate),
+            routerFor(climate, field),
             surfaceRule,
             emptyList(),
             // Coerced, because VOID's level is a sentinel rather than a height and this one is read as a
@@ -587,29 +588,33 @@ class AgeChunkGenerator(
          * would describe a world that does not exist. **`depth` stays zero too**, which only looks
          * inconsistent: depth is ours ([co.voik.agesandtheart.worldgen.biome.ClimateDepth]), and vanilla's
          * own depth function describes vanilla's relief — a terrain function wearing a climate name.
+         *
+         * **One exception, and it earns itself: `initialDensityWithoutJaggedness`.** `NoiseChunk` reads that
+         * one slot and nothing else to find a column's preliminary surface, which is what
+         * `abovePreliminarySurface` — and so vanilla's whole rule for *not* dressing a cave floor as ground —
+         * is built on. [RockDensity] answers it from the field tree. Left at zero it is not merely unused but
+         * actively wrong, and the cost of that was grass growing underground.
          */
-        private fun routerFor(climate: Holder<NoiseGeneratorSettings>?): NoiseRouter {
-            val vanilla = climate?.value()?.noiseRouter() ?: return INERT_ROUTER
+        private fun routerFor(climate: Holder<NoiseGeneratorSettings>?, field: TerrainField): NoiseRouter {
+            val surface = RockDensity(field)
+            val vanilla = climate?.value()?.noiseRouter() ?: return inertRouterOver(surface)
             val nothing = DensityFunctions.zero()
             return NoiseRouter(
                 nothing, nothing, nothing, nothing,
                 vanilla.temperature(), vanilla.vegetation(), vanilla.continents(), vanilla.erosion(),
                 /* depth = */ nothing,
                 vanilla.ridges(),
-                nothing, nothing, nothing, nothing, nothing,
+                /* initialDensityWithoutJaggedness = */ surface,
+                nothing, nothing, nothing, nothing,
             )
         }
 
-        /**
-         * A router describing nothing: every density function is zero. Inert rather than merely unused, so
-         * nothing consulting it can be confidently wrong about terrain that does not exist. (Vanilla's own
-         * `NoiseRouterData.none()` is protected.)
-         */
-        private val INERT_ROUTER: NoiseRouter = DensityFunctions.zero().let { nothing ->
+        /** A router describing nothing but where the rock stands — what an Age with no climate gets. */
+        private fun inertRouterOver(surface: DensityFunction): NoiseRouter = DensityFunctions.zero().let { nothing ->
             NoiseRouter(
                 nothing, nothing, nothing, nothing, nothing,
                 nothing, nothing, nothing, nothing, nothing,
-                nothing, nothing, nothing, nothing, nothing,
+                surface, nothing, nothing, nothing, nothing,
             )
         }
 

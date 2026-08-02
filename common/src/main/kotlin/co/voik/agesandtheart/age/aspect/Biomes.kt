@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age.aspect
 
 import co.voik.agesandtheart.worldgen.biome.BiomePreference
 import co.voik.agesandtheart.worldgen.field.Palette
+import co.voik.agesandtheart.worldgen.field.TerrainField
 import net.minecraft.world.level.levelgen.SurfaceRules
 import net.minecraft.resources.Identifier
 
@@ -34,9 +35,12 @@ enum class Biomes(override val key: String) : AspectPreset {
      * Pinning a featureless biome is not enough: vanilla's tree is only *partly* biome-keyed, and its
      * grass-over-dirt-above-water default is not gated on biome at all, so an unknown biome still gets a
      * skin. On Biomes because in vanilla the surface rule genuinely is selected by biome.
+     *
+     * Takes the [terrain] because the tree has to know which blocks are the top of the ground and which are
+     * the floor of a cave, and only the shape can say — see [Palette.vanillaOverworldOn].
      */
-    fun paletteIn(options: Options): SurfaceRules.RuleSource =
-        if (options.of(SKIN) == BARE_SKIN) Palette.NOTHING else Palette.VANILLA_OVERWORLD
+    fun paletteIn(options: Options, terrain: TerrainField): SurfaceRules.RuleSource =
+        if (options.of(SKIN) == BARE_SKIN) Palette.NOTHING else Palette.vanillaOverworldOn(terrain)
 
     /**
      * The biomes this Age was told to grow, as signed preferences — positive to introduce or strengthen,

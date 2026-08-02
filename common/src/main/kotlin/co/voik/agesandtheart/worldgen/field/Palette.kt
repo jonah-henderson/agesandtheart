@@ -22,13 +22,13 @@ import net.minecraft.world.level.levelgen.synth.NormalNoise
  * [SurfaceRules] language, so a palette is serialisable and travels in a recipe.
  *
  * **Why this wrapper exists: `abovePreliminarySurface` is unsound here** and only re-exporting the safe
- * subset makes it unreachable. It asks `NoiseChunk.preliminarySurfaceLevel`, which against our inert
- * router returns `Integer.MAX_VALUE`, so the condition is false everywhere and anything beneath it dies
- * silently. It is the *only* one — `hole`, `bandlands` and `temperature` read noise the `RandomState`
- * makes for itself, or the biome, and are all sound.
+ * subset makes it unreachable. It compares against a heightmap interpolated across a 16-block cell, which
+ * our terrain can outrun in either direction; [NearTheSurface] is the same rule asked of the column
+ * itself. It is the *only* unsound one — `hole`, `bandlands` and `temperature` read noise the
+ * `RandomState` makes for itself, or the biome.
  *
- * The vocabulary is closed to us: `SurfaceRules.Context` is protected and `Condition` package-private, so
- * we compose vanilla's conditions and never write a new kind. Hence `and` is nesting.
+ * The vocabulary is otherwise vanilla's: conditions compose, so `and` is nesting, and [NearTheSurface] is
+ * the one kind we write ourselves.
  */
 object Palette {
 
@@ -124,15 +124,31 @@ object Palette {
     // --- Ready-made palettes ---
 
     /**
-     * **Vanilla's own overworld palette**, biome for biome.
+     * **Vanilla's own overworld palette**, biome for biome, standing on the [terrain] it is dressing.
      *
-     * `aboveGround = false` is not a description of the world: it drops the `abovePreliminarySurface`
-     * wrapper vanilla puts around the whole tree, which would be dead here. Taken from
-     * `net.minecraft.data.worldgen` rather than the registry, because the datapack-loaded
-     * `minecraft:overworld` settings carry the `aboveGround = true` variant we cannot use.
+     * This is `overworldLike`'s own three-part shape with one substitution: bedrock first so nothing can
+     * paint over the world's floor, then the biome tree **gated on the surface**, then the deepslate
+     * gradient ungated, so depth still reads as depth on a cave wall. Vanilla spells that gate
+     * `abovePreliminarySurface` and it is the one thing standing between a cave floor and a lawn — see
+     * [NearTheSurface] for why ours has to ask the column rather than an interpolated heightmap.
+     *
+     * `aboveGround = false` therefore drops vanilla's version rather than disabling the idea, and
+     * `bedrockFloor = false` drops its bedrock in favour of [worldFloor], which is the same gradient in the
+     * position every palette here puts it. Still taken from `net.minecraft.data.worldgen` rather than the
+     * registry, since only the builder lets those flags be chosen at all.
      */
-    val VANILLA_OVERWORLD: SurfaceRules.RuleSource =
-        SurfaceRuleData.overworldLike(/* aboveGround = */ false, /* bedrockRoof = */ false, /* bedrockFloor = */ true)
+    fun vanillaOverworldOn(terrain: TerrainField): SurfaceRules.RuleSource = layers(
+        worldFloor(),
+        SurfaceRules.ifTrue(
+            NearTheSurface(terrain),
+            SurfaceRuleData.overworldLike(
+                /* aboveGround = */ false,
+                /* bedrockRoof = */ false,
+                /* bedrockFloor = */ false,
+            ),
+        ),
+        deepslateFloor(),
+    )
 
     /**
      * A rule that never matches, so whatever follows it decides — how "named no material" is spelled.

@@ -14,6 +14,7 @@ import co.voik.agesandtheart.location
 import co.voik.agesandtheart.worldgen.AgeChunkGenerator
 import co.voik.agesandtheart.worldgen.SpireChunkGenerator
 import co.voik.agesandtheart.worldgen.biome.AgeBiomeSource
+import co.voik.agesandtheart.worldgen.field.NearTheSurface
 import co.voik.agesandtheart.worldgen.field.RegionRule
 import co.voik.agesandtheart.worldgen.carver.Porosity
 import co.voik.agesandtheart.worldgen.carver.RuleCarver
@@ -288,6 +289,14 @@ object AgeContent {
      */
     val surfaceRuleCodecs: List<Pair<Identifier, MapCodec<out SurfaceRules.RuleSource>>> = listOf(
         "region".location() to RegionRule.CODEC,
+    )
+
+    /**
+     * Surface-*condition* kinds, which is the same story one level down: the palette naming this condition
+     * is persisted, so `ConditionSource.CODEC` has to be able to dispatch to it.
+     */
+    val surfaceConditionCodecs: List<Pair<Identifier, MapCodec<out SurfaceRules.ConditionSource>>> = listOf(
+        NearTheSurface.ID to NearTheSurface.CODEC.codec(),
     )
 
     /**

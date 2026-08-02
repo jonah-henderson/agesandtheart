@@ -24,6 +24,23 @@ accessWidener v2 official
 accessible	class	net/minecraft/world/level/levelgen/SurfaceRules$Context
 accessible	class	net/minecraft/world/level/levelgen/SurfaceRules$SurfaceRule
 
+# Writing a condition of our own (co.voik.agesandtheart.worldgen.field.NearTheSurface) — the case the note
+# above says the vocabulary is closed to.
+#
+# `Condition` is the type a ConditionSource returns, and it is package-private, so the public
+# `ConditionSource` cannot in fact be implemented from outside Mojang's package. The three fields are the
+# position the condition is being asked about; `Context` itself is already named above, but its coordinates
+# are package-private too, and a condition that cannot read them can only answer constants.
+#
+# What it buys: `abovePreliminarySurface` compares against a heightmap sampled at the corners of a 16-block
+# cell and **bilinearly interpolated** across it, which is sound for vanilla's terrain and wrong for ours —
+# a gorge floor narrower than the cell reads as far underground and loses its skin, and a cave under a
+# steep slope reads as open ground and grows grass. Ours asks the field for the column it is standing in.
+accessible	class	net/minecraft/world/level/levelgen/SurfaceRules$Condition
+accessible	field	net/minecraft/world/level/levelgen/SurfaceRules$Context	blockX	I
+accessible	field	net/minecraft/world/level/levelgen/SurfaceRules$Context	blockY	I
+accessible	field	net/minecraft/world/level/levelgen/SurfaceRules$Context	blockZ	I
+
 # So AgeChunkGenerator can BE a noise generator rather than sit beside one.
 #
 # The class is `final`; every method we override is already public and non-final, so this one line is the
