@@ -1,11 +1,18 @@
 package co.voik.agesandtheart.preview
 
 import co.voik.agesandtheart.sky.SpireSky
+import co.voik.agesandtheart.worldgen.AlpsField
+import co.voik.agesandtheart.worldgen.CanyonField
+import co.voik.agesandtheart.worldgen.CanyonlandsField
 import co.voik.agesandtheart.worldgen.CavernField
+import co.voik.agesandtheart.worldgen.CliffField
 import co.voik.agesandtheart.worldgen.ErodedField
+import co.voik.agesandtheart.worldgen.IslandsField
 import co.voik.agesandtheart.worldgen.NoiseField
 import co.voik.agesandtheart.worldgen.PillarField
+import co.voik.agesandtheart.worldgen.RiverlandsField
 import co.voik.agesandtheart.worldgen.ShapesField
+import co.voik.agesandtheart.worldgen.ShatteredField
 import co.voik.agesandtheart.worldgen.SpireField
 import co.voik.agesandtheart.age.Seam
 import co.voik.agesandtheart.age.aspect.Terrain
@@ -15,6 +22,8 @@ import co.voik.agesandtheart.worldgen.field.Raised
 import co.voik.agesandtheart.worldgen.field.RegionMap
 import co.voik.agesandtheart.worldgen.field.Regions
 import co.voik.agesandtheart.worldgen.field.Ridge
+import co.voik.agesandtheart.worldgen.field.Slab
+import co.voik.agesandtheart.worldgen.field.Subtract
 import co.voik.agesandtheart.worldgen.field.Rift
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Weathered
@@ -61,7 +70,51 @@ private class Subject(
      * heights, so a shape raised without its wind sails over the band and comes out unweathered.
      */
     val lift: Int = 0,
+    /**
+     * How many blocks one sample covers, on all three axes.
+     *
+     * **The window is a volume of booleans, so its cost is cubic** — a landform a few hundred blocks across
+     * renders block for block, and one several thousand across does not fit in an array, let alone in
+     * memory. A step is what lets a subject choose its scale: the picture stops showing individual blocks
+     * and starts showing the landform, which for a mountain range is the thing being judged anyway.
+     *
+     * Everything printed and drawn stays in **world** coordinates, so a stepped render is read exactly like
+     * an unstepped one — what changes is only how finely it was asked.
+     */
+    val step: Int = 1,
+    /**
+     * Where to cut the two slices, in world coordinates, or null to cut wherever the most rock is.
+     *
+     * **The fullest line is the wrong default for anything with a grain to it.** It finds the line carrying
+     * the most rock, which on a mountain range is always a crest — so the cut runs *along* a ridge and draws
+     * a plateau, hiding the very cross-section the picture was asked for. Where a landform has a direction,
+     * say where to cut it.
+     */
+    val sliceAtZ: Int? = null,
+    val sliceAtX: Int? = null,
+    /**
+     * Where the window is centred.
+     *
+     * The origin is the right place to look at a landform that is the same everywhere, and the wrong one
+     * for a landform that is a *network*: whether the origin lands on a range or in the middle of a basin
+     * is a coin toss, and a close-up that lands in the basin says nothing about the mountains.
+     */
+    val centreX: Int = 0,
+    val centreZ: Int = 0,
 ) {
+    /** How many samples across the window is, and how many up it. */
+    val samplesWide: Int get() = (radius * 2) / step
+    val samplesHigh: Int get() = (highestY - lowestY) / step + 1
+
+    /** Which sample a world position falls on — the inverse of [worldAlongX], for a named cut. */
+    fun sampleAt(world: Int, centre: Int): Int =
+        ((world - centre) / step + samplesWide / 2).coerceIn(0, samplesWide - 1)
+
+    /** The world position a sample stands at, on each horizontal axis and on the vertical. */
+    fun worldAlongX(sample: Int): Int = (sample - samplesWide / 2) * step + centreX
+    fun worldAlongZ(sample: Int): Int = (sample - samplesWide / 2) * step + centreZ
+    fun worldYAt(level: Int): Int = lowestY + level * step
+
     /**
      * The field as it will actually generate. Built through `Weathered.spire`, **the same factory the
      * generator uses**, so there is no second set of numbers to drift.
@@ -217,6 +270,55 @@ private val subjects: Map<String, Subject> = mapOf(
     // The range runs north–south, so `view-z.png` is the transect that matters.
     //
     // Wide enough to hold the axis and one whole flank out to the foreland, which is what the wedge is.
+    "alps" to Subject(
+        AlpsField.world(),
+        // Already inside the field, as a canyon's is — passing it again would weather the range twice.
+        Weathering.NONE,
+        lowestY = -64,
+        highestY = 300,
+        // Wide enough to hold a couple of the network's cells, which is what the picture is for — one cell
+        // says nothing about whether the ranges close round it.
+        radius = 5200,
+        // The window is a volume of booleans, so this is the first subject that cannot be drawn block for
+        // block: at a step of one it would be seventy billion of them. Eight still resolves a range.
+        step = 8,
+        // Cut straight across the range. The fullest row would run along the crest and show a plateau.
+        sliceAtZ = 0,
+    ),
+
+    // The same range before the frost reaches it. The pair says whether the weathering is doing anything at
+    // this scale, and on a landform whose shape is already made of planes that is a real question.
+    "alps-nowind" to Subject(
+        AlpsField.bareWorld(),
+        Weathering.NONE,
+        lowestY = -64,
+        highestY = 300,
+        radius = 2600,
+        step = 4,
+        sliceAtZ = 0,
+    ),
+
+    // **A valley or two, close enough to read** — and centred on a range rather than on the origin, which
+    // since the ranges became a network lands in a basin as often as not. The wide subject shows where the
+    // country's mountains are; this shows what one is made of: trough cross-sections, cirques at the heads,
+    // and whether the hillslopes really do meet in a crest rather than a dome.
+    "alps-core" to Subject(
+        AlpsField.world(),
+        Weathering.NONE,
+        lowestY = -64,
+        highestY = 300,
+        radius = 1150,
+        step = 3,
+        sliceAtZ = 0,
+        sliceAtX = 1040,
+        // On one of the ranges the wide view shows, rather than in the basin the origin happens to sit in.
+        centreX = 1040,
+    ),
+
+    // **One island, not the archipelago.** The islands lie thousands of blocks apart, and this renders a
+    // whole volume — a window wide enough to hold two of them is billions of booleans. So what this shows
+    // is the thing a picture can show: that an island is a bounded object with a coast and a sea round it.
+    // That they never touch is arithmetic, and `IslandsCheck` asserts it instead of drawing it.
     "islands" to Subject(
         IslandsField.world(extent = IslandsField.Extent.BROAD.key),
         Weathering.NONE,
@@ -356,29 +458,28 @@ private val subjects: Map<String, Subject> = mapOf(
  * learned to spare a column by how thick its rock stands the preview showed a world nobody would generate.
  */
 private fun solidity(subject: Subject): BooleanArray {
-    val width = subject.radius * 2
-    val height = subject.highestY - subject.lowestY + 1
-    val solid = BooleanArray(width * width * height)
+    val width = subject.samplesWide
+    val solid = BooleanArray(width * width * subject.samplesHigh)
     val shape = subject.weathered()
 
     for (imageX in 0..<width) {
-        val worldX = imageX - subject.radius
+        val worldX = subject.worldAlongX(imageX)
         for (imageZ in 0..<width) {
-            val worldZ = imageZ - subject.radius
+            val worldZ = subject.worldAlongZ(imageZ)
             val spans = shape.columnSpans(worldX, worldZ)
             if (spans.ranges.isEmpty()) continue
-            for (worldY in subject.lowestY..subject.highestY) {
-                if (!spans.contains(worldY)) continue
-                solid[index(subject, imageX, worldY, imageZ)] = true
+            for (level in 0..<subject.samplesHigh) {
+                if (!spans.contains(subject.worldYAt(level))) continue
+                solid[index(subject, imageX, level, imageZ)] = true
             }
         }
     }
     return solid
 }
 
-private fun index(subject: Subject, imageX: Int, worldY: Int, imageZ: Int): Int {
-    val width = subject.radius * 2
-    return (worldY - subject.lowestY) * width * width + imageZ * width + imageX
+private fun index(subject: Subject, imageX: Int, level: Int, imageZ: Int): Int {
+    val width = subject.samplesWide
+    return level * width * width + imageZ * width + imageX
 }
 
 /**
@@ -387,11 +488,12 @@ private fun index(subject: Subject, imageX: Int, worldY: Int, imageZ: Int): Int 
  * brightness and hides the height variation this is drawn to show.
  */
 private fun fromAbove(solid: BooleanArray, subject: Subject): BufferedImage {
-    val width = subject.radius * 2
+    val width = subject.samplesWide
     val tops = Array(width) { imageX ->
         IntArray(width) { imageZ ->
-            (subject.highestY downTo subject.lowestY)
-                .firstOrNull { solid[index(subject, imageX, it, imageZ)] } ?: Int.MIN_VALUE
+            (subject.samplesHigh - 1 downTo 0)
+                .firstOrNull { solid[index(subject, imageX, it, imageZ)] }
+                ?.let { subject.worldYAt(it) } ?: Int.MIN_VALUE
         }
     }
     val standing = tops.flatMap { row -> row.filter { it != Int.MIN_VALUE } }
@@ -412,38 +514,36 @@ private fun fromAbove(solid: BooleanArray, subject: Subject): BufferedImage {
  * at z=0, landed in a gap between two masses, and drew a blank image that looked like a bug.
  */
 private fun sliceAlongZ(solid: BooleanArray, subject: Subject): BufferedImage {
-    val width = subject.radius * 2
-    val height = subject.highestY - subject.lowestY + 1
-    val row = fullest(subject) { imageX, worldY, imageZ -> solid[index(subject, imageX, worldY, imageZ)] }
-    println("  slice along Z cuts world z=${row - subject.radius}")
-    return draw(width, height) { imageX, pixelRow ->
-        val worldY = subject.highestY - pixelRow
-        shadeSlice(solid[index(subject, imageX, worldY, row)], worldY)
+    val row = subject.sliceAtZ?.let { subject.sampleAt(it, subject.centreZ) }
+        ?: fullest(subject) { imageX, level, imageZ -> solid[index(subject, imageX, level, imageZ)] }
+    println("  slice along Z cuts world z=${subject.worldAlongZ(row)}")
+    return draw(subject.samplesWide, subject.samplesHigh) { imageX, pixelRow ->
+        val level = subject.samplesHigh - 1 - pixelRow
+        shadeSlice(solid[index(subject, imageX, level, row)], subject.worldYAt(level))
     }
 }
 
 /** Looking along X: the perpendicular cut. Against [sliceAlongZ] it exposes wind anisotropy. */
 private fun sliceAlongX(solid: BooleanArray, subject: Subject): BufferedImage {
-    val width = subject.radius * 2
-    val height = subject.highestY - subject.lowestY + 1
-    val column = fullest(subject) { imageZ, worldY, imageX -> solid[index(subject, imageX, worldY, imageZ)] }
-    println("  slice along X cuts world x=${column - subject.radius}")
-    return draw(width, height) { imageZ, pixelRow ->
-        val worldY = subject.highestY - pixelRow
-        shadeSlice(solid[index(subject, column, worldY, imageZ)], worldY)
+    val column = subject.sliceAtX?.let { subject.sampleAt(it, subject.centreX) }
+        ?: fullest(subject) { imageZ, level, imageX -> solid[index(subject, imageX, level, imageZ)] }
+    println("  slice along X cuts world x=${subject.worldAlongX(column)}")
+    return draw(subject.samplesWide, subject.samplesHigh) { imageZ, pixelRow ->
+        val level = subject.samplesHigh - 1 - pixelRow
+        shadeSlice(solid[index(subject, column, level, imageZ)], subject.worldYAt(level))
     }
 }
 
 /** The line through the window carrying the most rock, so a cut always has something to show. */
 private fun fullest(subject: Subject, isSolid: (Int, Int, Int) -> Boolean): Int {
-    val width = subject.radius * 2
-    var bestLine = subject.radius
+    val width = subject.samplesWide
+    var bestLine = width / 2
     var bestCount = -1
     for (line in 0..<width) {
         var count = 0
         for (across in 0..<width) {
-            for (worldY in subject.lowestY..subject.highestY) {
-                if (isSolid(across, worldY, line)) count++
+            for (level in 0..<subject.samplesHigh) {
+                if (isSolid(across, level, line)) count++
             }
         }
         if (count > bestCount) {
@@ -485,24 +585,25 @@ private fun draw(blocksWide: Int, blocksHigh: Int, shade: (Int, Int) -> Int): Bu
 
 /** Numbers worth having next to the pictures: how much rock stands, and how tall it gets. */
 private fun report(name: String, solid: BooleanArray, subject: Subject, output: File) {
-    val width = subject.radius * 2
+    val width = subject.samplesWide
     val columns = width * width
     val tops = ArrayList<Int>()
 
     for (imageX in 0..<width) {
         for (imageZ in 0..<width) {
-            val top = (subject.highestY downTo subject.lowestY)
+            val top = (subject.samplesHigh - 1 downTo 0)
                 .firstOrNull { solid[index(subject, imageX, it, imageZ)] }
-            if (top != null) tops += top
+            if (top != null) tops += subject.worldYAt(top)
         }
     }
     val standing = solid.count { it }
     val area = if (tops.isEmpty()) "no rock in window" else "${tops.size * 100 / columns}% of columns hold rock"
     val peak = tops.maxOrNull()?.toString() ?: "—"
-    println("$name: $area, ${standing} solid blocks, tallest y=$peak")
+    println("$name: $area, $standing solid samples, tallest y=$peak")
     reportTops(tops)
     reportResistance(subject)
-    println("  window ±${subject.radius} blocks, y ${subject.lowestY}..${subject.highestY}")
+    val sampled = if (subject.step == 1) "" else ", sampled every ${subject.step} blocks"
+    println("  window ±${subject.radius} blocks, y ${subject.lowestY}..${subject.highestY}$sampled")
     println("  wrote ${output.absolutePath}/$name-view-{y,z,x}.png")
 }
 

@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.aspect
 
 import co.voik.agesandtheart.age.Seam
+import co.voik.agesandtheart.worldgen.AlpsField
 import co.voik.agesandtheart.worldgen.CanyonField
 import co.voik.agesandtheart.worldgen.CanyonlandsField
 import co.voik.agesandtheart.worldgen.CavernField
@@ -15,6 +16,7 @@ import co.voik.agesandtheart.worldgen.ShapesField
 import co.voik.agesandtheart.worldgen.ShatteredField
 import co.voik.agesandtheart.worldgen.SpireField
 import co.voik.agesandtheart.worldgen.VerticalWindow
+import co.voik.agesandtheart.worldgen.biome.Elevation
 import co.voik.agesandtheart.worldgen.field.Palette
 import co.voik.agesandtheart.worldgen.field.Raised
 import co.voik.agesandtheart.worldgen.field.Substance
@@ -113,6 +115,17 @@ enum class Terrain(
         build = { options, salt -> IslandsField.world(options.of(EXTENT), salt) },
     ),
 
+    /**
+     * An alpine range at about one to sixteen: a foreland plain, foothills, and a glaciated crest. The one
+     * landform here whose surface is built **up from its own drainage** rather than cut into a given one —
+     * every ridge is where two hillslopes met.
+     */
+    ALPS(
+        "alps",
+        waterline = AlpsField.WATERLINE,
+        build = { _, salt -> AlpsField.world(salt) },
+    ),
+
     /** A walkable sampler of the shape vocabulary and its combinators — a reference, not a world. */
     SHAPES("shapes", waterline = null, build = { _, salt -> ShapesField.world(salt) }),
     ;
@@ -182,6 +195,19 @@ enum class Terrain(
     fun waterlineIsRiver(): Boolean = when (this) {
         CANYON -> true
         else -> false
+    }
+
+    /**
+     * What this terrain's *height* says about what grows on it, or null where it has no relief to speak of
+     * — see [co.voik.agesandtheart.worldgen.biome.Elevation]. A landform's own declaration, like
+     * [hasSandyShores], because only the landform knows where its floor and its crest are.
+     */
+    fun elevation(): Elevation? = when (this) {
+        // Measured from the basin's *shoulder* rather than its floor: the floor is the bottom of a hollow
+        // in the middle of a cell, so datuming there chills the whole country by the depth of its lowest
+        // hole and the basins come out snowy. The shoulder is where the plains actually sit.
+        ALPS -> Elevation(fromY = AlpsField.PLAIN_Y, toY = ALPINE_CREST_Y)
+        else -> null
     }
 
     /**
@@ -307,5 +333,11 @@ enum class Terrain(
          * not larger.
          */
         const val HIGH_ALTITUDE_LIFT = 72
+
+        /**
+         * The height a column in [ALPS] reads as fully a summit at — around the crest rather than above the
+         * tallest massif, so the peak biomes reach the whole crest line and not only its exceptions.
+         */
+        private const val ALPINE_CREST_Y = 262
     }
 }

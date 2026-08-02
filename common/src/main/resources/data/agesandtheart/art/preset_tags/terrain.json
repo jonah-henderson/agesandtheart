@@ -60,6 +60,18 @@
       "scattered": 1.0
     }
   },
+  "alps": {
+    "tags": {
+      "mountainous": 1.0,
+      "dramatic": 0.9,
+      "sheer": 0.7,
+      "wild": 0.6,
+      "eroded": 0.5,
+      "monumental": 0.5,
+      "lush": 0.4,
+      "ordinary": 0.3
+    }
+  },
   "riverlands": {
     "tags": {
       "eroded": 0.8,

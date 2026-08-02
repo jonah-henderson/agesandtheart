@@ -142,6 +142,16 @@ data class AgeRecipe(
                         carvers = listOf(Carvers.CAVES),
                     ),
                 )
+                // Grounded, and it is the strongest case for it yet: without biomes that agree with the
+                // shape a range has no treeline and no snowline, and two hundred blocks of climb pass
+                // through no country at all. See `Elevation`.
+                AgePreset.ALPS -> grounded(
+                    AgeComposition(
+                        terrains = listOf(Terrain.ALPS),
+                        seas = listOf(Sea.WATER),
+                        carvers = listOf(Carvers.CAVES),
+                    ),
+                )
                 AgePreset.HILLS -> AgeComposition(
                     terrains = listOf(Terrain.HILLS),
                     seas = listOf(Sea.WATER),

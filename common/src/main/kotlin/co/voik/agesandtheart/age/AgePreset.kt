@@ -55,6 +55,9 @@ enum class AgePreset(val key: String) : StringRepresentable {
     /** Islands in an endless sea — one at the origin, the rest a voyage away. */
     ISLANDS("islands"),
 
+    /** An alpine range: a foreland plain, foothills, and a glaciated crest behind them. */
+    ALPS("alps"),
+
     /** Tier-B delegates to Minecraft's own generation — our benchmark reference points. */
     VANILLA("vanilla"),
     VANILLA_BARE("vanillabare"),
