@@ -146,7 +146,6 @@ data class AgeRecipe(
                     terrains = listOf(Terrain.HILLS),
                     seas = listOf(Sea.WATER),
                     carvers = listOf(Carvers.CAVES),
-                    structures = Structures.VANILLA,
                 )
                 // Its caves are its shape, so nothing is carved — but the rock still runs wet and dry.
                 AgePreset.CAVERNS -> AgeComposition(
@@ -169,6 +168,9 @@ data class AgeRecipe(
             terrains = listOf(Terrain.SPIRE_ISLANDS),
             seas = listOf(Sea.WATER),
             carvers = listOf(Carvers.WEATHERED),
+            // Nobody built here. The `only plasma` claim below would strand every set anyway, but the
+            // Spire says so outright rather than relying on a side effect of its biome.
+            structures = Structures.NONE,
             sky = Sky.SPIRE,
             options = AspectOptions()
                 .with(

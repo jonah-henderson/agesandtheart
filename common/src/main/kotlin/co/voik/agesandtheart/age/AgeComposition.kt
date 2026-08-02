@@ -34,8 +34,12 @@ data class AgeComposition(
     /** Which biomes it grows. Singular — one climate table spans the world however many terrains carve it. */
     val biomes: Biomes = Biomes.VANILLA,
     val sky: Sky = Sky.PLAIN,
-    /** What may be built here. [Structures.NONE] by default, which is what keeps structures opt-in per Age. */
-    val structures: Structures = Structures.NONE,
+    /**
+     * What may be built here. **Vanilla by default**, so any Age is built in unless it says otherwise —
+     * an interim setting while the landforms are being walked, and one an Age turns off by naming
+     * [Structures.NONE]. See `notes/the-art-design.md`, "Habitability decides what is built".
+     */
+    val structures: Structures = Structures.VANILLA,
     /** The coordinates its biomes are looked up at. Plural — see [Climate]. Never empty. */
     val climates: List<Climate> = listOf(Climate.NATURAL),
     val options: AspectOptions = AspectOptions(),
@@ -258,7 +262,7 @@ data class AgeComposition(
                 enumCodec<Biomes>().optionalFieldOf("biomes", Biomes.VANILLA)
                     .forGetter(AgeComposition::biomes),
                 enumCodec<Sky>().optionalFieldOf("sky", Sky.PLAIN).forGetter(AgeComposition::sky),
-                enumCodec<Structures>().optionalFieldOf("structures", Structures.NONE)
+                enumCodec<Structures>().optionalFieldOf("structures", Structures.VANILLA)
                     .forGetter(AgeComposition::structures),
                 setOrSingle(enumCodec<Climate>(), Climate.NATURAL)
                     .optionalFieldOf("climate", listOf(Climate.NATURAL))
