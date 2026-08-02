@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `notes/` holds the design record, and it is **normative** — where code and these documents disagree,
 that is a bug in one of them, so revise the doc rather than letting the code drift away from it. Read the
-relevant one before working in its area; most of the value is in the *reasoning*, not the conclusions.
+relevant one before working in its area; most of the value is in the _reasoning_, not the conclusions.
 
 **Unbuilt work keeps its full reasoning; finished work is compressed to two lines in `decisions.md`.** When
 something lands, move it — do not leave the narrative of building it behind, and do not let a document
@@ -25,13 +25,16 @@ correct itself in place. Rewrite the paragraph that is now wrong.
   it moved. Read it when bumping the stamp, and add a row.
 - **`notes/per-age-skies-research.md`** — the sky renderer's reference: render-state traps and what a
   per-Age sky cannot change. Read §3 before touching the renderer. **Its API details were verified against
-  the 1.21.1 jar** and the renderer was rebuilt for 26.1 during the upgrade — so trust its *conclusions*
+  the 1.21.1 jar** and the renderer was rebuilt for 26.1 during the upgrade — so trust its _conclusions_
   about what a sky can and cannot do, and re-check any signature it quotes.
 - **`notes/version-upgrade.md`** — the 1.21.1 → 26.1.2 move: the dependency matrix, what the build chain
   cost, and the two 26.1 subsystems (retained-mode GUI, model-based fluids) that changed what is worth
   building. Read it before assuming any pre-upgrade note still holds.
 - **`notes/ui-libraries-research.md`** — why the screens are vanilla widgets and not a UI framework, and
   the component layer that decision implies. Read it before proposing a library or hand-drawing a screen.
+- **`notes/authoring-tools.md`** — how structures and 3D models get authored: the external tooling and its
+  version state, and what our own datapacks could carry that they do not yet. Nothing in it is built. Read it
+  before building a structure, a model, or anything that wants to be pack data.
 
 ## What this is
 
@@ -46,6 +49,7 @@ Current state: Phases 1–4.5 are done and Phase 5 (the playable slice) is in pr
 Java 25 (Temurin, via SDKMAN). Gradle comes from the wrapper — always use `./gradlew`, never a system Gradle. Note that the Java level is real: Dokka 1.x cannot parse a "25.x" version string and fails before reading a line of source, which is why the catalog pins Dokka 2.
 
 **Non-interactive shell gotcha:** SDKMAN's init lives in `~/.bashrc` and may not be sourced in non-login shells, so `java` can be missing from `PATH`. Before running Gradle, ensure Java is available, e.g.:
+
 ```bash
 export JAVA_HOME="$HOME/.sdkman/candidates/java/current"; export PATH="$JAVA_HOME/bin:$PATH"
 ```
@@ -81,7 +85,7 @@ scripts/drive-server.sh scripts/checks/regions.txt
 **Server checks are `./gradlew :common:serverTest`, and they own their own acceptance.** A Kotest spec
 tagged `NEEDS_SERVER` uses `DrivenServer` (in `common/src/test/kotlin/.../server/`) to boot a dedicated
 server, drive it over **RCON**, and assert on what comes back. The concerns are split on purpose: the
-driver starts, sends and stops, and *asserts nothing*; Kotest decides whether an answer is right, so a
+driver starts, sends and stops, and _asserts nothing_; Kotest decides whether an answer is right, so a
 failure carries a Power-Assert diagram rather than "nothing matched".
 
 RCON is what makes that possible. `DedicatedServer.runCommand` is `prepareForCommand()` /
@@ -93,8 +97,8 @@ Two things that follow, and both are load-bearing:
 
 - **The commands can answer in JSON**, written `/age <subcommand> json …` (the literal goes straight after
   the subcommand because `/age write`'s sentence is greedy). Prose stays the default and is unchanged in
-  game. A structured answer is *one* message, which matters because RCON concatenates a command's messages
-  with no separator — so the buffer *is* the document. See `age/Report.kt`.
+  game. A structured answer is _one_ message, which matters because RCON concatenates a command's messages
+  with no separator — so the buffer _is_ the document. See `age/Report.kt`.
 - **The server is started without Gradle.** These specs run inside a Gradle-launched JVM and a nested
   `./gradlew` would wait on the outer build's locks, so `:fabric:exportServerLaunch` writes the launch
   command down and `DrivenServer` starts the JVM itself. It writes to a fresh `checks-…` world, restores
@@ -102,7 +106,7 @@ Two things that follow, and both are load-bearing:
   name and location so it can never reach a world a person plays.
 
 **`scripts/drive-server.sh` remains, as a driver only.** It runs a list of `/age` commands against a
-server and prints what they say, for the exploratory files that are meant to be *read* — `aspects.txt`,
+server and prints what they say, for the exploratory files that are meant to be _read_ — `aspects.txt`,
 `regions.txt`, `generator-parity.txt`. Its old `#?` assertion layer is gone (`#?` lines are skipped so old
 files still drive): it read the first integer on the matching line, which on a real server log is the
 hour off the timestamp, so `at-least 100` could never pass and `at-most 2000` could never fail.
@@ -122,7 +126,7 @@ former `preview` "check" instruments — same assertions, same hand-written fail
 and reported individually. Two things about how they are written:
 
 - **Assertions are plain `check(condition) { "what went wrong" }`.** The Kotlin **Power-Assert** compiler
-  plugin is on for the `test` source set only, so a failure prints that sentence *and* a diagram of every
+  plugin is on for the `test` source set only, so a failure prints that sentence _and_ a diagram of every
   subexpression. Kotest's matchers are available and used where they read better, but `check` is the house
   style here because the messages were the point and they ported unchanged.
 - **`@Tags(NEEDS_REGISTRIES)` marks a spec that needs `Bootstrap.bootStrap()`** — a few seconds, paid once
@@ -131,28 +135,30 @@ and reported individually. Two things about how they are written:
   expensive inside a spec should be `by lazy`.
 
 Property-based tests use `kotest-property` (`checkAll`) — see `SpansCheck`, and note it generates the
-*recipe* for a value rather than the value, because that is what shrinks and what prints legibly.
+_recipe_ for a value rather than the value, because that is what shrinks and what prints legibly.
 
 ## Architecture
 
 This is **not** Architectury. Platform abstraction is done with plain `java.util.ServiceLoader`; Fabric uses **Loom**, NeoForge uses **ModDevGradle (MDG)**. Understanding the project means understanding four cross-cutting mechanisms:
 
 **1. The three modules and how `common` reaches the loaders.**
-`common/` holds all real logic and compiles against vanilla Minecraft only (via MDG/NeoForm) — it must not reference Fabric or NeoForge types. `fabric/` and `neoforge/` are thin adapters. Critically, `common` is **not** consumed as a jar: `common/build.gradle.kts` exposes its sources through `commonJava`/`commonKotlin`/`commonResources` configurations, and `buildSrc/.../multiloader-loader.gradle` wires those into each loader's compile/resource tasks. Net effect: common source is compiled *into* each loader jar. There is no separate "common" mod to ship.
+`common/` holds all real logic and compiles against vanilla Minecraft only (via MDG/NeoForm) — it must not reference Fabric or NeoForge types. `fabric/` and `neoforge/` are thin adapters. Critically, `common` is **not** consumed as a jar: `common/build.gradle.kts` exposes its sources through `commonJava`/`commonKotlin`/`commonResources` configurations, and `buildSrc/.../multiloader-loader.gradle` wires those into each loader's compile/resource tasks. Net effect: common source is compiled _into_ each loader jar. There is no separate "common" mod to ship.
 
 **2. The platform split (SPI pattern), spanning four files.**
 When shared code needs something loader-specific, it goes through an interface, never a direct call:
+
 - `common/.../platform/services/PlatformHelper.kt` — the interface
 - `fabric/.../platform/FabricPlatformHelper.kt` / `neoforge/.../platform/NeoForgePlatformHelper.kt` — implementations
 - `*/src/main/resources/META-INF/services/co.voik.agesandtheart.platform.services.PlatformHelper` — SPI registration (one line naming the impl)
 - `common/.../platform/Services.kt` — `Services.PLATFORM` resolves the right impl at runtime
 
-To add a new platform-divergent capability: add a method to `PlatformHelper`, implement it in both loader classes. Only introduce a *new* ServiceLoader interface when it's a genuinely distinct service — `AgeBackend` (runtime dimensions) is the established example: it's a second service loaded via `Services.AGE_BACKEND`, with `FabricAgeBackend`/`NeoForgeAgeBackend` impls and their own `META-INF/services` files. Don't fragment `PlatformHelper` for one-off needs.
+To add a new platform-divergent capability: add a method to `PlatformHelper`, implement it in both loader classes. Only introduce a _new_ ServiceLoader interface when it's a genuinely distinct service — `AgeBackend` (runtime dimensions) is the established example: it's a second service loaded via `Services.AGE_BACKEND`, with `FabricAgeBackend`/`NeoForgeAgeBackend` impls and their own `META-INF/services` files. Don't fragment `PlatformHelper` for one-off needs.
 
 **3. Entrypoints differ per loader; both funnel into `common`.**
+
 - Fabric: `fabric.mod.json` `entrypoints.main` → `co.voik.agesandtheart.AgesAndTheArtKt::init` (a top-level `fun init()` in `fabric/.../AgesAndTheArt.kt`), using the `kotlin` adapter (Fabric Language Kotlin).
 - NeoForge: `@Mod("agesandtheart")` on the class in `neoforge/.../AgesAndTheArt.kt`; its constructor runs (Kotlin for Forge provides the Kotlin entry).
-Both immediately call `CommonSetup.init()`. Keep loader entrypoints tiny; put logic in `common`.
+  Both immediately call `CommonSetup.init()`. Keep loader entrypoints tiny; put logic in `common`.
 
 **4. Three Mixins, all in `common`, all Java.**
 `common/src/main/resources/agesandtheart.mixins.json` declares them, and each earned its place by there being no loader event that carries what it needs:
@@ -166,7 +172,7 @@ Both immediately call `CommonSetup.init()`. Keep loader entrypoints tiny; put lo
 
 The core mechanic — creating dimensions ("Ages") at runtime and persisting them — lives in `common/.../age/`, with the one loader-specific piece behind the `AgeBackend` service:
 
-- **`AgeRecipe`** — **what an Age is, as data**: the world it was written from (a composition of slot presets, or one of the few bespoke generators), its seed, the character drawn for it, the instability and words it was written with, and the generator version that made it. Codec-serialised, and the *only* record of an Age — the dimension is rebuilt from it on every open. `AgePreset` names the generation presets; its `key` is the save format, so renaming one orphans every Age already written with it (`RecipeCheck` guards this).
+- **`AgeRecipe`** — **what an Age is, as data**: the world it was written from (a composition of slot presets, or one of the few bespoke generators), its seed, the character drawn for it, the instability and words it was written with, and the generator version that made it. Codec-serialised, and the _only_ record of an Age — the dimension is rebuilt from it on every open. `AgePreset` names the generation presets; its `key` is the save format, so renaming one orphans every Age already written with it (`RecipeCheck` guards this).
 - **`AgeGeneration`** — turns a recipe into a `ChunkGenerator`, in an exhaustive `when` over `AgePreset`. A pure function of the recipe (plus the server, for registries), because an Age must rebuild identically on every open.
 - **`AgeSavedData`** — vanilla `SavedData` on the overworld's data storage, persisting each Age's recipe. Runtime-dimension libraries do **not** auto-restore dimensions on restart, so we track them ourselves. Reads the pre-recipe format (an id list plus generator-kind strings) and migrates it.
 - **`Ages`** — loader-agnostic policy: `create` / `open` / `ensure` / `delete` (delegating to `Services.AGE_BACKEND`) and `reloadSaved` (replay on boot).
@@ -178,7 +184,7 @@ The core mechanic — creating dimensions ("Ages") at runtime and persisting the
   Resolution is a **pure function of (vocabulary, sentence, seed)**; the resolved composition is what
   persists, never the words (design §4.6).
 - **`age/word/grammar/`** — **the parser**, and a boundary worth respecting. `Grammar.read(vocabulary,
-  pages) → Sentence` is the entire port; `Sentence`/`Phrase`/`Constraint`/`Scope`/`Polarity`/`Group` are
+pages) → Sentence` is the entire port; `Sentence`/`Phrase`/`Constraint`/`Scope`/`Polarity`/`Group` are
   ours and carry no parser concepts, which is what lets checks build sentences by hand and lets the parser
   be replaced by rewriting one file. **`ArtGrammar.kt` is the only file in the mod that may import
   `org.antlr`** — `GrammarCheck` fails the build if any other does. The grammar itself is
@@ -199,12 +205,12 @@ Reload trigger is loader-specific: Fabric's `SERVER_STARTED` event calls `Ages.r
 ## Conventions
 
 - **Versions live in `libs.versions.toml`** (Gradle version catalog) — the single source of truth. Change dependency/loader versions there, not in module build files.
-- **Bundling a third-party library is a solved problem — copy the ANTLR wiring rather than inventing one.** It is the mod's only bundled dependency and the pattern is in the build files with the reasoning attached. In short: Fabric needs `implementation` + `include` (Loom synthesises a `fabric.mod.json` for the nested jar itself); NeoForge needs it **twice** — `implementation`, and `jarJar` with a **version range** (never a pin, or jar-in-jar cannot pick one copy when two mods bundle it). The third declaration this used to need, `additionalRuntimeClasspath`, was a 1.21.1 workaround and is gone: NeoForge fixed nested-artifact loading in 1.21.9. **Prefer a library with no dependencies of its own.** A Kotlin library is the hard case: KFF supplies the stdlib as a *mod*, which lives in NeoForge's game module layer where an ordinary library cannot see it, so `kotlin.Pair` goes missing at runtime and `FMLModType` does not rescue it.
+- **Bundling a third-party library is a solved problem — copy the ANTLR wiring rather than inventing one.** It is the mod's only bundled dependency and the pattern is in the build files with the reasoning attached. In short: Fabric needs `implementation` + `include` (Loom synthesises a `fabric.mod.json` for the nested jar itself); NeoForge needs it **twice** — `implementation`, and `jarJar` with a **version range** (never a pin, or jar-in-jar cannot pick one copy when two mods bundle it). The third declaration this used to need, `additionalRuntimeClasspath`, was a 1.21.1 workaround and is gone: NeoForge fixed nested-artifact loading in 1.21.9. **Prefer a library with no dependencies of its own.** A Kotlin library is the hard case: KFF supplies the stdlib as a _mod_, which lives in NeoForge's game module layer where an ordinary library cannot see it, so `kotlin.Pair` goes missing at runtime and `FMLModType` does not rescue it.
 - **Widening vanilla access takes two files, both in `common`.** `common/src/main/resources/agesandtheart.accesswidener` (Fabric/Loom) and `common/src/main/resources/META-INF/accesstransformer.cfg` (NeoForge/MDG) must be kept in step — `common` itself compiles against the **AT**, so that is the one that decides whether shared code even builds. Prefer composing vanilla's public API; widen only with a comment saying what it buys. Note `javap` misreports nested-type visibility (the real modifier lives in the outer class's `InnerClasses` attribute) and **decompiled sources drop `final` from class declarations** — trust the compiler, not the sources.
 - **Screens are composed from `client/ui/`, never hand-drawn.** The model is Flutter-shaped and deliberately thin over vanilla:
-  - **Vanilla owns arrangement.** `GridLayout`, `LinearLayout`, `FrameLayout` and `LayoutSettings` (which already carries padding *and* alignment) do the positioning. Do not write a layout engine — the one place ours was needed, standalone padding on a decorated box, is `Insets`.
+  - **Vanilla owns arrangement.** `GridLayout`, `LinearLayout`, `FrameLayout` and `LayoutSettings` (which already carries padding _and_ alignment) do the positioning. Do not write a layout engine — the one place ours was needed, standalone padding on a decorated box, is `Insets`.
   - **We own decoration**, the one concept vanilla's GUI lacks. A `Decoration` draws into a rectangle (`PanelSurface`, `SlotSurface`, `ColourSurface`); `DecorationWidget` makes one renderable; `DecoratedBox` is a `Layout` that puts one behind a child. It visits its surface **before** its child, so `visitWidgets(::addRenderableWidget)` stacks them correctly with no separate background pass.
-  - **A thing brings its own appearance.** `SlotView` is a slot *and* its recess, because an empty slot's recess is not decoration applied to a slot — it is what one looks like. Don't re-split these.
+  - **A thing brings its own appearance.** `SlotView` is a slot _and_ its recess, because an empty slot's recess is not decoration applied to a slot — it is what one looks like. Don't re-split these.
   - **Add widgets back-to-front in one list.** Render order is insertion order; there should be no second drawing hook to keep in step. Decorative widgets return `isMouseOver = false` so they never shadow a click meant for what they sit behind.
   - **Never state a position twice.** A rectangle used for drawing and re-derived for hit-testing is the defect this layer exists to prevent, and it caused every bug the desk screen shipped. Slot positions live in `desk/DeskSlots.kt` because the menu needs them too and cannot see client code. Prefer deriving a size (the wing's 46×124 falls out of its contents) over declaring it.
   - Two traps, both already paid for: `AbstractContainerWidget` routes clicks and scrolls straight to its children **without consulting its own `visible` flag**, so a hidden list still answers them unless the guards in `LabelledList` are copied; and switching tabs must toggle `visible` rather than rebuild widgets, because a rebuild mutates the widget list that the dispatching click is iterating.
@@ -216,26 +222,30 @@ Reload trigger is loader-specific: Fabric's `SERVER_STARTED` event calls `Ages.r
 
 The overriding goal is **readability** — a reader should understand code without a decoder ring, and large sections should read almost like English. These rules are enforceable; follow them and flag any deliberate deviation with a local comment.
 
-**TS reader's map:** `val`≈`const`, `var`≈`let`, `List`≈`readonly T[]`, `MutableList`≈`T[]`, `?.`/`?:`≈`?.`/`??`, `data class`≈typed record, `when`≈powerful `switch`. Null-safety is compiler-enforced — lean on it. (We're on **Kotlin 2.4.0**: `..<` ranges and `when` *guard conditions* (2.2+) are both available.)
+**TS reader's map:** `val`≈`const`, `var`≈`let`, `List`≈`readonly T[]`, `MutableList`≈`T[]`, `?.`/`?:`≈`?.`/`??`, `data class`≈typed record, `when`≈powerful `switch`. Null-safety is compiler-enforced — lean on it. (We're on **Kotlin 2.4.0**: `..<` ranges and `when` _guard conditions_ (2.2+) are both available.)
 
 **Naming**
+
 - Full words, no abbreviations: `blockPosition` not `bp`, `surfaceY` not `y`, `buffer` not `buf`. Single letters only for `it` in a trivial lambda or a genuine math axis.
 - UpperCamelCase types; lowerCamelCase functions/properties/locals; **SCREAMING_SNAKE_CASE** for `const val` and `object`/top-level `val` constants.
 - Booleans read as predicates (`isSupported`, `hasSkyLight`, `canReach`). Functions are verbs, properties are nouns — property access must be cheap and side-effect-free.
-- Never name a file/class `Util`/`Helper`/`Manager`/`Misc` for *new* code (existing `AgeManager`/`Util.kt` are grandfathered; don't add to the pattern). Multi-declaration files get a descriptive name (`Rgba.kt`).
-- **Prefer slightly verbose and unambiguous over clever and compact.** A cute name passes review because its author still holds the metaphor in their head; the cost lands later on someone who doesn't. `capabilityBonus` not `capability` when it returns a score; `climatePointsFromOtherPresets` not `climatesElsewhere`; `sawADressingThatIgnoresMaterials` not `reachedAListeningOne`. Extra characters are cheap; a re-read is not. Applies to comments as much as identifiers. **Exception:** where a metaphor is already load-bearing across the codebase (`steer` a preset, `territory`, `seam`, `mingled`, `readiness`), keep it — consistency beats a lone improvement.
-- **Never use a term naming a real population as a metaphor for inability.** "A preset *deaf to* a parameter" became "a preset that *ignores* a parameter". The domain usually already has the neutral verb — here `ignoresMaterial`/`ignoresClimate` were sitting right there.
+- Never name a file/class `Util`/`Helper`/`Manager`/`Misc` for _new_ code (existing `AgeManager`/`Util.kt` are grandfathered; don't add to the pattern). Multi-declaration files get a descriptive name (`Rgba.kt`).
+- **Prefer slightly verbose and unambiguous names over clever and compact ones.** A cute name passes review because its author still holds the metaphor in their head; the cost lands later on someone who doesn't. `capabilityBonus` not `capability` when it returns a score; `climatePointsFromOtherPresets` not `climatesElsewhere`; `sawADressingThatIgnoresMaterials` not `reachedAListeningOne`. Extra characters are cheap; a re-read is not.
+- **Never use a term naming a real population as a metaphor for inability.** "A preset _deaf to_ a parameter" became "a preset that _ignores_ a parameter". The domain usually already has the neutral verb — here `ignoresMaterial`/`ignoresClimate` were sitting right there.
 
 **Immutability**
+
 - `val` unless a `var` is provably required. Compute a value once with an `if`/`when` expression instead of reassigning a `var` across branches.
 - Read-only collection types (`List`/`Set`/`Map`) built with `listOf`/`setOf`/`mapOf`; use `Mutable*` only where you actually mutate, kept as local as possible. Expose read-only, back with a private `mutableListOf` if needed.
 - `const val` for compile-time constants; **name every magic number/string** (`OPERATOR_PERMISSION_LEVEL = 2`, not a bare `2`).
 
 **Functions & purity**
+
 - Prefer **pure functions** (output depends only on input, no side effects) for calculation — they're unit-testable without a running server. Keep world/entity mutation in thin, clearly-named functions at the edges.
 - Single-expression functions use expression bodies (`fun area(w: Int, h: Int) = w * h`); state return types on public API.
-- Return values instead of mutating parameters. Extract named helpers over inline comments — a well-named call *is* the comment. No giant imperative functions.
+- Return values instead of mutating parameters. Extract named helpers over inline comments — a well-named call _is_ the comment. No giant imperative functions.
 - **Build complex booleans from named intermediates**, so each piece reads on its own. This applies **first and foremost to ordinary conditionals** — every `if`, `return` and `while` whose condition has more than one clause:
+
   ```kotlin
   // Not this — you have to decode it before you can judge it:
   fun accepts(option: String): Boolean =
@@ -248,7 +258,9 @@ The overriding goal is **readability** — a reader should understand code witho
       return isOneOfTheNamedOptions || (open && looksLikeARegistryId)
   }
   ```
+
   It applies equally to **lambdas** passed to `filter`/`none`/`any`/`count`/`sortedBy`, where nesting is the usual culprit — give each level a named local function:
+
   ```kotlin
   // Not this — three levels to hold in your head at once:
   setting.filter { word -> word.sets.keys.none { name -> seated.any { it.honoursParameterNamed(name) } } }
@@ -257,26 +269,27 @@ The overriding goal is **readability** — a reader should understand code witho
   fun anythingSeatedHonours(parameter: String) = seated.any { it.honoursParameterNamed(parameter) }
   val wentUnheeded = setting.filter { word -> word.sets.keys.none(::anythingSeatedHonours) }
   ```
+
   **Be judicious** — a single-clause condition (`if (chosen.isEmpty())`) or a short lambda (`filter { it.slot == slot }`) is already readable, and naming it only adds noise.
+
 - Default arguments over overloads; named arguments when passing multiple same-typed/boolean args.
 
 **Control flow**
+
 - `if`/`when`/`try` are expressions — assign or return them. `if` for two branches, `when` for 3+.
 - Exhaustive `when` over `when` + `else` on sealed types/enums, so a new case breaks the build.
 - `..<` for exclusive ranges (`0..<size`), never `0..n - 1`. String templates over `+`.
 
 **Null-safety**
+
 - **Never `!!`.** Use `?:` (default / `?: return` / `?: error("why")`) or `requireNotNull(x) { "why" }`. Treat Java/MC return values as nullable until proven otherwise, and resolve nullability at the boundary.
 - Compare nullable booleans explicitly (`if (flag == true)`).
 
 **Data modeling**
+
 - `data class` for anything holding data (all-`val` unless mutation is required); `sealed`/`enum` for closed hierarchies (pairs with exhaustive `when`); `object` for stateless singletons and pure-function registries; `@JvmInline value class` for typed ids/units.
 
-**Comments describe the code, and nothing else.** A KDoc says what a thing is and how to use it; the
-reasoning, the history, the alternatives rejected and the dated quotes belong in `notes/` — `decisions.md`
-for a settled call, the design doc or the plan for anything unbuilt. Keep at the code only what would bite
-an editor *at that spot*: an ordering that must not change, a trap already fallen into, a constraint whose
-violation is silent. State it in a clause, not a section, and let `notes/` carry the argument.
+**Comments describe the code, and nothing else.** Keep comments brief, concise, and only use them to explain non-obvious code that can't be simplified another way. Do not use comments to expound at length on design decisions or the history of the code. Commit logs serve that purpose, and key design points that will guide future code go in the various notes documents. Comments are only, exclusively for explaining code that is not easily readable on first glance, and should only talk about the code in question. Do not editorialise.
 
 Concretely: no `##` headings inside a KDoc, no changelogs, no "this used to be X and Y changed it", no
 dates or attributions. Prefer no KDoc at all where the name already says it — `/** The shape of the
@@ -287,7 +300,7 @@ genuinely constrains the code, and worth dropping from ordinary description.
 
 **Anti-patterns to avoid** (common in mod code): `!!`; `lateinit` abuse (prefer `val` + constructor or `by lazy`); companion-object soup; **mutable global state** in `object`s/companions; magic numbers; deeply nested scope-function chains; `MutableList` leaking through public API; `when` + `else` on sealed/enum types silently swallowing new cases.
 
-**Save compatibility — not yet a constraint (2026-07-27, revisit at first release).** The mod is still in initial development with no players and no saves worth keeping, so **renaming slot keys, changing codec shapes and bumping `generatorVersion` are all free** — say so and move on. Do *not* add `FORMER_KEYS`-style alias tables, either-or codecs chosen purely to keep old files byte-identical, or treat "no version had to move" as a design goal; prefer the clearer shape and let test Ages break. Still true regardless: a recipe must round-trip *within* a version (`RecipeCheck`), which is correctness rather than compatibility.
+**Save compatibility — not yet a constraint (2026-07-27, revisit at first release).** The mod is still in initial development with no players and no saves worth keeping, so **renaming slot keys, changing codec shapes and bumping `generatorVersion` are all free** — say so and move on. Do _not_ add `FORMER_KEYS`-style alias tables, either-or codecs chosen purely to keep old files byte-identical, or treat "no version had to move" as a design goal; prefer the clearer shape and let test Ages break. Still true regardless: a recipe must round-trip _within_ a version (`RecipeCheck`), which is correctness rather than compatibility.
 
 **When to break the rules:** hot per-tick loops may justify a plain `for`, a `var` accumulator, or primitive arrays (measure first, comment why); Java/MC interop forces platform types and mutable builders (contain them at the boundary). Immutability and functional style are defaults, not religion — but a break should be **local and commented**, never the ambient style.
 
