@@ -1,12 +1,18 @@
 package co.voik.agesandtheart.age.aspect
 
 import co.voik.agesandtheart.age.Seam
+import co.voik.agesandtheart.worldgen.CanyonField
+import co.voik.agesandtheart.worldgen.CanyonlandsField
 import co.voik.agesandtheart.worldgen.CavernField
+import co.voik.agesandtheart.worldgen.CliffField
 import co.voik.agesandtheart.worldgen.ErodedField
+import co.voik.agesandtheart.worldgen.IslandsField
 import co.voik.agesandtheart.worldgen.NoiseField
 import co.voik.agesandtheart.worldgen.PillarField
 import co.voik.agesandtheart.worldgen.PyramidField
+import co.voik.agesandtheart.worldgen.RiverlandsField
 import co.voik.agesandtheart.worldgen.ShapesField
+import co.voik.agesandtheart.worldgen.ShatteredField
 import co.voik.agesandtheart.worldgen.SpireField
 import co.voik.agesandtheart.worldgen.VerticalWindow
 import co.voik.agesandtheart.worldgen.field.Palette
@@ -25,7 +31,7 @@ import net.minecraft.world.level.block.state.BlockState
 enum class Terrain(
     override val key: String,
     val waterline: Int?,
-    private val build: (String, Long) -> TerrainField,
+    private val build: (Options, Long) -> TerrainField,
 ) : AspectPreset {
     /** Floating islands over open air: lobed masses, talons and roots, weathered to ribs. */
     SPIRE_ISLANDS("spire_islands", waterline = 63, build = { _, salt -> SpireField.world(salt) }),
@@ -42,8 +48,70 @@ enum class Terrain(
     /** Colossal rectangular monoliths on a jittered grid, standing a hundred blocks out of the sea. */
     PILLARS("pillars", waterline = 63, build = { _, salt -> PillarField.world(salt) }),
 
-    /** Instanced pyramids on a plain — the one terrain with a real parameter, its [ARRANGEMENT]. */
-    PYRAMIDS("pyramids", waterline = null, build = { arrangement, salt -> PyramidField.world(arrangement, salt) }),
+    /** Instanced pyramids on a plain, in the [ARRANGEMENT] asked for. */
+    PYRAMIDS(
+        "pyramids",
+        waterline = null,
+        build = { options, salt -> PyramidField.world(options.of(ARRANGEMENT), salt) },
+    ),
+
+    /**
+     * Rock to the height limit with one canyon cut through it, on the [BEARING] asked for — the one
+     * terrain where the world is what was taken away. Its waterline is the river at the bottom of the
+     * gorge, not a sea: there is no open ground for a sea to stand on.
+     */
+    CANYON(
+        "canyon",
+        waterline = CanyonField.RIVER_LEVEL,
+        build = { options, salt -> CanyonField.world(options.of(BEARING), salt) },
+    ),
+
+    /**
+     * A world cut in two on the [BEARING] asked for: ocean one way, plateau the other, one cliff between.
+     */
+    CLIFFS(
+        "cliffs",
+        waterline = CliffField.SEA_LEVEL,
+        build = { options, salt -> CliffField.world(options.of(BEARING), salt) },
+    ),
+
+    /** Mesa country: a tableland under open sky, cut to pieces by canyons running three ways at once. */
+    CANYONLANDS(
+        "canyonlands",
+        waterline = CanyonlandsField.RIVER_LEVEL,
+        build = { _, salt -> CanyonlandsField.world(salt) },
+    ),
+
+    /**
+     * The same table cracked into cells, a gorge down every join — no trunk, no tributary, no downhill.
+     * The one landform here that could not have been made by water, and kept for exactly that.
+     */
+    SHATTERED(
+        "shattered",
+        waterline = ShatteredField.RIVER_LEVEL,
+        build = { _, salt -> ShatteredField.world(salt) },
+    ),
+
+    /**
+     * Rolling upland carved by a river system — headwaters branching down into trunks, with the trunks
+     * running wet and the headwaters dry. The one landform here with a drainage *hierarchy*.
+     */
+    RIVERLANDS(
+        "riverlands",
+        waterline = RiverlandsField.WATERLINE,
+        build = { _, salt -> RiverlandsField.world(salt) },
+    ),
+
+    /**
+     * Islands in an endless sea, at the [EXTENT] asked for — one where the writer arrives and the rest a
+     * voyage away. Deliberately never a continent; see `Isle` for what makes that a property rather than
+     * a tuning.
+     */
+    ISLANDS(
+        "islands",
+        waterline = IslandsField.SEA_LEVEL,
+        build = { options, salt -> IslandsField.world(options.of(EXTENT), salt) },
+    ),
 
     /** A walkable sampler of the shape vocabulary and its combinators — a reference, not a world. */
     SHAPES("shapes", waterline = null, build = { _, salt -> ShapesField.world(salt) }),
@@ -54,6 +122,8 @@ enum class Terrain(
     override val parameters: List<Parameter>
         get() = listOfNotNull(
             ARRANGEMENT.takeIf { this == PYRAMIDS },
+            BEARING.takeIf { this == CANYON || this == CLIFFS },
+            EXTENT.takeIf { this == ISLANDS },
             ALTITUDE.takeIf { this == SPIRE_ISLANDS },
             STONE,
             MINGLING,
@@ -69,7 +139,7 @@ enum class Terrain(
      * and a [salt] because two territories of the *same* preset must not build the same rock.
      */
     fun field(options: Options, window: VerticalWindow, salt: Long): TerrainField {
-        val shape = build(options.of(ARRANGEMENT), salt)
+        val shape = build(options, salt)
         val lift = lift(options, window)
         return if (lift == 0) shape else Raised(shape, lift)
     }
@@ -113,6 +183,24 @@ enum class Terrain(
 
     companion object {
         val ARRANGEMENT = Parameter("arrangement", "grid", "rings", "varied")
+
+        /**
+         * Which way a canyon runs. Words rather than an angle, both because §3.2 keeps numbers away from a
+         * writer and because a canyon on an arbitrary bearing is a thing only a composed field tree should
+         * be able to ask for.
+         */
+        val BEARING = Parameter("bearing", "north_south", "east_west", "diagonal")
+
+        /**
+         * How big an island is. Words rather than a distance, §3.2 keeping numbers away from a writer —
+         * and the largest is deliberately short of anywhere you could lose a coastline on.
+         */
+        val EXTENT = Parameter(
+            "extent",
+            IslandsField.Extent.MODEST.key,
+            IslandsField.Extent.BROAD.key,
+            IslandsField.Extent.VAST.key,
+        )
 
         /** The one material parameter — the whole of what a writer means by "the land is andesite". */
         val STONE = Parameter.material("stone")

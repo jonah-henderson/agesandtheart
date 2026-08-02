@@ -19,6 +19,18 @@ data class Instanced(
     val placement: Placement,
     val variation: Variation,
     val seed: Long,
+    /**
+     * How far the boundary between two overlapping instances is eased, in blocks. Zero is a plain union
+     * and every instanced field written before this.
+     *
+     * **The union is where the seam is, so this is where the fix has to be.** Two copies overlapping meet
+     * in a crease — a corner in the surface that reads as a line ruled between them — and nothing wrapped
+     * *around* an instanced field can reach in to smooth it, because by then the copies are already one
+     * shape. Easing it here is what turns a cluster of touching lobes into one irregular mass.
+     *
+     * See [Spans.blendedUnion] for why this can only ever ease a boundary that already exists.
+     */
+    val blend: Double = NO_BLEND,
 ) : TerrainField {
     override val kind = FieldKind.INSTANCED
 
@@ -52,7 +64,8 @@ data class Instanced(
         var solid = Spans.EMPTY
         placement.forEachInstanceNear(worldX, worldZ, templateReach, random) { originX, originZ, instanceRandom ->
             val chosen = posedTemplates[instanceRandom.nextInt(posedTemplates.size)]
-            solid = solid.union(variation.sample(chosen, worldX - originX, worldZ - originZ, instanceRandom))
+            val instance = variation.sample(chosen, worldX - originX, worldZ - originZ, instanceRandom)
+            solid = if (blend <= NO_BLEND) solid.union(instance) else solid.blendedUnion(instance, blend)
         }
         return solid
     }
@@ -65,9 +78,14 @@ data class Instanced(
         // and must not, or resizing would compound them.
         variation.resized(factor),
         seed,
+        // A blend is a distance in the space the instances live in, so it scales with them.
+        blend * factor,
     )
 
     companion object {
+        /** A plain union — no easing at all, which is every instanced field written before this. */
+        const val NO_BLEND = 0.0
+
         fun codec(self: Codec<TerrainField>): MapCodec<Instanced> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
                 self.listOf().fieldOf("templates").forGetter(Instanced::templates),
@@ -75,6 +93,7 @@ data class Instanced(
                 // Optional (and nested) so field trees serialised before poses existed still load.
                 Variation.CODEC.codec().optionalFieldOf("variation", Variation.NONE).forGetter(Instanced::variation),
                 Codec.LONG.fieldOf("seed").forGetter(Instanced::seed),
+                Codec.DOUBLE.optionalFieldOf("blend", NO_BLEND).forGetter(Instanced::blend),
             ).apply(instance, ::Instanced)
         }
     }

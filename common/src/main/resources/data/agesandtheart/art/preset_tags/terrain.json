@@ -37,6 +37,70 @@
       "dramatic": 0.5
     }
   },
+  "canyon": {
+    "readiness": 0.5,
+    "tags": {
+      "eroded": 1.0,
+      "solid": 0.9,
+      "sheer": 0.9,
+      "dramatic": 0.9,
+      "monumental": 0.6,
+      "barren": 0.5,
+      "dry": 0.4
+    }
+  },
+  "islands": {
+    "tags": {
+      "ordinary": 0.6,
+      "gentle": 0.6,
+      "lush": 0.5,
+      "wild": 0.4,
+      "dramatic": 0.3,
+      "scattered": 1.0
+    }
+  },
+  "riverlands": {
+    "tags": {
+      "eroded": 0.8,
+      "gentle": 0.7,
+      "lush": 0.6,
+      "ordinary": 0.5,
+      "wild": 0.4,
+      "mountainous": 0.3
+    }
+  },
+  "shattered": {
+    "readiness": 0.5,
+    "tags": {
+      "strange": 1.0,
+      "eroded": 0.8,
+      "ordered": 0.7,
+      "barren": 0.7,
+      "dramatic": 0.6,
+      "dry": 0.5
+    }
+  },
+  "canyonlands": {
+    "tags": {
+      "eroded": 1.0,
+      "dramatic": 0.8,
+      "sheer": 0.7,
+      "barren": 0.7,
+      "dry": 0.7,
+      "monumental": 0.5,
+      "wild": 0.5
+    }
+  },
+  "cliffs": {
+    "tags": {
+      "sheer": 1.0,
+      "dramatic": 0.9,
+      "flat": 0.6,
+      "monumental": 0.6,
+      "barren": 0.4,
+      "ordinary": 0.3
+    }
+  },
   "pillars": {
     "tags": {
       "monumental": 1.0,

@@ -141,6 +141,118 @@ private val subjects: Map<String, Subject> = mapOf(
     "caverns-voids" to Subject(CavernField.caves(), Weathering.NONE, lowestY = -64, highestY = 70),
     "eroded" to Subject(ErodedField.world(), Weathering.NONE, lowestY = 30, highestY = 195, radius = 200),
 
+    // **Read the slice across the bearing, not the plan.** From above a solid world is one flat shade with
+    // a ribbon missing from it, which says where the canyon goes and nothing about its shape; the benches,
+    // the inner gorge and how steep the whole thing reads are only in the cross-section. The canyon runs
+    // north-south here, so `view-x.png` is the one looking along it and `view-z.png` cuts across.
+    //
+    // The window is the whole of the Age's own band rather than the rock's extent, because the picture's
+    // subject is a *depth* — narrowing it to where rock stands would crop the thing being measured.
+    "canyon" to Subject(
+        CanyonField.world(bearing = "north_south"),
+        // Already inside the field, unlike the Spire's — see [CanyonField.world]. Passing it again here
+        // would weather the canyon twice with two different winds.
+        Weathering.NONE,
+        lowestY = -64,
+        highestY = CanyonField.WORLD_CEILING,
+        radius = 400,
+    ),
+
+    // **Read the plan view here, not the slice.** The cliff's profile is one step and says nothing; what
+    // the preset lives or dies on is whether the coast has bays and headlands or comes out a ruled line,
+    // and that is only visible from above. The window opens to the world's floor because the seabed is
+    // most of what the picture contains.
+    "cliffs" to Subject(
+        CliffField.world(bearing = "north_south"),
+        Weathering.NONE,
+        lowestY = -64,
+        highestY = CliffField.PLATEAU_Y + 32,
+        radius = 500,
+    ),
+
+    // The same cliff unweathered. The pair matters more here than anywhere: a step is a ruled face until
+    // something breaks it, so this is the picture that says whether the weather is doing its job.
+    "cliffs-nowind" to Subject(
+        CliffField.bareWorld(bearing = "north_south"),
+        Weathering.NONE,
+        lowestY = -64,
+        highestY = CliffField.PLATEAU_Y + 32,
+        radius = 500,
+    ),
+
+    // **Read the plan view.** What canyonlands is for is what is *left standing* — the mesas between the
+    // three families — and the cross-section can only ever show one arbitrary transect of that.
+    // The window is wide enough to hold several of the spacing, or a family reads as a single canyon.
+    "canyonlands" to Subject(
+        CanyonlandsField.world(),
+        Weathering.NONE,
+        lowestY = -64,
+        highestY = CanyonlandsField.PLATEAU_Y + 16,
+        radius = 900,
+    ),
+
+    // **The plan view is the whole picture.** A cracked plate has no interesting cross-section: every
+    // transect is one canyon or none. What is worth reading is whether the cells look like cells.
+    "shattered" to Subject(
+        ShatteredField.world(),
+        Weathering.NONE,
+        lowestY = -64,
+        highestY = ShatteredField.PLATEAU_Y + 16,
+        radius = 900,
+    ),
+
+    // **Read the slices, and only the slices.** Caves are absence inside rock: from above a hollowed
+    // riverlands is a riverlands, and every cave in it is invisible. The pair with `riverlands` above is
+    // the whole point — same shape, one of them hollow.
+    "riverlands" to Subject(
+        RiverlandsField.world(),
+        Weathering.NONE,
+        lowestY = 0,
+        highestY = RiverlandsField.LAND_Y + 60,
+        radius = 700,
+    ),
+
+    // **Read the slice across the range, and read it first.** A mountain range's whole claim is its
+    // cross-section — foreland, foothills, crest — and the plan view can only show where the valleys went.
+    // The range runs north–south, so `view-z.png` is the transect that matters.
+    //
+    // Wide enough to hold the axis and one whole flank out to the foreland, which is what the wedge is.
+    "islands" to Subject(
+        IslandsField.world(extent = IslandsField.Extent.BROAD.key),
+        Weathering.NONE,
+        lowestY = 20,
+        highestY = IslandsField.SEA_LEVEL + 120,
+        radius = 1100,
+    ),
+
+    // The same islands **composed from the toolkit** rather than written as a node — read it against
+    // `islands` above. Same window, so the two pictures are directly comparable.
+    "islands-clustered" to Subject(
+        IslandsField.clustered(extent = IslandsField.Extent.BROAD.key),
+        Weathering.NONE,
+        lowestY = 20,
+        highestY = IslandsField.SEA_LEVEL + 120,
+        radius = 1100,
+    ),
+
+    "canyonlands-nowind" to Subject(
+        CanyonlandsField.bareWorld(),
+        Weathering.NONE,
+        lowestY = -64,
+        highestY = CanyonlandsField.PLATEAU_Y + 16,
+        radius = 900,
+    ),
+
+    // The same canyon before the weather reaches it — the pair is what shows what erosion contributes,
+    // exactly as `spire-nowind` does. Here it is the difference between benches and ruled contours.
+    "canyon-nowind" to Subject(
+        CanyonField.bareWorld(bearing = "north_south"),
+        Weathering.NONE,
+        lowestY = -64,
+        highestY = CanyonField.WORLD_CEILING,
+        radius = 400,
+    ),
+
     // Two terrains sharing a world. The top-down view is the one to read: it shows the territories and
     // what the seam does to whatever it cuts through. Region size here is the default one, so this is
     // what an Age written in a default world looks like.

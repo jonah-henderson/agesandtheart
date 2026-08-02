@@ -210,7 +210,9 @@ object AgeGeneration {
         AgePreset.SPIRE -> SpireChunkGenerator(plasmaBiome(server), seed)
 
         AgePreset.FIELD, AgePreset.PYRAMIDS, AgePreset.PYRINGS, AgePreset.PYRVARIED, AgePreset.HILLS,
-        AgePreset.SHAPES, AgePreset.PILLARS, AgePreset.CAVERNS, AgePreset.ERODED,
+        AgePreset.SHAPES, AgePreset.PILLARS, AgePreset.CAVERNS, AgePreset.ERODED, AgePreset.CANYON,
+        AgePreset.CLIFFS, AgePreset.CANYONLANDS, AgePreset.SHATTERED, AgePreset.RIVERLANDS,
+        AgePreset.ISLANDS, AgePreset.ALPS, AgePreset.INVERSE_CAVES,
         -> error("'${preset.key}' names a composition, so AgeRecipe.worldFor should never have sent it here")
     }
 

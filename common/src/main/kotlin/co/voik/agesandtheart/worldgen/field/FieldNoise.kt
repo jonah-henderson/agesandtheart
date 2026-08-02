@@ -21,3 +21,29 @@ internal fun fieldNoise(seed: Long, firstOctave: Int, amplitudes: List<Double>):
 
 /** A zero stretch would divide the sample coordinates to infinity, so every scale is held above this. */
 internal const val SMALLEST_STRETCH = 0.01
+
+/**
+ * A number in −0.5..0.5 for a lattice cell, as a pure function of it — where a jitter or a size comes from
+ * when a field lays things out on a grid.
+ *
+ * Not noise: a standard integer mix, so it costs no sample and neighbouring cells land nowhere near each
+ * other. [salt] separates one use from another within a field, the way a plane separates two readings of
+ * the same noise.
+ */
+internal fun cellHash(cellX: Int, cellZ: Int, salt: Int): Double {
+    var mixed = cellX * HASH_X_STRIDE xor (cellZ * HASH_Z_STRIDE) xor salt
+    mixed = mixed xor (mixed ushr 15)
+    mixed *= HASH_MIX_ONE
+    mixed = mixed xor (mixed ushr 12)
+    mixed *= HASH_MIX_TWO
+    mixed = mixed xor (mixed ushr 15)
+    return (mixed and HASH_KEEP) / HASH_SPREAD - 0.5
+}
+
+// Two odd strides and a standard finalising mix.
+private const val HASH_X_STRIDE = 0x9E37_79B9.toInt()
+private const val HASH_Z_STRIDE = 0x85EB_CA6B.toInt()
+private const val HASH_MIX_ONE = 0x2C1B_3C6D
+private const val HASH_MIX_TWO = 0x297A_2D39
+private const val HASH_KEEP = 0xFFFF
+private const val HASH_SPREAD = 65535.0

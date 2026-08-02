@@ -74,17 +74,42 @@ enum class PlacementKind(private val makeCodec: () -> MapCodec<out Placement>) :
  * that packs the origin and thins outward is `atOrigin > atEdge`, and the reverse (sparse origin, dense
  * toward the edge — up to overlapping) is `atOrigin < atEdge`.
  */
-data class Density(val atOrigin: Double, val atEdge: Double, val falloffRadius: Double) {
+data class Density(
+    val atOrigin: Double,
+    val atEdge: Double,
+    val falloffRadius: Double,
+    /**
+     * How far a low-frequency noise swings the probability either way, on top of the radial figure.
+     *
+     * **This is what turns a sprinkle into an archipelago.** A single probability scatters instances
+     * evenly over the whole world, which reads as texture; swinging it across its range gives regions
+     * packed with them and regions with none, which reads as somewhere. Zero leaves the radial behaviour
+     * exactly as it was.
+     */
+    val patchiness: Double = NO_PATCHES,
+    /** Blocks per unit of that noise — how wide one crowded or empty region runs. */
+    val patchScale: Double = DEFAULT_PATCH_SCALE,
+    val patchSeed: Long = 0L,
+) {
 
     fun keepProbability(worldX: Int, worldZ: Int): Double {
-        if (atOrigin == atEdge) return atOrigin
-        val radius = sqrt(worldX.toDouble() * worldX + worldZ.toDouble() * worldZ)
-        val fraction = (radius / falloffRadius).coerceIn(0.0, 1.0)
-        return atOrigin + (atEdge - atOrigin) * fraction
+        val radial = if (atOrigin == atEdge) atOrigin else {
+            val radius = sqrt(worldX.toDouble() * worldX + worldZ.toDouble() * worldZ)
+            val fraction = (radius / falloffRadius).coerceIn(0.0, 1.0)
+            atOrigin + (atEdge - atOrigin) * fraction
+        }
+        if (patchiness <= NO_PATCHES) return radial
+        // Added rather than scaled, and clamped: what an archipelago wants is stretches at nearly one and
+        // stretches at nearly nothing, which multiplying a mid probability could never reach.
+        val patch = patches.getValue(worldX / patchStretch, 0.0, worldZ / patchStretch).coerceIn(-1.0, 1.0)
+        return (radial + patch * patchiness).coerceIn(0.0, 1.0)
     }
 
-    /** Probabilities are unitless, so only the distance over which they fall off resizes. */
-    fun resized(factor: Double) = copy(falloffRadius = falloffRadius * factor)
+    private val patchStretch = patchScale.coerceAtLeast(SMALLEST_STRETCH)
+    private val patches = fieldNoise(patchSeed, PATCH_OCTAVE, PATCH_AMPLITUDES)
+
+    /** Probabilities are unitless, so only the distances resize — the falloff and the patches alike. */
+    fun resized(factor: Double) = copy(falloffRadius = falloffRadius * factor, patchScale = patchScale * factor)
 
     companion object {
         val CODEC: MapCodec<Density> = RecordCodecBuilder.mapCodec { instance ->
@@ -92,13 +117,29 @@ data class Density(val atOrigin: Double, val atEdge: Double, val falloffRadius: 
                 Codec.DOUBLE.fieldOf("at_origin").forGetter(Density::atOrigin),
                 Codec.DOUBLE.fieldOf("at_edge").forGetter(Density::atEdge),
                 Codec.DOUBLE.fieldOf("falloff_radius").forGetter(Density::falloffRadius),
+                Codec.DOUBLE.optionalFieldOf("patchiness", NO_PATCHES).forGetter(Density::patchiness),
+                Codec.DOUBLE.optionalFieldOf("patch_scale", DEFAULT_PATCH_SCALE).forGetter(Density::patchScale),
+                Codec.LONG.optionalFieldOf("patch_seed", 0L).forGetter(Density::patchSeed),
             ).apply(instance, ::Density)
         }
 
         /** Every cell, everywhere — the plain regular/jittered grid. */
+        /** No patches at all: the radial figure stands, which is every placement written before this. */
+        const val NO_PATCHES = 0.0
+
+        /** Regions a few thousand blocks across, which is several cells of anything worth patching. */
+        const val DEFAULT_PATCH_SCALE = 90.0
+
+        private const val PATCH_OCTAVE = -5
+        private val PATCH_AMPLITUDES = listOf(1.0, 0.5)
+
         fun uniform(probability: Double = 1.0) = Density(probability, probability, 1.0)
 
         fun radial(atOrigin: Double, atEdge: Double, falloffRadius: Double) = Density(atOrigin, atEdge, falloffRadius)
+
+        /** Crowded in places and empty in others, about a mean of [probability]. */
+        fun patchy(probability: Double, patchiness: Double, patchScale: Double, seed: Long) =
+            Density(probability, probability, 1.0, patchiness, patchScale, seed)
     }
 }
 

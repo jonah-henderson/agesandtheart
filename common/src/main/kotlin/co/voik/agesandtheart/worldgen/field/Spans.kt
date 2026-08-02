@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.worldgen.field
 
+import kotlin.math.roundToInt
+
 /**
  * The solid vertical intervals of a single world column, kept normalised: non-overlapping,
  * non-touching, ascending. This is the tier-1 "analytic span" currency the field toolkit fills
@@ -32,6 +34,45 @@ class Spans private constructor(val ranges: List<IntRange>) {
 
     /** Solid where either column is solid. */
     fun union(other: Spans): Spans = normalise(ranges + other.ranges)
+
+    /**
+     * The same union, but where two intervals **already overlap** their shared boundary is eased rather
+     * than stepped — the difference between two masses touching and one mass.
+     *
+     * A plain union takes the higher of two tops, so where two shapes meet the surface has a corner in it
+     * and reads as a crease ruled between them. A *smooth* maximum lifts the surface slightly where the
+     * two nearly agree — most where they are equal, not at all once they are [blend] apart — which turns
+     * that crease into a saddle. The bottom is eased the same way downward, which is a no-op for anything
+     * standing on a floor and is what makes two merging islands read as one mass from underneath.
+     *
+     * **It never changes *whether* two intervals merge**, only where the merged one ends. That restriction
+     * is the whole safety of it: easing intervals that do *not* already overlap would bridge them, and a
+     * mass at 60..90 blended with one at 200..230 would come out as solid rock from 60 to 230. On an
+     * archipelago that welds the world into a slab.
+     */
+    fun blendedUnion(other: Spans, blend: Double): Spans {
+        if (blend <= 0.0) return union(other)
+        if (ranges.isEmpty()) return other
+        if (other.ranges.isEmpty()) return this
+        val ordered = (ranges + other.ranges).sortedBy { it.first }
+        val merged = ArrayList<IntRange>(ordered.size)
+        var low = ordered.first().first
+        var high = ordered.first().last
+        for (next in ordered.drop(1)) {
+            // Touching counts as overlapping: two intervals a block apart are one interval with a seam.
+            val overlaps = next.first <= high + 1
+            if (!overlaps) {
+                merged += low..high
+                low = next.first
+                high = next.last
+                continue
+            }
+            low = smoothLow(low, next.first, blend)
+            high = smoothHigh(high, next.last, blend)
+        }
+        merged += low..high
+        return ofAscending(merged)
+    }
 
     /**
      * Solid only where *both* columns are solid — the CSG intersection. Both sides are normalised and
@@ -99,6 +140,26 @@ class Spans private constructor(val ranges: List<IntRange>) {
 
         /** A single interval, inclusive; empty when [high] < [low]. */
         fun of(low: Int, high: Int): Spans = if (high < low) EMPTY else Spans(listOf(low..high))
+
+        /**
+         * The higher of two levels, eased where they are within [blend] of each other — the polynomial
+         * smooth maximum. Equal levels come out [blend]/4 over both, which is the bulge that fills a
+         * crease; levels [blend] apart come out as the plain maximum, so nothing distant is disturbed.
+         */
+        private fun smoothHigh(here: Int, there: Int, blend: Double): Int {
+            val toward = (HALF + HALF * (here - there) / blend).coerceIn(0.0, 1.0)
+            val mixed = there + (here - there) * toward
+            return (mixed + blend * toward * (1.0 - toward)).roundToInt()
+        }
+
+        /** And the lower of two, eased downward the same way. */
+        private fun smoothLow(here: Int, there: Int, blend: Double): Int {
+            val toward = (HALF + HALF * (there - here) / blend).coerceIn(0.0, 1.0)
+            val mixed = there + (here - there) * toward
+            return (mixed - blend * toward * (1.0 - toward)).roundToInt()
+        }
+
+        private const val HALF = 0.5
 
         /**
          * Intervals the caller already knows are ascending, disjoint and separated by an empty level,

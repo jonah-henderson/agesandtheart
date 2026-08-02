@@ -110,6 +110,38 @@ data class AgeRecipe(
                 AgePreset.SHAPES -> AgeComposition(terrains = listOf(Terrain.SHAPES))
                 AgePreset.PILLARS -> AgeComposition(terrains = listOf(Terrain.PILLARS), seas = listOf(Sea.WATER))
                 AgePreset.ERODED -> AgeComposition(terrains = listOf(Terrain.ERODED), seas = listOf(Sea.WATER))
+                // The sea is the river: there is no open ground for anything else to stand on. Grounded so
+                // that it reads as one — ungrounded, the gorge floor takes whatever vanilla's climate noise
+                // files there, which is an ocean about as often as anything else.
+                AgePreset.CANYON -> grounded(
+                    AgeComposition(terrains = listOf(Terrain.CANYON), seas = listOf(Sea.WATER)),
+                )
+                // Grounded: an ocean this size wants ocean biomes over it and a beach where it meets the
+                // cliff, and nothing about the preset is trying to be strange.
+                AgePreset.CLIFFS -> grounded(
+                    AgeComposition(terrains = listOf(Terrain.CLIFFS), seas = listOf(Sea.WATER)),
+                )
+                AgePreset.CANYONLANDS ->
+                    AgeComposition(terrains = listOf(Terrain.CANYONLANDS), seas = listOf(Sea.WATER))
+                AgePreset.SHATTERED ->
+                    AgeComposition(terrains = listOf(Terrain.SHATTERED), seas = listOf(Sea.WATER))
+                // Grounded, since an endless sea most of all wants ocean biomes over it.
+                AgePreset.ISLANDS -> grounded(
+                    AgeComposition(
+                        terrains = listOf(Terrain.ISLANDS),
+                        seas = listOf(Sea.WATER),
+                        carvers = listOf(Carvers.CAVES),
+                    ),
+                )
+                // The one landform here that is straightforwardly habitable, so it gets caves too — and
+                // it is the strongest case for grounding, having rivers for the biomes to agree with.
+                AgePreset.RIVERLANDS -> grounded(
+                    AgeComposition(
+                        terrains = listOf(Terrain.RIVERLANDS),
+                        seas = listOf(Sea.WATER),
+                        carvers = listOf(Carvers.CAVES),
+                    ),
+                )
                 AgePreset.HILLS -> AgeComposition(
                     terrains = listOf(Terrain.HILLS),
                     seas = listOf(Sea.WATER),

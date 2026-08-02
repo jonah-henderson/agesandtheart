@@ -37,6 +37,24 @@ enum class AgePreset(val key: String) : StringRepresentable {
     /** Billowy 3D noise, weathered into mesa-like relief. */
     ERODED("eroded"),
 
+    /** Solid rock to the height limit, with one canyon cut through the origin and a river in it. */
+    CANYON("canyon"),
+
+    /** A world cut in two: ocean one way, plateau the other, one cliff between them. */
+    CLIFFS("cliffs"),
+
+    /** Mesa country: a tableland under open sky, cut to pieces by canyons running three ways. */
+    CANYONLANDS("canyonlands"),
+
+    /** The same table cracked into cells instead, with a gorge down every join. */
+    SHATTERED("shattered"),
+
+    /** Rolling upland carved by a river system: headwaters branching down into trunks. */
+    RIVERLANDS("riverlands"),
+
+    /** Islands in an endless sea — one at the origin, the rest a voyage away. */
+    ISLANDS("islands"),
+
     /** Tier-B delegates to Minecraft's own generation — our benchmark reference points. */
     VANILLA("vanilla"),
     VANILLA_BARE("vanillabare"),
