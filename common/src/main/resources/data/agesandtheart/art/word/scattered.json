@@ -1,0 +1,9 @@
+{
+  "tier": "restrictive",
+  "aspects": [
+    "terrain"
+  ],
+  "query": {
+    "scattered": 1.0
+  }
+}
