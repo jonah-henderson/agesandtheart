@@ -45,7 +45,7 @@ data class AgeRecipe(
          * Bumped by hand whenever a change to generation would make the same recipe produce different
          * terrain. What moved at each version: `notes/generator-versions.md`.
          */
-        const val CURRENT_GENERATOR_VERSION = 15
+        const val CURRENT_GENERATOR_VERSION = 17
 
         val MAP_CODEC: MapCodec<AgeRecipe> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -156,6 +156,19 @@ data class AgeRecipe(
             }
             return AgeWorld.Composed(composition)
         }
+
+        /**
+         * [composition] with its biomes pinned to agree with its shape — see `Biomes.FOOTING`.
+         *
+         * A preset's own call rather than a default, because being *ungrounded* is a lever this mod means
+         * to keep: an Age whose biomes ignore its land is allowed, and `shattered` wants exactly that.
+         */
+        private fun grounded(composition: AgeComposition): AgeComposition = composition.copy(
+            options = composition.options.with(
+                Aspect.BIOMES,
+                listOf(Options(mapOf(Biomes.FOOTING.name to listOf(Biomes.GROUNDED_FOOTING)))),
+            ),
+        )
 
         /**
          * The Spire, pinned: weathered island spires over its green sea, under its own sky, nothing growing.

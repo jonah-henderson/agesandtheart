@@ -57,6 +57,11 @@ class AgeBiomeSource(
      */
     private val keepsOnlyNamed: Boolean = false,
     /**
+     * Whether this Age's biomes agree with its shape, and how — null for the default, which is that they do
+     * not. See [Grounding] for why "they do not" is a decision rather than a defect.
+     */
+    private val grounding: Grounding? = null,
+    /**
      * One biome for the whole table, before any preference is applied. Vanilla's climate *positions* are
      * kept and only the biome at each is replaced, so anchoring and the surface filter work exactly as
      * they do over the overworld — which is what a `FixedBiomeSource` could never offer, having no table
@@ -70,15 +75,19 @@ class AgeBiomeSource(
 
     /** The same table, with [depth] measured against [terrain] — see [BelowTerrain]. */
     fun groundedIn(terrain: TerrainField): AgeBiomeSource =
-        AgeBiomeSource(biomes, seed, BelowTerrain(terrain), bent, preferences, keepsOnlyNamed, flattenedTo, biomeLookup)
+        AgeBiomeSource(biomes, seed, BelowTerrain(terrain), bent, preferences, keepsOnlyNamed, grounding, flattenedTo, biomeLookup)
+
+    /** The same table, with ocean, coast and river read off the shape — see [Grounding]. */
+    fun suitedTo(grounding: Grounding?): AgeBiomeSource =
+        AgeBiomeSource(biomes, seed, depth, bent, preferences, keepsOnlyNamed, grounding, flattenedTo, biomeLookup)
 
     /** The same source, told what to grow — see [BiomePreference] and [RegionalClimate]. */
     fun told(bent: RegionalClimate, preferences: List<BiomePreference>, keepsOnlyNamed: Boolean = false) =
-        AgeBiomeSource(biomes, seed, depth, bent, preferences, keepsOnlyNamed, flattenedTo, biomeLookup)
+        AgeBiomeSource(biomes, seed, depth, bent, preferences, keepsOnlyNamed, grounding, flattenedTo, biomeLookup)
 
     /** The same table, but one biome everywhere until something is named — see [flattenedTo]. */
     fun flattenedTo(only: Holder<Biome>): AgeBiomeSource =
-        AgeBiomeSource(biomes, seed, depth, bent, preferences, keepsOnlyNamed, only, biomeLookup)
+        AgeBiomeSource(biomes, seed, depth, bent, preferences, keepsOnlyNamed, grounding, only, biomeLookup)
 
     /**
      * Vanilla's climate-to-biome table with this Age's preferences folded in. **Lazy**, because applying
@@ -109,21 +118,34 @@ class AgeBiomeSource(
         // Bent on the way past, which is the whole of "a hot, dry world": vanilla's own table then answers
         // with deserts and badlands, and nothing had to name one. Depth is left alone — it is ours, not
         // the climate's (see [ClimateDepth]).
+        // Bent first, then chilled by however far this column stands above the Age's floor — the bias is what
+        // the writer asked for and the lapse is what the mountain does to it, so a warm Age still has cold
+        // summits and a cold one has colder. See [Elevation].
+        val warmth = bias.shift(ClimateAxis.TEMPERATURE, climate.temperature().compute(point).toFloat())
         return table.findValue(
             Climate.target(
-                bias.shift(ClimateAxis.TEMPERATURE, climate.temperature().compute(point).toFloat()),
+                grounding?.temperatureAt(blockX, blockZ, warmth) ?: warmth,
                 bias.shift(ClimateAxis.HUMIDITY, climate.humidity().compute(point).toFloat()),
-                // Continentalness and erosion pass through untouched: they describe shape, and an Age's
-                // shape is the field tree's, not the climate's. See [ClimateAxis].
-                climate.continentalness().compute(point).toFloat(),
-                climate.erosion().compute(point).toFloat(),
+                // Continentalness describes shape, and an Age's shape is the field tree's rather than the
+                // climate's — so by default it passes through untouched and the two simply disagree. A
+                // *grounded* Age reads it off the shape instead. See [Grounding] and [ClimateAxis].
+                grounding?.continentalnessAt(blockX, blockZ)
+                    ?: climate.continentalness().compute(point).toFloat(),
+                // Erosion means how worn flat the ground is, so a grounded Age reads it off its own fall
+                // rather than off a noise that never saw the terrain — which is what decides a sandy beach
+                // from a stony shore. See [Grounding].
+                grounding?.erosionAt(blockX, blockZ) ?: climate.erosion().compute(point).toFloat(),
                 depth.at(blockX, blockY, blockZ),
                 // Weirdness passes through too, now that its vocabulary belongs to Biomes rather than to
-                // Climate — step 5 picks it up. See [ClimateAxis].
-                climate.weirdness().compute(point).toFloat(),
+                // Climate — step 5 picks it up. A grounded Age pushes it into the valley band where its own
+                // rivers run, which is where vanilla files them. See [ClimateAxis].
+                weirdnessAt(blockX, blockZ, climate.weirdness().compute(point).toFloat()),
             ),
         )
     }
+
+    private fun weirdnessAt(blockX: Int, blockZ: Int, vanillas: Float): Float =
+        grounding?.weirdnessAt(blockX, blockZ, vanillas) ?: vanillas
 
     override fun collectPossibleBiomes(): Stream<Holder<Biome>> = table.values().stream().map { it.second }
 
@@ -137,11 +159,15 @@ class AgeBiomeSource(
                 BiomePreference.CODEC.listOf().optionalFieldOf("preferences", emptyList())
                     .forGetter { it.preferences },
                 Codec.BOOL.optionalFieldOf("keeps_only_named", false).forGetter { it.keepsOnlyNamed },
+                Grounding.CODEC.optionalFieldOf("grounding").forGetter { Optional.ofNullable(it.grounding) },
                 Biome.CODEC.optionalFieldOf("flattened_to").forGetter { Optional.ofNullable(it.flattenedTo) },
                 // Not a stored field: retrieved from the ops on decode, absent on encode.
                 RegistryOps.retrieveGetter<Biome, AgeBiomeSource>(Registries.BIOME),
-            ).apply(instance) { table, seed, depth, bias, preferences, onlyNamed, flattened, lookup ->
-                AgeBiomeSource(table, seed, depth, bias, preferences, onlyNamed, flattened.orElse(null), lookup)
+            ).apply(instance) { table, seed, depth, bias, preferences, onlyNamed, grounded, flattened, lookup ->
+                AgeBiomeSource(
+                    table, seed, depth, bias, preferences, onlyNamed,
+                    grounded.orElse(null), flattened.orElse(null), lookup,
+                )
             }
         }
 

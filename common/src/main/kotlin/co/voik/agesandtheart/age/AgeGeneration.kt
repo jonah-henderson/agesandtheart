@@ -9,6 +9,7 @@ import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.sky.SkySpec
 import co.voik.agesandtheart.sky.SpireSky
 import co.voik.agesandtheart.worldgen.biome.AgeBiomeSource
+import co.voik.agesandtheart.worldgen.biome.Grounding
 import co.voik.agesandtheart.worldgen.biome.RegionalClimate
 import co.voik.agesandtheart.worldgen.field.Fault
 import co.voik.agesandtheart.worldgen.field.Palette
@@ -132,12 +133,33 @@ object AgeGeneration {
         return AgeChunkGenerator(
             AgeBiomeSource.vanillaOverworld(server, seed)
                 .told(climate, composition.biomes.preferencesIn(biomeOptions), composition.biomes.keepsOnlyNamed(biomeOptions))
-                .groundedIn(shape),
+                .groundedIn(shape)
+                // Only where the Age asked for it: biomes disagreeing with the shape is the default, and
+                // a lever rather than a defect. See [Grounding] and [Biomes.FOOTING].
+                .suitedTo(
+                    if (!composition.biomes.groundsBiomes(biomeOptions)) null
+                    // A shore is where the Age's one sea meets whichever territory reaches it, so a single
+                    // island territory is enough to make the coast sand — the level it stands at is already
+                    // Age-wide.
+                    else Grounding(
+                        shape,
+                        seaFill.level,
+                        standing,
+                        composition.terrains.any { it.hasSandyShores() },
+                        // Age-wide for the plainest reason of all: there is one waterline.
+                        composition.terrains.any { it.waterlineIsRiver() },
+                        // Age-wide like the shore, and for the same reason: a treeline is a height, and an
+                        // Age has one set of heights however many territories divide it. The first terrain
+                        // that declares one wins, since two ranges disagreeing about their own snowline is
+                        // not something a single climate could express.
+                        composition.terrains.firstNotNullOfOrNull { it.elevation() },
+                    ),
+                ),
             shape,
             seaFill,
             // The Biomes aspect's choice, not a constant: vanilla's tree paints grass over dirt above water
             // without consulting the biome, so there has to be a way to say "no skin". See [Biomes.paletteIn].
-            composition.biomes.paletteIn(biomeOptions),
+            composition.biomes.paletteIn(biomeOptions, shape),
             composition.carvers.map { it.configuredCarvers(server) },
             below,
             waterTablesOf(composition, seaFill, seed),

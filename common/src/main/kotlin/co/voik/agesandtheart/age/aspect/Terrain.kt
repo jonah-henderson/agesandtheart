@@ -162,6 +162,29 @@ enum class Terrain(
     }
 
     /**
+     * Whether this terrain's coast is meant to be sand the whole way round — see
+     * [co.voik.agesandtheart.worldgen.biome.Grounding.hasSandyShores]. Only read by a grounded Age, and
+     * only where its ground meets its sea.
+     */
+    fun hasSandyShores(): Boolean = when (this) {
+        ISLANDS -> true
+        else -> false
+    }
+
+    /**
+     * Whether the Age's waterline is this terrain's **river** rather than a sea — see
+     * [co.voik.agesandtheart.worldgen.biome.Grounding.waterlineIsRiver].
+     *
+     * [CANYON] is the case it exists for and may stay the only one: its water is poured by a flat level
+     * like any sea's, but there is no open ground for a sea to be, so the level only ever shows along the
+     * bottom of the gorge.
+     */
+    fun waterlineIsRiver(): Boolean = when (this) {
+        CANYON -> true
+        else -> false
+    }
+
+    /**
      * How far up the world this terrain sits — see [ALTITUDE].
      *
      * Conditioned on the [window], so a terrain in a band with no room simply sits where it always did:

@@ -24,7 +24,7 @@ enum class Biomes(override val key: String) : AspectPreset {
 
     override val aspect = Aspect.BIOMES
 
-    override val parameters: List<Parameter> get() = listOf(GROWN, SKIN)
+    override val parameters: List<Parameter> get() = listOf(GROWN, SKIN, FOOTING)
 
     override fun getSerializedName(): String = key
 
@@ -53,6 +53,9 @@ enum class Biomes(override val key: String) : AspectPreset {
     /** Whether the sentence singled biomes out, so everything it did not name is struck from the table. */
     fun keepsOnlyNamed(options: Options): Boolean = Population.of(options.claimsOn(GROWN)).exclusive
 
+    /** Whether this Age's biomes are chosen to suit its shape — see [FOOTING]. */
+    fun groundsBiomes(options: Options): Boolean = options.of(FOOTING) == GROUNDED_FOOTING
+
     companion object {
         /**
          * The biomes grown here — populative, so naming one adds it and naming two adds both, with
@@ -66,6 +69,20 @@ enum class Biomes(override val key: String) : AspectPreset {
          * reaches it yet; it exists to be pinned by a bespoke recipe.
          */
         val SKIN = Parameter("skin", "vanilla", BARE_SKIN)
+
+        /**
+         * Whether this Age's biomes agree with its shape — see
+         * [co.voik.agesandtheart.worldgen.biome.Grounding].
+         *
+         * **`free` is the default, and it is a lever rather than a bug.** An ocean biome on a hilltop and a
+         * pool in a desert are things an Age is allowed to be, and reading one as an oasis is the recorded
+         * call (`notes/terrain-architecture.md`). `grounded` buys the other kind of Age — the one that means
+         * to look like somewhere — and a preset that wants it pins it.
+         */
+        val FOOTING = Parameter("footing", FREE_FOOTING, GROUNDED_FOOTING)
+
+        const val FREE_FOOTING = "free"
+        const val GROUNDED_FOOTING = "grounded"
 
         private const val BARE_SKIN = "bare"
     }
