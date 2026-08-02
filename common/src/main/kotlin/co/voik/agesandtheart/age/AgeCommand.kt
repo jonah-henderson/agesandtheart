@@ -9,6 +9,7 @@ import co.voik.agesandtheart.worldgen.field.RegionMap
 import co.voik.agesandtheart.sky.SkySpec
 import co.voik.agesandtheart.age.word.BookGenerator
 import co.voik.agesandtheart.age.word.Vocabulary
+import co.voik.agesandtheart.age.word.generation.TerminalKind
 import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.age.word.grammar.Readout
 import co.voik.agesandtheart.age.word.grammar.Scope
@@ -28,6 +29,7 @@ import net.minecraft.core.SectionPos
 import net.minecraft.resources.ResourceKey
 import net.minecraft.world.level.Level
 import net.minecraft.world.phys.Vec3
+import kotlin.random.Random
 import net.minecraft.core.QuartPos
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.network.chat.Component
@@ -58,6 +60,7 @@ import net.minecraft.world.level.levelgen.Heightmap
  * /age biomes <name> [radius]         — what share of the surface each biome covers (for weight tuning)
  * /age locate <name> <preset>         — how far to the nearest territory of that terrain, from where you stand
  * /age book [seed]                    — a book the Art could have written, for reading rather than using
+ * /age draft <grammar> [seed]         — one expansion of a generation grammar: book, name, …
  * /age compare <a> <b> [radius]       — do two Ages generate the same world, block for block?
  * /age sky <name> [<spec>]            — read an Age's suns and moons, or preview different ones in it
  * /age list                           — list known Ages (with their recipe)
@@ -154,6 +157,7 @@ object AgeCommand {
                 .then(generateSubcommand())
                 .then(locateSubcommand())
                 .then(bookSubcommand())
+                .then(draftSubcommand())
                 .then(biomeCensusSubcommand())
                 .then(benchmarkSubcommand())
                 .then(compareSubcommand())
@@ -280,6 +284,16 @@ object AgeCommand {
                 Commands.argument(SEED_ARGUMENT, LongArgumentType.longArg())
                     .executes { context -> runBook(context, LongArgumentType.getLong(context, SEED_ARGUMENT)) },
             )
+
+    private fun draftSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        Commands.literal("draft").then(
+            Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
+                .executes { context -> runDraft(context, seed = context.source.level.gameTime) }
+                .then(
+                    Commands.argument(SEED_ARGUMENT, LongArgumentType.longArg())
+                        .executes { context -> runDraft(context, LongArgumentType.getLong(context, SEED_ARGUMENT)) },
+                ),
+        )
 
     private fun generateSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("gen").then(
@@ -952,6 +966,37 @@ object AgeCommand {
         source.sendSuccess({
             Component.literal("  write it with: /age write book$seed $seed ${pages.joinToString(" ")}")
         }, false)
+        return SUCCESS
+    }
+
+    /**
+     * `/age draft <grammar> [<seed>]` — one expansion of a generation grammar, for authoring them against.
+     * `/reload` picks a rewritten grammar up, so this is the whole edit loop.
+     */
+    private fun runDraft(context: CommandContext<CommandSourceStack>, seed: Long): Int {
+        val source = context.source
+        val name = StringArgumentType.getString(context, NAME_ARGUMENT)
+        val vocabulary = Vocabulary.of(source.server)
+        val grammar = vocabulary.generation.grammar(name)
+        if (grammar == null) {
+            val known = vocabulary.generation.names.joinToString(" ").ifEmpty { "none" }
+            source.sendFailure(Component.literal("No generation grammar called '$name'. Known: $known"))
+            return FAILURE
+        }
+        val produced = grammar.expand(Random(seed))
+        source.sendSuccess({ Component.literal("'$name' at seed $seed, ${produced.size} terminals:") }, false)
+        source.sendSuccess({ Component.literal("  ${produced.joinToString(" ")}") }, false)
+        // A word grammar is meant to produce a book, so it is judged the way a book is: by what the parser
+        // makes of it, not by whether the words look plausible in a row.
+        if (grammar.terminals == TerminalKind.WORD) {
+            val sentence = Grammar.read(vocabulary, produced)
+            source.sendSuccess({ Component.literal("  reads as: ${Readout.of(sentence)}") }, false)
+            if (sentence.dropped.isNotEmpty()) {
+                source.sendSuccess({
+                    Component.literal("  unread: ${sentence.dropped.joinToString(" ")}").withStyle(ChatFormatting.RED)
+                }, false)
+            }
+        }
         return SUCCESS
     }
 

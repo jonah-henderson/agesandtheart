@@ -3,6 +3,7 @@ package co.voik.agesandtheart.age.word
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.AspectPreset
+import co.voik.agesandtheart.age.word.generation.GenerationGrammars
 import co.voik.agesandtheart.age.word.grammar.GrammarWord
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -56,6 +57,7 @@ private data class AntonymPage(val pairs: List<Antonym>) {
  * | `preset_tags/<aspect>.json` | the tags every preset in that aspect carries |
  * | `antonyms/<page>.json` | pairs of tags that mean opposite things |
  * | `grammar/<name>.json` | one structural word, naming a production |
+ * | `generation/<name>.json` | one weighted grammar the Art writes *out* of |
  *
  * One file per word so a pack can replace a single one; one per *aspect* of tags because tag weights are
  * only sensible read side by side, and stacked so a pack can retune a preset without reprinting its
@@ -76,6 +78,8 @@ data class Vocabulary(
     val rarity: WordRarity,
     /** Which ink each word demands. The first reader of the resolver's cost number (design 7.1.1). */
     val ink: InkRequirement,
+    /** The grammars the Art writes *out* of — books it could have written, names, repairs. */
+    val generation: GenerationGrammars,
     /** Which words came from registry content rather than from a `art/word/` file. See [isDerived]. */
     private val derivedIds: Set<Identifier>,
     /** What could not be read, in the words a content author needs to hear. Empty in a healthy pack. */
@@ -206,11 +210,17 @@ data class Vocabulary(
             val script = Script.load(resources, problems)
             val rarity = WordRarity.load(resources, problems)
             val ink = InkRequirement.load(resources, problems)
+            // After the words, since a grammar naming one that does not exist is the fault worth reporting.
+            val generation = GenerationGrammars.load(
+                resources,
+                isAWord = { it in words || it in structural },
+                problems,
+            )
             for (problem in problems) Constants.LOG.error("Art vocabulary: {}", problem)
             // Authored wins every collision above, so a derived id that an authored word displaced is not
             // in `words` and must not be counted derived.
             val derivedIds = fromContent.map { it.id }.toSet() - authored.values.map { it.id }.toSet()
-            return Vocabulary(words, structural, tags, antonyms, script, rarity, ink, derivedIds, problems)
+            return Vocabulary(words, structural, tags, antonyms, script, rarity, ink, generation, derivedIds, problems)
         }
 
         /**
