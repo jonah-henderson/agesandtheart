@@ -2,12 +2,11 @@ package co.voik.agesandtheart.age.word
 
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.content.NotebookItem
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
-import net.minecraft.core.component.DataComponents
 import net.minecraft.world.item.ItemStack
-import net.minecraft.world.item.component.ItemContainerContents
 import net.minecraft.world.level.storage.loot.LootContext
 import net.minecraft.world.level.storage.loot.functions.LootItemConditionalFunction
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition
@@ -56,7 +55,10 @@ class FillNotebookFunction(
             page.set(AgeContent.PAGE_WORD, word.id)
             if (chosen.none { it.get(AgeContent.PAGE_WORD) == word.id }) chosen += page
         }
-        itemStack.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(chosen.toList()))
+        // Through `NotebookItem`, which is what everything else reads a notebook by. Set as vanilla's
+        // CONTAINER instead, the pages were there and nothing could see them — the desk, the tooltip and
+        // the notebook's own screen all ask for `NOTEBOOK_PAGES`, so a found notebook opened empty.
+        NotebookItem.setPages(itemStack, chosen.toList())
         return itemStack
     }
 

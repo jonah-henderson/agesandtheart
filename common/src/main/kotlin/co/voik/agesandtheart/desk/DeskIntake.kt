@@ -86,7 +86,7 @@ object DeskIntake {
         }
         if (!took) return Result.untouched(stack)
         val emptied = stack.copyWithCount(1)
-        emptied.remove(AgeContent.NOTEBOOK_PAGES)
+        NotebookItem.setPages(emptied, emptyList())
         return Result(stack.copyWithCount(stack.count - 1), emptied, took = true)
     }
 

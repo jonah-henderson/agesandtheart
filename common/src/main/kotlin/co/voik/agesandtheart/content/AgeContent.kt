@@ -135,6 +135,10 @@ object AgeContent {
      *
      * Not `BUNDLE_CONTENTS`: a bundle's capacity is enforced in a private weight check, which would cap a
      * notebook at sixty-four pages — a pocket rather than a catalogue.
+     *
+     * **Read and written only through [NotebookItem]**, which is not a style preference: this was set as
+     * vanilla's `CONTAINER` in one place and asked for here in every other, so a found notebook held its
+     * pages where nothing could see them and opened empty.
      */
     val NOTEBOOK_PAGES: DataComponentType<List<ItemStack>> = DataComponentType.builder<List<ItemStack>>()
         .persistent(ItemStack.CODEC.listOf())

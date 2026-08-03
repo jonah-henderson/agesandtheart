@@ -7,12 +7,15 @@ import co.voik.agesandtheart.age.word.Resolver
 import co.voik.agesandtheart.sky.Skies
 import co.voik.agesandtheart.worldgen.field.RegionMap
 import co.voik.agesandtheart.sky.SkySpec
+import co.voik.agesandtheart.age.word.PageExclusion
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.generation.TerminalKind
 import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.age.word.grammar.Readout
 import co.voik.agesandtheart.age.word.grammar.Scope
 import co.voik.agesandtheart.age.word.grammar.Sentence
+import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.content.NotebookItem
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.LongArgumentType
@@ -34,6 +37,7 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.Identifier
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.biome.BiomeSource
 import net.minecraft.world.level.biome.Climate
 import net.minecraft.world.level.levelgen.Heightmap
@@ -52,6 +56,7 @@ import net.minecraft.world.level.levelgen.Heightmap
  * /age compose <name> [seed] <spec>   — author one out of aspects: terrain=hills sea=water
  * /age write <name> [seed] <words>    — author one out of *words*: beautiful floating riddled
  * /age words                          — the vocabulary the Art currently knows
+ * /age pages [derived]                — a notebook of every word, for filling a desk to test writing with
  * /age tp <name>                      — travel to an Age
  * /age delete <name>|all              — discard an Age (or every Age), chunks and all
  * /age gen <name>                     — force-generate the spawn chunk and report what it made
@@ -80,6 +85,9 @@ object AgeCommand {
 
     /** The generation grammar a found book is written from — `art/generation/book.json`. */
     private const val BOOK_GRAMMAR = "book"
+
+    /** The other half of the corpus: one word per block in the pack, and all of them materials. */
+    private const val DERIVED_LITERAL = "derived"
 
     /** Vanilla's End arrival platform, which is where a portal would have put you. */
     private const val END_PLATFORM_X = 100.5
@@ -154,6 +162,7 @@ object AgeCommand {
                 .then(composeSubcommand())
                 .then(writeSubcommand())
                 .then(vocabularySubcommand())
+                .then(pagesSubcommand())
                 .then(teleportSubcommand())
                 .then(deleteSubcommand())
                 .then(generateSubcommand())
@@ -347,6 +356,18 @@ object AgeCommand {
             .then(Commands.literal("all").executes(::runDeleteAll))
             .then(Commands.argument(NAME_ARGUMENT, StringArgumentType.word()).executes(::runDelete))
 
+    /**
+     * `/age pages [derived]` — a notebook holding one page of every word, for testing the desk.
+     *
+     * A notebook rather than the pages themselves: sixty-odd words is more stacks than an inventory has
+     * rows, and a notebook is uncapped and empties into the desk in one action, which is the route a
+     * player takes anyway.
+     */
+    private fun pagesSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        Commands.literal("pages")
+            .executes { context -> runPages(context, derived = false) }
+            .then(Commands.literal(DERIVED_LITERAL).executes { context -> runPages(context, derived = true) })
+
     private fun listSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("list")
             .executes { context -> runList(context, Report.prose(context.source)) }
@@ -521,6 +542,45 @@ object AgeCommand {
                 Component.literal("  no sentence has a place for: ").append(nowhere)
             }
         }
+    }
+
+    /**
+     * `/age pages [derived]` — a notebook holding a page of every word there is to write with.
+     *
+     * The authored corpus and the structural words by default, which is everything a sentence is *built*
+     * from; `derived` is the other half, and it is a separate notebook because there are eleven hundred of
+     * them and they are all materials.
+     *
+     * The exclusions loot honours are honoured here too, so a debug command cannot hand out the one thing
+     * §7.1.2 says must wait for the rung that grants it.
+     */
+    private fun runPages(context: CommandContext<CommandSourceStack>, derived: Boolean): Int {
+        val source = context.source
+        val player = source.player ?: run {
+            source.sendFailure(Component.literal("Only a player can be handed a notebook"))
+            return FAILURE
+        }
+        val vocabulary = Vocabulary.of(source.server)
+        val registries = source.registryAccess()
+        val words = (if (derived) vocabulary.derivedWords else vocabulary.authoredWords)
+            .filterNot { PageExclusion.isExcluded(it, registries) }
+        if (words.isEmpty()) return FAILURE.also { source.sendFailure(Component.literal("No words to write")) }
+
+        val pages = words.map { word ->
+            ItemStack(AgeContent.PAGE).also { it.set(AgeContent.PAGE_WORD, word.id) }
+        }
+        // The structural words go in beside them: `and`, `only` and the rungs are pages a writer lays like
+        // any other, and a book cannot be tested for structure without them.
+        val structural = if (derived) emptyList() else vocabulary.grammarWords.map { spelled ->
+            ItemStack(AgeContent.PAGE).also { it.set(AgeContent.PAGE_WORD, spelled.id) }
+        }
+        val notebook = ItemStack(AgeContent.NOTEBOOK)
+        NotebookItem.setPages(notebook, pages + structural)
+        if (!player.inventory.add(notebook)) player.drop(notebook, false)
+        source.sendSuccess({
+            Component.literal("A notebook of ${pages.size + structural.size} pages. Tip it into the desk.")
+        }, false)
+        return SUCCESS
     }
 
     /** `/age words` — the whole vocabulary, with each word's tier and the aspects it may fill. */
