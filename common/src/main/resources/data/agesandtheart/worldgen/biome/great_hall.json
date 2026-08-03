@@ -1,0 +1,26 @@
+{
+  "has_precipitation": false,
+  "temperature": 0.5,
+  "downfall": 0.0,
+  "attributes": {
+    "minecraft:visual/fog_color": "#0b0c0e",
+    "minecraft:visual/sky_color": "#0b0c0e",
+    "minecraft:visual/water_fog_color": "#0a0c14",
+    "minecraft:visual/fog_end_distance": 176.0,
+    "minecraft:visual/sky_fog_end_distance": 48.0,
+    "minecraft:visual/cloud_fog_end_distance": 48.0
+  },
+  "effects": {
+    "water_color": "#3f76e4",
+    "mood_sound": {
+      "sound": "minecraft:ambient.cave",
+      "tick_delay": 6000,
+      "block_search_extent": 8,
+      "offset": 2.0
+    }
+  },
+  "spawners": {},
+  "spawn_costs": {},
+  "carvers": [],
+  "features": [[], [], [], [], [], [], [], [], [], [], []]
+}

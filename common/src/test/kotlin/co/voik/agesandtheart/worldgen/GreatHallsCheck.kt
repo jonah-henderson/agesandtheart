@@ -85,6 +85,7 @@ class GreatHallsCheck : FunSpec({
         val tooShallow = GreatHalls.storeysBetween(0, GreatHalls.HALL_HEIGHT)
         check(tooShallow.isEmpty()) { "A band of ${GreatHalls.HALL_HEIGHT + 1} laid $tooShallow" }
     }
+
 }) {
     private companion object {
         const val MOST_OF_A_FLOOR_THAT_MAY_BE_PIER = 0.35

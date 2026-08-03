@@ -231,39 +231,62 @@ enum class Terrain(
         val shape = build(options, salt)
         val lift = lift(options, window)
         val uncut = if (lift == 0) shape else Raised(shape, lift)
-        val cut = hollowed(uncut, options, window, salt)
-        return Ground(cut, hollows = uncut.takeIf { cut !== uncut })
+        return when (options.of(UNDERGROUND)) {
+            NOISE_CAVES -> Ground(
+                Caved.of(uncut, CAVE_SEED xor salt, window.minY + BEDROCK_MARGIN, window.topY),
+                // A carved cave meets the water table on its way out of the rock, so it answers to one.
+                hollows = uncut,
+            )
+            GREAT_HALLS -> {
+                val halls = hallsIn(window, salt)
+                Ground(Subtract(uncut, halls), dry = halls)
+            }
+            else -> Ground(uncut)
+        }
     }
 
     /**
-     * [rock] with whatever underground this terrain offers and the writer asked for taken out of it — see
-     * [UNDERGROUND].
+     * The storeys [GREAT_HALLS] takes out of this terrain, between the bedrock and [undergroundRoofY].
      *
-     * **[NOISE_CAVES] gets the whole world as its band**, which sounds profligate and is not:
-     * [co.voik.agesandtheart.worldgen.field.Caved] only ever walks rock the base actually has, and its own
-     * entrance rule keeps the cut away from the surface. Naming a ceiling there would be a second, worse
-     * copy of a decision the node already makes better. [GREAT_HALLS] is the opposite case and does need
-     * one — see [undergroundRoofY].
+     * A ceiling has to be named here, unlike [NOISE_CAVES] where the band is the whole world — `Caved`
+     * only ever walks rock the base actually has and its own entrance rule keeps the cut away from the
+     * surface, so naming a ceiling there would be a second, worse copy of a decision the node already
+     * makes better. A slab of halls has no such rule and would happily open onto a hillside.
      */
-    private fun hollowed(rock: TerrainField, options: Options, window: VerticalWindow, salt: Long): TerrainField =
-        when (options.of(UNDERGROUND)) {
-            NOISE_CAVES -> Caved.of(rock, CAVE_SEED xor salt, window.minY + BEDROCK_MARGIN, window.topY)
-            GREAT_HALLS -> Subtract(rock, hallsIn(window, salt))
-            else -> rock
-        }
-
     private fun hallsIn(window: VerticalWindow, salt: Long): TerrainField =
         GreatHalls.voidBetween(window.minY + BEDROCK_MARGIN, undergroundRoofY(window), HALL_SEED xor salt)
 
     /**
-     * A terrain's rock, and the volume its underground was taken out of.
+     * The band of world this terrain's underground is **indoors** in, or null where it has none — see
+     * [co.voik.agesandtheart.worldgen.biome.Roofed].
      *
-     * [hollows] is null where nothing was taken out, and is otherwise **the rock as it stood before the
-     * cut** — which is what the generator hands its aquifer, so that the space inside answers to a water
-     * table rather than to the waterline. A flat level fills any emptiness beneath it, so without this a
-     * shape-cut hall comes out flooded to its ceiling.
+     * Only [GREAT_HALLS] claims one. Noise caves are not indoors in this sense: they are open to the
+     * surface by design, they belong to the country they were cut into, and vanilla's own cave biomes
+     * describe them exactly.
      */
-    data class Ground(val shape: TerrainField, val hollows: TerrainField?)
+    fun undergroundBand(options: Options, window: VerticalWindow): IntRange? =
+        if (options.of(UNDERGROUND) != GREAT_HALLS) null
+        else window.minY + BEDROCK_MARGIN..undergroundRoofY(window)
+
+    /**
+     * A terrain's rock, and what the water is to make of the space taken out of it. **The two are
+     * alternatives, never both**: an underground either answers to a water table or is kept dry outright.
+     *
+     * [hollows] is the rock as it stood **before** the cut, handed to the aquifer so that the space inside
+     * answers to a water table rather than to the waterline — a flat level fills any emptiness beneath it,
+     * so without this a shape-cut cave comes out flooded to its roof. It is what a carved cave already
+     * meets on its way out of the rock.
+     *
+     * [dry] is the opposite answer, and what [GREAT_HALLS] takes: the space is simply never wet. A water
+     * table is a good description of rock that water seeps through and a bad one of a room — its wet and
+     * dry patches have no walls between them, so a flooded bay ends mid-air against a dry one and reads as
+     * a wall of water standing up by itself.
+     */
+    data class Ground(
+        val shape: TerrainField,
+        val hollows: TerrainField? = null,
+        val dry: TerrainField? = null,
+    )
 
     /**
      * Water this terrain carries **itself**, or null where a waterline is all it needs.

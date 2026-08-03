@@ -11,6 +11,7 @@ import co.voik.agesandtheart.sky.SpireSky
 import co.voik.agesandtheart.worldgen.biome.AgeBiomeSource
 import co.voik.agesandtheart.worldgen.biome.Grounding
 import co.voik.agesandtheart.worldgen.biome.RegionalClimate
+import co.voik.agesandtheart.worldgen.biome.Roofed
 import co.voik.agesandtheart.worldgen.field.Fault
 import co.voik.agesandtheart.worldgen.field.Palette
 import co.voik.agesandtheart.worldgen.field.RegionMap
@@ -26,7 +27,9 @@ import co.voik.agesandtheart.worldgen.AgeChunkGenerator
 import co.voik.agesandtheart.worldgen.SpireChunkGenerator
 import co.voik.agesandtheart.worldgen.VerticalWindow
 import co.voik.agesandtheart.worldgen.VanillaDelegate
+import net.minecraft.core.Holder
 import net.minecraft.core.registries.Registries
+import net.minecraft.world.level.biome.Biome
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
@@ -48,6 +51,9 @@ object AgeGeneration {
 
     /** The custom biome (green plasma water), registered as a datapack biome at load. */
     val PLASMA_BIOME: Identifier = "plasma".location()
+
+    /** The biome an Age's great halls are, carrying their own dark and their own sound. */
+    val GREAT_HALL_BIOME: Identifier = "great_hall".location()
 
     fun chunkGenerator(server: MinecraftServer, recipe: AgeRecipe): ChunkGenerator = when (val world = recipe.world) {
         is AgeWorld.Composed -> assemble(server, world.composition, recipe)
@@ -94,8 +100,9 @@ object AgeGeneration {
         // The fault comes last, over the finished rock. A territory lifted before the wind reached it would
         // be weathered by a profile aimed at where it used to be — see [Fault].
         val shape = faulted(weathered, character.seam, ground, seed)
-        // The chasm a rift opened, so the sea can be kept out of it. Null for every other form.
-        val chasm = riftVolume(character.seam, ground)
+        // Everywhere the sea is kept out of: the chasm a rift opened, and any underground that answers
+        // "never wet" rather than to a water table — see [Terrain.Ground].
+        val chasm = keptDry(riftVolume(character.seam, ground), grounds, ground)
         // And the rock the underground was taken out of — **handed to the generator rather than to the
         // sea**. A flat waterline fills any empty space beneath it, so a shape-cut cave or hall comes out
         // flooded to the roof; making it simply *dry* instead would only trade one uniform answer for the
@@ -159,6 +166,16 @@ object AgeGeneration {
                         // not something a single climate could express.
                         composition.terrains.firstNotNullOfOrNull { it.elevation() },
                     ),
+                )
+                // Age-wide like the shore and the treeline: the band is a pair of heights, and an Age has
+                // one set of those however many territories divide it.
+                .roofedBy(
+                    composition.terrains
+                        .withIndex()
+                        .firstNotNullOfOrNull { (member, terrain) ->
+                            terrain.undergroundBand(terrainOptions(member), window)
+                        }
+                        ?.let { band -> Roofed(greatHallBiome(server), band.first, band.last) },
                 ),
             shape,
             seaFill,
@@ -228,6 +245,23 @@ object AgeGeneration {
         else Rift(ground, Rift.DEFAULT_HALF_WIDTH, Terrain.RIFT_FLOOR, Terrain.RIFT_RIM)
 
     /**
+     * [chasm] and every territory's own dry underground, as one volume the sea is kept out of.
+     *
+     * Divided on the terrain's map like the rock itself, so a territory that has halls keeps its own dry
+     * and a neighbour that does not is unaffected — an Age is allowed to be wet next door to dry, so long
+     * as the boundary is a wall of rock rather than of water.
+     */
+    private fun keptDry(
+        chasm: TerrainField?,
+        grounds: List<Terrain.Ground>,
+        ground: RegionMap,
+    ): TerrainField? {
+        if (grounds.none { it.dry != null }) return chasm
+        val perTerritory = Regions.of(grounds.map { it.dry ?: Union(emptyList()) }, ground)
+        return if (chasm == null) perTerritory else Union(listOf(chasm, perTerritory))
+    }
+
+    /**
      * Where water stands in this Age's rock — one table per carving, each answering for its own territory
      * (design §3.4). A carving with no table of its own contributes the sea's, so the list lines up with
      * the territory map index for index.
@@ -290,6 +324,11 @@ object AgeGeneration {
         server.registryAccess().lookupOrThrow(Registries.BIOME)
             .getOrThrow(ResourceKey.create(Registries.BIOME, PLASMA_BIOME)),
     )
+
+    /** The biome a great hall is, rather than whichever cave biome its climate would otherwise name. */
+    private fun greatHallBiome(server: MinecraftServer): Holder<Biome> =
+        server.registryAccess().lookupOrThrow(Registries.BIOME)
+            .getOrThrow(ResourceKey.create(Registries.BIOME, GREAT_HALL_BIOME))
 
     /**
      * The seed a territory's shape is built from: the Age's own, mixed with which territory it is.

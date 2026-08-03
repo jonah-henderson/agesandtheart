@@ -62,6 +62,11 @@ class AgeBiomeSource(
      */
     private val grounding: Grounding? = null,
     /**
+     * A band of this Age that is indoors, answered before the climate table — null for an Age with no
+     * such band, which is almost all of them. See [Roofed].
+     */
+    private val roofed: Roofed? = null,
+    /**
      * One biome for the whole table, before any preference is applied. Vanilla's climate *positions* are
      * kept and only the biome at each is replaced, so anchoring and the surface filter work exactly as
      * they do over the overworld — which is what a `FixedBiomeSource` could never offer, having no table
@@ -75,19 +80,23 @@ class AgeBiomeSource(
 
     /** The same table, with [depth] measured against [terrain] — see [BelowTerrain]. */
     fun groundedIn(terrain: TerrainField): AgeBiomeSource =
-        AgeBiomeSource(biomes, seed, BelowTerrain(terrain), bent, preferences, keepsOnlyNamed, grounding, flattenedTo, biomeLookup)
+        AgeBiomeSource(biomes, seed, BelowTerrain(terrain), bent, preferences, keepsOnlyNamed, grounding, roofed, flattenedTo, biomeLookup)
 
     /** The same table, with ocean, coast and river read off the shape — see [Grounding]. */
     fun suitedTo(grounding: Grounding?): AgeBiomeSource =
-        AgeBiomeSource(biomes, seed, depth, bent, preferences, keepsOnlyNamed, grounding, flattenedTo, biomeLookup)
+        AgeBiomeSource(biomes, seed, depth, bent, preferences, keepsOnlyNamed, grounding, roofed, flattenedTo, biomeLookup)
+
+    /** The same table, with a band of it indoors — see [Roofed]. */
+    fun roofedBy(roofed: Roofed?): AgeBiomeSource =
+        AgeBiomeSource(biomes, seed, depth, bent, preferences, keepsOnlyNamed, grounding, roofed, flattenedTo, biomeLookup)
 
     /** The same source, told what to grow — see [BiomePreference] and [RegionalClimate]. */
     fun told(bent: RegionalClimate, preferences: List<BiomePreference>, keepsOnlyNamed: Boolean = false) =
-        AgeBiomeSource(biomes, seed, depth, bent, preferences, keepsOnlyNamed, grounding, flattenedTo, biomeLookup)
+        AgeBiomeSource(biomes, seed, depth, bent, preferences, keepsOnlyNamed, grounding, roofed, flattenedTo, biomeLookup)
 
     /** The same table, but one biome everywhere until something is named — see [flattenedTo]. */
     fun flattenedTo(only: Holder<Biome>): AgeBiomeSource =
-        AgeBiomeSource(biomes, seed, depth, bent, preferences, keepsOnlyNamed, grounding, only, biomeLookup)
+        AgeBiomeSource(biomes, seed, depth, bent, preferences, keepsOnlyNamed, grounding, roofed, only, biomeLookup)
 
     /**
      * Vanilla's climate-to-biome table with this Age's preferences folded in. **Lazy**, because applying
@@ -111,6 +120,9 @@ class AgeBiomeSource(
         val blockX = QuartPos.toBlock(quartX)
         val blockY = QuartPos.toBlock(quartY)
         val blockZ = QuartPos.toBlock(quartZ)
+        // Answered before the climate table is consulted at all, because it is not a climate question: the
+        // halls are a *place*, and vanilla's table has no coordinate that means "indoors". See [roofed].
+        roofed?.biomeAt(blockY)?.let { return it }
         val point = DensityFunction.SinglePointContext(blockX, blockY, blockZ)
         // Which climate governs *here*, since an Age may have fractured into more than one (see
         // [RegionalClimate]). One climate answers without consulting a map at all.
@@ -147,7 +159,9 @@ class AgeBiomeSource(
     private fun weirdnessAt(blockX: Int, blockZ: Int, vanillas: Float): Float =
         grounding?.weirdnessAt(blockX, blockZ, vanillas) ?: vanillas
 
-    override fun collectPossibleBiomes(): Stream<Holder<Biome>> = table.values().stream().map { it.second }
+    /** The table's own, plus anything only [roofed] can hand out — which is in no table and must be said. */
+    override fun collectPossibleBiomes(): Stream<Holder<Biome>> =
+        Stream.concat(table.values().stream().map { it.second }, Stream.ofNullable(roofed?.biome))
 
     companion object {
         val CODEC: MapCodec<AgeBiomeSource> = RecordCodecBuilder.mapCodec { instance ->
@@ -160,13 +174,16 @@ class AgeBiomeSource(
                     .forGetter { it.preferences },
                 Codec.BOOL.optionalFieldOf("keeps_only_named", false).forGetter { it.keepsOnlyNamed },
                 Grounding.CODEC.optionalFieldOf("grounding").forGetter { Optional.ofNullable(it.grounding) },
+                // Absent for every Age with nothing indoors, which is almost all of them.
+                Roofed.CODEC.optionalFieldOf("roofed").forGetter { Optional.ofNullable(it.roofed) },
                 Biome.CODEC.optionalFieldOf("flattened_to").forGetter { Optional.ofNullable(it.flattenedTo) },
                 // Not a stored field: retrieved from the ops on decode, absent on encode.
                 RegistryOps.retrieveGetter<Biome, AgeBiomeSource>(Registries.BIOME),
-            ).apply(instance) { table, seed, depth, bias, preferences, onlyNamed, grounded, flattened, lookup ->
+            ).apply(instance) { table, seed, depth, bias, preferences, onlyNamed, grounded, indoors, flattened,
+                                lookup ->
                 AgeBiomeSource(
                     table, seed, depth, bias, preferences, onlyNamed,
-                    grounded.orElse(null), flattened.orElse(null), lookup,
+                    grounded.orElse(null), indoors.orElse(null), flattened.orElse(null), lookup,
                 )
             }
         }
