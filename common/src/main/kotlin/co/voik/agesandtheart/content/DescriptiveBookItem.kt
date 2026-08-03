@@ -44,13 +44,16 @@ class DescriptiveBookItem(properties: Properties) : Item(properties) {
         builder: Consumer<Component>,
         flag: TooltipFlag,
     ) {
+        // What it says, so a shelf of books is readable without opening any of them. The row of pages is
+        // the fallback for a book bound before the Art read one — and for one whose reading was lost.
+        val said = stack.get(AgeContent.BOOK_READING) ?: pagesOf(stack) ?: return
+        builder.accept(said.copy().withStyle(ChatFormatting.DARK_GRAY))
+    }
+
+    private fun pagesOf(stack: ItemStack): Component? {
         val words = stack.get(AgeContent.BOOK_WORDS).orEmpty()
-        if (words.isEmpty()) return
-        // The sentence itself, so a shelf of books is readable without opening any of them.
-        builder.accept(
-            Component.literal(words.joinToString(" ") { WordNames.readable(it).string })
-                .withStyle(ChatFormatting.DARK_GRAY),
-        )
+        if (words.isEmpty()) return null
+        return Component.literal(words.joinToString(" ") { WordNames.readable(it).string })
     }
 
     /**

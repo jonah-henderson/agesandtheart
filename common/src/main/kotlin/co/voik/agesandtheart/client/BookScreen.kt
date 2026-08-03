@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.client
 
-import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.book.LinkRequest
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.client.Minecraft
@@ -60,12 +59,14 @@ class BookScreen(
     }
 
     /**
-     * The sentence, set as running text.
+     * The sentence, set as running text: **the script as the writer laid it, and what it says underneath
+     * in fainter ink.**
      *
-     * The script runs on and wraps; the reading follows underneath in fainter ink.
-     *
-     * Only the pages actually in the book for now. The inferred particles the readout adds — the `of`,
-     * `over`, `with` a writer was spared — are the next piece, and they want the grammar settled first.
+     * The two are not glossed word against word, and that is the point. A reading is prose — it carries the
+     * particles a writer was spared for being inferable from position (`of`, `over`, `with`) and the
+     * punctuation the sections never had — so there is nothing above an `of` to align it to. Pairing them
+     * up would mean either dropping the particles, which is what the row of pages already shows, or hanging
+     * them under a word they are not a translation of.
      */
     private fun drawSentence(graphics: GuiGraphicsExtractor, left: Int, top: Int) {
         val x = left + TEXT_X
@@ -74,75 +75,30 @@ class BookScreen(
         }
         if (words.isEmpty()) return
 
-        var y = top + TEXT_Y
-        linesOf().forEach { line ->
-            var column = x
-            line.forEach { gloss ->
-                scaled(graphics, column, y, SCRIPT_SCALE) {
-                    graphics.text(font, gloss.script, 0, 0, INK, false)
-                }
-                scaled(graphics, column, y + scriptHeight(), READING_SCALE) {
-                    graphics.text(font, gloss.reading, 0, 0, FAINT_INK, false)
-                }
-                column += gloss.width
-            }
-            y += scriptHeight() + readingHeight() + PHRASE_GAP
-        }
+        val below = wrapped(graphics, KnownWords.scriptText(words), x, top + TEXT_Y, SCRIPT_SCALE, INK)
+        val reading = book.get(AgeContent.BOOK_READING) ?: return
+        wrapped(graphics, reading, x, below + PHRASE_GAP, READING_SCALE, FAINT_INK)
     }
 
-    private fun scriptHeight() = (font.lineHeight * SCRIPT_SCALE).toInt() + 1
-
-    private fun readingHeight() = (font.lineHeight * READING_SCALE).toInt()
-
-    /**
-     * One word set over its own reading.
-     *
-     * [width] is the wider of the two at their own scales, so the pair occupies a column and the next pair
-     * starts clear of it — which is what keeps a reading under the phrase it belongs to rather than under
-     * whatever happens to be above it.
-     */
-    private inner class Gloss(val script: Component, val reading: String) {
-        val width: Int = maxOf(
-            (font.width(script) * SCRIPT_SCALE).toInt(),
-            (font.width(reading) * READING_SCALE).toInt(),
-        ) + GLOSS_GAP
-    }
-
-    /**
-     * A word split into its parts, each part glossed on its own.
-     *
-     * A derived word is a block id, so `polished_deepslate` is two words wearing one name — and glossing
-     * it whole puts "Polished Deepslate" under a script that plainly has two pieces. The transliteration
-     * already renders `_` as a space, so both sides divide the same way.
-     *
-     * Where they do not divide alike — an authored spelling need not follow the id — the word is glossed
-     * whole rather than paired up wrongly.
-     */
-    private fun glossesOf(word: Identifier): List<Gloss> {
-        val script = KnownWords.scriptLines(word)
-        val reading = WordNames.readable(word).string.split(' ').filter { it.isNotBlank() }
-        if (script.size != reading.size || script.isEmpty()) {
-            return listOf(Gloss(KnownWords.scriptText(word), reading.joinToString(" ")))
+    /** [text] wrapped to the writing column and drawn at [scale], answering with the y below it. */
+    private fun wrapped(
+        graphics: GuiGraphicsExtractor,
+        text: Component,
+        x: Int,
+        y: Int,
+        scale: Float,
+        colour: Int,
+    ): Int {
+        // The column is measured in screen pixels and the font in its own, so the width it is asked to
+        // wrap at has to be the column *at this scale* — otherwise small text wraps as though it were big.
+        val column = (COLUMN_WIDTH / scale).toInt()
+        val lineHeight = (font.lineHeight * scale).toInt() + 1
+        var line = y
+        for (row in font.split(text, column)) {
+            scaled(graphics, x, line, scale) { graphics.text(font, row, 0, 0, colour, false) }
+            line += lineHeight
         }
-        return script.indices.map { Gloss(script[it], reading[it]) }
-    }
-
-    /** The glosses packed into lines that fit the column. */
-    private fun linesOf(): List<List<Gloss>> {
-        val lines = mutableListOf<List<Gloss>>()
-        var line = mutableListOf<Gloss>()
-        var used = 0
-        words.flatMap(::glossesOf).forEach { gloss ->
-            if (line.isNotEmpty() && used + gloss.width > COLUMN_WIDTH) {
-                lines += line
-                line = mutableListOf()
-                used = 0
-            }
-            line += gloss
-            used += gloss.width
-        }
-        if (line.isNotEmpty()) lines += line
-        return lines
+        return line
     }
 
     /** Draws [body] at [scale] with the origin moved to ([x], [y]), since text is placed by its corner. */
@@ -183,7 +139,6 @@ class BookScreen(
         const val TEXT_X = 140
         const val TITLE_Y = 16
         const val TEXT_Y = 34
-        const val LINE = 10
 
         /** The right page's writing column, clear of the spine and the outer edge. */
         const val COLUMN_WIDTH = WIDTH / 2 - 30
@@ -193,11 +148,8 @@ class BookScreen(
         const val SCRIPT_SCALE = 0.9f
         const val READING_SCALE = 0.7f
 
-        /** Between one line of glosses and the next. */
+        /** Between the script and the reading under it, so the two read as a pair and not a block. */
         const val PHRASE_GAP = 5
-
-        /** Clear space after a gloss, so adjacent columns do not read as one word. */
-        const val GLOSS_GAP = 4
 
         val PARCHMENT = 0xFFE9DFC3.toInt()
         val EDGE = 0xFF8B7B55.toInt()

@@ -135,4 +135,34 @@ class ReadoutCheck : FunSpec({
             "an unaimed book read back as '${readingOf("floating", "basalt")}'"
         }
     }
+
+    /**
+     * **The two readings are one sentence.** What a book says and what `/age write` prints differ in
+     * exactly one thing — what a page is *called* — because a word is a name a pack translates where the
+     * prose around it is English by design (§4.1). Anything else drifting apart would mean a writer's book
+     * and their command disagreed about their own book.
+     */
+    test("what a book says is the same sentence, in the reader's own words") {
+        val books = listOf(
+            listOf("landmass", "floating", "basalt"),
+            listOf("landmass", "packed_ice", "and", "slate", "sea", "molten"),
+            listOf("beautiful", "landmass", "only", "basalt"),
+            listOf("landmass", "starless"),
+        )
+        for (pages in books) {
+            val sentence = Grammar.read(vocabulary, listOf("age") + pages)
+            val printed = Readout.of(sentence)
+            // Offline there is no language file, so a translatable name falls back to its title-cased id.
+            // Casing and the `_` a name loses are the whole of the difference, and normalising them away
+            // is what leaves the sentence itself to be compared.
+            val spoken = Readout.spoken(sentence).string
+            check(spoken.plainly() == printed.plainly()) {
+                "'${pages.joinToString(" ")}' reads as '$printed' and says '$spoken'"
+            }
+        }
+    }
 })
+
+/** A reading with nothing left of it but the words and their order. */
+private fun String.plainly(): List<String> =
+    lowercase().replace('_', ' ').split(Regex("[\\s,.]+")).filter { it.isNotBlank() }

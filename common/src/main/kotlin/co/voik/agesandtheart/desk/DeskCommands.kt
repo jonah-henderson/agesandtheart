@@ -2,6 +2,8 @@ package co.voik.agesandtheart.desk
 
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.word.Vocabulary
+import co.voik.agesandtheart.age.word.grammar.Grammar
+import co.voik.agesandtheart.age.word.grammar.Readout
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.NotebookItem
 import co.voik.agesandtheart.location
@@ -216,12 +218,27 @@ object DeskCommands {
         // No ink here on purpose: it was spent writing each page, and charging again at the binding
         // would tax the same words twice.
         val book = ItemStack(AgeContent.DESCRIPTIVE_BOOK)
-        book.set(AgeContent.BOOK_WORDS, menu.composing.toList())
+        val words = menu.composing.toList()
+        book.set(AgeContent.BOOK_WORDS, words)
         book.set(AgeContent.BOOK_TITLE, title)
+        // What it says, written down beside what it says it with. Reading a sentence takes the whole
+        // corpus, which is a server's; a book is read wherever it is carried.
+        book.set(AgeContent.BOOK_READING, readingOf(player, words))
         menu.composing.clear()
         // Into the output slot rather than the inventory: a book you take is a book you saw being made.
         menu.putOutput(book)
         Constants.LOG.debug("{} bound the Age '{}'", player.gameProfile.name, title)
+    }
+
+    /**
+     * The sentence [words] spell, as prose.
+     *
+     * Read through **the same expression `DescriptiveBookRecipe` reads it by**, so what a book says and the
+     * Age it makes can never be two different sentences.
+     */
+    private fun readingOf(player: ServerPlayer, words: List<Identifier>): Component {
+        val vocabulary = WritersDeskMenu.vocabularyFor(player)
+        return Readout.spoken(Grammar.read(vocabulary, words.map { it.path }))
     }
 
     /** To the screen, not the action bar: an open screen covers the action bar. */

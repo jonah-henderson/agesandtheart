@@ -22,6 +22,8 @@ import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import net.minecraft.core.component.DataComponentType
 import net.minecraft.core.registries.Registries
+import net.minecraft.network.chat.Component
+import net.minecraft.network.chat.ComponentSerialization
 import net.minecraft.network.codec.ByteBufCodecs
 import net.minecraft.world.flag.FeatureFlags
 import net.minecraft.world.inventory.ContainerLevelAccess
@@ -234,6 +236,20 @@ object AgeContent {
         .networkSynchronized(ByteBufCodecs.STRING_UTF8)
         .build()
 
+    /**
+     * What the book **says**, as the Art read it when the book was bound —
+     * [Readout][co.voik.agesandtheart.age.word.grammar.Readout]'s prose, with the particles a writer was
+     * spared for being inferable from position.
+     *
+     * Written down rather than derived, because reading a sentence takes the whole corpus and a client has
+     * none. Kept as a `Component` so the word names in it stay translatable: the prose around them is
+     * English by design (§4.1), the names are not.
+     */
+    val BOOK_READING: DataComponentType<Component> = DataComponentType.builder<Component>()
+        .persistent(ComponentSerialization.CODEC)
+        .networkSynchronized(ComponentSerialization.STREAM_CODEC)
+        .build()
+
     val WRITERS_DESK_MENU: MenuType<WritersDeskMenu> = MenuType(
         { containerId, inventory -> WritersDeskMenu(containerId, inventory, ContainerLevelAccess.NULL) },
         FeatureFlags.VANILLA_SET,
@@ -251,6 +267,7 @@ object AgeContent {
         "page_word".location() to PAGE_WORD,
         "book_words".location() to BOOK_WORDS,
         "book_title".location() to BOOK_TITLE,
+        "book_reading".location() to BOOK_READING,
         "link_target".location() to LINK_TARGET,
         "notebook_pages".location() to NOTEBOOK_PAGES,
     )

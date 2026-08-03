@@ -4,6 +4,9 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.word.Word
+import co.voik.agesandtheart.age.word.WordNames
+import net.minecraft.network.chat.Component
+import net.minecraft.network.chat.MutableComponent
 
 /**
  * The parse, said back as a sentence (design §4.3.1).
@@ -23,17 +26,44 @@ import co.voik.agesandtheart.age.word.Word
  */
 object Readout {
     /**
-     * [sentence] as prose. Empty where nothing parsed, which the caller reports as the book being
-     * unreadable rather than as an Age with nothing said about it.
+     * [sentence] as prose, in the words a writer says — what `/age write` prints. Empty where nothing
+     * parsed, which the caller reports as the book being unreadable rather than as an Age with nothing
+     * said about it.
      */
-    fun of(sentence: Sentence): String {
+    fun of(sentence: Sentence): String = said(sentence) { Component.literal(it.word.name) }.string
+
+    /**
+     * The same reading in the language its reader speaks, which is what a **book** says.
+     *
+     * A [Component] rather than a string because a *word* is translatable where the prose around it is
+     * not: the particles are §4.1's English-as-interface doing its job, and the words are names a pack
+     * translates. Resolving them where the reading is composed would read a server's own language back at
+     * every client.
+     */
+    fun spoken(sentence: Sentence): Component = said(sentence) { WordNames.readable(it.word.id) }
+
+    /**
+     * The reading itself, with [naming] deciding what one page is called. Built as a [Component]
+     * throughout so that both callers are the same prose and cannot drift apart.
+     */
+    private fun said(sentence: Sentence, naming: (Constraint) -> Component): Component {
         val clauses = sentence.phrases.mapNotNull(::asWritten)
-        if (clauses.isEmpty()) return ""
+        if (clauses.isEmpty()) return Component.empty()
         val read = clauses.mapIndexed { position, phrase ->
             val opensTheSentence = position == 0
-            clauseOf(phrase, opensTheSentence)
+            clauseOf(phrase, opensTheSentence, naming)
         }
-        return read.joinToString(", ") + "."
+        return joined(read, ", ").append(".")
+    }
+
+    /** [parts] with [separator] between them, which is `joinToString` for prose that has to stay a tree. */
+    private fun joined(parts: List<Component>, separator: String): MutableComponent {
+        val said = Component.empty()
+        for ((position, part) in parts.withIndex()) {
+            if (position > 0) said.append(separator)
+            said.append(part)
+        }
+        return said
     }
 
     /**
@@ -57,12 +87,15 @@ object Readout {
      * One phrase, as its own clause. [opensTheSentence] because the preposition that places a clause
      * against the one before it has nothing to place the first one against.
      */
-    private fun clauseOf(phrase: Phrase, opensTheSentence: Boolean): String {
+    private fun clauseOf(phrase: Phrase, opensTheSentence: Boolean, naming: (Constraint) -> Component): Component {
         val preposition = if (opensTheSentence) "" else prepositionFor(phrase)
-        val described = (phrase.descriptors.map { it.word.name } + listOfNotNull(phrase.subject?.word?.name))
-            .joinToString(" ")
-        val steering = steeringOf(phrase)
-        return listOf(preposition, described, steering).filter(String::isNotEmpty).joinToString(" ")
+        val described = (phrase.descriptors + listOfNotNull(phrase.subject)).map(naming)
+        val said = buildList {
+            if (preposition.isNotEmpty()) add(Component.literal(preposition))
+            if (described.isNotEmpty()) add(joined(described, " "))
+            steeringOf(phrase, naming)?.let(::add)
+        }
+        return joined(said, " ")
     }
 
     /**
@@ -70,10 +103,10 @@ object Readout {
      * and keep them apart" is a different claim from two words laid side by side (§3.2) and a reading that
      * flattened them would hide the one page that changed it.
      */
-    private fun steeringOf(phrase: Phrase): String {
-        if (phrase.modifiers.isEmpty()) return ""
+    private fun steeringOf(phrase: Phrase, naming: (Constraint) -> Component): Component? {
+        if (phrase.modifiers.isEmpty()) return null
         val hasASubjectToAttachTo = phrase.subject != null
-        val said = StringBuilder()
+        val said = Component.empty()
         var aParticleHasBeenSpent = false
         for ((position, run) in phrase.modifiers.chunkedByJoin().withIndex()) {
             // The first run of a subjectless phrase heads its own clause — "blackstone", not "of
@@ -85,27 +118,31 @@ object Readout {
             val followsAnAttachedRun = aParticleHasBeenSpent && particleFor(run).isNotEmpty()
             aParticleHasBeenSpent = aParticleHasBeenSpent || particle.isNotEmpty()
             if (position > 0) said.append(if (followsAnAttachedRun) ", " else " ")
-            said.append(particle).append(runOf(run))
+            if (particle.isNotEmpty()) said.append(particle)
+            said.append(runOf(run, naming))
         }
-        return said.toString()
+        return said
     }
 
     /**
      * One `and`-joined run, with the particle that says how it attaches and whatever `only`/`except` the
      * writer put in front of it.
      */
-    private fun runOf(run: List<Constraint>): String {
+    private fun runOf(run: List<Constraint>, naming: (Constraint) -> Component): Component {
         val marker = when (run.first().polarity) {
             Polarity.ASSERTED -> ""
             Polarity.ONLY -> "only "
             Polarity.EXCEPT -> "except "
         }
-        return marker + run.joinToString(" and ", transform = ::termOf)
+        val terms = joined(run.map { termOf(it, naming) }, " and ")
+        return if (marker.isEmpty()) terms else Component.literal(marker).append(terms)
     }
 
     /** One term, carrying the rung the writer quantified it with where they asked for one. */
-    private fun termOf(term: Constraint): String =
-        if (term.density.isOrdinary) term.word.name else "${term.density.key} ${term.word.name}"
+    private fun termOf(term: Constraint, naming: (Constraint) -> Component): Component {
+        val name = naming(term)
+        return if (term.density.isOrdinary) name else Component.literal("${term.density.key} ").append(name)
+    }
 
     /**
      * Consecutive modifiers gathered into the runs a writer joined. A null group is a word standing alone,
