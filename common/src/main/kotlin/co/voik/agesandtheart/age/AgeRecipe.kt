@@ -213,7 +213,7 @@ data class AgeRecipe(
         private fun spire() = AgeComposition(
             terrains = listOf(Terrain.SPIRE_ISLANDS),
             seas = listOf(Sea.WATER),
-            carvers = listOf(Carvers.WEATHERED),
+            carvers = listOf(Carvers.SOLID),
             // Nobody built here. The `only plasma` claim below would strand every set anyway, but the
             // Spire says so outright rather than relying on a side effect of its biome.
             structures = Structures.NONE,

@@ -336,7 +336,7 @@ class RecipeCheck : FunSpec({
         val uneven = AgeComposition(terrains = listOf(Terrain.HILLS))
             .withPresets(
                 Aspect.CARVERS,
-                listOf(Carvers.CAVES.key, Carvers.POROUS.key, Carvers.WEATHERED.key),
+                listOf(Carvers.CAVES.key, Carvers.POROUS.key, Carvers.FLOODED_CAVES.key),
                 listOf(Share.DOMINANT, Share.SCATTERED, Share.RARE),
             )
         val decoded = roundTrips(AgeRecipe(AgeWorld.Composed(uneven), seed = SAMPLE_SEED), "an uneven division")
@@ -347,7 +347,7 @@ class RecipeCheck : FunSpec({
         }
 
         val spelling = uneven.toString()
-        check("carvers=caves,porous@scattered,weathered@rare" in spelling) {
+        check("carvers=caves,porous@scattered,flooded_caves@rare" in spelling) {
             "an uneven division spells itself wrong: '$spelling'"
         }
         check(AgeComposition.parse(spelling).getOrThrow() == uneven) { "'$spelling' does not read back as itself" }

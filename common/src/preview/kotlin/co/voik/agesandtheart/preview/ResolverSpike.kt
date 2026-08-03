@@ -57,7 +57,6 @@ private val TAGS: Map<AspectPreset, Map<String, Double>> = mapOf(
     Carvers.POROUS to mapOf("cavernous" to 0.4, "watery" to 0.3),
     Carvers.CAVES to mapOf("cavernous" to 0.9, "gloomy" to 0.5),
     Carvers.FLOODED_CAVES to mapOf("cavernous" to 0.8, "watery" to 0.8, "hostile" to 0.5, "gloomy" to 0.5),
-    Carvers.WEATHERED to mapOf("eroded" to 0.9, "wild" to 0.5),
 
     // The four dressings this spike argued over are deleted (Phase 4.5 step 5); the aspect that replaced them
     // holds one preset, so the spike's dressing column collapses to a single row. Kept compiling rather than

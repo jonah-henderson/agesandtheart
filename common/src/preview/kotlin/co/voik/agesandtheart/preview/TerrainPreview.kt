@@ -60,19 +60,23 @@ fun main(arguments: Array<String>) {
     report(name, solid, subject, output)
 }
 
-/** What to draw: a shape, the weathering working on it, and the window to look through. */
+/** What to draw: a shape, and the window to look through. */
 private class Subject(
     val field: TerrainField,
-    val weathering: Weathering,
     val lowestY: Int,
     val highestY: Int,
     val radius: Int = 128,
     /**
-     * How far up the world this subject floats — see `Terrain.ALTITUDE`. Carried here rather than baked
-     * into [field] because **a lift has to reach the weathering too**: erosion's keel and band are absolute
-     * heights, so a shape raised without its wind sails over the band and comes out unweathered.
+     * How far up the world this subject floats — see `Terrain.ALTITUDE`. Applied out here because that is
+     * where the generator applies it too: a landform weathers itself at the height it was authored at, and
+     * the finished shape is what gets raised.
      */
     val lift: Int = 0,
+    /**
+     * A weathering profile to **print the resistance spread of**, and nothing more — the wind itself lives
+     * in [field]. Set it on a subject whose thresholds are being tuned; see [reportResistance].
+     */
+    val resistanceProfile: Weathering? = null,
     /**
      * How many blocks one sample covers, on all three axes.
      *
@@ -119,13 +123,13 @@ private class Subject(
     fun worldYAt(level: Int): Int = lowestY + level * step
 
     /**
-     * The field as it will actually generate. Built through `Weathered.spire`, **the same factory the
-     * generator uses**, so there is no second set of numbers to drift.
+     * The field as it will actually generate.
+     *
+     * **Weathering is the landform's own now**, carried inside its field, so there is nothing to apply
+     * here and nothing that could drift from what the generator does — a subject asks for a *bare* world
+     * when it wants the unweathered half, rather than switching a pass off out here.
      */
-    fun weathered(): TerrainField {
-        val raised = if (lift == 0) field else Raised(field, lift)
-        return if (weathering === Weathering.NONE) raised else Weathered.spire(raised, lift)
-    }
+    fun weathered(): TerrainField = if (lift == 0) field else Raised(field, lift)
 }
 
 /**
@@ -189,22 +193,22 @@ private val subjects: Map<String, Subject> = mapOf(
     // y 0..383 rather than -64..319 — because the recipe pins `altitude=high`. Keeping 320 here would have
     // reported the window's edge as the rock's, the same silent clip the note above warns about.
     "spire" to Subject(
-        SpireField.world(), Weathering.SPIRE, lowestY = 56, highestY = 383, radius = 300,
-        lift = Terrain.HIGH_ALTITUDE_LIFT,
+        SpireField.world(), lowestY = 56, highestY = 383, radius = 300,
+        lift = Terrain.HIGH_ALTITUDE_LIFT, resistanceProfile = Weathering.SPIRE,
     ),
     // The same islands with weathering switched off — the pair shows what erosion is actually contributing.
     "spire-nowind" to Subject(
-        SpireField.world(), Weathering.NONE, lowestY = 56, highestY = 383, radius = 300,
+        SpireField.bareWorld(), lowestY = 56, highestY = 383, radius = 300,
         lift = Terrain.HIGH_ALTITUDE_LIFT,
     ),
-    "hills" to Subject(NoiseField.hills(), Weathering.NONE, lowestY = 20, highestY = 120),
-    "pillars" to Subject(PillarField.world(), Weathering.NONE, lowestY = 30, highestY = 185),
-    "shapes" to Subject(ShapesField.world(), Weathering.NONE, lowestY = 55, highestY = 130, radius = 200),
-    "caverns" to Subject(CavernField.world(), Weathering.NONE, lowestY = -64, highestY = 110),
+    "hills" to Subject(NoiseField.hills(), lowestY = 20, highestY = 120),
+    "pillars" to Subject(PillarField.world(), lowestY = 30, highestY = 185),
+    "shapes" to Subject(ShapesField.world(), lowestY = 55, highestY = 130, radius = 200),
+    "caverns" to Subject(CavernField.world(), lowestY = -64, highestY = 110),
     // The tunnels on their own. A cave system reads far better as a solid lattice hanging in space than
     // as absence inside a hill, and the slices are where the network's connectedness actually shows.
-    "caverns-voids" to Subject(CavernField.caves(), Weathering.NONE, lowestY = -64, highestY = 70),
-    "eroded" to Subject(ErodedField.world(), Weathering.NONE, lowestY = 30, highestY = 195, radius = 200),
+    "caverns-voids" to Subject(CavernField.caves(), lowestY = -64, highestY = 70),
+    "eroded" to Subject(ErodedField.world(), lowestY = 30, highestY = 195, radius = 200),
 
     // **Read the slice across the bearing, not the plan.** From above a solid world is one flat shade with
     // a ribbon missing from it, which says where the canyon goes and nothing about its shape; the benches,
@@ -217,7 +221,6 @@ private val subjects: Map<String, Subject> = mapOf(
         CanyonField.world(bearing = "north_south"),
         // Already inside the field, unlike the Spire's — see [CanyonField.world]. Passing it again here
         // would weather the canyon twice with two different winds.
-        Weathering.NONE,
         lowestY = -64,
         highestY = CanyonField.WORLD_CEILING,
         radius = 400,
@@ -229,7 +232,6 @@ private val subjects: Map<String, Subject> = mapOf(
     // most of what the picture contains.
     "cliffs" to Subject(
         CliffField.world(bearing = "north_south"),
-        Weathering.NONE,
         lowestY = -64,
         highestY = CliffField.PLATEAU_Y + 32,
         radius = 500,
@@ -239,7 +241,6 @@ private val subjects: Map<String, Subject> = mapOf(
     // something breaks it, so this is the picture that says whether the weather is doing its job.
     "cliffs-nowind" to Subject(
         CliffField.bareWorld(bearing = "north_south"),
-        Weathering.NONE,
         lowestY = -64,
         highestY = CliffField.PLATEAU_Y + 32,
         radius = 500,
@@ -250,7 +251,6 @@ private val subjects: Map<String, Subject> = mapOf(
     // The window is wide enough to hold several of the spacing, or a family reads as a single canyon.
     "canyonlands" to Subject(
         CanyonlandsField.world(),
-        Weathering.NONE,
         lowestY = -64,
         highestY = CanyonlandsField.PLATEAU_Y + 16,
         radius = 900,
@@ -260,7 +260,6 @@ private val subjects: Map<String, Subject> = mapOf(
     // transect is one canyon or none. What is worth reading is whether the cells look like cells.
     "shattered" to Subject(
         ShatteredField.world(),
-        Weathering.NONE,
         lowestY = -64,
         highestY = ShatteredField.PLATEAU_Y + 16,
         radius = 900,
@@ -271,7 +270,6 @@ private val subjects: Map<String, Subject> = mapOf(
     // the whole point — same shape, one of them hollow.
     "riverlands-caved" to Subject(
         Caved.of(RiverlandsField.world(), 0xCA_7E5L, -59, 320),
-        Weathering.NONE,
         lowestY = -64,
         highestY = RiverlandsField.LAND_Y + 60,
         radius = 360,
@@ -286,7 +284,6 @@ private val subjects: Map<String, Subject> = mapOf(
             Slab(lowY = INVERSE_FLOOR, highY = INVERSE_CEILING),
             Caved.of(Slab(lowY = INVERSE_FLOOR, highY = INVERSE_CEILING), 0xCA_7E5L, INVERSE_FLOOR, INVERSE_CEILING),
         ),
-        Weathering.NONE,
         lowestY = INVERSE_FLOOR,
         highestY = INVERSE_CEILING,
         radius = 200,
@@ -299,7 +296,6 @@ private val subjects: Map<String, Subject> = mapOf(
             OverworldField.world(),
             GreatHalls.voidBetween(HALL_FLOOR, HALL_ROOF, 0L),
         ),
-        Weathering.NONE,
         lowestY = -64,
         highestY = 176,
         // Wide enough to hold several bays of piers and a stretch of coast over them.
@@ -311,7 +307,6 @@ private val subjects: Map<String, Subject> = mapOf(
     // is the piers and the slabs — and against the rock they are cut from neither reads at all.
     "halls-alone" to Subject(
         GreatHalls.voidBetween(HALL_FLOOR, HALL_ROOF, 0L),
-        Weathering.NONE,
         lowestY = HALL_FLOOR,
         highestY = HALL_ROOF,
         radius = 160,
@@ -322,7 +317,6 @@ private val subjects: Map<String, Subject> = mapOf(
     // how much of the picture is solid. The dial to read this against is `thresholdAtTop`.
     "overworld" to Subject(
         OverworldField.surface(),
-        Weathering.NONE,
         lowestY = OverworldField.SOLID_TOP,
         highestY = 176,
         radius = 320,
@@ -331,7 +325,6 @@ private val subjects: Map<String, Subject> = mapOf(
 
     "riverlands-caves" to Subject(
         Subtract(RiverlandsField.world(), Caved.of(RiverlandsField.world(), 0xCA_7E5L, -59, 320)),
-        Weathering.NONE,
         lowestY = -64,
         highestY = RiverlandsField.LAND_Y + 60,
         radius = 360,
@@ -342,7 +335,6 @@ private val subjects: Map<String, Subject> = mapOf(
     // seeing is streams joining into trunks.
     "riverlands" to Subject(
         RiverlandsField.world(),
-        Weathering.NONE,
         lowestY = 0,
         highestY = RiverlandsField.LAND_Y + 60,
         radius = 700,
@@ -356,7 +348,6 @@ private val subjects: Map<String, Subject> = mapOf(
     "alps" to Subject(
         AlpsField.world(),
         // Already inside the field, as a canyon's is — passing it again would weather the range twice.
-        Weathering.NONE,
         lowestY = -64,
         highestY = 300,
         // Wide enough to hold a couple of the network's cells, which is what the picture is for — one cell
@@ -373,7 +364,6 @@ private val subjects: Map<String, Subject> = mapOf(
     // this scale, and on a landform whose shape is already made of planes that is a real question.
     "alps-nowind" to Subject(
         AlpsField.bareWorld(),
-        Weathering.NONE,
         lowestY = -64,
         highestY = 300,
         radius = 2600,
@@ -387,7 +377,6 @@ private val subjects: Map<String, Subject> = mapOf(
     // and whether the hillslopes really do meet in a crest rather than a dome.
     "alps-core" to Subject(
         AlpsField.world(),
-        Weathering.NONE,
         lowestY = -64,
         highestY = 300,
         radius = 1150,
@@ -404,7 +393,6 @@ private val subjects: Map<String, Subject> = mapOf(
     // That they never touch is arithmetic, and `IslandsCheck` asserts it instead of drawing it.
     "islands" to Subject(
         IslandsField.world(extent = IslandsField.Extent.BROAD.key),
-        Weathering.NONE,
         lowestY = 20,
         highestY = IslandsField.SEA_LEVEL + 120,
         radius = 1100,
@@ -414,7 +402,6 @@ private val subjects: Map<String, Subject> = mapOf(
     // `islands` above. Same window, so the two pictures are directly comparable.
     "islands-clustered" to Subject(
         IslandsField.clustered(extent = IslandsField.Extent.BROAD.key),
-        Weathering.NONE,
         lowestY = 20,
         highestY = IslandsField.SEA_LEVEL + 120,
         radius = 1100,
@@ -422,7 +409,6 @@ private val subjects: Map<String, Subject> = mapOf(
 
     "canyonlands-nowind" to Subject(
         CanyonlandsField.bareWorld(),
-        Weathering.NONE,
         lowestY = -64,
         highestY = CanyonlandsField.PLATEAU_Y + 16,
         radius = 900,
@@ -432,7 +418,6 @@ private val subjects: Map<String, Subject> = mapOf(
     // exactly as `spire-nowind` does. Here it is the difference between benches and ruled contours.
     "canyon-nowind" to Subject(
         CanyonField.bareWorld(bearing = "north_south"),
-        Weathering.NONE,
         lowestY = -64,
         highestY = CanyonField.WORLD_CEILING,
         radius = 400,
@@ -443,7 +428,6 @@ private val subjects: Map<String, Subject> = mapOf(
     // what an Age written in a default world looks like.
     "regions" to Subject(
         Regions(members = dividedTerrains, map = territories),
-        Weathering.NONE,
         lowestY = 30,
         highestY = 185,
         radius = 420,
@@ -468,11 +452,10 @@ private val subjects: Map<String, Subject> = mapOf(
             base = Regions(members = twoOfOneTerrain, map = territories),
             map = territories,
             // The same helper the generator uses, so the picture cannot disagree about which side rises.
-            throws = Fault.alternatingThrows(members = 2, throwBlocks = Terrain.SCARP_THROW, seed = 1L),
+            throws = Fault.alternatingThrows(members = 2, throwBlocks = Seam.SCARP_THROW, seed = 1L),
         ),
-        Weathering.NONE,
-        lowestY = 20 - Terrain.SCARP_THROW,
-        highestY = 120 + Terrain.SCARP_THROW,
+        lowestY = 20 - Seam.SCARP_THROW,
+        highestY = 120 + Seam.SCARP_THROW,
         radius = 420,
     ),
 
@@ -487,10 +470,9 @@ private val subjects: Map<String, Subject> = mapOf(
         Ridge.raised(
             base = Regions(members = twoOfOneTerrain, map = territories),
             map = territories,
-            footingY = Terrain.WALL_FOOTING,
-            crestY = Terrain.WALL_CREST,
+            footingY = Seam.WALL_FOOTING,
+            crestY = Seam.WALL_CREST,
         ),
-        Weathering.NONE,
         lowestY = 30,
         highestY = 185,
         // The same window as `rift`, so the two forms can be read against each other.
@@ -501,10 +483,9 @@ private val subjects: Map<String, Subject> = mapOf(
         Rift.opened(
             base = Regions(members = twoOfOneTerrain, map = territories),
             map = territories,
-            floorY = Terrain.RIFT_FLOOR,
-            rimY = Terrain.RIFT_RIM,
+            floorY = Seam.RIFT_FLOOR,
+            rimY = Seam.RIFT_RIM,
         ),
-        Weathering.NONE,
         lowestY = 30,
         highestY = 185,
         radius = 420,
@@ -528,7 +509,6 @@ private val subjects: Map<String, Subject> = mapOf(
     // alternately up and down into a picket fence of one-block spikes. A seam is one form or the other now.
     "fuzz" to Subject(
         Regions(members = dividedTerrains, map = fuzzedTerritories),
-        Weathering.NONE,
         lowestY = 30,
         highestY = 185,
         radius = 420,
@@ -721,11 +701,11 @@ private val LOWER_CLOUD_DECK = SpireSky.LOWER_DECK_HEIGHT
  * decisive against an assumed ±0.1 do nothing against a real ±0.4.
  */
 private fun reportResistance(subject: Subject) {
-    if (subject.weathering === Weathering.NONE) return
+    val profile = subject.resistanceProfile ?: return
     val samples = ArrayList<Double>()
     for (worldX in -subject.radius..<subject.radius step 4) {
         for (worldZ in -subject.radius..<subject.radius step 4) {
-            samples += subject.weathering.resistanceAt(worldX, subject.weathering.keelY, worldZ)
+            samples += profile.resistanceAt(worldX, profile.keelY, worldZ)
         }
     }
     samples.sort()

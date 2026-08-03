@@ -2,7 +2,6 @@ package co.voik.agesandtheart.age.aspect
 
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.worldgen.carver.Porosity
-import co.voik.agesandtheart.worldgen.carver.Weathering
 import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.WaterTable
 import net.minecraft.core.HolderSet
@@ -38,8 +37,6 @@ enum class Carvers(override val key: String) : AspectPreset {
     /** The same caves, but the water table sits at the sea, so everything below it floods. */
     FLOODED_CAVES("flooded_caves"),
 
-    /** Our own wind erosion — the pass that pares blocky masses back to ribs and spires. */
-    WEATHERED("weathered"),
     ;
 
     override val aspect = Aspect.CARVERS
@@ -58,27 +55,15 @@ enum class Carvers(override val key: String) : AspectPreset {
         val keys = when (this) {
             SOLID -> return HolderSet.direct()
             CAVES, FLOODED_CAVES -> UNDERGROUND_CARVERS.map(::vanillaCarver)
-            // Weathering is subtracted from the shape rather than run here — see [weathering], `Weathered`.
-            WEATHERED -> return HolderSet.direct()
             // Small vugs rather than tunnels, which gives this preset's water table something to stand in.
             POROUS -> listOf(ResourceKey.create(Registries.CONFIGURED_CARVER, POROSITY))
         }
         return HolderSet.direct(keys.map(configured::getOrThrow))
     }
 
-    /**
-     * The wind that wears this carving's rock away, or null for one that does no weathering. Read by
-     * `AgeGeneration`, which subtracts it from the Age's shape rather than running it as a carver.
-     *
-     * On Carvers rather than Terrain so `weathered` stays one word a writer can say about any terrain.
-     * Temporary: it becomes a terrain operation once terrains compose primitives — see
-     * `notes/terrain-architecture.md`, "Where this is going".
-     */
-    fun weathering(): Weathering? = if (this == WEATHERED) Weathering.SPIRE else null
-
     /** Where water stands in the rock. Null wants no table at all. [seed] varies it per Age. */
     fun waterTable(seaFill: SeaFill, seed: Long): WaterTable? = when (this) {
-        SOLID, WEATHERED -> null
+        SOLID -> null
         // Dry enough to walk, with wet pockets. A world with no sea has no waterline to hang a table on.
         CAVES, POROUS -> seaFill.surfaceY?.let { WaterTable.matching(seaFill, seaLevel = seaFill.level, seed = seed) }
         FLOODED_CAVES -> seaFill.surfaceY?.let {

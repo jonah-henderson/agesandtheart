@@ -15,6 +15,7 @@ import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Union
 import co.voik.agesandtheart.worldgen.field.Variation
+import co.voik.agesandtheart.worldgen.field.Weathered
 import net.minecraft.core.HolderSet
 import net.minecraft.world.level.biome.BiomeSource
 import net.minecraft.world.level.block.Blocks
@@ -36,14 +37,24 @@ import kotlin.math.roundToInt
 object SpireField {
 
     /**
-     * The archipelago is **two populations, not one**: a sparse scatter of big carved islands, and a
-     * denser shoal of small noise blobs between them.
+     * The archipelago, weathered — **part of the shape, not something a word adds.**
      *
-     * Separate layers rather than two templates in one [Instanced], which cannot express it: it picks
-     * uniformly across `templates × sizes`, so the small ones could not be commoner, and it carries one
-     * [Variation], so they could not have wider vertical freedom than the big ones.
+     * The islands are lobed masses of noise until the wind pares them back to ribs and talons, and an
+     * unweathered one does not read as a plainer island, it reads as a blob. Every other landform here
+     * says this in its own field; the Spire said it through a `weathered` *carving* for as long as
+     * carvers were taken to mean "take rock away", and that was a misconception rather than a design.
      */
-    fun world(salt: Long = 0L): TerrainField = Union(listOf(bigIslands(salt), smallIslands(salt)))
+    fun world(salt: Long = 0L): TerrainField = Weathered.spire(bareWorld(salt))
+
+    /**
+     * The masses before the wind reaches them — the previewer's other half, and nothing else's.
+     *
+     * They are **two populations, not one**: a sparse scatter of big carved islands, and a denser shoal of
+     * small noise blobs between them. Separate layers rather than two templates in one [Instanced], which
+     * cannot express it: it picks uniformly across `templates × sizes`, so the small ones could not be
+     * commoner, and it carries one [Variation], so they could not have wider vertical freedom.
+     */
+    fun bareWorld(salt: Long = 0L): TerrainField = Union(listOf(bigIslands(salt), smallIslands(salt)))
 
     /**
      * The small islands: simple envelopes cut out of one continuous field of 3D noise.

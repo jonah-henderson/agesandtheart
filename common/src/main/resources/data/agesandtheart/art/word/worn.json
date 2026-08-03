@@ -1,8 +1,7 @@
 {
   "tier": "restrictive",
   "aspects": [
-    "terrain",
-    "carvers"
+    "terrain"
   ],
   "query": {
     "eroded": 1.0

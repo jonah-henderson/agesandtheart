@@ -30,14 +30,5 @@
       "gloomy": 0.6,
       "hostile": 0.5
     }
-  },
-  "weathered": {
-    "readiness": 0.7,
-    "tags": {
-      "eroded": 0.9,
-      "wild": 0.5,
-      "sheer": 0.4,
-      "dry": 0.4
-    }
   }
 }
