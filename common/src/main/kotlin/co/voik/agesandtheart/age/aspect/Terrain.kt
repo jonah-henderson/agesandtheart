@@ -165,18 +165,24 @@ enum class Terrain(
             BEARING.takeIf { this == CANYON || this == CLIFFS },
             EXTENT.takeIf { this == ISLANDS },
             ALTITUDE.takeIf { this == SPIRE_ISLANDS },
-            UNDERGROUND.takeIf { hasRoomUnderground() },
+            UNDERGROUND.takeIf { undergroundCeiling() != null },
             STONE,
             MINGLING,
             SEAM,
         )
 
     /**
-     * Whether there is enough rock beneath this terrain's surface for an underground to be worth cutting.
+     * How high an underground of this terrain's may reach, or null where there is no room for one at all —
+     * **a landform's own declaration**, like [hasSandyShores], because only the landform knows where its
+     * lowest ground is and nothing general can be derived from what it does know.
      *
-     * A landform's own declaration, like [hasSandyShores] — and **offered wherever there is rock for it**,
-     * since it is opt-in either way and a writer who does not ask for caves does not get them. What is
-     * excluded is only what could not carry them or would make no sense of them:
+     * The height is what matters: an underground has to stop under the deepest thing the surface cuts, or
+     * it opens into it. That is a different question per landform and each answers from its own datum —
+     * [CANYONLANDS] from the floor its gorges reach, [CLIFFS] from its seabed, [OVERWORLD] from the level
+     * it stops shaping at. There is no rule behind them and there was never going to be; a waterline stood
+     * in for one here for a while and was wrong for [CANYON] in exactly the way a stand-in is.
+     *
+     * What is excluded is only what could not carry an underground or would make no sense of one:
      *
      * - **[ALPS]** spends its whole vertical budget on the landform and leaves about sixteen blocks under a
      *   valley floor, so caves there would be holes in the bedrock rather than a country under the ground.
@@ -185,29 +191,24 @@ enum class Terrain(
      * - **[SPIRE_ISLANDS]** hangs in open air and is thin enough to be worked through by the weather alone.
      * - **[SHAPES]** is a reference for the vocabulary, not a world.
      *
-     * **[CANYON] belongs in rather than out**, which is easy to get backwards: the gorge does reach the
-     * world's floor, but everything either side of it is solid to the ceiling, so it has more rock than any
-     * other terrain here — and its walls are exactly where the entrance rule will open cave mouths.
+     * **[CANYON] has the most room of anything here**, which is easy to get backwards: the gorge reaches
+     * the world's floor, but everything either side of it is solid to the ceiling. Its underground is cut
+     * off square by the gorge wall, which is a way in rather than a fault.
      */
-    fun hasRoomUnderground(): Boolean = when (this) {
-        HILLS, RIVERLANDS, CANYONLANDS, SHATTERED, CLIFFS, ISLANDS, ERODED, CANYON, PYRAMIDS, PILLARS,
-        OVERWORLD,
-        -> true
-        SPIRE_ISLANDS, CAVERNS, ALPS, SHAPES, INVERSE_CAVES -> false
+    fun undergroundCeiling(): Int? = when (this) {
+        OVERWORLD -> OverworldField.SOLID_TOP - ROOM_FOR_A_ROOF
+        // Solid either side of the gorge all the way up, so this is bounded by taste rather than by rock.
+        CANYON -> CanyonField.WORLD_CEILING / 2
+        CANYONLANDS -> CanyonlandsField.FLOOR_Y - ROOM_FOR_A_ROOF
+        SHATTERED -> ShatteredField.FLOOR_Y - ROOM_FOR_A_ROOF
+        CLIFFS -> CliffField.SEABED_Y - ROOM_FOR_A_ROOF
+        RIVERLANDS -> RiverlandsField.WATERLINE - DEEP_ENOUGH_TO_MISS_A_RIVERBED
+        ISLANDS -> IslandsField.SEA_LEVEL - DEEP_ENOUGH_TO_MISS_A_SEABED
+        HILLS, ERODED, PILLARS -> ORDINARY_SEA_LEVEL - DEEP_ENOUGH_TO_MISS_A_SEABED
+        // A plain with no sea, so the only thing overhead is the plain itself.
+        PYRAMIDS -> ORDINARY_SEA_LEVEL - ROOM_FOR_A_ROOF
+        SPIRE_ISLANDS, CAVERNS, ALPS, SHAPES, INVERSE_CAVES -> null
     }
-
-    /**
-     * How high an underground of this terrain's may reach — the ceiling [GREAT_HALLS] stacks its storeys
-     * up to, and the one thing standing between a hall and the open air.
-     *
-     * **Measured down from the waterline, which is a stand-in rather than the right question.** What the
-     * halls actually want to know is where the *lowest ground* is, and for a terrain with a sea those are
-     * nearly the same place. For one whose waterline means something else they are not: [CANYON] is solid
-     * to the world's ceiling either side of a gorge whose river sits near the floor, so this hands it far
-     * less room than it has. Revisit when a landform wants halls that this rule cannot give it.
-     */
-    private fun undergroundRoofY(window: VerticalWindow): Int =
-        (waterline ?: window.minY + window.height / 2) - ROOF_BELOW_THE_WATERLINE
 
     override fun getSerializedName(): String = key
 
@@ -246,7 +247,7 @@ enum class Terrain(
     }
 
     /**
-     * The storeys [GREAT_HALLS] takes out of this terrain, between the bedrock and [undergroundRoofY].
+     * The storeys [GREAT_HALLS] takes out of this terrain, between the bedrock and [undergroundCeiling].
      *
      * A ceiling has to be named here, unlike [NOISE_CAVES] where the band is the whole world — `Caved`
      * only ever walks rock the base actually has and its own entrance rule keeps the cut away from the
@@ -254,7 +255,7 @@ enum class Terrain(
      * makes better. A slab of halls has no such rule and would happily open onto a hillside.
      */
     private fun hallsIn(window: VerticalWindow, salt: Long): TerrainField =
-        GreatHalls.voidBetween(window.minY + BEDROCK_MARGIN, undergroundRoofY(window), HALL_SEED xor salt)
+        GreatHalls.voidBetween(window.minY + BEDROCK_MARGIN, undergroundCeiling() ?: 0, HALL_SEED xor salt)
 
     /**
      * The band of world this terrain's underground is **indoors** in, or null where it has none — see
@@ -266,7 +267,7 @@ enum class Terrain(
      */
     fun undergroundBand(options: Options, window: VerticalWindow): IntRange? =
         if (options.of(UNDERGROUND) != GREAT_HALLS) null
-        else window.minY + BEDROCK_MARGIN..undergroundRoofY(window)
+        else undergroundCeiling()?.let { ceiling -> window.minY + BEDROCK_MARGIN..ceiling }
 
     /**
      * A terrain's rock, and what the water is to make of the space taken out of it. **The two are
@@ -403,7 +404,7 @@ enum class Terrain(
          * What lies under a terrain's surface — nothing, Minecraft's own noise caves, or storey upon
          * storey of pillared hall.
          *
-         * Offered only by the terrains with room for one ([hasRoomUnderground]), which is the shape the
+         * Offered only by the terrains with room for one ([undergroundCeiling]), which is the shape the
          * whole idea wants: an underground is a *layer* a landform either has or does not, rather than a
          * property of every world — and it is why [GREAT_HALLS] is a value here rather than a landform of
          * its own, since what is over the halls should be able to be any world at all. No word reaches it
@@ -421,11 +422,16 @@ enum class Terrain(
         /** Left whole, so the bedrock a cave might otherwise open through stays bedrock. */
         private const val BEDROCK_MARGIN = 5
 
-        /**
-         * How far under the waterline the highest hall's ceiling sits — see [undergroundRoofY], and read
-         * it with `GreatHalls.HALL_HEIGHT`, since together they decide how many storeys a world gets.
-         */
-        private const val ROOF_BELOW_THE_WATERLINE = 40
+        /** Rock over the top storey, where a landform's own datum is the ground it has to stay under. */
+        private const val ROOM_FOR_A_ROOF = 12
+
+        // A seabed and a riverbed are cut *into* the ground rather than standing on it, so a ceiling set
+        // against the water they hold has to clear the bed as well as the level.
+        private const val DEEP_ENOUGH_TO_MISS_A_SEABED = 44
+        private const val DEEP_ENOUGH_TO_MISS_A_RIVERBED = 36
+
+        /** Vanilla's, which is where every terrain that has not said otherwise puts its sea. */
+        private const val ORDINARY_SEA_LEVEL = 63
 
         // So an Age's caves are its own, and decorrelated from the rock they are cut into.
         private const val CAVE_SEED = 0xCA_7E5L
