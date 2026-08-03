@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.desk
 
+import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.content.AgeContent
 import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
@@ -10,7 +11,9 @@ import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.Items
 import net.minecraft.world.item.context.BlockPlaceContext
 import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.Level
@@ -89,12 +92,54 @@ class WritersDeskBlock(properties: Properties) : BaseEntityBlock(properties) {
      * items, or a wing survives with nothing to point at.
      */
     override fun playerWillDestroy(level: Level, pos: BlockPos, state: BlockState, player: Player): BlockState {
+        val centre = centreOf(state, pos)
         if (!level.isClientSide && !player.isCreative) {
             // Dropped from the centre so the item lands where the desk was, not where the wing was hit.
-            Block.popResource(level, centreOf(state, pos), ItemStack(AgeContent.WRITERS_DESK))
+            Block.popResource(level, centre, ItemStack(AgeContent.WRITERS_DESK))
         }
+        // Contents even in creative, as a chest does: what is inside was never the block's to keep, and a
+        // desk emptied by being broken is how everything else in the game behaves.
+        if (!level.isClientSide) entityAt(level, centre)?.let { desk -> popContents(level, centre, desk) }
         clearOthers(level, pos, state)
         return super.playerWillDestroy(level, pos, state, player)
+    }
+
+    /**
+     * Everything the desk was holding, on the floor.
+     *
+     * **Ink is not among it.** A fluid has no item to be — it arrived by bottle or by pipe and the tank is
+     * the unit — so a desk that emptied itself into bottles would be inventing them. The archive, the
+     * paper and the binding all went in as items and come back out as ones.
+     *
+     * The menu returns its own slots and the pages laid out on the surface when it closes, so neither is
+     * here: by the time a desk can be broken, it holds only what it filed.
+     */
+    private fun popContents(level: Level, at: BlockPos, desk: WritersDeskBlockEntity) {
+        for (word in desk.archive.words) {
+            val page = ItemStack(AgeContent.PAGE).also { it.set(AgeContent.PAGE_WORD, word) }
+            popEvery(level, at, page, desk.archive.count(word))
+        }
+        for (tier in InkTier.entries) {
+            popEvery(level, at, ItemStack(paperFor(tier)), desk.stores.paper(tier))
+        }
+        popEvery(level, at, ItemStack(Items.LEATHER), desk.stores.binding())
+    }
+
+    /** [count] of [stack], a stackful at a time, since `popResource` drops one stack per call. */
+    private fun popEvery(level: Level, at: BlockPos, stack: ItemStack, count: Int) {
+        var left = count
+        while (left > 0) {
+            val batch = left.coerceAtMost(stack.maxStackSize)
+            Block.popResource(level, at, stack.copyWithCount(batch))
+            left -= batch
+        }
+    }
+
+    /** What a grade of paper is as an item. Common paper is a tag, so vanilla's own is what comes back. */
+    private fun paperFor(tier: InkTier): Item = when (tier) {
+        InkTier.COMMON -> Items.PAPER
+        InkTier.FINE -> AgeContent.FINE_PAPER
+        InkTier.MASTERWORK -> AgeContent.MASTERWORK_PAPER
     }
 
     /** Middle-click anywhere on the desk gives the desk, not a wing. */

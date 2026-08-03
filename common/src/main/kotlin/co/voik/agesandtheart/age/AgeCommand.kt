@@ -9,12 +9,12 @@ import co.voik.agesandtheart.worldgen.field.RegionMap
 import co.voik.agesandtheart.sky.SkySpec
 import co.voik.agesandtheart.age.word.PageExclusion
 import co.voik.agesandtheart.age.word.Vocabulary
-import co.voik.agesandtheart.age.word.generation.AgeName
 import co.voik.agesandtheart.age.word.generation.TerminalKind
 import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.age.word.grammar.Readout
 import co.voik.agesandtheart.age.word.grammar.Scope
 import co.voik.agesandtheart.age.word.grammar.Sentence
+import co.voik.agesandtheart.book.FoundBook
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.NotebookItem
 import com.mojang.brigadier.CommandDispatcher
@@ -64,7 +64,7 @@ import net.minecraft.world.level.levelgen.Heightmap
  * /age bench <name> [radius]          — time generating the chunks around the origin (ms/chunk)
  * /age biomes <name> [radius]         — what share of the surface each biome covers (for weight tuning)
  * /age locate <name> <preset>         — how far to the nearest territory of that terrain, from where you stand
- * /age book [seed]                    — a book the Art could have written, bound and handed over
+ * /age book [seed]                    — a book the Art could have written, read back rather than given
  * /age draft <grammar> [seed]         — one expansion of a generation grammar: book, name, …
  * /age compare <a> <b> [radius]       — do two Ages generate the same world, block for block?
  * /age sky <name> [<spec>]            — read an Age's suns and moons, or preview different ones in it
@@ -83,9 +83,6 @@ object AgeCommand {
     private const val SEED_ARGUMENT = "seed"
     private const val SPECIFICATION_ARGUMENT = "spec"
     private const val SENTENCE_ARGUMENT = "words"
-
-    /** The generation grammar a found book is written from — `art/generation/book.json`. */
-    private const val BOOK_GRAMMAR = "book"
 
     /** The other half of the corpus: one word per block in the pack, and all of them materials. */
     private const val DERIVED_LITERAL = "derived"
@@ -1053,20 +1050,20 @@ object AgeCommand {
     )
 
     /**
-     * `/age book [<seed>]` — **a found book, handed over bound and unread**, and said back in chat so the
-     * pages and the reading are visible beside it.
+     * `/age book [<seed>]` — a book the Art could have written, read back rather than handed over.
      *
-     * The real article rather than a summary: it is written the way the desk writes one, so opening it,
-     * reading it, learning its words and linking through it are all the thing itself rather than an
-     * approximation of it. Unbound, because a Descriptive Book takes its Age on first use — which is what
-     * makes this the found book §4.5 is about rather than a door to somewhere that already exists.
+     * **Deliberately not the item.** A real one is what `/give agesandtheart:descriptive_book` produces, so
+     * what this is for is *looking at what the grammar writes* — pages and reading, at a seed you can name,
+     * from a console that has nobody to hand anything to.
      */
     private fun runBook(context: CommandContext<CommandSourceStack>, seed: Long): Int {
         val source = context.source
         val vocabulary = Vocabulary.of(source.server)
-        val grammar = vocabulary.generation.grammar(BOOK_GRAMMAR)
+        val grammar = vocabulary.generation.grammar(FoundBook.GRAMMAR)
         if (grammar == null) {
-            source.sendFailure(Component.literal("This pack ships no '$BOOK_GRAMMAR' grammar, so the Art writes none"))
+            source.sendFailure(
+                Component.literal("This pack ships no '${FoundBook.GRAMMAR}' grammar, so the Art writes none"),
+            )
             return FAILURE
         }
         val pages = grammar.expand(Random(seed))
@@ -1076,43 +1073,10 @@ object AgeCommand {
         // only way to judge whether a generated book is a good one.
         val sentence = Grammar.read(vocabulary, pages)
         source.sendSuccess({ Component.literal("  reads as: ${Readout.of(sentence)}") }, false)
-
-        // Said first and handed over second, so the console still reads a book it cannot be given one of —
-        // which is how `scripts/checks` looks at what the grammar is writing.
-        val player = source.player
-        if (player == null) {
-            source.sendSuccess({ Component.literal("  (nobody here to hand it to)") }, false)
-            return SUCCESS
-        }
-        val book = boundBook(vocabulary, pages, sentence, seed)
-        if (!player.inventory.add(book)) player.drop(book, false)
-        // The name appended rather than read into the line: a book is named through a translation key, and
-        // a server has no mod language file to resolve one with.
-        source.sendSuccess({ Component.literal("  handed over, bound as ").append(book.hoverName) }, false)
+        source.sendSuccess({
+            Component.literal("  write it with: /age write book$seed $seed ${pages.joinToString(" ")}")
+        }, false)
         return SUCCESS
-    }
-
-    /**
-     * The book itself, written the way the desk writes one.
-     *
-     * **Through the same components in the same order**, because a book the Art wrote and a book a player
-     * bound have to be the same object — the moment they differ, testing one says nothing about the other.
-     * Its name is drawn from the `name` grammar, since a found book was named by whoever wrote it.
-     */
-    private fun boundBook(
-        vocabulary: Vocabulary,
-        pages: List<String>,
-        sentence: Sentence,
-        seed: Long,
-    ): ItemStack {
-        val words = pages.mapNotNull { page ->
-            vocabulary.word(page)?.id ?: vocabulary.grammarWord(page)?.id
-        }
-        val book = ItemStack(AgeContent.DESCRIPTIVE_BOOK)
-        book.set(AgeContent.BOOK_WORDS, words)
-        book.set(AgeContent.BOOK_TITLE, AgeName.drawn(vocabulary, seed)?.read ?: "Book $seed")
-        book.set(AgeContent.BOOK_READING, Readout.columnsOf(sentence))
-        return book
     }
 
     /**

@@ -57,6 +57,10 @@ object Linking {
             return complain(player, "unsupported")
         }
         val existing = stack.get(AgeContent.AGE_ID)
+        // **A book is a door to somewhere else.** Carry one into the Age it describes — through a linking
+        // book, say — and using it would spend the book on the room you are already standing in, which is
+        // the same claim `LinkingBookItem` refuses and for the same reason.
+        if (existing == level.dimension().identifier()) return complain(player, "same_world")
         val ageId = existing
             ?: Ages.allocateId(server, stack.get(AgeContent.BOOK_TITLE).orEmpty())
                 .also { stack.set(AgeContent.AGE_ID, it) }

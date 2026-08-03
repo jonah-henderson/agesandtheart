@@ -3,8 +3,12 @@ package co.voik.agesandtheart.content
 import co.voik.agesandtheart.age.word.PageLearning
 import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.age.word.grammar.Readout
+import co.voik.agesandtheart.book.FoundBook
 import co.voik.agesandtheart.client.BookScreenOpener
+import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.ChatFormatting
 import net.minecraft.world.item.TooltipFlag
 import net.minecraft.world.item.component.TooltipDisplay
@@ -56,6 +60,19 @@ class DescriptiveBookItem(properties: Properties) : Item(properties) {
         val words = stack.get(AgeContent.BOOK_WORDS).orEmpty()
         if (words.isEmpty()) return null
         return Component.literal(words.joinToString(" ") { WordNames.readable(it).string })
+    }
+
+    /**
+     * **A book with no words in it is not something the game makes.** The desk always writes one, and no
+     * recipe produces a blank — so one turning up in an inventory came from `/give` or the creative menu,
+     * and the Art writes it here rather than leaving a book that opens on nothing.
+     *
+     * On the tick rather than on use, because opening it is a client act: the screen would already be up,
+     * reading the stack as it was, by the time the server had written anything into it.
+     */
+    override fun inventoryTick(stack: ItemStack, level: ServerLevel, holder: Entity, slot: EquipmentSlot?) {
+        if (stack.has(AgeContent.BOOK_WORDS)) return
+        FoundBook.write(stack, level.server, level.random.nextLong())
     }
 
     /**
