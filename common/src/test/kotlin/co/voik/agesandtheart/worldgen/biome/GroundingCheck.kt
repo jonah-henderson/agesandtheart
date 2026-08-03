@@ -246,7 +246,7 @@ class GroundingCheck : FunSpec({
      */
     test("a sandy shore grows nothing but sand") {
         val table = vanillasTable()
-        val shore = Grounding(Slab(lowY = -64, highY = waterline + 2), waterline, hasSandyShores = true)
+        val shore = Grounding(Slab(lowY = -64, highY = waterline + 2), waterline, declared = Grounding.Declared(hasSandyShores = true))
         val sand = setOf(VanillaBiomes.BEACH, VanillaBiomes.SNOWY_BEACH, VanillaBiomes.DESERT)
 
         forEveryShoreClimate(shore) { continentalness, erosion, temperature, humidity, weirdness, vanillas ->
@@ -307,7 +307,7 @@ class GroundingCheck : FunSpec({
     test("a sandy island has no stony shore anywhere along it") {
         val extent = IslandsField.Extent.BROAD
         val world = IslandsField.world(extent.key)
-        val sandy = Grounding(world, IslandsField.SEA_LEVEL, hasSandyShores = true)
+        val sandy = Grounding(world, IslandsField.SEA_LEVEL, declared = Grounding.Declared(hasSandyShores = true))
         val asFound = Grounding(world, IslandsField.SEA_LEVEL)
 
         // Right round the island, at the resolution a biome is chosen at.

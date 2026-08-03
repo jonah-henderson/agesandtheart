@@ -20,6 +20,7 @@ import co.voik.agesandtheart.worldgen.ShatteredField
 import co.voik.agesandtheart.worldgen.SpireField
 import co.voik.agesandtheart.worldgen.VerticalWindow
 import co.voik.agesandtheart.worldgen.biome.Elevation
+import co.voik.agesandtheart.worldgen.biome.Grounding
 import co.voik.agesandtheart.worldgen.field.Caved
 import co.voik.agesandtheart.worldgen.field.Palette
 import co.voik.agesandtheart.worldgen.field.Raised
@@ -307,39 +308,22 @@ enum class Terrain(
     }
 
     /**
-     * Whether this terrain's coast is meant to be sand the whole way round — see
-     * [co.voik.agesandtheart.worldgen.biome.Grounding.hasSandyShores]. Only read by a grounded Age, and
-     * only where its ground meets its sea.
-     */
-    fun hasSandyShores(): Boolean = when (this) {
-        ISLANDS -> true
-        else -> false
-    }
-
-    /**
-     * Whether the Age's waterline is this terrain's **river** rather than a sea — see
-     * [co.voik.agesandtheart.worldgen.biome.Grounding.waterlineIsRiver].
+     * **Everything this landform tells the biome layer about itself** — one channel, read only by a
+     * grounded Age, and the only place a terrain gets to speak to `Grounding`.
      *
-     * [CANYON] is the case it exists for and may stay the only one: its water is poured by a flat level
-     * like any sea's, but there is no open ground for a sea to be, so the level only ever shows along the
-     * bottom of the gorge.
+     * One declaration rather than a method per fact. Each of these was its own `when (this)` over every
+     * terrain answering false for all but one of them, threaded to the same constructor as a separate
+     * argument, and a fourth would have been a fourth of each. What a landform knows about its own shape
+     * is one subject and belongs in one table; see [Grounding.Declared] for what the facts mean.
      */
-    fun waterlineIsRiver(): Boolean = when (this) {
-        CANYON -> true
-        else -> false
-    }
-
-    /**
-     * What this terrain's *height* says about what grows on it, or null where it has no relief to speak of
-     * — see [co.voik.agesandtheart.worldgen.biome.Elevation]. A landform's own declaration, like
-     * [hasSandyShores], because only the landform knows where its floor and its crest are.
-     */
-    fun elevation(): Elevation? = when (this) {
+    fun grounding(): Grounding.Declared = when (this) {
+        ISLANDS -> Grounding.Declared(hasSandyShores = true)
+        CANYON -> Grounding.Declared(waterlineIsRiver = true)
         // Measured from the basin's *shoulder* rather than its floor: the floor is the bottom of a hollow
         // in the middle of a cell, so datuming there chills the whole country by the depth of its lowest
         // hole and the basins come out snowy. The shoulder is where the plains actually sit.
-        ALPS -> Elevation(fromY = AlpsField.PLAIN_Y, toY = ALPINE_CREST_Y)
-        else -> null
+        ALPS -> Grounding.Declared(elevation = Elevation(fromY = AlpsField.PLAIN_Y, toY = ALPINE_CREST_Y))
+        else -> Grounding.Declared()
     }
 
     /**
@@ -468,34 +452,6 @@ enum class Terrain(
 
         /** What [SEAM] reads as when nobody overrode the draw: whatever the Age's character carries. */
         const val SEAM_AS_DRAWN = "drawn"
-
-        /**
-         * How far a scarp throws each side of a seam, in blocks — a 64-block cliff where two territories
-         * are thrown opposite ways, against terrains standing between about y=63 and y=185.
-         *
-         * A guess, not a measurement. `./gradlew :common:preview --args=fault` draws it without a server.
-         */
-        const val SCARP_THROW = 32
-
-        /**
-         * The floor a rift cuts down to — about twenty blocks under the sea at 63, so a rift is swimmable
-         * and divides an Age without partitioning it. Not the world's floor: a chasm to bedrock along
-         * every seam would sever the territories outright.
-         */
-        const val RIFT_FLOOR = 40
-
-        /**
-         * Where a rift stops cutting. **Above the waterline on purpose**: a rift no longer floods by
-         * construction, so a sea reaches one only where it actually cuts a coast.
-         */
-        const val RIFT_RIM = 72
-
-        /**
-         * Deep enough to be under any ground the wall crosses. Founded at the surface it floats over
-         * every dip, and the gap is only visible in profile.
-         */
-        const val WALL_FOOTING = 30
-        const val WALL_CREST = 108
 
         /**
          * How far `altitude=high` lifts an archipelago. Measured: the island tops' ninetieth percentile

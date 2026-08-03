@@ -44,37 +44,76 @@ data class Grounding(
      * rather than a sea, however low the channel bed happens to be.
      */
     val rivers: TerrainField? = null,
-    /**
-     * Whether this Age's coast is sand the whole way round, rather than whatever vanilla's noise happened
-     * to file there.
-     *
-     * Vanilla mixes its shorelines on purpose: `addInlandBiomes` carries a beach at a coast only in its
-     * *low* weirdness slice and the negative half of its *mid* ones, so about two coastal columns in three
-     * grow a forest down to the water, and a coast worn less flat than `erosions[2]` is a stony shore. That
-     * is coherent for vanilla because the same numbers made the ground. For a shape that already has a flat
-     * sandy shelf it is a coin toss, and it reads as sand broken up by patches of grass.
-     *
-     * So this is a landform's declaration about its own coast rather than a correction — an Age with a
-     * proper beach says so, and one that wants a mixed shore says nothing.
-     */
-    val hasSandyShores: Boolean = false,
-    /**
-     * Whether the level in [waterline] is a **river** rather than a sea — an Age whose only standing water
-     * runs in a channel it cut for itself, and which therefore has no ocean anywhere.
-     *
-     * Without this such an Age reads as drowned: continentalness is measured against the waterline, so
-     * every column the water covers stands *below* it and files as deep ocean, and a gorge with a river
-     * along the bottom grows kelp. It cannot be inferred from [rivers], because water poured by a flat
-     * level is carried by no field at all — which is the whole reason it needs saying.
-     */
-    val waterlineIsRiver: Boolean = false,
-    /**
-     * What this Age's *height* says about what grows — a treeline and a snowline. Null for a landform with
-     * no relief worth speaking of, which is most of them; see [Elevation] for why a range cannot do without
-     * it and a coast has no use for it.
-     */
-    val elevation: Elevation? = null,
+    /** Everything the landform said about itself — see [Declared]. */
+    val declared: Declared = Declared(),
 ) {
+
+    /**
+     * **What a landform tells the biome layer about its own shape** — the one channel between the two, and
+     * the only thing `Terrain` gets to say to `Grounding`.
+     *
+     * Each of these was a method of its own on `Terrain`, a `when` over every landform answering false for
+     * all but one, threaded here as a separate argument. They are one subject: what this shape is like, in
+     * the terms biomes need. A new fact is a field here rather than a fourth of everything.
+     */
+    data class Declared(
+        /**
+         * Whether this Age's coast is sand the whole way round, rather than whatever vanilla's noise
+         * happened to file there.
+         *
+         * Vanilla mixes its shorelines on purpose: `addInlandBiomes` carries a beach at a coast only in its
+         * *low* weirdness slice and the negative half of its *mid* ones, so about two coastal columns in
+         * three grow a forest down to the water, and a coast worn less flat than `erosions[2]` is a stony
+         * shore. That is coherent for vanilla because the same numbers made the ground. For a shape that
+         * already has a flat sandy shelf it is a coin toss, and it reads as sand broken up by grass.
+         */
+        val hasSandyShores: Boolean = false,
+        /**
+         * Whether the level in [waterline] is a **river** rather than a sea — an Age whose only standing
+         * water runs in a channel it cut for itself, and which therefore has no ocean anywhere.
+         *
+         * Without this such an Age reads as drowned: continentalness is measured against the waterline, so
+         * every column the water covers stands *below* it and files as deep ocean, and a gorge with a river
+         * along the bottom grows kelp. It cannot be inferred from [rivers], because water poured by a flat
+         * level is carried by no field at all — which is the whole reason it needs saying.
+         */
+        val waterlineIsRiver: Boolean = false,
+        /**
+         * What this Age's *height* says about what grows — a treeline and a snowline. Null for a landform
+         * with no relief worth speaking of, which is most of them; see [Elevation] for why a range cannot
+         * do without it and a coast has no use for it.
+         */
+        val elevation: Elevation? = null,
+    ) {
+        companion object {
+            /**
+             * What an Age divided between several landforms declares, as one.
+             *
+             * **Age-wide because each of these is**: there is one waterline, one set of heights, and one
+             * sea for a shore to meet — so a single island territory is enough to make the coast sand, and
+             * two ranges disagreeing about their own snowline is not something a climate could express.
+             * The first elevation wins for that reason rather than by accident.
+             */
+            fun of(all: List<Declared>) = Declared(
+                hasSandyShores = all.any { it.hasSandyShores },
+                waterlineIsRiver = all.any { it.waterlineIsRiver },
+                elevation = all.firstNotNullOfOrNull { it.elevation },
+            )
+
+            val CODEC: Codec<Declared> = RecordCodecBuilder.create { instance ->
+                instance.group(
+                    Codec.BOOL.optionalFieldOf("sandy_shores", false).forGetter(Declared::hasSandyShores),
+                    Codec.BOOL.optionalFieldOf("waterline_is_river", false)
+                        .forGetter(Declared::waterlineIsRiver),
+                    Elevation.CODEC.optionalFieldOf("elevation")
+                        .forGetter { Optional.ofNullable(it.elevation) },
+                ).apply(instance) { sandyShores, waterlineIsRiver, elevation ->
+                    Declared(sandyShores, waterlineIsRiver, elevation.orElse(null))
+                }
+            }
+        }
+    }
+
     /**
      * One cache per chunk worker, for the same reason [BelowTerrain] keeps one: a biome is asked per quart
      * cell, so a chunk asks hundreds of times about sixteen distinct columns — and on a
@@ -90,7 +129,7 @@ data class Grounding(
         // this a valley deep enough to hold water reads as ocean, and grows kelp.
         if (cache.isRiver(slot)) return NEAR_INLAND
         // An Age with relief and no sea reads this off the relief — see [Elevation.continentalnessFor].
-        elevation?.let { return it.continentalnessFor(cache.surface(slot)) }
+        declared.elevation?.let { return it.continentalnessFor(cache.surface(slot)) }
         return cache.continentalness(slot)
     }
 
@@ -114,7 +153,7 @@ data class Grounding(
      * reads — what grows at one is the sea's business, and the river branch has already said so.
      */
     private fun isSandyShore(cache: ColumnCache, slot: Int): Boolean =
-        hasSandyShores && !cache.isRiver(slot) && cache.continentalness(slot) in A_SHORE
+        declared.hasSandyShores && !cache.isRiver(slot) && cache.continentalness(slot) in A_SHORE
 
     /** Where a fall of this steepness falls on vanilla's erosion axis. A curve through its bands, as above. */
     internal fun erosionOf(fall: Double): Float {
@@ -146,17 +185,17 @@ data class Grounding(
         if (cache.isRiver(slot)) return IN_A_VALLEY
         // An Age with real relief answers this axis outright rather than nudging vanilla's noise off the
         // valley band: where a column sits between floor and crest **is** what the axis asks. See [Elevation].
-        elevation?.let { return it.weirdnessFor(cache.surface(slot), otherwise) }
+        declared.elevation?.let { return it.weirdnessFor(cache.surface(slot), otherwise) }
         val outOfTheValley = clearOfTheValley(otherwise)
         return if (isSandyShore(cache, slot)) intoTheBeachSlice(outOfTheValley) else outOfTheValley
     }
 
     /**
      * How cold it is here once the climb is paid for — vanilla's temperature axis, answered by our own
-     * height. An Age with no [elevation] leaves it exactly as the climate gave it.
+     * height. An Age with no [Declared.elevation] leaves it exactly as the climate gave it.
      */
     fun temperatureAt(blockX: Int, blockZ: Int, otherwise: Float): Float {
-        val lapse = elevation ?: return otherwise
+        val lapse = declared.elevation ?: return otherwise
         val cache = columnCache.get()
         return lapse.chilled(cache.surface(cache.slotFor(blockX, blockZ, this)), otherwise)
     }
@@ -227,7 +266,7 @@ data class Grounding(
             // Unless there is no sea to reach, in which case the level itself is the river and any ground
             // it covers is that river's bed. See [waterlineIsRiver].
             val runsOverItsOwnBed = standing != null && standing > surface && standing > grounding.waterline
-            val liesUnderTheOnlyWater = grounding.waterlineIsRiver && surface < grounding.waterline
+            val liesUnderTheOnlyWater = grounding.declared.waterlineIsRiver && surface < grounding.waterline
             river[slot] = runsOverItsOwnBed || liesUnderTheOnlyWater
             this.surface[slot] = surface
             keys[slot] = key
@@ -316,19 +355,9 @@ data class Grounding(
                 Codec.INT.fieldOf("waterline").forGetter(Grounding::waterline),
                 TerrainField.CODEC.optionalFieldOf("rivers")
                     .forGetter { Optional.ofNullable(it.rivers) },
-                Codec.BOOL.optionalFieldOf("sandy_shores", false).forGetter(Grounding::hasSandyShores),
-                Codec.BOOL.optionalFieldOf("waterline_is_river", false).forGetter(Grounding::waterlineIsRiver),
-                Elevation.CODEC.optionalFieldOf("elevation")
-                    .forGetter { Optional.ofNullable(it.elevation) },
-            ).apply(instance) { terrain, waterline, rivers, sandyShores, waterlineIsRiver, elevation ->
-                Grounding(
-                    terrain,
-                    waterline,
-                    rivers.orElse(null),
-                    sandyShores,
-                    waterlineIsRiver,
-                    elevation.orElse(null),
-                )
+                Declared.CODEC.optionalFieldOf("declared", Declared()).forGetter(Grounding::declared),
+            ).apply(instance) { terrain, waterline, rivers, declared ->
+                Grounding(terrain, waterline, rivers.orElse(null), declared)
             }
         }
 
