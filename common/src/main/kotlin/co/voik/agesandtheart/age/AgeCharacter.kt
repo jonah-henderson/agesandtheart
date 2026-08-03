@@ -134,6 +134,34 @@ enum class Seam(val key: String, val share: Double, val frequency: Int) : String
         /** The widest band of dissolve any seam may have, in blocks. An absolute limit, not a proportion. */
         const val WIDEST_FUZZ_BLOCKS = 16
 
+        /**
+         * How far a scarp throws each side of a seam, in blocks — a 64-block cliff where two territories
+         * are thrown opposite ways, against terrains standing between about y=63 and y=185.
+         *
+         * A guess, not a measurement. `./gradlew :common:preview --args=fault` draws it without a server.
+         */
+        const val SCARP_THROW = 32
+
+        /**
+         * The floor a rift cuts down to — about twenty blocks under the sea at 63, so a rift is swimmable
+         * and divides an Age without partitioning it. Not the world's floor: a chasm to bedrock along
+         * every seam would sever the territories outright.
+         */
+        const val RIFT_FLOOR = 40
+
+        /**
+         * Where a rift stops cutting. **Above the waterline on purpose**: a rift no longer floods by
+         * construction, so a sea reaches one only where it actually cuts a coast.
+         */
+        const val RIFT_RIM = 72
+
+        /**
+         * Deep enough to be under any ground the wall crosses. Founded at the surface it floats over
+         * every dip, and the gap is only visible in profile.
+         */
+        const val WALL_FOOTING = 30
+        const val WALL_CREST = 108
+
         /** The seam this [key] names, or null where it names none — how a pinned `terrain.seam` is read. */
         fun named(key: String): Seam? = entries.firstOrNull { it.key == key }
 

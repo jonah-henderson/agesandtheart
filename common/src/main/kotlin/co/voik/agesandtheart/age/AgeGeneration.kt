@@ -87,18 +87,11 @@ object AgeGeneration {
         val grounds = composition.terrains.mapIndexed { member, terrain ->
             terrain.ground(terrainOptions(member), window, saltFor(seed, member))
         }
-        val unweathered = Regions.of(grounds.map { it.shape }, ground)
-        // Erosion is part of the shape rather than a carving pass, so `getBaseHeight` answers from the eroded
-        // rock and the surface system paints what the wind left. See [Weathered].
-        //
-        // Age-wide when any seated carving weathers, and raised by the *first* territory's lift: erosion's
-        // keel and band are absolute heights and there is one profile for the Age.
-        val weathers = composition.carvers.any { it.weathering() != null }
-        val lift = composition.terrains.first().lift(terrainOptions(0), window)
-        val weathered = if (weathers) Weathered.spire(unweathered, lift) else unweathered
+        // Weathering is not applied here at all: a landform that wants wind carries it inside its own
+        // field, where the profile and the shape were designed together. There is no Age-wide pass.
+        val weathered = Regions.of(grounds.map { it.shape }, ground)
 
-        // The fault comes last, over the finished rock. A territory lifted before the wind reached it would
-        // be weathered by a profile aimed at where it used to be — see [Fault].
+        // The fault comes last, over the finished rock — see [Fault].
         val shape = faulted(weathered, character.seam, ground, seed)
         // Everywhere the sea is kept out of: the chasm a rift opened, and any underground that answers
         // "never wet" rather than to a water table — see [Terrain.Ground].
@@ -157,14 +150,7 @@ object AgeGeneration {
                         shape,
                         seaFill.level,
                         standing,
-                        composition.terrains.any { it.hasSandyShores() },
-                        // Age-wide for the plainest reason of all: there is one waterline.
-                        composition.terrains.any { it.waterlineIsRiver() },
-                        // Age-wide like the shore, and for the same reason: a treeline is a height, and an
-                        // Age has one set of heights however many territories divide it. The first terrain
-                        // that declares one wins, since two ranges disagreeing about their own snowline is
-                        // not something a single climate could express.
-                        composition.terrains.firstNotNullOfOrNull { it.elevation() },
+                        Grounding.Declared.of(composition.terrains.map { it.grounding() }),
                     ),
                 )
                 // Age-wide like the shore and the treeline: the band is a pair of heights, and an Age has
@@ -223,15 +209,20 @@ object AgeGeneration {
         }
         if (carried.all { it == null }) return null
         val divided = Regions.of(carried.map { it ?: Union(emptyList()) }, ground)
-        return if (character.seam == Seam.SCARP) faulted(divided, character.seam, ground, seed) else divided
+        // Exhaustive rather than a test for one form, so a new [Seam] breaks the build here instead of
+        // silently taking the wrong branch.
+        return when (character.seam) {
+            Seam.SCARP -> faulted(divided, character.seam, ground, seed)
+            Seam.SHEARED, Seam.FUZZED, Seam.RIFT, Seam.WALL -> divided
+        }
     }
 
     private fun faulted(rock: TerrainField, seam: Seam, ground: RegionMap, seed: Long): TerrainField = when (seam) {
         // `SHEARED` asks for no fault; `FUZZED` already happened, in the width `mapFor` took off the seam.
         Seam.SHEARED, Seam.FUZZED -> rock
-        Seam.SCARP -> Fault.of(rock, ground, Fault.alternatingThrows(ground.members, Terrain.SCARP_THROW, seed))
-        Seam.RIFT -> Rift.opened(rock, ground, Terrain.RIFT_FLOOR, Terrain.RIFT_RIM)
-        Seam.WALL -> Ridge.raised(rock, ground, Terrain.WALL_FOOTING, Terrain.WALL_CREST)
+        Seam.SCARP -> Fault.of(rock, ground, Fault.alternatingThrows(ground.members, Seam.SCARP_THROW, seed))
+        Seam.RIFT -> Rift.opened(rock, ground, Seam.RIFT_FLOOR, Seam.RIFT_RIM)
+        Seam.WALL -> Ridge.raised(rock, ground, Seam.WALL_FOOTING, Seam.WALL_CREST)
     }
 
     /**
@@ -242,7 +233,7 @@ object AgeGeneration {
      */
     private fun riftVolume(seam: Seam, ground: RegionMap): TerrainField? =
         if (seam != Seam.RIFT || ground.members <= 1) null
-        else Rift(ground, Rift.DEFAULT_HALF_WIDTH, Terrain.RIFT_FLOOR, Terrain.RIFT_RIM)
+        else Rift(ground, Rift.DEFAULT_HALF_WIDTH, Seam.RIFT_FLOOR, Seam.RIFT_RIM)
 
     /**
      * [chasm] and every territory's own dry underground, as one volume the sea is kept out of.
