@@ -3,6 +3,7 @@ package co.voik.agesandtheart.content
 import co.voik.agesandtheart.age.word.FillNotebookFunction
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.PageWordFunction
+import co.voik.agesandtheart.age.word.grammar.Said
 import co.voik.agesandtheart.book.BindLinkingBookFunction
 import co.voik.agesandtheart.book.BookEntity
 import co.voik.agesandtheart.book.LinkTarget
@@ -22,8 +23,6 @@ import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import net.minecraft.core.component.DataComponentType
 import net.minecraft.core.registries.Registries
-import net.minecraft.network.chat.Component
-import net.minecraft.network.chat.ComponentSerialization
 import net.minecraft.network.codec.ByteBufCodecs
 import net.minecraft.world.flag.FeatureFlags
 import net.minecraft.world.inventory.ContainerLevelAccess
@@ -237,30 +236,16 @@ object AgeContent {
         .build()
 
     /**
-     * What the book **says**, in the words the Art writes with —
-     * [Readout][co.voik.agesandtheart.age.word.grammar.Readout]'s prose, with the particles a writer was
-     * spared for being inferable from position. Plain letters: the script spells it where it is drawn, so a
-     * pack that retunes its transliteration retunes every book already written.
+     * What the book **says**, column by column — [Readout][co.voik.agesandtheart.age.word.grammar.Readout]'s
+     * reading, with the particles a writer was spared for being inferable from position.
      *
      * Written down rather than derived, because reading a sentence takes the whole corpus and a client has
-     * none. **Not localised, deliberately** — this is the text *on the page*, and a book says the same
-     * thing to everyone who holds it.
+     * none. Column by column rather than as prose, because a book sets the script over its reading **word
+     * for word**, and running them together would leave nothing to line up.
      */
-    val BOOK_TEXT: DataComponentType<String> = DataComponentType.builder<String>()
-        .persistent(Codec.STRING)
-        .networkSynchronized(ByteBufCodecs.STRING_UTF8)
-        .build()
-
-    /**
-     * The same sentence in the language its reader speaks — what the book *means*, set under what it says.
-     *
-     * A `Component` so the word names in it stay translatable: the prose around them is English by design
-     * (§4.1), the names are not, and resolving them at the desk would read a server's own language back at
-     * every client.
-     */
-    val BOOK_READING: DataComponentType<Component> = DataComponentType.builder<Component>()
-        .persistent(ComponentSerialization.CODEC)
-        .networkSynchronized(ComponentSerialization.STREAM_CODEC)
+    val BOOK_READING: DataComponentType<List<Said>> = DataComponentType.builder<List<Said>>()
+        .persistent(Said.CODEC.listOf())
+        .networkSynchronized(Said.STREAM_CODEC.apply(ByteBufCodecs.list()))
         .build()
 
     val WRITERS_DESK_MENU: MenuType<WritersDeskMenu> = MenuType(
@@ -280,7 +265,6 @@ object AgeContent {
         "page_word".location() to PAGE_WORD,
         "book_words".location() to BOOK_WORDS,
         "book_title".location() to BOOK_TITLE,
-        "book_text".location() to BOOK_TEXT,
         "book_reading".location() to BOOK_READING,
         "link_target".location() to LINK_TARGET,
         "notebook_pages".location() to NOTEBOOK_PAGES,

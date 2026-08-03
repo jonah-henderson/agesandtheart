@@ -2,6 +2,7 @@ package co.voik.agesandtheart.content
 
 import co.voik.agesandtheart.age.word.PageLearning
 import co.voik.agesandtheart.age.word.WordNames
+import co.voik.agesandtheart.age.word.grammar.Readout
 import co.voik.agesandtheart.client.BookScreenOpener
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.ChatFormatting
@@ -44,9 +45,10 @@ class DescriptiveBookItem(properties: Properties) : Item(properties) {
         builder: Consumer<Component>,
         flag: TooltipFlag,
     ) {
-        // What it says, so a shelf of books is readable without opening any of them. The row of pages is
-        // the fallback for a book bound before the Art read one — and for one whose reading was lost.
-        val said = stack.get(AgeContent.BOOK_READING) ?: pagesOf(stack) ?: return
+        // What it says, run together, so a shelf of books is readable without opening any of them. The row
+        // of pages is the fallback for a book bound before the Art read one.
+        val reading = stack.get(AgeContent.BOOK_READING)?.let(Readout::asProse)
+        val said = reading ?: pagesOf(stack) ?: return
         builder.accept(said.copy().withStyle(ChatFormatting.DARK_GRAY))
     }
 

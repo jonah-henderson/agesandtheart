@@ -5,8 +5,13 @@ import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.age.word.WordNames
+import com.mojang.serialization.Codec
+import com.mojang.serialization.codecs.RecordCodecBuilder
+import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.chat.Component
-import net.minecraft.network.chat.MutableComponent
+import net.minecraft.network.chat.ComponentSerialization
+import net.minecraft.network.codec.ByteBufCodecs
+import net.minecraft.network.codec.StreamCodec
 
 /**
  * The parse, said back as a sentence (design §4.3.1).
@@ -24,47 +29,92 @@ import net.minecraft.network.chat.MutableComponent
  *   marked, left untranslated — or the reading claims a book worked when it did not.
  * - **It shows what you said, never what it will make** (§7.5). This renders the sentence, not the Age.
  */
+/**
+ * One column of a reading: **a word as the Art writes it, and what it says**.
+ *
+ * [written] is plain letters — a page's own name, or a particle the Art supplied — which the script spells
+ * wherever the reading is drawn, so a pack that retunes its transliteration retunes every book already
+ * written. It is deliberately not localised: a book says the same thing to everyone holding it.
+ *
+ * [read] is the same column in the reader's language: a name a pack translates for a page, and the particle
+ * itself for a particle, since the particles are §4.1's English-as-interface doing its job.
+ *
+ * Punctuation is carried on both, against the word it followed — a comma belongs *to* a column rather than
+ * standing in one of its own.
+ */
+data class Said(val written: String, val read: Component) {
+    companion object {
+        val CODEC: Codec<Said> = RecordCodecBuilder.create { instance ->
+            instance.group(
+                Codec.STRING.fieldOf("written").forGetter(Said::written),
+                ComponentSerialization.CODEC.fieldOf("read").forGetter(Said::read),
+            ).apply(instance, ::Said)
+        }
+
+        val STREAM_CODEC: StreamCodec<RegistryFriendlyByteBuf, Said> = StreamCodec.composite(
+            ByteBufCodecs.STRING_UTF8,
+            Said::written,
+            ComponentSerialization.STREAM_CODEC,
+            Said::read,
+            ::Said,
+        )
+    }
+}
+
 object Readout {
     /**
      * [sentence] as prose, in the words a writer says — what `/age write` prints. Empty where nothing
      * parsed, which the caller reports as the book being unreadable rather than as an Age with nothing
      * said about it.
      */
-    fun of(sentence: Sentence): String = said(sentence) { Component.literal(it.word.name) }.string
+    fun of(sentence: Sentence): String = columnsOf(sentence).joinToString(" ") { it.written }
 
-    /**
-     * The same reading in the language its reader speaks, which is what a **book** says.
-     *
-     * A [Component] rather than a string because a *word* is translatable where the prose around it is
-     * not: the particles are §4.1's English-as-interface doing its job, and the words are names a pack
-     * translates. Resolving them where the reading is composed would read a server's own language back at
-     * every client.
-     */
-    fun spoken(sentence: Sentence): Component = said(sentence) { WordNames.readable(it.word.id) }
-
-    /**
-     * The reading itself, with [naming] deciding what one page is called. Built as a [Component]
-     * throughout so that both callers are the same prose and cannot drift apart.
-     */
-    private fun said(sentence: Sentence, naming: (Constraint) -> Component): Component {
-        val clauses = sentence.phrases.mapNotNull(::asWritten)
-        if (clauses.isEmpty()) return Component.empty()
-        val read = clauses.mapIndexed { position, phrase ->
-            val opensTheSentence = position == 0
-            clauseOf(phrase, opensTheSentence, naming)
-        }
-        return joined(read, ", ").append(".")
-    }
-
-    /** [parts] with [separator] between them, which is `joinToString` for prose that has to stay a tree. */
-    private fun joined(parts: List<Component>, separator: String): MutableComponent {
+    /** [columns] run together in the language their reader speaks, which is what a tooltip has room for. */
+    fun asProse(columns: List<Said>): Component {
         val said = Component.empty()
-        for ((position, part) in parts.withIndex()) {
-            if (position > 0) said.append(separator)
-            said.append(part)
+        for ((position, column) in columns.withIndex()) {
+            if (position > 0) said.append(" ")
+            said.append(column.read)
         }
         return said
     }
+
+    /**
+     * **The reading, column by column** — the shape a book is set from, and the one everything else here
+     * is derived from so that no two renderings of a sentence can drift apart.
+     *
+     * A column is one thing standing in one place: a page the writer laid, or a word the Art supplied to
+     * show where that page sits. Keeping them apart is what lets a book set the script over its reading
+     * word for word, which is the whole of how a player comes to know the language.
+     */
+    fun columnsOf(sentence: Sentence): List<Said> {
+        val clauses = sentence.phrases.mapNotNull(::asWritten)
+        if (clauses.isEmpty()) return emptyList()
+        val said = mutableListOf<Said>()
+        for ((position, phrase) in clauses.withIndex()) {
+            if (position > 0) said.punctuate(",")
+            said += clauseOf(phrase, opensTheSentence = position == 0)
+        }
+        said.punctuate(".")
+        return said.toList()
+    }
+
+    /**
+     * [mark] put against the column just laid.
+     *
+     * Punctuation belongs *to* a word rather than beside it: a comma standing in a column of its own would
+     * be a glyph with nothing above it and a gap either side.
+     */
+    private fun MutableList<Said>.punctuate(mark: String) {
+        val last = removeLastOrNull() ?: return
+        this += Said(last.written + mark, Component.empty().append(last.read).append(mark))
+    }
+
+    /** A page the writer laid: its own name to be spelled, and what a pack calls it. */
+    private fun pageFor(word: Word): Said = Said(word.name, WordNames.readable(word.id))
+
+    /** A word the Art supplied — English on both sides, since that is §4.1's interface doing its job. */
+    private fun particleFor(text: String): Said = Said(text, Component.literal(text))
 
     /**
      * One phrase with the Art's own pages taken out, or null where the writer laid none of it — a book
@@ -87,15 +137,13 @@ object Readout {
      * One phrase, as its own clause. [opensTheSentence] because the preposition that places a clause
      * against the one before it has nothing to place the first one against.
      */
-    private fun clauseOf(phrase: Phrase, opensTheSentence: Boolean, naming: (Constraint) -> Component): Component {
+    private fun clauseOf(phrase: Phrase, opensTheSentence: Boolean): List<Said> {
         val preposition = if (opensTheSentence) "" else prepositionFor(phrase)
-        val described = (phrase.descriptors + listOfNotNull(phrase.subject)).map(naming)
-        val said = buildList {
-            if (preposition.isNotEmpty()) add(Component.literal(preposition))
-            if (described.isNotEmpty()) add(joined(described, " "))
-            steeringOf(phrase, naming)?.let(::add)
-        }
-        return joined(said, " ")
+        val said = mutableListOf<Said>()
+        if (preposition.isNotEmpty()) said += particleFor(preposition)
+        for (described in phrase.descriptors + listOfNotNull(phrase.subject)) said += pageFor(described.word)
+        said += steeringOf(phrase)
+        return said
     }
 
     /**
@@ -103,45 +151,49 @@ object Readout {
      * and keep them apart" is a different claim from two words laid side by side (§3.2) and a reading that
      * flattened them would hide the one page that changed it.
      */
-    private fun steeringOf(phrase: Phrase, naming: (Constraint) -> Component): Component? {
-        if (phrase.modifiers.isEmpty()) return null
+    private fun steeringOf(phrase: Phrase): List<Said> {
+        if (phrase.modifiers.isEmpty()) return emptyList()
         val hasASubjectToAttachTo = phrase.subject != null
-        val said = Component.empty()
+        val said = mutableListOf<Said>()
         var aParticleHasBeenSpent = false
         for ((position, run) in phrase.modifiers.chunkedByJoin().withIndex()) {
             // The first run of a subjectless phrase heads its own clause — "blackstone", not "of
             // blackstone", which would be waiting for a subject that was never written.
             val couldTakeAParticle = hasASubjectToAttachTo || position > 0
-            val particle = if (couldTakeAParticle && !aParticleHasBeenSpent) particleFor(run) else ""
+            val particle = if (couldTakeAParticle && !aParticleHasBeenSpent) attachmentOf(run) else ""
             // One `of` per clause. A second unjoined material is a rival claim rather than more of the
             // same, and "of basalt of slate" reads as neither.
-            val followsAnAttachedRun = aParticleHasBeenSpent && particleFor(run).isNotEmpty()
+            val followsAnAttachedRun = aParticleHasBeenSpent && attachmentOf(run).isNotEmpty()
             aParticleHasBeenSpent = aParticleHasBeenSpent || particle.isNotEmpty()
-            if (position > 0) said.append(if (followsAnAttachedRun) ", " else " ")
-            if (particle.isNotEmpty()) said.append(particle)
-            said.append(runOf(run, naming))
+            if (position > 0 && followsAnAttachedRun) said.punctuate(",")
+            if (particle.isNotEmpty()) said += particleFor(particle)
+            said += runOf(run)
         }
         return said
     }
 
     /**
-     * One `and`-joined run, with the particle that says how it attaches and whatever `only`/`except` the
-     * writer put in front of it.
+     * One `and`-joined run, with whatever `only`/`except` the writer put in front of it. The `and` is a
+     * column of its own, because the writer laid a page for it and the reader should see one.
      */
-    private fun runOf(run: List<Constraint>, naming: (Constraint) -> Component): Component {
-        val marker = when (run.first().polarity) {
-            Polarity.ASSERTED -> ""
-            Polarity.ONLY -> "only "
-            Polarity.EXCEPT -> "except "
+    private fun runOf(run: List<Constraint>): List<Said> {
+        val said = mutableListOf<Said>()
+        when (run.first().polarity) {
+            Polarity.ASSERTED -> Unit
+            Polarity.ONLY -> said += particleFor("only")
+            Polarity.EXCEPT -> said += particleFor("except")
         }
-        val terms = joined(run.map { termOf(it, naming) }, " and ")
-        return if (marker.isEmpty()) terms else Component.literal(marker).append(terms)
+        for ((position, term) in run.withIndex()) {
+            if (position > 0) said += particleFor("and")
+            said += termOf(term)
+        }
+        return said
     }
 
     /** One term, carrying the rung the writer quantified it with where they asked for one. */
-    private fun termOf(term: Constraint, naming: (Constraint) -> Component): Component {
-        val name = naming(term)
-        return if (term.density.isOrdinary) name else Component.literal("${term.density.key} ").append(name)
+    private fun termOf(term: Constraint): List<Said> {
+        val page = pageFor(term.word)
+        return if (term.density.isOrdinary) listOf(page) else listOf(particleFor(term.density.key), page)
     }
 
     /**
@@ -167,14 +219,14 @@ object Readout {
      * claim on the same aspect rather than a property of the subject: `riddled flooded` is two things said
      * about the carvers, and "riddled *of* flooded" would read as one made out of the other.
      */
-    private fun particleFor(run: List<Constraint>): String {
+    private fun attachmentOf(run: List<Constraint>): String {
         val steersNothing = run.none { it.word.sets.isNotEmpty() }
         // `only` and `except` are pages the writer laid down and already say how the run attaches —
         // "except of blackstone" is not a sentence, and the particle earns nothing beside them.
         val alreadyMarked = run.first().polarity != Polarity.ASSERTED
         if (steersNothing || alreadyMarked) return ""
         val namesThingsPresent = run.any { isPopulative(it.word) }
-        return if (namesThingsPresent) "with " else "of "
+        return if (namesThingsPresent) "with" else "of"
     }
 
     private fun isPopulative(word: Word): Boolean {

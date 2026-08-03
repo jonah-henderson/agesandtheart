@@ -1,12 +1,12 @@
 package co.voik.agesandtheart.client
 
+import co.voik.agesandtheart.age.word.grammar.Said
 import co.voik.agesandtheart.book.LinkRequest
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
-import net.minecraft.util.FormattedCharSequence
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.item.ItemStack
 
@@ -40,7 +40,7 @@ class BookScreen(
      * The writing, wrapped and cut into pages. Paginated once: the font is fixed, the column is fixed, and
      * doing it per frame would re-wrap the whole book sixty times a second.
      */
-    private val pages: List<List<Row>> by lazy { paginate() }
+    private val pages: List<List<Line>> by lazy { paginate() }
 
     override fun extractRenderState(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, a: Float) {
         super.extractRenderState(graphics, mouseX, mouseY, a)
@@ -78,12 +78,18 @@ class BookScreen(
     private fun drawPage(graphics: GuiGraphicsExtractor, x: Int, top: Int, at: Int) {
         val page = pages.getOrNull(at) ?: return
         var y = top + writingBeginsOn(at)
-        for (row in page) {
-            val line = row.text
-            if (line != null) {
-                scaled(graphics, x, y, row.scale) { graphics.text(font, line, 0, 0, row.colour, false) }
+        for (line in page) {
+            var column = x
+            for (word in line.words) {
+                scaled(graphics, column, y, SCRIPT_SCALE) {
+                    graphics.text(font, word.script, 0, 0, INK, false)
+                }
+                scaled(graphics, column, y + scriptHeight(), READING_SCALE) {
+                    graphics.text(font, word.reading, 0, 0, FAINT_INK, false)
+                }
+                column += word.width
             }
-            y += row.height
+            y += lineHeight()
         }
     }
 
@@ -105,44 +111,48 @@ class BookScreen(
     }
 
     /**
-     * The whole book as wrapped lines: **the sentence as the Art writes it, then what it says.**
+     * The book's words packed into lines, and the lines into pages.
      *
-     * Both blocks whole rather than clause against clause, so a page break may fall anywhere — the two are
-     * one sentence written twice, and nothing has to stay level with anything. A long book therefore reads
-     * as pages of writing followed by pages of reading, which is what a translation *is*.
+     * **A word is set over its own reading and neither is allowed to drift from the other**, which is what
+     * a player learns the language from: they see `of` written in a script they cannot read, above an `of`
+     * they can, in a book that plainly means something. So a line is a run of columns rather than a run of
+     * text, and a page break can only fall between columns.
      */
-    private fun rowsOfWriting(): List<Row> {
-        val said = book.get(AgeContent.BOOK_TEXT).orEmpty()
-        if (said.isEmpty()) return emptyList()
-        val script = linesOf(KnownWords.scriptLine(said), SCRIPT_SCALE, INK)
-        val reading = book.get(AgeContent.BOOK_READING) ?: return script
-        return script + Row(null, SCRIPT_SCALE, INK, PHRASE_GAP) + linesOf(reading, READING_SCALE, FAINT_INK)
-    }
-
-    private fun linesOf(text: Component, scale: Float, colour: Int): List<Row> {
-        // The column is measured in screen pixels and the font in its own, so the width it is asked to
-        // wrap at has to be the column *at this scale* — otherwise small text wraps as though it were big.
-        val height = (font.lineHeight * scale).toInt() + 1
-        return font.split(text, (COLUMN_WIDTH / scale).toInt()).map { Row(it, scale, colour, height) }
-    }
-
-    /** The lines cut into pages, greedily, each page taking what its own height allows. */
-    private fun paginate(): List<List<Row>> {
-        val cut = mutableListOf<List<Row>>()
-        var page = mutableListOf<Row>()
-        var used = 0
-        for (row in rowsOfWriting()) {
-            if (page.isNotEmpty() && used + row.height > roomOn(cut.size)) {
+    private fun paginate(): List<List<Line>> {
+        val cut = mutableListOf<List<Line>>()
+        var page = mutableListOf<Line>()
+        for (line in linesOfWriting()) {
+            if (page.isNotEmpty() && (page.size + 1) * lineHeight() > roomOn(cut.size)) {
                 cut += page
                 page = mutableListOf()
-                used = 0
             }
-            page += row
-            used += row.height
+            page += line
         }
         if (page.isNotEmpty()) cut += page
         return cut
     }
+
+    /** The columns packed left to right into lines that fit the writing column. */
+    private fun linesOfWriting(): List<Line> {
+        val lines = mutableListOf<Line>()
+        var line = mutableListOf<Column>()
+        var used = 0
+        for (word in book.get(AgeContent.BOOK_READING).orEmpty().map(::Column)) {
+            if (line.isNotEmpty() && used + word.width > COLUMN_WIDTH) {
+                lines += Line(line)
+                line = mutableListOf()
+                used = 0
+            }
+            line += word
+            used += word.width
+        }
+        if (line.isNotEmpty()) lines += Line(line)
+        return lines
+    }
+
+    private fun scriptHeight(): Int = (font.lineHeight * SCRIPT_SCALE).toInt() + 1
+
+    private fun lineHeight(): Int = scriptHeight() + (font.lineHeight * READING_SCALE).toInt() + LINE_GAP
 
     /** Where writing starts down a page — the first one begins under the title, the rest at the top. */
     private fun writingBeginsOn(page: Int): Int = if (page == 0) TEXT_Y else TOP_MARGIN
@@ -156,13 +166,24 @@ class BookScreen(
 
     private fun canTurnForward(): Boolean = leftPageOf(spread + 1) <= pages.lastIndex
 
-    /** One wrapped line and how it is set. A null [text] is the space between the writing and the reading. */
-    private class Row(
-        val text: FormattedCharSequence?,
-        val scale: Float,
-        val colour: Int,
-        val height: Int,
-    )
+    /** A run of columns that fits the writing column, set as script over reading. */
+    private class Line(val words: List<Column>)
+
+    /**
+     * One column: a word as the script sets it, over what it says.
+     *
+     * [width] is the wider of the two at their own scales, so the pair occupies a column of its own and the
+     * next starts clear of it — which is what keeps a reading under the word it belongs to rather than
+     * under whatever happens to be above it.
+     */
+    private inner class Column(said: Said) {
+        val script: Component = KnownWords.scriptLine(said.written)
+        val reading: Component = said.read
+        val width: Int = maxOf(
+            (font.width(script) * SCRIPT_SCALE).toInt(),
+            (font.width(reading) * READING_SCALE).toInt(),
+        ) + COLUMN_GAP
+    }
 
     /** Draws [body] at [scale] with the origin moved to ([x], [y]), since text is placed by its corner. */
     private fun scaled(graphics: GuiGraphicsExtractor, x: Int, y: Int, scale: Float, body: () -> Unit) {
@@ -246,8 +267,11 @@ class BookScreen(
         const val SCRIPT_SCALE = 0.9f
         const val READING_SCALE = 0.7f
 
-        /** Between the script and the reading under it, so the two read as a pair and not a block. */
-        const val PHRASE_GAP = 5
+        /** Between one glossed line and the next, so a pair reads as a pair. */
+        const val LINE_GAP = 5
+
+        /** Clear space after a column, so two of them do not read as one word. */
+        const val COLUMN_GAP = 4
 
         val PARCHMENT = 0xFFE9DFC3.toInt()
         val EDGE = 0xFF8B7B55.toInt()

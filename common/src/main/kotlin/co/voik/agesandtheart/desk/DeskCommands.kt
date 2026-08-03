@@ -226,8 +226,7 @@ object DeskCommands {
         // Read by **the same expression `DescriptiveBookRecipe` reads it by**, so what a book says and the
         // Age it makes can never be two different sentences.
         val sentence = Grammar.read(WritersDeskMenu.vocabularyFor(player), words.map { it.path })
-        book.set(AgeContent.BOOK_TEXT, Readout.of(sentence))
-        book.set(AgeContent.BOOK_READING, Readout.spoken(sentence))
+        book.set(AgeContent.BOOK_READING, Readout.columnsOf(sentence))
         menu.composing.clear()
         // Into the output slot rather than the inventory: a book you take is a book you saw being made.
         menu.putOutput(book)
