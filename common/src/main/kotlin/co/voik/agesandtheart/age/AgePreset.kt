@@ -58,6 +58,9 @@ enum class AgePreset(val key: String) : StringRepresentable {
     /** An alpine range: a foreland plain, foothills, and a glaciated crest behind them. */
     ALPS("alps"),
 
+    /** One colossal impact basin at the origin, with an ordinary cratered plain beyond its ejecta. */
+    CRATERLANDS("craterlands"),
+
     /** Minecraft's noise caves inside out: solid where they carve, open air everywhere else. */
     INVERSE_CAVES("inversecaves"),
 

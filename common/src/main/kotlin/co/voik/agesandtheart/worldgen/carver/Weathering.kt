@@ -4,6 +4,7 @@ import co.voik.agesandtheart.worldgen.AlpsField
 import co.voik.agesandtheart.worldgen.CanyonField
 import co.voik.agesandtheart.worldgen.CanyonlandsField
 import co.voik.agesandtheart.worldgen.CliffField
+import co.voik.agesandtheart.worldgen.CraterlandsField
 import co.voik.agesandtheart.worldgen.RiverlandsField
 import co.voik.agesandtheart.worldgen.SpireField
 import kotlin.math.abs
@@ -431,6 +432,72 @@ class Weathering(
             amplitudes = doubleArrayOf(1.0, 0.5, 0.25),
         )
 
+        /**
+         * The weather on an impact structure — **the only profile here whose subject is a shape nothing
+         * eroded**, which is what decides everything about it.
+         *
+         * The others are finishing a landform water or frost already made, so they can afford to be
+         * gentle. This one is undoing the fact that a crater rim is a cone and a crater bowl is half an
+         * ellipsoid: left alone, every surface here is exactly the arithmetic that drew it. What breaks
+         * that is the resistance noise being read in **world** coordinates, so a perfectly circular crest
+         * is worked differently at every bearing and stops reading as a circle without anything having to
+         * know it was one.
+         *
+         * The vertical profile is [ALPS]' — a keel low down and the punishment landing at the top —
+         * because the subject is the high ground. The plain keeps its craters, the basin floor keeps its
+         * shore, and the hundred and twenty blocks of wall between them is what gets ribbed.
+         *
+         * **The keel sits at the waterline rather than at the plain**, which is twenty-one blocks lower
+         * than it looks like it should be. At the plain, the whole lower wall was inside the flat of the
+         * taper and came out as smooth as the ellipsoid that cut it; from the waterline the wall is
+         * worked all the way up from the shore. The plain is only a fifth of the reach above the keel and
+         * the taper is superlinear, so it keeps nearly all of its protection anyway — which is the thing
+         * that makes the lower keel affordable at all.
+         */
+        val CRATERLANDS = Weathering(
+            key = "craterlands",
+            fromY = CraterlandsField.BOWL_FLOOR_Y - BAND_MARGIN,
+            toY = CraterlandsField.RIM_CREST_Y + BAND_MARGIN,
+            // Between a river country's texture and a range's damage. The face wants sculpting; the plain
+            // around it wants no more than a roughening, and one profile has to do both — so this is set
+            // against the *wall*, and the keel is what keeps the plain out of it.
+            bite = -0.02,
+            keelY = CraterlandsField.WATERLINE,
+            // Enough that only the softest twentieth of the plain loses its top block, so the crater rims
+            // come out ragged rather than eaten.
+            atTheKeel = 0.45,
+            atTheTip = -0.05,
+            // The basin floor is a shore or a sea bed. Working it only deepens water nobody sees through.
+            atTheRoot = 0.4,
+            // Above one, so the plain's protection is given up slowly and nearly all of the loss lands on
+            // the upper half of the wall. Linear would have the crater field paying for the rim's texture.
+            taper = 1.6,
+            taperReachAbove = CraterlandsField.RIM_CREST_Y - CraterlandsField.WATERLINE,
+            taperReachBelow = CraterlandsField.WATERLINE - CraterlandsField.BOWL_FLOOR_Y,
+            // Rib-and-gully scale against a hundred-block wall: features some tens of blocks across, so
+            // the crest breaks into spurs rather than being sanded smooth or bitten through.
+            scale = 0.9,
+            windStretch = 1.0,
+            /*
+             * **Small on purpose, and it is the one dial here that tells a wall from a plain.** The
+             * vertical profile cannot: the basin wall runs from the waterline to the crest and the plain
+             * sits at 84, so the two overlap in height and anything keyed to height alone works both or
+             * neither. Resistance drifting quickly with height is different — on a near-vertical face a
+             * column passes through several bands of it and comes out fluted, where on flat ground it
+             * passes through one and comes out as it was. The steep half of this landform gets the
+             * texture and the crater field does not pay for it.
+             */
+            verticalScale = 10.0,
+            needleScale = 1.5,
+            // A rock that shrugs the weather off while the crest is cut down around it leaves a tower on
+            // the rim, which is the one thing here that could not have been placed.
+            needleThreshold = 0.72,
+            needleBonus = 0.6,
+            seed = 0xC_2A_7E_2EDL,
+            firstOctave = -3,
+            amplitudes = doubleArrayOf(1.0, 0.5, 0.25),
+        )
+
         /** How far over the snowline the band still has to reach, since the tallest massifs stand clear. */
         private const val SUMMITS_ABOVE_THE_SNOWLINE = 80
 
@@ -438,8 +505,8 @@ class Weathering(
         private const val ALPINE_VALLEY_FLOOR = 70
 
         /** The profiles a recipe may name, which is what makes [Weathered] serialisable. */
-        private val BY_KEY =
-            listOf(NONE, SPIRE, CANYON, CLIFFS, CANYONLANDS, RIVERLANDS, ALPS).associateBy(Weathering::key)
+        private val BY_KEY = listOf(NONE, SPIRE, CANYON, CLIFFS, CANYONLANDS, RIVERLANDS, ALPS, CRATERLANDS)
+            .associateBy(Weathering::key)
 
         /** The profile [key] names, or null for one this version does not have. */
         fun named(key: String): Weathering? = BY_KEY[key]

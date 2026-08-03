@@ -117,8 +117,13 @@ enum class Aspect(val key: String) : StringRepresentable {
 }
 
 /**
- * One choice a preset offers — "sparse / scattered / crowded", never a 0–1 slider (design §3.2). The
+ * One choice a preset offers — "sparse / scattered / crowded", or a stretch of a continuous axis. The
  * first option is the default, so a preset named with no options still resolves.
+ *
+ * **Numbers are allowed here and always were.** §3.2 forbids them being exposed to the *player*, and a
+ * [Kind.RANGED] parameter never is: a writer says a word, the word carries the span. Named steps were the
+ * first reading of that rule and they do not scale — every new word that wants to sit on a different band
+ * needs a new step, and steps must then be named on every axis at once.
  *
  * One kind is open-valued: a [material] takes a registry id rather than one of a list.
  */

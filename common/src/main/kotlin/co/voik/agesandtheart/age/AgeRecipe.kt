@@ -45,7 +45,7 @@ data class AgeRecipe(
          * Bumped by hand whenever a change to generation would make the same recipe produce different
          * terrain. What moved at each version: `notes/generator-versions.md`.
          */
-        const val CURRENT_GENERATOR_VERSION = 18
+        const val CURRENT_GENERATOR_VERSION = 19
 
         val MAP_CODEC: MapCodec<AgeRecipe> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -162,6 +162,16 @@ data class AgeRecipe(
                     terrains = listOf(Terrain.CAVERNS),
                     seas = listOf(Sea.WATER),
                     carvers = listOf(Carvers.POROUS),
+                )
+                // Grounded, and it wants it twice over: the round sea at the middle needs ocean biomes
+                // and a shore, and a hundred blocks of ring wall needs a treeline to be a climb through
+                // anything. Carved, the plain being ordinary habitable country.
+                AgePreset.CRATERLANDS -> grounded(
+                    AgeComposition(
+                        terrains = listOf(Terrain.CRATERLANDS),
+                        seas = listOf(Sea.WATER),
+                        carvers = listOf(Carvers.CAVES),
+                    ),
                 )
                 // No sea named at all, since the terrain claims no waterline for one to stand at. Carved,
                 // though: a carver reaching the cast severs it, and a bridge that is out is a better

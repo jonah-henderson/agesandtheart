@@ -6,6 +6,7 @@ import co.voik.agesandtheart.worldgen.CanyonField
 import co.voik.agesandtheart.worldgen.CanyonlandsField
 import co.voik.agesandtheart.worldgen.CavernField
 import co.voik.agesandtheart.worldgen.CliffField
+import co.voik.agesandtheart.worldgen.CraterlandsField
 import co.voik.agesandtheart.worldgen.ErodedField
 import co.voik.agesandtheart.worldgen.GreatHalls
 import co.voik.agesandtheart.worldgen.InverseCavesField
@@ -28,6 +29,7 @@ import co.voik.agesandtheart.worldgen.field.Subtract
 import co.voik.agesandtheart.worldgen.field.Substance
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 
 /**
  * The shape of an Age's rock: a Tier-B field preset plus its [waterline], the one fact a composer needs
@@ -133,6 +135,26 @@ enum class Terrain(
     ),
 
     /**
+     * One colossal impact structure with a plain around it: a central peak in a round sea, a ring wall,
+     * and ordinary cratered country beyond its ejecta. The one landform here with a **centre** — walking
+     * away from the origin is the whole of what happens in it.
+     */
+    CRATERLANDS(
+        "craterlands",
+        waterline = CraterlandsField.WATERLINE,
+        build = { options, salt ->
+            CraterlandsField.world(
+                CraterlandsField.Steer(
+                    wear = steer(options, WEAR, salt),
+                    relief = steer(options, RELIEF, salt),
+                    spacing = steer(options, SPACING, salt),
+                ),
+                salt,
+            )
+        },
+    ),
+
+    /**
      * Minecraft's noise caves with the rock and the air exchanged — the cast of a cave system hanging in
      * open air. No waterline, because a sea would fill every pocket under it and most of this world is
      * under anything.
@@ -165,6 +187,9 @@ enum class Terrain(
             ARRANGEMENT.takeIf { this == PYRAMIDS },
             BEARING.takeIf { this == CANYON || this == CLIFFS },
             EXTENT.takeIf { this == ISLANDS },
+            SPACING.takeIf { this == CRATERLANDS },
+            WEAR.takeIf { this == CRATERLANDS },
+            RELIEF.takeIf { this == CRATERLANDS },
             ALTITUDE.takeIf { this == SPIRE_ISLANDS },
             UNDERGROUND.takeIf { undergroundCeiling() != null },
             STONE,
@@ -205,6 +230,9 @@ enum class Terrain(
         CLIFFS -> CliffField.SEABED_Y - ROOM_FOR_A_ROOF
         RIVERLANDS -> RiverlandsField.WATERLINE - DEEP_ENOUGH_TO_MISS_A_RIVERBED
         ISLANDS -> IslandsField.SEA_LEVEL - DEEP_ENOUGH_TO_MISS_A_SEABED
+        // The basin is already the deepest thing here, and it is dug from a plain standing well above
+        // the waterline — so this datums on the crater floor rather than on the sea in it.
+        CRATERLANDS -> CraterlandsField.BOWL_FLOOR_Y - ROOM_FOR_A_ROOF
         HILLS, ERODED, PILLARS -> ORDINARY_SEA_LEVEL - DEEP_ENOUGH_TO_MISS_A_SEABED
         // A plain with no sea, so the only thing overhead is the plain itself.
         PYRAMIDS -> ORDINARY_SEA_LEVEL - ROOM_FOR_A_ROOF
@@ -323,6 +351,12 @@ enum class Terrain(
         // in the middle of a cell, so datuming there chills the whole country by the depth of its lowest
         // hole and the basins come out snowy. The shoulder is where the plains actually sit.
         ALPS -> Grounding.Declared(elevation = Elevation(fromY = AlpsField.PLAIN_Y, toY = ALPINE_CREST_Y))
+        // Datumed on the plain the basin was struck into, which is where the ordinary country is, and
+        // topped at the rim crest — a hundred blocks of climb that would otherwise pass through no
+        // country at all, the same argument `alps` makes.
+        CRATERLANDS -> Grounding.Declared(
+            elevation = Elevation(fromY = CraterlandsField.PLAIN_Y, toY = CraterlandsField.RIM_CREST_Y),
+        )
         else -> Grounding.Declared()
     }
 
@@ -364,6 +398,43 @@ enum class Terrain(
     fun substance(options: Options): List<BlockState> = Palette.materialsNamed(options.allOf(STONE))
 
     companion object {
+        /**
+         * **The three axes a word may bend a landform along**, and the reason they are ranged rather than
+         * named steps: a word carries the *band* it means, so `sparse` and `scattered` can sit on
+         * different stretches of one axis without either needing a step minted for it. See
+         * [Parameter.Kind.RANGED]; the numbers live on the words and a writer never types one.
+         *
+         * **Shared on purpose.** Each names a quality many landforms have rather than a knob one of them
+         * owns, so a word that bends `spacing` bends a crater field, a pillar grid and an archipelago —
+         * each in its own units, none of them told what a block is. A landform declares the ones it can
+         * honour and stays silent about the rest, and a word that reaches only silent ones goes unbacked
+         * ([Resolver]'s `wentUnheeded`) rather than doing nothing quietly.
+         *
+         * What a landform may reach *through* one of these is its own business, including features
+         * nothing else has: `craterlands` reads [RELIEF] as its rim height, its bowl depth **and** whether
+         * a peak ring is drawn at all. The axis is the shared vocabulary; the reading is private.
+         */
+        val SPACING = Parameter.ranged("spacing")
+        val WEAR = Parameter.ranged("wear")
+        val RELIEF = Parameter.ranged("relief")
+
+        /**
+         * Where on [parameter]'s axis this Age sits, or **null where no word bounded it** — which means
+         * the landform's own tuning rather than a draw across everything.
+         *
+         * That distinction is the whole of why this is not just `Span.read`. An unbounded axis is
+         * `Span.NATURAL`, and drawing uniformly from it would make every unsteered Age a lottery and
+         * retune all of them at once; leaving it null keeps "an Age told nothing gets what it always got".
+         * A *bounded* axis still draws, so two Ages written with the same word differ within the band it
+         * asked for — the word says where, the seed says exactly where.
+         */
+        fun steer(options: Options, parameter: Parameter, salt: Long): Double? {
+            val span = Span.read(options.of(parameter)) ?: return null
+            if (span == Span.NATURAL) return null
+            return span.least + XoroshiroRandomSource(salt xor parameter.name.hashCode().toLong())
+                .nextDouble() * span.width
+        }
+
         val ARRANGEMENT = Parameter("arrangement", "grid", "rings", "varied")
 
         /**
@@ -428,14 +499,13 @@ enum class Terrain(
 
         /**
          * How finely several materials speckle together. `fine` brings a patch down to a block or two, for
-         * a mixture reading as one mottled rock rather than blotches of two. No word reaches it yet; it
-         * exists to be pinned by a recipe.
+         * a mixture reading as one mottled rock rather than blotches of two.
          */
         val MINGLING = Parameter("mingling", "patches", "fine")
 
         /**
          * How high up the world an archipelago floats — offered by [SPIRE_ISLANDS] alone, the one terrain
-         * hanging in open air. No word reaches it yet; it exists to be pinned by a recipe.
+         * hanging in open air. `aloft` reaches it.
          */
         val ALTITUDE = Parameter("altitude", "low", "high")
 

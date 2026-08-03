@@ -221,7 +221,9 @@ data class Choose(
  * whose dimension type has no headroom (see [co.voik.agesandtheart.worldgen.VerticalWindow]).
  *
  * **A raised shape must be weathered by an equally raised profile**, erosion's keel and band being
- * absolute heights — which is what `Weathered.spire(base, lift)` keeps in step.
+ * absolute heights — which is what `Weathered.spire(base, lift)` keeps in step. That relation is also why
+ * a *wandering* lift is [Undulated] and not a mode of this: there is no single number to raise a
+ * weathering profile by, and the cost stops being free.
  */
 data class Raised(val base: TerrainField, val lift: Int) : TerrainField {
     override val kind = FieldKind.RAISED

@@ -6,6 +6,7 @@ import co.voik.agesandtheart.worldgen.CanyonField
 import co.voik.agesandtheart.worldgen.CanyonlandsField
 import co.voik.agesandtheart.worldgen.CavernField
 import co.voik.agesandtheart.worldgen.CliffField
+import co.voik.agesandtheart.worldgen.CraterlandsField
 import co.voik.agesandtheart.worldgen.ErodedField
 import co.voik.agesandtheart.worldgen.GreatHalls
 import co.voik.agesandtheart.worldgen.IslandsField
@@ -169,6 +170,9 @@ private val territories = RegionMap(
  * a boundary rather than something you can see from above. See [Seam.WIDEST_FUZZ_BLOCKS].
  */
 private val fuzzedTerritories = territories.copy(blend = Seam.FUZZED.blendBlocks(400))
+
+/** An Age whose peak-ring draw came up present — see the `craterlands-peaks` subject. */
+private const val PEAK_RING_SALT = 7L
 
 /** The band an "inverse caves" world would stand in — see the `inverse-caves` subject. */
 private const val INVERSE_FLOOR = -64
@@ -385,6 +389,106 @@ private val subjects: Map<String, Subject> = mapOf(
         sliceAtX = 1040,
         // On one of the ranges the wide view shows, rather than in the basin the origin happens to sit in.
         centreX = 1040,
+    ),
+
+    // The whole impact structure: the basin, its ring wall, whichever outer rings this seed drew, and the
+    // cratered plain past them. **Both cuts are named**, because the fullest row through a ring is a
+    // tangent to it — it would run *along* the rim and draw a wall with no basin behind it, which is the
+    // same trap the range's default cut fell into.
+    "craterlands" to Subject(
+        CraterlandsField.world(),
+        lowestY = 20,
+        highestY = 170,
+        // Past the second outer scarp at 560, so the picture says how far the country stays organised.
+        radius = 950,
+        step = 2,
+        sliceAtZ = 0,
+        sliceAtX = 0,
+    ),
+
+    // **What a word is worth**, and the reason `Terrain`'s three axes are ranged rather than stepped: the
+    // same landform, the same seed, bent to each end of `wear` and `relief`. Read the pair against
+    // `craterlands` above, which is the same world with nothing said about it.
+    "craterlands-pristine" to Subject(
+        CraterlandsField.world(CraterlandsField.Steer(wear = -0.8, relief = 0.7)),
+        lowestY = 20,
+        highestY = 200,
+        radius = 270,
+        sliceAtZ = 0,
+        sliceAtX = 0,
+    ),
+
+    "craterlands-battered" to Subject(
+        CraterlandsField.world(CraterlandsField.Steer(wear = 0.8, relief = -0.5, spacing = -0.7)),
+        lowestY = 20,
+        highestY = 200,
+        radius = 270,
+        sliceAtZ = 0,
+        sliceAtX = 0,
+    ),
+
+    // The same structure with the weather switched off. The pair is what says whether the scalloping and
+    // the wind are doing the work, on a landform whose every other surface is exactly its own arithmetic.
+    "craterlands-nowind" to Subject(
+        CraterlandsField.bareWorld(),
+        lowestY = 20,
+        highestY = 170,
+        radius = 950,
+        step = 2,
+        sliceAtZ = 0,
+        sliceAtX = 0,
+    ),
+
+    // The basin close up, where the shape is actually decided: the central peak standing out of the sea
+    // and the inner wall meeting the crest. **This Age drew no peak ring** — see the pair below.
+    "craterlands-basin" to Subject(
+        CraterlandsField.world(),
+        lowestY = 20,
+        highestY = 170,
+        radius = 270,
+        step = 1,
+        sliceAtZ = 0,
+        sliceAtX = 0,
+    ),
+
+    // Just the central island, at block resolution, because it is the one thing here a player stands on
+    // and looks at rather than across. Read it against `craterlands-island-noise` below.
+    //
+    // **The window starts a block over the waterline**, which is the one way this instrument can show a
+    // coast: it draws no water, so an island rendered from the world floor is its whole mass including
+    // the submerged skirt, and the outline you are trying to judge is buried inside it. Cut the window at
+    // the sea and the plan view *is* the shoreline, and the printed share of columns holding rock is the
+    // land area.
+    "craterlands-island" to Subject(
+        CraterlandsField.centralIsland(),
+        lowestY = CraterlandsField.WATERLINE + 1,
+        highestY = 120,
+        radius = 120,
+        sliceAtZ = 0,
+        sliceAtX = 0,
+    ),
+
+    // The rejected alternative: a cone clipped by a heightmap. Read the pair — half of this one's coast
+    // is the cone's own arc, which is what settled it. See `centralIslandFromNoise`.
+    "craterlands-island-noise" to Subject(
+        CraterlandsField.centralIslandFromNoise(),
+        lowestY = CraterlandsField.WATERLINE + 1,
+        highestY = 120,
+        radius = 120,
+        sliceAtZ = 0,
+        sliceAtX = 0,
+    ),
+
+    // The same basin in an Age that *did* draw one. The pair is the only way to see what the `Chance`
+    // is worth, a draw being invisible in the one render that happens to have gone the other way.
+    "craterlands-peaks" to Subject(
+        CraterlandsField.world(salt = PEAK_RING_SALT),
+        lowestY = 20,
+        highestY = 170,
+        radius = 270,
+        step = 1,
+        sliceAtZ = 0,
+        sliceAtX = 0,
     ),
 
     // **One island, not the archipelago.** The islands lie thousands of blocks apart, and this renders a

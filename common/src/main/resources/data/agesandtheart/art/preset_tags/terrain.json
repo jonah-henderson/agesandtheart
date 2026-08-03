@@ -162,5 +162,18 @@
       "sheer": 0.7,
       "scattered": 0.55
     }
+  },
+  "craterlands": {
+    "readiness": 0.5,
+    "tags": {
+      "dramatic": 0.9,
+      "monumental": 0.8,
+      "scattered": 0.7,
+      "mountainous": 0.6,
+      "sheer": 0.6,
+      "barren": 0.6,
+      "ordered": 0.5,
+      "ordinary": 0.3
+    }
   }
 }

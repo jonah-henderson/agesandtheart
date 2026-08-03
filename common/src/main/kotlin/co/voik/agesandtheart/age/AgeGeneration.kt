@@ -292,7 +292,7 @@ object AgeGeneration {
         AgePreset.FIELD, AgePreset.PYRAMIDS, AgePreset.PYRINGS, AgePreset.PYRVARIED, AgePreset.HILLS,
         AgePreset.SHAPES, AgePreset.PILLARS, AgePreset.CAVERNS, AgePreset.ERODED, AgePreset.CANYON,
         AgePreset.CLIFFS, AgePreset.CANYONLANDS, AgePreset.SHATTERED, AgePreset.RIVERLANDS,
-        AgePreset.ISLANDS, AgePreset.ALPS, AgePreset.INVERSE_CAVES, AgePreset.HALLS,
+        AgePreset.ISLANDS, AgePreset.ALPS, AgePreset.CRATERLANDS, AgePreset.INVERSE_CAVES, AgePreset.HALLS,
         -> error("'${preset.key}' names a composition, so AgeRecipe.worldFor should never have sent it here")
     }
 

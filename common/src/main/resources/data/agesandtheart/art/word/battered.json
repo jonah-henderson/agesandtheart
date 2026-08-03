@@ -1,0 +1,16 @@
+{
+  "tier": "evocative",
+  "aspects": [
+    "terrain"
+  ],
+  "query": {
+    "eroded": 1.0,
+    "wild": 0.8,
+    "barren": 0.5,
+    "ordered": -0.6
+  },
+  "sets": {
+    "wear": "0.45..1.0",
+    "spacing": "-1.0..-0.3"
+  }
+}
