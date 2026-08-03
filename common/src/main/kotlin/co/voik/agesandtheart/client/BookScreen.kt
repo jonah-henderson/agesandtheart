@@ -6,7 +6,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
-import net.minecraft.resources.Identifier
+import net.minecraft.util.FormattedCharSequence
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.item.ItemStack
 
@@ -18,10 +18,11 @@ object BookScreenOpener {
 }
 
 /**
- * A Descriptive Book, held open.
+ * A Descriptive Book, held open at one spread.
  *
- * Two pages, as the source has them: the **linking panel** on the left and the **sentence** on the
- * right. Clicking the panel goes; nothing else does, because linking spends the book and can strand you.
+ * **The first spread is the linking panel and the opening page of writing**; every spread after it is two
+ * pages of writing. Clicking the panel goes — nothing else does, because linking spends the book and can
+ * strand you — and clicking a page turns it: the right page forward, the left page back.
  *
  * The panel is flat for now. It wants to be a view of the Age's spawn — computable from the chunk
  * generator rather than rendered, since a client that has never been there has no chunks — but that is
@@ -32,7 +33,14 @@ class BookScreen(
     private val hand: InteractionHand,
 ) : Screen(book.hoverName) {
 
-    private val words: List<Identifier> get() = book.get(AgeContent.BOOK_WORDS).orEmpty()
+    /** Which spread is open. Nought is the panel and the first page of writing. */
+    private var spread = 0
+
+    /**
+     * The writing, wrapped and cut into pages. Paginated once: the font is fixed, the column is fixed, and
+     * doing it per frame would re-wrap the whole book sixty times a second.
+     */
+    private val pages: List<List<Row>> by lazy { paginate() }
 
     override fun extractRenderState(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, a: Float) {
         super.extractRenderState(graphics, mouseX, mouseY, a)
@@ -44,8 +52,16 @@ class BookScreen(
         // The spine, so it reads as two pages rather than one sheet.
         graphics.fill(left + WIDTH / 2 - 1, top + 1, left + WIDTH / 2 + 1, top + HEIGHT - 1, EDGE)
 
-        drawPanel(graphics, left, top, mouseX, mouseY)
-        drawSentence(graphics, left, top)
+        if (spread == 0) {
+            drawPanel(graphics, left, top, mouseX, mouseY)
+            scaled(graphics, left + RIGHT_COLUMN_X, top + TITLE_Y, TITLE_SCALE) {
+                graphics.text(font, book.hoverName, 0, 0, INK, false)
+            }
+        } else {
+            drawPage(graphics, left + LEFT_COLUMN_X, top, leftPageOf(spread))
+        }
+        drawPage(graphics, left + RIGHT_COLUMN_X, top, rightPageOf(spread))
+        drawTurningCorners(graphics, left, top, mouseX, mouseY)
     }
 
     private fun drawPanel(graphics: GuiGraphicsExtractor, left: Int, top: Int, mouseX: Int, mouseY: Int) {
@@ -58,48 +74,95 @@ class BookScreen(
         }
     }
 
-    /**
-     * The sentence, set as running text: **the script as the writer laid it, and what it says underneath
-     * in fainter ink.**
-     *
-     * The two are not glossed word against word, and that is the point. A reading is prose — it carries the
-     * particles a writer was spared for being inferable from position (`of`, `over`, `with`) and the
-     * punctuation the sections never had — so there is nothing above an `of` to align it to. Pairing them
-     * up would mean either dropping the particles, which is what the row of pages already shows, or hanging
-     * them under a word they are not a translation of.
-     */
-    private fun drawSentence(graphics: GuiGraphicsExtractor, left: Int, top: Int) {
-        val x = left + TEXT_X
-        scaled(graphics, x, top + TITLE_Y, TITLE_SCALE) {
-            graphics.text(font, book.hoverName, 0, 0, INK, false)
+    /** One page of writing, or nothing where the book has no such page. */
+    private fun drawPage(graphics: GuiGraphicsExtractor, x: Int, top: Int, at: Int) {
+        val page = pages.getOrNull(at) ?: return
+        var y = top + writingBeginsOn(at)
+        for (row in page) {
+            val line = row.text
+            if (line != null) {
+                scaled(graphics, x, y, row.scale) { graphics.text(font, line, 0, 0, row.colour, false) }
+            }
+            y += row.height
         }
-        if (words.isEmpty()) return
-
-        val below = wrapped(graphics, KnownWords.scriptText(words), x, top + TEXT_Y, SCRIPT_SCALE, INK)
-        val reading = book.get(AgeContent.BOOK_READING) ?: return
-        wrapped(graphics, reading, x, below + PHRASE_GAP, READING_SCALE, FAINT_INK)
     }
 
-    /** [text] wrapped to the writing column and drawn at [scale], answering with the y below it. */
-    private fun wrapped(
-        graphics: GuiGraphicsExtractor,
-        text: Component,
-        x: Int,
-        y: Int,
-        scale: Float,
-        colour: Int,
-    ): Int {
+    /**
+     * The outer corner of a page there is somewhere to turn to, lit under the pointer.
+     *
+     * A corner rather than the whole page: the page is what you click, but lighting all of it under the
+     * writing reads as a selection rather than as a page about to lift.
+     */
+    private fun drawTurningCorners(graphics: GuiGraphicsExtractor, left: Int, top: Int, mouseX: Int, mouseY: Int) {
+        val bottom = top + HEIGHT - 1
+        if (canTurnForward() && overRightPage(mouseX.toDouble(), mouseY.toDouble())) {
+            val right = left + WIDTH - 1
+            graphics.fill(right - TURNING_CORNER, bottom - TURNING_CORNER, right, bottom, PANEL_LIT)
+        }
+        if (spread > 0 && overLeftPage(mouseX.toDouble(), mouseY.toDouble())) {
+            graphics.fill(left + 1, bottom - TURNING_CORNER, left + 1 + TURNING_CORNER, bottom, PANEL_LIT)
+        }
+    }
+
+    /**
+     * The whole book as wrapped lines: **the sentence as the Art writes it, then what it says.**
+     *
+     * Both blocks whole rather than clause against clause, so a page break may fall anywhere — the two are
+     * one sentence written twice, and nothing has to stay level with anything. A long book therefore reads
+     * as pages of writing followed by pages of reading, which is what a translation *is*.
+     */
+    private fun rowsOfWriting(): List<Row> {
+        val said = book.get(AgeContent.BOOK_TEXT).orEmpty()
+        if (said.isEmpty()) return emptyList()
+        val script = linesOf(KnownWords.scriptLine(said), SCRIPT_SCALE, INK)
+        val reading = book.get(AgeContent.BOOK_READING) ?: return script
+        return script + Row(null, SCRIPT_SCALE, INK, PHRASE_GAP) + linesOf(reading, READING_SCALE, FAINT_INK)
+    }
+
+    private fun linesOf(text: Component, scale: Float, colour: Int): List<Row> {
         // The column is measured in screen pixels and the font in its own, so the width it is asked to
         // wrap at has to be the column *at this scale* — otherwise small text wraps as though it were big.
-        val column = (COLUMN_WIDTH / scale).toInt()
-        val lineHeight = (font.lineHeight * scale).toInt() + 1
-        var line = y
-        for (row in font.split(text, column)) {
-            scaled(graphics, x, line, scale) { graphics.text(font, row, 0, 0, colour, false) }
-            line += lineHeight
-        }
-        return line
+        val height = (font.lineHeight * scale).toInt() + 1
+        return font.split(text, (COLUMN_WIDTH / scale).toInt()).map { Row(it, scale, colour, height) }
     }
+
+    /** The lines cut into pages, greedily, each page taking what its own height allows. */
+    private fun paginate(): List<List<Row>> {
+        val cut = mutableListOf<List<Row>>()
+        var page = mutableListOf<Row>()
+        var used = 0
+        for (row in rowsOfWriting()) {
+            if (page.isNotEmpty() && used + row.height > roomOn(cut.size)) {
+                cut += page
+                page = mutableListOf()
+                used = 0
+            }
+            page += row
+            used += row.height
+        }
+        if (page.isNotEmpty()) cut += page
+        return cut
+    }
+
+    /** Where writing starts down a page — the first one begins under the title, the rest at the top. */
+    private fun writingBeginsOn(page: Int): Int = if (page == 0) TEXT_Y else TOP_MARGIN
+
+    private fun roomOn(page: Int): Int = HEIGHT - writingBeginsOn(page) - BOTTOM_MARGIN
+
+    /** Which page of writing sits where, given a spread. The first spread's left leaf is the panel. */
+    private fun leftPageOf(spread: Int): Int = 2 * spread - 1
+
+    private fun rightPageOf(spread: Int): Int = 2 * spread
+
+    private fun canTurnForward(): Boolean = leftPageOf(spread + 1) <= pages.lastIndex
+
+    /** One wrapped line and how it is set. A null [text] is the space between the writing and the reading. */
+    private class Row(
+        val text: FormattedCharSequence?,
+        val scale: Float,
+        val colour: Int,
+        val height: Int,
+    )
 
     /** Draws [body] at [scale] with the origin moved to ([x], [y]), since text is placed by its corner. */
     private fun scaled(graphics: GuiGraphicsExtractor, x: Int, y: Int, scale: Float, body: () -> Unit) {
@@ -116,10 +179,35 @@ class BookScreen(
         return mouseX >= x && mouseX <= x + PANEL_WIDTH && mouseY >= y && mouseY <= y + PANEL_HEIGHT
     }
 
+    private fun overLeftPage(mouseX: Double, mouseY: Double): Boolean =
+        overLeaf(mouseX, mouseY, from = 1, to = WIDTH / 2 - 1)
+
+    private fun overRightPage(mouseX: Double, mouseY: Double): Boolean =
+        overLeaf(mouseX, mouseY, from = WIDTH / 2 + 1, to = WIDTH - 1)
+
+    private fun overLeaf(mouseX: Double, mouseY: Double, from: Int, to: Int): Boolean {
+        val left = (width - WIDTH) / 2
+        val top = (height - HEIGHT) / 2
+        val withinTheLeaf = mouseX >= left + from && mouseX <= left + to
+        return withinTheLeaf && mouseY >= top + 1 && mouseY <= top + HEIGHT - 1
+    }
+
+    /**
+     * **The panel is the only thing that links**, and it is asked first: a click that turned a page instead
+     * would be a click that failed to strand you, but one that linked instead of turning is a book spent.
+     */
     override fun mouseClicked(event: net.minecraft.client.input.MouseButtonEvent, doubleClick: Boolean): Boolean {
-        if (overPanel(event.x, event.y)) {
+        if (spread == 0 && overPanel(event.x, event.y)) {
             ClientDeskNetwork.sender?.invoke(LinkRequest(hand))
             onClose()
+            return true
+        }
+        if (canTurnForward() && overRightPage(event.x, event.y)) {
+            spread++
+            return true
+        }
+        if (spread > 0 && overLeftPage(event.x, event.y)) {
+            spread--
             return true
         }
         return super.mouseClicked(event, doubleClick)
@@ -136,12 +224,22 @@ class BookScreen(
         const val PANEL_WIDTH = 92
         const val PANEL_HEIGHT = 92
 
-        const val TEXT_X = 140
-        const val TITLE_Y = 16
-        const val TEXT_Y = 34
+        /** Where each leaf's writing column begins, clear of the spine and the outer edge. */
+        const val LEFT_COLUMN_X = 18
+        const val RIGHT_COLUMN_X = 140
 
-        /** The right page's writing column, clear of the spine and the outer edge. */
+        const val TITLE_Y = 16
+
+        /** Where writing starts down a page: under the title on the first, and at the top after it. */
+        const val TEXT_Y = 34
+        const val TOP_MARGIN = 16
+        const val BOTTOM_MARGIN = 14
+
+        /** The writing column itself. */
         const val COLUMN_WIDTH = WIDTH / 2 - 30
+
+        /** The corner that lights when a page has somewhere to turn to. */
+        const val TURNING_CORNER = 14
 
         /** Title, script, reading — each a step down, so the hierarchy is the size. */
         const val TITLE_SCALE = 1.15f

@@ -60,6 +60,15 @@ object KnownWords {
         Component.literal(words.joinToString(" ") { known.spell(it.path) }).setStyle(scriptStyle())
 
     /**
+     * A line of prose as the script writes it — a reading, particles and all.
+     *
+     * Spelled here rather than where the line was composed, so a pack that retunes its transliteration
+     * retunes every book already written rather than only the ones bound afterwards.
+     */
+    fun scriptLine(line: String): Component =
+        Component.literal(known.spellEachWord(line)).setStyle(scriptStyle())
+
+    /**
      * [word] as the script writes it, one part per line.
      *
      * Somewhere to break matters because a derived word is a block id — `polished_deepslate` is three times

@@ -221,24 +221,17 @@ object DeskCommands {
         val words = menu.composing.toList()
         book.set(AgeContent.BOOK_WORDS, words)
         book.set(AgeContent.BOOK_TITLE, title)
-        // What it says, written down beside what it says it with. Reading a sentence takes the whole
-        // corpus, which is a server's; a book is read wherever it is carried.
-        book.set(AgeContent.BOOK_READING, readingOf(player, words))
+        // What it says, and what that means, written down beside the pages it is spelled out of. Reading a
+        // sentence takes the whole corpus, which is a server's; a book is read wherever it is carried.
+        // Read by **the same expression `DescriptiveBookRecipe` reads it by**, so what a book says and the
+        // Age it makes can never be two different sentences.
+        val sentence = Grammar.read(WritersDeskMenu.vocabularyFor(player), words.map { it.path })
+        book.set(AgeContent.BOOK_TEXT, Readout.of(sentence))
+        book.set(AgeContent.BOOK_READING, Readout.spoken(sentence))
         menu.composing.clear()
         // Into the output slot rather than the inventory: a book you take is a book you saw being made.
         menu.putOutput(book)
         Constants.LOG.debug("{} bound the Age '{}'", player.gameProfile.name, title)
-    }
-
-    /**
-     * The sentence [words] spell, as prose.
-     *
-     * Read through **the same expression `DescriptiveBookRecipe` reads it by**, so what a book says and the
-     * Age it makes can never be two different sentences.
-     */
-    private fun readingOf(player: ServerPlayer, words: List<Identifier>): Component {
-        val vocabulary = WritersDeskMenu.vocabularyFor(player)
-        return Readout.spoken(Grammar.read(vocabulary, words.map { it.path }))
     }
 
     /** To the screen, not the action bar: an open screen covers the action bar. */

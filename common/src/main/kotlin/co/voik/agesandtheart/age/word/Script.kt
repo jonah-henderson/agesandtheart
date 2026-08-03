@@ -58,6 +58,21 @@ data class Script(
     /** How [name] is written — authored if anyone said so, approximated otherwise. */
     fun spell(name: String): String = spellings[name] ?: transliterate(name)
 
+    /**
+     * A whole line written out — **each word spelled on its own**, so an authored spelling still applies
+     * inside a sentence rather than only to a word standing alone.
+     *
+     * Punctuation is left against the word it followed and rewritten by the rules like anything else, since
+     * a script may well have its own comma.
+     */
+    fun spellEachWord(line: String): String =
+        line.split(' ').joinToString(" ", transform = ::spellWithWhateverFollowsIt)
+
+    private fun spellWithWhateverFollowsIt(token: String): String {
+        val word = token.trimEnd(*NOT_PART_OF_A_WORD)
+        return spell(word) + transliterate(token.drop(word.length))
+    }
+
     /** Whether a human chose this spelling, as opposed to [transliterate] having guessed it. */
     fun isAuthored(name: String): Boolean = name in spellings
 
@@ -83,6 +98,9 @@ data class Script(
     }
 
     companion object {
+        /** What a reading puts against a word, which is no part of the word's own spelling. */
+        private val NOT_PART_OF_A_WORD = charArrayOf(',', '.')
+
         /** Where a pack puts authored spellings, one page per file. */
         const val SPELLING_DIRECTORY = "art/script"
 

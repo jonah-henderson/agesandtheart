@@ -237,13 +237,26 @@ object AgeContent {
         .build()
 
     /**
-     * What the book **says**, as the Art read it when the book was bound —
+     * What the book **says**, in the words the Art writes with —
      * [Readout][co.voik.agesandtheart.age.word.grammar.Readout]'s prose, with the particles a writer was
-     * spared for being inferable from position.
+     * spared for being inferable from position. Plain letters: the script spells it where it is drawn, so a
+     * pack that retunes its transliteration retunes every book already written.
      *
      * Written down rather than derived, because reading a sentence takes the whole corpus and a client has
-     * none. Kept as a `Component` so the word names in it stay translatable: the prose around them is
-     * English by design (§4.1), the names are not.
+     * none. **Not localised, deliberately** — this is the text *on the page*, and a book says the same
+     * thing to everyone who holds it.
+     */
+    val BOOK_TEXT: DataComponentType<String> = DataComponentType.builder<String>()
+        .persistent(Codec.STRING)
+        .networkSynchronized(ByteBufCodecs.STRING_UTF8)
+        .build()
+
+    /**
+     * The same sentence in the language its reader speaks — what the book *means*, set under what it says.
+     *
+     * A `Component` so the word names in it stay translatable: the prose around them is English by design
+     * (§4.1), the names are not, and resolving them at the desk would read a server's own language back at
+     * every client.
      */
     val BOOK_READING: DataComponentType<Component> = DataComponentType.builder<Component>()
         .persistent(ComponentSerialization.CODEC)
@@ -267,6 +280,7 @@ object AgeContent {
         "page_word".location() to PAGE_WORD,
         "book_words".location() to BOOK_WORDS,
         "book_title".location() to BOOK_TITLE,
+        "book_text".location() to BOOK_TEXT,
         "book_reading".location() to BOOK_READING,
         "link_target".location() to LINK_TARGET,
         "notebook_pages".location() to NOTEBOOK_PAGES,
