@@ -51,6 +51,23 @@ class ScriptCheck : FunSpec({
     }
 
     /**
+     * **An underscore becomes a break**, which is what lets a book gloss a long name part for part.
+     *
+     * A derived word is a block id, so `packed_ice` is two words wearing one name — and a book sets the
+     * script over its reading word for word, so the two sides have to divide alike. The reading divides on
+     * its own spaces; this is the half the script owes, and it is a rule in a data file rather than
+     * anything code can guarantee.
+     */
+    test("a name divides the same on both sides") {
+        val name = "packed_ice"
+        val spelled = script.spellEachWord(name)
+        val parts = spelled.split(BREAKS).filter { it.isNotBlank() }
+        check(parts.size == name.split('_').size) {
+            "'$name' is two words and spells as ${parts.size}: '$spelled'"
+        }
+    }
+
+    /**
      * The punctuation a reading inserts is not part of the word it sits against — otherwise `slate,` misses
      * `slate`'s own spelling, and a comma is enough to change how a word is written.
      */
@@ -62,3 +79,6 @@ class ScriptCheck : FunSpec({
         }
     }
 })
+
+/** Where a book is allowed to cut a name in two, on either side of the gloss. */
+private val BREAKS = Regex("[\\s_]+")

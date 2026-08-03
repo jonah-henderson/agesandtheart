@@ -72,12 +72,20 @@ object KnownWords {
      * [word] as the script writes it, one part per line.
      *
      * Somewhere to break matters because a derived word is a block id — `polished_deepslate` is three times
-     * the length of `sea`, and scaling the long ones to fit a page is what makes them unreadable. The
-     * transliteration rules already turn `_` into a space, so the parts are there to be found.
+     * the length of `sea`, and scaling the long ones to fit a page is what makes them unreadable.
      */
-    fun scriptLines(word: Identifier): List<Component> {
+    fun scriptLines(word: Identifier): List<Component> = scriptParts(word.path)
+
+    /**
+     * [text] as the script writes it, **broken into its parts**.
+     *
+     * Spelled whole and *then* split, never the other way about: an authored spelling is keyed on a whole
+     * word, so `packed_ice` has to be looked up before anything is allowed to cut it in two. The
+     * transliteration rules turn `_` into a space, so the parts are there to be found afterwards.
+     */
+    fun scriptParts(text: String): List<Component> {
         val style = scriptStyle()
-        return known.spell(word.path)
+        return known.spellEachWord(text)
             .split(PART_SEPARATOR)
             .filter { it.isNotBlank() }
             .map { Component.literal(it).setStyle(style) }

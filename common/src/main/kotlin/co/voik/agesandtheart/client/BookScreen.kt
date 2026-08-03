@@ -137,7 +137,7 @@ class BookScreen(
         val lines = mutableListOf<Line>()
         var line = mutableListOf<Column>()
         var used = 0
-        for (word in book.get(AgeContent.BOOK_READING).orEmpty().map(::Column)) {
+        for (word in book.get(AgeContent.BOOK_READING).orEmpty().flatMap(::columnsOf)) {
             if (line.isNotEmpty() && used + word.width > COLUMN_WIDTH) {
                 lines += Line(line)
                 line = mutableListOf()
@@ -148,6 +148,25 @@ class BookScreen(
         }
         if (line.isNotEmpty()) lines += Line(line)
         return lines
+    }
+
+    /**
+     * One word of the reading, **broken on whitespace into a column per part**.
+     *
+     * A derived word is a block id, so `polished_deepslate` is two words wearing one name — set whole it
+     * puts "Polished Deepslate" under a script that plainly has two pieces, which teaches a reader that the
+     * pieces mean nothing. Both sides divide the same way, the script's `_` having become a space.
+     *
+     * Where they do not divide alike — an authored name need not follow its id — the word is set whole
+     * rather than paired up wrongly.
+     */
+    private fun columnsOf(said: Said): List<Column> {
+        val script = KnownWords.scriptParts(said.written)
+        val read = said.read.string.split(' ').filter { it.isNotBlank() }
+        if (script.size != read.size || script.isEmpty()) {
+            return listOf(Column(KnownWords.scriptLine(said.written), said.read))
+        }
+        return script.indices.map { Column(script[it], Component.literal(read[it])) }
     }
 
     private fun scriptHeight(): Int = (font.lineHeight * SCRIPT_SCALE).toInt() + 1
@@ -176,9 +195,7 @@ class BookScreen(
      * next starts clear of it — which is what keeps a reading under the word it belongs to rather than
      * under whatever happens to be above it.
      */
-    private inner class Column(said: Said) {
-        val script: Component = KnownWords.scriptLine(said.written)
-        val reading: Component = said.read
+    private inner class Column(val script: Component, val reading: Component) {
         val width: Int = maxOf(
             (font.width(script) * SCRIPT_SCALE).toInt(),
             (font.width(reading) * READING_SCALE).toInt(),
