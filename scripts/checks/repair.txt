@@ -1,0 +1,62 @@
+# What becomes of a book that is not a sentence. Run with: scripts/drive-server.sh scripts/checks/repair.txt
+#
+# Read the output rather than trusting an exit code — this drives a server, it does not assert. The
+# offline properties live in `RepairCheck`; what this file is for is judging whether a repair reads as
+# something a writer would accept, which is not a thing a check can decide.
+#
+# For every group below, look at three lines: the readout (only the writer's pages, and the clause that
+# adopted a re-homed one), the "the Art wrote the rest of it" line (what stayed latent), and the cost
+# (which must be the writer's pages alone — the Art's own cost nobody ink).
+
+# --- The Art's own sentence, on its own ---------------------------------------------------------
+# The pool a repair draws from, so a bad draw is diagnosable without writing a broken book first.
+# Expect: a complete world, one thing said about every part of it, and no material anywhere — a writer
+# must not be able to reroll their way into an Age of diamond.
+age draft repair 1
+age draft repair 2
+age draft repair 3
+
+# --- Re-homing, which is the whole point --------------------------------------------------------
+# A sky word aimed at the land. Expect `starless` kept, laid under the sky, and the readout saying so.
+age write rehomed 101 age landmass starless
+
+# The same word aimed at the land, with the land also spoken to. Expect `flat` to stay with the
+# landmass and `starless` to go overhead — and no latent word in either of those two clauses.
+age write rehomedpair 102 age landmass flat starless
+
+# Turning back: the section a page belongs to has already gone by. Expect `flat` in the landmass,
+# which sits ahead of the sky in the Art's own sentence, rather than dropped.
+age write turnedback 103 age sky flat
+
+# --- Deferring to the writer --------------------------------------------------------------------
+# Everything said about the land, nothing about anything else. Expect the landmass clause to carry only
+# the writer's words, and every other part of the world to be the Art's.
+age write deferred 104 age landmass flat towering starless
+
+# --- What a move costs ---------------------------------------------------------------------------
+# Re-homing is admissible only because it is charged and shown. Expect a `rehomed` flaw naming the page
+# and the part of the world it landed under, and expect exactly one — the page that stayed put in the
+# pair below must not be billed for a move it did not make.
+age write charged 111 age landmass flat starless
+
+# --- What repair still loses --------------------------------------------------------------------
+# A second Age: a book has one head and there is nowhere for another. Expect it struck through under
+# "no sentence has a place for", an `impossible` flaw (the dearest register), and the rest kept.
+age write twoheads 105 age age landmass flat
+
+# A page nobody recognises. Expect the command to fail outright rather than make a vaguer Age: a page
+# is a physical item carrying a real word, so typing one the Art never heard of is a typo.
+age write typo 112 age landmass zzzznotaword
+
+# A book of nothing but structure. Expect a world, no unread report for `and`/`only` (they owe no
+# constraint), and a cost of almost nothing.
+age write allstructure 106 age only and
+
+# --- The price -----------------------------------------------------------------------------------
+# The same words, once as a sentence and once not. Expect the same cost from both: filling a book in is
+# the Art's doing and the writer never spent the ink.
+age write priced 107 age sky starless
+age write mispriced 108 age landmass starless
+
+# What each of them actually became, side by side.
+age list json

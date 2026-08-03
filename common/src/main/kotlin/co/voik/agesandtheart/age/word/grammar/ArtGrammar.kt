@@ -5,15 +5,19 @@ import co.voik.agesandtheart.age.aspect.Density
 import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.grammar.ArtParser
+import org.antlr.v4.runtime.BailErrorStrategy
 import org.antlr.v4.runtime.CharStream
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonToken
 import org.antlr.v4.runtime.CommonTokenFactory
 import org.antlr.v4.runtime.CommonTokenStream
+import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.TokenFactory
 import org.antlr.v4.runtime.TokenSource
 import org.antlr.v4.runtime.misc.Pair
+import org.antlr.v4.runtime.misc.ParseCancellationException
+import org.antlr.v4.runtime.tree.TerminalNode
 
 /**
  * The one file that knows the parser exists. **Nothing else in the mod may import `org.antlr`** —
@@ -21,60 +25,75 @@ import org.antlr.v4.runtime.misc.Pair
  * [Sentence] out.
  *
  * **No lexing happens**: the input is a list of already-classified pages, so [PageTokens] feeds the parser
- * token types directly and the grammar declares no lexer rules. **Errors are collected, never thrown** —
- * a book that cannot be read must still make an Age (design §2), and what went unread is reported.
+ * token types directly and the grammar declares no lexer rules.
+ *
+ * **Nothing is recovered from.** A book either reads or it does not, and one that does not is [Repair]'s
+ * to make a sentence of — so this refuses rather than handing back a tree ANTLR patched up, which was a
+ * reading no writer chose and nobody could be told about.
  */
 internal object ArtGrammar {
 
-    fun parse(pages: List<Page>): Sentence {
-        // A page nobody recognises never reaches the parser: it has no token type, and letting ANTLR
-        // discover that would turn a vague sentence into a syntax error (§4.3).
-        val unreadable = pages.filter { it.kind == null }
-        val readable = pages.filter { it.kind != null }
-        if (readable.isEmpty()) return Sentence(emptyList(), unreadable.map { it.written })
-
-        val parser = ArtParser(CommonTokenStream(PageTokens(readable)))
-        // Ours, so a malformed book is data rather than noise on standard error.
+    /** The book [pages] spell, or null where they spell none — which is [Repair]'s cue, never an error. */
+    fun parse(pages: List<Page>): Sentence? {
+        val parser = ArtParser(CommonTokenStream(PageTokens(pages)))
+        // Ours, so a malformed book is an answer rather than noise on standard error; and bail rather than
+        // recover, so a book that does not read produces nothing instead of something half-eaten.
         parser.removeErrorListeners()
-        parser.addErrorListener(SilentErrorListener)
-
-        val phrases = Reading(readable).of(parser.sentence())
-
-        // What went unread comes from the **outcome**, not ANTLR's error tokens: a page that reached the
-        // parser and produced no constraint is one the Art could not use. Asking the error listener instead
-        // missed a trailing evocative word with no subject, discarded during recovery and reported nowhere.
-        val used = phrases.flatMap { it.said }.map { it.word }.toSet()
-        val unused = readable.filter { page -> page.kind in SPEAKS_FOR_ITSELF && page.word !in used }
-        // Written order, not unreadable-then-unused: the readout lays these back beside the row they came
-        // from, and a writer scanning for their typo is looking at the book rather than at our two reasons.
-        val dropped = (unreadable + unused).sortedBy(pages::indexOf).map { it.written }
-        return Sentence(phrases, dropped)
+        parser.errorHandler = BailErrorStrategy()
+        val read = try {
+            parser.sentence()
+        } catch (refused: ParseCancellationException) {
+            return null
+        }
+        // Only what the writer laid: a latent page is the Art's own and costs nobody ink.
+        val spelled = pages.filterNot(Page::latent).mapNotNull(Page::production)
+        return Sentence(Reading(pages).of(read), structural = spelled)
     }
 
     /**
-     * The classes that owe a constraint. A structural page does its work by joining or marking others; an
-     * aiming page owes one because it is a page a writer spent ink on, and one that reached nothing has to
-     * be reported like any other.
-     */
-    private val SPEAKS_FOR_ITSELF =
-        setOf(PageClass.EVOCATIVE, PageClass.SUBJECT, PageClass.PRESET, PageClass.SETTER)
-
-    /**
      * Token types come from **`ArtParser`**, never an `ArtLexer`: the grammar declares them with `tokens {}`
-     * and has no lexer rules, so any lexer on disk is a leftover whose numbering runs off by one past
-     * `PRESET` — which surfaces as a syntax error on an innocent page.
+     * and has no lexer rules, so any lexer on disk is a leftover whose numbering runs off by one — which
+     * surfaces as a syntax error on an innocent page.
      */
     private fun typeOf(page: Page): Int = when (page.kind) {
+        PageClass.NUCLEUS -> ArtParser.AGE
         PageClass.EVOCATIVE -> ArtParser.EVOCATIVE
-        PageClass.SUBJECT -> ArtParser.SUBJECT
-        PageClass.PRESET -> ArtParser.PRESET
-        PageClass.SETTER -> ArtParser.SETTER
+        PageClass.MATERIAL -> ArtParser.MATERIAL_TERM
+        PageClass.SUBJECT -> subjectTokenFor(page)
+        PageClass.TERM -> termTokenFor(page)
         PageClass.JOINER -> ArtParser.AND
         PageClass.RESTRICTOR -> ArtParser.ONLY
         PageClass.EXCLUDER -> ArtParser.EXCEPT
         PageClass.QUANTIFIER -> ArtParser.QUANTIFIER
         // Filtered out before this is reached; the branch exists so a new class breaks the build here.
         null -> error("an unreadable page reached the parser")
+    }
+
+    /**
+     * The two tables the aspect-typed grammar costs, and the reason they are exhaustive `when`s rather
+     * than a map: **a new aspect must break the build here**, since the grammar now has a rule per part of
+     * the world and a token that quietly fell through would be a page nothing could read.
+     */
+    private fun subjectTokenFor(page: Page): Int = when (page.aspect) {
+        Aspect.TERRAIN -> ArtParser.TERRAIN_SUBJECT
+        Aspect.SEA -> ArtParser.SEA_SUBJECT
+        Aspect.CARVERS -> ArtParser.CARVERS_SUBJECT
+        Aspect.BIOMES -> ArtParser.BIOMES_SUBJECT
+        Aspect.SKY -> ArtParser.SKY_SUBJECT
+        Aspect.STRUCTURES -> ArtParser.STRUCTURES_SUBJECT
+        Aspect.CLIMATE -> ArtParser.CLIMATE_SUBJECT
+        null -> error("the aiming page '${page.written}' is about no part of the world")
+    }
+
+    private fun termTokenFor(page: Page): Int = when (page.aspect) {
+        Aspect.TERRAIN -> ArtParser.TERRAIN_TERM
+        Aspect.SEA -> ArtParser.SEA_TERM
+        Aspect.CARVERS -> ArtParser.CARVERS_TERM
+        Aspect.BIOMES -> ArtParser.BIOMES_TERM
+        Aspect.SKY -> ArtParser.SKY_TERM
+        Aspect.STRUCTURES -> ArtParser.STRUCTURES_TERM
+        Aspect.CLIMATE -> ArtParser.CLIMATE_TERM
+        null -> error("the page '${page.written}' belongs to no part of the world")
     }
 
     /**
@@ -119,45 +138,88 @@ internal object ArtGrammar {
     private class Reading(private val pages: List<Page>) {
         private var nextGroup = 0
 
-        fun of(sentence: ArtParser.SentenceContext): List<Phrase> = sentence.section().map(::phraseOf)
+        fun of(sentence: ArtParser.SentenceContext): List<Phrase> =
+            // A nucleus that said nothing is not a clause. `Age` alone is a legal book — it simply makes an
+            // Age nobody described — and emitting an empty phrase for it would put a clause with no words
+            // in it into every reading and every count.
+            listOfNotNull(sentence.nucleus()?.let(::phraseOf)?.takeIf { it.said.isNotEmpty() }) +
+                sentence.section().map(::phraseOf)
 
-        private fun phraseOf(section: ArtParser.SectionContext): Phrase {
-            // Null where the writer aimed at nothing — the beginner's book, in which everything is about
-            // the whole Age, and the book that only steers ("blackstone" alone).
-            val subject = wordAt(section.subject()?.SUBJECT()?.symbol)
+        /**
+         * **Read structurally, not per aspect.** Every alternative of `section` has the same shape —
+         * descriptors, at most one subject terminal, then modifiers — so seven near-identical branches
+         * here would only restate what the grammar has already said. The subject is the one terminal
+         * standing directly under a section; everything else below it is a rule.
+         */
+        private fun phraseOf(section: ParserRuleContext): Phrase {
+            val laid = section.children.orEmpty()
+            val head = laid.filterIsInstance<TerminalNode>().firstOrNull()?.symbol
+            // **The Age is structure, not a claim.** It says nothing about the world — it gives the
+            // sentence a head — so like `and` it owes no constraint, and charging one would report the one
+            // page every book must have as a word aimed nowhere. Its clause is therefore subjectless, which
+            // is what the beginner's book always was: everything in it is about the whole Age.
+            val namesTheAge = pageAt(head)?.kind == PageClass.NUCLEUS
+            val subject = if (namesTheAge) null else wordAt(head)
             // What everything in the section is aimed at: position decides attachment, so no word is
             // searched for a home — it has the one it was laid down in.
             val aim = subject?.aspects.orEmpty()
 
-            val descriptors = section.descriptor().mapNotNull { descriptor ->
-                val word = wordAt(descriptor.EVOCATIVE().symbol) ?: return@mapNotNull null
+            val descriptors = laid.filterIsInstance<ArtParser.DescriptorContext>().mapNotNull { descriptor ->
+                val token = descriptor.EVOCATIVE().symbol
+                val word = wordAt(token) ?: return@mapNotNull null
                 // Aimed, and still global: an evocative word tilts and never narrows (§4.3.1).
-                Constraint(word, Scope.Everywhere(emphasised = aim))
+                Constraint(
+                    word,
+                    Scope.Everywhere(emphasised = aim),
+                    latent = wasDrawn(token),
+                    rehomed = wasMoved(token),
+                )
             }
+            val modifiers = laid.filterIsInstance<ParserRuleContext>()
+                .filterNot { it is ArtParser.DescriptorContext }
             return Phrase(
                 descriptors = descriptors,
-                subject = subject?.let { Constraint(it, scopeFor(it, aim)) },
-                modifiers = section.modifier().flatMap { modifier -> constraintsIn(modifier, aim) },
+                subject = subject?.let {
+                    Constraint(
+                        it,
+                        scopeFor(it, aim),
+                        latent = wasDrawn(head),
+                        rehomed = wasMoved(head),
+                    )
+                },
+                modifiers = modifiers.flatMap { modifier -> constraintsIn(modifier, aim) },
             )
         }
 
-        private fun constraintsIn(modifier: ArtParser.ModifierContext, aim: Set<Aspect>): List<Constraint> {
+        /**
+         * One modifier of whichever aspect's rule it came from, read through the shape they share:
+         * an optional polarity, then terms joined by `and`.
+         */
+        private fun constraintsIn(modifier: ParserRuleContext, aim: Set<Aspect>): List<Constraint> {
             val polarity = when {
-                modifier.ONLY() != null -> Polarity.ONLY
-                modifier.EXCEPT() != null -> Polarity.EXCEPT
+                modifier.getToken(ArtParser.ONLY, 0) != null -> Polarity.ONLY
+                modifier.getToken(ArtParser.EXCEPT, 0) != null -> Polarity.EXCEPT
                 else -> Polarity.ASSERTED
             }
-            val joined = modifier.conjunction()
-            val terms = joined.term()
+            val terms = modifier.children.orEmpty().filterIsInstance<ParserRuleContext>()
             // A group identifies words a writer joined; standing alone is *not* a group of one, because
             // unjoined juxtaposition has to keep meaning contention (§3.2).
             val group = if (terms.size > 1) Group(nextGroup++) else null
             return terms.mapNotNull { term ->
-                val word = wordAt(term.SETTER()?.symbol ?: term.PRESET()?.symbol) ?: return@mapNotNull null
+                // Every term rule is `QUANTIFIER? WORD`, so the word it carries is its last token.
+                val word = wordAt(term.stop) ?: return@mapNotNull null
                 // The rung sits on the page before the term it counts, and travels with the value from here
                 // on: what a quantifier modifies is the *claim*, never the word (§3.2).
-                val rung = pages.getOrNull(term.QUANTIFIER()?.symbol?.tokenIndex ?: -1)?.rung
-                Constraint(word, scopeFor(word, aim), polarity, group, rung ?: Density.ORDINARY)
+                val rung = pageAt(term.getToken(ArtParser.QUANTIFIER, 0)?.symbol)?.rung
+                Constraint(
+                    word,
+                    scopeFor(word, aim),
+                    polarity,
+                    group,
+                    rung ?: Density.ORDINARY,
+                    latent = wasDrawn(term.stop),
+                    rehomed = wasMoved(term.stop),
+                )
             }
         }
 
@@ -165,24 +227,26 @@ internal object ArtGrammar {
          * §4.3.1's tier rule: a word that cannot narrow candidates cannot narrow its own scope either, so
          * an evocative word stays global however it was aimed.
          *
-         * A narrowing word's scope is **its own declared aspects ∩ what the section aims at**. Without the
-         * intersection, aiming decided section boundaries and nothing else: `sea molten lava` put lava in
-         * the sea *and* made the land out of it, because `lava` declares both and nothing confined it.
-         * An empty intersection is left empty on purpose — charged, never re-homed.
+         * **A narrowing word's scope is simply where it was laid.** The grammar has already decided a term
+         * may sit here — a section admits only terms belonging to the part of the world it aims at — so
+         * placement is *read* rather than re-derived, and there is no arrangement of words that produces a
+         * word aimed nowhere.
+         *
+         * That the grammar decides it is also what makes `sea ice` a sentence. [Word.aspects] is where a
+         * word speaks when **nobody aimed it** — "only a liquid volunteers for the sea unprompted" — so
+         * intersecting with it would have kept every solid out of a sea it was pointed straight at.
          */
         private fun scopeFor(word: Word, aim: Set<Aspect>): Scope {
             if (!word.tier.narrows) return Scope.Everywhere(aim)
-            val declared = word.aspects
-            if (aim.isEmpty()) return Scope.Confined(declared)
-            return Scope.Confined(declared.ifEmpty { aim }.intersect(aim))
+            return Scope.Confined(aim.ifEmpty { word.aspects })
         }
 
-        private fun wordAt(token: Token?): Word? = pages.getOrNull(token?.tokenIndex ?: return null)?.word
-    }
+        private fun pageAt(token: Token?): Page? = pages.getOrNull(token?.tokenIndex ?: return null)
 
-    /**
-     * Swallows ANTLR's complaints, so a malformed book does not print to standard error. Not the source of
-     * what went unread — that comes from the outcome, above.
-     */
-    private object SilentErrorListener : org.antlr.v4.runtime.BaseErrorListener()
+        private fun wordAt(token: Token?): Word? = pageAt(token)?.word
+
+        private fun wasDrawn(token: Token?): Boolean = pageAt(token)?.latent == true
+
+        private fun wasMoved(token: Token?): Boolean = pageAt(token)?.rehomed == true
+    }
 }

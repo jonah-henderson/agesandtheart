@@ -27,7 +27,11 @@ class ReadoutCheck : FunSpec({
         }
     }
 
-    fun readingOf(vararg pages: String): String = Readout.of(Grammar.read(vocabulary, pages.toList()))
+    /**
+     * A book, as it reads. **The nucleus is supplied here** rather than written into every fixture: every
+     * book has an `age`, and what these check is the reading of what follows it.
+     */
+    fun readingOf(vararg pages: String): String = Readout.of(Grammar.read(vocabulary, listOf("age") + pages))
 
     /**
      * The particle a writer was spared, restored to show the position it was inferred into — which is the
@@ -89,14 +93,14 @@ class ReadoutCheck : FunSpec({
     /**
      * **It prettifies; it never launders** (§4.3.1). Prose that quietly smoothed over a page the Art could
      * not read would be the exact "wrong world, no signal" failure that rejecting ambiguity exists to
-     * prevent — so an unreadable page must be absent from the prose and present in [Sentence.dropped],
+     * prevent — so an unreadable page must be absent from the prose and present in [Sentence.unreadable],
      * where the caller shows it struck through.
      */
     test("an unread page never reaches the prose") {
-        val read = Grammar.read(vocabulary, listOf("landmass", "zzzznotaword", "basalt"))
+        val read = Grammar.read(vocabulary, listOf("age", "landmass", "zzzznotaword", "basalt"))
         val reading = Readout.of(read)
         check("zzzznotaword" !in reading) { "an unreadable page was laundered into the prose: '$reading'" }
-        check("zzzznotaword" in read.dropped) { "an unreadable page went unreported: ${read.dropped}" }
+        check("zzzznotaword" in read.unreadable) { "an unreadable page went unreported: ${read.unreadable}" }
         check(reading == "landmass of basalt.") { "the rest of the book did not survive: '$reading'" }
     }
 

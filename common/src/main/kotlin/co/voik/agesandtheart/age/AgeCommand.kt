@@ -7,7 +7,6 @@ import co.voik.agesandtheart.age.word.Resolver
 import co.voik.agesandtheart.sky.Skies
 import co.voik.agesandtheart.worldgen.field.RegionMap
 import co.voik.agesandtheart.sky.SkySpec
-import co.voik.agesandtheart.age.word.BookGenerator
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.generation.TerminalKind
 import co.voik.agesandtheart.age.word.grammar.Grammar
@@ -78,6 +77,9 @@ object AgeCommand {
     private const val SEED_ARGUMENT = "seed"
     private const val SPECIFICATION_ARGUMENT = "spec"
     private const val SENTENCE_ARGUMENT = "words"
+
+    /** The generation grammar a found book is written from — `art/generation/book.json`. */
+    private const val BOOK_GRAMMAR = "book"
 
     /** Vanilla's End arrival platform, which is where a portal would have put you. */
     private const val END_PLATFORM_X = 100.5
@@ -415,6 +417,13 @@ object AgeCommand {
         reportProblems(report, vocabulary)
         val pages = StringArgumentType.getString(context, SENTENCE_ARGUMENT)
             .split(' ').filter(String::isNotBlank)
+        // **A page nobody recognises is not a thing that happens in play**: a player assembles a book from
+        // pages, and every page carries a real word. Typing one here is a typo, so it fails the command
+        // rather than quietly making a vaguer Age out of the rest.
+        val unknown = pages.filter { vocabulary.word(it) == null && vocabulary.grammarWord(it) == null }
+        if (unknown.isNotEmpty()) {
+            return report.fail("The Art has never heard of ${unknown.joinToString(" ")}")
+        }
         val read = Grammar.read(vocabulary, pages)
         if (read.isEmpty) return report.fail("An Age needs at least one word the Art can read")
         reportParse(report, read)
@@ -459,27 +468,57 @@ object AgeCommand {
                 is Scope.Everywhere ->
                     if (scope.emphasised.isEmpty()) "everywhere"
                     else "everywhere, most of all ${scope.emphasised.joinToString(" ") { it.key }}"
-                is Scope.Confined -> scope.aspects.joinToString(" ") { it.key }.ifEmpty { "wherever it fits" }
+                is Scope.Confined -> scope.aspects.joinToString(" ") { it.key }
             }
             val joined = said.group?.let { " (joined)" } ?: ""
+            // Marked rather than hidden: the Age is built from the Art's own pages too, so a reader owed a
+            // diagnosis has to see them — and they were never in the book, so they must not read as though
+            // the writer had laid them.
+            val whose = when {
+                said.latent -> " (the Art's own)"
+                said.rehomed -> " (moved here)"
+                else -> ""
+            }
             val fields = mapOf(
                 "word" to said.word.name,
                 "reaches" to said.scope.reaches(emptyList()).map { it.key },
                 "polarity" to said.polarity.name.lowercase(),
                 "density" to said.density.key,
                 "joined" to (said.group != null),
+                "latent" to said.latent,
+                "rehomed" to said.rehomed,
             )
-            report.entry("said", fields) { "    ${said.word.name} → $aimed$joined" }
+            report.entry("said", fields) { "    ${said.word.name} → $aimed$joined$whose" }
         }
-        // Vagueness, never instability (§4.3) — but struck through and said plainly, because the readout
-        // above renders only what parsed, and prose that quietly omitted a page would read as though it
-        // had worked (§4.3.1).
-        report.only("dropped", read.dropped)
-        if (read.dropped.isNotEmpty()) {
+        // A book that was not a sentence is repaired against one the Art draws for itself, and what it drew
+        // is the natural course of a world nobody described that far. The book never shows it, so this is
+        // the only place a writer can be told.
+        val supplied = read.constraints.filter { it.latent }.map { it.word.name }
+        report.only("supplied", supplied)
+        if (supplied.isNotEmpty()) {
             report.styled {
-                val unread = Component.literal(read.dropped.joinToString(" "))
+                Component.literal("  your book was not a sentence, so the Art wrote the rest of it: ")
+                    .append(Component.literal(supplied.joinToString(" ")).withStyle(ChatFormatting.GRAY))
+            }
+        }
+        // The two ways a page can fail to be in the reading, said apart because they cost different things
+        // (§4.3): one makes the Age vaguer and is charged nothing, the other is charged and charged dearly.
+        // Both are struck through and said plainly, since the readout above renders only what parsed and
+        // prose that quietly omitted a page would read as though it had worked (§4.3.1).
+        report.only("unreadable", read.unreadable)
+        if (read.unreadable.isNotEmpty()) {
+            report.styled {
+                val unread = Component.literal(read.unreadable.joinToString(" "))
                     .withStyle(ChatFormatting.STRIKETHROUGH)
                 Component.literal("  unread, so the Age comes out vaguer: ").append(unread)
+            }
+        }
+        report.only("impossible", read.impossible)
+        if (read.impossible.isNotEmpty()) {
+            report.styled {
+                val nowhere = Component.literal(read.impossible.joinToString(" "))
+                    .withStyle(ChatFormatting.STRIKETHROUGH)
+                Component.literal("  no sentence has a place for: ").append(nowhere)
             }
         }
     }
@@ -956,7 +995,12 @@ object AgeCommand {
     private fun runBook(context: CommandContext<CommandSourceStack>, seed: Long): Int {
         val source = context.source
         val vocabulary = Vocabulary.of(source.server)
-        val pages = BookGenerator.write(vocabulary, seed)
+        val grammar = vocabulary.generation.grammar(BOOK_GRAMMAR)
+        if (grammar == null) {
+            source.sendFailure(Component.literal("This pack ships no '$BOOK_GRAMMAR' grammar, so the Art writes none"))
+            return FAILURE
+        }
+        val pages = grammar.expand(Random(seed))
         source.sendSuccess({ Component.literal("A book at seed $seed, ${pages.size} pages:") }, false)
         source.sendSuccess({ Component.literal("  ${pages.joinToString(" ")}") }, false)
         // Said back through the readout, so what it *means* is visible beside what it says — which is the

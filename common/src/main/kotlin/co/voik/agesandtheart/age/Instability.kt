@@ -9,7 +9,7 @@ import net.minecraft.util.StringRepresentable
 import java.util.Optional
 
 /**
- * The four ways a sentence can be at odds with the world, in ascending order of how much trouble it is.
+ * The ways a sentence can be at odds with the world, in ascending order of how much trouble it is.
  *
  * Registers rather than one severity dial: "nothing carries this word" and "an earlier word crowded it
  * out" look identical from outside and must not be charged as the same complaint.
@@ -21,6 +21,15 @@ enum class Register(
 ) : StringRepresentable {
     /** Two words meant opposite things and the world honoured both anyway. */
     TENSION("tension", base = 1),
+
+    /**
+     * A page could not be read where it was laid, so the Art moved it somewhere it could (§4.3.1).
+     *
+     * Cheap, because the word still did what it means — `starless` under the land ends up meaning a
+     * starless sky. What it is charged for is the writing rather than the outcome: the writer aimed a page
+     * at a part of the world that had no use for it, and aiming is a precision lever they chose to pull.
+     */
+    REHOMED("rehomed", base = 1),
 
     /**
      * An aspect had to break into fragments to honour everything asked of it.
@@ -35,26 +44,29 @@ enum class Register(
     DISPLACED("displaced", base = 2),
 
     /**
-     * A word was aimed at a part of the world it says nothing about — `flat sky`.
-     *
-     * The writer's own mistake, and the price of aiming being a precision lever: it is **never re-homed**
-     * to somewhere it would have worked (§4.3.1), because a parser allowed to relocate a word to make a
-     * sentence work is the misreading this whole design avoids. Cheap, since the page was spent and
-     * nothing else went wrong.
-     */
-    MISAIMED("misaimed", base = 1),
-
-    /**
      * Nothing in the aspect could ever be what the word asked for.
      *
      * A content bug rather than a play outcome (design §3.3) — `VocabularyCheck` keeps it from shipping.
      * A register anyway, because a word that slips through must be reported, never silently dropped.
      */
     UNBACKED("unbacked", base = 4),
+
+    /**
+     * A page there was nowhere for **in any sentence at all** — a second `Age`, or an `and` with nothing
+     * on one side of it (§4.3.1).
+     *
+     * The dearest, and the only register that costs a writer a page outright. Everything else here is a
+     * world at odds with itself, where this is a book that was not one: repair fits a page in wherever it
+     * can, so reaching this means there was no such place anywhere in a complete sentence.
+     */
+    IMPOSSIBLE("impossible", base = 6),
     ;
 
-    /** What a flaw of this kind costs when the word that caused it was written at [tier]. */
-    fun charge(tier: Tier): Int = base * tier.weight
+    /**
+     * What a flaw of this kind costs when the word that caused it was written at [tier] — flat where the
+     * page carried no word, since a structural page has no precision to scale by.
+     */
+    fun charge(tier: Tier?): Int = base * (tier?.weight ?: 1)
 
     override fun getSerializedName(): String = key
 
@@ -91,10 +103,12 @@ data class Flaw(
             Register.FRACTURE -> "the $where fractured so that $both could both stand$over"
             Register.DISPLACED -> "${quoted.firstOrNull() ?: "a word"} was crowded out of $where" +
                 quoted.drop(1).firstOrNull().orEmpty().let { if (it.isEmpty()) "" else " by $it" } + over
-            Register.MISAIMED -> "${quoted.firstOrNull() ?: "a word"} says nothing about $where, " +
-                "and it was written where nothing else could hear it"
+            Register.REHOMED -> "${quoted.firstOrNull() ?: "a word"} could not be read where you laid it, " +
+                "so the Art laid it under $where instead"
             Register.UNBACKED -> "nothing in $where can be ${quoted.firstOrNull() ?: "that"} — " +
                 "a gap in the vocabulary, not something you did"
+            Register.IMPOSSIBLE -> "there is nowhere in a sentence for ${quoted.firstOrNull() ?: "that page"}, " +
+                "so it was spent for nothing"
         }
     }
 

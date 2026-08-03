@@ -55,11 +55,12 @@ class GrammarCheck : FunSpec({
     /**
      * A production nothing spells is a structure no writer can reach — a content bug, like an unbacked word.
      *
-     * Asked only of the **available** ones, since an unavailable production is deliberately unreachable.
+     * Asked of **every** production, there being no such thing as one held back: a page teaches its word
+     * outright and mastery gates comprehension rather than availability.
      */
     test("every production has a word") {
         val spelled = vocabulary.grammarWords.map { it.production }.toSet()
-        val unreachable = Production.entries.filter { it.available && it !in spelled }
+        val unreachable = Production.entries.filter { it !in spelled }
         check(unreachable.isEmpty()) {
             "no word spells ${unreachable.joinToString { it.key }}, so the structure cannot be written"
         }
@@ -67,7 +68,7 @@ class GrammarCheck : FunSpec({
 
     /** Position decides attachment: a modifier belongs to the subject it follows, never to one it does not. */
     test("a section attaches its modifiers") {
-        val read = Grammar.read(vocabulary, listOf("floating", "basalt"))
+        val read = Grammar.read(vocabulary, listOf("age", "floating", "basalt"))
         check(read.dropped.isEmpty()) { "a plain two-page book would not read: ${read.dropped}" }
         check(read.constraints.size == 2) { "expected a subject and its modifier, got ${read.constraints}" }
         check(read.words.map { it.name } == listOf("floating", "basalt")) {
@@ -83,7 +84,7 @@ class GrammarCheck : FunSpec({
      * but whether an aiming page stands in front of them, which is the whole of what position decides.
      */
     test("an aiming page opens a section") {
-        val aimed = Grammar.read(vocabulary, listOf("landmass", "floating", "sea", "molten"))
+        val aimed = Grammar.read(vocabulary, listOf("age", "landmass", "floating", "sea", "molten"))
         check(aimed.phrases.size == 2) {
             "two aiming pages made ${aimed.phrases.size} section(s): ${aimed.phrases}"
         }
@@ -94,7 +95,7 @@ class GrammarCheck : FunSpec({
             "'floating' did not stay with the landmass: ${aimed.phrases.first().modifiers}"
         }
 
-        val unaimed = Grammar.read(vocabulary, listOf("floating", "molten"))
+        val unaimed = Grammar.read(vocabulary, listOf("age", "floating", "molten"))
         check(unaimed.phrases.size == 1) {
             "a book with no aiming page split into ${unaimed.phrases.size} sections: ${unaimed.phrases}"
         }
@@ -107,7 +108,7 @@ class GrammarCheck : FunSpec({
      * make the first book unwritable.
      */
     test("a book that aims at nothing still says everything in it") {
-        val read = Grammar.read(vocabulary, listOf("beautiful", "floating", "basalt"))
+        val read = Grammar.read(vocabulary, listOf("beautiful", "age", "floating", "basalt"))
         check(read.dropped.isEmpty()) { "an unaimed book lost pages: ${read.dropped}" }
         check(read.words.map { it.name } == listOf("beautiful", "floating", "basalt")) {
             "the reading reordered or dropped an unaimed book: ${read.words}"
@@ -123,14 +124,14 @@ class GrammarCheck : FunSpec({
      * the *land* out of lava as well, and the readout said nothing about it because the parse looked right.
      */
     test("aiming confines a word to what it was aimed at") {
-        val underTheSea = Grammar.read(vocabulary, listOf("sea", "lava"))
+        val underTheSea = Grammar.read(vocabulary, listOf("age", "sea", "lava"))
         val confined = underTheSea.constraints.first { it.word.name == "lava" }
         check(confined.scope.reaches(emptyList()) == listOf(Aspect.SEA)) {
             "'sea lava' let lava reach ${confined.scope.reaches(emptyList())}"
         }
 
         // And unaimed it keeps everything it declares, or aiming would be the only way to say anything.
-        val unaimed = Grammar.read(vocabulary, listOf("lava"))
+        val unaimed = Grammar.read(vocabulary, listOf("age", "lava"))
         val loose = unaimed.constraints.first { it.word.name == "lava" }
         check(Aspect.TERRAIN in loose.scope.reaches(emptyList())) {
             "an unaimed word lost an aspect it declares: ${loose.scope.reaches(emptyList())}"
@@ -138,16 +139,27 @@ class GrammarCheck : FunSpec({
     }
 
     /**
-     * The other side of aiming: a word aimed where it says nothing reaches **nothing at all**, and is
-     * charged rather than quietly re-homed to somewhere it would have worked (§4.3.1). A parser allowed to
-     * relocate a word to make a sentence work is the misreading this design exists to avoid.
+     * The other side of aiming: a word cannot be **absorbed** by a section it says nothing about.
+     *
+     * A section admits only terms belonging to the part of the world it aims at, so `landmass starless`
+     * cannot make the land starless — it is not a sentence at all, and what happens to it is [Repair]'s
+     * business. What is asserted here is the half the grammar owes: the word keeps its own meaning and
+     * takes nothing from the land.
+     *
+     * **Re-homing owes the writer a charge**, which is not the parser's to levy either. What it does owe
+     * is that the move be *visible*, which is why the clause the word ended up under is asserted too.
      */
-    test("a word aimed where it says nothing is not re-homed") {
-        val read = Grammar.read(vocabulary, listOf("landmass", "starless"))
-        val starless = read.constraints.first { it.word.name == "starless" }
-        check(starless.scope.reaches(emptyList()).isEmpty()) {
-            "a sky word aimed at the land was re-homed to ${starless.scope.reaches(emptyList())}"
+    test("a word cannot be absorbed by a section it says nothing about") {
+        val read = Grammar.read(vocabulary, listOf("age", "landmass", "starless"))
+        val land = read.phrases.first { it.subject?.word?.name == "landmass" }
+        check(land.modifiers.none { it.word.name == "starless" }) {
+            "a sky word aimed at the land was read as saying something about it: $land"
         }
+        val adopted = read.phrases.first { phrase -> phrase.modifiers.any { it.word.name == "starless" } }
+        check(adopted.subject?.word?.aspects == setOf(Aspect.SKY)) {
+            "a sky word aimed at the land was re-homed to ${adopted.subject?.word}, which is not the sky"
+        }
+        check("starless" !in read.dropped) { "a word with a home of its own was dropped: ${read.dropped}" }
     }
 
     /**
@@ -155,7 +167,7 @@ class GrammarCheck : FunSpec({
      * the claim rather than the word, so what the parser owes is putting it on the right constraint.
      */
     test("a quantifier binds to the term it precedes") {
-        val read = Grammar.read(vocabulary, listOf("landmass", "basalt", "and", "teeming", "slate"))
+        val read = Grammar.read(vocabulary, listOf("age", "landmass", "basalt", "and", "teeming", "slate"))
         check(read.dropped.isEmpty()) { "a quantified book lost pages: ${read.dropped}" }
         val counted = read.constraints.first { it.word.name == "slate" }
         check(counted.density == Density.TEEMING) { "'teeming slate' resolved to ${counted.density}" }
@@ -171,7 +183,7 @@ class GrammarCheck : FunSpec({
      * commonest thing anyone writes the *narrow* reading.
      */
     test("an evocative word stays global when aimed") {
-        val read = Grammar.read(vocabulary, listOf("beautiful", "landmass", "floating"))
+        val read = Grammar.read(vocabulary, listOf("age", "beautiful", "landmass", "floating"))
         val beautiful = read.constraints.first { it.word.name == "beautiful" }
         val scope = beautiful.scope as? Scope.Everywhere
             ?: error("an aimed evocative word was confined to ${beautiful.scope}, which demotes it to restrictive")
@@ -182,7 +194,7 @@ class GrammarCheck : FunSpec({
 
     /** The other half: a word that narrows candidates narrows where it speaks. */
     test("a narrowing word is confined") {
-        val read = Grammar.read(vocabulary, listOf("floating"))
+        val read = Grammar.read(vocabulary, listOf("age", "floating"))
         val floating = read.constraints.single()
         val scope = floating.scope as? Scope.Confined ?: error("'floating' was left global at ${floating.scope}")
         check(scope.aspects == setOf(Aspect.TERRAIN)) { "'floating' reaches ${scope.aspects}" }
@@ -195,13 +207,13 @@ class GrammarCheck : FunSpec({
      * then "and" would mean nothing, and there would be no way left to say *keep both*.
      */
     test("joining is not juxtaposition") {
-        val joined = Grammar.read(vocabulary, listOf("verdant", "basalt", "and", "slate"))
+        val joined = Grammar.read(vocabulary, listOf("age", "verdant", "basalt", "and", "slate"))
         val groups = joined.constraints.mapNotNull { it.group }.distinct()
         check(groups.size == 1) { "'basalt and molten' should share one group, got ${joined.constraints}" }
         val grouped = joined.constraints.filter { it.group != null }.map { it.word.name }
         check(grouped.size == 2) { "expected two words in the group, got $grouped" }
 
-        val unjoined = Grammar.read(vocabulary, listOf("verdant", "basalt", "slate"))
+        val unjoined = Grammar.read(vocabulary, listOf("age", "verdant", "basalt", "slate"))
         check(unjoined.constraints.all { it.group == null }) {
             "unjoined juxtaposition was read as a group, which would leave 'and' meaning nothing"
         }
@@ -210,7 +222,7 @@ class GrammarCheck : FunSpec({
     /** `only` and `except` attach to the values they precede, not to the section at large. */
     test("only and except reach their values") {
         for ((page, expected) in listOf("only" to Polarity.ONLY, "except" to Polarity.EXCEPT)) {
-            val read = Grammar.read(vocabulary, listOf("verdant", page, "basalt"))
+            val read = Grammar.read(vocabulary, listOf("age", "verdant", page, "basalt"))
             val basalt = read.constraints.first { it.word.name == "basalt" }
             check(basalt.polarity == expected) { "'$page basalt' gave ${basalt.polarity}" }
             val subject = read.constraints.first { it.word.name == "verdant" }
@@ -224,8 +236,8 @@ class GrammarCheck : FunSpec({
      * is ANTLR's own strategy, so pinning it would describe the parser rather than the design.
      */
     test("an unreadable page becomes vagueness, not an error") {
-        val read = Grammar.read(vocabulary, listOf("floating", "zzzznotaword", "basalt"))
-        check("zzzznotaword" in read.dropped) { "an unknown page was not reported: ${read.dropped}" }
+        val read = Grammar.read(vocabulary, listOf("age", "floating", "zzzznotaword", "basalt"))
+        check(read.unreadable == listOf("zzzznotaword")) { "an unknown page was not reported: ${read.unreadable}" }
         check(read.constraints.any { it.word.name == "floating" }) {
             "one unreadable page cost the whole book: ${read.constraints}"
         }
@@ -261,7 +273,7 @@ class GrammarCheck : FunSpec({
             }
         }
         // The joining word owes no constraint of its own, so it must never be reported as unread.
-        val joined = Grammar.read(vocabulary, listOf("verdant", "basalt", "and", "slate"))
+        val joined = Grammar.read(vocabulary, listOf("age", "verdant", "basalt", "and", "slate"))
         check(joined.dropped.isEmpty()) { "a structural page was reported as unread: ${joined.dropped}" }
     }
 
@@ -272,7 +284,7 @@ class GrammarCheck : FunSpec({
      * aspects they declare themselves.
      */
     test("a book that only steers still says something") {
-        val read = Grammar.read(vocabulary, listOf("basalt"))
+        val read = Grammar.read(vocabulary, listOf("age", "basalt"))
         check(read.dropped.isEmpty()) { "'basalt' alone was unreadable: ${read.dropped}" }
         val basalt = read.constraints.singleOrNull() ?: error("'basalt' alone gave ${read.constraints}")
         check(Aspect.TERRAIN in basalt.scope.reaches(emptyList())) {

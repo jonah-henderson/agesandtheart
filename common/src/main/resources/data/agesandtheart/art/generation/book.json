@@ -3,35 +3,140 @@
   "terminals": "word",
   "rules": {
     "book": [
-      { "weight": 1, "produce": ["<frozen_age>"] },
-      { "weight": 1, "produce": ["<molten_age>"] }
+      {
+        "weight": 1,
+        "produce": [
+          "age",
+          "<frozen_age>"
+        ]
+      },
+      {
+        "weight": 1,
+        "produce": [
+          "age",
+          "<molten_age>"
+        ]
+      }
     ],
     "frozen_age": [
-      { "weight": 2, "produce": ["<bleak_mood>", "landmass", "<cold_stone>", "climate", "frozen"] },
-      { "weight": 1, "produce": ["landmass", "<cold_stone>", "climate", "frozen", "sky", "<cold_sky>"] }
+      {
+        "weight": 2,
+        "produce": [
+          "<bleak_mood>",
+          "landmass",
+          "<cold_stone>",
+          "climate",
+          "frozen"
+        ]
+      },
+      {
+        "weight": 1,
+        "produce": [
+          "landmass",
+          "<cold_stone>",
+          "climate",
+          "frozen",
+          "sky",
+          "<cold_sky>"
+        ]
+      }
     ],
     "molten_age": [
-      { "weight": 2, "produce": ["<bleak_mood>", "landmass", "<hot_stone>", "sea", "molten"] },
-      { "weight": 1, "produce": ["landmass", "<hot_stone>", "depths", "riddled", "sea", "molten"] }
+      {
+        "weight": 2,
+        "produce": [
+          "<bleak_mood>",
+          "landmass",
+          "<hot_stone>",
+          "sea",
+          "molten"
+        ]
+      },
+      {
+        "weight": 1,
+        "produce": [
+          "landmass",
+          "<hot_stone>",
+          "depths",
+          "riddled",
+          "sea",
+          "molten"
+        ]
+      }
     ],
     "bleak_mood": [
-      { "weight": 2, "produce": ["desolate"] },
-      { "weight": 1, "produce": ["ancient"] },
-      { "weight": 1, "produce": ["foreboding"] }
+      {
+        "weight": 2,
+        "produce": [
+          "desolate"
+        ]
+      },
+      {
+        "weight": 1,
+        "produce": [
+          "ancient"
+        ]
+      },
+      {
+        "weight": 1,
+        "produce": [
+          "foreboding"
+        ]
+      }
     ],
     "cold_stone": [
-      { "weight": 2, "produce": ["packed_ice"] },
-      { "weight": 1, "produce": ["blue_ice"] },
-      { "weight": 1, "produce": ["snow_block"] }
+      {
+        "weight": 2,
+        "produce": [
+          "packed_ice"
+        ]
+      },
+      {
+        "weight": 1,
+        "produce": [
+          "blue_ice"
+        ]
+      },
+      {
+        "weight": 1,
+        "produce": [
+          "snow_block"
+        ]
+      }
     ],
     "hot_stone": [
-      { "weight": 2, "produce": ["basalt"] },
-      { "weight": 1, "produce": ["blackstone"] },
-      { "weight": 1, "produce": ["magma_block"] }
+      {
+        "weight": 2,
+        "produce": [
+          "basalt"
+        ]
+      },
+      {
+        "weight": 1,
+        "produce": [
+          "blackstone"
+        ]
+      },
+      {
+        "weight": 1,
+        "produce": [
+          "magma_block"
+        ]
+      }
     ],
     "cold_sky": [
-      { "weight": 1, "produce": ["overcast"] },
-      { "weight": 1, "produce": ["starlit"] }
+      {
+        "weight": 1,
+        "produce": [
+          "overcast"
+        ]
+      },
+      {
+        "weight": 1,
+        "produce": [
+          "starlit"
+        ]
+      }
     ]
   }
 }

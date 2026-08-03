@@ -10,13 +10,38 @@ import net.minecraft.util.StringRepresentable
 import java.util.Optional
 
 /**
- * A structure the language can express — and the unit mastery unlocks (design §4.5). [available] is the
- * wire for that gating; everything is on today.
+ * A structure the language can express (design §4.5).
+ *
+ * **Mastery gates comprehension, never availability.** Holding or reading the page teaches the word
+ * outright; what a writer acquires is knowing *how* to use it, and that comes from studying well-formed
+ * books rather than from anything switching a production on. So a production has no gate of its own, and
+ * every page a writer holds is a page they can lay.
  *
  * **Only load-bearing structures earn one.** A word inferable from position, or that does not alter
  * meaning, is not in the language at all — which is why `of`, `over` and `with` are absent.
  */
-enum class Production(val key: String, val available: Boolean = true) : StringRepresentable {
+enum class Production(
+    val key: String,
+    /**
+     * Fine inks this page costs, the way [co.voik.agesandtheart.age.word.Tier] prices an ordinary word.
+     * Two by default; the [NUCLEUS] is the floor at one. Literals rather than named constants because an
+     * enum constructor cannot see its own companion.
+     */
+    val cost: Int = 2,
+) : StringRepresentable {
+    /**
+     * `Age` — **what the whole book is about**, and the one page every book must have.
+     *
+     * Structure rather than content, which is why it lives here beside `and` rather than in the corpus: it
+     * says nothing about the world, it gives the sentence a head. `beautiful` is not a book; `beautiful
+     * Age` is.
+     *
+     * **Cheap, but never free.** Every page a writer lays costs ink, and the one page every book must have
+     * is the floor rather than an exemption — a mandatory page that cost nothing would be a page the writer
+     * never really spends, and the ink economy would quietly stop counting the commonest thing in the game.
+     */
+    NUCLEUS("nucleus", cost = 1),
+
     /**
      * `and` — **keep both, and keep them apart**. Needed only where it changes the meaning, which differs
      * by what the value claims (§3.2): a predicative pair unjoined contends and one is displaced, where a
@@ -62,8 +87,8 @@ data class GrammarWord(
      * Which rung a [Production.QUANTIFICATION] page names, and null for every other production.
      *
      * The exception to "a structural word carries no value", and it earns it: the *ability* to quantify is
-     * one production, but a writer needs a page per rung to say which — so the production is the unlock and
-     * this is the word. `Polarity` made the same crossing in the other direction (§4.3.1).
+     * one production, but a writer needs a page per rung to say which — so the production is the capability
+     * and this is the word. `Polarity` made the same crossing in the other direction (§4.3.1).
      */
     val rung: Density? = null,
 ) {

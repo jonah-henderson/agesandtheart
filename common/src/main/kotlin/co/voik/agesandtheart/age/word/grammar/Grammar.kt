@@ -1,16 +1,29 @@
 package co.voik.agesandtheart.age.word.grammar
 
+import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Density
+import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.word.Tier
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.Word
 
 /**
- * What class of thing a page is, as far as the structure is concerned — the grammar's terminals, and why
- * it stays small while the vocabulary grows without bound. A modpack adding forty thousand block words
- * adds no terminals.
+ * What class of thing a page is, as far as the structure is concerned — the grammar's terminals.
+ *
+ * **A class, plus for most of them an aspect**, which is what the grammar needs to keep a term under a
+ * subject it belongs to. The vocabulary still grows without bound underneath: a modpack adding forty
+ * thousand block words adds no classes, because every one of them is a [MATERIAL].
  */
 enum class PageClass {
+    /**
+     * `Age` — what the whole book is about, and the one page every book must have.
+     *
+     * Structure rather than content: it says nothing about the world, it gives the sentence a head. A
+     * writer who has only evocative pages still writes a sentence rather than a heap, every descriptor has
+     * something to describe, and a term that cannot join its section has nowhere to quietly go instead.
+     */
+    NUCLEUS,
+
     /** Tilts weights and never narrows, so it precedes a subject and colours it (design §4.4). */
     EVOCATIVE,
 
@@ -20,11 +33,18 @@ enum class PageClass {
      */
     SUBJECT,
 
-    /** Chooses which preset fills an aspect. Attaches to whatever section it sits in. */
-    PRESET,
+    /**
+     * A block: something a part of the world can be **made of**, rather than something one part is about.
+     *
+     * Its own class because being made of a substance is shared — `Sea` is an open aspect whose value *is*
+     * a block, and a terrain wears one through its `stone` parameter — so `a sea of ice` and `land of
+     * blackstone` are both sentences and the *section* decides which is meant. Deciding it by section is
+     * what keeps that from being a word reaching out of its clause.
+     */
+    MATERIAL,
 
-    /** Steers a preset's parameter — a material, a population. Attaches to whatever section it sits in. */
-    SETTER,
+    /** Anything else a writer says about a section: a preset to fill it, or a parameter to steer it. */
+    TERM,
 
     /** `and`, `only`, `except`, and the rungs — structure rather than content. */
     JOINER,
@@ -37,14 +57,22 @@ enum class PageClass {
  * One page of a book as the parser sees it: what was written, and what the Art makes of it.
  *
  * [word] is null for a structural page and for one nobody recognises — the two are told apart by [kind],
- * which is null only in the second case.
+ * which is null only in the second case. [aspect] is the part of the world a [PageClass.SUBJECT] opens or
+ * a [PageClass.TERM] belongs to, and null for every class that belongs to no single one.
  */
 data class Page(
     val written: String,
     val kind: PageClass?,
     val word: Word? = null,
+    val aspect: Aspect? = null,
+    /** The structure a structural page spells, and null for a page that carries a word instead. */
+    val production: Production? = null,
     /** The rung a [PageClass.QUANTIFIER] page names — the one structural page that carries a value. */
     val rung: Density? = null,
+    /** Whether [Repair] drew this page rather than the writer laying it. */
+    val latent: Boolean = false,
+    /** Whether the writer laid this page where it could not be read, so [Repair] moved it. */
+    val rehomed: Boolean = false,
 )
 
 /**
@@ -56,22 +84,36 @@ object Grammar {
     /**
      * The book [pages] spell, at whatever the vocabulary currently says those pages mean.
      *
-     * **Never refuses.** A page nobody recognises is dropped and reported, and the Age comes out vaguer
-     * (§4.3) — design §2 forbids the pen validating a sentence, since that would make precision risk-free.
+     * **Never refuses.** A book that does not read is not an error but a [Repair]: the Art writes a
+     * sentence of its own and lays the writer's pages into it, so what comes back is always a sentence
+     * (design §2). A page nobody recognises is dropped and reported, and the Age comes out vaguer (§4.3).
      */
-    fun read(vocabulary: Vocabulary, pages: List<String>): Sentence =
-        ArtGrammar.parse(pages.map { written -> classify(vocabulary, written) })
+    fun read(vocabulary: Vocabulary, pages: List<String>): Sentence {
+        val laid = pages.map { written -> classify(vocabulary, written) }
+        // A page nobody recognises never reaches the parser: it has no token type, and letting ANTLR
+        // discover that would turn a vague sentence into a syntax error (§4.3).
+        val readable = laid.filter { it.kind != null }
+        val read = ArtGrammar.parse(readable) ?: Repair.of(vocabulary, readable)
+        return read.copy(unreadable = laid.filter { it.kind == null }.map(Page::written))
+    }
 
-    /** What the Art makes of one page — its class, and the word behind it where there is one. */
-    private fun classify(vocabulary: Vocabulary, written: String): Page {
+    /**
+     * What the Art makes of one page — its class, the word behind it, and the part of the world it is in.
+     * [latent] where the page is the Art's own rather than a writer's.
+     */
+    internal fun classify(vocabulary: Vocabulary, written: String, latent: Boolean = false): Page {
         vocabulary.grammarWord(written)?.let { structural ->
-            // A production nobody has unlocked reads as an unknown page rather than an error, so the
-            // fragment becomes vagueness like any other.
-            if (!structural.production.available) return Page(written, kind = null)
-            return Page(written, kind = structural.production.pageClass, rung = structural.rung)
+            return Page(
+                written,
+                kind = structural.production.pageClass,
+                production = structural.production,
+                rung = structural.rung,
+                latent = latent,
+            )
         }
-        val word = vocabulary.word(written) ?: return Page(written, kind = null)
-        return Page(written, kind = word.pageClass, word = word)
+        val word = vocabulary.word(written) ?: return Page(written, kind = null, latent = latent)
+        val kind = word.pageClass
+        return Page(written, kind = kind, word = word, aspect = word.aspectFor(kind), latent = latent)
     }
 
     /**
@@ -79,20 +121,41 @@ object Grammar {
      *
      * An **aiming page** is recognised by shape rather than by a flag: a word that asks for no tag, names
      * no preset and sets no parameter says nothing except which part of the world it is about, and that is
-     * exactly what a subject page *is*. Anything else is a modifier, split by [Word.constrainsPresets] —
-     * a word with a query or a name has an opinion about *which* preset fills an aspect, where one that
-     * only sets a parameter has an opinion about how that preset is made.
+     * exactly what a subject page *is*.
      */
     private val Word.pageClass: PageClass
         get() = when {
             aims -> PageClass.SUBJECT
             tier == Tier.EVOCATIVE -> PageClass.EVOCATIVE
-            constrainsPresets -> PageClass.PRESET
-            else -> PageClass.SETTER
+            isMaterial -> PageClass.MATERIAL
+            else -> PageClass.TERM
         }
+
+    /**
+     * A block, which every part of the world that is *made of* something can take.
+     *
+     * Read off the material it sets rather than declared, because that is what a material *is* — every
+     * such word arrives from `DerivedWords`, one per block in the pack, and none of them is authored.
+     */
+    private val Word.isMaterial: Boolean get() = Terrain.STONE.name in sets
+
+    /**
+     * Which part of the world this page belongs to, for the classes that belong to one.
+     *
+     * **[Word.aspects] is where a word speaks when nobody aimed it**, so a page needs one of them chosen
+     * for its terminal. The first in ordinal order: all but a handful of words declare exactly one, and a
+     * narrowing word that declares several is a rare exception the design would rather not have — write it
+     * in each section you mean it in. Its later aspects are unreachable until it is split, which is the
+     * cost of the exception and the reason to keep them rare.
+     */
+    private fun Word.aspectFor(kind: PageClass): Aspect? = when (kind) {
+        PageClass.SUBJECT, PageClass.TERM -> aspects.minByOrNull { it.ordinal }
+        else -> null
+    }
 
     private val Production.pageClass: PageClass
         get() = when (this) {
+            Production.NUCLEUS -> PageClass.NUCLEUS
             Production.CONJUNCTION -> PageClass.JOINER
             Production.RESTRICTION -> PageClass.RESTRICTOR
             Production.EXCEPTION -> PageClass.EXCLUDER

@@ -16,9 +16,9 @@ import co.voik.agesandtheart.age.word.Word
  *
  * Two rules govern every choice here, and both are the discipline the parser already keeps:
  *
- * - **It prettifies; it never launders.** The prose renders what parsed. Pages the Art could not read are
- *   **not** in it, so [Sentence.dropped] must be shown beside it — struck, marked, left untranslated —
- *   or the reading claims a book worked when it did not.
+ * - **It prettifies; it never launders.** The prose renders what parsed. Pages that reached no clause are
+ *   **not** in it, so [Sentence.unreadable] and [Sentence.impossible] must be shown beside it — struck,
+ *   marked, left untranslated — or the reading claims a book worked when it did not.
  * - **It shows what you said, never what it will make** (§7.5). This renders the sentence, not the Age.
  */
 object Readout {
@@ -27,13 +27,30 @@ object Readout {
      * unreadable rather than as an Age with nothing said about it.
      */
     fun of(sentence: Sentence): String {
-        val clauses = sentence.phrases.filter { it.said.isNotEmpty() }
+        val clauses = sentence.phrases.mapNotNull(::asWritten)
         if (clauses.isEmpty()) return ""
         val read = clauses.mapIndexed { position, phrase ->
             val opensTheSentence = position == 0
             clauseOf(phrase, opensTheSentence)
         }
         return read.joinToString(", ") + "."
+    }
+
+    /**
+     * One phrase with the Art's own pages taken out, or null where the writer laid none of it — a book
+     * shows what its writer wrote (§4.3.1) and a repaired one is complete in ways they never asked for.
+     *
+     * **A latent subject survives wherever something written hangs off it**, because that subject is the
+     * whole of what says where a re-homed page landed: a writer who wrote `landmass starless` is owed
+     * "under sky starless", and rendering it as "starless" would launder the one thing they need told.
+     */
+    private fun asWritten(phrase: Phrase): Phrase? {
+        val descriptors = phrase.descriptors.filterNot { it.latent }
+        val modifiers = phrase.modifiers.filterNot { it.latent }
+        val subjectWasWritten = phrase.subject != null && !phrase.subject.latent
+        if (descriptors.isEmpty() && modifiers.isEmpty() && !subjectWasWritten) return null
+        val adopted = phrase.subject.takeIf { subjectWasWritten || modifiers.isNotEmpty() }
+        return Phrase(descriptors, adopted, modifiers)
     }
 
     /**

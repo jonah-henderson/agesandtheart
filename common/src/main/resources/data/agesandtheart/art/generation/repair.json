@@ -1,0 +1,168 @@
+{
+  "start": "world",
+  "terminals": "word",
+  "rules": {
+    "world": [
+      {
+        "weight": 1,
+        "produce": [
+          "age",
+          "<temperate_world>"
+        ]
+      },
+      {
+        "weight": 1,
+        "produce": [
+          "age",
+          "<frozen_world>"
+        ]
+      },
+      {
+        "weight": 1,
+        "produce": [
+          "age",
+          "<parched_world>"
+        ]
+      }
+    ],
+    "temperate_world": [
+      {
+        "weight": 1,
+        "produce": [
+          "landmass",
+          "<settled_land>",
+          "sea",
+          "open",
+          "depths",
+          "riddled",
+          "biomes",
+          "verdant",
+          "sky",
+          "<mild_sky>",
+          "structures",
+          "untouched",
+          "climate",
+          "temperate"
+        ]
+      }
+    ],
+    "frozen_world": [
+      {
+        "weight": 1,
+        "produce": [
+          "landmass",
+          "<harsh_land>",
+          "sea",
+          "open",
+          "depths",
+          "unbroken",
+          "biomes",
+          "bare",
+          "sky",
+          "<cold_sky>",
+          "structures",
+          "untouched",
+          "climate",
+          "frozen"
+        ]
+      }
+    ],
+    "parched_world": [
+      {
+        "weight": 1,
+        "produce": [
+          "landmass",
+          "<dry_land>",
+          "sea",
+          "open",
+          "depths",
+          "riddled",
+          "biomes",
+          "bare",
+          "sky",
+          "clear",
+          "structures",
+          "untouched",
+          "climate",
+          "parched"
+        ]
+      }
+    ],
+    "settled_land": [
+      {
+        "weight": 2,
+        "produce": [
+          "worn"
+        ]
+      },
+      {
+        "weight": 1,
+        "produce": [
+          "ordered"
+        ]
+      },
+      {
+        "weight": 1,
+        "produce": [
+          "scattered"
+        ]
+      }
+    ],
+    "harsh_land": [
+      {
+        "weight": 2,
+        "produce": [
+          "sheer"
+        ]
+      },
+      {
+        "weight": 1,
+        "produce": [
+          "worn"
+        ]
+      }
+    ],
+    "dry_land": [
+      {
+        "weight": 2,
+        "produce": [
+          "flat"
+        ]
+      },
+      {
+        "weight": 1,
+        "produce": [
+          "worn"
+        ]
+      }
+    ],
+    "mild_sky": [
+      {
+        "weight": 1,
+        "produce": [
+          "clear"
+        ]
+      },
+      {
+        "weight": 1,
+        "produce": [
+          "starlit"
+        ]
+      }
+    ],
+    "cold_sky": [
+      {
+        "weight": 1,
+        "produce": [
+          "overcast"
+        ]
+      },
+      {
+        "weight": 1,
+        "produce": [
+          "starless"
+        ]
+      }
+    ]
+  }
+}

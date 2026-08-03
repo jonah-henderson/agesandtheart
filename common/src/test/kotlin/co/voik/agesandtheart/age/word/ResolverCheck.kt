@@ -17,6 +17,7 @@ import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.word.grammar.Constraint
 import co.voik.agesandtheart.age.word.grammar.Group
+import co.voik.agesandtheart.age.word.grammar.Phrase
 import co.voik.agesandtheart.age.word.grammar.Scope
 import co.voik.agesandtheart.age.word.grammar.Sentence
 import io.kotest.core.annotation.Tags
@@ -521,25 +522,48 @@ class ResolverCheck : FunSpec({
     }
 
     /**
-     * A word aimed where it says nothing is **charged, and charged once** — the price of aiming being a
-     * precision lever (§4.3.1). The failure this guards against is silence: the word reaches no aspect, so
-     * every other register is out of earshot, and an uncharged misaim is a page spent for nothing with
-     * nothing said about it.
+     * A page the writer laid where it could not be read is **charged, and charged once** — the price of
+     * aiming being a precision lever (§4.3.1). What this guards against is silence: re-homing a word to
+     * make a sentence work is only acceptable at all because the writer is told and billed for it.
      */
-    test("a misaimed word is charged rather than ignored") {
-        val skyWordAtTheLand = Constraint(
+    test("a re-homed word is charged rather than moved in silence") {
+        val moved = Constraint(
             vocabulary.word("starless") ?: error("the shipped vocabulary lost 'starless'"),
-            Scope.Confined(emptySet()),
+            Scope.Confined(setOf(Aspect.SKY)),
+            rehomed = true,
         )
-        val resolved = Resolver.resolve(vocabulary, Sentence.of(listOf(skyWordAtTheLand)), SAMPLE_SEED)
-        val misaimed = resolved.instability.flaws.filter { it.register == Register.MISAIMED }
-        check(misaimed.size == 1) { "a misaimed word gave ${misaimed.size} flaws: ${resolved.instability.flaws}" }
-        check(misaimed.single().words == listOf("starless")) { "the flaw named ${misaimed.single().words}" }
+        val resolved = Resolver.resolve(vocabulary, Sentence.of(listOf(moved)), SAMPLE_SEED)
+        val charged = resolved.instability.flaws.filter { it.register == Register.REHOMED }
+        check(charged.size == 1) { "a re-homed word gave ${charged.size} flaws: ${resolved.instability.flaws}" }
+        check(charged.single().words == listOf("starless")) { "the flaw named ${charged.single().words}" }
+        check(charged.single().aspect == Aspect.SKY) { "the flaw did not say where it landed: ${charged.single()}" }
 
-        // And a word that landed somewhere is never charged for it, or every ordinary sentence would be.
-        val landed = resolve(vocabulary, "starless")
-        check(landed.instability.flaws.none { it.register == Register.MISAIMED }) {
-            "a word that found its aspect was charged as misaimed: ${landed.instability.flaws}"
+        // And a word that went where it was written is never charged, or every ordinary sentence would be.
+        val stayed = resolve(vocabulary, "starless")
+        check(stayed.instability.flaws.none { it.register == Register.REHOMED }) {
+            "a word that stayed put was charged as moved: ${stayed.instability.flaws}"
+        }
+    }
+
+    /**
+     * **The two failure channels cost different things** (§4.3), which is the whole reason they are kept
+     * apart at the type level: a page nobody can read makes the Age vaguer and is charged nothing, where a
+     * page no sentence has room for is the dearest thing a writer can do.
+     */
+    test("an unreadable page and an impossible one are not the same complaint") {
+        val said = listOf(Constraint(vocabulary.word("starless")!!, Scope.Confined(setOf(Aspect.SKY))))
+
+        val garbled = Sentence(said.map { Phrase(modifiers = listOf(it)) }, unreadable = listOf("zzzznotaword"))
+        val vaguer = Resolver.resolve(vocabulary, garbled, SAMPLE_SEED)
+        check(vaguer.instability.isCoherent) { "an unreadable page was charged: ${vaguer.instability.flaws}" }
+        check(vaguer.dropped == listOf("zzzznotaword")) { "an unreadable page went unreported: ${vaguer.dropped}" }
+
+        val nonsense = Sentence(said.map { Phrase(modifiers = listOf(it)) }, impossible = listOf("age"))
+        val charged = Resolver.resolve(vocabulary, nonsense, SAMPLE_SEED)
+        val flaws = charged.instability.flaws.filter { it.register == Register.IMPOSSIBLE }
+        check(flaws.single().words == listOf("age")) { "an impossible page gave ${charged.instability.flaws}" }
+        check(flaws.single().severity > Register.REHOMED.charge(Tier.EXACT)) {
+            "an impossibility cost ${flaws.single().severity}, no more than the cheapest way to be wrong"
         }
     }
 

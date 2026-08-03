@@ -26,7 +26,10 @@ data class Resolution(
     /** Fine inks: precision tier × aspects constrained, summed over the sentence (§4.4). */
     val cost: Int,
     val words: List<Word>,
-    /** Pages the Art could not read. Vagueness, never instability (§4.3). */
+    /**
+     * Pages the Art could not read. **Vagueness, never instability** (§4.3), and the only channel that
+     * lands here: a page no sentence had room for is charged, so it is a [Flaw] and carries its own words.
+     */
     val dropped: List<String> = emptyList(),
 ) {
     val sentence: List<String> get() = words.map { it.name }
@@ -95,29 +98,47 @@ object Resolver {
         // one seed draw identical filler wherever neither constrains anything.
         val draw = seed xor saltOf(sentence.words)
         val flaws = mutableListOf<Flaw>()
-        flaws += misaimed(vocabulary, said)
+        flaws += rehomings(vocabulary, sentence)
+        flaws += impossibilities(vocabulary, sentence)
         val filled = Aspect.entries.associateWith { aspect -> fill(vocabulary, aspect, said, draw, flaws) }
         flaws += tensions(vocabulary, said, filled.mapValues { (_, filling) -> filling.map { it.preset } })
 
         return Resolution(
             composition = steer(vocabulary, compose(filled), said, draw, flaws),
             instability = Instability(flaws.toList()),
-            cost = said.sumOf { it.word.tier.cost * reachOf(vocabulary, it).size },
+            // Structure is priced too: every page a writer lays costs ink, and a page that made no
+            // claim still came out of the pot. A latent page came out of nobody's pot.
+            cost = sentence.written.sumOf { it.word.tier.cost * reachOf(vocabulary, it).size } +
+                sentence.structural.sumOf { it.cost },
             words = sentence.words,
-            dropped = sentence.dropped,
+            dropped = sentence.unreadable,
         )
     }
 
     /**
-     * Words aimed where they say nothing — `flat sky`, the empty intersection of §4.3.1.
+     * Pages the writer laid where they could not be read, which [Repair] moved somewhere they could
+     * (§4.3.1). The word still means what it means — what is charged is the aiming.
      *
-     * Found here rather than inside [fill], because a word that reaches no aspect at all is in no aspect's
-     * hearing and every other register is charged from *within* one. Left uncharged it is the worst of
-     * both: a page spent, a cost paid, and silence.
+     * Found here rather than inside [fill] because the mistake is about *the book* rather than about any
+     * one part of the world, and because the aspect it names is where the page ended up.
      */
-    private fun misaimed(vocabulary: Vocabulary, sentence: List<Constraint>): List<Flaw> =
-        sentence.filter { reachOf(vocabulary, it).isEmpty() }.map { said ->
-            flaw(Register.MISAIMED, listOf(said), aspect = null, tags = emptyList(), tier = said.word.tier)
+    private fun rehomings(vocabulary: Vocabulary, sentence: Sentence): List<Flaw> =
+        sentence.written.filter { it.rehomed }.map { said ->
+            val landedIn = reachOf(vocabulary, said).firstOrNull()
+            flaw(Register.REHOMED, listOf(said), landedIn, tags = emptyList(), tier = said.word.tier)
+        }
+
+    /**
+     * Pages there was nowhere for in any sentence at all. The dearest register and the only one that costs
+     * a page outright — repair fits a page in wherever it can, so reaching this means nowhere would do.
+     *
+     * Charged at the word's own precision where it carried one, and flat where it did not: a structural
+     * page has no precision to scale by.
+     */
+    private fun impossibilities(vocabulary: Vocabulary, sentence: Sentence): List<Flaw> =
+        sentence.impossible.map { page ->
+            val tier = vocabulary.word(page)?.tier
+            Flaw(Register.IMPOSSIBLE, listOf(page), aspect = null, tags = emptyList(), Register.IMPOSSIBLE.charge(tier))
         }
 
     /**
@@ -381,6 +402,11 @@ object Resolver {
      * because it is also what a word *costs* (§4.4), and what `VocabularyCheck` reads.
      */
     fun aspectsSpokenTo(vocabulary: Vocabulary, word: Word): List<Aspect> {
+        // **A narrowing word belongs to one part of the world**, the same one its page is classed under
+        // (`Grammar`), so the vocabulary and the grammar cannot disagree about where a word may be laid.
+        // A word declaring several is a rare exception the design would rather not have; its later
+        // declarations lie dormant until it is split into a word per aspect.
+        if (word.tier.narrows) return listOfNotNull(word.aspects.minByOrNull { it.ordinal })
         if (word.aspects.isNotEmpty()) return word.aspects.sortedBy { it.ordinal }
         // An evocative word declares no aspect: spanning aspects is what makes it evocative.
         return Aspect.entries.filter { aspect ->

@@ -1,95 +1,146 @@
 /*
  * The grammar of the Art (design §4.3.1).
  *
- * Deliberately small. Its whole job is **attachment and grouping** — which words modify which subject, and
- * which are joined. Everything that makes the language interesting (precision, contradiction, division, tag
- * satisfaction) happens beneath it in the resolver, which already existed before this did.
+ * Its job is **attachment and grouping** — which words modify which subject, and which are joined.
+ * Everything that makes the language interesting (precision, contradiction, division, tag satisfaction)
+ * happens beneath it in the resolver, which already existed before this did.
  *
- * Two properties are load-bearing and easy to lose:
+ * Three properties are load-bearing and easy to lose:
  *
  * 1. **There are no lexer rules, and that is the point.** The input is never text: it is a list of pages,
  *    each already looked up in the `Vocabulary` and stamped with its class. So the token types are simply
  *    *declared* below and supplied by a `TokenSource` of ours.
  *
- *    Terminals are therefore word CLASSES, never spellings. There is no `EVOCATIVE : 'beautiful' | ...` here,
+ *    Terminals are therefore word CLASSES, never spellings. There is no `SKY_TERM : 'overcast' | ...` here,
  *    because vocabulary is datapack content and §8 derives a word per fluid, biome and block in the
- *    modpack — tens of thousands of them, arriving at runtime. The tokeniser looks each page up in the
- *    `Vocabulary` and stamps its class, exactly as a language stamps IDENTIFIER rather than listing every
- *    variable name. So a new *word* needs no grammar change; a new *class* is a real change to the
- *    language, and correctly costs one.
- * 2. **No ambiguity.** §4.3 rejects parse ambiguity as a mechanism: it is a randomness no word can ever take
+ *    modpack — tens of thousands of them, arriving at runtime. So a new *word* still needs no grammar
+ *    change.
+ * 2. **The aspect list is IN the grammar, deliberately.** A section admits only terms belonging to the part
+ *    of the world it aims at, so `flat sky` is not a sentence that gets charged for being wrong — it is not
+ *    a sentence. The price is that a new aspect costs a rule here, which is honest: a new part of the world
+ *    genuinely is a new thing to be able to talk about.
+ *
+ *    What this buys is **predictability**. A reader should be able to take a book left to right and know
+ *    what each page did, and a word that could reach out of the clause it was written in defeats that. So
+ *    a narrowing word belongs to its aspect and says nothing anywhere else.
+ * 3. **No ambiguity.** §4.3 rejects parse ambiguity as a mechanism: it is a randomness no word can ever take
  *    away, and it is invisible, so it fails the promise that a flawed Age is diagnosable. Vagueness comes
  *    from word choice. Keep this grammar deterministic — if a construct ever admits two readings, that is a
  *    bug in the grammar rather than a feature of the language.
  */
 grammar Art;
-// Declared, not lexed. `ArtGrammar` supplies these from the vocabulary; see the note at the top.
-tokens { EVOCATIVE, SUBJECT, PRESET, SETTER, QUANTIFIER, AND, ONLY, EXCEPT }
 
-/** A book is sections, and nothing else. An empty one is legal: the pen never refuses (design §2). */
-sentence  : section* EOF ;
+/*
+ * Declared, not lexed. `ArtGrammar` supplies these from the vocabulary; see the note at the top.
+ *
+ * One subject and one term terminal per aspect, plus two that deliberately span several:
+ *
+ * - `EVOCATIVE` is at home anywhere, because an evocative word tilts rather than narrows and confining it
+ *   would demote it to a restrictive one (§4.3.1).
+ * - `MATERIAL_TERM` is a **block**, and being made of something is a property several parts of the world
+ *   share — `Sea` is an open aspect whose value *is* a block, and a terrain wears one through its `stone`
+ *   parameter. So "a sea of ice" and "land of blackstone" are both sentences, and which of the two a page
+ *   means is decided by the section it sits in rather than by the word. That is not a word reaching out of
+ *   its clause; it is one word usable in more than one place, which is the distinction property 2 rests on.
+ */
+tokens {
+    AGE,
+    EVOCATIVE,
+    MATERIAL_TERM,
+    TERRAIN_SUBJECT, TERRAIN_TERM,
+    SEA_SUBJECT, SEA_TERM,
+    CARVERS_SUBJECT, CARVERS_TERM,
+    BIOMES_SUBJECT, BIOMES_TERM,
+    SKY_SUBJECT, SKY_TERM,
+    STRUCTURES_SUBJECT, STRUCTURES_TERM,
+    CLIMATE_SUBJECT, CLIMATE_TERM,
+    QUANTIFIER, AND, ONLY, EXCEPT
+}
 
 /**
- * A subject and the modifiers that follow it — the whole of the structure.
+ * A book is **an Age, and then what is true of it**.
  *
- * Sections are *discovered* rather than declared: a page naming a part of the world opens one, and
- * everything after it belongs to that part until the next such page. So the aspect list stays out of the
- * grammar, sections may appear in any order and any number, and adding an aspect later costs nothing here.
+ * The nucleus is mandatory, and that is the point: `beautiful` is not a book, `beautiful Age` is. One
+ * required page costs a beginner almost nothing and buys three things — a sentence always has a head to
+ * hang a reading on, every descriptor has something to describe rather than floating, and a stray term has
+ * nowhere to quietly start a section of its own. Without it `landmass starless` silently became
+ * "unconstrained land, and separately a starless sky", which is a re-homing nobody asked for and nobody
+ * was told about.
+ *
+ * An empty book is still legal — the pen never refuses (design §2) — it simply says nothing.
+ */
+sentence : (nucleus section*)? EOF ;
+
+/**
+ * The Age itself: what the whole book is about, with the words that colour it and anything said of the
+ * world at large before any part of it is named.
+ *
+ * This is where the beginner's book lives, and it is the commonest thing anyone writes: `beautiful Age`,
+ * or `Age of blackstone`. Its modifiers are loose because nothing has been aimed at yet — a word goes
+ * where it declares it goes.
+ */
+nucleus : descriptor* AGE looseModifier* ;
+
+/**
+ * A subject and the modifiers that follow it, one alternative per part of the world.
  *
  * **A section is opened by an aiming page, never by a word that fills something.** Players do not write
  * presets — presets are ours, an internal tool a word is mapped onto at our leisure — so the pages that
- * carve a book into sections are the *targets* a writer aims at: `landmass`, `climate`, `sky`.
+ * carve a book into parts are the *targets* a writer aims at: `landmass`, `climate`, `sky`.
  *
- * The other two alternatives are sections with **no subject at all**, and both are the beginner's book,
- * which is the commonest thing anyone writes:
- *
- * - `descriptor+ modifier*` — evocative words with nothing to aim them, which say what the whole Age is like.
- * - `modifier+` — "a world of blackstone", naming what the rock is made of and no shape at all. Without it a
- *   writer holding only material pages could say nothing.
- *
- * Each alternative demands at least one page, so none of them matches the empty string — `section*` over a
- * rule that could match nothing would never terminate.
+ * **Every section is aimed.** The unaimed ones the grammar used to carry are the [nucleus] now, which is
+ * what makes a stray term a parse failure rather than a section of its own — a page that cannot join the
+ * part of the world it was laid in has nowhere else to go, and saying so is the repair layer's business.
  */
-section   : descriptor* subject modifier*
-          | descriptor+ modifier*
-          | modifier+
-          ;
+section
+    : descriptor* TERRAIN_SUBJECT    terrainModifier*     # TerrainSection
+    | descriptor* SEA_SUBJECT        seaModifier*         # SeaSection
+    | descriptor* CARVERS_SUBJECT    carversModifier*     # CarversSection
+    | descriptor* BIOMES_SUBJECT     biomesModifier*      # BiomesSection
+    | descriptor* SKY_SUBJECT        skyModifier*         # SkySection
+    | descriptor* STRUCTURES_SUBJECT structuresModifier*  # StructuresSection
+    | descriptor* CLIMATE_SUBJECT    climateModifier*     # ClimateSection
+    ;
 
 /** Evocative words, which precede their subject and are scoped to it — gently (§4.3.1's tier rule). */
 descriptor : EVOCATIVE ;
 
-/**
- * What the section is about: a page naming a part of the world and supplying no value of its own, whose
- * entire job is to aim what follows it (design §4.3.1).
+/*
+ * Anything that steers the subject, one rule per aspect so a term can only sit under a subject it belongs
+ * to. The three parts that are *made of* something also admit a material.
  *
- * These are found pages and cost ink, which is what keeps aiming a *precision lever* rather than free: a
- * beginner holding none of them writes one unaimed section, and everything they say is about the Age.
+ * `only` and `except` bind tighter than juxtaposition and looser than `and`, which is what makes the
+ * reading predictable left to right without backtracking. Terms joined by `and` mean "keep both, and keep
+ * them apart" (§3.2), in a flat list rather than nested pairs, because `and` is associative here — a
+ * parameter holding three values means the same thing however it was written.
  */
-subject   : SUBJECT ;
+terrainModifier    : (ONLY | EXCEPT)? terrainTerm    (AND terrainTerm)*    ;
+seaModifier        : (ONLY | EXCEPT)? seaTerm        (AND seaTerm)*        ;
+carversModifier    : (ONLY | EXCEPT)? carversTerm    (AND carversTerm)*    ;
+biomesModifier     : (ONLY | EXCEPT)? biomesTerm     (AND biomesTerm)*     ;
+skyModifier        : (ONLY | EXCEPT)? skyTerm        (AND skyTerm)*        ;
+structuresModifier : (ONLY | EXCEPT)? structuresTerm (AND structuresTerm)* ;
+climateModifier    : (ONLY | EXCEPT)? climateTerm    (AND climateTerm)*    ;
+looseModifier      : (ONLY | EXCEPT)? looseTerm      (AND looseTerm)*      ;
 
-/**
- * Anything that steers the subject. `only` and `except` bind tighter than juxtaposition and looser than
- * `and`, which is what makes the reading predictable left to right without backtracking.
- */
-modifier  : ONLY conjunction
-          | EXCEPT conjunction
-          | conjunction
-          ;
-
-/**
- * Words joined by `and` — "keep both, and keep them apart" (§3.2).
- *
- * Left-recursive so that `a and b and c` is one group of three rather than nested pairs: `and` is
- * associative here, because a parameter holding three values means the same thing however it was written.
- */
-conjunction : term (AND term)* ;
-
-/**
+/*
  * One thing said about the section, optionally with how much of it there should be.
  *
- * The quantifier **precedes what it counts** — `teeming villages` — which is the third rung of §4.5's skill
- * tree and the only production so far that binds one page to one other page rather than joining peers. It
- * is deliberately not a word of its own class in the world model: what it modifies is a *claim*, so the
- * rung travels with the value into the recipe (`minecraft:villages@teeming`).
+ * The quantifier **precedes what it counts** — `teeming villages` — which is §4.5's third rung and the only
+ * production that binds one page to one other page rather than joining peers. It is deliberately not a
+ * class of its own in the world model: what it modifies is a *claim*, so the rung travels with the value
+ * into the recipe (`minecraft:villages@teeming`).
  */
-term      : QUANTIFIER? (SETTER | PRESET) ;
+terrainTerm    : QUANTIFIER? ( TERRAIN_TERM    | MATERIAL_TERM ) ;
+seaTerm        : QUANTIFIER? ( SEA_TERM        | MATERIAL_TERM ) ;
+structuresTerm : QUANTIFIER? ( STRUCTURES_TERM | MATERIAL_TERM ) ;
+carversTerm    : QUANTIFIER? CARVERS_TERM ;
+biomesTerm     : QUANTIFIER? BIOMES_TERM  ;
+skyTerm        : QUANTIFIER? SKY_TERM     ;
+climateTerm    : QUANTIFIER? CLIMATE_TERM ;
+
+/** A term in a section that aims at nothing, and so may belong to any part of the world. */
+looseTerm
+    : QUANTIFIER? ( MATERIAL_TERM | TERRAIN_TERM | SEA_TERM | CARVERS_TERM
+                  | BIOMES_TERM | SKY_TERM | STRUCTURES_TERM | CLIMATE_TERM )
+    ;

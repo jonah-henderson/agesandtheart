@@ -28,13 +28,10 @@ sealed interface Scope {
      */
     data class Confined(val aspects: Set<Aspect>) : Scope {
         /**
-         * **Empty means nowhere**, which is the one case aiming has to be able to express: a word aimed at
-         * a part of the world it says nothing about — `flat sky` — is charged and *never re-homed*
-         * (§4.3.1). Reading it as "wherever it fits" is exactly the re-homing the design forbids, and it
-         * is silent, which is worse than the mistake.
-         *
-         * Reachable only through aiming: `VocabularyCheck` makes every narrowing word declare its aspects,
-         * and a word that declares none is evocative, which gets [Everywhere].
+         * **Empty means nowhere.** No arrangement of pages produces it any more — a section admits only
+         * terms belonging to what it aims at, and a book laying one anywhere else does not parse at all, so
+         * a word aimed where it says nothing is [Repair]'s to re-home rather than a scope to represent.
+         * What keeps the case is [Sentence.of], where a check builds a constraint by hand.
          */
         override fun reaches(everywhere: List<Aspect>): List<Aspect> = aspects.sortedBy { it.ordinal }
     }
@@ -65,6 +62,22 @@ data class Constraint(
      * that asks for nothing and rebuilds nothing.
      */
     val density: Density = Density.ORDINARY,
+    /**
+     * Whether the Art supplied this page rather than the writer — the natural course of a world nobody
+     * described that far.
+     *
+     * It constrains the Age exactly as a written page does, and differs in the two places a *page* differs
+     * from a *claim*: it costs no ink, because nobody spent any, and the book never shows it.
+     */
+    val latent: Boolean = false,
+    /**
+     * Whether the writer laid this page in a clause that could not read it, so [Repair] moved it to one
+     * that could (§4.3.1).
+     *
+     * Charged, and that is the whole of the design's objection: *silent* re-homing is the mistake, not
+     * re-homing. Where it went is the clause it is in now, which the readout shows.
+     */
+    val rehomed: Boolean = false,
 )
 
 /**
@@ -89,32 +102,54 @@ data class Phrase(
 }
 
 /**
- * A parsed book: what the Art could read, and what it could not — §4.3's two failure channels kept apart
- * at the type level. [dropped] becomes **vagueness** and is charged nothing; contradiction is a separate
- * matter the resolver finds later among constraints that parsed perfectly.
+ * A parsed book: what the Art could read, and the two quite different ways a page can fail to be in it —
+ * §4.3's failure channels, now genuinely kept apart at the type level.
  *
- * Garbling your words makes an Age vaguer; contradicting yourself makes it unstable.
+ * Garbling your words makes an Age vaguer; writing something no sentence has room for makes it unstable;
+ * contradicting yourself makes it unstable too, and the resolver finds that later among constraints that
+ * parsed perfectly.
  *
  * [phrases] is the sentence; [constraints] is that same sentence flattened, which is all the resolver ever
  * wants. Derived rather than stored so the two cannot drift apart.
  */
 data class Sentence(
     val phrases: List<Phrase>,
-    /** Pages the Art could not read, in the order they were laid out — for telling the writer. */
-    val dropped: List<String> = emptyList(),
+    /**
+     * Pages nobody recognises, in the order they were laid out — **vagueness, charged nothing** (§4.3).
+     *
+     * Nearly unreachable in play: a page is a physical item carrying a real word and `/age write` refuses
+     * a word the Art has never heard of, so what is left is a book outliving the pack that taught it.
+     */
+    val unreadable: List<String> = emptyList(),
+    /**
+     * Pages [Repair] could find no position for in any sentence at all — **charged**, and heavily
+     * (§4.3.1). A second `Age`, or an `and` with nothing on one side of it.
+     */
+    val impossible: List<String> = emptyList(),
+    /**
+     * The structures the writer spelled — `Age`, `and`, `only`. They make no claim and so appear in no
+     * [Constraint], but **every page laid costs ink**, so what they cost has to survive the parse.
+     */
+    val structural: List<Production> = emptyList(),
 ) {
     /** Every constraint the book made, in written order. The resolver's whole view of a sentence. */
     val constraints: List<Constraint> get() = phrases.flatMap { it.said }
 
+    /** The constraints a writer actually laid — what the book shows, and what the ink was spent on. */
+    val written: List<Constraint> get() = constraints.filterNot { it.latent }
+
     val words: List<Word> get() = constraints.map { it.word }
+
+    /** Every page that reached no clause, whichever way it failed — for saying so beside the readout. */
+    val dropped: List<String> get() = unreadable + impossible
 
     companion object {
         /**
          * A book already broken into constraints, with no clause structure to render — what a check means
          * when it builds a sentence by hand to exercise the resolver.
          */
-        fun of(constraints: List<Constraint>, dropped: List<String> = emptyList()): Sentence =
-            Sentence(constraints.map { Phrase(modifiers = listOf(it)) }, dropped)
+        fun of(constraints: List<Constraint>, unreadable: List<String> = emptyList()): Sentence =
+            Sentence(constraints.map { Phrase(modifiers = listOf(it)) }, unreadable)
 
         /**
          * A book with no structure — every word standing alone, unaimed. What a check means when it wants
@@ -128,6 +163,10 @@ data class Sentence(
         )
     }
 
-    /** Whether anything at all was understood. An unreadable book still opens an Age — the pen never refuses. */
-    val isEmpty: Boolean get() = phrases.all { it.said.isEmpty() }
+    /**
+     * Whether the *writer* said anything that stuck. Asked of what they wrote rather than of the whole
+     * reading, since a repaired book is complete however little of it came off their pages — and a book
+     * nothing survived is one the pen still never refused, only one nobody managed to say a word in.
+     */
+    val isEmpty: Boolean get() = written.isEmpty()
 }

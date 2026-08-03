@@ -192,9 +192,12 @@ pages) → Sentence` is the entire port; `Sentence`/`Phrase`/`Constraint`/`Scope
   already looked up in the `Vocabulary` and stamped with a class. A section is opened by an **aiming page**
   (`landmass`, `climate`, `sky`) and never by a word that fills something — presets are ours, not the
   player's. `Readout.of(sentence)` says the parse back as prose, which is how attachment is visible at all.
-- **`age/word/BookGenerator.kt`** — the pipeline run backwards: a vocabulary and a seed in, a well-formed
-  book out. Content (Phase 7's found books) and test harness (`BookCheck` fuzzes 2000 a run) in one build.
-- **`Instability`** — how far an Age is at odds with itself, in four registers, each `Flaw` naming the words,
+- **`age/word/generation/`** — the grammars the Art writes *out* of, which are **datapack content**
+  (`art/generation/<name>.json`): `book` writes the found Descriptive Books a player learns structure from,
+  `repair` writes the sentence a book that does not parse is filled into, `name` draws an Age's syllables. A
+  weighted context-free grammar read forwards, and it shares no machinery with the parser on purpose.
+  `BookCheck` runs `book`'s output through the whole pipeline and fuzzes 2000 random page rows beside it.
+- **`Instability`** — how far an Age is at odds with itself, in six registers, each `Flaw` naming the words,
   slot and tags involved. Provenance is the point: a flaw has to be diagnosable, and §5's consequences read
   this long after the book was written. Part of the recipe.
 - **`AgeCommand`** — the `/age` Brigadier tree (vanilla, so it's in `common`); the debug trigger until books exist. `/age write <name> [seed] <words…>` authors an Age from a sentence and `/age words` lists the vocabulary. `/age compare <a> <b>` generates two Ages and diffs them block for block — write two with the same seed to check a recipe reproduces.
