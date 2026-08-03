@@ -1,7 +1,9 @@
 package co.voik.agesandtheart.content
 
+import co.voik.agesandtheart.age.word.PageLearning
 import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.client.BookScreenOpener
+import net.minecraft.server.level.ServerPlayer
 import net.minecraft.ChatFormatting
 import net.minecraft.world.item.TooltipFlag
 import net.minecraft.world.item.component.TooltipDisplay
@@ -61,6 +63,10 @@ class DescriptiveBookItem(properties: Properties) : Item(properties) {
         val stack = player.getItemInHand(hand)
         // Guarded so the screen class is never loaded on a dedicated server.
         if (level.isClientSide) BookScreenOpener.open(stack, hand)
+        // Reading it is how the grammar is learned (§4.5): `and`, `only`, `except` and the rungs are pages
+        // nobody is handed, so a book somebody wrote well is where a writer meets them. Server-side, since
+        // the learned set is the player's own save data.
+        if (player is ServerPlayer) PageLearning.study(player, stack)
         return InteractionResult.SUCCESS
     }
 

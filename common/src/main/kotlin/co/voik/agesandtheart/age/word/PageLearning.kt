@@ -10,10 +10,15 @@ import net.minecraft.world.inventory.ResultSlot
 import net.minecraft.world.item.ItemStack
 
 /**
- * Learning a word by holding the page it is written on.
+ * Learning a word by holding the page it is written on, or by reading a book somebody wrote with it.
  *
- * The seam is `ContainerListener`, which is what vanilla fires its `inventory_changed` advancement
- * trigger from — so this catches every route a stack can arrive by, and needs no polling.
+ * **You learn what you read, and there is no gate beyond that** (design §4.5). Mastery is not a lock on
+ * words — it is knowing *how* to use them, which comes from studying well-formed books. So both routes here
+ * teach outright, and the second is the only way most writers will ever meet `and`, `only`, `except` and
+ * the rungs: nobody is handed those pages.
+ *
+ * The seam for the first is `ContainerListener`, which is what vanilla fires its `inventory_changed`
+ * advancement trigger from — so it catches every route a stack can arrive by, and needs no polling.
  */
 object PageLearning {
 
@@ -39,6 +44,18 @@ object PageLearning {
         val word = stack.get(AgeContent.PAGE_WORD) ?: return
         if (!player.learnedWords.learn(word)) return
         Services.NETWORK.sendToPlayer(player, LearnedWordsPayload.added(word))
+    }
+
+    /**
+     * Learns every word a book was written with — **opening it is reading it**, since the screen is the
+     * closest thing to studying the game has.
+     *
+     * One packet rather than one per word: a book teaches a dozen at once, and the toast cycles.
+     */
+    fun study(player: ServerPlayer, book: ItemStack) {
+        val learned = book.get(AgeContent.BOOK_WORDS).orEmpty().filter(player.learnedWords::learn)
+        if (learned.isEmpty()) return
+        Services.NETWORK.sendToPlayer(player, LearnedWordsPayload.added(learned))
     }
 
     /**

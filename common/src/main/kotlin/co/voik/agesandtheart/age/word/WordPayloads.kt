@@ -55,6 +55,9 @@ data class LearnedWordsPayload(
 
         fun whole(words: Collection<Identifier>) = LearnedWordsPayload(words.toList(), replacing = true)
 
-        fun added(word: Identifier) = LearnedWordsPayload(listOf(word), replacing = false)
+        fun added(word: Identifier) = added(listOf(word))
+
+        /** Several at once, which is what studying a book teaches. The toast cycles rather than stacking. */
+        fun added(words: Collection<Identifier>) = LearnedWordsPayload(words.toList(), replacing = false)
     }
 }
