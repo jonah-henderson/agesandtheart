@@ -9,7 +9,7 @@
     "minecraft:gameplay/respawn_anchor_works": false,
     "minecraft:visual/ambient_light_color": "#0a0a0a",
     "minecraft:visual/cloud_color": "#cc4d5457",
-    "minecraft:visual/cloud_height": 265.0,
+    "minecraft:visual/cloud_height": 201.0,
     "minecraft:visual/fog_color": "#4d5457",
     "minecraft:visual/sky_color": "#384042"
   },
@@ -21,7 +21,7 @@
   "height": 384,
   "infiniburn": "#minecraft:infiniburn_overworld",
   "logical_height": 384,
-  "min_y": 0,
+  "min_y": -64,
   "monster_spawn_block_light_limit": 0,
   "monster_spawn_light_level": { "type": "minecraft:uniform", "min_inclusive": 0, "max_inclusive": 7 },
   "timelines": "#minecraft:in_overworld"

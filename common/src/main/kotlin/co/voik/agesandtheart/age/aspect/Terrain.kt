@@ -24,7 +24,6 @@ import co.voik.agesandtheart.worldgen.biome.Elevation
 import co.voik.agesandtheart.worldgen.biome.Grounding
 import co.voik.agesandtheart.worldgen.field.Caved
 import co.voik.agesandtheart.worldgen.field.Palette
-import co.voik.agesandtheart.worldgen.field.Raised
 import co.voik.agesandtheart.worldgen.field.Subtract
 import co.voik.agesandtheart.worldgen.field.Substance
 import co.voik.agesandtheart.worldgen.field.TerrainField
@@ -35,16 +34,22 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource
  * The shape of an Age's rock: a Tier-B field preset plus its [waterline], the one fact a composer needs
  * to place anything else against it. The [Sea] chooses only the substance.
  *
- * Every shape wanting a sea puts it at vanilla's 63 — a convention, not a rule, but a shared waterline
- * is what keeps a seam between two terrains from drowning half the world.
+ * Every shape standing *on* the ground puts its sea at vanilla's 63 — a convention, not a rule, but a
+ * shared waterline is what keeps a seam between two terrains from drowning half the world. The exceptions
+ * are the shapes the ground itself is somewhere else for: a gorge floor ([CANYON]) and an archipelago
+ * hanging in open air ([SPIRE_ISLANDS]) both put the water where their own world bottoms out.
  */
 enum class Terrain(
     override val key: String,
     val waterline: Int?,
     private val build: (Options, Long) -> TerrainField,
 ) : AspectPreset {
-    /** Floating islands over open air: lobed masses, talons and roots, weathered to ribs. */
-    SPIRE_ISLANDS("spire_islands", waterline = 63, build = { _, salt -> SpireField.world(salt) }),
+    /**
+     * Floating islands over open air: lobed masses, talons and roots, weathered to ribs. Its waterline is
+     * the floor of the world they hang over rather than a sea anything stands on, which is why it is far
+     * below the 63 the grounded shapes share.
+     */
+    SPIRE_ISLANDS("spire_islands", waterline = SpireField.SEA_LEVEL, build = { _, salt -> SpireField.world(salt) }),
 
     /** Rolling noise hills breaking a sea — the closest thing here to ordinary ground. */
     HILLS("hills", waterline = 63, build = { _, salt -> NoiseField.hills(salt) }),
@@ -190,7 +195,6 @@ enum class Terrain(
             SPACING.takeIf { this == CRATERLANDS },
             WEAR.takeIf { this == CRATERLANDS },
             RELIEF.takeIf { this == CRATERLANDS },
-            ALTITUDE.takeIf { this == SPIRE_ISLANDS },
             UNDERGROUND.takeIf { undergroundCeiling() != null },
             STONE,
             MINGLING,
@@ -244,8 +248,8 @@ enum class Terrain(
     /**
      * The rock this terrain lays down, steered by whichever [options] it understands.
      *
-     * Takes the Age's [window] because altitude is only offerable where there is room for it — see [lift],
-     * and a [salt] because two territories of the *same* preset must not build the same rock.
+     * Takes the Age's [window] because an underground is cut between its floor and ceiling, and a [salt]
+     * because two territories of the *same* preset must not build the same rock.
      */
     fun field(options: Options, window: VerticalWindow, salt: Long): TerrainField =
         ground(options, window, salt).shape
@@ -258,9 +262,7 @@ enum class Terrain(
      * for the whole thing again, which for a [MountainRange] or a [Caved] is most of the generator's time.
      */
     fun ground(options: Options, window: VerticalWindow, salt: Long): Ground {
-        val shape = build(options, salt)
-        val lift = lift(options, window)
-        val uncut = if (lift == 0) shape else Raised(shape, lift)
+        val uncut = build(options, salt)
         return when (options.of(UNDERGROUND)) {
             NOISE_CAVES -> Ground(
                 Caved.of(uncut, CAVE_SEED xor salt, window.minY + BEDROCK_MARGIN, window.topY),
@@ -322,17 +324,12 @@ enum class Terrain(
      * Water this terrain carries **itself**, or null where a waterline is all it needs.
      *
      * A river system's water follows its own beds, which run downhill everywhere, so no single level can
-     * pour it — see `SeaFill.wet`. Raised with the shape for the same reason the shape is raised at all.
+     * pour it — see `SeaFill.wet`. Most terrains carry none, and a new one should not have to say so.
      */
-    fun standingWater(options: Options, window: VerticalWindow, salt: Long): TerrainField? {
-        // Most terrains carry none, and a new one should not have to say so.
-        val water = when (this) {
-            RIVERLANDS -> RiverlandsField.water(salt)
-            ALPS -> AlpsField.water(salt)
-            else -> null
-        } ?: return null
-        val lift = lift(options, window)
-        return if (lift == 0) water else Raised(water, lift)
+    fun standingWater(salt: Long): TerrainField? = when (this) {
+        RIVERLANDS -> RiverlandsField.water(salt)
+        ALPS -> AlpsField.water(salt)
+        else -> null
     }
 
     /**
@@ -358,18 +355,6 @@ enum class Terrain(
             elevation = Elevation(fromY = CraterlandsField.PLAIN_Y, toY = CraterlandsField.RIM_CREST_Y),
         )
         else -> Grounding.Declared()
-    }
-
-    /**
-     * How far up the world this terrain sits — see [ALTITUDE].
-     *
-     * Conditioned on the [window], so a terrain in a band with no room simply sits where it always did:
-     * the worst outcome of a mismatch is the old altitude, never a clipped world.
-     */
-    fun lift(options: Options, window: VerticalWindow): Int {
-        val wantsHeight = options.of(ALTITUDE) == "high"
-        val hasRoom = window == VerticalWindow.LIFTED
-        return if (wantsHeight && hasRoom) HIGH_ALTITUDE_LIFT else 0
     }
 
     /** How widely this terrain's materials speckle — see [MINGLING]. */
@@ -504,12 +489,6 @@ enum class Terrain(
         val MINGLING = Parameter("mingling", "patches", "fine")
 
         /**
-         * How high up the world an archipelago floats — offered by [SPIRE_ISLANDS] alone, the one terrain
-         * hanging in open air. `aloft` reaches it.
-         */
-        val ALTITUDE = Parameter("altitude", "low", "high")
-
-        /**
          * Which form the faults along this Age's seams take, overriding what its character drew (§3.4).
          * Exists so all four forms are walkable — an Age's seam is otherwise invisible until chance
          * produces one. `sheared` asks for no fault at all.
@@ -522,14 +501,6 @@ enum class Terrain(
 
         /** What [SEAM] reads as when nobody overrode the draw: whatever the Age's character carries. */
         const val SEAM_AS_DRAWN = "drawn"
-
-        /**
-         * How far `altitude=high` lifts an archipelago. Measured: the island tops' ninetieth percentile
-         * was 175, so this puts it eighteen blocks under the upper cloud deck at 265, with the central
-         * spires reaching about 374 — under [VerticalWindow.LIFTED]'s ceiling of 383, which is why it is
-         * not larger.
-         */
-        const val HIGH_ALTITUDE_LIFT = 72
 
         /**
          * The height a column in [ALPS] reads as fully a summit at — around the crest rather than above the

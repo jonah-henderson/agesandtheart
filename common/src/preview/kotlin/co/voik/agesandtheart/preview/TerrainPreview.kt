@@ -18,11 +18,9 @@ import co.voik.agesandtheart.worldgen.ShapesField
 import co.voik.agesandtheart.worldgen.ShatteredField
 import co.voik.agesandtheart.worldgen.SpireField
 import co.voik.agesandtheart.age.Seam
-import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.worldgen.carver.Weathering
 import co.voik.agesandtheart.worldgen.field.Caved
 import co.voik.agesandtheart.worldgen.field.Fault
-import co.voik.agesandtheart.worldgen.field.Raised
 import co.voik.agesandtheart.worldgen.field.RegionMap
 import co.voik.agesandtheart.worldgen.field.Regions
 import co.voik.agesandtheart.worldgen.field.Ridge
@@ -67,12 +65,6 @@ private class Subject(
     val lowestY: Int,
     val highestY: Int,
     val radius: Int = 128,
-    /**
-     * How far up the world this subject floats — see `Terrain.ALTITUDE`. Applied out here because that is
-     * where the generator applies it too: a landform weathers itself at the height it was authored at, and
-     * the finished shape is what gets raised.
-     */
-    val lift: Int = 0,
     /**
      * A weathering profile to **print the resistance spread of**, and nothing more — the wind itself lives
      * in [field]. Set it on a subject whose thresholds are being tuned; see [reportResistance].
@@ -130,7 +122,7 @@ private class Subject(
      * here and nothing that could drift from what the generator does — a subject asks for a *bare* world
      * when it wants the unweathered half, rather than switching a pass off out here.
      */
-    fun weathered(): TerrainField = if (lift == 0) field else Raised(field, lift)
+    fun weathered(): TerrainField = field
 }
 
 /**
@@ -188,23 +180,16 @@ private val subjects: Map<String, Subject> = mapOf(
     // see by comparing copies; and tall enough to reach the world ceiling, so a spire that runs into it
     // reads as a clipped flat top rather than as the window's edge.
     //
-    // **The floor followed the deck down on 2026-07-29 and must keep following it.** It was 100, which was
-    // comfortably below an island when the deck sat at y=190; once the deck dropped to 148 to buy the 2:1
-    // split, the hanging spires reached past it and the readout started reporting the *window's* edge as the
-    // rock's. A measurement that silently clips is worse than none — 56 sits just under the sea at 63, which
-    // is as low as an island is ever allowed to hang.
-    // **The window follows the Age's own vertical band**, which for the Spire is `VerticalWindow.LIFTED` —
-    // y 0..383 rather than -64..319 — because the recipe pins `altitude=high`. Keeping 320 here would have
-    // reported the window's edge as the rock's, the same silent clip the note above warns about.
+    // **The floor and ceiling ride with the archipelago, and must keep doing so.** A window narrower than
+    // the rock reports its own edge as the rock's, and a measurement that silently clips is worse than
+    // none: 319 is the world's ceiling, and -8 sits just under `SpireField.SEA_LEVEL`, which is as low as
+    // an island is ever allowed to hang.
     "spire" to Subject(
-        SpireField.world(), lowestY = 56, highestY = 383, radius = 300,
-        lift = Terrain.HIGH_ALTITUDE_LIFT, resistanceProfile = Weathering.SPIRE,
+        SpireField.world(), lowestY = -8, highestY = 319, radius = 300,
+        resistanceProfile = Weathering.SPIRE,
     ),
     // The same islands with weathering switched off — the pair shows what erosion is actually contributing.
-    "spire-nowind" to Subject(
-        SpireField.bareWorld(), lowestY = 56, highestY = 383, radius = 300,
-        lift = Terrain.HIGH_ALTITUDE_LIFT,
-    ),
+    "spire-nowind" to Subject(SpireField.bareWorld(), lowestY = -8, highestY = 319, radius = 300),
     "hills" to Subject(NoiseField.hills(), lowestY = 20, highestY = 120),
     "pillars" to Subject(PillarField.world(), lowestY = 30, highestY = 185),
     "shapes" to Subject(ShapesField.world(), lowestY = 55, highestY = 130, radius = 200),

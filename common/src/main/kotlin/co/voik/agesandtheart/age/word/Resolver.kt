@@ -210,7 +210,7 @@ object Resolver {
             chosen += pick(vocabulary, territory.candidates, speaking, draw, aspect, seat = index)
         }
         if (chosen.isEmpty()) {
-            chosen += pick(vocabulary, vocabulary.candidatesFor(aspect), speaking, draw, aspect, seat = 0)
+            chosen += pick(vocabulary, vocabulary.askableIn(aspect), speaking, draw, aspect, seat = 0)
         }
 
         chosen += company(vocabulary, aspect, kept, speaking, chosen, room, draw)
@@ -283,7 +283,7 @@ object Resolver {
 
         // Whatever the narrowing words left, or the whole aspect where none spoke: company can only be
         // something the sentence would have accepted anyway.
-        val eligible = territories.flatMap { it.candidates }.ifEmpty { vocabulary.candidatesFor(aspect) }
+        val eligible = territories.flatMap { it.candidates }.ifEmpty { vocabulary.askableIn(aspect) }
         val bar = COMPANY_SHARE_OF_BEST * seated.maxOf { strengthOf(vocabulary, it, speaking, aspect) }
         val welcome = eligible.filter { it !in seated && strengthOf(vocabulary, it, speaking, aspect) >= bar }
         if (welcome.isEmpty()) return emptyList()
@@ -410,7 +410,7 @@ object Resolver {
         if (word.aspects.isNotEmpty()) return word.aspects.sortedBy { it.ordinal }
         // An evocative word declares no aspect: spanning aspects is what makes it evocative.
         return Aspect.entries.filter { aspect ->
-            vocabulary.candidatesFor(aspect).any { word.pull(vocabulary.tagsOf(it)) > 0.0 }
+            vocabulary.askableIn(aspect).any { word.pull(vocabulary.tagsOf(it)) > 0.0 }
         }
     }
 

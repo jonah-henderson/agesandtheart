@@ -46,7 +46,7 @@ object AgeGeneration {
     /** The dimension type every generated Age wears. */
     val AGE_DIMENSION_TYPE: Identifier = "age".location()
 
-    /** The Spire's own dimension type, which differs only in the band of world it admits. */
+    /** The Spire's own dimension type, which differs only in the storm-grey it paints the air. */
     val AGE_SPIRE_DIMENSION_TYPE: Identifier = "age_spire".location()
 
     /** The custom biome (green plasma water), registered as a datapack biome at load. */
@@ -79,9 +79,8 @@ object AgeGeneration {
             seam = composition.terrains.first().seamIn(terrainOptions(0), recipe.character.seam),
         )
 
-        // Derived from the dimension type, never chosen beside it: the band this generator fills and the
-        // band the level admits must not disagree. See [windowFor].
-        val window = windowFor(dimensionType(recipe))
+        // One band for every Age, and the same one every dimension type admits — see [VerticalWindow].
+        val window = VerticalWindow.DEFAULT
 
         val ground = character.mapFor(Aspect.TERRAIN, composition.sharesOf(Aspect.TERRAIN), seed)
         val grounds = composition.terrains.mapIndexed { member, terrain ->
@@ -102,7 +101,7 @@ object AgeGeneration {
         // other. What that space wants is the same three-way `WaterTable` a carved cave already meets.
         val hollows = hollowedRock(grounds, ground)
 
-        val standing = carriedWater(composition, ::terrainOptions, window, character, ground, seed)
+        val standing = carriedWater(composition, character, ground, seed)
         val flow = character.mapFor(Aspect.SEA, composition.sharesOf(Aspect.SEA), seed)
         val seaFill = Sea.pour(
             composition.seas,
@@ -198,14 +197,12 @@ object AgeGeneration {
      */
     private fun carriedWater(
         composition: AgeComposition,
-        optionsFor: (Int) -> Options,
-        window: VerticalWindow,
         character: AgeCharacter,
         ground: RegionMap,
         seed: Long,
     ): TerrainField? {
         val carried = composition.terrains.mapIndexed { member, terrain ->
-            terrain.standingWater(optionsFor(member), window, saltFor(seed, member))
+            terrain.standingWater(saltFor(seed, member))
         }
         if (carried.all { it == null }) return null
         val divided = Regions.of(carried.map { it ?: Union(emptyList()) }, ground)
@@ -334,24 +331,18 @@ object AgeGeneration {
     private val TERRITORY_SALT_STRIDE = 0x9E37_79B9_7F4A_7C15uL.toLong()
 
     /**
-     * The dimension type an Age wears. It no longer decides anything about the sky — the renderer reads
-     * each Age's spec per frame from [co.voik.agesandtheart.sky.KnownSkies] — so the only thing left to
-     * choose between is the band of world, and only the Spire wants a different one.
+     * The dimension type an Age wears — **the colour of its air, and nothing else**. What is drawn overhead
+     * is the Age's [co.voik.agesandtheart.sky.SkySpec], read per frame by the renderer, but a [SkySpec]
+     * carries no sky, fog or cloud colour and those are still dimension-type data.
+     *
+     * The band of world is deliberately *not* here. Both types declare [VerticalWindow.DEFAULT], so a sky
+     * cannot move an Age's floor — which is exactly what it used to do, to any landform reaching below y=0
+     * that drew the Spire's sky by chance.
      */
     fun dimensionType(recipe: AgeRecipe): Identifier = when (val world = recipe.world) {
         is AgeWorld.Composed -> world.composition.sky.dimensionType()
         is AgeWorld.Bespoke -> if (world.preset == AgePreset.SPIRE) AGE_SPIRE_DIMENSION_TYPE else AGE_DIMENSION_TYPE
     }
-
-    /**
-     * The band of world an Age generates into, read off the dimension type it will wear.
-     *
-     * Derived, never chosen: the generator fills `minY..<topY` while the level admits blocks by its
-     * dimension type's JSON, and nothing in vanilla checks the two agree — a mismatch is silently dropped
-     * blocks. Adding a band means adding both halves together.
-     */
-    fun windowFor(dimensionType: Identifier): VerticalWindow =
-        if (dimensionType == AGE_SPIRE_DIMENSION_TYPE) VerticalWindow.LIFTED else VerticalWindow.DEFAULT
 
     /**
      * The sky an Age has, as data the client can be told. A pure function of the recipe.

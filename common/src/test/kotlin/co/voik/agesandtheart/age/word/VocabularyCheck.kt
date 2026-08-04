@@ -131,8 +131,9 @@ class VocabularyCheck : FunSpec({
     }
 
     /**
-     * Every preset can be reached by some word. One no sentence can ask for is content nobody can use — it
-     * still turns up on an unconstrained draw, but a writer who wants it cannot say so.
+     * Every preset can be reached by some word. One no sentence can ask for is content nobody can use: it
+     * cannot be written for, and since [Vocabulary.askableIn] keeps it out of the draw it cannot arrive by
+     * chance either, so nothing in the game would ever produce it.
      */
     test("every preset can be asked for") {
         for (aspect in Aspect.entries) {

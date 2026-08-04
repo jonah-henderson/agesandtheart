@@ -1,9 +1,0 @@
-{
-  "tier": "exact",
-  "aspects": [
-    "terrain"
-  ],
-  "sets": {
-    "altitude": "high"
-  }
-}

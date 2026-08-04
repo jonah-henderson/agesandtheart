@@ -261,6 +261,33 @@ class ResolverCheck : FunSpec({
     }
 
     /**
+     * **A preset that opted out of being askable never arrives by chance**, which is the whole of what
+     * opting out is worth. `askableInASentence` was read by `VocabularyCheck` and by nothing that resolves,
+     * so `sky=spire` — reachable by no word, and carrying the Spire's own dimension type — was still in the
+     * bag an unconstrained aspect drew from, and came up on about one Age in three. Unaskable made it rare
+     * rather than unreachable, which is the worst of the two.
+     *
+     * Every sentence, because the leak was in the draw an aspect takes when *nothing* speaks to it, and
+     * which aspect that is depends on what the sentence happened to be about.
+     */
+    test("nothing unaskable is ever drawn") {
+        val unaskable = Aspect.entries
+            .flatMap { aspect -> vocabulary.candidatesFor(aspect) }
+            .filterNot { it.askableInASentence }
+        check(unaskable.isNotEmpty()) { "nothing opts out of being askable, so this check asserts nothing" }
+        for (sentence in SENTENCES) {
+            for (seed in 1L..SEEDS_SAMPLED) {
+                val arrived = resolve(vocabulary, sentence, seed).composition.presets.filter { it in unaskable }
+                check(arrived.isEmpty()) {
+                    "\"$sentence\" at seed $seed drew ${arrived.joinToString { it.key }}, " +
+                        "which no sentence can ask for"
+                }
+            }
+        }
+        println("  ${unaskable.joinToString { it.key }} stayed out of ${SENTENCES.size * SEEDS_SAMPLED} draws.")
+    }
+
+    /**
      * The preset a word claims strongly takes more ground than one it claims weakly — the point of shares.
      * Checked at the recipe rather than by counting columns; [RegionShareCheck] proves a share turns into
      * ground.

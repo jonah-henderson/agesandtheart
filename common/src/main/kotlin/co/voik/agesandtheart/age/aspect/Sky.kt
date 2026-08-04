@@ -45,8 +45,10 @@ enum class Sky(override val key: String, val ownDimensionType: Identifier) : Asp
     override val parameters: List<Parameter> get() = listOf(SUNS, MOONS, STARS, ORBITS)
 
     /**
-     * Which dimension type this Age needs. Only the band of world still varies — the sky is drawn from the
-     * Age's [SkySpec] whatever the dimension type says, so an ordinary Age needs no marker of its own.
+     * Which dimension type this Age needs. Only the **colour of the air** still varies — what is drawn
+     * overhead comes from the Age's [SkySpec], but a spec carries no sky, fog or cloud colour, so a sky
+     * wanting its own palette still needs a type to put it in. The band of world is not chosen here and
+     * must not be: see [AgeGeneration.dimensionType].
      */
     fun dimensionType(): Identifier = ownDimensionType
 

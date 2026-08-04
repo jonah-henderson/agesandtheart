@@ -145,12 +145,25 @@ data class Vocabulary(
     }
 
     /**
+     * The curated pool less everything that opted out of being asked for — **what a sentence may actually
+     * reach**, and so what a draw for an aspect nobody spoke to draws from.
+     *
+     * The two pools are separate because [candidatesFor] answers "what is there", which `VocabularyCheck`
+     * needs in order to notice a preset that is neither askable nor pinned. Saying `askableInASentence =
+     * false` and then leaving the preset in the bag a vague word draws from made it *rarer*, not
+     * unreachable: the Spire's sky came up on one Age in three and took its dimension type with it.
+     */
+    fun askableIn(aspect: Aspect): List<AspectPreset> =
+        candidatesFor(aspect).filter { it.askableInASentence }
+
+    /**
      * The presets in [aspect] this word would keep, at its tier's strictness. A word that **names** a
-     * preset never searches, which is what keeps derived vocabulary free at resolve time (§8.2).
+     * preset never searches, which is what keeps derived vocabulary free at resolve time (§8.2) — and is
+     * the one way to reach something [askableIn] leaves out, so a deliberate word still can.
      */
     fun carriersOf(word: Word, aspect: Aspect): List<AspectPreset> {
         word.namedPreset(aspect)?.let { return listOf(it) }
-        return candidatesFor(aspect).filter { word.accepts(tagsOf(it)) }
+        return askableIn(aspect).filter { word.accepts(tagsOf(it)) }
     }
 
     /**

@@ -204,12 +204,19 @@ object SpireField {
             carvers,
         )
 
-    // Where an island's body sits, centring a typical island between the two cloud decks the Spire's sky
-    // draws. Two hard limits decide the number rather than taste: the world ends at y=320, and
-    // the undersides must stop at the sea, y=63, or the hanging spires drown. With `below = DECK_Y - 64`
-    // and `above = 2 × below ≤ 318 - DECK_Y`, the deck can sit no higher than this — giving a 2:1 split of
-    // 168 above and 84 below.
-    internal const val DECK_Y = 148
+    /**
+     * Where an island's body sits, centring a typical island between the two cloud decks the Spire's sky
+     * draws — and pinned by two hard limits rather than chosen by taste. The deck has to leave room over it
+     * for the tallest spire and under it for the deepest root, and at full size and full drop
+     * ([ISLAND_VARIATION]) a root could reach 130 blocks down.
+     *
+     * Measured through the weathering at this height (`./gradlew :common:preview --args=spire`): rock
+     * stands between y=71 and y=310, so the spires clear the world's ceiling of 319 by nine blocks and
+     * nothing comes near [SEA_LEVEL]. Column tops run to a median of 165 and a ninetieth percentile of 183,
+     * which is what puts them just under [co.voik.agesandtheart.sky.SpireSky.UPPER_DECK_HEIGHT] with only
+     * three per cent breaking through.
+     */
+    internal const val DECK_Y = 156
     private const val PEAK_HEIGHT = 148
     private const val TYPICAL_CROWN = 45
 
@@ -219,10 +226,9 @@ object SpireField {
     private const val TALON_TYPICAL = 21
     // Fine, so a needle is a few blocks across rather than a hill.
     private const val TALON_SCALE = 0.75
-    // **Not half of [PEAK_HEIGHT].** Erosion keeps or removes a whole column but never shortens one, so the
-    // floor is the field's alone and this is measured rather than derived: 80 puts [SPIKE_FLOOR] at 68 and
-    // the undersides stop exactly at the sea. Halving [PEAK_HEIGHT] instead let roots hang to y=57, under
-    // the waterline, and drowned them.
+    // **Not half of [PEAK_HEIGHT].** Erosion keeps or removes a whole column but never shortens one, so how
+    // far the undersides reach is the field's alone and this is measured rather than derived — the ragged
+    // half of an island is shorter than its crown, but not by the half a symmetric figure would give it.
     private const val SPIKE_LENGTH = 80
     internal const val PEAK_CEILING = DECK_Y + PEAK_HEIGHT
     internal const val SPIKE_FLOOR = DECK_Y - SPIKE_LENGTH
@@ -358,7 +364,13 @@ object SpireField {
     // Ridges comb down the X axis, matching the wind direction `Weathering` works along.
     private const val WIND_STRETCH = 6.0
 
-    private const val SEA_LEVEL = 63
+    /**
+     * The Spire's waterline, far under the 63 every landform standing *on* the ground shares. This one
+     * hangs in open air and its sea is only the floor of the world it hangs over, so it sits at the bottom
+     * of the band and leaves the whole of the rest to the archipelago — which is what lets the islands
+     * float clear of the water rather than resting on it.
+     */
+    internal const val SEA_LEVEL = -1
     private const val PEAK_SEED = 0x51DE_1L
     private const val SPIKE_SEED = 0x5B1CEL
     // A floor under the connective body's thickness. A gameplay figure — room to stand and build — so it

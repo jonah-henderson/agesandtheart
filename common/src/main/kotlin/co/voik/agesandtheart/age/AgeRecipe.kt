@@ -45,7 +45,7 @@ data class AgeRecipe(
          * Bumped by hand whenever a change to generation would make the same recipe produce different
          * terrain. What moved at each version: `notes/generator-versions.md`.
          */
-        const val CURRENT_GENERATOR_VERSION = 19
+        const val CURRENT_GENERATOR_VERSION = 20
 
         val MAP_CODEC: MapCodec<AgeRecipe> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -253,10 +253,6 @@ data class AgeRecipe(
                                 Terrain.STONE.name to SPIRE_ROCKS,
                                 // Speckled at block scale rather than in blotches: one mottled stone.
                                 Terrain.MINGLING.name to listOf("fine"),
-                                // Island tops sit just under the upper cloud deck, only the spires breaking it.
-                                // Safe to pin here alone: it is conditioned on the Age's vertical band, which
-                                // this recipe's sky is what earns. See [Terrain.ALTITUDE].
-                                Terrain.ALTITUDE.name to listOf("high"),
                             ),
                         ),
                     ),

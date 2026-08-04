@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.sky
 
 import co.voik.agesandtheart.math.Rgba
+import co.voik.agesandtheart.worldgen.SpireField
 
 /**
  * The Spire's own sky, as a [SkySpec] so the general machinery draws it — the one handcrafted Age, and the
@@ -8,14 +9,20 @@ import co.voik.agesandtheart.math.Rgba
  */
 object SpireSky {
 
-    /** Named once: the star reveal below and `TerrainPreview` both read it rather than keeping a copy. */
-    const val UPPER_DECK_HEIGHT = 265.0
+    /**
+     * High enough that the island tops sit just under it and only the tallest spires break through.
+     *
+     * Named once: the star reveal below and `TerrainPreview` both read it rather than keeping a copy.
+     */
+    const val UPPER_DECK_HEIGHT = SpireField.DECK_Y + 45.0
 
     /**
-     * Level with the islands' waist, hiding the hanging spires. Rides with the terrain: lift the
-     * archipelago and this must move by the same amount or it becomes a floor under everything.
+     * Level with the islands' waist, hiding the hanging spires.
+     *
+     * **Both decks are measured off [SpireField.DECK_Y] rather than written down**, because they ride with
+     * the archipelago: move it and a deck left behind becomes a floor under everything.
      */
-    const val LOWER_DECK_HEIGHT = 217.0
+    const val LOWER_DECK_HEIGHT = SpireField.DECK_Y - 3.0
 
     /** Mostly light grey with cool blue-grey darker spots, drifting faster than the deck below. */
     private val UPPER_DECK = CloudDeck(
