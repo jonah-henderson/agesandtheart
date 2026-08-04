@@ -100,7 +100,7 @@ class WritingCheck : FunSpec({
      */
     test("the pinned knobs can be written") {
         val knobs = listOf(
-            Triple("finemingle", "age landmass finely basalt and slate", "mingling=fine"),
+            Triple("finemingle", "age landmass finely basalt and deepslate", "mingling=fine"),
             Triple("bareskin", "age biomes bare", "skin=bare"),
         )
         for ((name, sentence, expected) in knobs) {

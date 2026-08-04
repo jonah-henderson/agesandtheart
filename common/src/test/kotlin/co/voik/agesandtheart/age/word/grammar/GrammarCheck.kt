@@ -167,10 +167,10 @@ class GrammarCheck : FunSpec({
      * the claim rather than the word, so what the parser owes is putting it on the right constraint.
      */
     test("a quantifier binds to the term it precedes") {
-        val read = Grammar.read(vocabulary, listOf("age", "landmass", "basalt", "and", "teeming", "slate"))
+        val read = Grammar.read(vocabulary, listOf("age", "landmass", "basalt", "and", "teeming", "deepslate"))
         check(read.dropped.isEmpty()) { "a quantified book lost pages: ${read.dropped}" }
-        val counted = read.constraints.first { it.word.name == "slate" }
-        check(counted.density == Density.TEEMING) { "'teeming slate' resolved to ${counted.density}" }
+        val counted = read.constraints.first { it.word.name == "deepslate" }
+        check(counted.density == Density.TEEMING) { "'teeming deepslate' resolved to ${counted.density}" }
         val uncounted = read.constraints.first { it.word.name == "basalt" }
         check(uncounted.density == Density.ORDINARY) {
             "the rung leaked onto the term before it, which is not the one it counts"
@@ -207,13 +207,13 @@ class GrammarCheck : FunSpec({
      * then "and" would mean nothing, and there would be no way left to say *keep both*.
      */
     test("joining is not juxtaposition") {
-        val joined = Grammar.read(vocabulary, listOf("age", "verdant", "basalt", "and", "slate"))
+        val joined = Grammar.read(vocabulary, listOf("age", "verdant", "basalt", "and", "deepslate"))
         val groups = joined.constraints.mapNotNull { it.group }.distinct()
         check(groups.size == 1) { "'basalt and molten' should share one group, got ${joined.constraints}" }
         val grouped = joined.constraints.filter { it.group != null }.map { it.word.name }
         check(grouped.size == 2) { "expected two words in the group, got $grouped" }
 
-        val unjoined = Grammar.read(vocabulary, listOf("age", "verdant", "basalt", "slate"))
+        val unjoined = Grammar.read(vocabulary, listOf("age", "verdant", "basalt", "deepslate"))
         check(unjoined.constraints.all { it.group == null }) {
             "unjoined juxtaposition was read as a group, which would leave 'and' meaning nothing"
         }
@@ -260,7 +260,7 @@ class GrammarCheck : FunSpec({
             listOf("verdant", "and", "and", "basalt"),
             listOf("beautiful", "and", "floating"),
             listOf("only", "except", "and"),
-            listOf("basalt", "floating", "verdant", "slate"),
+            listOf("basalt", "floating", "verdant", "deepslate"),
         )
         for (pages in books) {
             val read = Grammar.read(vocabulary, pages)
@@ -273,7 +273,7 @@ class GrammarCheck : FunSpec({
             }
         }
         // The joining word owes no constraint of its own, so it must never be reported as unread.
-        val joined = Grammar.read(vocabulary, listOf("age", "verdant", "basalt", "and", "slate"))
+        val joined = Grammar.read(vocabulary, listOf("age", "verdant", "basalt", "and", "deepslate"))
         check(joined.dropped.isEmpty()) { "a structural page was reported as unread: ${joined.dropped}" }
     }
 

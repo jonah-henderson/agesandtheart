@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.AgePreset
 import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.AgeWorld
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.namesReferent
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
@@ -118,6 +119,32 @@ class VocabularyCheck : FunSpec({
             check(word.aspects.isNotEmpty()) {
                 "'${word.name}' is ${word.tier.key} but names no aspect, so it would narrow every aspect its tags " +
                     "reach — which is how a word about the sky ends up choosing the ground"
+            }
+        }
+    }
+
+    /**
+     * **No authored word is a synonym for a derived one.**
+     *
+     * §8.1 already mints a word for every block, biome and structure set, so an authored word that resolves
+     * to exactly one registry id says nothing the derived word does not — and it is worse than redundant.
+     * Two pages that produce the same Age tell a writer there is a distinction worth spending ink on when
+     * there is none: somebody laying `slate` rather than `deepslate` is owed something different, and got
+     * the same block.
+     *
+     * `basalt` was the sharper case, because authored words win every collision: it set *blackstone* while
+     * wearing the name of the block it was displacing, so `basalt` in a book gave you something else.
+     *
+     * An authored word may still reach a referent — but only while doing something the derived word cannot,
+     * which means carrying a query of its own as well.
+     */
+    test("no authored word is a synonym for a derived one") {
+        for (word in vocabulary.authoredWords) {
+            val referents = (listOfNotNull(word.names) + word.sets.values).filter(::namesReferent)
+            val saysNothingElse = word.query.isEmpty()
+            check(referents.isEmpty() || !saysNothingElse) {
+                "'${word.name}' resolves to ${referents.joinToString()} and nothing else, which is what the " +
+                    "derived word already does — so laying it buys a writer nothing over laying that"
             }
         }
     }

@@ -191,7 +191,7 @@ object Readout {
             val couldTakeAParticle = hasASubjectToAttachTo || position > 0
             val particle = if (couldTakeAParticle && !aParticleHasBeenSpent) attachmentOf(run) else ""
             // One `of` per clause. A second unjoined material is a rival claim rather than more of the
-            // same, and "of basalt of slate" reads as neither.
+            // same, and "of basalt of deepslate" reads as neither.
             val followsAnAttachedRun = aParticleHasBeenSpent && attachmentOf(run).isNotEmpty()
             aParticleHasBeenSpent = aParticleHasBeenSpent || particle.isNotEmpty()
             if (position > 0 && followsAnAttachedRun) said.punctuate(",")

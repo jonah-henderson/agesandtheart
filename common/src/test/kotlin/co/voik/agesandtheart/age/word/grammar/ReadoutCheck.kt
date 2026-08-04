@@ -83,10 +83,10 @@ class ReadoutCheck : FunSpec({
      * joined run into juxtaposition would hide the only thing it changed (§3.2).
      */
     test("a joined run stays joined") {
-        val joined = readingOf("landmass", "basalt", "and", "slate")
-        check(joined == "landmass of basalt and slate.") { "'basalt and slate' read back as '$joined'" }
+        val joined = readingOf("landmass", "basalt", "and", "deepslate")
+        check(joined == "landmass of basalt and deepslate.") { "'basalt and deepslate' read back as '$joined'" }
 
-        val apart = readingOf("landmass", "basalt", "slate")
+        val apart = readingOf("landmass", "basalt", "deepslate")
         check(" and " !in apart) { "unjoined words were read back as joined: '$apart'" }
     }
 
@@ -110,8 +110,8 @@ class ReadoutCheck : FunSpec({
 
     /** A rung is bound to one term, so the reading has to put it back on that term and no other. */
     test("a rung is said against the thing it counts") {
-        val reading = readingOf("landmass", "basalt", "and", "teeming", "slate")
-        check(reading == "landmass of basalt and teeming slate.") { "read back as '$reading'" }
+        val reading = readingOf("landmass", "basalt", "and", "teeming", "deepslate")
+        check(reading == "landmass of basalt and teeming deepslate.") { "read back as '$reading'" }
     }
 
     /**
@@ -172,7 +172,7 @@ class ReadoutCheck : FunSpec({
     test("what a book says is the same sentence, in the reader's own words") {
         val books = listOf(
             listOf("landmass", "floating", "basalt"),
-            listOf("landmass", "packed_ice", "and", "slate", "sea", "molten"),
+            listOf("landmass", "packed_ice", "and", "deepslate", "sea", "molten"),
             listOf("beautiful", "landmass", "only", "basalt"),
             listOf("landmass", "starless"),
         )
@@ -198,7 +198,7 @@ class ReadoutCheck : FunSpec({
      * written could never learn it, and it is the commonest word on the page.
      */
     test("every page the writer laid gets a column of its own") {
-        val pages = listOf("landmass", "packed_ice", "and", "slate", "sea", "molten")
+        val pages = listOf("landmass", "packed_ice", "and", "deepslate", "sea", "molten")
         val sentence = Grammar.read(vocabulary, listOf("age") + pages)
         val columns = Readout.columnsOf(sentence)
         val stood = columns.map { it.written.trimEnd(',', '.') }
