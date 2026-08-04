@@ -35,12 +35,6 @@ data class AgeComposition(
     /** Which biomes it grows. Singular — one climate table spans the world however many terrains carve it. */
     val sky: Sky = Sky.PLAIN,
     /**
-     * What may be built here. **Vanilla by default**, so any Age is built in unless it says otherwise —
-     * an interim setting while the landforms are being walked, and one an Age turns off by naming
-     * [Structures.NONE]. See `notes/the-art-design.md`, "Habitability decides what is built".
-     */
-    val structures: Structures = Structures.VANILLA,
-    /**
      * The coordinates its biomes are looked up at, one per territory. Never empty.
      *
      * **The spans themselves, not a preset naming them.** Climate is the aspect with nothing to choose
@@ -72,7 +66,7 @@ data class AgeComposition(
 
     /** Every preset this composition names, in aspect order — for listing, costing and diagnosis. */
     val presets: List<AspectPreset>
-        get() = terrains + seas + carvers + listOf(sky, structures)
+        get() = terrains + seas + carvers + listOf(sky)
 
     /** The one terrain, where there is only one — for the many places that still reasonably assume so. */
     val terrain: Terrain get() = terrains.first()
@@ -123,9 +117,9 @@ data class AgeComposition(
         Aspect.SEA -> copy(seas = listOf(named<Sea>(aspect, key)))
         Aspect.CARVERS -> copy(carvers = listOf(named<Carvers>(aspect, key)))
         Aspect.SKY -> copy(sky = named<Sky>(aspect, key))
-        Aspect.STRUCTURES -> copy(structures = named<Structures>(aspect, key))
-        // Neither seats anything: a biome is weighed and a climate is where its dials were left.
-        Aspect.BIOMES -> this
+        // None of these seats anything: a biome and a structure set are weighed, and a climate is where
+        // its dials were left.
+        Aspect.BIOMES, Aspect.STRUCTURES -> this
         Aspect.CLIMATE -> copy(climates = listOf(ClimateBias.NONE))
     }
 
@@ -333,8 +327,6 @@ data class AgeComposition(
                     .optionalFieldOf("carvers", listOf(Carvers.SOLID))
                     .forGetter(AgeComposition::carvers),
                 enumCodec<Sky>().optionalFieldOf("sky", Sky.PLAIN).forGetter(AgeComposition::sky),
-                enumCodec<Structures>().optionalFieldOf("structures", Structures.VANILLA)
-                    .forGetter(AgeComposition::structures),
                 setOrSingle(ClimateBias.CODEC, ClimateBias.NONE)
                     .optionalFieldOf("climate", listOf(ClimateBias.NONE))
                     .forGetter(AgeComposition::climates),

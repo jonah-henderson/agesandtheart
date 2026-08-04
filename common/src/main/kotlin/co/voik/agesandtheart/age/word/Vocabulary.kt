@@ -161,6 +161,17 @@ data class Vocabulary(
      * preset never searches, which is what keeps derived vocabulary free at resolve time (§8.2) — and is
      * the one way to reach something [askableIn] leaves out, so a deliberate word still can.
      */
+    /**
+     * Whether anything in [aspect] answers [word] at all, either way — the question a **population** asks
+     * where a preset aspect asks [carriersOf].
+     *
+     * A word may be entirely *negative* about a population and be perfectly well backed: `untouched` says
+     * what must not be here, no structure set carries a tag for its own absence, and every one of them
+     * answers the word.
+     */
+    fun answersIn(word: Word, aspect: Aspect): Boolean =
+        candidatesFor(aspect).any { word.affinityFor(tagsOf(it)) != 0.0 }
+
     fun carriersOf(word: Word, aspect: Aspect): List<AspectPreset> {
         word.namedPreset(aspect)?.let { return listOf(it) }
         return askableIn(aspect).filter { word.accepts(tagsOf(it)) }

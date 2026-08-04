@@ -1,15 +1,53 @@
 {
-  "none": {
-    "tags": {
-      "empty": 0.9
-    }
+  "minecraft:villages": {
+    "tags": { "built": 1.0, "inhabited": 1.0, "ordinary": 0.8 }
   },
-  "vanilla": {
-    "readiness": 0.25,
-    "tags": {
-      "inhabited": 0.9,
-      "ordinary": 0.7,
-      "monumental": 0.3
-    }
+  "minecraft:pillager_outposts": {
+    "tags": { "built": 1.0, "inhabited": 0.8, "hostile": 0.9 }
+  },
+  "minecraft:igloos": {
+    "tags": { "built": 1.0, "inhabited": 0.6, "ordinary": 0.5 }
+  },
+  "minecraft:swamp_huts": {
+    "tags": { "built": 1.0, "inhabited": 0.5, "gloomy": 0.6, "hostile": 0.4 }
+  },
+  "minecraft:desert_pyramids": {
+    "tags": { "built": 1.0, "monumental": 0.7, "ordered": 0.6, "dry": 0.8, "inhabited": 0.3 }
+  },
+  "minecraft:jungle_temples": {
+    "tags": { "built": 1.0, "monumental": 0.5, "ordered": 0.6, "lush": 0.5, "inhabited": 0.3 }
+  },
+  "minecraft:ocean_monuments": {
+    "tags": { "built": 1.0, "monumental": 0.9, "watery": 1.0, "hostile": 0.6 }
+  },
+  "minecraft:woodland_mansions": {
+    "tags": { "built": 1.0, "monumental": 0.9, "hostile": 0.7, "gloomy": 0.5, "inhabited": 0.6 }
+  },
+  "minecraft:ancient_cities": {
+    "tags": { "built": 1.0, "monumental": 1.0, "gloomy": 1.0, "hostile": 0.9, "cavernous": 0.8 }
+  },
+  "minecraft:strongholds": {
+    "tags": { "built": 1.0, "monumental": 0.7, "ordered": 0.7, "cavernous": 0.6, "inhabited": 0.4 }
+  },
+  "minecraft:trial_chambers": {
+    "tags": { "built": 1.0, "hostile": 0.9, "ordered": 0.8, "cavernous": 0.7, "monumental": 0.5 }
+  },
+  "minecraft:mineshafts": {
+    "tags": { "built": 1.0, "cavernous": 1.0, "inhabited": 0.5, "ordinary": 0.6 }
+  },
+  "minecraft:trail_ruins": {
+    "tags": { "built": 1.0, "eroded": 0.8, "inhabited": 0.5, "ordinary": 0.4 }
+  },
+  "minecraft:ocean_ruins": {
+    "tags": { "built": 1.0, "watery": 0.9, "eroded": 0.7, "inhabited": 0.3 }
+  },
+  "minecraft:shipwrecks": {
+    "tags": { "built": 1.0, "watery": 0.9, "eroded": 0.5, "inhabited": 0.3 }
+  },
+  "minecraft:buried_treasures": {
+    "tags": { "built": 1.0, "watery": 0.5, "ordinary": 0.4 }
+  },
+  "minecraft:ruined_portals": {
+    "tags": { "built": 1.0, "strange": 0.9, "eroded": 0.6, "molten": 0.3 }
   }
 }

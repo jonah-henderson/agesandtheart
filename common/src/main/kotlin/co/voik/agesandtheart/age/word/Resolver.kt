@@ -16,7 +16,6 @@ import co.voik.agesandtheart.age.word.grammar.Scope
 import co.voik.agesandtheart.age.word.grammar.Sentence
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import co.voik.agesandtheart.age.aspect.Polarity
-import co.voik.agesandtheart.worldgen.biome.BiomePreference
 import co.voik.agesandtheart.age.aspect.Rung
 
 /**
@@ -88,6 +87,9 @@ object Resolver {
     // As much of the world as any one member of a population may be talked into taking, so that a
     // sentence full of words agreeing about one biome cannot quietly make an Age of nothing else.
     private const val MOST_OF_A_WORLD = 4.0
+
+    // Where a population lets a member be pushed all the way down, the claim that says so.
+    private const val NONE_OF_IT = 0.0
 
     // Arbitrary large odds, only ever needed to decorrelate one draw from another.
     private const val ASPECT_STRIDE = 0x1F3B_5D79L
@@ -711,11 +713,11 @@ object Resolver {
                 aspect in reachOf(vocabulary, said) && said.word.namedPreset(aspect) == null
             }
             if (speaking.isEmpty()) continue
-            val reached = vocabulary.askableIn(aspect)
-                .mapNotNull { member -> claimForMember(vocabulary, member, speaking, aspect)?.spelled() }
+            val pool = vocabulary.askableIn(aspect)
+            val reached = pool.mapNotNull { member -> claimForMember(vocabulary, member, population, speaking, aspect) }
             if (reached.isEmpty()) continue
             val named = weighed.optionsFor(aspect, 0).allOf(population)
-            weighed = weighed.withOptions(aspect, population.name, (named + reached).distinct())
+            weighed = weighed.withOptions(aspect, population.name, (named + spelled(reached, population, pool)).distinct())
         }
         return weighed
     }
@@ -736,22 +738,43 @@ object Resolver {
     private fun claimForMember(
         vocabulary: Vocabulary,
         member: AspectPreset,
+        population: Parameter,
         speaking: List<Constraint>,
         aspect: Aspect,
     ): Claim? {
         val tags = vocabulary.tagsOf(member)
         val insisting = speaking.filter { it.word.tier.narrows && it.word.accepts(tags) }
+        // A narrowing word this member does not qualify for still has an opinion where it *dislikes* the
+        // member's tags — which is the only way "untouched" can mean anything, there being no tag for the
+        // absence of a thing to put on the members that are present.
+        val spurning = speaking.filter { it.word.tier.narrows && it.word.affinityFor(tags) < 0.0 }
         val liking = speaking.filter { !it.word.tier.narrows }
         val insisted = insisting.sumOf { it.word.pull(tags) * it.word.tier.weight }
+        val spurned = spurning.sumOf { it.word.affinityFor(tags) * it.word.tier.weight }
         val liked = liking.sumOf { it.word.affinityFor(tags) * emphasis(it, aspect) }
         val polarity = (insisting + liking.filter { it.word.affinityFor(tags) > 0.0 })
             .map { it.polarity }.firstOrNull { it != Polarity.ASSERTED }
-        val weight = Rung.legible(
-            (BiomePreference.ORDINARY + insisted + liked).coerceIn(BiomePreference.LEAST_KEPT, MOST_OF_A_WORLD),
-        )
-        val nothingToSay = polarity == null && weight == BiomePreference.ORDINARY
+        val asked = Rung.ORDINARY + insisted + spurned + liked
+        val weight = Rung.legible(asked.coerceIn(population.leastKept, MOST_OF_A_WORLD))
+        // Struck out rather than kept at nothing: a claim of none of something is what `except` says, and
+        // saying it that way keeps one mechanism for removal instead of two.
+        if (weight <= NONE_OF_IT) return Claim(member.key, Polarity.EXCEPT)
+        val nothingToSay = polarity == null && Rung.isOrdinary(weight)
         if (nothingToSay) return null
         return Claim(member.key, polarity ?: Polarity.ASSERTED, weight)
+    }
+
+    /**
+     * These claims as a recipe holds them — **collapsed to the population's own word for emptiness** where
+     * the sentence struck out everything the Art can reach.
+     *
+     * A word meaning "nothing built here" would otherwise write an exclusion per structure set, which says
+     * the same thing at ten times the length and stops saying it the moment a pack adds a set.
+     */
+    private fun spelled(claims: List<Claim>, population: Parameter, pool: List<AspectPreset>): List<String> {
+        val emptied = population.emptiedBy ?: return claims.map { it.spelled() }
+        val everythingStruck = claims.size == pool.size && claims.all { it.polarity == Polarity.EXCEPT }
+        return if (everythingStruck) listOf(emptied) else claims.map { it.spelled() }
     }
 
     /**

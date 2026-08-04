@@ -101,6 +101,16 @@ class VocabularyCheck : FunSpec({
                     }
                     continue
                 }
+                // A population is not seated, so it has no carriers to have: what backs a word there is
+                // anything answering it *either way*, since a word about a population may be entirely
+                // negative and still be about it.
+                if (aspect.kind == Aspect.Kind.POPULATION) {
+                    check(vocabulary.answersIn(word, aspect)) {
+                        "'${word.name}' is ${word.tier.key} about ${aspect.key}, and nothing there answers " +
+                            "${word.query.keys.joinToString(" ")} at all"
+                    }
+                    continue
+                }
                 val carriers = vocabulary.carriersOf(word, aspect)
                 check(carriers.isNotEmpty()) {
                     "'${word.name}' is ${word.tier.key} about ${aspect.key}, but no ${aspect.key} carries " +

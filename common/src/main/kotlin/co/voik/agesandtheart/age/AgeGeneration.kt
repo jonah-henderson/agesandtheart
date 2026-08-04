@@ -38,6 +38,7 @@ import net.minecraft.world.level.biome.FixedBiomeSource
 import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
+import co.voik.agesandtheart.age.aspect.Structures
 
 /**
  * Turns an [AgeRecipe] into the generator that builds its world — a pure function of the recipe (plus the
@@ -173,7 +174,7 @@ object AgeGeneration {
             below,
             waterTablesOf(composition, seaFill, seed),
             // One answer for the whole dimension — vanilla places structures against the level.
-            composition.structures.structureSets(server, composition.optionsFor(Aspect.STRUCTURES, 0)),
+            Structures.structureSets(server, composition.optionsFor(Aspect.STRUCTURES, 0)),
             server.registryAccess().lookupOrThrow(Registries.NOISE_SETTINGS)
                 .getOrThrow(NoiseGeneratorSettings.OVERWORLD),
             substance,

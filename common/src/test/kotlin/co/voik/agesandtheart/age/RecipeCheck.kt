@@ -104,7 +104,6 @@ class RecipeCheck : FunSpec({
      */
     test("an excluded structure round-trips") {
         val written = AgeComposition(terrains = listOf(Terrain.HILLS))
-            .withPreset(Aspect.STRUCTURES, Structures.VANILLA.key)
             .withOptions(
                 Aspect.STRUCTURES,
                 Structures.BUILT.name,

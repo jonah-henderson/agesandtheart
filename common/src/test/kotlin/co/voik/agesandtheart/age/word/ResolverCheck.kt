@@ -273,27 +273,30 @@ class ResolverCheck : FunSpec({
     }
 
     /**
-     * An Age nobody asked to be built in rarely is, and one that asked always is. Now that
-     * [Structures.VANILLA] is a preset a sentence can draw, "opt-in per Age" is kept by the readiness
-     * prior — the same lever as the sea of lava above.
+     * **An Age nobody spoke to about building is built in**, at every seed, and a word is what empties it.
      *
-     * `floating` says nothing about habitation, so this measures the *unasked* draw. The effective rate in
-     * a world is lower again, a set only being placed where the biome source can produce its biomes.
+     * This replaces "an unasked Age is rarely built in" and inverts it. Habitation used to be opt-in
+     * through a readiness prior on a `vanilla` preset, and the prior went with the preset when structures
+     * became a population: there is nothing to draw, so nothing for a prior to lean on. Habitability
+     * (design §7.6) is expected to take the question back and make it depend on what the Age *is* rather
+     * than on a coin; until it does, a fixed baseline is what everything else can be measured against.
      */
-    test("an unasked Age is rarely built in") {
-        val built = (1L..SEEDS_SAMPLED).count { seed ->
-            resolve(vocabulary, "floating", seed).composition.structures == Structures.VANILLA
-        }
-        check(built <= SEEDS_SAMPLED / MOST_UNASKED_STRUCTURES) {
-            "\"floating\" was built in $built times in $SEEDS_SAMPLED, so structures are no longer opt-in"
-        }
-        // The other half, because a rare unasked draw is only defensible if asking works: `settled` narrows
-        // the aspect to one candidate, so it is not a rate but a certainty, at every seed.
+    test("an unspoken Age is built in, and a word empties it") {
         for (seed in 1L..SEEDS_SAMPLED) {
-            val asked = resolve(vocabulary, "settled", seed).composition.structures
-            check(asked == Structures.VANILLA) { "'settled' resolved structures to $asked at seed $seed" }
+            val unspoken = builtIn(resolve(vocabulary, "floating", seed).composition)
+            check(unspoken.isEmpty()) { "'floating' said something about building at seed $seed: $unspoken" }
         }
-        println("  \"floating\" is built in $built times in $SEEDS_SAMPLED seeds; \"settled\" at every seed.")
+        // Nothing said means nothing written, and the world reads an unwritten population as vanilla's own.
+        val untouched = builtIn(resolve(vocabulary, "untouched").composition)
+        check(untouched == listOf(Structures.NOTHING)) { "'untouched' left $untouched standing" }
+
+        val settled = Population.of(
+            resolve(vocabulary, "settled").composition.optionsFor(Aspect.STRUCTURES, 0).claimsOn(Structures.BUILT),
+        )
+        val villages = settled.wanted.firstOrNull { it.value == "minecraft:villages" }
+            ?: error("'settled' said nothing about villages: ${settled.wanted}")
+        check(villages.density > Rung.ORDINARY) { "'settled' asked for ${villages.density} villages" }
+        check(settled.struck.isEmpty()) { "'settled' struck something out: ${settled.struck}" }
     }
 
     /**
@@ -915,6 +918,10 @@ private const val MOST_UNASKED_LAVA = 5
 private const val MOST_UNASKED_STRUCTURES = 3
 
 /** The biomes a composition was told to grow, as the world will read them. */
+/** What a composition says about building, as a recipe holds it. */
+private fun builtIn(composition: AgeComposition) =
+    composition.optionsFor(Aspect.STRUCTURES, 0).allOf(Structures.BUILT)
+
 private fun preferences(composition: AgeComposition) =
     Biomes.preferencesIn(composition.optionsFor(Aspect.BIOMES, 0))
 

@@ -46,7 +46,7 @@ data class AgeRecipe(
          * Bumped by hand whenever a change to generation would make the same recipe produce different
          * terrain. What moved at each version: `notes/generator-versions.md`.
          */
-        const val CURRENT_GENERATOR_VERSION = 20
+        const val CURRENT_GENERATOR_VERSION = 21
 
         val MAP_CODEC: MapCodec<AgeRecipe> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -225,11 +225,14 @@ data class AgeRecipe(
             terrains = listOf(Terrain.SPIRE_ISLANDS),
             seas = listOf(Sea.WATER),
             carvers = listOf(Carvers.SOLID),
-            // Nobody built here. The `only plasma` claim below would strand every set anyway, but the
-            // Spire says so outright rather than relying on a side effect of its biome.
-            structures = Structures.NONE,
             sky = Sky.SPIRE,
             options = AspectOptions()
+                .with(
+                    Aspect.STRUCTURES,
+                    // Nobody built here. The `only plasma` claim below would strand every set anyway, but
+                    // the Spire says so outright rather than relying on a side effect of its biome.
+                    listOf(Options(mapOf(Structures.BUILT.name to listOf(Structures.NOTHING)))),
+                )
                 .with(
                     Aspect.BIOMES,
                     // `!` is `only` (see `Claim`): exclusive, so vanilla's table is dropped rather than added to.

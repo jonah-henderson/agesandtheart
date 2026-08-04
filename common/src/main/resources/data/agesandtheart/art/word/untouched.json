@@ -4,6 +4,7 @@
     "structures"
   ],
   "query": {
-    "empty": 1.0
+    "built": -1.0,
+    "inhabited": -1.0
   }
 }

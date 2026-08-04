@@ -10,46 +10,38 @@ import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.levelgen.structure.BuiltinStructureSets
-import net.minecraft.world.level.levelgen.structure.StructureSet
+import net.minecraft.world.level.levelgen.structure.StructureSet as VanillaStructureSet
 
 /**
- * What may be built here (design §3.1). The presets are only the base an Age starts from; [BUILT] is
- * where the writing happens, so [NONE] and [VANILLA] mean "nothing unless I say so" and "whatever vanilla
- * builds", and a word steers either.
+ * What may be built here (design §3.1) — **whatever vanilla would**, until a sentence says otherwise.
  *
- * A structure *set* is the finest grain a writer names: within the overworld sets holding several, the
- * members are biome variations of one idea, and vanilla re-rolls a set's selection until something fits
- * the biome — so per-structure control would mostly be a knob that did nothing. The one set whose members
- * genuinely differ is `minecraft:nether_complexes`, split with data rather than code (see [FORTRESSES]).
+ * No preset, for the same reason biomes have none: an Age does not pick one of two ways to be inhabited,
+ * it starts from what the game builds and a sentence adjusts it. [BUILT] is where the writing happens,
+ * naming a set asks for it, a rung says how many, and `only`/`except` are what trim.
+ *
+ * **That baseline is a behaviour change, made deliberately** (Jonah, 2026-08-04): habitation used to be
+ * opt-in through a readiness prior on a `vanilla` preset, so an Age nobody spoke to about building was
+ * usually empty. Now it is furnished by default and `untouched` is what empties it. Habitability (§7.6)
+ * is expected to take the question back and change this again; what it needs first is a baseline that
+ * does not depend on a draw.
  *
  * Naming a set is not the same as placing it: the generator's state builder drops any set whose structures
  * want a biome this Age cannot produce.
  */
-enum class Structures(override val key: String) : AspectPreset {
-    /** Nobody ever built here — and nothing is, unless a word names it. */
-    NONE("none"),
-
-    /** Vanilla's whole overworld set: villages, temples, monuments, mineshafts, cities and strongholds. */
-    VANILLA("vanilla"),
-    ;
-
-    override val aspect = Aspect.STRUCTURES
-
-    override val parameters: List<Parameter> get() = listOf(BUILT)
-
-    override fun getSerializedName(): String = key
+object Structures {
 
     /**
      * The sets vanilla may consider here, steered by whatever the sentence said. Three steps, ordered so
-     * the outcome is independent of the writer's word order (§3.5): `only` drops the base, everything
-     * named joins at its density, then `except` strikes out.
+     * the outcome is independent of the writer's word order (§3.5): `only` (or [NOTHING]) drops the base,
+     * everything named joins at its density, then `except` strikes out.
      */
-    fun structureSets(server: MinecraftServer, options: Options): List<Holder<StructureSet>> {
+    fun structureSets(server: MinecraftServer, options: Options): List<Holder<VanillaStructureSet>> {
         val sets = server.registryAccess().lookupOrThrow(Registries.STRUCTURE_SET)
         val asked = Population.of(options.claimsOn(BUILT))
-        val seated = LinkedHashMap<Identifier, Holder<StructureSet>>()
-        if (!asked.exclusive) {
-            for (key in baseSets()) seated[key.identifier()] = sets.get(key).orElse(null) ?: continue
+        val seated = LinkedHashMap<Identifier, Holder<VanillaStructureSet>>()
+        val startsFromNothing = asked.exclusive || asked.wanted.any { it.value == NOTHING }
+        if (!startsFromNothing) {
+            for (key in OVERWORLD_STRUCTURE_SETS) seated[key.identifier()] = sets.get(key).orElse(null) ?: continue
         }
         for (claim in asked.wanted) {
             val named = Identifier.tryParse(claim.value) ?: continue
@@ -66,57 +58,67 @@ enum class Structures(override val key: String) : AspectPreset {
         return seated.values.toList()
     }
 
-    /** What this preset builds before a word says otherwise. */
-    private fun baseSets(): List<ResourceKey<StructureSet>> = when (this) {
-        NONE -> emptyList()
-        VANILLA -> OVERWORLD_STRUCTURE_SETS
-    }
+    /** Whether an Age asked for nothing to be built at all — see [NOTHING]. */
+    fun buildsNothing(options: Options): Boolean =
+        Population.of(options.claimsOn(BUILT)).wanted.any { it.value == NOTHING }
 
-    companion object {
-        /**
-         * What is built here — populative, with `only`/`except` to narrow and a [Density] rung to say how
-         * many (§3.2, [Claim]). Its values are structure *sets*. Named `built` to avoid
-         * `structures.structures`.
-         */
-        val BUILT = Parameter.population("built")
+    /**
+     * What is built here — populative, with `only`/`except` to narrow and a rung to say how many
+     * (§3.2, [Claim]). Its values are structure *sets*. Named `built` to avoid `structures.structures`.
+     *
+     * A mention is worth the **ordinary** amount of a set, unlike a biome's: a set is opt-in, so naming
+     * one asks for a thing that was not there rather than for more of a thing that was. And it may be
+     * emptied, a world nobody ever built in being a world (`leastKept`), where every column must have
+     * some biome whatever a word thinks of it.
+     */
+    val BUILT = Parameter.population("built", leastKept = NOTHING_AT_ALL, emptiedBy = NOTHING)
 
-        /**
-         * The base [VANILLA] means. Nether and end sets are left out because no overworld biome could admit
-         * them — an Age reaches them by naming them *and* the biomes that would have them.
-         */
-        private val OVERWORLD_STRUCTURE_SETS = listOf(
-            BuiltinStructureSets.VILLAGES,
-            BuiltinStructureSets.DESERT_PYRAMIDS,
-            BuiltinStructureSets.IGLOOS,
-            BuiltinStructureSets.JUNGLE_TEMPLES,
-            BuiltinStructureSets.SWAMP_HUTS,
-            BuiltinStructureSets.PILLAGER_OUTPOSTS,
-            BuiltinStructureSets.OCEAN_MONUMENTS,
-            BuiltinStructureSets.WOODLAND_MANSIONS,
-            BuiltinStructureSets.BURIED_TREASURES,
-            BuiltinStructureSets.MINESHAFTS,
-            BuiltinStructureSets.RUINED_PORTALS,
-            BuiltinStructureSets.SHIPWRECKS,
-            BuiltinStructureSets.OCEAN_RUINS,
-            BuiltinStructureSets.ANCIENT_CITIES,
-            BuiltinStructureSets.STRONGHOLDS,
-            BuiltinStructureSets.TRAIL_RUINS,
-            BuiltinStructureSets.TRIAL_CHAMBERS,
-        )
+    /**
+     * How an Age says nobody ever built here: `built=nothing`, which drops the base whatever vanilla adds
+     * to it later. A word that strikes out every set the Art can reach resolves to this rather than to a
+     * list of exclusions as long as the pack.
+     */
+    const val NOTHING = "nothing"
 
-        /**
-         * Our own halves of `minecraft:nether_complexes`, so a fortress can be asked for without a bastion.
-         *
-         * Their spacings are arithmetic, and the working lives here because JSON cannot hold it. Vanilla
-         * puts both on one grid of `spacing 27, separation 4`, picking by weight fortress 2 : bastion 3.
-         * Two independent grids would place both at every site, so each is spaced to carry only its old
-         * share — fortress `27/sqrt(0.4)` ≈ 43 sep 6, bastion `27/sqrt(0.6)` ≈ 35 sep 5. The salts must
-         * differ from each other *and* from `nether_complexes`, or the grids coincide.
-         */
-        val FORTRESSES: ResourceKey<StructureSet> = ours("fortresses")
-        val BASTIONS: ResourceKey<StructureSet> = ours("bastions")
+    /** A world nobody ever built in is a world, so a set may be pushed all the way to none of it. */
+    private const val NOTHING_AT_ALL = 0.0
 
-        private fun ours(path: String): ResourceKey<StructureSet> =
-            ResourceKey.create(Registries.STRUCTURE_SET, path.location())
-    }
+    /**
+     * The base an Age starts from. Nether and end sets are left out because no overworld biome could
+     * admit them — an Age reaches them by naming them *and* the biomes that would have them.
+     */
+    val OVERWORLD_STRUCTURE_SETS = listOf(
+        BuiltinStructureSets.VILLAGES,
+        BuiltinStructureSets.DESERT_PYRAMIDS,
+        BuiltinStructureSets.IGLOOS,
+        BuiltinStructureSets.JUNGLE_TEMPLES,
+        BuiltinStructureSets.SWAMP_HUTS,
+        BuiltinStructureSets.PILLAGER_OUTPOSTS,
+        BuiltinStructureSets.OCEAN_MONUMENTS,
+        BuiltinStructureSets.WOODLAND_MANSIONS,
+        BuiltinStructureSets.BURIED_TREASURES,
+        BuiltinStructureSets.MINESHAFTS,
+        BuiltinStructureSets.RUINED_PORTALS,
+        BuiltinStructureSets.SHIPWRECKS,
+        BuiltinStructureSets.OCEAN_RUINS,
+        BuiltinStructureSets.ANCIENT_CITIES,
+        BuiltinStructureSets.STRONGHOLDS,
+        BuiltinStructureSets.TRAIL_RUINS,
+        BuiltinStructureSets.TRIAL_CHAMBERS,
+    )
+
+    /**
+     * Our own halves of `minecraft:nether_complexes`, so a fortress can be asked for without a bastion.
+     *
+     * Their spacings are arithmetic, and the working lives here because JSON cannot hold it. Vanilla puts
+     * both on one grid of `spacing 27, separation 4`, picking by weight fortress 2 : bastion 3. Two
+     * independent grids would place both at every site, so each is spaced to carry only its old share —
+     * fortress `27/sqrt(0.4)` ≈ 43 sep 6, bastion `27/sqrt(0.6)` ≈ 35 sep 5. The salts must differ from
+     * each other *and* from `nether_complexes`, or the grids coincide.
+     */
+    val FORTRESSES: ResourceKey<VanillaStructureSet> = ours("fortresses")
+    val BASTIONS: ResourceKey<VanillaStructureSet> = ours("bastions")
+
+    private fun ours(path: String): ResourceKey<VanillaStructureSet> =
+        ResourceKey.create(Registries.STRUCTURE_SET, path.location())
 }

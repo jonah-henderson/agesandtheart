@@ -45,9 +45,9 @@ enum class Aspect(val key: String) : StringRepresentable {
             // Structures *is* a population and is still shaped as a preset pair, `none` against `vanilla`,
             // whose readiness prior is what makes habitation opt-in. It changes kind when it is converted,
             // not before — declaring it early would skip the draw and build in every Age.
-            TERRAIN, CARVERS, SKY, STRUCTURES -> Kind.PRESET
+            TERRAIN, CARVERS, SKY -> Kind.PRESET
             SEA -> Kind.REFERENT
-            BIOMES -> Kind.POPULATION
+            BIOMES, STRUCTURES -> Kind.POPULATION
             CLIMATE -> Kind.DIALS
         }
 
@@ -58,12 +58,11 @@ enum class Aspect(val key: String) : StringRepresentable {
      */
     val open: Boolean
         get() = when (this) {
-            // Both hold registry objects. A biome is open so a word can *reach* one — what a sentence
-            // does to it is weigh it, never seat it, which is [Kind.POPULATION]'s business rather than this.
-            SEA, BIOMES -> true
-            // Structures is an open aspect in the design but closed here: it needs to hold several named
-            // sets at once rather than one value drawn from a registry. See [Structures].
-            TERRAIN, CARVERS, SKY, STRUCTURES, CLIMATE -> false
+            // All three hold registry objects. A biome and a structure set are open so a word can *reach*
+            // one — what a sentence does to it is weigh it, never seat it, which is [Kind.POPULATION]'s
+            // business rather than this.
+            SEA, BIOMES, STRUCTURES -> true
+            TERRAIN, CARVERS, SKY, CLIMATE -> false
         }
 
     /**
@@ -77,13 +76,11 @@ enum class Aspect(val key: String) : StringRepresentable {
     val authored: List<AspectPreset>
         get() = when (this) {
             TERRAIN -> Terrain.entries
-            SEA -> emptyList()
             CARVERS -> Carvers.entries
             SKY -> Sky.entries
-            STRUCTURES -> Structures.entries
-            // Nothing to choose between: a climate is where its dials were left, and a biome is weighed
-            // rather than chosen. See [dials] and [Kind.POPULATION].
-            BIOMES, CLIMATE -> emptyList()
+            // Nothing to choose between: a climate is where its dials were left, and a biome or a structure
+            // set is weighed rather than chosen. See [dials] and [Kind.POPULATION].
+            SEA, BIOMES, STRUCTURES, CLIMATE -> emptyList()
         }
 
     /**
@@ -99,7 +96,8 @@ enum class Aspect(val key: String) : StringRepresentable {
             CLIMATE -> ClimateAxis.entries.map { it.parameter }
             // A biome's population is the aspect's answer; these two say how it is *worn*, not which.
             BIOMES -> listOf(Biomes.GROWN, Biomes.SKIN, Biomes.FOOTING)
-            TERRAIN, SEA, CARVERS, SKY, STRUCTURES -> emptyList()
+            STRUCTURES -> listOf(Structures.BUILT)
+            TERRAIN, SEA, CARVERS, SKY -> emptyList()
         }
 
     /**
@@ -128,7 +126,8 @@ enum class Aspect(val key: String) : StringRepresentable {
     fun presetFor(key: String): AspectPreset? = when (this) {
         SEA -> Sea.named(key)
         BIOMES -> Biome.named(key)
-        TERRAIN, CARVERS, SKY, STRUCTURES, CLIMATE -> authored.firstOrNull { it.key == key }
+        STRUCTURES -> StructureSet.named(key)
+        TERRAIN, CARVERS, SKY, CLIMATE -> authored.firstOrNull { it.key == key }
     }
 
     /**
@@ -193,6 +192,10 @@ data class Parameter(
     val counts: IntRange? = null,
     /** What naming one of these is worth, where the value is a member of a population — see [population]. */
     val worthOfAMention: Double = Rung.ORDINARY,
+    /** How little of a member a word may leave, where the value is a member of a population. */
+    val leastKept: Double = Rung.ORDINARY,
+    /** What this population calls having none of anything, where it may be emptied at all. */
+    val emptiedBy: String? = null,
 ) {
     enum class Kind {
         /** Says something about the whole — "the rock *is* blackstone". Two of them conflict and contend. */
@@ -249,12 +252,19 @@ data class Parameter(
          * so naming it asks for the ordinary amount of it, where every biome is present already and naming
          * one has to mean *more of that*.
          */
-        fun population(name: String, worthOfAMention: Double = Rung.ORDINARY) = Parameter(
+        fun population(
+            name: String,
+            worthOfAMention: Double = Rung.ORDINARY,
+            leastKept: Double = Rung.ORDINARY,
+            emptiedBy: String? = null,
+        ) = Parameter(
             name,
-            listOf(UNCHANGED),
+            listOfNotNull(UNCHANGED, emptiedBy),
             open = true,
             kind = Kind.POPULATIVE,
             worthOfAMention = worthOfAMention,
+            leastKept = leastKept,
+            emptiedBy = emptiedBy,
         )
 
         /**
