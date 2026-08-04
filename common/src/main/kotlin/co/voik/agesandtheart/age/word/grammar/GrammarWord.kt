@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.age.word.grammar
 
-import co.voik.agesandtheart.age.aspect.Density
 import com.mojang.serialization.Codec
 import com.mojang.serialization.DataResult
 import com.mojang.serialization.MapCodec
@@ -90,7 +89,7 @@ data class GrammarWord(
      * one production, but a writer needs a page per rung to say which — so the production is the capability
      * and this is the word. `Polarity` made the same crossing in the other direction (§4.3.1).
      */
-    val rung: Density? = null,
+    val rung: Double? = null,
 ) {
     /** What a writer says to use it. */
     val name: String get() = id.path
@@ -101,17 +100,9 @@ data class GrammarWord(
         fun mapCodec(id: Identifier): MapCodec<GrammarWord> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
                 Production.CODEC.fieldOf("production").forGetter(GrammarWord::production),
-                DENSITY_CODEC.optionalFieldOf("rung").forGetter { Optional.ofNullable(it.rung) },
+                Codec.DOUBLE.optionalFieldOf("rung").forGetter { Optional.ofNullable(it.rung) },
             ).apply(instance) { production, rung -> GrammarWord(id, production, rung.orElse(null)) }
         }
 
-        private val DENSITY_CODEC: Codec<Density> =
-            Codec.STRING.comapFlatMap(
-                { key ->
-                    val rung = Density.named(key)
-                    if (rung == null) DataResult.error { "no rung called '$key'" } else DataResult.success(rung)
-                },
-                Density::key,
-            )
     }
 }

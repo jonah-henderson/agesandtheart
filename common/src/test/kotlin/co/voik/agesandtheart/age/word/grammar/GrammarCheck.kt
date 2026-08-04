@@ -3,7 +3,7 @@ package co.voik.agesandtheart.age.word.grammar
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.aspect.Aspect
-import co.voik.agesandtheart.age.aspect.Density
+import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.word.Vocabulary
 import io.kotest.core.annotation.Tags
@@ -170,9 +170,11 @@ class GrammarCheck : FunSpec({
         val read = Grammar.read(vocabulary, listOf("age", "landmass", "basalt", "and", "teeming", "deepslate"))
         check(read.dropped.isEmpty()) { "a quantified book lost pages: ${read.dropped}" }
         val counted = read.constraints.first { it.word.name == "deepslate" }
-        check(counted.density == Density.TEEMING) { "'teeming deepslate' resolved to ${counted.density}" }
+        check(counted.density == TEEMING) { "'teeming deepslate' resolved to ${counted.density}" }
+        // And it remembers the page that asked, which is what the reading says back rather than the number.
+        check(counted.quantifier == "teeming") { "the rung forgot the page it came from: ${counted.quantifier}" }
         val uncounted = read.constraints.first { it.word.name == "basalt" }
-        check(uncounted.density == Density.ORDINARY) {
+        check(uncounted.density == Rung.ORDINARY) {
             "the rung leaked onto the term before it, which is not the one it counts"
         }
     }
@@ -325,3 +327,6 @@ private fun sourceRoots(): List<Path> = listOf(
     Path.of("common/src/preview/kotlin"),
     Path.of("common/src/test/kotlin"),
 ).filter { it.isDirectory() }
+
+/** What `art/grammar/teeming.json` asks for — four times as many. */
+private const val TEEMING = 4.0

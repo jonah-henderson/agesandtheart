@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age
 
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.word.Resolver
 import co.voik.agesandtheart.sky.Skies
@@ -502,7 +503,7 @@ object AgeCommand {
                 "word" to said.word.name,
                 "reaches" to said.scope.reaches(emptyList()).map { it.key },
                 "polarity" to said.polarity.name.lowercase(),
-                "density" to said.density.key,
+                "density" to Rung.spelled(said.density),
                 "joined" to (said.group != null),
                 "latent" to said.latent,
                 "rehomed" to said.rehomed,

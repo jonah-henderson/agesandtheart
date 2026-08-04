@@ -3,7 +3,7 @@ package co.voik.agesandtheart.age
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.AspectPreset
 import co.voik.agesandtheart.age.aspect.Carvers
-import co.voik.agesandtheart.age.aspect.Density
+import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.aspect.Population
 import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Share
@@ -108,7 +108,7 @@ class RecipeCheck : FunSpec({
             .withOptions(
                 Aspect.STRUCTURES,
                 Structures.BUILT.name,
-                listOf("!minecraft:villages@teeming", "minecraft:woodland_mansions", "-minecraft:ocean_monuments"),
+                listOf("!minecraft:villages@4", "minecraft:woodland_mansions", "-minecraft:ocean_monuments"),
             )
         val decoded = roundTrips(AgeRecipe(AgeWorld.Composed(written), SAMPLE_SEED), "a steered population")
         val asked = Population.of(
@@ -119,15 +119,15 @@ class RecipeCheck : FunSpec({
             "the wanted sets came back as ${asked.wanted}"
         }
         // All three marks at once, because they are read from one string and a greedy parse would eat the others.
-        check(asked.wanted.first().density == Density.TEEMING) {
+        check(asked.wanted.first().density == TEEMING) {
             "a density rung did not survive beside an 'only': ${asked.wanted.first()}"
         }
-        check(asked.wanted.last().density == Density.ORDINARY) { "an unmarked value invented a density rung" }
+        check(asked.wanted.last().density == Rung.ORDINARY) { "an unmarked value invented a density rung" }
         check(asked.struck == listOf("minecraft:ocean_monuments")) { "the struck sets came back as ${asked.struck}" }
 
         val spelling = written.toString()
         check(
-            "structures.built=!minecraft:villages@teeming,minecraft:woodland_mansions,-minecraft:ocean_monuments"
+            "structures.built=!minecraft:villages@4,minecraft:woodland_mansions,-minecraft:ocean_monuments"
                 in spelling,
         ) {
             "a steered population spells itself wrong: '$spelling'"
@@ -472,3 +472,6 @@ private const val PRE_WORDS_GENERATOR_VERSION = 5
 private const val EXPECTED_SAMPLE_INDEX = 4
 
 private const val SAMPLE_SEED = 0x5EED_A9EL
+
+/** What `art/grammar/teeming.json` asks for — four times as many. */
+private const val TEEMING = 4.0

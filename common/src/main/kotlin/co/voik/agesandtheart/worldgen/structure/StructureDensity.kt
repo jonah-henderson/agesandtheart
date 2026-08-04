@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.worldgen.structure
 
 import co.voik.agesandtheart.Constants
-import co.voik.agesandtheart.age.aspect.Density
+import co.voik.agesandtheart.age.aspect.Rung
 import com.mojang.serialization.Dynamic
 import com.mojang.serialization.JsonOps
 import net.minecraft.core.Holder
@@ -10,6 +10,7 @@ import net.minecraft.world.level.levelgen.structure.placement.ConcentricRingsStr
 import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStructurePlacement
 import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 /**
  * How often an Age builds a thing — [Density] applied to a structure set's *placement*.
@@ -38,20 +39,20 @@ object StructureDensity {
      * Returns [set] unchanged on failure rather than dropping it: an Age that asked for more villages and
      * got the usual number is a disappointment, where one that lost its villages is a broken sentence.
      */
-    fun applied(set: Holder<StructureSet>, density: Density): Holder<StructureSet> {
-        if (density.isOrdinary) return set
+    fun applied(set: Holder<StructureSet>, density: Double): Holder<StructureSet> {
+        if (Rung.isOrdinary(density)) return set
         val thinned = rescaled(set.value().placement(), density) ?: return set
         return Holder.direct(StructureSet(set.value().structures(), thinned))
     }
 
     /** The same placement, occurring [density] times as often — or null where we cannot say how. */
-    private fun rescaled(placement: StructurePlacement, density: Density): StructurePlacement? = when (placement) {
+    private fun rescaled(placement: StructurePlacement, density: Double): StructurePlacement? = when (placement) {
         // `count` *is* the number of them, so the occurrence scale applies directly and the two other
         // dimensions — how far out the rings start, how wide they spread — are left as vanilla tuned them.
         is ConcentricRingsStructurePlacement -> ConcentricRingsStructurePlacement(
             placement.distance(),
             placement.spread(),
-            (placement.count() * density.occurrenceScale).roundToInt().coerceAtLeast(AT_LEAST_ONE),
+            (placement.count() * density).roundToInt().coerceAtLeast(AT_LEAST_ONE),
             placement.preferredBiomes(),
         )
         is RandomSpreadStructurePlacement -> placement.spacedBy(spacingFor(placement, density))
@@ -61,12 +62,15 @@ object StructureDensity {
     }
 
     /**
-     * What [placement]'s spacing becomes at this rung, kept legal. Vanilla requires
-     * `separation < spacing`, and a rung dense enough to violate it fails the codec on the way back in, so
-     * the floor is one chunk above the separation rather than one chunk absolute.
+     * What [placement]'s spacing becomes at this amount, kept legal.
+     *
+     * **Spacing is a distance and structures sit on a grid**, so the count goes as the square of it: asking
+     * for four times as many means halving the spacing, not quartering it. Vanilla also requires
+     * `separation < spacing`, and an amount dense enough to violate that fails the codec on the way back
+     * in — so the floor is one chunk above the separation rather than one chunk absolute.
      */
-    private fun spacingFor(placement: RandomSpreadStructurePlacement, density: Density): Int {
-        val asked = (placement.spacing() * density.spacingScale).roundToInt()
+    private fun spacingFor(placement: RandomSpreadStructurePlacement, density: Double): Int {
+        val asked = (placement.spacing() / sqrt(density)).roundToInt()
         return asked.coerceAtLeast(placement.separation() + 1)
     }
 

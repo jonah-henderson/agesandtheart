@@ -29,7 +29,7 @@ enum class Polarity {
 data class Claim(
     val value: String,
     val polarity: Polarity = Polarity.ASSERTED,
-    val density: Density = Density.ORDINARY,
+    val density: Double = Rung.ORDINARY,
 ) {
     /** How this is written into a recipe — bare where nothing was asked, so the common case is unmarked. */
     fun spelled(): String {
@@ -38,7 +38,7 @@ data class Claim(
             Polarity.ONLY -> "$ONLY_MARK$value"
             Polarity.EXCEPT -> "$EXCEPT_MARK$value"
         }
-        return if (density.isOrdinary) marked else "$marked$DENSITY_MARK${density.key}"
+        return if (Rung.isOrdinary(density)) marked else "$marked$DENSITY_MARK${Rung.spelled(density)}"
     }
 
     companion object {
@@ -48,7 +48,7 @@ data class Claim(
         /** `!minecraft:villages` — this, and nothing the sentence did not also single out. */
         const val ONLY_MARK = '!'
 
-        /** `minecraft:villages@teeming` — how many. Neither an id nor a rung contains an `@`. */
+        /** `minecraft:villages@4` — how many. Neither an id nor an amount contains an `@`. */
         const val DENSITY_MARK = '@'
 
         /** The claim [spelled] describes: asserted, ordinary, and bare unless it says otherwise. */
@@ -62,8 +62,8 @@ data class Claim(
             val rung = unmarked.substringAfter(DENSITY_MARK, missingDelimiterValue = "")
             // An unreadable rung leaves the value alone rather than swallowing the text after the mark, so
             // a typo shows up as an id nobody knows.
-            val density = Density.named(rung) ?: return Claim(unmarked, polarity)
-            return Claim(unmarked.substringBefore(DENSITY_MARK), polarity, density)
+            val amount = rung.toDoubleOrNull()?.takeIf { it > 0.0 } ?: return Claim(unmarked, polarity)
+            return Claim(unmarked.substringBefore(DENSITY_MARK), polarity, amount)
         }
     }
 }

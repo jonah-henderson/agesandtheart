@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.age.word.grammar
 
 import co.voik.agesandtheart.age.aspect.Aspect
-import co.voik.agesandtheart.age.aspect.Density
+import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.word.Word
 
@@ -61,7 +61,13 @@ data class Constraint(
      * How much of it the writer asked for — [Density.ORDINARY] where they said nothing, which is the rung
      * that asks for nothing and rebuilds nothing.
      */
-    val density: Density = Density.ORDINARY,
+    val density: Double = Rung.ORDINARY,
+    /**
+     * The quantifier page that asked for [density], for the reading to say back — a recipe records the
+     * *amount*, since a word's meaning is pack data and an Age must not shift when a pack is retuned
+     * (§4.6), but a book shows the page its writer actually laid.
+     */
+    val quantifier: String? = null,
     /**
      * Whether the Art supplied this page rather than the writer — the natural course of a world nobody
      * described that far.

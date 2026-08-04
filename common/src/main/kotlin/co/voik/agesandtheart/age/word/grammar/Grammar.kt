@@ -1,7 +1,6 @@
 package co.voik.agesandtheart.age.word.grammar
 
 import co.voik.agesandtheart.age.aspect.Aspect
-import co.voik.agesandtheart.age.aspect.Density
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.word.Tier
 import co.voik.agesandtheart.age.word.Vocabulary
@@ -68,7 +67,7 @@ data class Page(
     /** The structure a structural page spells, and null for a page that carries a word instead. */
     val production: Production? = null,
     /** The rung a [PageClass.QUANTIFIER] page names — the one structural page that carries a value. */
-    val rung: Density? = null,
+    val rung: Double? = null,
     /** Whether [Repair] drew this page rather than the writer laying it. */
     val latent: Boolean = false,
     /** Whether the writer laid this page where it could not be read, so [Repair] moved it. */

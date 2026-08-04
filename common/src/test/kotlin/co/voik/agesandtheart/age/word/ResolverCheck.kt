@@ -8,7 +8,7 @@ import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Carvers
 import co.voik.agesandtheart.age.aspect.Claim
-import co.voik.agesandtheart.age.aspect.Density
+import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.aspect.Population
 import co.voik.agesandtheart.age.aspect.Sea
@@ -641,7 +641,7 @@ class ResolverCheck : FunSpec({
      * is the claim.
      */
     test("a rung reaches a population") {
-        fun askedFor(rung: Density): Claim {
+        fun askedFor(rung: Double): Claim {
             val said = Constraint(
                 structureSet("villages"),
                 Scope.Confined(setOf(Aspect.STRUCTURES)),
@@ -654,7 +654,7 @@ class ResolverCheck : FunSpec({
             return population.wanted.singleOrNull() ?: error("'villages' at $rung gave ${population.wanted}")
         }
 
-        for (rung in Density.entries) {
+        for (rung in RUNGS) {
             val claim = askedFor(rung)
             check(claim.value == "minecraft:villages") { "the rung ate the value: ${claim.value}" }
             check(claim.density == rung) { "asking for $rung villages gave ${claim.density}" }
@@ -719,6 +719,9 @@ class ResolverCheck : FunSpec({
 /** Every span an Age's one climate bounds, for the properties about bounding and bending. */
 private fun climateOf(resolution: Resolution): List<Span> =
     resolution.composition.climates.single().spelled().mapNotNull { Span.read(it.substringAfter('=')) }
+
+/** The amounts `art/grammar/`'s quantifier pages ask for, plus the one that asks for nothing. */
+private val RUNGS = listOf(Rung.ORDINARY, 0.25, 2.25, 4.0)
 
 private fun resolve(vocabulary: Vocabulary, sentence: String, seed: Long = SAMPLE_SEED): Resolution {
     val words = sentence.split(" ").filter(String::isNotBlank).map { name ->

@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.age.word.grammar
 
 import co.voik.agesandtheart.age.aspect.Aspect
-import co.voik.agesandtheart.age.aspect.Density
+import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.grammar.ArtParser
@@ -210,13 +210,14 @@ internal object ArtGrammar {
                 val word = wordAt(term.stop) ?: return@mapNotNull null
                 // The rung sits on the page before the term it counts, and travels with the value from here
                 // on: what a quantifier modifies is the *claim*, never the word (§3.2).
-                val rung = pageAt(term.getToken(ArtParser.QUANTIFIER, 0)?.symbol)?.rung
+                val quantifier = pageAt(term.getToken(ArtParser.QUANTIFIER, 0)?.symbol)
                 Constraint(
                     word,
                     scopeFor(word, aim),
                     polarity,
                     group,
-                    rung ?: Density.ORDINARY,
+                    quantifier?.rung ?: Rung.ORDINARY,
+                    quantifier?.written,
                     latent = wasDrawn(term.stop),
                     rehomed = wasMoved(term.stop),
                 )

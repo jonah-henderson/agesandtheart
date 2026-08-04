@@ -3,6 +3,7 @@ package co.voik.agesandtheart.age.word.grammar
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Polarity
+import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.age.word.WordNames
 import com.mojang.serialization.Codec
@@ -222,7 +223,8 @@ object Readout {
     /** One term, carrying the rung the writer quantified it with where they asked for one. */
     private fun termOf(term: Constraint): List<Said> {
         val page = pageFor(term.word)
-        return if (term.density.isOrdinary) listOf(page) else listOf(particleFor(term.density.key), page)
+        val quantifier = term.quantifier?.takeUnless { Rung.isOrdinary(term.density) } ?: return listOf(page)
+        return listOf(particleFor(quantifier), page)
     }
 
     /**
