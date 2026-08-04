@@ -252,6 +252,11 @@ instrument(
     "THROWAWAY: does constraint satisfaction over weighted tags work? Read it, don't build on it.",
 )
 
+instrument(
+    "aspectspike", "documentation", "co.voik.agesandtheart.preview.AspectKindsSpikeKt",
+    "THROWAWAY: what survives of Aspect.kt if an aspect's value is typed by what it is? Read it, don't build on it.",
+)
+
 
 
 
