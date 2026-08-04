@@ -9,6 +9,7 @@ import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.Union
 import co.voik.agesandtheart.worldgen.field.Variation
 import co.voik.agesandtheart.worldgen.field.Palette
+import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import net.minecraft.world.level.biome.BiomeSource
@@ -27,42 +28,51 @@ import kotlin.math.max
 object IslandsField {
 
     /**
-     * How big the islands are, as a writer says it — see `Terrain.EXTENT`.
+     * How big an island is: at one end a day's walk across, at the other something that stops being an
+     * island and starts being somewhere. `Terrain.EXTENT` is the ranged knob a sentence bends.
      *
-     * **Low against their width on purpose.** These are islands rather than sea mountains: a broad one
-     * stands about fifty blocks over its own beach across a kilometre of ground, so walking it is a walk
-     * rather than a climb, and the coast stays the thing you notice about it.
+     * **Low against their width on purpose.** These are islands rather than sea mountains: one from the
+     * middle of the range stands about fifty blocks over its own beach across more than a kilometre of
+     * ground, so walking it is a walk rather than a climb, and the coast stays the thing you notice about
+     * it. Height and width move together, so no extent draws a spike or a pancake.
      */
-    enum class Extent(val key: String, val shoreRadius: Double, val peakRise: Double) {
-        /** A day's walk across, and the whole of it in sight from the middle. */
-        MODEST("modest", shoreRadius = 200.0, peakRise = 28.0),
+    private const val SMALLEST_SHORE_RADIUS = 200.0
+    private const val LARGEST_SHORE_RADIUS = 1100.0
+    private const val SMALLEST_PEAK_RISE = 28.0
+    private const val LARGEST_PEAK_RISE = 70.0
 
-        /** Room for a country on it, and a coast you cannot see the far side of. */
-        BROAD("broad", shoreRadius = 520.0, peakRise = 48.0),
+    /** Where an island sits between those ends when nothing in the book spoke about its size. */
+    private const val ORDINARY_EXTENT = 0.35
 
-        /** As far as this goes before it stops being an island and starts being somewhere. */
-        VAST("vast", shoreRadius = 1100.0, peakRise = 70.0),
-        ;
+    private fun shoreRadiusAt(extent: Double?): Double =
+        betweenTheEnds(SMALLEST_SHORE_RADIUS, LARGEST_SHORE_RADIUS, extent)
 
-        companion object {
-            fun named(key: String): Extent = entries.firstOrNull { it.key == key } ?: MODEST
-        }
+    private fun peakRiseAt(extent: Double?): Double =
+        betweenTheEnds(SMALLEST_PEAK_RISE, LARGEST_PEAK_RISE, extent)
+
+    /**
+     * [extent] read as a fraction of the way from the smallest island to the largest.
+     *
+     * A ranged parameter lives on the axis every span shares, so this is the one place that shared axis
+     * becomes this landform's own units — and null, the axis nobody spoke about, is [ORDINARY_EXTENT].
+     */
+    private fun betweenTheEnds(smallest: Double, largest: Double, extent: Double?): Double {
+        val fraction = extent?.let(Span.NATURAL::fractionOf) ?: ORDINARY_EXTENT
+        return smallest + fraction * (largest - smallest)
     }
 
-    fun world(extent: String, salt: Long = 0L): TerrainField {
-        val size = Extent.named(extent)
-        return Isle(
+    fun world(extent: Double? = null, salt: Long = 0L): TerrainField =
+        Isle(
             floorY = WORLD_FLOOR,
             seabedY = SEABED_Y,
             shoreY = SEA_LEVEL,
-            peakRise = size.peakRise,
-            shoreRadius = size.shoreRadius,
+            peakRise = peakRiseAt(extent),
+            shoreRadius = shoreRadiusAt(extent),
             radiusVariation = RADIUS_VARIATION,
-            spacing = spacingFor(size),
+            spacing = spacingFor(extent),
             jitter = JITTER,
             seed = ISLAND_SEED xor salt,
         )
-    }
 
     /**
      * The same idea **composed from the toolkit** rather than written as a node — Jonah's construction, and
@@ -100,15 +110,14 @@ object IslandsField {
      * stays high, so the size guarantee `IslandsCheck` makes about [world] cannot be made about this.
      * What bounds it is [PATCH_SCALE], softly.
      */
-    fun clustered(extent: String, salt: Long = 0L): TerrainField {
-        val size = Extent.named(extent)
-        val lobeRadius = size.shoreRadius * LOBE_SHARE_OF_AN_ISLAND
+    fun clustered(extent: Double? = null, salt: Long = 0L): TerrainField {
+        val lobeRadius = shoreRadiusAt(extent) * LOBE_SHARE_OF_AN_ISLAND
         val lobe = Cone(
             baseX = 0,
             baseZ = 0,
             baseRadius = lobeRadius,
             baseY = SEABED_Y,
-            tipY = SEA_LEVEL + size.peakRise.toInt(),
+            tipY = SEA_LEVEL + peakRiseAt(extent).toInt(),
         )
         return Union(
             listOf(
@@ -129,7 +138,7 @@ object IslandsField {
                     ),
                     variation = Variation.NONE,
                     seed = ISLAND_SEED xor salt,
-                    blend = size.peakRise * BLEND_SHARE_OF_A_RISE,
+                    blend = peakRiseAt(extent) * BLEND_SHARE_OF_A_RISE,
                 ),
             ),
         )
@@ -138,7 +147,7 @@ object IslandsField {
     fun generator(biomeSource: BiomeSource): AgeChunkGenerator =
         AgeChunkGenerator(
             biomeSource,
-            world(extent = Extent.BROAD.key),
+            world(),
             SeaFill.of(Blocks.WATER.defaultBlockState(), level = SEA_LEVEL),
             Palette.BARE_ROCK,
         )
@@ -147,18 +156,18 @@ object IslandsField {
      * How far apart to lay islands of this size.
      *
      * The floor is what makes the sea a voyage; the multiple of the radius is what stops two of the biggest
-     * ones touching. Both are needed: a fixed spacing large enough for a `vast` island would put a `modest`
-     * one an absurd distance from its neighbour, and a multiple alone would put small ones in sight of each
-     * other.
+     * ones touching. Both are needed: a fixed spacing large enough for the largest island would put the
+     * smallest an absurd distance from its neighbour, and a multiple alone would put small ones in sight of
+     * each other.
      */
-    fun spacingFor(extent: Extent): Double = max(LEAST_SPACING, extent.shoreRadius * LEAST_APART)
+    fun spacingFor(extent: Double?): Double = max(LEAST_SPACING, shoreRadiusAt(extent) * LEAST_APART)
 
     /**
      * The furthest an island of this size can reach from its centre — its radius at its largest draw, with
      * the coast wandering as far out as it goes. What [spacingFor] has to beat twice over.
      */
-    fun widestReach(extent: Extent): Double =
-        extent.shoreRadius * (1.0 + RADIUS_VARIATION) * (1.0 + Isle.DEFAULT_COAST_ROUGHNESS)
+    fun widestReach(extent: Double?): Double =
+        shoreRadiusAt(extent) * (1.0 + RADIUS_VARIATION) * (1.0 + Isle.DEFAULT_COAST_ROUGHNESS)
 
     /**
      * How far the *shape* reaches, shelf and all — further than [widestReach], which is about land.
@@ -167,7 +176,7 @@ object IslandsField {
      * spacing has to beat; shelves touching is two islands sharing shallows, which is fine and rather
      * good. This one exists so a check looking for open seabed knows where to start.
      */
-    fun shelfReach(extent: Extent): Double =
+    fun shelfReach(extent: Double?): Double =
         widestReach(extent) + (SEA_LEVEL - SEABED_Y) / Isle.DEFAULT_SHELF_SLOPE
 
     /**
@@ -176,7 +185,7 @@ object IslandsField {
      * `cellHash` runs −0.5..0.5, so a jitter of *j* moves a centre by half of `j * spacing` either way and
      * a pair can close by `j * spacing` in total — not twice that.
      */
-    fun leastApart(extent: Extent): Double = spacingFor(extent) * (1.0 - JITTER)
+    fun leastApart(extent: Double?): Double = spacingFor(extent) * (1.0 - JITTER)
 
     private const val WORLD_FLOOR = -64
 

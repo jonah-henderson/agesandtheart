@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.worldgen.biome
 
+import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.worldgen.IslandsField
 import co.voik.agesandtheart.worldgen.RiverlandsField
 import co.voik.agesandtheart.worldgen.field.Slab
@@ -285,8 +286,8 @@ class GroundingCheck : FunSpec({
 
     /** Read against a real island: its beach must come out sandy where its shoulder does not. */
     test("an island's beach reads sandy and its shoulder does not") {
-        val extent = IslandsField.Extent.BROAD
-        val world = IslandsField.world(extent.key)
+        val extent = Span.NATURAL_MOST
+        val world = IslandsField.world(extent)
         val grounded = Grounding(world, IslandsField.SEA_LEVEL)
         fun topAt(out: Int) = world.columnSpans(out, 0).highestSolidY ?: 0
 
@@ -305,8 +306,8 @@ class GroundingCheck : FunSpec({
      * shoulder happens to reach the water — which is where the stony patches were coming from.
      */
     test("a sandy island has no stony shore anywhere along it") {
-        val extent = IslandsField.Extent.BROAD
-        val world = IslandsField.world(extent.key)
+        val extent = Span.NATURAL_MOST
+        val world = IslandsField.world(extent)
         val sandy = Grounding(world, IslandsField.SEA_LEVEL, declared = Grounding.Declared(hasSandyShores = true))
         val asFound = Grounding(world, IslandsField.SEA_LEVEL)
 

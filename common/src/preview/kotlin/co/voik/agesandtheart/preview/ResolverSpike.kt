@@ -1,11 +1,9 @@
 package co.voik.agesandtheart.preview
 
 import co.voik.agesandtheart.age.AgeComposition
-import co.voik.agesandtheart.age.aspect.Biomes
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Sky
-import co.voik.agesandtheart.age.aspect.Climate
 import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.AspectPreset
@@ -57,11 +55,6 @@ private val TAGS: Map<AspectPreset, Map<String, Double>> = mapOf(
     Carvers.POROUS to mapOf("cavernous" to 0.4, "watery" to 0.3),
     Carvers.CAVES to mapOf("cavernous" to 0.9, "gloomy" to 0.5),
     Carvers.FLOODED_CAVES to mapOf("cavernous" to 0.8, "watery" to 0.8, "hostile" to 0.5, "gloomy" to 0.5),
-
-    // The four dressings this spike argued over are deleted (Phase 4.5 step 5); the aspect that replaced them
-    // holds one preset, so the spike's dressing column collapses to a single row. Kept compiling rather than
-    // re-tagged: its findings are settled in the design doc, and this is a record of an argument, not a model.
-    Biomes.VANILLA to mapOf("ordinary" to 0.9, "lush" to 0.6, "bright" to 0.4),
 
     Sky.PLAIN to mapOf("bright" to 0.7, "ordinary" to 0.9),
     Sky.STORM to mapOf("gloomy" to 0.9, "striking" to 0.7),
@@ -231,13 +224,15 @@ private fun presetsOf(aspect: Aspect): List<AspectPreset> = when (aspect) {
     // The three the spike was written against, now that the aspect is open and has no enum to list.
     Aspect.SEA -> listOf(Sea.NONE, Sea.WATER, Sea.LAVA)
     Aspect.CARVERS -> Carvers.entries
-    Aspect.BIOMES -> Biomes.entries
     Aspect.SKY -> Sky.entries
     // Listed so the spike still compiles, and deliberately left out of [TAGS]: the spike argued about the
     // five aspects that existed when it was written, and an aspect nothing here tags is one no sentence here
     // speaks to. So it draws on the base weight alone and none of the reported findings move.
     Aspect.STRUCTURES -> Structures.entries
-    Aspect.CLIMATE -> Climate.entries
+    // Biomes and climate stopped being preset-shaped entirely: one is a population and one is a set of
+    // dials, and neither draws from a pool. Nothing here tags them, so the spike's findings do not move —
+    // this is a record of an argument, not a model, and it is kept compiling rather than re-tagged.
+    Aspect.BIOMES, Aspect.CLIMATE -> emptyList()
 }
 
 private fun weight(preset: AspectPreset, tag: String): Double = TAGS[preset]?.get(tag) ?: 0.0

@@ -481,7 +481,7 @@ private val subjects: Map<String, Subject> = mapOf(
     // is the thing a picture can show: that an island is a bounded object with a coast and a sea round it.
     // That they never touch is arithmetic, and `IslandsCheck` asserts it instead of drawing it.
     "islands" to Subject(
-        IslandsField.world(extent = IslandsField.Extent.BROAD.key),
+        IslandsField.world(),
         lowestY = 20,
         highestY = IslandsField.SEA_LEVEL + 120,
         radius = 1100,
@@ -490,7 +490,7 @@ private val subjects: Map<String, Subject> = mapOf(
     // The same islands **composed from the toolkit** rather than written as a node — read it against
     // `islands` above. Same window, so the two pictures are directly comparable.
     "islands-clustered" to Subject(
-        IslandsField.clustered(extent = IslandsField.Extent.BROAD.key),
+        IslandsField.clustered(),
         lowestY = 20,
         highestY = IslandsField.SEA_LEVEL + 120,
         radius = 1100,

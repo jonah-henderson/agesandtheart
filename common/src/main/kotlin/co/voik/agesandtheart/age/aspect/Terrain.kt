@@ -125,7 +125,7 @@ enum class Terrain(
     ISLANDS(
         "islands",
         waterline = IslandsField.SEA_LEVEL,
-        build = { options, salt -> IslandsField.world(options.of(EXTENT), salt) },
+        build = { options, salt -> IslandsField.world(steer(options, EXTENT, salt), salt) },
     ),
 
     /**
@@ -433,12 +433,7 @@ enum class Terrain(
          * How big an island is. Words rather than a distance, §3.2 keeping numbers away from a writer —
          * and the largest is deliberately short of anywhere you could lose a coastline on.
          */
-        val EXTENT = Parameter(
-            "extent",
-            IslandsField.Extent.MODEST.key,
-            IslandsField.Extent.BROAD.key,
-            IslandsField.Extent.VAST.key,
-        )
+        val EXTENT = Parameter.ranged("extent")
 
         /**
          * What lies under a terrain's surface — nothing, Minecraft's own noise caves, or storey upon
