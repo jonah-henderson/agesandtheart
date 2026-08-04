@@ -27,6 +27,8 @@ import io.kotest.core.spec.style.FunSpec
 import net.minecraft.resources.Identifier
 import co.voik.agesandtheart.age.aspect.Biomes
 import co.voik.agesandtheart.worldgen.biome.BiomePreference
+import co.voik.agesandtheart.age.aspect.Surface
+import co.voik.agesandtheart.age.word.grammar.Grammar
 
 /**
  * Asks whether the resolver keeps the promises `notes/the-art-design.md` makes on its behalf — each check
@@ -470,7 +472,8 @@ class ResolverCheck : FunSpec({
      */
     test("a material steers without choosing") {
         val basalt = vocabulary.word("basalt") ?: error("no word 'basalt' — is the material hook wired?")
-        check(basalt.sets == mapOf(Terrain.STONE.name to "minecraft:basalt")) {
+        val asMaterial = mapOf(Terrain.STONE.name to "minecraft:basalt", Surface.MATERIAL.name to "minecraft:basalt")
+        check(basalt.sets == asMaterial) {
             "'basalt' sets ${basalt.sets}, which is not the material it is for"
         }
         // Asked of the terrain rather than globally, which is the honest form for a derived word: a block
@@ -773,6 +776,32 @@ class ResolverCheck : FunSpec({
         check(named.weight == BiomePreference.WEIGHT_OF_A_MENTION) {
             "a mention was worth ${named.weight}, not ${BiomePreference.WEIGHT_OF_A_MENTION}"
         }
+    }
+
+    /**
+     * **A skin is not what the rock is made of.** `bare` lived on the biomes aspect and could only turn the
+     * skin *off*, so a granite body under a blackstone skin — one block for the bulk and another for the
+     * face — was a thing the language could not say. It is one sentence now, and the two materials land in
+     * different aspects from the same word.
+     */
+    test("the ground can wear one rock over another") {
+        val said = Grammar.read(
+            vocabulary,
+            listOf("age", "landmass", "worn", "granite", "surface", "blackstone"),
+        )
+        val composition = Resolver.resolve(vocabulary, said, SAMPLE_SEED).composition
+        val body = composition.optionsFor(Aspect.TERRAIN, 0).allOf(Terrain.STONE)
+        val skin = composition.optionsFor(Aspect.SURFACE, 0).allOf(Surface.MATERIAL)
+        check(body == listOf("minecraft:granite")) { "the rock came out $body" }
+        check(skin == listOf("minecraft:blackstone")) { "the skin came out $skin" }
+    }
+
+    /** And a skin of air is how a writer says the ground wears nothing — `open`'s idiom, for the surface. */
+    test("a surface of air is no surface at all") {
+        val said = Grammar.read(vocabulary, listOf("age", "surface", "air"))
+        val composition = Resolver.resolve(vocabulary, said, SAMPLE_SEED).composition
+        val skin = composition.optionsFor(Aspect.SURFACE, 0).allOf(Surface.MATERIAL)
+        check(skin == listOf("minecraft:air")) { "'surface air' wrote $skin" }
     }
 
     test("a fracture obeys its guards") {

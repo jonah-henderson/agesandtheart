@@ -117,9 +117,9 @@ data class AgeComposition(
         Aspect.SEA -> copy(seas = listOf(named<Sea>(aspect, key)))
         Aspect.CARVERS -> copy(carvers = listOf(named<Carvers>(aspect, key)))
         Aspect.SKY -> copy(sky = named<Sky>(aspect, key))
-        // None of these seats anything: a biome and a structure set are weighed, and a climate is where
-        // its dials were left.
-        Aspect.BIOMES, Aspect.STRUCTURES -> this
+        // None of these seats anything: a biome and a structure set are weighed, and a climate and a
+        // surface are where their dials were left.
+        Aspect.BIOMES, Aspect.STRUCTURES, Aspect.SURFACE -> this
         Aspect.CLIMATE -> copy(climates = listOf(ClimateBias.NONE))
     }
 
@@ -204,11 +204,14 @@ data class AgeComposition(
 
     /**
      * The options of an aspect that seats no preset, which the loop above cannot reach because it walks
-     * presets. A population is exactly that: an Age holds vanilla's whole table and the sentence adjusts it,
-     * so there is nothing seated and the adjustments are the whole of what a recipe has to record.
+     * presets. A population is exactly that — an Age holds vanilla's whole table and the sentence adjusts
+     * it — and so is an aspect that is nothing but its dials.
+     *
+     * The one that divides is spelled apart, in [climateSpelling]: a fractured climate needs a form that
+     * says which territory each stretch belongs to, where an Age-wide answer needs no such thing.
      */
     private fun seatlessSpelling(): List<String> = Aspect.entries
-        .filter { it.kind == Aspect.Kind.POPULATION }
+        .filter { it.seatsNothing && !it.positional }
         .flatMap { aspect -> spelled(aspect, options.of(aspect)) }
 
     /**

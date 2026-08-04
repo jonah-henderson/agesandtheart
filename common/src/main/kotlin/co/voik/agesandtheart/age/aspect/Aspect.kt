@@ -32,6 +32,9 @@ enum class Aspect(val key: String) : StringRepresentable {
 
     /** The coordinates its biomes are looked up at — how hot it is, and how wet. */
     CLIMATE("climate"),
+
+    /** What the ground wears over whatever it is made of. */
+    SURFACE("surface"),
     ;
 
     /**
@@ -48,7 +51,7 @@ enum class Aspect(val key: String) : StringRepresentable {
             TERRAIN, CARVERS, SKY -> Kind.PRESET
             SEA -> Kind.REFERENT
             BIOMES, STRUCTURES -> Kind.POPULATION
-            CLIMATE -> Kind.DIALS
+            CLIMATE, SURFACE -> Kind.DIALS
         }
 
     /**
@@ -73,9 +76,9 @@ enum class Aspect(val key: String) : StringRepresentable {
             TERRAIN -> Terrain.entries
             CARVERS -> Carvers.entries
             SKY -> Sky.entries
-            // Nothing to choose between: a climate is where its dials were left, and a biome or a structure
-            // set is weighed rather than chosen. See [dials] and [Kind.POPULATION].
-            SEA, BIOMES, STRUCTURES, CLIMATE -> emptyList()
+            // Nothing to choose between: a climate and a surface are where their dials were left, and a
+            // biome or a structure set is weighed rather than chosen. See [dials] and [Kind.POPULATION].
+            SEA, BIOMES, STRUCTURES, CLIMATE, SURFACE -> emptyList()
         }
 
     /**
@@ -89,9 +92,10 @@ enum class Aspect(val key: String) : StringRepresentable {
     val dials: List<Parameter>
         get() = when (this) {
             CLIMATE -> ClimateAxis.entries.map { it.parameter }
-            // A biome's population is the aspect's answer; these two say how it is *worn*, not which.
-            BIOMES -> listOf(Biomes.GROWN, Biomes.SKIN, Biomes.FOOTING)
+            // A biome's population is the aspect's answer; `footing` says how it is *worn*, not which.
+            BIOMES -> listOf(Biomes.GROWN, Biomes.FOOTING)
             STRUCTURES -> listOf(Structures.BUILT)
+            SURFACE -> listOf(Surface.MATERIAL)
             TERRAIN, SEA, CARVERS, SKY -> emptyList()
         }
 
@@ -113,6 +117,9 @@ enum class Aspect(val key: String) : StringRepresentable {
         DIALS,
     }
 
+    /** Whether nothing is ever drawn to fill this aspect: its answer is its members or its dials. */
+    val seatsNothing: Boolean get() = kind == Kind.POPULATION || kind == Kind.DIALS
+
     /**
      * The preset this aspect means by [key], or null where the key names nothing it can hold — the single
      * place a key becomes a preset. An open aspect accepts an id it has never heard of and complains
@@ -122,7 +129,7 @@ enum class Aspect(val key: String) : StringRepresentable {
         SEA -> Sea.named(key)
         BIOMES -> Biome.named(key)
         STRUCTURES -> StructureSet.named(key)
-        TERRAIN, CARVERS, SKY, CLIMATE -> authored.firstOrNull { it.key == key }
+        TERRAIN, CARVERS, SKY, CLIMATE, SURFACE -> authored.firstOrNull { it.key == key }
     }
 
     /**
@@ -140,7 +147,8 @@ enum class Aspect(val key: String) : StringRepresentable {
             // parameter level, which still needs ground to put each half on.
             TERRAIN, SEA, CARVERS, CLIMATE -> true
             // Biomes never divide: one climate table spans the world however many terrains carve it up.
-            SKY, STRUCTURES, BIOMES -> false
+            // The surface *could* follow the terrain's division and does not yet — one skin, Age-wide.
+            SKY, STRUCTURES, BIOMES, SURFACE -> false
         }
 
     /**
@@ -158,6 +166,7 @@ enum class Aspect(val key: String) : StringRepresentable {
             BIOMES -> 0.0
             SKY -> 0.0
             STRUCTURES -> 0.0
+            SURFACE -> 0.0
             // Nothing to be companionable with: climate has one preset, so a second seat only ever arrives
             // from a fracture, which is charged by definition.
             CLIMATE -> 0.0

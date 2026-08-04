@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.aspect.Biomes
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Span
+import co.voik.agesandtheart.age.aspect.Surface
 import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.Structures
@@ -46,7 +47,7 @@ data class AgeRecipe(
          * Bumped by hand whenever a change to generation would make the same recipe produce different
          * terrain. What moved at each version: `notes/generator-versions.md`.
          */
-        const val CURRENT_GENERATOR_VERSION = 21
+        const val CURRENT_GENERATOR_VERSION = 22
 
         val MAP_CODEC: MapCodec<AgeRecipe> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -236,16 +237,13 @@ data class AgeRecipe(
                 .with(
                     Aspect.BIOMES,
                     // `!` is `only` (see `Claim`): exclusive, so vanilla's table is dropped rather than added to.
-                    listOf(
-                        Options(
-                            mapOf(
-                                Biomes.GROWN.name to listOf("!${AgeGeneration.PLASMA_BIOME}"),
-                                // The plasma biome kills decoration but not the surface rule, whose
-                                // grass-over-dirt default is not biome-gated. See `Biomes.paletteIn`.
-                                Biomes.SKIN.name to listOf("bare"),
-                            ),
-                        ),
-                    ),
+                    listOf(Options(mapOf(Biomes.GROWN.name to listOf("!${AgeGeneration.PLASMA_BIOME}")))),
+                )
+                .with(
+                    Aspect.SURFACE,
+                    // The plasma biome kills decoration but not the surface rule, whose grass-over-dirt
+                    // default is not biome-gated — so the Spire wears no skin and its own rock shows.
+                    listOf(Options(mapOf(Surface.MATERIAL.name to listOf(BARE_GROUND)))),
                 )
                 .with(
                     Aspect.TERRAIN,
@@ -262,6 +260,9 @@ data class AgeRecipe(
                     ),
                 ),
         )
+
+        /** How a recipe says the ground wears nothing: air, exactly as `open` says the sea is nothing. */
+        private const val BARE_GROUND = "minecraft:air"
 
         /** The Spire's rock, in the order the old generator layered it: deepest first. */
         private val SPIRE_ROCKS = listOf("minecraft:basalt", "minecraft:blackstone", "minecraft:gravel")

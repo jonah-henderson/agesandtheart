@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.AspectPreset
 import co.voik.agesandtheart.age.aspect.Structures
+import co.voik.agesandtheart.age.aspect.Surface
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.location
 import net.minecraft.core.RegistryAccess
@@ -42,9 +43,10 @@ object DerivedWords {
      * that". No filter beyond [FORBIDDEN]: any filter we invented would exclude somebody's obvious choice,
      * since "spikes made of copper blocks" is not a stone and a sea of packed ice is not a fluid.
      *
-     * One word carries both capabilities — it [Word.names] the sea, an open aspect whose value *is* a
-     * block, and [Word.sets] the material on the aspects that wear one. A fluid and its block share an id
-     * throughout vanilla, so deriving them separately would collide and cost both bare names.
+     * One word carries every capability — it [Word.names] the sea, an open aspect whose value *is* a
+     * block, and [Word.sets] the material on the two aspects that wear one, the rock and the skin over it.
+     * A fluid and its block share an id throughout vanilla, so deriving them separately would collide and
+     * cost both bare names.
      *
      * **Only a liquid volunteers for the sea unprompted**: every block can still *be* the sea, but naming
      * a paving slab should not flood the world, so a solid reaches it only by being aimed there.
@@ -64,12 +66,14 @@ object DerivedWords {
     private fun substance(id: Identifier, pours: Boolean) = Word(
         id = id,
         tier = Tier.EXACT,
-        // Where it speaks when nobody aimed it. The sea joins only for something that actually pours;
-        // every block can still *be* the sea, but naming a paving slab should not flood the world.
-        aspects = if (pours) setOf(Aspect.SEA, Aspect.TERRAIN) else setOf(Aspect.TERRAIN),
+        // Where it speaks when nobody aimed it: the rock, and the sea for something that actually pours.
+        // Every block can still *be* the sea or the skin, but naming a paving slab should not flood the
+        // world, and naming a rock should say what the world is made of rather than what it is painted
+        // with — a surface is reached by aiming at it (`Grammar`'s `scopeFor`).
+        aspects = if (pours) setOf(Aspect.SEA, Aspect.TERRAIN, Aspect.SURFACE) else setOf(Aspect.TERRAIN, Aspect.SURFACE),
         query = emptyMap(),
         names = Sea(id).key,
-        sets = mapOf(Terrain.STONE.name to id.toString()),
+        sets = mapOf(Terrain.STONE.name to id.toString(), Surface.MATERIAL.name to id.toString()),
     )
 
     private val FORBIDDEN_BIOMES: TagKey<Biome> = TagKey.create(Registries.BIOME, FORBIDDEN)

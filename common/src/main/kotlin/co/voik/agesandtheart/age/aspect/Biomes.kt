@@ -20,19 +20,6 @@ import net.minecraft.resources.Identifier
 object Biomes {
 
     /**
-     * The surface rule this Age wears — vanilla's own tree, or nothing at all.
-     *
-     * Pinning a featureless biome is not enough: vanilla's tree is only *partly* biome-keyed, and its
-     * grass-over-dirt-above-water default is not gated on biome at all, so an unknown biome still gets a
-     * skin. On Biomes because in vanilla the surface rule genuinely is selected by biome.
-     *
-     * Takes the [terrain] because the tree has to know which blocks are the top of the ground and which are
-     * the floor of a cave, and only the shape can say — see [Palette.vanillaOverworldOn].
-     */
-    fun paletteIn(options: Options, terrain: TerrainField): SurfaceRules.RuleSource =
-        if (options.of(SKIN) == BARE_SKIN) Palette.NOTHING else Palette.vanillaOverworldOn(terrain)
-
-    /**
      * The biomes this Age was told to grow, as weights against what it would have grown anyway — above
      * [BiomePreference.ORDINARY] for more of one, below for less, zero to strike it out. Removal shares
      * the weight field rather than carrying a flag of its own.
@@ -69,13 +56,6 @@ object Biomes {
         )
 
         /**
-         * Whether the ground wears a skin at all — see [paletteIn]. `bare` means the fill is the surface:
-         * whatever [co.voik.agesandtheart.worldgen.field.Substance] laid is what you stand on. No word
-         * reaches it yet; it exists to be pinned by a bespoke recipe.
-         */
-        val SKIN = Parameter("skin", "vanilla", BARE_SKIN)
-
-        /**
          * Whether this Age's biomes agree with its shape — see
          * [co.voik.agesandtheart.worldgen.biome.Grounding].
          *
@@ -89,5 +69,4 @@ object Biomes {
         const val FREE_FOOTING = "free"
         const val GROUNDED_FOOTING = "grounded"
 
-        private const val BARE_SKIN = "bare"
     }

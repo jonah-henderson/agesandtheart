@@ -79,6 +79,7 @@ internal object ArtGrammar {
         Aspect.SEA -> ArtParser.SEA_SUBJECT
         Aspect.CARVERS -> ArtParser.CARVERS_SUBJECT
         Aspect.BIOMES -> ArtParser.BIOMES_SUBJECT
+        Aspect.SURFACE -> ArtParser.SURFACE_SUBJECT
         Aspect.SKY -> ArtParser.SKY_SUBJECT
         Aspect.STRUCTURES -> ArtParser.STRUCTURES_SUBJECT
         Aspect.CLIMATE -> ArtParser.CLIMATE_SUBJECT
@@ -90,6 +91,7 @@ internal object ArtGrammar {
         Aspect.SEA -> ArtParser.SEA_TERM
         Aspect.CARVERS -> ArtParser.CARVERS_TERM
         Aspect.BIOMES -> ArtParser.BIOMES_TERM
+        Aspect.SURFACE -> ArtParser.SURFACE_TERM
         Aspect.SKY -> ArtParser.SKY_TERM
         Aspect.STRUCTURES -> ArtParser.STRUCTURES_TERM
         Aspect.CLIMATE -> ArtParser.CLIMATE_TERM

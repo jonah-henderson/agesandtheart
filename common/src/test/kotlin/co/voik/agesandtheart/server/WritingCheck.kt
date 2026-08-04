@@ -101,7 +101,7 @@ class WritingCheck : FunSpec({
     test("the pinned knobs can be written") {
         val knobs = listOf(
             Triple("finemingle", "age landmass finely basalt and deepslate", "mingling=1..1"),
-            Triple("bareskin", "age biomes bare", "skin=bare"),
+            Triple("bareground", "age surface air", "surface.material=minecraft:air"),
         )
         for ((name, sentence, expected) in knobs) {
             server.ask("write", "$name $sentence")

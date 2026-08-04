@@ -39,6 +39,7 @@ import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import co.voik.agesandtheart.age.aspect.Structures
+import co.voik.agesandtheart.age.aspect.Surface
 
 /**
  * Turns an [AgeRecipe] into the generator that builds its world — a pure function of the recipe (plus the
@@ -167,9 +168,10 @@ object AgeGeneration {
                 ),
             shape,
             seaFill,
-            // The Biomes aspect's choice, not a constant: vanilla's tree paints grass over dirt above water
-            // without consulting the biome, so there has to be a way to say "no skin". See [Biomes.paletteIn].
-            Biomes.paletteIn(biomeOptions, shape),
+            // The Surface aspect's answer, not a constant: vanilla's tree paints grass over dirt above
+            // water without consulting the biome, so there has to be a way to say "no skin" and a way to
+            // lay something else. See [Surface.ruleFor].
+            Surface.ruleFor(composition.optionsFor(Aspect.SURFACE, 0), shape),
             composition.carvers.map { it.configuredCarvers(server) },
             below,
             waterTablesOf(composition, seaFill, seed),

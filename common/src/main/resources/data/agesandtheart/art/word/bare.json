@@ -1,9 +1,0 @@
-{
-  "tier": "exact",
-  "aspects": [
-    "biomes"
-  ],
-  "sets": {
-    "skin": "bare"
-  }
-}

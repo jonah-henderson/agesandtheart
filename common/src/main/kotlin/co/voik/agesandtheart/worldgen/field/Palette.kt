@@ -151,6 +151,25 @@ object Palette {
     )
 
     /**
+     * A material laid over the ground instead of the biome's own skin — `Surface`'s answer when a writer
+     * named one.
+     *
+     * [vanillaOverworldOn]'s shape with the biome tree taken out: the world's floor first so nothing can
+     * paint over it, the material gated on the surface *and* on depth so it is a skin rather than a
+     * column, and the deepslate gradient beneath so depth still reads as depth on a cave wall. Several
+     * materials mingle at the scale [mingled] uses; a knob for that scale would have nothing to turn,
+     * since the noise it bands is registered pack content.
+     */
+    fun skinOf(terrain: TerrainField, blocks: List<BlockState>): SurfaceRules.RuleSource = layers(
+        worldFloor(),
+        SurfaceRules.ifTrue(NearTheSurface(terrain), SurfaceRules.ifTrue(withinDepth(SKIN_DEPTH), mingled(blocks))),
+        deepslateFloor(),
+    )
+
+    /** How far a named skin reaches below the face — thin, since below it is what the Age is made of. */
+    private const val SKIN_DEPTH = 2
+
+    /**
      * A rule that never matches, so whatever follows it decides — how "named no material" is spelled.
      *
      * Written as *below the bottom of the world*, which no block is. An empty [layers] is not available:

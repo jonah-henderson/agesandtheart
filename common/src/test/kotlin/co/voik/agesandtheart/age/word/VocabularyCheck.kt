@@ -77,13 +77,16 @@ class VocabularyCheck : FunSpec({
                 // candidates can still hold knobs — a climate is nothing but its dials.
                 val turnsAKnobHere = word.sets.keys.any { vocabulary.turnsAKnob(aspect, it) }
                 if (!word.constrainsPresetsIn(aspect) || turnsAKnobHere) {
-                    for (parameter in word.sets.keys) {
-                        val presets = vocabulary.candidatesFor(aspect)
-                        val offered = (presets.flatMap { it.parameters } + aspect.dials)
-                            .filter { it.name == parameter }
-                        check(offered.isNotEmpty()) {
-                            "'${word.name}' sets ${aspect.key}.$parameter, which no ${aspect.key} offers"
-                        }
+                    // **Only the knobs this aspect holds.** One word carries a single `sets` map across
+                    // every aspect it speaks to, and a derived block word now sets the rock's material and
+                    // the skin's — so each aspect sees a key it has never heard of, and asking every aspect
+                    // about every key condemns the whole block registry. That a key exists *somewhere* the
+                    // word is about is asked once, after this loop, which is where a typo is caught.
+                    fun knobsHere(parameter: String) = (
+                        vocabulary.candidatesFor(aspect).flatMap { it.parameters } + aspect.dials
+                        ).filter { it.name == parameter }
+                    for (parameter in word.sets.keys.filter { knobsHere(it).isNotEmpty() }) {
+                        val offered = knobsHere(parameter)
                         // Declaring a knob and turning it are different things (`AspectPreset.honours`), and only
                         // the second makes a word mean anything. Continentalness and erosion shipped as climate
                         // axes that nothing could honour and were invisible in game for a whole session — this
@@ -115,6 +118,14 @@ class VocabularyCheck : FunSpec({
                 check(carriers.isNotEmpty()) {
                     "'${word.name}' is ${word.tier.key} about ${aspect.key}, but no ${aspect.key} carries " +
                         "${word.wanted.joinToString(" ")} strongly enough (needs ${word.tier.threshold})"
+                }
+            }
+            // And every knob it turns exists in *some* aspect it is about — the typo guard the per-aspect
+            // loop above stopped being once one word's knobs could span aspects.
+            val couldBeAimedAnywhere = word.aspects.isEmpty()
+            for (parameter in word.sets.keys) {
+                check(couldBeAimedAnywhere || word.aspects.any { vocabulary.turnsAKnob(it, parameter) }) {
+                    "'${word.name}' sets '$parameter', which nothing it is about turns"
                 }
             }
         }

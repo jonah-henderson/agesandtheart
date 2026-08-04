@@ -38,9 +38,10 @@ grammar Art;
  * - `EVOCATIVE` is at home anywhere, because an evocative word tilts rather than narrows and confining it
  *   would demote it to a restrictive one (§4.3.1).
  * - `MATERIAL_TERM` is a **block**, and being made of something is a property several parts of the world
- *   share — `Sea` is an open aspect whose value *is* a block, and a terrain wears one through its `stone`
- *   parameter. So "a sea of ice" and "land of blackstone" are both sentences, and which of the two a page
- *   means is decided by the section it sits in rather than by the word. That is not a word reaching out of
+ *   share — `Sea` is an open aspect whose value *is* a block, a terrain wears one through its `stone`
+ *   parameter, and a surface is laid in one. So "a sea of ice", "land of blackstone" and "surface of
+ *   blackstone" are all sentences, and which of the three a page means is decided by the section it sits
+ *   in rather than by the word. That is not a word reaching out of
  *   its clause; it is one word usable in more than one place, which is the distinction property 2 rests on.
  */
 tokens {
@@ -51,6 +52,7 @@ tokens {
     SEA_SUBJECT, SEA_TERM,
     CARVERS_SUBJECT, CARVERS_TERM,
     BIOMES_SUBJECT, BIOMES_TERM,
+    SURFACE_SUBJECT, SURFACE_TERM,
     SKY_SUBJECT, SKY_TERM,
     STRUCTURES_SUBJECT, STRUCTURES_TERM,
     CLIMATE_SUBJECT, CLIMATE_TERM,
@@ -97,6 +99,7 @@ section
     | descriptor* SEA_SUBJECT        seaModifier*         # SeaSection
     | descriptor* CARVERS_SUBJECT    carversModifier*     # CarversSection
     | descriptor* BIOMES_SUBJECT     biomesModifier*      # BiomesSection
+    | descriptor* SURFACE_SUBJECT    surfaceModifier*     # SurfaceSection
     | descriptor* SKY_SUBJECT        skyModifier*         # SkySection
     | descriptor* STRUCTURES_SUBJECT structuresModifier*  # StructuresSection
     | descriptor* CLIMATE_SUBJECT    climateModifier*     # ClimateSection
@@ -118,6 +121,7 @@ terrainModifier    : (ONLY | EXCEPT)? terrainTerm    (AND terrainTerm)*    ;
 seaModifier        : (ONLY | EXCEPT)? seaTerm        (AND seaTerm)*        ;
 carversModifier    : (ONLY | EXCEPT)? carversTerm    (AND carversTerm)*    ;
 biomesModifier     : (ONLY | EXCEPT)? biomesTerm     (AND biomesTerm)*     ;
+surfaceModifier    : (ONLY | EXCEPT)? surfaceTerm    (AND surfaceTerm)*    ;
 skyModifier        : (ONLY | EXCEPT)? skyTerm        (AND skyTerm)*        ;
 structuresModifier : (ONLY | EXCEPT)? structuresTerm (AND structuresTerm)* ;
 climateModifier    : (ONLY | EXCEPT)? climateTerm    (AND climateTerm)*    ;
@@ -134,6 +138,7 @@ looseModifier      : (ONLY | EXCEPT)? looseTerm      (AND looseTerm)*      ;
 terrainTerm    : QUANTIFIER? ( TERRAIN_TERM    | MATERIAL_TERM ) ;
 seaTerm        : QUANTIFIER? ( SEA_TERM        | MATERIAL_TERM ) ;
 structuresTerm : QUANTIFIER? ( STRUCTURES_TERM | MATERIAL_TERM ) ;
+surfaceTerm    : QUANTIFIER? ( SURFACE_TERM    | MATERIAL_TERM ) ;
 carversTerm    : QUANTIFIER? CARVERS_TERM ;
 biomesTerm     : QUANTIFIER? BIOMES_TERM  ;
 skyTerm        : QUANTIFIER? SKY_TERM     ;
@@ -141,6 +146,6 @@ climateTerm    : QUANTIFIER? CLIMATE_TERM ;
 
 /** A term in a section that aims at nothing, and so may belong to any part of the world. */
 looseTerm
-    : QUANTIFIER? ( MATERIAL_TERM | TERRAIN_TERM | SEA_TERM | CARVERS_TERM
-                  | BIOMES_TERM | SKY_TERM | STRUCTURES_TERM | CLIMATE_TERM )
+    : QUANTIFIER? ( MATERIAL_TERM | TERRAIN_TERM | SEA_TERM | CARVERS_TERM | BIOMES_TERM
+                  | SURFACE_TERM | SKY_TERM | STRUCTURES_TERM | CLIMATE_TERM )
     ;

@@ -9,13 +9,13 @@
       {"produce":["age","<parched_world>"]}
     ],
     "temperate_world": [
-      {"produce":["landmass","<settled_land>","sea","open","depths","riddled","biomes","verdant","sky","<mild_sky>","structures","untouched","climate","temperate"]}
+      {"produce":["landmass","<settled_land>","sea","open","depths","riddled","biomes","verdant","surface","sky","<mild_sky>","structures","untouched","climate","temperate"]}
     ],
     "frozen_world": [
-      {"produce":["landmass","<harsh_land>","sea","open","depths","unbroken","biomes","bare","sky","<cold_sky>","structures","untouched","climate","frozen"]}
+      {"produce":["landmass","<harsh_land>","sea","open","depths","unbroken","biomes","surface","sky","<cold_sky>","structures","untouched","climate","frozen"]}
     ],
     "parched_world": [
-      {"produce":["landmass","<dry_land>","sea","open","depths","riddled","biomes","bare","sky","clear","structures","untouched","climate","parched"]}
+      {"produce":["landmass","<dry_land>","sea","open","depths","riddled","biomes","surface","sky","clear","structures","untouched","climate","parched"]}
     ],
     "settled_land": [
       {"weight":2.0,"produce":["worn"]},
