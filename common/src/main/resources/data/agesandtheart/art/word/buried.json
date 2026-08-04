@@ -1,0 +1,12 @@
+{
+  "tier": "restrictive",
+  "aspects": [
+    "features"
+  ],
+  "query": {
+    "buried": 1.0
+  },
+  "sets": {
+    "height": "-1.0..-0.5"
+  }
+}

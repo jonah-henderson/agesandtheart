@@ -1,0 +1,11 @@
+{
+  "tier": "evocative",
+  "query": {
+    "precious": 1.0,
+    "buried": 0.6,
+    "barren": -0.5
+  },
+  "sets": {
+    "size": "0.5..1.0"
+  }
+}

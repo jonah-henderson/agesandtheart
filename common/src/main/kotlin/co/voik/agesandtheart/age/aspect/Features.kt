@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age.aspect
 
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.worldgen.feature.FeatureDensity
+import co.voik.agesandtheart.worldgen.feature.FeatureShape
 import net.minecraft.core.Holder
 import net.minecraft.core.HolderLookup
 import net.minecraft.core.registries.Registries
@@ -15,11 +16,11 @@ import net.minecraft.world.level.levelgen.placement.PlacedFeature as VanillaPlac
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * What grows and forms in the ground — ores, flora, lakes, springs (design §3.1, vanilla's `feature` and
- * `GenerationStep.Decoration`). **Whatever the biomes would grow**, until a sentence says otherwise.
+ * What is placed in and on the ground — ores, flora, lakes, springs (design §3.1, vanilla's `feature` and
+ * `GenerationStep.Decoration`). **Whatever the biomes would place**, until a sentence says otherwise.
  *
  * No preset, for the same reason biomes and structures have none: an Age does not pick one of a few ways
- * to be decorated, it starts from what its biomes carry and a sentence adjusts it. [GROWS] is where the
+ * to be decorated, it starts from what its biomes carry and a sentence adjusts it. [PLACES] is where the
  * writing happens — naming a feature asks for it, `except` strikes one out, `only` keeps just what was
  * named.
  *
@@ -33,20 +34,32 @@ import java.util.concurrent.ConcurrentHashMap
 object Features {
 
     /**
-     * What grows here — populative, with `only`/`except` to narrow (§3.2, [Claim]). Its values are
-     * *placed* features. Named `grows` to avoid `features.features`.
+     * What is placed here — populative, with `only`/`except` to narrow (§3.2, [Claim]). Its values are
+     * *placed* features. Named `places` to avoid `features.features`.
      *
      * A mention is worth the **ordinary** amount, like a structure set and unlike a biome: naming a
      * feature asks for a thing that was not there rather than for more of a thing that was. And it may be
-     * emptied — a world where nothing grows is a world — so [NOTHING] is what says so.
+     * emptied — a world where nothing is placed is a world — so [NOTHING] is what says so.
      *
      * **A rung here is absolute and takes nothing from anything else** ([FeatureDensity]): twice the trees
      * is twice the trees, where twice the desert is necessarily less of some other biome.
      */
-    val GROWS = Parameter.population("grows", leastKept = NOTHING_AT_ALL, emptiedBy = NOTHING)
+    val PLACES = Parameter.population("grows", leastKept = NOTHING_AT_ALL, emptiedBy = NOTHING)
 
-    /** How an Age says nothing grows here at all: bare ground, whatever its biomes would have carried. */
+    /** How an Age says nothing is placed here at all: bare ground, whatever its biomes would have carried. */
     const val NOTHING = "nothing"
+
+    /**
+     * How big one of a thing is, how thick a patch of it is, and how deep in the column it sits — the
+     * three knobs [FeatureShape] found worth turning in the whole of vanilla's feature data.
+     *
+     * **Dials rather than rungs, and the difference is what each is about.** A rung says how many of one
+     * named thing there are; these say what *this Age* is like, so they apply to everything it grows. A
+     * word bends them exactly as `arid` bends a climate axis.
+     */
+    val SIZE = Parameter.ranged("size")
+    val THICKNESS = Parameter.ranged("thickness")
+    val HEIGHT = Parameter.ranged("height")
 
     private const val NOTHING_AT_ALL = 0.0
 
@@ -57,9 +70,18 @@ object Features {
      * Returns the settings **unchanged** where nothing was said, so an Age nobody spoke to about growing
      * things is decorated by its biomes alone and pays nothing for the seam.
      */
-    fun grownIn(server: MinecraftServer, options: Options): (Holder<Biome>) -> BiomeGenerationSettings {
-        val asked = Population.of(options.claimsOn(GROWS))
-        if (asked.isSilent) return { biome -> biome.value().generationSettings }
+    fun placedIn(
+        server: MinecraftServer,
+        options: Options,
+        salt: Long,
+    ): (Holder<Biome>) -> BiomeGenerationSettings {
+        val asked = Population.of(options.claimsOn(PLACES))
+        val shape = Shape(
+            size = options.steer(SIZE, salt),
+            thickness = options.steer(THICKNESS, salt),
+            height = options.steer(HEIGHT, salt),
+        )
+        if (asked.isSilent && shape.asksForNothing) return { biome -> biome.value().generationSettings }
         val added = wanted(server, asked)
         val struck = asked.struck.mapNotNull(Identifier::tryParse).toSet()
         val startsFromNothing = asked.exclusive || asked.wanted.any { it.value == NOTHING }
@@ -69,8 +91,16 @@ object Features {
         // `PlacedFeature` the second time and the lookup misses, which is -1 into a list.
         val settled = ConcurrentHashMap<Holder<Biome>, BiomeGenerationSettings>()
         return { biome ->
-            settled.computeIfAbsent(biome) { settingsFrom(it, added, struck, startsFromNothing) }
+            settled.computeIfAbsent(biome) { settingsFrom(it, added, struck, startsFromNothing, shape) }
         }
+    }
+
+    /** The three dials together, since every one of them travels to the same place. */
+    private data class Shape(val size: Double?, val thickness: Double?, val height: Double?) {
+        val asksForNothing: Boolean get() = FeatureShape.asksForNothing(size, thickness, height)
+
+        fun applied(feature: Holder<VanillaPlacedFeature>): Holder<VanillaPlacedFeature> =
+            if (asksForNothing) feature else FeatureShape.reshaped(feature, size, thickness, height)
     }
 
     /**
@@ -128,6 +158,7 @@ object Features {
         added: Map<Int, List<Holder<VanillaPlacedFeature>>>,
         struck: Set<Identifier>,
         startsFromNothing: Boolean,
+        shape: Shape,
     ): BiomeGenerationSettings {
         val own = biome.value().generationSettings
         val built = BiomeGenerationSettings.PlainBuilder()
@@ -136,10 +167,11 @@ object Features {
         own.carvers.forEach(built::addCarver)
         val kept = if (startsFromNothing) emptyList() else own.features()
         kept.forEachIndexed { step, atStep ->
-            atStep.filterNot { idOf(it) in struck }.forEach { feature -> built.addFeature(step, feature) }
+            atStep.filterNot { idOf(it) in struck }
+                .forEach { feature -> built.addFeature(step, shape.applied(feature)) }
         }
         for ((step, features) in added) {
-            features.forEach { feature -> built.addFeature(step, feature) }
+            features.forEach { feature -> built.addFeature(step, shape.applied(feature)) }
         }
         return built.build()
     }

@@ -99,7 +99,7 @@ enum class Aspect(val key: String) : StringRepresentable {
             BIOMES -> listOf(Biomes.GROWN, Biomes.FOOTING)
             STRUCTURES -> listOf(Structures.BUILT)
             SURFACE -> listOf(Surface.MATERIAL)
-            FEATURES -> listOf(Features.GROWS)
+            FEATURES -> listOf(Features.PLACES, Features.SIZE, Features.THICKNESS, Features.HEIGHT)
             TERRAIN, SEA, CARVERS, SKY -> emptyList()
         }
 

@@ -107,7 +107,7 @@ object DerivedWords {
     fun features(registries: RegistryAccess): List<Word> = registries.lookupOrThrow(Registries.PLACED_FEATURE)
         .listElements()
         .filter { holder -> !holder.`is`(FORBIDDEN_FEATURES) }
-        .map { holder -> setting(holder.key().identifier(), Aspect.FEATURES, Features.GROWS) }
+        .map { holder -> setting(holder.key().identifier(), Aspect.FEATURES, Features.PLACES) }
         .toList()
 
     private val FORBIDDEN_STRUCTURE_SETS: TagKey<StructureSet> = TagKey.create(Registries.STRUCTURE_SET, FORBIDDEN)

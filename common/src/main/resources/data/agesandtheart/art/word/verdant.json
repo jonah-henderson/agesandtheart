@@ -2,13 +2,15 @@
   "tier": "restrictive",
   "aspects": [
     "climate",
-    "biomes"
+    "biomes",
+    "features"
   ],
   "query": {
     "lush": 1.0
   },
   "sets": {
     "temperature": "0.0..0.6",
-    "humidity": "0.3..0.9"
+    "humidity": "0.3..0.9",
+    "thickness": "0.5..1.0"
   }
 }

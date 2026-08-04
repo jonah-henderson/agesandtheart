@@ -130,14 +130,14 @@ class AgeChunkGenerator(
      */
     private val hollows: TerrainField? = null,
     /**
-     * What this Age grows, as the function vanilla itself parameterises decoration with — see [Features].
+     * What this Age places, as the function vanilla itself parameterises decoration with — see [Features].
      * Null leaves every biome's own list exactly as the pack wrote it.
      *
      * **Not serialised**, and it is the one input that is not. A settings function is code, where a recipe
      * holds data; the Age rebuilds it from its claims on every open, which is the same trip every other
      * aspect makes and the reason nothing here has to be a registry object.
      */
-    grows: ((Holder<Biome>) -> BiomeGenerationSettings)? = null,
+    places: ((Holder<Biome>) -> BiomeGenerationSettings)? = null,
 ) : NoiseBasedChunkGenerator(biomes, Holder.direct(settingsFor(seaFill, surfaceRule, climate, fill, window, field))) {
 
     init {
@@ -149,7 +149,7 @@ class AgeChunkGenerator(
         // `featuresPerStep`. Assigning only the getter moves what decoration looks up and leaves the
         // sorted list it looks up *in* built from the biome defaults — and that list is indexed by
         // identity, so a feature this Age added comes back as -1 in the middle of generation.
-        grows?.let { settings ->
+        places?.let { settings ->
             generationSettingsGetter = java.util.function.Function(settings)
             featuresPerStep = Suppliers.memoize {
                 FeatureSorter.buildFeaturesPerStep(
