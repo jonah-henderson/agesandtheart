@@ -382,7 +382,7 @@ enum class Terrain(
      * Several mingle rather than divide (§3.2), and a material never says whether anything lives on it —
      * a copper spire keeps its grass.
      */
-    fun substance(options: Options): List<BlockState> = Palette.materialsNamed(options.allOf(STONE))
+    fun substance(options: Options): List<BlockState> = options.materialsOf(STONE)
 
     companion object {
         /**

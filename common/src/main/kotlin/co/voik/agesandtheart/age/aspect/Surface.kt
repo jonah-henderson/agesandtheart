@@ -35,9 +35,7 @@ object Surface {
      * still open, and a missing block is a pack problem rather than an instruction to bare the world.
      */
     fun ruleFor(options: Options, terrain: TerrainField): SurfaceRules.RuleSource {
-        val named = options.allOf(MATERIAL).filter { it != Parameter.UNCHANGED }
-        if (named.isEmpty()) return Palette.vanillaOverworldOn(terrain)
-        val blocks = Palette.materialsNamed(named)
+        val blocks = options.materialsOf(MATERIAL)
         if (blocks.isEmpty()) return Palette.vanillaOverworldOn(terrain)
         // Air is how a writer says "no skin", the same way `open` says "no sea" — and it is only bare when
         // *everything* named is air, since air mingled with a rock is a skin full of holes and a fine thing

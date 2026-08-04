@@ -1,18 +1,15 @@
 package co.voik.agesandtheart.worldgen
 
-import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.Box
 import co.voik.agesandtheart.worldgen.field.Cylinder
 import co.voik.agesandtheart.worldgen.field.HalfSpace
 import co.voik.agesandtheart.worldgen.field.Intersect
 import co.voik.agesandtheart.worldgen.field.NoiseHeightmap
-import co.voik.agesandtheart.worldgen.field.Palette
 import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.Subtract
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Union
 import net.minecraft.core.Direction
-import net.minecraft.world.level.biome.BiomeSource
 
 /**
  * A walkable sampler of the shape vocabulary: one composition per station, strung out along +X from
@@ -25,9 +22,6 @@ object ShapesField {
         val ground = Slab(lowY = FLOOR_Y, highY = GROUND_TOP)
         return Union(listOf(ground, tower(), monolith(), octahedron(), ramp(), mesa(salt), arch()))
     }
-
-    fun generator(biomeSource: BiomeSource): AgeChunkGenerator =
-        AgeChunkGenerator(biomeSource, world(), SeaFill.NONE, Palette.BARE_ROCK)
 
     /** Station 0 — a bare upright [Cylinder]. */
     private fun tower() = Cylinder(

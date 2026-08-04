@@ -1,7 +1,11 @@
 package co.voik.agesandtheart.age.aspect
 
+import co.voik.agesandtheart.Constants
 import com.mojang.datafixers.util.Either
 import com.mojang.serialization.Codec
+import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.resources.Identifier
+import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 
 /**
@@ -33,6 +37,27 @@ value class Options(val chosen: Map<String, List<String>> = emptyMap()) {
      */
     fun claimsOn(parameter: Parameter): List<Claim> =
         chosen[parameter.name].orEmpty().map(Claim::read).filter { parameter.accepts(it.value) }
+
+    /**
+     * The blocks chosen for a **material** [parameter] — the ids read back as real blocks.
+     *
+     * A block a mod has since removed is dropped with a complaint rather than failing the Age: it must
+     * still open, and the rest of a mingling still reads. `unchanged` is not a block and never was, so it
+     * leaves before anything tries to look it up.
+     */
+    fun materialsOf(parameter: Parameter): List<BlockState> = allOf(parameter)
+        .filter { it != Parameter.UNCHANGED }
+        .mapNotNull { named ->
+            val id = Identifier.tryParse(named) ?: return@mapNotNull null
+            // `orElseGet { null }` no longer compiles: Minecraft ships nullness annotations now, so Kotlin
+            // holds `Optional`'s supplier to returning something. Reads better as a guard in any case.
+            val block = BuiltInRegistries.BLOCK.getOptional(id).orElse(null)
+            if (block == null) {
+                Constants.LOG.warn("An Age names a block this pack does not have: {}", named)
+                return@mapNotNull null
+            }
+            block.defaultBlockState()
+        }
 
     /**
      * How many the writer asked for, where [parameter] is a count — never null, since [of] falls back to

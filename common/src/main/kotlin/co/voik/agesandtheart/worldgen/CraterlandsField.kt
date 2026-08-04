@@ -12,10 +12,8 @@ import co.voik.agesandtheart.worldgen.field.Instanced
 import co.voik.agesandtheart.worldgen.field.Intersect
 import co.voik.agesandtheart.worldgen.field.Isle
 import co.voik.agesandtheart.worldgen.field.NoiseHeightmap
-import co.voik.agesandtheart.worldgen.field.Palette
 import co.voik.agesandtheart.worldgen.field.Radial
 import co.voik.agesandtheart.worldgen.field.Scatter
-import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.Spans
 import co.voik.agesandtheart.worldgen.field.Subtract
 import co.voik.agesandtheart.worldgen.field.TerrainField
@@ -24,8 +22,6 @@ import co.voik.agesandtheart.worldgen.field.Union
 import co.voik.agesandtheart.worldgen.field.Variation
 import co.voik.agesandtheart.worldgen.field.Weathered
 import net.minecraft.core.Direction
-import net.minecraft.world.level.biome.BiomeSource
-import net.minecraft.world.level.block.Blocks
 import kotlin.math.roundToInt
 
 /**
@@ -150,14 +146,6 @@ object CraterlandsField {
         relief = dialled(steer.wear, SCALLOP_RELIEF, LEAST_SCALLOP, MOST_SCALLOP),
         flatY = ABOVE_ANY_ROCK,
     )
-
-    fun generator(biomeSource: BiomeSource): AgeChunkGenerator =
-        AgeChunkGenerator(
-            biomeSource,
-            world(),
-            SeaFill.of(Blocks.WATER.defaultBlockState(), level = WATERLINE),
-            Palette.BARE_ROCK,
-        )
 
     /** The country the basin was struck into, and what everything else here measures itself against. */
     private fun plain(salt: Long): TerrainField = NoiseHeightmap(
@@ -702,8 +690,6 @@ object CraterlandsField {
     /** And the ends of the peak ring's draw, which [Terrain.RELIEF] also moves. */
     private const val NO_PEAK_RING = 0.05
     private const val ALWAYS_A_PEAK_RING = 0.95
-
-
 
     /** How far out the central island's bound reaches, and where it stands. */
     private const val ISLAND_RADIUS = 82.0

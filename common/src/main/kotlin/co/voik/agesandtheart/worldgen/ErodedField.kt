@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.worldgen
 
-import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.Density
 import co.voik.agesandtheart.worldgen.field.Ellipsoid
 import co.voik.agesandtheart.worldgen.field.Grid
@@ -8,13 +7,10 @@ import co.voik.agesandtheart.worldgen.field.Instanced
 import co.voik.agesandtheart.worldgen.field.Intersect
 import co.voik.agesandtheart.worldgen.field.Noise3D
 import co.voik.agesandtheart.worldgen.field.NoiseCharacter
-import co.voik.agesandtheart.worldgen.field.Palette
 import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Union
 import co.voik.agesandtheart.worldgen.field.Variation
-import net.minecraft.world.level.biome.BiomeSource
-import net.minecraft.world.level.block.Blocks
 
 /**
  * Weathered rock masses hanging over an ocean — a grid of identical ellipsoids, every one of which
@@ -64,14 +60,6 @@ object ErodedField {
         val seabed = Slab(lowY = WORLD_FLOOR, highY = SEABED_TOP)
         return Union(listOf(seabed, Intersect(listOf(masses, weathering))))
     }
-
-    fun generator(biomeSource: BiomeSource): AgeChunkGenerator =
-        AgeChunkGenerator(
-            biomeSource,
-            world(),
-            SeaFill.of(Blocks.WATER.defaultBlockState(), level = SEA_LEVEL),
-            Palette.BARE_ROCK,
-        )
 
     private const val WORLD_FLOOR = -64
     private const val SEABED_TOP = 37

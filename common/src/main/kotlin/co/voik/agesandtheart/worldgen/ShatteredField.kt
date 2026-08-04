@@ -2,14 +2,10 @@ package co.voik.agesandtheart.worldgen
 
 import co.voik.agesandtheart.worldgen.carver.Weathering
 import co.voik.agesandtheart.worldgen.field.CellCanyon
-import co.voik.agesandtheart.worldgen.field.Palette
 import co.voik.agesandtheart.worldgen.field.RegionMap
-import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Weathered
-import net.minecraft.world.level.biome.BiomeSource
-import net.minecraft.world.level.block.Blocks
 
 /**
  * A tableland cracked into cells, with a gorge down every join — mesa country as a broken plate.
@@ -57,14 +53,6 @@ object ShatteredField {
         originZ = 0,
         seed = MOSAIC_SEED xor salt,
     )
-
-    fun generator(biomeSource: BiomeSource): AgeChunkGenerator =
-        AgeChunkGenerator(
-            biomeSource,
-            world(),
-            SeaFill.of(Blocks.WATER.defaultBlockState(), level = RIVER_LEVEL),
-            Palette.BARE_ROCK,
-        )
 
     private const val WORLD_FLOOR = -64
 

@@ -2,13 +2,9 @@ package co.voik.agesandtheart.worldgen
 
 import co.voik.agesandtheart.worldgen.carver.Weathering
 import co.voik.agesandtheart.worldgen.field.Canyon
-import co.voik.agesandtheart.worldgen.field.Palette
-import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Weathered
-import net.minecraft.world.level.biome.BiomeSource
-import net.minecraft.world.level.block.Blocks
 
 /**
  * Mesa country: a tableland under open sky, cut to pieces by canyons running three ways at once.
@@ -71,14 +67,6 @@ object CanyonlandsField {
             bedRelief = BED_RELIEF,
         )
     }
-
-    fun generator(biomeSource: BiomeSource): AgeChunkGenerator =
-        AgeChunkGenerator(
-            biomeSource,
-            world(),
-            SeaFill.of(Blocks.WATER.defaultBlockState(), level = RIVER_LEVEL),
-            Palette.BARE_ROCK,
-        )
 
     private const val WORLD_FLOOR = -64
 

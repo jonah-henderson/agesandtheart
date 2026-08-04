@@ -1,15 +1,12 @@
 package co.voik.agesandtheart.worldgen
 
 import co.voik.agesandtheart.worldgen.field.Canyon
-import co.voik.agesandtheart.worldgen.field.Palette
 import co.voik.agesandtheart.worldgen.field.bearingAt
 import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Weathered
 import co.voik.agesandtheart.worldgen.carver.Weathering
-import net.minecraft.world.level.biome.BiomeSource
-import net.minecraft.world.level.block.Blocks
 
 /**
  * Rock from the bedrock to the height limit, with one canyon cut through the origin — **the world is the
@@ -64,14 +61,6 @@ object CanyonField {
         meanderReach = HALF_WIDTH * MEANDER_SHARE_OF_WIDTH,
         meanderStretch = HALF_WIDTH * BEND_SHARE_OF_WIDTH,
     )
-
-    fun generator(biomeSource: BiomeSource): AgeChunkGenerator =
-        AgeChunkGenerator(
-            biomeSource,
-            world(),
-            SeaFill.of(Blocks.WATER.defaultBlockState(), level = RIVER_LEVEL),
-            Palette.BARE_ROCK,
-        )
 
     /** The lowest block of [VerticalWindow.DEFAULT], which this world is solid all the way down to. */
     const val WORLD_FLOOR = -64

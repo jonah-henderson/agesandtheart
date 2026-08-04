@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.worldgen
 
-import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.Density
 import co.voik.agesandtheart.worldgen.field.Cone
 import co.voik.agesandtheart.worldgen.field.Ellipsoid
@@ -10,16 +9,11 @@ import co.voik.agesandtheart.worldgen.field.Intersect
 import co.voik.agesandtheart.worldgen.field.Noise3D
 import co.voik.agesandtheart.worldgen.field.NoiseCharacter
 import co.voik.agesandtheart.worldgen.field.NoiseHeightmap
-import co.voik.agesandtheart.worldgen.field.Palette
 import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Union
 import co.voik.agesandtheart.worldgen.field.Variation
 import co.voik.agesandtheart.worldgen.field.Weathered
-import net.minecraft.core.HolderSet
-import net.minecraft.world.level.biome.BiomeSource
-import net.minecraft.world.level.block.Blocks
-import net.minecraft.world.level.levelgen.carver.ConfiguredWorldCarver
 import kotlin.math.roundToInt
 
 /**
@@ -191,18 +185,6 @@ object SpireField {
             seed = ARCHIPELAGO_SEED xor salt,
         )
     }
-
-    fun generator(
-        biomeSource: BiomeSource,
-        carvers: HolderSet<ConfiguredWorldCarver<*>> = HolderSet.direct(),
-    ): AgeChunkGenerator =
-        AgeChunkGenerator(
-            biomeSource,
-            world(),
-            SeaFill.of(Blocks.WATER.defaultBlockState(), level = SEA_LEVEL),
-            Palette.BARE_ROCK,
-            carvers,
-        )
 
     /**
      * Where an island's body sits, centring a typical island between the two cloud decks the Spire's sky

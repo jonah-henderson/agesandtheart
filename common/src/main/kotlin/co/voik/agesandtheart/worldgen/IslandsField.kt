@@ -8,12 +8,8 @@ import co.voik.agesandtheart.worldgen.field.Scatter
 import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.Union
 import co.voik.agesandtheart.worldgen.field.Variation
-import co.voik.agesandtheart.worldgen.field.Palette
 import co.voik.agesandtheart.age.aspect.Span
-import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.TerrainField
-import net.minecraft.world.level.biome.BiomeSource
-import net.minecraft.world.level.block.Blocks
 import kotlin.math.max
 
 /**
@@ -143,14 +139,6 @@ object IslandsField {
             ),
         )
     }
-
-    fun generator(biomeSource: BiomeSource): AgeChunkGenerator =
-        AgeChunkGenerator(
-            biomeSource,
-            world(),
-            SeaFill.of(Blocks.WATER.defaultBlockState(), level = SEA_LEVEL),
-            Palette.BARE_ROCK,
-        )
 
     /**
      * How far apart to lay islands of this size.

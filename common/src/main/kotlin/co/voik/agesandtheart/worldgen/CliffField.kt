@@ -3,12 +3,9 @@ package co.voik.agesandtheart.worldgen
 import co.voik.agesandtheart.worldgen.carver.Weathering
 import co.voik.agesandtheart.worldgen.field.Escarpment
 import co.voik.agesandtheart.worldgen.field.Weathered
-import co.voik.agesandtheart.worldgen.field.Palette
 import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.bearingAt
-import net.minecraft.world.level.biome.BiomeSource
-import net.minecraft.world.level.block.Blocks
 
 /**
  * A world cut in two: open ocean one way, a plateau the other, and one cliff between them running from
@@ -45,14 +42,6 @@ object CliffField {
         floorY = WORLD_FLOOR,
         seed = COAST_SEED xor salt,
     )
-
-    fun generator(biomeSource: BiomeSource): AgeChunkGenerator =
-        AgeChunkGenerator(
-            biomeSource,
-            world(),
-            SeaFill.of(Blocks.WATER.defaultBlockState(), level = SEA_LEVEL),
-            Palette.BARE_ROCK,
-        )
 
     private const val WORLD_FLOOR = -64
 

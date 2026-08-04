@@ -9,8 +9,6 @@ import co.voik.agesandtheart.worldgen.field.RangeYield
 import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Weathered
-import net.minecraft.world.level.biome.BiomeSource
-import net.minecraft.world.level.block.Blocks
 
 /**
  * An alpine range: a foreland plain, foothills climbing out of it, and a glaciated crest behind them —
@@ -102,14 +100,6 @@ object AlpsField {
         cirqueLowestY = CIRQUE_LOWEST_Y,
         seed = GLACIATION_SEED xor salt,
     )
-
-    fun generator(biomeSource: BiomeSource): AgeChunkGenerator =
-        AgeChunkGenerator(
-            biomeSource,
-            world(),
-            SeaFill.of(Blocks.WATER.defaultBlockState(), level = WATERLINE).copy(wet = water()),
-            Palette.VERDANT,
-        )
 
     /**
      * The bottom of the rock — **the window's own floor, so there is nothing under the world.**
@@ -255,7 +245,6 @@ object AlpsField {
      * reading as a table: a rounding much shorter than the overshoot leaves a flat top with soft edges.
      */
     private const val SUMMIT_ROUNDING = 55.0
-
 
     /**
      * How wide a valley floor is: at the head of one, and how much more each stream gathered buys.

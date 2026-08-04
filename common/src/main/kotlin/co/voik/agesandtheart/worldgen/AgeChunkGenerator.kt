@@ -74,7 +74,7 @@ class AgeChunkGenerator(
     private val biomes: BiomeSource,
     private val field: TerrainField,
     private val seaFill: SeaFill,
-    private val surfaceRule: SurfaceRules.RuleSource = Palette.PLAIN_STONE,
+    private val surfaceRule: SurfaceRules.RuleSource = Palette.NOTHING,
     /**
      * What is cut back out of the rock, one set per carving — **and they all run**, except where a carving
      * asserting the rock is *uncut* holds the ground (§3.4, and [uncarvedTerritories]).
@@ -132,7 +132,7 @@ class AgeChunkGenerator(
         biomes: BiomeSource,
         field: TerrainField,
         seaFill: SeaFill,
-        surfaceRule: SurfaceRules.RuleSource = Palette.PLAIN_STONE,
+        surfaceRule: SurfaceRules.RuleSource = Palette.NOTHING,
         carvers: HolderSet<ConfiguredWorldCarver<*>>,
         waterTable: WaterTable? = null,
         structureSets: List<Holder<StructureSet>> = emptyList(),
@@ -495,7 +495,7 @@ class AgeChunkGenerator(
                 TerrainField.CODEC.fieldOf("field").forGetter { it.field },
                 SeaFill.CODEC.forGetter { it.seaFill },
                 // Optional so field Ages serialised before palettes existed still load.
-                SurfaceRules.RuleSource.CODEC.optionalFieldOf("surface_rule", Palette.PLAIN_STONE)
+                SurfaceRules.RuleSource.CODEC.optionalFieldOf("surface_rule", Palette.NOTHING)
                     .forGetter { it.surfaceRule },
                 // A list now that carving is set-valued, and still readable as the single map it
                 // was: one carver set is exactly what an Age with one carving has.

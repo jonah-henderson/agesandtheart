@@ -1,10 +1,8 @@
 package co.voik.agesandtheart.worldgen
 
-import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.Density
 import co.voik.agesandtheart.worldgen.field.Grid
 import co.voik.agesandtheart.worldgen.field.Instanced
-import co.voik.agesandtheart.worldgen.field.Palette
 import co.voik.agesandtheart.worldgen.field.Placement
 import co.voik.agesandtheart.worldgen.field.Pyramid
 import co.voik.agesandtheart.worldgen.field.Radial
@@ -12,7 +10,6 @@ import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Union
 import co.voik.agesandtheart.worldgen.field.Variation
-import net.minecraft.world.level.biome.BiomeSource
 
 /**
  * Instancing presets: a handful of differently-sized pyramids (heights 8/16/24/32) strewn on a flat
@@ -22,24 +19,6 @@ import net.minecraft.world.level.biome.BiomeSource
  * instancer's.
  */
 object PyramidField {
-
-    /** Density-gradient grid: pyramids crowd the origin and thin out with distance. */
-    fun generator(biomeSource: BiomeSource): AgeChunkGenerator =
-        world(gradientGrid(), Variation.NONE, salt = 0L).let { AgeChunkGenerator(biomeSource, it, SeaFill.NONE, Palette.BARE_ROCK) }
-
-    /** Concentric rings of pyramids around an empty centre. */
-    fun ringsGenerator(biomeSource: BiomeSource): AgeChunkGenerator =
-        world(rings(), Variation.NONE, salt = 0L)
-            .let { AgeChunkGenerator(biomeSource, it, SeaFill.NONE, Palette.BARE_ROCK) }
-
-    /**
-     * The same gradient grid, but every copy takes one of [YAW_STEPS] orientations and one of
-     * [SCALE_STEPS] sizes — the pose half of instancing variety, side by side with the plain
-     * [generator] for comparison.
-     */
-    fun variedGenerator(biomeSource: BiomeSource): AgeChunkGenerator =
-        world(gradientGrid(), variedPoses(), salt = 0L)
-            .let { AgeChunkGenerator(biomeSource, it, SeaFill.NONE, Palette.BARE_ROCK) }
 
     private fun gradientGrid() = Grid(
         spacing = GRID_SPACING,

@@ -4,12 +4,9 @@ import co.voik.agesandtheart.worldgen.field.CanyonProfile
 import co.voik.agesandtheart.worldgen.carver.Weathering
 import co.voik.agesandtheart.worldgen.field.Drainage
 import co.voik.agesandtheart.worldgen.field.DrainageYield
-import co.voik.agesandtheart.worldgen.field.Palette
 import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Weathered
-import net.minecraft.world.level.biome.BiomeSource
-import net.minecraft.world.level.block.Blocks
 
 /**
  * Rolling upland carved by a river system — the landform the other three could not be.
@@ -51,14 +48,6 @@ object RiverlandsField {
         // where a canyon is strata worn back at different rates.
         profile = CanyonProfile(benches = 2, riserShare = 0.45, floorShare = 0.22, gorgeShare = 0.45, gorgeRise = 0.4),
     )
-
-    fun generator(biomeSource: BiomeSource): AgeChunkGenerator =
-        AgeChunkGenerator(
-            biomeSource,
-            world(),
-            SeaFill.of(Blocks.WATER.defaultBlockState(), level = WATERLINE).copy(wet = water()),
-            Palette.BARE_ROCK,
-        )
 
     private const val WORLD_FLOOR = -64
 

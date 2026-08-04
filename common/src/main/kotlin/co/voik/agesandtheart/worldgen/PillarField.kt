@@ -1,17 +1,13 @@
 package co.voik.agesandtheart.worldgen
 
-import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.Box
 import co.voik.agesandtheart.worldgen.field.Density
 import co.voik.agesandtheart.worldgen.field.Grid
 import co.voik.agesandtheart.worldgen.field.Instanced
-import co.voik.agesandtheart.worldgen.field.Palette
 import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Union
 import co.voik.agesandtheart.worldgen.field.Variation
-import net.minecraft.world.level.biome.BiomeSource
-import net.minecraft.world.level.block.Blocks
 
 /**
  * Colossal rectangular pillars — 64×64 across, rising the full 128 blocks from the sea floor — on a
@@ -40,14 +36,6 @@ object PillarField {
         val seabed = Slab(lowY = WORLD_FLOOR, highY = SEABED_TOP)
         return Union(listOf(seabed, pillars))
     }
-
-    fun generator(biomeSource: BiomeSource): AgeChunkGenerator =
-        AgeChunkGenerator(
-            biomeSource,
-            world(),
-            SeaFill.of(Blocks.WATER.defaultBlockState(), level = SEA_LEVEL),
-            Palette.BARE_ROCK,
-        )
 
     private const val WORLD_FLOOR = -64
 
