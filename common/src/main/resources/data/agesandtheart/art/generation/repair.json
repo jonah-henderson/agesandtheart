@@ -1,168 +1,42 @@
 {
+  "_comment": "Generated from src/main/generation/repair.gen — edit that, not this.",
   "start": "world",
   "terminals": "word",
   "rules": {
     "world": [
-      {
-        "weight": 1,
-        "produce": [
-          "age",
-          "<temperate_world>"
-        ]
-      },
-      {
-        "weight": 1,
-        "produce": [
-          "age",
-          "<frozen_world>"
-        ]
-      },
-      {
-        "weight": 1,
-        "produce": [
-          "age",
-          "<parched_world>"
-        ]
-      }
+      {"produce":["age","<temperate_world>"]},
+      {"produce":["age","<frozen_world>"]},
+      {"produce":["age","<parched_world>"]}
     ],
     "temperate_world": [
-      {
-        "weight": 1,
-        "produce": [
-          "landmass",
-          "<settled_land>",
-          "sea",
-          "open",
-          "depths",
-          "riddled",
-          "biomes",
-          "verdant",
-          "sky",
-          "<mild_sky>",
-          "structures",
-          "untouched",
-          "climate",
-          "temperate"
-        ]
-      }
+      {"produce":["landmass","<settled_land>","sea","open","depths","riddled","biomes","verdant","sky","<mild_sky>","structures","untouched","climate","temperate"]}
     ],
     "frozen_world": [
-      {
-        "weight": 1,
-        "produce": [
-          "landmass",
-          "<harsh_land>",
-          "sea",
-          "open",
-          "depths",
-          "unbroken",
-          "biomes",
-          "bare",
-          "sky",
-          "<cold_sky>",
-          "structures",
-          "untouched",
-          "climate",
-          "frozen"
-        ]
-      }
+      {"produce":["landmass","<harsh_land>","sea","open","depths","unbroken","biomes","bare","sky","<cold_sky>","structures","untouched","climate","frozen"]}
     ],
     "parched_world": [
-      {
-        "weight": 1,
-        "produce": [
-          "landmass",
-          "<dry_land>",
-          "sea",
-          "open",
-          "depths",
-          "riddled",
-          "biomes",
-          "bare",
-          "sky",
-          "clear",
-          "structures",
-          "untouched",
-          "climate",
-          "parched"
-        ]
-      }
+      {"produce":["landmass","<dry_land>","sea","open","depths","riddled","biomes","bare","sky","clear","structures","untouched","climate","parched"]}
     ],
     "settled_land": [
-      {
-        "weight": 2,
-        "produce": [
-          "worn"
-        ]
-      },
-      {
-        "weight": 1,
-        "produce": [
-          "ordered"
-        ]
-      },
-      {
-        "weight": 1,
-        "produce": [
-          "scattered"
-        ]
-      }
-    ],
-    "harsh_land": [
-      {
-        "weight": 2,
-        "produce": [
-          "sheer"
-        ]
-      },
-      {
-        "weight": 1,
-        "produce": [
-          "worn"
-        ]
-      }
-    ],
-    "dry_land": [
-      {
-        "weight": 2,
-        "produce": [
-          "flat"
-        ]
-      },
-      {
-        "weight": 1,
-        "produce": [
-          "worn"
-        ]
-      }
+      {"weight":2.0,"produce":["worn"]},
+      {"produce":["ordered"]},
+      {"produce":["scattered"]}
     ],
     "mild_sky": [
-      {
-        "weight": 1,
-        "produce": [
-          "clear"
-        ]
-      },
-      {
-        "weight": 1,
-        "produce": [
-          "starlit"
-        ]
-      }
+      {"produce":["clear"]},
+      {"produce":["starlit"]}
+    ],
+    "harsh_land": [
+      {"weight":2.0,"produce":["sheer"]},
+      {"produce":["worn"]}
     ],
     "cold_sky": [
-      {
-        "weight": 1,
-        "produce": [
-          "overcast"
-        ]
-      },
-      {
-        "weight": 1,
-        "produce": [
-          "starless"
-        ]
-      }
+      {"produce":["overcast"]},
+      {"produce":["starless"]}
+    ],
+    "dry_land": [
+      {"weight":2.0,"produce":["flat"]},
+      {"produce":["worn"]}
     ]
   }
 }

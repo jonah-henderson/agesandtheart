@@ -1,0 +1,20 @@
+start     world
+terminals word
+
+world = age <temperate_world> | age <frozen_world> | age <parched_world>
+
+temperate_world = landmass <settled_land> sea open depths riddled biomes verdant sky <mild_sky> structures untouched climate temperate
+
+frozen_world = landmass <harsh_land> sea open depths unbroken biomes bare sky <cold_sky> structures untouched climate frozen
+
+parched_world = landmass <dry_land> sea open depths riddled biomes bare sky clear structures untouched climate parched
+
+settled_land = worn x2 | ordered | scattered
+
+mild_sky = clear | starlit
+
+harsh_land = sheer x2 | worn
+
+cold_sky = overcast | starless
+
+dry_land = flat x2 | worn

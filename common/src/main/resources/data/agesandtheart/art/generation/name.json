@@ -1,51 +1,52 @@
 {
+  "_comment": "Generated from src/main/generation/name.gen — edit that, not this.",
   "start": "name",
   "terminals": "text",
   "rules": {
     "name": [
-      { "weight": 3, "produce": ["<syllable>", "<syllable>"] },
-      { "weight": 2, "produce": ["<syllable>", "<syllable>", "<syllable>"] },
-      { "weight": 1, "produce": ["<syllable>"] }
+      {"weight":3.0,"produce":["<syllable>","<syllable>"]},
+      {"weight":2.0,"produce":["<syllable>","<syllable>","<syllable>"]},
+      {"produce":["<syllable>"]}
     ],
     "syllable": [
-      { "weight": 3, "produce": ["<onset>", "<nucleus>"] },
-      { "weight": 2, "produce": ["<onset>", "<nucleus>", "<coda>"] }
+      {"weight":3.0,"produce":["<onset>","<nucleus>"]},
+      {"weight":2.0,"produce":["<onset>","<nucleus>","<coda>"]}
     ],
     "onset": [
-      { "weight": 3, "produce": ["r"] },
-      { "weight": 3, "produce": ["t"] },
-      { "weight": 3, "produce": ["n"] },
-      { "weight": 2, "produce": ["k"] },
-      { "weight": 2, "produce": ["g"] },
-      { "weight": 2, "produce": ["s"] },
-      { "weight": 2, "produce": ["m"] },
-      { "weight": 2, "produce": ["l"] },
-      { "weight": 1, "produce": ["d"] },
-      { "weight": 1, "produce": ["b"] },
-      { "weight": 1, "produce": ["v"] },
-      { "weight": 1, "produce": ["sh"] },
-      { "weight": 1, "produce": ["th"] },
-      { "weight": 1, "produce": ["ts"] }
+      {"weight":3.0,"produce":["r"]},
+      {"weight":3.0,"produce":["t"]},
+      {"weight":3.0,"produce":["n"]},
+      {"weight":2.0,"produce":["k"]},
+      {"weight":2.0,"produce":["g"]},
+      {"weight":2.0,"produce":["s"]},
+      {"weight":2.0,"produce":["m"]},
+      {"weight":2.0,"produce":["l"]},
+      {"produce":["d"]},
+      {"produce":["b"]},
+      {"produce":["v"]},
+      {"produce":["sh"]},
+      {"produce":["th"]},
+      {"produce":["ts"]}
     ],
     "nucleus": [
-      { "weight": 4, "produce": ["a"] },
-      { "weight": 3, "produce": ["e"] },
-      { "weight": 3, "produce": ["i"] },
-      { "weight": 2, "produce": ["o"] },
-      { "weight": 2, "produce": ["u"] },
-      { "weight": 1, "produce": ["ee"] },
-      { "weight": 1, "produce": ["oo"] },
-      { "weight": 1, "produce": ["ah"] }
+      {"weight":4.0,"produce":["a"]},
+      {"weight":3.0,"produce":["e"]},
+      {"weight":3.0,"produce":["i"]},
+      {"weight":2.0,"produce":["o"]},
+      {"weight":2.0,"produce":["u"]},
+      {"produce":["ee"]},
+      {"produce":["oo"]},
+      {"produce":["ah"]}
     ],
     "coda": [
-      { "weight": 3, "produce": ["n"] },
-      { "weight": 3, "produce": ["r"] },
-      { "weight": 2, "produce": ["l"] },
-      { "weight": 2, "produce": ["s"] },
-      { "weight": 2, "produce": ["t"] },
-      { "weight": 1, "produce": ["m"] },
-      { "weight": 1, "produce": ["th"] },
-      { "weight": 1, "produce": ["sh"] }
+      {"weight":3.0,"produce":["n"]},
+      {"weight":3.0,"produce":["r"]},
+      {"weight":2.0,"produce":["l"]},
+      {"weight":2.0,"produce":["s"]},
+      {"weight":2.0,"produce":["t"]},
+      {"produce":["m"]},
+      {"produce":["th"]},
+      {"produce":["sh"]}
     ]
   }
 }

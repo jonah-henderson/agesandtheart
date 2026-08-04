@@ -212,9 +212,10 @@ tasks.named("compilePreviewKotlin") { dependsOn(tasks.named("generatePreviewGram
  * Registers one of the offline developer instruments — a `main()` in the `preview` source set, run
  * without launching Minecraft.
  *
- * They divide into two kinds, which is what the Gradle group records: a **verification** instrument
+ * They divide into three kinds, which is what the Gradle group records: a **verification** instrument
  * asserts something and fails the build when it is wrong; a **documentation** instrument only reports,
- * and is read rather than trusted.
+ * and is read rather than trusted; a **build** instrument writes a file the repository keeps, and is run
+ * by hand with a check standing behind it rather than wired into the build — see `grammars` for why.
  */
 fun instrument(name: String, group: String, mainClassName: String, description: String) =
     tasks.register<JavaExec>(name) {
@@ -224,6 +225,12 @@ fun instrument(name: String, group: String, mainClassName: String, description: 
         classpath = preview.runtimeClasspath
         javaLauncher = javaToolchains.launcherFor(java.toolchain)
     }
+
+instrument(
+    "grammars", "build", "co.voik.agesandtheart.preview.GrammarSourcesKt",
+    "Writes art/generation/*.json from the authored src/main/generation/*.gen. " +
+        "Use --args=import to go the other way.",
+)
 
 instrument(
     "noiseprofile", "documentation", "co.voik.agesandtheart.preview.NoiseProfileKt",

@@ -1,0 +1,18 @@
+start     book
+terminals word
+
+book = age <frozen_age> | age <molten_age>
+
+frozen_age = <bleak_mood> landmass <cold_stone> climate frozen x2
+    | landmass <cold_stone> climate frozen sky <cold_sky>
+
+molten_age = <bleak_mood> landmass <hot_stone> sea molten x2
+    | landmass <hot_stone> depths riddled sea molten
+
+bleak_mood = desolate x2 | ancient | foreboding
+
+cold_stone = packed_ice x2 | blue_ice | snow_block
+
+cold_sky = overcast | starlit
+
+hot_stone = basalt x2 | blackstone | magma_block

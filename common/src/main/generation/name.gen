@@ -1,0 +1,12 @@
+start     name
+terminals text
+
+name = <syllable> <syllable> x3 | <syllable> <syllable> <syllable> x2 | <syllable>
+
+syllable = <onset> <nucleus> x3 | <onset> <nucleus> <coda> x2
+
+onset = r x3 | t x3 | n x3 | k x2 | g x2 | s x2 | m x2 | l x2 | d | b | v | sh | th | ts
+
+nucleus = a x4 | e x3 | i x3 | o x2 | u x2 | ee | oo | ah
+
+coda = n x3 | r x3 | l x2 | s x2 | t x2 | m | th | sh
