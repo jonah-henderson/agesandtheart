@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.age.aspect
 
-import co.voik.agesandtheart.worldgen.field.Palette
+import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import net.minecraft.world.level.levelgen.SurfaceRules
 
@@ -17,7 +17,7 @@ import net.minecraft.world.level.levelgen.SurfaceRules
  *
  * - **Nothing said** — vanilla's own tree, biome for biome, over our terrain.
  * - **A block** — that block laid on the top of the ground, several of them mingled.
- * - **Air** — no skin at all: the fill is the surface, and what [Substance] laid is what you stand on.
+ * - **Air** — no skin at all: the fill is the surface, and what [TerrainFill] laid is what you stand on.
  */
 object Surface {
 
@@ -36,11 +36,11 @@ object Surface {
      */
     fun ruleFor(options: Options, terrain: TerrainField): SurfaceRules.RuleSource {
         val blocks = options.materialsOf(MATERIAL)
-        if (blocks.isEmpty()) return Palette.vanillaOverworldOn(terrain)
+        if (blocks.isEmpty()) return SurfacingStrategy.delegatedToBiomes(terrain)
         // Air is how a writer says "no skin", the same way `open` says "no sea" — and it is only bare when
         // *everything* named is air, since air mingled with a rock is a skin full of holes and a fine thing
         // for a book to ask for.
-        if (blocks.all { it.isAir }) return Palette.NOTHING
-        return Palette.skinOf(terrain, blocks)
+        if (blocks.all { it.isAir }) return SurfacingStrategy.SUPPRESSED
+        return SurfacingStrategy.laidOn(terrain, blocks)
     }
 }

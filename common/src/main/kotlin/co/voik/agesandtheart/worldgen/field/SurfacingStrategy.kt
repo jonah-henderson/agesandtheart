@@ -12,12 +12,14 @@ import net.minecraft.world.level.levelgen.placement.CaveSurface
 import net.minecraft.world.level.levelgen.synth.NormalNoise
 
 /**
- * What the ground **shows** — vanilla's `surface_rule`, in the three forms an Age can wear. `Substance` is
- * the other half of the pair and answers what the rock underneath *is*.
+ * **Which surface rule an Age wears** — three of them, and nothing else here is public.
  *
- * Three, and they are exactly [co.voik.agesandtheart.age.aspect.Surface]'s three answers: the biome's own
- * skin ([vanillaOverworldOn]), a material laid over it ([skinOf]), or none at all ([NOTHING]). Everything
- * else here is private, because it is how those three are written rather than a language anyone speaks.
+ * A `SurfaceRules.RuleSource` says *how* to surface a column; this says *which* rule does it, and
+ * [co.voik.agesandtheart.age.aspect.Surface] is the aspect that decides. The three are the whole of what
+ * an Age can be: the biome's own rule ([delegatedToBiomes]), one or more materials laid over the lot
+ * ([laidOn]), or none at all ([SUPPRESSED]), which lets the [TerrainFill] beneath show through.
+ *
+ * The private half is how those three are written rather than a language anyone else speaks.
  *
  * **The one substantive difference from vanilla is `abovePreliminarySurface`**, which is unsound for our
  * terrain: it compares against a heightmap interpolated across a 16-block cell, which our shapes outrun in
@@ -26,7 +28,7 @@ import net.minecraft.world.level.levelgen.synth.NormalNoise
  *
  * A rule is **data**, which is what lets one travel in a recipe and rebuild the same world on every open.
  */
-object Palette {
+object SurfacingStrategy {
 
     // --- Structure ---
 
@@ -98,7 +100,7 @@ object Palette {
      * surface tree, which is exactly where a world's floor has to go. Taken from `net.minecraft.data.worldgen`
      * rather than the registry, since only the builder lets those flags be chosen at all.
      */
-    fun vanillaOverworldOn(terrain: TerrainField): SurfaceRules.RuleSource =
+    fun delegatedToBiomes(terrain: TerrainField): SurfaceRules.RuleSource =
         SurfaceRules.ifTrue(
             NearTheSurface(terrain),
             SurfaceRuleData.overworldLike(
@@ -112,7 +114,7 @@ object Palette {
      * A material laid over the ground instead of the biome's own skin — `Surface`'s answer when a writer
      * named one.
      *
-     * [vanillaOverworldOn]'s shape with the biome tree taken out: the world's floor first so nothing can
+     * [delegatedToBiomes]'s shape with the biome tree taken out: the world's floor first so nothing can
      * paint over it, the material gated on the surface *and* on depth so it is a skin rather than a
      * column, and the deepslate gradient beneath so depth still reads as depth on a cave wall.
      *
@@ -120,7 +122,7 @@ object Palette {
      * speckle: `noiseCondition` names a *registered* noise, so a per-Age number would need a condition
      * source of our own, the way [NearTheSurface] carries a terrain field.
      */
-    fun skinOf(terrain: TerrainField, blocks: List<BlockState>): SurfaceRules.RuleSource = layers(
+    fun laidOn(terrain: TerrainField, blocks: List<BlockState>): SurfaceRules.RuleSource = layers(
         worldFloor(),
         SurfaceRules.ifTrue(NearTheSurface(terrain), SurfaceRules.ifTrue(withinDepth(SKIN_DEPTH), mingled(blocks))),
         deepslateFloor(),
@@ -135,7 +137,7 @@ object Palette {
      * Written as *below the bottom of the world*, which no block is. An empty [layers] is not available:
      * vanilla's `sequence` rejects an empty list at class-initialisation time, so it fails far from here.
      */
-    val NOTHING: SurfaceRules.RuleSource = SurfaceRules.ifTrue(
+    val SUPPRESSED: SurfaceRules.RuleSource = SurfaceRules.ifTrue(
         SurfaceRules.not(SurfaceRules.yBlockCheck(VerticalAnchor.bottom(), 0)),
         solid(Blocks.AIR.defaultBlockState()),
     )
@@ -149,7 +151,7 @@ object Palette {
      */
     private fun mingled(blocks: List<BlockState>): SurfaceRules.RuleSource {
         // Nothing named is nothing said: decline, and the fill the Age was made of stands.
-        val ground = blocks.lastOrNull() ?: return NOTHING
+        val ground = blocks.lastOrNull() ?: return SUPPRESSED
         val scattered = blocks.dropLast(1)
         if (scattered.isEmpty()) return solid(ground)
         val bandWidth = (MOTTLE_RANGE.second - MOTTLE_RANGE.first) / blocks.size

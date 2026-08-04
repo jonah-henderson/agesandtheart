@@ -2,9 +2,9 @@ package co.voik.agesandtheart.worldgen
 
 import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.Spans
-import co.voik.agesandtheart.worldgen.field.Palette
+import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
 import co.voik.agesandtheart.worldgen.field.RegionMap
-import co.voik.agesandtheart.worldgen.field.Substance
+import co.voik.agesandtheart.worldgen.field.TerrainFill
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.WaterTable
 import com.mojang.serialization.Codec
@@ -74,7 +74,7 @@ class AgeChunkGenerator(
     private val biomes: BiomeSource,
     private val field: TerrainField,
     private val seaFill: SeaFill,
-    private val surfaceRule: SurfaceRules.RuleSource = Palette.NOTHING,
+    private val surfaceRule: SurfaceRules.RuleSource = SurfacingStrategy.SUPPRESSED,
     /**
      * What is cut back out of the rock, one set per carving — **and they all run**, except where a carving
      * asserting the rock is *uncut* holds the ground (§3.4, and [uncarvedTerritories]).
@@ -110,9 +110,9 @@ class AgeChunkGenerator(
     private val climate: Holder<NoiseGeneratorSettings>? = null,
     /**
      * What the rock is made of — vanilla's `default_block`, per territory of the **terrain's** map. See
-     * [Substance] for why this is a fill rather than a surface rule.
+     * [TerrainFill] for why this is a fill rather than a surface rule.
      */
-    private val substance: Substance = Substance.PLAIN,
+    private val fill: TerrainFill = TerrainFill.PLAIN,
     /** The band of world this Age generates into — see [VerticalWindow] for why it is per-Age. */
     private val window: VerticalWindow = VerticalWindow.DEFAULT,
     /**
@@ -125,14 +125,14 @@ class AgeChunkGenerator(
      * only where the sea genuinely reaches.
      */
     private val hollows: TerrainField? = null,
-) : NoiseBasedChunkGenerator(biomes, Holder.direct(settingsFor(seaFill, surfaceRule, climate, substance, window, field))) {
+) : NoiseBasedChunkGenerator(biomes, Holder.direct(settingsFor(seaFill, surfaceRule, climate, fill, window, field))) {
 
     /** The same generator with one carving everywhere — what a Tier-B preset means. */
     constructor(
         biomes: BiomeSource,
         field: TerrainField,
         seaFill: SeaFill,
-        surfaceRule: SurfaceRules.RuleSource = Palette.NOTHING,
+        surfaceRule: SurfaceRules.RuleSource = SurfacingStrategy.SUPPRESSED,
         carvers: HolderSet<ConfiguredWorldCarver<*>>,
         waterTable: WaterTable? = null,
         structureSets: List<Holder<StructureSet>> = emptyList(),
@@ -194,7 +194,7 @@ class AgeChunkGenerator(
                     val state = when {
                         // What the rock *is*, which is vanilla's `default_block` and now ours — the surface
                         // system paints its skin over this afterwards, exactly as it does for vanilla.
-                        isRock -> substance.blockAt(worldX, y, worldZ)
+                        isRock -> fill.blockAt(worldX, y, worldZ)
                         // Inside the rock a cave system opened: the table answers, not the waterline. Asked
                         // before the sea, since this space is under it and the sea would otherwise take it.
                         band.hollow(at, y) -> water.computeSubstance(
@@ -301,7 +301,7 @@ class AgeChunkGenerator(
         val counts = type.isOpaque()
         // One below the world, so a column with nothing this query counts simply answers the floor.
         val nothing = level.minY - 1
-        val rockTop = if (counts.test(substance.representative)) field.columnSpans(x, z).highestSolidY ?: nothing else nothing
+        val rockTop = if (counts.test(fill.representative)) field.columnSpans(x, z).highestSolidY ?: nothing else nothing
         // A river stands over the waterline, so its own surface is what a structure has to be told about.
         val mediumTop = if (!counts.test(seaFill.blockAt(x, z))) nothing else {
             maxOf(seaFill.surfaceY ?: nothing, seaFill.wetnessAt(x, z).highestSolidY ?: nothing)
@@ -317,7 +317,7 @@ class AgeChunkGenerator(
         val column = Array(window.height) { index ->
             val y = window.minY + index
             when {
-                spans.contains(y) -> substance.blockAt(x, y, z)
+                spans.contains(y) -> fill.blockAt(x, y, z)
                 seaFill.fillsAt(y, dryness, wetness) -> sea
                 else -> AIR
             }
@@ -495,7 +495,7 @@ class AgeChunkGenerator(
                 TerrainField.CODEC.fieldOf("field").forGetter { it.field },
                 SeaFill.CODEC.forGetter { it.seaFill },
                 // Optional so field Ages serialised before palettes existed still load.
-                SurfaceRules.RuleSource.CODEC.optionalFieldOf("surface_rule", Palette.NOTHING)
+                SurfaceRules.RuleSource.CODEC.optionalFieldOf("surface_rule", SurfacingStrategy.SUPPRESSED)
                     .forGetter { it.surfaceRule },
                 // A list now that carving is set-valued, and still readable as the single map it
                 // was: one carver set is exactly what an Age with one carving has.
@@ -524,16 +524,16 @@ class AgeChunkGenerator(
                 // Absent for a one-biome Age, which has no climate to describe.
                 NoiseGeneratorSettings.CODEC.optionalFieldOf("climate")
                     .forGetter { Optional.ofNullable(it.climate) },
-                Substance.CODEC.optionalFieldOf("substance", Substance.PLAIN).forGetter { it.substance },
+                TerrainFill.CODEC.optionalFieldOf("terrain_fill", TerrainFill.PLAIN).forGetter { it.fill },
                 // Absent means the layout every Age had before the band became a choice — see [VerticalWindow].
                 VerticalWindow.CODEC.optionalFieldOf("window", VerticalWindow.DEFAULT).forGetter { it.window },
                 // Absent for every Age without shape-cut caves, which is almost all of them.
                 TerrainField.CODEC.optionalFieldOf("hollows").forGetter { Optional.ofNullable(it.hollows) },
             ).apply(instance) { biomes, field, seaFill, rule, carvers, underground, tables, structures, climate,
-                                substance, window, hollows ->
+                                fill, window, hollows ->
                 AgeChunkGenerator(
                     biomes, field, seaFill, rule, carvers, underground, tables, structures,
-                    climate.orElse(null), substance, window, hollows.orElse(null),
+                    climate.orElse(null), fill, window, hollows.orElse(null),
                 )
             }
         }
@@ -553,7 +553,7 @@ class AgeChunkGenerator(
             seaFill: SeaFill,
             surfaceRule: SurfaceRules.RuleSource,
             climate: Holder<NoiseGeneratorSettings>?,
-            substance: Substance,
+            fill: TerrainFill,
             window: VerticalWindow,
             field: TerrainField,
         ) = NoiseGeneratorSettings(
@@ -561,8 +561,8 @@ class AgeChunkGenerator(
             // The Age's own material, not a constant, which is what makes a surface rule fire over it:
             // `SurfaceSystem` recognises rock by comparing against these settings' default block, so
             // laying blackstone while declaring stone paints no surface at all. One block for the whole
-            // Age, so several materials are recognised over [Substance.representative] only.
-            substance.representative,
+            // Age, so several materials are recognised over [TerrainFill.representative] only.
+            fill.representative,
             seaFill.representative,
             routerFor(climate, field),
             surfaceRule,

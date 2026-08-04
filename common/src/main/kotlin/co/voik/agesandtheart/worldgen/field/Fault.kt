@@ -16,7 +16,7 @@ import kotlin.math.roundToInt
  * weathering included, and `AgeGeneration.assemble` builds it last — which is also the geologically
  * honest ordering.
  *
- * The height contract, carving, hydrology and [Substance] all follow for free. Vanilla's structure
+ * The height contract, carving, hydrology and [TerrainFill] all follow for free. Vanilla's structure
  * placement does **not**: it takes a height at one column and builds from there, so a structure will
  * straddle a scarp.
  *

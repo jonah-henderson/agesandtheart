@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.age.aspect
 
 import co.voik.agesandtheart.worldgen.biome.BiomePreference
-import co.voik.agesandtheart.worldgen.field.Palette
+import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import net.minecraft.world.level.levelgen.SurfaceRules
 import net.minecraft.resources.Identifier

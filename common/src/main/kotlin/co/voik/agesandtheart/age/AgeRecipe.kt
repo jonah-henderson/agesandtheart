@@ -248,7 +248,7 @@ data class AgeRecipe(
                 .with(
                     Aspect.TERRAIN,
                     // Three rocks mingled on a 3D noise rather than banded by height, which the old
-                    // generator did. Banding would need height ranges on `Substance` or a per-preset palette.
+                    // generator did. Banding would need height ranges on `TerrainFill` or a per-preset palette.
                     listOf(
                         Options(
                             mapOf(

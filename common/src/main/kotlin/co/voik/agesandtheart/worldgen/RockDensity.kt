@@ -12,7 +12,7 @@ import net.minecraft.world.level.levelgen.DensityFunction
  * that condition reads exactly one thing: `NoiseChunk.preliminarySurfaceLevel`, which walks a column from the
  * top down in cell-height steps asking `initialDensityWithoutJaggedness` where it first goes solid. A field
  * Age has no density to answer with, so that slot was left at zero, the condition became meaningless, and
- * `Palette` had to drop the wrapper — which left *every* rock-to-air boundary in the world dressed as a
+ * `SurfacingStrategy` had to drop the wrapper — which left *every* rock-to-air boundary in the world dressed as a
  * surface, cave ceilings and floors included.
  *
  * So this answers it. Not a density in any real sense — a sign, and that is all the walk reads: the first

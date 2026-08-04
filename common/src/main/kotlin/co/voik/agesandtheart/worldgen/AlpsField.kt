@@ -3,7 +3,7 @@ package co.voik.agesandtheart.worldgen
 import co.voik.agesandtheart.worldgen.carver.Weathering
 import co.voik.agesandtheart.worldgen.field.Glaciation
 import co.voik.agesandtheart.worldgen.field.MountainRange
-import co.voik.agesandtheart.worldgen.field.Palette
+import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
 import co.voik.agesandtheart.worldgen.field.RangeProfile
 import co.voik.agesandtheart.worldgen.field.RangeYield
 import co.voik.agesandtheart.worldgen.field.SeaFill
@@ -106,7 +106,7 @@ object AlpsField {
      *
      * A field's floor is where its rock *starts*, not where its surface bottoms out, and setting it to the
      * lowest a valley should reach left the fifteen layers beneath that as void: a cavity under the whole
-     * Age, with no bedrock either, since `Palette`'s bedrock gradient paints rock and there was none to
+     * Age, with no bedrock either, since `SurfacingStrategy`'s bedrock gradient paints rock and there was none to
      * paint. What was actually asked for is the *surface* coming down towards −48, which is a property of
      * the landform's own tuning rather than a floor to set, and it leaves the band of dirt and stone this
      * Age has instead of an underground: enough for ore, nothing like enough for a cave system.

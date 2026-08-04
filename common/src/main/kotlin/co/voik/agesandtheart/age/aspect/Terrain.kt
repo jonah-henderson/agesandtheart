@@ -23,9 +23,9 @@ import co.voik.agesandtheart.worldgen.VerticalWindow
 import co.voik.agesandtheart.worldgen.biome.Elevation
 import co.voik.agesandtheart.worldgen.biome.Grounding
 import co.voik.agesandtheart.worldgen.field.Caved
-import co.voik.agesandtheart.worldgen.field.Palette
+import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
 import co.voik.agesandtheart.worldgen.field.Subtract
-import co.voik.agesandtheart.worldgen.field.Substance
+import co.voik.agesandtheart.worldgen.field.TerrainFill
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
@@ -360,7 +360,7 @@ enum class Terrain(
     /** How widely this terrain's materials speckle — see [MINGLING]. */
     fun mingling(options: Options, salt: Long): Double {
         val fineness = options.steer(MINGLING, salt)?.let(Span.NATURAL::fractionOf) ?: PATCHY
-        return Substance.PATCHY_MINGLING + fineness * (Substance.FINE_MINGLING - Substance.PATCHY_MINGLING)
+        return TerrainFill.PATCHY_MINGLING + fineness * (TerrainFill.FINE_MINGLING - TerrainFill.PATCHY_MINGLING)
     }
 
     /**
@@ -377,12 +377,12 @@ enum class Terrain(
     /**
      * What this terrain is made of — the blocks the fill lays over its own territory, or empty for plain
      * stone. The fill's business rather than a surface rule's, so it sits *under* vanilla's tree and
-     * vanilla paints grass on top of whatever we laid (see [Substance]).
+     * vanilla paints grass on top of whatever we laid (see [TerrainFill]).
      *
      * Several mingle rather than divide (§3.2), and a material never says whether anything lives on it —
      * a copper spire keeps its grass.
      */
-    fun substance(options: Options): List<BlockState> = options.materialsOf(STONE)
+    fun fillBlocks(options: Options): List<BlockState> = options.materialsOf(STONE)
 
     companion object {
         /**

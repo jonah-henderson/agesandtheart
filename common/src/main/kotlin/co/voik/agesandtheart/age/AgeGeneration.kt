@@ -14,7 +14,7 @@ import co.voik.agesandtheart.worldgen.biome.Grounding
 import co.voik.agesandtheart.worldgen.biome.RegionalClimate
 import co.voik.agesandtheart.worldgen.biome.Roofed
 import co.voik.agesandtheart.worldgen.field.Fault
-import co.voik.agesandtheart.worldgen.field.Palette
+import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
 import co.voik.agesandtheart.worldgen.field.RegionMap
 import co.voik.agesandtheart.worldgen.field.Regions
 import co.voik.agesandtheart.worldgen.field.Ridge
@@ -22,7 +22,7 @@ import co.voik.agesandtheart.worldgen.field.Rift
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Union
 import co.voik.agesandtheart.worldgen.field.Weathered
-import co.voik.agesandtheart.worldgen.field.Substance
+import co.voik.agesandtheart.worldgen.field.TerrainFill
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.worldgen.AgeChunkGenerator
 import co.voik.agesandtheart.worldgen.SpireChunkGenerator
@@ -110,17 +110,17 @@ object AgeGeneration {
             composition.seas,
             waterlineOf(composition, seed),
             // The first territory's: `depth` shifts the waterline, which is one number for the whole Age.
-            // The substance divides; the level does not.
+            // The sea's substance divides; the level does not.
             composition.optionsFor(Aspect.SEA, 0),
             flow,
             seed,
         ).copy(dry = chasm, wet = standing)
 
         // What the rock *is*, on the terrain's own map, laid by the fill rather than painted by a rule — which
-        // is what lets vanilla's surface tree keep its skin over our substance (see [Substance]).
-        val substance = Substance(
+        // is what lets vanilla's surface tree keep its skin over our fill (see [TerrainFill]).
+        val fill = TerrainFill(
             composition.terrains.mapIndexed { member, terrain ->
-                terrain.substance(terrainOptions(member)).ifEmpty { listOf(Substance.STONE) }
+                terrain.fillBlocks(terrainOptions(member)).ifEmpty { listOf(TerrainFill.STONE) }
             },
             ground,
             // The first territory's, like `Sea.DEPTH`: the mingling noise is one field over the whole Age.
@@ -179,7 +179,7 @@ object AgeGeneration {
             Structures.structureSets(server, composition.optionsFor(Aspect.STRUCTURES, 0)),
             server.registryAccess().lookupOrThrow(Registries.NOISE_SETTINGS)
                 .getOrThrow(NoiseGeneratorSettings.OVERWORLD),
-            substance,
+            fill,
             window,
             hollows,
         )

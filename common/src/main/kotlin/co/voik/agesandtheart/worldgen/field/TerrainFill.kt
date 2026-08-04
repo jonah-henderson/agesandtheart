@@ -15,13 +15,13 @@ import net.minecraft.world.level.block.state.BlockState
  *
  * **Strata stay surface rules, because that is how vanilla does them**: `SurfaceSystem.buildSurface` walks
  * a column to `getMinBuildHeight`, so a rule is not skin-deep and rewrites the bulk at depth quite
- * happily. This answers "what is this world made of"; `Palette.fadingBelowY` answers "what does it become
- * far down".
+ * happily. This answers "what is this world made of"; a [SurfacingStrategy] answers "what does it show,
+ * and what does it become far down".
  *
  * **Mingling has to be here** for the reason the material moved at all: as a rule it would need
  * *prepending* to vanilla's tree, which cannot be done.
  */
-data class Substance(
+data class TerrainFill(
     /**
      * One block per region of [where], in the order [where] numbers them. Each region may name several,
      * which mingle rather than divide (§3.2) — division already has a spelling: naming two terrains.
@@ -57,7 +57,7 @@ data class Substance(
 
     companion object {
         // **Declared before [PLAIN], and that ordering is load-bearing**: a companion initialises in source
-        // order and constructing a `Substance` reads these, so a `PLAIN` above them fails at class-init.
+        // order and constructing a `TerrainFill` reads these, so a `PLAIN` above them fails at class-init.
         //
         // Its own seed, so what the rock is made of is decorrelated from where the rock is.
         private const val MINGLE_SEED = 0x5704_D1EDL
@@ -83,17 +83,17 @@ data class Substance(
         /** What an Age that named no material is made of, and vanilla's own default block. */
         val STONE: BlockState = Blocks.STONE.defaultBlockState()
 
-        val PLAIN = Substance()
+        val PLAIN = TerrainFill()
 
-        val CODEC: Codec<Substance> = RecordCodecBuilder.create { instance ->
+        val CODEC: Codec<TerrainFill> = RecordCodecBuilder.create { instance ->
             instance.group(
                 BlockState.CODEC.listOf().listOf().optionalFieldOf("blocks", listOf(listOf(STONE)))
-                    .forGetter(Substance::blocks),
+                    .forGetter(TerrainFill::blocks),
                 RegionMap.MAP_CODEC.codec().optionalFieldOf("where", RegionMap.whole())
-                    .forGetter(Substance::where),
+                    .forGetter(TerrainFill::where),
                 Codec.DOUBLE.optionalFieldOf("mingle_stretch", PATCHY_MINGLING)
-                    .forGetter(Substance::mingleStretch),
-            ).apply(instance, ::Substance)
+                    .forGetter(TerrainFill::mingleStretch),
+            ).apply(instance, ::TerrainFill)
         }
     }
 }
