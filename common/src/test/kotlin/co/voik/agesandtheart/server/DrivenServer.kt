@@ -143,6 +143,11 @@ class DrivenServer private constructor(
                 "rcon.port" to port.toString(),
                 // Nothing here needs a world to be interesting, and generating one costs the whole startup.
                 "sync-chunk-writes" to "false",
+                // **The watchdog has to go, or the harness kills its own server.** RCON runs a command on
+                // the server thread and waits for it, so `/age compare` generating two Ages block for block
+                // happens *inside one tick* — and vanilla treats a tick past `max-tick-time` as a crash and
+                // forcibly shuts down. A check that is merely slow would then fail as a broken pipe.
+                "max-tick-time" to "-1",
             )
             val rewritten = original.lines().map { line ->
                 val key = line.substringBefore('=')

@@ -42,11 +42,16 @@ class VocabularyOnServerCheck : FunSpec({
         // to the pack and says nothing about *which* population is missing; a biome and a structure set
         // being readable is the claim itself. Asserted through the parser, since a word the corpus lacks is
         // reported as a page the Art could not read.
-        val written = server.ask("write", "populationsarrived biomes jungle structures villages")
-        val dropped = written.getAsJsonArray("dropped").map { it.asString }
-        check(dropped.isEmpty()) {
-            "the server's dynamic registries did not reach the corpus — unread: $dropped"
+        val written = server.ask("write", "populationsarrived age biomes jungle structures villages")
+        val unreadable = written.getAsJsonArray("unreadable").map { it.asString }
+        check(unreadable.isEmpty()) {
+            "the server's dynamic registries did not reach the corpus — unread: $unreadable"
         }
+        // `supplied` is what the Art had to write for itself, and it must be empty: a book that fails to
+        // parse is repaired against a drawn sentence and comes back with *nothing* unreadable, so without
+        // this the check above passes whether or not either word was ever understood.
+        val supplied = written.getAsJsonArray("supplied").map { it.asString }
+        check(supplied.isEmpty()) { "the book did not parse as written and was filled in with $supplied" }
     }
 
     /** Every aiming page has to be a page a writer can actually lay down, or sections cannot be opened. */

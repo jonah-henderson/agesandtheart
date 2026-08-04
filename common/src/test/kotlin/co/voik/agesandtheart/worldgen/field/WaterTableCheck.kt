@@ -23,7 +23,11 @@ import net.minecraft.world.level.levelgen.DensityFunction
 class WaterTableCheck : FunSpec({
 
     val seaLevel = 63
-    val water = Blocks.WATER.defaultBlockState()
+    // `by lazy`, because Kotest builds a spec to discover its tests: read eagerly this touches the block
+    // registry during discovery, before `NEEDS_REGISTRIES` has bought the bootstrap — which is fine under
+    // `test`, where another spec has already paid it, and fatal under `serverTest`, where the tag filter
+    // means nothing here ever does.
+    val water by lazy { Blocks.WATER.defaultBlockState() }
 
     fun tableOver(shape: TerrainField, standing: TerrainField? = null): WaterTable =
         WaterTable.matching(SeaFill.of(water, seaLevel).copy(wet = standing), seaLevel)
