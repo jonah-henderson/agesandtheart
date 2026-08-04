@@ -33,7 +33,7 @@ class WritingCheck : FunSpec({
     test("the readout shows what was aimed where") {
         val written = server.ask("write", "readsback age landmass floating basalt sea molten lava")
         val readout = written.get("readout").asString
-        check(readout == "landmass floating of basalt, over sea molten of lava.") {
+        check(readout == "age: landmass floating of basalt, over sea molten of lava.") {
             "the sections blurred: '$readout'"
         }
         check(written.getAsJsonArray("supplied").isEmpty) {
@@ -44,7 +44,7 @@ class WritingCheck : FunSpec({
     /** Without an aiming page in front of them the same words are the nucleus, not a section of their own. */
     test("a book that aims at nothing is one section") {
         val written = server.ask("write", "unaimed age floating basalt")
-        check(written.get("readout").asString == "floating of basalt.") {
+        check(written.get("readout").asString == "age: floating of basalt.") {
             "an unaimed book read back as '${written.get("readout").asString}'"
         }
     }

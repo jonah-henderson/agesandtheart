@@ -89,8 +89,11 @@ object Readout {
      */
     fun columnsOf(sentence: Sentence): List<Said> {
         val clauses = sentence.phrases.mapNotNull(::asWritten)
-        if (clauses.isEmpty()) return emptyList()
-        val said = mutableListOf<Said>()
+        val said = headOf(sentence)
+        if (clauses.isEmpty() && said.isEmpty()) return emptyList()
+        // A colon rather than the comma that separates clauses: a book is an Age and *then* what is true of
+        // it, so the head is not one more thing said about the world alongside the rest.
+        if (said.isNotEmpty() && clauses.isNotEmpty()) said.punctuate(":")
         for ((position, phrase) in clauses.withIndex()) {
             if (position > 0) said.punctuate(",")
             said += clauseOf(phrase, opensTheSentence = position == 0)
@@ -98,6 +101,22 @@ object Readout {
         said.punctuate(".")
         return said.toList()
     }
+
+    /**
+     * The `Age` page a book opens with, as its own column — **the head of the reading, and a page like any
+     * other**.
+     *
+     * It carries no constraint and so reaches no [Phrase], which is why it has to be put back here rather
+     * than falling out of one. Without it a book's columns are its pages *less one*, and since the script is
+     * set from these columns and not from the row of pages, the glyph for the page every book must open with
+     * was drawn nowhere in the game — so a player learning the language by reading found books never met it.
+     *
+     * Read off [Sentence.structural], which `ArtGrammar` fills from the writer's pages alone: a repaired
+     * book's nucleus is the Art's, and claiming one that was never written is the laundering §4.3.1 forbids.
+     */
+    private fun headOf(sentence: Sentence): MutableList<Said> =
+        if (Production.NUCLEUS !in sentence.structural) mutableListOf()
+        else mutableListOf(Said(NUCLEUS_PAGE, Component.literal(NUCLEUS_READ)))
 
     /**
      * [mark] put against the column just laid.
@@ -115,6 +134,16 @@ object Readout {
 
     /** A word the Art supplied — English on both sides, since that is §4.1's interface doing its job. */
     private fun particleFor(text: String): Said = Said(text, Component.literal(text))
+
+    /**
+     * How the nucleus page is spelled, and how it reads at the head of a sentence.
+     *
+     * Written down here as `only`, `except` and the rungs already are, rather than read off the page: a pack
+     * may rename any structural word and every one of them would still be spelled our way. That is one
+     * limitation shared by all five and worth lifting for all five at once, not a new one taken on here.
+     */
+    private const val NUCLEUS_PAGE = "age"
+    private const val NUCLEUS_READ = "Age"
 
     /**
      * One phrase with the Art's own pages taken out, or null where the writer laid none of it — a book

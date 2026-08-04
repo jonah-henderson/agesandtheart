@@ -28,10 +28,34 @@ class ReadoutCheck : FunSpec({
     }
 
     /**
-     * A book, as it reads. **The nucleus is supplied here** rather than written into every fixture: every
-     * book has an `age`, and what these check is the reading of what follows it.
+     * A book, as it reads **after the page it opens with**. The nucleus is supplied here rather than written
+     * into every fixture, and taken back off the front of the answer for the same reason: every book has an
+     * `age` and every reading says so, and what these check is the reading of what follows it. The head is
+     * pinned by two tests of its own below.
      */
-    fun readingOf(vararg pages: String): String = Readout.of(Grammar.read(vocabulary, listOf("age") + pages))
+    fun readingOf(vararg pages: String): String =
+        Readout.of(Grammar.read(vocabulary, listOf("age") + pages)).removePrefix("age: ")
+
+    /**
+     * **A book opens with the page it opens with.** The nucleus carries no constraint and so reaches no
+     * clause, which is exactly how it came to be missing: the reading is what the script is set from, so a
+     * head left out of it meant the glyph for the one page every book must have was drawn nowhere in the
+     * game, and a player learning the language by reading found books never met it.
+     */
+    test("the page a book opens with is in its reading") {
+        val reading = Readout.of(Grammar.read(vocabulary, listOf("age", "landmass", "basalt")))
+        check(reading == "age: landmass of basalt.") { "the book did not open with its own head: '$reading'" }
+    }
+
+    /**
+     * And a book that never had one does not borrow the Art's. A repaired book is complete where its writer's
+     * was not, so a supplied nucleus in the reading would tell them they laid a page they never did — the
+     * same laundering from the other side (§4.3.1).
+     */
+    test("a repaired book claims no nucleus of its own") {
+        val reading = Readout.of(Grammar.read(vocabulary, listOf("landmass", "basalt")))
+        check(!reading.startsWith("age")) { "a supplied nucleus reached the reading: '$reading'" }
+    }
 
     /**
      * The particle a writer was spared, restored to show the position it was inferred into — which is the
@@ -101,7 +125,7 @@ class ReadoutCheck : FunSpec({
         val reading = Readout.of(read)
         check("zzzznotaword" !in reading) { "an unreadable page was laundered into the prose: '$reading'" }
         check("zzzznotaword" in read.unreadable) { "an unreadable page went unreported: ${read.unreadable}" }
-        check(reading == "landmass of basalt.") { "the rest of the book did not survive: '$reading'" }
+        check(reading == "age: landmass of basalt.") { "the rest of the book did not survive: '$reading'" }
     }
 
     /**
