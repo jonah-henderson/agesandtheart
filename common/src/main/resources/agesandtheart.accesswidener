@@ -78,12 +78,21 @@ accessible	method	net/minecraft/world/inventory/MenuType	<init>	(Lnet/minecraft/
 # `featuresPerStep`, and `applyBiomeDecoration`'s own lookup. It is the sanctioned seam and we cannot reach
 # it, because `NoiseBasedChunkGenerator` calls `super(biomeSource)` and never offers the second argument.
 #
-# So the field is made writable and assigned once, immediately after construction. Safe because
-# `featuresPerStep` is a **memoised** supplier that closes over the field rather than its value, so
-# whichever function is in the field when the first chunk decorates is the one both readers see.
+# So the field is made writable and assigned once, immediately after construction — and **so is
+# `featuresPerStep`, because vanilla's constructor captures the *parameter* rather than the field**:
+#
+#     this.generationSettingsGetter = generationSettingsGetter;
+#     this.featuresPerStep = Suppliers.memoize(() -> buildFeaturesPerStep(..., generationSettingsGetter, ...));
+#
+# Writing only the field moves `applyBiomeDecoration`'s lookup and leaves the sorted list it indexes into
+# built from the biome defaults, so a feature the Age added is looked up in a list that never had it. The
+# index is identity-based (`Util.createIndexIdentityLookup`) and misses as -1, which is an
+# `IndexOutOfBoundsException` in the middle of decoration. The two fields have to move together.
 #
 # The alternative was overriding `applyBiomeDecoration` outright: sixty lines of vanilla's own structure
 # and feature placement copied to change one lookup, and `featuresPerStep` is private, so the sorted list
 # would have to be rebuilt beside it.
 accessible	field	net/minecraft/world/level/chunk/ChunkGenerator	generationSettingsGetter	Ljava/util/function/Function;
 mutable	field	net/minecraft/world/level/chunk/ChunkGenerator	generationSettingsGetter	Ljava/util/function/Function;
+accessible	field	net/minecraft/world/level/chunk/ChunkGenerator	featuresPerStep	Ljava/util/function/Supplier;
+mutable	field	net/minecraft/world/level/chunk/ChunkGenerator	featuresPerStep	Ljava/util/function/Supplier;

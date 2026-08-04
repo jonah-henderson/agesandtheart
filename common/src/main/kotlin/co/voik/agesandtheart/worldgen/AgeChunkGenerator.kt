@@ -56,6 +56,8 @@ import java.util.concurrent.CompletableFuture
 import java.util.stream.Stream
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.biome.BiomeGenerationSettings
+import com.google.common.base.Suppliers
+import net.minecraft.world.level.biome.FeatureSorter
 
 /**
  * The generator every composed Age runs on: **vanilla's noise generator, with four deliberate exits.**
@@ -139,11 +141,24 @@ class AgeChunkGenerator(
 ) : NoiseBasedChunkGenerator(biomes, Holder.direct(settingsFor(seaFill, surfaceRule, climate, fill, window, field))) {
 
     init {
-        // **The seam vanilla offers and `NoiseBasedChunkGenerator` does not pass on.** `ChunkGenerator`
-        // takes this function in its two-argument constructor; the noise generator calls the one-argument
-        // form, so the field is widened and assigned here instead. Safe at this point because
-        // `featuresPerStep` is memoised over the *field*, and nothing reads it until a chunk decorates.
-        grows?.let { generationSettingsGetter = java.util.function.Function(it) }
+        // **The seam vanilla offers, and both halves of it.** `ChunkGenerator` takes this function in its
+        // two-argument constructor; `NoiseBasedChunkGenerator` calls the one-argument form, so the fields
+        // are widened and assigned here instead.
+        //
+        // Both, because the constructor captures the **parameter** rather than the field when it builds
+        // `featuresPerStep`. Assigning only the getter moves what decoration looks up and leaves the
+        // sorted list it looks up *in* built from the biome defaults — and that list is indexed by
+        // identity, so a feature this Age added comes back as -1 in the middle of generation.
+        grows?.let { settings ->
+            generationSettingsGetter = java.util.function.Function(settings)
+            featuresPerStep = Suppliers.memoize {
+                FeatureSorter.buildFeaturesPerStep(
+                    biomeSource.possibleBiomes().toList(),
+                    { biome -> settings(biome).features() },
+                    true,
+                )
+            }
+        }
     }
 
     /** The same generator with one carving everywhere — what a Tier-B preset means. */

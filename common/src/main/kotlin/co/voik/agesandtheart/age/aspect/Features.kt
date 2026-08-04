@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.aspect
 
 import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.worldgen.feature.FeatureDensity
 import net.minecraft.core.Holder
 import net.minecraft.core.HolderLookup
 import net.minecraft.core.registries.Registries
@@ -11,6 +12,7 @@ import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.biome.BiomeGenerationSettings
 import net.minecraft.world.level.levelgen.GenerationStep
 import net.minecraft.world.level.levelgen.placement.PlacedFeature as VanillaPlacedFeature
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * What grows and forms in the ground — ores, flora, lakes, springs (design §3.1, vanilla's `feature` and
@@ -37,6 +39,9 @@ object Features {
      * A mention is worth the **ordinary** amount, like a structure set and unlike a biome: naming a
      * feature asks for a thing that was not there rather than for more of a thing that was. And it may be
      * emptied — a world where nothing grows is a world — so [NOTHING] is what says so.
+     *
+     * **A rung here is absolute and takes nothing from anything else** ([FeatureDensity]): twice the trees
+     * is twice the trees, where twice the desert is necessarily less of some other biome.
      */
     val GROWS = Parameter.population("grows", leastKept = NOTHING_AT_ALL, emptiedBy = NOTHING)
 
@@ -58,7 +63,14 @@ object Features {
         val added = wanted(server, asked)
         val struck = asked.struck.mapNotNull(Identifier::tryParse).toSet()
         val startsFromNothing = asked.exclusive || asked.wanted.any { it.value == NOTHING }
-        return { biome -> settingsFrom(biome, added, struck, startsFromNothing) }
+        // **Answered once per biome and remembered, and that is a correctness rule rather than a saving.**
+        // `FeatureSorter` indexes the sorted feature list by **identity** (`createIndexIdentityLookup`), and
+        // `applyBiomeDecoration` looks a feature up in that index every chunk. Hand it an equal-but-new
+        // `PlacedFeature` the second time and the lookup misses, which is -1 into a list.
+        val settled = ConcurrentHashMap<Holder<Biome>, BiomeGenerationSettings>()
+        return { biome ->
+            settled.computeIfAbsent(biome) { settingsFrom(it, added, struck, startsFromNothing) }
+        }
     }
 
     /**
@@ -81,7 +93,7 @@ object Features {
                 Constants.LOG.warn("An Age asked to grow '{}', which is no placed feature in this pack", named)
                 continue
             }
-            byStep.getOrPut(stepFor(named, biomes)) { mutableListOf() } += found
+            byStep.getOrPut(stepFor(named, biomes)) { mutableListOf() } += FeatureDensity.applied(found, claim.density)
         }
         return byStep
     }
