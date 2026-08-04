@@ -52,18 +52,13 @@ enum class Aspect(val key: String) : StringRepresentable {
         }
 
     /**
-     * Whether this aspect's value is a registry object rather than a preset written in Kotlin (§3.1).
+     * Whether this aspect's value is a registry object rather than a preset written in Kotlin (§3.1) —
+     * which decides whether §8's derived vocabulary can reach the aspect at all.
      *
-     * Decides whether §8's derived vocabulary can reach the aspect at all.
+     * **The one question [kind] answers on its own.** A referent's value *is* a registry object and a
+     * population's members are, where a preset is a bundle we wrote and a dial is a number.
      */
-    val open: Boolean
-        get() = when (this) {
-            // All three hold registry objects. A biome and a structure set are open so a word can *reach*
-            // one — what a sentence does to it is weigh it, never seat it, which is [Kind.POPULATION]'s
-            // business rather than this.
-            SEA, BIOMES, STRUCTURES -> true
-            TERRAIN, CARVERS, SKY, CLIMATE -> false
-        }
+    val open: Boolean get() = kind == Kind.REFERENT || kind == Kind.POPULATION
 
     /**
      * Every preset for this aspect written in Kotlin — the whole pool for a closed aspect, and none of it
