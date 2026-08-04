@@ -431,16 +431,21 @@ class ResolverCheck : FunSpec({
      */
     test("a material steers without choosing") {
         val basalt = vocabulary.word("basalt") ?: error("no word 'basalt' — is the material hook wired?")
-        check(basalt.sets == mapOf(Terrain.STONE.name to "minecraft:blackstone")) {
+        check(basalt.sets == mapOf(Terrain.STONE.name to "minecraft:basalt")) {
             "'basalt' sets ${basalt.sets}, which is not the material it is for"
         }
-        check(!basalt.constrainsPresets) { "a word that only sets a parameter must not narrow presets" }
+        // Asked of the terrain rather than globally, which is the honest form for a derived word: a block
+        // names a *sea* outright and merely sets a material on the terrain, so the global question answers
+        // "narrows" for an opinion it never had here. See [Word.constrainsPresetsIn].
+        check(!basalt.constrainsPresetsIn(Aspect.TERRAIN)) {
+            "a word that only sets a parameter must not narrow the terrain's presets"
+        }
 
         for (seed in 0L..<SEEDS_SAMPLED) {
             val resolution = resolve(vocabulary, "basalt", seed)
             val composition = resolution.composition
             check(
-                composition.options.of(Aspect.TERRAIN).chosen[Terrain.STONE.name] == listOf("minecraft:blackstone"),
+                composition.options.of(Aspect.TERRAIN).chosen[Terrain.STONE.name] == listOf("minecraft:basalt"),
             ) {
                 "'basalt' did not set the stone at seed $seed: ${composition.options.of(Aspect.TERRAIN)}"
             }
@@ -448,7 +453,7 @@ class ResolverCheck : FunSpec({
                 "'basalt' set an option no preset understands at seed $seed: ${composition.unknownOptions}"
             }
             // Nothing can ignore a material any more, so a lone material word can never be incoherent —
-            // whatever terrain and dressing were drawn, the rock is blackstone and vanilla paints its skin
+            // whatever terrain and dressing were drawn, the rock is basalt and vanilla paints its skin
             // over it.
             check(resolution.instability.isCoherent) {
                 "'basalt' alone was charged at seed $seed: ${resolution.instability.flaws}"
