@@ -804,7 +804,7 @@ object AgeCommand {
             source.sendFailure(
                 Component.literal(
                     "`/age sky` previews the sky only, but you named ${strayAspects.joinToString(" ")}. " +
-                        "Write it as `sky=plain sky.suns=three`, and use `/age compose` to change anything else.",
+                        "Write it as `sky=plain sky.suns=3`, and use `/age compose` to change anything else.",
                 ),
             )
             return null

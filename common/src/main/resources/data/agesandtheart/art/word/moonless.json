@@ -1,5 +1,9 @@
 {
   "tier": "exact",
-  "aspects": ["sky"],
-  "sets": { "moons": "none" }
+  "aspects": [
+    "sky"
+  ],
+  "sets": {
+    "moons": "0"
+  }
 }

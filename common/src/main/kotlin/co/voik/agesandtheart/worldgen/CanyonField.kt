@@ -2,7 +2,7 @@ package co.voik.agesandtheart.worldgen
 
 import co.voik.agesandtheart.worldgen.field.Canyon
 import co.voik.agesandtheart.worldgen.field.Palette
-import co.voik.agesandtheart.worldgen.field.bearingNamed
+import co.voik.agesandtheart.worldgen.field.bearingAt
 import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.TerrainField
@@ -34,12 +34,12 @@ object CanyonField {
      * separable from the landform: an unweathered canyon does not read as a plainer canyon, it reads as
      * machined. So the wind is part of the shape here rather than something `weathered` adds to it.
      */
-    fun world(bearing: String, salt: Long = 0L): TerrainField =
+    fun world(bearing: Double? = null, salt: Long = 0L): TerrainField =
         Weathered.sculpting(bareWorld(bearing, salt), Weathering.CANYON, SHELTER_REACH, WORLD_CEILING)
 
     /** The cut before the weather reaches it — the previewer's other half, and nothing else's. */
-    fun bareWorld(bearing: String, salt: Long = 0L): TerrainField =
-        Canyon.cut(ground(), listOf(canyon(bearingNamed(bearing), salt)))
+    fun bareWorld(bearing: Double? = null, salt: Long = 0L): TerrainField =
+        Canyon.cut(ground(), listOf(canyon(bearingAt(bearing), salt)))
 
     /** Bedrock to the ceiling, everywhere. */
     fun ground(): TerrainField = Slab(lowY = WORLD_FLOOR, highY = WORLD_CEILING)
@@ -68,7 +68,7 @@ object CanyonField {
     fun generator(biomeSource: BiomeSource): AgeChunkGenerator =
         AgeChunkGenerator(
             biomeSource,
-            world(bearing = "north_south"),
+            world(),
             SeaFill.of(Blocks.WATER.defaultBlockState(), level = RIVER_LEVEL),
             Palette.BARE_ROCK,
         )

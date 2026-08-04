@@ -78,7 +78,7 @@ enum class Terrain(
     CANYON(
         "canyon",
         waterline = CanyonField.RIVER_LEVEL,
-        build = { options, salt -> CanyonField.world(options.of(BEARING), salt) },
+        build = { options, salt -> CanyonField.world(options.steer(BEARING, salt), salt) },
     ),
 
     /**
@@ -87,7 +87,7 @@ enum class Terrain(
     CLIFFS(
         "cliffs",
         waterline = CliffField.SEA_LEVEL,
-        build = { options, salt -> CliffField.world(options.of(BEARING), salt) },
+        build = { options, salt -> CliffField.world(options.steer(BEARING, salt), salt) },
     ),
 
     /** Mesa country: a tableland under open sky, cut to pieces by canyons running three ways at once. */
@@ -125,7 +125,7 @@ enum class Terrain(
     ISLANDS(
         "islands",
         waterline = IslandsField.SEA_LEVEL,
-        build = { options, salt -> IslandsField.world(steer(options, EXTENT, salt), salt) },
+        build = { options, salt -> IslandsField.world(options.steer(EXTENT, salt), salt) },
     ),
 
     /**
@@ -150,9 +150,9 @@ enum class Terrain(
         build = { options, salt ->
             CraterlandsField.world(
                 CraterlandsField.Steer(
-                    wear = steer(options, WEAR, salt),
-                    relief = steer(options, RELIEF, salt),
-                    spacing = steer(options, SPACING, salt),
+                    wear = options.steer(WEAR, salt),
+                    relief = options.steer(RELIEF, salt),
+                    spacing = options.steer(SPACING, salt),
                 ),
                 salt,
             )
@@ -358,8 +358,10 @@ enum class Terrain(
     }
 
     /** How widely this terrain's materials speckle — see [MINGLING]. */
-    fun mingling(options: Options): Double =
-        if (options.of(MINGLING) == "fine") Substance.FINE_MINGLING else Substance.PATCHY_MINGLING
+    fun mingling(options: Options, salt: Long): Double {
+        val fineness = options.steer(MINGLING, salt)?.let(Span.NATURAL::fractionOf) ?: PATCHY
+        return Substance.PATCHY_MINGLING + fineness * (Substance.FINE_MINGLING - Substance.PATCHY_MINGLING)
+    }
 
     /**
      * Which form the faults along this Age's seams take — see [SEAM]. [drawn] is the Age's own character,
@@ -413,21 +415,14 @@ enum class Terrain(
          * A *bounded* axis still draws, so two Ages written with the same word differ within the band it
          * asked for — the word says where, the seed says exactly where.
          */
-        fun steer(options: Options, parameter: Parameter, salt: Long): Double? {
-            val span = Span.read(options.of(parameter)) ?: return null
-            if (span == Span.NATURAL) return null
-            return span.least + XoroshiroRandomSource(salt xor parameter.name.hashCode().toLong())
-                .nextDouble() * span.width
-        }
-
         val ARRANGEMENT = Parameter("arrangement", "grid", "rings", "varied")
 
         /**
-         * Which way a canyon runs. Words rather than an angle, both because §3.2 keeps numbers away from a
-         * writer and because a canyon on an arbitrary bearing is a thing only a composed field tree should
-         * be able to ask for.
+         * Which way a canyon runs, as a fraction of a half-turn — a line has no direction, so half a turn
+         * is the whole of it. A word says "north to south"; the angle it lands on is the machine's, which
+         * is the split §3.2 draws.
          */
-        val BEARING = Parameter("bearing", "north_south", "east_west", "diagonal")
+        val BEARING = Parameter.ranged("bearing")
 
         /**
          * How big an island is. Words rather than a distance, §3.2 keeping numbers away from a writer —
@@ -478,10 +473,13 @@ enum class Terrain(
         val STONE = Parameter.material("stone")
 
         /**
-         * How finely several materials speckle together. `fine` brings a patch down to a block or two, for
-         * a mixture reading as one mottled rock rather than blotches of two.
+         * How finely several materials speckle together. High on the axis brings a patch down to a block or
+         * two, for a mixture reading as one mottled rock rather than blotches of two.
          */
-        val MINGLING = Parameter("mingling", "patches", "fine")
+        val MINGLING = Parameter.ranged("mingling")
+
+        /** Where mingling sits when nothing said: blotches, which is what an unremarked mixture looks like. */
+        private const val PATCHY = 0.0
 
         /**
          * Which form the faults along this Age's seams take, overriding what its character drew (§3.4).

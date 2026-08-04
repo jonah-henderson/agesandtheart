@@ -2,9 +2,10 @@ package co.voik.agesandtheart.age.aspect
 
 import com.mojang.datafixers.util.Either
 import com.mojang.serialization.Codec
+import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 
 /**
- * The enumerated choices a writer made about one preset — `arrangement=rings`, `depth=deep`.
+ * The choices a writer made about one preset — `arrangement=rings`, `suns=2`, `wear=0.45..1.0`.
  *
  * Stored by name rather than by position, so a preset can gain a parameter without invalidating recipes
  * already written. Unrecognised names are *kept*, not dropped: they are ignored when the world is built
@@ -33,6 +34,26 @@ value class Options(val chosen: Map<String, List<String>> = emptyMap()) {
     fun claimsOn(parameter: Parameter): List<Claim> =
         chosen[parameter.name].orEmpty().map(Claim::read).filter { parameter.accepts(it.value) }
 
+    /**
+     * How many the writer asked for, where [parameter] is a count — never null, since [of] falls back to
+     * the ordinary number when nothing valid was named.
+     */
+    fun countOf(parameter: Parameter): Int = of(parameter).toIntOrNull() ?: NONE_AT_ALL
+
+    /**
+     * Where [parameter]'s axis was left, in the terms every span shares, or null where nothing bound it
+     * and the answer is whatever that landform calls ordinary.
+     *
+     * [salt] decides where inside the span the value lands, so an Age rebuilds identically while two
+     * axes bounded alike do not move together.
+     */
+    fun steer(parameter: Parameter, salt: Long): Double? {
+        val span = Span.read(of(parameter)) ?: return null
+        if (span == Span.NATURAL) return null
+        return span.least + XoroshiroRandomSource(salt xor parameter.name.hashCode().toLong())
+            .nextDouble() * span.width
+    }
+
     /** Names this preset does not understand — a typo, or a knob some later version removed. */
     fun unknownTo(preset: AspectPreset): Set<String> =
         chosen.keys - preset.parameters.map(Parameter::name).toSet()
@@ -43,6 +64,9 @@ value class Options(val chosen: Map<String, List<String>> = emptyMap()) {
 
     companion object {
         val NONE = Options()
+
+        /** What a count reads as when the parameter holding it is not one — unreachable through [countOf]. */
+        private const val NONE_AT_ALL = 0
 
         /**
          * A value is a list, and a single one still reads and writes as a bare string — the same either-or

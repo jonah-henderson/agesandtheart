@@ -16,6 +16,7 @@ import co.voik.agesandtheart.age.aspect.Share
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.Terrain
+import co.voik.agesandtheart.sky.SkySpec
 import co.voik.agesandtheart.age.word.grammar.Constraint
 import co.voik.agesandtheart.age.word.grammar.Group
 import co.voik.agesandtheart.age.word.grammar.Phrase
@@ -669,6 +670,36 @@ class ResolverCheck : FunSpec({
      * - **an aspect that already divided on presets contends instead**, two divisions in one aspect
      *   multiplying, and *which* fragment a word was aimed at being a question the grammar cannot answer.
      */
+    /**
+     * **A word that turns a numeric knob has to land where it means**, end to end: the word bounds an
+     * axis, a value is drawn inside it, and the sky is built from that. Nothing else checks the middle
+     * step, and a span merely *near* the end of its axis reads as a working word — `starless` written as
+     * a stretch rather than a point left a sky with two hundred stars in it, and every other check passed.
+     */
+    test("a sky word lands where it says") {
+        fun skyOf(sentence: String): SkySpec {
+            val composition = resolve(vocabulary, sentence).composition
+            return composition.sky.specFor(composition.optionsFor(Aspect.SKY, 0), SAMPLE_SEED)
+        }
+
+        val ordinary = skyOf("stormy")
+        check(ordinary.stars.count == SkySpec.VANILLA_STAR_COUNT) {
+            "a sky nobody spoke to about stars did not keep vanilla's: ${ordinary.stars.count}"
+        }
+        check(skyOf("starless").stars.count == 0) {
+            "'starless' left ${skyOf("starless").stars.count} stars in the sky"
+        }
+        check(skyOf("starlit").stars.count > SkySpec.VANILLA_STAR_COUNT) {
+            "'starlit' drew ${skyOf("starlit").stars.count} stars, no more than an ordinary sky"
+        }
+
+        // And a count says exactly its number, since that is the whole of what a count is.
+        check(skyOf("twinned").bodies.count { it.phase == null } == TWO_SUNS) {
+            "'twinned' drew ${skyOf("twinned").bodies.size} bodies in all"
+        }
+        check(skyOf("moonless").bodies.all { it.phase == null }) { "'moonless' left a moon overhead" }
+    }
+
     test("a fracture obeys its guards") {
         fun aimedAtTheLand(word: Word) = Constraint(word, Scope.Confined(setOf(Aspect.TERRAIN)))
         val hollow = aimedAtTheLand(vocabulary.word("hollow") ?: error("the shipped vocabulary lost 'hollow'"))
@@ -800,6 +831,9 @@ private const val MOST_UNASKED_LAVA = 5
 // than to freeze a tuning number. **The number itself wants Jonah's eyes**: it decides how often an Age
 // nobody asked to be inhabited turns out to be.
 private const val MOST_UNASKED_STRUCTURES = 3
+
+/** What `twinned` asks for, and the one number in this file that is a count rather than a weight. */
+private const val TWO_SUNS = 2
 
 /** A third of the strongest claim, as a share spells it. */
 private const val A_THIRD = 0.33

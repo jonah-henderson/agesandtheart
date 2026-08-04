@@ -1,5 +1,9 @@
 {
   "tier": "exact",
-  "aspects": ["sky"],
-  "sets": { "stars": "none" }
+  "aspects": [
+    "sky"
+  ],
+  "sets": {
+    "stars": "-1.0..-1.0"
+  }
 }

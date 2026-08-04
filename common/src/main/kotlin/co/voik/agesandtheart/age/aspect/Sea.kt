@@ -7,6 +7,7 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.Identifier
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
+import kotlin.math.roundToInt
 
 /**
  * What fills the space the shape leaves — a sea of something, or nothing at all.
@@ -45,9 +46,9 @@ data class Sea(override val id: Identifier) : Referent {
      * This sea poured to [waterline], the height being the terrain's to declare. A null waterline is a
      * shape standing in open air, and then nothing is filled whatever is named here.
      */
-    fun over(waterline: Int?, options: Options): SeaFill {
+    fun over(waterline: Int?, options: Options, seed: Long): SeaFill {
         if (waterline == null || isEmpty) return SeaFill.NONE
-        return SeaFill.of(substance(), level = waterline + depthShift(options))
+        return SeaFill.of(substance(), level = waterline + depthShift(options, seed))
     }
 
     companion object {
@@ -86,24 +87,26 @@ data class Sea(override val id: Identifier) : Referent {
          * the substance is not, so water can meet lava along a line at the same level. A sea of nothing
          * contributes air, leaving genuine open space on one side of the seam.
          */
-        fun pour(seas: List<Sea>, waterline: Int?, options: Options, map: RegionMap): SeaFill {
+        fun pour(seas: List<Sea>, waterline: Int?, options: Options, map: RegionMap, seed: Long): SeaFill {
             if (waterline == null || seas.all { it.isEmpty }) return SeaFill.NONE
             return SeaFill.divided(
                 seas.map { it.substance() },
-                waterline + depthShift(options),
+                waterline + depthShift(options, seed),
                 map,
             )
         }
 
-        val DEPTH = Parameter("depth", "normal", "shallow", "deep")
+        /** How far under or over its ordinary level this sea stands — see [DEEPEST_SHIFT]. */
+        val DEPTH = Parameter.ranged("depth")
 
         /** Enough to redraw a coastline without drowning or stranding what the terrain built. */
-        private const val DEPTH_STEP = 12
+        private const val DEEPEST_SHIFT = 12
 
-        private fun depthShift(options: Options): Int = when (options.of(DEPTH)) {
-            "shallow" -> -DEPTH_STEP
-            "deep" -> DEPTH_STEP
-            else -> 0
+        private fun depthShift(options: Options, seed: Long): Int {
+            val depth = options.steer(DEPTH, seed) ?: return AS_THE_TERRAIN_LEFT_IT
+            return (depth / Span.NATURAL_MOST * DEEPEST_SHIFT).roundToInt()
         }
+
+        private const val AS_THE_TERRAIN_LEFT_IT = 0
     }
 }

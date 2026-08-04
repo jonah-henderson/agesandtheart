@@ -140,7 +140,7 @@ class CanyonCheck : FunSpec({
      * and features, not an accident.
      */
     test("the plateau stands solid to the ceiling") {
-        for (world in listOf(CanyonField.world("north_south"), CanyonField.bareWorld("north_south"))) {
+        for (world in listOf(CanyonField.world(NORTH_SOUTH), CanyonField.bareWorld(NORTH_SOUTH))) {
             for (worldZ in -400..400 step 53) {
                 val far = world.columnSpans(FAR_FROM_THE_AXIS, worldZ)
                 check(far.highestSolidY == CanyonField.WORLD_CEILING) {
@@ -155,8 +155,8 @@ class CanyonCheck : FunSpec({
      * whole profile reads as machined. The bare cut and the weathered one must differ where the wall is.
      */
     test("the weather works the canyon walls") {
-        val weathered = CanyonField.world("north_south")
-        val bare = CanyonField.bareWorld("north_south")
+        val weathered = CanyonField.world(NORTH_SOUTH)
+        val bare = CanyonField.bareWorld(NORTH_SOUTH)
         var worn = 0
         var walls = 0
         for (worldZ in -400..400 step 17) {
@@ -177,7 +177,7 @@ class CanyonCheck : FunSpec({
      * world's own bottom to buy.
      */
     test("the rock under the river is left whole") {
-        val world = CanyonField.world("north_south")
+        val world = CanyonField.world(NORTH_SOUTH)
         for (worldZ in -500..500 step 23) {
             for (worldX in -500..500 step 7) {
                 val lowest = world.columnSpans(worldX, worldZ).ranges.firstOrNull()?.first ?: continue
@@ -190,7 +190,7 @@ class CanyonCheck : FunSpec({
 
     /** And there is a river to be had: the gorge floor has to fall below the level the sea is poured to. */
     test("the gorge floor lies under the river level") {
-        val world = CanyonField.world(bearing = "north_south")
+        val world = CanyonField.world(bearing = NORTH_SOUTH)
         val floors = (-400..400 step 7).mapNotNull { worldZ ->
             (-300..300 step 3).mapNotNull { worldX -> world.columnSpans(worldX, worldZ).highestSolidY }.min()
         }
@@ -203,7 +203,7 @@ class CanyonCheck : FunSpec({
      * **including which weathering it wears**, which is what the profile stopped being implicit for.
      */
     test("the weathered world round-trips through its codec") {
-        val written = CanyonField.world("diagonal")
+        val written = CanyonField.world(DIAGONAL)
         val encoded = TerrainField.CODEC.encodeStart(com.mojang.serialization.JsonOps.INSTANCE, written)
             .getOrThrow { failure -> error("the canyon would not encode: $failure") }
         val read = TerrainField.CODEC.parse(com.mojang.serialization.JsonOps.INSTANCE, encoded)

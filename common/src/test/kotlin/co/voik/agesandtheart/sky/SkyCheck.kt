@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Sky
 import com.mojang.serialization.JsonOps
 import io.kotest.core.spec.style.FunSpec
+import co.voik.agesandtheart.age.aspect.Span
 
 /**
  * Does a sky reproduce, and does a one-sun Age still look like an ordinary world? Offline, because
@@ -238,10 +239,10 @@ class SkyCheck : FunSpec({
     /** The counterpart: anything unusual must NOT read as ordinary, or the whole feature would be invisible. */
     test("anything unusual does not read as ordinary") {
         val unusual = listOf(
-            "two suns" to Sky.PLAIN.specFor(Options(mapOf(Sky.SUNS.name to listOf("two"))), 7L),
-            "no moons" to Sky.PLAIN.specFor(Options(mapOf(Sky.MOONS.name to listOf("none"))), 7L),
-            "no stars" to Sky.PLAIN.specFor(Options(mapOf(Sky.STARS.name to listOf("none"))), 7L),
-            "dense stars" to Sky.PLAIN.specFor(Options(mapOf(Sky.STARS.name to listOf("dense"))), 7L),
+            "two suns" to Sky.PLAIN.specFor(Options(mapOf(Sky.SUNS.name to listOf("2"))), A_SEED),
+            "no moons" to Sky.PLAIN.specFor(Options(mapOf(Sky.MOONS.name to listOf("0"))), A_SEED),
+            "no stars" to Sky.PLAIN.specFor(Options(mapOf(Sky.STARS.name to listOf(EMPTIEST))), A_SEED),
+            "dense stars" to Sky.PLAIN.specFor(Options(mapOf(Sky.STARS.name to listOf(FULLEST))), A_SEED),
         )
         for ((described, spec) in unusual) {
             check(!spec.isOrdinary) { "\"$described\" reads as an ordinary sky, so no Age would ever draw it" }
@@ -250,3 +251,10 @@ class SkyCheck : FunSpec({
 })
 
 private val SEEDS = listOf(0L, 1L, 7L, 4242L, -99L, Long.MAX_VALUE)
+
+/** One seed, where the property under check does not vary with it. */
+private const val A_SEED = 7L
+
+/** The two ends of a ranged axis, as a recipe pins them. */
+private val EMPTIEST = Span.at(Span.NATURAL_LEAST).spelled()
+private val FULLEST = Span.at(Span.NATURAL_MOST).spelled()

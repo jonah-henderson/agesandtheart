@@ -3,6 +3,7 @@ package co.voik.agesandtheart.age
 import co.voik.agesandtheart.age.aspect.Biomes
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.aspect.Sea
+import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.Structures
@@ -252,7 +253,7 @@ data class AgeRecipe(
                             mapOf(
                                 Terrain.STONE.name to SPIRE_ROCKS,
                                 // Speckled at block scale rather than in blotches: one mottled stone.
-                                Terrain.MINGLING.name to listOf("fine"),
+                                Terrain.MINGLING.name to listOf(Span.at(Span.NATURAL_MOST).spelled()),
                             ),
                         ),
                     ),

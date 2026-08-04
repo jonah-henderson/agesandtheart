@@ -15,7 +15,7 @@ import kotlin.math.abs
  */
 class CliffCheck : FunSpec({
 
-    val world = CliffField.world(bearing = "north_south")
+    val world = CliffField.world(bearing = NORTH_SOUTH)
 
     fun topAt(worldX: Int, worldZ: Int) = world.columnSpans(worldX, worldZ).highestSolidY
 
@@ -63,7 +63,7 @@ class CliffCheck : FunSpec({
      * treads, so this asserts they exist rather than that they are pretty.
      */
     test("the face has ledges for the weather to reach") {
-        val bare = CliffField.bareWorld("north_south")
+        val bare = CliffField.bareWorld(NORTH_SOUTH)
         val tops = sample { worldX, worldZ -> bare.columnSpans(worldX, worldZ).highestSolidY }
         val low = CliffField.SEABED_Y + TABLE_MARGIN
         val high = CliffField.PLATEAU_Y - TABLE_MARGIN
@@ -94,13 +94,13 @@ class CliffCheck : FunSpec({
      * cannot express.
      */
     test("the shape is solid from the floor up") {
-        val bare = CliffField.bareWorld("north_south")
+        val bare = CliffField.bareWorld(NORTH_SOUTH)
         val runs = sample { worldX, worldZ -> bare.columnSpans(worldX, worldZ).ranges.size }
         check(runs.all { it == 1 }) { "some column of the bare shape came out in more than one piece" }
     }
 
     test("resizing scales the lengths and keeps the bearing") {
-        val full = CliffField.bareWorld("north_south") as Escarpment
+        val full = CliffField.bareWorld(NORTH_SOUTH) as Escarpment
         val small = full.resized(HALF, pivotY = full.lowY)
         check(small.faceWidth == full.faceWidth * HALF) { "the face came out ${small.faceWidth}" }
         check(small.roughness == full.roughness * HALF) { "the roughness came out ${small.roughness}" }
@@ -114,7 +114,7 @@ class CliffCheck : FunSpec({
 
     /** The bearing is the direction the cliff *runs*, so turning it must turn the world's division too. */
     test("a bearing turns the cliff rather than the world") {
-        val eastWest = CliffField.world("east_west")
+        val eastWest = CliffField.world(EAST_WEST)
         val alongTheFace = (-400..400 step 25).map { worldX ->
             eastWest.columnSpans(worldX, FAR_ALONG).highestSolidY ?: 0
         }
@@ -123,7 +123,7 @@ class CliffCheck : FunSpec({
     }
 
     test("the world round-trips through its codec") {
-        val written = CliffField.world("diagonal")
+        val written = CliffField.world(DIAGONAL)
         val encoded = TerrainField.CODEC.encodeStart(com.mojang.serialization.JsonOps.INSTANCE, written)
             .getOrThrow { failure -> error("the cliff would not encode: $failure") }
         val read = TerrainField.CODEC.parse(com.mojang.serialization.JsonOps.INSTANCE, encoded)
@@ -132,8 +132,8 @@ class CliffCheck : FunSpec({
     }
 
     test("a diagonal cliff is neither of the axis-aligned ones") {
-        val diagonal = CliffField.world("diagonal")
-        check(bearingNamed("diagonal") !in listOf(0.0, PI / 2)) { "the diagonal bearing was an axis" }
+        val diagonal = CliffField.world(DIAGONAL)
+        check(bearingAt(DIAGONAL) !in listOf(0.0, PI / 2)) { "the diagonal bearing was an axis" }
         val corner = diagonal.columnSpans(400, 400).highestSolidY
         val opposite = diagonal.columnSpans(-400, -400).highestSolidY
         check(corner != opposite) { "opposite corners of a diagonal cliff both stood at $corner" }

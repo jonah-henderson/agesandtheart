@@ -72,10 +72,10 @@ class WritingCheck : FunSpec({
      * until the production landed, and `villages` exists only here.
      */
     test("a rung reaches a population") {
-        for ((rung, name) in listOf("teeming" to "manyvillages", "scarce" to "fewvillages")) {
-            server.ask("write", "$name age structures $rung villages")
+        for ((rung, name) in listOf(TEEMING to "manyvillages", SCARCE to "fewvillages")) {
+            server.ask("write", "${name} age structures ${rung.said} villages")
             val recipe = recipeOf(server, name)
-            check("minecraft:villages@$rung" in recipe) { "'$rung villages' wrote $recipe" }
+            check("minecraft:villages@${rung.written}" in recipe) { "'${rung.said} villages' wrote $recipe" }
         }
     }
 
@@ -83,7 +83,7 @@ class WritingCheck : FunSpec({
     test("a rung counts only the term it precedes") {
         server.ask("write", "onlyoneteems age structures woodland_mansions and teeming villages")
         val recipe = recipeOf(server, "onlyoneteems")
-        check("minecraft:villages@teeming" in recipe) { "the rung did not reach its own term: $recipe" }
+        check("minecraft:villages@${TEEMING.written}" in recipe) { "the rung did not reach its own term: $recipe" }
         check("woodland_mansions@" !in recipe) { "the rung leaked onto the term beside it: $recipe" }
     }
 
@@ -91,7 +91,7 @@ class WritingCheck : FunSpec({
     test("only and a rung stack on one value") {
         server.ask("write", "onlyteeming age structures only teeming villages")
         val recipe = recipeOf(server, "onlyteeming")
-        check("!minecraft:villages@teeming" in recipe) { "'only teeming villages' wrote $recipe" }
+        check("!minecraft:villages@${TEEMING.written}" in recipe) { "'only teeming villages' wrote $recipe" }
     }
 
     /**
@@ -100,7 +100,7 @@ class WritingCheck : FunSpec({
      */
     test("the pinned knobs can be written") {
         val knobs = listOf(
-            Triple("finemingle", "age landmass finely basalt and deepslate", "mingling=fine"),
+            Triple("finemingle", "age landmass finely basalt and deepslate", "mingling=1..1"),
             Triple("bareskin", "age biomes bare", "skin=bare"),
         )
         for ((name, sentence, expected) in knobs) {
@@ -110,6 +110,15 @@ class WritingCheck : FunSpec({
         }
     }
 })
+
+/**
+ * A quantifier page and the number it writes — the page is what a book holds and the number is what the
+ * recipe does, which is the whole of §3.2's split and the thing these checks are here to see.
+ */
+private data class Quantifier(val said: String, val written: String)
+
+private val TEEMING = Quantifier("teeming", "4")
+private val SCARCE = Quantifier("scarce", "0.25")
 
 /** The recipe an Age was written with, read back out of `/age list`. */
 private fun recipeOf(server: DrivenServer, name: String): String {

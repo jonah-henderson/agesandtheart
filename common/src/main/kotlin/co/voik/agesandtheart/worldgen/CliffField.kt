@@ -6,7 +6,7 @@ import co.voik.agesandtheart.worldgen.field.Weathered
 import co.voik.agesandtheart.worldgen.field.Palette
 import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.TerrainField
-import co.voik.agesandtheart.worldgen.field.bearingNamed
+import co.voik.agesandtheart.worldgen.field.bearingAt
 import net.minecraft.world.level.biome.BiomeSource
 import net.minecraft.world.level.block.Blocks
 
@@ -33,12 +33,12 @@ object CliffField {
      * There is open sky over the plateau here, so no roof rule: what keeps the tableland walkable is the
      * profile in [Weathering.CLIFFS], which protects the top of the band and works the middle.
      */
-    fun world(bearing: String, salt: Long = 0L): TerrainField =
+    fun world(bearing: Double? = null, salt: Long = 0L): TerrainField =
         Weathered.sculpting(bareWorld(bearing, salt), Weathering.CLIFFS, SHELTER_REACH)
 
     /** The face before the weather reaches it — the previewer's other half, and nothing else's. */
-    fun bareWorld(bearing: String, salt: Long = 0L): TerrainField = Escarpment(
-        bearing = bearingNamed(bearing),
+    fun bareWorld(bearing: Double? = null, salt: Long = 0L): TerrainField = Escarpment(
+        bearing = bearingAt(bearing),
         offset = 0.0,
         lowY = SEABED_Y,
         highY = PLATEAU_Y,
@@ -49,7 +49,7 @@ object CliffField {
     fun generator(biomeSource: BiomeSource): AgeChunkGenerator =
         AgeChunkGenerator(
             biomeSource,
-            world(bearing = "north_south"),
+            world(),
             SeaFill.of(Blocks.WATER.defaultBlockState(), level = SEA_LEVEL),
             Palette.BARE_ROCK,
         )

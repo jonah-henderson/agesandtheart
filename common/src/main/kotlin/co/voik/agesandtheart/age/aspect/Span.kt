@@ -100,6 +100,9 @@ data class Span(val least: Double, val most: Double, val bend: Double = EVEN) {
         /** The whole axis — what an Age that was told nothing gets, and the identity of [broadenedTo]. */
         val NATURAL = Span(NATURAL_LEAST, NATURAL_MOST)
 
+        /** An axis pinned to one point, which is how a recipe asks for a value outright. */
+        fun at(value: Double): Span = Span(value, value)
+
         /** The span [spelled] describes, or null where the text is not one. */
         fun read(spelled: String): Span? {
             val stretch = spelled.substringBefore(BEND_MARK)

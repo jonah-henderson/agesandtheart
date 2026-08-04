@@ -32,6 +32,7 @@ import co.voik.agesandtheart.worldgen.field.Weathered
 import java.awt.image.BufferedImage
 import java.io.File
 import javax.imageio.ImageIO
+import co.voik.agesandtheart.worldgen.field.NORTH_SOUTH
 
 /**
  * Draws an Age's terrain *shape* to PNGs, offline, in about a second. Possible because field evaluation
@@ -207,7 +208,7 @@ private val subjects: Map<String, Subject> = mapOf(
     // The window is the whole of the Age's own band rather than the rock's extent, because the picture's
     // subject is a *depth* — narrowing it to where rock stands would crop the thing being measured.
     "canyon" to Subject(
-        CanyonField.world(bearing = "north_south"),
+        CanyonField.world(bearing = NORTH_SOUTH),
         // Already inside the field, unlike the Spire's — see [CanyonField.world]. Passing it again here
         // would weather the canyon twice with two different winds.
         lowestY = -64,
@@ -220,7 +221,7 @@ private val subjects: Map<String, Subject> = mapOf(
     // and that is only visible from above. The window opens to the world's floor because the seabed is
     // most of what the picture contains.
     "cliffs" to Subject(
-        CliffField.world(bearing = "north_south"),
+        CliffField.world(bearing = NORTH_SOUTH),
         lowestY = -64,
         highestY = CliffField.PLATEAU_Y + 32,
         radius = 500,
@@ -229,7 +230,7 @@ private val subjects: Map<String, Subject> = mapOf(
     // The same cliff unweathered. The pair matters more here than anywhere: a step is a ruled face until
     // something breaks it, so this is the picture that says whether the weather is doing its job.
     "cliffs-nowind" to Subject(
-        CliffField.bareWorld(bearing = "north_south"),
+        CliffField.bareWorld(bearing = NORTH_SOUTH),
         lowestY = -64,
         highestY = CliffField.PLATEAU_Y + 32,
         radius = 500,
@@ -506,7 +507,7 @@ private val subjects: Map<String, Subject> = mapOf(
     // The same canyon before the weather reaches it — the pair is what shows what erosion contributes,
     // exactly as `spire-nowind` does. Here it is the difference between benches and ruled contours.
     "canyon-nowind" to Subject(
-        CanyonField.bareWorld(bearing = "north_south"),
+        CanyonField.bareWorld(bearing = NORTH_SOUTH),
         lowestY = -64,
         highestY = CanyonField.WORLD_CEILING,
         radius = 400,

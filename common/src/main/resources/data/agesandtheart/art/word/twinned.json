@@ -1,5 +1,9 @@
 {
   "tier": "exact",
-  "aspects": ["sky"],
-  "sets": { "suns": "two" }
+  "aspects": [
+    "sky"
+  ],
+  "sets": {
+    "suns": "2"
+  }
 }

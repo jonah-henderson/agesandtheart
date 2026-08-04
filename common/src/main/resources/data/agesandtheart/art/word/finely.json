@@ -4,6 +4,6 @@
     "terrain"
   ],
   "sets": {
-    "mingling": "fine"
+    "mingling": "1.0..1.0"
   }
 }

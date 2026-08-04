@@ -4,13 +4,16 @@ import co.voik.agesandtheart.age.AgeGeneration
 import co.voik.agesandtheart.sky.SkySpec
 import co.voik.agesandtheart.sky.SpireSky
 import net.minecraft.resources.Identifier
+import kotlin.math.roundToInt
 
 /**
  * What is overhead. The presets are the atmosphere; the parameters are what hangs in it, resolved into a
  * [SkySpec] that is *sent to the client* rather than baked into a dimension type — a `DimensionType`
  * composed per Age cannot be encoded in the join packet at all (`notes/per-age-skies-research.md`).
  *
- * Counts are enumerated rather than numeric, per design §3.2. [SkySpec.drawn] takes it from there.
+ * A sky's bodies are **counted** and its stars are a density, per §3.2's rule about which numbers may reach
+ * a writer: two moons is a thing to say about a sky, and fifteen hundred stars is not. [SkySpec.drawn] takes
+ * it from there.
  */
 enum class Sky(override val key: String, val ownDimensionType: Identifier) : AspectPreset {
     /** An ordinary sky — vanilla's own air and clouds. */
@@ -63,10 +66,10 @@ enum class Sky(override val key: String, val ownDimensionType: Identifier) : Asp
             SpireSky.SPEC
         } else {
             SkySpec.drawn(
-                suns = countOf(options.of(SUNS)),
-                moons = countOf(options.of(MOONS)),
-                starCount = starsOf(options.of(STARS)),
-                spread = spreadOf(options.of(ORBITS)),
+                suns = options.countOf(SUNS),
+                moons = options.countOf(MOONS),
+                starCount = starsAt(options.steer(STARS, seed)),
+                spread = spreadAt(options.steer(ORBITS, seed)),
                 seed = seed,
             )
         }
@@ -75,48 +78,40 @@ enum class Sky(override val key: String, val ownDimensionType: Identifier) : Asp
 
     companion object {
         /**
-         * The first option of each is its default, and **the four defaults together must draw exactly
-         * [SkySpec.VANILLA]**, or an unremarkable Age stops keeping vanilla's own sky. `SkyCheck` holds it;
-         * reordering an option list would otherwise break it silently.
+         * **Left as they are, the four must draw exactly [SkySpec.VANILLA]**, or an unremarkable Age stops
+         * keeping vanilla's own sky. `SkyCheck` holds it; moving an ordinary value would otherwise break it
+         * silently.
          */
-        val SUNS = Parameter("suns", "one", "two", "three", "many")
-        val MOONS = Parameter("moons", "one", "none", "two", "many")
-        val STARS = Parameter("stars", "ordinary", "none", "sparse", "dense")
+        val SUNS = Parameter.counted("suns", ordinary = 1, most = MANY_BODIES)
+        val MOONS = Parameter.counted("moons", ordinary = 1, most = MANY_BODIES)
+
+        /** How thick the stars lie: none at the bottom of the axis, [DENSEST_STARS] times vanilla's at the top. */
+        val STARS = Parameter.ranged("stars")
 
         /**
-         * How far the extra bodies wander off the first one's path. `shared` strings them along one arc
-         * like beads, `wild` crosses them at unrelated angles, and `tilted` is the default because it
-         * reads as a sky rather than as a diagram.
+         * How far the extra bodies wander off the first one's path. At the bottom of the axis they are
+         * strung along one arc like beads and at the top they cross at unrelated angles; unsaid is
+         * [ORDINARY_SPREAD], which reads as a sky rather than as a diagram.
          */
-        val ORBITS = Parameter("orbits", "tilted", "shared", "wild")
+        val ORBITS = Parameter.ranged("orbits")
 
         /** Not as many as one could ask for — as many as still reads as a sky rather than as clutter. */
         private const val MANY_BODIES = 5
 
-        private fun countOf(option: String): Int = when (option) {
-            "none" -> 0
-            "two" -> 2
-            "three" -> 3
-            "many" -> MANY_BODIES
-            else -> 1
+        private const val DENSEST_STARS = 3
+
+        /** Vanilla's own star count, which is a third of the way up the axis. */
+        private const val ORDINARY_STARS = 1.0 / DENSEST_STARS
+
+        private const val ORDINARY_SPREAD = 0.45
+
+        private fun starsAt(density: Double?): Int {
+            val fraction = density?.let(Span.NATURAL::fractionOf) ?: ORDINARY_STARS
+            return (fraction * DENSEST_STARS * SkySpec.VANILLA_STAR_COUNT).roundToInt()
         }
 
-        private fun starsOf(option: String): Int = when (option) {
-            "none" -> 0
-            "sparse" -> SkySpec.VANILLA_STAR_COUNT / SPARSE_DIVISOR
-            "dense" -> SkySpec.VANILLA_STAR_COUNT * DENSE_MULTIPLE
-            else -> SkySpec.VANILLA_STAR_COUNT
-        }
-
-        private const val SPARSE_DIVISOR = 5
-        private const val DENSE_MULTIPLE = 3
-
-        private fun spreadOf(option: String): Float = when (option) {
-            "shared" -> 0.0f
-            "wild" -> 1.0f
-            else -> TILTED_SPREAD
-        }
-
-        private const val TILTED_SPREAD = 0.45f
+        /** The spread is already the fraction it is asked for, so the axis needs only reading. */
+        private fun spreadAt(wander: Double?): Float =
+            (wander?.let(Span.NATURAL::fractionOf) ?: ORDINARY_SPREAD).toFloat()
     }
 }

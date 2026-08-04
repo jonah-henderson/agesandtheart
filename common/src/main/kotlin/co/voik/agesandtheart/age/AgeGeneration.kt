@@ -111,6 +111,7 @@ object AgeGeneration {
             // The substance divides; the level does not.
             composition.optionsFor(Aspect.SEA, 0),
             flow,
+            seed,
         ).copy(dry = chasm, wet = standing)
 
         // What the rock *is*, on the terrain's own map, laid by the fill rather than painted by a rule — which
@@ -121,7 +122,7 @@ object AgeGeneration {
             },
             ground,
             // The first territory's, like `Sea.DEPTH`: the mingling noise is one field over the whole Age.
-            composition.terrains.first().mingling(terrainOptions(0)),
+            composition.terrains.first().mingling(terrainOptions(0), seed),
         )
         val below = character.mapFor(Aspect.CARVERS, composition.sharesOf(Aspect.CARVERS), seed)
         // Climate divides on a map of its own: which climate a column has is a different question from what

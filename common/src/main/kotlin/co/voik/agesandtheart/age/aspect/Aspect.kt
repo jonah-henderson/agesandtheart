@@ -189,6 +189,8 @@ data class Parameter(
     val open: Boolean = false,
     /** What a value claims, which decides what two of them unjoined mean — see [Kind]. */
     val kind: Kind = Kind.PREDICATIVE,
+    /** How many of a thing there may be, where the value is a count — see [counted]. */
+    val counts: IntRange? = null,
 ) {
     enum class Kind {
         /** Says something about the whole — "the rock *is* blackstone". Two of them conflict and contend. */
@@ -221,7 +223,8 @@ data class Parameter(
         val isOneOfTheNamedOptions = option in options
         val looksLikeARegistryId = namesReferent(option) && Identifier.tryParse(option) != null
         val looksLikeASpan = kind == Kind.RANGED && Span.describes(option)
-        return isOneOfTheNamedOptions || looksLikeASpan || (open && looksLikeARegistryId)
+        val isACountItGoesUpTo = option.toIntOrNull()?.let { counts?.contains(it) } == true
+        return isOneOfTheNamedOptions || looksLikeASpan || isACountItGoesUpTo || (open && looksLikeARegistryId)
     }
 
     companion object {
@@ -246,6 +249,17 @@ data class Parameter(
          * axis, so an Age told nothing keeps whatever vanilla's noise produced.
          */
         fun ranged(name: String) = Parameter(name, listOf(Span.NATURAL.spelled()), kind = Kind.RANGED)
+
+        /**
+         * How many of a thing there are, from none up to [most] — the bodies in a sky.
+         *
+         * **The one kind of number §3.2 lets near a writer**, because a count is what a person standing in
+         * the Age would say about it: "two suns" is a sentence, where a biome's weight is a fact about our
+         * arithmetic. Numeral pages will write it directly; until they exist a word like `twinned` carries
+         * the number, which is why this is a value and not an enumeration of spellings for it.
+         */
+        fun counted(name: String, ordinary: Int, most: Int) =
+            Parameter(name, listOf(ordinary.toString()), counts = 0..most)
     }
 }
 
