@@ -15,6 +15,9 @@ import co.voik.agesandtheart.age.word.grammar.Constraint
 import co.voik.agesandtheart.age.word.grammar.Scope
 import co.voik.agesandtheart.age.word.grammar.Sentence
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
+import co.voik.agesandtheart.age.aspect.Polarity
+import co.voik.agesandtheart.worldgen.biome.BiomePreference
+import co.voik.agesandtheart.age.aspect.Rung
 
 /**
  * What a sentence turned into: the world it describes, what it cost to say, and where it argued with
@@ -82,6 +85,10 @@ object Resolver {
     private const val UNEMPHASISED = 1.0
     private const val AIMED_AT_THIS_SLOT = 2.0
 
+    // As much of the world as any one member of a population may be talked into taking, so that a
+    // sentence full of words agreeing about one biome cannot quietly make an Age of nothing else.
+    private const val MOST_OF_A_WORLD = 4.0
+
     // Arbitrary large odds, only ever needed to decorrelate one draw from another.
     private const val ASPECT_STRIDE = 0x1F3B_5D79L
     private const val TERRITORY_STRIDE = 0x4C9E_1A2BL
@@ -104,7 +111,7 @@ object Resolver {
         flaws += tensions(vocabulary, said, filled.mapValues { (_, filling) -> filling.map { it.preset } })
 
         return Resolution(
-            composition = steer(vocabulary, compose(filled), said, draw, flaws),
+            composition = weighed(vocabulary, steer(vocabulary, compose(filled), said, draw, flaws), said),
             instability = Instability(flaws.toList()),
             // Structure is priced too: every page a writer lays costs ink, and a page that made no
             // claim still came out of the pot. A latent page came out of nobody's pot.
@@ -543,12 +550,14 @@ object Resolver {
                 .filter { it !in settled && holds(steered, aspect, it) }) {
                 val contenders = setting.filter { parameter in it.word.sets }
                     .sortedWith(compareByDescending<Constraint> { it.word.tier }.thenBy { tieBreak(draw, aspect, it.word) })
+                val populative = parameterNamed(steered, aspect, parameter)
+                    ?.takeIf { it.kind == Parameter.Kind.POPULATIVE }
                 steered = when {
                     // Populative values accumulate rather than conflict (§3.2), and the polarity travels
                     // with the value — which is what makes `only` and `except` reach a population at all.
                     // See [co.voik.agesandtheart.age.aspect.Claim].
-                    isPopulative(steered, aspect, parameter) ->
-                        steered.withOptions(aspect, parameter, contenders.map { it.claimed(parameter) }.distinct())
+                    populative != null ->
+                        steered.withOptions(aspect, parameter, contenders.map { it.claimed(populative) }.distinct())
                     canFracture(steered, aspect, parameter, contenders) ->
                         steered.fractured(vocabulary, aspect, parameter, contenders, flaws)
                     else -> steered.contended(aspect, parameter, contenders, flaws)
@@ -677,6 +686,75 @@ object Resolver {
             .distinct()
 
     /**
+     * What the sentence asked a **population** to hold more or less of (§3.2, §8.2) — the pass for the
+     * aspects nothing is drawn for.
+     *
+     * [steer] has already done the half a word does by *naming* a member: that word sets the parameter,
+     * and its claim carries the weight the naming was worth. This is the other half, and the only way a
+     * word that names nothing can touch a population at all — every member of the curated pool is asked
+     * how well it answers the sentence, and the ones it answers well or badly are claimed accordingly.
+     *
+     * An Age begins with everything the game has and this adjusts it, so a member nobody spoke about is
+     * left out of the recipe entirely rather than written down at its ordinary weight.
+     */
+    private fun weighed(
+        vocabulary: Vocabulary,
+        composition: AgeComposition,
+        sentence: List<Constraint>,
+    ): AgeComposition {
+        var weighed = composition
+        for (aspect in Aspect.entries.filter { it.kind == Aspect.Kind.POPULATION }) {
+            val population = aspect.dials.firstOrNull { it.kind == Parameter.Kind.POPULATIVE } ?: continue
+            // A word that names a member arrived with its answer in hand and was written by [steer]; asking
+            // its tags as well would weigh it twice.
+            val speaking = sentence.filter { said ->
+                aspect in reachOf(vocabulary, said) && said.word.namedPreset(aspect) == null
+            }
+            if (speaking.isEmpty()) continue
+            val reached = vocabulary.askableIn(aspect)
+                .mapNotNull { member -> claimForMember(vocabulary, member, speaking, aspect)?.spelled() }
+            if (reached.isEmpty()) continue
+            val named = weighed.optionsFor(aspect, 0).allOf(population)
+            weighed = weighed.withOptions(aspect, population.name, (named + reached).distinct())
+        }
+        return weighed
+    }
+
+    /**
+     * How much of the world one member of a population should have, against what it would have had anyway
+     * — or null where the sentence said nothing that reaches it.
+     *
+     * Three tiers, three readings, and the difference between them is the design's own (§3.3): an
+     * **evocative** word tilts by how well the member answers it, signed, so "beautiful" thins the ash
+     * flats as surely as it thickens the flower meadows; a **restrictive** word bears down on the members
+     * that qualify at its threshold; and a member is never *removed* by either, since a word that merely
+     * likes something is not an instruction to delete anything ([BiomePreference.LEAST_KEPT]).
+     *
+     * `only` and `except` are the exception, and deliberately so: those are the writer saying outright
+     * what to keep and what to strike, rather than what to prefer.
+     */
+    private fun claimForMember(
+        vocabulary: Vocabulary,
+        member: AspectPreset,
+        speaking: List<Constraint>,
+        aspect: Aspect,
+    ): Claim? {
+        val tags = vocabulary.tagsOf(member)
+        val insisting = speaking.filter { it.word.tier.narrows && it.word.accepts(tags) }
+        val liking = speaking.filter { !it.word.tier.narrows }
+        val insisted = insisting.sumOf { it.word.pull(tags) * it.word.tier.weight }
+        val liked = liking.sumOf { it.word.affinityFor(tags) * emphasis(it, aspect) }
+        val polarity = (insisting + liking.filter { it.word.affinityFor(tags) > 0.0 })
+            .map { it.polarity }.firstOrNull { it != Polarity.ASSERTED }
+        val weight = Rung.legible(
+            (BiomePreference.ORDINARY + insisted + liked).coerceIn(BiomePreference.LEAST_KEPT, MOST_OF_A_WORLD),
+        )
+        val nothingToSay = polarity == null && weight == BiomePreference.ORDINARY
+        if (nothingToSay) return null
+        return Claim(member.key, polarity ?: Polarity.ASSERTED, weight)
+    }
+
+    /**
      * Whether the groups can each be given ground — **parameters divide, not just presets** (§3.4).
      *
      * Three conditions: the aspect must be able to divide at all; it must hold exactly one preset, since
@@ -769,8 +847,12 @@ object Resolver {
      * parameter reads the polarity and the rung back — `only` on a material is not built, and neither is
      * "a great deal of blackstone" (§3.2).
      */
-    private fun Constraint.claimed(parameter: String): String =
-        Claim(word.sets.getValue(parameter), polarity, density).spelled()
+    private fun Constraint.claimed(parameter: Parameter): String =
+        Claim(
+            word.sets.getValue(parameter.name),
+            polarity,
+            Rung.legible(parameter.worthOfAMention * density),
+        ).spelled()
 
     /**
      * A predicative parameter with more than one claimant — where `and` earns its place (§3.2).
@@ -811,7 +893,11 @@ object Resolver {
      * would make a typo look deliberate.
      */
     private fun isPopulative(composition: AgeComposition, aspect: Aspect, parameter: String): Boolean =
-        parametersOf(composition, aspect).any { it.name == parameter && it.kind == Parameter.Kind.POPULATIVE }
+        parameterNamed(composition, aspect, parameter)?.kind == Parameter.Kind.POPULATIVE
+
+    /** The knob [aspect] calls [parameter], from wherever it is owned — see [parametersOf]. */
+    private fun parameterNamed(composition: AgeComposition, aspect: Aspect, parameter: String): Parameter? =
+        parametersOf(composition, aspect).firstOrNull { it.name == parameter }
 
     /**
      * Every knob [aspect] holds — its seated presets' own, and the aspect's own where it seats nothing.

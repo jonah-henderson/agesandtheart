@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.age.aspect
 
+import kotlin.math.round
+
 /**
  * How much of something occasional there is — the **absolute** emphasis knob, where [Share] is relative.
  *
@@ -22,4 +24,13 @@ object Rung {
     /** How a claim writes it: `4.0`, and trimmed where it is whole so the common case reads plainly. */
     fun spelled(amount: Double): String =
         if (amount == amount.toLong().toDouble()) amount.toLong().toString() else amount.toString()
+
+    /**
+     * [amount] as a recipe should hold it. Two decimals is as fine as an emphasis can mean, and rounding
+     * *here* rather than when spelling is what keeps a recipe reading back as exactly what was resolved —
+     * a sum of tag weights is otherwise `0.2799999999999999` in every book that says it.
+     */
+    fun legible(amount: Double): Double = round(amount * PLACES) / PLACES
+
+    private const val PLACES = 100.0
 }

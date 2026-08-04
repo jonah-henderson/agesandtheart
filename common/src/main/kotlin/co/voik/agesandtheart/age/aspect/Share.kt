@@ -1,7 +1,5 @@
 package co.voik.agesandtheart.age.aspect
 
-import kotlin.math.round
-
 /**
  * How much of an Age one preset covers, relative to the others in its aspect: the sentence's claim on it
  * as a fraction of its strongest claim, so the widest territory is [EVEN] and the rest measure against it.
@@ -49,10 +47,8 @@ object Share {
      * [share] as a recipe holds it. Two decimals is as fine as a division of ground can mean, and it is
      * what lets the spelling a command reads back be exactly the share that was written down.
      */
-    fun legible(share: Double): Double = round(share * PLACES) / PLACES
+    fun legible(share: Double): Double = Rung.legible(share)
 
     /** The share [spelled] after an `@`, or null where that is not a share at all. */
     fun read(spelled: String): Double? = spelled.toDoubleOrNull()?.takeIf { it > 0.0 }
-
-    private const val PLACES = 100.0
 }

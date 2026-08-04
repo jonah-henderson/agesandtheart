@@ -27,14 +27,31 @@ import kotlin.math.abs
  */
 data class BiomePreference(val biome: Identifier, val weight: Double) {
     /**
-     * Signed, like a word's tag query (§3.3): positive strengthens or introduces, at or below zero
-     * removes. Sharing one field rather than adding a flag is what made `except` a parser change.
+     * How much of the world this biome should have **against what it would have had anyway** — so
+     * [ORDINARY] leaves it alone, twice that gives it twice the climate to answer for, and half that
+     * halves it. At or below zero it goes, removal sharing the field rather than carrying a flag, which
+     * is what made `except` a parser change.
      */
     val removes: Boolean get() = weight <= 0.0
 
+    /** Whether this asks for anything at all, a biome left at [ORDINARY] being one nobody spoke about. */
+    val isOrdinary: Boolean get() = weight == ORDINARY
+
     companion object {
-        /** What a bare mention is worth, before any quantifier exists to say otherwise. */
-        const val WEIGHT_OF_A_MENTION = 1.0
+        /** As much of the world as this Age was going to give it regardless. */
+        const val ORDINARY = 1.0
+
+        /**
+         * What a bare mention is worth. **Naming a biome has to mean more of it**, every biome being
+         * present already — where naming a structure set means the ordinary amount of one that was not.
+         */
+        const val WEIGHT_OF_A_MENTION = 2.0
+
+        /**
+         * How little of the world a word may push a biome down to without striking it out. An evocative
+         * word tilts and never removes (§3.3), so its floor is here rather than at zero.
+         */
+        const val LEAST_KEPT = 0.2
 
         /** What `except` is worth — see [removes], and why removal shares the field rather than a flag. */
         const val STRUCK_OUT = 0.0
@@ -42,7 +59,7 @@ data class BiomePreference(val biome: Identifier, val weight: Double) {
         val CODEC: Codec<BiomePreference> = RecordCodecBuilder.create { instance ->
             instance.group(
                 Identifier.CODEC.fieldOf("biome").forGetter(BiomePreference::biome),
-                Codec.DOUBLE.optionalFieldOf("weight", WEIGHT_OF_A_MENTION).forGetter(BiomePreference::weight),
+                Codec.DOUBLE.optionalFieldOf("weight", ORDINARY).forGetter(BiomePreference::weight),
             ).apply(instance, ::BiomePreference)
         }
 
@@ -61,6 +78,7 @@ data class BiomePreference(val biome: Identifier, val weight: Double) {
             if (preferences.isEmpty() && !keepsOnlyNamed) return table
             val named = preferences.filterNot { it.removes }.map { it.biome }.toSet()
             val removed = preferences.filter { it.removes }.map { it.biome }.toSet()
+            val weights = preferences.filterNot { it.removes }.associate { it.biome to it.weight }
             val survives = { entry: Pair<Climate.ParameterPoint, Holder<Biome>> ->
                 val id = idOf(entry.second)
                 val struckOut = id in removed
@@ -84,9 +102,18 @@ data class BiomePreference(val biome: Identifier, val weight: Double) {
             //   - `except desert`      → struck out, as before.
             // The additions are what `entriesFor` earns a biome, including a synthetic climate point for one the
             // table has never heard of — which is exactly why it must see the full table to place it.
-            val added = preferences.filterNot { it.removes }
+            // **Scaled where they stand, not added beside.** A wider box is a biome answering more of the
+            // climate cube and a narrower one is it answering less, and only the second needs the entry
+            // *replaced*: adding a shrunken copy beside the original leaves the original covering exactly
+            // what it did, so "fewer swamps" would read as no change at all.
+            val standing = table.values().map { entry ->
+                val weight = weights[idOf(entry.second)] ?: ORDINARY
+                if (weight == ORDINARY) entry else Pair(entry.first.scaledBy(weight), entry.second)
+            }
+            val alreadyHere = table.values().mapNotNull { idOf(it.second) }.toSet()
+            val added = preferences.filterNot { it.removes || it.biome in alreadyHere }
                 .flatMap { preference -> entriesFor(preference, table.values(), biomes, seed) }
-            val kept = (table.values() + added).filter(survives)
+            val kept = (standing + added).filter(survives)
             if (kept.isEmpty()) {
                 // Still reachable: every biome struck out by `except`, or an `only` naming nothing at all. A world
                 // with nothing in it is not a world, so the narrowing is refused wholesale rather than leaving a
@@ -98,18 +125,17 @@ data class BiomePreference(val biome: Identifier, val weight: Double) {
         }
 
         /**
-         * The entries one strengthened biome earns — three jobs under one name.
+         * The entries a biome the table has **never heard of** earns — everything already in it is scaled
+         * where it stands instead.
          *
-         * - **Already here:** widened copies of its own points. Duplicates win nothing, the table being
-         *   searched by nearest neighbour; only a wider box covers more climate.
          * - **Known elsewhere:** its points from whichever preset has them, so a nether biome lands where
          *   the overworld climate most resembles the nether.
          * - **Known nowhere:** a seeded synthetic point. End biomes have no climate at all, nor do mod
          *   biomes placed by wrapping the source; they land somewhere arbitrary but *stable*.
          *
-         * The widening count is **normalised against how much of the table the biome already holds**:
-         * vanilla's overworld list carries ~60 points for cherry grove and the nether list carries **one**
-         * for crimson forest, so a flat multiplier leaves a summoned biome invisible or world-swallowing.
+         * The count is **normalised against how much of the table a native biome holds**: vanilla's
+         * overworld list carries ~60 points for cherry grove and the nether list carries **one** for
+         * crimson forest, so a flat multiplier leaves a summoned biome invisible or world-swallowing.
          */
         private fun entriesFor(
             preference: BiomePreference,
@@ -117,12 +143,6 @@ data class BiomePreference(val biome: Identifier, val weight: Double) {
             biomes: HolderGetter<Biome>,
             seed: Long,
         ): List<Pair<Climate.ParameterPoint, Holder<Biome>>> {
-            val reach = 1.0 + preference.weight * WIDENING_PER_WEIGHT
-            val own = table.filter { idOf(it.second) == preference.biome }
-            if (own.isNotEmpty()) {
-                return own.map { entry -> Pair(entry.first.widenedBy(reach), entry.second) }
-            }
-
             val holder = biomes.get(ResourceKey.create(Registries.BIOME, preference.biome)).orElse(null)
                 ?: run {
                     Constants.LOG.warn("An Age asked for biome '{}', which this pack does not have", preference.biome)
@@ -142,7 +162,7 @@ data class BiomePreference(val biome: Identifier, val weight: Double) {
             // enough of them to compete. End biomes reach this path too and always did — they have no
             // climate anywhere, and it turns out neither does anything else, in any sense that helps.
             val homes = homesFor(preference.biome, table, seed)
-            val halfWidth = quantized(BORROWED_HALF_WIDTH * (1.0 + preference.weight))
+            val halfWidth = quantized(BORROWED_HALF_WIDTH * preference.weight)
             return homes.map { point -> Pair(point.grownTo(halfWidth), holder) }
         }
 
@@ -198,29 +218,35 @@ data class BiomePreference(val biome: Identifier, val weight: Double) {
         private fun quantized(climateUnits: Double): Long = Climate.quantizeCoord(climateUnits.toFloat())
 
         /**
-         * One climate box grown about its own middle. `depth` is left alone, being the one parameter an
-         * Age answers for itself ([ClimateDepth]) — widening it would let a surface biome claim the rock
-         * below, or a cave biome surface.
+         * One climate box resized about its own middle — wider for a biome asked for, narrower for one
+         * spoken against. `depth` is left alone, being the one parameter an Age answers for itself
+         * ([ClimateDepth]): resizing it would let a surface biome claim the rock below, or a cave biome
+         * the surface.
          */
-        private fun Climate.ParameterPoint.widenedBy(reach: Double) = Climate.ParameterPoint(
-            temperature().widenedBy(reach),
-            humidity().widenedBy(reach),
-            continentalness().widenedBy(reach),
-            erosion().widenedBy(reach),
+        private fun Climate.ParameterPoint.scaledBy(weight: Double) = Climate.ParameterPoint(
+            temperature().scaledBy(weight),
+            humidity().scaledBy(weight),
+            continentalness().scaledBy(weight),
+            erosion().scaledBy(weight),
             depth(),
-            weirdness().widenedBy(reach),
+            weirdness().scaledBy(weight),
             offset(),
         )
 
-        private fun Climate.Parameter.widenedBy(reach: Double): Climate.Parameter {
+        /**
+         * A box never closes to nothing, however faint the claim: the table is searched by nearest
+         * neighbour, so a biome with a point in it is still somewhere's answer — being *small* is what
+         * makes it rare, and being absent is what `except` is for.
+         */
+        private fun Climate.Parameter.scaledBy(weight: Double): Climate.Parameter {
             val middle = (min() + max()) / 2
             val half = abs(max() - min()) / 2
-            val grown = (half * reach).toLong().coerceAtLeast(half)
-            return Climate.Parameter(middle - grown, middle + grown)
+            val resized = (half * weight).toLong().coerceAtLeast(NARROWEST_BOX)
+            return Climate.Parameter(middle - resized, middle + resized)
         }
 
-        /** How much of a box's half-width one unit of weight adds. Taste; expect Jonah to retune it. */
-        private const val WIDENING_PER_WEIGHT = 1.5
+        /** Half-width in quantized climate units, below which a box is a point and cannot shrink further. */
+        private val NARROWEST_BOX = Climate.quantizeCoord(0.005f)
 
         /**
          * How wide a niche a biome borrowed from another dimension (or invented for one with no climate)

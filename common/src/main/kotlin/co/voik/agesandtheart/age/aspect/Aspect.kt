@@ -191,6 +191,8 @@ data class Parameter(
     val kind: Kind = Kind.PREDICATIVE,
     /** How many of a thing there may be, where the value is a count — see [counted]. */
     val counts: IntRange? = null,
+    /** What naming one of these is worth, where the value is a member of a population — see [population]. */
+    val worthOfAMention: Double = Rung.ORDINARY,
 ) {
     enum class Kind {
         /** Says something about the whole — "the rock *is* blackstone". Two of them conflict and contend. */
@@ -241,8 +243,19 @@ data class Parameter(
          * A set of registry entries present here — the biomes an Age draws from. Populative, so naming
          * one adds it and naming two adds both: inclusive by default, with `only` and `except` as the
          * modifiers that narrow it.
+         *
+         * [worthOfAMention] is how much of it naming one asks for, in multiples of what the Age would have
+         * had anyway. It differs by population, and the difference is real: a structure set is **opt-in**,
+         * so naming it asks for the ordinary amount of it, where every biome is present already and naming
+         * one has to mean *more of that*.
          */
-        fun population(name: String) = Parameter(name, listOf(UNCHANGED), open = true, kind = Kind.POPULATIVE)
+        fun population(name: String, worthOfAMention: Double = Rung.ORDINARY) = Parameter(
+            name,
+            listOf(UNCHANGED),
+            open = true,
+            kind = Kind.POPULATIVE,
+            worthOfAMention = worthOfAMention,
+        )
 
         /**
          * A continuous axis a word may bound — climate's temperature and humidity. Defaults to the whole

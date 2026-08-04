@@ -33,15 +33,21 @@ object Biomes {
         if (options.of(SKIN) == BARE_SKIN) Palette.NOTHING else Palette.vanillaOverworldOn(terrain)
 
     /**
-     * The biomes this Age was told to grow, as signed preferences — positive to introduce or strengthen,
-     * zero to strike out. Removal shares the weight field rather than carrying a flag of its own.
+     * The biomes this Age was told to grow, as weights against what it would have grown anyway — above
+     * [BiomePreference.ORDINARY] for more of one, below for less, zero to strike it out. Removal shares
+     * the weight field rather than carrying a flag of its own.
+     *
+     * The claim already holds the weight: naming a biome is worth [GROWN]'s mention and a quantifier
+     * multiplies it, both of which the resolver applied on the way in. Nothing is re-weighed here, or a
+     * word's emphasis would be applied twice and differ from what the recipe says.
      */
     fun preferencesIn(options: Options): List<BiomePreference> {
         val asked = Population.of(options.claimsOn(GROWN))
-        fun named(values: List<String>) =
-            values.filter { it != Parameter.UNCHANGED }.mapNotNull(Identifier::tryParse)
-        return named(asked.wanted.map { it.value }).map { BiomePreference(it, BiomePreference.WEIGHT_OF_A_MENTION) } +
-            named(asked.struck).map { biome -> BiomePreference(biome, BiomePreference.STRUCK_OUT) }
+        fun named(claims: List<Claim>) = claims.filter { it.value != Parameter.UNCHANGED }
+            .mapNotNull { claim -> Identifier.tryParse(claim.value)?.let { it to claim.density } }
+        return named(asked.wanted).map { (biome, weight) -> BiomePreference(biome, weight) } +
+            asked.struck.filter { it != Parameter.UNCHANGED }.mapNotNull(Identifier::tryParse)
+                .map { biome -> BiomePreference(biome, BiomePreference.STRUCK_OUT) }
     }
 
     /** Whether the sentence singled biomes out, so everything it did not name is struck from the table. */
@@ -54,7 +60,7 @@ object Biomes {
          * The biomes grown here — populative, so naming one adds it and naming two adds both, with
          * `only`/`except` to narrow (§3.2). Named `grown` rather than `biomes` to avoid `biomes.biomes`.
          */
-        val GROWN = Parameter.population("grown")
+        val GROWN = Parameter.population("grown", worthOfAMention = BiomePreference.WEIGHT_OF_A_MENTION)
 
         /**
          * Whether the ground wears a skin at all — see [paletteIn]. `bare` means the fill is the surface:

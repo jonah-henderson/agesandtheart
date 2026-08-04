@@ -25,6 +25,8 @@ import co.voik.agesandtheart.age.word.grammar.Sentence
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import net.minecraft.resources.Identifier
+import co.voik.agesandtheart.age.aspect.Biomes
+import co.voik.agesandtheart.worldgen.biome.BiomePreference
 
 /**
  * Asks whether the resolver keeps the promises `notes/the-art-design.md` makes on its behalf — each check
@@ -700,6 +702,76 @@ class ResolverCheck : FunSpec({
         check(skyOf("moonless").bodies.all { it.phase == null }) { "'moonless' left a moon overhead" }
     }
 
+    /**
+     * **A vague word reaches biomes it never names**, which is the whole of how a population answers a
+     * sentence that says nothing specific (§8.2). `beautiful` names no biome; what it has is a signed tag
+     * query, and the curated pool is what turns that into ground.
+     *
+     * Both directions, because a signed query is only half honoured if it can add and not take away.
+     */
+    test("a vague word weighs a population both ways") {
+        val grown = preferences(resolve(vocabulary, "beautiful").composition)
+        check(grown.isNotEmpty()) { "'beautiful' reached no biome at all" }
+
+        val favoured = grown.filter { it.weight > BiomePreference.ORDINARY }.map { it.biome.path }
+        val thinned = grown.filter { it.weight < BiomePreference.ORDINARY }.map { it.biome.path }
+        check("cherry_grove" in favoured) { "'beautiful' did not favour the cherry groves: $grown" }
+        check("basalt_deltas" in thinned) { "'beautiful' did not thin the ash flats: $grown" }
+
+        // The floor: a word that merely *likes* things is not an instruction to delete anything (§3.3).
+        check(grown.none { it.removes }) { "an evocative word struck a biome out: $grown" }
+        check(grown.all { it.weight <= MOST_OF_A_WORLD }) { "one word talked a biome past the cap: $grown" }
+    }
+
+    /** A word that narrows bears down harder than one that merely likes — the tiers, in ground. */
+    test("a restrictive word claims harder than an evocative one") {
+        fun weightOfLushCaves(sentence: String) = preferences(resolve(vocabulary, sentence).composition)
+            .firstOrNull { it.biome.path == "lush_caves" }?.weight
+            ?: error("'$sentence' said nothing about the lush caves")
+        check(weightOfLushCaves("verdant") > weightOfLushCaves("beautiful")) {
+            "restrictive 'verdant' claimed no harder than evocative 'beautiful': " +
+                "${weightOfLushCaves("verdant")} against ${weightOfLushCaves("beautiful")}"
+        }
+    }
+
+    /**
+     * `only` and `except` are the writer saying outright what to keep and what to strike, so they reach a
+     * population **through tags** as well as by name — otherwise "only lush" would be a sentence the
+     * language could say and the world could not hear.
+     */
+    test("only and except reach a population through tags") {
+        val lush = vocabulary.word("verdant") ?: error("the shipped vocabulary lost 'verdant'")
+        fun said(polarity: Polarity) = Resolver.resolve(
+            vocabulary,
+            Sentence.of(listOf(Constraint(lush, Scope.Confined(setOf(Aspect.BIOMES)), polarity))),
+            SAMPLE_SEED,
+        ).composition
+
+        val onlyLush = said(Polarity.ONLY)
+        check(Biomes.keepsOnlyNamed(onlyLush.optionsFor(Aspect.BIOMES, 0))) {
+            "'only verdant' did not single anything out: ${onlyLush.optionsFor(Aspect.BIOMES, 0)}"
+        }
+        check(preferences(onlyLush).any { it.biome.path == "lush_caves" }) {
+            "'only verdant' kept nothing lush: ${preferences(onlyLush)}"
+        }
+
+        val exceptLush = preferences(said(Polarity.EXCEPT))
+        check(exceptLush.any { it.biome.path == "lush_caves" && it.removes }) {
+            "'except verdant' left the lush caves standing: $exceptLush"
+        }
+    }
+
+    /** Naming a biome means *more of it*, every biome being present already — see `Biomes.GROWN`. */
+    test("naming a biome asks for more of it than an ordinary Age has") {
+        val said = Constraint(biomeWord("cherry_grove"), Scope.Confined(setOf(Aspect.BIOMES)))
+        val composition = Resolver.resolve(vocabulary, Sentence.of(listOf(said)), SAMPLE_SEED).composition
+        val named = preferences(composition).firstOrNull { it.biome.path == "cherry_grove" }
+            ?: error("naming the cherry groves said nothing about them")
+        check(named.weight == BiomePreference.WEIGHT_OF_A_MENTION) {
+            "a mention was worth ${named.weight}, not ${BiomePreference.WEIGHT_OF_A_MENTION}"
+        }
+    }
+
     test("a fracture obeys its guards") {
         fun aimedAtTheLand(word: Word) = Constraint(word, Scope.Confined(setOf(Aspect.TERRAIN)))
         val hollow = aimedAtTheLand(vocabulary.word("hollow") ?: error("the shipped vocabulary lost 'hollow'"))
@@ -785,6 +857,16 @@ private fun material(name: String, block: String) = Word(
 )
 
 /** A word that asks for one vanilla structure set by name. */
+/** A biome word as §8 derives one — the shape `DerivedWords.biomes` gives every biome in the pack. */
+private fun biomeWord(path: String) = Word(
+    Identifier.withDefaultNamespace(path),
+    Tier.EXACT,
+    setOf(Aspect.BIOMES),
+    emptyMap(),
+    null,
+    mapOf(Biomes.GROWN.name to "minecraft:$path"),
+)
+
 private fun structureSet(path: String) = Word(
     Identifier.withDefaultNamespace(path),
     Tier.EXACT,
@@ -831,6 +913,13 @@ private const val MOST_UNASKED_LAVA = 5
 // than to freeze a tuning number. **The number itself wants Jonah's eyes**: it decides how often an Age
 // nobody asked to be inhabited turns out to be.
 private const val MOST_UNASKED_STRUCTURES = 3
+
+/** The biomes a composition was told to grow, as the world will read them. */
+private fun preferences(composition: AgeComposition) =
+    Biomes.preferencesIn(composition.optionsFor(Aspect.BIOMES, 0))
+
+/** As much of the world as one member may be talked into taking — `Resolver.MOST_OF_A_WORLD`. */
+private const val MOST_OF_A_WORLD = 4.0
 
 /** What `twinned` asks for, and the one number in this file that is a count rather than a weight. */
 private const val TWO_SUNS = 2
