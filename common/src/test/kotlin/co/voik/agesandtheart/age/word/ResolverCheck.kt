@@ -122,8 +122,9 @@ class ResolverCheck : FunSpec({
         val resolution = resolve(vocabulary, "verdant lifeless")
         val climates = resolution.composition.climates
         check(climates.size == 2) { "\"verdant lifeless\" gave ${climates.size} climate(s): $climates" }
-        // Each fragment carries a whole climate of its own, and they must not be the same one.
-        val bounds = (0..1).map { resolution.composition.optionsFor(Aspect.CLIMATE, it).chosen }
+        // Each fragment carries a whole climate of its own, and they must not be the same one. Read off the
+        // fragments themselves: a climate's answer *is* its spans, so there is nothing in options to read.
+        val bounds = climates.map { it.spelled() }
         check(bounds[0] != bounds[1]) { "both climate fragments came out identical: $bounds" }
 
         val division = resolution.instability.flaws.firstOrNull { it.register == Register.FRACTURE }

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.aspect
 
+import co.voik.agesandtheart.worldgen.biome.ClimateAxis
 import net.minecraft.resources.Identifier
 import net.minecraft.util.StringRepresentable
 
@@ -62,7 +63,22 @@ enum class Aspect(val key: String) : StringRepresentable {
             BIOMES -> Biomes.entries
             SKY -> Sky.entries
             STRUCTURES -> Structures.entries
-            CLIMATE -> Climate.entries
+            // Nothing to choose between: a climate is where its dials were left. See [dials].
+            CLIMATE -> emptyList()
+        }
+
+    /**
+     * Parameters belonging to the **aspect itself** rather than to a preset — empty for every aspect whose
+     * answer is a preset, since there the preset owns its own knobs.
+     *
+     * This is what an aspect with no candidates has instead. `Climate` was an enum of one member existing
+     * only to hold these, which made a parameter bag wear a preset's clothes and made the composition
+     * count its territories by counting a preset it always had exactly one of.
+     */
+    val dials: List<Parameter>
+        get() = when (this) {
+            CLIMATE -> ClimateAxis.entries.map { it.parameter }
+            TERRAIN, SEA, CARVERS, BIOMES, SKY, STRUCTURES -> emptyList()
         }
 
     /**

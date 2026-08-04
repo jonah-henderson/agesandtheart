@@ -65,8 +65,22 @@ data class ClimateBias(private val byAxis: Map<ClimateAxis, Span> = emptyMap()) 
     /** Whether anything was said at all, so a generator can skip a bias that would change nothing. */
     val isIdle: Boolean get() = byAxis.isEmpty()
 
+    /** This bias with [axis] bounded to [span] — the one way a resolver writes into a climate. */
+    fun bounding(axis: ClimateAxis, span: Span): ClimateBias = ClimateBias(byAxis + (axis to span))
+
+    /**
+     * How a recipe spells it: `temperature=-0.3..0.3 humidity=0.4..0.9`, one token per axis spoken about
+     * and none for the rest. The aspect's own name is prefixed by the caller, so this reads the same as any
+     * other aspect's parameters and `AgeComposition.parse` needs no case of its own.
+     */
+    fun spelled(): List<String> = ClimateAxis.entries
+        .mapNotNull { axis -> byAxis[axis]?.let { "${axis.key}=${it.spelled()}" } }
+
     companion object {
         val NONE = ClimateBias()
+
+        /** The axis [name] spells, or null where it names none — `AgeComposition.parse`'s entry point. */
+        fun axisNamed(name: String): ClimateAxis? = ClimateAxis.entries.firstOrNull { it.key == name }
 
         private val SPAN_CODEC: Codec<Span> = RecordCodecBuilder.create { instance ->
             instance.group(

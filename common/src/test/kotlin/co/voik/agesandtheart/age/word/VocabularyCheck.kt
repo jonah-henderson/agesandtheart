@@ -73,13 +73,14 @@ class VocabularyCheck : FunSpec({
                 // climate's axes with spans, which is two real jobs. What the check is actually for is a word
                 // with *nothing* to do in an aspect it claims — so the question is whether it turns a knob this
                 // aspect holds, not whether it happens to also carry a query.
-                val turnsAKnobHere = word.sets.keys.any { parameter ->
-                    vocabulary.candidatesFor(aspect).any { it.honoursParameterNamed(parameter) }
-                }
+                // Asked of the vocabulary rather than of the candidates, because an aspect with no
+                // candidates can still hold knobs — a climate is nothing but its dials.
+                val turnsAKnobHere = word.sets.keys.any { vocabulary.turnsAKnob(aspect, it) }
                 if (!word.constrainsPresetsIn(aspect) || turnsAKnobHere) {
                     for (parameter in word.sets.keys) {
                         val presets = vocabulary.candidatesFor(aspect)
-                        val offered = presets.flatMap { it.parameters }.filter { it.name == parameter }
+                        val offered = (presets.flatMap { it.parameters } + aspect.dials)
+                            .filter { it.name == parameter }
                         check(offered.isNotEmpty()) {
                             "'${word.name}' sets ${aspect.key}.$parameter, which no ${aspect.key} offers"
                         }
@@ -87,7 +88,7 @@ class VocabularyCheck : FunSpec({
                         // the second makes a word mean anything. Continentalness and erosion shipped as climate
                         // axes that nothing could honour and were invisible in game for a whole session — this
                         // is the check that would have caught them before they were written.
-                        val anythingTurnsIt = presets.any { it.honoursParameterNamed(parameter) }
+                        val anythingTurnsIt = vocabulary.turnsAKnob(aspect, parameter)
                         check(anythingTurnsIt) {
                             "'${word.name}' sets ${aspect.key}.$parameter, which every ${aspect.key} declares and " +
                                 "none acts on — so writing it would change nothing and say nothing"

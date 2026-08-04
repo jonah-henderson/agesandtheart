@@ -5,12 +5,13 @@ import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Share
-import co.voik.agesandtheart.age.aspect.Climate
+import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.AspectPreset
 import co.voik.agesandtheart.age.aspect.Carvers
+import co.voik.agesandtheart.worldgen.biome.ClimateBias
 import com.mojang.datafixers.util.Either
 import com.mojang.serialization.Codec
 import com.mojang.serialization.DataResult
@@ -40,8 +41,15 @@ data class AgeComposition(
      * [Structures.NONE]. See `notes/the-art-design.md`, "Habitability decides what is built".
      */
     val structures: Structures = Structures.VANILLA,
-    /** The coordinates its biomes are looked up at. Plural — see [Climate]. Never empty. */
-    val climates: List<Climate> = listOf(Climate.NATURAL),
+    /**
+     * The coordinates its biomes are looked up at, one per territory. Never empty.
+     *
+     * **The spans themselves, not a preset naming them.** Climate is the aspect with nothing to choose
+     * between, so its answer *is* where its dials were left — and this list is also what says how many
+     * climate territories there are, which used to be inferred by counting a preset the composition always
+     * had exactly one of.
+     */
+    val climates: List<ClimateBias> = listOf(ClimateBias.NONE),
     val options: AspectOptions = AspectOptions(),
     /**
      * How much ground each preset of a set-valued aspect covers. Beside the presets rather than inside
@@ -51,14 +59,21 @@ data class AgeComposition(
 ) {
     /** The share each of [aspect]'s presets covers, one per preset — never a shorter list. */
     fun sharesOf(aspect: Aspect): List<Share> {
-        val filling = presets.count { it.aspect == aspect }
+        val filling = membersIn(aspect)
         val named = shares.of(aspect)
         return List(filling) { member -> named.getOrElse(member) { Share.DOMINANT } }
     }
 
+    /**
+     * How many territories [aspect] divides into. Presets answer for themselves; an aspect whose answer is
+     * a set of dials counts its own values, there being no preset to count.
+     */
+    fun membersIn(aspect: Aspect): Int =
+        if (aspect == Aspect.CLIMATE) climates.size else presets.count { it.aspect == aspect }
+
     /** Every preset this composition names, in aspect order — for listing, costing and diagnosis. */
     val presets: List<AspectPreset>
-        get() = terrains + seas + carvers + listOf(biomes, sky, structures) + climates
+        get() = terrains + seas + carvers + listOf(biomes, sky, structures)
 
     /** The one terrain, where there is only one — for the many places that still reasonably assume so. */
     val terrain: Terrain get() = terrains.first()
@@ -97,7 +112,8 @@ data class AgeComposition(
             Aspect.TERRAIN -> copy(terrains = keys.map { named<Terrain>(aspect, it) })
             Aspect.SEA -> copy(seas = keys.map { named<Sea>(aspect, it) })
             Aspect.CARVERS -> copy(carvers = keys.map { named<Carvers>(aspect, it) })
-            Aspect.CLIMATE -> copy(climates = keys.map { named<Climate>(aspect, it) })
+            // Climate names no presets, so a key list can only mean "give it this many territories".
+            Aspect.CLIMATE -> copy(climates = List(keys.size.coerceAtLeast(1)) { ClimateBias.NONE })
             else -> withSingle(aspect, keys.last())
         }
         return filled.copy(shares = filled.shares.with(aspect, shares))
@@ -110,7 +126,30 @@ data class AgeComposition(
         Aspect.BIOMES -> copy(biomes = named<Biomes>(aspect, key))
         Aspect.SKY -> copy(sky = named<Sky>(aspect, key))
         Aspect.STRUCTURES -> copy(structures = named<Structures>(aspect, key))
-        Aspect.CLIMATE -> copy(climates = listOf(named<Climate>(aspect, key)))
+        Aspect.CLIMATE -> copy(climates = listOf(ClimateBias.NONE))
+    }
+
+    /** This composition with [aspect]'s climate territories replaced outright — what a fracture writes. */
+    fun withClimates(bounded: List<ClimateBias>): AgeComposition =
+        copy(climates = bounded.ifEmpty { listOf(ClimateBias.NONE) })
+
+    /**
+     * The same shape as [withOptionsFor] for the one aspect whose parameters are not options: an axis named
+     * on one climate territory. A name no axis answers to is **kept nowhere and reported nowhere**, exactly
+     * as an unrecognised option is — see [unknownOptions], which asks the same question of the rest.
+     */
+    fun withAxisBound(member: Int, axis: String, chosen: List<String>): AgeComposition {
+        val named = ClimateBias.axisNamed(axis) ?: return this
+        val span = chosen.firstOrNull()?.let(Span::read) ?: return this
+        val grown = List(maxOf(climates.size, member + 1)) { climates.getOrElse(it) { ClimateBias.NONE } }
+        return copy(climates = grown.mapIndexed { at, bias -> if (at == member) bias.bounding(named, span) else bias })
+    }
+
+    /** [aspect] given [count] territories, however that aspect says how many it has. */
+    fun withMembers(aspect: Aspect, count: Int): AgeComposition {
+        if (aspect == Aspect.CLIMATE) return withClimates(List(count) { climates.getOrElse(it) { ClimateBias.NONE } })
+        val seated = presets.first { it.aspect == aspect }
+        return withPresets(aspect, List(count) { seated.key })
     }
 
     /**
@@ -125,6 +164,9 @@ data class AgeComposition(
      * a region each (design §3.2). Applies to every territory of the aspect; [withOptionsFor] aims one.
      */
     fun withOptions(aspect: Aspect, parameter: String, chosen: List<String>): AgeComposition {
+        if (aspect == Aspect.CLIMATE) {
+            return climates.indices.fold(this) { held, member -> held.withAxisBound(member, parameter, chosen) }
+        }
         val everyMember = options.allOf(aspect).ifEmpty { listOf(Options.NONE) }
         return copy(options = options.with(aspect, everyMember.map { Options(it.chosen + (parameter to chosen)) }))
     }
@@ -134,7 +176,8 @@ data class AgeComposition(
      * `hills{stone=andesite}`. A [member] past the end of the filling is written anyway, not dropped.
      */
     fun withOptionsFor(aspect: Aspect, member: Int, parameter: String, chosen: List<String>): AgeComposition {
-        val filling = presets.count { it.aspect == aspect }
+        if (aspect == Aspect.CLIMATE) return withAxisBound(member, parameter, chosen)
+        val filling = membersIn(aspect)
         val perMember = options.expanded(aspect, maxOf(filling, member + 1))
         val steered = perMember.mapIndexed { index, existing ->
             if (index == member) Options(existing.chosen + (parameter to chosen)) else existing
@@ -162,7 +205,27 @@ data class AgeComposition(
             }
             val slotWide = if (aimed) emptyList() else spelled(aspect, options.of(aspect))
             listOf("${aspect.key}=${written.joinToString(",")}") + slotWide
-        }.joinToString(" ")
+        }.plus(climateSpelling()).joinToString(" ")
+
+    /**
+     * `climate.temperature=-0.3..0.3`, or `climate={…},{…}` where the world's climate fractured.
+     *
+     * Spelled apart from the loop above because climate names no preset to hang its steering on, and says
+     * nothing at all where its dials were left alone — which is the ordinary case, and the reason a recipe
+     * stopped carrying a `climate=natural` that announced a choice nobody could make.
+     *
+     * The braced form reads straight back: [parse] takes the empty name before each `{` as one more
+     * territory, which is exactly what it means.
+     */
+    private fun climateSpelling(): List<String> {
+        val spoken = climates.map { it.spelled() }
+        if (spoken.all { it.isEmpty() }) return emptyList()
+        if (spoken.size == 1) return spoken.first().map { "${Aspect.CLIMATE.key}.$it" }
+        val territories = spoken.joinToString(",") { axes ->
+            "$STEER_OPEN${axes.joinToString(PARAMETER_MARK.toString())}$STEER_CLOSE"
+        }
+        return listOf("${Aspect.CLIMATE.key}=$territories")
+    }
 
     /** `terrain.arrangement=grid` — one token per parameter, for an aspect whose territories agree. */
     private fun spelled(aspect: Aspect, chosen: Options): List<String> = chosen.chosen.entries.sortedBy { it.key }
@@ -264,8 +327,8 @@ data class AgeComposition(
                 enumCodec<Sky>().optionalFieldOf("sky", Sky.PLAIN).forGetter(AgeComposition::sky),
                 enumCodec<Structures>().optionalFieldOf("structures", Structures.VANILLA)
                     .forGetter(AgeComposition::structures),
-                setOrSingle(enumCodec<Climate>(), Climate.NATURAL)
-                    .optionalFieldOf("climate", listOf(Climate.NATURAL))
+                setOrSingle(ClimateBias.CODEC, ClimateBias.NONE)
+                    .optionalFieldOf("climate", listOf(ClimateBias.NONE))
                     .forGetter(AgeComposition::climates),
                 AspectOptions.CODEC.optionalFieldOf("options", AspectOptions()).forGetter(AgeComposition::options),
                 SlotShares.CODEC.optionalFieldOf("shares", SlotShares()).forGetter(AgeComposition::shares),

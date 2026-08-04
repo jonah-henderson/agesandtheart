@@ -173,7 +173,8 @@ data class Vocabulary(
      * a sentence that works.
      */
     fun turnsAKnob(aspect: Aspect, parameter: String): Boolean =
-        candidatesFor(aspect).any { it.honoursParameterNamed(parameter) }
+        candidatesFor(aspect).any { it.honoursParameterNamed(parameter) } ||
+            aspect.dials.any { it.name == parameter }
 
     /** Whether these two tags are known opposites, and how badly. */
     fun opposition(first: String, second: String): Antonym? = antonyms.firstOrNull { antonym ->

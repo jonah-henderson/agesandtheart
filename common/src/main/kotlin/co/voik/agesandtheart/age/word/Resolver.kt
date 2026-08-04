@@ -210,7 +210,12 @@ object Resolver {
             chosen += pick(vocabulary, territory.candidates, speaking, draw, aspect, seat = index)
         }
         if (chosen.isEmpty()) {
-            chosen += pick(vocabulary, vocabulary.askableIn(aspect), speaking, draw, aspect, seat = 0)
+            val pool = vocabulary.askableIn(aspect)
+            // **An aspect with nothing to choose between draws nothing.** Its answer is where its dials
+            // were left, which the parameter pass writes; there is no seat here to fill and no company to
+            // keep, so this returns before either.
+            if (pool.isEmpty()) return emptyList()
+            chosen += pick(vocabulary, pool, speaking, draw, aspect, seat = 0)
         }
 
         chosen += company(vocabulary, aspect, kept, speaking, chosen, room, draw)
@@ -486,11 +491,15 @@ object Resolver {
 
     /**
      * The composition these fillings describe. The stand-in terrain is overwritten immediately — every
-     * aspect in [filled] holds at least one preset — and exists only because a composition needs one.
+     * aspect that *has* presets holds at least one — and exists only because a composition needs one.
      */
     private fun compose(filled: Map<Aspect, List<Filling>>): AgeComposition {
         var composition = AgeComposition(terrains = listOf(Terrain.SHAPES))
         for ((aspect, filling) in filled) {
+            // An aspect with nothing to choose between fills nothing here and is not missing: its answer is
+            // written by the parameter pass, which runs next. Only an aspect that *could* seat a preset and
+            // did not is a fault, and that would be the resolver losing one.
+            if (filling.isEmpty() && aspect.authored.isEmpty() && !aspect.open) continue
             check(filling.isNotEmpty()) { "the ${aspect.key} aspect resolved to nothing, which no sentence can do" }
             composition = composition.withPresets(aspect, filling.map { it.preset.key }, filling.map { it.share })
         }
@@ -593,7 +602,7 @@ object Resolver {
             return steered
         }
 
-        val couldFracture = aspect.positional && presets.count { it.aspect == aspect } == 1
+        val couldFracture = aspect.positional && membersIn(aspect) == 1
         if (climates.size == 1 || !couldFracture || climates.size > MOST_TERRITORIES) {
             // One coherent climate, or nowhere to put a second — then the leading group wins and the rest
             // are displaced, the same fallback every other parameter has.
@@ -618,16 +627,14 @@ object Resolver {
                 maxOf(contender.word.tier, leading.word.tier),
             )
         }
-        val seated = presets.first { it.aspect == aspect }
-        var fractured = withPresets(aspect, List(groups.size) { seated.key })
+        var fractured = withMembers(aspect, groups.size)
         for ((member, bounds) in climates.withIndex()) fractured = written(fractured, member, bounds)
         return fractured
     }
 
     /** Which of [aspect]'s parameters bound a continuous axis — asked of the seated presets, as they own them. */
     private fun rangedNames(composition: AgeComposition, aspect: Aspect): List<String> =
-        composition.presets.filter { it.aspect == aspect }
-            .flatMap { it.parameters }
+        (composition.presets.filter { it.aspect == aspect }.flatMap { it.parameters } + aspect.dials)
             .filter { it.kind == Parameter.Kind.RANGED }
             .map { it.name }
             .distinct()
@@ -646,7 +653,7 @@ object Resolver {
         contenders: List<Constraint>,
     ): Boolean {
         if (!aspect.positional) return false
-        if (composition.presets.count { it.aspect == aspect } != 1) return false
+        if (composition.membersIn(aspect) != 1) return false
         return groupsOf(parameter, contenders).size in 2..MOST_TERRITORIES
     }
 

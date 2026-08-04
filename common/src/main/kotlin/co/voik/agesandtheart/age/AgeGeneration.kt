@@ -125,10 +125,10 @@ object AgeGeneration {
         val below = character.mapFor(Aspect.CARVERS, composition.sharesOf(Aspect.CARVERS), seed)
         // Climate divides on a map of its own: which climate a column has is a different question from what
         // paints it. One climate needs no map and gets `whole` (see [RegionalClimate]).
+        // Read straight off the composition: a climate's answer *is* its spans, so there is nothing to
+        // derive from options any more (see [AgeComposition.climates]).
         val climate = RegionalClimate(
-            composition.climates.mapIndexed { member, weather ->
-                weather.biasIn(composition.optionsFor(Aspect.CLIMATE, member))
-            },
+            composition.climates,
             character.mapFor(Aspect.CLIMATE, composition.sharesOf(Aspect.CLIMATE), seed),
         )
         // One biome source for the whole Age, and no region map: one climate table spans the world however
