@@ -178,6 +178,10 @@ class VocabularyCheck : FunSpec({
                 // pinned-preset check below insists it really is pinned somewhere, so a careless `false` still
                 // fails.
                 if (!preset.askableInASentence) continue
+                // A referent is reachable by name by construction — §8.1 mints a word per registry entry —
+                // so demanding one here asks the wrong question, and asks it of a corpus that cannot answer:
+                // biomes are datapack content, so their words exist only once a server has loaded.
+                if (namesReferent(preset.key)) continue
                 val reachable = vocabulary.words.any { word ->
                     aspect in Resolver.aspectsSpokenTo(vocabulary, word) && word.tier.narrows &&
                         preset in vocabulary.carriersOf(word, aspect)

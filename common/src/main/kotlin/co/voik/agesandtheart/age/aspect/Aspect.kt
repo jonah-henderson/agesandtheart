@@ -35,16 +35,35 @@ enum class Aspect(val key: String) : StringRepresentable {
     ;
 
     /**
+     * **What kind of answer this aspect has**, which is the thing that decides how it resolves.
+     *
+     * Not a label over a uniform mechanism: each kind wants a different question asked of a sentence, and
+     * the resolver dispatches on this rather than treating every aspect as a preset with knobs.
+     */
+    val kind: Kind
+        get() = when (this) {
+            // Structures *is* a population and is still shaped as a preset pair, `none` against `vanilla`,
+            // whose readiness prior is what makes habitation opt-in. It changes kind when it is converted,
+            // not before — declaring it early would skip the draw and build in every Age.
+            TERRAIN, CARVERS, SKY, STRUCTURES -> Kind.PRESET
+            SEA -> Kind.REFERENT
+            BIOMES -> Kind.POPULATION
+            CLIMATE -> Kind.DIALS
+        }
+
+    /**
      * Whether this aspect's value is a registry object rather than a preset written in Kotlin (§3.1).
      *
      * Decides whether §8's derived vocabulary can reach the aspect at all.
      */
     val open: Boolean
         get() = when (this) {
-            SEA -> true
+            // Both hold registry objects. A biome is open so a word can *reach* one — what a sentence
+            // does to it is weigh it, never seat it, which is [Kind.POPULATION]'s business rather than this.
+            SEA, BIOMES -> true
             // Structures is an open aspect in the design but closed here: it needs to hold several named
             // sets at once rather than one value drawn from a registry. See [Structures].
-            TERRAIN, CARVERS, BIOMES, SKY, STRUCTURES, CLIMATE -> false
+            TERRAIN, CARVERS, SKY, STRUCTURES, CLIMATE -> false
         }
 
     /**
@@ -60,11 +79,11 @@ enum class Aspect(val key: String) : StringRepresentable {
             TERRAIN -> Terrain.entries
             SEA -> emptyList()
             CARVERS -> Carvers.entries
-            BIOMES -> Biomes.entries
             SKY -> Sky.entries
             STRUCTURES -> Structures.entries
-            // Nothing to choose between: a climate is where its dials were left. See [dials].
-            CLIMATE -> emptyList()
+            // Nothing to choose between: a climate is where its dials were left, and a biome is weighed
+            // rather than chosen. See [dials] and [Kind.POPULATION].
+            BIOMES, CLIMATE -> emptyList()
         }
 
     /**
@@ -78,8 +97,28 @@ enum class Aspect(val key: String) : StringRepresentable {
     val dials: List<Parameter>
         get() = when (this) {
             CLIMATE -> ClimateAxis.entries.map { it.parameter }
-            TERRAIN, SEA, CARVERS, BIOMES, SKY, STRUCTURES -> emptyList()
+            // A biome's population is the aspect's answer; these two say how it is *worn*, not which.
+            BIOMES -> listOf(Biomes.GROWN, Biomes.SKIN, Biomes.FOOTING)
+            TERRAIN, SEA, CARVERS, SKY, STRUCTURES -> emptyList()
         }
+
+    /**
+     * What kind of answer an aspect has. The resolver asks a different question of a sentence for each,
+     * which is the whole reason this exists rather than one shape with degenerate cases in it.
+     */
+    enum class Kind {
+        /** A curated bundle too large to spell out, drawn between and given ground. */
+        PRESET,
+
+        /** A registry object named outright, otherwise as [PRESET]. */
+        REFERENT,
+
+        /** Weighted claims that accumulate. Never drawn between: everything is already there. */
+        POPULATION,
+
+        /** Spans on continuous axes, and no choice at all. */
+        DIALS,
+    }
 
     /**
      * The preset this aspect means by [key], or null where the key names nothing it can hold — the single
@@ -88,7 +127,8 @@ enum class Aspect(val key: String) : StringRepresentable {
      */
     fun presetFor(key: String): AspectPreset? = when (this) {
         SEA -> Sea.named(key)
-        TERRAIN, CARVERS, BIOMES, SKY, STRUCTURES, CLIMATE -> authored.firstOrNull { it.key == key }
+        BIOMES -> Biome.named(key)
+        TERRAIN, CARVERS, SKY, STRUCTURES, CLIMATE -> authored.firstOrNull { it.key == key }
     }
 
     /**

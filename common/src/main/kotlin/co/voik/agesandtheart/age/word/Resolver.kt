@@ -171,6 +171,11 @@ object Resolver {
         draw: Long,
         flaws: MutableList<Flaw>,
     ): List<Filling> {
+        // **Only a preset aspect is drawn between.** A population has everything already and is weighed by
+        // the parameter pass; a set of dials has nothing to choose at all. Seating one of either here would
+        // invent an answer neither kind has.
+        if (aspect.kind == Aspect.Kind.POPULATION || aspect.kind == Aspect.Kind.DIALS) return emptyList()
+
         val speaking = sentence.filter { aspect in reachOf(vocabulary, it) }
         // Most precise first; where precision ties the seed decides, never word order. A word that only
         // sets a parameter narrows nothing, having no opinion about *which* preset fills the aspect.
@@ -504,7 +509,7 @@ object Resolver {
             // An aspect with nothing to choose between fills nothing here and is not missing: its answer is
             // written by the parameter pass, which runs next. Only an aspect that *could* seat a preset and
             // did not is a fault, and that would be the resolver losing one.
-            if (filling.isEmpty() && aspect.authored.isEmpty() && !aspect.open) continue
+            if (aspect.kind == Aspect.Kind.POPULATION || aspect.kind == Aspect.Kind.DIALS) continue
             check(filling.isNotEmpty()) { "the ${aspect.key} aspect resolved to nothing, which no sentence can do" }
             composition = composition.withPresets(aspect, filling.map { it.preset.key }, filling.map { it.share })
         }
@@ -798,9 +803,7 @@ object Resolver {
      * not honour, which [wordsNothingHonours] charges.
      */
     private fun holds(composition: AgeComposition, aspect: Aspect, parameter: String): Boolean =
-        composition.presets.filter { it.aspect == aspect }.any { preset ->
-            preset.parameters.any { it.name == parameter }
-        }
+        parametersOf(composition, aspect).any { it.name == parameter }
 
     /**
      * Whether [parameter] accumulates rather than contends, asked of the presets seated in [aspect] (§3.2).
@@ -808,9 +811,17 @@ object Resolver {
      * would make a typo look deliberate.
      */
     private fun isPopulative(composition: AgeComposition, aspect: Aspect, parameter: String): Boolean =
-        composition.presets.filter { it.aspect == aspect }
-            .flatMap { it.parameters }
-            .any { it.name == parameter && it.kind == Parameter.Kind.POPULATIVE }
+        parametersOf(composition, aspect).any { it.name == parameter && it.kind == Parameter.Kind.POPULATIVE }
+
+    /**
+     * Every knob [aspect] holds — its seated presets' own, and the aspect's own where it seats nothing.
+     *
+     * Asked in one place because the two sources answer the same question: a preset owns its knobs where
+     * there is a preset, and an aspect owns them where there is not. Reading only the first is how a
+     * population's claims went nowhere the moment it stopped seating anything.
+     */
+    private fun parametersOf(composition: AgeComposition, aspect: Aspect): List<Parameter> =
+        composition.presets.filter { it.aspect == aspect }.flatMap { it.parameters } + aspect.dials
 
     /**
      * A parameter named at something that cannot honour it — charged as unbacked rather than ignored
@@ -823,7 +834,10 @@ object Resolver {
     ): List<Flaw> {
         val seated = composition.presets.filter { it.aspect == aspect }
         // Charged only where *every* seated preset ignores the word: one territory honouring it is enough.
-        fun anythingSeatedHonours(parameter: String) = seated.any { it.honoursParameterNamed(parameter) }
+        // An aspect that seats nothing honours its own dials — a climate cannot ignore its temperature, and
+        // a population cannot ignore what it was told to grow, there being nothing there to do the ignoring.
+        fun anythingSeatedHonours(parameter: String) =
+            seated.any { it.honoursParameterNamed(parameter) } || aspect.dials.any { it.name == parameter }
         // And only where the word addressed this aspect's knobs at all — see [holds].
         val addressing = setting.filter { said -> said.word.sets.keys.any { holds(composition, aspect, it) } }
         val wentUnheeded = addressing.filter { said -> said.word.sets.keys.none(::anythingSeatedHonours) }

@@ -9,25 +9,15 @@ import net.minecraft.resources.Identifier
 /**
  * Which biomes an Age grows — what a place *is*, as opposed to how hot it is or what shape it takes.
  *
- * One preset, with the writing happening in [GROWN], like [Climate]: a biome table is not a thing you
- * pick one of, it is a population you add to. Naming a biome adds or strengthens and removes nothing
- * (§3.2); `only`/`except` are how a writer narrows, and exclusion deletes table entries, after which
- * vanilla's nearest-neighbour search closes the gap rather than leaving a hole.
+ * **No preset, because a biome table is not a thing you pick one of.** An Age begins with vanilla's whole
+ * table and a sentence adjusts it: naming a biome strengthens it and removes nothing (§3.2), an evocative
+ * word weighs a whole region of tag space up or down, and `only`/`except` are the only things that trim.
+ * Exclusion deletes table entries, after which vanilla's nearest-neighbour search closes the gap rather
+ * than leaving a hole.
+ *
+ * What is left here is how the table is *worn* — the skin over it and whether it agrees with the shape.
  */
-enum class Biomes(override val key: String) : AspectPreset {
-    /**
-     * Vanilla's own climate-to-biome table, looked up at the coordinates [Climate] decided. The only
-     * preset, and it always seats — a datapack shipping another
-     * `multi_noise_biome_source_parameter_list` is what would go beside it.
-     */
-    VANILLA("vanilla"),
-    ;
-
-    override val aspect = Aspect.BIOMES
-
-    override val parameters: List<Parameter> get() = listOf(GROWN, SKIN, FOOTING)
-
-    override fun getSerializedName(): String = key
+object Biomes {
 
     /**
      * The surface rule this Age wears — vanilla's own tree, or nothing at all.
@@ -60,7 +50,6 @@ enum class Biomes(override val key: String) : AspectPreset {
     /** Whether this Age's biomes are chosen to suit its shape — see [FOOTING]. */
     fun groundsBiomes(options: Options): Boolean = options.of(FOOTING) == GROUNDED_FOOTING
 
-    companion object {
         /**
          * The biomes grown here — populative, so naming one adds it and naming two adds both, with
          * `only`/`except` to narrow (§3.2). Named `grown` rather than `biomes` to avoid `biomes.biomes`.
@@ -90,4 +79,3 @@ enum class Biomes(override val key: String) : AspectPreset {
 
         private const val BARE_SKIN = "bare"
     }
-}

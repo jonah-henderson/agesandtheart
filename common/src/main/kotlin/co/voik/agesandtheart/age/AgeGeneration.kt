@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age
 
+import co.voik.agesandtheart.age.aspect.Biomes
 import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.WaterTable
@@ -136,12 +137,12 @@ object AgeGeneration {
         val biomeOptions = composition.optionsFor(Aspect.BIOMES, 0)
         return AgeChunkGenerator(
             AgeBiomeSource.vanillaOverworld(server, seed)
-                .told(climate, composition.biomes.preferencesIn(biomeOptions), composition.biomes.keepsOnlyNamed(biomeOptions))
+                .told(climate, Biomes.preferencesIn(biomeOptions), Biomes.keepsOnlyNamed(biomeOptions))
                 .groundedIn(shape)
                 // Only where the Age asked for it: biomes disagreeing with the shape is the default, and
                 // a lever rather than a defect. See [Grounding] and [Biomes.FOOTING].
                 .suitedTo(
-                    if (!composition.biomes.groundsBiomes(biomeOptions)) null
+                    if (!Biomes.groundsBiomes(biomeOptions)) null
                     // A shore is where the Age's one sea meets whichever territory reaches it, so a single
                     // island territory is enough to make the coast sand — the level it stands at is already
                     // Age-wide.
@@ -166,7 +167,7 @@ object AgeGeneration {
             seaFill,
             // The Biomes aspect's choice, not a constant: vanilla's tree paints grass over dirt above water
             // without consulting the biome, so there has to be a way to say "no skin". See [Biomes.paletteIn].
-            composition.biomes.paletteIn(biomeOptions, shape),
+            Biomes.paletteIn(biomeOptions, shape),
             composition.carvers.map { it.configuredCarvers(server) },
             below,
             waterTablesOf(composition, seaFill, seed),

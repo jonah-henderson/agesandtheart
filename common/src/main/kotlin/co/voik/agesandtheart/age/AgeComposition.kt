@@ -33,7 +33,6 @@ data class AgeComposition(
     /** What has been cut back out of the rock, and where water stands in it. Positional too. */
     val carvers: List<Carvers> = listOf(Carvers.SOLID),
     /** Which biomes it grows. Singular — one climate table spans the world however many terrains carve it. */
-    val biomes: Biomes = Biomes.VANILLA,
     val sky: Sky = Sky.PLAIN,
     /**
      * What may be built here. **Vanilla by default**, so any Age is built in unless it says otherwise —
@@ -73,7 +72,7 @@ data class AgeComposition(
 
     /** Every preset this composition names, in aspect order — for listing, costing and diagnosis. */
     val presets: List<AspectPreset>
-        get() = terrains + seas + carvers + listOf(biomes, sky, structures)
+        get() = terrains + seas + carvers + listOf(sky, structures)
 
     /** The one terrain, where there is only one — for the many places that still reasonably assume so. */
     val terrain: Terrain get() = terrains.first()
@@ -123,9 +122,10 @@ data class AgeComposition(
         Aspect.TERRAIN -> copy(terrains = listOf(named<Terrain>(aspect, key)))
         Aspect.SEA -> copy(seas = listOf(named<Sea>(aspect, key)))
         Aspect.CARVERS -> copy(carvers = listOf(named<Carvers>(aspect, key)))
-        Aspect.BIOMES -> copy(biomes = named<Biomes>(aspect, key))
         Aspect.SKY -> copy(sky = named<Sky>(aspect, key))
         Aspect.STRUCTURES -> copy(structures = named<Structures>(aspect, key))
+        // Neither seats anything: a biome is weighed and a climate is where its dials were left.
+        Aspect.BIOMES -> this
         Aspect.CLIMATE -> copy(climates = listOf(ClimateBias.NONE))
     }
 
@@ -205,7 +205,16 @@ data class AgeComposition(
             }
             val slotWide = if (aimed) emptyList() else spelled(aspect, options.of(aspect))
             listOf("${aspect.key}=${written.joinToString(",")}") + slotWide
-        }.plus(climateSpelling()).joinToString(" ")
+        }.plus(seatlessSpelling()).plus(climateSpelling()).joinToString(" ")
+
+    /**
+     * The options of an aspect that seats no preset, which the loop above cannot reach because it walks
+     * presets. A population is exactly that: an Age holds vanilla's whole table and the sentence adjusts it,
+     * so there is nothing seated and the adjustments are the whole of what a recipe has to record.
+     */
+    private fun seatlessSpelling(): List<String> = Aspect.entries
+        .filter { it.kind == Aspect.Kind.POPULATION }
+        .flatMap { aspect -> spelled(aspect, options.of(aspect)) }
 
     /**
      * `climate.temperature=-0.3..0.3`, or `climate={…},{…}` where the world's climate fractured.
@@ -322,8 +331,6 @@ data class AgeComposition(
                 setOrSingle(enumCodec<Carvers>(), Carvers.SOLID)
                     .optionalFieldOf("carvers", listOf(Carvers.SOLID))
                     .forGetter(AgeComposition::carvers),
-                enumCodec<Biomes>().optionalFieldOf("biomes", Biomes.VANILLA)
-                    .forGetter(AgeComposition::biomes),
                 enumCodec<Sky>().optionalFieldOf("sky", Sky.PLAIN).forGetter(AgeComposition::sky),
                 enumCodec<Structures>().optionalFieldOf("structures", Structures.VANILLA)
                     .forGetter(AgeComposition::structures),
