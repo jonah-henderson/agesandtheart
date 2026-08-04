@@ -60,7 +60,8 @@ class VocabularyOnServerCheck : FunSpec({
         val aiming = vocabulary.getAsJsonArray("authoredWords").map { it.asJsonObject }
             .filter { it.get("aims").asBoolean }
             .map { it.get("word").asString }
-        val expected = listOf("landmass", "sea", "depths", "biomes", "surface", "sky", "structures", "climate")
+        val expected =
+            listOf("landmass", "sea", "depths", "biomes", "surface", "features", "sky", "structures", "climate")
         check(aiming.sorted() == expected.sorted()) { "the aiming pages are $aiming" }
     }
 })

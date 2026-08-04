@@ -5,6 +5,7 @@ import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.AspectPreset
+import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.Surface
 import co.voik.agesandtheart.age.aspect.Terrain
@@ -16,6 +17,7 @@ import net.minecraft.resources.Identifier
 import net.minecraft.tags.TagKey
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.levelgen.placement.PlacedFeature
 import net.minecraft.world.level.levelgen.structure.StructureSet
 
 /**
@@ -91,6 +93,21 @@ object DerivedWords {
         .listElements()
         .filter { holder -> !holder.`is`(FORBIDDEN_BIOMES) }
         .map { holder -> setting(holder.key().identifier(), Aspect.BIOMES, Biomes.GROWN) }
+        .toList()
+
+    private val FORBIDDEN_FEATURES: TagKey<PlacedFeature> = TagKey.create(Registries.PLACED_FEATURE, FORBIDDEN)
+
+    /**
+     * **A word for every placed feature in the pack** — `ore_diamond`, `flower_meadow`, `lake_lava`.
+     * [biomes]'s twin again, features being the third population.
+     *
+     * Per *placed* feature, because that is the unit a biome's list holds and so the only one a writer can
+     * name and have mean something — see [co.voik.agesandtheart.age.aspect.PlacedFeature].
+     */
+    fun features(registries: RegistryAccess): List<Word> = registries.lookupOrThrow(Registries.PLACED_FEATURE)
+        .listElements()
+        .filter { holder -> !holder.`is`(FORBIDDEN_FEATURES) }
+        .map { holder -> setting(holder.key().identifier(), Aspect.FEATURES, Features.GROWS) }
         .toList()
 
     private val FORBIDDEN_STRUCTURE_SETS: TagKey<StructureSet> = TagKey.create(Registries.STRUCTURE_SET, FORBIDDEN)

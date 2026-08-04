@@ -70,3 +70,20 @@ accessible	method	net/minecraft/world/level/block/entity/BlockEntityType	<init>	
 # So a MenuType can be built in `common`, for the same reason as BlockEntityType above — 26.1 keeps the
 # constructor private and offers only vanilla's private `register`.
 accessible	method	net/minecraft/world/inventory/MenuType	<init>	(Lnet/minecraft/world/inventory/MenuType$MenuSupplier;Lnet/minecraft/world/flag/FeatureFlagSet;)V
+
+# So an Age can decide its own features (co.voik.agesandtheart.age.aspect.Features).
+#
+# `generationSettingsGetter` is how vanilla itself parameterises this: `ChunkGenerator`'s two-argument
+# constructor takes the function, and both readers of features go through it — the memoised
+# `featuresPerStep`, and `applyBiomeDecoration`'s own lookup. It is the sanctioned seam and we cannot reach
+# it, because `NoiseBasedChunkGenerator` calls `super(biomeSource)` and never offers the second argument.
+#
+# So the field is made writable and assigned once, immediately after construction. Safe because
+# `featuresPerStep` is a **memoised** supplier that closes over the field rather than its value, so
+# whichever function is in the field when the first chunk decorates is the one both readers see.
+#
+# The alternative was overriding `applyBiomeDecoration` outright: sixty lines of vanilla's own structure
+# and feature placement copied to change one lookup, and `featuresPerStep` is private, so the sorted list
+# would have to be rebuilt beside it.
+accessible	field	net/minecraft/world/level/chunk/ChunkGenerator	generationSettingsGetter	Ljava/util/function/Function;
+mutable	field	net/minecraft/world/level/chunk/ChunkGenerator	generationSettingsGetter	Ljava/util/function/Function;

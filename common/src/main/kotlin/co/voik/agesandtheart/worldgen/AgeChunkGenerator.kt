@@ -54,6 +54,8 @@ import net.minecraft.world.level.levelgen.structure.StructureSet
 import java.util.Optional
 import java.util.concurrent.CompletableFuture
 import java.util.stream.Stream
+import net.minecraft.world.level.biome.Biome
+import net.minecraft.world.level.biome.BiomeGenerationSettings
 
 /**
  * The generator every composed Age runs on: **vanilla's noise generator, with four deliberate exits.**
@@ -125,7 +127,24 @@ class AgeChunkGenerator(
      * only where the sea genuinely reaches.
      */
     private val hollows: TerrainField? = null,
+    /**
+     * What this Age grows, as the function vanilla itself parameterises decoration with — see [Features].
+     * Null leaves every biome's own list exactly as the pack wrote it.
+     *
+     * **Not serialised**, and it is the one input that is not. A settings function is code, where a recipe
+     * holds data; the Age rebuilds it from its claims on every open, which is the same trip every other
+     * aspect makes and the reason nothing here has to be a registry object.
+     */
+    grows: ((Holder<Biome>) -> BiomeGenerationSettings)? = null,
 ) : NoiseBasedChunkGenerator(biomes, Holder.direct(settingsFor(seaFill, surfaceRule, climate, fill, window, field))) {
+
+    init {
+        // **The seam vanilla offers and `NoiseBasedChunkGenerator` does not pass on.** `ChunkGenerator`
+        // takes this function in its two-argument constructor; the noise generator calls the one-argument
+        // form, so the field is widened and assigned here instead. Safe at this point because
+        // `featuresPerStep` is memoised over the *field*, and nothing reads it until a chunk decorates.
+        grows?.let { generationSettingsGetter = java.util.function.Function(it) }
+    }
 
     /** The same generator with one carving everywhere — what a Tier-B preset means. */
     constructor(

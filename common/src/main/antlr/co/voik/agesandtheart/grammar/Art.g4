@@ -53,6 +53,7 @@ tokens {
     CARVERS_SUBJECT, CARVERS_TERM,
     BIOMES_SUBJECT, BIOMES_TERM,
     SURFACE_SUBJECT, SURFACE_TERM,
+    FEATURES_SUBJECT, FEATURES_TERM,
     SKY_SUBJECT, SKY_TERM,
     STRUCTURES_SUBJECT, STRUCTURES_TERM,
     CLIMATE_SUBJECT, CLIMATE_TERM,
@@ -100,6 +101,7 @@ section
     | descriptor* CARVERS_SUBJECT    carversModifier*     # CarversSection
     | descriptor* BIOMES_SUBJECT     biomesModifier*      # BiomesSection
     | descriptor* SURFACE_SUBJECT    surfaceModifier*     # SurfaceSection
+    | descriptor* FEATURES_SUBJECT   featuresModifier*    # FeaturesSection
     | descriptor* SKY_SUBJECT        skyModifier*         # SkySection
     | descriptor* STRUCTURES_SUBJECT structuresModifier*  # StructuresSection
     | descriptor* CLIMATE_SUBJECT    climateModifier*     # ClimateSection
@@ -122,6 +124,7 @@ seaModifier        : (ONLY | EXCEPT)? seaTerm        (AND seaTerm)*        ;
 carversModifier    : (ONLY | EXCEPT)? carversTerm    (AND carversTerm)*    ;
 biomesModifier     : (ONLY | EXCEPT)? biomesTerm     (AND biomesTerm)*     ;
 surfaceModifier    : (ONLY | EXCEPT)? surfaceTerm    (AND surfaceTerm)*    ;
+featuresModifier   : (ONLY | EXCEPT)? featuresTerm   (AND featuresTerm)*   ;
 skyModifier        : (ONLY | EXCEPT)? skyTerm        (AND skyTerm)*        ;
 structuresModifier : (ONLY | EXCEPT)? structuresTerm (AND structuresTerm)* ;
 climateModifier    : (ONLY | EXCEPT)? climateTerm    (AND climateTerm)*    ;
@@ -139,6 +142,7 @@ terrainTerm    : QUANTIFIER? ( TERRAIN_TERM    | MATERIAL_TERM ) ;
 seaTerm        : QUANTIFIER? ( SEA_TERM        | MATERIAL_TERM ) ;
 structuresTerm : QUANTIFIER? ( STRUCTURES_TERM | MATERIAL_TERM ) ;
 surfaceTerm    : QUANTIFIER? ( SURFACE_TERM    | MATERIAL_TERM ) ;
+featuresTerm   : QUANTIFIER? FEATURES_TERM ;
 carversTerm    : QUANTIFIER? CARVERS_TERM ;
 biomesTerm     : QUANTIFIER? BIOMES_TERM  ;
 skyTerm        : QUANTIFIER? SKY_TERM     ;
@@ -147,5 +151,5 @@ climateTerm    : QUANTIFIER? CLIMATE_TERM ;
 /** A term in a section that aims at nothing, and so may belong to any part of the world. */
 looseTerm
     : QUANTIFIER? ( MATERIAL_TERM | TERRAIN_TERM | SEA_TERM | CARVERS_TERM | BIOMES_TERM
-                  | SURFACE_TERM | SKY_TERM | STRUCTURES_TERM | CLIMATE_TERM )
+                  | SURFACE_TERM | FEATURES_TERM | SKY_TERM | STRUCTURES_TERM | CLIMATE_TERM )
     ;

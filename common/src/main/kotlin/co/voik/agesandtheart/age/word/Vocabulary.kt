@@ -228,7 +228,9 @@ data class Vocabulary(
             // Blocks are built-in and always available; biomes and structures are datapack content, so a
             // corpus read without a server has §8's material half and neither population. Absent rather
             // than wrong, which is what lets `VocabularyCheck` stay offline.
-            val fromRegistries = registries?.let { DerivedWords.biomes(it) + DerivedWords.structures(it) }.orEmpty()
+            val fromRegistries = registries?.let {
+                DerivedWords.biomes(it) + DerivedWords.structures(it) + DerivedWords.features(it)
+            }.orEmpty()
             val fromContent = DerivedWords.materials() + fromRegistries
             val words = derived(fromContent) + authored
             val structural = readGrammarWords(resources, problems)
@@ -257,6 +259,12 @@ data class Vocabulary(
          * Not reported as a problem — two mods are allowed to both have creosote.
          */
         private fun derived(words: List<Word>): Map<String, Word> {
+            // **Two derived words for one id are merged, never left to displace each other.** A placed
+            // feature and a block can share an id — `minecraft:blue_ice` is both — and the same principle
+            // already covers a fluid and its block: the id is the thing a writer points at, so one word
+            // carries everything that thing can be. Left to collide, the later one silently won and the
+            // bare name became ambiguous, which cost `blue_ice` its place in the corpus entirely.
+            val words = words.groupBy { it.id }.map { (_, sharing) -> sharing.reduce(::mergedCapabilities) }
             val ambiguous = words.groupingBy { it.name }.eachCount().filterValues { it > 1 }.keys
             return buildMap {
                 for (word in words) {
@@ -265,6 +273,13 @@ data class Vocabulary(
                 }
             }
         }
+
+        /** One referent's word said whole: everywhere it speaks, and every knob it turns. */
+        private fun mergedCapabilities(word: Word, also: Word): Word = word.copy(
+            aspects = word.aspects + also.aspects,
+            sets = word.sets + also.sets,
+            names = word.names ?: also.names,
+        )
 
         private fun readWords(resources: ResourceManager, problems: MutableList<String>): Map<String, Word> {
             val words = mutableMapOf<String, Word>()

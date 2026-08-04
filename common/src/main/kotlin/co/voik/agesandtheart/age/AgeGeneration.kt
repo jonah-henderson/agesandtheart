@@ -38,6 +38,7 @@ import net.minecraft.world.level.biome.FixedBiomeSource
 import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
+import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.Surface
 
@@ -182,6 +183,8 @@ object AgeGeneration {
             fill,
             window,
             hollows,
+            // What grows, as vanilla's own decoration hook takes it — see [Features] for the seam.
+            Features.grownIn(server, composition.optionsFor(Aspect.FEATURES, 0)),
         )
     }
 

@@ -230,7 +230,7 @@ private fun presetsOf(aspect: Aspect): List<AspectPreset> = when (aspect) {
     // Four aspects stopped being preset-shaped entirely: two are populations, two are sets of dials, and
     // none of them draws from a pool. Nothing here tags them, so the spike's findings do not move — this
     // is a record of an argument, not a model, and it is kept compiling rather than re-tagged.
-    Aspect.BIOMES, Aspect.STRUCTURES, Aspect.CLIMATE, Aspect.SURFACE -> emptyList()
+    Aspect.BIOMES, Aspect.STRUCTURES, Aspect.CLIMATE, Aspect.SURFACE, Aspect.FEATURES -> emptyList()
 }
 
 private fun weight(preset: AspectPreset, tag: String): Double = TAGS[preset]?.get(tag) ?: 0.0

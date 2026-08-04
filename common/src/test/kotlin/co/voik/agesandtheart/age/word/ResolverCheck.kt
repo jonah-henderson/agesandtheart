@@ -29,6 +29,7 @@ import co.voik.agesandtheart.age.aspect.Biomes
 import co.voik.agesandtheart.worldgen.biome.BiomePreference
 import co.voik.agesandtheart.age.aspect.Surface
 import co.voik.agesandtheart.age.word.grammar.Grammar
+import co.voik.agesandtheart.age.aspect.Features
 
 /**
  * Asks whether the resolver keeps the promises `notes/the-art-design.md` makes on its behalf — each check
@@ -804,6 +805,35 @@ class ResolverCheck : FunSpec({
         check(skin == listOf("minecraft:air")) { "'surface air' wrote $skin" }
     }
 
+    /**
+     * **What grows is a population like any other**, and the third one to arrive: a feature is named,
+     * struck out, or singled out, and the words for it come free from the registry (§8.1).
+     *
+     * §7.2 is what makes this load-bearing rather than decoration — "write an Age that supplies an ink
+     * farm" is a sentence about what is *in* the ground.
+     */
+    test("what an Age grows can be written") {
+        fun grows(vararg said: Pair<String, Polarity>): Population {
+            val constraints = said.map { (path, polarity) ->
+                Constraint(featureWord(path), Scope.Confined(setOf(Aspect.FEATURES)), polarity)
+            }
+            val resolved = Resolver.resolve(vocabulary, Sentence.of(constraints), SAMPLE_SEED)
+            return Population.of(resolved.composition.optionsFor(Aspect.FEATURES, 0).claimsOn(Features.GROWS))
+        }
+
+        val plainly = grows("ore_diamond" to Polarity.ASSERTED)
+        check(plainly.wanted.map { it.value } == listOf("minecraft:ore_diamond")) {
+            "naming a feature gave ${plainly.wanted}"
+        }
+        check(!plainly.exclusive) { "a plain mention pinned what grows, which naming must never do" }
+
+        val struckOut = grows("lake_lava_surface" to Polarity.EXCEPT)
+        check(struckOut.struck == listOf("minecraft:lake_lava_surface")) { "'except' struck ${struckOut.struck}" }
+
+        val singledOut = grows("ore_diamond" to Polarity.ONLY)
+        check(singledOut.exclusive) { "'only ore_diamond' did not single anything out" }
+    }
+
     test("a fracture obeys its guards") {
         fun aimedAtTheLand(word: Word) = Constraint(word, Scope.Confined(setOf(Aspect.TERRAIN)))
         val hollow = aimedAtTheLand(vocabulary.word("hollow") ?: error("the shipped vocabulary lost 'hollow'"))
@@ -889,6 +919,16 @@ private fun material(name: String, block: String) = Word(
 )
 
 /** A word that asks for one vanilla structure set by name. */
+/** A feature word as §8 derives one — what every placed feature in the pack gets. */
+private fun featureWord(path: String) = Word(
+    Identifier.withDefaultNamespace(path),
+    Tier.EXACT,
+    setOf(Aspect.FEATURES),
+    emptyMap(),
+    null,
+    mapOf(Features.GROWS.name to "minecraft:$path"),
+)
+
 /** A biome word as §8 derives one — the shape `DerivedWords.biomes` gives every biome in the pack. */
 private fun biomeWord(path: String) = Word(
     Identifier.withDefaultNamespace(path),

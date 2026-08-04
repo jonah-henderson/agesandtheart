@@ -3,11 +3,11 @@ terminals word
 
 world = age <temperate_world> | age <frozen_world> | age <parched_world>
 
-temperate_world = landmass <settled_land> sea open depths riddled biomes verdant surface sky <mild_sky> structures untouched climate temperate
+temperate_world = landmass <settled_land> sea open depths riddled biomes verdant surface features sky <mild_sky> structures untouched climate temperate
 
-frozen_world = landmass <harsh_land> sea open depths unbroken biomes surface sky <cold_sky> structures untouched climate frozen
+frozen_world = landmass <harsh_land> sea open depths unbroken biomes surface features sky <cold_sky> structures untouched climate frozen
 
-parched_world = landmass <dry_land> sea open depths riddled biomes surface sky clear structures untouched climate parched
+parched_world = landmass <dry_land> sea open depths riddled biomes surface features sky clear structures untouched climate parched
 
 settled_land = worn x2 | ordered | scattered
 
