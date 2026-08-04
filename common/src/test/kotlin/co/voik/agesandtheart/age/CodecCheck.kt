@@ -2,7 +2,6 @@ package co.voik.agesandtheart.age
 
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
-import co.voik.agesandtheart.age.aspect.Share
 import co.voik.agesandtheart.age.word.Antonym
 import co.voik.agesandtheart.age.word.PresetTags
 import co.voik.agesandtheart.age.word.Word
@@ -54,7 +53,6 @@ class CodecCheck : FunSpec({
             "word" to Word.mapCodec("floating".location()).codec(),
             "preset tags" to PresetTags.CODEC,
             "antonym" to Antonym.CODEC,
-            "share" to Share.CODEC,
             "region map" to RegionMap.CODEC,
             "placement (dispatch)" to Placement.CODEC,
             // Every kind by name, so adding one to the enum brings it under this check for free — the

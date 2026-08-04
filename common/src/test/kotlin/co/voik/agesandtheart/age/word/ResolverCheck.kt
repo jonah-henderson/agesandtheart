@@ -326,23 +326,23 @@ class ResolverCheck : FunSpec({
      * ground.
      */
     test("a strong claim takes more ground") {
-        // The ladder itself, which is where "strongly associated" turns into ground. Deliberately checked
-        // apart from any sentence: whether a given Age divides unevenly depends on which presets were drawn,
-        // but what a claim ratio *means* must not.
-        check(Share.nearest(ratio = 1.0) == Share.DOMINANT) { "an equal claim should take an equal share" }
-        check(Share.nearest(ratio = 0.9 / 0.9) == Share.DOMINANT) { "two strong claims should divide evenly" }
-        check(Share.nearest(ratio = 0.3 / 0.9) == Share.COMMON) { "a third of a claim should be a large minority" }
-        check(Share.nearest(ratio = 0.06 / 0.9) == Share.SCATTERED) { "a fifteenth of a claim should be islands" }
-        check(Share.nearest(ratio = 0.01 / 0.9) == Share.RARE) {
-            "a hundredth of a claim should be somewhere out there"
-        }
+        // What a claim ratio means, checked apart from any sentence: whether a given Age divides unevenly
+        // depends on which presets were drawn, but a third of the strongest claim must be a third of the
+        // ground however that Age came out.
+        check(Share.legible(0.9 / 0.9) == Share.EVEN) { "two strong claims should divide evenly" }
+        check(Share.legible(0.3 / 0.9) == A_THIRD) { "a third of a claim should take a third of the ground" }
+        check(Share.legible(0.06 / 0.9) < A_THIRD) { "a fifteenth of a claim should take far less than a third" }
 
-        // And no vector of shares may leave a word effectively absent — Jonah's floor, deliberately low so
-        // that rare means rare and finding it is the reward.
-        val floored = Share.findable(listOf(Share.DOMINANT, Share.DOMINANT, Share.RARE))
-        val smallest = floored.minOf { it.weight } / floored.sumOf { it.weight }
-        check(smallest >= Share.LEAST_SHARE_OF_A_WORLD) {
-            "three territories left the smallest at %.2f%% of the world".format(smallest * PERCENT)
+        // And no vector of shares may leave a word effectively absent — Jonah's floor, however many
+        // territories divide the ground, since raising one faint share raises the whole the next is
+        // measured against. Checked past where it is used for exactly that reason.
+        for (territories in 2..MOST_TERRITORIES) {
+            val faintest = List(territories - 1) { Share.EVEN } + Share.legible(A_CLAIM_BARELY_MADE)
+            val floored = Share.findable(faintest)
+            val smallest = floored.min() / floored.sum()
+            check(smallest >= Share.LEAST_SHARE_OF_A_WORLD - SLACK) {
+                "$territories territories left the smallest at %.2f%% of the world".format(smallest * PERCENT)
+            }
         }
 
         // Then the behaviour, over seeds, because which preset is drawn varies: whenever bare rock (pinned
@@ -359,7 +359,7 @@ class ResolverCheck : FunSpec({
             val shares = composition.sharesOf(Aspect.CARVERS)
             val pinned = composition.carvers.indexOf(Carvers.SOLID)
             if (pinned >= 0) {
-                check(shares[pinned].weight >= shares.maxOf { it.weight }) {
+                check(shares[pinned] >= shares.max()) {
                     "the exactly-pinned carving took less ground than its neighbour: " +
                         "${composition.carvers} $shares"
                 }
@@ -800,3 +800,15 @@ private const val MOST_UNASKED_LAVA = 5
 // than to freeze a tuning number. **The number itself wants Jonah's eyes**: it decides how often an Age
 // nobody asked to be inhabited turns out to be.
 private const val MOST_UNASKED_STRUCTURES = 3
+
+/** A third of the strongest claim, as a share spells it. */
+private const val A_THIRD = 0.33
+
+/** A claim so faint that nothing but the floor keeps its territory on the map at all. */
+private const val A_CLAIM_BARELY_MADE = 0.001
+
+/** More territories than an aspect has ever divided into, so the floor is checked past where it is used. */
+private const val MOST_TERRITORIES = 8
+
+/** The floor lands a share exactly on the bound, so meeting it is a neighbourhood rather than a point. */
+private const val SLACK = 1e-9

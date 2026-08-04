@@ -57,10 +57,10 @@ data class AgeComposition(
     val shares: SlotShares = SlotShares(),
 ) {
     /** The share each of [aspect]'s presets covers, one per preset — never a shorter list. */
-    fun sharesOf(aspect: Aspect): List<Share> {
+    fun sharesOf(aspect: Aspect): List<Double> {
         val filling = membersIn(aspect)
-        val named = shares.of(aspect)
-        return List(filling) { member -> named.getOrElse(member) { Share.DOMINANT } }
+        val written = shares.of(aspect)
+        return List(filling) { member -> written.getOrElse(member) { Share.EVEN } }
     }
 
     /**
@@ -106,7 +106,7 @@ data class AgeComposition(
      * pen that validates a sentence makes precision risk-free (design §2). Over-naming is the instability
      * index's business, not an error message's.
      */
-    fun withPresets(aspect: Aspect, keys: List<String>, shares: List<Share> = emptyList()): AgeComposition {
+    fun withPresets(aspect: Aspect, keys: List<String>, shares: List<Double> = emptyList()): AgeComposition {
         val filled = when (aspect) {
             Aspect.TERRAIN -> copy(terrains = keys.map { named<Terrain>(aspect, it) })
             Aspect.SEA -> copy(seas = keys.map { named<Sea>(aspect, it) })
@@ -200,7 +200,8 @@ data class AgeComposition(
                 // A share is only spelled where it says something: an even division, and the largest share
                 // of an uneven one, are both left unsaid.
                 val share = shares.of(aspect).getOrNull(index)
-                val named = if (share == null || share == Share.DOMINANT) preset.key else "${preset.key}$SHARE_MARK${share.key}"
+                val named =
+                    if (share == null || Share.isEven(share)) preset.key else "${preset.key}$SHARE_MARK$share"
                 if (aimed) named + steering(options.of(aspect, index)) else named
             }
             val slotWide = if (aimed) emptyList() else spelled(aspect, options.of(aspect))
@@ -288,7 +289,7 @@ data class AgeComposition(
                             named.map { it.substringBefore(SHARE_MARK) },
                             named.map { preset ->
                                 val share = preset.substringAfter(SHARE_MARK, missingDelimiterValue = "")
-                                if (share.isEmpty()) Share.DOMINANT else namedShare(share)
+                                if (share.isEmpty()) Share.EVEN else readShare(share)
                             },
                         )
                         .steeredBy(aspect, filling)
@@ -386,24 +387,24 @@ data class AspectOptions(private val bySlot: Map<Aspect, List<Options>> = emptyM
 /**
  * How much of the world each preset of an aspect covers, kept per aspect beside [AspectOptions].
  *
- * An absent aspect is an even division, and so is one whose shares are all [Share.DOMINANT] — normalised
- * away on the way in, so "equal" has one spelling rather than five.
+ * An absent aspect is an even division, and so is one whose shares are all [Share.EVEN] — normalised away
+ * on the way in, so "equal" has one spelling rather than several.
  */
-data class SlotShares(private val bySlot: Map<Aspect, List<Share>> = emptyMap()) {
-    fun of(aspect: Aspect): List<Share> = bySlot[aspect] ?: emptyList()
+data class SlotShares(private val bySlot: Map<Aspect, List<Double>> = emptyMap()) {
+    fun of(aspect: Aspect): List<Double> = bySlot[aspect] ?: emptyList()
 
-    fun with(aspect: Aspect, shares: List<Share>): SlotShares =
-        SlotShares(if (shares.all { it == Share.DOMINANT }) bySlot - aspect else bySlot + (aspect to shares))
+    fun with(aspect: Aspect, shares: List<Double>): SlotShares =
+        SlotShares(if (shares.all(Share::isEven)) bySlot - aspect else bySlot + (aspect to shares))
 
     companion object {
         val CODEC: Codec<SlotShares> =
-            Codec.unboundedMap(StringRepresentable.fromEnum(Aspect::values), Share.CODEC.listOf())
+            Codec.unboundedMap(StringRepresentable.fromEnum(Aspect::values), Codec.DOUBLE.listOf())
                 .xmap(::SlotShares, SlotShares::bySlot)
     }
 }
 
 /**
- * How much ground a preset covers, written after it: `dressing=verdant,bare_rock@rare`.
+ * How much ground a preset covers, written after it: `carvers=caves,porous@0.25`.
  *
  * Not a colon: a colon tells a registry id from an authored key (`namesReferent`), so `sea=minecraft:air`
  * read as the preset `minecraft` covering an `air` share. Only ever a command spelling — shares persist
@@ -422,9 +423,9 @@ private const val STEER_CLOSE = '}'
 /** Parameters within one territory's braces, since a space would end the token and a comma joins values. */
 private const val PARAMETER_MARK = ';'
 
-/** The share called [key], loud about a name nobody knows for the same reason [named] is. */
-private fun namedShare(key: String): Share = Share.entries.firstOrNull { it.key == key }
-    ?: error("No share called '$key'. Try: ${Share.entries.joinToString(" ") { it.key }}")
+/** The share written as [spelled], loud about a thing that is not one for the same reason [named] is. */
+private fun readShare(spelled: String): Double = Share.read(spelled)
+    ?: error("'$spelled' is not a share. A share is how much ground a preset covers, ${Share.EVEN} being all of it")
 
 /**
  * The preset [aspect] calls [key], or a failure saying what it could have been. Loud rather than lenient,

@@ -312,8 +312,8 @@ object Resolver {
     }
 
     /**
-     * How much ground each chosen preset covers: its share of the total claim on the aspect, snapped to a
-     * named rung (§3.4). The strongest claim is always [Share.DOMINANT] and the others measure against it.
+     * How much ground each chosen preset covers: its claim on the aspect as a fraction of the strongest
+     * claim there (§3.4), so the widest territory is [Share.EVEN] and the others measure against it.
      */
     private fun sharedOut(
         vocabulary: Vocabulary,
@@ -324,12 +324,12 @@ object Resolver {
         val claims = chosen.map { claimOn(vocabulary, it, speaking, aspect) }
         val strongest = claims.max()
         // The sentence said nothing about this aspect, so nothing justifies favouring one answer.
-        if (strongest <= FAINTEST_CHANCE) return chosen.map { Filling(it, Share.DOMINANT) }
-        val shares = Share.findable(claims.map { Share.nearest(it / strongest) })
+        if (strongest <= FAINTEST_CHANCE) return chosen.map { Filling(it, Share.EVEN) }
+        val shares = Share.findable(claims.map { Share.legible(it / strongest) })
         // Widest first, so a recipe reads as the sentence would be spoken, and so the terrain whose sea
         // prevails is the one named first.
         return chosen.mapIndexed { index, preset -> Filling(preset, shares[index]) }
-            .sortedByDescending { it.share.weight }
+            .sortedByDescending { it.share }
     }
 
     /**
@@ -393,7 +393,7 @@ object Resolver {
     }
 
     /** One preset an aspect ended up holding, and how much of the world it covers. */
-    private data class Filling(val preset: AspectPreset, val share: Share)
+    private data class Filling(val preset: AspectPreset, val share: Double)
 
     /**
      * A set of words that can all be satisfied at once, and what is left that satisfies them.

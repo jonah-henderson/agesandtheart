@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.age
 
-import co.voik.agesandtheart.age.aspect.Share
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.worldgen.biome.BiomeScale
 import co.voik.agesandtheart.worldgen.field.RegionMap
@@ -23,12 +22,12 @@ data class AgeCharacter(
     val regionBlocks: Int,
 ) {
     /** The territories [aspect] divides into, one per preset it holds, each covering the ground its [Share] asks. */
-    fun mapFor(aspect: Aspect, shares: List<Share>, seed: Long): RegionMap {
+    fun mapFor(aspect: Aspect, shares: List<Double>, seed: Long): RegionMap {
         if (shares.size <= 1) return RegionMap.whole()
         val stride = aspect.ordinal
         return RegionMap(
             members = shares.size,
-            shares = shares.map { it.weight },
+            shares = shares,
             scale = regionBlocks.toDouble(),
             blend = seam.blendBlocks(regionBlocks),
             originX = if (alignment == Alignment.OFFSET) stride * regionBlocks / OFFSET_SHARE else 0,

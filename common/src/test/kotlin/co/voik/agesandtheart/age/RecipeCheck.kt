@@ -337,17 +337,17 @@ class RecipeCheck : FunSpec({
             .withPresets(
                 Aspect.CARVERS,
                 listOf(Carvers.CAVES.key, Carvers.POROUS.key, Carvers.FLOODED_CAVES.key),
-                listOf(Share.DOMINANT, Share.SCATTERED, Share.RARE),
+                listOf(Share.EVEN, A_QUARTER, A_SIXTEENTH),
             )
         val decoded = roundTrips(AgeRecipe(AgeWorld.Composed(uneven), seed = SAMPLE_SEED), "an uneven division")
         check(
-            decoded.composition?.sharesOf(Aspect.CARVERS) == listOf(Share.DOMINANT, Share.SCATTERED, Share.RARE),
+            decoded.composition?.sharesOf(Aspect.CARVERS) == listOf(Share.EVEN, A_QUARTER, A_SIXTEENTH),
         ) {
             "the shares came back as ${decoded.composition?.sharesOf(Aspect.CARVERS)}"
         }
 
         val spelling = uneven.toString()
-        check("carvers=caves,porous@scattered,flooded_caves@rare" in spelling) {
+        check("carvers=caves,porous@0.25,flooded_caves@0.06" in spelling) {
             "an uneven division spells itself wrong: '$spelling'"
         }
         check(AgeComposition.parse(spelling).getOrThrow() == uneven) { "'$spelling' does not read back as itself" }
@@ -356,7 +356,7 @@ class RecipeCheck : FunSpec({
         // every recipe written before shares existed — spelled exactly as it was.
         val even = AgeComposition(terrains = listOf(Terrain.HILLS, Terrain.PILLARS))
         check("@" !in even.toString()) { "an even division should not mention shares: '$even'" }
-        check(even.sharesOf(Aspect.TERRAIN) == listOf(Share.DOMINANT, Share.DOMINANT)) {
+        check(even.sharesOf(Aspect.TERRAIN) == listOf(Share.EVEN, Share.EVEN)) {
             "an unmentioned division should be even, not ${even.sharesOf(Aspect.TERRAIN)}"
         }
     }
@@ -475,3 +475,7 @@ private const val SAMPLE_SEED = 0x5EED_A9EL
 
 /** What `art/grammar/teeming.json` asks for — four times as many. */
 private const val TEEMING = 4.0
+
+/** Two shares an Age could plausibly hold, far enough apart to tell one territory from another. */
+private const val A_QUARTER = 0.25
+private const val A_SIXTEENTH = 0.06

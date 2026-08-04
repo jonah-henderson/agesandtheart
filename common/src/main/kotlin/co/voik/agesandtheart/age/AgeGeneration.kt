@@ -270,8 +270,8 @@ object AgeGeneration {
         val claimed = composition.terrains.map { it.waterline }
         if (claimed.size == 1) return claimed.first()
         val shares = composition.sharesOf(Aspect.TERRAIN)
-        val widest = shares.maxOf { it.weight }
-        val contenders = claimed.indices.filter { shares[it].weight == widest }
+        val widest = shares.max()
+        val contenders = claimed.indices.filter { shares[it] == widest }
         return claimed[contenders[XoroshiroRandomSource(seed xor WATERLINE_SALT).nextInt(contenders.size)]]
     }
 
