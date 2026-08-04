@@ -95,8 +95,8 @@ enum class Sky(override val key: String, val ownDimensionType: Identifier) : Asp
          */
         val ORBITS = Parameter.ranged("orbits")
 
-        /** Not as many as one could ask for — as many as still reads as a sky rather than as clutter. */
-        private const val MANY_BODIES = 5
+        /** As many as a numeral page will be able to ask for, which is where §3.2 puts the ceiling. */
+        private const val MANY_BODIES = 10
 
         private const val DENSEST_STARS = 3
 
