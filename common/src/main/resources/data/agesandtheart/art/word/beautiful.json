@@ -6,5 +6,9 @@
     "bright": 0.6,
     "hostile": -0.8,
     "gloomy": -0.4
+  },
+  "sets": {
+    "temperature": "-0.2..0.5",
+    "humidity": "0..0.7"
   }
 }

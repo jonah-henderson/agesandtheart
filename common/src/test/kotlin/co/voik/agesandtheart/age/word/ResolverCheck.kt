@@ -13,6 +13,7 @@ import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.aspect.Population
 import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Share
+import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.word.grammar.Constraint
@@ -110,6 +111,37 @@ class ResolverCheck : FunSpec({
             val spelling = composition.toString()
             val read = AgeComposition.parse(spelling).getOrThrow()
             check(read == composition) { "\"$sentence\" resolved to '$spelling', which reads back as '$read'" }
+        }
+    }
+
+    /**
+     * **Narrowing words bound an axis; evocative words bend it** (§4.4). The band a precise word set must
+     * come back untouched, and the evocative word must still have done something inside it — otherwise it
+     * charged ink for a climate it had no say in, which is the silent failure a soft restriction gives.
+     */
+    test("an evocative word bends a band without moving it") {
+        val alone = climateOf(resolve(vocabulary, "parched"))
+        val beside = climateOf(resolve(vocabulary, "beautiful parched"))
+        check(alone.isNotEmpty()) { "'parched' bounded nothing, so there is no band to test against" }
+
+        fun bands(spans: List<Span>) = spans.map { it.least to it.most }
+        check(bands(alone) == bands(beside)) {
+            "'beautiful' moved the band 'parched' set: ${bands(beside)} against ${bands(alone)}"
+        }
+        check(alone.all { it.bend == Span.EVEN }) { "'parched' alone bent something: $alone" }
+        check(beside.any { it.bend != Span.EVEN }) { "'beautiful' bent nothing beside 'parched': $beside" }
+    }
+
+    /** And it can never divide a world, a fracture being a failure and an evocative word unable to fail. */
+    test("an evocative word never fractures a climate") {
+        for (seed in 1L..SEEDS_SAMPLED) {
+            val resolution = resolve(vocabulary, "beautiful", seed)
+            check(resolution.composition.climates.size == 1) {
+                "'beautiful' alone split the climate in ${resolution.composition.climates.size} at seed $seed"
+            }
+            check(resolution.instability.flaws.none { it.register == Register.FRACTURE }) {
+                "'beautiful' alone fractured something at seed $seed: ${resolution.instability.flaws}"
+            }
         }
     }
 
@@ -684,6 +716,10 @@ class ResolverCheck : FunSpec({
 })
 
 /** The sentence spelled the way a writer would say it, resolved. */
+/** Every span an Age's one climate bounds, for the properties about bounding and bending. */
+private fun climateOf(resolution: Resolution): List<Span> =
+    resolution.composition.climates.single().spelled().mapNotNull { Span.read(it.substringAfter('=')) }
+
 private fun resolve(vocabulary: Vocabulary, sentence: String, seed: Long = SAMPLE_SEED): Resolution {
     val words = sentence.split(" ").filter(String::isNotBlank).map { name ->
         vocabulary.word(name) ?: error("the shipped vocabulary has no word '$name'")

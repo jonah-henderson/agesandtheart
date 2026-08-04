@@ -415,7 +415,12 @@ object Resolver {
         if (word.aspects.isNotEmpty()) return word.aspects.sortedBy { it.ordinal }
         // An evocative word declares no aspect: spanning aspects is what makes it evocative.
         return Aspect.entries.filter { aspect ->
-            vocabulary.askableIn(aspect).any { word.pull(vocabulary.tagsOf(it)) > 0.0 }
+            val likesSomethingThere = vocabulary.askableIn(aspect).any { word.pull(vocabulary.tagsOf(it)) > 0.0 }
+            // **And it reaches an aspect whose dials it bends**, which is the only way into one with no
+            // candidates to like. The declaration is both the mechanism and the evidence, so §4.4's charge
+            // per aspect constrained stays honest with no tag table propping it up.
+            val bendsADialThere = aspect.dials.any { it.name in word.sets }
+            likesSomethingThere || bendsADialThere
         }
     }
 
@@ -584,7 +589,33 @@ object Resolver {
             }
         }
 
-        val groups = gathered(speaking, ::agree)
+        // **Narrowing words bound; evocative words bend** (§4.4). Only the first kind may divide a world:
+        // an evocative word removes no freedom, so it can never fail, and a fracture is a failure.
+        val bounding = speaking.filter { it.word.tier.narrows }
+        val bending = speaking.filter { !it.word.tier.narrows }
+
+        /** Where the evocative words would like [axis] to sit, in the axis's own terms. */
+        fun preferred(axis: String): Double? {
+            val wants = bending.mapNotNull { boundsIn(it)[axis] }
+            if (wants.isEmpty()) return null
+            return wants.map { (it.least + it.most) / 2.0 }.average()
+        }
+
+        /**
+         * [bounds] with each axis's middle pulled toward what the evocative words asked for — including an
+         * axis nobody bounded, which is then the whole natural range with its weight moved rather than a
+         * stretch of it. That is what lets `beautiful` lean an Age temperate without narrowing it at all.
+         */
+        fun bentTo(bounds: Map<String, Span>): Map<String, Span> {
+            val touched = bounds.keys + bending.flatMap { boundsIn(it).keys }
+            return touched.associateWith { axis ->
+                val stretch = bounds[axis] ?: Span.NATURAL
+                val want = preferred(axis) ?: return@associateWith stretch
+                stretch.bentToward(stretch.fractionOf(want))
+            }
+        }
+
+        val groups = gathered(bounding, ::agree)
         // Each group broadens together, axis by axis, into the climate its words jointly describe.
         val climates = groups.map { group ->
             axes.mapNotNull { axis ->
@@ -592,7 +623,8 @@ object Resolver {
                     .reduceOrNull { held, next -> held.broadenedTo(next) }
                     ?.let { axis to it }
             }.toMap()
-        }
+        // Nothing narrowed anything, so there is one climate and the bend is the whole of what was said.
+        }.ifEmpty { listOf(emptyMap()) }
 
         fun written(composition: AgeComposition, member: Int, bounds: Map<String, Span>): AgeComposition {
             var steered = composition
@@ -606,13 +638,13 @@ object Resolver {
         if (climates.size == 1 || !couldFracture || climates.size > MOST_TERRITORIES) {
             // One coherent climate, or nowhere to put a second — then the leading group wins and the rest
             // are displaced, the same fallback every other parameter has.
-            val leading = groups.first().first()
             if (climates.size > 1) {
+                val leading = groups.first().first()
                 for (group in groups.drop(1)) {
                     flaws += flaw(Register.DISPLACED, listOf(group.first(), leading), aspect, emptyList(), group.first().word.tier)
                 }
             }
-            return written(this, member = 0, bounds = climates.first())
+            return written(this, member = 0, bounds = bentTo(climates.first()))
         }
 
         val leading = groups.first().first()
@@ -628,7 +660,7 @@ object Resolver {
             )
         }
         var fractured = withMembers(aspect, groups.size)
-        for ((member, bounds) in climates.withIndex()) fractured = written(fractured, member, bounds)
+        for ((member, bounds) in climates.withIndex()) fractured = written(fractured, member, bentTo(bounds))
         return fractured
     }
 
