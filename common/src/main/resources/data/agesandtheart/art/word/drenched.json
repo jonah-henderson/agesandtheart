@@ -1,8 +1,11 @@
 {
-  "tier": "exact",
+  "tier": "restrictive",
   "aspects": [
     "atmosphere"
   ],
+  "query": {
+    "watery": 1.0
+  },
   "sets": {
     "rainfall": "0.6..1.0"
   }

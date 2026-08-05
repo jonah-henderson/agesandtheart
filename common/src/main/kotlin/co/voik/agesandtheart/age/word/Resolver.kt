@@ -113,8 +113,13 @@ object Resolver {
         val filled = Aspect.entries.associateWith { aspect -> fill(vocabulary, aspect, said, draw, flaws) }
         flaws += tensions(vocabulary, said, filled.mapValues { (_, filling) -> filling.map { it.preset } })
 
+        val composition = weighed(vocabulary, steer(vocabulary, compose(filled), said, draw, flaws), said)
+        // **Last**, so it can see everything the mechanisms above already charged and never price one
+        // disagreement twice. Steering adds flaws of its own, so this cannot be hoisted.
+        flaws += oppositions(vocabulary, said, flaws.toList())
+
         return Resolution(
-            composition = weighed(vocabulary, steer(vocabulary, compose(filled), said, draw, flaws), said),
+            composition = composition,
             instability = Instability(flaws.toList()),
             // Structure is priced too: every page a writer lays costs ink, and a page that made no
             // claim still came out of the pot. A latent page came out of nobody's pot.
@@ -492,6 +497,43 @@ object Resolver {
                     ),
                 )
             }
+        }
+    }
+
+    /**
+     * Every opposition the **sentence** holds that nothing else has already charged for.
+     *
+     * The flat floor under the mechanical registers, and [Register.OPPOSED] says why it is needed: a
+     * collision is what [tensions], `fractured` and `contended` charge, so two words that mean opposite
+     * things escape entirely whenever no one preset, parameter or population had to hold both. Asked of
+     * the sentence rather than the outcome, because *whether they met* is exactly what must stop mattering.
+     *
+     * **Once per pair.** A disagreement already priced somewhere is not priced again, which is what keeps
+     * this a floor rather than a surcharge on every contradiction that did collide.
+     */
+    private fun oppositions(
+        vocabulary: Vocabulary,
+        sentence: List<Constraint>,
+        charged: List<Flaw>,
+    ): List<Flaw> = buildList {
+        for ((first, second) in sentence.pairs()) {
+            // "Keep both" is not a contradiction, here for the same reason it is not one in [tensions].
+            if (wereJoined(first, second)) continue
+            val opposition = oppositionBetween(vocabulary, first, second) ?: continue
+            val bothNamed = listOf(first.word.name, second.word.name)
+            val alreadyPaidFor = charged.any { it.words.containsAll(bothNamed) } ||
+                any { it.words.containsAll(bothNamed) }
+            if (alreadyPaidFor) continue
+            add(
+                Flaw(
+                    Register.OPPOSED,
+                    bothNamed,
+                    // No aspect: the sentence owns this one, since landing nowhere together is the point.
+                    aspect = null,
+                    listOf(opposition.first, opposition.second),
+                    opposition.severity,
+                ),
+            )
         }
     }
 

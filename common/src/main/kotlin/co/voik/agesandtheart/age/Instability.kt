@@ -19,8 +19,24 @@ enum class Register(
     /** What this costs before precision is taken into account. Only has to order sensibly for now. */
     private val base: Int,
 ) : StringRepresentable {
-    /** Two words meant opposite things and the world honoured both anyway. */
+    /** Two words meant opposite things and the world honoured both anyway, in one aspect. */
     TENSION("tension", base = 1),
+
+    /**
+     * Two words meant opposite things and **never met** — they landed in different aspects, so nothing in
+     * the world was ever asked to choose between them.
+     *
+     * The flat charge under the dynamic ones (Jonah, 2026-08-05), and it exists because the others are
+     * *mechanical*: [TENSION], [FRACTURE] and [DISPLACED] are all charged for a collision, so two words that
+     * contradict each other go free whenever it happens that no single preset, parameter or population had
+     * to hold both. `drenched` against `arid` was exactly that — one steers the rain and the other the
+     * humidity, so a sentence saying both cost nothing at all. As aspects and dials multiply, so does the
+     * chance of that coincidence, and a writer contradicting themselves should not be rescued by where the
+     * two happened to land.
+     *
+     * Charged **once per pair**, and only where nothing else already charged the same two words.
+     */
+    OPPOSED("opposed", base = 1),
 
     /**
      * A page could not be read where it was laid, so the Art moved it somewhere it could (§4.3.1).
@@ -100,6 +116,8 @@ data class Flaw(
         val where = aspect?.key ?: "the sentence"
         return when (register) {
             Register.TENSION -> "$both pull opposite ways in $where$over, and the world made room for both"
+            Register.OPPOSED -> "$both contradict each other$over, and landed far enough apart that " +
+                "nothing in the world had to choose"
             Register.FRACTURE -> "the $where fractured so that $both could both stand$over"
             Register.DISPLACED -> "${quoted.firstOrNull() ?: "a word"} was crowded out of $where" +
                 quoted.drop(1).firstOrNull().orEmpty().let { if (it.isEmpty()) "" else " by $it" } + over

@@ -167,25 +167,35 @@ class BookCheck : FunSpec({
      *
      * Built from the antonym table rather than a hand-picked pair, so it keeps asking the question if the
      * vocabulary is retuned.
+     *
+     * **Every pair the corpus can write, not the first one** (Jonah, 2026-08-05). A spot check passed for
+     * years because whichever pair it happened to find did collide; `drenched` against `arid` was the one
+     * that did not, and it slipped in unnoticed under a green suite. `Register.OPPOSED` is what makes
+     * sweeping the whole table satisfiable rather than aspirational — and this is the check that will
+     * notice when a new dial quietly separates two words that should still disagree.
      */
     test("contradicting yourself costs instability, never a parse error") {
-        val opposed = vocabulary.antonyms.firstNotNullOfOrNull { antonym ->
-            fun wordAsking(tag: String) = vocabulary.words.firstOrNull { it.tier.narrows && tag in it.wanted }
-            val first = wordAsking(antonym.first) ?: return@firstNotNullOfOrNull null
-            val second = wordAsking(antonym.second) ?: return@firstNotNullOfOrNull null
+        fun wordAsking(tag: String) = vocabulary.words.firstOrNull { it.tier.narrows && tag in it.wanted }
+        val writable = vocabulary.antonyms.mapNotNull { antonym ->
+            val first = wordAsking(antonym.first) ?: return@mapNotNull null
+            val second = wordAsking(antonym.second) ?: return@mapNotNull null
             first to second
-        } ?: error("the antonym table names no pair the corpus can write, so this can assert nothing")
-
-        // The nucleus every book must have, then the two words that disagree.
-        val pages = listOf(nucleusPage(vocabulary), opposed.first.name, opposed.second.name)
-        val read = Grammar.read(vocabulary, pages)
-        check(read.dropped.isEmpty()) {
-            "'${pages.joinToString(" ")}' was a parse error, which a contradiction must never be: ${read.dropped}"
         }
-        check(read.constraints.size == 2) { "a contradictory book lost a word: ${read.constraints}" }
-        val resolution = Resolver.resolve(vocabulary, read, SAMPLE_BOOK_SEED)
-        check(!resolution.instability.isCoherent) {
-            "'${pages.joinToString(" ")}' asks for two opposed things and was charged nothing"
+        check(writable.isNotEmpty()) { "the antonym table names no pair the corpus can write" }
+
+        for (opposed in writable) {
+            // The nucleus every book must have, then the two words that disagree.
+            val pages = listOf(nucleusPage(vocabulary), opposed.first.name, opposed.second.name)
+            val written = pages.joinToString(" ")
+            val read = Grammar.read(vocabulary, pages)
+            check(read.dropped.isEmpty()) {
+                "'$written' was a parse error, which a contradiction must never be: ${read.dropped}"
+            }
+            check(read.constraints.size == 2) { "'$written' lost a word: ${read.constraints}" }
+            val resolution = Resolver.resolve(vocabulary, read, SAMPLE_BOOK_SEED)
+            check(!resolution.instability.isCoherent) {
+                "'$written' asks for two opposed things and was charged nothing"
+            }
         }
     }
 
