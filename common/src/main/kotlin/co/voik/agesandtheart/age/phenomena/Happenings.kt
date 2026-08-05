@@ -1,5 +1,9 @@
 package co.voik.agesandtheart.age.phenomena
 
+import co.voik.agesandtheart.age.aspect.Span
+import co.voik.agesandtheart.age.aspect.Parameter
+import co.voik.agesandtheart.age.aspect.Atmosphere
+import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Claim
@@ -39,19 +43,36 @@ object Happenings {
         if (saved.ages.isEmpty()) return
         for (level in server.allLevels) {
             if (level.players().isEmpty()) continue
-            val id = level.dimension().identifier()
-            if (id !in saved.ages) continue
-            for (claim in claimsIn(server, level)) befall(level, claim)
+            val composition = saved.takeIf { level.dimension().identifier() in it.ages }
+                ?.recipe(level.dimension().identifier())?.composition
+                ?: continue
+            val happening = claimsIn(composition)
+            // The weather first: a phenomenon that needs rain has to be standing in it by the time it runs.
+            AgeWeather.steer(level, wanted(composition, happening))
+            for (claim in happening) befall(level, claim)
         }
     }
 
-    /** What the Age at [level] says befalls it, as claims — empty for one that says nothing. */
-    private fun claimsIn(server: MinecraftServer, level: ServerLevel): List<Claim> {
-        val composition = AgeSavedData.get(server).recipe(level.dimension().identifier()).composition
-            ?: return emptyList()
+    /** What the Age says befalls it, as claims — empty for one that says nothing. */
+    private fun claimsIn(composition: AgeComposition): List<Claim> {
         val options = composition.optionsFor(Aspect.PHENOMENA, 0)
-        val happening = Population.of(options.allSpelled(Phenomena.HAPPENS.name).map(Claim::read))
-        return happening.wanted
+        return Population.of(options.allSpelled(Phenomena.HAPPENS.name).map(Claim::read)).wanted
+    }
+
+    /**
+     * The weather an Age is asking for: its own dials, raised by anything befalling it that needs more.
+     *
+     * **A floor and never a setting**, so the two can be written together without one silently erasing the
+     * other — a tempest in an Age already written as drenched is exactly as wet as the wetter of the two.
+     */
+    private fun wanted(composition: AgeComposition, happening: List<Claim>): AgeWeather.Conditions {
+        val air = composition.optionsFor(Aspect.ATMOSPHERE, 0)
+        fun asked(parameter: Parameter) =
+            air.steer(parameter, WEATHER_SALT)?.let(Span.NATURAL::fractionOf) ?: AgeWeather.ORDINARY_SHARE
+        val dialled = AgeWeather.Conditions(asked(Atmosphere.RAINFALL), asked(Atmosphere.THUNDER))
+        return happening.fold(dialled) { wants, claim ->
+            wants.atLeast(Phenomenon.named(claim.value)?.insistsOn ?: AgeWeather.Conditions.ORDINARY)
+        }
     }
 
     /**
@@ -66,6 +87,14 @@ object Happenings {
             Phenomenon.TEMPEST -> Tempest.strike(level, claim.density)
         }
     }
+
+    /**
+     * Fixed, so an Age's weather does not wander about inside the span a word bounded it to.
+     *
+     * Everywhere else a span is steered by the Age's seed, which spreads two Ages bounded alike. Weather is
+     * read every tick, and a value that moved with the tick would be a different Age every time.
+     */
+    private const val WEATHER_SALT = 0L
 
     /** How many times over an ordinary claim asks for something. A rung multiplies it. */
     fun timesFor(density: Double, ordinary: Int): Int =

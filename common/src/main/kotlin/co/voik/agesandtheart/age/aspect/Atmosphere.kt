@@ -63,6 +63,22 @@ object Atmosphere {
      */
     val HAZE = Parameter.ranged("haze")
 
+    /**
+     * How much of the time it rains, and how much of *that* is thunder.
+     *
+     * **Not attributes**, unlike everything else here — they steer the Age's own `WeatherData`
+     * ([co.voik.agesandtheart.age.phenomena.AgeWeather]), which only became a thing an Age has at all once
+     * 26.1's shared schedule was diverted. They live on `Atmosphere` because that is where a writer would
+     * look for them and because `evaporation` is already the same kind of statement, and they are applied
+     * from the weather module rather than by [settle] — the same split `Sky.SKYLIGHT` already has.
+     *
+     * **Deliberately independent of any phenomenon** (Jonah, 2026-08-05). A tempest wants rain and thunder
+     * and so insists on them, but so might a drowned Age with no lightning in it at all, and neither should
+     * have to be the other.
+     */
+    val RAINFALL = Parameter.ranged("rainfall")
+    val THUNDER = Parameter.ranged("thunder")
+
     /** How high the clouds sit, on the same argument: one number a word bends. */
     val CEILING = Parameter.ranged("ceiling")
 

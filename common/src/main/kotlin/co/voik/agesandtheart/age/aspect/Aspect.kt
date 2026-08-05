@@ -133,6 +133,8 @@ enum class Aspect(val key: String) : StringRepresentable {
                 Atmosphere.HAZE,
                 Atmosphere.CEILING,
                 Atmosphere.MURK,
+                Atmosphere.RAINFALL,
+                Atmosphere.THUNDER,
             )
             // A preset aspect with dials: the two switches that pick the Age's dimension type. They sit
             // here rather than on `Atmosphere` because they are chosen when the Age is *made* and baked

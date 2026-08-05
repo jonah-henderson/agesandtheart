@@ -17,7 +17,6 @@ import net.minecraft.server.level.ServerLevel
 object Tempest {
 
     fun strike(level: ServerLevel, density: Double) {
-        keepStorming(level)
         val watching = level.players()
         if (watching.isEmpty()) return
 
@@ -32,23 +31,6 @@ object Tempest {
         }
     }
 
-    /**
-     * Keeps the Age's own weather at a storm, topping the timers up before vanilla's cycle can end it.
-     *
-     * Setting the flags rather than the levels: `advanceWeatherCycle` reads these and does the ramping and
-     * the telling of that dimension's players itself, which is the whole reason [AgeWeather] is a mixin on
-     * the schedule rather than a fight over the state.
-     */
-    private fun keepStorming(level: ServerLevel) {
-        val weather = level.weatherData
-        if (weather.isThundering && weather.thunderTime > TOP_UP_BELOW) return
-        weather.setRaining(true)
-        weather.setThundering(true)
-        weather.setRainTime(KEEP_STORMING)
-        weather.setThunderTime(KEEP_STORMING)
-        weather.setClearWeatherTime(0)
-        weather.setDirty()
-    }
 
     /**
      * How many chunks a tempest looks at per tick, at an ordinary rung.
@@ -63,7 +45,4 @@ object Tempest {
     /** How far from a player a strike may land, in chunks — inside a normal render distance. */
     private const val NEARBY = 8
 
-    /** Long enough that the cycle never gets to clear it, short enough to be a number and not forever. */
-    private const val KEEP_STORMING = 24000
-    private const val TOP_UP_BELOW = 1200
 }

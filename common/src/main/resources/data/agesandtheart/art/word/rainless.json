@@ -1,0 +1,10 @@
+{
+  "tier": "exact",
+  "aspects": [
+    "atmosphere"
+  ],
+  "sets": {
+    "rainfall": "-1.0..-0.7",
+    "thunder": "-1.0..-0.7"
+  }
+}

@@ -17,6 +17,71 @@ import net.minecraft.world.level.saveddata.WeatherData
 object AgeWeather {
 
     /**
+     * How much of the time an Age rains, and how much of that is thunder — each a fraction of its axis,
+     * where [ORDINARY_SHARE] is "leave it as vanilla would have it".
+     *
+     * A pair rather than two arguments so a phenomenon can insist on conditions without knowing how they
+     * are applied, and so the two can be [atLeast] one another.
+     */
+    data class Conditions(val rainfall: Double = ORDINARY_SHARE, val thunder: Double = ORDINARY_SHARE) {
+        /** The wetter and stormier of the two — how a phenomenon raises a floor without lowering one. */
+        fun atLeast(other: Conditions): Conditions =
+            Conditions(maxOf(rainfall, other.rainfall), maxOf(thunder, other.thunder))
+
+        val saysNothing: Boolean get() = rainfall == ORDINARY_SHARE && thunder == ORDINARY_SHARE
+
+        companion object {
+            val ORDINARY = Conditions()
+        }
+    }
+
+    /**
+     * Steers [level]'s weather toward [wants], one tick's worth.
+     *
+     * **Only ever shortens a timer, never extends one**, which is what keeps this from fighting
+     * `advanceWeatherCycle` — the cycle decrements and we clamp, so the two converge instead of pushing a
+     * value back and forth forever. The whole axis is still covered, because wanting *more* weather cuts
+     * the gap between spells and wanting *less* cuts the spells:
+     *
+     * - wetter than ordinary → the wait for rain is capped, so rain returns sooner
+     * - drier than ordinary → the rain itself is capped, so it passes sooner
+     *
+     * At the top of the axis the cap is nearly zero and rain restarts as soon as it stops, which is the
+     * drowned Age; at the bottom every spell is cut short, which is the parched one.
+     */
+    fun steer(level: ServerLevel, wants: Conditions) {
+        if (wants.saysNothing) return
+        val weather = level.dataStorage.computeIfAbsent(WeatherData.TYPE)
+        val rainTime = capped(wants.rainfall, weather.isRaining, weather.rainTime, ORDINARY_RAIN)
+        val thunderTime = capped(wants.thunder, weather.isThundering, weather.thunderTime, ORDINARY_THUNDER)
+        if (rainTime == weather.rainTime && thunderTime == weather.thunderTime) return
+        weather.rainTime = rainTime
+        weather.thunderTime = thunderTime
+        // Clear weather is a third timer that suppresses both, and a wet Age must not sit under one.
+        if (wants.rainfall > ORDINARY_SHARE) weather.clearWeatherTime = 0
+        weather.setDirty()
+    }
+
+    /** [timeLeft], never raised — see [steer] for why only one direction is safe. */
+    private fun capped(wants: Double, happening: Boolean, timeLeft: Int, ordinary: Int): Int {
+        val wantsMore = wants > ORDINARY_SHARE
+        if (wantsMore == happening) return timeLeft
+        val distance = if (wantsMore) wants - ORDINARY_SHARE else ORDINARY_SHARE - wants
+        val cap = (ordinary * (1.0 - distance / ORDINARY_SHARE)).toInt().coerceAtLeast(0)
+        return timeLeft.coerceAtMost(cap)
+    }
+
+    /** The middle of a ranged axis, which is where a writer who said nothing leaves it. */
+    const val ORDINARY_SHARE = 0.5
+
+    /**
+     * Vanilla's own spells, in ticks, as the scale everything is a share of — half a day of rain and about
+     * an eighth of one of thunder. Read as the anchor rather than as a limit: a dial only ever cuts.
+     */
+    private const val ORDINARY_RAIN = 12000
+    private const val ORDINARY_THUNDER = 3600
+
+    /**
      * The weather belonging to [level], or null where the level is not an Age and vanilla's own should
      * answer.
      *

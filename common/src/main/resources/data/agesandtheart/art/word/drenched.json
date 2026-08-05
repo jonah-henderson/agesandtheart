@@ -1,0 +1,9 @@
+{
+  "tier": "exact",
+  "aspects": [
+    "atmosphere"
+  ],
+  "sets": {
+    "rainfall": "0.6..1.0"
+  }
+}

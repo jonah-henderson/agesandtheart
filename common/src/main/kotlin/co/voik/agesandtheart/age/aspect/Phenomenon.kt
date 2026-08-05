@@ -1,6 +1,15 @@
 package co.voik.agesandtheart.age.aspect
 
+import co.voik.agesandtheart.age.phenomena.AgeWeather
 import net.minecraft.util.StringRepresentable
+
+/**
+ * Well past ordinary but short of never-stopping, which leaves a rung somewhere to go.
+ *
+ * Top-level rather than in the companion: an enum constant is built before its own companion exists, so a
+ * constant beside them is the only one they can read.
+ */
+private const val MOSTLY = 0.85
 
 /**
  * A process that befalls an Age — what [Phenomena]'s claims name (design §3.1, §5.2).
@@ -17,7 +26,17 @@ import net.minecraft.util.StringRepresentable
  * and a case in [co.voik.agesandtheart.age.phenomena.Happenings.befall] — which is an exhaustive `when`, so
  * the build breaks until the new one is answered for.
  */
-enum class Phenomenon(override val key: String) : AspectPreset {
+enum class Phenomenon(
+    override val key: String,
+    /**
+     * The weather this insists on, however the Age's own dials were left.
+     *
+     * A **floor**, never a setting: a phenomenon that needs rain raises the rain, and one that needs none
+     * leaves it where the writer put it. Keeping it declarative is what stops each phenomenon reaching for
+     * the weather itself and the two ending up disagreeing about who owns it.
+     */
+    val insistsOn: AgeWeather.Conditions = AgeWeather.Conditions.ORDINARY,
+) : AspectPreset {
     /**
      * A world in permanent storm, struck far more often than weather alone would.
      *
@@ -26,7 +45,7 @@ enum class Phenomenon(override val key: String) : AspectPreset {
      * targeting, lightning rods, the skeleton-horse trap and the bolt — and a tempest is that asked for
      * more often. Nothing here reimplements lightning.
      */
-    TEMPEST("tempest"),
+    TEMPEST("tempest", AgeWeather.Conditions(rainfall = MOSTLY, thunder = MOSTLY)),
     ;
 
     override val aspect = Aspect.PHENOMENA
