@@ -1,8 +1,10 @@
 package co.voik.agesandtheart.worldgen.field
 
+import co.voik.agesandtheart.worldgen.NEEDS_LANDFORMS
 import co.voik.agesandtheart.age.Seam
 import co.voik.agesandtheart.worldgen.NoiseField
 import co.voik.agesandtheart.worldgen.PillarField
+import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
@@ -19,6 +21,7 @@ import kotlin.math.abs
  * It also **prints the width a default rift comes out**, the conversion being proportionate rather than
  * surveyed, and that is the number to tune [Rift.DEFAULT_HALF_WIDTH] against.
  */
+@Tags(NEEDS_LANDFORMS)
 class FaultCheck : FunSpec({
 
     /**

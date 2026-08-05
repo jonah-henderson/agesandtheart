@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.worldgen
 
+import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import kotlin.math.cos
 import kotlin.math.hypot
@@ -20,6 +21,7 @@ import kotlin.math.sin
  * shape at all. The last test here is the one that reads the weathered world, and what it asks is whether
  * the weather did what its profile claims rather than what it left behind.
  */
+@Tags(NEEDS_LANDFORMS)
 class CraterlandsCheck : FunSpec({
 
     val bare = CraterlandsField.bareWorld(salt = 0L)

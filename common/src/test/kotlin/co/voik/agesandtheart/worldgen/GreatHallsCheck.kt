@@ -2,6 +2,7 @@ package co.voik.agesandtheart.worldgen
 
 import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.Subtract
+import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
 /**
@@ -13,6 +14,7 @@ import io.kotest.core.spec.style.FunSpec
  * the arithmetic does not leave a small hole — it merges two storeys into one 120-block drop, which from
  * inside looks like a taller hall and is only wrong once somebody walks off an edge.
  */
+@Tags(NEEDS_LANDFORMS)
 class GreatHallsCheck : FunSpec({
 
     val floorY = -59

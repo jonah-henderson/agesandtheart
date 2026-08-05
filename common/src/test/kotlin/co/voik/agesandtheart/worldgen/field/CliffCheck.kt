@@ -1,6 +1,8 @@
 package co.voik.agesandtheart.worldgen.field
 
+import co.voik.agesandtheart.worldgen.NEEDS_LANDFORMS
 import co.voik.agesandtheart.worldgen.CliffField
+import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import kotlin.math.PI
 import kotlin.math.abs
@@ -13,6 +15,7 @@ import kotlin.math.abs
  * coast rather than a ruled line. Whether it *looks* right is `./gradlew :common:preview --args=cliffs`,
  * and there the plan view is the one to read: a step has no profile worth looking at.
  */
+@Tags(NEEDS_LANDFORMS)
 class CliffCheck : FunSpec({
 
     val world = CliffField.world(bearing = NORTH_SOUTH)

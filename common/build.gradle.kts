@@ -133,6 +133,9 @@ val NEEDS_REGISTRIES_TAG = "NeedsRegistries"
 /** Must match `NEEDS_SERVER` in `common/src/test/kotlin/.../server/DrivenServer.kt`. */
 val NEEDS_SERVER_TAG = "NeedsServer"
 
+/** Must match `NEEDS_LANDFORMS` in `common/src/test/kotlin/.../worldgen/Landforms.kt`, which says why. */
+val NEEDS_LANDFORMS_TAG = "NeedsLandforms"
+
 val test: SourceSet = sourceSets.test.get()
 // Minecraft arrives compile-only under ModDevGradle, exactly as for `preview`. The *runtime* half is not
 // optional and is not obvious: `Bootstrap.bootStrap()` reads `en_us.json` off the classpath, and without
@@ -159,7 +162,13 @@ tasks.named<Test>("test") {
     // The server checks start a real server, which is minutes. They are their own task; this is the loop
     // anyone runs a hundred times a day and it stays at seconds.
     // `-Pfast` drops the registries too, which is the only slow thing left in what remains.
-    val excluded = listOfNotNull(NEEDS_SERVER_TAG, NEEDS_REGISTRIES_TAG.takeIf { project.hasProperty("fast") })
+    // The landform checks are their own task and their own bargain — `worldgen/Landforms.kt` argues it.
+    // They were three quarters of the cycle, paid on every commit by everyone, most of whom moved no rock.
+    val excluded = listOfNotNull(
+        NEEDS_SERVER_TAG,
+        NEEDS_LANDFORMS_TAG,
+        NEEDS_REGISTRIES_TAG.takeIf { project.hasProperty("fast") },
+    )
     systemProperty("kotest.tags", excluded.joinToString(" & ") { "!$it" })
 
     // Measured, not guessed: RegionShare samples four million columns and the registries are not small.
@@ -193,7 +202,7 @@ tasks.register<Test>("serverTest") {
     classpath = test.runtimeClasspath
     dependsOn(":fabric:exportServerLaunch")
 
-    systemProperty("kotest.tags", NEEDS_SERVER_TAG)
+    systemProperty("kotest.tags", "$NEEDS_SERVER_TAG & !$NEEDS_LANDFORMS_TAG")
     // One server, driven in sequence — so this task deliberately does *not* name `ConcurrentSpecs`.
     // Specs running together would each start a server and fight over one `server.properties` and one world.
     maxHeapSize = "2g"
@@ -202,6 +211,54 @@ tasks.register<Test>("serverTest") {
         events("failed", "passed")
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
         showStackTraces = true
+    }
+}
+
+/**
+ * The checks that read the shape of a landform — `./gradlew :common:landformTest`.
+ *
+ * **These warn rather than fail**, and `worldgen/Landforms.kt` carries the argument for why. What it costs
+ * is that nothing here can stop a bad build, so the task ends by naming every failure and counting them:
+ * a run that went red has to be something you scroll *to*, not something you scroll past.
+ *
+ * It boots a server, because one of them drives `/age compare` — the same tag spans both halves of the
+ * suite, since what makes these expensive and fiddly is the same on either side of a server.
+ */
+tasks.register<Test>("landformTest") {
+    group = "verification"
+    description = "Runs the landform shape checks. Reports failures without failing the build."
+    useJUnitPlatform()
+
+    testClassesDirs = test.output.classesDirs
+    classpath = test.runtimeClasspath
+    dependsOn(":fabric:exportServerLaunch")
+
+    systemProperty("kotest.tags", NEEDS_LANDFORMS_TAG)
+    maxHeapSize = "2g"
+    ignoreFailures = true
+
+    testLogging {
+        events("failed")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        showStackTraces = true
+    }
+
+    val slipped = mutableListOf<String>()
+    afterTest(
+        KotlinClosure2({ what: TestDescriptor, outcome: TestResult ->
+            if (outcome.resultType == TestResult.ResultType.FAILURE) slipped += "${what.className?.substringAfterLast('.')} — ${what.name}"
+        }),
+    )
+    doLast {
+        if (slipped.isEmpty()) return@doLast
+        logger.lifecycle("")
+        logger.lifecycle("=".repeat(78))
+        logger.lifecycle("  ${slipped.size} LANDFORM CHECK(S) FAILED — the build is green anyway, on purpose.")
+        logger.lifecycle("=".repeat(78))
+        slipped.forEach { logger.lifecycle("  $it") }
+        logger.lifecycle("  Full diagrams above, and in build/reports/tests/landformTest/index.html")
+        logger.lifecycle("=".repeat(78))
+        logger.lifecycle("")
     }
 }
 

@@ -1,10 +1,12 @@
 package co.voik.agesandtheart.worldgen.biome
 
+import co.voik.agesandtheart.worldgen.NEEDS_LANDFORMS
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.worldgen.IslandsField
 import co.voik.agesandtheart.worldgen.RiverlandsField
 import co.voik.agesandtheart.worldgen.field.Slab
 import com.mojang.datafixers.util.Pair
+import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import net.minecraft.resources.ResourceKey
 import net.minecraft.world.level.biome.Biome
@@ -42,6 +44,7 @@ private fun vanillasTable(): Climate.ParameterList<ResourceKey<Biome>> {
  * ground and read as one of this mod's intended oddities; a river whose bed reads as ocean grows kelp in
  * it and looks like weather. Neither is something a render distinguishes from a decision.
  */
+@Tags(NEEDS_LANDFORMS)
 class GroundingCheck : FunSpec({
 
     val waterline = 63

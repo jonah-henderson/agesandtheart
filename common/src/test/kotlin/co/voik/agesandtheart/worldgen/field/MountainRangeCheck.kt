@@ -1,6 +1,8 @@
 package co.voik.agesandtheart.worldgen.field
 
+import co.voik.agesandtheart.worldgen.NEEDS_LANDFORMS
 import co.voik.agesandtheart.worldgen.AlpsField
+import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.abs
@@ -16,6 +18,7 @@ import kotlin.math.abs
  * as straight-edged facets in a render and is easy to mistake for the landform's own geometry, which is
  * genuinely made of straight-edged facets. A number tells them apart; an eye does not.
  */
+@Tags(NEEDS_LANDFORMS)
 class MountainRangeCheck : FunSpec({
 
     val range = AlpsField.bareWorld()

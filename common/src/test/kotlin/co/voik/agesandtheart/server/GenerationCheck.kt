@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.server
 
+import co.voik.agesandtheart.worldgen.NEEDS_LANDFORMS
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
@@ -15,7 +16,7 @@ import io.kotest.core.spec.style.FunSpec
  * catch, and the two outcomes are orders of magnitude apart, so a loose bound loses nothing and survives
  * retuning.
  */
-@Tags(NEEDS_SERVER)
+@Tags(NEEDS_SERVER, NEEDS_LANDFORMS)
 class GenerationCheck : FunSpec({
     val server = DrivenServer.shared
 

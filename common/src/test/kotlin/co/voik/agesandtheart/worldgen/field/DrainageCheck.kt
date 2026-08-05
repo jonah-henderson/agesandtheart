@@ -1,6 +1,8 @@
 package co.voik.agesandtheart.worldgen.field
 
+import co.voik.agesandtheart.worldgen.NEEDS_LANDFORMS
 import co.voik.agesandtheart.worldgen.RiverlandsField
+import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import java.util.concurrent.ConcurrentHashMap
 
@@ -15,6 +17,7 @@ import java.util.concurrent.ConcurrentHashMap
  * Whether it looks like rivers is `./gradlew :common:preview --args=riverlands`, and the plan view is the
  * whole of it: a slice shows one arbitrary valley and says nothing about the branching.
  */
+@Tags(NEEDS_LANDFORMS)
 class DrainageCheck : FunSpec({
 
     // The network itself, before the weather wraps it — these ask about the drainage, not the erosion.

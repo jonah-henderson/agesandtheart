@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.worldgen.field
 
+import co.voik.agesandtheart.worldgen.NEEDS_LANDFORMS
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.content.AgeContent
@@ -17,7 +18,7 @@ import io.kotest.core.spec.style.FunSpec
  * throws before `Bootstrap.bootStrap()` and is frozen after it, and a loader's entrypoint is the only
  * thing that gets to run in between. [AgeContent] is where that list lives and neither loader may skip it.
  */
-@Tags(NEEDS_REGISTRIES)
+@Tags(NEEDS_REGISTRIES, NEEDS_LANDFORMS)
 class NearTheSurfaceCheck : FunSpec({
 
     val ground = Slab(lowY = -64, highY = 64)

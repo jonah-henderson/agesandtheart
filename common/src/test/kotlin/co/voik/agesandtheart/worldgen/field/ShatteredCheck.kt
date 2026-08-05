@@ -1,6 +1,8 @@
 package co.voik.agesandtheart.worldgen.field
 
+import co.voik.agesandtheart.worldgen.NEEDS_LANDFORMS
 import co.voik.agesandtheart.worldgen.ShatteredField
+import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import kotlin.math.ceil
 
@@ -12,6 +14,7 @@ import kotlin.math.ceil
  * `./gradlew :common:preview --args=shattered`, where the plan view is the whole picture: a cracked plate
  * has no cross-section worth drawing, every transect being one canyon or none.
  */
+@Tags(NEEDS_LANDFORMS)
 class ShatteredCheck : FunSpec({
 
     val world = ShatteredField.world()

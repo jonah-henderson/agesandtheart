@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.worldgen.field
 
+import co.voik.agesandtheart.worldgen.NEEDS_LANDFORMS
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
@@ -19,7 +20,7 @@ import net.minecraft.world.level.levelgen.DensityFunction
  * level it lies, or every cave in the world floods. So this cannot be a height, and the tests are about the
  * branch that tells the two cases apart.
  */
-@Tags(NEEDS_REGISTRIES)
+@Tags(NEEDS_REGISTRIES, NEEDS_LANDFORMS)
 class WaterTableCheck : FunSpec({
 
     val seaLevel = 63

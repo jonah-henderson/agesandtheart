@@ -1,6 +1,8 @@
 package co.voik.agesandtheart.worldgen.field
 
+import co.voik.agesandtheart.worldgen.NEEDS_LANDFORMS
 import co.voik.agesandtheart.worldgen.CanyonField
+import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import kotlin.math.PI
 import kotlin.math.ceil
@@ -15,6 +17,7 @@ import kotlin.math.ceil
  * The look is not asked about at all. That is `./gradlew :common:preview --args=canyon`, and reading the
  * slice across the bearing is the whole of it.
  */
+@Tags(NEEDS_LANDFORMS)
 class CanyonCheck : FunSpec({
 
     fun canyonAt(bearing: Double = 0.0, offset: Double = 0.0) =

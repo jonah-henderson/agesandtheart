@@ -78,6 +78,9 @@ export JAVA_HOME="$HOME/.sdkman/candidates/java/current"; export PATH="$JAVA_HOM
 # The server checks — boots a real server, drives it over RCON, asserts in Kotest
 ./gradlew :common:serverTest
 
+# The landform shape checks — opt-in, and they *warn* rather than fail (see "Tests")
+./gradlew :common:landformTest
+
 # Drive a headless server through a list of /age commands and read the output (see scripts/checks/)
 scripts/drive-server.sh scripts/checks/regions.txt
 ```
@@ -113,13 +116,27 @@ hour off the timestamp, so `at-least 100` could never pass and `at-most 2000` co
 
 Run directories are `runs/` (Fabric) and `run/` (NeoForge), both git-ignored. The first build/run downloads Minecraft, mappings, and the loader toolchains — slow once, then cached.
 
-**Tests:** `:common:test` is the whole offline suite — **Kotest**, one task, ~180 tests in about 45 seconds from cold.
+**Tests:** **Kotest**, in three tasks split by what they cost and what they are worth.
 
 ```bash
-./gradlew :common:test                    # everything
-./gradlew :common:test -Pfast             # skip the specs that need Minecraft's registries (~5s)
+./gradlew :common:test                     # the loop — everything but landforms and the server, ~18s
+./gradlew :common:test -Pfast              # and without the specs that need Minecraft's registries
 ./gradlew :common:test --tests "*Grammar*" # one spec
+./gradlew :common:serverTest               # boots a real server, drives it over RCON, ~53s
+./gradlew :common:landformTest             # the shape of the rock — opt-in, ~220s, and it only *warns*
 ```
+
+**`landformTest` warns rather than fails, deliberately** (`ignoreFailures`), and
+`common/src/test/kotlin/.../worldgen/Landforms.kt` carries the whole argument — read it before moving a
+check in or out. In short: sixteen specs sampling millions of terrain columns were three quarters of a
+five-minute cycle paid by everyone, they assert the emergent shape of layered noise so hand-authoring a
+landform trips one long before the landform is wrong, and the terrain system is built and rarely moves.
+The task ends by naming every failure under a banner, because a check that cannot fail a build is a check
+that can drift. **Run it when you touch terrain**, and read what it says.
+
+A check earns the tag by **sampling a field and asserting a shape**. Pure ones do not, however
+terrain-adjacent: `SpansCheck` is arithmetic, `ChooseCheck` a selection rule, `DepthCacheCheck` a cache
+agreeing with what it caches. Those stay in the task everyone runs.
 
 The specs live in `common/src/test/kotlin/`, in packages mirroring the code they check. They are the
 former `preview` "check" instruments — same assertions, same hand-written failure messages, now discovered

@@ -21,7 +21,7 @@ import net.minecraft.world.level.block.Blocks
  * Sits apart from `GreatHallsCheck` so that the geometry stays answerable without registries: a sea needs a
  * real `BlockState` and this one does not.
  */
-@Tags(NEEDS_REGISTRIES)
+@Tags(NEEDS_REGISTRIES, NEEDS_LANDFORMS)
 class GreatHallsWaterCheck : FunSpec({
 
     val floorY = -59

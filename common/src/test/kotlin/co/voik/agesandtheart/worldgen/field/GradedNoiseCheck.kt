@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.worldgen.field
 
+import co.voik.agesandtheart.worldgen.NEEDS_LANDFORMS
+import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
 /**
@@ -11,6 +13,7 @@ import io.kotest.core.spec.style.FunSpec
  * pocket of it there is no way to tell foam from ground. It is only visible in the profile of how much of
  * each height is solid, which is what these read.
  */
+@Tags(NEEDS_LANDFORMS)
 class GradedNoiseCheck : FunSpec({
 
     val lowY = 0

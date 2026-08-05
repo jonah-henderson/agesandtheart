@@ -1,6 +1,8 @@
 package co.voik.agesandtheart.worldgen.field
 
+import co.voik.agesandtheart.worldgen.NEEDS_LANDFORMS
 import co.voik.agesandtheart.worldgen.CanyonlandsField
+import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
 /**
@@ -11,6 +13,7 @@ import io.kotest.core.spec.style.FunSpec
  * like mesa country at spawn is an endless plain twenty thousand blocks out, and no render of the origin
  * would ever say so. Everything here is asked **near the origin and far from it**, and compared.
  */
+@Tags(NEEDS_LANDFORMS)
 class CanyonlandsCheck : FunSpec({
 
     val world = CanyonlandsField.world()

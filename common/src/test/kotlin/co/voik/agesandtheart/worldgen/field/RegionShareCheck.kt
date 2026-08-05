@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.worldgen.field
 
+import co.voik.agesandtheart.worldgen.NEEDS_LANDFORMS
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import io.kotest.core.annotation.Tags
@@ -15,7 +16,7 @@ import io.kotest.datatest.withData
  * it was measured against, so if `RegionMap`'s octave or amplitudes change these cases drift. **When this
  * fails, run `:common:claimprofile`**, which prints a replacement.
  */
-@Tags(NEEDS_REGISTRIES)
+@Tags(NEEDS_REGISTRIES, NEEDS_LANDFORMS)
 class RegionShareCheck : FunSpec({
 
     /**

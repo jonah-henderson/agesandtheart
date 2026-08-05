@@ -1,7 +1,9 @@
 package co.voik.agesandtheart.worldgen.field
 
+import co.voik.agesandtheart.worldgen.NEEDS_LANDFORMS
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.worldgen.IslandsField
+import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
 /**
@@ -11,6 +13,7 @@ import io.kotest.core.spec.style.FunSpec
  * one of them and says nothing about the next; two merging is a thing you would find by sailing, once, in
  * one world, at one size. It is arithmetic, so it is asserted as arithmetic.
  */
+@Tags(NEEDS_LANDFORMS)
 class IslandsCheck : FunSpec({
 
     /**
