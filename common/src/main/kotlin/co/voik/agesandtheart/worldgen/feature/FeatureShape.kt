@@ -13,6 +13,10 @@ import net.minecraft.world.level.levelgen.placement.HeightRangePlacement
 import net.minecraft.world.level.levelgen.placement.PlacedFeature
 import net.minecraft.world.level.levelgen.placement.PlacementModifier
 import kotlin.math.roundToInt
+import net.minecraft.tags.BlockTags
+import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.levelgen.XoroshiroRandomSource
+import net.minecraft.world.level.levelgen.structure.templatesystem.BlockMatchTest
 
 /**
  * What an Age's features are *like*, as opposed to how many of them there are ([FeatureDensity]).
@@ -33,14 +37,28 @@ object FeatureShape {
     fun asksForNothing(size: Double?, thickness: Double?, height: Double?): Boolean =
         size == null && thickness == null && height == null
 
+    /**
+     * Whether vanilla's ores can reach an Age made of [rock] at all.
+     *
+     * **They cannot, for most rock.** An ore feature replaces what its `RuleTest` matches, and vanilla's
+     * two are the tags `stone_ore_replaceables` — stone, granite, diorite, andesite — and
+     * `deepslate_ore_replaceables` — deepslate, tuff. An Age of blackstone, basalt or copper therefore
+     * grows no ore whatsoever, and says nothing about it, which is §3.3's silent drop in the one place a
+     * writer would least expect to find it.
+     */
+    fun oresCanReach(rock: List<BlockState>): Boolean = rock.all { block ->
+        block.`is`(BlockTags.STONE_ORE_REPLACEABLES) || block.`is`(BlockTags.DEEPSLATE_ORE_REPLACEABLES)
+    }
+
     fun reshaped(
         feature: Holder<PlacedFeature>,
         size: Double?,
         thickness: Double?,
         height: Double?,
+        rock: List<BlockState>,
     ): Holder<PlacedFeature> {
         val placed = feature.value()
-        val configured = withConfiguration(placed.feature(), size, thickness)
+        val configured = withConfiguration(placed.feature(), size, thickness, rock)
         val placement = withHeight(placed.placement(), height)
         if (configured === placed.feature() && placement === placed.placement()) return feature
         return Holder.direct(PlacedFeature(configured, placement))
@@ -57,15 +75,22 @@ object FeatureShape {
         configured: Holder<ConfiguredFeature<*, *>>,
         size: Double?,
         thickness: Double?,
+        rock: List<BlockState>,
     ): Holder<ConfiguredFeature<*, *>> {
         val feature = configured.value()
         val rebuilt = when (val configuration = feature.config()) {
-            is OreConfiguration -> size?.let {
-                OreConfiguration(
-                    configuration.targetStates,
-                    scaled(configuration.size, it, MOST_OF_A_VEIN),
-                    configuration.discardChanceOnAirExposure,
-                )
+            is OreConfiguration -> {
+                val targets = targetsReaching(configuration, rock)
+                val veins = size?.let { scaled(configuration.size, it, MOST_OF_A_VEIN) }
+                if (targets == null && veins == null) {
+                    null
+                } else {
+                    OreConfiguration(
+                        targets ?: configuration.targetStates,
+                        veins ?: configuration.size,
+                        configuration.discardChanceOnAirExposure,
+                    )
+                }
             }
 
             is VegetationPatchConfiguration -> thickness?.let {
@@ -91,6 +116,29 @@ object FeatureShape {
         @Suppress("UNCHECKED_CAST")
         val paired = ConfiguredFeature(feature.feature() as Feature<FeatureConfiguration>, rebuilt)
         return Holder.direct(paired)
+    }
+
+    /**
+     * This ore's targets with the Age's own [rock] added, or null where it could already reach it.
+     *
+     * **Asked of the `RuleTest` itself rather than of a tag**, so a modded ore with a target of its own
+     * answers for itself and nothing here has to know what it matches. A rock that passes no target at all
+     * gets one of its own, yielding whatever the ore's *first* target yields — vanilla lists the stone
+     * variant first and the deepslate one second, so an Age of blackstone gets diamond ore rather than
+     * deepslate diamond ore, which is the right one for a rock that is not deepslate.
+     */
+    private fun targetsReaching(
+        configuration: OreConfiguration,
+        rock: List<BlockState>,
+    ): List<OreConfiguration.TargetBlockState>? {
+        val probe = XoroshiroRandomSource(A_FIXED_PROBE)
+        val unreached = rock.filterNot { block ->
+            configuration.targetStates.any { it.target.test(block, probe) }
+        }
+        if (unreached.isEmpty()) return null
+        val ore = configuration.targetStates.firstOrNull()?.state ?: return null
+        return configuration.targetStates +
+            unreached.distinct().map { OreConfiguration.target(BlockMatchTest(it.block), ore) }
     }
 
     /**
@@ -133,6 +181,13 @@ object FeatureShape {
         val factor = FAINTEST + Span.NATURAL.fractionOf(dial) * (RICHEST - FAINTEST)
         return (ordinary * factor).toFloat().coerceIn(0.05f, 1.0f)
     }
+
+    /**
+     * A `RuleTest` takes a source of randomness, and a probabilistic one would answer differently each
+     * time it were asked. Asking with a fixed one can only ever say "cannot reach" where it sometimes
+     * could, which adds a target that was not needed and changes nothing.
+     */
+    private const val A_FIXED_PROBE = 0x0DE_5EEDL
 
     /** The band a steered feature sits in — the world's floor to well above the surface. */
     private const val DEEPEST = -56.0

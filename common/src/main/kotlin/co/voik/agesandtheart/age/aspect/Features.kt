@@ -11,6 +11,7 @@ import net.minecraft.resources.ResourceKey
 import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.biome.BiomeGenerationSettings
+import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.GenerationStep
 import net.minecraft.world.level.levelgen.placement.PlacedFeature as VanillaPlacedFeature
 import java.util.concurrent.ConcurrentHashMap
@@ -74,12 +75,17 @@ object Features {
         server: MinecraftServer,
         options: Options,
         salt: Long,
+        rock: List<BlockState>,
     ): (Holder<Biome>) -> BiomeGenerationSettings {
         val asked = Population.of(options.claimsOn(PLACES))
         val shape = Shape(
             size = options.steer(SIZE, salt),
             thickness = options.steer(THICKNESS, salt),
             height = options.steer(HEIGHT, salt),
+            // **Not a knob a writer turns.** An ore replaces what its rule matches, and vanilla's rules
+            // match vanilla's stone — so an Age made of anything else grows no ore at all unless the rock
+            // it *is* gets added to them. Carried here because this is where a feature is rebuilt.
+            rock = rock,
         )
         if (asked.isSilent && shape.asksForNothing) return { biome -> biome.value().generationSettings }
         val added = wanted(server, asked)
@@ -96,11 +102,18 @@ object Features {
     }
 
     /** The three dials together, since every one of them travels to the same place. */
-    private data class Shape(val size: Double?, val thickness: Double?, val height: Double?) {
-        val asksForNothing: Boolean get() = FeatureShape.asksForNothing(size, thickness, height)
+    private data class Shape(
+        val size: Double?,
+        val thickness: Double?,
+        val height: Double?,
+        val rock: List<BlockState>,
+    ) {
+        /** Nothing turned, and nothing to reach — the case where a feature is handed back untouched. */
+        val asksForNothing: Boolean
+            get() = FeatureShape.asksForNothing(size, thickness, height) && FeatureShape.oresCanReach(rock)
 
         fun applied(feature: Holder<VanillaPlacedFeature>): Holder<VanillaPlacedFeature> =
-            if (asksForNothing) feature else FeatureShape.reshaped(feature, size, thickness, height)
+            if (asksForNothing) feature else FeatureShape.reshaped(feature, size, thickness, height, rock)
     }
 
     /**

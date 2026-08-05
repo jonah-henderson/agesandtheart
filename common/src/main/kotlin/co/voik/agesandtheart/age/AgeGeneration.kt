@@ -184,7 +184,7 @@ object AgeGeneration {
             window,
             hollows,
             // What is placed, which vanilla's own decoration hook takes it — see [Features] for the seam.
-            Features.placedIn(server, composition.optionsFor(Aspect.FEATURES, 0), seed),
+            Features.placedIn(server, composition.optionsFor(Aspect.FEATURES, 0), seed, fill.blocks.flatten()),
         )
     }
 
