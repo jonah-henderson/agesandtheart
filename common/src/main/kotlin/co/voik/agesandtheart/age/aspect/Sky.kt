@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.aspect
 
 import co.voik.agesandtheart.age.AgeGeneration
+import co.voik.agesandtheart.sky.Look
 import co.voik.agesandtheart.sky.SkySpec
 import co.voik.agesandtheart.sky.SpireSky
 import net.minecraft.resources.Identifier
@@ -15,16 +16,16 @@ import kotlin.math.roundToInt
  * a writer: two moons is a thing to say about a sky, and fifteen hundred stars is not. [SkySpec.drawn] takes
  * it from there.
  */
-enum class Sky(override val key: String, val ownDimensionType: Identifier) : AspectPreset {
+enum class Sky(override val key: String) : AspectPreset {
     /** An ordinary sky — vanilla's own air and clouds. */
-    PLAIN("plain", AgeGeneration.AGE_DIMENSION_TYPE),
+    PLAIN("plain"),
 
     /**
      * A troubled sky — **which has no look of its own yet, so it currently renders as [PLAIN]**. A known
      * gap, not a silent drop: the choice is still recorded in the recipe and is still what `gloomy` and
      * `dramatic` resolve to. It gets its look back when clouds and atmosphere become authorable.
      */
-    STORM("storm", AgeGeneration.AGE_DIMENSION_TYPE),
+    STORM("storm"),
 
     /**
      * The Spire's own sky: two roiling cloud decks and stars that appear only above them. Written down in
@@ -33,7 +34,7 @@ enum class Sky(override val key: String, val ownDimensionType: Identifier) : Asp
      * Deliberately out of the resolver's reach — no word chooses it and `preset_tags/sky.json` omits it,
      * so it is reachable only by a preset that pins it.
      */
-    SPIRE("spire", AgeGeneration.AGE_SPIRE_DIMENSION_TYPE),
+    SPIRE("spire"),
     ;
 
     override val aspect = Aspect.SKY
@@ -48,12 +49,14 @@ enum class Sky(override val key: String, val ownDimensionType: Identifier) : Asp
     override val parameters: List<Parameter> get() = listOf(SUNS, MOONS, STARS, ORBITS)
 
     /**
-     * Which dimension type this Age needs. Only the **colour of the air** still varies — what is drawn
-     * overhead comes from the Age's [SkySpec], but a spec carries no sky, fog or cloud colour, so a sky
-     * wanting its own palette still needs a type to put it in. The band of world is not chosen here and
-     * must not be: see [AgeGeneration.dimensionType].
+     * The look this preset paints under whatever the sentence asked for, or [Look.NOTHING] where it has
+     * none of its own.
+     *
+     * **This is what a dimension type used to carry.** The Spire wore one of its own for five colours, and
+     * `Atmosphere` says all five better — so the palette moved here, where it can be laid *under* a
+     * writer's own instead of competing with it for a pre-authored file.
      */
-    fun dimensionType(): Identifier = ownDimensionType
+    fun look(): Look = if (this == SPIRE) SpireSky.LOOK else Look.NOTHING
 
     /**
      * The sky this preset asks for, drawn from the Age's [seed].
@@ -94,6 +97,50 @@ enum class Sky(override val key: String, val ownDimensionType: Identifier) : Asp
          * [ORDINARY_SPREAD], which reads as a sky rather than as a diagram.
          */
         val ORBITS = Parameter.ranged("orbits")
+
+        /**
+         * Whether the sky reaches the ground at all — the dimension type's `has_skylight`, and **not**
+         * `Atmosphere.DAYLIGHT`, which is a dimmer. This one stops skylight propagating: it is dark in the
+         * open at noon, monsters spawn on the surface, and nothing that needs sky grows.
+         */
+        val SKYLIGHT = Parameter("skylight", Atmosphere.AS_EVER, "none")
+
+        /**
+         * Whether the world is treated as roofed — the dimension type's `has_ceiling`, and **it builds no
+         * roof**. Checked against 26.1.2 rather than remembered: four things read it, and none of them
+         * places a block. It never rains or snows (`Level.canHaveWeather`), maps go static
+         * (`MapItem.update`), mobs stop spawning off the surface heightmap and so spawn at every depth
+         * (`NaturalSpawner.getTopNonCollidingPos`), and respawn searches differently
+         * (`PlayerSpawnFinder`). Bedrock over the nether is its *chunk generator's* surface rule and has
+         * never been this flag.
+         *
+         * The things this used to do moved out in 26.1: `bed_rule` and `respawn_anchor_works` are
+         * environment attributes now, and the Age types set them directly.
+         *
+         * Named for what a writer sees rather than for vanilla's key, because `ceiling` is already how high
+         * the *clouds* sit (`Atmosphere.CEILING`) and one `sets` map carries both.
+         */
+        val ROOF = Parameter("roof", Atmosphere.AS_EVER, "always")
+
+        /**
+         * The pre-authored type an Age wearing these dials needs.
+         *
+         * **Four files, and that is the whole reason only two switches are here** (Jonah, 2026-08-04). A
+         * composed `DimensionType` cannot be encoded in the join packet, so every combination has to be a
+         * JSON we ship, and each further switch doubles them. The band of world is deliberately not among
+         * them: all four declare [co.voik.agesandtheart.worldgen.VerticalWindow.DEFAULT], so no sky can
+         * move an Age's floor.
+         */
+        fun dimensionType(options: Options): Identifier {
+            val isLightless = options.of(SKYLIGHT) == "none"
+            val isRoofed = options.of(ROOF) == "always"
+            return when {
+                isLightless && isRoofed -> AgeGeneration.AGE_LIGHTLESS_ROOFED_DIMENSION_TYPE
+                isLightless -> AgeGeneration.AGE_LIGHTLESS_DIMENSION_TYPE
+                isRoofed -> AgeGeneration.AGE_ROOFED_DIMENSION_TYPE
+                else -> AgeGeneration.AGE_DIMENSION_TYPE
+            }
+        }
 
         /** As many as a numeral page will be able to ask for, which is where §3.2 puts the ceiling. */
         private const val MANY_BODIES = 10

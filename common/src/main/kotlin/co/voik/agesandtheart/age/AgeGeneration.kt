@@ -7,6 +7,7 @@ import co.voik.agesandtheart.worldgen.field.WaterTable
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Terrain
+import co.voik.agesandtheart.sky.Look
 import co.voik.agesandtheart.sky.SkySpec
 import co.voik.agesandtheart.sky.SpireSky
 import co.voik.agesandtheart.worldgen.biome.AgeBiomeSource
@@ -41,6 +42,7 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.age.aspect.Structures
+import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.Surface
 
 /**
@@ -48,11 +50,16 @@ import co.voik.agesandtheart.age.aspect.Surface
  * server, for registries), because an Age must rebuild identically on every open.
  */
 object AgeGeneration {
-    /** The dimension type every generated Age wears. */
+    /**
+     * The four types an Age may wear — `Sky.SKYLIGHT` and `Sky.ROOF`, spelled out.
+     *
+     * A composed `DimensionType` cannot be encoded in the join packet, so every combination is a file, and
+     * each further switch would double them. All four declare the same band of world.
+     */
     val AGE_DIMENSION_TYPE: Identifier = "age".location()
-
-    /** The Spire's own dimension type, which differs only in the storm-grey it paints the air. */
-    val AGE_SPIRE_DIMENSION_TYPE: Identifier = "age_spire".location()
+    val AGE_LIGHTLESS_DIMENSION_TYPE: Identifier = "age_lightless".location()
+    val AGE_ROOFED_DIMENSION_TYPE: Identifier = "age_roofed".location()
+    val AGE_LIGHTLESS_ROOFED_DIMENSION_TYPE: Identifier = "age_lightless_roofed".location()
 
     /** The custom biome (green plasma water), registered as a datapack biome at load. */
     val PLASMA_BIOME: Identifier = "plasma".location()
@@ -342,17 +349,19 @@ object AgeGeneration {
     private val TERRITORY_SALT_STRIDE = 0x9E37_79B9_7F4A_7C15uL.toLong()
 
     /**
-     * The dimension type an Age wears — **the colour of its air, and nothing else**. What is drawn overhead
-     * is the Age's [co.voik.agesandtheart.sky.SkySpec], read per frame by the renderer, but a [SkySpec]
-     * carries no sky, fog or cloud colour and those are still dimension-type data.
+     * The dimension type an Age wears — **whether the sky reaches it, and whether there is rock overhead**.
      *
-     * The band of world is deliberately *not* here. Both types declare [VerticalWindow.DEFAULT], so a sky
-     * cannot move an Age's floor — which is exactly what it used to do, to any landform reaching below y=0
-     * that drew the Spire's sky by chance.
+     * It used to be the colour of the air, which is why the Spire had a type of its own; `Atmosphere` says
+     * every one of those colours better, so the palette moved to a [co.voik.agesandtheart.sky.Look] and
+     * what is left here is the two things only a pre-authored file can carry.
+     *
+     * The band of world is deliberately *not* here. All four types declare [VerticalWindow.DEFAULT], so a
+     * sky cannot move an Age's floor — which is exactly what it used to do, to any landform reaching below
+     * y=0 that drew the Spire's sky by chance.
      */
     fun dimensionType(recipe: AgeRecipe): Identifier = when (val world = recipe.world) {
-        is AgeWorld.Composed -> world.composition.sky.dimensionType()
-        is AgeWorld.Bespoke -> if (world.preset == AgePreset.SPIRE) AGE_SPIRE_DIMENSION_TYPE else AGE_DIMENSION_TYPE
+        is AgeWorld.Composed -> Sky.dimensionType(world.composition.optionsFor(Aspect.SKY, 0))
+        is AgeWorld.Bespoke -> AGE_DIMENSION_TYPE
     }
 
     /**
@@ -367,5 +376,14 @@ object AgeGeneration {
             recipe.seed,
         )
         is AgeWorld.Bespoke -> if (world.preset == AgePreset.SPIRE) SpireSky.SPEC else SkySpec.VANILLA
+    }
+
+    /**
+     * The look an Age's sky preset paints under whatever its sentence asked for. Reached the same two ways
+     * [skySpec] is, and for the same reason: the handcrafted Age never passes through a composition.
+     */
+    fun presetLook(recipe: AgeRecipe): Look = when (val world = recipe.world) {
+        is AgeWorld.Composed -> world.composition.sky.look()
+        is AgeWorld.Bespoke -> if (world.preset == AgePreset.SPIRE) SpireSky.LOOK else Look.NOTHING
     }
 }

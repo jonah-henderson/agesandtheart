@@ -69,11 +69,14 @@ object Skies {
         if (id !in saved.ages) return null
         val recipe = saved.recipe(id)
         val air = recipe.composition?.optionsFor(Aspect.ATMOSPHERE, 0) ?: Options.NONE
+        // The sky preset's own palette goes **underneath**: it is what the Age looks like before anyone
+        // said anything, so a writer who repaints one colour of a Spire-skied Age keeps the rest.
+        val painted = AgeGeneration.presetLook(recipe)
         return LookPayload.Entry(
             dimension,
             AgeGeneration.skySpec(recipe),
-            Atmosphere.lookIn(air, recipe.seed),
-            Atmosphere.cornersOf(air).associateWith { Atmosphere.lookIn(air, recipe.seed, it) },
+            Atmosphere.lookIn(air, recipe.seed).over(painted),
+            Atmosphere.cornersOf(air).associateWith { Atmosphere.lookIn(air, recipe.seed, it).over(painted) },
         )
     }
 }

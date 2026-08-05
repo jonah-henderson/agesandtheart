@@ -30,6 +30,23 @@ data class Look(
         get() = sky == null && fog == null && cloud == null && tint == null &&
             motes == null && haze == null && ceiling == null && murk == null
 
+    /**
+     * This look over [under] — every colour of ours that was named, and [under]'s where it was not.
+     *
+     * Which way round matters: a preset's palette is what an Age looks like *before* anyone said anything,
+     * so it goes underneath, and a writer who repaints the sky of a Spire-skied Age keeps its clouds.
+     */
+    fun over(under: Look): Look = Look(
+        sky = sky ?: under.sky,
+        fog = fog ?: under.fog,
+        cloud = cloud ?: under.cloud,
+        tint = tint ?: under.tint,
+        motes = motes ?: under.motes,
+        haze = haze ?: under.haze,
+        ceiling = ceiling ?: under.ceiling,
+        murk = murk ?: under.murk,
+    )
+
     companion object {
         val NOTHING = Look()
 

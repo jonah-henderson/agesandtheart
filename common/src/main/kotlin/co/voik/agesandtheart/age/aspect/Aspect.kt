@@ -120,7 +120,12 @@ enum class Aspect(val key: String) : StringRepresentable {
                 Atmosphere.CEILING,
                 Atmosphere.MURK,
             )
-            TERRAIN, SEA, CARVERS, SKY -> emptyList()
+            // A preset aspect with dials: the two switches that pick the Age's dimension type. They sit
+            // here rather than on `Atmosphere` because they are chosen when the Age is *made* and baked
+            // into a pre-authored file, where every atmosphere dial is laid over a level that is already
+            // open — which is also why these two alone cannot be confined to a biome.
+            SKY -> listOf(Sky.SKYLIGHT, Sky.ROOF)
+            TERRAIN, SEA, CARVERS -> emptyList()
         }
 
     /**

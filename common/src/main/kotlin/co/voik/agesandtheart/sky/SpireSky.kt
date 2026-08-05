@@ -24,6 +24,25 @@ object SpireSky {
      */
     const val LOWER_DECK_HEIGHT = SpireField.DECK_Y - 3.0
 
+    /**
+     * The storm-grey the Spire paints its air, which used to be a dimension type of its own.
+     *
+     * Held here as exact colours rather than drawn from `Colour`'s nine: nothing resolves to this sky, a
+     * preset pins it, so these are the numbers a person chose and not a word's answer.
+     *
+     * [Look.ceiling] is a fraction of the cloud band rather than a height, so 0.656 is the 201 blocks the
+     * dimension type used to declare.
+     */
+    val LOOK = Look(
+        sky = Rgba(0.22f, 0.25f, 0.26f),
+        fog = Rgba(0.30f, 0.33f, 0.34f),
+        cloud = Rgba(0.30f, 0.33f, 0.34f, alpha = 0.80f),
+        ceiling = SPIRE_CLOUD_CEILING,
+    )
+
+    /** Where 201 blocks sits on `AgeAir`'s 96..256 cloud band. */
+    private const val SPIRE_CLOUD_CEILING = 0.656f
+
     /** Mostly light grey with cool blue-grey darker spots, drifting faster than the deck below. */
     private val UPPER_DECK = CloudDeck(
         height = UPPER_DECK_HEIGHT,

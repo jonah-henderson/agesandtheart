@@ -1,0 +1,12 @@
+{
+  "tier": "exact",
+  "aspects": [
+    "sky"
+  ],
+  "sets": {
+    "skylight": "none",
+    "suns": "0",
+    "moons": "0",
+    "stars": "-1.0..-1.0"
+  }
+}

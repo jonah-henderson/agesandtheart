@@ -930,6 +930,10 @@ object Resolver {
      * A parameter holds one answer, so unjoined claims contend: the most precise wins, the seed breaks a
      * tie, and every loser is charged as displaced. Joining them changes what was asked rather than who
      * wins — "blackstone **and** tuff" is one rock made of both. Only the winner's own group joins it.
+     *
+     * **Two words asking for the same thing are not contending**, which is the rule [agree] already
+     * carries for grouping and this path was missing: `intergalactic lost` set no suns twice and was
+     * charged twelve instability for agreeing with itself.
      */
     private fun AgeComposition.contended(
         aspect: Aspect,
@@ -938,7 +942,9 @@ object Resolver {
         flaws: MutableList<Flaw>,
     ): AgeComposition {
         val winner = contenders.first()
-        val mingled = contenders.filter { it == winner || wereJoined(it, winner) }
+        fun asksWhatTheWinnerAsks(said: Constraint) =
+            said.word.sets[parameter] == winner.word.sets[parameter]
+        val mingled = contenders.filter { it == winner || wereJoined(it, winner) || asksWhatTheWinnerAsks(it) }
         for (loser in contenders - mingled.toSet()) {
             flaws += flaw(Register.DISPLACED, listOf(loser, winner), aspect, emptyList(), loser.word.tier)
         }

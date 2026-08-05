@@ -23,7 +23,7 @@ data class VerticalWindow(val minY: Int, val height: Int) {
     val topY: Int get() = minY + height
 
     companion object {
-        /** Matches both `agesandtheart:age` and `agesandtheart:age_spire`. */
+        /** Matches all four `agesandtheart:age…` dimension types, which differ only in light and roof. */
         val DEFAULT = VerticalWindow(minY = -64, height = 384)
 
         val CODEC: Codec<VerticalWindow> = RecordCodecBuilder.create { instance ->

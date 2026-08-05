@@ -104,9 +104,17 @@ value class Options(val chosen: Map<String, List<String>> = emptyMap()) {
             .nextDouble() * span.width
     }
 
-    /** Names this preset does not understand — a typo, or a knob some later version removed. */
-    fun unknownTo(preset: AspectPreset): Set<String> =
-        chosen.keys - preset.parameters.map(Parameter::name).toSet()
+    /**
+     * Names neither this preset nor its aspect understands — a typo, or a knob some later version removed.
+     *
+     * **The aspect's dials count too.** A preset aspect may hold knobs of its own that no preset declares —
+     * `Sky.SKYLIGHT` belongs to every sky rather than to one — and asking the preset alone reported them as
+     * unrecognised in `/age list` while they were working perfectly.
+     */
+    fun unknownTo(preset: AspectPreset): Set<String> {
+        val understood = (preset.parameters + preset.aspect.dials).map(Parameter::name).toSet()
+        return chosen.keys - understood
+    }
 
     /** How a writer would have said it: `arrangement=rings stone=blackstone,tuff`, or nothing at all. */
     override fun toString(): String = chosen.entries.sortedBy { it.key }
