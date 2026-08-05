@@ -1,0 +1,14 @@
+{
+  "tier": "restrictive",
+  "aspects": [
+    "atmosphere"
+  ],
+  "query": {
+    "barren": 1.0,
+    "dry": 0.7
+  },
+  "sets": {
+    "motes": "ash",
+    "haze": "0.3..0.7"
+  }
+}

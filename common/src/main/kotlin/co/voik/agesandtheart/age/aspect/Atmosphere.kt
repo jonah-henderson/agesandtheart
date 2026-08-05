@@ -66,6 +66,30 @@ object Atmosphere {
     /** How high the clouds sit, on the same argument: one number a word bends. */
     val CEILING = Parameter.ranged("ceiling")
 
+    /**
+     * The colour of the water — **what you see through it**, since that is what vanilla lets an Age
+     * decide. The surface tint lives on `BiomeSpecialEffects` and needs a biome authored to move, which is
+     * what `agesandtheart:plasma` is; the fog underwater is an attribute and needs nothing.
+     *
+     * One knob rather than three, on the same argument as [HAZE]: there is no world worth writing where
+     * the water is one colour and the water's fog another.
+     */
+    val WATER = colour("water")
+
+    /**
+     * What colour the light itself is — a world *lit* red, which is a different thing from a red sky.
+     *
+     * One knob over both the sky's light and the ambient, because a writer who says the light is green
+     * means all of it.
+     */
+    val TINT = colour("tint")
+
+    /**
+     * What hangs in the air — vanilla's own particles, named. Populative in spirit and a dial in shape: an
+     * Age has one kind of dust in it, and the day that stops being true this becomes a claim.
+     */
+    val MOTES = Parameter("motes", listOf(AS_EVER) + Motes.ALL)
+
     private fun colour(name: String) = Parameter(name, listOf(AS_EVER) + Colour.ALL)
 
     /**
@@ -100,13 +124,16 @@ object Atmosphere {
         sky = colourOf(options, SKY, biome),
         fog = colourOf(options, FOG, biome),
         cloud = colourOf(options, CLOUD, biome),
+        water = colourOf(options, WATER, biome),
+        tint = colourOf(options, TINT, biome),
+        motes = options.of(MOTES, biome).takeUnless { it == AS_EVER },
         haze = options.steer(HAZE, salt, biome)?.let(Span.NATURAL::fractionOf)?.toFloat(),
         ceiling = options.steer(CEILING, salt, biome)?.let(Span.NATURAL::fractionOf)?.toFloat(),
     )
 
     /** Every biome any dial of this aspect was confined to, visual or not. */
     fun cornersOf(options: Options): List<Identifier> =
-        listOf(DAYLIGHT, SUNBURN, EVAPORATION, SKY, FOG, CLOUD, HAZE, CEILING)
+        listOf(DAYLIGHT, SUNBURN, EVAPORATION, SKY, FOG, CLOUD, WATER, TINT, MOTES, HAZE, CEILING)
             .flatMap(options::confinedIn)
             .distinct()
 

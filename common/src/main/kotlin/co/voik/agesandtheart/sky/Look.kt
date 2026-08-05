@@ -19,11 +19,16 @@ data class Look(
     val sky: Rgba? = null,
     val fog: Rgba? = null,
     val cloud: Rgba? = null,
+    val water: Rgba? = null,
+    val tint: Rgba? = null,
+    /** The particle that hangs in the air, by its registry id — see `Motes`. */
+    val motes: String? = null,
     val haze: Float? = null,
     val ceiling: Float? = null,
 ) {
     val saysNothing: Boolean
-        get() = sky == null && fog == null && cloud == null && haze == null && ceiling == null
+        get() = sky == null && fog == null && cloud == null && water == null && tint == null &&
+            motes == null && haze == null && ceiling == null
 
     companion object {
         val NOTHING = Look()
@@ -33,10 +38,22 @@ data class Look(
                 Rgba.CODEC.optionalFieldOf("sky").forGetter { java.util.Optional.ofNullable(it.sky) },
                 Rgba.CODEC.optionalFieldOf("fog").forGetter { java.util.Optional.ofNullable(it.fog) },
                 Rgba.CODEC.optionalFieldOf("cloud").forGetter { java.util.Optional.ofNullable(it.cloud) },
+                Rgba.CODEC.optionalFieldOf("water").forGetter { java.util.Optional.ofNullable(it.water) },
+                Rgba.CODEC.optionalFieldOf("tint").forGetter { java.util.Optional.ofNullable(it.tint) },
+                Codec.STRING.optionalFieldOf("motes").forGetter { java.util.Optional.ofNullable(it.motes) },
                 Codec.FLOAT.optionalFieldOf("haze").forGetter { java.util.Optional.ofNullable(it.haze) },
                 Codec.FLOAT.optionalFieldOf("ceiling").forGetter { java.util.Optional.ofNullable(it.ceiling) },
-            ).apply(instance) { sky, fog, cloud, haze, ceiling ->
-                Look(sky.orElse(null), fog.orElse(null), cloud.orElse(null), haze.orElse(null), ceiling.orElse(null))
+            ).apply(instance) { sky, fog, cloud, water, tint, motes, haze, ceiling ->
+                Look(
+                    sky.orElse(null),
+                    fog.orElse(null),
+                    cloud.orElse(null),
+                    water.orElse(null),
+                    tint.orElse(null),
+                    motes.orElse(null),
+                    haze.orElse(null),
+                    ceiling.orElse(null),
+                )
             }
         }
     }

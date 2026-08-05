@@ -114,6 +114,9 @@ enum class Aspect(val key: String) : StringRepresentable {
                 Atmosphere.SKY,
                 Atmosphere.FOG,
                 Atmosphere.CLOUD,
+                Atmosphere.WATER,
+                Atmosphere.TINT,
+                Atmosphere.MOTES,
                 Atmosphere.HAZE,
                 Atmosphere.CEILING,
             )

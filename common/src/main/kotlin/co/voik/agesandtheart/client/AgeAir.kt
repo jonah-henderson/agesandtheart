@@ -1,9 +1,12 @@
 package co.voik.agesandtheart.client
 
+import co.voik.agesandtheart.age.aspect.Motes
 import co.voik.agesandtheart.sky.KnownLooks
 import co.voik.agesandtheart.sky.Look
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
+import net.minecraft.resources.Identifier
+import net.minecraft.world.attribute.AmbientParticle
 import net.minecraft.world.attribute.EnvironmentAttribute
 import net.minecraft.world.attribute.EnvironmentAttributeMap
 import net.minecraft.world.attribute.EnvironmentAttributeSystem
@@ -43,7 +46,7 @@ object AgeAir {
             air.set(attribute, value)
         }
 
-        fun onlyIn(layers: EnvironmentAttributeSystem.Builder, level: ClientLevel, biome: net.minecraft.resources.Identifier) {
+        fun onlyIn(layers: EnvironmentAttributeSystem.Builder, level: ClientLevel, biome: Identifier) {
             layers.addPositionalLayer(attribute) { below, at, _ ->
                 val here = level.getBiome(BlockPos.containing(at)).unwrapKey().orElse(null)?.identifier()
                 if (here == biome) value else below
@@ -55,20 +58,43 @@ object AgeAir {
      * What one [Look] paints.
      *
      * [Look.haze] and [Look.ceiling] arrive as fractions of their own axis rather than distances, because a
-     * writer says how thick the air is and only the client knows how far it can see. **Fog is one knob for
-     * vanilla's two distances**: the far edge runs from close to far across the axis, and the near edge is
-     * a fixed share of it, so thickening the air always draws it in rather than inverting at some point.
+     * writer says how thick the air is and only the client knows how far it can see.
+     *
+     * **One knob where vanilla has several**, three times over: fog is a far edge with the near one a fixed
+     * share of it, so thickening always draws the fog in rather than inverting somewhere in the middle;
+     * water is its colour and how far you see through it; and the light is the sky's and the ambient
+     * together, because a writer who says the light is green means all of it. Each of the granular sets is
+     * still there for the day a word wants one.
      */
     private fun painting(look: Look): List<Painted<*>> = buildList {
         look.sky?.let { add(Painted(EnvironmentAttributes.SKY_COLOR, it.packed())) }
         look.cloud?.let { add(Painted(EnvironmentAttributes.CLOUD_COLOR, it.packed())) }
         look.fog?.let { add(Painted(EnvironmentAttributes.FOG_COLOR, it.packed())) }
+        // One knob for the water, on the same argument as the fog: there is no world worth writing where
+        // the water is one colour and what you see through it another.
+        look.water?.let {
+            add(Painted(EnvironmentAttributes.WATER_FOG_COLOR, it.packed()))
+            add(Painted(EnvironmentAttributes.WATER_FOG_END_DISTANCE, WATER_CLOSES_IN))
+            add(Painted(EnvironmentAttributes.WATER_FOG_START_DISTANCE, WATER_CLOSES_IN * NEAR_SHARE_OF_FAR))
+        }
+        // And one for the light, because a writer who says the light is green means all of it.
+        look.tint?.let {
+            add(Painted(EnvironmentAttributes.SKY_LIGHT_COLOR, it.packed()))
+            add(Painted(EnvironmentAttributes.AMBIENT_LIGHT_COLOR, it.packed()))
+        }
+        look.motes?.let { named ->
+            Motes.named(named)?.let {
+                add(Painted(EnvironmentAttributes.AMBIENT_PARTICLES, AmbientParticle.of(it, MOTE_CHANCE)))
+            }
+        }
         look.haze?.let { haze ->
             val far = FURTHEST - haze * (FURTHEST - NEAREST)
             add(Painted(EnvironmentAttributes.FOG_END_DISTANCE, far))
             add(Painted(EnvironmentAttributes.FOG_START_DISTANCE, far * NEAR_SHARE_OF_FAR))
         }
-        look.ceiling?.let { add(Painted(EnvironmentAttributes.CLOUD_HEIGHT, LOWEST_CLOUD + it * (HIGHEST_CLOUD - LOWEST_CLOUD))) }
+        look.ceiling?.let {
+            add(Painted(EnvironmentAttributes.CLOUD_HEIGHT, LOWEST_CLOUD + it * (HIGHEST_CLOUD - LOWEST_CLOUD)))
+        }
     }
 
     private fun asAttributeMap(look: Look): EnvironmentAttributeMap {
@@ -83,6 +109,16 @@ object AgeAir {
 
     /** Where the fog begins, as a share of where it ends — vanilla's own ratio is about this. */
     private const val NEAR_SHARE_OF_FAR = 0.25f
+
+    /**
+     * How far you see underwater in a coloured sea, in blocks. Fixed rather than a knob of its own: the
+     * colour is what a writer is asking for, and water that is red *and* clear is a distinction nobody has
+     * wanted yet.
+     */
+    private const val WATER_CLOSES_IN = 48f
+
+    /** How often a mote appears, per eligible position per tick — vanilla's own ambient rates sit here. */
+    private const val MOTE_CHANCE = 0.118f
 
     /** The band the cloud deck moves through, in blocks. */
     private const val LOWEST_CLOUD = 96f
