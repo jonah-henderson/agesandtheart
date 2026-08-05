@@ -4,6 +4,8 @@
     "atmosphere"
   ],
   "sets": {
-    "water": "black"
+    "sky": "black",
+    "fog": "black",
+    "haze": "0.6..0.9"
   }
 }

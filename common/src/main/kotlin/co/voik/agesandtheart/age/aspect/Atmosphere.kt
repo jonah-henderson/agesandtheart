@@ -67,16 +67,6 @@ object Atmosphere {
     val CEILING = Parameter.ranged("ceiling")
 
     /**
-     * The colour of the water — **what you see through it**, since that is what vanilla lets an Age
-     * decide. The surface tint lives on `BiomeSpecialEffects` and needs a biome authored to move, which is
-     * what `agesandtheart:plasma` is; the fog underwater is an attribute and needs nothing.
-     *
-     * One knob rather than three, on the same argument as [HAZE]: there is no world worth writing where
-     * the water is one colour and the water's fog another.
-     */
-    val WATER = colour("water")
-
-    /**
      * What colour the light itself is — a world *lit* red, which is a different thing from a red sky.
      *
      * One knob over both the sky's light and the ambient, because a writer who says the light is green
@@ -124,7 +114,6 @@ object Atmosphere {
         sky = colourOf(options, SKY, biome),
         fog = colourOf(options, FOG, biome),
         cloud = colourOf(options, CLOUD, biome),
-        water = colourOf(options, WATER, biome),
         tint = colourOf(options, TINT, biome),
         motes = options.of(MOTES, biome).takeUnless { it == AS_EVER },
         haze = options.steer(HAZE, salt, biome)?.let(Span.NATURAL::fractionOf)?.toFloat(),
@@ -133,7 +122,7 @@ object Atmosphere {
 
     /** Every biome any dial of this aspect was confined to, visual or not. */
     fun cornersOf(options: Options): List<Identifier> =
-        listOf(DAYLIGHT, SUNBURN, EVAPORATION, SKY, FOG, CLOUD, WATER, TINT, MOTES, HAZE, CEILING)
+        listOf(DAYLIGHT, SUNBURN, EVAPORATION, SKY, FOG, CLOUD, TINT, MOTES, HAZE, CEILING)
             .flatMap(options::confinedIn)
             .distinct()
 

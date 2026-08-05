@@ -9,6 +9,7 @@
   },
   "sets": {
     "evaporation": "always",
-    "sunburn": "always"
+    "sunburn": "always",
+    "motes": "embers"
   }
 }
