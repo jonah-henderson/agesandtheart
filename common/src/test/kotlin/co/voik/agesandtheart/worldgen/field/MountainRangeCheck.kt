@@ -50,20 +50,28 @@ class MountainRangeCheck : FunSpec({
      * is really looking for is the tens-of-blocks drop that a clipped reach leaves.
      */
     test("the ground never steps between neighbouring columns") {
-        var worst = 0
-        var worstAt = 0 to 0
-        for (worldZ in -1500..1500 step 7) {
+        // **A row at a time, and the rows in parallel.** The scan along X has to stay sequential — each
+        // column is compared with the one before it — but rows share nothing, and this spec's last test is
+        // the standing proof that the field answers the same from any thread. Three million columns on one
+        // core made this spec alone longer than the other forty-three together.
+        fun worstStepAlong(worldZ: Int): Pair<Int, Pair<Int, Int>> {
+            var worstHere = 0
+            var worstHereAt = 0 to worldZ
             var previous = groundAt(-1500, worldZ)
             for (worldX in -1499..1500) {
                 val here = groundAt(worldX, worldZ)
                 val step = abs(here - previous)
-                if (step > worst) {
-                    worst = step
-                    worstAt = worldX to worldZ
+                if (step > worstHere) {
+                    worstHere = step
+                    worstHereAt = worldX to worldZ
                 }
                 previous = here
             }
+            return worstHere to worstHereAt
         }
+
+        val perRow = (-1500..1500 step 7).toList().parallelStream().map(::worstStepAlong).toList()
+        val (worst, worstAt) = perRow.maxByOrNull { it.first } ?: (0 to (0 to 0))
         check(worst <= BIGGEST_HONEST_STEP) {
             "the ground stepped $worst blocks between two neighbouring columns at $worstAt, " +
                 "which is more than the steepest thing in this landform can account for"

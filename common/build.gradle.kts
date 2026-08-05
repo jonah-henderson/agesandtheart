@@ -147,9 +147,14 @@ tasks.named("compileTestKotlin") { dependsOn(tasks.named("generateTestGrammarSou
 tasks.named<Test>("test") {
     useJUnitPlatform()
 
-    // Kotest runs specs concurrently on this many threads. The default of one left fifteen cores idle
-    // while the slowest check ran alone; the checks are independent, so this is nearly free wall-clock.
-    systemProperty("kotest.framework.parallelism", Runtime.getRuntime().availableProcessors().toString())
+    // **Deliberately nothing here about concurrency, and it is worth saying why.** A
+    // `kotest.framework.parallelism` property sat here for a long time doing nothing: it is Kotest 5's, and
+    // 6 reads no such property — 6 wants a `ProjectConfig` naming a `SpecExecutionMode`. Wiring that
+    // properly and measuring it moved the suite by nothing at all (66s either way), because the specs are
+    // CPU-bound and already saturate the machine: the field checks sample millions of terrain columns
+    // apiece, so how they are *scheduled* cannot matter and only sampling less can. Concurrent specs also
+    // cost the per-spec timings in the XML — every spec reports zero and the root holds the total — which
+    // is what found the hot spec in the first place. Do not re-add it without a measurement.
 
     // The server checks start a real server, which is minutes. They are their own task; this is the loop
     // anyone runs a hundred times a day and it stays at seconds.
@@ -189,9 +194,8 @@ tasks.register<Test>("serverTest") {
     dependsOn(":fabric:exportServerLaunch")
 
     systemProperty("kotest.tags", NEEDS_SERVER_TAG)
-    // One server, driven in sequence. Specs sharing a JVM would otherwise each start one and fight over
-    // the same `server.properties` and the same world directory.
-    systemProperty("kotest.framework.parallelism", "1")
+    // One server, driven in sequence — so this task deliberately does *not* name `ConcurrentSpecs`.
+    // Specs running together would each start a server and fight over one `server.properties` and one world.
     maxHeapSize = "2g"
 
     testLogging {
