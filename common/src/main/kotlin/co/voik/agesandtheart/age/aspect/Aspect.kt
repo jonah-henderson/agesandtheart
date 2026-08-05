@@ -99,8 +99,8 @@ enum class Aspect(val key: String) : StringRepresentable {
             SKY -> Sky.entries
             // Nothing to choose between: a climate and a surface are where their dials were left, and a
             // biome or a structure set is weighed rather than chosen. See [dials] and [Kind.POPULATION].
-            SEA, BIOMES, STRUCTURES, CLIMATE, SURFACE, FEATURES, SPAWNS, ATMOSPHERE, PHENOMENA ->
-                emptyList()
+            PHENOMENA -> Phenomenon.entries
+            SEA, BIOMES, STRUCTURES, CLIMATE, SURFACE, FEATURES, SPAWNS, ATMOSPHERE -> emptyList()
         }
 
     /**
@@ -174,7 +174,8 @@ enum class Aspect(val key: String) : StringRepresentable {
         STRUCTURES -> StructureSet.named(key)
         FEATURES -> PlacedFeature.named(key)
         SPAWNS -> Spawn.named(key)
-        TERRAIN, CARVERS, SKY, CLIMATE, SURFACE, ATMOSPHERE, PHENOMENA -> authored.firstOrNull { it.key == key }
+        TERRAIN, CARVERS, SKY, CLIMATE, SURFACE, ATMOSPHERE, PHENOMENA ->
+            authored.firstOrNull { it.key == key }
     }
 
     /**
@@ -317,10 +318,19 @@ data class Parameter(
             worthOfAMention: Double = Rung.ORDINARY,
             leastKept: Double = Rung.ORDINARY,
             emptiedBy: String? = null,
+            /**
+             * Values that are **ours** rather than a registry's, which closes the parameter.
+             *
+             * Every other population draws from the game — a creature is an entity type, a feature is a
+             * placed feature — so it takes any id and complains later, where the missing content bites. A
+             * phenomenon has nothing behind it in vanilla, so its values are written down and anything else
+             * is a typo rather than an unloaded pack.
+             */
+            named: List<String> = emptyList(),
         ) = Parameter(
             name,
-            listOfNotNull(UNCHANGED, emptiedBy),
-            open = true,
+            listOfNotNull(UNCHANGED, emptiedBy) + named,
+            open = named.isEmpty(),
             kind = Kind.POPULATIVE,
             worthOfAMention = worthOfAMention,
             leastKept = leastKept,

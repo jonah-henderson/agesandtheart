@@ -1,5 +1,7 @@
 package co.voik.agesandtheart
 
+import net.neoforged.neoforge.event.tick.ServerTickEvent
+import co.voik.agesandtheart.age.phenomena.Happenings
 import co.voik.agesandtheart.age.AgeCommand
 import co.voik.agesandtheart.age.word.LearnedWordsPayload
 import co.voik.agesandtheart.age.word.LexiconPayload
@@ -40,6 +42,7 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         // Commands are a game-bus event.
         NeoForge.EVENT_BUS.addListener(::onRegisterCommands)
         NeoForge.EVENT_BUS.addListener(::onPlayerLoggedIn)
+        NeoForge.EVENT_BUS.addListener(::onServerTick)
     }
 
     /**
@@ -150,6 +153,11 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         val player = event.entity as? net.minecraft.server.level.ServerPlayer ?: return
         Skies.tellAboutEverything(player)
         PageLearning.tellEverything(player)
+    }
+
+    /** Whatever befalls an Age. A tick has no shared entry point, so both loaders call the same one. */
+    private fun onServerTick(event: ServerTickEvent.Post) {
+        Happenings.tick(event.server)
     }
 
     private fun onRegisterCommands(event: RegisterCommandsEvent) {

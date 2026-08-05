@@ -1,5 +1,7 @@
 package co.voik.agesandtheart
 
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
+import co.voik.agesandtheart.age.phenomena.Happenings
 import co.voik.agesandtheart.age.AgeCommand
 import co.voik.agesandtheart.age.Ages
 import co.voik.agesandtheart.age.word.LearnedWordsPayload
@@ -109,4 +111,7 @@ fun init() {
     ServerLifecycleEvents.SERVER_STARTED.register { server ->
         Ages.reloadSaved(server)
     }
+
+    // Whatever befalls an Age. A tick has no shared entry point, so both loaders call the same one.
+    ServerTickEvents.END_SERVER_TICK.register(Happenings::tick)
 }
