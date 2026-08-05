@@ -110,6 +110,14 @@ data class Phrase(
     /** Null where the writer named no subject — a run that only steers, like `blackstone` standing alone. */
     val subject: Constraint? = null,
     val modifiers: List<Constraint> = emptyList(),
+    /**
+     * The biome this whole clause was confined to — `in mushroom_fields, spawns only slime` (§4.3.1).
+     *
+     * Held here *as well as* on every constraint it governs, and the two are not a duplication: the clause
+     * is where a writer laid the page and so where a reading has to say it back, and the constraint is
+     * what carries it into the recipe long after the sentence is gone.
+     */
+    val confinedTo: Identifier? = null,
 ) {
     /** Everything said here, in the order it was laid out. */
     val said: List<Constraint> get() = descriptors + listOfNotNull(subject) + modifiers

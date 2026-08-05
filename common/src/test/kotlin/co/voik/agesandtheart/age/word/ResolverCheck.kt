@@ -30,6 +30,7 @@ import co.voik.agesandtheart.worldgen.biome.BiomePreference
 import co.voik.agesandtheart.age.aspect.Surface
 import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.age.aspect.Features
+import co.voik.agesandtheart.age.aspect.Spawns
 
 /**
  * Asks whether the resolver keeps the promises `notes/the-art-design.md` makes on its behalf — each check
@@ -834,6 +835,43 @@ class ResolverCheck : FunSpec({
         check(singledOut.exclusive) { "'only ore_diamond' did not single anything out" }
     }
 
+    /**
+     * **`and` is what a population needs the conjunction *for*.** Unjoined claims already union, so
+     * without it the word would say nothing here — what it says is that everything it joins was singled
+     * out together.
+     *
+     * So `only slime and teeming cows` keeps both and closes the door behind them, and `only slime,
+     * teeming cows` is a writer who singled out the slimes and then asked for something else as well. The
+     * second is charged (§3.2) rather than refused: the pen never rejects, and ignoring one of the two
+     * would be exactly the silent drop §3.3 forbids.
+     */
+    test("only beside an unjoined mention is a contradiction") {
+        fun spoken(joined: Boolean): Resolution {
+            val group = if (joined) Group(1) else null
+            val said = listOf(
+                Constraint(spawnWord("slime"), Scope.Confined(setOf(Aspect.SPAWNS)), Polarity.ONLY, group),
+                Constraint(spawnWord("cow"), Scope.Confined(setOf(Aspect.SPAWNS)), Polarity.ASSERTED, group),
+            )
+            return Resolver.resolve(vocabulary, Sentence.of(said), SAMPLE_SEED)
+        }
+
+        val together = spoken(joined = true)
+        check(together.instability.flaws.none { it.register == Register.DISPLACED }) {
+            "'only slime and cows' was charged: ${together.instability.flaws}"
+        }
+
+        val apart = spoken(joined = false)
+        val crowded = apart.instability.flaws.filter { it.register == Register.DISPLACED }
+        check(crowded.size == 1 && crowded.single().words.contains("cow")) {
+            "'only slime, cows' was not charged for the cows: ${apart.instability.flaws}"
+        }
+        // And both survive regardless: the world honours what it can and reports what it cannot.
+        val kept = Population.of(apart.composition.optionsFor(Aspect.SPAWNS, 0).claimsOn(Spawns.LIVES))
+        check(kept.wanted.map { it.value }.containsAll(listOf("minecraft:slime", "minecraft:cow"))) {
+            "a charged contradiction dropped one of its halves: ${kept.wanted}"
+        }
+    }
+
     test("a fracture obeys its guards") {
         fun aimedAtTheLand(word: Word) = Constraint(word, Scope.Confined(setOf(Aspect.TERRAIN)))
         val hollow = aimedAtTheLand(vocabulary.word("hollow") ?: error("the shipped vocabulary lost 'hollow'"))
@@ -919,6 +957,16 @@ private fun material(name: String, block: String) = Word(
 )
 
 /** A word that asks for one vanilla structure set by name. */
+/** A creature word as §8 derives one. */
+private fun spawnWord(path: String) = Word(
+    Identifier.withDefaultNamespace(path),
+    Tier.EXACT,
+    setOf(Aspect.SPAWNS),
+    emptyMap(),
+    null,
+    mapOf(Spawns.LIVES.name to "minecraft:$path"),
+)
+
 /** A feature word as §8 derives one — what every placed feature in the pack gets. */
 private fun featureWord(path: String) = Word(
     Identifier.withDefaultNamespace(path),

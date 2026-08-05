@@ -163,7 +163,7 @@ object Readout {
         val subjectWasWritten = phrase.subject != null && !phrase.subject.latent
         if (descriptors.isEmpty() && modifiers.isEmpty() && !subjectWasWritten) return null
         val adopted = phrase.subject.takeIf { subjectWasWritten || modifiers.isNotEmpty() }
-        return Phrase(descriptors, adopted, modifiers)
+        return Phrase(descriptors, adopted, modifiers, phrase.confinedTo)
     }
 
     /**
@@ -173,6 +173,13 @@ object Readout {
     private fun clauseOf(phrase: Phrase, opensTheSentence: Boolean): List<Said> {
         val preposition = if (opensTheSentence) "" else prepositionFor(phrase)
         val said = mutableListOf<Said>()
+        // The clause's own ground, said before the claims it governs — which is the order the writer laid
+        // the pages in, and the whole reason `in` sits at the head rather than after a term.
+        phrase.confinedTo?.let { biome ->
+            said += particleFor(CONFINED)
+            said += Said(biome.path, WordNames.readable(biome))
+            said.punctuate(",")
+        }
         if (preposition.isNotEmpty()) said += particleFor(preposition)
         for (described in phrase.descriptors + listOfNotNull(phrase.subject)) said += pageFor(described.word)
         said += steeringOf(phrase)
@@ -235,10 +242,7 @@ object Readout {
         return buildList {
             quantified?.let { add(particleFor(it)) }
             add(pageFor(term.word))
-            term.confinedTo?.let { biome ->
-                add(particleFor(CONFINED))
-                add(Said(biome.path, WordNames.readable(biome)))
-            }
+
         }
     }
 

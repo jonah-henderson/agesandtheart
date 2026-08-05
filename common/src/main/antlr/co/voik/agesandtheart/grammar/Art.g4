@@ -102,8 +102,8 @@ section
     | descriptor* CARVERS_SUBJECT    carversModifier*     # CarversSection
     | descriptor* BIOMES_SUBJECT     biomesModifier*      # BiomesSection
     | descriptor* SURFACE_SUBJECT    surfaceModifier*     # SurfaceSection
-    | descriptor* FEATURES_SUBJECT   featuresModifier*    # FeaturesSection
-    | descriptor* SPAWNS_SUBJECT     spawnsModifier*      # SpawnsSection
+    | confinement? descriptor* FEATURES_SUBJECT featuresModifier*  # FeaturesSection
+    | confinement? descriptor* SPAWNS_SUBJECT   spawnsModifier*    # SpawnsSection
     | descriptor* SKY_SUBJECT        skyModifier*         # SkySection
     | descriptor* STRUCTURES_SUBJECT structuresModifier*  # StructuresSection
     | descriptor* CLIMATE_SUBJECT    climateModifier*     # ClimateSection
@@ -145,15 +145,20 @@ terrainTerm    : QUANTIFIER? ( TERRAIN_TERM    | MATERIAL_TERM ) ;
 seaTerm        : QUANTIFIER? ( SEA_TERM        | MATERIAL_TERM ) ;
 structuresTerm : QUANTIFIER? ( STRUCTURES_TERM | MATERIAL_TERM ) ;
 surfaceTerm    : QUANTIFIER? ( SURFACE_TERM    | MATERIAL_TERM ) ;
-/*
- * The two aspects a term may be **confined to one biome** — vanilla resolves both through the biome, which
- * is the whole of §3.1's test for whether scoping one means anything. `in` binds to the term before it, so
- * "cows and slimes in mushroom_fields" confines only the slimes, which is what reading left to right says.
- */
-featuresTerm   : QUANTIFIER? FEATURES_TERM confinement? ;
-spawnsTerm     : QUANTIFIER? SPAWNS_TERM   confinement? ;
+featuresTerm   : QUANTIFIER? FEATURES_TERM ;
+spawnsTerm     : QUANTIFIER? SPAWNS_TERM ;
 
-/** Where a term applies, spelled with the biome term page that already exists. */
+/**
+ * **Where a whole clause applies** — `in mushroom_fields, spawns only slime and teeming cows`.
+ *
+ * At the head rather than after a term, and that is the whole of what it means: a reader learns the ground
+ * they are standing on *before* the claims made about it, and everything in the clause is governed by it.
+ * A term-level form would put the scope after the claim it changes and leave `only` ambiguous about how
+ * far it reaches, which is exactly the left-to-right predictability §4.3's third property is for.
+ *
+ * The two aspects that admit one are the two of §3.1's four that exist — vanilla resolves both through the
+ * biome. It reuses the biome term page rather than minting a page per biome.
+ */
 confinement    : IN BIOMES_TERM ;
 carversTerm    : QUANTIFIER? CARVERS_TERM ;
 biomesTerm     : QUANTIFIER? BIOMES_TERM  ;

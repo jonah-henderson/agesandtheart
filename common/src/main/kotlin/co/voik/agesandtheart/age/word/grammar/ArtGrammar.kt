@@ -184,7 +184,9 @@ internal object ArtGrammar {
                 )
             }
             val modifiers = laid.filterIsInstance<ParserRuleContext>()
-                .filterNot { it is ArtParser.DescriptorContext }
+                .filterNot { it is ArtParser.DescriptorContext || it is ArtParser.ConfinementContext }
+            // The clause's own `in`, which every term in it inherits — see [confinement] in the grammar.
+            val confinedTo = biomeOf(section)
             return Phrase(
                 descriptors = descriptors,
                 subject = subject?.let {
@@ -195,7 +197,8 @@ internal object ArtGrammar {
                         rehomed = wasMoved(head),
                     )
                 },
-                modifiers = modifiers.flatMap { modifier -> constraintsIn(modifier, aim) },
+                modifiers = modifiers.flatMap { modifier -> constraintsIn(modifier, aim, confinedTo) },
+                confinedTo = confinedTo,
             )
         }
 
@@ -203,7 +206,11 @@ internal object ArtGrammar {
          * One modifier of whichever aspect's rule it came from, read through the shape they share:
          * an optional polarity, then terms joined by `and`.
          */
-        private fun constraintsIn(modifier: ParserRuleContext, aim: Set<Aspect>): List<Constraint> {
+        private fun constraintsIn(
+            modifier: ParserRuleContext,
+            aim: Set<Aspect>,
+            confinedTo: Identifier? = null,
+        ): List<Constraint> {
             val polarity = when {
                 modifier.getToken(ArtParser.ONLY, 0) != null -> Polarity.ONLY
                 modifier.getToken(ArtParser.EXCEPT, 0) != null -> Polarity.EXCEPT
@@ -229,7 +236,7 @@ internal object ArtGrammar {
                     group,
                     quantifier?.rung ?: Rung.ORDINARY,
                     quantifier?.written,
-                    confinedTo = biomeOf(term),
+                    confinedTo = confinedTo,
                     latent = wasDrawn(term.stop),
                     rehomed = wasMoved(term.stop),
                 )
@@ -255,13 +262,13 @@ internal object ArtGrammar {
         }
 
         /**
-         * The biome a term was confined to, or null where it was not — §4.3.1's `in`.
+         * The biome a **clause** was confined to, or null where it was not — §4.3.1's `in`.
          *
          * The biome arrives as an ordinary biome *term* page, so what it means here is simply its word's
          * id: a derived biome word is named after the biome it is for.
          */
-        private fun biomeOf(term: ParserRuleContext): Identifier? = term.children.orEmpty()
-            .filterIsInstance<ParserRuleContext>()
+        private fun biomeOf(section: ParserRuleContext): Identifier? = section.children.orEmpty()
+            .filterIsInstance<ArtParser.ConfinementContext>()
             .firstNotNullOfOrNull { confinement -> wordAt(confinement.stop)?.id }
 
         private fun pageAt(token: Token?): Page? = pages.getOrNull(token?.tokenIndex ?: return null)

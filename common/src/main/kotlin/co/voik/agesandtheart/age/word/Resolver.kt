@@ -558,8 +558,10 @@ object Resolver {
                     // Populative values accumulate rather than conflict (§3.2), and the polarity travels
                     // with the value — which is what makes `only` and `except` reach a population at all.
                     // See [co.voik.agesandtheart.age.aspect.Claim].
-                    populative != null ->
+                    populative != null -> {
+                        flaws += crowdedOutOfAnOnly(contenders, aspect)
                         steered.withOptions(aspect, parameter, contenders.map { it.claimed(populative) }.distinct())
+                    }
                     canFracture(steered, aspect, parameter, contenders) ->
                         steered.fractured(vocabulary, aspect, parameter, contenders, flaws)
                     else -> steered.contended(aspect, parameter, contenders, flaws)
@@ -877,6 +879,28 @@ object Resolver {
             Rung.legible(parameter.worthOfAMention * density),
             confinedTo,
         ).spelled()
+
+    /**
+     * **`only` said of one thing, beside a plain mention of another that was not joined to it** — a
+     * contradiction, and the one a population can have (§3.2).
+     *
+     * `only slime and teeming cows` is a writer keeping both and saying nothing else may come; `only
+     * slime, teeming cows` is a writer singling out the slimes and then asking for something else as well,
+     * which the world cannot honour as written. It is charged rather than refused, and the union stands —
+     * §2's pen never rejects, and §3.3 forbids the silent drop that ignoring one of them would be.
+     *
+     * This is what `and` is *for* here, and it is the reason a population needs the conjunction at all:
+     * without it, unjoined claims already union, so `and` would say nothing.
+     */
+    private fun crowdedOutOfAnOnly(contenders: List<Constraint>, aspect: Aspect): List<Flaw> {
+        val singledOut = contenders.filter { it.polarity == Polarity.ONLY }
+        if (singledOut.isEmpty()) return emptyList()
+        fun joinedToAnythingSingledOut(said: Constraint) = singledOut.any { wereJoined(said, it) }
+        val crowdedOut = contenders.filter { it.polarity == Polarity.ASSERTED && !joinedToAnythingSingledOut(it) }
+        return crowdedOut.map { said ->
+            flaw(Register.DISPLACED, listOf(said, singledOut.first()), aspect, emptyList(), said.word.tier)
+        }
+    }
 
     /**
      * A predicative parameter with more than one claimant — where `and` earns its place (§3.2).
