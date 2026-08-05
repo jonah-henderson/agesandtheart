@@ -61,8 +61,8 @@ class VocabularyOnServerCheck : FunSpec({
             .filter { it.get("aims").asBoolean }
             .map { it.get("word").asString }
         val expected = listOf(
-            "landmass", "sea", "depths", "biomes", "surface", "features", "spawns", "atmosphere", "sky",
-            "structures", "climate",
+            "landmass", "sea", "depths", "biomes", "surface", "features", "spawns", "atmosphere",
+            "phenomena", "sky", "structures", "climate",
         )
         check(aiming.sorted() == expected.sorted()) { "the aiming pages are $aiming" }
     }
