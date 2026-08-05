@@ -6,6 +6,7 @@ import net.minecraft.util.random.Weighted
 import net.minecraft.util.random.WeightedList
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.level.biome.MobSpawnSettings
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.roundToInt
 
 /**
@@ -54,14 +55,19 @@ object Spawns {
      */
     fun livingIn(options: Options): (Identifier?, WeightedList<MobSpawnSettings.SpawnerData>) ->
     WeightedList<MobSpawnSettings.SpawnerData> {
-        val asked = Population.of(options.claimsOn(LIVES))
-        if (asked.isSilent) return { _, offered -> offered }
-        val struck = asked.struck.mapNotNull(Identifier::tryParse).toSet()
-        val weights = asked.wanted.filterNot { it.value == NOTHING }
-            .mapNotNull { claim -> Identifier.tryParse(claim.value)?.let { it to claim.density } }
-            .toMap()
-        val emptied = asked.exclusive || asked.wanted.any { it.value == NOTHING }
-        return { _, offered -> narrowed(offered, weights, struck, emptied) }
+        val claims = options.claimsOn(LIVES)
+        if (Population.of(claims).isSilent && claims.none { it.confinedTo != null }) {
+            return { _, offered -> offered }
+        }
+        // **Asked per biome, because a claim may be confined to one** (§4.3.1). Remembered for the same
+        // reason the feature settings are: the answer is the same every time and the question is asked
+        // once per spawn attempt.
+        val here = ConcurrentHashMap<Identifier, Population>()
+        return { biome, offered ->
+            val asked = biome?.let { here.computeIfAbsent(it) { where -> Population.of(claims, where) } }
+                ?: Population.of(claims)
+            narrowed(offered, asked)
+        }
     }
 
     /**
@@ -76,10 +82,14 @@ object Spawns {
      */
     private fun narrowed(
         offered: WeightedList<MobSpawnSettings.SpawnerData>,
-        weights: Map<Identifier, Double>,
-        struck: Set<Identifier>,
-        emptied: Boolean,
+        asked: Population,
     ): WeightedList<MobSpawnSettings.SpawnerData> {
+        if (asked.isSilent) return offered
+        val struck = asked.struck.mapNotNull(Identifier::tryParse).toSet()
+        val weights = asked.wanted.filterNot { it.value == NOTHING }
+            .mapNotNull { claim -> Identifier.tryParse(claim.value)?.let { it to claim.density } }
+            .toMap()
+        val emptied = asked.exclusive || asked.wanted.any { it.value == NOTHING }
         val kept = offered.unwrap().mapNotNull { entry ->
             val id = idOf(entry.value().type())
             val asked = weights[id]

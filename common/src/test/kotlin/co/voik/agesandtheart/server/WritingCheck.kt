@@ -75,7 +75,7 @@ class WritingCheck : FunSpec({
         for ((rung, name) in listOf(TEEMING to "manyvillages", SCARCE to "fewvillages")) {
             server.ask("write", "${name} age structures ${rung.said} villages")
             val recipe = recipeOf(server, name)
-            check("minecraft:villages@${rung.written}" in recipe) { "'${rung.said} villages' wrote $recipe" }
+            check("minecraft:villages{amount=${rung.written}}" in recipe) { "'${rung.said} villages' wrote $recipe" }
         }
     }
 
@@ -83,15 +83,15 @@ class WritingCheck : FunSpec({
     test("a rung counts only the term it precedes") {
         server.ask("write", "onlyoneteems age structures woodland_mansions and teeming villages")
         val recipe = recipeOf(server, "onlyoneteems")
-        check("minecraft:villages@${TEEMING.written}" in recipe) { "the rung did not reach its own term: $recipe" }
-        check("woodland_mansions@" !in recipe) { "the rung leaked onto the term beside it: $recipe" }
+        check("minecraft:villages{amount=${TEEMING.written}}" in recipe) { "the rung did not reach its own term: $recipe" }
+        check("woodland_mansions{" !in recipe) { "the rung leaked onto the term beside it: $recipe" }
     }
 
     /** `only` and a rung are independent axes on one value, and must not eat each other. */
     test("only and a rung stack on one value") {
         server.ask("write", "onlyteeming age structures only teeming villages")
         val recipe = recipeOf(server, "onlyteeming")
-        check("!minecraft:villages@${TEEMING.written}" in recipe) { "'only teeming villages' wrote $recipe" }
+        check("minecraft:villages{only;amount=${TEEMING.written}}" in recipe) { "'only teeming villages' wrote $recipe" }
     }
 
     /**

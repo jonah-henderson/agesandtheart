@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age
 
 import co.voik.agesandtheart.age.aspect.Biomes
+import co.voik.agesandtheart.age.aspect.Claim
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Span
@@ -237,7 +238,7 @@ data class AgeRecipe(
                 .with(
                     Aspect.BIOMES,
                     // `!` is `only` (see `Claim`): exclusive, so vanilla's table is dropped rather than added to.
-                    listOf(Options(mapOf(Biomes.GROWN.name to listOf("!${AgeGeneration.PLASMA_BIOME}")))),
+                    listOf(Options(mapOf(Biomes.GROWN.name to listOf("${AgeGeneration.PLASMA_BIOME}{${Claim.ONLY}}")))),
                 )
                 .with(
                     Aspect.SURFACE,

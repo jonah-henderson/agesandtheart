@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.word.Word
+import net.minecraft.resources.Identifier
 
 /**
  * Where a word has its say — what the grammar decided by *position* (§4.3.1). The asymmetry is the point:
@@ -68,6 +69,13 @@ data class Constraint(
      * (§4.6), but a book shows the page its writer actually laid.
      */
     val quantifier: String? = null,
+    /**
+     * The biome this term is confined to, or null where it speaks for the whole Age — `in` (§4.3.1).
+     *
+     * Only an aspect vanilla resolves through the biome can carry one, which is what the grammar admits
+     * rather than what this checks: a term that could not be confined has no rule to sit in.
+     */
+    val confinedTo: Identifier? = null,
     /**
      * Whether the Art supplied this page rather than the writer — the natural course of a world nobody
      * described that far.

@@ -58,7 +58,7 @@ tokens {
     SKY_SUBJECT, SKY_TERM,
     STRUCTURES_SUBJECT, STRUCTURES_TERM,
     CLIMATE_SUBJECT, CLIMATE_TERM,
-    QUANTIFIER, AND, ONLY, EXCEPT
+    QUANTIFIER, AND, ONLY, EXCEPT, IN
 }
 
 /**
@@ -145,8 +145,16 @@ terrainTerm    : QUANTIFIER? ( TERRAIN_TERM    | MATERIAL_TERM ) ;
 seaTerm        : QUANTIFIER? ( SEA_TERM        | MATERIAL_TERM ) ;
 structuresTerm : QUANTIFIER? ( STRUCTURES_TERM | MATERIAL_TERM ) ;
 surfaceTerm    : QUANTIFIER? ( SURFACE_TERM    | MATERIAL_TERM ) ;
-featuresTerm   : QUANTIFIER? FEATURES_TERM ;
-spawnsTerm     : QUANTIFIER? SPAWNS_TERM ;
+/*
+ * The two aspects a term may be **confined to one biome** — vanilla resolves both through the biome, which
+ * is the whole of §3.1's test for whether scoping one means anything. `in` binds to the term before it, so
+ * "cows and slimes in mushroom_fields" confines only the slimes, which is what reading left to right says.
+ */
+featuresTerm   : QUANTIFIER? FEATURES_TERM confinement? ;
+spawnsTerm     : QUANTIFIER? SPAWNS_TERM   confinement? ;
+
+/** Where a term applies, spelled with the biome term page that already exists. */
+confinement    : IN BIOMES_TERM ;
 carversTerm    : QUANTIFIER? CARVERS_TERM ;
 biomesTerm     : QUANTIFIER? BIOMES_TERM  ;
 skyTerm        : QUANTIFIER? SKY_TERM     ;

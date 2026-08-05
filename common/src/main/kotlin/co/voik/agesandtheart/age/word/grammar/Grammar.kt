@@ -50,6 +50,7 @@ enum class PageClass {
     RESTRICTOR,
     EXCLUDER,
     QUANTIFIER,
+    CONFINER,
 }
 
 /**
@@ -159,5 +160,6 @@ object Grammar {
             Production.RESTRICTION -> PageClass.RESTRICTOR
             Production.EXCEPTION -> PageClass.EXCLUDER
             Production.QUANTIFICATION -> PageClass.QUANTIFIER
+            Production.CONFINEMENT -> PageClass.CONFINER
         }
 }

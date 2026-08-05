@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.age.aspect
 
+import net.minecraft.resources.Identifier
+
 /**
  * What a writer asked to happen to a value — the `only`/`except` axis (design §4.3.1).
  *
@@ -18,53 +20,79 @@ enum class Polarity {
 }
 
 /**
- * One value of a populative parameter, and everything the writer asked of it: add, emphasise, exclude.
- * [polarity] carries the first and third, [density] the second — a separate axis, since "villages, and
- * lots of them" is two independent things said about one value.
+ * One value of a populative parameter, and everything the writer asked of it: add, emphasise, exclude, and
+ * where. Four independent things said about one value — "a great many villages, and only in the plains" is
+ * one claim carrying all of them.
  *
- * Spelled with marks, because a population lives in [Options], which holds plain strings so a recipe stays
- * a recipe. Marks rather than parallel fields is what keeps this from moving the codec shape, and they are
- * stripped before the value is validated. Only ever a recipe spelling; a writer never sees one.
+ * **Spelled in braces with the parts named** (Jonah, 2026-08-04):
+ * `minecraft:slime{only;amount=4;in=minecraft:mushroom_fields}`. A recipe is read by people, and the marks
+ * this used to carry — `!` for `only`, `-` for `except`, `@` for the amount — were three symbols to learn
+ * before a line could be read at all, with no room for a fourth. The bare value stays bare, so the common
+ * case is unchanged and nothing pays for a part it did not use.
+ *
+ * The braces are the idiom a territory's own steering already uses (`terrain=spires{stone=copper}`), down
+ * to the `;` between parts, which is there because a space would end the token and a comma joins values.
  */
 data class Claim(
     val value: String,
     val polarity: Polarity = Polarity.ASSERTED,
     val density: Double = Rung.ORDINARY,
+    /** The biome this is confined to, or null where it is about the whole Age — §4.3.1's `in`. */
+    val confinedTo: Identifier? = null,
 ) {
-    /** How this is written into a recipe — bare where nothing was asked, so the common case is unmarked. */
+    /** Whether this claim has anything to say where [biome] is what the ground holds. */
+    fun appliesIn(biome: Identifier?): Boolean = confinedTo == null || confinedTo == biome
+
+    /** How this is written into a recipe — bare where nothing was asked, so the common case is unadorned. */
     fun spelled(): String {
-        val marked = when (polarity) {
-            Polarity.ASSERTED -> value
-            Polarity.ONLY -> "$ONLY_MARK$value"
-            Polarity.EXCEPT -> "$EXCEPT_MARK$value"
+        val parts = buildList {
+            when (polarity) {
+                Polarity.ASSERTED -> Unit
+                Polarity.ONLY -> add(ONLY)
+                Polarity.EXCEPT -> add(EXCEPT)
+            }
+            if (!Rung.isOrdinary(density)) add("$AMOUNT$SETS${Rung.spelled(density)}")
+            confinedTo?.let { add("$IN$SETS$it") }
         }
-        return if (Rung.isOrdinary(density)) marked else "$marked$DENSITY_MARK${Rung.spelled(density)}"
+        if (parts.isEmpty()) return value
+        return "$value$OPEN${parts.joinToString(BETWEEN.toString())}$CLOSE"
     }
 
     companion object {
-        /** `-minecraft:pillager_outposts` — struck out. A `Identifier` never starts with a hyphen. */
-        const val EXCEPT_MARK = '-'
+        /** `minecraft:slime{only;amount=4;in=minecraft:mushroom_fields}` — the parts, named. */
+        const val OPEN = '{'
+        const val CLOSE = '}'
+        private const val BETWEEN = ';'
+        private const val SETS = '='
 
-        /** `!minecraft:villages` — this, and nothing the sentence did not also single out. */
-        const val ONLY_MARK = '!'
+        const val ONLY = "only"
+        const val EXCEPT = "except"
+        const val AMOUNT = "amount"
+        const val IN = "in"
 
-        /** `minecraft:villages@4` — how many. Neither an id nor an amount contains an `@`. */
-        const val DENSITY_MARK = '@'
-
-        /** The claim [spelled] describes: asserted, ordinary, and bare unless it says otherwise. */
+        /** The claim [spelled] describes: asserted, ordinary, everywhere, unless it says otherwise. */
         fun read(spelled: String): Claim {
-            val polarity = when (spelled.firstOrNull()) {
-                EXCEPT_MARK -> Polarity.EXCEPT
-                ONLY_MARK -> Polarity.ONLY
+            val value = spelled.substringBefore(OPEN)
+            if (OPEN !in spelled) return Claim(value)
+            val parts = spelled.substringAfter(OPEN).substringBeforeLast(CLOSE)
+                .split(BETWEEN)
+                .map(String::trim)
+                .filter(String::isNotEmpty)
+            // An unreadable part leaves its own axis alone rather than failing the claim: a typo in one of
+            // four should cost that one, and `/age list` shows what the Age actually holds.
+            val polarity = when {
+                parts.any { it == ONLY } -> Polarity.ONLY
+                parts.any { it == EXCEPT } -> Polarity.EXCEPT
                 else -> Polarity.ASSERTED
             }
-            val unmarked = if (polarity == Polarity.ASSERTED) spelled else spelled.drop(1)
-            val rung = unmarked.substringAfter(DENSITY_MARK, missingDelimiterValue = "")
-            // An unreadable rung leaves the value alone rather than swallowing the text after the mark, so
-            // a typo shows up as an id nobody knows.
-            val amount = rung.toDoubleOrNull()?.takeIf { it > 0.0 } ?: return Claim(unmarked, polarity)
-            return Claim(unmarked.substringBefore(DENSITY_MARK), polarity, amount)
+            val amount = valueOf(parts, AMOUNT)?.toDoubleOrNull()?.takeIf { it > 0.0 } ?: Rung.ORDINARY
+            val confinedTo = valueOf(parts, IN)?.let(Identifier::tryParse)
+            return Claim(value, polarity, amount, confinedTo)
         }
+
+        private fun valueOf(parts: List<String>, named: String): String? = parts
+            .firstOrNull { it.startsWith("$named$SETS") }
+            ?.substringAfter(SETS)
     }
 }
 
@@ -90,8 +118,16 @@ data class Population(
     val isSilent: Boolean get() = !exclusive && wanted.isEmpty() && struck.isEmpty()
 
     companion object {
-        fun of(claims: List<Claim>): Population {
-            fun claimsAt(polarity: Polarity) = claims.filter { it.polarity == polarity }.distinctBy { it.value }
+        /**
+         * What these claims ask **where [biome] is the ground**, or of the whole Age where it is null.
+         *
+         * A claim confined somewhere else is not merely ignored here, it is *absent*: "in the mushroom
+         * fields, only slimes" leaves every other biome exactly as it was, which is what makes `only`
+         * bearable inside a scope at all (§4.3.1).
+         */
+        fun of(claims: List<Claim>, biome: Identifier? = null): Population {
+            val here = claims.filter { it.appliesIn(biome) }
+            fun claimsAt(polarity: Polarity) = here.filter { it.polarity == polarity }.distinctBy { it.value }
             val singledOut = claimsAt(Polarity.ONLY)
             return Population(
                 exclusive = singledOut.isNotEmpty(),

@@ -107,7 +107,11 @@ class RecipeCheck : FunSpec({
             .withOptions(
                 Aspect.STRUCTURES,
                 Structures.BUILT.name,
-                listOf("!minecraft:villages@4", "minecraft:woodland_mansions", "-minecraft:ocean_monuments"),
+                listOf(
+                    "minecraft:villages{only;amount=4}",
+                    "minecraft:woodland_mansions",
+                    "minecraft:ocean_monuments{except}",
+                ),
             )
         val decoded = roundTrips(AgeRecipe(AgeWorld.Composed(written), SAMPLE_SEED), "a steered population")
         val asked = Population.of(
@@ -126,7 +130,8 @@ class RecipeCheck : FunSpec({
 
         val spelling = written.toString()
         check(
-            "structures.built=!minecraft:villages@4,minecraft:woodland_mansions,-minecraft:ocean_monuments"
+            "structures.built=minecraft:villages{only;amount=4},minecraft:woodland_mansions," +
+                "minecraft:ocean_monuments{except}"
                 in spelling,
         ) {
             "a steered population spells itself wrong: '$spelling'"

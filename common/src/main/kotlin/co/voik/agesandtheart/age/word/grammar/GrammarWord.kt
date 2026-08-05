@@ -62,6 +62,19 @@ enum class Production(
      * than becoming a word of its own in the world model.
      */
     QUANTIFICATION("quantifier"),
+
+    /**
+     * `slimes in mushroom_fields` — **where the term applies**, bound to the term before it.
+     *
+     * The second production to bind one page to one other page, and the one that gives a sentence two
+     * levels without a second grammar: an aspect vanilla resolves *through the biome* can be spoken to per
+     * biome, and §3.1 names exactly which those are — spawns, features, carvers and atmosphere. Anything
+     * else would be circular (a landform cannot be scoped by the biomes its own climate places) or
+     * meaningless (a world has one sky).
+     *
+     * Reuses the biome term page rather than minting a page per biome, which is what keeps it one word.
+     */
+    CONFINEMENT("in"),
     ;
 
     override fun getSerializedName(): String = key

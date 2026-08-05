@@ -875,6 +875,7 @@ object Resolver {
             word.sets.getValue(parameter.name),
             polarity,
             Rung.legible(parameter.worthOfAMention * density),
+            confinedTo,
         ).spelled()
 
     /**

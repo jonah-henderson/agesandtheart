@@ -18,6 +18,7 @@ import org.antlr.v4.runtime.TokenSource
 import org.antlr.v4.runtime.misc.Pair
 import org.antlr.v4.runtime.misc.ParseCancellationException
 import org.antlr.v4.runtime.tree.TerminalNode
+import net.minecraft.resources.Identifier
 
 /**
  * The one file that knows the parser exists. **Nothing else in the mod may import `org.antlr`** —
@@ -65,6 +66,7 @@ internal object ArtGrammar {
         PageClass.RESTRICTOR -> ArtParser.ONLY
         PageClass.EXCLUDER -> ArtParser.EXCEPT
         PageClass.QUANTIFIER -> ArtParser.QUANTIFIER
+        PageClass.CONFINER -> ArtParser.IN
         // Filtered out before this is reached; the branch exists so a new class breaks the build here.
         null -> error("an unreadable page reached the parser")
     }
@@ -212,8 +214,11 @@ internal object ArtGrammar {
             // unjoined juxtaposition has to keep meaning contention (§3.2).
             val group = if (terms.size > 1) Group(nextGroup++) else null
             return terms.mapNotNull { term ->
-                // Every term rule is `QUANTIFIER? WORD`, so the word it carries is its last token.
-                val word = wordAt(term.stop) ?: return@mapNotNull null
+                // A term is `QUANTIFIER? WORD confinement?`, so the word is the first token that is not the
+                // rung. Reading the *last* one was right until a term could end with the biome it names.
+                val spoken = term.children.orEmpty().filterIsInstance<TerminalNode>().map { it.symbol }
+                val word = spoken.firstOrNull { it.type != ArtParser.QUANTIFIER }?.let(::wordAt)
+                    ?: return@mapNotNull null
                 // The rung sits on the page before the term it counts, and travels with the value from here
                 // on: what a quantifier modifies is the *claim*, never the word (§3.2).
                 val quantifier = pageAt(term.getToken(ArtParser.QUANTIFIER, 0)?.symbol)
@@ -224,6 +229,7 @@ internal object ArtGrammar {
                     group,
                     quantifier?.rung ?: Rung.ORDINARY,
                     quantifier?.written,
+                    confinedTo = biomeOf(term),
                     latent = wasDrawn(term.stop),
                     rehomed = wasMoved(term.stop),
                 )
@@ -247,6 +253,16 @@ internal object ArtGrammar {
             if (!word.tier.narrows) return Scope.Everywhere(aim)
             return Scope.Confined(aim.ifEmpty { word.aspects })
         }
+
+        /**
+         * The biome a term was confined to, or null where it was not — §4.3.1's `in`.
+         *
+         * The biome arrives as an ordinary biome *term* page, so what it means here is simply its word's
+         * id: a derived biome word is named after the biome it is for.
+         */
+        private fun biomeOf(term: ParserRuleContext): Identifier? = term.children.orEmpty()
+            .filterIsInstance<ParserRuleContext>()
+            .firstNotNullOfOrNull { confinement -> wordAt(confinement.stop)?.id }
 
         private fun pageAt(token: Token?): Page? = pages.getOrNull(token?.tokenIndex ?: return null)
 

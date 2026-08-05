@@ -77,7 +77,8 @@ object Features {
         salt: Long,
         rock: List<BlockState>,
     ): (Holder<Biome>) -> BiomeGenerationSettings {
-        val asked = Population.of(options.claimsOn(PLACES))
+        val claims = options.claimsOn(PLACES)
+        val asked = Population.of(claims)
         val shape = Shape(
             size = options.steer(SIZE, salt),
             thickness = options.steer(THICKNESS, salt),
@@ -87,17 +88,28 @@ object Features {
             // it *is* gets added to them. Carried here because this is where a feature is rebuilt.
             rock = rock,
         )
-        if (asked.isSilent && shape.asksForNothing) return { biome -> biome.value().generationSettings }
-        val added = wanted(server, asked)
-        val struck = asked.struck.mapNotNull(Identifier::tryParse).toSet()
-        val startsFromNothing = asked.exclusive || asked.wanted.any { it.value == NOTHING }
+        val scoped = claims.any { it.confinedTo != null }
+        if (asked.isSilent && !scoped && shape.asksForNothing) {
+            return { biome -> biome.value().generationSettings }
+        }
         // **Answered once per biome and remembered, and that is a correctness rule rather than a saving.**
         // `FeatureSorter` indexes the sorted feature list by **identity** (`createIndexIdentityLookup`), and
         // `applyBiomeDecoration` looks a feature up in that index every chunk. Hand it an equal-but-new
         // `PlacedFeature` the second time and the lookup misses, which is -1 into a list.
         val settled = ConcurrentHashMap<Holder<Biome>, BiomeGenerationSettings>()
         return { biome ->
-            settled.computeIfAbsent(biome) { settingsFrom(it, added, struck, startsFromNothing, shape) }
+            settled.computeIfAbsent(biome) {
+                // A claim confined to one biome (§4.3.1) is absent from every other, so each biome's
+                // settings are built from what applies *there*.
+                val here = Population.of(claims, it.unwrapKey().orElse(null)?.identifier())
+                settingsFrom(
+                    it,
+                    wanted(server, here),
+                    here.struck.mapNotNull(Identifier::tryParse).toSet(),
+                    here.exclusive || here.wanted.any { claim -> claim.value == NOTHING },
+                    shape,
+                )
+            }
         }
     }
 

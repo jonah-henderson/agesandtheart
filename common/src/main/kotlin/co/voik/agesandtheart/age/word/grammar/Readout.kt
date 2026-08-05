@@ -133,6 +133,9 @@ object Readout {
     /** A page the writer laid: its own name to be spelled, and what a pack calls it. */
     private fun pageFor(word: Word): Said = Said(word.name, WordNames.readable(word.id))
 
+    /** How `in` reads, written down beside `only` and the rungs for the reason given there. */
+    private const val CONFINED = "in"
+
     /** A word the Art supplied — English on both sides, since that is §4.1's interface doing its job. */
     private fun particleFor(text: String): Said = Said(text, Component.literal(text))
 
@@ -220,11 +223,23 @@ object Readout {
         return said
     }
 
-    /** One term, carrying the rung the writer quantified it with where they asked for one. */
+    /**
+     * One term, carrying the rung the writer quantified it with and the biome they confined it to.
+     *
+     * Both are pages the writer laid, so both are said back: a reading that dropped the `in` would show a
+     * claim about the whole Age where the book says one about a corner of it, which is the attachment this
+     * whole readout exists to make visible (§4.3.1).
+     */
     private fun termOf(term: Constraint): List<Said> {
-        val page = pageFor(term.word)
-        val quantifier = term.quantifier?.takeUnless { Rung.isOrdinary(term.density) } ?: return listOf(page)
-        return listOf(particleFor(quantifier), page)
+        val quantified = term.quantifier?.takeUnless { Rung.isOrdinary(term.density) }
+        return buildList {
+            quantified?.let { add(particleFor(it)) }
+            add(pageFor(term.word))
+            term.confinedTo?.let { biome ->
+                add(particleFor(CONFINED))
+                add(Said(biome.path, WordNames.readable(biome)))
+            }
+        }
     }
 
     /**
