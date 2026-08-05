@@ -108,9 +108,9 @@ class RecipeCheck : FunSpec({
                 Aspect.STRUCTURES,
                 Structures.BUILT.name,
                 listOf(
-                    "minecraft:villages{only;amount=4}",
+                    "minecraft:villages[only,amount=4]",
                     "minecraft:woodland_mansions",
-                    "minecraft:ocean_monuments{except}",
+                    "minecraft:ocean_monuments[except]",
                 ),
             )
         val decoded = roundTrips(AgeRecipe(AgeWorld.Composed(written), SAMPLE_SEED), "a steered population")
@@ -130,8 +130,8 @@ class RecipeCheck : FunSpec({
 
         val spelling = written.toString()
         check(
-            "structures.built=minecraft:villages{only;amount=4},minecraft:woodland_mansions," +
-                "minecraft:ocean_monuments{except}"
+            "structures.built=minecraft:villages[only,amount=4],minecraft:woodland_mansions," +
+                "minecraft:ocean_monuments[except]"
                 in spelling,
         ) {
             "a steered population spells itself wrong: '$spelling'"
@@ -156,7 +156,7 @@ class RecipeCheck : FunSpec({
         }
 
         val spelling = divided.toString()
-        check("terrain=spire_islands{stone=minecraft:copper_block},hills{stone=minecraft:andesite}" in spelling) {
+        check("terrain=spire_islands[stone=minecraft:copper_block],hills[stone=minecraft:andesite]" in spelling) {
             "Two steered territories spell themselves wrong: '$spelling'"
         }
         check(AgeComposition.parse(spelling).getOrThrow() == divided) { "'$spelling' does not read back as itself" }

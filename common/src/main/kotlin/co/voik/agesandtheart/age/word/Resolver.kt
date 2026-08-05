@@ -17,6 +17,7 @@ import co.voik.agesandtheart.age.word.grammar.Sentence
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.aspect.Rung
+import net.minecraft.resources.Identifier
 
 /**
  * What a sentence turned into: the world it describes, what it cost to say, and where it argued with
@@ -588,6 +589,26 @@ object Resolver {
         draw: Long,
         flaws: MutableList<Flaw>,
     ): AgeComposition {
+        // **Each ground is bounded on its own.** A span confined to a biome is a second value for the same
+        // axis rather than a rival for the one value, so the words that share a confinement are resolved
+        // together and written with it — which is what `Options.of(parameter, biome)` reads back.
+        val grounds = setting.map { it.confinedTo }.distinct()
+        if (grounds.size > 1) {
+            return grounds.fold(this) { bounded, ground ->
+                bounded.spannedIn(vocabulary, aspect, setting.filter { it.confinedTo == ground }, ground, draw, flaws)
+            }
+        }
+        return spannedIn(vocabulary, aspect, setting, grounds.singleOrNull(), draw, flaws)
+    }
+
+    private fun AgeComposition.spannedIn(
+        vocabulary: Vocabulary,
+        aspect: Aspect,
+        setting: List<Constraint>,
+        ground: Identifier?,
+        draw: Long,
+        flaws: MutableList<Flaw>,
+    ): AgeComposition {
         val axes = rangedNames(this, aspect)
         val speaking = setting.filter { said -> axes.any { it in said.word.sets } }
             .sortedWith(compareByDescending<Constraint> { it.word.tier }.thenBy { tieBreak(draw, aspect, it.word) })
@@ -647,7 +668,9 @@ object Resolver {
         fun written(composition: AgeComposition, member: Int, bounds: Map<String, Span>): AgeComposition {
             var steered = composition
             for ((axis, span) in bounds) {
-                steered = steered.withOptionsFor(aspect, member, axis, listOf(span.spelled()))
+                val already = steered.optionsFor(aspect, member).allSpelled(axis)
+                val bounded = Claim(span.spelled(), confinedTo = ground).spelled()
+                steered = steered.withOptionsFor(aspect, member, axis, (already - bounded + bounded).toList())
             }
             return steered
         }
@@ -920,7 +943,11 @@ object Resolver {
         for (loser in contenders - mingled.toSet()) {
             flaws += flaw(Register.DISPLACED, listOf(loser, winner), aspect, emptyList(), loser.word.tier)
         }
-        return withOptions(aspect, parameter, mingled.map { it.word.sets.getValue(parameter) }.distinct())
+        return withOptions(
+            aspect,
+            parameter,
+            mingled.map { Claim(it.word.sets.getValue(parameter), confinedTo = it.confinedTo).spelled() }.distinct(),
+        )
     }
 
     /**

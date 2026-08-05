@@ -168,8 +168,8 @@ data class AgeComposition(
     }
 
     /**
-     * This composition with one option chosen for one territory only — `spires{stone=copper}` beside
-     * `hills{stone=andesite}`. A [member] past the end of the filling is written anyway, not dropped.
+     * This composition with one option chosen for one territory only — `spires[stone=copper]` beside
+     * `hills[stone=andesite]`. A [member] past the end of the filling is written anyway, not dropped.
      */
     fun withOptionsFor(aspect: Aspect, member: Int, parameter: String, chosen: List<String>): AgeComposition {
         if (aspect == Aspect.CLIMATE) return withAxisBound(member, parameter, chosen)
@@ -241,7 +241,7 @@ data class AgeComposition(
         // Comma-joined: several values on one parameter mingle (§3.2), where several presets divide.
         .map { (parameter, options) -> "${aspect.key}.$parameter=${options.joinToString(",")}" }
 
-    /** `{stone=copper;arrangement=grid}` — written against the preset it steers, and empty where it says nothing. */
+    /** `[stone=copper,arrangement=grid]` — written against the preset it steers, and empty where it says nothing. */
     private fun steering(chosen: Options): String {
         if (chosen.chosen.isEmpty()) return ""
         val written = chosen.chosen.entries.sortedBy { it.key }
@@ -273,14 +273,14 @@ data class AgeComposition(
                     composition.withOptions(
                         aspect,
                         key.substringAfter('.'),
-                        value.split(',').filter(String::isNotBlank),
+                        outsideBrackets(value),
                     )
                 } else {
                     namedALandform = namedALandform || aspect == Aspect.TERRAIN
                     // Commas are how a set-valued aspect is written: `terrain=hills,pillars`. An `@` after
-                    // a preset is how much ground it covers: `dressing=verdant,bare_rock@rare`. Braces after
-                    // that steer that territory alone: `terrain=spires{stone=copper},hills`.
-                    val filling = value.split(',').filter(String::isNotBlank)
+                    // a preset is how much ground it covers: `carvers=caves,porous@0.25`. Brackets after
+                    // that steer that territory alone: `terrain=spires[stone=copper],hills`.
+                    val filling = outsideBrackets(value)
                     val named = filling.map { it.substringBefore(STEER_OPEN) }
                     composition
                         .withPresets(
@@ -299,7 +299,7 @@ data class AgeComposition(
         }
 
         /**
-         * The braced steering in `spires{stone=copper},hills{stone=andesite}`, applied to the territory
+         * The braced steering in `spires[stone=copper],hills[stone=andesite]`, applied to the territory
          * each was written against. Loud about a malformed brace, like the rest of [parse].
          */
         private fun AgeComposition.steeredBy(aspect: Aspect, filling: List<String>): AgeComposition {
@@ -308,14 +308,14 @@ data class AgeComposition(
                 if (STEER_OPEN !in written) continue
                 require(written.endsWith(STEER_CLOSE)) { "'$written' opens a $STEER_OPEN and never closes it" }
                 val inside = written.substringAfter(STEER_OPEN).dropLast(1)
-                for (setting in inside.split(PARAMETER_MARK).filter(String::isNotBlank)) {
+                for (setting in outsideBrackets(inside)) {
                     val (parameter, value) = setting.split('=', limit = 2).takeIf { it.size == 2 }
                         ?: error("'$setting' is not `parameter=value`")
                     steered = steered.withOptionsFor(
                         aspect,
                         member,
                         parameter,
-                        value.split(',').filter(String::isNotBlank),
+                        outsideBrackets(value),
                     )
                 }
             }
@@ -410,15 +410,45 @@ data class SlotShares(private val bySlot: Map<Aspect, List<Double>> = emptyMap()
 private const val SHARE_MARK = '@'
 
 /**
- * How one territory's own steering is written: `terrain=spires{stone=copper},hills{stone=andesite}`.
+ * How one territory's own steering is written: `terrain=spires[stone=copper],hills[stone=andesite]`.
+ *
+ * **Square brackets and commas, which is Minecraft's own idiom** for data hung on a named thing —
+ * `oak_stairs[facing=north,half=top]` reads exactly this way — so a pack author brings the punctuation
+ * with them. It costs a comma that has to know its depth, which [outsideBrackets] answers.
  *
  * Only ever a command spelling; options persist as their own codec field.
  */
-private const val STEER_OPEN = '{'
-private const val STEER_CLOSE = '}'
+private const val STEER_OPEN = '['
+private const val STEER_CLOSE = ']'
 
-/** Parameters within one territory's braces, since a space would end the token and a comma joins values. */
-private const val PARAMETER_MARK = ';'
+/** Parameters within one territory's brackets. */
+private const val PARAMETER_MARK = ','
+
+/**
+ * [written] split on the commas that are **not inside brackets** — the one thing sharing a separator costs.
+ *
+ * `terrain=spires[stone=copper,tuff],hills` is two territories rather than three: the comma between the
+ * stones belongs to the steering it sits inside.
+ */
+private fun outsideBrackets(written: String): List<String> {
+    val parts = mutableListOf<String>()
+    val part = StringBuilder()
+    var depth = 0
+    for (character in written) {
+        when {
+            character == STEER_OPEN -> depth++
+            character == STEER_CLOSE -> depth--
+            character == PARAMETER_MARK && depth == 0 -> {
+                parts += part.toString()
+                part.clear()
+                continue
+            }
+        }
+        part.append(character)
+    }
+    parts += part.toString()
+    return parts.filter(String::isNotBlank)
+}
 
 /** The share written as [spelled], loud about a thing that is not one for the same reason [named] is. */
 private fun readShare(spelled: String): Double = Share.read(spelled)

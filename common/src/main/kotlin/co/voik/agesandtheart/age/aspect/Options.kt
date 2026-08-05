@@ -18,8 +18,33 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 @JvmInline
 value class Options(val chosen: Map<String, List<String>> = emptyMap()) {
 
-    /** The option chosen for [parameter], or its default — the first, where several were named. */
-    fun of(parameter: Parameter): String = allOf(parameter).firstOrNull() ?: parameter.default
+    /**
+     * The option chosen for [parameter] **where [biome] is the ground**, or its default.
+     *
+     * A dial is one value where a population is many, so confining one is not a filter over a list — it is
+     * a second value that wins in one place. `daylight=-1..-0.7,0.5..1.0[in=minecraft:bamboo_jungle]` is a
+     * dark Age with one bright corner: the bracketed value where it says, the bare one everywhere else.
+     *
+     * The brackets are [Claim]'s, read by [Claim.read], because a dial and a claim should not need two
+     * spellings for the same idea — and the aspects a dial may be confined on are the same four §3.1 names
+     * for a claim, since it is the same fact about vanilla that makes either meaningful.
+     */
+    fun of(parameter: Parameter, biome: Identifier? = null): String {
+        val said = chosen[parameter.name].orEmpty().map(Claim::read).filter { parameter.accepts(it.value) }
+        val here = said.firstOrNull { it.confinedTo != null && it.confinedTo == biome }
+        return (here ?: said.firstOrNull { it.confinedTo == null })?.value ?: parameter.default
+    }
+
+    /** Everything written for [parameter], brackets and all — what a second ground is appended to. */
+    fun allSpelled(parameter: String): Set<String> = chosen[parameter].orEmpty().toSet()
+
+    /** Whether anything said about [parameter] was confined to a biome — see [of]. */
+    fun confinesAnywhere(parameter: Parameter): Boolean =
+        chosen[parameter.name].orEmpty().any { Claim.read(it).confinedTo != null }
+
+    /** Every biome a value of [parameter] was confined to, in the order they were written. */
+    fun confinedIn(parameter: Parameter): List<Identifier> =
+        chosen[parameter.name].orEmpty().mapNotNull { Claim.read(it).confinedTo }.distinct()
 
     /**
      * Every option chosen for [parameter], which for a material means mingled rather than divided (§3.2).
@@ -28,7 +53,7 @@ value class Options(val chosen: Map<String, List<String>> = emptyMap()) {
      * nothing" from "they said the default".
      */
     fun allOf(parameter: Parameter): List<String> =
-        chosen[parameter.name].orEmpty().filter(parameter::accepts)
+        chosen[parameter.name].orEmpty().map { Claim.read(it).value }.filter(parameter::accepts)
 
     /**
      * Every value chosen for [parameter] with what the writer asked of it — what a populative parameter
@@ -72,8 +97,8 @@ value class Options(val chosen: Map<String, List<String>> = emptyMap()) {
      * [salt] decides where inside the span the value lands, so an Age rebuilds identically while two
      * axes bounded alike do not move together.
      */
-    fun steer(parameter: Parameter, salt: Long): Double? {
-        val span = Span.read(of(parameter)) ?: return null
+    fun steer(parameter: Parameter, salt: Long, biome: Identifier? = null): Double? {
+        val span = Span.read(of(parameter, biome)) ?: return null
         if (span == Span.NATURAL) return null
         return span.least + XoroshiroRandomSource(salt xor parameter.name.hashCode().toLong())
             .nextDouble() * span.width

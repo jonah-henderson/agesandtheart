@@ -1,9 +1,12 @@
 package co.voik.agesandtheart.age.aspect
 
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.world.attribute.EnvironmentAttribute
 import net.minecraft.world.attribute.EnvironmentAttributeMap
 import net.minecraft.world.attribute.EnvironmentAttributeSystem
 import net.minecraft.world.attribute.EnvironmentAttributes
+import net.minecraft.core.BlockPos
+import net.minecraft.resources.Identifier
 
 /**
  * What the air does to you (design §3.1, vanilla's `EnvironmentAttributeMap`) — **whatever the dimension
@@ -49,31 +52,60 @@ object Atmosphere {
      * about the *level* rather than about the ground, and nothing in generation reads one.
      */
     fun settle(level: ServerLevel, options: Options, salt: Long) {
-        val asked = EnvironmentAttributeMap.builder()
-        var saidAnything = false
-        options.steer(DAYLIGHT, salt)?.let { dial ->
-            asked.set(EnvironmentAttributes.SKY_LIGHT_LEVEL, Span.NATURAL.fractionOf(dial).toFloat() * FULL_DAYLIGHT)
-            saidAnything = true
+        val everywhere = airIn(options, salt, biome = null)
+        val corners = confinedBiomes(options).associateWith { airIn(options, salt, it) }
+        if (everywhere.isEmpty() && corners.all { it.value.isEmpty() }) return
+        val system = EnvironmentAttributeSystem.builder().addDefaultLayers(level)
+        if (everywhere.isNotEmpty()) {
+            val air = EnvironmentAttributeMap.builder()
+            everywhere.forEach { it.into(air) }
+            system.addConstantLayer(air.build())
         }
-        burning(options)?.let {
-            asked.set(EnvironmentAttributes.MONSTERS_BURN, it)
-            saidAnything = true
-        }
-        if (options.of(EVAPORATION) != AS_EVER) {
-            asked.set(EnvironmentAttributes.WATER_EVAPORATES, true)
-            saidAnything = true
-        }
-        if (!saidAnything) return
-        level.setEnvironmentAttributes(
-            EnvironmentAttributeSystem.builder()
-                .addDefaultLayers(level)
-                .addConstantLayer(asked.build())
-                .build(),
-        )
+        // **A corner of the world is a positional layer**, which is the same mechanism vanilla uses to let
+        // biomes provide attributes at all — it is handed a position and asks the level what is there.
+        for ((biome, air) in corners) air.forEach { it.onto(system, level, biome) }
+        level.setEnvironmentAttributes(system.build())
     }
 
+    /** Every attribute the sentence set **where [biome] is the ground**, or Age-wide where it is null. */
+    private fun airIn(options: Options, salt: Long, biome: Identifier?): List<Asked<*>> = buildList {
+        options.steer(DAYLIGHT, salt, biome)?.let {
+            add(Asked(EnvironmentAttributes.SKY_LIGHT_LEVEL, Span.NATURAL.fractionOf(it).toFloat() * FULL_DAYLIGHT))
+        }
+        burning(options, biome)?.let { add(Asked(EnvironmentAttributes.MONSTERS_BURN, it)) }
+        if (options.of(EVAPORATION, biome) != AS_EVER) add(Asked(EnvironmentAttributes.WATER_EVAPORATES, true))
+    }
+
+    /**
+     * One attribute and the value asked of it, kept together so the pair stays **typed**.
+     *
+     * A map of attribute to value cannot: `EnvironmentAttribute<Value>` is generic, so a map keyed by one
+     * is star-projected and every value in it is an `Any` the builder will not take. Holding the pair in a
+     * class parameterised on the same `Value` is what lets `set` and `addPositionalLayer` be called at all.
+     */
+    private class Asked<Value : Any>(
+        private val attribute: EnvironmentAttribute<Value>,
+        private val value: Value,
+    ) {
+        fun into(air: EnvironmentAttributeMap.Builder) {
+            air.set(attribute, value)
+        }
+
+        /** The same value, but only where [biome] is what the ground holds — everywhere else, what was below. */
+        fun onto(system: EnvironmentAttributeSystem.Builder, level: ServerLevel, biome: Identifier) {
+            system.addPositionalLayer(attribute) { below, at, _ ->
+                val here = level.getBiome(BlockPos.containing(at)).unwrapKey().orElse(null)?.identifier()
+                if (here == biome) value else below
+            }
+        }
+    }
+
+    /** Every biome a dial of this aspect was confined to — see `Options.of`. */
+    private fun confinedBiomes(options: Options): List<Identifier> =
+        listOf(DAYLIGHT, SUNBURN, EVAPORATION).flatMap(options::confinedIn).distinct()
+
     /** Null where the writer left it as it ever was, which is the answer that lays no layer. */
-    private fun burning(options: Options): Boolean? = when (options.of(SUNBURN)) {
+    private fun burning(options: Options, biome: Identifier?): Boolean? = when (options.of(SUNBURN, biome)) {
         "never" -> false
         "always" -> true
         else -> null

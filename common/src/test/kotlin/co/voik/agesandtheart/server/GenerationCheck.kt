@@ -105,9 +105,9 @@ class GenerationCheck : FunSpec({
      * outcome rather than the mechanism — ask for ore in a world of the wrong rock and see ground move.
      */
     test("ores reach an Age made of something other than stone") {
-        val blackstone = "terrain=hills{stone=minecraft:blackstone} sea=minecraft:water carvers=solid sky=plain"
+        val blackstone = "terrain=hills[stone=minecraft:blackstone] sea=minecraft:water carvers=solid sky=plain"
         server.run("age compose blackbare 4242 $blackstone")
-        server.run("age compose blackrich 4242 $blackstone features.places=minecraft:ore_diamond{amount=8}")
+        server.run("age compose blackrich 4242 $blackstone features.places=minecraft:ore_diamond[amount=8]")
         val differing = differingBlocks(server, "blackbare", "blackrich", radius = 2)
         check(differing > 0) {
             "an Age of blackstone grew no ore at all: the two agree block for block"

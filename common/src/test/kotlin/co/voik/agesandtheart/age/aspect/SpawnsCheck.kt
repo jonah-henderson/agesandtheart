@@ -25,18 +25,18 @@ class SpawnsCheck : FunSpec({
     }
 
     test("except strikes one out and leaves the rest") {
-        val narrowed = narrowedBy("minecraft:zombie{except}")
+        val narrowed = narrowedBy("minecraft:zombie[except]")
         check(kinds(narrowed) == listOf("cow", "sheep", "spider")) { "'except zombie' left ${kinds(narrowed)}" }
     }
 
     test("only keeps what was named and nothing else") {
-        val narrowed = narrowedBy("minecraft:zombie{only}")
+        val narrowed = narrowedBy("minecraft:zombie[only]")
         check(kinds(narrowed) == listOf("zombie")) { "'only zombie' left ${kinds(narrowed)}" }
     }
 
     /** A rung is how *often*, which for a creature is the weight it is drawn at. */
     test("a rung weighs a creature more heavily") {
-        val narrowed = narrowedBy("minecraft:cow{amount=4}")
+        val narrowed = narrowedBy("minecraft:cow[amount=4]")
         val cow = narrowed.unwrap().first { it.value().type() == EntityType.COW }
         val ordinary = aMeadow().unwrap().first { it.value().type() == EntityType.COW }
         check(cow.weight() == ordinary.weight() * FOUR_TIMES) {
@@ -47,7 +47,7 @@ class SpawnsCheck : FunSpec({
 
     /** And it never weighs one to nothing, since an entry at zero would simply never be drawn. */
     test("a faint rung still leaves a creature drawable") {
-        val narrowed = narrowedBy("minecraft:cow{amount=0.01}")
+        val narrowed = narrowedBy("minecraft:cow[amount=0.01]")
         val cow = narrowed.unwrap().first { it.value().type() == EntityType.COW }
         check(cow.weight() >= 1) { "a scarce cow came out at weight ${cow.weight()}, which is never drawn" }
     }

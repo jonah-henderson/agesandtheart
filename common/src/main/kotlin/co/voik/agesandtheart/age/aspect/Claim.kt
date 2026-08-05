@@ -24,14 +24,15 @@ enum class Polarity {
  * where. Four independent things said about one value — "a great many villages, and only in the plains" is
  * one claim carrying all of them.
  *
- * **Spelled in braces with the parts named** (Jonah, 2026-08-04):
- * `minecraft:slime{only;amount=4;in=minecraft:mushroom_fields}`. A recipe is read by people, and the marks
+ * **Spelled in brackets with the parts named** (Jonah, 2026-08-04):
+ * `minecraft:slime[only,amount=4,in=minecraft:mushroom_fields]`. A recipe is read by people, and the marks
  * this used to carry — `!` for `only`, `-` for `except`, `@` for the amount — were three symbols to learn
  * before a line could be read at all, with no room for a fourth. The bare value stays bare, so the common
  * case is unchanged and nothing pays for a part it did not use.
  *
- * The braces are the idiom a territory's own steering already uses (`terrain=spires{stone=copper}`), down
- * to the `;` between parts, which is there because a space would end the token and a comma joins values.
+ * The brackets are the idiom a territory's own steering already uses (`terrain=spires[stone=copper]`) — and
+ * **Minecraft's own**, which settles the shape: `oak_stairs[facing=north,half=top]` hangs data on a named
+ * thing exactly like this, so a pack author brings the punctuation with them.
  */
 data class Claim(
     val value: String,
@@ -59,10 +60,10 @@ data class Claim(
     }
 
     companion object {
-        /** `minecraft:slime{only;amount=4;in=minecraft:mushroom_fields}` — the parts, named. */
-        const val OPEN = '{'
-        const val CLOSE = '}'
-        private const val BETWEEN = ';'
+        /** `minecraft:slime[only,amount=4,in=minecraft:mushroom_fields]` — the parts, named. */
+        const val OPEN = '['
+        const val CLOSE = ']'
+        private const val BETWEEN = ','
         private const val SETS = '='
 
         const val ONLY = "only"
