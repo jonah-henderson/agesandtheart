@@ -1,0 +1,13 @@
+{
+  "tier": "restrictive",
+  "aspects": [
+    "atmosphere"
+  ],
+  "query": {
+    "gloomy": 1.0
+  },
+  "sets": {
+    "daylight": "-1.0..-0.7",
+    "sunburn": "never"
+  }
+}

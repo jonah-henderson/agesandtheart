@@ -11,6 +11,8 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.level.levelgen.Heightmap
+import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Atmosphere
 
 /**
  * Loader-agnostic lifecycle for Ages. Dimension creation is delegated to the platform
@@ -37,13 +39,28 @@ object Ages {
             saved.remove(id)
             return null
         }
+        settleTheAir(level, recipe)
         Constants.LOG.info("Created Age {} [{}]", id, recipe)
         return level
     }
 
     /** Opens an existing Age (get-or-open). Used for travel and restart-replay. */
     fun open(server: MinecraftServer, id: Identifier): ServerLevel? =
-        Services.AGE_BACKEND.openAge(server, id)
+        Services.AGE_BACKEND.openAge(server, id)?.also { level ->
+            settleTheAir(level, AgeSavedData.get(server).recipe(id))
+        }
+
+    /**
+     * The Age's own layer over the environment vanilla built for the level (§3.1's Atmosphere).
+     *
+     * **On opening rather than in the generator**, because an attribute is a fact about the *level* and
+     * nothing in generation reads one — and on every open rather than once, because a level is built afresh
+     * from the recipe each time the server starts.
+     */
+    private fun settleTheAir(level: ServerLevel, recipe: AgeRecipe) {
+        val composition = recipe.composition ?: return
+        Atmosphere.settle(level, composition.optionsFor(Aspect.ATMOSPHERE, 0), recipe.seed)
+    }
 
     /** Mints a fresh, distinct Age id (`agesandtheart:age_<n>`) from the persistent counter. */
     /**

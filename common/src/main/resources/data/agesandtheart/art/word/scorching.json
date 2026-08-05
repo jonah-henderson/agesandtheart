@@ -1,0 +1,14 @@
+{
+  "tier": "restrictive",
+  "aspects": [
+    "atmosphere"
+  ],
+  "query": {
+    "molten": 1.0,
+    "dry": 0.6
+  },
+  "sets": {
+    "evaporation": "always",
+    "sunburn": "always"
+  }
+}

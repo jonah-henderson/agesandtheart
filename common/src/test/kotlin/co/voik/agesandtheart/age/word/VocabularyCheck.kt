@@ -96,10 +96,12 @@ class VocabularyCheck : FunSpec({
                             "'${word.name}' sets ${aspect.key}.$parameter, which every ${aspect.key} declares and " +
                                 "none acts on — so writing it would change nothing and say nothing"
                         }
-                        for (option in word.sets.values) {
-                            check(offered.any { it.accepts(option) }) {
-                                "'${word.name}' sets ${aspect.key}.$parameter to '$option', which it does not take"
-                            }
+                        // **This parameter's own value**, not every value the word carries: a word may set
+                        // two knobs of one aspect — `sunless` bounds `daylight` with a span and picks
+                        // `sunburn` by name — and asking each knob about the other's value condemns both.
+                        val option = word.sets.getValue(parameter)
+                        check(offered.any { it.accepts(option) }) {
+                            "'${word.name}' sets ${aspect.key}.$parameter to '$option', which it does not take"
                         }
                     }
                     continue
