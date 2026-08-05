@@ -98,8 +98,8 @@ object Atmosphere {
      * Applied when the Age opens rather than written into its recipe's generator: an attribute is a fact
      * about the *level* rather than about the ground, and nothing in generation reads one.
      */
-    fun settle(level: ServerLevel, options: Options, salt: Long) {
-        val everywhere = airIn(options, salt, biome = null)
+    fun settle(level: ServerLevel, options: Options, sky: Options, salt: Long) {
+        val everywhere = airIn(options, salt, biome = null) + lightFrom(sky)
         val corners = cornersOf(options).associateWith { airIn(options, salt, it) }
         if (everywhere.isEmpty() && corners.all { it.value.isEmpty() }) return
         val system = EnvironmentAttributeSystem.builder().addDefaultLayers(level)
@@ -138,6 +138,20 @@ object Atmosphere {
 
     private fun colourOf(options: Options, parameter: Parameter, biome: Identifier?): Rgba? =
         Colour.named(options.of(parameter, biome))
+
+    /**
+     * What an Age's *sky* does to the air — which is one switch, and it has to be said in two places.
+     *
+     * `Sky.SKYLIGHT` picks a dimension type that stops skylight **propagating**; this stops the sky
+     * **giving** any, which is the half a player sees. Walked without it and the world still looked lit at
+     * noon, because the level a lit world reads is the attribute and the timeline keeps it at full
+     * (Jonah, 2026-08-05). They are one statement, so a writer says it once and both layers hear it.
+     *
+     * Not a `sets` on the word: the two live in different aspects and a narrowing word has its say in the
+     * one section it was laid in, so `sky lightless` would otherwise reach only half of what it means.
+     */
+    private fun lightFrom(sky: Options): List<Asked<*>> =
+        if (sky.of(Sky.SKYLIGHT) == "none") listOf(Asked(EnvironmentAttributes.SKY_LIGHT_LEVEL, NO_DAYLIGHT)) else emptyList()
 
     /** Every attribute the sentence set **where [biome] is the ground**, or Age-wide where it is null. */
     private fun airIn(options: Options, salt: Long, biome: Identifier?): List<Asked<*>> = buildList {
@@ -184,4 +198,6 @@ object Atmosphere {
 
     /** Vanilla's sky light at noon, which is the top of the axis. */
     private const val FULL_DAYLIGHT = 15f
+
+    private const val NO_DAYLIGHT = 0f
 }

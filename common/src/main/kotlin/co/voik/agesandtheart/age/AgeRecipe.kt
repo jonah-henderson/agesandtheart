@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age
 
 import co.voik.agesandtheart.age.aspect.Biomes
 import co.voik.agesandtheart.age.aspect.Claim
+import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Span
@@ -237,8 +238,19 @@ data class AgeRecipe(
                 )
                 .with(
                     Aspect.BIOMES,
-                    // `!` is `only` (see `Claim`): exclusive, so vanilla's table is dropped rather than added to.
-                    listOf(Options(mapOf(Biomes.GROWN.name to listOf("${AgeGeneration.PLASMA_BIOME}{${Claim.ONLY}}")))),
+                    // Exclusive, so vanilla's table is dropped rather than added to. **Spelled by [Claim]
+                    // and never by hand**: this was written out as `plasma{only}` when braces were the
+                    // marks, survived the move to brackets unnoticed, and left the Spire asking for a biome
+                    // literally named `agesandtheart:plasma{only}` — which nothing is.
+                    listOf(
+                        Options(
+                            mapOf(
+                                Biomes.GROWN.name to listOf(
+                                    Claim(AgeGeneration.PLASMA_BIOME.toString(), Polarity.ONLY).spelled(),
+                                ),
+                            ),
+                        ),
+                    ),
                 )
                 .with(
                     Aspect.SURFACE,

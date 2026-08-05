@@ -1232,6 +1232,9 @@ object AgeCommand {
                 "seed" to recipe.seed,
                 "sentence" to recipe.words.joinToString(" "),
                 "instability" to recipe.instability.index,
+                // Which of the four pre-authored types it wears — invisible in game until you notice the
+                // world is not dark, and the one thing `/age list` could not answer.
+                "dimensionType" to AgeGeneration.dimensionType(recipe),
                 "unrecognised" to unknown,
             )
             report.entry("ages", fields) { "  $id — $recipe" }

@@ -59,7 +59,12 @@ object Ages {
      */
     private fun settleTheAir(level: ServerLevel, recipe: AgeRecipe) {
         val composition = recipe.composition ?: return
-        Atmosphere.settle(level, composition.optionsFor(Aspect.ATMOSPHERE, 0), recipe.seed)
+        Atmosphere.settle(
+            level,
+            composition.optionsFor(Aspect.ATMOSPHERE, 0),
+            composition.optionsFor(Aspect.SKY, 0),
+            recipe.seed,
+        )
     }
 
     /** Mints a fresh, distinct Age id (`agesandtheart:age_<n>`) from the persistent counter. */

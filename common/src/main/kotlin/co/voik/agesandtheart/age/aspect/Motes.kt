@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.aspect
 
 import net.minecraft.core.particles.BlockParticleOption
+import net.minecraft.world.attribute.AmbientParticle
 import net.minecraft.core.particles.ParticleOptions
 import net.minecraft.core.particles.ParticleTypes
 import net.minecraft.world.level.block.Blocks
@@ -23,6 +24,18 @@ import net.minecraft.world.level.block.Blocks
  * `Blocks` in behind them.
  */
 object Motes {
+    /**
+     * How often a mote appears, per eligible position per tick — vanilla's own ambient rates sit here.
+     *
+     * A share rather than a rate per mote, because what varies is **how much room a particle takes up**
+     * rather than how often the air should do something: ash drifts and reads as weather at the ordinary
+     * rate, where a lava spark is bright, fast and large, and at the same rate reads as being on fire
+     * (Jonah, 2026-08-05, walked).
+     */
+    private const val ORDINARY_CHANCE = 0.118f
+
+    private val THINNED = mapOf("embers" to 0.25f)
+
     private val NAMED: Map<String, () -> ParticleOptions> = linkedMapOf(
         // What the air carries.
         "ash" to { ParticleTypes.ASH },
@@ -58,4 +71,8 @@ object Motes {
 
     /** The particle [named], or null where the word is not one of ours. */
     fun named(name: String): ParticleOptions? = NAMED[name]?.invoke()
+
+    /** [named] and how often it should appear, ready to hang in an Age's air. */
+    fun ambient(name: String): List<AmbientParticle>? =
+        named(name)?.let { AmbientParticle.of(it, ORDINARY_CHANCE * (THINNED[name] ?: 1.0f)) }
 }

@@ -74,10 +74,9 @@ object AgeAir {
             add(Painted(EnvironmentAttributes.SKY_LIGHT_COLOR, it.packed()))
             add(Painted(EnvironmentAttributes.AMBIENT_LIGHT_COLOR, it.packed()))
         }
+        // How often is `Motes`', not ours: a lava spark has to be thinner than drifting ash to read as air.
         look.motes?.let { named ->
-            Motes.named(named)?.let {
-                add(Painted(EnvironmentAttributes.AMBIENT_PARTICLES, AmbientParticle.of(it, MOTE_CHANCE)))
-            }
+            Motes.ambient(named)?.let { add(Painted(EnvironmentAttributes.AMBIENT_PARTICLES, it)) }
         }
         look.haze?.let { haze ->
             val far = FURTHEST - haze * (FURTHEST - NEAREST)
@@ -114,9 +113,6 @@ object AgeAir {
      */
     private const val CLEAREST = 256f
     private const val MURKIEST = 8f
-
-    /** How often a mote appears, per eligible position per tick — vanilla's own ambient rates sit here. */
-    private const val MOTE_CHANCE = 0.118f
 
     /** The band the cloud deck moves through, in blocks. */
     private const val LOWEST_CLOUD = 96f
