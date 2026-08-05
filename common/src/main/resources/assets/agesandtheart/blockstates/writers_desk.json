@@ -9,6 +9,12 @@
     "facing=north,part=right": {
       "model": "minecraft:block/bookshelf"
     },
+    "facing=north,part=ink_case": {
+      "model": "minecraft:block/brewing_stand"
+    },
+    "facing=north,part=supply_bin": {
+      "model": "minecraft:block/barrel"
+    },
     "facing=east,part=centre": {
       "model": "minecraft:block/lectern",
       "y": 90
@@ -18,6 +24,12 @@
     },
     "facing=east,part=right": {
       "model": "minecraft:block/bookshelf"
+    },
+    "facing=east,part=ink_case": {
+      "model": "minecraft:block/brewing_stand"
+    },
+    "facing=east,part=supply_bin": {
+      "model": "minecraft:block/barrel"
     },
     "facing=south,part=centre": {
       "model": "minecraft:block/lectern",
@@ -29,6 +41,12 @@
     "facing=south,part=right": {
       "model": "minecraft:block/bookshelf"
     },
+    "facing=south,part=ink_case": {
+      "model": "minecraft:block/brewing_stand"
+    },
+    "facing=south,part=supply_bin": {
+      "model": "minecraft:block/barrel"
+    },
     "facing=west,part=centre": {
       "model": "minecraft:block/lectern",
       "y": 270
@@ -38,6 +56,12 @@
     },
     "facing=west,part=right": {
       "model": "minecraft:block/bookshelf"
+    },
+    "facing=west,part=ink_case": {
+      "model": "minecraft:block/brewing_stand"
+    },
+    "facing=west,part=supply_bin": {
+      "model": "minecraft:block/barrel"
     }
   }
 }

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.desk
 
+import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.grammar.Grammar
@@ -88,6 +89,30 @@ object DeskCommands {
     }
 
     /** Pushes the current state to whoever has the desk open. */
+    /**
+     * The stores alone, for a wing — which shows no archive and no composer, so it sends neither.
+     *
+     * Safe to leave those empty because the desk re-syncs whenever it is opened ([opened]), so a wing
+     * cannot leave the centre's screen looking at an emptied archive.
+     */
+    fun sync(player: ServerPlayer, desk: WritersDeskBlockEntity) {
+        val workshop = WritersDesk.load(player.level().server.resourceManager, mutableListOf())
+        val capabilities = desk.capabilities(workshop)
+        Services.NETWORK.sendToPlayer(
+            player,
+            DeskSyncPayload(
+                archive = emptyMap(),
+                ink = InkTier.entries.associateWith { desk.stores.ink(it) },
+                paper = InkTier.entries.associateWith { desk.stores.paper(it) },
+                binding = desk.stores.binding(),
+                inkCapacity = desk.inkCapacity,
+                capabilities = capabilities.capabilities,
+                pageLimit = capabilities.pageLimit,
+                composing = emptyList(),
+            ),
+        )
+    }
+
     fun sync(player: ServerPlayer, menu: WritersDeskMenu, desk: WritersDeskBlockEntity) {
         val workshop = WritersDesk.load(player.level().server.resourceManager, mutableListOf())
         Services.NETWORK.sendToPlayer(player, menu.snapshot(player, desk, desk.capabilities(workshop)))

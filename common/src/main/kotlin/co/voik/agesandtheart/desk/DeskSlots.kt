@@ -51,4 +51,17 @@ object DeskSlots {
     /** The general doorway, centred in the room the supplies tab has above the inventory. */
     const val INTAKE_X = 79
     const val INTAKE_Y = (18 + INVENTORY_LABEL_Y) / 2 - 8
+
+    /**
+     * A wing's panel — the ink case and the supply bin, which each show stores and one doorway.
+     *
+     * A three-row container's height, because that is what they hold: nothing here needs the room the
+     * centre ran out of, and a short panel says so before it is read.
+     */
+    const val WING_PANEL_HEIGHT = 166
+    const val WING_INVENTORY_Y = WING_PANEL_HEIGHT - 83
+    const val WING_HOTBAR_Y = WING_INVENTORY_Y + HOTBAR_DROP
+    const val WING_INVENTORY_LABEL_Y = WING_INVENTORY_Y - 11
+    const val WING_INTAKE_X = INTAKE_X
+    const val WING_INTAKE_Y = (18 + WING_INVENTORY_LABEL_Y) / 2 - 8
 }

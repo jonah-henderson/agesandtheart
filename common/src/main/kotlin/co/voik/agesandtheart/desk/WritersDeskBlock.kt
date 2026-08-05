@@ -27,22 +27,40 @@ import net.minecraft.world.level.block.state.StateDefinition
 import net.minecraft.world.level.block.state.properties.EnumProperty
 import net.minecraft.world.phys.BlockHitResult
 
-/** Which third of the desk a block is. The centre carries the block entity; the wings only point at it. */
+/**
+ * Which part of the desk a block is. The centre carries the block entity; every other part points at it.
+ *
+ * Five, not three: the bookshelf wings each carry a supply piece above them, which is where the room for
+ * the screen came from (design §7.3, and the plan's desk rework). [INK_CASE] and [SUPPLY_BIN] are the only
+ * parts a player can open something *else* with.
+ */
 enum class DeskPart(private val key: String) : StringRepresentable {
     LEFT("left"),
     CENTRE("centre"),
     RIGHT("right"),
+    INK_CASE("ink_case"),
+    SUPPLY_BIN("supply_bin"),
     ;
 
     override fun getSerializedName(): String = key
 }
 
 /**
- * The writer's desk: three blocks wide, one block entity.
+ * The writer's desk: three wide, two tall, one block entity.
+ *
+ * ```
+ *    [ink case]   ·   [supply bin]      <- nothing above the centre, so a writer can see over their desk
+ *    [bookshelf] [desk] [bookshelf]
+ * ```
  *
  * Built on the bed's pattern — a `PART` property plus matching placement and break handlers — because
- * vanilla has no multiblock system and this is the shape it uses when it needs one. The wings exist only
- * to be broken and to be looked at; every question is answered by the centre.
+ * vanilla has no multiblock system and this is the shape it uses when it needs one. Every question is
+ * answered by the centre; the other four parts exist to be broken, to be looked at, and in two cases to be
+ * opened.
+ *
+ * **Placement now wants headroom**, which is the price of the room: a desk refuses in a two-high corridor
+ * where the three-wide one fitted. `getStateForPlacement` returning null is what makes the item bounce
+ * rather than place a desk that instantly breaks.
  */
 class WritersDeskBlock(properties: Properties) : BaseEntityBlock(properties) {
 
@@ -70,21 +88,19 @@ class WritersDeskBlock(properties: Properties) : BaseEntityBlock(properties) {
      */
     override fun getStateForPlacement(context: BlockPlaceContext): BlockState? {
         val facing = context.horizontalDirection.opposite
-        val centre = context.clickedPos
         val level = context.level
-        val (left, right) = sidesOf(facing)
-        for (side in listOf(left, right)) {
-            if (!level.getBlockState(centre.relative(side)).canBeReplaced(context)) return null
+        for ((part, at) in aroundCentre(facing, context.clickedPos)) {
+            if (part == DeskPart.CENTRE) continue
+            if (!level.getBlockState(at).canBeReplaced(context)) return null
         }
         return defaultBlockState().setValue(FACING, facing).setValue(PART, DeskPart.CENTRE)
     }
 
     override fun setPlacedBy(level: Level, pos: BlockPos, state: BlockState, placer: LivingEntity?, stack: ItemStack) {
         if (level.isClientSide) return
-        val facing = state.getValue(FACING)
-        val (left, right) = sidesOf(facing)
-        level.setBlock(pos.relative(left), wing(state, DeskPart.LEFT), UPDATE_ALL)
-        level.setBlock(pos.relative(right), wing(state, DeskPart.RIGHT), UPDATE_ALL)
+        for ((part, at) in aroundCentre(state.getValue(FACING), pos)) {
+            if (part != DeskPart.CENTRE) level.setBlock(at, wing(state, part), UPDATE_ALL)
+        }
     }
 
     /**
@@ -146,7 +162,12 @@ class WritersDeskBlock(properties: Properties) : BaseEntityBlock(properties) {
     override fun getCloneItemStack(level: LevelReader, pos: BlockPos, state: BlockState, includeData: Boolean): ItemStack =
         ItemStack(AgeContent.WRITERS_DESK)
 
-    /** An empty hand opens the desk; any part of it, since the wings are the same furniture. */
+    /**
+     * An empty hand opens **what you touched**: the ink case, the supply bin, or the desk itself.
+     *
+     * All three anchor on the centre, because the stores and the archive live on its block entity — a menu
+     * anchored at the part you clicked would fail `stillValid` the moment it looked for one.
+     */
     override fun useWithoutItem(
         state: BlockState,
         level: Level,
@@ -158,8 +179,14 @@ class WritersDeskBlock(properties: Properties) : BaseEntityBlock(properties) {
         val serverPlayer = player as? ServerPlayer ?: return InteractionResult.FAIL
         val centre = centreOf(state, pos)
         if (level.getBlockEntity(centre) !is WritersDeskBlockEntity) return InteractionResult.FAIL
-        WritersDeskMenu.open(serverPlayer, centre)
-        DeskCommands.opened(serverPlayer)
+        when (state.getValue(PART)) {
+            DeskPart.INK_CASE -> InkCaseMenu.open(serverPlayer, centre)
+            DeskPart.SUPPLY_BIN -> SupplyBinMenu.open(serverPlayer, centre)
+            DeskPart.LEFT, DeskPart.RIGHT, DeskPart.CENTRE -> {
+                WritersDeskMenu.open(serverPlayer, centre)
+                DeskCommands.opened(serverPlayer)
+            }
+        }
         return InteractionResult.CONSUME
     }
 
@@ -196,14 +223,14 @@ class WritersDeskBlock(properties: Properties) : BaseEntityBlock(properties) {
             DeskPart.CENTRE -> pos
             DeskPart.LEFT -> pos.relative(right)
             DeskPart.RIGHT -> pos.relative(left)
+            DeskPart.INK_CASE -> pos.below().relative(right)
+            DeskPart.SUPPLY_BIN -> pos.below().relative(left)
         }
     }
 
     private fun clearOthers(level: Level, pos: BlockPos, state: BlockState) {
         val centre = centreOf(state, pos)
-        val facing = state.getValue(FACING)
-        val (left, right) = sidesOf(facing)
-        for (part in listOf(centre, centre.relative(left), centre.relative(right))) {
+        for ((_, part) in aroundCentre(state.getValue(FACING), centre)) {
             if (part == pos) continue
             val other = level.getBlockState(part)
             if (other.block === this) {
@@ -238,6 +265,23 @@ class WritersDeskBlock(properties: Properties) : BaseEntityBlock(properties) {
         /** The desk runs left-to-right across the face you stand at, so the wings sit beside you. */
         private fun sidesOf(facing: Direction): Pair<Direction, Direction> =
             facing.counterClockWise to facing.clockWise
+
+        /**
+         * Every part of a desk whose centre is at [centre], and where it sits.
+         *
+         * One list, read by placement, by breaking and by the initial build — three things that must agree
+         * about what a desk *is*, and did not have to before there were five of them.
+         */
+        private fun aroundCentre(facing: Direction, centre: BlockPos): List<Pair<DeskPart, BlockPos>> {
+            val (left, right) = sidesOf(facing)
+            return listOf(
+                DeskPart.CENTRE to centre,
+                DeskPart.LEFT to centre.relative(left),
+                DeskPart.RIGHT to centre.relative(right),
+                DeskPart.INK_CASE to centre.relative(left).above(),
+                DeskPart.SUPPLY_BIN to centre.relative(right).above(),
+            )
+        }
 
         /** The block entity for any part of the desk at [pos], or null if this is not a desk. */
         fun entityAt(level: BlockGetter, pos: BlockPos): WritersDeskBlockEntity? {

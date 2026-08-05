@@ -7,6 +7,8 @@ import co.voik.agesandtheart.client.ClientDeskNetwork
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry
 import co.voik.agesandtheart.client.DeskModel
 import co.voik.agesandtheart.client.KnownWords
+import co.voik.agesandtheart.client.InkCaseScreen
+import co.voik.agesandtheart.client.SupplyBinScreen
 import co.voik.agesandtheart.client.WritersDeskScreen
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.desk.DeskNoticePayload
@@ -39,6 +41,8 @@ fun initClient() {
     co.voik.agesandtheart.platform.FabricInkRendering.register()
     EntityRendererRegistry.register(AgeContent.BOOK_ENTITY, ::BookEntityRenderer)
     MenuScreens.register(AgeContent.WRITERS_DESK_MENU, ::WritersDeskScreen)
+    MenuScreens.register(AgeContent.INK_CASE_MENU, ::InkCaseScreen)
+    MenuScreens.register(AgeContent.SUPPLY_BIN_MENU, ::SupplyBinScreen)
     ClientDeskNetwork.sender = { payload -> ClientPlayNetworking.send(payload) }
     ClientPlayNetworking.registerGlobalReceiver(DeskSyncPayload.TYPE) { payload, _ ->
         DeskModel.remember(payload)

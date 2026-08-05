@@ -10,6 +10,8 @@ import co.voik.agesandtheart.book.LinkTarget
 import co.voik.agesandtheart.book.RepatternBookRecipe
 import co.voik.agesandtheart.desk.WritersDeskBlock
 import co.voik.agesandtheart.desk.WritersDeskBlockEntity
+import co.voik.agesandtheart.desk.InkCaseMenu
+import co.voik.agesandtheart.desk.SupplyBinMenu
 import co.voik.agesandtheart.desk.WritersDeskMenu
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.worldgen.AgeChunkGenerator
@@ -257,8 +259,20 @@ object AgeContent {
         FeatureFlags.VANILLA_SET,
     )
 
+    val INK_CASE_MENU: MenuType<InkCaseMenu> = MenuType(
+        { containerId, inventory -> InkCaseMenu(containerId, inventory, ContainerLevelAccess.NULL) },
+        FeatureFlags.VANILLA_SET,
+    )
+
+    val SUPPLY_BIN_MENU: MenuType<SupplyBinMenu> = MenuType(
+        { containerId, inventory -> SupplyBinMenu(containerId, inventory, ContainerLevelAccess.NULL) },
+        FeatureFlags.VANILLA_SET,
+    )
+
     val menus: List<Pair<Identifier, MenuType<*>>> = listOf(
         WRITERS_DESK_ID to WRITERS_DESK_MENU,
+        "ink_case".location() to INK_CASE_MENU,
+        "supply_bin".location() to SUPPLY_BIN_MENU,
     )
 
     val recipeSerializers: List<Pair<Identifier, RecipeSerializer<*>>> =
