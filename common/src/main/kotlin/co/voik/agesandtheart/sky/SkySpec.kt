@@ -9,7 +9,7 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 /**
  * Everything an Age's sky is, as data: its celestial bodies and its stars.
  *
- * **What crosses to the client**, and nothing here is a registry object — see [SkyPayload] for why that
+ * **What crosses to the client**, and nothing here is a registry object — see [LookPayload] for why that
  * matters, and `notes/per-age-skies-research.md` §1.
  *
  * **Derived, never stored**: [drawn] is a pure function, so an Age rebuilds the same sky on every open

@@ -13,8 +13,8 @@ import co.voik.agesandtheart.desk.DeskNoticePayload
 import co.voik.agesandtheart.desk.DeskPricePayload
 import co.voik.agesandtheart.desk.DeskSyncPayload
 import net.minecraft.client.gui.screens.MenuScreens
-import co.voik.agesandtheart.sky.KnownSkies
-import co.voik.agesandtheart.sky.SkyPayload
+import co.voik.agesandtheart.sky.KnownLooks
+import co.voik.agesandtheart.sky.LookPayload
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 
@@ -29,11 +29,11 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 fun initClient() {
     Constants.LOG.info("Ages client init")
 
-    // What each Age's sky is, told to us by the server. The renderer reads `KnownSkies` every frame rather
+    // What each Age's sky is, told to us by the server. The renderer reads `KnownLooks` every frame rather
     // than being registered per dimension, so an edited Age can change what it draws — see
-    // `KnownSkies.remember`.
-    ClientPlayNetworking.registerGlobalReceiver(SkyPayload.TYPE) { payload, _ ->
-        KnownSkies.remember(payload)
+    // `KnownLooks.remember`.
+    ClientPlayNetworking.registerGlobalReceiver(LookPayload.TYPE) { payload, _ ->
+        KnownLooks.remember(payload)
         Constants.LOG.debug("Learned {} Age skies", payload.skies.size)
     }
     co.voik.agesandtheart.platform.FabricInkRendering.register()
@@ -59,7 +59,7 @@ fun initClient() {
 
     // These keys mean nothing on the next server, and an Age id can be reused.
     ClientPlayConnectionEvents.DISCONNECT.register { _, _ ->
-        KnownSkies.forgetAll()
+        KnownLooks.forgetAll()
         KnownWords.forgetAll()
         DeskModel.forget()
     }

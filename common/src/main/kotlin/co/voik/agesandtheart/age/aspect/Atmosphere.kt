@@ -5,6 +5,8 @@ import net.minecraft.world.attribute.EnvironmentAttribute
 import net.minecraft.world.attribute.EnvironmentAttributeMap
 import net.minecraft.world.attribute.EnvironmentAttributeSystem
 import net.minecraft.world.attribute.EnvironmentAttributes
+import co.voik.agesandtheart.math.Rgba
+import co.voik.agesandtheart.sky.Look
 import net.minecraft.core.BlockPos
 import net.minecraft.resources.Identifier
 
@@ -45,6 +47,28 @@ object Atmosphere {
     val EVAPORATION = Parameter("evaporation", AS_EVER, "always")
 
     /**
+     * The three the eye sees, each taking one of [Colour]'s nine.
+     *
+     * **A colour and not a hex triple** — §3.2's rule at its least arguable: "green" is a thing a person
+     * says about a sky where `#6DB563` is a fact about our arithmetic.
+     */
+    val SKY = colour("sky")
+    val FOG = colour("fog")
+    val CLOUD = colour("cloud")
+
+    /**
+     * How close the fog closes in — **one knob for what vanilla holds as two distances**, since a writer
+     * says "thick" rather than "starting at 32 and ending at 96". The two are derived, and the granular
+     * pair stays available the day a word wants it.
+     */
+    val HAZE = Parameter.ranged("haze")
+
+    /** How high the clouds sit, on the same argument: one number a word bends. */
+    val CEILING = Parameter.ranged("ceiling")
+
+    private fun colour(name: String) = Parameter(name, listOf(AS_EVER) + Colour.ALL)
+
+    /**
      * This Age's own layer laid over the ones vanilla built, or the system untouched where the sentence
      * said nothing about the air.
      *
@@ -53,7 +77,7 @@ object Atmosphere {
      */
     fun settle(level: ServerLevel, options: Options, salt: Long) {
         val everywhere = airIn(options, salt, biome = null)
-        val corners = confinedBiomes(options).associateWith { airIn(options, salt, it) }
+        val corners = cornersOf(options).associateWith { airIn(options, salt, it) }
         if (everywhere.isEmpty() && corners.all { it.value.isEmpty() }) return
         val system = EnvironmentAttributeSystem.builder().addDefaultLayers(level)
         if (everywhere.isNotEmpty()) {
@@ -66,6 +90,28 @@ object Atmosphere {
         for ((biome, air) in corners) air.forEach { it.onto(system, level, biome) }
         level.setEnvironmentAttributes(system.build())
     }
+
+    /**
+     * What the *eye* sees, which the server cannot decide alone: `ClientLevel` builds its own attribute
+     * system in its constructor from a private final field, so these cross on a payload and are installed
+     * client-side. See [co.voik.agesandtheart.sky.LookPayload].
+     */
+    fun lookIn(options: Options, salt: Long, biome: Identifier? = null): Look = Look(
+        sky = colourOf(options, SKY, biome),
+        fog = colourOf(options, FOG, biome),
+        cloud = colourOf(options, CLOUD, biome),
+        haze = options.steer(HAZE, salt, biome)?.let(Span.NATURAL::fractionOf)?.toFloat(),
+        ceiling = options.steer(CEILING, salt, biome)?.let(Span.NATURAL::fractionOf)?.toFloat(),
+    )
+
+    /** Every biome any dial of this aspect was confined to, visual or not. */
+    fun cornersOf(options: Options): List<Identifier> =
+        listOf(DAYLIGHT, SUNBURN, EVAPORATION, SKY, FOG, CLOUD, HAZE, CEILING)
+            .flatMap(options::confinedIn)
+            .distinct()
+
+    private fun colourOf(options: Options, parameter: Parameter, biome: Identifier?): Rgba? =
+        Colour.named(options.of(parameter, biome))
 
     /** Every attribute the sentence set **where [biome] is the ground**, or Age-wide where it is null. */
     private fun airIn(options: Options, salt: Long, biome: Identifier?): List<Asked<*>> = buildList {
@@ -99,10 +145,6 @@ object Atmosphere {
             }
         }
     }
-
-    /** Every biome a dial of this aspect was confined to — see `Options.of`. */
-    private fun confinedBiomes(options: Options): List<Identifier> =
-        listOf(DAYLIGHT, SUNBURN, EVAPORATION).flatMap(options::confinedIn).distinct()
 
     /** Null where the writer left it as it ever was, which is the answer that lays no layer. */
     private fun burning(options: Options, biome: Identifier?): Boolean? = when (options.of(SUNBURN, biome)) {

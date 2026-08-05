@@ -14,8 +14,8 @@ import co.voik.agesandtheart.desk.DeskPricePayload
 import co.voik.agesandtheart.desk.DeskSyncPayload
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.platform.NeoForgeInkFluids
-import co.voik.agesandtheart.sky.KnownSkies
-import co.voik.agesandtheart.sky.SkyPayload
+import co.voik.agesandtheart.sky.KnownLooks
+import co.voik.agesandtheart.sky.LookPayload
 import co.voik.agesandtheart.sky.Skies
 import net.minecraft.core.registries.Registries
 import net.neoforged.bus.api.IEventBus
@@ -106,14 +106,14 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
      * **Bump the version string whenever the payload's codec or handler semantics change**, or two modded
      * ends will negotiate a channel they disagree about.
      *
-     * The handler lands the spec in [KnownSkies], which is plain data in `common` with no client types, so
+     * The handler lands the spec in [KnownLooks], which is plain data in `common` with no client types, so
      * nothing here is dist-sensitive — which is why it stays on the server-side class rather than moving to
      * `AgesAndTheArtClient`.
      */
     private fun onRegisterPayloads(event: RegisterPayloadHandlersEvent) {
         val registrar = event.registrar(PAYLOAD_VERSION)
-        registrar.playToClient(SkyPayload.TYPE, SkyPayload.STREAM_CODEC) { payload, _ ->
-            KnownSkies.remember(payload)
+        registrar.playToClient(LookPayload.TYPE, LookPayload.STREAM_CODEC) { payload, _ ->
+            KnownLooks.remember(payload)
         }
         // These two land in client-only code. Registration must happen here — a clientbound payload the
         // server never registered is one it cannot send — but the handler body only runs on a client, so

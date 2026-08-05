@@ -17,7 +17,7 @@ import net.minecraft.resources.Identifier
 import net.neoforged.neoforge.client.event.RegisterFluidModelsEvent
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent
 import net.neoforged.neoforge.client.network.ClientPacketDistributor
-import co.voik.agesandtheart.sky.KnownSkies
+import co.voik.agesandtheart.sky.KnownLooks
 import net.neoforged.api.distmarker.Dist
 import net.neoforged.bus.api.IEventBus
 import net.neoforged.fml.common.Mod
@@ -73,7 +73,7 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
     }
 
     private fun onLoggingOut(event: ClientPlayerNetworkEvent.LoggingOut) {
-        KnownSkies.forgetAll()
+        KnownLooks.forgetAll()
         KnownWords.forgetAll()
         DeskModel.forget()
     }

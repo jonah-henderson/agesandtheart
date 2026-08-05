@@ -20,7 +20,7 @@ import co.voik.agesandtheart.desk.DeskPricePayload
 import co.voik.agesandtheart.desk.DeskSyncPayload
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.platform.FabricInkFluids
-import co.voik.agesandtheart.sky.SkyPayload
+import co.voik.agesandtheart.sky.LookPayload
 import co.voik.agesandtheart.sky.Skies
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
@@ -58,7 +58,7 @@ fun init() {
 
     // The payload type, registered here rather than in the client entrypoint: Fabric requires it on *both*
     // sides, and registering twice throws. Common init is the only place that is true of.
-    PayloadTypeRegistry.clientboundPlay().register(SkyPayload.TYPE, SkyPayload.STREAM_CODEC)
+    PayloadTypeRegistry.clientboundPlay().register(LookPayload.TYPE, LookPayload.STREAM_CODEC)
     PayloadTypeRegistry.clientboundPlay().register(LexiconPayload.TYPE, LexiconPayload.STREAM_CODEC)
     PayloadTypeRegistry.clientboundPlay().register(LearnedWordsPayload.TYPE, LearnedWordsPayload.STREAM_CODEC)
     PayloadTypeRegistry.clientboundPlay().register(DeskSyncPayload.TYPE, DeskSyncPayload.STREAM_CODEC)

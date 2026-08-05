@@ -9,6 +9,9 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.resources.ResourceKey
 import net.minecraft.world.level.Level
+import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Atmosphere
+import co.voik.agesandtheart.age.aspect.Options
 
 /**
  * Telling a client what the skies of this server's Ages look like.
@@ -27,7 +30,7 @@ object Skies {
     fun tellAbout(player: ServerPlayer, level: ServerLevel) {
         val server = level.server
         val entry = entryFor(server, level.dimension()) ?: return
-        Services.NETWORK.sendToPlayer(player, SkyPayload(listOf(entry)))
+        Services.NETWORK.sendToPlayer(player, LookPayload(listOf(entry)))
     }
 
     /**
@@ -41,7 +44,7 @@ object Skies {
             entryFor(server, ResourceKey.create(Registries.DIMENSION, id))
         }
         if (entries.isEmpty()) return
-        Services.NETWORK.sendToPlayer(player, SkyPayload(entries))
+        Services.NETWORK.sendToPlayer(player, LookPayload(entries))
     }
 
     /**
@@ -51,7 +54,7 @@ object Skies {
      * server-side override map to keep or to restore on restart.
      */
     fun preview(level: ServerLevel, spec: SkySpec) {
-        val payload = SkyPayload(listOf(SkyPayload.Entry(level.dimension(), spec)))
+        val payload = LookPayload(listOf(LookPayload.Entry(level.dimension(), spec)))
         for (player in level.players()) Services.NETWORK.sendToPlayer(player, payload)
     }
 
@@ -60,10 +63,17 @@ object Skies {
      * is still *sent*, so the client's answer is never "I was not told" — the renderer treats an unknown
      * Age and an ordinary one differently, and conflating them would make a lost packet look deliberate.
      */
-    private fun entryFor(server: MinecraftServer, dimension: ResourceKey<Level>): SkyPayload.Entry? {
+    private fun entryFor(server: MinecraftServer, dimension: ResourceKey<Level>): LookPayload.Entry? {
         val saved = AgeSavedData.get(server)
         val id = dimension.identifier()
         if (id !in saved.ages) return null
-        return SkyPayload.Entry(dimension, AgeGeneration.skySpec(saved.recipe(id)))
+        val recipe = saved.recipe(id)
+        val air = recipe.composition?.optionsFor(Aspect.ATMOSPHERE, 0) ?: Options.NONE
+        return LookPayload.Entry(
+            dimension,
+            AgeGeneration.skySpec(recipe),
+            Atmosphere.lookIn(air, recipe.seed),
+            Atmosphere.cornersOf(air).associateWith { Atmosphere.lookIn(air, recipe.seed, it) },
+        )
     }
 }

@@ -1,0 +1,9 @@
+{
+  "tier": "exact",
+  "aspects": [
+    "atmosphere"
+  ],
+  "sets": {
+    "sky": "green"
+  }
+}

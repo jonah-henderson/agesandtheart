@@ -1,0 +1,13 @@
+{
+  "tier": "restrictive",
+  "aspects": [
+    "atmosphere"
+  ],
+  "query": {
+    "gloomy": 1.0
+  },
+  "sets": {
+    "haze": "0.7..1.0",
+    "ceiling": "-1.0..-0.5"
+  }
+}

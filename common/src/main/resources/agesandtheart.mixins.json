@@ -6,6 +6,7 @@
     "ServerPlayerMixin"
   ],
   "client": [
+    "client.ClientLevelMixin",
     "client.CloudRendererMixin",
     "client.SkyRendererMixin"
   ],

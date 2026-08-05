@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.sky
 
 import co.voik.agesandtheart.Constants
+import com.mojang.serialization.Codec
 import net.minecraft.core.registries.Registries
 import net.minecraft.network.codec.ByteBufCodecs
 import net.minecraft.network.codec.StreamCodec
@@ -10,7 +11,7 @@ import net.minecraft.resources.Identifier
 import net.minecraft.world.level.Level
 
 /**
- * What an Age's sky looks like, on its way to the client.
+ * **What an Age looks like, on its way to the client** — its sky, and the air the eye sees through.
  *
  * **The whole reason per-Age skies are possible.** `DimensionType.STREAM_CODEC` is
  * `ByteBufCodecs.holderRegistry` and writes registry ids only, so a per-Age dimension type cannot be
@@ -23,19 +24,31 @@ import net.minecraft.world.level.Level
  * A client without the mod decodes this as `DiscardedPayload` and ignores it rather than disconnecting, so
  * sending is safe but arrival is not guaranteed.
  */
-data class SkyPayload(val skies: List<Entry>) : CustomPacketPayload {
+data class LookPayload(val skies: List<Entry>) : CustomPacketPayload {
 
-    override fun type(): CustomPacketPayload.Type<SkyPayload> = TYPE
+    override fun type(): CustomPacketPayload.Type<LookPayload> = TYPE
 
-    /** One Age and the sky it has. */
-    data class Entry(val dimension: ResourceKey<Level>, val spec: SkySpec)
+    /**
+     * One Age, the sky it has, and how the air is painted — Age-wide and in each corner a sentence
+     * confined something to.
+     *
+     * Both halves ride one entry because both are the same fact: what this client should show for that
+     * dimension. A second payload would be a second codec, a second dispatch and a second chance for the
+     * two to disagree about an Age.
+     */
+    data class Entry(
+        val dimension: ResourceKey<Level>,
+        val spec: SkySpec,
+        val look: Look = Look.NOTHING,
+        val corners: Map<Identifier, Look> = emptyMap(),
+    )
 
     companion object {
         /**
          * Built with [Identifier.fromNamespaceAndPath] rather than `CustomPacketPayload.createType`,
          * because that helper is `withDefaultNamespace` — it would silently claim `minecraft:skies`.
          */
-        val TYPE: CustomPacketPayload.Type<SkyPayload> = CustomPacketPayload.Type(
+        val TYPE: CustomPacketPayload.Type<LookPayload> = CustomPacketPayload.Type(
             Identifier.fromNamespaceAndPath(Constants.MOD_ID, "skies"),
         )
 
@@ -49,13 +62,17 @@ data class SkyPayload(val skies: List<Entry>) : CustomPacketPayload {
             Entry::dimension,
             ByteBufCodecs.fromCodec(SkySpec.CODEC),
             Entry::spec,
+            ByteBufCodecs.fromCodec(Look.CODEC),
+            Entry::look,
+            ByteBufCodecs.fromCodec(Codec.unboundedMap(Identifier.CODEC, Look.CODEC)),
+            Entry::corners,
             ::Entry,
         )
 
-        val STREAM_CODEC: StreamCodec<io.netty.buffer.ByteBuf, SkyPayload> = StreamCodec.composite(
+        val STREAM_CODEC: StreamCodec<io.netty.buffer.ByteBuf, LookPayload> = StreamCodec.composite(
             ENTRY_STREAM_CODEC.apply(ByteBufCodecs.list()),
-            SkyPayload::skies,
-            ::SkyPayload,
+            LookPayload::skies,
+            ::LookPayload,
         )
     }
 }

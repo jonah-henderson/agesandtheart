@@ -22,11 +22,23 @@ data class Rgba(val red: Float, val green: Float, val blue: Float, val alpha: Fl
         alpha + (other.alpha - alpha) * amount,
     )
 
+    /**
+     * This colour as one `0xAARRGGBB` integer — how vanilla's environment attributes hold a colour.
+     *
+     * Ours are floats because that is what a renderer multiplies by; packing is the boundary, not the
+     * representation.
+     */
+    fun packed(): Int = (byteOf(alpha) shl 24) or (byteOf(red) shl 16) or (byteOf(green) shl 8) or byteOf(blue)
+
+    private fun byteOf(channel: Float): Int = (channel.coerceIn(0.0f, 1.0f) * FULL).toInt()
+
     /** This colour at [factor] of its brightness, alpha untouched. */
     fun dimmed(factor: Float): Rgba = Rgba(red * factor, green * factor, blue * factor, alpha)
 
     companion object {
         val WHITE = Rgba(1.0f, 1.0f, 1.0f)
+
+        private const val FULL = 255f
 
         /**
          * Alpha is optional and defaults to opaque, so a fully-lit colour is written as three numbers.

@@ -107,7 +107,16 @@ enum class Aspect(val key: String) : StringRepresentable {
             SURFACE -> listOf(Surface.MATERIAL)
             FEATURES -> listOf(Features.PLACES, Features.SIZE, Features.THICKNESS, Features.HEIGHT)
             SPAWNS -> listOf(Spawns.LIVES)
-            ATMOSPHERE -> listOf(Atmosphere.DAYLIGHT, Atmosphere.SUNBURN, Atmosphere.EVAPORATION)
+            ATMOSPHERE -> listOf(
+                Atmosphere.DAYLIGHT,
+                Atmosphere.SUNBURN,
+                Atmosphere.EVAPORATION,
+                Atmosphere.SKY,
+                Atmosphere.FOG,
+                Atmosphere.CLOUD,
+                Atmosphere.HAZE,
+                Atmosphere.CEILING,
+            )
             TERRAIN, SEA, CARVERS, SKY -> emptyList()
         }
 
