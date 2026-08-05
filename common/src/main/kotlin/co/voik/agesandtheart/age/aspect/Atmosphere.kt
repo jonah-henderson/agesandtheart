@@ -67,6 +67,15 @@ object Atmosphere {
     val CEILING = Parameter.ranged("ceiling")
 
     /**
+     * How far you see underwater — [HAZE]'s sibling, and named for the same direction it obscures.
+     *
+     * The water's *colour* is deliberately not here, and this is what remains reachable without it: the
+     * colour would only ever have moved the fog and left the surface vanilla blue, where a distance moves
+     * the one thing a swimmer actually experiences.
+     */
+    val MURK = Parameter.ranged("murk")
+
+    /**
      * What colour the light itself is — a world *lit* red, which is a different thing from a red sky.
      *
      * One knob over both the sky's light and the ambient, because a writer who says the light is green
@@ -116,13 +125,14 @@ object Atmosphere {
         cloud = colourOf(options, CLOUD, biome),
         tint = colourOf(options, TINT, biome),
         motes = options.of(MOTES, biome).takeUnless { it == AS_EVER },
+        murk = options.steer(MURK, salt, biome)?.let(Span.NATURAL::fractionOf)?.toFloat(),
         haze = options.steer(HAZE, salt, biome)?.let(Span.NATURAL::fractionOf)?.toFloat(),
         ceiling = options.steer(CEILING, salt, biome)?.let(Span.NATURAL::fractionOf)?.toFloat(),
     )
 
     /** Every biome any dial of this aspect was confined to, visual or not. */
     fun cornersOf(options: Options): List<Identifier> =
-        listOf(DAYLIGHT, SUNBURN, EVAPORATION, SKY, FOG, CLOUD, TINT, MOTES, HAZE, CEILING)
+        listOf(DAYLIGHT, SUNBURN, EVAPORATION, SKY, FOG, CLOUD, TINT, MOTES, HAZE, CEILING, MURK)
             .flatMap(options::confinedIn)
             .distinct()
 

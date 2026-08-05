@@ -118,6 +118,7 @@ enum class Aspect(val key: String) : StringRepresentable {
                 Atmosphere.MOTES,
                 Atmosphere.HAZE,
                 Atmosphere.CEILING,
+                Atmosphere.MURK,
             )
             TERRAIN, SEA, CARVERS, SKY -> emptyList()
         }

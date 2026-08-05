@@ -24,10 +24,11 @@ data class Look(
     val motes: String? = null,
     val haze: Float? = null,
     val ceiling: Float? = null,
+    val murk: Float? = null,
 ) {
     val saysNothing: Boolean
         get() = sky == null && fog == null && cloud == null && tint == null &&
-            motes == null && haze == null && ceiling == null
+            motes == null && haze == null && ceiling == null && murk == null
 
     companion object {
         val NOTHING = Look()
@@ -41,7 +42,8 @@ data class Look(
                 Codec.STRING.optionalFieldOf("motes").forGetter { java.util.Optional.ofNullable(it.motes) },
                 Codec.FLOAT.optionalFieldOf("haze").forGetter { java.util.Optional.ofNullable(it.haze) },
                 Codec.FLOAT.optionalFieldOf("ceiling").forGetter { java.util.Optional.ofNullable(it.ceiling) },
-            ).apply(instance) { sky, fog, cloud, tint, motes, haze, ceiling ->
+                Codec.FLOAT.optionalFieldOf("murk").forGetter { java.util.Optional.ofNullable(it.murk) },
+            ).apply(instance) { sky, fog, cloud, tint, motes, haze, ceiling, murk ->
                 Look(
                     sky.orElse(null),
                     fog.orElse(null),
@@ -50,6 +52,7 @@ data class Look(
                     motes.orElse(null),
                     haze.orElse(null),
                     ceiling.orElse(null),
+                    murk.orElse(null),
                 )
             }
         }

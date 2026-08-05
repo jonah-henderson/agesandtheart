@@ -1,0 +1,9 @@
+{
+  "tier": "exact",
+  "aspects": [
+    "atmosphere"
+  ],
+  "sets": {
+    "murk": "-1.0..-0.55"
+  }
+}

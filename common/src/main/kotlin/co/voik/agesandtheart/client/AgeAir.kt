@@ -84,6 +84,11 @@ object AgeAir {
             add(Painted(EnvironmentAttributes.FOG_END_DISTANCE, far))
             add(Painted(EnvironmentAttributes.FOG_START_DISTANCE, far * NEAR_SHARE_OF_FAR))
         }
+        // Only the far edge: vanilla starts the water's fog at -8, which is behind the camera, and keeping
+        // that is what makes a clear sea read as *further* rather than as a fade that begins later.
+        look.murk?.let {
+            add(Painted(EnvironmentAttributes.WATER_FOG_END_DISTANCE, CLEAREST - it * (CLEAREST - MURKIEST)))
+        }
         look.ceiling?.let {
             add(Painted(EnvironmentAttributes.CLOUD_HEIGHT, LOWEST_CLOUD + it * (HIGHEST_CLOUD - LOWEST_CLOUD)))
         }
@@ -101,6 +106,14 @@ object AgeAir {
 
     /** Where the fog begins, as a share of where it ends — vanilla's own ratio is about this. */
     private const val NEAR_SHARE_OF_FAR = 0.25f
+
+    /**
+     * How far you see underwater at either end of the axis, in blocks. Vanilla's own is 96, which sits
+     * inside the band rather than at its middle — the whole point of the clear end is that it is further
+     * than any sea you have swum in.
+     */
+    private const val CLEAREST = 256f
+    private const val MURKIEST = 8f
 
     /** How often a mote appears, per eligible position per tick — vanilla's own ambient rates sit here. */
     private const val MOTE_CHANCE = 0.118f
