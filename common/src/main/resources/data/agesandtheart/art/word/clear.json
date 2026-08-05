@@ -1,9 +1,13 @@
 {
   "tier": "exact",
   "aspects": [
-    "sky"
+    "sky",
+    "atmosphere"
   ],
   "query": {
     "bright": 1.0
+  },
+  "sets": {
+    "murk": "-1.0..-0.55"
   }
 }

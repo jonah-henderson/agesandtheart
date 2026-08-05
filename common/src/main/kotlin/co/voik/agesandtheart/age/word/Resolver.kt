@@ -422,10 +422,9 @@ object Resolver {
      * because it is also what a word *costs* (§4.4), and what `VocabularyCheck` reads.
      */
     fun aspectsSpokenTo(vocabulary: Vocabulary, word: Word): List<Aspect> {
-        // **A narrowing word belongs to one part of the world**, the same one its page is classed under
-        // (`Grammar`), so the vocabulary and the grammar cannot disagree about where a word may be laid.
-        // A word declaring several is a rare exception the design would rather not have; its later
-        // declarations lie dormant until it is split into a word per aspect.
+        // **A narrowing word has its say in one part of the world at a time** — the section its page was
+        // laid in, which `Grammar` stamps onto the page and `Scope.Confined` carries from there. So this
+        // answers what the word *costs* (§4.4): one aspect per use, however many it is at home in.
         if (word.tier.narrows) return listOfNotNull(word.aspects.minByOrNull { it.ordinal })
         if (word.aspects.isNotEmpty()) return word.aspects.sortedBy { it.ordinal }
         // An evocative word declares no aspect: spanning aspects is what makes it evocative.

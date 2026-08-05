@@ -94,9 +94,12 @@ internal object Repair {
         fun fill(written: List<Page>): Sentence {
             for ((wroteAt, page) in written.withIndex()) lay(page, wroteAt)
             markWhatMoved(written)
-            // Cannot fail: the last placement was accepted by the parser, and marking a move changes only
-            // whose page a page is.
-            val read = ArtGrammar.parse(pages()) ?: Sentence(emptyList())
+            val read = ArtGrammar.parse(pages())
+            // Every placement was accepted by the parser and marking a move changes only whose page a page
+            // is, so this cannot fail. If it ever does, the pages are **reported** rather than dropped: a
+            // repair that quietly loses a book is the one failure §3.3 forbids, and the empty sentence this
+            // used to fall back to was exactly that.
+            if (read == null) return Sentence(emptyList(), impossible = impossible + written.map(Page::written))
             return deferringToTheWriter(read).copy(impossible = impossible.toList())
         }
 
@@ -123,9 +126,18 @@ internal object Repair {
         /** Every position a page could take: on from the anchor, and only then back towards the front. */
         private fun positionsFromTheAnchor(): List<Int> = (anchor..laid.size) + (anchor - 1 downTo 0)
 
+        /**
+         * Whether the Art's own page at [at] is the one the writer wrote, so the writer may simply claim it.
+         *
+         * **The same word is not always the same page.** A term at home in several parts of the world takes
+         * its terminal from the section it sits in (`Grammar`), so two pages spelling `clear` can be a sky
+         * term and an atmosphere term — and swapping one for the other here is the one placement nothing
+         * asks the parser about, which turned a sentence that read into one that did not.
+         */
         private fun theArtAlreadyDrew(at: Int, page: Page): Boolean {
             val standing = laid.getOrNull(at) ?: return false
-            return standing.page.latent && standing.page.written == page.written
+            val isTheArtsOwn = standing.page.latent && standing.page.written == page.written
+            return isTheArtsOwn && standing.page.aspect == page.aspect
         }
 
         /**

@@ -56,9 +56,13 @@ class VocabularyCheck : FunSpec({
             check(aspects.isNotEmpty()) {
                 "'${word.name}' has a say in no aspect at all, so writing it would do nothing and cost nothing"
             }
-            // A word that named its aspects must be satisfiable in each of them; an evocative word named none,
-            // and having found purchase anywhere is what it promised.
-            val declared = if (word.aspects.isEmpty()) emptyList() else aspects
+            // A word that named its aspects must be satisfiable in **each** of them; an evocative word named
+            // none, and having found purchase anywhere is what it promised.
+            //
+            // Read off the word rather than off `aspectsSpokenTo`, which answers what a word *costs* — one
+            // aspect, for a narrowing word, however many it is at home in. Asking that here left every
+            // declaration after the first unchecked, which was invisible while they were also unreachable.
+            val declared = word.aspects.sortedBy { it.ordinal }
             for (aspect in declared) {
                 // "Backed" means something different for a word that *steers* rather than *chooses* (§3.2):
                 // it constrains no presets, so it has no carriers by construction and asking for one would
