@@ -657,6 +657,14 @@ object AgeCommand {
 
         // Each world generated whole before the other is touched, so this asks whether the recipe
         // reproduces rather than whether two interleaved worlds happen to agree.
+        //
+        // **These `getChunk` calls look serial and are not** — measured, because they are the whole cost of
+        // this command and the obvious optimisation is wrong. A blocking `getChunk` pumps the server thread
+        // while the chunk system generates that chunk's whole neighbourhood on its worker pool, so walking
+        // a square already keeps the pool fed: asking for all 289 futures up front and waiting on the lot
+        // changed radius 8 by nothing at all, at five to six cores busy throughout. The block-for-block
+        // diff below is not the cost either — a second compare over loaded chunks answers in a second
+        // against twenty-six. What is left is worldgen arithmetic, and the only lever on it is [radius].
         val chunks = (-radius..radius).flatMap { chunkX -> (-radius..radius).map { chunkZ -> chunkX to chunkZ } }
         for ((chunkX, chunkZ) in chunks) first.getChunk(chunkX, chunkZ)
         for ((chunkX, chunkZ) in chunks) second.getChunk(chunkX, chunkZ)
