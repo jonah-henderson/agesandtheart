@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.AspectPreset
 import co.voik.agesandtheart.age.aspect.Features
+import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.Surface
 import co.voik.agesandtheart.age.aspect.Terrain
@@ -15,6 +16,7 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
 import net.minecraft.tags.TagKey
+import net.minecraft.world.entity.EntityType
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.levelgen.placement.PlacedFeature
@@ -108,6 +110,20 @@ object DerivedWords {
         .listElements()
         .filter { holder -> !holder.`is`(FORBIDDEN_FEATURES) }
         .map { holder -> setting(holder.key().identifier(), Aspect.FEATURES, Features.PLACES) }
+        .toList()
+
+    private val FORBIDDEN_SPAWNS: TagKey<EntityType<*>> = TagKey.create(Registries.ENTITY_TYPE, FORBIDDEN)
+
+    /**
+     * **A word for every creature in the pack** — `zombie`, `axolotl`, `piglin_brute`. The fourth
+     * population, and the one a writer is likeliest to name without being taught.
+     *
+     * Built-in like [materials] rather than datapack content, so this needs no server — but it is derived
+     * beside the others because a corpus is loaded once.
+     */
+    fun spawns(): List<Word> = BuiltInRegistries.ENTITY_TYPE.listElements()
+        .filter { holder -> !holder.`is`(FORBIDDEN_SPAWNS) }
+        .map { holder -> setting(holder.key().identifier(), Aspect.SPAWNS, Spawns.LIVES) }
         .toList()
 
     private val FORBIDDEN_STRUCTURE_SETS: TagKey<StructureSet> = TagKey.create(Registries.STRUCTURE_SET, FORBIDDEN)

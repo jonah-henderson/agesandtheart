@@ -81,6 +81,7 @@ internal object ArtGrammar {
         Aspect.BIOMES -> ArtParser.BIOMES_SUBJECT
         Aspect.SURFACE -> ArtParser.SURFACE_SUBJECT
         Aspect.FEATURES -> ArtParser.FEATURES_SUBJECT
+        Aspect.SPAWNS -> ArtParser.SPAWNS_SUBJECT
         Aspect.SKY -> ArtParser.SKY_SUBJECT
         Aspect.STRUCTURES -> ArtParser.STRUCTURES_SUBJECT
         Aspect.CLIMATE -> ArtParser.CLIMATE_SUBJECT
@@ -94,6 +95,7 @@ internal object ArtGrammar {
         Aspect.BIOMES -> ArtParser.BIOMES_TERM
         Aspect.SURFACE -> ArtParser.SURFACE_TERM
         Aspect.FEATURES -> ArtParser.FEATURES_TERM
+        Aspect.SPAWNS -> ArtParser.SPAWNS_TERM
         Aspect.SKY -> ArtParser.SKY_TERM
         Aspect.STRUCTURES -> ArtParser.STRUCTURES_TERM
         Aspect.CLIMATE -> ArtParser.CLIMATE_TERM

@@ -58,6 +58,10 @@ import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.biome.BiomeGenerationSettings
 import com.google.common.base.Suppliers
 import net.minecraft.world.level.biome.FeatureSorter
+import net.minecraft.util.random.WeightedList
+import net.minecraft.world.entity.MobCategory
+import net.minecraft.world.level.biome.MobSpawnSettings
+import net.minecraft.resources.Identifier
 
 /**
  * The generator every composed Age runs on: **vanilla's noise generator, with four deliberate exits.**
@@ -138,6 +142,15 @@ class AgeChunkGenerator(
      * aspect makes and the reason nothing here has to be a registry object.
      */
     places: ((Holder<Biome>) -> BiomeGenerationSettings)? = null,
+    /**
+     * What lives here, narrowing the weighted list vanilla resolved — see [Spawns]. Null leaves every
+     * biome's own creatures exactly as the pack wrote them.
+     *
+     * **Not serialised**, like the feature policy beside it and for the same reason: a recipe holds data
+     * and this is code, rebuilt from the Age's claims on every open.
+     */
+    private val lives: ((Identifier?, WeightedList<MobSpawnSettings.SpawnerData>) ->
+    WeightedList<MobSpawnSettings.SpawnerData>)? = null,
 ) : NoiseBasedChunkGenerator(biomes, Holder.direct(settingsFor(seaFill, surfaceRule, climate, fill, window, field))) {
 
     init {
@@ -159,6 +172,23 @@ class AgeChunkGenerator(
                 )
             }
         }
+    }
+
+    /**
+     * The creatures this Age offers vanilla, narrowed by whatever the sentence said (design §3.1).
+     *
+     * **A plain override, and the whole seam.** `super` resolves a structure's own spawn overrides before
+     * the biome's, so narrowing *its* answer means one sentence covers a fortress and the open field alike
+     * — and it needs no widener, unlike the feature seam beside it.
+     */
+    override fun getMobsAt(
+        biome: Holder<Biome>,
+        structures: StructureManager,
+        category: MobCategory,
+        at: BlockPos,
+    ): WeightedList<MobSpawnSettings.SpawnerData> {
+        val offered = super.getMobsAt(biome, structures, category, at)
+        return lives?.invoke(biome.unwrapKey().orElse(null)?.identifier(), offered) ?: offered
     }
 
     /** The same generator with one carving everywhere — what a Tier-B preset means. */

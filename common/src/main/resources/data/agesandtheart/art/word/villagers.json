@@ -1,0 +1,10 @@
+{
+  "tier": "restrictive",
+  "aspects": [
+    "spawns"
+  ],
+  "query": {
+    "settled": 1.0,
+    "inhabited": 0.6
+  }
+}

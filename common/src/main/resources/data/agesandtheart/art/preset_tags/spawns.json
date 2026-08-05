@@ -1,0 +1,86 @@
+{
+  "minecraft:zombie": {
+    "tags": { "undead": 1.0, "hostile": 0.9, "ordinary": 0.8 }
+  },
+  "minecraft:skeleton": {
+    "tags": { "undead": 1.0, "hostile": 0.9, "ordinary": 0.8 }
+  },
+  "minecraft:drowned": {
+    "tags": { "undead": 1.0, "hostile": 0.8, "watery": 0.9 }
+  },
+  "minecraft:husk": {
+    "tags": { "undead": 1.0, "hostile": 0.8, "dry": 0.9 }
+  },
+  "minecraft:stray": {
+    "tags": { "undead": 1.0, "hostile": 0.8, "frozen": 0.9 }
+  },
+  "minecraft:phantom": {
+    "tags": { "undead": 0.9, "hostile": 0.9, "gloomy": 0.7, "aloft": 1.0 }
+  },
+  "minecraft:spider": {
+    "tags": { "arthropod": 1.0, "hostile": 0.8, "ordinary": 0.6 }
+  },
+  "minecraft:cave_spider": {
+    "tags": { "arthropod": 1.0, "hostile": 0.9, "cavernous": 0.8 }
+  },
+  "minecraft:silverfish": {
+    "tags": { "arthropod": 1.0, "hostile": 0.5, "cavernous": 0.7, "strange": 0.4 }
+  },
+  "minecraft:bee": {
+    "tags": { "arthropod": 1.0, "lovely": 0.7, "lush": 0.6 }
+  },
+  "minecraft:villager": {
+    "tags": { "settled": 1.0, "inhabited": 1.0, "ordinary": 0.7 }
+  },
+  "minecraft:wandering_trader": {
+    "tags": { "settled": 0.8, "inhabited": 0.7, "strange": 0.4 }
+  },
+  "minecraft:pillager": {
+    "tags": { "settled": 0.6, "inhabited": 0.6, "hostile": 1.0 }
+  },
+  "minecraft:cow": {
+    "tags": { "grazing": 1.0, "ordinary": 0.9, "lush": 0.5 }
+  },
+  "minecraft:sheep": {
+    "tags": { "grazing": 1.0, "ordinary": 0.9, "lovely": 0.4 }
+  },
+  "minecraft:horse": {
+    "tags": { "grazing": 1.0, "lovely": 0.6, "ordinary": 0.6 }
+  },
+  "minecraft:rabbit": {
+    "tags": { "grazing": 0.8, "lovely": 0.7, "ordinary": 0.5 }
+  },
+  "minecraft:wolf": {
+    "tags": { "grazing": 0.3, "wild": 1.0, "hostile": 0.4 }
+  },
+  "minecraft:polar_bear": {
+    "tags": { "wild": 1.0, "frozen": 0.9, "hostile": 0.5 }
+  },
+  "minecraft:squid": {
+    "tags": { "watery": 1.0, "ordinary": 0.6 }
+  },
+  "minecraft:dolphin": {
+    "tags": { "watery": 1.0, "lovely": 0.8 }
+  },
+  "minecraft:axolotl": {
+    "tags": { "watery": 1.0, "lovely": 0.9, "cavernous": 0.6, "strange": 0.3 }
+  },
+  "minecraft:glow_squid": {
+    "tags": { "watery": 1.0, "cavernous": 0.8, "strange": 0.7, "bright": 0.5 }
+  },
+  "minecraft:bat": {
+    "tags": { "cavernous": 1.0, "gloomy": 0.7 }
+  },
+  "minecraft:slime": {
+    "tags": { "strange": 0.8, "hostile": 0.5, "cavernous": 0.6 }
+  },
+  "minecraft:magma_cube": {
+    "tags": { "molten": 1.0, "hostile": 0.8, "strange": 0.5 }
+  },
+  "minecraft:enderman": {
+    "tags": { "strange": 1.0, "hostile": 0.7, "gloomy": 0.6 }
+  },
+  "minecraft:warden": {
+    "tags": { "hostile": 1.0, "gloomy": 1.0, "strange": 0.8, "cavernous": 0.9 }
+  }
+}

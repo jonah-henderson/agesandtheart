@@ -231,7 +231,7 @@ data class Vocabulary(
             val fromRegistries = registries?.let {
                 DerivedWords.biomes(it) + DerivedWords.structures(it) + DerivedWords.features(it)
             }.orEmpty()
-            val fromContent = DerivedWords.materials() + fromRegistries
+            val fromContent = DerivedWords.materials() + DerivedWords.spawns() + fromRegistries
             val words = derived(fromContent) + authored
             val structural = readGrammarWords(resources, problems)
             val script = Script.load(resources, problems)

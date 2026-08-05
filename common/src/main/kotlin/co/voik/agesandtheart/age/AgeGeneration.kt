@@ -39,6 +39,7 @@ import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import co.voik.agesandtheart.age.aspect.Features
+import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.Surface
 
@@ -185,6 +186,8 @@ object AgeGeneration {
             hollows,
             // What is placed, which vanilla's own decoration hook takes it — see [Features] for the seam.
             Features.placedIn(server, composition.optionsFor(Aspect.FEATURES, 0), seed, fill.blocks.flatten()),
+            // What lives here, narrowing what vanilla resolves per biome and per structure.
+            Spawns.livingIn(composition.optionsFor(Aspect.SPAWNS, 0)),
         )
     }
 

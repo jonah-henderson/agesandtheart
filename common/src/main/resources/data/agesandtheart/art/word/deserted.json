@@ -1,0 +1,17 @@
+{
+  "tier": "restrictive",
+  "aspects": [
+    "spawns"
+  ],
+  "query": {
+    "undead": -1.0,
+    "arthropod": -1.0,
+    "grazing": -1.0,
+    "settled": -1.0,
+    "watery": -0.8,
+    "cavernous": -0.8,
+    "wild": -0.8,
+    "strange": -0.8,
+    "molten": -0.8
+  }
+}

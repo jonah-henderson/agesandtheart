@@ -1,0 +1,9 @@
+{
+  "tier": "restrictive",
+  "aspects": [
+    "spawns"
+  ],
+  "query": {
+    "undead": 1.0
+  }
+}

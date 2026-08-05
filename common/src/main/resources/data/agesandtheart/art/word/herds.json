@@ -1,0 +1,9 @@
+{
+  "tier": "restrictive",
+  "aspects": [
+    "spawns"
+  ],
+  "query": {
+    "grazing": 1.0
+  }
+}

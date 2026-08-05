@@ -38,6 +38,9 @@ enum class Aspect(val key: String) : StringRepresentable {
 
     /** What grows and forms in it: ores, flora, lakes, springs. */
     FEATURES("features"),
+
+    /** What lives in it. */
+    SPAWNS("spawns"),
     ;
 
     /**
@@ -53,7 +56,7 @@ enum class Aspect(val key: String) : StringRepresentable {
             // not before — declaring it early would skip the draw and build in every Age.
             TERRAIN, CARVERS, SKY -> Kind.PRESET
             SEA -> Kind.REFERENT
-            BIOMES, STRUCTURES, FEATURES -> Kind.POPULATION
+            BIOMES, STRUCTURES, FEATURES, SPAWNS -> Kind.POPULATION
             CLIMATE, SURFACE -> Kind.DIALS
         }
 
@@ -81,7 +84,7 @@ enum class Aspect(val key: String) : StringRepresentable {
             SKY -> Sky.entries
             // Nothing to choose between: a climate and a surface are where their dials were left, and a
             // biome or a structure set is weighed rather than chosen. See [dials] and [Kind.POPULATION].
-            SEA, BIOMES, STRUCTURES, CLIMATE, SURFACE, FEATURES -> emptyList()
+            SEA, BIOMES, STRUCTURES, CLIMATE, SURFACE, FEATURES, SPAWNS -> emptyList()
         }
 
     /**
@@ -100,6 +103,7 @@ enum class Aspect(val key: String) : StringRepresentable {
             STRUCTURES -> listOf(Structures.BUILT)
             SURFACE -> listOf(Surface.MATERIAL)
             FEATURES -> listOf(Features.PLACES, Features.SIZE, Features.THICKNESS, Features.HEIGHT)
+            SPAWNS -> listOf(Spawns.LIVES)
             TERRAIN, SEA, CARVERS, SKY -> emptyList()
         }
 
@@ -134,6 +138,7 @@ enum class Aspect(val key: String) : StringRepresentable {
         BIOMES -> Biome.named(key)
         STRUCTURES -> StructureSet.named(key)
         FEATURES -> PlacedFeature.named(key)
+        SPAWNS -> Spawn.named(key)
         TERRAIN, CARVERS, SKY, CLIMATE, SURFACE -> authored.firstOrNull { it.key == key }
     }
 
@@ -155,7 +160,7 @@ enum class Aspect(val key: String) : StringRepresentable {
             // The surface *could* follow the terrain's division and does not yet — one skin, Age-wide.
             // Features are per biome in vanilla and per Age here, so nothing divides them yet — `in
             // <biome>` (§4.3.1) is the shape that would.
-            SKY, STRUCTURES, BIOMES, SURFACE, FEATURES -> false
+            SKY, STRUCTURES, BIOMES, SURFACE, FEATURES, SPAWNS -> false
         }
 
     /**
@@ -175,6 +180,7 @@ enum class Aspect(val key: String) : StringRepresentable {
             STRUCTURES -> 0.0
             SURFACE -> 0.0
             FEATURES -> 0.0
+            SPAWNS -> 0.0
             // Nothing to be companionable with: climate has one preset, so a second seat only ever arrives
             // from a fracture, which is charged by definition.
             CLIMATE -> 0.0
