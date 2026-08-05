@@ -21,6 +21,11 @@ package co.voik.agesandtheart.worldgen
  * prints a banner naming every failure and the count, so a run that went red is not a line to scroll past
  * — and that these are read when landforms are being worked on, which is exactly when someone is looking.
  *
+ * **Run only when landforms are being changed** (Jonah, 2026-08-05) — nothing else may pull it in.
+ * `build` and `check` reach `test` and no further, and that is not an accident to be tidied up later: a
+ * task wired into a gate it cannot fail is the worst of both, minutes spent on an answer nobody has to
+ * read. Not in `check`, not in `build`, and not in CI.
+ *
  * A check belongs here if it **samples a field and asserts a shape**. Pure ones do not, however
  * terrain-adjacent they are: `SpansCheck` is arithmetic, `ChooseCheck` is a selection rule, `DepthCacheCheck`
  * is a cache agreeing with the thing it caches, and `BiomeWeightCheck` is a table. Those stay in the suite

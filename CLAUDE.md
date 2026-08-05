@@ -132,7 +132,9 @@ check in or out. In short: sixteen specs sampling millions of terrain columns we
 five-minute cycle paid by everyone, they assert the emergent shape of layered noise so hand-authoring a
 landform trips one long before the landform is wrong, and the terrain system is built and rarely moves.
 The task ends by naming every failure under a banner, because a check that cannot fail a build is a check
-that can drift. **Run it when you touch terrain**, and read what it says.
+that can drift. **Run it only when you are changing landforms**, and read what it says — nothing else pulls
+it in. `build` and `check` reach `test` and no further, deliberately: a task wired into a gate it cannot
+fail is the worst of both, minutes spent on an answer nobody has to read.
 
 A check earns the tag by **sampling a field and asserting a shape**. Pure ones do not, however
 terrain-adjacent: `SpansCheck` is arithmetic, `ChooseCheck` a selection rule, `DepthCacheCheck` a cache
