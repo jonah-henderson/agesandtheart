@@ -56,6 +56,7 @@ tokens {
     FEATURES_SUBJECT, FEATURES_TERM,
     SPAWNS_SUBJECT, SPAWNS_TERM,
     ATMOSPHERE_SUBJECT, ATMOSPHERE_TERM,
+    PHENOMENA_SUBJECT, PHENOMENA_TERM,
     SKY_SUBJECT, SKY_TERM,
     STRUCTURES_SUBJECT, STRUCTURES_TERM,
     CLIMATE_SUBJECT, CLIMATE_TERM,
@@ -106,6 +107,7 @@ section
     | confinement? descriptor* FEATURES_SUBJECT featuresModifier*  # FeaturesSection
     | confinement? descriptor* SPAWNS_SUBJECT   spawnsModifier*    # SpawnsSection
     | confinement? descriptor* ATMOSPHERE_SUBJECT atmosphereModifier* # AtmosphereSection
+    | descriptor* PHENOMENA_SUBJECT  phenomenaModifier*   # PhenomenaSection
     | descriptor* SKY_SUBJECT        skyModifier*         # SkySection
     | descriptor* STRUCTURES_SUBJECT structuresModifier*  # StructuresSection
     | descriptor* CLIMATE_SUBJECT    climateModifier*     # ClimateSection
@@ -131,6 +133,7 @@ surfaceModifier    : (ONLY | EXCEPT)? surfaceTerm    (AND surfaceTerm)*    ;
 featuresModifier   : (ONLY | EXCEPT)? featuresTerm   (AND featuresTerm)*   ;
 spawnsModifier     : (ONLY | EXCEPT)? spawnsTerm     (AND spawnsTerm)*     ;
 atmosphereModifier : (ONLY | EXCEPT)? atmosphereTerm (AND atmosphereTerm)* ;
+phenomenaModifier  : (ONLY | EXCEPT)? phenomenaTerm  (AND phenomenaTerm)*  ;
 skyModifier        : (ONLY | EXCEPT)? skyTerm        (AND skyTerm)*        ;
 structuresModifier : (ONLY | EXCEPT)? structuresTerm (AND structuresTerm)* ;
 climateModifier    : (ONLY | EXCEPT)? climateTerm    (AND climateTerm)*    ;
@@ -151,6 +154,9 @@ surfaceTerm    : QUANTIFIER? ( SURFACE_TERM    | MATERIAL_TERM ) ;
 featuresTerm   : QUANTIFIER? FEATURES_TERM ;
 spawnsTerm     : QUANTIFIER? SPAWNS_TERM ;
 atmosphereTerm : QUANTIFIER? ATMOSPHERE_TERM ;
+// No `confinement` on this section: a phenomenon is **sited** rather than resolved per biome (§5.2), so
+// `in <biome>` would be the wrong scope for it — see [Aspect.positional].
+phenomenaTerm  : QUANTIFIER? PHENOMENA_TERM ;
 
 /**
  * **Where a whole clause applies** — `in mushroom_fields, spawns only slime and teeming cows`.
@@ -173,5 +179,5 @@ climateTerm    : QUANTIFIER? CLIMATE_TERM ;
 looseTerm
     : QUANTIFIER? ( MATERIAL_TERM | TERRAIN_TERM | SEA_TERM | CARVERS_TERM | BIOMES_TERM
                   | SURFACE_TERM | FEATURES_TERM | SPAWNS_TERM | ATMOSPHERE_TERM | SKY_TERM
-                  | STRUCTURES_TERM | CLIMATE_TERM )
+                  | STRUCTURES_TERM | CLIMATE_TERM | PHENOMENA_TERM )
     ;

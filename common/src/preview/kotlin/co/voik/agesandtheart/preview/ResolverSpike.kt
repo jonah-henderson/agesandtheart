@@ -231,7 +231,7 @@ private fun presetsOf(aspect: Aspect): List<AspectPreset> = when (aspect) {
     // none of them draws from a pool. Nothing here tags them, so the spike's findings do not move — this
     // is a record of an argument, not a model, and it is kept compiling rather than re-tagged.
     Aspect.BIOMES, Aspect.STRUCTURES, Aspect.CLIMATE, Aspect.SURFACE, Aspect.FEATURES, Aspect.SPAWNS,
-    Aspect.ATMOSPHERE,
+    Aspect.ATMOSPHERE, Aspect.PHENOMENA,
     -> emptyList()
 }
 

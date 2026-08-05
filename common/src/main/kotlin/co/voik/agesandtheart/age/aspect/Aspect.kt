@@ -44,6 +44,18 @@ enum class Aspect(val key: String) : StringRepresentable {
 
     /** What the air does to you. */
     ATMOSPHERE("atmosphere"),
+
+    /**
+     * What *happens* here: storms, meteors, a rising sea (design §3.1, §5.2).
+     *
+     * **Scaffolding — it names nothing and does nothing yet**, deliberately. The shape is here so the
+     * aspect is addressable and so every exhaustive `when` already answers for it; the processes themselves
+     * are §5's, and the design says plainly this is the aspect most likely to change shape when they land.
+     *
+     * The one aspect a sentence fills *and* consequences arrive at: a meteor storm you wrote is a hazard
+     * you prepared for, and one you did not write is the Age telling you something is wrong (§7.7).
+     */
+    PHENOMENA("phenomena"),
     ;
 
     /**
@@ -59,7 +71,7 @@ enum class Aspect(val key: String) : StringRepresentable {
             // not before — declaring it early would skip the draw and build in every Age.
             TERRAIN, CARVERS, SKY -> Kind.PRESET
             SEA -> Kind.REFERENT
-            BIOMES, STRUCTURES, FEATURES, SPAWNS -> Kind.POPULATION
+            BIOMES, STRUCTURES, FEATURES, SPAWNS, PHENOMENA -> Kind.POPULATION
             CLIMATE, SURFACE, ATMOSPHERE -> Kind.DIALS
         }
 
@@ -87,7 +99,8 @@ enum class Aspect(val key: String) : StringRepresentable {
             SKY -> Sky.entries
             // Nothing to choose between: a climate and a surface are where their dials were left, and a
             // biome or a structure set is weighed rather than chosen. See [dials] and [Kind.POPULATION].
-            SEA, BIOMES, STRUCTURES, CLIMATE, SURFACE, FEATURES, SPAWNS, ATMOSPHERE -> emptyList()
+            SEA, BIOMES, STRUCTURES, CLIMATE, SURFACE, FEATURES, SPAWNS, ATMOSPHERE, PHENOMENA ->
+                emptyList()
         }
 
     /**
@@ -107,6 +120,7 @@ enum class Aspect(val key: String) : StringRepresentable {
             SURFACE -> listOf(Surface.MATERIAL)
             FEATURES -> listOf(Features.PLACES, Features.SIZE, Features.THICKNESS, Features.HEIGHT)
             SPAWNS -> listOf(Spawns.LIVES)
+            PHENOMENA -> listOf(Phenomena.HAPPENS)
             ATMOSPHERE -> listOf(
                 Atmosphere.DAYLIGHT,
                 Atmosphere.SUNBURN,
@@ -160,7 +174,7 @@ enum class Aspect(val key: String) : StringRepresentable {
         STRUCTURES -> StructureSet.named(key)
         FEATURES -> PlacedFeature.named(key)
         SPAWNS -> Spawn.named(key)
-        TERRAIN, CARVERS, SKY, CLIMATE, SURFACE, ATMOSPHERE -> authored.firstOrNull { it.key == key }
+        TERRAIN, CARVERS, SKY, CLIMATE, SURFACE, ATMOSPHERE, PHENOMENA -> authored.firstOrNull { it.key == key }
     }
 
     /**
@@ -183,7 +197,10 @@ enum class Aspect(val key: String) : StringRepresentable {
             // <biome>` (§4.3.1) is the shape that would.
             // The air divides by *biome* rather than by territory, which is a scope the grammar has and
             // the composition does not — see `in <biome>` (§4.3.1).
-            SKY, STRUCTURES, BIOMES, SURFACE, FEATURES, SPAWNS, ATMOSPHERE -> false
+            // Phenomena is **sited rather than divided** (§5.2): a process happens at a place and spreads
+            // from it, the way §5.1's hostility is a gradient around a wound — which is not a territory
+            // with a boundary, and so is not this flag however much it sounds like one.
+            SKY, STRUCTURES, BIOMES, SURFACE, FEATURES, SPAWNS, ATMOSPHERE, PHENOMENA -> false
         }
 
     /**
@@ -205,6 +222,7 @@ enum class Aspect(val key: String) : StringRepresentable {
             FEATURES -> 0.0
             SPAWNS -> 0.0
             ATMOSPHERE -> 0.0
+            PHENOMENA -> 0.0
             // Nothing to be companionable with: climate has one preset, so a second seat only ever arrives
             // from a fracture, which is charged by definition.
             CLIMATE -> 0.0

@@ -120,7 +120,7 @@ data class AgeComposition(
         // None of these seats anything: a biome and a structure set are weighed, and a climate and a
         // surface are where their dials were left.
         Aspect.BIOMES, Aspect.STRUCTURES, Aspect.SURFACE, Aspect.FEATURES, Aspect.SPAWNS,
-        Aspect.ATMOSPHERE,
+        Aspect.ATMOSPHERE, Aspect.PHENOMENA,
         -> this
         Aspect.CLIMATE -> copy(climates = listOf(ClimateBias.NONE))
     }
