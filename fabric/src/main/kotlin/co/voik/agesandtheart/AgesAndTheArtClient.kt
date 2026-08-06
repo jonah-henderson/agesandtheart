@@ -14,6 +14,8 @@ import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.desk.DeskNoticePayload
 import co.voik.agesandtheart.desk.DeskPricePayload
 import co.voik.agesandtheart.desk.DeskSyncPayload
+import net.minecraft.client.renderer.blockentity.TheEndPortalRenderer
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderers
 import net.minecraft.client.gui.screens.MenuScreens
 import co.voik.agesandtheart.sky.KnownLooks
 import co.voik.agesandtheart.sky.LookPayload
@@ -40,6 +42,7 @@ fun initClient() {
     }
     co.voik.agesandtheart.platform.FabricInkRendering.register()
     EntityRendererRegistry.register(AgeContent.BOOK_ENTITY, ::BookEntityRenderer)
+    BlockEntityRenderers.register(AgeContent.STAR_FISSURE_ENTITY) { TheEndPortalRenderer() }
     MenuScreens.register(AgeContent.WRITERS_DESK_MENU, ::WritersDeskScreen)
     MenuScreens.register(AgeContent.INK_CASE_MENU, ::InkCaseScreen)
     MenuScreens.register(AgeContent.SUPPLY_BIN_MENU, ::SupplyBinScreen)

@@ -3,8 +3,9 @@ package co.voik.agesandtheart.age.aspect
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.worldgen.structure.StructureDensity
+import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadType
+import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStructurePlacement
 import net.minecraft.core.Holder
-import net.minecraft.core.HolderLookup
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.Identifier
@@ -35,6 +36,30 @@ object Structures {
      * the outcome is independent of the writer's word order (§3.5): `only` (or [NOTHING]) drops the base,
      * everything named joins at its density, then `except` strikes out.
      */
+    /** Every Age has these, whatever its sentence said — see [escapeHatch]. */
+    private val STAR_FISSURE: Identifier = "star_fissure".location()
+
+    /**
+     * **Built here rather than shipped as a `structure_set`, and that is not a style choice.** A structure
+     * set in the registry applies to *every* dimension whose generator does not name its own — so shipping
+     * one tore star fissures across the player's overworld and handed them a free teleport home from it.
+     * Walked, found at 422 blocks from spawn, and this is the fix.
+     *
+     * A direct holder no registry has heard of is exactly what `StructureDensity` already produces and what
+     * `AgeChunkGenerator.createState` branches on, so an Age takes it and nothing else can.
+     */
+    private val FISSURE_PLACEMENT = RandomSpreadStructurePlacement(
+        FISSURES_APART,
+        FISSURES_NO_CLOSER,
+        RandomSpreadType.LINEAR,
+        FISSURE_SALT,
+    )
+
+    /** Rare enough to be a find, close enough to be a promise — about seven hundred blocks apart. */
+    private const val FISSURES_APART = 48
+    private const val FISSURES_NO_CLOSER = 20
+    private const val FISSURE_SALT = 90210
+
     fun structureSets(server: MinecraftServer, options: Options): List<Holder<VanillaStructureSet>> {
         val sets = server.registryAccess().lookupOrThrow(Registries.STRUCTURE_SET)
         val asked = Population.of(options.claimsOn(BUILT))
@@ -55,7 +80,28 @@ object Structures {
         for (struck in asked.struck) {
             Identifier.tryParse(struck)?.let(seated::remove)
         }
-        return seated.values.toList()
+        return seated.values.toList() + escapeHatch(server)
+    }
+
+    /**
+     * The star fissures, added **after everything a writer said** and never removed by it (design §7.8).
+     *
+     * This looks like a special case and is the opposite of one: `only`, `except` and `nothing` all reach
+     * this list, so a sentence saying "no structures" would otherwise delete the one way out of the Age it
+     * was describing. An escape hatch a writer can accidentally close is not an escape hatch, and closing it
+     * *deliberately* is a late-game word rather than a side effect of saying something about villages.
+     *
+     * Not `seated`, so a claim naming it cannot double it or strike it either.
+     */
+    private fun escapeHatch(server: MinecraftServer): List<Holder<VanillaStructureSet>> {
+        val structures = server.registryAccess().lookupOrThrow(Registries.STRUCTURE)
+        val key = ResourceKey.create(Registries.STRUCTURE, STAR_FISSURE)
+        val tear = structures.get(key).orElse(null)
+        if (tear == null) {
+            Constants.LOG.error("The pack ships no '{}', so this Age has no way out of it", STAR_FISSURE)
+            return emptyList()
+        }
+        return listOf(Holder.direct(VanillaStructureSet(tear, FISSURE_PLACEMENT)))
     }
 
     /** Whether an Age asked for nothing to be built at all — see [NOTHING]. */

@@ -8,6 +8,8 @@ import co.voik.agesandtheart.book.BindLinkingBookFunction
 import co.voik.agesandtheart.book.BookEntity
 import co.voik.agesandtheart.book.LinkTarget
 import co.voik.agesandtheart.book.RepatternBookRecipe
+import co.voik.agesandtheart.worldgen.fissure.StarFissureBlock
+import co.voik.agesandtheart.worldgen.fissure.StarFissureBlockEntity
 import co.voik.agesandtheart.desk.WritersDeskBlock
 import co.voik.agesandtheart.desk.WritersDeskBlockEntity
 import co.voik.agesandtheart.desk.InkCaseMenu
@@ -23,6 +25,10 @@ import co.voik.agesandtheart.worldgen.carver.Porosity
 import co.voik.agesandtheart.worldgen.carver.RuleCarver
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
+import co.voik.agesandtheart.worldgen.fissure.StarFissurePiece
+import co.voik.agesandtheart.worldgen.fissure.StarFissureStructure
+import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType
+import net.minecraft.world.level.levelgen.structure.StructureType
 import net.minecraft.core.component.DataComponentType
 import net.minecraft.core.registries.Registries
 import net.minecraft.network.codec.ByteBufCodecs
@@ -206,6 +212,45 @@ object AgeContent {
     val WRITERS_DESK_ENTITY: BlockEntityType<WritersDeskBlockEntity> =
         BlockEntityType({ pos, state -> WritersDeskBlockEntity(pos, state) }, setOf(WRITERS_DESK_BLOCK))
 
+    private val STAR_FISSURE_ID: Identifier = "star_fissure".location()
+
+    /**
+     * What a star fissure is filled with — see [co.voik.agesandtheart.worldgen.fissure.StarFissureBlock].
+     *
+     * **No block item and no loot**, deliberately: a fissure is a thing an Age has, not a thing a player
+     * carries, and one in a pocket would undo the whole of §7.8's found-not-carried argument. Indestructible
+     * for the same reason — an escape hatch you can accidentally mine shut is not one.
+     */
+    val STAR_FISSURE_BLOCK: StarFissureBlock = StarFissureBlock(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, STAR_FISSURE_ID))
+            .mapColor(MapColor.COLOR_BLACK)
+            .noCollision()
+            .lightLevel { FISSURE_GLOW }
+            .strength(-1.0f, Float.MAX_VALUE)
+            .noLootTable()
+            .pushReaction(net.minecraft.world.level.material.PushReaction.BLOCK),
+    )
+
+    /** The tear itself, and the piece that cuts it — see the fissure package. */
+    val STAR_FISSURE_STRUCTURE: StructureType<StarFissureStructure> = StructureType { StarFissureStructure.CODEC }
+
+    val STAR_FISSURE_PIECE: StructurePieceType = StructurePieceType.ContextlessType(::StarFissurePiece)
+
+    val structureTypes: List<Pair<Identifier, StructureType<*>>> = listOf(
+        STAR_FISSURE_ID to STAR_FISSURE_STRUCTURE,
+    )
+
+    val structurePieces: List<Pair<Identifier, StructurePieceType>> = listOf(
+        STAR_FISSURE_ID to STAR_FISSURE_PIECE,
+    )
+
+    val STAR_FISSURE_ENTITY: BlockEntityType<StarFissureBlockEntity> =
+        BlockEntityType({ pos, state -> StarFissureBlockEntity(pos, state) }, setOf(STAR_FISSURE_BLOCK))
+
+    /** The end portal's own, so the shaft is lit the way the starfield reads best. */
+    private const val FISSURE_GLOW = 15
+
     /** Where a linked-from book comes to rest. See [co.voik.agesandtheart.book.BookEntity]. */
     val BOOK_ENTITY: EntityType<BookEntity> = EntityType.Builder
         .of({ type, level -> BookEntity(type, level) }, MobCategory.MISC)
@@ -223,10 +268,12 @@ object AgeContent {
 
     val blocks: List<Pair<Identifier, Block>> = listOf(
         WRITERS_DESK_ID to WRITERS_DESK_BLOCK,
+        STAR_FISSURE_ID to STAR_FISSURE_BLOCK,
     )
 
     val blockEntities: List<Pair<Identifier, BlockEntityType<*>>> = listOf(
         WRITERS_DESK_ID to WRITERS_DESK_ENTITY,
+        STAR_FISSURE_ID to STAR_FISSURE_ENTITY,
     )
 
     /** The sentence a Descriptive Book carries, in order — page order is word order. */
