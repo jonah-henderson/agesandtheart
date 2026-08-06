@@ -43,7 +43,7 @@ correct itself in place. Rewrite the paragraph that is now wrong.
 
 **Ages and the Art** — a Minecraft mod (Mystcraft-inspired: author dimensional "Ages" from written Symbol pages, link between them) for **Minecraft 26.1.2**, built as a **multiloader** mod running on both **Fabric** and **NeoForge** from one codebase. Mod id `agesandtheart`, root package `co.voik.agesandtheart`.
 
-Current state: Phases 1–4.5 are done and Phase 5 (the playable slice) is in progress. The Art's language, grammar, resolver and terrain system are built and checked; `/age write` authors an Age from a sentence. Phase 5 has added word pages, the notebook, the writer's desk with its screen, descriptive and linking books, and the book entity. **Runtime dimensions are still Fabric-only** — `NeoForgeAgeBackend` is an `isSupported = false` stub, so `/age create` reports "not supported yet" rather than crashing.
+Current state: Phases 1–4.5 are done and Phase 5 (the playable slice) is in progress. The Art's language, grammar, resolver and terrain system are built and checked; `/age write` authors an Age from a sentence. Phase 5 has added word pages, the notebook, the writer's desk with its screen, descriptive and linking books, the book entity, and the two acquaintance devices that put the derived corpus within reach. **Runtime dimensions are still Fabric-only** — `NeoForgeAgeBackend` is an `isSupported = false` stub, so `/age create` reports "not supported yet" rather than crashing.
 
 **26.1 is the first unobfuscated Minecraft release**, which is why there is no Parchment in the catalog: 1.21.11 was the last obfuscated one and there is nothing left to deobfuscate. Mappings-related advice written for the 1.21 line does not transfer.
 
