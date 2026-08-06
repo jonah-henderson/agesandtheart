@@ -41,7 +41,7 @@ object Biomes {
     fun keepsOnlyNamed(options: Options): Boolean = Population.of(options.claimsOn(GROWN)).exclusive
 
     /** Whether this Age's biomes are chosen to suit its shape — see [FOOTING]. */
-    fun groundsBiomes(options: Options): Boolean = options.of(FOOTING) == GROUNDED_FOOTING
+    fun groundsBiomes(options: Options): Boolean = options.of(FOOTING) != FREE_FOOTING
 
         /**
          * The biomes grown here — populative, so naming one adds it and naming two adds both, with
@@ -64,7 +64,18 @@ object Biomes {
          * call (`notes/terrain-architecture.md`). `grounded` buys the other kind of Age — the one that means
          * to look like somewhere — and a preset that wants it pins it.
          */
-        val FOOTING = Parameter("footing", FREE_FOOTING, GROUNDED_FOOTING)
+        /**
+         * Whether the biomes agree with the shape — **grounded unless a writer says otherwise** (Jonah,
+         * 2026-08-05), the first option being the one an unsaid parameter takes.
+         *
+         * It was the other way round, on the argument that an ocean biome on a hilltop is a thing this
+         * mod's worlds are allowed to do. Measured, that reading cost more than it bought: a `craterlands`
+         * Age came out **63% ocean biomes** across nine thousand columns of dry land, because an ungrounded
+         * Age reads vanilla's continentalness, which describes vanilla's continental shelf and has no
+         * relationship to where our field put the rock. Sixty-three per cent is not a licence for the
+         * occasional strange Age, it is the normal case — so the lever stays and points the other way.
+         */
+        val FOOTING = Parameter("footing", GROUNDED_FOOTING, FREE_FOOTING)
 
         const val FREE_FOOTING = "free"
         const val GROUNDED_FOOTING = "grounded"

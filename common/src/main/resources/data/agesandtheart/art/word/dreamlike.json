@@ -1,0 +1,9 @@
+{
+  "tier": "exact",
+  "aspects": [
+    "biomes"
+  ],
+  "sets": {
+    "footing": "free"
+  }
+}

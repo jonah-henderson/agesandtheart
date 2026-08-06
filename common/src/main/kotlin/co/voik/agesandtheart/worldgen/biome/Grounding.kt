@@ -11,15 +11,16 @@ import kotlin.math.abs
  * What the land says about where the ocean, the coast and the rivers are — **the option that lets an Age's
  * biomes agree with its shape**.
  *
- * By default they do not, and that is a decision rather than an oversight: an ocean biome on a hilltop and
- * water pooling in a desert are things this mod's worlds are allowed to do, and `notes/terrain-architecture.md`
- * records the call and the oasis it was read as. What that costs is the other kind of Age — one that means
- * to look like somewhere — because vanilla generates its terrain *from* continentalness and so agrees with
- * itself by construction, where we generate terrain first and then ask what grows.
+ * **On unless a writer says otherwise** (Jonah, 2026-08-05). It was off, on the reading that an ocean biome
+ * on a hilltop and water pooling in a desert are things this mod's worlds are allowed to do — the desert
+ * pool read as an oasis. Measuring settled it: without this, a `craterlands` Age is **63% ocean biomes**
+ * over nine thousand columns of dry land, because vanilla's continentalness describes vanilla's continental
+ * shelf and knows nothing about where our field put the rock. An oasis is an exception; sixty-three per
+ * cent is the world.
  *
- * So this is per Age, and it is a lever both ways rather than a fix: an Age can be grounded or free, and
- * being free is not a defect to be corrected. (An Age whose *words* asked for one and whose shape gives the
- * other is the sort of thing §5's instability index could eventually price.)
+ * It is still a lever both ways and the other way is still not a defect — `dreamlike` writes
+ * `biomes.footing=free` and gets that world exactly. (An Age whose *words* asked for one and whose shape
+ * gives the other is the sort of thing §5's instability index could eventually price.)
  *
  * Three of vanilla's six climate parameters are enough:
  *
