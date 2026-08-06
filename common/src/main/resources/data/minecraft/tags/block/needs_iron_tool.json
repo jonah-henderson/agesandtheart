@@ -1,7 +1,8 @@
 {
-  "_comment": "Iron rather than diamond: the machine is a mid-game build, and gating its recovery behind a better pickaxe than it took to gather its parts would only be a trap.",
+  "_comment": "Iron rather than diamond: both are mid-game builds, and gating their recovery behind a better pickaxe than it took to gather their parts would only be a trap. The surveying device is set down in the field and picked up again, so this is a tool a surveyor is expected to be carrying.",
   "replace": false,
   "values": [
-    "agesandtheart:analysis_machine"
+    "agesandtheart:analysis_machine",
+    "agesandtheart:surveying_device"
   ]
 }

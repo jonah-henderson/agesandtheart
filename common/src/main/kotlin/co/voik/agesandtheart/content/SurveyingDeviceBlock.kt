@@ -1,0 +1,157 @@
+package co.voik.agesandtheart.content
+
+import co.voik.agesandtheart.age.word.Acquaintance
+import co.voik.agesandtheart.age.word.Acquainted
+import com.mojang.serialization.MapCodec
+import net.minecraft.core.BlockPos
+import net.minecraft.core.particles.ParticleTypes
+import net.minecraft.network.chat.Component
+import net.minecraft.server.level.ServerLevel
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.sounds.SoundEvents
+import net.minecraft.sounds.SoundSource
+import net.minecraft.util.RandomSource
+import net.minecraft.util.StringRepresentable
+import net.minecraft.world.InteractionResult
+import net.minecraft.world.entity.player.Player
+import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.block.state.StateDefinition
+import net.minecraft.world.level.block.state.properties.EnumProperty
+import net.minecraft.world.phys.BlockHitResult
+
+/** Where a placed device is in its reading. */
+enum class SurveyStage(private val key: String) : StringRepresentable {
+    IDLE("idle"),
+    SURVEYING("surveying"),
+    READY("ready"),
+    ;
+
+    override fun getSerializedName(): String = key
+}
+
+/**
+ * The D'ni surveying device: leave it standing in a place and it learns what the Art calls it (design §8.3).
+ *
+ * **Deployed rather than carried in hand**, because a survey is work and work takes time. Its twin the
+ * analysis machine is a station the referent is brought to; this one is a station you *carry to the
+ * referent* and set down, which is presence made a thing you do rather than a button you press: you must
+ * have reached the crimson forest, and then stood an instrument in it.
+ *
+ * **Three stages, in the block state and nowhere else.** Idle takes a reading, surveying is running, ready
+ * holds one to give. A place cannot move, so the biome under the device when it finishes is the biome under
+ * it when it started — there is no result worth remembering between the two, and so no block entity. The
+ * delay is a scheduled tick for the same reason: vanilla already saves one with the chunk.
+ *
+ * **A survey consumes nothing** — not the device, not the place. The price is the travel and the wait, which
+ * is the honest cost for a referent whose whole nature is *where* it is.
+ */
+class SurveyingDeviceBlock(properties: Properties) : Block(properties) {
+
+    init {
+        registerDefaultState(stateDefinition.any().setValue(STAGE, SurveyStage.IDLE))
+    }
+
+    override fun codec(): MapCodec<SurveyingDeviceBlock> = CODEC
+
+    override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
+        builder.add(STAGE)
+    }
+
+    /**
+     * One interaction, and what it does is whatever the device is ready for.
+     *
+     * Only the empty-hand door, unlike the machine's: nothing is fed to a surveying device, so an item in
+     * hand is no part of the reading and a player sneaking with one should be able to build against it.
+     */
+    override fun useWithoutItem(
+        state: BlockState,
+        level: Level,
+        pos: BlockPos,
+        player: Player,
+        hitResult: BlockHitResult,
+    ): InteractionResult {
+        if (level.isClientSide) return InteractionResult.SUCCESS
+        val surveyor = player as? ServerPlayer ?: return InteractionResult.FAIL
+        val serverLevel = level as? ServerLevel ?: return InteractionResult.FAIL
+        when (state.getValue(STAGE)) {
+            SurveyStage.IDLE -> begin(serverLevel, pos, state, surveyor)
+            SurveyStage.SURVEYING -> stillRunning(serverLevel, pos, surveyor)
+            SurveyStage.READY -> hand(serverLevel, pos, state, surveyor)
+        }
+        return InteractionResult.SUCCESS
+    }
+
+    private fun begin(level: ServerLevel, pos: BlockPos, state: BlockState, surveyor: ServerPlayer) {
+        level.setBlock(pos, state.setValue(STAGE, SurveyStage.SURVEYING), UPDATE_ALL)
+        level.scheduleTick(pos, this, SURVEY_TICKS)
+        level.playSound(null, pos, SoundEvents.SPYGLASS_USE, SoundSource.BLOCKS, VOLUME, PITCH)
+        say(surveyor, "device.agesandtheart.surveying_device.started")
+    }
+
+    /**
+     * Says it is still working — and sets it going again if nothing is coming for it.
+     *
+     * The stage is a block state and the wait is a scheduled tick, so anything that writes the one without
+     * the other leaves a device running with nothing to finish it: `/setblock`, or a structure carrying one
+     * mid-reading. Breaking it is *not* such a case — vanilla checks the block still matches before it ticks
+     * — and neither is a piston, which cannot move this at all.
+     */
+    private fun stillRunning(level: ServerLevel, pos: BlockPos, surveyor: ServerPlayer) {
+        if (!level.blockTicks.hasScheduledTick(pos, this)) level.scheduleTick(pos, this, SURVEY_TICKS)
+        say(surveyor, "device.agesandtheart.surveying_device.working")
+    }
+
+    /** The reading is done. Nothing is recorded, because the place will still be there to be read. */
+    override fun tick(state: BlockState, level: ServerLevel, pos: BlockPos, random: RandomSource) {
+        if (state.getValue(STAGE) != SurveyStage.SURVEYING) return
+        level.setBlock(pos, state.setValue(STAGE, SurveyStage.READY), UPDATE_ALL)
+        level.playSound(null, pos, SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.BLOCKS, VOLUME, PITCH)
+    }
+
+    /**
+     * The reading, handed over — and spent whatever it was worth. A refusal costs only another wait, since
+     * the same ground can always be surveyed again.
+     */
+    private fun hand(level: ServerLevel, pos: BlockPos, state: BlockState, surveyor: ServerPlayer) {
+        val outcome = Acquaintance.withPlace(surveyor, level, pos)
+        Acquaintance.tell(surveyor, outcome)
+        if (outcome is Acquainted.Learned) {
+            level.playSound(null, pos, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS, VOLUME, PITCH)
+        }
+        level.setBlock(pos, state.setValue(STAGE, SurveyStage.IDLE), UPDATE_ALL)
+    }
+
+    private fun say(surveyor: ServerPlayer, key: String) {
+        surveyor.sendSystemMessage(Component.translatable(key), true)
+    }
+
+    /** A running device is visibly running, which is the only thing the wait has to say for itself. */
+    override fun animateTick(state: BlockState, level: Level, pos: BlockPos, random: RandomSource) {
+        if (state.getValue(STAGE) != SurveyStage.SURVEYING) return
+        level.addParticle(
+            ParticleTypes.ENCHANT,
+            pos.x + random.nextDouble(),
+            pos.y + ABOVE_THE_DEVICE,
+            pos.z + random.nextDouble(),
+            0.0,
+            DRIFTING_UP,
+            0.0,
+        )
+    }
+
+    companion object {
+        val CODEC: MapCodec<SurveyingDeviceBlock> = simpleCodec(::SurveyingDeviceBlock)
+
+        val STAGE: EnumProperty<SurveyStage> = EnumProperty.create("stage", SurveyStage::class.java)
+
+        /** Twenty seconds: long enough to be a survey, short enough to stand and wait out. */
+        private const val SURVEY_TICKS = 400
+
+        private const val ABOVE_THE_DEVICE = 1.1
+        private const val DRIFTING_UP = 0.04
+        private const val VOLUME = 1.0f
+        private const val PITCH = 1.0f
+    }
+}

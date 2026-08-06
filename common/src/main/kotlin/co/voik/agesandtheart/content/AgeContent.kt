@@ -49,6 +49,7 @@ import net.minecraft.world.level.block.SoundType
 import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.material.MapColor
+import net.minecraft.world.level.material.PushReaction
 import net.minecraft.world.level.biome.BiomeSource
 import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.levelgen.SurfaceRules
@@ -146,12 +147,28 @@ object AgeContent {
 
     private val SURVEYING_DEVICE_ID: Identifier = "surveying_device".location()
 
-    /** See [SurveyingDeviceItem] — the portable half. One per writer is plenty, so it does not stack. */
-    val SURVEYING_DEVICE: Item = SurveyingDeviceItem(
+    /** See [SurveyingDeviceBlock] — the half you carry to the place and set down. */
+    val SURVEYING_DEVICE_BLOCK: SurveyingDeviceBlock = SurveyingDeviceBlock(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, SURVEYING_DEVICE_ID))
+            .mapColor(MapColor.COLOR_PURPLE)
+            .strength(SURVEYING_DEVICE_STRENGTH)
+            .sound(SoundType.METAL)
+            .requiresCorrectToolForDrops()
+            // An instrument reading *this* place should not be shovable to another one — and a piston does
+            // not carry a block's scheduled tick with it, so a pushed survey would run forever.
+            .pushReaction(PushReaction.BLOCK),
+    )
+
+    val SURVEYING_DEVICE: Item = BlockItem(
+        SURVEYING_DEVICE_BLOCK,
         Item.Properties()
             .setId(ResourceKey.create(Registries.ITEM, SURVEYING_DEVICE_ID))
-            .stacksTo(1),
+            .useBlockDescriptionPrefix(),
     )
+
+    /** Lighter than the machine: an instrument you expect to pick up and carry on is worth less digging. */
+    private const val SURVEYING_DEVICE_STRENGTH = 2.5f
 
     /** Where a Linking Book goes. Absent means blank — see [LinkingBookItem]. */
     val LINK_TARGET: DataComponentType<LinkTarget> = DataComponentType.builder<LinkTarget>()
@@ -300,6 +317,7 @@ object AgeContent {
         WRITERS_DESK_ID to WRITERS_DESK_BLOCK,
         STAR_FISSURE_ID to STAR_FISSURE_BLOCK,
         ANALYSIS_MACHINE_ID to ANALYSIS_MACHINE_BLOCK,
+        SURVEYING_DEVICE_ID to SURVEYING_DEVICE_BLOCK,
     )
 
     val blockEntities: List<Pair<Identifier, BlockEntityType<*>>> = listOf(

@@ -1,7 +1,8 @@
 {
-  "_comment": "The machine is obsidian and diamond; it should ask for a pickaxe, and requiresCorrectToolForDrops needs this to mean anything.",
+  "_comment": "Both instruments are metal and stone; they should ask for a pickaxe, and requiresCorrectToolForDrops needs this to mean anything.",
   "replace": false,
   "values": [
-    "agesandtheart:analysis_machine"
+    "agesandtheart:analysis_machine",
+    "agesandtheart:surveying_device"
   ]
 }

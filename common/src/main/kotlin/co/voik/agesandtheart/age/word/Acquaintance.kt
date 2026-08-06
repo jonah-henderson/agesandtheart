@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.word
 
 import co.voik.agesandtheart.platform.Services
+import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.Identifier
@@ -25,8 +26,8 @@ import net.minecraft.world.item.ItemStack
  * is the check, so the boundary is one question rather than a list.
  *
  * Two devices share this because the difference between them is only which registry the referent comes
- * out of: the analysis machine is a station and the sample is brought to it, the surveying device is a
- * tool and you go to the place. See [Withheld] for the one thing neither may name.
+ * out of: the analysis machine is a station the sample is brought to, the surveying device is one carried
+ * to the place and set down there. See [Withheld] for the one thing neither may name.
  */
 object Acquaintance {
 
@@ -36,10 +37,12 @@ object Acquaintance {
         return grant(player, substance)
     }
 
-    /** What the ground under [player] is called. A survey consumes nothing — the price was the travel. */
-    fun withPlace(player: ServerPlayer): Acquainted {
-        val level = player.level() as? ServerLevel ?: return Acquainted.Unnameable
-        val here = level.getBiome(player.blockPosition()).unwrapKey().orElse(null) ?: return Acquainted.Unnameable
+    /**
+     * What the ground at [at] is called — the spot the device was stood in, not the one the player is
+     * standing in when they collect. A survey consumes nothing; the price was the travel and the wait.
+     */
+    fun withPlace(player: ServerPlayer, level: ServerLevel, at: BlockPos): Acquainted {
+        val here = level.getBiome(at).unwrapKey().orElse(null) ?: return Acquainted.Unnameable
         return grant(player, here.identifier())
     }
 

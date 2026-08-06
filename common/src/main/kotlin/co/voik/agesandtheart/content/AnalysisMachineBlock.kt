@@ -20,7 +20,8 @@ import net.minecraft.world.phys.BlockHitResult
  * The D'ni analysis machine: hand it a thing, learn what the Art calls it (design §8.3).
  *
  * **A station, because the referent comes to it** — the shape follows what it names. Its twin, the
- * surveying device, is a tool you carry, because a place cannot be brought to a bench.
+ * surveying device, is carried to the place and set down there, because a place cannot be brought to a
+ * bench.
  *
  * **No screen and no block entity, deliberately.** The whole interaction is one sample and one answer,
  * and a slot to put a block in, a button to press and a result to take back out would be three steps
