@@ -58,6 +58,14 @@ readonly POLL_SECONDS=1
 # check should never be able to disturb a save someone has been building in.
 level="smoke-$(date +%Y%m%d-%H%M%S)"
 
+# Whether the world above is ours to throw away. `--level` means a person named it, and a named world is
+# one somebody wants to look at afterwards.
+named_by_hand=no
+
+# What a world this script generated is called, exactly. The discard below is fenced on this rather than on
+# a prefix, so `--level smoke-mine` is still safe from it.
+readonly OURS='^smoke-[0-9]{8}-[0-9]{6}$'
+
 note() { printf '%s\n' "$*" >&2; }
 fail() { note "drive-server: $*"; exit 1; }
 
@@ -68,6 +76,7 @@ parse_arguments() {
             --level)
                 [[ ${2:-} ]] || fail "--level needs a world name"
                 level=$2
+                named_by_hand=yes
                 shift 2
                 ;;
             -h | --help)
@@ -118,9 +127,30 @@ use_throwaway_world() {
     [[ -f $PROPERTIES ]] || fail "no $PROPERTIES yet — run ./gradlew :fabric:runServer once first"
     original_level=$(sed -n 's/^level-name=//p' "$PROPERTIES")
     [[ $original_level ]] || fail "$PROPERTIES names no level-name"
-    trap 'sed -i "s/^level-name=.*/level-name=$original_level/" "$PROPERTIES"' EXIT
+    trap discard_throwaway_world EXIT
     sed -i "s/^level-name=.*/level-name=$level/" "$PROPERTIES"
     note "drive-server: using world '$level' (yours is '$original_level', restored on exit)"
+}
+
+# Puts `server.properties` back and takes the throwaway world with it.
+#
+# **This is the only deletion in the script, and it is fenced three ways** — the same bargain
+# `DrivenServer` makes for the `checks-` worlds. It runs only when this script generated the name itself
+# (`--level` opts out), only when that name is exactly a timestamped `smoke-`, and only on a directory that
+# is really there, under the run directory this script owns. None of those alone would be enough: a prefix
+# match would eat `--level smoke-mine`, and a name match without the flag would eat a world someone asked
+# for by that name on purpose.
+#
+# It leaked for a long time and nobody noticed, because a smoke world is invisible until there are
+# seventy-six of them and a third of a gigabyte is gone.
+discard_throwaway_world() {
+    sed -i "s/^level-name=.*/level-name=$original_level/" "$PROPERTIES"
+    [[ $named_by_hand == no ]] || return 0
+    [[ $level =~ $OURS ]] || return 0
+    local world="$RUN_DIRECTORY/$level"
+    [[ -d $world ]] || return 0
+    rm -rf -- "$world"
+    note "drive-server: discarded '$level'"
 }
 
 # Blocks until [pattern] appears in the server log. [what] only ever appears in the failure message.
