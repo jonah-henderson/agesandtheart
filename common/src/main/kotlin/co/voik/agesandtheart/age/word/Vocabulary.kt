@@ -211,7 +211,29 @@ data class Vocabulary(
          * The corpus this server is currently running. Read fresh each time rather than cached: it happens
          * once when an Age is written, and a cache would need invalidating on `/reload`.
          */
-        fun of(server: MinecraftServer): Vocabulary = load(server.resourceManager, server.registryAccess())
+        /**
+         * The corpus this server is currently running, **built once and kept**.
+         *
+         * It used to rebuild on every call, which is eleven hundred words derived from the registries and
+         * every authored word re-read off the resource manager — and callers reasonably assume a getter is
+         * a getter. The desk asks for it on every action, and twice for a while.
+         *
+         * **Keyed on the resource manager's identity**, which is exactly the thing a datapack reload
+         * replaces: `reloadResources` builds a fresh `MultiPackResourceManager`, so a reloaded pack misses
+         * the cache and rebuilds, and nothing has to remember to invalidate anything.
+         *
+         * No lock. Two threads arriving together build it twice and one wins, which costs a rebuild that
+         * was happening every call until now and cannot produce a wrong answer — `load` is pure in its
+         * inputs.
+         */
+        @Volatile
+        private var corpus: Pair<ResourceManager, Vocabulary>? = null
+
+        fun of(server: MinecraftServer): Vocabulary {
+            val resources = server.resourceManager
+            corpus?.let { (from, known) -> if (from === resources) return known }
+            return load(resources, server.registryAccess()).also { corpus = resources to it }
+        }
 
         /**
          * The corpus in [resources] — the whole of the loading, and usable offline.

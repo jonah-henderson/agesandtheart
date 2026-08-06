@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.desk
 
+import co.voik.agesandtheart.age.word.grammar.Sentence
 import co.voik.agesandtheart.age.word.grammar.Readout
 import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.age.word.Resolver
@@ -203,8 +204,12 @@ class WritersDeskMenu(
     }
 
     /** What the screen should be showing right now. */
-    fun snapshot(player: ServerPlayer, desk: WritersDeskBlockEntity, capabilities: DeskState): DeskSyncPayload =
-        DeskSyncPayload(
+    fun snapshot(player: ServerPlayer, desk: WritersDeskBlockEntity, capabilities: DeskState): DeskSyncPayload {
+        // Read once and handed to both: the readout and the conflicts are two questions about one sentence,
+        // and parsing it twice was two passes over the corpus for one row of pages.
+        val said = composing.takeIf { it.isNotEmpty() }
+            ?.let { Grammar.read(vocabularyFor(player), it.map(Identifier::getPath)) }
+        return DeskSyncPayload(
             archive = desk.archive.words.associateWith { desk.archive.count(it) },
             ink = InkTier.entries.associateWith { desk.stores.ink(it) },
             paper = InkTier.entries.associateWith { desk.stores.paper(it) },
@@ -213,9 +218,10 @@ class WritersDeskMenu(
             capabilities = capabilities.capabilities,
             pageLimit = capabilities.pageLimit,
             composing = composing.toList(),
-            quarrels = quarrelsIn(player, capabilities),
-            reading = readingOf(player),
+            quarrels = quarrelsIn(player, capabilities, said),
+            reading = readingOf(said),
         )
+    }
 
     /**
      * What the pages currently say, as prose — the half that makes attachment visible (§4.3.1).
@@ -223,10 +229,7 @@ class WritersDeskMenu(
      * Read by **the same expression a bound book is read by**, so the desk and the book can never disagree
      * about what a row of pages means.
      */
-    private fun readingOf(player: ServerPlayer): String {
-        if (composing.isEmpty()) return ""
-        return Readout.of(Grammar.read(vocabularyFor(player), composing.map { it.path }))
-    }
+    private fun readingOf(said: Sentence?): String = said?.let(Readout::of).orEmpty()
 
     /**
      * What is wrong with the sentence as it currently stands — **empty without the implement that reveals
@@ -239,12 +242,10 @@ class WritersDeskMenu(
      * Each flaw becomes a mark on **both** its words. A flaw naming one word is paired with itself, which
      * is how "nothing here can be this" reaches a display that only knows how to mark pairs.
      */
-    private fun quarrelsIn(player: ServerPlayer, capabilities: DeskState): List<Quarrel> {
+    private fun quarrelsIn(player: ServerPlayer, capabilities: DeskState, said: Sentence?): List<Quarrel> {
         if (DeskCapability.REVEAL_CONFLICTS !in capabilities.capabilities) return emptyList()
-        if (composing.isEmpty()) return emptyList()
-        val vocabulary = vocabularyFor(player)
-        val read = Grammar.read(vocabulary, composing.map { it.path })
-        val flaws = Resolver.resolve(vocabulary, read, player.writingSeed).instability.flaws
+        val read = said ?: return emptyList()
+        val flaws = Resolver.resolve(vocabularyFor(player), read, player.writingSeed).instability.flaws
         val byName = composing.associateBy { it.path }
         return flaws.flatMap { flaw ->
             val named = flaw.words.mapNotNull(byName::get)
