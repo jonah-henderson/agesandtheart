@@ -191,6 +191,56 @@ class RepairCheck : FunSpec({
             }
         }
     }
+
+    /**
+     * **A writer is never charged for a word the Art chose.**
+     *
+     * Repair completes a book by writing a whole world around the writer's pages, and those pages carry
+     * tags like any others — so a fill-in can contradict the one word a writer actually laid, and the
+     * instability lands on somebody who could not have seen it coming and cannot do anything about it.
+     * Found in a walk (Jonah, 2026-08-06): every repair skeleton said `sea open`, whose `empty` is the
+     * antonym of `watery`, so writing `drenched` and nothing else bought a contradiction outright.
+     *
+     * `Repair.deferringToTheWriter` already takes the Art's words back out of every clause the writer spoke
+     * in, which is the same promise — but a clause is not far enough. Instability is read across the whole
+     * sentence, so a word in the *sea* can fight a word in the *atmosphere* and neither is in the other's
+     * clause.
+     *
+     * This is a **content** check, not a mechanism one: what it asks is whether the shipped grammar can
+     * write a world that argues with an ordinary word. If it can, the grammar is what changes.
+     */
+    test("repair never contradicts the one word a writer laid") {
+        val quarrelsome = vocabulary.authoredWords.filterNot { it.query.isEmpty() }
+        val complaints = mutableListOf<String>()
+        for (word in quarrelsome) {
+            // Aimed at a section the word is not about, which is what sends a book through repair at all —
+            // a word laid under the nucleus alone reads fine, and a book that reads is never filled in.
+            for (aimedAt in MISAIMED_AT.filterNot { it in word.aspects.map(Aspect::key) }) {
+                val laid = listOf("age", aimedAt, word.name)
+                val read = Grammar.read(vocabulary, laid)
+                for (seed in REPAIR_SEEDS) {
+                    val flaws = Resolver.resolve(vocabulary, read, seed).instability.flaws
+                    val theArtsOwn = flaws.filterNot { flaw -> flaw.words.all { it in laid } }
+                    if (theArtsOwn.isEmpty()) continue
+                    complaints += "'${laid.joinToString(" ")}' at seed $seed: " +
+                        theArtsOwn.joinToString("; ") { it.describe() }
+                }
+            }
+        }
+        check(complaints.isEmpty()) {
+            "repair wrote a world that argues with a word the writer laid alone:\n" +
+                complaints.take(MOST_COMPLAINTS_SHOWN).joinToString("\n") +
+                if (complaints.size > MOST_COMPLAINTS_SHOWN) "\n(and ${complaints.size - MOST_COMPLAINTS_SHOWN} more)" else ""
+        }
+    }
 })
+
+/** The aiming pages a misaimed book is written under — enough to send every word through repair. */
+private val MISAIMED_AT = listOf("landmass", "climate", "sky", "sea")
+
+/** A few, because a flaw can depend on the seed the book is written at. */
+private val REPAIR_SEEDS = listOf(1L, 7L, 20260806L)
+
+private const val MOST_COMPLAINTS_SHOWN = 12
 
 private const val SAMPLE_SEED = 20260802L

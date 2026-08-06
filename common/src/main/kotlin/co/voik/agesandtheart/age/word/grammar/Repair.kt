@@ -62,11 +62,50 @@ internal object Repair {
         return if (reads) drawn else nucleusOf(vocabulary)
     }
 
+    /**
+     * The Art's own sentence — **redrawn until it stops arguing with the writer**, or the first draw if
+     * every one of them does.
+     *
+     * A skeleton describes a whole world, so its words carry tags like any others, and a tag that opposes
+     * one of the writer's is a contradiction they did not write, cannot see and cannot do anything about.
+     * [Filling.deferringToTheWriter] already refuses that within a clause; this is the same promise across
+     * the sentence, where it actually bites — a `sea` word and an `atmosphere` word are never in each
+     * other's clause and instability is read across the whole book.
+     *
+     * **Still deterministic**, which the whole class depends on: the candidates come from one seeded
+     * sequence drawn off the pages, and the choice between them is a pure function of the words. No Age
+     * seed is involved, so a book still reads the same wherever it is carried.
+     *
+     * Falling back to the first draw is deliberate. Repair must always produce *something* — a book that
+     * cannot be completed is the one failure §3.3 forbids — and a grammar with no quiet world in it for
+     * some word is a content bug, which `RepairCheck` fails the build over rather than papering here.
+     */
     private fun drawn(vocabulary: Vocabulary, laid: List<Page>): List<Page> {
         val grammar = vocabulary.generation.grammar(GRAMMAR) ?: return emptyList()
-        val words = grammar.expand(Random(seedFor(laid)))
-        return words.map { Grammar.classify(vocabulary, it, latent = true) }.filter { it.kind != null }
+        val random = Random(seedFor(laid))
+        val candidates = (1..DRAWS).map { grammar.expand(random) }
+        fun pagesOf(words: List<String>) =
+            words.map { Grammar.classify(vocabulary, it, latent = true) }.filter { it.kind != null }
+        val drawn = candidates.map(::pagesOf)
+        return drawn.firstOrNull { !argues(vocabulary, it, laid) } ?: drawn.first()
     }
+
+    /** Whether anything the Art drew wants the opposite of something the writer laid. */
+    private fun argues(vocabulary: Vocabulary, skeleton: List<Page>, laid: List<Page>): Boolean {
+        val written = laid.mapNotNull { it.word }.flatMap { it.wanted }.toSet()
+        if (written.isEmpty()) return false
+        return skeleton.mapNotNull { it.word }.any { drawn ->
+            drawn.wanted.any { wanted -> written.any { vocabulary.opposition(wanted, it) != null } }
+        }
+    }
+
+    /**
+     * How many worlds to draw before settling for the first.
+     *
+     * The shipped grammar offers three, so this is enough to see each of them several times over and cheap
+     * enough not to matter — expansion is a walk of a handful of rules, and repair happens once per book.
+     */
+    private const val DRAWS = 24
 
     private fun nucleusOf(vocabulary: Vocabulary): List<Page> {
         val age = vocabulary.grammarWords.firstOrNull { it.production == Production.NUCLEUS } ?: return emptyList()
