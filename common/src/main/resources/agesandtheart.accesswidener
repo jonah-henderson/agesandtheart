@@ -96,3 +96,15 @@ accessible	field	net/minecraft/world/level/chunk/ChunkGenerator	generationSettin
 mutable	field	net/minecraft/world/level/chunk/ChunkGenerator	generationSettingsGetter	Ljava/util/function/Function;
 accessible	field	net/minecraft/world/level/chunk/ChunkGenerator	featuresPerStep	Ljava/util/function/Supplier;
 mutable	field	net/minecraft/world/level/chunk/ChunkGenerator	featuresPerStep	Ljava/util/function/Supplier;
+
+# So a bolt we call down can be aimed the way vanilla aims one (co.voik.agesandtheart.age.phenomena.Tempest).
+#
+# **The lightning rod is found by the spawner, not by the bolt**, and that is the whole reason this line
+# exists. `tickThunder` calls `findLightningTargetAround` *before* anything is created, so the strike is
+# moved onto a rod within 128 blocks while it is still only a position — a bolt built at a coordinate and
+# added to the world has already declined the redirect, and no amount of copper will save what is under it.
+#
+# There is no public equivalent. `tickThunder` itself is public but gated on rain, thunder and a 1 in
+# 100,000 roll, so it cannot answer "strike *here*"; and reimplementing the search means copying vanilla's
+# POI query and its surface test, which is exactly the pair that would drift.
+accessible	method	net/minecraft/server/level/ServerLevel	findLightningTargetAround	(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/core/BlockPos;

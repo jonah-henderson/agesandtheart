@@ -4,7 +4,10 @@ import co.voik.agesandtheart.age.aspect.Phenomenon
 import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.util.RandomSource
+import net.minecraft.world.entity.EntitySpawnReason
+import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.LightningBolt
+import net.minecraft.world.phys.Vec3
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.BaseFireBlock
 import net.minecraft.world.level.block.LightningRodBlock
@@ -43,6 +46,27 @@ object Tempest {
             ) ?: return@repeat
             level.tickThunder(chunk)
         }
+    }
+
+    /**
+     * One bolt, called down at [near] — **aimed the way vanilla aims one**, and the returned position is
+     * where it actually landed.
+     *
+     * The aiming is the point. `findLightningTargetAround` snaps to the surface, moves the strike onto a
+     * lightning rod within 128 blocks, and failing that onto somebody standing in the open — all *before*
+     * a bolt exists. Anything that builds a bolt at a coordinate and adds it to the world has quietly
+     * refused every one of those, which is how `/age strike` came to test a path no tempest bolt takes:
+     * [strike] goes through `tickThunder` and gets the redirect for free, and this had to ask for it.
+     *
+     * A rod only answers if it is the **topmost block in its column**, which is vanilla's rule and worth
+     * knowing before concluding the copper failed: `findLightningRod` requires `y == getHeight(WORLD_SURFACE) - 1`.
+     */
+    fun callDown(level: ServerLevel, near: BlockPos, reason: EntitySpawnReason): BlockPos {
+        val target = level.findLightningTargetAround(near)
+        val bolt = EntityType.LIGHTNING_BOLT.create(level, reason) ?: return target
+        bolt.snapTo(Vec3.atBottomCenterOf(target))
+        level.addFreshEntity(bolt)
+        return target
     }
 
     /**

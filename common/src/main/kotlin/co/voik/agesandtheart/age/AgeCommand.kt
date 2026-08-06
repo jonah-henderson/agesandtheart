@@ -9,6 +9,7 @@ import co.voik.agesandtheart.sky.Skies
 import co.voik.agesandtheart.worldgen.field.RegionMap
 import co.voik.agesandtheart.sky.SkySpec
 import co.voik.agesandtheart.age.word.Withheld
+import co.voik.agesandtheart.age.phenomena.Tempest
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.generation.TerminalKind
 import co.voik.agesandtheart.age.word.grammar.Grammar
@@ -40,7 +41,6 @@ import net.minecraft.network.chat.Component
 import net.minecraft.resources.Identifier
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.EntitySpawnReason
-import net.minecraft.world.entity.EntityType
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.biome.BiomeSource
 import net.minecraft.world.level.biome.Climate
@@ -293,8 +293,10 @@ object AgeCommand {
      * `/age strike [<distance>]` — call a bolt down where you are looking, to see what a tempest does to
      * it without standing in the rain waiting.
      *
-     * The bolt goes in through `addFreshEntity` like any other, so it is the *same* strike a tempest gets:
-     * whether it craters, and whether a rod grounds it, is decided where it is decided for real.
+     * Aimed through [Tempest.callDown], so it is the *same* strike a tempest gets — including the rod.
+     * The first version built a bolt at the position it was looking at and added it to the world, which
+     * cratered correctly and could not be grounded by any amount of copper: vanilla moves a strike onto a
+     * rod in the spawner, before a bolt exists, so a bolt made directly has already refused.
      */
     private fun strikeSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("strike")
@@ -882,12 +884,8 @@ object AgeCommand {
         val source = context.source
         val level = source.level
         val aimed = source.position.add(Vec3.directionFromRotation(source.rotation).scale(distance.toDouble()))
-        val ground = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, BlockPos.containing(aimed))
-        val bolt = EntityType.LIGHTNING_BOLT.create(level, EntitySpawnReason.COMMAND)
-            ?: return FAILURE.also { source.sendFailure(Component.literal("Could not make a bolt")) }
-        bolt.snapTo(Vec3.atBottomCenterOf(ground))
-        level.addFreshEntity(bolt)
-        source.sendSuccess({ Component.literal("Struck ${ground.x} ${ground.y} ${ground.z}") }, true)
+        val struck = Tempest.callDown(level, BlockPos.containing(aimed), EntitySpawnReason.COMMAND)
+        source.sendSuccess({ Component.literal("Struck ${struck.x} ${struck.y} ${struck.z}") }, true)
         return SUCCESS
     }
 
