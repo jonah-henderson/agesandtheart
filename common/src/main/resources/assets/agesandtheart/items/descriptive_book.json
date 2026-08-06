@@ -1,10 +1,7 @@
 {
-  "_comment": "Two layers: a cover tinted by the dye component, and untitled detail over it.",
+  "_comment": "No tint. The cover was dyed before patterns were the plan, and a flat wash over every book said the one thing a pattern is meant to say.",
   "model": {
     "type": "minecraft:model",
-    "model": "agesandtheart:item/descriptive_book",
-    "tints": [
-      { "type": "minecraft:dye", "default": -8170446 }
-    ]
+    "model": "agesandtheart:item/descriptive_book"
   }
 }

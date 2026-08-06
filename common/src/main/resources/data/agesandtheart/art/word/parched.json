@@ -3,6 +3,9 @@
   "aspects": [
     "climate"
   ],
+  "query": {
+    "dry": 1.0
+  },
   "sets": {
     "temperature": "0.4..0.9",
     "humidity": "-0.95..-0.45"

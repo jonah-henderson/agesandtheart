@@ -1,5 +1,7 @@
 {
-  "_comment": "The D'ni grammar guide -- adds the inferable particles so a row of words reads as a sentence.",
-  "tag": "minecraft:bookshelves",
-  "grants": ["readable_grammar"]
+  "_comment": "The D'ni grammar guide -- adds the inferable particles so a row of words reads as a sentence. The tag is `enchantment_power_provider` (which is the bookshelf) and NOT `minecraft:bookshelves`, which does not exist: a tag nobody ships matches nothing and cost a walk, where three implements placed counted as two.",
+  "tag": "minecraft:enchantment_power_provider",
+  "grants": [
+    "readable_grammar"
+  ]
 }
