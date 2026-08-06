@@ -10,6 +10,10 @@ import co.voik.agesandtheart.worldgen.field.RegionMap
 import co.voik.agesandtheart.sky.SkySpec
 import co.voik.agesandtheart.age.word.Withheld
 import co.voik.agesandtheart.age.phenomena.Tempest
+import co.voik.agesandtheart.age.word.LearnedWordsPayload
+import co.voik.agesandtheart.age.word.learnedWords
+import co.voik.agesandtheart.platform.Services
+import net.minecraft.commands.SharedSuggestionProvider
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.generation.TerminalKind
 import co.voik.agesandtheart.age.word.grammar.Grammar
@@ -61,6 +65,7 @@ import net.minecraft.world.level.levelgen.Heightmap
  * /age write <name> [seed] <words>    — author one out of *words*: beautiful floating riddled
  * /age words                          — the vocabulary the Art currently knows
  * /age pages [derived]                — a notebook of every word, for filling a desk to test writing with
+ * /age forget [<word>]                — unlearn everything, or one word, so a device can be walked twice
  * /age tp <name>                      — travel to an Age
  * /age delete <name>|all              — discard an Age (or every Age), chunks and all
  * /age gen <name>                     — force-generate the spawn chunk and report what it made
@@ -83,6 +88,7 @@ object AgeCommand {
      */
     private val OPERATOR_PERMISSION = Commands.hasPermission<CommandSourceStack>(Commands.LEVEL_GAMEMASTERS)
     private const val DISTANCE_ARGUMENT = "distance"
+    private const val WORD_ARGUMENT = "word"
     private const val NAME_ARGUMENT = "name"
     private const val RADIUS_ARGUMENT = "radius"
     private const val SEED_ARGUMENT = "seed"
@@ -170,6 +176,7 @@ object AgeCommand {
                 .then(writeSubcommand())
                 .then(vocabularySubcommand())
                 .then(pagesSubcommand())
+                .then(forgetSubcommand())
                 .then(teleportSubcommand())
                 .then(deleteSubcommand())
                 .then(generateSubcommand())
@@ -394,6 +401,48 @@ object AgeCommand {
         Commands.literal("pages")
             .executes { context -> runPages(context, derived = false) }
             .then(Commands.literal(DERIVED_LITERAL).executes { context -> runPages(context, derived = true) })
+
+    /**
+     * `/age forget [<word>]` — unlearn everything, or one word.
+     *
+     * Purely an instrument, and it exists because the learning channels can only be walked *once* per
+     * world: `/age pages derived` teaches the whole corpus, after which no device can be seen teaching
+     * anything. Nothing in the game unlearns a word and nothing should.
+     */
+    private fun forgetSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        Commands.literal("forget")
+            .executes { context -> runForget(context, only = null) }
+            .then(
+                Commands.argument(WORD_ARGUMENT, StringArgumentType.word())
+                    .suggests { context, builder ->
+                        val known = context.source.player?.learnedWords?.words.orEmpty()
+                        SharedSuggestionProvider.suggest(known.map { it.path }, builder)
+                    }
+                    .executes { context ->
+                        runForget(context, only = StringArgumentType.getString(context, WORD_ARGUMENT))
+                    },
+            )
+
+    private fun runForget(context: CommandContext<CommandSourceStack>, only: String?): Int {
+        val source = context.source
+        val player = source.player ?: run {
+            source.sendFailure(Component.literal("Only a player knows any words"))
+            return FAILURE
+        }
+        val learned = player.learnedWords
+        val forgotten = if (only == null) {
+            learned.words.toList().also { all -> all.forEach(learned::forget) }
+        } else {
+            learned.words.filter { it.path == only || it.toString() == only }.also { it.forEach(learned::forget) }
+        }
+        if (forgotten.isEmpty()) {
+            source.sendFailure(Component.literal(only?.let { "You do not know '$it'" } ?: "You know nothing"))
+            return FAILURE
+        }
+        Services.NETWORK.sendToPlayer(player, LearnedWordsPayload.whole(learned.words))
+        source.sendSuccess({ Component.literal("Forgot ${forgotten.size} word(s)") }, true)
+        return SUCCESS
+    }
 
     private fun listSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("list")

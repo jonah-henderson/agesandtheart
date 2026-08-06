@@ -143,6 +143,10 @@ object AgeContent {
             .useBlockDescriptionPrefix(),
     )
 
+    /** What the machine is chewing on, which outlives no unload — see [AnalysisMachineBlockEntity]. */
+    val ANALYSIS_MACHINE_ENTITY: BlockEntityType<AnalysisMachineBlockEntity> =
+        BlockEntityType({ pos, state -> AnalysisMachineBlockEntity(pos, state) }, setOf(ANALYSIS_MACHINE_BLOCK))
+
     private const val ANALYSIS_MACHINE_STRENGTH = 3.5f
 
     private val SURVEYING_DEVICE_ID: Identifier = "surveying_device".location()
@@ -323,6 +327,7 @@ object AgeContent {
     val blockEntities: List<Pair<Identifier, BlockEntityType<*>>> = listOf(
         WRITERS_DESK_ID to WRITERS_DESK_ENTITY,
         STAR_FISSURE_ID to STAR_FISSURE_ENTITY,
+        ANALYSIS_MACHINE_ID to ANALYSIS_MACHINE_ENTITY,
     )
 
     /** The sentence a Descriptive Book carries, in order — page order is word order. */

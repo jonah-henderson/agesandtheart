@@ -4,8 +4,14 @@
     "is in is legible across a clearing without a texture of our own."
   ],
   "variants": {
-    "stage=idle": { "model": "minecraft:block/respawn_anchor_0" },
-    "stage=surveying": { "model": "minecraft:block/respawn_anchor_2" },
-    "stage=ready": { "model": "minecraft:block/respawn_anchor_4" }
+    "stage=idle": {
+      "model": "minecraft:block/respawn_anchor_0"
+    },
+    "stage=working": {
+      "model": "minecraft:block/respawn_anchor_2"
+    },
+    "stage=ready": {
+      "model": "minecraft:block/respawn_anchor_4"
+    }
   }
 }

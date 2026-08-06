@@ -34,7 +34,23 @@ object Acquaintance {
     /** What a sample the analyser was fed turned out to be worth. */
     fun withSubstance(player: ServerPlayer, sample: ItemStack): Acquainted {
         val substance = substanceIn(sample) ?: return Acquainted.Unnameable
-        return grant(player, substance)
+        return teach(player, substance)
+    }
+
+    /**
+     * Why [referent] would teach nothing, or null where it would — **asked without granting anything**.
+     *
+     * The analysis machine destroys its sample, so it has to know the answer before it takes one: a block
+     * eaten in exchange for "you already know that" is the one refusal that costs something.
+     */
+    fun refusalFor(player: ServerPlayer, referent: Identifier): Acquainted? {
+        val server = (player.level() as? ServerLevel)?.server ?: return Acquainted.Unnameable
+        val vocabulary = Vocabulary.of(server)
+        val word = vocabulary.word(referent.toString()) ?: return Acquainted.Unnameable
+        if (!vocabulary.isDerived(word)) return Acquainted.Unnameable
+        if (Withheld.holdsBack(word, server.registryAccess())) return Acquainted.HeldBack
+        if (player.learnedWords.knows(word.id)) return Acquainted.AlreadyKnown(word)
+        return null
     }
 
     /**
@@ -43,28 +59,29 @@ object Acquaintance {
      */
     fun withPlace(player: ServerPlayer, level: ServerLevel, at: BlockPos): Acquainted {
         val here = level.getBiome(at).unwrapKey().orElse(null) ?: return Acquainted.Unnameable
-        return grant(player, here.identifier())
+        return teach(player, here.identifier())
     }
 
     /**
      * The referent a stack names, or null for something that names nothing.
      *
-     * A fluid and its block share an id throughout vanilla, and [DerivedWords.materials] derives one word
-     * from the block for both — so a bucket resolves to the same word its source block does, which is why
-     * "analyse a bucket or its block form" is one case rather than two.
+     * **A bucket is asked what block its fluid becomes**, rather than for the fluid's own id.
+     * [DerivedWords.materials] walks the *block* registry, so every derived word is named for a block —
+     * and while vanilla's fluids share their block's id, ours do not: `agesandtheart:masterwork_ink` pours
+     * into `agesandtheart:masterwork_ink_block`. Asking the registry for the fluid's name therefore looked
+     * up a word that exists for no fluid we ship, and a bucket of our own ink was unnameable.
      */
-    private fun substanceIn(sample: ItemStack): Identifier? = when (val item = sample.item) {
+    fun substanceIn(sample: ItemStack): Identifier? = when (val item = sample.item) {
         is BlockItem -> BuiltInRegistries.BLOCK.getKey(item.block)
-        is BucketItem -> BuiltInRegistries.FLUID.getKey(item.content)
+        is BucketItem -> BuiltInRegistries.BLOCK.getKey(item.content.defaultFluidState().createLegacyBlock().block)
         else -> null
     }
 
-    private fun grant(player: ServerPlayer, referent: Identifier): Acquainted {
+    /** Learns the word for [referent], or says why not. */
+    fun teach(player: ServerPlayer, referent: Identifier): Acquainted {
+        refusalFor(player, referent)?.let { return it }
         val server = (player.level() as? ServerLevel)?.server ?: return Acquainted.Unnameable
-        val vocabulary = Vocabulary.of(server)
-        val word = vocabulary.word(referent.toString()) ?: return Acquainted.Unnameable
-        if (!vocabulary.isDerived(word)) return Acquainted.Unnameable
-        if (Withheld.holdsBack(word, server.registryAccess())) return Acquainted.HeldBack
+        val word = Vocabulary.of(server).word(referent.toString()) ?: return Acquainted.Unnameable
         if (!player.learnedWords.learn(word.id)) return Acquainted.AlreadyKnown(word)
         Services.NETWORK.sendToPlayer(player, LearnedWordsPayload.added(word.id))
         return Acquainted.Learned(word)

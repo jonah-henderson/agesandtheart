@@ -11,25 +11,13 @@ import net.minecraft.server.level.ServerPlayer
 import net.minecraft.sounds.SoundEvents
 import net.minecraft.sounds.SoundSource
 import net.minecraft.util.RandomSource
-import net.minecraft.util.StringRepresentable
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
-import net.minecraft.world.level.block.state.properties.EnumProperty
 import net.minecraft.world.phys.BlockHitResult
-
-/** Where a placed device is in its reading. */
-enum class SurveyStage(private val key: String) : StringRepresentable {
-    IDLE("idle"),
-    SURVEYING("surveying"),
-    READY("ready"),
-    ;
-
-    override fun getSerializedName(): String = key
-}
 
 /**
  * The D'ni surveying device: leave it standing in a place and it learns what the Art calls it (design §8.3).
@@ -39,10 +27,11 @@ enum class SurveyStage(private val key: String) : StringRepresentable {
  * referent* and set down, which is presence made a thing you do rather than a button you press: you must
  * have reached the crimson forest, and then stood an instrument in it.
  *
- * **Three stages, in the block state and nowhere else.** Idle takes a reading, surveying is running, ready
- * holds one to give. A place cannot move, so the biome under the device when it finishes is the biome under
- * it when it started — there is no result worth remembering between the two, and so no block entity. The
- * delay is a scheduled tick for the same reason: vanilla already saves one with the chunk.
+ * **Three stages ([DeviceStage]), in the block state and nowhere else.** A place cannot move, so the biome
+ * under the device when it finishes is the biome that was under it when it started — there is no result
+ * worth remembering between the two, and so **no block entity**, which is the one way this differs from the
+ * analysis machine: that one destroys its sample going in and has to remember what it ate. The delay is a
+ * scheduled tick for the same reason: vanilla already saves one with the chunk.
  *
  * **A survey consumes nothing** — not the device, not the place. The price is the travel and the wait, which
  * is the honest cost for a referent whose whole nature is *where* it is.
@@ -50,13 +39,13 @@ enum class SurveyStage(private val key: String) : StringRepresentable {
 class SurveyingDeviceBlock(properties: Properties) : Block(properties) {
 
     init {
-        registerDefaultState(stateDefinition.any().setValue(STAGE, SurveyStage.IDLE))
+        registerDefaultState(stateDefinition.any().setValue(DeviceStage.PROPERTY, DeviceStage.IDLE))
     }
 
     override fun codec(): MapCodec<SurveyingDeviceBlock> = CODEC
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
-        builder.add(STAGE)
+        builder.add(DeviceStage.PROPERTY)
     }
 
     /**
@@ -75,17 +64,17 @@ class SurveyingDeviceBlock(properties: Properties) : Block(properties) {
         if (level.isClientSide) return InteractionResult.SUCCESS
         val surveyor = player as? ServerPlayer ?: return InteractionResult.FAIL
         val serverLevel = level as? ServerLevel ?: return InteractionResult.FAIL
-        when (state.getValue(STAGE)) {
-            SurveyStage.IDLE -> begin(serverLevel, pos, state, surveyor)
-            SurveyStage.SURVEYING -> stillRunning(serverLevel, pos, surveyor)
-            SurveyStage.READY -> hand(serverLevel, pos, state, surveyor)
+        when (state.getValue(DeviceStage.PROPERTY)) {
+            DeviceStage.IDLE -> begin(serverLevel, pos, state, surveyor)
+            DeviceStage.WORKING -> stillRunning(serverLevel, pos, surveyor)
+            DeviceStage.READY -> hand(serverLevel, pos, state, surveyor)
         }
         return InteractionResult.SUCCESS
     }
 
     private fun begin(level: ServerLevel, pos: BlockPos, state: BlockState, surveyor: ServerPlayer) {
-        level.setBlock(pos, state.setValue(STAGE, SurveyStage.SURVEYING), UPDATE_ALL)
-        level.scheduleTick(pos, this, SURVEY_TICKS)
+        level.setBlock(pos, state.setValue(DeviceStage.PROPERTY, DeviceStage.WORKING), UPDATE_ALL)
+        level.scheduleTick(pos, this, DeviceStage.WORK_TICKS)
         level.playSound(null, pos, SoundEvents.SPYGLASS_USE, SoundSource.BLOCKS, VOLUME, PITCH)
         say(surveyor, "device.agesandtheart.surveying_device.started")
     }
@@ -99,14 +88,14 @@ class SurveyingDeviceBlock(properties: Properties) : Block(properties) {
      * — and neither is a piston, which cannot move this at all.
      */
     private fun stillRunning(level: ServerLevel, pos: BlockPos, surveyor: ServerPlayer) {
-        if (!level.blockTicks.hasScheduledTick(pos, this)) level.scheduleTick(pos, this, SURVEY_TICKS)
+        if (!level.blockTicks.hasScheduledTick(pos, this)) level.scheduleTick(pos, this, DeviceStage.WORK_TICKS)
         say(surveyor, "device.agesandtheart.surveying_device.working")
     }
 
     /** The reading is done. Nothing is recorded, because the place will still be there to be read. */
     override fun tick(state: BlockState, level: ServerLevel, pos: BlockPos, random: RandomSource) {
-        if (state.getValue(STAGE) != SurveyStage.SURVEYING) return
-        level.setBlock(pos, state.setValue(STAGE, SurveyStage.READY), UPDATE_ALL)
+        if (state.getValue(DeviceStage.PROPERTY) != DeviceStage.WORKING) return
+        level.setBlock(pos, state.setValue(DeviceStage.PROPERTY, DeviceStage.READY), UPDATE_ALL)
         level.playSound(null, pos, SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.BLOCKS, VOLUME, PITCH)
     }
 
@@ -120,7 +109,7 @@ class SurveyingDeviceBlock(properties: Properties) : Block(properties) {
         if (outcome is Acquainted.Learned) {
             level.playSound(null, pos, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS, VOLUME, PITCH)
         }
-        level.setBlock(pos, state.setValue(STAGE, SurveyStage.IDLE), UPDATE_ALL)
+        level.setBlock(pos, state.setValue(DeviceStage.PROPERTY, DeviceStage.IDLE), UPDATE_ALL)
     }
 
     private fun say(surveyor: ServerPlayer, key: String) {
@@ -129,7 +118,7 @@ class SurveyingDeviceBlock(properties: Properties) : Block(properties) {
 
     /** A running device is visibly running, which is the only thing the wait has to say for itself. */
     override fun animateTick(state: BlockState, level: Level, pos: BlockPos, random: RandomSource) {
-        if (state.getValue(STAGE) != SurveyStage.SURVEYING) return
+        if (state.getValue(DeviceStage.PROPERTY) != DeviceStage.WORKING) return
         level.addParticle(
             ParticleTypes.ENCHANT,
             pos.x + random.nextDouble(),
@@ -143,11 +132,6 @@ class SurveyingDeviceBlock(properties: Properties) : Block(properties) {
 
     companion object {
         val CODEC: MapCodec<SurveyingDeviceBlock> = simpleCodec(::SurveyingDeviceBlock)
-
-        val STAGE: EnumProperty<SurveyStage> = EnumProperty.create("stage", SurveyStage::class.java)
-
-        /** Twenty seconds: long enough to be a survey, short enough to stand and wait out. */
-        private const val SURVEY_TICKS = 400
 
         private const val ABOVE_THE_DEVICE = 1.1
         private const val DRIFTING_UP = 0.04

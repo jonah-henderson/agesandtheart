@@ -1,6 +1,14 @@
 {
-  "_comment": "Lodestone stands in until the model pass -- a full cube that already reads as an instrument.",
+  "_comment": "Lodestone stands in until the model pass; the stage shows as the glow a respawn anchor uses, so a machine mid-run is legible across a room.",
   "variants": {
-    "": { "model": "minecraft:block/lodestone" }
+    "stage=idle": {
+      "model": "minecraft:block/lodestone"
+    },
+    "stage=working": {
+      "model": "minecraft:block/respawn_anchor_2"
+    },
+    "stage=ready": {
+      "model": "minecraft:block/respawn_anchor_4"
+    }
   }
 }
