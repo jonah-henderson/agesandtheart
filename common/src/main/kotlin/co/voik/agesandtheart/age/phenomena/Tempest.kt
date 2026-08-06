@@ -131,11 +131,16 @@ object Tempest {
      * How many chunks a tempest looks at per tick, at an ordinary rung.
      *
      * Each visit is one of vanilla's own rolls, which is `1 in 100000` — so this many, twenty times a
-     * second, is a strike somewhere near a player every ten seconds or so, and `teeming` is four times
+     * second, is a strike somewhere near a player about every eight seconds, and `teeming` is four times
      * that. The knob is the *number of rolls* rather than a rate of our own, so a tempest can never strike
      * anywhere vanilla would not have.
+     *
+     * Walked at 512, which read as *nearly* a tempest (Jonah, 2026-08-06): the ground was marked without
+     * being worn away, which is the balance to keep, and it wanted a little more weather rather than a
+     * different kind of it. Hence a quarter more rolls and nothing else touched — the blast radius was
+     * right where it was.
      */
-    private const val ORDINARY_VISITS = 512
+    private const val ORDINARY_VISITS = 640
 
     /** How far from a player a strike may land, in chunks — inside a normal render distance. */
     private const val NEARBY = 8
