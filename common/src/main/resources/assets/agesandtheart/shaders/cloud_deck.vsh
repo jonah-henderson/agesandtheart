@@ -21,6 +21,9 @@ layout(std140) uniform DeckInfo {
 
 out float faceBrightness;
 out vec2 worldSample;
+// How far out this corner is, as a share of the slab's half-width: 0 overhead, 1 at the edge midpoints
+// and about 1.41 at the corners. What turns a square slab into a disc — see the fragment stage.
+out float reach;
 
 void main() {
     gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
@@ -32,4 +35,5 @@ void main() {
     // world space. That is what keeps the pattern still as the player walks through it, rather than
     // dragging along with them.
     worldSample = Position.xz * Extent.x + SampleAndRoil.xy;
+    reach = length(Position.xz) * 2.0;
 }

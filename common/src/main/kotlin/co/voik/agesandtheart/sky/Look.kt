@@ -25,10 +25,19 @@ data class Look(
     val haze: Float? = null,
     val ceiling: Float? = null,
     val murk: Float? = null,
+    /**
+     * How brightly the stars burn, overriding the day's own curve — `1.0` being midnight.
+     *
+     * **How a sky with no sun stops having a noon.** Vanilla drives star brightness off the timeline, so
+     * an Age with nothing overhead still spends half its day under a bright empty sky and its stars still
+     * fade out at noon. Pinning this is the whole of "locked at midnight" for such a world: the light a
+     * *world* gets is `Atmosphere.DAYLIGHT`'s business, and this is only what the eye sees overhead.
+     */
+    val starBrightness: Float? = null,
 ) {
     val saysNothing: Boolean
         get() = sky == null && fog == null && cloud == null && tint == null &&
-            motes == null && haze == null && ceiling == null && murk == null
+            motes == null && haze == null && ceiling == null && murk == null && starBrightness == null
 
     /**
      * This look over [under] — every colour of ours that was named, and [under]'s where it was not.
@@ -45,6 +54,7 @@ data class Look(
         haze = haze ?: under.haze,
         ceiling = ceiling ?: under.ceiling,
         murk = murk ?: under.murk,
+        starBrightness = starBrightness ?: under.starBrightness,
     )
 
     companion object {
@@ -60,7 +70,9 @@ data class Look(
                 Codec.FLOAT.optionalFieldOf("haze").forGetter { java.util.Optional.ofNullable(it.haze) },
                 Codec.FLOAT.optionalFieldOf("ceiling").forGetter { java.util.Optional.ofNullable(it.ceiling) },
                 Codec.FLOAT.optionalFieldOf("murk").forGetter { java.util.Optional.ofNullable(it.murk) },
-            ).apply(instance) { sky, fog, cloud, tint, motes, haze, ceiling, murk ->
+                Codec.FLOAT.optionalFieldOf("star_brightness")
+                    .forGetter { java.util.Optional.ofNullable(it.starBrightness) },
+            ).apply(instance) { sky, fog, cloud, tint, motes, haze, ceiling, murk, starBrightness ->
                 Look(
                     sky.orElse(null),
                     fog.orElse(null),
@@ -70,6 +82,7 @@ data class Look(
                     haze.orElse(null),
                     ceiling.orElse(null),
                     murk.orElse(null),
+                    starBrightness.orElse(null),
                 )
             }
         }

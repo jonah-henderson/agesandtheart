@@ -38,7 +38,13 @@ object SpireSky {
         fog = Rgba(0.30f, 0.33f, 0.34f),
         cloud = Rgba(0.30f, 0.33f, 0.34f, alpha = 0.80f),
         ceiling = SPIRE_CLOUD_CEILING,
+        // **Locked at midnight** (Jonah, 2026-08-05). The Spire has never had a sun, so a day cycle over it
+        // only ever meant its stars going out for half of it — which is what made the reveal look broken
+        // when it was working exactly as written.
+        starBrightness = MIDNIGHT,
     )
+
+    private const val MIDNIGHT = 1.0f
 
     /** Where 201 blocks sits on `AgeAir`'s 96..256 cloud band. */
     private const val SPIRE_CLOUD_CEILING = 0.656f

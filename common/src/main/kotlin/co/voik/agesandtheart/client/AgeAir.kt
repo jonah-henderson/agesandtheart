@@ -1,6 +1,8 @@
 package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.age.aspect.Motes
+import co.voik.agesandtheart.math.Rgba
+import co.voik.agesandtheart.sky.CloudDeck
 import co.voik.agesandtheart.sky.KnownLooks
 import co.voik.agesandtheart.sky.Look
 import net.minecraft.client.multiplayer.ClientLevel
@@ -29,12 +31,73 @@ object AgeAir {
     @JvmStatic
     fun paint(level: ClientLevel, layers: EnvironmentAttributeSystem.Builder): EnvironmentAttributeSystem.Builder {
         val told = KnownLooks.airOf(level.dimension()) ?: return layers
-        if (told.look.saysNothing && told.corners.isEmpty()) return layers
+        val decks = told.spec.decks
+        if (told.look.saysNothing && told.corners.isEmpty() && decks.isEmpty()) return layers
         if (!told.look.saysNothing) layers.addConstantLayer(asAttributeMap(told.look))
         for ((biome, look) in told.corners) {
             for (painted in painting(look)) painted.onlyIn(layers, level, biome)
         }
+        // Last, so it sits over the flat colour it darkens.
+        deepened(told.look, decks)?.let { under -> under.onto(layers) }
         return layers
+    }
+
+    /**
+     * The air **under an overcast**, darkening with each deck you drop below.
+     *
+     * A sky with cloud between you and it should not be the colour of the sky: standing under the Spire's
+     * two decks and seeing the same storm-grey you see above them makes the decks read as painted on rather
+     * than as something you are beneath. So the air takes the deck's own tone as you pass it, and takes it
+     * again — darker — under the next.
+     *
+     * **Keyed to the decks the Age actually has**, not written down beside them, so this is not the Spire's
+     * special case: any sky given cloud layers gets the air that belongs under them, and moving a deck moves
+     * its gloom with it.
+     *
+     * Null where there is nothing to be under.
+     */
+    private fun deepened(look: Look, decks: List<CloudDeck>): Deepening? {
+        if (decks.isEmpty()) return null
+        val open = look.sky ?: return null
+        val openFog = look.fog ?: open
+        // Outermost last, so the highest deck is the first thing you come down through.
+        val falling = decks.sortedByDescending { it.height }
+        return Deepening(open, openFog, falling)
+    }
+
+    /**
+     * The sky and the fog as a function of how far below the decks the eye is.
+     *
+     * A positional layer rather than a constant one, which is the same mechanism a biome-confined colour
+     * already uses — it is handed a position and asks what is true there.
+     */
+    private class Deepening(
+        private val openSky: Rgba,
+        private val openFog: Rgba,
+        private val falling: List<CloudDeck>,
+    ) {
+        fun onto(layers: EnvironmentAttributeSystem.Builder) {
+            layers.addPositionalLayer(EnvironmentAttributes.SKY_COLOR) { _, at, _ -> skyAt(at.y).packed() }
+            layers.addPositionalLayer(EnvironmentAttributes.FOG_COLOR) { _, at, _ -> fogAt(at.y).packed() }
+        }
+
+        /** The open sky, then each deck's own gloom, each one dimmer than the last. */
+        private fun skyAt(eyeY: Double): Rgba = toneAt(eyeY, openSky)
+
+        private fun fogAt(eyeY: Double): Rgba = toneAt(eyeY, openFog)
+
+        private fun toneAt(eyeY: Double, open: Rgba): Rgba {
+            var tone = open
+            var dimming = 1.0f
+            for (deck in falling) {
+                // Above it, and the ones below it cannot matter either — they are further down still.
+                if (eyeY >= deck.height) break
+                // The deck's own dark tone, dimmed once more for every deck already passed.
+                dimming *= UNDER_EACH_DECK
+                tone = deck.low.dimmed(dimming)
+            }
+            return tone
+        }
     }
 
     /** One attribute and the value asked of it, kept together so the pair stays typed — as `Atmosphere` does. */
@@ -88,6 +151,7 @@ object AgeAir {
         look.murk?.let {
             add(Painted(EnvironmentAttributes.WATER_FOG_END_DISTANCE, CLEAREST - it * (CLEAREST - MURKIEST)))
         }
+        look.starBrightness?.let { add(Painted(EnvironmentAttributes.STAR_BRIGHTNESS, it)) }
         look.ceiling?.let {
             add(Painted(EnvironmentAttributes.CLOUD_HEIGHT, LOWEST_CLOUD + it * (HIGHEST_CLOUD - LOWEST_CLOUD)))
         }
@@ -113,6 +177,14 @@ object AgeAir {
      */
     private const val CLEAREST = 256f
     private const val MURKIEST = 8f
+
+    /**
+     * How much dimmer the air gets under each further deck.
+     *
+     * One multiplication rather than a written-down colour per band: two decks then read as *deeper* rather
+     * than as two unrelated greys, and a third deck needs nothing added.
+     */
+    private const val UNDER_EACH_DECK = 0.62f
 
     /** The band the cloud deck moves through, in blocks. */
     private const val LOWEST_CLOUD = 96f
