@@ -184,8 +184,10 @@ private class Crack(private val alongX: Double, private val alongZ: Double, priv
         /** How far the centreline may stray, which is what stops the two sides mirroring. */
         const val MOST_WANDER = 5.0
 
-        private const val NARROWEST = 1.4
-        private const val WIDTH_VARIES = 1.2
+        // Wide enough that the middle is never a single column: walked at 1.4 and the crack pinched to
+        // one block for long stretches, which reads as a seam in the ground rather than a way into it.
+        private const val NARROWEST = 2.6
+        private const val WIDTH_VARIES = 1.6
 
         /** Slow enough that the wander reads as a curve rather than as static. */
         private const val WANDER_SCALE = 0.06

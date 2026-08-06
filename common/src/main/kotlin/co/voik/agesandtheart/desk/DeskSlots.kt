@@ -62,6 +62,13 @@ object DeskSlots {
     const val WING_INVENTORY_Y = WING_PANEL_HEIGHT - 83
     const val WING_HOTBAR_Y = WING_INVENTORY_Y + HOTBAR_DROP
     const val WING_INVENTORY_LABEL_Y = WING_INVENTORY_Y - 11
-    const val WING_INTAKE_X = INTAKE_X
-    const val WING_INTAKE_Y = (18 + WING_INVENTORY_LABEL_Y) / 2 - 8
+    /**
+     * The doorway sits in the **top corner**, out of the way of what a wing is showing.
+     *
+     * It was centred in the room above the inventory, which is where the tanks and the stock lines also
+     * wanted to be — so the two drew over each other. Only one of them can have the middle, and it is not
+     * the slot: a gauge is what a wing is *for*, and a doorway is a place to drop things.
+     */
+    const val WING_INTAKE_X = 152
+    const val WING_INTAKE_Y = 20
 }

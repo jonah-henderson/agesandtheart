@@ -146,6 +146,25 @@ object Atmosphere {
         ceiling = options.steer(CEILING, salt, biome)?.let(Span.NATURAL::fractionOf)?.toFloat(),
     )
 
+    /**
+     * The look an Age's **sky switch** insists on, under whatever its air was told.
+     *
+     * `Sky.SKYLIGHT` already reaches the light *level* through [settle], and that half worked: a lightless
+     * Age spawns monsters at noon and grows nothing that needs sky. What it did not reach is the half you
+     * can see — the sky stayed blue with clouds in it, which reads as broad daylight over a world the game
+     * considers pitch dark (Jonah, 2026-08-05, walked).
+     *
+     * So the same one statement reaches this layer too: no skylight means a black sky, black fog, no cloud
+     * and no light of its own. **A floor, not a setting** — a writer who said `lightless` *and* named a fog
+     * colour gets the colour they asked for, because [Look.over] keeps whatever was said.
+     */
+    fun unlitLook(sky: Options): Look =
+        if (sky.of(Sky.SKYLIGHT) != "none") Look.NOTHING
+        else Look(sky = STARLESS, fog = STARLESS, cloud = STARLESS, tint = STARLESS)
+
+    /** Not quite black: pure zero reads as a hole cut in the world rather than as a dark sky. */
+    private val STARLESS = Rgba(0.02f, 0.02f, 0.03f)
+
     /** Every biome any dial of this aspect was confined to, visual or not. */
     fun cornersOf(options: Options): List<Identifier> =
         listOf(DAYLIGHT, SUNBURN, EVAPORATION, SKY, FOG, CLOUD, TINT, MOTES, HAZE, CEILING, MURK)

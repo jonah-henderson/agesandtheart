@@ -34,7 +34,7 @@ object Motes {
      */
     private const val ORDINARY_CHANCE = 0.118f
 
-    private val THINNED = mapOf("embers" to 0.25f)
+    private val THINNED = mapOf("embers" to 0.0625f)
 
     private val NAMED: Map<String, () -> ParticleOptions> = linkedMapOf(
         // What the air carries.

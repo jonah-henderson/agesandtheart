@@ -53,7 +53,7 @@ abstract class DeskWingScreen<Menu : DeskWingMenu>(
 
         val shown = contents()
         shown.arrangeElements()
-        // Centred in the room above the doorway, which is the only free space a wing has.
+        // Centred in the room the doorway does not want — see `DeskSlots.WING_INTAKE_X`.
         shown.setPosition(
             leftPos + (DeskSlots.PANEL_WIDTH - shown.width) / 2,
             topPos + CONTENT_TOP,
@@ -74,10 +74,14 @@ abstract class DeskWingScreen<Menu : DeskWingMenu>(
         const val CONTENT_TOP = 20
 
         const val GAUGE_WIDTH = 9
-        const val GAUGE_HEIGHT = 58
+
+        /** Short enough to clear the inventory's label, which the taller one ran into. */
+        const val GAUGE_HEIGHT = 46
         const val GAUGE_GAP = 6
         const val STOCK_WIDTH = 46
-        const val STOCK_LINE = 18
+
+        /** Four lines of stock in the same room the three gauges have. */
+        const val STOCK_LINE = 12
     }
 }
 

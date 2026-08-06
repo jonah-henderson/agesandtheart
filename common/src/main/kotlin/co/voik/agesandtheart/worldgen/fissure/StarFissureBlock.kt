@@ -117,17 +117,15 @@ class StarFissureBlockEntity(pos: BlockPos, state: BlockState) :
     TheEndPortalBlockEntity(AgeContent.STAR_FISSURE_ENTITY, pos, state) {
 
     /**
-     * Every face that is not against another fissure — the **shell** of the shaft rather than its slab.
+     * **Every face, including the buried ones.**
      *
      * Vanilla answers `axis == Y` here, because an end portal is one layer on a floor and only ever seen
-     * from above. Stack that and the sides are missing: you fall past bare stone with a starry lid over it.
+     * from above. Stack that and the sides are missing.
      *
-     * Skipping the buried faces matters as much as adding the open ones. The starfield is drawn as a stack
-     * of translucent layers, so two of them back to back read as a brighter, flatter smear — the same
-     * reason glass does not draw the pane it is pressed against.
+     * Drawing only the shell was the obvious economy and it was wrong (Jonah, 2026-08-05, walked): a face
+     * between two fissure blocks faces *away* from someone falling between them, so from inside the shaft
+     * you looked straight out through the rock at the daylit world. Being inside a star fissure has to look
+     * like being inside one, and the overdraw is a handful of quads in a hole nobody stands in for long.
      */
-    override fun shouldRenderFace(direction: Direction): Boolean {
-        val here = level ?: return true
-        return !here.getBlockState(worldPosition.relative(direction)).`is`(AgeContent.STAR_FISSURE_BLOCK)
-    }
+    override fun shouldRenderFace(direction: Direction): Boolean = true
 }
