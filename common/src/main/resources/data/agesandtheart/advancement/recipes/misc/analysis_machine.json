@@ -1,0 +1,36 @@
+{
+  "_comment": [
+    "Gated on masterwork paper: it is the ingredient a player only has once they are deep in the Art,",
+    "which is where design 8.3 puts the machine."
+  ],
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_masterwork_paper": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:masterwork_paper"
+          }
+        ]
+      }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipe": "agesandtheart:analysis_machine"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_masterwork_paper",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "agesandtheart:analysis_machine"
+    ]
+  }
+}

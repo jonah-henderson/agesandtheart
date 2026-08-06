@@ -1,0 +1,6 @@
+{
+  "_comment": "Lodestone stands in until the model pass -- a full cube that already reads as an instrument.",
+  "variants": {
+    "": { "model": "minecraft:block/lodestone" }
+  }
+}

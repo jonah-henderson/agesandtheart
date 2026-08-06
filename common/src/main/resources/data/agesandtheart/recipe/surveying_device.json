@@ -1,0 +1,19 @@
+{
+  "_comment": [
+    "A spyglass is the honest core of it -- the device is an instrument you carry to a place and look.",
+    "Fine ink and fine paper for the same reason the linking book takes them: this is mid-tier Art",
+    "equipment, not a consumable. Stand-in materials until Phase 6, like the analysis machine's."
+  ],
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "minecraft:spyglass",
+    "minecraft:amethyst_shard",
+    "agesandtheart:fine_paper",
+    "agesandtheart:fine_ink_bottle"
+  ],
+  "result": {
+    "id": "agesandtheart:surveying_device",
+    "count": 1
+  }
+}

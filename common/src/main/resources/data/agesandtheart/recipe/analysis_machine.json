@@ -1,0 +1,27 @@
+{
+  "_comment": [
+    "The rare materials are stand-ins. Design 8.3 wants this built out of what only dangerous Ages",
+    "surface, and those are produced by Phase 6's consequence registers -- so amethyst, diamond and a",
+    "lodestone hold the mid-game position until the real materials exist. Ratios are unbalanced.",
+    "The masterwork paper is not filler: the machine reads the Art's own script, so it wants the",
+    "Art's own paper."
+  ],
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "APA",
+    "DLD",
+    "OOO"
+  ],
+  "key": {
+    "A": "minecraft:amethyst_shard",
+    "P": "agesandtheart:masterwork_paper",
+    "D": "minecraft:diamond",
+    "L": "minecraft:lodestone",
+    "O": "minecraft:obsidian"
+  },
+  "result": {
+    "id": "agesandtheart:analysis_machine",
+    "count": 1
+  }
+}

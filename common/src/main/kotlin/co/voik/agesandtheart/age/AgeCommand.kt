@@ -8,7 +8,7 @@ import co.voik.agesandtheart.age.word.Resolver
 import co.voik.agesandtheart.sky.Skies
 import co.voik.agesandtheart.worldgen.field.RegionMap
 import co.voik.agesandtheart.sky.SkySpec
-import co.voik.agesandtheart.age.word.PageExclusion
+import co.voik.agesandtheart.age.word.Withheld
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.generation.TerminalKind
 import co.voik.agesandtheart.age.word.grammar.Grammar
@@ -562,7 +562,7 @@ object AgeCommand {
         val vocabulary = Vocabulary.of(source.server)
         val registries = source.registryAccess()
         val words = (if (derived) vocabulary.derivedWords else vocabulary.authoredWords)
-            .filterNot { PageExclusion.isExcluded(it, registries) }
+            .filterNot { Withheld.holdsBack(it, registries) }
         if (words.isEmpty()) return FAILURE.also { source.sendFailure(Component.literal("No words to write")) }
 
         val pages = words.map { word ->

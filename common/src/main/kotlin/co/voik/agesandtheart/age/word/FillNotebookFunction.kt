@@ -38,7 +38,7 @@ class FillNotebookFunction(
         val vocabulary = Vocabulary.of(context.level.server)
         val registries = context.level.registryAccess()
         val pool = (if (derivedOnly) vocabulary.derivedWords else vocabulary.words)
-            .filterNot { PageExclusion.isExcluded(it, registries) }
+            .filterNot { Withheld.holdsBack(it, registries) }
         if (pool.isEmpty()) {
             Constants.LOG.warn("No words to fill a notebook with (derived_only={})", derivedOnly)
             return itemStack

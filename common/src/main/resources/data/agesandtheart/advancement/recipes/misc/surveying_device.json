@@ -1,0 +1,36 @@
+{
+  "_comment": [
+    "Gated on fine ink, as the linking book is, and for the same reason: it is what actually gates the",
+    "recipe, where a spyglass is reachable long before any of this."
+  ],
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_fine_ink_bottle": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "agesandtheart:fine_ink_bottle"
+          }
+        ]
+      }
+    },
+    "has_the_recipe": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipe": "agesandtheart:surveying_device"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_fine_ink_bottle",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "agesandtheart:surveying_device"
+    ]
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "_comment": "Iron rather than diamond: the machine is a mid-game build, and gating its recovery behind a better pickaxe than it took to gather its parts would only be a trap.",
+  "replace": false,
+  "values": [
+    "agesandtheart:analysis_machine"
+  ]
+}

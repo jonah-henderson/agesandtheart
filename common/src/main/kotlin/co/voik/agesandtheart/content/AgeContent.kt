@@ -123,6 +123,36 @@ object AgeContent {
 
     val MASTERWORK_PAPER: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, MASTERWORK_PAPER_ID)))
 
+    private val ANALYSIS_MACHINE_ID: Identifier = "analysis_machine".location()
+
+    /** See [AnalysisMachineBlock] — the station half of acquaintance learning. */
+    val ANALYSIS_MACHINE_BLOCK: AnalysisMachineBlock = AnalysisMachineBlock(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, ANALYSIS_MACHINE_ID))
+            .mapColor(MapColor.COLOR_PURPLE)
+            .strength(ANALYSIS_MACHINE_STRENGTH)
+            .sound(SoundType.METAL)
+            .requiresCorrectToolForDrops(),
+    )
+
+    val ANALYSIS_MACHINE: Item = BlockItem(
+        ANALYSIS_MACHINE_BLOCK,
+        Item.Properties()
+            .setId(ResourceKey.create(Registries.ITEM, ANALYSIS_MACHINE_ID))
+            .useBlockDescriptionPrefix(),
+    )
+
+    private const val ANALYSIS_MACHINE_STRENGTH = 3.5f
+
+    private val SURVEYING_DEVICE_ID: Identifier = "surveying_device".location()
+
+    /** See [SurveyingDeviceItem] — the portable half. One per writer is plenty, so it does not stack. */
+    val SURVEYING_DEVICE: Item = SurveyingDeviceItem(
+        Item.Properties()
+            .setId(ResourceKey.create(Registries.ITEM, SURVEYING_DEVICE_ID))
+            .stacksTo(1),
+    )
+
     /** Where a Linking Book goes. Absent means blank — see [LinkingBookItem]. */
     val LINK_TARGET: DataComponentType<LinkTarget> = DataComponentType.builder<LinkTarget>()
         .persistent(LinkTarget.CODEC)
@@ -269,6 +299,7 @@ object AgeContent {
     val blocks: List<Pair<Identifier, Block>> = listOf(
         WRITERS_DESK_ID to WRITERS_DESK_BLOCK,
         STAR_FISSURE_ID to STAR_FISSURE_BLOCK,
+        ANALYSIS_MACHINE_ID to ANALYSIS_MACHINE_BLOCK,
     )
 
     val blockEntities: List<Pair<Identifier, BlockEntityType<*>>> = listOf(
@@ -361,6 +392,8 @@ object AgeContent {
         FINE_INK_BOTTLE_ID to FINE_INK_BOTTLE,
         FINE_PAPER_ID to FINE_PAPER,
         MASTERWORK_PAPER_ID to MASTERWORK_PAPER,
+        ANALYSIS_MACHINE_ID to ANALYSIS_MACHINE,
+        SURVEYING_DEVICE_ID to SURVEYING_DEVICE,
     )
 
     /** Chunk-generator codecs (Ages persist via Fantasy, so their generator must be serializable). */

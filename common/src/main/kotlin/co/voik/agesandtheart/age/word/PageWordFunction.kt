@@ -27,7 +27,7 @@ class PageWordFunction(predicates: List<LootItemCondition>) : LootItemConditiona
         val vocabulary = Vocabulary.of(context.level.server)
         val registries = context.level.registryAccess()
         val word = vocabulary.rarity.draw(vocabulary, context.random) {
-            !PageExclusion.isExcluded(it, registries)
+            !Withheld.holdsBack(it, registries)
         }
         if (word == null) {
             Constants.LOG.warn("No word to write on a page; is art/rarity empty?")

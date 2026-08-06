@@ -1,9 +1,0 @@
-{
-  "_comment": [
-    "Referents the page channel must never hand out. A timing fence, not a prohibition -- these stay",
-    "writable once you can reproduce them (design 8.3). Shipped empty: the scarab, the paper tree and",
-    "nara arrive in Phase 6, and this is here so the exclusion is built in rather than retrofitted."
-  ],
-  "replace": false,
-  "values": []
-}

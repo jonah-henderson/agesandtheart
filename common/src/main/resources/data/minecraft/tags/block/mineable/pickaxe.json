@@ -1,0 +1,7 @@
+{
+  "_comment": "The machine is obsidian and diamond; it should ask for a pickaxe, and requiresCorrectToolForDrops needs this to mean anything.",
+  "replace": false,
+  "values": [
+    "agesandtheart:analysis_machine"
+  ]
+}
