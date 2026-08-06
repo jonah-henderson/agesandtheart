@@ -196,18 +196,23 @@ object Readout {
         val hasASubjectToAttachTo = phrase.subject != null
         val said = mutableListOf<Said>()
         var aParticleHasBeenSpent = false
+        val alreadyClaimed = mutableSetOf<String>()
+        phrase.subject?.let { alreadyClaimed += it.word.sets.keys }
         for ((position, run) in phrase.modifiers.chunkedByJoin().withIndex()) {
             // The first run of a subjectless phrase heads its own clause — "blackstone", not "of
             // blackstone", which would be waiting for a subject that was never written.
             val couldTakeAParticle = hasASubjectToAttachTo || position > 0
-            val particle = if (couldTakeAParticle && !aParticleHasBeenSpent) attachmentOf(run) else ""
+            val particle =
+                if (couldTakeAParticle && !aParticleHasBeenSpent) attachmentOf(run, alreadyClaimed) else ""
             // One `of` per clause. A second unjoined material is a rival claim rather than more of the
             // same, and "of basalt of deepslate" reads as neither.
-            val followsAnAttachedRun = aParticleHasBeenSpent && attachmentOf(run).isNotEmpty()
+            val followsAnAttachedRun =
+                aParticleHasBeenSpent && attachmentOf(run, alreadyClaimed).isNotEmpty()
             aParticleHasBeenSpent = aParticleHasBeenSpent || particle.isNotEmpty()
             if (position > 0 && followsAnAttachedRun) said.punctuate(",")
             if (particle.isNotEmpty()) said += particleFor(particle)
             said += runOf(run)
+            alreadyClaimed += parametersSetBy(run)
         }
         return said
     }
@@ -265,19 +270,31 @@ object Readout {
      * where they say what the subject *is made of*. The same distinction [Parameter.Kind] draws, asked of
      * the parameters the words actually set.
      *
-     * **No particle at all where the run steers nothing**, because a word that names a preset is a second
-     * claim on the same aspect rather than a property of the subject: `riddled flooded` is two things said
-     * about the carvers, and "riddled *of* flooded" would read as one made out of the other.
+     * **No particle at all where the run does not describe what it would attach to**, in either of the two
+     * ways a run can fail to. A word that names a preset steers nothing, so it is a second claim on the
+     * aspect rather than a property of the subject: `riddled flooded` is two things said about the carvers,
+     * and "riddled *of* flooded" would read as one made out of the other. A word that steers a dial
+     * *something already said has turned* is the same thing one layer down: `frozen` and `arid` both set
+     * temperature and humidity, so they contend, and "frozen *of* arid" reads as a climate made out of
+     * another climate. Rivals are laid side by side, exactly as their pages were.
+     *
+     * [alreadyClaimed] is therefore every parameter the subject and the runs before this one set — what a
+     * particle here would be claiming to describe.
      */
-    private fun attachmentOf(run: List<Constraint>): String {
+    private fun attachmentOf(run: List<Constraint>, alreadyClaimed: Set<String>): String {
         val steersNothing = run.none { it.word.sets.isNotEmpty() }
         // `only` and `except` are pages the writer laid down and already say how the run attaches —
         // "except of blackstone" is not a sentence, and the particle earns nothing beside them.
         val alreadyMarked = run.first().polarity != Polarity.ASSERTED
-        if (steersNothing || alreadyMarked) return ""
+        val contendsWithWhatItWouldDescribe = parametersSetBy(run).any { it in alreadyClaimed }
+        if (steersNothing || alreadyMarked || contendsWithWhatItWouldDescribe) return ""
         val namesThingsPresent = run.any { isPopulative(it.word) }
         return if (namesThingsPresent) "with" else "of"
     }
+
+    /** Every dial a run turns — what it claims, and so what a later run could contend with. */
+    private fun parametersSetBy(run: List<Constraint>): Set<String> =
+        run.flatMapTo(mutableSetOf()) { it.word.sets.keys }
 
     private fun isPopulative(word: Word): Boolean {
         val aspectsItSpeaksTo = word.aspects.ifEmpty { Aspect.entries.toSet() }

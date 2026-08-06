@@ -99,6 +99,29 @@ class ReadoutCheck : FunSpec({
         check(reading == "depths riddled flooded.") { "read back as '$reading'" }
     }
 
+    /**
+     * The same rule one layer down, and the shape it was found in: `frozen arid` read back as "frozen of
+     * arid", a climate made out of another climate.
+     *
+     * A preset-naming word is caught by steering nothing at all, but these two steer — `frozen` and `arid`
+     * set the *same* two dials, temperature and humidity, which makes them rivals rather than one
+     * describing the other. What a particle claims is that the run says something about what came before
+     * it; two words turning one dial say something about each other's chances instead.
+     */
+    test("words contending for one dial take no particle") {
+        val reading = readingOf("frozen", "arid")
+        check(reading == "frozen arid.") { "two claims on the climate read as composition: '$reading'" }
+    }
+
+    /**
+     * The control for it: a material still attaches across an aiming page that turns no dial of its own,
+     * which is the ordinary case the rule above must not reach.
+     */
+    test("a material still attaches to what turns no dial") {
+        val reading = readingOf("landmass", "cliffs", "basalt")
+        check(reading == "landmass cliffs of basalt.") { "read back as '$reading'" }
+    }
+
     /** `only` and `except` are pages the writer laid down, and the reading has to show them. */
     test("only and except are said out loud") {
         val singled = readingOf("landmass", "only", "blackstone")
