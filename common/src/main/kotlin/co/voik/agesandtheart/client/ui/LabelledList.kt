@@ -7,7 +7,26 @@ import net.minecraft.client.input.MouseButtonEvent
 import net.minecraft.network.chat.Component
 
 /**
- * One row of a [LabelledList]: a name, and optionally a count sitting against the right edge.
+ * Something a row offers to do to the thing it names — the buttons at its right edge.
+ *
+ * **Drawn by the row rather than parented to it**, which is not an economy: `AbstractContainerWidget` routes
+ * clicks and scrolls to its children *without consulting its own `visible` flag*, so real button widgets in
+ * a list that hides with its tab would still answer clicks meant for whatever replaced it. A row already
+ * receives the click and already knows its own rectangle, so it can say which button was hit without any of
+ * that.
+ *
+ * [enabled] answers per value, and a disabled button still takes the hover so [tooltip] can say why — which
+ * is the whole point of disabling rather than hiding it.
+ */
+class RowAction<T : Any>(
+    val glyph: String,
+    val tooltip: (T) -> Component,
+    val enabled: (T) -> Boolean = { true },
+    val act: (T) -> Unit,
+)
+
+/**
+ * One row of a [LabelledList]: a name, optionally a count, and whatever the row offers to do.
  *
  * Kept out of the list class so the self-referential bound `Entry<E>` resolves — an inner class cannot name
  * itself in its own supertype.
@@ -17,7 +36,11 @@ class LabelledRow<T : Any>(
     private val label: String,
     private val count: Int?,
     private val onActivate: (T) -> Unit,
+    private val actions: List<RowAction<T>> = emptyList(),
 ) : ObjectSelectionList.Entry<LabelledRow<T>>() {
+
+    /** Where each action's button sits, left to right against the row's right edge. */
+    private fun buttonAt(index: Int): Int = x + width - (actions.size - index) * BUTTON_PITCH
 
     override fun getNarration(): Component = Component.literal(label)
 
@@ -33,13 +56,26 @@ class LabelledRow<T : Any>(
         if (hovered) graphics.fill(x, y, x + width, y + height, Palette.HOVER)
         val baseline = y + (height - font.lineHeight) / 2
         graphics.text(font, label, x + TEXT_INSET, baseline, Palette.TEXT, false)
+
+        for ((index, action) in actions.withIndex()) {
+            val left = buttonAt(index)
+            val over = mouseX >= left && mouseX < left + BUTTON_WIDTH && mouseY >= y && mouseY < y + height
+            val live = action.enabled(value)
+            if (over) {
+                graphics.fill(left, y, left + BUTTON_WIDTH, y + height, Palette.HOVER)
+                graphics.setTooltipForNextFrame(action.tooltip(value), mouseX, mouseY)
+            }
+            val ink = if (live) Palette.TEXT else Palette.FAINT
+            graphics.text(font, action.glyph, left + (BUTTON_WIDTH - font.width(action.glyph)) / 2, baseline, ink, false)
+        }
+
         if (count != null && count > 0) {
             val shown = "$count"
             // Faint grey on the selection wash is close to unreadable, so a washed row states its count
             // in the same ink as its name.
             graphics.text(
                 font, shown,
-                x + width - TEXT_INSET - font.width(shown), baseline,
+                countRight() - font.width(shown), baseline,
                 if (washed) Palette.TEXT else Palette.FAINT,
                 false,
             )
@@ -47,13 +83,30 @@ class LabelledRow<T : Any>(
     }
 
     override fun mouseClicked(event: MouseButtonEvent, doubleClick: Boolean): Boolean {
+        val clickX = event.x()
+        for ((index, action) in actions.withIndex()) {
+            val left = buttonAt(index)
+            if (clickX < left || clickX >= left + BUTTON_WIDTH) continue
+            // A disabled button still swallows the click: it is a button that is not ready, not a gap in
+            // the row, and letting the press fall through to "select this word" would read as a misfire.
+            if (action.enabled(value)) action.act(value)
+            return true
+        }
         onActivate(value)
         // True regardless, because the list reads it as "this row took the click" and selects accordingly.
         return true
     }
 
+    /** Where the count has to stop, so it cannot run under the buttons. */
+    private fun countRight(): Int =
+        if (actions.isEmpty()) x + width - TEXT_INSET else buttonAt(0) - TEXT_INSET
+
     private companion object {
         const val TEXT_INSET = 2
+
+        /** A glyph and a little air, which is as much as a twelve-pixel row has to give. */
+        const val BUTTON_WIDTH = 11
+        const val BUTTON_PITCH = 12
     }
 }
 
@@ -89,10 +142,11 @@ class LabelledList<T : Any>(
         label: (T) -> String,
         count: (T) -> Int? = { null },
         key: (T) -> Any = { it },
+        actions: List<RowAction<T>> = emptyList(),
     ) {
         val wasSelected = selected?.value?.let(key)
         val wasScrolledTo = scrollAmount()
-        replaceEntries(values.map { LabelledRow(it, label(it), count(it), onSelect) })
+        replaceEntries(values.map { LabelledRow(it, label(it), count(it), onSelect, actions) })
         selected = children().firstOrNull { key(it.value) == wasSelected }
         // `setSelected` scrolls the selection back into view, and after a keyboard event it does so
         // unconditionally — which would drag the list away from wherever the reader had put it every time a

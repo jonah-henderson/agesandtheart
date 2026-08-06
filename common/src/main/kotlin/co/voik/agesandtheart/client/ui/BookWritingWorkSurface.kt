@@ -30,6 +30,14 @@ class BookWritingWorkSurface<T : Any>(
     private val onRemove: (index: Int) -> Unit,
     /** How many pages this desk can bind, or null for no limit. */
     private val capacity: () -> Int?,
+    /**
+     * What disagrees with the page at this position, or null where nothing does — design §7.3's visibility.
+     *
+     * **By position, not by value**, because the same word laid twice is two pages and only one of them may
+     * be in the quarrel. And a *pair*, never a loser: which of two tied words is displaced is a function of
+     * the seed, so both are marked and each says what it is arguing with.
+     */
+    private val quarrel: (Int) -> Component? = { null },
 ) : AbstractScrollArea(
     bounds.x, bounds.y, bounds.width, bounds.height,
     Component.empty(), defaultSettings(SCROLL_RATE),
@@ -134,8 +142,25 @@ class BookWritingWorkSurface<T : Any>(
         }
         // The page being carried leaves a hole where it came from, so the sequence reads as it will end up.
         slot.draw(graphics, PageWidget(script(page)), translation(page), dimmed = index == carrying)
+
+        // **Marked twice on purpose.** Colour alone strands anyone who cannot separate red from the wash it
+        // sits on, so a page in a quarrel gets a border *and* a corner notch — either one is enough to see
+        // that this page is the problem, and the tooltip says which other page it is arguing with.
+        val arguing = quarrel(index)
+        if (arguing != null) {
+            val at = slot.bounds
+            graphics.fill(at.x, at.y, at.right, at.y + MARK_THICKNESS, Palette.WARNING)
+            graphics.fill(at.x, at.bottom - MARK_THICKNESS, at.right, at.bottom, Palette.WARNING)
+            graphics.fill(at.x, at.y, at.x + MARK_THICKNESS, at.bottom, Palette.WARNING)
+            graphics.fill(at.right - MARK_THICKNESS, at.y, at.right, at.bottom, Palette.WARNING)
+            graphics.fill(at.right - NOTCH, at.y, at.right, at.y + NOTCH, Palette.WARNING)
+        }
+
         val name = translation(page)
-        if (slot.gutter.contains(mouseX.toDouble(), mouseY.toDouble()) && slot.truncates(name)) {
+        val over = slot.bounds.contains(mouseX.toDouble(), mouseY.toDouble())
+        if (arguing != null && over) {
+            graphics.setTooltipForNextFrame(arguing, mouseX, mouseY)
+        } else if (slot.gutter.contains(mouseX.toDouble(), mouseY.toDouble()) && slot.truncates(name)) {
             graphics.setTooltipForNextFrame(Component.literal(name), mouseX, mouseY)
         }
     }
@@ -221,6 +246,12 @@ class BookWritingWorkSurface<T : Any>(
     }
 
     private companion object {
+        /** Thin enough to frame a page rather than to fill it. */
+        const val MARK_THICKNESS = 1
+
+        /** The second signal, for anyone the colour does not reach. */
+        const val NOTCH = 3
+
         const val SCROLL_RATE = 12
         const val LEFT = 0
         const val RIGHT = 1

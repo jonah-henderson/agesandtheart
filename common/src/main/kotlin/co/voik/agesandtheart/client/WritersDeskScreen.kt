@@ -16,6 +16,7 @@ import co.voik.agesandtheart.client.ui.Palette
 import co.voik.agesandtheart.client.ui.PanelSurface
 import co.voik.agesandtheart.client.ui.PlayerInventoryView
 import co.voik.agesandtheart.client.ui.Rect
+import co.voik.agesandtheart.client.ui.RowAction
 import co.voik.agesandtheart.client.ui.SlotView
 import co.voik.agesandtheart.client.ui.TabStrip
 import co.voik.agesandtheart.content.AgeContent
@@ -56,6 +57,9 @@ class WritersDeskScreen(
 
     private var tab = DeskTab.ARCHIVE
     private var selectedWord: Identifier? = null
+
+    /** Which paper a row's write button spends. The cheapest by default, so nobody wastes the good stuff. */
+    private var chosenPaper: InkTier = InkTier.COMMON
 
     // What the lists are showing, so they are only rebuilt when the answer actually changes.
     private var shownWords: List<WordRow> = emptyList()
@@ -221,16 +225,17 @@ class WritersDeskScreen(
                 onReorder = { from, onto -> send(DeskAction.MOVE_IN_BOOK, index = from, target = onto) },
                 onRemove = { index -> send(DeskAction.RETURN_TO_ARCHIVE, index = index) },
                 capacity = { DeskModel.pageLimit() },
+                quarrel = ::quarrelAt,
             ),
             ::binds,
         )
 
+        // **A toggle, not three write buttons.** Which word to write is a row's business now, so what is
+        // left here is which paper it is written on — better paper buys the same word for less ink and can
+        // never unlock one (`WriteCost`).
         paperButtons = InkTier.entries.map { paper ->
-            val button = Button.builder(Component.literal(paperGlyph(paper))) {
-                val into =
-                    if (tab == DeskTab.WRITE_BOOK) DeskAction.WRITE_TO_BOOK else DeskAction.WRITE_TO_ARCHIVE
-                selectedWord?.let { send(into, word = it, paper = paper) }
-            }.bounds(0, 0, PAPER_BUTTON_WIDTH, LINE + 2).build()
+            val button = Button.builder(Component.literal(paperGlyph(paper))) { chosenPaper = paper }
+                .bounds(0, 0, PAPER_BUTTON_WIDTH, LINE + 2).build()
             addShownOn(button, ::writes)
         }
 
@@ -363,7 +368,8 @@ class WritersDeskScreen(
         refreshComposition(force = false)
         refreshReading()
         paperButtons.forEachIndexed { index, button ->
-            button.active = canWrite(InkTier.entries[index])
+            // Dark for the chosen one, so the row of three reads as a setting rather than three actions.
+            button.active = InkTier.entries[index] != chosenPaper
         }
     }
 
@@ -372,7 +378,13 @@ class WritersDeskScreen(
         val rows = DeskModel.knownRows(search.value)
         if (!force && rows == shownWords) return
         shownWords = rows
-        wordList.show(rows, label = { it.readable }, count = { it.inArchive }, key = { it.word })
+        wordList.show(
+            rows,
+            label = { it.readable },
+            count = { it.inArchive },
+            key = { it.word },
+            actions = if (tab == DeskTab.ARCHIVE) rowActions() else emptyList(),
+        )
     }
 
     /** The sentence, whenever the pages under it move. */
@@ -382,12 +394,74 @@ class WritersDeskScreen(
         reading.message = if (said.isEmpty()) translated("nothing_written") else Component.literal(said)
     }
 
+    /**
+     * What the page at [index] is arguing with, or null where nothing is.
+     *
+     * By position rather than by word, because the same word laid twice is two pages and the quarrel may
+     * be about only one of them — the server names the words, and the first laid page carrying that word is
+     * the one the argument is about.
+     */
+    private fun quarrelAt(index: Int): Component? {
+        val laid = DeskModel.composing().getOrNull(index) ?: return null
+        val quarrel = DeskModel.quarrels().firstOrNull { it.word == laid } ?: return null
+        val other = WordNames.readable(quarrel.against)
+        return if (quarrel.word == quarrel.against) {
+            Component.translatable("container.agesandtheart.writers_desk.quarrel_alone")
+        } else {
+            Component.translatable("container.agesandtheart.writers_desk.quarrel", other)
+        }
+    }
+
     private fun refreshComposition(force: Boolean) {
         if (!composition.visible) return
         val words = DeskModel.composing()
         if (!force && words == shownComposition) return
         shownComposition = words
         composition.show(words)
+    }
+
+    /**
+     * What a row of the archive offers to do with its word: write one, lay one out, take one away.
+     *
+     * Each says why it is dark rather than vanishing when it cannot act, which is the difference between a
+     * button that is not ready and a feature you have not found.
+     */
+    private fun rowActions(): List<RowAction<WordRow>> = listOf(
+        RowAction(
+            glyph = "+",
+            tooltip = { row -> writeTooltip(row) },
+            enabled = { canWrite(chosenPaper) },
+            act = { row -> send(DeskAction.WRITE_TO_ARCHIVE, word = row.word, paper = chosenPaper) },
+        ),
+        RowAction(
+            glyph = "»",
+            tooltip = { row ->
+                if (row.inArchive > 0) translated("to_book") else translated("to_book_none")
+            },
+            enabled = { it.inArchive > 0 },
+            act = { row -> send(DeskAction.COMPOSE_FROM_ARCHIVE, word = row.word) },
+        ),
+        RowAction(
+            glyph = "\u25bc",
+            tooltip = { row ->
+                if (row.inArchive > 0) translated("withdraw") else translated("withdraw_none")
+            },
+            enabled = { it.inArchive > 0 },
+            act = { row -> send(DeskAction.WITHDRAW, word = row.word) },
+        ),
+    )
+
+    /** What writing one would cost, or why it cannot be paid. */
+    private fun writeTooltip(row: WordRow): Component {
+        val price = DeskModel.priceFor(row.word, chosenPaper)
+            ?: return translated("write_unpriced")
+        val (inkTier, units) = price
+        val ink = Component.translatable("ink.agesandtheart.${inkTier.serializedName}")
+        return if (DeskModel.ink(inkTier) >= units && DeskModel.paper(chosenPaper) > 0) {
+            Component.translatable("container.agesandtheart.writers_desk.write_costs", ink, units)
+        } else {
+            Component.translatable("container.agesandtheart.writers_desk.write_short", ink, units)
+        }
     }
 
     /** Picking a word asks what it costs, and on the tabs where a click means something, does that too. */
@@ -406,8 +480,9 @@ class WritersDeskScreen(
         }
     }
 
+    /** Whether a page could be written on [paper] at all — the ink for it, and a sheet to put it on. */
     private fun canWrite(paper: InkTier): Boolean {
-        if (selectedWord == null || DeskModel.paper(paper) <= 0) return false
+        if (DeskModel.paper(paper) <= 0) return false
         val (inkTier, units) = DeskModel.priceFor(selectedWord, paper) ?: return true
         return DeskModel.ink(inkTier) >= units
     }

@@ -85,6 +85,9 @@ object DeskModel {
 
     fun archiveCount(word: Identifier): Int = state?.archive?.get(word) ?: 0
 
+    /** What disagrees with what, as the server resolved it against the seed the book will use. */
+    fun quarrels(): List<co.voik.agesandtheart.desk.Quarrel> = state?.quarrels.orEmpty()
+
     /** The sentence the laid-out pages make, as the server read it back. */
     fun reading(): String = state?.reading.orEmpty()
 
