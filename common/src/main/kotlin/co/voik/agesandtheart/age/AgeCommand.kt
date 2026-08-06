@@ -63,7 +63,7 @@ import net.minecraft.world.level.levelgen.Heightmap
  * /age delete <name>|all              — discard an Age (or every Age), chunks and all
  * /age gen <name>                     — force-generate the spawn chunk and report what it made
  * /age bench <name> [radius]          — time generating the chunks around the origin (ms/chunk)
- * /age biomes <name> [radius]         — what share of the surface each biome covers (for weight tuning)
+ * /age biomes <name> [radius]         — what share of the surface each biome covers (use a big radius)
  * /age locate <name> <preset>         — how far to the nearest territory of that terrain, from where you stand
  * /age book [seed]                    — a book the Art could have written, read back rather than given
  * /age draft <grammar> [seed]         — one expansion of a generation grammar: book, name, …
@@ -1119,20 +1119,39 @@ object AgeCommand {
         return SUCCESS
     }
 
+    /**
+     * What grows where, as a share of the ground.
+     *
+     * **Use a large radius.** Vanilla's continentalness varies over something like a thousand blocks, so a
+     * census of six chunks sits inside one band of it and reports that band as the whole world — six chunks
+     * of a `craterlands` Age said 95% ocean where forty-eight said 20%. A small answer here is not a
+     * measurement, it is one place.
+     */
     private fun runBiomeCensus(context: CommandContext<CommandSourceStack>, radiusChunks: Int): Int {
         val source = context.source
         val name = StringArgumentType.getString(context, NAME_ARGUMENT)
         val level = openNamedAge(source, name, Report.prose(source)) ?: return FAILURE
 
-        val biomes = level.chunkSource.generator.biomeSource
-        val climate = level.chunkSource.randomState().sampler()
-        val surfaceQuartY = QuartPos.fromBlock(level.maxY)
+        val generator = level.chunkSource.generator
+        val biomes = generator.biomeSource
+        val randomState = level.chunkSource.randomState()
+        val climate = randomState.sampler()
         val quartRadius = QuartPos.fromBlock(radiusChunks * BLOCKS_PER_CHUNK)
 
         val counts = mutableMapOf<String, Int>()
         for (quartX in -quartRadius..quartRadius step SURVEY_QUART_STRIDE) {
             for (quartZ in -quartRadius..quartRadius step SURVEY_QUART_STRIDE) {
-                val here = biomeName(biomes, climate, quartX, surfaceQuartY, quartZ)
+                // **At the ground, which is what this command has always said it measures.** It asked at
+                // `level.maxY` — the top of the world — and so reported the biome of the *sky*, which in an
+                // Age is nearly always ocean and told a reader their world was drowned when it was not.
+                // Biomes are three-dimensional here: `ClimateDepth` answers zero above the rock and rises
+                // below it, so the height a census asks at is the whole of what it measures.
+                val blockX = QuartPos.toBlock(quartX)
+                val blockZ = QuartPos.toBlock(quartZ)
+                val ground = generator.getBaseHeight(
+                    blockX, blockZ, Heightmap.Types.WORLD_SURFACE_WG, level, randomState,
+                )
+                val here = biomeName(biomes, climate, quartX, QuartPos.fromBlock(ground), quartZ)
                 counts[here] = (counts[here] ?: 0) + 1
             }
         }
