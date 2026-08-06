@@ -30,6 +30,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.components.AbstractWidget
 import net.minecraft.client.gui.components.Button
 import net.minecraft.client.gui.components.EditBox
+import net.minecraft.client.gui.components.MultiLineTextWidget
 import net.minecraft.client.gui.layouts.LinearLayout
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
 import net.minecraft.client.input.MouseButtonEvent
@@ -68,6 +69,7 @@ class WritersDeskScreen(
     private lateinit var ageName: EditBox
     private lateinit var paperButtons: List<Button>
     private lateinit var bindButton: Button
+    private lateinit var reading: MultiLineTextWidget
     private lateinit var columns: Map<DeskTab, FlexColumn>
     private lateinit var bindingRow: LinearLayout
 
@@ -182,11 +184,16 @@ class WritersDeskScreen(
         return widget
     }
 
-    private fun lists(tab: DeskTab) = tab != DeskTab.SUPPLIES
+    /** The word list and its search: the archive, and the surface you lay pages onto from it. */
+    private fun lists(tab: DeskTab) = tab != DeskTab.BIND
 
-    private fun writes(tab: DeskTab) = tab == DeskTab.WRITE_PAGE || tab == DeskTab.WRITE_BOOK
+    /** Writing a page is the archive's, now that it shows every word you know. */
+    private fun writes(tab: DeskTab) = tab == DeskTab.ARCHIVE
 
-    private fun binds(tab: DeskTab) = tab == DeskTab.WRITE_BOOK
+    private fun binds(tab: DeskTab) = tab == DeskTab.BIND
+
+    /** The pages laid out — the work surface's own tab, and read back on the bind screen. */
+    private fun composes(tab: DeskTab) = tab == DeskTab.WRITE_BOOK
 
     private fun addControls(keptFilter: String) {
         // Sizes only — where any of this goes is the columns' business, below.
@@ -227,6 +234,14 @@ class WritersDeskScreen(
             addShownOn(button, ::writes)
         }
 
+        // **Scratch mode** (design §4.3.1): the row of pages said back as a sentence, which is the half
+        // that makes attachment visible. It comes from the server — reading one takes the whole corpus —
+        // and it is the same `Readout` the bound book carries, so the desk and the book cannot disagree.
+        reading = addShownOn(
+            MultiLineTextWidget(Component.empty(), font).setMaxWidth(layout.content(DeskTab.BIND).width),
+            ::binds,
+        )
+
         ageName = EditBox(font, 0, 0, NAME_WIDTH, LINE, Component.empty())
         ageName.setHint(translated("name"))
         ageName.setMaxLength(DeskCommandPayload.MAX_TITLE)
@@ -257,12 +272,8 @@ class WritersDeskScreen(
         val room = layout.content(entry)
         val column = FlexColumn(room.width, room.height)
         when (entry) {
+            // Every word you know, and the paper to write one on — the page tab's whole job, absorbed.
             DeskTab.ARCHIVE -> {
-                column.add(search, height = LINE)
-                column.gap(GAP)
-                column.fill(wordList)
-            }
-            DeskTab.WRITE_PAGE -> {
                 column.add(search, height = LINE)
                 column.gap(GAP)
                 column.fill(wordList)
@@ -279,7 +290,9 @@ class WritersDeskScreen(
                 column.gap(LINE) // the "n / limit" header, drawn rather than a widget
                 column.fill(composition)
             }
-            DeskTab.SUPPLIES -> Unit
+            // Nothing to arrange but the sentence: the name, the button and the slot are anchored to the
+            // panel's foot by `DeskLayout.bindingRow`, as they always were.
+            DeskTab.BIND -> column.fill(reading)
         }
         column.setPosition(room.x, room.y)
         return column
@@ -316,6 +329,7 @@ class WritersDeskScreen(
 
         refreshWords(force = true)
         refreshComposition(force = true)
+        refreshReading()
     }
 
     private fun openTab(entry: DeskTab) {
@@ -347,6 +361,7 @@ class WritersDeskScreen(
         super.containerTick()
         refreshWords(force = false)
         refreshComposition(force = false)
+        refreshReading()
         paperButtons.forEachIndexed { index, button ->
             button.active = canWrite(InkTier.entries[index])
         }
@@ -354,14 +369,17 @@ class WritersDeskScreen(
 
     private fun refreshWords(force: Boolean) {
         if (!wordList.visible) return
-        val rows = if (tab == DeskTab.ARCHIVE) {
-            DeskModel.archiveRows(search.value)
-        } else {
-            DeskModel.writableRows(search.value)
-        }
+        val rows = DeskModel.knownRows(search.value)
         if (!force && rows == shownWords) return
         shownWords = rows
         wordList.show(rows, label = { it.readable }, count = { it.inArchive }, key = { it.word })
+    }
+
+    /** The sentence, whenever the pages under it move. */
+    private fun refreshReading() {
+        if (!reading.visible) return
+        val said = DeskModel.reading()
+        reading.message = if (said.isEmpty()) translated("nothing_written") else Component.literal(said)
     }
 
     private fun refreshComposition(force: Boolean) {
@@ -379,10 +397,12 @@ class WritersDeskScreen(
             send(DeskAction.PRICE, word = row.word)
         }
         when (tab) {
-            DeskTab.ARCHIVE -> send(DeskAction.WITHDRAW, word = row.word)
+            // The archive selects: which word the paper buttons write, and nothing more. Taking a page out
+            // is its own button now rather than a side effect of looking at a row.
+            DeskTab.ARCHIVE -> Unit
             DeskTab.WRITE_BOOK ->
                 if (row.inArchive > 0) send(DeskAction.COMPOSE_FROM_ARCHIVE, word = row.word)
-            DeskTab.WRITE_PAGE, DeskTab.SUPPLIES -> Unit
+            DeskTab.BIND -> Unit
         }
     }
 
@@ -395,7 +415,7 @@ class WritersDeskScreen(
     /** The only drawing left, and it is all text over widgets that have already placed themselves. */
     override fun extractBackground(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, a: Float) {
         super.extractBackground(graphics, mouseX, mouseY, a)
-        if (tab == DeskTab.WRITE_PAGE || tab == DeskTab.WRITE_BOOK) extractPrices(graphics)
+        if (tab == DeskTab.ARCHIVE) extractPrices(graphics)
         if (tab == DeskTab.WRITE_BOOK) extractCompositionHeader(graphics)
         extractNotice(graphics)
     }

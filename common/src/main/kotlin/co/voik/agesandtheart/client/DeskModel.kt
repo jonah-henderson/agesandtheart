@@ -85,15 +85,18 @@ object DeskModel {
 
     fun archiveCount(word: Identifier): Int = state?.archive?.get(word) ?: 0
 
-    /** Everything in the archive, whether or not the player still knows the word. */
-    fun archiveRows(filter: String): List<WordRow> =
-        state?.archive.orEmpty().keys.map(::rowFor).matching(filter)
+    /** The sentence the laid-out pages make, as the server read it back. */
+    fun reading(): String = state?.reading.orEmpty()
 
     /**
-     * Every word the player could write. Drawn from what they know rather than from the archive, since
-     * the whole point of the tab is writing something you do not yet have.
+     * Every word the player knows, each with however many pages of it the desk holds.
+     *
+     * **Knowledge rather than stock**, which is the archive's whole shape now: a word you know and have no
+     * page for is a row offering to write one, where a list of only what you hold cannot offer anything.
+     * A row is therefore *your* word against *this desk's* pages — two writers at one desk see different
+     * rows over one pile.
      */
-    fun writableRows(filter: String): List<WordRow> =
+    fun knownRows(filter: String): List<WordRow> =
         KnownWords.words.map(::rowFor).matching(filter)
 
     private fun rowFor(word: Identifier) =

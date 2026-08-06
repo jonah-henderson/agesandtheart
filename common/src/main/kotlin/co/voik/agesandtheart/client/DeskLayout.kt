@@ -26,14 +26,15 @@ class DeskLayout(private val left: Int, private val top: Int) {
     /**
      * The room a tab arranges its contents in.
      *
-     * Each tab stops where its own anchored furniture begins: the book tab above the binding row, supplies
-     * above the inventory's label, and the two list-only tabs at the panel's bottom border.
+     * Each tab stops where its own anchored furniture begins: the bind screen above its binding row, the
+     * archive above the inventory's label, and the work surface at the panel's bottom border, having
+     * neither.
      */
     fun content(tab: DeskTab): Rect {
         val bottom = when (tab) {
-            DeskTab.WRITE_BOOK -> DeskSlots.BINDING_ROW_Y - GAP
-            DeskTab.SUPPLIES, DeskTab.ARCHIVE -> DeskSlots.INVENTORY_LABEL_Y - GAP
-            DeskTab.WRITE_PAGE -> DeskSlots.PANEL_HEIGHT - Palette.BORDER - GAP
+            DeskTab.BIND -> DeskSlots.BINDING_ROW_Y - GAP
+            DeskTab.ARCHIVE -> DeskSlots.INVENTORY_LABEL_Y - GAP
+            DeskTab.WRITE_BOOK -> DeskSlots.PANEL_HEIGHT - Palette.BORDER - GAP
         }
         return Rect(
             left + INSET, top + CONTENT_TOP,
@@ -48,7 +49,6 @@ class DeskLayout(private val left: Int, private val top: Int) {
     )
 
     // The item areas the menu addresses, brought into screen coordinates.
-    val intakeSlot = itemArea(DeskSlots.INTAKE_X, DeskSlots.INTAKE_Y)
     val outputSlot = itemArea(DeskSlots.OUTPUT_X, DeskSlots.OUTPUT_Y)
     val playerInventory = itemArea(DeskSlots.INVENTORY_X, DeskSlots.INVENTORY_Y)
 
@@ -56,9 +56,8 @@ class DeskLayout(private val left: Int, private val top: Int) {
 
     /** The slots a tab shows, which is exactly the set the menu makes active for it. */
     fun slotsOn(tab: DeskTab): List<Rect> = when (tab) {
-        DeskTab.SUPPLIES -> listOf(intakeSlot)
-        DeskTab.WRITE_BOOK -> listOf(outputSlot)
-        DeskTab.ARCHIVE, DeskTab.WRITE_PAGE -> emptyList()
+        DeskTab.BIND -> listOf(outputSlot)
+        DeskTab.ARCHIVE, DeskTab.WRITE_BOOK -> emptyList()
     }
 
     /** Off-screen where there is no inventory to label, so the words can go where the label was. */

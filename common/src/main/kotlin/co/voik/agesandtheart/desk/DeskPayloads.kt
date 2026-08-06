@@ -49,6 +49,18 @@ data class DeskSyncPayload(
      * itself, which is how "nothing here can be this" reaches a display that only knows how to mark pairs.
      */
     val quarrels: List<Quarrel>,
+    /**
+     * The pages laid out, **said back as a sentence** — design §4.3.1's scratch mode.
+     *
+     * From the server because reading one takes the whole corpus, which is a server's: the client knows
+     * which words are laid out and nothing whatever about how they attach. It is the same `Readout` a bound
+     * book carries, so what the desk says while you are writing and what the book says afterwards can never
+     * be two different sentences.
+     *
+     * Prose rather than the book's `List<Said>` columns: those carry the script glyph per column and need a
+     * registry-aware buffer, where this panel wants one wrapped paragraph in the reader's own language.
+     */
+    val reading: String,
 ) : CustomPacketPayload {
 
     override fun type(): CustomPacketPayload.Type<DeskSyncPayload> = TYPE
@@ -99,6 +111,7 @@ data class DeskSyncPayload(
                 ByteBufCodecs.optional(ByteBufCodecs.VAR_INT).encode(buffer, java.util.Optional.ofNullable(value.pageLimit))
                 Identifier.STREAM_CODEC.apply(ByteBufCodecs.list()).encode(buffer, value.composing)
                 QUARREL_STREAM.apply(ByteBufCodecs.list()).encode(buffer, value.quarrels)
+                ByteBufCodecs.STRING_UTF8.encode(buffer, value.reading)
             },
             { buffer ->
                 DeskSyncPayload(
@@ -111,6 +124,7 @@ data class DeskSyncPayload(
                     pageLimit = ByteBufCodecs.optional(ByteBufCodecs.VAR_INT).decode(buffer).orElse(null),
                     composing = Identifier.STREAM_CODEC.apply(ByteBufCodecs.list()).decode(buffer),
                     quarrels = QUARREL_STREAM.apply(ByteBufCodecs.list()).decode(buffer),
+                    reading = ByteBufCodecs.STRING_UTF8.decode(buffer),
                 )
             },
         )

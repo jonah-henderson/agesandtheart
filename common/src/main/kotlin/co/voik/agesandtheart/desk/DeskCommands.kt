@@ -110,6 +110,7 @@ object DeskCommands {
                 pageLimit = capabilities.pageLimit,
                 composing = emptyList(),
                 quarrels = emptyList(),
+                reading = "",
             ),
         )
     }

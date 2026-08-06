@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.desk
 
+import co.voik.agesandtheart.age.word.grammar.Readout
 import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.age.word.Resolver
 import co.voik.agesandtheart.age.word.InkTier
@@ -58,18 +59,15 @@ class WritersDeskMenu(
     val composing: MutableList<Identifier> = mutableListOf()
 
     /** Mirrors `DeskTab.showsInventory` on the client; the two must agree. */
-    private val showsPlayerInventory: Boolean get() = openTab == SUPPLIES_TAB || openTab == ARCHIVE_TAB
+    private val showsPlayerInventory: Boolean get() = openTab == ARCHIVE_TAB
 
     init {
-        // The general doorway: everything the desk understands, binding included, on the supplies tab.
-        addSlot(object : Slot(intake, 0, INTAKE_X, INTAKE_Y) {
-            override fun mayPlace(stack: ItemStack): Boolean = isActive && DeskIntake.accepts(stack)
-            override fun isActive(): Boolean = openTab == SUPPLIES_TAB
-        })
+        // No doorway here any more: supplies are the wings' business, and what a page or a notebook does
+        // when shift-clicked at the centre is go straight to the archive (see [handToDesk]).
         addSlot(object : Slot(output, 0, OUTPUT_X, OUTPUT_Y) {
             /** Take-only: a finished book is produced here, never placed here. */
             override fun mayPlace(stack: ItemStack): Boolean = false
-            override fun isActive(): Boolean = openTab == BOOK_TAB
+            override fun isActive(): Boolean = openTab == BIND_TAB
         })
         for (row in 0 until 3) {
             for (column in 0 until 9) {
@@ -149,7 +147,8 @@ class WritersDeskMenu(
         return original
     }
 
-    private fun hasOpenIntake(): Boolean = openTab == SUPPLIES_TAB
+    /** There is none any more, so every shift-click at the centre is handed to the desk itself. */
+    private fun hasOpenIntake(): Boolean = false
 
     /**
      * Hands [moved] straight to the desk's stores, the way the intake slot would have.
@@ -215,7 +214,19 @@ class WritersDeskMenu(
             pageLimit = capabilities.pageLimit,
             composing = composing.toList(),
             quarrels = quarrelsIn(player, capabilities),
+            reading = readingOf(player),
         )
+
+    /**
+     * What the pages currently say, as prose — the half that makes attachment visible (§4.3.1).
+     *
+     * Read by **the same expression a bound book is read by**, so the desk and the book can never disagree
+     * about what a row of pages means.
+     */
+    private fun readingOf(player: ServerPlayer): String {
+        if (composing.isEmpty()) return ""
+        return Readout.of(Grammar.read(vocabularyFor(player), composing.map { it.path }))
+    }
 
     /**
      * What is wrong with the sentence as it currently stands — **empty without the implement that reveals
@@ -253,8 +264,8 @@ class WritersDeskMenu(
     companion object {
         /** Tab ordinals, shared with the screen's `DeskTab` — the menu only needs to compare them. */
         const val ARCHIVE_TAB = 0
-        const val BOOK_TAB = 2
-        const val SUPPLIES_TAB = 3
+        const val BOOK_TAB = 1
+        const val BIND_TAB = 2
 
         // Positions live in `DeskSlots`, because the screen draws a recess behind every one of them and the
         // two must agree. Aliased here only so the slot declarations above stay readable.
@@ -266,8 +277,8 @@ class WritersDeskMenu(
         private const val INVENTORY_Y = DeskSlots.INVENTORY_Y
         private const val HOTBAR_Y = DeskSlots.HOTBAR_Y
 
-        /** Our two slots come first, so everything from here is the player's. */
-        private const val FIRST_PLAYER_SLOT = 2
+        /** Our one slot comes first, so everything from here is the player's. */
+        private const val FIRST_PLAYER_SLOT = 1
 
         fun vocabularyFor(player: ServerPlayer): Vocabulary = Vocabulary.of(player.level().server)
 
