@@ -36,23 +36,56 @@ import java.util.Optional
  */
 class StarFissureStructure(settings: StructureSettings) : Structure(settings) {
 
-    override fun findGenerationPoint(context: GenerationContext): Optional<GenerationStub> =
-        onTopOfChunkCenter(context, Heightmap.Types.WORLD_SURFACE_WG) { pieces ->
-            val centre = context.chunkPos().getMiddleBlockPosition(0)
-            val surface = context.chunkGenerator()
-                .getFirstOccupiedHeight(
-                    centre.x, centre.z,
-                    Heightmap.Types.WORLD_SURFACE_WG,
-                    context.heightAccessor(),
-                    context.randomState(),
-                )
-            pieces.addPiece(StarFissurePiece(centre.atY(surface), context.random()))
+    override fun findGenerationPoint(context: GenerationContext): Optional<GenerationStub> {
+        val site = drySiteNear(context)
+        return Optional.of(GenerationStub(site) { pieces -> pieces.addPiece(StarFissurePiece(site, context.random())) })
+    }
+
+    /**
+     * The nearest dry ground to the chunk's middle, or the middle itself if this Age has none nearby.
+     *
+     * **It slides rather than declines**, and that is the whole shape of it. A fissure that refused a wet
+     * cell would leave a gap in the grid, and the grid *is* the guarantee — the escape hatch's entire job
+     * is that there is always one within a bounded distance. So a sea Age still gets its fissure on the
+     * ocean floor; it just gets it there only when there was nothing better within reach.
+     *
+     * Dry means the **ocean floor** stands at or above sea level: `WORLD_SURFACE_WG` counts water as
+     * surface, so asking it would call every ocean dry.
+     */
+    private fun drySiteNear(context: GenerationContext): BlockPos {
+        val middle = context.chunkPos().getMiddleBlockPosition(0)
+        val generator = context.chunkGenerator()
+
+        fun groundAt(x: Int, z: Int, through: Heightmap.Types) =
+            generator.getFirstOccupiedHeight(x, z, through, context.heightAccessor(), context.randomState())
+
+        fun isDry(offset: Pair<Int, Int>): Boolean {
+            val (offsetX, offsetZ) = offset
+            return groundAt(middle.x + offsetX, middle.z + offsetZ, Heightmap.Types.OCEAN_FLOOR_WG) >= generator.seaLevel
         }
+
+        val (offsetX, offsetZ) = NEARBY.firstOrNull(::isDry) ?: (0 to 0)
+        val x = middle.x + offsetX
+        val z = middle.z + offsetZ
+        return BlockPos(x, groundAt(x, z, Heightmap.Types.WORLD_SURFACE_WG), z)
+    }
 
     override fun type(): StructureType<*> = AgeContent.STAR_FISSURE_STRUCTURE
 
     companion object {
         val CODEC: MapCodec<StarFissureStructure> = simpleCodec(::StarFissureStructure)
+
+        /**
+         * How far the site may slide, and how coarsely it looks — twenty-five columns, walked nearest
+         * first, so land costs one sample and only a wholly drowned cell pays for all of them.
+         */
+        private const val LOOK_AROUND = 32
+        private const val LOOK_EVERY = 16
+
+        private val NEARBY: List<Pair<Int, Int>> =
+            (-LOOK_AROUND..LOOK_AROUND step LOOK_EVERY).flatMap { offsetX ->
+                (-LOOK_AROUND..LOOK_AROUND step LOOK_EVERY).map { offsetZ -> offsetX to offsetZ }
+            }.sortedBy { (offsetX, offsetZ) -> offsetX * offsetX + offsetZ * offsetZ }
     }
 }
 
