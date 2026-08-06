@@ -151,8 +151,8 @@ object AgeGeneration {
             AgeBiomeSource.vanillaOverworld(server, seed)
                 .told(climate, Biomes.preferencesIn(biomeOptions), Biomes.keepsOnlyNamed(biomeOptions))
                 .groundedIn(shape)
-                // Only where the Age asked for it: biomes disagreeing with the shape is the default, and
-                // a lever rather than a defect. See [Grounding] and [Biomes.FOOTING].
+                // On unless the Age said otherwise — `biomes.footing=free` is the lever, and an Age whose
+                // biomes ignore its land is allowed rather than broken. See [Grounding] and [Biomes.FOOTING].
                 .suitedTo(
                     if (!Biomes.groundsBiomes(biomeOptions)) null
                     // A shore is where the Age's one sea meets whichever territory reaches it, so a single
@@ -161,8 +161,11 @@ object AgeGeneration {
                     else Grounding(
                         shape,
                         seaFill.level,
-                        standing,
-                        Grounding.Declared.of(composition.terrains.map { it.grounding() }),
+                        // Whether anything is actually poured at that level. A sea of air leaves the
+                        // waterline standing with nothing in it, and measuring against it drowns the map.
+                        hasSea = seaFill.blocks.any { !it.isAir },
+                        rivers = standing,
+                        declared = Grounding.Declared.of(composition.terrains.map { it.grounding() }),
                     ),
                 )
                 // Age-wide like the shore and the treeline: the band is a pair of heights, and an Age has

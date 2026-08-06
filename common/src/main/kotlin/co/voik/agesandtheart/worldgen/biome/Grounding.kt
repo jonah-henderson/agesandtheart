@@ -41,6 +41,19 @@ data class Grounding(
     /** The level the sea stands at, which is what "over the water" is measured against. */
     val waterline: Int,
     /**
+     * Whether there is a sea at [waterline] at all.
+     *
+     * **An Age can be written with no sea** — `sea open` fills the world's empty space with air — and the
+     * waterline stays where it always was, because a level is what a shape declares and not what happens
+     * to be poured at it. Measured against that phantom line, every column standing under it files as
+     * ocean floor: a `pyramids` Age with an air sea came out **100% warm ocean over dry ground** (Jonah,
+     * 2026-08-06, walked), which is the same complaint as the craterlands one and a different cause.
+     *
+     * [Declared.elevation] already answers this for a landform with relief, and most landforms have none
+     * to declare — so the fact that the sea is empty has to be carried on its own.
+     */
+    val hasSea: Boolean = true,
+    /**
      * Water the shape carries itself — see `SeaFill.wet`. Where it stands over the ground, this is a river
      * rather than a sea, however low the channel bed happens to be.
      */
@@ -131,6 +144,10 @@ data class Grounding(
         if (cache.isRiver(slot)) return NEAR_INLAND
         // An Age with relief and no sea reads this off the relief — see [Elevation.continentalnessFor].
         declared.elevation?.let { return it.continentalnessFor(cache.surface(slot)) }
+        // And one with no sea and no relief to read is simply inland, everywhere. There is no shore to
+        // find and no ocean floor to stand on, so the only honest answer is the one vanilla files dry
+        // country under — see [hasSea].
+        if (!hasSea) return INLAND_WITH_NO_COAST
         return cache.continentalness(slot)
     }
 
@@ -325,6 +342,16 @@ data class Grounding(
         private const val NEAR_INLAND = -0.04f
 
         /**
+         * Where a sealess Age sits on the continentalness axis — `OverworldBiomeBuilder` bands mid-inland
+         * at 0.03..0.3, and this is the middle of it.
+         *
+         * Mid rather than far inland, because far is where it files the peak biomes and a world with no
+         * sea is not thereby a world of mountains. What decides the relief is [Declared.elevation], which
+         * is asked first and answers with the whole band where it has one.
+         */
+        private const val INLAND_WITH_NO_COAST = 0.16f
+
+        /**
          * The middle of vanilla's *valley* band. Its peaks-and-valleys curve is
          * `-(||w| - 2/3| - 1/3) * 3`, and a valley is that below −0.85 — which solves to `|w| < 0.05`, so
          * zero is as valley as it gets.
@@ -354,11 +381,12 @@ data class Grounding(
             instance.group(
                 TerrainField.CODEC.fieldOf("terrain").forGetter(Grounding::terrain),
                 Codec.INT.fieldOf("waterline").forGetter(Grounding::waterline),
+                Codec.BOOL.optionalFieldOf("has_sea", true).forGetter(Grounding::hasSea),
                 TerrainField.CODEC.optionalFieldOf("rivers")
                     .forGetter { Optional.ofNullable(it.rivers) },
                 Declared.CODEC.optionalFieldOf("declared", Declared()).forGetter(Grounding::declared),
-            ).apply(instance) { terrain, waterline, rivers, declared ->
-                Grounding(terrain, waterline, rivers.orElse(null), declared)
+            ).apply(instance) { terrain, waterline, hasSea, rivers, declared ->
+                Grounding(terrain, waterline, hasSea, rivers.orElse(null), declared)
             }
         }
 
