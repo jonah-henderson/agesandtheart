@@ -32,6 +32,9 @@ correct itself in place. Rewrite the paragraph that is now wrong.
   building. Read it before assuming any pre-upgrade note still holds.
 - **`notes/ui-libraries-research.md`** — why the screens are vanilla widgets and not a UI framework, and
   the component layer that decision implies. Read it before proposing a library or hand-drawing a screen.
+- **`notes/minecraft-ui-conventions.md`** — what a vanilla screen actually looks like, measured off the
+  26.1.2 jar: the bevel rule, the border widths, the 18-pixel grid. There is no official style guide, which
+  is why this exists. Read it before drawing a control.
 - **`notes/authoring-tools.md`** — how structures and 3D models get authored: the external tooling and its
   version state, and what our own datapacks could carry that they do not yet. Nothing in it is built. Read it
   before building a structure, a model, or anything that wants to be pack data.
