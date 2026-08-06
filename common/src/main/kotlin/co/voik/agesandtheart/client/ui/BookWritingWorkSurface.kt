@@ -38,6 +38,13 @@ class BookWritingWorkSurface<T : Any>(
      * the seed, so both are marked and each says what it is arguing with.
      */
     private val quarrel: (Int) -> Component? = { null },
+    /**
+     * What the surface is for, shown wherever nothing more particular is.
+     *
+     * Both gestures it takes are ones you have to already know: dragging to reorder leaves no trace until
+     * you try it, and right-clicking to remove is not a thing a page looks like it would do.
+     */
+    private val help: Component? = null,
 ) : AbstractScrollArea(
     bounds.x, bounds.y, bounds.width, bounds.height,
     Component.empty(), defaultSettings(SCROLL_RATE),
@@ -130,15 +137,37 @@ class BookWritingWorkSurface<T : Any>(
         graphics.fill(x, y, right, bottom, Palette.WELL_EDGE)
 
         graphics.enableScissor(x, y, right, bottom)
-        repeat(slotCount()) { index -> drawSlot(graphics, index, mouseX, mouseY) }
+        repeat(slotCount()) { index -> drawSlot(graphics, index) }
         dropAt?.let { drawInsertionCaret(graphics, it) }
         graphics.disableScissor()
 
         extractScrollbar(graphics, mouseX, mouseY)
         drawCarried(graphics, mouseX, mouseY)
+        tooltipAt(mouseX, mouseY)?.let { graphics.setTooltipForNextFrame(it, mouseX, mouseY) }
     }
 
-    private fun drawSlot(graphics: GuiGraphicsExtractor, index: Int, mouseX: Int, mouseY: Int) {
+    /**
+     * What the cursor is over, most particular answer first: what this page is arguing with, then a name
+     * the gutter had to cut short, then what the surface is for at all.
+     *
+     * Decided in one place rather than per slot, because only one tooltip can be shown and a per-slot call
+     * that set one could not know whether a later slot was about to overwrite it.
+     */
+    private fun tooltipAt(mouseX: Int, mouseY: Int): Component? {
+        // A tooltip trailing the page you are already moving is answering a question nobody is asking.
+        if (carrying != null) return null
+        val pointX = mouseX.toDouble()
+        val pointY = mouseY.toDouble()
+        if (!holdsPoint(pointX, pointY)) return null
+        val index = pageAt(pointX, pointY) ?: return help
+        quarrel(index)?.let { return it }
+        val name = translation(pages[index])
+        val slot = slotFor(index)
+        val overTheName = slot.gutter.contains(pointX, pointY) && slot.truncates(name)
+        return if (overTheName) Component.literal(name) else help
+    }
+
+    private fun drawSlot(graphics: GuiGraphicsExtractor, index: Int) {
         val slot = slotFor(index)
         if (slot.bounds.bottom < y || slot.bounds.y > bottom) return
         val page = pages.getOrNull(index)
@@ -152,23 +181,13 @@ class BookWritingWorkSurface<T : Any>(
         // **Marked twice on purpose.** Colour alone strands anyone who cannot separate red from the wash it
         // sits on, so a page in a quarrel gets a border *and* a corner notch — either one is enough to see
         // that this page is the problem, and the tooltip says which other page it is arguing with.
-        val arguing = quarrel(index)
-        if (arguing != null) {
-            val at = slot.bounds
-            graphics.fill(at.x, at.y, at.right, at.y + MARK_THICKNESS, Palette.WARNING)
-            graphics.fill(at.x, at.bottom - MARK_THICKNESS, at.right, at.bottom, Palette.WARNING)
-            graphics.fill(at.x, at.y, at.x + MARK_THICKNESS, at.bottom, Palette.WARNING)
-            graphics.fill(at.right - MARK_THICKNESS, at.y, at.right, at.bottom, Palette.WARNING)
-            graphics.fill(at.right - NOTCH, at.y, at.right, at.y + NOTCH, Palette.WARNING)
-        }
-
-        val name = translation(page)
-        val over = slot.bounds.contains(mouseX.toDouble(), mouseY.toDouble())
-        if (arguing != null && over) {
-            graphics.setTooltipForNextFrame(arguing, mouseX, mouseY)
-        } else if (slot.gutter.contains(mouseX.toDouble(), mouseY.toDouble()) && slot.truncates(name)) {
-            graphics.setTooltipForNextFrame(Component.literal(name), mouseX, mouseY)
-        }
+        if (quarrel(index) == null) return
+        val at = slot.bounds
+        graphics.fill(at.x, at.y, at.right, at.y + MARK_THICKNESS, Palette.WARNING)
+        graphics.fill(at.x, at.bottom - MARK_THICKNESS, at.right, at.bottom, Palette.WARNING)
+        graphics.fill(at.x, at.y, at.x + MARK_THICKNESS, at.bottom, Palette.WARNING)
+        graphics.fill(at.right - MARK_THICKNESS, at.y, at.right, at.bottom, Palette.WARNING)
+        graphics.fill(at.right - NOTCH, at.y, at.right, at.y + NOTCH, Palette.WARNING)
     }
 
     /** A bar in the gap a drop would open, because "between these two" is otherwise guesswork. */

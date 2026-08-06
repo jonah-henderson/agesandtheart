@@ -27,18 +27,14 @@ class WritersDeskBlockEntity(pos: BlockPos, state: BlockState) :
         private set
 
     /**
-     * What the room grants, recomputed rather than saved — furniture can be moved while the desk is
-     * unloaded, and a stale capability is worse than a cheap scan.
+     * What the room grants, read fresh every time it is asked — see [WritersDesk.survey].
+     *
+     * This was cached, and the cache was the whole of the bug: `neighborChanged` fires only for blocks
+     * *touching* the desk, which is almost nothing inside a radius of five, so an enchanting table set
+     * down two blocks away never reached it and the desk reported itself bare for good.
      */
-    private var surveyed: DeskState? = null
-
     fun capabilities(desk: WritersDesk): DeskState =
-        surveyed ?: desk.survey(level ?: return DeskState.bare(null), blockPos).also { surveyed = it }
-
-    /** Called when a neighbour changes, so the next open re-reads the room. */
-    fun forgetSurvey() {
-        surveyed = null
-    }
+        desk.survey(level ?: return DeskState.bare(null), blockPos)
 
     fun addPages(word: Identifier, count: Int) {
         if (count <= 0) return

@@ -38,16 +38,6 @@ object DeskSlots {
     /** The label above the player's inventory, which is also where the desk's own contents must stop. */
     const val INVENTORY_LABEL_Y = INVENTORY_Y - 11
 
-    /**
-     * The book being produced, beside the name it is given.
-     *
-     * Anchored to the panel's foot rather than to the inventory label: the book tab has no inventory, so
-     * the row sits as low as the bottom border allows.
-     */
-    const val BINDING_ROW_Y = PANEL_HEIGHT - 32
-    const val OUTPUT_X = 142
-    const val OUTPUT_Y = BINDING_ROW_Y
-
     /** The general doorway, centred in the room the supplies tab has above the inventory. */
     const val INTAKE_X = 79
     const val INTAKE_Y = (18 + INVENTORY_LABEL_Y) / 2 - 8
@@ -71,4 +61,30 @@ object DeskSlots {
      */
     const val WING_INTAKE_X = 152
     const val WING_INTAKE_Y = 20
+
+    /**
+     * **The bind screen is shorter than the others**, stopping level with a wing's panel.
+     *
+     * It shows a sentence, a name and a button, and none of those wanted the room a chest's worth of
+     * inventory needs — so the panel ran on into a hand's breadth of empty wood under the book. The top is
+     * where every other tab's is, so switching tabs moves nothing; only the foot comes up.
+     */
+    const val BIND_PANEL_HEIGHT = WING_PANEL_HEIGHT
+
+    /**
+     * The book being produced, beside the button that makes it, and the name above them both.
+     *
+     * Centred as a cluster rather than pushed to the edges, being one action and its one result.
+     * [BIND_BUTTON_X] and [BIND_BUTTON_WIDTH] are written down *here*, beside the slot, because that slot
+     * is placed on the server — where nothing knows how wide a button is, and where centring the pair
+     * could not otherwise be worked out.
+     */
+    const val BIND_ROW_Y = BIND_PANEL_HEIGHT - 26
+    const val BIND_BUTTON_X = 43
+    const val BIND_BUTTON_WIDTH = 60
+    const val OUTPUT_X = 117
+    const val OUTPUT_Y = BIND_ROW_Y
+
+    /** Full width under the readout, a line and a gap above the button. */
+    const val BIND_NAME_Y = BIND_ROW_Y - 16
 }

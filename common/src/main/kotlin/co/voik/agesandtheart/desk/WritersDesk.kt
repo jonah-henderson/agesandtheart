@@ -112,10 +112,16 @@ class WritersDesk(
     val radius: Int,
 ) {
     /**
-     * What the desk at [pos] can do.
+     * What the desk at [pos] can do — **read fresh on every ask, and deliberately not cached**.
      *
-     * Costly enough to want caching by the caller — it reads a cube of blocks, and the design says
-     * recompute on neighbour change or on opening the UI, never per tick.
+     * A cached survey has to be invalidated, and there is no event that says "something changed anywhere
+     * in an 11×11×11 room": `neighborChanged` reaches the blocks touching the desk and nothing else, which
+     * is where the desk spent a walk insisting it was bare with an enchanting table beside it.
+     *
+     * Vanilla settles the cost question, and only that one. `EnchantmentMenu.slotsChanged` walks
+     * `EnchantingTableBlock.BOOKSHELF_OFFSETS` from scratch every time its input slot changes and keeps
+     * nothing — and this is asked only when a writer does something, never per tick, so it is the same
+     * pattern paid less often. What is *searched* is ours and much more generous; see [DEFAULT_RADIUS].
      */
     fun survey(level: BlockGetter, pos: BlockPos): DeskState {
         val present = mutableSetOf<Identifier>()
@@ -157,6 +163,13 @@ class WritersDesk(
          *
          * A cube rather than a flat disc because people shelve things high, and a study with its rarities
          * on the top shelf should read as furnished.
+         *
+         * **Deliberately more generous than the enchanting table** (Jonah, 2026-08-06), which is the
+         * obvious thing to copy and the wrong one. Vanilla counts only a *shell* at distance two, and only
+         * where the block halfway there transmits — so a bookshelf tucked behind another one is worth
+         * nothing. Anywhere in this room counts, at any distance up to the radius and through anything: a
+         * study is furnished by what is in it, not by what has line of sight to the desk. Only the
+         * *caching* was taken from vanilla's approach, in [survey].
          */
         private const val DEFAULT_RADIUS = 5
 

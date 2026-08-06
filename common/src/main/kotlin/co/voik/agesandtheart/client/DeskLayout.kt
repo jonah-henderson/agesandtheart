@@ -18,7 +18,20 @@ import co.voik.agesandtheart.desk.DeskSlots
  */
 class DeskLayout(private val left: Int, private val top: Int) {
 
-    val panel = Rect(left, top, DeskSlots.PANEL_WIDTH, DeskSlots.PANEL_HEIGHT)
+    /** The panel's top-left, which no tab moves — what the wing hangs off. */
+    val panelX = left
+    val panelY = top
+
+    /**
+     * The panel on [tab]. Only its foot varies: the bind screen has nothing to put in the room the others
+     * need, so it stops level with a wing's rather than running on into empty wood (see [DeskSlots]).
+     */
+    fun panel(tab: DeskTab): Rect = Rect(left, top, DeskSlots.PANEL_WIDTH, panelHeight(tab))
+
+    private fun panelHeight(tab: DeskTab): Int = when (tab) {
+        DeskTab.BIND -> DeskSlots.BIND_PANEL_HEIGHT
+        DeskTab.ARCHIVE, DeskTab.WRITE_BOOK -> DeskSlots.PANEL_HEIGHT
+    }
 
     val tabsX = left
     val tabsY = top - TabStrip.LIFT
@@ -26,13 +39,13 @@ class DeskLayout(private val left: Int, private val top: Int) {
     /**
      * The room a tab arranges its contents in.
      *
-     * Each tab stops where its own anchored furniture begins: the bind screen above its binding row, the
-     * archive above the inventory's label, and the work surface at the panel's bottom border, having
-     * neither.
+     * Each tab stops where its own anchored furniture begins: the bind screen at the foot of the name box
+     * it ends with, the archive above the inventory's label, and the work surface at the panel's bottom
+     * border, having neither.
      */
     fun content(tab: DeskTab): Rect {
         val bottom = when (tab) {
-            DeskTab.BIND -> DeskSlots.BINDING_ROW_Y - GAP
+            DeskTab.BIND -> DeskSlots.BIND_NAME_Y + LINE
             DeskTab.ARCHIVE -> DeskSlots.INVENTORY_LABEL_Y - GAP
             DeskTab.WRITE_BOOK -> DeskSlots.PANEL_HEIGHT - Palette.BORDER - GAP
         }
@@ -42,10 +55,10 @@ class DeskLayout(private val left: Int, private val top: Int) {
         )
     }
 
-    /** The binding row's own line, which the name and its button share with the two slots. */
-    fun bindingRow(): Rect = Rect(
-        left + INSET, top + DeskSlots.BINDING_ROW_Y + BINDING_TEXT_DROP,
-        DeskSlots.PANEL_WIDTH - INSET * 2, LINE,
+    /** The bind button, sitting level with the slot the book lands in beside it. */
+    fun bindButton(): Rect = Rect(
+        left + DeskSlots.BIND_BUTTON_X, top + DeskSlots.BIND_ROW_Y + BUTTON_DROP,
+        DeskSlots.BIND_BUTTON_WIDTH, LINE,
     )
 
     // The item areas the menu addresses, brought into screen coordinates.
@@ -74,8 +87,8 @@ class DeskLayout(private val left: Int, private val top: Int) {
         private const val GAP = 4
         private const val LINE = 12
 
-        /** Text sits two pixels down on a row sized for slots, so it centres against them. */
-        private const val BINDING_TEXT_DROP = 2
+        /** A line-high button on a row sized for slots, so the two centre against each other. */
+        private const val BUTTON_DROP = (Palette.ITEM - LINE) / 2
 
         /** Far enough down that the label is simply not drawn. */
         private const val OFFSCREEN = 10_000

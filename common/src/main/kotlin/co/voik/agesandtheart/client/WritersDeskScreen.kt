@@ -4,7 +4,6 @@ import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.client.ui.BookWritingWorkSurface
 import co.voik.agesandtheart.client.ui.CapsuleGauge
-import co.voik.agesandtheart.client.ui.ColourSurface
 import co.voik.agesandtheart.client.ui.CountedItem
 import co.voik.agesandtheart.client.ui.DecoratedBox
 import co.voik.agesandtheart.client.ui.DecorationWidget
@@ -117,7 +116,11 @@ class WritersDeskScreen(
 
         // Unselected tabs tuck under the panel, so they go on before it.
         addRenderableWidget(tabs.backdrop)
-        addRenderableWidget(surface(PanelSurface.RAISED, layout.panel))
+        // One panel per tab, because the bind screen's is shorter — a single rectangle resized on the way
+        // past would be a size stated in two places and true in one.
+        DeskTab.entries.forEach { owner ->
+            addShownOn(surface(PanelSurface.RAISED, layout.panel(owner))) { it == owner }
+        }
         addWing()
         addSlots()
         // The strip itself last of the chrome, so the selected tab sits proud of the panel.
@@ -162,7 +165,7 @@ class WritersDeskScreen(
         // Overlapping the panel's border rather than painting over it: the wing's own top and bottom edges
         // then run the whole way across, so the two borders meet instead of stopping short of each other.
         wing.sized(wing.width + Palette.BORDER, wing.height)
-        wing.setPosition(layout.panel.x + Palette.BORDER - wing.width, layout.panel.y)
+        wing.setPosition(layout.panelX + Palette.BORDER - wing.width, layout.panelY)
         wing.arrangeElements()
         wing.visitWidgets(::addRenderableWidget)
     }
@@ -190,11 +193,15 @@ class WritersDeskScreen(
         return widget
     }
 
-    /** The word list and its search: the archive, and the surface you lay pages onto from it. */
-    private fun lists(tab: DeskTab) = tab != DeskTab.BIND
-
-    /** Writing a page is the archive's, now that it shows every word you know. */
-    private fun writes(tab: DeskTab) = tab == DeskTab.ARCHIVE
+    /**
+     * The word list, its search and the paper the buttons spend — all the archive's, and only the
+     * archive's.
+     *
+     * The list used to appear on the work surface's tab too, as a second way to lay a page out. It was a
+     * good idea with nowhere to happen: three rows of words and a search box took the room the surface
+     * exists to give, and the archive's own `»` already does the same job with the whole list to pick from.
+     */
+    private fun archives(tab: DeskTab) = tab == DeskTab.ARCHIVE
 
     private fun binds(tab: DeskTab) = tab == DeskTab.BIND
 
@@ -210,10 +217,10 @@ class WritersDeskScreen(
             wordList.resetScroll()
             refreshWords(force = true)
         }
-        addShownOn(search, ::lists)
+        addShownOn(search, ::archives)
 
         wordList = addShownOn(
-            LabelledList(Minecraft.getInstance(), Rect(0, 0, 0, 0), ::chooseWord), ::lists,
+            LabelledList(Minecraft.getInstance(), Rect(0, 0, 0, 0), ::chooseWord), ::archives,
         )
 
         composition = addShownOn(
@@ -228,6 +235,7 @@ class WritersDeskScreen(
                 onRemove = { index -> send(DeskAction.RETURN_TO_ARCHIVE, index = index) },
                 capacity = { DeskModel.pageLimit() },
                 quarrel = ::quarrelAt,
+                help = translated("surface_help"),
             ),
             ::composes,
         )
@@ -238,7 +246,7 @@ class WritersDeskScreen(
         paperButtons = InkTier.entries.map { paper ->
             val button = Button.builder(Component.literal(paperGlyph(paper))) { chosenPaper = paper }
                 .bounds(0, 0, PAPER_BUTTON_WIDTH, LINE + 2).build()
-            addShownOn(button, ::writes)
+            addShownOn(button, ::archives)
         }
 
         // **Scratch mode** (design §4.3.1): the row of pages said back as a sentence, which is the half
@@ -249,7 +257,8 @@ class WritersDeskScreen(
             ::binds,
         )
 
-        ageName = EditBox(font, 0, 0, NAME_WIDTH, LINE, Component.empty())
+        // Width comes from the column it sits in, which is the whole of the bind screen's own.
+        ageName = EditBox(font, 0, 0, 0, LINE, Component.empty())
         ageName.setHint(translated("name"))
         ageName.setMaxLength(DeskCommandPayload.MAX_TITLE)
         addShownOn(ageName, ::binds)
@@ -257,15 +266,11 @@ class WritersDeskScreen(
         bindButton = addShownOn(
             Button.builder(translated("bind")) {
                 send(DeskAction.FINALISE, title = ageName.value)
-            }.bounds(0, 0, BIND_WIDTH, LINE).build(),
+            }.bounds(0, 0, DeskSlots.BIND_BUTTON_WIDTH, LINE).build(),
             ::binds,
         )
 
         columns = DeskTab.entries.associateWith(::columnFor)
-        bindingRow = LinearLayout.horizontal().spacing(GAP).apply {
-            addChild(ageName)
-            addChild(bindButton)
-        }
     }
 
     /**
@@ -288,18 +293,18 @@ class WritersDeskScreen(
                 column.add(paperRow())
                 column.gap(LINE) // the ink price under each button, drawn rather than a widget
             }
+            // The surface and nothing else, which is what this tab is for.
             DeskTab.WRITE_BOOK -> {
-                column.add(search, height = LINE)
-                column.gap(GAP)
-                // Short, because the surface is what this tab is for.
-                column.add(wordList, height = BOOK_WORD_LIST_HEIGHT)
-                column.gap(GAP)
                 column.gap(LINE) // the "n / limit" header, drawn rather than a widget
                 column.fill(composition)
             }
-            // Nothing to arrange but the sentence: the name, the button and the slot are anchored to the
-            // panel's foot by `DeskLayout.bindingRow`, as they always were.
-            DeskTab.BIND -> column.fill(reading)
+            // The sentence, and the name it is about to be given. The button and the slot it fills sit
+            // below both, anchored to the panel's foot by `DeskLayout.bindButton`.
+            DeskTab.BIND -> {
+                column.fill(reading)
+                column.gap(GAP)
+                column.add(ageName, height = LINE)
+            }
         }
         column.setPosition(room.x, room.y)
         return column
@@ -328,10 +333,9 @@ class WritersDeskScreen(
         // through to "close the inventory". The creative screen focuses its search for the same reason.
         if (search.visible) focused = search
         columns[tab]?.arrangeElements()
-        if (tab == DeskTab.WRITE_BOOK) {
-            val row = layout.bindingRow()
-            bindingRow.arrangeElements()
-            bindingRow.setPosition(row.x, row.y)
+        if (tab == DeskTab.BIND) {
+            val at = layout.bindButton()
+            bindButton.setPosition(at.x, at.y)
         }
 
         refreshWords(force = true)
@@ -401,7 +405,7 @@ class WritersDeskScreen(
             label = { it.readable },
             count = { it.inArchive },
             key = { it.word },
-            actions = if (tab == DeskTab.ARCHIVE) rowActions() else emptyList(),
+            actions = rowActions(),
         )
     }
 
@@ -481,12 +485,14 @@ class WritersDeskScreen(
         val price = DeskModel.priceFor(row.word, chosenPaper)
             ?: return quoteFor(row.word)
         val (inkTier, units) = price
-        val ink = Component.translatable("ink.agesandtheart.${inkTier.serializedName}")
-        return if (DeskModel.ink(inkTier) >= units && DeskModel.paper(chosenPaper) > 0) {
-            Component.translatable("container.agesandtheart.writers_desk.write_costs", ink, units)
-        } else {
-            Component.translatable("container.agesandtheart.writers_desk.write_short", ink, units)
-        }
+        val hasTheInk = DeskModel.ink(inkTier) >= units
+        val hasThePaper = DeskModel.paper(chosenPaper) > 0
+        val affordable = hasTheInk && hasThePaper
+        return translated(
+            if (affordable) "write_costs" else "write_short",
+            inBuckets(units),
+            inkName(inkTier),
+        )
     }
 
     /** Asks the server for a quote if this word has never been priced, and says so meanwhile. */
@@ -495,20 +501,16 @@ class WritersDeskScreen(
         return translated("write_unpriced")
     }
 
-    /** Picking a word asks what it costs, and on the tabs where a click means something, does that too. */
+    /**
+     * Picking a word asks what it costs, and that is the whole of what a click means.
+     *
+     * The list is the archive's alone, where selecting says which word the paper buttons write. Laying a
+     * page out and taking one are the row's own buttons rather than side effects of looking at it.
+     */
     private fun chooseWord(row: WordRow) {
-        if (selectedWord != row.word) {
-            selectedWord = row.word
-            if (DeskModel.startAsking(row.word)) send(DeskAction.PRICE, word = row.word)
-        }
-        when (tab) {
-            // The archive selects: which word the paper buttons write, and nothing more. Taking a page out
-            // is its own button now rather than a side effect of looking at a row.
-            DeskTab.ARCHIVE -> Unit
-            DeskTab.WRITE_BOOK ->
-                if (row.inArchive > 0) send(DeskAction.COMPOSE_FROM_ARCHIVE, word = row.word)
-            DeskTab.BIND -> Unit
-        }
+        if (selectedWord == row.word) return
+        selectedWord = row.word
+        if (DeskModel.startAsking(row.word)) send(DeskAction.PRICE, word = row.word)
     }
 
     /** Whether a page could be written on [paper] at all — the ink for it, and a sheet to put it on. */
@@ -529,7 +531,7 @@ class WritersDeskScreen(
         super.extractContents(graphics, mouseX, mouseY, a)
         if (tab == DeskTab.ARCHIVE) extractPrices(graphics)
         if (tab == DeskTab.WRITE_BOOK) extractCompositionHeader(graphics)
-        DeskNotice.extract(graphics, font, layout.panel)
+        DeskNotice.extract(graphics, font, layout.panel(tab))
     }
 
     /**
@@ -570,15 +572,25 @@ class WritersDeskScreen(
     }
 
     /** Exactly what the tank holds, since a gauge can only ever say roughly. */
-    private fun inkTooltip(tier: InkTier): Component {
-        val held = DeskModel.ink(tier)
+    private fun inkTooltip(tier: InkTier): Component = translated(
+        "ink",
+        inkName(tier),
+        inBuckets(DeskModel.ink(tier)),
+        AgeFluids.TANK_CAPACITY_BUCKETS,
+    )
+
+    private fun inkName(tier: InkTier): Component = translated("ink.${tier.key}")
+
+    /**
+     * Fluid units as a fraction of a bucket, which is the only measure of ink a player ever sees.
+     *
+     * The unit itself is the loader's — Fabric counts droplets and NeoForge millibuckets — so a number in
+     * it is not a quantity anybody can hold in their head, and it would not even mean the same thing on
+     * the two loaders.
+     */
+    private fun inBuckets(units: Long): String {
         val perBucket = (DeskModel.inkCapacity() / AgeFluids.TANK_CAPACITY_BUCKETS).coerceAtLeast(1)
-        return Component.translatable(
-            "container.agesandtheart.writers_desk.ink",
-            translated("ink.${tier.key}"),
-            String.format("%.2f", held.toDouble() / perBucket),
-            AgeFluids.TANK_CAPACITY_BUCKETS,
-        )
+        return String.format("%.2f", units.toDouble() / perBucket)
     }
 
     private fun send(
@@ -592,8 +604,8 @@ class WritersDeskScreen(
         ClientDeskNetwork.send(DeskCommandPayload(action, word, paper, index, target, title))
     }
 
-    private fun translated(suffix: String): Component =
-        Component.translatable("container.agesandtheart.writers_desk.$suffix")
+    private fun translated(suffix: String, vararg arguments: Any): Component =
+        Component.translatable("container.agesandtheart.writers_desk.$suffix", *arguments)
 
     private fun paperIcon(tier: InkTier): ItemStack = when (tier) {
         InkTier.COMMON -> ItemStack(Items.PAPER)
@@ -620,12 +632,7 @@ class WritersDeskScreen(
         const val LINE = 12
         const val GAP = 4
         const val PAPER_BUTTON_WIDTH = 30
-        const val NAME_WIDTH = 60
-        const val BIND_WIDTH = 30
         const val PRICE_DROP = 4
-
-        /** Three rows: enough to pick from with the search box doing the finding. */
-        const val BOOK_WORD_LIST_HEIGHT = 36
 
         // The wing's contents. Its padding is asymmetric because the border eats the left edge and not the
         // open right, and because the gauges want more room above them than the stocks want below.

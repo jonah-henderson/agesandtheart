@@ -240,19 +240,6 @@ class WritersDeskBlock(properties: Properties) : BaseEntityBlock(properties) {
         }
     }
 
-    /** Furniture moved nearby means the next open must re-read the room. */
-    override fun neighborChanged(
-        state: BlockState,
-        level: Level,
-        pos: BlockPos,
-        block: Block,
-        orientation: net.minecraft.world.level.redstone.Orientation?,
-        movedByPiston: Boolean,
-    ) {
-        super.neighborChanged(state, level, pos, block, orientation, movedByPiston)
-        (level.getBlockEntity(centreOf(state, pos)) as? WritersDeskBlockEntity)?.forgetSurvey()
-    }
-
     private fun wing(state: BlockState, part: DeskPart): BlockState =
         defaultBlockState().setValue(FACING, state.getValue(FACING)).setValue(PART, part)
 
