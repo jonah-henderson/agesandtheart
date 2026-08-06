@@ -69,6 +69,9 @@ object Structures {
             for (key in OVERWORLD_STRUCTURE_SETS) seated[key.identifier()] = sets.get(key).orElse(null) ?: continue
         }
         for (claim in asked.wanted) {
+            // `nothing` is the emptier, not a set: it has already done its work above, and asking the
+            // registry for it warned that the pack ships no `minecraft:nothing` on every Age ever written.
+            if (claim.value == NOTHING) continue
             val named = Identifier.tryParse(claim.value) ?: continue
             val found = sets.get(ResourceKey.create(Registries.STRUCTURE_SET, named)).orElse(null)
             if (found == null) {
