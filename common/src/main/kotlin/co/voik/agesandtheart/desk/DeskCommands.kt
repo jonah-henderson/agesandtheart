@@ -109,6 +109,7 @@ object DeskCommands {
                 capabilities = capabilities.capabilities,
                 pageLimit = capabilities.pageLimit,
                 composing = emptyList(),
+                quarrels = emptyList(),
             ),
         )
     }
@@ -246,6 +247,9 @@ object DeskCommands {
         val words = menu.composing.toList()
         book.set(AgeContent.BOOK_WORDS, words)
         book.set(AgeContent.BOOK_TITLE, title)
+        // The seed the desk has been predicting against, written down before it is rerolled — so the Age
+        // this book makes is the one whose conflicts the writer was shown.
+        book.set(AgeContent.BOOK_SEED, player.writingSeed)
         // What it says, and what that means, written down beside the pages it is spelled out of. Reading a
         // sentence takes the whole corpus, which is a server's; a book is read wherever it is carried.
         // Read by **the same expression `DescriptiveBookRecipe` reads it by**, so what a book says and the
@@ -255,6 +259,8 @@ object DeskCommands {
         menu.composing.clear()
         // Into the output slot rather than the inventory: a book you take is a book you saw being made.
         menu.putOutput(book)
+        // A fresh world for the next book: one desk read over and over must not hand out the same Age.
+        player.rerollWritingSeed()
         Constants.LOG.debug("{} bound the Age '{}'", player.gameProfile.name, title)
     }
 

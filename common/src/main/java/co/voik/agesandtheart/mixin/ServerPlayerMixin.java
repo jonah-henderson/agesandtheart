@@ -3,6 +3,8 @@ package co.voik.agesandtheart.mixin;
 import co.voik.agesandtheart.age.word.LearnedWords;
 import co.voik.agesandtheart.age.word.LearnedWordsHolder;
 import co.voik.agesandtheart.age.word.PageLearning;
+import co.voik.agesandtheart.desk.WritingSeedHolder;
+import co.voik.agesandtheart.desk.WritingSeedKt;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerListener;
@@ -24,13 +26,35 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * reported by the inventory menu's own listener.
  */
 @Mixin(ServerPlayer.class)
-public abstract class ServerPlayerMixin implements LearnedWordsHolder {
+public abstract class ServerPlayerMixin implements LearnedWordsHolder, WritingSeedHolder {
 
     @Unique
     private LearnedWords agesandtheart$learned;
 
+    /**
+     * The seed the next book this writer binds will be written at — see {@link WritingSeed}.
+     *
+     * <p>Zero means "not drawn yet", which is what a new player and an old save both look like; the first
+     * read mints one. A seed of exactly zero after that is a one-in-2^64 coincidence that costs a reroll.
+     */
+    @Unique
+    private long agesandtheart$writingSeed;
+
     @Unique
     private ContainerListener agesandtheart$listener;
+
+    @Override
+    public long agesandtheart_writingSeed() {
+        if (this.agesandtheart$writingSeed == 0L) {
+            this.agesandtheart_rerollWritingSeed();
+        }
+        return this.agesandtheart$writingSeed;
+    }
+
+    @Override
+    public void agesandtheart_rerollWritingSeed() {
+        this.agesandtheart$writingSeed = ((ServerPlayer) (Object) this).getRandom().nextLong();
+    }
 
     /** Lazily built rather than an initialiser, which Mixin does not merge into the target constructor. */
     @Override
@@ -45,16 +69,20 @@ public abstract class ServerPlayerMixin implements LearnedWordsHolder {
     private void agesandtheart$read(ValueInput input, CallbackInfo ci) {
         input.read(LearnedWords.SAVE_KEY, LearnedWords.Packed.CODEC)
                 .ifPresent(packed -> this.agesandtheart_learnedWords().load(packed));
+        this.agesandtheart$writingSeed = input.getLongOr(WritingSeedKt.WRITING_SEED_KEY, 0L);
     }
 
     @Inject(method = "addAdditionalSaveData", at = @At("TAIL"))
     private void agesandtheart$write(ValueOutput output, CallbackInfo ci) {
         output.store(LearnedWords.SAVE_KEY, LearnedWords.Packed.CODEC, this.agesandtheart_learnedWords().pack());
+        output.putLong(WritingSeedKt.WRITING_SEED_KEY, this.agesandtheart$writingSeed);
     }
 
     @Inject(method = "restoreFrom", at = @At("TAIL"))
     private void agesandtheart$restore(ServerPlayer oldPlayer, boolean restoreAll, CallbackInfo ci) {
         this.agesandtheart_learnedWords().copyFrom(((LearnedWordsHolder) oldPlayer).agesandtheart_learnedWords());
+        // Death does not reroll: the Age you were about to write is still the one you were about to write.
+        this.agesandtheart$writingSeed = ((WritingSeedHolder) oldPlayer).agesandtheart_writingSeed();
     }
 
     /** One listener per player, not per menu, so {@code addSlotListener}'s own dedupe can work. */

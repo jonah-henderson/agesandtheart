@@ -289,6 +289,21 @@ object AgeContent {
         .build()
 
     /**
+     * The seed the Age this book makes will be written at — chosen at the **desk**, not when the book is
+     * first opened (see [co.voik.agesandtheart.desk.WritingSeed]).
+     *
+     * On the book rather than only on its writer, so what the desk showed and what the Age turns out to be
+     * cannot drift apart: a book changes hands, waits in a chest, and is opened by somebody else.
+     *
+     * Absent on a found book or one bound before this existed, and `DescriptiveBookRecipe` falls back to
+     * seeding from the Age's id there — which is what every book did until now.
+     */
+    val BOOK_SEED: DataComponentType<Long> = DataComponentType.builder<Long>()
+        .persistent(Codec.LONG)
+        .networkSynchronized(ByteBufCodecs.VAR_LONG)
+        .build()
+
+    /**
      * What the book **says**, column by column — [Readout][co.voik.agesandtheart.age.word.grammar.Readout]'s
      * reading, with the particles a writer was spared for being inferable from position.
      *
@@ -330,6 +345,7 @@ object AgeContent {
         "page_word".location() to PAGE_WORD,
         "book_words".location() to BOOK_WORDS,
         "book_title".location() to BOOK_TITLE,
+        "book_seed".location() to BOOK_SEED,
         "book_reading".location() to BOOK_READING,
         "link_target".location() to LINK_TARGET,
         "notebook_pages".location() to NOTEBOOK_PAGES,

@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.desk
 
+import co.voik.agesandtheart.age.word.grammar.Grammar
+import co.voik.agesandtheart.age.word.Resolver
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.learnedWords
@@ -212,7 +214,38 @@ class WritersDeskMenu(
             capabilities = capabilities.capabilities,
             pageLimit = capabilities.pageLimit,
             composing = composing.toList(),
+            quarrels = quarrelsIn(player, capabilities),
         )
+
+    /**
+     * What is wrong with the sentence as it currently stands — **empty without the implement that reveals
+     * it**, which is what `DeskCapability.REVEAL_CONFLICTS` is for (design §7.3): visibility is a property
+     * of the workspace, so a bare desk shows a writer nothing and a furnished one shows them everything.
+     *
+     * Resolved against [writingSeed], so the answer is the one the bound book will actually produce rather
+     * than one of the answers it might have.
+     *
+     * Each flaw becomes a mark on **both** its words. A flaw naming one word is paired with itself, which
+     * is how "nothing here can be this" reaches a display that only knows how to mark pairs.
+     */
+    private fun quarrelsIn(player: ServerPlayer, capabilities: DeskState): List<Quarrel> {
+        if (DeskCapability.REVEAL_CONFLICTS !in capabilities.capabilities) return emptyList()
+        if (composing.isEmpty()) return emptyList()
+        val vocabulary = vocabularyFor(player)
+        val read = Grammar.read(vocabulary, composing.map { it.path })
+        val flaws = Resolver.resolve(vocabulary, read, player.writingSeed).instability.flaws
+        val byName = composing.associateBy { it.path }
+        return flaws.flatMap { flaw ->
+            val named = flaw.words.mapNotNull(byName::get)
+            val first = named.firstOrNull() ?: return@flatMap emptyList()
+            val second = named.getOrNull(1) ?: first
+            if (first == second) {
+                listOf(Quarrel(first, first, flaw.register.key))
+            } else {
+                listOf(Quarrel(first, second, flaw.register.key), Quarrel(second, first, flaw.register.key))
+            }
+        }
+    }
 
     /** Whether the player may write [word] at all — knowing it is the first gate (design §7.1.1). */
     fun knows(player: ServerPlayer, word: Identifier): Boolean = player.learnedWords.knows(word)

@@ -15,6 +15,18 @@ import net.minecraft.resources.Identifier
  * an unbounded archive, three tanks, a set of capabilities — has no slot to live in. Word *search* is
  * absent on purpose: the client already holds the learned set, so filtering never leaves the machine.
  */
+/**
+ * One page disagreeing with another, as the work surface needs it.
+ *
+ * **A pair, never a loser** (design §7.3). Which of two tied words is displaced is a function of the seed,
+ * so naming one as the casualty would be a guess dressed as a fact — where "these two are asking for
+ * different things" is true however the draw falls. Both pages are marked and each tooltip names the other.
+ *
+ * [register] is `Register.key`, kept as a string so the screen can say *how* they disagree without the
+ * client needing the instability model.
+ */
+data class Quarrel(val word: Identifier, val against: Identifier, val register: String)
+
 data class DeskSyncPayload(
     val archive: Map<Identifier, Int>,
     val ink: Map<InkTier, Long>,
@@ -26,6 +38,17 @@ data class DeskSyncPayload(
     val pageLimit: Int?,
     /** The pages laid out in the composer, in order — order being word order. */
     val composing: List<Identifier>,
+    /**
+     * What is wrong with the sentence as laid out, resolved against the seed the book will actually use.
+     *
+     * **Sent as pairs of words rather than as flaws**, because the screen's job is to mark pages: a page is
+     * red because something disagrees with it, and its tooltip names what. Severity, register and aspect
+     * are the writer's business at the bind screen and the recipe's afterwards, not the work surface's.
+     *
+     * A word that failed *alone* — `unbacked`, nothing in the aspect could ever be it — appears paired with
+     * itself, which is how "nothing here can be this" reaches a display that only knows how to mark pairs.
+     */
+    val quarrels: List<Quarrel>,
 ) : CustomPacketPayload {
 
     override fun type(): CustomPacketPayload.Type<DeskSyncPayload> = TYPE
@@ -50,6 +73,21 @@ data class DeskSyncPayload(
         private val PAPER_STREAM: StreamCodec<ByteBuf, LinkedHashMap<InkTier, Int>> =
             ByteBufCodecs.map(::LinkedHashMap, TIER_STREAM, ByteBufCodecs.VAR_INT)
 
+        private val QUARREL_STREAM: StreamCodec<ByteBuf, Quarrel> = StreamCodec.of(
+            { buffer, value ->
+                Identifier.STREAM_CODEC.encode(buffer, value.word)
+                Identifier.STREAM_CODEC.encode(buffer, value.against)
+                ByteBufCodecs.STRING_UTF8.encode(buffer, value.register)
+            },
+            { buffer ->
+                Quarrel(
+                    Identifier.STREAM_CODEC.decode(buffer),
+                    Identifier.STREAM_CODEC.decode(buffer),
+                    ByteBufCodecs.STRING_UTF8.decode(buffer),
+                )
+            },
+        )
+
         val STREAM_CODEC: StreamCodec<ByteBuf, DeskSyncPayload> = StreamCodec.of(
             { buffer, value ->
                 ARCHIVE_STREAM.encode(buffer, LinkedHashMap(value.archive))
@@ -60,6 +98,7 @@ data class DeskSyncPayload(
                 CAPABILITY_STREAM.apply(ByteBufCodecs.list()).encode(buffer, value.capabilities.toList())
                 ByteBufCodecs.optional(ByteBufCodecs.VAR_INT).encode(buffer, java.util.Optional.ofNullable(value.pageLimit))
                 Identifier.STREAM_CODEC.apply(ByteBufCodecs.list()).encode(buffer, value.composing)
+                QUARREL_STREAM.apply(ByteBufCodecs.list()).encode(buffer, value.quarrels)
             },
             { buffer ->
                 DeskSyncPayload(
@@ -71,6 +110,7 @@ data class DeskSyncPayload(
                     capabilities = CAPABILITY_STREAM.apply(ByteBufCodecs.list()).decode(buffer).toSet(),
                     pageLimit = ByteBufCodecs.optional(ByteBufCodecs.VAR_INT).decode(buffer).orElse(null),
                     composing = Identifier.STREAM_CODEC.apply(ByteBufCodecs.list()).decode(buffer),
+                    quarrels = QUARREL_STREAM.apply(ByteBufCodecs.list()).decode(buffer),
                 )
             },
         )
