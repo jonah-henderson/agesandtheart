@@ -3,6 +3,7 @@ package co.voik.agesandtheart.worldgen.fissure
 import co.voik.agesandtheart.content.AgeContent
 import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.InsideBlockEffectApplier
@@ -113,4 +114,20 @@ class StarFissureBlock(properties: Properties) : BaseEntityBlock(properties), Po
  * transformation and the depth layers are vanilla's rather than an imitation of them.
  */
 class StarFissureBlockEntity(pos: BlockPos, state: BlockState) :
-    TheEndPortalBlockEntity(AgeContent.STAR_FISSURE_ENTITY, pos, state)
+    TheEndPortalBlockEntity(AgeContent.STAR_FISSURE_ENTITY, pos, state) {
+
+    /**
+     * Every face that is not against another fissure — the **shell** of the shaft rather than its slab.
+     *
+     * Vanilla answers `axis == Y` here, because an end portal is one layer on a floor and only ever seen
+     * from above. Stack that and the sides are missing: you fall past bare stone with a starry lid over it.
+     *
+     * Skipping the buried faces matters as much as adding the open ones. The starfield is drawn as a stack
+     * of translucent layers, so two of them back to back read as a brighter, flatter smear — the same
+     * reason glass does not draw the pane it is pressed against.
+     */
+    override fun shouldRenderFace(direction: Direction): Boolean {
+        val here = level ?: return true
+        return !here.getBlockState(worldPosition.relative(direction)).`is`(AgeContent.STAR_FISSURE_BLOCK)
+    }
+}
