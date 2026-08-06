@@ -23,6 +23,11 @@ out float faceBrightness;
 out vec2 worldSample;
 // How far out this corner is, as a share of the slab's half-width: 0 overhead, 1 at the edge midpoints
 // and about 1.41 at the corners. What turns a square slab into a disc — see the fragment stage.
+//
+// The slab's corners are already `±1` (`Blaze3dSkyCanvas.buildSlab`), so this is `length` and nothing
+// else. Scaling it — as if the box ran `±0.5` — put the edge midpoints at 2.0, which is past the far end
+// of the fragment stage's fade, so every fragment of every deck was discarded and the Spire lost its
+// clouds entirely (Jonah, 2026-08-06, walked).
 out float reach;
 
 void main() {
@@ -35,5 +40,5 @@ void main() {
     // world space. That is what keeps the pattern still as the player walks through it, rather than
     // dragging along with them.
     worldSample = Position.xz * Extent.x + SampleAndRoil.xy;
-    reach = length(Position.xz) * 2.0;
+    reach = length(Position.xz);
 }
