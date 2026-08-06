@@ -1,7 +1,9 @@
 package co.voik.agesandtheart.age.word
 
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.content.NotebookItem
 import co.voik.agesandtheart.platform.Services
+import net.minecraft.resources.Identifier
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.inventory.AbstractContainerMenu
@@ -39,11 +41,34 @@ object PageLearning {
         override fun dataChanged(container: AbstractContainerMenu, id: Int, value: Int) = Unit
     }
 
-    /** Learns whatever [stack] has written on it, if anything, and if the player did not already know it. */
+    /**
+     * Learns whatever [stack] has written on it — a page's own word, or every page a notebook is holding.
+     *
+     * **A notebook is a stack of pages and teaches like one.** It was a way to carry pages without ever
+     * reading them: a full one could be tipped straight into a desk, and the words went in unlearned to an
+     * archive that lists what you know, where nothing could see or reach them again.
+     */
     fun observe(player: ServerPlayer, stack: ItemStack) {
-        val word = stack.get(AgeContent.PAGE_WORD) ?: return
-        if (!player.learnedWords.learn(word)) return
-        Services.NETWORK.sendToPlayer(player, LearnedWordsPayload.added(word))
+        val page = stack.get(AgeContent.PAGE_WORD)
+        if (page != null) {
+            teach(player, listOf(page))
+            return
+        }
+        if (stack.item === AgeContent.NOTEBOOK) {
+            teach(player, NotebookItem.pagesIn(stack).mapNotNull { it.get(AgeContent.PAGE_WORD) })
+        }
+    }
+
+    /**
+     * Learns each of [words] the player did not already know, and says so once.
+     *
+     * One packet however many are learned, because these arrive by the notebook and the deskful now — and
+     * the toast cycles through a batch where a packet each would raise a wall of them.
+     */
+    fun teach(player: ServerPlayer, words: Collection<Identifier>) {
+        val learned = words.filter(player.learnedWords::learn)
+        if (learned.isEmpty()) return
+        Services.NETWORK.sendToPlayer(player, LearnedWordsPayload.added(learned))
     }
 
     /**
@@ -53,9 +78,7 @@ object PageLearning {
      * One packet rather than one per word: a book teaches a dozen at once, and the toast cycles.
      */
     fun study(player: ServerPlayer, book: ItemStack) {
-        val learned = book.get(AgeContent.BOOK_WORDS).orEmpty().filter(player.learnedWords::learn)
-        if (learned.isEmpty()) return
-        Services.NETWORK.sendToPlayer(player, LearnedWordsPayload.added(learned))
+        teach(player, book.get(AgeContent.BOOK_WORDS).orEmpty())
     }
 
     /**

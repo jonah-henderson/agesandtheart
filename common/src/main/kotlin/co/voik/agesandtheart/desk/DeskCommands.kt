@@ -2,6 +2,7 @@ package co.voik.agesandtheart.desk
 
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.age.word.PageLearning
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.age.word.grammar.Readout
@@ -52,7 +53,24 @@ object DeskCommands {
     fun opened(player: ServerPlayer) {
         val menu = player.containerMenu as? WritersDeskMenu ?: return
         val desk = menu.deskOf(player) ?: return
+        readTheArchive(player, desk)
         sync(player, menu, desk)
+    }
+
+    /**
+     * **Opening the archive is reading it** (design §4.5), so every word filed here is learned.
+     *
+     * The desk opens on this tab and it is the tab the pages are on, so a writer sitting down at a desk
+     * has read what is in it — including, at a shared desk, whatever somebody else filed. That is the
+     * same rule as picking a page up off the ground: you learn what passes through your hands, and pages
+     * you are sorting through pass through them.
+     *
+     * It is also what stops the archive hiding its own contents. Rows are the words you *know* against
+     * this desk's counts, so a page for a word you had never met was in there, counted by the reading and
+     * invisible to the person it belonged to.
+     */
+    private fun readTheArchive(player: ServerPlayer, desk: WritersDeskBlockEntity) {
+        PageLearning.teach(player, desk.archive.words)
     }
 
     fun handle(player: ServerPlayer, payload: DeskCommandPayload) {
@@ -65,8 +83,13 @@ object DeskCommands {
             DeskAction.COMPOSE_FROM_HAND -> composeFromHand(player, menu, desk, payload)
             DeskAction.RETURN_TO_ARCHIVE -> returnToArchive(menu, desk, payload)
             DeskAction.WITHDRAW -> withdraw(player, desk, payload)
-            // No sync afterwards: the tab is the client's own state and it already knows.
-            DeskAction.SET_TAB -> { menu.openTab = payload.index; return }
+            // No sync afterwards: the tab is the client's own state and it already knows. Turning *to*
+            // the archive is reading it, and what that teaches goes out on its own packet.
+            DeskAction.SET_TAB -> {
+                menu.openTab = payload.index
+                if (payload.index == WritersDeskMenu.ARCHIVE_TAB) readTheArchive(player, desk)
+                return
+            }
             DeskAction.PRICE -> return quote(player, payload)
             DeskAction.MOVE_IN_BOOK -> moveInBook(menu, payload)
             DeskAction.FINALISE -> finalise(player, menu, desk, payload)
