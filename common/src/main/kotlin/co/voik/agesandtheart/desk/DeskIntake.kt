@@ -54,6 +54,13 @@ object DeskIntake {
         return Result.untouched(stack)
     }
 
+    /**
+     * Whether this lands in the archive rather than in the stores — which the wings cannot show, so what
+     * goes this way has to be said out loud (see [DeskWingMenu]).
+     */
+    fun landsInTheArchive(stack: ItemStack): Boolean =
+        pageWordOf(stack) != null || stack.item === AgeContent.NOTEBOOK
+
     /** Whether the desk would take this, so a slot can refuse it before the player commits. */
     fun accepts(stack: ItemStack): Boolean =
         pageWordOf(stack) != null ||

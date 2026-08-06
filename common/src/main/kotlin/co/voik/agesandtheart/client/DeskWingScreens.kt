@@ -14,6 +14,7 @@ import co.voik.agesandtheart.desk.DeskSlots
 import co.voik.agesandtheart.desk.DeskWingMenu
 import co.voik.agesandtheart.desk.InkCaseMenu
 import co.voik.agesandtheart.desk.SupplyBinMenu
+import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.components.AbstractWidget
 import net.minecraft.client.gui.layouts.LinearLayout
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
@@ -63,6 +64,15 @@ abstract class DeskWingScreen<Menu : DeskWingMenu>(
 
     /** What this wing is *for*, laid out. Arranged and positioned by [init]. */
     protected abstract fun contents(): LinearLayout
+
+    /** The desk's own line, so a page filed from here says where it went. */
+    override fun extractContents(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, a: Float) {
+        super.extractContents(graphics, mouseX, mouseY, a)
+        DeskNotice.extract(
+            graphics, font,
+            Rect(leftPos, topPos, DeskSlots.PANEL_WIDTH, DeskSlots.WING_PANEL_HEIGHT),
+        )
+    }
 
     private fun panel(at: Rect): AbstractWidget = DecorationWidget(PanelSurface.RAISED).also {
         it.setPosition(at.x, at.y)

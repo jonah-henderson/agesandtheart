@@ -68,10 +68,16 @@ class BookWritingWorkSurface<T : Any>(
 
     private val rowHeight: Int get() = cellHeight + gutterHeight
 
-    /** Pages, plus one empty slot to drop into — but never past what the desk could bind. */
+    /**
+     * Pages, plus one empty slot to drop into — and no empty one once the desk is at its limit.
+     *
+     * **Never fewer than the pages actually laid**, whatever the limit says. A page the surface declines to
+     * draw is a page nobody can see, move or take back, while the reading still counts it — so a cap that
+     * has been overrun has to be visible rather than tidied away.
+     */
     private fun slotCount(): Int {
         val cap = capacity() ?: return pages.size + 1
-        return minOf(pages.size + 1, cap)
+        return if (pages.size >= cap) pages.size else pages.size + 1
     }
 
     private fun slotFor(index: Int): PageSlot {

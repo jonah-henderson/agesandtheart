@@ -23,6 +23,7 @@ import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.AgeFluids
 import co.voik.agesandtheart.content.NotebookItem
 import co.voik.agesandtheart.desk.DeskAction
+import co.voik.agesandtheart.desk.DeskCapability
 import co.voik.agesandtheart.desk.DeskCommandPayload
 import co.voik.agesandtheart.desk.DeskSlots
 import co.voik.agesandtheart.desk.WritersDeskMenu
@@ -34,6 +35,7 @@ import net.minecraft.client.gui.components.EditBox
 import net.minecraft.client.gui.components.MultiLineTextWidget
 import net.minecraft.client.gui.layouts.LinearLayout
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
+import net.minecraft.client.input.KeyEvent
 import net.minecraft.client.input.MouseButtonEvent
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.Identifier
@@ -227,7 +229,7 @@ class WritersDeskScreen(
                 capacity = { DeskModel.pageLimit() },
                 quarrel = ::quarrelAt,
             ),
-            ::binds,
+            ::composes,
         )
 
         // **A toggle, not three write buttons.** Which word to write is a row's business now, so what is
@@ -362,6 +364,22 @@ class WritersDeskScreen(
         return super.mouseClicked(event, doubleClick)
     }
 
+    /**
+     * A key pressed while a box has the caret belongs to the box, whether or not it wanted it.
+     *
+     * Without this, `e` reaches `AbstractContainerScreen`'s "close the inventory" and the desk shuts
+     * mid-word: an [EditBox] returns false from `keyPressed` for an ordinary letter, because the letter
+     * arrives as a character rather than as a key. Vanilla's creative search box is guarded exactly so.
+     */
+    override fun keyPressed(event: KeyEvent): Boolean {
+        val typingInto = boxWithTheCaret() ?: return super.keyPressed(event)
+        if (typingInto.keyPressed(event)) return true
+        return if (event.isEscape) super.keyPressed(event) else true
+    }
+
+    private fun boxWithTheCaret(): EditBox? =
+        listOf(search, ageName).firstOrNull { it.visible && it.isFocused }
+
     override fun containerTick() {
         super.containerTick()
         refreshWords(force = false)
@@ -451,10 +469,17 @@ class WritersDeskScreen(
         ),
     )
 
-    /** What writing one would cost, or why it cannot be paid. */
+    /**
+     * What writing one would cost, or why it cannot be paid.
+     *
+     * A word nobody has quoted yet is asked about **here**, on the hover, rather than only on selection —
+     * "what does this cost" is the question a hover is asking, and a row that answered it only after being
+     * clicked read as a tooltip that worked sometimes. One request per word per session
+     * ([DeskModel.startAsking]), so the corpus still never crosses the wire.
+     */
     private fun writeTooltip(row: WordRow): Component {
         val price = DeskModel.priceFor(row.word, chosenPaper)
-            ?: return translated("write_unpriced")
+            ?: return quoteFor(row.word)
         val (inkTier, units) = price
         val ink = Component.translatable("ink.agesandtheart.${inkTier.serializedName}")
         return if (DeskModel.ink(inkTier) >= units && DeskModel.paper(chosenPaper) > 0) {
@@ -464,11 +489,17 @@ class WritersDeskScreen(
         }
     }
 
+    /** Asks the server for a quote if this word has never been priced, and says so meanwhile. */
+    private fun quoteFor(word: Identifier): Component {
+        if (DeskModel.startAsking(word)) send(DeskAction.PRICE, word = word)
+        return translated("write_unpriced")
+    }
+
     /** Picking a word asks what it costs, and on the tabs where a click means something, does that too. */
     private fun chooseWord(row: WordRow) {
         if (selectedWord != row.word) {
             selectedWord = row.word
-            send(DeskAction.PRICE, word = row.word)
+            if (DeskModel.startAsking(row.word)) send(DeskAction.PRICE, word = row.word)
         }
         when (tab) {
             // The archive selects: which word the paper buttons write, and nothing more. Taking a page out
@@ -487,12 +518,18 @@ class WritersDeskScreen(
         return DeskModel.ink(inkTier) >= units
     }
 
-    /** The only drawing left, and it is all text over widgets that have already placed themselves. */
-    override fun extractBackground(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, a: Float) {
-        super.extractBackground(graphics, mouseX, mouseY, a)
+    /**
+     * The only drawing left, and it is all text over widgets that have already placed themselves.
+     *
+     * **In `extractContents`, not `extractBackground`.** The background is its own stratum, laid under
+     * every widget on the screen — so the panel painted over every word of this, and a refusal the desk
+     * had gone to the trouble of sending arrived invisible.
+     */
+    override fun extractContents(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, a: Float) {
+        super.extractContents(graphics, mouseX, mouseY, a)
         if (tab == DeskTab.ARCHIVE) extractPrices(graphics)
         if (tab == DeskTab.WRITE_BOOK) extractCompositionHeader(graphics)
-        extractNotice(graphics)
+        DeskNotice.extract(graphics, font, layout.panel)
     }
 
     /**
@@ -514,26 +551,22 @@ class WritersDeskScreen(
         }
     }
 
-    /** Why the desk refused, across the foot of the panel, fading after a few seconds. */
-    private fun extractNotice(graphics: GuiGraphicsExtractor) {
-        val reason = DeskModel.notice ?: return
-        if (System.currentTimeMillis() - DeskModel.noticeAt > NOTICE_MS) return
-        val text = translated(reason)
-        graphics.text(
-            font, text,
-            layout.panel.x + (layout.panel.width - font.width(text)) / 2,
-            layout.panel.bottom - NOTICE_LIFT,
-            Palette.WARNING,
-            false,
-        )
-    }
-
-    /** Sits in the line the column left above the work surface for it. */
+    /**
+     * Sits in the line the column left above the work surface for it: how much of the book is spoken for,
+     * and — when this desk cannot see them — that an unmarked page proves nothing.
+     *
+     * Saying so is not giving the currency away (design §7.3). A writer who is shown no quarrels at a bare
+     * desk otherwise reads that as *there are none*, which is the one thing the absence does not mean.
+     */
     private fun extractCompositionHeader(graphics: GuiGraphicsExtractor) {
         val written = DeskModel.composing().size
         val limit = DeskModel.pageLimit()
         val header = if (limit == null) "$written" else "$written / $limit"
-        graphics.text(font, header, composition.x, composition.y - LINE, Palette.FAINT, false)
+        val baseline = composition.y - LINE
+        graphics.text(font, header, composition.x, baseline, Palette.FAINT, false)
+        if (DeskModel.can(DeskCapability.REVEAL_CONFLICTS)) return
+        val unseen = translated("conflicts_unseen")
+        graphics.text(font, unseen, composition.right - font.width(unseen), baseline, Palette.FAINT, false)
     }
 
     /** Exactly what the tank holds, since a gauge can only ever say roughly. */
@@ -590,8 +623,6 @@ class WritersDeskScreen(
         const val NAME_WIDTH = 60
         const val BIND_WIDTH = 30
         const val PRICE_DROP = 4
-        const val NOTICE_MS = 4000L
-        const val NOTICE_LIFT = 14
 
         /** Three rows: enough to pick from with the search box doing the finding. */
         const val BOOK_WORD_LIST_HEIGHT = 36

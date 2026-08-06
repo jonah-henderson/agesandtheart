@@ -73,12 +73,15 @@ abstract class DeskWingMenu(
         if (player != null && !intake.getItem(0).isEmpty) {
             val desk = deskOf(player)
             if (desk != null) {
-                val result = DeskIntake.offer(desk, intake.getItem(0))
+                val offered = intake.getItem(0)
+                val wentToTheArchive = DeskIntake.landsInTheArchive(offered)
+                val result = DeskIntake.offer(desk, offered)
                 if (result.took) {
                     intake.setItem(0, result.remainder)
                     if (!result.returned.isEmpty && !player.inventory.add(result.returned)) {
                         player.drop(result.returned, false)
                     }
+                    if (wentToTheArchive) DeskCommands.say(player, FILED_NOTICE)
                     DeskCommands.sync(player, desk)
                 }
             }
@@ -99,12 +102,16 @@ abstract class DeskWingMenu(
         }
         val serverPlayer = player as? ServerPlayer ?: return ItemStack.EMPTY
         val desk = deskOf(serverPlayer) ?: return ItemStack.EMPTY
+        // Asked before the offer, because the offer is what empties the stack.
+        val wentToTheArchive = DeskIntake.landsInTheArchive(moved)
         val result = DeskIntake.offer(desk, moved)
         if (!result.took) return ItemStack.EMPTY
         slot.setByPlayer(result.remainder)
         if (!result.returned.isEmpty && !player.inventory.add(result.returned)) {
             player.drop(result.returned, false)
         }
+        // A wing shows the stores and nothing else, so a page filed here would otherwise simply vanish.
+        if (wentToTheArchive) DeskCommands.say(serverPlayer, FILED_NOTICE)
         DeskCommands.sync(serverPlayer, desk)
         return original
     }
@@ -130,6 +137,9 @@ abstract class DeskWingMenu(
     companion object {
         private const val SLOT_PITCH = 18
         private const val INTAKE_SLOT = 0
+
+        /** What the desk says when a wing hands something to the archive, which a wing cannot show. */
+        private const val FILED_NOTICE = "filed"
 
         /** Our one slot comes first, so everything from here is the player's. */
         private const val FIRST_PLAYER_SLOT = 1

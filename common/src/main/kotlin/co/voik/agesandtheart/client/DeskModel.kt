@@ -34,20 +34,28 @@ object DeskModel {
         state = payload
     }
 
-    /** The last quote the server gave, for whichever word is selected. */
-    var price: co.voik.agesandtheart.desk.DeskPricePayload? = null
-        private set
+    /**
+     * Every quote the server has given this session, by word.
+     *
+     * Kept rather than replaced, because a price is a fact about a word and does not change while the desk
+     * is open — so the row you hovered a moment ago can still say what it costs. Still one word at a time,
+     * on demand: the rule that the corpus never crosses the wire is what this is a cache *for*.
+     */
+    private val quotes = mutableMapOf<Identifier, Map<InkTier, Pair<InkTier, Long>>>()
+
+    /** Words a request has already gone out for, so a hover cannot ask again every frame. */
+    private val asked = mutableSetOf<Identifier>()
 
     fun remember(quote: co.voik.agesandtheart.desk.DeskPricePayload) {
-        price = quote
+        quotes[quote.word] = quote.prices
     }
 
-    /** What [paper] would cost for the quoted word, or null if nothing has been quoted for it. */
-    fun priceFor(word: Identifier?, paper: InkTier): Pair<InkTier, Long>? {
-        val quote = price ?: return null
-        if (quote.word != word) return null
-        return quote.prices[paper]
-    }
+    /** Records that a quote is on its way. @return false if one already was. */
+    fun startAsking(word: Identifier): Boolean = asked.add(word)
+
+    /** What [paper] would cost for [word], or null if nothing has been quoted for it yet. */
+    fun priceFor(word: Identifier?, paper: InkTier): Pair<InkTier, Long>? =
+        quotes[word ?: return null]?.get(paper)
 
     /** The last refusal and when it arrived, so the screen can show it and let it fade. */
     var notice: String? = null
@@ -62,7 +70,8 @@ object DeskModel {
 
     fun forget() {
         state = null
-        price = null
+        quotes.clear()
+        asked.clear()
         archiveGrewAt = 0L
         notice = null
         noticeAt = 0L

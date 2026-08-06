@@ -61,7 +61,7 @@ object DeskCommands {
         when (payload.action) {
             DeskAction.WRITE_TO_ARCHIVE -> write(player, menu, desk, payload, toBook = false)
             DeskAction.WRITE_TO_BOOK -> write(player, menu, desk, payload, toBook = true)
-            DeskAction.COMPOSE_FROM_ARCHIVE -> composeFromArchive(menu, desk, payload)
+            DeskAction.COMPOSE_FROM_ARCHIVE -> composeFromArchive(player, menu, desk, payload)
             DeskAction.COMPOSE_FROM_HAND -> composeFromHand(player, menu, desk, payload)
             DeskAction.RETURN_TO_ARCHIVE -> returnToArchive(menu, desk, payload)
             DeskAction.WITHDRAW -> withdraw(player, desk, payload)
@@ -147,12 +147,20 @@ object DeskCommands {
         if (toBook) menu.composing += wordId else desk.addPages(wordId, 1)
     }
 
+    /**
+     * The cap is checked **before the page is taken**, or a full book would swallow one out of the archive
+     * and put it nowhere — and it is checked at all because this was the one route into the composer that
+     * did not: pages laid this way ran past what the desk could bind, where the work surface draws only as
+     * many as it can, so a writer had pages they could not see and a reading that counted them.
+     */
     private fun composeFromArchive(
+        player: ServerPlayer,
         menu: WritersDeskMenu,
         desk: WritersDeskBlockEntity,
         payload: DeskCommandPayload,
     ) {
         val word = payload.word ?: return
+        if (!roomInBook(player, menu, desk)) return
         if (!desk.takePages(word, 1)) return
         menu.composing += word
     }
@@ -266,7 +274,15 @@ object DeskCommands {
     }
 
     /** To the screen, not the action bar: an open screen covers the action bar. */
-    private fun complain(player: ServerPlayer, reason: String) {
-        Services.NETWORK.sendToPlayer(player, DeskNoticePayload(reason))
+    private fun complain(player: ServerPlayer, reason: String) = say(player, reason)
+
+    /**
+     * A line at the foot of whichever desk screen is open.
+     *
+     * Usually a refusal, but not always: a wing that files something into the archive has moved it
+     * somewhere the wing cannot show, and an item that vanishes with nothing said reads as an item lost.
+     */
+    fun say(player: ServerPlayer, line: String) {
+        Services.NETWORK.sendToPlayer(player, DeskNoticePayload(line))
     }
 }

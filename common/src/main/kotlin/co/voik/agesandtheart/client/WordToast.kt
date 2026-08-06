@@ -27,6 +27,12 @@ class WordToast : Toast {
 
     override fun getWantedVisibility(): Toast.Visibility = wanted
 
+    /**
+     * What [show] looks one up by. Without it a toast answers `Toast.NO_TOKEN`, no lookup ever matches,
+     * and every word learned raises a box of its own — which is the wall this class exists to avoid.
+     */
+    override fun getToken(): Any = TOKEN
+
     override fun update(manager: ToastManager, fullyVisibleForMs: Long) {
         if (changed) {
             lastChanged = fullyVisibleForMs
