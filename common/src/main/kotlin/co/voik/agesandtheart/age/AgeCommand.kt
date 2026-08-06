@@ -39,6 +39,8 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.Identifier
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.world.entity.EntitySpawnReason
+import net.minecraft.world.entity.EntityType
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.biome.BiomeSource
 import net.minecraft.world.level.biome.Climate
@@ -69,6 +71,7 @@ import net.minecraft.world.level.levelgen.Heightmap
  * /age draft <grammar> [seed]         — one expansion of a generation grammar: book, name, …
  * /age compare <a> <b> [radius]       — do two Ages generate the same world, block for block?
  * /age sky <name> [<spec>]            — read an Age's suns and moons, or preview different ones in it
+ * /age strike [distance]              — call a bolt down where you are looking, to see a tempest land one
  * /age list                           — list known Ages (with their recipe)
  * ```
  */
@@ -79,6 +82,7 @@ object AgeCommand {
      * is the one that used to be spelled `hasPermission(2)`.
      */
     private val OPERATOR_PERMISSION = Commands.hasPermission<CommandSourceStack>(Commands.LEVEL_GAMEMASTERS)
+    private const val DISTANCE_ARGUMENT = "distance"
     private const val NAME_ARGUMENT = "name"
     private const val RADIUS_ARGUMENT = "radius"
     private const val SEED_ARGUMENT = "seed"
@@ -106,6 +110,10 @@ object AgeCommand {
     private const val DEFAULT_COMPARE_RADIUS = 2
     private const val MAX_COMPARE_RADIUS = 8
     private const val MAX_REPORTED_DIFFERENCES = 3
+
+    /** Far enough that `/age strike` does not land on the caster, near enough to watch it land. */
+    private const val DEFAULT_STRIKE_DISTANCE = 12
+    private const val MAX_STRIKE_DISTANCE = 128
 
     /** What `/age sky`'s preview spec may name, and the prefix its parameters carry. */
     private const val SKY_ASPECT = "sky"
@@ -172,6 +180,7 @@ object AgeCommand {
                 .then(benchmarkSubcommand())
                 .then(compareSubcommand())
                 .then(skySubcommand())
+                .then(strikeSubcommand())
                 .then(listSubcommand()),
         )
     }
@@ -279,6 +288,23 @@ object AgeCommand {
                         },
                 ),
         )
+
+    /**
+     * `/age strike [<distance>]` — call a bolt down where you are looking, to see what a tempest does to
+     * it without standing in the rain waiting.
+     *
+     * The bolt goes in through `addFreshEntity` like any other, so it is the *same* strike a tempest gets:
+     * whether it craters, and whether a rod grounds it, is decided where it is decided for real.
+     */
+    private fun strikeSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        Commands.literal("strike")
+            .executes { context -> runStrike(context, DEFAULT_STRIKE_DISTANCE) }
+            .then(
+                Commands.argument(DISTANCE_ARGUMENT, IntegerArgumentType.integer(0, MAX_STRIKE_DISTANCE))
+                    .executes { context ->
+                        runStrike(context, IntegerArgumentType.getInteger(context, DISTANCE_ARGUMENT))
+                    },
+            )
 
     private fun locateSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("locate").then(
@@ -843,6 +869,26 @@ object AgeCommand {
         }
         // The Age's own seed, so a preview differs from the real sky only where the words differ.
         return composition.sky.specFor(composition.optionsFor(Aspect.SKY, 0), seed)
+    }
+
+    /**
+     * Strikes the ground [distance] blocks along the caster's line of sight.
+     *
+     * The target is the surface under that point rather than the point itself, because a strike is a
+     * column: aiming into the air would put the bolt in the air. `MOTION_BLOCKING` is the heightmap
+     * vanilla's own targeting uses.
+     */
+    private fun runStrike(context: CommandContext<CommandSourceStack>, distance: Int): Int {
+        val source = context.source
+        val level = source.level
+        val aimed = source.position.add(Vec3.directionFromRotation(source.rotation).scale(distance.toDouble()))
+        val ground = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, BlockPos.containing(aimed))
+        val bolt = EntityType.LIGHTNING_BOLT.create(level, EntitySpawnReason.COMMAND)
+            ?: return FAILURE.also { source.sendFailure(Component.literal("Could not make a bolt")) }
+        bolt.snapTo(Vec3.atBottomCenterOf(ground))
+        level.addFreshEntity(bolt)
+        source.sendSuccess({ Component.literal("Struck ${ground.x} ${ground.y} ${ground.z}") }, true)
+        return SUCCESS
     }
 
     private fun runTeleport(context: CommandContext<CommandSourceStack>): Int {

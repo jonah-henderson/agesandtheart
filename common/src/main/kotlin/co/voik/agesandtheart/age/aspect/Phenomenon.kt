@@ -38,12 +38,17 @@ enum class Phenomenon(
     val insistsOn: AgeWeather.Conditions = AgeWeather.Conditions.ORDINARY,
 ) : AspectPreset {
     /**
-     * A world in permanent storm, struck far more often than weather alone would.
+     * A world in permanent storm, struck far more often than weather alone would, and cratered where it
+     * is struck.
      *
      * Built on the Age's **own** weather rather than beside it: with `WeatherData` per Age
      * ([co.voik.agesandtheart.age.phenomena.AgeWeather]), `ServerLevel.tickThunder` does the whole job —
      * targeting, lightning rods, the skeleton-horse trap and the bolt — and a tempest is that asked for
-     * more often. Nothing here reimplements lightning.
+     * more often. Nothing here reimplements lightning; a bolt that lands in one is given a creeper's blast
+     * and fire around it ([co.voik.agesandtheart.age.phenomena.Tempest.struck]).
+     *
+     * **A lightning rod grounds it**, which is the answer §5.2 asks a process to have: the storm is
+     * inexorable and it can be lived with, by a writer who brings copper to the Age they wrote.
      */
     TEMPEST("tempest", AgeWeather.Conditions(rainfall = MOSTLY, thunder = MOSTLY)),
     ;

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.phenomena
 
+import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Atmosphere
@@ -51,6 +52,23 @@ object Happenings {
             AgeWeather.steer(level, wanted(composition, happening))
             for (claim in happening) befall(level, claim)
         }
+    }
+
+    /**
+     * The claim by which [phenomenon] befalls [level], or null where it does not.
+     *
+     * What [tick] reads per Age, asked the other way about — for a phenomenon that has to answer something
+     * the world did rather than the clock, as a tempest answers a bolt landing ([Tempest.struck]). The
+     * namespace test comes first because every bolt in the game asks this, and lightning outside an Age
+     * should cost one string comparison.
+     */
+    fun claimFor(level: ServerLevel, phenomenon: Phenomenon): Claim? {
+        val age = level.dimension().identifier()
+        if (age.namespace != Constants.MOD_ID) return null
+        val saved = AgeSavedData.get(level.server)
+        if (age !in saved.ages) return null
+        val composition = saved.recipe(age).composition ?: return null
+        return claimsIn(composition).firstOrNull { it.value == phenomenon.key }
     }
 
     /** What the Age says befalls it, as claims — empty for one that says nothing. */
