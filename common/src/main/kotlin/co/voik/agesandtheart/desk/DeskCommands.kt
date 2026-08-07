@@ -54,6 +54,9 @@ object DeskCommands {
         val menu = player.containerMenu as? WritersDeskMenu ?: return
         val desk = menu.deskOf(player) ?: return
         readTheArchive(player, desk)
+        // The pages this writer left on this desk, back on the surface they were left on.
+        menu.composing.clear()
+        menu.composing += desk.compositionFor(player.uuid)
         sync(player, menu, desk)
     }
 
@@ -138,7 +141,15 @@ object DeskCommands {
         )
     }
 
+    /**
+     * Pushes the desk's state to the screen — and writes the laid-out pages down on the way past.
+     *
+     * Every action ends here, so this is the one place a composition has to be saved from: the menu is
+     * where the pages are being moved and the block entity is what survives a chunk unloading. Persisting
+     * per action rather than only on close means a crash costs the last click rather than the sentence.
+     */
     fun sync(player: ServerPlayer, menu: WritersDeskMenu, desk: WritersDeskBlockEntity) {
+        desk.setComposition(player.uuid, menu.composing)
         val workshop = WritersDesk.load(player.level().server.resourceManager, mutableListOf())
         Services.NETWORK.sendToPlayer(player, menu.snapshot(player, desk, desk.capabilities(workshop)))
     }

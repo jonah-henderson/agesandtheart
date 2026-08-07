@@ -4,6 +4,9 @@ import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.AgeFluids
 import co.voik.agesandtheart.platform.Services
+import com.mojang.serialization.Codec
+import net.minecraft.core.UUIDUtil
+import java.util.UUID
 import net.minecraft.core.BlockPos
 import net.minecraft.resources.Identifier
 import net.minecraft.world.level.block.entity.BlockEntity
@@ -25,6 +28,29 @@ class WritersDeskBlockEntity(pos: BlockPos, state: BlockState) :
 
     var stores: DeskStores = DeskStores.EMPTY
         private set
+
+    /**
+     * The pages each writer has laid out on this desk, in order — **kept between visits**.
+     *
+     * A composition used to dissolve back into the archive the moment the screen closed, so stepping away
+     * to fetch a page cost you the sentence you were building (Jonah, 2026-08-06, walked). Pages laid on a
+     * surface stay on it.
+     *
+     * **Per writer, on the desk.** Two people at one desk share its archive and its ink, which is the
+     * point of a desk, but a row of pages is an argument half-made and stomping on somebody else's would
+     * be worse than either sharing or forbidding. Keyed by who laid it, kept where it was laid.
+     */
+    private val compositions = mutableMapOf<UUID, List<Identifier>>()
+
+    fun compositionFor(writer: UUID): List<Identifier> = compositions[writer].orEmpty()
+
+    fun setComposition(writer: UUID, words: List<Identifier>) {
+        if (words.isEmpty()) compositions.remove(writer) else compositions[writer] = words.toList()
+        setChanged()
+    }
+
+    /** Every writer's pages together — what a broken desk owes the floor, whoever laid it. */
+    val everyComposition: List<Identifier> get() = compositions.values.flatten()
 
     /**
      * What the room grants, read fresh every time it is asked — see [WritersDesk.survey].
@@ -106,16 +132,24 @@ class WritersDeskBlockEntity(pos: BlockPos, state: BlockState) :
         super.loadAdditional(input)
         archive = input.read(ARCHIVE_KEY, PageArchive.CODEC).orElse(PageArchive.EMPTY)
         stores = input.read(STORES_KEY, DeskStores.CODEC).orElse(DeskStores.EMPTY)
+        compositions.clear()
+        compositions.putAll(input.read(COMPOSING_KEY, COMPOSITIONS_CODEC).orElse(emptyMap()))
     }
 
     override fun saveAdditional(output: ValueOutput) {
         super.saveAdditional(output)
         output.store(ARCHIVE_KEY, PageArchive.CODEC, archive)
         output.store(STORES_KEY, DeskStores.CODEC, stores)
+        if (compositions.isNotEmpty()) output.store(COMPOSING_KEY, COMPOSITIONS_CODEC, compositions.toMap())
     }
 
     private companion object {
         const val ARCHIVE_KEY = "archive"
         const val STORES_KEY = "stores"
+        const val COMPOSING_KEY = "composing"
+
+        /** Who laid which row of pages. Order is word order, so the value is a list and never a set. */
+        val COMPOSITIONS_CODEC: Codec<Map<UUID, List<Identifier>>> =
+            Codec.unboundedMap(UUIDUtil.STRING_CODEC, Identifier.CODEC.listOf())
     }
 }

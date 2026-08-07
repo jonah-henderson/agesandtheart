@@ -127,13 +127,18 @@ class WritersDeskBlock(properties: Properties) : BaseEntityBlock(properties) {
      * the unit — so a desk that emptied itself into bottles would be inventing them. The archive, the
      * paper and the binding all went in as items and come back out as ones.
      *
-     * The menu returns its own slots and the pages laid out on the surface when it closes, so neither is
-     * here: by the time a desk can be broken, it holds only what it filed.
+     * The menu returns its own slots when it closes, but **not the pages laid on the surface** — those
+     * stay on the desk now, under the name of whoever laid them, so a broken desk owes them to the floor
+     * as much as it owes the archive. Whoever swings the axe gets everybody's, which is the same bargain
+     * a shared chest makes.
      */
     private fun popContents(level: Level, at: BlockPos, desk: WritersDeskBlockEntity) {
         for (word in desk.archive.words) {
             val page = ItemStack(AgeContent.PAGE).also { it.set(AgeContent.PAGE_WORD, word) }
             popEvery(level, at, page, desk.archive.count(word))
+        }
+        for (word in desk.everyComposition) {
+            popEvery(level, at, ItemStack(AgeContent.PAGE).also { it.set(AgeContent.PAGE_WORD, word) }, 1)
         }
         for (tier in InkTier.entries) {
             popEvery(level, at, ItemStack(paperFor(tier)), desk.stores.paper(tier))

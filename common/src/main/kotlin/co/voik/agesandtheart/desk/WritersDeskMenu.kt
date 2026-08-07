@@ -173,15 +173,18 @@ class WritersDeskMenu(
     override fun stillValid(player: Player): Boolean =
         access.evaluate({ level, pos -> level.getBlockState(pos).block is WritersDeskBlock }, true)
 
-    /** Closing puts everything back: what is in a slot to the player, the laid-out pages to the archive. */
+    /**
+     * Closing hands back what is in a slot — and **leaves the laid-out pages where they were laid**.
+     *
+     * They used to go back into the archive, which meant stepping away to fetch one page cost the sentence
+     * you were building. A row of pages is a half-made argument; it stays on the desk that holds it, under
+     * the name of whoever laid it, and comes back when they do.
+     */
     override fun removed(player: Player) {
         super.removed(player)
         access.execute { _, _ ->
             val serverPlayer = player as? ServerPlayer ?: return@execute
-            val desk = deskOf(serverPlayer)
-            if (desk != null) {
-                for (word in composing) desk.addPages(word, 1)
-            }
+            deskOf(serverPlayer)?.setComposition(serverPlayer.uuid, composing)
             composing.clear()
             for (container in listOf(intake, output)) {
                 val held = container.removeItemNoUpdate(0)
