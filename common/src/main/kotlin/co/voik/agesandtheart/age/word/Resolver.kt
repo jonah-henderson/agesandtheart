@@ -160,7 +160,7 @@ object Resolver {
     private fun rehomings(vocabulary: Vocabulary, sentence: Sentence): List<Flaw> =
         sentence.written.filter { it.rehomed }.map { said ->
             val landedIn = reachOf(vocabulary, said).firstOrNull()
-            flaw(Register.REHOMED, listOf(said), landedIn, tags = emptyList(), tier = said.word.tier)
+            flaw(vocabulary, Register.REHOMED, listOf(said), landedIn, tags = emptyList(), tier = said.word.tier)
         }
 
     /**
@@ -173,7 +173,13 @@ object Resolver {
     private fun impossibilities(vocabulary: Vocabulary, sentence: Sentence): List<Flaw> =
         sentence.impossible.map { page ->
             val tier = vocabulary.word(page)?.tier
-            Flaw(Register.IMPOSSIBLE, listOf(page), aspect = null, tags = emptyList(), Register.IMPOSSIBLE.charge(tier))
+            Flaw(
+                Register.IMPOSSIBLE,
+                listOf(page),
+                aspect = null,
+                tags = emptyList(),
+                Register.IMPOSSIBLE.charge(tier, vocabulary.earnedBy(Register.IMPOSSIBLE)),
+            )
         }
 
     /**
@@ -228,7 +234,7 @@ object Resolver {
                 if (steersInstead) continue
                 // Word against world: nothing in the aspect can be this, so no arrangement of the others is
                 // to blame. A content bug per §3.3, reported rather than dropped.
-                flaws += flaw(Register.UNBACKED, listOf(said), aspect, emptyList(), said.word.tier)
+                flaws += flaw(vocabulary, Register.UNBACKED, listOf(said), aspect, emptyList(), said.word.tier)
                 continue
             }
             val home = territories.indexOfFirst { it.candidates.any { candidate -> candidate in carriers } }
@@ -279,6 +285,7 @@ object Resolver {
             // A division the writer asked for costs nothing: `and` means "keep both, and keep them apart".
             if (wereJoined(contender, leading)) continue
             flaws += flaw(
+                vocabulary,
                 Register.FRACTURE,
                 listOf(contender, leading),
                 aspect,
@@ -288,6 +295,7 @@ object Resolver {
         }
         for (said in lost.flatMap { it.words }) {
             flaws += flaw(
+                vocabulary,
                 Register.DISPLACED,
                 listOf(said, leading),
                 aspect,
@@ -567,8 +575,14 @@ object Resolver {
     private fun opposedTags(vocabulary: Vocabulary, first: Constraint, second: Constraint): List<String> =
         oppositionBetween(vocabulary, first, second)?.let { listOf(it.first, it.second) } ?: emptyList()
 
-    private fun flaw(register: Register, said: List<Constraint>, aspect: Aspect?, tags: List<String>, tier: Tier) =
-        Flaw(register, said.map { it.word.name }, aspect, tags, register.charge(tier))
+    private fun flaw(
+        vocabulary: Vocabulary,
+        register: Register,
+        said: List<Constraint>,
+        aspect: Aspect?,
+        tags: List<String>,
+        tier: Tier,
+    ) = Flaw(register, said.map { it.word.name }, aspect, tags, register.charge(tier, vocabulary.earnedBy(register)))
 
     /**
      * The composition these fillings describe. The stand-in terrain is overwritten immediately — every
@@ -621,15 +635,15 @@ object Resolver {
                     // with the value — which is what makes `only` and `except` reach a population at all.
                     // See [co.voik.agesandtheart.age.aspect.Claim].
                     populative != null -> {
-                        flaws += crowdedOutOfAnOnly(contenders, aspect)
+                        flaws += crowdedOutOfAnOnly(vocabulary, contenders, aspect)
                         steered.withOptions(aspect, parameter, contenders.map { it.claimed(populative) }.distinct())
                     }
                     canFracture(steered, aspect, parameter, contenders) ->
                         steered.fractured(vocabulary, aspect, parameter, contenders, flaws)
-                    else -> steered.contended(aspect, parameter, contenders, flaws)
+                    else -> steered.contended(vocabulary, aspect, parameter, contenders, flaws)
                 }
             }
-            flaws += wordsNothingHonours(steered, aspect, setting)
+            flaws += wordsNothingHonours(vocabulary, steered, aspect, setting)
         }
         return steered
     }
@@ -797,7 +811,7 @@ object Resolver {
             if (climates.size > 1) {
                 val leading = groups.first().first()
                 for (group in groups.drop(1)) {
-                    flaws += flaw(Register.DISPLACED, listOf(group.first(), leading), aspect, emptyList(), group.first().word.tier)
+                    flaws += flaw(vocabulary, Register.DISPLACED, listOf(group.first(), leading), aspect, emptyList(), group.first().word.tier)
                 }
             }
             return written(this, member = 0, bounds = settledWith(bentTo(climates.first())))
@@ -808,6 +822,7 @@ object Resolver {
             val contender = group.first()
             if (wereJoined(contender, leading)) continue
             flaws += flaw(
+                vocabulary,
                 Register.FRACTURE,
                 listOf(contender, leading),
                 aspect,
@@ -990,6 +1005,7 @@ object Resolver {
             // The same exemption [chargeForContention] makes: a writer who joined them asked for both.
             if (wereJoined(contender, leading)) continue
             flaws += flaw(
+                vocabulary,
                 Register.FRACTURE,
                 listOf(contender, leading),
                 aspect,
@@ -1030,13 +1046,17 @@ object Resolver {
      * This is what `and` is *for* here, and it is the reason a population needs the conjunction at all:
      * without it, unjoined claims already union, so `and` would say nothing.
      */
-    private fun crowdedOutOfAnOnly(contenders: List<Constraint>, aspect: Aspect): List<Flaw> {
+    private fun crowdedOutOfAnOnly(
+        vocabulary: Vocabulary,
+        contenders: List<Constraint>,
+        aspect: Aspect,
+    ): List<Flaw> {
         val singledOut = contenders.filter { it.polarity == Polarity.ONLY }
         if (singledOut.isEmpty()) return emptyList()
         fun joinedToAnythingSingledOut(said: Constraint) = singledOut.any { wereJoined(said, it) }
         val crowdedOut = contenders.filter { it.polarity == Polarity.ASSERTED && !joinedToAnythingSingledOut(it) }
         return crowdedOut.map { said ->
-            flaw(Register.DISPLACED, listOf(said, singledOut.first()), aspect, emptyList(), said.word.tier)
+            flaw(vocabulary, Register.DISPLACED, listOf(said, singledOut.first()), aspect, emptyList(), said.word.tier)
         }
     }
 
@@ -1052,6 +1072,7 @@ object Resolver {
      * charged twelve instability for agreeing with itself.
      */
     private fun AgeComposition.contended(
+        vocabulary: Vocabulary,
         aspect: Aspect,
         parameter: String,
         contenders: List<Constraint>,
@@ -1062,7 +1083,7 @@ object Resolver {
             said.word.sets[parameter] == winner.word.sets[parameter]
         val mingled = contenders.filter { it == winner || wereJoined(it, winner) || asksWhatTheWinnerAsks(it) }
         for (loser in contenders - mingled.toSet()) {
-            flaws += flaw(Register.DISPLACED, listOf(loser, winner), aspect, emptyList(), loser.word.tier)
+            flaws += flaw(vocabulary, Register.DISPLACED, listOf(loser, winner), aspect, emptyList(), loser.word.tier)
         }
         return withOptions(
             aspect,
@@ -1110,6 +1131,7 @@ object Resolver {
      * (§3.3): the writer said something true of the language that this Age had no way to be.
      */
     private fun wordsNothingHonours(
+        vocabulary: Vocabulary,
         composition: AgeComposition,
         aspect: Aspect,
         setting: List<Constraint>,
@@ -1123,7 +1145,7 @@ object Resolver {
         // And only where the word addressed this aspect's knobs at all — see [holds].
         val addressing = setting.filter { said -> said.word.canSet.keys.any { holds(composition, aspect, it) } }
         val wentUnheeded = addressing.filter { said -> said.word.canSet.keys.none(::anythingSeatedHonours) }
-        return wentUnheeded.map { said -> flaw(Register.UNBACKED, listOf(said), aspect, emptyList(), said.word.tier) }
+        return wentUnheeded.map { said -> flaw(vocabulary, Register.UNBACKED, listOf(said), aspect, emptyList(), said.word.tier) }
     }
 
     /**

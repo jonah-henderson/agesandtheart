@@ -16,8 +16,15 @@ import java.util.Optional
  */
 enum class Register(
     val key: String,
-    /** What this costs before precision is taken into account. Only has to order sensibly for now. */
-    private val base: Int,
+    /**
+     * What a flaw of this kind earns towards the budget before precision is taken into account.
+     *
+     * **The default, which `art/instability/<key>.json` overrides** (design §5.0). These are the
+     * accumulation half of the budget where `art/manifestation/` is the spending half, and both are
+     * datapack because retuning them makes a different mod rather than the same mod run differently
+     * (`notes/config-research.md`). Shipped values are here so a pack that says nothing still works.
+     */
+    val base: Int,
 ) : StringRepresentable {
     /** Two words meant opposite things and the world honoured both anyway, in one aspect. */
     TENSION("tension", base = 1),
@@ -81,8 +88,12 @@ enum class Register(
     /**
      * What a flaw of this kind costs when the word that caused it was written at [tier] — flat where the
      * page carried no word, since a structural page has no precision to scale by.
+     *
+     * [earns] is what a pack says this register is worth, defaulting to [base]. Read from the corpus at
+     * resolution rather than at generation, because the charge is frozen onto the `Flaw` — retuning it
+     * moves what the *next* Age costs and can never rewrite one already written.
      */
-    fun charge(tier: Tier?): Int = base * (tier?.weight ?: 1)
+    fun charge(tier: Tier?, earns: Int = base): Int = earns * (tier?.weight ?: 1)
 
     override fun getSerializedName(): String = key
 

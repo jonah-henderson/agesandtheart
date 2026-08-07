@@ -1,6 +1,8 @@
 package co.voik.agesandtheart.age.word
 
 import co.voik.agesandtheart.Constants
+import com.google.gson.JsonParser
+import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.AspectPreset
 import co.voik.agesandtheart.age.word.generation.GenerationGrammars
@@ -80,6 +82,14 @@ data class Vocabulary(
     val ink: InkRequirement,
     /** The grammars the Art writes *out* of — books it could have written, names, repairs. */
     val generation: GenerationGrammars,
+    /**
+     * What a flaw of each kind earns towards the instability budget (design §5.0), by register key.
+     *
+     * Here rather than beside the manifestation prices because the charge is applied at *resolution*, and
+     * resolution has the corpus and nothing else. A register nobody wrote a file for keeps its shipped
+     * default, so an absent directory changes nothing.
+     */
+    val charges: Map<String, Int>,
     /** Which words came from registry content rather than from a `art/word/` file. See [isDerived]. */
     private val derivedIds: Set<Identifier>,
     /** What could not be read, in the words a content author needs to hear. Empty in a healthy pack. */
@@ -212,6 +222,9 @@ data class Vocabulary(
         candidatesFor(aspect).any { it.honoursParameterNamed(parameter) } ||
             aspect.dials.any { it.name == parameter }
 
+    /** What a flaw of this [register] earns towards the budget here — its shipped default unless a pack says. */
+    fun earnedBy(register: Register): Int = charges[register.key] ?: register.base
+
     /** Whether these two tags are known opposites, and how badly. */
     fun opposition(first: String, second: String): Antonym? = antonyms.firstOrNull { antonym ->
         (antonym.first == first && antonym.second == second) || (antonym.first == second && antonym.second == first)
@@ -226,6 +239,9 @@ data class Vocabulary(
 
         /** Where a pack puts antonym pages. */
         const val ANTONYM_DIRECTORY = "art/antonyms"
+
+        /** What each contradiction earns towards the budget — the accumulation half of design §5.0. */
+        const val CHARGE_DIRECTORY = "art/instability"
 
         /** Where a pack puts the structural words — one file per word, naming a production. */
         const val GRAMMAR_DIRECTORY = "art/grammar"
@@ -297,7 +313,10 @@ data class Vocabulary(
             // Authored wins every collision above, so a derived id that an authored word displaced is not
             // in `words` and must not be counted derived.
             val derivedIds = fromContent.map { it.id }.toSet() - authored.values.map { it.id }.toSet()
-            return Vocabulary(words, structural, tags, antonyms, script, rarity, ink, generation, derivedIds, problems)
+            val charges = readCharges(resources, problems)
+            return Vocabulary(
+                words, structural, tags, antonyms, script, rarity, ink, generation, charges, derivedIds, problems,
+            )
         }
 
         /**
@@ -338,6 +357,27 @@ data class Vocabulary(
          * a content collision and is called out as one: the whole point of a domain is that it is the only
          * statement of what a page opens, and two files claiming a page is the drift this prevents.
          */
+        /**
+         * What each contradiction earns, from `art/instability/<register>.json`.
+         *
+         * Keyed by the register's own key rather than by the enum, so a file naming one this version does
+         * not have is *reported* and skipped rather than failing the load — a pack written against a
+         * newer register set should still give a working corpus.
+         */
+        private fun readCharges(resources: ResourceManager, problems: MutableList<String>): Map<String, Int> =
+            buildMap {
+                for ((file, resource) in resources.listResources(CHARGE_DIRECTORY) { it.path.endsWith(JSON_SUFFIX) }) {
+                    val key = idOf(file, CHARGE_DIRECTORY).path
+                    val read: Result<Int> = runCatching {
+                        resource.open().use { stream ->
+                            JsonParser.parseReader(stream.reader()).asJsonObject["earns"].asInt
+                        }
+                    }
+                    read.onSuccess { put(key, it) }
+                        .onFailure { problems += "'$file' does not say what it earns: ${it.message}" }
+                }
+            }
+
         private fun readDomains(
             resources: ResourceManager,
             authored: Map<String, Word>,

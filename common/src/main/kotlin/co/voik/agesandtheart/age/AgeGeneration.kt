@@ -92,10 +92,14 @@ object AgeGeneration {
             seam = composition.terrains.first().seamIn(terrainOptions(0), recipe.character.seam),
         )
 
+        // What this Age's instability bought, as a fraction of everything tearing could be (design §5.0).
+        // Derived rather than stored: a pure function of the recipe, so it comes out the same on every open.
+        val torn = Spending.of(server, recipe).reach(Manifestation.TORN_SEAMS, Price.list(server))
+
         // One band for every Age, and the same one every dimension type admits — see [VerticalWindow].
         val window = VerticalWindow.DEFAULT
 
-        val ground = character.mapFor(Aspect.TERRAIN, composition.sharesOf(Aspect.TERRAIN), seed)
+        val ground = character.mapFor(Aspect.TERRAIN, composition.sharesOf(Aspect.TERRAIN), seed, torn)
         val grounds = composition.terrains.mapIndexed { member, terrain ->
             terrain.ground(terrainOptions(member), window, saltFor(seed, member))
         }
@@ -104,10 +108,10 @@ object AgeGeneration {
         val weathered = Regions.of(grounds.map { it.shape }, ground)
 
         // The fault comes last, over the finished rock — see [Fault].
-        val shape = faulted(weathered, character.seam, ground, seed)
+        val shape = faulted(weathered, character.seam, ground, seed, torn)
         // Everywhere the sea is kept out of: the chasm a rift opened, and any underground that answers
         // "never wet" rather than to a water table — see [Terrain.Ground].
-        val riftCut = riftVolume(character.seam, ground)
+        val riftCut = riftVolume(character.seam, ground, torn)
         val chasm = keptDry(riftCut, grounds, ground)
         // And the rock the underground was taken out of — **handed to the generator rather than to the
         // sea**. A flat waterline fills any empty space beneath it, so a shape-cut cave or hall comes out
@@ -115,7 +119,7 @@ object AgeGeneration {
         // other. What that space wants is the same three-way `WaterTable` a carved cave already meets.
         val hollows = openedBy(hollowedRock(grounds, ground), riftCut)
 
-        val standing = carriedWater(composition, character, ground, seed)
+        val standing = carriedWater(composition, character, ground, seed, torn)
         val flow = character.mapFor(Aspect.SEA, composition.sharesOf(Aspect.SEA), seed)
         val seaFill = Sea.pour(
             composition.seas,
@@ -223,6 +227,7 @@ object AgeGeneration {
         character: AgeCharacter,
         ground: RegionMap,
         seed: Long,
+        torn: Double,
     ): TerrainField? {
         val carried = composition.terrains.mapIndexed { member, terrain ->
             terrain.standingWater(saltFor(seed, member))
@@ -232,17 +237,32 @@ object AgeGeneration {
         // Exhaustive rather than a test for one form, so a new [Seam] breaks the build here instead of
         // silently taking the wrong branch.
         return when (character.seam) {
-            Seam.SCARP -> faulted(divided, character.seam, ground, seed)
+            Seam.SCARP -> faulted(divided, character.seam, ground, seed, torn)
             Seam.SHEARED, Seam.FUZZED, Seam.RIFT, Seam.WALL -> divided
         }
     }
 
-    private fun faulted(rock: TerrainField, seam: Seam, ground: RegionMap, seed: Long): TerrainField = when (seam) {
+    /**
+     * The seam made, at whatever magnitude the Age's instability bought (design §5.0).
+     *
+     * [torn] is 0 for a coherent Age and 1 for one that spent everything it could on tearing, and each
+     * form reads it in the units it has: a scarp throws further, a rift cuts deeper, a wall stands higher.
+     * **`SHEARED` reads it and does nothing**, on purpose — terrain either side of a shear is usually
+     * dramatic enough that the two never meet smoothly, so it is instability already visible, and an Age
+     * that drew one keeps its whole budget for something else (Jonah, 2026-08-07).
+     */
+    private fun faulted(
+        rock: TerrainField,
+        seam: Seam,
+        ground: RegionMap,
+        seed: Long,
+        torn: Double,
+    ): TerrainField = when (seam) {
         // `SHEARED` asks for no fault; `FUZZED` already happened, in the width `mapFor` took off the seam.
         Seam.SHEARED, Seam.FUZZED -> rock
-        Seam.SCARP -> Fault.of(rock, ground, Fault.alternatingThrows(ground.members, Seam.SCARP_THROW, seed))
-        Seam.RIFT -> Rift.opened(rock, ground, Seam.RIFT_FLOOR, Seam.RIFT_RIM)
-        Seam.WALL -> Ridge.raised(rock, ground, Seam.WALL_FOOTING, Seam.WALL_CREST)
+        Seam.SCARP -> Fault.of(rock, ground, Fault.alternatingThrows(ground.members, Seam.scarpThrow(torn), seed))
+        Seam.RIFT -> Rift.opened(rock, ground, Seam.riftFloor(torn), Seam.RIFT_RIM)
+        Seam.WALL -> Ridge.raised(rock, ground, Seam.WALL_FOOTING, Seam.wallCrest(torn))
     }
 
     /**
@@ -251,9 +271,9 @@ object AgeGeneration {
      * Built from the same numbers [faulted] cuts with, so the dry space and the chasm are the same shape
      * by construction rather than by two constants agreeing.
      */
-    private fun riftVolume(seam: Seam, ground: RegionMap): TerrainField? =
+    private fun riftVolume(seam: Seam, ground: RegionMap, torn: Double): TerrainField? =
         if (seam != Seam.RIFT || ground.members <= 1) null
-        else Rift(ground, Rift.DEFAULT_HALF_WIDTH, Seam.RIFT_FLOOR, Seam.RIFT_RIM)
+        else Rift(ground, Rift.DEFAULT_HALF_WIDTH, Seam.riftFloor(torn), Seam.RIFT_RIM)
 
     /**
      * [chasm] and every territory's own dry underground, as one volume the sea is kept out of.

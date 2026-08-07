@@ -22,14 +22,14 @@ data class AgeCharacter(
     val regionBlocks: Int,
 ) {
     /** The territories [aspect] divides into, one per preset it holds, each covering the ground its [Share] asks. */
-    fun mapFor(aspect: Aspect, shares: List<Double>, seed: Long): RegionMap {
+    fun mapFor(aspect: Aspect, shares: List<Double>, seed: Long, torn: Double = Seam.UNTORN): RegionMap {
         if (shares.size <= 1) return RegionMap.whole()
         val stride = aspect.ordinal
         return RegionMap(
             members = shares.size,
             shares = shares,
             scale = regionBlocks.toDouble(),
-            blend = seam.blendBlocks(regionBlocks),
+            blend = seam.blendBlocks(regionBlocks, torn),
             originX = if (alignment == Alignment.OFFSET) stride * regionBlocks / OFFSET_SHARE else 0,
             originZ = if (alignment == Alignment.OFFSET) stride * regionBlocks / (OFFSET_SHARE + 1) else 0,
             seed = if (alignment == Alignment.INDEPENDENT) seed + stride * ASPECT_STRIDE else seed,
@@ -122,16 +122,56 @@ enum class Seam(val key: String, val share: Double, val frequency: Int) : String
      * size, [WIDEST_FUZZ_BLOCKS] is absolute and wins where they disagree. At the default 400-block
      * territory both land on 16.
      */
-    fun blendBlocks(regionBlocks: Int): Int =
-        (regionBlocks * share).toInt().coerceAtMost(WIDEST_FUZZ_BLOCKS)
+    fun blendBlocks(regionBlocks: Int, torn: Double = UNTORN): Int {
+        val widened = share * (1.0 + torn * FUZZ_TEARS_TO)
+        return (regionBlocks * widened).toInt().coerceAtMost(widestFuzz(torn))
+    }
 
     override fun getSerializedName(): String = key
 
     companion object {
         val CODEC: Codec<Seam> = StringRepresentable.fromEnum(Seam::values)
 
-        /** The widest band of dissolve any seam may have, in blocks. An absolute limit, not a proportion. */
+        /**
+         * The widest band of dissolve a *coherent* Age may have, in blocks. An absolute limit, not a
+         * proportion.
+         */
         const val WIDEST_FUZZ_BLOCKS = 16
+
+        /** An Age that bought no tearing, which is every coherent one (design §5.0). */
+        const val UNTORN = 0.0
+
+        /**
+         * What tearing does to each magnitude, as a multiple added at full reach.
+         *
+         * **A fuzz widens hardest**, because widening is the whole of what it is: a 16-block dissolve is a
+         * transition and a 64-block one is two worlds failing to decide which is which, which is the
+         * difference between a seam and a tear. The displacing forms are more restrained — a rift that cut
+         * to bedrock would sever the territories outright, which `RIFT_FLOOR` exists to prevent.
+         */
+        private const val FUZZ_TEARS_TO = 3.0
+        private const val SCARP_TEARS_TO = 1.5
+        private const val RIFT_TEARS_TO = 0.6
+        private const val WALL_TEARS_TO = 1.0
+
+        /** The dissolve band's ceiling at this much tearing. */
+        fun widestFuzz(torn: Double): Int = (WIDEST_FUZZ_BLOCKS * (1.0 + torn * FUZZ_TEARS_TO)).toInt()
+
+        /** How far a scarp throws, thrown further the more torn the Age. */
+        fun scarpThrow(torn: Double): Int = (SCARP_THROW * (1.0 + torn * SCARP_TEARS_TO)).toInt()
+
+        /**
+         * How deep a rift cuts, cut deeper the more torn the Age — **never past [RIFT_DEEPEST]**, because
+         * a chasm to bedrock along every seam severs the territories rather than dividing them.
+         */
+        fun riftFloor(torn: Double): Int =
+            (RIFT_FLOOR - (RIFT_FLOOR - RIFT_DEEPEST) * torn * RIFT_TEARS_TO).toInt().coerceAtLeast(RIFT_DEEPEST)
+
+        /** How high a wall stands, raised the more torn the Age. */
+        fun wallCrest(torn: Double): Int = (WALL_CREST + (WALL_CREST - WALL_FOOTING) * torn * WALL_TEARS_TO).toInt()
+
+        /** The floor no rift cuts below, whatever the budget. Bedrock is at 0 and severing is not dividing. */
+        const val RIFT_DEEPEST = 16
 
         /**
          * How far a scarp throws each side of a seam, in blocks — a 64-block cliff where two territories
