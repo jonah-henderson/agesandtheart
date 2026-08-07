@@ -99,14 +99,29 @@ object Resolver {
     private const val WORD_MIXER = -0x61c8_8646_80b5_83ebL
 
     /**
+     * [this] with a broad word's pool settled for this Age — the one place a draw becomes an answer.
+     *
+     * **Substituted once rather than threaded through every reader.** Ten places consume a word's chosen
+     * parameters and all of them want what it chose *here*; three more ask what it could ever choose, and
+     * those must not move with a draw. Copying the constraint's word with its drawn parameters in `sets`
+     * answers the first ten unchanged, and **keeping `pool`** answers the other three: `canSet` is
+     * `sets + pool`, and a drawn subset unioned with the whole pool is the whole pool either way.
+     *
+     * The sentence itself is untouched, which matters — [Readout] renders what a writer wrote, and what a
+     * word might have done is part of what they wrote.
+     */
+    private fun Constraint.drawnAt(draw: Long): Constraint =
+        if (word.pool.isEmpty()) this else copy(word = word.copy(sets = word.setsDrawnAt(draw)))
+
+    /**
      * The world [sentence] describes at [seed]. Aspects resolve independently and in ordinal order, so an
      * aspect's filling cannot depend on what another happened to draw.
      */
     fun resolve(vocabulary: Vocabulary, sentence: Sentence, seed: Long): Resolution {
-        val said = sentence.constraints
         // §4.6: the unconstrained should still vary with what was written, or two different sentences at
         // one seed draw identical filler wherever neither constrains anything.
         val draw = seed xor saltOf(sentence.words)
+        val said = sentence.constraints.map { it.drawnAt(draw) }
         val flaws = mutableListOf<Flaw>()
         flaws += rehomings(vocabulary, sentence)
         flaws += impossibilities(vocabulary, sentence)
@@ -204,7 +219,7 @@ object Resolver {
                 // Unless the word is here to turn a knob rather than choose a preset: a word may narrow in
                 // one aspect and merely steer in another, and charging that as unbacked told a writer their
                 // perfectly good sentence had failed.
-                val steersInstead = said.word.sets.keys.any { vocabulary.turnsAKnob(aspect, it) }
+                val steersInstead = said.word.canSet.keys.any { vocabulary.turnsAKnob(aspect, it) }
                 if (steersInstead) continue
                 // Word against world: nothing in the aspect can be this, so no arrangement of the others is
                 // to blame. A content bug per §3.3, reported rather than dropped.
@@ -438,7 +453,7 @@ object Resolver {
             // **And it reaches an aspect whose dials it bends**, which is the only way into one with no
             // candidates to like. The declaration is both the mechanism and the evidence, so §4.4's charge
             // per aspect constrained stays honest with no tag table propping it up.
-            val bendsADialThere = aspect.dials.any { it.name in word.sets }
+            val bendsADialThere = aspect.dials.any { it.name in word.canSet }
             likesSomethingThere || bendsADialThere
         }
     }
@@ -583,7 +598,7 @@ object Resolver {
     ): AgeComposition {
         var steered = composition
         for (aspect in Aspect.entries) {
-            val setting = sentence.filter { it.word.sets.isNotEmpty() && aspect in reachOf(vocabulary, it) }
+            val setting = sentence.filter { it.word.canSet.isNotEmpty() && aspect in reachOf(vocabulary, it) }
             if (setting.isEmpty()) continue
             // Every ranged axis at once, before the rest: a fragment is a whole climate, not a temperature.
             // One at a time, `tropical frozen` fractured on temperature and then displaced humidity,
@@ -1047,8 +1062,8 @@ object Resolver {
         fun anythingSeatedHonours(parameter: String) =
             seated.any { it.honoursParameterNamed(parameter) } || aspect.dials.any { it.name == parameter }
         // And only where the word addressed this aspect's knobs at all — see [holds].
-        val addressing = setting.filter { said -> said.word.sets.keys.any { holds(composition, aspect, it) } }
-        val wentUnheeded = addressing.filter { said -> said.word.sets.keys.none(::anythingSeatedHonours) }
+        val addressing = setting.filter { said -> said.word.canSet.keys.any { holds(composition, aspect, it) } }
+        val wentUnheeded = addressing.filter { said -> said.word.canSet.keys.none(::anythingSeatedHonours) }
         return wentUnheeded.map { said -> flaw(Register.UNBACKED, listOf(said), aspect, emptyList(), said.word.tier) }
     }
 

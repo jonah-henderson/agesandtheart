@@ -3,6 +3,7 @@ package co.voik.agesandtheart.age.word
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.AspectPreset
 import com.mojang.serialization.Codec
+import kotlin.random.Random
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.resources.Identifier
@@ -98,9 +99,56 @@ data class Word(
      * grammar. The set arrives at [co.voik.agesandtheart.age.aspect.Options], which does hold several.
      */
     val sets: Map<String, String> = emptyMap(),
+    /**
+     * Parameters this word **might** choose — the breadth of what it means, drawn from per Age (§4.4).
+     *
+     * A broad word covers a spectrum, and [sets] alone could not say so: `scorching` named evaporation,
+     * sunburn and embers outright, so every scorched Age was the same scorched Age. What varies is not
+     * *whether* a word lands but *which of its facets* do, so the word declares a core it always applies
+     * and a pool it draws [draws] of.
+     *
+     * **The core is what makes it that word**, and the pool is what makes this one different from the last:
+     * a drawn subset can never leave an Age un-scorched, because `sets` was never in the draw. Together
+     * they are also the whole of what a word *can* do, which is a different question from what it does
+     * here — see [canSet] against [setsDrawnAt].
+     */
+    val pool: Map<String, String> = emptyMap(),
+    /**
+     * How many of [pool] an Age takes. Zero means none of it, and a number at or past the pool's size
+     * means all of it — so a word with a pool and no `draws` is simply a word with more `sets`.
+     */
+    val draws: Int = 0,
 ) {
     /** What a writer says to use it. */
     val name: String get() = id.path
+
+    /**
+     * Everything this word could ever choose — its core and its whole pool.
+     *
+     * **The capability question, and not the same as [setsDrawnAt].** Whether a word belongs in an aspect,
+     * whether it steers anything at all, and whether the world can back it are all questions about what it
+     * *means*, which a draw must not move: a word charged as unbacked because this Age's draw happened to
+     * miss the parameter that would have landed is a writer paying for a coin they did not toss.
+     */
+    val canSet: Map<String, String> get() = sets + pool
+
+    /**
+     * What it actually chooses in the Age [draw] belongs to — the core, and [draws] of the pool.
+     *
+     * Salted by the word's own id, so two broad words in one sentence draw differently and the same word
+     * draws the same thing every time the Age is rebuilt. Resolution is a pure function of (vocabulary,
+     * sentence, seed) and this stays inside that promise.
+     */
+    fun setsDrawnAt(draw: Long): Map<String, String> {
+        if (pool.isEmpty() || draws <= 0) return sets
+        if (draws >= pool.size) return sets + pool
+        // Sorted first so the map's own iteration order cannot reach the answer, then shuffled by a
+        // generator seeded from the Age and the word. An earlier version sorted by a hash of the two
+        // xored together and drew the *same* facets every time: the draw only moves low bits, and the
+        // keys' hashes differ by far more than that, so nothing ever reordered.
+        val order = pool.keys.sorted().shuffled(Random(draw xor id.hashCode().toLong()))
+        return sets + order.take(draws).associateWith { pool.getValue(it) }
+    }
 
     /** The preset this word names in [aspect], if it names one that aspect can hold. */
     fun namedPreset(aspect: Aspect): AspectPreset? = names?.let(aspect::presetFor)
@@ -183,8 +231,11 @@ data class Word(
                 Codec.STRING.optionalFieldOf("names").forGetter { Optional.ofNullable(it.names) },
                 Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("sets", emptyMap())
                     .forGetter(Word::sets),
-            ).apply(instance) { tier, aspects, query, names, sets ->
-                Word(id, tier, aspects, query, names.orElse(null), sets)
+                Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("pool", emptyMap())
+                    .forGetter(Word::pool),
+                Codec.INT.optionalFieldOf("draws", 0).forGetter(Word::draws),
+            ).apply(instance) { tier, aspects, query, names, sets, pool, draws ->
+                Word(id, tier, aspects, query, names.orElse(null), sets, pool, draws)
             }
         }
 

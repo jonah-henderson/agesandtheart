@@ -1,4 +1,5 @@
 {
+  "_comment": "Broad on purpose. The core is what makes an Age scorched at all; the pool is what makes this scorched Age different from the last one, two facets of it drawn per Age.",
   "tier": "restrictive",
   "aspects": [
     "atmosphere"
@@ -8,8 +9,13 @@
     "dry": 0.6
   },
   "sets": {
+    "sunburn": "always"
+  },
+  "pool": {
     "evaporation": "always",
-    "sunburn": "always",
-    "motes": "embers"
-  }
+    "motes": "embers",
+    "haze": "0.15..0.45",
+    "murk": "0.1..0.4"
+  },
+  "draws": 2
 }

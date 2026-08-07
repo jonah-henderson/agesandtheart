@@ -197,7 +197,7 @@ object Readout {
         val said = mutableListOf<Said>()
         var aParticleHasBeenSpent = false
         val alreadyClaimed = mutableSetOf<String>()
-        phrase.subject?.let { alreadyClaimed += it.word.sets.keys }
+        phrase.subject?.let { alreadyClaimed += it.word.canSet.keys }
         for ((position, run) in phrase.modifiers.chunkedByJoin().withIndex()) {
             // The first run of a subjectless phrase heads its own clause — "blackstone", not "of
             // blackstone", which would be waiting for a subject that was never written.
@@ -282,7 +282,7 @@ object Readout {
      * particle here would be claiming to describe.
      */
     private fun attachmentOf(run: List<Constraint>, alreadyClaimed: Set<String>): String {
-        val steersNothing = run.none { it.word.sets.isNotEmpty() }
+        val steersNothing = run.none { it.word.canSet.isNotEmpty() }
         // `only` and `except` are pages the writer laid down and already say how the run attaches —
         // "except of blackstone" is not a sentence, and the particle earns nothing beside them.
         val alreadyMarked = run.first().polarity != Polarity.ASSERTED
@@ -294,7 +294,7 @@ object Readout {
 
     /** Every dial a run turns — what it claims, and so what a later run could contend with. */
     private fun parametersSetBy(run: List<Constraint>): Set<String> =
-        run.flatMapTo(mutableSetOf()) { it.word.sets.keys }
+        run.flatMapTo(mutableSetOf()) { it.word.canSet.keys }
 
     private fun isPopulative(word: Word): Boolean {
         val aspectsItSpeaksTo = word.aspects.ifEmpty { Aspect.entries.toSet() }
@@ -304,7 +304,7 @@ object Readout {
                     preset.parameters.any { it.name == parameter && it.kind == Parameter.Kind.POPULATIVE }
                 }
             }
-        return word.sets.keys.any(::anyPresetCallsItPopulative)
+        return word.canSet.keys.any(::anyPresetCallsItPopulative)
     }
 
     /**
