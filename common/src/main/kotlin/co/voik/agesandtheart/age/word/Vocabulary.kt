@@ -195,7 +195,7 @@ data class Vocabulary(
      * answers the word.
      */
     fun answersIn(word: Word, aspect: Aspect): Boolean =
-        candidatesFor(aspect).any { word.affinityFor(tagsOf(it)) != 0.0 }
+        candidatesFor(aspect).any { word.affinityIn(aspect, tagsOf(it)) != 0.0 }
 
     fun carriersOf(word: Word, aspect: Aspect): List<AspectPreset> {
         word.namedPreset(aspect)?.let { return listOf(it) }

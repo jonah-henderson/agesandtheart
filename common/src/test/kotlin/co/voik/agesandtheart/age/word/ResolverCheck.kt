@@ -948,52 +948,47 @@ private fun spread(vocabulary: Vocabulary, sentence: String): Int =
 
 /** A word that only sets the terrain's stone — what §3.2 calls a material. */
 private fun material(name: String, block: String) = Word(
-    Identifier.fromNamespaceAndPath(Constants.MOD_ID, name),
-    Tier.EXACT,
-    setOf(Aspect.TERRAIN),
-    emptyMap(),
-    null,
-    mapOf(Terrain.STONE.name to block),
+    id = Identifier.fromNamespaceAndPath(Constants.MOD_ID, name),
+    tier = Tier.EXACT,
+    aspects = setOf(Aspect.TERRAIN),
+    query = emptyMap(),
+    sets = mapOf(Terrain.STONE.name to block),
 )
 
 /** A word that asks for one vanilla structure set by name. */
 /** A creature word as §8 derives one. */
 private fun spawnWord(path: String) = Word(
-    Identifier.withDefaultNamespace(path),
-    Tier.EXACT,
-    setOf(Aspect.SPAWNS),
-    emptyMap(),
-    null,
-    mapOf(Spawns.LIVES.name to "minecraft:$path"),
+    id = Identifier.withDefaultNamespace(path),
+    tier = Tier.EXACT,
+    aspects = setOf(Aspect.SPAWNS),
+    query = emptyMap(),
+    sets = mapOf(Spawns.LIVES.name to "minecraft:$path"),
 )
 
 /** A feature word as §8 derives one — what every placed feature in the pack gets. */
 private fun featureWord(path: String) = Word(
-    Identifier.withDefaultNamespace(path),
-    Tier.EXACT,
-    setOf(Aspect.FEATURES),
-    emptyMap(),
-    null,
-    mapOf(Features.PLACES.name to "minecraft:$path"),
+    id = Identifier.withDefaultNamespace(path),
+    tier = Tier.EXACT,
+    aspects = setOf(Aspect.FEATURES),
+    query = emptyMap(),
+    sets = mapOf(Features.PLACES.name to "minecraft:$path"),
 )
 
 /** A biome word as §8 derives one — the shape `DerivedWords.biomes` gives every biome in the pack. */
 private fun biomeWord(path: String) = Word(
-    Identifier.withDefaultNamespace(path),
-    Tier.EXACT,
-    setOf(Aspect.BIOMES),
-    emptyMap(),
-    null,
-    mapOf(Biomes.GROWN.name to "minecraft:$path"),
+    id = Identifier.withDefaultNamespace(path),
+    tier = Tier.EXACT,
+    aspects = setOf(Aspect.BIOMES),
+    query = emptyMap(),
+    sets = mapOf(Biomes.GROWN.name to "minecraft:$path"),
 )
 
 private fun structureSet(path: String) = Word(
-    Identifier.withDefaultNamespace(path),
-    Tier.EXACT,
-    setOf(Aspect.STRUCTURES),
-    emptyMap(),
-    null,
-    mapOf(Structures.BUILT.name to "minecraft:$path"),
+    id = Identifier.withDefaultNamespace(path),
+    tier = Tier.EXACT,
+    aspects = setOf(Aspect.STRUCTURES),
+    query = emptyMap(),
+    sets = mapOf(Structures.BUILT.name to "minecraft:$path"),
 )
 
 /**

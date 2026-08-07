@@ -105,6 +105,32 @@ class DerivedAspectsCheck : FunSpec({
     }
 
     /**
+     * **A keyed query is the fourth channel, and the only way a tag ever says where a word belongs.**
+     *
+     * A flat query never can — `stormy` means `gloomy`, `gloomy` is also on `caverns` — but an author who
+     * writes the tag *under an aspect* has said it outright, which is a different statement and a safe one.
+     * `clear` is the word that wanted it: clear water is the `murk` dial and a clear sky is `bright` asked
+     * only of the sky, so between them it declares no aspects at all.
+     */
+    test("a query asked of one aspect reaches it") {
+        val clear = vocabulary.word("clear") ?: error("the corpus lost 'clear'")
+        check(clear.aspects == setOf(Aspect.SKY, Aspect.ATMOSPHERE)) {
+            "'clear' derived ${clear.aspects} from a keyed query and a murk dial"
+        }
+        check(clear.queryIn(Aspect.SKY).containsKey("bright")) { "the keyed query did not reach the sky" }
+        check(!clear.queryIn(Aspect.SEA).containsKey("bright")) {
+            "a query asked only of the sky went looking for something bright in the sea"
+        }
+    }
+
+    /** And a flat query still means the same thing everywhere, which is what most words want. */
+    test("an unkeyed query is asked of every aspect") {
+        val beautiful = vocabulary.word("beautiful") ?: error("the corpus lost 'beautiful'")
+        val everywhere = Aspect.entries.filter { beautiful.queryIn(it).containsKey("lovely") }
+        check(everywhere == Aspect.entries) { "'lovely' was not asked of ${Aspect.entries - everywhere}" }
+    }
+
+    /**
      * **A narrowing word may never mean anywhere**, which is the `stormy` bug stated as an invariant: a
      * word that removes candidates and is aimed at nothing removes them everywhere, on the strength of a
      * tag it shares with content it was never about.

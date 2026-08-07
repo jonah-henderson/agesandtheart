@@ -88,6 +88,20 @@ data class Word(
      */
     val query: Map<String, Double>,
     /**
+     * The same, **asked only of one part of the world** — for a word that means different things in
+     * different places rather than one thing everywhere.
+     *
+     * `clear` is the case: a clear sky is `bright` and clear water is a `murk` of nearly nothing, and a
+     * flat query wanting `bright` had to be trusted not to find something bright to do in the sea. Keyed
+     * by aspect exactly as [weights] is, and for the same reason — an aspect is the unit a claim lands in.
+     *
+     * **Merged over [query], not instead of it**: a word may mean something everywhere *and* something
+     * more particular somewhere, and a tag named in both takes the keyed weight there. Most words want
+     * neither half — `beautiful` means `lovely` wherever it lands, and enumerating that per aspect is the
+     * exhaustive taxonomy §3.3 refused.
+     */
+    val queries: Map<Aspect, Map<String, Double>> = emptyMap(),
+    /**
      * The one preset this word names outright, by its key — what makes a word referential rather than
      * evaluative (§8.1). Every derived word has one; an authored word may.
      *
@@ -229,14 +243,22 @@ data class Word(
      * Recognised by shape rather than by a flag, because that shape *is* the definition: a word with no
      * query, no named preset and no parameter has nothing to contribute but its aspects.
      */
-    val aims: Boolean get() = query.isEmpty() && names == null && sets.isEmpty() && aspects.isNotEmpty()
+    val aims: Boolean get() = everyQuery.isEmpty() && names == null && canSet.isEmpty() &&
+        weights.isEmpty() && aspects.isNotEmpty()
+
+    /** What this word asks of [aspect] — what it asks everywhere, and what it asks only here. */
+    fun queryIn(aspect: Aspect): Map<String, Double> = query + queries[aspect].orEmpty()
+
+    /** Every tag this word has an opinion about anywhere, which is the honest answer to "could it want X". */
+    private val everyQuery: Map<String, Double>
+        get() = queries.values.fold(query) { standing, next -> standing + next }
 
     /**
      * Whether this word has anything to say about *which* preset fills an aspect, as opposed to how that
      * preset is steered. A word that only sets a parameter must not be treated as narrowing: an empty
      * carrier set is how the resolver recognises a word the world cannot satisfy (§3.3).
      */
-    val constrainsPresets: Boolean get() = names != null || query.values.any { it > 0.0 }
+    val constrainsPresets: Boolean get() = names != null || everyQuery.values.any { it > 0.0 }
 
     /**
      * The same question asked of one aspect, which is the honest form. A derived block word names a *sea*
@@ -244,25 +266,32 @@ data class Word(
      * speaks to, finds no carrier in most, and is charged as unbacked for an opinion it never had.
      */
     fun constrainsPresetsIn(aspect: Aspect): Boolean =
-        namedPreset(aspect) != null || query.values.any { it > 0.0 }
-
-    /** The tags this word wants, which are the ones that must have a carrier somewhere (§3.3). */
-    val wanted: Set<String> get() = query.filterValues { it > 0.0 }.keys
+        namedPreset(aspect) != null || queryIn(aspect).values.any { it > 0.0 }
 
     /**
-     * How strongly [tags] answers this word's *positive* terms — the number a narrowing word thresholds.
-     * The strongest single term rather than a sum, because a word asking for two tags asks for either.
+     * The tags this word wants, which are the ones that must have a carrier somewhere (§3.3).
+     *
+     * Every aspect's, unioned. This is asked by opposition-finding, where the question is whether two
+     * words can ever be at odds, and a word that wants `bright` only overhead still wants it.
      */
-    fun pull(tags: Map<String, Double>): Double =
-        query.filterValues { it > 0.0 }.maxOfOrNull { (tag, weight) -> weight * (tags[tag] ?: 0.0) } ?: 0.0
+    val wanted: Set<String> get() = everyQuery.filterValues { it > 0.0 }.keys
 
     /**
-     * How much this word likes [tags] overall, positive and negative terms together — what an evocative
-     * word tilts a draw by. A dot product where [pull] takes a maximum, which is the tier distinction:
-     * narrowing asks "does this qualify at all", tilting asks "how well does this answer".
+     * How strongly [tags] answers this word's *positive* terms in [aspect] — the number a narrowing word
+     * thresholds. The strongest single term rather than a sum, because a word asking for two tags asks
+     * for either.
      */
-    fun affinityFor(tags: Map<String, Double>): Double =
-        query.entries.sumOf { (tag, weight) -> weight * (tags[tag] ?: 0.0) }
+    fun pullIn(aspect: Aspect, tags: Map<String, Double>): Double =
+        queryIn(aspect).filterValues { it > 0.0 }
+            .maxOfOrNull { (tag, weight) -> weight * (tags[tag] ?: 0.0) } ?: 0.0
+
+    /**
+     * How much this word likes [tags] in [aspect], positive and negative terms together — what an
+     * evocative word tilts a draw by. A dot product where [pullIn] takes a maximum, which is the tier
+     * distinction: narrowing asks "does this qualify at all", tilting asks "how well does this answer".
+     */
+    fun affinityIn(aspect: Aspect, tags: Map<String, Double>): Double =
+        queryIn(aspect).entries.sumOf { (tag, weight) -> weight * (tags[tag] ?: 0.0) }
 
     /**
      * How strongly this word claims one particular preset — [pull], except that naming a preset claims it
@@ -271,7 +300,9 @@ data class Word(
      */
     fun pullOn(preset: AspectPreset, tags: Map<String, Double>): Double = when {
         names == preset.key -> NAMED_OUTRIGHT
-        else -> weightOn(preset) ?: pull(tags)
+        // The preset carries the aspect, so a per-aspect query needs no argument threaded to it: what a
+        // word asks of a candidate is decided by where the candidate lives.
+        else -> weightOn(preset) ?: pullIn(preset.aspect, tags)
     }
 
     /** What this word says about [preset] by name, in the aspect it belongs to, or null where it is silent. */
@@ -280,9 +311,9 @@ data class Word(
             byPreset[preset.key]?.takeIf { aspect.presetFor(preset.key) != null }
         }
 
-    /** [affinityFor], with a direct weight winning where this word named this preset outright. */
+    /** [affinityIn], with a direct weight winning where this word named this preset outright. */
     fun affinityOn(preset: AspectPreset, tags: Map<String, Double>): Double =
-        weightOn(preset) ?: affinityFor(tags)
+        weightOn(preset) ?: affinityIn(preset.aspect, tags)
 
     /** [accepts], asked of a preset this word may have an opinion about by name. */
     fun acceptsOn(preset: AspectPreset, tags: Map<String, Double>): Boolean {
@@ -295,8 +326,8 @@ data class Word(
      * with the threshold: [Tier.EVOCATIVE]'s threshold is zero, and a preset that answers the word not at
      * all must never qualify.
      */
-    fun accepts(tags: Map<String, Double>): Boolean {
-        val strength = pull(tags)
+    fun acceptsIn(aspect: Aspect, tags: Map<String, Double>): Boolean {
+        val strength = pullIn(aspect, tags)
         return strength > 0.0 && strength >= tier.threshold
     }
 
@@ -362,6 +393,8 @@ data class Word(
                 // is legal and means "this, and it is also like these".
                 Codec.unboundedMap(Codec.STRING, Codec.DOUBLE).optionalFieldOf("query", emptyMap())
                     .forGetter(Word::query),
+                Codec.unboundedMap(ASPECT_CODEC, Codec.unboundedMap(Codec.STRING, Codec.DOUBLE))
+                    .optionalFieldOf("queries", emptyMap()).forGetter(Word::queries),
                 Codec.STRING.optionalFieldOf("names").forGetter { Optional.ofNullable(it.names) },
                 Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("sets", emptyMap())
                     .forGetter(Word::sets),
@@ -370,10 +403,10 @@ data class Word(
                 Codec.INT.optionalFieldOf("draws", 0).forGetter(Word::draws),
                 Codec.unboundedMap(ASPECT_CODEC, Codec.unboundedMap(Codec.STRING, Codec.DOUBLE))
                     .optionalFieldOf("weights", emptyMap()).forGetter(Word::weights),
-            ).apply(instance) { tier, aspects, query, names, sets, pool, draws, weights ->
+            ).apply(instance) { tier, aspects, query, queries, names, sets, pool, draws, weights ->
                 val named = names.orElse(null)
-                val reaches = reaching(tier, aspects, sets + pool, named, weights.keys)
-                Word(id, tier, reaches, query, named, sets, pool, draws, weights)
+                val reaches = reaching(tier, aspects, sets + pool, named, weights.keys + queries.keys)
+                Word(id, tier, reaches, query, queries, named, sets, pool, draws, weights)
             }
         }
 
