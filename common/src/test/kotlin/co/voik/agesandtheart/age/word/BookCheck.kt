@@ -40,6 +40,12 @@ class BookCheck : FunSpec({
         }
     }
 
+    /**
+     * A book, read. **Null is the fixture's mistake, not the parser's**: a book without the `age` page is
+     * not a book at all (§4.3.1), and everything read here is given one.
+     */
+    fun read(pages: List<String>) = Grammar.read(vocabulary, pages) ?: error("not a book: $pages")
+
     val bookGrammar: GenerationGrammar by lazy {
         vocabulary.generation.grammar(BOOK_GRAMMAR) ?: error("the pack ships no '$BOOK_GRAMMAR' grammar")
     }
@@ -51,7 +57,7 @@ class BookCheck : FunSpec({
     val written by lazy { (1L..BOOKS_DRAWN).map { seed -> seed to bookGrammar.expand(Random(seed)) } }
     val resolved by lazy {
         written.map { (seed, pages) ->
-            val read = Grammar.read(vocabulary, pages)
+            val read = read(pages)
             Triple(seed, pages, runCatching { Resolver.resolve(vocabulary, read, seed) })
         }
     }
@@ -65,7 +71,10 @@ class BookCheck : FunSpec({
             // Mostly authored, because those are the words that carry structure — subjects, joiners, rungs.
             // A row drawn evenly from the corpus would be eleven materials in a row and nothing else.
             fun page() = if (random.nextInt(DERIVED_IN) == 0) derived.random(random) else sayable.random(random)
-            seed to List(random.nextInt(1, LONGEST_ROW)) { page() }
+            // The `age` page first, because a row without one is not a book and is refused before the
+            // parser sees it (§4.3.1) — fuzzing those would only ever re-test the one rule that refuses.
+            // Everything after it is as random as before, `age` being in `sayable` and free to recur.
+            seed to (listOf(NUCLEUS_PAGE) + List(random.nextInt(1, LONGEST_ROW)) { page() })
         }
     }
 
@@ -95,7 +104,7 @@ class BookCheck : FunSpec({
      */
     test("every book the Art writes is read whole and needs no repair") {
         for ((seed, pages) in written) {
-            val read = Grammar.read(vocabulary, pages)
+            val read = read(pages)
             check(read.dropped.isEmpty()) {
                 "seed $seed wrote '${pages.joinToString(" ")}', and the Art could not place " +
                     read.dropped.joinToString(" ")
@@ -144,7 +153,7 @@ class BookCheck : FunSpec({
     test("garbling a book costs vagueness, never instability") {
         for ((seed, pages) in written) {
             val garbled = pages + "zzzznotaword$seed"
-            val read = Grammar.read(vocabulary, garbled)
+            val read = read(garbled)
             check(read.unreadable == listOf("zzzznotaword$seed")) {
                 "garbling seed $seed reported ${read.unreadable} rather than the one page nobody can read"
             }
@@ -187,7 +196,7 @@ class BookCheck : FunSpec({
             // The nucleus every book must have, then the two words that disagree.
             val pages = listOf(nucleusPage(vocabulary), opposed.first.name, opposed.second.name)
             val written = pages.joinToString(" ")
-            val read = Grammar.read(vocabulary, pages)
+            val read = read(pages)
             check(read.dropped.isEmpty()) {
                 "'$written' was a parse error, which a contradiction must never be: ${read.dropped}"
             }
@@ -207,7 +216,7 @@ class BookCheck : FunSpec({
         var repaired = 0
         var lost = 0
         for ((seed, pages) in fuzzed) {
-            val read = runCatching { Grammar.read(vocabulary, pages) }
+            val read = runCatching { read(pages) }
                 .getOrElse { failure -> error("seed $seed ('${pages.joinToString(" ")}') would not read: $failure") }
             runCatching { Resolver.resolve(vocabulary, read, seed) }
                 .getOrElse { failure -> error("seed $seed ('${pages.joinToString(" ")}') would not resolve: $failure") }
@@ -231,7 +240,7 @@ class BookCheck : FunSpec({
      */
     test("nothing vanishes from a row of pages") {
         for ((seed, pages) in fuzzed) {
-            val read = Grammar.read(vocabulary, pages)
+            val read = read(pages)
             val accountedFor = read.written.map { it.word.name }.toSet() + read.dropped.toSet()
             val content = pages.filter { vocabulary.grammarWord(it) == null }
             val lost = content.filterNot { it in accountedFor }
@@ -249,8 +258,8 @@ class BookCheck : FunSpec({
      */
     test("the same pages always read the same way") {
         for ((seed, pages) in fuzzed) {
-            val once = Grammar.read(vocabulary, pages)
-            val again = Grammar.read(vocabulary, pages)
+            val once = read(pages)
+            val again = read(pages)
             check(once == again) {
                 "seed $seed ('${pages.joinToString(" ")}') read two ways:\n  $once\n  $again"
             }
@@ -261,6 +270,9 @@ class BookCheck : FunSpec({
 /** The page every book opens with — structure, so it comes from the grammar words rather than the corpus. */
 private fun nucleusPage(vocabulary: Vocabulary): String =
     vocabulary.grammarWords.first { it.production == Production.NUCLEUS }.name
+
+/** The one page every book must carry, without which a row is refused rather than read (§4.3.1). */
+private const val NUCLEUS_PAGE = "age"
 
 private const val BOOK_GRAMMAR = "book"
 

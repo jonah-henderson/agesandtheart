@@ -29,6 +29,12 @@ class GrammarCheck : FunSpec({
     }
 
     /**
+     * A book, read. **Null is the fixture's mistake, not the parser's**: every row here opens with `age`,
+     * and one that does not is not a book at all (§4.3.1) rather than a book that reads badly.
+     */
+    fun read(pages: List<String>) = Grammar.read(vocabulary, pages) ?: error("not a book: $pages")
+
+    /**
      * **Nothing anywhere may import `org.antlr`.**
      *
      * This used to permit one file, the adapter that held the generated parser behind [Grammar]'s port. The
@@ -74,7 +80,7 @@ class GrammarCheck : FunSpec({
 
     /** Position decides attachment: a modifier belongs to the subject it follows, never to one it does not. */
     test("a section attaches its modifiers") {
-        val read = Grammar.read(vocabulary, listOf("age", "floating", "basalt"))
+        val read = read(listOf("age", "floating", "basalt"))
         check(read.dropped.isEmpty()) { "a plain two-page book would not read: ${read.dropped}" }
         check(read.constraints.size == 2) { "expected a subject and its modifier, got ${read.constraints}" }
         check(read.words.map { it.name } == listOf("floating", "basalt")) {
@@ -90,7 +96,7 @@ class GrammarCheck : FunSpec({
      * but whether an aiming page stands in front of them, which is the whole of what position decides.
      */
     test("an aiming page opens a section") {
-        val aimed = Grammar.read(vocabulary, listOf("age", "landmass", "floating", "sea", "molten"))
+        val aimed = read(listOf("age", "landmass", "floating", "sea", "molten"))
         check(aimed.phrases.size == 2) {
             "two aiming pages made ${aimed.phrases.size} section(s): ${aimed.phrases}"
         }
@@ -101,7 +107,7 @@ class GrammarCheck : FunSpec({
             "'floating' did not stay with the landmass: ${aimed.phrases.first().modifiers}"
         }
 
-        val unaimed = Grammar.read(vocabulary, listOf("age", "floating", "molten"))
+        val unaimed = read(listOf("age", "floating", "molten"))
         check(unaimed.phrases.size == 1) {
             "a book with no aiming page split into ${unaimed.phrases.size} sections: ${unaimed.phrases}"
         }
@@ -114,7 +120,7 @@ class GrammarCheck : FunSpec({
      * make the first book unwritable.
      */
     test("a book that aims at nothing still says everything in it") {
-        val read = Grammar.read(vocabulary, listOf("beautiful", "age", "floating", "basalt"))
+        val read = read(listOf("beautiful", "age", "floating", "basalt"))
         check(read.dropped.isEmpty()) { "an unaimed book lost pages: ${read.dropped}" }
         check(read.words.map { it.name } == listOf("beautiful", "floating", "basalt")) {
             "the reading reordered or dropped an unaimed book: ${read.words}"
@@ -130,14 +136,14 @@ class GrammarCheck : FunSpec({
      * the *land* out of lava as well, and the readout said nothing about it because the parse looked right.
      */
     test("aiming confines a word to what it was aimed at") {
-        val underTheSea = Grammar.read(vocabulary, listOf("age", "sea", "lava"))
+        val underTheSea = read(listOf("age", "sea", "lava"))
         val confined = underTheSea.constraints.first { it.word.name == "lava" }
         check(confined.scope.reaches(emptyList()) == listOf(Aspect.SEA)) {
             "'sea lava' let lava reach ${confined.scope.reaches(emptyList())}"
         }
 
         // And unaimed it keeps everything it declares, or aiming would be the only way to say anything.
-        val unaimed = Grammar.read(vocabulary, listOf("age", "lava"))
+        val unaimed = read(listOf("age", "lava"))
         val loose = unaimed.constraints.first { it.word.name == "lava" }
         check(Aspect.TERRAIN in loose.scope.reaches(emptyList())) {
             "an unaimed word lost an aspect it declares: ${loose.scope.reaches(emptyList())}"
@@ -156,7 +162,7 @@ class GrammarCheck : FunSpec({
      * is that the move be *visible*, which is why the clause the word ended up under is asserted too.
      */
     test("a word cannot be absorbed by a section it says nothing about") {
-        val read = Grammar.read(vocabulary, listOf("age", "landmass", "starless"))
+        val read = read(listOf("age", "landmass", "starless"))
         val land = read.phrases.first { it.subject?.word?.name == "landmass" }
         check(land.modifiers.none { it.word.name == "starless" }) {
             "a sky word aimed at the land was read as saying something about it: $land"
@@ -173,7 +179,7 @@ class GrammarCheck : FunSpec({
      * the claim rather than the word, so what the parser owes is putting it on the right constraint.
      */
     test("a quantifier binds to the term it precedes") {
-        val read = Grammar.read(vocabulary, listOf("age", "landmass", "basalt", "and", "teeming", "deepslate"))
+        val read = read(listOf("age", "landmass", "basalt", "and", "teeming", "deepslate"))
         check(read.dropped.isEmpty()) { "a quantified book lost pages: ${read.dropped}" }
         val counted = read.constraints.first { it.word.name == "deepslate" }
         check(counted.density == TEEMING) { "'teeming deepslate' resolved to ${counted.density}" }
@@ -191,7 +197,7 @@ class GrammarCheck : FunSpec({
      * commonest thing anyone writes the *narrow* reading.
      */
     test("an evocative word stays global when aimed") {
-        val read = Grammar.read(vocabulary, listOf("age", "beautiful", "landmass", "floating"))
+        val read = read(listOf("age", "beautiful", "landmass", "floating"))
         val beautiful = read.constraints.first { it.word.name == "beautiful" }
         val scope = beautiful.scope as? Scope.Everywhere
             ?: error("an aimed evocative word was confined to ${beautiful.scope}, which demotes it to restrictive")
@@ -202,7 +208,7 @@ class GrammarCheck : FunSpec({
 
     /** The other half: a word that narrows candidates narrows where it speaks. */
     test("a narrowing word is confined") {
-        val read = Grammar.read(vocabulary, listOf("age", "floating"))
+        val read = read(listOf("age", "floating"))
         val floating = read.constraints.single()
         val scope = floating.scope as? Scope.Confined ?: error("'floating' was left global at ${floating.scope}")
         check(scope.aspects == setOf(Aspect.TERRAIN)) { "'floating' reaches ${scope.aspects}" }
@@ -215,13 +221,13 @@ class GrammarCheck : FunSpec({
      * then "and" would mean nothing, and there would be no way left to say *keep both*.
      */
     test("joining is not juxtaposition") {
-        val joined = Grammar.read(vocabulary, listOf("age", "verdant", "basalt", "and", "deepslate"))
+        val joined = read(listOf("age", "verdant", "basalt", "and", "deepslate"))
         val groups = joined.constraints.mapNotNull { it.group }.distinct()
         check(groups.size == 1) { "'basalt and molten' should share one group, got ${joined.constraints}" }
         val grouped = joined.constraints.filter { it.group != null }.map { it.word.name }
         check(grouped.size == 2) { "expected two words in the group, got $grouped" }
 
-        val unjoined = Grammar.read(vocabulary, listOf("age", "verdant", "basalt", "deepslate"))
+        val unjoined = read(listOf("age", "verdant", "basalt", "deepslate"))
         check(unjoined.constraints.all { it.group == null }) {
             "unjoined juxtaposition was read as a group, which would leave 'and' meaning nothing"
         }
@@ -230,7 +236,7 @@ class GrammarCheck : FunSpec({
     /** `only` and `except` attach to the values they precede, not to the section at large. */
     test("only and except reach their values") {
         for ((page, expected) in listOf("only" to Polarity.ONLY, "except" to Polarity.EXCEPT)) {
-            val read = Grammar.read(vocabulary, listOf("age", "verdant", page, "basalt"))
+            val read = read(listOf("age", "verdant", page, "basalt"))
             val basalt = read.constraints.first { it.word.name == "basalt" }
             check(basalt.polarity == expected) { "'$page basalt' gave ${basalt.polarity}" }
             val subject = read.constraints.first { it.word.name == "verdant" }
@@ -244,7 +250,7 @@ class GrammarCheck : FunSpec({
      * is ANTLR's own strategy, so pinning it would describe the parser rather than the design.
      */
     test("an unreadable page becomes vagueness, not an error") {
-        val read = Grammar.read(vocabulary, listOf("age", "floating", "zzzznotaword", "basalt"))
+        val read = read(listOf("age", "floating", "zzzznotaword", "basalt"))
         check(read.unreadable == listOf("zzzznotaword")) { "an unknown page was not reported: ${read.unreadable}" }
         check(read.constraints.any { it.word.name == "floating" }) {
             "one unreadable page cost the whole book: ${read.constraints}"
@@ -269,9 +275,11 @@ class GrammarCheck : FunSpec({
             listOf("beautiful", "and", "floating"),
             listOf("only", "except", "and"),
             listOf("basalt", "floating", "verdant", "deepslate"),
-        )
+            // Every row names an Age, without which it is refused rather than read (§4.3.1) — and a
+            // refusal loses every page at once, which would pass this check for the wrong reason.
+        ).map { pages -> listOf("age") + pages }
         for (pages in books) {
-            val read = Grammar.read(vocabulary, pages)
+            val read = read(pages)
             val accountedFor = read.words.map { it.name }.toSet() + read.dropped.toSet()
             val content = pages.filter { vocabulary.grammarWord(it) == null }
             val lost = content.filterNot { it in accountedFor }
@@ -281,7 +289,7 @@ class GrammarCheck : FunSpec({
             }
         }
         // The joining word owes no constraint of its own, so it must never be reported as unread.
-        val joined = Grammar.read(vocabulary, listOf("age", "verdant", "basalt", "and", "deepslate"))
+        val joined = read(listOf("age", "verdant", "basalt", "and", "deepslate"))
         check(joined.dropped.isEmpty()) { "a structural page was reported as unread: ${joined.dropped}" }
     }
 
@@ -292,7 +300,7 @@ class GrammarCheck : FunSpec({
      * aspects they declare themselves.
      */
     test("a book that only steers still says something") {
-        val read = Grammar.read(vocabulary, listOf("age", "basalt"))
+        val read = read(listOf("age", "basalt"))
         check(read.dropped.isEmpty()) { "'basalt' alone was unreadable: ${read.dropped}" }
         val basalt = read.constraints.singleOrNull() ?: error("'basalt' alone gave ${read.constraints}")
         check(Aspect.TERRAIN in basalt.scope.reaches(emptyList())) {
@@ -300,25 +308,59 @@ class GrammarCheck : FunSpec({
         }
     }
 
-    /** Design §2: the pen never refuses. Every shape of nonsense must still come back as a sentence. */
-    test("the parser never refuses") {
-        val nonsense = listOf(
-            emptyList(),
-            listOf("and"),
-            listOf("only"),
-            listOf("basalt"),
-            listOf("and", "and", "and"),
-            listOf("except", "and", "only"),
-            listOf("zzzz", "yyyy"),
-            listOf("basalt", "and"),
-            listOf("floating", "and", "and", "basalt"),
-        )
-        for (pages in nonsense) {
-            runCatching { Grammar.read(vocabulary, pages) }
-                .getOrElse { failure -> error("the pen refused '${pages.joinToString(" ")}': $failure") }
+    /**
+     * **Every book opens with the `age` page** (§4.3.1), and one that does not is not a sentence.
+     *
+     * The nucleus used to be optional and an empty page row read as a sentence saying nothing, which made
+     * a book of no pages a way to author an Age nobody described. §2 is unhurt: the pen still never
+     * refuses, because what stops parsing here becomes [Repair]'s and comes back with the Art's own words
+     * — which is what the second half checks, since "not a sentence" and "silently empty" look alike from
+     * the outside.
+     */
+    test("a book without the Age page is not a book at all") {
+        check(Grammar.read(vocabulary, emptyList()) == null) { "an empty book was read as a sentence" }
+        check(Grammar.read(vocabulary, listOf("landmass", "flat")) == null) {
+            "a book with no Age page was read as a sentence"
+        }
+        check(Grammar.read(vocabulary, listOf("age")) != null) { "the Age page alone is a book and must read" }
+        // **Not repaired.** Repair would hand back a whole drawn world, which is the free reroll this rule
+        // exists to stop: an empty book must cost a page, some ink, and knowing that `age` opens a book.
+        check(Grammar.read(vocabulary, NONSENSE.first()) == null) { "a nucleus-less book was repaired" }
+    }
+
+    /**
+     * Design §2: the pen never refuses — **once the book is a book**.
+     *
+     * Every shape of nonsense still comes back as a sentence, because that is what [Repair] is for. The
+     * one exception is above and it is a different kind of thing: naming what you are making is the ante,
+     * where everything after it is forgiven.
+     */
+    test("the parser never refuses a book that names an Age") {
+        for (pages in NONSENSE) {
+            val asABook = listOf("age") + pages
+            val read = runCatching { Grammar.read(vocabulary, asABook) }
+                .getOrElse { failure -> error("the pen refused '${asABook.joinToString(" ")}': $failure") }
+            check(read != null) { "'${asABook.joinToString(" ")}' names an Age and was still refused" }
+            // And the same pages without it are refused, so the two halves cannot both be tested by luck.
+            check(Grammar.read(vocabulary, pages) == null) {
+                "'${pages.joinToString(" ")}' has no Age page and was read anyway"
+            }
         }
     }
 })
+
+/** Every shape of nonsense a writer can lay out, none of which names an Age. */
+private val NONSENSE = listOf(
+    emptyList(),
+    listOf("and"),
+    listOf("only"),
+    listOf("basalt"),
+    listOf("and", "and", "and"),
+    listOf("except", "and", "only"),
+    listOf("zzzz", "yyyy"),
+    listOf("basalt", "and"),
+    listOf("floating", "and", "and", "basalt"),
+)
 
 /**
  * The module's Kotlin sources, for the boundary scan. **Filtered to the roots that exist, and the caller

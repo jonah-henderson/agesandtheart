@@ -37,6 +37,9 @@ object FoundBook {
         stack.set(AgeContent.BOOK_WORDS, words)
         if (words.isEmpty()) return
         stack.set(AgeContent.BOOK_TITLE, AgeName.drawn(vocabulary, seed)?.read ?: UNNAMED)
-        stack.set(AgeContent.BOOK_READING, Readout.columnsOf(Grammar.read(vocabulary, pages)))
+        // A generation grammar that dropped the `age` page has written something no player could bind, so
+        // the book goes out unread rather than carrying a reading of a sentence it does not spell.
+        val read = Grammar.read(vocabulary, pages) ?: return
+        stack.set(AgeContent.BOOK_READING, Readout.columnsOf(read))
     }
 }

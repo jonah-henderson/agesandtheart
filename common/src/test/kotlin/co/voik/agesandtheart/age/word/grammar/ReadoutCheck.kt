@@ -27,6 +27,9 @@ class ReadoutCheck : FunSpec({
         }
     }
 
+    /** A book, read — null being a row that forgot the `age` page, which is a fixture bug (§4.3.1). */
+    fun read(pages: List<String>) = Grammar.read(vocabulary, pages) ?: error("not a book: $pages")
+
     /**
      * A book, as it reads **after the page it opens with**. The nucleus is supplied here rather than written
      * into every fixture, and taken back off the front of the answer for the same reason: every book has an
@@ -34,7 +37,7 @@ class ReadoutCheck : FunSpec({
      * pinned by two tests of its own below.
      */
     fun readingOf(vararg pages: String): String =
-        Readout.of(Grammar.read(vocabulary, listOf("age") + pages)).removePrefix("age: ")
+        Readout.of(read(listOf("age") + pages)).removePrefix("age: ")
 
     /**
      * **A book opens with the page it opens with.** The nucleus carries no constraint and so reaches no
@@ -43,18 +46,22 @@ class ReadoutCheck : FunSpec({
      * game, and a player learning the language by reading found books never met it.
      */
     test("the page a book opens with is in its reading") {
-        val reading = Readout.of(Grammar.read(vocabulary, listOf("age", "landmass", "basalt")))
+        val reading = Readout.of(read(listOf("age", "landmass", "basalt")))
         check(reading == "age: landmass of basalt.") { "the book did not open with its own head: '$reading'" }
     }
 
     /**
-     * And a book that never had one does not borrow the Art's. A repaired book is complete where its writer's
-     * was not, so a supplied nucleus in the reading would tell them they laid a page they never did — the
-     * same laundering from the other side (§4.3.1).
+     * And no reading ever shows a nucleus its writer did not lay — which is now settled a step earlier and
+     * more firmly than a readout rule could.
+     *
+     * This used to check that a *repaired* book did not borrow the Art's `age`, laundering a page the
+     * writer never wrote. That case cannot arise: a book without the nucleus is refused rather than
+     * repaired (§4.3.1), so the only nucleus a reading can show is the writer's own.
      */
-    test("a repaired book claims no nucleus of its own") {
-        val reading = Readout.of(Grammar.read(vocabulary, listOf("landmass", "basalt")))
-        check(!reading.startsWith("age")) { "a supplied nucleus reached the reading: '$reading'" }
+    test("a reading never shows a nucleus the writer did not lay") {
+        check(Grammar.read(vocabulary, listOf("landmass", "basalt")) == null) {
+            "a nucleus-less book was repaired, so the Art's `age` could reach a writer's reading"
+        }
     }
 
     /**
@@ -144,7 +151,7 @@ class ReadoutCheck : FunSpec({
      * where the caller shows it struck through.
      */
     test("an unread page never reaches the prose") {
-        val read = Grammar.read(vocabulary, listOf("age", "landmass", "zzzznotaword", "basalt"))
+        val read = read(listOf("age", "landmass", "zzzznotaword", "basalt"))
         val reading = Readout.of(read)
         check("zzzznotaword" !in reading) { "an unreadable page was laundered into the prose: '$reading'" }
         check("zzzznotaword" in read.unreadable) { "an unreadable page went unreported: ${read.unreadable}" }
@@ -166,11 +173,11 @@ class ReadoutCheck : FunSpec({
             listOf("and", "and", "and"),
             listOf("except", "and", "only"),
             listOf("teeming", "and", "scarce"),
-            listOf("landmass", "sea", "sky", "climate"),
+            listOf("landmass", "sea", "firmament", "atmosphere"),
             listOf("floating", "and", "and", "basalt"),
-        )
+        ).map { pages -> listOf("age") + pages }
         for (pages in nonsense) {
-            runCatching { Readout.of(Grammar.read(vocabulary, pages)) }
+            runCatching { Readout.of(read(pages)) }
                 .getOrElse { failure -> error("the reading refused '${pages.joinToString(" ")}': $failure") }
         }
     }
@@ -200,7 +207,7 @@ class ReadoutCheck : FunSpec({
             listOf("landmass", "starless"),
         )
         for (pages in books) {
-            val sentence = Grammar.read(vocabulary, listOf("age") + pages)
+            val sentence = read(listOf("age") + pages)
             val printed = Readout.of(sentence)
             // Offline there is no language file, so a translatable name falls back to its title-cased id.
             // Casing and the `_` a name loses are the whole of the difference, and normalising them away
@@ -222,7 +229,7 @@ class ReadoutCheck : FunSpec({
      */
     test("every page the writer laid gets a column of its own") {
         val pages = listOf("landmass", "packed_ice", "and", "deepslate", "sea", "molten")
-        val sentence = Grammar.read(vocabulary, listOf("age") + pages)
+        val sentence = read(listOf("age") + pages)
         val columns = Readout.columnsOf(sentence)
         val stood = columns.map { it.written.trimEnd(',', '.') }
         for (page in pages) {

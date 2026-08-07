@@ -24,7 +24,9 @@ object DescriptiveBookRecipe {
         if (words.isEmpty()) return AgeRecipe.of(AgePreset.SPIRE, ageId)
         val vocabulary = Vocabulary.of(server)
         val spoken = words.map { it.path }
-        val read = Grammar.read(vocabulary, spoken)
+        // Null is a book with no `age` page, which the desk refuses to bind and no generated book lacks —
+        // so this is reachable only from a hand-built stack, and it falls in with "says nothing readable".
+        val read = Grammar.read(vocabulary, spoken) ?: return AgeRecipe.of(AgePreset.SPIRE, ageId)
         if (read.isEmpty) return AgeRecipe.of(AgePreset.SPIRE, ageId)
         // The desk's own, where the book has one — so the Age is the world the writer was shown while
         // they were laying the pages out, and not merely one their words could have made.

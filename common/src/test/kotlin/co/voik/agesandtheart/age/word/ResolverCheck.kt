@@ -49,6 +49,9 @@ class ResolverCheck : FunSpec({
         }
     }
 
+    /** A book, read — null being a row that forgot the `age` page, which is a fixture bug (§4.3.1). */
+    fun read(pages: List<String>) = Grammar.read(vocabulary, pages) ?: error("not a book: $pages")
+
     /**
      * The same sentence at the same seed resolves identically. Everything downstream leans on it: an Age
      * is rebuilt from its recipe on every open, so a wandering resolver is a world that changes under the
@@ -787,10 +790,7 @@ class ResolverCheck : FunSpec({
      * different aspects from the same word.
      */
     test("the ground can wear one rock over another") {
-        val said = Grammar.read(
-            vocabulary,
-            listOf("age", "landmass", "worn", "granite", "surface", "blackstone"),
-        )
+        val said = read(listOf("age", "landmass", "worn", "granite", "surface", "blackstone"))
         val composition = Resolver.resolve(vocabulary, said, SAMPLE_SEED).composition
         val body = composition.optionsFor(Aspect.TERRAIN, 0).allOf(Terrain.STONE)
         val skin = composition.optionsFor(Aspect.SURFACE, 0).allOf(Surface.MATERIAL)
@@ -800,7 +800,7 @@ class ResolverCheck : FunSpec({
 
     /** And a skin of air is how a writer says the ground wears nothing — `open`'s idiom, for the surface. */
     test("a surface of air is no surface at all") {
-        val said = Grammar.read(vocabulary, listOf("age", "surface", "air"))
+        val said = read(listOf("age", "surface", "air"))
         val composition = Resolver.resolve(vocabulary, said, SAMPLE_SEED).composition
         val skin = composition.optionsFor(Aspect.SURFACE, 0).allOf(Surface.MATERIAL)
         check(skin == listOf("minecraft:air")) { "'surface air' wrote $skin" }

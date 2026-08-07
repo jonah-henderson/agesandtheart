@@ -606,7 +606,10 @@ object AgeCommand {
         if (unknown.isNotEmpty()) {
             return report.fail("The Art has never heard of ${unknown.joinToString(" ")}")
         }
+        // The one refusal in the Art (§4.3.1): name the thing you are making, or there is no book. Without
+        // it an empty book would be a free reroll on a random Age, which is what repair would hand back.
         val read = Grammar.read(vocabulary, pages)
+            ?: return report.fail("A book opens with the Age page — write 'age' first, then what it is like")
         if (read.isEmpty) return report.fail("An Age needs at least one word the Art can read")
         reportParse(report, read)
 
@@ -1258,8 +1261,11 @@ object AgeCommand {
         source.sendSuccess({ Component.literal("  ${pages.joinToString(" ")}") }, false)
         // Said back through the readout, so what it *means* is visible beside what it says — which is the
         // only way to judge whether a generated book is a good one.
+        // A generation grammar that forgot the Age page has written something no player could bind, and
+        // saying so here is the whole point of drafting against it.
         val sentence = Grammar.read(vocabulary, pages)
-        source.sendSuccess({ Component.literal("  reads as: ${Readout.of(sentence)}") }, false)
+        val reading = sentence?.let(Readout::of) ?: "nothing — this book has no Age page, so it is not a book"
+        source.sendSuccess({ Component.literal("  reads as: $reading") }, false)
         source.sendSuccess({
             Component.literal("  write it with: /age write book$seed $seed ${pages.joinToString(" ")}")
         }, false)
@@ -1287,8 +1293,9 @@ object AgeCommand {
         // makes of it, not by whether the words look plausible in a row.
         if (grammar.terminals == TerminalKind.WORD) {
             val sentence = Grammar.read(vocabulary, produced)
-            source.sendSuccess({ Component.literal("  reads as: ${Readout.of(sentence)}") }, false)
-            if (sentence.dropped.isNotEmpty()) {
+            val reading = sentence?.let(Readout::of) ?: "nothing — no Age page, so this is not a book"
+            source.sendSuccess({ Component.literal("  reads as: $reading") }, false)
+            if (sentence != null && sentence.dropped.isNotEmpty()) {
                 source.sendSuccess({
                     Component.literal("  unread: ${sentence.dropped.joinToString(" ")}").withStyle(ChatFormatting.RED)
                 }, false)

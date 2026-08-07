@@ -31,6 +31,7 @@
   "container.agesandtheart.writers_desk.no_binding": "A book needs a binding",
   "container.agesandtheart.writers_desk.no_name": "An Age needs a name",
   "container.agesandtheart.writers_desk.no_pages": "A book needs at least one page",
+  "container.agesandtheart.writers_desk.no_age": "Every book opens with the Age symbol",
   "container.agesandtheart.writers_desk.nothing_written": "Nothing written yet.",
   "container.agesandtheart.writers_desk.output_full": "Take the finished book first",
   "container.agesandtheart.writers_desk.quarrel": "Disagrees with %s",

@@ -66,11 +66,17 @@ internal object ArtReading {
         private fun looking(vararg kinds: PageClass): Boolean = here?.kind in kinds
 
         /**
-         * `(nucleus section*)?` — an empty book is legal and says nothing, which is the pen never refusing
-         * (§2). Anything left unread at the end is a book that does not read.
+         * `nucleus section*` — **every book opens with the `age` page**, and one that does not is no more
+         * a sentence than one whose pages are in the wrong order.
+         *
+         * The nucleus was optional and an empty book read as a sentence saying nothing, which made a bound
+         * book of no pages a legal way to author an Age nobody described. It is a hard requirement now
+         * (§4.3.1) and the desk refuses to bind without it; the pen still never refuses (§2), because a
+         * book arriving here without one is [Repair]'s and comes back with the Art's own sentence.
+         *
+         * Anything left unread at the end is a book that does not read.
          */
         fun book(): List<Phrase>? {
-            if (pages.isEmpty()) return emptyList()
             val opening = nucleus() ?: return null
             val phrases = mutableListOf<Phrase>()
             // `Age` alone is a book — it makes an Age nobody described — and a clause with nothing in it

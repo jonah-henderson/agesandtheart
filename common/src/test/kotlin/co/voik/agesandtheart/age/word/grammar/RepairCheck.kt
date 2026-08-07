@@ -25,6 +25,10 @@ class RepairCheck : FunSpec({
         }
     }
 
+
+    /** A book, read — null being a row that forgot the `age` page, which is a fixture bug (§4.3.1). */
+    fun read(pages: List<String>) = Grammar.read(vocabulary, pages) ?: error("not a book: $pages")
+
     /** A sky word under the land: the commonest way to write a book that is not a sentence. */
     val misaimed = listOf("age", "landmass", "starless")
 
@@ -34,7 +38,7 @@ class RepairCheck : FunSpec({
      * unreadable, when the word is perfectly readable and only the aim was wrong.
      */
     test("a book that does not read keeps the writer's pages") {
-        val read = Grammar.read(vocabulary, misaimed)
+        val read = read(misaimed)
         check(read.dropped.isEmpty()) { "a re-homable page was dropped: ${read.dropped}" }
         val kept = read.written.map { it.word.name }
         check(kept == listOf("landmass", "starless")) { "the writer's pages came back as $kept" }
@@ -48,8 +52,8 @@ class RepairCheck : FunSpec({
      * seed belongs to the Age — a Descriptive Book reads the same wherever it is carried.
      */
     test("the same book always repairs the same way") {
-        val once = Grammar.read(vocabulary, misaimed)
-        val again = Grammar.read(vocabulary, misaimed)
+        val once = read(misaimed)
+        val again = read(misaimed)
         check(once == again) { "one book read two ways:\n  $once\n  $again" }
     }
 
@@ -59,7 +63,7 @@ class RepairCheck : FunSpec({
      * that far.
      */
     test("the writer's pages are theirs and the Art's are not") {
-        val read = Grammar.read(vocabulary, misaimed)
+        val read = read(misaimed)
         val written = read.written.map { it.word.name }.toSet()
         check(written == setOf("landmass", "starless")) { "the reading claimed the writer wrote $written" }
         val supplied = read.constraints.filter { it.latent }
@@ -75,7 +79,7 @@ class RepairCheck : FunSpec({
      * owed "under sky starless" must not be handed a bare "starless".
      */
     test("a re-homed page lands where it means something, and says so") {
-        val read = Grammar.read(vocabulary, misaimed)
+        val read = read(misaimed)
         val adopted = read.phrases.first { phrase -> phrase.modifiers.any { it.word.name == "starless" } }
         check(adopted.subject?.word?.aspects == setOf(Aspect.SKY)) {
             "'starless' was re-homed under ${adopted.subject?.word}"
@@ -94,7 +98,7 @@ class RepairCheck : FunSpec({
      * right.
      */
     test("only the page that moved is charged for moving") {
-        val read = Grammar.read(vocabulary, listOf("age", "landmass", "flat", "starless"))
+        val read = read(listOf("age", "landmass", "flat", "starless"))
         val moved = read.written.filter { it.rehomed }.map { it.word.name }
         check(moved == listOf("starless")) { "the pages read as moved were $moved" }
 
@@ -110,7 +114,7 @@ class RepairCheck : FunSpec({
      * clause they cannot see.
      */
     test("the Art says nothing about a part of the world the writer spoke of") {
-        val read = Grammar.read(vocabulary, listOf("age", "landmass", "flat", "sky", "landmass"))
+        val read = read(listOf("age", "landmass", "flat", "sky", "landmass"))
         val spokenIn = read.phrases.filter { phrase -> phrase.modifiers.any { !it.latent } }
         check(spokenIn.isNotEmpty()) { "the writer's pages reached no clause at all: ${read.phrases}" }
         for (phrase in spokenIn) {
@@ -126,7 +130,7 @@ class RepairCheck : FunSpec({
      * not the book's — a readout carrying them would tell a writer they had said things they never wrote.
      */
     test("the readout says only what the writer wrote") {
-        val read = Grammar.read(vocabulary, misaimed)
+        val read = read(misaimed)
         val said = Readout.of(read)
         val supplied = read.constraints.filter { it.latent }.map { it.word.name }
             .filter { word -> word in said.split(" ", ",", ".") }
@@ -142,7 +146,7 @@ class RepairCheck : FunSpec({
      * grew more expensive for being unreadable would price a mistake as though it were a lavish book.
      */
     test("filling a book in costs the writer nothing") {
-        val read = Grammar.read(vocabulary, misaimed)
+        val read = read(misaimed)
         val theirsAlone = Sentence(
             read.written.map { Phrase(modifiers = listOf(it)) },
             structural = read.structural,
@@ -158,7 +162,7 @@ class RepairCheck : FunSpec({
      * reported rather than silent (§3.3).
      */
     test("a page with nowhere to go is dropped and reported") {
-        val read = Grammar.read(vocabulary, listOf("age", "age", "landmass"))
+        val read = read(listOf("age", "age", "landmass"))
         check(read.impossible == listOf("age")) { "a second Age was not reported: ${read.impossible}" }
         // Not the other channel: nobody failed to *read* the page, there was nowhere to put it (§4.3).
         check(read.unreadable.isEmpty()) { "an impossibility was reported as vagueness: ${read.unreadable}" }
@@ -171,19 +175,25 @@ class RepairCheck : FunSpec({
         }
     }
 
-    /** Design §2: the pen never refuses, and repair is now the whole of what stands behind that. */
-    test("repair never refuses") {
+    /**
+     * Design §2: the pen never refuses, and repair is now the whole of what stands behind that.
+     *
+     * **Every row names an Age**, because that is the one thing repair is not for: a book without the
+     * `age` page is refused before repair is reached (§4.3.1), so fuzzing those here would re-test the
+     * refusal and leave repair itself unexercised.
+     */
+    test("repair never refuses a book that names an Age") {
         val nonsense = listOf(
-            listOf("and"),
-            listOf("landmass", "starless", "and"),
-            listOf("only", "except", "and"),
+            listOf("age", "and"),
+            listOf("age", "landmass", "starless", "and"),
+            listOf("age", "only", "except", "and"),
             listOf("age", "teeming"),
-            listOf("sky", "flat"),
+            listOf("age", "firmament", "flat"),
             listOf("age", "sky", "flat", "landmass", "starless"),
             listOf("age", "landmass", "and", "and", "starless"),
         )
         for (pages in nonsense) {
-            val read = runCatching { Grammar.read(vocabulary, pages) }
+            val read = runCatching { read(pages) }
                 .getOrElse { failure -> error("repair refused '${pages.joinToString(" ")}': $failure") }
             val content = pages.filter { vocabulary.grammarWord(it) == null }
             val accountedFor = read.written.map { it.word.name }.toSet() + read.dropped.toSet()
@@ -219,7 +229,7 @@ class RepairCheck : FunSpec({
             // a word laid under the nucleus alone reads fine, and a book that reads is never filled in.
             for (aimedAt in MISAIMED_AT.filterNot { it in word.aspects.map(Aspect::key) }) {
                 val laid = listOf("age", aimedAt, word.name)
-                val read = Grammar.read(vocabulary, laid)
+                val read = read(laid)
                 for (seed in REPAIR_SEEDS) {
                     val flaws = Resolver.resolve(vocabulary, read, seed).instability.flaws
                     val theArtsOwn = flaws.filterNot { flaw -> flaw.words.all { it in laid } }

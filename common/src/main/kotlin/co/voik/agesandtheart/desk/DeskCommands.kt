@@ -281,6 +281,13 @@ object DeskCommands {
         payload: DeskCommandPayload,
     ) {
         if (menu.composing.isEmpty()) return complain(player, "no_pages")
+        val words = menu.composing.toList()
+        // **The Art's one refusal** (§4.3.1): a book opens with the `age` page or it is not a book, and
+        // this is not repairable — without it an empty book would be a free reroll on a random Age.
+        // Read up here because it is also what the book carries, so what it says and the Age it makes can
+        // never be two different sentences.
+        val sentence = Grammar.read(WritersDeskMenu.vocabularyFor(player), words.map { it.path })
+            ?: return complain(player, "no_age")
         val title = payload.title.trim()
         if (title.isEmpty()) return complain(player, "no_name")
         if (!menu.outputIsFree()) return complain(player, "output_full")
@@ -290,7 +297,6 @@ object DeskCommands {
         // No ink here on purpose: it was spent writing each page, and charging again at the binding
         // would tax the same words twice.
         val book = ItemStack(AgeContent.DESCRIPTIVE_BOOK)
-        val words = menu.composing.toList()
         book.set(AgeContent.BOOK_WORDS, words)
         book.set(AgeContent.BOOK_TITLE, title)
         // The seed the desk has been predicting against, written down before it is rerolled — so the Age
@@ -300,7 +306,6 @@ object DeskCommands {
         // sentence takes the whole corpus, which is a server's; a book is read wherever it is carried.
         // Read by **the same expression `DescriptiveBookRecipe` reads it by**, so what a book says and the
         // Age it makes can never be two different sentences.
-        val sentence = Grammar.read(WritersDeskMenu.vocabularyFor(player), words.map { it.path })
         book.set(AgeContent.BOOK_READING, Readout.columnsOf(sentence))
         menu.composing.clear()
         // Into the output slot rather than the inventory: a book you take is a book you saw being made.
