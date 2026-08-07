@@ -68,8 +68,14 @@ data class Word(
      *
      * Load-bearing (§4.4): without it a word gets a say in every aspect where any preset carries any of
      * its tags, so `stormy` — a word about the sky — pinned the *terrain* to caverns and discarded
-     * `floating` in silence. It cannot be derived from tag data; which aspect a word is *about* is
-     * authorial intent and lives nowhere else.
+     * `floating` in silence.
+     *
+     * **Partly derived, and only ever widened** ([reaching]). A parameter is owned by exactly one aspect,
+     * so a word that sets one must reach that aspect or the setting is silently inert; the codec unions
+     * those in, which closes that hole and is the whole of what deriving buys. It cannot replace the
+     * declaration, because what a word reaches through its query or its weights is invisible from here:
+     * `clear` sets `murk` in the air and is also a clear sky, `arid` sets the climate axes and also wants
+     * dry rock. Where a word is *about* stays authorial intent and lives nowhere else.
      */
     val aspects: Set<Aspect>,
     /**
@@ -112,6 +118,12 @@ data class Word(
      * they are also the whole of what a word *can* do, which is a different question from what it does
      * here — see [canSet] against [setsDrawnAt].
      */
+    val pool: Map<String, String> = emptyMap(),
+    /**
+     * How many of [pool] an Age takes. Zero means none of it, and a number at or past the pool's size
+     * means all of it — so a word with a pool and no `draws` is simply a word with more `sets`.
+     */
+    val draws: Int = 0,
     /**
      * What this word thinks of particular presets, by key — **said outright, where a tag is too coarse**.
      *
@@ -133,12 +145,6 @@ data class Word(
      * everything in it, because the pool it had to strike was suddenly full of biomes.
      */
     val weights: Map<Aspect, Map<String, Double>> = emptyMap(),
-    val pool: Map<String, String> = emptyMap(),
-    /**
-     * How many of [pool] an Age takes. Zero means none of it, and a number at or past the pool's size
-     * means all of it — so a word with a pool and no `draws` is simply a word with more `sets`.
-     */
-    val draws: Int = 0,
 ) {
     /** What a writer says to use it. */
     val name: String get() = id.path
@@ -152,9 +158,6 @@ data class Word(
      * miss the parameter that would have landed is a writer paying for a coin they did not toss.
      */
     val canSet: Map<String, String> get() = sets + pool
-
-    /** What separates one alternative from the next inside a single value. */
-    private val ALTERNATIVE = '|' 
 
     /**
      * What it actually chooses in the Age [draw] belongs to — the core, and [draws] of the pool.
@@ -308,6 +311,29 @@ data class Word(
         /** What naming a thing outright is worth, against a tag weight, which never exceeds one. */
         private const val NAMED_OUTRIGHT = 1.0
 
+        /** What separates one alternative from the next inside a single value. */
+        private const val ALTERNATIVE = '|'
+
+        /**
+         * Where a word reaches, given what its file [declared] and every parameter it [steers].
+         *
+         * A parameter name belongs to exactly one aspect, so a word setting one and not reaching that
+         * aspect does nothing with it and nothing says so. Widening rather than replacing is the whole of
+         * the rule: what a word reaches through its query or its weights cannot be seen from here, and a
+         * derived set handed back on its own would quietly strip `clear` of the sky.
+         *
+         * **An empty declaration is left empty**, so omitting the field never means "work it out" — it
+         * still means anywhere, which already contains the owning aspect. `beautiful` is why: it nudges
+         * the climate axes and queries `lovely`, `lush`, `bright`, `hostile` and `gloomy` over every
+         * aspect there is, so deriving from its parameters would shut it into the climate and it would
+         * stop being beautiful anywhere else.
+         */
+        fun reaching(declared: Set<Aspect>, steers: Map<String, String>): Set<Aspect> {
+            if (declared.isEmpty()) return declared
+            val owning = Aspect.entries.filter { aspect -> steers.keys.any(aspect::ownsParameterNamed) }
+            return declared + owning
+        }
+
         /** A word as its file says it, the id coming from where the file *is*, like every vanilla registry. */
         fun mapCodec(id: Identifier): MapCodec<Word> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -320,13 +346,13 @@ data class Word(
                 Codec.STRING.optionalFieldOf("names").forGetter { Optional.ofNullable(it.names) },
                 Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("sets", emptyMap())
                     .forGetter(Word::sets),
-                Codec.unboundedMap(ASPECT_CODEC, Codec.unboundedMap(Codec.STRING, Codec.DOUBLE))
-                    .optionalFieldOf("weights", emptyMap()).forGetter(Word::weights),
                 Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("pool", emptyMap())
                     .forGetter(Word::pool),
                 Codec.INT.optionalFieldOf("draws", 0).forGetter(Word::draws),
-            ).apply(instance) { tier, aspects, query, names, sets, weights, pool, draws ->
-                Word(id, tier, aspects, query, names.orElse(null), sets, weights, pool, draws)
+                Codec.unboundedMap(ASPECT_CODEC, Codec.unboundedMap(Codec.STRING, Codec.DOUBLE))
+                    .optionalFieldOf("weights", emptyMap()).forGetter(Word::weights),
+            ).apply(instance) { tier, aspects, query, names, sets, pool, draws, weights ->
+                Word(id, tier, reaching(aspects, sets + pool), query, names.orElse(null), sets, pool, draws, weights)
             }
         }
 

@@ -145,6 +145,18 @@ enum class Aspect(val key: String) : StringRepresentable {
         }
 
     /**
+     * Whether a parameter by this name means anything here — its own [dials], or a knob one of its
+     * presets offers.
+     *
+     * Static, and deliberately so: this is asked while the vocabulary is still being built, before there
+     * is a corpus to ask. It sees less than [co.voik.agesandtheart.age.word.Vocabulary.turnsAKnob], which
+     * can also reach an open aspect's data presets — but every steering knob an open aspect has is one of
+     * its dials, so for the question of *which aspect owns a name* the two agree.
+     */
+    fun ownsParameterNamed(name: String): Boolean =
+        dials.any { it.name == name } || authored.any { it.honoursParameterNamed(name) }
+
+    /**
      * What kind of answer an aspect has. The resolver asks a different question of a sentence for each,
      * which is the whole reason this exists rather than one shape with degenerate cases in it.
      */
