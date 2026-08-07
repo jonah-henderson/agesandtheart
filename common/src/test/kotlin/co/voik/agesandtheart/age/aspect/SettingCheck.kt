@@ -86,6 +86,23 @@ class SettingCheck : FunSpec({
         check((settled("0.2..0.4", "~-9.0")?.width ?: 1.0) < A_HAIR) { "narrowing past nothing should pin, not invert" }
     }
 
+    /**
+     * **Two words agreeing about an axis leave what they share**, and folding that over a group can never
+     * empty: these are intervals on a line, so pairwise overlap guarantees a common point, and a group is
+     * built by requiring every member to agree with every other.
+     */
+    test("agreeing bands narrow, and a pairwise-agreeing set always leaves something") {
+        check(Span(-0.25, 0.45).narrowedTo(Span(0.0, 0.6)) matches Span(0.0, 0.45)) { "bands did not narrow" }
+        // Pairwise overlapping, no two of them the same, and the fold still lands somewhere.
+        val agreeing = listOf(Span(-1.0, 0.2), Span(-0.5, 0.6), Span(0.0, 1.0), Span(-0.3, 0.9))
+        for (one in agreeing) for (other in agreeing) {
+            check(one.overlaps(other)) { "the fixture is not pairwise overlapping: $one against $other" }
+        }
+        val shared = agreeing.reduce { held, next -> held.narrowedTo(next) }
+        check(shared.least <= shared.most) { "a pairwise-agreeing set folded to nothing: $shared" }
+        check(shared matches Span(0.0, 0.2)) { "the common stretch is wrong: $shared" }
+    }
+
     /** Nothing asked leaves the axis as it was, which is what an Age nobody spoke to about it gets. */
     test("asking nothing changes nothing") {
         check(Setting.settle(emptyList()) matches Span.NATURAL) { "an unasked axis moved" }

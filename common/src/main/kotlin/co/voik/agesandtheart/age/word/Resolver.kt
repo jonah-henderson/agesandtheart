@@ -725,11 +725,31 @@ object Resolver {
         }
 
         val groups = gathered(bounding, ::agree)
-        // Each group broadens together, axis by axis, into the climate its words jointly describe.
+        /**
+         * Each group settles to the climate its words *jointly* describe — **narrowing, unless `and` says
+         * otherwise**.
+         *
+         * Two words that agree about an axis both have to be honoured, so what they leave is the stretch
+         * they share. Broadening instead meant `temperate` beside anything warmer bought a band wider than
+         * either word asked for, which is the one outcome neither writer wanted (Jonah, 2026-08-06).
+         *
+         * **`and` is how a writer asks for the wide band**, and it already means exactly that everywhere
+         * else: "keep both, and keep them apart" (§3.2). So a joined run broadens among itself, and the
+         * runs then narrow against each other.
+         *
+         * The fold cannot empty: a group is built by requiring every member to agree with every other, and
+         * pairwise overlap on a line guarantees a common point — see [Span.narrowedTo].
+         */
         val climates = groups.map { group ->
+            // Keyed by the `and`-group, or by position for a word standing alone, so that two unjoined
+            // words never share a run merely by both being unjoined.
+            val runs = group.withIndex().groupBy { (at, said) -> said.group ?: at }.values
             axes.mapNotNull { axis ->
-                group.mapNotNull { boundsIn(it)[axis] }
-                    .reduceOrNull { held, next -> held.broadenedTo(next) }
+                runs.mapNotNull { run ->
+                    run.mapNotNull { (_, said) -> boundsIn(said)[axis] }
+                        .reduceOrNull { held, next -> held.broadenedTo(next) }
+                }
+                    .reduceOrNull { held, next -> held.narrowedTo(next) }
                     ?.let { axis to it }
             }.toMap()
         // Nothing narrowed anything, so there is one climate and the bend is the whole of what was said.

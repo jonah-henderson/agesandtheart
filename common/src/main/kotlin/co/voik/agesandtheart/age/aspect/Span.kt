@@ -34,6 +34,17 @@ data class Span(val least: Double, val most: Double, val bend: Double = EVEN) {
     fun broadenedTo(other: Span): Span = Span(minOf(least, other.least), maxOf(most, other.most))
 
     /**
+     * The stretch both of these admit — what two words *agreeing* about an axis leave between them.
+     *
+     * Safe to fold over any set of spans that pairwise [overlaps], and that is not luck: these are
+     * intervals on a line, where pairwise overlap guarantees a common point (Helly's theorem in one
+     * dimension). A group is built by requiring every member to agree with every other, so its intersection
+     * can never come out empty.
+     */
+    fun narrowedTo(other: Span): Span =
+        Span(maxOf(least, other.least), minOf(most, other.most), bend)
+
+    /**
      * [value] remapped from the axis's natural full range into this span — monotone, so the spatial
      * structure of the climate noise survives and a warm world still has its warmer and cooler places.
      *
