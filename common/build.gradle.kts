@@ -51,6 +51,18 @@ dependencies {
     // implementation at runtime, so this must never reach a runtime classpath. Nothing is generated here:
     // Minecraft is unobfuscated from 26.1, so there is no refmap for the annotation processor to write.
     compileOnly(libs.mixin)
+    // The config spec, written once here rather than twice behind the SPI (`notes/config-research.md`).
+    //
+    // **The `-fabric` artifact, and that is not a mistake.** It is the one that carries
+    // `net.neoforged.neoforge.common.ModConfigSpec` as classes; `-common` holds only the port's own
+    // internals and none of the API. NeoForge supplies the same classes itself, so this is the API on
+    // both loaders and the implementation on neither — hence `compileOnly`, or a second copy would reach
+    // a runtime classpath.
+    //
+    // **Non-transitive, and that is load-bearing.** The artifact declares Fabric API, and letting that
+    // through would put Fabric on `common`'s compile path — the one thing this module must never see.
+    // What is wanted is the class files and nothing else.
+    compileOnly(libs.forgeConfigApiPort.fabric) { isTransitive = false }
 }
 
 artifacts {

@@ -1,0 +1,8 @@
+{
+  "_comment": "How fiercely a tempest happens. `rolls` is per tick over the chunks near a player and is the storm's strength — 640 marks the ground without wearing it away. `fire_attempts` at 0 is a storm that only cracks.",
+  "rolls": 640,
+  "reach": 8,
+  "blast": 3.0,
+  "fire_attempts": 24,
+  "fire_reach": 3
+}

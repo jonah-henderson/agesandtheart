@@ -22,6 +22,9 @@ import co.voik.agesandtheart.sky.Skies
 import net.minecraft.core.registries.Registries
 import net.neoforged.bus.api.IEventBus
 import net.neoforged.fml.ModContainer
+import net.neoforged.fml.config.ModConfig
+import net.neoforged.neoforge.client.gui.ConfigurationScreen
+import net.neoforged.neoforge.client.gui.IConfigScreenFactory
 import net.neoforged.fml.common.Mod
 import net.neoforged.neoforge.common.NeoForge
 import net.neoforged.neoforge.event.RegisterCommandsEvent
@@ -33,6 +36,12 @@ import net.neoforged.neoforge.registries.RegisterEvent
 class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
     init {
         CommonSetup.init()
+
+        // The config, and the screen that reads it. NeoForge owns both `ModConfigSpec` and a generated
+        // `ConfigurationScreen`, so a Config button appears on the Mods page for one line and no UI code
+        // — see `notes/config-research.md` for why the spec is shaped for screens rather than for us.
+        modContainer.registerConfig(ModConfig.Type.SERVER, AgeConfig.SPEC)
+        modContainer.registerExtensionPoint(IConfigScreenFactory::class.java, IConfigScreenFactory(::ConfigurationScreen))
 
         // Content registration is a mod-bus event on NeoForge.
         eventBus.addListener(::onRegister)

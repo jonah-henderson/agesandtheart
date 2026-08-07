@@ -30,11 +30,21 @@ import net.fabricmc.fabric.api.loot.v3.LootTableEvents
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents
+import fuzs.forgeconfigapiport.fabric.api.v5.ConfigRegistry
+import net.neoforged.fml.config.ModConfig
 import net.minecraft.core.Registry
 import net.minecraft.core.registries.BuiltInRegistries
 
 fun init() {
     CommonSetup.init()
+
+    // The config. Fabric has no config system of its own, so the spec is registered through Forge Config
+    // API Port, against the same `ModConfigSpec` NeoForge registers (`notes/config-research.md`).
+    //
+    // No screen is registered here. The port offers a `ConfigScreenFactoryRegistry` for a mod that wants
+    // to supply its own, and the whole point of choosing a spec other tools can read is not needing to:
+    // Configured generates one from this, and Mod Menu indexes it.
+    ConfigRegistry.INSTANCE.register(Constants.MOD_ID, ModConfig.Type.SERVER, AgeConfig.SPEC)
 
     // Register content (components before items). On Fabric this is done directly during init.
     // Fluids before items: a bucket names its fluid, and the pair is built together.

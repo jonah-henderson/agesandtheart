@@ -46,6 +46,14 @@ repositories {
         url = uri("https://maven.nucleoid.xyz/")
         content { includeGroup("xyz.nucleoid") }
     }
+    maven {
+        // Forge Config API Port — NeoForge's config system, on Fabric. A GitHub-backed maven rather than
+        // a host of its own, which is worth knowing: DynamicDimensions left this project because its only
+        // Maven went offline, so where a dependency lives is part of choosing it.
+        name = "Fuzs"
+        url = uri("https://github.com/Fuzss/modresources/raw/main/maven")
+        content { includeGroup("fuzs.forgeconfigapiport") }
+    }
 }
 
 // Declare capabilities on the outgoing configurations.
@@ -126,6 +134,8 @@ processResources {
             'neoforge_range'               : libs.versions.neoforgeRange.get(),
             'kff_version'                  : libs.versions.kff.get(),
             'kff_version_range'            : libs.versions.kffRange.get(),
+            'fantasy_range'                : libs.versions.fantasyRange.get(),
+            'config_port_range'            : libs.versions.forgeConfigApiPortRange.get(),
             'credits'                      : credits,
             'java_version'                 : libs.versions.java.get()
     ]

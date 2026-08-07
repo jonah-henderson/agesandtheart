@@ -21,11 +21,15 @@ dependencies {
     // Fantasy: runtime dimension creation (the Fabric-only backend for Ages).
     implementation(libs.fantasy)
 
-    // The Art's parser runtime. Loom nests it and synthesises a fabric.mod.json for the non-mod jar
-    // itself, so Fabric's half of bundling really is two lines.
+    // Forge Config API Port: NeoForge's config system on Fabric, where there is no built-in one.
+    //
+    // **Declared, not nested.** The ecosystem rule is that a plain Java library is bundled and a *mod* is
+    // declared, and this is a mod — it hooks the loader lifecycle and wants Fabric API. Both manifests say
+    // so, so a player missing it is told rather than crashed at.
     //
     // `modImplementation` is gone along with remapping: from 26.1 Minecraft and mods alike are
     // unobfuscated, so the plain configurations are the only ones there are.
+    implementation(libs.forgeConfigApiPort.fabric)
 }
 
 /**

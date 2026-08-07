@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.phenomena
 
+
 import co.voik.agesandtheart.age.aspect.Phenomenon
 import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
@@ -38,11 +39,14 @@ object Tempest {
         if (watching.isEmpty()) return
 
         val random = level.random
-        repeat(Happenings.timesFor(density, ORDINARY_VISITS)) {
+        // Read once per pass rather than per roll: this runs hundreds of times a tick.
+        val behaviour = PhenomenonBehaviour.of(level.server, Phenomenon.TEMPEST)
+        val reach = behaviour.reach
+        repeat(Happenings.timesFor(density, behaviour.rolls)) {
             val near = watching[random.nextInt(watching.size)].chunkPosition()
             val chunk = level.chunkSource.getChunkNow(
-                near.x + random.nextInt(NEARBY * 2 + 1) - NEARBY,
-                near.z + random.nextInt(NEARBY * 2 + 1) - NEARBY,
+                near.x + random.nextInt(reach * 2 + 1) - reach,
+                near.z + random.nextInt(reach * 2 + 1) - reach,
             ) ?: return@repeat
             level.tickThunder(chunk)
         }
@@ -98,7 +102,7 @@ object Tempest {
             bolt.x,
             bolt.y,
             bolt.z,
-            BLAST_RADIUS,
+            PhenomenonBehaviour.of(level.server, Phenomenon.TEMPEST).blast,
             true,
             // Not `MOB`, which is a creeper's and which `mobGriefing` switches off. An Age is written on
             // purpose and a tempest in it was asked for, so it is not a setting.
@@ -117,43 +121,19 @@ object Tempest {
      */
     private fun setFiresAround(level: ServerLevel, around: BlockPos, random: RandomSource) {
         if (!level.canSpreadFireAround(around)) return
-        repeat(FIRE_ATTEMPTS) {
-            val at = around.offset(scatter(random), scatter(random), scatter(random))
+        val behaviour = PhenomenonBehaviour.of(level.server, Phenomenon.TEMPEST)
+        repeat(behaviour.fireAttempts) {
+            val at = around.offset(
+                scatter(random, behaviour.fireReach),
+                scatter(random, behaviour.fireReach),
+                scatter(random, behaviour.fireReach),
+            )
             if (!level.getBlockState(at).isAir) return@repeat
             val fire = BaseFireBlock.getState(level, at)
             if (fire.canSurvive(level, at)) level.setBlockAndUpdate(at, fire)
         }
     }
 
-    private fun scatter(random: RandomSource): Int = random.nextInt(FIRE_REACH * 2 + 1) - FIRE_REACH
+    private fun scatter(random: RandomSource, reach: Int): Int = random.nextInt(reach * 2 + 1) - reach
 
-    /**
-     * How many chunks a tempest looks at per tick, at an ordinary rung.
-     *
-     * Each visit is one of vanilla's own rolls, which is `1 in 100000` — so this many, twenty times a
-     * second, is a strike somewhere near a player about every eight seconds, and `teeming` is four times
-     * that. The knob is the *number of rolls* rather than a rate of our own, so a tempest can never strike
-     * anywhere vanilla would not have.
-     *
-     * Walked at 512, which read as *nearly* a tempest (Jonah, 2026-08-06): the ground was marked without
-     * being worn away, which is the balance to keep, and it wanted a little more weather rather than a
-     * different kind of it. Hence a quarter more rolls and nothing else touched — the blast radius was
-     * right where it was.
-     */
-    private const val ORDINARY_VISITS = 640
-
-    /** How far from a player a strike may land, in chunks — inside a normal render distance. */
-    private const val NEARBY = 8
-
-    /**
-     * Creeper force, and the rung does not raise it.
-     *
-     * `Creeper.explosionRadius` is 3, and this is meant to read as one. A rung already multiplies how often
-     * a tempest strikes; letting it multiply the crater as well would make `teeming` worse than twice over.
-     */
-    private const val BLAST_RADIUS = 3.0f
-
-    /** How many places around a strike catch, and how far out to try them. */
-    private const val FIRE_ATTEMPTS = 24
-    private const val FIRE_REACH = 3
 }

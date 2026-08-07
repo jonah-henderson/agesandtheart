@@ -27,6 +27,16 @@ versionRange = "${minecraft_version_range}"
 ordering = "NONE"
 side = "BOTH"
 
+# Kotlin For Forge, which supplies the Kotlin standard library as a mod. Required, and the jar carries
+# none of it — a player without this used to meet a NoClassDefFoundError instead of a mod list telling
+# them what to install. No config port here: NeoForge owns `ModConfigSpec` already.
+[[dependencies."${mod_id}"]]
+modId = "kotlinforforge"
+type="required"
+versionRange = "${kff_version_range}"
+ordering = "AFTER"
+side = "BOTH"
+
 # Features are specific properties of the game environment, that you may want to declare you require. This example declares
 # that your mod requires GL version 3.2 or higher. Other features will be added. They are side aware so declaring this won't
 # stop your mod loading on the server for example.
