@@ -3,8 +3,6 @@ import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 plugins {
     id("multiloader-common")
     alias(libs.plugins.moddev)
-    // Gradle's own ANTLR plugin, so generating the parser needs no third-party Gradle plugin.
-    antlr
     alias(libs.plugins.powerAssert)
 }
 
@@ -49,54 +47,16 @@ configurations {
 }
 
 dependencies {
-    antlr(libs.antlrTool)
-    implementation(libs.antlrRuntime)
-
     // Annotations only, and only to compile `src/main/java`'s one Mixin. Each loader supplies the real
     // implementation at runtime, so this must never reach a runtime classpath. Nothing is generated here:
     // Minecraft is unobfuscated from 26.1, so there is no refmap for the annotation processor to write.
     compileOnly(libs.mixin)
 }
 
-/**
- * Name the generated parser's package explicitly.
- *
- * Gradle's ANTLR plugin mirrors the grammar's directory into the output but never passes `-package`, so the
- * classes come out in the **default package** while sitting in a package-shaped directory. Java would merely
- * warn; **Kotlin cannot import from the default package at all**, so nothing in `common` could reach them.
- *
- * Only the argument, and deliberately *not* a matching `outputDirectory`: the plugin already mirrors the
- * grammar's own directory beneath the output root, so setting both doubles the path and yields
- * `…/grammar/co/voik/agesandtheart/grammar/ArtParser.java`. Where the file lands was always right; it was
- * the declaration inside it that was missing.
- */
-tasks.named<org.gradle.api.plugins.antlr.AntlrTask>("generateGrammarSource") {
-    arguments = arguments + listOf("-package", "co.voik.agesandtheart.grammar", "-visitor")
-    // Clear the output first. ANTLR rewrites every file it still produces but removes none it no longer
-    // does, so dropping a rule leaves a stale class on disk with the *old* token numbering — which compiles
-    // perfectly and then misparses. Cheap, because Gradle skips the whole task when inputs are unchanged.
-    val generated = outputDirectory
-    doFirst { generated.deleteRecursively() }
-}
-
-// Everything in this module that walks its own source directories now reads a *generated* one too, and
-// Gradle rightly refuses to guess the ordering. The loaders need no equivalent: they read the `commonJava`
-// configuration, whose artifacts already name the generating task as their builder.
-for (readsTheSources in listOf("compileKotlin", "dokkaGenerateModuleJavadoc", "sourcesJar")) {
-    tasks.named(readsTheSources) { dependsOn("generateGrammarSource") }
-}
-
-// The ANTLR *tool* drags in ST4 and friends, and the plugin puts the whole thing on the compile classpath
-// through `api`. Only the runtime belongs there; the tool is a build-time concern.
-configurations.named("api") { setExtendsFrom(emptyList()) }
-
 artifacts {
-    // Every Java source directory rather than `.singleFile` as before: with a generated parser there are
-    // two, and the generated one does not exist until `generateGrammarSource` has run — so each carries
-    // that task as its builder, or a loader compiles against a directory nobody has filled in yet.
-    for (directory in sourceSets.main.get().java.sourceDirectories) {
-        add("commonJava", directory) { builtBy(tasks.named("generateGrammarSource")) }
-    }
+    // One Java source directory again, now that the parser is Kotlin like everything else and no task
+    // has to run before a loader can compile against it.
+    add("commonJava", sourceSets.main.get().java.sourceDirectories.singleFile)
     add("commonKotlin", sourceSets.main.get().kotlin.sourceDirectories.filter { it.name == "kotlin" }.singleFile)
     add("commonResources", sourceSets.main.get().resources.sourceDirectories.singleFile)
 }
@@ -143,9 +103,6 @@ val test: SourceSet = sourceSets.test.get()
 // done-flag before doing the work. Tests then pass against a half-built registry. See NeedsRegistries.
 test.compileClasspath += main.compileClasspath + main.output
 test.runtimeClasspath += main.compileClasspath + main.runtimeClasspath + main.output
-
-// The `antlr` plugin adds a grammar task per source set; the same undeclared-output trap as `preview`.
-tasks.named("compileTestKotlin") { dependsOn(tasks.named("generateTestGrammarSource")) }
 
 tasks.named<Test>("test") {
     useJUnitPlatform()
@@ -261,13 +218,6 @@ tasks.register<Test>("landformTest") {
         logger.lifecycle("")
     }
 }
-
-// The `antlr` plugin adds a grammar task *per source set*, so creating `preview` also created
-// `generatePreviewGrammarSource` and put its output directory on the source set — even though every grammar
-// we have lives in `src/main/antlr` and this one therefore generates nothing. Kotlin still reads that
-// directory, and without this edge Gradle intermittently fails the build for consuming another task's output
-// undeclared. It presented as "compilePreviewKotlin is flaky" for weeks and cost a check run more than once.
-tasks.named("compilePreviewKotlin") { dependsOn(tasks.named("generatePreviewGrammarSource")) }
 
 /**
  * Registers one of the offline developer instruments — a `main()` in the `preview` source set, run

@@ -29,26 +29,32 @@ class GrammarCheck : FunSpec({
     }
 
     /**
-     * **Nothing but `ArtGrammar.kt` may import `org.antlr`.** Swapping the parser is meant to cost one
-     * file, and a boundary defended only by a comment lasts until someone is in a hurry.
+     * **Nothing anywhere may import `org.antlr`.**
+     *
+     * This used to permit one file, the adapter that held the generated parser behind [Grammar]'s port. The
+     * parser is ours now — recursive descent over an already-classified row of pages, in [ArtReading] — and
+     * the dependency is gone from the build, so the rule is simply absolute.
+     *
+     * Kept rather than deleted with the dependency, because a check that costs nothing is the cheapest way
+     * to notice a library coming back in: the boundary that made swapping the parser a one-file job is the
+     * same boundary that makes this worth guarding.
      */
-    test("the parser boundary holds") {
-        val adapter = "ArtGrammar.kt"
+    test("no parser generator has come back") {
         // Import lines rather than any mention of the name, or this check fails on its own error message —
         // which it did, first time out.
-        val importsTheParser = Regex("""^\s*import\s+org\.antlr""", RegexOption.MULTILINE)
+        val importsAParserGenerator = Regex("""^\s*import\s+org\.antlr""", RegexOption.MULTILINE)
         val roots = sourceRoots()
         check(roots.isNotEmpty()) {
             "found no Kotlin source to scan from ${Path.of("").toAbsolutePath()} — this check would pass on nothing"
         }
         val leaked = roots.flatMap { root ->
-            root.walk().filter { it.extension == "kt" && it.fileName.toString() != adapter }
-                .filter { file -> importsTheParser.containsMatchIn(file.readText()) }
+            root.walk().filter { it.extension == "kt" }
+                .filter { file -> importsAParserGenerator.containsMatchIn(file.readText()) }
                 .map { file -> file.fileName.toString() }
         }
         check(leaked.isEmpty()) {
-            "the parser has leaked out of $adapter into ${leaked.joinToString()} — see Grammar's KDoc for why " +
-                "that boundary exists, and put the translation back behind it"
+            "a parser generator is back, in ${leaked.joinToString()} — the Art's parser is ArtReading.kt, " +
+                "four productions of recursive descent, and it is meant to stay that way"
         }
     }
 

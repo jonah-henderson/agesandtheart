@@ -188,6 +188,33 @@ enum class Aspect(val key: String) : StringRepresentable {
      * Two claims, not one: a sky *cannot* divide (a world has one sky over it), where structures *need
      * not* (vanilla places each set against the whole dimension, its biome predicates doing the rest).
      */
+    /**
+     * Whether a clause about this may be **confined to one biome** — `in mushroom_fields, spawns only
+     * slime`. Vanilla resolves these three through the biome, so they are the three that can be asked
+     * about one.
+     *
+     * A phenomenon is deliberately not among them: it is *sited* rather than resolved per biome (§5.2), so
+     * `in <biome>` would be the wrong scope for it entirely.
+     */
+    val confinable: Boolean
+        get() = when (this) {
+            FEATURES, SPAWNS, ATMOSPHERE -> true
+            TERRAIN, SEA, CARVERS, BIOMES, SKY, STRUCTURES, CLIMATE, SURFACE, PHENOMENA -> false
+        }
+
+    /**
+     * Whether this part of the world is **made of** something, and so admits a material where a term is
+     * wanted — `land of blackstone`, `a sea of ice`.
+     *
+     * Being made of a substance is shared, which is why a block is its own page class rather than a term
+     * per aspect: the *section* decides whether `ice` means a sea or a stone.
+     */
+    val madeOfSomething: Boolean
+        get() = when (this) {
+            TERRAIN, SEA, STRUCTURES, SURFACE -> true
+            CARVERS, BIOMES, SKY, CLIMATE, FEATURES, SPAWNS, ATMOSPHERE, PHENOMENA -> false
+        }
+
     val positional: Boolean
         get() = when (this) {
             // Climate divides for a reason the others do not: not two presets that could not be reconciled,

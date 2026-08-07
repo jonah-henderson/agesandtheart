@@ -26,8 +26,6 @@ dependencies {
     //
     // `modImplementation` is gone along with remapping: from 26.1 Minecraft and mods alike are
     // unobfuscated, so the plain configurations are the only ones there are.
-    implementation(libs.antlrRuntime)
-    include(libs.antlrRuntime)
 }
 
 /**

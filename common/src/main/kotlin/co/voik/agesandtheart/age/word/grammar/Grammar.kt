@@ -89,11 +89,11 @@ object Grammar {
      * (design §2). A page nobody recognises is dropped and reported, and the Age comes out vaguer (§4.3).
      */
     fun read(vocabulary: Vocabulary, pages: List<String>): Sentence {
-        val laid = aimedAtTheirSections(pages.map { written -> classify(vocabulary, written) })
-        // A page nobody recognises never reaches the parser: it has no token type, and letting ANTLR
-        // discover that would turn a vague sentence into a syntax error (§4.3).
+        val laid = pages.map { written -> classify(vocabulary, written) }
+        // A page nobody recognises never reaches the parser: it has no class to be read as, and letting the
+        // parser discover that would turn a vague sentence into a refusal (§4.3).
         val readable = laid.filter { it.kind != null }
-        val read = ArtGrammar.parse(readable) ?: Repair.of(vocabulary, readable)
+        val read = ArtReading.parse(readable) ?: Repair.of(vocabulary, readable)
         return read.copy(unreadable = laid.filter { it.kind == null }.map(Page::written))
     }
 
@@ -114,37 +114,6 @@ object Grammar {
         val word = vocabulary.word(written) ?: return Page(written, kind = null, latent = latent)
         val kind = word.pageClass
         return Page(written, kind = kind, word = word, aspect = word.aspectFor(kind), latent = latent)
-    }
-
-    /**
-     * The same pages, with a term belonging to several parts of the world stamped for the section it was
-     * actually laid in.
-     *
-     * **One bit of state, and it is a lexer's bit rather than a parser's.** A page carries one terminal
-     * chosen from the word alone, so a word at home in two sections could only ever be written in the
-     * first of them — not because the grammar cannot admit it twice (`MATERIAL_TERM` is admitted by four
-     * sections already) but because nothing told the stamp which section it was in. Sections are opened by
-     * aiming pages, which are recognisable without parsing, so a left-to-right scan knows. The grammar
-     * stays context-free throughout: `sky clear` and `atmosphere clear` are different terminals under
-     * different rules, and the parse tree says which.
-     *
-     * **This is a patch with its replacement already chosen** (Jonah, 2026-08-04). The second time the Art
-     * wants a page to mean something different for where it sits, this comes out and the parser becomes
-     * ours — see `decisions.md`.
-     */
-    private fun aimedAtTheirSections(laid: List<Page>): List<Page> = buildList {
-        var section: Aspect? = null
-        for (page in laid) {
-            if (page.kind == PageClass.SUBJECT) section = page.aspect
-            add(page.aimedAt(section))
-        }
-    }
-
-    /** Stamped for [section], where this page has several homes and that is one of them. */
-    private fun Page.aimedAt(section: Aspect?): Page {
-        val hasSeveralHomes = kind == PageClass.TERM && (word?.aspects?.size ?: 0) > 1
-        val belongsHere = section != null && word?.aspects?.contains(section) == true
-        return if (hasSeveralHomes && belongsHere) copy(aspect = section) else this
     }
 
     /**
@@ -173,9 +142,9 @@ object Grammar {
     /**
      * Which part of the world this page belongs to, for the classes that belong to one.
      *
-     * The first in ordinal order, which is the answer for a page nobody aimed. A word declaring several
-     * is re-stamped by [aimedAtTheirSections] for the section it was laid in, so this is the fallback
-     * rather than the whole answer.
+     * The first in ordinal order, and now only a hint: a term's real home is the section it was laid in,
+     * which the parser knows when it reads one. This is what a page says about itself before anyone has
+     * asked where it is standing, and [Repair] uses it to tell two pages of one word apart.
      */
     private fun Word.aspectFor(kind: PageClass): Aspect? = when (kind) {
         PageClass.SUBJECT, PageClass.TERM -> aspects.minByOrNull { it.ordinal }

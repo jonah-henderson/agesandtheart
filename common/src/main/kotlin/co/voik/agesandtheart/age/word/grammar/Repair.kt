@@ -58,7 +58,7 @@ internal object Repair {
      */
     private fun skeletonFor(vocabulary: Vocabulary, laid: List<Page>): List<Page> {
         val drawn = drawn(vocabulary, laid)
-        val reads = drawn.isNotEmpty() && ArtGrammar.parse(drawn) != null
+        val reads = drawn.isNotEmpty() && ArtReading.parse(drawn) != null
         return if (reads) drawn else nucleusOf(vocabulary)
     }
 
@@ -133,7 +133,7 @@ internal object Repair {
         fun fill(written: List<Page>): Sentence {
             for ((wroteAt, page) in written.withIndex()) lay(page, wroteAt)
             markWhatMoved(written)
-            val read = ArtGrammar.parse(pages())
+            val read = ArtReading.parse(pages())
             // Every placement was accepted by the parser and marking a move changes only whose page a page
             // is, so this cannot fail. If it ever does, the pages are **reported** rather than dropped: a
             // repair that quietly loses a book is the one failure §3.3 forbids, and the empty sentence this
@@ -154,7 +154,7 @@ internal object Repair {
             }
             for (at in positionsFromTheAnchor()) {
                 if (!canOpenAt(at)) continue
-                if (ArtGrammar.parse(pagesWith(at, page)) == null) continue
+                if (ArtReading.parse(pagesWith(at, page)) == null) continue
                 laid.add(at, Laid(page, wroteAt))
                 anchor = at + 1
                 return
