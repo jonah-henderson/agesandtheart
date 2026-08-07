@@ -1,7 +1,4 @@
 {
   "tier": "exact",
-  "aspects": [
-    "terrain"
-  ],
   "names": "canyonlands"
 }

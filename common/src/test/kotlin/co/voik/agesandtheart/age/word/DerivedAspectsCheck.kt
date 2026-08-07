@@ -6,16 +6,17 @@ import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
 /**
- * Where a word reaches, against what its parameters say it must reach (§4.4).
+ * Where a word reaches, against every concrete claim it makes (§4.4).
  *
- * **A parameter is owned by exactly one aspect**, so a word that sets one and does not reach that aspect
- * does nothing with it — and nothing anywhere says so. That is the whole case for deriving: not to spare an
- * author a line, but to close a way of writing a word whose failure is invisible.
+ * A word acts on an aspect four ways and **three of them name the aspect outright**: a parameter is owned
+ * by exactly one, a named preset belongs to whichever aspect's list holds it, and a weight is keyed by
+ * aspect already. A claim landing where the word does not reach is never applied — and worse than
+ * unapplied, it counts against the draw in the aspect the word *does* reach as a knob nothing honours. So
+ * all three are unioned in, and the case for deriving is closing that hole rather than sparing a line.
  *
- * What derivation cannot see is the rest of a word. `clear` sets `murk` in the air and is *also* a clear
- * sky; `arid` sets the climate axes and also wants dry rock. Neither reach is expressible as a parameter,
- * so the derived set is a floor under the declaration and never a replacement for it — which is what the
- * last check here holds down.
+ * **The fourth is the tag query, and deriving from it is the spike's worst bug.** `stormy` means `gloomy`,
+ * `gloomy` is also on `caverns`, so a sky word pinned the terrain and discarded `floating` in silence. A
+ * query says what a word likes; it never says where it belongs.
  */
 @Tags("NEEDS_REGISTRIES")
 class DerivedAspectsCheck : FunSpec({
@@ -64,18 +65,58 @@ class DerivedAspectsCheck : FunSpec({
     }
 
     /**
-     * **Deriving only ever widens.** The three words that disagree with their own parameters — `clear`,
-     * `arid`, `verdant` — are the reason: each declares more than it steers, and each is the vocabulary
-     * being natural rather than an author being sloppy.
+     * **Deriving only ever widens.** The words that disagree with their own concrete claims — `clear`,
+     * `arid`, `verdant` — each declare *more* than they claim, reaching further by tag query alone, and
+     * each is the vocabulary being natural rather than an author being sloppy.
      */
     test("what a file declared survives the derivation") {
         val declared = setOf(Aspect.SKY, Aspect.ATMOSPHERE)
-        val widened = Word.reaching(declared, mapOf("murk" to "0.1..0.4"))
+        val widened = Word.reaching(Tier.EXACT, declared, mapOf("murk" to "0.1..0.4"), named = null, weighted = emptySet())
         check(declared.all { it in widened }) { "deriving dropped a declared aspect: $widened" }
         check(Aspect.ATMOSPHERE in widened) { "deriving missed the aspect that owns the parameter: $widened" }
 
-        val steersElsewhere = Word.reaching(setOf(Aspect.SKY), mapOf("temperature" to "0.5..1.0"))
+        val steersElsewhere =
+            Word.reaching(Tier.EXACT, setOf(Aspect.SKY), mapOf("temperature" to "0.5..1.0"), null, emptySet())
         check(steersElsewhere == setOf(Aspect.SKY, Aspect.CLIMATE)) { "a parameter reached nothing: $steersElsewhere" }
+    }
+
+    /** A named preset places a word exactly, which is what makes the seventeen terrain words derivable. */
+    test("naming a preset reaches the aspect whose preset it is") {
+        val fromAName = Word.reaching(Tier.EXACT, setOf(Aspect.SKY), emptyMap(), named = "alps", weighted = emptySet())
+        check(fromAName == setOf(Aspect.SKY, Aspect.TERRAIN)) { "a named preset reached nothing: $fromAName" }
+    }
+
+    /**
+     * **An open aspect must not claim a name it was merely handed.** `Biome.named("alps")` succeeds — a
+     * bare path is a valid identifier — so asking every aspect whether it knows `alps` would widen a
+     * terrain word into the biomes, spawns, features and structures at once. Asking the authored list
+     * cannot do that, and this is what says so.
+     */
+    test("an id-shaped name does not belong to every open aspect") {
+        val claiming = Aspect.entries.filter { it.ownsPresetNamed("alps") }
+        check(claiming == listOf(Aspect.TERRAIN)) { "'alps' was claimed by $claiming" }
+    }
+
+    /** A weight is keyed by aspect already, so it says where it applies and needs no deriving at all. */
+    test("a weight reaches the aspect it is keyed under") {
+        val fromAWeight =
+            Word.reaching(Tier.EXACT, setOf(Aspect.CLIMATE), emptyMap(), null, weighted = setOf(Aspect.BIOMES))
+        check(fromAWeight == setOf(Aspect.CLIMATE, Aspect.BIOMES)) { "a weight reached nothing: $fromAWeight" }
+    }
+
+    /**
+     * **A narrowing word may never mean anywhere**, which is the `stormy` bug stated as an invariant: a
+     * word that removes candidates and is aimed at nothing removes them everywhere, on the strength of a
+     * tag it shares with content it was never about.
+     *
+     * Evocative words are exempt because tilting everywhere is what makes them evocative (§4.4) — they
+     * take no freedom away, so being unaimed costs nothing.
+     */
+    test("nothing that narrows is left aimed at nothing") {
+        val unaimed = vocabulary.authoredWords.filter { it.tier.narrows && it.aspects.isEmpty() }
+        check(unaimed.isEmpty()) {
+            "these narrow candidates in every aspect at once: ${unaimed.map { "${it.name} (${it.tier})" }}"
+        }
     }
 
     /**
@@ -86,9 +127,9 @@ class DerivedAspectsCheck : FunSpec({
      * `beautiful` into the climate, and it would stop being beautiful anywhere else.
      */
     test("a word that declared nothing still means anywhere") {
-        check(Word.reaching(emptySet(), mapOf("temperature" to "0.5..1.0")).isEmpty()) {
-            "deriving narrowed a word that meant anywhere"
-        }
+        val claimingPlenty =
+            Word.reaching(Tier.EVOCATIVE, emptySet(), mapOf("temperature" to "0.5..1.0"), "alps", setOf(Aspect.BIOMES))
+        check(claimingPlenty.isEmpty()) { "deriving narrowed a word that meant anywhere: $claimingPlenty" }
         val steersAndSaysNothing = vocabulary.authoredWords
             .filter { it.aspects.isEmpty() && it.canSet.isNotEmpty() }
             .map { it.name }

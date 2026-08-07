@@ -315,23 +315,41 @@ data class Word(
         private const val ALTERNATIVE = '|'
 
         /**
-         * Where a word reaches, given what its file [declared] and every parameter it [steers].
+         * Where a word reaches, given what its file said and **every concrete claim it makes**.
          *
-         * A parameter name belongs to exactly one aspect, so a word setting one and not reaching that
-         * aspect does nothing with it and nothing says so. Widening rather than replacing is the whole of
-         * the rule: what a word reaches through its query or its weights cannot be seen from here, and a
-         * derived set handed back on its own would quietly strip `clear` of the sky.
+         * A word acts on an aspect four ways, and three of them say which aspect outright: a parameter
+         * ([steers]) is owned by exactly one, a [named] preset belongs to the aspect whose list holds it,
+         * and [weighted] is *keyed* by aspect already. Each is unioned in, because a claim landing in an
+         * aspect the word does not reach is never applied — and worse than unapplied, it counts against
+         * the draw in the aspect the word *does* reach as a knob nothing there honours.
          *
-         * **An empty declaration is left empty**, so omitting the field never means "work it out" — it
-         * still means anywhere, which already contains the owning aspect. `beautiful` is why: it nudges
-         * the climate axes and queries `lovely`, `lush`, `bright`, `hostile` and `gloomy` over every
-         * aspect there is, so deriving from its parameters would shut it into the climate and it would
-         * stop being beautiful anywhere else.
+         * **The fourth is a tag query, and it must not be derived from.** Tags are properties of the
+         * world, not of a word: `stormy` means `gloomy`, `gloomy` is also on `caverns`, so a word about
+         * the sky pinned the terrain to caverns and discarded `floating` in silence (§4.4, the spike's
+         * single most important finding). A query says what a word likes, never where it belongs.
+         *
+         * **[Tier] decides what an empty declaration means**, which is §4.4's rule rather than a new one:
+         * an evocative word declaring none means *anywhere*, because tilting everywhere is what makes it
+         * evocative. `beautiful` nudges the climate axes and weights the biomes, so deriving would shut it
+         * into those two and it would stop being beautiful anywhere else — and it takes no freedom away
+         * anywhere, so being unaimed costs nothing.
+         *
+         * A **narrowing** word derives from its claims whether it declared anything or not, and a word
+         * that names a preset therefore need not also say which aspect the preset is in. One that narrows
+         * and lands nowhere at all is left empty on purpose, so `DerivedAspectsCheck` can refuse it: a
+         * word that removes candidates and is aimed at nothing removes them everywhere.
          */
-        fun reaching(declared: Set<Aspect>, steers: Map<String, String>): Set<Aspect> {
-            if (declared.isEmpty()) return declared
-            val owning = Aspect.entries.filter { aspect -> steers.keys.any(aspect::ownsParameterNamed) }
-            return declared + owning
+        fun reaching(
+            tier: Tier,
+            declared: Set<Aspect>,
+            steers: Map<String, String>,
+            named: String?,
+            weighted: Set<Aspect>,
+        ): Set<Aspect> {
+            if (declared.isEmpty() && !tier.narrows) return emptySet()
+            val steered = Aspect.entries.filter { aspect -> steers.keys.any(aspect::ownsParameterNamed) }
+            val holdsTheName = Aspect.entries.filter { named != null && it.ownsPresetNamed(named) }
+            return declared + steered + holdsTheName + weighted
         }
 
         /** A word as its file says it, the id coming from where the file *is*, like every vanilla registry. */
@@ -352,7 +370,9 @@ data class Word(
                 Codec.unboundedMap(ASPECT_CODEC, Codec.unboundedMap(Codec.STRING, Codec.DOUBLE))
                     .optionalFieldOf("weights", emptyMap()).forGetter(Word::weights),
             ).apply(instance) { tier, aspects, query, names, sets, pool, draws, weights ->
-                Word(id, tier, reaching(aspects, sets + pool), query, names.orElse(null), sets, pool, draws, weights)
+                val named = names.orElse(null)
+                val reaches = reaching(tier, aspects, sets + pool, named, weights.keys)
+                Word(id, tier, reaches, query, named, sets, pool, draws, weights)
             }
         }
 

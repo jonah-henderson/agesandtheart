@@ -157,6 +157,16 @@ enum class Aspect(val key: String) : StringRepresentable {
         dials.any { it.name == name } || authored.any { it.honoursParameterNamed(name) }
 
     /**
+     * Whether [key] is one of *this* aspect's presets, by exact name.
+     *
+     * Asked of [authored] rather than [presetFor], and that is the whole of why this is safe: an open
+     * aspect makes a preset out of any id it is handed, so `Biome.named("alps")` succeeds — a bare path is
+     * a valid identifier — and asking every aspect whether it knows `alps` would widen a terrain word into
+     * the biomes, the spawns, the features and the structures at once. An authored list cannot do that.
+     */
+    fun ownsPresetNamed(key: String): Boolean = authored.any { it.key == key }
+
+    /**
      * What kind of answer an aspect has. The resolver asks a different question of a sentence for each,
      * which is the whole reason this exists rather than one shape with degenerate cases in it.
      */
