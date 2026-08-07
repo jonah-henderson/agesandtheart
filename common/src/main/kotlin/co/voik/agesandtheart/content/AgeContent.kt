@@ -4,6 +4,8 @@ import co.voik.agesandtheart.age.word.FillNotebookFunction
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.PageWordFunction
 import co.voik.agesandtheart.age.word.grammar.Said
+import co.voik.agesandtheart.age.consequence.WoundBlock
+import co.voik.agesandtheart.age.consequence.WoundBlockEntity
 import co.voik.agesandtheart.book.BindLinkingBookFunction
 import co.voik.agesandtheart.book.WriteFoundBookFunction
 import co.voik.agesandtheart.book.BookEntity
@@ -318,7 +320,34 @@ object AgeContent {
         "descriptive_book".location() to BOOK_ENTITY,
     )
 
+    val WOUND_ID: Identifier = "wound".location()
+
+    /**
+     * A tear in spacetime (design §5.1). Unbreakable and lootless — the only thing to be done with one is
+     * to box it in, and a wound that could be mined would be a wound that could be *tidied*.
+     *
+     * `noOcclusion` and an invisible render shape because what is drawn is not a cube: a block entity
+     * renderer gives it the flicker, and a solid model would light the room it is in.
+     */
+    val WOUND_BLOCK: WoundBlock = WoundBlock(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, WOUND_ID))
+            .mapColor(MapColor.COLOR_BLACK)
+            .strength(-1.0f, Float.MAX_VALUE)
+            .noLootTable()
+            .noOcclusion()
+            // **No collision, and that is what makes it a hole.** A solid tear would be a black cube you
+            // bump into and items would come to rest on top of it; an open one is walked into and dropped
+            // through, which is the whole of how a player meets one.
+            .noCollision()
+            .pushReaction(net.minecraft.world.level.material.PushReaction.BLOCK),
+    )
+
+    val WOUND_ENTITY: BlockEntityType<WoundBlockEntity> =
+        BlockEntityType({ pos, state -> WoundBlockEntity(pos, state) }, setOf(WOUND_BLOCK))
+
     val blocks: List<Pair<Identifier, Block>> = listOf(
+        WOUND_ID to WOUND_BLOCK,
         WRITERS_DESK_ID to WRITERS_DESK_BLOCK,
         STAR_FISSURE_ID to STAR_FISSURE_BLOCK,
         ANALYSIS_MACHINE_ID to ANALYSIS_MACHINE_BLOCK,
@@ -326,6 +355,7 @@ object AgeContent {
     )
 
     val blockEntities: List<Pair<Identifier, BlockEntityType<*>>> = listOf(
+        WOUND_ID to WOUND_ENTITY,
         WRITERS_DESK_ID to WRITERS_DESK_ENTITY,
         STAR_FISSURE_ID to STAR_FISSURE_ENTITY,
         ANALYSIS_MACHINE_ID to ANALYSIS_MACHINE_ENTITY,

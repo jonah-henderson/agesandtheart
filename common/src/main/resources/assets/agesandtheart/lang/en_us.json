@@ -1,6 +1,7 @@
 {
   "config.agesandtheart.collects_unreachable_ages": "Clean up unreachable Ages (potential data loss)",
   "config.agesandtheart.housekeeping": "Housekeeping",
+  "block.agesandtheart.wound": "Wound",
   "block.agesandtheart.analysis_machine": "D'ni Analysis Machine",
   "block.agesandtheart.fine_ink_block": "Fine Ink",
   "block.agesandtheart.ink_block": "Ink",

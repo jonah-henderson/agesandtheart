@@ -1,0 +1,14 @@
+{
+  "_comment": [
+    "What is equal to boxing in a tear in spacetime (design 5.1). Sealing a wound on all six sides stops",
+    "it corrupting what is around it; it never heals it, and anything that reaches it is still hurt.",
+    "Nara belongs here and does not exist yet (7.1.2) -- this tag is the seam that lets it arrive without",
+    "any code changing."
+  ],
+  "replace": false,
+  "values": [
+    "minecraft:obsidian",
+    "minecraft:crying_obsidian",
+    "minecraft:reinforced_deepslate"
+  ]
+}

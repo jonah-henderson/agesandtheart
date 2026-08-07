@@ -1,0 +1,7 @@
+{
+  "_comment": "Drawn by WoundRenderer, not by a model — the flicker is a scale that changes every frame, which a blockstate cannot say. This model exists so the block has one; nothing renders it.",
+  "variants": {
+    "sealed=false": { "model": "agesandtheart:block/wound" },
+    "sealed=true": { "model": "agesandtheart:block/wound" }
+  }
+}
