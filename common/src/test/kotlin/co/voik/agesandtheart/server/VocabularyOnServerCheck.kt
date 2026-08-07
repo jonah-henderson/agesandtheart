@@ -54,7 +54,14 @@ class VocabularyOnServerCheck : FunSpec({
         check(supplied.isEmpty()) { "the book did not parse as written and was filled in with $supplied" }
     }
 
-    /** Every aiming page has to be a page a writer can actually lay down, or sections cannot be opened. */
+    /**
+     * Every aiming page has to be a page a writer can actually lay down, or sections cannot be opened.
+     *
+     * **Spelled out rather than derived**, which is the point of it: these are the pages a player learns,
+     * so an accidental rename should fail here loudly and be answered by moving the vocabulary with it.
+     * There is one per *domain* (design §4.3.1) and not one per aspect — `atmosphere` covers the climate
+     * as well as the air, and nothing is aimed at an aspect any more.
+     */
     test("the aiming pages are in the corpus") {
         val vocabulary = server.ask("words")
         val aiming = vocabulary.getAsJsonArray("authoredWords").map { it.asJsonObject }
@@ -62,7 +69,7 @@ class VocabularyOnServerCheck : FunSpec({
             .map { it.get("word").asString }
         val expected = listOf(
             "landmass", "sea", "depths", "biomes", "surface", "features", "spawns", "atmosphere",
-            "phenomena", "sky", "structures", "climate",
+            "phenomena", "firmament", "structures",
         )
         check(aiming.sorted() == expected.sorted()) { "the aiming pages are $aiming" }
     }
