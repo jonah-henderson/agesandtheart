@@ -80,8 +80,8 @@ import net.minecraft.resources.Identifier
  */
 class AgeChunkGenerator(
     private val biomes: BiomeSource,
-    private val field: TerrainField,
-    private val seaFill: SeaFill,
+    val field: TerrainField,
+    val seaFill: SeaFill,
     private val surfaceRule: SurfaceRules.RuleSource = SurfacingStrategy.SUPPRESSED,
     /**
      * What is cut back out of the rock, one set per carving — **and they all run**, except where a carving

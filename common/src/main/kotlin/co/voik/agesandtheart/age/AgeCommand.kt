@@ -6,7 +6,9 @@ import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.word.Resolver
 import co.voik.agesandtheart.sky.Skies
+import co.voik.agesandtheart.worldgen.AgeChunkGenerator
 import co.voik.agesandtheart.worldgen.field.RegionMap
+import co.voik.agesandtheart.worldgen.field.Spans
 import co.voik.agesandtheart.sky.SkySpec
 import co.voik.agesandtheart.age.word.Withheld
 import co.voik.agesandtheart.age.phenomena.Tempest
@@ -77,6 +79,7 @@ import net.minecraft.world.level.levelgen.Heightmap
  * /age compare <a> <b> [radius]       — do two Ages generate the same world, block for block?
  * /age sky <name> [<spec>]            — read an Age's suns and moons, or preview different ones in it
  * /age strike [distance]              — call a bolt down where you are looking, to see a tempest land one
+ * /age probe [<x> <z>]                — what the generator thinks of a column: rock, sea, and what keeps it dry
  * /age list                           — list known Ages (with their recipe)
  * ```
  */
@@ -88,6 +91,12 @@ object AgeCommand {
      */
     private val OPERATOR_PERMISSION = Commands.hasPermission<CommandSourceStack>(Commands.LEVEL_GAMEMASTERS)
     private const val DISTANCE_ARGUMENT = "distance"
+    private const val PROBE_X = "x"
+    private const val PROBE_Z = "z"
+
+    /** Below any rift floor, so a probe covers the whole band a chasm could occupy. */
+    private const val PROBE_FROM = 0
+
     private const val WORD_ARGUMENT = "word"
     private const val NAME_ARGUMENT = "name"
     private const val RADIUS_ARGUMENT = "radius"
@@ -188,6 +197,7 @@ object AgeCommand {
                 .then(compareSubcommand())
                 .then(skySubcommand())
                 .then(strikeSubcommand())
+                .then(probeSubcommand())
                 .then(listSubcommand()),
         )
     }
@@ -314,6 +324,70 @@ object AgeCommand {
                         runStrike(context, IntegerArgumentType.getInteger(context, DISTANCE_ARGUMENT))
                     },
             )
+
+    /**
+     * `/age probe [<x> <z>]` — what the **generator** says about one column, as against what the world
+     * happens to hold there.
+     *
+     * Written because reading a world back from outside it is unreliable in exactly the case worth
+     * investigating: a probe run where no player stands loads no chunk, and every block reads `void_air`,
+     * which matches nothing and looks like a clean answer. This asks the field and the sea fill directly,
+     * so it answers the same whether anyone is standing there or not — and it says *why* a column is wet
+     * rather than only that it is.
+     */
+    private fun probeSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        Commands.literal("probe")
+            .executes { context -> runProbe(context, null) }
+            .then(
+                Commands.argument(PROBE_X, IntegerArgumentType.integer()).then(
+                    Commands.argument(PROBE_Z, IntegerArgumentType.integer()).executes { context ->
+                        runProbe(
+                            context,
+                            IntegerArgumentType.getInteger(context, PROBE_X) to
+                                IntegerArgumentType.getInteger(context, PROBE_Z),
+                        )
+                    },
+                ),
+            )
+
+    private fun runProbe(context: CommandContext<CommandSourceStack>, at: Pair<Int, Int>?): Int {
+        val source = context.source
+        val level = source.level
+        val generator = level.chunkSource.generator as? AgeChunkGenerator ?: run {
+            source.sendFailure(Component.literal("This dimension is not an Age of ours"))
+            return FAILURE
+        }
+        val x = at?.first ?: BlockPos.containing(source.position).x
+        val z = at?.second ?: BlockPos.containing(source.position).z
+
+        val seaFill = generator.seaFill
+        val rock = generator.field.columnSpans(x, z)
+        val dryness = seaFill.drynessAt(x, z)
+        val wetness = seaFill.wetnessAt(x, z)
+        source.sendSuccess({ Component.literal("Column ($x, $z) as the generator sees it:") }, false)
+        source.sendSuccess({
+            Component.literal("  sea ${seaFill.blockAt(x, z).block.descriptionId} standing at y=${seaFill.level}")
+        }, false)
+        source.sendSuccess({ Component.literal("  rock: ${said(rock)}") }, false)
+        source.sendSuccess({ Component.literal("  kept dry: ${said(dryness)}") }, false)
+        source.sendSuccess({ Component.literal("  carried water: ${said(wetness)}") }, false)
+        // The verdict, block by block through the band the sea could reach, which is what a walk is looking at.
+        val wet = (PROBE_FROM..seaFill.level).filter { y ->
+            !rock.contains(y) && seaFill.fillsAt(y, dryness, wetness)
+        }
+        source.sendSuccess({
+            Component.literal(
+                if (wet.isEmpty()) "  the generator fills nothing here between y=$PROBE_FROM and the waterline"
+                else "  the generator fills y=${wet.first()}..${wet.last()} (${wet.size} blocks)",
+            )
+        }, false)
+        return SUCCESS
+    }
+
+    /** Spans as a reader can check against a coordinate, which is the whole use of a probe. */
+    private fun said(spans: Spans): String =
+        if (spans.ranges.isEmpty()) "nothing"
+        else spans.ranges.joinToString { range -> "y=${range.first}..${range.last}" }
 
     private fun locateSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("locate").then(
