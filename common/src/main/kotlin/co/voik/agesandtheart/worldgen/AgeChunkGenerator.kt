@@ -568,10 +568,14 @@ class AgeChunkGenerator(
         if (random.nextDouble() >= woundsPerChunk) return
         val x = here.minBlockX + random.nextInt(SECTION)
         val z = here.minBlockZ + random.nextInt(SECTION)
-        // Under the surface rather than on it: a hole in the world is found by walking into it, and one
-        // standing proud on a hilltop reads as a decoration somebody placed.
+        // **Anywhere down the column, and not all of them buried** (Jonah, 2026-08-07). The striking thing
+        // about the tear in Riven is that it hangs in the open at about eye level, and a wound that is
+        // always underground never gets to be that. So the height is drawn as an offset from the surface,
+        // reaching from deep enough to be met while mining up to just overhead — but no further, because a
+        // wound hanging dozens of blocks above the ground reads as a thing somebody placed rather than as
+        // somewhere the world has failed.
         val surface = chunk.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, x, z)
-        val y = surface - BURIED_BY - random.nextInt(BURIED_RANGE)
+        val y = surface + OVERHEAD_AT_MOST - random.nextInt(OVERHEAD_AT_MOST + DEEP_AT_MOST)
         if (y <= level.getMinY() + 1) return
         level.setBlock(BlockPos(x, y, z), AgeContent.WOUND_BLOCK.defaultBlockState(), Block.UPDATE_NONE)
     }
@@ -601,9 +605,16 @@ class AgeChunkGenerator(
 
         private const val SECTION = 16
 
-        /** How far under the surface one opens — deep enough to be met in a cave rather than seen from afar. */
-        private const val BURIED_BY = 6
-        private const val BURIED_RANGE = 24
+        /**
+         * How far above the surface a wound may hang, and how far below it may sit.
+         *
+         * **The ratio is the dial**, and it decides how often one is met in the open: with these, roughly
+         * one in six hangs at or above the ground, where the rest wait in the rock and the caves to be
+         * mined into. Overhead is deliberately small — eye level and a little more, not a thing floating
+         * over a field.
+         */
+        private const val OVERHEAD_AT_MOST = 6
+        private const val DEEP_AT_MOST = 32
 
         val CODEC: MapCodec<AgeChunkGenerator> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
