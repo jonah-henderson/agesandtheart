@@ -35,6 +35,9 @@ correct itself in place. Rewrite the paragraph that is now wrong.
 - **`notes/minecraft-ui-conventions.md`** — what a vanilla screen actually looks like, measured off the
   26.1.2 jar: the bevel rule, the border widths, the 18-pixel grid. There is no official style guide, which
   is why this exists. Read it before drawing a control.
+- **`notes/config-research.md`** — how mod config UIs work (they introspect a spec, or host a screen you
+  write), the 26.1 landscape, and why the recommendation is NeoForge's `ModConfigSpec` with Forge Config API
+  Port on Fabric. Nothing in it is built. Read it before adding the first config value.
 - **`notes/authoring-tools.md`** — how structures and 3D models get authored: the external tooling and its
   version state, and what our own datapacks could carry that they do not yet. Nothing in it is built. Read it
   before building a structure, a model, or anything that wants to be pack data.
