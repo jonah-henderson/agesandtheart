@@ -135,37 +135,49 @@ class WoundBlock(properties: Properties) : BaseEntityBlock(properties) {
     }
 
     /**
-     * Specks of nothing falling inward, the way matter falls into a hole (Jonah, 2026-08-07).
+     * Specks of nothing spiralling in, the way matter falls into a hole (Jonah, 2026-08-07).
      *
-     * **Their velocity points at the wound and their spawn does not**, which is the whole of the effect:
-     * each starts somewhere on a shell around the block and is given a speed proportional to how far out it
-     * began, so they all arrive at about the same moment and the drift reads as *pull* rather than as
-     * particles happening to move.
+     * **The stream traces the path; no single speck travels it.** A dust particle has a fixed life and
+     * vanilla's own drag, and `addParticle` sets a velocity once and never again — so a speck launched from
+     * the outside fades long before it arrives, which is exactly what the walk saw. Instead one is spawned
+     * at a random point *along* the spiral each time, so at any instant the arm is drawn end to end by
+     * specks each of which only has to cover its own short segment.
      *
-     * `DustParticleOptions` because it takes a colour and nothing in vanilla's stock set is black —
-     * squid ink is for water and smoke is grey. Black dust at a small scale is a speck of the same absence
-     * the block is made of.
+     * **It winds and it accelerates.** The angle advances as the radius falls, so the path curves rather
+     * than pointing straight in; and both the inward and the tangential speed rise as the centre nears, so
+     * the arm is slow and wide at its edge and whips at its throat. Falling toward the middle in height as
+     * well, or it would read as a flat disc drawn around the block rather than as something being consumed.
      */
     private fun drawSpecksIn(level: Level, pos: BlockPos, random: RandomSource) {
         repeat(SPECKS_PER_TICK) {
-            // A point on a shell around the block, not a cube, or the corners would be denser than the faces.
-            val offsetX = random.nextDouble() - HALF
-            val offsetY = random.nextDouble() - HALF
-            val offsetZ = random.nextDouble() - HALF
-            val length = kotlin.math.sqrt(offsetX * offsetX + offsetY * offsetY + offsetZ * offsetZ)
-            if (length < TOO_CLOSE) return@repeat
-            val reach = DRAWN_FROM * (HALF + random.nextDouble() * HALF)
-            val fromX = offsetX / length * reach
-            val fromY = offsetY / length * reach
-            val fromZ = offsetZ / length * reach
+            // Along the arm rather than at its mouth: the whole spiral is drawn every tick.
+            val alongTheArm = random.nextDouble()
+            val radius = DRAWN_FROM * alongTheArm
+            if (radius < TOO_CLOSE) return@repeat
+            // The angle runs with the radius, which is what makes it a spiral rather than a spoke. The
+            // random start is per speck, so the arm is a cloud of them and not one drawn line.
+            val angle = random.nextDouble() * TURN + WINDING * (DRAWN_FROM - radius)
+            val height = (random.nextDouble() - HALF) * DRAWN_FROM * alongTheArm
+
+            val atX = kotlin.math.cos(angle) * radius
+            val atZ = kotlin.math.sin(angle) * radius
+
+            // Faster the nearer the throat, so the arm accelerates instead of drifting uniformly.
+            val haste = FASTEST - (FASTEST - SLOWEST) * alongTheArm
+            // Inward, plus the tangent that keeps it turning as it falls.
+            val towardX = -atX / radius * haste
+            val towardZ = -atZ / radius * haste
+            val aroundX = -atZ / radius * haste * SWIRL
+            val aroundZ = atX / radius * haste * SWIRL
+
             level.addParticle(
                 SPECK,
-                pos.x + HALF + fromX,
-                pos.y + HALF + fromY,
-                pos.z + HALF + fromZ,
-                -fromX * PULLED_IN,
-                -fromY * PULLED_IN,
-                -fromZ * PULLED_IN,
+                pos.x + HALF + atX,
+                pos.y + HALF + height,
+                pos.z + HALF + atZ,
+                towardX + aroundX,
+                -height * haste,
+                towardZ + aroundZ,
             )
         }
     }
@@ -174,18 +186,33 @@ class WoundBlock(properties: Properties) : BaseEntityBlock(properties) {
         val CODEC: MapCodec<WoundBlock> = simpleCodec(::WoundBlock)
 
         /** A speck of the same absence the block is: black, and small enough to read as a mote. */
-        private val SPECK = DustParticleOptions(0x000000, 0.6f)
+        private val SPECK = DustParticleOptions(0x000000, 0.4f)
 
-        /** How many are drawn in per client tick — enough to read as a stream, few enough to be specks. */
-        private const val SPECKS_PER_TICK = 3
+        /**
+         * How many are drawn per client tick.
+         *
+         * Higher than it would need to be if one speck flew the whole path, because each is now a short
+         * segment of an arm that has to look continuous.
+         */
+        private const val SPECKS_PER_TICK = 8
 
-        /** How far out one may begin, in blocks. */
+        /** How far out the arm reaches, in blocks. */
         private const val DRAWN_FROM = 2.5
 
-        /** How fast they fall in, as a fraction of the distance per tick — so far ones move faster. */
-        private const val PULLED_IN = 0.14
+        /** A whole turn, for the random starting angle. */
+        private const val TURN = Math.PI * 2
 
-        /** Below this the random point is too near the middle for its direction to mean anything. */
+        /** How much the arm winds over its length, in radians per block — about a turn and a half. */
+        private const val WINDING = 3.8
+
+        /** How fast a speck moves at the throat and at the rim, in blocks per tick. */
+        private const val FASTEST = 0.34
+        private const val SLOWEST = 0.05
+
+        /** How much of the motion is *around* rather than *in*. Enough to curve, not enough to orbit. */
+        private const val SWIRL = 0.9
+
+        /** Below this the point is too near the middle for its direction to mean anything. */
         private const val TOO_CLOSE = 0.05
 
         /**

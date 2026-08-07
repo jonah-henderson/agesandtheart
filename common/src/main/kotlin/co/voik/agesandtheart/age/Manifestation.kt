@@ -29,6 +29,16 @@ enum class Manifestation(val key: String) : StringRepresentable {
      * one has its whole budget left for something else.
      */
     TORN_SEAMS("torn_seams"),
+
+    /**
+     * Tears in spacetime open in the ground (design §5.1) — small, unlit, and impossible to do anything
+     * with but wall in.
+     *
+     * Dearer than a torn seam, because a seam is the world's shape being wrong where this is the world
+     * being *holed*. What a step buys is **how often one opens**, as a chance per chunk: a count would be
+     * a handful nobody ever walks past, where a frequency is a thing you meet while doing something else.
+     */
+    WOUNDS("wounds"),
     ;
 
     override fun getSerializedName(): String = key

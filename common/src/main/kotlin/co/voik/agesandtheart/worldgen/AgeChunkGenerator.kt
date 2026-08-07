@@ -36,6 +36,9 @@ import net.minecraft.world.level.levelgen.Aquifer
 import net.minecraft.world.level.levelgen.Beardifier
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.levelgen.LegacyRandomSource
+import net.minecraft.world.level.WorldGenLevel
+import net.minecraft.world.level.block.Block
+import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator
 import net.minecraft.world.level.levelgen.NoiseChunk
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
@@ -151,6 +154,16 @@ class AgeChunkGenerator(
      */
     private val lives: ((Identifier?, WeightedList<MobSpawnSettings.SpawnerData>) ->
     WeightedList<MobSpawnSettings.SpawnerData>)? = null,
+    /**
+     * How often a wound opens, as a chance per chunk (design §5.1, §5.0).
+     *
+     * **A frequency and not a count**, because a count is unfindable: four wounds in a whole dimension is
+     * four wounds nobody will ever walk past, where one chunk in fifty is a thing you meet while doing
+     * something else. What the instability budget buys is this number going up.
+     *
+     * Zero for every coherent Age, which is nearly all of them.
+     */
+    private val woundsPerChunk: Double = NO_WOUNDS,
 ) : NoiseBasedChunkGenerator(biomes, Holder.direct(settingsFor(seaFill, surfaceRule, climate, fill, window, field))) {
 
     init {
@@ -536,6 +549,33 @@ class AgeChunkGenerator(
      * Kept as an exit, narrowly: mob generation is disabled in [settingsFor], and the superclass would
      * otherwise consult its own [NoiseChunk] to decide. Nothing to inherit here that we want.
      */
+    /**
+     * Vanilla's decoration, and then whatever this Age's instability tore open (design §5.1).
+     *
+     * **After the features, not before.** A wound is not part of the world's furniture — it is what the
+     * Age could not hold — so it goes in last, over whatever grew there, the way the tear in Riven sits in
+     * a room somebody built rather than in a space left for it.
+     *
+     * Seeded off the chunk so an Age rebuilds identically on every open: this runs per chunk, and a chunk
+     * generated today and the same chunk generated next year must agree about whether it holds one.
+     */
+    override fun applyBiomeDecoration(level: WorldGenLevel, chunk: ChunkAccess, structures: StructureManager) {
+        super.applyBiomeDecoration(level, chunk, structures)
+        if (woundsPerChunk <= NO_WOUNDS) return
+        val here = chunk.pos
+        val random = WorldgenRandom(LegacyRandomSource(level.getSeed()))
+        random.setLargeFeatureSeed(level.getSeed() xor WOUND_SALT, here.x, here.z)
+        if (random.nextDouble() >= woundsPerChunk) return
+        val x = here.minBlockX + random.nextInt(SECTION)
+        val z = here.minBlockZ + random.nextInt(SECTION)
+        // Under the surface rather than on it: a hole in the world is found by walking into it, and one
+        // standing proud on a hilltop reads as a decoration somebody placed.
+        val surface = chunk.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, x, z)
+        val y = surface - BURIED_BY - random.nextInt(BURIED_RANGE)
+        if (y <= level.getMinY() + 1) return
+        level.setBlock(BlockPos(x, y, z), AgeContent.WOUND_BLOCK.defaultBlockState(), Block.UPDATE_NONE)
+    }
+
     override fun spawnOriginalMobs(level: WorldGenRegion) = Unit
 
     /** The superclass renders noise-router values in F3, which describe terrain a field Age does not have. */
@@ -552,6 +592,18 @@ class AgeChunkGenerator(
         // its two carving passes into one; only the air half was ever populated, so nothing was lost.
         private val CARVER_SETS: Codec<HolderSet<ConfiguredWorldCarver<*>>> =
             RegistryCodecs.homogeneousList(Registries.CONFIGURED_CARVER)
+
+        /** A coherent Age, which tears nowhere. */
+        const val NO_WOUNDS = 0.0
+
+        /** So wounds are decorrelated from everything else the world seed drives. */
+        private const val WOUND_SALT = 0x0D_15_EA5EL
+
+        private const val SECTION = 16
+
+        /** How far under the surface one opens — deep enough to be met in a cave rather than seen from afar. */
+        private const val BURIED_BY = 6
+        private const val BURIED_RANGE = 24
 
         val CODEC: MapCodec<AgeChunkGenerator> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -593,11 +645,14 @@ class AgeChunkGenerator(
                 VerticalWindow.CODEC.optionalFieldOf("window", VerticalWindow.DEFAULT).forGetter { it.window },
                 // Absent for every Age without shape-cut caves, which is almost all of them.
                 TerrainField.CODEC.optionalFieldOf("hollows").forGetter { Optional.ofNullable(it.hollows) },
+                // Absent for every coherent Age, which is nearly all of them.
+                Codec.DOUBLE.optionalFieldOf("wounds_per_chunk", NO_WOUNDS).forGetter { it.woundsPerChunk },
             ).apply(instance) { biomes, field, seaFill, rule, carvers, underground, tables, structures, climate,
-                                fill, window, hollows ->
+                                fill, window, hollows, wounds ->
                 AgeChunkGenerator(
                     biomes, field, seaFill, rule, carvers, underground, tables, structures,
                     climate.orElse(null), fill, window, hollows.orElse(null),
+                    woundsPerChunk = wounds,
                 )
             }
         }

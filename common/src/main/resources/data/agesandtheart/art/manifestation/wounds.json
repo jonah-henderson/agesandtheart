@@ -1,0 +1,10 @@
+{
+  "_comment": [
+    "What it costs an Age's instability budget to open tears in its ground, and how far that goes",
+    "(design 5.0, 5.1). Dearer than a torn seam: a seam is the world's shape being wrong, a wound is the",
+    "world being holed. Each step bought makes one likelier per chunk rather than adding a fixed count --",
+    "a handful of wounds in a whole dimension is a handful nobody ever walks past."
+  ],
+  "costs": 5,
+  "most": 4
+}

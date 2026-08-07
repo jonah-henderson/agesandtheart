@@ -94,7 +94,11 @@ object AgeGeneration {
 
         // What this Age's instability bought, as a fraction of everything tearing could be (design §5.0).
         // Derived rather than stored: a pure function of the recipe, so it comes out the same on every open.
-        val torn = Spending.of(server, recipe).reach(Manifestation.TORN_SEAMS, Price.list(server))
+        val prices = Price.list(server)
+        val spending = Spending.of(server, recipe)
+        val torn = spending.reach(Manifestation.TORN_SEAMS, prices)
+        // Each step bought opens them a little oftener; a coherent Age buys none and tears nowhere.
+        val wounds = spending.bought(Manifestation.WOUNDS) * WOUNDS_PER_CHUNK_PER_STEP
 
         // One band for every Age, and the same one every dimension type admits — see [VerticalWindow].
         val window = VerticalWindow.DEFAULT
@@ -204,6 +208,7 @@ object AgeGeneration {
             Features.placedIn(server, composition.optionsFor(Aspect.FEATURES, 0), seed, fill.blocks.flatten()),
             // What lives here, narrowing what vanilla resolves per biome and per structure.
             Spawns.livingIn(composition.optionsFor(Aspect.SPAWNS, 0)),
+            woundsPerChunk = wounds,
         )
     }
 
@@ -384,6 +389,15 @@ object AgeGeneration {
      * `hills` Age would raise the same hills; and two territories of the same preset in one Age would be
      * identical, leaving nothing for a seam to divide.
      */
+    /**
+     * How much likelier a wound is per step of the manifestation bought, as a chance per chunk.
+     *
+     * One chunk in fifty at a single step, so a lightly flawed Age holds a tear a writer will *eventually*
+     * walk into rather than one they trip over. A fully bought manifestation is four times that, which is
+     * often enough to be the character of the place.
+     */
+    private const val WOUNDS_PER_CHUNK_PER_STEP = 0.02
+
     private fun saltFor(seed: Long, member: Int): Long = seed * TERRITORY_SALT_STRIDE + member
 
     /** Odd and large, so consecutive members land far apart in the noise rather than adjacent. */

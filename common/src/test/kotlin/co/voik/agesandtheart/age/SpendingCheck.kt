@@ -13,7 +13,20 @@ import io.kotest.core.spec.style.FunSpec
 class SpendingCheck : FunSpec({
 
     val cheap = Manifestation.TORN_SEAMS
-    fun priced(costs: Int, most: Int) = mapOf(cheap to Price(costs = costs, most = most))
+
+    /** Far past any budget a check here hands out, so nothing but the one under test can be afforded. */
+    val unaffordable = 1_000_000
+
+    /**
+     * A price list where only [cheap] is buyable and everything else is out of reach.
+     *
+     * **Every manifestation is priced, not just the one under test.** `Spending.of` falls back to the
+     * default price for anything a list omits, so a fixture naming one thing quietly let all the others
+     * spend the budget — which is exactly what happened the moment a second manifestation existed.
+     */
+    fun priced(costs: Int, most: Int) = Manifestation.entries.associateWith { manifestation ->
+        if (manifestation == cheap) Price(costs = costs, most = most) else Price(costs = unaffordable, most = 0)
+    }
 
     test("a coherent Age buys nothing") {
         val spending = Spending.of(budget = 0, prices = priced(2, 4), seed = 1L)
@@ -62,7 +75,7 @@ class SpendingCheck : FunSpec({
 
     /** A price of zero would buy infinitely many steps for nothing, so it is refused rather than looped on. */
     test("a free manifestation is skipped, not bought forever") {
-        val free = mapOf(cheap to Price(costs = 0, most = 4))
+        val free = priced(2, 4) + mapOf(cheap to Price(costs = 0, most = 4))
         val spending = Spending.of(10, free, 1L)
         check(spending.bought(cheap) == 0) { "a zero price was bought anyway: $spending" }
         check(spending.unspent == 10) { "a zero price consumed budget: $spending" }
@@ -103,11 +116,36 @@ class SpendingCheck : FunSpec({
     }
 
     /**
+     * **What the shipped price list buys across the range a writer will actually see.**
+     *
+     * The one thing a check can settle about wounds: that a small mistake cannot open one. Seams are
+     * cheap and capped, wounds are dearer, so a budget has to fill the first before it reaches the second
+     * — which is §5.0's fence working as arithmetic rather than as a guard somebody remembered to write.
+     */
+    test("a small mistake tears seams and opens no wounds") {
+        val shipped = mapOf(
+            Manifestation.TORN_SEAMS to Price(costs = 2, most = 4),
+            Manifestation.WOUNDS to Price(costs = 5, most = 4),
+        )
+        fun wounds(budget: Int) = Spending.of(budget, shipped, 1L).bought(Manifestation.WOUNDS)
+        fun seams(budget: Int) = Spending.of(budget, shipped, 1L).bought(Manifestation.TORN_SEAMS)
+
+        // Everything a beginner can plausibly reach buys tearing and nothing worse.
+        for (budget in 0..9) {
+            check(wounds(budget) == 0) { "instability $budget opened ${wounds(budget)} wounds" }
+        }
+        // And the seams are maxed before the first wound is affordable, so consequence accumulates.
+        check(seams(9) == 4) { "seams were not filled before wounds were reached: ${seams(9)}" }
+        check(wounds(14) >= 1) { "a badly flawed Age opened no wound at all" }
+        check(wounds(1000) == 4) { "the wound cap did not hold: ${wounds(1000)}" }
+    }
+
+    /**
      * **What the shipped price list actually does**, so the tuning is visible rather than only tunable.
      * These are the numbers a walk will be judging, and a change to them should be a change here too.
      */
     test("the shipped tearing reads sensibly across the range") {
-        val prices = mapOf(cheap to Price.ORDINARY)
+        val prices = priced(Price.ORDINARY.costs, Price.ORDINARY.most)
         val reaches = listOf(0, 2, 4, 6, 8, 12).map { it to Spending.of(it, prices, 1L).reach(cheap, prices) }
         check(reaches.first().second == 0.0) { "a coherent Age tore: $reaches" }
         check(reaches.last().second == 1.0) { "a badly flawed Age did not tear fully: $reaches" }
