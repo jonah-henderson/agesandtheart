@@ -5,6 +5,7 @@ import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.PageWordFunction
 import co.voik.agesandtheart.age.word.grammar.Said
 import co.voik.agesandtheart.book.BindLinkingBookFunction
+import co.voik.agesandtheart.book.WriteFoundBookFunction
 import co.voik.agesandtheart.book.BookEntity
 import co.voik.agesandtheart.book.LinkTarget
 import co.voik.agesandtheart.book.RepatternBookRecipe
@@ -459,6 +460,7 @@ object AgeContent {
         "roll_page_word".location() to PageWordFunction.MAP_CODEC,
         "fill_notebook".location() to FillNotebookFunction.MAP_CODEC,
         "bind_linking_book".location() to BindLinkingBookFunction.MAP_CODEC,
+        "write_found_book".location() to WriteFoundBookFunction.MAP_CODEC,
     )
 
     /**

@@ -1,0 +1,25 @@
+{
+  "_comment": [
+    "A book somebody wrote, and the only place the grammar is taught: `and`, `only`, `except` and the",
+    "rungs are structure, so no page loot hands them out and no device derives one. A writer meets them",
+    "here and learns them by reading (design 4.5).",
+    "Rarer than a linking book on purpose. A linking book is a way home and you want one early; this is a",
+    "lesson, and finding a second before you have understood the first is worth much less than finding",
+    "one at a time. What it says comes from `art/generation/book.json`, so retuning is a datapack edit."
+  ],
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:descriptive_book",
+          "functions": [
+            { "function": "agesandtheart:write_found_book" }
+          ]
+        }
+      ]
+    }
+  ]
+}
