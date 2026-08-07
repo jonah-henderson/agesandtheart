@@ -200,7 +200,7 @@ The core mechanic — creating dimensions ("Ages") at runtime and persisting the
 - **`Ages`** — loader-agnostic policy: `create` / `open` / `ensure` / `delete` (delegating to `Services.AGE_BACKEND`) and `reloadSaved` (replay on boot).
 - **`age/word/`** — **the Art's language.** `Word` (tier, the slots it may fill, a signed tag query),
   `PresetProfile`/`PresetTags` (what the world is like), `Vocabulary` (the corpus, **loaded from datapack
-  JSON** under `data/<namespace>/art/` — words, per-slot tag tables, antonym pages, structural words), and
+  JSON** under `data/<namespace>/art/` — words, domains, per-slot tag tables, antonym pages, structural words), and
   `Resolver` (a parsed sentence + seed → composition, cost and instability). `DerivedWords` gives **every
   block and biome in the pack a word of its own**, so the corpus is ~1100 offline and more on a server.
   Resolution is a **pure function of (vocabulary, sentence, seed)**; the resolved composition is what
@@ -208,12 +208,19 @@ The core mechanic — creating dimensions ("Ages") at runtime and persisting the
 - **`age/word/grammar/`** — **the parser**, and a boundary worth respecting. `Grammar.read(vocabulary,
 pages) → Sentence` is the entire port; `Sentence`/`Phrase`/`Constraint`/`Scope`/`Polarity`/`Group` are
   ours and carry no parser concepts, which is what lets checks build sentences by hand and lets the parser
-  be replaced by rewriting one file. **`ArtGrammar.kt` is the only file in the mod that may import
-  `org.antlr`** — `GrammarCheck` fails the build if any other does. The grammar itself is
-  `common/src/main/antlr/.../Art.g4`; it has **no lexer rules**, because the input is a list of pages
-  already looked up in the `Vocabulary` and stamped with a class. A section is opened by an **aiming page**
-  (`landmass`, `climate`, `sky`) and never by a word that fills something — presets are ours, not the
-  player's. `Readout.of(sentence)` says the parse back as prose, which is how attachment is visible at all.
+  be replaced by rewriting one file. `ArtReading.kt` **is** that one file: recursive descent over a row of
+  pages already looked up in the `Vocabulary` and stamped with a class, four productions long, and with no
+  lexer because there is nothing left to lex. It names no aspect and no domain — which section admits which
+  page is asked of the data (`Aspect.confinable`, `Aspect.madeOfSomething`, `Word.aspects`), so the
+  player-facing division can be redrawn without touching it. A section is opened by an **aiming page**
+  (`landmass`, `atmosphere`, `firmament`) and never by a word that fills something — presets are ours, not
+  the player's. `Readout.of(sentence)` says the parse back as prose, which is how attachment is visible at
+  all.
+- **`Domain`** — **the player-facing division of the world, as datapack content** (`art/domain/<name>.json`).
+  A domain names the aspects one aiming page opens, and `Vocabulary` synthesises the page from it, so a page
+  and the parts it opens cannot disagree. `atmosphere` covers `{climate, atmosphere}` because a writer does
+  not know that humidity and rainfall live in different objects; `firmament` covers `{sky}`. Never author an
+  `art/word/<domain>.json` beside one — the load reports a collision if you do.
 - **`age/word/generation/`** — the grammars the Art writes *out* of, which are **datapack content**
   (`art/generation/<name>.json`): `book` writes the found Descriptive Books a player learns structure from,
   `repair` writes the sentence a book that does not parse is filled into, `name` draws an Age's syllables. A
@@ -230,7 +237,7 @@ Reload trigger is loader-specific: Fabric's `SERVER_STARTED` event calls `Ages.r
 ## Conventions
 
 - **Versions live in `libs.versions.toml`** (Gradle version catalog) — the single source of truth. Change dependency/loader versions there, not in module build files.
-- **Bundling a third-party library is a solved problem — copy the ANTLR wiring rather than inventing one.** It is the mod's only bundled dependency and the pattern is in the build files with the reasoning attached. In short: Fabric needs `implementation` + `include` (Loom synthesises a `fabric.mod.json` for the nested jar itself); NeoForge needs it **twice** — `implementation`, and `jarJar` with a **version range** (never a pin, or jar-in-jar cannot pick one copy when two mods bundle it). The third declaration this used to need, `additionalRuntimeClasspath`, was a 1.21.1 workaround and is gone: NeoForge fixed nested-artifact loading in 1.21.9. **Prefer a library with no dependencies of its own.** A Kotlin library is the hard case: KFF supplies the stdlib as a _mod_, which lives in NeoForge's game module layer where an ordinary library cannot see it, so `kotlin.Pair` goes missing at runtime and `FMLModType` does not rescue it.
+- **The mod bundles nothing, and adding the first bundled library again is a solved problem.** ANTLR was the only one and it left with the parser; the wiring is gone from the build files, so the recipe is here instead. Fabric needs `implementation` + `include` (Loom synthesises a `fabric.mod.json` for the nested jar itself); NeoForge needs it **twice** — `implementation`, and `jarJar` with a **version range** (never a pin, or jar-in-jar cannot pick one copy when two mods bundle it). `additionalRuntimeClasspath` is not a third declaration: it was a 1.21.1 workaround, and NeoForge fixed nested-artifact loading in 1.21.9. **Prefer a library with no dependencies of its own.** A Kotlin library is the hard case: KFF supplies the stdlib as a _mod_, which lives in NeoForge's game module layer where an ordinary library cannot see it, so `kotlin.Pair` goes missing at runtime and `FMLModType` does not rescue it.
 - **Widening vanilla access takes two files, both in `common`.** `common/src/main/resources/agesandtheart.accesswidener` (Fabric/Loom) and `common/src/main/resources/META-INF/accesstransformer.cfg` (NeoForge/MDG) must be kept in step — `common` itself compiles against the **AT**, so that is the one that decides whether shared code even builds. Prefer composing vanilla's public API; widen only with a comment saying what it buys. Note `javap` misreports nested-type visibility (the real modifier lives in the outer class's `InnerClasses` attribute) and **decompiled sources drop `final` from class declarations** — trust the compiler, not the sources.
 - **Screens are composed from `client/ui/`, never hand-drawn.** The model is Flutter-shaped and deliberately thin over vanilla:
   - **Vanilla owns arrangement.** `GridLayout`, `LinearLayout`, `FrameLayout` and `LayoutSettings` (which already carries padding _and_ alignment) do the positioning. Do not write a layout engine — the one place ours was needed, standalone padding on a decorated box, is `Insets`.

@@ -1,0 +1,6 @@
+{
+  "_comment": "Everything above you: the suns, the moons, the stars, the cloud decks, and whether daylight reaches the ground at all. Named for what it is rather than for the aspect underneath, the way `landmass` and `depths` already were.",
+  "aspects": [
+    "sky"
+  ]
+}

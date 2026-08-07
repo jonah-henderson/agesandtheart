@@ -270,6 +270,9 @@ data class Vocabulary(
         fun load(resources: ResourceManager, registries: RegistryAccess? = null): Vocabulary {
             val problems = mutableListOf<String>()
             val authored = readWords(resources, problems)
+            // After the words, so a domain claiming a page some word file also defines is reported rather
+            // than silently winning or losing on map order.
+            val domains = readDomains(resources, authored, problems)
             val tags = readPresetTags(resources, problems)
             val antonyms = readAntonyms(resources, problems)
             // Blocks are built-in and always available; biomes and structures are datapack content, so a
@@ -279,7 +282,7 @@ data class Vocabulary(
                 DerivedWords.biomes(it) + DerivedWords.structures(it) + DerivedWords.features(it)
             }.orEmpty()
             val fromContent = DerivedWords.materials() + DerivedWords.spawns() + fromRegistries
-            val words = derived(fromContent) + authored
+            val words = derived(fromContent) + authored + domains.associateBy { it.name }.mapValues { it.value.page }
             val structural = readGrammarWords(resources, problems)
             val script = Script.load(resources, problems)
             val rarity = WordRarity.load(resources, problems)
@@ -327,6 +330,31 @@ data class Vocabulary(
             sets = word.sets + also.sets,
             names = word.names ?: also.names,
         )
+
+        /**
+         * The parts of the world a writer may aim at — see [Domain].
+         *
+         * Each becomes an aiming page, so nothing else has to declare one. A word file of the same name is
+         * a content collision and is called out as one: the whole point of a domain is that it is the only
+         * statement of what a page opens, and two files claiming a page is the drift this prevents.
+         */
+        private fun readDomains(
+            resources: ResourceManager,
+            authored: Map<String, Word>,
+            problems: MutableList<String>,
+        ): List<Domain> {
+            val domains = mutableListOf<Domain>()
+            for ((file, resource) in resources.listResources(Domain.DIRECTORY) { it.path.endsWith(JSON_SUFFIX) }) {
+                val id = idOf(file, Domain.DIRECTORY)
+                val domain = parse(resource, file, Domain.codec(id), problems) ?: continue
+                if (domain.name in authored) {
+                    problems += "'${domain.name}' is both a domain and a word; a domain already is its page"
+                }
+                domains += domain
+            }
+            if (domains.isEmpty()) problems += "this pack ships no domains, so nothing can be aimed at"
+            return domains
+        }
 
         private fun readWords(resources: ResourceManager, problems: MutableList<String>): Map<String, Word> {
             val words = mutableMapOf<String, Word>()

@@ -48,6 +48,17 @@ internal object ArtReading {
         private var at = 0
         private var nextGroup = 0
 
+        /**
+         * Whether something was met that cannot be read at all — a `and` with nothing after it, an `in`
+         * naming no biome, an `only` qualifying nothing.
+         *
+         * A flag rather than a null return from every helper, because these are *refusals* rather than
+         * "this clause has ended": swallowing one and carrying on would make the book read, which is the
+         * silent acceptance §3.3 forbids and the reason `Repair` has a channel for a page with nowhere to
+         * go at all.
+         */
+        private var refused = false
+
         private val here: Page? get() = pages.getOrNull(at)
 
         private fun take(): Page = pages[at++]
@@ -66,7 +77,7 @@ internal object ArtReading {
             // would put an empty phrase into every reading and every count.
             if (opening.said.isNotEmpty()) phrases += opening
             while (at < pages.size) phrases += section() ?: return null
-            return phrases
+            return phrases.takeUnless { refused }
         }
 
         /**
@@ -114,7 +125,8 @@ internal object ArtReading {
         private fun confinement(): Identifier? {
             if (!looking(PageClass.CONFINER)) return null
             take()
-            val biome = here?.takeIf { it.kind == PageClass.TERM } ?: return null
+            // `in` with no biome after it is a book that does not read, not a clause confined to nothing.
+            val biome = here?.takeIf { it.kind == PageClass.TERM } ?: return null.also { refused = true }
             take()
             return biome.word?.id
         }
@@ -154,10 +166,12 @@ internal object ArtReading {
                 else -> Polarity.ASSERTED
             }
             val terms = mutableListOf<Pair<Page, Page?>>()
-            terms += term() ?: return emptyList()
+            // A polarity or a rung standing in front of nothing is a refusal, as is a trailing `and`: the
+            // page is there, it means something, and there is no term for it to mean it about.
+            terms += term() ?: return emptyList<Constraint>().also { refused = true }
             while (looking(PageClass.JOINER)) {
                 take()
-                terms += term() ?: break
+                terms += term() ?: return emptyList<Constraint>().also { refused = true }
             }
             // A group identifies words a writer joined; standing alone is *not* a group of one, because
             // unjoined juxtaposition has to keep meaning contention (§3.2).

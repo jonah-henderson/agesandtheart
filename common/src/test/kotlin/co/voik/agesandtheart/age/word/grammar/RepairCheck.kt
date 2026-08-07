@@ -81,7 +81,9 @@ class RepairCheck : FunSpec({
             "'starless' was re-homed under ${adopted.subject?.word}"
         }
         val said = Readout.of(read)
-        val underTheSky = said.substringAfter("sky", missingDelimiterValue = "")
+        // Named for the page a writer lays rather than the aspect underneath: the sky is aimed at by
+        // `firmament`, and what the reading has to show is the page, not the machinery.
+        val underTheSky = said.substringAfter("firmament", missingDelimiterValue = "")
         check("starless" in underTheSky) { "the readout hid where the page landed: '$said'" }
     }
 

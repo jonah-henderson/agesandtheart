@@ -59,7 +59,10 @@ class ShippedGrammarsCheck : FunSpec({
         val grammar = vocabulary.generation.grammar("repair") ?: error("no 'repair' generation grammar")
         for (seed in 1L..200L) {
             val pages = grammar.expand(Random(seed)).map { Grammar.classify(vocabulary, it) }
-            val aimedAt = pages.filter { it.kind == PageClass.SUBJECT }.mapNotNull { it.aspect }.toSet()
+            // Every aspect the subjects open, not one apiece: an aiming page is a *domain* now and may
+            // cover several — `atmosphere` is the air, which is two aspects underneath.
+            val aimedAt = pages.filter { it.kind == PageClass.SUBJECT }
+                .flatMap { it.word?.aspects.orEmpty() }.toSet()
             val unspokenFor = Aspect.entries.filterNot { it in aimedAt }
             check(unspokenFor.isEmpty()) {
                 "seed $seed drew a world with nothing said about ${unspokenFor.joinToString(" ") { it.key }}"
