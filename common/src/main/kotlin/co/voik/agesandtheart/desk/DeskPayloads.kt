@@ -251,6 +251,14 @@ data class DeskCommandPayload(
     val word: Identifier?,
     /** Which paper to write on. Ignored by actions that do not write. */
     val paperTier: InkTier,
+    /**
+     * Which ink to spend, where the writer wants better than the word demands.
+     *
+     * A word's *required* tier is the referent's business and cannot be argued with — a diamond needs the
+     * good ink. This is the floor a writer sets under it, so a stock of masterwork can be poured into
+     * ordinary words rather than sitting until something demands it. The desk spends whichever is higher.
+     */
+    val inkTier: InkTier = InkTier.COMMON,
     /** Position in the composer the action starts from. */
     val index: Int,
     /** Where it is going, for [DeskAction.MOVE_IN_BOOK]. Ignored otherwise. */
@@ -281,6 +289,7 @@ data class DeskCommandPayload(
                 ByteBufCodecs.optional(Identifier.STREAM_CODEC)
                     .encode(buffer, java.util.Optional.ofNullable(value.word))
                 TIER_STREAM.encode(buffer, value.paperTier)
+                TIER_STREAM.encode(buffer, value.inkTier)
                 ByteBufCodecs.VAR_INT.encode(buffer, value.index)
                 ByteBufCodecs.VAR_INT.encode(buffer, value.target)
                 ByteBufCodecs.stringUtf8(MAX_TITLE).encode(buffer, value.title)
@@ -290,6 +299,7 @@ data class DeskCommandPayload(
                     action = ACTION_STREAM.decode(buffer),
                     word = ByteBufCodecs.optional(Identifier.STREAM_CODEC).decode(buffer).orElse(null),
                     paperTier = TIER_STREAM.decode(buffer),
+                    inkTier = TIER_STREAM.decode(buffer),
                     index = ByteBufCodecs.VAR_INT.decode(buffer),
                     target = ByteBufCodecs.VAR_INT.decode(buffer),
                     title = ByteBufCodecs.stringUtf8(MAX_TITLE).decode(buffer),

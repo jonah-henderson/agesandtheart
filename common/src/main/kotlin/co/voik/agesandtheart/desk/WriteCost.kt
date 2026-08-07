@@ -22,10 +22,26 @@ data class WriteCost(
 ) {
     companion object {
         /**
-         * Ink for one unit of a word's cost, as a fraction of a bucket. An evocative word costs one unit,
-         * an exact one four per aspect — so a bucket writes eight of the cheapest or two of the dearest.
+         * Ink for one unit of a word's cost, as a fraction of a bucket.
+         *
+         * **Ten exact words to the bottle**, which is the figure a walk asked for (Jonah, 2026-08-06). A
+         * bottle is a third of a bucket, an exact word costs four units, so 120 units to the bucket puts a
+         * page at a tenth of a bottle — and an evocative word at a fortieth.
+         *
+         * It was 8, which made a bucket write two exact words. Ink is meant to be the thing a writer
+         * budgets across a *book*, and at that price a single page was a trip to the cauldron.
          */
-        private const val COST_UNITS_PER_BUCKET = 8
+        const val COST_UNITS_PER_BUCKET = 120
+
+        /**
+         * Vanilla's own: a cauldron holds three bottles, and a page is priced in fractions of one.
+         *
+         * A **ratio**, not a quantity, which is what makes it safe to write down. How many *units* a
+         * bucket holds is the loader's business and differs between the two; how many bottles fill one is
+         * a fact about Minecraft. Anything converting for display divides the loader's own capacity by
+         * this rather than assuming either.
+         */
+        const val BOTTLES_PER_BUCKET = 3
 
         /** What better paper saves. Never a gate: the worst paper still writes anything. */
         private val PAPER_EFFICIENCY = mapOf(
@@ -33,6 +49,9 @@ data class WriteCost(
             InkTier.FINE to 0.75,
             InkTier.MASTERWORK to 0.5,
         )
+
+        /** What [paperTier] multiplies a word's cost by — read by the checks that price the economy. */
+        fun paperEfficiency(paperTier: InkTier): Double = PAPER_EFFICIENCY[paperTier] ?: 1.0
 
         fun of(
             word: Word,
@@ -42,8 +61,12 @@ data class WriteCost(
             unitsPerBucket: Long,
         ): WriteCost {
             val required = vocabulary.ink.tierFor(word, registries)
-            val perUnit = unitsPerBucket / COST_UNITS_PER_BUCKET
-            val efficiency = PAPER_EFFICIENCY[paperTier] ?: 1.0
+            // **In doubles, and that is not fussiness.** `unitsPerBucket` is the loader's — 81,000
+            // droplets on Fabric, 1,000 millibuckets on NeoForge — so an integer division here truncates
+            // differently on each: at 120 units to the bucket, NeoForge lands on 8 where the true figure
+            // is 8.33 and the same word comes out cheaper on one loader than the other.
+            val perUnit = unitsPerBucket.toDouble() / COST_UNITS_PER_BUCKET
+            val efficiency = paperEfficiency(paperTier)
             // Rounded up, so better paper makes a word cheaper but never free.
             val units = Math.ceil(word.tier.cost * perUnit * efficiency).toLong().coerceAtLeast(1L)
             return WriteCost(required, units, paperTier)

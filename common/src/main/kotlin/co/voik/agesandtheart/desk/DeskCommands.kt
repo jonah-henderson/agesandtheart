@@ -163,7 +163,10 @@ object DeskCommands {
             payload.paperTier,
             Services.INK_FLUIDS.unitsPerBucket,
         )
-        if (!desk.spend(cost.inkTier, cost.inkUnits, cost.paperTier, cost.sheets)) {
+        // The writer may pour better ink than the word demands, never worse — `satisfies` is the same
+        // rule the desk checks when it spends, so asking for common ink on a diamond changes nothing.
+        val spending = if (payload.inkTier.satisfies(cost.inkTier)) payload.inkTier else cost.inkTier
+        if (!desk.spend(spending, cost.inkUnits, cost.paperTier, cost.sheets)) {
             return complain(player, "cannot_afford")
         }
         // Straight into the composer when writing for a book, so the page never has to be found again.

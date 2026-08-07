@@ -25,6 +25,7 @@ import co.voik.agesandtheart.desk.DeskAction
 import co.voik.agesandtheart.desk.DeskCapability
 import co.voik.agesandtheart.desk.DeskCommandPayload
 import co.voik.agesandtheart.desk.DeskSlots
+import co.voik.agesandtheart.desk.WriteCost
 import co.voik.agesandtheart.desk.WritersDeskMenu
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
@@ -62,6 +63,15 @@ class WritersDeskScreen(
     /** Which paper a row's write button spends. The cheapest by default, so nobody wastes the good stuff. */
     private var chosenPaper: InkTier = InkTier.COMMON
 
+    /**
+     * The floor a writer puts under the ink, for spending better than a word demands.
+     *
+     * Common by default, which means "whatever it needs" — a word's required tier is the referent's
+     * business and this can only ever raise it. What it buys is a use for a tank of the good stuff before
+     * something turns up that insists on it.
+     */
+    private var chosenInk: InkTier = InkTier.COMMON
+
     // What the lists are showing, so they are only rebuilt when the answer actually changes.
     private var shownWords: List<WordRow> = emptyList()
     private var shownComposition: List<Identifier> = emptyList()
@@ -73,6 +83,7 @@ class WritersDeskScreen(
     private lateinit var search: EditBox
     private lateinit var ageName: EditBox
     private lateinit var paperButtons: List<Button>
+    private lateinit var inkButtons: List<Button>
     private lateinit var bindButton: Button
     private lateinit var reading: MultiLineTextWidget
     private lateinit var columns: Map<DeskTab, FlexColumn>
@@ -249,6 +260,13 @@ class WritersDeskScreen(
             addShownOn(button, ::archives)
         }
 
+        // The second row, and the same shape: which ink, where the paper row says which paper.
+        inkButtons = InkTier.entries.map { ink ->
+            val button = Button.builder(Component.literal(inkGlyph(ink))) { chosenInk = ink }
+                .bounds(0, 0, PAPER_BUTTON_WIDTH, LINE + 2).build()
+            addShownOn(button, ::archives)
+        }
+
         // **Scratch mode** (design §4.3.1): the row of pages said back as a sentence, which is the half
         // that makes attachment visible. It comes from the server — reading one takes the whole corpus —
         // and it is the same `Readout` the bound book carries, so the desk and the book cannot disagree.
@@ -292,6 +310,7 @@ class WritersDeskScreen(
                 column.gap(GAP)
                 column.add(paperRow())
                 column.gap(LINE) // the ink price under each button, drawn rather than a widget
+                column.add(inkRow())
             }
             // The surface and nothing else, which is what this tab is for.
             DeskTab.WRITE_BOOK -> {
@@ -312,6 +331,9 @@ class WritersDeskScreen(
 
     private fun paperRow(): LinearLayout =
         LinearLayout.horizontal().spacing(GAP).apply { paperButtons.forEach(::addChild) }
+
+    private fun inkRow(): LinearLayout =
+        LinearLayout.horizontal().spacing(GAP).apply { inkButtons.forEach(::addChild) }
 
     private fun surface(decoration: co.voik.agesandtheart.client.ui.Decoration, at: Rect): AbstractWidget =
         DecorationWidget(decoration).also {
@@ -392,6 +414,9 @@ class WritersDeskScreen(
         paperButtons.forEachIndexed { index, button ->
             // Dark for the chosen one, so the row of three reads as a setting rather than three actions.
             button.active = InkTier.entries[index] != chosenPaper
+        }
+        inkButtons.forEachIndexed { index, button ->
+            button.active = InkTier.entries[index] != chosenInk
         }
     }
 
@@ -484,14 +509,15 @@ class WritersDeskScreen(
     private fun writeTooltip(row: WordRow): Component {
         val price = DeskModel.priceFor(row.word, chosenPaper)
             ?: return quoteFor(row.word)
-        val (inkTier, units) = price
+        val (required, units) = price
+        val inkTier = spentOn(required)
         val hasTheInk = DeskModel.ink(inkTier) >= units
         val hasThePaper = DeskModel.paper(chosenPaper) > 0
         val affordable = hasTheInk && hasThePaper
         return translated(
             if (affordable) "write_costs" else "write_short",
-            inBuckets(units),
-            inkName(inkTier),
+            inBottles(units),
+            inkName(spentOn(inkTier)),
         )
     }
 
@@ -516,8 +542,8 @@ class WritersDeskScreen(
     /** Whether a page could be written on [paper] at all — the ink for it, and a sheet to put it on. */
     private fun canWrite(paper: InkTier): Boolean {
         if (DeskModel.paper(paper) <= 0) return false
-        val (inkTier, units) = DeskModel.priceFor(selectedWord, paper) ?: return true
-        return DeskModel.ink(inkTier) >= units
+        val (required, units) = DeskModel.priceFor(selectedWord, paper) ?: return true
+        return DeskModel.ink(spentOn(required)) >= units
     }
 
     /**
@@ -581,6 +607,22 @@ class WritersDeskScreen(
 
     private fun inkName(tier: InkTier): Component = translated("ink.${tier.key}")
 
+    /** Which ink a page would actually take — the word's demand, or the writer's floor above it. */
+    private fun spentOn(required: InkTier): InkTier = if (chosenInk.satisfies(required)) chosenInk else required
+
+    /**
+     * The same, in **bottles** — which is the unit a page is priced in.
+     *
+     * A page costs a tenth of a bottle and a tank holds buckets, so the two want different units: "0.03
+     * buckets" is a number nobody can hold beside "10 words to the bottle", which is what the price
+     * actually means.
+     */
+    private fun inBottles(units: Long): String {
+        val perBucket = (DeskModel.inkCapacity() / AgeFluids.TANK_CAPACITY_BUCKETS).coerceAtLeast(1)
+        val perBottle = perBucket.toDouble() / WriteCost.BOTTLES_PER_BUCKET
+        return String.format("%.2f", units.toDouble() / perBottle)
+    }
+
     /**
      * Fluid units as a fraction of a bucket, which is the only measure of ink a player ever sees.
      *
@@ -601,7 +643,17 @@ class WritersDeskScreen(
         target: Int = -1,
         title: String = "",
     ) {
-        ClientDeskNetwork.send(DeskCommandPayload(action, word, paper, index, target, title))
+        ClientDeskNetwork.send(
+            DeskCommandPayload(
+                action = action,
+                word = word,
+                paperTier = paper,
+                inkTier = chosenInk,
+                index = index,
+                target = target,
+                title = title,
+            ),
+        )
     }
 
     private fun translated(suffix: String, vararg arguments: Any): Component =
