@@ -74,8 +74,9 @@ data class Word(
      * so a word that sets one must reach that aspect or the setting is silently inert; the codec unions
      * those in, which closes that hole and is the whole of what deriving buys. It cannot replace the
      * declaration, because what a word reaches through its query or its weights is invisible from here:
-     * `clear` sets `murk` in the air and is also a clear sky, `arid` sets the climate axes and also wants
-     * dry rock. Where a word is *about* stays authorial intent and lives nowhere else.
+     * `clear` sets `murk` — how far you see underwater — and is *also* a clear sky, which is the `bright`
+     * on `plain` and nothing a parameter can say. Reach by tag stays authorial intent and lives nowhere
+     * else.
      */
     val aspects: Set<Aspect>,
     /**
