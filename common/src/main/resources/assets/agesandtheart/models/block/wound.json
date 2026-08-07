@@ -1,5 +1,4 @@
 {
-  "_comment": "A placeholder until Phase 9. What is actually drawn is WoundRenderer's flickering quad.",
-  "parent": "minecraft:block/cube_all",
-  "textures": { "all": "minecraft:block/black_concrete" }
+  "_comment": "Deliberately empty of geometry. A wound is drawn by WoundRenderer, whose cube rescales every frame — which a baked model cannot say. This exists because a blockstate must point somewhere.",
+  "textures": {}
 }

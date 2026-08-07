@@ -21,7 +21,6 @@ import net.minecraft.world.level.block.BaseEntityBlock
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.RenderShape
 import net.minecraft.world.level.block.entity.BlockEntity
-import net.minecraft.world.level.block.entity.TheEndPortalBlockEntity
 import net.minecraft.world.level.redstone.Orientation
 import net.minecraft.world.entity.InsideBlockEffectApplier
 import net.minecraft.world.level.block.state.BlockState
@@ -174,13 +173,6 @@ class WoundBlock(properties: Properties) : BaseEntityBlock(properties) {
  * **No state and no ticking.** It exists so a block entity renderer has something to hang the flicker on;
  * everything a wound *is* lives on the block and its state.
  *
- * It extends the end portal's entity because that is the one path in 26.1 already proven to draw a whole
- * cube of shader through a block-entity renderer (`StarFissureBlock` walked it). What is drawn over it is
- * [co.voik.agesandtheart.client.WoundRenderer]'s business, and getting the *colour* right is Phase 9's.
+ * What is drawn over it is [co.voik.agesandtheart.client.WoundRenderer]'s business entirely.
  */
-class WoundBlockEntity(pos: BlockPos, state: BlockState) :
-    TheEndPortalBlockEntity(AgeContent.WOUND_ENTITY, pos, state) {
-
-    /** Every face, so a wound reads as a hole from any side rather than as a lid seen from above. */
-    override fun shouldRenderFace(face: Direction): Boolean = true
-}
+class WoundBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(AgeContent.WOUND_ENTITY, pos, state)
