@@ -114,6 +114,7 @@ class GenerationCheck : FunSpec({
             "an Age of blackstone grew no ore at all: the two agree block for block"
         }
     }
+
 })
 
 /** How far apart two Ages generate, in blocks — the number `/age compare` reports rather than says. */

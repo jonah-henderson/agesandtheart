@@ -346,16 +346,17 @@ object AgeCommand {
         )
 
     private fun biomeCensusSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
-        Commands.literal("biomes").then(
+        reporting("biomes") { reportFor ->
             Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
-                .executes { context -> runBiomeCensus(context, SURVEY_RADIUS_CHUNKS) }
+                .executes { context -> runBiomeCensus(context, SURVEY_RADIUS_CHUNKS, reportFor(context)) }
                 .then(
                     Commands.argument(RADIUS_ARGUMENT, IntegerArgumentType.integer(1, MAX_CENSUS_RADIUS))
                         .executes { context ->
-                            runBiomeCensus(context, IntegerArgumentType.getInteger(context, RADIUS_ARGUMENT))
+                            val radius = IntegerArgumentType.getInteger(context, RADIUS_ARGUMENT)
+                            runBiomeCensus(context, radius, reportFor(context))
                         },
-                ),
-        )
+                )
+        }
 
     private fun benchmarkSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("bench").then(
@@ -1220,10 +1221,14 @@ object AgeCommand {
      * of a `craterlands` Age said 95% ocean where forty-eight said 20%. A small answer here is not a
      * measurement, it is one place.
      */
-    private fun runBiomeCensus(context: CommandContext<CommandSourceStack>, radiusChunks: Int): Int {
+    private fun runBiomeCensus(
+        context: CommandContext<CommandSourceStack>,
+        radiusChunks: Int,
+        report: Report,
+    ): Int {
         val source = context.source
         val name = StringArgumentType.getString(context, NAME_ARGUMENT)
-        val level = openNamedAge(source, name, Report.prose(source)) ?: return FAILURE
+        val level = openNamedAge(source, name, report) ?: return FAILURE
 
         val generator = level.chunkSource.generator
         val biomes = generator.biomeSource
@@ -1249,17 +1254,19 @@ object AgeCommand {
             }
         }
         val sampled = counts.values.sum()
-        source.sendSuccess({
-            Component.literal(
-                "Age '$name' surface biomes: $sampled samples within $radiusChunks chunks, " +
-                    "${counts.size} distinct",
-            )
-        }, false)
+        report.fact("sampled", sampled) {
+            "Age '$name' surface biomes: $sampled samples within $radiusChunks chunks, ${counts.size} distinct"
+        }
+        report.only("distinct", counts.size)
         // Commonest first: the question is nearly always "did the thing I named take more ground".
         for ((biome, count) in counts.entries.sortedByDescending { it.value }) {
             val share = PERCENT * count / sampled
-            source.sendSuccess({ Component.literal("  ${"%5.2f".format(share)}%  $biome ($count)") }, false)
+            report.entry(
+                "biomes",
+                mapOf("biome" to biome, "samples" to count, "share" to share),
+            ) { "  ${"%5.2f".format(share)}%  $biome ($count)" }
         }
+        report.finish()
         return SUCCESS
     }
 
