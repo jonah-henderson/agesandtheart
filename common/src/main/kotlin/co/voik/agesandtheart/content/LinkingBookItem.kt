@@ -1,5 +1,9 @@
 package co.voik.agesandtheart.content
 
+import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.age.AgeRecipe
+import co.voik.agesandtheart.age.AgeSavedData
+import co.voik.agesandtheart.age.Ages
 import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.book.BookEntity
 import co.voik.agesandtheart.book.LinkTarget
@@ -41,17 +45,34 @@ class LinkingBookItem(properties: Properties) : Item(properties) {
         return if (target == null) bind(stack, level, player) else travel(stack, target, level, player, hand)
     }
 
-    /** Writing it: the book takes this exact spot, facing the way you were. */
+    /** Writing it: the book takes this exact spot, facing the way you were — and the Age behind it. */
     private fun bind(stack: ItemStack, level: ServerLevel, player: ServerPlayer): InteractionResult {
         val target = LinkTarget(
             dimension = level.dimension(),
             position = player.position(),
             yaw = player.yRot,
             name = nameOf(level),
+            // Taken now rather than looked up later, because later there may be nothing to look it up in:
+            // the whole point is a book that outlives the Age it names (design §9, "Losing the books").
+            recipe = recipeBehind(level),
         )
         stack.set(AgeContent.LINK_TARGET, target)
         player.sendSystemMessage(Component.translatable("book.agesandtheart.bound", target.name), true)
         return InteractionResult.SUCCESS
+    }
+
+    /** The recipe of the Age this book is being written in, and null anywhere that is not one of ours. */
+    private fun recipeBehind(level: ServerLevel): AgeRecipe? {
+        val id = level.dimension().identifier()
+        if (id !in AgeSavedData.get(level.server).ages) return null
+        return AgeSavedData.get(level.server).recipe(id)
+    }
+
+    /** Puts back an Age this book outlived, or null where there is nothing to put back. */
+    private fun restore(target: LinkTarget, level: ServerLevel): ServerLevel? {
+        val recipe = target.recipe ?: return null
+        Constants.LOG.info("Restoring '{}' from a linking book that outlived it", target.dimension.identifier())
+        return Ages.ensure(level.server, target.dimension.identifier(), recipe)
     }
 
     /** Going. The book stays where it was used, exactly as a Descriptive Book does. */
@@ -68,7 +89,10 @@ class LinkingBookItem(properties: Properties) : Item(properties) {
             player.sendSystemMessage(Component.translatable("book.agesandtheart.same_world"), true)
             return InteractionResult.FAIL
         }
-        val destination = level.server.getLevel(target.dimension)
+        // A missing destination is an Age that was collected while this book survived, so the book puts
+        // it back — same terrain, deterministically, and empty of whatever was built in it. Only a
+        // vanilla dimension can still be genuinely unreachable, and none of those is ours to restore.
+        val destination = level.server.getLevel(target.dimension) ?: restore(target, level)
         if (destination == null) {
             player.sendSystemMessage(Component.translatable("book.agesandtheart.no_destination"), true)
             return InteractionResult.FAIL
