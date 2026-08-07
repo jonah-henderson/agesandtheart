@@ -110,9 +110,13 @@ object Resolver {
      *
      * The sentence itself is untouched, which matters — [Readout] renders what a writer wrote, and what a
      * word might have done is part of what they wrote.
+     *
+     * Alternatives inside a value settle here too, for the same reason: by the time the resolver compares
+     * one word's choice against another's, every value is a single concrete thing and none of the ten
+     * readers has to know that `embers|ash` was ever a possibility.
      */
     private fun Constraint.drawnAt(draw: Long): Constraint =
-        if (word.pool.isEmpty()) this else copy(word = word.copy(sets = word.setsDrawnAt(draw)))
+        if (!word.varies) this else copy(word = word.copy(sets = word.setsDrawnAt(draw)))
 
     /**
      * The world [sentence] describes at [seed]. Aspects resolve independently and in ordinal order, so an

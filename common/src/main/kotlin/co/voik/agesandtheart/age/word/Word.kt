@@ -132,6 +132,9 @@ data class Word(
      */
     val canSet: Map<String, String> get() = sets + pool
 
+    /** What separates one alternative from the next inside a single value. */
+    private val ALTERNATIVE = '|' 
+
     /**
      * What it actually chooses in the Age [draw] belongs to — the core, and [draws] of the pool.
      *
@@ -139,14 +142,55 @@ data class Word(
      * draws the same thing every time the Age is rebuilt. Resolution is a pure function of (vocabulary,
      * sentence, seed) and this stays inside that promise.
      */
-    fun setsDrawnAt(draw: Long): Map<String, String> {
+    fun setsDrawnAt(draw: Long): Map<String, String> = facetsDrawnAt(draw).mapValues { (parameter, value) ->
+        oneOf(value, draw, parameter)
+    }
+
+    /**
+     * Whether anything about this word is left to the Age — a pool to draw from, or a value with
+     * alternatives in it. A word with neither is the same word in every world it appears in.
+     */
+    val varies: Boolean get() = (pool.isNotEmpty() && draws > 0) || (sets + pool).values.any { ALTERNATIVE in it }
+
+    /**
+     * One of `a|b|c`, chosen for this Age — **which value**, where the pool chooses **which parameter**.
+     *
+     * The two compose and are deliberately separate questions: a word may offer three skies and take one,
+     * offer five facets and wear two, or both. Salted by the parameter's own name as well as the word's, so
+     * two parameters offering the same alternatives do not move together.
+     */
+    private fun oneOf(value: String, draw: Long, parameter: String): String {
+        if (ALTERNATIVE !in value) return value
+        val offered = value.split(ALTERNATIVE).map(String::trim).filter(String::isNotEmpty)
+        if (offered.size <= 1) return offered.firstOrNull() ?: value
+        val seed = scrambled(draw xor id.hashCode().toLong() xor parameter.hashCode().toLong())
+        return offered[Random(seed).nextInt(offered.size)]
+    }
+
+    /**
+     * [value] mixed until adjacent inputs give unrelated outputs — SplitMix64's finalizer.
+     *
+     * **Handing a seed straight to `Random` is not enough**, and this is the second time that has bitten.
+     * Two Ages written a seed apart differ in a handful of low bits; xoring in a word's name and a
+     * parameter's shifts those bits but does not spread them, and `nextInt(3)` over such seeds came back
+     * with the same answer every time — fourteen scorching Ages, fourteen embers. An avalanche step makes
+     * one bit of input change half the output, which is the property a draw needed all along.
+     */
+    private fun scrambled(value: Long): Long {
+        var mixed = value + GOLDEN
+        mixed = (mixed xor (mixed ushr 30)) * FIRST_MIX
+        mixed = (mixed xor (mixed ushr 27)) * SECOND_MIX
+        return mixed xor (mixed ushr 31)
+    }
+
+    private fun facetsDrawnAt(draw: Long): Map<String, String> {
         if (pool.isEmpty() || draws <= 0) return sets
         if (draws >= pool.size) return sets + pool
         // Sorted first so the map's own iteration order cannot reach the answer, then shuffled by a
         // generator seeded from the Age and the word. An earlier version sorted by a hash of the two
         // xored together and drew the *same* facets every time: the draw only moves low bits, and the
         // keys' hashes differ by far more than that, so nothing ever reordered.
-        val order = pool.keys.sorted().shuffled(Random(draw xor id.hashCode().toLong()))
+        val order = pool.keys.sorted().shuffled(Random(scrambled(draw xor id.hashCode().toLong())))
         return sets + order.take(draws).associateWith { pool.getValue(it) }
     }
 
@@ -216,6 +260,12 @@ data class Word(
     override fun toString(): String = name
 
     companion object {
+        // SplitMix64's finalizer, unchanged: the odd increment walks the whole 64-bit space and the two
+        // multipliers are what spread one changed bit across all of them.
+        private const val GOLDEN = -0x61c8864680b583ebL
+        private const val FIRST_MIX = -0x40a7b892e31b1a47L
+        private const val SECOND_MIX = -0x6b2fb644ecceee15L
+
         /** What naming a thing outright is worth, against a tag weight, which never exceeds one. */
         private const val NAMED_OUTRIGHT = 1.0
 

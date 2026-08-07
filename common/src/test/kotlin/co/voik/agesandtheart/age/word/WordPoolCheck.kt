@@ -52,6 +52,9 @@ class WordPoolCheck : FunSpec({
     test("different Ages wear different facets of the same word") {
         val worn = DRAWS.map { draw -> broad.setsDrawnAt(draw).keys.sorted() }.distinct()
         check(worn.size > 1) { "every Age drew the same facets, so the pool is decoration: ${worn.first()}" }
+        // Adjacent seeds on their own, for the reason given at NEIGHBOURING.
+        val nearby = NEIGHBOURING.map { draw -> broad.setsDrawnAt(draw).keys.sorted() }.distinct()
+        check(nearby.size > 1) { "Ages a seed apart drew identical facets: ${nearby.first()}" }
     }
 
     /**
@@ -81,6 +84,32 @@ class WordPoolCheck : FunSpec({
         }
     }
 
+    /**
+     * **Alternatives choose the value where the pool chooses the parameter**, and the two compose: a word
+     * may offer three skies and take one, offer five facets and wear two, or both.
+     */
+    test("a value offering alternatives picks one, and not always the same one") {
+        // Shaped like the word that broke: alternatives sitting *inside a pool*, so the roll that decides
+        // whether the facet appears and the roll that decides which value it takes are drawn from related
+        // seeds. Tested apart, each looked fine; together they handed fourteen consecutive Ages one answer.
+        val offering = wordAt(
+            Tier.RESTRICTIVE,
+            sets = mapOf("sunburn" to "always", "temperature" to "0.55..1.0"),
+            pool = mapOf(
+                "evaporation" to "always",
+                "motes" to "embers|flames|ash",
+                "haze" to "0.15..0.45",
+                "murk" to "0.1..0.4",
+                "humidity" to "-0.8..-0.2",
+            ),
+            draws = 2,
+        )
+        val worn = NEIGHBOURING.mapNotNull { draw -> offering.setsDrawnAt(draw)["motes"] }
+        check(worn.isNotEmpty()) { "the fixture never drew the facet under test" }
+        check(worn.all { it in listOf("embers", "flames", "ash") }) { "an alternative escaped un-chosen: $worn" }
+        check(worn.distinct().size > 1) { "Ages a seed apart all took the same alternative: $worn" }
+    }
+
     /** A word with no pool is exactly the word it was before any of this existed. */
     test("a word with no pool is untouched") {
         val plain = wordAt(Tier.EXACT, sets = mapOf("temperature" to "0.4..0.9"), pool = emptyMap(), draws = 0)
@@ -91,5 +120,20 @@ class WordPoolCheck : FunSpec({
     }
 })
 
+/**
+ * Ages written a seed apart, **asserted on by themselves and built the way the resolver builds them**.
+ *
+ * This case has now hidden the same bug three times, and each fixture that missed it was closer than the
+ * last. A resolver draw is `seed xor saltOf(sentence)` — consecutive *seeds* xored with one constant — and
+ * that is not the same set of numbers as consecutive draws, nor as small integers. `31..44` varied
+ * perfectly under a mix that gave fourteen consecutive real Ages one answer, and so did a large base plus
+ * `0..13`. Only the actual shape reproduces it.
+ *
+ * The salt is lifted from an observed run so the arithmetic here is the arithmetic there.
+ */
+private const val ONE_SENTENCE_SALT = -5_114_719_280_684_135_704L
+
+private val NEIGHBOURING = (31L..44L).map { seed -> seed xor ONE_SENTENCE_SALT }
+
 /** A spread of Ages, small enough to read in a failure and wide enough to shake the draw. */
-private val DRAWS = listOf(1L, 2L, 3L, 7L, 42L, 20260806L, -19L, Long.MIN_VALUE)
+private val DRAWS = listOf(1L, 2L, 3L, 7L, 42L, 20260806L, -19L, Long.MIN_VALUE) + NEIGHBOURING
