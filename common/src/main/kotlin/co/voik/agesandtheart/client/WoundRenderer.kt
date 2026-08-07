@@ -12,17 +12,26 @@ import net.minecraft.client.renderer.state.level.CameraRenderState
 import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.core.Direction
 import net.minecraft.resources.Identifier
+import kotlin.math.pow
 import kotlin.math.sin
 
 /**
  * A wound, drawn as an unlit black hole that will not hold still (design §5.1).
  *
  * **Pure black at every light level, which is what makes it read as absence.** The texture is one colour
- * and the render type is *emissive*, so the world's light never reaches it: a wound is as black at noon on
- * a hilltop as it is in a cave, where an ordinary dark block would be a silhouette in one and invisible in
- * the other. Nothing here is a shader — emissive black through a stock render type gets the whole of what
- * §5.1 asks for, and the pipeline stays available if a later pass wants the tear to distort what is
- * *behind* it, which this genuinely cannot do (settled 2026-08-07).
+ * and every vertex is lit at full bright, so the world's light never reaches it: a wound is as black at
+ * noon on a hilltop as it is in a cave, where an ordinary dark block would be a silhouette in one and
+ * invisible in the other.
+ *
+ * **Opaque, not translucent, and that is a bug fix rather than a preference** (walked 2026-08-07). Drawn
+ * through `entityTranslucentEmissive` it went into the *translucent* pass, which sorts separately and does
+ * not settle depth against everything — so clouds and weather drew straight over the top of it, and a hole
+ * in the world had sky in front of it. `entitySolid` draws in the opaque pass and writes depth, which is
+ * what a hole needs; the texture is fully opaque anyway, so nothing is given up. Emissiveness never came
+ * from the render type — it comes from the light coordinate below.
+ *
+ * Nothing here is a shader, and the pipeline stays available if a later pass wants the tear to distort
+ * what is *behind* it, which this genuinely cannot do (settled 2026-08-07).
  *
  * **The motion is the other half.** A black cube somebody placed and a hole in the world look identical
  * while they are still, so it is rescaled every frame on two sine waves whose periods do not divide into
@@ -44,7 +53,7 @@ class WoundRenderer : BlockEntityRenderer<WoundBlockEntity, BlockEntityRenderSta
         poseStack.translate(MIDDLE, MIDDLE, MIDDLE)
         poseStack.scale(scale, scale, scale)
         poseStack.translate(-MIDDLE, -MIDDLE, -MIDDLE)
-        collector.submitCustomGeometry(poseStack, RenderTypes.entityTranslucentEmissive(TEXTURE)) { pose, buffer ->
+        collector.submitCustomGeometry(poseStack, RenderTypes.entitySolid(TEXTURE)) { pose, buffer ->
             for (face in Direction.entries) faceOf(pose, buffer, face)
         }
         poseStack.popPose()
@@ -81,9 +90,27 @@ class WoundRenderer : BlockEntityRenderer<WoundBlockEntity, BlockEntityRenderSta
         val now = System.currentTimeMillis().toDouble()
         val fast = sin(now / FAST_PERIOD)
         val slow = sin(now / SLOW_PERIOD)
-        // Two waves, unequal weights, so the peaks never land in the same place twice running.
-        val swing = (fast * FAST_SHARE + slow * (1.0 - FAST_SHARE) + 1.0) / 2.0
+        val smooth = (fast * FAST_SHARE + slow * (1.0 - FAST_SHARE) + 1.0) / 2.0
+        // **Peaked, not sinusoidal.** A sine spends most of its time in the middle, which reads as
+        // breathing; raising it to a power drags it down towards the floor and leaves the top as brief
+        // spikes, so the wound sits small and *lunges* (walked 2026-08-07).
+        val peaked = smooth.pow(PEAKINESS)
+        // And a jitter that resamples several times a second, so no two lunges are the same height and the
+        // whole thing never settles into a rhythm an eye can follow.
+        val jitter = hashedAt(now.toLong() / JITTER_MILLIS) * JITTER_SHARE
+        val swing = (peaked + jitter).coerceIn(0.0, 1.0)
         return (SMALLEST + (LARGEST - SMALLEST) * swing).toFloat()
+    }
+
+    /**
+     * A repeatable value in `-1..1` for a given step, so the jitter is noise rather than randomness —
+     * every frame inside one step agrees, and the size does not shiver at the frame rate.
+     */
+    private fun hashedAt(step: Long): Double {
+        var bits = step * -0x61c8864680b583ebL
+        bits = (bits xor (bits ushr 33)) * -0x40a7b892e31b1a47L
+        bits = bits xor (bits ushr 29)
+        return (bits.toDouble() / Long.MAX_VALUE)
     }
 
     private companion object {
@@ -108,9 +135,19 @@ class WoundRenderer : BlockEntityRenderer<WoundBlockEntity, BlockEntityRenderSta
         const val SMALLEST = 0.8
         const val LARGEST = 1.5
 
-        // Deliberately not a ratio of one another, or the two waves would beat in a visible cycle.
-        const val FAST_PERIOD = 83.0
-        const val SLOW_PERIOD = 311.0
+        // Deliberately not a ratio of one another, or the two waves would beat in a visible cycle. Both
+        // were halved after the walk: what it wanted was faster and more violent, not wider.
+        const val FAST_PERIOD = 41.0
+        const val SLOW_PERIOD = 157.0
+
+        /** How hard the curve is dragged towards its floor. Above 1 makes the peaks brief and the rest low. */
+        const val PEAKINESS = 3.0
+
+        /** How often the jitter takes a new value, in milliseconds — fast enough to be a twitch. */
+        const val JITTER_MILLIS = 60L
+
+        /** How much of the size the jitter owns. Enough to break the rhythm, not enough to drown the wave. */
+        const val JITTER_SHARE = 0.25
 
         /** How much of the swing the fast wave owns — most, so it reads as violent rather than breathing. */
         const val FAST_SHARE = 0.7

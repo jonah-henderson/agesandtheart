@@ -5,6 +5,7 @@ import co.voik.agesandtheart.location
 import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.core.particles.DustParticleOptions
 import net.minecraft.core.registries.Registries
 import net.minecraft.sounds.SoundEvents
 import net.minecraft.sounds.SoundSource
@@ -118,6 +119,7 @@ class WoundBlock(properties: Properties) : BaseEntityBlock(properties) {
      * where to build.
      */
     override fun animateTick(state: BlockState, level: Level, pos: BlockPos, random: RandomSource) {
+        drawSpecksIn(level, pos, random)
         if (random.nextInt(BREATHES_IN) != 0) return
         level.playLocalSound(
             pos.x + HALF,
@@ -132,8 +134,59 @@ class WoundBlock(properties: Properties) : BaseEntityBlock(properties) {
         )
     }
 
+    /**
+     * Specks of nothing falling inward, the way matter falls into a hole (Jonah, 2026-08-07).
+     *
+     * **Their velocity points at the wound and their spawn does not**, which is the whole of the effect:
+     * each starts somewhere on a shell around the block and is given a speed proportional to how far out it
+     * began, so they all arrive at about the same moment and the drift reads as *pull* rather than as
+     * particles happening to move.
+     *
+     * `DustParticleOptions` because it takes a colour and nothing in vanilla's stock set is black —
+     * squid ink is for water and smoke is grey. Black dust at a small scale is a speck of the same absence
+     * the block is made of.
+     */
+    private fun drawSpecksIn(level: Level, pos: BlockPos, random: RandomSource) {
+        repeat(SPECKS_PER_TICK) {
+            // A point on a shell around the block, not a cube, or the corners would be denser than the faces.
+            val offsetX = random.nextDouble() - HALF
+            val offsetY = random.nextDouble() - HALF
+            val offsetZ = random.nextDouble() - HALF
+            val length = kotlin.math.sqrt(offsetX * offsetX + offsetY * offsetY + offsetZ * offsetZ)
+            if (length < TOO_CLOSE) return@repeat
+            val reach = DRAWN_FROM * (HALF + random.nextDouble() * HALF)
+            val fromX = offsetX / length * reach
+            val fromY = offsetY / length * reach
+            val fromZ = offsetZ / length * reach
+            level.addParticle(
+                SPECK,
+                pos.x + HALF + fromX,
+                pos.y + HALF + fromY,
+                pos.z + HALF + fromZ,
+                -fromX * PULLED_IN,
+                -fromY * PULLED_IN,
+                -fromZ * PULLED_IN,
+            )
+        }
+    }
+
     companion object {
         val CODEC: MapCodec<WoundBlock> = simpleCodec(::WoundBlock)
+
+        /** A speck of the same absence the block is: black, and small enough to read as a mote. */
+        private val SPECK = DustParticleOptions(0x000000, 0.6f)
+
+        /** How many are drawn in per client tick — enough to read as a stream, few enough to be specks. */
+        private const val SPECKS_PER_TICK = 3
+
+        /** How far out one may begin, in blocks. */
+        private const val DRAWN_FROM = 2.5
+
+        /** How fast they fall in, as a fraction of the distance per tick — so far ones move faster. */
+        private const val PULLED_IN = 0.14
+
+        /** Below this the random point is too near the middle for its direction to mean anything. */
+        private const val TOO_CLOSE = 0.05
 
         /**
          * Whether this wound is boxed in on all six sides by something equal to the job.
