@@ -8,6 +8,7 @@ import co.voik.agesandtheart.age.aspect.Claim
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Share
+import co.voik.agesandtheart.age.aspect.Setting
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.AspectPreset
@@ -670,9 +671,22 @@ object Resolver {
             .sortedWith(compareByDescending<Constraint> { it.word.tier }.thenBy { tieBreak(draw, aspect, it.word) })
         if (speaking.isEmpty()) return this
 
+        /** What a word *demands* of each axis — the only form that can put two words at odds. */
         fun boundsIn(said: Constraint): Map<String, Span> = axes.mapNotNull { axis ->
-            said.word.sets[axis]?.let { axis to (Span.read(it) ?: Span.NATURAL) }
+            (said.word.sets[axis]?.let(Setting::read) as? Setting.Fixed)?.let { axis to it.span }
         }.toMap()
+
+        /**
+         * Everything a word asks that is *not* a demand — its limits, nudges and spreads.
+         *
+         * Kept out of the grouping above on purpose. Only a demand can refuse another word, so only demands
+         * decide who agrees with whom and who fractures a world; a floor yields to any band already inside
+         * it and a nudge cannot fail at all. These settle onto whatever the demands left (see [Setting]).
+         */
+        fun askingIn(said: Constraint): List<Pair<String, Setting>> = axes.mapNotNull { axis ->
+            val asked = said.word.sets[axis]?.let(Setting::read) ?: return@mapNotNull null
+            if (asked is Setting.Fixed) null else axis to asked
+        }
 
         fun agree(one: Constraint, other: Constraint): Boolean {
             if (wereJoined(one, other)) return true
@@ -721,6 +735,27 @@ object Resolver {
         // Nothing narrowed anything, so there is one climate and the bend is the whole of what was said.
         }.ifEmpty { listOf(emptyMap()) }
 
+        /**
+         * [bounds] with every limit and nudge in the sentence settled onto it.
+         *
+         * After the bend, so an evocative word's pull on the middle survives a nudge to the ends, and
+         * after the grouping, so a word that only leans never divided anything. An axis nobody demanded
+         * but somebody nudged starts from the whole natural range, which is what lets a word lean an Age
+         * warm without narrowing it at all.
+         *
+         * A limit that cannot be met at all loses rather than failing the Age: it is the weaker claim, and
+         * the demand it argues with was already priced when the groups were formed.
+         */
+        fun settledWith(bounds: Map<String, Span>): Map<String, Span> {
+            val asking = speaking.flatMap(::askingIn)
+            if (asking.isEmpty()) return bounds
+            return (bounds.keys + asking.map { it.first }).associateWith { axis ->
+                val band = bounds[axis] ?: Span.NATURAL
+                val onThisAxis = asking.filter { it.first == axis }.map { it.second }
+                Setting.settle(listOf(Setting.Fixed(band)) + onThisAxis) ?: band
+            }
+        }
+
         fun written(composition: AgeComposition, member: Int, bounds: Map<String, Span>): AgeComposition {
             var steered = composition
             for ((axis, span) in bounds) {
@@ -741,7 +776,7 @@ object Resolver {
                     flaws += flaw(Register.DISPLACED, listOf(group.first(), leading), aspect, emptyList(), group.first().word.tier)
                 }
             }
-            return written(this, member = 0, bounds = bentTo(climates.first()))
+            return written(this, member = 0, bounds = settledWith(bentTo(climates.first())))
         }
 
         val leading = groups.first().first()
@@ -757,7 +792,7 @@ object Resolver {
             )
         }
         var fractured = withMembers(aspect, groups.size)
-        for ((member, bounds) in climates.withIndex()) fractured = written(fractured, member, bentTo(bounds))
+        for ((member, bounds) in climates.withIndex()) fractured = written(fractured, member, settledWith(bentTo(bounds)))
         return fractured
     }
 

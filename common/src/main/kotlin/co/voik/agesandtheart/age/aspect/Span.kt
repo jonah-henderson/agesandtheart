@@ -74,8 +74,18 @@ data class Span(val least: Double, val most: Double, val bend: Double = EVEN) {
     fun fractionOf(value: Double): Double =
         if (width <= 0.0) EVEN else ((value - least) / width).coerceIn(0.0, 1.0)
 
-    private fun trimmed(number: Double): String =
-        if (number == number.toLong().toDouble()) number.toLong().toString() else number.toString()
+    /**
+     * A band's end, as a recipe should carry it.
+     *
+     * **Rounded, because a recipe is written down and read by people.** Bands are arithmetic now — a nudge
+     * of `+0.3` on a band starting at `-0.2` lands on `0.10000000000000009`, which is the same number and a
+     * far worse thing to find in a saved Age or a `/age list`. Four places is more than any authored band
+     * uses and far more than a climate axis can tell apart.
+     */
+    private fun trimmed(number: Double): String {
+        val rounded = Math.round(number * PLACES) / PLACES
+        return if (rounded == rounded.toLong().toDouble()) rounded.toLong().toString() else rounded.toString()
+    }
 
     override fun toString(): String = spelled()
 
@@ -99,6 +109,9 @@ data class Span(val least: Double, val most: Double, val bend: Double = EVEN) {
 
         /** The whole axis — what an Age that was told nothing gets, and the identity of [broadenedTo]. */
         val NATURAL = Span(NATURAL_LEAST, NATURAL_MOST)
+
+        /** Four decimal places, as [trimmed] argues. */
+        private const val PLACES = 10_000.0
 
         /** An axis pinned to one point, which is how a recipe asks for a value outright. */
         fun at(value: Double): Span = Span(value, value)

@@ -290,7 +290,8 @@ data class Parameter(
     fun accepts(option: String): Boolean {
         val isOneOfTheNamedOptions = option in options
         val looksLikeARegistryId = namesReferent(option) && Identifier.tryParse(option) != null
-        val looksLikeASpan = kind == Kind.RANGED && Span.describes(option)
+        // Every form a word may ask a ranged axis for, not only a band — see [Setting].
+        val looksLikeASpan = kind == Kind.RANGED && Setting.describes(option)
         val isACountItGoesUpTo = option.toIntOrNull()?.let { counts?.contains(it) } == true
         return isOneOfTheNamedOptions || looksLikeASpan || isACountItGoesUpTo || (open && looksLikeARegistryId)
     }
