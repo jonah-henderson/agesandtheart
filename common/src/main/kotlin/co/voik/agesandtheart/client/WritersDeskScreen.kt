@@ -434,11 +434,22 @@ class WritersDeskScreen(
         )
     }
 
-    /** The sentence, whenever the pages under it move. */
+    /**
+     * The sentence, whenever the pages under it move.
+     *
+     * **An empty reading means two different things and has to say which.** Nothing written is a writer
+     * with an empty surface; nothing *readable* is a desk that cannot read (design §7.3) — and showing
+     * "nothing written" over a full surface would read as the Art having no opinion, which is the silent
+     * acceptance §3.3 forbids wearing a different hat.
+     */
     private fun refreshReading() {
         if (!reading.visible) return
         val said = DeskModel.reading()
-        reading.message = if (said.isEmpty()) translated("nothing_written") else Component.literal(said)
+        reading.message = when {
+            !DeskModel.can(DeskCapability.READABLE_GRAMMAR) -> translated("grammar_unread")
+            said.isEmpty() -> translated("nothing_written")
+            else -> Component.literal(said)
+        }
     }
 
     /**

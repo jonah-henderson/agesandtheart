@@ -23,6 +23,7 @@
   "container.agesandtheart.writers_desk.book_full": "This desk cannot bind another page",
   "container.agesandtheart.writers_desk.cannot_afford": "Not enough ink or paper",
   "container.agesandtheart.writers_desk.conflicts_unseen": "Conflicts unseen",
+  "container.agesandtheart.writers_desk.grammar_unread": "You cannot read this back yet",
   "container.agesandtheart.writers_desk.filed": "Filed in the desk's archive",
   "container.agesandtheart.writers_desk.in": "In",
   "container.agesandtheart.writers_desk.ink": "%s: %s / %s buckets",

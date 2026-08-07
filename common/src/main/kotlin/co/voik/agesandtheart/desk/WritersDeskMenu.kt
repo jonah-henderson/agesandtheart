@@ -222,7 +222,7 @@ class WritersDeskMenu(
             pageLimit = capabilities.pageLimit,
             composing = composing.toList(),
             quarrels = quarrelsIn(player, capabilities, said),
-            reading = readingOf(said),
+            reading = readingOf(capabilities, said),
         )
     }
 
@@ -232,7 +232,24 @@ class WritersDeskMenu(
      * Read by **the same expression a bound book is read by**, so the desk and the book can never disagree
      * about what a row of pages means.
      */
-    private fun readingOf(said: Sentence?): String = said?.let(Readout::of).orEmpty()
+    /**
+     * The sentence said back as prose — **empty without the implement that reads it**, exactly as the
+     * conflicts are (design §7.3): visibility is a property of the workspace, so a bare desk tells a writer
+     * nothing about what they have written and a furnished one tells them everything.
+     *
+     * `DeskCapability.READABLE_GRAMMAR` was defined, granted by the grammar guide, and consulted nowhere,
+     * so the desk handed over the full reading whatever was in the room. Wired now (Jonah, 2026-08-07): an
+     * early writer learns what their words do by writing an Age and going to look at it, and the guide is
+     * what turns that trial and error into a thing you can read before you spend the ink.
+     *
+     * **The gate is on the desk's live preview and nothing else.** A bound book still carries its own
+     * reading and a found one still teaches — the grammar is learned by reading somebody else's book
+     * (§4.5), and gating that would close the only door it comes through.
+     */
+    private fun readingOf(capabilities: DeskState, said: Sentence?): String {
+        if (DeskCapability.READABLE_GRAMMAR !in capabilities.capabilities) return ""
+        return said?.let(Readout::of).orEmpty()
+    }
 
     /**
      * What is wrong with the sentence as it currently stands — **empty without the implement that reveals
