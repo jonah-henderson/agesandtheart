@@ -106,10 +106,17 @@ data class Constraint(
  * everything steering it follows (design §4.3.1).
  */
 data class Phrase(
-    val descriptors: List<Constraint> = emptyList(),
+    /**
+     * Everything said about the subject, **in the order it was written and ahead of it** (§4.3.1).
+     *
+     * One list rather than the old evocative-then-subject-then-rest. An evocative word had a position of
+     * its own because leaning on something unnamed was only possible in front of it; everything leads now,
+     * so [co.voik.agesandtheart.age.word.Tier] alone decides whether a word tilts or narrows — and keeping
+     * one list is what stops a reading reordering the pages a writer laid.
+     */
+    val modifiers: List<Constraint> = emptyList(),
     /** Null where the writer named no subject — a run that only steers, like `blackstone` standing alone. */
     val subject: Constraint? = null,
-    val modifiers: List<Constraint> = emptyList(),
     /**
      * The biome this whole clause was confined to — `in mushroom_fields, spawns only slime` (§4.3.1).
      *
@@ -119,8 +126,8 @@ data class Phrase(
      */
     val confinedTo: Identifier? = null,
 ) {
-    /** Everything said here, in the order it was laid out. */
-    val said: List<Constraint> get() = descriptors + listOfNotNull(subject) + modifiers
+    /** Everything said here, in the order it was laid out — the subject closing the clause it is about. */
+    val said: List<Constraint> get() = modifiers + listOfNotNull(subject)
 }
 
 /**

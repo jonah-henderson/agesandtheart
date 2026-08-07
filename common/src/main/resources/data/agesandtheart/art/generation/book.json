@@ -4,16 +4,16 @@
   "terminals": "word",
   "rules": {
     "book": [
-      {"produce":["age","<frozen_age>"]},
-      {"produce":["age","<molten_age>"]}
+      {"produce":["<frozen_age>"]},
+      {"produce":["<molten_age>"]}
     ],
     "frozen_age": [
-      {"weight":2.0,"produce":["<bleak_mood>","landmass","<cold_stone>","atmosphere","frozen"]},
-      {"produce":["landmass","<cold_stone>","atmosphere","frozen","firmament","<cold_sky>"]}
+      {"weight":2.0,"produce":["<bleak_mood>","age","<cold_stone>","landmass","frozen","atmosphere"]},
+      {"produce":["age","<cold_stone>","landmass","frozen","atmosphere","<cold_sky>","firmament"]}
     ],
     "molten_age": [
-      {"weight":2.0,"produce":["<bleak_mood>","landmass","<hot_stone>","sea","molten"]},
-      {"produce":["landmass","<hot_stone>","depths","riddled","sea","molten"]}
+      {"weight":2.0,"produce":["<bleak_mood>","age","<hot_stone>","landmass","molten","sea"]},
+      {"produce":["age","<hot_stone>","landmass","riddled","depths","molten","sea"]}
     ],
     "bleak_mood": [
       {"weight":2.0,"produce":["desolate"]},

@@ -42,7 +42,7 @@ class VocabularyOnServerCheck : FunSpec({
         // to the pack and says nothing about *which* population is missing; a biome and a structure set
         // being readable is the claim itself. Asserted through the parser, since a word the corpus lacks is
         // reported as a page the Art could not read.
-        val written = server.ask("write", "populationsarrived age biomes jungle structures villages")
+        val written = server.ask("write", "populationsarrived age jungle biomes villages structures")
         val unreadable = written.getAsJsonArray("unreadable").map { it.asString }
         check(unreadable.isEmpty()) {
             "the server's dynamic registries did not reach the corpus — unread: $unreadable"

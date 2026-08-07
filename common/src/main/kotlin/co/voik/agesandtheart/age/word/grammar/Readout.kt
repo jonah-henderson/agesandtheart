@@ -158,20 +158,23 @@ object Readout {
      * "under sky starless", and rendering it as "starless" would launder the one thing they need told.
      */
     private fun asWritten(phrase: Phrase): Phrase? {
-        val descriptors = phrase.descriptors.filterNot { it.latent }
         val modifiers = phrase.modifiers.filterNot { it.latent }
         val subjectWasWritten = phrase.subject != null && !phrase.subject.latent
-        if (descriptors.isEmpty() && modifiers.isEmpty() && !subjectWasWritten) return null
+        if (modifiers.isEmpty() && !subjectWasWritten) return null
         val adopted = phrase.subject.takeIf { subjectWasWritten || modifiers.isNotEmpty() }
-        return Phrase(descriptors, adopted, modifiers, phrase.confinedTo)
+        return Phrase(modifiers, adopted, phrase.confinedTo)
     }
 
     /**
-     * One phrase, as its own clause. [opensTheSentence] because the preposition that places a clause
-     * against the one before it has nothing to place the first one against.
+     * One phrase, as its own clause: what is said, and then the page it is said about.
+     *
+     * **No particle attaches a modifier to its subject any more**, and that is the reversal paying for
+     * itself (§4.3.1). A trailing modifier needed one — `landmass of pillars`, a word the writer never
+     * laid and the readout had to decide when to spend — where a leading one simply stands in front of
+     * what it modifies, the way an English noun phrase does. `pillars and hills landmass` is the pages
+     * back in their own order, and everything that chose between `of` and `with` and nothing is gone.
      */
     private fun clauseOf(phrase: Phrase, opensTheSentence: Boolean): List<Said> {
-        val preposition = if (opensTheSentence) "" else prepositionFor(phrase)
         val said = mutableListOf<Said>()
         // The clause's own ground, said before the claims it governs — which is the order the writer laid
         // the pages in, and the whole reason `in` sits at the head rather than after a term.
@@ -180,42 +183,18 @@ object Readout {
             said += Said(biome.path, WordNames.readable(biome))
             said.punctuate(",")
         }
+        val preposition = if (opensTheSentence) "" else prepositionFor(phrase)
         if (preposition.isNotEmpty()) said += particleFor(preposition)
-        for (described in phrase.descriptors + listOfNotNull(phrase.subject)) said += pageFor(described.word)
-        said += steeringOf(phrase)
+        // Runs the writer joined with `and` stay joined, because "keep both, and keep them apart" is a
+        // different claim from two words laid side by side (§3.2).
+        for ((position, run) in phrase.modifiers.chunkedByJoin().withIndex()) {
+            if (position > 0) said.punctuate(",")
+            said += runOf(run)
+        }
+        phrase.subject?.let { said += pageFor(it.word) }
         return said
     }
 
-    /**
-     * Everything steering the subject. Runs the writer joined with `and` stay joined, because "keep both,
-     * and keep them apart" is a different claim from two words laid side by side (§3.2) and a reading that
-     * flattened them would hide the one page that changed it.
-     */
-    private fun steeringOf(phrase: Phrase): List<Said> {
-        if (phrase.modifiers.isEmpty()) return emptyList()
-        val hasASubjectToAttachTo = phrase.subject != null
-        val said = mutableListOf<Said>()
-        var aParticleHasBeenSpent = false
-        val alreadyClaimed = mutableSetOf<String>()
-        phrase.subject?.let { alreadyClaimed += it.word.canSet.keys }
-        for ((position, run) in phrase.modifiers.chunkedByJoin().withIndex()) {
-            // The first run of a subjectless phrase heads its own clause — "blackstone", not "of
-            // blackstone", which would be waiting for a subject that was never written.
-            val couldTakeAParticle = hasASubjectToAttachTo || position > 0
-            val particle =
-                if (couldTakeAParticle && !aParticleHasBeenSpent) attachmentOf(run, alreadyClaimed) else ""
-            // One `of` per clause. A second unjoined material is a rival claim rather than more of the
-            // same, and "of basalt of deepslate" reads as neither.
-            val followsAnAttachedRun =
-                aParticleHasBeenSpent && attachmentOf(run, alreadyClaimed).isNotEmpty()
-            aParticleHasBeenSpent = aParticleHasBeenSpent || particle.isNotEmpty()
-            if (position > 0 && followsAnAttachedRun) said.punctuate(",")
-            if (particle.isNotEmpty()) said += particleFor(particle)
-            said += runOf(run)
-            alreadyClaimed += parametersSetBy(run)
-        }
-        return said
-    }
 
     /**
      * One `and`-joined run, with whatever `only`/`except` the writer put in front of it. The `and` is a
@@ -265,47 +244,7 @@ object Readout {
         return runs
     }
 
-    /**
-     * `with` where the words name things that are *present* — biomes grown, structures built — and `of`
-     * where they say what the subject *is made of*. The same distinction [Parameter.Kind] draws, asked of
-     * the parameters the words actually set.
-     *
-     * **No particle at all where the run does not describe what it would attach to**, in either of the two
-     * ways a run can fail to. A word that names a preset steers nothing, so it is a second claim on the
-     * aspect rather than a property of the subject: `riddled flooded` is two things said about the carvers,
-     * and "riddled *of* flooded" would read as one made out of the other. A word that steers a dial
-     * *something already said has turned* is the same thing one layer down: `frozen` and `arid` both set
-     * temperature and humidity, so they contend, and "frozen *of* arid" reads as a climate made out of
-     * another climate. Rivals are laid side by side, exactly as their pages were.
-     *
-     * [alreadyClaimed] is therefore every parameter the subject and the runs before this one set — what a
-     * particle here would be claiming to describe.
-     */
-    private fun attachmentOf(run: List<Constraint>, alreadyClaimed: Set<String>): String {
-        val steersNothing = run.none { it.word.canSet.isNotEmpty() }
-        // `only` and `except` are pages the writer laid down and already say how the run attaches —
-        // "except of blackstone" is not a sentence, and the particle earns nothing beside them.
-        val alreadyMarked = run.first().polarity != Polarity.ASSERTED
-        val contendsWithWhatItWouldDescribe = parametersSetBy(run).any { it in alreadyClaimed }
-        if (steersNothing || alreadyMarked || contendsWithWhatItWouldDescribe) return ""
-        val namesThingsPresent = run.any { isPopulative(it.word) }
-        return if (namesThingsPresent) "with" else "of"
-    }
 
-    /** Every dial a run turns — what it claims, and so what a later run could contend with. */
-    private fun parametersSetBy(run: List<Constraint>): Set<String> =
-        run.flatMapTo(mutableSetOf()) { it.word.canSet.keys }
-
-    private fun isPopulative(word: Word): Boolean {
-        val aspectsItSpeaksTo = word.aspects.ifEmpty { Aspect.entries.toSet() }
-        fun anyPresetCallsItPopulative(parameter: String) =
-            aspectsItSpeaksTo.any { aspect ->
-                aspect.authored.any { preset ->
-                    preset.parameters.any { it.name == parameter && it.kind == Parameter.Kind.POPULATIVE }
-                }
-            }
-        return word.canSet.keys.any(::anyPresetCallsItPopulative)
-    }
 
     /**
      * How a clause is placed against the one before it. Vertical where the world is — a sea is under the

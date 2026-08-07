@@ -40,14 +40,23 @@ class ReadoutCheck : FunSpec({
         Readout.of(read(listOf("age") + pages)).removePrefix("age: ")
 
     /**
+     * The same for a book with no aiming page in it — **the beginner's book, which now closes with `age`
+     * rather than opening with it** (§4.3.1). Its words are the nucleus's own modifiers and modifiers
+     * lead, so "a floating, basalt Age" is written in that order. The reading still opens with the head,
+     * `Readout` putting it back at the front wherever the page was laid.
+     */
+    fun unaimedReadingOf(vararg pages: String): String =
+        Readout.of(read(pages.toList() + "age")).removePrefix("age: ")
+
+    /**
      * **A book opens with the page it opens with.** The nucleus carries no constraint and so reaches no
      * clause, which is exactly how it came to be missing: the reading is what the script is set from, so a
      * head left out of it meant the glyph for the one page every book must have was drawn nowhere in the
      * game, and a player learning the language by reading found books never met it.
      */
     test("the page a book opens with is in its reading") {
-        val reading = Readout.of(read(listOf("age", "landmass", "basalt")))
-        check(reading == "age: landmass of basalt.") { "the book did not open with its own head: '$reading'" }
+        val reading = Readout.of(read(listOf("age", "basalt", "landmass")))
+        check(reading == "age: basalt landmass.") { "the book did not open with its own head: '$reading'" }
     }
 
     /**
@@ -69,8 +78,8 @@ class ReadoutCheck : FunSpec({
      * whole trick (§4.3.1). A material belongs to the section it sits in, and `of` is what says so.
      */
     test("a material is attached to what it is aimed at") {
-        val reading = readingOf("landmass", "floating", "basalt")
-        check(reading == "landmass floating of basalt.") { "read back as '$reading'" }
+        val reading = readingOf("floating", "basalt", "landmass")
+        check(reading == "floating, basalt landmass.") { "read back as '$reading'" }
     }
 
     /**
@@ -79,8 +88,8 @@ class ReadoutCheck : FunSpec({
      * under the sea and not under the land, and the sea must be placed *over* against the land.
      */
     test("each section keeps its own material") {
-        val reading = readingOf("landmass", "floating", "basalt", "sea", "molten", "lava")
-        check(reading == "landmass floating of basalt, over sea molten of lava.") {
+        val reading = readingOf("floating", "basalt", "landmass", "molten", "lava", "sea")
+        check(reading == "floating, basalt landmass, over molten, lava sea.") {
             "the sections blurred into each other: '$reading'"
         }
     }
@@ -90,10 +99,10 @@ class ReadoutCheck : FunSpec({
      * joined run into juxtaposition would hide the only thing it changed (§3.2).
      */
     test("a joined run stays joined") {
-        val joined = readingOf("landmass", "basalt", "and", "deepslate")
-        check(joined == "landmass of basalt and deepslate.") { "'basalt and deepslate' read back as '$joined'" }
+        val joined = readingOf("basalt", "and", "deepslate", "landmass")
+        check(joined == "basalt and deepslate landmass.") { "'basalt and deepslate' read back as '$joined'" }
 
-        val apart = readingOf("landmass", "basalt", "deepslate")
+        val apart = readingOf("basalt", "deepslate", "landmass")
         check(" and " !in apart) { "unjoined words were read back as joined: '$apart'" }
     }
 
@@ -102,8 +111,8 @@ class ReadoutCheck : FunSpec({
      * flooded" would read as one made out of the other, which is not what either page says.
      */
     test("a claim on an aspect takes no particle") {
-        val reading = readingOf("depths", "riddled", "flooded")
-        check(reading == "depths riddled flooded.") { "read back as '$reading'" }
+        val reading = readingOf("riddled", "flooded", "depths")
+        check(reading == "riddled, flooded depths.") { "read back as '$reading'" }
     }
 
     /**
@@ -116,8 +125,8 @@ class ReadoutCheck : FunSpec({
      * it; two words turning one dial say something about each other's chances instead.
      */
     test("words contending for one dial take no particle") {
-        val reading = readingOf("frozen", "arid")
-        check(reading == "frozen arid.") { "two claims on the climate read as composition: '$reading'" }
+        val reading = unaimedReadingOf("frozen", "arid")
+        check(reading == "frozen, arid.") { "two claims on the climate read as composition: '$reading'" }
     }
 
     /**
@@ -125,23 +134,23 @@ class ReadoutCheck : FunSpec({
      * which is the ordinary case the rule above must not reach.
      */
     test("a material still attaches to what turns no dial") {
-        val reading = readingOf("landmass", "cliffs", "basalt")
-        check(reading == "landmass cliffs of basalt.") { "read back as '$reading'" }
+        val reading = readingOf("cliffs", "basalt", "landmass")
+        check(reading == "cliffs, basalt landmass.") { "read back as '$reading'" }
     }
 
     /** `only` and `except` are pages the writer laid down, and the reading has to show them. */
     test("only and except are said out loud") {
-        val singled = readingOf("landmass", "only", "blackstone")
+        val singled = readingOf("only", "blackstone", "landmass")
         check("only blackstone" in singled) { "'only' vanished from the reading: '$singled'" }
 
-        val struck = readingOf("landmass", "except", "blackstone")
+        val struck = readingOf("except", "blackstone", "landmass")
         check("except blackstone" in struck) { "'except' vanished from the reading: '$struck'" }
     }
 
     /** A rung is bound to one term, so the reading has to put it back on that term and no other. */
     test("a rung is said against the thing it counts") {
-        val reading = readingOf("landmass", "basalt", "and", "teeming", "deepslate")
-        check(reading == "landmass of basalt and teeming deepslate.") { "read back as '$reading'" }
+        val reading = readingOf("basalt", "and", "teeming", "deepslate", "landmass")
+        check(reading == "basalt and teeming deepslate landmass.") { "read back as '$reading'" }
     }
 
     /**
@@ -151,11 +160,11 @@ class ReadoutCheck : FunSpec({
      * where the caller shows it struck through.
      */
     test("an unread page never reaches the prose") {
-        val read = read(listOf("age", "landmass", "zzzznotaword", "basalt"))
+        val read = read(listOf("age", "zzzznotaword", "basalt", "landmass"))
         val reading = Readout.of(read)
         check("zzzznotaword" !in reading) { "an unreadable page was laundered into the prose: '$reading'" }
         check("zzzznotaword" in read.unreadable) { "an unreadable page went unreported: ${read.unreadable}" }
-        check(reading == "age: landmass of basalt.") { "the rest of the book did not survive: '$reading'" }
+        check(reading == "age: basalt landmass.") { "the rest of the book did not survive: '$reading'" }
     }
 
     /**
@@ -184,9 +193,9 @@ class ReadoutCheck : FunSpec({
 
     /** A book that aims at nothing has nothing to be `of` — its first word simply stands there. */
     test("a book that aims at nothing reads as itself") {
-        check(readingOf("basalt") == "basalt.") { "'basalt' alone read back as '${readingOf("basalt")}'" }
-        check(readingOf("floating", "basalt") == "floating of basalt.") {
-            "an unaimed book read back as '${readingOf("floating", "basalt")}'"
+        check(unaimedReadingOf("basalt") == "basalt.") { "'basalt' alone read back as '${unaimedReadingOf("basalt")}'" }
+        check(unaimedReadingOf("floating", "basalt") == "floating, basalt.") {
+            "an unaimed book read back as '${unaimedReadingOf("floating", "basalt")}'"
         }
     }
 

@@ -193,8 +193,9 @@ class BookCheck : FunSpec({
         check(writable.isNotEmpty()) { "the antonym table names no pair the corpus can write" }
 
         for (opposed in writable) {
-            // The nucleus every book must have, then the two words that disagree.
-            val pages = listOf(nucleusPage(vocabulary), opposed.first.name, opposed.second.name)
+            // The two words that disagree, then the nucleus every book must have — modifiers lead the
+            // page they modify, so an unaimed book closes with `age` rather than opening on it (§4.3.1).
+            val pages = listOf(opposed.first.name, opposed.second.name, nucleusPage(vocabulary))
             val written = pages.joinToString(" ")
             val read = read(pages)
             check(read.dropped.isEmpty()) {

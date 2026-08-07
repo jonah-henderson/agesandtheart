@@ -212,9 +212,10 @@ pages) → Sentence` is the entire port; `Sentence`/`Phrase`/`Constraint`/`Scope
   pages already looked up in the `Vocabulary` and stamped with a class, four productions long, and with no
   lexer because there is nothing left to lex. It names no aspect and no domain — which section admits which
   page is asked of the data (`Aspect.confinable`, `Aspect.madeOfSomething`, `Word.aspects`), so the
-  player-facing division can be redrawn without touching it. A section is opened by an **aiming page**
-  (`landmass`, `atmosphere`, `firmament`) and never by a word that fills something — presets are ours, not
-  the player's. `Readout.of(sentence)` says the parse back as prose, which is how attachment is visible at
+  player-facing division can be redrawn without touching it. **Every clause ends with the page it is about** and modifiers lead it —
+  `pillars and hills landmass`, and a book with no aiming page closes with `age`. A clause is closed by an
+  **aiming page** (`landmass`, `atmosphere`, `firmament`) and never by a word that fills something —
+  presets are ours, not the player's. `Readout.of(sentence)` says the parse back as prose, which is how attachment is visible at
   all.
 - **`Domain`** — **the player-facing division of the world, as datapack content** (`art/domain/<name>.json`).
   A domain names the aspects one aiming page opens, and `Vocabulary` synthesises the page from it, so a page

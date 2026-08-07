@@ -1,13 +1,16 @@
 start     book
 terminals word
 
-book = age <frozen_age> | age <molten_age>
+# Modifiers lead, the page they modify closes the clause (design §4.3.1): "a desolate Age with packed ice
+# landmass, frozen air" rather than "landmass packed_ice".
 
-frozen_age = <bleak_mood> landmass <cold_stone> atmosphere frozen x2
-    | landmass <cold_stone> atmosphere frozen firmament <cold_sky>
+book = <frozen_age> | <molten_age>
 
-molten_age = <bleak_mood> landmass <hot_stone> sea molten x2
-    | landmass <hot_stone> depths riddled sea molten
+frozen_age = <bleak_mood> age <cold_stone> landmass frozen atmosphere x2
+    | age <cold_stone> landmass frozen atmosphere <cold_sky> firmament
+
+molten_age = <bleak_mood> age <hot_stone> landmass molten sea x2
+    | age <hot_stone> landmass riddled depths molten sea
 
 bleak_mood = desolate x2 | ancient | foreboding
 

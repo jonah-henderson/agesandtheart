@@ -4,18 +4,18 @@
   "terminals": "word",
   "rules": {
     "world": [
-      {"weight":2.0,"produce":["age","<temperate_world>"]},
-      {"weight":2.0,"produce":["age","<frozen_world>"]},
-      {"produce":["age","<parched_world>"]}
+      {"weight":2.0,"produce":["<temperate_world>"]},
+      {"weight":2.0,"produce":["<frozen_world>"]},
+      {"produce":["<parched_world>"]}
     ],
     "temperate_world": [
-      {"produce":["landmass","<settled_land>","sea","<some_sea>","depths","riddled","biomes","verdant","surface","features","spawns","phenomena","firmament","<mild_sky>","structures","untouched","atmosphere","temperate"]}
+      {"produce":["age","<settled_land>","landmass","<some_sea>","sea","riddled","depths","verdant","biomes","surface","features","spawns","phenomena","<mild_sky>","firmament","untouched","structures","temperate","atmosphere"]}
     ],
     "frozen_world": [
-      {"produce":["landmass","<harsh_land>","sea","<some_sea>","depths","unbroken","biomes","surface","features","spawns","phenomena","firmament","<cold_sky>","structures","untouched","atmosphere","frozen"]}
+      {"produce":["age","<harsh_land>","landmass","<some_sea>","sea","unbroken","depths","biomes","surface","features","spawns","phenomena","<cold_sky>","firmament","untouched","structures","frozen","atmosphere"]}
     ],
     "parched_world": [
-      {"produce":["landmass","<dry_land>","sea","<dry_sea>","depths","riddled","biomes","surface","features","spawns","phenomena","firmament","clear","structures","untouched","atmosphere","parched"]}
+      {"produce":["age","<dry_land>","landmass","<dry_sea>","sea","riddled","depths","biomes","surface","features","spawns","phenomena","clear","firmament","untouched","structures","parched","atmosphere"]}
     ],
     "some_sea": [
       {"weight":8.0,"produce":["drowned"]},

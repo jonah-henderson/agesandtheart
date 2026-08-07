@@ -23,9 +23,6 @@ enum class PageClass {
      */
     NUCLEUS,
 
-    /** Tilts weights and never narrows, so it precedes a subject and colours it (design §4.4). */
-    EVOCATIVE,
-
     /**
      * Names a part of the world and supplies no value — `landmass`, `climate`. It *opens* a section, and
      * aiming is the whole of its job (design §4.3.1).
@@ -134,11 +131,14 @@ object Grammar {
      * An **aiming page** is recognised by shape rather than by a flag: a word that asks for no tag, names
      * no preset and sets no parameter says nothing except which part of the world it is about, and that is
      * exactly what a subject page *is*.
+     *
+     * **An evocative word has no class of its own.** It used to, because it sat in a slot before the
+     * subject and everything else sat after — and now that every modifier leads, the position is the same
+     * one and [Tier] alone decides whether a word tilts or narrows (§4.3.1).
      */
     private val Word.pageClass: PageClass
         get() = when {
             aims -> PageClass.SUBJECT
-            tier == Tier.EVOCATIVE -> PageClass.EVOCATIVE
             isMaterial -> PageClass.MATERIAL
             else -> PageClass.TERM
         }

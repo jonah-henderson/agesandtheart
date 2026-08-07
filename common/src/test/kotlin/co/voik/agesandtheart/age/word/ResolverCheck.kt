@@ -790,7 +790,7 @@ class ResolverCheck : FunSpec({
      * different aspects from the same word.
      */
     test("the ground can wear one rock over another") {
-        val said = read(listOf("age", "landmass", "worn", "granite", "surface", "blackstone"))
+        val said = read(listOf("age", "worn", "granite", "landmass", "blackstone", "surface"))
         val composition = Resolver.resolve(vocabulary, said, SAMPLE_SEED).composition
         val body = composition.optionsFor(Aspect.TERRAIN, 0).allOf(Terrain.STONE)
         val skin = composition.optionsFor(Aspect.SURFACE, 0).allOf(Surface.MATERIAL)
@@ -800,7 +800,7 @@ class ResolverCheck : FunSpec({
 
     /** And a skin of air is how a writer says the ground wears nothing — `open`'s idiom, for the surface. */
     test("a surface of air is no surface at all") {
-        val said = read(listOf("age", "surface", "air"))
+        val said = read(listOf("age", "air", "surface"))
         val composition = Resolver.resolve(vocabulary, said, SAMPLE_SEED).composition
         val skin = composition.optionsFor(Aspect.SURFACE, 0).allOf(Surface.MATERIAL)
         check(skin == listOf("minecraft:air")) { "'surface air' wrote $skin" }

@@ -15,8 +15,9 @@ import io.kotest.core.spec.style.FunSpec
  * "248,734 block(s) differ" is a sentence; `differingBlocks` is a number, and a check that reads the
  * sentence is really asserting on the wording.
  *
- * **Every sentence here starts with `age`, and it has to.** The nucleus is mandatory (`Art.g4`), so a book
- * without one is not a sentence and is filled in against one the Art draws for itself — which keeps the
+ * **Every sentence here carries `age`, and it has to.** The nucleus is mandatory and refused outright
+ * without it (§4.3.1); a book that has one but does not parse is filled in against a sentence the Art
+ * draws for itself — which keeps the
  * writer's content pages and silently drops the structural ones, `only` and the rungs among them. These
  * checks were written before that rule and asserted on repaired books for a while: `teeming villages` came
  * back as plain `villages`, and the assertion that the rung had reached the recipe was the only thing that
@@ -31,9 +32,9 @@ class WritingCheck : FunSpec({
      * failure it exists to catch is a material attaching to the wrong one.
      */
     test("the readout shows what was aimed where") {
-        val written = server.ask("write", "readsback age landmass floating basalt sea molten lava")
+        val written = server.ask("write", "readsback age floating basalt landmass molten lava sea")
         val readout = written.get("readout").asString
-        check(readout == "age: landmass floating of basalt, over sea molten of lava.") {
+        check(readout == "age: floating, basalt landmass, over molten, lava sea.") {
             "the sections blurred: '$readout'"
         }
         check(written.getAsJsonArray("supplied").isEmpty) {
@@ -43,8 +44,8 @@ class WritingCheck : FunSpec({
 
     /** Without an aiming page in front of them the same words are the nucleus, not a section of their own. */
     test("a book that aims at nothing is one section") {
-        val written = server.ask("write", "unaimed age floating basalt")
-        check(written.get("readout").asString == "age: floating of basalt.") {
+        val written = server.ask("write", "unaimed floating basalt age")
+        check(written.get("readout").asString == "age: floating, basalt.") {
             "an unaimed book read back as '${written.get("readout").asString}'"
         }
     }
@@ -59,7 +60,7 @@ class WritingCheck : FunSpec({
      * directly and never sees the refusal.
      */
     test("a page the Art never heard of is refused") {
-        val written = server.ask("write", "laundered age landmass zzzznotaword basalt")
+        val written = server.ask("write", "laundered age zzzznotaword basalt landmass")
         val complaint = written.get("error")?.asString
         check(complaint != null && "zzzznotaword" in complaint) {
             "an unknown page was not refused by name: $written"
@@ -73,7 +74,7 @@ class WritingCheck : FunSpec({
      */
     test("a rung reaches a population") {
         for ((rung, name) in listOf(TEEMING to "manyvillages", SCARCE to "fewvillages")) {
-            server.ask("write", "${name} age structures ${rung.said} villages")
+            server.ask("write", "${name} age ${rung.said} villages structures")
             val recipe = recipeOf(server, name)
             check("minecraft:villages[amount=${rung.written}]" in recipe) { "'${rung.said} villages' wrote $recipe" }
         }
@@ -81,7 +82,7 @@ class WritingCheck : FunSpec({
 
     /** A rung binds to one term. Joined with another value, only the quantified one carries it. */
     test("a rung counts only the term it precedes") {
-        server.ask("write", "onlyoneteems age structures woodland_mansions and teeming villages")
+        server.ask("write", "onlyoneteems age woodland_mansions and teeming villages structures")
         val recipe = recipeOf(server, "onlyoneteems")
         check("minecraft:villages[amount=${TEEMING.written}]" in recipe) { "the rung did not reach its own term: $recipe" }
         check("woodland_mansions[" !in recipe) { "the rung leaked onto the term beside it: $recipe" }
@@ -89,7 +90,7 @@ class WritingCheck : FunSpec({
 
     /** `only` and a rung are independent axes on one value, and must not eat each other. */
     test("only and a rung stack on one value") {
-        server.ask("write", "onlyteeming age structures only teeming villages")
+        server.ask("write", "onlyteeming age only teeming villages structures")
         val recipe = recipeOf(server, "onlyteeming")
         check("minecraft:villages[only,amount=${TEEMING.written}]" in recipe) { "'only teeming villages' wrote $recipe" }
     }
@@ -100,8 +101,8 @@ class WritingCheck : FunSpec({
      */
     test("the pinned knobs can be written") {
         val knobs = listOf(
-            Triple("finemingle", "age landmass finely basalt and deepslate", "mingling=1..1"),
-            Triple("bareground", "age surface air", "surface.material=minecraft:air"),
+            Triple("finemingle", "age finely basalt and deepslate landmass", "mingling=1..1"),
+            Triple("bareground", "age air surface", "surface.material=minecraft:air"),
         )
         for ((name, sentence, expected) in knobs) {
             server.ask("write", "$name $sentence")

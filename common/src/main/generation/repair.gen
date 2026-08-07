@@ -1,13 +1,17 @@
 start     world
 terminals word
 
-world = age <temperate_world> x2 | age <frozen_world> x2 | age <parched_world>
+# Every clause leads with what is said and closes with the page it is said about (design §4.3.1), so a
+# world reads as "an Age with a worn landmass, a drowned sea, riddled depths…" rather than naming each
+# part and then filling it.
 
-temperate_world = landmass <settled_land> sea <some_sea> depths riddled biomes verdant surface features spawns phenomena firmament <mild_sky> structures untouched atmosphere temperate
+world = <temperate_world> x2 | <frozen_world> x2 | <parched_world>
 
-frozen_world = landmass <harsh_land> sea <some_sea> depths unbroken biomes surface features spawns phenomena firmament <cold_sky> structures untouched atmosphere frozen
+temperate_world = age <settled_land> landmass <some_sea> sea riddled depths verdant biomes surface features spawns phenomena <mild_sky> firmament untouched structures temperate atmosphere
 
-parched_world = landmass <dry_land> sea <dry_sea> depths riddled biomes surface features spawns phenomena firmament clear structures untouched atmosphere parched
+frozen_world = age <harsh_land> landmass <some_sea> sea unbroken depths biomes surface features spawns phenomena <cold_sky> firmament untouched structures frozen atmosphere
+
+parched_world = age <dry_land> landmass <dry_sea> sea riddled depths biomes surface features spawns phenomena clear firmament untouched structures parched atmosphere
 
 some_sea = drowned x8 | open
 

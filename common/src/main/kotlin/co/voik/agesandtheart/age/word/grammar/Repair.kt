@@ -240,12 +240,9 @@ internal object Repair {
             read.copy(phrases = read.phrases.map(::deferring))
 
         private fun deferring(phrase: Phrase): Phrase {
-            val theWriterSpokeHere = (phrase.descriptors + phrase.modifiers).any { !it.latent }
+            val theWriterSpokeHere = phrase.modifiers.any { !it.latent }
             if (!theWriterSpokeHere) return phrase
-            return phrase.copy(
-                descriptors = phrase.descriptors.filterNot { it.latent },
-                modifiers = phrase.modifiers.filterNot { it.latent },
-            )
+            return phrase.copy(modifiers = phrase.modifiers.filterNot { it.latent })
         }
     }
 }

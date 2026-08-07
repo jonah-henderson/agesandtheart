@@ -30,7 +30,7 @@ class RepairCheck : FunSpec({
     fun read(pages: List<String>) = Grammar.read(vocabulary, pages) ?: error("not a book: $pages")
 
     /** A sky word under the land: the commonest way to write a book that is not a sentence. */
-    val misaimed = listOf("age", "landmass", "starless")
+    val misaimed = listOf("age", "starless", "landmass")
 
     /**
      * **Nothing the writer wrote is lost to a book that does not parse.** This is the whole of why repair
@@ -86,8 +86,9 @@ class RepairCheck : FunSpec({
         }
         val said = Readout.of(read)
         // Named for the page a writer lays rather than the aspect underneath: the sky is aimed at by
-        // `firmament`, and what the reading has to show is the page, not the machinery.
-        val underTheSky = said.substringAfter("firmament", missingDelimiterValue = "")
+        // `firmament`, and what the reading has to show is the page, not the machinery. **Before** it,
+        // modifiers leading their subject now (§4.3.1) — "under starless firmament".
+        val underTheSky = said.substringBefore("firmament", missingDelimiterValue = "")
         check("starless" in underTheSky) { "the readout hid where the page landed: '$said'" }
     }
 
@@ -98,7 +99,8 @@ class RepairCheck : FunSpec({
      * right.
      */
     test("only the page that moved is charged for moving") {
-        val read = read(listOf("age", "landmass", "flat", "starless"))
+        // `flat` belongs under the land and `starless` does not, so only the second has to move.
+        val read = read(listOf("age", "flat", "starless", "landmass"))
         val moved = read.written.filter { it.rehomed }.map { it.word.name }
         check(moved == listOf("starless")) { "the pages read as moved were $moved" }
 
