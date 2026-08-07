@@ -132,7 +132,7 @@ class AgeChunkGenerator(
      * same three-way table decide there too — bone dry deep down, a perched pocket sometimes, and flooded
      * only where the sea genuinely reaches.
      */
-    private val hollows: TerrainField? = null,
+    val hollows: TerrainField? = null,
     /**
      * What this Age places, as the function vanilla itself parameterises decoration with — see [Features].
      * Null leaves every biome's own list exactly as the pack wrote it.

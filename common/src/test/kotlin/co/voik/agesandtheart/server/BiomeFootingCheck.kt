@@ -47,7 +47,39 @@ class BiomeFootingCheck : FunSpec({
             "an Age of islands in a water sea grew no ocean biome anywhere, so the reading above is vacuous"
         }
     }
+    /**
+     * **Nothing may be kept dry and claimed by the aquifer at once.** Those are contradictory claims about
+     * the same space, and the contradiction flooded every rift in the mod.
+     *
+     * A terrain with noise caves hands its *uncut* rock over as the volume the aquifer answers for, since a
+     * carved cave meets the water table on its way out. A rift is opened afterwards, at the Age level — so
+     * the chasm stayed inside that volume, and the aquifer branch is asked *before* the sea and does not
+     * consult what keeps the sea out. `SeaFill.dry` was working perfectly the whole time; the water came
+     * through a door it was not guarding (Jonah, 2026-08-06, walked, at 290/216 of a `hills,pillars` rift).
+     *
+     * Asked of the *generator* rather than of blocks, deliberately. Reading a world back needs a loaded
+     * chunk, and a probe where nobody stands reads `void_air` and reports a clean negative — which is how
+     * this went uncaught through several rounds of looking straight at it.
+     */
+    test("no column is both kept dry and answered for by the aquifer") {
+        server.run(
+            "age compose riftdry 1543517247 terrain=hills,pillars terrain.seam=rift " +
+                "sea=minecraft:water carvers=solid sky=plain",
+        )
+        val contradictions = SAMPLED_COLUMNS.mapNotNull { (x, z) ->
+            val probe = server.ask("probe", "riftdry $x $z")
+            val overlap = probe.get("dryAndAquifer").asInt
+            "($x, $z): $overlap levels, kept dry ${probe.get("keptDry").asString}".takeIf { overlap > 0 }
+        }
+        check(contradictions.isEmpty()) {
+            "the aquifer claims space the sea is kept out of, so it fills it:\n" +
+                contradictions.take(4).joinToString("\n")
+        }
+    }
 })
+
+/** Columns across the chasm a rift opens, including the one a walk found flooded. */
+private val SAMPLED_COLUMNS = listOf(290 to 216, 288 to 216, 292 to 216, 290 to 210, 290 to 224)
 
 /** What share of an Age's surface each biome covers, as `/age biomes` measures it. */
 private fun surfaceBiomes(server: DrivenServer, name: String, radius: Int): Map<String, Double> =

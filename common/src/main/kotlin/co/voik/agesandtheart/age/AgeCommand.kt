@@ -79,7 +79,7 @@ import net.minecraft.world.level.levelgen.Heightmap
  * /age compare <a> <b> [radius]       — do two Ages generate the same world, block for block?
  * /age sky <name> [<spec>]            — read an Age's suns and moons, or preview different ones in it
  * /age strike [distance]              — call a bolt down where you are looking, to see a tempest land one
- * /age probe [<x> <z>]                — what the generator thinks of a column: rock, sea, and what keeps it dry
+ * /age probe <name> <x> <z>           — what the generator thinks of a column: rock, sea, aquifer, dry
  * /age list                           — list known Ages (with their recipe)
  * ```
  */
@@ -336,51 +336,61 @@ object AgeCommand {
      * rather than only that it is.
      */
     private fun probeSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
-        Commands.literal("probe")
-            .executes { context -> runProbe(context, null) }
-            .then(
+        reporting("probe") { reportFor ->
+            Commands.argument(NAME_ARGUMENT, StringArgumentType.word()).then(
                 Commands.argument(PROBE_X, IntegerArgumentType.integer()).then(
                     Commands.argument(PROBE_Z, IntegerArgumentType.integer()).executes { context ->
                         runProbe(
                             context,
-                            IntegerArgumentType.getInteger(context, PROBE_X) to
-                                IntegerArgumentType.getInteger(context, PROBE_Z),
+                            IntegerArgumentType.getInteger(context, PROBE_X),
+                            IntegerArgumentType.getInteger(context, PROBE_Z),
+                            reportFor(context),
                         )
                     },
                 ),
             )
+        }
 
-    private fun runProbe(context: CommandContext<CommandSourceStack>, at: Pair<Int, Int>?): Int {
+    private fun runProbe(
+        context: CommandContext<CommandSourceStack>,
+        x: Int,
+        z: Int,
+        report: Report,
+    ): Int {
         val source = context.source
-        val level = source.level
+        val name = StringArgumentType.getString(context, NAME_ARGUMENT)
+        val level = openNamedAge(source, name, report) ?: return FAILURE
         val generator = level.chunkSource.generator as? AgeChunkGenerator ?: run {
-            source.sendFailure(Component.literal("This dimension is not an Age of ours"))
+            source.sendFailure(Component.literal("Age '$name' is not one of ours to probe"))
             return FAILURE
         }
-        val x = at?.first ?: BlockPos.containing(source.position).x
-        val z = at?.second ?: BlockPos.containing(source.position).z
 
         val seaFill = generator.seaFill
         val rock = generator.field.columnSpans(x, z)
         val dryness = seaFill.drynessAt(x, z)
         val wetness = seaFill.wetnessAt(x, z)
-        source.sendSuccess({ Component.literal("Column ($x, $z) as the generator sees it:") }, false)
-        source.sendSuccess({
-            Component.literal("  sea ${seaFill.blockAt(x, z).block.descriptionId} standing at y=${seaFill.level}")
-        }, false)
-        source.sendSuccess({ Component.literal("  rock: ${said(rock)}") }, false)
-        source.sendSuccess({ Component.literal("  kept dry: ${said(dryness)}") }, false)
-        source.sendSuccess({ Component.literal("  carried water: ${said(wetness)}") }, false)
+        report.say { "Column ($x, $z) as the generator sees it:" }
+        report.fact("waterline", seaFill.level) {
+            "  sea ${seaFill.blockAt(x, z).block.descriptionId} standing at y=${seaFill.level}"
+        }
+        report.fact("rock", said(rock)) { "  rock: ${said(rock)}" }
+        report.fact("keptDry", said(dryness)) { "  kept dry: ${said(dryness)}" }
+        report.fact("carriedWater", said(wetness)) { "  carried water: ${said(wetness)}" }
+        // The aquifer's claim, and the one that hid a flooded rift: it is asked *before* the sea and
+        // answers from the water table, so anything it claims is wet whatever keeps the sea out.
+        val hollow = generator.hollows?.columnSpans(x, z) ?: Spans.EMPTY
+        report.fact("aquifer", said(hollow)) { "  aquifer answers for: ${said(hollow)}" }
         // The verdict, block by block through the band the sea could reach, which is what a walk is looking at.
         val wet = (PROBE_FROM..seaFill.level).filter { y ->
-            !rock.contains(y) && seaFill.fillsAt(y, dryness, wetness)
+            !rock.contains(y) && (hollow.contains(y) || seaFill.fillsAt(y, dryness, wetness))
         }
-        source.sendSuccess({
-            Component.literal(
-                if (wet.isEmpty()) "  the generator fills nothing here between y=$PROBE_FROM and the waterline"
-                else "  the generator fills y=${wet.first()}..${wet.last()} (${wet.size} blocks)",
-            )
-        }, false)
+        report.fact("filled", wet.size) {
+            if (wet.isEmpty()) "  nothing is filled here between y=$PROBE_FROM and the waterline"
+            else "  filled y=${wet.first()}..${wet.last()} (${wet.size} blocks)"
+        }
+        // The contradiction that flooded every rift: a space kept dry that the aquifer also claims.
+        report.only("dryAndAquifer", (PROBE_FROM..seaFill.level).count { dryness.contains(it) && hollow.contains(it) })
+        report.finish()
         return SUCCESS
     }
 

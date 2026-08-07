@@ -21,6 +21,7 @@ import co.voik.agesandtheart.worldgen.field.Regions
 import co.voik.agesandtheart.worldgen.field.Ridge
 import co.voik.agesandtheart.worldgen.field.Rift
 import co.voik.agesandtheart.worldgen.field.TerrainField
+import co.voik.agesandtheart.worldgen.field.Subtract
 import co.voik.agesandtheart.worldgen.field.Union
 import co.voik.agesandtheart.worldgen.field.Weathered
 import co.voik.agesandtheart.worldgen.field.TerrainFill
@@ -106,12 +107,13 @@ object AgeGeneration {
         val shape = faulted(weathered, character.seam, ground, seed)
         // Everywhere the sea is kept out of: the chasm a rift opened, and any underground that answers
         // "never wet" rather than to a water table — see [Terrain.Ground].
-        val chasm = keptDry(riftVolume(character.seam, ground), grounds, ground)
+        val riftCut = riftVolume(character.seam, ground)
+        val chasm = keptDry(riftCut, grounds, ground)
         // And the rock the underground was taken out of — **handed to the generator rather than to the
         // sea**. A flat waterline fills any empty space beneath it, so a shape-cut cave or hall comes out
         // flooded to the roof; making it simply *dry* instead would only trade one uniform answer for the
         // other. What that space wants is the same three-way `WaterTable` a carved cave already meets.
-        val hollows = hollowedRock(grounds, ground)
+        val hollows = openedBy(hollowedRock(grounds, ground), riftCut)
 
         val standing = carriedWater(composition, character, ground, seed)
         val flow = character.mapFor(Aspect.SEA, composition.sharesOf(Aspect.SEA), seed)
@@ -324,6 +326,22 @@ object AgeGeneration {
      * The declared volume is the very instance the shape is built on, not a rebuilt copy, so it answers
      * from the same cache; building a second would pay for the whole landform twice.
      */
+    /**
+     * [rock] with the chasm taken back out of it — **the rift has to be cut from the hollow as well as
+     * from the shape**, and forgetting it flooded every rift in the mod.
+     *
+     * A terrain with noise caves hands over its *uncut* rock as the hollow, because a carved cave meets
+     * the water table on its way out and has to answer to one. The rift is opened afterwards, at the Age
+     * level, so that hollow still claimed the chasm — and the hollow branch is asked *before* the sea and
+     * answers from the aquifer, which takes its substance from the sea. A canyon with dry rims came out
+     * filled to the waterline with source blocks, and `SeaFill.dry` was working perfectly the whole time:
+     * the water never came through the door it was guarding (Jonah, 2026-08-06, walked).
+     *
+     * Nothing inside a chasm is rock a cave was cut from. It is the open air of a hole in the world.
+     */
+    private fun openedBy(rock: TerrainField?, chasm: TerrainField?): TerrainField? =
+        if (rock == null || chasm == null) rock else Subtract(rock, chasm)
+
     private fun hollowedRock(grounds: List<Terrain.Ground>, ground: RegionMap): TerrainField? {
         if (grounds.none { it.hollows != null }) return null
         return Regions.of(grounds.map { it.hollows ?: Union(emptyList()) }, ground)
