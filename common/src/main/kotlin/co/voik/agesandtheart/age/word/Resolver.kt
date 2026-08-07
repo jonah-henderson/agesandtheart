@@ -384,7 +384,7 @@ object Resolver {
         val named = speaking.filter { it.word.tier.narrows }
             .maxOfOrNull { it.word.pullOn(preset, tags) * it.word.tier.weight } ?: 0.0
         val liked = speaking.filter { !it.word.tier.narrows }
-            .sumOf { it.word.affinityFor(tags) * emphasis(it, aspect) }
+            .sumOf { it.word.affinityOn(preset, tags) * emphasis(it, aspect) }
         return (named + liked).coerceAtLeast(0.0)
     }
 
@@ -406,7 +406,7 @@ object Resolver {
         val named = speaking.filter { it.word.tier.narrows }
             .maxOfOrNull { it.word.pullOn(preset, tags) * it.word.tier.weight } ?: 0.0
         val liked = speaking.filter { !it.word.tier.narrows }
-            .sumOf { it.word.affinityFor(tags) * emphasis(it, aspect) }
+            .sumOf { it.word.affinityOn(preset, tags) * emphasis(it, aspect) }
         val wanted = BASE_WEIGHT * vocabulary.readinessOf(preset) + named + liked
         return (wanted * capabilityFactor(preset, speaking)).coerceAtLeast(FAINTEST_CHANCE)
     }
@@ -454,7 +454,7 @@ object Resolver {
         if (word.aspects.isNotEmpty()) return word.aspects.sortedBy { it.ordinal }
         // An evocative word declares no aspect: spanning aspects is what makes it evocative.
         return Aspect.entries.filter { aspect ->
-            val likesSomethingThere = vocabulary.askableIn(aspect).any { word.pull(vocabulary.tagsOf(it)) > 0.0 }
+            val likesSomethingThere = vocabulary.askableIn(aspect).any { word.pullOn(it, vocabulary.tagsOf(it)) > 0.0 }
             // **And it reaches an aspect whose dials it bends**, which is the only way into one with no
             // candidates to like. The declaration is both the mechanism and the evidence, so §4.4's charge
             // per aspect constrained stays honest with no tag table propping it up.
@@ -504,8 +504,8 @@ object Resolver {
             val shared = reachOf(vocabulary, first).intersect(reachOf(vocabulary, second).toSet())
             for (aspect in shared) {
                 val chosen = filled[aspect].orEmpty()
-                if (chosen.none { first.word.accepts(vocabulary.tagsOf(it)) }) continue
-                if (chosen.none { second.word.accepts(vocabulary.tagsOf(it)) }) continue
+                if (chosen.none { first.word.acceptsOn(it, vocabulary.tagsOf(it)) }) continue
+                if (chosen.none { second.word.acceptsOn(it, vocabulary.tagsOf(it)) }) continue
                 val opposition = oppositionBetween(vocabulary, first, second) ?: continue
                 add(
                     Flaw(
@@ -883,16 +883,16 @@ object Resolver {
         aspect: Aspect,
     ): Claim? {
         val tags = vocabulary.tagsOf(member)
-        val insisting = speaking.filter { it.word.tier.narrows && it.word.accepts(tags) }
+        val insisting = speaking.filter { it.word.tier.narrows && it.word.acceptsOn(member, tags) }
         // A narrowing word this member does not qualify for still has an opinion where it *dislikes* the
         // member's tags — which is the only way "untouched" can mean anything, there being no tag for the
         // absence of a thing to put on the members that are present.
-        val spurning = speaking.filter { it.word.tier.narrows && it.word.affinityFor(tags) < 0.0 }
+        val spurning = speaking.filter { it.word.tier.narrows && it.word.affinityOn(member, tags) < 0.0 }
         val liking = speaking.filter { !it.word.tier.narrows }
-        val insisted = insisting.sumOf { it.word.pull(tags) * it.word.tier.weight }
-        val spurned = spurning.sumOf { it.word.affinityFor(tags) * it.word.tier.weight }
-        val liked = liking.sumOf { it.word.affinityFor(tags) * emphasis(it, aspect) }
-        val polarity = (insisting + liking.filter { it.word.affinityFor(tags) > 0.0 })
+        val insisted = insisting.sumOf { it.word.pullOn(member, tags) * it.word.tier.weight }
+        val spurned = spurning.sumOf { it.word.affinityOn(member, tags) * it.word.tier.weight }
+        val liked = liking.sumOf { it.word.affinityOn(member, tags) * emphasis(it, aspect) }
+        val polarity = (insisting + liking.filter { it.word.affinityOn(member, tags) > 0.0 })
             .map { it.polarity }.firstOrNull { it != Polarity.ASSERTED }
         val asked = Rung.ORDINARY + insisted + spurned + liked
         val weight = Rung.legible(asked.coerceIn(population.leastKept, MOST_OF_A_WORLD))

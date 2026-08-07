@@ -141,8 +141,33 @@ data class Vocabulary(
         if (!aspect.open) return aspect.authored
         // Sorted, because a draw is made by index and nobody should change a world by reordering a file.
         // A closed aspect gets the same guarantee from its enum's declaration order.
-        return tagsBySlot[aspect]?.described.orEmpty().sorted().mapNotNull(aspect::presetFor)
+        val described = tagsBySlot[aspect]?.described.orEmpty()
+        return (described + weightedIn(aspect)).distinct().sorted().mapNotNull(aspect::presetFor)
     }
+
+    /**
+     * Every preset some word has an opinion about **by name** — see [Word.weights].
+     *
+     * Here because an open aspect's candidates are the presets its tag table describes, and a direct weight
+     * on something the table has never heard of would otherwise score a preset that was never in the bag:
+     * inert, and silently so. A weight has to *admit* a preset as well as rank it, which is the same
+     * courtesy [Word.names] already gets — naming a thing being "the one way to reach something
+     * `askableIn` leaves out".
+     *
+     * **Per aspect**, because an open aspect makes a preset out of any id it is handed: offering every
+     * weighted id to every aspect turned a word's biomes into candidate structure sets.
+     *
+     * Computed once. A pack's authored words are a few dozen and derived ones carry no weights, so this is
+     * a handful of ids however large the corpus grows.
+     */
+    private val weighted: Map<Aspect, Set<String>> by lazy {
+        val words = byName.values.distinct()
+        Aspect.entries.associateWith { aspect ->
+            words.flatMap { it.weights[aspect]?.keys.orEmpty() }.toSet()
+        }
+    }
+
+    private fun weightedIn(aspect: Aspect): Set<String> = weighted[aspect].orEmpty()
 
     /**
      * The curated pool less everything that opted out of being asked for — **what a sentence may actually
@@ -174,7 +199,7 @@ data class Vocabulary(
 
     fun carriersOf(word: Word, aspect: Aspect): List<AspectPreset> {
         word.namedPreset(aspect)?.let { return listOf(it) }
-        return askableIn(aspect).filter { word.accepts(tagsOf(it)) }
+        return askableIn(aspect).filter { word.acceptsOn(it, tagsOf(it)) }
     }
 
     /**

@@ -112,6 +112,27 @@ data class Word(
      * they are also the whole of what a word *can* do, which is a different question from what it does
      * here — see [canSet] against [setsDrawnAt].
      */
+    /**
+     * What this word thinks of particular presets, by key — **said outright, where a tag is too coarse**.
+     *
+     * Tags carry the broad strokes and reach content nobody enumerated: a pack tags its own biome `lovely`
+     * in one file and every word wanting `lovely` finds it. That generalisation is the whole reason they
+     * exist and it is not up for negotiation. What they were also being asked to do is *taxonomise every
+     * aspect exhaustively*, so that `beautiful` could only ever be as precise as the tag set allowed, and
+     * ten biomes carrying tags at all is what that ambition actually amounted to (Jonah, 2026-08-06).
+     *
+     * So a word may also just say what it means. **Direct beats tag**: where a weight names a preset, it is
+     * the answer and the query is not consulted for it. The tag set no longer has to be complete — only
+     * useful — because anything it is too coarse for can be said here instead.
+     *
+     * Negative weights work and mean what they look like: this word wants *not* that.
+     *
+     * **Keyed by aspect**, and that is not ceremony. An open aspect makes a preset out of any id it is
+     * handed, so a flat list of ids offered to every aspect turned `beautiful`'s biomes into candidate
+     * *structure sets* — which then broke `untouched`, a word that empties a population by striking
+     * everything in it, because the pool it had to strike was suddenly full of biomes.
+     */
+    val weights: Map<Aspect, Map<String, Double>> = emptyMap(),
     val pool: Map<String, String> = emptyMap(),
     /**
      * How many of [pool] an Age takes. Zero means none of it, and a number at or past the pool's size
@@ -244,8 +265,26 @@ data class Word(
      * absolutely. Without this a derived word would be scored on tags it does not have, so "creosote oil
      * beside a lava sea" gave creosote the *smaller* share.
      */
-    fun pullOn(preset: AspectPreset, tags: Map<String, Double>): Double =
-        if (names == preset.key) NAMED_OUTRIGHT else pull(tags)
+    fun pullOn(preset: AspectPreset, tags: Map<String, Double>): Double = when {
+        names == preset.key -> NAMED_OUTRIGHT
+        else -> weightOn(preset) ?: pull(tags)
+    }
+
+    /** What this word says about [preset] by name, in the aspect it belongs to, or null where it is silent. */
+    fun weightOn(preset: AspectPreset): Double? =
+        weights.entries.firstNotNullOfOrNull { (aspect, byPreset) ->
+            byPreset[preset.key]?.takeIf { aspect.presetFor(preset.key) != null }
+        }
+
+    /** [affinityFor], with a direct weight winning where this word named this preset outright. */
+    fun affinityOn(preset: AspectPreset, tags: Map<String, Double>): Double =
+        weightOn(preset) ?: affinityFor(tags)
+
+    /** [accepts], asked of a preset this word may have an opinion about by name. */
+    fun acceptsOn(preset: AspectPreset, tags: Map<String, Double>): Boolean {
+        val strength = pullOn(preset, tags)
+        return strength > 0.0 && strength >= tier.threshold
+    }
 
     /**
      * Whether this preset qualifies for this word at its tier's strictness. The `> 0` is not redundant
@@ -281,11 +320,13 @@ data class Word(
                 Codec.STRING.optionalFieldOf("names").forGetter { Optional.ofNullable(it.names) },
                 Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("sets", emptyMap())
                     .forGetter(Word::sets),
+                Codec.unboundedMap(ASPECT_CODEC, Codec.unboundedMap(Codec.STRING, Codec.DOUBLE))
+                    .optionalFieldOf("weights", emptyMap()).forGetter(Word::weights),
                 Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("pool", emptyMap())
                     .forGetter(Word::pool),
                 Codec.INT.optionalFieldOf("draws", 0).forGetter(Word::draws),
-            ).apply(instance) { tier, aspects, query, names, sets, pool, draws ->
-                Word(id, tier, aspects, query, names.orElse(null), sets, pool, draws)
+            ).apply(instance) { tier, aspects, query, names, sets, weights, pool, draws ->
+                Word(id, tier, aspects, query, names.orElse(null), sets, weights, pool, draws)
             }
         }
 
