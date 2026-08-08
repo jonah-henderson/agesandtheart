@@ -78,7 +78,7 @@ object Structures {
                 Constants.LOG.warn("An Age asked to build '{}', which is no structure set in this pack", named)
                 continue
             }
-            seated[named] = StructureDensity.applied(found, claim.density)
+            seated[named] = StructureDensity.applied(server, found, claim.density)
         }
         for (struck in asked.struck) {
             Identifier.tryParse(struck)?.let(seated::remove)

@@ -5,6 +5,7 @@ import co.voik.agesandtheart.age.aspect.Rung
 import com.mojang.serialization.Dynamic
 import com.mojang.serialization.JsonOps
 import net.minecraft.core.Holder
+import net.minecraft.server.MinecraftServer
 import net.minecraft.world.level.levelgen.structure.StructureSet
 import net.minecraft.world.level.levelgen.structure.placement.ConcentricRingsStructurePlacement
 import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStructurePlacement
@@ -39,14 +40,18 @@ object StructureDensity {
      * Returns [set] unchanged on failure rather than dropping it: an Age that asked for more villages and
      * got the usual number is a disappointment, where one that lost its villages is a broken sentence.
      */
-    fun applied(set: Holder<StructureSet>, density: Double): Holder<StructureSet> {
+    fun applied(server: MinecraftServer, set: Holder<StructureSet>, density: Double): Holder<StructureSet> {
         if (Rung.isOrdinary(density)) return set
-        val thinned = rescaled(set.value().placement(), density) ?: return set
+        val thinned = rescaled(server, set.value().placement(), density) ?: return set
         return Holder.direct(StructureSet(set.value().structures(), thinned))
     }
 
     /** The same placement, occurring [density] times as often — or null where we cannot say how. */
-    private fun rescaled(placement: StructurePlacement, density: Double): StructurePlacement? = when (placement) {
+    private fun rescaled(
+        server: MinecraftServer,
+        placement: StructurePlacement,
+        density: Double,
+    ): StructurePlacement? = when (placement) {
         // `count` *is* the number of them, so the occurrence scale applies directly and the two other
         // dimensions — how far out the rings start, how wide they spread — are left as vanilla tuned them.
         is ConcentricRingsStructurePlacement -> ConcentricRingsStructurePlacement(
@@ -55,7 +60,7 @@ object StructureDensity {
             (placement.count() * density).roundToInt().coerceAtLeast(AT_LEAST_ONE),
             placement.preferredBiomes(),
         )
-        is RandomSpreadStructurePlacement -> placement.spacedBy(spacingFor(placement, density))
+        is RandomSpreadStructurePlacement -> placement.spacedBy(server, spacingFor(placement, density))
         // A placement type some mod invented. We have no idea which of its numbers means "how often", and
         // guessing would be worse than declining — so the set stays exactly as its author tuned it.
         else -> null
@@ -78,12 +83,20 @@ object StructureDensity {
      * The same spread placement at a new [spacing], every other field carried across by the codec —
      * encode, change one number, decode. Preferred over the public four-argument constructor, which
      * defaults `frequency`, the reduction method and the exclusion zone, silently un-tuning three sets.
+     *
+     * **It must be the registries' own ops and never plain `JsonOps`** (Jonah, 2026-08-08, crashed). A
+     * placement may carry an *exclusion zone*, which holds a `Holder<StructureSet>`, which holds a
+     * placement — and vanilla's sets exclude one another in a ring. `RegistryFileCodec` writes a holder as
+     * an **id** only when the ops can show it a registry; handed a plain one it inlines the value instead,
+     * so encoding a single placement walked that ring until the stack ran out. `foreboding age
+     * minecraft:packed_ice landmass frozen atmosphere` is the book that found it.
      */
-    private fun RandomSpreadStructurePlacement.spacedBy(spacing: Int): StructurePlacement? {
-        val written = StructurePlacement.CODEC.encodeStart(JsonOps.INSTANCE, this).result().orElse(null)
+    private fun RandomSpreadStructurePlacement.spacedBy(server: MinecraftServer, spacing: Int): StructurePlacement? {
+        val ops = server.registryAccess().createSerializationContext(JsonOps.INSTANCE)
+        val written = StructurePlacement.CODEC.encodeStart(ops, this).result().orElse(null)
             ?: return complaint("would not encode")
-        val rung = Dynamic(JsonOps.INSTANCE, JsonOps.INSTANCE.createInt(spacing))
-        val edited = Dynamic(JsonOps.INSTANCE, written).set(SPACING_FIELD, rung)
+        val rung = Dynamic(ops, ops.createInt(spacing))
+        val edited = Dynamic(ops, written).set(SPACING_FIELD, rung)
         return StructurePlacement.CODEC.parse(edited).result().orElse(null) ?: complaint("would not read back")
     }
 
