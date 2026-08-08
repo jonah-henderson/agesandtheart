@@ -410,10 +410,23 @@ object AgeGeneration {
     private const val FIRST_STEP_OPENS = 0.5
 
     /** What each further step multiplies that by. */
-    private const val CROWDS_BY = 8.0
+    private const val CROWDS_BY = 4.0
 
-    /** The ceiling, past which more of them says nothing and only costs frames. */
-    private const val MOST_PER_CHUNK = 128.0
+    /**
+     * The ceiling: sixteen to a chunk, which is a wound every couple of blocks across its footprint.
+     *
+     * **Bounded by what a wound *is*, not by what it costs to draw** (measured 2026-08-07). Rendering is
+     * cheap and stays cheap — a block entity renderer defaults to a 64-block view distance and is
+     * frustum-culled, so only about a hundred are ever submitted at this density. What does not go away
+     * is that each wound is a block entity held in memory, written into the chunk's NBT, and walked on
+     * every load and save, for every *loaded* chunk rather than every visible one. At 128 to a chunk that
+     * is eighty thousand objects at an ordinary render distance; at sixteen it is ten thousand, which a
+     * world at the very end of the register can carry.
+     *
+     * Raising it wants wounds drawn without a block entity apiece — a chunk-level renderer or a particle —
+     * rather than a bigger number here.
+     */
+    private const val MOST_PER_CHUNK = 16.0
 
     private fun saltFor(seed: Long, member: Int): Long = seed * TERRITORY_SALT_STRIDE + member
 
