@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.aspect.Biomes
 import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.WaterTable
+import kotlin.math.pow
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Terrain
@@ -97,8 +98,9 @@ object AgeGeneration {
         val prices = Price.list(server)
         val spending = Spending.of(server, recipe)
         val torn = spending.reach(Manifestation.TORN_SEAMS, prices)
-        // Each step bought opens them a little oftener; a coherent Age buys none and tears nowhere.
-        val wounds = spending.bought(Manifestation.WOUNDS) * WOUNDS_PER_CHUNK_PER_STEP
+        // Each step bought multiplies how many open, so the register climbs from "half the chunks hold
+        // one" to "the world is holed through" over the range a badly written Age can reach.
+        val wounds = woundsPerChunkAt(spending.bought(Manifestation.WOUNDS))
 
         // One band for every Age, and the same one every dimension type admits — see [VerticalWindow].
         val window = VerticalWindow.DEFAULT
@@ -390,13 +392,28 @@ object AgeGeneration {
      * identical, leaving nothing for a seam to divide.
      */
     /**
-     * How much likelier a wound is per step of the manifestation bought, as a chance per chunk.
+     * How many wounds a chunk holds, given how many steps of the manifestation were bought.
      *
-     * One chunk in fifty at a single step, so a lightly flawed Age holds a tear a writer will *eventually*
-     * walk into rather than one they trip over. A fully bought manifestation is four times that, which is
-     * often enough to be the character of the place.
+     * **It multiplies rather than adds** (Jonah, 2026-08-07). Writing an unstable Age should be something
+     * a writer *knows*, so the first step already puts one in every other chunk — and from there each step
+     * is eight times the last, so a badly torn world is holed through rather than lightly freckled.
+     *
+     * Capped, because past a point more of them stops saying anything and only costs frames.
      */
-    private const val WOUNDS_PER_CHUNK_PER_STEP = 0.02
+    private fun woundsPerChunkAt(steps: Int): Double {
+        if (steps <= 0) return AgeChunkGenerator.NO_WOUNDS
+        val opened = FIRST_STEP_OPENS * CROWDS_BY.pow(steps - 1)
+        return opened.coerceAtMost(MOST_PER_CHUNK)
+    }
+
+    /** Half the chunks, at the first step — enough that a writer meets one without going looking. */
+    private const val FIRST_STEP_OPENS = 0.5
+
+    /** What each further step multiplies that by. */
+    private const val CROWDS_BY = 8.0
+
+    /** The ceiling, past which more of them says nothing and only costs frames. */
+    private const val MOST_PER_CHUNK = 128.0
 
     private fun saltFor(seed: Long, member: Int): Long = seed * TERRITORY_SALT_STRIDE + member
 

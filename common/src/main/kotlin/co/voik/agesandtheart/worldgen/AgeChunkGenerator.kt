@@ -155,11 +155,13 @@ class AgeChunkGenerator(
     private val lives: ((Identifier?, WeightedList<MobSpawnSettings.SpawnerData>) ->
     WeightedList<MobSpawnSettings.SpawnerData>)? = null,
     /**
-     * How often a wound opens, as a chance per chunk (design §5.1, §5.0).
+     * How many wounds open per chunk (design §5.1, §5.0) — an **expected count**, so a half is half the
+     * chunks getting one and a hundred is a hundred in every chunk.
      *
-     * **A frequency and not a count**, because a count is unfindable: four wounds in a whole dimension is
-     * four wounds nobody will ever walk past, where one chunk in fifty is a thing you meet while doing
-     * something else. What the instability budget buys is this number going up.
+     * Per chunk rather than per Age, because a count for a whole dimension is a handful nobody ever walks
+     * past. **And it climbs steeply**: writing an unstable Age should be something you *know*, met as
+     * wounds you come across regularly rather than as a curiosity somewhere (Jonah, 2026-08-07). A badly
+     * torn Age is holed through, not lightly freckled.
      *
      * Zero for every coherent Age, which is nearly all of them.
      */
@@ -565,19 +567,46 @@ class AgeChunkGenerator(
         val here = chunk.pos
         val random = WorldgenRandom(LegacyRandomSource(level.getSeed()))
         random.setLargeFeatureSeed(level.getSeed() xor WOUND_SALT, here.x, here.z)
-        if (random.nextDouble() >= woundsPerChunk) return
+        // A whole number of them, and a fractional chance at one more — so 0.5 is half the chunks holding
+        // one, and 128 is a hundred and twenty-eight in every chunk.
+        val certain = woundsPerChunk.toInt()
+        val opening = certain + if (random.nextDouble() < woundsPerChunk - certain) 1 else 0
+        repeat(opening) { openOne(level, chunk, here, random) }
+    }
+
+    /**
+     * One wound, somewhere in this chunk.
+     *
+     * **How far it may stray from the surface grows with how many there are**, which is what keeps a badly
+     * torn Age from being a slab of them at head height: a lightly flawed world holds a few near where a
+     * writer walks, and a holed one is torn from bedrock to sky (Jonah, 2026-08-07).
+     */
+    private fun openOne(level: WorldGenLevel, chunk: ChunkAccess, here: ChunkPos, random: WorldgenRandom) {
         val x = here.minBlockX + random.nextInt(SECTION)
         val z = here.minBlockZ + random.nextInt(SECTION)
-        // **Anywhere down the column, and not all of them buried** (Jonah, 2026-08-07). The striking thing
-        // about the tear in Riven is that it hangs in the open at about eye level, and a wound that is
-        // always underground never gets to be that. So the height is drawn as an offset from the surface,
-        // reaching from deep enough to be met while mining up to just overhead — but no further, because a
-        // wound hanging dozens of blocks above the ground reads as a thing somebody placed rather than as
-        // somewhere the world has failed.
+        // **Mostly above ground, which is the Riven image**: the striking thing about that tear is that it
+        // hangs in the open at about eye level, and a wound always underground never gets to be one.
         val surface = chunk.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, x, z)
-        val y = surface + OVERHEAD_AT_MOST - random.nextInt(OVERHEAD_AT_MOST + DEEP_AT_MOST)
-        if (y <= level.getMinY() + 1) return
-        level.setBlock(BlockPos(x, y, z), AgeContent.WOUND_BLOCK.defaultBlockState(), Block.UPDATE_NONE)
+        val reach = strayingBy()
+        val y = if (random.nextDouble() < ABOVE_GROUND) {
+            surface + 1 + random.nextInt(reach)
+        } else {
+            surface - 1 - random.nextInt(reach)
+        }
+        val top = level.getMinY() + level.getHeight() - 1
+        val settled = y.coerceIn(level.getMinY() + 1, top)
+        level.setBlock(BlockPos(x, settled, z), AgeContent.WOUND_BLOCK.defaultBlockState(), Block.UPDATE_NONE)
+    }
+
+    /**
+     * How far from the surface a wound may stray, in blocks, given how many are opening.
+     *
+     * At the baseline it is a band a writer walks through; by the time a chunk holds dozens it is the
+     * whole world, so they spread down the column instead of pooling into a slab at head height.
+     */
+    private fun strayingBy(): Int {
+        val crowding = (woundsPerChunk / CROWDED).coerceIn(0.0, 1.0)
+        return (NEAR_THE_SURFACE + (THE_WHOLE_COLUMN - NEAR_THE_SURFACE) * crowding).toInt()
     }
 
     override fun spawnOriginalMobs(level: WorldGenRegion) = Unit
@@ -606,15 +635,19 @@ class AgeChunkGenerator(
         private const val SECTION = 16
 
         /**
-         * How far above the surface a wound may hang, and how far below it may sit.
+         * How often a wound opens above the ground rather than under it.
          *
-         * **The ratio is the dial**, and it decides how often one is met in the open: with these, roughly
-         * one in six hangs at or above the ground, where the rest wait in the rock and the caves to be
-         * mined into. Overhead is deliberately small — eye level and a little more, not a thing floating
-         * over a field.
+         * **Three in five**, so the common case is the one worth having: a tear hanging in the open where
+         * somebody walks. The rest wait in the rock and the caves to be mined into.
          */
-        private const val OVERHEAD_AT_MOST = 6
-        private const val DEEP_AT_MOST = 32
+        private const val ABOVE_GROUND = 0.6
+
+        /** How far from the surface one may stray when few are opening, and when the chunk is full. */
+        private const val NEAR_THE_SURFACE = 12
+        private const val THE_WHOLE_COLUMN = 192
+
+        /** The count at which they reach the whole column rather than the band a writer walks through. */
+        private const val CROWDED = 32.0
 
         val CODEC: MapCodec<AgeChunkGenerator> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
