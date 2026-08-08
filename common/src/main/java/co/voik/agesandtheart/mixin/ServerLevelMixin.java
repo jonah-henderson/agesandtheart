@@ -1,7 +1,10 @@
 package co.voik.agesandtheart.mixin;
 
+import co.voik.agesandtheart.age.consequence.Hostility;
 import co.voik.agesandtheart.age.phenomena.AgeWeather;
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.level.saveddata.WeatherData;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -9,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * Gives an Age its own weather.
+ * Gives an Age its own weather, and lets a wound make the ground around it dangerous.
  *
  * <p><b>26.1 moved the weather <i>schedule</i> onto the server.</b> {@code WeatherData} — the rain, thunder
  * and clear timers with their flags — is one object on {@code MinecraftServer}, and {@code
@@ -42,6 +45,28 @@ public abstract class ServerLevelMixin {
         WeatherData own = AgeWeather.of((ServerLevel) (Object) this);
         if (own != null) {
             callback.setReturnValue(own);
+        }
+    }
+
+    /**
+     * Local difficulty near a wound (design §5.1).
+     *
+     * <p><b>Why a mixin.</b> There is no event for this on either loader — NeoForge's
+     * {@code DifficultyChangeEvent} fires when the <i>world's</i> difficulty setting changes and knows
+     * nothing of a position, and Fabric has nothing at all. Nor is there an object to substitute the way
+     * {@code WeatherData} could be: local difficulty is computed on demand and returned by value, so this
+     * one method is the only place it exists. Everything downstream — mob equipment, zombie reinforcements,
+     * husk and drowned conversion — reads it through here.
+     *
+     * <p><b>At {@code RETURN}, so vanilla decides first.</b> {@link Hostility} needs what the place would
+     * have been to raise it rather than replace it, and injecting at the head would mean recomputing the
+     * three terms a wound has no business touching.
+     */
+    @Inject(method = "getCurrentDifficultyAt", at = @At("RETURN"), cancellable = true)
+    private void agesandtheart$harderNearAWound(BlockPos at, CallbackInfoReturnable<DifficultyInstance> callback) {
+        DifficultyInstance harder = Hostility.localDifficultyAt((ServerLevel) (Object) this, at, callback.getReturnValue());
+        if (harder != null) {
+            callback.setReturnValue(harder);
         }
     }
 }

@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age.phenomena
 
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.aspect.Span
+import co.voik.agesandtheart.age.consequence.Hostility
 import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.agesandtheart.age.AgeComposition
@@ -51,6 +52,9 @@ object Happenings {
             // The weather first: a phenomenon that needs rain has to be standing in it by the time it runs.
             AgeWeather.steer(level, wanted(composition, happening))
             for (claim in happening) befall(level, claim)
+            // Not a phenomenon — a wound is what the Age could not hold rather than something it does — but
+            // it wants the same walk, and the walk is the expensive part.
+            Hostility.stir(level)
         }
     }
 

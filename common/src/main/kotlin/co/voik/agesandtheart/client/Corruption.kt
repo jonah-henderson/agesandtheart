@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.client
 
+import co.voik.agesandtheart.age.consequence.Wounds
 import co.voik.agesandtheart.math.Rgba
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.world.attribute.EnvironmentAttributeSystem
