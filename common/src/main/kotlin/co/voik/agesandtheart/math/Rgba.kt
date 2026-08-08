@@ -48,6 +48,21 @@ data class Rgba(val red: Float, val green: Float, val blue: Float, val alpha: Fl
         return lerp(Rgba(grey, grey, grey, alpha), amount)
     }
 
+    /**
+     * The other way along the same line: pushed **away** from its own grey, so what colour it has becomes
+     * the whole of it.
+     *
+     * [drained] walks a colour toward the grey it weighs the same as; this walks it past itself, so a
+     * muted red becomes a red that means it. A palette chosen to sit behind things — which is what a sky
+     * or a fog colour is — reads as a *wash* when it is put on something the eye looks straight at, and a
+     * sun is the thing the eye looks straight at.
+     */
+    fun saturated(amount: Float): Rgba {
+        val grey = red * SEEN_AS_RED + green * SEEN_AS_GREEN + blue * SEEN_AS_BLUE
+        fun pushed(channel: Float) = (grey + (channel - grey) * (1.0f + amount)).coerceIn(0.0f, 1.0f)
+        return Rgba(pushed(red), pushed(green), pushed(blue), alpha)
+    }
+
     companion object {
         val WHITE = Rgba(1.0f, 1.0f, 1.0f)
 

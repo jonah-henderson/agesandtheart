@@ -60,12 +60,32 @@ object Inferno {
             // it, where a snow block or ice is the top of the column. Both places have to be looked at or a
             // dusting would be the one thing that survives a burning world.
             if (thaw(level, above) || thaw(level, above.below())) return@sweep
-            if (!level.getBlockState(above).isAir) return@sweep
-            val top = above.below()
-            if (!level.getBlockState(top).ignitedByLava()) return@sweep
-            // Vanilla's own choice of fire, so soul sand gets soul fire and nothing needs a special case.
-            level.setBlockAndUpdate(above, BaseFireBlock.getState(level, above))
+            light(level, above)
         }
+    }
+
+    /**
+     * Sets alight whatever is at the top of a column, if anything there will take it.
+     *
+     * **Two places, because the heightmap points at different things depending on what is growing**
+     * (Jonah, 2026-08-08, walked). `MOTION_BLOCKING` counts what blocks motion or holds fluid, and a dead
+     * bush, dry grass, a flower and a sapling do neither — so over a desert the heightmap points *at* the
+     * bush and the block below it is sand, which does not burn. Asking only below the mark meant a world of
+     * tinder ignoring a burning sky, and only a leaf canopy or bare logs ever caught.
+     *
+     * So the thing standing there is offered the fire first and is *replaced* by it, which is what vanilla
+     * does when fire spreads into a plant; failing that, the fire goes above whatever it is standing on.
+     */
+    private fun light(level: ServerLevel, above: BlockPos) {
+        val standing = level.getBlockState(above)
+        // Vanilla's own choice of fire, so soul sand gets soul fire and nothing needs a special case.
+        if (standing.ignitedByLava()) {
+            level.setBlockAndUpdate(above, BaseFireBlock.getState(level, above))
+            return
+        }
+        if (!standing.isAir) return
+        if (!level.getBlockState(above.below()).ignitedByLava()) return
+        level.setBlockAndUpdate(above, BaseFireBlock.getState(level, above))
     }
 
     /**
@@ -101,16 +121,20 @@ object Inferno {
      * and arriving at night is survivable where arriving at noon is urgent. Rain stops it too, so the lull
      * that puts the fires out is the same lull that lets you walk about.
      *
-     * Tagged fire, which buys the exception for nothing — `LivingEntity` already checks **fire resistance**
-     * against `is_fire`, so the potion blocks this with no code of ours, and one potion answers the whole
-     * climate rather than each of its moods needing its own.
+     * **It sets things alight rather than hurting them** (Jonah, 2026-08-08, walked), which is one call in
+     * place of three behaviours: burning is what does the damage, so the rate stays vanilla's; things
+     * visibly *catch*, where dealing fire damage directly left mobs dying under a clear sky with no flame
+     * on them; and anything that dies of it **drops its meat cooked**, because vanilla checks whether a
+     * thing was on fire when it died. Fire resistance still answers the whole of it, since the damage is
+     * vanilla's own.
      */
     private fun scorchTheOpen(level: ServerLevel, intensity: Intensity) {
         if (intensity.betweenHarms <= 0 || level.gameTime % intensity.betweenHarms != 0L) return
         if (!level.isBrightOutside || level.isRaining) return
-        for (living in caughtInTheOpen(level)) {
-            living.hurtServer(level, level.damageSources().onFire(), intensity.harm.toFloat())
-        }
+        // A little longer than the gap between passes, so standing in the open is a continuous burn and
+        // stepping under a roof lets it go out on its own rather than being put out by us.
+        val alight = intensity.harm.toFloat() * intensity.betweenHarms / TICKS_PER_SECOND
+        for (living in caughtInTheOpen(level)) living.igniteForSeconds(alight)
     }
 
     /**
@@ -128,4 +152,6 @@ object Inferno {
 
     /** How far around a person the open air burns, in blocks — a little past what they can see happening. */
     private const val ABOUT = 64.0
+
+    private const val TICKS_PER_SECOND = 20.0f
 }

@@ -10,7 +10,6 @@ import net.minecraft.world.level.NaturalSpawner
 import net.minecraft.world.level.chunk.ChunkAccess
 import net.minecraft.world.level.chunk.status.ChunkStatus
 import net.minecraft.world.phys.AABB
-import net.minecraft.world.phys.Vec3
 import kotlin.math.sqrt
 
 /**
@@ -93,12 +92,15 @@ object Hostility {
         for (player in level.players()) {
             if (player.isSpectator) continue
             val eye = player.position()
-            val open = Wounds.openNear(level, eye)
-            if (open.isEmpty() || alreadyAbout(level, eye) >= KEEPS_ABOUT) continue
             // **The nearest few only.** An Age at the top of the register can put a hundred wounds within
             // reach of one player, and stirring every one of them would be hundreds of monsters a second
-            // rather than a dangerous place. Nearest-first, so what answers is what the player walked up to.
-            for (wound in open.take(STIRRED_AT_ONCE)) {
+            // rather than a dangerous place. Nearest-first, so what answers is what the player walked up to,
+            // and a few more are considered than are drawn from so a stocked one does not block the rest.
+            var drawn = 0
+            for (wound in Wounds.openNear(level, eye).take(CONSIDERED)) {
+                if (drawn >= STIRRED_AT_ONCE) break
+                if (alreadyAbout(level, wound) >= KEEPS_ABOUT) continue
+                drawn++
                 // How near the *player* is to this wound, not how corrupted the wound is — which is always
                 // total. A far wound stirs slowly and a near one hard, which is what "intensifying with
                 // proximity" (§5.1) has to mean once wounds are point sources.
@@ -108,15 +110,20 @@ object Hostility {
     }
 
     /**
-     * How many monsters are already about, so a wound **keeps its ground stocked rather than pumping**.
+     * How many monsters are already about **this wound**, so it keeps its own ground stocked rather than
+     * pumping.
      *
      * `spawnCategoryForPosition` is the "try to spawn here" call and consults no mob cap at all — which is
-     * what makes it usable as a dial, and what makes a ceiling ours to impose. Counting what is there is the
-     * honest form of one: a player who clears the ground gets it refilled, and a player who runs does not
-     * tow a growing crowd.
+     * what makes it usable as a dial, and what makes a ceiling ours to impose.
+     *
+     * **Asked around the wound rather than around the player, which is the whole of why nothing spawned**
+     * (Jonah, 2026-08-08, walked). A box around a *player* counts every monster the Age made on its own, and
+     * a dark world at midnight is past a dozen of them before a single wound has done anything — so the
+     * ceiling silenced the register it was meant to bound. Around the wound it means what it was supposed
+     * to: this tear has put enough through for now, ask again later.
      */
-    private fun alreadyAbout(level: ServerLevel, eye: Vec3): Int =
-        level.getEntitiesOfClass(Monster::class.java, AABB.ofSize(eye, ABOUT, ABOUT, ABOUT)).size
+    private fun alreadyAbout(level: ServerLevel, wound: BlockPos): Int =
+        level.getEntitiesOfClass(Monster::class.java, AABB.ofSize(wound.center, ABOUT, ABOUT, ABOUT)).size
 
     /** The chunk [at] is in if it is already loaded — never one that has to be generated to answer. */
     private fun ServerLevel.chunkHolding(at: BlockPos): ChunkAccess? = getChunk(
@@ -143,9 +150,12 @@ object Hostility {
     /** How many of the wounds in reach of one person answer at a time, nearest first. */
     private const val STIRRED_AT_ONCE = 4
 
-    /** How many monsters near somebody is enough, past which the wounds go quiet. */
-    private const val KEEPS_ABOUT = 12
+    /** How many are looked at to find those, so a stocked wound does not shut out the ones behind it. */
+    private const val CONSIDERED = 8
 
-    /** The ground a wound is answerable for, as a box around a player — [Wounds.REACH] either way. */
-    private const val ABOUT = Wounds.REACH * 2
+    /** How many monsters about **one wound** is enough, past which that wound goes quiet. */
+    private const val KEEPS_ABOUT = 4
+
+    /** The ground a single wound is answerable for, as a box around it. */
+    private const val ABOUT = 24.0
 }

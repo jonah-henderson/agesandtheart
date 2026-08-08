@@ -74,7 +74,7 @@ enum class Sky(override val key: String) : AspectPreset {
                 starCount = starsAt(options.steer(STARS, seed)),
                 spread = spreadAt(options.steer(ORBITS, seed)),
                 sunSize = sunSizeAt(options.steer(SUNSIZE, seed)),
-                sunColour = Colour.named(options.of(SUNCOLOUR)),
+                sunColour = Colour.named(options.of(SUNCOLOUR))?.saturated(SUN_IS_LOOKED_AT),
                 seed = seed,
             )
         }
@@ -194,6 +194,15 @@ enum class Sky(override val key: String) : AspectPreset {
 
         /** How many times vanilla's own sun the top of [SUNSIZE] reaches — filling a good part of the sky. */
         private const val LARGEST_SUN = 4.0
+
+        /**
+         * How far a named colour is pushed from its own grey before a sun wears it (Jonah, 2026-08-08).
+         *
+         * `Colour`'s palette was chosen for things the eye looks *past* — a sky, a fog, a tint on light —
+         * so its red is a soft one. On a sun it read as a tint laid over white rather than as the colour
+         * the star burns, which is the one thing a sun's colour has to say.
+         */
+        private const val SUN_IS_LOOKED_AT = 1.5f
 
         private fun colour(name: String) = Parameter(name, listOf(Atmosphere.AS_EVER) + Colour.ALL)
     }

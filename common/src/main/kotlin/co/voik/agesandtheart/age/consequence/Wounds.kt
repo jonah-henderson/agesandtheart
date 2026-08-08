@@ -136,11 +136,11 @@ object Wounds {
      * and a reach long enough to overlap its neighbours would be an Age that is uniformly grim — which is
      * the ambient misery the gradient exists instead of.
      *
-     * **Widened from 24 after the walk** (Jonah, 2026-08-07): the effect was right and wanted a little
-     * more of itself. Widening rather than steepening is what buys *both* asks at once — every distance
-     * inside the old reach is now more corrupted than it was, and the corruption carries further.
+     * **Back to 24 after the second walk** (Jonah, 2026-08-08). It was widened to 32 on the first, which
+     * was a step too far in both directions at once: the effect reads better contained than carried, and
+     * a wound that tints a whole clearing stops being a thing you can walk away from.
      */
-    const val REACH = 32.0
+    const val REACH = 24.0
 
     private const val CHUNK_BITS = 4
     private const val HALF = 0.5

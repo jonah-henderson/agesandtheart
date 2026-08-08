@@ -74,7 +74,7 @@ class InfernoCheck : FunSpec({
 })
 
 /** What `art/phenomenon/inferno.json` ships, restated so a change to it has to be a deliberate one. */
-private const val SHIPPED = """{"reach": 1.0, "chance": 0.25, "harm": 1.0, "between_harms": 40}"""
+private const val SHIPPED = """{"reach": 4.0, "chance": 0.5, "harm": 1.0, "between_harms": 40}"""
 
 private const val TICKS_PER_SECOND = 20.0
 private const val FULL_HEALTH = 20.0

@@ -34,7 +34,16 @@ object Motes {
      */
     private const val ORDINARY_CHANCE = 0.118f
 
-    private val THINNED = mapOf("embers" to 0.0625f)
+    private val THINNED = mapOf("embers" to LOUD, "flames" to LOUD)
+
+    /**
+     * What a mote that takes up a lot of room appears at, against [ORDINARY_CHANCE].
+     *
+     * Both of the burning ones need it and for the same reason (Jonah, 2026-08-05 and 2026-08-08, walked):
+     * a lava spark and a flame are bright, fast and large, and at the ordinary rate an Age wearing either
+     * reads as being *on fire* rather than as having fire in its air.
+     */
+    private const val LOUD = 0.0625f
 
     private val NAMED: Map<String, () -> ParticleOptions> = linkedMapOf(
         // What the air carries.

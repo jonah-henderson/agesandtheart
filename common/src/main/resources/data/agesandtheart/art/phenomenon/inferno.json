@@ -3,12 +3,16 @@
     "How hard an inferno comes. Rates are against vanilla's own precipitation pass -- one position per",
     "chunk every 48 ticks -- so 1.0 reach is 'as often as snow would have fallen there'.",
     "",
-    "Deliberately conservative on the first cut: too fast and a writer arrives at ash having never seen it",
-    "burn, which is the one calibration only a walk can settle. Harm is in half-hearts, and slow enough",
-    "that somebody who links in at noon has time to dig."
+    "Raised from 1.0/0.25 after the first walk (Jonah, 2026-08-08). Two things were invisible at those",
+    "numbers: frost took minutes to melt, and almost nothing caught. The ignition fault was separate and is",
+    "fixed, but the rate was too slow to read either way -- a phenomenon nobody can see is tuned wrong",
+    "whatever else is true.",
+    "",
+    "Harm is in half-hearts and sets how long a thing stays alight, so it is slow enough that somebody who",
+    "links in at noon has time to dig."
   ],
-  "reach": 1.0,
-  "chance": 0.25,
+  "reach": 4.0,
+  "chance": 0.5,
   "harm": 1.0,
   "between_harms": 40
 }
