@@ -35,6 +35,8 @@ correct itself in place. Rewrite the paragraph that is now wrong.
 - **`notes/minecraft-ui-conventions.md`** — what a vanilla screen actually looks like, measured off the
   26.1.2 jar: the bevel rule, the border widths, the 18-pixel grid. There is no official style guide, which
   is why this exists. Read it before drawing a control.
+- **`notes/corruption-research.md`** — what 26.1 allows for a proximity gradient around a wound, and why
+  positional environment layers beat a post-processing chain. Read it before reaching for a post effect.
 - **`notes/config-research.md`** — how mod config UIs work (they introspect a spec, or host a screen you
   write), the 26.1 landscape, and why the recommendation is NeoForge's `ModConfigSpec` with Forge Config API
   Port on Fabric. Nothing in it is built. Read it before adding the first config value.

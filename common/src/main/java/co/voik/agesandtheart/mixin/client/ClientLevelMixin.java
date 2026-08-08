@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.mixin.client;
 
 import co.voik.agesandtheart.client.AgeAir;
+import co.voik.agesandtheart.client.Corruption;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.world.attribute.EnvironmentAttributeSystem;
 import org.spongepowered.asm.mixin.Mixin;
@@ -30,6 +31,9 @@ public abstract class ClientLevelMixin {
     private void agesandtheart$paintTheAir(
             EnvironmentAttributeSystem.Builder builder,
             CallbackInfoReturnable<EnvironmentAttributeSystem.Builder> layers) {
-        layers.setReturnValue(AgeAir.paint((ClientLevel) (Object) this, layers.getReturnValue()));
+        ClientLevel level = (ClientLevel) (Object) this;
+        // The Age's own air first, then what its wounds do to it — corruption darkens whatever was there
+        // rather than being blended into it, so a lurid sky still goes black at the throat of a tear.
+        layers.setReturnValue(Corruption.INSTANCE.paint(level, AgeAir.paint(level, layers.getReturnValue())));
     }
 }

@@ -35,10 +35,38 @@ data class Rgba(val red: Float, val green: Float, val blue: Float, val alpha: Fl
     /** This colour at [factor] of its brightness, alpha untouched. */
     fun dimmed(factor: Float): Rgba = Rgba(red * factor, green * factor, blue * factor, alpha)
 
+    /**
+     * Toward grey by [amount], keeping the same brightness — colour drained out rather than light taken
+     * away, which is a different thing from [dimmed] and reads as *wrong* where dimming reads as evening.
+     *
+     * The grey is the eye's own weighting of the channels, not their average: green carries most of what
+     * we see as brightness and blue almost none, so a flat mean turns a blue sky into something lighter
+     * than it was.
+     */
+    fun drained(amount: Float): Rgba {
+        val grey = red * SEEN_AS_RED + green * SEEN_AS_GREEN + blue * SEEN_AS_BLUE
+        return lerp(Rgba(grey, grey, grey, alpha), amount)
+    }
+
     companion object {
         val WHITE = Rgba(1.0f, 1.0f, 1.0f)
 
         private const val FULL = 255f
+
+        // How much of perceived brightness each channel carries — the usual luma weights.
+        private const val SEEN_AS_RED = 0.2126f
+        private const val SEEN_AS_GREEN = 0.7152f
+        private const val SEEN_AS_BLUE = 0.0722f
+
+        /** A packed colour taken apart again — the inverse of [packed], for a value vanilla handed us. */
+        fun of(packed: Int): Rgba = Rgba(
+            red = ((packed shr 16) and BYTE) / FULL,
+            green = ((packed shr 8) and BYTE) / FULL,
+            blue = (packed and BYTE) / FULL,
+            alpha = ((packed shr 24) and BYTE) / FULL,
+        )
+
+        private const val BYTE = 0xFF
 
         /**
          * Alpha is optional and defaults to opaque, so a fully-lit colour is written as three numbers.

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.consequence
 
+import co.voik.agesandtheart.client.Wounds
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.location
 import com.mojang.serialization.MapCodec
@@ -255,4 +256,25 @@ class WoundBlock(properties: Properties) : BaseEntityBlock(properties) {
  *
  * What is drawn over it is [co.voik.agesandtheart.client.WoundRenderer]'s business entirely.
  */
-class WoundBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(AgeContent.WOUND_ENTITY, pos, state)
+class WoundBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(AgeContent.WOUND_ENTITY, pos, state) {
+
+    /**
+     * Announcing itself to [co.voik.agesandtheart.client.Wounds], so the corruption gradient can ask where
+     * the nearest wound is without searching the world for black blocks.
+     *
+     * `clearRemoved` rather than a load hook, which 26.1 does not have: it is what the chunk calls as a
+     * block entity joins the world, and it is the exact counterpart of [setRemoved] below.
+     *
+     * Client only. The index exists for the renderer and the fog, both of which are the client's; a server
+     * has the block states already and no gradient to draw.
+     */
+    override fun clearRemoved() {
+        super.clearRemoved()
+        if (level?.isClientSide == true) Wounds.arrived(blockPos)
+    }
+
+    override fun setRemoved() {
+        super.setRemoved()
+        if (level?.isClientSide == true) Wounds.gone(blockPos)
+    }
+}
