@@ -107,6 +107,7 @@ object Happenings {
     private fun befall(level: ServerLevel, claim: Claim) {
         when (Phenomenon.named(claim.value) ?: return) {
             Phenomenon.TEMPEST -> Tempest.strike(level, claim.density)
+            Phenomenon.INFERNO -> Inferno.burn(level, claim.density)
         }
     }
 

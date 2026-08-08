@@ -1,0 +1,40 @@
+{
+  "_comment": [
+    "A world that burns (design 5.2.2). Reaches four aspects, and only the first is what it *is*: the rest",
+    "are what an inferno Age looks like when the writer said nothing else.",
+    "",
+    "Temperature and rainfall are demands rather than limits, and that is the whole difference between",
+    "'reached for' and 'insisted on' (Jonah, 2026-08-08). A limit yields silently to anything outside it, so",
+    "`frozen inferno` would have been free -- and writing a frozen world that burns is a contradiction a",
+    "writer should pay for, exactly as `scorching frozen` already does. A demand fractures against one it",
+    "cannot meet, which is the charge. Compatible words still merge: `warm inferno` is not a quarrel.",
+    "",
+    "Instability never compounds through this. A manifestation is bought with the index after the index is",
+    "settled, so only what is *written* can charge -- an inferno the Art inflicted on a broken Age cannot",
+    "make it more broken.",
+    "",
+    "The embers are not decoration. They are the largest warning a player gets, which is why no other word",
+    "may offer them (VocabularyCheck holds it): a signal that also appears where nothing is burning is not",
+    "a signal."
+  ],
+  "tier": "exact",
+  "aspects": [
+    "phenomena",
+    "climate",
+    "atmosphere",
+    "sky"
+  ],
+  "sets": {
+    "happens": "inferno",
+    "temperature": "0.5..1.0",
+    "rainfall": "-1.0..-0.4"
+  },
+  "pool": {
+    "motes": "embers|flames",
+    "sky": "red|orange|yellow",
+    "suns": "1|2|3",
+    "sunsize": "0.3..1.0",
+    "suncolour": "red|blue"
+  },
+  "draws": 3
+}

@@ -46,7 +46,7 @@ enum class Sky(override val key: String) : AspectPreset {
      * Every sky takes all four, including [PLAIN]: a writer who says "two suns" under a plain sky must get
      * two suns. [PLAIN] means ordinary *air*, not nothing unusual overhead.
      */
-    override val parameters: List<Parameter> get() = listOf(SUNS, MOONS, STARS, ORBITS)
+    override val parameters: List<Parameter> get() = listOf(SUNS, MOONS, STARS, ORBITS, SUNSIZE, SUNCOLOUR)
 
     /**
      * The look this preset paints under whatever the sentence asked for, or [Look.NOTHING] where it has
@@ -73,6 +73,8 @@ enum class Sky(override val key: String) : AspectPreset {
                 moons = options.countOf(MOONS),
                 starCount = starsAt(options.steer(STARS, seed)),
                 spread = spreadAt(options.steer(ORBITS, seed)),
+                sunSize = sunSizeAt(options.steer(SUNSIZE, seed)),
+                sunColour = Colour.named(options.of(SUNCOLOUR)),
                 seed = seed,
             )
         }
@@ -97,6 +99,24 @@ enum class Sky(override val key: String) : AspectPreset {
          * [ORDINARY_SPREAD], which reads as a sky rather than as a diagram.
          */
         val ORBITS = Parameter.ranged("orbits")
+
+        /**
+         * How large the suns are, against vanilla's — [LARGEST_SUN] times it at the top of the axis.
+         *
+         * **The renderer could always draw this and nothing could say it.** `Appearance.Sprite` has carried
+         * an `angularSize` since the sky was built, and [SkySpec.drawn] already varied it for the *extra*
+         * suns; what was missing was a writer's way to ask, and a way for the ask to reach the first one.
+         */
+        val SUNSIZE = Parameter.ranged("sunsize")
+
+        /**
+         * What colour the suns burn, or [Atmosphere.AS_EVER] for vanilla's white.
+         *
+         * Reaches **every** sun including the first, which is what separates it from the tint
+         * [SkySpec.drawn] already draws for the others: that one spreads a sky's extra bodies apart, and
+         * this one is a statement about the star this world goes round.
+         */
+        val SUNCOLOUR = colour("suncolour")
 
         /**
          * Whether the sky reaches the ground at all — the dimension type's `has_skylight`, and **not**
@@ -160,5 +180,21 @@ enum class Sky(override val key: String) : AspectPreset {
         /** The spread is already the fraction it is asked for, so the axis needs only reading. */
         private fun spreadAt(wander: Double?): Float =
             (wander?.let(Span.NATURAL::fractionOf) ?: ORDINARY_SPREAD).toFloat()
+
+        /**
+         * Vanilla's sun where the axis is unsaid, so an ordinary sky is untouched — which `SkyCheck` holds.
+         *
+         * Never smaller than vanilla's: the bottom of the axis is an ordinary sun rather than a pinprick,
+         * because "small sun" is a distant one and distance is [ORBITS]' business, not this one's.
+         */
+        private fun sunSizeAt(largeness: Double?): Float {
+            val fraction = largeness?.let(Span.NATURAL::fractionOf) ?: return SkySpec.VANILLA_SUN_SIZE
+            return SkySpec.VANILLA_SUN_SIZE * (1.0 + fraction * (LARGEST_SUN - 1.0)).toFloat()
+        }
+
+        /** How many times vanilla's own sun the top of [SUNSIZE] reaches — filling a good part of the sky. */
+        private const val LARGEST_SUN = 4.0
+
+        private fun colour(name: String) = Parameter(name, listOf(Atmosphere.AS_EVER) + Colour.ALL)
     }
 }

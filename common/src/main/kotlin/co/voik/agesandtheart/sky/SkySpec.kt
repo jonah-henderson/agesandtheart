@@ -115,17 +115,31 @@ data class SkySpec(
          * [spread] is how far the extra bodies wander from that first orbit — 0 puts them all in vanilla's
          * plane at different phases, 1 scatters their inclinations across the sky.
          */
-        fun drawn(suns: Int, moons: Int, starCount: Int, spread: Float, seed: Long): SkySpec {
+        fun drawn(
+            suns: Int,
+            moons: Int,
+            starCount: Int,
+            spread: Float,
+            seed: Long,
+            sunSize: Float = VANILLA_SUN_SIZE,
+            sunColour: Rgba? = null,
+        ): SkySpec {
             val random = XoroshiroRandomSource(seed xor SKY_SALT)
             val bodies = mutableListOf<CelestialBody>()
 
+            // Said of the star this world goes round rather than of its spare bodies, so it reaches the
+            // first sun too — and where nothing said either, the first sun stays vanilla's exactly.
+            val sunWasAskedFor = sunColour != null || sunSize != VANILLA_SUN_SIZE
             repeat(suns.coerceAtLeast(0)) { index ->
-                bodies += if (index == 0) {
+                bodies += if (index == 0 && !sunWasAskedFor) {
                     VANILLA_SUN_BODY
+                } else if (index == 0) {
+                    CelestialBody(Orbit.VANILLA_SUN, sun(sunColour ?: Rgba.WHITE, sunSize))
                 } else {
                     CelestialBody(
                         wanderingOrbit(random, spread, SUN_PERIOD_SPREAD, SUN_BAND),
-                        sun(sunTint(random), sized(random, VANILLA_SUN_SIZE, SUN_SIZE_VARIANCE)),
+                        // A drawn tint spreads a sky's spare suns apart; a written one is what they all are.
+                        sun(sunColour ?: sunTint(random), sized(random, sunSize, SUN_SIZE_VARIANCE)),
                     )
                 }
             }

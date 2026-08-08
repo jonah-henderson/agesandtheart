@@ -51,6 +51,19 @@ enum class Phenomenon(
      * inexorable and it can be lived with, by a writer who brings copper to the Age they wrote.
      */
     TEMPEST("tempest", AgeWeather.Conditions(rainfall = MOSTLY, thunder = MOSTLY)),
+
+    /**
+     * A world that burns: what can see the sky catches light, and what stands in the open burns by day.
+     *
+     * **Insists on no weather at all, deliberately.** It wants a *dry* Age and [insistsOn] is a floor that
+     * can only raise, so asking here would be asking for the opposite of what it needs. The dryness is said
+     * where it belongs instead — `art/word/inferno.json` bounds rainfall from above, which yields to a
+     * writer who meant otherwise ([Setting.Bound]) where a floor here could not.
+     *
+     * And the rain that does fall is the lull rather than a leak: `FireBlock` puts itself out in it, so an
+     * inferno Age gets its build-and-repair rhythm from vanilla with nothing written for it (§5.2.2).
+     */
+    INFERNO("inferno"),
     ;
 
     override val aspect = Aspect.PHENOMENA

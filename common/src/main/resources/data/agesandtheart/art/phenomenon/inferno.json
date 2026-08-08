@@ -1,0 +1,14 @@
+{
+  "_comment": [
+    "How hard an inferno comes. Rates are against vanilla's own precipitation pass -- one position per",
+    "chunk every 48 ticks -- so 1.0 reach is 'as often as snow would have fallen there'.",
+    "",
+    "Deliberately conservative on the first cut: too fast and a writer arrives at ash having never seen it",
+    "burn, which is the one calibration only a walk can settle. Harm is in half-hearts, and slow enough",
+    "that somebody who links in at noon has time to dig."
+  ],
+  "reach": 1.0,
+  "chance": 0.25,
+  "harm": 1.0,
+  "between_harms": 40
+}

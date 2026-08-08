@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.AgePreset
 import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.AgeWorld
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Setting
 import co.voik.agesandtheart.age.aspect.namesReferent
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
@@ -289,4 +290,66 @@ class VocabularyCheck : FunSpec({
             }
         }
     }
+
+    /**
+     * **The burning air belongs to the inferno and to nothing else** (design §5.2.2).
+     *
+     * Embers are the largest warning a player gets — *if the air is burning, prepare carefully* — and a
+     * signal that also appears in Ages where nothing is burning is not a signal. Exclusivity is by
+     * construction rather than by a rule, since a writer can only write what some word offers, so this is
+     * the fence: it stops a later corpus edit quietly diluting the warning, which is exactly the kind of
+     * change nobody would notice was a change.
+     *
+     * Embers specifically are worth the fuss because they are measurably the loudest thing the air can do —
+     * `Motes` thins them sixteenfold on their own, after a walk found a lava spark at the ordinary rate
+     * reads as being on fire rather than as weather.
+     */
+    test("only the inferno may hang burning air") {
+        val reserved = setOf("embers", "flames")
+        fun offers(word: Word) = (word.sets.entries + word.pool.entries)
+            .filter { it.key == "motes" }
+            .flatMap { it.value.split(POOL_ALTERNATIVES) }
+            .filter { it in reserved }
+
+        val leaks = vocabulary.words
+            .filterNot { it.name == INFERNO }
+            .mapNotNull { word -> offers(word).takeIf { it.isNotEmpty() }?.let { word.name to it } }
+
+        check(leaks.isEmpty()) {
+            "burning air is the inferno's warning and these words dilute it: " +
+                leaks.joinToString { "${it.first} offers ${it.second}" }
+        }
+        val inferno = vocabulary.words.firstOrNull { it.name == INFERNO }
+        check(inferno != null && offers(inferno).isNotEmpty()) { "the inferno hangs no burning air of its own" }
+    }
+
+    /**
+     * **What a phenomenon demands of the rest of the world must be a demand, not a limit** (Jonah,
+     * 2026-08-08).
+     *
+     * A [co.voik.agesandtheart.age.aspect.Setting.Bound] yields silently to anything outside it, so an
+     * inferno written with `frozen` would have cost nothing at all — and a writer who asks for a frozen
+     * world that burns has written a contradiction and should pay for it, exactly as `scorching frozen`
+     * already does. A demand fractures against one it cannot meet, and the fracture is the charge.
+     *
+     * **Instability cannot compound through this**, which is why the rule is safe to be this strict: a
+     * manifestation is bought with the index *after* the index is settled, so only what is written can
+     * charge. An inferno the Art inflicted on a broken Age can never make it more broken.
+     */
+    test("a phenomenon's climate is demanded rather than merely preferred") {
+        val inferno = vocabulary.words.firstOrNull { it.name == INFERNO }
+        check(inferno != null) { "there is no inferno in the corpus" }
+        for (axis in listOf("temperature", "rainfall")) {
+            val said = inferno.sets[axis]
+            check(said != null) { "the inferno says nothing about $axis, so a frozen one costs nothing" }
+            check(Setting.read(said) is Setting.Fixed) {
+                "the inferno's $axis is '$said', which yields silently — a written contradiction would be free"
+            }
+        }
+    }
 })
+
+/** How a pool spells its alternatives. */
+private const val POOL_ALTERNATIVES = '|'
+
+private const val INFERNO = "inferno"
