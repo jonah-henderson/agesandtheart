@@ -586,27 +586,22 @@ class AgeChunkGenerator(
         val z = here.minBlockZ + random.nextInt(SECTION)
         // **Mostly above ground, which is the Riven image**: the striking thing about that tear is that it
         // hangs in the open at about eye level, and a wound always underground never gets to be one.
+        //
+        // The rest are spread **evenly down the whole column** rather than tucked just beneath the grass
+        // (Jonah, 2026-08-07), so one is as likely to be met deep in a cave as a spit under the surface.
+        // Two different distributions on purpose: the surface ones are *near* it because that is what
+        // makes them visible, and the buried ones are anywhere because that is what makes them a surprise.
         val surface = chunk.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, x, z)
-        val reach = strayingBy()
-        val y = if (random.nextDouble() < ABOVE_GROUND) {
-            surface + 1 + random.nextInt(reach)
-        } else {
-            surface - 1 - random.nextInt(reach)
-        }
+        val floor = level.getMinY() + 1
         val top = level.getMinY() + level.getHeight() - 1
-        val settled = y.coerceIn(level.getMinY() + 1, top)
+        val y = if (random.nextDouble() < ABOVE_GROUND) {
+            surface + 1 + random.nextInt(OVERHEAD)
+        } else {
+            val depth = (surface - 1 - floor).coerceAtLeast(1)
+            floor + random.nextInt(depth)
+        }
+        val settled = y.coerceIn(floor, top)
         level.setBlock(BlockPos(x, settled, z), AgeContent.WOUND_BLOCK.defaultBlockState(), Block.UPDATE_NONE)
-    }
-
-    /**
-     * How far from the surface a wound may stray, in blocks, given how many are opening.
-     *
-     * At the baseline it is a band a writer walks through; by the time a chunk holds dozens it is the
-     * whole world, so they spread down the column instead of pooling into a slab at head height.
-     */
-    private fun strayingBy(): Int {
-        val crowding = (woundsPerChunk / CROWDED).coerceIn(0.0, 1.0)
-        return (NEAR_THE_SURFACE + (THE_WHOLE_COLUMN - NEAR_THE_SURFACE) * crowding).toInt()
     }
 
     override fun spawnOriginalMobs(level: WorldGenRegion) = Unit
@@ -642,12 +637,13 @@ class AgeChunkGenerator(
          */
         private const val ABOVE_GROUND = 0.6
 
-        /** How far from the surface one may stray when few are opening, and when the chunk is full. */
-        private const val NEAR_THE_SURFACE = 12
-        private const val THE_WHOLE_COLUMN = 192
-
-        /** The count at which they reach the whole column rather than the band a writer walks through. */
-        private const val CROWDED = 32.0
+        /**
+         * How high above the ground one may hang.
+         *
+         * Small on purpose: eye level and a little over. A wound floating dozens of blocks above a field
+         * reads as something somebody placed, where one at head height reads as the world having failed.
+         */
+        private const val OVERHEAD = 6
 
         val CODEC: MapCodec<AgeChunkGenerator> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(

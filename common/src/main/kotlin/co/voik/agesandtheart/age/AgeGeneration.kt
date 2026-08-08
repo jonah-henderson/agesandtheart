@@ -406,8 +406,14 @@ object AgeGeneration {
         return opened.coerceAtMost(MOST_PER_CHUNK)
     }
 
-    /** Half the chunks, at the first step — enough that a writer meets one without going looking. */
-    private const val FIRST_STEP_OPENS = 0.5
+    /**
+     * One to a 64-block square at the first step — **about one to a sightline** (Jonah, 2026-08-07).
+     *
+     * A block entity renderer reaches 64 blocks, so this is roughly three in view at any moment: enough
+     * that a writer meets them without going looking, and few enough that each one is still an event.
+     * Reading "four chunks" instead would be four times this and about a dozen in sight.
+     */
+    private const val FIRST_STEP_OPENS = 1.0 / 16.0
 
     /** What each further step multiplies that by. */
     private const val CROWDS_BY = 4.0
