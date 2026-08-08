@@ -270,7 +270,7 @@ class WoundBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(AgeConten
      */
     override fun clearRemoved() {
         super.clearRemoved()
-        if (level?.isClientSide == true) Wounds.arrived(blockPos)
+        level?.takeIf { it.isClientSide }?.let { Wounds.arrived(it, blockPos) }
     }
 
     override fun setRemoved() {

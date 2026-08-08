@@ -7,6 +7,7 @@ import co.voik.agesandtheart.client.WoundRenderer
 import net.neoforged.neoforge.client.event.EntityRenderersEvent
 import co.voik.agesandtheart.client.DeskModel
 import co.voik.agesandtheart.client.KnownWords
+import co.voik.agesandtheart.client.Wounds
 import co.voik.agesandtheart.client.InkCaseScreen
 import co.voik.agesandtheart.client.SupplyBinScreen
 import co.voik.agesandtheart.client.WritersDeskScreen
@@ -86,5 +87,6 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
         KnownLooks.forgetAll()
         KnownWords.forgetAll()
         DeskModel.forget()
+        Wounds.forget()
     }
 }

@@ -79,6 +79,10 @@ object Corruption {
         }
     }
 
-    /** How far you can see at the very throat of a wound, in blocks. Close, and not blind. */
-    private const val NEAREST = 6.0f
+    /**
+     * How far you can see at the very throat of a wound, in blocks. Close, and not blind.
+     *
+     * Tightened from 6 after the walk, which asked for a little more intensity where it is worst.
+     */
+    private const val NEAREST = 4.0f
 }

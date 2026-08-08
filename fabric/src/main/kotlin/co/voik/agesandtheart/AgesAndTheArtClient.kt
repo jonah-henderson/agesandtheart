@@ -7,6 +7,7 @@ import co.voik.agesandtheart.client.ClientDeskNetwork
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry
 import co.voik.agesandtheart.client.DeskModel
 import co.voik.agesandtheart.client.KnownWords
+import co.voik.agesandtheart.client.Wounds
 import co.voik.agesandtheart.client.InkCaseScreen
 import co.voik.agesandtheart.client.SupplyBinScreen
 import co.voik.agesandtheart.client.WritersDeskScreen
@@ -71,5 +72,6 @@ fun initClient() {
         KnownLooks.forgetAll()
         KnownWords.forgetAll()
         DeskModel.forget()
+        Wounds.forget()
     }
 }
