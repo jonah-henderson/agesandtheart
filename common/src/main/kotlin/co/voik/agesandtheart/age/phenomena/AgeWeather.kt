@@ -1,6 +1,9 @@
 package co.voik.agesandtheart.age.phenomena
 
 import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.age.aspect.Phenomenon
+import net.minecraft.resources.ResourceKey
+import net.minecraft.world.level.Level
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.saveddata.WeatherData
 
@@ -50,33 +53,64 @@ object AgeWeather {
      * drowned Age; at the bottom every spell is cut short, which is the parched one.
      */
     /**
-     * What a walk can ask an Age's sky to do — the three states vanilla's own `/weather` names.
+     * What a walk can ask an Age's sky to do, by name.
      *
-     * Here rather than in the command because the mapping onto `WeatherData`'s five fields is weather's
-     * business, not Brigadier's: "raining" is two flags and three timers, and a caller that had to know
-     * that would be a caller that could get it wrong.
+     * The three vanilla names, **and every phenomenon that has an opinion about weather** — which is a
+     * question the phenomena already answer, since [Phenomenon.insistsOn] is exactly "what this one needs
+     * the sky to be doing". So `tempest` appears here for free and `inferno` does not, because one is
+     * weather-like and the other only lives in it, and nothing had to say which is which.
      */
-    enum class Asked(val key: String) {
-        CLEAR("clear"),
-        RAIN("rain"),
-        THUNDER("thunder"),
+    fun asked(): Map<String, Conditions> = buildMap {
+        put("clear", Conditions(rainfall = NONE, thunder = NONE))
+        put("rain", Conditions(rainfall = FULLY, thunder = NONE))
+        put("thunder", Conditions(rainfall = FULLY, thunder = FULLY))
+        for (phenomenon in Phenomenon.entries) {
+            if (!phenomenon.insistsOn.saysNothing) put(phenomenon.key, phenomenon.insistsOn)
+        }
     }
 
-    /** Puts [data] into [asked], for as long as vanilla would have. */
-    fun set(data: WeatherData, asked: Asked) {
-        val spell = A_GOOD_WHILE
-        data.setClearWeatherTime(if (asked == Asked.CLEAR) spell else 0)
-        data.isRaining = asked != Asked.CLEAR
-        data.setRainTime(if (asked == Asked.CLEAR) 0 else spell)
-        data.setThundering(asked == Asked.THUNDER)
-        data.setThunderTime(if (asked == Asked.THUNDER) spell else 0)
+    /**
+     * Puts [level]'s sky into [wants] for a good while, **and holds the Age off its own dials meanwhile.**
+     *
+     * The hold is the whole reason this is not two lines. [steer] runs every tick and [capped] cuts a spell
+     * the Age does not want straight to zero, so asking a dry Age for rain would have been undone before
+     * the next frame — the command would have reported success and changed nothing visible, which is worse
+     * than refusing. An inferno is precisely such an Age, and its rain is precisely what wanted walking.
+     *
+     * Ephemeral and unpersisted on purpose: it is a walk's business, not an Age's, and losing it on restart
+     * costs nothing but the Age reasserting itself sooner.
+     */
+    fun set(level: ServerLevel, data: WeatherData, wants: Conditions) {
+        val raining = wants.rainfall > ORDINARY_SHARE
+        val thundering = wants.thunder > ORDINARY_SHARE
+        data.clearWeatherTime = if (raining) 0 else A_GOOD_WHILE
+        data.isRaining = raining
+        data.rainTime = if (raining) A_GOOD_WHILE else 0
+        data.setThundering(thundering)
+        data.thunderTime = if (thundering) A_GOOD_WHILE else 0
+        data.setDirty()
+        heldUntil[level.dimension()] = level.gameTime + A_GOOD_WHILE
+    }
+
+    /** Ages a walk has asked for weather, and the tick each stops being humoured. */
+    private val heldUntil = mutableMapOf<ResourceKey<Level>, Long>()
+
+    private fun beingHumoured(level: ServerLevel): Boolean {
+        val until = heldUntil[level.dimension()] ?: return false
+        if (level.gameTime < until) return true
+        heldUntil.remove(level.dimension())
+        return false
     }
 
     /** Long enough to walk in, in ticks — vanilla's own `/weather` default of five minutes. */
     private const val A_GOOD_WHILE = 6000
 
+    /** The ends of a share, for the three states that are not a phenomenon's. */
+    private const val NONE = 0.0
+    private const val FULLY = 1.0
+
     fun steer(level: ServerLevel, wants: Conditions) {
-        if (wants.saysNothing) return
+        if (wants.saysNothing || beingHumoured(level)) return
         val weather = level.dataStorage.computeIfAbsent(WeatherData.TYPE)
         val rainTime = capped(wants.rainfall, weather.isRaining, weather.rainTime, ORDINARY_RAIN)
         val thunderTime = capped(wants.thunder, weather.isThundering, weather.thunderTime, ORDINARY_THUNDER)

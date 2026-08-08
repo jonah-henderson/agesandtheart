@@ -330,12 +330,16 @@ object AgeCommand {
      */
     private fun weatherSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("weather").apply {
-            for (asked in AgeWeather.Asked.entries) {
-                then(Commands.literal(asked.key).executes { context -> runWeather(context, asked) })
+            for ((name, wants) in AgeWeather.asked()) {
+                then(Commands.literal(name).executes { context -> runWeather(context, name, wants) })
             }
         }
 
-    private fun runWeather(context: CommandContext<CommandSourceStack>, asked: AgeWeather.Asked): Int {
+    private fun runWeather(
+        context: CommandContext<CommandSourceStack>,
+        name: String,
+        wants: AgeWeather.Conditions,
+    ): Int {
         val source = context.source
         val level = source.level
         val own = AgeWeather.of(level)
@@ -343,8 +347,8 @@ object AgeCommand {
             source.sendFailure(Component.translatable("commands.agesandtheart.weather.not_an_age"))
             return 0
         }
-        AgeWeather.set(own, asked)
-        source.sendSuccess({ Component.translatable("commands.agesandtheart.weather.set", asked.key) }, true)
+        AgeWeather.set(level, own, wants)
+        source.sendSuccess({ Component.translatable("commands.agesandtheart.weather.set", name) }, true)
         return 1
     }
 
