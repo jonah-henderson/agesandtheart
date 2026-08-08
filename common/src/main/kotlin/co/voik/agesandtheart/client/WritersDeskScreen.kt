@@ -57,7 +57,15 @@ class WritersDeskScreen(
     menu, inventory, title, DeskLayout.WIDTH, DeskLayout.HEIGHT,
 ) {
 
-    private var tab = DeskTab.ARCHIVE
+    /**
+     * Which tab is showing, starting where this client left off (Jonah, 2026-08-08).
+     *
+     * A writer who is filing pages opens the desk many times in a row and wants the same wing each time;
+     * being put back on the archive every time is a click paid for nothing. Remembered on the client and
+     * not in the recipe or the menu, because it is a preference about *looking* rather than a fact about
+     * the desk — a second player at the same desk keeps their own.
+     */
+    private var tab = lastOpened
     private var selectedWord: Identifier? = null
 
     /** Which paper a row's write button spends. The cheapest by default, so nobody wastes the good stuff. */
@@ -367,6 +375,7 @@ class WritersDeskScreen(
 
     private fun openTab(entry: DeskTab) {
         tab = entry
+        lastOpened = entry
         menu.openTab = entry.ordinal
         send(DeskAction.SET_TAB, index = entry.ordinal)
         showTab()
@@ -689,6 +698,9 @@ class WritersDeskScreen(
     }
 
     private companion object {
+        /** Where this client last was, so reopening a desk does not start over. */
+        private var lastOpened = DeskTab.ARCHIVE
+
         /** What a binding looks like in the stock column. */
         val BINDING_ICON = ItemStack(Items.LEATHER)
 

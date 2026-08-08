@@ -45,6 +45,12 @@ object Corruption {
         }
         layers.corrupting(level, EnvironmentAttributes.BLOCK_LIGHT_TINT) { was, how -> was.drained(how).packed() }
 
+        // **Night vision is a third light and has to be drained with the other two** (Jonah, 2026-08-08,
+        // walked). It is its own attribute rather than a brightening of the others, so leaving it alone let
+        // a player wearing it stand in a wound's throat with the sky and the blocks drained around a light
+        // that was not — which reads as the two fighting for the frame rather than as one dreadful place.
+        layers.corrupting(level, EnvironmentAttributes.NIGHT_VISION_COLOR) { was, how -> was.drained(how).packed() }
+
         // The fog coming *in*, which is what makes the world shrink rather than only dim.
         layers.closingIn(level, EnvironmentAttributes.FOG_END_DISTANCE)
         layers.closingIn(level, EnvironmentAttributes.FOG_START_DISTANCE)

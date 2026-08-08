@@ -132,5 +132,7 @@
   "word.agesandtheart.verdant": "Verdant",
   "word.agesandtheart.wandering": "Wandering",
   "word.agesandtheart.wondrous": "Wondrous",
-  "word.agesandtheart.worn": "Worn"
+  "word.agesandtheart.worn": "Worn",
+  "commands.agesandtheart.weather.set": "The Age's sky turns to %s.",
+  "commands.agesandtheart.weather.not_an_age": "This world has no weather of its own — /weather is the one you want."
 }

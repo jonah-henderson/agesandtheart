@@ -11,6 +11,7 @@ import co.voik.agesandtheart.worldgen.field.RegionMap
 import co.voik.agesandtheart.worldgen.field.Spans
 import co.voik.agesandtheart.sky.SkySpec
 import co.voik.agesandtheart.age.word.Withheld
+import co.voik.agesandtheart.age.phenomena.AgeWeather
 import co.voik.agesandtheart.age.phenomena.Tempest
 import co.voik.agesandtheart.age.word.LearnedWordsPayload
 import co.voik.agesandtheart.age.word.learnedWords
@@ -186,6 +187,7 @@ object AgeCommand {
                 .then(vocabularySubcommand())
                 .then(pagesSubcommand())
                 .then(forgetSubcommand())
+                .then(weatherSubcommand())
                 .then(teleportSubcommand())
                 .then(deleteSubcommand())
                 .then(generateSubcommand())
@@ -315,6 +317,37 @@ object AgeCommand {
      * cratered correctly and could not be grounded by any amount of copper: vanilla moves a strike onto a
      * rod in the spawner, before a bolt exists, so a bolt made directly has already refused.
      */
+    /**
+     * `/age weather <clear|rain|thunder>` — set the weather of **the Age you are standing in**.
+     *
+     * Vanilla's `/weather` cannot reach one. An Age owns its own `WeatherData` so that its rain is its own
+     * (`ServerLevelMixin`), and the command writes the *overworld's* — so standing in a burning Age and
+     * asking for rain changed the weather somewhere else entirely, which is how this went unwalked.
+     *
+     * A debug affordance rather than a mechanic, and deliberately not a mixin on `WeatherCommand`: the
+     * ability to make it rain on demand is worth exactly as much as the walk that needs it, and vanilla's
+     * command is not wrong about the world it was aimed at.
+     */
+    private fun weatherSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        Commands.literal("weather").apply {
+            for (asked in AgeWeather.Asked.entries) {
+                then(Commands.literal(asked.key).executes { context -> runWeather(context, asked) })
+            }
+        }
+
+    private fun runWeather(context: CommandContext<CommandSourceStack>, asked: AgeWeather.Asked): Int {
+        val source = context.source
+        val level = source.level
+        val own = AgeWeather.of(level)
+        if (own == null) {
+            source.sendFailure(Component.translatable("commands.agesandtheart.weather.not_an_age"))
+            return 0
+        }
+        AgeWeather.set(own, asked)
+        source.sendSuccess({ Component.translatable("commands.agesandtheart.weather.set", asked.key) }, true)
+        return 1
+    }
+
     private fun strikeSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("strike")
             .executes { context -> runStrike(context, DEFAULT_STRIKE_DISTANCE) }

@@ -49,6 +49,32 @@ object AgeWeather {
      * At the top of the axis the cap is nearly zero and rain restarts as soon as it stops, which is the
      * drowned Age; at the bottom every spell is cut short, which is the parched one.
      */
+    /**
+     * What a walk can ask an Age's sky to do — the three states vanilla's own `/weather` names.
+     *
+     * Here rather than in the command because the mapping onto `WeatherData`'s five fields is weather's
+     * business, not Brigadier's: "raining" is two flags and three timers, and a caller that had to know
+     * that would be a caller that could get it wrong.
+     */
+    enum class Asked(val key: String) {
+        CLEAR("clear"),
+        RAIN("rain"),
+        THUNDER("thunder"),
+    }
+
+    /** Puts [data] into [asked], for as long as vanilla would have. */
+    fun set(data: WeatherData, asked: Asked) {
+        val spell = A_GOOD_WHILE
+        data.setClearWeatherTime(if (asked == Asked.CLEAR) spell else 0)
+        data.isRaining = asked != Asked.CLEAR
+        data.setRainTime(if (asked == Asked.CLEAR) 0 else spell)
+        data.setThundering(asked == Asked.THUNDER)
+        data.setThunderTime(if (asked == Asked.THUNDER) spell else 0)
+    }
+
+    /** Long enough to walk in, in ticks — vanilla's own `/weather` default of five minutes. */
+    private const val A_GOOD_WHILE = 6000
+
     fun steer(level: ServerLevel, wants: Conditions) {
         if (wants.saysNothing) return
         val weather = level.dataStorage.computeIfAbsent(WeatherData.TYPE)
