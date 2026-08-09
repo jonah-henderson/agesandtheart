@@ -11,7 +11,7 @@ layout(std140) uniform DeckInfo {
 
 in float faceBrightness;
 in vec2 worldSample;
-in float reach;
+in vec2 acrossTheSlab;
 
 out vec4 fragColor;
 
@@ -48,6 +48,8 @@ void main() {
     // reach half again as far as its edges and the deck ends on four straight lines with a horizon behind
     // them. Fading on radius hides the geometry — the edge midpoints sit at 1.0 and the corners past it,
     // so everything outside the inscribed circle is gone before it can be seen.
+    // Taken here rather than in the vertex stage, which is the whole of why this works — see `cloud_deck.vsh`.
+    float reach = length(acrossTheSlab);
     alpha *= 1.0 - smoothstep(RIM_BEGINS, 1.0, reach);
     if (alpha <= 0.0) discard;
 

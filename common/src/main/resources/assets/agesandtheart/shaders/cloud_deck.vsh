@@ -21,14 +21,16 @@ layout(std140) uniform DeckInfo {
 
 out float faceBrightness;
 out vec2 worldSample;
-// How far out this corner is, as a share of the slab's half-width: 0 overhead, 1 at the edge midpoints
-// and about 1.41 at the corners. What turns a square slab into a disc — see the fragment stage.
+// Where on the slab this fragment is, in local units — `±1` at the edges (`Blaze3dSkyCanvas.buildSlab`).
+// The fragment stage takes its length to fade the square slab into a disc.
 //
-// The slab's corners are already `±1` (`Blaze3dSkyCanvas.buildSlab`), so this is `length` and nothing
-// else. Scaling it — as if the box ran `±0.5` — put the edge midpoints at 2.0, which is past the far end
-// of the fragment stage's fade, so every fragment of every deck was discarded and the Spire lost its
-// clouds entirely (Jonah, 2026-08-06, walked).
-out float reach;
+// **The position is interpolated and the distance taken there, never the other way round.** Every vertex
+// of the slab is a *corner*, so a `length` computed here is `1.41` at all four corners of every face —
+// and interpolating a constant gives that same 1.41 across the whole face, which is past the far end of
+// the fade. Every fragment of every deck was discarded and the Spire had no clouds at all. Scaling the
+// number was tried first and could not have worked: the fault is the order of the two operations, not
+// their units (Jonah, 2026-08-06 and 2026-08-08, walked).
+out vec2 acrossTheSlab;
 
 void main() {
     gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
@@ -40,5 +42,5 @@ void main() {
     // world space. That is what keeps the pattern still as the player walks through it, rather than
     // dragging along with them.
     worldSample = Position.xz * Extent.x + SampleAndRoil.xy;
-    reach = length(Position.xz);
+    acrossTheSlab = Position.xz;
 }
