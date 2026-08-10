@@ -1,0 +1,11 @@
+{
+  "_comment": [
+    "What it costs an Age's instability budget to come apart at the bottom (design 5.3). The dearest",
+    "thing in the price list and the only one that ends the Age: fissures open at the world floor,",
+    "widen, and put whatever falls in back in the overworld. Each step bought is how fast the tear",
+    "spreads. Priced so that only an Age written to be unsalvageable can reach it -- with the defaults",
+    "above it, that is an instability index in the twenties."
+  ],
+  "costs": 14,
+  "most": 3
+}

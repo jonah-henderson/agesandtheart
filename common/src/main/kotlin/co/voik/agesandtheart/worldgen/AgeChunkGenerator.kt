@@ -38,6 +38,9 @@ import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.levelgen.LegacyRandomSource
 import net.minecraft.world.level.WorldGenLevel
 import net.minecraft.world.level.block.Block
+import co.voik.agesandtheart.age.consequence.Collapse
+import co.voik.agesandtheart.age.consequence.Consequence
+import co.voik.agesandtheart.age.consequence.Tearing
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator
 import net.minecraft.world.level.levelgen.NoiseChunk
@@ -165,8 +168,53 @@ class AgeChunkGenerator(
      *
      * Zero for every coherent Age, which is nearly all of them.
      */
-    private val woundsPerChunk: Double = NO_WOUNDS,
+    woundsPerChunk: Double = NO_WOUNDS,
+    /**
+     * How many more open per chunk with each day the Age has stood — **blight** (design §5.2.1).
+     *
+     * Where [woundsPerChunk] is how holed the book made it, this is how holed it *becomes*. Unbounded on
+     * purpose: a ceiling would promise the Age can be outlasted, and the only question the register asks
+     * is how long you stay. Zero for every Age that is merely flawed rather than coming apart.
+     */
+    blightPerDay: Double = NO_WOUNDS,
+    /**
+     * How many tears per cell this Age's floor is cut with — **collapse** (design §5.3). Zero for every
+     * Age that is not ending; they widen themselves once cut.
+     */
+    collapseTears: Int = Collapse.NONE,
+    /**
+     * The overworld tick this Age was written on, so [blightPerDay] has something to count from.
+     *
+     * **On the generator because a chunk generated late must come out as torn as its neighbours**, which is
+     * §5.4's derived-clock escape: a chunk that has never existed has no blocks to be legible from, so the
+     * generator and the fast-forward read the same function rather than one of them inferring.
+     */
+    writtenAt: Long = 0L,
 ) : NoiseBasedChunkGenerator(biomes, Holder.direct(settingsFor(seaFill, surfaceRule, climate, fill, window, field))) {
+
+    /**
+     * What this Age's instability bought — **`var`, and volatile, because it can be rewritten under a
+     * generator that already exists** (Jonah, 2026-08-09, walked: collapse reported a radius and generated
+     * nothing).
+     *
+     * A generator is built once when its Age is opened and lives as long as the dimension does, so anything
+     * captured in the constructor is what was true at *open*. `/age decay` rewrites the recipe — which every
+     * report reads, and which is right on the next open — but decoration kept reading the stale copy, so an
+     * Age would say it had stood a month and generate as though it were new.
+     *
+     * Volatile rather than read from the recipe per chunk: decoration runs on chunk-generation threads, and
+     * `AgeSavedData` is a plain map on the overworld's storage that has no business being touched from one.
+     * One reference written on the server thread and read on the workers is the whole of what is needed —
+     * and it is one reference rather than four fields precisely so a reader cannot catch half an update.
+     */
+    @Volatile
+    var consequence: Consequence = Consequence(woundsPerChunk, blightPerDay, collapseTears, writtenAt)
+        private set
+
+    /** Tell a running Age that what it is has changed, so generation stops answering from the old one. */
+    fun rewriteConsequence(to: Consequence) {
+        consequence = to
+    }
 
     init {
         // **The seam vanilla offers, and both halves of it.** `ChunkGenerator` takes this function in its
@@ -563,45 +611,17 @@ class AgeChunkGenerator(
      */
     override fun applyBiomeDecoration(level: WorldGenLevel, chunk: ChunkAccess, structures: StructureManager) {
         super.applyBiomeDecoration(level, chunk, structures)
-        if (woundsPerChunk <= NO_WOUNDS) return
-        val here = chunk.pos
-        val random = WorldgenRandom(LegacyRandomSource(level.getSeed()))
-        random.setLargeFeatureSeed(level.getSeed() xor WOUND_SALT, here.x, here.z)
-        // A whole number of them, and a fractional chance at one more — so 0.5 is half the chunks holding
-        // one, and 128 is a hundred and twenty-eight in every chunk.
-        val certain = woundsPerChunk.toInt()
-        val opening = certain + if (random.nextDouble() < woundsPerChunk - certain) 1 else 0
-        repeat(opening) { openOne(level, chunk, here, random) }
-    }
-
-    /**
-     * One wound, somewhere in this chunk.
-     *
-     * **How far it may stray from the surface grows with how many there are**, which is what keeps a badly
-     * torn Age from being a slab of them at head height: a lightly flawed world holds a few near where a
-     * writer walks, and a holed one is torn from bedrock to sky (Jonah, 2026-08-07).
-     */
-    private fun openOne(level: WorldGenLevel, chunk: ChunkAccess, here: ChunkPos, random: WorldgenRandom) {
-        val x = here.minBlockX + random.nextInt(SECTION)
-        val z = here.minBlockZ + random.nextInt(SECTION)
-        // **Mostly above ground, which is the Riven image**: the striking thing about that tear is that it
-        // hangs in the open at about eye level, and a wound always underground never gets to be one.
-        //
-        // The rest are spread **evenly down the whole column** rather than tucked just beneath the grass
-        // (Jonah, 2026-08-07), so one is as likely to be met deep in a cave as a spit under the surface.
-        // Two different distributions on purpose: the surface ones are *near* it because that is what
-        // makes them visible, and the buried ones are anywhere because that is what makes them a surprise.
-        val surface = chunk.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, x, z)
-        val floor = level.getMinY() + 1
-        val top = level.getMinY() + level.getHeight() - 1
-        val y = if (random.nextDouble() < ABOVE_GROUND) {
-            surface + 1 + random.nextInt(OVERHEAD)
-        } else {
-            val depth = (surface - 1 - floor).coerceAtLeast(1)
-            floor + random.nextInt(depth)
-        }
-        val settled = y.coerceIn(floor, top)
-        level.setBlock(BlockPos(x, settled, z), AgeContent.WOUND_BLOCK.defaultBlockState(), Block.UPDATE_NONE)
+        val bought = consequence
+        if (bought.isNothing) return
+        // **The Age's age is read here rather than at open**, so a chunk generated after a week of blight
+        // comes out as torn as the ones beside it. Against the *overworld's* clock: an Age's own only runs
+        // while somebody is in it, which is exactly when blight is not supposed to be waiting.
+        val days = bought.daysBy(level.level.server.overworld().gameTime)
+        // The floor giving way first: a column the Age has already swallowed is not somewhere to put a
+        // wound, and carving after would take the wound straight back out again.
+        Collapse.carveInto(level, chunk, level.getSeed(), bought.collapseTears)
+        val density = Tearing.densityAt(bought.woundsPerChunk, bought.blightPerDay, days)
+        Tearing.tearInto(level, chunk, level.getSeed(), Tearing.wantedIn(chunk.pos, level.getSeed(), density))
     }
 
     override fun spawnOriginalMobs(level: WorldGenRegion) = Unit
@@ -686,13 +706,21 @@ class AgeChunkGenerator(
                 // Absent for every Age without shape-cut caves, which is almost all of them.
                 TerrainField.CODEC.optionalFieldOf("hollows").forGetter { Optional.ofNullable(it.hollows) },
                 // Absent for every coherent Age, which is nearly all of them.
-                Codec.DOUBLE.optionalFieldOf("wounds_per_chunk", NO_WOUNDS).forGetter { it.woundsPerChunk },
+                Codec.DOUBLE.optionalFieldOf("wounds_per_chunk", NO_WOUNDS).forGetter { it.consequence.woundsPerChunk },
+                // And absent for every Age that is merely flawed rather than coming apart.
+                Codec.DOUBLE.optionalFieldOf("blight_per_day", NO_WOUNDS).forGetter { it.consequence.blightPerDay },
+                // And absent for every Age that is not ending.
+                Codec.INT.optionalFieldOf("collapse_tears", Collapse.NONE).forGetter { it.consequence.collapseTears },
+                Codec.LONG.optionalFieldOf("written_at", 0L).forGetter { it.consequence.writtenAt },
             ).apply(instance) { biomes, field, seaFill, rule, carvers, underground, tables, structures, climate,
-                                fill, window, hollows, wounds ->
+                                fill, window, hollows, wounds, blight, collapse, writtenAt ->
                 AgeChunkGenerator(
                     biomes, field, seaFill, rule, carvers, underground, tables, structures,
                     climate.orElse(null), fill, window, hollows.orElse(null),
                     woundsPerChunk = wounds,
+                    blightPerDay = blight,
+                    collapseTears = collapse,
+                    writtenAt = writtenAt,
                 )
             }
         }

@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age.phenomena
 
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.aspect.Span
+import co.voik.agesandtheart.age.consequence.Blight
 import co.voik.agesandtheart.age.consequence.Hostility
 import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Atmosphere
@@ -55,6 +56,9 @@ object Happenings {
             // Not a phenomenon — a wound is what the Age could not hold rather than something it does — but
             // it wants the same walk, and the walk is the expensive part.
             Hostility.stir(level)
+            // Nor is this one: blight is the Age going on tearing, and what happens here is only the part
+            // somebody is present for. The bulk of it is settled as chunks load — see [Blight].
+            Blight.creep(level)
         }
     }
 

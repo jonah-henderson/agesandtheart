@@ -1,0 +1,52 @@
+# Blight and collapse: does an Age get worse as it gets older? (design §5.2.1, §5.3)
+# Run with: scripts/drive-server.sh scripts/checks/decay.txt
+#
+# This file is meant to be *read*, not asserted on — it is the exploratory counterpart to
+# `TearingCheck`, which settles the arithmetic offline. What only a server can show is the whole chain
+# working together: a sentence resolving to an instability index, that index buying manifestations off
+# the price list, and those manifestations reading the clock.
+#
+# `/age decay <name> age <days>` is the load-bearing part. Blight is a rate over an Age's *days*, so
+# the mildest step takes four of them to add one wound per chunk and the gentlest collapse a fortnight
+# to be worth walking to. Backdating rewrites `AgeRecipe.writtenAt`, which is the one field everything
+# downstream measures from — so there is no separate debug path that could disagree with the real one.
+
+# --- A coherent Age, which must never decay however long it stands -----------------------------------
+/age write calm age hills landmass
+/age decay calm
+/age decay calm age 3650
+/age decay calm
+
+# --- Something written to contradict itself, hard --------------------------------------------------
+# Two things about the sentence. **A book opens with the `age` page** and every clause closes with the
+# page it is about, so the shape is `age <modifiers> <aiming page>` repeated. And the index tracks the
+# *variety* of contradictions rather than their number — repeating one pair ten times scores what one
+# scores — so what earns a large index is opposing many different things once each.
+# What matters below is the `bought:` line: whether the budget reaches blight, and how much went on the
+# cheap registers first.
+/age write ruin age beautiful foreboding homely desolate lifeless ancient frozen drenched arid dusty ashen atmosphere flat looming floating hollow finely landmass clear firmament
+/age decay ruin
+
+# What it looks like new, one day in, a fortnight in, and after a season.
+/age decay ruin age 0
+/age decay ruin age 1
+/age decay ruin age 14
+/age decay ruin age 90
+
+# --- And the world it actually makes ----------------------------------------------------------------
+# Generated *after* backdating, so these chunks come out at the aged density rather than the written
+# one — which is the whole of what "a chunk generated late comes out as torn as its neighbours" means.
+/age decay ruin age 30
+/age gen ruin
+/age probe ruin 0 0
+
+# The fissures collapse opens sit at the world floor, so a probe of the column is where they show.
+# `/age locate` finds the ordinary structural fissure; these are not that and are not locatable — they
+# are wherever the derived origin grid puts them, which `/age decay` reports the reach of.
+#
+# **Collapse is hard to reach on purpose and therefore hard to walk.** The sentence above tops out around
+# instability 31, which maxes wounds; collapse needs roughly 69, which wants a book of about twenty-six
+# pages opposing many different things. To look at the fissures without writing one, set
+# `art/manifestation/collapse.json` to `"costs": 1` for the session and put it back afterwards — that is
+# how the carve was timed, and it is the only honest way to see the register on demand.
+/age list

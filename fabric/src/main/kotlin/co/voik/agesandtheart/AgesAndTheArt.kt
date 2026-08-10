@@ -1,5 +1,7 @@
 package co.voik.agesandtheart
 
+import co.voik.agesandtheart.age.consequence.Wounds
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
 import co.voik.agesandtheart.age.phenomena.Happenings
 import co.voik.agesandtheart.age.AgeCommand
@@ -128,4 +130,9 @@ fun init() {
 
     // Whatever befalls an Age. A tick has no shared entry point, so both loaders call the same one.
     ServerTickEvents.END_SERVER_TICK.register(Happenings::tick)
+
+    // Where the wounds are. A wound carries no block entity, so the index is filled by reading each chunk
+    // as it loads — see `Wounds`, which dismisses a section off its palette before touching a block.
+    ServerChunkEvents.CHUNK_LOAD.register { level, chunk, _ -> Wounds.stocked(level, chunk) }
+    ServerChunkEvents.CHUNK_UNLOAD.register { level, chunk -> Wounds.emptied(level, chunk.pos) }
 }

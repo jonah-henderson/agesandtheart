@@ -16,11 +16,11 @@ import co.voik.agesandtheart.desk.DeskNoticePayload
 import co.voik.agesandtheart.desk.DeskPricePayload
 import co.voik.agesandtheart.desk.DeskSyncPayload
 import co.voik.agesandtheart.client.StarFissureRenderer
-import co.voik.agesandtheart.client.WoundRenderer
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderers
 import net.minecraft.client.gui.screens.MenuScreens
 import co.voik.agesandtheart.sky.KnownLooks
 import co.voik.agesandtheart.sky.LookPayload
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 
@@ -44,7 +44,6 @@ fun initClient() {
     }
     co.voik.agesandtheart.platform.FabricInkRendering.register()
     EntityRendererRegistry.register(AgeContent.BOOK_ENTITY, ::BookEntityRenderer)
-    BlockEntityRenderers.register(AgeContent.WOUND_ENTITY) { WoundRenderer() }
     BlockEntityRenderers.register(AgeContent.STAR_FISSURE_ENTITY) { StarFissureRenderer() }
     MenuScreens.register(AgeContent.WRITERS_DESK_MENU, ::WritersDeskScreen)
     MenuScreens.register(AgeContent.INK_CASE_MENU, ::InkCaseScreen)
@@ -66,6 +65,12 @@ fun initClient() {
     ClientPlayNetworking.registerGlobalReceiver(LearnedWordsPayload.TYPE) { payload, _ ->
         KnownWords.remember(payload)
     }
+
+    // Where the wounds are, on this side too — the corruption gradient asks many times a frame and
+    // `WoundField` draws straight out of it. A wound carries no block entity, so the index is filled by
+    // reading each chunk as it arrives; see `Wounds`, which dismisses a section off its palette first.
+    ClientChunkEvents.CHUNK_LOAD.register { level, chunk -> Wounds.stocked(level, chunk) }
+    ClientChunkEvents.CHUNK_UNLOAD.register { level, chunk -> Wounds.emptied(level, chunk.pos) }
 
     // These keys mean nothing on the next server, and an Age id can be reused.
     ClientPlayConnectionEvents.DISCONNECT.register { _, _ ->

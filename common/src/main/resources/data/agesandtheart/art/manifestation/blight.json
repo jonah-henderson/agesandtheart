@@ -1,0 +1,11 @@
+{
+  "_comment": [
+    "What it costs an Age's instability budget to go on tearing itself for as long as it exists, and how",
+    "far that goes (design 5.2.1). Dearer than a wound, because a wound is a hole the Age was written",
+    "with and this is the Age never stopping -- the register a player cannot outlast, only leave. Each",
+    "step bought makes the density climb faster with the Age's age; `most` bounds the RATE, never the",
+    "final state, which is deliberately unbounded."
+  ],
+  "costs": 9,
+  "most": 3
+}

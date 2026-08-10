@@ -34,7 +34,28 @@ data class AgeRecipe(
     /** What the book said. Provenance only — nothing reads it to decide anything. */
     val words: List<String> = emptyList(),
     val generatorVersion: Int = CURRENT_GENERATOR_VERSION,
+    /**
+     * The overworld's game time when this Age was written — **the clock a decaying Age is read against**
+     * (design §5.4).
+     *
+     * Immutable, and part of what an Age *is* in the way its seed is. §5.4's ruling is that a phenomenon
+     * keeps no ledger and the blocks are its state; where that fails, the escape is to derive the state
+     * from how long the Age has existed rather than to track it. Blight and collapse both need that — how
+     * holed an Age is has to be knowable in a chunk nobody has ever visited, or fresh chunks generate at
+     * the state it had when it was written and there is a seam at the edge of where people have walked.
+     *
+     * **The overworld's clock rather than the Age's own**, because an Age's own only advances while it is
+     * loaded, which is precisely when nobody is there — the register is meant to progress in your absence.
+     *
+     * Zero means an Age written before this existed, which reads as having been written at the beginning
+     * of the world. That is wrong by however old the save is and harmless: it makes an old test Age decay
+     * faster, not a live one decay wrongly.
+     */
+    val writtenAt: Long = UNRECORDED,
 ) {
+    /** How long this Age has existed, in ticks, against [server]'s overworld clock. Never negative. */
+    fun ageAt(server: MinecraftServer): Long =
+        (server.overworld().gameTime - writtenAt).coerceAtLeast(0L)
     /** The composition this Age was assembled from, or null for the few that are not assembled. */
     val composition: AgeComposition? get() = (world as? AgeWorld.Composed)?.composition
 
@@ -49,7 +70,7 @@ data class AgeRecipe(
          * Bumped by hand whenever a change to generation would make the same recipe produce different
          * terrain. What moved at each version: `notes/generator-versions.md`.
          */
-        const val CURRENT_GENERATOR_VERSION = 23
+        const val CURRENT_GENERATOR_VERSION = 24
 
         val MAP_CODEC: MapCodec<AgeRecipe> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -67,7 +88,9 @@ data class AgeRecipe(
                 Instability.CODEC.optionalFieldOf("instability", Instability.NONE)
                     .forGetter(AgeRecipe::instability),
                 Codec.STRING.listOf().optionalFieldOf("words", emptyList()).forGetter(AgeRecipe::words),
-            ).apply(instance) { world, legacyPreset, seed, version, character, instability, words ->
+                // Absent on every Age written before an Age had an age.
+                Codec.LONG.optionalFieldOf("written_at", UNRECORDED).forGetter(AgeRecipe::writtenAt),
+            ).apply(instance) { world, legacyPreset, seed, version, character, instability, words, writtenAt ->
                 AgeRecipe(
                     world.orElseGet { worldFor(legacyPreset.orElse(AgePreset.SPIRE)) },
                     seed,
@@ -75,6 +98,7 @@ data class AgeRecipe(
                     instability,
                     words,
                     version,
+                    writtenAt,
                 )
             }
         }
@@ -87,7 +111,7 @@ data class AgeRecipe(
 
         /** A fresh recipe, with its character drawn from [seed] and the world [server] is running. */
         fun written(server: MinecraftServer, world: AgeWorld, seed: Long): AgeRecipe =
-            AgeRecipe(world, seed, AgeCharacter.drawn(server, seed))
+            AgeRecipe(world, seed, AgeCharacter.drawn(server, seed), writtenAt = server.overworld().gameTime)
 
         /** A fresh recipe for an Age somebody wrote: the resolved composition, plus words and instability. */
         fun written(server: MinecraftServer, resolution: Resolution, seed: Long): AgeRecipe = AgeRecipe(
@@ -96,7 +120,11 @@ data class AgeRecipe(
             AgeCharacter.drawn(server, seed),
             resolution.instability,
             resolution.sentence,
+            writtenAt = server.overworld().gameTime,
         )
+
+        /** An Age from before an Age had an age — read as having been written when the world began. */
+        const val UNRECORDED = 0L
 
         /** The seed an Age gets when nothing has chosen one for it. */
         fun seedFor(id: Identifier): Long = id.hashCode().toLong()

@@ -20,6 +20,9 @@ import co.voik.agesandtheart.sky.KnownLooks
 import co.voik.agesandtheart.sky.LookPayload
 import co.voik.agesandtheart.sky.Skies
 import net.minecraft.core.registries.Registries
+import co.voik.agesandtheart.age.consequence.Wounds
+import net.minecraft.world.level.Level
+import net.neoforged.neoforge.event.level.ChunkEvent
 import net.neoforged.bus.api.IEventBus
 import net.neoforged.fml.ModContainer
 import net.neoforged.fml.config.ModConfig
@@ -52,6 +55,8 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         NeoForge.EVENT_BUS.addListener(::onRegisterCommands)
         NeoForge.EVENT_BUS.addListener(::onPlayerLoggedIn)
         NeoForge.EVENT_BUS.addListener(::onServerTick)
+        NeoForge.EVENT_BUS.addListener(::onChunkLoad)
+        NeoForge.EVENT_BUS.addListener(::onChunkUnload)
     }
 
     /**
@@ -173,6 +178,21 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
     /** Whatever befalls an Age. A tick has no shared entry point, so both loaders call the same one. */
     private fun onServerTick(event: ServerTickEvent.Post) {
         Happenings.tick(event.server)
+    }
+
+    /**
+     * Where the wounds are. A wound carries no block entity, so the index is filled by reading each chunk
+     * as it loads — see `Wounds`, which dismisses a section off its palette before touching a block.
+     *
+     * One listener for both sides here, where Fabric needs a client and a server registration: `ChunkEvent`
+     * fires on whichever level loaded it, and both sides want the index for different questions.
+     */
+    private fun onChunkLoad(event: ChunkEvent.Load) {
+        Wounds.stocked(event.level as? Level ?: return, event.chunk)
+    }
+
+    private fun onChunkUnload(event: ChunkEvent.Unload) {
+        Wounds.emptied(event.level as? Level ?: return, event.chunk.pos)
     }
 
     private fun onRegisterCommands(event: RegisterCommandsEvent) {

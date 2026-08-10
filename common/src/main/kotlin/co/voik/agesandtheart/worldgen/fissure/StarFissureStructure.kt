@@ -193,20 +193,31 @@ class StarFissurePiece : StructurePiece {
  * two sides are never mirror images. And its width **varies along the run** and pinches to nothing at both
  * ends, which is what makes it read as torn open rather than bored out.
  */
-private class Crack(private val alongX: Double, private val alongZ: Double, private val noise: NormalNoise) {
+internal class Crack(private val alongX: Double, private val alongZ: Double, private val noise: NormalNoise) {
 
-    fun reaches(offsetX: Int, offsetZ: Int): Boolean {
+    fun reaches(offsetX: Int, offsetZ: Int): Boolean = reaches(offsetX, offsetZ, 0.0)
+
+    /**
+     * The same crack [wider] blocks fatter and longer — **which is what lets a tear grow without becoming a
+     * circle**.
+     *
+     * A radius around a point reads as a hole somebody bored; a crack widened along its own axis still
+     * reads as something torn. Both the half-length and the width take the widening, so a tear that has
+     * been open a while is a longer, fatter crack rather than a blob with a crack inside it.
+     */
+    fun reaches(offsetX: Int, offsetZ: Int, wider: Double): Boolean {
         // Into the crack's own frame: how far along its run, and how far off its centre.
         val along = offsetX * alongX + offsetZ * alongZ
         val across = -offsetX * alongZ + offsetZ * alongX
-        if (along < -HALF_LENGTH || along > HALF_LENGTH) return false
+        val length = HALF_LENGTH + wider
+        if (along < -length || along > length) return false
 
-        val reach = along / HALF_LENGTH
+        val reach = along / length
         // Pinched at both ends, so it tapers to a point rather than stopping square.
         val taper = 1.0 - reach * reach
         val wander = noise.getValue(along * WANDER_SCALE, 0.0, 0.0) * MOST_WANDER * taper
         val widening = noise.getValue(0.0, 0.0, along * WIDTH_SCALE) * WIDTH_VARIES
-        val width = (NARROWEST + widening) * taper
+        val width = (NARROWEST + widening + wider) * taper
         return kotlin.math.abs(across - wander) <= width
     }
 

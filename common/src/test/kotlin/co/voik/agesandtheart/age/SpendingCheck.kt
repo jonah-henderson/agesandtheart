@@ -12,6 +12,17 @@ import io.kotest.core.spec.style.FunSpec
  */
 class SpendingCheck : FunSpec({
 
+    /**
+     * The price list as shipped in `data/agesandtheart/art/manifestation/`, spelled out so a check reads
+     * what a server runs. Changing a file there should change this and fail loudly if it does not.
+     */
+    val SHIPPED = mapOf(
+        Manifestation.TORN_SEAMS to Price(costs = 2, most = 4),
+        Manifestation.WOUNDS to Price(costs = 5, most = 4),
+        Manifestation.BLIGHT to Price(costs = 9, most = 3),
+        Manifestation.COLLAPSE to Price(costs = 14, most = 3),
+    )
+
     val cheap = Manifestation.TORN_SEAMS
 
     /** Far past any budget a check here hands out, so nothing but the one under test can be afforded. */
@@ -123,12 +134,8 @@ class SpendingCheck : FunSpec({
      * — which is §5.0's fence working as arithmetic rather than as a guard somebody remembered to write.
      */
     test("a small mistake tears seams and opens no wounds") {
-        val shipped = mapOf(
-            Manifestation.TORN_SEAMS to Price(costs = 2, most = 4),
-            Manifestation.WOUNDS to Price(costs = 5, most = 4),
-        )
-        fun wounds(budget: Int) = Spending.of(budget, shipped, 1L).bought(Manifestation.WOUNDS)
-        fun seams(budget: Int) = Spending.of(budget, shipped, 1L).bought(Manifestation.TORN_SEAMS)
+        fun wounds(budget: Int) = Spending.of(budget, SHIPPED, 1L).bought(Manifestation.WOUNDS)
+        fun seams(budget: Int) = Spending.of(budget, SHIPPED, 1L).bought(Manifestation.TORN_SEAMS)
 
         // Everything a beginner can plausibly reach buys tearing and nothing worse.
         for (budget in 0..9) {
@@ -138,6 +145,34 @@ class SpendingCheck : FunSpec({
         check(seams(9) == 4) { "seams were not filled before wounds were reached: ${seams(9)}" }
         check(wounds(14) >= 1) { "a badly flawed Age opened no wound at all" }
         check(wounds(1000) == 4) { "the wound cap did not hold: ${wounds(1000)}" }
+    }
+
+    /**
+     * **The goodwill fence, as arithmetic** (design §5.0, §5.2.1).
+     *
+     * The dire registers are not gated by a guard somebody remembered to write — they are simply
+     * unaffordable until everything cheaper has been bought to its cap. This is the check that says so,
+     * and it is the one to look at if the price list is ever retuned.
+     */
+    test("blight and collapse are unaffordable until the cheap registers are full") {
+        fun blight(budget: Int) = Spending.of(budget, SHIPPED, 1L).bought(Manifestation.BLIGHT)
+        fun collapse(budget: Int) = Spending.of(budget, SHIPPED, 1L).bought(Manifestation.COLLAPSE)
+
+        // A five-page desk cannot hold enough contradiction to reach here, and the arithmetic agrees.
+        for (budget in 0..27) {
+            check(blight(budget) == 0) { "instability $budget blighted an Age: ${blight(budget)}" }
+        }
+        for (budget in 0..36) {
+            check(collapse(budget) == 0) { "instability $budget collapsed an Age: ${collapse(budget)}" }
+        }
+        // Both are reachable by an Age genuinely written to come apart, or they would be dead content.
+        check(blight(40) >= 1) { "no budget at all reached blight" }
+        check(collapse(80) >= 1) { "no budget at all reached collapse" }
+        // Accumulation: anything that can afford to collapse also bought everything below it (§5.0).
+        val ruined = Spending.of(80, SHIPPED, 1L)
+        check(ruined.bought(Manifestation.TORN_SEAMS) == 4) { "a collapsing Age skipped its seams" }
+        check(ruined.bought(Manifestation.WOUNDS) == 4) { "a collapsing Age skipped its wounds" }
+        check(ruined.bought(Manifestation.BLIGHT) >= 1) { "a collapsing Age skipped blight" }
     }
 
     /**

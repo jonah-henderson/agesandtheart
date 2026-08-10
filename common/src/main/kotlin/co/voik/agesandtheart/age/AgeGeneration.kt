@@ -5,6 +5,8 @@ import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.WaterTable
 import kotlin.math.pow
+import co.voik.agesandtheart.age.consequence.Collapse
+import co.voik.agesandtheart.age.consequence.Tearing
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Terrain
@@ -100,7 +102,12 @@ object AgeGeneration {
         val torn = spending.reach(Manifestation.TORN_SEAMS, prices)
         // Each step bought multiplies how many open, so the register climbs from "half the chunks hold
         // one" to "the world is holed through" over the range a badly written Age can reach.
-        val wounds = woundsPerChunkAt(spending.bought(Manifestation.WOUNDS))
+        val wounds = Tearing.writtenDensityAt(spending.bought(Manifestation.WOUNDS))
+        // And how much worse each of the Age's days makes it. The generator reads the clock itself, so a
+        // chunk generated a week in comes out as torn as its neighbours rather than as the book left it.
+        val blight = Tearing.blightPerDayAt(spending.bought(Manifestation.BLIGHT))
+        // And how fast the floor gives way, for the few Ages that were written past saving.
+        val collapse = Collapse.tearsPerCellAt(spending.bought(Manifestation.COLLAPSE))
 
         // One band for every Age, and the same one every dimension type admits — see [VerticalWindow].
         val window = VerticalWindow.DEFAULT
@@ -211,6 +218,9 @@ object AgeGeneration {
             // What lives here, narrowing what vanilla resolves per biome and per structure.
             Spawns.livingIn(composition.optionsFor(Aspect.SPAWNS, 0)),
             woundsPerChunk = wounds,
+            blightPerDay = blight,
+            collapseTears = collapse,
+            writtenAt = recipe.writtenAt,
         )
     }
 
@@ -391,49 +401,6 @@ object AgeGeneration {
      * `hills` Age would raise the same hills; and two territories of the same preset in one Age would be
      * identical, leaving nothing for a seam to divide.
      */
-    /**
-     * How many wounds a chunk holds, given how many steps of the manifestation were bought.
-     *
-     * **It multiplies rather than adds** (Jonah, 2026-08-07). Writing an unstable Age should be something
-     * a writer *knows*, so the first step already puts one in every other chunk — and from there each step
-     * is eight times the last, so a badly torn world is holed through rather than lightly freckled.
-     *
-     * Capped, because past a point more of them stops saying anything and only costs frames.
-     */
-    private fun woundsPerChunkAt(steps: Int): Double {
-        if (steps <= 0) return AgeChunkGenerator.NO_WOUNDS
-        val opened = FIRST_STEP_OPENS * CROWDS_BY.pow(steps - 1)
-        return opened.coerceAtMost(MOST_PER_CHUNK)
-    }
-
-    /**
-     * One to a 64-block square at the first step — **about one to a sightline** (Jonah, 2026-08-07).
-     *
-     * A block entity renderer reaches 64 blocks, so this is roughly three in view at any moment: enough
-     * that a writer meets them without going looking, and few enough that each one is still an event.
-     * Reading "four chunks" instead would be four times this and about a dozen in sight.
-     */
-    private const val FIRST_STEP_OPENS = 1.0 / 16.0
-
-    /** What each further step multiplies that by. */
-    private const val CROWDS_BY = 4.0
-
-    /**
-     * The ceiling: sixteen to a chunk, which is a wound every couple of blocks across its footprint.
-     *
-     * **Bounded by what a wound *is*, not by what it costs to draw** (measured 2026-08-07). Rendering is
-     * cheap and stays cheap — a block entity renderer defaults to a 64-block view distance and is
-     * frustum-culled, so only about a hundred are ever submitted at this density. What does not go away
-     * is that each wound is a block entity held in memory, written into the chunk's NBT, and walked on
-     * every load and save, for every *loaded* chunk rather than every visible one. At 128 to a chunk that
-     * is eighty thousand objects at an ordinary render distance; at sixteen it is ten thousand, which a
-     * world at the very end of the register can carry.
-     *
-     * Raising it wants wounds drawn without a block entity apiece — a chunk-level renderer or a particle —
-     * rather than a bigger number here.
-     */
-    private const val MOST_PER_CHUNK = 16.0
-
     private fun saltFor(seed: Long, member: Int): Long = seed * TERRITORY_SALT_STRIDE + member
 
     /** Odd and large, so consecutive members land far apart in the noise rather than adjacent. */

@@ -33,9 +33,9 @@ import net.minecraft.world.phys.shapes.VoxelShape
  * a little above the world's spawn already falling, so the last thing the fissure does is the same thing it
  * started with. That is the escape hatch's whole shape: found rather than carried, and never a route back.
  */
-class StarFissureBlock(properties: Properties) : BaseEntityBlock(properties), Portal {
+open class StarFissureBlock(properties: Properties) : BaseEntityBlock(properties), Portal {
 
-    override fun codec(): MapCodec<StarFissureBlock> = CODEC
+    override fun codec(): MapCodec<out StarFissureBlock> = CODEC
 
     override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = StarFissureBlockEntity(pos, state)
 
@@ -68,6 +68,12 @@ class StarFissureBlock(properties: Properties) : BaseEntityBlock(properties), Po
         overlapping: Boolean,
     ) {
         if (!entity.canUsePortal(false)) return
+        // **Whatever fell to get here, it did not fall.** A tear that runs the whole height of the world
+        // (§5.3) is a hundred-odd blocks of shaft, so anything arriving at the bottom arrives at terminal
+        // velocity and is killed by the floor a tick before the portal's beat is up — dying *inside* the
+        // way out, which is the one thing this block exists to prevent. Zeroing it every tick inside also
+        // covers the ordinary structural fissure, where a long drop in was survivable but expensive.
+        entity.resetFallDistance()
         entity.setAsInsidePortal(this, pos)
     }
 

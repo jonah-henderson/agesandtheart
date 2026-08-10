@@ -177,6 +177,28 @@ data class Instability(val flaws: List<Flaw>) {
         /** A sentence the world had no argument with. Also what every Age written before words had. */
         val NONE = Instability(emptyList())
 
+        /**
+         * An index set by hand rather than earned — **for `/age decay <name> unstable <n>` and nothing
+         * else**.
+         *
+         * The index is the sum of the flaws precisely so the number and the reasons cannot disagree, and
+         * this is the one place that is deliberately sidestepped: it fabricates a single flaw carrying the
+         * whole weight, so everything downstream — the price list, the manifestations, the reports — reads
+         * a real [Instability] and none of it needs to know.
+         *
+         * It exists because reaching the dire registers honestly wants a book of two dozen pages opposing
+         * two dozen different things, which is a great deal of fighting the vocabulary to test arithmetic
+         * that has nothing to do with vocabulary. **Nothing in the game may build one of these.**
+         */
+        fun forced(index: Int): Instability = if (index <= 0) {
+            NONE
+        } else {
+            Instability(listOf(Flaw(Register.IMPOSSIBLE, listOf(BY_HAND), null, emptyList(), index)))
+        }
+
+        /** What a forced flaw names as its cause, so a report never claims a sentence did it. */
+        const val BY_HAND = "an index set by hand"
+
         val MAP_CODEC: MapCodec<Instability> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
                 Flaw.CODEC.listOf().optionalFieldOf("flaws", emptyList()).forGetter(Instability::flaws),

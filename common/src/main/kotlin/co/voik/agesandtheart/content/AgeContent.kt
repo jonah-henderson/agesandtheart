@@ -5,12 +5,12 @@ import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.PageWordFunction
 import co.voik.agesandtheart.age.word.grammar.Said
 import co.voik.agesandtheart.age.consequence.WoundBlock
-import co.voik.agesandtheart.age.consequence.WoundBlockEntity
 import co.voik.agesandtheart.book.BindLinkingBookFunction
 import co.voik.agesandtheart.book.WriteFoundBookFunction
 import co.voik.agesandtheart.book.BookEntity
 import co.voik.agesandtheart.book.LinkTarget
 import co.voik.agesandtheart.book.RepatternBookRecipe
+import co.voik.agesandtheart.worldgen.fissure.CollapsingFissureBlock
 import co.voik.agesandtheart.worldgen.fissure.StarFissureBlock
 import co.voik.agesandtheart.worldgen.fissure.StarFissureBlockEntity
 import co.voik.agesandtheart.desk.WritersDeskBlock
@@ -286,6 +286,26 @@ object AgeContent {
             .pushReaction(net.minecraft.world.level.material.PushReaction.BLOCK),
     )
 
+    private val COLLAPSING_FISSURE_ID: Identifier = "collapsing_fissure".location()
+
+    /**
+     * A star fissure that is still opening — see [co.voik.agesandtheart.worldgen.fissure.CollapsingFissureBlock].
+     *
+     * **`randomTicks()` is the whole of what makes it spread**, handing the scheduling to vanilla exactly as
+     * a grass block does. Everything else it is, it is by being a star fissure.
+     */
+    val COLLAPSING_FISSURE_BLOCK: CollapsingFissureBlock = CollapsingFissureBlock(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, COLLAPSING_FISSURE_ID))
+            .mapColor(MapColor.COLOR_BLACK)
+            .noCollision()
+            .lightLevel { FISSURE_GLOW }
+            .strength(-1.0f, Float.MAX_VALUE)
+            .noLootTable()
+            .randomTicks()
+            .pushReaction(net.minecraft.world.level.material.PushReaction.BLOCK),
+    )
+
     /** The tear itself, and the piece that cuts it — see the fissure package. */
     val STAR_FISSURE_STRUCTURE: StructureType<StarFissureStructure> = StructureType { StarFissureStructure.CODEC }
 
@@ -300,7 +320,11 @@ object AgeContent {
     )
 
     val STAR_FISSURE_ENTITY: BlockEntityType<StarFissureBlockEntity> =
-        BlockEntityType({ pos, state -> StarFissureBlockEntity(pos, state) }, setOf(STAR_FISSURE_BLOCK))
+        BlockEntityType(
+            { pos, state -> StarFissureBlockEntity(pos, state) },
+            // Both blocks, so one renderer draws the starfield for the finished tear and the opening one.
+            setOf(STAR_FISSURE_BLOCK, COLLAPSING_FISSURE_BLOCK),
+        )
 
     /** The end portal's own, so the shaft is lit the way the starfield reads best. */
     private const val FISSURE_GLOW = 15
@@ -326,8 +350,12 @@ object AgeContent {
      * A tear in spacetime (design §5.1). Unbreakable and lootless — the only thing to be done with one is
      * to box it in, and a wound that could be mined would be a wound that could be *tidied*.
      *
-     * `noOcclusion` and an invisible render shape because what is drawn is not a cube: a block entity
-     * renderer gives it the flicker, and a solid model would light the room it is in.
+     * `noOcclusion` and an invisible render shape because what is drawn is not a cube: `WoundField` gives
+     * it the flicker, and a solid model would light the room it is in.
+     *
+     * **No block entity, deliberately** — see `WoundField`. One would be an object in memory and a record
+     * in chunk NBT per wound, which is a ceiling on a register whose whole point is that the count climbs
+     * (§5.2.1). `Wounds` indexes them off the chunk's palette instead.
      */
     val WOUND_BLOCK: WoundBlock = WoundBlock(
         BlockBehaviour.Properties.of()
@@ -343,19 +371,16 @@ object AgeContent {
             .pushReaction(net.minecraft.world.level.material.PushReaction.BLOCK),
     )
 
-    val WOUND_ENTITY: BlockEntityType<WoundBlockEntity> =
-        BlockEntityType({ pos, state -> WoundBlockEntity(pos, state) }, setOf(WOUND_BLOCK))
-
     val blocks: List<Pair<Identifier, Block>> = listOf(
         WOUND_ID to WOUND_BLOCK,
         WRITERS_DESK_ID to WRITERS_DESK_BLOCK,
         STAR_FISSURE_ID to STAR_FISSURE_BLOCK,
+        COLLAPSING_FISSURE_ID to COLLAPSING_FISSURE_BLOCK,
         ANALYSIS_MACHINE_ID to ANALYSIS_MACHINE_BLOCK,
         SURVEYING_DEVICE_ID to SURVEYING_DEVICE_BLOCK,
     )
 
     val blockEntities: List<Pair<Identifier, BlockEntityType<*>>> = listOf(
-        WOUND_ID to WOUND_ENTITY,
         WRITERS_DESK_ID to WRITERS_DESK_ENTITY,
         STAR_FISSURE_ID to STAR_FISSURE_ENTITY,
         ANALYSIS_MACHINE_ID to ANALYSIS_MACHINE_ENTITY,

@@ -39,6 +39,25 @@ enum class Manifestation(val key: String) : StringRepresentable {
      * a handful nobody ever walks past, where a frequency is a thing you meet while doing something else.
      */
     WOUNDS("wounds"),
+
+    /**
+     * The tearing does not stop (design §5.2.1) — the Age goes on holing itself for as long as it exists.
+     *
+     * **Blight, and it is a verdict rather than a fight.** What a step buys is how *fast* the wound density
+     * climbs with the Age's age, so [WOUNDS] is how holed it was written and this is how holed it becomes.
+     * Unbounded on purpose: a ceiling would promise the Age can be outlasted, and the only question this
+     * register asks is how long you stay.
+     */
+    BLIGHT("blight"),
+
+    /**
+     * The world comes apart at the bottom (design §5.3) — fissures open at the world floor and widen, and
+     * what falls in is put back in the overworld.
+     *
+     * The dearest thing in the list, and the only one that ends the Age. A step buys how fast the tear
+     * spreads, which is why an Age that can afford this is one you visit rather than live in.
+     */
+    COLLAPSE("collapse"),
     ;
 
     override fun getSerializedName(): String = key

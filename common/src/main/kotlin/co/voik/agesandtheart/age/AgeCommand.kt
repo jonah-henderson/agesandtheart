@@ -1,6 +1,13 @@
 package co.voik.agesandtheart.age
 
 import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.age.consequence.Collapse
+import co.voik.agesandtheart.age.consequence.Consequence
+import net.minecraft.server.MinecraftServer
+import co.voik.agesandtheart.age.consequence.Wounds
+import net.minecraft.world.Difficulty
+import net.minecraft.world.DifficultyInstance
+import co.voik.agesandtheart.age.consequence.Tearing
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.aspect.Sky
@@ -100,6 +107,22 @@ object AgeCommand {
 
     private const val WORD_ARGUMENT = "word"
     private const val NAME_ARGUMENT = "name"
+
+    /** `/age decay <name> age <days>` — the literal, and how far back it may reach. */
+    private const val AGED_LITERAL = "age"
+
+    /** `/age danger here` — a literal rather than a bare executable, so the tree stays uniform. */
+    private const val HERE_LITERAL = "here"
+
+    /** Vanilla's chance that a mob arrives with anything on at all, before the multiplier scales it. */
+    private const val ARMS_ANYTHING_AT_ALL = 0.15f
+    private const val DAYS_ARGUMENT = "days"
+    private const val MOST_DAYS = 100_000
+
+    /** `/age decay <name> unstable <n>` — the index, set by hand rather than earned. */
+    private const val UNSTABLE_LITERAL = "unstable"
+    private const val INDEX_ARGUMENT = "index"
+    private const val MOST_INSTABILITY = 10_000
     private const val RADIUS_ARGUMENT = "radius"
     private const val SEED_ARGUMENT = "seed"
     private const val SPECIFICATION_ARGUMENT = "spec"
@@ -200,6 +223,8 @@ object AgeCommand {
                 .then(skySubcommand())
                 .then(strikeSubcommand())
                 .then(probeSubcommand())
+                .then(decaySubcommand())
+                .then(dangerSubcommand())
                 .then(listSubcommand()),
         )
     }
@@ -387,6 +412,216 @@ object AgeCommand {
                 ),
             )
         }
+
+    /**
+     * `/age decay <name>` — how far an Age has come apart, and `/age decay <name> age <days>` to make it
+     * older than it is.
+     *
+     * **Without the second form none of this is observable.** Blight and collapse are read against the
+     * Age's own age (design §5.4), so the mildest blight takes four of its days to open one more wound per
+     * chunk and the gentlest collapse a fortnight to be worth looking at. Backdating rewrites the one field
+     * the clock is measured from, which is the whole of what "wait a month" means to everything downstream
+     * — no separate debug path, and nothing that could disagree with the real one.
+     */
+    private fun decaySubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        reporting("decay") { reportFor ->
+            Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
+                .executes { context -> runDecay(context, reportFor(context)) }
+                .then(
+                    Commands.literal(AGED_LITERAL).then(
+                        Commands.argument(DAYS_ARGUMENT, IntegerArgumentType.integer(0, MOST_DAYS))
+                            .executes { context ->
+                                runBackdate(
+                                    context,
+                                    IntegerArgumentType.getInteger(context, DAYS_ARGUMENT),
+                                    reportFor(context),
+                                )
+                            },
+                    ),
+                )
+                .then(
+                    Commands.literal(UNSTABLE_LITERAL).then(
+                        Commands.argument(INDEX_ARGUMENT, IntegerArgumentType.integer(0, MOST_INSTABILITY))
+                            .executes { context ->
+                                runForceInstability(
+                                    context,
+                                    IntegerArgumentType.getInteger(context, INDEX_ARGUMENT),
+                                    reportFor(context),
+                                )
+                            },
+                    ),
+                )
+        }
+
+    /**
+     * `/age danger` — what the ground you are standing on is worth, in vanilla's own terms.
+     *
+     * **Written because the register is otherwise unobservable** (Jonah, 2026-08-09, walked): a wound arms
+     * what comes out of it by ageing the ground (§5.1), which is `DifficultyInstance` doing the work, and
+     * `getSpecialMultiplier` is a probability rather than a visible state. A walk that sees no armoured
+     * skeleton has learned nothing — the chance is a few per cent a mob — so this says the number instead.
+     *
+     * **F3 will not show this.** The debug screen computes local difficulty from the *client's* level, and
+     * the seam a wound raises is on `ServerLevel.getCurrentDifficultyAt`, so the two legitimately disagree
+     * and the client's is the one that is wrong.
+     */
+    private fun dangerSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        reporting("danger") { reportFor ->
+            Commands.literal(HERE_LITERAL).executes { context -> runDanger(context, reportFor(context)) }
+        }
+
+    private fun runDanger(context: CommandContext<CommandSourceStack>, report: Report): Int {
+        val source = context.source
+        val level = source.level
+        val at = BlockPos.containing(source.position)
+        // Vanilla's own answer, taken before ours can raise it — `Hostility` reads the wound and returns a
+        // floor, so the pair is what says whether the register did anything here at all.
+        val plain = DifficultyInstance(
+            level.difficulty,
+            level.overworldClockTime,
+            level.getChunk(at).inhabitedTime,
+            level.getMoonBrightness(at),
+        )
+        val raised = level.getCurrentDifficultyAt(at)
+        val corruption = Wounds.corruptionAt(level, at.center)
+
+        report.say { "Standing at ${at.x}, ${at.y}, ${at.z} in ${level.dimension().identifier()}:" }
+        report.fact("difficulty", level.difficulty.serializedName) { "  world difficulty: ${level.difficulty.serializedName}" }
+        report.fact("corruption", corruption) { "  corruption here: %.3f".format(corruption) }
+        report.fact("inhabited", level.getChunk(at).inhabitedTime) {
+            "  chunk really lived in for ${level.getChunk(at).inhabitedTime} ticks"
+        }
+        report.fact("effectiveWithout", plain.effectiveDifficulty) {
+            "  effective difficulty without the wound: %.2f".format(plain.effectiveDifficulty)
+        }
+        report.fact("effectiveWith", raised.effectiveDifficulty) {
+            "  effective difficulty as the Age has it: %.2f".format(raised.effectiveDifficulty)
+        }
+        report.fact("specialMultiplier", raised.specialMultiplier) {
+            "  special multiplier: %.2f".format(raised.specialMultiplier)
+        }
+        // The whole point of the readout: vanilla refuses to arm anything below 2.0, and on Easy the ceiling
+        // is 1.5 however lived-in the ground is — so the register cannot show there at all.
+        if (raised.specialMultiplier <= 0.0f) {
+            report.say {
+                "  → nothing will spawn armed here: vanilla arms nothing below effective 2.0" +
+                    if (level.difficulty == Difficulty.EASY) ", and Easy tops out at 1.5" else ""
+            }
+        } else {
+            val chance = ARMS_ANYTHING_AT_ALL * raised.specialMultiplier
+            report.say { "  → about %.0f%% of what spawns here should arrive armed".format(chance * 100.0f) }
+        }
+        return SUCCESS
+    }
+
+    private fun runDecay(context: CommandContext<CommandSourceStack>, report: Report): Int {
+        val source = context.source
+        val name = StringArgumentType.getString(context, NAME_ARGUMENT)
+        val id = ageId(name)
+        if (id !in AgeSavedData.get(source.server).ages) {
+            report.fail("No Age named '$name' — create it with /age create $name")
+            return FAILURE
+        }
+        val recipe = AgeSavedData.get(source.server).recipe(id)
+        val spending = Spending.of(source.server, recipe)
+        val days = recipe.ageAt(source.server) / Tearing.TICKS_PER_DAY
+        val written = Tearing.writtenDensityAt(spending.bought(Manifestation.WOUNDS))
+        val perDay = Tearing.blightPerDayAt(spending.bought(Manifestation.BLIGHT))
+        val density = Tearing.densityAt(written, perDay, days)
+        val tears = Collapse.tearsPerCellAt(spending.bought(Manifestation.COLLAPSE))
+
+        report.say { "Age '$name' has stood $days days (instability ${recipe.instability.index}):" }
+        report.fact("days", days) { "  days: $days" }
+        report.fact("spending", spending.toString()) { "  bought: $spending" }
+        report.fact("woundsWritten", written) { "  wounds the book tore: %.3f per chunk".format(written) }
+        report.fact("blightPerDay", perDay) { "  blight: %.3f more per chunk each day".format(perDay) }
+        report.fact("woundsNow", density) { "  wounds now: %.3f per chunk".format(density) }
+        report.fact("collapseTears", tears) {
+            if (tears <= Collapse.NONE) "  no tears in the floor" else "  $tears tear(s) to every 96 blocks, widening"
+        }
+        // Where to walk. One tear to a 512-block cell is not something anybody finds by looking.
+        if (tears > Collapse.NONE) {
+            val level = Ages.open(source.server, id)
+            if (level != null) {
+                val here = BlockPos.containing(source.position)
+                val (originX, originZ) = Collapse.nearestOriginTo(level.seed, here.x, here.z, tears)
+                report.fact("nearestTearX", originX) { "" }
+                report.fact("nearestTearZ", originZ) { "" }
+                report.say { "  nearest tear opened at $originX, $originZ — /age tp $name then go there" }
+            }
+        }
+        return SUCCESS
+    }
+
+    /**
+     * Make an Age older than it is, by moving the tick it was written on backwards.
+     *
+     * Generation reads the clock per chunk, so unvisited ground comes out at the new age immediately;
+     * ground that already exists is brought up by the same fast-forward a chunk load always runs, so
+     * unloading and returning is what makes it catch up.
+     */
+    private fun runBackdate(context: CommandContext<CommandSourceStack>, days: Int, report: Report): Int {
+        val source = context.source
+        val name = StringArgumentType.getString(context, NAME_ARGUMENT)
+        val saved = AgeSavedData.get(source.server)
+        val id = ageId(name)
+        if (id !in saved.ages) {
+            report.fail("No Age named '$name' — create it with /age create $name")
+            return FAILURE
+        }
+        val now = source.server.overworld().gameTime
+        val aged = saved.recipe(id).copy(writtenAt = now - days * Tearing.TICKS_PER_DAY)
+        saved.add(id, aged)
+        // **And the live generator, or nothing changes until the Age is reopened** (walked 2026-08-09).
+        // A generator is built once at open and keeps its own copy of the clock, so rewriting the recipe
+        // alone left an Age reporting a month and generating as though it were new.
+        retellTheGenerator(source.server, id, aged)
+        report.say { "Age '$name' now reads as $days days old — walk to ground it has not generated yet." }
+        report.fact("days", days.toLong()) { "" }
+        report.fact("writtenAt", aged.writtenAt) { "" }
+        return SUCCESS
+    }
+
+    /**
+     * Tell a running Age that its recipe changed, so generation stops answering from the one it opened with.
+     *
+     * Without this a rewritten recipe reaches every *report* and no *chunk*, which is exactly the shape of
+     * bug that had collapse announcing a radius of 240 and generating a solid world (walked 2026-08-09).
+     */
+    private fun retellTheGenerator(server: MinecraftServer, id: Identifier, recipe: AgeRecipe) {
+        val level = Ages.open(server, id) ?: return
+        val generator = level.chunkSource.generator as? AgeChunkGenerator ?: return
+        generator.rewriteConsequence(Consequence.of(server, recipe))
+    }
+
+    /**
+     * Set an Age's instability outright, so the consequence registers can be tested without writing a book
+     * that earns them.
+     *
+     * Reaching blight honestly takes an index near forty and collapse near seventy, which is two dozen
+     * pages opposing two dozen different things — a great deal of fighting the vocabulary to exercise
+     * arithmetic the vocabulary has nothing to do with. The index goes through the real price list from
+     * here, so what it buys is exactly what a book of that index would have bought.
+     */
+    private fun runForceInstability(context: CommandContext<CommandSourceStack>, index: Int, report: Report): Int {
+        val source = context.source
+        val name = StringArgumentType.getString(context, NAME_ARGUMENT)
+        val saved = AgeSavedData.get(source.server)
+        val id = ageId(name)
+        if (id !in saved.ages) {
+            report.fail("No Age named '$name' — create it with /age create $name")
+            return FAILURE
+        }
+        val forced = saved.recipe(id).copy(instability = Instability.forced(index))
+        saved.add(id, forced)
+        retellTheGenerator(source.server, id, forced)
+        val spending = Spending.of(source.server, forced)
+        report.say { "Age '$name' is now instability $index, which buys $spending." }
+        report.fact("instability", index) { "" }
+        report.fact("spending", spending.toString()) { "" }
+        report.say { "  walk to ground it has not generated yet — what exists keeps what it was made with." }
+        return SUCCESS
+    }
 
     private fun runProbe(
         context: CommandContext<CommandSourceStack>,

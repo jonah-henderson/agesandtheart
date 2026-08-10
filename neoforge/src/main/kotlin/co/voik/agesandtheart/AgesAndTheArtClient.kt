@@ -4,7 +4,6 @@ import co.voik.agesandtheart.age.consequence.Wounds
 import co.voik.agesandtheart.client.BookEntityRenderer
 import co.voik.agesandtheart.client.ClientDeskNetwork
 import co.voik.agesandtheart.client.StarFissureRenderer
-import co.voik.agesandtheart.client.WoundRenderer
 import net.neoforged.neoforge.client.event.EntityRenderersEvent
 import co.voik.agesandtheart.client.DeskModel
 import co.voik.agesandtheart.client.KnownWords
@@ -67,7 +66,6 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
         event.registerEntityRenderer(AgeContent.BOOK_ENTITY, ::BookEntityRenderer)
         // The wound's flicker and the fissure's shaft, both block entities drawn by shader rather than by
         // a baked model — the same event on this loader, where Fabric has a registry of its own.
-        event.registerBlockEntityRenderer(AgeContent.WOUND_ENTITY) { WoundRenderer() }
         event.registerBlockEntityRenderer(AgeContent.STAR_FISSURE_ENTITY) { StarFissureRenderer() }
     }
 
