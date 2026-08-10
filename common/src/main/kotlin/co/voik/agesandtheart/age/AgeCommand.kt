@@ -12,7 +12,9 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.word.Resolver
-import co.voik.agesandtheart.sky.Skies
+import co.voik.runtimelevels.debug.LevelLookPreview
+import co.voik.runtimelevels.sky.LevelAppearance
+import co.voik.runtimelevels.sky.LevelLook
 import co.voik.agesandtheart.worldgen.AgeChunkGenerator
 import co.voik.agesandtheart.worldgen.field.RegionMap
 import co.voik.agesandtheart.worldgen.field.Spans
@@ -1208,7 +1210,13 @@ object AgeCommand {
         return SUCCESS
     }
 
-    /** Prints an Age's sky, and when [preview] is given, shows that one instead. */
+    /**
+     * Prints an Age's sky, and when [preview] is given, shows that one instead.
+     *
+     * **What clients were told, not what the recipe would say**, which is the only reading that can catch the
+     * pipeline having gone quiet — a look never given is a sky nobody sees, and recomputing it here would
+     * report one anyway.
+     */
     private fun runSkyReport(context: CommandContext<CommandSourceStack>, preview: String?): Int {
         val source = context.source
         val name = StringArgumentType.getString(context, NAME_ARGUMENT)
@@ -1216,12 +1224,15 @@ object AgeCommand {
         val recipe = AgeSavedData.get(source.server).recipe(ageId(name))
 
         val spec = if (preview == null) {
-            AgeGeneration.skySpec(recipe)
+            LevelAppearance.of(level.dimension())?.sky ?: run {
+                source.sendFailure(Component.literal("Nothing has said what '$name' looks like"))
+                return FAILURE
+            }
         } else {
             previewSpec(source, preview, recipe.seed) ?: return FAILURE
         }
 
-        if (preview != null) Skies.preview(level, spec)
+        if (preview != null) LevelLookPreview.show(level, LevelLook(spec))
         val heading = if (preview == null) "Age '$name' sky" else "Previewing in '$name' (reverts on re-entry)"
         source.sendSuccess({ Component.literal(heading) }, false)
         for (line in spec.described()) {

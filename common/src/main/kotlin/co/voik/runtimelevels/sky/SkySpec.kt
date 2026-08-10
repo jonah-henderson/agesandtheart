@@ -7,29 +7,29 @@ import net.minecraft.util.RandomSource
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 
 /**
- * Everything an Age's sky is, as data: its celestial bodies and its stars.
+ * Everything a level's sky is, as data: its celestial bodies and its stars.
  *
- * **What crosses to the client**, and nothing here is a registry object — see [LookPayload] for why that
- * matters, and `notes/per-age-skies-research.md` §1.
+ * **What crosses to the client**, and nothing here is a registry object — which is the whole reason a level
+ * made at runtime can have a sky at all. See [LevelLookPayload].
  *
- * **Derived, never stored**: [drawn] is a pure function, so an Age rebuilds the same sky on every open
- * from its recipe. The codec exists to *send* a spec, not to persist one.
+ * **Meant to be derived rather than stored**: [drawn] is a pure function, so a caller that keeps only the
+ * seed rebuilds the same sky on every open. The codec exists to *send* a spec, not to persist one.
  */
 data class SkySpec(
     val bodies: List<CelestialBody>,
     val stars: StarField,
-    /** Overcast layers, outermost last. Empty for every sky that has none, which is all but the Spire's. */
+    /** Overcast layers, outermost last, and empty for the great majority of skies that have none. */
     val decks: List<CloudDeck> = emptyList(),
 ) {
 
     /**
-     * Whether this is an ordinary sky — vanilla's sun, moon and stars, nothing added. The painter declines
-     * to draw one, so vanilla's own `renderSunMoonAndStars` runs and an unremarkable Age gets vanilla's
-     * sky exactly rather than our imitation of it.
+     * Whether this is an ordinary sky — vanilla's sun, moon and stars, nothing added. The renderer declines
+     * to draw one, so vanilla's own `renderSunMoonAndStars` runs and an unremarkable level gets vanilla's sky
+     * exactly rather than an imitation of it.
      *
      * The star *seed* is deliberately not compared: a different arrangement of the same number of stars is
-     * not something vanilla cannot draw. A star **reveal** is, so it counts — [decks] do not, because they
-     * are the other Mixin's business and an Age may have them over an otherwise unremarkable sky.
+     * not something vanilla cannot draw. A star **reveal** is, so it counts — [decks] do not, because the
+     * cloud renderer draws those and a level may have them over an otherwise unremarkable sky.
      */
     val isOrdinary: Boolean
         get() {
@@ -39,8 +39,8 @@ data class SkySpec(
         }
 
     /**
-     * This sky in a line per body, for `/age sky` — numbers and all, which §3.2 permits: it forbids
-     * showing numbers to the **player**, and this is a developer instrument behind an operator permission.
+     * This sky in a line per body, for a command that reports one. Numbers and all — it is an instrument for
+     * whoever is tuning a sky, not something a player is meant to read.
      */
     fun described(): List<String> = bodies.map { body ->
         val orbit = body.orbit
@@ -102,11 +102,11 @@ data class SkySpec(
         }
 
         /**
-         * The sky an Age gets, drawn from its seed — **the writer names the character and the seed decides
-         * the specifics**, so two Ages with the same words at different seeds differ.
+         * The sky a level gets, drawn from its seed — **the caller names the character and the seed decides
+         * the specifics**, so two levels asking for the same thing at different seeds differ.
          *
-         * Counts arrive as plain integers rather than [co.voik.agesandtheart.age.aspect.Parameter] values,
-         * which is what lets this be checked offline without a vocabulary.
+         * Counts arrive as plain integers rather than as whatever the caller graded them from, which is what
+         * lets this be checked offline.
          *
          * **The first sun is exactly vanilla's**, and that is load-bearing: the lightmap still runs on
          * `DimensionType.timeOfDay`, so a primary sun off that schedule would leave noon bright with the
@@ -162,8 +162,8 @@ data class SkySpec(
                 )
             }
 
-            // Drawn from the Age even when it is empty, so that "no stars" and "stars we happened to draw none
-            // of" cannot be confused — the count is the statement, the seed is only how it is arranged.
+            // Drawn even when the count is zero, so that "no stars" and "stars we happened to draw none of"
+            // cannot be confused — the count is the statement, the seed is only how it is arranged.
             val stars = StarField(starCount.coerceAtLeast(0), random.nextLong())
             return SkySpec(bodies, stars)
         }
@@ -178,8 +178,8 @@ data class SkySpec(
          * random, which strings the bodies along one arc like beads.
          *
          * [band] is the range of radii this kind of body may take. Distance varies regardless of spread,
-         * because two bodies at one radius flicker against each other on draw order — the sky pass has no
-         * z-buffer at all (research §3.1).
+         * because two bodies at one radius flicker against each other on draw order — the sky pass runs with
+         * depth writes off, so there is no z-buffer to separate them.
          */
         private fun wanderingOrbit(
             random: RandomSource,
@@ -260,11 +260,11 @@ data class SkySpec(
 }
 
 /**
- * The stars, as a count and an arrangement seed. Zero is "no stars", which a writer can ask for; the seed
- * is per Age, so two Ages with the same number still get different constellations.
+ * The stars, as a count and an arrangement seed. Zero is "no stars", which is a thing a caller may ask for;
+ * the seed is per level, so two levels with the same number still get different constellations.
  *
- * Brightness is absent because our renderer owns it outright — `ClientLevel.getStarBrightness` is read
- * only by `LevelRenderer.renderSky` (research §4.3), which we replace entirely.
+ * Brightness is absent because a replacement renderer owns it outright — `ClientLevel.getStarBrightness` is
+ * read only by `LevelRenderer.renderSky`, which such a renderer replaces entirely.
  */
 data class StarField(
     val count: Int,
@@ -272,7 +272,7 @@ data class StarField(
     /**
      * The height band the stars fade in across, or null for a field that is simply always there.
      *
-     * Present only where a sky hides its stars behind something — the Spire's, above its upper deck.
+     * Present only where a sky hides its stars behind something, such as an overcast you have to climb above.
      */
     val reveal: StarReveal? = null,
 ) {

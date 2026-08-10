@@ -8,7 +8,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder
  * One overcast cloud layer: a flat slab at [height] that roils between [low] and [high].
  *
  * **A deck is data, like everything else in a [SkySpec]** — it travels to the client on the payload and is
- * rebuilt from the recipe on every open, so nothing about how it is drawn belongs here.
+ * rebuilt on every open, so nothing about how it is drawn belongs here.
  *
  * The roil is a closed-form function of world position and time, which is what lets the renderer evaluate
  * it per *fragment* rather than per vertex. [driftSpeed] is how fast it moves and [noiseOffsetX] /
@@ -54,9 +54,8 @@ data class CloudDeck(
 /**
  * A band of height across which the stars fade in, for a sky that keeps them hidden until you climb.
  *
- * The Spire's are revealed only above its upper deck, and that coupling is the point: a reader should be
- * able to see that the band is derived from the deck rather than written next to it, so retuning the deck
- * cannot leave the stars behind at the old height.
+ * Build one **from the deck it clears** rather than writing the heights down beside it. The coupling is the
+ * point: retuning a deck then carries its stars with it instead of leaving them fading at the old height.
  */
 data class StarReveal(val hiddenBelow: Double, val fullyShownAbove: Double) {
 

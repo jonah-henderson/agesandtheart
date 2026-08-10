@@ -40,9 +40,9 @@ data class Orbit(
      *
      * **Steps once per tick, and must never add `partialTick`.** That fraction resets to zero at every
      * tick boundary, so if the value it is added to has not incremented in the same instant each boundary
-     * is a step *backwards* — a sawtooth, not a smooth arc. An Age gets `DerivedLevelData`, so its day
-     * time is the overworld's and the server syncs it only every 20 ticks, which makes that very likely.
-     * One tick is 0.015° of arc anyway, so there is nothing to gain.
+     * is a step *backwards* — a sawtooth, not a smooth arc. A level on `DerivedLevelData` takes its day time
+     * from the overworld and the server syncs that only every 20 ticks, which makes it very likely. One tick
+     * is 0.015° of arc anyway, so there is nothing to gain.
      *
      * The easing is `DimensionType.timeOfDay`'s, which makes a body linger near the horizon and hurry
      * through the zenith.

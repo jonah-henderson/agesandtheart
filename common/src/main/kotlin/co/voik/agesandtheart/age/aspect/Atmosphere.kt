@@ -133,7 +133,7 @@ object Atmosphere {
     /**
      * What the *eye* sees, which the server cannot decide alone: `ClientLevel` builds its own attribute
      * system in its constructor from a private final field, so these cross on a payload and are installed
-     * client-side. See [co.voik.agesandtheart.sky.LookPayload].
+     * client-side. See [co.voik.runtimelevels.sky.LevelLookPayload].
      */
     fun lookIn(options: Options, salt: Long, biome: Identifier? = null): Look = Look(
         sky = colourOf(options, SKY, biome),

@@ -3,6 +3,7 @@ package co.voik.agesandtheart
 import co.voik.agesandtheart.age.consequence.Wounds
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
+import net.fabricmc.fabric.api.entity.event.v1.ServerEntityLevelChangeEvents
 import co.voik.agesandtheart.age.phenomena.Happenings
 import co.voik.agesandtheart.age.AgeCommand
 import co.voik.agesandtheart.age.Ages
@@ -24,8 +25,8 @@ import co.voik.agesandtheart.desk.DeskPricePayload
 import co.voik.agesandtheart.desk.DeskSyncPayload
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.platform.FabricInkFluids
-import co.voik.agesandtheart.sky.LookPayload
-import co.voik.agesandtheart.sky.Skies
+import co.voik.runtimelevels.sky.LevelAppearance
+import co.voik.runtimelevels.sky.LevelLookPayload
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
 import net.fabricmc.fabric.api.loot.v3.LootTableEvents
@@ -76,7 +77,7 @@ fun init() {
 
     // The payload type, registered here rather than in the client entrypoint: Fabric requires it on *both*
     // sides, and registering twice throws. Common init is the only place that is true of.
-    PayloadTypeRegistry.clientboundPlay().register(LookPayload.TYPE, LookPayload.STREAM_CODEC)
+    PayloadTypeRegistry.clientboundPlay().register(LevelLookPayload.TYPE, LevelLookPayload.STREAM_CODEC)
     PayloadTypeRegistry.clientboundPlay().register(LexiconPayload.TYPE, LexiconPayload.STREAM_CODEC)
     PayloadTypeRegistry.clientboundPlay().register(LearnedWordsPayload.TYPE, LearnedWordsPayload.STREAM_CODEC)
     PayloadTypeRegistry.clientboundPlay().register(DeskSyncPayload.TYPE, DeskSyncPayload.STREAM_CODEC)
@@ -94,11 +95,19 @@ fun init() {
         context.server().execute { DeskCommands.handle(context.player(), payload) }
     }
 
-    // A joining player is told every Age's sky at once, so arriving by any route — book, portal, `/execute in`
-    // — already has one. See `Skies.tellAboutEverything`.
+    // A joining player is told every Age's sky at once, so arriving by any route — book, portal,
+    // `/execute in` — already has one. Which levels that is, is the library's decision; see
+    // `LevelAppearance`.
     ServerPlayConnectionEvents.JOIN.register { handler, _, _ ->
-        Skies.tellAboutEverything(handler.player)
+        LevelAppearance.joined(handler.player)
         PageLearning.tellEverything(handler.player)
+    }
+    ServerPlayConnectionEvents.DISCONNECT.register { handler, _ -> LevelAppearance.left(handler.player) }
+
+    // The watchdog. Silent under eager delivery, and the thing that names a missed route under lazy —
+    // see `LevelAppearance.arrived`.
+    ServerEntityLevelChangeEvents.AFTER_PLAYER_CHANGE_LEVEL.register { player, _, destination ->
+        LevelAppearance.arrived(player, destination.dimension())
     }
 
     // The desk's tanks, on every part of it — a pipe touching a wing should work, since the wings are
@@ -123,10 +132,13 @@ fun init() {
         AgeCommand.register(dispatcher)
     }
 
-    // Re-open persisted Ages once the server has started (Fantasy doesn't auto-restore them).
+    // Re-open persisted Ages once the server has started (nothing auto-restores a runtime level).
     ServerLifecycleEvents.SERVER_STARTED.register { server ->
         Ages.reloadSaved(server)
     }
+
+    // These keys mean nothing in the next world an integrated server opens, and ids repeat.
+    ServerLifecycleEvents.SERVER_STOPPED.register { _ -> LevelAppearance.forgetAll() }
 
     // Whatever befalls an Age. A tick has no shared entry point, so both loaders call the same one.
     ServerTickEvents.END_SERVER_TICK.register(Happenings::tick)

@@ -45,6 +45,11 @@ object LevelLooks {
         looks[dimension] = look
     }
 
+    /** Everything a payload said, which is what a loader's receiver hands over and all it has to do. */
+    fun remember(payload: LevelLookPayload) {
+        for (entry in payload.looks) remember(entry.dimension, entry.look)
+    }
+
     /**
      * Forgotten on disconnect, because these keys mean nothing on the next server and an id can be reused.
      * Keeping them would let one world's sky appear in another's.

@@ -7,7 +7,7 @@ import co.voik.agesandtheart.age.Ages
 import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.book.BookEntity
 import co.voik.agesandtheart.book.LinkTarget
-import co.voik.agesandtheart.sky.Skies
+import co.voik.runtimelevels.sky.LevelAppearance
 import net.minecraft.ChatFormatting
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
@@ -102,7 +102,7 @@ class LinkingBookItem(properties: Properties) : Item(properties) {
         player.setItemInHand(hand, ItemStack.EMPTY)
 
         // Before the move, not after: one stream carries both, so a sky sent first cannot arrive late.
-        Skies.tellAbout(player, destination)
+        LevelAppearance.expecting(player, destination.dimension())
         player.teleportTo(
             destination,
             target.position.x,

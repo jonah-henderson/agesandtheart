@@ -2,7 +2,7 @@ package co.voik.agesandtheart.client
 
 import co.voik.runtimelevels.sky.Appearance
 import co.voik.runtimelevels.sky.CelestialBody
-import co.voik.agesandtheart.sky.KnownLooks
+import co.voik.runtimelevels.sky.LevelLooks
 import co.voik.runtimelevels.sky.Orbit
 import co.voik.runtimelevels.sky.SkySpec
 import net.minecraft.client.Minecraft
@@ -55,7 +55,7 @@ object AgeSky {
         starBrightness: Float,
     ): Boolean {
         val level = Minecraft.getInstance().level ?: return false
-        val spec = KnownLooks.of(level.dimension()) ?: return false
+        val spec = LevelLooks.of(level.dimension())?.sky ?: return false
         if (spec.isOrdinary) return false
 
         val clockTime = level.defaultClockTime

@@ -7,9 +7,9 @@ import com.mojang.serialization.codecs.RecordCodecBuilder
  * An RGBA colour with channels in `0.0..1.0`. A small, testable value type so rendering code passes named
  * colours around instead of loose float quadruples.
  *
- * **Lives in `common` rather than beside the renderers** because a colour is now part of an Age's *data*: a
- * celestial body carries its tint through [co.voik.agesandtheart.sky.SkySpec], which is codec'd and sent to the
- * client. The `VertexConsumer` helpers that used to share this file stayed on the loader side, where the
+ * **Lives in `common` rather than beside the renderers** because a colour is part of a level's *data*: a
+ * celestial body carries its tint through [co.voik.runtimelevels.sky.SkySpec], which is codec'd and sent to
+ * the client. The `VertexConsumer` helpers that used to share this file stayed on the loader side, where the
  * rendering is.
  */
 data class Rgba(val red: Float, val green: Float, val blue: Float, val alpha: Float = 1.0f) {

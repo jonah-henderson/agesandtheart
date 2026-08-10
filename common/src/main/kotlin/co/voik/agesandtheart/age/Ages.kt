@@ -2,7 +2,8 @@ package co.voik.agesandtheart.age
 
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.platform.Services
-import co.voik.agesandtheart.sky.Skies
+import co.voik.runtimelevels.RuntimeLevelEvents
+import co.voik.runtimelevels.sky.LevelAppearance
 import net.minecraft.core.SectionPos
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
@@ -25,6 +26,16 @@ import co.voik.agesandtheart.age.aspect.Atmosphere
 object Ages {
     fun isSupported(): Boolean = Services.AGE_BACKEND.isSupported
 
+    /**
+     * Settle every Age's air as it opens, however it came to be open.
+     *
+     * On the library's own event rather than at each call site: writing an Age, linking to one and replaying
+     * the saved list on boot all end in the same place, and the replay used to be the one that missed.
+     */
+    fun attach() {
+        RuntimeLevelEvents.whenOpened(::settleTheAir)
+    }
+
     /** Creates a brand-new Age and records it for persistence. Null if it exists or is unsupported. */
     fun create(server: MinecraftServer, id: Identifier, recipe: AgeRecipe): ServerLevel? {
         val backend = Services.AGE_BACKEND
@@ -39,16 +50,12 @@ object Ages {
             saved.remove(id)
             return null
         }
-        settleTheAir(level, recipe)
         Constants.LOG.info("Created Age {} [{}]", id, recipe)
         return level
     }
 
     /** Opens an existing Age (get-or-open). Used for travel and restart-replay. */
-    fun open(server: MinecraftServer, id: Identifier): ServerLevel? =
-        Services.AGE_BACKEND.openAge(server, id)?.also { level ->
-            settleTheAir(level, AgeSavedData.get(server).recipe(id))
-        }
+    fun open(server: MinecraftServer, id: Identifier): ServerLevel? = Services.AGE_BACKEND.openAge(server, id)
 
     /**
      * The Age's own layer over the environment vanilla built for the level (§3.1's Atmosphere).
@@ -57,7 +64,11 @@ object Ages {
      * nothing in generation reads one — and on every open rather than once, because a level is built afresh
      * from the recipe each time the server starts.
      */
-    private fun settleTheAir(level: ServerLevel, recipe: AgeRecipe) {
+    private fun settleTheAir(level: ServerLevel) {
+        val saved = AgeSavedData.get(level.server)
+        val id = level.dimension().identifier()
+        if (id !in saved.ages) return
+        val recipe = saved.recipe(id)
         val composition = recipe.composition ?: return
         Atmosphere.settle(
             level,
@@ -114,9 +125,10 @@ object Ages {
      * origin instead.
      */
     fun teleport(player: ServerPlayer, level: ServerLevel) {
-        // Before the move, not after: one TCP stream carries both, so a sky sent first cannot arrive after
-        // the dimension change. See `Skies.tellAbout`.
-        Skies.tellAbout(player, level)
+        // Nothing under eager delivery, which is what we run: the player already knows every Age. It marks
+        // the route all the same, so going lazy is one call to `LevelAppearance.lazily` and no hunting for
+        // the places a player starts travelling.
+        LevelAppearance.expecting(player, level.dimension())
         val (landingX, landingZ) = findFooting(level)
         level.getChunk(SectionPos.blockToSectionCoord(landingX), SectionPos.blockToSectionCoord(landingZ))
         val surfaceY = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, landingX, landingZ)
@@ -175,6 +187,7 @@ object Ages {
         evict(server, id)
         if (!Services.AGE_BACKEND.deleteAge(server, id)) return false
         saved.remove(id)
+        LevelAppearance.forget(ResourceKey.create(Registries.DIMENSION, id))
         Constants.LOG.info("Deleted Age {}", id)
         return true
     }

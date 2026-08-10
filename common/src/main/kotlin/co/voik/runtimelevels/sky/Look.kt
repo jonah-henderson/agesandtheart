@@ -5,22 +5,20 @@ import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 
 /**
- * What an Age looks like to the eye — the half of `Atmosphere` a server cannot decide alone.
+ * How the air of a level is painted — the half of its environment a server cannot decide alone.
  *
- * Every field is **null where the writer said nothing**, and a null is not a colour: it means "whatever the
- * layer below produced", which is how one Age can repaint its sky and leave its fog exactly as vanilla
- * lit it.
+ * Every field is **null where nothing said**, and a null is not a colour: it means "whatever the layer below
+ * produced", which is how a level can repaint its sky and leave its fog exactly as vanilla lit it.
  *
- * [haze] and [ceiling] are fractions of their own axis rather than distances in blocks. A writer says how
- * thick the air is; how many blocks that is belongs to the client, which is the only place that knows what
- * the render distance is.
+ * [haze] and [ceiling] are fractions of their own axis rather than distances in blocks, because a caller
+ * says how thick the air is and only the client knows how far it can see.
  */
 data class Look(
     val sky: Rgba? = null,
     val fog: Rgba? = null,
     val cloud: Rgba? = null,
     val tint: Rgba? = null,
-    /** The particle that hangs in the air, by its registry id — see `Motes`. */
+    /** The particle that hangs in the air, by its registry id. */
     val motes: String? = null,
     val haze: Float? = null,
     val ceiling: Float? = null,
@@ -28,10 +26,10 @@ data class Look(
     /**
      * How brightly the stars burn, overriding the day's own curve — `1.0` being midnight.
      *
-     * **How a sky with no sun stops having a noon.** Vanilla drives star brightness off the timeline, so
-     * an Age with nothing overhead still spends half its day under a bright empty sky and its stars still
-     * fade out at noon. Pinning this is the whole of "locked at midnight" for such a world: the light a
-     * *world* gets is `Atmosphere.DAYLIGHT`'s business, and this is only what the eye sees overhead.
+     * **How a sky with no sun stops having a noon.** Vanilla drives star brightness off the timeline, so a
+     * level with nothing overhead still spends half its day under a bright empty sky and its stars still fade
+     * out at noon. Pinning this is the whole of "locked at midnight" for such a place: how much light the
+     * ground actually gets is a level attribute, and this is only what the eye sees overhead.
      */
     val starBrightness: Float? = null,
 ) {
@@ -42,8 +40,8 @@ data class Look(
     /**
      * This look over [under] — every colour of ours that was named, and [under]'s where it was not.
      *
-     * Which way round matters: a preset's palette is what an Age looks like *before* anyone said anything,
-     * so it goes underneath, and a writer who repaints the sky of a Spire-skied Age keeps its clouds.
+     * Which way round matters. The lower look is what a level looks like *before* anything specific was
+     * said, so repainting one colour of an elaborate sky leaves the rest of it standing.
      */
     fun over(under: Look): Look = Look(
         sky = sky ?: under.sky,
