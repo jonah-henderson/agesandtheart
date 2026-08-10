@@ -97,18 +97,41 @@ object AgeSky {
             val sprite = body.appearance as? Appearance.Sprite ?: continue
             val progress = progressOf(body, clockTime, sunAngle, moonAngle)
             val shape = sprite.shapes[shapeIndexOf(body, sprite, clockTime, moonPhase)]
-            val tint = sprite.tint
+            // A body that waxes and wanes is lit rather than luminous, and so covers rather than glows.
+            val luminous = body.phase == null
+            val tint = if (luminous) sprite.tint.dimmed(LUMINOUS_ADDS) else sprite.tint
             canvas.drawBody(
                 shape = shape,
                 orientation = body.orbit.rotationAtProgress(progress),
                 distance = body.orbit.distance,
                 angularSize = sprite.angularSize,
                 tint = tint.copy(alpha = tint.alpha * rainBrightness),
-                // A body that waxes and wanes is lit rather than luminous, and so covers rather than glows.
-                emitsOwnLight = body.phase == null,
+                emitsOwnLight = luminous,
             )
         }
     }
+
+    /**
+     * How much of an authored tint a **luminous** body actually adds to the sky (Jonah, 2026-08-09, walked:
+     * "the sun is still coming out almost white rather than red giant red").
+     *
+     * **A luminous body is blended additively** — `RenderPipelines.CELESTIAL` carries
+     * `BlendFunction.OVERLAY`, which is `(SRC_ALPHA, ONE)`, so what is drawn is *summed* onto the sky rather
+     * than covering it. A saturated tint at full brightness therefore drives its strongest channel to one
+     * while the sky's other two are already high, and the middle of the disc comes out white with the colour
+     * surviving only at the rim.
+     *
+     * Dimming what is added is the lever: the sun contributes less, so its dominant channel saturates over
+     * a smaller area and the hue holds across more of the disc.
+     *
+     * **Know its ceiling, because it has a hard one.** Addition cannot take the sky's green and blue *away*,
+     * so against a bright daytime sky no amount of dimming yields a deep red — the best it can do is stop
+     * the core clipping. A red giant reads properly against the dim sky such a star would actually give, and
+     * an Age that wants one should be written with both. If a body must be dark against a bright sky, the
+     * answer is not here but the occluding pipeline (`Blaze3dSkyCanvas.OCCLUDING_BODY_PIPELINE`), which
+     * covers instead of adding and costs the body its glow.
+     */
+    private const val LUMINOUS_ADDS = 0.55f
 
     /**
      * How far around its circle a body is, in `0.0..1.0`.
