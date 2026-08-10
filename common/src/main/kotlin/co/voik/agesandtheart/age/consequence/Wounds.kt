@@ -4,6 +4,8 @@ import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.chunk.ChunkAccess
 import net.minecraft.world.phys.Vec3
 import java.util.WeakHashMap
 import kotlin.math.sqrt
@@ -12,10 +14,13 @@ import kotlin.math.sqrt
  * Where the wounds are — so anything can ask **how near the nearest one is** without searching the world
  * for black blocks (design §5.1).
  *
- * **This is the one place the block-entity cost pays for itself.** Every wound already carries one for the
- * renderer, so it can announce itself on load and drop out on removal, and the index is maintained by two
- * events rather than by scanning. A corruption gradient asks this many times a frame, and a search would be
- * the whole reason not to have one.
+ * **Fed by a chunk scan, because a wound is a plain block.** It carried a block entity once, purely so the
+ * renderer had something to hang on, and that made every wound an object in memory and a record in chunk
+ * NBT — a ceiling on how many an Age could hold, which is fatal for a register whose whole point is that
+ * the number climbs while nobody is choosing it (§5.2.1). So the entity is gone and the index is built by
+ * reading each chunk as it loads. **The palette makes that nearly free**: `LevelChunkSection.maybeHas`
+ * answers off the section's palette, so a section that has never held a wound is dismissed without a single
+ * block being looked at, which is every section in almost every world.
  *
  * **Chunk-keyed**, so a query walks only the chunks within reach rather than every wound in the world — an
  * Age at the top of the register holds thousands and a linear scan would be hopeless.
@@ -37,13 +42,13 @@ object Wounds {
 
     private val byLevel = WeakHashMap<Level, MutableMap<Long, MutableSet<BlockPos>>>()
 
-    /** Called as a wound's entity loads. */
+    /** Called as one is placed — by the Age tearing a fresh one, or by a block update carrying it. */
     fun arrived(level: Level, at: BlockPos) {
         val chunks = byLevel.getOrPut(level) { HashMap() }
         chunks.getOrPut(chunkHolding(at)) { HashSet() }.add(at.immutable())
     }
 
-    /** And as it goes — a chunk unloading, or the block being replaced. */
+    /** And as it goes — the block being replaced, which only the Age itself can do. */
     fun gone(level: Level, at: BlockPos) {
         val chunks = byLevel[level] ?: return
         val chunk = chunkHolding(at)
@@ -53,8 +58,75 @@ object Wounds {
         if (chunks.isEmpty()) byLevel.remove(level)
     }
 
+    /**
+     * Every wound a chunk holds, read as it loads — the index's whole supply.
+     *
+     * **The palette is what makes this affordable.** `maybeHas` answers from the section's palette rather
+     * than its contents, so a section that has never held a wound costs one set lookup and no block reads,
+     * which is every section in every ordinary world. Only a section that might have one is walked.
+     *
+     * Called from both loaders' chunk-load events, the same shape as `Happenings.tick` — there is no shared
+     * entry point, and a service for one method would fragment `PlatformHelper` for a one-off (`CLAUDE.md`).
+     */
+    fun stocked(level: Level, chunk: ChunkAccess) {
+        val here = chunk.pos
+        val holds = { state: BlockState -> state.`is`(AgeContent.WOUND_BLOCK) }
+        val cursor = BlockPos.MutableBlockPos()
+        for ((index, section) in chunk.sections.withIndex()) {
+            if (section.hasOnlyAir() || !section.maybeHas(holds)) continue
+            val bottom = (chunk.minSectionY + index) shl CHUNK_BITS
+            for (x in 0..<SECTION) for (y in 0..<SECTION) for (z in 0..<SECTION) {
+                if (!holds(section.getBlockState(x, y, z))) continue
+                cursor.set(here.minBlockX + x, bottom + y, here.minBlockZ + z)
+                arrived(level, cursor)
+            }
+        }
+    }
+
+    /** And as it goes, so an unloaded chunk's wounds stop answering questions about a place nobody is. */
+    fun emptied(level: Level, at: ChunkPos) {
+        val chunks = byLevel[level] ?: return
+        chunks.remove(ChunkPos.pack(at.x, at.z))
+        if (chunks.isEmpty()) byLevel.remove(level)
+    }
+
     /** Everything, for a client leaving a server outright. */
     fun forget() = byLevel.clear()
+
+    /**
+     * How many this chunk holds, off the index rather than off its blocks.
+     *
+     * **The reason this exists is a measured one.** [stocked] already walks a chunk as it loads, and the
+     * blight pass needs the same number a moment later — asking the chunk again means scanning every
+     * section that holds a wound, four thousand blocks apiece, on every chunk load. That is fine at four
+     * wounds to a chunk and is minutes of generation at twelve, which is a thing an Age reaches two days
+     * into the mildest blight.
+     */
+    fun countIn(level: Level, at: ChunkPos): Int = byLevel[level]?.get(ChunkPos.pack(at.x, at.z))?.size ?: 0
+
+    /**
+     * Every wound within [reach] of [at], **sealed or not** — what the renderer draws.
+     *
+     * Deliberately not [eachOpenWound]: boxing a wound in contains what it does to the world around it and
+     * changes nothing about the tear, so a sealed one is still there and still drawn. Somebody who opens
+     * their own box has to find what they buried.
+     */
+    fun eachNear(level: Level, at: Vec3, reach: Double, visit: (BlockPos) -> Unit) {
+        val chunks = byLevel[level] ?: return
+        val chunkX = at.x.toInt() shr CHUNK_BITS
+        val chunkZ = at.z.toInt() shr CHUNK_BITS
+        val about = (reach.toInt() shr CHUNK_BITS) + 1
+        for (x in chunkX - about..chunkX + about) {
+            for (z in chunkZ - about..chunkZ + about) {
+                for (wound in chunks[ChunkPos.pack(x, z)] ?: continue) {
+                    if (at.distanceToSqr(wound.x + HALF, wound.y + HALF, wound.z + HALF) < reach * reach) {
+                        visit(wound)
+                    }
+                }
+            }
+        }
+    }
+
 
     /**
      * How corrupted [at] is, from nothing at all to fully — the number every gradient reads.
@@ -144,6 +216,9 @@ object Wounds {
 
     private const val CHUNK_BITS = 4
     private const val HALF = 0.5
+
+    /** A chunk section's edge, and a chunk's width — the same sixteen. */
+    private const val SECTION = 16
 
     /** Enough chunks either way to cover [REACH], so no wound inside it is missed. */
     private val CHUNKS_IN_REACH = (REACH.toInt() shr CHUNK_BITS) + 1

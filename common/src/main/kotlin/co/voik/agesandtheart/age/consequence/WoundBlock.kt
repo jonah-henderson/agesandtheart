@@ -18,10 +18,8 @@ import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.item.ItemEntity
 import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.Level
-import net.minecraft.world.level.block.BaseEntityBlock
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.RenderShape
-import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.redstone.Orientation
 import net.minecraft.world.entity.InsideBlockEffectApplier
 import net.minecraft.world.level.block.state.BlockState
@@ -44,15 +42,38 @@ import net.minecraft.world.level.block.state.properties.BooleanProperty
  * around it and keeps hurting anything that reaches it, which is Gehn's patch made mechanical: the
  * wrongness is contained, not gone.
  */
-class WoundBlock(properties: Properties) : BaseEntityBlock(properties) {
-
-    override fun newBlockEntity(pos: BlockPos, state: BlockState): BlockEntity = WoundBlockEntity(pos, state)
+class WoundBlock(properties: Properties) : Block(properties) {
 
     /** Nothing is drawn from a model: the flicker is a scale that changes every frame. */
     override fun getRenderShape(state: BlockState): RenderShape = RenderShape.INVISIBLE
 
     init {
         registerDefaultState(stateDefinition.any().setValue(SEALED, false))
+    }
+
+    /**
+     * Telling [Wounds] where it is, so nothing has to search the world for black blocks.
+     *
+     * **A block hook rather than a block entity's**, which is the whole of what dropping the entity cost.
+     * A wound arriving with its chunk is found by [Wounds.stocked]; this catches the other way in — one
+     * torn open at runtime, and the block update that carries it to the client.
+     *
+     * Both sides, because both have a question that would otherwise be a search: the client draws the
+     * corruption gradient out of the index and the server decides where the Age is dangerous ([Hostility]).
+     */
+    override fun onPlace(state: BlockState, level: Level, pos: BlockPos, oldState: BlockState, movedByPiston: Boolean) {
+        super.onPlace(state, level, pos, oldState, movedByPiston)
+        Wounds.arrived(level, pos)
+    }
+
+    /**
+     * And as it goes, which only the Age itself can arrange — a wound is unbreakable, so nothing a player
+     * does reaches here. Guarded on the block actually changing, since a *seal* rewrites the state through
+     * this same path and the wound is still very much there.
+     */
+    override fun affectNeighborsAfterRemoval(state: BlockState, level: ServerLevel, pos: BlockPos, movedByPiston: Boolean) {
+        super.affectNeighborsAfterRemoval(state, level, pos, movedByPiston)
+        if (!level.getBlockState(pos).`is`(this)) Wounds.gone(level, pos)
     }
 
     override fun codec(): MapCodec<WoundBlock> = CODEC
@@ -247,33 +268,3 @@ class WoundBlock(properties: Properties) : BaseEntityBlock(properties) {
     }
 }
 
-/**
- * A wound's presence in the world, and nothing else.
- *
- * **No state and no ticking.** It exists so a block entity renderer has something to hang the flicker on;
- * everything a wound *is* lives on the block and its state.
- *
- * What is drawn over it is [co.voik.agesandtheart.client.WoundRenderer]'s business entirely.
- */
-class WoundBlockEntity(pos: BlockPos, state: BlockState) : BlockEntity(AgeContent.WOUND_ENTITY, pos, state) {
-
-    /**
-     * Announcing itself to [Wounds], so anything can ask where the nearest wound is without searching the
-     * world for black blocks.
-     *
-     * `clearRemoved` rather than a load hook, which 26.1 does not have: it is what the chunk calls as a
-     * block entity joins the world, and it is the exact counterpart of [setRemoved] below.
-     *
-     * **Both sides**, because both have a question that would otherwise be a search: the client draws a
-     * gradient out of the index and the server decides where the Age is dangerous ([Hostility]).
-     */
-    override fun clearRemoved() {
-        super.clearRemoved()
-        level?.let { Wounds.arrived(it, blockPos) }
-    }
-
-    override fun setRemoved() {
-        super.setRemoved()
-        level?.let { Wounds.gone(it, blockPos) }
-    }
-}

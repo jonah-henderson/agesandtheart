@@ -2,6 +2,8 @@ package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.age.consequence.Wounds
 import co.voik.agesandtheart.math.Rgba
+import net.minecraft.client.Minecraft
+import net.minecraft.world.effect.MobEffects
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.world.attribute.EnvironmentAttributeSystem
 import net.minecraft.world.attribute.EnvironmentAttributes
@@ -45,11 +47,7 @@ object Corruption {
         }
         layers.corrupting(level, EnvironmentAttributes.BLOCK_LIGHT_TINT) { was, how -> was.drained(how).packed() }
 
-        // **Night vision is a third light and has to be drained with the other two** (Jonah, 2026-08-08,
-        // walked). It is its own attribute rather than a brightening of the others, so leaving it alone let
-        // a player wearing it stand in a wound's throat with the sky and the blocks drained around a light
-        // that was not — which reads as the two fighting for the frame rather than as one dreadful place.
-        layers.corrupting(level, EnvironmentAttributes.NIGHT_VISION_COLOR) { was, how -> was.drained(how).packed() }
+        // Night vision is not touched at all — see [yieldsToNightVision].
 
         // The fog coming *in*, which is what makes the world shrink rather than only dim.
         layers.closingIn(level, EnvironmentAttributes.FOG_END_DISTANCE)
@@ -70,10 +68,28 @@ object Corruption {
         bend: (Rgba, Float) -> Int,
     ) {
         addPositionalLayer(attribute) { was, at, _ ->
-            val how = Wounds.corruptionAt(level, at)
+            val how = if (yieldsToNightVision()) Wounds.NONE else Wounds.corruptionAt(level, at)
             if (how <= Wounds.NONE) was else bend(Rgba.of(was), how.toFloat())
         }
     }
+
+    /**
+     * Whether the corruption should keep out of the way entirely — **it yields to night vision, completely**
+     * (Jonah, 2026-08-09, walked).
+     *
+     * The previous answer was to drain the night-vision colour along with the other two lights, on the
+     * grounds that a light left untouched among drained ones reads as the two fighting for the frame. It
+     * does — but draining it reads worse: the walk found "awful flickering and night vision cutting out when
+     * nearby", because the effect's own brightening and our darkening argue over the same frames.
+     *
+     * So the register simply steps aside. A player who has chosen to see in the dark sees in the dark, and
+     * loses the visual half of the gradient while it lasts. **Nothing about the danger yields with it** —
+     * [co.voik.agesandtheart.age.consequence.Hostility] is server-side and reads the wound, not the picture,
+     * so drinking a potion makes a wound less dreadful and no less lethal. That is a fair trade rather than
+     * an exploit, and it is the reason this can be as blunt as it is.
+     */
+    private fun yieldsToNightVision(): Boolean =
+        Minecraft.getInstance().player?.hasEffect(MobEffects.NIGHT_VISION) == true
 
     /** One fog distance, pulled toward the eye — never past it, so a wound blinds nobody outright. */
     private fun EnvironmentAttributeSystem.Builder.closingIn(
@@ -81,7 +97,7 @@ object Corruption {
         attribute: net.minecraft.world.attribute.EnvironmentAttribute<Float>,
     ) {
         addPositionalLayer(attribute) { was, at, _ ->
-            val how = Wounds.corruptionAt(level, at)
+            val how = if (yieldsToNightVision()) Wounds.NONE else Wounds.corruptionAt(level, at)
             if (how <= Wounds.NONE) was else (was * (1.0 - how) + NEAREST * how).toFloat().coerceAtLeast(NEAREST)
         }
     }

@@ -10,6 +10,7 @@
   "client": [
     "client.ClientLevelMixin",
     "client.CloudRendererMixin",
+    "client.LevelRendererMixin",
     "client.SkyRendererMixin"
   ],
   "injectors": {
