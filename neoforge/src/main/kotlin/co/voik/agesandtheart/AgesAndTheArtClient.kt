@@ -37,7 +37,7 @@ import net.neoforged.neoforge.common.NeoForge
  * configs — so what used to be this loader's startup-only `DimensionSpecialEffects` problem has simply
  * stopped existing.
  *
- * **The Spire is still Fabric-only**, NeoForge being unable to open an Age at all while Fantasy is.
+ * Both loaders open Ages now, so nothing here is Fabric's alone.
  */
 @Mod(value = Constants.MOD_ID, dist = [Dist.CLIENT])
 class AgesAndTheArtClient(eventBus: IEventBus) {

@@ -7,17 +7,6 @@ plugins {
 
 val modId = project.property("modId") as String
 
-/**
- * Ephemeris is a second mod in the dev launch, and **two separate things have to be true of it**: FML builds
- * its mod list from `fml.modFolders`, which MDG writes from the `mods` block below, and the classes have to
- * be on the run classpath, which MDG assembles from `additionalRuntimeClasspath` rather than from
- * `runtimeOnly`. Neither implies the other, and with only one of them the server starts and quietly has no
- * Ephemeris in it.
- *
- * Reading another project's source sets needs it configured first.
- */
-evaluationDependsOn(":ephemeris:neoforge")
-
 neoForge {
     version = libs.versions.neoforge.get()
     // Automatically enable neoforge AccessTransformers if the file exists
@@ -45,28 +34,16 @@ neoForge {
         register(modId) {
             sourceSet(sourceSets.main.get())
         }
-        register("ephemeris") {
-            // One source set: `:ephemeris:common` is compiled *into* the loader project, exactly as this
-            // mod's `common` is, so its classes are already here.
-            sourceSet(project(":ephemeris:neoforge").sourceSets.main.get())
-        }
     }
 }
 
 sourceSets.main.get().resources { srcDir("src/generated/resources") }
 
 dependencies {
-    // Ephemeris, as a mod: on the compile path so shared code resolves, and on the runtime one so a dev
-    // launch actually loads it. A published build takes it as a declared dependency instead.
-    compileOnly(project(":ephemeris:common")) {
-        capabilities { requireCapability("co.voik.ephemeris:ephemeris") }
-    }
-    // The capability has to be named: declaring any capability on a project drops Gradle's implicit
-    // `group:name`, so a plain project dependency matches nothing and falls through to whatever
-    // variants still carry it — which is Dokka's, and the error names neither cause nor cure.
-    runtimeOnly(project(":ephemeris:neoforge")) {
-        capabilities { requireCapability("co.voik.ephemeris:ephemeris") }
-    }
+    // Ephemeris, the mod this one is built on. `implementation` rather than `compileOnly`: the jar has to
+    // be on the run classpath for the loader to find a second mod in it, and the classes come from that jar
+    // rather than being compiled in.
+    implementation(libs.ephemeris.neoforge)
 
     implementation(libs.kff)
     // No runtime-dimension backend on NeoForge yet — see NeoForgeAgeBackend (unsupported stub).
@@ -101,7 +78,14 @@ val exportServerLaunch = tasks.register("exportServerLaunch") {
     group = "verification"
     description = "Records the dedicated server's launch command for the server checks to use."
 
-    dependsOn("prepareServerRun")
+    /**
+     * **`createServerLaunchScript`, not `prepareServerRun`** — and the difference is invisible until it
+     * bites. `prepareServerRun` writes the VM and program argfiles; the *classpath* argfile is written by
+     * the launch-script task, and nothing else refreshes it. Depending on the wrong one leaves a launch
+     * pointing at whatever classpath was last written, which is correct until a dependency moves and then
+     * fails as "mod X is not installed" with the build reporting success.
+     */
+    dependsOn("createServerLaunchScript")
 
     val launchFile = layout.buildDirectory.file("server-launch.txt")
     val gameDirectory = layout.projectDirectory.dir("run")
@@ -114,9 +98,9 @@ val exportServerLaunch = tasks.register("exportServerLaunch") {
             add("mainClass\t${runServer.mainClass.get()}")
             // **The classpath argfile is not on the task and has to be named.** MDG adds it as the JVM's
             // first argument inside `runServer`'s own exec action, so it appears in neither `jvmArgs` nor
-            // `allJvmArgs` nor `classpath` — which reads as a launch that works until the JVM starts with
-            // nothing on its path. `createServerLaunchScript` names the same file from the same directory,
-            // which is what makes reading it here the sanctioned route rather than a guess.
+            // `allJvmArgs` nor `classpath` — `runServer.classpath` is empty. `createServerLaunchScript`
+            // writes this file and names it the same way, which is what makes reading it the sanctioned
+            // route rather than a guess, and is why that is the task depended on above.
             add("jvmArg\t@${layout.buildDirectory.file("moddev/serverRunClasspath.txt").get().asFile.absolutePath}")
             val declaredDirectly = runServer.jvmArgs.orEmpty()
             // The mod folders ride in on a provider, and without them FML finds no mod to load at all.
@@ -128,3 +112,4 @@ val exportServerLaunch = tasks.register("exportServerLaunch") {
         launchFile.get().asFile.writeText(lines.joinToString("\n", postfix = "\n"))
     }
 }
+

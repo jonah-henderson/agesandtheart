@@ -34,12 +34,16 @@ mixinExtras = "0.3.5"
 # — see the note beside the test dependencies in common/build.gradle.kts.
 kotest = "6.2.3"
 
-# Runtime dimension creation (Fabric-only) — https://github.com/NucleoidMC/fantasy
-fantasy = "0.8.0+26.1.2"
-fantasyRange = ">=0.8.0"
-# Ephemeris is built here, so its range follows this build's own version rather than a published one.
-# A Maven range, not a wildcard: NeoForge parses these with Maven's grammar and `*` is not in it.
-ephemerisRange = "[0.1.0,)"
+# Ephemeris — the runtime-dimension library, its own project at ../ephemeris. See settings.gradle.kts.
+#
+# **Two ranges, because the two manifests do not share a version grammar** and each rejects the other's.
+# NeoForge parses Maven ranges (`[0.1.0,)`); Fabric parses its own semver predicates (`>=0.1.0`) and reads
+# a Maven range as a requirement that the very version present does not satisfy — which it reports as
+# "only the wrong version is present: 0.1.0". Every other range here is named by one loader only, which is
+# why this is the first time it has come up.
+ephemeris = "0.1.0"
+ephemerisRangeNeoForge = "[0.1.0,)"
+ephemerisRangeFabric = ">=0.1.0"
 
 # NeoForge's config system, made available to Fabric — https://github.com/Fuzss/forgeconfigapiport-fabric
 # Declared as a dependency rather than bundled: it is a *mod* (it hooks the loader lifecycle and wants
@@ -57,7 +61,11 @@ kff = { group = "thedarkcolour", name = "kotlinforforge-neoforge", version.ref =
 mixin = { group = "org.spongepowered", name = "mixin", version.ref = "mixin" }
 mixinExtras-common = { group = "io.github.llamalad7", name = "mixinextras-common", version.ref = "mixinExtras" }
 
-fantasy = { group = "xyz.nucleoid", name = "fantasy", version.ref = "fantasy" }
+# Ephemeris. The artifact names carry the Minecraft version, which is what its `archivesName` produces —
+# and what the substitutions in settings.gradle.kts have to match.
+ephemeris-common = { group = "co.voik.ephemeris", name = "ephemeris-common-26.1.2", version.ref = "ephemeris" }
+ephemeris-fabric = { group = "co.voik.ephemeris", name = "ephemeris-fabric-26.1.2", version.ref = "ephemeris" }
+ephemeris-neoforge = { group = "co.voik.ephemeris", name = "ephemeris-neoforge-26.1.2", version.ref = "ephemeris" }
 
 # The `common` artifact carries the API under its original package names, which is what lets the spec be
 # written once in `common` instead of twice behind the SPI.

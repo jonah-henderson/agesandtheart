@@ -10,7 +10,7 @@ import java.util.ServiceLoader
 object Services {
     val PLATFORM = load(Platform::class.java)
 
-    /** Runtime dimension backend — Fantasy on Fabric, unsupported stub on NeoForge. */
+    /** Runtime dimension backend — Ephemeris on both loaders. */
     val AGE_BACKEND = load(AgeBackend::class.java)
 
     /** Sending a payload to one player. See [Network] for why it is a service of its own. */

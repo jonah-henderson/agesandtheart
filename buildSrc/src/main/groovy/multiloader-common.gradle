@@ -83,12 +83,6 @@ repositories {
         url = uri("https://thedarkcolour.github.io/KotlinForForge/")
     }
     maven {
-        // Fantasy (NucleoidMC) — runtime dimension creation on Fabric.
-        name = "Nucleoid"
-        url = uri("https://maven.nucleoid.xyz/")
-        content { includeGroup("xyz.nucleoid") }
-    }
-    maven {
         // Forge Config API Port — NeoForge's config system, on Fabric. A GitHub-backed maven rather than
         // a host of its own, which is worth knowing: DynamicDimensions left this project because its only
         // Maven went offline, so where a dependency lives is part of choosing it.
@@ -102,6 +96,12 @@ repositories {
 // Read more about capabilities here: https://docs.gradle.org/current/userguide/component_capabilities.html#sec:declaring-additional-capabilities-for-a-local-component
 ['apiElements', 'runtimeElements', 'sourcesElements', 'javadocElements'].each { variant ->
     configurations."$variant".outgoing {
+        // **Gradle's implicit `group:name` has to be restated once anything else is declared**, because
+        // declaring any capability removes it. Without it an ordinary dependency on one of these projects
+        // asks for a capability nothing here provides, every real variant is filtered out, and what is left
+        // are Dokka's internal ones — which then report each other as ambiguous, in an error that mentions
+        // neither capabilities nor the cure.
+        capability("$group:${project.name}:$version")
         capability("$group:${base.archivesName.get()}:$version")
         capability("$group:$modId-${project.name}-${libs.versions.minecraft.get()}:$version")
         capability("$group:$modId:$version")
@@ -176,8 +176,8 @@ processResources {
             'neoforge_range'               : libs.versions.neoforgeRange.get(),
             'kff_version'                  : libs.versions.kff.get(),
             'kff_version_range'            : libs.versions.kffRange.get(),
-            'fantasy_range'                : libs.versions.fantasyRange.get(),
-            'ephemeris_range'              : libs.versions.ephemerisRange.get(),
+            'ephemeris_range_neoforge'     : libs.versions.ephemerisRangeNeoForge.get(),
+            'ephemeris_range_fabric'       : libs.versions.ephemerisRangeFabric.get(),
             'config_port_range'            : libs.versions.forgeConfigApiPortRange.get(),
             'credits'                      : credits,
             'java_version'                 : libs.versions.java.get()

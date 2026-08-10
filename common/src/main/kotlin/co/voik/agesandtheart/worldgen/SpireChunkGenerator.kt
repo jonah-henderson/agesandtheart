@@ -36,7 +36,7 @@ import kotlin.math.sqrt
  * plunging toward the sea. Everything is imperative and deterministic from [seed], so the shape is
  * easy to reason about and tune; there is no noise/density-function machinery.
  *
- * Registered via a codec ([CODEC]) because Fantasy persists Ages, which serialises the generator.
+ * Registered via a codec ([CODEC]) because a level's chunk generator is serialised when it is saved.
  * The shape constants will become symbol-driven later.
  */
 class SpireChunkGenerator(private val biomes: BiomeSource, private val seed: Long) : ChunkGenerator(biomes) {

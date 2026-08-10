@@ -37,8 +37,7 @@
     "minecraft": "${minecraft_version}",
     "java": ">=${java_version}",
     "fabric-language-kotlin": ">=${flk_version}",
-    "ephemeris": "${ephemeris_range}",
-    "fantasy": "${fantasy_range}",
+    "ephemeris": "${ephemeris_range_fabric}",
     "forgeconfigapiport": "${config_port_range}"
   }
 }

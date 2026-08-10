@@ -44,10 +44,10 @@ correct itself in place. Rewrite the paragraph that is now wrong.
   `ClientLevel` beats a hand-written mesh builder, and the refactor it demands first — our sky and cloud
   hooks read `Minecraft.getInstance().level` and the main render target, and a second level breaks both.
   Nothing is built. Read it before touching `AgeSky`, `AgeClouds` or `Blaze3dSkyCanvas`.
-- **`notes/neoforge-dimensions-research.md`** — why runtime Ages are still Fabric-only and what the ways out
-  cost: DynamicDimensions is dormant with no 26.1, Fantasy is LGPL against our MIT so its source cannot be
-  copied, and owning the technique means ~10 mixins into server internals. **Read it before looking at
-  either library again** — this is the third time they have been evaluated.
+- **`notes/neoforge-dimensions-research.md`** — the record of how runtime Ages stopped being Fabric-only.
+  DynamicDimensions is dormant with no 26.1 and Fantasy is LGPL against our MIT, so neither could be used;
+  what it cost to own the technique instead was four access-widener lines and one Mixin, not the ~10 into
+  server internals this note first estimated. **Read it before looking at either library again.**
 - **`notes/config-research.md`** — how mod config UIs work (they introspect a spec, or host a screen you
   write), the 26.1 landscape, and why the recommendation is NeoForge's `ModConfigSpec` with Forge Config API
   Port on Fabric. Nothing in it is built. Read it before adding the first config value.
@@ -59,7 +59,7 @@ correct itself in place. Rewrite the paragraph that is now wrong.
 
 **Ages and the Art** — a Minecraft mod (Mystcraft-inspired: author dimensional "Ages" from written Symbol pages, link between them) for **Minecraft 26.1.2**, built as a **multiloader** mod running on both **Fabric** and **NeoForge** from one codebase. Mod id `agesandtheart`, root package `co.voik.agesandtheart`.
 
-Current state: Phases 1–4.5 are done and Phase 5 (the playable slice) is in progress. The Art's language, grammar, resolver and terrain system are built and checked; `/age write` authors an Age from a sentence. Phase 5 has added word pages, the notebook, the writer's desk with its screen, descriptive and linking books, the book entity, and the two acquaintance devices that put the derived corpus within reach. **Runtime dimensions are still Fabric-only** — `NeoForgeAgeBackend` is an `isSupported = false` stub, so `/age create` reports "not supported yet" rather than crashing.
+Current state: Phases 1–4.5 are done and Phase 5 (the playable slice) is in progress. The Art's language, grammar, resolver and terrain system are built and checked; `/age write` authors an Age from a sentence. Phase 5 has added word pages, the notebook, the writer's desk with its screen, descriptive and linking books, the book entity, and the two acquaintance devices that put the derived corpus within reach. **Runtime dimensions work on both loaders**, on **Ephemeris** — our own library, now its own project at `../ephemeris` (see "Ephemeris" below).
 
 **26.1 is the first unobfuscated Minecraft release**, which is why there is no Parchment in the catalog: 1.21.11 was the last obfuscated one and there is nothing left to deobfuscate. Mappings-related advice written for the 1.21 line does not transfer.
 
@@ -247,9 +247,37 @@ pages) → Sentence` is the entire port; `Sentence`/`Phrase`/`Constraint`/`Scope
   slot and tags involved. Provenance is the point: a flaw has to be diagnosable, and §5's consequences read
   this long after the book was written. Part of the recipe.
 - **`AgeCommand`** — the `/age` Brigadier tree (vanilla, so it's in `common`); the debug trigger until books exist. `/age write <name> [seed] <words…>` authors an Age from a sentence and `/age words` lists the vocabulary. `/age compare <a> <b>` generates two Ages and diffs them block for block — write two with the same seed to check a recipe reproduces.
-- **`AgeBackend`** (service) — `FabricAgeBackend` implements it with **Fantasy** (`Fantasy.get(server).getOrOpenPersistentWorld(id, config)`); `NeoForgeAgeBackend` is an `isSupported = false` stub, so `/age create` on NeoForge reports "not supported yet" instead of crashing.
+- **`AgeBackend`** (service) — both halves call `RuntimeLevels.open` / `RuntimeLevels.delete` and are identical but for the class name. The service survives because the *policy* around a level (which recipe, which dimension type) is ours while opening one is Ephemeris'.
 
-Reload trigger is loader-specific: Fabric's `SERVER_STARTED` event calls `Ages.reloadSaved`. Fantasy must be called on the server thread (commands and lifecycle events already are). **Fantasy is Fabric-only**, so all Fantasy references stay in the `fabric` module — never in `common`.
+Reload trigger is loader-specific: Fabric's `SERVER_STARTED` event and NeoForge's `ServerStartedEvent` both call `Ages.reloadSaved`. A level must be opened on the server thread (commands and lifecycle events already are).
+
+`Ages.attach()` and `Skies.attach()` hang the per-Age work off `RuntimeLevelEvents.whenOpened` rather than off each call site, so writing an Age, linking to one and replaying the saved list on boot all end in the same place.
+
+## Ephemeris
+
+**Runtime dimensions are `co.voik.ephemeris`, a separate mod in a separate project at `../ephemeris`.** It
+is included as a Gradle **composite build** (`includeBuild` in `settings.gradle.kts`), so editing it
+rebuilds it here and neither project needs the other to build alone. Two things about that wiring are
+easy to get wrong and were:
+
+- **The dependency substitutions must be spelled out.** Gradle's automatic ones come from each included
+  project's `group:name` (`co.voik.ephemeris:common`), not from the artifact coordinates the catalog names.
+- **Declaring any capability on a project drops Gradle's implicit `group:name`.** `multiloader-common`
+  declares several, so it restates the implicit one too — without it, an ordinary dependency filters out
+  every real variant and fails on Dokka's internal ones, in an error naming neither cause nor cure.
+
+Ephemeris ships **as a mod, declared as a dependency** rather than bundled: on NeoForge a nested plain
+library cannot see the Kotlin standard library KFF provides. The two manifests do not share a version
+grammar — NeoForge parses Maven ranges, Fabric its own semver predicates — which is why the catalog carries
+`ephemerisRangeNeoForge` and `ephemerisRangeFabric`.
+
+**Mod identity lives in `mod.properties`, not `gradle.properties`.** Gradle reads `gradle.properties` from
+the build root and a project's own directory and nowhere else — never a parent project — so
+`multiloader-common` walks up to the nearest `mod.properties`. This survives here even though this build
+now carries one mod again, because the convention plugin is shared with Ephemeris.
+
+Do not add `co.voik.agesandtheart` references to Ephemeris; that separation is the whole of what makes it
+givable away. What it owns and what we own is in its README.
 
 ## Conventions
 
@@ -355,6 +383,6 @@ genuinely constrains the code, and worth dropping from ordinary description.
 
 ## Domain constraint to keep in mind
 
-Minecraft registries (items, blocks, **dimensions**, …) freeze after server startup — content cannot be added mid-game through normal registration. The mod's core feature (authoring dimensions at runtime) works around this via Fantasy, and the persistence model is ours: store each Age's recipe/id as data and re-create the dimension on load rather than registering it permanently. Design new "Age" state as replayable data, not as registered objects.
+Minecraft registries (items, blocks, **dimensions**, …) freeze after server startup — content cannot be added mid-game through normal registration. The mod's core feature (authoring dimensions at runtime) works around this through Ephemeris, and the persistence model is ours: store each Age's recipe/id as data and re-create the dimension on load rather than registering it permanently. Design new "Age" state as replayable data, not as registered objects.
 
-(History: DynamicDimensions was the original, cross-loader pick; we switched to Fantasy after its only Maven host went offline. That's why runtime dimensions are Fabric-only for now — restoring cross-loader means adding a NeoForge `AgeBackend`.)
+(History: DynamicDimensions was the original cross-loader pick and went dormant; Fantasy replaced it and is Fabric-only and LGPL, so its source could not be borrowed. Owning the technique turned out to cost four access-widener lines and one Mixin — `notes/neoforge-dimensions-research.md` has the reckoning.)

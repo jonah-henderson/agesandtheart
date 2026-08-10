@@ -120,9 +120,8 @@ object Ages {
     /**
      * Puts a player down on solid ground in an Age.
      *
-     * A per-dimension spawn point cannot be set afterwards (Fantasy's runtime worlds use
-     * `DerivedLevelData`, whose `setSpawn` does nothing), so footing is searched for outward from the
-     * origin instead.
+     * A per-dimension spawn point cannot be set afterwards — a runtime level is given `DerivedLevelData`,
+     * whose `setSpawn` does nothing — so footing is searched for outward from the origin instead.
      */
     fun teleport(player: ServerPlayer, level: ServerLevel) {
         // Nothing under eager delivery, which is what we run: the player already knows every Age. It marks

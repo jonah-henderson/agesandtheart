@@ -32,7 +32,7 @@ side = "BOTH"
 [[dependencies."${mod_id}"]]
 modId = "ephemeris"
 type="required"
-versionRange = "${ephemeris_range}"
+versionRange = "${ephemeris_range_neoforge}"
 ordering = "AFTER"
 side = "BOTH"
 

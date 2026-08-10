@@ -149,7 +149,7 @@ data class Density(
  *
  * **The lattice is centred on the world origin**, so `(0, 0)` is always a lattice point rather than the
  * corner between four. Arrival happens at the origin and a per-dimension spawn point cannot be set after
- * the fact (Fantasy's worlds use `DerivedLevelData`, whose `setSpawn` does nothing), so an Age that wants
+ * the fact (a runtime level gets `DerivedLevelData`, whose `setSpawn` does nothing), so an Age that wants
  * somewhere to stand must put it there during *generation*.
  */
 data class Grid(val spacing: Double, val jitter: Double, val density: Density) : Placement {

@@ -12,11 +12,10 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 
 /**
- * NeoForge's runtime-dimension backend, on `co.voik.ephemeris` rather than on Fantasy.
+ * NeoForge's runtime-dimension backend, on Ephemeris.
  *
- * Fantasy is Fabric-only, which is why this was a stub for so long. The library it is replaced by is ours
- * and lives in `common`, so the two loaders now run the same code with only the level-arrived notification
- * differing — see `notes/neoforge-dimensions-research.md` for why that is the only genuine difference.
+ * Identical to Fabric's but for the class name, which is the point: the two loaders run the same code and
+ * differ only in how the loader is told a level arrived — see `notes/neoforge-dimensions-research.md`.
  */
 class NeoForgeAgeBackend : AgeBackend {
     override val isSupported: Boolean = true

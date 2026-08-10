@@ -12,7 +12,7 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 
 /**
- * Fabric's runtime-dimension backend, on `co.voik.ephemeris` rather than on Fantasy.
+ * Fabric's runtime-dimension backend, on Ephemeris.
  *
  * Identical to NeoForge's but for the class name, which is the point of the exercise.
  */

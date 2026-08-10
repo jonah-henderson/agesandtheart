@@ -6,7 +6,7 @@ import net.minecraft.server.level.ServerLevel
 
 /**
  * Platform abstraction for runtime dimension creation — the one part of the Age mechanic that genuinely
- * differs per loader. Fantasy on Fabric, which is Fabric-only; NeoForge has an unsupported stub.
+ * differs per loader — though both now sit on Ephemeris, and differ only in the class name.
  */
 interface AgeBackend {
     /** Whether this loader can create runtime dimensions yet. */

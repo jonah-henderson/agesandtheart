@@ -475,7 +475,7 @@ object AgeContent {
         SURVEYING_DEVICE_ID to SURVEYING_DEVICE,
     )
 
-    /** Chunk-generator codecs (Ages persist via Fantasy, so their generator must be serializable). */
+    /** Chunk-generator codecs — a level's generator is serialised when it is saved, so it needs one. */
     val chunkGeneratorCodecs: List<Pair<Identifier, MapCodec<out ChunkGenerator>>> = listOf(
         "spire".location() to SpireChunkGenerator.CODEC,
         // Renamed from `field` with the class: the generator reaches past field terrain now. Save formats

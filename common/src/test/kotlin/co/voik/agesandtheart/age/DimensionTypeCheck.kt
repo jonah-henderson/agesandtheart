@@ -11,8 +11,8 @@ import java.io.File
  * That every dimension type an Age can be told to wear is one we actually ship, and that the four differ
  * only where they are meant to.
  *
- * **Nothing else would say so until a world opened.** `Sky.dimensionType` answers an identifier and Fantasy
- * takes a `ResourceKey`, so a type with no file behind it is not a compile error, not a load error, and not
+ * **Nothing else would say so until a world opened.** `Sky.dimensionType` answers an identifier and the
+ * backend takes a `ResourceKey`, so a type with no file behind it is not a compile error, not a load error, and not
  * something a recipe can notice — it is a dimension that comes up wrong on a player's screen.
  */
 class DimensionTypeCheck : FunSpec({
