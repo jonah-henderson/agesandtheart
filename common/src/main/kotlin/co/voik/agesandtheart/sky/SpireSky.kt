@@ -1,6 +1,12 @@
 package co.voik.agesandtheart.sky
 
-import co.voik.agesandtheart.math.Rgba
+import co.voik.runtimelevels.sky.CloudDeck
+import co.voik.runtimelevels.sky.Look
+import co.voik.runtimelevels.sky.SkySpec
+import co.voik.runtimelevels.sky.StarField
+import co.voik.runtimelevels.sky.StarReveal
+
+import co.voik.runtimelevels.Rgba
 import co.voik.agesandtheart.worldgen.SpireField
 
 /**

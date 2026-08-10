@@ -1,4 +1,4 @@
-package co.voik.agesandtheart.math
+package co.voik.runtimelevels
 
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder

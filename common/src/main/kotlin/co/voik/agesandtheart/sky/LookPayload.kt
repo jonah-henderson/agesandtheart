@@ -1,5 +1,8 @@
 package co.voik.agesandtheart.sky
 
+import co.voik.runtimelevels.sky.Look
+import co.voik.runtimelevels.sky.SkySpec
+
 import co.voik.agesandtheart.Constants
 import com.mojang.serialization.Codec
 import net.minecraft.core.registries.Registries

@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.age.aspect
 
-import co.voik.agesandtheart.math.Rgba
+import co.voik.runtimelevels.Rgba
 
 /**
  * The colours a writer may paint the air with — nine, and deliberately few.

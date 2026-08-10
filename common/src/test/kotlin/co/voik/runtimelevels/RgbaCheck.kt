@@ -1,4 +1,4 @@
-package co.voik.agesandtheart.math
+package co.voik.runtimelevels
 
 import io.kotest.core.spec.style.FunSpec
 import kotlin.math.abs

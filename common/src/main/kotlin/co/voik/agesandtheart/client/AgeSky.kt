@@ -1,10 +1,10 @@
 package co.voik.agesandtheart.client
 
-import co.voik.agesandtheart.sky.Appearance
-import co.voik.agesandtheart.sky.CelestialBody
+import co.voik.runtimelevels.sky.Appearance
+import co.voik.runtimelevels.sky.CelestialBody
 import co.voik.agesandtheart.sky.KnownLooks
-import co.voik.agesandtheart.sky.Orbit
-import co.voik.agesandtheart.sky.SkySpec
+import co.voik.runtimelevels.sky.Orbit
+import co.voik.runtimelevels.sky.SkySpec
 import net.minecraft.client.Minecraft
 import net.minecraft.world.level.MoonPhase
 import org.joml.Quaternionf

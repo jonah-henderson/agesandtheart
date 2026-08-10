@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.sky
 
+import co.voik.runtimelevels.sky.SkySpec
+
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.AgeGeneration
 import co.voik.agesandtheart.age.AgeSavedData

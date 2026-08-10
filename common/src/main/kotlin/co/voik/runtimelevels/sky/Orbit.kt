@@ -1,4 +1,4 @@
-package co.voik.agesandtheart.sky
+package co.voik.runtimelevels.sky
 
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder

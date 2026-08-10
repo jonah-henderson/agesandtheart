@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.client
 
-import co.voik.agesandtheart.math.Rgba
+import co.voik.runtimelevels.Rgba
 import com.mojang.blaze3d.vertex.VertexConsumer
 import net.minecraft.world.phys.Vec3
 import org.joml.Matrix4f

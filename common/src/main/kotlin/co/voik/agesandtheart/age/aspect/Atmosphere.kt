@@ -5,8 +5,8 @@ import net.minecraft.world.attribute.EnvironmentAttribute
 import net.minecraft.world.attribute.EnvironmentAttributeMap
 import net.minecraft.world.attribute.EnvironmentAttributeSystem
 import net.minecraft.world.attribute.EnvironmentAttributes
-import co.voik.agesandtheart.math.Rgba
-import co.voik.agesandtheart.sky.Look
+import co.voik.runtimelevels.Rgba
+import co.voik.runtimelevels.sky.Look
 import net.minecraft.core.BlockPos
 import net.minecraft.resources.Identifier
 

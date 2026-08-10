@@ -16,7 +16,7 @@ import co.voik.agesandtheart.sky.Skies
 import co.voik.agesandtheart.worldgen.AgeChunkGenerator
 import co.voik.agesandtheart.worldgen.field.RegionMap
 import co.voik.agesandtheart.worldgen.field.Spans
-import co.voik.agesandtheart.sky.SkySpec
+import co.voik.runtimelevels.sky.SkySpec
 import co.voik.agesandtheart.age.word.Withheld
 import co.voik.agesandtheart.age.phenomena.AgeWeather
 import co.voik.agesandtheart.age.phenomena.Tempest

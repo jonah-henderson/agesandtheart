@@ -1,6 +1,6 @@
-package co.voik.agesandtheart.sky
+package co.voik.runtimelevels.sky
 
-import co.voik.agesandtheart.math.Rgba
+import co.voik.runtimelevels.Rgba
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 

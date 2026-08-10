@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.client
 
-import co.voik.agesandtheart.math.Rgba
-import co.voik.agesandtheart.sky.CloudDeck
+import co.voik.runtimelevels.Rgba
+import co.voik.runtimelevels.sky.CloudDeck
 import net.minecraft.resources.Identifier
 import net.minecraft.world.phys.Vec3
 import org.joml.Quaternionf

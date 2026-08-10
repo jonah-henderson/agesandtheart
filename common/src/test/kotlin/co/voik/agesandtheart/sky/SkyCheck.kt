@@ -1,5 +1,9 @@
 package co.voik.agesandtheart.sky
 
+import co.voik.runtimelevels.sky.Appearance
+import co.voik.runtimelevels.sky.Orbit
+import co.voik.runtimelevels.sky.SkySpec
+
 import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Sky
 import com.mojang.serialization.JsonOps

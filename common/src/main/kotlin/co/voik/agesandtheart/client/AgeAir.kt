@@ -1,10 +1,10 @@
 package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.age.aspect.Motes
-import co.voik.agesandtheart.math.Rgba
-import co.voik.agesandtheart.sky.CloudDeck
+import co.voik.runtimelevels.Rgba
+import co.voik.runtimelevels.sky.CloudDeck
 import co.voik.agesandtheart.sky.KnownLooks
-import co.voik.agesandtheart.sky.Look
+import co.voik.runtimelevels.sky.Look
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
 import net.minecraft.resources.Identifier
@@ -31,14 +31,14 @@ object AgeAir {
     @JvmStatic
     fun paint(level: ClientLevel, layers: EnvironmentAttributeSystem.Builder): EnvironmentAttributeSystem.Builder {
         val told = KnownLooks.airOf(level.dimension()) ?: return layers
-        val decks = told.spec.decks
-        if (told.look.saysNothing && told.corners.isEmpty() && decks.isEmpty()) return layers
-        if (!told.look.saysNothing) layers.addConstantLayer(asAttributeMap(told.look))
+        val decks = told.sky.decks
+        if (told.air.saysNothing && told.corners.isEmpty() && decks.isEmpty()) return layers
+        if (!told.air.saysNothing) layers.addConstantLayer(asAttributeMap(told.air))
         for ((biome, look) in told.corners) {
             for (painted in painting(look)) painted.onlyIn(layers, level, biome)
         }
         // Last, so it sits over the flat colour it darkens.
-        deepened(told.look, decks)?.let { under -> under.onto(layers) }
+        deepened(told.air, decks)?.let { under -> under.onto(layers) }
         return layers
     }
 
