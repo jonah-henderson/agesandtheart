@@ -24,10 +24,10 @@ import co.voik.agesandtheart.age.consequence.Wounds
 import net.minecraft.world.level.Level
 import net.neoforged.neoforge.event.level.ChunkEvent
 import net.neoforged.bus.api.IEventBus
+import net.neoforged.api.distmarker.Dist
 import net.neoforged.fml.ModContainer
 import net.neoforged.fml.config.ModConfig
-import net.neoforged.neoforge.client.gui.ConfigurationScreen
-import net.neoforged.neoforge.client.gui.IConfigScreenFactory
+import net.neoforged.fml.loading.FMLEnvironment
 import net.neoforged.fml.common.Mod
 import net.neoforged.neoforge.common.NeoForge
 import net.neoforged.neoforge.event.RegisterCommandsEvent
@@ -44,7 +44,13 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         // `ConfigurationScreen`, so a Config button appears on the Mods page for one line and no UI code
         // — see `notes/config-research.md` for why the spec is shaped for screens rather than for us.
         modContainer.registerConfig(ModConfig.Type.SERVER, AgeConfig.SPEC)
-        modContainer.registerExtensionPoint(IConfigScreenFactory::class.java, IConfigScreenFactory(::ConfigurationScreen))
+        // **The screen is client-only and naming it here would take the dedicated server down** (found
+        // 2026-08-09, the first time `:neoforge:runServer` could be run at all). `ConfigurationScreen`
+        // extends `Screen`, which the dev dist cleaner refuses to load on a server, and the reference is
+        // resolved while this constructor is being verified — so it fails during mod construction, before
+        // any of our code has had a chance to check anything. Hiding it behind a lambda would not help;
+        // the class has to be named somewhere else entirely, which is what [ConfigScreen] is for.
+        if (FMLEnvironment.getDist() == Dist.CLIENT) ConfigScreen.offer(modContainer)
 
         // Content registration is a mod-bus event on NeoForge.
         eventBus.addListener(::onRegister)
