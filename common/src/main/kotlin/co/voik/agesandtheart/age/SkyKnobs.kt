@@ -38,6 +38,7 @@ object SkyKnobs {
         "daylight" to Daylight.entries.map { it.name.lowercase() },
         "facing" to Facing.entries.map { it.name.lowercase() },
         "deck" to Deck.entries.map { it.key },
+        "air" to listOf("<0..2>", "how thick the air a body is seen through is; 0 is airless"),
     )
 
     /** Whether [name] is one of ours rather than one of the Art's aspects. */
@@ -95,6 +96,11 @@ object SkyKnobs {
                     val facing = Facing.entries.firstOrNull { it.name.equals(value, ignoreCase = true) }
                         ?: return Result.failure(IllegalArgumentException(failure))
                     bodies = bodies.map { it.copy(facing = facing) }
+                }
+
+                "air" -> {
+                    val thickness = value.toFloatOrNull() ?: return Result.failure(IllegalArgumentException(failure))
+                    rules = rules.copy(airThickness = thickness)
                 }
 
                 "deck" -> {
