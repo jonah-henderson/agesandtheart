@@ -7,7 +7,7 @@ import co.voik.agesandtheart.age.Ages
 import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.book.BookEntity
 import co.voik.agesandtheart.book.LinkTarget
-import co.voik.runtimelevels.sky.LevelAppearance
+import co.voik.ephemeris.sky.LevelAppearance
 import net.minecraft.ChatFormatting
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel

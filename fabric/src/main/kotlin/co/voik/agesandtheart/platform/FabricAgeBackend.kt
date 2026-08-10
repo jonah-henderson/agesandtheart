@@ -3,8 +3,8 @@ package co.voik.agesandtheart.platform
 import co.voik.agesandtheart.age.AgeGeneration
 import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.platform.services.AgeBackend
-import co.voik.runtimelevels.RuntimeLevelConfig
-import co.voik.runtimelevels.RuntimeLevels
+import co.voik.ephemeris.RuntimeLevelConfig
+import co.voik.ephemeris.RuntimeLevels
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
 import net.minecraft.resources.ResourceKey
@@ -12,7 +12,7 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 
 /**
- * Fabric's runtime-dimension backend, on `co.voik.runtimelevels` rather than on Fantasy.
+ * Fabric's runtime-dimension backend, on `co.voik.ephemeris` rather than on Fantasy.
  *
  * Identical to NeoForge's but for the class name, which is the point of the exercise.
  */

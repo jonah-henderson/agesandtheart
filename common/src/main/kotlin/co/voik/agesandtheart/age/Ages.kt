@@ -2,8 +2,8 @@ package co.voik.agesandtheart.age
 
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.platform.Services
-import co.voik.runtimelevels.RuntimeLevelEvents
-import co.voik.runtimelevels.sky.LevelAppearance
+import co.voik.ephemeris.RuntimeLevelEvents
+import co.voik.ephemeris.sky.LevelAppearance
 import net.minecraft.core.SectionPos
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey

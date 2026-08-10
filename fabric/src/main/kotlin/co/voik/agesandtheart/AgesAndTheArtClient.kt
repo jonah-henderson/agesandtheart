@@ -19,8 +19,6 @@ import co.voik.agesandtheart.desk.DeskSyncPayload
 import co.voik.agesandtheart.client.StarFissureRenderer
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderers
 import net.minecraft.client.gui.screens.MenuScreens
-import co.voik.runtimelevels.sky.LevelLookPayload
-import co.voik.runtimelevels.sky.LevelLooks
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
@@ -39,12 +37,6 @@ fun initClient() {
     // The Art's skies, clouds and air, handed to the library that owns those seams.
     AgeLooks.register()
 
-    // What each level looks like, told to us by the server. The renderers read `LevelLooks` every frame
-    // rather than being registered per dimension, so an edited Age can change what it draws.
-    ClientPlayNetworking.registerGlobalReceiver(LevelLookPayload.TYPE) { payload, _ ->
-        LevelLooks.remember(payload)
-        Constants.LOG.debug("Learned {} level looks", payload.looks.size)
-    }
     co.voik.agesandtheart.platform.FabricInkRendering.register()
     EntityRendererRegistry.register(AgeContent.BOOK_ENTITY, ::BookEntityRenderer)
     BlockEntityRenderers.register(AgeContent.STAR_FISSURE_ENTITY) { StarFissureRenderer() }
@@ -77,7 +69,6 @@ fun initClient() {
 
     // These keys mean nothing on the next server, and an Age id can be reused.
     ClientPlayConnectionEvents.DISCONNECT.register { _, _ ->
-        LevelLooks.forgetAll()
         KnownWords.forgetAll()
         DeskModel.forget()
         Wounds.forget()

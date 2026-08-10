@@ -7,6 +7,17 @@ plugins {
 
 val modId = project.property("modId") as String
 
+/**
+ * Ephemeris is a second mod in the dev launch, and **two separate things have to be true of it**: FML builds
+ * its mod list from `fml.modFolders`, which MDG writes from the `mods` block below, and the classes have to
+ * be on the run classpath, which MDG assembles from `additionalRuntimeClasspath` rather than from
+ * `runtimeOnly`. Neither implies the other, and with only one of them the server starts and quietly has no
+ * Ephemeris in it.
+ *
+ * Reading another project's source sets needs it configured first.
+ */
+evaluationDependsOn(":ephemeris:neoforge")
+
 neoForge {
     version = libs.versions.neoforge.get()
     // Automatically enable neoforge AccessTransformers if the file exists
@@ -34,12 +45,29 @@ neoForge {
         register(modId) {
             sourceSet(sourceSets.main.get())
         }
+        register("ephemeris") {
+            // One source set: `:ephemeris:common` is compiled *into* the loader project, exactly as this
+            // mod's `common` is, so its classes are already here.
+            sourceSet(project(":ephemeris:neoforge").sourceSets.main.get())
+        }
     }
 }
 
 sourceSets.main.get().resources { srcDir("src/generated/resources") }
 
 dependencies {
+    // Ephemeris, as a mod: on the compile path so shared code resolves, and on the runtime one so a dev
+    // launch actually loads it. A published build takes it as a declared dependency instead.
+    compileOnly(project(":ephemeris:common")) {
+        capabilities { requireCapability("co.voik.ephemeris:ephemeris") }
+    }
+    // The capability has to be named: declaring any capability on a project drops Gradle's implicit
+    // `group:name`, so a plain project dependency matches nothing and falls through to whatever
+    // variants still carry it — which is Dokka's, and the error names neither cause nor cure.
+    runtimeOnly(project(":ephemeris:neoforge")) {
+        capabilities { requireCapability("co.voik.ephemeris:ephemeris") }
+    }
+
     implementation(libs.kff)
     // No runtime-dimension backend on NeoForge yet — see NeoForgeAgeBackend (unsupported stub).
 }

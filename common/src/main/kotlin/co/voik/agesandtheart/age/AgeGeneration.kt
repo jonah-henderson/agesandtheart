@@ -10,8 +10,8 @@ import co.voik.agesandtheart.age.consequence.Tearing
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Terrain
-import co.voik.runtimelevels.sky.Look
-import co.voik.runtimelevels.sky.SkySpec
+import co.voik.ephemeris.sky.Look
+import co.voik.ephemeris.sky.SkySpec
 import co.voik.agesandtheart.sky.SpireSky
 import co.voik.agesandtheart.worldgen.biome.AgeBiomeSource
 import co.voik.agesandtheart.worldgen.biome.Grounding

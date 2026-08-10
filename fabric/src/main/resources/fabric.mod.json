@@ -29,8 +29,7 @@
     ]
   },
   "mixins": [
-    "agesandtheart.mixins.json",
-    "runtimelevels.mixins.json"
+    "agesandtheart.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=${fabric_loader_version}",
@@ -38,6 +37,7 @@
     "minecraft": "${minecraft_version}",
     "java": ">=${java_version}",
     "fabric-language-kotlin": ">=${flk_version}",
+    "ephemeris": "${ephemeris_range}",
     "fantasy": "${fantasy_range}",
     "forgeconfigapiport": "${config_port_range}"
   }

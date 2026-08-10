@@ -1,9 +1,9 @@
 package co.voik.agesandtheart.client
 
-import co.voik.runtimelevels.client.LevelRendering
+import co.voik.ephemeris.client.LevelRendering
 
 /**
- * Hands the Art's skies to `co.voik.runtimelevels` — the whole of what the mod does to look like itself.
+ * Hands the Art's skies to `co.voik.ephemeris` — the whole of what the mod does to look like itself.
  *
  * **This is the mod becoming a consumer of the library rather than a co-owner of the Mixins.** Each of
  * these was a Mixin here until the library took the seams; what is left is three registrations, and none of

@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 /**
  * Lets a wound make the ground around it dangerous (design §5.1).
  *
- * <p>The per-Age weather that used to live here has moved to {@code co.voik.runtimelevels}: giving a level
+ * <p>The per-Age weather that used to live here has moved to {@code co.voik.ephemeris}: giving a level
  * its own weather is a thing any runtime level might want, where this is a thing an <i>Age</i> does.
  *
  * <p><b>Why a Mixin.</b> There is no event for this on either loader — NeoForge's

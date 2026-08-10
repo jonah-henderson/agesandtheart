@@ -9,6 +9,18 @@ val modId = project.property("modId") as String
 val SERVER_RUN_DIR = "runs/server"
 
 dependencies {
+    // Ephemeris, as a mod: on the compile path so shared code resolves, and on the runtime one so a dev
+    // launch actually loads it. A published build takes it as a declared dependency instead.
+    compileOnly(project(":ephemeris:common")) {
+        capabilities { requireCapability("co.voik.ephemeris:ephemeris") }
+    }
+    // The capability has to be named: declaring any capability on a project drops Gradle's implicit
+    // `group:name`, so a plain project dependency matches nothing and falls through to whatever
+    // variants still carry it — which is Dokka's, and the error names neither cause nor cure.
+    runtimeOnly(project(":ephemeris:fabric")) {
+        capabilities { requireCapability("co.voik.ephemeris:ephemeris") }
+    }
+
     minecraft(libs.minecraft)
     // NO MAPPINGS AT ALL. Mojang stopped obfuscating Java Edition at 26.1, so there are no official
     // mappings published for this version and nothing for them to have mapped — Loom reports exactly that

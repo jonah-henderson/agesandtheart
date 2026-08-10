@@ -1,8 +1,8 @@
 package co.voik.agesandtheart.age.aspect
 
 import co.voik.agesandtheart.age.AgeGeneration
-import co.voik.runtimelevels.sky.Look
-import co.voik.runtimelevels.sky.SkySpec
+import co.voik.ephemeris.sky.Look
+import co.voik.ephemeris.sky.SkySpec
 import co.voik.agesandtheart.sky.SpireSky
 import net.minecraft.resources.Identifier
 import kotlin.math.roundToInt

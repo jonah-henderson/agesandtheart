@@ -47,6 +47,14 @@ configurations {
 }
 
 dependencies {
+    // Ephemeris, which makes the dimensions an Age is.
+    //
+    // **`compileOnly`, and that is the whole of the relationship.** Ephemeris ships as its own mod, so at
+    // runtime its classes arrive in its own jar; putting it on a runtime configuration here would compile a
+    // second copy into ours and leave two of every object with the registries split between them.
+    compileOnly(project(":ephemeris:common")) {
+        capabilities { requireCapability("co.voik.ephemeris:ephemeris") }
+    }
     // Annotations only, and only to compile `src/main/java`'s one Mixin. Each loader supplies the real
     // implementation at runtime, so this must never reach a runtime classpath. Nothing is generated here:
     // Minecraft is unobfuscated from 26.1, so there is no refmap for the annotation processor to write.

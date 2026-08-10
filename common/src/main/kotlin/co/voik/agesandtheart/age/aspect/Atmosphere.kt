@@ -5,8 +5,8 @@ import net.minecraft.world.attribute.EnvironmentAttribute
 import net.minecraft.world.attribute.EnvironmentAttributeMap
 import net.minecraft.world.attribute.EnvironmentAttributeSystem
 import net.minecraft.world.attribute.EnvironmentAttributes
-import co.voik.runtimelevels.Rgba
-import co.voik.runtimelevels.sky.Look
+import co.voik.ephemeris.Rgba
+import co.voik.ephemeris.sky.Look
 import net.minecraft.core.BlockPos
 import net.minecraft.resources.Identifier
 
@@ -133,7 +133,7 @@ object Atmosphere {
     /**
      * What the *eye* sees, which the server cannot decide alone: `ClientLevel` builds its own attribute
      * system in its constructor from a private final field, so these cross on a payload and are installed
-     * client-side. See [co.voik.runtimelevels.sky.LevelLookPayload].
+     * client-side. See [co.voik.ephemeris.sky.LevelLookPayload].
      */
     fun lookIn(options: Options, salt: Long, biome: Identifier? = null): Look = Look(
         sky = colourOf(options, SKY, biome),

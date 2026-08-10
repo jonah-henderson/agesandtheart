@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.client
 
-import co.voik.runtimelevels.sky.LevelLooks
+import co.voik.ephemeris.sky.LevelLooks
 import net.minecraft.client.Minecraft
 import net.minecraft.world.phys.Vec3
 

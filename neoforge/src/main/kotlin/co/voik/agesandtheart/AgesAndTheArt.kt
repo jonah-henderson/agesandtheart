@@ -17,9 +17,6 @@ import co.voik.agesandtheart.desk.DeskPricePayload
 import co.voik.agesandtheart.desk.DeskSyncPayload
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.platform.NeoForgeInkFluids
-import co.voik.runtimelevels.sky.LevelAppearance
-import co.voik.runtimelevels.sky.LevelLookPayload
-import co.voik.runtimelevels.sky.LevelLooks
 import net.minecraft.core.registries.Registries
 import co.voik.agesandtheart.age.consequence.Wounds
 import net.minecraft.world.level.Level
@@ -34,7 +31,6 @@ import net.neoforged.neoforge.common.NeoForge
 import net.neoforged.neoforge.event.RegisterCommandsEvent
 import net.neoforged.neoforge.event.entity.player.PlayerEvent
 import net.neoforged.neoforge.event.server.ServerStartedEvent
-import net.neoforged.neoforge.event.server.ServerStoppedEvent
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent
 import net.neoforged.neoforge.registries.RegisterEvent
 
@@ -63,10 +59,7 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         // Commands are a game-bus event.
         NeoForge.EVENT_BUS.addListener(::onRegisterCommands)
         NeoForge.EVENT_BUS.addListener(::onPlayerLoggedIn)
-        NeoForge.EVENT_BUS.addListener(::onPlayerLoggedOut)
-        NeoForge.EVENT_BUS.addListener(::onPlayerChangedDimension)
         NeoForge.EVENT_BUS.addListener(::onServerStarted)
-        NeoForge.EVENT_BUS.addListener(::onServerStopped)
         NeoForge.EVENT_BUS.addListener(::onServerTick)
         NeoForge.EVENT_BUS.addListener(::onChunkLoad)
         NeoForge.EVENT_BUS.addListener(::onChunkUnload)
@@ -142,15 +135,10 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
      * **Bump the version string whenever the payload's codec or handler semantics change**, or two modded
      * ends will negotiate a channel they disagree about.
      *
-     * The handler lands the look in [LevelLooks], which is plain data in `common` with no client types, so
-     * nothing here is dist-sensitive — which is why it stays on the server-side class rather than moving to
-     * `AgesAndTheArtClient`.
+     * Nothing here about skies: Ephemeris registers its own payload from its own entrypoint.
      */
     private fun onRegisterPayloads(event: RegisterPayloadHandlersEvent) {
         val registrar = event.registrar(PAYLOAD_VERSION)
-        registrar.playToClient(LevelLookPayload.TYPE, LevelLookPayload.STREAM_CODEC) { payload, _ ->
-            LevelLooks.remember(payload)
-        }
         // These two land in client-only code. Registration must happen here — a clientbound payload the
         // server never registered is one it cannot send — but the handler body only runs on a client, so
         // `KnownWords` is never loaded on a dedicated server.
@@ -182,38 +170,14 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         }
     }
 
-    /**
-     * A joining player is told every Age's sky at once, so arriving by any route — book, portal,
-     * `/execute in` — already has one. Which levels that is, is the library's decision; see
-     * `LevelAppearance`.
-     */
     private fun onPlayerLoggedIn(event: PlayerEvent.PlayerLoggedInEvent) {
         val player = event.entity as? net.minecraft.server.level.ServerPlayer ?: return
-        LevelAppearance.joined(player)
         PageLearning.tellEverything(player)
-    }
-
-    private fun onPlayerLoggedOut(event: PlayerEvent.PlayerLoggedOutEvent) {
-        (event.entity as? net.minecraft.server.level.ServerPlayer)?.let { LevelAppearance.left(it) }
-    }
-
-    /**
-     * The watchdog. Silent under eager delivery, and the thing that names a missed route under lazy — see
-     * `LevelAppearance.arrived`.
-     */
-    private fun onPlayerChangedDimension(event: PlayerEvent.PlayerChangedDimensionEvent) {
-        val player = event.entity as? net.minecraft.server.level.ServerPlayer ?: return
-        LevelAppearance.arrived(player, event.to)
     }
 
     /** Re-open persisted Ages once the server has started — nothing auto-restores a runtime level. */
     private fun onServerStarted(event: ServerStartedEvent) {
         Ages.reloadSaved(event.server)
-    }
-
-    /** These keys mean nothing in the next world an integrated server opens, and ids repeat. */
-    private fun onServerStopped(event: ServerStoppedEvent) {
-        LevelAppearance.forgetAll()
     }
 
     /** Whatever befalls an Age. A tick has no shared entry point, so both loaders call the same one. */

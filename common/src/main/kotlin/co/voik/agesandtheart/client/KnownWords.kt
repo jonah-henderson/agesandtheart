@@ -13,7 +13,7 @@ import net.minecraft.resources.Identifier
 /**
  * What this client has been told about words: the script, and which ones the player knows.
  *
- * Server-owned, like [LevelLooks][co.voik.runtimelevels.sky.LevelLooks] — a pack may ship its own
+ * Server-owned, like [LevelLooks][co.voik.ephemeris.sky.LevelLooks] — a pack may ship its own
  * script, so none of this can be read locally.
  */
 object KnownWords {

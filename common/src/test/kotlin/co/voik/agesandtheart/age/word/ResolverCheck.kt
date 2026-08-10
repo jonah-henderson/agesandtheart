@@ -16,7 +16,7 @@ import co.voik.agesandtheart.age.aspect.Share
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.Terrain
-import co.voik.runtimelevels.sky.SkySpec
+import co.voik.ephemeris.sky.SkySpec
 import co.voik.agesandtheart.age.word.grammar.Constraint
 import co.voik.agesandtheart.age.word.grammar.Group
 import co.voik.agesandtheart.age.word.grammar.Phrase

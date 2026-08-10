@@ -34,6 +34,13 @@ dependencyResolutionManagement {
 plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
+// Ages and the Art.
 include("common")
 include("fabric")
 include("neoforge")
+
+// Ephemeris — the runtime-dimension library, a mod of its own that Ages and the Art depends on. Same
+// build so the library is developed against its first consumer; separable by moving the folder out.
+include("ephemeris:common")
+include("ephemeris:fabric")
+include("ephemeris:neoforge")

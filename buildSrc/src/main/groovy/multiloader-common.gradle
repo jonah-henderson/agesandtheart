@@ -10,6 +10,48 @@ plugins {
     id "org.jetbrains.dokka-javadoc"
 }
 
+/**
+ * Which mod this project belongs to, found by walking up to the nearest `mod.properties`.
+ *
+ * **Gradle reads `gradle.properties` from the build root and from a project's own directory, and from
+ * nowhere else** — never from a parent project. So a mod spanning three modules either repeats its identity
+ * in three files that can drift, or its identity lives in a file of its own that the modules can be found
+ * *under*. This build carries two mods, so it is the second.
+ */
+def modIdentity = { Project owner ->
+    for (def directory = owner.projectDir; directory != null; directory = directory.parentFile) {
+        def file = new File(directory, 'mod.properties')
+        if (!file.exists()) continue
+        def found = new Properties()
+        file.withInputStream { found.load(it) }
+        return found
+    }
+    throw new GradleException("No mod.properties above ${owner.projectDir} — every module must sit under one.")
+}
+
+def mod = modIdentity(project)
+def modId = mod.modId
+def modName = mod.modName
+def modAuthor = mod.modAuthor
+def license = mod.license
+def credits = mod.credits
+
+group = mod.group
+version = mod.version
+description = mod.description
+
+// Build files and the loader convention read these by name, so they keep working as ordinary project
+// properties rather than having to know where the identity came from.
+//
+// `modGroup` is here rather than being read back off `project.group` because a nested project's group is
+// only what this plugin just set it to *after* this plugin has run — and the loader convention builds its
+// capability string while Gradle may still be part-way through configuring the project on demand, where
+// `group` is the derived default (`AgesAndTheArt.ephemeris`) and the request silently matches nothing.
+ext.modId = modId
+ext.modName = modName
+ext.modAuthor = modAuthor
+ext.modGroup = mod.group
+
 base {
     archivesName = "${modId}-${project.name}-${libs.versions.minecraft.get()}"
 }
@@ -135,6 +177,7 @@ processResources {
             'kff_version'                  : libs.versions.kff.get(),
             'kff_version_range'            : libs.versions.kffRange.get(),
             'fantasy_range'                : libs.versions.fantasyRange.get(),
+            'ephemeris_range'              : libs.versions.ephemerisRange.get(),
             'config_port_range'            : libs.versions.forgeConfigApiPortRange.get(),
             'credits'                      : credits,
             'java_version'                 : libs.versions.java.get()

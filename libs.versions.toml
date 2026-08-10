@@ -37,6 +37,9 @@ kotest = "6.2.3"
 # Runtime dimension creation (Fabric-only) — https://github.com/NucleoidMC/fantasy
 fantasy = "0.8.0+26.1.2"
 fantasyRange = ">=0.8.0"
+# Ephemeris is built here, so its range follows this build's own version rather than a published one.
+# A Maven range, not a wildcard: NeoForge parses these with Maven's grammar and `*` is not in it.
+ephemerisRange = "[0.1.0,)"
 
 # NeoForge's config system, made available to Fabric — https://github.com/Fuzss/forgeconfigapiport-fabric
 # Declared as a dependency rather than bundled: it is a *mod* (it hooks the loader lifecycle and wants

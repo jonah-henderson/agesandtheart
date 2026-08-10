@@ -1,10 +1,10 @@
 package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.age.aspect.Motes
-import co.voik.runtimelevels.Rgba
-import co.voik.runtimelevels.sky.CloudDeck
-import co.voik.runtimelevels.sky.LevelLooks
-import co.voik.runtimelevels.sky.Look
+import co.voik.ephemeris.Rgba
+import co.voik.ephemeris.sky.CloudDeck
+import co.voik.ephemeris.sky.LevelLooks
+import co.voik.ephemeris.sky.Look
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
 import net.minecraft.resources.Identifier

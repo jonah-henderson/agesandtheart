@@ -1,9 +1,9 @@
 package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.Constants
-import co.voik.runtimelevels.Rgba
+import co.voik.ephemeris.Rgba
 import co.voik.agesandtheart.math.Sphere
-import co.voik.runtimelevels.sky.CloudDeck
+import co.voik.ephemeris.sky.CloudDeck
 import com.mojang.blaze3d.buffers.GpuBuffer
 import com.mojang.blaze3d.buffers.Std140Builder
 import com.mojang.blaze3d.pipeline.BlendFunction

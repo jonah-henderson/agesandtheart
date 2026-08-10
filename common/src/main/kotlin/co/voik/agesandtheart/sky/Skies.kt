@@ -5,9 +5,9 @@ import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.agesandtheart.age.aspect.Options
-import co.voik.runtimelevels.RuntimeLevelEvents
-import co.voik.runtimelevels.sky.LevelAppearance
-import co.voik.runtimelevels.sky.LevelLook
+import co.voik.ephemeris.RuntimeLevelEvents
+import co.voik.ephemeris.sky.LevelAppearance
+import co.voik.ephemeris.sky.LevelLook
 import net.minecraft.resources.ResourceKey
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel

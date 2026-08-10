@@ -6,7 +6,7 @@ import co.voik.agesandtheart.age.word.Antonym
 import co.voik.agesandtheart.age.word.PresetTags
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.location
-import co.voik.runtimelevels.sky.SkySpec
+import co.voik.ephemeris.sky.SkySpec
 import co.voik.agesandtheart.worldgen.AgeChunkGenerator
 import co.voik.agesandtheart.worldgen.SpireChunkGenerator
 import co.voik.agesandtheart.worldgen.biome.AgeBiomeSource

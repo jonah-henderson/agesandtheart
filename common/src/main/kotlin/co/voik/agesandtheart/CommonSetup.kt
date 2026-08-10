@@ -4,7 +4,7 @@ import co.voik.agesandtheart.age.Ages
 import co.voik.agesandtheart.age.phenomena.AgeWeather
 import co.voik.agesandtheart.platform.Services
 import co.voik.agesandtheart.sky.Skies
-import co.voik.runtimelevels.LevelWeather
+import co.voik.ephemeris.LevelWeather
 
 /**
  * Shared initialisation, invoked by each loader's entrypoint. Common code sees only the vanilla

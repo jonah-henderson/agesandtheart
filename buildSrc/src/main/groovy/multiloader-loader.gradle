@@ -15,15 +15,23 @@ configurations {
     }
 }
 
+/**
+ * This mod's own `common`, which is the sibling project of that name.
+ *
+ * Derived rather than written down, so the convention serves any mod in the build: `:fabric` finds
+ * `:common`, and `:ephemeris:fabric` finds `:ephemeris:common`.
+ */
+def commonProject = (project.parent.path == ':' ? '' : project.parent.path) + ':common'
+
 dependencies {
-    compileOnly(project(':common')) {
+    compileOnly(project(commonProject)) {
         capabilities {
-            requireCapability "$group:$modId"
+            requireCapability "$modGroup:$modId"
         }
     }
-    commonJava project(path: ':common', configuration: 'commonJava')
-    commonKotlin project(path: ':common', configuration: 'commonKotlin')
-    commonResources project(path: ':common', configuration: 'commonResources')
+    commonJava project(path: commonProject, configuration: 'commonJava')
+    commonKotlin project(path: commonProject, configuration: 'commonKotlin')
+    commonResources project(path: commonProject, configuration: 'commonResources')
 }
 
 tasks.named('compileJava', JavaCompile) {

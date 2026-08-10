@@ -12,13 +12,13 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.word.Resolver
-import co.voik.runtimelevels.debug.LevelLookPreview
-import co.voik.runtimelevels.sky.LevelAppearance
-import co.voik.runtimelevels.sky.LevelLook
+import co.voik.ephemeris.debug.LevelLookPreview
+import co.voik.ephemeris.sky.LevelAppearance
+import co.voik.ephemeris.sky.LevelLook
 import co.voik.agesandtheart.worldgen.AgeChunkGenerator
 import co.voik.agesandtheart.worldgen.field.RegionMap
 import co.voik.agesandtheart.worldgen.field.Spans
-import co.voik.runtimelevels.sky.SkySpec
+import co.voik.ephemeris.sky.SkySpec
 import co.voik.agesandtheart.age.word.Withheld
 import co.voik.agesandtheart.age.phenomena.AgeWeather
 import co.voik.agesandtheart.age.phenomena.Tempest
