@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.sky
 
 import co.voik.ephemeris.sky.Appearance
+import co.voik.ephemeris.sky.CelestialBody
 import co.voik.ephemeris.sky.Orbit
 import co.voik.ephemeris.sky.SkySpec
 
@@ -17,6 +18,12 @@ import co.voik.agesandtheart.age.aspect.Span
  * The properties are the ones a per-Age sky could break silently: a sky that fails to reproduce shows up
  * as an Age looking different after a restart, which nobody notices for a month.
  */
+/**
+ * Everything the resolver draws is a circle, so these read it as one. A cast rather than a `when`, because a
+ * spec that started producing some other path would be a change worth failing over here.
+ */
+private val CelestialBody.orbit: Orbit get() = path as Orbit
+
 class SkyCheck : FunSpec({
 
     // 1. An Age is rebuilt from its recipe on every open, so the same arguments must give the same sky forever —
