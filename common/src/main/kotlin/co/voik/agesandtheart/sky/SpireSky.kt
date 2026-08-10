@@ -55,8 +55,14 @@ object SpireSky {
     /** Where 201 blocks sits on `AgeAir`'s 96..256 cloud band. */
     private const val SPIRE_CLOUD_CEILING = 0.656f
 
-    /** Mostly light grey with cool blue-grey darker spots, drifting faster than the deck below. */
-    private val UPPER_DECK = CloudDeck(
+    /**
+     * Mostly light grey with cool blue-grey darker spots, drifting faster than the deck below.
+     *
+     * **Solid, and that is the Spire's whole character**: an unbroken ceiling you climb out of, not weather.
+     * A deck that said nothing would be cut from vanilla's cloud picture and let the sky through in patches,
+     * which is the ordinary case and the wrong one here.
+     */
+    private val UPPER_DECK = CloudDeck.solid(
         height = UPPER_DECK_HEIGHT,
         low = Rgba(0.16f, 0.17f, 0.22f),
         high = Rgba(0.47f, 0.50f, 0.51f),
@@ -67,14 +73,12 @@ object SpireSky {
      * Mostly near-black with lighter grey foam, offset far into the noise field: two decks sampling the
      * same region mirror each other and read as one thick layer.
      */
-    private val LOWER_DECK = CloudDeck(
+    private val LOWER_DECK = CloudDeck.solid(
         height = LOWER_DECK_HEIGHT,
         low = Rgba(0.12f, 0.14f, 0.15f),
         high = Rgba(0.42f, 0.44f, 0.45f),
         driftSpeed = 0.015f,
-        noiseOffsetX = 9000.0,
-        noiseOffsetZ = 4000.0,
-    )
+    ).copy(noiseOffsetX = 9000.0, noiseOffsetZ = 4000.0)
 
     /** Stars appear only above the upper deck, across a band derived from it. */
     private val ABOVE_THE_UPPER_DECK = StarReveal(
