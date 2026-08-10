@@ -1223,19 +1223,39 @@ object AgeCommand {
         val level = openNamedAge(source, name, Report.prose(source)) ?: return FAILURE
         val recipe = AgeSavedData.get(source.server).recipe(ageId(name))
 
-        val spec = if (preview == null) {
+        // The Art's own words and the library's knobs are told apart by name, so one line can carry both:
+        // `sky.suns=3 path=epicycle` reads as a sky the words describe with one thing about it turned.
+        val said = preview?.split(' ')?.filter { it.isNotBlank() } ?: emptyList()
+        val (knobs, words) = said.partition { SkyKnobs.offers(it.substringBefore('=')) }
+
+        val asWritten = if (preview == null) {
             LevelAppearance.of(level.dimension())?.sky ?: run {
                 source.sendFailure(Component.literal("Nothing has said what '$name' looks like"))
                 return FAILURE
             }
         } else {
-            previewSpec(source, preview, recipe.seed) ?: return FAILURE
+            previewSpec(source, words.joinToString(" "), recipe.seed) ?: return FAILURE
         }
 
-        if (preview != null) LevelLookPreview.show(level, LevelLook(spec))
+        // **Described after the knobs, not before.** Reporting the sky as written while showing the client
+        // the sky as turned is the one thing this instrument must not do: you would read an unchanged
+        // description, look up at a changed sky, and conclude the feature was broken.
+        val shown = if (preview == null) {
+            null
+        } else {
+            SkyKnobs.applyTo(asWritten, knobs).getOrElse { problem ->
+                source.sendFailure(Component.literal(problem.message ?: "Could not read a knob"))
+                return FAILURE
+            }
+        }
+        shown?.let { LevelLookPreview.show(level, it) }
+
         val heading = if (preview == null) "Age '$name' sky" else "Previewing in '$name' (reverts on re-entry)"
         source.sendSuccess({ Component.literal(heading) }, false)
-        for (line in spec.described()) {
+        if (knobs.isNotEmpty()) {
+            source.sendSuccess({ Component.literal("  turned ${knobs.joinToString(" ")}") }, false)
+        }
+        for (line in (shown?.sky ?: asWritten).described()) {
             source.sendSuccess({ Component.literal("  $line") }, false)
         }
         // The Age's own clock — what every moving thing above reads, and the only way to tell an Age
@@ -1260,7 +1280,8 @@ object AgeCommand {
             source.sendFailure(
                 Component.literal(
                     "`/age sky` previews the sky only, but you named ${strayAspects.joinToString(" ")}. " +
-                        "Write it as `sky=plain sky.suns=3`, and use `/age compose` to change anything else.",
+                        "Write it as `sky=plain sky.suns=3`, and use `/age compose` to change anything else. " +
+                        "The library's own knobs are ${SkyKnobs.describeOffered()}.",
                 ),
             )
             return null

@@ -1,0 +1,215 @@
+package co.voik.agesandtheart.age
+
+import co.voik.ephemeris.Rgba
+import co.voik.ephemeris.sky.CelestialBody
+import co.voik.ephemeris.sky.CloudDeck
+import co.voik.ephemeris.sky.Daylight
+import co.voik.ephemeris.sky.Facing
+import co.voik.ephemeris.sky.HorizonGlow
+import co.voik.ephemeris.sky.LevelLook
+import co.voik.ephemeris.sky.Motion
+import co.voik.ephemeris.sky.Motions
+import co.voik.ephemeris.sky.Orbit
+import co.voik.ephemeris.sky.Pacing
+import co.voik.ephemeris.sky.SkyRules
+import co.voik.ephemeris.sky.SkySpec
+import net.minecraft.core.Direction
+
+/**
+ * The knobs `/age sky` offers over and above the Art's own words — **an instrument, not a vocabulary**.
+ *
+ * Ephemeris can do a great deal the Art has no word for yet: paths that are not circles, suns that never
+ * set, orbits that swell, sprites that roll, and rules about which sun decides the day. None of it is
+ * reachable from a sentence, and something unreachable is something unwalked — so these turn each of them on
+ * for one preview.
+ *
+ * **Nothing here is the Art's design.** Every one of these is a lever on the library, named after what it
+ * does rather than after anything a writer would say, and it is applied to whatever the words already
+ * resolved to. When the Art grows words for any of this, the word decides and the knob stays a knob.
+ */
+object SkyKnobs {
+
+    /** What one knob is called and what it accepts, so a mistyped one can say what it should have been. */
+    private val OFFERED: Map<String, List<String>> = linkedMapOf(
+        "lift" to listOf("<degrees>", "e.g. 90 for a sun on the horizon all day"),
+        "swell" to listOf("<0..0.9>", "how far the orbit's radius varies"),
+        "path" to Shape.entries.map { it.key },
+        "glow" to HorizonGlow.entries.map { it.name.lowercase() },
+        "daylight" to Daylight.entries.map { it.name.lowercase() },
+        "facing" to Facing.entries.map { it.name.lowercase() },
+        "deck" to Deck.entries.map { it.key },
+    )
+
+    /** Whether [name] is one of ours rather than one of the Art's aspects. */
+    fun offers(name: String): Boolean = name in OFFERED
+
+    fun describeOffered(): String = OFFERED.entries.joinToString("; ") { (name, values) ->
+        "$name=${values.joinToString("|")}"
+    }
+
+    /**
+     * [spec] with the knobs in [tokens] turned, or a message saying which one could not be read.
+     *
+     * Applied after the words rather than instead of them, so a preview is still the Age's own sky with one
+     * thing changed — which is what makes it possible to see what the knob did.
+     */
+    fun applyTo(spec: SkySpec, tokens: List<String>): Result<LevelLook> {
+        var bodies = spec.bodies
+        var decks = spec.decks
+        var rules = SkyRules.DEFAULT
+
+        for (token in tokens) {
+            val name = token.substringBefore('=')
+            val value = token.substringAfter('=', missingDelimiterValue = "")
+            val failure = "$name=$value — try ${OFFERED[name]?.joinToString("|")}"
+            when (name) {
+                "lift" -> {
+                    val degrees = value.toFloatOrNull() ?: return Result.failure(IllegalArgumentException(failure))
+                    bodies = bodies.map { it.onCircle { circle -> circle.copy(liftDegrees = degrees) } }
+                }
+
+                "swell" -> {
+                    val amount = value.toFloatOrNull() ?: return Result.failure(IllegalArgumentException(failure))
+                    bodies = bodies.map { it.onCircle { circle -> circle.copy(swell = amount) } }
+                }
+
+                "path" -> {
+                    val shape = Shape.entries.firstOrNull { it.key == value }
+                        ?: return Result.failure(IllegalArgumentException(failure))
+                    bodies = bodies.mapIndexed { index, body -> body.copy(path = shape.pathFor(index, body)) }
+                }
+
+                "glow" -> {
+                    val glow = HorizonGlow.entries.firstOrNull { it.name.equals(value, ignoreCase = true) }
+                        ?: return Result.failure(IllegalArgumentException(failure))
+                    rules = rules.copy(glow = glow)
+                }
+
+                "daylight" -> {
+                    val daylight = Daylight.entries.firstOrNull { it.name.equals(value, ignoreCase = true) }
+                        ?: return Result.failure(IllegalArgumentException(failure))
+                    rules = rules.copy(daylight = daylight)
+                }
+
+                "facing" -> {
+                    val facing = Facing.entries.firstOrNull { it.name.equals(value, ignoreCase = true) }
+                        ?: return Result.failure(IllegalArgumentException(failure))
+                    bodies = bodies.map { it.copy(facing = facing) }
+                }
+
+                "deck" -> {
+                    val deck = Deck.entries.firstOrNull { it.key == value }
+                        ?: return Result.failure(IllegalArgumentException(failure))
+                    decks = deck.decks()
+                }
+
+                else -> return Result.failure(IllegalArgumentException("$name — no such knob"))
+            }
+        }
+        return Result.success(LevelLook(spec.copy(bodies = bodies, decks = decks), rules = rules))
+    }
+
+    /**
+     * [change] applied to this body's path where it is a circle, and the body untouched where it is not.
+     *
+     * Silent rather than refusing, because the knobs compose: `path=epicycle lift=40` is a reasonable thing
+     * to type and the lift simply has nothing to act on once the path is a stack.
+     */
+    private fun CelestialBody.onCircle(change: (Orbit) -> Orbit): CelestialBody =
+        (path as? Orbit)?.let { copy(path = change(it)) } ?: this
+
+    /** The demonstration paths, which exist to be looked at rather than to be written into an Age. */
+    private enum class Shape(val key: String) {
+        /** Whatever the words already resolved to. */
+        CIRCLE("circle") {
+            override fun pathFor(index: Int, body: CelestialBody) = body.path
+        },
+
+        /** A sun circling at a constant height, never setting — the midnight sun. */
+        POLAR("polar") {
+            override fun pathFor(index: Int, body: CelestialBody) =
+                Orbit.VANILLA_SUN.copy(
+                    inclinationDegrees = 90.0f,
+                    liftDegrees = 25.0f + index * 15.0f,
+                    distance = body.path.distance,
+                )
+        },
+
+        /** A second sweep across the first, so the body wanders the whole compass rather than one arc. */
+        EPICYCLE("epicycle") {
+            override fun pathFor(index: Int, body: CelestialBody) = Motions(
+                listOf(
+                    Motion.Turn(Direction.Axis.Y, Orbit.VANILLAS_NODE),
+                    Motion.Sweep(Direction.Axis.X, Orbit.TICKS_PER_VANILLA_DAY, pacing = Pacing.EVEN),
+                    Motion.Sweep(
+                        Direction.Axis.Z,
+                        Orbit.TICKS_PER_VANILLA_DAY / (2 + index),
+                        pacing = Pacing.EVEN,
+                    ),
+                ),
+                body.path.distance,
+            )
+        },
+
+        /** A sweep with a wobble across it at twice the rate — the analemma. */
+        FIGURE_EIGHT("figure8") {
+            override fun pathFor(index: Int, body: CelestialBody) = Motions(
+                listOf(
+                    Motion.Turn(Direction.Axis.Y, Orbit.VANILLAS_NODE),
+                    Motion.Sweep(Direction.Axis.X, Orbit.TICKS_PER_VANILLA_DAY, pacing = Pacing.EVEN),
+                    Motion.Oscillate(
+                        Direction.Axis.Z,
+                        amplitudeDegrees = 25.0f,
+                        period = Orbit.TICKS_PER_VANILLA_DAY / 2,
+                        phaseDegrees = index * 40.0f,
+                    ),
+                ),
+                body.path.distance,
+            )
+        },
+        ;
+
+        abstract fun pathFor(index: Int, body: CelestialBody): co.voik.ephemeris.sky.CelestialPath
+    }
+
+    /** The cloud decks a preview can put overhead, for looking at what a texture does. */
+    private enum class Deck(val key: String) {
+        NONE("none") {
+            override fun decks(): List<CloudDeck> = emptyList()
+        },
+
+        /** Cut from vanilla's own picture — broken cloud with sky between, at a height of our choosing. */
+        VANILLA("vanilla") {
+            override fun decks(): List<CloudDeck> = listOf(
+                CloudDeck(DEMONSTRATION_HEIGHT, PALE, BRIGHT, driftSpeed = 0.03f),
+            )
+        },
+
+        /** An unbroken ceiling, which is what the Spire wears. */
+        SOLID("solid") {
+            override fun decks(): List<CloudDeck> = listOf(
+                CloudDeck.solid(DEMONSTRATION_HEIGHT, PALE, BRIGHT, driftSpeed = 0.03f),
+            )
+        },
+
+        /** Both, so the two are side by side and the difference is unarguable. */
+        BOTH("both") {
+            override fun decks(): List<CloudDeck> = listOf(
+                CloudDeck.solid(DEMONSTRATION_HEIGHT + 40.0, DIM, PALE, driftSpeed = 0.015f),
+                CloudDeck(DEMONSTRATION_HEIGHT, PALE, BRIGHT, driftSpeed = 0.03f),
+            )
+        },
+        ;
+
+        abstract fun decks(): List<CloudDeck>
+
+        companion object {
+            /** Well above the ground and well below the build limit, so both sides of it are reachable. */
+            private const val DEMONSTRATION_HEIGHT = 150.0
+
+            private val DIM = Rgba(0.18f, 0.19f, 0.24f)
+            private val PALE = Rgba(0.55f, 0.57f, 0.62f)
+            private val BRIGHT = Rgba(0.88f, 0.90f, 0.94f)
+        }
+    }
+}
