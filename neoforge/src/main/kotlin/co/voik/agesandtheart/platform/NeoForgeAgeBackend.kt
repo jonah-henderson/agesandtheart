@@ -36,6 +36,6 @@ class NeoForgeAgeBackend : AgeBackend {
         )
     }
 
-    /** Not yet — see the spike's note. Deleting a live level is the last piece and the fiddliest. */
-    override fun deleteAge(server: MinecraftServer, id: Identifier): Boolean = false
+    override fun deleteAge(server: MinecraftServer, id: Identifier): Boolean =
+        RuntimeLevels.delete(server, id)
 }

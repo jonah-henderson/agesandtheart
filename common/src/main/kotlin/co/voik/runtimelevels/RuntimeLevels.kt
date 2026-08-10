@@ -75,9 +75,70 @@ object RuntimeLevels {
         return level
     }
 
+    /**
+     * Close the level [id] and discard what it saved, returning whether anything went.
+     *
+     * **Order is the whole of the correctness here**, and each step is why the next one is safe:
+     *
+     * 1. **Tell listeners while it still works.** A listener asked to save or move what it owns needs a
+     *    level it can read, so this happens before anything is taken apart.
+     * 2. **Out of the map**, so no tick can reach a level that is about to be closed. Everything that walks
+     *    the world — saving, ticking, `/execute in` — reads that map, so removal is what makes the rest of
+     *    this unobservable rather than a race.
+     * 3. **Then the loader**, which on NeoForge is where the cached level array is invalidated. Doing it
+     *    before the removal would rebuild the array *with* the level still in it.
+     * 4. **Then close**, which flushes and releases the region files — before, not after, deleting them.
+     *    Region files are memory-mapped and an unlink under an open handle is how a delete succeeds and the
+     *    directory is still there.
+     *
+     * Safe to call for a level that was never opened; the files are discarded either way.
+     */
+    fun delete(server: MinecraftServer, id: Identifier): Boolean {
+        val dimension = ResourceKey.create(Registries.DIMENSION, id)
+        // Nothing here may ever take the overworld apart, whatever it is asked.
+        if (dimension in VANILLA_LEVELS) return false
+
+        server.levels[dimension]?.let { level ->
+            RuntimeLevelEvents.closing(level)
+            server.levels.remove(dimension)
+            RuntimeLevelPlatform.of().levelClosing(server, level)
+            runCatching { level.close() }.onFailure {
+                RuntimeLevelLog.warn("Could not close $id cleanly; its files are left alone", it)
+                return false
+            }
+        }
+        return discard(server, dimension)
+    }
+
+    /**
+     * Remove a closed level's saved chunks.
+     *
+     * **Fenced on where the path is, not on what it is called.** This is the only place the library deletes
+     * anything, so the check is that the directory really is a *dimension folder inside this world* — under
+     * `<level>/dimensions`, and deeper than it. A malformed id, a `..`, or a storage layout that moved all
+     * fail the same way: nothing is removed and it says so.
+     */
+    private fun discard(server: MinecraftServer, dimension: ResourceKey<Level>): Boolean {
+        val world = server.storageSource.levelDirectory.path().toAbsolutePath().normalize()
+        val dimensions = world.resolve(DIMENSIONS_FOLDER)
+        val folder = server.storageSource.getDimensionPath(dimension).toAbsolutePath().normalize()
+        val isInsideThisWorld = folder.startsWith(dimensions) && folder != dimensions
+        if (!isInsideThisWorld) {
+            RuntimeLevelLog.warn("Refusing to discard $folder — it is not a dimension folder of this world")
+            return false
+        }
+        if (!folder.toFile().isDirectory) return true
+        val gone = folder.toFile().deleteRecursively()
+        if (!gone) RuntimeLevelLog.warn("Some of $folder could not be removed and is left behind")
+        return gone
+    }
+
     /** Whether the server already holds this level, without building one to find out. */
     fun isOpen(server: MinecraftServer, id: Identifier): Boolean =
         ResourceKey.create(Registries.DIMENSION, id) in server.levels
+
+    /** Vanilla's own name for the folder every non-vanilla level saves under. */
+    private const val DIMENSIONS_FOLDER = "dimensions"
 
     /** Every level this library opened, in the order they were opened. */
     fun opened(server: MinecraftServer): List<ServerLevel> =

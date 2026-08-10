@@ -34,5 +34,6 @@ class FabricAgeBackend : AgeBackend {
         )
     }
 
-    override fun deleteAge(server: MinecraftServer, id: Identifier): Boolean = false
+    override fun deleteAge(server: MinecraftServer, id: Identifier): Boolean =
+        RuntimeLevels.delete(server, id)
 }

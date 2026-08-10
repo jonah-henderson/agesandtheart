@@ -33,6 +33,14 @@ class DrivenServer private constructor(
     fun run(command: String): String = rcon.run(command)
 
     /**
+     * Where an Age's saved chunks live, so a check can ask whether they are really there.
+     *
+     * The world itself stays private: what a check has business with is one dimension's folder, and handing
+     * out the root would make it possible to assert against — or worse, reach into — the rest of the save.
+     */
+    fun savedChunksOf(age: String): File = world.resolve("dimensions/agesandtheart/$age")
+
+    /**
      * [command] run in structured form, parsed. The `json` literal goes straight after the subcommand
      * because `/age write`'s sentence is greedy — see `AgeCommand.reporting`.
      */
