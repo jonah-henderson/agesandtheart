@@ -37,6 +37,17 @@ correct itself in place. Rewrite the paragraph that is now wrong.
   is why this exists. Read it before drawing a control.
 - **`notes/corruption-research.md`** — what 26.1 allows for a proximity gradient around a wound, and why
   positional environment layers beat a post-processing chain. Read it before reaching for a post effect.
+- **`notes/water-colour-research.md`** — how to make an Age's water shift colour over time: the tint is baked
+  into the chunk mesh, and 26.1's `GameTime` UBO is the way around that. Nothing is built; it is meant to be
+  built alongside the wound renderer, which needs the same pipeline.
+- **`notes/link-panel-research.md`** — the live view of an Age on a bound book's panel: why a preview
+  `ClientLevel` beats a hand-written mesh builder, and the refactor it demands first — our sky and cloud
+  hooks read `Minecraft.getInstance().level` and the main render target, and a second level breaks both.
+  Nothing is built. Read it before touching `AgeSky`, `AgeClouds` or `Blaze3dSkyCanvas`.
+- **`notes/neoforge-dimensions-research.md`** — why runtime Ages are still Fabric-only and what the ways out
+  cost: DynamicDimensions is dormant with no 26.1, Fantasy is LGPL against our MIT so its source cannot be
+  copied, and owning the technique means ~10 mixins into server internals. **Read it before looking at
+  either library again** — this is the third time they have been evaluated.
 - **`notes/config-research.md`** — how mod config UIs work (they introspect a spec, or host a screen you
   write), the 26.1 landscape, and why the recommendation is NeoForge's `ModConfigSpec` with Forge Config API
   Port on Fabric. Nothing in it is built. Read it before adding the first config value.
