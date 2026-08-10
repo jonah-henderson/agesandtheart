@@ -131,13 +131,20 @@ object SkyKnobs {
             override fun pathFor(index: Int, body: CelestialBody) = body.path
         },
 
-        /** A sun circling at a constant height, never setting — the midnight sun. */
+        /**
+         * A body circling at a constant height, never setting — the midnight sun.
+         *
+         * **Each keeps its own place around the circle.** Dropping the phase put every body on one
+         * trajectory, so a moon trailed its sun a few degrees overhead like a sidecar, which reads as a
+         * rendering fault rather than as the demonstration it is.
+         */
         POLAR("polar") {
             override fun pathFor(index: Int, body: CelestialBody) =
                 Orbit.VANILLA_SUN.copy(
                     inclinationDegrees = 90.0f,
                     liftDegrees = 25.0f + index * 15.0f,
                     distance = body.path.distance,
+                    phaseDegrees = (body.path as? Orbit)?.phaseDegrees ?: (index * 90.0f),
                 )
         },
 

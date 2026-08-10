@@ -56,7 +56,7 @@ class SkyKnobsCheck : FunSpec({
             "path=figure8",
             "glow=additive",
             "daylight=primary_sun",
-            "facing=along_path",
+            "facing=level",
             "deck=both",
         )
         for (knob in each) {
