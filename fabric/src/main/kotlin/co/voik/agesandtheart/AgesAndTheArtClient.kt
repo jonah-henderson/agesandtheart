@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.word.LexiconPayload
 import co.voik.agesandtheart.client.BookEntityRenderer
 import co.voik.agesandtheart.client.ClientDeskNetwork
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry
+import co.voik.agesandtheart.client.AgeLooks
 import co.voik.agesandtheart.client.DeskModel
 import co.voik.agesandtheart.client.KnownWords
 import co.voik.agesandtheart.client.InkCaseScreen
@@ -34,6 +35,9 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
  */
 fun initClient() {
     Constants.LOG.info("Ages client init")
+
+    // The Art's skies, clouds and air, handed to the library that owns those seams.
+    AgeLooks.register()
 
     // What each Age's sky is, told to us by the server. The renderer reads `KnownLooks` every frame rather
     // than being registered per dimension, so an edited Age can change what it draws — see

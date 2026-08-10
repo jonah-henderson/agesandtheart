@@ -4,6 +4,11 @@ license = "${license}" # Review your options at https://choosealicense.com/.
 #issueTrackerURL="https://change.me.to.your.issue.tracker.example.invalid/" #optional
 [[mixins]]
 config = "${mod_id}.mixins.json"
+
+# The runtime-levels library ships inside this jar for now and declares its own config, so that extracting
+# it later is a move rather than an untangling.
+[[mixins]]
+config = "runtimelevels.mixins.json"
 [[mods]] #mandatory
 modId = "${mod_id}" #mandatory
 version = "${version}" #mandatory

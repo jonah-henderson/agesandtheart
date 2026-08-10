@@ -1,5 +1,6 @@
 package co.voik.agesandtheart
 
+import co.voik.agesandtheart.client.AgeLooks
 import co.voik.agesandtheart.age.consequence.Wounds
 import co.voik.agesandtheart.client.BookEntityRenderer
 import co.voik.agesandtheart.client.ClientDeskNetwork
@@ -42,6 +43,8 @@ import net.neoforged.neoforge.common.NeoForge
 @Mod(value = Constants.MOD_ID, dist = [Dist.CLIENT])
 class AgesAndTheArtClient(eventBus: IEventBus) {
     init {
+        // The Art's skies, clouds and air, handed to the library that owns those seams.
+        AgeLooks.register()
         Constants.LOG.info("Ages client init (NeoForge)")
         // Forgetting the cache is a game-bus concern: these dimension keys mean nothing on the next server,
         // and an Age id can be reused, so one world's sky could otherwise appear in another's.

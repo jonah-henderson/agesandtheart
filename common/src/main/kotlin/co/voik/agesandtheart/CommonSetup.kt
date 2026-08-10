@@ -1,6 +1,8 @@
 package co.voik.agesandtheart
 
+import co.voik.agesandtheart.age.phenomena.AgeWeather
 import co.voik.agesandtheart.platform.Services
+import co.voik.runtimelevels.LevelWeather
 
 /**
  * Shared initialisation, invoked by each loader's entrypoint. Common code sees only the vanilla
@@ -9,6 +11,8 @@ import co.voik.agesandtheart.platform.Services
  */
 object CommonSetup {
     fun init() {
+        // An Age keeps weather of its own — the seam is the library's, what an Age asks for is ours.
+        LevelWeather.source { level -> AgeWeather.of(level) }
         Constants.LOG.info(
             "Ages and the Art initialising on {} ({} environment)",
             Services.PLATFORM.name,
