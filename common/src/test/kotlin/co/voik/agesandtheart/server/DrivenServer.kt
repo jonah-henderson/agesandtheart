@@ -265,3 +265,18 @@ private class LaunchSpec(
  * the worlds have to be generated.
  */
 const val NEEDS_SERVER = "NeedsServer"
+
+/**
+ * Marks a server spec that is expensive **even among server specs** — dropped by `-Pfast`.
+ *
+ * Measured 2026-08-10, and the shape of it is why this tag exists rather than a general belief that server
+ * checks are slow: of 167 seconds of server suite, `TempestCheck` was 87 and `DeletionCheck` 62. The other
+ * eight specs came to **two seconds between them**. So dropping two specs turns four minutes into about
+ * twenty seconds while still running eight tenths of the suite, which is a different instrument from the
+ * full one rather than a worse version of it.
+ *
+ * Both earn their cost honestly — one waits out real weather, the other builds and destroys whole worlds —
+ * so this is about *when* they run, not whether. They run on every unfiltered `serverTest`, which is what a
+ * merge should use.
+ */
+const val NEEDS_TIME = "NeedsTime"

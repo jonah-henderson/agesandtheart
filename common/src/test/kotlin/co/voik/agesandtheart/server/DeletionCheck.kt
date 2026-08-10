@@ -14,7 +14,8 @@ import io.kotest.core.spec.style.FunSpec
  * It also guards the order that makes that possible: region files are held open by a running level, so a
  * delete that unlinks before closing succeeds and leaves the directory behind.
  */
-@Tags(NEEDS_SERVER)
+// Two thirds of the server suite between this and its sibling — it builds and destroys whole worlds on disk.
+@Tags(NEEDS_SERVER, NEEDS_TIME)
 class DeletionCheck : FunSpec({
     val server = DrivenServer.shared
 

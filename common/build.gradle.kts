@@ -105,6 +105,74 @@ dependencies {
     testImplementation(libs.kotestProperty)
 }
 
+/**
+ * Which specs a feature name selects — `./gradlew :common:test -Pon=sky`.
+ *
+ * **Derived from where the specs already live**, because the packages already mirror the code they check,
+ * so this is a name for a directory rather than a second taxonomy to keep in step. A spec that moves house
+ * moves feature with it; one that lands somewhere new is simply not selected by anything, which is a
+ * visible gap rather than a silent misfile.
+ *
+ * The same name works on every test task, so `-Pon=sky` narrows the offline suite and the server suite to
+ * the same subject. Where a feature has nothing in a given task, that task runs nothing rather than failing.
+ */
+val SPECS_BY_FEATURE: Map<String, List<String>> = mapOf(
+    "sky" to listOf(
+        "co.voik.agesandtheart.sky.*",
+        "co.voik.agesandtheart.server.SkyClockCheck",
+        "co.voik.agesandtheart.server.SkyKnobsCheck",
+        "co.voik.agesandtheart.server.AppearanceCheck",
+    ),
+    "words" to listOf(
+        "co.voik.agesandtheart.age.word.*",
+        "co.voik.agesandtheart.server.WritingCheck",
+        "co.voik.agesandtheart.server.VocabularyOnServerCheck",
+    ),
+    "terrain" to listOf(
+        "co.voik.agesandtheart.worldgen.*",
+        "co.voik.agesandtheart.server.BiomeFootingCheck",
+        "co.voik.agesandtheart.server.GenerationCheck",
+        "co.voik.agesandtheart.server.StructureDensityCheck",
+    ),
+    "aspects" to listOf("co.voik.agesandtheart.age.aspect.*"),
+    "consequence" to listOf("co.voik.agesandtheart.age.consequence.*"),
+    "phenomena" to listOf(
+        "co.voik.agesandtheart.age.phenomena.*",
+        "co.voik.agesandtheart.server.TempestCheck",
+    ),
+    "desk" to listOf("co.voik.agesandtheart.desk.*"),
+    "levels" to listOf(
+        "co.voik.agesandtheart.age.RecipeCheck",
+        "co.voik.agesandtheart.age.BespokeRecipeCheck",
+        "co.voik.agesandtheart.age.CodecCheck",
+        "co.voik.agesandtheart.age.DimensionTypeCheck",
+        "co.voik.agesandtheart.server.DeletionCheck",
+    ),
+)
+
+/**
+ * Narrows a task to one feature, when `-Pon=` names one.
+ *
+ * **The property is declared as an input**, or a filtered run and a whole one are indistinguishable to
+ * up-to-date checking — so `-Pon=sky` would pass, and then the unfiltered run after it would report
+ * UP-TO-DATE and say nothing at all. That is the same trap `-Pchecks.loader` fell into.
+ */
+fun Test.narrowedToFeature() {
+    val feature = project.findProperty("on") as String?
+    inputs.property("feature", feature ?: "")
+    if (feature == null) return
+    val patterns = SPECS_BY_FEATURE[feature]
+        ?: throw GradleException(
+            "No feature named '$feature'. Try: ${SPECS_BY_FEATURE.keys.sorted().joinToString(" ")}",
+        )
+    filter {
+        patterns.forEach { includeTestsMatching(it) }
+        // A feature with nothing in this task should run nothing, not fail — `-Pon=desk` is a fair thing to
+        // say to `serverTest`, and the answer is "no desk checks need a server".
+        isFailOnNoMatchingTests = false
+    }
+}
+
 /** Must match `NEEDS_REGISTRIES` in `common/src/test/kotlin/.../MinecraftRegistries.kt`. */
 val NEEDS_REGISTRIES_TAG = "NeedsRegistries"
 
@@ -113,6 +181,9 @@ val NEEDS_SERVER_TAG = "NeedsServer"
 
 /** Must match `NEEDS_LANDFORMS` in `common/src/test/kotlin/.../worldgen/Landforms.kt`, which says why. */
 val NEEDS_LANDFORMS_TAG = "NeedsLandforms"
+
+/** Must match `NEEDS_TIME` in `common/src/test/kotlin/.../server/DrivenServer.kt`, which says why. */
+val NEEDS_TIME_TAG = "NeedsTime"
 
 val test: SourceSet = sourceSets.test.get()
 // Minecraft arrives compile-only under ModDevGradle, exactly as for `preview`. The *runtime* half is not
@@ -124,6 +195,7 @@ test.runtimeClasspath += main.compileClasspath + main.runtimeClasspath + main.ou
 
 tasks.named<Test>("test") {
     useJUnitPlatform()
+    narrowedToFeature()
 
     // **Deliberately nothing here about concurrency, and it is worth saying why.** A
     // `kotest.framework.parallelism` property sat here for a long time doing nothing: it is Kotest 5's, and
@@ -189,7 +261,13 @@ tasks.register<Test>("serverTest") {
     // which looks exactly like passing.
     inputs.property("checksLoader", loader)
 
-    systemProperty("kotest.tags", "$NEEDS_SERVER_TAG & !$NEEDS_LANDFORMS_TAG")
+    // `-Pfast` drops the two specs that *are* the runtime — see NEEDS_TIME, which carries the measurement.
+    val excluded = listOfNotNull(
+        NEEDS_LANDFORMS_TAG,
+        NEEDS_TIME_TAG.takeIf { project.hasProperty("fast") },
+    )
+    systemProperty("kotest.tags", (listOf(NEEDS_SERVER_TAG) + excluded.map { "!$it" }).joinToString(" & "))
+    narrowedToFeature()
     // One server, driven in sequence — so this task deliberately does *not* name `ConcurrentSpecs`.
     // Specs running together would each start a server and fight over one `server.properties` and one world.
     maxHeapSize = "2g"
@@ -221,6 +299,7 @@ tasks.register<Test>("landformTest") {
     dependsOn(":fabric:exportServerLaunch")
 
     systemProperty("kotest.tags", NEEDS_LANDFORMS_TAG)
+    narrowedToFeature()
     maxHeapSize = "2g"
     ignoreFailures = true
 

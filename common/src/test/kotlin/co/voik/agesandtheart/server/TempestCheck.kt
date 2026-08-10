@@ -26,7 +26,8 @@ import io.kotest.core.spec.style.FunSpec
  * Each check works in a cleared box of its own along one column, far enough apart that neither the blast
  * nor the fire from one can reach the next.
  */
-@Tags(NEEDS_SERVER)
+// Two thirds of the server suite between this and its sibling — it waits out real weather over real ticks.
+@Tags(NEEDS_SERVER, NEEDS_TIME)
 class TempestCheck : FunSpec({
     val server = DrivenServer.shared
 

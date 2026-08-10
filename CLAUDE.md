@@ -138,12 +138,32 @@ Run directories are `runs/` (Fabric) and `run/` (NeoForge), both git-ignored. Th
 **Tests:** **Kotest**, in three tasks split by what they cost and what they are worth.
 
 ```bash
-./gradlew :common:test                     # the loop — everything but landforms and the server, ~18s
+./gradlew :common:test                     # the loop — everything but landforms and the server, ~17s
 ./gradlew :common:test -Pfast              # and without the specs that need Minecraft's registries
 ./gradlew :common:test --tests "*Grammar*" # one spec
-./gradlew :common:serverTest               # boots a real server, drives it over RCON, ~53s
+./gradlew :common:serverTest               # boots a real server, drives it over RCON, ~4min
+./gradlew :common:serverTest -Pfast        # ...without the two specs that *are* the runtime, ~25s
 ./gradlew :common:landformTest             # the shape of the rock — opt-in, ~220s, and it only *warns*
 ```
+
+**`-Pon=<feature>` narrows any of them to one subject**, which is the iteration loop worth using:
+
+```bash
+./gradlew :common:test -Pon=sky            # ~1.5s instead of 17
+./gradlew :common:serverTest -Pon=sky      # the sky checks that need a server, and nothing else
+```
+
+Features are `aspects consequence desk levels phenomena sky terrain words`, and the map lives in
+`common/build.gradle.kts`. **They are named after where the specs already live**, because the packages
+already mirror the code they check — so this is a name for a directory rather than a second taxonomy to
+keep in step. A feature with nothing in a given task runs nothing rather than failing, so `-Pon=desk` is a
+fair thing to say to `serverTest`. A misspelled one lists what it should have been.
+
+**The server suite is two specs and a rounding error**, measured 2026-08-10: of 167 seconds, `TempestCheck`
+was 87 and `DeletionCheck` 62, and the other eight came to **two seconds between them**. Both earn it — one
+waits out real weather, the other builds and destroys whole worlds — so they carry `NEEDS_TIME` and `-Pfast`
+drops them, which is four minutes down to twenty-five seconds while still running eight tenths of the suite.
+**Iterate on one loader**; `-Pchecks.loader=neoforge` and the unfiltered run are what a merge is for.
 
 **`landformTest` warns rather than fails, deliberately** (`ignoreFailures`), and
 `common/src/test/kotlin/.../worldgen/Landforms.kt` carries the whole argument — read it before moving a
