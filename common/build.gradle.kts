@@ -159,17 +159,29 @@ tasks.named<Test>("test") {
  * Same source set and same Kotest suite as `test`, selected by tag rather than split into a source set of
  * its own: they are the same kind of thing written the same way, and only what they *cost* differs.
  *
- * It depends on `:fabric:exportServerLaunch` because [co.voik.agesandtheart.server.DrivenServer] starts the
- * server itself rather than through Gradle — a nested build would wait forever on this one's locks.
+ * It depends on the loader's `exportServerLaunch` because [co.voik.agesandtheart.server.DrivenServer]
+ * starts the server itself rather than through Gradle — a nested build would wait forever on this one's
+ * locks.
+ *
+ * **`-Pchecks.loader=neoforge` drives the other side with the same checks.** The mod is meant to behave
+ * identically on both, so the suite that says whether it does should be the same suite rather than a second
+ * one that could drift. Fabric stays the default because it is the loader everything else already assumes.
  */
 tasks.register<Test>("serverTest") {
     group = "verification"
-    description = "Runs the checks that drive a real dedicated server over RCON."
+    description = "Runs the checks that drive a real dedicated server over RCON. -Pchecks.loader=neoforge for the other side."
     useJUnitPlatform()
+
+    val loader = (project.findProperty("checks.loader") as String?) ?: "fabric"
 
     testClassesDirs = test.output.classesDirs
     classpath = test.runtimeClasspath
-    dependsOn(":fabric:exportServerLaunch")
+    dependsOn(":$loader:exportServerLaunch")
+    systemProperty("agesandtheart.checks.loader", loader)
+    // **An input, or the second loader never runs.** A system property is invisible to up-to-date checking,
+    // so a suite that has passed on Fabric is reported UP-TO-DATE for NeoForge and says nothing at all —
+    // which looks exactly like passing.
+    inputs.property("checksLoader", loader)
 
     systemProperty("kotest.tags", "$NEEDS_SERVER_TAG & !$NEEDS_LANDFORMS_TAG")
     // One server, driven in sequence — so this task deliberately does *not* name `ConcurrentSpecs`.

@@ -217,8 +217,8 @@ private class LaunchSpec(
         fun read(): LaunchSpec {
             val spec = candidatePaths().firstOrNull { it.isFile }
                 ?: error(
-                    "no server launch spec — run ./gradlew :fabric:exportServerLaunch first (the " +
-                        "serverTest task does it for you)",
+                    "no server launch spec for ${loader()} — run ./gradlew :${loader()}:exportServerLaunch " +
+                        "first (the serverTest task does it for you)",
                 )
             val fields = spec.readLines().filter { it.isNotBlank() }
                 .map { it.substringBefore('\t') to it.substringAfter('\t') }
@@ -227,11 +227,23 @@ private class LaunchSpec(
             return LaunchSpec(File(one("workingDir")), one("mainClass"), all("jvmArg"), all("arg"))
         }
 
+        /**
+         * Which loader's server the checks drive — Fabric unless told otherwise.
+         *
+         * `-Pchecks.loader=neoforge` on `:common:serverTest` points the whole suite at the other side. The
+         * checks themselves know nothing about it and must not: what they assert is the *mod's* behaviour,
+         * and a check that passed on one loader and not the other would be saying something worth hearing
+         * rather than something worth special-casing.
+         */
+        private fun loader(): String = System.getProperty(LOADER_PROPERTY, "fabric")
+
+        const val LOADER_PROPERTY = "agesandtheart.checks.loader"
+
         // Gradle runs the test task from the module directory, but a run from the repository root is the
         // thing anyone tries first — so both are looked at rather than one being the wrong guess.
         private fun candidatePaths() = listOf(
-            File("../fabric/build/server-launch.txt"),
-            File("fabric/build/server-launch.txt"),
+            File("../${loader()}/build/server-launch.txt"),
+            File("${loader()}/build/server-launch.txt"),
         )
     }
 }
