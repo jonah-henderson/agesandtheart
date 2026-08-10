@@ -1,11 +1,17 @@
 {
-  "_comment": "NeoForge dialect of the same recipe -- see the Fabric copy for why this is loader-specific.",
+  "_comment": [
+    "NeoForge dialect of the same recipe -- see the Fabric copy for why this is loader-specific.",
+    "The dispatch key is the literal `neoforge:ingredient_type`, NOT `type`: NeoForge's IngredientCodecs",
+    "dispatches on that string, and a `type` here is read as a HolderSet's type instead, which fails with",
+    "'Unknown registry key in ResourceKey[minecraft:root / neoforge:holder_set_type]'. The recipe is then",
+    "simply absent, with nothing but a line in the log to say so -- see BootLogCheck."
+  ],
   "type": "minecraft:crafting_shapeless",
   "category": "misc",
   "group": "agesandtheart_ink",
   "ingredients": [
     {
-      "type": "neoforge:components",
+      "neoforge:ingredient_type": "neoforge:components",
       "items": "minecraft:potion",
       "components": {
         "minecraft:potion_contents": { "potion": "minecraft:water" }

@@ -27,10 +27,20 @@ class DrivenServer private constructor(
     private val properties: File,
     private val originalProperties: String,
     private val world: File,
+    private val bootLog: File,
 ) : AutoCloseable {
 
     /** [command] run on the server, and its output verbatim. `/age write …`, without the slash. */
     fun run(command: String): String = rcon.run(command)
+
+    /**
+     * Everything the server has said since it started.
+     *
+     * **Kept because a datapack error is not fatal.** A file the server cannot read is logged and the boot
+     * carries on, so nothing a command can ask will ever reveal it — the recipe simply is not there, the
+     * loot modifier simply never fires. This is the only place a check can see it. See `BootLogCheck`.
+     */
+    fun saidSoFar(): String = if (bootLog.isFile) bootLog.readText() else ""
 
     /**
      * Where an Age's saved chunks live, so a check can ask whether they are really there.
@@ -136,7 +146,14 @@ class DrivenServer private constructor(
                     properties.writeText(originalProperties)
                     throw failure
                 }
-            return DrivenServer(process, rcon, properties, originalProperties, launch.workingDirectory.resolve(level))
+            return DrivenServer(
+                process,
+                rcon,
+                properties,
+                originalProperties,
+                launch.workingDirectory.resolve(level),
+                launch.outputFile,
+            )
         }
 
         /**
@@ -211,15 +228,25 @@ private class LaunchSpec(
     private val jvmArguments: List<String>,
     private val arguments: List<String>,
 ) {
+    /**
+     * Started with its output **kept**, into [outputFile].
+     *
+     * It used to be discarded, on the reasoning that the server writes its own log. That was true and it
+     * cost us: a datapack file the server cannot read is *logged* and not fatal, so two broken data files
+     * sat in the NeoForge build being reported on every boot and caught by nothing — the checks could not
+     * see the log, and a person only sees it if they happen to run the client. See `BootLogCheck`.
+     */
     fun start(): Process {
         val java = File(System.getProperty("java.home"), "bin/java").absolutePath
         return ProcessBuilder(listOf(java) + jvmArguments + mainClass + arguments)
             .directory(workingDirectory)
             .redirectErrorStream(true)
-            // The server's own log is the one worth reading, and it writes one; this would only duplicate it.
-            .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+            .redirectOutput(ProcessBuilder.Redirect.to(outputFile))
             .start()
     }
+
+    /** Beside the launch spec, so it is found where the thing that produced it lives. */
+    val outputFile: File = File(workingDirectory, "checks-boot.log")
 
     companion object {
         fun read(): LaunchSpec {
