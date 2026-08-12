@@ -9,7 +9,7 @@ import co.voik.agesandtheart.age.word.generation.GenerationGrammars
 import co.voik.agesandtheart.age.word.grammar.GrammarWord
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
-import net.minecraft.core.RegistryAccess
+import net.minecraft.core.HolderLookup
 import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.packs.resources.Resource
@@ -283,7 +283,7 @@ data class Vocabulary(
          * wins every collision, and the derived word stays reachable by its full id — the reverse would
          * let a block from some mod quietly redefine a word of the Art.
          */
-        fun load(resources: ResourceManager, registries: RegistryAccess? = null): Vocabulary {
+        fun load(resources: ResourceManager, registries: HolderLookup.Provider? = null): Vocabulary {
             val problems = mutableListOf<String>()
             val authored = readWords(resources, problems)
             // After the words, so a domain claiming a page some word file also defines is reported rather

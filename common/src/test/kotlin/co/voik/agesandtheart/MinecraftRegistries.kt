@@ -1,7 +1,10 @@
 package co.voik.agesandtheart
 
 import net.minecraft.SharedConstants
+import net.minecraft.core.HolderLookup
 import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.core.registries.Registries
+import net.minecraft.data.registries.VanillaRegistries
 import net.minecraft.network.chat.Component
 import net.minecraft.server.Bootstrap
 import net.minecraft.server.packs.PackLocationInfo
@@ -50,6 +53,28 @@ object MinecraftRegistries {
 
     /** Call from a spec before touching anything that reads a registry. */
     fun ensureStoodUp() = bootstrapped
+
+    /**
+     * Vanilla's **worldgen** registries — biomes, placed features, structure sets — built offline.
+     *
+     * `Bootstrap.bootStrap()` stands up the built-in registries only, so a corpus loaded without this has
+     * §8's materials and creatures and **none of the other three populations**: no biome, no feature, no
+     * structure set. That was true of every offline check until 2026-08-12, which is roughly eleven hundred
+     * of the twelve hundred words in the corpus going unexercised — and it is why `in <biome>` could refuse
+     * every biome in the game without a check noticing.
+     *
+     * Vanilla's own data, so it does not carry the mod's own biomes or structure sets. Those still want a
+     * server. What it buys is that anything derived from *vanilla* content is now reachable in the
+     * seventeen-second suite rather than the four-minute one.
+     */
+    val worldgen: HolderLookup.Provider by lazy {
+        ensureStoodUp()
+        VanillaRegistries.createLookup().also {
+            check(it.lookupOrThrow(Registries.BIOME).listElements().findAny().isPresent) {
+                "the biome registry is empty, so every derived-population check would pass on nothing"
+            }
+        }
+    }
 
     /**
      * The mod's own data as a resource manager — the same class the server reads packs through, over the

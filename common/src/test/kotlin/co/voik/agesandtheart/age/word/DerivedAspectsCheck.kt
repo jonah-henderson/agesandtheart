@@ -20,7 +20,7 @@ import io.kotest.core.spec.style.FunSpec
  */
 @Tags("NEEDS_REGISTRIES")
 class DerivedAspectsCheck : FunSpec({
-    val vocabulary by lazy { Vocabulary.load(MinecraftRegistries.shippedData()) }
+    val vocabulary by lazy { Vocabulary.load(MinecraftRegistries.shippedData(), MinecraftRegistries.worldgen) }
 
     fun aspectsOwning(parameter: String) = Aspect.entries.filter { it.ownsParameterNamed(parameter) }.toSet()
 

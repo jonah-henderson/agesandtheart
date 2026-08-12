@@ -22,7 +22,7 @@ import kotlin.random.Random
 @Tags(NEEDS_REGISTRIES)
 class ShippedGrammarsCheck : FunSpec({
 
-    val vocabulary by lazy { Vocabulary.load(MinecraftRegistries.shippedData()) }
+    val vocabulary by lazy { Vocabulary.load(MinecraftRegistries.shippedData(), MinecraftRegistries.worldgen) }
 
     test("the grammars we ship load without a problem") {
         check(vocabulary.problems.isEmpty()) { "the corpus would not load: ${vocabulary.problems}" }

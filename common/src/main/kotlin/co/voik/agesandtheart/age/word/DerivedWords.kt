@@ -11,7 +11,8 @@ import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.Surface
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.location
-import net.minecraft.core.RegistryAccess
+import net.minecraft.core.HolderLookup
+import net.minecraft.resources.ResourceKey
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
@@ -91,11 +92,13 @@ object DerivedWords {
      * A biome word **sets a parameter** rather than naming a preset — a sea *is* its block, where a biome
      * enriches a table (§3.1, §3.2). Populative, so two accumulate and neither excludes anything.
      */
-    fun biomes(registries: RegistryAccess): List<Word> = registries.lookupOrThrow(Registries.BIOME)
-        .listElements()
-        .filter { holder -> !holder.`is`(FORBIDDEN_BIOMES) }
-        .map { holder -> setting(holder.key().identifier(), Aspect.BIOMES, Biomes.GROWN) }
-        .toList()
+    fun biomes(registries: HolderLookup.Provider): List<Word> = registries.lookupOrThrow(Registries.BIOME).let { lookup ->
+        val struckOut = lookup.struckOutBy(FORBIDDEN_BIOMES)
+        lookup.listElements()
+            .filter { holder -> holder.key() !in struckOut }
+            .map { holder -> setting(holder.key().identifier(), Aspect.BIOMES, Biomes.GROWN) }
+            .toList()
+    }
 
     private val FORBIDDEN_FEATURES: TagKey<PlacedFeature> = TagKey.create(Registries.PLACED_FEATURE, FORBIDDEN)
 
@@ -106,11 +109,13 @@ object DerivedWords {
      * Per *placed* feature, because that is the unit a biome's list holds and so the only one a writer can
      * name and have mean something — see [co.voik.agesandtheart.age.aspect.PlacedFeature].
      */
-    fun features(registries: RegistryAccess): List<Word> = registries.lookupOrThrow(Registries.PLACED_FEATURE)
-        .listElements()
-        .filter { holder -> !holder.`is`(FORBIDDEN_FEATURES) }
-        .map { holder -> setting(holder.key().identifier(), Aspect.FEATURES, Features.PLACES) }
-        .toList()
+    fun features(registries: HolderLookup.Provider): List<Word> = registries.lookupOrThrow(Registries.PLACED_FEATURE).let { lookup ->
+        val struckOut = lookup.struckOutBy(FORBIDDEN_FEATURES)
+        lookup.listElements()
+            .filter { holder -> holder.key() !in struckOut }
+            .map { holder -> setting(holder.key().identifier(), Aspect.FEATURES, Features.PLACES) }
+            .toList()
+    }
 
     private val FORBIDDEN_SPAWNS: TagKey<EntityType<*>> = TagKey.create(Registries.ENTITY_TYPE, FORBIDDEN)
 
@@ -134,11 +139,13 @@ object DerivedWords {
      *
      * Per structure *set*, not per structure — see [co.voik.agesandtheart.age.aspect.Structures] for why.
      */
-    fun structures(registries: RegistryAccess): List<Word> = registries.lookupOrThrow(Registries.STRUCTURE_SET)
-        .listElements()
-        .filter { holder -> !holder.`is`(FORBIDDEN_STRUCTURE_SETS) }
-        .map { holder -> setting(holder.key().identifier(), Aspect.STRUCTURES, Structures.BUILT) }
-        .toList()
+    fun structures(registries: HolderLookup.Provider): List<Word> = registries.lookupOrThrow(Registries.STRUCTURE_SET).let { lookup ->
+        val struckOut = lookup.struckOutBy(FORBIDDEN_STRUCTURE_SETS)
+        lookup.listElements()
+            .filter { holder -> holder.key() !in struckOut }
+            .map { holder -> setting(holder.key().identifier(), Aspect.STRUCTURES, Structures.BUILT) }
+            .toList()
+    }
 
     /**
      * A word that turns a knob rather than choosing a preset — how a referent reaches an open parameter.
@@ -159,4 +166,28 @@ object DerivedWords {
      */
     private fun referring(id: Identifier, aspect: Aspect, referent: (Identifier) -> AspectPreset) =
         Word(id = id, tier = Tier.EXACT, aspects = setOf(aspect), query = emptyMap(), names = referent(id).key)
+
+    /**
+     * Every entry a pack struck out with `agesandtheart:forbidden` (§8.4).
+     *
+     * Asked of the **lookup's** tag list rather than of each holder's back-reference. `Holder.is(TagKey)`
+     * needs the holder's tag set bound, which a provider built without a server never does — it threw
+     * "Tags not bound" and took the whole derived corpus with it, so these three populations could only be
+     * read where they were hardest to check. A provider carrying no tags simply forbids nothing, which is
+     * what an empty-by-default exclusion means anyway.
+     */
+    private fun <T : Any> HolderLookup.RegistryLookup<T>.struckOutBy(tag: TagKey<T>): Set<ResourceKey<T>> {
+        // `RegistrySetBuilder.EmptyTagRegistryLookup` refuses outright — "Tags are not available in
+        // datagen" — where a holder's unbound tag set threw "Tags not bound". Either way the provider
+        // carries no tags, so nothing has been struck out.
+        val tagged = try {
+            listTags().toList()
+        } catch (tagsAreNotAvailable: UnsupportedOperationException) {
+            return emptySet()
+        }
+        return tagged.firstOrNull { named -> named.key() == tag }
+            ?.mapNotNull { holder -> holder.unwrapKey().orElse(null) }
+            ?.toSet()
+            .orEmpty()
+    }
 }

@@ -26,7 +26,7 @@ import io.kotest.core.spec.style.FunSpec
 @Tags(NEEDS_REGISTRIES)
 class VocabularyCheck : FunSpec({
 
-    val vocabulary by lazy { Vocabulary.load(MinecraftRegistries.shippedData()) }
+    val vocabulary by lazy { Vocabulary.load(MinecraftRegistries.shippedData(), MinecraftRegistries.worldgen) }
 
     /**
      * Nothing failed to load.

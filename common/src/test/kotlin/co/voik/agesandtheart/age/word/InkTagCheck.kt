@@ -49,7 +49,7 @@ class InkTagCheck : FunSpec({
 
     /** Authored words are listed by name, so a typo there is a word that silently stays cheap. */
     test("every authored word listed for an ink tier is a real word") {
-        val vocabulary = Vocabulary.load(MinecraftRegistries.shippedData())
+        val vocabulary = Vocabulary.load(MinecraftRegistries.shippedData(), MinecraftRegistries.worldgen)
         val inkDirectory = File("src/main/resources/data/agesandtheart/art/ink")
         val listed = inkDirectory.listFiles { f -> f.extension == "json" }.orEmpty()
             .flatMap { file ->

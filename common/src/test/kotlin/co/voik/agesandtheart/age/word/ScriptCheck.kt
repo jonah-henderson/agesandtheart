@@ -16,7 +16,7 @@ import io.kotest.core.spec.style.FunSpec
 class ScriptCheck : FunSpec({
 
     val vocabulary by lazy {
-        Vocabulary.load(MinecraftRegistries.shippedData()).also {
+        Vocabulary.load(MinecraftRegistries.shippedData(), MinecraftRegistries.worldgen).also {
             check(it.problems.isEmpty()) { "the corpus would not load: ${it.problems}" }
         }
     }
