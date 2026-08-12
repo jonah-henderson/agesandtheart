@@ -389,7 +389,7 @@ enum class Terrain(
          * **The three axes a word may bend a landform along**, and the reason they are ranged rather than
          * named steps: a word carries the *band* it means, so `sparse` and `scattered` can sit on
          * different stretches of one axis without either needing a step minted for it. See
-         * [Parameter.Kind.RANGED]; the numbers live on the words and a writer never types one.
+         * [Holds.RANGE]; the numbers live on the words and a writer never types one.
          *
          * **Shared on purpose.** Each names a quality many landforms have rather than a knob one of them
          * owns, so a word that bends `spacing` bends a crater field, a pillar grid and an archipelago —

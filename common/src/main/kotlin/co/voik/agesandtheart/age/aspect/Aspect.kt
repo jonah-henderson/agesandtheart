@@ -59,30 +59,37 @@ enum class Aspect(val key: String) : StringRepresentable {
     ;
 
     /**
-     * **What kind of answer this aspect has**, which is the thing that decides how it resolves.
+     * **What this aspect's own answer holds**, or null where it has none of its own and is a group of
+     * properties and nothing else — a climate, a surface and the air are simply where their properties
+     * were left (`the-world-model.md` §2).
      *
-     * Not a label over a uniform mechanism: each kind wants a different question asked of a sentence, and
-     * the resolver dispatches on this rather than treating every aspect as a preset with knobs.
+     * A preset and a referent were never two things: one is a closed catalogue and the other an open one,
+     * which [open] answers on its own, so both are [Holds.CATALOGUE] here.
+     *
+     * Structures is a weighted set that is still *shaped* as a preset pair, `none` against `vanilla`, whose
+     * readiness prior is what makes habitation opt-in. It loses the pair when it is converted, not before —
+     * declaring it early would skip the draw and build in every Age.
      */
-    val kind: Kind
+    val holds: Holds?
         get() = when (this) {
-            // Structures *is* a population and is still shaped as a preset pair, `none` against `vanilla`,
-            // whose readiness prior is what makes habitation opt-in. It changes kind when it is converted,
-            // not before — declaring it early would skip the draw and build in every Age.
-            TERRAIN, CARVERS, SKY -> Kind.PRESET
-            SEA -> Kind.REFERENT
-            BIOMES, STRUCTURES, FEATURES, SPAWNS, PHENOMENA -> Kind.POPULATION
-            CLIMATE, SURFACE, ATMOSPHERE -> Kind.DIALS
+            TERRAIN, CARVERS, SKY, SEA -> Holds.CATALOGUE
+            BIOMES, STRUCTURES, FEATURES, SPAWNS, PHENOMENA -> Holds.WEIGHTED_SET
+            CLIMATE, SURFACE, ATMOSPHERE -> null
         }
 
     /**
      * Whether this aspect's value is a registry object rather than a preset written in Kotlin (§3.1) —
      * which decides whether §8's derived vocabulary can reach the aspect at all.
      *
-     * **The one question [kind] answers on its own.** A referent's value *is* a registry object and a
-     * population's members are, where a preset is a bundle we wrote and a dial is a number.
+     * Not derivable from [holds], and that is the open-against-closed half of a catalogue: a sea's value
+     * *is* a block and a biome's members are registry entries, where a terrain's shapes and a phenomenon's
+     * processes are bundles we wrote.
      */
-    val open: Boolean get() = kind == Kind.REFERENT || kind == Kind.POPULATION
+    val open: Boolean
+        get() = when (this) {
+            SEA, BIOMES, STRUCTURES, FEATURES, SPAWNS, PHENOMENA -> true
+            TERRAIN, CARVERS, SKY, CLIMATE, SURFACE, ATMOSPHERE -> false
+        }
 
     /**
      * Every preset for this aspect written in Kotlin — the whole pool for a closed aspect, and none of it
@@ -98,7 +105,7 @@ enum class Aspect(val key: String) : StringRepresentable {
             CARVERS -> Carvers.entries
             SKY -> Sky.entries
             // Nothing to choose between: a climate and a surface are where their dials were left, and a
-            // biome or a structure set is weighed rather than chosen. See [dials] and [Kind.POPULATION].
+            // biome or a structure set is weighed rather than chosen. See [dials] and [Holds.WEIGHTED_SET].
             PHENOMENA -> Phenomenon.entries
             SEA, BIOMES, STRUCTURES, CLIMATE, SURFACE, FEATURES, SPAWNS, ATMOSPHERE -> emptyList()
         }
@@ -166,26 +173,8 @@ enum class Aspect(val key: String) : StringRepresentable {
      */
     fun ownsPresetNamed(key: String): Boolean = authored.any { it.key == key }
 
-    /**
-     * What kind of answer an aspect has. The resolver asks a different question of a sentence for each,
-     * which is the whole reason this exists rather than one shape with degenerate cases in it.
-     */
-    enum class Kind {
-        /** A curated bundle too large to spell out, drawn between and given ground. */
-        PRESET,
-
-        /** A registry object named outright, otherwise as [PRESET]. */
-        REFERENT,
-
-        /** Weighted claims that accumulate. Never drawn between: everything is already there. */
-        POPULATION,
-
-        /** Spans on continuous axes, and no choice at all. */
-        DIALS,
-    }
-
-    /** Whether nothing is ever drawn to fill this aspect: its answer is its members or its dials. */
-    val seatsNothing: Boolean get() = kind == Kind.POPULATION || kind == Kind.DIALS
+    /** Whether nothing is ever drawn to fill this aspect: its answer is its members or its properties. */
+    val seatsNothing: Boolean get() = holds != Holds.CATALOGUE
 
     /**
      * The preset this aspect means by [key], or null where the key names nothing it can hold — the single
@@ -293,7 +282,7 @@ enum class Aspect(val key: String) : StringRepresentable {
  * first option is the default, so a preset named with no options still resolves.
  *
  * **Numbers are allowed here and always were.** §3.2 forbids them being exposed to the *player*, and a
- * [Kind.RANGED] parameter never is: a writer says a word, the word carries the span. Named steps were the
+ * [Holds.RANGE] parameter never is: a writer says a word, the word carries the span. Named steps were the
  * first reading of that rule and they do not scale — every new word that wants to sit on a different band
  * needs a new step, and steps must then be named on every axis at once.
  *
@@ -303,8 +292,8 @@ data class Parameter(
     val name: String,
     val options: List<String>,
     val open: Boolean = false,
-    /** What a value claims, which decides what two of them unjoined mean — see [Kind]. */
-    val kind: Kind = Kind.PREDICATIVE,
+    /** What this property holds, which decides what a claim on it can mean — see [Holds]. */
+    val holds: Holds = Holds.CATALOGUE,
     /** How many of a thing there may be, where the value is a count — see [counted]. */
     val counts: IntRange? = null,
     /** What naming one of these is worth, where the value is a member of a population — see [population]. */
@@ -325,25 +314,6 @@ data class Parameter(
     /** This parameter, sited-in-a-biome — see [confinable]. */
     fun perBiome(): Parameter = copy(confinable = true)
 
-    enum class Kind {
-        /** Says something about the whole — "the rock *is* blackstone". Two of them conflict and contend. */
-        PREDICATIVE,
-
-        /** Asserts a part is present — "there *are* cherry groves". Two of them accumulate. */
-        POPULATIVE,
-
-        /**
-         * Bounds a continuous axis with a [Span]. Two of these **broaden** into the span holding both,
-         * since a word carrying a span is evocative about that axis and evocative words tilt rather than
-         * narrow.
-         *
-         * They **fracture** instead when the antonym table says the words disagree — without which two
-         * spans miles apart would silently broaden into mush. `VocabularyCheck` enforces that disjoint
-         * spans have an antonym between them.
-         */
-        RANGED,
-    }
-
     val default: String get() = options.first()
 
     constructor(name: String, vararg options: String) : this(name, options.toList())
@@ -356,7 +326,7 @@ data class Parameter(
         val isOneOfTheNamedOptions = option in options
         val looksLikeARegistryId = namesReferent(option) && Identifier.tryParse(option) != null
         // Every form a word may ask a ranged axis for, not only a band — see [Setting].
-        val looksLikeASpan = kind == Kind.RANGED && Setting.describes(option)
+        val looksLikeASpan = holds == Holds.RANGE && Setting.describes(option)
         val isACountItGoesUpTo = option.toIntOrNull()?.let { counts?.contains(it) } == true
         return isOneOfTheNamedOptions || looksLikeASpan || isACountItGoesUpTo || (open && looksLikeARegistryId)
     }
@@ -399,7 +369,7 @@ data class Parameter(
             name,
             listOfNotNull(UNCHANGED, emptiedBy) + named,
             open = named.isEmpty(),
-            kind = Kind.POPULATIVE,
+            holds = Holds.WEIGHTED_SET,
             worthOfAMention = worthOfAMention,
             leastKept = leastKept,
             emptiedBy = emptiedBy,
@@ -409,7 +379,7 @@ data class Parameter(
          * A continuous axis a word may bound — climate's temperature and humidity. Defaults to the whole
          * axis, so an Age told nothing keeps whatever vanilla's noise produced.
          */
-        fun ranged(name: String) = Parameter(name, listOf(Span.NATURAL.spelled()), kind = Kind.RANGED)
+        fun ranged(name: String) = Parameter(name, listOf(Span.NATURAL.spelled()), holds = Holds.RANGE)
 
         /**
          * How many of a thing there are, from none up to [most] — the bodies in a sky.
@@ -420,7 +390,7 @@ data class Parameter(
          * the number, which is why this is a value and not an enumeration of spellings for it.
          */
         fun counted(name: String, ordinary: Int, most: Int) =
-            Parameter(name, listOf(ordinary.toString()), counts = 0..most)
+            Parameter(name, listOf(ordinary.toString()), holds = Holds.CAST, counts = 0..most)
     }
 }
 
@@ -461,4 +431,55 @@ interface AspectPreset : StringRepresentable {
     }
 
     override fun getSerializedName(): String
+}
+
+/**
+ * **What one property holds** — the whole of the world model, and everything else falls out of it
+ * (`the-world-model.md` §2).
+ *
+ * The three kinds decide what a claim on the property can mean, which operators are legal there, and
+ * whether it needs tagging — so nothing anywhere has to author those rules separately.
+ */
+enum class Holds {
+    /**
+     * One value on a continuous axis — a temperature, a fog distance, how large a vein is.
+     *
+     * **Self-describing, so no range is ever tagged**: a word bounds it and nothing has to be told which
+     * temperatures are hot. Two claims broaden into the span holding both, since a word carrying a span is
+     * evocative about that axis, and they fracture instead where the antonym table says the two disagree —
+     * without which two spans miles apart would silently average into mush.
+     */
+    RANGE,
+
+    /**
+     * One value drawn from a list — a terrain's shape, a colour, a block. Closed (three skies) or open
+     * (every block in the game), which the property says separately.
+     *
+     * **The kind that needs tags** (world model §7): a vague word choosing among seventeen shapes has
+     * nothing to go on, where a range answers for itself.
+     */
+    CATALOGUE,
+
+    /**
+     * A distribution the template ships and claims skew — the biomes, the things placed in the ground, the
+     * structures, the creatures.
+     *
+     * Members are usually named from a registry, and may also be brought into being by description
+     * (`gold block veins`). Never counted: `teeming jungles` is a weight, since there is one jungle and the
+     * world has more or less of it.
+     */
+    WEIGHTED_SET,
+
+    /**
+     * Members that exist only because somebody described them — the suns, the moons.
+     *
+     * Each member holds properties of its own, so this is the recursive kind. **Not built**: `suns` and
+     * `moons` are still read as counts, and turning them into a cast is what removes numbers from the
+     * language entirely.
+     */
+    CAST,
+    ;
+
+    /** Whether this holds a single answer — what `and` forces two of, and what may fracture. */
+    val isOneValue: Boolean get() = this == RANGE || this == CATALOGUE
 }

@@ -12,6 +12,7 @@ import co.voik.agesandtheart.age.aspect.Setting
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.AspectPreset
+import co.voik.agesandtheart.age.aspect.Holds
 import co.voik.agesandtheart.age.word.grammar.Constraint
 import co.voik.agesandtheart.age.word.grammar.Scope
 import co.voik.agesandtheart.age.word.grammar.Sentence
@@ -224,7 +225,7 @@ object Resolver {
         // **Only a preset aspect is drawn between.** A population has everything already and is weighed by
         // the parameter pass; a set of dials has nothing to choose at all. Seating one of either here would
         // invent an answer neither kind has.
-        if (aspect.kind == Aspect.Kind.POPULATION || aspect.kind == Aspect.Kind.DIALS) return emptyList()
+        if (aspect.holds != Holds.CATALOGUE) return emptyList()
 
         val speaking = sentence.filter { aspect in reachOf(vocabulary, it) }
         // Most precise first; where precision ties the seed decides, never word order. A word that only
@@ -603,7 +604,7 @@ object Resolver {
             // An aspect with nothing to choose between fills nothing here and is not missing: its answer is
             // written by the parameter pass, which runs next. Only an aspect that *could* seat a preset and
             // did not is a fault, and that would be the resolver losing one.
-            if (aspect.kind == Aspect.Kind.POPULATION || aspect.kind == Aspect.Kind.DIALS) continue
+            if (aspect.holds != Holds.CATALOGUE) continue
             check(filling.isNotEmpty()) { "the ${aspect.key} aspect resolved to nothing, which no sentence can do" }
             composition = composition.withPresets(aspect, filling.map { it.preset.key }, filling.map { it.share })
         }
@@ -638,7 +639,7 @@ object Resolver {
                 val contenders = setting.filter { parameter in it.word.sets }
                     .sortedWith(compareByDescending<Constraint> { it.word.tier }.thenBy { tieBreak(draw, aspect, it.word) })
                 val populative = parameterNamed(steered, aspect, parameter)
-                    ?.takeIf { it.kind == Parameter.Kind.POPULATIVE }
+                    ?.takeIf { it.holds == Holds.WEIGHTED_SET }
                 steered = when {
                     // Populative values accumulate rather than conflict (§3.2), and the polarity travels
                     // with the value — which is what makes `only` and `except` reach a population at all.
@@ -660,7 +661,7 @@ object Resolver {
     /**
      * A **ranged** parameter's claimants, gathered and applied: those that do not disagree **broaden** into
      * one span, and those that do take ground of their own. The one combining rule whose outcome is wider
-     * than either input — see [Parameter.Kind.RANGED].
+     * than either input — see [Holds.RANGE].
      *
      * **Overlap is the arbiter, not the antonym table.** Antonymy is a lossy proxy for "these cannot both
      * hold": two words with no antonym pair but disjoint spans would broaden into a hull covering ground
@@ -847,7 +848,7 @@ object Resolver {
     /** Which of [aspect]'s parameters bound a continuous axis — asked of the seated presets, as they own them. */
     private fun rangedNames(composition: AgeComposition, aspect: Aspect): List<String> =
         (composition.presets.filter { it.aspect == aspect }.flatMap { it.parameters } + aspect.dials)
-            .filter { it.kind == Parameter.Kind.RANGED }
+            .filter { it.holds == Holds.RANGE }
             .map { it.name }
             .distinct()
 
@@ -869,8 +870,8 @@ object Resolver {
         sentence: List<Constraint>,
     ): AgeComposition {
         var weighed = composition
-        for (aspect in Aspect.entries.filter { it.kind == Aspect.Kind.POPULATION }) {
-            val population = aspect.dials.firstOrNull { it.kind == Parameter.Kind.POPULATIVE } ?: continue
+        for (aspect in Aspect.entries.filter { it.holds == Holds.WEIGHTED_SET }) {
+            val population = aspect.dials.firstOrNull { it.holds == Holds.WEIGHTED_SET } ?: continue
             // A word that names a member arrived with its answer in hand and was written by [steer]; asking
             // its tags as well would weigh it twice.
             val speaking = sentence.filter { said ->
@@ -1119,7 +1120,7 @@ object Resolver {
      * would make a typo look deliberate.
      */
     private fun isPopulative(composition: AgeComposition, aspect: Aspect, parameter: String): Boolean =
-        parameterNamed(composition, aspect, parameter)?.kind == Parameter.Kind.POPULATIVE
+        parameterNamed(composition, aspect, parameter)?.holds == Holds.WEIGHTED_SET
 
     /** The knob [aspect] calls [parameter], from wherever it is owned — see [parametersOf]. */
     private fun parameterNamed(composition: AgeComposition, aspect: Aspect, parameter: String): Parameter? =

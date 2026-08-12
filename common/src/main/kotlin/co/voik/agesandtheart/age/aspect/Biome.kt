@@ -6,7 +6,7 @@ import net.minecraft.resources.Identifier
  * One biome a sentence can speak about — a registry object, like a [Sea], and for the same reason: naming
  * one should need no per-mod work (§8.1).
  *
- * **A biome is weighed, never seated.** [Aspect.BIOMES] is a [Aspect.Kind.POPULATION], so an Age begins
+ * **A biome is weighed, never seated.** [Aspect.BIOMES] holds a [Holds.WEIGHTED_SET], so an Age begins
  * with vanilla's whole table and a sentence adjusts how often each thing turns up, or trims the set with
  * `only` and `except`. Nothing is drawn between, because everything is already there.
  *

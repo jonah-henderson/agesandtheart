@@ -11,7 +11,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder
  * climate a column has is a different question from what paints it. A single bias needs no map and gets
  * [RegionMap.whole], so the common case costs one array lookup returning member zero.
  *
- * The fracture itself is [co.voik.agesandtheart.age.aspect.Parameter.Kind.RANGED]'s: two words bounding one
+ * The fracture itself is [co.voik.agesandtheart.age.aspect.Holds.RANGE]'s: two words bounding one
  * axis to non-overlapping stretches cannot both be honoured in one climate, so each takes ground of its
  * own, and the seam between them is an ordinary region seam.
  */

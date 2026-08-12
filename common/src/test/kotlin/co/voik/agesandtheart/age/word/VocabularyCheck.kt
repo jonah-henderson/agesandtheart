@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.AgePreset
 import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.AgeWorld
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Holds
 import co.voik.agesandtheart.age.aspect.Setting
 import co.voik.agesandtheart.age.aspect.namesReferent
 import io.kotest.core.annotation.Tags
@@ -114,7 +115,7 @@ class VocabularyCheck : FunSpec({
                 // A population is not seated, so it has no carriers to have: what backs a word there is
                 // anything answering it *either way*, since a word about a population may be entirely
                 // negative and still be about it.
-                if (aspect.kind == Aspect.Kind.POPULATION) {
+                if (aspect.holds == Holds.WEIGHTED_SET) {
                     check(vocabulary.answersIn(word, aspect)) {
                         "'${word.name}' is ${word.tier.key} about ${aspect.key}, and nothing there answers " +
                             "${word.query.keys.joinToString(" ")} at all"

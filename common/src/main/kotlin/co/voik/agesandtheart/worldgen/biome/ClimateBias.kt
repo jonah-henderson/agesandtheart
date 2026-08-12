@@ -52,7 +52,7 @@ enum class ClimateAxis(val key: String) : StringRepresentable {
  * **A [Span] per axis**, since "between 0.4 and 0.6" *is* both a shift and a narrowing, and it composes
  * with another word's interval in one obvious way: intervals either overlap — and broaden — or they do
  * not, and where they do not the aspect fractures
- * (see [co.voik.agesandtheart.age.aspect.Parameter.Kind.RANGED]). That leaves nowhere for §3.3's
+ * (see [co.voik.agesandtheart.age.aspect.Holds.RANGE]). That leaves nowhere for §3.3's
  * temperate mush. An axis nobody spoke about is absent, so its value passes through untouched.
  *
  * Depth is deliberately not here: it is the one parameter an Age answers for itself ([ClimateDepth]), and
