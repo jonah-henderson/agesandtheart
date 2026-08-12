@@ -44,7 +44,7 @@ import co.voik.agesandtheart.age.aspect.Spawns
 class ResolverCheck : FunSpec({
 
     val vocabulary by lazy {
-        Vocabulary.load(MinecraftRegistries.shippedData()).also {
+        Vocabulary.load(MinecraftRegistries.shippedData(), MinecraftRegistries.worldgen).also {
             check(it.problems.isEmpty()) { "vocabulary problems: ${it.problems}" }
         }
     }
@@ -262,6 +262,34 @@ class ResolverCheck : FunSpec({
         val vague = resolve(vocabulary, "burning").cost
         val exact = resolve(vocabulary, "molten").cost
         check(exact > vague) { "'molten' cost $exact and 'burning' cost $vague, so precision is free" }
+    }
+
+    /**
+     * A vague word is the cheapest thing a writer can lay — §1's ladder, which was inverted until the
+     * pricing was split by tier (§4.4). An evocative word was charged per aspect it found purchase in, so
+     * `beautiful` reaching eight of them cost twice what the exact `murky` did, making the vaguest word in
+     * the corpus the dearest. Nothing noticed, because the only cost check compared two narrowing words.
+     */
+    test("vagueness is the floor, not the ceiling") {
+        val vague = resolve(vocabulary, "beautiful").cost
+        val precise = resolve(vocabulary, "murky").cost
+        check(vague < precise) {
+            "'beautiful' cost $vague and 'murky' cost $precise, so vagueness is not the cheap end"
+        }
+    }
+
+    /**
+     * A narrowing word at home in two parts of the world costs more than one at home in a single part —
+     * §4.4's versatility charge, which prices how good a page is to own rather than what it did here.
+     * `clear` is a clear sky and clear water alike where `murky` is only ever about the water, and both are
+     * exact, so the tier cannot be what separates them.
+     */
+    test("a word at home in more places costs more") {
+        val versatile = resolve(vocabulary, "clear").cost
+        val narrow = resolve(vocabulary, "murky").cost
+        check(versatile > narrow) {
+            "'clear' cost $versatile and 'murky' cost $narrow, so being usable in two places is free"
+        }
     }
 
     /**

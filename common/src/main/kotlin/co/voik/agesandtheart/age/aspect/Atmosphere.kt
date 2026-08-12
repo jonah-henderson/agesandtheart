@@ -38,13 +38,13 @@ object Atmosphere {
      * Ranged, because it is a quantity a word bends rather than a state a word picks — `sunless` bounds it
      * at the bottom exactly as `arid` bounds a climate axis.
      */
-    val DAYLIGHT = Parameter.ranged("daylight")
+    val DAYLIGHT = Parameter.ranged("daylight").perBiome()
 
     /** Whether the sun burns what walks in it — an Age where it does not is an Age monsters keep. */
-    val SUNBURN = Parameter("sunburn", AS_EVER, "never", "always")
+    val SUNBURN = Parameter("sunburn", AS_EVER, "never", "always").perBiome()
 
     /** Whether standing water boils away, as it does in the nether. */
-    val EVAPORATION = Parameter("evaporation", AS_EVER, "always")
+    val EVAPORATION = Parameter("evaporation", AS_EVER, "always").perBiome()
 
     /**
      * The three the eye sees, each taking one of [Colour]'s nine.
@@ -61,7 +61,7 @@ object Atmosphere {
      * says "thick" rather than "starting at 32 and ending at 96". The two are derived, and the granular
      * pair stays available the day a word wants it.
      */
-    val HAZE = Parameter.ranged("haze")
+    val HAZE = Parameter.ranged("haze").perBiome()
 
     /**
      * How much of the time it rains, and how much of *that* is thunder.
@@ -80,7 +80,7 @@ object Atmosphere {
     val THUNDER = Parameter.ranged("thunder")
 
     /** How high the clouds sit, on the same argument: one number a word bends. */
-    val CEILING = Parameter.ranged("ceiling")
+    val CEILING = Parameter.ranged("ceiling").perBiome()
 
     /**
      * How far you see underwater — [HAZE]'s sibling, and named for the same direction it obscures.
@@ -89,7 +89,7 @@ object Atmosphere {
      * colour would only ever have moved the fog and left the surface vanilla blue, where a distance moves
      * the one thing a swimmer actually experiences.
      */
-    val MURK = Parameter.ranged("murk")
+    val MURK = Parameter.ranged("murk").perBiome()
 
     /**
      * What colour the light itself is — a world *lit* red, which is a different thing from a red sky.
@@ -103,9 +103,9 @@ object Atmosphere {
      * What hangs in the air — vanilla's own particles, named. Populative in spirit and a dial in shape: an
      * Age has one kind of dust in it, and the day that stops being true this becomes a claim.
      */
-    val MOTES = Parameter("motes", listOf(AS_EVER) + Motes.ALL)
+    val MOTES = Parameter("motes", listOf(AS_EVER) + Motes.ALL).perBiome()
 
-    private fun colour(name: String) = Parameter(name, listOf(AS_EVER) + Colour.ALL)
+    private fun colour(name: String) = Parameter(name, listOf(AS_EVER) + Colour.ALL).perBiome()
 
     /**
      * This Age's own layer laid over the ones vanilla built, or the system untouched where the sentence
@@ -165,11 +165,14 @@ object Atmosphere {
     /** Not quite black: pure zero reads as a hole cut in the world rather than as a dark sky. */
     private val STARLESS = Rgba(0.02f, 0.02f, 0.03f)
 
-    /** Every biome any dial of this aspect was confined to, visual or not. */
+    /**
+     * Every biome any dial of this aspect was confined to, visual or not.
+     *
+     * Asked of the aspect rather than of a list written here: which dials may be sited is the parameter's
+     * own answer now ([Parameter.confinable]), and the list this replaced had to be kept in step by hand.
+     */
     fun cornersOf(options: Options): List<Identifier> =
-        listOf(DAYLIGHT, SUNBURN, EVAPORATION, SKY, FOG, CLOUD, TINT, MOTES, HAZE, CEILING, MURK)
-            .flatMap(options::confinedIn)
-            .distinct()
+        Aspect.ATMOSPHERE.confinableParameters.flatMap(options::confinedIn).distinct()
 
     private fun colourOf(options: Options, parameter: Parameter, biome: Identifier?): Rgba? =
         Colour.named(options.of(parameter, biome))

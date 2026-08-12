@@ -20,7 +20,7 @@ import io.kotest.core.spec.style.FunSpec
 class RepairCheck : FunSpec({
 
     val vocabulary by lazy {
-        Vocabulary.load(MinecraftRegistries.shippedData()).also {
+        Vocabulary.load(MinecraftRegistries.shippedData(), MinecraftRegistries.worldgen).also {
             check(it.problems.isEmpty()) { "the corpus would not load: ${it.problems}" }
         }
     }
@@ -156,6 +156,21 @@ class RepairCheck : FunSpec({
         val repaired = Resolver.resolve(vocabulary, read, SAMPLE_SEED).cost
         val asWritten = Resolver.resolve(vocabulary, theirsAlone, SAMPLE_SEED).cost
         check(repaired == asWritten) { "a repaired book cost $repaired where its writer spent $asWritten" }
+    }
+
+    /**
+     * **Moving an evocative page to the nucleus is free** (§4.3.1). `rehomed` charges for an aiming a writer
+     * could not see was wrong, and an evocative word has exactly one place it can go — so there was no
+     * choice to get wrong, nothing to diagnose, and nothing to price. A narrowing page moved off a clause it
+     * did not belong to is still charged, which the check below it holds.
+     */
+    test("an evocative page moved to the nucleus is not charged") {
+        val read = read(listOf("age", "beautiful", "floating", "landmass"))
+        val charged = Resolver.resolve(vocabulary, read, SAMPLE_SEED).instability.flaws
+            .filter { it.register == Register.REHOMED }
+        check(charged.none { flaw -> "beautiful" in flaw.words }) {
+            "moving an evocative page to its only possible home was charged: ${charged.map { it.words }}"
+        }
     }
 
     /**

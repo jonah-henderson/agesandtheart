@@ -23,7 +23,7 @@ import kotlin.io.path.walk
 class GrammarCheck : FunSpec({
 
     val vocabulary by lazy {
-        Vocabulary.load(MinecraftRegistries.shippedData()).also {
+        Vocabulary.load(MinecraftRegistries.shippedData(), MinecraftRegistries.worldgen).also {
             check(it.problems.isEmpty()) { "the corpus would not load: ${it.problems}" }
         }
     }
@@ -192,18 +192,64 @@ class GrammarCheck : FunSpec({
     }
 
     /**
-     * §4.3.1's tier rule, and the one protecting the beginner's sentence: `beautiful landmass` must leave
-     * "beautiful" reaching the whole world, merely leaning hardest on the terrain. Confining it makes the
-     * commonest thing anyone writes the *narrow* reading.
+     * §4.3.1: an evocative word is written on the nucleus and nowhere else, so `beautiful age` reads and
+     * still reaches the whole world. This is the beginner's sentence and the commonest thing anyone writes.
      */
-    test("an evocative word stays global when aimed") {
+    test("an evocative word on the nucleus is global") {
+        val read = read(listOf("beautiful", "age"))
+        val beautiful = read.constraints.first { it.word.name == "beautiful" }
+        check(beautiful.scope is Scope.Everywhere) {
+            "'beautiful' was confined to ${beautiful.scope}, which demotes it to restrictive"
+        }
+    }
+
+    /**
+     * The other half of the same rule: an evocative word laid in an aimed clause no longer parses there. It
+     * used to stay global and lean twice as hard on the part it sat under, which is a weight nothing in the
+     * readout can show — so `Repair` moves the page to the nucleus instead. What that *costs* is
+     * `RepairCheck`'s to assert, this being the parser's own check.
+     */
+    test("an evocative word laid in an aimed clause is moved off it") {
         val read = read(listOf("age", "beautiful", "floating", "landmass"))
         val beautiful = read.constraints.first { it.word.name == "beautiful" }
-        val scope = beautiful.scope as? Scope.Everywhere
-            ?: error("an aimed evocative word was confined to ${beautiful.scope}, which demotes it to restrictive")
-        check(Aspect.TERRAIN in scope.emphasised) {
-            "'beautiful' before a terrain should lean on the terrain, but emphasises ${scope.emphasised}"
+        check(beautiful.scope is Scope.Everywhere) {
+            "'beautiful' should have been moved out of the landmass clause, but scopes ${beautiful.scope}"
         }
+        val landmass = read.phrases.first { phrase -> phrase.subject?.word?.name == "landmass" }
+        check(landmass.modifiers.none { it.word.name == "beautiful" }) {
+            "'beautiful' was left in the landmass clause: ${landmass.modifiers.map { it.word.name }}"
+        }
+    }
+
+    /**
+     * A siting closes its clause and needs no subject — `zombie in jungle` (§4.3.1). Nothing covered `in`
+     * at all before this, which is how it moved from the head of a clause to the end without a test moving,
+     * and how it came to refuse every biome in the game unnoticed.
+     */
+    test("a siting closes a clause with no subject of its own") {
+        val read = read(listOf("age", "zombie", "in", "jungle"))
+        check(read.dropped.isEmpty()) { "the siting did not read: ${read.dropped}" }
+        val sited = read.phrases.single { phrase -> phrase.said.any { it.word.name == "zombie" } }
+        check(sited.confinedTo?.path == "jungle") { "'zombie' was sited in ${sited.confinedTo}" }
+        check(sited.subject == null) { "a siting-closed clause invented a subject: ${sited.subject?.word}" }
+    }
+
+    /** And it may trail a subject, which is the other half of `close` — `zombie spawns in jungle`. */
+    test("a siting may trail a subject") {
+        val read = read(listOf("age", "zombie", "spawns", "in", "jungle"))
+        check(read.dropped.isEmpty()) { "the siting did not read: ${read.dropped}" }
+        val sited = read.phrases.single { phrase -> phrase.subject?.word?.name == "spawns" }
+        check(sited.confinedTo?.path == "jungle") { "the clause was sited in ${sited.confinedTo}" }
+    }
+
+    /**
+     * §4.3.1: an evocative word describes the whole Age, so it cannot be sited in one biome. A sited clause
+     * aims at a place exactly as a subject aims at a part, and both are a refusal.
+     */
+    test("an evocative word cannot be sited") {
+        val read = read(listOf("age", "beautiful", "zombie", "in", "jungle"))
+        val beautiful = read.constraints.first { it.word.name == "beautiful" }
+        check(beautiful.confinedTo == null) { "'beautiful' was sited in ${beautiful.confinedTo}" }
     }
 
     /** The other half: a word that narrows candidates narrows where it speaks. */

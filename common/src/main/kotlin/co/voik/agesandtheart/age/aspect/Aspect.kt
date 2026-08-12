@@ -203,26 +203,23 @@ enum class Aspect(val key: String) : StringRepresentable {
     }
 
     /**
-     * Whether this aspect is answered per column rather than once for the whole world (design §3.4). A
-     * positional aspect can satisfy a contradiction by coexistence; a singular one has nowhere to put a
-     * second answer, which is where the harsher registers of instability earn their place.
-     *
-     * Two claims, not one: a sky *cannot* divide (a world has one sky over it), where structures *need
-     * not* (vanilla places each set against the whole dimension, its biome predicates doing the rest).
-     */
-    /**
-     * Whether a clause about this may be **confined to one biome** — `in mushroom_fields, spawns only
-     * slime`. Vanilla resolves these three through the biome, so they are the three that can be asked
-     * about one.
+     * Whether a clause about this may be **confined to one biome** — `spawns only slime in mushroom_fields`.
+     * True where any parameter of this aspect can be sited, which is where vanilla resolves the value
+     * through the biome.
      *
      * A phenomenon is deliberately not among them: it is *sited* rather than resolved per biome (§5.2), so
      * `in <biome>` would be the wrong scope for it entirely.
      */
-    val confinable: Boolean
-        get() = when (this) {
-            FEATURES, SPAWNS, ATMOSPHERE -> true
-            TERRAIN, SEA, CARVERS, BIOMES, SKY, STRUCTURES, CLIMATE, SURFACE, PHENOMENA -> false
-        }
+    val confinable: Boolean get() = confinableParameters.isNotEmpty()
+
+    /**
+     * The parameters of this aspect a claim may be sited on — what [confinable] is the existence of.
+     *
+     * Derived rather than listed, so a parameter that gains or loses siting says so in one place. This
+     * replaced a hand-kept list on `Atmosphere` that had already drifted from the `when` above it.
+     */
+    val confinableParameters: List<Parameter>
+        get() = (dials + authored.flatMap { it.parameters }).filter { it.confinable }
 
     /**
      * Whether this part of the world is **made of** something, and so admits a material where a term is
@@ -237,6 +234,14 @@ enum class Aspect(val key: String) : StringRepresentable {
             CARVERS, BIOMES, SKY, CLIMATE, FEATURES, SPAWNS, ATMOSPHERE, PHENOMENA -> false
         }
 
+    /**
+     * Whether this aspect is answered per column rather than once for the whole world (design §3.4). A
+     * positional aspect can satisfy a contradiction by coexistence; a singular one has nowhere to put a
+     * second answer, which is where the harsher registers of instability earn their place.
+     *
+     * Two claims, not one: a sky *cannot* divide (a world has one sky over it), where structures *need
+     * not* (vanilla places each set against the whole dimension, its biome predicates doing the rest).
+     */
     val positional: Boolean
         get() = when (this) {
             // Climate divides for a reason the others do not: not two presets that could not be reconciled,
@@ -308,7 +313,18 @@ data class Parameter(
     val leastKept: Double = Rung.ORDINARY,
     /** What this population calls having none of anything, where it may be emptied at all. */
     val emptiedBy: String? = null,
+    /**
+     * Whether a claim on this may be sited in one biome — `in <biome>` (design §4.3.1). Set with [perBiome].
+     *
+     * **Asked per parameter rather than per aspect**, and the difference is not pedantry: the air's fog may
+     * be sited and its temperature may not, because temperature is what *chooses* the biome and siting it
+     * is circular. An aspect holding both would have no honest answer.
+     */
+    val confinable: Boolean = false,
 ) {
+    /** This parameter, sited-in-a-biome — see [confinable]. */
+    fun perBiome(): Parameter = copy(confinable = true)
+
     enum class Kind {
         /** Says something about the whole — "the rock *is* blackstone". Two of them conflict and contend. */
         PREDICATIVE,

@@ -27,7 +27,7 @@ import net.minecraft.resources.Identifier
 data class Resolution(
     val composition: AgeComposition,
     val instability: Instability,
-    /** Fine inks: precision tier × aspects constrained, summed over the sentence (§4.4). */
+    /** Fine inks, summed over the sentence — flat for a vague word, by versatility for a precise one (§4.4). */
     val cost: Int,
     val words: List<Word>,
     /**
@@ -81,10 +81,8 @@ object Resolver {
     // never zero, since a word that merely sets a parameter must not eliminate a preset (§3.2).
     private const val INCAPABLE_FACTOR = 0.04
 
-    // What an evocative word is worth where it was not aimed, and where it was. Aiming leans the draw and
-    // never decides it, which is what keeps an aimed evocative word evocative (§4.3.1).
-    private const val UNEMPHASISED = 1.0
-    private const val AIMED_AT_THIS_SLOT = 2.0
+    /** The fewest aspects a narrowing word is priced as being at home in — see [inkFor]. */
+    private const val AT_HOME_SOMEWHERE = 1
 
     // As much of the world as any one member of a population may be talked into taking, so that a
     // sentence full of words agreeing about one biome cannot quietly make an Age of nothing else.
@@ -143,12 +141,30 @@ object Resolver {
             instability = Instability(flaws.toList()),
             // Structure is priced too: every page a writer lays costs ink, and a page that made no
             // claim still came out of the pot. A latent page came out of nobody's pot.
-            cost = sentence.written.sumOf { it.word.tier.cost * reachOf(vocabulary, it).size } +
-                sentence.structural.sumOf { it.cost },
+            cost = sentence.written.sumOf { inkFor(it.word) } + sentence.structural.sumOf { it.cost },
             words = sentence.words,
             dropped = sentence.unreadable,
         )
     }
+
+    /**
+     * What one page costs to lay (§4.4), and the two tiers are priced on different things.
+     *
+     * **An evocative word costs a flat fee** — it is the cheapest thing in the language precisely because it
+     * is imprecise. Charging it by breadth did the opposite: an evocative word reaches every aspect it finds
+     * purchase in, so `beautiful` at eight aspects cost eight where an exact `clear` cost four, making the
+     * vaguest word in the corpus the dearest and inverting §1's ladder.
+     *
+     * **A narrowing word costs its tier times the aspects it is at home in** — not the one it reaches in
+     * this sentence, which after §4.3.1 is nearly always one. A word usable in several parts of the world is
+     * a better page to own, so `clear`, which is a clear sky and clear water alike, costs more every time it
+     * is laid than a word that only ever means one thing. The charge is for versatility.
+     */
+    fun inkFor(word: Word): Int =
+        if (!word.tier.narrows) word.tier.cost
+        // A narrowing word that landed nowhere is left empty on purpose so `DerivedAspectsCheck` can refuse
+        // it; it must not also be free on the way past.
+        else word.tier.cost * word.aspects.size.coerceAtLeast(AT_HOME_SOMEWHERE)
 
     /**
      * Pages the writer laid where they could not be read, which [Repair] moved somewhere they could
@@ -158,7 +174,10 @@ object Resolver {
      * one part of the world, and because the aspect it names is where the page ended up.
      */
     private fun rehomings(vocabulary: Vocabulary, sentence: Sentence): List<Flaw> =
-        sentence.written.filter { it.rehomed }.map { said ->
+        // **A moved evocative page is free** (§4.3.1). `rehomed` charges for an aiming a writer could not
+        // see was wrong; an evocative word has exactly one place it can go, so there was no choice to get
+        // wrong and nothing to diagnose.
+        sentence.written.filter { it.rehomed && it.word.tier.narrows }.map { said ->
             val landedIn = reachOf(vocabulary, said).firstOrNull()
             flaw(vocabulary, Register.REHOMED, listOf(said), landedIn, tags = emptyList(), tier = said.word.tier)
         }
@@ -188,16 +207,6 @@ object Resolver {
      */
     private fun reachOf(vocabulary: Vocabulary, constraint: Constraint): List<Aspect> =
         constraint.scope.reaches(aspectsSpokenTo(vocabulary, constraint.word))
-
-    /**
-     * How much louder an evocative word is where the writer aimed it (§4.3.1). A tilt and never a fence:
-     * `beautiful sky` still shifts weights everywhere, just hardest overhead. Confining it would demote it
-     * to a restrictive word, which is what its tier is defined as not being.
-     */
-    private fun emphasis(constraint: Constraint, aspect: Aspect): Double {
-        val aimed = constraint.scope as? Scope.Everywhere ?: return UNEMPHASISED
-        return if (aspect in aimed.emphasised) AIMED_AT_THIS_SLOT else UNEMPHASISED
-    }
 
     /**
      * What fills one aspect: one preset, or several where the sentence left it no way to be one thing.
@@ -392,7 +401,7 @@ object Resolver {
         val named = speaking.filter { it.word.tier.narrows }
             .maxOfOrNull { it.word.pullOn(preset, tags) * it.word.tier.weight } ?: 0.0
         val liked = speaking.filter { !it.word.tier.narrows }
-            .sumOf { it.word.affinityOn(preset, tags) * emphasis(it, aspect) }
+            .sumOf { it.word.affinityOn(preset, tags) }
         return (named + liked).coerceAtLeast(0.0)
     }
 
@@ -414,7 +423,7 @@ object Resolver {
         val named = speaking.filter { it.word.tier.narrows }
             .maxOfOrNull { it.word.pullOn(preset, tags) * it.word.tier.weight } ?: 0.0
         val liked = speaking.filter { !it.word.tier.narrows }
-            .sumOf { it.word.affinityOn(preset, tags) * emphasis(it, aspect) }
+            .sumOf { it.word.affinityOn(preset, tags) }
         val wanted = BASE_WEIGHT * vocabulary.readinessOf(preset) + named + liked
         return (wanted * capabilityFactor(preset, speaking)).coerceAtLeast(FAINTEST_CHANCE)
     }
@@ -906,7 +915,7 @@ object Resolver {
         val liking = speaking.filter { !it.word.tier.narrows }
         val insisted = insisting.sumOf { it.word.pullOn(member, tags) * it.word.tier.weight }
         val spurned = spurning.sumOf { it.word.affinityOn(member, tags) * it.word.tier.weight }
-        val liked = liking.sumOf { it.word.affinityOn(member, tags) * emphasis(it, aspect) }
+        val liked = liking.sumOf { it.word.affinityOn(member, tags) }
         val polarity = (insisting + liking.filter { it.word.affinityOn(member, tags) > 0.0 })
             .map { it.polarity }.firstOrNull { it != Polarity.ASSERTED }
         val asked = Rung.ORDINARY + insisted + spurned + liked

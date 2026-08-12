@@ -16,10 +16,14 @@ sealed interface Scope {
     fun reaches(everywhere: List<Aspect>): List<Aspect>
 
     /**
-     * Everywhere it can find purchase, leaning hardest on [emphasised] — what an **evocative** word gets,
-     * aimed or not. Aiming does not confine it: `beautiful sky` still shifts weights everywhere.
+     * Everywhere it can find purchase — what an **evocative** word gets.
+     *
+     * It carries no aim, because there is nowhere for one to come from: an evocative word is written on the
+     * nucleus (§4.3.1). It used to hold the aspects it had been laid under and lean twice as hard on them,
+     * which moved probabilities and produced no signal a reader could check — the one thing the readout
+     * could never show, and so the reason placing them at all was given up.
      */
-    data class Everywhere(val emphasised: Set<Aspect> = emptySet()) : Scope {
+    data object Everywhere : Scope {
         override fun reaches(everywhere: List<Aspect>): List<Aspect> = everywhere
     }
 
@@ -186,7 +190,7 @@ data class Sentence(
          */
         fun flat(words: List<Word>): Sentence = of(
             words.map { word ->
-                val scope = if (word.tier.narrows) Scope.Confined(word.aspects) else Scope.Everywhere()
+                val scope = if (word.tier.narrows) Scope.Confined(word.aspects) else Scope.Everywhere
                 Constraint(word, scope)
             },
         )

@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.word.grammar
 
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Biomes
 import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.aspect.Rung
 import net.minecraft.resources.Identifier
@@ -12,9 +13,11 @@ import net.minecraft.resources.Identifier
  * The whole of the language is four productions, and they are short enough to read here:
  *
  * ```
- * book     : nucleus section*
+ * book     : nucleus clause*
  * nucleus  : modifier* AGE
- * section  : confinement? modifier* SUBJECT
+ * clause   : modifier* close
+ * close    : SUBJECT siting? | siting
+ * siting   : IN biome
  * modifier : (ONLY | EXCEPT)? term (AND term)*
  * term     : QUANTIFIER? word
  * ```
@@ -43,6 +46,9 @@ import net.minecraft.resources.Identifier
  * to make a sentence of — so this returns null rather than a tree patched into something no writer chose.
  */
 internal object ArtReading {
+
+    /** `in` and the biome it names — what a siting costs the cursor once it has been read. */
+    private const val PAGES_IN_A_SITING = 2
 
     /** The book [pages] spell, or null where they spell none — which is [Repair]'s cue, never an error. */
     fun parse(pages: List<Page>): Sentence? {
@@ -78,77 +84,97 @@ internal object ArtReading {
          * Anything left unread at the end is a book that does not read.
          */
         fun book(): List<Phrase>? {
-            val opening = clause(closedBy = PageClass.NUCLEUS) ?: return null
+            val opening = clause(nucleus = true) ?: return null
             val phrases = mutableListOf<Phrase>()
             // `Age` alone is a book — it makes an Age nobody described — and a clause with nothing in it
             // would put an empty phrase into every reading and every count.
             if (opening.said.isNotEmpty()) phrases += opening
-            while (at < pages.size) phrases += clause(closedBy = PageClass.SUBJECT) ?: return null
+            while (at < pages.size) phrases += clause(nucleus = false) ?: return null
             return phrases.takeUnless { refused }
         }
 
         /**
-         * One clause: what is said, and then the page it is said about.
+         * One clause: what is said, and then what it is said about — `modifier* (SUBJECT siting? | siting)`.
          *
-         * **The closing page is found before the run is read**, which is what leading modifiers buy and
-         * cost. A trailing-modifier grammar knew the aim as soon as the clause opened; here the run has to
-         * be measured to its end first, and only then is it known what the words in it are aimed at. That
-         * is a bounded look ahead inside one clause and nothing like the pre-pass the generated grammar
-         * needed — no page is re-stamped, and a word still belongs exactly where it was laid.
+         * **The close is found before the run is read**, which is what leading modifiers buy and cost. A
+         * trailing-modifier grammar knew the aim as soon as the clause opened; here the run has to be
+         * measured to its end first, and only then is it known what the words in it are aimed at. That is a
+         * bounded look ahead inside one clause — no page is re-stamped, and a word still belongs exactly
+         * where it was laid.
          *
-         * A run with no closing page at all is a book that does not read: those words are about nothing.
+         * **Every clause closes on something**, and a run that reaches the end of the book without a close
+         * is not a sentence. There is deliberately no "trailing run about nothing": anything unaimed can be
+         * written ahead of `age`, since modifiers lead, so allowing it at the end would be a second spelling
+         * for one meaning and would read as an afterthought stapled on. What a writer laid there instead is
+         * [Repair]'s to move.
          */
-        private fun clause(closedBy: PageClass): Phrase? {
-            val confinedTo = if (closedBy == PageClass.SUBJECT) confinement() else null
-            // Either kind closes a clause, so meeting the wrong one is a book that does not read rather
-            // than a page swallowed: a second `age` mid-book is `Repair`'s to report, not ours to absorb.
-            //
-            // The *index* is what is searched for, never the page. A `Page` is a data class, so a book
-            // that lays the same word twice has equal pages in it and `indexOf` answers with the first —
-            // which walked the cursor backwards and read the same clause forever.
-            val closesAt = (at..<pages.size).firstOrNull {
-                pages[it].kind == PageClass.NUCLEUS || pages[it].kind == PageClass.SUBJECT
-            } ?: return null
-            val closing = pages[closesAt]
-            if (closing.kind != closedBy) return null
-            val aim = if (closedBy == PageClass.NUCLEUS) emptySet() else closing.word?.aspects.orEmpty()
-            if (confinedTo != null && aim.none { it.confinable }) return null
+        private fun clause(nucleus: Boolean): Phrase? {
+            // The *index* is what is searched for, never the page. A `Page` is a data class, so a book that
+            // lays the same word twice has equal pages in it and `indexOf` answers with the first — which
+            // walked the cursor backwards and read the same clause forever.
+            val closesAt = (at..<pages.size).firstOrNull { closes(pages[it]) } ?: return null
+            // Meeting the wrong kind is a book that does not read rather than a page swallowed: a second
+            // `age` mid-book is `Repair`'s to report, not ours to absorb.
+            if ((pages[closesAt].kind == PageClass.NUCLEUS) != nucleus) return null
+
+            // A siting closes a clause on its own, so the subject is whatever is not one.
+            val subject = pages[closesAt].takeUnless { it.kind == PageClass.CONFINER }
+            val sitingAt = if (subject == null) closesAt else closesAt + 1
+            val confinedTo = sitingIn(sitingAt) ?: if (refused) return null else null
+            val aim = if (nucleus) emptySet() else subject?.word?.aspects.orEmpty()
+            // A subject the sentence sited must be something vanilla resolves through the biome. Where there
+            // is no subject the terms answer for themselves, which `belongsHere` asks of each in turn.
+            if (confinedTo != null && subject != null && aim.none { it.confinable }) return null
 
             val said = modifiers(until = closesAt, aim = aim, confinedTo = confinedTo) ?: return null
-            at = closesAt + 1
+            at = if (confinedTo == null) sitingAt else sitingAt + PAGES_IN_A_SITING
             return Phrase(
                 modifiers = said,
-                subject = closing.word?.let {
-                    Constraint(it, scopeFor(it, aim), latent = closing.latent, rehomed = closing.rehomed)
+                subject = subject?.word?.let {
+                    Constraint(it, scopeFor(it, aim), latent = subject.latent, rehomed = subject.rehomed)
                 },
                 confinedTo = confinedTo,
             )
         }
 
+        /** Whether this page ends the clause it is in — an aiming page, or the `in` that opens a siting. */
+        private fun closes(page: Page): Boolean =
+            page.kind == PageClass.NUCLEUS || page.kind == PageClass.SUBJECT || page.kind == PageClass.CONFINER
+
         /**
-         * `IN <biome>` at the head of a clause, governing everything in it (§4.3.1).
+         * `IN <biome>` closing a clause — *teeming temples in jungles* (§4.3.1).
+         *
+         * **It trails rather than leads**, which it did not always: when the language reversed so that every
+         * clause ends with the thing it is about, `in` kept the old shape and was the last page that opened
+         * anything. A siting aims at a place exactly as a subject aims at a part, so it closes like one.
          *
          * **What follows must actually name a biome**, and that is load-bearing rather than pedantic. The
-         * biome page becomes the confinement's identifier and no constraint of its own, so a page accepted
-         * here is a page that leaves the sentence — and this used to accept any term at all, which made
-         * `in savage` a clause confined to a biome no pack has and swallowed the page saying so. `Repair`
-         * then found that position attractive, laid a writer's `islands` into it, and lost it: neither
-         * used, nor dropped, nor charged, which is the one failure §3.3 forbids.
+         * biome page becomes the siting's identifier and no constraint of its own, so a page accepted here is
+         * a page that leaves the sentence — and this used to accept any term at all, which made `in savage` a
+         * clause sited in a biome no pack has and swallowed the page saying so. `Repair` then found that
+         * position attractive, laid a writer's `islands` into it, and lost it: neither used, nor dropped, nor
+         * charged, which is the one failure §3.3 forbids.
          */
-        private fun confinement(): Identifier? {
-            if (here?.kind != PageClass.CONFINER) return null
-            take()
-            // `in` with no biome after it is a book that does not read, not a clause confined to nothing.
-            val biome = here?.takeIf { namesABiome(it) } ?: return null.also { refused = true }
-            take()
+        private fun sitingIn(index: Int): Identifier? {
+            if (pages.getOrNull(index)?.kind != PageClass.CONFINER) return null
+            // `in` with no biome after it is a book that does not read, not a clause sited nowhere.
+            val biome = pages.getOrNull(index + 1)?.takeIf(::namesABiome) ?: return null.also { refused = true }
             return biome.word?.id
         }
 
-        /** Whether this page is the name of a biome — one of §8's derived words, and nothing else. */
+        /**
+         * Whether this page is the name of a biome — one of §8's derived words, and nothing else.
+         *
+         * **Asked of what a biome word actually is**, which is where this was wrong: it used to require
+         * `Word.names`, and `DerivedWords.biomes` builds every biome word with `setting` rather than
+         * `referring` — deliberately, because a biome *enriches a table* where a sea *is* its block. So no
+         * biome in the game passed, `in <biome>` refused every one of them, and both pages were dropped as
+         * impossible. Nothing covered `in` at all, which is how it survived.
+         */
         private fun namesABiome(page: Page): Boolean {
             if (page.kind != PageClass.TERM) return false
             val word = page.word ?: return false
-            return word.names != null && Aspect.BIOMES in word.aspects
+            return Aspect.BIOMES in word.aspects && Biomes.GROWN.name in word.sets
         }
 
         /**
@@ -161,7 +187,7 @@ internal object ArtReading {
         private fun modifiers(until: Int, aim: Set<Aspect>, confinedTo: Identifier?): List<Constraint>? =
             buildList {
                 while (at < until) {
-                    if (!belongsHere(here, aim)) return null
+                    if (!belongsHere(here, aim, sited = confinedTo != null)) return null
                     addAll(modifier(until, aim, confinedTo))
                     if (refused) return@buildList
                 }
@@ -221,13 +247,22 @@ internal object ArtReading {
          * where it declares it belongs, and a word declaring nothing belongs anywhere. An empty [aim] is
          * the nucleus, which is about the whole Age and so admits everything.
          */
-        private fun belongsHere(page: Page?, aim: Set<Aspect>): Boolean {
+        private fun belongsHere(page: Page?, aim: Set<Aspect>, sited: Boolean): Boolean {
             if (page == null) return false
             // Structure carries no aspect of its own; what it joins or qualifies is checked on its own.
             if (page.word == null) return page.kind != null
-            if (aim.isEmpty()) return true
-            if (page.kind == PageClass.MATERIAL) return aim.any { it.madeOfSomething }
+            // **An evocative word is written where nothing was aimed at** (§4.3.1) — the `age` clause, and
+            // nowhere else. It used to be laid anywhere and stay global, tilting hardest at the part it sat
+            // under: a factor of two on a weighted draw, which produces no signal a reader can check and so
+            // is the one thing the readout could never show. A clause aimed at a part or sited in a place is
+            // both a refusal, and `Repair` moves the page to the front at no charge.
+            if (!page.word.tier.narrows) return aim.isEmpty() && !sited
+            // Where nothing was aimed, every term answers for itself — which is what lets a word naming one
+            // registry object need no page after it: `teeming igloos` is a sentence and `igloos structures`
+            // says the same thing twice.
             val declared = page.word.aspects
+            if (aim.isEmpty()) return !sited || declared.isEmpty() || declared.any { it.confinable }
+            if (page.kind == PageClass.MATERIAL) return aim.any { it.madeOfSomething }
             return declared.isEmpty() || declared.any { it in aim }
         }
     }
@@ -240,7 +275,7 @@ internal object ArtReading {
      * solid out of a sea it was pointed straight at, and `ice sea` would stop being a sentence.
      */
     private fun scopeFor(word: co.voik.agesandtheart.age.word.Word, aim: Set<Aspect>): Scope {
-        if (!word.tier.narrows) return Scope.Everywhere(aim)
+        if (!word.tier.narrows) return Scope.Everywhere
         return Scope.Confined(aim.ifEmpty { word.aspects })
     }
 }

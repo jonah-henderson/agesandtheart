@@ -45,7 +45,7 @@ object Features {
      * **A rung here is absolute and takes nothing from anything else** ([FeatureDensity]): twice the trees
      * is twice the trees, where twice the desert is necessarily less of some other biome.
      */
-    val PLACES = Parameter.population("grows", leastKept = NOTHING_AT_ALL, emptiedBy = NOTHING)
+    val PLACES = Parameter.population("grows", leastKept = NOTHING_AT_ALL, emptiedBy = NOTHING).perBiome()
 
     /** How an Age says nothing is placed here at all: bare ground, whatever its biomes would have carried. */
     const val NOTHING = "nothing"
@@ -58,9 +58,9 @@ object Features {
      * named thing there are; these say what *this Age* is like, so they apply to everything it grows. A
      * word bends them exactly as `arid` bends a climate axis.
      */
-    val SIZE = Parameter.ranged("size")
-    val THICKNESS = Parameter.ranged("thickness")
-    val HEIGHT = Parameter.ranged("height")
+    val SIZE = Parameter.ranged("size").perBiome()
+    val THICKNESS = Parameter.ranged("thickness").perBiome()
+    val HEIGHT = Parameter.ranged("height").perBiome()
 
     private const val NOTHING_AT_ALL = 0.0
 

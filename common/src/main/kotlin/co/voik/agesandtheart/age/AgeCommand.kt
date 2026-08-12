@@ -924,9 +924,7 @@ object AgeCommand {
         report.fact("readout", Readout.of(read)) { "  “${Readout.of(read)}”" }
         for (said in read.constraints) {
             val aimed = when (val scope = said.scope) {
-                is Scope.Everywhere ->
-                    if (scope.emphasised.isEmpty()) "everywhere"
-                    else "everywhere, most of all ${scope.emphasised.joinToString(" ") { it.key }}"
+                is Scope.Everywhere -> "everywhere"
                 is Scope.Confined -> scope.aspects.joinToString(" ") { it.key }
             }
             val joined = said.group?.let { " (joined)" } ?: ""
