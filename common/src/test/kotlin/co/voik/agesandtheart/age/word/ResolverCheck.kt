@@ -264,6 +264,30 @@ class ResolverCheck : FunSpec({
     }
 
     /**
+     * **Attachment filters a description to what the thing owns** (`the-world-model.md` §3), which is the
+     * central rule of the whole model and had nothing asserting it.
+     *
+     * `frozen` advertises a temperature it always sets and a pool it may draw a pale vault, a small sun and
+     * a thick haze from. Laid on the climate only the temperature can land, because that is all a climate
+     * holds; laid on the sky, the temperature cannot. One word means the right thing in both places, and no
+     * rule anywhere says so — the word carries its whole meaning and the subject decides how much applies.
+     */
+    test("attachment lands only what the thing it was laid on owns") {
+        // The climate resolves into bands rather than options, so it is read off the composition's own
+        // spans. A band narrower than the whole axis is a temperature somebody bounded.
+        fun boundsTheTemperature(page: String): Boolean {
+            val resolved = Resolver.resolve(vocabulary, read(listOf("age", "frozen", page)), SAMPLE_SEED)
+            return climateOf(resolved).any { it.width < Span.NATURAL.width }
+        }
+        check(boundsTheTemperature("climate")) {
+            "'frozen climate' did not reach the temperature, which is the one thing it always sets"
+        }
+        check(!boundsTheTemperature("sky")) {
+            "'frozen sky' bounded the temperature, so attachment confined nothing"
+        }
+    }
+
+    /**
      * A vague word is the cheapest thing a writer can lay — §1's ladder, which was inverted until the
      * pricing was split by tier (§4.4). An evocative word was charged per aspect it found purchase in, so
      * `beautiful` reaching eight of them cost twice what the exact `murky` did, making the vaguest word in

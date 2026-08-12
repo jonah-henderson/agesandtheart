@@ -1,10 +1,28 @@
 {
-  "tier": "restrictive",
-  "aspects": [
-    "climate"
+  "_comment": [
+    "A world held at the cold end, and the clearest case of a word meaning its own part of whatever it is",
+    "laid on (world model 3). Temperature is what makes an Age frozen at all and is the core; everything",
+    "else is what *this* frozen Age happens to be like, drawn from the pool.",
+    "",
+    "It declares no aspects, so it reaches whatever its claims reach -- the climate, the air, the sky. That",
+    "is the whole of what attachment then does: `frozen climate` lands the temperature and nothing else,",
+    "`frozen sky` a pale vault and a small distant sun, and `a frozen Age` puts every one of them in play.",
+    "One word rather than four, and no rule anywhere had to say so.",
+    "",
+    "The sun is at the bottom of its axis rather than below it, which is as small as a sun goes: `sunsize`",
+    "starts at vanilla's own and only grows (see Sky.sunSizeAt), because a small sun is a distant one and",
+    "distance is a path's business."
   ],
+  "tier": "restrictive",
   "sets": {
-    "temperature": "-0.95..-0.45",
-    "humidity": "-0.3..0.3"
-  }
+    "temperature": "-0.95..-0.45"
+  },
+  "pool": {
+    "humidity": "-0.3..0.3",
+    "sky": "white|grey",
+    "fog": "white",
+    "sunsize": "-1.0..-0.7",
+    "haze": "0.2..0.6"
+  },
+  "draws": 2
 }
