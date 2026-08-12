@@ -1,7 +1,7 @@
 {
   "tier": "restrictive",
   "aspects": [
-    "terrain"
+    "landmass"
   ],
   "query": {
     "scattered": 1.0

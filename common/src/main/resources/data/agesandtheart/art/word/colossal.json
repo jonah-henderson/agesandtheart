@@ -1,7 +1,7 @@
 {
   "tier": "exact",
   "aspects": [
-    "terrain"
+    "landmass"
   ],
   "query": {
     "monumental": 1.0

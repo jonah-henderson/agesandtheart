@@ -13,13 +13,13 @@ import net.minecraft.util.StringRepresentable
  */
 enum class Aspect(val key: String) : StringRepresentable {
     /** The shape of the rock. */
-    TERRAIN("terrain"),
+    TERRAIN("landmass"),
 
     /** What fills the space the shape leaves — sea, lava, nothing. */
     SEA("sea"),
 
     /** What happens beneath the surface: caves cut back out, and where water stands in the rock. */
-    CARVERS("carvers"),
+    CARVERS("depths"),
 
     /** Which biomes it grows. */
     BIOMES("biomes"),

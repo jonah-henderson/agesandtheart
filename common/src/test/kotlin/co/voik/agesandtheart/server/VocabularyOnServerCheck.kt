@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.server
 
+import co.voik.agesandtheart.age.aspect.Aspect
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
@@ -67,10 +68,9 @@ class VocabularyOnServerCheck : FunSpec({
         val aiming = vocabulary.getAsJsonArray("authoredWords").map { it.asJsonObject }
             .filter { it.get("aims").asBoolean }
             .map { it.get("word").asString }
-        val expected = listOf(
-            "landmass", "sea", "depths", "biomes", "surface", "features", "spawns", "atmosphere",
-            "phenomena", "firmament", "structures",
-        )
+        // One per aspect, synthesised rather than authored — `art/domain/` is gone, and with it the
+        // layer that let a page cover more than one aspect. `firmament` was that layer's name for the sky.
+        val expected = Aspect.entries.map { it.key }
         check(aiming.sorted() == expected.sorted()) { "the aiming pages are $aiming" }
     }
 })

@@ -6,8 +6,8 @@ terminals word
 
 book = <frozen_age> | <molten_age>
 
-frozen_age = <bleak_mood> age <cold_stone> landmass frozen atmosphere x2
-    | age <cold_stone> landmass frozen atmosphere <cold_sky> firmament
+frozen_age = <bleak_mood> age <cold_stone> landmass frozen climate x2
+    | age <cold_stone> landmass frozen climate <cold_sky> sky
 
 molten_age = <bleak_mood> age <hot_stone> landmass molten sea x2
     | age <hot_stone> landmass riddled depths molten sea

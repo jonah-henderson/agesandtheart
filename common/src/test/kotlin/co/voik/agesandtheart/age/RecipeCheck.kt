@@ -62,7 +62,7 @@ class RecipeCheck : FunSpec({
         val composition = AgeComposition(terrains = listOf(Terrain.PYRAMIDS))
             .withOption(Aspect.TERRAIN, Terrain.ARRANGEMENT.name, "rings")
             .withOption(Aspect.TERRAIN, "elevation", "towering")
-        check(composition.unknownOptions == listOf("terrain.elevation")) {
+        check(composition.unknownOptions == listOf("landmass.elevation")) {
             "Expected 'elevation' to be reported as unrecognised, got ${composition.unknownOptions}"
         }
         val decoded = roundTrips(AgeRecipe(AgeWorld.Composed(composition), seed = SAMPLE_SEED), "unknown options")
@@ -97,7 +97,7 @@ class RecipeCheck : FunSpec({
             "A mingled parameter came back as ${decoded.composition?.options?.of(Aspect.TERRAIN)}"
         }
         val spelling = mingled.toString()
-        check("terrain.stone=minecraft:blackstone,minecraft:tuff" in spelling) {
+        check("landmass.stone=minecraft:blackstone,minecraft:tuff" in spelling) {
             "A mingled parameter spells itself wrong: '$spelling'"
         }
         check(AgeComposition.parse(spelling).getOrThrow() == mingled) { "'$spelling' does not read back as itself" }
@@ -163,7 +163,7 @@ class RecipeCheck : FunSpec({
         }
 
         val spelling = divided.toString()
-        check("terrain=spire_islands[stone=minecraft:copper_block],hills[stone=minecraft:andesite]" in spelling) {
+        check("landmass=spire_islands[stone=minecraft:copper_block],hills[stone=minecraft:andesite]" in spelling) {
             "Two steered territories spell themselves wrong: '$spelling'"
         }
         check(AgeComposition.parse(spelling).getOrThrow() == divided) { "'$spelling' does not read back as itself" }
@@ -179,7 +179,7 @@ class RecipeCheck : FunSpec({
         val agreeing = AgeComposition(terrains = listOf(Terrain.SPIRE_ISLANDS, Terrain.HILLS))
             .withOption(Aspect.TERRAIN, Terrain.STONE.name, "minecraft:tuff")
         val together = agreeing.toString()
-        check("terrain.stone=minecraft:tuff" in together) {
+        check("landmass.stone=minecraft:tuff" in together) {
             "Agreeing territories stopped spelling themselves once: '$together'"
         }
         check(AgeComposition.parse(together).getOrThrow() == agreeing) { "'$together' does not read back as itself" }
@@ -258,8 +258,8 @@ class RecipeCheck : FunSpec({
         }
 
         val spelling = composition.toString()
-        check("terrain=hills,pillars,caverns" in spelling) { "A set should print comma-joined, got '$spelling'" }
-        check("carvers=caves,solid" in spelling) { "So should a carving set, got '$spelling'" }
+        check("landmass=hills,pillars,caverns" in spelling) { "A set should print comma-joined, got '$spelling'" }
+        check("depths=caves,solid" in spelling) { "So should a carving set, got '$spelling'" }
         // Ids, because the sea aspect is open (design §3.1) — the referent is the value, not a preset naming it.
         check("sea=minecraft:water,minecraft:lava" in spelling) { "And a sea set, got '$spelling'" }
         check(AgeComposition.parse(spelling).getOrThrow() == composition) {
@@ -358,7 +358,7 @@ class RecipeCheck : FunSpec({
         }
 
         val spelling = uneven.toString()
-        check("carvers=caves,porous@0.25,flooded_caves@0.06" in spelling) {
+        check("depths=caves,porous@0.25,flooded_caves@0.06" in spelling) {
             "an uneven division spells itself wrong: '$spelling'"
         }
         check(AgeComposition.parse(spelling).getOrThrow() == uneven) { "'$spelling' does not read back as itself" }

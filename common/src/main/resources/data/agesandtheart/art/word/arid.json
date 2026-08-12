@@ -2,7 +2,7 @@
   "tier": "restrictive",
   "aspects": [
     "climate",
-    "terrain"
+    "landmass"
   ],
   "query": {
     "dry": 1.0,

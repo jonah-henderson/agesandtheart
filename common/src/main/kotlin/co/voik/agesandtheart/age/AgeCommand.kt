@@ -8,6 +8,7 @@ import co.voik.agesandtheart.age.consequence.Wounds
 import net.minecraft.world.Difficulty
 import net.minecraft.world.DifficultyInstance
 import co.voik.agesandtheart.age.consequence.Tearing
+import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.aspect.Sky
@@ -168,8 +169,15 @@ object AgeCommand {
     private const val LOCATE_RADIUS_BLOCKS = 20_000
     private const val LOCATE_STRIDE_BLOCKS = 64
 
-    /** A terrain to satisfy `AgeComposition.parse`, which refuses a composition without one. Read by nothing. */
-    private const val PREVIEW_SCAFFOLD = "terrain=hills"
+    /**
+     * A landform to satisfy `AgeComposition.parse`, which refuses a composition without one. Read by
+     * nothing.
+     *
+     * **Built from the aspect's own key** rather than spelled, because it was spelled and outlived the name
+     * it spelled: renaming the aspect left this saying `terrain=hills` to a parser that had stopped knowing
+     * the word, and every sky-preview check failed with it.
+     */
+    private val PREVIEW_SCAFFOLD = "${Aspect.TERRAIN.key}=${Terrain.HILLS.key}"
 
     // Brigadier command result codes.
     private const val SUCCESS = 1

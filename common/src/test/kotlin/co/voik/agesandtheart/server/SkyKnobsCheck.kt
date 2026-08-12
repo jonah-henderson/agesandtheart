@@ -19,7 +19,7 @@ class SkyKnobsCheck : FunSpec({
     val age = "knobage"
 
     beforeSpec {
-        server.run("age compose $age 5 terrain=hills sea=minecraft:water carvers=caves sky=plain sky.suns=2")
+        server.run("age compose $age 5 landmass=hills sea=minecraft:water depths=caves sky=plain sky.suns=2")
     }
 
     test("a knob is acted on and said back") {
@@ -79,7 +79,7 @@ class SkyKnobsCheck : FunSpec({
     }
 
     test("a knob that is not one is still told apart from an aspect") {
-        val report = server.run("age sky $age sky=plain terrain=hills")
+        val report = server.run("age sky $age sky=plain landmass=hills")
         check("compose" in report) {
             "Naming a real aspect no longer points at `/age compose`:\n$report"
         }

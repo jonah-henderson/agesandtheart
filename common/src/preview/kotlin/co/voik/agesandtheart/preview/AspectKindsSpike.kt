@@ -40,7 +40,7 @@ fun main() {
 private fun reportRecipeShape() {
     heading("WHAT A RECIPE STOPS SAYING")
     val today = listOf(
-        "terrain=canyon" to true,
+        "landmass=canyon" to true,
         "terrain.stone=minecraft:packed_ice" to true,
         "sea=minecraft:water" to true,
         "carvers=caves" to true,

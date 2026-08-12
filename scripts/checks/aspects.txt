@@ -6,20 +6,20 @@
 
 # --- The two combinations the implementation plan names by name -------------------------------
 # Spire islands over real water rather than plasma, and hills with something going on underneath.
-age compose spireocean terrain=spire_islands sea=water carvers=weathered sky=storm
-age compose hillcaves terrain=hills sea=water carvers=flooded_caves sky=storm structures=vanilla
+age compose spireocean landmass=spire_islands sea=water depths=weathered sky=storm
+age compose hillcaves landmass=hills sea=water depths=flooded_caves sky=storm structures=vanilla
 
 # --- Others nobody wrote, to stress the aspect list ---------------------------------------------
-age compose lavapillar terrain=pillars sea=lava carvers=solid sky=plain
-age compose deepcavern terrain=caverns sea=water sea.depth=deep carvers=porous sky=plain
+age compose lavapillar landmass=pillars sea=lava depths=solid sky=plain
+age compose deepcavern landmass=caverns sea=water sea.depth=deep depths=porous sky=plain
 
 # A terrain that stands in open air, told to have a sea anyway. The terrain's contract must win:
 # expect it to be created and to generate dry, not to crash.
-age compose drypyramid terrain=pyramids terrain.arrangement=rings sea=water sky=storm
+age compose drypyramid landmass=pyramids landmass.arrangement=rings sea=water sky=storm
 
 # An option no preset understands. Expect it kept, ignored, and reported by /age list below —
 # never silently dropped, because the recipe is the only record of an Age.
-age compose typoage terrain=shapes terrain.elevation=towering
+age compose typoage landmass=shapes landmass.elevation=towering
 
 # --- Structures as a population: add, emphasise, exclude ----------------------------------------
 # Values are structure *sets*. `!` is only, `-` is except, `@rung` is density (see Claim and Density).
@@ -27,18 +27,18 @@ age compose typoage terrain=shapes terrain.elevation=towering
 # built, so confirm with /locate — dimension ids are lower-cased, and the position argument is required:
 #   execute in agesandtheart:onlymansions positioned 0.0 100.0 0.0 run locate structure minecraft:village_plains
 # expecting "Could not find"; and minecraft:mansion expecting a hit.
-age compose onlymansions terrain=hills sea=water structures=vanilla structures.built=!minecraft:woodland_mansions
-age compose nooutposts terrain=hills sea=water structures=vanilla structures.built=-minecraft:pillager_outposts
+age compose onlymansions landmass=hills sea=water structures=vanilla structures.built=!minecraft:woodland_mansions
+age compose nooutposts landmass=hills sea=water structures=vanilla structures.built=-minecraft:pillager_outposts
 # Density: four times the villages. Expect the nearest village markedly closer than in `nooutposts`.
-age compose teemingvillages terrain=hills sea=water structures=vanilla structures.built=minecraft:villages@teeming
+age compose teemingvillages landmass=hills sea=water structures=vanilla structures.built=minecraft:villages@teeming
 # Our own halves of nether_complexes, reachable only because the biome is named too. Expect a fortress
 # and NO bastion_remnant — the split is the whole reason those two files exist.
-age compose fortsonly terrain=hills sea=water structures=none structures.built=agesandtheart:fortresses biomes.grown=minecraft:crimson_forest
+age compose fortsonly landmass=hills sea=water structures=none structures.built=agesandtheart:fortresses biomes.grown=minecraft:crimson_forest
 
 # --- What the composer must refuse, naming the alternatives ------------------------------------
 # Expect "An Age needs a terrain" and "No terrain called 'atlantis'. Try: ..." — and no Age.
 age compose nolandform sea=water
-age compose nonsense terrain=atlantis
+age compose nonsense landmass=atlantis
 
 # --- Do they actually build? -------------------------------------------------------------------
 # Surface heights and blocks, not pictures. Looking right is still a job for a human in game.
@@ -58,8 +58,8 @@ age gen typoage
 #
 # So read a small count rather than zero, and read it against a control the way generator-parity.txt says
 # to. That file carries the measured per-Age control band; this is the same method at a smaller radius.
-age compose bareA 777 terrain=eroded sea=water carvers=caves sky=plain
-age compose bareB 777 terrain=eroded sea=water carvers=caves sky=plain
+age compose bareA 777 landmass=eroded sea=water depths=caves sky=plain
+age compose bareB 777 landmass=eroded sea=water depths=caves sky=plain
 age compare bareA bareB 2
 
 # The one true zero left in the mod: a bespoke Tier-B generator on a biome of its own, which decorates
@@ -70,6 +70,6 @@ age compare spireX spireY 2
 
 # --- What got written --------------------------------------------------------------------------
 # Every line here should be pasteable straight back into /age compose, and typoage should carry its
-# "(ignored, unrecognised: terrain.elevation)". Run this file twice against the same --level to
+# "(ignored, unrecognised: landmass.elevation)". Run this file twice against the same --level to
 # check the same sentences come back after a restart.
 age list

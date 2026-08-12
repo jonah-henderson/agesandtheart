@@ -1,7 +1,7 @@
 {
   "tier": "exact",
   "aspects": [
-    "carvers"
+    "depths"
   ],
   "query": {
     "watery": 1.0

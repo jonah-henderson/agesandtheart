@@ -33,23 +33,23 @@
 # already-generated chunks, which looks like a pass and tests nothing.
 
 # Vanilla's biome table, real structures, carvers, an aquifer — the widest path, and the one that decorates.
-age compose pvanilla 4242 terrain=hills sea=water carvers=caves structures=vanilla sky=plain
+age compose pvanilla 4242 landmass=hills sea=water depths=caves structures=vanilla sky=plain
 age bench pvanilla 4
 
 # A narrowed climate: the biome table bounded to a hot dry stretch, with a fractured pair below.
-age compose pbare 4242 terrain=spire_islands sea=water carvers=weathered climate.temperature=0.4..0.9 sky=storm
+age compose pbare 4242 landmass=spire_islands sea=water depths=weathered climate.temperature=0.4..0.9 sky=storm
 age bench pbare 4
 
 # A material in the fill, a lava sea, porosity — the substance path.
-age compose pmaterial 4242 terrain=pillars sea=lava carvers=porous terrain.stone=minecraft:blackstone sky=plain
+age compose pmaterial 4242 landmass=pillars sea=lava depths=porous landmass.stone=minecraft:blackstone sky=plain
 age bench pmaterial 4
 
 # Divided: two carvers and two terrains with a material each, so RegionMap and Substance both do real work.
-age compose pdivided 4242 terrain=eroded{stone=minecraft:tuff},pillars{stone=minecraft:andesite} sea=water carvers=caves,solid sky=plain
+age compose pdivided 4242 landmass=eroded{stone=minecraft:tuff},pillars{stone=minecraft:andesite} sea=water depths=caves,solid sky=plain
 age bench pdivided 4
 
 # A VOID sea, whose `level` is Int.MIN_VALUE — the sentinel that reaches getSeaLevel and the world floor.
-age compose pvoid 4242 terrain=pyramids sea=void carvers=solid sky=plain
+age compose pvoid 4242 landmass=pyramids sea=void depths=solid sky=plain
 age bench pvoid 4
 
 # The control that is not a composed Age at all: a bespoke Tier-B generator, which must never move.

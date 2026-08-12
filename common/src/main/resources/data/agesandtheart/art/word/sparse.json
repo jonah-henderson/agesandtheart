@@ -1,7 +1,7 @@
 {
   "tier": "evocative",
   "aspects": [
-    "terrain"
+    "landmass"
   ],
   "query": {
     "barren": 0.8,

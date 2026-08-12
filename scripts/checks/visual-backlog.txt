@@ -37,7 +37,7 @@
 # but "is this worth keeping" — and nothing is wired to instability until after you answer.
 #
 # A seam now takes ONE OF FOUR FORMS, drawn per Age: rift 40%, scarp 40%, sheared 15%, fuzzed 5%.
-# `terrain.seam=` pins one, and pinning is the only way to see a given form on purpose, because nothing prints
+# `landmass.seam=` pins one, and pinning is the only way to see a given form on purpose, because nothing prints
 # what an Age drew. All four lines below are the SAME terrain either side, so the form is the only difference
 # between the sides, and `seamsheared` is the control — it should read as one ordinary landscape.
 #   1. drama or breakage? that is the whole call, and it is mostly about `seamscarp`.
@@ -47,32 +47,32 @@
 #      to keep the chasm SWIMMABLE, so a rift divides an Age without partitioning it. Deep enough? too deep?
 #   4. `seamfuzzed` will look almost exactly like `seamsheared` and that is expected, not a bug: interlocking
 #      a shape with itself reproduces it. The fuzz only shows between two DIFFERENT shapes — see `mixedfuzzed`.
-/age compose seamsheared 4242 terrain=hills,hills sea=water terrain.seam=sheared
-/age compose seamscarp 4242 terrain=hills,hills sea=water terrain.seam=scarp
-/age compose seamrift 4242 terrain=hills,hills sea=water terrain.seam=rift
-/age compose seamfuzzed 4242 terrain=hills,hills sea=water terrain.seam=fuzzed
+/age compose seamsheared 4242 landmass=hills,hills sea=water landmass.seam=sheared
+/age compose seamscarp 4242 landmass=hills,hills sea=water landmass.seam=scarp
+/age compose seamrift 4242 landmass=hills,hills sea=water landmass.seam=rift
+/age compose seamfuzzed 4242 landmass=hills,hills sea=water landmass.seam=fuzzed
 /age tp seamscarp
 
 # The forms between two genuinely DIFFERENT shapes, which is what a written Age usually is. Design 3.4
 # is already true here — two terrains meet at a cliff anyway, since Regions blends no heights — so what to
 # judge is what each form ADDS to a step that was already there. `mixedfuzzed` is the one where the fuzz
 # finally has something to dissolve, so it is the one to look at for the rare form.
-/age compose mixedscarp 4242 terrain=hills,pillars sea=water terrain.seam=scarp
-/age compose mixedrift 4242 terrain=hills,pillars sea=water terrain.seam=rift
-/age compose mixedfuzzed 4242 terrain=hills,pillars sea=water terrain.seam=fuzzed
+/age compose mixedscarp 4242 landmass=hills,pillars sea=water landmass.seam=scarp
+/age compose mixedrift 4242 landmass=hills,pillars sea=water landmass.seam=rift
+/age compose mixedfuzzed 4242 landmass=hills,pillars sea=water landmass.seam=fuzzed
 /age tp mixedfuzzed
 
 # Structures across a scarp. Vanilla WILL straddle one — it takes a height at a single column and builds from
 # there. Vanilla has the same problem at its own biome edges and mostly gets away with it; a scarp is sharper.
 # Look once before calling it broken. A village half on and half off a 64-block cliff might be the best thing
 # in here or the worst.
-/age compose scarpbuilt 4242 terrain=hills,hills sea=water terrain.seam=scarp structures=vanilla
+/age compose scarpbuilt 4242 landmass=hills,hills sea=water landmass.seam=scarp structures=vanilla
 /age tp scarpbuilt
 
-# What an Age draws for ITSELF, which is what almost every Age will do. No `terrain.seam`, four seeds. There is
+# What an Age draws for ITSELF, which is what almost every Age will do. No `landmass.seam`, four seeds. There is
 # no way to tell from in game which form one drew — that gap is real and noted in the design.
-/age compose drawnA 1 terrain=hills,pillars sea=water
-/age compose drawnB 2 terrain=hills,pillars sea=water
+/age compose drawnA 1 landmass=hills,pillars sea=water
+/age compose drawnB 2 landmass=hills,pillars sea=water
 /age tp drawnA
 
 # ALSO WORTH ONE OFFLINE LOOK, because a picture settles the forms faster than a walk does, and the
@@ -86,7 +86,7 @@
 # CHECKED 2026-07-27 — passes. The fuzzy transition takes a moment to get used to; the small pools of mixed
 # water and lava along it read as weird, and that is the weirdness this is meant to enable. Do not tidy the
 # seam (see `irregularities-are-a-feature`) — if it is ever revisited, it is a deliberate change, not a fix.
-/age compose twoseas 7 terrain=hills sea=water,lava carvers=solid sky=plain
+/age compose twoseas 7 landmass=hills sea=water,lava depths=solid sky=plain
 /age tp twoseas
 
 # All four positional aspects divided at once — the busiest world the model can describe. The question is
@@ -98,7 +98,7 @@
 # evenly, and mid-to-high is the oddity rather than half of all Ages. Design 3.4 records the reasoning.
 # NOTE: that draw is part of the character, so this line re-composed today will NOT have the seam it had
 # when it was looked at — expect it cut or nearly cut now. `/age list` prints what it actually got.
-/age compose everything 7 terrain=hills,pillars sea=water,lava carvers=caves,solid climate=natural{temperature=0.6..0.9},natural{temperature=-0.9..-0.6} sky=storm
+/age compose everything 7 landmass=hills,pillars sea=water,lava depths=caves,solid climate=natural{temperature=0.6..0.9},natural{temperature=-0.9..-0.6} sky=storm
 /age tp everything
 
 # ── 2. Weighted territories: the newest mechanic, and the least looked at ────────────────────────
@@ -113,8 +113,8 @@
 # STILL THE REASONING, DIFFERENT SHAPE (2026-07-29): `Seam` is now three fault forms rather than four widths,
 # and the fuzz is 5% of them. This walk is why it is 5 and not a third. Re-walking these two lines is worth it
 # — they will now come up with a scarp or a rift roughly half the time each, which they never used to.
-/age compose mostlyhills 7 terrain=hills,pillars@scattered sea=water sky=plain
-/age compose evenhills 7 terrain=hills,pillars sea=water sky=plain
+/age compose mostlyhills 7 landmass=hills,pillars@scattered sea=water sky=plain
+/age compose evenhills 7 landmass=hills,pillars sea=water sky=plain
 /age tp mostlyhills
 
 # A rare territory at the floor: 1% of the world. This is the one that answers "is 1% findable?" — fly out.
@@ -122,7 +122,7 @@
 # search was cut short rather than exhausted, so this is not evidence the floor is too low. **Do not raise
 # `Share.LEAST_SHARE_OF_A_WORLD` on the strength of this line** — Jonah's explicit call. Re-run it when
 # there is time to actually hunt; a real failure looks like a long deliberate search coming up empty.
-/age compose needle 7 terrain=hills,spire_islands@rare sea=water sky=plain
+/age compose needle 7 landmass=hills,spire_islands@rare sea=water sky=plain
 /age tp needle
 
 # ── 3. Words: does a sentence make a world you would have written? ──────────────────────────────
@@ -186,8 +186,8 @@
 # Spire islands over ordinary water instead of plasma, and a lava sea under pillars: two sentences nobody
 # hand-wrote before aspects existed.
 # CHECKED 2026-07-27 — both good, signed off.
-/age compose spireocean 7 terrain=spire_islands sea=water carvers=weathered sky=storm
-/age compose lavapillar 7 terrain=pillars sea=lava carvers=solid sky=plain
+/age compose spireocean 7 landmass=spire_islands sea=water depths=weathered sky=storm
+/age compose lavapillar 7 landmass=pillars sea=lava depths=solid sky=plain
 /age tp spireocean
 
 # ── 5. Free while you are in there ─────────────────────────────────────────────── CHECKED 2026-07-27 ──
@@ -200,7 +200,7 @@
 # measured — the same standing HIGH_ALTITUDE_LIFT had before it was walked, and that one turned out wrong
 # by about a hundred blocks. `./gradlew :common:preview --args=fault` draws it without booting a server.
 # A scarp needs a divided TERRAIN, which is rare, so write until one turns up or pin the seam:
-/age compose scarp1 7 terrain=hills,pillars terrain.seam=scarp
+/age compose scarp1 7 landmass=hills,pillars landmass.seam=scarp
 /age tp scarp1
 
 # ── SKY POLISH, after the first 26.1 walk ────────────────────────── OPEN 2026-07-30, DEFERRED ──
@@ -243,10 +243,10 @@
 # ── SEAMS, after the walk ──────────────────────────────── A/B/C DONE 2026-07-30, UNWALKED ─────────
 # A, B and C below are built. D stands as a verdict. What to look at, all four seeded 4242 so the pairs
 # are comparable:
-/age compose seamsheared 4242 terrain=hills,hills sea=water terrain.seam=sheared
-/age compose seamrift 4242 terrain=hills,hills sea=water terrain.seam=rift
-/age compose seamwall 4242 terrain=hills,hills sea=water terrain.seam=wall
-/age compose seamfuzzed 4242 terrain=hills,hills sea=water terrain.seam=fuzzed
+/age compose seamsheared 4242 landmass=hills,hills sea=water landmass.seam=sheared
+/age compose seamrift 4242 landmass=hills,hills sea=water landmass.seam=rift
+/age compose seamwall 4242 landmass=hills,hills sea=water landmass.seam=wall
+/age compose seamfuzzed 4242 landmass=hills,hills sea=water landmass.seam=fuzzed
 /age tp seamwall
 #   1. `seamsheared` and `seamfuzzed` should now SHOW something — that is the whole of A.
 #   2. the rift should be a V with a wandering rim, and DRY — the sea is now told to keep out of the chasm
@@ -259,7 +259,7 @@
 # The forms were walked and mostly land. Four things came out of it, in the order they should be done.
 
 # A. TWO TERRITORIES OF THE SAME TERRAIN ARE BYTE-IDENTICAL, so `seamsheared` and `seamfuzzed` show
-# nothing at all. Not a seam bug: `Terrain.field(options, window)` takes NO SEED, so `terrain=hills,hills`
+# nothing at all. Not a seam bug: `Terrain.field(options, window)` takes NO SEED, so `landmass=hills,hills`
 # builds the same field twice and there is genuinely no boundary to see. Salt the field per member — the
 # member index into the Age's seed — and every same-terrain pair starts working. Do this FIRST: it is the
 # reason two of the four forms could not be judged, and `mixedfuzzed` (which reads well) is only readable

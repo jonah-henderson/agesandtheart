@@ -1,7 +1,7 @@
 {
   "tier": "evocative",
   "aspects": [
-    "terrain"
+    "landmass"
   ],
   "query": {
     "eroded": 1.0,

@@ -8,8 +8,8 @@
       {"produce":["<molten_age>"]}
     ],
     "frozen_age": [
-      {"weight":2.0,"produce":["<bleak_mood>","age","<cold_stone>","landmass","frozen","atmosphere"]},
-      {"produce":["age","<cold_stone>","landmass","frozen","atmosphere","<cold_sky>","firmament"]}
+      {"weight":2.0,"produce":["<bleak_mood>","age","<cold_stone>","landmass","frozen","climate"]},
+      {"produce":["age","<cold_stone>","landmass","frozen","climate","<cold_sky>","sky"]}
     ],
     "molten_age": [
       {"weight":2.0,"produce":["<bleak_mood>","age","<hot_stone>","landmass","molten","sea"]},

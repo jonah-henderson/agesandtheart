@@ -3,6 +3,7 @@ package co.voik.agesandtheart.age.word
 import co.voik.agesandtheart.Constants
 import com.google.gson.JsonParser
 import co.voik.agesandtheart.age.Register
+import co.voik.agesandtheart.location
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.AspectPreset
 import co.voik.agesandtheart.age.word.generation.GenerationGrammars
@@ -288,7 +289,7 @@ data class Vocabulary(
             val authored = readWords(resources, problems)
             // After the words, so a domain claiming a page some word file also defines is reported rather
             // than silently winning or losing on map order.
-            val domains = readDomains(resources, authored, problems)
+            val pages = aimingPages(authored, problems)
             val tags = readPresetTags(resources, problems)
             val antonyms = readAntonyms(resources, problems)
             // Blocks are built-in and always available; biomes and structures are datapack content, so a
@@ -298,7 +299,7 @@ data class Vocabulary(
                 DerivedWords.biomes(it) + DerivedWords.structures(it) + DerivedWords.features(it)
             }.orEmpty()
             val fromContent = DerivedWords.materials() + DerivedWords.spawns() + fromRegistries
-            val words = derived(fromContent) + authored + domains.associateBy { it.name }.mapValues { it.value.page }
+            val words = derived(fromContent) + authored + pages
             val structural = readGrammarWords(resources, problems)
             val script = Script.load(resources, problems)
             val rarity = WordRarity.load(resources, problems)
@@ -351,13 +352,6 @@ data class Vocabulary(
         )
 
         /**
-         * The parts of the world a writer may aim at — see [Domain].
-         *
-         * Each becomes an aiming page, so nothing else has to declare one. A word file of the same name is
-         * a content collision and is called out as one: the whole point of a domain is that it is the only
-         * statement of what a page opens, and two files claiming a page is the drift this prevents.
-         */
-        /**
          * What each contradiction earns, from `art/instability/<register>.json`.
          *
          * Keyed by the register's own key rather than by the enum, so a file naming one this version does
@@ -378,23 +372,30 @@ data class Vocabulary(
                 }
             }
 
-        private fun readDomains(
-            resources: ResourceManager,
-            authored: Map<String, Word>,
-            problems: MutableList<String>,
-        ): List<Domain> {
-            val domains = mutableListOf<Domain>()
-            for ((file, resource) in resources.listResources(Domain.DIRECTORY) { it.path.endsWith(JSON_SUFFIX) }) {
-                val id = idOf(file, Domain.DIRECTORY)
-                val domain = parse(resource, file, Domain.codec(id), problems) ?: continue
-                if (domain.name in authored) {
-                    problems += "'${domain.name}' is both a domain and a word; a domain already is its page"
+        /**
+         * **One aiming page per aspect**, synthesised rather than authored (`the-world-model.md` §3).
+         *
+         * A naming word is a handle on a group of properties and says nothing itself, so there is nothing
+         * for a file to carry that the aspect does not already know — and a page authored beside its aspect
+         * is two statements of one thing, which is the drift this forecloses. A word file of the same name
+         * is therefore a content collision and is called out as one.
+         *
+         * This replaced `art/domain/<name>.json`, a layer that named the aspects one page opened. It could only
+         * ever name *whole* aspects, so the redraw it was wanted for — a page for the water alone, where
+         * `murk` is one property of the air — was the one thing it could not do.
+         */
+        private fun aimingPages(authored: Map<String, Word>, problems: MutableList<String>): Map<String, Word> =
+            Aspect.entries.associate { aspect ->
+                if (aspect.key in authored) {
+                    problems += "'${aspect.key}' is both an aspect and a word; an aspect already is its page"
                 }
-                domains += domain
+                aspect.key to Word(
+                    id = aspect.key.location(),
+                    tier = Tier.RESTRICTIVE,
+                    aspects = setOf(aspect),
+                    query = emptyMap(),
+                )
             }
-            if (domains.isEmpty()) problems += "this pack ships no domains, so nothing can be aimed at"
-            return domains
-        }
 
         private fun readWords(resources: ResourceManager, problems: MutableList<String>): Map<String, Word> {
             val words = mutableMapOf<String, Word>()

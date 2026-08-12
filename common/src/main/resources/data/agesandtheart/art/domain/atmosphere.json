@@ -1,7 +1,0 @@
-{
-  "_comment": "The air, all of it. `climate` and `atmosphere` are two objects to the generator -- one holds the axes biomes are looked up on, the other what the air does -- and one thing to anybody writing a book. Nobody knows or should have to know that humidity and rainfall live in different places.",
-  "aspects": [
-    "climate",
-    "atmosphere"
-  ]
-}
