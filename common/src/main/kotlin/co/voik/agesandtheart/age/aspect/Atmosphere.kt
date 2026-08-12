@@ -32,17 +32,6 @@ import net.minecraft.resources.Identifier
  */
 object Atmosphere {
 
-    /**
-     * How much light the sky gives, from a world under an unbroken overcast to one that never sees day.
-     *
-     * Ranged, because it is a quantity a word bends rather than a state a word picks — `sunless` bounds it
-     * at the bottom exactly as `arid` bounds a climate axis.
-     */
-    val DAYLIGHT = Parameter.ranged("daylight").perBiome()
-
-    /** Whether the sun burns what walks in it — an Age where it does not is an Age monsters keep. */
-    val SUNBURN = Parameter("sunburn", AS_EVER, "never", "always").perBiome()
-
     /** Whether standing water boils away, as it does in the nether. */
     val EVAPORATION = Parameter("evaporation", AS_EVER, "always").perBiome()
 
@@ -178,25 +167,24 @@ object Atmosphere {
         Colour.named(options.of(parameter, biome))
 
     /**
-     * What an Age's *sky* does to the air — which is one switch, and it has to be said in two places.
+     * How much light the sky gives — **derived from what is overhead, never written** (world model §4).
      *
-     * `Sky.SKYLIGHT` picks a dimension type that stops skylight **propagating**; this stops the sky
-     * **giving** any, which is the half a player sees. Walked without it and the world still looked lit at
-     * noon, because the level a lit world reads is the attribute and the timeline keeps it at full
-     * (Jonah, 2026-08-05). They are one statement, so a writer says it once and both layers hear it.
+     * `SKY_LIGHT_LEVEL` is a gameplay rule and not a look: read against 26.1.2, its only reader is
+     * `Level.updateSkyBrightness`, which turns it into `skyDarken`, which decides whether monsters spawn,
+     * whether saplings grow, whether grass spreads and whether ice melts. **The lightmap does not read it**
+     * — `LightmapRenderStateExtractor` takes `SKY_LIGHT_FACTOR`, `SKY_LIGHT_COLOR` and `AMBIENT_LIGHT_COLOR`
+     * — which is the whole reason a lightless Age used to look like noon while the game held it pitch dark.
      *
-     * Not a `sets` on the word: the two live in different aspects and a narrowing word has its say in the
-     * one section it was laid in, so `sky lightless` would otherwise reach only half of what it means.
+     * So a writer never sets it. A world with a sun in it has daylight and one with none does not, and the
+     * `skylight` switch that picks the dimension type says the same thing from the other side.
      */
-    private fun lightFrom(sky: Options): List<Asked<*>> =
-        if (sky.of(Sky.SKYLIGHT) == "none") listOf(Asked(EnvironmentAttributes.SKY_LIGHT_LEVEL, NO_DAYLIGHT)) else emptyList()
+    private fun lightFrom(sky: Options): List<Asked<*>> {
+        val nothingIsUpThere = sky.countOf(Sky.SUNS) == NO_SUNS || sky.of(Sky.SKYLIGHT) == "none"
+        return if (nothingIsUpThere) listOf(Asked(EnvironmentAttributes.SKY_LIGHT_LEVEL, NO_DAYLIGHT)) else emptyList()
+    }
 
     /** Every attribute the sentence set **where [biome] is the ground**, or Age-wide where it is null. */
     private fun airIn(options: Options, salt: Long, biome: Identifier?): List<Asked<*>> = buildList {
-        options.steer(DAYLIGHT, salt, biome)?.let {
-            add(Asked(EnvironmentAttributes.SKY_LIGHT_LEVEL, Span.NATURAL.fractionOf(it).toFloat() * FULL_DAYLIGHT))
-        }
-        burning(options, biome)?.let { add(Asked(EnvironmentAttributes.MONSTERS_BURN, it)) }
         if (options.of(EVAPORATION, biome) != AS_EVER) add(Asked(EnvironmentAttributes.WATER_EVAPORATES, true))
     }
 
@@ -224,18 +212,11 @@ object Atmosphere {
         }
     }
 
-    /** Null where the writer left it as it ever was, which is the answer that lays no layer. */
-    private fun burning(options: Options, biome: Identifier?): Boolean? = when (options.of(SUNBURN, biome)) {
-        "never" -> false
-        "always" -> true
-        else -> null
-    }
-
     /** What an option reads as when a writer left an attribute alone — vanilla's own answer, whatever it is. */
     const val AS_EVER = "as_ever"
 
-    /** Vanilla's sky light at noon, which is the top of the axis. */
-    private const val FULL_DAYLIGHT = 15f
+    /** A sky with nothing in it to give light. */
+    private const val NO_SUNS = 0
 
     private const val NO_DAYLIGHT = 0f
 }

@@ -1,9 +1,0 @@
-{
-  "tier": "exact",
-  "aspects": [
-    "sky"
-  ],
-  "sets": {
-    "orbits": "1.0..1.0"
-  }
-}

@@ -1,13 +1,17 @@
 {
-  "tier": "restrictive",
+  "_comment": [
+    "A world with no sun in it. It used to dim a `daylight` axis and switch sunburn off, and both of",
+    "those are derived from what is overhead now -- so the word says the thing itself instead, and the",
+    "dark and the safety for the undead follow from it rather than being asked for beside it."
+  ],
+  "tier": "exact",
   "aspects": [
-    "atmosphere"
+    "sky"
   ],
   "query": {
     "gloomy": 1.0
   },
   "sets": {
-    "daylight": "-1.0..-0.7",
-    "sunburn": "never"
+    "suns": "0"
   }
 }

@@ -208,7 +208,7 @@ class SkyCheck : FunSpec({
             }
         }
         for (sky in Sky.entries) {
-            check(sky.parameters.containsAll(listOf(Sky.SUNS, Sky.MOONS, Sky.STARS, Sky.ORBITS))) {
+            check(sky.parameters.containsAll(listOf(Sky.SUNS, Sky.MOONS, Sky.STARS))) {
                 "$sky does not declare all four sky parameters, so a request would be silently dropped"
             }
         }

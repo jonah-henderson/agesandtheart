@@ -129,8 +129,6 @@ enum class Aspect(val key: String) : StringRepresentable {
             SPAWNS -> listOf(Spawns.LIVES)
             PHENOMENA -> listOf(Phenomena.HAPPENS)
             ATMOSPHERE -> listOf(
-                Atmosphere.DAYLIGHT,
-                Atmosphere.SUNBURN,
                 Atmosphere.EVAPORATION,
                 Atmosphere.SKY,
                 Atmosphere.FOG,

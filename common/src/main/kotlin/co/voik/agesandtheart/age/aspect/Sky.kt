@@ -46,7 +46,7 @@ enum class Sky(override val key: String) : AspectPreset {
      * Every sky takes all four, including [PLAIN]: a writer who says "two suns" under a plain sky must get
      * two suns. [PLAIN] means ordinary *air*, not nothing unusual overhead.
      */
-    override val parameters: List<Parameter> get() = listOf(SUNS, MOONS, STARS, ORBITS, SUNSIZE, SUNCOLOUR)
+    override val parameters: List<Parameter> get() = listOf(SUNS, MOONS, STARS, SUNSIZE, SUNCOLOUR)
 
     /**
      * The look this preset paints under whatever the sentence asked for, or [Look.NOTHING] where it has
@@ -72,7 +72,7 @@ enum class Sky(override val key: String) : AspectPreset {
                 suns = options.countOf(SUNS),
                 moons = options.countOf(MOONS),
                 starCount = starsAt(options.steer(STARS, seed)),
-                spread = spreadAt(options.steer(ORBITS, seed)),
+                spread = ORDINARY_SPREAD.toFloat(),
                 sunSize = sunSizeAt(options.steer(SUNSIZE, seed)),
                 sunColour = Colour.named(options.of(SUNCOLOUR))?.saturated(SUN_IS_LOOKED_AT),
                 seed = seed,
@@ -94,13 +94,6 @@ enum class Sky(override val key: String) : AspectPreset {
         val STARS = Parameter.ranged("stars")
 
         /**
-         * How far the extra bodies wander off the first one's path. At the bottom of the axis they are
-         * strung along one arc like beads and at the top they cross at unrelated angles; unsaid is
-         * [ORDINARY_SPREAD], which reads as a sky rather than as a diagram.
-         */
-        val ORBITS = Parameter.ranged("orbits")
-
-        /**
          * How large the suns are, against vanilla's — [LARGEST_SUN] times it at the top of the axis.
          *
          * **The renderer could always draw this and nothing could say it.** `Appearance.Sprite` has carried
@@ -120,7 +113,7 @@ enum class Sky(override val key: String) : AspectPreset {
 
         /**
          * Whether the sky reaches the ground at all — the dimension type's `has_skylight`, and **not**
-         * `Atmosphere.DAYLIGHT`, which is a dimmer. This one stops skylight propagating: it is dark in the
+         * a dimmer that no longer exists. This one stops skylight propagating: it is dark in the
          * open at noon, monsters spawn on the surface, and nothing that needs sky grows.
          */
         val SKYLIGHT = Parameter("skylight", Atmosphere.AS_EVER, "none")
@@ -170,6 +163,14 @@ enum class Sky(override val key: String) : AspectPreset {
         /** Vanilla's own star count, which is a third of the way up the axis. */
         private const val ORDINARY_STARS = 1.0 / DENSEST_STARS
 
+        /**
+         * How far the extra bodies wander off the first one's path, which reads as a sky rather than as a
+         * diagram.
+         *
+         * **No longer a knob**, and it will not become one again: a spread is a fact about the *arrangement*
+         * of a count of bodies, and once each body is written on its own page and says where it rises there
+         * is nothing left for it to mean.
+         */
         private const val ORDINARY_SPREAD = 0.45
 
         private fun starsAt(density: Double?): Int {
@@ -177,15 +178,11 @@ enum class Sky(override val key: String) : AspectPreset {
             return (fraction * DENSEST_STARS * SkySpec.VANILLA_STAR_COUNT).roundToInt()
         }
 
-        /** The spread is already the fraction it is asked for, so the axis needs only reading. */
-        private fun spreadAt(wander: Double?): Float =
-            (wander?.let(Span.NATURAL::fractionOf) ?: ORDINARY_SPREAD).toFloat()
-
         /**
          * Vanilla's sun where the axis is unsaid, so an ordinary sky is untouched — which `SkyCheck` holds.
          *
          * Never smaller than vanilla's: the bottom of the axis is an ordinary sun rather than a pinprick,
-         * because "small sun" is a distant one and distance is [ORBITS]' business, not this one's.
+         * because "small sun" is a distant one, and distance is the path's business rather than the size's.
          */
         private fun sunSizeAt(largeness: Double?): Float {
             val fraction = largeness?.let(Span.NATURAL::fractionOf) ?: return SkySpec.VANILLA_SUN_SIZE
