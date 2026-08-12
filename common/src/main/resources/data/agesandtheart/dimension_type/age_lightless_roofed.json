@@ -1,5 +1,5 @@
 {
-  "_comment": "Lightless, and it LOOKS it. `has_skylight: false` makes the world dark to the game; these three make it dark to the eye. A zero-alpha cloud colour is what skips the cloud pass outright (see AgeClouds) -- there is no separate switch for it. A writer who paints a sky over this with a Look still gets one.",
+  "_comment": "Lightless, and it LOOKS it. `has_skylight: false` makes the world dark to the game; these three make it dark to the eye. A zero-alpha cloud colour is what skips the cloud pass outright (see Ephemeris' cloud renderer) -- there is no separate switch for it. A writer who paints a sky over this with a Look still gets one.",
   "ambient_light": 0.0,
   "attributes": {
     "minecraft:gameplay/bed_rule": {

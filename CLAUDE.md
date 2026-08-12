@@ -12,8 +12,13 @@ relevant one before working in its area; most of the value is in the _reasoning_
 something lands, move it — do not leave the narrative of building it behind, and do not let a document
 correct itself in place. Rewrite the paragraph that is now wrong.
 
+- **`notes/the-world-model.md`** — **read this first, and before anything under `age/`.** What a world is
+  made of (properties holding a value, a weighted set or a cast), what a word is, how a book resolves, and
+  what a word costs. Derived from scratch 2026-08-12 and **not built** — it supersedes `the-art-design.md`
+  §3 and §4, and the code still implements those. Its §10 maps the old concepts onto the new ones.
 - **`notes/the-art-design.md`** — "the Art": the books, the language, aspects and tags, consequences,
-  book editing, the economy. The normative design, and the one document that is not compressed.
+  book editing, the economy. Still normative for §5 (consequence), §6 (book editing), §7 (the economy) and
+  §8 (learning); **§3 and §4 are superseded** by the world model above.
 - **`notes/the-art-implementation-plan.md`** — the phases and what each has to prove. Phases 1–4.5 are
   done and are a status line each; Phase 4's remainder and Phases 5–8 carry their full context.
 - **`notes/terrain-architecture.md`** — the two-tier terrain system (composable field toolkit + bespoke
@@ -43,7 +48,8 @@ correct itself in place. Rewrite the paragraph that is now wrong.
 - **`notes/link-panel-research.md`** — the live view of an Age on a bound book's panel: why a preview
   `ClientLevel` beats a hand-written mesh builder, and the refactor it demands first — our sky and cloud
   hooks read `Minecraft.getInstance().level` and the main render target, and a second level breaks both.
-  Nothing is built. Read it before touching `AgeSky`, `AgeClouds` or `Blaze3dSkyCanvas`.
+  Nothing is built. The three files it names moved to Ephemeris with the renderer, so read it before
+  touching the sky or cloud hooks **there** — the refactor it demands is now that project's to make.
 - **`notes/neoforge-dimensions-research.md`** — the record of how runtime Ages stopped being Fabric-only.
   DynamicDimensions is dormant with no 26.1 and Fantasy is LGPL against our MIT, so neither could be used;
   what it cost to own the technique instead was four access-widener lines and one Mixin, not the ~10 into
@@ -206,15 +212,15 @@ This is **not** Architectury. Platform abstraction is done with plain `java.util
 **1. The three modules and how `common` reaches the loaders.**
 `common/` holds all real logic and compiles against vanilla Minecraft only (via MDG/NeoForm) — it must not reference Fabric or NeoForge types. `fabric/` and `neoforge/` are thin adapters. Critically, `common` is **not** consumed as a jar: `common/build.gradle.kts` exposes its sources through `commonJava`/`commonKotlin`/`commonResources` configurations, and `buildSrc/.../multiloader-loader.gradle` wires those into each loader's compile/resource tasks. Net effect: common source is compiled _into_ each loader jar. There is no separate "common" mod to ship.
 
-**2. The platform split (SPI pattern), spanning four files.**
-When shared code needs something loader-specific, it goes through an interface, never a direct call:
+**2. The platform split (SPI pattern), spanning four files per service.**
+When shared code needs something loader-specific, it goes through an interface, never a direct call. Taking `Platform` as the example:
 
-- `common/.../platform/services/PlatformHelper.kt` — the interface
-- `fabric/.../platform/FabricPlatformHelper.kt` / `neoforge/.../platform/NeoForgePlatformHelper.kt` — implementations
-- `*/src/main/resources/META-INF/services/co.voik.agesandtheart.platform.services.PlatformHelper` — SPI registration (one line naming the impl)
+- `common/.../platform/services/Platform.kt` — the interface
+- `fabric/.../platform/FabricPlatform.kt` / `neoforge/.../platform/NeoForgePlatform.kt` — implementations
+- `*/src/main/resources/META-INF/services/co.voik.agesandtheart.platform.services.Platform` — SPI registration (one line naming the impl)
 - `common/.../platform/Services.kt` — `Services.PLATFORM` resolves the right impl at runtime
 
-To add a new platform-divergent capability: add a method to `PlatformHelper`, implement it in both loader classes. Only introduce a _new_ ServiceLoader interface when it's a genuinely distinct service — `AgeBackend` (runtime dimensions) is the established example: it's a second service loaded via `Services.AGE_BACKEND`, with `FabricAgeBackend`/`NeoForgeAgeBackend` impls and their own `META-INF/services` files. Don't fragment `PlatformHelper` for one-off needs.
+**There are four services**, each with that same set of four files: **`Platform`** (environment questions), **`AgeBackend`** (runtime dimensions), **`Network`** (payload sending) and **`InkFluids`** (the fluid the loaders model completely differently). To add a platform-divergent capability, add a method to whichever of the four owns the concern. Only introduce a _fifth_ when it is a genuinely distinct service rather than a one-off need — `InkFluids` earns it because Fabric's fluid API and NeoForge's share no types at all.
 
 **3. Entrypoints differ per loader; both funnel into `common`.**
 
@@ -222,11 +228,15 @@ To add a new platform-divergent capability: add a method to `PlatformHelper`, im
 - NeoForge: `@Mod("agesandtheart")` on the class in `neoforge/.../AgesAndTheArt.kt`; its constructor runs (Kotlin for Forge provides the Kotlin entry).
   Both immediately call `CommonSetup.init()`. Keep loader entrypoints tiny; put logic in `common`.
 
-**4. Three Mixins, all in `common`, all Java.**
-`common/src/main/resources/agesandtheart.mixins.json` declares them, and each earned its place by there being no loader event that carries what it needs:
+**4. Four Mixins, all in `common`, all Java.**
+`common/src/main/resources/agesandtheart.mixins.json` declares them, and each earned its place by there being no loader event that carries what it needs. Each carries its own argument in-file; read that before touching one.
 
-- **`ServerPlayerMixin`** (common) — the learned-word set. Four injectors: `readAdditionalSaveData` / `addAdditionalSaveData` persist it, `restoreFrom` carries it through death, and `initMenu` attaches the `ContainerListener` that notices a page arriving in the inventory. That last one is vanilla's own `inventory_changed` seam, which is why it beats polling.
-- **`client/CloudRendererMixin`**, **`client/SkyRendererMixin`** — per-Age skies. Declared under the config's `"client"` array, not `"mixins"`.
+- **`ServerPlayerMixin`** — the learned-word set. Four injectors: `readAdditionalSaveData` / `addAdditionalSaveData` persist it, `restoreFrom` carries it through death, and `initMenu` attaches the `ContainerListener` that notices a page arriving in the inventory. That last one is vanilla's own `inventory_changed` seam, which is why it beats polling.
+- **`ServerLevelMixin`** — local difficulty near a wound (§5.1). No event exists on either loader: difficulty is computed on demand and returned by value, so this one method is the only place it exists.
+- **`LightningBoltMixin`** — a bolt landing in a tempest. The entity-join event would fire re-entrantly inside `addFreshEntity` and cannot see the private `visualOnly` flag that marks a trap's harmless bolt.
+- **`client/LevelRendererMixin`** — draws the Age's wounds in one submission. Declared under the config's `"client"` array, not `"mixins"`. The loader alternatives exist here (Fabric's world-render events, NeoForge's `RenderLevelStageEvent`) and are declined deliberately: they are different objects with different stages where the vanilla seam is identical on both sides.
+
+The sky Mixins left with Ephemeris and are `co.voik.ephemeris.mixin.client.*` now — do not look for them here.
 
 **Always prefer a loader event or vanilla API over a Mixin when one exists**, and say in the commit which alternatives were checked. Mixins are written in **Java** (Kotlin isn't viable). On **Loom 1.17** the mixin annotation processor / refmap is off by default and 26.1 is unobfuscated anyway — do **not** re-add a `loom { mixin { … } }` block.
 
@@ -262,6 +272,13 @@ pages) → Sentence` is the entire port; `Sentence`/`Phrase`/`Constraint`/`Scope
   and the parts it opens cannot disagree. `atmosphere` covers `{climate, atmosphere}` because a writer does
   not know that humidity and rainfall live in different objects; `firmament` covers `{sky}`. Never author an
   `art/word/<domain>.json` beside one — the load reports a collision if you do.
+
+> **The design and the code disagree here on purpose, and the code is the side that moves.** Everything
+> described above is accurate today and deliberately short-lived: `notes/the-world-model.md` replaces the
+> whole of it, and **`Aspect`, `Domain`, `Scope` and one of the two `Kind` enums do not survive it**. A
+> world becomes properties holding a value, a weighted set or a cast; aspects become ordinary words; there
+> are no counts; and cost becomes specificity × versatility. **Read that document before changing anything
+> under `age/aspect/` or `age/word/`**, and the implementation plan's "writer's-terms pass" for the order.
 - **`age/word/generation/`** — the grammars the Art writes *out* of, which are **datapack content**
   (`art/generation/<name>.json`): `book` writes the found Descriptive Books a player learns structure from,
   `repair` writes the sentence a book that does not parse is filled into, `name` draws an Age's syllables. A
