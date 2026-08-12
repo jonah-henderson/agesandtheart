@@ -390,7 +390,7 @@ data class Parameter(
          * the number, which is why this is a value and not an enumeration of spellings for it.
          */
         fun counted(name: String, ordinary: Int, most: Int) =
-            Parameter(name, listOf(ordinary.toString()), holds = Holds.CAST, counts = 0..most)
+            Parameter(name, listOf(ordinary.toString()), holds = Holds.POPULATION, counts = 0..most)
     }
 }
 
@@ -471,13 +471,16 @@ enum class Holds {
     WEIGHTED_SET,
 
     /**
-     * Members that exist only because somebody described them — the suns, the moons.
+     * Individuals that exist only because somebody described them — the suns, the moons.
      *
      * Each member holds properties of its own, so this is the recursive kind. **Not built**: `suns` and
-     * `moons` are still read as counts, and turning them into a cast is what removes numbers from the
-     * language entirely.
+     * `moons` are still read as counts, and turning them into a population is what removes numbers from
+     * the language entirely.
+     *
+     * Not to be confused with [WEIGHTED_SET], which the *aspects* used to call a population: a jungle is a
+     * kind the world has more or less of, where a sun is one of several individuals.
      */
-    CAST,
+    POPULATION,
     ;
 
     /** Whether this holds a single answer — what `and` forces two of, and what may fracture. */

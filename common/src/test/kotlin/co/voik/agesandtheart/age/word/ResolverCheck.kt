@@ -10,7 +10,7 @@ import co.voik.agesandtheart.age.aspect.Carvers
 import co.voik.agesandtheart.age.aspect.Claim
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.aspect.Polarity
-import co.voik.agesandtheart.age.aspect.Population
+import co.voik.agesandtheart.age.aspect.Skew
 import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Share
 import co.voik.agesandtheart.age.aspect.Span
@@ -20,7 +20,6 @@ import co.voik.ephemeris.sky.SkySpec
 import co.voik.agesandtheart.age.word.grammar.Constraint
 import co.voik.agesandtheart.age.word.grammar.Group
 import co.voik.agesandtheart.age.word.grammar.Phrase
-import co.voik.agesandtheart.age.word.grammar.Scope
 import co.voik.agesandtheart.age.word.grammar.Sentence
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
@@ -325,7 +324,7 @@ class ResolverCheck : FunSpec({
         val untouched = builtIn(resolve(vocabulary, "untouched").composition)
         check(untouched == listOf(Structures.NOTHING)) { "'untouched' left $untouched standing" }
 
-        val settled = Population.of(
+        val settled = Skew.of(
             resolve(vocabulary, "settled").composition.optionsFor(Aspect.STRUCTURES, 0).claimsOn(Structures.BUILT),
         )
         val villages = settled.wanted.firstOrNull { it.value == "minecraft:villages" }
@@ -547,14 +546,14 @@ class ResolverCheck : FunSpec({
      */
     test("joining two materials mingles them and costs nothing") {
         val hollow = vocabulary.word("hollow") ?: error("the shipped vocabulary lost 'hollow'")
-        val land = Constraint(hollow, Scope.Confined(setOf(Aspect.TERRAIN)))
+        val land = Constraint(hollow, setOf(Aspect.TERRAIN))
         val first = material("firststone", "minecraft:blackstone")
         val second = material("secondstone", "minecraft:tuff")
         fun sentence(group: Group?) = Sentence.of(
             listOf(
                 land,
-                Constraint(first, Scope.Confined(setOf(Aspect.TERRAIN)), group = group),
-                Constraint(second, Scope.Confined(setOf(Aspect.TERRAIN)), group = group),
+                Constraint(first, setOf(Aspect.TERRAIN), group = group),
+                Constraint(second, setOf(Aspect.TERRAIN), group = group),
             ),
         )
 
@@ -595,12 +594,12 @@ class ResolverCheck : FunSpec({
      * All three verbs together, because it is their *difference* that matters.
      */
     test("only and except reach a population") {
-        fun asked(vararg said: Pair<String, Polarity>): Population {
+        fun asked(vararg said: Pair<String, Polarity>): Skew {
             val constraints = said.map { (path, polarity) ->
-                Constraint(structureSet(path), Scope.Confined(setOf(Aspect.STRUCTURES)), polarity)
+                Constraint(structureSet(path), setOf(Aspect.STRUCTURES), polarity)
             }
             val resolved = Resolver.resolve(vocabulary, Sentence.of(constraints), SAMPLE_SEED)
-            return Population.of(resolved.composition.optionsFor(Aspect.STRUCTURES, 0).claimsOn(Structures.BUILT))
+            return Skew.of(resolved.composition.optionsFor(Aspect.STRUCTURES, 0).claimsOn(Structures.BUILT))
         }
 
         val plainly = asked("woodland_mansions" to Polarity.ASSERTED)
@@ -636,7 +635,7 @@ class ResolverCheck : FunSpec({
     test("a re-homed word is charged rather than moved in silence") {
         val moved = Constraint(
             vocabulary.word("starless") ?: error("the shipped vocabulary lost 'starless'"),
-            Scope.Confined(setOf(Aspect.SKY)),
+            setOf(Aspect.SKY),
             rehomed = true,
         )
         val resolved = Resolver.resolve(vocabulary, Sentence.of(listOf(moved)), SAMPLE_SEED)
@@ -658,7 +657,7 @@ class ResolverCheck : FunSpec({
      * page no sentence has room for is the dearest thing a writer can do.
      */
     test("an unreadable page and an impossible one are not the same complaint") {
-        val said = listOf(Constraint(vocabulary.word("starless")!!, Scope.Confined(setOf(Aspect.SKY))))
+        val said = listOf(Constraint(vocabulary.word("starless")!!, setOf(Aspect.SKY)))
 
         val garbled = Sentence(said.map { Phrase(modifiers = listOf(it)) }, unreadable = listOf("zzzznotaword"))
         val vaguer = Resolver.resolve(vocabulary, garbled, SAMPLE_SEED)
@@ -686,11 +685,11 @@ class ResolverCheck : FunSpec({
         fun askedFor(rung: Double): Claim {
             val said = Constraint(
                 structureSet("villages"),
-                Scope.Confined(setOf(Aspect.STRUCTURES)),
+                setOf(Aspect.STRUCTURES),
                 density = rung,
             )
             val resolved = Resolver.resolve(vocabulary, Sentence.of(listOf(said)), SAMPLE_SEED)
-            val population = Population.of(
+            val population = Skew.of(
                 resolved.composition.optionsFor(Aspect.STRUCTURES, 0).claimsOn(Structures.BUILT),
             )
             return population.wanted.singleOrNull() ?: error("'villages' at $rung gave ${population.wanted}")
@@ -782,7 +781,7 @@ class ResolverCheck : FunSpec({
         val lush = vocabulary.word("verdant") ?: error("the shipped vocabulary lost 'verdant'")
         fun said(polarity: Polarity) = Resolver.resolve(
             vocabulary,
-            Sentence.of(listOf(Constraint(lush, Scope.Confined(setOf(Aspect.BIOMES)), polarity))),
+            Sentence.of(listOf(Constraint(lush, setOf(Aspect.BIOMES), polarity))),
             SAMPLE_SEED,
         ).composition
 
@@ -802,7 +801,7 @@ class ResolverCheck : FunSpec({
 
     /** Naming a biome means *more of it*, every biome being present already — see `Biomes.GROWN`. */
     test("naming a biome asks for more of it than an ordinary Age has") {
-        val said = Constraint(biomeWord("cherry_grove"), Scope.Confined(setOf(Aspect.BIOMES)))
+        val said = Constraint(biomeWord("cherry_grove"), setOf(Aspect.BIOMES))
         val composition = Resolver.resolve(vocabulary, Sentence.of(listOf(said)), SAMPLE_SEED).composition
         val named = preferences(composition).firstOrNull { it.biome.path == "cherry_grove" }
             ?: error("naming the cherry groves said nothing about them")
@@ -842,12 +841,12 @@ class ResolverCheck : FunSpec({
      * farm" is a sentence about what is *in* the ground.
      */
     test("what an Age places can be written") {
-        fun places(vararg said: Pair<String, Polarity>): Population {
+        fun places(vararg said: Pair<String, Polarity>): Skew {
             val constraints = said.map { (path, polarity) ->
-                Constraint(featureWord(path), Scope.Confined(setOf(Aspect.FEATURES)), polarity)
+                Constraint(featureWord(path), setOf(Aspect.FEATURES), polarity)
             }
             val resolved = Resolver.resolve(vocabulary, Sentence.of(constraints), SAMPLE_SEED)
-            return Population.of(resolved.composition.optionsFor(Aspect.FEATURES, 0).claimsOn(Features.PLACES))
+            return Skew.of(resolved.composition.optionsFor(Aspect.FEATURES, 0).claimsOn(Features.PLACES))
         }
 
         val plainly = places("ore_diamond" to Polarity.ASSERTED)
@@ -877,8 +876,8 @@ class ResolverCheck : FunSpec({
         fun spoken(joined: Boolean): Resolution {
             val group = if (joined) Group(1) else null
             val said = listOf(
-                Constraint(spawnWord("slime"), Scope.Confined(setOf(Aspect.SPAWNS)), Polarity.ONLY, group),
-                Constraint(spawnWord("cow"), Scope.Confined(setOf(Aspect.SPAWNS)), Polarity.ASSERTED, group),
+                Constraint(spawnWord("slime"), setOf(Aspect.SPAWNS), Polarity.ONLY, group),
+                Constraint(spawnWord("cow"), setOf(Aspect.SPAWNS), Polarity.ASSERTED, group),
             )
             return Resolver.resolve(vocabulary, Sentence.of(said), SAMPLE_SEED)
         }
@@ -894,14 +893,14 @@ class ResolverCheck : FunSpec({
             "'only slime, cows' was not charged for the cows: ${apart.instability.flaws}"
         }
         // And both survive regardless: the world honours what it can and reports what it cannot.
-        val kept = Population.of(apart.composition.optionsFor(Aspect.SPAWNS, 0).claimsOn(Spawns.LIVES))
+        val kept = Skew.of(apart.composition.optionsFor(Aspect.SPAWNS, 0).claimsOn(Spawns.LIVES))
         check(kept.wanted.map { it.value }.containsAll(listOf("minecraft:slime", "minecraft:cow"))) {
             "a charged contradiction dropped one of its halves: ${kept.wanted}"
         }
     }
 
     test("a fracture obeys its guards") {
-        fun aimedAtTheLand(word: Word) = Constraint(word, Scope.Confined(setOf(Aspect.TERRAIN)))
+        fun aimedAtTheLand(word: Word) = Constraint(word, setOf(Aspect.TERRAIN))
         val hollow = aimedAtTheLand(vocabulary.word("hollow") ?: error("the shipped vocabulary lost 'hollow'"))
         // Two terrain words with disjoint carriers, so the *presets* divide and the guard below has something
         // real to bite on.

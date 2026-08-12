@@ -30,7 +30,6 @@ import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.generation.TerminalKind
 import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.age.word.grammar.Readout
-import co.voik.agesandtheart.age.word.grammar.Scope
 import co.voik.agesandtheart.age.word.grammar.Sentence
 import co.voik.agesandtheart.book.FoundBook
 import co.voik.agesandtheart.content.AgeContent
@@ -923,10 +922,8 @@ object AgeCommand {
     private fun reportParse(report: Report, read: Sentence) {
         report.fact("readout", Readout.of(read)) { "  “${Readout.of(read)}”" }
         for (said in read.constraints) {
-            val aimed = when (val scope = said.scope) {
-                is Scope.Everywhere -> "everywhere"
-                is Scope.Confined -> scope.aspects.joinToString(" ") { it.key }
-            }
+            val aimed =
+                if (said.word.tier.narrows) said.aimedAt.joinToString(" ") { it.key } else "everywhere"
             val joined = said.group?.let { " (joined)" } ?: ""
             // Marked rather than hidden: the Age is built from the Art's own pages too, so a reader owed a
             // diagnosis has to see them — and they were never in the book, so they must not read as though
@@ -938,7 +935,7 @@ object AgeCommand {
             }
             val fields = mapOf(
                 "word" to said.word.name,
-                "reaches" to said.scope.reaches(emptyList()).map { it.key },
+                "reaches" to said.aimedAt.sortedBy { it.ordinal }.map { it.key },
                 "polarity" to said.polarity.name.lowercase(),
                 "density" to Rung.spelled(said.density),
                 "joined" to (said.group != null),

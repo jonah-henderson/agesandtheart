@@ -98,7 +98,11 @@ data class Claim(
 }
 
 /**
- * A populative parameter's claims, sorted into the three things a consumer has to do about them.
+ * **How a sentence skews a distribution** ([Holds.WEIGHTED_SET]) — what to introduce, what to strike out,
+ * and whether anything was singled out.
+ *
+ * Named for what it does rather than what it is about, because `Population` is what [Holds.POPULATION]
+ * means now: a cast of individuals, which is the other thing entirely.
  *
  * Reading the sentence is the only part that generalises: a structures claim names a set where the base is
  * resolved holders, and a biomes claim names a biome where the base is a weighted climate table — so each
@@ -107,7 +111,7 @@ data class Claim(
  * Removals are kept apart from additions so a consumer applies them **last**, which is what makes `except`
  * beat a mention of the same thing whatever order the pages were laid out in (§3.5).
  */
-data class Population(
+data class Skew(
     /** Whether anything was singled out, in which case whatever the preset would have supplied is dropped. */
     val exclusive: Boolean,
     /** What to introduce, each with the density it was asked for — said plainly or singled out, alike. */
@@ -115,7 +119,7 @@ data class Population(
     /** What to strike out. */
     val struck: List<String>,
 ) {
-    /** Whether the sentence said anything at all about this population. */
+    /** Whether the sentence said anything at all about this distribution. */
     val isSilent: Boolean get() = !exclusive && wanted.isEmpty() && struck.isEmpty()
 
     companion object {
@@ -126,11 +130,11 @@ data class Population(
          * fields, only slimes" leaves every other biome exactly as it was, which is what makes `only`
          * bearable inside a scope at all (§4.3.1).
          */
-        fun of(claims: List<Claim>, biome: Identifier? = null): Population {
+        fun of(claims: List<Claim>, biome: Identifier? = null): Skew {
             val here = claims.filter { it.appliesIn(biome) }
             fun claimsAt(polarity: Polarity) = here.filter { it.polarity == polarity }.distinctBy { it.value }
             val singledOut = claimsAt(Polarity.ONLY)
-            return Population(
+            return Skew(
                 exclusive = singledOut.isNotEmpty(),
                 wanted = (singledOut + claimsAt(Polarity.ASSERTED)).distinctBy { it.value },
                 struck = claimsAt(Polarity.EXCEPT).map { it.value },

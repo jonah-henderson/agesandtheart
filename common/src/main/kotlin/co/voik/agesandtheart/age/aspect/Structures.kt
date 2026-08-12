@@ -62,7 +62,7 @@ object Structures {
 
     fun structureSets(server: MinecraftServer, options: Options): List<Holder<VanillaStructureSet>> {
         val sets = server.registryAccess().lookupOrThrow(Registries.STRUCTURE_SET)
-        val asked = Population.of(options.claimsOn(BUILT))
+        val asked = Skew.of(options.claimsOn(BUILT))
         val seated = LinkedHashMap<Identifier, Holder<VanillaStructureSet>>()
         val startsFromNothing = asked.exclusive || asked.wanted.any { it.value == NOTHING }
         if (!startsFromNothing) {
@@ -109,7 +109,7 @@ object Structures {
 
     /** Whether an Age asked for nothing to be built at all — see [NOTHING]. */
     fun buildsNothing(options: Options): Boolean =
-        Population.of(options.claimsOn(BUILT)).wanted.any { it.value == NOTHING }
+        Skew.of(options.claimsOn(BUILT)).wanted.any { it.value == NOTHING }
 
     /**
      * What is built here — populative, with `only`/`except` to narrow and a rung to say how many

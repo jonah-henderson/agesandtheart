@@ -56,16 +56,16 @@ object Spawns {
     fun livingIn(options: Options): (Identifier?, WeightedList<MobSpawnSettings.SpawnerData>) ->
     WeightedList<MobSpawnSettings.SpawnerData> {
         val claims = options.claimsOn(LIVES)
-        if (Population.of(claims).isSilent && claims.none { it.confinedTo != null }) {
+        if (Skew.of(claims).isSilent && claims.none { it.confinedTo != null }) {
             return { _, offered -> offered }
         }
         // **Asked per biome, because a claim may be confined to one** (§4.3.1). Remembered for the same
         // reason the feature settings are: the answer is the same every time and the question is asked
         // once per spawn attempt.
-        val here = ConcurrentHashMap<Identifier, Population>()
+        val here = ConcurrentHashMap<Identifier, Skew>()
         return { biome, offered ->
-            val asked = biome?.let { here.computeIfAbsent(it) { where -> Population.of(claims, where) } }
-                ?: Population.of(claims)
+            val asked = biome?.let { here.computeIfAbsent(it) { where -> Skew.of(claims, where) } }
+                ?: Skew.of(claims)
             narrowed(offered, asked)
         }
     }
@@ -82,7 +82,7 @@ object Spawns {
      */
     private fun narrowed(
         offered: WeightedList<MobSpawnSettings.SpawnerData>,
-        asked: Population,
+        asked: Skew,
     ): WeightedList<MobSpawnSettings.SpawnerData> {
         if (asked.isSilent) return offered
         val struck = asked.struck.mapNotNull(Identifier::tryParse).toSet()

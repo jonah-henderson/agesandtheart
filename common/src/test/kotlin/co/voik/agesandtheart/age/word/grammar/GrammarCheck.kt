@@ -138,15 +138,13 @@ class GrammarCheck : FunSpec({
     test("aiming confines a word to what it was aimed at") {
         val underTheSea = read(listOf("age", "lava", "sea"))
         val confined = underTheSea.constraints.first { it.word.name == "lava" }
-        check(confined.scope.reaches(emptyList()) == listOf(Aspect.SEA)) {
-            "'sea lava' let lava reach ${confined.scope.reaches(emptyList())}"
-        }
+        check(confined.aimedAt == setOf(Aspect.SEA)) { "'sea lava' let lava reach ${confined.aimedAt}" }
 
         // And unaimed it keeps everything it declares, or aiming would be the only way to say anything.
         val unaimed = read(listOf("lava", "age"))
         val loose = unaimed.constraints.first { it.word.name == "lava" }
-        check(Aspect.TERRAIN in loose.scope.reaches(emptyList())) {
-            "an unaimed word lost an aspect it declares: ${loose.scope.reaches(emptyList())}"
+        check(Aspect.TERRAIN in loose.aimedAt) {
+            "an unaimed word lost an aspect it declares: ${loose.aimedAt}"
         }
     }
 
@@ -198,8 +196,8 @@ class GrammarCheck : FunSpec({
     test("an evocative word on the nucleus is global") {
         val read = read(listOf("beautiful", "age"))
         val beautiful = read.constraints.first { it.word.name == "beautiful" }
-        check(beautiful.scope is Scope.Everywhere) {
-            "'beautiful' was confined to ${beautiful.scope}, which demotes it to restrictive"
+        check(beautiful.aimedAt.isEmpty()) {
+            "'beautiful' was confined to ${beautiful.aimedAt}, which demotes it to restrictive"
         }
     }
 
@@ -212,8 +210,8 @@ class GrammarCheck : FunSpec({
     test("an evocative word laid in an aimed clause is moved off it") {
         val read = read(listOf("age", "beautiful", "floating", "landmass"))
         val beautiful = read.constraints.first { it.word.name == "beautiful" }
-        check(beautiful.scope is Scope.Everywhere) {
-            "'beautiful' should have been moved out of the landmass clause, but scopes ${beautiful.scope}"
+        check(beautiful.aimedAt.isEmpty()) {
+            "'beautiful' should have been moved out of the landmass clause, but aims at ${beautiful.aimedAt}"
         }
         val landmass = read.phrases.first { phrase -> phrase.subject?.word?.name == "landmass" }
         check(landmass.modifiers.none { it.word.name == "beautiful" }) {
@@ -256,8 +254,7 @@ class GrammarCheck : FunSpec({
     test("a narrowing word is confined") {
         val read = read(listOf("floating", "age"))
         val floating = read.constraints.single()
-        val scope = floating.scope as? Scope.Confined ?: error("'floating' was left global at ${floating.scope}")
-        check(scope.aspects == setOf(Aspect.TERRAIN)) { "'floating' reaches ${scope.aspects}" }
+        check(floating.aimedAt == setOf(Aspect.TERRAIN)) { "'floating' reaches ${floating.aimedAt}" }
     }
 
     /**
@@ -349,8 +346,8 @@ class GrammarCheck : FunSpec({
         val read = read(listOf("basalt", "age"))
         check(read.dropped.isEmpty()) { "'basalt' alone was unreadable: ${read.dropped}" }
         val basalt = read.constraints.singleOrNull() ?: error("'basalt' alone gave ${read.constraints}")
-        check(Aspect.TERRAIN in basalt.scope.reaches(emptyList())) {
-            "an unaimed material lost its own declared aspect: ${basalt.scope}"
+        check(Aspect.TERRAIN in basalt.aimedAt) {
+            "an unaimed material lost its own declared aspect: ${basalt.aimedAt}"
         }
     }
 

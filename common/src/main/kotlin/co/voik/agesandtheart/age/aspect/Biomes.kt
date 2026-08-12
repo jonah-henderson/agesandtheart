@@ -29,7 +29,7 @@ object Biomes {
      * word's emphasis would be applied twice and differ from what the recipe says.
      */
     fun preferencesIn(options: Options): List<BiomePreference> {
-        val asked = Population.of(options.claimsOn(GROWN))
+        val asked = Skew.of(options.claimsOn(GROWN))
         fun named(claims: List<Claim>) = claims.filter { it.value != Parameter.UNCHANGED }
             .mapNotNull { claim -> Identifier.tryParse(claim.value)?.let { it to claim.density } }
         return named(asked.wanted).map { (biome, weight) -> BiomePreference(biome, weight) } +
@@ -38,7 +38,7 @@ object Biomes {
     }
 
     /** Whether the sentence singled biomes out, so everything it did not name is struck from the table. */
-    fun keepsOnlyNamed(options: Options): Boolean = Population.of(options.claimsOn(GROWN)).exclusive
+    fun keepsOnlyNamed(options: Options): Boolean = Skew.of(options.claimsOn(GROWN)).exclusive
 
     /** Whether this Age's biomes are chosen to suit its shape — see [FOOTING]. */
     fun groundsBiomes(options: Options): Boolean = options.of(FOOTING) != FREE_FOOTING

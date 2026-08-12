@@ -5,7 +5,7 @@ import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Biomes
 import co.voik.agesandtheart.age.aspect.Claim
-import co.voik.agesandtheart.age.aspect.Population
+import co.voik.agesandtheart.age.aspect.Skew
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
@@ -30,7 +30,7 @@ class BespokeRecipeCheck : FunSpec({
         val claims = composed.composition.optionsFor(Aspect.BIOMES, 0)
             .allSpelled(Biomes.GROWN.name)
             .map(Claim::read)
-        val grown = Population.of(claims)
+        val grown = Skew.of(claims)
 
         check(grown.exclusive) {
             "the Spire's biome claim is not exclusive, so vanilla's whole table grows there: $claims"

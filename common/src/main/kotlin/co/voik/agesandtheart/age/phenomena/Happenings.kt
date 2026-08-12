@@ -12,7 +12,7 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Claim
 import co.voik.agesandtheart.age.aspect.Phenomena
 import co.voik.agesandtheart.age.aspect.Phenomenon
-import co.voik.agesandtheart.age.aspect.Population
+import co.voik.agesandtheart.age.aspect.Skew
 import co.voik.agesandtheart.age.aspect.Rung
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
@@ -82,7 +82,7 @@ object Happenings {
     /** What the Age says befalls it, as claims — empty for one that says nothing. */
     private fun claimsIn(composition: AgeComposition): List<Claim> {
         val options = composition.optionsFor(Aspect.PHENOMENA, 0)
-        return Population.of(options.allSpelled(Phenomena.HAPPENS.name).map(Claim::read)).wanted
+        return Skew.of(options.allSpelled(Phenomena.HAPPENS.name).map(Claim::read)).wanted
     }
 
     /**

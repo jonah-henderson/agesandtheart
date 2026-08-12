@@ -78,7 +78,7 @@ object Features {
         rock: List<BlockState>,
     ): (Holder<Biome>) -> BiomeGenerationSettings {
         val claims = options.claimsOn(PLACES)
-        val asked = Population.of(claims)
+        val asked = Skew.of(claims)
         val shape = Shape(
             size = options.steer(SIZE, salt),
             thickness = options.steer(THICKNESS, salt),
@@ -101,7 +101,7 @@ object Features {
             settled.computeIfAbsent(biome) {
                 // A claim confined to one biome (§4.3.1) is absent from every other, so each biome's
                 // settings are built from what applies *there*.
-                val here = Population.of(claims, it.unwrapKey().orElse(null)?.identifier())
+                val here = Skew.of(claims, it.unwrapKey().orElse(null)?.identifier())
                 settingsFrom(
                     it,
                     wanted(server, here),
@@ -136,7 +136,7 @@ object Features {
      * already occupies wherever the pack uses it, and [ORPHAN_STEP] only where nothing does: an ore asked
      * for by name lands among the ores, and a flower among the flowers, with no table of ours to maintain.
      */
-    private fun wanted(server: MinecraftServer, asked: Population): Map<Int, List<Holder<VanillaPlacedFeature>>> {
+    private fun wanted(server: MinecraftServer, asked: Skew): Map<Int, List<Holder<VanillaPlacedFeature>>> {
         val features = server.registryAccess().lookupOrThrow(Registries.PLACED_FEATURE)
         val biomes = server.registryAccess().lookupOrThrow(Registries.BIOME)
         val byStep = mutableMapOf<Int, MutableList<Holder<VanillaPlacedFeature>>>()

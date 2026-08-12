@@ -7,42 +7,6 @@ import co.voik.agesandtheart.age.word.Word
 import net.minecraft.resources.Identifier
 
 /**
- * Where a word has its say — what the grammar decided by *position* (§4.3.1). The asymmetry is the point:
- * a word that cannot narrow candidates must not narrow its own scope either, or aiming an evocative word
- * would quietly demote it to a restrictive one.
- */
-sealed interface Scope {
-    /** The aspects this word actually reaches, given [everywhere] as what "anywhere" means for it. */
-    fun reaches(everywhere: List<Aspect>): List<Aspect>
-
-    /**
-     * Everywhere it can find purchase — what an **evocative** word gets.
-     *
-     * It carries no aim, because there is nowhere for one to come from: an evocative word is written on the
-     * nucleus (§4.3.1). It used to hold the aspects it had been laid under and lean twice as hard on them,
-     * which moved probabilities and produced no signal a reader could check — the one thing the readout
-     * could never show, and so the reason placing them at all was given up.
-     */
-    data object Everywhere : Scope {
-        override fun reaches(everywhere: List<Aspect>): List<Aspect> = everywhere
-    }
-
-    /**
-     * Confined to these aspects — what a **restrictive or exact** word gets, which is what makes
-     * `flat land` a claim about the land and nothing else.
-     */
-    data class Confined(val aspects: Set<Aspect>) : Scope {
-        /**
-         * **Empty means nowhere.** No arrangement of pages produces it any more — a section admits only
-         * terms belonging to what it aims at, and a book laying one anywhere else does not parse at all, so
-         * a word aimed where it says nothing is [Repair]'s to re-home rather than a scope to represent.
-         * What keeps the case is [Sentence.of], where a check builds a constraint by hand.
-         */
-        override fun reaches(everywhere: List<Aspect>): List<Aspect> = aspects.sortedBy { it.ordinal }
-    }
-}
-
-/**
  * Words a writer joined with `and` — "keep both, and keep them apart" (§3.2).
  *
  * An identity rather than a list, so a [Constraint] stays a flat record. Ungrouped is `null`, which is
@@ -58,7 +22,16 @@ value class Group(val index: Int)
  */
 data class Constraint(
     val word: Word,
-    val scope: Scope,
+    /**
+     * The parts of the world this claim reaches — where the clause aimed, or the word's own where nobody
+     * aimed it (`the-world-model.md` §3, §5).
+     *
+     * **Read only for a word that narrows.** An evocative word is written on the Age and reaches wherever
+     * it finds purchase, so this is empty for one and nothing consults it. That asymmetry used to be a
+     * sealed `Scope` with two cases; the tier already decides which case applies, so the type said it
+     * twice.
+     */
+    val aimedAt: Set<Aspect> = emptySet(),
     val polarity: Polarity = Polarity.ASSERTED,
     /** Which `and`-group this joined, or null where it stood alone. */
     val group: Group? = null,
@@ -190,8 +163,7 @@ data class Sentence(
          */
         fun flat(words: List<Word>): Sentence = of(
             words.map { word ->
-                val scope = if (word.tier.narrows) Scope.Confined(word.aspects) else Scope.Everywhere
-                Constraint(word, scope)
+                Constraint(word, if (word.tier.narrows) word.aspects else emptySet())
             },
         )
     }

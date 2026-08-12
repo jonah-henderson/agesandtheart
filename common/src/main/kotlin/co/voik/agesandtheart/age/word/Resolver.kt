@@ -14,7 +14,6 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.AspectPreset
 import co.voik.agesandtheart.age.aspect.Holds
 import co.voik.agesandtheart.age.word.grammar.Constraint
-import co.voik.agesandtheart.age.word.grammar.Scope
 import co.voik.agesandtheart.age.word.grammar.Sentence
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import co.voik.agesandtheart.age.aspect.Polarity
@@ -207,7 +206,8 @@ object Resolver {
      * resolves against [aspectsSpokenTo], which is where a word finds purchase.
      */
     private fun reachOf(vocabulary: Vocabulary, constraint: Constraint): List<Aspect> =
-        constraint.scope.reaches(aspectsSpokenTo(vocabulary, constraint.word))
+        if (constraint.word.tier.narrows) constraint.aimedAt.sortedBy { it.ordinal }
+        else aspectsSpokenTo(vocabulary, constraint.word)
 
     /**
      * What fills one aspect: one preset, or several where the sentence left it no way to be one thing.
@@ -466,7 +466,7 @@ object Resolver {
      */
     fun aspectsSpokenTo(vocabulary: Vocabulary, word: Word): List<Aspect> {
         // **A narrowing word has its say in one part of the world at a time** — the section its page was
-        // laid in, which `Grammar` stamps onto the page and `Scope.Confined` carries from there. So this
+        // laid in, which `Grammar` stamps onto the page and `Constraint.aimedAt` carries from there. So this
         // answers what the word *costs* (§4.4): one aspect per use, however many it is at home in.
         if (word.tier.narrows) return listOfNotNull(word.aspects.minByOrNull { it.ordinal })
         if (word.aspects.isNotEmpty()) return word.aspects.sortedBy { it.ordinal }

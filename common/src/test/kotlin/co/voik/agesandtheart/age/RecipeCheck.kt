@@ -7,7 +7,7 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.AspectPreset
 import co.voik.agesandtheart.age.aspect.Carvers
 import co.voik.agesandtheart.age.aspect.Rung
-import co.voik.agesandtheart.age.aspect.Population
+import co.voik.agesandtheart.age.aspect.Skew
 import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Share
 import co.voik.agesandtheart.age.aspect.Structures
@@ -121,7 +121,7 @@ class RecipeCheck : FunSpec({
                 ),
             )
         val decoded = roundTrips(AgeRecipe(AgeWorld.Composed(written), SAMPLE_SEED), "a steered population")
-        val asked = Population.of(
+        val asked = Skew.of(
             decoded.composition?.optionsFor(Aspect.STRUCTURES, 0)?.claimsOn(Structures.BUILT).orEmpty(),
         )
         check(asked.exclusive) { "'only' did not survive the round trip: $asked" }

@@ -274,8 +274,8 @@ internal object ArtReading {
      * aimed it — "only a liquid volunteers for the sea unprompted" — so intersecting would keep every
      * solid out of a sea it was pointed straight at, and `ice sea` would stop being a sentence.
      */
-    private fun scopeFor(word: co.voik.agesandtheart.age.word.Word, aim: Set<Aspect>): Scope {
-        if (!word.tier.narrows) return Scope.Everywhere
-        return Scope.Confined(aim.ifEmpty { word.aspects })
+    private fun scopeFor(word: co.voik.agesandtheart.age.word.Word, aim: Set<Aspect>): Set<Aspect> {
+        if (!word.tier.narrows) return emptySet()
+        return aim.ifEmpty { word.aspects }
     }
 }
