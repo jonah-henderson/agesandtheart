@@ -166,8 +166,8 @@ class GrammarCheck : FunSpec({
             "a sky word aimed at the land was read as saying something about it: $land"
         }
         val adopted = read.phrases.first { phrase -> phrase.modifiers.any { it.word.name == "starless" } }
-        check(adopted.subject?.word?.aspects == setOf(Aspect.SKY)) {
-            "a sky word aimed at the land was re-homed to ${adopted.subject?.word}, which is not the sky"
+        check(adopted.subject?.word?.aspects == setOf(Aspect.STARS)) {
+            "a star word aimed at the land was re-homed to ${adopted.subject?.word}, which is not the stars"
         }
         check("starless" !in read.dropped) { "a word with a home of its own was dropped: ${read.dropped}" }
     }

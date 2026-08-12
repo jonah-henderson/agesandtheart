@@ -743,7 +743,7 @@ class ResolverCheck : FunSpec({
     test("a sky word lands where it says") {
         fun skyOf(sentence: String): SkySpec {
             val composition = resolve(vocabulary, sentence).composition
-            return composition.sky.specFor(composition.optionsFor(Aspect.SKY, 0), SAMPLE_SEED)
+            return composition.sky.specFor({ aspect -> composition.optionsFor(aspect, 0) }, SAMPLE_SEED)
         }
 
         val ordinary = skyOf("stormy")
@@ -849,12 +849,17 @@ class ResolverCheck : FunSpec({
         check(skin == listOf("minecraft:blackstone")) { "the skin came out $skin" }
     }
 
-    /** And a skin of air is how a writer says the ground wears nothing — `open`'s idiom, for the surface. */
+    /**
+     * And a skin of air is how a writer says the ground wears nothing — `open`'s idiom, for the surface.
+     *
+     * **Said by its full id**, because `air` is an aiming page now and a page beats a block: the aspect is
+     * the thing a writer overwhelmingly means by the word, and `minecraft:air` still reaches the block.
+     */
     test("a surface of air is no surface at all") {
-        val said = read(listOf("age", "air", "surface"))
+        val said = read(listOf("age", "minecraft:air", "surface"))
         val composition = Resolver.resolve(vocabulary, said, SAMPLE_SEED).composition
         val skin = composition.optionsFor(Aspect.SURFACE, 0).allOf(Surface.MATERIAL)
-        check(skin == listOf("minecraft:air")) { "'surface air' wrote $skin" }
+        check(skin == listOf("minecraft:air")) { "'surface minecraft:air' wrote $skin" }
     }
 
     /**

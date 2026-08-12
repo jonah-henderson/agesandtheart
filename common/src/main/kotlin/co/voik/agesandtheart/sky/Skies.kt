@@ -52,16 +52,18 @@ object Skies {
         val id = dimension.identifier()
         if (id !in saved.ages) return null
         val recipe = saved.recipe(id)
-        val air = recipe.composition?.optionsFor(Aspect.ATMOSPHERE, 0) ?: Options.NONE
+        // One reader over the whole composition, because the look is assembled from several aspects now —
+        // the water's clarity, the air's fog and tint, the vault's colour and cloud.
+        val asked = { aspect: Aspect -> recipe.composition?.optionsFor(aspect, 0) ?: Options.NONE }
         // The sky preset's own palette goes **underneath**: it is what the Age looks like before anyone said
         // anything, so a writer who repaints one colour of a Spire-skied Age keeps the rest. And under *that*
         // whatever the Age's own switches insist on — a lightless Age is dark to look at as well as to stand in.
-        val overhead = recipe.composition?.optionsFor(Aspect.SKY, 0) ?: Options.NONE
+        val overhead = asked(Aspect.SKY)
         val painted = AgeGeneration.presetLook(recipe).over(Atmosphere.unlitLook(overhead))
         return LevelLook(
             AgeGeneration.skySpec(recipe),
-            Atmosphere.lookIn(air, recipe.seed).over(painted),
-            Atmosphere.cornersOf(air).associateWith { Atmosphere.lookIn(air, recipe.seed, it).over(painted) },
+            Atmosphere.lookIn(asked, recipe.seed).over(painted),
+            Atmosphere.cornersOf(asked).associateWith { Atmosphere.lookIn(asked, recipe.seed, it).over(painted) },
         )
     }
 }

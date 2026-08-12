@@ -1,8 +1,5 @@
 {
   "tier": "restrictive",
-  "aspects": [
-    "atmosphere"
-  ],
   "query": {
     "gloomy": 1.0
   },

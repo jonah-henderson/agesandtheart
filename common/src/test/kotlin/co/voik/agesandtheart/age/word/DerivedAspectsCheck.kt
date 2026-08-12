@@ -70,10 +70,10 @@ class DerivedAspectsCheck : FunSpec({
      * each is the vocabulary being natural rather than an author being sloppy.
      */
     test("what a file declared survives the derivation") {
-        val declared = setOf(Aspect.SKY, Aspect.ATMOSPHERE)
+        val declared = setOf(Aspect.SKY, Aspect.WATERS)
         val widened = Word.reaching(Tier.EXACT, declared, mapOf("murk" to "0.1..0.4"), named = null, weighted = emptySet())
         check(declared.all { it in widened }) { "deriving dropped a declared aspect: $widened" }
-        check(Aspect.ATMOSPHERE in widened) { "deriving missed the aspect that owns the parameter: $widened" }
+        check(Aspect.WATERS in widened) { "deriving missed the aspect that owns the parameter: $widened" }
 
         val steersElsewhere =
             Word.reaching(Tier.EXACT, setOf(Aspect.SKY), mapOf("temperature" to "0.5..1.0"), null, emptySet())
@@ -114,7 +114,7 @@ class DerivedAspectsCheck : FunSpec({
      */
     test("a query asked of one aspect reaches it") {
         val clear = vocabulary.word("clear") ?: error("the corpus lost 'clear'")
-        check(clear.aspects == setOf(Aspect.SKY, Aspect.ATMOSPHERE)) {
+        check(clear.aspects == setOf(Aspect.SKY, Aspect.WATERS)) {
             "'clear' derived ${clear.aspects} from a keyed query and a murk dial"
         }
         check(clear.queryIn(Aspect.SKY).containsKey("bright")) { "the keyed query did not reach the sky" }

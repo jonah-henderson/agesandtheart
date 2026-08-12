@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.sky
 
+import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.ephemeris.sky.Appearance
 import co.voik.ephemeris.sky.CelestialBody
 import co.voik.ephemeris.sky.Orbit
@@ -200,16 +201,23 @@ class SkyCheck : FunSpec({
         // below holds it to being bespoke, so the exemption is not a hole to hide a regression in.
         for (sky in Sky.entries.filter { it != Sky.SPIRE }) {
             for (seed in SEEDS) {
-                val spec = sky.specFor(Options(), seed)
+                val spec = sky.specFor({ Options() }, seed)
                 check(spec.isOrdinary) {
                     "$sky's defaults do not draw an ordinary sky at seed $seed — the first option of SUNS, MOONS " +
                         "and STARS must be the vanilla one. Drawn: $spec"
                 }
             }
         }
-        for (sky in Sky.entries) {
-            check(sky.parameters.containsAll(listOf(Sky.SUNS, Sky.MOONS, Sky.STARS))) {
-                "$sky does not declare all four sky parameters, so a request would be silently dropped"
+        // The bodies are the sun's, the moon's and the stars' rather than any sky preset's, so it is the
+        // aspects that must hold them — a knob nothing declares is a request silently dropped.
+        val overhead = mapOf(
+            Aspect.SUN to Sky.SUNS,
+            Aspect.MOON to Sky.MOONS,
+            Aspect.STARS to Sky.STARS,
+        )
+        for ((aspect, parameter) in overhead) {
+            check(parameter in aspect.dials) {
+                "${aspect.key} does not hold ${parameter.name}, so a request for it would be dropped"
             }
         }
     }
@@ -219,14 +227,14 @@ class SkyCheck : FunSpec({
      * is asked of it — no seed and no option may move it, because it is written rather than resolved.
      */
     test("the Spire's sky is bespoke and unmoved by what is asked of it") {
-        val spec = Sky.SPIRE.specFor(Options(), seed = 0L)
+        val spec = Sky.SPIRE.specFor({ Options() }, seed = 0L)
         check(!spec.isOrdinary) { "The Spire's sky reads as ordinary, so vanilla would draw it instead" }
         check(spec.decks.size == 2) { "The Spire has ${spec.decks.size} cloud decks, and its sky is two" }
         check(spec.bodies.isEmpty()) { "The Spire has never had a sun or a moon, but drew ${spec.bodies.size}" }
         check(spec.stars.reveal != null) { "The Spire's stars must be hidden until you climb above its deck" }
 
         for (seed in SEEDS) {
-            check(Sky.SPIRE.specFor(Options(), seed) == spec) {
+            check(Sky.SPIRE.specFor({ Options() }, seed) == spec) {
                 "The Spire's sky moved at seed $seed, so something about it is being resolved after all"
             }
         }
@@ -237,7 +245,7 @@ class SkyCheck : FunSpec({
      * always out. Cheap to get backwards when retuning a deck.
      */
     test("a star reveal fades upward across a real band") {
-        val reveal = Sky.SPIRE.specFor(Options(), seed = 0L).stars.reveal ?: error("The Spire has no reveal")
+        val reveal = Sky.SPIRE.specFor({ Options() }, seed = 0L).stars.reveal ?: error("The Spire has no reveal")
         check(reveal.fullyShownAbove > reveal.hiddenBelow) {
             "The Spire's reveal band does not rise: ${reveal.hiddenBelow}..${reveal.fullyShownAbove}"
         }
@@ -250,10 +258,10 @@ class SkyCheck : FunSpec({
     /** The counterpart: anything unusual must NOT read as ordinary, or the whole feature would be invisible. */
     test("anything unusual does not read as ordinary") {
         val unusual = listOf(
-            "two suns" to Sky.PLAIN.specFor(Options(mapOf(Sky.SUNS.name to listOf("2"))), A_SEED),
-            "no moons" to Sky.PLAIN.specFor(Options(mapOf(Sky.MOONS.name to listOf("0"))), A_SEED),
-            "no stars" to Sky.PLAIN.specFor(Options(mapOf(Sky.STARS.name to listOf(EMPTIEST))), A_SEED),
-            "dense stars" to Sky.PLAIN.specFor(Options(mapOf(Sky.STARS.name to listOf(FULLEST))), A_SEED),
+            "two suns" to Sky.PLAIN.specFor({ Options(mapOf(Sky.SUNS.name to listOf("2"))) }, A_SEED),
+            "no moons" to Sky.PLAIN.specFor({ Options(mapOf(Sky.MOONS.name to listOf("0"))) }, A_SEED),
+            "no stars" to Sky.PLAIN.specFor({ Options(mapOf(Sky.STARS.name to listOf(EMPTIEST))) }, A_SEED),
+            "dense stars" to Sky.PLAIN.specFor({ Options(mapOf(Sky.STARS.name to listOf(FULLEST))) }, A_SEED),
         )
         for ((described, spec) in unusual) {
             check(!spec.isOrdinary) { "\"$described\" reads as an ordinary sky, so no Age would ever draw it" }

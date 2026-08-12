@@ -1292,7 +1292,12 @@ object AgeCommand {
         // An unknown option value is refused here, where `/age compose` keeps it: a composition is a save
         // and must keep saying what it said, but an instrument that silently ignores `orbits=wilde` and
         // shows the default is worse than one that refuses.
-        val skyParameters = Sky.PLAIN.parameters.associateBy { parameter -> parameter.name }
+        // **Everything overhead, not the vault alone.** The bodies are the sun's, the moon's and the
+        // stars' aspects now, and a preview line still spells them all `sky.…` because it is one
+        // instrument over one picture.
+        val skyParameters = listOf(Aspect.SKY, Aspect.SUN, Aspect.MOON, Aspect.STARS)
+            .flatMap { it.dials }
+            .associateBy { parameter -> parameter.name }
         val unreadable = preview.split(' ')
             .filter { token -> token.isNotBlank() && token.startsWith("$SKY_ASPECT.") }
             .mapNotNull { token ->
@@ -1314,7 +1319,7 @@ object AgeCommand {
             return null
         }
         // The Age's own seed, so a preview differs from the real sky only where the words differ.
-        return composition.sky.specFor(composition.optionsFor(Aspect.SKY, 0), seed)
+        return composition.sky.specFor({ aspect -> composition.optionsFor(aspect, 0) }, seed)
     }
 
     /**

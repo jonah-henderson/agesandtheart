@@ -60,7 +60,7 @@ class VocabularyOnServerCheck : FunSpec({
      *
      * **Spelled out rather than derived**, which is the point of it: these are the pages a player learns,
      * so an accidental rename should fail here loudly and be answered by moving the vocabulary with it.
-     * There is one per *domain* (design §4.3.1) and not one per aspect — `atmosphere` covers the climate
+     * One per aspect, synthesised from it (world model §3) — where there used to be a domain layer
      * as well as the air, and nothing is aimed at an aspect any more.
      */
     test("the aiming pages are in the corpus") {

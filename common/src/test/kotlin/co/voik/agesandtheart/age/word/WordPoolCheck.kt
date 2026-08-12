@@ -20,7 +20,7 @@ class WordPoolCheck : FunSpec({
     fun wordAt(tier: Tier, sets: Map<String, String>, pool: Map<String, String>, draws: Int) = Word(
         id = Identifier.fromNamespaceAndPath("agesandtheart", "scorching"),
         tier = tier,
-        aspects = setOf(Aspect.ATMOSPHERE),
+        aspects = setOf(Aspect.AIR),
         query = mapOf("dry" to 1.0),
         sets = sets,
         pool = pool,

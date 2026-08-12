@@ -430,7 +430,7 @@ object AgeGeneration {
      */
     fun skySpec(recipe: AgeRecipe): SkySpec = when (val world = recipe.world) {
         is AgeWorld.Composed -> world.composition.sky.specFor(
-            world.composition.optionsFor(Aspect.SKY, 0),
+            { aspect -> world.composition.optionsFor(aspect, 0) },
             recipe.seed,
         )
         is AgeWorld.Bespoke -> if (world.preset == AgePreset.SPIRE) SpireSky.SPEC else SkySpec.VANILLA

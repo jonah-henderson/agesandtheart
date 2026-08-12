@@ -24,7 +24,7 @@ enum class Aspect(val key: String) : StringRepresentable {
     /** Which biomes it grows. */
     BIOMES("biomes"),
 
-    /** What is overhead. */
+    /** The vault itself: what colour it is, what cloud hangs in it, how much light it lets down. */
     SKY("sky"),
 
     /** What may be built here. */
@@ -42,8 +42,30 @@ enum class Aspect(val key: String) : StringRepresentable {
     /** What lives in it. */
     SPAWNS("spawns"),
 
-    /** What the air does to you. */
-    ATMOSPHERE("atmosphere"),
+    /**
+     * What the air looks like and does — its fog, its tint, what hangs in it.
+     *
+     * **Its page shadows the block `minecraft:air`**, which is the one name collision the aspect list has.
+     * The page wins, deliberately: a writer saying `air` means the part of the world far more often than
+     * they mean the block, and the block is still reachable by its full id — every derived word answers to
+     * that as well as to its bare path.
+     */
+    AIR("air"),
+
+    /** What being *in* the water is like. Its own part of the world, where the sea is which fluid. */
+    WATERS("waters"),
+
+    /** What falls out of the air. */
+    WEATHER("weather"),
+
+    /** Each star this world goes round. */
+    SUN("sun"),
+
+    /** Each thing that circles it. */
+    MOON("moon"),
+
+    /** The field behind it all. */
+    STARS("stars"),
 
     /**
      * What *happens* here: storms, meteors, a rising sea (design §3.1, §5.2).
@@ -74,7 +96,10 @@ enum class Aspect(val key: String) : StringRepresentable {
         get() = when (this) {
             TERRAIN, CARVERS, SKY, SEA -> Holds.CATALOGUE
             BIOMES, STRUCTURES, FEATURES, SPAWNS, PHENOMENA -> Holds.WEIGHTED_SET
-            CLIMATE, SURFACE, ATMOSPHERE -> null
+            // Bodies are described into being rather than chosen, which is what a population is — and
+            // until minting is built they are still read as a count, so nothing draws on this yet.
+            SUN, MOON -> Holds.POPULATION
+            CLIMATE, SURFACE, AIR, WATERS, WEATHER, STARS -> null
         }
 
     /**
@@ -88,7 +113,7 @@ enum class Aspect(val key: String) : StringRepresentable {
     val open: Boolean
         get() = when (this) {
             SEA, BIOMES, STRUCTURES, FEATURES, SPAWNS, PHENOMENA -> true
-            TERRAIN, CARVERS, SKY, CLIMATE, SURFACE, ATMOSPHERE -> false
+            TERRAIN, CARVERS, SKY, CLIMATE, SURFACE, AIR, WATERS, WEATHER, SUN, MOON, STARS -> false
         }
 
     /**
@@ -107,7 +132,9 @@ enum class Aspect(val key: String) : StringRepresentable {
             // Nothing to choose between: a climate and a surface are where their dials were left, and a
             // biome or a structure set is weighed rather than chosen. See [dials] and [Holds.WEIGHTED_SET].
             PHENOMENA -> Phenomenon.entries
-            SEA, BIOMES, STRUCTURES, CLIMATE, SURFACE, FEATURES, SPAWNS, ATMOSPHERE -> emptyList()
+            SEA, BIOMES, STRUCTURES, CLIMATE, SURFACE, FEATURES, SPAWNS, AIR, WATERS, WEATHER,
+            SUN, MOON, STARS,
+            -> emptyList()
         }
 
     /**
@@ -120,7 +147,8 @@ enum class Aspect(val key: String) : StringRepresentable {
      */
     val dials: List<Parameter>
         get() = when (this) {
-            CLIMATE -> ClimateAxis.entries.map { it.parameter }
+            // Water boiling away is what a temperature does, not what the air is like.
+            CLIMATE -> ClimateAxis.entries.map { it.parameter } + Atmosphere.EVAPORATION
             // A biome's population is the aspect's answer; `footing` says how it is *worn*, not which.
             BIOMES -> listOf(Biomes.GROWN, Biomes.FOOTING)
             STRUCTURES -> listOf(Structures.BUILT)
@@ -128,24 +156,23 @@ enum class Aspect(val key: String) : StringRepresentable {
             FEATURES -> listOf(Features.PLACES, Features.SIZE, Features.THICKNESS, Features.HEIGHT)
             SPAWNS -> listOf(Spawns.LIVES)
             PHENOMENA -> listOf(Phenomena.HAPPENS)
-            ATMOSPHERE -> listOf(
-                Atmosphere.EVAPORATION,
-                Atmosphere.SKY,
-                Atmosphere.FOG,
-                Atmosphere.CLOUD,
-                Atmosphere.TINT,
-                Atmosphere.MOTES,
-                Atmosphere.HAZE,
-                Atmosphere.CEILING,
-                Atmosphere.MURK,
-                Atmosphere.RAINFALL,
-                Atmosphere.THUNDER,
-            )
+            AIR -> listOf(Atmosphere.FOG, Atmosphere.TINT, Atmosphere.MOTES, Atmosphere.HAZE)
+            WATERS -> listOf(Atmosphere.MURK)
+            WEATHER -> listOf(Atmosphere.RAINFALL, Atmosphere.THUNDER)
+            SUN -> listOf(Sky.SUNS, Sky.SUNSIZE, Sky.SUNCOLOUR)
+            MOON -> listOf(Sky.MOONS)
+            STARS -> listOf(Sky.STARS)
             // A preset aspect with dials: the two switches that pick the Age's dimension type. They sit
             // here rather than on `Atmosphere` because they are chosen when the Age is *made* and baked
             // into a pre-authored file, where every atmosphere dial is laid over a level that is already
             // open — which is also why these two alone cannot be confined to a biome.
-            SKY -> listOf(Sky.SKYLIGHT, Sky.ROOF)
+            SKY -> listOf(
+                Atmosphere.SKY,
+                Atmosphere.CLOUD,
+                Atmosphere.CEILING,
+                Sky.SKYLIGHT,
+                Sky.ROOF,
+            )
             TERRAIN, SEA, CARVERS -> emptyList()
         }
 
@@ -185,8 +212,9 @@ enum class Aspect(val key: String) : StringRepresentable {
         STRUCTURES -> StructureSet.named(key)
         FEATURES -> PlacedFeature.named(key)
         SPAWNS -> Spawn.named(key)
-        TERRAIN, CARVERS, SKY, CLIMATE, SURFACE, ATMOSPHERE, PHENOMENA ->
-            authored.firstOrNull { it.key == key }
+        TERRAIN, CARVERS, SKY, CLIMATE, SURFACE, PHENOMENA,
+        AIR, WATERS, WEATHER, SUN, MOON, STARS,
+        -> authored.firstOrNull { it.key == key }
     }
 
     /**
@@ -218,7 +246,9 @@ enum class Aspect(val key: String) : StringRepresentable {
     val madeOfSomething: Boolean
         get() = when (this) {
             TERRAIN, SEA, STRUCTURES, SURFACE -> true
-            CARVERS, BIOMES, SKY, CLIMATE, FEATURES, SPAWNS, ATMOSPHERE, PHENOMENA -> false
+            CARVERS, BIOMES, SKY, CLIMATE, FEATURES, SPAWNS, PHENOMENA,
+            AIR, WATERS, WEATHER, SUN, MOON, STARS,
+            -> false
         }
 
     /**
@@ -244,7 +274,9 @@ enum class Aspect(val key: String) : StringRepresentable {
             // Phenomena is **sited rather than divided** (§5.2): a process happens at a place and spreads
             // from it, the way §5.1's hostility is a gradient around a wound — which is not a territory
             // with a boundary, and so is not this flag however much it sounds like one.
-            SKY, STRUCTURES, BIOMES, SURFACE, FEATURES, SPAWNS, ATMOSPHERE, PHENOMENA -> false
+            SKY, STRUCTURES, BIOMES, SURFACE, FEATURES, SPAWNS, PHENOMENA,
+            AIR, WATERS, WEATHER, SUN, MOON, STARS,
+            -> false
         }
 
     /**
@@ -265,7 +297,12 @@ enum class Aspect(val key: String) : StringRepresentable {
             SURFACE -> 0.0
             FEATURES -> 0.0
             SPAWNS -> 0.0
-            ATMOSPHERE -> 0.0
+            AIR -> 0.0
+            WATERS -> 0.0
+            WEATHER -> 0.0
+            SUN -> 0.0
+            MOON -> 0.0
+            STARS -> 0.0
             PHENOMENA -> 0.0
             // Nothing to be companionable with: climate has one preset, so a second seat only ever arrives
             // from a fracture, which is charged by definition.

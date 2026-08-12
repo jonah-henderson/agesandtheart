@@ -1,8 +1,5 @@
 {
   "tier": "restrictive",
-  "aspects": [
-    "atmosphere"
-  ],
   "query": {
     "barren": 1.0,
     "dry": 0.7

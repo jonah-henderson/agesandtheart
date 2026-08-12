@@ -92,7 +92,7 @@ object Happenings {
      * other — a tempest in an Age already written as drenched is exactly as wet as the wetter of the two.
      */
     private fun wanted(composition: AgeComposition, happening: List<Claim>): AgeWeather.Conditions {
-        val air = composition.optionsFor(Aspect.ATMOSPHERE, 0)
+        val air = composition.optionsFor(Aspect.WEATHER, 0)
         fun asked(parameter: Parameter) =
             air.steer(parameter, WEATHER_SALT)?.let(Span.NATURAL::fractionOf) ?: AgeWeather.ORDINARY_SHARE
         val dialled = AgeWeather.Conditions(asked(Atmosphere.RAINFALL), asked(Atmosphere.THUNDER))

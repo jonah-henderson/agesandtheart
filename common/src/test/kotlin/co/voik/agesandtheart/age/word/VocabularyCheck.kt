@@ -81,7 +81,11 @@ class VocabularyCheck : FunSpec({
                 // aspect holds, not whether it happens to also carry a query.
                 // Asked of the vocabulary rather than of the candidates, because an aspect with no
                 // candidates can still hold knobs — a climate is nothing but its dials.
-                val turnsAKnobHere = word.sets.keys.any { vocabulary.turnsAKnob(aspect, it) }
+                // `canSet` rather than `sets`: whether a word steers an aspect is a question about what it
+                // *means*, and a draw must not move it. Asked of the core alone, `scorching` — whose `murk`
+                // is in its pool — looked like a word that only narrows the water, and the water has
+                // nothing to narrow.
+                val turnsAKnobHere = word.canSet.keys.any { vocabulary.turnsAKnob(aspect, it) }
                 if (!word.constrainsPresetsIn(aspect) || turnsAKnobHere) {
                     // **Only the knobs this aspect holds.** One word carries a single `sets` map across
                     // every aspect it speaks to, and a derived block word now sets the rock's material and
@@ -91,7 +95,7 @@ class VocabularyCheck : FunSpec({
                     fun knobsHere(parameter: String) = (
                         vocabulary.candidatesFor(aspect).flatMap { it.parameters } + aspect.dials
                         ).filter { it.name == parameter }
-                    for (parameter in word.sets.keys.filter { knobsHere(it).isNotEmpty() }) {
+                    for (parameter in word.canSet.keys.filter { knobsHere(it).isNotEmpty() }) {
                         val offered = knobsHere(parameter)
                         // Declaring a knob and turning it are different things (`AspectPreset.honours`), and only
                         // the second makes a word mean anything. Continentalness and erosion shipped as climate
@@ -105,9 +109,15 @@ class VocabularyCheck : FunSpec({
                         // **This parameter's own value**, not every value the word carries: a word may set
                         // two knobs of one aspect — `sunless` bounds `daylight` with a span and picks
                         // `sunburn` by name — and asking each knob about the other's value condemns both.
-                        val option = word.sets.getValue(parameter)
-                        check(offered.any { it.accepts(option) }) {
-                            "'${word.name}' sets ${aspect.key}.$parameter to '$option', which it does not take"
+                        val option = word.canSet.getValue(parameter)
+                        // A value may offer **alternatives** the Age draws one of — `red|orange|yellow` —
+                        // and every one of them has to be a value the knob takes. Asked of the whole
+                        // string, the bar and all, an offer of three good colours read as one bad one.
+                        val alternatives = option.split('|').map(String::trim).filter(String::isNotEmpty)
+                        val unacceptable = alternatives.filterNot { one -> offered.any { it.accepts(one) } }
+                        check(unacceptable.isEmpty()) {
+                            "'${word.name}' sets ${aspect.key}.$parameter to " +
+                                "'${unacceptable.joinToString("|")}', which it does not take"
                         }
                     }
                     continue

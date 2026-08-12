@@ -81,14 +81,14 @@ class RepairCheck : FunSpec({
     test("a re-homed page lands where it means something, and says so") {
         val read = read(misaimed)
         val adopted = read.phrases.first { phrase -> phrase.modifiers.any { it.word.name == "starless" } }
-        check(adopted.subject?.word?.aspects == setOf(Aspect.SKY)) {
+        check(adopted.subject?.word?.aspects == setOf(Aspect.STARS)) {
             "'starless' was re-homed under ${adopted.subject?.word}"
         }
         val said = Readout.of(read)
         // Named for the page a writer lays, which is what the reading has to show. **Before** it,
         // modifiers leading their subject now (§4.3.1) — "under starless sky".
-        val underTheSky = said.substringBefore("sky", missingDelimiterValue = "")
-        check("starless" in underTheSky) { "the readout hid where the page landed: '$said'" }
+        val underTheStars = said.substringBefore("stars", missingDelimiterValue = "")
+        check("starless" in underTheStars) { "the readout hid where the page landed: '$said'" }
     }
 
     /**
@@ -106,7 +106,7 @@ class RepairCheck : FunSpec({
         val charged = Resolver.resolve(vocabulary, read, SAMPLE_SEED).instability
         val rehomings = charged.flaws.filter { it.register == Register.REHOMED }
         check(rehomings.size == 1) { "one page moved and ${rehomings.size} charges were levied: $charged" }
-        check(rehomings.single().aspect == Aspect.SKY) { "the charge did not say where: ${rehomings.single()}" }
+        check(rehomings.single().aspect == Aspect.STARS) { "the charge did not say where: ${rehomings.single()}" }
     }
 
     /**

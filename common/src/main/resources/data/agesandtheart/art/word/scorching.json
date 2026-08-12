@@ -2,7 +2,6 @@
   "_comment": "Broad on purpose, and across two aspects. The core is what makes an Age scorched at all -- burning sun, and heat; the pool is what makes this scorched Age different from the last. `molten` in the query is what pulls its sky and its rock toward fire without any of it being named here. Its motes are ash and only ash: embers and flames belong to the inferno phenomenon, because they are the warning that an Age is burning *now* and a warning that also appears elsewhere is not one. Ash is the past tense, and is what a scorched Age has.",
   "tier": "restrictive",
   "aspects": [
-    "atmosphere",
     "climate"
   ],
   "query": {

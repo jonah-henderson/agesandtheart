@@ -43,10 +43,11 @@ enum class Sky(override val key: String) : AspectPreset {
     override val askableInASentence: Boolean get() = this != SPIRE
 
     /**
-     * Every sky takes all four, including [PLAIN]: a writer who says "two suns" under a plain sky must get
-     * two suns. [PLAIN] means ordinary *air*, not nothing unusual overhead.
+     * **None.** The bodies overhead are the sun's, the moon's and the stars' — their own aspects — and the
+     * vault's own dials belong to the aspect rather than to any one of its presets. A preset declaring them
+     * too made every one of those names owned twice, which `DerivedAspectsCheck` refuses outright.
      */
-    override val parameters: List<Parameter> get() = listOf(SUNS, MOONS, STARS, SUNSIZE, SUNCOLOUR)
+    override val parameters: List<Parameter> get() = emptyList()
 
     /**
      * The look this preset paints under whatever the sentence asked for, or [Look.NOTHING] where it has
@@ -64,20 +65,24 @@ enum class Sky(override val key: String) : AspectPreset {
      * [SPIRE] ignores both, and that is the whole of what makes it bespoke: its sky is written down rather
      * than resolved, so no seed and no option moves it.
      */
-    fun specFor(options: Options, seed: Long): SkySpec =
-        if (this == SPIRE) {
-            SpireSky.SPEC
-        } else {
-            SkySpec.drawn(
-                suns = options.countOf(SUNS),
-                moons = options.countOf(MOONS),
-                starCount = starsAt(options.steer(STARS, seed)),
-                spread = ORDINARY_SPREAD.toFloat(),
-                sunSize = sunSizeAt(options.steer(SUNSIZE, seed)),
-                sunColour = Colour.named(options.of(SUNCOLOUR))?.saturated(SUN_IS_LOOKED_AT),
-                seed = seed,
-            )
-        }
+    fun specFor(asked: (Aspect) -> Options, seed: Long): SkySpec {
+        if (this == SPIRE) return SpireSky.SPEC
+        // **Assembled from three aspects**, which is what the split made explicit: the suns, the moons and
+        // the star field are each their own part of the world, and a spec is where they meet. One `Options`
+        // bag reached all of them while they were one aspect, and a reader that quietly answered the wrong
+        // one would have shown up as a sky missing its stars.
+        val sun = asked(Aspect.SUN)
+        val stars = asked(Aspect.STARS)
+        return SkySpec.drawn(
+            suns = sun.countOf(SUNS),
+            moons = asked(Aspect.MOON).countOf(MOONS),
+            starCount = starsAt(stars.steer(STARS, seed)),
+            spread = ORDINARY_SPREAD.toFloat(),
+            sunSize = sunSizeAt(sun.steer(SUNSIZE, seed)),
+            sunColour = Colour.named(sun.of(SUNCOLOUR))?.saturated(SUN_IS_LOOKED_AT),
+            seed = seed,
+        )
+    }
 
     override fun getSerializedName(): String = key
 

@@ -1,8 +1,5 @@
 {
   "tier": "exact",
-  "aspects": [
-    "atmosphere"
-  ],
   "sets": {
     "murk": "0.55..1.0"
   }

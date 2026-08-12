@@ -6,7 +6,7 @@ import io.kotest.core.spec.style.FunSpec
 /**
  * Writing an Age that asks for structures at anything but the ordinary rate (design §3.1).
  *
- * **This exists because of one book.** `foreboding age minecraft:packed_ice landmass frozen atmosphere`
+ * **This exists because of one book.** `foreboding age minecraft:packed_ice landmass frozen climate`
  * turned up in a stronghold library, and linking to it killed the server with a `StackOverflowError` —
  * rescaling a structure set's spacing round-trips the placement through its codec, and a placement can
  * carry an **exclusion zone**, which holds a `Holder<StructureSet>`, which holds a placement. Vanilla's sets
@@ -25,7 +25,7 @@ class StructureDensityCheck : FunSpec({
 
     /** The book itself, verbatim, so the thing that broke is the thing that is guarded. */
     test("the book that crashed the server writes an Age") {
-        val said = server.run("age write bensoom 1 foreboding age minecraft:packed_ice landmass frozen atmosphere")
+        val said = server.run("age write bensoom 1 foreboding age minecraft:packed_ice landmass frozen climate")
         check(said.contains("Created Age")) { "the Age was not written: $said" }
     }
 
