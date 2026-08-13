@@ -195,7 +195,7 @@ object Resolver {
 
     /**
      * [composition] with every feature the sentence **minted** added to what the Age places — `ink springs`,
-     * `gold block veins` (world model §8.1.2).
+     * `gold block veins` (world model §2).
      *
      * **Read off the clauses rather than off the flat claims**, and that is the one place in the resolver
      * that is: minting is a fact about a clause, being a pattern and a substance said together, and the

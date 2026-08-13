@@ -287,7 +287,7 @@ internal object ArtReading {
             if (aim.isEmpty()) return !sited || declared.isEmpty() || declared.any { it.confinable }
             // A material stands where the part of the world is made of something — and also where a
             // **minting** page is, since `ink springs` is a substance qualifying a pattern rather than a
-            // claim of its own (world model §8.1.2).
+            // claim of its own (world model §2).
             if (page.kind == PageClass.MATERIAL) {
                 return aim.any { it.madeOfSomething } || closing?.word?.mints != null
             }

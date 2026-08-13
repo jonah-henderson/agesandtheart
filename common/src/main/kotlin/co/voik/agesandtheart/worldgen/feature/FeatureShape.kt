@@ -55,7 +55,7 @@ object FeatureShape {
 
     /**
      * [pattern] made of [substance] instead of whatever it was made of — how a writer asks for a thing the
-     * game does not have (world model §8.1.2).
+     * game does not have (world model §2).
      *
      * The shape, the placement, the rarity and the step are all the pattern's; only the substance changes.
      * A spring keeps the rock it wants around it and the holes it punches, and simply runs with something

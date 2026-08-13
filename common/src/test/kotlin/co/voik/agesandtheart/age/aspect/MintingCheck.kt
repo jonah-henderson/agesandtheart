@@ -17,7 +17,7 @@ import net.minecraft.world.level.levelgen.feature.configurations.SpringConfigura
 import net.minecraft.world.level.levelgen.placement.PlacedFeature
 
 /**
- * **A pattern made of something it is never made of** (world model §8.1.2) — `ink springs`, `gold block
+ * **A pattern made of something it is never made of** (world model §2) — `ink springs`, `gold block
  * veins`. Two halves that meet in a claim, and both are checked here because either alone is silent: the
  * sentence has to reach a claim carrying a substance, and the claim has to reach a feature that is made of
  * it.

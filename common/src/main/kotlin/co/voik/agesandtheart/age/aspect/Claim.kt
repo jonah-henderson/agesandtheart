@@ -42,7 +42,7 @@ data class Claim(
     val confinedTo: Identifier? = null,
     /**
      * What a **minted** member is made of, or null for the overwhelming majority that name something the
-     * game already has (world model §8.1.2).
+     * game already has (world model §2).
      *
      * `minecraft:spring_water[of=agesandtheart:ink]` is a spring shaped exactly like vanilla's and running
      * with ink: the value names the pattern and this names the substance. A writer says `ink springs`, and

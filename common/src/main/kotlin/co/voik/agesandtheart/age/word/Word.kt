@@ -175,7 +175,7 @@ data class Word(
     val template: String? = null,
     /**
      * The **pattern this word mints from** — a placed feature the game already has, whose shape a new one
-     * borrows (world model §8.1.2). Null for every word that is not one of the few.
+     * borrows (world model §2). Null for every word that is not one of the few.
      *
      * `springs` mints from vanilla's water spring and `veins` from an ore, so `ink springs` and `gold block
      * veins` are that shape carrying a substance the game never puts there. The material comes from the
