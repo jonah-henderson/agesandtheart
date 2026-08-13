@@ -21,8 +21,14 @@ sealed interface ClimateDepth {
     /** Which case this is — drives codec dispatch, as with `TerrainField`. */
     val kind: DepthKind
 
-    /** Vanilla climate units, measured downward from the surface. */
-    fun at(blockX: Int, blockY: Int, blockZ: Int): Float
+    /**
+     * Vanilla climate units, measured downward from the surface.
+     *
+     * [sampled] is what vanilla's own depth function says here, which only [AsSampled] wants — the others
+     * answer from their own rock and ignore it. Threaded as an argument rather than captured because the
+     * value is per position and the depth outlives any one of them.
+     */
+    fun at(blockX: Int, blockY: Int, blockZ: Int, sampled: Float): Float
 
     companion object {
         /**
@@ -45,7 +51,20 @@ sealed interface ClimateDepth {
  */
 data object AtSurface : ClimateDepth {
     override val kind = DepthKind.AT_SURFACE
-    override fun at(blockX: Int, blockY: Int, blockZ: Int): Float = 0.0f
+    override fun at(blockX: Int, blockY: Int, blockZ: Int, sampled: Float): Float = 0.0f
+}
+
+/**
+ * **Vanilla's own answer, passed straight through** — for an Age whose rock is vanilla's.
+ *
+ * The depth function in the noise router that shaped the rock is the one the sampler reads, so the two
+ * agree by construction and there is nothing for us to measure. [AtSurface] would be the wrong default
+ * there rather than merely a coarse one: it answers zero everywhere, and an Age would grow no cave biome at
+ * all — no lush caves, no dripstone, no deep dark.
+ */
+data object AsSampled : ClimateDepth {
+    override val kind = DepthKind.AS_SAMPLED
+    override fun at(blockX: Int, blockY: Int, blockZ: Int, sampled: Float): Float = sampled
 }
 
 /**
@@ -74,7 +93,7 @@ data class BelowTerrain(
      */
     private val columnCache = ThreadLocal.withInitial { ColumnCache() }
 
-    override fun at(blockX: Int, blockY: Int, blockZ: Int): Float {
+    override fun at(blockX: Int, blockY: Int, blockZ: Int, sampled: Float): Float {
         val spans = columnCache.get().spansAt(blockX, blockZ, terrain)
         // No rock overhead means open sky, which is the surface by any reading.
         val roofY = spans.roofOver(blockY) ?: return 0.0f
@@ -130,7 +149,8 @@ data class BelowTerrain(
 /** The closed set of depth cases. Codecs are built lazily so enum init can't outrun the objects. */
 enum class DepthKind(private val makeCodec: () -> MapCodec<out ClimateDepth>) : StringRepresentable {
     AT_SURFACE({ MapCodec.unit(AtSurface) }),
-    BELOW_TERRAIN({ BelowTerrain.CODEC });
+    BELOW_TERRAIN({ BelowTerrain.CODEC }),
+    AS_SAMPLED({ MapCodec.unit(AsSampled) });
 
     fun codec(): MapCodec<out ClimateDepth> = makeCodec()
 

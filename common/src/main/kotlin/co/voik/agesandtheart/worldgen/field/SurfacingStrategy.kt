@@ -128,6 +128,18 @@ object SurfacingStrategy {
         deepslateFloor(),
     )
 
+    /**
+     * The same skin over **vanilla's** rock, which knows where its own surface is.
+     *
+     * [NearTheSurface] reads a `TerrainField`, and an Age wearing vanilla's terrain has none — so the face
+     * is vanilla's `ON_FLOOR` instead, which is the condition its own rules are written against.
+     */
+    fun laidOnVanilla(blocks: List<BlockState>): SurfaceRules.RuleSource = layers(
+        worldFloor(),
+        SurfaceRules.ifTrue(SurfaceRules.ON_FLOOR, SurfaceRules.ifTrue(withinDepth(SKIN_DEPTH), mingled(blocks))),
+        deepslateFloor(),
+    )
+
     /** How far a named skin reaches below the face — thin, since below it is what the Age is made of. */
     private const val SKIN_DEPTH = 2
 

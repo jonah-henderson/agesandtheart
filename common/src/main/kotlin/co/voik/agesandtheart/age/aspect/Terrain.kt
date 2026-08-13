@@ -183,7 +183,29 @@ enum class Terrain(
 
     /** A walkable sampler of the shape vocabulary and its combinators — a reference, not a world. */
     SHAPES("shapes", waterline = null, build = { _, salt -> ShapesField.world(salt) }),
+
+    /**
+     * **The rock this Age's template brings** — vanilla's own nether, end or overworld — rather than a
+     * shape of ours.
+     *
+     * *Which* vanilla is the recipe's to say ([co.voik.agesandtheart.age.AgeRecipe.template]), so this
+     * names the fact and nothing more. Naming any other landform replaces it, which is how a writer leaves
+     * a template's rock behind: the two are either/or, vanilla's router answering for the rock, the
+     * aquifers and the preliminary surface together where the field tree answers for all three.
+     *
+     * **It builds no field, and asking it for one is a mistake rather than a shape.** `AgeGeneration`
+     * branches before it would, because an Age wearing this hands the whole terrain half to `super`.
+     */
+    VANILLA("vanilla", waterline = null, build = { _, _ ->
+        error("the template's own rock has no field of ours; AgeGeneration should have taken the vanilla path")
+    }),
     ;
+
+    /**
+     * [VANILLA] is not askable, and being so is the point of it: it is what an Age wears when the writer
+     * named no landform at all, never something they can reach for.
+     */
+    override val askableInASentence: Boolean get() = this != VANILLA
 
     override val aspect = Aspect.TERRAIN
 
@@ -240,7 +262,8 @@ enum class Terrain(
         HILLS, ERODED, PILLARS -> ORDINARY_SEA_LEVEL - DEEP_ENOUGH_TO_MISS_A_SEABED
         // A plain with no sea, so the only thing overhead is the plain itself.
         PYRAMIDS -> ORDINARY_SEA_LEVEL - ROOM_FOR_A_ROOF
-        SPIRE_ISLANDS, CAVERNS, ALPS, SHAPES, INVERSE_CAVES -> null
+        // VANILLA has no shape of ours to hollow under, its rock being vanilla's to describe.
+        SPIRE_ISLANDS, CAVERNS, ALPS, SHAPES, INVERSE_CAVES, VANILLA -> null
     }
 
     override fun getSerializedName(): String = key

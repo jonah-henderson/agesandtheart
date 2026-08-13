@@ -56,10 +56,13 @@ private fun queryChunk(depth: BelowTerrain, chunk: Int) {
         for (quartX in 0..<QUART_SPAN) {
             for (quartY in 0..<QUART_SPAN) {
                 for (quartZ in 0..<QUART_SPAN) {
+                    // `BelowTerrain` measures against its own rock and ignores what vanilla sampled, so
+                    // the value handed in here is immaterial to what this check is timing.
                     depth.at(
                         QuartPos.toBlock(originQuartX + quartX),
                         QuartPos.toBlock(section * QUART_SPAN + quartY),
                         QuartPos.toBlock(quartZ),
+                        UNSAMPLED,
                     )
                 }
             }
@@ -96,3 +99,6 @@ private const val TIMED_ROUNDS = 200
 // Generous: the queries do real work of their own (roofOver, the arithmetic, the cache lookup itself),
 // so parity is not expected — anything near the uncached redundancy is what this is looking for.
 private const val ACCEPTABLE_RATIO = 8.0
+
+/** What vanilla's own depth would have said, which `BelowTerrain` never reads. */
+private const val UNSAMPLED = 0.0f

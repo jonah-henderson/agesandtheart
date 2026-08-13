@@ -4,6 +4,7 @@ import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.AgePreset
 import co.voik.agesandtheart.age.AgeRecipe
+import co.voik.agesandtheart.age.AgeTemplate
 import co.voik.agesandtheart.age.AgeWorld
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Holds
@@ -243,15 +244,20 @@ class VocabularyCheck : FunSpec({
      * one. Neither askable nor pinned is dead content that can still be drawn.
      */
     test("every unaskable preset is pinned by a recipe") {
+        // Two ways to reach one deliberately: a pinned recipe, or a **template**, which is how
+        // `landmass=vanilla` arrives — an Age whose writer named no landform gets the rock its world
+        // came with.
         val pinned = AgePreset.entries
             .mapNotNull { preset -> (AgeRecipe.worldFor(preset) as? AgeWorld.Composed)?.composition }
+            .plus(AgeTemplate.entries.map { it.world() })
             .flatMap { composition -> composition.presets }
             .toSet()
         for (aspect in Aspect.entries) {
             for (preset in vocabulary.candidatesFor(aspect).filterNot { it.askableInASentence }) {
                 check(preset in pinned) {
                     "${aspect.key}=${preset.key} says it is unaskable, but no pinned recipe names it either — so " +
-                        "nothing can reach it deliberately. Either pin it in `AgeRecipe.worldFor` or give it a word."
+                        "nothing can reach it deliberately. Pin it in `AgeRecipe.worldFor`, put it in a template, " +
+                        "or give it a word."
                 }
             }
         }

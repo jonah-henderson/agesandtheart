@@ -18,6 +18,7 @@ import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.Terrain
+import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
 import co.voik.ephemeris.sky.Orbit
 import co.voik.ephemeris.sky.SkySpec
 import co.voik.agesandtheart.age.word.grammar.Constraint
@@ -301,6 +302,33 @@ class ResolverCheck : FunSpec({
     }
 
     /**
+     * **A template brings vanilla's rock, and naming a landform takes it away** — the either/or the whole
+     * hybrid rests on (`the-art-implementation-plan.md`, "Vanilla's own terrain under an Age").
+     *
+     * `landmass=vanilla` says the rock is not ours; the recipe's template says which vanilla. A writer who
+     * names any shape of ours replaces it and the field tree answers instead — aquifers and preliminary
+     * surface included, because vanilla's router answers for all three together or none of them.
+     */
+    test("a template brings vanilla's rock, and a landform takes it away") {
+        val nether = Resolver.resolve(vocabulary, read(listOf("infernal", "age")), SAMPLE_SEED)
+        check(nether.composition.terrains == listOf(Terrain.VANILLA)) {
+            "an unshaped infernal Age came out on ${nether.composition.terrains}"
+        }
+        check(nether.template.rock == NoiseGeneratorSettings.NETHER) {
+            "the infernal template points at ${nether.template.rock}"
+        }
+
+        val shaped = Resolver.resolve(vocabulary, read(listOf("infernal", "age", "hills", "landmass")), SAMPLE_SEED)
+        check(shaped.composition.terrains == listOf(Terrain.HILLS)) {
+            "naming a landform did not take the template's rock away: ${shaped.composition.terrains}"
+        }
+        // And what the writer said about everything else is still laid over the template underneath.
+        check(shaped.composition.seas == listOf(Sea.LAVA)) {
+            "shaping the land took the nether's sea with it: ${shaped.composition.seas}"
+        }
+    }
+
+    /**
      * **The sentence the whole pass was built for** (world model §2): *a large, red, east-rising sun. A
      * small, blue, southwest-rising sun.* Two clauses, two suns, each wearing only what its own clause said.
      *
@@ -459,9 +487,13 @@ class ResolverCheck : FunSpec({
      * which aspect that is depends on what the sentence happened to be about.
      */
     test("nothing unaskable is ever drawn") {
+        // **What a template supplies is not a draw.** `landmass=vanilla` arrives in every Age whose writer
+        // named no landform, which is the template answering rather than the resolver reaching for
+        // something no page can name. What this forbids is the *drawing* of one.
+        val fromATemplate = AgeTemplate.entries.flatMap { it.world().presets }
         val unaskable = Aspect.entries
             .flatMap { aspect -> vocabulary.candidatesFor(aspect) }
-            .filterNot { it.askableInASentence }
+            .filterNot { it.askableInASentence || it in fromATemplate }
         check(unaskable.isNotEmpty()) { "nothing opts out of being askable, so this check asserts nothing" }
         for (sentence in SENTENCES) {
             for (seed in 1L..SEEDS_SAMPLED) {

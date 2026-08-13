@@ -190,7 +190,31 @@ class AgeChunkGenerator(
      * generator and the fast-forward read the same function rather than one of them inferring.
      */
     writtenAt: Long = 0L,
-) : NoiseBasedChunkGenerator(biomes, Holder.direct(settingsFor(seaFill, surfaceRule, climate, fill, window, field))) {
+    /**
+     * **Vanilla's own terrain, whole** — the nether's, the end's, the overworld's — or null for an Age
+     * whose shape is the field tree's (`the-world-model.md` §4).
+     *
+     * The two are **either/or by construction**: vanilla's router answers for the rock, the aquifers and
+     * the preliminary surface together, and [routerFor] zeroes exactly those because our shape is the field
+     * tree's. An Age takes one set of answers or the other, and naming a landform is how a writer leaves a
+     * template's rock behind.
+     *
+     * What is *not* either/or is everything after the rock. Structures, features, spawns, biomes, the sky
+     * and the air are ours in both modes, which is the whole of why this class **is** a
+     * `NoiseBasedChunkGenerator` rather than sitting beside one: the terrain half is the base class's
+     * abstract methods, and everything else is what it leaves concrete for us to override.
+     *
+     * The settings arrive built, because which of an Age's claims override vanilla's block, its fluid and
+     * its surface rule is the composition's business rather than the generator's.
+     */
+    private val vanillaRock: Holder<NoiseGeneratorSettings>? = null,
+) : NoiseBasedChunkGenerator(
+    biomes,
+    vanillaRock ?: Holder.direct(settingsFor(seaFill, surfaceRule, climate, fill, window, field)),
+) {
+
+    /** Whether the rock is vanilla's to describe, in which case the terrain half defers to the base class. */
+    private val rockIsVanillas: Boolean get() = vanillaRock != null
 
     /**
      * What this Age's instability bought — **`var`, and volatile, because it can be rewritten under a
@@ -286,6 +310,7 @@ class AgeChunkGenerator(
         structureManager: StructureManager,
         chunk: ChunkAccess,
     ): CompletableFuture<ChunkAccess> {
+        if (rockIsVanillas) return super.fillFromNoise(blender, randomState, structureManager, chunk)
         val chunkMinX = chunk.pos.minBlockX
         val chunkMinZ = chunk.pos.minBlockZ
         val oceanFloor = chunk.getOrCreateHeightmapUnprimed(Heightmap.Types.OCEAN_FLOOR_WG)
@@ -425,6 +450,7 @@ class AgeChunkGenerator(
      * rather than the sea level, which for a void sea was `Int.MIN_VALUE` and overflowed.
      */
     override fun getBaseHeight(x: Int, z: Int, type: Heightmap.Types, level: LevelHeightAccessor, randomState: RandomState): Int {
+        if (rockIsVanillas) return super.getBaseHeight(x, z, type, level, randomState)
         val counts = type.isOpaque()
         // One below the world, so a column with nothing this query counts simply answers the floor.
         val nothing = level.minY - 1
@@ -437,6 +463,7 @@ class AgeChunkGenerator(
     }
 
     override fun getBaseColumn(x: Int, z: Int, level: LevelHeightAccessor, randomState: RandomState): NoiseColumn {
+        if (rockIsVanillas) return super.getBaseColumn(x, z, level, randomState)
         val spans = field.columnSpans(x, z)
         val sea = seaFill.blockAt(x, z)
         val dryness = seaFill.drynessAt(x, z)
@@ -522,6 +549,11 @@ class AgeChunkGenerator(
         structureManager: StructureManager,
         chunk: ChunkAccess,
     ) {
+        // Vanilla's rock brings vanilla's caves with it: its carvers read the same router the shape came
+        // out of, where ours would be cutting into a world they know nothing about.
+        if (rockIsVanillas) {
+            return super.applyCarvers(level, seed, randomState, biomeManager, structureManager, chunk)
+        }
         if (carving.isEmpty()) return
         val protoChunk = chunk as? ProtoChunk ?: return
 

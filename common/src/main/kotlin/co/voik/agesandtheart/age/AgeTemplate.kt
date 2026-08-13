@@ -22,8 +22,6 @@ import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
  * **A template is a whole world we wrote; the catalogue is what a writer can reach**, and only the second
  * has to be complete. The nether's terrain is not one of the shapes a page can name and need not become
  * one — which is what lets a template be arbitrarily bespoke without every part of it becoming vocabulary.
- * The three below are built out of what the toolkit has today and will get their own generators in time;
- * being recognisable is the bar, not being vanilla.
  *
  * **It does not persist**, and that is §4.6 rather than an omission: what a template supplies is merged
  * into the composition before the recipe is written, so an Age is rebuilt from the answer rather than from
@@ -34,7 +32,7 @@ enum class AgeTemplate(val key: String, val rock: ResourceKey<NoiseGeneratorSett
     /** What a world is like when nobody said otherwise. No word names it; it is what you get. */
     OVERWORLD("overworld", NoiseGeneratorSettings.OVERWORLD) {
         override fun world(): AgeComposition = AgeComposition(
-            terrains = listOf(Terrain.OVERWORLD),
+            terrains = listOf(Terrain.VANILLA),
             seas = listOf(Sea.WATER),
             carvers = listOf(Carvers.CAVES),
         )
@@ -45,7 +43,7 @@ enum class AgeTemplate(val key: String, val rock: ResourceKey<NoiseGeneratorSett
      */
     INFERNAL("infernal", NoiseGeneratorSettings.NETHER) {
         override fun world(): AgeComposition = AgeComposition(
-            terrains = listOf(Terrain.CAVERNS),
+            terrains = listOf(Terrain.VANILLA),
             seas = listOf(Sea.LAVA),
             carvers = listOf(Carvers.SOLID),
         )
@@ -63,7 +61,7 @@ enum class AgeTemplate(val key: String, val rock: ResourceKey<NoiseGeneratorSett
      */
     DARK_VOID("dark_void", NoiseGeneratorSettings.END) {
         override fun world(): AgeComposition = AgeComposition(
-            terrains = listOf(Terrain.ISLANDS),
+            terrains = listOf(Terrain.VANILLA),
             seas = listOf(Sea.NONE),
             carvers = listOf(Carvers.SOLID),
         )

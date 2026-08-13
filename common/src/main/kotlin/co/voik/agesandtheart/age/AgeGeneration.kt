@@ -3,6 +3,7 @@ package co.voik.agesandtheart.age
 import co.voik.agesandtheart.age.aspect.Biomes
 import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.worldgen.field.SeaFill
+import co.voik.agesandtheart.worldgen.field.Slab
 import co.voik.agesandtheart.worldgen.field.WaterTable
 import kotlin.math.pow
 import co.voik.agesandtheart.age.consequence.Collapse
@@ -111,16 +112,22 @@ object AgeGeneration {
         // One band for every Age, and the same one every dimension type admits — see [VerticalWindow].
         val window = VerticalWindow.DEFAULT
 
+        // **Whether the rock is vanilla's**, which decides the whole terrain half: no field is built, no
+        // biome is grounded in one, and the generator hands `fillFromNoise` and its companions to the base
+        // class. Either/or by construction — naming any landform of ours replaces `Terrain.VANILLA`.
+        val rockIsVanillas = composition.terrains.singleOrNull() == Terrain.VANILLA
         val ground = character.mapFor(Aspect.TERRAIN, composition.sharesOf(Aspect.TERRAIN), seed, torn)
-        val grounds = composition.terrains.mapIndexed { member, terrain ->
+        val grounds = if (rockIsVanillas) emptyList() else composition.terrains.mapIndexed { member, terrain ->
             terrain.ground(terrainOptions(member), window, saltFor(seed, member))
         }
         // Weathering is not applied here at all: a landform that wants wind carries it inside its own
         // field, where the profile and the shape were designed together. There is no Age-wide pass.
-        val weathered = Regions.of(grounds.map { it.shape }, ground)
+        // A world with no field of ours still needs *something* in the slot the generator declares, and
+        // nothing consults it: every reader is inside a method that hands over to the base class first.
+        val weathered = if (rockIsVanillas) NO_ROCK_OF_OURS else Regions.of(grounds.map { it.shape }, ground)
 
         // The fault comes last, over the finished rock — see [Fault].
-        val shape = faulted(weathered, character.seam, ground, seed, torn)
+        val shape = if (rockIsVanillas) weathered else faulted(weathered, character.seam, ground, seed, torn)
         // Everywhere the sea is kept out of: the chasm a rift opened, and any underground that answers
         // "never wet" rather than to a water table — see [Terrain.Ground].
         val riftCut = riftVolume(character.seam, ground, torn)
@@ -168,11 +175,11 @@ object AgeGeneration {
         return AgeChunkGenerator(
             AgeBiomeSource.vanillaOverworld(server, seed)
                 .told(climate, Biomes.preferencesIn(biomeOptions), Biomes.keepsOnlyNamed(biomeOptions))
-                .groundedIn(shape)
+                .let { if (rockIsVanillas) it.sampledForDepth() else it.groundedIn(shape) }
                 // On unless the Age said otherwise — `biomes.footing=free` is the lever, and an Age whose
                 // biomes ignore its land is allowed rather than broken. See [Grounding] and [Biomes.FOOTING].
                 .suitedTo(
-                    if (!Biomes.groundsBiomes(biomeOptions)) null
+                    if (rockIsVanillas || !Biomes.groundsBiomes(biomeOptions)) null
                     // A shore is where the Age's one sea meets whichever territory reaches it, so a single
                     // island territory is enough to make the coast sand — the level it stands at is already
                     // Age-wide.
@@ -189,7 +196,7 @@ object AgeGeneration {
                 // Age-wide like the shore and the treeline: the band is a pair of heights, and an Age has
                 // one set of those however many territories divide it.
                 .roofedBy(
-                    composition.terrains
+                    if (rockIsVanillas) null else composition.terrains
                         .withIndex()
                         .firstNotNullOfOrNull { (member, terrain) ->
                             terrain.undergroundBand(terrainOptions(member), window)
@@ -220,6 +227,53 @@ object AgeGeneration {
             blightPerDay = blight,
             collapseTears = collapse,
             writtenAt = recipe.writtenAt,
+            vanillaRock = if (!rockIsVanillas) null else vanillaRockFor(server, recipe, composition, seaFill, fill),
+        )
+    }
+
+    /**
+     * **Vanilla's own rock for this Age's template, with the writer's claims laid into it** (world model §4).
+     *
+     * `NoiseGeneratorSettings` is a record, so this is vanilla's own settings rebuilt: its noise, its router
+     * and its spawn target kept, and the Age's block, fluid and skin substituted where it asked for one.
+     * `Holder.direct` is safe here and fatal for a `DimensionType` — a chunk generator is server-side and
+     * never reaches a client.
+     *
+     * **Aquifers and ore veins go back on.** They are off for a field-tree Age because the toolkit answers
+     * for water itself; under vanilla's router they are part of the rock being vanilla's.
+     */
+    private fun vanillaRockFor(
+        server: MinecraftServer,
+        recipe: AgeRecipe,
+        composition: AgeComposition,
+        seaFill: SeaFill,
+        fill: TerrainFill,
+    ): Holder<NoiseGeneratorSettings> {
+        val theirs = server.registryAccess().lookupOrThrow(Registries.NOISE_SETTINGS)
+            .getOrThrow(recipe.template.rock).value()
+        // Only a skin the writer actually named: `Surface.ruleFor` would otherwise delegate to the biomes
+        // *through the field tree*, and there is none here to delegate through. Silence means vanilla's own
+        // rule, which is what a nether floor of netherrack is.
+        val named = composition.optionsFor(Aspect.SURFACE, 0).materialsOf(Surface.MATERIAL)
+        val skin = when {
+            named.isEmpty() -> theirs.surfaceRule()
+            named.all { it.isAir } -> SurfacingStrategy.SUPPRESSED
+            else -> SurfacingStrategy.laidOnVanilla(named)
+        }
+        return Holder.direct(
+            NoiseGeneratorSettings(
+                theirs.noiseSettings(),
+                fill.representative.takeUnless { fill == TerrainFill.PLAIN } ?: theirs.defaultBlock(),
+                seaFill.representative.takeUnless { seaFill == SeaFill.NONE } ?: theirs.defaultFluid(),
+                theirs.noiseRouter(),
+                skin,
+                theirs.spawnTarget(),
+                theirs.seaLevel(),
+                theirs.disableMobGeneration(),
+                /* aquifersEnabled = */ true,
+                /* oreVeinsEnabled = */ true,
+                theirs.getRandomSource() == net.minecraft.world.level.levelgen.WorldgenRandom.Algorithm.LEGACY,
+            ),
         )
     }
 
@@ -334,6 +388,16 @@ object AgeGeneration {
     }
 
     // So which sea wins is decorrelated from everything else this seed decides.
+    /**
+     * The field an Age wears where its rock is **vanilla's** — a band of no height at all, so it describes
+     * no rock anywhere.
+     *
+     * The generator declares a field and nothing reads this one: every reader is inside a method that hands
+     * over to the base class first. A degenerate `Slab` rather than a new kind of field, because a kind
+     * exists to be serialised and this one would only ever mean "ignore me".
+     */
+    private val NO_ROCK_OF_OURS = Slab(lowY = VerticalWindow.DEFAULT.minY, highY = VerticalWindow.DEFAULT.minY)
+
     private const val WATERLINE_SALT = 0x5EA_1E7EL
 
     /**

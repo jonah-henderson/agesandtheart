@@ -78,6 +78,14 @@ class AgeBiomeSource(
 
     override fun codec(): MapCodec<out BiomeSource> = CODEC
 
+    /**
+     * The same table, taking **vanilla's own depth** — for an Age whose rock is vanilla's and which has no
+     * field to measure against. See [AsSampled], and note that [AtSurface] would be wrong rather than
+     * merely coarse: it answers zero everywhere, so no cave biome would ever be reached.
+     */
+    fun sampledForDepth(): AgeBiomeSource =
+        AgeBiomeSource(biomes, seed, AsSampled, bent, preferences, keepsOnlyNamed, grounding, roofed, flattenedTo, biomeLookup)
+
     /** The same table, with [depth] measured against [terrain] — see [BelowTerrain]. */
     fun groundedIn(terrain: TerrainField): AgeBiomeSource =
         AgeBiomeSource(biomes, seed, BelowTerrain(terrain), bent, preferences, keepsOnlyNamed, grounding, roofed, flattenedTo, biomeLookup)
@@ -147,7 +155,7 @@ class AgeBiomeSource(
                 // rather than off a noise that never saw the terrain — which is what decides a sandy beach
                 // from a stony shore. See [Grounding].
                 grounding?.erosionAt(blockX, blockZ) ?: climate.erosion().compute(point).toFloat(),
-                depth.at(blockX, blockY, blockZ),
+                depth.at(blockX, blockY, blockZ, climate.depth().compute(point).toFloat()),
                 // Weirdness passes through too, now that its vocabulary belongs to Biomes rather than to
                 // Climate — step 5 picks it up. A grounded Age pushes it into the valley band where its own
                 // rivers run, which is where vanilla files them. See [ClimateAxis].
