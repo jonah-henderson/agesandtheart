@@ -11,6 +11,8 @@ import co.voik.agesandtheart.age.aspect.Skew
 import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Share
 import co.voik.agesandtheart.age.aspect.Structures
+import co.voik.agesandtheart.age.AgeTemplate
+import com.mojang.serialization.JsonOps
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.Terrain
 import io.kotest.core.spec.style.FunSpec
@@ -102,6 +104,22 @@ class RecipeCheck : FunSpec({
             "A mingled parameter spells itself wrong: '$spelling'"
         }
         check(AgeComposition.parse(spelling).getOrThrow() == mingled) { "'$spelling' does not read back as itself" }
+    }
+
+    /**
+     * **The template survives the round trip.** It is the base of the recipe (`the-world-model.md` §4): an
+     * Age rebuilds from its record on every open, so a world that came back overworld-shaped where it was
+     * written infernal would be a different world under the same book.
+     */
+    test("the world an Age was written over round-trips") {
+        val written = AgeRecipe(
+            AgeWorld.Composed(AgeComposition(terrains = listOf(Terrain.HILLS))),
+            seed = 11L,
+            template = AgeTemplate.INFERNAL,
+        )
+        val encoded = AgeRecipe.CODEC.encodeStart(JsonOps.INSTANCE, written).getOrThrow()
+        val read = AgeRecipe.CODEC.parse(JsonOps.INSTANCE, encoded).getOrThrow()
+        check(read.template == AgeTemplate.INFERNAL) { "the recipe came back on ${read.template}" }
     }
 
     /**

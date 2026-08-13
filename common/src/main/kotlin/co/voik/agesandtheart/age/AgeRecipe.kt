@@ -35,6 +35,15 @@ data class AgeRecipe(
     val words: List<String> = emptyList(),
     val generatorVersion: Int = CURRENT_GENERATOR_VERSION,
     /**
+     * **The world this Age was written over** (`the-world-model.md` §4) — the base of the recipe.
+     *
+     * On the recipe rather than merged away, because a template supplies a thing the composition cannot
+     * spell: `landmass=vanilla` says the rock is not ours, and *which* vanilla is this. Everything else a
+     * template gives is merged into the composition and does not come back here, so what persists is still
+     * the answer rather than the words (§4.6) — this is simply part of that answer.
+     */
+    val template: AgeTemplate = AgeTemplate.ORDINARY,
+    /**
      * The overworld's game time when this Age was written — **the clock a decaying Age is read against**
      * (design §5.4).
      *
@@ -90,15 +99,21 @@ data class AgeRecipe(
                 Codec.STRING.listOf().optionalFieldOf("words", emptyList()).forGetter(AgeRecipe::words),
                 // Absent on every Age written before an Age had an age.
                 Codec.LONG.optionalFieldOf("written_at", UNRECORDED).forGetter(AgeRecipe::writtenAt),
-            ).apply(instance) { world, legacyPreset, seed, version, character, instability, words, writtenAt ->
+                // Absent on every Age written before a book started from a world.
+                AgeTemplate.CODEC.optionalFieldOf("template", AgeTemplate.ORDINARY)
+                    .forGetter(AgeRecipe::template),
+            ).apply(instance) {
+                world, legacyPreset, seed, version, character, instability, words, writtenAt, template,
+                ->
                 AgeRecipe(
-                    world.orElseGet { worldFor(legacyPreset.orElse(AgePreset.SPIRE)) },
-                    seed,
-                    character,
-                    instability,
-                    words,
-                    version,
-                    writtenAt,
+                    world = world.orElseGet { worldFor(legacyPreset.orElse(AgePreset.SPIRE)) },
+                    seed = seed,
+                    character = character,
+                    instability = instability,
+                    words = words,
+                    generatorVersion = version,
+                    template = template,
+                    writtenAt = writtenAt,
                 )
             }
         }
@@ -121,6 +136,7 @@ data class AgeRecipe(
             resolution.instability,
             resolution.sentence,
             writtenAt = server.overworld().gameTime,
+            template = resolution.template,
         )
 
         /** An Age from before an Age had an age — read as having been written when the world began. */

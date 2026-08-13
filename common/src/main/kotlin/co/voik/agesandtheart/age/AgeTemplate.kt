@@ -7,6 +7,10 @@ import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.worldgen.biome.ClimateAxis
+import com.mojang.serialization.Codec
+import net.minecraft.resources.ResourceKey
+import net.minecraft.util.StringRepresentable
+import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
 
 /**
  * **The world a book starts from** (`the-world-model.md` §4).
@@ -26,9 +30,9 @@ import co.voik.agesandtheart.worldgen.biome.ClimateAxis
  * the question. Retuning a template therefore changes what *new* Ages are like and can never reach one
  * already written.
  */
-enum class AgeTemplate(val key: String) {
+enum class AgeTemplate(val key: String, val rock: ResourceKey<NoiseGeneratorSettings>) : StringRepresentable {
     /** What a world is like when nobody said otherwise. No word names it; it is what you get. */
-    OVERWORLD("overworld") {
+    OVERWORLD("overworld", NoiseGeneratorSettings.OVERWORLD) {
         override fun world(): AgeComposition = AgeComposition(
             terrains = listOf(Terrain.OVERWORLD),
             seas = listOf(Sea.WATER),
@@ -37,12 +41,9 @@ enum class AgeTemplate(val key: String) {
     },
 
     /**
-     * A world that burns, sealed over and lit by nothing — the nether's shape in the terms we have.
-     *
-     * `caverns` stands in for a 3D-noise nether until one is built, which is the whole of what makes this
-     * approximate: everything else about it — the lava, the seal, the sunless heat — is said exactly.
+     * A world that burns, sealed over and lit by nothing — vanilla's own nether rock under it.
      */
-    INFERNAL("infernal") {
+    INFERNAL("infernal", NoiseGeneratorSettings.NETHER) {
         override fun world(): AgeComposition = AgeComposition(
             terrains = listOf(Terrain.CAVERNS),
             seas = listOf(Sea.LAVA),
@@ -55,12 +56,12 @@ enum class AgeTemplate(val key: String) {
     },
 
     /**
-     * Islands in nothing, under a sky with no sun in it — the end's shape.
+     * Islands in nothing, under a sky with no sun in it — vanilla's own end rock under it.
      *
      * Not sealed: the end is open overhead and simply has nothing up there, which is a different fact from
      * the nether's and one the derived rules keep apart (`Sky.dimensionType`).
      */
-    DARK_VOID("dark_void") {
+    DARK_VOID("dark_void", NoiseGeneratorSettings.END) {
         override fun world(): AgeComposition = AgeComposition(
             terrains = listOf(Terrain.ISLANDS),
             seas = listOf(Sea.NONE),
@@ -75,7 +76,11 @@ enum class AgeTemplate(val key: String) {
     /** The world this starts from. Built on demand, so no two Ages can share a mutable one. */
     abstract fun world(): AgeComposition
 
+    override fun getSerializedName(): String = key
+
     companion object {
+        val CODEC: Codec<AgeTemplate> = StringRepresentable.fromEnum(AgeTemplate::values)
+
         /** The template a book that named none starts from. */
         val ORDINARY = OVERWORLD
 
