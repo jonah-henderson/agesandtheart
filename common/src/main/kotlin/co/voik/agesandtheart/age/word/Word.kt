@@ -160,6 +160,19 @@ data class Word(
      * everything in it, because the pool it had to strike was suddenly full of biomes.
      */
     val weights: Map<Aspect, Map<String, Double>> = emptyMap(),
+    /**
+     * The **world this book starts from**, by its key, or null for the overwhelming majority of words that
+     * say something about a world rather than choosing one (`the-world-model.md` §4).
+     *
+     * Not an aspect and deliberately not one: an aspect is a part of the world a writer aims at, where this
+     * is *which world they began with*. Making it an aspect would mint an aiming page for it, and there is
+     * no honest name for that page — the Age is the world.
+     *
+     * Two words naming different templates is a thing a sentence can say and the first laid wins, which is
+     * the one place order decides anything. It is rare enough to be worth the simplicity: these are found
+     * pages, and holding two is already unusual.
+     */
+    val template: String? = null,
 ) {
     /** What a writer says to use it. */
     val name: String get() = id.path
@@ -244,7 +257,7 @@ data class Word(
      * query, no named preset and no parameter has nothing to contribute but its aspects.
      */
     val aims: Boolean get() = everyQuery.isEmpty() && names == null && canSet.isEmpty() &&
-        weights.isEmpty() && aspects.isNotEmpty()
+        weights.isEmpty() && template == null && aspects.isNotEmpty()
 
     /** What this word asks of [aspect] — what it asks everywhere, and what it asks only here. */
     fun queryIn(aspect: Aspect): Map<String, Double> = query + queries[aspect].orEmpty()
@@ -403,10 +416,11 @@ data class Word(
                 Codec.INT.optionalFieldOf("draws", 0).forGetter(Word::draws),
                 Codec.unboundedMap(ASPECT_CODEC, Codec.unboundedMap(Codec.STRING, Codec.DOUBLE))
                     .optionalFieldOf("weights", emptyMap()).forGetter(Word::weights),
-            ).apply(instance) { tier, aspects, query, queries, names, sets, pool, draws, weights ->
+                Codec.STRING.optionalFieldOf("template").forGetter { Optional.ofNullable(it.template) },
+            ).apply(instance) { tier, aspects, query, queries, names, sets, pool, draws, weights, template ->
                 val named = names.orElse(null)
                 val reaches = reaching(tier, aspects, sets + pool, named, weights.keys + queries.keys)
-                Word(id, tier, reaches, query, queries, named, sets, pool, draws, weights)
+                Word(id, tier, reaches, query, queries, named, sets, pool, draws, weights, template.orElse(null))
             }
         }
 

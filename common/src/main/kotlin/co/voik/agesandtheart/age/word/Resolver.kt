@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.word
 
 import co.voik.agesandtheart.age.AgeComposition
+import co.voik.agesandtheart.age.AgeTemplate
 import co.voik.agesandtheart.age.Flaw
 import co.voik.agesandtheart.age.Instability
 import co.voik.agesandtheart.age.Register
@@ -29,6 +30,14 @@ data class Resolution(
     val instability: Instability,
     /** Fine inks, summed over the sentence — flat for a vague word, by versatility for a precise one (§4.4). */
     val cost: Int,
+    /**
+     * The world this book started from (`the-world-model.md` §4) — provenance only, like [words].
+     *
+     * What the template supplied is already merged into [composition], which is what persists: an Age is
+     * rebuilt from the answer rather than from the question, so retuning a template can never reach one
+     * already written.
+     */
+    val template: AgeTemplate = AgeTemplate.ORDINARY,
     val words: List<Word>,
     /**
      * Pages the Art could not read. **Vagueness, never instability** (§4.3), and the only channel that
@@ -131,7 +140,13 @@ object Resolver {
         val filled = Aspect.entries.associateWith { aspect -> fill(vocabulary, aspect, said, draw, flaws) }
         flaws += tensions(vocabulary, said, filled.mapValues { (_, filling) -> filling.map { it.preset } })
 
-        val composition = minted(weighed(vocabulary, steer(vocabulary, compose(filled), said, draw, flaws), said), said)
+        val resolved = minted(weighed(vocabulary, steer(vocabulary, compose(filled), said, draw, flaws), said), said)
+        // **The template underneath, what the sentence said on top.** Which aspects the sentence spoke to
+        // is what decides where the seam falls, so it is asked of the claims rather than of the answer —
+        // an aspect a word reached and left at its default still belongs to the writer.
+        val template = templateOf(said)
+        val spokenTo = said.flatMap { reachOf(vocabulary, it) }.toSet()
+        val composition = resolved.laidOver(template.world(), spokenTo)
         // **Last**, so it can see everything the mechanisms above already charged and never price one
         // disagreement twice. Steering adds flaws of its own, so this cannot be hoisted.
         flaws += oppositions(vocabulary, said, flaws.toList())
@@ -143,9 +158,20 @@ object Resolver {
             // claim still came out of the pot. A latent page came out of nobody's pot.
             cost = sentence.written.sumOf { inkFor(it.word) } + sentence.structural.sumOf { it.cost },
             words = sentence.words,
+            template = template,
             dropped = sentence.unreadable,
         )
     }
+
+    /**
+     * The world this book starts from — **the first template named, or the ordinary one**.
+     *
+     * First rather than drawn or contended, and it is the one place written order decides anything (§3.5).
+     * Two templates in a book is a rare thing to be holding and a plain thing to say back, where a draw
+     * would be neither.
+     */
+    private fun templateOf(said: List<Constraint>): AgeTemplate =
+        said.firstNotNullOfOrNull { it.word.template?.let(AgeTemplate::named) } ?: AgeTemplate.ORDINARY
 
     /**
      * What one page costs to lay (§4.4), and the two tiers are priced on different things.

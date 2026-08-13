@@ -4,6 +4,7 @@ import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.AgeComposition
+import co.voik.agesandtheart.age.AgeTemplate
 import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Carvers
@@ -266,6 +267,40 @@ class ResolverCheck : FunSpec({
     }
 
     /**
+     * **A book starts from a world** (`the-world-model.md` §4), and `An Age` is a complete book because of
+     * it — silence is not neutral, it is overworld-shaped.
+     */
+    test("a book that names no template starts from the overworld") {
+        val plain = Resolver.resolve(vocabulary, read(listOf("age")), SAMPLE_SEED)
+        check(plain.template == AgeTemplate.OVERWORLD) { "an unnamed world started from ${plain.template}" }
+        check(plain.composition.seas == listOf(Sea.WATER)) {
+            "the overworld came up with ${plain.composition.seas} for a sea"
+        }
+    }
+
+    /**
+     * **`infernal` replaces the world, and the sentence is laid over it.** Naming a landform takes the
+     * landform and keeps everything the writer did not speak to — the lava, the seal, the heat — which is
+     * the answer to "hills with the nether's roof, or hills plain".
+     */
+    test("a template is what the sentence is written over") {
+        val nether = Resolver.resolve(vocabulary, read(listOf("infernal", "age")), SAMPLE_SEED)
+        check(nether.template == AgeTemplate.INFERNAL) { "'infernal' started from ${nether.template}" }
+        check(nether.composition.seas == listOf(Sea.LAVA)) { "the nether's sea is ${nether.composition.seas}" }
+
+        val hills = Resolver.resolve(vocabulary, read(listOf("infernal", "age", "hills", "landmass")), SAMPLE_SEED)
+        check(hills.composition.terrains == listOf(Terrain.HILLS)) {
+            "the writer's landform lost to the template's: ${hills.composition.terrains}"
+        }
+        check(hills.composition.seas == listOf(Sea.LAVA)) {
+            "naming a landform took the nether's sea away as well: ${hills.composition.seas}"
+        }
+        check(hills.composition.optionsFor(Aspect.SKY, 0).of(Sky.SEALED) == "always") {
+            "naming a landform unsealed the world, which no word asked for"
+        }
+    }
+
+    /**
      * **The sentence the whole pass was built for** (world model §2): *a large, red, east-rising sun. A
      * small, blue, southwest-rising sun.* Two clauses, two suns, each wearing only what its own clause said.
      *
@@ -510,26 +545,29 @@ class ResolverCheck : FunSpec({
      * the design claim (§3.4).
      */
     test("harmony is free and the terrain is the reluctant one") {
-        var carvingsDoubled = 0
+        var seasDoubled = 0
         var landformsDoubled = 0
         for (seed in 1L..HARMONY_SEEDS) {
             val resolution = resolve(vocabulary, "beautiful", seed)
             val composition = resolution.composition
-            // The dressing used to be the reluctant one this compared against; it is deleted, so the carving
-            // — the *most* companionable aspect (0.25 against the terrain's 0.12) — plays the other side.
-            if (composition.carvers.size > 1) carvingsDoubled++
+            // **The sea plays the other side, not the carving.** The carving is the most companionable
+            // aspect on paper (0.25 against the terrain's 0.12), but `beautiful` finds no purchase in it —
+            // no carver carries `lovely`, `lush` or `bright` — so it never reaches the aspect and the
+            // template answers for it instead. What that measured was an unconstrained draw rather than
+            // harmony, which only showed once a template started replacing those draws.
+            if (composition.seas.size > 1) seasDoubled++
             if (composition.terrains.size > 1) landformsDoubled++
             check(resolution.instability.isCoherent) {
                 "\"beautiful\" at seed $seed was charged ${resolution.instability.index}: " +
                     "${resolution.instability.flaws} — liking two things is not a contradiction"
             }
         }
-        check(carvingsDoubled >= landformsDoubled) {
-            "dressings doubled up $carvingsDoubled times against terrains' $landformsDoubled, but a dressing " +
-                "seam is now the rarest thing in an Age — variety belongs to biomes (design §3.4)"
+        check(seasDoubled >= landformsDoubled) {
+            "seas doubled up $seasDoubled times against terrains' $landformsDoubled, but nothing " +
+                "interpolates between two landforms and a seam is the costliest thing an Age can have"
         }
         println(
-            "  \"beautiful\" over $HARMONY_SEEDS seeds: two carvings $carvingsDoubled times, " +
+            "  \"beautiful\" over $HARMONY_SEEDS seeds: two seas $seasDoubled times, " +
                 "two terrains $landformsDoubled times, no instability either way.",
         )
     }

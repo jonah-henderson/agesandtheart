@@ -193,6 +193,44 @@ data class AgeComposition(
     }
 
     /**
+     * This composition laid over [template] — **the template underneath, what the sentence said on top**
+     * (`the-world-model.md` §4).
+     *
+     * Per aspect for what is *seated*, because a preset is one answer and half of one means nothing: an
+     * aspect the sentence never mentioned keeps the template's, and one it spoke to is the sentence's
+     * outright. Per **parameter** for the steering, because those genuinely compose — a writer who picks
+     * the nether and then names a landform keeps its heat and its seal, and only says again what they
+     * meant to change.
+     *
+     * The one thing that never comes from underneath is a **cast**: a template's suns are its own, and
+     * §4's rule is that describing any member clears them. So a book that minted a body keeps exactly the
+     * bodies it minted.
+     */
+    fun laidOver(template: AgeComposition, spokenTo: Set<Aspect>): AgeComposition {
+        fun seated(aspect: Aspect, mine: List<AspectPreset>, theirs: List<AspectPreset>) =
+            if (aspect in spokenTo) mine else theirs
+        val merged = copy(
+            terrains = seated(Aspect.TERRAIN, terrains, template.terrains).filterIsInstance<Terrain>(),
+            seas = seated(Aspect.SEA, seas, template.seas).filterIsInstance<Sea>(),
+            carvers = seated(Aspect.CARVERS, carvers, template.carvers).filterIsInstance<Carvers>(),
+            sky = if (Aspect.SKY in spokenTo) sky else template.sky,
+            climates = if (Aspect.CLIMATE in spokenTo) climates else template.climates,
+        )
+        return Aspect.entries.fold(merged) { held, aspect ->
+            if (aspect.holds == Holds.POPULATION) return@fold held
+            held.underlaidWith(aspect, template.options.of(aspect))
+        }
+    }
+
+    /** [aspect]'s options with [beneath]'s filled in wherever this composition said nothing. */
+    private fun underlaidWith(aspect: Aspect, beneath: Options): AgeComposition {
+        if (beneath.chosen.isEmpty()) return this
+        val members = maxOf(membersIn(aspect), 1)
+        val laid = options.expanded(aspect, members).map { mine -> Options(beneath.chosen + mine.chosen) }
+        return copy(options = options.with(aspect, laid))
+    }
+
+    /**
      * This composition with [aspect]'s cast grown to [members] — what a clause that minted a body and said
      * nothing else about it writes.
      *

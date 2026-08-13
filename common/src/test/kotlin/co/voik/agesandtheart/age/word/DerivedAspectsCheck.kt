@@ -155,7 +155,11 @@ class DerivedAspectsCheck : FunSpec({
      * take no freedom away, so being unaimed costs nothing.
      */
     test("nothing that narrows is left aimed at nothing") {
-        val unaimed = vocabulary.authoredWords.filter { it.tier.narrows && it.aspects.isEmpty() }
+        // **A word that names a template is the exception, and the only one.** It narrows no candidates
+        // anywhere: it replaces the world the book starts from, which is a different job from removing
+        // answers within one, so having no aspect is what it *is* rather than a declaration left off.
+        val unaimed = vocabulary.authoredWords
+            .filter { it.tier.narrows && it.aspects.isEmpty() && it.template == null }
         check(unaimed.isEmpty()) {
             "these narrow candidates in every aspect at once: ${unaimed.map { "${it.name} (${it.tier})" }}"
         }

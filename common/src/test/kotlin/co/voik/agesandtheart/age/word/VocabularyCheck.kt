@@ -55,7 +55,9 @@ class VocabularyCheck : FunSpec({
                 "'${word.name}' asks for ${unknownTags.joinToString(" ")}, which nothing in the world carries"
             }
             val aspects = Resolver.aspectsSpokenTo(vocabulary, word)
-            check(aspects.isNotEmpty()) {
+            // A word that names a template has a say in no aspect *and* does the largest thing a single
+            // page can: it changes the world the book starts from. Every other word has to reach one.
+            check(aspects.isNotEmpty() || word.template != null) {
                 "'${word.name}' has a say in no aspect at all, so writing it would do nothing and cost nothing"
             }
             // A word that named its aspects must be satisfiable in **each** of them; an evocative word named
@@ -155,7 +157,7 @@ class VocabularyCheck : FunSpec({
      * touch, so `stormy` pins the terrain to caverns and throws `floating` away in silence.
      */
     test("every narrowing word says what it is about") {
-        for (word in vocabulary.words.filter { it.tier.narrows }) {
+        for (word in vocabulary.words.filter { it.tier.narrows && it.template == null }) {
             check(word.aspects.isNotEmpty()) {
                 "'${word.name}' is ${word.tier.key} but names no aspect, so it would narrow every aspect its tags " +
                     "reach — which is how a word about the sky ends up choosing the ground"
