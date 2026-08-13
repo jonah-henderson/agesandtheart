@@ -1,0 +1,9 @@
+{
+  "tier": "exact",
+  "aspects": [
+    "sun"
+  ],
+  "sets": {
+    "rising": "northeast"
+  }
+}

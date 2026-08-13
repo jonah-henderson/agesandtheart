@@ -13,9 +13,11 @@ import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.aspect.Skew
 import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Share
+import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.Terrain
+import co.voik.ephemeris.sky.Orbit
 import co.voik.ephemeris.sky.SkySpec
 import co.voik.agesandtheart.age.word.grammar.Constraint
 import co.voik.agesandtheart.age.word.grammar.Group
@@ -261,6 +263,37 @@ class ResolverCheck : FunSpec({
         val vague = resolve(vocabulary, "burning").cost
         val exact = resolve(vocabulary, "molten").cost
         check(exact > vague) { "'molten' cost $exact and 'burning' cost $vague, so precision is free" }
+    }
+
+    /**
+     * **The sentence the whole pass was built for** (world model §2): *a large, red, east-rising sun. A
+     * small, blue, southwest-rising sun.* Two clauses, two suns, each wearing only what its own clause said.
+     *
+     * Every part of it is something that could not be written before. The count is gone, so the number of
+     * bodies is the number of clauses; size and colour were one value over the whole sky; and where a body
+     * rose could not be said at all.
+     */
+    test("two suns are described apart") {
+        // Only the horizons, because **no word sets a sun's size or colour yet** — the knobs are reachable
+        // and nothing in the corpus turns them, which is the hand-tuned vocabulary pass's to fix. What this
+        // holds is the machinery: two clauses, two bodies, each steered on its own.
+        val read = read(listOf("age", "east_rising", "sun", "southwest_rising", "sun"))
+        check(read.dropped.isEmpty()) { "the two-sun book lost pages: ${read.dropped}" }
+        val composition = Resolver.resolve(vocabulary, read, SAMPLE_SEED).composition
+        check(composition.membersIn(Aspect.SUN) == 2) {
+            "two clauses minted ${composition.membersIn(Aspect.SUN)} suns"
+        }
+        val first = composition.optionsFor(Aspect.SUN, 0)
+        val second = composition.optionsFor(Aspect.SUN, 1)
+        check(first.of(Sky.RISING) == "east") { "the first sun rises ${first.of(Sky.RISING)}" }
+        check(second.of(Sky.RISING) == "southwest") { "the second sun rises ${second.of(Sky.RISING)}" }
+
+        // And it reaches the sky the renderer is handed, which is the half a writer actually sees.
+        val drawn = composition.sky.specFor(composition::optionsFor, SAMPLE_SEED, composition::membersIn)
+        val suns = drawn.bodies.filter { it.phase == null }
+        check(suns.size == 2) { "the spec drew ${suns.size} suns" }
+        val horizons = suns.map { (it.path as Orbit).ascendingNodeDegrees }
+        check(horizons.distinct().size == 2) { "both suns came up over the same horizon: $horizons" }
     }
 
     /**
@@ -743,7 +776,7 @@ class ResolverCheck : FunSpec({
     test("a sky word lands where it says") {
         fun skyOf(sentence: String): SkySpec {
             val composition = resolve(vocabulary, sentence).composition
-            return composition.sky.specFor({ aspect -> composition.optionsFor(aspect, 0) }, SAMPLE_SEED, composition::membersIn)
+            return composition.sky.specFor(composition::optionsFor, SAMPLE_SEED, composition::membersIn)
         }
 
         val ordinary = skyOf("stormy")
@@ -762,7 +795,7 @@ class ResolverCheck : FunSpec({
         // thing (world model §2).
         val twoSuns = read(listOf("age", "sun", "sun"))
         val minted = Resolver.resolve(vocabulary, twoSuns, SAMPLE_SEED).composition
-        val drawn = minted.sky.specFor({ minted.optionsFor(it, 0) }, SAMPLE_SEED, minted::membersIn)
+        val drawn = minted.sky.specFor(minted::optionsFor, SAMPLE_SEED, minted::membersIn)
         check(drawn.bodies.count { it.phase == null } == TWO_SUNS) {
             "two `sun` clauses drew ${drawn.bodies.count { it.phase == null }} suns"
         }

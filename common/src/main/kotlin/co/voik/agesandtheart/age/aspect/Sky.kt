@@ -1,7 +1,10 @@
 package co.voik.agesandtheart.age.aspect
 
 import co.voik.agesandtheart.age.AgeGeneration
+import co.voik.ephemeris.sky.Appearance
+import co.voik.ephemeris.sky.CelestialBody
 import co.voik.ephemeris.sky.Look
+import co.voik.ephemeris.sky.Orbit
 import co.voik.ephemeris.sky.SkySpec
 import co.voik.agesandtheart.sky.SpireSky
 import net.minecraft.resources.Identifier
@@ -65,29 +68,53 @@ enum class Sky(override val key: String) : AspectPreset {
      * [SPIRE] ignores both, and that is the whole of what makes it bespoke: its sky is written down rather
      * than resolved, so no seed and no option moves it.
      */
-    fun specFor(asked: (Aspect) -> Options, seed: Long, cast: (Aspect) -> Int = { 0 }): SkySpec {
+    fun specFor(asked: (Aspect, Int) -> Options, seed: Long, cast: (Aspect) -> Int = { 0 }): SkySpec {
         if (this == SPIRE) return SpireSky.SPEC
         // **Assembled from three aspects**, which is what the split made explicit: the suns, the moons and
-        // the star field are each their own part of the world, and a spec is where they meet. One `Options`
-        // bag reached all of them while they were one aspect, and a reader that quietly answered the wrong
-        // one would have shown up as a sky missing its stars.
-        val sun = asked(Aspect.SUN)
-        val stars = asked(Aspect.STARS)
+        // the star field are each their own part of the world, and a spec is where they meet.
+        val sun = asked(Aspect.SUN, 0)
         // **The cast is what the book described, or the template's where it described none.** A sun is
         // brought into being by a clause about it, so the number of bodies is the number of clauses —
         // there is no count to write and no second spelling for "two suns".
         val suns = if (sun.of(SHINING) == NEVER) NONE else cast(Aspect.SUN).takeIf { it > NONE } ?: VANILLAS_ONE
-        val moons = if (asked(Aspect.MOON).of(ORBITING) == NEVER) NONE
+        val moons = if (asked(Aspect.MOON, 0).of(ORBITING) == NEVER) NONE
             else cast(Aspect.MOON).takeIf { it > NONE } ?: VANILLAS_ONE
-        return SkySpec.drawn(
+        val drawn = SkySpec.drawn(
             suns = suns,
             moons = moons,
-            starCount = starsAt(stars.steer(STARS, seed)),
+            starCount = starsAt(asked(Aspect.STARS, 0).steer(STARS, seed)),
             spread = ORDINARY_SPREAD.toFloat(),
-            sunSize = sunSizeAt(sun.steer(SUNSIZE, seed)),
-            sunColour = Colour.named(sun.of(SUNCOLOUR))?.saturated(SUN_IS_LOOKED_AT),
             seed = seed,
         )
+        // **Suns come first in `SkySpec.drawn`'s list**, so a moon's own index starts where they end.
+        val told = drawn.bodies.mapIndexed { at, body ->
+            val isASun = body.phase == null
+            val own = if (isASun) asked(Aspect.SUN, at) else asked(Aspect.MOON, at - suns)
+            described(body, own, seed)
+        }
+        return drawn.copy(bodies = told)
+    }
+
+    /**
+     * One body as **its own clause** described it, which is the whole point of minting (world model §2).
+     *
+     * `SkySpec.drawn` builds a sky out of what is true of all of them, which is everything a count could
+     * ever say; this is the pass that lets the second sun be blue where the first is red. A body nobody
+     * said anything about keeps exactly what was drawn, so an unremarkable sky stays vanilla's.
+     */
+    private fun described(body: CelestialBody, own: Options, seed: Long): CelestialBody {
+        val sized = own.steer(SUNSIZE, seed)?.let(::sunSizeAt)
+        val tinted = Colour.named(own.of(SUNCOLOUR))?.saturated(SUN_IS_LOOKED_AT)
+        val rising = bearingOf(own.of(RISING))
+        val sprite = body.appearance as? Appearance.Sprite
+        val appearance = when {
+            sprite == null || (sized == null && tinted == null) -> body.appearance
+            else -> sprite.copy(tint = tinted ?: sprite.tint, angularSize = sized ?: sprite.angularSize)
+        }
+        // Aimed from the path it already has, so a spare body keeps the wander the draw gave it and only
+        // the horizon it comes up over moves.
+        val path = rising?.let { Orbit.risingAt(it, body.path as? Orbit ?: Orbit.VANILLA_SUN) } ?: body.path
+        return body.copy(appearance = appearance, path = path)
     }
 
     override fun getSerializedName(): String = key
@@ -130,6 +157,37 @@ enum class Sky(override val key: String) : AspectPreset {
          * this one is a statement about the star this world goes round.
          */
         val SUNCOLOUR = colour("suncolour")
+
+        /**
+         * The compass, in the bearings `Orbit.risingAt` reads — due east is 90, which is where vanilla's
+         * own sun comes up.
+         *
+         * Eight points and no more: the four cardinals and the four between them are what a person points
+         * at, and a writer who wants a sun at 22.5° is asking a question §3.2 keeps away from them.
+         */
+        private val BEARINGS: Map<String, Float> = linkedMapOf(
+            "north" to 0.0f,
+            "northeast" to 45.0f,
+            "east" to 90.0f,
+            "southeast" to 135.0f,
+            "south" to 180.0f,
+            "southwest" to 225.0f,
+            "west" to 270.0f,
+            "northwest" to 315.0f,
+        )
+
+        /** The bearing [named] rises at, or null where nobody said — which leaves the path as it was. */
+        fun bearingOf(named: String): Float? = BEARINGS[named]
+
+        /**
+         * Which horizon a body comes up over — the eight points of the compass, and the one thing about a
+         * sun a writer is likeliest to want to say.
+         *
+         * Named rather than measured, which is §3.2 at its least arguable: "north-rising" is a thing a
+         * person says about a sun where ninety degrees of ascending node is a fact about our arithmetic.
+         * `Orbit.risingAt` does the conversion and owns the sign trap in it.
+         */
+        val RISING = Parameter("rising", listOf(Atmosphere.AS_EVER) + BEARINGS.keys)
 
         /**
          * Whether the sky reaches the ground at all — the dimension type's `has_skylight`, and **not**
@@ -226,5 +284,6 @@ enum class Sky(override val key: String) : AspectPreset {
         private const val SUN_IS_LOOKED_AT = 1.5f
 
         private fun colour(name: String) = Parameter(name, listOf(Atmosphere.AS_EVER) + Colour.ALL)
+
     }
 }
