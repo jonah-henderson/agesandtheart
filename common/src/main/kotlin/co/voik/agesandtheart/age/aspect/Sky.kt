@@ -186,6 +186,9 @@ enum class Sky(override val key: String) : AspectPreset {
          * Named rather than measured, which is §3.2 at its least arguable: "north-rising" is a thing a
          * person says about a sun where ninety degrees of ascending node is a fact about our arithmetic.
          * `Orbit.risingAt` does the conversion and owns the sign trap in it.
+         *
+         * **The sun's and the moon's alike**, which is one knob owned by two aspects: the word means the
+         * same thing about either body and the clause it was laid in picks which one it is about.
          */
         val RISING = Parameter("rising", listOf(Atmosphere.AS_EVER) + BEARINGS.keys)
 

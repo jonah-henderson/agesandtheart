@@ -160,7 +160,7 @@ enum class Aspect(val key: String) : StringRepresentable {
             WATERS -> listOf(Atmosphere.MURK)
             WEATHER -> listOf(Atmosphere.RAINFALL, Atmosphere.THUNDER)
             SUN -> listOf(Sky.SHINING, Sky.SUNSIZE, Sky.SUNCOLOUR, Sky.RISING)
-            MOON -> listOf(Sky.ORBITING)
+            MOON -> listOf(Sky.ORBITING, Sky.RISING)
             STARS -> listOf(Sky.STARS)
             // A preset aspect with dials: the two switches that pick the Age's dimension type. They sit
             // here rather than on `Atmosphere` because they are chosen when the Age is *made* and baked

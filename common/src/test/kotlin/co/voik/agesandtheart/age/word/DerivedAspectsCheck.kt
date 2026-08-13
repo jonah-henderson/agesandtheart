@@ -25,14 +25,30 @@ class DerivedAspectsCheck : FunSpec({
     fun aspectsOwning(parameter: String) = Aspect.entries.filter { it.ownsParameterNamed(parameter) }.toSet()
 
     /**
-     * The premise everything else rests on. Two aspects sharing a parameter name would make "which aspect
-     * owns this" unanswerable, and the derivation would start widening words at random.
+     * **A knob is a preset's or an aspect's, never both** — which is the bug this rule was written for, and
+     * all that is left of it.
+     *
+     * It used to forbid two *aspects* sharing a name outright, on the grounds that "which aspect owns this"
+     * would be unanswerable. It is perfectly answerable: [Word.reaching] filters and takes every owner, so
+     * a word setting a shared knob reaches both aspects and attachment picks between them — which is how
+     * one `east_rising` means the same thing about a sun and about a moon.
+     *
+     * What is a real fault is a *preset* declaring a knob its own aspect also declares, because then the
+     * knob exists twice for one thing and a word setting it is widened onto an aspect that merely contains
+     * the preset. `sunsize` was owned by the sky through a stale preset declaration and by the sun through
+     * its dials, and that is the shape this still refuses.
      */
-    test("no parameter name is owned by two aspects") {
+    test("a knob belongs to a preset or to an aspect, never both") {
         val everyParameter = vocabulary.words.flatMap { it.canSet.keys }.distinct()
         for (parameter in everyParameter) {
-            val owners = aspectsOwning(parameter)
-            check(owners.size <= 1) { "'$parameter' is owned by $owners, so no word setting it can be placed" }
+            val throughAPreset = Aspect.entries.filter { aspect ->
+                aspect.authored.any { it.honoursParameterNamed(parameter) }
+            }
+            val throughDials = Aspect.entries.filter { aspect -> aspect.dials.any { it.name == parameter } }
+            check(throughAPreset.isEmpty() || throughDials.isEmpty()) {
+                "'$parameter' is a knob of the presets in $throughAPreset and a dial of $throughDials, " +
+                    "so it exists twice for one thing"
+            }
         }
     }
 

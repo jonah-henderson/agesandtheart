@@ -274,7 +274,8 @@ class ResolverCheck : FunSpec({
      * rose could not be said at all.
      */
     test("two suns are described apart") {
-        // Only the horizons, because **no word sets a sun's size or colour yet** — the knobs are reachable
+        // Colour still has no word for a sun; size does, and it is `colossal` — see below.
+        // Only the horizons here, because — the knobs are reachable
         // and nothing in the corpus turns them, which is the hand-tuned vocabulary pass's to fix. What this
         // holds is the machinery: two clauses, two bodies, each steered on its own.
         val read = read(listOf("age", "east_rising", "sun", "southwest_rising", "sun"))
@@ -294,6 +295,28 @@ class ResolverCheck : FunSpec({
         check(suns.size == 2) { "the spec drew ${suns.size} suns" }
         val horizons = suns.map { (it.path as Orbit).ascendingNodeDegrees }
         check(horizons.distinct().size == 2) { "both suns came up over the same horizon: $horizons" }
+    }
+
+    /**
+     * **One word, two parts of the world, and the clause decides which** — the attachment rule doing the
+     * job it exists for. `colossal` picks monumental landforms by tag and fills the sky by knob, and a
+     * writer who says it about a sun means the sun.
+     */
+    test("colossal is a colossal landform and a colossal sun") {
+        val overhead = read(listOf("age", "colossal", "sun"))
+        val sky = Resolver.resolve(vocabulary, overhead, SAMPLE_SEED).composition
+        val sun = sky.sky.specFor(sky::optionsFor, SAMPLE_SEED, sky::membersIn).bodies.first { it.phase == null }
+        check(sun.appearance.angularSize > SkySpec.VANILLA_SUN_SIZE) {
+            "'colossal sun' drew a sun of ${sun.appearance.angularSize}, no larger than vanilla's"
+        }
+
+        // And laid on the land it is the rock that is colossal, the sun keeping whatever was drawn.
+        val ground = read(listOf("age", "colossal", "landmass"))
+        val rock = Resolver.resolve(vocabulary, ground, SAMPLE_SEED).composition
+        val itsSun = rock.sky.specFor(rock::optionsFor, SAMPLE_SEED, rock::membersIn).bodies.first { it.phase == null }
+        check(itsSun.appearance.angularSize == SkySpec.VANILLA_SUN_SIZE) {
+            "'colossal landmass' reached the sun as well, at ${itsSun.appearance.angularSize}"
+        }
     }
 
     /**

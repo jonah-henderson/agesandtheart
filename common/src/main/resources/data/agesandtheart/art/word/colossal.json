@@ -1,9 +1,20 @@
 {
+  "_comment": [
+    "Bigness, wherever bigness is a thing the part of the world can be. The tag query picks monumental",
+    "landforms and the `sunsize` it sets fills a good part of the sky, and attachment decides which is",
+    "meant: `colossal landmass` is the rock, `colossal sun` is the star, and a colossal Age is both.",
+    "",
+    "The query is flat rather than keyed because `monumental` means the same thing everywhere it is",
+    "carried; a sun carries no tags at all, so asking it costs nothing and finds nothing."
+  ],
   "tier": "exact",
   "aspects": [
     "landmass"
   ],
   "query": {
     "monumental": 1.0
+  },
+  "sets": {
+    "sunsize": "0.7..1.0"
   }
 }
