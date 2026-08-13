@@ -156,7 +156,7 @@ object Atmosphere {
      * colour gets the colour they asked for, because [Look.over] keeps whatever was said.
      */
     fun unlitLook(sky: Options): Look =
-        if (sky.of(Sky.SKYLIGHT) != "none") Look.NOTHING
+        if (sky.of(Sky.SEALED) != "always") Look.NOTHING
         else Look(sky = STARLESS, fog = STARLESS, cloud = STARLESS, tint = STARLESS)
 
     /** Not quite black: pure zero reads as a hole cut in the world rather than as a dark sky. */
@@ -189,7 +189,7 @@ object Atmosphere {
      * `skylight` switch that picks the dimension type says the same thing from the other side.
      */
     private fun lightFrom(sky: Options, sun: Options): List<Asked<*>> {
-        val nothingIsUpThere = sun.of(Sky.SHINING) == Sky.NEVER || sky.of(Sky.SKYLIGHT) == "none"
+        val nothingIsUpThere = sun.of(Sky.SHINING) == Sky.NEVER || sky.of(Sky.SEALED) == "always"
         return if (nothingIsUpThere) listOf(Asked(EnvironmentAttributes.SKY_LIGHT_LEVEL, NO_DAYLIGHT)) else emptyList()
     }
 

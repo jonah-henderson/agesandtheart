@@ -1,7 +1,7 @@
 {
   "_comment": [
-    "A world nothing shines on. It used to zero two counts beside the switch; the bodies are minted",
-    "now, so what is left is the sky reaching nothing, no sun to go round, and no stars behind it."
+    "A world nothing shines on. It used to set the two dimension-type switches directly; those are game",
+    "rules and follow the facts now, so what is left is the two facts: sealed overhead, and no sun."
   ],
   "tier": "exact",
   "aspects": [
@@ -10,7 +10,7 @@
     "stars"
   ],
   "sets": {
-    "skylight": "none",
+    "sealed": "always",
     "shining": "never",
     "stars": "-1.0..-1.0"
   }

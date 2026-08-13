@@ -62,7 +62,6 @@ object AgeGeneration {
      */
     val AGE_DIMENSION_TYPE: Identifier = "age".location()
     val AGE_LIGHTLESS_DIMENSION_TYPE: Identifier = "age_lightless".location()
-    val AGE_ROOFED_DIMENSION_TYPE: Identifier = "age_roofed".location()
     val AGE_LIGHTLESS_ROOFED_DIMENSION_TYPE: Identifier = "age_lightless_roofed".location()
 
     /** The custom biome (green plasma water), registered as a datapack biome at load. */
@@ -418,7 +417,10 @@ object AgeGeneration {
      * y=0 that drew the Spire's sky by chance.
      */
     fun dimensionType(recipe: AgeRecipe): Identifier = when (val world = recipe.world) {
-        is AgeWorld.Composed -> Sky.dimensionType(world.composition.optionsFor(Aspect.SKY, 0))
+        is AgeWorld.Composed -> Sky.dimensionType(
+            world.composition.optionsFor(Aspect.SKY, 0),
+            world.composition.optionsFor(Aspect.SUN, 0),
+        )
         is AgeWorld.Bespoke -> AGE_DIMENSION_TYPE
     }
 

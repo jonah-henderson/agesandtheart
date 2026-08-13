@@ -193,28 +193,20 @@ enum class Sky(override val key: String) : AspectPreset {
         val RISING = Parameter("rising", listOf(Atmosphere.AS_EVER) + BEARINGS.keys)
 
         /**
-         * Whether the sky reaches the ground at all — the dimension type's `has_skylight`, and **not**
-         * a dimmer that no longer exists. This one stops skylight propagating: it is dark in the
-         * open at noon, monsters spawn on the surface, and nothing that needs sky grows.
-         */
-        val SKYLIGHT = Parameter("skylight", Atmosphere.AS_EVER, "none")
-
-        /**
-         * Whether the world is treated as roofed — the dimension type's `has_ceiling`, and **it builds no
-         * roof**. Checked against 26.1.2 rather than remembered: four things read it, and none of them
-         * places a block. It never rains or snows (`Level.canHaveWeather`), maps go static
-         * (`MapItem.update`), mobs stop spawning off the surface heightmap and so spawn at every depth
-         * (`NaturalSpawner.getTopNonCollidingPos`), and respawn searches differently
-         * (`PlayerSpawnFinder`). Bedrock over the nether is its *chunk generator's* surface rule and has
-         * never been this flag.
+         * Whether the world is **sealed overhead** — a physical fact about the Age, and the one a writer
+         * may argue with.
          *
-         * The things this used to do moved out in 26.1: `bed_rule` and `respawn_anchor_works` are
-         * environment attributes now, and the Age types set them directly.
+         * The game rules that follow it are not writable: `has_ceiling` and `has_skylight` are derived from
+         * this and from whether anything shines (see [dimensionType]). So a writer with enough words can
+         * open a nether-shaped world to the sky and the rules go with them, rather than being a second
+         * thing to remember to say.
          *
-         * Named for what a writer sees rather than for vanilla's key, because `ceiling` is already how high
-         * the *clouds* sit (`Atmosphere.CEILING`) and one `sets` map carries both.
+         * **It places no blocks yet**, and the name is chosen against that day rather than for today: the
+         * ceiling a sealed world has comes from whatever generates it, and until something does this says
+         * what the Age *is* without yet building it. `has_ceiling` never built one either — read against
+         * 26.1.2, four things call it and none places a block.
          */
-        val ROOF = Parameter("roof", Atmosphere.AS_EVER, "always")
+        val SEALED = Parameter("sealed", Atmosphere.AS_EVER, "always")
 
         /**
          * The pre-authored type an Age wearing these dials needs.
@@ -225,13 +217,29 @@ enum class Sky(override val key: String) : AspectPreset {
          * them: all four declare [co.voik.agesandtheart.worldgen.VerticalWindow.DEFAULT], so no sky can
          * move an Age's floor.
          */
-        fun dimensionType(options: Options): Identifier {
-            val isLightless = options.of(SKYLIGHT) == "none"
-            val isRoofed = options.of(ROOF) == "always"
+        /**
+         * The pre-authored type an Age wearing these facts needs — **derived, never written** (Jonah,
+         * 2026-08-12).
+         *
+         * `has_ceiling` and `has_skylight` are *game rules*, and a writer never sets one: they follow from
+         * the physical facts of the Age. What is sealed overhead has a ceiling; what is sealed overhead or
+         * goes round nothing has no skylight. So a writer with enough words can open a nether-shaped world
+         * to the sky, and the rules follow them there rather than having to be argued with separately.
+         *
+         * **Four files, and that is the whole reason only two switches are derived.** A composed
+         * `DimensionType` cannot be encoded in the join packet, so every combination has to be a JSON we
+         * ship, and each further switch doubles them. The band of world is deliberately not among them: all
+         * four declare [co.voik.agesandtheart.worldgen.VerticalWindow.DEFAULT], so no sky moves an Age's
+         * floor.
+         */
+        fun dimensionType(sky: Options, sun: Options): Identifier {
+            val isRoofed = sky.of(SEALED) == "always"
+            val isLightless = isRoofed || sun.of(SHINING) == NEVER
+            // **Three, not four.** A world sealed overhead cannot also let the sky reach the ground, so
+            // roofed-and-lit is a combination the facts cannot produce and the file for it is gone.
             return when {
-                isLightless && isRoofed -> AgeGeneration.AGE_LIGHTLESS_ROOFED_DIMENSION_TYPE
+                isRoofed -> AgeGeneration.AGE_LIGHTLESS_ROOFED_DIMENSION_TYPE
                 isLightless -> AgeGeneration.AGE_LIGHTLESS_DIMENSION_TYPE
-                isRoofed -> AgeGeneration.AGE_ROOFED_DIMENSION_TYPE
                 else -> AgeGeneration.AGE_DIMENSION_TYPE
             }
         }

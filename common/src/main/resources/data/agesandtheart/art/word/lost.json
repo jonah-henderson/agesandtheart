@@ -4,6 +4,6 @@
     "sky"
   ],
   "sets": {
-    "roof": "always"
+    "sealed": "always"
   }
 }

@@ -19,32 +19,37 @@ class DimensionTypeCheck : FunSpec({
 
     val shipped = File("src/main/resources/data/agesandtheart/dimension_type")
 
+    val sealed = Options(mapOf(Sky.SEALED.name to listOf("always")))
+    val unlit = Options(mapOf(Sky.SHINING.name to listOf(Sky.NEVER)))
+
+    /**
+     * **Every set of facts an Age can have, and the type each earns.** Three rather than four: roofed and
+     * lit is a combination the world cannot be in, so no file ships for it.
+     */
     val everyCombination = listOf(
-        Options() to AgeGeneration.AGE_DIMENSION_TYPE,
-        Options(mapOf(Sky.SKYLIGHT.name to listOf("none"))) to AgeGeneration.AGE_LIGHTLESS_DIMENSION_TYPE,
-        Options(mapOf(Sky.ROOF.name to listOf("always"))) to AgeGeneration.AGE_ROOFED_DIMENSION_TYPE,
-        Options(mapOf(Sky.SKYLIGHT.name to listOf("none"), Sky.ROOF.name to listOf("always")))
-            to AgeGeneration.AGE_LIGHTLESS_ROOFED_DIMENSION_TYPE,
+        Triple(Options(), Options(), AgeGeneration.AGE_DIMENSION_TYPE),
+        Triple(Options(), unlit, AgeGeneration.AGE_LIGHTLESS_DIMENSION_TYPE),
+        Triple(sealed, Options(), AgeGeneration.AGE_LIGHTLESS_ROOFED_DIMENSION_TYPE),
     )
 
-    test("each pair of switches picks its own type") {
-        for ((options, expected) in everyCombination) {
-            val chosen = Sky.dimensionType(options)
-            check(chosen == expected) { "$options picked $chosen rather than $expected" }
+    test("each set of facts picks its own type") {
+        for ((sky, sun, expected) in everyCombination) {
+            val chosen = Sky.dimensionType(sky, sun)
+            check(chosen == expected) { "$sky $sun picked $chosen rather than $expected" }
         }
-        check(everyCombination.map { it.second }.distinct().size == everyCombination.size) {
-            "two combinations of switches share a dimension type"
+        check(everyCombination.map { it.third }.distinct().size == everyCombination.size) {
+            "two sets of facts share a dimension type"
         }
     }
 
     test("every type an Age can wear is shipped, and says what its switches asked for") {
         check(shipped.isDirectory) { "no dimension types ship from ${shipped.absolutePath}" }
-        for ((options, expected) in everyCombination) {
+        for ((sky, sun, expected) in everyCombination) {
             val file = File(shipped, "${expected.path}.json")
-            check(file.isFile) { "'${expected.path}' is chosen by $options and ships no file" }
+            check(file.isFile) { "'${expected.path}' is chosen by $sky $sun and ships no file" }
             val written = JsonParser.parseString(file.readText()).asJsonObject
-            val wantsSkylight = options.of(Sky.SKYLIGHT) != "none"
-            val wantsRoof = options.of(Sky.ROOF) == "always"
+            val wantsRoof = sky.of(Sky.SEALED) == "always"
+            val wantsSkylight = !wantsRoof && sun.of(Sky.SHINING) != Sky.NEVER
             check(written.get("has_skylight").asBoolean == wantsSkylight) {
                 "'${expected.path}' has_skylight is ${written.get("has_skylight")}, asked $wantsSkylight"
             }
@@ -58,8 +63,8 @@ class DimensionTypeCheck : FunSpec({
      * The band is the one thing that must **not** vary, because terrain is generated against it: a type
      * with a different floor would put an Age's landform in the wrong place for the same recipe.
      */
-    test("all four declare the same band of world") {
-        for ((_, id) in everyCombination) {
+    test("every type declares the same band of world") {
+        for ((_, _, id) in everyCombination) {
             val written = JsonParser.parseString(File(shipped, "${id.path}.json").readText()).asJsonObject
             check(written.get("min_y").asInt == VerticalWindow.DEFAULT.minY) {
                 "'${id.path}' starts at ${written.get("min_y")} rather than ${VerticalWindow.DEFAULT.minY}"
