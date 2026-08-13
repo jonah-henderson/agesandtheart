@@ -302,6 +302,33 @@ class ResolverCheck : FunSpec({
     }
 
     /**
+     * **A rung reaches a member a tag chose, not only one a word named** — `teeming herds` against
+     * `scarce herds`, where `herds` names no creature and picks every grazing one.
+     *
+     * This was a silent drop, which is the failure §3.3 forbids above all others. A quantifier travels on
+     * the claim, and the claim a *named* member makes is written somewhere the amount was already read; a
+     * member chosen by a query went through a different path where nothing had ever looked. So `frequent
+     * plants` lost its `frequent` and said so nowhere.
+     */
+    test("a rung reaches a member a tag chose") {
+        fun grazingWeight(sentence: List<String>): Double {
+            val resolved = Resolver.resolve(vocabulary, read(sentence), SAMPLE_SEED).composition
+            val claims = Skew.of(resolved.optionsFor(Aspect.SPAWNS, 0).claimsOn(Spawns.LIVES))
+            val cow = claims.wanted.firstOrNull { it.value == "minecraft:cow" }
+            return cow?.density ?: error("'${sentence.joinToString(" ")}' asked for no cows at all")
+        }
+        val plain = grazingWeight(listOf("age", "herds", "spawns"))
+        val many = grazingWeight(listOf("age", "teeming", "herds", "spawns"))
+        val few = grazingWeight(listOf("age", "scarce", "herds", "spawns"))
+
+        check(many > plain) { "'teeming herds' asked for $many where plain herds asked $plain" }
+        // And the other way, which is the half that adding rather than scaling would have got wrong: a
+        // quarter of an ordinary claim is less than the world would have had, where a quarter *added* to
+        // one is still more.
+        check(few < plain) { "'scarce herds' asked for $few where plain herds asked $plain" }
+    }
+
+    /**
      * **A template brings vanilla's rock, and naming a landform takes it away** — the either/or the whole
      * hybrid rests on (`the-art-implementation-plan.md`, "Vanilla's own terrain under an Age").
      *

@@ -965,9 +965,19 @@ object Resolver {
         val insisted = insisting.sumOf { it.word.pullOn(member, tags) * it.word.tier.weight }
         val spurned = spurning.sumOf { it.word.affinityOn(member, tags) * it.word.tier.weight }
         val liked = liking.sumOf { it.word.affinityOn(member, tags) }
-        val polarity = (insisting + liking.filter { it.word.affinityOn(member, tags) > 0.0 })
-            .map { it.polarity }.firstOrNull { it != Polarity.ASSERTED }
-        val asked = Rung.ORDINARY + insisted + spurned + liked
+        val wanting = insisting + liking.filter { it.word.affinityOn(member, tags) > 0.0 }
+        val polarity = wanting.map { it.polarity }.firstOrNull { it != Polarity.ASSERTED }
+        // **The rung reaches a member a tag chose, not only one a word named.** `frequent plants` was
+        // losing its `frequent` in silence: a quantifier travels on the claim, and the claim a *named*
+        // member makes is written elsewhere ([claimed]) where the amount was already read. Here the member
+        // was chosen by a query, so nothing had ever looked.
+        //
+        // It scales what the words asked for rather than adding to it, which is what lets `scarce` mean
+        // *less than the world would have had*: a quarter of an ordinary claim is a quarter, where a
+        // quarter added to it would still be more. Ordinary is one, so an unquantified word changes
+        // nothing, and two quantified words compound — `teeming` said twice is very teeming.
+        val rung = wanting.fold(Rung.ORDINARY) { standing, said -> standing * said.density }
+        val asked = (Rung.ORDINARY + insisted + spurned + liked) * rung
         val weight = Rung.legible(asked.coerceIn(population.leastKept, MOST_OF_A_WORLD))
         // Struck out rather than kept at nothing: a claim of none of something is what `except` says, and
         // saying it that way keeps one mechanism for removal instead of two.
