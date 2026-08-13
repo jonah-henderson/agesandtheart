@@ -203,23 +203,17 @@ class SkyCheck : FunSpec({
             for (seed in SEEDS) {
                 val spec = sky.specFor({ Options() }, seed)
                 check(spec.isOrdinary) {
-                    "$sky's defaults do not draw an ordinary sky at seed $seed — the first option of SUNS, MOONS " +
-                        "and STARS must be the vanilla one. Drawn: $spec"
+                    "$sky's defaults do not draw an ordinary sky at seed $seed — a book that minted no " +
+                        "body and bent no axis must keep the overworld's own sky. Drawn: $spec"
                 }
             }
         }
         // The bodies are the sun's, the moon's and the stars' rather than any sky preset's, so it is the
-        // aspects that must hold them — a knob nothing declares is a request silently dropped.
-        val overhead = mapOf(
-            Aspect.SUN to Sky.SUNS,
-            Aspect.MOON to Sky.MOONS,
-            Aspect.STARS to Sky.STARS,
-        )
-        for ((aspect, parameter) in overhead) {
-            check(parameter in aspect.dials) {
-                "${aspect.key} does not hold ${parameter.name}, so a request for it would be dropped"
-            }
+        // aspects that must hold their knobs — one nothing declares is a request silently dropped.
+        for (parameter in listOf(Sky.SHINING, Sky.SUNSIZE, Sky.SUNCOLOUR)) {
+            check(parameter in Aspect.SUN.dials) { "the sun does not hold ${parameter.name}" }
         }
+        check(Sky.STARS in Aspect.STARS.dials) { "the stars do not hold their own density" }
     }
 
     /**
@@ -258,8 +252,14 @@ class SkyCheck : FunSpec({
     /** The counterpart: anything unusual must NOT read as ordinary, or the whole feature would be invisible. */
     test("anything unusual does not read as ordinary") {
         val unusual = listOf(
-            "two suns" to Sky.PLAIN.specFor({ Options(mapOf(Sky.SUNS.name to listOf("2"))) }, A_SEED),
-            "no moons" to Sky.PLAIN.specFor({ Options(mapOf(Sky.MOONS.name to listOf("0"))) }, A_SEED),
+            // Two suns is two clauses that minted one, which is the cast rather than any option.
+            "two suns" to Sky.PLAIN.specFor({ Options() }, A_SEED) { aspect ->
+                if (aspect == Aspect.SUN) 2 else 0
+            },
+            "no suns" to Sky.PLAIN.specFor(
+                { aspect -> if (aspect == Aspect.SUN) Options(mapOf(Sky.SHINING.name to listOf(Sky.NEVER))) else Options() },
+                A_SEED,
+            ),
             "no stars" to Sky.PLAIN.specFor({ Options(mapOf(Sky.STARS.name to listOf(EMPTIEST))) }, A_SEED),
             "dense stars" to Sky.PLAIN.specFor({ Options(mapOf(Sky.STARS.name to listOf(FULLEST))) }, A_SEED),
         )

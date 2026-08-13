@@ -1,9 +1,10 @@
 {
+  "_comment": "A world nothing circles. The moon's counterpart to `sunless`, and for the same reason.",
   "tier": "exact",
   "aspects": [
-    "sky"
+    "moon"
   ],
   "sets": {
-    "moons": "0"
+    "orbiting": "never"
   }
 }

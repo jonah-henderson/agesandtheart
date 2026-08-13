@@ -1319,7 +1319,7 @@ object AgeCommand {
             return null
         }
         // The Age's own seed, so a preview differs from the real sky only where the words differ.
-        return composition.sky.specFor({ aspect -> composition.optionsFor(aspect, 0) }, seed)
+        return composition.sky.specFor({ aspect -> composition.optionsFor(aspect, 0) }, seed, composition::membersIn)
     }
 
     /**

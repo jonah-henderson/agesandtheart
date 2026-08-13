@@ -9,6 +9,7 @@ import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Holds
 import co.voik.agesandtheart.age.aspect.AspectPreset
 import co.voik.agesandtheart.age.aspect.Carvers
 import co.voik.agesandtheart.worldgen.biome.ClimateBias
@@ -61,8 +62,13 @@ data class AgeComposition(
      * How many territories [aspect] divides into. Presets answer for themselves; an aspect whose answer is
      * a set of dials counts its own values, there being no preset to count.
      */
-    fun membersIn(aspect: Aspect): Int =
-        if (aspect == Aspect.CLIMATE) climates.size else presets.count { it.aspect == aspect }
+    fun membersIn(aspect: Aspect): Int = when {
+        aspect == Aspect.CLIMATE -> climates.size
+        // A cast has no presets to count: its members are the ones the book described, so its stored
+        // options are the roll.
+        aspect.holds == Holds.POPULATION -> options.allOf(aspect).size
+        else -> presets.count { it.aspect == aspect }
+    }
 
     /** Every preset this composition names, in aspect order — for listing, costing and diagnosis. */
     val presets: List<AspectPreset>
@@ -107,7 +113,11 @@ data class AgeComposition(
             Aspect.CARVERS -> copy(carvers = keys.map { named<Carvers>(aspect, it) })
             // Climate names no presets, so a key list can only mean "give it this many territories".
             Aspect.CLIMATE -> copy(climates = List(keys.size.coerceAtLeast(1)) { ClimateBias.NONE })
-            else -> withSingle(aspect, keys.last())
+            // Nor does a cast, and its key list is its roll — one `body` per member.
+            else -> when (aspect.holds) {
+                Holds.POPULATION -> withCastOf(aspect, keys.size)
+                else -> withSingle(aspect, keys.last())
+            }
         }
         return filled.copy(shares = filled.shares.with(aspect, shares))
     }
@@ -183,6 +193,19 @@ data class AgeComposition(
     }
 
     /**
+     * This composition with [aspect]'s cast grown to [members] — what a clause that minted a body and said
+     * nothing else about it writes.
+     *
+     * A body with no properties still has to be *there*, and a population's stored entries are its roll
+     * ([membersIn]), so an empty entry is how the roll records one. Never shrinks: a sentence adds bodies
+     * and nothing takes them away.
+     */
+    fun withCastOf(aspect: Aspect, members: Int): AgeComposition {
+        if (members <= membersIn(aspect)) return this
+        return copy(options = options.with(aspect, options.expanded(aspect, members)))
+    }
+
+    /**
      * How a writer would have said it: `terrain=hills terrain.arrangement=grid sea=water …`.
      *
      * Exactly the spelling [parse] reads, so `/age list` output pastes back into `/age compose` and the
@@ -203,7 +226,7 @@ data class AgeComposition(
             }
             val slotWide = if (aimed) emptyList() else spelled(aspect, options.of(aspect))
             listOf("${aspect.key}=${written.joinToString(",")}") + slotWide
-        }.plus(seatlessSpelling()).plus(climateSpelling()).joinToString(" ")
+        }.plus(castSpelling()).plus(seatlessSpelling()).plus(climateSpelling()).joinToString(" ")
 
     /**
      * The options of an aspect that seats no preset, which the loop above cannot reach because it walks
@@ -214,8 +237,28 @@ data class AgeComposition(
      * says which territory each stretch belongs to, where an Age-wide answer needs no such thing.
      */
     private fun seatlessSpelling(): List<String> = Aspect.entries
-        .filter { it.seatsNothing && !it.positional }
+        .filter { it.seatsNothing && !it.positional && it.holds != Holds.POPULATION }
         .flatMap { aspect -> spelled(aspect, options.of(aspect)) }
+
+    /**
+     * `sun=body,body[suncolour=red]` — a **cast**, one word per member.
+     *
+     * A body has no name of its own, having been described into being rather than chosen, so [BODY] stands
+     * for one and the number of them is the roll. Spelled out rather than counted because the per-member
+     * steering has to hang on something, and this is the bracket idiom every territory already uses — which
+     * means [parse] reads it back with no new machinery.
+     *
+     * **Without this a cast did not survive the round trip at all**: nothing walks a population's members,
+     * so a three-sun Age wrote no `sun=` and rebuilt with the template's one.
+     */
+    private fun castSpelling(): List<String> = Aspect.entries
+        .filter { it.holds == Holds.POPULATION && membersIn(it) > 0 }
+        .map { aspect ->
+            val bodies = (0..<membersIn(aspect)).joinToString(",") { member ->
+                BODY + steering(options.of(aspect, member))
+            }
+            "${aspect.key}=$bodies"
+        }
 
     /**
      * `climate.temperature=-0.3..0.3`, or `climate={…},{…}` where the world's climate fractured.
@@ -364,6 +407,12 @@ data class AspectOptions(private val bySlot: Map<Aspect, List<Options>> = emptyM
     fun expanded(aspect: Aspect, members: Int): List<Options> = List(members) { member -> of(aspect, member) }
 
     fun with(aspect: Aspect, perMember: List<Options>): AspectOptions {
+        // **A population keeps every member, however alike they are, and even when they say nothing.**
+        // Its entries *are* its cast: two identical red suns collapsed to one would be one sun, and a body
+        // nobody described anything about would vanish rather than hang there plainly.
+        if (aspect.holds == Holds.POPULATION) {
+            return AspectOptions(if (perMember.isEmpty()) bySlot - aspect else bySlot + (aspect to perMember))
+        }
         // Collapsed on the way in, so the round trip has one spelling to reproduce.
         val collapsed = if (perMember.distinct().size == 1) perMember.take(1) else perMember
         val saysNothing = collapsed.all { it.chosen.isEmpty() }
@@ -408,6 +457,9 @@ data class SlotShares(private val bySlot: Map<Aspect, List<Double>> = emptyMap()
  * read as the preset `minecraft` covering an `air` share. Only ever a command spelling — shares persist
  * as their own codec field.
  */
+/** What one member of a cast is called in a recipe, having no name of its own — see `castSpelling`. */
+private const val BODY = "body"
+
 private const val SHARE_MARK = '@'
 
 /**

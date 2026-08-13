@@ -19,7 +19,7 @@ class SkyKnobsCheck : FunSpec({
     val age = "knobage"
 
     beforeSpec {
-        server.run("age compose $age 5 landmass=hills sea=minecraft:water depths=caves sky=plain sky.suns=2")
+        server.run("age compose $age 5 landmass=hills sea=minecraft:water depths=caves sky=plain")
     }
 
     test("a knob is acted on and said back") {
@@ -66,7 +66,7 @@ class SkyKnobsCheck : FunSpec({
     }
 
     test("several knobs at once, alongside the Art's own words") {
-        val report = server.run("age sky $age sky=plain sky.suns=3 path=epicycle glow=nearest deck=solid")
+        val report = server.run("age sky $age sky=plain sky.sunsize=0.5..0.9 path=epicycle glow=nearest deck=solid")
         check("turned" in report) { "A mixed line was refused:\n$report" }
         check("sun" in report) { "A mixed line lost the Art's own words:\n$report" }
     }

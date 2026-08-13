@@ -131,7 +131,7 @@ object Resolver {
         val filled = Aspect.entries.associateWith { aspect -> fill(vocabulary, aspect, said, draw, flaws) }
         flaws += tensions(vocabulary, said, filled.mapValues { (_, filling) -> filling.map { it.preset } })
 
-        val composition = weighed(vocabulary, steer(vocabulary, compose(filled), said, draw, flaws), said)
+        val composition = minted(weighed(vocabulary, steer(vocabulary, compose(filled), said, draw, flaws), said), said)
         // **Last**, so it can see everything the mechanisms above already charged and never price one
         // disagreement twice. Steering adds flaws of its own, so this cannot be hoisted.
         flaws += oppositions(vocabulary, said, flaws.toList())
@@ -165,6 +165,21 @@ object Resolver {
         // A narrowing word that landed nowhere is left empty on purpose so `DerivedAspectsCheck` can refuse
         // it; it must not also be free on the way past.
         else word.tier.cost * word.aspects.size.coerceAtLeast(AT_HOME_SOMEWHERE)
+
+    /**
+     * [composition] with every body the sentence brought into being counted, said about or not.
+     *
+     * A clause closing on a population mints a member, and one carrying no modifiers steers nothing — so
+     * without this the roll would hold only the bodies somebody had an opinion about, and `a sun. a sun.`
+     * would come out as one.
+     */
+    private fun minted(composition: AgeComposition, said: List<Constraint>): AgeComposition =
+        said.mapNotNull { claim -> claim.mintedAs?.let { it to claim } }
+            .flatMap { (member, claim) -> claim.aimedAt.map { aspect -> aspect to member } }
+            .groupBy({ it.first }, { it.second })
+            .entries.fold(composition) { held, (aspect, members) ->
+                held.withCastOf(aspect, members.max() + 1)
+            }
 
     /**
      * Pages the writer laid where they could not be read, which [Repair] moved somewhere they could
@@ -640,7 +655,14 @@ object Resolver {
                     .sortedWith(compareByDescending<Constraint> { it.word.tier }.thenBy { tieBreak(draw, aspect, it.word) })
                 val populative = parameterNamed(steered, aspect, parameter)
                     ?.takeIf { it.holds == Holds.WEIGHTED_SET }
+                // **A body is steered on its own.** Each clause that minted one carries its index, so what
+                // was said about the second sun never reaches the first — the one place a claim is written
+                // to a member rather than across the aspect.
+                val bodies = contenders.filter { it.mintedAs != null }
                 steered = when {
+                    bodies.isNotEmpty() -> bodies.fold(steered) { held, said ->
+                        held.withOptionsFor(aspect, said.mintedAs ?: 0, parameter, listOf(said.word.sets.getValue(parameter)))
+                    }
                     // Populative values accumulate rather than conflict (§3.2), and the polarity travels
                     // with the value — which is what makes `only` and `except` reach a population at all.
                     // See [co.voik.agesandtheart.age.aspect.Claim].

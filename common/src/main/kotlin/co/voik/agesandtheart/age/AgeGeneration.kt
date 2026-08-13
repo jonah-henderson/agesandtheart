@@ -432,6 +432,7 @@ object AgeGeneration {
         is AgeWorld.Composed -> world.composition.sky.specFor(
             { aspect -> world.composition.optionsFor(aspect, 0) },
             recipe.seed,
+            world.composition::membersIn,
         )
         is AgeWorld.Bespoke -> if (world.preset == AgePreset.SPIRE) SpireSky.SPEC else SkySpec.VANILLA
     }

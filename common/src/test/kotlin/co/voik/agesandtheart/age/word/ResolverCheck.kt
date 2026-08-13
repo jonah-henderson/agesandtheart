@@ -743,7 +743,7 @@ class ResolverCheck : FunSpec({
     test("a sky word lands where it says") {
         fun skyOf(sentence: String): SkySpec {
             val composition = resolve(vocabulary, sentence).composition
-            return composition.sky.specFor({ aspect -> composition.optionsFor(aspect, 0) }, SAMPLE_SEED)
+            return composition.sky.specFor({ aspect -> composition.optionsFor(aspect, 0) }, SAMPLE_SEED, composition::membersIn)
         }
 
         val ordinary = skyOf("stormy")
@@ -757,11 +757,16 @@ class ResolverCheck : FunSpec({
             "'starlit' drew ${skyOf("starlit").stars.count} stars, no more than an ordinary sky"
         }
 
-        // And a count says exactly its number, since that is the whole of what a count is.
-        check(skyOf("twinned").bodies.count { it.phase == null } == TWO_SUNS) {
-            "'twinned' drew ${skyOf("twinned").bodies.size} bodies in all"
+        // And a body is minted by the clause that describes it, so two clauses are two suns — there is no
+        // count to write, which is what stops `two suns` and `a sun, a sun` being two spellings for one
+        // thing (world model §2).
+        val twoSuns = read(listOf("age", "sun", "sun"))
+        val minted = Resolver.resolve(vocabulary, twoSuns, SAMPLE_SEED).composition
+        val drawn = minted.sky.specFor({ minted.optionsFor(it, 0) }, SAMPLE_SEED, minted::membersIn)
+        check(drawn.bodies.count { it.phase == null } == TWO_SUNS) {
+            "two `sun` clauses drew ${drawn.bodies.count { it.phase == null }} suns"
         }
-        check(skyOf("moonless").bodies.all { it.phase == null }) { "'moonless' left a moon overhead" }
+        check(skyOf("sunless").bodies.none { it.phase == null }) { "'sunless' left a sun overhead" }
     }
 
     /**

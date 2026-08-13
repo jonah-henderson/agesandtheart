@@ -105,7 +105,7 @@ object Atmosphere {
      */
     fun settle(level: ServerLevel, salt: Long, asked: (Aspect) -> Options) {
         val options = asked(Aspect.CLIMATE)
-        val everywhere = airIn(options, salt, biome = null) + lightFrom(asked(Aspect.SKY))
+        val everywhere = airIn(options, salt, biome = null) + lightFrom(asked(Aspect.SKY), asked(Aspect.SUN))
         val corners = cornersOf(asked).associateWith { airIn(options, salt, it) }
         if (everywhere.isEmpty() && corners.all { it.value.isEmpty() }) return
         val system = EnvironmentAttributeSystem.builder().addDefaultLayers(level)
@@ -188,8 +188,8 @@ object Atmosphere {
      * So a writer never sets it. A world with a sun in it has daylight and one with none does not, and the
      * `skylight` switch that picks the dimension type says the same thing from the other side.
      */
-    private fun lightFrom(sky: Options): List<Asked<*>> {
-        val nothingIsUpThere = sky.countOf(Sky.SUNS) == NO_SUNS || sky.of(Sky.SKYLIGHT) == "none"
+    private fun lightFrom(sky: Options, sun: Options): List<Asked<*>> {
+        val nothingIsUpThere = sun.of(Sky.SHINING) == Sky.NEVER || sky.of(Sky.SKYLIGHT) == "none"
         return if (nothingIsUpThere) listOf(Asked(EnvironmentAttributes.SKY_LIGHT_LEVEL, NO_DAYLIGHT)) else emptyList()
     }
 
@@ -224,9 +224,6 @@ object Atmosphere {
 
     /** What an option reads as when a writer left an attribute alone — vanilla's own answer, whatever it is. */
     const val AS_EVER = "as_ever"
-
-    /** A sky with nothing in it to give light. */
-    private const val NO_SUNS = 0
 
     private const val NO_DAYLIGHT = 0f
 }

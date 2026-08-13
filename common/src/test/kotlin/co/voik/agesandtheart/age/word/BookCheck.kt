@@ -242,7 +242,11 @@ class BookCheck : FunSpec({
     test("nothing vanishes from a row of pages") {
         for ((seed, pages) in fuzzed) {
             val read = read(pages)
-            val accountedFor = read.written.map { it.word.name }.toSet() + read.dropped.toSet()
+            // **A biome consumed by a siting is used, not lost.** `in <biome>` takes the page that names
+            // the place and makes it the clause's address rather than a claim of its own (§4.3.1), so it
+            // is accounted for by the clause it sited rather than by any constraint.
+            val sited = read.phrases.mapNotNull { it.confinedTo?.path }
+            val accountedFor = read.written.map { it.word.name }.toSet() + read.dropped + sited
             val content = pages.filter { vocabulary.grammarWord(it) == null }
             val lost = content.filterNot { it in accountedFor }
             check(lost.isEmpty()) {

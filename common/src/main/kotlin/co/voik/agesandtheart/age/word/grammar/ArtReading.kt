@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age.word.grammar
 
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Biomes
+import co.voik.agesandtheart.age.aspect.Holds
 import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.aspect.Rung
 import net.minecraft.resources.Identifier
@@ -61,6 +62,12 @@ internal object ArtReading {
     private class Reading(private val pages: List<Page>) {
         private var at = 0
         private var nextGroup = 0
+
+        /**
+         * How many members of each population the book has minted so far, so the next clause aimed at one
+         * describes the next body rather than arguing with the last (`the-world-model.md` §2).
+         */
+        private val minted = mutableMapOf<Aspect, Int>()
 
         /**
          * Whether something was met that cannot be read at all — an `and` with nothing after it, an `in`
@@ -128,10 +135,20 @@ internal object ArtReading {
 
             val said = modifiers(until = closesAt, aim = aim, confinedTo = confinedTo) ?: return null
             at = if (confinedTo == null) sitingAt else sitingAt + PAGES_IN_A_SITING
+            // A clause closing on a population brings a member of it into being, and everything said in the
+            // clause is said about *that* one.
+            val mints = aim.singleOrNull()?.takeIf { it.holds == Holds.POPULATION }
+            val body = mints?.let { minted.merge(it, 1, Int::plus)!! - 1 }
             return Phrase(
-                modifiers = said,
+                modifiers = said.map { it.copy(mintedAs = body) },
                 subject = subject?.word?.let {
-                    Constraint(it, scopeFor(it, aim), latent = subject.latent, rehomed = subject.rehomed)
+                    Constraint(
+                        it,
+                        scopeFor(it, aim),
+                        latent = subject.latent,
+                        rehomed = subject.rehomed,
+                        mintedAs = body,
+                    )
                 },
                 confinedTo = confinedTo,
             )

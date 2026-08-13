@@ -11,6 +11,7 @@ import co.voik.agesandtheart.age.aspect.Skew
 import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Share
 import co.voik.agesandtheart.age.aspect.Structures
+import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.Terrain
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.datatest.withData
@@ -101,6 +102,26 @@ class RecipeCheck : FunSpec({
             "A mingled parameter spells itself wrong: '$spelling'"
         }
         check(AgeComposition.parse(spelling).getOrThrow() == mingled) { "'$spelling' does not read back as itself" }
+    }
+
+    /**
+     * **A cast survives the round trip, bodies and all.** An Age is rebuilt from its recipe on every open,
+     * so a sky that came back with one sun where three were written would be a different world under the
+     * same book — and a body described by nothing at all is the case that would go first, having no options
+     * to be remembered by.
+     */
+    test("a cast of bodies round-trips") {
+        val written = AgeComposition(terrains = listOf(Terrain.HILLS))
+            .withCastOf(Aspect.SUN, 3)
+            .withOptionsFor(Aspect.SUN, 1, Sky.SUNCOLOUR.name, listOf("red"))
+        check(written.membersIn(Aspect.SUN) == 3) { "the cast was not written: ${written.membersIn(Aspect.SUN)}" }
+        val read = AgeComposition.parse(written.toString()).getOrThrow()
+        check(read.membersIn(Aspect.SUN) == 3) {
+            "'$written' came back with ${read.membersIn(Aspect.SUN)} suns rather than three"
+        }
+        check(read.optionsFor(Aspect.SUN, 1).of(Sky.SUNCOLOUR) == "red") {
+            "the second sun lost its colour: '$read'"
+        }
     }
 
     /**

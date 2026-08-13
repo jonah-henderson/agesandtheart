@@ -65,7 +65,7 @@ enum class Sky(override val key: String) : AspectPreset {
      * [SPIRE] ignores both, and that is the whole of what makes it bespoke: its sky is written down rather
      * than resolved, so no seed and no option moves it.
      */
-    fun specFor(asked: (Aspect) -> Options, seed: Long): SkySpec {
+    fun specFor(asked: (Aspect) -> Options, seed: Long, cast: (Aspect) -> Int = { 0 }): SkySpec {
         if (this == SPIRE) return SpireSky.SPEC
         // **Assembled from three aspects**, which is what the split made explicit: the suns, the moons and
         // the star field are each their own part of the world, and a spec is where they meet. One `Options`
@@ -73,9 +73,15 @@ enum class Sky(override val key: String) : AspectPreset {
         // one would have shown up as a sky missing its stars.
         val sun = asked(Aspect.SUN)
         val stars = asked(Aspect.STARS)
+        // **The cast is what the book described, or the template's where it described none.** A sun is
+        // brought into being by a clause about it, so the number of bodies is the number of clauses —
+        // there is no count to write and no second spelling for "two suns".
+        val suns = if (sun.of(SHINING) == NEVER) NONE else cast(Aspect.SUN).takeIf { it > NONE } ?: VANILLAS_ONE
+        val moons = if (asked(Aspect.MOON).of(ORBITING) == NEVER) NONE
+            else cast(Aspect.MOON).takeIf { it > NONE } ?: VANILLAS_ONE
         return SkySpec.drawn(
-            suns = sun.countOf(SUNS),
-            moons = asked(Aspect.MOON).countOf(MOONS),
+            suns = suns,
+            moons = moons,
             starCount = starsAt(stars.steer(STARS, seed)),
             spread = ORDINARY_SPREAD.toFloat(),
             sunSize = sunSizeAt(sun.steer(SUNSIZE, seed)),
@@ -92,8 +98,17 @@ enum class Sky(override val key: String) : AspectPreset {
          * keeping vanilla's own sky. `SkyCheck` holds it; moving an ordinary value would otherwise break it
          * silently.
          */
-        val SUNS = Parameter.counted("suns", ordinary = 1, most = MANY_BODIES)
-        val MOONS = Parameter.counted("moons", ordinary = 1, most = MANY_BODIES)
+        /**
+         * Whether this world goes round anything at all — **the one thing minting cannot say.**
+         *
+         * Every other fact about the suns is written by describing one, and the number of them is the
+         * number of clauses. Nought is the exception: there is no clause that mints no body, so an empty
+         * sky needs a word of its own, and `sunless` is it.
+         */
+        val SHINING = Parameter("shining", Atmosphere.AS_EVER, NEVER)
+
+        /** The moon's own, and separate because one name may be owned by one aspect (`DerivedAspectsCheck`). */
+        val ORBITING = Parameter("orbiting", Atmosphere.AS_EVER, NEVER)
 
         /** How thick the stars lie: none at the bottom of the axis, [DENSEST_STARS] times vanilla's at the top. */
         val STARS = Parameter.ranged("stars")
@@ -160,8 +175,12 @@ enum class Sky(override val key: String) : AspectPreset {
             }
         }
 
-        /** As many as a numeral page will be able to ask for, which is where §3.2 puts the ceiling. */
-        private const val MANY_BODIES = 10
+        const val NEVER = "never"
+
+        private const val NONE = 0
+
+        /** What a sky nobody wrote a body into keeps — the overworld's own, which is the template. */
+        private const val VANILLAS_ONE = 1
 
         private const val DENSEST_STARS = 3
 

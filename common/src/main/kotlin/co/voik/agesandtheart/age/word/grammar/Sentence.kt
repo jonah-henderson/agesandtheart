@@ -69,6 +69,14 @@ data class Constraint(
      * re-homing. Where it went is the clause it is in now, which the readout shows.
      */
     val rehomed: Boolean = false,
+    /**
+     * Which member of a **population** this describes, counting the clauses that minted one, or null where
+     * the claim is not about one (`the-world-model.md` §2).
+     *
+     * *A large red sun. A small blue sun.* is two bodies, and this is what keeps the second's colour off
+     * the first. Every other aspect leaves it null and is steered as a whole.
+     */
+    val mintedAs: Int? = null,
 )
 
 /**

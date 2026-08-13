@@ -1,12 +1,17 @@
 {
+  "_comment": [
+    "A world nothing shines on. It used to zero two counts beside the switch; the bodies are minted",
+    "now, so what is left is the sky reaching nothing, no sun to go round, and no stars behind it."
+  ],
   "tier": "exact",
   "aspects": [
-    "sky"
+    "sky",
+    "sun",
+    "stars"
   ],
   "sets": {
     "skylight": "none",
-    "suns": "0",
-    "moons": "0",
+    "shining": "never",
     "stars": "-1.0..-1.0"
   }
 }
