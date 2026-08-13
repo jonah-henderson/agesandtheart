@@ -62,6 +62,9 @@ class VocabularyOnServerCheck : FunSpec({
      * so an accidental rename should fail here loudly and be answered by moving the vocabulary with it.
      * One per aspect, synthesised from it (world model §3) — where there used to be a domain layer
      * as well as the air, and nothing is aimed at an aspect any more.
+     *
+     * The minting patterns aim too, because a pattern closes the clause its material qualifies (§8.1.2).
+     * They are authored, so they are listed rather than derived.
      */
     test("the aiming pages are in the corpus") {
         val vocabulary = server.ask("words")
@@ -70,7 +73,10 @@ class VocabularyOnServerCheck : FunSpec({
             .map { it.get("word").asString }
         // One per aspect, synthesised rather than authored — `art/domain/` is gone, and with it the
         // layer that let a page cover more than one aspect. `firmament` was that layer's name for the sky.
-        val expected = Aspect.entries.map { it.key }
+        val expected = Aspect.entries.map { it.key } + MINTING_PATTERNS
         check(aiming.sorted() == expected.sorted()) { "the aiming pages are $aiming" }
     }
 })
+
+/** The patterns a material can be minted from (`art/word/`), which aim without naming an aspect's own page. */
+private val MINTING_PATTERNS = listOf("springs", "veins")

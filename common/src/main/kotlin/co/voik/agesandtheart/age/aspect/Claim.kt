@@ -40,6 +40,15 @@ data class Claim(
     val density: Double = Rung.ORDINARY,
     /** The biome this is confined to, or null where it is about the whole Age — §4.3.1's `in`. */
     val confinedTo: Identifier? = null,
+    /**
+     * What a **minted** member is made of, or null for the overwhelming majority that name something the
+     * game already has (world model §8.1.2).
+     *
+     * `minecraft:spring_water[of=agesandtheart:ink]` is a spring shaped exactly like vanilla's and running
+     * with ink: the value names the pattern and this names the substance. A writer says `ink springs`, and
+     * the two halves of that are these two fields.
+     */
+    val madeOf: String? = null,
 ) {
     /** Whether this claim has anything to say where [biome] is what the ground holds. */
     fun appliesIn(biome: Identifier?): Boolean = confinedTo == null || confinedTo == biome
@@ -53,6 +62,7 @@ data class Claim(
                 Polarity.EXCEPT -> add(EXCEPT)
             }
             if (!Rung.isOrdinary(density)) add("$AMOUNT$SETS${Rung.spelled(density)}")
+            madeOf?.let { add("$OF$SETS$it") }
             confinedTo?.let { add("$IN$SETS$it") }
         }
         if (parts.isEmpty()) return value
@@ -70,6 +80,7 @@ data class Claim(
         const val EXCEPT = "except"
         const val AMOUNT = "amount"
         const val IN = "in"
+        const val OF = "of"
 
         /** The claim [spelled] describes: asserted, ordinary, everywhere, unless it says otherwise. */
         fun read(spelled: String): Claim {
@@ -88,7 +99,7 @@ data class Claim(
             }
             val amount = valueOf(parts, AMOUNT)?.toDoubleOrNull()?.takeIf { it > 0.0 } ?: Rung.ORDINARY
             val confinedTo = valueOf(parts, IN)?.let(Identifier::tryParse)
-            return Claim(value, polarity, amount, confinedTo)
+            return Claim(value, polarity, amount, confinedTo, valueOf(parts, OF))
         }
 
         private fun valueOf(parts: List<String>, named: String): String? = parts

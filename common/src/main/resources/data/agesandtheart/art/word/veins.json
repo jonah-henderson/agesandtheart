@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "A vein of something that is not an ore. Shaped like vanilla's gold -- its size, its depth, the",
+    "stone it cuts into -- and made of whatever the clause names: `gold block veins`, `ancient debris",
+    "veins`.",
+    "",
+    "Gold is the pattern because it is middling in both size and depth, so what a writer gets is a vein",
+    "rather than a seam or a curiosity."
+  ],
+  "tier": "exact",
+  "aspects": [
+    "features"
+  ],
+  "mints": "minecraft:ore_gold"
+}

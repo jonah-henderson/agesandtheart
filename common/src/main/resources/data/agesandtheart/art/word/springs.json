@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "A spring of something the world does not have one of. Shaped exactly like vanilla's own -- the",
+    "rock it wants around it, the holes it punches, where in the column it sits -- and running with",
+    "whatever the clause names: `ink springs`.",
+    "",
+    "Named alone it aims at what is placed and does nothing else, so `teeming springs` is a claim about",
+    "the springs the world already has rather than a minted one."
+  ],
+  "tier": "exact",
+  "aspects": [
+    "features"
+  ],
+  "mints": "minecraft:spring_water"
+}

@@ -148,7 +148,11 @@ object Features {
                 Constants.LOG.warn("An Age asked to grow '{}', which is no placed feature in this pack", named)
                 continue
             }
-            byStep.getOrPut(stepFor(named, biomes)) { mutableListOf() } += FeatureDensity.applied(found, claim.density)
+            // **Minted where the claim says what it is made of** — `ink springs` is vanilla's own spring
+            // running with something it never runs with. The pattern keeps its placement, its rarity and
+            // its step; only the substance changes.
+            val shaped = claim.madeOf?.let { FeatureShape.mintedFrom(found, it) } ?: found
+            byStep.getOrPut(stepFor(named, biomes)) { mutableListOf() } += FeatureDensity.applied(shaped, claim.density)
         }
         return byStep
     }

@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.Flaw
 import co.voik.agesandtheart.age.Instability
 import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.age.aspect.Claim
+import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Share
@@ -146,7 +147,7 @@ object Resolver {
         // an aspect a word reached and left at its default still belongs to the writer.
         val template = templateOf(said)
         val spokenTo = said.flatMap { reachOf(vocabulary, it) }.toSet()
-        val composition = resolved.laidOver(template.world(), spokenTo)
+        val composition = mintedFeatures(resolved, sentence).laidOver(template.world(), spokenTo)
         // **Last**, so it can see everything the mechanisms above already charged and never price one
         // disagreement twice. Steering adds flaws of its own, so this cannot be hoisted.
         flaws += oppositions(vocabulary, said, flaws.toList())
@@ -191,6 +192,39 @@ object Resolver {
         // A narrowing word that landed nowhere is left empty on purpose so `DerivedAspectsCheck` can refuse
         // it; it must not also be free on the way past.
         else word.tier.cost * word.aspects.size.coerceAtLeast(AT_HOME_SOMEWHERE)
+
+    /**
+     * [composition] with every feature the sentence **minted** added to what the Age places — `ink springs`,
+     * `gold block veins` (world model §8.1.2).
+     *
+     * **Read off the clauses rather than off the flat claims**, and that is the one place in the resolver
+     * that is: minting is a fact about a clause, being a pattern and a substance said together, and the
+     * flattening that every other rule works from has thrown the pairing away by the time it gets here.
+     *
+     * The claim names the pattern and carries the substance, so nothing downstream has to know there were
+     * ever two pages — `Features` looks the pattern up and swaps what it is made of.
+     */
+    private fun mintedFeatures(composition: AgeComposition, sentence: Sentence): AgeComposition {
+        val minted = sentence.phrases.mapNotNull { phrase ->
+            val pattern = phrase.subject?.word?.mints ?: return@mapNotNull null
+            val substance = phrase.modifiers.firstNotNullOfOrNull { it.word.sets[Terrain.STONE.name] }
+                ?: return@mapNotNull null
+            Claim(
+                pattern,
+                phrase.subject.polarity,
+                Rung.legible(phrase.subject.density),
+                phrase.subject.confinedTo,
+                madeOf = substance,
+            )
+        }
+        if (minted.isEmpty()) return composition
+        val already = composition.optionsFor(Aspect.FEATURES, 0).allSpelled(Features.PLACES.name)
+        return composition.withOptions(
+            Aspect.FEATURES,
+            Features.PLACES.name,
+            (already + minted.map { it.spelled() }).distinct().toList(),
+        )
+    }
 
     /**
      * [composition] with every body the sentence brought into being counted, said about or not.

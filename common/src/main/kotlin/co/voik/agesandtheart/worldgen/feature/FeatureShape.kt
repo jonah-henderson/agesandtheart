@@ -3,10 +3,13 @@ package co.voik.agesandtheart.worldgen.feature
 import co.voik.agesandtheart.age.aspect.Span
 import net.minecraft.core.Holder
 import net.minecraft.world.level.levelgen.VerticalAnchor
-import net.minecraft.world.level.levelgen.feature.ConfiguredFeature
 import net.minecraft.world.level.levelgen.feature.Feature
 import net.minecraft.world.level.levelgen.feature.configurations.FeatureConfiguration
+import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.resources.Identifier
+import net.minecraft.world.level.levelgen.feature.ConfiguredFeature
 import net.minecraft.world.level.levelgen.feature.configurations.OreConfiguration
+import net.minecraft.world.level.levelgen.feature.configurations.SpringConfiguration
 import net.minecraft.world.level.levelgen.feature.configurations.VegetationPatchConfiguration
 import net.minecraft.world.level.levelgen.heightproviders.UniformHeight
 import net.minecraft.world.level.levelgen.placement.HeightRangePlacement
@@ -48,6 +51,44 @@ object FeatureShape {
      */
     fun oresCanReach(rock: List<BlockState>): Boolean = rock.all { block ->
         block.`is`(BlockTags.STONE_ORE_REPLACEABLES) || block.`is`(BlockTags.DEEPSLATE_ORE_REPLACEABLES)
+    }
+
+    /**
+     * [pattern] made of [substance] instead of whatever it was made of — how a writer asks for a thing the
+     * game does not have (world model §8.1.2).
+     *
+     * The shape, the placement, the rarity and the step are all the pattern's; only the substance changes.
+     * A spring keeps the rock it wants around it and the holes it punches, and simply runs with something
+     * else; a vein keeps its size and the stone it cuts into, and is made of something else.
+     *
+     * **Silent where the pattern is neither** — a configuration this does not know how to re-make comes
+     * back untouched rather than half-made. The corpus decides which patterns are worth minting from, and a
+     * word naming an unmintable one is a content bug rather than a play outcome.
+     */
+    fun mintedFrom(pattern: Holder<PlacedFeature>, substance: String): Holder<PlacedFeature> {
+        val block = Identifier.tryParse(substance)
+            ?.let { BuiltInRegistries.BLOCK.getOptional(it).orElse(null) }
+            ?: return pattern
+        val placed = pattern.value()
+        val feature = placed.feature().value()
+        val rebuilt = when (val configuration = feature.config()) {
+            is SpringConfiguration -> SpringConfiguration(
+                block.defaultBlockState().fluidState,
+                configuration.requiresBlockBelow,
+                configuration.rockCount,
+                configuration.holeCount,
+                configuration.validBlocks,
+            )
+            is OreConfiguration -> OreConfiguration(
+                configuration.targetStates.map { OreConfiguration.target(it.target, block.defaultBlockState()) },
+                configuration.size,
+                configuration.discardChanceOnAirExposure,
+            )
+            else -> return pattern
+        }
+        @Suppress("UNCHECKED_CAST")
+        val made = ConfiguredFeature(feature.feature() as Feature<FeatureConfiguration>, rebuilt)
+        return Holder.direct(PlacedFeature(Holder.direct(made), placed.placement()))
     }
 
     fun reshaped(

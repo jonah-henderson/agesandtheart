@@ -173,6 +173,18 @@ data class Word(
      * pages, and holding two is already unusual.
      */
     val template: String? = null,
+    /**
+     * The **pattern this word mints from** — a placed feature the game already has, whose shape a new one
+     * borrows (world model §8.1.2). Null for every word that is not one of the few.
+     *
+     * `springs` mints from vanilla's water spring and `veins` from an ore, so `ink springs` and `gold block
+     * veins` are that shape carrying a substance the game never puts there. The material comes from the
+     * same clause, which is the one thing about it a writer says.
+     *
+     * **A minting word aims**, because it closes the clause the material qualifies — the same shape `sun`
+     * has, and the reason a material may stand somewhere nothing is *made of* anything.
+     */
+    val mints: String? = null,
 ) {
     /** What a writer says to use it. */
     val name: String get() = id.path
@@ -417,10 +429,16 @@ data class Word(
                 Codec.unboundedMap(ASPECT_CODEC, Codec.unboundedMap(Codec.STRING, Codec.DOUBLE))
                     .optionalFieldOf("weights", emptyMap()).forGetter(Word::weights),
                 Codec.STRING.optionalFieldOf("template").forGetter { Optional.ofNullable(it.template) },
-            ).apply(instance) { tier, aspects, query, queries, names, sets, pool, draws, weights, template ->
+                Codec.STRING.optionalFieldOf("mints").forGetter { Optional.ofNullable(it.mints) },
+            ).apply(instance) {
+                tier, aspects, query, queries, names, sets, pool, draws, weights, template, mints,
+                ->
                 val named = names.orElse(null)
                 val reaches = reaching(tier, aspects, sets + pool, named, weights.keys + queries.keys)
-                Word(id, tier, reaches, query, queries, named, sets, pool, draws, weights, template.orElse(null))
+                Word(
+                    id, tier, reaches, query, queries, named, sets, pool, draws, weights,
+                    template.orElse(null), mints.orElse(null),
+                )
             }
         }
 

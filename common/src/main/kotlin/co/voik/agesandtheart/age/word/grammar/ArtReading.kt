@@ -133,7 +133,8 @@ internal object ArtReading {
             // is no subject the terms answer for themselves, which `belongsHere` asks of each in turn.
             if (confinedTo != null && subject != null && aim.none { it.confinable }) return null
 
-            val said = modifiers(until = closesAt, aim = aim, confinedTo = confinedTo) ?: return null
+            val said = modifiers(until = closesAt, aim = aim, confinedTo = confinedTo, closes = subject)
+                ?: return null
             at = if (confinedTo == null) sitingAt else sitingAt + PAGES_IN_A_SITING
             // A clause closing on a population brings a member of it into being, and everything said in the
             // clause is said about *that* one.
@@ -201,10 +202,15 @@ internal object ArtReading {
          * a book that does not read rather than a silent re-homing, which is what [Repair] then puts right
          * and charges for.
          */
-        private fun modifiers(until: Int, aim: Set<Aspect>, confinedTo: Identifier?): List<Constraint>? =
+        private fun modifiers(
+            until: Int,
+            aim: Set<Aspect>,
+            confinedTo: Identifier?,
+            closes: Page? = null,
+        ): List<Constraint>? =
             buildList {
                 while (at < until) {
-                    if (!belongsHere(here, aim, sited = confinedTo != null)) return null
+                    if (!belongsHere(here, aim, sited = confinedTo != null, closing = closes)) return null
                     addAll(modifier(until, aim, confinedTo))
                     if (refused) return@buildList
                 }
@@ -264,7 +270,7 @@ internal object ArtReading {
          * where it declares it belongs, and a word declaring nothing belongs anywhere. An empty [aim] is
          * the nucleus, which is about the whole Age and so admits everything.
          */
-        private fun belongsHere(page: Page?, aim: Set<Aspect>, sited: Boolean): Boolean {
+        private fun belongsHere(page: Page?, aim: Set<Aspect>, sited: Boolean, closing: Page? = null): Boolean {
             if (page == null) return false
             // Structure carries no aspect of its own; what it joins or qualifies is checked on its own.
             if (page.word == null) return page.kind != null
@@ -279,7 +285,12 @@ internal object ArtReading {
             // says the same thing twice.
             val declared = page.word.aspects
             if (aim.isEmpty()) return !sited || declared.isEmpty() || declared.any { it.confinable }
-            if (page.kind == PageClass.MATERIAL) return aim.any { it.madeOfSomething }
+            // A material stands where the part of the world is made of something — and also where a
+            // **minting** page is, since `ink springs` is a substance qualifying a pattern rather than a
+            // claim of its own (world model §8.1.2).
+            if (page.kind == PageClass.MATERIAL) {
+                return aim.any { it.madeOfSomething } || closing?.word?.mints != null
+            }
             return declared.isEmpty() || declared.any { it in aim }
         }
     }
