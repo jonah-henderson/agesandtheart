@@ -26,7 +26,11 @@ object AgeFluids {
     private fun ink(name: String, tint: Int) = InkIdentity(
         still = name.location(),
         flowing = "flowing_$name".location(),
-        block = "${name}_block".location(),
+        // **The block takes the fluid's own name, as vanilla's do**: `minecraft:water` is both a fluid
+        // and a block. A `_block` suffix put the two in different registries under different names, and
+        // the corpus is built from the *block* registry — so the word for our own ink was `ink_block`,
+        // and `ink springs` (world model §8.1.2) named nothing.
+        block = name.location(),
         bucket = "${name}_bucket".location(),
         tint = tint,
     )

@@ -66,10 +66,10 @@ object Acquaintance {
      * The referent a stack names, or null for something that names nothing.
      *
      * **A bucket is asked what block its fluid becomes**, rather than for the fluid's own id.
-     * [DerivedWords.materials] walks the *block* registry, so every derived word is named for a block —
-     * and while vanilla's fluids share their block's id, ours do not: `agesandtheart:masterwork_ink` pours
-     * into `agesandtheart:masterwork_ink_block`. Asking the registry for the fluid's name therefore looked
-     * up a word that exists for no fluid we ship, and a bucket of our own ink was unnameable.
+     * [DerivedWords.materials] walks the *block* registry, so every derived word is named for a block, and
+     * a fluid is a different registry with its own keys. Ours share the block's name as vanilla's do, so
+     * the two now agree — but the indirection is still the correct question to ask, and is what makes this
+     * hold for a fluid whose block is named something else.
      */
     fun substanceIn(sample: ItemStack): Identifier? = when (val item = sample.item) {
         is BlockItem -> BuiltInRegistries.BLOCK.getKey(item.block)

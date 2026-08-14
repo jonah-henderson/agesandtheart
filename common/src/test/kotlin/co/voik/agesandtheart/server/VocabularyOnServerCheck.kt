@@ -27,6 +27,28 @@ class VocabularyOnServerCheck : FunSpec({
     }
 
     /**
+     * **Every fluid the mod ships is sayable**, which is what `ink springs` needs (world model §8.1.2).
+     *
+     * The corpus is derived from the **block** registry, so a fluid is reachable only through the block it
+     * pours into — and ours were named `<fluid>_block`, where vanilla names a liquid block after its own
+     * fluid (`minecraft:water` is both). So the word for our own ink was `ink_block` and the design's
+     * headline example named nothing at all.
+     *
+     * Asked of the server because the loaders register these, not `common`.
+     */
+    test("the mod's own fluids are words") {
+        val vocabulary = server.ask("words")
+        val known = vocabulary.getAsJsonArray("authoredWords").map { it.asJsonObject.get("word").asString }.toSet()
+        for (ink in listOf("ink", "fine_ink", "masterwork_ink")) {
+            val written = server.run("age write inkcheck_$ink 4242 age $ink springs")
+            check("of=agesandtheart:$ink" in written) {
+                "'$ink springs' did not mint a spring running with it:\n$written"
+            }
+        }
+        check(known.isNotEmpty()) { "the corpus reported no authored words at all" }
+    }
+
+    /**
      * **The words a server has and an offline check cannot.** Biomes and structure sets derive from the
      * *dynamic* registries, so their absence offline is expected and their absence here is a bug — and it
      * would silently take `only`, `except` and the rungs with it, since those act on populations.
