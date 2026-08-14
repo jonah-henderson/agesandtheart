@@ -483,11 +483,11 @@ data class Vocabulary(
          */
         private fun aimingPages(authored: Map<String, Word>, problems: MutableList<String>): Map<String, Word> =
             Aspect.entries.associate { aspect ->
-                if (aspect.key in authored) {
-                    problems += "'${aspect.key}' is both an aspect and a word; an aspect already is its page"
+                if (aspect.page in authored) {
+                    problems += "'${aspect.page}' is both an aspect and a word; an aspect already is its page"
                 }
-                aspect.key to Word(
-                    id = aspect.key.location(),
+                aspect.page to Word(
+                    id = aspect.page.location(),
                     tier = Tier.RESTRICTIVE,
                     aspects = setOf(aspect),
                     query = emptyMap(),

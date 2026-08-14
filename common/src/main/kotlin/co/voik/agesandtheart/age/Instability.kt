@@ -124,7 +124,7 @@ data class Flaw(
         val quoted = words.map { "'$it'" }
         val both = quoted.joinToString(" and ")
         val over = if (tags.size == 2) " (${tags[0]} against ${tags[1]})" else ""
-        val where = aspect?.key ?: "the sentence"
+        val where = aspect?.page ?: "the sentence"
         return when (register) {
             Register.TENSION -> "$both pull opposite ways in $where$over, and the world made room for both"
             Register.OPPOSED -> "$both contradict each other$over, and landed far enough apart that " +

@@ -4,6 +4,9 @@ import co.voik.agesandtheart.worldgen.biome.ClimateAxis
 import net.minecraft.resources.Identifier
 import net.minecraft.util.StringRepresentable
 
+/** What an aspect that cannot divide has, there being nothing to be companionable with. */
+private const val NO_APPETITE = 0.0
+
 /**
  * The parts an Age is assembled from — one preset each, chosen independently (design §3.1).
  *
@@ -11,36 +14,104 @@ import net.minecraft.util.StringRepresentable
  * [co.voik.agesandtheart.age.word.Resolver] both stride their seeds on `ordinal`, so inserting one would
  * silently move the territories and draws of every Age already written.
  */
-enum class Aspect(val key: String) : StringRepresentable {
+enum class Aspect(
+    val key: String,
+    /**
+     * **What this aspect's own answer holds** (`the-world-model.md` §2), or [Holds.NOTHING] where it has
+     * none of its own and is a group of properties and nothing else — a surface and the air are simply
+     * where their properties were left.
+     *
+     * A preset and a referent were never two things: one is a closed catalogue and the other an open one,
+     * which [open] answers on its own, so both are [Holds.CATALOGUE].
+     *
+     * Structures is a weighted set that is still *shaped* as a preset pair, `none` against `vanilla`, whose
+     * readiness prior is what makes habitation opt-in. It loses the pair when it is converted, not before —
+     * declaring it early would skip the draw and build in every Age.
+     */
+    val holds: Holds = Holds.NOTHING,
+    /**
+     * Whether this aspect's value is a registry object rather than a preset written in Kotlin (§3.1) —
+     * which decides whether §8's derived vocabulary can reach the aspect at all.
+     *
+     * Stated rather than derived from [holds], and that is the open-against-closed half of a catalogue: a
+     * sea's value *is* a block and a biome's members are registry entries, where a terrain's shapes and a
+     * phenomenon's processes are bundles we wrote.
+     */
+    val open: Boolean = false,
+    /**
+     * Whether an answer here may be **laid across the map** rather than held everywhere at once (§2).
+     *
+     * A spatial population satisfies a contradiction by holding each claim somewhere; a singular one has
+     * nowhere to put a second answer, so one is displaced and charged for (§8). It needs two things a plain
+     * population does not, and `Spread` is both: how much ground each member covers, and what the boundary
+     * between them looks like.
+     *
+     * Two claims, not one: a sky *cannot* divide (a world has one sky over it), where structures *need not*
+     * (vanilla places each set against the whole dimension, its biome predicates doing the rest). Biomes
+     * never divide, one climate table spanning the world however many terrains carve it up; the surface
+     * *could* follow the terrain's division and does not yet; the air divides by **biome** rather than by
+     * territory, which is a scope the grammar has and the composition does not (`in <biome>`, §4.3.1); and
+     * phenomena are **sited rather than divided** (§5.2) — a process happens at a place and spreads from
+     * it, which is not a territory with a boundary however much it sounds like one.
+     */
+    val spatial: Boolean = false,
+    /**
+     * Whether this part of the world is **made of** something, and so admits a material where a term is
+     * wanted — `land of blackstone`, `a sea of ice`.
+     *
+     * Being made of a substance is shared, which is why a block is its own page class rather than a term
+     * per aspect: the *section* decides whether `ice` means a sea or a stone.
+     */
+    val madeOfSomething: Boolean = false,
+    /**
+     * How readily this aspect takes on a second preset the sentence merely happened to like as well — the
+     * harmonious division, as opposed to the one settling a contradiction (design §3.4).
+     *
+     * Terrain is the most reluctant because nothing interpolates between a floating island and a plain;
+     * they meet at a seam, and a world full of seams reads as broken rather than varied. Anything that
+     * cannot divide has none by construction, and a climate's second territory only ever arrives from a
+     * fracture, which is charged by definition.
+     */
+    val appetiteForCompany: Double = NO_APPETITE,
+    /**
+     * What a **writer** calls this part of the world, where that differs from [key].
+     *
+     * [key] is what an Age is *written down* as — the recipe's map keys, `preset_tags/<key>.json`,
+     * `derivation/<key>.json` — and must not move once an Age has been written with it. A page name is
+     * read by people and moves when a better word turns up, which it has twice already. Keeping the two
+     * apart is what stops the second kind of change being a save migration.
+     */
+    page: String? = null,
+) : StringRepresentable {
     /** The shape of the rock. */
-    TERRAIN("landmass"),
+    TERRAIN("landmass", Holds.CATALOGUE, spatial = true, madeOfSomething = true, appetiteForCompany = 0.12),
 
     /** What fills the space the shape leaves — sea, lava, nothing. */
-    SEA("sea"),
+    SEA("sea", Holds.CATALOGUE, open = true, spatial = true, madeOfSomething = true, appetiteForCompany = 0.18),
 
     /** What happens beneath the surface: caves cut back out, and where water stands in the rock. */
-    CARVERS("depths"),
+    CARVERS("depths", Holds.CATALOGUE, spatial = true, appetiteForCompany = 0.25),
 
     /** Which biomes it grows. */
-    BIOMES("biomes"),
+    BIOMES("biomes", Holds.WEIGHTED_SET, open = true),
 
     /** The vault itself: what colour it is, what cloud hangs in it, how much light it lets down. */
-    SKY("sky"),
+    SKY("sky", Holds.CATALOGUE),
 
     /** What may be built here. */
-    STRUCTURES("structures"),
+    STRUCTURES("structures", Holds.WEIGHTED_SET, open = true, madeOfSomething = true),
 
     /** The coordinates its biomes are looked up at — how hot it is, and how wet. */
-    CLIMATE("climate"),
+    CLIMATE("climate", spatial = true),
 
     /** What the ground wears over whatever it is made of. */
-    SURFACE("surface"),
+    SURFACE("surface", madeOfSomething = true),
 
     /** What grows and forms in it: ores, flora, lakes, springs. */
-    FEATURES("features"),
+    FEATURES("features", Holds.WEIGHTED_SET, open = true),
 
     /** What lives in it. */
-    SPAWNS("spawns"),
+    SPAWNS("spawns", Holds.WEIGHTED_SET, open = true),
 
     /**
      * What the air looks like and does — its fog, its tint, what hangs in it.
@@ -59,10 +130,10 @@ enum class Aspect(val key: String) : StringRepresentable {
     WEATHER("weather"),
 
     /** Each star this world goes round. */
-    SUN("sun"),
+    SUN("sun", Holds.POPULATION),
 
     /** Each thing that circles it. */
-    MOON("moon"),
+    MOON("moon", Holds.POPULATION),
 
     /** The field behind it all. */
     STARS("stars"),
@@ -77,44 +148,11 @@ enum class Aspect(val key: String) : StringRepresentable {
      * The one aspect a sentence fills *and* consequences arrive at: a meteor storm you wrote is a hazard
      * you prepared for, and one you did not write is the Age telling you something is wrong (§7.7).
      */
-    PHENOMENA("phenomena"),
+    PHENOMENA("phenomena", Holds.WEIGHTED_SET, open = true),
     ;
 
-    /**
-     * **What this aspect's own answer holds**, or null where it has none of its own and is a group of
-     * properties and nothing else — a climate, a surface and the air are simply where their properties
-     * were left (`the-world-model.md` §2).
-     *
-     * A preset and a referent were never two things: one is a closed catalogue and the other an open one,
-     * which [open] answers on its own, so both are [Holds.CATALOGUE] here.
-     *
-     * Structures is a weighted set that is still *shaped* as a preset pair, `none` against `vanilla`, whose
-     * readiness prior is what makes habitation opt-in. It loses the pair when it is converted, not before —
-     * declaring it early would skip the draw and build in every Age.
-     */
-    val holds: Holds?
-        get() = when (this) {
-            TERRAIN, CARVERS, SKY, SEA -> Holds.CATALOGUE
-            BIOMES, STRUCTURES, FEATURES, SPAWNS, PHENOMENA -> Holds.WEIGHTED_SET
-            // Bodies are described into being rather than chosen, which is what a population is — and
-            // until minting is built they are still read as a count, so nothing draws on this yet.
-            SUN, MOON -> Holds.POPULATION
-            CLIMATE, SURFACE, AIR, WATERS, WEATHER, STARS -> null
-        }
-
-    /**
-     * Whether this aspect's value is a registry object rather than a preset written in Kotlin (§3.1) —
-     * which decides whether §8's derived vocabulary can reach the aspect at all.
-     *
-     * Not derivable from [holds], and that is the open-against-closed half of a catalogue: a sea's value
-     * *is* a block and a biome's members are registry entries, where a terrain's shapes and a phenomenon's
-     * processes are bundles we wrote.
-     */
-    val open: Boolean
-        get() = when (this) {
-            SEA, BIOMES, STRUCTURES, FEATURES, SPAWNS, PHENOMENA -> true
-            TERRAIN, CARVERS, SKY, CLIMATE, SURFACE, AIR, WATERS, WEATHER, SUN, MOON, STARS -> false
-        }
+    /** What a writer calls this part of the world — [key] where no other name was given. */
+    val page: String = page ?: key
 
     /**
      * Every preset for this aspect written in Kotlin — the whole pool for a closed aspect, and none of it
@@ -245,83 +283,6 @@ enum class Aspect(val key: String) : StringRepresentable {
      */
     val confinableParameters: List<Parameter>
         get() = (dials + authored.flatMap { it.parameters }).filter { it.confinable }
-
-    /**
-     * Whether this part of the world is **made of** something, and so admits a material where a term is
-     * wanted — `land of blackstone`, `a sea of ice`.
-     *
-     * Being made of a substance is shared, which is why a block is its own page class rather than a term
-     * per aspect: the *section* decides whether `ice` means a sea or a stone.
-     */
-    val madeOfSomething: Boolean
-        get() = when (this) {
-            TERRAIN, SEA, STRUCTURES, SURFACE -> true
-            CARVERS, BIOMES, SKY, CLIMATE, FEATURES, SPAWNS, PHENOMENA,
-            AIR, WATERS, WEATHER, SUN, MOON, STARS,
-            -> false
-        }
-
-    /**
-     * Whether an answer here may be **laid across the map** rather than held everywhere at once — whether
-     * this aspect's population is spatial (`the-world-model.md` §2).
-     *
-     * A spatial population satisfies a contradiction by holding each claim somewhere; a singular one has
-     * nowhere to put a second answer, so one is displaced and charged for (§8). It needs two things a plain
-     * population does not, and `Spread` is both: how much ground each member covers, and what the boundary
-     * between them looks like.
-     *
-     * Two claims, not one: a sky *cannot* divide (a world has one sky over it), where structures *need
-     * not* (vanilla places each set against the whole dimension, its biome predicates doing the rest).
-     */
-    val spatial: Boolean
-        get() = when (this) {
-            // Climate divides for a reason the others do not: not two presets that could not be reconciled,
-            // but two words bounding one axis to stretches that do not overlap — a fracture at the
-            // parameter level, which still needs ground to put each half on.
-            TERRAIN, SEA, CARVERS, CLIMATE -> true
-            // Biomes never divide: one climate table spans the world however many terrains carve it up.
-            // The surface *could* follow the terrain's division and does not yet — one skin, Age-wide.
-            // Features are per biome in vanilla and per Age here, so nothing divides them yet — `in
-            // <biome>` (§4.3.1) is the shape that would.
-            // The air divides by *biome* rather than by territory, which is a scope the grammar has and
-            // the composition does not — see `in <biome>` (§4.3.1).
-            // Phenomena is **sited rather than divided** (§5.2): a process happens at a place and spreads
-            // from it, the way §5.1's hostility is a gradient around a wound — which is not a territory
-            // with a boundary, and so is not this flag however much it sounds like one.
-            SKY, STRUCTURES, BIOMES, SURFACE, FEATURES, SPAWNS, PHENOMENA,
-            AIR, WATERS, WEATHER, SUN, MOON, STARS,
-            -> false
-        }
-
-    /**
-     * How readily this aspect takes on a second preset the sentence merely happened to like as well — the
-     * harmonious division, as opposed to the one settling a contradiction (design §3.4).
-     *
-     * Terrain is the most reluctant because nothing interpolates between a floating island and a plain;
-     * they meet at a seam, and a world full of seams reads as broken rather than varied.
-     */
-    val appetiteForCompany: Double
-        get() = when (this) {
-            TERRAIN -> 0.12
-            SEA -> 0.18
-            CARVERS -> 0.25
-            BIOMES -> 0.0
-            SKY -> 0.0
-            STRUCTURES -> 0.0
-            SURFACE -> 0.0
-            FEATURES -> 0.0
-            SPAWNS -> 0.0
-            AIR -> 0.0
-            WATERS -> 0.0
-            WEATHER -> 0.0
-            SUN -> 0.0
-            MOON -> 0.0
-            STARS -> 0.0
-            PHENOMENA -> 0.0
-            // Nothing to be companionable with: climate has one preset, so a second seat only ever arrives
-            // from a fracture, which is charged by definition.
-            CLIMATE -> 0.0
-        }
 
     override fun getSerializedName(): String = key
 }
@@ -476,6 +437,12 @@ interface AspectPreset : StringRepresentable {
  * whether it needs tagging — so nothing anywhere has to author those rules separately.
  */
 enum class Holds {
+    /**
+     * Nothing of its own — the property is a group of other properties, and what it *is* is where they were
+     * left. Only an aspect is ever this; a parameter always holds something.
+     */
+    NOTHING,
+
     /**
      * One value on a continuous axis — a temperature, a fog distance, how large a vein is.
      *
