@@ -99,9 +99,15 @@ data class AgeComposition(
      * instead of merely doing nothing.
      */
     val unknownOptions: List<String>
-        get() = presets.groupBy { it.aspect }.flatMap { (aspect, filling) ->
-            filling.flatMapIndexed { member, preset ->
-                options.of(aspect, member).unknownTo(preset).map { name -> "${aspect.page}.$name" }
+        get() = Aspect.entries.flatMap { aspect ->
+            val seated = presets.filter { it.aspect == aspect }
+            options.allOf(aspect).indices.flatMap { member ->
+                // A seatless aspect understands its dials and nothing else — and was never asked at all,
+                // so `sun.sunsize` could be misspelled *and* misvalued in silence.
+                val understood = seated.getOrNull(member)?.parameters.orEmpty() + aspect.dials
+                val here = options.of(aspect, member)
+                here.unknownAmong(understood).map { name -> "${aspect.page}.$name" } +
+                    here.unreadableAmong(understood).map { (name, value) -> "${aspect.page}.$name=$value" }
             }
         }.distinct()
 

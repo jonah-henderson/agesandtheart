@@ -4,6 +4,7 @@ import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.book.LinkTarget
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.worldgen.biome.ClimateAxis
 import co.voik.agesandtheart.age.aspect.AspectPreset
 import co.voik.agesandtheart.age.aspect.Carvers
 import co.voik.agesandtheart.age.aspect.Rung
@@ -71,6 +72,37 @@ class RecipeCheck : FunSpec({
         val decoded = roundTrips(AgeRecipe(AgeWorld.Composed(composition), seed = SAMPLE_SEED), "unknown options")
         check(decoded.composition?.options?.of(Aspect.TERRAIN)?.chosen?.get("elevation") == listOf("towering")) {
             "An unrecognised option was dropped in the round trip: $decoded"
+        }
+    }
+
+    /**
+     * **A value the knob cannot read is called out, and so is a knob on an aspect that seats nothing.**
+     *
+     * `Options.of` filters a value its parameter will not accept and falls back to the default, so an Age
+     * written with `sunsize=huge` is *identical* to one written without it. That is the silent drop that
+     * cost a walk: the previous checklist told you to type `sky.orbits=high`, so every judgement about
+     * orbit spread from that walk was made on a default sky.
+     *
+     * The other half is that `unknownOptions` only ever walked aspects that **seat a preset**, so on `sun`
+     * or `climate` even a misspelt name went unreported. Both halves are here.
+     */
+    test("a value it cannot read is called out, on any aspect") {
+        fun saidOf(aspect: Aspect, parameter: String, value: String) =
+            AgeComposition(terrains = listOf(Terrain.HILLS))
+                .withOption(aspect, parameter, value)
+                .unknownOptions
+
+        // A knob that exists, on an aspect with no preset, given a value its axis cannot read.
+        check(saidOf(Aspect.SUN, Sky.SUNSIZE.name, "huge") == listOf("sun.sunsize=huge")) {
+            "a value the axis cannot read went unreported: ${saidOf(Aspect.SUN, Sky.SUNSIZE.name, "huge")}"
+        }
+        // A knob that does not exist, on the same seatless aspect — the name alone, no value.
+        check(saidOf(Aspect.SUN, "brightness", "0.5") == listOf("sun.brightness")) {
+            "a misspelt knob on a seatless aspect went unreported: ${saidOf(Aspect.SUN, "brightness", "0.5")}"
+        }
+        // And a span it *can* read says nothing at all.
+        check(saidOf(Aspect.CLIMATE, ClimateAxis.TEMPERATURE.key, "0.5..0.9").isEmpty()) {
+            "a well-formed span was reported as unreadable"
         }
     }
 

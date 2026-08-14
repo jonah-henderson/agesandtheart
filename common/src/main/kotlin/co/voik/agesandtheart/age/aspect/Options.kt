@@ -105,9 +105,27 @@ value class Options(val chosen: Map<String, List<String>> = emptyMap()) {
      * `Sky.SKYLIGHT` belongs to every sky rather than to one — and asking the preset alone reported them as
      * unrecognised in `/age list` while they were working perfectly.
      */
-    fun unknownTo(preset: AspectPreset): Set<String> {
-        val understood = (preset.parameters + preset.aspect.dials).map(Parameter::name).toSet()
-        return chosen.keys - understood
+    fun unknownTo(preset: AspectPreset): Set<String> = unknownAmong(preset.parameters + preset.aspect.dials)
+
+    /** The same, of an aspect that seats no preset: its dials are the whole of what it understands. */
+    fun unknownAmong(understood: Collection<Parameter>): Set<String> =
+        chosen.keys - understood.map(Parameter::name).toSet()
+
+    /**
+     * Values a parameter it *does* understand cannot take — `sunsize=huge` where the axis wants a span,
+     * `sealed=sometimes` where it takes two words.
+     *
+     * **Told apart from [unknownAmong], because the mistake and the remedy are different**: there the knob
+     * does not exist, here the knob is right and the value means nothing. Both were silent, and this one
+     * cost a walk — `[Options.of]` filters a value it cannot read and falls back to the default, so an Age
+     * written with one is *identical* to an Age written without it and says so nowhere.
+     */
+    fun unreadableAmong(understood: Collection<Parameter>): List<Pair<String, String>> {
+        val byName = understood.associateBy(Parameter::name)
+        return chosen.entries.flatMap { (name, values) ->
+            val parameter = byName[name] ?: return@flatMap emptyList()
+            values.map(Claim::read).filterNot { parameter.accepts(it.value) }.map { name to it.value }
+        }
     }
 
     /** How a writer would have said it: `arrangement=rings stone=blackstone,tuff`, or nothing at all. */
