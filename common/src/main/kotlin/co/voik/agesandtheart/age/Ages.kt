@@ -4,6 +4,7 @@ import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.platform.Services
 import co.voik.ephemeris.RuntimeLevelEvents
 import co.voik.ephemeris.sky.LevelAppearance
+import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
@@ -125,7 +126,11 @@ object Ages {
         LevelAppearance.expecting(player, level.dimension())
         val (landingX, landingZ) = findFooting(level)
         level.getChunk(SectionPos.blockToSectionCoord(landingX), SectionPos.blockToSectionCoord(landingZ))
-        val surfaceY = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, landingX, landingZ)
+        val surfaceY = if (!level.dimensionType().hasCeiling()) {
+            level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, landingX, landingZ)
+        } else {
+            floorUnderTheRoof(level, landingX, landingZ)
+        }
         // `teleportTo` gained a relative-movement set and a "set camera" flag. Nothing here is relative and
         // the camera should follow, which is the empty set and `true`.
         player.teleportTo(
@@ -133,6 +138,38 @@ object Ages {
             emptySet(), player.yRot, player.xRot, true,
         )
     }
+
+    /**
+     * The floor of a world that is **shut overhead**, found by walking down past the roof.
+     *
+     * A surface heightmap answers the *roof* in such a world, so asking one put a player on top of an
+     * infernal Age looking at the sky (Jonah, 2026-08-14, walked). Vanilla has the same problem in the
+     * nether and answers it the same way: come down from the ceiling and take the first floor with room
+     * to stand on it.
+     *
+     * The column is read rather than the heightmap because a heightmap has no notion of "the second solid
+     * thing down", which is the whole of what is wanted here.
+     */
+    private fun floorUnderTheRoof(level: ServerLevel, x: Int, z: Int): Int {
+        val cursor = BlockPos.MutableBlockPos()
+        fun isAirAt(y: Int) = level.getBlockState(cursor.set(x, y, z)).isAir
+        fun standingRoomAt(y: Int) = !isAirAt(y) && isAirAt(y + 1) && isAirAt(y + 2)
+
+        var y = level.maxY - HEADROOM
+        // Down through whatever air is above the roof, then through the roof itself.
+        while (y > level.minY && isAirAt(y)) y--
+        while (y > level.minY && !isAirAt(y)) y--
+        while (y > level.minY) {
+            if (standingRoomAt(y)) return y
+            y--
+        }
+        // A column with no floor under its roof at all — the caller puts the player one above this, which
+        // is the bottom of the world rather than inside it.
+        return level.minY
+    }
+
+    /** Room for a player above the floor they are put on, which is what makes a floor one. */
+    private const val HEADROOM = 2
 
     /**
      * The nearest column to the origin standing clear of the sea. Asks the generator rather than the

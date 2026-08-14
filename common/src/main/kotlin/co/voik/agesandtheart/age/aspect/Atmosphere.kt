@@ -159,10 +159,20 @@ object Atmosphere {
      */
     fun unlitLook(sky: Options, sun: Options): Look =
         if (!Sky.isLightless(sky, sun)) Look.NOTHING
-        else Look(sky = STARLESS, fog = STARLESS, cloud = STARLESS, tint = STARLESS)
+        else Look(sky = STARLESS, fog = STARLESS, cloud = NO_CLOUD, tint = STARLESS)
 
     /** Not quite black: pure zero reads as a hole cut in the world rather than as a dark sky. */
     private val STARLESS = Rgba(0.02f, 0.02f, 0.03f)
+
+    /**
+     * **No cloud at all**, which is a zero *alpha* rather than a dark colour — the cloud pass is skipped on
+     * one and drawn on the other, and there is no separate switch for it.
+     *
+     * A near-black `STARLESS` here painted the clouds of a sealed Age dark instead of removing them, and
+     * it overrode the `#00000000` the dimension type ships for exactly this. The look says the whole thing
+     * rather than half of it and leaves the file to agree.
+     */
+    private val NO_CLOUD = Rgba(0.0f, 0.0f, 0.0f, 0.0f)
 
     /**
      * Every biome any dial of this aspect was confined to, visual or not.

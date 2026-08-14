@@ -70,6 +70,11 @@ enum class Sky(override val key: String) : AspectPreset {
      */
     fun specFor(parts: AgeParts, seed: Long): SkySpec {
         if (this == SPIRE) return SpireSky.SPEC
+        // **A world shut overhead has nothing overhead**, and that is a fact about the world rather than
+        // something a writer has to remember to say. Silencing the sun is not enough: a moon and a full
+        // field of stars were still drawn through the ceiling of an infernal Age, because the cast falls
+        // back to vanilla's one moon wherever no clause described a body and `orbiting` was never set.
+        if (isRoofed(parts.optionsFor(Aspect.SKY))) return SkySpec.drawn(NONE, NONE, NONE, ORDINARY_SPREAD.toFloat(), seed)
         // **Assembled from three aspects**, which is what the split made explicit: the suns, the moons and
         // the star field are each their own part of the world, and a spec is where they meet.
         val sun = parts.optionsFor(Aspect.SUN)

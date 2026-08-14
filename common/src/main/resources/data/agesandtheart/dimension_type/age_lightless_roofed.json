@@ -1,6 +1,6 @@
 {
-  "_comment": "Lightless, and it LOOKS it. `has_skylight: false` makes the world dark to the game; these three make it dark to the eye. A zero-alpha cloud colour is what skips the cloud pass outright (see Ephemeris' cloud renderer) -- there is no separate switch for it. A writer who paints a sky over this with a Look still gets one.",
-  "ambient_light": 0.0,
+  "_comment": "Roofed and lightless. `ambient_light` is the nether's 0.1 rather than the flat 0.0 an unroofed lightless Age gets: a world shut overhead is lit by its own rock and lava, where an open one with no sun is a void and should be black. Jonah, 2026-08-14, walked. `has_skylight: false` makes the world dark to the game; these three make it dark to the eye. A zero-alpha cloud colour is what skips the cloud pass outright (see Ephemeris' cloud renderer) -- there is no separate switch for it. A writer who paints a sky over this with a Look still gets one.",
+  "ambient_light": 0.1,
   "attributes": {
     "minecraft:gameplay/bed_rule": {
       "can_set_spawn": "always",

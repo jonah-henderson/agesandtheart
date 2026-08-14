@@ -268,6 +268,32 @@ class SkyCheck : FunSpec({
     }
 
     /**
+     * **A world shut overhead has nothing overhead** — and silencing the sun is not enough to get there.
+     *
+     * A cast nobody described falls back to vanilla's one moon, and stars default to ordinary, so an
+     * infernal Age had a full moon and fifteen hundred stars behind its ceiling (Jonah, 2026-08-14,
+     * walked). The dimension type was right, the recipe was right, and the sky was drawn anyway.
+     */
+    test("a sealed world draws nothing overhead") {
+        val sealed = Described(mapOf(Aspect.SKY to Options(mapOf(Sky.SEALED.name to listOf(Sky.ALWAYS)))))
+        val spec = Sky.PLAIN.specFor(sealed, A_SEED)
+        check(spec.bodies.isEmpty()) { "a sealed world drew ${spec.bodies.size} bodies through its ceiling" }
+        check(spec.stars.count == 0) { "a sealed world drew ${spec.stars.count} stars through its ceiling" }
+    }
+
+    /**
+     * **And an open world with no sun keeps its moon**, which is the other half of the same rule: `sunless`
+     * says one thing about one body, where a ceiling is a fact about the whole sky. A moonlit world with no
+     * sun is a fine thing to write, and `moonless` is the word for the other.
+     */
+    test("a sunless world is not a moonless one") {
+        val sunless = Described(mapOf(Aspect.SUN to Options(mapOf(Sky.SHINING.name to listOf(Sky.NEVER)))))
+        val spec = Sky.PLAIN.specFor(sunless, A_SEED)
+        check(spec.bodies.none { it.phase == null }) { "a sunless world kept a sun" }
+        check(spec.bodies.any { it.phase != null }) { "a sunless world lost its moon as well" }
+    }
+
+    /**
      * **An Age is dark two ways, and everything that reads the fact has to know both.** Sealed overhead is
      * one; nothing shining on it is the other. The dimension type and the skylight knew both while the
      * paint knew only the seal, so a `sunless` Age was held pitch dark by the game and painted broad
