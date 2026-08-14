@@ -138,13 +138,16 @@ object Resolver {
         val filled = Aspect.entries.associateWith { aspect -> fill(vocabulary, aspect, said, draw, flaws) }
         flaws += tensions(vocabulary, said, filled.mapValues { (_, filling) -> filling.map { it.preset } })
 
-        val resolved = minted(weighed(vocabulary, steer(vocabulary, compose(filled), said, draw, flaws), said), said)
+        val resolved = describedMembers(
+            weighed(vocabulary, steer(vocabulary, compose(filled), said, draw, flaws), said),
+            said,
+        )
         // **The template underneath, what the sentence said on top.** Which aspects the sentence spoke to
         // is what decides where the seam falls, so it is asked of the claims rather than of the answer —
         // an aspect a word reached and left at its default still belongs to the writer.
         val template = templateOf(said)
         val spokenTo = said.flatMap { reachOf(vocabulary, it) }.toSet()
-        val composition = mintedFeatures(resolved, sentence).laidOver(template.world(), spokenTo)
+        val composition = mintedFeatures(resolved, sentence, draw).laidOver(template.world(), spokenTo)
         // **Last**, so it can see everything the mechanisms above already charged and never price one
         // disagreement twice. Steering adds flaws of its own, so this cannot be hoisted.
         flaws += oppositions(vocabulary, said, flaws.toList())
@@ -182,10 +185,12 @@ object Resolver {
      * The claim names the pattern and carries the substance, so nothing downstream has to know there were
      * ever two pages — `Features` looks the pattern up and swaps what it is made of.
      */
-    private fun mintedFeatures(composition: AgeComposition, sentence: Sentence): AgeComposition {
+    private fun mintedFeatures(composition: AgeComposition, sentence: Sentence, draw: Long): AgeComposition {
         val minted = sentence.phrases.mapNotNull { phrase ->
             val pattern = phrase.subject?.word?.mints ?: return@mapNotNull null
-            val substance = phrase.modifiers.firstNotNullOfOrNull { it.word.sets[Terrain.STONE.name] }
+            // Drawn, like every other reader of a word's claims: a material carrying a pool chooses here
+            // too, and this is the one place that read the undrawn sentence instead.
+            val substance = phrase.modifiers.firstNotNullOfOrNull { it.drawnAt(draw).word.material }
                 ?: return@mapNotNull null
             Claim(
                 pattern,
@@ -205,14 +210,14 @@ object Resolver {
     }
 
     /**
-     * [composition] with every body the sentence brought into being counted, said about or not.
+     * [composition] with every member the sentence described into being counted, said about or not.
      *
-     * A clause closing on a population mints a member, and one carrying no modifiers steers nothing — so
-     * without this the roll would hold only the bodies somebody had an opinion about, and `a sun. a sun.`
-     * would come out as one.
+     * A clause closing on a population brings a member of it into being, and one carrying no modifiers
+     * steers nothing — so without this the roll would hold only the bodies somebody had an opinion about,
+     * and `a sun. a sun.` would come out as one.
      */
-    private fun minted(composition: AgeComposition, said: List<Constraint>): AgeComposition =
-        said.mapNotNull { claim -> claim.mintedAs?.let { it to claim } }
+    private fun describedMembers(composition: AgeComposition, said: List<Constraint>): AgeComposition =
+        said.mapNotNull { claim -> claim.describes?.let { it to claim } }
             .flatMap { (member, claim) -> claim.aimedAt.map { aspect -> aspect to member } }
             .groupBy({ it.first }, { it.second })
             .entries.fold(composition) { held, (aspect, members) ->
@@ -699,10 +704,10 @@ object Resolver {
                 // **A body is steered on its own.** Each clause that minted one carries its index, so what
                 // was said about the second sun never reaches the first — the one place a claim is written
                 // to a member rather than across the aspect.
-                val bodies = contenders.filter { it.mintedAs != null }
+                val bodies = contenders.filter { it.describes != null }
                 steered = when {
                     bodies.isNotEmpty() -> bodies.fold(steered) { held, said ->
-                        held.withOptionsFor(aspect, said.mintedAs ?: 0, parameter, listOf(said.word.sets.getValue(parameter)))
+                        held.withOptionsFor(aspect, said.describes ?: 0, parameter, listOf(said.word.sets.getValue(parameter)))
                     }
                     // Populative values accumulate rather than conflict (§3.2), and the polarity travels
                     // with the value — which is what makes `only` and `except` reach a population at all.
@@ -783,8 +788,8 @@ object Resolver {
             // **Two clauses about different members are never in tension**, whatever they demand: each
             // describes its own individual, so they share no ground and cannot argue over it. Asked before
             // `and`, which joins words inside a clause and so cannot span two.
-            val aboutDifferentMembers = one.mintedAs != null && other.mintedAs != null &&
-                one.mintedAs != other.mintedAs
+            val aboutDifferentMembers = one.describes != null && other.describes != null &&
+                one.describes != other.describes
             if (aboutDifferentMembers) return false
             if (wereJoined(one, other)) return true
             val mine = boundsIn(one)
@@ -823,10 +828,10 @@ object Resolver {
 
         val gathered = gathered(bounding, ::agree)
         /** Which member each group describes, or null for a group of words aimed at nothing in particular. */
-        fun memberOf(group: List<Constraint>): Int? = group.firstNotNullOfOrNull { it.mintedAs }
+        fun memberOf(group: List<Constraint>): Int? = group.firstNotNullOfOrNull { it.describes }
         // **Written in the writer's order where every group is a member of its own.** Groups come out
         // ordered by tier, which is nobody's intent; a clause's ranged axes have to land on the same member
-        // its ordinary parameters do, and those are written against `Constraint.mintedAs` by [steer].
+        // its ordinary parameters do, and those are written against `Constraint.describes` by [steer].
         val described = gathered.map(::memberOf)
         val eachIsItsOwn = described.none { it == null } && described.distinct().size == gathered.size
         val groups = if (eachIsItsOwn) gathered.sortedBy(::memberOf) else gathered

@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.word
 
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.MATERIAL_PARAMETERS
 import co.voik.agesandtheart.age.aspect.AspectPreset
 import com.mojang.serialization.Codec
 import kotlin.random.Random
@@ -306,6 +307,16 @@ data class Word(
      * disagree with no antonym table involved (`Vocabulary.disagreement`).
      */
     val unwanted: Set<String> get() = everyQuery.filterValues { it < 0.0 }.keys
+
+    /**
+     * The block this word names, or null where it names none — every derived block word sets one, and
+     * nothing authored does.
+     *
+     * Asked of [Parameter.material] rather than of a parameter by name. Two readers wanted this and both
+     * looked for `Terrain.STONE` by name: `Grammar` to decide a page is a material at all, and `Resolver`
+     * to find what a minted pattern is made of. One aspect's knob was standing in for "a block".
+     */
+    val material: String? get() = sets.entries.firstOrNull { it.key in MATERIAL_PARAMETERS }?.value
 
     /**
      * **How many places this page may be laid** — the second half of what it costs (world model §9).

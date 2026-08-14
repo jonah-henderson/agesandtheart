@@ -4,6 +4,20 @@ import co.voik.agesandtheart.worldgen.biome.ClimateAxis
 import net.minecraft.resources.Identifier
 import net.minecraft.util.StringRepresentable
 
+/**
+ * Every parameter in the world whose value is a block, by name — see [Parameter.material].
+ *
+ * Lazy rather than eager: each preset enum names [Aspect] in its own initialiser, so building this while
+ * `Aspect` is still loading would leave the two classes waiting on each other.
+ */
+val MATERIAL_PARAMETERS: Set<String> by lazy {
+    Aspect.entries
+        .flatMap { aspect -> aspect.dials + aspect.authored.flatMap { it.parameters } }
+        .filter { it.material }
+        .map { it.name }
+        .toSet()
+}
+
 /** What an aspect that cannot divide has, there being nothing to be companionable with. */
 private const val NO_APPETITE = 0.0
 
@@ -317,6 +331,16 @@ data class Parameter(
      * is circular. An aspect holding both would have no honest answer.
      */
     val confinable: Boolean = false,
+    /**
+     * Whether this parameter's value is a **block** — the palette's stone, a surface's skin, a minted
+     * pattern's substance.
+     *
+     * A fact about the parameter rather than a name to compare against. `Grammar` asks whether a word is a
+     * material and `Resolver` asks what substance it carries, and both did it by looking for `Terrain.STONE`
+     * by name — one aspect's knob standing in for "a block", which is true of the corpus today and is not
+     * what either of them means.
+     */
+    val material: Boolean = false,
 ) {
     /** This parameter, sited-in-a-biome — see [confinable]. */
     fun perBiome(): Parameter = copy(confinable = true)
@@ -345,7 +369,7 @@ data class Parameter(
         const val UNCHANGED = "unchanged"
 
         /** A block a preset is made of — the palette's stone, a terrain's spires, a structure's walls. */
-        fun material(name: String) = Parameter(name, listOf(UNCHANGED), open = true)
+        fun material(name: String) = Parameter(name, listOf(UNCHANGED), open = true, material = true)
 
         /**
          * A set of registry entries present here — the biomes an Age draws from. Populative, so naming

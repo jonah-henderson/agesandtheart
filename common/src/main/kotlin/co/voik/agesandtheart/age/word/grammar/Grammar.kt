@@ -1,7 +1,6 @@
 package co.voik.agesandtheart.age.word.grammar
 
 import co.voik.agesandtheart.age.aspect.Aspect
-import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.word.Tier
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.Word
@@ -149,7 +148,7 @@ object Grammar {
      * Read off the material it sets rather than declared, because that is what a material *is* — every
      * such word arrives from `DerivedWords`, one per block in the pack, and none of them is authored.
      */
-    private val Word.isMaterial: Boolean get() = Terrain.STONE.name in sets
+    private val Word.isMaterial: Boolean get() = material != null
 
     /**
      * Which part of the world this page belongs to, for the classes that belong to one.

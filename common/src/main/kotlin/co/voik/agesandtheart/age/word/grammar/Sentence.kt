@@ -70,13 +70,16 @@ data class Constraint(
      */
     val rehomed: Boolean = false,
     /**
-     * Which member of a **population** this describes, counting the clauses that minted one, or null where
-     * the claim is not about one (`the-world-model.md` §2).
+     * Which member of a **population** this is about, counting the clauses that described one, or null
+     * where the claim is not about one (`the-world-model.md` §2).
      *
      * *A large red sun. A small blue sun.* is two bodies, and this is what keeps the second's colour off
      * the first. Every other aspect leaves it null and is steered as a whole.
+     *
+     * Not *minting*, which the design keeps for a weighted-set member made from a pattern and a substance
+     * — `ink springs`. A population's members are described into being, and that is this.
      */
-    val mintedAs: Int? = null,
+    val describes: Int? = null,
 )
 
 /**

@@ -64,10 +64,10 @@ internal object ArtReading {
         private var nextGroup = 0
 
         /**
-         * How many members of each population the book has minted so far, so the next clause aimed at one
+         * How many members of each population the book has described so far, so the next clause aimed at one
          * describes the next body rather than arguing with the last (`the-world-model.md` §2).
          */
-        private val minted = mutableMapOf<Aspect, Int>()
+        private val described = mutableMapOf<Aspect, Int>()
 
         /**
          * Whether something was met that cannot be read at all — an `and` with nothing after it, an `in`
@@ -138,17 +138,17 @@ internal object ArtReading {
             at = if (confinedTo == null) sitingAt else sitingAt + PAGES_IN_A_SITING
             // A clause closing on a population brings a member of it into being, and everything said in the
             // clause is said about *that* one.
-            val mints = aim.singleOrNull()?.takeIf { it.holds == Holds.POPULATION }
-            val body = mints?.let { minted.merge(it, 1, Int::plus)!! - 1 }
+            val population = aim.singleOrNull()?.takeIf { it.holds == Holds.POPULATION }
+            val body = population?.let { described.getOrDefault(it, 0).also { at -> described[it] = at + 1 } }
             return Phrase(
-                modifiers = said.map { it.copy(mintedAs = body) },
+                modifiers = said.map { it.copy(describes = body) },
                 subject = subject?.word?.let {
                     Constraint(
                         it,
                         scopeFor(it, aim),
                         latent = subject.latent,
                         rehomed = subject.rehomed,
-                        mintedAs = body,
+                        describes = body,
                     )
                 },
                 confinedTo = confinedTo,
