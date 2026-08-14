@@ -340,6 +340,37 @@ class ResolverCheck : FunSpec({
     }
 
     /**
+     * **A claim aimed at one body stays on it** (world model §2) — the whole of what a cast is for.
+     *
+     * Two mechanisms had to agree and neither did. `AspectOptions.of` answered a lone stored entry for
+     * *every* member, which is what an aspect whose territories agree wants and the opposite of what a roll
+     * wants; and the ranged pass wrote to member 0 unless the aspect was spatial, which a cast is not. So
+     * `a colossal sun` beside any second sun made both of them colossal.
+     *
+     * The check that should have caught it asked about two clauses setting the **same** knob, where the
+     * second write happens to overwrite the first's leak. These set different ones.
+     */
+    test("a claim about one body stays on it") {
+        fun sizes(vararg pages: String): List<Set<String>> {
+            val composition = Resolver.resolve(vocabulary, read(listOf("age", *pages)), SAMPLE_SEED).composition
+            return (0..<composition.membersIn(Aspect.SUN)).map {
+                composition.optionsFor(Aspect.SUN, it).allSpelled(Sky.SUNSIZE.name)
+            }
+        }
+        // A clause that demands nothing still mints a body, and the size belongs to the other one — which
+        // is why the member is read off the clause rather than off where its group sorted.
+        val sized = sizes("sun", "colossal", "sun")
+        check(sized.size == 2) { "two clauses minted ${sized.size} suns" }
+        check(sized[0].isEmpty() && sized[1].isNotEmpty()) { "'a sun. a colossal sun.' sized $sized" }
+
+        // And the other way about, with a different knob on the body that was not sized.
+        val andBack = sizes("colossal", "sun", "east_rising", "sun")
+        check(andBack[0].isNotEmpty() && andBack[1].isEmpty()) {
+            "'a colossal sun. an east-rising sun.' sized $andBack"
+        }
+    }
+
+    /**
      * **Two climates asked for apart cost ink, not instability** (world model §2).
      *
      * A climate is a population now, so a clause closing on `climate` mints one of them — and two clauses

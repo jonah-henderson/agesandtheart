@@ -311,9 +311,17 @@ data class AgeComposition(
  * collapses agreeing entries back to one so there is a single spelling for it.
  */
 data class AspectOptions(private val bySlot: Map<Aspect, List<Options>> = emptyMap()) {
-    /** What was chosen for the [member]th preset of [aspect] — a lone entry answering for all of them. */
+    /**
+     * What was chosen for the [member]th preset of [aspect] — a lone entry answering for all of them.
+     *
+     * **A described member never borrows another's.** Its entries *are* the roll ([with] keeps them apart
+     * for that reason), so a lone entry is the first body's own and says nothing about the second: a sky
+     * with one sun sized and one not is not a sky with two sized suns. Broadcasting is what an aspect whose
+     * territories *agree* wants, and only that.
+     */
     fun of(aspect: Aspect, member: Int = 0): Options {
         val perMember = bySlot[aspect].orEmpty()
+        if (aspect.membersAreDescribed) return perMember.getOrElse(member) { Options.NONE }
         return perMember.singleOrNull() ?: perMember.getOrElse(member) { Options.NONE }
     }
 
