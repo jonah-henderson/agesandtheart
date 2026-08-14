@@ -2,10 +2,8 @@ package co.voik.agesandtheart.mixin;
 
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.biome.MobSpawnSettings;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
 /**
@@ -35,11 +33,11 @@ public interface SpawnerDataMixin {
      * The type this entry spawns, settable — see the class note for why this is safe to expose.
      *
      * <p>{@code @Mutable} because the field is final: a record component is an ordinary final field, and
-     * writing one after construction is a class transform rather than reflection, so it verifies.
+     * writing one after construction is a class transform rather than reflection, so it verifies. It is an
+     * accessor and nothing else — {@code @Shadow} would send Mixin looking for a *method* of this name in
+     * the target, and {@code @Final} says nothing at all about one.
      */
-    @Accessor("type")
     @Mutable
-    @Shadow
-    @Final
+    @Accessor("type")
     void agesandtheart$setType(EntityType<?> type);
 }

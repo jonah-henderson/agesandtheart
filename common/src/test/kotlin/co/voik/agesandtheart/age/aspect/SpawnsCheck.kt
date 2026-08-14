@@ -31,6 +31,19 @@ class SpawnsCheck : FunSpec({
         check(kinds(narrowed) == listOf("cow", "sheep", "spider")) { "'except zombie' left ${kinds(narrowed)}" }
     }
 
+    /**
+     * **A creature one word named and another struck out stays struck out** — §3.5's "removals apply last".
+     *
+     * `narrowed` dropped it and `added` put it straight back at the weight it was asked for, because one
+     * walked what survives and the other walked what was *wanted* without asking what was struck. Adding a
+     * creature the world never offered is what made the second walk possible at all, and it arrived without
+     * the rule the first had always had.
+     */
+    test("a creature both named and excepted is left out") {
+        val narrowed = narrowedBy("minecraft:zombie,minecraft:zombie[except]", category = MobCategory.MONSTER)
+        check("zombie" !in kinds(narrowed)) { "'zombie except zombie' left ${kinds(narrowed)}" }
+    }
+
     test("only keeps what was named and nothing else") {
         val narrowed = narrowedBy("minecraft:zombie[only]")
         check(kinds(narrowed) == listOf("zombie")) { "'only zombie' left ${kinds(narrowed)}" }

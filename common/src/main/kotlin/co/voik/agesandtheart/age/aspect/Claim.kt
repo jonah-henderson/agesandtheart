@@ -145,10 +145,16 @@ data class Skew(
             val here = claims.filter { it.appliesIn(biome) }
             fun claimsAt(polarity: Polarity) = here.filter { it.polarity == polarity }.distinctBy { it.value }
             val singledOut = claimsAt(Polarity.ONLY)
+            val removed = claimsAt(Polarity.EXCEPT).map { it.value }
             return Skew(
                 exclusive = singledOut.isNotEmpty(),
-                wanted = (singledOut + claimsAt(Polarity.ASSERTED)).distinctBy { it.value },
-                struck = claimsAt(Polarity.EXCEPT).map { it.value },
+                // **Removals apply last** (§3.5), so a member one word named and another struck out is
+                // struck out. Said here rather than in each reader: `Spawns.narrowed` dropped it and
+                // `Spawns.added` put it straight back, which is the shape a rule kept in two places takes.
+                wanted = (singledOut + claimsAt(Polarity.ASSERTED))
+                    .distinctBy { it.value }
+                    .filterNot { it.value in removed },
+                struck = removed,
             )
         }
     }

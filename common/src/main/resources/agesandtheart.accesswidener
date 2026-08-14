@@ -108,3 +108,15 @@ mutable	field	net/minecraft/world/level/chunk/ChunkGenerator	featuresPerStep	Lja
 # 100,000 roll, so it cannot answer "strike *here*"; and reimplementing the search means copying vanilla's
 # POI query and its surface test, which is exactly the pair that would drift.
 accessible	method	net/minecraft/server/level/ServerLevel	findLightningTargetAround	(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/core/BlockPos;
+
+# So an Age wearing vanilla's rock can still ask whether the sky is open
+# (co.voik.agesandtheart.worldgen.AgeChunkGenerator.skyIsOpenAt).
+#
+# The gate exists for the creatures vanilla never spawns and so wrote no placement rule for — a dragon, a
+# wither, the golems — which `NO_RESTRICTIONS` would otherwise put inside a mountain. An Age with a field of
+# ours asks the field; one wearing the template's rock has none, and answering "yes, always" made the gate
+# inert for every book that never named a landform.
+#
+# `getMobsAt` is handed a `StructureManager` and nothing else that knows the world, and the level it holds
+# is private with no accessor. It is a plain read of a heightmap vanilla itself keeps for the purpose.
+accessible	field	net/minecraft/world/level/StructureManager	level	Lnet/minecraft/world/level/LevelAccessor;

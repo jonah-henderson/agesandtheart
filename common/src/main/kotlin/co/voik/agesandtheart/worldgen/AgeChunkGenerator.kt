@@ -252,19 +252,30 @@ class AgeChunkGenerator(
     ): WeightedList<MobSpawnSettings.SpawnerData> {
         val offered = super.getMobsAt(biome, structures, category, at)
         val living = lives ?: return offered
-        return living.at(biome.unwrapKey().orElse(null)?.identifier(), category, skyIsOpenAt(at), at, offered)
+        return living.at(
+            biome.unwrapKey().orElse(null)?.identifier(),
+            category,
+            skyIsOpenAt(structures, at),
+            at,
+            offered,
+        )
     }
 
     /**
      * Whether an attempt at [at] is happening out under the sky rather than inside the rock — the gate for
      * the creatures vanilla never spawns and so never wrote a placement rule for (see `Spawning`).
      *
-     * Asked of the Age's **own field** rather than of the level, which `getMobsAt` is not given: the shape
-     * already knows where its ground stops, and it is the same answer `getBaseHeight` gives a structure.
-     * An Age wearing vanilla's rock has no field of ours, and vanilla's own rules are the only ones there.
+     * Asked of the Age's **own field** where there is one: the shape already knows where its ground stops,
+     * and it is the same answer `getBaseHeight` gives a structure.
+     *
+     * **An Age wearing vanilla's rock asks the level instead, and must.** Answering `true` there made the
+     * gate inert for every book that named no landform — which is every book the template's rock reaches —
+     * so a written dragon was offered inside the rock as readily as over it. The level is the structure
+     * manager's, which is the only route to one from here.
      */
-    private fun skyIsOpenAt(at: BlockPos): Boolean {
-        val ours = rock as? AgeRock.Ours ?: return true
+    private fun skyIsOpenAt(structures: StructureManager, at: BlockPos): Boolean {
+        val ours = rock as? AgeRock.Ours
+            ?: return at.y >= structures.level.getHeight(Heightmap.Types.WORLD_SURFACE, at.x, at.z)
         val highestRock = ours.field.columnSpans(at.x, at.z).highestSolidY ?: return true
         return at.y > highestRock
     }
