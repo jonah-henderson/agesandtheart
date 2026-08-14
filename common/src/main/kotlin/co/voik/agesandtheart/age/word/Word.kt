@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.MATERIAL_PARAMETERS
 import co.voik.agesandtheart.age.aspect.AspectPreset
 import com.mojang.serialization.Codec
+import com.mojang.serialization.DataResult
 import kotlin.random.Random
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -488,7 +489,19 @@ data class Word(
             }
         }
 
-        private val ASPECT_CODEC: Codec<Aspect> = StringRepresentable.fromEnum(Aspect::values)
+        /**
+         * **By page, not by key.** A word file is corpus content that a person authors and the game re-reads
+         * on every load, so it names parts of the world the way a writer does. Only a *save* is written in
+         * keys, and no save holds one of these.
+         */
+        private val ASPECT_CODEC: Codec<Aspect> = Codec.STRING.comapFlatMap(
+            { named ->
+                Aspect.entries.firstOrNull { it.page == named }
+                    ?.let { DataResult.success(it) }
+                    ?: DataResult.error { "no part of the world is called '$named'" }
+            },
+            Aspect::page,
+        )
 
         // A set rather than a list: "terrain terrain" means nothing, and pricing counts aspects constrained.
         private val ASPECT_SET_CODEC: Codec<Set<Aspect>> = ASPECT_CODEC.listOf().xmap({ it.toSet() }, { it.toList() })

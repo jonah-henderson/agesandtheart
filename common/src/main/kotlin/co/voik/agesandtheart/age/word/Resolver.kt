@@ -666,7 +666,7 @@ object Resolver {
             // written by the parameter pass, which runs next. Only an aspect that *could* seat a preset and
             // did not is a fault, and that would be the resolver losing one.
             if (aspect.holds != Holds.CATALOGUE) continue
-            check(filling.isNotEmpty()) { "the ${aspect.key} aspect resolved to nothing, which no sentence can do" }
+            check(filling.isNotEmpty()) { "the ${aspect.page} aspect resolved to nothing, which no sentence can do" }
             composition = composition.withPresets(aspect, filling.map { it.preset.key }, filling.map { it.share })
         }
         return composition

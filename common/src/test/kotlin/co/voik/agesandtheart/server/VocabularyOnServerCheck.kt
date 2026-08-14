@@ -97,7 +97,9 @@ class VocabularyOnServerCheck : FunSpec({
             .map { it.get("word").asString }
         // One per aspect, synthesised rather than authored — `art/domain/` is gone, and with it the
         // layer that let a page cover more than one aspect. `firmament` was that layer's name for the sky.
-        val expected = Aspect.entries.map { it.key } + MINTING_PATTERNS
+        // By **page**: a writer's name for the part of the world, which is what an aiming page is. Two
+        // aspects are recorded under another name ([Aspect.key]), and a save is the only place that shows.
+        val expected = Aspect.entries.map { it.page } + MINTING_PATTERNS
         check(aiming.sorted() == expected.sorted()) { "the aiming pages are $aiming" }
     }
 })

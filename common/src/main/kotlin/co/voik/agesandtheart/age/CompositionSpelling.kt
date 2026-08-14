@@ -50,10 +50,10 @@ object CompositionSpelling {
                     ?: error("No world called '$value'. Try: ${AgeTemplate.entries.joinToString(" ") { it.key }}")
                 continue
             }
-            val aspect = Aspect.entries.firstOrNull { key.substringBefore('.') == it.key }
+            val aspect = Aspect.entries.firstOrNull { key.substringBefore('.') == it.page }
                 ?: error(
                     "No aspect called '${key.substringBefore('.')}'. " +
-                        "Slots: ${Aspect.entries.joinToString(" ") { it.key }}",
+                        "Slots: ${Aspect.entries.joinToString(" ") { it.page }}",
                 )
 
             composition = if ('.' in key) {
@@ -77,14 +77,14 @@ object CompositionSpelling {
                     .steeredBy(aspect, filling)
             }
         }
-        require(namedALandform) { "An Age needs a terrain. Try `${Aspect.TERRAIN.key}=${Terrain.HILLS.key}`" }
+        require(namedALandform) { "An Age needs a terrain. Try `${Aspect.TERRAIN.page}=${Terrain.HILLS.key}`" }
         // Vanilla's rock answers for the whole world or for none of it — the field tree and vanilla's
         // router are either/or — so it cannot stand as one territory among several. Said here rather
         // than left to the generator, which has no way to report it and used to throw instead.
         val ourOwnRockBeside = composition.terrains.filter { it != Terrain.VANILLA }
         val sharesTheWorld = Terrain.VANILLA in composition.terrains && ourOwnRockBeside.isNotEmpty()
         require(!sharesTheWorld) {
-            "`${Aspect.TERRAIN.key}=${Terrain.VANILLA.key}` is the whole world's rock and cannot " +
+            "`${Aspect.TERRAIN.page}=${Terrain.VANILLA.key}` is the whole world's rock and cannot " +
                 "divide it with ${ourOwnRockBeside.joinToString(" ") { it.key }}"
         }
         Written(composition, template)
@@ -120,7 +120,7 @@ object CompositionSpelling {
                     if (aimed) named + steering(options.of(aspect, index)) else named
                 }
                 val slotWide = if (aimed) emptyList() else spelled(aspect, options.of(aspect))
-                listOf("${aspect.key}=${spelledOut.joinToString(LIST_MARK.toString())}") + slotWide
+                listOf("${aspect.page}=${spelledOut.joinToString(LIST_MARK.toString())}") + slotWide
             }
             .plus(castSpelling())
             .plus(seatlessSpelling())
@@ -135,7 +135,7 @@ object CompositionSpelling {
      */
     private fun AgeComposition.seamSpelling(): List<String> = Aspect.entries
         .filter { it.spatial }
-        .mapNotNull { aspect -> spreads.of(aspect).drawn?.let { "${aspect.key}.${Spread.SEAM}=${it.key}" } }
+        .mapNotNull { aspect -> spreads.of(aspect).drawn?.let { "${aspect.page}.${Spread.SEAM}=${it.key}" } }
 
     /**
      * The options of an aspect that seats no preset, which the loop above cannot reach because it walks
@@ -177,13 +177,13 @@ object CompositionSpelling {
             val bodies = (0..<membersIn(aspect)).joinToString(LIST_MARK.toString()) { member ->
                 BODY + steering(options.of(aspect, member))
             }
-            "${aspect.key}=$bodies"
+            "${aspect.page}=$bodies"
         }
 
     /** `landmass.arrangement=grid` — one token per parameter, for an aspect whose territories agree. */
     private fun spelled(aspect: Aspect, chosen: Options): List<String> = chosen.chosen.entries.sortedBy { it.key }
         // Comma-joined: several values on one parameter mingle (§3.2), where several presets divide.
-        .map { (parameter, options) -> "${aspect.key}.$parameter=${options.joinToString(LIST_MARK.toString())}" }
+        .map { (parameter, options) -> "${aspect.page}.$parameter=${options.joinToString(LIST_MARK.toString())}" }
 
     /** `[stone=copper;arrangement=grid]` — written against the preset it steers, empty where it says nothing. */
     private fun steering(chosen: Options): String {
@@ -277,9 +277,9 @@ internal inline fun <reified T : AspectPreset> named(aspect: Aspect, key: String
     val preset = aspect.presetFor(key)
         ?: error(
             if (aspect.open) {
-                "'$key' is no ${aspect.key}. An open aspect takes a `namespace:path` id, like `minecraft:water`"
+                "'$key' is no ${aspect.page}. An open aspect takes a `namespace:path` id, like `minecraft:water`"
             } else {
-                "No ${aspect.key} called '$key'. Try: ${aspect.authored.joinToString(" ") { it.key }}"
+                "No ${aspect.page} called '$key'. Try: ${aspect.authored.joinToString(" ") { it.key }}"
             },
         )
     // Cannot happen unless `presetFor` and this call site disagree about the aspect's own type, which the

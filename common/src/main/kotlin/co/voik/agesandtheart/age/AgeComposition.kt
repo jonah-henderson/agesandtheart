@@ -101,7 +101,7 @@ data class AgeComposition(
     val unknownOptions: List<String>
         get() = presets.groupBy { it.aspect }.flatMap { (aspect, filling) ->
             filling.flatMapIndexed { member, preset ->
-                options.of(aspect, member).unknownTo(preset).map { name -> "${aspect.key}.$name" }
+                options.of(aspect, member).unknownTo(preset).map { name -> "${aspect.page}.$name" }
             }
         }.distinct()
 

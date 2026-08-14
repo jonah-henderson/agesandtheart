@@ -123,6 +123,29 @@ class RecipeCheck : FunSpec({
     }
 
     /**
+     * **A writer's page and a recipe's key are two names, and these are the two aspects that differ.**
+     *
+     * `terrain` became `landmass` and `carvers` became `depths` for readability, and each rename was a
+     * save-format change until the two were told apart. Pack content and commands are pages, because they
+     * are re-read on every load and a rename costs an edit to what ships; a save is keys, because a rename
+     * there costs every Age ever written.
+     */
+    test("a writer's page and the recipe's key are told apart") {
+        val written = AgeComposition(terrains = listOf(Terrain.HILLS), carvers = listOf(Carvers.CAVES))
+            .withOptionsFor(Aspect.TERRAIN, 0, Terrain.STONE.name, listOf("minecraft:tuff"))
+        check("${Aspect.TERRAIN.page}=" in written.toString()) {
+            "the spelling a person reads does not say '${Aspect.TERRAIN.page}': $written"
+        }
+
+        val recipe = AgeRecipe(AgeWorld.Composed(written), seed = SAMPLE_SEED)
+        val json = AgeRecipe.CODEC.encodeStart(JsonOps.INSTANCE, recipe).getOrThrow().toString()
+        for (aspect in listOf(Aspect.TERRAIN, Aspect.CARVERS)) {
+            check(aspect.page !in json) { "the save recorded '${aspect.page}', which is the name that moves: $json" }
+            check(aspect.key in json) { "the save does not record '${aspect.key}': $json" }
+        }
+    }
+
+    /**
      * **Vanilla's rock is the whole world's or none of it**, the field tree and vanilla's router being
      * either/or. Composing it beside a landform of ours used to parse cleanly and then throw out of the
      * generator, where there is nobody to tell.

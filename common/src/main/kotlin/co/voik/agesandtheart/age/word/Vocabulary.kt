@@ -538,9 +538,9 @@ data class Vocabulary(
             val rules = mutableMapOf<Aspect, Derivation>()
             for ((file, layers) in stacks) {
                 val key = idOf(file, DERIVATION_DIRECTORY).path
-                val aspect = Aspect.entries.firstOrNull { it.key == key }
+                val aspect = Aspect.entries.firstOrNull { it.page == key }
                 if (aspect == null) {
-                    problems += "$file names no aspect ('$key'); aspects are ${Aspect.entries.joinToString(" ") { it.key }}"
+                    problems += "$file names no aspect ('$key'); aspects are ${Aspect.entries.joinToString(" ") { it.page }}"
                     continue
                 }
                 for (layer in layers) {
@@ -566,9 +566,9 @@ data class Vocabulary(
             val bySlot = mutableMapOf<Aspect, MutableMap<String, PresetProfile>>()
             for ((file, layers) in stacks) {
                 val slotKey = idOf(file, PRESET_TAGS_DIRECTORY).path
-                val aspect = Aspect.entries.firstOrNull { it.key == slotKey }
+                val aspect = Aspect.entries.firstOrNull { it.page == slotKey }
                 if (aspect == null) {
-                    problems += "$file names no aspect ('$slotKey'); aspects are ${Aspect.entries.joinToString(" ") { it.key }}"
+                    problems += "$file names no aspect ('$slotKey'); aspects are ${Aspect.entries.joinToString(" ") { it.page }}"
                     continue
                 }
                 val merged = bySlot.getOrPut(aspect) { mutableMapOf() }

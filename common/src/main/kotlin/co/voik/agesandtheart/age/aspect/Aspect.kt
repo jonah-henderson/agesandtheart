@@ -90,21 +90,26 @@ enum class Aspect(
     /**
      * What a **writer** calls this part of the world, where that differs from [key].
      *
-     * [key] is what an Age is *written down* as — the recipe's map keys, `preset_tags/<key>.json`,
-     * `derivation/<key>.json` — and must not move once an Age has been written with it. A page name is
-     * read by people and moves when a better word turns up, which it has twice already. Keeping the two
-     * apart is what stops the second kind of change being a save migration.
+     * **Pack content and commands are pages; saves are keys.** A word file's `aspects`, a
+     * `preset_tags/<page>.json`, a `derivation/<page>.json` and `/age compose` are all read by people or
+     * re-read from the pack on every load, so a better word may replace them at the cost of editing what
+     * ships. [key] is what an Age is *recorded* under — the `options` and `spread` map keys a save holds —
+     * and must not move once an Age has been written with it.
+     *
+     * `terrain` became `landmass` and `carvers` became `depths` for readability, and each rename was a
+     * save-format change until the two were separated. They are the two entries that carry both.
      */
     page: String? = null,
 ) : StringRepresentable {
     /** The shape of the rock. */
-    TERRAIN("landmass", Holds.CATALOGUE, spatial = true, madeOfSomething = true, appetiteForCompany = 0.12),
+    TERRAIN("terrain", Holds.CATALOGUE, spatial = true, madeOfSomething = true, appetiteForCompany = 0.12,
+        page = "landmass"),
 
     /** What fills the space the shape leaves — sea, lava, nothing. */
     SEA("sea", Holds.CATALOGUE, open = true, spatial = true, madeOfSomething = true, appetiteForCompany = 0.18),
 
     /** What happens beneath the surface: caves cut back out, and where water stands in the rock. */
-    CARVERS("depths", Holds.CATALOGUE, spatial = true, appetiteForCompany = 0.25),
+    CARVERS("carvers", Holds.CATALOGUE, spatial = true, appetiteForCompany = 0.25, page = "depths"),
 
     /** Which biomes it grows. */
     BIOMES("biomes", Holds.WEIGHTED_SET, open = true),

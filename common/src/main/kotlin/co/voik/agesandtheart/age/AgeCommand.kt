@@ -183,7 +183,7 @@ object AgeCommand {
      * it spelled: renaming the aspect left this saying `terrain=hills` to a parser that had stopped knowing
      * the word, and every sky-preview check failed with it.
      */
-    private val PREVIEW_SCAFFOLD = "${Aspect.TERRAIN.key}=${Terrain.HILLS.key}"
+    private val PREVIEW_SCAFFOLD = "${Aspect.TERRAIN.page}=${Terrain.HILLS.key}"
 
     // Brigadier command result codes.
     private const val SUCCESS = 1
@@ -334,7 +334,7 @@ object AgeCommand {
         reporting("tags") { reportFor ->
             Commands.argument(ASPECT_ARGUMENT, StringArgumentType.word())
                 .suggests { _, builder ->
-                    SharedSuggestionProvider.suggest(Aspect.entries.map { it.key }, builder)
+                    SharedSuggestionProvider.suggest(Aspect.entries.map { it.page }, builder)
                 }
                 .executes { context -> runTags(context, tag = null, report = reportFor(context)) }
                 .then(
@@ -361,11 +361,11 @@ object AgeCommand {
     private fun runTags(context: CommandContext<CommandSourceStack>, tag: String?, report: Report): Int {
         val source = context.source
         val named = StringArgumentType.getString(context, ASPECT_ARGUMENT)
-        val aspect = Aspect.entries.firstOrNull { it.key == named }
-            ?: return report.fail("No aspect called '$named'. Try: ${Aspect.entries.joinToString(" ") { it.key }}")
+        val aspect = Aspect.entries.firstOrNull { it.page == named }
+            ?: return report.fail("No aspect called '$named'. Try: ${Aspect.entries.joinToString(" ") { it.page }}")
         val vocabulary = Vocabulary.of(source.server)
         val reachable = vocabulary.askableIn(aspect)
-        report.fact("aspect", aspect.key) { "${aspect.key}: ${reachable.size} reachable by description." }
+        report.fact("aspect", aspect.page) { "${aspect.page}: ${reachable.size} reachable by description." }
         if (tag == null) {
             val counted = reachable.flatMap { vocabulary.tagsOf(it).keys }.groupingBy { it }.eachCount()
             for ((carried, many) in counted.entries.sortedByDescending { it.value }) {
@@ -1018,7 +1018,7 @@ object AgeCommand {
         report.fact("readout", Readout.of(read)) { "  “${Readout.of(read)}”" }
         for (said in read.constraints) {
             val aimed =
-                if (said.word.tier.narrows) said.aimedAt.joinToString(" ") { it.key } else "everywhere"
+                if (said.word.tier.narrows) said.aimedAt.joinToString(" ") { it.page } else "everywhere"
             val joined = said.group?.let { " (joined)" } ?: ""
             // Marked rather than hidden: the Age is built from the Art's own pages too, so a reader owed a
             // diagnosis has to see them — and they were never in the book, so they must not read as though
@@ -1030,7 +1030,7 @@ object AgeCommand {
             }
             val fields = mapOf(
                 "word" to said.word.name,
-                "reaches" to said.aimedAt.sortedBy { it.ordinal }.map { it.key },
+                "reaches" to said.aimedAt.sortedBy { it.ordinal }.map { it.page },
                 "polarity" to said.polarity.name.lowercase(),
                 "density" to Rung.spelled(said.density),
                 "joined" to (said.group != null),
@@ -1124,13 +1124,13 @@ object AgeCommand {
         report.fact("words", vocabulary.words.size) { "The Art knows ${vocabulary.words.size} words." }
         report.fact("authored", authored.size) { "${authored.size} written by hand:" }
         for (word in authored) {
-            val about = if (word.aspects.isEmpty()) "anywhere" else word.aspects.joinToString(" ") { it.key }
+            val about = if (word.aspects.isEmpty()) "anywhere" else word.aspects.joinToString(" ") { it.page }
             val asks = word.query.entries.sortedBy { it.key }
                 .joinToString(" ") { (tag, weight) -> if (weight < 0) "-$tag" else tag }
             val fields = mapOf(
                 "word" to word.name,
                 "tier" to word.tier.key,
-                "aspects" to word.aspects.map { it.key },
+                "aspects" to word.aspects.map { it.page },
                 "aims" to word.aims,
             )
             report.entry("authoredWords", fields) { "  ${word.name} — ${word.tier.key}, $about: $asks" }
@@ -1146,8 +1146,8 @@ object AgeCommand {
         for (aspect in Aspect.entries) {
             val reachable = vocabulary.askableIn(aspect).size
             if (reachable == 0) continue
-            report.entry("reach", mapOf("aspect" to aspect.key, "reachable" to reachable)) {
-                "  ${aspect.key}: $reachable reachable by description"
+            report.entry("reach", mapOf("aspect" to aspect.page, "reachable" to reachable)) {
+                "  ${aspect.page}: $reachable reachable by description"
             }
         }
         // Per namespace, which says at a glance whether a mod's content reached the vocabulary (§8).

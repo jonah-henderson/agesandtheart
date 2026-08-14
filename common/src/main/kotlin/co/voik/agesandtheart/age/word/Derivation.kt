@@ -133,7 +133,7 @@ object DerivedTags {
                 .filter(::weInsistOn)
                 .sorted()
             if (unmatched.isNotEmpty()) {
-                problems += "art/derivation/${aspect.key}.json keys on tags nothing carries: " +
+                problems += "art/derivation/${aspect.page}.json keys on tags nothing carries: " +
                     unmatched.joinToString(" ")
             }
         }
