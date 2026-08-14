@@ -17,6 +17,7 @@ import co.voik.ephemeris.debug.LevelLookPreview
 import co.voik.ephemeris.sky.LevelAppearance
 import co.voik.ephemeris.sky.LevelLook
 import co.voik.agesandtheart.worldgen.AgeChunkGenerator
+import co.voik.agesandtheart.worldgen.AgeRock
 import co.voik.agesandtheart.worldgen.field.RegionMap
 import co.voik.agesandtheart.worldgen.field.Spans
 import co.voik.ephemeris.sky.SkySpec
@@ -722,8 +723,13 @@ object AgeCommand {
             return FAILURE
         }
 
+        val ours = generator.rock as? AgeRock.Ours ?: run {
+            source.sendFailure(Component.literal("Age '$name' wears vanilla's own rock, which has no field of ours to probe"))
+            return FAILURE
+        }
+
         val seaFill = generator.seaFill
-        val rock = generator.field.columnSpans(x, z)
+        val rock = ours.field.columnSpans(x, z)
         val dryness = seaFill.drynessAt(x, z)
         val wetness = seaFill.wetnessAt(x, z)
         report.say { "Column ($x, $z) as the generator sees it:" }

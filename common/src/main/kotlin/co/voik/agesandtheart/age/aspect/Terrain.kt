@@ -192,11 +192,13 @@ enum class Terrain(
      * a template's rock behind: the two are either/or, vanilla's router answering for the rock, the
      * aquifers and the preliminary surface together where the field tree answers for all three.
      *
-     * **It builds no field, and asking it for one is a mistake rather than a shape.** `AgeGeneration`
-     * branches before it would, because an Age wearing this hands the whole terrain half to `super`.
+     * **It builds no field, and asking it for one is unreachable rather than merely wrong.**
+     * `AgeGeneration.ourGround` is the only caller of [ground], and it is entered only where this is absent
+     * from the composition; `AgeComposition.parse` refuses it beside a landform of ours. The throw records
+     * the invariant rather than guarding a live path.
      */
     VANILLA("vanilla", waterline = null, build = { _, _ ->
-        error("the template's own rock has no field of ours; AgeGeneration should have taken the vanilla path")
+        error("the template's own rock has no field of ours; AgeGeneration.ourGround is not reached for it")
     }),
     ;
 

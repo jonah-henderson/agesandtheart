@@ -7,6 +7,9 @@ import co.voik.agesandtheart.age.word.PresetTags
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.location
 import co.voik.ephemeris.sky.SkySpec
+import co.voik.agesandtheart.worldgen.AgeRock
+import net.minecraft.core.registries.Registries
+import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
 import co.voik.agesandtheart.worldgen.AgeChunkGenerator
 import co.voik.agesandtheart.worldgen.SpireChunkGenerator
 import co.voik.agesandtheart.worldgen.biome.AgeBiomeSource
@@ -87,6 +90,56 @@ class CodecCheck : FunSpec({
                 error("${placement.kind} encoded to $written and would not read back: $it")
             }
             check(read == placement) { "${placement.kind} came back changed: wrote $placement, read $read" }
+        }
+    }
+
+    /**
+     * **Which rock answers for an Age survives a write**, both ways.
+     *
+     * The exception earns itself here more than anywhere: this is the field that selects the *mode*, so
+     * losing it does not make a lossier generator, it makes a different world. It was a nullable outside
+     * the codec entirely — an Age wearing vanilla's rock read back with no rock at all and a field of no
+     * height, which is an empty world.
+     */
+    test("which rock answers survives a write") {
+        MinecraftRegistries.ensureStoodUp()
+        val settings = MinecraftRegistries.worldgen.lookupOrThrow(Registries.NOISE_SETTINGS)
+            .getOrThrow(NoiseGeneratorSettings.NETHER)
+        val cases = listOf<AgeRock>(
+            AgeRock.Ours(Slab(lowY = 0, highY = 40)),
+            AgeRock.Ours(Slab(lowY = 0, highY = 40), hollows = Slab(lowY = 0, highY = 12)),
+            AgeRock.Vanillas(settings),
+        )
+        check(cases.map { it.kind }.toSet() == AgeRock.Kind.entries.toSet()) {
+            "a rock kind has no round-trip case here — add one, it is what decides an Age's whole terrain"
+        }
+        val codec = AgeRock.MAP_CODEC.codec()
+        for (rock in cases) {
+            val written = codec.encodeStart(JsonOps.INSTANCE, rock).getOrThrow {
+                error("${rock.kind} would not encode: $it")
+            }
+            val read = codec.parse(JsonOps.INSTANCE, written).getOrThrow {
+                error("${rock.kind} encoded and would not read back: $it")
+            }
+            // **The kind first, because it is the whole point.** A rock that came back as the other kind is
+            // not a lossier Age, it is a different world — an empty one, which is what losing this did.
+            check(read.kind == rock.kind) { "${rock.kind} came back as ${read.kind}, which is another world" }
+            when (rock) {
+                // **Which rock, not every byte of it.** `NoiseGeneratorSettings.CODEC` is a registry file
+                // codec and the offline provider cannot write a reference, so the settings go inline and
+                // come back rebuilt — and vanilla's density functions do not compare equal once rebuilt.
+                // What identifies the nether's rock as the nether's is what is asked instead.
+                is AgeRock.Vanillas -> {
+                    val theirs = (read as AgeRock.Vanillas).settings.value()
+                    val mine = rock.settings.value()
+                    check(theirs.defaultBlock() == mine.defaultBlock() && theirs.seaLevel() == mine.seaLevel()) {
+                        "vanilla's rock came back as ${theirs.defaultBlock()} at y=${theirs.seaLevel()}, " +
+                            "where it was ${mine.defaultBlock()} at y=${mine.seaLevel()}"
+                    }
+                }
+
+                is AgeRock.Ours -> check(read == rock) { "our rock came back changed: wrote $rock, read $read" }
+            }
         }
     }
 

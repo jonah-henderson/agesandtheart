@@ -87,7 +87,8 @@ import net.minecraft.resources.Identifier
  */
 class AgeChunkGenerator(
     private val biomes: BiomeSource,
-    val field: TerrainField,
+    /** Who answers for the rock — the field tree, or vanilla's own router. See [AgeRock]. */
+    val rock: AgeRock,
     val seaFill: SeaFill,
     private val surfaceRule: SurfaceRules.RuleSource = SurfacingStrategy.SUPPRESSED,
     /**
@@ -130,16 +131,6 @@ class AgeChunkGenerator(
     private val fill: TerrainFill = TerrainFill.PLAIN,
     /** The band of world this Age generates into — see [VerticalWindow] for why it is per-Age. */
     private val window: VerticalWindow = VerticalWindow.DEFAULT,
-    /**
-     * The rock a cave system was cut out of, or null for an Age with no such caves.
-     *
-     * **Space inside this is the aquifer's to answer for, not the waterline's.** A carved cave meets
-     * [WaterTable] on its way out of the rock; one that is part of the *shape* never does, so a flat sea
-     * fills it to the roof. Handing the fill the volume the terrain would have occupied is what lets the
-     * same three-way table decide there too — bone dry deep down, a perched pocket sometimes, and flooded
-     * only where the sea genuinely reaches.
-     */
-    val hollows: TerrainField? = null,
     /**
      * What this Age places, as the function vanilla itself parameterises decoration with — see [Features].
      * Null leaves every biome's own list exactly as the pack wrote it.
@@ -190,31 +181,16 @@ class AgeChunkGenerator(
      * generator and the fast-forward read the same function rather than one of them inferring.
      */
     writtenAt: Long = 0L,
-    /**
-     * **Vanilla's own terrain, whole** — the nether's, the end's, the overworld's — or null for an Age
-     * whose shape is the field tree's (`the-world-model.md` §4).
-     *
-     * The two are **either/or by construction**: vanilla's router answers for the rock, the aquifers and
-     * the preliminary surface together, and [routerFor] zeroes exactly those because our shape is the field
-     * tree's. An Age takes one set of answers or the other, and naming a landform is how a writer leaves a
-     * template's rock behind.
-     *
-     * What is *not* either/or is everything after the rock. Structures, features, spawns, biomes, the sky
-     * and the air are ours in both modes, which is the whole of why this class **is** a
-     * `NoiseBasedChunkGenerator` rather than sitting beside one: the terrain half is the base class's
-     * abstract methods, and everything else is what it leaves concrete for us to override.
-     *
-     * The settings arrive built, because which of an Age's claims override vanilla's block, its fluid and
-     * its surface rule is the composition's business rather than the generator's.
-     */
-    private val vanillaRock: Holder<NoiseGeneratorSettings>? = null,
 ) : NoiseBasedChunkGenerator(
     biomes,
-    vanillaRock ?: Holder.direct(settingsFor(seaFill, surfaceRule, climate, fill, window, field)),
+    when (rock) {
+        is AgeRock.Vanillas -> rock.settings
+        is AgeRock.Ours -> Holder.direct(settingsFor(seaFill, surfaceRule, climate, fill, window, rock.field))
+    },
 ) {
 
-    /** Whether the rock is vanilla's to describe, in which case the terrain half defers to the base class. */
-    private val rockIsVanillas: Boolean get() = vanillaRock != null
+    /** The rock a cave system was cut out of, or null where there is none — see [AgeRock.Ours.hollows]. */
+    val hollows: TerrainField? get() = (rock as? AgeRock.Ours)?.hollows
 
     /**
      * What this Age's instability bought — **`var`, and volatile, because it can be rewritten under a
@@ -288,24 +264,10 @@ class AgeChunkGenerator(
      * An Age wearing vanilla's rock has no field of ours, and vanilla's own rules are the only ones there.
      */
     private fun skyIsOpenAt(at: BlockPos): Boolean {
-        if (rockIsVanillas) return true
-        val highestRock = field.columnSpans(at.x, at.z).highestSolidY ?: return true
+        val ours = rock as? AgeRock.Ours ?: return true
+        val highestRock = ours.field.columnSpans(at.x, at.z).highestSolidY ?: return true
         return at.y > highestRock
     }
-
-    /** The same generator with one carving everywhere — what a Tier-B preset means. */
-    constructor(
-        biomes: BiomeSource,
-        field: TerrainField,
-        seaFill: SeaFill,
-        surfaceRule: SurfaceRules.RuleSource = SurfacingStrategy.SUPPRESSED,
-        carvers: HolderSet<ConfiguredWorldCarver<*>>,
-        waterTable: WaterTable? = null,
-        structureSets: List<Holder<StructureSet>> = emptyList(),
-    ) : this(
-        biomes, field, seaFill, surfaceRule, listOf(carvers), RegionMap.whole(),
-        listOfNotNull(waterTable), structureSets,
-    )
 
     override fun codec(): MapCodec<out ChunkGenerator> = CODEC
 
@@ -325,7 +287,8 @@ class AgeChunkGenerator(
         structureManager: StructureManager,
         chunk: ChunkAccess,
     ): CompletableFuture<ChunkAccess> {
-        if (rockIsVanillas) return super.fillFromNoise(blender, randomState, structureManager, chunk)
+        val ours = rock as? AgeRock.Ours
+            ?: return super.fillFromNoise(blender, randomState, structureManager, chunk)
         val chunkMinX = chunk.pos.minBlockX
         val chunkMinZ = chunk.pos.minBlockZ
         val oceanFloor = chunk.getOrCreateHeightmapUnprimed(Heightmap.Types.OCEAN_FLOOR_WG)
@@ -339,9 +302,9 @@ class AgeChunkGenerator(
         // column of margin all round. Measured at +24% of the field's own cost against a budget in which
         // that field is a few milliseconds, which is what made it worth having over letting the walls
         // stand. Read once per column and not once per block: the answer cannot change going down one.
-        val band = ColumnBand(chunkMinX, chunkMinZ, field, seaFill, hollows)
+        val band = ColumnBand(chunkMinX, chunkMinZ, ours.field, seaFill, ours.hollows)
         // One per chunk, because the object carries a column memo — the same reason carving mints its own.
-        val water = WaterTable.aquiferFor(tables, field, underground)
+        val water = WaterTable.aquiferFor(tables, ours.field, underground)
 
         for (localX in 0..<16) {
             for (localZ in 0..<16) {
@@ -465,11 +428,11 @@ class AgeChunkGenerator(
      * rather than the sea level, which for a void sea was `Int.MIN_VALUE` and overflowed.
      */
     override fun getBaseHeight(x: Int, z: Int, type: Heightmap.Types, level: LevelHeightAccessor, randomState: RandomState): Int {
-        if (rockIsVanillas) return super.getBaseHeight(x, z, type, level, randomState)
+        val ours = rock as? AgeRock.Ours ?: return super.getBaseHeight(x, z, type, level, randomState)
         val counts = type.isOpaque()
         // One below the world, so a column with nothing this query counts simply answers the floor.
         val nothing = level.minY - 1
-        val rockTop = if (counts.test(fill.representative)) field.columnSpans(x, z).highestSolidY ?: nothing else nothing
+        val rockTop = if (counts.test(fill.representative)) ours.field.columnSpans(x, z).highestSolidY ?: nothing else nothing
         // A river stands over the waterline, so its own surface is what a structure has to be told about.
         val mediumTop = if (!counts.test(seaFill.blockAt(x, z))) nothing else {
             maxOf(seaFill.surfaceY ?: nothing, seaFill.wetnessAt(x, z).highestSolidY ?: nothing)
@@ -478,8 +441,8 @@ class AgeChunkGenerator(
     }
 
     override fun getBaseColumn(x: Int, z: Int, level: LevelHeightAccessor, randomState: RandomState): NoiseColumn {
-        if (rockIsVanillas) return super.getBaseColumn(x, z, level, randomState)
-        val spans = field.columnSpans(x, z)
+        val ours = rock as? AgeRock.Ours ?: return super.getBaseColumn(x, z, level, randomState)
+        val spans = ours.field.columnSpans(x, z)
         val sea = seaFill.blockAt(x, z)
         val dryness = seaFill.drynessAt(x, z)
         val wetness = seaFill.wetnessAt(x, z)
@@ -566,7 +529,7 @@ class AgeChunkGenerator(
     ) {
         // Vanilla's rock brings vanilla's caves with it: its carvers read the same router the shape came
         // out of, where ours would be cutting into a world they know nothing about.
-        if (rockIsVanillas) {
+        if (rock !is AgeRock.Ours) {
             return super.applyCarvers(level, seed, randomState, biomeManager, structureManager, chunk)
         }
         if (carving.isEmpty()) return
@@ -590,7 +553,7 @@ class AgeChunkGenerator(
         val carvingMask = protoChunk.getOrCreateCarvingMask()
         // Fresh per pass: it caches a column and tracks whether the water it just placed needs to
         // settle, so it must not be shared between chunk workers.
-        val aquifer = WaterTable.aquiferFor(tables, field, underground)
+        val aquifer = WaterTable.aquiferFor(tables, rock.field, underground)
         // Seeded per *source* chunk rather than per target, so one cave system crosses chunk borders
         // identically however the chunks happen to be generated. The reach matches vanilla's.
         val random = WorldgenRandom(LegacyRandomSource(RandomSupport.generateUniqueSeed()))
@@ -715,7 +678,7 @@ class AgeChunkGenerator(
         val CODEC: MapCodec<AgeChunkGenerator> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
                 BiomeSource.CODEC.fieldOf("biome_source").forGetter { it.biomes },
-                TerrainField.CODEC.fieldOf("field").forGetter { it.field },
+                AgeRock.MAP_CODEC.forGetter { it.rock },
                 SeaFill.CODEC.forGetter { it.seaFill },
                 // Optional so field Ages serialised before palettes existed still load.
                 SurfaceRules.RuleSource.CODEC.optionalFieldOf("surface_rule", SurfacingStrategy.SUPPRESSED)
@@ -750,8 +713,6 @@ class AgeChunkGenerator(
                 TerrainFill.CODEC.optionalFieldOf("terrain_fill", TerrainFill.PLAIN).forGetter { it.fill },
                 // Absent means the layout every Age had before the band became a choice — see [VerticalWindow].
                 VerticalWindow.CODEC.optionalFieldOf("window", VerticalWindow.DEFAULT).forGetter { it.window },
-                // Absent for every Age without shape-cut caves, which is almost all of them.
-                TerrainField.CODEC.optionalFieldOf("hollows").forGetter { Optional.ofNullable(it.hollows) },
                 // Absent for every coherent Age, which is nearly all of them.
                 Codec.DOUBLE.optionalFieldOf("wounds_per_chunk", NO_WOUNDS).forGetter { it.consequence.woundsPerChunk },
                 // And absent for every Age that is merely flawed rather than coming apart.
@@ -759,11 +720,11 @@ class AgeChunkGenerator(
                 // And absent for every Age that is not ending.
                 Codec.INT.optionalFieldOf("collapse_tears", Collapse.NONE).forGetter { it.consequence.collapseTears },
                 Codec.LONG.optionalFieldOf("written_at", 0L).forGetter { it.consequence.writtenAt },
-            ).apply(instance) { biomes, field, seaFill, rule, carvers, underground, tables, structures, climate,
-                                fill, window, hollows, wounds, blight, collapse, writtenAt ->
+            ).apply(instance) { biomes, rock, seaFill, rule, carvers, underground, tables, structures, climate,
+                                fill, window, wounds, blight, collapse, writtenAt ->
                 AgeChunkGenerator(
-                    biomes, field, seaFill, rule, carvers, underground, tables, structures,
-                    climate.orElse(null), fill, window, hollows.orElse(null),
+                    biomes, rock, seaFill, rule, carvers, underground, tables, structures,
+                    climate.orElse(null), fill, window,
                     woundsPerChunk = wounds,
                     blightPerDay = blight,
                     collapseTears = collapse,
