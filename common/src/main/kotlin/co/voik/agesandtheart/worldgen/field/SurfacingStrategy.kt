@@ -96,19 +96,30 @@ object SurfacingStrategy {
      * standing between a cave floor and a lawn, and vanilla's version interpolates a heightmap across a
      * 16-block cell, which our terrain outruns in both directions — see [NearTheSurface].
      *
-     * Its **bedrock is vanilla's own**: `overworldLike` puts the floor first in its sequence, ahead of the
-     * surface tree, which is exactly where a world's floor has to go. Taken from `net.minecraft.data.worldgen`
-     * rather than the registry, since only the builder lets those flags be chosen at all.
+     * Its **bedrock is vanilla's own**, whichever tree this is: each puts the world's floor first in its
+     * sequence, ahead of the surface rules, which is exactly where a floor has to go.
+     *
+     * [skin] is the world the book was written over ([co.voik.agesandtheart.age.AgeTemplate.skin]) and not
+     * the overworld's for everyone, which is what grew grass on the hills of an infernal Age (Jonah,
+     * 2026-08-14, walked). The nether's own tree dresses nether biomes; the overworld's does not know them
+     * and falls through to its default, which is dirt with grass on top.
      */
-    fun delegatedToBiomes(terrain: TerrainField): SurfaceRules.RuleSource =
-        SurfaceRules.ifTrue(
-            NearTheSurface(terrain),
-            SurfaceRuleData.overworldLike(
-                /* aboveGround = */ false,
-                /* bedrockRoof = */ false,
-                /* bedrockFloor = */ true,
-            ),
-        )
+    fun delegatedToBiomes(terrain: TerrainField, skin: SurfaceRules.RuleSource): SurfaceRules.RuleSource =
+        SurfaceRules.ifTrue(NearTheSurface(terrain), skin)
+
+    /**
+     * The overworld's own dressing as an Age wears it — bedrock underfoot and none overhead, and the
+     * surface tree entered from below rather than from open air, since [NearTheSurface] has already said
+     * where the face of our rock is.
+     *
+     * Only this one is spelled with the builder: the flags exist nowhere else, and the other two worlds
+     * have a single tree each with nothing to choose.
+     */
+    fun overworldsSkin(): SurfaceRules.RuleSource = SurfaceRuleData.overworldLike(
+        /* aboveGround = */ false,
+        /* bedrockRoof = */ false,
+        /* bedrockFloor = */ true,
+    )
 
     /**
      * A material laid over the ground instead of the biome's own skin — `Surface`'s answer when a writer

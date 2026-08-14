@@ -7,8 +7,10 @@ import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.aspect.Structures
+import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
 import co.voik.agesandtheart.worldgen.biome.BiomePreference
 import com.mojang.serialization.Codec
+import net.minecraft.data.worldgen.SurfaceRuleData
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
 import net.minecraft.server.MinecraftServer
@@ -21,6 +23,7 @@ import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterLists
 import net.minecraft.world.level.biome.TheEndBiomeSource
 import net.minecraft.world.level.dimension.BuiltinDimensionTypes
 import net.minecraft.world.level.dimension.DimensionType
+import net.minecraft.world.level.levelgen.SurfaceRules
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
 import net.minecraft.world.level.levelgen.structure.BuiltinStructureSets
 import net.minecraft.world.level.levelgen.structure.StructureSet
@@ -55,6 +58,7 @@ enum class AgeTemplate(
         override val biomeList = MultiNoiseBiomeSourceParameterLists.OVERWORLD
         override val standingStructures = Structures.OVERWORLD_STRUCTURE_SETS
         override val dimensionType get() = BuiltinDimensionTypes.OVERWORLD
+        override val skin get() = SurfacingStrategy.overworldsSkin()
 
         override fun world(): AgeComposition = AgeComposition(
             terrains = listOf(Terrain.VANILLA),
@@ -69,6 +73,7 @@ enum class AgeTemplate(
     INFERNAL("infernal", NoiseGeneratorSettings.NETHER) {
         override val biomeList = MultiNoiseBiomeSourceParameterLists.NETHER
         override val dimensionType get() = BuiltinDimensionTypes.NETHER
+        override val skin get() = SurfaceRuleData.nether()
         override val standingStructures = listOf(
             BuiltinStructureSets.NETHER_COMPLEXES,
             BuiltinStructureSets.NETHER_FOSSILS,
@@ -105,6 +110,7 @@ enum class AgeTemplate(
         override val biomeList: ResourceKey<MultiNoiseBiomeSourceParameterList>? = null
         override val standingStructures = listOf(BuiltinStructureSets.END_CITIES)
         override val dimensionType get() = BuiltinDimensionTypes.END
+        override val skin get() = SurfaceRuleData.end()
 
         override fun world(): AgeComposition = AgeComposition(
             terrains = listOf(Terrain.VANILLA),
@@ -158,6 +164,17 @@ enum class AgeTemplate(
      * is [co.voik.agesandtheart.worldgen.VerticalWindow.DEFAULT] rather than any of vanilla's.
      */
     abstract val dimensionType: ResourceKey<DimensionType>
+
+    /**
+     * **The dressing this world lays over ground of ours** — netherrack and soul soil over an infernal
+     * Age's hills, where it used to be the overworld's dirt and grass whatever the book started from.
+     *
+     * Read only where the rock is a field of ours. Vanilla's own rock carries its own skin already, and
+     * `AgeGeneration.vanillaRockFor` keeps it.
+     *
+     * A getter, like [dimensionType]: these trees are built out of `Blocks`, which needs the registries.
+     */
+    abstract val skin: SurfaceRules.RuleSource
 
     /** Whether a book may weigh or narrow this world's biomes, which needs a table to adjust. */
     val biomesAreChosenByClimate: Boolean get() = biomeList != null

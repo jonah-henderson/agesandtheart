@@ -137,9 +137,16 @@ object AgeGeneration {
 
         // What the rock *is*, on the terrain's own map, laid by the fill rather than painted by a rule — which
         // is what lets vanilla's surface tree keep its skin over our fill (see [TerrainFill]).
+        //
+        // **What a terrain nobody named a material for is made of is the template's own rock**, and it was
+        // stone for every Age. A surface tree paints *patches* — nylium, soul soil, gravel — and leaves the
+        // rest to the world's default block, so an infernal Age's hills came out bare grey stone under the
+        // nether's own dressing, which then had nothing it recognised to dress (Jonah, 2026-08-14, walked).
+        val theirRock = server.registryAccess().lookupOrThrow(Registries.NOISE_SETTINGS)
+            .getOrThrow(recipe.template.rock).value().defaultBlock()
         val fill = TerrainFill(
             composition.terrains.mapIndexed { member, terrain ->
-                terrain.fillBlocks(terrainOptions(member)).ifEmpty { listOf(TerrainFill.STONE) }
+                terrain.fillBlocks(terrainOptions(member)).ifEmpty { listOf(theirRock) }
             },
             ground,
             // The first territory's, like `Sea.DEPTH`: the mingling noise is one field over the whole Age.
@@ -206,7 +213,7 @@ object AgeGeneration {
             // Only where the rock is ours: a rule delegating to the biomes does so *through* the field
             // tree, and an Age wearing vanilla's rock has none to delegate through. `vanillaRockFor`
             // carries that Age's skin instead.
-            ourGround?.let { Surface.ruleFor(composition.optionsFor(Aspect.SURFACE, 0), it.field) }
+            ourGround?.let { Surface.ruleFor(composition.optionsFor(Aspect.SURFACE, 0), it.field, recipe.template) }
                 ?: SurfacingStrategy.SUPPRESSED,
             composition.carvers.map { it.configuredCarvers(server) },
             below,

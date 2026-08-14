@@ -1,17 +1,17 @@
 {
+  "_comment": "An ordinary Age: open overhead and lit. It names NO sky, fog or ambient colour, deliberately. In 26.1 a biome carries its own as an attribute map, so naming one here pins every biome in the Age to it \u2014 a plains Age and a swamp Age had the same sky. The ambient colour was #0a0a0a, which is a near-black multiplier over whatever ambient_light allows; vanilla's default is white and lets the number mean what it says.",
   "ambient_light": 0.0,
   "attributes": {
     "minecraft:gameplay/bed_rule": {
       "can_set_spawn": "always",
       "can_sleep": "when_dark",
-      "error_message": { "translate": "block.minecraft.bed.no_sleep" }
+      "error_message": {
+        "translate": "block.minecraft.bed.no_sleep"
+      }
     },
     "minecraft:gameplay/respawn_anchor_works": false,
-    "minecraft:visual/ambient_light_color": "#0a0a0a",
     "minecraft:visual/cloud_color": "#ccffffff",
-    "minecraft:visual/cloud_height": 192.33,
-    "minecraft:visual/fog_color": "#c0d8ff",
-    "minecraft:visual/sky_color": "#78a7ff"
+    "minecraft:visual/cloud_height": 192.33
   },
   "coordinate_scale": 1.0,
   "default_clock": "minecraft:overworld",
@@ -23,6 +23,10 @@
   "logical_height": 384,
   "min_y": -64,
   "monster_spawn_block_light_limit": 0,
-  "monster_spawn_light_level": { "type": "minecraft:uniform", "min_inclusive": 0, "max_inclusive": 7 },
+  "monster_spawn_light_level": {
+    "type": "minecraft:uniform",
+    "min_inclusive": 0,
+    "max_inclusive": 7
+  },
   "timelines": "#minecraft:in_overworld"
 }

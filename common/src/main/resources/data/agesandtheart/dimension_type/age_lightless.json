@@ -1,5 +1,5 @@
 {
-  "_comment": "Lightless, and it LOOKS it. `has_skylight: false` makes the world dark to the game; these three make it dark to the eye. A zero-alpha cloud colour is what skips the cloud pass outright (see Ephemeris' cloud renderer) -- there is no separate switch for it. A writer who paints a sky over this with a Look still gets one.",
+  "_comment": "Open overhead with nothing up there. The black sky and fog stay: black IS the answer for a void, where in a lit Age they would be pinning every biome to one colour. The ambient colour goes, being a near-black multiplier over an ambient_light already 0.",
   "ambient_light": 0.0,
   "attributes": {
     "minecraft:gameplay/bed_rule": {
@@ -10,7 +10,6 @@
       }
     },
     "minecraft:gameplay/respawn_anchor_works": false,
-    "minecraft:visual/ambient_light_color": "#0a0a0a",
     "minecraft:visual/cloud_color": "#00000000",
     "minecraft:visual/cloud_height": 192.33,
     "minecraft:visual/fog_color": "#000000",

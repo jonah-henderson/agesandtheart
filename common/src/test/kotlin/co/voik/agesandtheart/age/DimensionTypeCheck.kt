@@ -8,6 +8,9 @@ import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.worldgen.VerticalWindow
 import com.google.gson.JsonParser
+import com.mojang.serialization.JsonOps
+import net.minecraft.data.worldgen.SurfaceRuleData
+import net.minecraft.world.level.levelgen.SurfaceRules
 import net.minecraft.world.level.dimension.BuiltinDimensionTypes
 import io.kotest.core.spec.style.FunSpec
 import java.io.File
@@ -45,6 +48,37 @@ class DimensionTypeCheck : FunSpec({
         }
         check(everyCombination.map { it.third }.distinct().size == everyCombination.size) {
             "two sets of facts share a dimension type"
+        }
+    }
+
+    /**
+     * **Each world dresses ground of ours in its own skin**, and no two of them share one.
+     *
+     * The surface tree was `SurfaceRuleData.overworldLike` for every Age whichever template it started
+     * from, so an infernal Age grew grass on its hills — the overworld's tree does not know a nether biome
+     * and falls through to its own default, which is dirt with grass on top (Jonah, 2026-08-14, walked).
+     *
+     * Compared by what each tree *encodes to* rather than by identity: a `RuleSource` is a tree of records
+     * built fresh on every call, so two calls to `nether()` are equal in meaning and not by reference.
+     */
+    test("each template dresses our ground in its own world's skin") {
+        MinecraftRegistries.ensureStoodUp()
+        fun spelled(rule: SurfaceRules.RuleSource) =
+            SurfaceRules.RuleSource.CODEC.encodeStart(JsonOps.INSTANCE, rule).getOrThrow().toString()
+
+        val theirs = mapOf(
+            AgeTemplate.INFERNAL to SurfaceRuleData.nether(),
+            AgeTemplate.DARK_VOID to SurfaceRuleData.end(),
+        )
+        for ((template, tree) in theirs) {
+            check(spelled(template.skin) == spelled(tree)) {
+                "${template.key} dresses our ground in something that is not its own world's skin"
+            }
+        }
+
+        val distinct = AgeTemplate.entries.map { spelled(it.skin) }.distinct()
+        check(distinct.size == AgeTemplate.entries.size) {
+            "two templates share a skin, so at least one is wearing another world's"
         }
     }
 
