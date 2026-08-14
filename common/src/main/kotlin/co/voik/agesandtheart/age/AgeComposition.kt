@@ -67,13 +67,19 @@ data class AgeComposition(
         // A described member has no preset to count: its entries *are* the roll — see
         // [Aspect.membersAreDescribed], which covers a cast of suns and a divided climate alike.
         if (!aspect.membersAreDescribed) return presets.count { it.aspect == aspect }
-        val described = options.allOf(aspect).size
         // **A spatial one always has ground to be somewhere.** An Age nobody said anything about the
         // climate of has one climate; an Age nobody described a sun for has none. Which is the whole of
         // the difference between the two kinds of described member, and it is what tells a climate that
         // could still fracture from one that already has.
-        return if (aspect.spatial) maxOf(described, AT_LEAST_ONE) else described
+        return if (aspect.spatial) maxOf(described(aspect), AT_LEAST_ONE) else described(aspect)
     }
+
+    /**
+     * How many members of [aspect] the book described outright, **before any spatial floor** — which is a
+     * different question from [membersIn] for exactly the aspects that have one, and the question a
+     * template merge has to ask: a climate nobody wrote still has ground, but it has none of its own.
+     */
+    private fun described(aspect: Aspect): Int = options.allOf(aspect).size
 
     /** Every preset this composition names, in aspect order — for listing, costing and diagnosis. */
     val presets: List<AspectPreset>
@@ -219,9 +225,9 @@ data class AgeComposition(
      * the nether and then names a landform keeps its heat and its seal, and only says again what they
      * meant to change.
      *
-     * The one thing that never comes from underneath is a **cast**: a template's suns are its own, and
-     * §4's rule is that describing any member clears them. So a book that minted a body keeps exactly the
-     * bodies it minted.
+     * A **cast** comes from underneath only where the book minted nothing: §4's rule is that describing any
+     * member clears the template's, so a book that wrote a sun of its own keeps exactly the bodies it
+     * minted, and one that wrote none is lit — or left dark — by the world it began from.
      */
     fun laidOver(template: AgeComposition, spokenTo: Set<Aspect>): AgeComposition {
         fun seated(aspect: Aspect, mine: List<AspectPreset>, theirs: List<AspectPreset>) =
@@ -233,8 +239,8 @@ data class AgeComposition(
             sky = if (Aspect.SKY in spokenTo) sky else template.sky,
         )
         return Aspect.entries.fold(merged) { held, aspect ->
-            if (aspect.holds == Holds.POPULATION) return@fold held
-            held.underlaidWith(aspect, template.options.of(aspect))
+            val boughtItsOwnMembers = aspect.holds == Holds.POPULATION && described(aspect) > 0
+            if (boughtItsOwnMembers) held else held.underlaidWith(aspect, template.options.of(aspect))
         }
     }
 
@@ -401,6 +407,15 @@ data class AgeComposition(
                 }
             }
             require(namedALandform) { "An Age needs a terrain. Try `terrain=${Terrain.HILLS.key}`" }
+            // Vanilla's rock answers for the whole world or for none of it — the field tree and vanilla's
+            // router are either/or — so it cannot stand as one territory among several. Said here rather
+            // than left to the generator, which has no way to report it and used to throw instead.
+            val ourOwnRockBeside = composition.terrains.filter { it != Terrain.VANILLA }
+            val sharesTheWorld = Terrain.VANILLA in composition.terrains && ourOwnRockBeside.isNotEmpty()
+            require(!sharesTheWorld) {
+                "`${Aspect.TERRAIN.key}=${Terrain.VANILLA.key}` is the whole world's rock and cannot " +
+                    "divide it with ${ourOwnRockBeside.joinToString(" ") { it.key }}"
+            }
             composition
         }
 

@@ -123,6 +123,22 @@ class RecipeCheck : FunSpec({
     }
 
     /**
+     * **Vanilla's rock is the whole world's or none of it**, the field tree and vanilla's router being
+     * either/or. Composing it beside a landform of ours used to parse cleanly and then throw out of the
+     * generator, where there is nobody to tell.
+     */
+    test("vanilla's rock cannot divide the world with ours") {
+        val alone = AgeComposition.parse("landmass=vanilla sea=water")
+        check(alone.isSuccess) { "`landmass=vanilla` alone was refused: ${alone.exceptionOrNull()?.message}" }
+
+        val shared = AgeComposition.parse("landmass=vanilla,hills sea=water")
+        check(shared.isFailure) { "`landmass=vanilla,hills` was composed rather than refused" }
+        check(Terrain.HILLS.key in shared.exceptionOrNull()?.message.orEmpty()) {
+            "the refusal does not say what it clashed with: ${shared.exceptionOrNull()?.message}"
+        }
+    }
+
+    /**
      * **A cast survives the round trip, bodies and all.** An Age is rebuilt from its recipe on every open,
      * so a sky that came back with one sun where three were written would be a different world under the
      * same book — and a body described by nothing at all is the case that would go first, having no options

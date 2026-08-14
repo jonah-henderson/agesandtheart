@@ -4,6 +4,7 @@ import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.AgeComposition
+import co.voik.agesandtheart.age.AgeGeneration
 import co.voik.agesandtheart.age.AgeTemplate
 import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.age.aspect.Aspect
@@ -296,8 +297,44 @@ class ResolverCheck : FunSpec({
         check(hills.composition.seas == listOf(Sea.LAVA)) {
             "naming a landform took the nether's sea away as well: ${hills.composition.seas}"
         }
-        check(hills.composition.optionsFor(Aspect.SKY, 0).of(Sky.SEALED) == "always") {
+        check(hills.composition.optionsFor(Aspect.SKY, 0).of(Sky.SEALED) == Sky.ALWAYS) {
             "naming a landform unsealed the world, which no word asked for"
+        }
+    }
+
+    /**
+     * **A template's cast comes with it, and minting a body is what takes it away** (world model §4).
+     *
+     * The nether and the void are dark because nothing shines on them, which is a fact about their bodies
+     * rather than about their air. The merge skipped every population outright, so both arrived with an
+     * ordinary shining sun and the void arrived with skylight — and nothing caught it, because the checks
+     * asked which template was chosen and never what the merge left.
+     */
+    test("a template's cast is inherited until the book mints one") {
+        fun composed(vararg pages: String) =
+            Resolver.resolve(vocabulary, read(listOf(*pages)), SAMPLE_SEED).composition
+
+        fun typeOf(composition: AgeComposition) =
+            Sky.dimensionType(composition.optionsFor(Aspect.SKY, 0), composition.optionsFor(Aspect.SUN, 0))
+
+        for (template in listOf(AgeTemplate.INFERNAL, AgeTemplate.DARK_VOID)) {
+            val silent = composed(template.key, "age")
+            check(silent.optionsFor(Aspect.SUN, 0).of(Sky.SHINING) == Sky.NEVER) {
+                "${template.key} came out with a sun that shines"
+            }
+            check(typeOf(silent) == typeOf(template.world())) {
+                "${template.key} merged to ${typeOf(silent)} rather than its own ${typeOf(template.world())}"
+            }
+        }
+
+        // And the other half: a book that writes a sun of its own gets that sun and not the world's.
+        val litVoid = composed("dark_void", "age", "sun")
+        check(litVoid.membersIn(Aspect.SUN) == 1) { "the book minted ${litVoid.membersIn(Aspect.SUN)} suns" }
+        check(litVoid.optionsFor(Aspect.SUN, 0).of(Sky.SHINING) != Sky.NEVER) {
+            "a sun written into the void kept the void's dark"
+        }
+        check(typeOf(litVoid) == AgeGeneration.AGE_DIMENSION_TYPE) {
+            "a void with a sun in it is still ${typeOf(litVoid)}"
         }
     }
 
