@@ -47,7 +47,7 @@ enum class AgeTemplate(val key: String, val rock: ResourceKey<NoiseGeneratorSett
             seas = listOf(Sea.LAVA),
             carvers = listOf(Carvers.SOLID),
         )
-            .withOptions(Aspect.SKY, Sky.SEALED.name, listOf("always"))
+            .withOptions(Aspect.SKY, Sky.SEALED.name, listOf(Sky.ALWAYS))
             .withOptions(Aspect.SUN, Sky.SHINING.name, listOf(Sky.NEVER))
             .withOptions(Aspect.AIR, Atmosphere.FOG.name, listOf("red"))
             .withOptions(Aspect.CLIMATE, ClimateAxis.TEMPERATURE.key, listOf("0.7..1.0"))

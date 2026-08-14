@@ -58,8 +58,8 @@ object Skies {
         // The sky preset's own palette goes **underneath**: it is what the Age looks like before anyone said
         // anything, so a writer who repaints one colour of a Spire-skied Age keeps the rest. And under *that*
         // whatever the Age's own switches insist on — a lightless Age is dark to look at as well as to stand in.
-        val overhead = asked(Aspect.SKY)
-        val painted = AgeGeneration.presetLook(recipe).over(Atmosphere.unlitLook(overhead))
+        val painted = AgeGeneration.presetLook(recipe)
+            .over(Atmosphere.unlitLook(asked(Aspect.SKY), asked(Aspect.SUN)))
         return LevelLook(
             AgeGeneration.skySpec(recipe),
             Atmosphere.lookIn(asked, recipe.seed).over(painted),

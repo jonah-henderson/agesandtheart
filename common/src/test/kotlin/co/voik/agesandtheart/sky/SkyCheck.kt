@@ -6,8 +6,10 @@ import co.voik.ephemeris.sky.CelestialBody
 import co.voik.ephemeris.sky.Orbit
 import co.voik.ephemeris.sky.SkySpec
 
+import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Sky
+import co.voik.ephemeris.sky.Look
 import com.mojang.serialization.JsonOps
 import io.kotest.core.spec.style.FunSpec
 import co.voik.agesandtheart.age.aspect.Span
@@ -265,6 +267,30 @@ class SkyCheck : FunSpec({
         )
         for ((described, spec) in unusual) {
             check(!spec.isOrdinary) { "\"$described\" reads as an ordinary sky, so no Age would ever draw it" }
+        }
+    }
+
+    /**
+     * **An Age is dark two ways, and everything that reads the fact has to know both.** Sealed overhead is
+     * one; nothing shining on it is the other. The dimension type and the skylight knew both while the
+     * paint knew only the seal, so a `sunless` Age was held pitch dark by the game and painted broad
+     * daylight — the walked bug of 2026-08-05, arriving a second time by a second route.
+     */
+    test("a world nothing shines on is painted as dark as it is held") {
+        val ordinary = Options()
+        val sealed = Options(mapOf(Sky.SEALED.name to listOf(Sky.ALWAYS)))
+        val sunless = Options(mapOf(Sky.SHINING.name to listOf(Sky.NEVER)))
+
+        check(!Sky.isLightless(ordinary, ordinary)) { "an ordinary Age came out lightless" }
+        check(Atmosphere.unlitLook(ordinary, ordinary) == Look.NOTHING) {
+            "an ordinary Age was painted dark: ${Atmosphere.unlitLook(ordinary, ordinary)}"
+        }
+
+        val dark = listOf("sealed" to (sealed to ordinary), "sunless" to (ordinary to sunless), "both" to (sealed to sunless))
+        for ((described, options) in dark) {
+            val (sky, sun) = options
+            check(Sky.isLightless(sky, sun)) { "a $described Age is lit" }
+            check(Atmosphere.unlitLook(sky, sun) != Look.NOTHING) { "a $described Age kept its blue sky" }
         }
     }
 })

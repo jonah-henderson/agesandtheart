@@ -206,17 +206,22 @@ enum class Sky(override val key: String) : AspectPreset {
          * what the Age *is* without yet building it. `has_ceiling` never built one either — read against
          * 26.1.2, four things call it and none places a block.
          */
-        val SEALED = Parameter("sealed", Atmosphere.AS_EVER, "always")
+        val SEALED = Parameter("sealed", Atmosphere.AS_EVER, ALWAYS)
+
+        /** Whether the Age is shut overhead. */
+        fun isRoofed(sky: Options): Boolean = sky.of(SEALED) == ALWAYS
 
         /**
-         * The pre-authored type an Age wearing these dials needs.
+         * Whether nothing lights the Age from above — **one fact with three readers**: the dimension type
+         * it wears, the skylight the game gives it, and how its vault is painted.
          *
-         * **Four files, and that is the whole reason only two switches are here** (Jonah, 2026-08-04). A
-         * composed `DimensionType` cannot be encoded in the join packet, so every combination has to be a
-         * JSON we ship, and each further switch doubles them. The band of world is deliberately not among
-         * them: all four declare [co.voik.agesandtheart.worldgen.VerticalWindow.DEFAULT], so no sky can
-         * move an Age's floor.
+         * A world is dark because it is shut overhead *or* because nothing shines on it, and the two must
+         * be asked together. A reader that knows only the seal paints a blue sky with clouds in it over a
+         * world the game is holding pitch dark, which is the walked bug of 2026-08-05 arriving a second
+         * time by a second route.
          */
+        fun isLightless(sky: Options, sun: Options): Boolean = isRoofed(sky) || sun.of(SHINING) == NEVER
+
         /**
          * The pre-authored type an Age wearing these facts needs — **derived, never written** (Jonah,
          * 2026-08-12).
@@ -232,19 +237,19 @@ enum class Sky(override val key: String) : AspectPreset {
          * four declare [co.voik.agesandtheart.worldgen.VerticalWindow.DEFAULT], so no sky moves an Age's
          * floor.
          */
-        fun dimensionType(sky: Options, sun: Options): Identifier {
-            val isRoofed = sky.of(SEALED) == "always"
-            val isLightless = isRoofed || sun.of(SHINING) == NEVER
+        fun dimensionType(sky: Options, sun: Options): Identifier =
             // **Three, not four.** A world sealed overhead cannot also let the sky reach the ground, so
             // roofed-and-lit is a combination the facts cannot produce and the file for it is gone.
-            return when {
-                isRoofed -> AgeGeneration.AGE_LIGHTLESS_ROOFED_DIMENSION_TYPE
-                isLightless -> AgeGeneration.AGE_LIGHTLESS_DIMENSION_TYPE
+            when {
+                isRoofed(sky) -> AgeGeneration.AGE_LIGHTLESS_ROOFED_DIMENSION_TYPE
+                isLightless(sky, sun) -> AgeGeneration.AGE_LIGHTLESS_DIMENSION_TYPE
                 else -> AgeGeneration.AGE_DIMENSION_TYPE
             }
-        }
 
         const val NEVER = "never"
+
+        /** What [SEALED] says when the world is shut overhead. */
+        const val ALWAYS = "always"
 
         private const val NONE = 0
 

@@ -144,19 +144,20 @@ object Atmosphere {
     }
 
     /**
-     * The look an Age's **sky switch** insists on, under whatever its air was told.
+     * The look an Age with nothing lighting it insists on, under whatever its air was told.
      *
-     * `Sky.SKYLIGHT` already reaches the light *level* through [settle], and that half worked: a lightless
-     * Age spawns monsters at noon and grows nothing that needs sky. What it did not reach is the half you
-     * can see — the sky stayed blue with clouds in it, which reads as broad daylight over a world the game
-     * considers pitch dark (Jonah, 2026-08-05, walked).
+     * [lightFrom] already reaches the light *level*, and that half worked: a lightless Age spawns monsters
+     * at noon and grows nothing that needs sky. What it did not reach is the half you can see — the sky
+     * stayed blue with clouds in it, which reads as broad daylight over a world the game considers pitch
+     * dark (Jonah, 2026-08-05, walked).
      *
-     * So the same one statement reaches this layer too: no skylight means a black sky, black fog, no cloud
-     * and no light of its own. **A floor, not a setting** — a writer who said `lightless` *and* named a fog
-     * colour gets the colour they asked for, because [Look.over] keeps whatever was said.
+     * So the same fact reaches this layer too, and through [Sky.isLightless] rather than a copy of it: no
+     * skylight means a black sky, black fog, no cloud and no light of its own. **A floor, not a setting** —
+     * a writer who said `lightless` *and* named a fog colour gets the colour they asked for, because
+     * [Look.over] keeps whatever was said.
      */
-    fun unlitLook(sky: Options): Look =
-        if (sky.of(Sky.SEALED) != "always") Look.NOTHING
+    fun unlitLook(sky: Options, sun: Options): Look =
+        if (!Sky.isLightless(sky, sun)) Look.NOTHING
         else Look(sky = STARLESS, fog = STARLESS, cloud = STARLESS, tint = STARLESS)
 
     /** Not quite black: pure zero reads as a hole cut in the world rather than as a dark sky. */
@@ -189,7 +190,7 @@ object Atmosphere {
      * `skylight` switch that picks the dimension type says the same thing from the other side.
      */
     private fun lightFrom(sky: Options, sun: Options): List<Asked<*>> {
-        val nothingIsUpThere = sun.of(Sky.SHINING) == Sky.NEVER || sky.of(Sky.SEALED) == "always"
+        val nothingIsUpThere = Sky.isLightless(sky, sun)
         return if (nothingIsUpThere) listOf(Asked(EnvironmentAttributes.SKY_LIGHT_LEVEL, NO_DAYLIGHT)) else emptyList()
     }
 
