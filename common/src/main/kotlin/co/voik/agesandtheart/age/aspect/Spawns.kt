@@ -65,11 +65,18 @@ object Spawns {
         // reason the feature settings are: the answer is the same every time and the question is asked
         // once per spawn attempt.
         val here = ConcurrentHashMap<Identifier, Skew>()
+        // And so is **which creatures could arrive at all**, on the same argument: the registry lookup,
+        // the pass filter and the entry itself are the same answer every time, and only a *position*
+        // decides whether one of them may be tried here.
+        val couldArrive = ConcurrentHashMap<Arrivals, List<Arriving>>()
         return Living { biome, category, skyIsOpen, at, offered ->
             val asked = biome?.let { here.computeIfAbsent(it) { where -> Skew.of(claims, where) } }
                 ?: Skew.of(claims)
             val kept = narrowed(offered, asked)
-            added(kept, asked, category, skyIsOpen, at, spawning)
+            val candidates = couldArrive.computeIfAbsent(Arrivals(biome, category)) {
+                resolved(asked, category, spawning)
+            }
+            added(kept, candidates, skyIsOpen, at)
         }
     }
 
@@ -141,17 +148,47 @@ object Spawns {
      */
     private fun added(
         kept: WeightedList<MobSpawnSettings.SpawnerData>,
-        asked: Skew,
-        category: MobCategory,
+        candidates: List<Arriving>,
         skyIsOpen: Boolean,
         at: BlockPos,
-        spawning: Spawning,
     ): WeightedList<MobSpawnSettings.SpawnerData> {
-        val already = kept.unwrap().map { idOf(it.value().type()) }.toSet()
-        val arriving = asked.wanted
+        if (candidates.isEmpty()) return kept
+        // **Only what a position decides is asked here**; everything else was settled once — see [resolved].
+        // Unwrapped once rather than per candidate: this runs on every spawn attempt in the Age.
+        val already = kept.unwrap()
+        fun mayArriveHere(arriving: Arriving): Boolean {
+            val theSkyIsWrong = arriving.arrival.needsOpenSky && !skyIsOpen
+            val theGroundIsWrong = !arriving.arrival.mayBeTriedAt(at.x, at.z)
+            val isOfferedAlready = already.any { it.value().type() === arriving.type }
+            return !theSkyIsWrong && !theGroundIsWrong && !isOfferedAlready
+        }
+        val arriving = candidates.filter(::mayArriveHere)
+        if (arriving.isEmpty()) return kept
+        return WeightedList.of(already + arriving.map { it.offered })
+    }
+
+    /** Which biome's list, and which of vanilla's passes — what a set of arrivals is the answer to. */
+    private data class Arrivals(val biome: Identifier?, val category: MobCategory)
+
+    /** One creature the sentence asked for, taken as far as a question with no position in it can go. */
+    private class Arriving(
+        /** Compared by reference against what the biome already offers — a registry lookup per attempt else. */
+        val type: EntityType<*>,
+        val arrival: Arrival,
+        val offered: Weighted<MobSpawnSettings.SpawnerData>,
+    )
+
+    /**
+     * Every creature [asked] wants that vanilla can be told to try in [category].
+     *
+     * **Settled once per biome and pass**, because none of it moves: the registry lookup, the pass filter,
+     * the weight and the entry itself are the same answer at every position, and this is asked once per
+     * spawn attempt. Measured at 0.9µs an attempt before, against 0.005µs for an Age that said nothing.
+     */
+    private fun resolved(asked: Skew, category: MobCategory, spawning: Spawning): List<Arriving> =
+        asked.wanted
             .filterNot { it.value == NOTHING }
             .mapNotNull { claim -> Identifier.tryParse(claim.value)?.let { it to claim.density } }
-            .filterNot { (id, _) -> id in already }
             .mapNotNull { (id, density) ->
                 // **Asked whether it is there before asking what it is.** The entity registry is a
                 // *defaulted* one, so an id it has never heard of comes back as `minecraft:pig` rather
@@ -162,14 +199,10 @@ object Spawns {
                     ?: return@mapNotNull null
                 val arrival = spawning.of(id)
                 if (spawnPassFor(type) != category) return@mapNotNull null
-                if (arrival.needsOpenSky && !skyIsOpen) return@mapNotNull null
-                if (!arrival.mayBeTriedAt(at.x, at.z)) return@mapNotNull null
                 val entry = carrying(type, arrival) ?: return@mapNotNull null
-                Weighted(entry, (arrival.weight * density).roundToInt().coerceIn(1, MOST_OFTEN))
+                val often = (arrival.weight * density).roundToInt().coerceIn(1, MOST_OFTEN)
+                Arriving(type, arrival, Weighted(entry, often))
             }
-        if (arriving.isEmpty()) return kept
-        return WeightedList.of(kept.unwrap() + arriving)
-    }
 
     /**
      * Which spawn pass a creature arrives in. Its own category, because vanilla runs a pass per category
