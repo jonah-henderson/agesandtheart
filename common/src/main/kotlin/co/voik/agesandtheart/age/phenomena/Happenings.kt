@@ -59,6 +59,9 @@ object Happenings {
             // Nor is this one: blight is the Age going on tearing, and what happens here is only the part
             // somebody is present for. The bulk of it is settled as chunks load — see [Blight].
             Blight.creep(level)
+            // And a dragon an Age was written with needs telling where it is, or it flies to the world
+            // origin to hold its pattern — see [Dragons].
+            Dragons.findTheirOwnGround(level)
         }
     }
 
