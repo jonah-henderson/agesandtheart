@@ -146,6 +146,35 @@ class RecipeCheck : FunSpec({
     }
 
     /**
+     * **What the world an Age was written over cannot honour is said**, rather than swallowed.
+     *
+     * Vanilla's router has a single `defaultBlock`, so rock made of two things is rock made of the first.
+     * That is a real limit and not a bug; what was a bug is that nothing said so. `unknownOptions` is about
+     * names nobody recognises, and this name is spelled perfectly.
+     */
+    test("a rock vanilla cannot mingle is called out") {
+        val mingled = AgeComposition(terrains = listOf(Terrain.VANILLA))
+            .withOptions(Aspect.TERRAIN, Terrain.STONE.name, listOf("minecraft:blackstone", "minecraft:tuff"))
+        val overVanillas = AgeRecipe(
+            AgeWorld.Composed(mingled),
+            seed = SAMPLE_SEED,
+            template = AgeTemplate.INFERNAL,
+        )
+        check(overVanillas.unhonoured.size == 1) {
+            "mingled stone over vanilla's rock said nothing: ${overVanillas.unhonoured}"
+        }
+        check("tuff" in overVanillas.unhonoured.single()) {
+            "the note does not name what is left out: ${overVanillas.unhonoured}"
+        }
+
+        // An Age with a field of ours mingles them per column, so there is nothing to say about it.
+        val ourOwn = mingled.copy(terrains = listOf(Terrain.HILLS))
+        check(AgeRecipe(AgeWorld.Composed(ourOwn), seed = SAMPLE_SEED).unhonoured.isEmpty()) {
+            "a field of ours was told it cannot mingle"
+        }
+    }
+
+    /**
      * **Vanilla's rock is the whole world's or none of it**, the field tree and vanilla's router being
      * either/or. Composing it beside a landform of ours used to parse cleanly and then throw out of the
      * generator, where there is nobody to tell.

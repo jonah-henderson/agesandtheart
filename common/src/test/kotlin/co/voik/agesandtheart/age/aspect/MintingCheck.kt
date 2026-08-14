@@ -94,6 +94,18 @@ class MintingCheck : FunSpec({
         check(now.size == was.size) { "the vein changed size" }
     }
 
+    /**
+     * **A spring runs with a fluid, and a solid holds none.** `gold block springs` reads as a sentence and
+     * a gold block's `fluidState` is `Fluids.EMPTY`, so the rebuilt spring placed nothing whatever — a page
+     * paid for, an exact one, and no sign anywhere that it did nothing.
+     */
+    test("a solid cannot be what a spring runs with") {
+        val pattern = placedFeature("minecraft:spring_water")
+        check(FeatureShape.mintedFrom(pattern, "minecraft:gold_block") === pattern) {
+            "a spring was rebuilt to run with a solid, so it places nothing at all"
+        }
+    }
+
     test("a substance nothing answers to leaves the pattern alone") {
         val pattern = placedFeature("minecraft:spring_water")
         check(FeatureShape.mintedFrom(pattern, "agesandtheart:no_such_block") === pattern) {

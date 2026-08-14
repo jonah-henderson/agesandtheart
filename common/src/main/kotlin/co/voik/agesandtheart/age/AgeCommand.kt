@@ -1871,6 +1871,8 @@ object AgeCommand {
                 // world is not dark, and the one thing `/age list` could not answer.
                 "dimensionType" to AgeGeneration.dimensionType(recipe),
                 "unrecognised" to unknown,
+                // Told apart from the above: this one is spelled right and cannot be honoured here.
+                "unhonoured" to recipe.unhonoured,
             )
             report.entry("ages", fields) { "  $id — $recipe" }
             if (unknown.isNotEmpty()) {

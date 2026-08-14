@@ -68,6 +68,26 @@ data class AgeRecipe(
     /** The composition this Age was assembled from, or null for the few that are not assembled. */
     val composition: AgeComposition? get() = (world as? AgeWorld.Composed)?.composition
 
+    /**
+     * What this Age asked for that the **world it was written over** cannot honour — said rather than
+     * silently dropped, on the same argument as [AgeComposition.unknownOptions]: a knob that does nothing
+     * should look wrong instead of merely being ineffective.
+     *
+     * One entry so far. Vanilla's router has a single `defaultBlock`, so rock made of two things is rock
+     * made of the first; an Age with a field of ours mingles them per column and has no such limit.
+     */
+    val unhonoured: List<String>
+        get() {
+            val written = composition ?: return emptyList()
+            if (Terrain.VANILLA !in written.terrains) return emptyList()
+            val stone = written.optionsFor(Aspect.TERRAIN, 0).allSpelled(Terrain.STONE.name).toList()
+            if (stone.size <= 1) return emptyList()
+            return listOf(
+                "${Aspect.TERRAIN.page}.${Terrain.STONE.name}=${stone.joinToString(",")} — " +
+                    "${template.key}'s own rock is one material, so ${stone.first()} is laid and the rest are not",
+            )
+        }
+
     override fun toString(): String = buildString {
         if (words.isNotEmpty()) append("\"${words.joinToString(" ")}\" → ")
         // The template is the one part of an Age the composition cannot say, so `/age list` says it here

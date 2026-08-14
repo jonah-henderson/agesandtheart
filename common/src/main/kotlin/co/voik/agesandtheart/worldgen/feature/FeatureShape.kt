@@ -72,13 +72,21 @@ object FeatureShape {
         val placed = pattern.value()
         val feature = placed.feature().value()
         val rebuilt = when (val configuration = feature.config()) {
-            is SpringConfiguration -> SpringConfiguration(
-                block.defaultBlockState().fluidState,
-                configuration.requiresBlockBelow,
-                configuration.rockCount,
-                configuration.holeCount,
-                configuration.validBlocks,
-            )
+            is SpringConfiguration -> {
+                // **A spring runs with a fluid, and a solid holds none.** `fluidState` of a block that is
+                // not one is `Fluids.EMPTY`, so `gold block springs` would have rebuilt a spring that
+                // places nothing at all — which is worse than the pattern untouched, the writer having
+                // paid for a page either way.
+                val running = block.defaultBlockState().fluidState
+                if (running.isEmpty) return pattern
+                SpringConfiguration(
+                    running,
+                    configuration.requiresBlockBelow,
+                    configuration.rockCount,
+                    configuration.holeCount,
+                    configuration.validBlocks,
+                )
+            }
             is OreConfiguration -> OreConfiguration(
                 configuration.targetStates.map { OreConfiguration.target(it.target, block.defaultBlockState()) },
                 configuration.size,
