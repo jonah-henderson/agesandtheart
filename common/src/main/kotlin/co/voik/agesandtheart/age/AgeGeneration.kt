@@ -514,11 +514,33 @@ object AgeGeneration {
      * y=0 that drew the Spire's sky by chance.
      */
     fun dimensionType(recipe: AgeRecipe): Identifier = when (val world = recipe.world) {
-        is AgeWorld.Composed -> Sky.dimensionType(
-            world.composition.optionsFor(Aspect.SKY, 0),
-            world.composition.optionsFor(Aspect.SUN, 0),
-        )
+        is AgeWorld.Composed -> typeFor(world.composition, recipe.template)
         is AgeWorld.Bespoke -> AGE_DIMENSION_TYPE
+    }
+
+    /**
+     * **A world wearing another's rock wears its type too.**
+     *
+     * Ours are three re-statements of vanilla's three, and every number in them is one somebody had to
+     * write down — which is how an infernal Age came to have fog reaching to an overworld horizon, a flat
+     * ambient dark where the nether glows, and a −64..320 band around rock that generates 0..128.
+     *
+     * **Until the book says otherwise.** The type follows the facts of the Age (`Sky.dimensionType`), so a
+     * writer with words enough to unseal a nether-shaped world gets a world the game agrees is open — and
+     * that is the case ours are still for. The test is whether the Age's own facts still describe the world
+     * it was written over, rather than whether any word was said.
+     */
+    private fun typeFor(composition: AgeComposition, template: AgeTemplate): Identifier {
+        val ours = Sky.dimensionType(
+            composition.optionsFor(Aspect.SKY, 0),
+            composition.optionsFor(Aspect.SUN, 0),
+        )
+        // Only where the rock is the template's: a landform of ours generates into our own vertical band,
+        // and vanilla's nether is a hundred and twenty-eight blocks tall.
+        if (Terrain.VANILLA !in composition.terrains) return ours
+        val world = template.world()
+        val theirs = Sky.dimensionType(world.optionsFor(Aspect.SKY, 0), world.optionsFor(Aspect.SUN, 0))
+        return if (ours == theirs) template.dimensionType.identifier() else ours
     }
 
     /**

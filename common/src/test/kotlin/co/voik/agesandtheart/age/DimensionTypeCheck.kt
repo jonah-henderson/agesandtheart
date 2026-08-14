@@ -1,9 +1,14 @@
 package co.voik.agesandtheart.age
 
+import co.voik.agesandtheart.MinecraftRegistries
+import co.voik.agesandtheart.NEEDS_REGISTRIES
+import io.kotest.core.annotation.Tags
+import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.worldgen.VerticalWindow
 import com.google.gson.JsonParser
+import net.minecraft.world.level.dimension.BuiltinDimensionTypes
 import io.kotest.core.spec.style.FunSpec
 import java.io.File
 
@@ -15,6 +20,7 @@ import java.io.File
  * backend takes a `ResourceKey`, so a type with no file behind it is not a compile error, not a load error, and not
  * something a recipe can notice — it is a dimension that comes up wrong on a player's screen.
  */
+@Tags(NEEDS_REGISTRIES)
 class DimensionTypeCheck : FunSpec({
 
     val shipped = File("src/main/resources/data/agesandtheart/dimension_type")
@@ -39,6 +45,32 @@ class DimensionTypeCheck : FunSpec({
         }
         check(everyCombination.map { it.third }.distinct().size == everyCombination.size) {
             "two sets of facts share a dimension type"
+        }
+    }
+
+    /**
+     * **A world wearing another's rock wears its type**, and vanilla's three are the three ours restate.
+     *
+     * Nothing else would notice a template pointing at a type that is not there until an Age was written
+     * over it and the world failed to open. And the pairing is not arbitrary: the facts of a template's own
+     * world are what decide whether an Age keeps its type or falls back to one of ours, so the two must
+     * agree about which of the three each world is.
+     */
+    test("each template's own type matches the facts of its world") {
+        MinecraftRegistries.ensureStoodUp()
+        val ourEquivalent = mapOf(
+            BuiltinDimensionTypes.OVERWORLD to AgeGeneration.AGE_DIMENSION_TYPE,
+            BuiltinDimensionTypes.NETHER to AgeGeneration.AGE_LIGHTLESS_ROOFED_DIMENSION_TYPE,
+            BuiltinDimensionTypes.END to AgeGeneration.AGE_LIGHTLESS_DIMENSION_TYPE,
+        )
+        for (template in AgeTemplate.entries) {
+            val world = template.world()
+            val facts = Sky.dimensionType(world.optionsFor(Aspect.SKY, 0), world.optionsFor(Aspect.SUN, 0))
+            val restated = ourEquivalent[template.dimensionType]
+            check(restated != null) { "${template.key} wears ${template.dimensionType}, which restates none of ours" }
+            check(restated == facts) {
+                "${template.key}'s world reads as $facts but it wears ${template.dimensionType}, which is $restated"
+            }
         }
     }
 
