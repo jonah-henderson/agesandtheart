@@ -706,8 +706,18 @@ object Resolver {
                 // to a member rather than across the aspect.
                 val bodies = contenders.filter { it.describes != null }
                 steered = when {
-                    bodies.isNotEmpty() -> bodies.fold(steered) { held, said ->
-                        held.withOptionsFor(aspect, said.describes ?: 0, parameter, listOf(said.word.sets.getValue(parameter)))
+                    // **A body is steered on its own, and what was said of all of them still reaches the
+                    // rest.** A claim carrying no member is about the population rather than about one of
+                    // it, so it is written to every member no clause described — dropping it lost a page
+                    // the writer had already paid for, and said so nowhere.
+                    bodies.isNotEmpty() -> {
+                        val ofAllOfThem = contenders.firstOrNull { it.describes == null }
+                        val many = maxOf(steered.membersIn(aspect), bodies.maxOf { (it.describes ?: 0) + 1 })
+                        (0..<many).fold(steered) { held, member ->
+                            val own = bodies.firstOrNull { it.describes == member } ?: ofAllOfThem
+                            if (own == null) held
+                            else held.withOptionsFor(aspect, member, parameter, listOf(own.word.sets.getValue(parameter)))
+                        }
                     }
                     // Populative values accumulate rather than conflict (§3.2), and the polarity travels
                     // with the value — which is what makes `only` and `except` reach a population at all.

@@ -71,6 +71,21 @@ class SkyKnobsCheck : FunSpec({
         check("sun" in report) { "A mixed line lost the Art's own words:\n$report" }
     }
 
+    /**
+     * **A body knob on a preview line reaches the body**, which "it was accepted" does not say.
+     *
+     * Everything overhead is spelled `sky.…` because a preview is one instrument over one picture, but the
+     * bodies are the sun's, the moon's and the stars' aspects — so a `sky.sunsize` was validated against
+     * the sun's dials, stored on the vault, and then looked for on the sun. Accepted, and ignored.
+     */
+    test("a body knob on a sky line changes the sky") {
+        val plain = server.run("age sky $age sky=plain")
+        val sized = server.run("age sky $age sky=plain sky.sunsize=0.9..1.0")
+        check(described(sized) != described(plain)) {
+            "'sky.sunsize' was accepted and changed nothing:\n$sized"
+        }
+    }
+
     test("a mistyped knob says what it should have been") {
         val report = server.run("age sky $age sky=plain glow=lurid")
         check("blended" in report) {
@@ -85,3 +100,7 @@ class SkyKnobsCheck : FunSpec({
         }
     }
 })
+
+/** The lines describing the sky itself, without the heading or the "turned …" echo of what was asked. */
+private fun described(report: String): List<String> =
+    report.lines().map(String::trim).filter { it.isNotEmpty() && !it.startsWith("turned") && "Age" !in it }

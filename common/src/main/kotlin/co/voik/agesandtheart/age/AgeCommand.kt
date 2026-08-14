@@ -1324,7 +1324,7 @@ object AgeCommand {
         val recipe = AgeSavedData.get(source.server).recipe(ageId(name))
 
         // The Art's own words and the library's knobs are told apart by name, so one line can carry both:
-        // `sky.suns=3 path=epicycle` reads as a sky the words describe with one thing about it turned.
+        // `sky.sunsize=0.9..1.0 path=epicycle` reads as a sky the words describe with one thing turned.
         val said = preview?.split(' ')?.filter { it.isNotBlank() } ?: emptyList()
         val (knobs, words) = said.partition { SkyKnobs.offers(it.substringBefore('=')) }
 
@@ -1380,7 +1380,7 @@ object AgeCommand {
             source.sendFailure(
                 Component.literal(
                     "`/age sky` previews the sky only, but you named ${strayAspects.joinToString(" ")}. " +
-                        "Write it as `sky=plain sky.suns=3`, and use `/age compose` to change anything else. " +
+                        "Write it as `sky=plain sky.sunsize=0.6..1.0`, and use `/age compose` for the rest. " +
                         "The library's own knobs are ${SkyKnobs.describeOffered()}.",
                 ),
             )
@@ -1392,9 +1392,15 @@ object AgeCommand {
         // **Everything overhead, not the vault alone.** The bodies are the sun's, the moon's and the
         // stars' aspects now, and a preview line still spells them all `sky.…` because it is one
         // instrument over one picture.
-        val skyParameters = listOf(Aspect.SKY, Aspect.SUN, Aspect.MOON, Aspect.STARS)
-            .flatMap { it.dials }
-            .associateBy { parameter -> parameter.name }
+        // Which of the four owns each knob, **first of them wins**: `rising` is the sun's and the moon's
+        // alike, and a preview line naming one body means the sun. The moon's is reachable through
+        // `/age compose moon.rising=…`, which spells the aspect out.
+        val overhead = listOf(Aspect.SKY, Aspect.SUN, Aspect.MOON, Aspect.STARS)
+        val ownerOfKnob = overhead
+            .flatMap { aspect -> aspect.dials.map { it.name to aspect } }
+            .groupBy({ it.first }, { it.second })
+            .mapValues { (_, owners) -> owners.first() }
+        val skyParameters = overhead.flatMap { it.dials }.associateBy { parameter -> parameter.name }
         val unreadable = preview.split(' ')
             .filter { token -> token.isNotBlank() && token.startsWith("$SKY_ASPECT.") }
             .mapNotNull { token ->
@@ -1410,8 +1416,18 @@ object AgeCommand {
             return null
         }
 
+        // **Aimed at the aspect that owns each knob before it is read.** A preview spells everything
+        // overhead `sky.…` because it is one instrument over one picture, but the bodies are the sun's, the
+        // moon's and the stars' aspects — so a `sky.suncolour` left as written is stored on the vault and
+        // looked for on the sun, which is to say accepted and then ignored.
+        val aimed = preview.split(' ').filter(String::isNotBlank).joinToString(" ") { token ->
+            val name = token.substringBefore('=').removePrefix("$SKY_ASPECT.")
+            val owner = ownerOfKnob[name]
+            if (!token.startsWith("$SKY_ASPECT.") || owner == null) token
+            else "${owner.page}.$name=${token.substringAfter('=')}"
+        }
         // The terrain here is scaffolding for the parser and is read by nothing.
-        val composition = AgeComposition.parse("$PREVIEW_SCAFFOLD $preview").getOrElse { problem ->
+        val composition = AgeComposition.parse("$PREVIEW_SCAFFOLD $aimed").getOrElse { problem ->
             source.sendFailure(Component.literal(problem.message ?: "Could not read '$preview'"))
             return null
         }
