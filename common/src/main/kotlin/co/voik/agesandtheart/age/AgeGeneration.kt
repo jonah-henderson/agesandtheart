@@ -156,8 +156,18 @@ object AgeGeneration {
         // many terrains carve it up (design §3.1).
         val biomeOptions = composition.optionsFor(Aspect.BIOMES, 0)
         return AgeChunkGenerator(
-            AgeBiomeSource.vanillaOverworld(server, seed)
-                .told(climate, Biomes.preferencesIn(biomeOptions), Biomes.keepsOnlyNamed(biomeOptions))
+            // **The world the book was written over decides which biomes there are to choose between.**
+            // This was the overworld's list for every Age, so an infernal one grew overworld biomes over
+            // nether rock — and the overworld's features with them (Jonah, 2026-08-14, walked).
+            AgeBiomeSource(
+                recipe.template.biomesOf(
+                    server,
+                    Biomes.preferencesIn(biomeOptions),
+                    Biomes.keepsOnlyNamed(biomeOptions),
+                    seed,
+                ),
+            )
+                .told(climate)
                 .let { if (ourGround == null) it.sampledForDepth() else it.groundedIn(ourGround.field) }
                 // On unless the Age said otherwise — `biomes.footing=free` is the lever, and an Age whose
                 // biomes ignore its land is allowed rather than broken. See [Grounding] and [Biomes.FOOTING].
@@ -199,8 +209,14 @@ object AgeGeneration {
             composition.carvers.map { it.configuredCarvers(server) },
             below,
             waterTablesOf(composition, seaFill, seed),
-            // One answer for the whole dimension — vanilla places structures against the level.
-            Structures.structureSets(server, composition.optionsFor(Aspect.STRUCTURES, 0)),
+            // One answer for the whole dimension — vanilla places structures against the level, and what
+            // it starts from is the template's: the overworld's sets in the nether was the same bug the
+            // biomes had.
+            Structures.structureSets(
+                server,
+                composition.optionsFor(Aspect.STRUCTURES, 0),
+                recipe.template.standingStructures,
+            ),
             server.registryAccess().lookupOrThrow(Registries.NOISE_SETTINGS)
                 .getOrThrow(NoiseGeneratorSettings.OVERWORLD),
             fill,

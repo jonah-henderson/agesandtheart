@@ -1,222 +1,185 @@
 package co.voik.agesandtheart.worldgen.biome
 
 import co.voik.agesandtheart.worldgen.field.TerrainField
-import com.mojang.datafixers.util.Pair
-import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.Holder
-import net.minecraft.core.HolderGetter
 import net.minecraft.core.QuartPos
-import net.minecraft.core.registries.Registries
-import net.minecraft.resources.RegistryOps
-import net.minecraft.server.MinecraftServer
+import net.minecraft.util.KeyDispatchDataCodec
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.biome.BiomeSource
 import net.minecraft.world.level.biome.Climate
-import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterList
-import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterLists
 import net.minecraft.world.level.levelgen.DensityFunction
-import net.minecraft.world.level.levelgen.RandomState
 import java.util.Optional
 import java.util.stream.Stream
 
 /**
- * Which biome stands where in an Age: vanilla's climate, read through a table this Age is allowed to bend.
+ * **An Age's own way of seeing whatever world it grows its biomes from** — the template's, or a table of
+ * ours built from one.
  *
- * The handed [Climate.Sampler] is real, because `AgeChunkGenerator` is a `NoiseBasedChunkGenerator` and
- * carries vanilla's climate functions in its router — same noise, same warping, seeded from the Age's own
- * seed. The terrain is still entirely ours; only "what grows here" is answered vanilla's way.
+ * It wraps a [BiomeSource] rather than owning a climate table, and that is the whole of what makes an
+ * infernal Age grow nether biomes: the base every Age layered onto used to be *hardcoded to the overworld*,
+ * so a world with the nether's rock had the overworld's biomes over it and the overworld's features with
+ * them — geodes in the nether (Jonah, 2026-08-14, walked).
  *
- * **[depth] is ours and must stay so**, which is why the generator leaves that one slot of the router at
- * zero: vanilla's depth describes vanilla's relief, and ours is measured against the field tree.
+ * **What it changes, it changes on the way in.** The sampler the world below is handed is this Age's own:
+ * the climate is bent where a book bent it, read off the ground where the Age is grounded, and given the
+ * Age's own depth. Which biome those numbers pick is then entirely the world below's business — so any
+ * source works, including the End's, which chooses by a rule of its own and has no climate to bend.
  *
- * [biomes] is a registry holder, so a datapack can define a new
- * `multi_noise_biome_source_parameter_list` and an Age can name it, swapping the table without code.
+ * **Silence costs nothing.** An Age that bends no climate, is grounded in nothing and takes vanilla's own
+ * depth hands the sampler straight back, and the world below runs exactly as it would have alone.
  */
 class AgeBiomeSource(
-    private val biomes: Holder<MultiNoiseBiomeSourceParameterList>,
-    private val seed: Long,
-    private val depth: ClimateDepth,
+    /** The world these biomes come from — a template's own, or a table of ours. See [BiomeTables]. */
+    private val under: BiomeSource,
     /**
-     * What this Age is *like* — the vague half of biome authoring, applied to the climate before the table
-     * is asked (design §3.2). Idle for an Age whose author said nothing about it.
+     * How buried a point is, which is the one climate parameter our worlds answer for themselves.
+     * [AsSampled] is vanilla's own answer passed through, and is what a template's rock wants.
      */
+    private val depth: ClimateDepth = AsSampled,
+    /** How the book bent the climate, and where — see [RegionalClimate]. */
     private val bent: RegionalClimate = RegionalClimate.NONE,
-    /**
-     * The biomes this Age was told to grow, or not to — the exact half, applied to the table itself. A hot
-     * dry world that excludes deserts is a contradiction for the instability index to price (§5), not one
-     * for this class to arbitrate, so both halves are applied as written.
-     */
-    private val preferences: List<BiomePreference> = emptyList(),
-    /**
-     * Whether the sentence **singled biomes out**, so everything it did not name is struck from the table
-     * (§4.3.1's `only`). A flag rather than a preference per unwanted biome, because the writer named what
-     * they *did* want and only the table knows what else was in it. `only` decides what survives, and a
-     * mention among the survivors still strengthens.
-     */
-    private val keepsOnlyNamed: Boolean = false,
-    /**
-     * Whether this Age's biomes agree with its shape, and how — null for the default, which is that they do
-     * not. See [Grounding] for why "they do not" is a decision rather than a defect.
-     */
+    /** What the Age's own shape says about its climate, where it has a shape of its own. */
     private val grounding: Grounding? = null,
-    /**
-     * A band of this Age that is indoors, answered before the climate table — null for an Age with no
-     * such band, which is almost all of them. See [Roofed].
-     */
+    /** The one biome no climate can pick, because "indoors" is a place rather than a climate. */
     private val roofed: Roofed? = null,
-    /**
-     * One biome for the whole table, before any preference is applied. Vanilla's climate *positions* are
-     * kept and only the biome at each is replaced, so anchoring and the surface filter work exactly as
-     * they do over the overworld — which is what a `FixedBiomeSource` could never offer, having no table
-     * to enrich.
-     */
-    private val flattenedTo: Holder<Biome>? = null,
-    private val biomeLookup: HolderGetter<Biome>,
 ) : BiomeSource() {
 
     override fun codec(): MapCodec<out BiomeSource> = CODEC
 
-    /**
-     * The same table, taking **vanilla's own depth** — for an Age whose rock is vanilla's and which has no
-     * field to measure against. See [AsSampled], and note that [AtSurface] would be wrong rather than
-     * merely coarse: it answers zero everywhere, so no cave biome would ever be reached.
-     */
-    fun sampledForDepth(): AgeBiomeSource =
-        AgeBiomeSource(biomes, seed, AsSampled, bent, preferences, keepsOnlyNamed, grounding, roofed, flattenedTo, biomeLookup)
+    fun sampledForDepth(): AgeBiomeSource = AgeBiomeSource(under, AsSampled, bent, grounding, roofed)
 
-    /** The same table, with [depth] measured against [terrain] — see [BelowTerrain]. */
     fun groundedIn(terrain: TerrainField): AgeBiomeSource =
-        AgeBiomeSource(biomes, seed, BelowTerrain(terrain), bent, preferences, keepsOnlyNamed, grounding, roofed, flattenedTo, biomeLookup)
+        AgeBiomeSource(under, BelowTerrain(terrain), bent, grounding, roofed)
 
-    /** The same table, with ocean, coast and river read off the shape — see [Grounding]. */
-    fun suitedTo(grounding: Grounding?): AgeBiomeSource =
-        AgeBiomeSource(biomes, seed, depth, bent, preferences, keepsOnlyNamed, grounding, roofed, flattenedTo, biomeLookup)
+    fun suitedTo(grounding: Grounding?): AgeBiomeSource = AgeBiomeSource(under, depth, bent, grounding, roofed)
 
-    /** The same table, with a band of it indoors — see [Roofed]. */
-    fun roofedBy(roofed: Roofed?): AgeBiomeSource =
-        AgeBiomeSource(biomes, seed, depth, bent, preferences, keepsOnlyNamed, grounding, roofed, flattenedTo, biomeLookup)
+    fun roofedBy(roofed: Roofed?): AgeBiomeSource = AgeBiomeSource(under, depth, bent, grounding, roofed)
 
-    /** The same source, told what to grow — see [BiomePreference] and [RegionalClimate]. */
-    fun told(bent: RegionalClimate, preferences: List<BiomePreference>, keepsOnlyNamed: Boolean = false) =
-        AgeBiomeSource(biomes, seed, depth, bent, preferences, keepsOnlyNamed, grounding, roofed, flattenedTo, biomeLookup)
+    fun told(bent: RegionalClimate): AgeBiomeSource = AgeBiomeSource(under, depth, bent, grounding, roofed)
 
-    /** The same table, but one biome everywhere until something is named — see [flattenedTo]. */
-    fun flattenedTo(only: Holder<Biome>): AgeBiomeSource =
-        AgeBiomeSource(biomes, seed, depth, bent, preferences, keepsOnlyNamed, grounding, roofed, only, biomeLookup)
-
-    /**
-     * Vanilla's climate-to-biome table with this Age's preferences folded in. **Lazy**, because applying
-     * preferences rebuilds an RTree over some seven thousand entries and construction happens during codec
-     * decode — a round trip must not pay for it.
-     */
-    private val table: Climate.ParameterList<Holder<Biome>> by lazy {
-        val base = biomes.value().parameters()
-        val flattened = flattenedTo?.let { only ->
-            Climate.ParameterList(base.values().map { entry -> Pair.of(entry.first, only) })
-        } ?: base
-        BiomePreference.applied(flattened, preferences, keepsOnlyNamed, biomeLookup, seed)
-    }
-
-    /**
-     * Coordinates arrive quartered (one sample per 4 blocks, as biomes are stored), and [climate] is the
-     * level's own sampler — real, and cached per cell by vanilla, which the private one this replaced was
-     * not.
-     */
     override fun getNoiseBiome(quartX: Int, quartY: Int, quartZ: Int, climate: Climate.Sampler): Holder<Biome> {
-        val blockX = QuartPos.toBlock(quartX)
-        val blockY = QuartPos.toBlock(quartY)
-        val blockZ = QuartPos.toBlock(quartZ)
-        // Answered before the climate table is consulted at all, because it is not a climate question: the
-        // halls are a *place*, and vanilla's table has no coordinate that means "indoors". See [roofed].
-        roofed?.biomeAt(blockY)?.let { return it }
-        val point = DensityFunction.SinglePointContext(blockX, blockY, blockZ)
-        // Which climate governs *here*, since an Age may have fractured into more than one (see
-        // [RegionalClimate]). One climate answers without consulting a map at all.
-        val bias = bent.at(quartX, quartZ)
-        // Bent on the way past, which is the whole of "a hot, dry world": vanilla's own table then answers
-        // with deserts and badlands, and nothing had to name one. Depth is left alone — it is ours, not
-        // the climate's (see [ClimateDepth]).
-        // Bent first, then chilled by however far this column stands above the Age's floor — the bias is what
-        // the writer asked for and the lapse is what the mountain does to it, so a warm Age still has cold
-        // summits and a cold one has colder. See [Elevation].
-        val warmth = bias.shift(ClimateAxis.TEMPERATURE, climate.temperature().compute(point).toFloat())
-        return table.findValue(
-            Climate.target(
-                grounding?.temperatureAt(blockX, blockZ, warmth) ?: warmth,
-                bias.shift(ClimateAxis.HUMIDITY, climate.humidity().compute(point).toFloat()),
-                // Continentalness describes shape, and an Age's shape is the field tree's rather than the
-                // climate's — so by default it passes through untouched and the two simply disagree. A
-                // *grounded* Age reads it off the shape instead. See [Grounding] and [ClimateAxis].
-                grounding?.continentalnessAt(blockX, blockZ)
-                    ?: climate.continentalness().compute(point).toFloat(),
-                // Erosion means how worn flat the ground is, so a grounded Age reads it off its own fall
-                // rather than off a noise that never saw the terrain — which is what decides a sandy beach
-                // from a stony shore. See [Grounding].
-                grounding?.erosionAt(blockX, blockZ) ?: climate.erosion().compute(point).toFloat(),
-                // Asked only where it is read: two of the three depths answer from their own rock, and
-                // computing vanilla's for them walked a density tree per lookup to throw the answer away.
-                depth.at(blockX, blockY, blockZ, if (!depth.readsVanillas) UNREAD else climate.depth().compute(point).toFloat()),
-                // Weirdness passes through too, now that its vocabulary belongs to Biomes rather than to
-                // Climate — step 5 picks it up. A grounded Age pushes it into the valley band where its own
-                // rivers run, which is where vanilla files them. See [ClimateAxis].
-                weirdnessAt(blockX, blockZ, climate.weirdness().compute(point).toFloat()),
-            ),
-        )
+        // Answered before any climate is consulted at all, because it is not a climate question: the halls
+        // are a *place*, and no table has a coordinate that means "indoors". See [roofed].
+        roofed?.biomeAt(QuartPos.toBlock(quartY))?.let { return it }
+        return under.getNoiseBiome(quartX, quartY, quartZ, asThisAgeSeesIt(climate))
     }
 
-    private fun weirdnessAt(blockX: Int, blockZ: Int, vanillas: Float): Float =
-        grounding?.weirdnessAt(blockX, blockZ, vanillas) ?: vanillas
-
-    /** The table's own, plus anything only [roofed] can hand out — which is in no table and must be said. */
+    /** The world below's own, plus anything only [roofed] hands out — which is in no table and must be said. */
     override fun collectPossibleBiomes(): Stream<Holder<Biome>> =
-        Stream.concat(table.values().stream().map { it.second }, Stream.ofNullable(roofed?.biome))
+        Stream.concat(under.possibleBiomes().stream(), Stream.ofNullable(roofed?.biome))
+
+    /** Whether anything here would move a single number, or the sampler may be handed straight through. */
+    private val changesNothing: Boolean
+        get() = depth == AsSampled && grounding == null && bent.isIdle
+
+    /**
+     * [climate] as this Age reads it — the same six numbers, bent, grounded and re-deepened.
+     *
+     * **Remembered against the sampler it was made from.** One sampler serves a level, and building six
+     * wrappers per biome lookup would be a few thousand allocations a chunk. The check is by identity and
+     * the worst a race can do is build one twice.
+     */
+    @Volatile
+    private var seenThrough: Pair<Climate.Sampler, Climate.Sampler>? = null
+
+    private fun asThisAgeSeesIt(climate: Climate.Sampler): Climate.Sampler {
+        if (changesNothing) return climate
+        seenThrough?.let { (given, made) -> if (given === climate) return made }
+
+        fun biasAt(context: DensityFunction.FunctionContext) =
+            bent.at(QuartPos.fromBlock(context.blockX()), QuartPos.fromBlock(context.blockZ()))
+
+        val made = Climate.Sampler(
+            // Bent first, then chilled by however far this column stands above the Age's floor — the bias is
+            // what the writer asked for and the lapse is what the mountain does to it, so a warm Age still
+            // has cold summits and a cold one has colder. See [Elevation].
+            asThisAgeReadsIt(climate.temperature()) { context, vanillas ->
+                val warmth = biasAt(context).shift(ClimateAxis.TEMPERATURE, vanillas)
+                grounding?.temperatureAt(context.blockX(), context.blockZ(), warmth) ?: warmth
+            },
+            asThisAgeReadsIt(climate.humidity()) { context, vanillas ->
+                biasAt(context).shift(ClimateAxis.HUMIDITY, vanillas)
+            },
+            // Continentalness describes shape, and an Age's shape is the field tree's rather than the
+            // climate's — so by default it passes through untouched and the two simply disagree. A
+            // *grounded* Age reads it off the shape instead. See [Grounding] and [ClimateAxis].
+            asThisAgeReadsIt(climate.continentalness()) { context, vanillas ->
+                grounding?.continentalnessAt(context.blockX(), context.blockZ()) ?: vanillas
+            },
+            // Erosion means how worn flat the ground is, so a grounded Age reads it off its own fall rather
+            // than off a noise that never saw the terrain — which decides a sandy beach from a stony shore.
+            asThisAgeReadsIt(climate.erosion()) { context, vanillas ->
+                grounding?.erosionAt(context.blockX(), context.blockZ()) ?: vanillas
+            },
+            depthAsThisAgeReadsIt(climate.depth()),
+            // Weirdness passes through too. A grounded Age pushes it into the valley band where its own
+            // rivers run, which is where vanilla files them. See [ClimateAxis].
+            asThisAgeReadsIt(climate.weirdness()) { context, vanillas ->
+                grounding?.weirdnessAt(context.blockX(), context.blockZ(), vanillas) ?: vanillas
+            },
+            climate.spawnTarget(),
+        )
+        seenThrough = climate to made
+        return made
+    }
+
+    /** One axis of [climate], read the way this Age reads it. */
+    private fun asThisAgeReadsIt(vanillas: DensityFunction, read: (DensityFunction.FunctionContext, Float) -> Float) =
+        AsThisAgeReadsIt(vanillas) { context -> read(context, vanillas.compute(context).toFloat()).toDouble() }
+
+    /**
+     * Depth, which alone decides whether to *ask* the world below at all — two of the three depths answer
+     * from their own rock, and computing vanilla's for them walks a density tree per lookup to throw the
+     * answer away.
+     */
+    private fun depthAsThisAgeReadsIt(vanillas: DensityFunction) = AsThisAgeReadsIt(vanillas) { context ->
+        val sampled = if (!depth.readsVanillas) UNREAD else vanillas.compute(context).toFloat()
+        depth.at(context.blockX(), context.blockY(), context.blockZ(), sampled).toDouble()
+    }
 
     companion object {
         val CODEC: MapCodec<AgeBiomeSource> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
-                MultiNoiseBiomeSourceParameterList.CODEC.fieldOf("biomes").forGetter { it.biomes },
-                Codec.LONG.fieldOf("seed").forGetter { it.seed },
-                ClimateDepth.CODEC.optionalFieldOf("depth", AtSurface).forGetter { it.depth },
+                BiomeSource.CODEC.fieldOf("under").forGetter { it.under },
+                ClimateDepth.CODEC.optionalFieldOf("depth", AsSampled).forGetter { it.depth },
                 RegionalClimate.CODEC.optionalFieldOf("bias", RegionalClimate.NONE).forGetter { it.bent },
-                BiomePreference.CODEC.listOf().optionalFieldOf("preferences", emptyList())
-                    .forGetter { it.preferences },
-                Codec.BOOL.optionalFieldOf("keeps_only_named", false).forGetter { it.keepsOnlyNamed },
                 Grounding.CODEC.optionalFieldOf("grounding").forGetter { Optional.ofNullable(it.grounding) },
                 // Absent for every Age with nothing indoors, which is almost all of them.
                 Roofed.CODEC.optionalFieldOf("roofed").forGetter { Optional.ofNullable(it.roofed) },
-                Biome.CODEC.optionalFieldOf("flattened_to").forGetter { Optional.ofNullable(it.flattenedTo) },
-                // Not a stored field: retrieved from the ops on decode, absent on encode.
-                RegistryOps.retrieveGetter<Biome, AgeBiomeSource>(Registries.BIOME),
-            ).apply(instance) { table, seed, depth, bias, preferences, onlyNamed, grounded, indoors, flattened,
-                                lookup ->
-                AgeBiomeSource(
-                    table, seed, depth, bias, preferences, onlyNamed,
-                    grounded.orElse(null), indoors.orElse(null), flattened.orElse(null), lookup,
-                )
+            ).apply(instance) { under, depth, bias, grounded, indoors ->
+                AgeBiomeSource(under, depth, bias, grounded.orElse(null), indoors.orElse(null))
             }
         }
+    }
+}
 
-        /**
-         * Vanilla's overworld biome table, at the Age's own [seed] — the default for an Age naming no
-         * preferences. The *climate* those biomes are looked up at comes from the generator's router, not
-         * from here.
-         */
-        fun vanillaOverworld(server: MinecraftServer, seed: Long): AgeBiomeSource {
-            val registries = server.registryAccess()
-            return AgeBiomeSource(
-                registries.lookupOrThrow(Registries.MULTI_NOISE_BIOME_SOURCE_PARAMETER_LIST)
-                    .getOrThrow(MultiNoiseBiomeSourceParameterLists.OVERWORLD),
-                seed,
-                AtSurface,
-                RegionalClimate.NONE,
-                emptyList(),
-                keepsOnlyNamed = false,
-                flattenedTo = null,
-                biomeLookup = registries.lookupOrThrow(Registries.BIOME),
-            )
-        }
+/**
+ * One climate axis as an Age reads it, wrapping the world's own.
+ *
+ * A [DensityFunction.SimpleFunction] because that is the whole of what a sampler asks of one: a value at a
+ * position. It is never serialised — a sampler is built per level from the level's own router, and this is
+ * built from that.
+ */
+private class AsThisAgeReadsIt(
+    private val vanillas: DensityFunction,
+    private val read: (DensityFunction.FunctionContext) -> Double,
+) : DensityFunction.SimpleFunction {
+    override fun compute(context: DensityFunction.FunctionContext): Double = read(context)
+
+    // **Wider than the axis, deliberately.** These bound an optimiser rather than the answer, and a bend
+    // may carry a value past whatever the world below would have produced on its own.
+    override fun minValue(): Double = minOf(vanillas.minValue(), LOWEST)
+    override fun maxValue(): Double = maxOf(vanillas.maxValue(), HIGHEST)
+
+    override fun codec(): KeyDispatchDataCodec<out DensityFunction> =
+        error("an Age's own climate is built for one level's sampler and is never serialised")
+
+    private companion object {
+        /** Vanilla's climate axes live in −2..2, and a bend cannot carry one past the end of its own axis. */
+        const val LOWEST = -2.0
+        const val HIGHEST = 2.0
     }
 }
 

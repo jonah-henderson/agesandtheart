@@ -77,6 +77,9 @@ data class AgeRecipe(
      * made of the first; an Age with a field of ours mingles them per column and has no such limit.
      */
     val unhonoured: List<String>
+        get() = rockUnhonoured + biomesUnhonoured
+
+    private val rockUnhonoured: List<String>
         get() {
             val written = composition ?: return emptyList()
             if (Terrain.VANILLA !in written.terrains) return emptyList()
@@ -85,6 +88,24 @@ data class AgeRecipe(
             return listOf(
                 "${Aspect.TERRAIN.page}.${Terrain.STONE.name}=${stone.joinToString(",")} — " +
                     "${template.key}'s own rock is one material, so ${stone.first()} is laid and the rest are not",
+            )
+        }
+
+    /**
+     * What the world this Age was written over cannot honour about its **biomes**.
+     *
+     * A preference weighs a table a climate is looked up in, and the End has no climate — it picks by
+     * distance from the centre. So a book that weighs biomes over the void is asking for something that
+     * world has no way to answer, and is told rather than ignored.
+     */
+    private val biomesUnhonoured: List<String>
+        get() {
+            if (template.biomesAreChosenByClimate) return emptyList()
+            val said = composition?.optionsFor(Aspect.BIOMES, 0)?.allSpelled(Biomes.GROWN.name).orEmpty()
+            if (said.isEmpty()) return emptyList()
+            return listOf(
+                "${Aspect.BIOMES.page}.${Biomes.GROWN.name}=${said.joinToString(",")} — " +
+                    "${template.key} chooses its biomes by place rather than by climate, so nothing weighs them",
             )
         }
 

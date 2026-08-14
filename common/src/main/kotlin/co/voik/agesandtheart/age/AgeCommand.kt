@@ -1878,6 +1878,9 @@ object AgeCommand {
             if (unknown.isNotEmpty()) {
                 report.say { "    (ignored, unrecognised: ${unknown.joinToString(" ")})" }
             }
+            // Said apart from the above, because the remedy is: that one is misspelled, this one is spelled
+            // perfectly and asks the world it was written over for something it has no way to give.
+            for (limit in recipe.unhonoured) report.say { "    (the world it was written over: $limit)" }
         }
         report.finish()
         return SUCCESS

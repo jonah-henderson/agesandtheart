@@ -60,13 +60,17 @@ object Structures {
     private const val FISSURES_NO_CLOSER = 20
     private const val FISSURE_SALT = 90210
 
-    fun structureSets(server: MinecraftServer, options: Options): List<Holder<VanillaStructureSet>> {
+    fun structureSets(
+        server: MinecraftServer,
+        options: Options,
+        standing: List<ResourceKey<VanillaStructureSet>> = OVERWORLD_STRUCTURE_SETS,
+    ): List<Holder<VanillaStructureSet>> {
         val sets = server.registryAccess().lookupOrThrow(Registries.STRUCTURE_SET)
         val asked = Skew.of(options.claimsOn(BUILT))
         val seated = LinkedHashMap<Identifier, Holder<VanillaStructureSet>>()
         val startsFromNothing = asked.exclusive || asked.wanted.any { it.value == NOTHING }
         if (!startsFromNothing) {
-            for (key in OVERWORLD_STRUCTURE_SETS) seated[key.identifier()] = sets.get(key).orElse(null) ?: continue
+            for (key in standing) seated[key.identifier()] = sets.get(key).orElse(null) ?: continue
         }
         for (claim in asked.wanted) {
             // `nothing` is the emptier, not a set: it has already done its work above, and asking the
