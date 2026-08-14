@@ -207,6 +207,41 @@ class RecipeCheck : FunSpec({
     }
 
     /**
+     * **A carving named against a rock we did not lay is dropped, and has to say so.**
+     *
+     * The generator hands carving back to the superclass where the rock is vanilla's, so `depths=solid`
+     * over the overworld leaves a world quite full of caves. Nothing anywhere else notices — the recipe
+     * stores the carving happily and the world simply ignores it.
+     */
+    test("a carving vanilla's own rock will not take is called out") {
+        fun over(template: AgeTemplate, carving: Carvers) = AgeRecipe(
+            AgeWorld.Composed(AgeComposition(terrains = listOf(Terrain.VANILLA), carvers = listOf(carving))),
+            seed = SAMPLE_SEED,
+            template = template,
+        ).unhonoured
+
+        val hollowedOverworld = over(AgeTemplate.OVERWORLD, Carvers.SOLID)
+        check(hollowedOverworld.size == 1) { "`depths=solid` over vanilla's rock said nothing: $hollowedOverworld" }
+        check("solid" in hollowedOverworld.single()) { "the note does not name it: $hollowedOverworld" }
+
+        // What the template already cuts is honoured, so silence is right for it.
+        check(over(AgeTemplate.OVERWORLD, Carvers.CAVES).isEmpty()) {
+            "the overworld was told it cannot have the caves it has"
+        }
+        check(over(AgeTemplate.INFERNAL, Carvers.CAVES).size == 1) {
+            "caves asked of the nether's own rock went unmentioned"
+        }
+
+        // A field of ours cuts what it was told to, so there is nothing to say about any of it.
+        val ourOwn = AgeRecipe(
+            AgeWorld.Composed(AgeComposition(terrains = listOf(Terrain.HILLS), carvers = listOf(Carvers.CAVES))),
+            seed = SAMPLE_SEED,
+            template = AgeTemplate.INFERNAL,
+        )
+        check(ourOwn.unhonoured.isEmpty()) { "a field of ours was told it cannot carve: ${ourOwn.unhonoured}" }
+    }
+
+    /**
      * **Vanilla's rock is the whole world's or none of it**, the field tree and vanilla's router being
      * either/or. Composing it beside a landform of ours used to parse cleanly and then throw out of the
      * generator, where there is nobody to tell.

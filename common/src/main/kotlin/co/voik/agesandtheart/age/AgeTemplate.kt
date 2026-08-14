@@ -41,7 +41,15 @@ import net.minecraft.world.level.levelgen.structure.StructureSet
  * the question. Retuning a template therefore changes what *new* Ages are like and can never reach one
  * already written.
  */
-enum class AgeTemplate(val key: String, val rock: ResourceKey<NoiseGeneratorSettings>) : StringRepresentable {
+enum class AgeTemplate(
+    val key: String,
+    /**
+     * This world's rock, read twice: as the rock itself where the book named no landform, and — whether it
+     * did or not — as the climate its biomes are looked up by, since a table and the noise it is keyed on
+     * have to come from the same world.
+     */
+    val rock: ResourceKey<NoiseGeneratorSettings>,
+) : StringRepresentable {
     /** What a world is like when nobody said otherwise. No word names it; it is what you get. */
     OVERWORLD("overworld", NoiseGeneratorSettings.OVERWORLD) {
         override val biomeList = MultiNoiseBiomeSourceParameterLists.OVERWORLD
@@ -135,21 +143,21 @@ enum class AgeTemplate(val key: String, val rock: ResourceKey<NoiseGeneratorSett
     abstract val standingStructures: List<ResourceKey<StructureSet>>
 
     /**
-      * **This world's own dimension type** — vanilla's, not a copy of it.
-      *
-      * An Age wearing this world's rock wears its type too, and that is the whole of how it gets the
-      * nether's fog distances, its ambient light and its ceiling without anybody writing a number down.
-      * It also gets its *height*: the nether's rock generates 0..128, and putting it in the −64..320 world
-      * our own types declare left the roof at 127 with two hundred blocks of empty air over it.
-      *
-      * A getter rather than a stored field: reading `BuiltinDimensionTypes` stands `DimensionType`'s codec
+     * **This world's own dimension type** — vanilla's, not a copy of it.
+     *
+     * An Age wearing this world's rock wears its type too, and that is the whole of how it gets the
+     * nether's fog distances, its ambient light and its ceiling without anybody writing a number down. It
+     * also gets its *height*: the nether's rock generates 0..128, and putting it in the −64..320 world our
+     * own types declare left the roof at 127 with two hundred blocks of empty air over it.
+     *
+     * A getter rather than a stored field: reading `BuiltinDimensionTypes` stands `DimensionType`'s codec
      * up, and an enum constant that did it at construction would drag the registries into every check that
      * so much as names a template — several of which are registry-free on purpose.
      *
-     * Ours are for the worlds vanilla has no type for — an Age with a field of its own, whose vertical
-      * band is [co.voik.agesandtheart.worldgen.VerticalWindow.DEFAULT] rather than any of vanilla's.
-      */
-     abstract val dimensionType: ResourceKey<DimensionType>
+     * Ours are for the worlds vanilla has no type for — an Age with a field of its own, whose vertical band
+     * is [co.voik.agesandtheart.worldgen.VerticalWindow.DEFAULT] rather than any of vanilla's.
+     */
+    abstract val dimensionType: ResourceKey<DimensionType>
 
     /** Whether a book may weigh or narrow this world's biomes, which needs a table to adjust. */
     val biomesAreChosenByClimate: Boolean get() = biomeList != null

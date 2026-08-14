@@ -57,10 +57,12 @@ import co.voik.agesandtheart.age.aspect.Surface
  */
 object AgeGeneration {
     /**
-     * The four types an Age may wear — `Sky.SKYLIGHT` and `Sky.ROOF`, spelled out.
+     * The three types an Age with rock of its own may wear — `Sky.SKYLIGHT` and `Sky.ROOF`, spelled out.
      *
      * A composed `DimensionType` cannot be encoded in the join packet, so every combination is a file, and
-     * each further switch would double them. All four declare the same band of world.
+     * each further switch would double them. All three declare [VerticalWindow.DEFAULT], which is the band
+     * a field tree builds into; an Age wearing a template's rock wears that world's own type instead, and
+     * its band with it (see [typeFor]).
      */
     val AGE_DIMENSION_TYPE: Identifier = "age".location()
     val AGE_LIGHTLESS_DIMENSION_TYPE: Identifier = "age_lightless".location()
@@ -217,8 +219,12 @@ object AgeGeneration {
                 composition.optionsFor(Aspect.STRUCTURES, 0),
                 recipe.template.standingStructures,
             ),
+            // **The climate the biomes are looked up by, and it comes from the same world they do.** This
+            // was the overworld's for every Age, so a landform of ours over the infernal template chose
+            // nether biomes with overworld noise — and over the dark void, where the End picks by distance
+            // from the centre and reads that off `erosion`, it scattered the islands' biomes at random.
             server.registryAccess().lookupOrThrow(Registries.NOISE_SETTINGS)
-                .getOrThrow(NoiseGeneratorSettings.OVERWORLD),
+                .getOrThrow(recipe.template.rock),
             fill,
             window,
             // What is placed, which vanilla's own decoration hook takes it — see [Features] for the seam.

@@ -617,10 +617,6 @@ class AgeChunkGenerator(
     }
 
     /**
-     * Kept as an exit, narrowly: mob generation is disabled in [settingsFor], and the superclass would
-     * otherwise consult its own [NoiseChunk] to decide. Nothing to inherit here that we want.
-     */
-    /**
      * Vanilla's decoration, and then whatever this Age's instability tore open (design §5.1).
      *
      * **After the features, not before.** A wound is not part of the world's furniture — it is what the
@@ -645,10 +641,19 @@ class AgeChunkGenerator(
         Tearing.tearInto(level, chunk, level.getSeed(), Tearing.wantedIn(chunk.pos, level.getSeed(), density))
     }
 
-    override fun spawnOriginalMobs(level: WorldGenRegion) = Unit
+    /**
+     * Nothing where the shape is ours — mob generation is disabled in [settingsFor], and the superclass
+     * would otherwise consult its own [NoiseChunk] to decide. Vanilla's rock answers for itself: its
+     * settings already say whether that world populates a fresh chunk, and the overworld's says it does.
+     */
+    override fun spawnOriginalMobs(level: WorldGenRegion) {
+        if (rock !is AgeRock.Ours) super.spawnOriginalMobs(level)
+    }
 
     /** The superclass renders noise-router values in F3, which describe terrain a field Age does not have. */
-    override fun addDebugScreenInfo(info: MutableList<String>, randomState: RandomState, pos: BlockPos) = Unit
+    override fun addDebugScreenInfo(info: MutableList<String>, randomState: RandomState, pos: BlockPos) {
+        if (rock !is AgeRock.Ours) super.addDebugScreenInfo(info, randomState, pos)
+    }
 
     // getGenDepth / getSeaLevel / getMinY are deliberately NOT overridden: the superclass answers all three
     // from `generatorSettings()`, which is ours (see [settingsFor]). That makes `getSeaLevel` return the

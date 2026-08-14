@@ -4,10 +4,15 @@ import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 
 /**
- * The band of world an Age generates into — **and it must agree with that Age's dimension type**, because
- * the two are read by different halves of the game and neither checks the other. The generator fills
- * `minY..<topY` while the level admits blocks by its dimension type's JSON, and a mismatch is not an error
- * anywhere: it is blocks silently dropped, which reads in game as a world with no bottom to it.
+ * The band of world **an Age with a field of its own** generates into — and it must agree with that Age's
+ * dimension type, because the two are read by different halves of the game and neither checks the other.
+ * The generator fills `minY..<topY` while the level admits blocks by its dimension type's JSON, and a
+ * mismatch is not an error anywhere: it is blocks silently dropped, which reads in game as a world with no
+ * bottom to it.
+ *
+ * An Age wearing a template's rock is not built from this at all: its band is that world's, and so is the
+ * type it wears (`AgeGeneration.typeFor`). Handing the nether's 0..128 rock our −64..384 band left the roof
+ * at 127 with two hundred blocks of nothing over it.
  *
  * **One band, and every dimension type carries it.** A landform is written against the floor and ceiling it
  * will actually get, so a second band is not a setting an Age turns up — it is a second set of numbers every
@@ -23,7 +28,7 @@ data class VerticalWindow(val minY: Int, val height: Int) {
     val topY: Int get() = minY + height
 
     companion object {
-        /** Matches all four `agesandtheart:age…` dimension types, which differ only in light and roof. */
+        /** Matches all three `agesandtheart:age…` dimension types, which differ only in light and roof. */
         val DEFAULT = VerticalWindow(minY = -64, height = 384)
 
         val CODEC: Codec<VerticalWindow> = RecordCodecBuilder.create { instance ->

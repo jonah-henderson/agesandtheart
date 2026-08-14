@@ -83,13 +83,30 @@ data class AgeRecipe(
         get() {
             val written = composition ?: return emptyList()
             if (Terrain.VANILLA !in written.terrains) return emptyList()
-            val stone = written.optionsFor(Aspect.TERRAIN, 0).allSpelled(Terrain.STONE.name).toList()
-            if (stone.size <= 1) return emptyList()
-            return listOf(
-                "${Aspect.TERRAIN.page}.${Terrain.STONE.name}=${stone.joinToString(",")} — " +
-                    "${template.key}'s own rock is one material, so ${stone.first()} is laid and the rest are not",
-            )
+            return listOfNotNull(oneMaterialOnly(written), whateverItCutsItself(written))
         }
+
+    /** A rock we did not lay has one material, whatever the book named after the first. */
+    private fun oneMaterialOnly(written: AgeComposition): String? {
+        val stone = written.optionsFor(Aspect.TERRAIN, 0).allSpelled(Terrain.STONE.name).toList()
+        if (stone.size <= 1) return null
+        return "${Aspect.TERRAIN.page}.${Terrain.STONE.name}=${stone.joinToString(",")} — " +
+            "${template.key}'s own rock is one material, so ${stone.first()} is laid and the rest are not"
+    }
+
+    /**
+     * **A rock we did not lay cuts its own caves**, and a carving named against it does nothing.
+     *
+     * The generator hands `applyCarvers` back to the superclass where the rock is vanilla's — its carvers
+     * read the router the shape came out of, where ours would be cutting into a world they know nothing
+     * about. Which is right, and left `depths=solid` over the overworld quietly full of caves.
+     */
+    private fun whateverItCutsItself(written: AgeComposition): String? {
+        val asked = written.carvers
+        if (asked == template.world().carvers) return null
+        return "${Aspect.CARVERS.page}=${asked.joinToString(",") { it.key }} — " +
+            "${template.key}'s own rock cuts its own caves, so it keeps them"
+    }
 
     /**
      * What the world this Age was written over cannot honour about its **biomes**.
