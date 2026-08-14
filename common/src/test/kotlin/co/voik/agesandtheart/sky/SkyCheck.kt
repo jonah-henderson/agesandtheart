@@ -8,6 +8,7 @@ import co.voik.ephemeris.sky.CelestialBody
 import co.voik.ephemeris.sky.Orbit
 import co.voik.ephemeris.sky.SkySpec
 
+import co.voik.agesandtheart.age.AgeTemplate
 import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Sky
@@ -303,17 +304,42 @@ class SkyCheck : FunSpec({
         val ordinary = Options()
         val sealed = Options(mapOf(Sky.SEALED.name to listOf(Sky.ALWAYS)))
         val sunless = Options(mapOf(Sky.SHINING.name to listOf(Sky.NEVER)))
+        fun overOrdinary(sky: Options, sun: Options) =
+            Atmosphere.unlitLook(Described(mapOf(Aspect.SKY to sky, Aspect.SUN to sun)), AgeTemplate.OVERWORLD)
 
         check(!Sky.isLightless(ordinary, ordinary)) { "an ordinary Age came out lightless" }
-        check(Atmosphere.unlitLook(ordinary, ordinary) == Look.NOTHING) {
-            "an ordinary Age was painted dark: ${Atmosphere.unlitLook(ordinary, ordinary)}"
+        check(overOrdinary(ordinary, ordinary) == Look.NOTHING) {
+            "an ordinary Age was painted dark: ${overOrdinary(ordinary, ordinary)}"
         }
 
         val dark = listOf("sealed" to (sealed to ordinary), "sunless" to (ordinary to sunless), "both" to (sealed to sunless))
         for ((described, options) in dark) {
             val (sky, sun) = options
             check(Sky.isLightless(sky, sun)) { "a $described Age is lit" }
-            check(Atmosphere.unlitLook(sky, sun) != Look.NOTHING) { "a $described Age kept its blue sky" }
+            check(overOrdinary(sky, sun).sky != null) { "a $described Age kept its blue sky" }
+        }
+    }
+
+    /**
+     * **A stand-in only stands in where nothing is standing.** Our near-black is what an unlit Age has
+     * instead of the blue the overworld's biomes would paint it; over a world already dark it has one
+     * colour where the template has real ones, and it flattened the nether's crimson, warped and soul-sand
+     * fog into a single grey.
+     *
+     * The overcast is the other half and is not a stand-in: nothing overhead means no cloud, whichever
+     * world the book started from.
+     */
+    test("a template already dark paints itself, and only loses its clouds") {
+        val sealed = Described(mapOf(Aspect.SKY to Options(mapOf(Sky.SEALED.name to listOf(Sky.ALWAYS)))))
+        val overNether = Atmosphere.unlitLook(sealed, AgeTemplate.INFERNAL)
+        check(overNether.fog == null && overNether.sky == null && overNether.tint == null) {
+            "the nether's own air was painted over: $overNether"
+        }
+        check(overNether.cloud != null) { "a sealed Age kept its overcast: $overNether" }
+
+        val overOverworld = Atmosphere.unlitLook(sealed, AgeTemplate.OVERWORLD)
+        check(overOverworld.fog != null && overOverworld.sky != null) {
+            "a sealed overworld was left its daylight: $overOverworld"
         }
     }
 })

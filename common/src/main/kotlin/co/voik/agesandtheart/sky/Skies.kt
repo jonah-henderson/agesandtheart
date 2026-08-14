@@ -3,9 +3,7 @@ package co.voik.agesandtheart.sky
 import co.voik.agesandtheart.age.AgeGeneration
 import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.age.aspect.AgeParts
-import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Atmosphere
-import co.voik.agesandtheart.age.aspect.Options
 import co.voik.ephemeris.RuntimeLevelEvents
 import co.voik.ephemeris.sky.LevelAppearance
 import co.voik.ephemeris.sky.LevelLook
@@ -59,8 +57,7 @@ object Skies {
         // The sky preset's own palette goes **underneath**: it is what the Age looks like before anyone said
         // anything, so a writer who repaints one colour of a Spire-skied Age keeps the rest. And under *that*
         // whatever the Age's own switches insist on — a lightless Age is dark to look at as well as to stand in.
-        val painted = AgeGeneration.presetLook(recipe)
-            .over(Atmosphere.unlitLook(parts.optionsFor(Aspect.SKY), parts.optionsFor(Aspect.SUN)))
+        val painted = AgeGeneration.presetLook(recipe).over(Atmosphere.unlitLook(parts, recipe.template))
         return LevelLook(
             AgeGeneration.skySpec(recipe),
             Atmosphere.lookIn(parts, recipe.seed).over(painted),

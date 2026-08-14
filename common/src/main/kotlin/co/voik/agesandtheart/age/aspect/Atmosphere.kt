@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.aspect
 
+import co.voik.agesandtheart.age.AgeTemplate
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.attribute.EnvironmentAttribute
 import net.minecraft.world.attribute.EnvironmentAttributeMap
@@ -152,14 +153,28 @@ object Atmosphere {
      * stayed blue with clouds in it, which reads as broad daylight over a world the game considers pitch
      * dark (Jonah, 2026-08-05, walked).
      *
-     * So the same fact reaches this layer too, and through [Sky.isLightless] rather than a copy of it: no
-     * skylight means a black sky, black fog, no cloud and no light of its own. **A floor, not a setting** —
-     * a writer who said `lightless` *and* named a fog colour gets the colour they asked for, because
-     * [Look.over] keeps whatever was said.
+     * **A floor, not a setting** — a writer who said `lightless` *and* named a fog colour gets the colour
+     * they asked for, because [Look.over] keeps whatever was said.
+     *
+     * **And a floor only where the world underneath has none.** The dark is two statements, and they are
+     * not the same kind of thing. That nothing is overhead is a *fact*, true of any world shut or unlit,
+     * and it takes the overcast away. That the air is nearly black is a *stand-in* for the blue one the
+     * overworld's biomes would otherwise paint — and a template already dark has real answers where this
+     * has one colour, so laying it over the nether flattened crimson, warped and soul-sand fog to a single
+     * grey.
      */
-    fun unlitLook(sky: Options, sun: Options): Look =
-        if (!Sky.isLightless(sky, sun)) Look.NOTHING
-        else Look(sky = STARLESS, fog = STARLESS, cloud = NO_CLOUD, tint = STARLESS)
+    fun unlitLook(parts: AgeParts, template: AgeTemplate): Look {
+        val sky = parts.optionsFor(Aspect.SKY)
+        val sun = parts.optionsFor(Aspect.SUN)
+        if (!Sky.isLightless(sky, sun)) return Look.NOTHING
+        val nothingIsUpThere = Look(cloud = NO_CLOUD)
+        if (isAlreadyDark(template.world())) return nothingIsUpThere
+        return nothingIsUpThere.copy(sky = STARLESS, fog = STARLESS, tint = STARLESS)
+    }
+
+    /** Whether the world a book was written over was unlit before the book said anything. */
+    private fun isAlreadyDark(world: AgeParts): Boolean =
+        Sky.isLightless(world.optionsFor(Aspect.SKY), world.optionsFor(Aspect.SUN))
 
     /** Not quite black: pure zero reads as a hole cut in the world rather than as a dark sky. */
     private val STARLESS = Rgba(0.02f, 0.02f, 0.03f)
