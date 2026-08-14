@@ -85,12 +85,6 @@ value class Options(val chosen: Map<String, List<String>> = emptyMap()) {
         }
 
     /**
-     * How many the writer asked for, where [parameter] is a count — never null, since [of] falls back to
-     * the ordinary number when nothing valid was named.
-     */
-    fun countOf(parameter: Parameter): Int = of(parameter).toIntOrNull() ?: NONE_AT_ALL
-
-    /**
      * Where [parameter]'s axis was left, in the terms every span shares, or null where nothing bound it
      * and the answer is whatever that landform calls ordinary.
      *
@@ -122,9 +116,6 @@ value class Options(val chosen: Map<String, List<String>> = emptyMap()) {
 
     companion object {
         val NONE = Options()
-
-        /** What a count reads as when the parameter holding it is not one — unreachable through [countOf]. */
-        private const val NONE_AT_ALL = 0
 
         /**
          * A value is a list, and a single one still reads and writes as a bare string — the same either-or

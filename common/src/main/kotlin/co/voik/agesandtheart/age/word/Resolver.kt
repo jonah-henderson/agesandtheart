@@ -154,7 +154,7 @@ object Resolver {
             instability = Instability(flaws.toList()),
             // Structure is priced too: every page a writer lays costs ink, and a page that made no
             // claim still came out of the pot. A latent page came out of nobody's pot.
-            cost = sentence.written.sumOf { inkFor(it.word) } + sentence.structural.sumOf { it.cost },
+            cost = sentence.written.sumOf { it.word.price } + sentence.structural.sumOf { it.cost },
             words = sentence.words,
             template = template,
             dropped = sentence.unreadable,
@@ -170,21 +170,6 @@ object Resolver {
      */
     private fun templateOf(said: List<Constraint>): AgeTemplate =
         said.firstNotNullOfOrNull { it.word.template?.let(AgeTemplate::named) } ?: AgeTemplate.ORDINARY
-
-    /**
-     * What one page costs to lay (§4.4), and the two tiers are priced on different things.
-     *
-     * **An evocative word costs a flat fee** — it is the cheapest thing in the language precisely because it
-     * is imprecise. Charging it by breadth did the opposite: an evocative word reaches every aspect it finds
-     * purchase in, so `beautiful` at eight aspects cost eight where an exact `clear` cost four, making the
-     * vaguest word in the corpus the dearest and inverting §1's ladder.
-     *
-     * **A narrowing word costs its tier times the aspects it is at home in** — not the one it reaches in
-     * this sentence, which after §4.3.1 is nearly always one. A word usable in several parts of the world is
-     * a better page to own, so `clear`, which is a clear sky and clear water alike, costs more every time it
-     * is laid than a word that only ever means one thing. The charge is for versatility.
-     */
-    fun inkFor(word: Word): Int = word.price
 
     /**
      * [composition] with every feature the sentence **minted** added to what the Age places — `ink springs`,
@@ -271,11 +256,11 @@ object Resolver {
 
     /**
      * Which aspects a constraint speaks to — the grammar's answer, not a search (§4.3.1). "Anywhere"
-     * resolves against [aspectsSpokenTo], which is where a word finds purchase.
+     * resolves against [purchaseFor], which is where a word finds purchase.
      */
     private fun reachOf(vocabulary: Vocabulary, constraint: Constraint): List<Aspect> =
         if (constraint.word.tier.narrows) constraint.aimedAt.sortedBy { it.ordinal }
-        else aspectsSpokenTo(vocabulary, constraint.word)
+        else purchaseFor(vocabulary, constraint.word)
 
     /**
      * What fills one aspect: one preset, or several where the sentence left it no way to be one thing.
@@ -529,14 +514,12 @@ object Resolver {
     }
 
     /**
-     * Which aspects this word has a say in: the ones it is about, or wherever it finds purchase. Public
-     * because it is also what a word *costs* (§4.4), and what `VocabularyCheck` reads.
+     * Where [word] finds purchase — the aspects it is about, or every one it likes something in.
+     *
+     * A narrowing word never asks this: the section its page was laid in already decided, and
+     * [Constraint.aimedAt] carries the answer. So this is the evocative half alone.
      */
-    fun aspectsSpokenTo(vocabulary: Vocabulary, word: Word): List<Aspect> {
-        // **A narrowing word has its say in one part of the world at a time** — the section its page was
-        // laid in, which `Grammar` stamps onto the page and `Constraint.aimedAt` carries from there. So this
-        // answers what the word *costs* (§4.4): one aspect per use, however many it is at home in.
-        if (word.tier.narrows) return listOfNotNull(word.aspects.minByOrNull { it.ordinal })
+    fun purchaseFor(vocabulary: Vocabulary, word: Word): List<Aspect> {
         if (word.aspects.isNotEmpty()) return word.aspects.sortedBy { it.ordinal }
         // An evocative word declares no aspect: spanning aspects is what makes it evocative.
         return Aspect.entries.filter { aspect ->
@@ -548,6 +531,17 @@ object Resolver {
             likesSomethingThere || bendsADialThere
         }
     }
+
+    /**
+     * Which aspects [word] is **charged for** (§4.4) — a different question from where it reaches, and the
+     * one that was being answered by the same function.
+     *
+     * A narrowing word has its say in one part of the world at a time, so it is priced in one however many
+     * it is at home in; an evocative word is priced across everything it found purchase in.
+     */
+    fun pricedIn(vocabulary: Vocabulary, word: Word): List<Aspect> =
+        if (word.tier.narrows) listOfNotNull(word.aspects.minByOrNull { it.ordinal })
+        else purchaseFor(vocabulary, word)
 
     /**
      * One preset from [candidates], drawn in proportion to how strongly the sentence claims each — the
@@ -592,7 +586,7 @@ object Resolver {
                 val chosen = filled[aspect].orEmpty()
                 if (chosen.none { first.word.acceptsOn(it, vocabulary.tagsOf(it)) }) continue
                 if (chosen.none { second.word.acceptsOn(it, vocabulary.tagsOf(it)) }) continue
-                val opposition = oppositionBetween(vocabulary, first, second) ?: continue
+                val opposition = vocabulary.disagreement(first.word, second.word) ?: continue
                 add(
                     Flaw(
                         Register.TENSION,
@@ -625,7 +619,7 @@ object Resolver {
         for ((first, second) in sentence.pairs()) {
             // "Keep both" is not a contradiction, here for the same reason it is not one in [tensions].
             if (wereJoined(first, second)) continue
-            val opposition = oppositionBetween(vocabulary, first, second) ?: continue
+            val opposition = vocabulary.disagreement(first.word, second.word) ?: continue
             val bothNamed = listOf(first.word.name, second.word.name)
             val alreadyPaidFor = charged.any { it.words.containsAll(bothNamed) } ||
                 any { it.words.containsAll(bothNamed) }
@@ -643,13 +637,9 @@ object Resolver {
         }
     }
 
-    /** Whether these two words can both stand — the table, or what their own settings give away. */
-    private fun oppositionBetween(vocabulary: Vocabulary, first: Constraint, second: Constraint): Disagreement? =
-        vocabulary.disagreement(first.word, second.word)
-
     /** What they disagreed over — for the explanation, not the detection. */
     private fun opposedTags(vocabulary: Vocabulary, first: Constraint, second: Constraint): List<String> =
-        oppositionBetween(vocabulary, first, second)?.over ?: emptyList()
+        vocabulary.disagreement(first.word, second.word)?.over ?: emptyList()
 
     private fun flaw(
         vocabulary: Vocabulary,

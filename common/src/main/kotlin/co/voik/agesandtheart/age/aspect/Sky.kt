@@ -121,11 +121,6 @@ enum class Sky(override val key: String) : AspectPreset {
 
     companion object {
         /**
-         * **Left as they are, the four must draw exactly [SkySpec.VANILLA]**, or an unremarkable Age stops
-         * keeping vanilla's own sky. `SkyCheck` holds it; moving an ordinary value would otherwise break it
-         * silently.
-         */
-        /**
          * Whether this world goes round anything at all — **the one thing minting cannot say.**
          *
          * Every other fact about the suns is written by describing one, and the number of them is the

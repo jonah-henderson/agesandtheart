@@ -29,7 +29,7 @@ class TagCoverageCheck : FunSpec({
 
     /**
      * **A query must do one of its two jobs.** It chooses carriers — and, separately, it says what the word
-     * *means* in tag space, which is how `Resolver.oppositionBetween` finds that two words disagree. A
+     * *means* in tag space, which is how `Vocabulary.disagreement` finds that two words disagree. A
      * query doing neither is a page a writer can lay and be charged for that can never do the thing it
      * describes: §3.3's silent drop, in the vocabulary rather than in the resolver.
      *

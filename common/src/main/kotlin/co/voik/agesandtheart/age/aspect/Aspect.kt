@@ -343,8 +343,6 @@ data class Parameter(
     val open: Boolean = false,
     /** What this property holds, which decides what a claim on it can mean — see [Holds]. */
     val holds: Holds = Holds.CATALOGUE,
-    /** How many of a thing there may be, where the value is a count — see [counted]. */
-    val counts: IntRange? = null,
     /** What naming one of these is worth, where the value is a member of a population — see [population]. */
     val worthOfAMention: Double = Rung.ORDINARY,
     /** How little of a member a word may leave, where the value is a member of a population. */
@@ -376,8 +374,7 @@ data class Parameter(
         val looksLikeARegistryId = namesReferent(option) && Identifier.tryParse(option) != null
         // Every form a word may ask a ranged axis for, not only a band — see [Setting].
         val looksLikeASpan = holds == Holds.RANGE && Setting.describes(option)
-        val isACountItGoesUpTo = option.toIntOrNull()?.let { counts?.contains(it) } == true
-        return isOneOfTheNamedOptions || looksLikeASpan || isACountItGoesUpTo || (open && looksLikeARegistryId)
+        return isOneOfTheNamedOptions || looksLikeASpan || (open && looksLikeARegistryId)
     }
 
     companion object {
@@ -429,17 +426,6 @@ data class Parameter(
          * axis, so an Age told nothing keeps whatever vanilla's noise produced.
          */
         fun ranged(name: String) = Parameter(name, listOf(Span.NATURAL.spelled()), holds = Holds.RANGE)
-
-        /**
-         * How many of a thing there are, from none up to [most] — the bodies in a sky.
-         *
-         * **The one kind of number §3.2 lets near a writer**, because a count is what a person standing in
-         * the Age would say about it: "two suns" is a sentence, where a biome's weight is a fact about our
-         * arithmetic. Numeral pages will write it directly; until they exist a word like `twinned` carries
-         * the number, which is why this is a value and not an enumeration of spellings for it.
-         */
-        fun counted(name: String, ordinary: Int, most: Int) =
-            Parameter(name, listOf(ordinary.toString()), holds = Holds.POPULATION, counts = 0..most)
     }
 }
 
@@ -522,9 +508,9 @@ enum class Holds {
     /**
      * Individuals that exist only because somebody described them — the suns, the moons.
      *
-     * Each member holds properties of its own, so this is the recursive kind. **Not built**: `suns` and
-     * `moons` are still read as counts, and turning them into a population is what removes numbers from
-     * the language entirely.
+     * Each member holds properties of its own, so this is the recursive kind. A member is minted by the
+     * clause that describes it and there is no number anywhere: `a sun. a sun.` is two suns because it is
+     * two clauses, which is what took counts out of the language.
      *
      * Not to be confused with [WEIGHTED_SET], which the *aspects* used to call a population: a jungle is a
      * kind the world has more or less of, where a sun is one of several individuals.
@@ -532,6 +518,4 @@ enum class Holds {
     POPULATION,
     ;
 
-    /** Whether this holds a single answer — what `and` forces two of, and what may fracture. */
-    val isOneValue: Boolean get() = this == RANGE || this == CATALOGUE
 }

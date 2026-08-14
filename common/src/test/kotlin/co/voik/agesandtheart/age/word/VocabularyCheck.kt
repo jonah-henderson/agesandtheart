@@ -61,7 +61,7 @@ class VocabularyCheck : FunSpec({
             check(unknownTags.isEmpty()) {
                 "'${word.name}' asks for ${unknownTags.joinToString(" ")}, which nothing in the world carries"
             }
-            val aspects = Resolver.aspectsSpokenTo(vocabulary, word)
+            val aspects = Resolver.pricedIn(vocabulary, word)
             // A word that names a template has a say in no aspect *and* does the largest thing a single
             // page can: it changes the world the book starts from. Every other word has to reach one.
             check(aspects.isNotEmpty() || word.template != null) {
@@ -70,7 +70,7 @@ class VocabularyCheck : FunSpec({
             // A word that named its aspects must be satisfiable in **each** of them; an evocative word named
             // none, and having found purchase anywhere is what it promised.
             //
-            // Read off the word rather than off `aspectsSpokenTo`, which answers what a word *costs* — one
+            // Read off the word rather than off `pricedIn`, which answers what a word *costs* — one
             // aspect, for a narrowing word, however many it is at home in. Asking that here left every
             // declaration after the first unchecked, which was invisible while they were also unreachable.
             val declared = word.aspects.sortedBy { it.ordinal }
@@ -235,7 +235,7 @@ class VocabularyCheck : FunSpec({
                 // biomes are datapack content, so their words exist only once a server has loaded.
                 if (namesReferent(preset.key)) continue
                 val reachable = vocabulary.words.any { word ->
-                    aspect in Resolver.aspectsSpokenTo(vocabulary, word) && word.tier.narrows &&
+                    aspect in Resolver.pricedIn(vocabulary, word) && word.tier.narrows &&
                         preset in vocabulary.carriersOf(word, aspect)
                 }
                 check(reachable) {

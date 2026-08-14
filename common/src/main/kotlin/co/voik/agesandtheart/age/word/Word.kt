@@ -326,7 +326,7 @@ data class Word(
      * the water, and the dearer of the two is the one worth owning.
      *
      * One number with two readers, which is the point of it being here rather than in either: the book's
-     * cost is the sum of its pages ([co.voik.agesandtheart.age.word.Resolver.inkFor]) and the page's own
+     * cost is the sum of its pages ([Resolver.resolve]) and the page's own
      * price is what the desk charges for writing it (`WriteCost`). They were separately computed and
      * disagreed — the desk priced by tier alone, so versatility was charged to a book nobody paid for and
      * not to the page anybody buys.
@@ -403,6 +403,9 @@ data class Word(
         /** What separates one alternative from the next inside a single value. */
         private const val ALTERNATIVE = '|'
 
+        /** What a page at home in one part of the world is worth, as versatility — see [Word.price]. */
+        private const val ONE_PLACE = 1
+
         /**
          * Where a word reaches, given what its file said and **every concrete claim it makes**.
          *
@@ -428,9 +431,6 @@ data class Word(
          * and lands nowhere at all is left empty on purpose, so `DerivedAspectsCheck` can refuse it: a
          * word that removes candidates and is aimed at nothing removes them everywhere.
          */
-        /** What a page at home in one part of the world is worth, as versatility — see [Word.price]. */
-        private const val ONE_PLACE = 1
-
         fun reaching(
             tier: Tier,
             declared: Set<Aspect>,
