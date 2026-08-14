@@ -70,7 +70,11 @@ enum class AgeTemplate(val key: String, val rock: ResourceKey<NoiseGeneratorSett
         )
             .withOptions(Aspect.SKY, Sky.SEALED.name, listOf(Sky.ALWAYS))
             .withOptions(Aspect.SUN, Sky.SHINING.name, listOf(Sky.NEVER))
-            .withOptions(Aspect.AIR, Atmosphere.FOG.name, listOf("red"))
+        // **And it paints no fog, which it also used to.** `air.fog=red` was one colour for a whole world,
+        // written while an infernal Age grew overworld biomes and had nothing else to make it look like
+        // the nether. Its own biomes carry their fog now — crimson red, warped teal, soul-sand brown — and
+        // a colour named here would flatten all of them to one. (It was inert besides: nothing reads
+        // `Look.fog` yet, the visual half of `Atmosphere` being unbuilt.)
         // **It bends no climate, and used to.** `temperature=0.7..1.0` was here to drag the *overworld's*
         // table toward its hot end, which is what an infernal Age had to do while it grew overworld
         // biomes. Against the nether's own table it only narrows: with the bend this world was 100%

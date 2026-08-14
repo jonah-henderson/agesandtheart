@@ -1,5 +1,5 @@
 {
-  "_comment": "Roofed and lightless. `ambient_light` is the nether's 0.1 rather than the flat 0.0 an unroofed lightless Age gets: a world shut overhead is lit by its own rock and lava, where an open one with no sun is a void and should be black. Jonah, 2026-08-14, walked. `has_skylight: false` makes the world dark to the game; these three make it dark to the eye. A zero-alpha cloud colour is what skips the cloud pass outright (see Ephemeris' cloud renderer) -- there is no separate switch for it. A writer who paints a sky over this with a Look still gets one.",
+  "_comment": "Roofed and lightless. `ambient_light` is the nether's 0.1 rather than the flat 0.0 an unroofed lightless Age gets: a world shut overhead is lit by its own rock and lava, where an open one with no sun is a void and should be black. Jonah, 2026-08-14, walked. It names NO fog or sky colour, deliberately: in 26.1 a biome carries its own as an attribute map, and a roofed world is all air you are standing in and no sky you can see. Naming them here pinned the nether's fog to one dull colour for every biome, which is what the walk found. A zero-alpha cloud colour stays, being the only way to skip the cloud pass at all.",
   "ambient_light": 0.1,
   "attributes": {
     "minecraft:gameplay/bed_rule": {
@@ -12,9 +12,7 @@
     "minecraft:gameplay/respawn_anchor_works": false,
     "minecraft:visual/ambient_light_color": "#0a0a0a",
     "minecraft:visual/cloud_color": "#00000000",
-    "minecraft:visual/cloud_height": 192.33,
-    "minecraft:visual/fog_color": "#000000",
-    "minecraft:visual/sky_color": "#000000"
+    "minecraft:visual/cloud_height": 192.33
   },
   "coordinate_scale": 1.0,
   "default_clock": "minecraft:overworld",
