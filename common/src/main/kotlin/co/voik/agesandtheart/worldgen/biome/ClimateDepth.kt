@@ -30,6 +30,15 @@ sealed interface ClimateDepth {
      */
     fun at(blockX: Int, blockY: Int, blockZ: Int, sampled: Float): Float
 
+    /**
+     * Whether [sampled] is read at all — the only reason to compute it.
+     *
+     * Vanilla's depth function walks a density tree, and [AgeBiomeSource] computed it on **every** biome
+     * lookup in every Age to hand it to two cases out of three that throw it away. Declared per case rather
+     * than asked as `this == AsSampled`, so a fourth case has to answer for itself.
+     */
+    val readsVanillas: Boolean
+
     companion object {
         /**
          * How far down one unit of depth reaches. Vanilla's own figure: its depth function is a
@@ -51,6 +60,7 @@ sealed interface ClimateDepth {
  */
 data object AtSurface : ClimateDepth {
     override val kind = DepthKind.AT_SURFACE
+    override val readsVanillas = false
     override fun at(blockX: Int, blockY: Int, blockZ: Int, sampled: Float): Float = 0.0f
 }
 
@@ -64,6 +74,7 @@ data object AtSurface : ClimateDepth {
  */
 data object AsSampled : ClimateDepth {
     override val kind = DepthKind.AS_SAMPLED
+    override val readsVanillas = true
     override fun at(blockX: Int, blockY: Int, blockZ: Int, sampled: Float): Float = sampled
 }
 
@@ -81,6 +92,9 @@ data class BelowTerrain(
 ) : ClimateDepth {
 
     override val kind = DepthKind.BELOW_TERRAIN
+
+    /** It measures against its own rock, so what vanilla sampled is never read. */
+    override val readsVanillas = false
 
     /**
      * One [ColumnCache] per chunk worker. Depth is asked per *quart* cell, so a chunk asks 384 times about

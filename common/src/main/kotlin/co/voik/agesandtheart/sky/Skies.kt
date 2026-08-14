@@ -2,6 +2,7 @@ package co.voik.agesandtheart.sky
 
 import co.voik.agesandtheart.age.AgeGeneration
 import co.voik.agesandtheart.age.AgeSavedData
+import co.voik.agesandtheart.age.aspect.AgeParts
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.agesandtheart.age.aspect.Options
@@ -54,16 +55,16 @@ object Skies {
         val recipe = saved.recipe(id)
         // One reader over the whole composition, because the look is assembled from several aspects now —
         // the water's clarity, the air's fog and tint, the vault's colour and cloud.
-        val asked = { aspect: Aspect -> recipe.composition?.optionsFor(aspect, 0) ?: Options.NONE }
+        val parts = recipe.composition ?: AgeParts.NONE
         // The sky preset's own palette goes **underneath**: it is what the Age looks like before anyone said
         // anything, so a writer who repaints one colour of a Spire-skied Age keeps the rest. And under *that*
         // whatever the Age's own switches insist on — a lightless Age is dark to look at as well as to stand in.
         val painted = AgeGeneration.presetLook(recipe)
-            .over(Atmosphere.unlitLook(asked(Aspect.SKY), asked(Aspect.SUN)))
+            .over(Atmosphere.unlitLook(parts.optionsFor(Aspect.SKY), parts.optionsFor(Aspect.SUN)))
         return LevelLook(
             AgeGeneration.skySpec(recipe),
-            Atmosphere.lookIn(asked, recipe.seed).over(painted),
-            Atmosphere.cornersOf(asked).associateWith { Atmosphere.lookIn(asked, recipe.seed, it).over(painted) },
+            Atmosphere.lookIn(parts, recipe.seed).over(painted),
+            Atmosphere.cornersOf(parts).associateWith { Atmosphere.lookIn(parts, recipe.seed, it).over(painted) },
         )
     }
 }

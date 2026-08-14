@@ -103,10 +103,11 @@ object Atmosphere {
      * Applied when the Age opens rather than written into its recipe's generator: an attribute is a fact
      * about the *level* rather than about the ground, and nothing in generation reads one.
      */
-    fun settle(level: ServerLevel, salt: Long, asked: (Aspect) -> Options) {
-        val options = asked(Aspect.CLIMATE)
-        val everywhere = airIn(options, salt, biome = null) + lightFrom(asked(Aspect.SKY), asked(Aspect.SUN))
-        val corners = cornersOf(asked).associateWith { airIn(options, salt, it) }
+    fun settle(level: ServerLevel, salt: Long, parts: AgeParts) {
+        val options = parts.optionsFor(Aspect.CLIMATE)
+        val everywhere = airIn(options, salt, biome = null) +
+            lightFrom(parts.optionsFor(Aspect.SKY), parts.optionsFor(Aspect.SUN))
+        val corners = cornersOf(parts).associateWith { airIn(options, salt, it) }
         if (everywhere.isEmpty() && corners.all { it.value.isEmpty() }) return
         val system = EnvironmentAttributeSystem.builder().addDefaultLayers(level)
         if (everywhere.isNotEmpty()) {
@@ -125,10 +126,10 @@ object Atmosphere {
      * system in its constructor from a private final field, so these cross on a payload and are installed
      * client-side. See [co.voik.ephemeris.sky.LevelLookPayload].
      */
-    fun lookIn(asked: (Aspect) -> Options, salt: Long, biome: Identifier? = null): Look {
-        val air = asked(Aspect.AIR)
-        val vault = asked(Aspect.SKY)
-        val water = asked(Aspect.WATERS)
+    fun lookIn(parts: AgeParts, salt: Long, biome: Identifier? = null): Look {
+        val air = parts.optionsFor(Aspect.AIR)
+        val vault = parts.optionsFor(Aspect.SKY)
+        val water = parts.optionsFor(Aspect.WATERS)
         fun band(options: Options, parameter: Parameter) =
             options.steer(parameter, salt, biome)?.let(Span.NATURAL::fractionOf)?.toFloat()
         return Look(
@@ -169,9 +170,9 @@ object Atmosphere {
      * Asked of the aspect rather than of a list written here: which dials may be sited is the parameter's
      * own answer now ([Parameter.confinable]), and the list this replaced had to be kept in step by hand.
      */
-    fun cornersOf(asked: (Aspect) -> Options): List<Identifier> =
+    fun cornersOf(parts: AgeParts): List<Identifier> =
         Aspect.entries.flatMap { aspect ->
-            aspect.confinableParameters.flatMap(asked(aspect)::confinedIn)
+            aspect.confinableParameters.flatMap(parts.optionsFor(aspect)::confinedIn)
         }.distinct()
 
     private fun colourOf(options: Options, parameter: Parameter, biome: Identifier?): Rgba? =

@@ -512,11 +512,7 @@ object AgeGeneration {
      * never passes through a composition. Both answer with the same [SpireSky.SPEC].
      */
     fun skySpec(recipe: AgeRecipe): SkySpec = when (val world = recipe.world) {
-        is AgeWorld.Composed -> world.composition.sky.specFor(
-            world.composition::optionsFor,
-            recipe.seed,
-            world.composition::membersIn,
-        )
+        is AgeWorld.Composed -> world.composition.sky.specFor(world.composition, recipe.seed)
         is AgeWorld.Bespoke -> if (world.preset == AgePreset.SPIRE) SpireSky.SPEC else SkySpec.VANILLA
     }
 

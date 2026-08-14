@@ -155,7 +155,9 @@ class AgeBiomeSource(
                 // rather than off a noise that never saw the terrain — which is what decides a sandy beach
                 // from a stony shore. See [Grounding].
                 grounding?.erosionAt(blockX, blockZ) ?: climate.erosion().compute(point).toFloat(),
-                depth.at(blockX, blockY, blockZ, climate.depth().compute(point).toFloat()),
+                // Asked only where it is read: two of the three depths answer from their own rock, and
+                // computing vanilla's for them walked a density tree per lookup to throw the answer away.
+                depth.at(blockX, blockY, blockZ, if (!depth.readsVanillas) UNREAD else climate.depth().compute(point).toFloat()),
                 // Weirdness passes through too, now that its vocabulary belongs to Biomes rather than to
                 // Climate — step 5 picks it up. A grounded Age pushes it into the valley band where its own
                 // rivers run, which is where vanilla files them. See [ClimateAxis].
@@ -217,3 +219,6 @@ class AgeBiomeSource(
         }
     }
 }
+
+/** What stands in for vanilla's depth where the Age's own depth never reads it — see [ClimateDepth.readsVanillas]. */
+private const val UNREAD = 0.0f

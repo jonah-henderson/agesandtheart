@@ -453,7 +453,7 @@ class ResolverCheck : FunSpec({
         check(second.of(Sky.RISING) == "southwest") { "the second sun rises ${second.of(Sky.RISING)}" }
 
         // And it reaches the sky the renderer is handed, which is the half a writer actually sees.
-        val drawn = composition.sky.specFor(composition::optionsFor, SAMPLE_SEED, composition::membersIn)
+        val drawn = composition.sky.specFor(composition, SAMPLE_SEED)
         val suns = drawn.bodies.filter { it.phase == null }
         check(suns.size == 2) { "the spec drew ${suns.size} suns" }
         val horizons = suns.map { (it.path as Orbit).ascendingNodeDegrees }
@@ -468,7 +468,7 @@ class ResolverCheck : FunSpec({
     test("colossal is a colossal landform and a colossal sun") {
         val overhead = read(listOf("age", "colossal", "sun"))
         val sky = Resolver.resolve(vocabulary, overhead, SAMPLE_SEED).composition
-        val sun = sky.sky.specFor(sky::optionsFor, SAMPLE_SEED, sky::membersIn).bodies.first { it.phase == null }
+        val sun = sky.sky.specFor(sky, SAMPLE_SEED).bodies.first { it.phase == null }
         check(sun.appearance.angularSize > SkySpec.VANILLA_SUN_SIZE) {
             "'colossal sun' drew a sun of ${sun.appearance.angularSize}, no larger than vanilla's"
         }
@@ -476,7 +476,7 @@ class ResolverCheck : FunSpec({
         // And laid on the land it is the rock that is colossal, the sun keeping whatever was drawn.
         val ground = read(listOf("age", "colossal", "landmass"))
         val rock = Resolver.resolve(vocabulary, ground, SAMPLE_SEED).composition
-        val itsSun = rock.sky.specFor(rock::optionsFor, SAMPLE_SEED, rock::membersIn).bodies.first { it.phase == null }
+        val itsSun = rock.sky.specFor(rock, SAMPLE_SEED).bodies.first { it.phase == null }
         check(itsSun.appearance.angularSize == SkySpec.VANILLA_SUN_SIZE) {
             "'colossal landmass' reached the sun as well, at ${itsSun.appearance.angularSize}"
         }
@@ -969,7 +969,7 @@ class ResolverCheck : FunSpec({
     test("a sky word lands where it says") {
         fun skyOf(sentence: String): SkySpec {
             val composition = resolve(vocabulary, sentence).composition
-            return composition.sky.specFor(composition::optionsFor, SAMPLE_SEED, composition::membersIn)
+            return composition.sky.specFor(composition, SAMPLE_SEED)
         }
 
         val ordinary = skyOf("stormy")
@@ -988,7 +988,7 @@ class ResolverCheck : FunSpec({
         // thing (world model §2).
         val twoSuns = read(listOf("age", "sun", "sun"))
         val minted = Resolver.resolve(vocabulary, twoSuns, SAMPLE_SEED).composition
-        val drawn = minted.sky.specFor(minted::optionsFor, SAMPLE_SEED, minted::membersIn)
+        val drawn = minted.sky.specFor(minted, SAMPLE_SEED)
         check(drawn.bodies.count { it.phase == null } == TWO_SUNS) {
             "two `sun` clauses drew ${drawn.bodies.count { it.phase == null }} suns"
         }

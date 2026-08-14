@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.sky
 
+import co.voik.agesandtheart.age.aspect.AgeParts
+import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.ephemeris.sky.Appearance
 import co.voik.ephemeris.sky.CelestialBody
@@ -203,7 +205,7 @@ class SkyCheck : FunSpec({
         // below holds it to being bespoke, so the exemption is not a hole to hide a regression in.
         for (sky in Sky.entries.filter { it != Sky.SPIRE }) {
             for (seed in SEEDS) {
-                val spec = sky.specFor({ _, _ -> Options() }, seed)
+                val spec = sky.specFor(NOTHING_SAID, seed)
                 check(spec.isOrdinary) {
                     "$sky's defaults do not draw an ordinary sky at seed $seed — a book that minted no " +
                         "body and bent no axis must keep the overworld's own sky. Drawn: $spec"
@@ -223,14 +225,14 @@ class SkyCheck : FunSpec({
      * is asked of it — no seed and no option may move it, because it is written rather than resolved.
      */
     test("the Spire's sky is bespoke and unmoved by what is asked of it") {
-        val spec = Sky.SPIRE.specFor({ _, _ -> Options() }, seed = 0L)
+        val spec = Sky.SPIRE.specFor(NOTHING_SAID, seed = 0L)
         check(!spec.isOrdinary) { "The Spire's sky reads as ordinary, so vanilla would draw it instead" }
         check(spec.decks.size == 2) { "The Spire has ${spec.decks.size} cloud decks, and its sky is two" }
         check(spec.bodies.isEmpty()) { "The Spire has never had a sun or a moon, but drew ${spec.bodies.size}" }
         check(spec.stars.reveal != null) { "The Spire's stars must be hidden until you climb above its deck" }
 
         for (seed in SEEDS) {
-            check(Sky.SPIRE.specFor({ _, _ -> Options() }, seed) == spec) {
+            check(Sky.SPIRE.specFor(NOTHING_SAID, seed) == spec) {
                 "The Spire's sky moved at seed $seed, so something about it is being resolved after all"
             }
         }
@@ -241,7 +243,7 @@ class SkyCheck : FunSpec({
      * always out. Cheap to get backwards when retuning a deck.
      */
     test("a star reveal fades upward across a real band") {
-        val reveal = Sky.SPIRE.specFor({ _, _ -> Options() }, seed = 0L).stars.reveal ?: error("The Spire has no reveal")
+        val reveal = Sky.SPIRE.specFor(NOTHING_SAID, seed = 0L).stars.reveal ?: error("The Spire has no reveal")
         check(reveal.fullyShownAbove > reveal.hiddenBelow) {
             "The Spire's reveal band does not rise: ${reveal.hiddenBelow}..${reveal.fullyShownAbove}"
         }
@@ -255,15 +257,10 @@ class SkyCheck : FunSpec({
     test("anything unusual does not read as ordinary") {
         val unusual = listOf(
             // Two suns is two clauses that minted one, which is the cast rather than any option.
-            "two suns" to Sky.PLAIN.specFor({ _, _ -> Options() }, A_SEED) { aspect ->
-                if (aspect == Aspect.SUN) 2 else 0
-            },
-            "no suns" to Sky.PLAIN.specFor(
-                { aspect, _ -> if (aspect == Aspect.SUN) Options(mapOf(Sky.SHINING.name to listOf(Sky.NEVER))) else Options() },
-                A_SEED,
-            ),
-            "no stars" to Sky.PLAIN.specFor({ _, _ -> Options(mapOf(Sky.STARS.name to listOf(EMPTIEST))) }, A_SEED),
-            "dense stars" to Sky.PLAIN.specFor({ _, _ -> Options(mapOf(Sky.STARS.name to listOf(FULLEST))) }, A_SEED),
+            "two suns" to Sky.PLAIN.specFor(Described(cast = mapOf(Aspect.SUN to 2)), A_SEED),
+            "no suns" to Sky.PLAIN.specFor(steering(Aspect.SUN, Sky.SHINING, Sky.NEVER), A_SEED),
+            "no stars" to Sky.PLAIN.specFor(steering(Aspect.STARS, Sky.STARS, EMPTIEST), A_SEED),
+            "dense stars" to Sky.PLAIN.specFor(steering(Aspect.STARS, Sky.STARS, FULLEST), A_SEED),
         )
         for ((described, spec) in unusual) {
             check(!spec.isOrdinary) { "\"$described\" reads as an ordinary sky, so no Age would ever draw it" }
@@ -294,6 +291,27 @@ class SkyCheck : FunSpec({
         }
     }
 })
+
+/**
+ * An Age described by hand — what a composition would answer, without needing one.
+ *
+ * [SkySpec.drawn] is a pure function, so these checks work in plain integers and options; this is the
+ * smallest thing that satisfies [AgeParts] for them.
+ */
+private class Described(
+    private val options: Map<Aspect, Options> = emptyMap(),
+    private val cast: Map<Aspect, Int> = emptyMap(),
+) : AgeParts {
+    override fun optionsFor(aspect: Aspect, member: Int): Options = options[aspect] ?: Options.NONE
+    override fun membersIn(aspect: Aspect): Int = cast[aspect] ?: 0
+}
+
+/** An Age nobody said anything about, which is what most of these ask about. */
+private val NOTHING_SAID = Described()
+
+/** One aspect steered and nothing else said. */
+private fun steering(aspect: Aspect, parameter: Parameter, value: String) =
+    Described(mapOf(aspect to Options(mapOf(parameter.name to listOf(value)))))
 
 private val SEEDS = listOf(0L, 1L, 7L, 4242L, -99L, Long.MAX_VALUE)
 

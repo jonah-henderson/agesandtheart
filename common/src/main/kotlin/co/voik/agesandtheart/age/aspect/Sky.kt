@@ -68,29 +68,33 @@ enum class Sky(override val key: String) : AspectPreset {
      * [SPIRE] ignores both, and that is the whole of what makes it bespoke: its sky is written down rather
      * than resolved, so no seed and no option moves it.
      */
-    fun specFor(asked: (Aspect, Int) -> Options, seed: Long, cast: (Aspect) -> Int = { 0 }): SkySpec {
+    fun specFor(parts: AgeParts, seed: Long): SkySpec {
         if (this == SPIRE) return SpireSky.SPEC
         // **Assembled from three aspects**, which is what the split made explicit: the suns, the moons and
         // the star field are each their own part of the world, and a spec is where they meet.
-        val sun = asked(Aspect.SUN, 0)
+        val sun = parts.optionsFor(Aspect.SUN)
         // **The cast is what the book described, or the template's where it described none.** A sun is
         // brought into being by a clause about it, so the number of bodies is the number of clauses —
         // there is no count to write and no second spelling for "two suns".
-        val suns = if (sun.of(SHINING) == NEVER) NONE else cast(Aspect.SUN).takeIf { it > NONE } ?: VANILLAS_ONE
-        val moons = if (asked(Aspect.MOON, 0).of(ORBITING) == NEVER) NONE
-            else cast(Aspect.MOON).takeIf { it > NONE } ?: VANILLAS_ONE
+        val suns = if (sun.of(SHINING) == NEVER) NONE
+            else parts.membersIn(Aspect.SUN).takeIf { it > NONE } ?: VANILLAS_ONE
+        val moons = if (parts.optionsFor(Aspect.MOON).of(ORBITING) == NEVER) NONE
+            else parts.membersIn(Aspect.MOON).takeIf { it > NONE } ?: VANILLAS_ONE
         val drawn = SkySpec.drawn(
             suns = suns,
             moons = moons,
-            starCount = starsAt(asked(Aspect.STARS, 0).steer(STARS, seed)),
+            starCount = starsAt(parts.optionsFor(Aspect.STARS).steer(STARS, seed)),
             spread = ORDINARY_SPREAD.toFloat(),
             seed = seed,
         )
-        // **Suns come first in `SkySpec.drawn`'s list**, so a moon's own index starts where they end.
+        // **Which sun this is, counted rather than read off where it sits.** `SkySpec.drawn` happens to
+        // put the suns first, and arithmetic against that would hand a moon a sun's description the day it
+        // stopped — a change in Ephemeris that nothing here could have failed on.
+        fun among(at: Int, isASun: Boolean) = drawn.bodies.take(at).count { (it.phase == null) == isASun }
         val told = drawn.bodies.mapIndexed { at, body ->
             val isASun = body.phase == null
-            val own = if (isASun) asked(Aspect.SUN, at) else asked(Aspect.MOON, at - suns)
-            described(body, own, seed)
+            val aspect = if (isASun) Aspect.SUN else Aspect.MOON
+            described(body, parts.optionsFor(aspect, among(at, isASun)), seed)
         }
         return drawn.copy(bodies = told)
     }

@@ -8,6 +8,7 @@ import co.voik.agesandtheart.age.aspect.Share
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.Structures
+import co.voik.agesandtheart.age.aspect.AgeParts
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Holds
 import co.voik.agesandtheart.age.aspect.AspectPreset
@@ -44,7 +45,7 @@ data class AgeComposition(
      * scattered in another, and because a seam belongs to the boundary rather than to either side of it.
      */
     val spreads: Spreads = Spreads(),
-) {
+) : AgeParts {
     /**
      * The coordinates its biomes are looked up at, one per territory. Never empty.
      *
@@ -63,7 +64,7 @@ data class AgeComposition(
      * How many territories [aspect] divides into. Presets answer for themselves; an aspect whose answer is
      * a set of dials counts its own values, there being no preset to count.
      */
-    fun membersIn(aspect: Aspect): Int {
+    override fun membersIn(aspect: Aspect): Int {
         // A described member has no preset to count: its entries *are* the roll — see
         // [Aspect.membersAreDescribed], which covers a cast of suns and a divided climate alike.
         if (!aspect.membersAreDescribed) return presets.count { it.aspect == aspect }
@@ -105,7 +106,7 @@ data class AgeComposition(
         }.distinct()
 
     /** How the [member]th preset of [aspect] is steered — what [AgeGeneration] hands each territory. */
-    fun optionsFor(aspect: Aspect, member: Int): Options = options.of(aspect, member)
+    override fun optionsFor(aspect: Aspect, member: Int): Options = options.of(aspect, member)
 
     /** This composition with [aspect] filled by the preset called [key] instead. */
     fun withPreset(aspect: Aspect, key: String): AgeComposition = withPresets(aspect, listOf(key))

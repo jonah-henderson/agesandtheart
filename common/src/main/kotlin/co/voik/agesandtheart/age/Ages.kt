@@ -70,7 +70,7 @@ object Ages {
         if (id !in saved.ages) return
         val recipe = saved.recipe(id)
         val composition = recipe.composition ?: return
-        Atmosphere.settle(level, recipe.seed) { aspect -> composition.optionsFor(aspect, 0) }
+        Atmosphere.settle(level, recipe.seed, composition)
     }
 
     /** Mints a fresh, distinct Age id (`agesandtheart:age_<n>`) from the persistent counter. */
