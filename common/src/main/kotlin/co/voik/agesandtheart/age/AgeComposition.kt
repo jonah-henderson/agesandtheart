@@ -307,8 +307,8 @@ data class AgeComposition(
      * presets. A population is exactly that — an Age holds vanilla's whole table and the sentence adjusts
      * it — and so is an aspect that is nothing but its dials.
      *
-     * The one that divides is spelled apart, in [climateSpelling]: a fractured climate needs a form that
-     * says which territory each stretch belongs to, where an Age-wide answer needs no such thing.
+     * The one that divides is spelled apart, in [castSpelling]: a divided climate needs a form that says
+     * which territory each stretch belongs to, where an Age-wide answer needs no such thing.
      */
     private fun seatlessSpelling(): List<String> = Aspect.entries
         .filter { it.seatsNothing && !spellsEveryMember(it) }
@@ -318,13 +318,13 @@ data class AgeComposition(
      * Whether this aspect's spelling names each member in turn rather than saying one thing for all of
      * them.
      *
-     * **A population always does**, even at one: its entries *are* its roll, so a one-sun sky that spelled
-     * itself as a dial would come back with no sun at all. **A climate only does once divided**, since it
-     * always has exactly one territory until something fractures it, and `climate.temperature=…` reads
-     * better than a member with a bracket round it.
+     * **A cast always does**, even at one: its entries *are* its roll, so a one-sun sky that spelled itself
+     * as a dial would come back with no sun at all. **A spatial population only does once divided**, since
+     * it always has ground for one whatever the book said, and `climate.temperature=…` reads better than a
+     * member with a bracket round it.
      */
     private fun spellsEveryMember(aspect: Aspect): Boolean =
-        aspect.holds == Holds.POPULATION || (aspect.membersAreDescribed && membersIn(aspect) > 1)
+        aspect.membersAreDescribed && (!aspect.spatial || membersIn(aspect) > 1)
 
     /**
      * `sun=body,body[suncolour=red]` — a **cast**, one word per member.

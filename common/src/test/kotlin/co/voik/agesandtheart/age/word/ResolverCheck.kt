@@ -5,6 +5,7 @@ import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.AgeGeneration
+import co.voik.agesandtheart.worldgen.biome.ClimateAxis
 import co.voik.agesandtheart.age.AgeTemplate
 import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.age.aspect.Aspect
@@ -335,6 +336,41 @@ class ResolverCheck : FunSpec({
         }
         check(typeOf(litVoid) == AgeGeneration.AGE_DIMENSION_TYPE) {
             "a void with a sun in it is still ${typeOf(litVoid)}"
+        }
+    }
+
+    /**
+     * **Two climates asked for apart cost ink, not instability** (world model §2).
+     *
+     * A climate is a population now, so a clause closing on `climate` mints one of them — and two clauses
+     * are a writer asking for two regions, which is `and`'s rule arriving by another route: "keep both, and
+     * keep them apart". What is charged is a world that had to come apart to hold what *one* clause said,
+     * and both halves are here because the free one is worthless if the charged one went free with it.
+     */
+    test("a climate described twice divides for nothing, and one that argues pays") {
+        val asked = Resolver.resolve(
+            vocabulary,
+            read(listOf("age", "frozen", "climate", "scorching", "climate")),
+            SAMPLE_SEED,
+        )
+        check(asked.composition.membersIn(Aspect.CLIMATE) == 2) {
+            "two clauses made ${asked.composition.membersIn(Aspect.CLIMATE)} climates"
+        }
+        check(asked.instability.flaws.none { it.register == Register.FRACTURE }) {
+            "a division the writer asked for was charged: ${asked.instability.flaws}"
+        }
+        // Each region keeps only what its own clause said, which is what makes them two regions at all.
+        val temperatures = (0..<2).map { asked.composition.optionsFor(Aspect.CLIMATE, it).of(ClimateAxis.TEMPERATURE.parameter) }
+        check(temperatures.distinct().size == 2) { "both climates came out at $temperatures" }
+
+        // And one clause holding both words is a world coming apart to satisfy it, which is charged.
+        val argued = Resolver.resolve(
+            vocabulary,
+            read(listOf("age", "frozen", "scorching", "climate")),
+            SAMPLE_SEED,
+        )
+        check(argued.instability.flaws.any { it.register == Register.FRACTURE }) {
+            "'frozen scorching climate' fractured for free: ${argued.instability.flaws}"
         }
     }
 

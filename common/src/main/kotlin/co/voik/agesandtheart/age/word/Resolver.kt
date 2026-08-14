@@ -780,6 +780,12 @@ object Resolver {
         }
 
         fun agree(one: Constraint, other: Constraint): Boolean {
+            // **Two clauses about different members are never in tension**, whatever they demand: each
+            // describes its own individual, so they share no ground and cannot argue over it. Asked before
+            // `and`, which joins words inside a clause and so cannot span two.
+            val aboutDifferentMembers = one.mintedAs != null && other.mintedAs != null &&
+                one.mintedAs != other.mintedAs
+            if (aboutDifferentMembers) return false
             if (wereJoined(one, other)) return true
             val mine = boundsIn(one)
             val theirs = boundsIn(other)
@@ -815,7 +821,15 @@ object Resolver {
             }
         }
 
-        val groups = gathered(bounding, ::agree)
+        val gathered = gathered(bounding, ::agree)
+        /** Which member each group describes, or null for a group of words aimed at nothing in particular. */
+        fun memberOf(group: List<Constraint>): Int? = group.firstNotNullOfOrNull { it.mintedAs }
+        // **Written in the writer's order where every group is a member of its own.** Groups come out
+        // ordered by tier, which is nobody's intent; a clause's ranged axes have to land on the same member
+        // its ordinary parameters do, and those are written against `Constraint.mintedAs` by [steer].
+        val described = gathered.map(::memberOf)
+        val eachIsItsOwn = described.none { it == null } && described.distinct().size == gathered.size
+        val groups = if (eachIsItsOwn) gathered.sortedBy(::memberOf) else gathered
         /**
          * Each group settles to the climate its words *jointly* describe — **narrowing, unless `and` says
          * otherwise**.
@@ -893,7 +907,11 @@ object Resolver {
         val leading = groups.first().first()
         for (group in groups.drop(1)) {
             val contender = group.first()
-            if (wereJoined(contender, leading)) continue
+            // **A division the writer asked for costs nothing**, which is already `and`'s rule — "keep both,
+            // and keep them apart" — and a clause per member is the same statement made another way. What is
+            // charged is a world that had to come apart to hold what one clause said.
+            val askedForApart = eachIsItsOwn && memberOf(group) != memberOf(groups.first())
+            if (askedForApart || wereJoined(contender, leading)) continue
             flaws += flaw(
                 vocabulary,
                 Register.FRACTURE,

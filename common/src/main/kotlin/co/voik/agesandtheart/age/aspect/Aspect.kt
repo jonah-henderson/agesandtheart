@@ -102,7 +102,7 @@ enum class Aspect(
     STRUCTURES("structures", Holds.WEIGHTED_SET, open = true, madeOfSomething = true),
 
     /** The coordinates its biomes are looked up at — how hot it is, and how wet. */
-    CLIMATE("climate", spatial = true),
+    CLIMATE("climate", Holds.POPULATION, spatial = true),
 
     /** What the ground wears over whatever it is made of. */
     SURFACE("surface", madeOfSomething = true),
@@ -242,12 +242,11 @@ enum class Aspect(
      * Whether this aspect's members are **described into being** rather than drawn from a pool — so what a
      * composition stores for it *is* the roll, one entry per member (`the-world-model.md` §2).
      *
-     * A population is the obvious case: a sun exists because somebody wrote one. A **climate** is the same
-     * shape and was long treated as its own — it seats no preset and it divides, so its territories can
-     * only be the entries themselves, each holding a span per axis. Said as a question about shape rather
-     * than about which aspect this is, five branches asking `aspect == CLIMATE` stopped being needed.
+     * Exactly [Holds.POPULATION], which is what climate becoming one bought: it seats no preset and its
+     * territories can only be the entries themselves, each holding a span per axis, so it was already this
+     * shape while being spelled as a special case in five places.
      */
-    val membersAreDescribed: Boolean get() = holds == Holds.POPULATION || (spatial && seatsNothing)
+    val membersAreDescribed: Boolean get() = holds == Holds.POPULATION
 
     /**
      * The preset this aspect means by [key], or null where the key names nothing it can hold — the single
