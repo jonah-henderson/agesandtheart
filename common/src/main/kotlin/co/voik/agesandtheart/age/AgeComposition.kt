@@ -266,182 +266,24 @@ data class AgeComposition(
     }
 
     /**
-     * How a writer would have said it: `terrain=hills terrain.arrangement=grid sea=water …`.
+     * How a writer would have said it — `landmass=hills landmass.arrangement=grid sea=water …`.
      *
-     * Exactly the spelling [parse] reads, so `/age list` output pastes back into `/age compose` and the
-     * pair can be checked by round trip (`RecipeCheck`). Every aspect is named even at its default.
+     * The format itself is [CompositionSpelling], which owns both halves of it. This is here because a
+     * composition prints in a report and in `/age list`, and it cannot say which world it was written over:
+     * that is the recipe's, so only [CompositionSpelling.spell] writes the whole of what `/age compose`
+     * would take back.
      */
-    override fun toString(): String = presets.groupBy { it.aspect }.entries
-        .sortedBy { (aspect, _) -> aspect.ordinal }
-        .flatMap { (aspect, filling) ->
-            // Territories that agree are spelled once for the whole aspect; only differing ones pay for braces.
-            val aimed = options.allOf(aspect).size > 1
-            val written = filling.mapIndexed { index, preset ->
-                // A share is only spelled where it says something: an even division, and the largest share
-                // of an uneven one, are both left unsaid.
-                val share = spreads.of(aspect).shares.getOrNull(index)
-                val named =
-                    if (share == null || Share.isEven(share)) preset.key else "${preset.key}$SHARE_MARK$share"
-                if (aimed) named + steering(options.of(aspect, index)) else named
-            }
-            val slotWide = if (aimed) emptyList() else spelled(aspect, options.of(aspect))
-            listOf("${aspect.key}=${written.joinToString(",")}") + slotWide
-        }.plus(castSpelling()).plus(seatlessSpelling()).plus(seamSpelling())
-        .joinToString(" ")
-
-    /**
-     * `landmass.seam=rift` — the form drawn for each boundary the Age has one for.
-     *
-     * Spelled even where it was drawn rather than asked for, because a recipe records what an Age *is*: the
-     * draw is reproducible from the seed, but a spelling that left it out would read as "nothing was
-     * decided here" and could not tell a requested shear from an unremarked one.
-     */
-    private fun seamSpelling(): List<String> = Aspect.entries
-        .filter { it.spatial }
-        .mapNotNull { aspect ->
-            spreads.of(aspect).drawn?.let { "${aspect.key}.${Spread.SEAM}=${it.key}" }
-        }
-
-    /**
-     * The options of an aspect that seats no preset, which the loop above cannot reach because it walks
-     * presets. A population is exactly that — an Age holds vanilla's whole table and the sentence adjusts
-     * it — and so is an aspect that is nothing but its dials.
-     *
-     * The one that divides is spelled apart, in [castSpelling]: a divided climate needs a form that says
-     * which territory each stretch belongs to, where an Age-wide answer needs no such thing.
-     */
-    private fun seatlessSpelling(): List<String> = Aspect.entries
-        .filter { it.seatsNothing && !spellsEveryMember(it) }
-        .flatMap { aspect -> spelled(aspect, options.of(aspect)) }
-
-    /**
-     * Whether this aspect's spelling names each member in turn rather than saying one thing for all of
-     * them.
-     *
-     * **A cast always does**, even at one: its entries *are* its roll, so a one-sun sky that spelled itself
-     * as a dial would come back with no sun at all. **A spatial population only does once divided**, since
-     * it always has ground for one whatever the book said, and `climate.temperature=…` reads better than a
-     * member with a bracket round it.
-     */
-    private fun spellsEveryMember(aspect: Aspect): Boolean =
-        aspect.membersAreDescribed && (!aspect.spatial || membersIn(aspect) > 1)
-
-    /**
-     * `sun=body,body[suncolour=red]` — a **cast**, one word per member.
-     *
-     * A body has no name of its own, having been described into being rather than chosen, so [BODY] stands
-     * for one and the number of them is the roll. Spelled out rather than counted because the per-member
-     * steering has to hang on something, and this is the bracket idiom every territory already uses — which
-     * means [parse] reads it back with no new machinery.
-     *
-     * **Without this a cast did not survive the round trip at all**: nothing walks a population's members,
-     * so a three-sun Age wrote no `sun=` and rebuilt with the template's one.
-     */
-    private fun castSpelling(): List<String> = Aspect.entries
-        .filter { spellsEveryMember(it) && membersIn(it) > 0 }
-        .map { aspect ->
-            val bodies = (0..<membersIn(aspect)).joinToString(",") { member ->
-                BODY + steering(options.of(aspect, member))
-            }
-            "${aspect.key}=$bodies"
-        }
-
-    /** `terrain.arrangement=grid` — one token per parameter, for an aspect whose territories agree. */
-    private fun spelled(aspect: Aspect, chosen: Options): List<String> = chosen.chosen.entries.sortedBy { it.key }
-        // Comma-joined: several values on one parameter mingle (§3.2), where several presets divide.
-        .map { (parameter, options) -> "${aspect.key}.$parameter=${options.joinToString(",")}" }
-
-    /** `[stone=copper,arrangement=grid]` — written against the preset it steers, and empty where it says nothing. */
-    private fun steering(chosen: Options): String {
-        if (chosen.chosen.isEmpty()) return ""
-        val written = chosen.chosen.entries.sortedBy { it.key }
-            .joinToString(PARAMETER_MARK.toString()) { (parameter, options) ->
-                "$parameter=${options.joinToString(LIST_MARK.toString())}"
-            }
-        return "$STEER_OPEN$written$STEER_CLOSE"
-    }
+    override fun toString(): String = with(CompositionSpelling) { tokens().joinToString(" ") }
 
     companion object {
         /**
-         * A composition written out as `terrain=hills sea=water structures=vanilla` — the debug spelling
-         * of a sentence, and the shape `/age compose` takes.
+         * The composition [specification] describes, dropping whatever else it says.
          *
-         * Fails loudly on anything unrecognised, because this is a command and a typo here is a mistake.
-         * The pen proper must never behave this way (design §2): validation would make precision risk-free.
+         * Kept because twenty-odd callers want only this. `/age compose` reads
+         * [CompositionSpelling.read] instead, which also answers which world the Age was written over.
          */
-        fun parse(specification: String): Result<AgeComposition> = runCatching {
-            // A stand-in, so options may be read in any order relative to the presets they steer. Either
-            // the sentence names a terrain over the top of it, or it is rejected below for naming none.
-            var composition = AgeComposition(terrains = listOf(Terrain.SHAPES))
-            var namedALandform = false
-
-            for (token in specification.split(' ').filter(String::isNotBlank)) {
-                val (key, value) = token.split('=', limit = 2).takeIf { it.size == 2 }
-                    ?: error("'$token' is not `key=value`")
-                val aspect = Aspect.entries.firstOrNull { key.substringBefore('.') == it.key }
-                    ?: error("No aspect called '${key.substringBefore('.')}'. Slots: ${Aspect.entries.joinToString(" ") { it.key }}")
-
-                composition = if ('.' in key) {
-                    composition.withOptions(
-                        aspect,
-                        key.substringAfter('.'),
-                        outsideBrackets(value),
-                    )
-                } else {
-                    namedALandform = namedALandform || aspect == Aspect.TERRAIN
-                    // Commas are how a set-valued aspect is written: `terrain=hills,pillars`. An `@` after
-                    // a preset is how much ground it covers: `carvers=caves,porous@0.25`. Brackets after
-                    // that steer that territory alone: `terrain=spires[stone=copper],hills`.
-                    val filling = outsideBrackets(value)
-                    val named = filling.map { it.substringBefore(STEER_OPEN) }
-                    composition
-                        .withPresets(
-                            aspect,
-                            named.map { it.substringBefore(SHARE_MARK) },
-                            named.map { preset ->
-                                val share = preset.substringAfter(SHARE_MARK, missingDelimiterValue = "")
-                                if (share.isEmpty()) Share.EVEN else readShare(share)
-                            },
-                        )
-                        .steeredBy(aspect, filling)
-                }
-            }
-            require(namedALandform) { "An Age needs a terrain. Try `terrain=${Terrain.HILLS.key}`" }
-            // Vanilla's rock answers for the whole world or for none of it — the field tree and vanilla's
-            // router are either/or — so it cannot stand as one territory among several. Said here rather
-            // than left to the generator, which has no way to report it and used to throw instead.
-            val ourOwnRockBeside = composition.terrains.filter { it != Terrain.VANILLA }
-            val sharesTheWorld = Terrain.VANILLA in composition.terrains && ourOwnRockBeside.isNotEmpty()
-            require(!sharesTheWorld) {
-                "`${Aspect.TERRAIN.key}=${Terrain.VANILLA.key}` is the whole world's rock and cannot " +
-                    "divide it with ${ourOwnRockBeside.joinToString(" ") { it.key }}"
-            }
-            composition
-        }
-
-        /**
-         * The braced steering in `spires[stone=copper],hills[stone=andesite]`, applied to the territory
-         * each was written against. Loud about a malformed brace, like the rest of [parse].
-         */
-        private fun AgeComposition.steeredBy(aspect: Aspect, filling: List<String>): AgeComposition {
-            var steered = this
-            for ((member, written) in filling.withIndex()) {
-                if (STEER_OPEN !in written) continue
-                require(written.endsWith(STEER_CLOSE)) { "'$written' opens a $STEER_OPEN and never closes it" }
-                val inside = written.substringAfter(STEER_OPEN).dropLast(1)
-                for (setting in inside.split(PARAMETER_MARK).filter(String::isNotBlank)) {
-                    val (parameter, value) = setting.split('=', limit = 2).takeIf { it.size == 2 }
-                        ?: error("'$setting' is not `parameter=value`")
-                    steered = steered.withOptionsFor(
-                        aspect,
-                        member,
-                        parameter,
-                        outsideBrackets(value),
-                    )
-                }
-            }
-            return steered
-        }
+        fun parse(specification: String): Result<AgeComposition> =
+            CompositionSpelling.read(specification).map { it.composition }
 
         val MAP_CODEC: MapCodec<AgeComposition> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -513,91 +355,8 @@ data class AspectOptions(private val bySlot: Map<Aspect, List<Options>> = emptyM
  * read as the preset `minecraft` covering an `air` share. Only ever a command spelling — shares persist
  * as their own codec field.
  */
-/**
- * What one described member is called in a recipe, having no name of its own — a sun, or one territory of
- * a divided climate. See `castSpelling`; `parse` reads the count and never the token, so a recipe written
- * with any other word still loads.
- */
-private const val BODY = "member"
-
-/** What a spatial aspect always has, however little the sentence said — see [AgeComposition.membersIn]. */
+/** A spatial population always has ground for one member, whatever the book said — see [AgeComposition.membersIn]. */
 private const val AT_LEAST_ONE = 1
-
-private const val SHARE_MARK = '@'
-
-/**
- * How one territory's own steering is written: `terrain=spires[stone=copper],hills[stone=andesite]`.
- *
- * **Square brackets and commas, which is Minecraft's own idiom** for data hung on a named thing —
- * `oak_stairs[facing=north,half=top]` reads exactly this way — so a pack author brings the punctuation
- * with them. It costs a comma that has to know its depth, which [outsideBrackets] answers.
- *
- * Only ever a command spelling; options persist as their own codec field.
- */
-private const val STEER_OPEN = '['
-private const val STEER_CLOSE = ']'
-
-/** What separates one territory from the next, and one value of a parameter from the next. */
-private const val LIST_MARK = ','
-
-/**
- * Parameters within one territory's brackets: `[stone=copper,tuff;mingling=0.9]`.
- *
- * **Not [LIST_MARK], which is what separates a parameter's own values.** `[stone=copper,tuff]` is one
- * parameter holding two stones and was read as two parameters, the second of which is not `name=value` —
- * so the documented spelling for mingled materials could not be read back. The bug predates the climate
- * moving in here and was reachable the moment anything spelled two values inside a bracket.
- */
-private const val PARAMETER_MARK = ';'
-
-/**
- * [written] split on the commas that are **not inside brackets** — the one thing sharing a separator costs.
- *
- * `terrain=spires[stone=copper,tuff],hills` is two territories rather than three: the comma between the
- * stones belongs to the steering it sits inside.
- */
-private fun outsideBrackets(written: String): List<String> {
-    val parts = mutableListOf<String>()
-    val part = StringBuilder()
-    var depth = 0
-    for (character in written) {
-        when {
-            character == STEER_OPEN -> depth++
-            character == STEER_CLOSE -> depth--
-            character == LIST_MARK && depth == 0 -> {
-                parts += part.toString()
-                part.clear()
-                continue
-            }
-        }
-        part.append(character)
-    }
-    parts += part.toString()
-    return parts.filter(String::isNotBlank)
-}
-
-/** The share written as [spelled], loud about a thing that is not one for the same reason [named] is. */
-private fun readShare(spelled: String): Double = Share.read(spelled)
-    ?: error("'$spelled' is not a share. A share is how much ground a preset covers, ${Share.EVEN} being all of it")
-
-/**
- * The preset [aspect] calls [key], or a failure saying what it could have been. Loud rather than lenient,
- * like [AgeComposition.Companion.parse]. An open aspect has no list to offer, so it says what shape it
- * wanted instead (design §3.1).
- */
-private inline fun <reified T : AspectPreset> named(aspect: Aspect, key: String): T {
-    val preset = aspect.presetFor(key)
-        ?: error(
-            if (aspect.open) {
-                "'$key' is no ${aspect.key}. An open aspect takes a `namespace:path` id, like `minecraft:water`"
-            } else {
-                "No ${aspect.key} called '$key'. Try: ${aspect.authored.joinToString(" ") { it.key }}"
-            },
-        )
-    // Cannot happen unless `presetFor` and this call site disagree about the aspect's own type, which the
-    // exhaustive `when` in `withSingle` prevents.
-    return preset as? T ?: error("The ${aspect.key} aspect answered '$key' with a ${preset::class.simpleName}")
-}
 
 /**
  * A set-valued aspect's codec: reads a list, and also a bare single value. Writes a bare value back when

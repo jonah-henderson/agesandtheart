@@ -70,6 +70,9 @@ data class AgeRecipe(
 
     override fun toString(): String = buildString {
         if (words.isNotEmpty()) append("\"${words.joinToString(" ")}\" → ")
+        // The template is the one part of an Age the composition cannot say, so `/age list` says it here
+        // — and in the spelling `/age compose` reads back. Silence already means the overworld.
+        if (template != AgeTemplate.ORDINARY) append("template=${template.key} ")
         append("$world seed=$seed")
         if (!instability.isCoherent) append(" [${instability.index}]")
     }
@@ -125,8 +128,18 @@ data class AgeRecipe(
             AgeRecipe(worldFor(preset), seedFor(id))
 
         /** A fresh recipe, with its character drawn from [seed] and the world [server] is running. */
-        fun written(server: MinecraftServer, world: AgeWorld, seed: Long): AgeRecipe =
-            AgeRecipe(seamed(world, seed), seed, AgeCharacter.drawn(server, seed), writtenAt = server.overworld().gameTime)
+        fun written(
+            server: MinecraftServer,
+            world: AgeWorld,
+            seed: Long,
+            template: AgeTemplate = AgeTemplate.ORDINARY,
+        ): AgeRecipe = AgeRecipe(
+            seamed(world, seed),
+            seed,
+            AgeCharacter.drawn(server, seed),
+            writtenAt = server.overworld().gameTime,
+            template = template,
+        )
 
         /** A fresh recipe for an Age somebody wrote: the resolved composition, plus words and instability. */
         fun written(server: MinecraftServer, resolution: Resolution, seed: Long): AgeRecipe = AgeRecipe(

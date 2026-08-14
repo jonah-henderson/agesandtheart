@@ -909,21 +909,26 @@ object AgeCommand {
     /** `/age compose <name> [<seed>] <spec>` — writes an Age out of aspects instead of naming a preset. */
     private fun runCompose(context: CommandContext<CommandSourceStack>, seed: Long?): Int {
         val specification = StringArgumentType.getString(context, SPECIFICATION_ARGUMENT)
-        val composition = AgeComposition.parse(specification).getOrElse { problem ->
+        val written = CompositionSpelling.read(specification).getOrElse { problem ->
             context.source.sendFailure(Component.literal(problem.message ?: "Could not read '$specification'"))
             return FAILURE
         }
-        return write(context, AgeWorld.Composed(composition), seed)
+        return write(context, AgeWorld.Composed(written.composition), seed, written.template)
     }
 
     /** Writes an Age down and opens it — the tail `create` and `compose` share. */
-    private fun write(context: CommandContext<CommandSourceStack>, world: AgeWorld, seed: Long?): Int {
+    private fun write(
+        context: CommandContext<CommandSourceStack>,
+        world: AgeWorld,
+        seed: Long?,
+        template: AgeTemplate = AgeTemplate.ORDINARY,
+    ): Int {
         val source = context.source
         val report = Report.prose(source)
         val name = StringArgumentType.getString(context, NAME_ARGUMENT)
         val id = ageId(name)
         if (!canWrite(source, name, id, report)) return FAILURE
-        val recipe = AgeRecipe.written(source.server, world, seed ?: AgeRecipe.seedFor(id))
+        val recipe = AgeRecipe.written(source.server, world, seed ?: AgeRecipe.seedFor(id), template)
         return open(source, name, id, recipe, report)
     }
 
