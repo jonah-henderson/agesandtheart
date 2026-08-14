@@ -46,6 +46,7 @@ import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Spawns
+import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.Surface
@@ -80,20 +81,18 @@ object AgeGeneration {
      * One preset per aspect, each answering for its own part of the world — and where an aspect holds
      * several, the territories they divide it into.
      *
-     * The field, the surface rule and the biome source all read [AgeCharacter.mapFor], so their seams agree
-     * to the column; three maps drawn independently would read as three faults rather than one edge.
+     * The field, the surface rule and the biome source all read the *terrain's* [Spread], so their seams
+     * agree to the column; three maps drawn independently would read as three faults rather than one edge.
      */
     private fun assemble(server: MinecraftServer, composition: AgeComposition, recipe: AgeRecipe): ChunkGenerator {
         val seed = recipe.seed
         // Per territory, not per aspect — see [AspectOptions].
         fun terrainOptions(member: Int) = composition.optionsFor(Aspect.TERRAIN, member)
 
-        // A pinned seam replaces the drawn one in the character itself, so `mapFor` stays a question about
-        // the character alone. The pin has to reach the map, not only the shape, because the fuzzed form is
-        // a blend width where the other two are displacements (see [Seam]).
-        val character = recipe.character.copy(
-            seam = composition.terrains.first().seamIn(terrainOptions(0), recipe.character.seam),
-        )
+        // How each divided aspect is laid out: its members' ground and the form of the boundary between
+        // them, which is one object because a blend width moves the boundary line itself (see [Spread]).
+        val character = recipe.character
+        val landmass = composition.spreadOf(Aspect.TERRAIN)
 
         // What this Age's instability bought, as a fraction of everything tearing could be (design §5.0).
         // Derived rather than stored: a pure function of the recipe, so it comes out the same on every open.
@@ -116,7 +115,7 @@ object AgeGeneration {
         // biome is grounded in one, and the generator hands `fillFromNoise` and its companions to the base
         // class. Either/or by construction — naming any landform of ours replaces `Terrain.VANILLA`.
         val rockIsVanillas = composition.terrains.singleOrNull() == Terrain.VANILLA
-        val ground = character.mapFor(Aspect.TERRAIN, composition.sharesOf(Aspect.TERRAIN), seed, torn)
+        val ground = character.mapFor(Aspect.TERRAIN, landmass, seed, torn)
         val grounds = if (rockIsVanillas) emptyList() else composition.terrains.mapIndexed { member, terrain ->
             terrain.ground(terrainOptions(member), window, saltFor(seed, member))
         }
@@ -127,10 +126,10 @@ object AgeGeneration {
         val weathered = if (rockIsVanillas) NO_ROCK_OF_OURS else Regions.of(grounds.map { it.shape }, ground)
 
         // The fault comes last, over the finished rock — see [Fault].
-        val shape = if (rockIsVanillas) weathered else faulted(weathered, character.seam, ground, seed, torn)
+        val shape = if (rockIsVanillas) weathered else faulted(weathered, landmass.seam, ground, seed, torn)
         // Everywhere the sea is kept out of: the chasm a rift opened, and any underground that answers
         // "never wet" rather than to a water table — see [Terrain.Ground].
-        val riftCut = riftVolume(character.seam, ground, torn)
+        val riftCut = riftVolume(landmass.seam, ground, torn)
         val chasm = keptDry(riftCut, grounds, ground)
         // And the rock the underground was taken out of — **handed to the generator rather than to the
         // sea**. A flat waterline fills any empty space beneath it, so a shape-cut cave or hall comes out
@@ -138,8 +137,8 @@ object AgeGeneration {
         // other. What that space wants is the same three-way `WaterTable` a carved cave already meets.
         val hollows = openedBy(hollowedRock(grounds, ground), riftCut)
 
-        val standing = carriedWater(composition, character, ground, seed, torn)
-        val flow = character.mapFor(Aspect.SEA, composition.sharesOf(Aspect.SEA), seed)
+        val standing = carriedWater(composition, landmass.seam, ground, seed, torn)
+        val flow = character.mapFor(Aspect.SEA, composition.spreadOf(Aspect.SEA), seed)
         val seaFill = Sea.pour(
             composition.seas,
             waterlineOf(composition, seed),
@@ -160,14 +159,14 @@ object AgeGeneration {
             // The first territory's, like `Sea.DEPTH`: the mingling noise is one field over the whole Age.
             composition.terrains.first().mingling(terrainOptions(0), seed),
         )
-        val below = character.mapFor(Aspect.CARVERS, composition.sharesOf(Aspect.CARVERS), seed)
+        val below = character.mapFor(Aspect.CARVERS, composition.spreadOf(Aspect.CARVERS), seed)
         // Climate divides on a map of its own: which climate a column has is a different question from what
         // paints it. One climate needs no map and gets `whole` (see [RegionalClimate]).
         // Read straight off the composition: a climate's answer *is* its spans, so there is nothing to
         // derive from options any more (see [AgeComposition.climates]).
         val climate = RegionalClimate(
             composition.climates,
-            character.mapFor(Aspect.CLIMATE, composition.sharesOf(Aspect.CLIMATE), seed),
+            character.mapFor(Aspect.CLIMATE, composition.spreadOf(Aspect.CLIMATE), seed),
         )
         // One biome source for the whole Age, and no region map: one climate table spans the world however
         // many terrains carve it up (design §3.1).
@@ -222,7 +221,7 @@ object AgeGeneration {
             // What is placed, which vanilla's own decoration hook takes it — see [Features] for the seam.
             Features.placedIn(server, composition.optionsFor(Aspect.FEATURES, 0), seed, fill.blocks.flatten()),
             // What lives here, narrowing what vanilla resolves per biome and per structure.
-            Spawns.livingIn(composition.optionsFor(Aspect.SPAWNS, 0)),
+            Spawns.livingIn(composition.optionsFor(Aspect.SPAWNS, 0), Vocabulary.of(server).spawning),
             woundsPerChunk = wounds,
             blightPerDay = blight,
             collapseTears = collapse,
@@ -278,13 +277,6 @@ object AgeGeneration {
     }
 
     /**
-     * [rock] with this Age's [seam] made visible along the terrain's own boundaries — a cliff, a chasm, or
-     * nothing, since the fuzzed form is a blend width and acts on the map instead (design §3.4).
-     *
-     * Only the terrain's seams: a displacement needs rock to displace, so an Age divided in its sea or its
-     * climate alone has no scarp to throw however its character drew.
-     */
-    /**
      * The water an Age's terrains carry themselves, divided on the terrain's own map — so a territory
      * whose shape has no water of its own contributes none, rather than the whole Age being wet wherever
      * one of them has a river.
@@ -294,7 +286,7 @@ object AgeGeneration {
      */
     private fun carriedWater(
         composition: AgeComposition,
-        character: AgeCharacter,
+        seam: Seam,
         ground: RegionMap,
         seed: Long,
         torn: Double,
@@ -306,14 +298,20 @@ object AgeGeneration {
         val divided = Regions.of(carried.map { it ?: Union(emptyList()) }, ground)
         // Exhaustive rather than a test for one form, so a new [Seam] breaks the build here instead of
         // silently taking the wrong branch.
-        return when (character.seam) {
-            Seam.SCARP -> faulted(divided, character.seam, ground, seed, torn)
+        return when (seam) {
+            Seam.SCARP -> faulted(divided, seam, ground, seed, torn)
             Seam.SHEARED, Seam.FUZZED, Seam.RIFT, Seam.WALL -> divided
         }
     }
 
     /**
-     * The seam made, at whatever magnitude the Age's instability bought (design §5.0).
+     * [rock] with the terrain's own [seam] made visible along its boundaries — a cliff, a chasm, a wall, or
+     * nothing, since the fuzzed form is a blend width and acted on the map instead (design §3.4).
+     *
+     * **Only the terrain's**, and the population it belongs to is why: a displacement needs rock of its
+     * own to displace, so a sea or a climate is never drawn one (see [Seam.drawnFor]).
+     *
+     * The magnitude is whatever the Age's instability bought (design §5.0).
      *
      * [torn] is 0 for a coherent Age and 1 for one that spent everything it could on tearing, and each
      * form reads it in the units it has: a scarp throws further, a rift cuts deeper, a wall stands higher.
@@ -381,7 +379,7 @@ object AgeGeneration {
     private fun waterlineOf(composition: AgeComposition, seed: Long): Int? {
         val claimed = composition.terrains.map { it.waterline }
         if (claimed.size == 1) return claimed.first()
-        val shares = composition.sharesOf(Aspect.TERRAIN)
+        val shares = composition.spreadOf(Aspect.TERRAIN).shares
         val widest = shares.max()
         val contenders = claimed.indices.filter { shares[it] == widest }
         return claimed[contenders[XoroshiroRandomSource(seed xor WATERLINE_SALT).nextInt(contenders.size)]]

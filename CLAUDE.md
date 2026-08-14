@@ -21,6 +21,9 @@ correct itself in place. Rewrite the paragraph that is now wrong.
   §8 (learning); **§3 and §4 are superseded** by the world model above.
 - **`notes/the-art-implementation-plan.md`** — the phases and what each has to prove. Phases 1–4.5 are
   done and are a status line each; Phase 4's remainder and Phases 5–8 carry their full context.
+- **`notes/the-tag-layer.md`** — the thirty-nine tags, where each is derived from, and why three separate
+  things are called rarity. The implementation of the world model's §7, and **not built**. Read it before
+  touching `art/preset_tags/`, adding a tag, or authoring a word that queries one.
 - **`notes/terrain-architecture.md`** — the two-tier terrain system (composable field toolkit + bespoke
   presets): the evaluation contract, where things live, the performance budget. Built and shipped.
 - **`notes/decisions.md`** — the compact ledger of settled decisions and hard-won learnings, one line each

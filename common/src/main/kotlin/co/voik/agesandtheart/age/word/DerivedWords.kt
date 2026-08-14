@@ -18,6 +18,7 @@ import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
 import net.minecraft.tags.TagKey
 import net.minecraft.world.entity.EntityType
+import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.levelgen.placement.PlacedFeature
@@ -126,10 +127,24 @@ object DerivedWords {
      * Built-in like [materials] rather than datapack content, so this needs no server — but it is derived
      * beside the others because a corpus is loaded once.
      */
-    fun spawns(): List<Word> = BuiltInRegistries.ENTITY_TYPE.listElements()
+    fun spawns(writable: Set<Identifier> = emptySet()): List<Word> = BuiltInRegistries.ENTITY_TYPE.listElements()
         .filter { holder -> !holder.`is`(FORBIDDEN_SPAWNS) }
+        .filter { holder -> livesSomewhere(holder.value()) || holder.key().identifier() in writable }
         .map { holder -> setting(holder.key().identifier(), Aspect.SPAWNS, Spawns.LIVES) }
         .toList()
+
+    /**
+     * Whether this is a creature a world could grow, as opposed to an arrow, a boat or an item frame.
+     *
+     * **`MobCategory.MISC` is vanilla's own answer** — the natural spawner runs every category but that
+     * one — so seventy-two of the hundred and fifty-seven entity types could never arrive however they
+     * were written, and each was a page a writer could find, learn and spend for nothing.
+     *
+     * **Save the few `art/spawning.json` names**, which is how the golems became writable: they are misc
+     * because they are built rather than born, and the file that says how a creature arrives is the same
+     * file that says one may be asked for at all. Adding another is a line of data.
+     */
+    private fun livesSomewhere(type: EntityType<*>): Boolean = type.category != MobCategory.MISC
 
     private val FORBIDDEN_STRUCTURE_SETS: TagKey<StructureSet> = TagKey.create(Registries.STRUCTURE_SET, FORBIDDEN)
 

@@ -1,10 +1,13 @@
 package co.voik.agesandtheart.age.aspect
 
+import co.voik.agesandtheart.mixin.SpawnerDataMixin
+import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.Identifier
 import net.minecraft.util.random.Weighted
 import net.minecraft.util.random.WeightedList
 import net.minecraft.world.entity.EntityType
+import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.level.biome.MobSpawnSettings
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.roundToInt
@@ -53,32 +56,46 @@ object Spawns {
      * already made of — and it is what `in <biome>` (§4.3.1) will compare against when a sentence can
      * scope a claim to one.
      */
-    fun livingIn(options: Options): (Identifier?, WeightedList<MobSpawnSettings.SpawnerData>) ->
-    WeightedList<MobSpawnSettings.SpawnerData> {
+    fun livingIn(options: Options, spawning: Spawning = Spawning()): Living {
         val claims = options.claimsOn(LIVES)
         if (Skew.of(claims).isSilent && claims.none { it.confinedTo != null }) {
-            return { _, offered -> offered }
+            return Living { _, _, _, _, offered -> offered }
         }
         // **Asked per biome, because a claim may be confined to one** (§4.3.1). Remembered for the same
         // reason the feature settings are: the answer is the same every time and the question is asked
         // once per spawn attempt.
         val here = ConcurrentHashMap<Identifier, Skew>()
-        return { biome, offered ->
+        return Living { biome, category, skyIsOpen, at, offered ->
             val asked = biome?.let { here.computeIfAbsent(it) { where -> Skew.of(claims, where) } }
                 ?: Skew.of(claims)
-            narrowed(offered, asked)
+            val kept = narrowed(offered, asked)
+            added(kept, asked, category, skyIsOpen, at, spawning)
         }
+    }
+
+    /**
+     * This Age's answer for one biome's list at one place: which biome, which spawn pass, and whether the
+     * sky is open where the attempt is being made.
+     *
+     * A named interface rather than a function type because it grew a third argument and a `(Identifier?,
+     * MobCategory, Boolean, WeightedList) -> WeightedList` at a call site says nothing about any of them.
+     */
+    fun interface Living {
+        fun at(
+            biome: Identifier?,
+            category: MobCategory,
+            skyIsOpen: Boolean,
+            at: BlockPos,
+            offered: WeightedList<MobSpawnSettings.SpawnerData>,
+        ): WeightedList<MobSpawnSettings.SpawnerData>
     }
 
     /**
      * One weighted list with the sentence applied: struck creatures dropped, named ones weighted by the
      * rung they were asked at, and everything unnamed dropped where the writer said `only` or [NOTHING].
      *
-     * **A creature the sentence asked for is not added to a list that lacks it.** Where a thing spawns is
-     * a fact about the biome — a squid wants water and a strider wants lava — so asking for one in a
-     * biome that has no place for it would put it somewhere it cannot live. Naming it strengthens it
-     * wherever it already belongs; a biome the Age does not have is a biome the sentence should have asked
-     * for (§3.3 charges the word rather than inventing a home for it).
+     * Adding what the list *lacks* is [added]'s, and the two are deliberately apart: this one can only ever
+     * take away or reweight.
      */
     private fun narrowed(
         offered: WeightedList<MobSpawnSettings.SpawnerData>,
@@ -98,6 +115,90 @@ object Spawns {
             if (asked == null || Rung.isOrdinary(asked)) entry else Weighted(entry.value(), howOften(entry, asked))
         }
         return WeightedList.of(kept)
+    }
+
+    /**
+     * **A creature the sentence asked for and the world never offered, added** — the same operation as
+     * skewing one that was there, from zero.
+     *
+     * The design always said so: naming a member of a weighted set skews it (world model §6), and a member
+     * the template weights at nothing is still a member. Only the implementation could not say it, because
+     * it walked what a biome offered and nothing else.
+     *
+     * **This is safe because a biome's list is a menu and not a promise.** Every attempt vanilla makes goes
+     * through `SpawnPlacements.isSpawnPositionOk` and `checkSpawnRules`, so a cod named into a desert is
+     * refused at the position and never appears — the older reading, that adding one would put it somewhere
+     * it cannot live, had the gate in the wrong place.
+     *
+     * Two rules of our own, for the two things vanilla cannot answer:
+     *
+     * - **A creature arrives in the pass its own category names**, so a monster is tried under the monster
+     *   rules and against the monster cap. The ones vanilla files as `MISC` — the golems, which are built
+     *   rather than born — arrive as creatures, which is what they behave like and the only pass that would
+     *   ever try them.
+     * - **A creature vanilla never spawns has no placement rules at all**, so `NO_RESTRICTIONS` would try a
+     *   dragon inside a mountain. Those declare [Arrival.needsOpenSky] and are offered nowhere else.
+     */
+    private fun added(
+        kept: WeightedList<MobSpawnSettings.SpawnerData>,
+        asked: Skew,
+        category: MobCategory,
+        skyIsOpen: Boolean,
+        at: BlockPos,
+        spawning: Spawning,
+    ): WeightedList<MobSpawnSettings.SpawnerData> {
+        val already = kept.unwrap().map { idOf(it.value().type()) }.toSet()
+        val arriving = asked.wanted
+            .filterNot { it.value == NOTHING }
+            .mapNotNull { claim -> Identifier.tryParse(claim.value)?.let { it to claim.density } }
+            .filterNot { (id, _) -> id in already }
+            .mapNotNull { (id, density) ->
+                // **Asked whether it is there before asking what it is.** The entity registry is a
+                // *defaulted* one, so an id it has never heard of comes back as `minecraft:pig` rather
+                // than as nothing — and the parameter's own `unchanged` placeholder is such an id, which
+                // is how writing a golem quietly put a pig in the world.
+                if (!BuiltInRegistries.ENTITY_TYPE.containsKey(id)) return@mapNotNull null
+                val type = BuiltInRegistries.ENTITY_TYPE.getOptional(id).orElse(null)
+                    ?: return@mapNotNull null
+                val arrival = spawning.of(id)
+                if (spawnPassFor(type) != category) return@mapNotNull null
+                if (arrival.needsOpenSky && !skyIsOpen) return@mapNotNull null
+                if (!arrival.mayBeTriedAt(at.x, at.z)) return@mapNotNull null
+                val entry = carrying(type, arrival) ?: return@mapNotNull null
+                Weighted(entry, (arrival.weight * density).roundToInt().coerceIn(1, MOST_OFTEN))
+            }
+        if (arriving.isEmpty()) return kept
+        return WeightedList.of(kept.unwrap() + arriving)
+    }
+
+    /**
+     * Which spawn pass a creature arrives in. Its own category, because vanilla runs a pass per category
+     * and a monster offered to the creature pass would be tried under the creature's rules, in daylight
+     * and against the wrong cap.
+     *
+     * **The built ones arrive as creatures.** `MISC` is not a pass — `NaturalSpawner` runs every category
+     * but that one — so a golem offered under its own would never be tried at all. What it behaves like is
+     * a creature, and the creature pass is the only one that would ever have it.
+     */
+    private fun spawnPassFor(type: EntityType<*>): MobCategory =
+        if (type.category == MobCategory.MISC) MobCategory.CREATURE else type.category
+
+    /**
+     * An entry that really spawns [type], **including the ones vanilla refuses to carry**.
+     *
+     * `SpawnerData`'s constructor swaps a `MISC` entity for a pig, so a golem written into a world would
+     * arrive as pork. The guard is right for every other caller — a datapack tripping it is a mistake —
+     * and wrong here, where the Age's own words asked for the thing by name. So the entry is built the
+     * ordinary way and the type is put back, which is the whole of what `SpawnerDataMixin` exists for.
+     */
+    private fun carrying(type: EntityType<*>, arrival: Arrival): MobSpawnSettings.SpawnerData? {
+        val entry = MobSpawnSettings.SpawnerData(type, arrival.least, arrival.most)
+        if (entry.type() == type) return entry
+        (entry as? SpawnerDataMixin)?.`agesandtheart$setType`(type)
+        // **Dropped rather than offered as whatever vanilla substituted.** Where the mixin is not applied
+        // — an offline corpus, a check, a launch without our transformer — the entry is still a pig, and a
+        // pig nobody asked for is worse than a golem nobody gets.
+        return entry.takeIf { it.type() == type }
     }
 
     /** A weight scaled by the rung, never to nothing: an entry at zero would never be drawn at all. */

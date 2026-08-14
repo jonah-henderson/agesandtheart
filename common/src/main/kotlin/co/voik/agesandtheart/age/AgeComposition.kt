@@ -27,47 +27,52 @@ import net.minecraft.util.StringRepresentable
  * that must think about it rather than a silently absent key.
  */
 data class AgeComposition(
-    /** The shapes of the rock. Plural — terrain is positional (design §3.4). Never empty. */
+    /** The shapes of the rock. Plural — terrain is spatial (world model §2). Never empty. */
     val terrains: List<Terrain>,
-    /** What fills the space the shapes leave. Positional, so a sea may be two substances at once. */
+    /** What fills the space the shapes leave. Spatial, so a sea may be two substances at once. */
     val seas: List<Sea> = listOf(Sea.NONE),
-    /** What has been cut back out of the rock, and where water stands in it. Positional too. */
+    /** What has been cut back out of the rock, and where water stands in it. Spatial too. */
     val carvers: List<Carvers> = listOf(Carvers.SOLID),
     /** Which biomes it grows. Singular — one climate table spans the world however many terrains carve it. */
     val sky: Sky = Sky.PLAIN,
+    val options: AspectOptions = AspectOptions(),
+    /**
+     * How each spatial population is laid across the map — the ground its members cover and the boundary
+     * between them (`the-world-model.md` §2).
+     *
+     * Beside the members rather than inside them, because the same hills are dominant in one Age and
+     * scattered in another, and because a seam belongs to the boundary rather than to either side of it.
+     */
+    val spreads: Spreads = Spreads(),
+) {
     /**
      * The coordinates its biomes are looked up at, one per territory. Never empty.
      *
-     * **The spans themselves, not a preset naming them.** Climate is the aspect with nothing to choose
-     * between, so its answer *is* where its dials were left — and this list is also what says how many
-     * climate territories there are, which used to be inferred by counting a preset the composition always
-     * had exactly one of.
+     * **Read off the options rather than stored beside them**, because a climate territory *is* its
+     * options: a span per axis, which is what an option already is. Storing them apart made climate the
+     * one aspect the composition had to ask about by name, in five places — see
+     * [Aspect.membersAreDescribed].
      */
-    val climates: List<ClimateBias> = listOf(ClimateBias.NONE),
-    val options: AspectOptions = AspectOptions(),
-    /**
-     * How much ground each preset of a set-valued aspect covers. Beside the presets rather than inside
-     * them, because the same hills are dominant in one Age and scattered in another. Empty means even.
-     */
-    val shares: SlotShares = SlotShares(),
-) {
-    /** The share each of [aspect]'s presets covers, one per preset — never a shorter list. */
-    fun sharesOf(aspect: Aspect): List<Double> {
-        val filling = membersIn(aspect)
-        val written = shares.of(aspect)
-        return List(filling) { member -> written.getOrElse(member) { Share.EVEN } }
-    }
+    val climates: List<ClimateBias>
+        get() = List(membersIn(Aspect.CLIMATE)) { ClimateBias.of(options.of(Aspect.CLIMATE, it)) }
+
+    /** How [aspect]'s members are laid out, with one share each — never a shorter list. */
+    fun spreadOf(aspect: Aspect): Spread = spreads.of(aspect).over(membersIn(aspect))
 
     /**
      * How many territories [aspect] divides into. Presets answer for themselves; an aspect whose answer is
      * a set of dials counts its own values, there being no preset to count.
      */
-    fun membersIn(aspect: Aspect): Int = when {
-        aspect == Aspect.CLIMATE -> climates.size
-        // A cast has no presets to count: its members are the ones the book described, so its stored
-        // options are the roll.
-        aspect.holds == Holds.POPULATION -> options.allOf(aspect).size
-        else -> presets.count { it.aspect == aspect }
+    fun membersIn(aspect: Aspect): Int {
+        // A described member has no preset to count: its entries *are* the roll — see
+        // [Aspect.membersAreDescribed], which covers a cast of suns and a divided climate alike.
+        if (!aspect.membersAreDescribed) return presets.count { it.aspect == aspect }
+        val described = options.allOf(aspect).size
+        // **A spatial one always has ground to be somewhere.** An Age nobody said anything about the
+        // climate of has one climate; an Age nobody described a sun for has none. Which is the whole of
+        // the difference between the two kinds of described member, and it is what tells a climate that
+        // could still fracture from one that already has.
+        return if (aspect.spatial) maxOf(described, AT_LEAST_ONE) else described
     }
 
     /** Every preset this composition names, in aspect order — for listing, costing and diagnosis. */
@@ -111,16 +116,32 @@ data class AgeComposition(
             Aspect.TERRAIN -> copy(terrains = keys.map { named<Terrain>(aspect, it) })
             Aspect.SEA -> copy(seas = keys.map { named<Sea>(aspect, it) })
             Aspect.CARVERS -> copy(carvers = keys.map { named<Carvers>(aspect, it) })
-            // Climate names no presets, so a key list can only mean "give it this many territories".
-            Aspect.CLIMATE -> copy(climates = List(keys.size.coerceAtLeast(1)) { ClimateBias.NONE })
-            // Nor does a cast, and its key list is its roll — one `body` per member.
-            else -> when (aspect.holds) {
-                Holds.POPULATION -> withCastOf(aspect, keys.size)
-                else -> withSingle(aspect, keys.last())
-            }
+            // A described member names no preset, so a key list can only mean "give it this many" — one
+            // `body` per sun, one territory per climate.
+            else -> if (aspect.membersAreDescribed) withCastOf(aspect, keys.size) else withSingle(aspect, keys.last())
         }
-        return filled.copy(shares = filled.shares.with(aspect, shares))
+        return filled.copy(spreads = filled.spreads.withShares(aspect, shares))
     }
+
+    /**
+     * This composition with a form drawn for every boundary that has one and was not asked for a form
+     * outright — the last thing decided about an Age before its recipe is written down.
+     *
+     * A population of one has no boundary, so nothing is drawn for it: `landmass.seam=rift` on an
+     * undivided Age is kept and shows nothing, which is what a rift with nothing to cut between is.
+     *
+     * A pure function of the seed, so the same recipe rewritten at the same seed draws the same geology —
+     * which is what lets `/age list`'s spelling be pasted back into `/age compose`.
+     */
+    fun seamed(seed: Long): AgeComposition =
+        Aspect.entries.filter { it.spatial }.fold(this) { held, aspect ->
+            val spread = held.spreads.of(aspect)
+            val nothingToDrawItBetween = held.membersIn(aspect) <= 1
+            if (spread.drawn != null || nothingToDrawItBetween) held
+            else held.copy(
+                spreads = held.spreads.withSeam(aspect, Seam.drawnFor(aspect, Seam.sourceFor(aspect, seed))),
+            )
+        }
 
     private fun withSingle(aspect: Aspect, key: String): AgeComposition = when (aspect) {
         Aspect.TERRAIN -> copy(terrains = listOf(named<Terrain>(aspect, key)))
@@ -130,31 +151,14 @@ data class AgeComposition(
         // None of these seats anything: a biome and a structure set are weighed, and a climate and a
         // surface are where their dials were left.
         Aspect.BIOMES, Aspect.STRUCTURES, Aspect.SURFACE, Aspect.FEATURES, Aspect.SPAWNS,
-        Aspect.PHENOMENA, Aspect.AIR, Aspect.WATERS, Aspect.WEATHER,
+        Aspect.PHENOMENA, Aspect.AIR, Aspect.WATERS, Aspect.WEATHER, Aspect.CLIMATE,
         Aspect.SUN, Aspect.MOON, Aspect.STARS,
         -> this
-        Aspect.CLIMATE -> copy(climates = listOf(ClimateBias.NONE))
-    }
-
-    /** This composition with [aspect]'s climate territories replaced outright — what a fracture writes. */
-    fun withClimates(bounded: List<ClimateBias>): AgeComposition =
-        copy(climates = bounded.ifEmpty { listOf(ClimateBias.NONE) })
-
-    /**
-     * The same shape as [withOptionsFor] for the one aspect whose parameters are not options: an axis named
-     * on one climate territory. A name no axis answers to is **kept nowhere and reported nowhere**, exactly
-     * as an unrecognised option is — see [unknownOptions], which asks the same question of the rest.
-     */
-    fun withAxisBound(member: Int, axis: String, chosen: List<String>): AgeComposition {
-        val named = ClimateBias.axisNamed(axis) ?: return this
-        val span = chosen.firstOrNull()?.let(Span::read) ?: return this
-        val grown = List(maxOf(climates.size, member + 1)) { climates.getOrElse(it) { ClimateBias.NONE } }
-        return copy(climates = grown.mapIndexed { at, bias -> if (at == member) bias.bounding(named, span) else bias })
     }
 
     /** [aspect] given [count] territories, however that aspect says how many it has. */
     fun withMembers(aspect: Aspect, count: Int): AgeComposition {
-        if (aspect == Aspect.CLIMATE) return withClimates(List(count) { climates.getOrElse(it) { ClimateBias.NONE } })
+        if (aspect.membersAreDescribed) return withCastOf(aspect, count)
         val seated = presets.first { it.aspect == aspect }
         return withPresets(aspect, List(count) { seated.key })
     }
@@ -171,9 +175,7 @@ data class AgeComposition(
      * a region each (design §3.2). Applies to every territory of the aspect; [withOptionsFor] aims one.
      */
     fun withOptions(aspect: Aspect, parameter: String, chosen: List<String>): AgeComposition {
-        if (aspect == Aspect.CLIMATE) {
-            return climates.indices.fold(this) { held, member -> held.withAxisBound(member, parameter, chosen) }
-        }
+        asksForASeam(aspect, parameter, chosen)?.let { return copy(spreads = spreads.withSeam(aspect, it)) }
         val everyMember = options.allOf(aspect).ifEmpty { listOf(Options.NONE) }
         return copy(options = options.with(aspect, everyMember.map { Options(it.chosen + (parameter to chosen)) }))
     }
@@ -183,13 +185,28 @@ data class AgeComposition(
      * `hills[stone=andesite]`. A [member] past the end of the filling is written anyway, not dropped.
      */
     fun withOptionsFor(aspect: Aspect, member: Int, parameter: String, chosen: List<String>): AgeComposition {
-        if (aspect == Aspect.CLIMATE) return withAxisBound(member, parameter, chosen)
+        // Whichever territory it was written against: a seam belongs to the boundary rather than to either
+        // side, so "riven here and whole there" is not something it could mean.
+        asksForASeam(aspect, parameter, chosen)?.let { return copy(spreads = spreads.withSeam(aspect, it)) }
         val filling = membersIn(aspect)
         val perMember = options.expanded(aspect, maxOf(filling, member + 1))
         val steered = perMember.mapIndexed { index, existing ->
             if (index == member) Options(existing.chosen + (parameter to chosen)) else existing
         }
         return copy(options = options.with(aspect, steered))
+    }
+
+    /**
+     * The form `landmass.seam=rift` asks this boundary to take, or null where the token is about something
+     * else — how a seam reaches the spread rather than the options, there being nowhere in a preset for a
+     * boundary *between* two of them to live.
+     *
+     * A form this version does not know falls through to the options, where an unrecognised name is kept
+     * and reported ([unknownOptions]). Silently taking it would flatten an Age's geology.
+     */
+    private fun asksForASeam(aspect: Aspect, parameter: String, chosen: List<String>): Seam? {
+        if (!aspect.spatial || parameter != Spread.SEAM) return null
+        return chosen.firstOrNull()?.let(Seam::named)
     }
 
     /**
@@ -214,7 +231,6 @@ data class AgeComposition(
             seas = seated(Aspect.SEA, seas, template.seas).filterIsInstance<Sea>(),
             carvers = seated(Aspect.CARVERS, carvers, template.carvers).filterIsInstance<Carvers>(),
             sky = if (Aspect.SKY in spokenTo) sky else template.sky,
-            climates = if (Aspect.CLIMATE in spokenTo) climates else template.climates,
         )
         return Aspect.entries.fold(merged) { held, aspect ->
             if (aspect.holds == Holds.POPULATION) return@fold held
@@ -257,14 +273,28 @@ data class AgeComposition(
             val written = filling.mapIndexed { index, preset ->
                 // A share is only spelled where it says something: an even division, and the largest share
                 // of an uneven one, are both left unsaid.
-                val share = shares.of(aspect).getOrNull(index)
+                val share = spreads.of(aspect).shares.getOrNull(index)
                 val named =
                     if (share == null || Share.isEven(share)) preset.key else "${preset.key}$SHARE_MARK$share"
                 if (aimed) named + steering(options.of(aspect, index)) else named
             }
             val slotWide = if (aimed) emptyList() else spelled(aspect, options.of(aspect))
             listOf("${aspect.key}=${written.joinToString(",")}") + slotWide
-        }.plus(castSpelling()).plus(seatlessSpelling()).plus(climateSpelling()).joinToString(" ")
+        }.plus(castSpelling()).plus(seatlessSpelling()).plus(seamSpelling())
+        .joinToString(" ")
+
+    /**
+     * `landmass.seam=rift` — the form drawn for each boundary the Age has one for.
+     *
+     * Spelled even where it was drawn rather than asked for, because a recipe records what an Age *is*: the
+     * draw is reproducible from the seed, but a spelling that left it out would read as "nothing was
+     * decided here" and could not tell a requested shear from an unremarked one.
+     */
+    private fun seamSpelling(): List<String> = Aspect.entries
+        .filter { it.spatial }
+        .mapNotNull { aspect ->
+            spreads.of(aspect).drawn?.let { "${aspect.key}.${Spread.SEAM}=${it.key}" }
+        }
 
     /**
      * The options of an aspect that seats no preset, which the loop above cannot reach because it walks
@@ -275,8 +305,20 @@ data class AgeComposition(
      * says which territory each stretch belongs to, where an Age-wide answer needs no such thing.
      */
     private fun seatlessSpelling(): List<String> = Aspect.entries
-        .filter { it.seatsNothing && !it.positional && it.holds != Holds.POPULATION }
+        .filter { it.seatsNothing && !spellsEveryMember(it) }
         .flatMap { aspect -> spelled(aspect, options.of(aspect)) }
+
+    /**
+     * Whether this aspect's spelling names each member in turn rather than saying one thing for all of
+     * them.
+     *
+     * **A population always does**, even at one: its entries *are* its roll, so a one-sun sky that spelled
+     * itself as a dial would come back with no sun at all. **A climate only does once divided**, since it
+     * always has exactly one territory until something fractures it, and `climate.temperature=…` reads
+     * better than a member with a bracket round it.
+     */
+    private fun spellsEveryMember(aspect: Aspect): Boolean =
+        aspect.holds == Holds.POPULATION || (aspect.membersAreDescribed && membersIn(aspect) > 1)
 
     /**
      * `sun=body,body[suncolour=red]` — a **cast**, one word per member.
@@ -290,33 +332,13 @@ data class AgeComposition(
      * so a three-sun Age wrote no `sun=` and rebuilt with the template's one.
      */
     private fun castSpelling(): List<String> = Aspect.entries
-        .filter { it.holds == Holds.POPULATION && membersIn(it) > 0 }
+        .filter { spellsEveryMember(it) && membersIn(it) > 0 }
         .map { aspect ->
             val bodies = (0..<membersIn(aspect)).joinToString(",") { member ->
                 BODY + steering(options.of(aspect, member))
             }
             "${aspect.key}=$bodies"
         }
-
-    /**
-     * `climate.temperature=-0.3..0.3`, or `climate={…},{…}` where the world's climate fractured.
-     *
-     * Spelled apart from the loop above because climate names no preset to hang its steering on, and says
-     * nothing at all where its dials were left alone — which is the ordinary case, and the reason a recipe
-     * stopped carrying a `climate=natural` that announced a choice nobody could make.
-     *
-     * The braced form reads straight back: [parse] takes the empty name before each `{` as one more
-     * territory, which is exactly what it means.
-     */
-    private fun climateSpelling(): List<String> {
-        val spoken = climates.map { it.spelled() }
-        if (spoken.all { it.isEmpty() }) return emptyList()
-        if (spoken.size == 1) return spoken.first().map { "${Aspect.CLIMATE.key}.$it" }
-        val territories = spoken.joinToString(",") { axes ->
-            "$STEER_OPEN${axes.joinToString(PARAMETER_MARK.toString())}$STEER_CLOSE"
-        }
-        return listOf("${Aspect.CLIMATE.key}=$territories")
-    }
 
     /** `terrain.arrangement=grid` — one token per parameter, for an aspect whose territories agree. */
     private fun spelled(aspect: Aspect, chosen: Options): List<String> = chosen.chosen.entries.sortedBy { it.key }
@@ -327,7 +349,9 @@ data class AgeComposition(
     private fun steering(chosen: Options): String {
         if (chosen.chosen.isEmpty()) return ""
         val written = chosen.chosen.entries.sortedBy { it.key }
-            .joinToString(PARAMETER_MARK.toString()) { (parameter, options) -> "$parameter=${options.joinToString(",")}" }
+            .joinToString(PARAMETER_MARK.toString()) { (parameter, options) ->
+                "$parameter=${options.joinToString(LIST_MARK.toString())}"
+            }
         return "$STEER_OPEN$written$STEER_CLOSE"
     }
 
@@ -390,7 +414,7 @@ data class AgeComposition(
                 if (STEER_OPEN !in written) continue
                 require(written.endsWith(STEER_CLOSE)) { "'$written' opens a $STEER_OPEN and never closes it" }
                 val inside = written.substringAfter(STEER_OPEN).dropLast(1)
-                for (setting in outsideBrackets(inside)) {
+                for (setting in inside.split(PARAMETER_MARK).filter(String::isNotBlank)) {
                     val (parameter, value) = setting.split('=', limit = 2).takeIf { it.size == 2 }
                         ?: error("'$setting' is not `parameter=value`")
                     steered = steered.withOptionsFor(
@@ -414,11 +438,8 @@ data class AgeComposition(
                     .optionalFieldOf("carvers", listOf(Carvers.SOLID))
                     .forGetter(AgeComposition::carvers),
                 enumCodec<Sky>().optionalFieldOf("sky", Sky.PLAIN).forGetter(AgeComposition::sky),
-                setOrSingle(ClimateBias.CODEC, ClimateBias.NONE)
-                    .optionalFieldOf("climate", listOf(ClimateBias.NONE))
-                    .forGetter(AgeComposition::climates),
                 AspectOptions.CODEC.optionalFieldOf("options", AspectOptions()).forGetter(AgeComposition::options),
-                SlotShares.CODEC.optionalFieldOf("shares", SlotShares()).forGetter(AgeComposition::shares),
+                Spreads.CODEC.optionalFieldOf("spread", Spreads()).forGetter(AgeComposition::spreads),
             ).apply(instance, ::AgeComposition)
         }
     }
@@ -445,10 +466,11 @@ data class AspectOptions(private val bySlot: Map<Aspect, List<Options>> = emptyM
     fun expanded(aspect: Aspect, members: Int): List<Options> = List(members) { member -> of(aspect, member) }
 
     fun with(aspect: Aspect, perMember: List<Options>): AspectOptions {
-        // **A population keeps every member, however alike they are, and even when they say nothing.**
-        // Its entries *are* its cast: two identical red suns collapsed to one would be one sun, and a body
-        // nobody described anything about would vanish rather than hang there plainly.
-        if (aspect.holds == Holds.POPULATION) {
+        // **A described member keeps its entry, however alike they are, and even when it says nothing.**
+        // The entries *are* the roll: two identical red suns collapsed to one would be one sun, and two
+        // halves of a fractured climate that happen to agree would be one climate — which is how a
+        // fracture came back undivided the moment climate started storing its members here.
+        if (aspect.membersAreDescribed) {
             return AspectOptions(if (perMember.isEmpty()) bySlot - aspect else bySlot + (aspect to perMember))
         }
         // Collapsed on the way in, so the round trip has one spelling to reproduce.
@@ -470,33 +492,21 @@ data class AspectOptions(private val bySlot: Map<Aspect, List<Options>> = emptyM
 }
 
 /**
- * How much of the world each preset of an aspect covers, kept per aspect beside [AspectOptions].
- *
- * An absent aspect is an even division, and so is one whose shares are all [Share.EVEN] — normalised away
- * on the way in, so "equal" has one spelling rather than several.
- */
-data class SlotShares(private val bySlot: Map<Aspect, List<Double>> = emptyMap()) {
-    fun of(aspect: Aspect): List<Double> = bySlot[aspect] ?: emptyList()
-
-    fun with(aspect: Aspect, shares: List<Double>): SlotShares =
-        SlotShares(if (shares.all(Share::isEven)) bySlot - aspect else bySlot + (aspect to shares))
-
-    companion object {
-        val CODEC: Codec<SlotShares> =
-            Codec.unboundedMap(StringRepresentable.fromEnum(Aspect::values), Codec.DOUBLE.listOf())
-                .xmap(::SlotShares, SlotShares::bySlot)
-    }
-}
-
-/**
  * How much ground a preset covers, written after it: `carvers=caves,porous@0.25`.
  *
  * Not a colon: a colon tells a registry id from an authored key (`namesReferent`), so `sea=minecraft:air`
  * read as the preset `minecraft` covering an `air` share. Only ever a command spelling — shares persist
  * as their own codec field.
  */
-/** What one member of a cast is called in a recipe, having no name of its own — see `castSpelling`. */
-private const val BODY = "body"
+/**
+ * What one described member is called in a recipe, having no name of its own — a sun, or one territory of
+ * a divided climate. See `castSpelling`; `parse` reads the count and never the token, so a recipe written
+ * with any other word still loads.
+ */
+private const val BODY = "member"
+
+/** What a spatial aspect always has, however little the sentence said — see [AgeComposition.membersIn]. */
+private const val AT_LEAST_ONE = 1
 
 private const val SHARE_MARK = '@'
 
@@ -512,8 +522,18 @@ private const val SHARE_MARK = '@'
 private const val STEER_OPEN = '['
 private const val STEER_CLOSE = ']'
 
-/** Parameters within one territory's brackets. */
-private const val PARAMETER_MARK = ','
+/** What separates one territory from the next, and one value of a parameter from the next. */
+private const val LIST_MARK = ','
+
+/**
+ * Parameters within one territory's brackets: `[stone=copper,tuff;mingling=0.9]`.
+ *
+ * **Not [LIST_MARK], which is what separates a parameter's own values.** `[stone=copper,tuff]` is one
+ * parameter holding two stones and was read as two parameters, the second of which is not `name=value` —
+ * so the documented spelling for mingled materials could not be read back. The bug predates the climate
+ * moving in here and was reachable the moment anything spelled two values inside a bracket.
+ */
+private const val PARAMETER_MARK = ';'
 
 /**
  * [written] split on the commas that are **not inside brackets** — the one thing sharing a separator costs.
@@ -529,7 +549,7 @@ private fun outsideBrackets(written: String): List<String> {
         when {
             character == STEER_OPEN -> depth++
             character == STEER_CLOSE -> depth--
-            character == PARAMETER_MARK && depth == 0 -> {
+            character == LIST_MARK && depth == 0 -> {
                 parts += part.toString()
                 part.clear()
                 continue

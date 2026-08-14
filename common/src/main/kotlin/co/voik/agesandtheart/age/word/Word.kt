@@ -302,6 +302,38 @@ data class Word(
     val wanted: Set<String> get() = everyQuery.filterValues { it > 0.0 }.keys
 
     /**
+     * The tags this word pushes *away* — [wanted]'s mirror, and half of what lets two words be found to
+     * disagree with no antonym table involved (`Vocabulary.disagreement`).
+     */
+    val unwanted: Set<String> get() = everyQuery.filterValues { it < 0.0 }.keys
+
+    /**
+     * **How many places this page may be laid** — the second half of what it costs (world model §9).
+     *
+     * An evocative word is one: it may only ever be written on the Age itself, which is what makes it the
+     * cheapest thing in the language *with no exception written anywhere*. A narrowing word is at home in
+     * as many parts of the world as it declares, and one that landed nowhere is priced as though it landed
+     * somewhere — being empty on purpose so `DerivedAspectsCheck` can refuse it, not so it can be free.
+     */
+    val versatility: Int get() = if (!tier.narrows) ONE_PLACE else aspects.size.coerceAtLeast(ONE_PLACE)
+
+    /**
+     * **What this page costs: specificity × versatility** (world model §9).
+     *
+     * Precision is what a writer is buying, so precision is priced; and a page usable in several places is
+     * a better page to own than one usable in one, so **the charge is for what the page *can* do** and is
+     * the same wherever it is laid. `clear` is a clear sky and clear water alike where `murky` is only ever
+     * the water, and the dearer of the two is the one worth owning.
+     *
+     * One number with two readers, which is the point of it being here rather than in either: the book's
+     * cost is the sum of its pages ([co.voik.agesandtheart.age.word.Resolver.inkFor]) and the page's own
+     * price is what the desk charges for writing it (`WriteCost`). They were separately computed and
+     * disagreed — the desk priced by tier alone, so versatility was charged to a book nobody paid for and
+     * not to the page anybody buys.
+     */
+    val price: Int get() = tier.cost * versatility
+
+    /**
      * How strongly [tags] answers this word's *positive* terms in [aspect] — the number a narrowing word
      * thresholds. The strongest single term rather than a sum, because a word asking for two tags asks
      * for either.
@@ -396,6 +428,9 @@ data class Word(
          * and lands nowhere at all is left empty on purpose, so `DerivedAspectsCheck` can refuse it: a
          * word that removes candidates and is aimed at nothing removes them everywhere.
          */
+        /** What a page at home in one part of the world is worth, as versatility — see [Word.price]. */
+        private const val ONE_PLACE = 1
+
         fun reaching(
             tier: Tier,
             declared: Set<Aspect>,
@@ -469,10 +504,32 @@ data class PresetProfile(
      * still reaches anything, since readiness only weights an *unasked* draw.
      */
     val readiness: Double?,
+    /**
+     * Tags this entry takes back off whatever was **derived** for the same member — the way to say that a
+     * rule reached something it should not have without giving up the rest of what it got right.
+     */
+    val dropped: Set<String> = emptySet(),
+    /**
+     * Whether this entry stands **instead of** the derivation rather than over it, for the member the
+     * rules simply cannot read.
+     */
+    val replaces: Boolean = false,
 ) {
     /** This profile with [later] laid over it — a higher-priority pack retuning some of it. */
     fun mergedWith(later: PresetProfile): PresetProfile =
-        PresetProfile(tags + later.tags, later.readiness ?: readiness)
+        PresetProfile(tags + later.tags, later.readiness ?: readiness, dropped + later.dropped, replaces || later.replaces)
+
+    /**
+     * This profile laid over what was **derived** for the same member (`notes/the-tag-layer.md` §5).
+     *
+     * Three levers, and the format carries all three from the start so slotting one in is never a
+     * migration: an authored weight wins outright, [dropped] takes a derived tag back off, and [replaces]
+     * ignores the derivation entirely.
+     */
+    fun over(derived: Map<String, Double>): PresetProfile {
+        if (replaces) return this
+        return copy(tags = (derived - dropped) + tags)
+    }
 
     companion object {
         /** What a preset that says nothing about its readiness gets. */
@@ -480,9 +537,15 @@ data class PresetProfile(
 
         val CODEC: Codec<PresetProfile> = RecordCodecBuilder.create { instance ->
             instance.group(
-                Codec.unboundedMap(Codec.STRING, Codec.DOUBLE).fieldOf("tags").forGetter(PresetProfile::tags),
+                Codec.unboundedMap(Codec.STRING, Codec.DOUBLE).optionalFieldOf("tags", emptyMap())
+                    .forGetter(PresetProfile::tags),
                 Codec.DOUBLE.optionalFieldOf("readiness").forGetter { Optional.ofNullable(it.readiness) },
-            ).apply(instance) { tags, readiness -> PresetProfile(tags, readiness.orElse(null)) }
+                Codec.STRING.listOf().optionalFieldOf("drop", emptyList())
+                    .forGetter { it.dropped.toList() },
+                Codec.BOOL.optionalFieldOf("replace", false).forGetter(PresetProfile::replaces),
+            ).apply(instance) { tags, readiness, dropped, replaces ->
+                PresetProfile(tags, readiness.orElse(null), dropped.toSet(), replaces)
+            }
         }
     }
 }
@@ -499,6 +562,20 @@ data class PresetTags(private val byPreset: Map<String, PresetProfile>) {
 
     /** Every tag anything here carries, which bounds what any word can meaningfully ask for. */
     val carried: Set<String> get() = byPreset.values.flatMap { it.tags.keys }.toSet()
+
+    /**
+     * This table laid over what was **derived** — every member some rule spoke to, plus every member the
+     * pack authored, with the authored entry winning where both have something to say.
+     */
+    fun over(derived: Map<String, Map<String, Double>>): PresetTags {
+        if (derived.isEmpty()) return this
+        val members = derived.keys + byPreset.keys
+        return PresetTags(
+            members.associateWith { member ->
+                byKey(member).over(derived[member].orEmpty())
+            },
+        )
+    }
 
     companion object {
         val EMPTY_PROFILE = PresetProfile(emptyMap(), readiness = null)

@@ -570,7 +570,7 @@ class ResolverCheck : FunSpec({
             // came out even at every seed because their carriers all answer about equally, which is a fact
             // about the tag data rather than about shares, and it made the property vacuous.
             val composition = resolve(vocabulary, "riddled unbroken", seed).composition
-            val shares = composition.sharesOf(Aspect.CARVERS)
+            val shares = composition.spreadOf(Aspect.CARVERS).shares
             val pinned = composition.carvers.indexOf(Carvers.SOLID)
             if (pinned >= 0) {
                 check(shares[pinned] >= shares.max()) {

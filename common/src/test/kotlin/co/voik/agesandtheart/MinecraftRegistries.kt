@@ -54,6 +54,12 @@ object MinecraftRegistries {
     /** Call from a spec before touching anything that reads a registry. */
     fun ensureStoodUp() = bootstrapped
 
+    /** The shipped `art/spawning.json`, for the checks about what a written creature arrives as. */
+    val spawning: co.voik.agesandtheart.age.aspect.Spawning by lazy {
+        ensureStoodUp()
+        co.voik.agesandtheart.age.word.Vocabulary.load(shippedData()).spawning
+    }
+
     /**
      * Vanilla's **worldgen** registries — biomes, placed features, structure sets — built offline.
      *

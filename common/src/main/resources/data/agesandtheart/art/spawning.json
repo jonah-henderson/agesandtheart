@@ -1,0 +1,77 @@
+{
+  "_comment": [
+    "How a creature the world never offered arrives in one. A biome's spawn list is what may be *tried*,",
+    "not what appears -- vanilla checks the placement and the rules for every attempt -- so for almost",
+    "every creature the only question here is how often to try, and `ordinary` answers it.",
+    "",
+    "The entries are the exceptions: the creatures vanilla never spawns at all, which therefore have no",
+    "placement rules and would otherwise be tried inside a mountain. Those say `needs_open_sky`.",
+    "",
+    "Weights are against everything else the biome offers, where vanilla's monsters sit near a hundred",
+    "each. A plain mention should read as 'there are dragons here' and a rung should be able to make it an",
+    "Age *of* dragons -- so the bases are a real share of the pass rather than a curiosity. Every number",
+    "here is a first guess and wants a walk.",
+    "`apart_by` is how the big ones are kept apart: an attempt knows its position and nothing else, so a",
+    "rule about *where* is answerable where a rule about *how many* is not. One window per cell means an",
+    "Age of dragons has them spread over the country rather than seventy in one valley -- and the weight",
+    "can then be a real share, so `teeming ender_dragon` is an Age of dragons and not a curiosity.",
+    "",
+    "The golems are carried past vanilla's own refusal to put a MobCategory.MISC entity in a list at all",
+    "(see SpawnerDataMixin), which is why they may be written and a datapack still may not."
+  ],
+  "ordinary": {
+    "weight": 8,
+    "least": 1,
+    "most": 2
+  },
+  "creatures": {
+    "minecraft:ender_dragon": {
+      "weight": 40,
+      "least": 1,
+      "most": 1,
+      "needs_open_sky": true,
+      "apart_by": 320
+    },
+    "minecraft:wither": {
+      "weight": 30,
+      "least": 1,
+      "most": 1,
+      "needs_open_sky": true,
+      "apart_by": 256
+    },
+    "minecraft:warden": {
+      "weight": 20,
+      "least": 1,
+      "most": 1,
+      "apart_by": 192
+    },
+    "minecraft:elder_guardian": {
+      "weight": 2,
+      "least": 1,
+      "most": 1
+    },
+    "minecraft:giant": {
+      "weight": 2,
+      "least": 1,
+      "most": 1,
+      "needs_open_sky": true
+    },
+    "minecraft:illusioner": {
+      "weight": 4,
+      "least": 1,
+      "most": 2
+    },
+    "minecraft:iron_golem": {
+      "weight": 6,
+      "least": 1,
+      "most": 2,
+      "needs_open_sky": true
+    },
+    "minecraft:snow_golem": {
+      "weight": 10,
+      "least": 1,
+      "most": 3,
+      "needs_open_sky": true
+    }
+  }
+}

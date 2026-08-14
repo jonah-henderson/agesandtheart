@@ -7,14 +7,15 @@ import io.kotest.core.spec.style.FunSpec
 /**
  * What only a generated world can answer: whether two recipes make the same ground.
  *
- * These were `scripts/checks/uncut-ground.txt` and the assertive half of `faults.txt`, where each bound
- * lived in a `#?` line above the command it judged. The bounds are unchanged; what changed is that
- * `differingBlocks` is now a number the command reported rather than the first integer on a line of prose —
- * which for the whole life of that layer was **the hour off the log's timestamp**.
- *
  * Every bound here is deliberately far from the reading it guards. Each says what regression it would
  * catch, and the two outcomes are orders of magnitude apart, so a loose bound loses nothing and survives
  * retuning.
+ *
+ * **What is deliberately not here is the seams** (design §3.4). A fault moves a swathe of landscape, two
+ * Ages of one recipe do not generate identically, and there is no defensible line between the two: the
+ * bound that judged it failed on a different form with a different count on each run and passed whenever
+ * the spec ran alone. `FaultCheck` holds the field tree to it offline, where the reading is exact, and
+ * whether a seam *looks* like anything is a thing to walk to.
  */
 @Tags(NEEDS_SERVER, NEEDS_LANDFORMS)
 class GenerationCheck : FunSpec({
@@ -53,46 +54,6 @@ class GenerationCheck : FunSpec({
         }
     }
 
-    /**
-     * **Step 9's acceptance criterion, as an assertion.** A one-territory Age has no seam, so a fault asked
-     * for in one must build no node at all — `FaultCheck` proves that of the field tree offline, and this
-     * is the same claim measured in a world.
-     *
-     * The ceiling is set where the two outcomes cannot be confused rather than at the measurement:
-     * decoration noise at radius 2 runs to tens of blocks, where a whole-world throw of 32 moves every
-     * column in all 25 chunks — hundreds of thousands. Nothing lands between.
-     */
-    test("a fault asked for in an undivided Age builds nothing") {
-        server.run("age compose lonelevel 4242 landmass=hills sea=water")
-        for (form in listOf("scarp", "rift")) {
-            server.run("age compose lone$form 4242 landmass=hills sea=water landmass.seam=$form")
-            val differing = differingBlocks(server, "lonelevel", "lone$form", radius = 2)
-            check(differing <= 2_000) {
-                "a $form was built into an Age with no seam to build it on: $differing block(s) differ"
-            }
-        }
-    }
-
-    /**
-     * A rift *does* show where there is a seam to cut — the other half of the claim above, and the one
-     * that would catch a fault node that had quietly stopped being reached.
-     *
-     * **Radius 8, and against its own control.** A territory is about 400 blocks and radius 2 samples 80,
-     * so a working rift measured 51 blocks at radius 2 — indistinguishable from noise. The twin is an
-     * identical recipe under another name, which is what makes the number readable.
-     */
-    test("a fault shows where there is a seam") {
-        server.run("age compose seamsheared 4242 landmass=hills,hills sea=water landmass.seam=sheared")
-        server.run("age compose seamtwin 4242 landmass=hills,hills sea=water landmass.seam=sheared")
-        server.run("age compose seamrift 4242 landmass=hills,hills sea=water landmass.seam=rift")
-
-        val control = differingBlocks(server, "seamsheared", "seamtwin", radius = 8)
-        val riven = differingBlocks(server, "seamsheared", "seamrift", radius = 8)
-        check(riven > control * 4) {
-            "a rift between two territories is not distinguishable from a same-recipe control: " +
-                "$riven against $control"
-        }
-    }
     /**
      * **Ores reach whatever the Age is made of**, which they did not until 2026-08-04 and said nothing
      * about it.

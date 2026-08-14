@@ -1,60 +1,65 @@
 {
   "minecraft:cherry_grove": {
     "tags": {
-      "lovely": 1.0,
+      "flowering": 1.0,
+      "colourful": 0.9,
       "lush": 0.7,
       "bright": 0.6
     }
   },
   "minecraft:flower_forest": {
     "tags": {
-      "lovely": 0.9,
+      "flowering": 1.0,
+      "colourful": 0.8,
       "lush": 0.8,
       "bright": 0.5
     }
   },
   "minecraft:meadow": {
     "tags": {
-      "lovely": 0.8,
-      "lush": 0.6,
-      "bright": 0.7
+      "flowering": 0.8,
+      "bright": 0.7,
+      "lush": 0.6
     }
   },
   "minecraft:lush_caves": {
     "tags": {
-      "lovely": 0.6,
-      "lush": 1.0
+      "lush": 1.0,
+      "colourful": 0.5,
+      "glowing": 0.4
     }
   },
   "minecraft:bamboo_jungle": {
     "tags": {
       "lush": 0.9,
-      "lovely": 0.5
+      "colourful": 0.4
     }
   },
   "minecraft:desert": {
     "tags": {
-      "barren": 0.9,
       "dry": 1.0,
+      "barren": 0.9,
       "bright": 0.6
     }
   },
   "minecraft:badlands": {
     "tags": {
-      "barren": 0.8,
       "dry": 0.9,
-      "dramatic": 0.6
+      "barren": 0.8,
+      "eroded": 0.8,
+      "sandy": 0.7,
+      "sheer": 0.5
     }
   },
   "minecraft:stony_shore": {
     "tags": {
       "barren": 0.9,
-      "ordinary": 0.4
+      "stony": 0.9
     }
   },
   "minecraft:deep_dark": {
     "tags": {
-      "gloomy": 1.0,
+      "dark": 1.0,
       "hostile": 0.9
     }
   },
@@ -62,7 +67,8 @@
     "tags": {
       "hostile": 1.0,
       "molten": 0.8,
-      "gloomy": 0.6
+      "dark": 0.6,
+      "stony": 0.6
     }
   }
 }

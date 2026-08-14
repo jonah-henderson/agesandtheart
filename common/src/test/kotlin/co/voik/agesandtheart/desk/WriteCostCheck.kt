@@ -4,6 +4,7 @@ import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.Tier
+import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.age.word.Vocabulary
 import net.minecraft.core.RegistryAccess
 import net.minecraft.core.registries.BuiltInRegistries
@@ -45,8 +46,8 @@ class WriteCostCheck : FunSpec({
      * What a word *ought* to cost, as a share of a bucket, before anything rounds — the definition the
      * economy is stated in rather than a number read back out of the code.
      */
-    fun idealShare(tier: Tier, paper: InkTier): Double =
-        tier.cost * (WriteCost.paperEfficiency(paper)) / WriteCost.COST_UNITS_PER_BUCKET
+    fun idealShare(word: Word, paper: InkTier): Double =
+        word.price * (WriteCost.paperEfficiency(paper)) / WriteCost.COST_UNITS_PER_BUCKET
 
     /**
      * **Every price lands within one of the loader's own units of the true one.**
@@ -65,7 +66,7 @@ class WriteCostCheck : FunSpec({
                 for (word in vocabulary.authoredWords) {
                     val cost = WriteCost.of(word, vocabulary, registries, paper, units)
                     val share = cost.inkUnits.toDouble() / units
-                    val ideal = idealShare(word.tier, paper)
+                    val ideal = idealShare(word, paper)
                     val oneUnit = 1.0 / units
                     val drift = share - ideal
                     if (drift < -HAIRS_BREADTH || drift > oneUnit + HAIRS_BREADTH) {
@@ -80,16 +81,40 @@ class WriteCostCheck : FunSpec({
     }
 
     /**
-     * **Ten exact words to the bottle**, which is the figure the economy was tuned to (Jonah, 2026-08-06).
-     * A bottle is a third of a bucket, so an exact word is a thirtieth of one.
+     * **Ten of the commonest page to the bottle**, which is the figure the economy was tuned to (Jonah,
+     * 2026-08-06). A bottle is a third of a bucket, so that page is a thirtieth of one.
+     *
+     * **The commonest page is a block or a creature said exactly** — a derived word, at home in two parts
+     * of the world, so eight units once versatility is charged (world model §9). It used to be any exact
+     * word at all, when a page was priced by its tier alone and every exact word cost the same; the anchor
+     * has to name a *shape* now, since an exact word can be four units or twenty-four.
      */
-    test("an exact word costs a tenth of a bottle") {
-        val exact = vocabulary.authoredWords.firstOrNull { it.tier == Tier.EXACT }
-            ?: error("the corpus has no exact word to price")
-        val cost = WriteCost.of(exact, vocabulary, registries, InkTier.COMMON, neoforgeMillibuckets)
+    test("the commonest page costs a tenth of a bottle") {
+        val ordinary = vocabulary.derivedWords.firstOrNull { it.price == A_COMMON_PAGE }
+            ?: error("the corpus has no ordinary page to price")
+        val cost = WriteCost.of(ordinary, vocabulary, registries, InkTier.COMMON, neoforgeMillibuckets)
         val bottles = cost.inkUnits.toDouble() / (neoforgeMillibuckets.toDouble() / WriteCost.BOTTLES_PER_BUCKET)
         check(abs(bottles - A_TENTH_OF_A_BOTTLE) < CLOSE_ENOUGH) {
-            "'${exact.name}' costs $bottles of a bottle, where the economy is tuned to $A_TENTH_OF_A_BOTTLE"
+            "'${ordinary.name}' costs $bottles of a bottle, where the economy is tuned to $A_TENTH_OF_A_BOTTLE"
+        }
+    }
+
+    /**
+     * **And the ladder the whole design rests on holds**: an evocative word is the cheapest thing in the
+     * language, and a versatile page is dearer than a narrow one (world model §9). Read off the corpus
+     * rather than off the constants, since it is the corpus a writer meets.
+     */
+    test("an evocative page is the cheapest and a versatile one is dearest") {
+        val evocative = vocabulary.authoredWords.filter { it.tier == Tier.EVOCATIVE }
+        val cheapest = vocabulary.authoredWords.minOf { it.price }
+        check(evocative.isNotEmpty() && evocative.all { it.price == cheapest }) {
+            "an evocative word is not the cheapest thing in the language: " +
+                evocative.map { "${it.name}@${it.price}" }
+        }
+        val narrow = vocabulary.words.first { it.tier == Tier.EXACT && it.versatility == 1 }
+        val broad = vocabulary.words.first { it.tier == Tier.EXACT && it.versatility > 1 }
+        check(broad.price > narrow.price) {
+            "'${broad.name}' reaches more places than '${narrow.name}' and costs no more"
         }
     }
 
@@ -109,6 +134,9 @@ class WriteCostCheck : FunSpec({
 
 /** Floating-point slack, well under the rounding that would matter to a price. */
 private const val CLOSE_ENOUGH = 0.005
+
+/** What the commonest page is priced at: exact, and at home in two parts of the world. */
+private const val A_COMMON_PAGE = 8
 
 private const val A_TENTH_OF_A_BOTTLE = 0.1
 

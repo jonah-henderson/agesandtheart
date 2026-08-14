@@ -1,9 +1,9 @@
 {
   "tier": "evocative",
   "query": {
-    "wild": 1.0,
-    "hostile": 0.6,
-    "sheer": 0.5,
-    "gentle": -0.7
+    "hostile": 1.0,
+    "sheer": 0.6,
+    "inhabited": -0.8,
+    "flat": -0.5
   }
 }

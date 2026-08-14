@@ -1,0 +1,159 @@
+{
+  "_comment": [
+    "What a biome is: vanilla's own is_* tags, and the bands its temperature and rainfall fall in, which are",
+    "facts an offline corpus still has. Overridden per member by art/preset_tags/biomes.json.",
+    "The `c:` rules are the convention tags a modded biome carries. Absent without mods, and not insisted on."
+  ],
+  "by_kind": {
+    "freezing": {
+      "frozen": 0.9
+    },
+    "cold": {
+      "frozen": 0.4
+    },
+    "scalding": {
+      "dry": 0.6
+    },
+    "rainless": {
+      "dry": 0.8,
+      "barren": 0.3
+    }
+  },
+  "by_tag": {
+    "#minecraft:is_forest": {
+      "wooded": 1.0,
+      "grown": 0.8,
+      "lush": 0.7
+    },
+    "#minecraft:is_taiga": {
+      "wooded": 0.9,
+      "grown": 0.7,
+      "lush": 0.5
+    },
+    "#minecraft:is_jungle": {
+      "wooded": 1.0,
+      "grown": 0.9,
+      "lush": 1.0
+    },
+    "#minecraft:is_mountain": {
+      "mountainous": 1.0,
+      "sheer": 0.6
+    },
+    "#minecraft:is_hill": {
+      "mountainous": 0.5
+    },
+    "#minecraft:is_badlands": {
+      "dry": 0.9,
+      "sandy": 0.8,
+      "eroded": 0.7,
+      "barren": 0.7,
+      "colourful": 0.5
+    },
+    "#minecraft:is_savanna": {
+      "dry": 0.7,
+      "flat": 0.5,
+      "grown": 0.5
+    },
+    "#minecraft:is_beach": {
+      "sandy": 0.9,
+      "watery": 0.6,
+      "flat": 0.6
+    },
+    "#minecraft:is_ocean": {
+      "watery": 1.0,
+      "aquatic": 0.9
+    },
+    "#minecraft:is_deep_ocean": {
+      "watery": 1.0,
+      "aquatic": 0.9,
+      "dark": 0.5
+    },
+    "#minecraft:is_river": {
+      "watery": 0.9
+    },
+    "#minecraft:is_nether": {
+      "molten": 0.8,
+      "hostile": 0.9,
+      "dry": 0.8
+    },
+    "#minecraft:is_end": {
+      "floating": 0.9,
+      "barren": 0.8,
+      "dark": 0.6
+    },
+    "#c:is_forest": {
+      "wooded": 1.0,
+      "grown": 0.8,
+      "lush": 0.7
+    },
+    "#c:is_jungle": {
+      "wooded": 1.0,
+      "grown": 0.9,
+      "lush": 1.0
+    },
+    "#c:is_mountain": {
+      "mountainous": 1.0,
+      "sheer": 0.6
+    },
+    "#c:is_desert": {
+      "dry": 1.0,
+      "sandy": 0.9,
+      "barren": 0.7
+    },
+    "#c:is_swamp": {
+      "watery": 0.7,
+      "grown": 0.8,
+      "dark": 0.4
+    },
+    "#c:is_snowy": {
+      "frozen": 0.9,
+      "bright": 0.6
+    },
+    "#c:is_aquatic": {
+      "watery": 1.0,
+      "aquatic": 0.9
+    },
+    "#c:is_cave": {
+      "cavernous": 1.0,
+      "dark": 0.6
+    },
+    "#c:is_underground": {
+      "cavernous": 0.8,
+      "buried": 0.6,
+      "dark": 0.5
+    },
+    "#c:is_nether": {
+      "molten": 0.8,
+      "hostile": 0.9,
+      "dry": 0.8
+    },
+    "#c:is_end": {
+      "floating": 0.9,
+      "barren": 0.8,
+      "dark": 0.6
+    },
+    "#c:is_floral": {
+      "flowering": 1.0,
+      "colourful": 0.8
+    },
+    "#c:is_dead": {
+      "barren": 1.0,
+      "dark": 0.5
+    },
+    "#c:is_dense_vegetation": {
+      "lush": 1.0,
+      "grown": 0.9
+    },
+    "#c:is_sparse_vegetation": {
+      "barren": 0.6,
+      "dry": 0.4
+    },
+    "#c:is_dry": {
+      "dry": 0.9,
+      "barren": 0.4
+    },
+    "#c:is_wet": {
+      "lush": 0.5
+    }
+  }
+}

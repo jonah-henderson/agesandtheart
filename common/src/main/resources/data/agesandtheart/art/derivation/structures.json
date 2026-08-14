@@ -1,0 +1,36 @@
+{
+  "_comment": [
+    "A structure set is the structures in it, and those are what vanilla tags. Overridden per member by",
+    "art/preset_tags/structures.json.",
+    "Nothing here keys on an `on_*_maps` or `*_located` tag: each names one structure and says what an item",
+    "points at rather than what a thing is (the-tag-layer.md 1), so listing it by hand is honest and",
+    "deriving from it only looks clever."
+  ],
+  "by_tag": {
+    "#minecraft:village": {
+      "built": 1.0,
+      "inhabited": 1.0
+    },
+    "#minecraft:mineshaft": {
+      "built": 0.9,
+      "ruined": 0.8,
+      "cavernous": 1.0,
+      "buried": 0.8
+    },
+    "#minecraft:ocean_ruin": {
+      "built": 0.9,
+      "ruined": 1.0,
+      "watery": 0.9
+    },
+    "#minecraft:ruined_portal": {
+      "built": 0.8,
+      "ruined": 1.0,
+      "molten": 0.3
+    },
+    "#minecraft:shipwreck": {
+      "built": 0.8,
+      "ruined": 0.9,
+      "watery": 0.9
+    }
+  }
+}

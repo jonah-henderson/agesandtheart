@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.word.grammar
 
 import co.voik.agesandtheart.age.word.Vocabulary
+import co.voik.agesandtheart.age.word.Word
 import kotlin.random.Random
 
 /**
@@ -63,22 +64,24 @@ internal object Repair {
     }
 
     /**
-     * The Art's own sentence — **redrawn until it stops arguing with the writer**, or the first draw if
-     * every one of them does.
+     * The Art's own sentence — **the quietest draw, with anything still arguing taken back out**.
      *
-     * A skeleton describes a whole world, so its words carry tags like any others, and a tag that opposes
-     * one of the writer's is a contradiction they did not write, cannot see and cannot do anything about.
-     * [Filling.deferringToTheWriter] already refuses that within a clause; this is the same promise across
-     * the sentence, where it actually bites — a `sea` word and an `atmosphere` word are never in each
-     * other's clause and instability is read across the whole book.
+     * A skeleton describes a whole world, so its words carry tags like any others, and a word that
+     * contradicts one of the writer's is a contradiction they did not write, cannot see and cannot do
+     * anything about. [Filling.deferringToTheWriter] already refuses that within a clause; this is the same
+     * promise across the sentence, where it actually bites — a `sea` word and an `atmosphere` word are
+     * never in each other's clause and instability is read across the whole book.
+     *
+     * **Quietest rather than first quiet, and then pruned.** Taking the first candidate that argued about
+     * nothing threw away a skeleton right about everything but its sea, and fell back on one *known* to
+     * argue whenever all of them did — charging the writer for exactly what this promises they never pay
+     * for. Scoring keeps the best of a bad draw; [pruned] then drops the words still quarrelling, which is
+     * cheap where forcing them is not: a section with no modifiers is a legal section, and what a book does
+     * not say the **template** answers (world model §4).
      *
      * **Still deterministic**, which the whole class depends on: the candidates come from one seeded
      * sequence drawn off the pages, and the choice between them is a pure function of the words. No Age
      * seed is involved, so a book still reads the same wherever it is carried.
-     *
-     * Falling back to the first draw is deliberate. Repair must always produce *something* — a book that
-     * cannot be completed is the one failure §3.3 forbids — and a grammar with no quiet world in it for
-     * some word is a content bug, which `RepairCheck` fails the build over rather than papering here.
      */
     private fun drawn(vocabulary: Vocabulary, laid: List<Page>): List<Page> {
         val grammar = vocabulary.generation.grammar(GRAMMAR) ?: return emptyList()
@@ -87,16 +90,43 @@ internal object Repair {
         fun pagesOf(words: List<String>) =
             words.map { Grammar.classify(vocabulary, it, latent = true) }.filter { it.kind != null }
         val drawn = candidates.map(::pagesOf)
-        return drawn.firstOrNull { !argues(vocabulary, it, laid) } ?: drawn.first()
+        val quietest = drawn.minByOrNull { arguing(vocabulary, it, laid).size } ?: return emptyList()
+        return pruned(vocabulary, quietest, laid)
     }
 
-    /** Whether anything the Art drew wants the opposite of something the writer laid. */
-    private fun argues(vocabulary: Vocabulary, skeleton: List<Page>, laid: List<Page>): Boolean {
-        val written = laid.mapNotNull { it.word }.flatMap { it.wanted }.toSet()
-        if (written.isEmpty()) return false
-        return skeleton.mapNotNull { it.word }.any { drawn ->
-            drawn.wanted.any { wanted -> written.any { vocabulary.opposition(wanted, it) != null } }
+    /**
+     * The Art's own pages that contradict something the writer laid.
+     *
+     * **Asked of everything a word *may* do, not only what it always does.** A pool is drawn per Age
+     * (`Constraint.drawnAt`), so whether two words quarrel can depend on a seed repair does not have and
+     * must not have: `scorching` pools a murk band that argues with `clear`'s at some seeds and not others,
+     * and a repair that read only the core would promise quiet and deliver it two Ages in three. Repair
+     * therefore avoids what *could* argue, which is the only promise it can keep deterministically.
+     */
+    private fun arguing(vocabulary: Vocabulary, skeleton: List<Page>, laid: List<Page>): List<Page> {
+        fun asItMayLand(word: Word) = word.copy(sets = word.canSet)
+        val written = laid.mapNotNull { it.word }.map(::asItMayLand)
+        if (written.isEmpty()) return emptyList()
+        return skeleton.filter { page ->
+            val drawn = page.word?.let(::asItMayLand) ?: return@filter false
+            written.any { vocabulary.disagreement(drawn, it) != null }
         }
+    }
+
+    /**
+     * [skeleton] with each arguing page dropped, keeping only the drops the sentence still reads without.
+     *
+     * **By identity, not by value**: the same word may be drawn twice into different clauses, and only the
+     * one that quarrels should go. An aiming page is never dropped because it never argues — it says
+     * nothing itself, which is the whole of what makes it an aiming page.
+     */
+    private fun pruned(vocabulary: Vocabulary, skeleton: List<Page>, laid: List<Page>): List<Page> {
+        var kept = skeleton
+        for (page in arguing(vocabulary, skeleton, laid)) {
+            val without = kept.filterNot { it === page }
+            if (ArtReading.parse(without) != null) kept = without
+        }
+        return kept
     }
 
     /**

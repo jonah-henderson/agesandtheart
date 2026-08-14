@@ -4,6 +4,9 @@
     "landmass"
   ],
   "query": {
-    "strange": 1.0
+    "fungal": 0.7,
+    "glowing": 0.7,
+    "floating": 0.6,
+    "dark": 0.4
   }
 }

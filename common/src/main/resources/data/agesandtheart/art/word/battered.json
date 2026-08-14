@@ -5,7 +5,7 @@
   ],
   "query": {
     "eroded": 1.0,
-    "wild": 0.8,
+    "sheer": 0.5,
     "barren": 0.5,
     "ordered": -0.6
   },

@@ -391,9 +391,9 @@ class RecipeCheck : FunSpec({
             )
         val decoded = roundTrips(AgeRecipe(AgeWorld.Composed(uneven), seed = SAMPLE_SEED), "an uneven division")
         check(
-            decoded.composition?.sharesOf(Aspect.CARVERS) == listOf(Share.EVEN, A_QUARTER, A_SIXTEENTH),
+            decoded.composition?.spreadOf(Aspect.CARVERS)?.shares == listOf(Share.EVEN, A_QUARTER, A_SIXTEENTH),
         ) {
-            "the shares came back as ${decoded.composition?.sharesOf(Aspect.CARVERS)}"
+            "the shares came back as ${decoded.composition?.spreadOf(Aspect.CARVERS)?.shares}"
         }
 
         val spelling = uneven.toString()
@@ -406,9 +406,42 @@ class RecipeCheck : FunSpec({
         // every recipe written before shares existed — spelled exactly as it was.
         val even = AgeComposition(terrains = listOf(Terrain.HILLS, Terrain.PILLARS))
         check("@" !in even.toString()) { "an even division should not mention shares: '$even'" }
-        check(even.sharesOf(Aspect.TERRAIN) == listOf(Share.EVEN, Share.EVEN)) {
-            "an unmentioned division should be even, not ${even.sharesOf(Aspect.TERRAIN)}"
+        check(even.spreadOf(Aspect.TERRAIN).shares == listOf(Share.EVEN, Share.EVEN)) {
+            "an unmentioned division should be even, not ${even.spreadOf(Aspect.TERRAIN).shares}"
         }
+    }
+
+    /**
+     * A divided Age keeps the **form** of each boundary as well as the ground either side of it, through
+     * NBT and through its own spelling. It is a generation input like a share, and a lost one hands back a
+     * flat world where there was a cliff.
+     *
+     * Two boundaries at once, deliberately: they are per population now, so a spelling that named only the
+     * one it happened to walk first would pass a single-seam Age and lose the second.
+     */
+    test("the form of each boundary round-trips") {
+        val riven = AgeComposition(terrains = listOf(Terrain.HILLS, Terrain.PILLARS))
+            .withPresets(Aspect.CARVERS, listOf(Carvers.CAVES.key, Carvers.SOLID.key))
+            .withOptions(Aspect.TERRAIN, Spread.SEAM, listOf(Seam.RIFT.key))
+            .withOptions(Aspect.CARVERS, Spread.SEAM, listOf(Seam.FUZZED.key))
+        val decoded = roundTrips(AgeRecipe(AgeWorld.Composed(riven), seed = SAMPLE_SEED), "a riven Age")
+        check(decoded.composition?.spreadOf(Aspect.TERRAIN)?.seam == Seam.RIFT) {
+            "the rift came back as ${decoded.composition?.spreadOf(Aspect.TERRAIN)?.seam}"
+        }
+        check(decoded.composition?.spreadOf(Aspect.CARVERS)?.seam == Seam.FUZZED) {
+            "the fuzz came back as ${decoded.composition?.spreadOf(Aspect.CARVERS)?.seam}"
+        }
+
+        val spelling = riven.toString()
+        check("landmass.seam=rift" in spelling && "depths.seam=fuzzed" in spelling) {
+            "a riven Age spells its boundaries wrong: '$spelling'"
+        }
+        check(AgeComposition.parse(spelling).getOrThrow() == riven) { "'$spelling' does not read back as itself" }
+
+        // An undivided Age has no boundary and says nothing about one, so every recipe written before this
+        // is spelled exactly as it was.
+        val whole = AgeComposition(terrains = listOf(Terrain.HILLS))
+        check(Spread.SEAM !in whole.toString()) { "an undivided Age should mention no seam: '$whole'" }
     }
 
     /**
@@ -501,8 +534,7 @@ private val LEGACY_KINDS = listOf(
 )
 
 /** A character unlike the default in every field, so a lazy round trip cannot pass by accident. */
-private val SAMPLE_CHARACTER =
-    AgeCharacter(seam = Seam.FUZZED, alignment = Alignment.INDEPENDENT, regionBlocks = 1600)
+private val SAMPLE_CHARACTER = AgeCharacter(alignment = Alignment.INDEPENDENT, regionBlocks = 1600)
 
 /**
  * **A linking book carries the Age it points at, and it has to survive being written down** (design §9,

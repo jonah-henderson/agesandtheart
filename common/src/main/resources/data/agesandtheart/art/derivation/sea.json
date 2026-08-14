@@ -1,0 +1,19 @@
+{
+  "_comment": [
+    "What a block may be as a sea. Only a block some rule speaks to gets a profile at all, which is what",
+    "keeps the pool the handful a writer might mean rather than every block in the game.",
+    "Only tags for now: `lit` reached every torch in the game, which is not a sea anybody means."
+  ],
+  "by_tag": {
+    "#minecraft:ice": {
+      "frozen": 1.0,
+      "bright": 0.6,
+      "solid": 0.5
+    },
+    "#agesandtheart:molten": {
+      "molten": 1.0,
+      "hostile": 0.95,
+      "glowing": 0.9
+    }
+  }
+}

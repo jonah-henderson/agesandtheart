@@ -4,7 +4,7 @@
     "spawns"
   ],
   "query": {
-    "settled": 1.0,
-    "inhabited": 0.6
+    "inhabited": 1.0,
+    "built": 0.6
   }
 }

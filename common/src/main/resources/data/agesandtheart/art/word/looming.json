@@ -4,11 +4,10 @@
     "landmass"
   ],
   "query": {
-    "dramatic": 1.0,
+    "sheer": 1.0,
     "monumental": 0.7,
-    "sheer": 0.6,
-    "mountainous": 0.5,
-    "gentle": -0.7
+    "mountainous": 0.6,
+    "flat": -0.7
   },
   "sets": {
     "relief": "0.35..1.0"

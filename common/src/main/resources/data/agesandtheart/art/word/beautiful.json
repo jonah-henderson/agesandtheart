@@ -2,11 +2,12 @@
   "_comment": "Tags carry the broad strokes and reach biomes nobody here has heard of. The weights say what the tag set is too coarse for: a sunflower plain is lovely and no tag in the table says so, and a jungle is magnificent without being pretty.",
   "tier": "evocative",
   "query": {
-    "lovely": 1.0,
+    "colourful": 1.0,
     "lush": 0.9,
+    "flowering": 0.8,
     "bright": 0.6,
     "hostile": -0.8,
-    "gloomy": -0.4
+    "dark": -0.4
   },
   "weights": {
     "biomes": {

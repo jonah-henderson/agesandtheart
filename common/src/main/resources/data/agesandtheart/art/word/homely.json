@@ -1,10 +1,11 @@
 {
   "tier": "evocative",
   "query": {
-    "ordinary": 1.0,
-    "gentle": 0.8,
-    "lush": 0.4,
+    "inhabited": 0.8,
+    "flat": 0.8,
+    "lush": 0.6,
+    "grown": 0.4,
     "hostile": -0.8,
-    "strange": -0.5
+    "sheer": -0.5
   }
 }

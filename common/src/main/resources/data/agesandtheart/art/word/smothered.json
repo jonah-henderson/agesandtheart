@@ -1,7 +1,7 @@
 {
   "tier": "restrictive",
   "query": {
-    "gloomy": 1.0
+    "dark": 1.0
   },
   "sets": {
     "haze": "0.7..1.0",

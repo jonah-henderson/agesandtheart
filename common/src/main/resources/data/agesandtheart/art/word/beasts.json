@@ -1,0 +1,9 @@
+{
+  "_comment": [
+    "Every animal that is not hunting you -- what vanilla calls a creature. `herds` is the narrower word,",
+    "for the ones that graze."
+  ],
+  "tier": "restrictive",
+  "aspects": ["spawns"],
+  "query": { "fauna": 1.0 }
+}

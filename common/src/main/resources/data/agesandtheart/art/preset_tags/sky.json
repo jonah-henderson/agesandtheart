@@ -1,16 +1,12 @@
 {
   "plain": {
     "tags": {
-      "ordinary": 0.9,
-      "bright": 0.7,
-      "gentle": 0.5
+      "bright": 0.7
     }
   },
   "storm": {
     "tags": {
-      "gloomy": 0.9,
-      "dramatic": 0.8,
-      "wild": 0.5,
+      "dark": 0.9,
       "hostile": 0.2
     }
   }

@@ -48,10 +48,16 @@ class VocabularyCheck : FunSpec({
      * Two ways to fail, told apart: a word asking for a tag nothing carries, and a word about an aspect
      * whose presets do not carry its tag *at its own tier's strictness* — the subtler one, the tag and the
      * aspect both being real.
+     *
+     * **A tag only a bound registry tag can grant is exempt**, because this corpus has none bound: `ore`
+     * is what `#minecraft:diamond_ores` says and nothing offline can know it. Asserting otherwise would be
+     * asserting against a corpus the game never sees — `VocabularyOnServerCheck` holds that half, which is
+     * the split `notes/the-tag-layer.md` §4 sets out.
      */
     test("every word is backed by the world") {
+        val onlyAServerKnows = vocabulary.tagsOnlyAServerGrants
         for (word in vocabulary.words) {
-            val unknownTags = word.wanted - vocabulary.carriedTags
+            val unknownTags = word.wanted - vocabulary.carriedTags - onlyAServerKnows
             check(unknownTags.isEmpty()) {
                 "'${word.name}' asks for ${unknownTags.joinToString(" ")}, which nothing in the world carries"
             }
@@ -129,6 +135,10 @@ class VocabularyCheck : FunSpec({
                 // anything answering it *either way*, since a word about a population may be entirely
                 // negative and still be about it.
                 if (aspect.holds == Holds.WEIGHTED_SET) {
+                    // Unless the only thing it asks for is a tag no offline corpus can carry — see above.
+                    val onlyAServerCouldAnswer = word.wanted.isNotEmpty() &&
+                        word.wanted.all(onlyAServerKnows::contains)
+                    if (onlyAServerCouldAnswer) continue
                     check(vocabulary.answersIn(word, aspect)) {
                         "'${word.name}' is ${word.tier.key} about ${aspect.key}, and nothing there answers " +
                             "${word.query.keys.joinToString(" ")} at all"

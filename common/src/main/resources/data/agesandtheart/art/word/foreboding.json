@@ -1,9 +1,9 @@
 {
   "tier": "evocative",
   "query": {
-    "gloomy": 1.0,
+    "dark": 1.0,
     "hostile": 0.7,
-    "strange": 0.3,
-    "bright": -0.6
+    "bright": -0.6,
+    "flowering": -0.4
   }
 }

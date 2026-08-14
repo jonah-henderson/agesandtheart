@@ -79,6 +79,19 @@ data class ClimateBias(private val byAxis: Map<ClimateAxis, Span> = emptyMap()) 
     companion object {
         val NONE = ClimateBias()
 
+        /**
+         * The bias one climate territory's [options] describe — how a stored member becomes a read one.
+         *
+         * **A climate territory is its options and nothing else.** Its answer is a span per axis, which is
+         * what an option already is (`temperature=-0.3..0.3`), so the composition stores one exactly as it
+         * stores every other described member and this is the whole of the reading back.
+         */
+        fun of(options: co.voik.agesandtheart.age.aspect.Options): ClimateBias =
+            ClimateAxis.entries.fold(NONE) { bias, axis ->
+                val span = Span.read(options.of(axis.parameter))
+                if (span == null || span == Span.NATURAL) bias else bias.bounding(axis, span)
+            }
+
         /** The axis [name] spells, or null where it names none — `AgeComposition.parse`'s entry point. */
         fun axisNamed(name: String): ClimateAxis? = ClimateAxis.entries.firstOrNull { it.key == name }
 

@@ -5,7 +5,8 @@
   "mixins": [
     "LightningBoltMixin",
     "ServerLevelMixin",
-    "ServerPlayerMixin"
+    "ServerPlayerMixin",
+    "SpawnerDataMixin"
   ],
   "client": [
     "client.LevelRendererMixin"

@@ -2,7 +2,7 @@
   "tier": "restrictive",
   "query": {
     "barren": 0.8,
-    "gloomy": 0.6
+    "dark": 0.6
   },
   "sets": {
     "sky": "grey",

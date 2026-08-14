@@ -4,16 +4,14 @@
     "tags": {
       "empty": 1.0,
       "barren": 0.3,
-      "gloomy": 0.2,
+      "dark": 0.2,
       "solid": 0.2
     }
   },
   "minecraft:water": {
     "tags": {
       "watery": 1.0,
-      "ordinary": 0.7,
-      "gentle": 0.4,
-      "lovely": 0.3
+      "aquatic": 0.6
     }
   },
   "minecraft:lava": {
@@ -21,7 +19,7 @@
     "tags": {
       "molten": 1.0,
       "hostile": 0.95,
-      "dramatic": 0.6,
+      "glowing": 0.9,
       "bright": 0.4,
       "dry": 0.3
     }

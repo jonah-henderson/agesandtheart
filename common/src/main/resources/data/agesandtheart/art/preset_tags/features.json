@@ -1,74 +1,144 @@
 {
   "minecraft:ore_diamond": {
-    "tags": { "grown": 0.2, "buried": 1.0, "precious": 1.0, "hostile": 0.3 }
+    "tags": {
+      "hostile": 0.3
+    }
   },
   "minecraft:ore_emerald": {
-    "tags": { "grown": 0.2, "buried": 1.0, "precious": 0.9, "mountainous": 0.5 }
-  },
-  "minecraft:ore_gold": {
-    "tags": { "grown": 0.2, "buried": 1.0, "precious": 0.8 }
-  },
-  "minecraft:ore_iron_upper": {
-    "tags": { "grown": 0.2, "buried": 1.0, "ordinary": 0.8, "precious": 0.3 }
-  },
-  "minecraft:ore_coal_upper": {
-    "tags": { "grown": 0.2, "buried": 1.0, "ordinary": 0.9 }
-  },
-  "minecraft:ore_copper": {
-    "tags": { "grown": 0.2, "buried": 1.0, "ordinary": 0.7, "precious": 0.3 }
-  },
-  "minecraft:ore_lapis": {
-    "tags": { "grown": 0.2, "buried": 1.0, "precious": 0.6, "strange": 0.4 }
+    "tags": {
+      "mountainous": 0.5
+    }
   },
   "minecraft:flower_meadow": {
-    "tags": { "grown": 1.0, "lovely": 1.0, "lush": 0.7, "bright": 0.8 }
+    "tags": {
+      "flowering": 1.0,
+      "grown": 1.0,
+      "undergrowth": 1.0,
+      "bright": 0.8,
+      "colourful": 0.8,
+      "lush": 0.7
+    }
   },
   "minecraft:flower_default": {
-    "tags": { "grown": 1.0, "lovely": 0.8, "lush": 0.6, "bright": 0.6 }
+    "tags": {
+      "grown": 1.0,
+      "undergrowth": 1.0,
+      "flowering": 0.9,
+      "bright": 0.6,
+      "colourful": 0.6,
+      "lush": 0.6
+    }
   },
   "minecraft:patch_sugar_cane": {
-    "tags": { "grown": 1.0, "lush": 0.7, "watery": 0.6 }
+    "tags": {
+      "grown": 1.0,
+      "undergrowth": 1.0,
+      "lush": 0.7,
+      "watery": 0.6
+    }
   },
   "minecraft:patch_pumpkin": {
-    "tags": { "grown": 1.0, "lush": 0.5, "ordinary": 0.6 }
+    "tags": {
+      "grown": 1.0,
+      "undergrowth": 1.0,
+      "lush": 0.5
+    }
   },
   "minecraft:trees_plains": {
-    "tags": { "grown": 1.0, "wooded": 1.0, "lush": 0.7, "ordinary": 0.8 }
+    "tags": {
+      "grown": 1.0,
+      "wooded": 1.0,
+      "lush": 0.7
+    }
   },
   "minecraft:trees_birch": {
-    "tags": { "grown": 1.0, "wooded": 1.0, "lovely": 0.6, "bright": 0.7 }
+    "tags": {
+      "grown": 1.0,
+      "wooded": 1.0,
+      "bright": 0.7
+    }
   },
   "minecraft:dark_forest_vegetation": {
-    "tags": { "grown": 1.0, "wooded": 1.0, "gloomy": 0.8, "lush": 0.6 }
+    "tags": {
+      "grown": 1.0,
+      "wooded": 1.0,
+      "dark": 0.8,
+      "lush": 0.6
+    }
   },
   "minecraft:mushroom_island_vegetation": {
-    "tags": { "grown": 1.0, "strange": 1.0, "lush": 0.5 }
+    "tags": {
+      "fungal": 1.0,
+      "grown": 1.0,
+      "undergrowth": 1.0,
+      "lush": 0.5
+    }
   },
   "minecraft:patch_cactus": {
-    "tags": { "grown": 1.0, "dry": 1.0, "barren": 0.7, "hostile": 0.4 }
+    "tags": {
+      "dry": 1.0,
+      "grown": 1.0,
+      "undergrowth": 1.0,
+      "barren": 0.7,
+      "hostile": 0.4
+    }
   },
   "minecraft:patch_dead_bush": {
-    "tags": { "grown": 0.8, "dry": 1.0, "barren": 1.0 }
+    "tags": {
+      "barren": 1.0,
+      "dry": 1.0,
+      "grown": 0.8,
+      "undergrowth": 0.8
+    }
   },
   "minecraft:lake_lava_surface": {
-    "tags": { "molten": 1.0, "hostile": 0.9, "dramatic": 0.5 }
+    "tags": {
+      "molten": 1.0,
+      "hostile": 0.9,
+      "glowing": 0.7
+    }
   },
   "minecraft:spring_lava": {
-    "tags": { "molten": 0.9, "hostile": 0.7, "buried": 0.6 }
+    "tags": {
+      "molten": 0.9,
+      "hostile": 0.7,
+      "buried": 0.6,
+      "glowing": 0.5
+    }
   },
   "minecraft:spring_water": {
-    "tags": { "watery": 0.9, "buried": 0.6, "ordinary": 0.5 }
+    "tags": {
+      "watery": 0.9,
+      "buried": 0.6
+    }
   },
   "minecraft:blue_ice": {
-    "tags": { "frozen": 1.0, "bright": 0.5, "strange": 0.3 }
+    "tags": {
+      "frozen": 1.0,
+      "bright": 0.5,
+      "colourful": 0.4
+    }
   },
   "minecraft:ice_spike": {
-    "tags": { "frozen": 1.0, "dramatic": 0.7, "strange": 0.5 }
+    "tags": {
+      "frozen": 1.0,
+      "sheer": 0.8
+    }
   },
   "minecraft:glow_lichen": {
-    "tags": { "grown": 0.8, "cavernous": 0.9, "gloomy": 0.6, "strange": 0.4 }
+    "tags": {
+      "cavernous": 0.9,
+      "glowing": 0.8,
+      "grown": 0.8,
+      "undergrowth": 0.8,
+      "dark": 0.6
+    }
   },
   "minecraft:sculk_patch_deep_dark": {
-    "tags": { "gloomy": 1.0, "hostile": 0.9, "strange": 0.8, "cavernous": 0.7 }
+    "tags": {
+      "dark": 1.0,
+      "hostile": 0.9,
+      "cavernous": 0.7
+    }
   }
 }

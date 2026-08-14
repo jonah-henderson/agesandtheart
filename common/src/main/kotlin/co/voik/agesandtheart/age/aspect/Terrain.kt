@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.age.aspect
 
-import co.voik.agesandtheart.age.Seam
 import co.voik.agesandtheart.worldgen.AlpsField
 import co.voik.agesandtheart.worldgen.CanyonField
 import co.voik.agesandtheart.worldgen.CanyonlandsField
@@ -220,7 +219,6 @@ enum class Terrain(
             UNDERGROUND.takeIf { undergroundCeiling() != null },
             STONE,
             MINGLING,
-            SEAM,
         )
 
     /**
@@ -387,17 +385,6 @@ enum class Terrain(
     }
 
     /**
-     * Which form the faults along this Age's seams take — see [SEAM]. [drawn] is the Age's own character,
-     * and the answer unless a recipe pinned one over it. A pin naming nothing this version understands
-     * falls back to the draw, so a dropped token cannot silently flatten an Age's geology.
-     */
-    fun seamIn(options: Options, drawn: Seam): Seam {
-        val pinned = options.of(SEAM)
-        if (pinned == SEAM_AS_DRAWN) return drawn
-        return Seam.named(pinned) ?: drawn
-    }
-
-    /**
      * What this terrain is made of — the blocks the fill lays over its own territory, or empty for plain
      * stone. The fill's business rather than a surface rule's, so it sits *under* vanilla's tree and
      * vanilla paints grass on top of whatever we laid (see [TerrainFill]).
@@ -503,20 +490,6 @@ enum class Terrain(
 
         /** Where mingling sits when nothing said: blotches, which is what an unremarked mixture looks like. */
         private const val PATCHY = 0.0
-
-        /**
-         * Which form the faults along this Age's seams take, overriding what its character drew (§3.4).
-         * Exists so all four forms are walkable — an Age's seam is otherwise invisible until chance
-         * produces one. `sheared` asks for no fault at all.
-         *
-         * Age-wide despite living on a per-territory aspect, and read from the first territory like
-         * `Sea.DEPTH`: a seam belongs to the boundary rather than to either side, so "riven here and whole
-         * there" is not something it could mean.
-         */
-        val SEAM = Parameter("seam", SEAM_AS_DRAWN, "sheared", "scarp", "rift", "fuzzed")
-
-        /** What [SEAM] reads as when nobody overrode the draw: whatever the Age's character carries. */
-        const val SEAM_AS_DRAWN = "drawn"
 
         /**
          * The height a column in [ALPS] reads as fully a summit at — around the crest rather than above the

@@ -1,15 +1,19 @@
-# Phase 4.5 step 9 acceptance: a seam is a fault you can walk to, and an Age that has no seam must not have
-# moved a block. Run with: scripts/drive-server.sh scripts/checks/faults.txt
+# A seam is a fault you can walk to, and an Age that has no seam must not have moved a block.
+# Run with: scripts/drive-server.sh scripts/checks/faults.txt
 #
-# **Mostly read, partly asserted.** The must-not-move control below carries `#?` expectations and will fail
-# the run on its own; everything after it is a number to read, because what those groups are about is how a
-# seam *looks*, and no bound expresses that. What to look for is noted against each group. The offline half
-# is `FaultCheck` (thirteen properties) and `:common:preview --args=fault|rift|fuzz` (the pictures); this is
-# the half that needs a world.
+# **Read, not asserted, and that is the standing decision** (Jonah, 2026-08-13). A fault moves a swathe of
+# landscape and two Ages of one recipe do not generate identically, so a block-count bound cannot tell one
+# from the other — the automated version of the group below failed on a different form with a different
+# count on each run. What each group is about is how a seam *looks*, and no bound expresses that. What to
+# look for is noted against each. The offline half is `FaultCheck` (fifteen properties, where the reading is
+# exact) and `:common:preview --args=fault|rift|fuzz` (the pictures); this is the half that needs a world.
 #
-# A seam takes one of FOUR forms, drawn per Age into its character: rift 40%, scarp 40%, sheared 15%,
-# fuzzed 5% (design 3.4). `landmass.seam=` pins one, which is the only way to see a given form on purpose —
-# an Age's own seam is invisible, since nothing prints it.
+# A seam takes one of FIVE forms, drawn per divided population: scarp 30%, rift 30%, wall 20%, sheared 15%,
+# fuzzed 5% (design 3.4, world model 2). `landmass.seam=` asks for one, which is how a given form is seen on
+# purpose rather than waited for. Every spatial aspect has a seam of its own now (`depths.seam=`, `sea.seam=`,
+# `climate.seam=`), only the landmass is ever drawn a form that moves rock — there is nothing for a sea to
+# displace — and **a drawn form is now printed**: `age compose` and `age list` both spell it, so which form
+# an Age drew is readable instead of guessed at.
 #
 # ►► READ THE COMPARE RADIUS BEFORE READING ANY NUMBER HERE. A territory runs about 400 blocks
 # (`BiomeScale.DEFAULT_REGION_BLOCKS`), and `age compare <a> <b> <radius>` samples a square of `2*radius+1`
@@ -20,7 +24,7 @@
 #
 # The scarp is the exception: it displaces whole territories, so it shows at any radius.
 
-# --- The property the step is accepted against: one territory must not move -----------------------
+# --- The property this is all accepted against: one territory must not move -----------------------
 # Same seed, same terrain, and one of them pinning a form that has no seam to run along. `Fault.of` and
 # `Rift.opened` both refuse a one-member map, so these are the *same* generation — which makes the comparison
 # a self-comparison control in the sense generator-parity.txt describes.
@@ -37,34 +41,35 @@ age compose lonerift 4242 landmass=hills sea=water landmass.seam=rift
 age gen lonelevel
 age gen lonescarp
 age gen lonerift
-# **The step's acceptance criterion, as an assertion.** A one-territory Age has no seam, so a fault asked
-# for in one must build no node at all — `FaultCheck`'s "an unasked fault leaves the shape alone" proves
-# that of the field tree offline, and this is the same claim measured in a world.
+# A one-territory Age has no seam, so a fault asked for in one must build no node at all —
+# `FaultCheck`'s "a single territory cannot fault" and "an unasked fault leaves the shape alone" prove that
+# of the field tree offline, and these two numbers are the same claim looked at in a world.
 #
-# The ceiling is set where the two outcomes cannot be confused rather than at the measurement. Decoration
-# noise at radius 2 runs to tens of blocks (generator-parity.txt has the control numbers); a whole-world
-# throw of 32 moves every column in all 25 chunks, which is hundreds of thousands. Nothing lands between.
-#? at-most 2000 block\(s\) differ
+# EXPECT the ordinary control band — a few thousand blocks under load, hundreds on a quiet server
+# (generator-parity.txt has the numbers). A whole-world throw of 32 moves every column in all 25 chunks,
+# hundreds of thousands, so what you are looking for is "nothing like a fault" rather than a bound.
 age compare lonelevel lonescarp 2
-#? at-most 2000 block\(s\) differ
 age compare lonelevel lonerift 2
 
-# --- The four forms on one pair of territories, against their own control -------------------------
+# --- The five forms on one pair of territories, against their own control -------------------------
 # Two territories of the SAME terrain, so the form is the only thing that differs between the sides and the
 # seam is invisible without one. `sheared` is the control: ordinary hills all the way across.
 #
 # EXPECT: `sheared` to read as one landscape. `scarp` to have a 64-block cliff wandering through it, and its
 # origin surface to sit 32 above or below `sheared`'s depending which side the origin fell on. `rift` to have
-# a flooded chasm along the seam. `fuzzed` to be nearly indistinguishable from `sheared` — the two sides are
-# the same shape, and interlocking a shape with itself reproduces it. That last is expected, not a bug; see
-# the `mixed` group below for a fuzz that shows.
+# a flooded chasm along the seam. `wall` to have a tapered jagged wall standing between two level sides.
+# `fuzzed` to be nearly indistinguishable from `sheared` — the two sides are the same shape, and interlocking
+# a shape with itself reproduces it. That last is expected, not a bug; see the `mixed` group below for a fuzz
+# that shows.
 age compose seamsheared 4242 landmass=hills,hills sea=water landmass.seam=sheared
 age compose seamscarp 4242 landmass=hills,hills sea=water landmass.seam=scarp
 age compose seamrift 4242 landmass=hills,hills sea=water landmass.seam=rift
+age compose seamwall 4242 landmass=hills,hills sea=water landmass.seam=wall
 age compose seamfuzzed 4242 landmass=hills,hills sea=water landmass.seam=fuzzed
 age gen seamsheared
 age gen seamscarp
 age gen seamrift
+age gen seamwall
 age gen seamfuzzed
 # EXPECT LARGE — most chunks differing is the feature, not a regression. A scarp displaces whole territories,
 # so radius 2 is enough to see it.
@@ -72,6 +77,7 @@ age compare seamsheared seamscarp 2
 # Radius 8, or the sample never reaches a seam and a working rift reads as no rift at all (measured: 51 blocks
 # at radius 2, which is the control band).
 age compare seamsheared seamrift 8
+age compare seamsheared seamwall 8
 # EXPECT the control band even at radius 8: a fuzz between two IDENTICAL shapes has nothing to interlock, so
 # it does nothing. Read this against `mixedfuzzed` below, which is the same form with something to dissolve.
 age compare seamsheared seamfuzzed 8
@@ -111,8 +117,8 @@ age compare mixedsheared mixedrift 8
 # contain both displacements; a fuzz at 5% probably will not appear and that is the point of it.
 #
 # EXPECT each to generate, and their origin surfaces to differ from one another in ways only the drawn form
-# explains. There is no way to tell from the output WHICH form an Age drew — that gap is real and noted in the
-# design; the pinned Ages above are how a form is examined deliberately.
+# explains — and the `age list` at the end names the form each of them drew, so read that first and then go
+# and look at the one it names.
 age compose drawnA 1 landmass=hills,pillars sea=water
 age compose drawnB 2 landmass=hills,pillars sea=water
 age compose drawnC 3 landmass=hills,pillars sea=water

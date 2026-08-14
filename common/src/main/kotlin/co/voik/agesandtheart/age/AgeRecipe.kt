@@ -79,7 +79,7 @@ data class AgeRecipe(
          * Bumped by hand whenever a change to generation would make the same recipe produce different
          * terrain. What moved at each version: `notes/generator-versions.md`.
          */
-        const val CURRENT_GENERATOR_VERSION = 24
+        const val CURRENT_GENERATOR_VERSION = 25
 
         val MAP_CODEC: MapCodec<AgeRecipe> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
@@ -126,11 +126,11 @@ data class AgeRecipe(
 
         /** A fresh recipe, with its character drawn from [seed] and the world [server] is running. */
         fun written(server: MinecraftServer, world: AgeWorld, seed: Long): AgeRecipe =
-            AgeRecipe(world, seed, AgeCharacter.drawn(server, seed), writtenAt = server.overworld().gameTime)
+            AgeRecipe(seamed(world, seed), seed, AgeCharacter.drawn(server, seed), writtenAt = server.overworld().gameTime)
 
         /** A fresh recipe for an Age somebody wrote: the resolved composition, plus words and instability. */
         fun written(server: MinecraftServer, resolution: Resolution, seed: Long): AgeRecipe = AgeRecipe(
-            AgeWorld.Composed(resolution.composition),
+            seamed(AgeWorld.Composed(resolution.composition), seed),
             seed,
             AgeCharacter.drawn(server, seed),
             resolution.instability,
@@ -138,6 +138,16 @@ data class AgeRecipe(
             writtenAt = server.overworld().gameTime,
             template = resolution.template,
         )
+
+        /**
+         * [world] with a form drawn for every boundary it has one — see [AgeComposition.seamed]. Here
+         * rather than in the resolver, because a hand-composed Age has boundaries too and a bespoke world
+         * has none to draw.
+         */
+        private fun seamed(world: AgeWorld, seed: Long): AgeWorld = when (world) {
+            is AgeWorld.Composed -> AgeWorld.Composed(world.composition.seamed(seed))
+            is AgeWorld.Bespoke -> world
+        }
 
         /** An Age from before an Age had an age — read as having been written when the world began. */
         const val UNRECORDED = 0L

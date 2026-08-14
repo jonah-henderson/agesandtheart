@@ -14,11 +14,7 @@
     },
     {
       "first": "bright",
-      "second": "gloomy"
-    },
-    {
-      "first": "ordered",
-      "second": "wild"
+      "second": "dark"
     },
     {
       "first": "watery",
@@ -37,29 +33,13 @@
       "second": "empty"
     },
     {
-      "first": "ordinary",
-      "second": "strange"
-    },
-    {
       "first": "floating",
       "second": "solid"
-    },
-    {
-      "first": "gentle",
-      "second": "hostile"
-    },
-    {
-      "first": "lovely",
-      "second": "hostile"
     },
     {
       "first": "cavernous",
       "second": "solid",
       "severity": 2
-    },
-    {
-      "first": "gentle",
-      "second": "dramatic"
     }
   ]
 }

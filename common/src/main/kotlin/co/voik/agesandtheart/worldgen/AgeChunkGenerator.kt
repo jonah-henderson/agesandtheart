@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.worldgen
 
+import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.Spans
 import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
@@ -155,8 +156,7 @@ class AgeChunkGenerator(
      * **Not serialised**, like the feature policy beside it and for the same reason: a recipe holds data
      * and this is code, rebuilt from the Age's claims on every open.
      */
-    private val lives: ((Identifier?, WeightedList<MobSpawnSettings.SpawnerData>) ->
-    WeightedList<MobSpawnSettings.SpawnerData>)? = null,
+    private val lives: Spawns.Living? = null,
     /**
      * How many wounds open per chunk (design §5.1, §5.0) — an **expected count**, so a half is half the
      * chunks getting one and a hundred is a hundred in every chunk.
@@ -275,7 +275,22 @@ class AgeChunkGenerator(
         at: BlockPos,
     ): WeightedList<MobSpawnSettings.SpawnerData> {
         val offered = super.getMobsAt(biome, structures, category, at)
-        return lives?.invoke(biome.unwrapKey().orElse(null)?.identifier(), offered) ?: offered
+        val living = lives ?: return offered
+        return living.at(biome.unwrapKey().orElse(null)?.identifier(), category, skyIsOpenAt(at), at, offered)
+    }
+
+    /**
+     * Whether an attempt at [at] is happening out under the sky rather than inside the rock — the gate for
+     * the creatures vanilla never spawns and so never wrote a placement rule for (see `Spawning`).
+     *
+     * Asked of the Age's **own field** rather than of the level, which `getMobsAt` is not given: the shape
+     * already knows where its ground stops, and it is the same answer `getBaseHeight` gives a structure.
+     * An Age wearing vanilla's rock has no field of ours, and vanilla's own rules are the only ones there.
+     */
+    private fun skyIsOpenAt(at: BlockPos): Boolean {
+        if (rockIsVanillas) return true
+        val highestRock = field.columnSpans(at.x, at.z).highestSolidY ?: return true
+        return at.y > highestRock
     }
 
     /** The same generator with one carving everywhere — what a Tier-B preset means. */

@@ -27,6 +27,7 @@ import co.voik.agesandtheart.age.word.LearnedWordsPayload
 import co.voik.agesandtheart.age.word.learnedWords
 import co.voik.agesandtheart.platform.Services
 import net.minecraft.commands.SharedSuggestionProvider
+import co.voik.agesandtheart.age.word.Tier
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.generation.TerminalKind
 import co.voik.agesandtheart.age.word.grammar.Grammar
@@ -130,6 +131,10 @@ object AgeCommand {
     private const val SPECIFICATION_ARGUMENT = "spec"
     private const val SENTENCE_ARGUMENT = "words"
 
+    /** `/age tags <aspect> [tag]`. */
+    private const val ASPECT_ARGUMENT = "aspect"
+    private const val TAG_ARGUMENT = "tag"
+
     /** The other half of the corpus: one word per block in the pack, and all of them materials. */
     private const val DERIVED_LITERAL = "derived"
 
@@ -217,6 +222,7 @@ object AgeCommand {
                 .then(composeSubcommand())
                 .then(writeSubcommand())
                 .then(vocabularySubcommand())
+                .then(tagsSubcommand())
                 .then(pagesSubcommand())
                 .then(forgetSubcommand())
                 .then(weatherSubcommand())
@@ -314,6 +320,76 @@ object AgeCommand {
                 Commands.literal(Report.STRUCTURED_LITERAL)
                     .executes { context -> runVocabulary(context, Report.structured(context.source)) },
             )
+
+    /**
+     * `/age tags <aspect> [tag]` — **what a vague word can actually find**, member by member.
+     *
+     * The instrument the tag pass needed and did not have (`notes/the-tag-layer.md` §7). Reading the rules
+     * says what they were meant to claim; only asking a tag what carries it says what they do — and half
+     * the layer is vanilla's own tags, which are bound on a server and nowhere else, so this is the one
+     * place the whole picture exists.
+     */
+    private fun tagsSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        reporting("tags") { reportFor ->
+            Commands.argument(ASPECT_ARGUMENT, StringArgumentType.word())
+                .suggests { _, builder ->
+                    SharedSuggestionProvider.suggest(Aspect.entries.map { it.key }, builder)
+                }
+                .executes { context -> runTags(context, tag = null, report = reportFor(context)) }
+                .then(
+                    Commands.argument(TAG_ARGUMENT, StringArgumentType.word())
+                        .suggests { context, builder ->
+                            SharedSuggestionProvider.suggest(
+                                Vocabulary.of(context.source.server).carriedTags.sorted(),
+                                builder,
+                            )
+                        }
+                        .executes { context ->
+                            runTags(context, StringArgumentType.getString(context, TAG_ARGUMENT), reportFor(context))
+                        },
+                )
+        }
+
+    /**
+     * Every tag one aspect's members carry, or every member carrying one tag — the second being what a
+     * hand-tuning pass reads.
+     *
+     * **Weights and all**, because a tag at a sixth and a tag at nine tenths are what the tiers tell apart,
+     * and a member sitting just over a threshold is exactly the sort of thing worth seeing.
+     */
+    private fun runTags(context: CommandContext<CommandSourceStack>, tag: String?, report: Report): Int {
+        val source = context.source
+        val named = StringArgumentType.getString(context, ASPECT_ARGUMENT)
+        val aspect = Aspect.entries.firstOrNull { it.key == named }
+            ?: return report.fail("No aspect called '$named'. Try: ${Aspect.entries.joinToString(" ") { it.key }}")
+        val vocabulary = Vocabulary.of(source.server)
+        val reachable = vocabulary.askableIn(aspect)
+        report.fact("aspect", aspect.key) { "${aspect.key}: ${reachable.size} reachable by description." }
+        if (tag == null) {
+            val counted = reachable.flatMap { vocabulary.tagsOf(it).keys }.groupingBy { it }.eachCount()
+            for ((carried, many) in counted.entries.sortedByDescending { it.value }) {
+                report.entry("tags", mapOf("tag" to carried, "carriers" to many)) { "  $carried — $many" }
+            }
+            report.finish()
+            return SUCCESS
+        }
+        val carrying = reachable.mapNotNull { preset ->
+            vocabulary.tagsOf(preset)[tag]?.let { preset to it }
+        }.sortedByDescending { it.second }
+        // **Two numbers, because only one of them is what a word finds.** Anything above nothing is
+        // carried; only what clears a restrictive word's threshold is *reachable* by one, and a tail of
+        // tenth-weight carriers otherwise reads as coverage it is not.
+        val found = carrying.count { it.second >= Tier.RESTRICTIVE.threshold }
+        report.fact("carriers", carrying.size) { "'$tag' is carried by ${carrying.size} of them:" }
+        report.fact("found", found) { "  $found of those a restrictive word would keep." }
+        for ((preset, weight) in carrying) {
+            report.entry("carrying", mapOf("member" to preset.key, "weight" to weight)) {
+                "  %-44s %.2f".format(preset.key, weight)
+            }
+        }
+        report.finish()
+        return SUCCESS
+    }
 
     private fun teleportSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("tp")
@@ -1053,6 +1129,16 @@ object AgeCommand {
         if (structural.isNotEmpty()) {
             report.say { "${structural.size} structural: ${structural.joinToString(" ") { it.name }}" }
         }
+        // **What a vague word can actually reach**, per aspect — the tag layer measured where its tags are
+        // bound, which offline is exactly where they are not (`notes/the-tag-layer.md` §4). A pool far
+        // larger than the hand-authored table is the derivation having fired.
+        for (aspect in Aspect.entries) {
+            val reachable = vocabulary.askableIn(aspect).size
+            if (reachable == 0) continue
+            report.entry("reach", mapOf("aspect" to aspect.key, "reachable" to reachable)) {
+                "  ${aspect.key}: $reachable reachable by description"
+            }
+        }
         // Per namespace, which says at a glance whether a mod's content reached the vocabulary (§8).
         val derivedByPack = vocabulary.words.filter { it.id.namespace != Constants.MOD_ID }
             .groupingBy { it.id.namespace }.eachCount().entries.sortedByDescending { it.value }
@@ -1490,7 +1576,7 @@ object AgeCommand {
             return FAILURE
         }
 
-        val map = recipe.character.mapFor(Aspect.TERRAIN, composition.sharesOf(Aspect.TERRAIN), recipe.seed)
+        val map = recipe.character.mapFor(Aspect.TERRAIN, composition.spreadOf(Aspect.TERRAIN), recipe.seed)
         val from = BlockPos.containing(source.position)
         val found = nearestColumnOf(map, member, from.x, from.z)
         if (found == null) {

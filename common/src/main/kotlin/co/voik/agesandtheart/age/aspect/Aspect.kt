@@ -201,6 +201,17 @@ enum class Aspect(val key: String) : StringRepresentable {
     val seatsNothing: Boolean get() = holds != Holds.CATALOGUE
 
     /**
+     * Whether this aspect's members are **described into being** rather than drawn from a pool — so what a
+     * composition stores for it *is* the roll, one entry per member (`the-world-model.md` §2).
+     *
+     * A population is the obvious case: a sun exists because somebody wrote one. A **climate** is the same
+     * shape and was long treated as its own — it seats no preset and it divides, so its territories can
+     * only be the entries themselves, each holding a span per axis. Said as a question about shape rather
+     * than about which aspect this is, five branches asking `aspect == CLIMATE` stopped being needed.
+     */
+    val membersAreDescribed: Boolean get() = holds == Holds.POPULATION || (spatial && seatsNothing)
+
+    /**
      * The preset this aspect means by [key], or null where the key names nothing it can hold — the single
      * place a key becomes a preset. An open aspect accepts an id it has never heard of and complains
      * later, where the missing content bites.
@@ -251,14 +262,18 @@ enum class Aspect(val key: String) : StringRepresentable {
         }
 
     /**
-     * Whether this aspect is answered per column rather than once for the whole world (design §3.4). A
-     * positional aspect can satisfy a contradiction by coexistence; a singular one has nowhere to put a
-     * second answer, which is where the harsher registers of instability earn their place.
+     * Whether an answer here may be **laid across the map** rather than held everywhere at once — whether
+     * this aspect's population is spatial (`the-world-model.md` §2).
+     *
+     * A spatial population satisfies a contradiction by holding each claim somewhere; a singular one has
+     * nowhere to put a second answer, so one is displaced and charged for (§8). It needs two things a plain
+     * population does not, and `Spread` is both: how much ground each member covers, and what the boundary
+     * between them looks like.
      *
      * Two claims, not one: a sky *cannot* divide (a world has one sky over it), where structures *need
      * not* (vanilla places each set against the whole dimension, its biome predicates doing the rest).
      */
-    val positional: Boolean
+    val spatial: Boolean
         get() = when (this) {
             // Climate divides for a reason the others do not: not two presets that could not be reconciled,
             // but two words bounding one axis to stretches that do not overlap — a fracture at the

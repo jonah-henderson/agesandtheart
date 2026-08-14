@@ -6,7 +6,9 @@ import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import net.minecraft.util.random.Weighted
 import net.minecraft.util.random.WeightedList
+import net.minecraft.core.BlockPos
 import net.minecraft.world.entity.EntityType
+import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.level.biome.MobSpawnSettings
 
 /**
@@ -66,14 +68,22 @@ private fun aMeadow(): WeightedList<MobSpawnSettings.SpawnerData> {
     )
 }
 
-/** The list [claims] leaves, where a claim is spelled as a recipe holds it. */
+/**
+ * The list [claims] leaves, where a claim is spelled as a recipe holds it.
+ *
+ * Asked of the **creature** pass with the sky closed, which is what the meadow below holds and what keeps
+ * these properties about narrowing: adding a creature the list lacks is a question about the pass and the
+ * position, and `SpawningCheck` asks it.
+ */
 private fun narrowedBy(
     claims: String,
     offered: WeightedList<MobSpawnSettings.SpawnerData> = aMeadow(),
+    category: MobCategory = MobCategory.CREATURE,
+    skyIsOpen: Boolean = false,
 ): WeightedList<MobSpawnSettings.SpawnerData> {
     val options = Options(mapOf(Spawns.LIVES.name to claims.split(",").filter(String::isNotBlank)))
     // Null for the biome: nothing scopes a claim to one until `in <biome>` lands (§4.3.1).
-    return Spawns.livingIn(options).invoke(null, offered)
+    return Spawns.livingIn(options).at(null, category, skyIsOpen, BlockPos.ZERO, offered)
 }
 
 private fun kinds(list: WeightedList<MobSpawnSettings.SpawnerData>): List<String> =

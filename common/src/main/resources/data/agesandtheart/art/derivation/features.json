@@ -1,0 +1,378 @@
+{
+  "_comment": [
+    "What a placed feature is, read off what it places. `by_kind` is the Feature it uses and `by_tag` is",
+    "the tags of the blocks its configuration names -- see DerivedTags. Vanilla tags no placed feature, so",
+    "these two are the whole of it, and they cover each other: a monster room names no block and a",
+    "simple_block names nothing but one.",
+    "Anything here is overridden per member by art/preset_tags/features.json.",
+    "The `c:` rules are the convention tags both loaders share, which is what a modded ore or stone",
+    "carries. They match nothing in a world with no mods in it, and that is not a fault -- only",
+    "`minecraft:` and ours are insisted on (DerivedTags.weInsistOn)."
+  ],
+  "by_kind": {
+    "tree": {
+      "wooded": 1.0,
+      "grown": 0.9
+    },
+    "fallen_tree": {
+      "wooded": 0.7,
+      "grown": 0.5
+    },
+    "huge_fungus": {
+      "fungal": 1.0,
+      "grown": 0.8,
+      "undergrowth": 0.8
+    },
+    "nether_forest_vegetation": {
+      "fungal": 0.8,
+      "grown": 0.8,
+      "undergrowth": 0.8
+    },
+    "ore": {
+      "buried": 1.0
+    },
+    "scattered_ore": {
+      "buried": 0.9
+    },
+    "geode": {
+      "buried": 1.0,
+      "colourful": 0.8
+    },
+    "fossil": {
+      "buried": 0.9
+    },
+    "lake": {
+      "buried": 0.3
+    },
+    "spring_feature": {
+      "buried": 0.6
+    },
+    "vegetation_patch": {
+      "grown": 0.8,
+      "undergrowth": 0.8
+    },
+    "waterlogged_vegetation_patch": {
+      "grown": 0.8,
+      "watery": 0.7,
+      "undergrowth": 0.8
+    },
+    "seagrass": {
+      "grown": 0.7,
+      "watery": 1.0,
+      "aquatic": 0.9,
+      "undergrowth": 0.7
+    },
+    "kelp": {
+      "grown": 0.8,
+      "watery": 1.0,
+      "aquatic": 0.9,
+      "undergrowth": 0.8
+    },
+    "sea_pickle": {
+      "aquatic": 0.9,
+      "glowing": 0.6,
+      "watery": 0.9
+    },
+    "coral_claw": {
+      "aquatic": 1.0,
+      "colourful": 0.9,
+      "watery": 1.0
+    },
+    "coral_mushroom": {
+      "aquatic": 1.0,
+      "colourful": 0.9,
+      "watery": 1.0
+    },
+    "coral_tree": {
+      "aquatic": 1.0,
+      "colourful": 0.9,
+      "watery": 1.0
+    },
+    "bamboo": {
+      "grown": 0.9,
+      "wooded": 0.5
+    },
+    "vines": {
+      "grown": 0.8,
+      "lush": 0.5,
+      "undergrowth": 0.8
+    },
+    "weeping_vines": {
+      "grown": 0.7,
+      "fungal": 0.4,
+      "undergrowth": 0.7
+    },
+    "twisting_vines": {
+      "grown": 0.7,
+      "fungal": 0.4,
+      "undergrowth": 0.7
+    },
+    "chorus_plant": {
+      "grown": 0.8,
+      "floating": 0.6,
+      "undergrowth": 0.8
+    },
+    "root_system": {
+      "grown": 0.7,
+      "buried": 0.6,
+      "undergrowth": 0.7
+    },
+    "multiface_growth": {
+      "grown": 0.6,
+      "cavernous": 0.8,
+      "undergrowth": 0.6
+    },
+    "sculk_patch": {
+      "dark": 1.0,
+      "hostile": 0.7,
+      "cavernous": 0.6
+    },
+    "dripstone_cluster": {
+      "cavernous": 1.0,
+      "sheer": 0.5
+    },
+    "large_dripstone": {
+      "cavernous": 1.0,
+      "sheer": 0.7
+    },
+    "pointed_dripstone": {
+      "cavernous": 0.9,
+      "sheer": 0.5
+    },
+    "monster_room": {
+      "hostile": 0.9,
+      "built": 0.6,
+      "cavernous": 0.7
+    },
+    "desert_well": {
+      "built": 0.8,
+      "dry": 0.8,
+      "ruined": 0.5
+    },
+    "spike": {
+      "frozen": 0.8,
+      "sheer": 0.9
+    },
+    "iceberg": {
+      "frozen": 1.0,
+      "watery": 0.6
+    },
+    "blue_ice": {
+      "frozen": 1.0,
+      "bright": 0.5
+    },
+    "freeze_top_layer": {
+      "frozen": 0.9
+    },
+    "basalt_columns": {
+      "stony": 0.9,
+      "sheer": 0.8
+    },
+    "basalt_pillar": {
+      "stony": 0.9,
+      "sheer": 0.7
+    },
+    "delta_feature": {
+      "molten": 0.8,
+      "stony": 0.6,
+      "hostile": 0.5
+    },
+    "glowstone_blob": {
+      "glowing": 1.0,
+      "bright": 0.7
+    },
+    "underwater_magma": {
+      "molten": 0.8,
+      "watery": 0.7,
+      "hostile": 0.5
+    },
+    "netherrack_replace_blobs": {
+      "stony": 0.7
+    },
+    "block_blob": {
+      "stony": 0.6
+    },
+    "disk": {
+      "sandy": 0.5
+    },
+    "end_island": {
+      "floating": 1.0
+    },
+    "end_spike": {
+      "floating": 0.7,
+      "sheer": 0.9,
+      "monumental": 0.6
+    },
+    "end_gateway": {
+      "floating": 0.6,
+      "glowing": 0.5
+    },
+    "end_platform": {
+      "floating": 0.6,
+      "built": 0.5
+    },
+    "random_patch": {
+      "grown": 0.9,
+      "undergrowth": 0.9
+    }
+  },
+  "by_tag": {
+    "#minecraft:logs": {
+      "wooded": 1.0
+    },
+    "#minecraft:leaves": {
+      "wooded": 0.9,
+      "grown": 0.7
+    },
+    "#minecraft:saplings": {
+      "wooded": 0.6,
+      "grown": 0.8
+    },
+    "#minecraft:flowers": {
+      "flowering": 1.0,
+      "colourful": 0.8,
+      "grown": 0.8,
+      "undergrowth": 0.8
+    },
+    "#minecraft:small_flowers": {
+      "flowering": 1.0,
+      "colourful": 0.8
+    },
+    "#minecraft:crops": {
+      "grown": 0.9,
+      "lush": 0.6,
+      "undergrowth": 0.9
+    },
+    "#minecraft:cave_vines": {
+      "grown": 0.8,
+      "cavernous": 0.8,
+      "glowing": 0.5,
+      "undergrowth": 0.8
+    },
+    "#minecraft:corals": {
+      "aquatic": 1.0,
+      "colourful": 0.9
+    },
+    "#minecraft:coral_blocks": {
+      "aquatic": 1.0,
+      "colourful": 0.9
+    },
+    "#minecraft:coral_plants": {
+      "aquatic": 1.0,
+      "colourful": 0.8
+    },
+    "#minecraft:wall_corals": {
+      "aquatic": 1.0,
+      "colourful": 0.8
+    },
+    "#minecraft:ice": {
+      "frozen": 1.0
+    },
+    "#minecraft:snow": {
+      "frozen": 0.9,
+      "bright": 0.7
+    },
+    "#minecraft:sand": {
+      "sandy": 1.0,
+      "dry": 0.5
+    },
+    "#minecraft:base_stone_overworld": {
+      "stony": 0.9
+    },
+    "#minecraft:base_stone_nether": {
+      "stony": 0.8,
+      "molten": 0.3
+    },
+    "#minecraft:terracotta": {
+      "sandy": 0.7,
+      "dry": 0.7,
+      "colourful": 0.5
+    },
+    "#minecraft:moss_blocks": {
+      "grown": 0.8,
+      "lush": 0.9,
+      "undergrowth": 0.8
+    },
+    "#minecraft:coal_ores": {
+      "ore": 1.0,
+      "buried": 1.0
+    },
+    "#minecraft:copper_ores": {
+      "ore": 1.0,
+      "buried": 1.0
+    },
+    "#minecraft:iron_ores": {
+      "ore": 1.0,
+      "buried": 1.0
+    },
+    "#minecraft:gold_ores": {
+      "ore": 1.0,
+      "buried": 1.0
+    },
+    "#minecraft:redstone_ores": {
+      "ore": 1.0,
+      "buried": 1.0,
+      "glowing": 0.3
+    },
+    "#minecraft:lapis_ores": {
+      "ore": 1.0,
+      "buried": 1.0,
+      "colourful": 0.6
+    },
+    "#minecraft:emerald_ores": {
+      "ore": 1.0,
+      "buried": 1.0
+    },
+    "#minecraft:diamond_ores": {
+      "ore": 1.0,
+      "buried": 1.0
+    },
+    "#agesandtheart:molten": {
+      "molten": 1.0,
+      "hostile": 0.8,
+      "glowing": 0.7
+    },
+    "#agesandtheart:fungal": {
+      "fungal": 1.0,
+      "grown": 0.7,
+      "undergrowth": 0.7
+    },
+    "#c:ores": {
+      "ore": 1.0,
+      "buried": 1.0
+    },
+    "#c:stones": {
+      "stony": 0.9
+    },
+    "#c:cobblestones": {
+      "stony": 0.9
+    },
+    "#c:sands": {
+      "sandy": 1.0,
+      "dry": 0.5
+    },
+    "#c:gravels": {
+      "sandy": 0.7
+    },
+    "#c:glass_blocks": {
+      "colourful": 0.4,
+      "bright": 0.5
+    },
+    "#c:budding_blocks": {
+      "buried": 0.8,
+      "colourful": 0.7
+    },
+    "#c:clusters": {
+      "colourful": 0.8,
+      "glowing": 0.4
+    },
+    "#c:mushrooms": {
+      "fungal": 1.0,
+      "grown": 0.7,
+      "undergrowth": 0.7
+    },
+    "#agesandtheart:watery": {
+      "watery": 1.0
+    }
+  }
+}

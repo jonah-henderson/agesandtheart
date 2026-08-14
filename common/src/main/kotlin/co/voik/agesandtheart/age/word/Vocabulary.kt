@@ -6,6 +6,8 @@ import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.AspectPreset
+import co.voik.agesandtheart.age.aspect.Setting
+import co.voik.agesandtheart.age.aspect.Spawning
 import co.voik.agesandtheart.age.word.generation.GenerationGrammars
 import co.voik.agesandtheart.age.word.grammar.GrammarWord
 import com.mojang.serialization.Codec
@@ -26,8 +28,8 @@ import net.minecraft.server.packs.resources.ResourceManager
  */
 data class Antonym(val first: String, val second: String, val severity: Int) {
     companion object {
-        // Tension the world absorbed is charged gently: a remark, not an accusation.
-        private const val ORDINARY_SEVERITY = 1
+        /** Tension the world absorbed is charged gently: a remark, not an accusation. */
+        const val ORDINARY_SEVERITY = 1
 
         val CODEC: Codec<Antonym> = RecordCodecBuilder.create { instance ->
             instance.group(
@@ -38,6 +40,15 @@ data class Antonym(val first: String, val second: String, val severity: Int) {
         }
     }
 }
+
+/**
+ * Why two words cannot both stand, and what they disagree over — the answer [Vocabulary.disagreement]
+ * gives, from whichever of its three sources knew.
+ *
+ * [over] is what the reading says they argued about: two tags where the table named them, and the one
+ * parameter or tag where the words' own settings gave it away.
+ */
+data class Disagreement(val over: List<String>, val severity: Int)
 
 /** One antonym file: a list, so a pack may add pairs without reprinting ours. */
 private data class AntonymPage(val pairs: List<Antonym>) {
@@ -93,6 +104,10 @@ data class Vocabulary(
     val charges: Map<String, Int>,
     /** Which words came from registry content rather than from a `art/word/` file. See [isDerived]. */
     private val derivedIds: Set<Identifier>,
+    /** How the world's own tags and facts become ours, per aspect — see [Derivation]. */
+    val derivation: Map<Aspect, Derivation>,
+    /** How a creature the world never offered arrives in one — see [Spawning]. */
+    val spawning: Spawning,
     /** What could not be read, in the words a content author needs to hear. Empty in a healthy pack. */
     val problems: List<String>,
 ) {
@@ -139,6 +154,23 @@ data class Vocabulary(
 
     /** Every tag anything in the world carries, which bounds what any word can meaningfully ask for. */
     val carriedTags: Set<String> get() = tagsBySlot.values.flatMap { it.carried }.toSet()
+
+    /**
+     * Tags **only a bound registry tag can grant** — nothing authored gives them and no fact derives one,
+     * so a corpus read without a server carries them nowhere (`notes/the-tag-layer.md` §4).
+     *
+     * `ore` is the case: an ore *feature* is how vanilla places andesite and tuff as well, so what makes a
+     * thing ore is the block, and what says a block is ore is `#minecraft:diamond_ores` and its seven
+     * siblings. Offline that is unknowable, and an offline check asserting otherwise would be asserting
+     * against a corpus the game never sees. Derived rather than listed, so a rule moving between the two
+     * halves needs nothing here changed.
+     */
+    val tagsOnlyAServerGrants: Set<String>
+        get() {
+            val fromTags = derivation.values.flatMap { it.byTag.values.flatMap(Map<String, Double>::keys) }
+            val fromFacts = derivation.values.flatMap { it.byKind.values.flatMap(Map<String, Double>::keys) }
+            return fromTags.toSet() - fromFacts.toSet() - carriedTags
+        }
 
     /**
      * **The curated pool** — everything a *vague* word may draw from in [aspect] (§8.2). A closed aspect's
@@ -231,12 +263,66 @@ data class Vocabulary(
         (antonym.first == first && antonym.second == second) || (antonym.first == second && antonym.second == first)
     }
 
+    /**
+     * **Whether two words can both stand**, and what they disagree over — asked of the words themselves,
+     * so it holds before anything has been resolved and wherever they were laid.
+     *
+     * Three sources, most explanatory first. The **table** is an authored statement about *meaning*, which
+     * is the only one of the three that can say `watery` and `dry` are opposites when the two words are
+     * about different parts of the world entirely. The other two are read out of the words and need no
+     * table at all:
+     *
+     * - **one parameter, two bands that cannot both be met** — `Setting.settle` returning null is the
+     *   loudest disagreement there is, and until this it was the one nobody was asking about: `Repair`
+     *   compared tags against the table and never looked at what a word set, so a drawn `temperate` beside
+     *   a written `scorching` read as agreement.
+     * - **one tag, wanted by one and pushed away by the other** — `sterile` against `verdant`, which no
+     *   table has to know because both words already said so.
+     *
+     * **Two different values of one parameter are deliberately not here.** `motes=ash` against
+     * `motes=embers` is a choice between answers rather than an impossibility, and the resolver already
+     * prices a displacement where it happens. Only bands that provably cannot both hold are a contradiction
+     * before the fact.
+     */
+    fun disagreement(first: Word, second: Word): Disagreement? =
+        overATag(first, second) ?: overAParameter(first, second) ?: overAPushedTag(first, second)
+
+    /** What the authored table knows — see [opposition]. */
+    private fun overATag(first: Word, second: Word): Disagreement? =
+        first.wanted.firstNotNullOfOrNull { wanted ->
+            second.wanted.firstNotNullOfOrNull { against ->
+                opposition(wanted, against)?.let { Disagreement(listOf(it.first, it.second), it.severity) }
+            }
+        }
+
+    /** One axis both words bound, to bands that cannot both be met. */
+    private fun overAParameter(first: Word, second: Word): Disagreement? =
+        first.sets.firstNotNullOfOrNull { (parameter, mine) ->
+            val theirs = second.sets[parameter] ?: return@firstNotNullOfOrNull null
+            val asked = listOfNotNull(Setting.read(mine), Setting.read(theirs))
+            val bothAreBands = asked.size == 2
+            if (bothAreBands && Setting.settle(asked) == null) {
+                Disagreement(listOf(parameter), Antonym.ORDINARY_SEVERITY)
+            } else {
+                null
+            }
+        }
+
+    /** One tag one word asks for and the other asks against. */
+    private fun overAPushedTag(first: Word, second: Word): Disagreement? =
+        ((first.wanted intersect second.unwanted) + (second.wanted intersect first.unwanted))
+            .firstOrNull()
+            ?.let { Disagreement(listOf(it), Antonym.ORDINARY_SEVERITY) }
+
     companion object {
         /** Where a pack puts words. */
         const val WORD_DIRECTORY = "art/word"
 
         /** Where a pack puts the tags a aspect's presets carry, one file per aspect key. */
         const val PRESET_TAGS_DIRECTORY = "art/preset_tags"
+
+        /** Where a pack puts the rules that read tags off the world itself, one file per aspect. */
+        const val DERIVATION_DIRECTORY = "art/derivation"
 
         /** Where a pack puts antonym pages. */
         const val ANTONYM_DIRECTORY = "art/antonyms"
@@ -291,6 +377,8 @@ data class Vocabulary(
             // than silently winning or losing on map order.
             val pages = aimingPages(authored, problems)
             val tags = readPresetTags(resources, problems)
+            val rules = readDerivations(resources, problems)
+            val spawning = readSpawning(resources, problems)
             val antonyms = readAntonyms(resources, problems)
             // Blocks are built-in and always available; biomes and structures are datapack content, so a
             // corpus read without a server has §8's material half and neither population. Absent rather
@@ -298,7 +386,15 @@ data class Vocabulary(
             val fromRegistries = registries?.let {
                 DerivedWords.biomes(it) + DerivedWords.structures(it) + DerivedWords.features(it)
             }.orEmpty()
-            val fromContent = DerivedWords.materials() + DerivedWords.spawns() + fromRegistries
+            val fromContent = DerivedWords.materials() + DerivedWords.spawns(spawning.writable) + fromRegistries
+            // **What the world says about itself, with what a pack said laid over it** — the tag half of
+            // §8's "no per-mod work": a modded biome carrying `#minecraft:is_forest` is wooded without
+            // anybody here having heard of it. Absent offline for want of bound tags, which is why the
+            // rules that key on *facts* are the ones the offline checks may lean on.
+            val derivedTags = registries?.let { DerivedTags.read(it, rules, problems) }.orEmpty()
+            val described = Aspect.entries.associateWith { aspect ->
+                (tags[aspect] ?: PresetTags(emptyMap())).over(derivedTags[aspect].orEmpty())
+            }.filterValues { it.described.isNotEmpty() }
             val words = derived(fromContent) + authored + pages
             val structural = readGrammarWords(resources, problems)
             val script = Script.load(resources, problems)
@@ -316,7 +412,8 @@ data class Vocabulary(
             val derivedIds = fromContent.map { it.id }.toSet() - authored.values.map { it.id }.toSet()
             val charges = readCharges(resources, problems)
             return Vocabulary(
-                words, structural, tags, antonyms, script, rarity, ink, generation, charges, derivedIds, problems,
+                words, structural, described, antonyms, script, rarity, ink, generation, charges, derivedIds,
+                rules, spawning, problems,
             )
         }
 
@@ -411,6 +508,50 @@ data class Vocabulary(
                 words[word.name] = word
             }
             return words
+        }
+
+        /**
+         * How a creature the world never offered arrives in one — one file, stacked so a pack may retune a
+         * single creature without reprinting the rest.
+         */
+        private fun readSpawning(resources: ResourceManager, problems: MutableList<String>): Spawning {
+            val file = Identifier.fromNamespaceAndPath(Constants.MOD_ID, Spawning.FILE)
+            var standing = Spawning()
+            for (layer in resources.getResourceStack(file)) {
+                val read = parse(layer, file, Spawning.CODEC, problems) ?: continue
+                standing = standing.mergedWith(read)
+            }
+            return standing
+        }
+
+        /**
+         * The derivation rules, one file per aspect — what the world's own tags and facts mean in ours.
+         *
+         * Stacked like the tables they feed, so a pack may add a rule without reprinting the file; an
+         * aspect with no file derives nothing, which is how an aspect opts out.
+         */
+        private fun readDerivations(
+            resources: ResourceManager,
+            problems: MutableList<String>,
+        ): Map<Aspect, Derivation> {
+            val stacks = resources.listResourceStacks(DERIVATION_DIRECTORY) { it.path.endsWith(JSON_SUFFIX) }
+            val rules = mutableMapOf<Aspect, Derivation>()
+            for ((file, layers) in stacks) {
+                val key = idOf(file, DERIVATION_DIRECTORY).path
+                val aspect = Aspect.entries.firstOrNull { it.key == key }
+                if (aspect == null) {
+                    problems += "$file names no aspect ('$key'); aspects are ${Aspect.entries.joinToString(" ") { it.key }}"
+                    continue
+                }
+                for (layer in layers) {
+                    val read = parse(layer, file, Derivation.CODEC, problems) ?: continue
+                    val standing = rules[aspect]
+                    rules[aspect] = standing?.let {
+                        Derivation(it.byTag + read.byTag, it.byKind + read.byKind)
+                    } ?: read
+                }
+            }
+            return rules
         }
 
         /**

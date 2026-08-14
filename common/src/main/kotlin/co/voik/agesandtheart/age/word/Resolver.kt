@@ -60,7 +60,7 @@ data class Resolution(
  *    the *terrain* to caverns and threw `floating` away in silence.
  * 2. **Unsatisfiability comes from the tag data, never the antonym table** (§3.3). The table explains and
  *    prices tension; what breaks an Age is two words with no preset between them.
- * 3. **A positional aspect divides rather than arbitrating** (§3.4), and *only* to absorb a real
+ * 3. **A spatial aspect divides rather than arbitrating** (§3.4), and *only* to absorb a real
  *    disagreement — so seeing two terrains in an Age means something.
  * 4. **Word order never decides anything** (§3.5). Where precision cannot separate two words the seed
  *    does, so `verdant arid` and `arid verdant` are the same sentence.
@@ -90,9 +90,6 @@ object Resolver {
     // the wrong shape: a flat bonus only has to beat one rival at a time and there are three. Small but
     // never zero, since a word that merely sets a parameter must not eliminate a preset (§3.2).
     private const val INCAPABLE_FACTOR = 0.04
-
-    /** The fewest aspects a narrowing word is priced as being at home in — see [inkFor]. */
-    private const val AT_HOME_SOMEWHERE = 1
 
     // As much of the world as any one member of a population may be talked into taking, so that a
     // sentence full of words agreeing about one biome cannot quietly make an Age of nothing else.
@@ -187,11 +184,7 @@ object Resolver {
      * a better page to own, so `clear`, which is a clear sky and clear water alike, costs more every time it
      * is laid than a word that only ever means one thing. The charge is for versatility.
      */
-    fun inkFor(word: Word): Int =
-        if (!word.tier.narrows) word.tier.cost
-        // A narrowing word that landed nowhere is left empty on purpose so `DerivedAspectsCheck` can refuse
-        // it; it must not also be free on the way past.
-        else word.tier.cost * word.aspects.size.coerceAtLeast(AT_HOME_SOMEWHERE)
+    fun inkFor(word: Word): Int = word.price
 
     /**
      * [composition] with every feature the sentence **minted** added to what the Age places — `ink springs`,
@@ -330,9 +323,9 @@ object Resolver {
             }
         }
 
-        // A positional aspect can honour several answers by giving each its own ground; a singular one has
+        // A spatial aspect can honour several answers by giving each its own ground; a singular one has
         // nowhere to put a second, which is where the harsher register earns its place (§3.4).
-        val room = if (aspect.positional) MOST_TERRITORIES else 1
+        val room = if (aspect.spatial) MOST_TERRITORIES else 1
         val kept = territories.take(room)
         chargeForContention(vocabulary, aspect, kept, territories.drop(room), flaws)
 
@@ -414,7 +407,7 @@ object Resolver {
         room: Int,
         draw: Long,
     ): List<AspectPreset> {
-        if (!aspect.positional || seated.size >= room) return emptyList()
+        if (!aspect.spatial || seated.size >= room) return emptyList()
         // An exact word about *the preset* forbids company; one that merely sets a parameter does not, or
         // naming a material would quietly suppress harmony everywhere.
         if (speaking.any { it.word.tier == Tier.EXACT && it.word.constrainsPresetsIn(aspect) }) return emptyList()
@@ -605,7 +598,7 @@ object Resolver {
                         Register.TENSION,
                         listOf(first.word.name, second.word.name),
                         aspect,
-                        listOf(opposition.first, opposition.second),
+                        opposition.over,
                         opposition.severity,
                     ),
                 )
@@ -643,22 +636,20 @@ object Resolver {
                     bothNamed,
                     // No aspect: the sentence owns this one, since landing nowhere together is the point.
                     aspect = null,
-                    listOf(opposition.first, opposition.second),
+                    opposition.over,
                     opposition.severity,
                 ),
             )
         }
     }
 
-    /** The first known opposition between what two words ask for, if the table has heard of one. */
-    private fun oppositionBetween(vocabulary: Vocabulary, first: Constraint, second: Constraint): Antonym? =
-        first.word.wanted.firstNotNullOfOrNull { wanted ->
-            second.word.wanted.firstNotNullOfOrNull { against -> vocabulary.opposition(wanted, against) }
-        }
+    /** Whether these two words can both stand — the table, or what their own settings give away. */
+    private fun oppositionBetween(vocabulary: Vocabulary, first: Constraint, second: Constraint): Disagreement? =
+        vocabulary.disagreement(first.word, second.word)
 
-    /** The two tags that disagreed, where the table knows them — for the explanation, not the detection. */
+    /** What they disagreed over — for the explanation, not the detection. */
     private fun opposedTags(vocabulary: Vocabulary, first: Constraint, second: Constraint): List<String> =
-        oppositionBetween(vocabulary, first, second)?.let { listOf(it.first, it.second) } ?: emptyList()
+        oppositionBetween(vocabulary, first, second)?.over ?: emptyList()
 
     private fun flaw(
         vocabulary: Vocabulary,
@@ -896,7 +887,7 @@ object Resolver {
             return steered
         }
 
-        val couldFracture = aspect.positional && membersIn(aspect) == 1
+        val couldFracture = aspect.spatial && membersIn(aspect) == 1
         if (climates.size == 1 || !couldFracture || climates.size > MOST_TERRITORIES) {
             // One coherent climate, or nowhere to put a second — then the leading group wins and the rest
             // are displaced, the same fallback every other parameter has.
@@ -1047,7 +1038,7 @@ object Resolver {
         parameter: String,
         contenders: List<Constraint>,
     ): Boolean {
-        if (!aspect.positional) return false
+        if (!aspect.spatial) return false
         if (composition.membersIn(aspect) != 1) return false
         return groupsOf(parameter, contenders).size in 2..MOST_TERRITORIES
     }

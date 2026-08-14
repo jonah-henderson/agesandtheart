@@ -1,9 +1,7 @@
 {
   "solid": {
     "tags": {
-      "solid": 1.0,
-      "ordinary": 0.5,
-      "gentle": 0.3
+      "solid": 1.0
     }
   },
   "porous": {
@@ -11,15 +9,13 @@
     "tags": {
       "porous": 1.0,
       "cavernous": 0.4,
-      "watery": 0.3,
-      "strange": 0.2
+      "watery": 0.3
     }
   },
   "caves": {
     "tags": {
       "cavernous": 0.9,
-      "gloomy": 0.5,
-      "ordinary": 0.5
+      "dark": 0.5
     }
   },
   "flooded_caves": {
@@ -27,7 +23,7 @@
     "tags": {
       "cavernous": 0.8,
       "watery": 0.8,
-      "gloomy": 0.6,
+      "dark": 0.6,
       "hostile": 0.5
     }
   }

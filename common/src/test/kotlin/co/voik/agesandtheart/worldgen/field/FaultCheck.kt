@@ -33,7 +33,9 @@ class FaultCheck : FunSpec({
     test("no seam both blends and displaces") {
         for (seam in Seam.entries) {
             val frays = seam.blendBlocks(REGION_BLOCKS) > 0
-            val displaces = seam == Seam.SCARP || seam == Seam.RIFT
+            // The form's own answer, not a list rewritten here: a local one had been left saying that a
+            // wall does not displace, which is the case this property exists to rule out.
+            val displaces = seam.displaces
             check(!(frays && displaces)) {
                 "'${seam.key}' both frays its boundary and displaces it, which is the picket fence"
             }

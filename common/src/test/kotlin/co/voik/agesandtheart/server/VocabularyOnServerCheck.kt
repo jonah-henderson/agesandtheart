@@ -56,6 +56,30 @@ class VocabularyOnServerCheck : FunSpec({
     }
 
     /**
+     * **The half of the tag layer only a server has.** Vanilla's own tags are bound here and absent
+     * offline, so a rule keyed on `#minecraft:is_ocean` or `#minecraft:ice` does nothing in
+     * `TagCoverageCheck` and everything here — which means this is the only place a *renamed* vanilla tag
+     * can be caught (`notes/the-tag-layer.md` §4).
+     *
+     * Two claims. The reach must be **above what the facts alone give**, which is the floor that check
+     * ratchets; and `DerivedTags` reports a rule matching nothing as a corpus problem, which the first test
+     * above fails the build over. The numbers are the offline ones, so a gap between them *is* the tag
+     * half working.
+     */
+    test("vanilla's own tags reach the corpus") {
+        val reach = server.ask("words").getAsJsonArray("reach")
+            .associate { it.asJsonObject.get("aspect").asString to it.asJsonObject.get("reachable").asInt }
+        // Offline these are 3 and 43, and every one of the difference arrives on a vanilla tag: the ice
+        // family as a sea, and every biome whose `is_*` tag says what it is.
+        check((reach["sea"] ?: 0) > 3) {
+            "no block reached the sea by tag — `#minecraft:ice` and ours matched nothing: $reach"
+        }
+        check((reach["biomes"] ?: 0) > 43) {
+            "no biome gained anything from `#minecraft:is_*` — the tags did not reach the corpus: $reach"
+        }
+    }
+
+    /**
      * Every aiming page has to be a page a writer can actually lay down, or sections cannot be opened.
      *
      * **Spelled out rather than derived**, which is the point of it: these are the pages a player learns,

@@ -142,8 +142,8 @@ class DerivedAspectsCheck : FunSpec({
     /** And a flat query still means the same thing everywhere, which is what most words want. */
     test("an unkeyed query is asked of every aspect") {
         val beautiful = vocabulary.word("beautiful") ?: error("the corpus lost 'beautiful'")
-        val everywhere = Aspect.entries.filter { beautiful.queryIn(it).containsKey("lovely") }
-        check(everywhere == Aspect.entries) { "'lovely' was not asked of ${Aspect.entries - everywhere}" }
+        val everywhere = Aspect.entries.filter { beautiful.queryIn(it).containsKey("colourful") }
+        check(everywhere == Aspect.entries) { "'colourful' was not asked of ${Aspect.entries - everywhere}" }
     }
 
     /**

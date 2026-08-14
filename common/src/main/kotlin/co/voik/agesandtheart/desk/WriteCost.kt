@@ -10,9 +10,9 @@ import net.minecraft.core.RegistryAccess
  *
  * Two independent axes meet here, and keeping them apart is the point (design §7.1.1). **Which** ink a
  * word demands comes from the referent's tags — a diamond needs the good ink however vaguely you use it.
- * **How much** comes from the word's own cost, which is the resolver's number finally being read by
- * something. Paper discounts the amount without ever touching the tier, so it eases the economy but can
- * never unlock a word.
+ * **How much** comes from [Word.price], which is specificity times versatility (world model §9) and the
+ * same number a book's cost is the sum of. Paper discounts the amount without ever touching the tier, so
+ * it eases the economy but can never unlock a word.
  */
 data class WriteCost(
     val inkTier: InkTier,
@@ -24,14 +24,17 @@ data class WriteCost(
         /**
          * Ink for one unit of a word's cost, as a fraction of a bucket.
          *
-         * **Ten exact words to the bottle**, which is the figure a walk asked for (Jonah, 2026-08-06). A
-         * bottle is a third of a bucket, an exact word costs four units, so 120 units to the bucket puts a
-         * page at a tenth of a bottle — and an evocative word at a fortieth.
+         * **Ten of the commonest page to the bottle**, which is the figure a walk asked for (Jonah,
+         * 2026-08-06). A bottle is a third of a bucket, and the page a writer most often writes is a block
+         * or a creature said exactly — eight units, being exact and at home in two parts of the world — so
+         * 240 units to the bucket puts one at a tenth of a bottle.
          *
-         * It was 8, which made a bucket write two exact words. Ink is meant to be the thing a writer
-         * budgets across a *book*, and at that price a single page was a trip to the cauldron.
+         * **It was 120, when a page was priced by its tier alone.** Versatility is charged now
+         * ([Word.price]), which doubles the commonest page and halves nothing, so the constant doubles to
+         * keep the economy at the weight it was walked at. What moved is the *spread*: a word at home in
+         * one place is now half the price of one at home in two, where before they were the same.
          */
-        const val COST_UNITS_PER_BUCKET = 120
+        const val COST_UNITS_PER_BUCKET = 240
 
         /**
          * Vanilla's own: a cauldron holds three bottles, and a page is priced in fractions of one.
@@ -68,7 +71,7 @@ data class WriteCost(
             val perUnit = unitsPerBucket.toDouble() / COST_UNITS_PER_BUCKET
             val efficiency = paperEfficiency(paperTier)
             // Rounded up, so better paper makes a word cheaper but never free.
-            val units = Math.ceil(word.tier.cost * perUnit * efficiency).toLong().coerceAtLeast(1L)
+            val units = Math.ceil(word.price * perUnit * efficiency).toLong().coerceAtLeast(1L)
             return WriteCost(required, units, paperTier)
         }
     }

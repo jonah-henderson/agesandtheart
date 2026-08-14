@@ -1,0 +1,73 @@
+{
+  "_comment": [
+    "What a creature is: its spawn category, which vanilla states and which survives offline, and its tags,",
+    "which vanilla maintains and which do not. #undead and #arthropod are the two this saves us hand-writing.",
+    "Overridden per member by art/preset_tags/spawns.json."
+  ],
+  "by_kind": {
+    "monster": {
+      "hostile": 0.9
+    },
+    "ambient": {
+      "fauna": 0.7,
+      "aloft": 0.7,
+      "cavernous": 0.5
+    },
+    "water_creature": {
+      "aquatic": 1.0,
+      "watery": 0.9
+    },
+    "water_ambient": {
+      "aquatic": 1.0,
+      "watery": 0.9
+    },
+    "underground_water_creature": {
+      "aquatic": 1.0,
+      "watery": 0.9,
+      "cavernous": 0.8
+    },
+    "axolotls": {
+      "aquatic": 1.0,
+      "watery": 0.9,
+      "cavernous": 0.7
+    },
+    "creature": {
+      "fauna": 0.9
+    }
+  },
+  "by_tag": {
+    "#minecraft:undead": {
+      "undead": 1.0,
+      "hostile": 0.8
+    },
+    "#minecraft:zombies": {
+      "undead": 1.0,
+      "hostile": 0.8
+    },
+    "#minecraft:skeletons": {
+      "undead": 1.0,
+      "hostile": 0.8
+    },
+    "#minecraft:arthropod": {
+      "arthropod": 1.0
+    },
+    "#minecraft:beehive_inhabitors": {
+      "arthropod": 0.9,
+      "flowering": 0.7
+    },
+    "#minecraft:illager": {
+      "hostile": 0.9,
+      "inhabited": 0.5
+    },
+    "#minecraft:raiders": {
+      "hostile": 0.9
+    },
+    "#minecraft:aquatic": {
+      "aquatic": 1.0,
+      "watery": 0.9
+    },
+    "#minecraft:freeze_immune_entity_types": {
+      "frozen": 0.7
+    }
+  }
+}

@@ -1,10 +1,8 @@
 {
   "tempest": {
     "tags": {
-      "dramatic": 0.9,
       "hostile": 0.8,
-      "wild": 0.7,
-      "gloomy": 0.6,
+      "dark": 0.6,
       "watery": 0.3
     }
   }
