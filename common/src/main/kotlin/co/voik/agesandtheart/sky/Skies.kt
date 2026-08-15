@@ -62,6 +62,12 @@ object Skies {
             AgeGeneration.skySpec(recipe),
             Atmosphere.lookIn(parts, recipe.seed).over(painted),
             Atmosphere.cornersOf(parts).associateWith { Atmosphere.lookIn(parts, recipe.seed, it).over(painted) },
+            // **Named, not copied.** The client holds every dimension type already; what it cannot know is
+            // which world this Age was written over, its own being one our roofed and lightless Ages all
+            // share. One key crosses and every number stays vanilla's. See [BorrowedAir].
+            airFrom = recipe.template.dimensionType.takeIf {
+                it.identifier() != AgeGeneration.dimensionType(recipe)
+            },
         )
     }
 }

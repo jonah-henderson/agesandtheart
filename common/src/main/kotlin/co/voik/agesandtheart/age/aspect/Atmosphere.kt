@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.aspect
 
 import co.voik.agesandtheart.age.AgeTemplate
+import net.minecraft.core.registries.Registries
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.attribute.EnvironmentAttribute
 import net.minecraft.world.attribute.EnvironmentAttributeMap
@@ -104,13 +105,16 @@ object Atmosphere {
      * Applied when the Age opens rather than written into its recipe's generator: an attribute is a fact
      * about the *level* rather than about the ground, and nothing in generation reads one.
      */
-    fun settle(level: ServerLevel, salt: Long, parts: AgeParts) {
+    fun settle(level: ServerLevel, salt: Long, parts: AgeParts, template: AgeTemplate) {
         val options = parts.optionsFor(Aspect.CLIMATE)
-        val everywhere = airIn(options, salt, biome = null) +
-            lightFrom(parts.optionsFor(Aspect.SKY), parts.optionsFor(Aspect.SUN))
+        val everywhere = airIn(options, salt, biome = null) + lightFrom(parts, template)
         val corners = cornersOf(parts).associateWith { airIn(options, salt, it) }
-        if (everywhere.isEmpty() && corners.all { it.value.isEmpty() }) return
+        val world = worldItWasWrittenOver(level, template)
+        val saysNothing = everywhere.isEmpty() && corners.all { it.value.isEmpty() }
+        if (world == null && saysNothing) return
         val system = EnvironmentAttributeSystem.builder().addDefaultLayers(level)
+        // Under the Age's own, since it is what the world was like before the book said anything.
+        world?.let { BorrowedAir.played(system, it) }
         if (everywhere.isNotEmpty()) {
             val air = EnvironmentAttributeMap.builder()
             everywhere.forEach { it.into(air) }
@@ -215,9 +219,24 @@ object Atmosphere {
      * So a writer never sets it. A world with a sun in it has daylight and one with none does not, and the
      * `skylight` switch that picks the dimension type says the same thing from the other side.
      */
-    private fun lightFrom(sky: Options, sun: Options): List<Asked<*>> {
-        val nothingIsUpThere = Sky.isLightless(sky, sun)
-        return if (nothingIsUpThere) listOf(Asked(EnvironmentAttributes.SKY_LIGHT_LEVEL, NO_DAYLIGHT)) else emptyList()
+    private fun lightFrom(parts: AgeParts, template: AgeTemplate): List<Asked<*>> {
+        val nothingIsUpThere = Sky.isLightless(parts.optionsFor(Aspect.SKY), parts.optionsFor(Aspect.SUN))
+        if (!nothingIsUpThere) return emptyList()
+        // **Unless the world it was written over is already dark**, which answers this better than a zero:
+        // the nether's own is 4, a dim constant, and it is why it is never truly black in there. The same
+        // deferral [unlitLook] makes about the colour of the air.
+        if (isAlreadyDark(template.world())) return emptyList()
+        return listOf(Asked(EnvironmentAttributes.SKY_LIGHT_LEVEL, NO_DAYLIGHT))
+    }
+
+    /**
+     * The attributes of the world [level] was written over, or null where it is already wearing that
+     * world's own type and they are in the stack below already.
+     */
+    private fun worldItWasWrittenOver(level: ServerLevel, template: AgeTemplate): EnvironmentAttributeMap? {
+        if (level.dimensionTypeRegistration().`is`(template.dimensionType)) return null
+        return level.registryAccess().lookupOrThrow(Registries.DIMENSION_TYPE)
+            .getOrThrow(template.dimensionType).value().attributes()
     }
 
     /** Every attribute the sentence set **where [biome] is the ground**, or Age-wide where it is null. */

@@ -8,6 +8,10 @@ import co.voik.ephemeris.sky.Look
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
 import net.minecraft.resources.Identifier
+import co.voik.agesandtheart.age.aspect.BorrowedAir
+import net.minecraft.core.registries.Registries
+import net.minecraft.resources.ResourceKey
+import net.minecraft.world.level.dimension.DimensionType
 import net.minecraft.world.attribute.AmbientParticle
 import net.minecraft.world.attribute.EnvironmentAttribute
 import net.minecraft.world.attribute.EnvironmentAttributeMap
@@ -32,7 +36,11 @@ object AgeAir {
     fun paint(level: ClientLevel, layers: EnvironmentAttributeSystem.Builder): EnvironmentAttributeSystem.Builder {
         val told = LevelLooks.of(level.dimension()) ?: return layers
         val decks = told.sky.decks
-        if (told.air.saysNothing && told.corners.isEmpty() && decks.isEmpty()) return layers
+        val world = told.airFrom?.let { worldNamed(level, it) }
+        if (world == null && told.air.saysNothing && told.corners.isEmpty() && decks.isEmpty()) return layers
+        // **First, so everything the book said sits over it.** This is the air of the world the Age was
+        // written over, which the client resolves from a registry it already has — see [BorrowedAir].
+        world?.let { BorrowedAir.seen(layers, it) }
         if (!told.air.saysNothing) layers.addConstantLayer(asAttributeMap(told.air))
         for ((biome, look) in told.corners) {
             for (painted in painting(look)) painted.onlyIn(layers, level, biome)
@@ -41,6 +49,16 @@ object AgeAir {
         deepened(told.air, decks)?.let { under -> under.onto(layers) }
         return layers
     }
+
+    /**
+     * The attributes of the world named on this level's look, or null where the client has never heard of
+     * it — which a renderer must survive rather than throw over.
+     */
+    private fun worldNamed(level: ClientLevel, world: ResourceKey<DimensionType>): EnvironmentAttributeMap? =
+        level.registryAccess().lookup(Registries.DIMENSION_TYPE)
+            .flatMap { it.get(world) }
+            .map { it.value().attributes() }
+            .orElse(null)
 
     /**
      * The air **under an overcast**, darkening with each deck you drop below.
