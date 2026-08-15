@@ -185,7 +185,7 @@ class AgeChunkGenerator(
     biomes,
     when (rock) {
         is AgeRock.Vanillas -> rock.settings
-        is AgeRock.Ours -> Holder.direct(settingsFor(seaFill, surfaceRule, climate, fill, window, rock.field))
+        is AgeRock.Ours -> Holder.direct(settingsFor(seaFill, surfaceRule, climate, fill, window, rock.landform))
     },
 ) {
 
@@ -443,7 +443,10 @@ class AgeChunkGenerator(
         val counts = type.isOpaque()
         // One below the world, so a column with nothing this query counts simply answers the floor.
         val nothing = level.minY - 1
-        val rockTop = if (counts.test(fill.representative)) ours.field.columnSpans(x, z).highestSolidY ?: nothing else nothing
+        // The land rather than the whole rock: a lid over a sealed Age is not somewhere to stand, and
+        // reading it here would answer "the top of the world" for every column (see [AgeRock.Ours.ground]).
+        val landform = ours.landform.columnSpans(x, z).highestSolidY
+        val rockTop = if (counts.test(fill.representative)) landform ?: nothing else nothing
         // A river stands over the waterline, so its own surface is what a structure has to be told about.
         val mediumTop = if (!counts.test(seaFill.blockAt(x, z))) nothing else {
             maxOf(seaFill.surfaceY ?: nothing, seaFill.wetnessAt(x, z).highestSolidY ?: nothing)

@@ -31,8 +31,26 @@ sealed interface AgeRock {
      * that the space meets a [co.voik.agesandtheart.worldgen.field.WaterTable] on its way out rather than
      * being flooded to the roof by a flat waterline. Null for an Age with no such caves.
      */
-    data class Ours(val field: TerrainField, val hollows: TerrainField? = null) : AgeRock {
+    data class Ours(
+        val field: TerrainField,
+        val hollows: TerrainField? = null,
+        /**
+         * The same rock **without whatever shuts it overhead** — null where nothing does, which is almost
+         * every Age.
+         *
+         * A lid is rock and belongs in [field], so it is filled, dressed, and closes the sky over anything
+         * asking whether a spawn is out in the open. It is emphatically **not ground**: a heightmap, a
+         * climate grounded in the Age's shape, and the search for somewhere to put a player all want the
+         * height of the *land*, and a ceiling read as land makes every column a mountain to the top of the
+         * world. So the readers that mean ground ask this instead.
+         */
+        val ground: TerrainField? = null,
+    ) : AgeRock {
         override val kind = Kind.OURS
+
+        /** What the *land* of this Age is, which is [field] itself unless something shuts it overhead. */
+        // Qualified: bare `field` inside an accessor is Kotlin's backing-field keyword, not our property.
+        val landform: TerrainField get() = ground ?: this.field
     }
 
     /**
@@ -73,7 +91,12 @@ sealed interface AgeRock {
                         // Absent for every Age without shape-cut caves, which is almost all of them.
                         TerrainField.CODEC.optionalFieldOf("hollows")
                             .forGetter { Optional.ofNullable((it as Ours).hollows) },
-                    ).apply(instance) { field, hollows -> Ours(field, hollows.orElse(null)) }
+                        // And absent for every Age that is not shut overhead, which is almost all of them.
+                        TerrainField.CODEC.optionalFieldOf("ground")
+                            .forGetter { Optional.ofNullable((it as Ours).ground) },
+                    ).apply(instance) { field, hollows, ground ->
+                        Ours(field, hollows.orElse(null), ground.orElse(null))
+                    }
                 }
 
                 Kind.VANILLAS -> NoiseGeneratorSettings.CODEC.fieldOf("settings")

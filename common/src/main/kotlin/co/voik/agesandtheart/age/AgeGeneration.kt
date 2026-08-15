@@ -31,6 +31,7 @@ import co.voik.agesandtheart.worldgen.field.TerrainFill
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.worldgen.AgeChunkGenerator
 import co.voik.agesandtheart.worldgen.AgeRock
+import co.voik.agesandtheart.worldgen.CeilingField
 import co.voik.agesandtheart.worldgen.SpireChunkGenerator
 import co.voik.agesandtheart.worldgen.VerticalWindow
 import co.voik.agesandtheart.worldgen.VanillaDelegate
@@ -177,7 +178,7 @@ object AgeGeneration {
                 ),
             )
                 .told(climate)
-                .let { if (ourGround == null) it.sampledForDepth() else it.groundedIn(ourGround.field) }
+                .let { if (ourGround == null) it.sampledForDepth() else it.groundedIn(ourGround.landform) }
                 // On unless the Age said otherwise — `biomes.footing=free` is the lever, and an Age whose
                 // biomes ignore its land is allowed rather than broken. See [Grounding] and [Biomes.FOOTING].
                 .suitedTo(
@@ -186,7 +187,7 @@ object AgeGeneration {
                     // island territory is enough to make the coast sand — the level it stands at is already
                     // Age-wide.
                     else Grounding(
-                        ourGround.field,
+                        ourGround.landform,
                         seaFill.level,
                         // Whether anything is actually poured at that level. A sea of air leaves the
                         // waterline standing with nothing in it, and measuring against it drowns the map.
@@ -213,7 +214,7 @@ object AgeGeneration {
             // Only where the rock is ours: a rule delegating to the biomes does so *through* the field
             // tree, and an Age wearing vanilla's rock has none to delegate through. `vanillaRockFor`
             // carries that Age's skin instead.
-            ourGround?.let { Surface.ruleFor(composition.optionsFor(Aspect.SURFACE, 0), it.field, recipe.template) }
+            ourGround?.let { Surface.ruleFor(composition.optionsFor(Aspect.SURFACE, 0), it.rock.field, recipe.template) }
                 ?: SurfacingStrategy.SUPPRESSED,
             composition.carvers.map { it.configuredCarvers(server) },
             below,
@@ -412,7 +413,8 @@ object AgeGeneration {
         /** Water a landform carries above the waterline, which is the shape's rather than the sea's. */
         val standing: TerrainField?,
     ) {
-        val field: TerrainField get() = rock.field
+        /** The land, without whatever shuts it overhead — see [AgeRock.Ours.ground]. */
+        val landform: TerrainField get() = rock.landform
     }
 
     /** [OurGround] for an Age with a landform of its own — the only path that builds a field. */
@@ -433,12 +435,22 @@ object AgeGeneration {
         // The fault comes last, over the finished rock — see [Fault].
         val shape = faulted(weathered, landmass.seam, ground, seed, torn)
         val riftCut = riftVolume(landmass.seam, ground, torn)
+        // **A world shut overhead needs something to shut it.** A template's roof is part of its rock, so
+        // naming a landform took it away and left `sealed=always` saying only what the dimension type says
+        // — no skylight, and open air to the top of the world (Jonah, 2026-08-14, walked).
+        val lid = if (!Sky.isRoofed(composition.optionsFor(Aspect.SKY))) null
+        else CeilingField.over(window, seed)
         return OurGround(
             // The rock the underground was taken out of is **handed to the generator rather than to the
             // sea**. A flat waterline fills any empty space beneath it, so a shape-cut cave or hall comes
             // out flooded to the roof; making it simply *dry* instead would only trade one uniform answer
             // for the other. What that space wants is the same three-way `WaterTable` a carved cave meets.
-            AgeRock.Ours(shape, openedBy(hollowedRock(grounds, ground), riftCut)),
+            AgeRock.Ours(
+                field = if (lid == null) shape else Union(listOf(shape, lid)),
+                hollows = openedBy(hollowedRock(grounds, ground), riftCut),
+                // The land kept apart from the lid, since a ceiling is not ground however solid it is.
+                ground = shape.takeIf { lid != null },
+            ),
             chasm = keptDry(riftCut, grounds, ground),
             standing = carriedWater(composition, landmass.seam, ground, seed, torn),
         )
