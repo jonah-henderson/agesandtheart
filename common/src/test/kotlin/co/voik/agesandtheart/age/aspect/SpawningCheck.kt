@@ -80,10 +80,10 @@ class SpawningCheck : FunSpec({
      * read off `on_the_surface` and `under_the_ground` in `art/spawning.json` — see [Ground].
      */
     test("a creature is tried on the ground it belongs to and no other") {
-        val dragonAbove = livingWith("minecraft:ender_dragon", MobCategory.MONSTER, skyIsOpen = true)
-        check("ender_dragon" in dragonAbove) { "a dragon could not arrive under an open sky: $dragonAbove" }
-        val dragonBelow = livingWith("minecraft:ender_dragon", MobCategory.MONSTER, skyIsOpen = false)
-        check("ender_dragon" !in dragonBelow) { "a dragon was offered inside the rock: $dragonBelow" }
+        val illusionerAbove = livingWith("minecraft:illusioner", MobCategory.MONSTER, skyIsOpen = true)
+        check("illusioner" in illusionerAbove) { "an illusioner could not arrive under the sky: $illusionerAbove" }
+        val illusionerBelow = livingWith("minecraft:illusioner", MobCategory.MONSTER, skyIsOpen = false)
+        check("illusioner" !in illusionerBelow) { "an illusioner was offered inside the rock: $illusionerBelow" }
 
         val wardenBelow = livingWith("minecraft:warden", MobCategory.MONSTER, skyIsOpen = false)
         check("warden" in wardenBelow) { "a warden could not arrive under the ground: $wardenBelow" }
@@ -110,7 +110,8 @@ class SpawningCheck : FunSpec({
     test("the grounds are actually read, or nothing above means anything") {
         val spawning = MinecraftRegistries.spawning
         fun groundOf(path: String) = spawning.groundOf(Identifier.withDefaultNamespace(path))
-        check(groundOf("ender_dragon") == Ground.SURFACE) { "the surface list did not load" }
+        check(groundOf("illusioner") == Ground.SURFACE) { "the surface list did not load" }
+        check(groundOf("ender_dragon") == Ground.IN_THE_AIR) { "the air list did not load" }
         check(groundOf("warden") == Ground.UNDERGROUND) { "the underground list did not load" }
         check(groundOf("zombie") == Ground.ANYWHERE) { "a creature nobody judged was pinned" }
         // In both lists, which is a reader saying "yes, really both" where silence is nobody having looked.
@@ -163,17 +164,56 @@ class SpawningCheck : FunSpec({
      * country rather than piled into one valley.
      */
     test("a creature held apart is tried in one window of each cell") {
-            fun triedAt(x: Int, z: Int) = "ender_dragon" in Spawns.livingIn(
-            Options(mapOf(Spawns.LIVES.name to listOf("minecraft:ender_dragon"))),
+        fun triedAt(x: Int, z: Int) = "warden" in Spawns.livingIn(
+            Options(mapOf(Spawns.LIVES.name to listOf("minecraft:warden"))),
             MinecraftRegistries.spawning,
-        ).at(null, MobCategory.MONSTER, true, BlockPos(x, 80, z), aMeadow()).unwrap()
+        ).at(null, MobCategory.MONSTER, false, BlockPos(x, 30, z), aMeadow()).unwrap()
             .map { it.value().type().builtInRegistryHolder().key().identifier().path }
 
-        check(triedAt(0, 0)) { "a dragon was not tried at the corner of its own cell" }
-        check(!triedAt(160, 160)) { "a dragon was tried in the middle of a cell it is held out of" }
+        // The warden's own cell is 192 blocks.
+        check(triedAt(0, 0)) { "a warden was not tried at the corner of its own cell" }
+        check(!triedAt(96, 96)) { "a warden was tried in the middle of a cell it is held out of" }
         // And the cell repeats, in both directions and on both sides of the origin.
-        check(triedAt(320, 320)) { "the grid did not repeat" }
-        check(triedAt(-320, -320)) { "the grid did not repeat behind the origin" }
+        check(triedAt(192, 192)) { "the grid did not repeat" }
+        check(triedAt(-192, -192)) { "the grid did not repeat behind the origin" }
+    }
+
+    /**
+     * **A creature the Age places itself is taken out of the natural list**, not merely refused by it.
+     *
+     * Vanilla declines these *after* the draw — a `MobCategory.MISC` entity outright, and anything whose
+     * box will not clear where it stands — so offering one costs the biome's own creatures a share of
+     * every attempt and puts nothing in the world. `AgeSpawner` has them instead.
+     */
+    test("what the Age places itself is never offered to vanilla's spawner") {
+        for (sky in listOf(true, false)) {
+            for (creature in listOf("iron_golem", "snow_golem", "ender_dragon")) {
+                val arrived = livingWith("minecraft:$creature", MobCategory.MONSTER, skyIsOpen = sky)
+                check(creature !in arrived) { "$creature was offered to the natural spawner: $arrived" }
+            }
+        }
+    }
+
+    /** And it is picked up by the one that will place it, at the ground the corpus gives it. */
+    test("and is picked up by the Age's own spawner") {
+        val placing = AgeSpawner.placing(
+            Options(mapOf(Spawns.LIVES.name to listOf("minecraft:ender_dragon", "minecraft:iron_golem"))),
+            MinecraftRegistries.spawning,
+        )
+        checkNotNull(placing) { "an Age that wrote a dragon and a golem places neither" }
+
+        val grounds = placing.placedCreatures.associate { it.type to it.ground }
+        check(grounds[EntityType.ENDER_DRAGON] == Ground.IN_THE_AIR) { "the dragon is placed on $grounds" }
+        check(grounds[EntityType.IRON_GOLEM] == Ground.SURFACE) { "the golem is placed on $grounds" }
+    }
+
+    /** And an Age that wrote none of them carries no spawner at all, which is nearly every Age. */
+    test("an Age that asked for none of them carries no spawner") {
+        val ordinary = AgeSpawner.placing(
+            Options(mapOf(Spawns.LIVES.name to listOf("minecraft:zombie"))),
+            MinecraftRegistries.spawning,
+        )
+        check(ordinary == null) { "an Age that wrote only a zombie was given a spawner of its own" }
     }
 })
 

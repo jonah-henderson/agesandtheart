@@ -21,7 +21,13 @@
     "`on_the_surface` and `under_the_ground` say WHERE a creature belongs, which is the thing vanilla has",
     "no way to state: SpawnPlacements answers whether a position will hold one, never whether it ought to",
     "be found there. Only the judgements are listed -- a creature in neither belongs anywhere, which is",
-    "vanilla's own behaviour, and one in both is a reader saying so out loud."
+    "vanilla's own behaviour, and one in both is a reader saying so out loud.",
+    "",
+    "`placed_by_the_age` is for the two things vanilla's spawner will not do at all: it refuses a MISC",
+    "entity outright (the golems) and validates every creature against a box it must clear where it",
+    "stands, which for a dragon is 16x8 at a height vanilla never draws above the surface. Those are",
+    "taken out of the list getMobsAt builds and placed by AgeSpawner instead, at whatever ground they",
+    "belong to -- which is what `in_the_air` is for."
   ],
   "ordinary": {
     "weight": 8,
@@ -76,7 +82,6 @@
   "on_the_surface": [
     "minecraft:iron_golem",
     "minecraft:snow_golem",
-    "minecraft:ender_dragon",
     "minecraft:wither",
     "minecraft:giant",
     "minecraft:illusioner",
@@ -86,5 +91,13 @@
   "under_the_ground": [
     "minecraft:warden",
     "minecraft:silverfish"
+  ],
+  "in_the_air": [
+    "minecraft:ender_dragon"
+  ],
+  "placed_by_the_age": [
+    "minecraft:iron_golem",
+    "minecraft:snow_golem",
+    "minecraft:ender_dragon"
   ]
 }

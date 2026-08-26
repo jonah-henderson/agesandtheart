@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.age.aspect
 
-import co.voik.agesandtheart.mixin.SpawnerDataMixin
 import net.minecraft.core.BlockPos
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.Identifier
@@ -189,6 +188,15 @@ object Spawns {
      * the weight and the entry itself are the same answer at every position, and this is asked once per
      * spawn attempt. Measured at 0.9µs an attempt before, against 0.005µs for an Age that said nothing.
      */
+    /**
+     * Every creature a claim names and how thickly, as ids — what [resolved] and [AgeSpawner] both start
+     * from, so the two cannot disagree about what the book asked for.
+     */
+    fun claimedCreatures(options: Options): List<Pair<Identifier, Double>> =
+        Skew.of(options.claimsOn(LIVES)).wanted
+            .filterNot { it.value == NOTHING }
+            .mapNotNull { claim -> Identifier.tryParse(claim.value)?.let { it to claim.density } }
+
     private fun resolved(asked: Skew, category: MobCategory, spawning: Spawning): List<Arriving> =
         asked.wanted
             .filterNot { it.value == NOTHING }
@@ -199,11 +207,15 @@ object Spawns {
                 // than as nothing — and the parameter's own `unchanged` placeholder is such an id, which
                 // is how writing a golem quietly put a pig in the world.
                 if (!BuiltInRegistries.ENTITY_TYPE.containsKey(id)) return@mapNotNull null
+                // **Asking for one here is asking for a draw it can only lose**: vanilla refuses these
+                // after the list, so offering one costs the biome's own creatures a share of every attempt
+                // and puts nothing in the world. `AgeSpawner` has them.
+                if (spawning.isPlacedByTheAge(id)) return@mapNotNull null
                 val type = BuiltInRegistries.ENTITY_TYPE.getOptional(id).orElse(null)
                     ?: return@mapNotNull null
                 val arrival = spawning.of(id)
                 if (spawnPassFor(type) != category) return@mapNotNull null
-                val entry = carrying(type, arrival) ?: return@mapNotNull null
+                val entry = carrying(type, arrival)
                 val ground = spawning.groundOf(id)
                 val spacing = arrival.spacedAt(density)
                 // **A rung spends itself once.** On a creature held apart it moved the spacing above, so
@@ -256,22 +268,14 @@ object Spawns {
         if (type.category == MobCategory.MISC) MobCategory.MONSTER else type.category
 
     /**
-     * An entry that really spawns [type], **including the ones vanilla refuses to carry**.
+     * An entry for [type], and a plain one — nothing here is carried past a refusal any more.
      *
-     * `SpawnerData`'s constructor swaps a `MISC` entity for a pig, so a golem written into a world would
-     * arrive as pork. The guard is right for every other caller — a datapack tripping it is a mistake —
-     * and wrong here, where the Age's own words asked for the thing by name. So the entry is built the
-     * ordinary way and the type is put back, which is the whole of what `SpawnerDataMixin` exists for.
+     * It used to put a `MobCategory.MISC` type back after `SpawnerData`'s constructor swapped it for a pig,
+     * which took a mixin and bought nothing: `NaturalSpawner` declines that category a step later anyway.
+     * A creature vanilla will not spawn is [AgeSpawner]'s now and never reaches a `SpawnerData` at all.
      */
-    private fun carrying(type: EntityType<*>, arrival: Arrival): MobSpawnSettings.SpawnerData? {
-        val entry = MobSpawnSettings.SpawnerData(type, arrival.least, arrival.most)
-        if (entry.type() == type) return entry
-        (entry as? SpawnerDataMixin)?.`agesandtheart$setType`(type)
-        // **Dropped rather than offered as whatever vanilla substituted.** Where the mixin is not applied
-        // — an offline corpus, a check, a launch without our transformer — the entry is still a pig, and a
-        // pig nobody asked for is worse than a golem nobody gets.
-        return entry.takeIf { it.type() == type }
-    }
+    private fun carrying(type: EntityType<*>, arrival: Arrival): MobSpawnSettings.SpawnerData =
+        MobSpawnSettings.SpawnerData(type, arrival.least, arrival.most)
 
     /** A weight scaled by the rung, never to nothing: an entry at zero would never be drawn at all. */
     private fun howOften(entry: Weighted<MobSpawnSettings.SpawnerData>, rung: Double): Int =

@@ -30,6 +30,7 @@ class FabricAgeBackend : AgeBackend {
                     .getOrThrow(ResourceKey.create(Registries.DIMENSION_TYPE, AgeGeneration.dimensionType(recipe))),
                 generator = AgeGeneration.chunkGenerator(server, recipe),
                 seed = recipe.seed,
+                customSpawners = AgeGeneration.spawnersFor(server, recipe),
             ),
         )
     }

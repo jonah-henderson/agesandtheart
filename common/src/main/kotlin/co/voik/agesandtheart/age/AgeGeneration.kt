@@ -46,6 +46,8 @@ import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import co.voik.agesandtheart.age.aspect.Features
+import co.voik.agesandtheart.age.aspect.AgeSpawner
+import net.minecraft.world.level.CustomSpawner
 import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.aspect.Structures
@@ -543,6 +545,21 @@ object AgeGeneration {
      * sky cannot move an Age's floor — which is exactly what it used to do, to any landform reaching below
      * y=0 that drew the Spire's sky by chance.
      */
+    /**
+     * **The spawners this Age carries of its own**, for the creatures vanilla's own will not place.
+     *
+     * Here rather than in either backend, which are otherwise the same file twice: what a level is made of
+     * is policy and belongs in common, where opening one is Ephemeris'.
+     */
+    fun spawnersFor(server: MinecraftServer, recipe: AgeRecipe): List<CustomSpawner> {
+        val composition = recipe.composition ?: return emptyList()
+        val placing = AgeSpawner.placing(
+            composition.optionsFor(Aspect.SPAWNS, 0),
+            Vocabulary.of(server).spawning,
+        )
+        return listOfNotNull(placing)
+    }
+
     fun dimensionType(recipe: AgeRecipe): Identifier = when (val world = recipe.world) {
         is AgeWorld.Composed -> typeFor(world.composition, recipe.template)
         is AgeWorld.Bespoke -> AGE_DIMENSION_TYPE

@@ -26,6 +26,23 @@ data class Spawning(
     private val onTheSurface: Set<String> = emptySet(),
     /** And ones that belong down in the rock. */
     private val underTheGround: Set<String> = emptySet(),
+    /** And ones that belong well above it. */
+    private val inTheAir: Set<String> = emptySet(),
+    /**
+     * **Creatures vanilla's own spawner will not place, whatever it is asked**, which an Age therefore
+     * places itself — see [co.voik.agesandtheart.age.aspect.AgeSpawner].
+     *
+     * Two reasons and both are vanilla's. `NaturalSpawner.isValidSpawnPostitionForType` refuses a
+     * `MobCategory.MISC` entity outright, so the golems can never arrive through it however they are
+     * weighted or whatever pass they are offered in. And it validates every creature against a box it must
+     * clear *where it stands*, which for a dragon is sixteen blocks by eight, at a height vanilla never
+     * draws above the surface.
+     *
+     * A creature named here is taken **out of** the list `getMobsAt` builds — asking for one there is
+     * asking for a draw that can only be lost — and is placed by our own spawner at whatever [Ground] it
+     * belongs to.
+     */
+    private val placedByTheAge: Set<String> = emptySet(),
 ) {
     fun of(id: Identifier): Arrival = byType[id.toString()] ?: ordinary
 
@@ -46,11 +63,15 @@ data class Spawning(
      * check can see stop applying (Jonah, 2026-08-26).
      */
     fun groundOf(id: Identifier): Ground {
+        if (id.toString() in inTheAir) return Ground.IN_THE_AIR
         val surface = id.toString() in onTheSurface
         val underground = id.toString() in underTheGround
         if (surface == underground) return Ground.ANYWHERE
         return if (surface) Ground.SURFACE else Ground.UNDERGROUND
     }
+
+    /** Whether the Age has to put [id] there itself — see [placedByTheAge]. */
+    fun isPlacedByTheAge(id: Identifier): Boolean = id.toString() in placedByTheAge
 
     /**
      * Every creature named here, which is what makes one **writable at all** where vanilla would never
@@ -65,6 +86,8 @@ data class Spawning(
         later.ordinary,
         onTheSurface + later.onTheSurface,
         underTheGround + later.underTheGround,
+        inTheAir + later.inTheAir,
+        placedByTheAge + later.placedByTheAge,
     )
 
     companion object {
@@ -80,8 +103,12 @@ data class Spawning(
                     .forGetter { it.onTheSurface.toList() },
                 Codec.STRING.listOf().optionalFieldOf("under_the_ground", emptyList())
                     .forGetter { it.underTheGround.toList() },
-            ).apply(instance) { creatures, ordinary, surface, underground ->
-                Spawning(creatures, ordinary, surface.toSet(), underground.toSet())
+                Codec.STRING.listOf().optionalFieldOf("in_the_air", emptyList())
+                    .forGetter { it.inTheAir.toList() },
+                Codec.STRING.listOf().optionalFieldOf("placed_by_the_age", emptyList())
+                    .forGetter { it.placedByTheAge.toList() },
+            ).apply(instance) { creatures, ordinary, surface, underground, air, placed ->
+                Spawning(creatures, ordinary, surface.toSet(), underground.toSet(), air.toSet(), placed.toSet())
             }
         }
     }
@@ -188,6 +215,9 @@ enum class Ground {
     /** Down in the rock, and not out in the open — the warden's own answer. */
     UNDERGROUND,
 
+    /** Aloft, well clear of the ground — the only ground vanilla's spawner cannot reach at all. */
+    IN_THE_AIR,
+
     /** Both, which is most of them, and what a creature nobody made a judgement about is taken as. */
     ANYWHERE,
     ;
@@ -196,6 +226,9 @@ enum class Ground {
     fun admits(skyIsOpen: Boolean): Boolean = when (this) {
         SURFACE -> skyIsOpen
         UNDERGROUND -> !skyIsOpen
+        // Vanilla draws its attempt height no higher than one above the surface, so there is no attempt
+        // it could ever make that this would admit. [Spawns] places these itself.
+        IN_THE_AIR -> false
         ANYWHERE -> true
     }
 }

@@ -4,10 +4,8 @@
   "compatibilityLevel": "JAVA_${java_version}",
   "mixins": [
     "LightningBoltMixin",
-    "NaturalSpawnerMixin",
     "ServerLevelMixin",
-    "ServerPlayerMixin",
-    "SpawnerDataMixin"
+    "ServerPlayerMixin"
   ],
   "client": [
     "client.LevelRendererMixin"
