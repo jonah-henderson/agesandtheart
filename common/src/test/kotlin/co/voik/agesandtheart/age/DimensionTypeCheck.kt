@@ -9,7 +9,9 @@ import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.worldgen.VerticalWindow
 import com.google.gson.JsonParser
 import com.mojang.serialization.JsonOps
+import net.minecraft.core.registries.Registries
 import net.minecraft.data.worldgen.SurfaceRuleData
+import net.minecraft.resources.Identifier
 import net.minecraft.world.level.levelgen.SurfaceRules
 import net.minecraft.world.level.dimension.BuiltinDimensionTypes
 import io.kotest.core.spec.style.FunSpec
@@ -105,6 +107,34 @@ class DimensionTypeCheck : FunSpec({
             check(restated == facts) {
                 "${template.key}'s world reads as $facts but it wears ${template.dimensionType}, which is $restated"
             }
+        }
+    }
+
+    /**
+     * **A dragon is a template's to lend, and no type of ours may claim one.**
+     *
+     * `ServerLevel` builds the fight in its own constructor when the level's type asks for one, so
+     * `Ages.lendTheDragon` hands one to an Age wearing ours and stands aside where vanilla has already
+     * done it. Both halves of that rest on this: a type of ours that started claiming a dragon would fire
+     * both paths and set two fights on one saved record, and a template that stopped carrying one would
+     * leave the lending reaching for something that is not there.
+     */
+    test("a dragon belongs to a template's own world, never to a type of ours") {
+        MinecraftRegistries.ensureStoodUp()
+        val vanillas = MinecraftRegistries.worldgen.lookupOrThrow(Registries.DIMENSION_TYPE)
+        val lending = AgeTemplate.entries
+            .filter { vanillas.getOrThrow(it.dimensionType).value().hasEnderDragonFight() }
+
+        check(lending == listOf(AgeTemplate.DARK_VOID)) {
+            "the worlds carrying a dragon are $lending, and the lending in Ages was written for the End alone"
+        }
+
+        fun claimsADragon(id: Identifier): Boolean = JsonParser.parseString(File(shipped, "${id.path}.json").readText())
+            .asJsonObject.get("has_ender_dragon_fight").asBoolean
+
+        val claimants = everyCombination.map { it.third }.filter(::claimsADragon)
+        check(claimants.isEmpty()) {
+            "$claimants claim a dragon of their own, so an Age wearing one would be given a second"
         }
     }
 

@@ -12,6 +12,7 @@ import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.level.dimension.end.EnderDragonFight
 import net.minecraft.world.level.levelgen.Heightmap
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Atmosphere
@@ -35,6 +36,41 @@ object Ages {
      */
     fun attach() {
         RuntimeLevelEvents.whenOpened(::settleTheAir)
+        RuntimeLevelEvents.whenOpened(::lendTheDragon)
+    }
+
+    /** The recipe [level] was written from, or null where it is no Age of ours. */
+    private fun recipeOf(level: ServerLevel): AgeRecipe? {
+        val saved = AgeSavedData.get(level.server)
+        val id = level.dimension().identifier()
+        return if (id in saved.ages) saved.recipe(id) else null
+    }
+
+    /**
+     * **The dragon belonging to the world the book was written over**, for an Age wearing a type of ours.
+     *
+     * `ServerLevel` makes the fight in its own constructor when its dimension type asks for one, so an Age
+     * that kept the End's rock has it already and this leaves that one alone. An Age that *named a
+     * landform* wears one of ours instead, and ours cannot ask: the flag would double a set of three, and
+     * a dragon is a fact about the world rather than about the height band the type exists to declare. So
+     * it is lent on opening, exactly as the air is (§4, and the same reading as the roof and the skylight).
+     *
+     * `setDragonFight` carries `@VisibleForTesting` and is still the right seam. The alternatives are a
+     * Mixin into a constructor to set one field, or a fourth and fifth dimension type; a public method
+     * vanilla already maintains beats both.
+     */
+    private fun lendTheDragon(level: ServerLevel) {
+        // Vanilla made one already, and a second would race the first over the same saved data.
+        if (level.dimensionType().hasEnderDragonFight()) return
+        val recipe = recipeOf(level) ?: return
+        val worldItWasWrittenOver = level.registryAccess().lookupOrThrow(Registries.DIMENSION_TYPE)
+            .getOrThrow(recipe.template.dimensionType).value()
+        if (!worldItWasWrittenOver.hasEnderDragonFight()) return
+
+        val fight = level.dataStorage.computeIfAbsent(EnderDragonFight.TYPE)
+        fight.init(level, level.seed, BlockPos.ZERO)
+        @Suppress("DEPRECATION")
+        level.setDragonFight(fight)
     }
 
     /** Creates a brand-new Age and records it for persistence. Null if it exists or is unsupported. */
@@ -66,10 +102,7 @@ object Ages {
      * from the recipe each time the server starts.
      */
     private fun settleTheAir(level: ServerLevel) {
-        val saved = AgeSavedData.get(level.server)
-        val id = level.dimension().identifier()
-        if (id !in saved.ages) return
-        val recipe = saved.recipe(id)
+        val recipe = recipeOf(level) ?: return
         val composition = recipe.composition ?: return
         Atmosphere.settle(level, recipe.seed, composition, recipe.template)
     }
