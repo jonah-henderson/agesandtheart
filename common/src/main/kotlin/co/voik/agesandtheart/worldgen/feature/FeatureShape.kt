@@ -7,6 +7,8 @@ import net.minecraft.world.level.levelgen.feature.Feature
 import net.minecraft.world.level.levelgen.feature.configurations.FeatureConfiguration
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.Identifier
+import net.minecraft.world.level.levelgen.feature.LakeFeature
+import net.minecraft.world.level.levelgen.feature.stateproviders.BlockStateProvider
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature
 import net.minecraft.world.level.levelgen.feature.configurations.OreConfiguration
 import net.minecraft.world.level.levelgen.feature.configurations.SpringConfiguration
@@ -87,6 +89,13 @@ object FeatureShape {
                     configuration.validBlocks,
                 )
             }
+            // **A lake is a bowl, so anything may fill it** — no fluid test beside the spring's, because
+            // `LakeFeature` places the fill as plain blocks and only asks whether it is water to decide
+            // about freezing it. The barrier it lines the bowl with is the pattern's and stays.
+            is LakeFeature.Configuration -> LakeFeature.Configuration(
+                BlockStateProvider.simple(block.defaultBlockState()),
+                configuration.barrier(),
+            )
             is OreConfiguration -> OreConfiguration(
                 configuration.targetStates.map { OreConfiguration.target(it.target, block.defaultBlockState()) },
                 configuration.size,

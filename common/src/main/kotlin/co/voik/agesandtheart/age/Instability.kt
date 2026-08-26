@@ -63,7 +63,15 @@ enum class Register(
      */
     FRACTURE("fracture", base = 1),
 
-    /** A word lost outright: something else already had the aspect, and the aspect cannot divide. */
+    /**
+     * A word lost outright: something else already had the aspect, and the aspect cannot divide.
+     *
+     * **Also what a minting asks for and cannot hold.** `gold_block springs` spells a pattern that runs
+     * with a fluid and a substance that is not one, so the spring keeps its own water and the material is
+     * crowded out of the clause it was written into — which is this register's own sentence, and the
+     * reason it rather than [UNBACKED]: that one says "a gap in the vocabulary, not something you did",
+     * and writing a solid into a spring is squarely something you did.
+     */
     DISPLACED("displaced", base = 2),
 
     /**

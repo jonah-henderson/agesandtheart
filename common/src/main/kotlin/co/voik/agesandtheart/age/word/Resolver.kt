@@ -3,6 +3,7 @@ package co.voik.agesandtheart.age.word
 import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.AgeTemplate
 import co.voik.agesandtheart.age.Flaw
+import net.minecraft.core.registries.BuiltInRegistries
 import co.voik.agesandtheart.age.Instability
 import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.age.aspect.Claim
@@ -148,6 +149,7 @@ object Resolver {
         val template = templateOf(said)
         val spokenTo = said.flatMap { reachOf(vocabulary, it) }.toSet()
         val composition = mintedFeatures(resolved, sentence, draw).laidOver(template.world(), spokenTo)
+        flaws += mintingsThatCannotHold(vocabulary, sentence, draw)
         // **Last**, so it can see everything the mechanisms above already charged and never price one
         // disagreement twice. Steering adds flaws of its own, so this cannot be hoisted.
         flaws += oppositions(vocabulary, said, flaws.toList())
@@ -163,6 +165,42 @@ object Resolver {
             dropped = sentence.unreadable,
         )
     }
+
+    /**
+     * **A pattern asked to be made of something it cannot hold** — `gold_block springs`, where the word
+     * spells a spring and the material named beside it is a solid.
+     *
+     * A spring runs with a fluid, so the substance is dropped and the writer gets ordinary water. That is
+     * the right thing for generation to do — a spring rebuilt around `Fluids.EMPTY` places nothing at all,
+     * which is worse — but it left a page paid for and nothing said about it (Jonah, 2026-08-25, walked).
+     *
+     * **Charged rather than refused**, because the sentence is one a writer can mean: asking a spring to
+     * run with gold is incoherent in the way §2 says instability is *for*, not malformed in the way the
+     * grammar rejects.
+     *
+     * Read off the clauses like [mintedFeatures], and for the same reason — the pairing of a pattern with
+     * its substance is a fact about a clause, and the flat claims have thrown it away by here.
+     */
+    private fun mintingsThatCannotHold(vocabulary: Vocabulary, sentence: Sentence, draw: Long): List<Flaw> =
+        sentence.phrases.mapNotNull { phrase ->
+            val minting = phrase.subject?.takeIf { it.word.mintsSomethingThatFlows } ?: return@mapNotNull null
+            // Drawn before it is read, exactly as the minting itself draws it: a material carrying a pool
+            // chooses here too, and charging the undrawn word would price a page nobody was given.
+            val substance = phrase.modifiers.map { it.drawnAt(draw) }
+                .firstOrNull { it.word.material != null } ?: return@mapNotNull null
+            if (flows(substance.word.material)) return@mapNotNull null
+            // The material first: it is the word that lost, and `describe` names the first as displaced
+            // and the second as what displaced it.
+            flaw(vocabulary, Register.DISPLACED, listOf(substance, minting), Aspect.FEATURES, emptyList(), substance.word.tier)
+        }
+
+    /**
+     * Whether a block a sentence named has a fluid in it, which is the whole of what a spring asks of its
+     * substance. A name this pack does not have does not flow, and is somebody else's flaw to report.
+     */
+    private fun flows(block: String?): Boolean = block?.let(Identifier::tryParse)
+        ?.let { BuiltInRegistries.BLOCK.getOptional(it).orElse(null) }
+        ?.defaultBlockState()?.fluidState?.isEmpty == false
 
     /**
      * The world this book starts from — **the first template named, or the ordinary one**.

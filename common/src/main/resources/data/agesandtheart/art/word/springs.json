@@ -5,11 +5,14 @@
     "whatever the clause names: `ink springs`.",
     "",
     "Named alone it aims at what is placed and does nothing else, so `teeming springs` is a claim about",
-    "the springs the world already has rather than a minted one."
+    "the springs the world already has rather than a minted one.",
+    "",
+    "`mints_something_that_flows` is what lets the resolver charge for `gold_block springs`: a spring runs with a fluid, and a solid holds none, so the pattern is left alone and the writer paid for a page that did nothing. Reading it off the pattern would mean handing the resolver a registry."
   ],
   "tier": "exact",
   "aspects": [
     "features"
   ],
-  "mints": "minecraft:spring_water"
+  "mints": "minecraft:spring_water",
+  "mints_something_that_flows": true
 }

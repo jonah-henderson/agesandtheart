@@ -187,6 +187,24 @@ data class Word(
      * has, and the reason a material may stand somewhere nothing is *made of* anything.
      */
     val mints: String? = null,
+    /**
+     * Whether the pattern [mints] names can only be made of something that **flows**.
+     *
+     * A spring runs with a fluid, and `fluidState` of a block that is not one is `Fluids.EMPTY` — so
+     * `gold_block springs` rebuilt a spring that placed nothing at all, and the pattern is left alone
+     * instead. Which is right, and left the writer paying for a page that did nothing and being told
+     * nothing about it (Jonah, 2026-08-25, walked).
+     *
+     * **On the word rather than read off the pattern**, so the resolver can charge for it: instability is
+     * a pure function of (vocabulary, sentence, seed), and asking a `PlacedFeature` what its configuration
+     * is means a registry the resolver has no business holding. The corpus already decides which patterns
+     * are worth minting from; this is the same statement carried one step further.
+     *
+     * A boolean because there are two patterns and one distinction. A third that wanted something else —
+     * a pattern that can only be made of a full block, say — makes this an enumeration, and the word data
+     * is where it would be spelled either way.
+     */
+    val mintsSomethingThatFlows: Boolean = false,
 ) {
     /** What a writer says to use it. */
     val name: String get() = id.path
@@ -477,14 +495,16 @@ data class Word(
                     .optionalFieldOf("weights", emptyMap()).forGetter(Word::weights),
                 Codec.STRING.optionalFieldOf("template").forGetter { Optional.ofNullable(it.template) },
                 Codec.STRING.optionalFieldOf("mints").forGetter { Optional.ofNullable(it.mints) },
+                Codec.BOOL.optionalFieldOf("mints_something_that_flows", false)
+                    .forGetter(Word::mintsSomethingThatFlows),
             ).apply(instance) {
-                tier, aspects, query, queries, names, sets, pool, draws, weights, template, mints,
+                tier, aspects, query, queries, names, sets, pool, draws, weights, template, mints, flows,
                 ->
                 val named = names.orElse(null)
                 val reaches = reaching(tier, aspects, sets + pool, named, weights.keys + queries.keys)
                 Word(
                     id, tier, reaches, query, queries, named, sets, pool, draws, weights,
-                    template.orElse(null), mints.orElse(null),
+                    template.orElse(null), mints.orElse(null), flows,
                 )
             }
         }

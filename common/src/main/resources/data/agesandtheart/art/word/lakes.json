@@ -1,0 +1,21 @@
+{
+  "_comment": [
+    "A lake of something the world does not have one of. Shaped exactly like vanilla's own surface",
+    "lava lake -- its bowl, the barrier it lines it with, how often it comes and where -- and filled",
+    "with whatever the clause names: `ink lakes`, `water lakes`.",
+    "",
+    "The surface one rather than `lake_lava_underground`, because a pool a writer asks for is a pool",
+    "they can see. The underground one is the same shape buried, and nothing yet says which of two",
+    "patterns a word means.",
+    "",
+    "It declares no `mints_something_that_flows`, and the contrast with `springs` is the point: a",
+    "spring runs, so a solid holds none of it, where a lake is a bowl and a bowl of obsidian is a",
+    "thing a writer might well want. `LakeFeature` places the fill as blocks and only asks whether it",
+    "is water to decide about ice."
+  ],
+  "tier": "exact",
+  "aspects": [
+    "features"
+  ],
+  "mints": "minecraft:lake_lava_surface"
+}

@@ -2,10 +2,14 @@ package co.voik.agesandtheart.age.aspect
 
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
+import co.voik.agesandtheart.age.Flaw
+import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.age.word.Resolver
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.worldgen.feature.FeatureShape
+import com.mojang.serialization.JsonOps
+import net.minecraft.world.level.levelgen.feature.ConfiguredFeature
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import net.minecraft.core.registries.Registries
@@ -46,6 +50,82 @@ class MintingCheck : FunSpec({
         check(grown.any { it.startsWith("minecraft:spring_water") && "of=minecraft:lava" in it }) {
             "'lava springs' should have minted a lava-carrying spring, and left $grown"
         }
+    }
+
+    /** What a book resolved to as instability, so a charge can be checked rather than only a claim. */
+    fun flawsOf(vararg pages: String): List<Flaw> {
+        val sentence = Grammar.read(vocabulary, listOf("age", *pages)) ?: error("not a book: ${pages.toList()}")
+        return Resolver.resolve(vocabulary, sentence, SAMPLE_SEED).instability.flaws
+    }
+
+    /**
+     * **A spring cannot run with a solid, and the writer is told what it cost.**
+     *
+     * Generation leaves the pattern alone — a spring rebuilt around `Fluids.EMPTY` places nothing at all,
+     * which is worse than ordinary water — so the material is dropped, and until this it was dropped in
+     * silence with the page paid for either way (Jonah, 2026-08-25, walked).
+     */
+    test("a spring asked to run with a solid charges for the material it lost") {
+        val displaced = flawsOf("gold_block", "springs").filter { it.register == Register.DISPLACED }
+        check(displaced.size == 1) { "'gold_block springs' charged ${flawsOf("gold_block", "springs")}" }
+
+        val flaw = displaced.single()
+        check(flaw.words.first() == "gold_block") {
+            "the flaw names ${flaw.words} — the material is the word that lost and belongs first"
+        }
+        check(flaw.severity > 0) { "'gold_block springs' was charged nothing" }
+        check("gold_block" in flaw.describe() && "springs" in flaw.describe()) {
+            "the reading does not name both words: ${flaw.describe()}"
+        }
+    }
+
+    /**
+     * The control, and it is the whole of what keeps the charge honest: the same shape with a fluid in it
+     * must cost nothing at all, or every minted spring in the game is paying for this.
+     */
+    test("and a spring that can run with what it was given is charged nothing") {
+        for (fluid in listOf("lava", "water")) {
+            val displaced = flawsOf(fluid, "springs").filter { it.register == Register.DISPLACED }
+            check(displaced.isEmpty()) { "'$fluid springs' was charged $displaced for a substance that flows" }
+        }
+    }
+
+    /**
+     * **A lake fills with whatever it is given**, which is the contrast that makes the spring's refusal a
+     * rule about the pattern rather than about minting: a bowl of obsidian is a thing a writer may want,
+     * where a spring of it is a spring that runs with nothing.
+     */
+    test("a lake takes a fluid or a solid, and charges for neither") {
+        // No ink here, and it is not an omission: our own fluids are registered by a running mod, so
+        // the offline corpus has no word for one. `ink lakes` is the walk's to see.
+        for (filling in listOf("water", "obsidian", "gold_block")) {
+            val grown = placed(filling, "lakes")
+            check(grown.any { it.startsWith("minecraft:lake_lava_surface") && "of=minecraft:$filling" in it }) {
+                "'$filling lakes' left $grown"
+            }
+            val displaced = flawsOf(filling, "lakes").filter { it.register == Register.DISPLACED }
+            check(displaced.isEmpty()) { "'$filling lakes' was charged $displaced, and a bowl holds anything" }
+        }
+    }
+
+    /** And the pattern is really rebuilt, rather than the claim merely spelling what was asked for. */
+    test("a minted lake is filled with what the clause named") {
+        val pattern = MinecraftRegistries.worldgen.lookupOrThrow(Registries.PLACED_FEATURE)
+            .getOrThrow(net.minecraft.resources.ResourceKey.create(Registries.PLACED_FEATURE, Identifier.parse("minecraft:lake_lava_surface")))
+        val obsidian = FeatureShape.mintedFrom(pattern, "minecraft:obsidian")
+        check(obsidian !== pattern) { "the lake came back unminted" }
+        // Through the codec, because a `BlockStateProvider`'s own `toString` is its identity and says
+        // nothing about the block — which is what made the first version of this pass over a lava lake.
+        val spelled = ConfiguredFeature.DIRECT_CODEC
+            .encodeStart(JsonOps.INSTANCE, obsidian.value().feature().value())
+            .getOrThrow().toString()
+        check("minecraft:obsidian" in spelled) { "the minted lake is not made of obsidian: $spelled" }
+    }
+
+    /** And a pattern that never asked for a fluid takes a solid happily — `veins` is the other minting. */
+    test("a vein is made of a solid and charges nothing") {
+        val displaced = flawsOf("gold_block", "veins").filter { it.register == Register.DISPLACED }
+        check(displaced.isEmpty()) { "'gold_block veins' was charged $displaced, and a vein wants a solid" }
     }
 
     test("the material does not also become the rock") {

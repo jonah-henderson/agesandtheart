@@ -1,0 +1,28 @@
+# Minting — a pattern made of something it never carries (walk §F).
+#
+# A written Age names no landform, so it wears the template's own rock, and everything a book can say
+# about that rock goes through the substitution in `AgeGeneration.vanillasRockFor`. That is why the sea
+# half of §F failed the same way `sea=lava` over the overworld did, and why it should be fixed with it.
+#
+# Read `age list` for what each resolved to, and the compares for whether it reached the blocks.
+
+age write inkspring 4242 age ink springs
+age write inksea 4242 age ink sea
+age write lavaspring 4242 age lava springs
+age write goldvein 4242 age gold_block veins
+age write solidspring 4242 age gold_block springs
+age list
+
+# --- the sea half, against a control at the same seed ----------------------------------------------
+age compose seawater 4242 landmass=vanilla sea=minecraft:water
+age compose seaink 4242 landmass=vanilla sea=agesandtheart:ink
+age compare seawater seaink 1
+
+# --- lakes, which our own ink can only be checked against on a server -------------------------------
+# The offline corpus has no word for our fluids: they are registered by a running mod, so `ink lakes`
+# and `ink springs` are reachable here and nowhere else.
+age write inklake 4242 age ink lakes
+age write waterlake 4242 age water lakes
+age write obsidianlake 4242 age obsidian lakes
+age write goldspring 4242 age gold_block springs
+age list
