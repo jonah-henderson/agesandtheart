@@ -143,8 +143,9 @@ object AgeGeneration {
         // stone for every Age. A surface tree paints *patches* — nylium, soul soil, gravel — and leaves the
         // rest to the world's default block, so an infernal Age's hills came out bare grey stone under the
         // nether's own dressing, which then had nothing it recognised to dress (Jonah, 2026-08-14, walked).
-        val theirRock = server.registryAccess().lookupOrThrow(Registries.NOISE_SETTINGS)
-            .getOrThrow(recipe.template.rock).value().defaultBlock()
+        val theirRockSettings = server.registryAccess().lookupOrThrow(Registries.NOISE_SETTINGS)
+            .getOrThrow(recipe.template.rock)
+        val theirRock = theirRockSettings.value().defaultBlock()
         val fill = TerrainFill(
             composition.terrains.mapIndexed { member, terrain ->
                 terrain.fillBlocks(terrainOptions(member)).ifEmpty { listOf(theirRock) }
@@ -206,13 +207,13 @@ object AgeGeneration {
                         }
                         ?.let { band -> Roofed(greatHallBiome(server), band.first, band.last) },
                 ),
-            ourGround?.rock ?: AgeRock.Vanillas(vanillaRockFor(server, recipe, composition, seaFill, fill)),
+            ourGround?.rock ?: AgeRock.Vanillas(Holder.direct(vanillasRockFor(theirRockSettings.value(), composition, fill))),
             seaFill,
             // The Surface aspect's answer, not a constant: vanilla's tree paints grass over dirt above
             // water without consulting the biome, so there has to be a way to say "no skin" and a way to
             // lay something else. See [Surface.ruleFor].
             // Only where the rock is ours: a rule delegating to the biomes does so *through* the field
-            // tree, and an Age wearing vanilla's rock has none to delegate through. `vanillaRockFor`
+            // tree, and an Age wearing vanilla's rock has none to delegate through. `vanillasRockFor`
             // carries that Age's skin instead.
             ourGround?.let { Surface.ruleFor(composition.optionsFor(Aspect.SURFACE, 0), it.rock, recipe.template) }
                 ?: SurfacingStrategy.SUPPRESSED,
@@ -231,8 +232,7 @@ object AgeGeneration {
             // was the overworld's for every Age, so a landform of ours over the infernal template chose
             // nether biomes with overworld noise — and over the dark void, where the End picks by distance
             // from the centre and reads that off `erosion`, it scattered the islands' biomes at random.
-            server.registryAccess().lookupOrThrow(Registries.NOISE_SETTINGS)
-                .getOrThrow(recipe.template.rock),
+            theirRockSettings,
             fill,
             window,
             // What is placed, which vanilla's own decoration hook takes it — see [Features] for the seam.
@@ -251,21 +251,18 @@ object AgeGeneration {
      *
      * `NoiseGeneratorSettings` is a record, so this is vanilla's own settings rebuilt: its noise, its router
      * and its spawn target kept, and the Age's block, fluid and skin substituted where it asked for one.
-     * `Holder.direct` is safe here and fatal for a `DimensionType` — a chunk generator is server-side and
-     * never reaches a client.
+     *
+     * A pure function of the template's settings and the composition, so what a book can and cannot change
+     * about a rock we did not lay is answerable without a server.
      *
      * **Aquifers and ore veins go back on.** They are off for a field-tree Age because the toolkit answers
      * for water itself; under vanilla's router they are part of the rock being vanilla's.
      */
-    private fun vanillaRockFor(
-        server: MinecraftServer,
-        recipe: AgeRecipe,
+    fun vanillasRockFor(
+        theirs: NoiseGeneratorSettings,
         composition: AgeComposition,
-        seaFill: SeaFill,
         fill: TerrainFill,
-    ): Holder<NoiseGeneratorSettings> {
-        val theirs = server.registryAccess().lookupOrThrow(Registries.NOISE_SETTINGS)
-            .getOrThrow(recipe.template.rock).value()
+    ): NoiseGeneratorSettings {
         // Only a skin the writer actually named: `Surface.ruleFor` would otherwise delegate to the biomes
         // *through the field tree*, and there is none here to delegate through. Silence means vanilla's own
         // rule, which is what a nether floor of netherrack is.
@@ -275,20 +272,25 @@ object AgeGeneration {
             named.all { it.isAir } -> SurfacingStrategy.SUPPRESSED
             else -> SurfacingStrategy.laidOnVanilla(named)
         }
-        return Holder.direct(
-            NoiseGeneratorSettings(
-                theirs.noiseSettings(),
-                fill.representative.takeUnless { fill == TerrainFill.PLAIN } ?: theirs.defaultBlock(),
-                seaFill.representative.takeUnless { seaFill == SeaFill.NONE } ?: theirs.defaultFluid(),
-                theirs.noiseRouter(),
-                skin,
-                theirs.spawnTarget(),
-                theirs.seaLevel(),
-                theirs.disableMobGeneration(),
-                /* aquifersEnabled = */ true,
-                /* oreVeinsEnabled = */ true,
-                theirs.getRandomSource() == net.minecraft.world.level.levelgen.WorldgenRandom.Algorithm.LEGACY,
-            ),
+        // **The substance alone, read off the book rather than off the fill.** A `SeaFill` answers where a
+        // sea of *ours* is poured, and `Terrain.VANILLA` declares no waterline at all — vanilla's own
+        // router places its fluid, so there is nothing here for a fill to pour. That made the fill `NONE`
+        // for every Age wearing this rock however the book was written, and reading the sea off it dropped
+        // every `sea=` one of them ever named: lava asked for over the overworld came out water, and water
+        // asked for over the nether came out lava (Jonah, 2026-08-25, walked).
+        val sea = composition.seas.firstOrNull()?.substance() ?: theirs.defaultFluid()
+        return NoiseGeneratorSettings(
+            theirs.noiseSettings(),
+            fill.representative.takeUnless { fill == TerrainFill.PLAIN } ?: theirs.defaultBlock(),
+            sea,
+            theirs.noiseRouter(),
+            skin,
+            theirs.spawnTarget(),
+            theirs.seaLevel(),
+            theirs.disableMobGeneration(),
+            /* aquifersEnabled = */ true,
+            /* oreVeinsEnabled = */ true,
+            theirs.getRandomSource() == net.minecraft.world.level.levelgen.WorldgenRandom.Algorithm.LEGACY,
         )
     }
 

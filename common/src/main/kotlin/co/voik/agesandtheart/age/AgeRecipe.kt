@@ -83,7 +83,7 @@ data class AgeRecipe(
         get() {
             val written = composition ?: return emptyList()
             if (Terrain.VANILLA !in written.terrains) return emptyList()
-            return listOfNotNull(oneMaterialOnly(written), whateverItCutsItself(written))
+            return listOfNotNull(oneMaterialOnly(written), oneSeaOnly(written), whateverItCutsItself(written))
         }
 
     /** A rock we did not lay has one material, whatever the book named after the first. */
@@ -92,6 +92,16 @@ data class AgeRecipe(
         if (stone.size <= 1) return null
         return "${Aspect.TERRAIN.page}.${Terrain.STONE.name}=${stone.joinToString(",")} — " +
             "${template.key}'s own rock is one material, so ${stone.first()} is laid and the rest are not"
+    }
+
+    /**
+     * **And it holds one sea**, on the same argument: `defaultFluid` is a single block, where a sea of ours
+     * divides on the terrain's own map.
+     */
+    private fun oneSeaOnly(written: AgeComposition): String? {
+        if (written.seas.size <= 1) return null
+        return "${Aspect.SEA.page}=${written.seas.joinToString(",") { it.id.toString() }} — " +
+            "${template.key}'s own rock holds one sea, so ${written.seas.first().id} fills it and the rest do not"
     }
 
     /**
