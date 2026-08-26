@@ -38,11 +38,15 @@ sealed interface AgeRock {
          * The same rock **without whatever shuts it overhead** — null where nothing does, which is almost
          * every Age.
          *
-         * A lid is rock and belongs in [field], so it is filled, dressed, and closes the sky over anything
-         * asking whether a spawn is out in the open. It is emphatically **not ground**: a heightmap, a
-         * climate grounded in the Age's shape, and the search for somewhere to put a player all want the
-         * height of the *land*, and a ceiling read as land makes every column a mountain to the top of the
-         * world. So the readers that mean ground ask this instead.
+         * A lid is rock and belongs in [field], so it is filled and closes the sky over anything asking
+         * whether a spawn is out in the open. It is emphatically **not ground**: a heightmap, a climate
+         * grounded in the Age's shape, the surface rule's gate and the search for somewhere to put a
+         * player all want the height of the *land*, and a ceiling read as land makes every column a
+         * mountain to the top of the world. So the readers that mean ground ask this instead.
+         *
+         * The lid is dressed all the same, by that same gate: it is a floor rather than a ceiling —
+         * everything above the land counts as near its surface — so vanilla's own `UNDER_CEILING` arms
+         * and its bedrock roof find the underside of a lid without being told it is there.
          */
         val ground: TerrainField? = null,
     ) : AgeRock {

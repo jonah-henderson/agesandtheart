@@ -214,7 +214,7 @@ object AgeGeneration {
             // Only where the rock is ours: a rule delegating to the biomes does so *through* the field
             // tree, and an Age wearing vanilla's rock has none to delegate through. `vanillaRockFor`
             // carries that Age's skin instead.
-            ourGround?.let { Surface.ruleFor(composition.optionsFor(Aspect.SURFACE, 0), it.rock.field, recipe.template) }
+            ourGround?.let { Surface.ruleFor(composition.optionsFor(Aspect.SURFACE, 0), it.rock, recipe.template) }
                 ?: SurfacingStrategy.SUPPRESSED,
             composition.carvers.map { it.configuredCarvers(server) },
             below,

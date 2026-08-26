@@ -1,8 +1,8 @@
 package co.voik.agesandtheart.age.aspect
 
 import co.voik.agesandtheart.age.AgeTemplate
+import co.voik.agesandtheart.worldgen.AgeRock
 import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
-import co.voik.agesandtheart.worldgen.field.TerrainField
 import net.minecraft.world.level.levelgen.SurfaceRules
 
 /**
@@ -29,19 +29,27 @@ object Surface {
     val MATERIAL = Parameter.material("material")
 
     /**
-     * The rule this Age's ground wears, over the [terrain] that has to say which blocks are the top of the
+     * The rule this Age's ground wears, over the rock that has to say which blocks are the top of the
      * ground and which are the floor of a cave.
+     *
+     * **The whole rock rather than one field out of it**, so a dressing can never be hung from a ceiling.
+     * A sealed Age's [AgeRock.Ours.field] reaches the top of the world, and [SurfacingStrategy]'s gate is
+     * built by measuring the field it is given — so handing it that one put every surface rule in the top
+     * eight blocks of the sky and left the ground in undressed fill (Jonah, 2026-08-15, walked: a warped
+     * forest of bare netherrack, and no vegetation, nylium being what it grows on).
+     * [AgeRock.Ours.landform] is the reader that means ground; taking the rock is what stops the other one
+     * being reachable from here at all.
      *
      * A name this pack does not have leaves the biome's own skin rather than stripping it: an Age must
      * still open, and a missing block is a pack problem rather than an instruction to bare the world.
      */
-    fun ruleFor(options: Options, terrain: TerrainField, template: AgeTemplate): SurfaceRules.RuleSource {
+    fun ruleFor(options: Options, rock: AgeRock.Ours, template: AgeTemplate): SurfaceRules.RuleSource {
         val blocks = options.materialsOf(MATERIAL)
-        if (blocks.isEmpty()) return SurfacingStrategy.delegatedToBiomes(terrain, template.skin)
+        if (blocks.isEmpty()) return SurfacingStrategy.delegatedToBiomes(rock.landform, template.skin)
         // Air is how a writer says "no skin", the same way `open` says "no sea" — and it is only bare when
         // *everything* named is air, since air mingled with a rock is a skin full of holes and a fine thing
         // for a book to ask for.
         if (blocks.all { it.isAir }) return SurfacingStrategy.SUPPRESSED
-        return SurfacingStrategy.laidOn(terrain, blocks)
+        return SurfacingStrategy.laidOn(rock.landform, blocks)
     }
 }
