@@ -1,5 +1,5 @@
 {
-  "_comment": "Roofed and lightless. `ambient_light` is the nether's 0.1 rather than the flat 0.0 an unroofed lightless Age gets: a world shut overhead is lit by its own rock and lava, where an open one with no sun is a void and should be black. It names NO fog, sky or ambient colour: in 26.1 a biome carries its own, and naming them pinned the nether's fog to one dull colour for every biome and multiplied its glow down to nothing (Jonah, 2026-08-14, walked, twice). A zero-alpha cloud colour stays, being the only way to skip the cloud pass at all.",
+  "_comment": "Roofed and lightless. It names no fog or sky colour: in 26.1 a biome carries its own, and naming them pinned the nether's fog to one dull colour for every biome (Jonah, 2026-08-14, walked, twice). `ambient_light_color` is #302821, the nether's own, this being the world it restates \u2014 that dim warm floor is why the nether is never truly black, and it is an attribute rather than the `ambient_light` float below, which the lightmap never reads. A zero-alpha cloud colour stays, being the only way to skip the cloud pass at all.",
   "ambient_light": 0.1,
   "attributes": {
     "minecraft:gameplay/bed_rule": {
@@ -10,6 +10,7 @@
       }
     },
     "minecraft:gameplay/respawn_anchor_works": false,
+    "minecraft:visual/ambient_light_color": "#302821",
     "minecraft:visual/cloud_color": "#00000000",
     "minecraft:visual/cloud_height": 192.33
   },
@@ -24,9 +25,9 @@
   "min_y": -64,
   "monster_spawn_block_light_limit": 0,
   "monster_spawn_light_level": {
-    "type": "minecraft:uniform",
+    "max_inclusive": 7,
     "min_inclusive": 0,
-    "max_inclusive": 7
+    "type": "minecraft:uniform"
   },
   "timelines": "#minecraft:in_overworld"
 }

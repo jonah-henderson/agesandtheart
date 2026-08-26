@@ -12,6 +12,9 @@ import com.mojang.serialization.JsonOps
 import net.minecraft.core.registries.Registries
 import net.minecraft.data.worldgen.SurfaceRuleData
 import net.minecraft.resources.Identifier
+import net.minecraft.resources.ResourceKey
+import net.minecraft.world.attribute.EnvironmentAttributes
+import net.minecraft.world.level.dimension.DimensionType
 import net.minecraft.world.level.levelgen.SurfaceRules
 import net.minecraft.world.level.dimension.BuiltinDimensionTypes
 import io.kotest.core.spec.style.FunSpec
@@ -37,6 +40,13 @@ class DimensionTypeCheck : FunSpec({
      * **Every set of facts an Age can have, and the type each earns.** Three rather than four: roofed and
      * lit is a combination the world cannot be in, so no file ships for it.
      */
+    /** Each of vanilla's three worlds and the type of ours that restates it. */
+    val ourEquivalent = mapOf(
+        BuiltinDimensionTypes.OVERWORLD to AgeGeneration.AGE_DIMENSION_TYPE,
+        BuiltinDimensionTypes.NETHER to AgeGeneration.AGE_LIGHTLESS_ROOFED_DIMENSION_TYPE,
+        BuiltinDimensionTypes.END to AgeGeneration.AGE_LIGHTLESS_DIMENSION_TYPE,
+    )
+
     val everyCombination = listOf(
         Triple(Options(), Options(), AgeGeneration.AGE_DIMENSION_TYPE),
         Triple(Options(), unlit, AgeGeneration.AGE_LIGHTLESS_DIMENSION_TYPE),
@@ -94,11 +104,6 @@ class DimensionTypeCheck : FunSpec({
      */
     test("each template's own type matches the facts of its world") {
         MinecraftRegistries.ensureStoodUp()
-        val ourEquivalent = mapOf(
-            BuiltinDimensionTypes.OVERWORLD to AgeGeneration.AGE_DIMENSION_TYPE,
-            BuiltinDimensionTypes.NETHER to AgeGeneration.AGE_LIGHTLESS_ROOFED_DIMENSION_TYPE,
-            BuiltinDimensionTypes.END to AgeGeneration.AGE_LIGHTLESS_DIMENSION_TYPE,
-        )
         for (template in AgeTemplate.entries) {
             val world = template.world()
             val facts = Sky.dimensionType(world.optionsFor(Aspect.SKY, 0), world.optionsFor(Aspect.SUN, 0))
@@ -138,6 +143,45 @@ class DimensionTypeCheck : FunSpec({
         }
     }
 
+    /**
+     * **The light a type of ours lets through, against the light of the world it restates.**
+     *
+     * `ambient_light_color` is the floor the lightmap is built on, and the attribute's registered default
+     * is `#000000` — so a type that says nothing about it is darker than every world in the game, and an
+     * Age wearing it is pitch black away from a torch (Jonah, 2026-08-25, walked). It was taken out of all
+     * three on the reading that vanilla's default is white; white is `sky_light_color`'s default, and
+     * `#0a0a0a` was never an invention of ours but the overworld's own value.
+     *
+     * The `ambient_light` float beside it is a different system and cannot stand in: its only reader is
+     * `LevelReader.getBrightness`, while the lightmap is extracted from this attribute,
+     * `sky_light_color` and `sky_light_factor`.
+     */
+    test("each type of ours lets through the light of the world it restates") {
+        MinecraftRegistries.ensureStoodUp()
+        val vanillas = MinecraftRegistries.worldgen.lookupOrThrow(Registries.DIMENSION_TYPE)
+
+        fun lightOf(world: ResourceKey<DimensionType>): String {
+            val attributes = vanillas.getOrThrow(world).value().attributes()
+            val packed = attributes.applyModifier(EnvironmentAttributes.AMBIENT_LIGHT_COLOR, BLACK)
+            return "#%06X".format(packed and RGB)
+        }
+
+        fun lightDeclaredBy(id: Identifier): String? = JsonParser.parseString(File(shipped, "${id.path}.json").readText())
+            .asJsonObject.getAsJsonObject("attributes")
+            .get("minecraft:visual/ambient_light_color")?.asString?.uppercase()
+
+        for ((world, ours) in ourEquivalent) {
+            val declared = lightDeclaredBy(ours)
+            check(declared != null) {
+                "'${ours.path}' declares no ambient light, so it falls to the attribute's own #000000 and is " +
+                    "darker than ${world.identifier()}, the world it restates"
+            }
+            check(declared == lightOf(world)) {
+                "'${ours.path}' lets through $declared where ${world.identifier()} lets through ${lightOf(world)}"
+            }
+        }
+    }
+
     test("every type an Age can wear is shipped, and says what its switches asked for") {
         check(shipped.isDirectory) { "no dimension types ship from ${shipped.absolutePath}" }
         for ((sky, sun, expected) in everyCombination) {
@@ -171,3 +215,7 @@ class DimensionTypeCheck : FunSpec({
         }
     }
 })
+
+/** The value an ambient light is read against, and the channels of one. */
+private const val BLACK = 0
+private const val RGB = 0xFFFFFF

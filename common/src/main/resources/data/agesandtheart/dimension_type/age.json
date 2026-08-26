@@ -1,5 +1,5 @@
 {
-  "_comment": "An ordinary Age: open overhead and lit. It names NO sky, fog or ambient colour, deliberately. In 26.1 a biome carries its own as an attribute map, so naming one here pins every biome in the Age to it \u2014 a plains Age and a swamp Age had the same sky. The ambient colour was #0a0a0a, which is a near-black multiplier over whatever ambient_light allows; vanilla's default is white and lets the number mean what it says.",
+  "_comment": "An ordinary Age: open overhead and lit. It names no sky or fog colour, deliberately \u2014 in 26.1 a biome carries its own as an attribute map, so naming one here pins every biome in the Age to it, and a plains Age and a swamp Age had the same sky. `ambient_light_color` is different and must be stated: the attribute's registered default is #000000, so a type that says nothing about it is blacker than any world in the game. #0a0a0a is vanilla's own overworld value, which is the world this type restates. `ambient_light` is a separate system and is not the one you can see \u2014 it reaches only `LevelReader.getBrightness`, where the lightmap is built from `ambient_light_color`, `sky_light_color` and `sky_light_factor`.",
   "ambient_light": 0.0,
   "attributes": {
     "minecraft:gameplay/bed_rule": {
@@ -10,6 +10,7 @@
       }
     },
     "minecraft:gameplay/respawn_anchor_works": false,
+    "minecraft:visual/ambient_light_color": "#0A0A0A",
     "minecraft:visual/cloud_color": "#ccffffff",
     "minecraft:visual/cloud_height": 192.33
   },
@@ -24,9 +25,9 @@
   "min_y": -64,
   "monster_spawn_block_light_limit": 0,
   "monster_spawn_light_level": {
-    "type": "minecraft:uniform",
+    "max_inclusive": 7,
     "min_inclusive": 0,
-    "max_inclusive": 7
+    "type": "minecraft:uniform"
   },
   "timelines": "#minecraft:in_overworld"
 }
