@@ -157,10 +157,10 @@ object Spawns {
         // Unwrapped once rather than per candidate: this runs on every spawn attempt in the Age.
         val already = kept.unwrap()
         fun mayArriveHere(arriving: Arriving): Boolean {
-            val theSkyIsWrong = arriving.arrival.needsOpenSky && !skyIsOpen
-            val theGroundIsWrong = !arriving.arrival.mayBeTriedAt(at.x, at.z)
+            val theGroundIsWrong = !arriving.ground.admits(skyIsOpen)
+            val itIsHeldApartFromHere = !arriving.arrival.mayBeTriedAt(at.x, at.z, arriving.spacing)
             val isOfferedAlready = already.any { it.value().type() === arriving.type }
-            return !theSkyIsWrong && !theGroundIsWrong && !isOfferedAlready
+            return !theGroundIsWrong && !itIsHeldApartFromHere && !isOfferedAlready
         }
         val arriving = candidates.filter(::mayArriveHere)
         if (arriving.isEmpty()) return kept
@@ -175,6 +175,10 @@ object Spawns {
         /** Compared by reference against what the biome already offers — a registry lookup per attempt else. */
         val type: EntityType<*>,
         val arrival: Arrival,
+        /** Read once here rather than per attempt: a tag lookup is cheap and this is asked constantly. */
+        val ground: Ground,
+        /** How far apart this creature stands, with whatever rung was asked for already in it. */
+        val spacing: Int,
         val offered: Weighted<MobSpawnSettings.SpawnerData>,
     )
 
@@ -200,9 +204,44 @@ object Spawns {
                 val arrival = spawning.of(id)
                 if (spawnPassFor(type) != category) return@mapNotNull null
                 val entry = carrying(type, arrival) ?: return@mapNotNull null
-                val often = (arrival.weight * density).roundToInt().coerceIn(1, MOST_OFTEN)
-                Arriving(type, arrival, Weighted(entry, often))
+                val ground = spawning.groundOf(id)
+                val spacing = arrival.spacedAt(density)
+                // **A rung spends itself once.** On a creature held apart it moved the spacing above, so
+                // the weight takes only what the spacing costs; on one held apart from nothing there is
+                // no spacing to move and the rung is the weight, as it always was.
+                val thickened = if (spacing > 0) 1.0 else density
+                val asked = arrival.weight * thickened * arrival.thinningAt(spacing) * keptTo(ground)
+                Arriving(type, arrival, ground, spacing, Weighted(entry, asked.roundToInt().coerceIn(1, MOST_OFTEN)))
             }
+
+    /**
+     * **What a rule about *where* costs a creature, given back to it as weight.**
+     *
+     * Every rule below narrows the places a creature may be tried, and a narrowing that is not paid back
+     * is a creature that quietly stops arriving. The two compound, which is how a written dragon came to
+     * be offered in **0.0037%** of attempts and then still had to win the draw: `apart_by=320` is one
+     * chunk in four hundred, and the open-sky rule is two heights out of a hundred and thirty-five,
+     * vanilla drawing its attempt height uniformly through the column (Jonah, 2026-08-26).
+     *
+     * So a weight in `art/spawning.json` means **the share of the world this creature holds**, not the
+     * share of one draw, and each rule hands back exactly what it took. [MOST_OFTEN] is the ceiling, and
+     * reaching it is the honest answer for something held to a four-hundredth of the map: inside its own
+     * window it is most of what arrives, and there are very few windows.
+     */
+    /**
+     * And what belonging to one ground costs, which is **not** the share of attempts that land there.
+     *
+     * An attempt underground overwhelmingly fails for *everyone* — it is solid rock — so refusing a
+     * surface creature there costs it almost nothing it would have won. What it really costs is the cave
+     * spawns, which are a large slice of what a monster actually gets, and no arithmetic available here
+     * measures that. A named number rather than a derived one, therefore, and the one thing in this file
+     * that genuinely wants a walk: paying back the *attempt* share instead would be a factor of sixty-odd
+     * and would leave the surface knee-deep in whatever was written.
+     */
+    private fun keptTo(ground: Ground): Double = if (ground == Ground.ANYWHERE) 1.0 else KEPT_TO_ONE_GROUND
+
+    /** What belonging to one ground hands back. A first guess, and it is meant to be walked. */
+    private const val KEPT_TO_ONE_GROUND = 4.0
 
     /**
      * Which spawn pass a creature arrives in. Its own category, because vanilla runs a pass per category
@@ -214,7 +253,7 @@ object Spawns {
      * a creature, and the creature pass is the only one that would ever have it.
      */
     private fun spawnPassFor(type: EntityType<*>): MobCategory =
-        if (type.category == MobCategory.MISC) MobCategory.CREATURE else type.category
+        if (type.category == MobCategory.MISC) MobCategory.MONSTER else type.category
 
     /**
      * An entry that really spawns [type], **including the ones vanilla refuses to carry**.

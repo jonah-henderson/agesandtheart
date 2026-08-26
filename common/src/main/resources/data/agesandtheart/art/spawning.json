@@ -5,7 +5,6 @@
     "every creature the only question here is how often to try, and `ordinary` answers it.",
     "",
     "The entries are the exceptions: the creatures vanilla never spawns at all, which therefore have no",
-    "placement rules and would otherwise be tried inside a mountain. Those say `needs_open_sky`.",
     "",
     "Weights are against everything else the biome offers, where vanilla's monsters sit near a hundred",
     "each. A plain mention should read as 'there are dragons here' and a rung should be able to make it an",
@@ -17,7 +16,12 @@
     "can then be a real share, so `teeming ender_dragon` is an Age of dragons and not a curiosity.",
     "",
     "The golems are carried past vanilla's own refusal to put a MobCategory.MISC entity in a list at all",
-    "(see SpawnerDataMixin), which is why they may be written and a datapack still may not."
+    "(see SpawnerDataMixin), which is why they may be written and a datapack still may not.",
+    "",
+    "`on_the_surface` and `under_the_ground` say WHERE a creature belongs, which is the thing vanilla has",
+    "no way to state: SpawnPlacements answers whether a position will hold one, never whether it ought to",
+    "be found there. Only the judgements are listed -- a creature in neither belongs anywhere, which is",
+    "vanilla's own behaviour, and one in both is a reader saying so out loud."
   ],
   "ordinary": {
     "weight": 8,
@@ -29,14 +33,12 @@
       "weight": 40,
       "least": 1,
       "most": 1,
-      "needs_open_sky": true,
       "apart_by": 320
     },
     "minecraft:wither": {
       "weight": 30,
       "least": 1,
       "most": 1,
-      "needs_open_sky": true,
       "apart_by": 256
     },
     "minecraft:warden": {
@@ -53,8 +55,7 @@
     "minecraft:giant": {
       "weight": 2,
       "least": 1,
-      "most": 1,
-      "needs_open_sky": true
+      "most": 1
     },
     "minecraft:illusioner": {
       "weight": 4,
@@ -64,14 +65,26 @@
     "minecraft:iron_golem": {
       "weight": 6,
       "least": 1,
-      "most": 2,
-      "needs_open_sky": true
+      "most": 2
     },
     "minecraft:snow_golem": {
       "weight": 10,
       "least": 1,
-      "most": 3,
-      "needs_open_sky": true
+      "most": 3
     }
-  }
+  },
+  "on_the_surface": [
+    "minecraft:iron_golem",
+    "minecraft:snow_golem",
+    "minecraft:ender_dragon",
+    "minecraft:wither",
+    "minecraft:giant",
+    "minecraft:illusioner",
+    "minecraft:ravager",
+    "minecraft:silverfish"
+  ],
+  "under_the_ground": [
+    "minecraft:warden",
+    "minecraft:silverfish"
+  ]
 }

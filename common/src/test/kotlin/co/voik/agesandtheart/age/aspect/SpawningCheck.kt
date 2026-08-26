@@ -3,6 +3,8 @@ package co.voik.agesandtheart.age.aspect
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import io.kotest.core.annotation.Tags
+import co.voik.agesandtheart.age.aspect.Ground
+import net.minecraft.resources.Identifier
 import io.kotest.core.spec.style.FunSpec
 import net.minecraft.core.BlockPos
 import net.minecraft.util.random.Weighted
@@ -25,7 +27,7 @@ class SpawningCheck : FunSpec({
 
     /** **The point of the feature**: naming a creature the world does not offer puts it in the world. */
     test("a creature the world never offered arrives") {
-        val arrived = livingWith("minecraft:warden", MobCategory.MONSTER, skyIsOpen = true)
+        val arrived = livingWith("minecraft:warden", MobCategory.MONSTER, skyIsOpen = false)
         check("warden" in arrived) { "a warden was written and did not arrive: $arrived" }
         // And what was already there is untouched — this adds, it does not replace.
         check("cow" in arrived) { "adding a creature took the meadow's own away: $arrived" }
@@ -72,11 +74,47 @@ class SpawningCheck : FunSpec({
      * `NO_RESTRICTIONS` and a dragon would be tried inside a mountain. `art/spawning.json` says which need
      * the sky, and this is the gate.
      */
-    test("what needs the sky is not tried under the ground") {
-        val above = livingWith("minecraft:ender_dragon", MobCategory.MONSTER, skyIsOpen = true)
-        check("ender_dragon" in above) { "a dragon could not arrive under an open sky: $above" }
-        val below = livingWith("minecraft:ender_dragon", MobCategory.MONSTER, skyIsOpen = false)
-        check("ender_dragon" !in below) { "a dragon was offered inside the rock: $below" }
+    /**
+     * **Where a creature belongs, and it cuts both ways.** A dragon in a cave is not a surprise, it is a
+     * bug with wings; a warden out on a hillside is the same mistake facing the other direction. Both are
+     * read off `on_the_surface` and `under_the_ground` in `art/spawning.json` — see [Ground].
+     */
+    test("a creature is tried on the ground it belongs to and no other") {
+        val dragonAbove = livingWith("minecraft:ender_dragon", MobCategory.MONSTER, skyIsOpen = true)
+        check("ender_dragon" in dragonAbove) { "a dragon could not arrive under an open sky: $dragonAbove" }
+        val dragonBelow = livingWith("minecraft:ender_dragon", MobCategory.MONSTER, skyIsOpen = false)
+        check("ender_dragon" !in dragonBelow) { "a dragon was offered inside the rock: $dragonBelow" }
+
+        val wardenBelow = livingWith("minecraft:warden", MobCategory.MONSTER, skyIsOpen = false)
+        check("warden" in wardenBelow) { "a warden could not arrive under the ground: $wardenBelow" }
+        val wardenAbove = livingWith("minecraft:warden", MobCategory.MONSTER, skyIsOpen = true)
+        check("warden" !in wardenAbove) { "a warden was offered out on the surface: $wardenAbove" }
+    }
+
+    /**
+     * **And a creature nobody judged is tried anywhere**, which is vanilla's own behaviour and what keeps
+     * the tags a list of judgements rather than a census. A zombie is in neither file.
+     */
+    test("a creature nobody judged is tried on either ground") {
+        for (sky in listOf(true, false)) {
+            val arrived = livingWith("minecraft:zombie", MobCategory.MONSTER, skyIsOpen = sky)
+            check("zombie" in arrived) { "a zombie was refused with the sky open=$sky: $arrived" }
+        }
+    }
+
+    /**
+     * The control, and it is what a corpus that stopped carrying the grounds would trip: with both lists
+     * empty every creature reads as belonging anywhere, and every gate above passes for a reason that has
+     * nothing to do with the rule it is checking.
+     */
+    test("the grounds are actually read, or nothing above means anything") {
+        val spawning = MinecraftRegistries.spawning
+        fun groundOf(path: String) = spawning.groundOf(Identifier.withDefaultNamespace(path))
+        check(groundOf("ender_dragon") == Ground.SURFACE) { "the surface list did not load" }
+        check(groundOf("warden") == Ground.UNDERGROUND) { "the underground list did not load" }
+        check(groundOf("zombie") == Ground.ANYWHERE) { "a creature nobody judged was pinned" }
+        // In both lists, which is a reader saying "yes, really both" where silence is nobody having looked.
+        check(groundOf("silverfish") == Ground.ANYWHERE) { "a creature in both lists was pinned" }
     }
 
     /**
@@ -88,13 +126,34 @@ class SpawningCheck : FunSpec({
             Options(mapOf(Spawns.LIVES.name to listOf(claim))),
             MinecraftRegistries.spawning,
         ).at(null, MobCategory.MONSTER, true, BlockPos.ZERO, aMeadow()).unwrap()
-            .firstOrNull { it.value().type() == EntityType.WARDEN }?.weight()
+            .firstOrNull { it.value().type() == EntityType.ILLUSIONER }?.weight()
 
-        val plain = weightOf("minecraft:warden")
-        val teeming = weightOf("minecraft:warden[amount=4.0]")
-        checkNotNull(plain) { "the warden did not arrive at all" }
-        checkNotNull(teeming) { "the warden did not arrive when asked for teemingly" }
+        // An illusioner, which is held apart from nothing — see the test below for what a rung does to
+        // one that is, where it moves the spacing and cannot move the weight.
+        val plain = weightOf("minecraft:illusioner")
+        val teeming = weightOf("minecraft:illusioner[amount=4.0]")
+        checkNotNull(plain) { "the illusioner did not arrive at all" }
+        checkNotNull(teeming) { "the illusioner did not arrive when asked for teemingly" }
         check(teeming > plain) { "a rung changed nothing: $plain then $teeming" }
+    }
+
+    /**
+     * **A rung on a creature held apart moves the spacing**, because it has nowhere else to go: what is
+     * held to a four-hundredth of the map is handed that back as weight, and something already most of
+     * what arrives inside its own window cannot be asked for more loudly. `teeming ender_dragon` and a
+     * plain one came out identical — both at the ceiling — until this (Jonah, 2026-08-26).
+     */
+    test("a rung on a creature held apart brings its windows closer instead") {
+        fun spacingOf(density: Double) = MinecraftRegistries.spawning.of(DRAGON).spacedAt(density)
+
+        val plain = spacingOf(1.0)
+        val teeming = spacingOf(4.0)
+        check(teeming < plain) { "asking for more dragons did not bring them closer: $plain then $teeming" }
+        // As the square root, so it is the *population* that doubles rather than the spacing halving.
+        check(teeming == plain / 2) { "four times as many should stand half as far apart: $plain then $teeming" }
+
+        val sparse = spacingOf(0.25)
+        check(sparse > plain) { "asking for fewer did not spread them out: $plain then $sparse" }
     }
 
     /**
@@ -104,7 +163,7 @@ class SpawningCheck : FunSpec({
      * country rather than piled into one valley.
      */
     test("a creature held apart is tried in one window of each cell") {
-        fun triedAt(x: Int, z: Int) = "ender_dragon" in Spawns.livingIn(
+            fun triedAt(x: Int, z: Int) = "ender_dragon" in Spawns.livingIn(
             Options(mapOf(Spawns.LIVES.name to listOf("minecraft:ender_dragon"))),
             MinecraftRegistries.spawning,
         ).at(null, MobCategory.MONSTER, true, BlockPos(x, 80, z), aMeadow()).unwrap()
@@ -136,3 +195,6 @@ private fun aMeadow(): WeightedList<MobSpawnSettings.SpawnerData> {
         Weighted(MobSpawnSettings.SpawnerData(EntityType.ZOMBIE, 4, 4), 95),
     )
 }
+
+/** The dragon's own id, for the arrival read straight out of `art/spawning.json`. */
+private val DRAGON: Identifier = Identifier.withDefaultNamespace("ender_dragon")
