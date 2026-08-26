@@ -29,9 +29,12 @@ age compare nethercontrol mingled 1
 
 age list
 
-# --- and the way through, for the two worlds whose skin paints over the rock ------------------------
-# `landmass.stone` alone is invisible in the nether: its tree ends in a bare NETHERRACK arm that takes
-# every block the conditioned ones did not. Naming the skin replaces that tree, so the rock shows again.
+# --- a world's skin as patches over its rock ------------------------------------------------------
+# The nether's tree ends in a bare NETHERRACK arm that took every block its conditioned arms did not, and
+# the End's whole tree is one unconditional ENDSTONE. `SurfacingStrategy.asPatchesOver` takes that tail
+# off, which is a no-op until a rock has been substituted -- `SurfaceSystem` consults the rule only where
+# the block is already `defaultBlock`. Both halves are below: `stoneonly` must now move the whole rock,
+# and `nethercontrol` against an unaltered nether must not move at all.
 age compose stoneonly 4242 template=infernal landmass=vanilla sea=lava landmass.stone=minecraft:blackstone
 age compare nethercontrol stoneonly 1
 
@@ -42,3 +45,11 @@ age compose stoneandskin 4242 template=infernal landmass=vanilla sea=lava landma
 age compare nethercontrol stoneandskin 1
 
 age list
+
+# The no-op half, said out loud: an Age that named no rock must be the world it was written over, exactly.
+age compose netherasis 4242 template=infernal landmass=vanilla sea=lava
+age compare nethercontrol netherasis 1
+
+age compose voidasis 4242 template=dark_void landmass=vanilla sea=none
+age compose voidstone 4242 template=dark_void landmass=vanilla sea=none landmass.stone=minecraft:blackstone
+age compare voidasis voidstone 1

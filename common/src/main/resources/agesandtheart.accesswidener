@@ -120,3 +120,23 @@ accessible	method	net/minecraft/server/level/ServerLevel	findLightningTargetArou
 # `getMobsAt` is handed a `StructureManager` and nothing else that knows the world, and the level it holds
 # is private with no accessor. It is a plain read of a heightmap vanilla itself keeps for the purpose.
 accessible	field	net/minecraft/world/level/StructureManager	level	Lnet/minecraft/world/level/LevelAccessor;
+
+# So a world's own skin can be laid over a rock a book named, rather than instead of it
+# (co.voik.agesandtheart.worldgen.field.SurfacingStrategy.asPatchesOver).
+#
+# A surface tree is supposed to paint patches and leave the bulk to `defaultBlock`, which is what makes
+# substituting that block the way a book changes what a world is made of. Two of vanilla's three break it:
+# `SurfaceRuleData.nether()` ends in a bare `NETHERRACK` arm that takes every block its conditioned arms
+# did not, and `end()` is one unconditional `ENDSTONE` and nothing else. So a blackstone nether came out
+# netherrack (Jonah, 2026-08-25, walked).
+#
+# **Removing that tail is a no-op until the rock is substituted**, which is why it is safe to do always:
+# `SurfaceSystem.buildSurface` consults the rule only where `old == this.defaultBlock` and leaves the block
+# alone when the rule declines, so an arm painting netherrack onto netherrack is already doing nothing.
+#
+# We only need to *name* these two, to take a sequence apart and to recognise the unconditional arm at the
+# end of it. No members are touched — a record's own accessors are public. The alternatives were rebuilding
+# vanilla's ninety-line nether tree by hand, which would drift on every update, and taking the tree apart
+# through its codec as JSON, which is string-typed and would fail silently on a shape change.
+accessible	class	net/minecraft/world/level/levelgen/SurfaceRules$SequenceRuleSource
+accessible	class	net/minecraft/world/level/levelgen/SurfaceRules$BlockRuleSource

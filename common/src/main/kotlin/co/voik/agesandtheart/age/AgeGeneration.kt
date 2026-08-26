@@ -268,7 +268,10 @@ object AgeGeneration {
         // rule, which is what a nether floor of netherrack is.
         val named = composition.optionsFor(Aspect.SURFACE, 0).materialsOf(Surface.MATERIAL)
         val skin = when {
-            named.isEmpty() -> theirs.surfaceRule()
+            // **Patches over the rock, not instead of it** — see [SurfacingStrategy.asPatchesOver]. The
+            // nether's tree and the End's each end in an unconditional arm that would repaint whatever
+            // block was substituted below, and removing it changes nothing until one has been.
+            named.isEmpty() -> SurfacingStrategy.asPatchesOver(theirs.surfaceRule())
             named.all { it.isAir } -> SurfacingStrategy.SUPPRESSED
             else -> SurfacingStrategy.laidOnVanilla(named)
         }

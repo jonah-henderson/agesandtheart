@@ -151,6 +151,36 @@ object SurfacingStrategy {
         deepslateFloor(),
     )
 
+    /**
+     * **A world's own skin, as patches over its rock rather than instead of it.**
+     *
+     * A surface tree is supposed to paint the face and leave the bulk to `defaultBlock`, which is what
+     * makes substituting that block the way a book changes what a world we did not lay is made of. Two of
+     * vanilla's three do not: `SurfaceRuleData.nether()` ends in a bare `NETHERRACK` arm that takes every
+     * block its conditioned arms did not, and `end()` is one unconditional `ENDSTONE`. A blackstone nether
+     * came out netherrack throughout (Jonah, 2026-08-25, walked).
+     *
+     * So the unconditional tail comes off, and **that changes nothing until a rock has been substituted**:
+     * `SurfaceSystem.buildSurface` consults the rule only where `old == this.defaultBlock` and leaves the
+     * block as it found it when the rule declines, so an arm painting netherrack onto netherrack was
+     * already a no-op. `VanillasSkinCheck` holds both halves of that.
+     *
+     * Only the **last** arm of a sequence can be the tail; the earlier ones are alternatives that may
+     * decline. A tree that is nothing but a block — the End's — comes back [SUPPRESSED], which is the same
+     * statement about a world whose skin and whose rock were always the same block, and not an empty
+     * sequence, which vanilla rejects.
+     */
+    fun asPatchesOver(skin: SurfaceRules.RuleSource): SurfaceRules.RuleSource = when (skin) {
+        is SurfaceRules.BlockRuleSource -> SUPPRESSED
+        is SurfaceRules.SequenceRuleSource -> {
+            val earlier = skin.sequence().dropLast(1)
+            val tail = asPatchesOver(skin.sequence().last())
+            val arms = if (tail == SUPPRESSED) earlier else earlier + tail
+            if (arms.isEmpty()) SUPPRESSED else SurfaceRules.sequence(*arms.toTypedArray())
+        }
+        else -> skin
+    }
+
     /** How far a named skin reaches below the face — thin, since below it is what the Age is made of. */
     private const val SKIN_DEPTH = 2
 

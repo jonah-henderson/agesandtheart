@@ -83,12 +83,7 @@ data class AgeRecipe(
         get() {
             val written = composition ?: return emptyList()
             if (Terrain.VANILLA !in written.terrains) return emptyList()
-            return listOfNotNull(
-                oneMaterialOnly(written),
-                paintedOverByItsOwnSkin(written),
-                oneSeaOnly(written),
-                whateverItCutsItself(written),
-            )
+            return listOfNotNull(oneMaterialOnly(written), oneSeaOnly(written), whateverItCutsItself(written))
         }
 
     /** A rock we did not lay has one material, whatever the book named after the first. */
@@ -97,28 +92,6 @@ data class AgeRecipe(
         if (stone.size <= 1) return null
         return "${Aspect.TERRAIN.page}.${Terrain.STONE.name}=${stone.joinToString(",")} — " +
             "${template.key}'s own rock is one material, so ${stone.first()} is laid and the rest are not"
-    }
-
-    /**
-     * **And in two of the three worlds, a rock named here cannot be seen at all.**
-     *
-     * Substituting `defaultBlock` is how a book changes what a world we did not lay is made of, and it
-     * works only where that world's surface tree paints patches. The nether's ends in a bare `NETHERRACK`
-     * arm and the End's is one unconditional `ENDSTONE`, so both repaint the whole rock over whatever was
-     * substituted — see [AgeTemplate.skinRepaintsTheWholeRock].
-     *
-     * **Naming a skin is the way through**, and silent where one was named: `surface.material` replaces
-     * that tree outright, so the rock underneath is the book's again.
-     */
-    private fun paintedOverByItsOwnSkin(written: AgeComposition): String? {
-        if (!template.skinRepaintsTheWholeRock) return null
-        val stone = written.optionsFor(Aspect.TERRAIN, 0).allSpelled(Terrain.STONE.name).toList()
-        if (stone.isEmpty()) return null
-        val skinNamed = written.optionsFor(Aspect.SURFACE, 0).allSpelled(Surface.MATERIAL.name).any()
-        if (skinNamed) return null
-        return "${Aspect.TERRAIN.page}.${Terrain.STONE.name}=${stone.joinToString(",")} — " +
-            "${template.key}'s own skin paints every block of its rock, so ${stone.first()} is laid and " +
-            "painted over; name ${Aspect.SURFACE.page}.${Surface.MATERIAL.name} too to see it"
     }
 
     /**
@@ -177,7 +150,7 @@ data class AgeRecipe(
          * Bumped by hand whenever a change to generation would make the same recipe produce different
          * terrain. What moved at each version: `notes/generator-versions.md`.
          */
-        const val CURRENT_GENERATOR_VERSION = 26
+        const val CURRENT_GENERATOR_VERSION = 27
 
         val MAP_CODEC: MapCodec<AgeRecipe> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(

@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age
 
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
+import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
 import com.google.gson.JsonObject
 import com.mojang.serialization.JsonOps
 import io.kotest.core.annotation.Tags
@@ -9,20 +10,23 @@ import io.kotest.core.spec.style.FunSpec
 import net.minecraft.world.level.levelgen.SurfaceRules
 
 /**
- * **Whether a rock a book names can be seen through the skin the world lays over it.**
+ * **That a world's own skin is patches over its rock, and not a repaint of it.**
  *
- * A book changes what a world we did not lay is made of by substituting `defaultBlock`, and that only
- * shows where the world's surface tree paints *patches* and leaves the bulk alone. The overworld's does.
- * The nether's ends in a bare `NETHERRACK` arm that takes whatever its conditioned arms did not, and the
- * End's whole tree is one unconditional `ENDSTONE` — so both paint over the substitution entirely, and a
- * blackstone nether came out netherrack with nothing said about it (Jonah, 2026-08-25, walked, twice: the
- * first reading was that the rock was merely under the topsoil and would show in a cave, which is true of
- * the overworld and of neither of the others).
+ * Substituting `defaultBlock` is how a book changes what a world we did not lay is made of, and it shows
+ * only where the surface tree paints patches and lets the rest decline. Two of vanilla's three do not:
+ * `SurfaceRuleData.nether()` ends in a bare `NETHERRACK` arm taking every block its conditioned arms did
+ * not, and `end()` is one unconditional `ENDSTONE` and nothing else. So a blackstone nether came out
+ * netherrack throughout, and a blackstone void end stone (Jonah, 2026-08-25, walked).
  *
- * [AgeTemplate.skinRepaintsTheWholeRock] is written down because the tree cannot be walked — `SurfaceRules`
- * makes both its sequence and its block records private. It can be *read*, though: every rule source has a
- * codec, so this follows the encoded tree down its last arm and asks whether what it ends in is a block
- * with no condition on it. That is the same claim, checked against the thing it describes.
+ * [SurfacingStrategy.asPatchesOver] takes that tail off. The claim being checked here is the one that makes
+ * doing it always safe: **it changes nothing until a rock has been substituted**, because
+ * `SurfaceSystem.buildSurface` consults the rule only where `old == this.defaultBlock` and leaves the block
+ * as it found it when the rule declines. An arm painting netherrack onto netherrack was already a no-op.
+ *
+ * The trees are read through their own codec rather than walked. `SurfaceRules` makes its sequence and
+ * block records private, and the two access-widener lines that let the strip name them are for building a
+ * tree, not for taking one apart in a check — a check that read the tree the way the code does could not
+ * catch the code being wrong about the shape.
  */
 @Tags(NEEDS_REGISTRIES)
 class TemplateSkinCheck : FunSpec({
@@ -31,71 +35,81 @@ class TemplateSkinCheck : FunSpec({
         SurfaceRules.RuleSource.CODEC.encodeStart(JsonOps.INSTANCE, rule).getOrThrow().asJsonObject
 
     /**
-     * Whether [rule] paints something on every solid block it is offered.
+     * Whether [rule] paints something on every block it is offered.
      *
-     * A `block` is unconditional and does. A `sequence` does exactly when its **last** arm does, earlier
-     * arms being alternatives that may not match. Anything else — a `condition`, in practice — may decline,
-     * and a tree that may decline leaves the bulk to `defaultBlock`.
+     * A `block` is unconditional and does. A `sequence` does exactly when its **last** arm does, the
+     * earlier ones being alternatives that may decline. Anything else — a `condition` — may decline, and a
+     * tree that may decline leaves the bulk to `defaultBlock`.
      */
-    fun paintsEverything(rule: JsonObject): Boolean = when (rule.get("type").asString) {
+    fun paintsEveryBlock(rule: JsonObject): Boolean = when (rule.get("type").asString) {
         "minecraft:block" -> true
-        "minecraft:sequence" -> rule.getAsJsonArray("sequence").last().asJsonObject.let(::paintsEverything)
+        "minecraft:sequence" -> rule.getAsJsonArray("sequence").lastOrNull()
+            ?.let { paintsEveryBlock(it.asJsonObject) } == true
         else -> false
     }
 
-    test("each template says truly whether its skin paints over a rock a book named") {
+    /** How many arms a tree offers, at every depth — what a strip must not otherwise disturb. */
+    fun arms(rule: JsonObject): Int = when (rule.get("type").asString) {
+        "minecraft:sequence" -> rule.getAsJsonArray("sequence").sumOf { arms(it.asJsonObject) }
+        else -> 1
+    }
+
+    /**
+     * The control, and it has to come first: if no template's tree repainted the rock there would be
+     * nothing here to fix, and every assertion below would pass over three trees already patch-shaped.
+     */
+    test("two of vanilla's three worlds do paint over every block of their rock") {
+        MinecraftRegistries.ensureStoodUp()
+        val repainting = AgeTemplate.entries.filter { paintsEveryBlock(spelled(it.skin)) }
+        check(repainting.map { it.key } == listOf("infernal", "dark_void")) {
+            "the worlds whose skin paints every block are ${repainting.map { it.key }}, and the strip was " +
+                "written for the nether and the End"
+        }
+    }
+
+    test("and stripped of their last arm, none of the three does") {
         MinecraftRegistries.ensureStoodUp()
         for (template in AgeTemplate.entries) {
-            val paints = paintsEverything(spelled(template.skin))
-            check(paints == template.skinRepaintsTheWholeRock) {
-                "${template.key} says skinRepaintsTheWholeRock=${template.skinRepaintsTheWholeRock} " +
-                    "where its own tree ${if (paints) "does" else "does not"} paint every block"
+            val patches = SurfacingStrategy.asPatchesOver(template.skin)
+            check(!paintsEveryBlock(spelled(patches))) {
+                "${template.key}'s skin still paints every block, so a rock named for it cannot be seen"
             }
         }
     }
 
     /**
-     * The control. All three answering the same way would make the reading above unfalsifiable — and it is
-     * the *difference* between them that a writer runs into, so it is the thing worth pinning.
+     * **And it takes off exactly one arm.** A strip that removed a conditioned arm would cost the nether
+     * its soul soil, its gravel and its basalt — which is the failure a "no netherrack anywhere" check
+     * would happily pass.
      */
-    test("and the three worlds do not all answer alike") {
+    test("and loses nothing but that arm") {
         MinecraftRegistries.ensureStoodUp()
-        val answers = AgeTemplate.entries.map { it.skinRepaintsTheWholeRock }.distinct()
-        check(answers.size > 1) { "every template paints the same way, so nothing here distinguishes them" }
+        for (template in AgeTemplate.entries) {
+            val tree = spelled(template.skin)
+            val stripped = SurfacingStrategy.asPatchesOver(template.skin)
+            // A world whose whole tree was one unconditional block — the End's — has no conditioned arm to
+            // keep, so what is left is the rule that never matches rather than a shorter sequence.
+            if (tree.get("type").asString == "minecraft:block") {
+                check(stripped == SurfacingStrategy.SUPPRESSED) {
+                    "${template.key}'s skin is one block and stripping it gave ${spelled(stripped)}"
+                }
+                continue
+            }
+            val before = arms(tree)
+            val after = arms(spelled(stripped))
+            val expected = if (paintsEveryBlock(tree)) before - 1 else before
+            check(after == expected) {
+                "${template.key} went from $before arms to $after, where $expected was the whole of it"
+            }
+        }
     }
 
-    /**
-     * **And a book naming a rock those two cannot show is told so**, rather than being given netherrack and
-     * left to wonder. Silent where the book also named a skin, which replaces the tree that was painting
-     * over it.
-     */
-    test("a rock that will be painted over is reported, and a skin makes it visible again") {
+    /** The overworld's tree already paints patches, so nothing may happen to it at all. */
+    test("and a world that already painted patches is untouched") {
         MinecraftRegistries.ensureStoodUp()
-        fun reportOn(template: AgeTemplate, said: String): List<String> {
-            val composition = AgeComposition.parse("template=${template.key} landmass=vanilla $said")
-                .getOrElse { error("'$said' over ${template.key} is not a composition this build parses: $it") }
-            return AgeRecipe(AgeWorld.Composed(composition), SOME_SEED, template = template).unhonoured
-        }
-
-        fun mentionsThePainting(report: List<String>) = report.any { "paints every block" in it }
-
-        val rockAlone = "landmass.stone=$BLACKSTONE"
-        val rockAndSkin = "$rockAlone surface.material=$BLACKSTONE"
-
-        check(mentionsThePainting(reportOn(AgeTemplate.INFERNAL, rockAlone))) {
-            "a blackstone nether is given netherrack and told nothing: ${reportOn(AgeTemplate.INFERNAL, rockAlone)}"
-        }
-        check(mentionsThePainting(reportOn(AgeTemplate.DARK_VOID, rockAlone))) {
-            "a blackstone void is given end stone and told nothing: ${reportOn(AgeTemplate.DARK_VOID, rockAlone)}"
-        }
-        check(!mentionsThePainting(reportOn(AgeTemplate.INFERNAL, rockAndSkin))) {
-            "a nether that named its skin too is still told its rock cannot be seen"
-        }
-        check(!mentionsThePainting(reportOn(AgeTemplate.OVERWORLD, rockAlone))) {
-            "an overworld Age is told its rock is painted over, and the overworld's tree paints patches"
+        val overworld = AgeTemplate.OVERWORLD.skin
+        check(spelled(SurfacingStrategy.asPatchesOver(overworld)) == spelled(overworld)) {
+            "the overworld's own tree was rewritten, and it had no tail to take off"
         }
     }
 })
-
-private const val SOME_SEED = 4242L
-private const val BLACKSTONE = "minecraft:blackstone"
