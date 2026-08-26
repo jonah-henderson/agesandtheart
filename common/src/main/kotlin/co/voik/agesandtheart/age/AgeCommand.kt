@@ -55,6 +55,7 @@ import net.minecraft.world.phys.Vec3
 import kotlin.random.Random
 import net.minecraft.core.QuartPos
 import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.world.entity.MobCategory
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.Identifier
 import net.minecraft.server.level.ServerLevel
@@ -236,6 +237,7 @@ object AgeCommand {
                 .then(biomeCensusSubcommand())
                 .then(benchmarkSubcommand())
                 .then(compareSubcommand())
+                .then(spawnsSubcommand())
                 .then(skySubcommand())
                 .then(strikeSubcommand())
                 .then(probeSubcommand())
@@ -801,6 +803,27 @@ object AgeCommand {
                         .executes { context ->
                             val radius = IntegerArgumentType.getInteger(context, RADIUS_ARGUMENT)
                             runBiomeCensus(context, radius, reportFor(context))
+                        },
+                )
+        }
+
+    /**
+     * `/age spawns <age> [radius]` — **what this Age offers a spawn attempt**, above ground and below.
+     *
+     * The instrument nothing had: a written creature that never arrives is failing at one of four places —
+     * the sentence, the recipe, the list `getMobsAt` builds, or vanilla's own placement check — and only
+     * `/age list` could see any of them. This asks the Age's own generator the question the spawner asks,
+     * at real positions, and prints what comes back.
+     */
+    private fun spawnsSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        reporting("spawns") { reportFor ->
+            Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
+                .executes { context -> runSpawnCensus(context, SPAWN_SAMPLE_RADIUS, reportFor(context)) }
+                .then(
+                    Commands.argument(RADIUS_ARGUMENT, IntegerArgumentType.integer(0, MAX_CENSUS_RADIUS))
+                        .executes { context ->
+                            val radius = IntegerArgumentType.getInteger(context, RADIUS_ARGUMENT)
+                            runSpawnCensus(context, radius, reportFor(context))
                         },
                 )
         }
@@ -1737,6 +1760,63 @@ object AgeCommand {
      * of a `craterlands` Age said 95% ocean where forty-eight said 20%. A small answer here is not a
      * measurement, it is one place.
      */
+    /**
+     * Every creature the Age offers, by pass and by whether the sky is open — asked of the generator with
+     * the same four arguments `NaturalSpawner` uses.
+     */
+    private fun runSpawnCensus(
+        context: CommandContext<CommandSourceStack>,
+        radiusChunks: Int,
+        report: Report,
+    ): Int {
+        val source = context.source
+        val name = StringArgumentType.getString(context, NAME_ARGUMENT)
+        val level = openNamedAge(source, name, report) ?: return FAILURE
+
+        val generator = level.chunkSource.generator
+        val structures = level.structureManager()
+        val randomState = level.chunkSource.randomState()
+        report.only("generator", generator.javaClass.simpleName)
+
+        val offered = sortedMapOf<String, MutableSet<String>>()
+        val spread = radiusChunks * BLOCKS_PER_CHUNK
+        for (blockX in -spread..spread step SPAWN_SAMPLE_STRIDE) {
+            for (blockZ in -spread..spread step SPAWN_SAMPLE_STRIDE) {
+                // **Generated first, and it is not ceremony.** The ground rule reads the level's own
+                // heightmap, and an ungenerated chunk answers the world floor — so every position read as
+                // out under the sky and the rule looked as though it were not there at all.
+                level.getChunk(SectionPos.blockToSectionCoord(blockX), SectionPos.blockToSectionCoord(blockZ))
+                val ground = level.getHeight(Heightmap.Types.WORLD_SURFACE, blockX, blockZ)
+                // The two heights a spawn attempt can be at, and the whole of what the ground rule reads:
+                // vanilla draws its own uniformly between the world's floor and one above the surface.
+                for ((where, blockY) in listOf("above" to ground, "below" to (ground + level.minY) / 2)) {
+                    val here = BlockPos(blockX, blockY, blockZ)
+                    val biome = level.getBiome(here)
+                    for (pass in MobCategory.entries) {
+                        val list = generator.getMobsAt(biome, structures, pass, here)
+                        for (entry in list.unwrap()) {
+                            val creature = BuiltInRegistries.ENTITY_TYPE.getKey(entry.value().type())
+                            offered.getOrPut("${pass.getName()} $where") { sortedSetOf() }
+                                .add("$creature x${entry.weight()}")
+                        }
+                    }
+                }
+            }
+        }
+
+        if (offered.isEmpty()) {
+            report.fail("'$name' offers nothing at all, in any pass — which is not what an ordinary Age does")
+            return FAILURE
+        }
+        for ((where, creatures) in offered) {
+            report.entry("offered", mapOf("where" to where, "creatures" to creatures.toList())) {
+                "  $where: ${creatures.joinToString(", ")}"
+            }
+        }
+        report.finish()
+        return SUCCESS
+    }
+
     private fun runBiomeCensus(
         context: CommandContext<CommandSourceStack>,
         radiusChunks: Int,
@@ -1832,6 +1912,10 @@ object AgeCommand {
             .orElse("(unnamed)")
 
     /** Every fourth quart cell, i.e. one column per 16 blocks — dense enough to find small biomes. */
+    /** How wide a spawn census looks, and how coarsely — enough places to be sure, few enough to be quick. */
+    private const val SPAWN_SAMPLE_RADIUS = 2
+    private const val SPAWN_SAMPLE_STRIDE = 16
+
     private const val SURVEY_QUART_STRIDE = 4
 
     /** How far a census may reach. Larger than the benchmark's cap because this generates nothing. */
