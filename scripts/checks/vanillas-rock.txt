@@ -1,0 +1,44 @@
+# What a book can still change about a rock it did not lay.
+#
+# An Age naming no landform keeps the template's own generator, and a sentence reaches it only by
+# substitution into `NoiseGeneratorSettings`: one block, one fluid, one surface rule. Each pair below is
+# the same seed with one thing changed, so `compare` says whether that thing reached the blocks — and the
+# examples it prints name what stands where.
+#
+# Read the examples, not just the counts. A substituted rock is `defaultBlock` and vanilla's surface rule
+# still paints over the top of it, so the difference begins a few blocks down and a cave wall is where it
+# is easiest to see.
+
+# --- the rock ------------------------------------------------------------------------------------
+age compose plainrock 4242 landmass=vanilla sea=water
+age compose blackrock 4242 landmass=vanilla sea=water landmass.stone=minecraft:blackstone
+age compare plainrock blackrock 1
+
+# --- the sea, over a world whose own is the other one ---------------------------------------------
+age compose lavaoverworld 4242 landmass=vanilla sea=lava
+age compare plainrock lavaoverworld 1
+
+age compose drynether 4242 template=infernal landmass=vanilla sea=water
+age compose wetnether 4242 template=infernal landmass=vanilla sea=lava
+age compare drynether wetnether 1
+
+# --- mingling, which this rock cannot do: one is laid and the second is reported -------------------
+age compose nethercontrol 4242 template=infernal landmass=vanilla sea=lava
+age compose mingled 4242 template=infernal landmass=vanilla sea=lava landmass.stone=minecraft:blackstone,minecraft:tuff
+age compare nethercontrol mingled 1
+
+age list
+
+# --- and the way through, for the two worlds whose skin paints over the rock ------------------------
+# `landmass.stone` alone is invisible in the nether: its tree ends in a bare NETHERRACK arm that takes
+# every block the conditioned ones did not. Naming the skin replaces that tree, so the rock shows again.
+age compose stoneonly 4242 template=infernal landmass=vanilla sea=lava landmass.stone=minecraft:blackstone
+age compare nethercontrol stoneonly 1
+
+age compose skinonly 4242 template=infernal landmass=vanilla sea=lava surface.material=minecraft:blackstone
+age compare nethercontrol skinonly 1
+
+age compose stoneandskin 4242 template=infernal landmass=vanilla sea=lava landmass.stone=minecraft:blackstone surface.material=minecraft:blackstone
+age compare nethercontrol stoneandskin 1
+
+age list

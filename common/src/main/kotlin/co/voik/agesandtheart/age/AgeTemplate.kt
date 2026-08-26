@@ -170,11 +170,27 @@ enum class AgeTemplate(
      * Age's hills, where it used to be the overworld's dirt and grass whatever the book started from.
      *
      * Read only where the rock is a field of ours. Vanilla's own rock carries its own skin already, and
-     * `AgeGeneration.vanillaRockFor` keeps it.
+     * `AgeGeneration.vanillasRockFor` keeps it.
      *
      * A getter, like [dimensionType]: these trees are built out of `Blocks`, which needs the registries.
      */
     abstract val skin: SurfaceRules.RuleSource
+
+    /**
+     * **Whether this world's skin paints every solid block rather than patches of them**, which decides
+     * whether a rock named for it can be seen at all.
+     *
+     * A surface tree is supposed to paint the top few blocks and leave the bulk to `defaultBlock` — which
+     * is what makes substituting that block the way a book changes what a world is made of. Two of vanilla's
+     * three do not: the nether's ends in a bare `NETHERRACK` arm that claims whatever the conditioned ones
+     * did not, and the End's whole tree is one unconditional `ENDSTONE`. So a book asking for a blackstone
+     * nether over vanilla's own rock got netherrack and no word about it (Jonah, 2026-08-25, walked).
+     *
+     * Written down rather than derived, the tree being a `RuleSource` whose sequence and block records are
+     * both private. `AgeTemplate.skinRepaintsTheWholeRock` in `TemplateSkinCheck` is what holds each of
+     * these against the tree it describes, by following the tree's last arm through its own codec.
+     */
+    val skinRepaintsTheWholeRock: Boolean get() = this != OVERWORLD
 
     /** Whether a book may weigh or narrow this world's biomes, which needs a table to adjust. */
     val biomesAreChosenByClimate: Boolean get() = biomeList != null

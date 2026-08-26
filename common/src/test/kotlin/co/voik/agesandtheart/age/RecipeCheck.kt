@@ -192,10 +192,13 @@ class RecipeCheck : FunSpec({
             seed = SAMPLE_SEED,
             template = AgeTemplate.INFERNAL,
         )
-        check(overVanillas.unhonoured.size == 1) {
+        // On what is said rather than on how many are: this world has a second thing to say about the
+        // same rock — its skin paints over it — and a count would call that a regression.
+        val aboutTheMingling = overVanillas.unhonoured.filter { "one material" in it }
+        check(aboutTheMingling.size == 1) {
             "mingled stone over vanilla's rock said nothing: ${overVanillas.unhonoured}"
         }
-        check("tuff" in overVanillas.unhonoured.single()) {
+        check("tuff" in aboutTheMingling.single()) {
             "the note does not name what is left out: ${overVanillas.unhonoured}"
         }
 
