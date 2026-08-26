@@ -123,6 +123,9 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         event.register(Registries.MATERIAL_CONDITION) { helper ->
             AgeContent.surfaceConditionCodecs.forEach { (id, codec) -> helper.register(id, codec) }
         }
+        event.register(Registries.FEATURE) { helper ->
+            AgeContent.features.forEach { (id, feature) -> helper.register(id, feature) }
+        }
         event.register(Registries.CARVER) { helper ->
             AgeContent.carvers.forEach { (id, carver) -> helper.register(id, carver) }
         }

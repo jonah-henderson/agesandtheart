@@ -9,11 +9,9 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.Identifier
 import net.minecraft.world.level.levelgen.feature.LakeFeature
 import net.minecraft.world.level.levelgen.feature.stateproviders.BlockStateProvider
-import net.minecraft.core.Direction
-import net.minecraft.util.valueproviders.UniformInt
 import net.minecraft.world.level.block.Block
-import net.minecraft.world.level.levelgen.blockpredicates.BlockPredicate
-import net.minecraft.world.level.levelgen.feature.configurations.BlockColumnConfiguration
+
+import net.minecraft.world.level.levelgen.feature.configurations.BlockStateConfiguration
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature
 import net.minecraft.world.level.levelgen.feature.configurations.OreConfiguration
 import net.minecraft.world.level.levelgen.feature.configurations.SpringConfiguration
@@ -61,34 +59,16 @@ object FeatureShape {
     }
 
     /**
-     * **A spring that tried** — the substance seeping from the wall and setting a block or two down.
+     * **A spring that tried** — [SpilledSpring], standing where the spring would have stood.
      *
-     * `gold_block springs` is incoherent and charged for as such ([co.voik.agesandtheart.age.Register.DISPLACED]),
-     * but the world can still show what was asked for rather than quietly handing back ordinary water.
-     *
-     * Vanilla's own `BLOCK_COLUMN` is the whole of it, which is why this costs no feature of ours: it walks
-     * down from the origin placing while the predicate holds and truncates where it stops. Two things fall
-     * out of that and both are wanted. **A spill buried in rock places nothing** — the block below is not
-     * replaceable, the run truncates to zero, and nothing is set — so these appear only where there was
-     * somewhere to run to. And **one at an opening stops where the floor is**, because the same predicate
-     * that let it start is what ends it.
-     *
-     * It keeps the spring's own [placement], so it comes as often and stands where a spring would.
+     * It keeps the spring's own [placement], so it comes as often as a spring and is sited where one is:
+     * the feature's own test for a wall to come out of and an opening to come out into is what decides
+     * whether anything is laid at all, exactly as a spring's rock and hole counts decide for it.
      */
     private fun spilled(block: Block, placement: List<PlacementModifier>): Holder<PlacedFeature> {
-        val spill = BlockColumnConfiguration(
-            listOf(BlockColumnConfiguration.layer(UniformInt.of(1, SPILL_REACH), BlockStateProvider.simple(block))),
-            Direction.DOWN,
-            BlockPredicate.replaceable(),
-            // The tip is the far end of the run, and the far end is what a short spill loses first.
-            /* prioritizeTip = */ false,
-        )
-        val made = ConfiguredFeature(Feature.BLOCK_COLUMN, spill)
+        val made = ConfiguredFeature(SpilledSpring, BlockStateConfiguration(block.defaultBlockState()))
         return Holder.direct(PlacedFeature(Holder.direct(made), placement))
     }
-
-    /** How far a spill reaches before it sets — a block or two, and rarely a third. */
-    private const val SPILL_REACH = 3
 
     /**
      * [pattern] made of [substance] instead of whatever it was made of — how a writer asks for a thing the

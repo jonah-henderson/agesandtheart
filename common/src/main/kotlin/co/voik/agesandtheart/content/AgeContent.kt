@@ -57,6 +57,8 @@ import net.minecraft.world.level.biome.BiomeSource
 import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.levelgen.SurfaceRules
 import net.minecraft.world.level.levelgen.carver.CarverConfiguration
+import co.voik.agesandtheart.worldgen.feature.SpilledSpring
+import net.minecraft.world.level.levelgen.feature.Feature
 import net.minecraft.world.level.levelgen.carver.WorldCarver
 import net.minecraft.world.level.storage.loot.functions.LootItemFunction
 
@@ -524,5 +526,13 @@ object AgeContent {
      */
     val carvers: List<Pair<Identifier, WorldCarver<*>>> = listOf(
         "porosity".location() to RuleCarver(CarverConfiguration.CODEC.codec(), Porosity.VUGS),
+    )
+
+    /**
+     * Our own features. As with [carvers], this registers the *kind*; what is made of it is built in code
+     * rather than authored, there being one caller and no reason for a pack to name it.
+     */
+    val features: List<Pair<Identifier, Feature<*>>> = listOf(
+        "spilled_spring".location() to SpilledSpring,
     )
 }

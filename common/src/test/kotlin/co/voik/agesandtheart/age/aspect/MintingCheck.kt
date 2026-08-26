@@ -10,9 +10,9 @@ import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.worldgen.feature.FeatureShape
 import com.mojang.serialization.JsonOps
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature
-import net.minecraft.world.level.levelgen.feature.configurations.BlockColumnConfiguration
 import net.minecraft.world.level.material.Fluids
-import net.minecraft.core.Direction
+import co.voik.agesandtheart.worldgen.feature.SpilledSpring
+import net.minecraft.world.level.levelgen.feature.configurations.BlockStateConfiguration
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import net.minecraft.core.registries.Registries
@@ -141,17 +141,10 @@ class MintingCheck : FunSpec({
         check(spilled.value().placement() == spring.value().placement()) {
             "the spill does not stand where a spring would: ${spilled.value().placement()}"
         }
-        val column = spilled.value().feature().value().config() as BlockColumnConfiguration
-        check(column.direction() == Direction.DOWN) { "the spill runs ${column.direction()}" }
-        // Through the codec: a `BlockStateProvider`'s own `toString` is its identity, and this
-        // configuration holds no `HolderSet`, so plain ops can write it where a spring's cannot.
-        val spelled = BlockColumnConfiguration.CODEC.encodeStart(JsonOps.INSTANCE, column).getOrThrow().toString()
-        check("minecraft:gold_block" in spelled) { "the spill is not made of what was asked for: $spelled" }
-        // Truncating to nothing where the run cannot start is what keeps these out of solid rock, so
-        // what the run is allowed into is the load-bearing half of the configuration.
-        check("replaceable" in spelled) {
-            "the spill would set inside rock rather than only where there was somewhere to run: $spelled"
-        }
+        val made = spilled.value().feature().value()
+        check(made.feature() === SpilledSpring) { "a solid spring was rebuilt as ${made.feature()}" }
+        val substance = (made.config() as BlockStateConfiguration).state
+        check(substance == Blocks.GOLD_BLOCK.defaultBlockState()) { "the spill is made of $substance" }
     }
 
     /** And a fluid still runs, which is the half that must not have moved. */
