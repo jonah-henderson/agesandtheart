@@ -9,6 +9,7 @@ import net.minecraft.util.KeyDispatchDataCodec
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.biome.BiomeSource
 import net.minecraft.world.level.biome.Climate
+import net.minecraft.world.level.biome.TheEndBiomeSource
 import net.minecraft.world.level.levelgen.DensityFunction
 import java.util.Optional
 import java.util.stream.Stream
@@ -70,9 +71,24 @@ class AgeBiomeSource(
     override fun collectPossibleBiomes(): Stream<Holder<Biome>> =
         Stream.concat(under.possibleBiomes().stream(), Stream.ofNullable(roofed?.biome))
 
-    /** Whether anything here would move a single number, or the sampler may be handed straight through. */
-    private val changesNothing: Boolean
+    /** Whether anything here would move a single number. */
+    private val bendsNothing: Boolean
         get() = depth == AsSampled && grounding == null && bent.isIdle
+
+    /**
+     * **The End must be handed the sampler it was given, not one of ours.**
+     *
+     * It picks by distance from the centre and a single reading of erosion, so there is no table here to
+     * bend and nothing is lost by leaving it alone. What is *gained* is that it still works: Fabric's
+     * biome API hangs its own End overrides off a seed that a `Climate.Sampler` only carries when a
+     * `RandomState` made it, so handing it one built here throws `MultiNoiseSampler doesn't have a seed
+     * set` out of chunk generation. A dark void Age never met it — bending nothing, it passed the sampler
+     * on already — and naming a landform is what starts the wrapping (Jonah, 2026-08-15, walked).
+     */
+    private val underPicksByItsOwnRule: Boolean get() = under is TheEndBiomeSource
+
+    /** Whether the world below is better served by the sampler it was handed. */
+    private val handsTheSamplerOn: Boolean get() = bendsNothing || underPicksByItsOwnRule
 
     /**
      * [climate] as this Age reads it — the same six numbers, bent, grounded and re-deepened.
@@ -85,7 +101,7 @@ class AgeBiomeSource(
     private var seenThrough: Pair<Climate.Sampler, Climate.Sampler>? = null
 
     private fun asThisAgeSeesIt(climate: Climate.Sampler): Climate.Sampler {
-        if (changesNothing) return climate
+        if (handsTheSamplerOn) return climate
         seenThrough?.let { (given, made) -> if (given === climate) return made }
 
         fun biasAt(context: DensityFunction.FunctionContext) =
