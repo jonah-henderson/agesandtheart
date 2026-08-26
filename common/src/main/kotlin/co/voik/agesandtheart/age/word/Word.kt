@@ -191,9 +191,9 @@ data class Word(
      * Whether the pattern [mints] names can only be made of something that **flows**.
      *
      * A spring runs with a fluid, and `fluidState` of a block that is not one is `Fluids.EMPTY` — so
-     * `gold_block springs` rebuilt a spring that placed nothing at all, and the pattern is left alone
-     * instead. Which is right, and left the writer paying for a page that did nothing and being told
-     * nothing about it (Jonah, 2026-08-25, walked).
+     * `gold_block springs` would rebuild a spring that placed nothing at all. What it gets instead is a
+     * spring that *tried*: the substance seeping from the wall and setting a block or two down, charged
+     * for as a displacement (Jonah, 2026-08-25, walked).
      *
      * **On the word rather than read off the pattern**, so the resolver can charge for it: instability is
      * a pure function of (vocabulary, sentence, seed), and asking a `PlacedFeature` what its configuration

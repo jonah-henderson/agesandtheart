@@ -10,6 +10,9 @@ import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.worldgen.feature.FeatureShape
 import com.mojang.serialization.JsonOps
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature
+import net.minecraft.world.level.levelgen.feature.configurations.BlockColumnConfiguration
+import net.minecraft.world.level.material.Fluids
+import net.minecraft.core.Direction
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 import net.minecraft.core.registries.Registries
@@ -111,7 +114,7 @@ class MintingCheck : FunSpec({
     /** And the pattern is really rebuilt, rather than the claim merely spelling what was asked for. */
     test("a minted lake is filled with what the clause named") {
         val pattern = MinecraftRegistries.worldgen.lookupOrThrow(Registries.PLACED_FEATURE)
-            .getOrThrow(net.minecraft.resources.ResourceKey.create(Registries.PLACED_FEATURE, Identifier.parse("minecraft:lake_lava_surface")))
+            .getOrThrow(ResourceKey.create(Registries.PLACED_FEATURE, Identifier.parse("minecraft:lake_lava_surface")))
         val obsidian = FeatureShape.mintedFrom(pattern, "minecraft:obsidian")
         check(obsidian !== pattern) { "the lake came back unminted" }
         // Through the codec, because a `BlockStateProvider`'s own `toString` is its identity and says
@@ -120,6 +123,45 @@ class MintingCheck : FunSpec({
             .encodeStart(JsonOps.INSTANCE, obsidian.value().feature().value())
             .getOrThrow().toString()
         check("minecraft:obsidian" in spelled) { "the minted lake is not made of obsidian: $spelled" }
+    }
+
+    /**
+     * **And the world shows what was asked for**, rather than handing back the ordinary spring the writer
+     * did not write: the substance seeps from the wall and sets a block or two down.
+     *
+     * Vanilla's `BLOCK_COLUMN` walking down from the origin, so a spill with nowhere to run places nothing
+     * and one at an opening stops where the floor is. The spring's own placement is kept, so it comes as
+     * often and stands where a spring would.
+     */
+    test("a spring given a solid spills it instead of running") {
+        val spring = placedFeature("minecraft:spring_water")
+        val spilled = FeatureShape.mintedFrom(spring, "minecraft:gold_block")
+
+        check(spilled !== spring) { "a solid spring came back as the untouched pattern" }
+        check(spilled.value().placement() == spring.value().placement()) {
+            "the spill does not stand where a spring would: ${spilled.value().placement()}"
+        }
+        val column = spilled.value().feature().value().config() as BlockColumnConfiguration
+        check(column.direction() == Direction.DOWN) { "the spill runs ${column.direction()}" }
+        // Through the codec: a `BlockStateProvider`'s own `toString` is its identity, and this
+        // configuration holds no `HolderSet`, so plain ops can write it where a spring's cannot.
+        val spelled = BlockColumnConfiguration.CODEC.encodeStart(JsonOps.INSTANCE, column).getOrThrow().toString()
+        check("minecraft:gold_block" in spelled) { "the spill is not made of what was asked for: $spelled" }
+        // Truncating to nothing where the run cannot start is what keeps these out of solid rock, so
+        // what the run is allowed into is the load-bearing half of the configuration.
+        check("replaceable" in spelled) {
+            "the spill would set inside rock rather than only where there was somewhere to run: $spelled"
+        }
+    }
+
+    /** And a fluid still runs, which is the half that must not have moved. */
+    test("a spring given a fluid still runs with it") {
+        val spring = placedFeature("minecraft:spring_water")
+        val running = FeatureShape.mintedFrom(spring, "minecraft:lava").value().feature().value().config()
+        check(running is SpringConfiguration) { "a lava spring stopped being a spring: $running" }
+        check((running as SpringConfiguration).state.type === Fluids.LAVA) {
+            "a lava spring runs with ${running.state.type}"
+        }
     }
 
     /** And a pattern that never asked for a fluid takes a solid happily — `veins` is the other minting. */
@@ -174,17 +216,6 @@ class MintingCheck : FunSpec({
         check(now.size == was.size) { "the vein changed size" }
     }
 
-    /**
-     * **A spring runs with a fluid, and a solid holds none.** `gold block springs` reads as a sentence and
-     * a gold block's `fluidState` is `Fluids.EMPTY`, so the rebuilt spring placed nothing whatever — a page
-     * paid for, an exact one, and no sign anywhere that it did nothing.
-     */
-    test("a solid cannot be what a spring runs with") {
-        val pattern = placedFeature("minecraft:spring_water")
-        check(FeatureShape.mintedFrom(pattern, "minecraft:gold_block") === pattern) {
-            "a spring was rebuilt to run with a solid, so it places nothing at all"
-        }
-    }
 
     test("a substance nothing answers to leaves the pattern alone") {
         val pattern = placedFeature("minecraft:spring_water")

@@ -9,6 +9,11 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.Identifier
 import net.minecraft.world.level.levelgen.feature.LakeFeature
 import net.minecraft.world.level.levelgen.feature.stateproviders.BlockStateProvider
+import net.minecraft.core.Direction
+import net.minecraft.util.valueproviders.UniformInt
+import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.levelgen.blockpredicates.BlockPredicate
+import net.minecraft.world.level.levelgen.feature.configurations.BlockColumnConfiguration
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature
 import net.minecraft.world.level.levelgen.feature.configurations.OreConfiguration
 import net.minecraft.world.level.levelgen.feature.configurations.SpringConfiguration
@@ -56,6 +61,36 @@ object FeatureShape {
     }
 
     /**
+     * **A spring that tried** — the substance seeping from the wall and setting a block or two down.
+     *
+     * `gold_block springs` is incoherent and charged for as such ([co.voik.agesandtheart.age.Register.DISPLACED]),
+     * but the world can still show what was asked for rather than quietly handing back ordinary water.
+     *
+     * Vanilla's own `BLOCK_COLUMN` is the whole of it, which is why this costs no feature of ours: it walks
+     * down from the origin placing while the predicate holds and truncates where it stops. Two things fall
+     * out of that and both are wanted. **A spill buried in rock places nothing** — the block below is not
+     * replaceable, the run truncates to zero, and nothing is set — so these appear only where there was
+     * somewhere to run to. And **one at an opening stops where the floor is**, because the same predicate
+     * that let it start is what ends it.
+     *
+     * It keeps the spring's own [placement], so it comes as often and stands where a spring would.
+     */
+    private fun spilled(block: Block, placement: List<PlacementModifier>): Holder<PlacedFeature> {
+        val spill = BlockColumnConfiguration(
+            listOf(BlockColumnConfiguration.layer(UniformInt.of(1, SPILL_REACH), BlockStateProvider.simple(block))),
+            Direction.DOWN,
+            BlockPredicate.replaceable(),
+            // The tip is the far end of the run, and the far end is what a short spill loses first.
+            /* prioritizeTip = */ false,
+        )
+        val made = ConfiguredFeature(Feature.BLOCK_COLUMN, spill)
+        return Holder.direct(PlacedFeature(Holder.direct(made), placement))
+    }
+
+    /** How far a spill reaches before it sets — a block or two, and rarely a third. */
+    private const val SPILL_REACH = 3
+
+    /**
      * [pattern] made of [substance] instead of whatever it was made of — how a writer asks for a thing the
      * game does not have (world model §2).
      *
@@ -76,11 +111,10 @@ object FeatureShape {
         val rebuilt = when (val configuration = feature.config()) {
             is SpringConfiguration -> {
                 // **A spring runs with a fluid, and a solid holds none.** `fluidState` of a block that is
-                // not one is `Fluids.EMPTY`, so `gold block springs` would have rebuilt a spring that
-                // places nothing at all — which is worse than the pattern untouched, the writer having
-                // paid for a page either way.
+                // not one is `Fluids.EMPTY`, so `gold block springs` would rebuild a spring that places
+                // nothing at all. What it gets instead is [spilled] — the shape of a spring that tried.
                 val running = block.defaultBlockState().fluidState
-                if (running.isEmpty) return pattern
+                if (running.isEmpty) return spilled(block, placed.placement())
                 SpringConfiguration(
                     running,
                     configuration.requiresBlockBelow,
