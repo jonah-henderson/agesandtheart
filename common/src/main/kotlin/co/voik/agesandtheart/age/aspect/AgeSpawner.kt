@@ -8,6 +8,7 @@ import net.minecraft.util.random.Weighted
 import net.minecraft.util.random.WeightedList
 import net.minecraft.world.entity.EntitySpawnReason
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon
+import net.minecraft.world.entity.boss.enderdragon.phases.EnderDragonPhase
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.Mob
 import net.minecraft.world.entity.MobCategory
@@ -191,18 +192,28 @@ class AgeSpawner(
     }
 
     /**
-     * **Where a creature that circles somewhere thinks that somewhere is.**
+     * **Waking a creature that is asleep until a ritual wakes it, and telling it where home is.**
      *
-     * A dragon's whole behaviour orbits its *fight origin* — `DragonHoldingPatternPhase` picks its next
-     * target around it and looks for players near it — and that origin defaults to `BlockPos.ZERO`. So a
-     * dragon placed on a hillside flew straight to the world origin and circled a podium that was not
-     * there, which reads exactly like an AI that does not work (Jonah, 2026-08-26, walked).
+     * A dragon needs two things said to it, and neither is said by spawning one.
      *
-     * The fight itself is null and stays null: `HoldingPatternPhase` guards for that and counts no
-     * crystals, which is the right answer for a dragon that is a resident rather than a boss ritual.
+     * **It starts in `HOVERING` and nothing moves it on.** `EnderDragonPhaseManager`'s constructor sets
+     * that phase, `DATA_PHASE` defaults to it, and `DragonHoverPhase.doServerTick` sets a target location
+     * once and then does nothing whatever — so it hangs where it appeared, for ever. The only thing in the
+     * game that starts a dragon flying is `EnderDragonFight`, on the line that respawns one, and a dragon
+     * an Age wrote has no fight. So the Age says it instead (Jonah, 2026-08-27, walked: phase 10 every
+     * time it was asked).
+     *
+     * **And its whole behaviour orbits a *fight origin* that defaults to `BlockPos.ZERO`.** Everything the
+     * holding pattern does is relative to that point — where it lays its flight ring, where it looks for a
+     * player — so a dragon that was flying at all would fly to the world origin to do it.
+     *
+     * The fight itself stays null, which the holding pattern guards for: it counts no crystals, which is
+     * the right answer for a dragon that is a resident rather than a boss ritual.
      */
     private fun madeAtHome(mob: Mob, at: BlockPos) {
-        if (mob is EnderDragon) mob.fightOrigin = at
+        if (mob !is EnderDragon) return
+        mob.fightOrigin = at
+        mob.phaseManager.setPhase(EnderDragonPhase.HOLDING_PATTERN)
     }
 
     companion object {
