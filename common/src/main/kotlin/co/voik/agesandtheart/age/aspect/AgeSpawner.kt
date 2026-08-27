@@ -60,10 +60,69 @@ class AgeSpawner(
         val chosen = choosing.getRandom(level.random).orElse(null) ?: return
         if (!spawnEnemies && chosen.type.category == MobCategory.MONSTER) return
         val at = somewhereIn(level) ?: return
-        if (!chosen.arrival.mayBeTriedAt(at.x, at.z, chosen.spacing)) return
-        val standing = standingRoomFor(chosen, level, at) ?: return
-        if (alreadyEnoughAround(chosen, level, standing)) return
-        place(chosen, level, standing)
+        val outcome = tryAt(chosen, level, at)
+        if (outcome is Outcome.Standing) place(chosen, level, outcome.at)
+    }
+
+    /**
+     * **What would happen if this creature were tried at this column** — a placement, or the gate that
+     * refused it.
+     *
+     * Named reasons rather than a null, because a creature that never arrives is the hard thing to
+     * diagnose here: every gate below is doing its job when it refuses, and telling them apart is the
+     * whole of knowing whether the numbers are wrong or the rule is. `/age spawns` counts them.
+     */
+    fun tryAt(chosen: Placement, level: ServerLevel, column: BlockPos): Outcome {
+        if (!chosen.arrival.mayBeTriedAt(column.x, column.z, chosen.spacing)) return Outcome.HeldApart
+        val candidate = when (chosen.ground) {
+            Ground.IN_THE_AIR -> column.above(ALOFT_LEAST + level.random.nextInt(ALOFT_SPREAD))
+            Ground.UNDERGROUND -> openSpotBelow(level, column) ?: return Outcome.NoOpening
+            else -> column
+        }
+        if (candidate.y >= level.maxY || candidate.y <= level.minY) return Outcome.OutsideTheWorld
+        // **Both of vanilla's tests here ask whether there is ground to stand on**, and neither applies to
+        // a creature judged to belong aloft. `SpawnPlacements` registers the dragon `ON_GROUND` — it is not
+        // an unplaced type, which is the thing that misled this twice — and `ON_GROUND.isSpawnPositionOk`
+        // wants a valid spawn block below, as `Mob.checkMobSpawnRules` separately does. Thirty blocks up
+        // there is none, so a dragon put where a dragon belongs was refused for not standing on anything
+        // (Jonah, 2026-08-26, walked: golems arriving and dragons never).
+        //
+        // What is left is the test that means something up there — that the space is clear — and it is
+        // kept below rather than dropped with them.
+        if (chosen.ground != Ground.IN_THE_AIR) {
+            if (!SpawnPlacements.isSpawnPositionOk(chosen.type, level, candidate)) return Outcome.WrongPlacement
+            val rules = SpawnPlacements.checkSpawnRules(
+                chosen.type, level, EntitySpawnReason.NATURAL, candidate, level.random,
+            )
+            if (!rules) return Outcome.WrongConditions
+        } else if (!level.isEmptyBlock(candidate)) {
+            return Outcome.NoRoom
+        }
+        // **The test that refused the dragon** where vanilla was trying, kept rather than dodged: it is
+        // what stops a creature being put inside the world. Aloft it is satisfiable, which is the whole
+        // reason a dragon goes up there.
+        val room = chosen.type.getSpawnAABB(candidate.x + HALF_A_BLOCK, candidate.y.toDouble(), candidate.z + HALF_A_BLOCK)
+        if (!level.noCollision(room)) return Outcome.NoRoom
+        if (alreadyEnoughAround(chosen, level, candidate)) return Outcome.EnoughAlready
+        return Outcome.Standing(candidate)
+    }
+
+    /** Why a creature was not put at a column, or where it would go. */
+    sealed interface Outcome {
+        data class Standing(val at: BlockPos) : Outcome
+        /** Not one of the few places this creature may be tried — see [Arrival.mayBeTriedAt]. */
+        data object HeldApart : Outcome
+        /** Nothing open under the ground for one that belongs there. */
+        data object NoOpening : Outcome
+        data object OutsideTheWorld : Outcome
+        /** Vanilla's own placement rule for the type said no. */
+        data object WrongPlacement : Outcome
+        /** And its own spawn rule — the light, the block below, the difficulty. */
+        data object WrongConditions : Outcome
+        /** Its box would not clear where it stands. */
+        data object NoRoom : Outcome
+        /** There are already as many here as this creature stands in one place. */
+        data object EnoughAlready : Outcome
     }
 
     /**
@@ -83,30 +142,6 @@ class AgeSpawner(
         val z = around.z + level.random.nextInt(-reach, reach + 1)
         if (!level.hasChunkAt(BlockPos(x, level.minY, z))) return null
         return BlockPos(x, level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z), z)
-    }
-
-    /**
-     * Where in that column this creature would stand, or null where it has no room.
-     *
-     * The ground rule decides which way to look and vanilla's own tests decide whether the answer will
-     * hold, which is the whole of the imitation: a golem is put where a golem could have stood.
-     */
-    private fun standingRoomFor(chosen: Placement, level: ServerLevel, column: BlockPos): BlockPos? {
-        val candidate = when (chosen.ground) {
-            Ground.IN_THE_AIR -> column.above(ALOFT_LEAST + level.random.nextInt(ALOFT_SPREAD))
-            Ground.UNDERGROUND -> openSpotBelow(level, column) ?: return null
-            else -> column
-        }
-        if (candidate.y >= level.maxY || candidate.y <= level.minY) return null
-        if (!SpawnPlacements.isSpawnPositionOk(chosen.type, level, candidate)) return null
-        if (!SpawnPlacements.checkSpawnRules(chosen.type, level, EntitySpawnReason.NATURAL, candidate, level.random)) {
-            return null
-        }
-        // **The test that refused the dragon**, kept rather than dodged: it is what stops a creature being
-        // put inside the world. Aloft it is satisfiable, which is the whole reason a dragon goes up there.
-        val room = chosen.type.getSpawnAABB(candidate.x + HALF_A_BLOCK, candidate.y.toDouble(), candidate.z + HALF_A_BLOCK)
-        if (!level.noCollision(room)) return null
-        return candidate
     }
 
     /** The first open block under the ground, for a creature that belongs in the rock. */

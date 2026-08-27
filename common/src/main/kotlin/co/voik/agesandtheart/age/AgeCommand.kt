@@ -9,6 +9,7 @@ import net.minecraft.world.Difficulty
 import net.minecraft.world.DifficultyInstance
 import co.voik.agesandtheart.age.consequence.Tearing
 import co.voik.agesandtheart.age.aspect.Terrain
+import co.voik.agesandtheart.age.aspect.AgeSpawner
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.aspect.Sky
@@ -1801,6 +1802,29 @@ object AgeCommand {
                         }
                     }
                 }
+            }
+        }
+
+        // And what the Age places for itself, which vanilla's spawner never sees — counted by the gate that
+        // refused it, since every one of them is doing its job and telling them apart is the diagnosis.
+        val placing = AgeGeneration.spawnersFor(source.server, AgeSavedData.get(source.server).recipe(ageId(name)))
+            .filterIsInstance<AgeSpawner>()
+            .firstOrNull()
+        for (creature in placing?.placedCreatures.orEmpty()) {
+            val outcomes = sortedMapOf<String, Int>()
+            for (blockX in -spread..spread step SPAWN_SAMPLE_STRIDE) {
+                for (blockZ in -spread..spread step SPAWN_SAMPLE_STRIDE) {
+                    level.getChunk(SectionPos.blockToSectionCoord(blockX), SectionPos.blockToSectionCoord(blockZ))
+                    val ground = level.getHeight(Heightmap.Types.WORLD_SURFACE, blockX, blockZ)
+                    val outcome = checkNotNull(placing).tryAt(creature, level, BlockPos(blockX, ground, blockZ))
+                    val said = if (outcome is AgeSpawner.Outcome.Standing) "would stand" else outcome.javaClass.simpleName
+                    outcomes[said] = (outcomes[said] ?: 0) + 1
+                }
+            }
+            val named = BuiltInRegistries.ENTITY_TYPE.getKey(creature.type)
+            report.entry("places", mapOf("creature" to named.toString(), "outcomes" to outcomes)) {
+                "  places $named (${creature.ground}, ${creature.spacing} apart): " +
+                    outcomes.entries.joinToString(", ") { "${it.key} ${it.value}" }
             }
         }
 

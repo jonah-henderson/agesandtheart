@@ -9,6 +9,8 @@ import io.kotest.core.spec.style.FunSpec
 import net.minecraft.core.BlockPos
 import net.minecraft.util.random.Weighted
 import net.minecraft.util.random.WeightedList
+import net.minecraft.world.entity.SpawnPlacements
+import net.minecraft.world.entity.SpawnPlacementTypes
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.level.biome.MobSpawnSettings
@@ -205,6 +207,27 @@ class SpawningCheck : FunSpec({
         val grounds = placing.placedCreatures.associate { it.type to it.ground }
         check(grounds[EntityType.ENDER_DRAGON] == Ground.IN_THE_AIR) { "the dragon is placed on $grounds" }
         check(grounds[EntityType.IRON_GOLEM] == Ground.SURFACE) { "the golem is placed on $grounds" }
+    }
+
+    /**
+     * **A creature an Age puts aloft is one vanilla places on the ground**, and that is why the aloft
+     * placement skips vanilla's two standing tests rather than passing them.
+     *
+     * The fact that misled this twice: `ENDER_DRAGON` is *not* an unplaced type. `SpawnPlacements`
+     * registers it `ON_GROUND` with `Mob::checkMobSpawnRules`, and both of those want a valid spawn block
+     * directly below — which nothing thirty blocks up has. So a dragon put where a dragon belongs was
+     * refused for not standing on anything, and the log said nothing because refusing is not an error.
+     *
+     * If vanilla ever stops placing it on the ground, the exemption stops being needed and this says so.
+     */
+    test("what an Age places aloft is placed on the ground by vanilla") {
+        MinecraftRegistries.ensureStoodUp()
+        for (aloft in listOf(EntityType.ENDER_DRAGON)) {
+            check(SpawnPlacements.getPlacementType(aloft) === SpawnPlacementTypes.ON_GROUND) {
+                "${aloft.description.string} is no longer placed on the ground, so the aloft exemption " +
+                    "may not be needed — it exists because `ON_GROUND` wants a block below"
+            }
+        }
     }
 
     /** And an Age that wrote none of them carries no spawner at all, which is nearly every Age. */
