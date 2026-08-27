@@ -270,18 +270,15 @@ pages) → Sentence` is the entire port; `Sentence`/`Phrase`/`Constraint`/`Scope
   **aiming page** (`landmass`, `atmosphere`, `firmament`) and never by a word that fills something —
   presets are ours, not the player's. `Readout.of(sentence)` says the parse back as prose, which is how attachment is visible at
   all.
-- **`Domain`** — **the player-facing division of the world, as datapack content** (`art/domain/<name>.json`).
-  A domain names the aspects one aiming page opens, and `Vocabulary` synthesises the page from it, so a page
-  and the parts it opens cannot disagree. `atmosphere` covers `{climate, atmosphere}` because a writer does
-  not know that humidity and rainfall live in different objects; `firmament` covers `{sky}`. Never author an
-  `art/word/<domain>.json` beside one — the load reports a collision if you do.
+- **`Holds`** — what an aspect holds: a catalogue, a weighted set, a population, or nothing but its own
+  properties. One enum where there were two parallel `Kind`s, and what `Aspect` answers with rather than a
+  type of its own.
 
-> **The design and the code disagree here on purpose, and the code is the side that moves.** Everything
-> described above is accurate today and deliberately short-lived: `notes/the-world-model.md` replaces the
-> whole of it, and **`Aspect`, `Domain`, `Scope` and one of the two `Kind` enums do not survive it**. A
-> world becomes properties holding a value, a weighted set or a cast; aspects become ordinary words; there
-> are no counts; and cost becomes specificity × versatility. **Read that document before changing anything
-> under `age/aspect/` or `age/word/`**, and the implementation plan's "writer's-terms pass" for the order.
+> **`notes/the-world-model.md` has landed.** It was the design the code was written against and the two no
+> longer disagree: `Domain` is gone — an aspect *is* its own page, so `art/domain/` no longer exists — and
+> so are `Scope` and both `Kind` enums, replaced by `Holds`. There are no counts, `sky` became the vault
+> against `sun`, `moon` and `stars`, and `in <biome>` (§4.3.1) is built. Read that document before changing
+> anything under `age/aspect/` or `age/word/`; it is normative and current, not a plan.
 - **`age/word/generation/`** — the grammars the Art writes *out* of, which are **datapack content**
   (`art/generation/<name>.json`): `book` writes the found Descriptive Books a player learns structure from,
   `repair` writes the sentence a book that does not parse is filled into, `name` draws an Age's syllables. A
