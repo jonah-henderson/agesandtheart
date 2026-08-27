@@ -1,0 +1,8 @@
+# Three Ages, one recipe, one seed. If the pairwise differences vary, the residue is generation
+# ordering rather than anything the seed decides.
+age compose oneA 4242 landmass=vanilla sea=water
+age compose oneB 4242 landmass=vanilla sea=water
+age compose oneC 4242 landmass=vanilla sea=water
+age compare oneA oneB 1
+age compare oneA oneC 1
+age compare oneB oneC 1

@@ -1,10 +1,7 @@
 package co.voik.agesandtheart.mixin;
 
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
@@ -37,10 +34,6 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 @Mixin(net.minecraft.world.entity.boss.enderdragon.phases.DragonHoldingPatternPhase.class)
 public abstract class DragonHoldingPatternMixin {
 
-    @Shadow
-    @Final
-    protected EnderDragon dragon;
-
     @Redirect(
         method = "findNewTarget",
         at = @At(
@@ -52,6 +45,9 @@ public abstract class DragonHoldingPatternMixin {
     private int agesandtheart$neverLandWithNothingToLandFor(RandomSource random, int bound) {
         int rolled = random.nextInt(bound);
         // Anything but zero, and the roll is still drawn so the sequence is untouched for everyone else.
-        return this.dragon.getDragonFight() == null ? rolled + 1 : rolled;
+        // Through the accessor rather than a shadow: `dragon` is declared on the superclass, and a
+        // shadow of it fails at apply time — see [DragonPhaseAccessor].
+        boolean hasAFight = ((DragonPhaseAccessor) this).agesandtheart$dragon().getDragonFight() != null;
+        return hasAFight ? rolled : rolled + 1;
     }
 }
