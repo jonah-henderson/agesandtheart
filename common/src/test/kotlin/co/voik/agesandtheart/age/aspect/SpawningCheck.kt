@@ -4,7 +4,6 @@ import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import io.kotest.core.annotation.Tags
 import co.voik.agesandtheart.age.aspect.Ground
-import co.voik.agesandtheart.age.aspect.Hour
 import co.voik.agesandtheart.age.aspect.Lit
 import net.minecraft.resources.Identifier
 import io.kotest.core.spec.style.FunSpec
@@ -130,7 +129,7 @@ class SpawningCheck : FunSpec({
         fun weightOf(claim: String) = Spawns.livingIn(
             Options(mapOf(Spawns.LIVES.name to listOf(claim))),
             MinecraftRegistries.spawning,
-        ).at(null, MobCategory.MONSTER, Spawns.Situation(BlockPos.ZERO, true, true, DARK), aMeadow()).unwrap()
+        ).at(null, MobCategory.MONSTER, Spawns.Situation(BlockPos.ZERO, true, DARK), aMeadow()).unwrap()
             .firstOrNull { it.value().type() == EntityType.ILLUSIONER }?.weight()
 
         // An illusioner, which is held apart from nothing — see the test below for what a rung does to
@@ -242,26 +241,6 @@ class SpawningCheck : FunSpec({
     }
 
     /**
-     * **When a creature comes**, which vanilla has no notion of — its own rule is about light, so a zombie
-     * spawns in a dark cave at noon. This is the judgement the light cannot make, and it reaches the list
-     * vanilla is handed as well as the Age's own spawner.
-     */
-    test("a creature judged to one watch is not offered on the other") {
-        val byDay = livingWith("minecraft:illusioner", MobCategory.MONSTER, skyIsOpen = true, isBrightOutside = true)
-        check("illusioner" in byDay) { "an illusioner did not arrive by day: $byDay" }
-        val byNight = livingWith("minecraft:illusioner", MobCategory.MONSTER, skyIsOpen = true, isBrightOutside = false)
-        check("illusioner" !in byNight) { "an illusioner was offered after dark: $byNight" }
-    }
-
-    /** And one nobody judged comes whenever the light allows, which is most of them. */
-    test("a creature nobody judged comes at any hour") {
-        for (bright in listOf(true, false)) {
-            val arrived = livingWith("minecraft:zombie", MobCategory.MONSTER, skyIsOpen = true, isBrightOutside = bright)
-            check("zombie" in arrived) { "a zombie was refused with bright=$bright: $arrived" }
-        }
-    }
-
-    /**
      * **And what light it comes in**, which vanilla does test — for the creatures it tests. A golem's own
      * rules read no light and a placed creature has none read over it, so this is the whole judgement for
      * those two rather than a second opinion.
@@ -273,13 +252,9 @@ class SpawningCheck : FunSpec({
         check("warden" !in lit) { "a warden was offered somewhere lit: $lit" }
     }
 
-    /** The control: the hours and the light are read off the corpus, or the tests above prove nothing. */
-    test("the hours are actually read") {
+    /** The control: the light is read off the corpus, or the test above proves nothing. */
+    test("the light is actually read") {
         val spawning = MinecraftRegistries.spawning
-        fun hourOf(path: String) = spawning.hourOf(Identifier.withDefaultNamespace(path))
-        check(hourOf("illusioner") == Hour.BY_DAY) { "the day list did not load" }
-        check(hourOf("wither") == Hour.BY_NIGHT) { "the night list did not load" }
-        check(hourOf("zombie") == Hour.ANY) { "a creature nobody judged was pinned to a watch" }
         fun lightOf(path: String) = spawning.lightOf(Identifier.withDefaultNamespace(path))
         check(lightOf("warden") == Lit.IN_THE_DARK) { "the dark list did not load" }
         check(lightOf("zombie") == Lit.ANY) { "a creature nobody judged was pinned to a light" }
@@ -300,12 +275,11 @@ private fun livingWith(
     claim: String,
     category: MobCategory,
     skyIsOpen: Boolean,
-    isBrightOutside: Boolean = true,
     brightness: Int = DARK,
 ): List<String> {
     val options = Options(mapOf(Spawns.LIVES.name to listOf(claim)))
     return Spawns.livingIn(options, MinecraftRegistries.spawning)
-        .at(null, category, Spawns.Situation(BlockPos.ZERO, skyIsOpen, isBrightOutside, brightness), aMeadow())
+        .at(null, category, Spawns.Situation(BlockPos.ZERO, skyIsOpen, brightness), aMeadow())
         .unwrap()
         .map { it.value().type().builtInRegistryHolder().key().identifier().path }
 }

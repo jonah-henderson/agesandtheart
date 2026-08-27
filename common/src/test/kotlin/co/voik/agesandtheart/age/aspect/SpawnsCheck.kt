@@ -97,11 +97,11 @@ private fun narrowedBy(
     val options = Options(mapOf(Spawns.LIVES.name to claims.split(",").filter(String::isNotBlank)))
     // Null for the biome: nothing scopes a claim to one until `in <biome>` lands (§4.3.1).
     return Spawns.livingIn(options)
-        .at(null, category, Spawns.Situation(BlockPos.ZERO, skyIsOpen, true, ANY_LIGHT_WILL_DO), offered)
+        .at(null, category, Spawns.Situation(BlockPos.ZERO, skyIsOpen, ANY_LIGHT_WILL_DO), offered)
 }
 
 private fun kinds(list: WeightedList<MobSpawnSettings.SpawnerData>): List<String> =
     list.unwrap().map { it.value().type().builtInRegistryHolder().key().identifier().path }.sorted()
 
-/** Nothing in this spec judges a creature by the hour or the light, so any answer serves. */
+/** Nothing in this spec judges a creature by the light, so any answer serves. */
 private const val ANY_LIGHT_WILL_DO = 0

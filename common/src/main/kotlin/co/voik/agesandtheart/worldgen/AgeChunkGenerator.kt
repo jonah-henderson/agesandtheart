@@ -260,8 +260,6 @@ class AgeChunkGenerator(
             Spawns.Situation(
                 at = at,
                 skyIsOpen = skyIsOpenAt(structures, at),
-                // The clock, which vanilla's own rules never ask about — see [Hour].
-                isBrightOutside = world?.isBrightOutside ?: true,
                 brightness = world?.getMaxLocalRawBrightness(at) ?: FULLY_LIT,
             ),
             offered,

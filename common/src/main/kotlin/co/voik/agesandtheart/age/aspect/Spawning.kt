@@ -28,10 +28,6 @@ data class Spawning(
     private val underTheGround: Set<String> = emptySet(),
     /** And ones that belong well above it. */
     private val inTheAir: Set<String> = emptySet(),
-    /** Creatures that come by daylight — see [hourOf]. */
-    private val byDay: Set<String> = emptySet(),
-    /** And ones that come after dark. */
-    private val byNight: Set<String> = emptySet(),
     /** Creatures that come where it is lit — see [lightOf]. */
     private val inTheLight: Set<String> = emptySet(),
     /** And ones that come where it is not. */
@@ -79,21 +75,6 @@ data class Spawning(
     }
 
     /**
-     * **When [id] comes**, which is a judgement about a creature rather than a fact vanilla holds.
-     *
-     * Vanilla gates on **light**, not on the clock — a zombie spawns in a dark cave at noon — so this is a
-     * genuinely different axis and not a restatement of one. Two lists on the same rule as the grounds: in
-     * only one is that watch alone, in both or in neither is any hour. Most creatures are in neither,
-     * because for most of them the light rule already says everything worth saying.
-     */
-    fun hourOf(id: Identifier): Hour {
-        val day = id.toString() in byDay
-        val night = id.toString() in byNight
-        if (day == night) return Hour.ANY
-        return if (day) Hour.BY_DAY else Hour.BY_NIGHT
-    }
-
-    /**
      * **What light [id] comes in**, which is the axis vanilla *does* have — and the reason this exists
      * anyway is that not every creature is subject to it.
      *
@@ -126,8 +107,6 @@ data class Spawning(
         onTheSurface + later.onTheSurface,
         underTheGround + later.underTheGround,
         inTheAir + later.inTheAir,
-        byDay + later.byDay,
-        byNight + later.byNight,
         inTheLight + later.inTheLight,
         inTheDark + later.inTheDark,
         placedByTheAge + later.placedByTheAge,
@@ -148,19 +127,17 @@ data class Spawning(
                     .forGetter { it.underTheGround.toList() },
                 Codec.STRING.listOf().optionalFieldOf("in_the_air", emptyList())
                     .forGetter { it.inTheAir.toList() },
-                Codec.STRING.listOf().optionalFieldOf("by_day", emptyList()).forGetter { it.byDay.toList() },
-                Codec.STRING.listOf().optionalFieldOf("by_night", emptyList()).forGetter { it.byNight.toList() },
                 Codec.STRING.listOf().optionalFieldOf("in_the_light", emptyList())
                     .forGetter { it.inTheLight.toList() },
                 Codec.STRING.listOf().optionalFieldOf("in_the_dark", emptyList())
                     .forGetter { it.inTheDark.toList() },
                 Codec.STRING.listOf().optionalFieldOf("placed_by_the_age", emptyList())
                     .forGetter { it.placedByTheAge.toList() },
-            ).apply(instance) { creatures, ordinary, surface, underground, air, day, night, lit, dark, placed ->
+            ).apply(instance) { creatures, ordinary, surface, underground, air, lit, dark, placed ->
                 Spawning(
                     creatures, ordinary,
                     surface.toSet(), underground.toSet(), air.toSet(),
-                    day.toSet(), night.toSet(), lit.toSet(), dark.toSet(), placed.toSet(),
+                    lit.toSet(), dark.toSet(), placed.toSet(),
                 )
             }
         }
@@ -290,35 +267,17 @@ enum class Ground {
 }
 
 /**
- * **When a creature comes** — by daylight, after dark, or at any hour.
- *
- * A different axis from vanilla's, which gates on **light** rather than the clock: a zombie spawns in a
- * dark cave at noon, and that rule is a good one and is left alone. This is for the judgement the light
- * cannot make — that a thing belongs to the night whatever the cave says, or to the day whatever the hour.
- * Most creatures make no such claim, which is why [ANY] is what silence means.
- */
-enum class Hour {
-    BY_DAY,
-    BY_NIGHT,
-
-    /** Whenever the light allows, which is what a creature nobody made a judgement about is taken as. */
-    ANY,
-    ;
-
-    /** Whether this watch admits an attempt made while it is or is not bright outside. */
-    fun admits(isBrightOutside: Boolean): Boolean = when (this) {
-        BY_DAY -> isBrightOutside
-        BY_NIGHT -> !isBrightOutside
-        ANY -> true
-    }
-}
-
-/**
  * **What light a creature comes in** — lit, unlit, or whatever the world offers.
  *
  * The axis vanilla does have, and the reason this exists anyway is that not everything is subject to it: a
  * monster's `checkSpawnRules` tests the light and a golem's does not, and a creature the Age places rather
  * than offers has no rule run over it at all. [ANY] leaves whatever vanilla would have decided.
+ *
+ * **There is no day-and-night axis beside it, deliberately** (Jonah, 2026-08-27). One was built and taken
+ * out the same week: "night" is a fact about where the suns are, and an Age may have four of them or none,
+ * so the word means nothing the moment the sky stops being vanilla's. What a writer means by it is *dark*,
+ * which is a fact about a place and is this. It also removed a contradiction nobody had noticed — a monster
+ * judged to the day was asking for light and darkness at once, and simply never arrived.
  */
 enum class Lit {
     IN_THE_LIGHT,

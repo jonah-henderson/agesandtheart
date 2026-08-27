@@ -46,8 +46,6 @@ class AgeSpawner(
     data class Placement(
         val type: EntityType<*>,
         val ground: Ground,
-        /** Which watch it comes on — see [Hour]. */
-        val hour: Hour,
         /** And what light — see [Lit]. */
         val light: Lit,
         val arrival: Arrival,
@@ -78,7 +76,6 @@ class AgeSpawner(
      * whole of knowing whether the numbers are wrong or the rule is. `/age spawns` counts them.
      */
     fun tryAt(chosen: Placement, level: ServerLevel, column: BlockPos): Outcome {
-        if (!chosen.hour.admits(level.isBrightOutside)) return Outcome.WrongHour
         if (!chosen.arrival.mayBeTriedAt(column.x, column.z, chosen.spacing)) return Outcome.HeldApart
         val candidate = when (chosen.ground) {
             Ground.IN_THE_AIR -> column.above(ALOFT_LEAST + level.random.nextInt(ALOFT_SPREAD))
@@ -120,8 +117,6 @@ class AgeSpawner(
     /** Why a creature was not put at a column, or where it would go. */
     sealed interface Outcome {
         data class Standing(val at: BlockPos) : Outcome
-        /** The wrong watch for it — see [Hour]. */
-        data object WrongHour : Outcome
         /** And the wrong light — see [Lit]. */
         data object WrongLight : Outcome
         /** Not one of the few places this creature may be tried — see [Arrival.mayBeTriedAt]. */
@@ -233,7 +228,7 @@ class AgeSpawner(
             // asking the world rather than by shrinking a share, so the weight means what it says.
             val often = if (spacing > 0) arrival.weight else (arrival.weight * density).roundToInt()
             return Placement(
-                type, spawning.groundOf(id), spawning.hourOf(id), spawning.lightOf(id),
+                type, spawning.groundOf(id), spawning.lightOf(id),
                 arrival, spacing, often.coerceAtLeast(1),
             )
         }

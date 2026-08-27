@@ -35,11 +35,8 @@
     "as 'they do not exist' and then 'they are everywhere'. A naturally-spawned creature is thinned by",
     "its weight alone, which scatters it.",
     "",
-    "`by_day` and `by_night` say WHEN a creature comes, which vanilla has no notion of: its own rule is",
     "about LIGHT, so a zombie spawns in a dark cave at noon and that is a good rule left alone. This is",
     "for the judgement the light cannot make. Most creatures are in neither list, and a creature in both",
-    "or in neither comes at any hour. It reaches the Age's own spawner and the list vanilla is handed",
-    "alike, so a pack can give a vanilla mob hours it never had.",
     "",
     "`in_the_light` and `in_the_dark` are the axis vanilla DOES have, and are here because not everything",
     "is subject to it: a monster's checkSpawnRules tests the light and a golem's does not, and a creature",
@@ -116,13 +113,6 @@
     "minecraft:snow_golem",
     "minecraft:ender_dragon",
     "minecraft:wither"
-  ],
-  "by_day": [
-    "minecraft:illusioner"
-  ],
-  "by_night": [
-    "minecraft:wither",
-    "minecraft:phantom"
   ],
   "in_the_dark": [
     "minecraft:warden",

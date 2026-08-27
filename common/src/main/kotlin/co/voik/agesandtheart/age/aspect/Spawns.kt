@@ -106,8 +106,6 @@ object Spawns {
         val at: BlockPos,
         /** Whether this is out under the sky, which is the ground rule's whole question — see [Ground]. */
         val skyIsOpen: Boolean,
-        /** The clock, which vanilla's own rules never ask about — see [Hour]. */
-        val isBrightOutside: Boolean,
         /** How lit it is here, on vanilla's own `0..15` — see [Lit]. */
         val brightness: Int,
     )
@@ -172,12 +170,10 @@ object Spawns {
         val already = kept.unwrap()
         fun mayArriveHere(arriving: Arriving): Boolean {
             val theGroundIsWrong = !arriving.ground.admits(where.skyIsOpen)
-            val theHourIsWrong = !arriving.hour.admits(where.isBrightOutside)
             val theLightIsWrong = !arriving.light.admits(where.brightness)
             val itIsHeldApartFromHere = !arriving.arrival.mayBeTriedAt(where.at.x, where.at.z, arriving.spacing)
             val isOfferedAlready = already.any { it.value().type() === arriving.type }
-            return !theGroundIsWrong && !theHourIsWrong && !theLightIsWrong &&
-                !itIsHeldApartFromHere && !isOfferedAlready
+            return !theGroundIsWrong && !theLightIsWrong && !itIsHeldApartFromHere && !isOfferedAlready
         }
         val arriving = candidates.filter(::mayArriveHere)
         if (arriving.isEmpty()) return kept
@@ -194,8 +190,6 @@ object Spawns {
         val arrival: Arrival,
         /** Read once here rather than per attempt: a tag lookup is cheap and this is asked constantly. */
         val ground: Ground,
-        /** Which watch it comes on — see [Hour]. */
-        val hour: Hour,
         /** And what light — see [Lit]. */
         val light: Lit,
         /** How far apart this creature stands, with whatever rung was asked for already in it. */
@@ -239,7 +233,6 @@ object Spawns {
                 if (spawnPassFor(type) != category) return@mapNotNull null
                 val entry = carrying(type, arrival)
                 val ground = spawning.groundOf(id)
-                val hour = spawning.hourOf(id)
                 val light = spawning.lightOf(id)
                 val spacing = arrival.spacedAt(density)
                 // **A rung spends itself once.** On a creature held apart it moved the spacing above, so
@@ -248,7 +241,7 @@ object Spawns {
                 val thickened = if (spacing > 0) 1.0 else density
                 val asked = arrival.weight * thickened * arrival.thinningAt(spacing) * keptTo(ground)
                 Arriving(
-                    type, arrival, ground, hour, light, spacing,
+                    type, arrival, ground, light, spacing,
                     Weighted(entry, asked.roundToInt().coerceIn(1, MOST_OFTEN)),
                 )
             }
