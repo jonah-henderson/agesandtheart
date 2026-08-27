@@ -58,7 +58,7 @@ object Spawns {
     fun livingIn(options: Options, spawning: Spawning = Spawning()): Living {
         val claims = options.claimsOn(LIVES)
         if (Skew.of(claims).isSilent && claims.none { it.confinedTo != null }) {
-            return Living { _, _, _, _, offered -> offered }
+            return Living { _, _, _, offered -> offered }
         }
         // **Asked per biome, because a claim may be confined to one** (§4.3.1). Remembered for the same
         // reason the feature settings are: the answer is the same every time and the question is asked
@@ -68,14 +68,14 @@ object Spawns {
         // the pass filter and the entry itself are the same answer every time, and only a *position*
         // decides whether one of them may be tried here.
         val couldArrive = ConcurrentHashMap<Arrivals, List<Arriving>>()
-        return Living { biome, category, skyIsOpen, at, offered ->
+        return Living { biome, category, where, offered ->
             val asked = biome?.let { here.computeIfAbsent(it) { where -> Skew.of(claims, where) } }
                 ?: Skew.of(claims)
             val kept = narrowed(offered, asked)
             val candidates = couldArrive.computeIfAbsent(Arrivals(biome, category)) {
                 resolved(asked, category, spawning)
             }
-            added(kept, candidates, skyIsOpen, at)
+            added(kept, candidates, where)
         }
     }
 
@@ -90,11 +90,27 @@ object Spawns {
         fun at(
             biome: Identifier?,
             category: MobCategory,
-            skyIsOpen: Boolean,
-            at: BlockPos,
+            where: Situation,
             offered: WeightedList<MobSpawnSettings.SpawnerData>,
         ): WeightedList<MobSpawnSettings.SpawnerData>
     }
+
+    /**
+     * **Everything about a place that decides whether a creature belongs in it** — where it is, whether the
+     * sky is open over it, whether it is day out, and how lit it is.
+     *
+     * One argument rather than four, because three of them arrived one at a time as the judgements did and
+     * a call site reading `(null, MONSTER, true, false, 7, pos, list)` says nothing about any of them.
+     */
+    data class Situation(
+        val at: BlockPos,
+        /** Whether this is out under the sky, which is the ground rule's whole question — see [Ground]. */
+        val skyIsOpen: Boolean,
+        /** The clock, which vanilla's own rules never ask about — see [Hour]. */
+        val isBrightOutside: Boolean,
+        /** How lit it is here, on vanilla's own `0..15` — see [Lit]. */
+        val brightness: Int,
+    )
 
     /**
      * One weighted list with the sentence applied: struck creatures dropped, named ones weighted by the
@@ -148,18 +164,20 @@ object Spawns {
     private fun added(
         kept: WeightedList<MobSpawnSettings.SpawnerData>,
         candidates: List<Arriving>,
-        skyIsOpen: Boolean,
-        at: BlockPos,
+        where: Situation,
     ): WeightedList<MobSpawnSettings.SpawnerData> {
         if (candidates.isEmpty()) return kept
         // **Only what a position decides is asked here**; everything else was settled once — see [resolved].
         // Unwrapped once rather than per candidate: this runs on every spawn attempt in the Age.
         val already = kept.unwrap()
         fun mayArriveHere(arriving: Arriving): Boolean {
-            val theGroundIsWrong = !arriving.ground.admits(skyIsOpen)
-            val itIsHeldApartFromHere = !arriving.arrival.mayBeTriedAt(at.x, at.z, arriving.spacing)
+            val theGroundIsWrong = !arriving.ground.admits(where.skyIsOpen)
+            val theHourIsWrong = !arriving.hour.admits(where.isBrightOutside)
+            val theLightIsWrong = !arriving.light.admits(where.brightness)
+            val itIsHeldApartFromHere = !arriving.arrival.mayBeTriedAt(where.at.x, where.at.z, arriving.spacing)
             val isOfferedAlready = already.any { it.value().type() === arriving.type }
-            return !theGroundIsWrong && !itIsHeldApartFromHere && !isOfferedAlready
+            return !theGroundIsWrong && !theHourIsWrong && !theLightIsWrong &&
+                !itIsHeldApartFromHere && !isOfferedAlready
         }
         val arriving = candidates.filter(::mayArriveHere)
         if (arriving.isEmpty()) return kept
@@ -176,6 +194,10 @@ object Spawns {
         val arrival: Arrival,
         /** Read once here rather than per attempt: a tag lookup is cheap and this is asked constantly. */
         val ground: Ground,
+        /** Which watch it comes on — see [Hour]. */
+        val hour: Hour,
+        /** And what light — see [Lit]. */
+        val light: Lit,
         /** How far apart this creature stands, with whatever rung was asked for already in it. */
         val spacing: Int,
         val offered: Weighted<MobSpawnSettings.SpawnerData>,
@@ -217,13 +239,18 @@ object Spawns {
                 if (spawnPassFor(type) != category) return@mapNotNull null
                 val entry = carrying(type, arrival)
                 val ground = spawning.groundOf(id)
+                val hour = spawning.hourOf(id)
+                val light = spawning.lightOf(id)
                 val spacing = arrival.spacedAt(density)
                 // **A rung spends itself once.** On a creature held apart it moved the spacing above, so
                 // the weight takes only what the spacing costs; on one held apart from nothing there is
                 // no spacing to move and the rung is the weight, as it always was.
                 val thickened = if (spacing > 0) 1.0 else density
                 val asked = arrival.weight * thickened * arrival.thinningAt(spacing) * keptTo(ground)
-                Arriving(type, arrival, ground, spacing, Weighted(entry, asked.roundToInt().coerceIn(1, MOST_OFTEN)))
+                Arriving(
+                    type, arrival, ground, hour, light, spacing,
+                    Weighted(entry, asked.roundToInt().coerceIn(1, MOST_OFTEN)),
+                )
             }
 
     /**

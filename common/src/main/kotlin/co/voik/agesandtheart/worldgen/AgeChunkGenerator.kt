@@ -22,6 +22,7 @@ import net.minecraft.resources.ResourceKey
 import net.minecraft.server.level.WorldGenRegion
 import net.minecraft.tags.TagKey
 import net.minecraft.world.level.ChunkPos
+import net.minecraft.world.level.Level
 import net.minecraft.world.level.LevelHeightAccessor
 import net.minecraft.world.level.NoiseColumn
 import net.minecraft.world.level.StructureManager
@@ -252,11 +253,17 @@ class AgeChunkGenerator(
     ): WeightedList<MobSpawnSettings.SpawnerData> {
         val offered = super.getMobsAt(biome, structures, category, at)
         val living = lives ?: return offered
+        val world = structures.level as? Level
         return living.at(
             biome.unwrapKey().orElse(null)?.identifier(),
             category,
-            skyIsOpenAt(structures, at),
-            at,
+            Spawns.Situation(
+                at = at,
+                skyIsOpen = skyIsOpenAt(structures, at),
+                // The clock, which vanilla's own rules never ask about — see [Hour].
+                isBrightOutside = world?.isBrightOutside ?: true,
+                brightness = world?.getMaxLocalRawBrightness(at) ?: FULLY_LIT,
+            ),
             offered,
         )
     }
@@ -663,6 +670,9 @@ class AgeChunkGenerator(
     // *coerced* sea level, so a void sea answers the world floor rather than `Int.MIN_VALUE`.
 
     companion object {
+        /** What a place is taken as when there is no level to ask — nothing is refused for its light. */
+        private const val FULLY_LIT = 15
+
         // Declared before CODEC, and it must be: a companion initialises top to bottom, so CODEC reading
         // this from below would read a null.
         // One set per territory. It was a map keyed by `GenerationStep.Carving` until vanilla collapsed

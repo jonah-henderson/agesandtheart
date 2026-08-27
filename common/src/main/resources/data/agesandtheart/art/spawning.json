@@ -27,7 +27,24 @@
     "entity outright (the golems) and validates every creature against a box it must clear where it",
     "stands, which for a dragon is 16x8 at a height vanilla never draws above the surface. Those are",
     "taken out of the list getMobsAt builds and placed by AgeSpawner instead, at whatever ground they",
-    "belong to -- which is what `in_the_air` is for."
+    "belong to -- which is what `in_the_air` is for.",
+    "",
+    "`apart_by` is for creatures the Age PLACES, where AgeSpawner backs it with a count of what is",
+    "already nearby. In a biome list it has no such backing: the window is one chunk of each cell, so a",
+    "creature is absent from 143 cells out of 144 and most of what spawns inside the one -- which walks",
+    "as 'they do not exist' and then 'they are everywhere'. A naturally-spawned creature is thinned by",
+    "its weight alone, which scatters it.",
+    "",
+    "`by_day` and `by_night` say WHEN a creature comes, which vanilla has no notion of: its own rule is",
+    "about LIGHT, so a zombie spawns in a dark cave at noon and that is a good rule left alone. This is",
+    "for the judgement the light cannot make. Most creatures are in neither list, and a creature in both",
+    "or in neither comes at any hour. It reaches the Age's own spawner and the list vanilla is handed",
+    "alike, so a pack can give a vanilla mob hours it never had.",
+    "",
+    "`in_the_light` and `in_the_dark` are the axis vanilla DOES have, and are here because not everything",
+    "is subject to it: a monster's checkSpawnRules tests the light and a golem's does not, and a creature",
+    "the Age places rather than offers has no rule run over it at all. A creature in neither list keeps",
+    "whatever vanilla would have decided."
   ],
   "ordinary": {
     "weight": 8,
@@ -48,23 +65,22 @@
       "apart_by": 256
     },
     "minecraft:warden": {
-      "weight": 20,
+      "weight": 8,
       "least": 1,
-      "most": 1,
-      "apart_by": 192
+      "most": 1
     },
     "minecraft:elder_guardian": {
-      "weight": 2,
+      "weight": 4,
       "least": 1,
       "most": 1
     },
     "minecraft:giant": {
-      "weight": 2,
+      "weight": 6,
       "least": 1,
       "most": 1
     },
     "minecraft:illusioner": {
-      "weight": 4,
+      "weight": 15,
       "least": 1,
       "most": 2
     },
@@ -98,6 +114,18 @@
   "placed_by_the_age": [
     "minecraft:iron_golem",
     "minecraft:snow_golem",
-    "minecraft:ender_dragon"
+    "minecraft:ender_dragon",
+    "minecraft:wither"
+  ],
+  "by_day": [
+    "minecraft:illusioner"
+  ],
+  "by_night": [
+    "minecraft:wither",
+    "minecraft:phantom"
+  ],
+  "in_the_dark": [
+    "minecraft:warden",
+    "minecraft:wither"
   ]
 }

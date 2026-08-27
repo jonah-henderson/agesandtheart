@@ -7,6 +7,7 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.util.random.Weighted
 import net.minecraft.util.random.WeightedList
 import net.minecraft.world.entity.EntitySpawnReason
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.Mob
 import net.minecraft.world.entity.MobCategory
@@ -45,6 +46,10 @@ class AgeSpawner(
     data class Placement(
         val type: EntityType<*>,
         val ground: Ground,
+        /** Which watch it comes on — see [Hour]. */
+        val hour: Hour,
+        /** And what light — see [Lit]. */
+        val light: Lit,
         val arrival: Arrival,
         /** How far apart these stand, with the rung the book asked for already in it. */
         val spacing: Int,
@@ -73,6 +78,7 @@ class AgeSpawner(
      * whole of knowing whether the numbers are wrong or the rule is. `/age spawns` counts them.
      */
     fun tryAt(chosen: Placement, level: ServerLevel, column: BlockPos): Outcome {
+        if (!chosen.hour.admits(level.isBrightOutside)) return Outcome.WrongHour
         if (!chosen.arrival.mayBeTriedAt(column.x, column.z, chosen.spacing)) return Outcome.HeldApart
         val candidate = when (chosen.ground) {
             Ground.IN_THE_AIR -> column.above(ALOFT_LEAST + level.random.nextInt(ALOFT_SPREAD))
@@ -103,6 +109,10 @@ class AgeSpawner(
         // reason a dragon goes up there.
         val room = chosen.type.getSpawnAABB(candidate.x + HALF_A_BLOCK, candidate.y.toDouble(), candidate.z + HALF_A_BLOCK)
         if (!level.noCollision(room)) return Outcome.NoRoom
+        // **Last, because it is the only one that needs the chosen height.** A golem's own rules test no
+        // light at all and an aloft creature has none run over it, so for these two this is the whole of
+        // the judgement rather than a second opinion on vanilla's.
+        if (!chosen.light.admits(level.getMaxLocalRawBrightness(candidate))) return Outcome.WrongLight
         if (alreadyEnoughAround(chosen, level, candidate)) return Outcome.EnoughAlready
         return Outcome.Standing(candidate)
     }
@@ -110,6 +120,10 @@ class AgeSpawner(
     /** Why a creature was not put at a column, or where it would go. */
     sealed interface Outcome {
         data class Standing(val at: BlockPos) : Outcome
+        /** The wrong watch for it — see [Hour]. */
+        data object WrongHour : Outcome
+        /** And the wrong light — see [Lit]. */
+        data object WrongLight : Outcome
         /** Not one of the few places this creature may be tried — see [Arrival.mayBeTriedAt]. */
         data object HeldApart : Outcome
         /** Nothing open under the ground for one that belongs there. */
@@ -175,9 +189,25 @@ class AgeSpawner(
         repeat(many) {
             val mob = chosen.type.create(level, EntitySpawnReason.NATURAL) as? Mob ?: return
             mob.snapTo(at.x + HALF_A_BLOCK, at.y.toDouble(), at.z + HALF_A_BLOCK, level.random.nextFloat() * A_FULL_TURN, 0.0f)
+            madeAtHome(mob, at)
             mob.finalizeSpawn(level, difficulty, EntitySpawnReason.NATURAL, null)
             level.addFreshEntityWithPassengers(mob)
         }
+    }
+
+    /**
+     * **Where a creature that circles somewhere thinks that somewhere is.**
+     *
+     * A dragon's whole behaviour orbits its *fight origin* — `DragonHoldingPatternPhase` picks its next
+     * target around it and looks for players near it — and that origin defaults to `BlockPos.ZERO`. So a
+     * dragon placed on a hillside flew straight to the world origin and circled a podium that was not
+     * there, which reads exactly like an AI that does not work (Jonah, 2026-08-26, walked).
+     *
+     * The fight itself is null and stays null: `HoldingPatternPhase` guards for that and counts no
+     * crystals, which is the right answer for a dragon that is a resident rather than a boss ritual.
+     */
+    private fun madeAtHome(mob: Mob, at: BlockPos) {
+        if (mob is EnderDragon) mob.fightOrigin = at
     }
 
     companion object {
@@ -202,7 +232,10 @@ class AgeSpawner(
             // vanished. This draw is among the few creatures one Age places, and the spacing is enforced by
             // asking the world rather than by shrinking a share, so the weight means what it says.
             val often = if (spacing > 0) arrival.weight else (arrival.weight * density).roundToInt()
-            return Placement(type, spawning.groundOf(id), arrival, spacing, often.coerceAtLeast(1))
+            return Placement(
+                type, spawning.groundOf(id), spawning.hourOf(id), spawning.lightOf(id),
+                arrival, spacing, often.coerceAtLeast(1),
+            )
         }
 
         private const val BLOCKS_PER_CHUNK = 16

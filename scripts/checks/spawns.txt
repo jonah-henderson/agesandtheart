@@ -1,18 +1,9 @@
-# Why does a written creature never arrive? (walk §G)
-#
-# Splitting the question in two. First: does the sentence reach the recipe at all — is there a
-# `spawns.lives=` claim in what `/age list` prints? If not, nothing downstream matters and the fault is in
-# the corpus or the resolver. If it is there, the fault is in what `getMobsAt` does with it, and the second
-# half asks that directly.
-
-age write golems 4242 age iron_golem spawns
-age write dragons 4242 age ender_dragon spawns
+# What is offered, and what the Age places itself (walk §G).
+age write illusioners 4242 age illusioner spawns
+age write manyillusioners 4242 age teeming illusioner spawns
 age write wardens 4242 age warden spawns
-age write zombies 4242 age zombie spawns
-age list
-
-# And what the Age actually offers a spawn attempt, which is the thing nothing has ever been able to see.
-age spawns golems
-age spawns dragons
+age write manywardens 4242 age teeming warden spawns
+age spawns illusioners
+age spawns manyillusioners
 age spawns wardens
-age spawns zombies
+age spawns manywardens

@@ -4,6 +4,8 @@ import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import io.kotest.core.annotation.Tags
 import co.voik.agesandtheart.age.aspect.Ground
+import co.voik.agesandtheart.age.aspect.Hour
+import co.voik.agesandtheart.age.aspect.Lit
 import net.minecraft.resources.Identifier
 import io.kotest.core.spec.style.FunSpec
 import net.minecraft.core.BlockPos
@@ -41,10 +43,10 @@ class SpawningCheck : FunSpec({
      * would be tried under the creature rules — in daylight, on grass, against the wrong cap.
      */
     test("a creature arrives in its own pass and no other") {
-        val asAMonster = livingWith("minecraft:wither", MobCategory.MONSTER, skyIsOpen = true)
-        check("wither" in asAMonster) { "a wither did not arrive in the monster pass: $asAMonster" }
-        val asACreature = livingWith("minecraft:wither", MobCategory.CREATURE, skyIsOpen = true)
-        check("wither" !in asACreature) { "a wither arrived in the creature pass: $asACreature" }
+        val asAMonster = livingWith("minecraft:illusioner", MobCategory.MONSTER, skyIsOpen = true)
+        check("illusioner" in asAMonster) { "an illusioner did not arrive in the monster pass: $asAMonster" }
+        val asACreature = livingWith("minecraft:illusioner", MobCategory.CREATURE, skyIsOpen = true)
+        check("illusioner" !in asACreature) { "an illusioner arrived in the creature pass: $asACreature" }
     }
 
     /**
@@ -128,7 +130,7 @@ class SpawningCheck : FunSpec({
         fun weightOf(claim: String) = Spawns.livingIn(
             Options(mapOf(Spawns.LIVES.name to listOf(claim))),
             MinecraftRegistries.spawning,
-        ).at(null, MobCategory.MONSTER, true, BlockPos.ZERO, aMeadow()).unwrap()
+        ).at(null, MobCategory.MONSTER, Spawns.Situation(BlockPos.ZERO, true, true, DARK), aMeadow()).unwrap()
             .firstOrNull { it.value().type() == EntityType.ILLUSIONER }?.weight()
 
         // An illusioner, which is held apart from nothing — see the test below for what a rung does to
@@ -160,24 +162,33 @@ class SpawningCheck : FunSpec({
     }
 
     /**
-     * **How the big ones are kept apart.** A spawn attempt knows its position and nothing else, so a rule
-     * about *how many* dragons there are is not answerable there — where a rule about *where* one may be
-     * tried is, and gives the same thing: one window per cell, so an Age of dragons is spread over the
-     * country rather than piled into one valley.
+     * **How the ones an Age places are kept apart**, which is a rule about *where* because a spawn attempt
+     * knows its position and nothing else.
+     *
+     * Only for a placed creature now. In a biome list the same window made a creature absent from a
+     * hundred and forty-three cells in a hundred and forty-four and most of what arrived in the one, which
+     * walks as "they do not exist" and then "they are everywhere". Where `AgeSpawner` places one it also
+     * counts what is already nearby, and the two together describe one arrangement.
      */
-    test("a creature held apart is tried in one window of each cell") {
-        fun triedAt(x: Int, z: Int) = "warden" in Spawns.livingIn(
-            Options(mapOf(Spawns.LIVES.name to listOf("minecraft:warden"))),
-            MinecraftRegistries.spawning,
-        ).at(null, MobCategory.MONSTER, false, BlockPos(x, 30, z), aMeadow()).unwrap()
-            .map { it.value().type().builtInRegistryHolder().key().identifier().path }
+    test("a creature the Age places is tried in one window of each cell") {
+        val dragon = MinecraftRegistries.spawning.of(Identifier.withDefaultNamespace("ender_dragon"))
+        val spacing = dragon.spacedAt(1.0)
+        fun triedAt(x: Int, z: Int) = dragon.mayBeTriedAt(x, z, spacing)
 
-        // The warden's own cell is 192 blocks.
-        check(triedAt(0, 0)) { "a warden was not tried at the corner of its own cell" }
-        check(!triedAt(96, 96)) { "a warden was tried in the middle of a cell it is held out of" }
+        check(spacing == 320) { "the dragon's own cell is $spacing" }
+        check(triedAt(0, 0)) { "a dragon was not tried at the corner of its own cell" }
+        check(!triedAt(160, 160)) { "a dragon was tried in the middle of a cell it is held out of" }
         // And the cell repeats, in both directions and on both sides of the origin.
-        check(triedAt(192, 192)) { "the grid did not repeat" }
-        check(triedAt(-192, -192)) { "the grid did not repeat behind the origin" }
+        check(triedAt(320, 320)) { "the grid did not repeat" }
+        check(triedAt(-320, -320)) { "the grid did not repeat behind the origin" }
+    }
+
+    /** And a creature that arrives by the ordinary spawner is held apart from nothing — weight scatters it. */
+    test("a creature vanilla spawns is thinned by its weight alone") {
+        for (natural in listOf("warden", "illusioner", "giant")) {
+            val arrival = MinecraftRegistries.spawning.of(Identifier.withDefaultNamespace(natural))
+            check(arrival.spacedAt(1.0) == 0) { "$natural is held apart, and nothing counts what arrives" }
+        }
     }
 
     /**
@@ -230,6 +241,50 @@ class SpawningCheck : FunSpec({
         }
     }
 
+    /**
+     * **When a creature comes**, which vanilla has no notion of — its own rule is about light, so a zombie
+     * spawns in a dark cave at noon. This is the judgement the light cannot make, and it reaches the list
+     * vanilla is handed as well as the Age's own spawner.
+     */
+    test("a creature judged to one watch is not offered on the other") {
+        val byDay = livingWith("minecraft:illusioner", MobCategory.MONSTER, skyIsOpen = true, isBrightOutside = true)
+        check("illusioner" in byDay) { "an illusioner did not arrive by day: $byDay" }
+        val byNight = livingWith("minecraft:illusioner", MobCategory.MONSTER, skyIsOpen = true, isBrightOutside = false)
+        check("illusioner" !in byNight) { "an illusioner was offered after dark: $byNight" }
+    }
+
+    /** And one nobody judged comes whenever the light allows, which is most of them. */
+    test("a creature nobody judged comes at any hour") {
+        for (bright in listOf(true, false)) {
+            val arrived = livingWith("minecraft:zombie", MobCategory.MONSTER, skyIsOpen = true, isBrightOutside = bright)
+            check("zombie" in arrived) { "a zombie was refused with bright=$bright: $arrived" }
+        }
+    }
+
+    /**
+     * **And what light it comes in**, which vanilla does test — for the creatures it tests. A golem's own
+     * rules read no light and a placed creature has none read over it, so this is the whole judgement for
+     * those two rather than a second opinion.
+     */
+    test("a creature judged to one light is not offered in the other") {
+        val dark = livingWith("minecraft:warden", MobCategory.MONSTER, skyIsOpen = false, brightness = DARK)
+        check("warden" in dark) { "a warden did not arrive in the dark: $dark" }
+        val lit = livingWith("minecraft:warden", MobCategory.MONSTER, skyIsOpen = false, brightness = LIT)
+        check("warden" !in lit) { "a warden was offered somewhere lit: $lit" }
+    }
+
+    /** The control: the hours and the light are read off the corpus, or the tests above prove nothing. */
+    test("the hours are actually read") {
+        val spawning = MinecraftRegistries.spawning
+        fun hourOf(path: String) = spawning.hourOf(Identifier.withDefaultNamespace(path))
+        check(hourOf("illusioner") == Hour.BY_DAY) { "the day list did not load" }
+        check(hourOf("wither") == Hour.BY_NIGHT) { "the night list did not load" }
+        check(hourOf("zombie") == Hour.ANY) { "a creature nobody judged was pinned to a watch" }
+        fun lightOf(path: String) = spawning.lightOf(Identifier.withDefaultNamespace(path))
+        check(lightOf("warden") == Lit.IN_THE_DARK) { "the dark list did not load" }
+        check(lightOf("zombie") == Lit.ANY) { "a creature nobody judged was pinned to a light" }
+    }
+
     /** And an Age that wrote none of them carries no spawner at all, which is nearly every Age. */
     test("an Age that asked for none of them carries no spawner") {
         val ordinary = AgeSpawner.placing(
@@ -241,10 +296,16 @@ class SpawningCheck : FunSpec({
 })
 
 /** The creatures a meadow holds after [claim] is written into it. */
-private fun livingWith(claim: String, category: MobCategory, skyIsOpen: Boolean): List<String> {
+private fun livingWith(
+    claim: String,
+    category: MobCategory,
+    skyIsOpen: Boolean,
+    isBrightOutside: Boolean = true,
+    brightness: Int = DARK,
+): List<String> {
     val options = Options(mapOf(Spawns.LIVES.name to listOf(claim)))
     return Spawns.livingIn(options, MinecraftRegistries.spawning)
-        .at(null, category, skyIsOpen, BlockPos.ZERO, aMeadow())
+        .at(null, category, Spawns.Situation(BlockPos.ZERO, skyIsOpen, isBrightOutside, brightness), aMeadow())
         .unwrap()
         .map { it.value().type().builtInRegistryHolder().key().identifier().path }
 }
@@ -261,3 +322,7 @@ private fun aMeadow(): WeightedList<MobSpawnSettings.SpawnerData> {
 
 /** The dragon's own id, for the arrival read straight out of `art/spawning.json`. */
 private val DRAGON: Identifier = Identifier.withDefaultNamespace("ender_dragon")
+
+/** Either side of vanilla's own line between somewhere lit and somewhere a monster will come. */
+private const val DARK = 0
+private const val LIT = 15
