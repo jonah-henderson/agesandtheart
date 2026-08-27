@@ -1,0 +1,7 @@
+# Does a dragon's flight graph follow it? (walk §G3)
+#
+# The mixin has to APPLY, which is what a real server start proves: `required: true` in the config means a
+# redirect that matched nothing crashes the boot rather than going quiet. Everything past that is a walk.
+age write dragons 4242 age ender_dragon spawns
+age spawns dragons
+age list
