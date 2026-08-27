@@ -231,12 +231,18 @@ When shared code needs something loader-specific, it goes through an interface, 
 - NeoForge: `@Mod("agesandtheart")` on the class in `neoforge/.../AgesAndTheArt.kt`; its constructor runs (Kotlin for Forge provides the Kotlin entry).
   Both immediately call `CommonSetup.init()`. Keep loader entrypoints tiny; put logic in `common`.
 
-**4. Four Mixins, all in `common`, all Java.**
+**4. Six Mixins, all in `common`, all Java.**
 `common/src/main/resources/agesandtheart.mixins.json` declares them, and each earned its place by there being no loader event that carries what it needs. Each carries its own argument in-file; read that before touching one.
 
 - **`ServerPlayerMixin`** — the learned-word set. Four injectors: `readAdditionalSaveData` / `addAdditionalSaveData` persist it, `restoreFrom` carries it through death, and `initMenu` attaches the `ContainerListener` that notices a page arriving in the inventory. That last one is vanilla's own `inventory_changed` seam, which is why it beats polling.
 - **`ServerLevelMixin`** — local difficulty near a wound (§5.1). No event exists on either loader: difficulty is computed on demand and returned by value, so this one method is the only place it exists.
 - **`LightningBoltMixin`** — a bolt landing in a tempest. The entity-join event would fire re-entrantly inside `addFreshEntity` and cannot see the private `visualOnly` flag that marks a trap's harmless bolt.
+- **`EnderDragonMixin`** and **`DragonHoldingPatternMixin`**, with **`DragonPhaseAccessor`** serving the
+  second — a dragon an Age wrote, rather than the End's. Vanilla's is written around the world origin in
+  two places `fightOrigin` did not reach: its flight ring is laid at absolute coordinates, and the landing
+  approach steers by the player's absolute position normalised into a bearing from `(0, 0)`. Both are
+  no-ops in the End, where the origin *is* zero. The accessor exists because `@Shadow` does not walk a
+  target's hierarchy and `dragon` is declared on `AbstractDragonPhaseInstance`.
 - **`client/LevelRendererMixin`** — draws the Age's wounds in one submission. Declared under the config's `"client"` array, not `"mixins"`. The loader alternatives exist here (Fabric's world-render events, NeoForge's `RenderLevelStageEvent`) and are declined deliberately: they are different objects with different stages where the vanilla seam is identical on both sides.
 
 The sky Mixins left with Ephemeris and are `co.voik.ephemeris.mixin.client.*` now — do not look for them here.
