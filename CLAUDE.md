@@ -67,10 +67,6 @@ correct itself in place. Rewrite the paragraph that is now wrong.
 - **`notes/authoring-tools.md`** — how structures and 3D models get authored: the external tooling and its
   version state, and what our own datapacks could carry that they do not yet. Nothing in it is built. Read it
   before building a structure, a model, or anything that wants to be pack data.
-- **`notes/aurora-plan.md`** — an aurora as a phenomenon sited on vanilla's own snow line, drawn by
-  Ephemeris over a non-claiming sky overlay. Nothing in it is built, and **it is deleted when it is**, its
-  decisions compressed to two lines in `decisions.md` — the plan says so at the top, because unbuilt plans
-  are what makes this directory grow.
 
 ## What this is
 
