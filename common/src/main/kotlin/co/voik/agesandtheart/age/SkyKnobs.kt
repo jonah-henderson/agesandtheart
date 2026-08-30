@@ -224,7 +224,7 @@ object SkyKnobs {
 
         /** One colour, which is the other common case and the one that shows the ramp is not load-bearing. */
         PLAIN("plain") {
-            override fun aurora() = Aurora(colours = listOf(GREEN), frequency = EVERY_NIGHT)
+            override fun aurora() = Aurora(colours = listOf(GREEN), frequency = EVERY_NIGHT, curtains = 1)
         },
 
         /** Six, in an order nature would never take — which is what a writer is allowed to ask for. */
@@ -243,12 +243,14 @@ object SkyKnobs {
                 breadth = 1.0f,
                 height = 1.0f,
                 frequency = EVERY_NIGHT,
+                curtains = Aurora.MOST_CURTAINS,
             )
         },
 
         /** As little as an aurora can be and still be one, which is where a hem reads or does not. */
         FAINT("faint") {
-            override fun aurora() = Aurora(glow = 0.3f, breadth = 0.25f, height = 0.2f, frequency = EVERY_NIGHT)
+            override fun aurora() =
+                Aurora(glow = 0.3f, breadth = 0.25f, height = 0.2f, frequency = EVERY_NIGHT, curtains = 1)
         },
 
         /**
