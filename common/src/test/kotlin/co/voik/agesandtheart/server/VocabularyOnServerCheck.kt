@@ -126,5 +126,10 @@ class VocabularyOnServerCheck : FunSpec({
     }
 })
 
-/** The patterns a material can be minted from (`art/word/`), which aim without naming an aspect's own page. */
-private val MINTING_PATTERNS = listOf("springs", "veins")
+/**
+ * The patterns a material can be minted from (`art/word/`), which aim without naming an aspect's own page.
+ *
+ * Authored, so listed rather than derived — and the list has to be moved when one is added. `lakes` was
+ * added and this was not, so the check had been failing since (found 2026-08-29, while adding an aspect).
+ */
+private val MINTING_PATTERNS = listOf("lakes", "springs", "veins")
