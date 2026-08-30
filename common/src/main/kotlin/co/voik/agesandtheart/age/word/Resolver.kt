@@ -205,9 +205,9 @@ object Resolver {
     /**
      * The world this book starts from — **the first template named, or the ordinary one**.
      *
-     * First rather than drawn or contended, and it is the one place written order decides anything (§3.5).
-     * Two templates in a book is a rare thing to be holding and a plain thing to say back, where a draw
-     * would be neither.
+     * First rather than drawn or contended, and it is one of the two places written order decides anything
+     * (§3.5) — the other being a ramp's colours, in [ordered]. Two templates in a book is a rare thing to be
+     * holding and a plain thing to say back, where a draw would be neither.
      */
     private fun templateOf(said: List<Constraint>): AgeTemplate =
         said.firstNotNullOfOrNull { it.word.template?.let(AgeTemplate::named) } ?: AgeTemplate.ORDINARY
@@ -766,7 +766,9 @@ object Resolver {
                     }
                     canFracture(steered, aspect, parameter, contenders) ->
                         steered.fractured(vocabulary, aspect, parameter, contenders, flaws)
-                    else -> steered.contended(vocabulary, aspect, parameter, contenders, flaws)
+                    // The sentence's own order is handed down beside the ranked one, for the knobs whose
+                    // values are a sequence rather than a set — see [contended].
+                    else -> steered.contended(vocabulary, aspect, parameter, contenders, setting, flaws)
                 }
             }
             flaws += wordsNothingHonours(vocabulary, steered, aspect, setting)
@@ -1247,6 +1249,7 @@ object Resolver {
         aspect: Aspect,
         parameter: String,
         contenders: List<Constraint>,
+        asWritten: List<Constraint>,
         flaws: MutableList<Flaw>,
     ): AgeComposition {
         val winner = contenders.first()
@@ -1259,8 +1262,35 @@ object Resolver {
         return withOptions(
             aspect,
             parameter,
-            mingled.map { Claim(it.word.sets.getValue(parameter), confinedTo = it.confinedTo).spelled() }.distinct(),
+            ordered(mingled, parameter, aspect, asWritten)
+                .map { Claim(it.word.sets.getValue(parameter), confinedTo = it.confinedTo).spelled() }
+                .distinct(),
         )
+    }
+
+    /**
+     * The mingled contenders in the order they should be *stored* — as ranked, or as the writer wrote them.
+     *
+     * **Every mingling knob but one holds a set**, where two rocks in a wall are both in it and neither is
+     * first, and ranking them by tier and then by a seeded tie-break is right: it spreads two Ages written
+     * alike. **One holds a sequence.** An aurora's colours run from its crown to its hem, and which is the
+     * crown is the one thing the writer stated outright — so `red and green aurora` and `green and red
+     * aurora` are two different skies and must stay so.
+     *
+     * The knob says which it is ([Parameter.keepsWrittenOrder]) rather than this function knowing any knob
+     * by name, which is what keeps the resolver from growing a list of special cases. Written order decides
+     * one other thing in the whole resolver — which template a book starts from — and design §3.5 names
+     * both.
+     */
+    private fun AgeComposition.ordered(
+        mingled: List<Constraint>,
+        parameter: String,
+        aspect: Aspect,
+        asWritten: List<Constraint>,
+    ): List<Constraint> {
+        val keepsOrder = parameterNamed(this, aspect, parameter)?.keepsWrittenOrder == true
+        if (!keepsOrder) return mingled
+        return mingled.sortedBy(asWritten::indexOf)
     }
 
     /**

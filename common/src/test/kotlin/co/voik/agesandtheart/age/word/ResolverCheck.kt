@@ -58,6 +58,50 @@ class ResolverCheck : FunSpec({
     fun read(pages: List<String>) = Grammar.read(vocabulary, pages) ?: error("not a book: $pages")
 
     /**
+     * **A ramp keeps the order it was written in, and a wall of two rocks does not.**
+     *
+     * This is the one place written order means anything beyond which template a book starts from, and it
+     * is bought by a single flag on the knob ([co.voik.agesandtheart.age.aspect.Parameter.keepsWrittenOrder])
+     * read in one place. Both halves matter: an aurora's colours run from its crown to its hem and the
+     * writer said which was which, where two rocks in one wall are a set and ranking them by tier and seed
+     * is what spreads two Ages written alike.
+     *
+     * Driven through a real sentence rather than hand-built options, because the ordering happens in the
+     * resolver and everything downstream would pass a reversed ramp without complaint.
+     */
+    test("an aurora's colours keep the order the writer wrote them in") {
+        fun ramp(vararg colours: String): List<String> {
+            val pages = listOf("age") + colours.toList().flatMap { listOf(it, "and") }.dropLast(1) + "aurora"
+            val resolved = Resolver.resolve(vocabulary, read(pages), SAMPLE_SEED)
+            return resolved.composition.optionsFor(Aspect.AURORA, 0).allOf(Sky.AURORACOLOUR)
+        }
+
+        check(ramp("red", "green", "blue") == listOf("red", "green", "blue")) {
+            "'red and green and blue aurora' gave ${ramp("red", "green", "blue")}"
+        }
+        check(ramp("blue", "green", "red") == listOf("blue", "green", "red")) {
+            "the same three the other way round gave ${ramp("blue", "green", "red")}"
+        }
+        check(ramp("red", "green") != ramp("green", "red")) {
+            "two colours either way round gave one ramp, so the writer's order is being thrown away"
+        }
+    }
+
+    /**
+     * And the flag reaches exactly one knob, so nothing else changed shape underneath it.
+     *
+     * A mingling knob that is a *set* must go on being ranked by tier and then by seed — that is what
+     * spreads two Ages written alike, and quietly making every mingling ordered would have taken it away
+     * everywhere at once.
+     */
+    test("only a ramp keeps its written order") {
+        val ordered = Aspect.entries.flatMap { it.dials }.filter { it.keepsWrittenOrder }
+        check(ordered == listOf(Sky.AURORACOLOUR)) {
+            "written order is kept by ${ordered.map { it.name }}, which is more knobs than the one that means it"
+        }
+    }
+
+    /**
      * The same sentence at the same seed resolves identically. Everything downstream leans on it: an Age
      * is rebuilt from its recipe on every open, so a wandering resolver is a world that changes under the
      * people living in it.

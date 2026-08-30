@@ -1,0 +1,32 @@
+{
+  "_comment": [
+    "An Age where curtains of light stand over the cold ground (aurora-plan.md).",
+    "",
+    "The word rather than the page: `aurora` is the aspect's own aiming page, minted by",
+    "`Vocabulary.aimingPages`, and an aspect already is its page -- so `art/word/aurora.json` is a",
+    "collision the vocabulary refuses outright. This is what asks for one without aiming at it.",
+    "",
+    "It *names* the phenomenon rather than searching for one (design 8.1), which is also what",
+    "`VocabularyCheck` insists on: a preset no word can ask for arrives only by chance. The aurora is the",
+    "one thing this word means, so it arrives with its answer in hand where a tag query -- 'the bright",
+    "colourful phenomenon' -- would also have found whatever else was bright.",
+    "",
+    "**It says one thing and touches one aspect, deliberately.** A narrowing word is priced in its",
+    "lowest-ordinal aspect (`Resolver.pricedIn`), and phenomena are last, so any other parameter this set",
+    "-- a climate nudge, a pool of aurora dials -- would quietly reprice this as a word about that other",
+    "thing instead. It drafted with both and they had to go (2026-08-29).",
+    "",
+    "Neither is a loss. A writer who wants a cold Age has `frozen`, and `frozen auroral Age` says what it",
+    "means where one word smuggling in a temperature never did. The variation the pool was for is drawn",
+    "from the Age's seed instead, which is where the bearing already came from -- and an aurora nobody",
+    "described should differ between Ages without a writer having to buy the difference."
+  ],
+  "tier": "exact",
+  "aspects": [
+    "phenomena"
+  ],
+  "names": "aurora",
+  "sets": {
+    "happens": "aurora"
+  }
+}

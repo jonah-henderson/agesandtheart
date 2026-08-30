@@ -43,6 +43,20 @@ object Phenomena {
         named = Phenomenon.entries.map { it.key },
     )
 
+    /**
+     * What these options say befalls the Age — empty where they say nothing.
+     *
+     * Here rather than in a reader, because two of them now ask: what happens every tick
+     * ([co.voik.agesandtheart.age.phenomena.Happenings]) and what the sky is *shown* as a result ([Sky]).
+     * Two copies of a `Skew` over one parameter is exactly the shape a rule kept in two places takes.
+     */
+    fun claimsIn(options: Options): List<Claim> =
+        Skew.of(options.allSpelled(HAPPENS.name).map(Claim::read)).wanted
+
+    /** The claim by which [phenomenon] befalls these options, or null where it does not. */
+    fun claimFor(options: Options, phenomenon: Phenomenon): Claim? =
+        claimsIn(options).firstOrNull { it.value == phenomenon.key }
+
     /** How an Age says it is quiet: nothing befalls it, whatever its instability would otherwise bring. */
     const val NOTHING = "nothing"
 

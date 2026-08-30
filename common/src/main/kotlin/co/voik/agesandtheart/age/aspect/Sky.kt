@@ -1,13 +1,17 @@
 package co.voik.agesandtheart.age.aspect
 
 import co.voik.agesandtheart.age.AgeGeneration
+import co.voik.ephemeris.Rgba
 import co.voik.ephemeris.sky.Appearance
+import co.voik.ephemeris.sky.Aurora
+import co.voik.ephemeris.sky.AuroraGround
 import co.voik.ephemeris.sky.CelestialBody
 import co.voik.ephemeris.sky.Look
 import co.voik.ephemeris.sky.Orbit
 import co.voik.ephemeris.sky.SkySpec
 import co.voik.agesandtheart.sky.SpireSky
 import net.minecraft.resources.Identifier
+import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import kotlin.math.roundToInt
 
 /**
@@ -102,7 +106,68 @@ enum class Sky(override val key: String) : AspectPreset {
             val aspect = if (isASun) Aspect.SUN else Aspect.MOON
             described(body, parts.optionsFor(aspect, among(at, isASun)), seed)
         }
-        return drawn.copy(bodies = told)
+        return drawn.copy(bodies = told, aurora = auroraIn(parts, seed))
+    }
+
+    /**
+     * The curtain this Age wears, or null where nothing asked for one.
+     *
+     * **Two ways in, and they are the same statement made twice** — which is the shape §7.7 says this aspect
+     * has. A writer may *name* the phenomenon (`auroral`, or an evocative word the tag layer carried there)
+     * or *describe* it (`red and green aurora`), and either is having said the Age has one. Nothing mints a
+     * member here the way a clause mints a sun, the aspect holding nothing, so a dial with anything on it is
+     * the description.
+     *
+     * A bare `aurora` page with nothing leading it says neither, and is inert rather than wrong.
+     */
+    private fun auroraIn(parts: AgeParts, seed: Long): Aurora? {
+        val own = parts.optionsFor(Aspect.AURORA)
+        val claim = Phenomena.claimFor(parts.optionsFor(Aspect.PHENOMENA, 0), Phenomenon.AURORA)
+        if (claim == null && own.chosen.isEmpty()) return null
+        // **The rung is how hard it comes**, which is the populative machinery doing the job it already
+        // does: `teeming auroral` is more nights and a brighter curtain, and no dial had to be invented for
+        // it. Ordinary is one, so a word that named no quantity changes nothing.
+        val insistence = (claim?.density ?: Rung.ORDINARY) / Rung.ORDINARY
+        // **Drawn where nothing said, rather than defaulted.** `auroral` names the phenomenon and nothing
+        // else, so without this every undescribed curtain in every Age would be the same curtain. The seed
+        // is where the bearing already came from, and an aurora nobody described should still differ
+        // between Ages without a writer having to buy the difference.
+        val size = own.steer(AURORASIZE, seed) ?: drawn(seed, SIZE_SALT, DRAWN_BAND)
+        return Aurora(
+            colours = rampIn(own),
+            glow = (glowAt(own.steer(AURORAGLOW, seed) ?: drawn(seed, GLOW_SALT, DRAWN_GLOW)) * insistence)
+                .toFloat().coerceIn(FAINTEST_CURTAIN, BRIGHTEST_CURTAIN),
+            breadth = bandAt(size, NARROWEST_BAND, WIDEST_BAND),
+            height = bandAt(size, SHORTEST_BAND, TALLEST_BAND),
+            frequency = (nightsAt(own.steer(AURORAFREQUENCY, seed) ?: drawn(seed, NIGHTS_SALT, DRAWN_NIGHTS))
+                * insistence).toFloat().coerceIn(RAREST_NIGHTS, EVERY_NIGHT),
+            // Drawn rather than written: which way a band lies is a fact about this Age's sky and not
+            // something §3.2 would put in front of a writer.
+            bearingDegrees = XoroshiroRandomSource(seed xor AURORA_SALT).nextInt(WHOLE_COMPASS).toFloat(),
+            // **The whole point of the feature.** An aurora belongs where the snow does, and vanilla's own
+            // line between snow and rain is a boundary every player has already learned by walking over it.
+            ground = AuroraGround.WHERE_IT_SNOWS,
+            seed = seed,
+        )
+    }
+
+    /**
+     * The colours the curtain burns, **crown first and in the order they were written**, or the ordinary
+     * ramp where nobody named one.
+     *
+     * [Options.allOf] rather than [Options.of] is the whole of the difference from a sun's colour: a sun is
+     * one tint and this is a ramp, and the mingling that puts several values on one dial is the same
+     * mechanism that puts two rocks in one wall. What keeps them in the writer's order is
+     * [Parameter.keepsWrittenOrder] on [AURORACOLOUR].
+     *
+     * **Nothing sorts them into what nature does.** Violet crowning red is a sky nobody has seen and a
+     * writer is welcome to it; the realism lives in the default, which is where a default belongs.
+     */
+    private fun rampIn(own: Options): List<Rgba> {
+        val named = own.allOf(AURORACOLOUR)
+            .filter { it != Atmosphere.AS_EVER }
+            .mapNotNull { Colour.named(it)?.saturated(A_CURTAIN_IS_LOOKED_AT) }
+        return named.ifEmpty { Aurora.ORDINARY_RAMP }
     }
 
     /**
@@ -156,6 +221,30 @@ enum class Sky(override val key: String) : AspectPreset {
          * light in it overhead is a *sparser* one, and that is [STARS] to say.
          */
         val STARGLOW = Parameter.ranged("starglow")
+
+        /**
+         * The colours the curtain burns, crown first — **the one dial that holds several values in order**.
+         *
+         * A ramp rather than a colour, because that is what an aurora is: it changes from its crown to its
+         * hem, and a writer naming two means both. `and` is what joins them, exactly as it joins two rocks
+         * in a wall; [Parameter.keepsWrittenOrder] is what keeps the crown at the crown.
+         */
+        val AURORACOLOUR = colour("auroracolour").copy(keepsWrittenOrder = true)
+
+        /** How brightly the curtain burns, against an ordinary one. */
+        val AURORAGLOW = Parameter.ranged("auroraglow")
+
+        /**
+         * How much of the sky the curtain takes up.
+         *
+         * **One axis for both directions**, because a curtain is not two independent measurements: a small
+         * one is small, and a writer who wanted a wide low band and a narrow tall one is asking a question
+         * §3.2 keeps away from them.
+         */
+        val AURORASIZE = Parameter.ranged("aurorasize")
+
+        /** What share of nights it comes at all. */
+        val AURORAFREQUENCY = Parameter.ranged("aurorafrequency")
 
         /**
          * How large the suns are, against vanilla's — [LARGEST_SUN] times it at the top of the axis.
@@ -334,6 +423,67 @@ enum class Sky(override val key: String) : AspectPreset {
         private const val SUN_IS_LOOKED_AT = 1.5f
 
         private fun colour(name: String) = Parameter(name, listOf(Atmosphere.AS_EVER) + Colour.ALL)
+
+        /**
+         * How far a named colour is pushed from its own grey before a curtain burns it.
+         *
+         * The same argument as [SUN_IS_LOOKED_AT] and a little harder: an aurora is drawn additively against
+         * a night sky, where a washed-out tint reads as fog rather than as light.
+         */
+        private const val A_CURTAIN_IS_LOOKED_AT = 1.8f
+
+        /** The band [AURORAGLOW] runs over, against an ordinary curtain. */
+        private const val FAINTEST_CURTAIN = 0.35f
+        private const val BRIGHTEST_CURTAIN = 2.0f
+
+        /** The band [AURORAFREQUENCY] runs over. Never every night by default, and never truly never. */
+        private const val RAREST_NIGHTS = 0.08f
+        private const val EVERY_NIGHT = 1.0f
+
+        /** How much of the sky [AURORASIZE] reaches, either way. */
+        private const val NARROWEST_BAND = 0.3f
+        private const val WIDEST_BAND = 1.0f
+        private const val SHORTEST_BAND = 0.25f
+        private const val TALLEST_BAND = 0.95f
+
+        private const val AURORA_SALT = 0x0A17_0BA5L
+
+        /** Every whole degree of it, a band being wide enough that a finer bearing says nothing. */
+        private const val WHOLE_COMPASS = 360
+
+        private fun glowAt(brilliance: Double): Double =
+            FAINTEST_CURTAIN + Span.NATURAL.fractionOf(brilliance) * (BRIGHTEST_CURTAIN - FAINTEST_CURTAIN)
+
+        private fun nightsAt(often: Double): Double =
+            RAREST_NIGHTS + Span.NATURAL.fractionOf(often) * (EVERY_NIGHT - RAREST_NIGHTS)
+
+        /** One end of [AURORASIZE]'s two bands, so both move together off the one axis a writer says. */
+        private fun bandAt(largeness: Double, least: Float, most: Float): Float =
+            (least + Span.NATURAL.fractionOf(largeness) * (most - least)).toFloat()
+
+        /**
+         * A point on [Span.NATURAL] drawn from this Age's seed, for an axis no word bounded.
+         *
+         * Salted per axis, so an Age's curtain is not as bright as it is wide as it is frequent — one draw
+         * shared between three would make every undescribed aurora sit on a diagonal.
+         */
+        private fun drawn(seed: Long, salt: Long, band: Span): Double =
+            band.least + XoroshiroRandomSource(seed xor salt).nextDouble() * band.width
+
+        /**
+         * The bands an unsaid axis is drawn from, in [Span.NATURAL]'s own terms.
+         *
+         * Narrower than what a word can ask for, and deliberately: the far ends of each axis are what a
+         * writer *buys*, so an Age that said nothing should never land somewhere `brilliant` could have
+         * taken it.
+         */
+        private val DRAWN_GLOW = Span(-0.4, 0.35)
+        private val DRAWN_BAND = Span(-0.3, 0.5)
+        private val DRAWN_NIGHTS = Span(-0.6, 0.1)
+
+        private const val GLOW_SALT = 0x0A17_60L
+        private const val SIZE_SALT = 0x0A17_512EL
+        private const val NIGHTS_SALT = 0x0A17_1416L
 
     }
 }

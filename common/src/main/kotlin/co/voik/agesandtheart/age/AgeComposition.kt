@@ -165,7 +165,7 @@ data class AgeComposition(
         // surface are where their dials were left.
         Aspect.BIOMES, Aspect.STRUCTURES, Aspect.SURFACE, Aspect.FEATURES, Aspect.SPAWNS,
         Aspect.PHENOMENA, Aspect.AIR, Aspect.WATERS, Aspect.WEATHER, Aspect.CLIMATE,
-        Aspect.SUN, Aspect.MOON, Aspect.STARS,
+        Aspect.SUN, Aspect.MOON, Aspect.STARS, Aspect.AURORA,
         -> this
     }
 

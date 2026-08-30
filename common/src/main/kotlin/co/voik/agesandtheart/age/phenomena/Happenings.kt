@@ -83,10 +83,8 @@ object Happenings {
     }
 
     /** What the Age says befalls it, as claims — empty for one that says nothing. */
-    private fun claimsIn(composition: AgeComposition): List<Claim> {
-        val options = composition.optionsFor(Aspect.PHENOMENA, 0)
-        return Skew.of(options.allSpelled(Phenomena.HAPPENS.name).map(Claim::read)).wanted
-    }
+    private fun claimsIn(composition: AgeComposition): List<Claim> =
+        Phenomena.claimsIn(composition.optionsFor(Aspect.PHENOMENA, 0))
 
     /**
      * The weather an Age is asking for: its own dials, raised by anything befalling it that needs more.
@@ -115,6 +113,10 @@ object Happenings {
         when (Phenomenon.named(claim.value) ?: return) {
             Phenomenon.TEMPEST -> Tempest.strike(level, claim.density)
             Phenomenon.INFERNO -> Inferno.burn(level, claim.density)
+            // **Nothing, deliberately.** An aurora is seen rather than done: it is drawn on the client from
+            // arithmetic every client does for itself, so there is no tick of it to run here and no state
+            // for one to keep. See [Phenomenon.AURORA].
+            Phenomenon.AURORA -> Unit
         }
     }
 

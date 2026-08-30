@@ -64,6 +64,27 @@ enum class Phenomenon(
      * inferno Age gets its build-and-repair rhythm from vanilla with nothing written for it (§5.2.2).
      */
     INFERNO("inferno"),
+
+    /**
+     * A curtain of light standing over the cold — the first phenomenon that is *seen* rather than done.
+     *
+     * **It befalls nothing, and that is not an oversight.** §5.2's test is that a process be inexorable and
+     * legible, with a visible direction and an answer of adapt or leave. An aurora passes it without
+     * touching anybody: it comes on its own nights, it stands where the snow lies, and what a player does
+     * about it is walk north to see it. Everything it does happens on the client, from arithmetic every
+     * client can do for itself — so [co.voik.agesandtheart.age.phenomena.Happenings.befall] has nothing to
+     * run and says so.
+     *
+     * **The first phenomenon that is sited.** [Phenomena]'s own note says the aspect "does not divide, it is
+     * sited" and that there was no mechanism for it; this is that mechanism, and it is a rule the curtain
+     * carries about the ground under the viewer rather than a territory the resolver cuts the world into.
+     * `in <biome>` stays the wrong scope for a phenomenon, exactly as [Aspect.confinable] says.
+     *
+     * **Insists on no weather**, like an inferno and for the same reason: [insistsOn] is a floor that can
+     * only raise, and a curtain wants a *clear* sky. The lean toward cold is said in `art/word/auroral.json`
+     * as a nudge, which composes with whatever else was written and can never fracture against it.
+     */
+    AURORA("aurora"),
     ;
 
     override val aspect = Aspect.PHENOMENA

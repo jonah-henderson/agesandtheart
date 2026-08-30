@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "A sky whose curtains come every night rather than some.",
+    "",
+    "No query: this is a fact about the curtain and there is no preset it could prefer, which is why",
+    "it sets and never narrows. The shape is `glimmering`'s exactly."
+  ],
+  "tier": "exact",
+  "aspects": [
+    "aurora"
+  ],
+  "sets": {
+    "aurorafrequency": "1.0..1.0"
+  }
+}

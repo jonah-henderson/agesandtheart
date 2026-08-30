@@ -1,8 +1,19 @@
 {
+  "_comment": [
+    "It names the phenomenon rather than searching for one (design 8.1), which is what `names` is for and",
+    "what `VocabularyCheck` insists on.",
+    "",
+    "**This was missing and nothing caught it**, because the check skips an aspect with one candidate and",
+    "the tempest was the only phenomenon anything tagged. Adding a second made it two, the check ran for",
+    "the first time, and said the tempest had never been askable either (2026-08-29). It arrived in play",
+    "regardless -- `sets` writes the claim and always did -- so what was actually missing is the corpus",
+    "being able to say the word reaches it."
+  ],
   "tier": "exact",
   "aspects": [
     "phenomena"
   ],
+  "names": "tempest",
   "sets": {
     "happens": "tempest"
   }

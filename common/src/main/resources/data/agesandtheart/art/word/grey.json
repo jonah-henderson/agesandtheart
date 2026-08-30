@@ -1,0 +1,23 @@
+{
+  "_comment": [
+    "One of the nine plain colours, and it sets every colour knob it can reach -- the vault, the air, the",
+    "cloud, the star this world goes round and the curtain that stands over its cold. It declares no",
+    "aspects: `Word.aspects` is widened from the parameters a word sets, so the `sets` map is the whole of",
+    "the declaration and attachment does the rest. `red sky` paints the vault, `red sun` the star, `red and",
+    "green aurora` the ramp from its crown to its hem, and `a red Age` means all of them at once.",
+    "",
+    "The light is deliberately *not* among them. Saying the light here is red is a different claim from",
+    "saying the sky is, and `witchlight` is the idiom that already makes it.",
+    "",
+    "These replaced `crimson`, `emerald` and `violet`, and retired `verdigris` -- which was `sky: green` and",
+    "nothing else, which is `green sky` said in a word a writer has to learn first (Jonah, 2026-08-29)."
+  ],
+  "tier": "exact",
+  "sets": {
+    "sky": "grey",
+    "fog": "grey",
+    "cloud": "grey",
+    "suncolour": "grey",
+    "auroracolour": "grey"
+  }
+}

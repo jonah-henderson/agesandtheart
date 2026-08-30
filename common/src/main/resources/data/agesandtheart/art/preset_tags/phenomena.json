@@ -5,5 +5,13 @@
       "dark": 0.6,
       "watery": 0.3
     }
+  },
+  "aurora": {
+    "_comment": "Bright and colourful, and no more: a tag names what a thing essentially is. This is what puts a curtain within reach of `beautiful` -- which queries colourful 1.0 and bright 0.6 -- and out of reach of `foreboding`, whose negative terms strike it out rather than dimming it. `frozen` because an aurora belongs where the snow does, which is a fact about it and not a mood.",
+    "tags": {
+      "colourful": 1.0,
+      "bright": 0.9,
+      "frozen": 0.5
+    }
   }
 }

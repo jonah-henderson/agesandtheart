@@ -9,13 +9,13 @@
       {"produce":["<parched_world>"]}
     ],
     "temperate_world": [
-      {"produce":["age","<settled_land>","landmass","<some_sea>","sea","riddled","depths","verdant","biomes","surface","features","spawns","phenomena","<mild_sky>","sky","<mild_stars>","stars","sun","moon","air","waters","weather","untouched","structures","temperate","climate"]}
+      {"produce":["age","<settled_land>","landmass","<some_sea>","sea","riddled","depths","verdant","biomes","surface","features","spawns","phenomena","<mild_sky>","sky","<mild_stars>","stars","aurora","sun","moon","air","waters","weather","untouched","structures","temperate","climate"]}
     ],
     "frozen_world": [
-      {"produce":["age","<harsh_land>","landmass","<some_sea>","sea","unbroken","depths","biomes","surface","features","spawns","phenomena","<cold_sky>","sky","<cold_stars>","stars","sun","moon","air","waters","weather","untouched","structures","frozen","climate"]}
+      {"produce":["age","<harsh_land>","landmass","<some_sea>","sea","unbroken","depths","biomes","surface","features","spawns","phenomena","<cold_sky>","sky","<cold_stars>","stars","aurora","sun","moon","air","waters","weather","untouched","structures","frozen","climate"]}
     ],
     "parched_world": [
-      {"produce":["age","<dry_land>","landmass","<dry_sea>","sea","riddled","depths","biomes","surface","features","spawns","phenomena","<dry_sky>","sky","<dry_stars>","stars","sun","moon","air","waters","weather","untouched","structures","parched","climate"]}
+      {"produce":["age","<dry_land>","landmass","<dry_sea>","sea","riddled","depths","biomes","surface","features","spawns","phenomena","<dry_sky>","sky","<dry_stars>","stars","aurora","sun","moon","air","waters","weather","untouched","structures","parched","climate"]}
     ],
     "some_sea": [
       {"weight":8.0,"produce":["drowned"]},

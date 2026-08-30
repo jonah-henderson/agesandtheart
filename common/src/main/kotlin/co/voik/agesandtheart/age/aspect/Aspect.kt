@@ -158,6 +158,21 @@ enum class Aspect(
     STARS("stars"),
 
     /**
+     * The curtain that stands in it on some nights.
+     *
+     * **Its own aspect rather than a corner of the vault**, for the same reason the stars have one: it is a
+     * separate thing overhead, and a writer aiming a clause at it — `red and green aurora` — must be able to
+     * say the colours are the *curtain's* and not the sky's. `Vocabulary.aimingPages` mints the page, which
+     * is also why there is no `art/word/aurora.json`: an aspect already is its page, and `auroral` is the
+     * word that asks for one.
+     *
+     * **Describing it asserts it.** It holds nothing, so no clause can mint a member the way a clause mints
+     * a sun; what it has is dials, and anything set on one is a writer saying the Age has an aurora. See
+     * [Sky.auroraIn].
+     */
+    AURORA("aurora"),
+
+    /**
      * What *happens* here: storms, meteors, a rising sea (design §3.1, §5.2).
      *
      * **Scaffolding — it names nothing and does nothing yet**, deliberately. The shape is here so the
@@ -190,7 +205,7 @@ enum class Aspect(
             // biome or a structure set is weighed rather than chosen. See [dials] and [Holds.WEIGHTED_SET].
             PHENOMENA -> Phenomenon.entries
             SEA, BIOMES, STRUCTURES, CLIMATE, SURFACE, FEATURES, SPAWNS, AIR, WATERS, WEATHER,
-            SUN, MOON, STARS,
+            SUN, MOON, STARS, AURORA,
             -> emptyList()
         }
 
@@ -219,6 +234,7 @@ enum class Aspect(
             SUN -> listOf(Sky.SHINING, Sky.SUNSIZE, Sky.SUNCOLOUR, Sky.RISING)
             MOON -> listOf(Sky.ORBITING, Sky.RISING)
             STARS -> listOf(Sky.STARS, Sky.STARGLOW)
+            AURORA -> listOf(Sky.AURORACOLOUR, Sky.AURORAGLOW, Sky.AURORASIZE, Sky.AURORAFREQUENCY)
             // A preset aspect with dials: the two switches that pick the Age's dimension type. They sit
             // here rather than on `Atmosphere` because they are chosen when the Age is *made* and baked
             // into a pre-authored file, where every atmosphere dial is laid over a level that is already
@@ -279,7 +295,7 @@ enum class Aspect(
         FEATURES -> PlacedFeature.named(key)
         SPAWNS -> Spawn.named(key)
         TERRAIN, CARVERS, SKY, CLIMATE, SURFACE, PHENOMENA,
-        AIR, WATERS, WEATHER, SUN, MOON, STARS,
+        AIR, WATERS, WEATHER, SUN, MOON, STARS, AURORA,
         -> authored.firstOrNull { it.key == key }
     }
 
@@ -346,6 +362,22 @@ data class Parameter(
      * what either of them means.
      */
     val material: Boolean = false,
+    /**
+     * Whether the order the writer wrote these in is part of what they said.
+     *
+     * **This knob's values are a sequence, where every other mingling knob's are a set** — and that is the
+     * whole of the distinction. `landmass.stone=granite and andesite` is two rocks in one wall and neither
+     * is first; an aurora's colours are a ramp from its crown to its hem, and which is the crown is the one
+     * thing the writer stated outright.
+     *
+     * It is read in exactly one place, [co.voik.agesandtheart.age.word.Resolver.contended], which otherwise
+     * hands back a mingling in tier-then-seeded order. Stating it here rather than casing on the name there
+     * is what keeps that function from having to know about individual knobs.
+     *
+     * Written order decides one other thing in the whole resolver — which template a book starts from — and
+     * `the-art-design.md` §3.5 names both.
+     */
+    val keepsWrittenOrder: Boolean = false,
 ) {
     /** This parameter, sited-in-a-biome — see [confinable]. */
     fun perBiome(): Parameter = copy(confinable = true)
