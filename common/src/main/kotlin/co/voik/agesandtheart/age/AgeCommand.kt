@@ -11,10 +11,16 @@ import co.voik.agesandtheart.age.consequence.Tearing
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.aspect.AgeSpawner
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.ephemeris.sky.Aurora
+import co.voik.ephemeris.sky.AuroraGround
+import co.voik.ephemeris.sky.Daylight
+import co.voik.ephemeris.sky.LevelDaylight
+import co.voik.ephemeris.debug.LevelLookPreview
+import co.voik.agesandtheart.sky.Skies
+import net.minecraft.core.Direction
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.word.Resolver
-import co.voik.ephemeris.debug.LevelLookPreview
 import co.voik.ephemeris.sky.LevelAppearance
 import co.voik.ephemeris.sky.LevelClock
 import co.voik.ephemeris.sky.LevelLook
@@ -120,6 +126,28 @@ object AgeCommand {
 
     /** `/age danger here` — a literal rather than a bare executable, so the tree stays uniform. */
     private const val HERE_LITERAL = "here"
+
+    /** What `/age aurora now` is called — "stop waiting for it". */
+    private const val NOW_LITERAL = "now"
+
+    /** How far ahead the report looks for the next night a curtain comes. */
+    private const val NIGHTS_LOOKED_AHEAD = 60L
+
+    /** Half a chunk out, which is the ring the client samples the ground over. */
+    private const val GROUND_RING_BLOCKS = 24
+
+    /** Below this nothing is on the screen — the same floor `AuroraPainter` declines to draw at. */
+    private const val NOTHING_SHOWING = 0.0f
+
+    private const val EVERY_NIGHT = 1.0f
+
+    /**
+     * How far vanilla darkens its sky between noon and midnight — `skyDarken` is `15 - skyLightLevel`, and
+     * the overworld runs 15 by day to 4 by night.
+     */
+    private const val FULLY_DARKENED = 11.0f
+
+    private const val PER_CENT = 100.0f
 
     /** Vanilla's chance that a mob arrives with anything on at all, before the multiplier scales it. */
     private const val ARMS_ANYTHING_AT_ALL = 0.15f
@@ -235,6 +263,7 @@ object AgeCommand {
                 .then(pagesSubcommand())
                 .then(forgetSubcommand())
                 .then(weatherSubcommand())
+                .then(auroraSubcommand())
                 .then(teleportSubcommand())
                 .then(deleteSubcommand())
                 .then(generateSubcommand())
@@ -471,6 +500,144 @@ object AgeCommand {
         source.sendSuccess({ Component.translatable("commands.agesandtheart.weather.set", name) }, true)
         return 1
     }
+
+    /**
+     * `/age aurora here` — **why there is or is not a curtain in the sky right now**, and `/age aurora now`
+     * to stop waiting for one.
+     *
+     * Written because an aurora is the first thing here that can be *correct and invisible*. Everything
+     * about it is decided on the client from arithmetic, so nothing is logged, nothing is stored, and a
+     * walk that sees no curtain cannot tell an Age that has none from a night it does not come from a
+     * renderer that is broken. Three very different faults with one symptom, and no way to separate them
+     * (Jonah, 2026-08-30, walked: "unable to see any auroras, even after waiting multiple days").
+     *
+     * **The server can answer all of it but the last.** Which nights a curtain comes is a pure function of
+     * the spec, and the ground rule is a biome lookup — so this recomputes exactly what the client will,
+     * from the same numbers, and says which factor is the one at nought. If it says a curtain should be
+     * overhead and the sky is empty, the fault is in the drawing and nowhere else.
+     */
+    private fun auroraSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        reporting("aurora") { reportFor ->
+            Commands.literal(HERE_LITERAL).executes { context -> runAurora(context, reportFor(context)) }
+        }.then(Commands.literal(NOW_LITERAL).executes(::runAuroraNow))
+
+    private fun runAurora(context: CommandContext<CommandSourceStack>, report: Report): Int {
+        val source = context.source
+        val level = source.level
+        val aurora = auroraOf(level)
+        if (aurora == null) {
+            report.say { "Nothing hangs a curtain in ${level.dimension().identifier()}." }
+            report.fact("hasAurora", false) {
+                "  Write one with `auroral`, or describe one — `green aurora`. `beautiful` sometimes does too."
+            }
+            return SUCCESS
+        }
+
+        val at = BlockPos.containing(source.position)
+        val night = level.defaultClockTime / VANILLA_DAY
+        val tonight = aurora.strengthOn(night)
+        val starlit = starlitnessIn(level)
+        val ground = groundShareFor(aurora, level, at)
+        val raining = level.getRainLevel(1.0f)
+        val showing = tonight * starlit * (1.0f - raining) * aurora.glow * ground
+
+        report.say { "The curtain over ${level.dimension().identifier()}, on night $night:" }
+        report.fact("colours", aurora.colours.size) {
+            "  burns ${aurora.colours.size} colour(s), crown first, over ${aurora.ground.serializedName}"
+        }
+        report.fact("frequency", aurora.frequency) {
+            "  comes on %.0f%% of nights, at glow %.2f, breadth %.2f, height %.2f"
+                .format(aurora.frequency * PER_CENT, aurora.glow, aurora.breadth, aurora.height)
+        }
+        report.fact("tonight", tonight) {
+            if (tonight > NOTHING_SHOWING) "  tonight is one of its nights, at %.2f".format(tonight)
+            else "  tonight is not one of its nights"
+        }
+        report.fact("nextNight", nextNightAfter(aurora, night)) {
+            "  the next night it comes is ${nextNightAfter(aurora, night) ?: "further off than $NIGHTS_LOOKED_AHEAD nights"}"
+        }
+        report.fact("starlit", starlit) { "  the sky is %.2f of the way to its darkest".format(starlit) }
+        report.fact("ground", ground) { "  the ground within sight of you is %.2f cold enough".format(ground) }
+        report.fact("rain", raining) { "  weather is hiding %.2f of it".format(raining) }
+        report.fact("showing", showing) { "  so a client should be drawing it at %.3f".format(showing) }
+        report.say { "  ${whyNotOf(tonight, starlit, ground, raining, showing)}" }
+        return SUCCESS
+    }
+
+    /** The one factor at nought, named — or what to conclude when none of them is. */
+    private fun whyNotOf(tonight: Float, starlit: Float, ground: Float, raining: Float, showing: Float): String =
+        when {
+            showing > NOTHING_SHOWING ->
+                "It is up. If the sky is empty, the fault is in the drawing — say so, it is not this."
+            tonight <= NOTHING_SHOWING -> "Not tonight. `/age aurora $NOW_LITERAL` stops you waiting for it."
+            starlit <= NOTHING_SHOWING -> "Too light. It keeps the hours its stars keep."
+            ground <= NOTHING_SHOWING -> "Nowhere cold enough within sight. It stands where the snow lies."
+            raining >= 1.0f -> "The weather has it."
+            else -> "Every factor is above nothing but the product is not, which should not happen."
+        }
+
+    /**
+     * `/age aurora now` — tonight's curtain, over any ground, until you walk out and back in.
+     *
+     * **The Age's own curtain rather than a demonstration one**, which is the whole difference from
+     * `/age sky <name> aurora=ordinary`: what you see is what the book actually wrote, with the two things
+     * that make it *wait* taken off. A preview is shown and never given ([LevelLookPreview]), so there is
+     * no state to undo and nothing on the server believes any of it.
+     */
+    private fun runAuroraNow(context: CommandContext<CommandSourceStack>): Int {
+        val source = context.source
+        val level = source.level
+        val look = Skies.lookOf(source.server, level.dimension())
+        val aurora = look?.sky?.aurora
+        if (look == null || aurora == null) {
+            source.sendFailure(Component.literal("Nothing hangs a curtain here to bring on"))
+            return FAILURE
+        }
+        val insisted = aurora.copy(frequency = EVERY_NIGHT, ground = AuroraGround.ANYWHERE)
+        LevelLookPreview.show(level, look.copy(sky = look.sky.copy(aurora = insisted)))
+        source.sendSuccess(
+            { Component.literal("Tonight, and over any ground. Still needs darkness — it keeps its stars' hours.") },
+            false,
+        )
+        return SUCCESS
+    }
+
+    /** The curtain this level wears, or null where it wears none. */
+    private fun auroraOf(level: ServerLevel): Aurora? =
+        Skies.lookOf(level.server, level.dimension())?.sky?.aurora
+
+    /**
+     * How dark the sky has gone, as the client will read it — the level's own suns where it has any of its
+     * own, and vanilla's curve where it does not.
+     */
+    private fun starlitnessIn(level: ServerLevel): Float {
+        val look = Skies.lookOf(level.server, level.dimension()) ?: return NOTHING_SHOWING
+        look.air.starBrightness?.let { return it }
+        if (!look.sky.isOrdinary && look.rules.daylight != Daylight.VANILLA_CLOCK) {
+            return LevelDaylight.starlitnessOf(look.readAt(level.defaultClockTime), look.rules)
+        }
+        // Vanilla's own curve, read off the light rather than off the stars: `getStarBrightness` is the
+        // client's and this is the same fact from the side the server has. `skyDarken` runs 0 by day to
+        // [FULLY_DARKENED] by night, which is the scale the client's nightliness is already on.
+        return (level.skyDarken.toFloat() / FULLY_DARKENED).coerceIn(NOTHING_SHOWING, 1.0f)
+    }
+
+    /**
+     * What share of the ground around [at] answers the curtain's rule.
+     *
+     * The same ring the client samples, asked of the server's own level — so a disagreement between this
+     * and the window is a disagreement about *drawing* and never about the rule.
+     */
+    private fun groundShareFor(aurora: Aurora, level: ServerLevel, at: BlockPos): Float {
+        if (aurora.ground == AuroraGround.ANYWHERE) return 1.0f
+        val around = listOf(at) + Direction.Plane.HORIZONTAL.map { at.relative(it, GROUND_RING_BLOCKS) }
+        val cold = around.count { level.getBiome(it).value().coldEnoughToSnow(it, level.seaLevel) }
+        return cold.toFloat() / around.size
+    }
+
+    /** The next night the curtain comes, or null where none of the next [NIGHTS_LOOKED_AHEAD] is one. */
+    private fun nextNightAfter(aurora: Aurora, night: Long): Long? =
+        (night + 1..night + NIGHTS_LOOKED_AHEAD).firstOrNull { aurora.strengthOn(it) > NOTHING_SHOWING }
 
     private fun strikeSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("strike")
