@@ -350,6 +350,12 @@ class VocabularyCheck : FunSpec({
         }
         val inferno = vocabulary.words.firstOrNull { it.name == INFERNO }
         check(inferno != null && offers(inferno).isNotEmpty()) { "the inferno hangs no burning air of its own" }
+        // **And insists on it, rather than drawing for it.** Held in the pool it was three Ages in five,
+        // so an inferno could arrive with nothing in the air at all (Jonah, 2026-08-29, walked). A warning
+        // that is sometimes absent is not one, which is the same argument as the exclusivity above.
+        check(inferno.sets["motes"] != null) {
+            "the inferno only *may* hang burning air, so an Age that burns can arrive with clear air"
+        }
     }
 
     /**
