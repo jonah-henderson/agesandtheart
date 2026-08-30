@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age
 
 import co.voik.ephemeris.Rgba
+import co.voik.ephemeris.sky.Aurora
 import co.voik.ephemeris.sky.CelestialBody
 import co.voik.ephemeris.sky.CloudDeck
 import co.voik.ephemeris.sky.Daylight
@@ -39,6 +40,8 @@ object SkyKnobs {
         "facing" to Facing.entries.map { it.name.lowercase() },
         "deck" to Deck.entries.map { it.key },
         "air" to listOf("<0..2>", "how thick the air a body is seen through is; 0 is airless"),
+        "aurora" to Curtain.entries.map { it.key },
+        "bearing" to listOf("<degrees>", "which way the aurora's band crosses, clockwise from north"),
     )
 
     /** Whether [name] is one of ours rather than one of the Art's aspects. */
@@ -57,6 +60,7 @@ object SkyKnobs {
     fun applyTo(spec: SkySpec, tokens: List<String>): Result<LevelLook> {
         var bodies = spec.bodies
         var decks = spec.decks
+        var aurora = spec.aurora
         var rules = SkyRules.DEFAULT
 
         for (token in tokens) {
@@ -109,10 +113,24 @@ object SkyKnobs {
                     decks = deck.decks()
                 }
 
+                "aurora" -> {
+                    val curtain = Curtain.entries.firstOrNull { it.key == value }
+                        ?: return Result.failure(IllegalArgumentException(failure))
+                    aurora = curtain.aurora()
+                }
+
+                // **After `aurora=`, or it has nothing to turn.** Left as its own knob rather than folded
+                // into the curtains, because which way a band crosses is the one thing about it you want to
+                // move while standing under it.
+                "bearing" -> {
+                    val degrees = value.toFloatOrNull() ?: return Result.failure(IllegalArgumentException(failure))
+                    aurora = (aurora ?: Curtain.ORDINARY.aurora())?.copy(bearingDegrees = degrees)
+                }
+
                 else -> return Result.failure(IllegalArgumentException("$name — no such knob"))
             }
         }
-        return Result.success(LevelLook(spec.copy(bodies = bodies, decks = decks), rules = rules))
+        return Result.success(LevelLook(spec.copy(bodies = bodies, decks = decks, aurora = aurora), rules = rules))
     }
 
     /**
@@ -183,6 +201,69 @@ object SkyKnobs {
         ;
 
         abstract fun pathFor(index: Int, body: CelestialBody): co.voik.ephemeris.sky.CelestialPath
+    }
+
+    /**
+     * The curtains a preview can hang overhead — **every night, so there is something to look at**.
+     *
+     * The Art's own aurorae come on a share of nights and only where the ground is cold, which is right in
+     * play and useless for tuning one: an instrument you have to wait three nights and walk to a glacier for
+     * is an instrument nobody uses. So every one of these is `frequency = 1`, and the ground rule is what a
+     * walk of the *Art's* words is for.
+     */
+    private enum class Curtain(val key: String) {
+        NONE("none") {
+            override fun aurora(): Aurora? = null
+        },
+
+        /** What an aurora nobody described looks like: a red crown, a green body, a violet hem. */
+        ORDINARY("ordinary") {
+            override fun aurora() = Aurora(frequency = EVERY_NIGHT)
+        },
+
+        /** One colour, which is the other common case and the one that shows the ramp is not load-bearing. */
+        PLAIN("plain") {
+            override fun aurora() = Aurora(colours = listOf(GREEN), frequency = EVERY_NIGHT)
+        },
+
+        /** Six, in an order nature would never take — which is what a writer is allowed to ask for. */
+        BANDED("banded") {
+            override fun aurora() = Aurora(
+                colours = listOf(VIOLET, BLUE, GREEN, YELLOW, ORANGE, RED),
+                frequency = EVERY_NIGHT,
+            )
+        },
+
+        /** The far ends of every dial at once, for finding out what breaks before a writer does. */
+        EXTREME("extreme") {
+            override fun aurora() = Aurora(
+                colours = listOf(RED, WHITE, BLUE),
+                glow = 2.0f,
+                breadth = 1.0f,
+                height = 1.0f,
+                frequency = EVERY_NIGHT,
+            )
+        },
+
+        /** As little as an aurora can be and still be one, which is where a hem reads or does not. */
+        FAINT("faint") {
+            override fun aurora() = Aurora(glow = 0.3f, breadth = 0.25f, height = 0.2f, frequency = EVERY_NIGHT)
+        },
+        ;
+
+        abstract fun aurora(): Aurora?
+
+        companion object {
+            private const val EVERY_NIGHT = 1.0f
+
+            private val RED = Rgba(0.90f, 0.20f, 0.25f)
+            private val ORANGE = Rgba(0.95f, 0.55f, 0.15f)
+            private val YELLOW = Rgba(0.95f, 0.90f, 0.30f)
+            private val GREEN = Rgba(0.25f, 0.95f, 0.55f)
+            private val BLUE = Rgba(0.20f, 0.55f, 0.95f)
+            private val VIOLET = Rgba(0.55f, 0.30f, 0.90f)
+            private val WHITE = Rgba(0.95f, 0.95f, 1.0f)
+        }
     }
 
     /** The cloud decks a preview can put overhead, for looking at what a texture does. */
