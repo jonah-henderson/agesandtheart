@@ -443,8 +443,10 @@ enum class Sky(override val key: String) : AspectPreset {
         /** How much of the sky [AURORASIZE] reaches, either way. */
         private const val NARROWEST_BAND = 0.3f
         private const val WIDEST_BAND = 1.0f
-        private const val SHORTEST_BAND = 0.25f
-        private const val TALLEST_BAND = 0.95f
+        // The renderer will not draw a stubby curtain — a short one reads as a ribbon rather than as a
+        // modest aurora — so the axis runs above that floor rather than half into it.
+        private const val SHORTEST_BAND = 0.5f
+        private const val TALLEST_BAND = 1.0f
 
         private const val AURORA_SALT = 0x0A17_0BA5L
 
