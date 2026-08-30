@@ -11,9 +11,9 @@ import net.minecraft.world.level.block.IceBlock
 /**
  * A world that burns (design §5.2.2).
  *
- * Two rules and nothing else: what can see the sky **catches light on its own**, and what stands in the open
- * **burns while the sun is up**. Vanilla does the rest — `FireBlock` spreads and consumes what we light, and
- * puts itself out in rain, which is where the lull comes from without anybody writing one.
+ * Two rules and nothing else, and both hold **only while the sun is up**: what can see the sky catches light
+ * on its own, and what stands in the open burns. Vanilla does the rest — `FireBlock` spreads and consumes
+ * what we light, and puts itself out in rain, which is where the lull comes from without anybody writing one.
  *
  * **The counterplay is deliberately easy and the difficulty is somewhere else.** Any stone answers it and
  * going underground is free, so nobody dies to this twice. What bites is that the rest of nature burns with
@@ -36,8 +36,18 @@ object Inferno {
     }
 
     /**
-     * What the sky does to the ground it can see: **frost comes off it, and what will burn is lit.**
+     * What the sky does to the ground it can see: **frost comes off it, and what will burn is lit while the
+     * sun is up.**
      *
+     * The lighting is gated on daylight the way [scorchTheOpen] already was (Jonah, 2026-08-29, walked:
+     * "mobs stop taking damage after the sun goes down, but fires are still started"). The sun is what is
+     * doing this — it is visibly the hazard, and a night that stops the burning but goes on setting the
+     * forest alight is the phenomenon disagreeing with itself in front of you.
+     *
+     * **Frost still comes off at night**, because that one is about a ground too hot to hold it rather than
+     * about the light falling on it, and a world that burns by day does not cool to freezing by night.
+     *
+
      * One sample answers both, because both are questions about the top of a column and asking twice would
      * be paying twice. Thawing wins where they meet, so a snowed-over log is uncovered rather than set
      * alight through the snow.
@@ -53,6 +63,7 @@ object Inferno {
      */
     private fun scourTheSurface(level: ServerLevel, intensity: Intensity, density: Double) {
         val sweeps = Happenings.timesFor(density, intensity.sweeps)
+        val sunIsUp = level.isBrightOutside
         Sampling.sweep(level, sweeps) { _, column ->
             if (level.random.nextDouble() >= intensity.chance) return@sweep
             val above = Sampling.skyward(level, column)
@@ -60,7 +71,7 @@ object Inferno {
             // it, where a snow block or ice is the top of the column. Both places have to be looked at or a
             // dusting would be the one thing that survives a burning world.
             if (thaw(level, above) || thaw(level, above.below())) return@sweep
-            light(level, above)
+            if (sunIsUp) light(level, above)
         }
     }
 
