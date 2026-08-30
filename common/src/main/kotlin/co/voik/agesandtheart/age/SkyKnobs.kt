@@ -235,7 +235,14 @@ object SkyKnobs {
             )
         },
 
-        /** The far ends of every dial at once, for finding out what breaks before a writer does. */
+        /**
+         * The far ends of every dial at once, for finding out what breaks before a writer does.
+         *
+         * **Its colours are a fixture, not a sample.** Red, white and blue are three stops nothing would
+         * ever resolve to, chosen so the ramp's two ends are unmistakable at a glance — which means this is
+         * the one curtain here that can never tell you what an Age's own looks like. Reach for `ordinary`
+         * or `/age aurora now` for that (Jonah asked why it was always the same colours, 2026-08-30).
+         */
         EXTREME("extreme") {
             override fun aurora() = Aurora(
                 colours = listOf(RED, WHITE, BLUE),
