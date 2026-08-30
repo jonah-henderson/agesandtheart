@@ -1352,7 +1352,11 @@ object AgeCommand {
         val said = preview?.split(' ')?.filter { it.isNotBlank() } ?: emptyList()
         val (knobs, words) = said.partition { SkyKnobs.offers(it.substringBefore('=')) }
 
-        val asWritten = if (preview == null) {
+        // **A line with no words turns the Age's own sky**, and that is the only way a knob reaches a sky
+        // the words made: a preview spec resolves one sun and one moon whatever it says, bodies being
+        // minted by clauses that a `sky.…` line cannot carry. Naming any word restates the sky in full, as
+        // it always did — so `path=polar` alone tips the Age's own suns and `sky=plain path=polar` tips one.
+        val asWritten = if (words.isEmpty()) {
             LevelAppearance.of(level.dimension())?.sky ?: run {
                 source.sendFailure(Component.literal("Nothing has said what '$name' looks like"))
                 return FAILURE
