@@ -14,9 +14,8 @@
     "make it more broken.",
     "",
     "The embers are not decoration. They are the largest warning a player gets, which is why no other word",
-    "may offer them and why this one *insists* rather than drawing for them (VocabularyCheck holds both):",
-    "a signal that also appears where nothing is burning is not a signal, and one that is only there three",
-    "Ages in five is not one either. What the pool varies is the look of the sky, which is not a warning."
+    "may offer them (VocabularyCheck holds it): a signal that also appears where nothing is burning is not",
+    "a signal."
   ],
   "tier": "exact",
   "aspects": [
@@ -27,10 +26,10 @@
   "sets": {
     "happens": "inferno",
     "temperature": "0.5..1.0",
-    "rainfall": "-1.0..-0.4",
-    "motes": "embers|flames"
+    "rainfall": "-1.0..-0.4"
   },
   "pool": {
+    "motes": "embers|flames",
     "sky": "red|orange|yellow",
     "suns": "1|2|3",
     "sunsize": "0.3..1.0",
