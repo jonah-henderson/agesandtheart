@@ -149,6 +149,9 @@ object AgeCommand {
 
     private const val PER_CENT = 100.0f
 
+    /** Degrees in a turn, for naming the quarter a curtain crosses. */
+    private const val WHOLE_COMPASS = 360
+
     /** Vanilla's chance that a mob arrives with anything on at all, before the multiplier scales it. */
     private const val ARMS_ANYTHING_AT_ALL = 0.15f
     private const val DAYS_ARGUMENT = "days"
@@ -599,7 +602,18 @@ object AgeCommand {
             { Component.literal("Tonight, and over any ground. Still needs darkness — it keeps its stars' hours.") },
             false,
         )
+        // **Which way to look, because a band is not the whole sky.** It crosses about a hundred degrees
+        // either side of its bearing, so a curtain that is up and behind you is indistinguishable from one
+        // that is not up at all — which is exactly the confusion this command exists to end.
+        source.sendSuccess({ Component.literal("  ${facingFor(insisted.bearingDegrees)}") }, false)
         return SUCCESS
+    }
+
+    /** Where to stand looking, given a curtain crossing the sky at [bearingDegrees]. */
+    private fun facingFor(bearingDegrees: Float): String {
+        val points = listOf("north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west")
+        val step = (Math.round(bearingDegrees / (WHOLE_COMPASS / points.size)) % points.size + points.size) % points.size
+        return "It crosses the sky about ${points[step]} — face that way and look well up, not at the horizon."
     }
 
     /** The curtain this level wears, or null where it wears none. */
