@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.client
 
+import co.voik.agesandtheart.AgeClientLook
+import co.voik.ephemeris.client.AuroraPainter
 import co.voik.ephemeris.client.LevelRendering
 
 /**
@@ -16,6 +18,10 @@ object AgeLooks {
 
     /** Called from each loader's client entrypoint — the one place that knows a client exists. */
     fun register() {
+        // **What this machine will draw, which is ours to decide and the library's to obey.** Read afresh
+        // each frame rather than set once, so turning it down in a settings screen takes effect at once.
+        AuroraPainter.mostCurtainsDrawn = { AgeClientLook.auroraCurtains.get() }
+
         // The Age's own air first, then what its wounds do to it — corruption darkens whatever was there
         // rather than being blended into it, so a lurid sky still goes black at the throat of a tear.
         LevelRendering.environment { level, layers -> Corruption.paint(level, AgeAir.paint(level, layers)) }

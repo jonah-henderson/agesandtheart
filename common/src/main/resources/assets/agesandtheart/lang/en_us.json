@@ -1,6 +1,8 @@
 {
   "config.agesandtheart.collects_unreachable_ages": "Clean up unreachable Ages (potential data loss)",
   "config.agesandtheart.housekeeping": "Housekeeping",
+  "config.agesandtheart.aurora_curtains": "Curtains an aurora may hang (0 to turn them off)",
+  "config.agesandtheart.drawing": "How much this machine draws",
   "block.agesandtheart.wound": "Wound",
   "block.agesandtheart.analysis_machine": "D'ni Analysis Machine",
   "block.agesandtheart.fine_ink": "Fine Ink",

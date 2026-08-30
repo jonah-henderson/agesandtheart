@@ -45,6 +45,7 @@ fun init() {
     // to supply its own, and the whole point of choosing a spec other tools can read is not needing to:
     // Configured generates one from this, and Mod Menu indexes it.
     ConfigRegistry.INSTANCE.register(Constants.MOD_ID, ModConfig.Type.SERVER, AgeConfig.SPEC)
+    ConfigRegistry.INSTANCE.register(Constants.MOD_ID, ModConfig.Type.CLIENT, AgeClientLook.SPEC)
 
     // Register content (components before items). On Fabric this is done directly during init.
     // Fluids before items: a bucket names its fluid, and the pair is built together.

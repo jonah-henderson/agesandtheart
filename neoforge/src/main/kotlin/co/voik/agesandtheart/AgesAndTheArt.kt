@@ -43,6 +43,7 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         // `ConfigurationScreen`, so a Config button appears on the Mods page for one line and no UI code
         // — see `notes/config-research.md` for why the spec is shaped for screens rather than for us.
         modContainer.registerConfig(ModConfig.Type.SERVER, AgeConfig.SPEC)
+        modContainer.registerConfig(ModConfig.Type.CLIENT, AgeClientLook.SPEC)
         // **The screen is client-only and naming it here would take the dedicated server down** (found
         // 2026-08-09, the first time `:neoforge:runServer` could be run at all). `ConfigurationScreen`
         // extends `Screen`, which the dev dist cleaner refuses to load on a server, and the reference is
