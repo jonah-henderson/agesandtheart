@@ -18,13 +18,51 @@ class SkyClockCheck : FunSpec({
     /** Ticks either side of the requested time that a reading may land on, the server ticking as we ask. */
     val slack = 200L
 
+    /**
+     * The number written after [label], **read to the end of its own digits and no further**. RCON hands
+     * back a command's messages concatenated with no separator, so the buffer is one line and taking
+     * everything after a label swallows whatever the next one says.
+     */
+    fun numberAfter(report: String, label: String): Long? =
+        report.substringAfter("$label ", missingDelimiterValue = "")
+            .trimStart()
+            .takeWhile(Char::isDigit)
+            .toLongOrNull()
+
     fun clockOf(age: String): Long {
         val report = server.run("age sky $age")
-        val reading = report.lineSequence()
-            .mapNotNull { line -> line.substringAfter("${AgeCommand.CLOCK_LABEL} ", missingDelimiterValue = "").trim().toLongOrNull() }
-            .firstOrNull()
+        val reading = numberAfter(report, AgeCommand.CLOCK_LABEL)
         check(reading != null) { "'/age sky $age' reported no clock, so this check cannot see the thing it guards:\n$report" }
         return reading
+    }
+
+    fun litAsOf(age: String): Long? = numberAfter(server.run("age sky $age"), AgeCommand.LIT_AS_LABEL)
+
+    /**
+     * **An Age's clock and the hour it is lit as are two numbers, and only the second decides a colour.**
+     *
+     * The Spire keeps the overworld's clock like every other Age and has never had a sun, so every one of
+     * `OVERWORLD_DAY`'s tracks — the sky-light colour, the sunrise band, the light itself — used to run on
+     * the overworld's schedule beneath a sky pinned at midnight. It glowed warm at dusk and went dark at
+     * midnight under stars that were always out (Jonah, 2026-08-27, walked). Nothing rises there, so the
+     * hour is midnight and stays there.
+     */
+    test("a sky with no suns is lit as midnight whatever the clock says") {
+        server.run("age create spire spirelit")
+
+        server.run("time set noon")
+        val atNoon = litAsOf("spirelit")
+        server.run("time set midnight")
+        val atMidnight = litAsOf("spirelit")
+
+        check(atNoon == 18_000L && atMidnight == 18_000L) {
+            "The Spire was lit as $atNoon at noon and $atMidnight at midnight, where a sunless sky has " +
+                "only the one hour"
+        }
+        // The control: its *clock* does still run, so this is a mapping and not a stopped level.
+        check(clockOf("spirelit") % 24_000 in (18_000 - slack)..(18_000 + slack)) {
+            "The Spire's own clock did not follow the overworld, so the mapping above proves nothing"
+        }
     }
 
     test("an Age keeps the overworld's time of day") {

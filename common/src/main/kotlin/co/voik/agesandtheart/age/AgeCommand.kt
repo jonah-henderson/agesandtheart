@@ -16,6 +16,7 @@ import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.word.Resolver
 import co.voik.ephemeris.debug.LevelLookPreview
 import co.voik.ephemeris.sky.LevelAppearance
+import co.voik.ephemeris.sky.LevelClock
 import co.voik.ephemeris.sky.LevelLook
 import co.voik.agesandtheart.worldgen.AgeChunkGenerator
 import co.voik.agesandtheart.worldgen.AgeRock
@@ -169,6 +170,11 @@ object AgeCommand {
 
     /** What `/age sky` prefixes the Age's clock reading with, and what `SkyClockCheck` looks for. */
     const val CLOCK_LABEL = "clock"
+
+    /** What `/age sky` prefixes the *mapped* hour with — the one every colour in the sky is keyed to. */
+    const val LIT_AS_LABEL = "lit as"
+
+    private const val VANILLA_DAY = 24000L
 
     /**
      * How far `/age locate` looks, and how finely. The stride is far below the smallest territory a share
@@ -1389,6 +1395,15 @@ object AgeCommand {
         // The Age's own clock — what every moving thing above reads, and the only way to tell an Age
         // following the overworld from one frozen at dawn.
         source.sendSuccess({ Component.literal("  $CLOCK_LABEL ${level.defaultClockTime}") }, false)
+        // **And the hour it is *lit* as**, which is a different number and the one that decides every
+        // colour: an Age's own suns move the whole timeline, and a sky with none is held at midnight. Not
+        // having this said cost a walk — the sky was reported correct while the client showed a sunset
+        // (Jonah, 2026-08-27).
+        val showing = shown ?: LevelAppearance.of(level.dimension())
+        val litAs = showing?.let { LevelClock.vanillaEquivalent(it, level.defaultClockTime) }
+        if (litAs != null) {
+            source.sendSuccess({ Component.literal("  $LIT_AS_LABEL ${Math.floorMod(litAs, VANILLA_DAY)}") }, false)
+        }
         return SUCCESS
     }
 
