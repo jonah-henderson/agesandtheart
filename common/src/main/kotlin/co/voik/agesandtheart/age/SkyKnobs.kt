@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age
 
 import co.voik.ephemeris.Rgba
 import co.voik.ephemeris.sky.Aurora
+import co.voik.ephemeris.sky.AuroraGround
 import co.voik.ephemeris.sky.CelestialBody
 import co.voik.ephemeris.sky.CloudDeck
 import co.voik.ephemeris.sky.Daylight
@@ -248,6 +249,17 @@ object SkyKnobs {
         /** As little as an aurora can be and still be one, which is where a hem reads or does not. */
         FAINT("faint") {
             override fun aurora() = Aurora(glow = 0.3f, breadth = 0.25f, height = 0.2f, frequency = EVERY_NIGHT)
+        },
+
+        /**
+         * The only one that asks about the ground — an ordinary curtain held to the snow line.
+         *
+         * Every other curtain here is deliberately seen from anywhere, so that tuning what one *looks* like
+         * does not also mean standing somewhere cold. This is the one for walking the rule itself: hang it,
+         * then walk out of the ice and back in.
+         */
+        POLAR("polar") {
+            override fun aurora() = Aurora(frequency = EVERY_NIGHT, ground = AuroraGround.WHERE_IT_SNOWS)
         },
         ;
 
