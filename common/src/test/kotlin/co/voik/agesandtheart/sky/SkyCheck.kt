@@ -193,6 +193,10 @@ class SkyCheck : FunSpec({
                 check(ordinary.isOrdinary) { "One sun and one moon at seed $seed spread $spread is not ordinary" }
             }
         }
+        // A field that blazes is not one vanilla could draw, so it must not fall through to vanilla's own
+        // renderer — which would show it at vanilla's brightness and swallow the word that asked.
+        val glimmering = SkySpec.drawn(1, 1, SkySpec.VANILLA_STAR_COUNT, 0.0f, SEEDS.first(), starGlow = 2.0f)
+        check(!glimmering.isOrdinary) { "a sky whose stars burn twice as bright was called ordinary" }
     }
 
     /**

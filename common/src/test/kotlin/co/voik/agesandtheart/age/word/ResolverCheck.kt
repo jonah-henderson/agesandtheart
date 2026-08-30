@@ -1014,6 +1014,21 @@ class ResolverCheck : FunSpec({
             "'starlit' drew ${skyOf("starlit").stars.count} stars, no more than an ordinary sky"
         }
 
+        // Brilliance is the field's other axis, and the two must not be one word between them: a sky
+        // burns brighter without gaining a star, and gains stars without burning brighter.
+        check(ordinary.stars.glow == SkySpec.ORDINARY_STAR_GLOW) {
+            "a sky nobody spoke to about stars burns at ${ordinary.stars.glow} times vanilla's"
+        }
+        check(skyOf("glimmering").stars.glow > SkySpec.ORDINARY_STAR_GLOW) {
+            "'glimmering' burns at ${skyOf("glimmering").stars.glow} times vanilla's, which is no brighter"
+        }
+        check(skyOf("glimmering").stars.count == SkySpec.VANILLA_STAR_COUNT) {
+            "'glimmering' also added stars (${skyOf("glimmering").stars.count}), so it says two things"
+        }
+        check(skyOf("starlit").stars.glow == SkySpec.ORDINARY_STAR_GLOW) {
+            "'starlit' also brightened them, so the two axes are one word between them"
+        }
+
         // And a body is minted by the clause that describes it, so two clauses are two suns — there is no
         // count to write, which is what stops `two suns` and `a sun, a sun` being two spellings for one
         // thing (world model §2).

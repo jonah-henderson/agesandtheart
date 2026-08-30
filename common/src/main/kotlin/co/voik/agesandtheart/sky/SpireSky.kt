@@ -91,10 +91,16 @@ object SpireSky {
     /** Far fewer than an open sky's, because only the ones overhead are ever seen through the gap. */
     private const val STAR_COUNT = 180
 
+    /**
+     * And each burning brighter than vanilla's, which is what makes so few of them read as a night sky
+     * rather than as a scattering — the Spire's stars are the one thing above its decks.
+     */
+    private const val STAR_GLOW = 2.0f
+
     /** No bodies — the Spire has never had a sun or a moon. */
     val SPEC = SkySpec(
         bodies = emptyList(),
-        stars = StarField(STAR_COUNT, STAR_SEED, ABOVE_THE_UPPER_DECK),
+        stars = StarField(STAR_COUNT, STAR_SEED, ABOVE_THE_UPPER_DECK, glow = STAR_GLOW),
         decks = listOf(LOWER_DECK, UPPER_DECK),
     )
 }

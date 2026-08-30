@@ -218,7 +218,7 @@ enum class Aspect(
             WEATHER -> listOf(Atmosphere.RAINFALL, Atmosphere.THUNDER)
             SUN -> listOf(Sky.SHINING, Sky.SUNSIZE, Sky.SUNCOLOUR, Sky.RISING)
             MOON -> listOf(Sky.ORBITING, Sky.RISING)
-            STARS -> listOf(Sky.STARS)
+            STARS -> listOf(Sky.STARS, Sky.STARGLOW)
             // A preset aspect with dials: the two switches that pick the Age's dimension type. They sit
             // here rather than on `Atmosphere` because they are chosen when the Age is *made* and baked
             // into a pre-authored file, where every atmosphere dial is laid over a level that is already

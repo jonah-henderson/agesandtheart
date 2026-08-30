@@ -1,0 +1,16 @@
+{
+  "_comment": [
+    "Stars that blaze, rather than stars that are many. `starglow` is brilliance and `stars` is number,",
+    "and a sky may be either without being the other — `starlit glimmering stars` is both.",
+    "",
+    "No query: brilliance is a fact about the field and there is no preset it could prefer, which is why",
+    "this sets and never narrows."
+  ],
+  "tier": "exact",
+  "aspects": [
+    "stars"
+  ],
+  "sets": {
+    "starglow": "1.0..1.0"
+  }
+}
