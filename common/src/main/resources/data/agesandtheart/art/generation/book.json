@@ -9,7 +9,7 @@
     ],
     "frozen_age": [
       {"weight":2.0,"produce":["<bleak_mood>","age","<cold_stone>","landmass","frozen","climate"]},
-      {"produce":["age","<cold_stone>","landmass","frozen","climate","<cold_sky>","sky"]}
+      {"produce":["age","<cold_stone>","landmass","frozen","climate","<cold_sky>"]}
     ],
     "molten_age": [
       {"weight":2.0,"produce":["<bleak_mood>","age","<hot_stone>","landmass","molten","sea"]},
@@ -26,8 +26,8 @@
       {"produce":["snow_block"]}
     ],
     "cold_sky": [
-      {"produce":["overcast"]},
-      {"produce":["starlit"]}
+      {"produce":["overcast","sky"]},
+      {"produce":["starlit","stars"]}
     ],
     "hot_stone": [
       {"weight":2.0,"produce":["basalt"]},

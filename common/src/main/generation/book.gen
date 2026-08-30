@@ -7,7 +7,7 @@ terminals word
 book = <frozen_age> | <molten_age>
 
 frozen_age = <bleak_mood> age <cold_stone> landmass frozen climate x2
-    | age <cold_stone> landmass frozen climate <cold_sky> sky
+    | age <cold_stone> landmass frozen climate <cold_sky>
 
 molten_age = <bleak_mood> age <hot_stone> landmass molten sea x2
     | age <hot_stone> landmass riddled depths molten sea
@@ -16,6 +16,8 @@ bleak_mood = desolate x2 | ancient | foreboding
 
 cold_stone = packed_ice x2 | blue_ice | snow_block
 
-cold_sky = overcast | starlit
+# Each closes its own page: `overcast` is about the vault and `starlit` is about the field behind it, and
+# since the world model split the two they are siblings rather than one page holding the other.
+cold_sky = overcast sky | starlit stars
 
 hot_stone = basalt x2 | blackstone | magma_block

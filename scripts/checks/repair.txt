@@ -17,7 +17,7 @@ age draft repair 2
 age draft repair 3
 
 # --- Re-homing, which is the whole point --------------------------------------------------------
-# A sky word aimed at the land. Expect `starless` kept, laid under the sky, and the readout saying so.
+# A star word aimed at the land. Expect `starless` kept, laid under the stars, and the readout saying so.
 age write rehomed 101 age landmass starless
 
 # The same word aimed at the land, with the land also spoken to. Expect `flat` to stay with the
@@ -55,7 +55,7 @@ age write allstructure 106 age only and
 # --- The price -----------------------------------------------------------------------------------
 # The same words, once as a sentence and once not. Expect the same cost from both: filling a book in is
 # the Art's doing and the writer never spent the ink.
-age write priced 107 age sky starless
+age write priced 107 age starless stars
 age write mispriced 108 age landmass starless
 
 # What each of them actually became, side by side.

@@ -81,6 +81,31 @@ class DerivedAspectsCheck : FunSpec({
     }
 
     /**
+     * **And a word must do something in every aspect it declares** — the other half of the same rule, and
+     * the one that went missing.
+     *
+     * `starlit` and `starless` stayed on `sky` when the world model split the star field off it. The
+     * derivation widened them into `stars`, so the setting still landed and the check above still passed;
+     * but a clause *aimed* at `sky` confines the claim to `sky`, and `starlit sky` therefore read cleanly
+     * and did nothing at all.
+     *
+     * Asked only of words whose whole content is what they set. A word that reaches by tag query means
+     * something wherever those tags are carried, and no parameter can confirm or deny that.
+     */
+    test("a word that only sets parameters declares nothing but the aspects owning them") {
+        val setsAndNothingElse = vocabulary.authoredWords
+            .filter { !it.constrainsPresets && it.weights.isEmpty() && it.canSet.isNotEmpty() }
+        for (word in setsAndNothingElse) {
+            val owners = word.canSet.keys.flatMap(::aspectsOwning).toSet()
+            val idle = word.aspects - owners
+            check(idle.isEmpty()) {
+                "${word.name} declares $idle, where it sets nothing and asks nothing — a clause aimed at " +
+                    "${idle.first()} would read it and change nothing"
+            }
+        }
+    }
+
+    /**
      * **Deriving only ever widens.** The words that disagree with their own concrete claims — `clear`,
      * `arid`, `verdant` — each declare *more* than they claim, reaching further by tag query alone, and
      * each is the vocabulary being natural rather than an author being sloppy.
