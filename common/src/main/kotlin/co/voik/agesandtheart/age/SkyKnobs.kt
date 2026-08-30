@@ -6,7 +6,6 @@ import co.voik.ephemeris.sky.AuroraGround
 import co.voik.ephemeris.sky.CelestialBody
 import co.voik.ephemeris.sky.CloudDeck
 import co.voik.ephemeris.sky.Daylight
-import co.voik.ephemeris.sky.Facing
 import co.voik.ephemeris.sky.HorizonGlow
 import co.voik.ephemeris.sky.LevelLook
 import co.voik.ephemeris.sky.Motion
@@ -38,7 +37,6 @@ object SkyKnobs {
         "path" to Shape.entries.map { it.key },
         "glow" to HorizonGlow.entries.map { it.name.lowercase() },
         "daylight" to Daylight.entries.map { it.name.lowercase() },
-        "facing" to Facing.entries.map { it.name.lowercase() },
         "deck" to Deck.entries.map { it.key },
         "air" to listOf("<0..2>", "how thick the air a body is seen through is; 0 is airless"),
         "aurora" to Curtain.entries.map { it.key },
@@ -95,12 +93,6 @@ object SkyKnobs {
                     val daylight = Daylight.entries.firstOrNull { it.name.equals(value, ignoreCase = true) }
                         ?: return Result.failure(IllegalArgumentException(failure))
                     rules = rules.copy(daylight = daylight)
-                }
-
-                "facing" -> {
-                    val facing = Facing.entries.firstOrNull { it.name.equals(value, ignoreCase = true) }
-                        ?: return Result.failure(IllegalArgumentException(failure))
-                    bodies = bodies.map { it.copy(facing = facing) }
                 }
 
                 "air" -> {
