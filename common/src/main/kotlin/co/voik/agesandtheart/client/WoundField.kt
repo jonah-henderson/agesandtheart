@@ -62,21 +62,43 @@ object WoundField {
         val now = System.currentTimeMillis()
         // Gathered before submitting: the lambda below runs inside the buffer's own bookkeeping, and
         // walking the index there would hold it open for the length of the walk.
+        val opening = Wounds.openingIn(level)
         val inSight = mutableListOf<BlockPos>()
         Wounds.eachNear(level, camera, drawnFrom()) { inSight.add(it) }
         if (inSight.isEmpty()) return
         collector.submitCustomGeometry(poseStack, RenderTypes.entitySolid(TEXTURE)) { pose, buffer ->
             for (wound in inSight) {
-                val scale = flickerAt(wound, now)
+                val scale = flickerAt(wound, now) * tearingOpen(opening, wound, now)
                 for (face in Direction.entries) faceOf(pose, buffer, wound, camera, scale, face)
             }
         }
     }
 
     /**
+     * A wound that has just torn itself open, growing from nothing — **so blight is watched rather than
+     * discovered** (§5.2.1).
+     *
+     * Only a wound this client saw arrive has a moment to grow from; everything read out of a chunk as it
+     * loaded is already open, which is what stops a chunk coming into view from bursting.
+     *
+     * Cubed, so it starts fast and eases into the flicker rather than arriving at full size with a corner
+     * in the motion. The scale it grows into is the flicker's own, so there is no seam between the two:
+     * the wound is simply small for the first fraction of a second of its life.
+     */
+    private fun tearingOpen(opening: Map<BlockPos, Long>?, wound: BlockPos, now: Long): Float {
+        val began = opening?.get(wound) ?: return FULLY_OPEN
+        val since = now - began
+        if (since >= Wounds.OPENS_OVER) return FULLY_OPEN
+        val left = 1.0f - since.toFloat() / Wounds.OPENS_OVER
+        return 1.0f - left * left * left
+    }
+
+    /**
      * How far wounds are drawn from, in blocks — the render distance, so they behave like the terrain
      * they are holes in rather than fading at a distance of their own.
      */
+    private const val FULLY_OPEN = 1.0f
+
     private fun drawnFrom(): Double =
         (Minecraft.getInstance().options.renderDistance().get() * SECTION).toDouble()
 

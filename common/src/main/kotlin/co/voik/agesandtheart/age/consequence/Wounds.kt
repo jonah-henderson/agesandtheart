@@ -109,8 +109,49 @@ object Wounds {
         val wasOne = was.`is`(AgeContent.WOUND_BLOCK)
         val isOne = now.`is`(AgeContent.WOUND_BLOCK)
         if (wasOne == isOne) return
-        if (isOne) arrived(level, at) else gone(level, at)
+        if (!isOne) {
+            gone(level, at)
+            return
+        }
+        arrived(level, at)
+        noteTheMoment(level, at)
     }
+
+    /**
+     * When a wound was seen to arrive, for the few that were — **the difference between an Age worsening
+     * in front of somebody and one found already worse.**
+     *
+     * Only [noticed] writes here, and that is the whole rule: a wound read out of a chunk as it loads was
+     * always there as far as this client is concerned, and a chunk arriving should not make every hole in
+     * it lunge open at once. One torn while somebody stood there is the case worth showing.
+     *
+     * **Pruned from the front rather than swept**, which a `LinkedHashMap` makes free: entries go in in
+     * time order, so everything expired is at the head and the walk stops at the first one that is not.
+     */
+    private val opening = WeakHashMap<Level, LinkedHashMap<BlockPos, Long>>()
+
+    private fun noteTheMoment(level: Level, at: BlockPos) {
+        val here = opening.getOrPut(level) { LinkedHashMap() }
+        val now = System.currentTimeMillis()
+        val stale = here.entries.iterator()
+        while (stale.hasNext()) {
+            if (now - stale.next().value < OPENS_OVER) break
+            stale.remove()
+        }
+        here[at.immutable()] = now
+    }
+
+    /**
+     * What is still tearing itself open in [level], or null where nothing is — which is nearly always.
+     *
+     * Handed out whole rather than asked per wound, because the renderer asks for every wound in sight on
+     * every frame and a lookup apiece would be thousands of them a second for an answer that is usually
+     * "nothing at all".
+     */
+    fun openingIn(level: Level): Map<BlockPos, Long>? = opening[level]
+
+    /** How long a wound takes to tear itself open, in milliseconds — brief, and unmistakably an event. */
+    const val OPENS_OVER = 700L
 
     /** Everything, for a client leaving a server outright. */
     fun forget() = byLevel.clear()

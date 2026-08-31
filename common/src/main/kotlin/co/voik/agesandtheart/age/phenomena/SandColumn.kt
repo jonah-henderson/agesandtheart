@@ -315,12 +315,20 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
      * torch is exactly what `canBeReplaced` separates out.
      */
     private fun pile(level: ServerLevel, atX: Int, atZ: Int, dramatically: Boolean) {
-        val top = settledAt(level, atX, atZ) ?: return
-        if (top.y >= level.maxY) return
+        val settled = settledAt(level, atX, atZ) ?: return
+        if (settled.y >= level.maxY) return
+        val top = overAnyWound(level, settled) ?: return
+        // **Sand buries a wound; it never takes one out** (§5.1, seen 2026-08-31). A wound blocks no
+        // motion, so `MOTION_BLOCKING` points straight *at* one resting on the ground — which is exactly
+        // the position a pile wants, and the destroy below would have removed the one thing in the Age
+        // that nothing is allowed to remove. Piling starts above it instead, and the drop is skipped for
+        // that position: a falling block passes through a wound it cannot collide with and would come to
+        // rest in its place.
+        val burying = top != settled
         // **Near somebody, some of it falls rather than appearing.** It is the same block landing in the
         // same column, so nothing about the trail changes — what changes is that you watch it arrive.
         // `FallingBlockEntity.fall` clears the place it starts from, which is already air up there.
-        if (dramatically) {
+        if (dramatically && !burying) {
             val from = top.atY((top.y + FALLS_FROM).coerceAtMost(level.maxY - 1))
             if (from.y > top.y && level.getBlockState(from).isAir) {
                 FallingBlockEntity.fall(level, from, Blocks.SAND.defaultBlockState())
@@ -372,6 +380,20 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
             }
         }
         return if (here.y - settled.y >= SLIDES_WHEN_LOWER_BY) settled else here
+    }
+
+    /**
+     * That position, or the first one above it that is not a wound.
+     *
+     * Null where the column has run out of world, which is the same answer as nowhere to pile.
+     */
+    private fun overAnyWound(level: ServerLevel, top: BlockPos): BlockPos? {
+        var above = top
+        while (level.getBlockState(above).`is`(AgeContent.WOUND_BLOCK)) {
+            above = above.above()
+            if (above.y >= level.maxY) return null
+        }
+        return above
     }
 
     /** The first empty place above that column, or null where there is no chunk to ask. */

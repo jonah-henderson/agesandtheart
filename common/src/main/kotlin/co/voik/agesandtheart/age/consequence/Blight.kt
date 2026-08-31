@@ -107,11 +107,14 @@ object Blight {
      */
     private fun catchUp(level: ServerLevel, worsening: Worsening) {
         val here = waiting[level] ?: return
+        val taken = takeFrom(here)
         var budget = WOUNDS_PER_TICK
-        val arrivals = here.iterator()
-        while (arrivals.hasNext() && budget > 0) {
-            val at = arrivals.next()
-            arrivals.remove()
+        for ((index, at) in taken.withIndex()) {
+            if (budget <= 0) {
+                // The rest go back rather than being dropped: they are chunks somebody can see.
+                for (waited in index..<taken.size) here.add(taken[waited])
+                break
+            }
             val chunk = level.chunkSource.getChunkNow(ChunkPos.getX(at), ChunkPos.getZ(at)) ?: continue
             budget -= Tearing.tearInto(
                 level,
@@ -122,6 +125,28 @@ object Blight {
             )
         }
         if (here.isEmpty()) waiting.remove(level)
+    }
+
+    /**
+     * A batch of arrivals, out of the queue and into a list nothing else can touch.
+     *
+     * **The tearing must not run under an iterator over [waiting], and that is a crash rather than a
+     * caution** (2026-08-31): placing a wound drives a chunk load or unload of its own, whose event calls
+     * straight back into [chunkArrived] or [chunkLeft], and the set is structurally modified underneath the
+     * pass walking it. Taking the batch first is what breaks the re-entrancy — nothing but the iterator
+     * itself runs in this loop.
+     *
+     * Bounded as well as safe: a player arriving in an Age loads several hundred chunks at once, and a
+     * snapshot of all of them would be one allocation the size of the backlog.
+     */
+    private fun takeFrom(here: MutableSet<Long>): List<Long> {
+        val taken = ArrayList<Long>(CHUNKS_PER_TICK)
+        val arrivals = here.iterator()
+        while (arrivals.hasNext() && taken.size < CHUNKS_PER_TICK) {
+            taken.add(arrivals.next())
+            arrivals.remove()
+        }
+        return taken
     }
 
     /** And the part somebody is present for: one more hole, where they can watch it open. */
@@ -176,4 +201,12 @@ object Blight {
      * they arrive in.
      */
     private const val WOUNDS_PER_TICK = 64
+
+    /**
+     * And how many chunks one may look at, which bounds the batch rather than the tearing.
+     *
+     * Most arrivals owe nothing — a chunk that generated a moment ago is already right — so this is the
+     * rate the *quiet* case drains at, and a few hundred chunks of nothing clear in a handful of ticks.
+     */
+    private const val CHUNKS_PER_TICK = 64
 }

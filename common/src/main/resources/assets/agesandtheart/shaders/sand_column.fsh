@@ -45,6 +45,15 @@ const vec3 LIT = vec3(1.00, 0.94, 0.76);
 // What `layer.g` reads at or above for the shell that is solid. The three shells are 0, a half and 1.
 const float CORE_IS_AT = 0.75;
 
+// **Below this a fragment is thrown away rather than blended, and the reason is the depth buffer.**
+// The pipeline writes depth so the column occludes the water and clouds drawn after it, and a fragment
+// that blends writes depth whatever its alpha -- so a nearly-clear gap between grains was standing in
+// front of water and ice and taking them out of the picture, leaving the riverbed showing through the
+// hole. A hole has to be a real hole: a grain this faint is discarded, writes no depth, and lets the world
+// behind it through intact. **This is the knob if the curtain reads too thin or too solid** -- lower it for
+// a softer veil that eats more of what is behind it, raise it for harder grains and cleaner water.
+const float TOO_FAINT_TO_STAND_IN_FRONT = 0.4;
+
 // The four amplitudes in `fallAt`, summed — what the total is divided by to land back in -1..1. Derived,
 // so it moves with them; the frequencies themselves are free.
 const float AMPLITUDE_SUM = 1.0 + 0.7 + 0.5 + 0.3;
@@ -107,8 +116,12 @@ void main() {
     // inside it, with neither face culled, there is nothing to see out of at all.
     float solid = step(CORE_IS_AT, shell);
     float alpha = mix(layer.a * fall * fall, 1.0, solid);
+    if (alpha < TOO_FAINT_TO_STAND_IN_FRONT) discard;
+    // **The fade into the sky is applied after the test, or it would cut the top of the column off.** It
+    // thins every shell including the core, so testing the faded value would discard whole slabs of the
+    // upper column and leave a hard edge where the fade crossed the threshold. What it leaves behind does
+    // write depth, and up there nothing is drawn behind it to lose.
     alpha *= smoothstep(0.0, ARRIVES_BY, aroundAndDown.y);
-    if (alpha <= 0.01) discard;
 
     fragColor = apply_fog(
         vec4(tone, alpha),
