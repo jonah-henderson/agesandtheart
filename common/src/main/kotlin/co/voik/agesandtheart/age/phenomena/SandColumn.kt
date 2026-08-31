@@ -12,6 +12,9 @@ import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntitySpawnReason
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.level.Level
+import net.minecraft.core.particles.BlockParticleOption
+import net.minecraft.core.particles.ParticleTypes
+import net.minecraft.world.entity.item.FallingBlockEntity
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.storage.ValueInput
@@ -132,6 +135,10 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
         // allow for that on top of how far the spill can carry.
         val reach = ceil(behaviour.spillReachAt(standing) * ROOT_TWO).toInt()
         val onIt = behaviour.depositChanceFor(speed, fullHalfWidth)
+        // Asked once for the whole sweep rather than per position: it is the same answer either way and
+        // the sweep is hundreds of positions wide.
+        val watched = level.getNearestPlayer(this, behaviour.dramaReach) != null
+        if (watched) hangDust(level, behaviour, standing)
         for (eastward in -reach..reach) {
             for (southward in -reach..reach) {
                 val offsetX = blockX + eastward + MIDDLE - x
@@ -140,7 +147,8 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
                 val across = abs(forwardZ * offsetX - forwardX * offsetZ)
                 val chance = onIt * behaviour.spillFadeAt(standing, max(along, across) - standing)
                 if (random.nextDouble() >= chance) continue
-                pile(level, blockX + eastward, blockZ + southward)
+                val dramatically = watched && random.nextDouble() < behaviour.dramaShare
+                pile(level, blockX + eastward, blockZ + southward, dramatically)
             }
         }
     }
@@ -205,12 +213,45 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
      * a life is a cost paid for something nobody would collect. What a player would miss is a torch, and a
      * torch is exactly what `canBeReplaced` separates out.
      */
-    private fun pile(level: ServerLevel, atX: Int, atZ: Int) {
+    private fun pile(level: ServerLevel, atX: Int, atZ: Int, dramatically: Boolean) {
         val top = settledAt(level, atX, atZ) ?: return
         if (top.y >= level.maxY) return
+        // **Near somebody, some of it falls rather than appearing.** It is the same block landing in the
+        // same column, so nothing about the trail changes — what changes is that you watch it arrive.
+        // `FallingBlockEntity.fall` clears the place it starts from, which is already air up there.
+        if (dramatically) {
+            val from = top.atY((top.y + FALLS_FROM).coerceAtMost(level.maxY - 1))
+            if (from.y > top.y && level.getBlockState(from).isAir) {
+                FallingBlockEntity.fall(level, from, Blocks.SAND.defaultBlockState())
+                return
+            }
+        }
         val standing = level.getBlockState(top)
         if (!standing.isAir && !standing.canBeReplaced()) level.destroyBlock(top, true)
         level.setBlockAndUpdate(top, Blocks.SAND.defaultBlockState())
+    }
+
+    /**
+     * The dust hanging in the column, for somebody standing near enough to be in it.
+     *
+     * **One packet a tick, scattered by the deltas** rather than one call per mote: `sendParticles` treats
+     * them as a spread when the count is above one, so a whole column's worth of dust costs a single
+     * message. It is the near-field half of what the shader draws — the prism is four flat faces, and what
+     * a player inside one needs is something genuinely moving past them.
+     */
+    private fun hangDust(level: ServerLevel, behaviour: ColumnBehaviour, standing: Double) {
+        if (behaviour.dust <= NONE) return
+        level.sendParticles(
+            SAND_DUST,
+            x,
+            y + DUST_STANDS / 2.0,
+            z,
+            behaviour.dust,
+            standing,
+            DUST_STANDS / 2.0,
+            standing,
+            NOTHING,
+        )
     }
 
     /**
@@ -278,6 +319,16 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
         /** How far a sliding block looks, in blocks — the eight around it and no further. */
         private const val BESIDE = 1
 
+        /** How far above where it will land a dramatic block starts, in blocks. */
+        private const val FALLS_FROM = 22
+
+        /** How tall the cloud of dust is, in blocks — the near field, not the whole column. */
+        private const val DUST_STANDS = 40.0
+
+        /** Sand, as the dust that comes off it. */
+        private val SAND_DUST = BlockParticleOption(ParticleTypes.FALLING_DUST, Blocks.SAND.defaultBlockState())
+
+        private const val NONE = 0
         private const val NOTHING = 0.0
 
         private const val AGE_KEY = "age"

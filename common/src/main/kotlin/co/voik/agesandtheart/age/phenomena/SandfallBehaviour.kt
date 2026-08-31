@@ -73,6 +73,23 @@ data class ColumnBehaviour(
      * footprint linear in its width, so the thin ends leave thin trails.
      */
     val spillShare: Double = DEFAULT_SPILL_SHARE,
+    /**
+     * How near somebody has to be for real sand to fall, in blocks.
+     *
+     * **Beyond this the sand is simply placed**, which is `decisions.md`'s rule and not an optimisation:
+     * every block in flight is an entity, so a curtain of them at storm scale is thousands of entities
+     * alive at once. What they are worth spending on is the few metres where somebody can watch one land.
+     */
+    val dramaReach: Double = DEFAULT_DRAMA_REACH,
+    /**
+     * What share of the sand landing near somebody arrives as a real falling block.
+     *
+     * **It replaces a deposit rather than adding one**, so a trail is exactly as deep whether anybody was
+     * watching or not — the drama changes the *delivery* and never the amount.
+     */
+    val dramaShare: Double = DEFAULT_DRAMA_SHARE,
+    /** How many motes of dust hang in a column each tick, for somebody near enough to see them. */
+    val dust: Int = DEFAULT_DUST,
 ) {
     /**
      * How likely one position under the footprint is to be given a block this tick.
@@ -157,6 +174,9 @@ data class ColumnBehaviour(
         private const val DEFAULT_TURN_EVERY = 120
         private const val DEFAULT_TURN_MOST = 30.0
         private const val DEFAULT_SPILL_SHARE = 0.8
+        private const val DEFAULT_DRAMA_REACH = 32.0
+        private const val DEFAULT_DRAMA_SHARE = 0.12
+        private const val DEFAULT_DUST = 8
 
         private const val BOTH_SIDES = 2.0
         private const val CERTAIN = 1.0
@@ -195,6 +215,11 @@ data class ColumnBehaviour(
                     .forGetter(ColumnBehaviour::turnMost),
                 Codec.DOUBLE.optionalFieldOf("spill_share", DEFAULT_SPILL_SHARE)
                     .forGetter(ColumnBehaviour::spillShare),
+                Codec.DOUBLE.optionalFieldOf("drama_reach", DEFAULT_DRAMA_REACH)
+                    .forGetter(ColumnBehaviour::dramaReach),
+                Codec.DOUBLE.optionalFieldOf("drama_share", DEFAULT_DRAMA_SHARE)
+                    .forGetter(ColumnBehaviour::dramaShare),
+                Codec.INT.optionalFieldOf("dust", DEFAULT_DUST).forGetter(ColumnBehaviour::dust),
             ).apply(instance, ::ColumnBehaviour)
         }
     }

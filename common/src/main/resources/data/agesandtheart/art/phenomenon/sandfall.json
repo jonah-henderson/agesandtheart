@@ -23,6 +23,11 @@
     "not a slab of four and a half. Raise `depth` if a deeper burial is wanted -- the trade is that a",
     "uniform slab reads as a wall where a drift reads as sand.",
     "",
+    "Near a player some of the sand arrives as a real falling block rather than appearing. It *replaces* a",
+    "deposit rather than adding one, so a trail is exactly as deep whether anybody was watching -- and it",
+    "is fenced to `drama_reach` because every block in flight is an entity and a curtain of them at storm",
+    "scale is thousands at once.",
+    "",
     "`spill_share` is a share of the column's own half-width rather than a count of blocks, and that is a",
     "correction rather than a preference: a fixed band read fine at full width and was ruinous at the ends",
     "of a life, where the rate has risen to keep the depth constant but the band had not shrunk to match.",
@@ -42,7 +47,10 @@
     "ramp": 60,
     "turn_every": 120,
     "turn_most": 30.0,
-    "spill_share": 0.8
+    "spill_share": 0.8,
+    "drama_reach": 32.0,
+    "drama_share": 0.12,
+    "dust": 8
   },
   "at_most": 1,
   "between_spawns": 3600,
