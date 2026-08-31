@@ -51,6 +51,22 @@ enum class Manifestation(val key: String) : StringRepresentable {
     BLIGHT("blight"),
 
     /**
+     * Columns of sand walk the Age (design §5.2.2) — bigger, hungrier, longer-lived and more of them at
+     * once the further the budget reaches.
+     *
+     * **The first manifestation that puts a *phenomenon* into an Age nobody wrote one into, and that is the
+     * point rather than a leak** (Jonah, 2026-08-31). Instability is the way an Age comes apart
+     * unpredictably, so a column walking a world that never asked for one is exactly what the index is for
+     * (§7.7's "a meteor storm you introduced *by contradiction*"). Nothing here tests whether the Age
+     * already has a sandfall: where it does, the two **compound**.
+     *
+     * **Priced below [BLIGHT] deliberately.** A sandfall is difficulty and blight is a verdict — you can
+     * roof over sand, and burial hands you the glass to do it with, where a blighted Age only asks how long
+     * you stay. Consequence should reach the hazard you can answer before the one you cannot.
+     */
+    SANDFALL("sandfall"),
+
+    /**
      * The world comes apart at the bottom (design §5.3) — fissures open at the world floor and widen, and
      * what falls in is put back in the overworld.
      *

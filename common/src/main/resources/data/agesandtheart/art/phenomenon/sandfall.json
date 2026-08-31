@@ -33,8 +33,16 @@
     "of a life, where the rate has risen to keep the depth constant but the band had not shrunk to match.",
     "One pass left fourteen blocks where four and a half were asked for.",
     "",
-    "`at_most` and `between_spawns` are both moved by the claim's rung, which is the one place a rung",
-    "reaches: `teeming sandfall` is more columns arriving sooner."
+    "`at_most` and `between_spawns` are both moved by the claim's rung: `teeming sandfall` is more columns",
+    "arriving sooner.",
+    "",
+    "`fury` is the far end of every dial, reached only by an Age whose instability bought the whole of",
+    "`art/manifestation/sandfall.json`. A twenty-by-twenty column burying eleven deep, living ten minutes,",
+    "six of them at once and one along every twenty seconds. The rung and the index *compound*, so a",
+    "`teeming sandfall` written into an Age that is also coming apart is worse than either alone -- capped",
+    "at `fury.at_once`, which is the axis that costs to run.",
+    "",
+    "Unwalked. `/age sandfall <distance> <seconds> <fury>` stands one up at a given percent of it."
   ],
   "column": {
     "depth": 4.5,
@@ -51,6 +59,13 @@
     "drama_reach": 32.0,
     "drama_share": 0.12,
     "dust": 8
+  },
+  "fury": {
+    "half_width": 10.0,
+    "depth": 11.0,
+    "life": 12000,
+    "at_once": 6,
+    "between_spawns": 400
   },
   "at_most": 1,
   "between_spawns": 3600,

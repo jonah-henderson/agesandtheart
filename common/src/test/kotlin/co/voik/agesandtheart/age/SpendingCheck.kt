@@ -19,6 +19,7 @@ class SpendingCheck : FunSpec({
     val SHIPPED = mapOf(
         Manifestation.TORN_SEAMS to Price(costs = 2, most = 4),
         Manifestation.WOUNDS to Price(costs = 5, most = 4),
+        Manifestation.SANDFALL to Price(costs = 7, most = 4),
         Manifestation.BLIGHT to Price(costs = 9, most = 3),
         Manifestation.COLLAPSE to Price(costs = 14, most = 3),
     )
@@ -166,13 +167,29 @@ class SpendingCheck : FunSpec({
             check(collapse(budget) == 0) { "instability $budget collapsed an Age: ${collapse(budget)}" }
         }
         // Both are reachable by an Age genuinely written to come apart, or they would be dead content.
-        check(blight(40) >= 1) { "no budget at all reached blight" }
-        check(collapse(80) >= 1) { "no budget at all reached collapse" }
+        check(blight(65) >= 1) { "no budget at all reached blight" }
+        check(collapse(97) >= 1) { "no budget at all reached collapse" }
         // Accumulation: anything that can afford to collapse also bought everything below it (§5.0).
-        val ruined = Spending.of(80, SHIPPED, 1L)
+        val ruined = Spending.of(97, SHIPPED, 1L)
         check(ruined.bought(Manifestation.TORN_SEAMS) == 4) { "a collapsing Age skipped its seams" }
         check(ruined.bought(Manifestation.WOUNDS) == 4) { "a collapsing Age skipped its wounds" }
+        check(ruined.bought(Manifestation.SANDFALL) == 4) { "a collapsing Age skipped its sandfalls" }
         check(ruined.bought(Manifestation.BLIGHT) >= 1) { "a collapsing Age skipped blight" }
+    }
+
+    /**
+     * **That the map above names every manifestation there is.**
+     *
+     * Without this, adding one and forgetting to price it here is not caught where the mistake is: the new
+     * manifestation silently falls back to `Price.ORDINARY`, which at two a step is *cheaper than anything
+     * shipped*, so it eats the budget from the bottom and the failure surfaces as some unrelated register
+     * going unbought. That is exactly what adding the sandfall did (2026-08-31).
+     */
+    test("the shipped list prices every manifestation") {
+        val unpriced = Manifestation.entries.filterNot { it in SHIPPED }
+        check(unpriced.isEmpty()) {
+            "$unpriced would fall back to Price.ORDINARY, which is cheaper than everything shipped"
+        }
     }
 
     /**

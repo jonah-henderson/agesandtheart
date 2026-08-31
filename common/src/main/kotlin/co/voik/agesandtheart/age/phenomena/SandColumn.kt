@@ -76,6 +76,16 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
     var fullHalfWidth: Double = 0.0
         private set
 
+    /**
+     * How deep one pass of this column leaves the ground — its own, rolled at spawn.
+     *
+     * **Per column and not read live**, for the same reason its width is: an Age's instability decides how
+     * hard its columns bury, and a rate re-read every tick would change under a column halfway through its
+     * life if anything ever rewrote the book it came from.
+     */
+    var depth: Double = 0.0
+        private set
+
     /** How many ticks since anybody was near enough to see it. */
     private var sinceSeen: Int = 0
 
@@ -134,7 +144,7 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
         // The corners of a turned square reach half as far again as its edges, so the box swept has to
         // allow for that on top of how far the spill can carry.
         val reach = ceil(behaviour.spillReachAt(standing) * ROOT_TWO).toInt()
-        val onIt = behaviour.depositChanceFor(speed, fullHalfWidth)
+        val onIt = behaviour.depositChanceFor(speed, fullHalfWidth, depth)
         // Asked once for the whole sweep rather than per position: it is the same answer either way and
         // the sweep is hundreds of positions wide.
         val watched = level.getNearestPlayer(this, behaviour.dramaReach) != null
@@ -286,6 +296,7 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
         lifetime = input.getIntOr(LIFETIME_KEY, 0)
         speed = input.getDoubleOr(SPEED_KEY, 0.0)
         fullHalfWidth = input.getDoubleOr(FULL_HALF_WIDTH_KEY, 0.0)
+        depth = input.getDoubleOr(DEPTH_KEY, 0.0)
     }
 
     override fun addAdditionalSaveData(output: ValueOutput) {
@@ -294,6 +305,7 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
         output.putInt(LIFETIME_KEY, lifetime)
         output.putDouble(SPEED_KEY, speed)
         output.putDouble(FULL_HALF_WIDTH_KEY, fullHalfWidth)
+        output.putDouble(DEPTH_KEY, depth)
     }
 
     override fun shouldBeSaved(): Boolean = true
@@ -337,6 +349,7 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
         private const val LIFETIME_KEY = "lifetime"
         private const val SPEED_KEY = "speed"
         private const val FULL_HALF_WIDTH_KEY = "full_half_width"
+        private const val DEPTH_KEY = "depth"
         private const val CHUNK_BITS = 4
 
         /**
@@ -362,6 +375,7 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
             speed: Double,
             lifetime: Int,
             fullHalfWidth: Double,
+            depth: Double,
         ): SandColumn? {
             val blockX = Mth.floor(atX)
             val blockZ = Mth.floor(atZ)
@@ -373,6 +387,7 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
             column.speed = speed
             column.lifetime = lifetime
             column.fullHalfWidth = fullHalfWidth
+            column.depth = depth
             level.addFreshEntity(column)
             return column
         }

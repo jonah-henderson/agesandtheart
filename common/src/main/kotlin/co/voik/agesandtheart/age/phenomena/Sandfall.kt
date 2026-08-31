@@ -35,15 +35,15 @@ object Sandfall {
      * often, `scarce sandfall` is one arriving four times as rarely — and the phenomenon needs no knob of
      * its own to be dialled.
      */
-    fun wander(level: ServerLevel, density: Double) {
+    fun wander(level: ServerLevel, density: Double, fury: Double) {
         val behaviour = SandfallBehaviour.of(level.server)
         // A pack that wants an Age with none says so by writing none, and is not overruled by a rung.
         if (behaviour.atMost <= NONE) return
 
-        if (standingIn(level) >= behaviour.atMostFor(density)) return
-        if (level.random.nextInt(behaviour.betweenSpawnsFor(density)) != NOW) return
+        if (standingIn(level) >= behaviour.atMostFor(density, fury)) return
+        if (level.random.nextInt(behaviour.betweenSpawnsFor(density, fury)) != NOW) return
 
-        raiseOneNearSomebody(level, behaviour)
+        raiseOneNearSomebody(level, behaviour, fury)
     }
 
     /** How many are already out. Bounded by [SandfallBehaviour.atMost], so this is a walk over a handful. */
@@ -61,7 +61,7 @@ object Sandfall {
      * **Several bearings are tried because the far side of the spawn ring may not be loaded**, and a column
      * may only be raised where there is already a chunk to stand it on ([SandColumn.raise]).
      */
-    private fun raiseOneNearSomebody(level: ServerLevel, behaviour: SandfallBehaviour) {
+    private fun raiseOneNearSomebody(level: ServerLevel, behaviour: SandfallBehaviour, fury: Double) {
         val watching = level.players().filterNot { it.isSpectator }
         if (watching.isEmpty()) return
         val random = level.random
@@ -69,6 +69,11 @@ object Sandfall {
         val spread = behaviour.furthestSpawn - behaviour.nearestSpawn
         repeat(BEARINGS_TRIED) {
             val column = behaviour.column
+            // Every dial the Age's instability reaches, read at this much of it — see [SandfallBehaviour].
+            val narrowest = behaviour.narrowestHalfWidthAt(fury)
+            val widest = behaviour.widestHalfWidthAt(fury)
+            val shortest = behaviour.shortestLifeAt(fury)
+            val longest = behaviour.longestLifeAt(fury)
             val away = behaviour.nearestSpawn + random.nextInt(spread.coerceAtLeast(AT_ONCE))
             val bearing = random.nextDouble() * FULL_TURN
             val heading = bearing + HALF_TURN + (random.nextDouble() - random.nextDouble()) * SPREAD_DEGREES
@@ -78,11 +83,10 @@ object Sandfall {
                 atZ = watcher.z + cos(bearing * Mth.DEG_TO_RAD) * away,
                 headingDegrees = heading.toFloat(),
                 speed = column.slowestSpeed + random.nextDouble() * (column.fastestSpeed - column.slowestSpeed),
-                lifetime = column.shortestLife +
-                    random.nextInt((column.longestLife - column.shortestLife).coerceAtLeast(AT_ONCE)),
+                lifetime = shortest + random.nextInt((longest - shortest).coerceAtLeast(AT_ONCE)),
                 // No two quite alike, which is the whole of why this is a range rather than a number.
-                fullHalfWidth = column.narrowestHalfWidth +
-                    random.nextDouble() * (column.widestHalfWidth - column.narrowestHalfWidth),
+                fullHalfWidth = narrowest + random.nextDouble() * (widest - narrowest),
+                depth = behaviour.depthAt(fury),
             )
             if (raised != null) return
         }

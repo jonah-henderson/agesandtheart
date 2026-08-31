@@ -209,6 +209,11 @@ object AgeCommand {
     private const val DEFAULT_SANDFALL_DISTANCE = 64
     private const val MAX_SANDFALL_DISTANCE = 256
     private const val SECONDS_ARGUMENT = "seconds"
+
+    /** `/age sandfall <distance> <seconds> <fury>` — how far into what instability could buy, as a percent. */
+    private const val FURY_ARGUMENT = "fury"
+    private const val NO_FURY = 0
+    private const val ALL_FURY = 100
     private const val MOST_SANDFALL_SECONDS = 3600
     private const val TICKS_PER_SECOND = 20
 
@@ -966,11 +971,16 @@ object AgeCommand {
      */
     private fun sandfallSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("sandfall")
-            .executes { context -> runSandfall(context, DEFAULT_SANDFALL_DISTANCE, null) }
+            .executes { context -> runSandfall(context, DEFAULT_SANDFALL_DISTANCE, null, NO_FURY) }
             .then(
                 Commands.argument(DISTANCE_ARGUMENT, IntegerArgumentType.integer(0, MAX_SANDFALL_DISTANCE))
                     .executes { context ->
-                        runSandfall(context, IntegerArgumentType.getInteger(context, DISTANCE_ARGUMENT), null)
+                        runSandfall(
+                            context,
+                            IntegerArgumentType.getInteger(context, DISTANCE_ARGUMENT),
+                            null,
+                            NO_FURY,
+                        )
                     }
                     .then(
                         Commands.argument(SECONDS_ARGUMENT, IntegerArgumentType.integer(1, MOST_SANDFALL_SECONDS))
@@ -979,8 +989,20 @@ object AgeCommand {
                                     context,
                                     IntegerArgumentType.getInteger(context, DISTANCE_ARGUMENT),
                                     IntegerArgumentType.getInteger(context, SECONDS_ARGUMENT),
+                                    NO_FURY,
                                 )
-                            },
+                            }
+                            .then(
+                                Commands.argument(FURY_ARGUMENT, IntegerArgumentType.integer(0, ALL_FURY))
+                                    .executes { context ->
+                                        runSandfall(
+                                            context,
+                                            IntegerArgumentType.getInteger(context, DISTANCE_ARGUMENT),
+                                            IntegerArgumentType.getInteger(context, SECONDS_ARGUMENT),
+                                            IntegerArgumentType.getInteger(context, FURY_ARGUMENT),
+                                        )
+                                    },
+                            ),
                     ),
             )
 
@@ -2000,12 +2022,15 @@ object AgeCommand {
         context: CommandContext<CommandSourceStack>,
         distance: Int,
         seconds: Int?,
+        furyPercent: Int,
     ): Int {
         val source = context.source
         val level = source.level
         val facing = Vec3.directionFromRotation(source.rotation)
         val at = source.position.add(facing.scale(distance.toDouble()))
-        val behaviour = SandfallBehaviour.of(source.server).column
+        val whole = SandfallBehaviour.of(source.server)
+        val behaviour = whole.column
+        val fury = furyPercent.toDouble() / ALL_FURY
         val random = level.random
         val column = SandColumn.raise(
             level = level,
@@ -2014,12 +2039,15 @@ object AgeCommand {
             // Turned around to walk back at you, so a column stood up ahead is one you then have to answer.
             headingDegrees = source.rotation.y + HALF_COMPASS,
             speed = behaviour.slowestSpeed + random.nextDouble() * (behaviour.fastestSpeed - behaviour.slowestSpeed),
-            fullHalfWidth = behaviour.narrowestHalfWidth +
-                random.nextDouble() * (behaviour.widestHalfWidth - behaviour.narrowestHalfWidth),
+            fullHalfWidth = whole.narrowestHalfWidthAt(fury) +
+                random.nextDouble() * (whole.widestHalfWidthAt(fury) - whole.narrowestHalfWidthAt(fury)),
+            depth = whole.depthAt(fury),
             lifetime = seconds?.times(TICKS_PER_SECOND)
                 ?: (
-                    behaviour.shortestLife +
-                        random.nextInt((behaviour.longestLife - behaviour.shortestLife).coerceAtLeast(1))
+                    whole.shortestLifeAt(fury) +
+                        random.nextInt(
+                            (whole.longestLifeAt(fury) - whole.shortestLifeAt(fury)).coerceAtLeast(1),
+                        )
                     ),
         )
         if (column == null) {
@@ -2036,7 +2064,8 @@ object AgeCommand {
         source.sendSuccess(
             {
                 Component.literal(
-                    "A sandfall at ${column.blockX} ${column.blockZ}, walking " +
+                    "A sandfall ${"%.0f".format(column.fullHalfWidth * 2)} across at " +
+                        "${column.blockX} ${column.blockZ}, walking " +
                         "${compassPointFor(column.yRot + HALF_COMPASS)} for " +
                         "${column.lifetime / TICKS_PER_SECOND}s",
                 )

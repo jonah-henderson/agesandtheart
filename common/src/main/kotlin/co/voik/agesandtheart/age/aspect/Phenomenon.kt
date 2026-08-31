@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.aspect
 
+import co.voik.agesandtheart.age.Manifestation
 import co.voik.agesandtheart.age.phenomena.AgeWeather
 import net.minecraft.util.StringRepresentable
 
@@ -39,6 +40,18 @@ enum class Phenomenon(
      * the weather itself and the two ending up disagreeing about who owns it.
      */
     val insistsOn: AgeWeather.Conditions = AgeWeather.Conditions.ORDINARY,
+    /**
+     * What an Age's instability buys to inflict this, or null where nothing does (design §7.7).
+     *
+     * **The second of the two directions this aspect is written from**, and the reason nothing has to
+     * record which one a phenomenon came from: what was *written* is a claim in the composition, and what
+     * was *inflicted* is derived from the index. Both are functions of the recipe and neither is stored.
+     *
+     * Null for the three that instability has no manifestation for yet. A phenomenon with one can arrive in
+     * an Age that never asked for it, which is not a leak but the whole of what instability is — the way an
+     * Age comes apart, unpredictably.
+     */
+    val inflictedBy: Manifestation? = null,
 ) : AspectPreset {
     /**
      * A world in permanent storm, struck far more often than weather alone would, and cratered where it
@@ -129,7 +142,7 @@ enum class Phenomenon(
      * which is the trap `auroral` paid for — a narrowing word is priced in its lowest-ordinal aspect and
      * phenomena are last, so a second parameter would reprice the word as one about climate.
      */
-    SANDFALL("sandfall"),
+    SANDFALL("sandfall", inflictedBy = Manifestation.SANDFALL),
     ;
 
     override val aspect = Aspect.PHENOMENA

@@ -96,7 +96,7 @@ data class ColumnBehaviour(
      *
      * **Derived rather than dialled**, which is the whole of why [depth] is what a pack writes. A patch of
      * ground stands under a footprint `2·halfWidth` wide moving at `speed` for `2·halfWidth / speed` ticks,
-     * so a chance of `depth · speed / (2 · fullHalfWidth)` leaves [depth] blocks behind. A faster column
+     * so a chance of `depth · speed / (2 · fullHalfWidth)` leaves that many blocks behind. A faster column
      * deposits harder per tick and leaves the same trail, and a wider one deposits more slowly per position
      * and leaves the same trail over more ground.
      *
@@ -113,7 +113,7 @@ data class ColumnBehaviour(
      * pass over again; taking that off here is what keeps the number a pack writes honest, rather than a
      * number a pack writes and then measures.
      */
-    fun depositChanceFor(speed: Double, fullHalfWidth: Double): Double {
+    fun depositChanceFor(speed: Double, fullHalfWidth: Double, depth: Double): Double {
         if (fullHalfWidth <= CLOSED) return CLOSED
         val alsoFromTheSpill = FULLY_OPEN + spillShare / BOTH_SIDES
         return (depth * speed / (fullHalfWidth * BOTH_SIDES * alsoFromTheSpill)).coerceIn(CLOSED, CERTAIN)
@@ -226,6 +226,50 @@ data class ColumnBehaviour(
 }
 
 /**
+ * What the worst an Age can be makes of a sandfall — the far end of every dial, reached at full instability.
+ *
+ * **A separate record because these are one idea**: everything here is "and at its very worst", and reading
+ * them beside the ordinary numbers is how a pack author sees the span they are tuning. (It is also what
+ * keeps [ColumnBehaviour] inside a codec group's sixteen fields, which is a real limit and not a style.)
+ *
+ * Nothing here is reached without the budget for it. [co.voik.agesandtheart.age.Manifestation.SANDFALL]
+ * prices the steps and `Price.most` caps them, so this is the top of a ramp rather than a switch.
+ */
+data class Fury(
+    /** Half a column's side at the worst — `10.0` is the twenty-by-twenty the brief asks for. */
+    val halfWidth: Double = DEFAULT_FURY_HALF_WIDTH,
+    /** How deep one pass deposits at the worst. */
+    val depth: Double = DEFAULT_FURY_DEPTH,
+    /** How long one lives at the worst, in ticks. */
+    val life: Int = DEFAULT_FURY_LIFE,
+    /** How many may stand at once at the worst — **and the ceiling, whatever a rung asks on top.** */
+    val atOnce: Int = DEFAULT_FURY_AT_ONCE,
+    /** How long between them at the worst, in ticks. */
+    val betweenSpawns: Int = DEFAULT_FURY_BETWEEN_SPAWNS,
+) {
+    companion object {
+        private const val DEFAULT_FURY_HALF_WIDTH = 10.0
+        private const val DEFAULT_FURY_DEPTH = 11.0
+        private const val DEFAULT_FURY_LIFE = 12000
+        private const val DEFAULT_FURY_AT_ONCE = 6
+        private const val DEFAULT_FURY_BETWEEN_SPAWNS = 400
+
+        val ORDINARY = Fury()
+
+        val CODEC: Codec<Fury> = RecordCodecBuilder.create { instance ->
+            instance.group(
+                Codec.DOUBLE.optionalFieldOf("half_width", DEFAULT_FURY_HALF_WIDTH).forGetter(Fury::halfWidth),
+                Codec.DOUBLE.optionalFieldOf("depth", DEFAULT_FURY_DEPTH).forGetter(Fury::depth),
+                Codec.INT.optionalFieldOf("life", DEFAULT_FURY_LIFE).forGetter(Fury::life),
+                Codec.INT.optionalFieldOf("at_once", DEFAULT_FURY_AT_ONCE).forGetter(Fury::atOnce),
+                Codec.INT.optionalFieldOf("between_spawns", DEFAULT_FURY_BETWEEN_SPAWNS)
+                    .forGetter(Fury::betweenSpawns),
+            ).apply(instance, ::Fury)
+        }
+    }
+}
+
+/**
  * How a sandfall comes — **datapack content** (`art/phenomenon/sandfall.json`), like [Intensity] and
  * [PhenomenonBehaviour] beside it, and cached on the resource manager's identity for the same reason.
  *
@@ -233,6 +277,8 @@ data class ColumnBehaviour(
  */
 data class SandfallBehaviour(
     val column: ColumnBehaviour = ColumnBehaviour.ORDINARY,
+    /** What the greatest instability makes of one — see [Fury]. */
+    val fury: Fury = Fury.ORDINARY,
     /** How many may stand in an Age at once, before the claim's rung multiplies it. */
     val atMost: Int = DEFAULT_AT_MOST,
     /** How long between one column and the next, in ticks, before the rung divides it. */
@@ -251,8 +297,18 @@ data class SandfallBehaviour(
      */
     val forgottenAfter: Int = DEFAULT_FORGOTTEN_AFTER,
 ) {
-    /** How many columns may stand at once at a claim's [density] — the rung multiplying [atMost]. */
-    fun atMostFor(density: Double): Int = Happenings.timesFor(density, atMost)
+    /**
+     * How many columns may stand at once — the rung multiplying [atMost], on top of however far the Age's
+     * instability has pushed that number toward [Fury.atOnce].
+     *
+     * **They compound rather than one winning** (Jonah, 2026-08-31): `teeming sandfall` written into an Age
+     * that is also coming apart is worse than either alone. [Fury.atOnce] is the ceiling on the result
+     * whatever the rung asks, because this is the axis that costs — see the plan's §11 measurement.
+     */
+    fun atMostFor(density: Double, fury: Double): Int {
+        val furious = lerp(atMost.toDouble(), this.fury.atOnce.toDouble(), fury)
+        return Happenings.timesFor(density, furious.roundToInt()).coerceAtMost(this.fury.atOnce)
+    }
 
     /**
      * How long between one column and the next at a claim's [density], in ticks.
@@ -263,12 +319,33 @@ data class SandfallBehaviour(
      * with the same one column at the same interval as an ordinary one. Both are honest functions of the
      * density instead, and the one that can still move is the one that moves.
      */
-    fun betweenSpawnsFor(density: Double): Int {
-        if (density <= NO_CLAIM) return betweenSpawns
-        return (betweenSpawns / (density / Rung.ORDINARY)).roundToInt().coerceAtLeast(AT_ONCE)
+    fun betweenSpawnsFor(density: Double, fury: Double): Int {
+        val furious = lerp(betweenSpawns.toDouble(), this.fury.betweenSpawns.toDouble(), fury)
+        if (density <= NO_CLAIM) return furious.roundToInt().coerceAtLeast(AT_ONCE)
+        return (furious / (density / Rung.ORDINARY)).roundToInt().coerceAtLeast(AT_ONCE)
     }
 
+    /** How wide a column may grow, at this much fury — the range's far end. */
+    fun widestHalfWidthAt(fury: Double): Double = lerp(column.widestHalfWidth, this.fury.halfWidth, fury)
+
+    /** And its near end, kept in proportion so a fierce Age still sends columns of differing sizes. */
+    fun narrowestHalfWidthAt(fury: Double): Double =
+        column.narrowestHalfWidth * (widestHalfWidthAt(fury) / column.widestHalfWidth)
+
+    /** How deep one pass deposits, at this much fury. */
+    fun depthAt(fury: Double): Double = lerp(column.depth, this.fury.depth, fury)
+
+    /** How long a column lives, at this much fury — both ends of the range, kept in proportion. */
+    fun longestLifeAt(fury: Double): Int = lerp(column.longestLife.toDouble(), this.fury.life.toDouble(), fury).roundToInt()
+
+    fun shortestLifeAt(fury: Double): Int =
+        (column.shortestLife.toDouble() * longestLifeAt(fury) / column.longestLife).roundToInt()
+
     companion object {
+        /** Straight between the ordinary number and the furious one; [howFar] is clamped by its caller. */
+        private fun lerp(ordinary: Double, furious: Double, howFar: Double): Double =
+            ordinary + (furious - ordinary) * howFar
+
         private const val NO_CLAIM = 0.0
         private const val AT_ONCE = 1
         private const val DEFAULT_AT_MOST = 1
@@ -285,6 +362,7 @@ data class SandfallBehaviour(
             instance.group(
                 ColumnBehaviour.CODEC.optionalFieldOf("column", ColumnBehaviour.ORDINARY)
                     .forGetter(SandfallBehaviour::column),
+                Fury.CODEC.optionalFieldOf("fury", Fury.ORDINARY).forGetter(SandfallBehaviour::fury),
                 Codec.INT.optionalFieldOf("at_most", DEFAULT_AT_MOST).forGetter(SandfallBehaviour::atMost),
                 Codec.INT.optionalFieldOf("between_spawns", DEFAULT_BETWEEN_SPAWNS)
                     .forGetter(SandfallBehaviour::betweenSpawns),

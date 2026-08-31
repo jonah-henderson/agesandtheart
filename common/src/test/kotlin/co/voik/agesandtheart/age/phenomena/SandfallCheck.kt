@@ -136,7 +136,7 @@ class SandfallCheck : FunSpec({
      * asked for (2026-08-31); this says the same thing offline and in a tenth of a second.
      */
     fun depthLeftByOnePass(behaviour: ColumnBehaviour, speed: Double, standing: Double): Double {
-        val onIt = behaviour.depositChanceFor(speed, standing)
+        val onIt = behaviour.depositChanceFor(speed, standing, behaviour.depth)
         val reach = standing * (1.0 + behaviour.spillShare)
         var left = 0.0
         var along = -reach
@@ -169,7 +169,7 @@ class SandfallCheck : FunSpec({
      */
     test("a half-open column leaves about half as much") {
         val speed = 0.06
-        val onIt = ordinary.depositChanceFor(speed, typical)
+        val onIt = ordinary.depositChanceFor(speed, typical, ordinary.depth)
         fun leftAt(standing: Double): Double {
             var left = 0.0
             var along = -standing * (1.0 + ordinary.spillShare)
@@ -212,7 +212,7 @@ class SandfallCheck : FunSpec({
             val standing = behaviour.halfWidthAt(age, lifetime, full)
             if (standing <= 0.0) continue
             // Asked every tick rather than once, so this keeps testing the rule if the rule starts varying.
-            val onIt = behaviour.depositChanceFor(speed, full)
+            val onIt = behaviour.depositChanceFor(speed, full, behaviour.depth)
             val middle = age * speed
             val reach = behaviour.spillReachAt(standing)
             for (position in (middle - reach).toInt()..(middle + reach).toInt() + 1) {
@@ -229,7 +229,7 @@ class SandfallCheck : FunSpec({
 
     test("a chance is a probability, however extreme the dials") {
         checkAll(Arb.numericDouble(0.001, 4.0), Arb.numericDouble(-50.0, 200.0)) { speed, depth ->
-            val chance = ColumnBehaviour(depth = depth).depositChanceFor(speed, typical)
+            val chance = ColumnBehaviour(depth = depth).depositChanceFor(speed, typical, depth)
             check(chance in 0.0..1.0) { "a deposit chance of $chance is not a probability" }
         }
     }
@@ -248,7 +248,7 @@ class SandfallCheck : FunSpec({
     }
 
     test("a column of no width at all deposits nothing") {
-        check(ordinary.depositChanceFor(0.05, 0.0) == 0.0) { "a column with no width was still depositing" }
+        check(ordinary.depositChanceFor(0.05, 0.0, ordinary.depth) == 0.0) { "a column with no width was still depositing" }
         check(ordinary.spillFadeAt(0.0, 1.0) == 0.0) { "a closed column was still spilling" }
     }
 
@@ -281,28 +281,90 @@ class SandfallCheck : FunSpec({
         val teeming = 4.0
         val scarce = 0.25
 
-        check(sending.atMostFor(ordinaryRung) == sending.atMost) { "an ordinary claim changed the count" }
-        check(sending.betweenSpawnsFor(ordinaryRung) == sending.betweenSpawns) {
+        check(sending.atMostFor(ordinaryRung, NO_FURY) == sending.atMost) { "an ordinary claim changed the count" }
+        check(sending.betweenSpawnsFor(ordinaryRung, NO_FURY) == sending.betweenSpawns) {
             "an ordinary claim changed the wait"
         }
 
-        check(sending.atMostFor(teeming) > sending.atMostFor(ordinaryRung)) {
+        check(sending.atMostFor(teeming, NO_FURY) > sending.atMostFor(ordinaryRung, NO_FURY)) {
             "a teeming claim did not raise how many may stand"
         }
-        check(sending.betweenSpawnsFor(teeming) < sending.betweenSpawnsFor(ordinaryRung)) {
+        check(sending.betweenSpawnsFor(teeming, NO_FURY) < sending.betweenSpawnsFor(ordinaryRung, NO_FURY)) {
             "a teeming claim did not shorten the wait"
         }
 
         // The count cannot fall below one, so the wait is the only thing left that can say "rarer".
-        check(sending.betweenSpawnsFor(scarce) > sending.betweenSpawnsFor(ordinaryRung)) {
+        check(sending.betweenSpawnsFor(scarce, NO_FURY) > sending.betweenSpawnsFor(ordinaryRung, NO_FURY)) {
             "a scarce claim was no rarer than an ordinary one, which is the whole of the bug"
         }
     }
 
     test("a rung never asks for a wait of no ticks at all") {
         checkAll(Arb.numericDouble(0.0, 64.0)) { density ->
-            check(SandfallBehaviour.ORDINARY.betweenSpawnsFor(density) >= 1) {
+            check(SandfallBehaviour.ORDINARY.betweenSpawnsFor(density, NO_FURY) >= 1) {
                 "a density of $density asked for a wait of nothing, which is a roll every tick"
+            }
+        }
+    }
+
+    /**
+     * **All four axes the index reaches actually move**, and none of them moves without it. The failure
+     * this guards is a dial wired to the ramp in the file and not in the code, which reads correct from
+     * either side on its own.
+     */
+    test("full fury moves every axis it is meant to and nothing else") {
+        val sending = SandfallBehaviour.ORDINARY
+        val ordinaryRung = Rung.ORDINARY
+
+        check(sending.widestHalfWidthAt(ALL_FURY) > sending.widestHalfWidthAt(NO_FURY)) { "fury did not widen" }
+        check(sending.depthAt(ALL_FURY) > sending.depthAt(NO_FURY)) { "fury did not deepen" }
+        check(sending.longestLifeAt(ALL_FURY) > sending.longestLifeAt(NO_FURY)) { "fury did not lengthen" }
+        check(sending.atMostFor(ordinaryRung, ALL_FURY) > sending.atMostFor(ordinaryRung, NO_FURY)) {
+            "fury did not raise how many stand at once"
+        }
+        check(sending.betweenSpawnsFor(ordinaryRung, ALL_FURY) < sending.betweenSpawnsFor(ordinaryRung, NO_FURY)) {
+            "fury did not shorten the wait"
+        }
+
+        // Nothing at all without it: an ordinary Age is exactly what it was before any of this existed.
+        check(sending.widestHalfWidthAt(NO_FURY) == sending.column.widestHalfWidth) { "a calm Age was widened" }
+        check(sending.depthAt(NO_FURY) == sending.column.depth) { "a calm Age was deepened" }
+        check(sending.longestLifeAt(NO_FURY) == sending.column.longestLife) { "a calm Age was lengthened" }
+    }
+
+    /** The brief's twenty-by-twenty, and it is the *shipped* number rather than one the check invents. */
+    test("full fury reaches the size the pack asked for and never past it") {
+        val sending = SandfallBehaviour.ORDINARY
+        check(sending.widestHalfWidthAt(ALL_FURY) == sending.fury.halfWidth) {
+            "the widest a column gets is not what `fury.half_width` says"
+        }
+        check(sending.narrowestHalfWidthAt(ALL_FURY) < sending.widestHalfWidthAt(ALL_FURY)) {
+            "at full fury every column would be exactly the same size"
+        }
+    }
+
+    /**
+     * **A written rung and the Age's own instability compound** (Jonah, 2026-08-31), rather than the greater
+     * winning — which is the house pattern elsewhere (`insistsOn` is a floor) and deliberately not this.
+     * A writer who reaches that far has gone to real trouble and is owed a proper show.
+     */
+    test("a rung and the index compound rather than one winning") {
+        val sending = SandfallBehaviour.ORDINARY
+        val teeming = 4.0
+        val written = sending.betweenSpawnsFor(teeming, NO_FURY)
+        val inflicted = sending.betweenSpawnsFor(Rung.ORDINARY, ALL_FURY)
+        val both = sending.betweenSpawnsFor(teeming, ALL_FURY)
+        check(both < written && both < inflicted) {
+            "both together ($both) were no worse than the rung alone ($written) or the index alone ($inflicted)"
+        }
+    }
+
+    /** The count is the axis that costs to run, so it is capped however hard a rung pushes. */
+    test("no rung can push more columns out than the pack allows at once") {
+        val sending = SandfallBehaviour.ORDINARY
+        checkAll(Arb.numericDouble(0.0, 64.0)) { density ->
+            check(sending.atMostFor(density, ALL_FURY) <= sending.fury.atOnce) {
+                "a density of $density asked for more than ${sending.fury.atOnce} columns at once"
             }
         }
     }
@@ -323,6 +385,8 @@ class SandfallCheck : FunSpec({
 }) {
     private companion object {
         const val A_HAIR = 1e-9
+        const val NO_FURY = 0.0
+        const val ALL_FURY = 1.0
         const val A_TENTH = 0.1
 
         /** How much deeper than the asked-for depth any one position may end up over a whole life. */
