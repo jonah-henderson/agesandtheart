@@ -262,7 +262,7 @@ enum class Sky(override val key: String) : AspectPreset {
         val ORBITING = Parameter("orbiting", Atmosphere.AS_EVER, NEVER)
 
         /** How thick the stars lie: none at the bottom of the axis, [DENSEST_STARS] times vanilla's at the top. */
-        val STARS = Parameter.ranged("stars")
+        val STARS = Parameter.ranged("density")
 
         /**
          * How brightly the stars burn, against vanilla's own — [BRIGHTEST_STARS] times it at the top.

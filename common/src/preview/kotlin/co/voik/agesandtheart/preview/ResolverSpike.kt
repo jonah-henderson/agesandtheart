@@ -232,7 +232,8 @@ private fun presetsOf(aspect: Aspect): List<AspectPreset> = when (aspect) {
     // is a record of an argument, not a model, and it is kept compiling rather than re-tagged.
     Aspect.BIOMES, Aspect.STRUCTURES, Aspect.CLIMATE, Aspect.SURFACE, Aspect.FEATURES, Aspect.SPAWNS,
     Aspect.PHENOMENA, Aspect.AIR, Aspect.WATERS, Aspect.WEATHER,
-    Aspect.SUN, Aspect.MOON, Aspect.STARS, Aspect.GRASS, Aspect.LEAVES, Aspect.AURORA, Aspect.RAINBOW,
+    Aspect.SUN, Aspect.MOON, Aspect.STARS, Aspect.GRASS, Aspect.LEAVES, Aspect.CLOUD,
+    Aspect.AURORA, Aspect.RAINBOW,
     -> emptyList()
 }
 

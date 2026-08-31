@@ -1,0 +1,18 @@
+{
+  "_comment": [
+    "Big, but with somewhere left to go -- the step below `colossal`, which takes the top of the axis.",
+    "",
+    "Same query and same reach; only the band differs, which is the whole of what a second word for big is",
+    "allowed to be (Jonah, 2026-08-31)."
+  ],
+  "tier": "exact",
+  "aspects": [
+    "landmass"
+  ],
+  "query": {
+    "monumental": 1.0
+  },
+  "sets": {
+    "size": "0.7..1.0"
+  }
+}

@@ -30,10 +30,9 @@
   },
   "pool": {
     "motes": "embers|flames",
-    "sky": "red|orange|yellow",
+    "colour": "red|blue",
     "suns": "1|2|3",
-    "size": "0.3..1.0",
-    "colour": "red|blue"
+    "size": "0.3..1.0"
   },
   "draws": 3
 }

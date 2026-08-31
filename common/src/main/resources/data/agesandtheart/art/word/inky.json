@@ -1,8 +1,7 @@
 {
   "tier": "exact",
   "sets": {
-    "sky": "black",
-    "fog": "black",
+    "colour": "black",
     "haze": "0.6..0.9"
   }
 }

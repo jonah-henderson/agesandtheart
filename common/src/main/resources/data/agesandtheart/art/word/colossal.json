@@ -1,8 +1,13 @@
 {
   "_comment": [
-    "Bigness, wherever bigness is a thing the part of the world can be. The tag query picks monumental",
-    "landforms and the `sunsize` it sets fills a good part of the sky, and attachment decides which is",
-    "meant: `colossal landmass` is the rock, `colossal sun` is the star, and a colossal Age is both.",
+    "Bigness at its limit, wherever bigness is a thing the part of the world can be -- `size` is one name",
+    "on the sun, the curtain, the bow and a feature, so one word says it about all of them and attachment",
+    "decides which is meant: `colossal landmass` is the rock, `colossal sun` the star, `colossal trees",
+    "features` the wood, and a colossal Age is every one of them.",
+    "",
+    "**The top of the axis, with `enormous` the step below it** (Jonah, 2026-08-31). Two words for big are",
+    "worth having only where they do different things, so this is 1.0 and that is 0.7 upward. `sweeping`",
+    "was the aurora's own word for the same 1.0 and went into this one when the names were shared.",
     "",
     "The query is flat rather than keyed because `monumental` means the same thing everywhere it is",
     "carried; a sun carries no tags at all, so asking it costs nothing and finds nothing."
@@ -15,6 +20,6 @@
     "monumental": 1.0
   },
   "sets": {
-    "size": "0.7..1.0"
+    "size": "1.0..1.0"
   }
 }

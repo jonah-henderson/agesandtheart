@@ -1,28 +1,21 @@
 {
   "_comment": [
-    "One of the nine plain colours, and it sets every colour there is to set.",
+    "One of the nine plain colours, and it sets **every** colour there is to set.",
     "",
-    "`colour` is one name on five aspects -- the star this world goes round, the curtain over its cold, the",
-    "bow opposite its sun, and the grass and the leaves that grow in it. Each of those holds exactly one",
-    "colour, so the name needs no prefix and attachment decides which is meant. The vault, the air and the",
-    "cloud are still named outright, because the sky and the air each hold two colours and something has to",
-    "say which one is meant.",
+    "`colour` is one name on eight aspects -- the vault, the air, the clouds over it, the star this world",
+    "goes round, the curtain over its cold, the bow opposite its sun, and the grass and the leaves that grow",
+    "in it. Each holds exactly one colour, so the name needs no prefix and attachment decides which is",
+    "meant: `red sky` paints the vault, `red clouds` what sails over it, `red sun` the star, `red and green",
+    "aurora` the ramp from its crown to its hem, and `a red Age` means all of them at once.",
     "",
     "It declares no aspects: `Word.aspects` is widened from the parameters a word sets, so the `sets` map is",
-    "the whole of the declaration. `red sky` paints the vault, `red sun` the star, `red and green aurora`",
-    "the ramp from its crown to its hem, and `a red Age` means all of them at once.",
+    "the whole of the declaration and one line is the whole of the map.",
     "",
-    "The light is deliberately *not* among them. Saying the light here is red is a different claim from",
-    "saying the sky is, and `witchlight` is the idiom that already makes it.",
-    "",
-    "These replaced `crimson`, `emerald` and `violet`, and retired `verdigris` -- which was `sky: green` and",
-    "nothing else, which is `green sky` said in a word a writer has to learn first (Jonah, 2026-08-29)."
+    "The light is deliberately *not* among them, which is why `tint` is still named apart. Saying the light",
+    "here is red is a different claim from saying the sky is, and `witchlight` is the idiom that makes it."
   ],
   "tier": "exact",
   "sets": {
-    "colour": "green",
-    "sky": "green",
-    "fog": "green",
-    "cloud": "green"
+    "colour": "green"
   }
 }

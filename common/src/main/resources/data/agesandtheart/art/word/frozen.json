@@ -9,9 +9,11 @@
     "`frozen sky` a pale vault and a small distant sun, and `a frozen Age` puts every one of them in play.",
     "One word rather than four, and no rule anywhere had to say so.",
     "",
-    "The sun is at the bottom of its axis rather than below it, which is as small as a sun goes: `sunsize`",
-    "starts at vanilla's own and only grows (see Sky.sunSizeAt), because a small sun is a distant one and",
-    "distance is a path's business."
+    "`colour` and `size` are one name each across every aspect that has one, so the pale draw reaches the",
+    "vault, the air and the clouds together, and the small draw reaches whichever body the clause is about.",
+    "A size is at the bottom of its axis rather than below it, which is as small as a sun goes: it starts at",
+    "vanilla's own and only grows (see Sky.sunSizeAt), because a small sun is a distant one and distance is",
+    "a path's business."
   ],
   "tier": "restrictive",
   "sets": {
@@ -19,8 +21,7 @@
   },
   "pool": {
     "humidity": "-0.3..0.3",
-    "sky": "white|grey",
-    "fog": "white",
+    "colour": "white|grey",
     "size": "-1.0..-0.7",
     "haze": "0.2..0.6"
   },

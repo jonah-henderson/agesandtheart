@@ -221,6 +221,20 @@ enum class Aspect(
      * you prepared for, and one you did not write is the Age telling you something is wrong (§7.7).
      */
     PHENOMENA("phenomena", Holds.WEIGHTED_SET, open = true),
+
+    /**
+     * What the clouds over this world are coloured.
+     *
+     * **Its own aspect rather than a second colour on the vault** (Jonah, 2026-08-31). The sky and the
+     * clouds in it are two things a writer means separately — *blue sky, green clouds* has to be sayable —
+     * and while they shared an aspect neither could be `colour`, so both had to be named outright in every
+     * colour word. The same argument that gave the grass and the leaves one each.
+     *
+     * **Appended rather than slotted beside [SKY]**, which the note at the top of this file requires: the
+     * seeds stride on `ordinal`, so an aspect inserted anywhere but the end moves the draws of every Age
+     * already written.
+     */
+    CLOUD("cloud", page = "clouds"),
     ;
 
     /** What a writer calls this part of the world — [key] where no other name was given. */
@@ -243,7 +257,7 @@ enum class Aspect(
             // biome or a structure set is weighed rather than chosen. See [dials] and [Holds.WEIGHTED_SET].
             PHENOMENA -> Phenomenon.entries
             SEA, BIOMES, STRUCTURES, CLIMATE, SURFACE, FEATURES, SPAWNS, AIR, WATERS, WEATHER,
-            SUN, MOON, STARS, GRASS, LEAVES, AURORA, RAINBOW,
+            SUN, MOON, STARS, GRASS, LEAVES, CLOUD, AURORA, RAINBOW,
             -> emptyList()
         }
 
@@ -288,10 +302,10 @@ enum class Aspect(
             // open — which is also why these two alone cannot be confined to a biome.
             SKY -> listOf(
                 Atmosphere.SKY,
-                Atmosphere.CLOUD,
                 Atmosphere.CEILING,
                 Sky.SEALED,
             )
+            CLOUD -> listOf(Atmosphere.CLOUD)
             TERRAIN, SEA, CARVERS -> emptyList()
         }
 
@@ -342,7 +356,7 @@ enum class Aspect(
         FEATURES -> PlacedFeature.named(key)
         SPAWNS -> Spawn.named(key)
         TERRAIN, CARVERS, SKY, CLIMATE, SURFACE, PHENOMENA,
-        AIR, WATERS, WEATHER, SUN, MOON, STARS, GRASS, LEAVES, AURORA, RAINBOW,
+        AIR, WATERS, WEATHER, SUN, MOON, STARS, GRASS, LEAVES, CLOUD, AURORA, RAINBOW,
         -> authored.firstOrNull { it.key == key }
     }
 

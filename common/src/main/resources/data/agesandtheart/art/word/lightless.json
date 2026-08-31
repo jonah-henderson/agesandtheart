@@ -12,6 +12,6 @@
   "sets": {
     "sealed": "always",
     "shining": "never",
-    "stars": "-1.0..-1.0"
+    "density": "-1.0..-1.0"
   }
 }

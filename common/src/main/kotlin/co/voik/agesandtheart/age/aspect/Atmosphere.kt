@@ -43,9 +43,9 @@ object Atmosphere {
      * **A colour and not a hex triple** — §3.2's rule at its least arguable: "green" is a thing a person
      * says about a sky where `#6DB563` is a fact about our arithmetic.
      */
-    val SKY = colour("sky")
-    val FOG = colour("fog")
-    val CLOUD = colour("cloud")
+    val SKY = colour("colour")
+    val FOG = colour("colour")
+    val CLOUD = colour("colour")
 
     /**
      * How close the fog closes in — **one knob for what vanilla holds as two distances**, since a writer
@@ -151,7 +151,7 @@ object Atmosphere {
         return Look(
             sky = colourOf(vault, SKY, biome),
             fog = colourOf(air, FOG, biome),
-            cloud = colourOf(vault, CLOUD, biome),
+            cloud = colourOf(parts.optionsFor(Aspect.CLOUD), CLOUD, biome),
             tint = colourOf(air, TINT, biome),
             motes = air.of(MOTES, biome).takeUnless { it == AS_EVER },
             murk = band(water, MURK),

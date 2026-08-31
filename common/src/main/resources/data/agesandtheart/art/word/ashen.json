@@ -5,9 +5,7 @@
     "dark": 0.6
   },
   "sets": {
-    "sky": "grey",
-    "fog": "grey",
-    "cloud": "grey",
+    "colour": "grey",
     "haze": "0.4..0.8"
   }
 }
