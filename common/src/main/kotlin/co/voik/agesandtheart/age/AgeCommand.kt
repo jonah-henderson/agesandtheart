@@ -1175,9 +1175,10 @@ object AgeCommand {
     /**
      * Make an Age older than it is, by moving the tick it was written on backwards.
      *
-     * Generation reads the clock per chunk, so unvisited ground comes out at the new age immediately;
-     * ground that already exists is brought up by the same fast-forward a chunk load always runs, so
-     * unloading and returning is what makes it catch up.
+     * Generation reads the clock per chunk, so unvisited ground comes out at the new age immediately.
+     * Ground that already exists is brought up by `Blight`'s catch-up as its chunks reload — so unloading
+     * and returning is what makes it agree, and an Age that bought no blight has no catch-up and keeps
+     * what it was made with.
      */
     private fun runBackdate(context: CommandContext<CommandSourceStack>, days: Int, report: Report): Int {
         val source = context.source
@@ -1195,7 +1196,8 @@ object AgeCommand {
         // A generator is built once at open and keeps its own copy of the clock, so rewriting the recipe
         // alone left an Age reporting a month and generating as though it were new.
         retellTheGenerator(source.server, id, aged)
-        report.say { "Age '$name' now reads as $days days old — walk to ground it has not generated yet." }
+        report.say { "Age '$name' now reads as $days days old." }
+        report.say { "  ground it has not generated comes out at the new age; ground that exists catches up as it reloads, if it blights." }
         report.fact("days", days.toLong()) { "" }
         report.fact("writtenAt", aged.writtenAt) { "" }
         return SUCCESS
@@ -1238,7 +1240,7 @@ object AgeCommand {
         report.say { "Age '$name' is now instability $index, which buys $spending." }
         report.fact("instability", index) { "" }
         report.fact("spending", spending.toString()) { "" }
-        report.say { "  walk to ground it has not generated yet — what exists keeps what it was made with." }
+        report.say { "  walk to ground it has not generated yet. What exists catches up as it reloads if this bought blight; without it, existing ground keeps what it was made with." }
         return SUCCESS
     }
 
