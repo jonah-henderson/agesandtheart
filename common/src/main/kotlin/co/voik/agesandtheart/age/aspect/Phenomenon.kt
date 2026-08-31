@@ -108,6 +108,28 @@ enum class Phenomenon(
      * to reach the drops. An Age held at a downpour would have the wettest sky and no bows in it.
      */
     RAINBOW("rainbow", AgeWeather.Conditions(rainfall = SHOWERY)),
+
+    /**
+     * Columns of sand that walk the Age, burying what they cross — the Outer Wilds nod §5.2 has named since
+     * it was written, and the first phenomenon that is an **entity**
+     * ([co.voik.agesandtheart.age.phenomena.SandColumn]).
+     *
+     * **The strongest telegraph in the set.** §5.2 asks a process to be inexorable and legible with a
+     * visible direction; a column standing from the ground to the sky and moving in a straight line is the
+     * only hazard here you can see from another biome. Its counterplay is spatial, so its warning is too,
+     * which is the granularity rule the set is judged on.
+     *
+     * **It denies the surface and it denies light**, and those want different answers: a roof stops the
+     * burial, and a light a falling block cannot break stops a buried base going dark and spawning things
+     * in itself. **It is also the one hazard that is a supply** — burial hands you unlimited sand and so
+     * unlimited glass, which is the reason to be in an Age that has one.
+     *
+     * **Insists on no weather**, like an inferno and for the same reason: it wants a dry Age, and
+     * [insistsOn] is a floor that can only raise. Nor does `art/word/sandfall.json` lean the climate arid,
+     * which is the trap `auroral` paid for — a narrowing word is priced in its lowest-ordinal aspect and
+     * phenomena are last, so a second parameter would reprice the word as one about climate.
+     */
+    SANDFALL("sandfall"),
     ;
 
     override val aspect = Aspect.PHENOMENA

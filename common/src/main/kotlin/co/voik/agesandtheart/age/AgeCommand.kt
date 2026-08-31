@@ -34,6 +34,8 @@ import co.voik.agesandtheart.worldgen.field.Spans
 import co.voik.ephemeris.sky.SkySpec
 import co.voik.agesandtheart.age.word.Withheld
 import co.voik.agesandtheart.age.phenomena.AgeWeather
+import co.voik.agesandtheart.age.phenomena.SandColumn
+import co.voik.agesandtheart.age.phenomena.SandfallBehaviour
 import co.voik.agesandtheart.age.phenomena.Tempest
 import co.voik.agesandtheart.age.word.LearnedWordsPayload
 import co.voik.agesandtheart.age.word.learnedWords
@@ -202,6 +204,12 @@ object AgeCommand {
     private const val DEFAULT_STRIKE_DISTANCE = 12
     private const val MAX_STRIKE_DISTANCE = 128
 
+    /** Far enough out to watch one come, and inside what is loaded at an ordinary view distance. */
+    private const val DEFAULT_SANDFALL_DISTANCE = 64
+    private const val MAX_SANDFALL_DISTANCE = 256
+    private const val HALF_TURN = 180.0f
+    private const val TICKS_PER_SECOND = 20
+
     /** What `/age sky`'s preview spec may name, and the prefix its parameters carry. */
     private const val SKY_ASPECT = "sky"
 
@@ -285,6 +293,7 @@ object AgeCommand {
                 .then(spawnsSubcommand())
                 .then(skySubcommand())
                 .then(strikeSubcommand())
+                .then(sandfallSubcommand())
                 .then(probeSubcommand())
                 .then(decaySubcommand())
                 .then(dangerSubcommand())
@@ -926,6 +935,27 @@ object AgeCommand {
                 Commands.argument(DISTANCE_ARGUMENT, IntegerArgumentType.integer(0, MAX_STRIKE_DISTANCE))
                     .executes { context ->
                         runStrike(context, IntegerArgumentType.getInteger(context, DISTANCE_ARGUMENT))
+                    },
+            )
+
+    /**
+     * `/age sandfall [<distance>]` — stands a column of sand up out in front of you, headed at you.
+     *
+     * The debug trigger, exactly as `/age strike` is one, and for the same reason: a sandfall arrives on a
+     * timer measured in minutes, so nothing about it is observable in a walk without a way to ask for one.
+     *
+     * **Aimed rather than sited**, which is the difference from a real one — [Sandfall] chooses a bearing
+     * and a spread so that a column usually passes near you and sometimes passes wide, where this puts one
+     * exactly where you are looking and turns it around to come back. That is what you want of a debug
+     * trigger and emphatically not what you want of the phenomenon.
+     */
+    private fun sandfallSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        Commands.literal("sandfall")
+            .executes { context -> runSandfall(context, DEFAULT_SANDFALL_DISTANCE) }
+            .then(
+                Commands.argument(DISTANCE_ARGUMENT, IntegerArgumentType.integer(0, MAX_SANDFALL_DISTANCE))
+                    .executes { context ->
+                        runSandfall(context, IntegerArgumentType.getInteger(context, DISTANCE_ARGUMENT))
                     },
             )
 
@@ -1938,6 +1968,39 @@ object AgeCommand {
         val aimed = source.position.add(Vec3.directionFromRotation(source.rotation).scale(distance.toDouble()))
         val struck = Tempest.callDown(level, BlockPos.containing(aimed), EntitySpawnReason.COMMAND)
         source.sendSuccess({ Component.literal("Struck ${struck.x} ${struck.y} ${struck.z}") }, true)
+        return SUCCESS
+    }
+
+    private fun runSandfall(context: CommandContext<CommandSourceStack>, distance: Int): Int {
+        val source = context.source
+        val level = source.level
+        val facing = Vec3.directionFromRotation(source.rotation)
+        val at = source.position.add(facing.scale(distance.toDouble()))
+        val behaviour = SandfallBehaviour.of(source.server)
+        val random = level.random
+        val column = SandColumn.raise(
+            level = level,
+            atX = at.x,
+            atZ = at.z,
+            // Turned around to walk back at you, so a column stood up ahead is one you then have to answer.
+            headingDegrees = source.rotation.y + HALF_TURN,
+            speed = behaviour.slowestSpeed + random.nextDouble() * (behaviour.fastestSpeed - behaviour.slowestSpeed),
+            lifetime = behaviour.shortestLife +
+                random.nextInt((behaviour.longestLife - behaviour.shortestLife).coerceAtLeast(1)),
+        )
+        if (column == null) {
+            source.sendFailure(Component.literal("Nothing is loaded that far out to stand one on"))
+            return FAILURE
+        }
+        source.sendSuccess(
+            {
+                Component.literal(
+                    "A sandfall at ${column.blockX} ${column.blockZ}, " +
+                        "walking ${facingFor(column.yRot)} for ${column.lifetime / TICKS_PER_SECOND}s",
+                )
+            },
+            true,
+        )
         return SUCCESS
     }
 

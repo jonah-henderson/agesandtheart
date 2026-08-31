@@ -1,0 +1,25 @@
+{
+  "_comment": [
+    "Columns of sand that walk the Age (design 5.2.2). It names the phenomenon rather than searching for",
+    "one, which is what `names` is for and what `VocabularyCheck` insists on: a tag query -- 'the burying",
+    "one' -- would also have found whatever else buried you.",
+    "",
+    "`deluge` would be the better word and is deliberately not spent here (Jonah, 2026-08-31). It belongs to",
+    "the watery flood, which is not written yet; a word spent on the wrong phenomenon is worse than a",
+    "plainer one on the right phenomenon.",
+    "",
+    "**One aspect, and the climate is not touched.** A sandfall wants a dry Age and it is not going to ask",
+    "for one here: a narrowing word is priced in its lowest-ordinal aspect (`Resolver.pricedIn`) and",
+    "phenomena are last, so a rainfall bound in this file would quietly reprice this as a word about",
+    "weather. `auroral` drafted with a second parameter and had to lose it for the same reason. A writer who",
+    "wants a desert has `arid`."
+  ],
+  "tier": "exact",
+  "aspects": [
+    "phenomena"
+  ],
+  "names": "sandfall",
+  "sets": {
+    "happens": "sandfall"
+  }
+}

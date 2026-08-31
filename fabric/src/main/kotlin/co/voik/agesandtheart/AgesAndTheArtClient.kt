@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.consequence.Wounds
 import co.voik.agesandtheart.age.word.LearnedWordsPayload
 import co.voik.agesandtheart.age.word.LexiconPayload
 import co.voik.agesandtheart.client.BookEntityRenderer
+import co.voik.agesandtheart.client.SandColumnRenderer
 import co.voik.agesandtheart.client.ClientDeskNetwork
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry
 import co.voik.agesandtheart.client.AgeLooks
@@ -39,6 +40,7 @@ fun initClient() {
 
     co.voik.agesandtheart.platform.FabricInkRendering.register()
     EntityRendererRegistry.register(AgeContent.BOOK_ENTITY, ::BookEntityRenderer)
+    EntityRendererRegistry.register(AgeContent.SAND_COLUMN, ::SandColumnRenderer)
     BlockEntityRenderers.register(AgeContent.STAR_FISSURE_ENTITY) { StarFissureRenderer() }
     MenuScreens.register(AgeContent.WRITERS_DESK_MENU, ::WritersDeskScreen)
     MenuScreens.register(AgeContent.INK_CASE_MENU, ::InkCaseScreen)

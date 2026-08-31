@@ -121,6 +121,7 @@ object Happenings {
             // the weather is `Phenomenon.RAINBOW.insistsOn`, which the Age was built with rather than
             // something to arrange here. See [Phenomenon.RAINBOW].
             Phenomenon.RAINBOW -> Unit
+            Phenomenon.SANDFALL -> Sandfall.wander(level, claim.density)
         }
     }
 

@@ -7,6 +7,7 @@ import co.voik.agesandtheart.age.word.grammar.Said
 import co.voik.agesandtheart.age.consequence.WoundBlock
 import co.voik.agesandtheart.book.BindLinkingBookFunction
 import co.voik.agesandtheart.book.WriteFoundBookFunction
+import co.voik.agesandtheart.age.phenomena.SandColumn
 import co.voik.agesandtheart.book.BookEntity
 import co.voik.agesandtheart.book.LinkTarget
 import co.voik.agesandtheart.book.RepatternBookRecipe
@@ -342,8 +343,35 @@ object AgeContent {
     private const val BOOK_ENTITY_HEIGHT = 0.15f
     private const val BOOK_TRACKING_CHUNKS = 8
 
+    /**
+     * A column of sand walking an Age. See [co.voik.agesandtheart.age.phenomena.SandColumn].
+     *
+     * **The box is the column's footprint, not the column.** What is drawn stands from the ground to the
+     * build limit, and a bounding box that tall would be a collision volume and a chunk-tracking cost for
+     * something nothing may collide with. The renderer answers the culling instead, by declining it.
+     *
+     * Tracked from far off, because being seen coming *is* the phenomenon — this is the granularity its
+     * counterplay needs, and a column that popped into view would be a different, worse hazard.
+     */
+    val SAND_COLUMN: EntityType<SandColumn> = EntityType.Builder
+        .of({ type, level -> SandColumn(type, level) }, MobCategory.MISC)
+        .sized(SAND_COLUMN_WIDTH, SAND_COLUMN_HEIGHT)
+        .clientTrackingRange(SAND_COLUMN_TRACKING_CHUNKS)
+        .updateInterval(SAND_COLUMN_UPDATE_TICKS)
+        .build(ResourceKey.create(Registries.ENTITY_TYPE, "sand_column".location()))
+
+    private const val SAND_COLUMN_WIDTH = 5.0f
+    private const val SAND_COLUMN_HEIGHT = 5.0f
+
+    /** As far as vanilla tracks anything — the ender dragon's own range. */
+    private const val SAND_COLUMN_TRACKING_CHUNKS = 32
+
+    /** It moves slowly and in a straight line, so its position is worth sending rarely. */
+    private const val SAND_COLUMN_UPDATE_TICKS = 10
+
     val entities: List<Pair<Identifier, EntityType<*>>> = listOf(
         "descriptive_book".location() to BOOK_ENTITY,
+        "sand_column".location() to SAND_COLUMN,
     )
 
     val WOUND_ID: Identifier = "wound".location()

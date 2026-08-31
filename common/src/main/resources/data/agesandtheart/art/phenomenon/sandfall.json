@@ -1,0 +1,31 @@
+{
+  "_comment": [
+    "How a sandfall comes. What is written here is *how deep a pass leaves the ground*, not how fast sand",
+    "falls: the deposit rate is derived from `depth`, `half_width` and the column's own speed, so a faster",
+    "column deposits harder per tick and leaves the same trail. Speed is a free variable, not a second",
+    "number to keep in step with this one.",
+    "",
+    "Unwalked -- every number here is a first guess. `half_width` 2.5 is the 5x5 first cut; speed 0.03 to",
+    "0.09 blocks a tick is one block every one to two seconds, which is slow enough to outwalk and fast",
+    "enough to watch. A life of two to six minutes carries a column a few hundred blocks.",
+    "",
+    "`at_most` and `between_spawns` are both multiplied by the claim's rung, which is the one place a rung",
+    "reaches: `teeming sandfall` is more columns arriving sooner."
+  ],
+  "depth": 4.5,
+  "half_width": 2.5,
+  "slowest_speed": 0.03,
+  "fastest_speed": 0.09,
+  "shortest_life": 2400,
+  "longest_life": 7200,
+  "ramp_share": 0.15,
+  "turn_every": 120,
+  "turn_most": 30.0,
+  "spill_reach": 2,
+  "spill_falloff": 0.4,
+  "at_most": 1,
+  "between_spawns": 3600,
+  "nearest_spawn": 96,
+  "furthest_spawn": 192,
+  "forgotten_at": 320.0
+}
