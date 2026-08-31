@@ -146,31 +146,6 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
     }
 
     /**
-     * One block of sand, on top of whatever is at that column.
-     *
-     * **[Sampling.skyward] is the shared sky primitive**, and the trap it carries is the one an inferno
-     * already paid for: `MOTION_BLOCKING` does not count a torch, a bush or a sapling, so where one stands
-     * the heightmap points *at* it rather than above it. That is exactly the block a falling sand block
-     * breaks — which is how a buried base goes dark and starts spawning things in itself, the compounding
-     * hazard §5.2.2 asks for, at the cost of no rule of its own.
-     *
-     * **A torch drops and a grass tuft does not**, which is not vanilla's rule and is a deliberate
-     * departure from it. `FallingBlockEntity` drops whatever it lands on; a column crossing a plains biome
-     * would break a tuft of grass at nearly every position it passed, and thousands of item entities over
-     * a life is a cost paid for something nobody would collect. What a player would miss is a torch, and a
-     * torch is exactly what `canBeReplaced` separates out.
-     */
-    private fun pile(level: ServerLevel, atX: Int, atZ: Int) {
-        val column = BlockPos(atX, level.minY, atZ)
-        if (!level.hasChunkAt(column)) return
-        val top = Sampling.skyward(level, column)
-        if (top.y >= level.maxY) return
-        val standing = level.getBlockState(top)
-        if (!standing.isAir && !standing.canBeReplaced()) level.destroyBlock(top, true)
-        level.setBlockAndUpdate(top, Blocks.SAND.defaultBlockState())
-    }
-
-    /**
      * Bends the course, occasionally and never far.
      *
      * The cap is the brief's thirty degrees, but the thing that makes it read as *mostly straight* is
@@ -205,6 +180,65 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
         return level.getHeight(Heightmap.Types.MOTION_BLOCKING, blockX, blockZ).toDouble()
     }
 
+    /**
+     * One block of sand, on top of whatever is at that column — or on the lowest place beside it.
+     *
+     * **Sand has an angle of repose, and without one it builds spires** (Jonah, 2026-08-31, seen). Every
+     * position accumulates on its own and vanilla's sand only ever falls straight down, so neighbours drift
+     * two and three blocks apart over a pass and the trail reads as stone pillars rather than a drift. A
+     * block that finds a markedly lower place beside it goes there instead, which fills the hollows first
+     * and lets a pile spread rather than climb.
+     *
+     * **Only when the drop is [SLIDES_WHEN_LOWER_BY] or more**, so a step of one is left alone: sand really
+     * does hold a small step, and levelling every difference would give a flat table where the brief asks
+     * for something messy and irregular.
+     *
+     * **[Sampling.skyward] is the shared sky primitive**, and the trap it carries is the one an inferno
+     * already paid for: `MOTION_BLOCKING` does not count a torch, a bush or a sapling, so where one stands
+     * the heightmap points *at* it rather than above it. That is exactly the block a falling sand block
+     * breaks — which is how a buried base goes dark and starts spawning things in itself, the compounding
+     * hazard §5.2.2 asks for, at the cost of no rule of its own.
+     *
+     * **A torch drops and a grass tuft does not**, which is not vanilla's rule and is a deliberate
+     * departure from it. `FallingBlockEntity` drops whatever it lands on; a column crossing a plains biome
+     * would break a tuft of grass at nearly every position it passed, and thousands of item entities over
+     * a life is a cost paid for something nobody would collect. What a player would miss is a torch, and a
+     * torch is exactly what `canBeReplaced` separates out.
+     */
+    private fun pile(level: ServerLevel, atX: Int, atZ: Int) {
+        val top = settledAt(level, atX, atZ) ?: return
+        if (top.y >= level.maxY) return
+        val standing = level.getBlockState(top)
+        if (!standing.isAir && !standing.canBeReplaced()) level.destroyBlock(top, true)
+        level.setBlockAndUpdate(top, Blocks.SAND.defaultBlockState())
+    }
+
+    /**
+     * Where a block aimed at this column actually comes to rest — here, or the lowest place beside it.
+     *
+     * The middle is preferred wherever it is as low as anything around it, so a trail stays where the
+     * column put it and only a genuine hollow pulls sand sideways. Ties among the neighbours go to whichever
+     * the walk reaches first, which is arbitrary and harmless: they are all the same height.
+     */
+    private fun settledAt(level: ServerLevel, atX: Int, atZ: Int): BlockPos? {
+        val here = topOf(level, atX, atZ) ?: return null
+        var settled = here
+        for (eastward in -BESIDE..BESIDE) {
+            for (southward in -BESIDE..BESIDE) {
+                val beside = topOf(level, atX + eastward, atZ + southward) ?: continue
+                if (beside.y < settled.y) settled = beside
+            }
+        }
+        return if (here.y - settled.y >= SLIDES_WHEN_LOWER_BY) settled else here
+    }
+
+    /** The first empty place above that column, or null where there is no chunk to ask. */
+    private fun topOf(level: ServerLevel, atX: Int, atZ: Int): BlockPos? {
+        val column = BlockPos(atX, level.minY, atZ)
+        if (!level.hasChunkAt(column)) return null
+        return Sampling.skyward(level, column)
+    }
+
     override fun readAdditionalSaveData(input: ValueInput) {
         age = input.getIntOr(AGE_KEY, 0)
         sinceSeen = input.getIntOr(SINCE_SEEN_KEY, 0)
@@ -237,6 +271,12 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
 
         /** The diagonal of a unit square: how much further a turned square's corners reach than its edges. */
         private const val ROOT_TWO = 1.4142135623730951
+
+        /** How much lower a neighbour must be before sand slides onto it rather than piling here. */
+        private const val SLIDES_WHEN_LOWER_BY = 2
+
+        /** How far a sliding block looks, in blocks — the eight around it and no further. */
+        private const val BESIDE = 1
 
         private const val NOTHING = 0.0
 
