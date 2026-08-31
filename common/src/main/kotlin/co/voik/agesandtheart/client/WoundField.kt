@@ -75,7 +75,7 @@ object WoundField {
     }
 
     /**
-     * A wound that has just torn itself open, growing from nothing — **so blight is watched rather than
+     * A wound that has just torn itself open, growing from nothing — **so an Age is watched worsening rather than
      * discovered** (§5.2.1).
      *
      * Only a wound this client saw arrive has a moment to grow from; everything read out of a chunk as it

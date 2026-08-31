@@ -109,7 +109,7 @@ object AgeGeneration {
         val wounds = Tearing.writtenDensityAt(spending.bought(Manifestation.WOUNDS))
         // And how much worse each of the Age's days makes it. The generator reads the clock itself, so a
         // chunk generated a week in comes out as torn as its neighbours rather than as the book left it.
-        val blight = Tearing.blightPerDayAt(spending.bought(Manifestation.BLIGHT))
+        val worsening = Tearing.woundsPerDayAt(spending.bought(Manifestation.WORSENING_WOUNDS))
         // And how fast the floor gives way, for the few Ages that were written past saving.
         val collapse = Collapse.tearsPerCellAt(spending.bought(Manifestation.COLLAPSE))
 
@@ -242,7 +242,7 @@ object AgeGeneration {
             // What lives here, narrowing what vanilla resolves per biome and per structure.
             Spawns.livingIn(composition.optionsFor(Aspect.SPAWNS, 0), Vocabulary.of(server).spawning),
             woundsPerChunk = wounds,
-            blightPerDay = blight,
+            woundsPerDay = worsening,
             collapseTears = collapse,
             writtenAt = recipe.writtenAt,
         )

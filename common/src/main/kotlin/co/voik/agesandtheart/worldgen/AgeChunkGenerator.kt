@@ -162,20 +162,20 @@ class AgeChunkGenerator(
      */
     woundsPerChunk: Double = NO_WOUNDS,
     /**
-     * How many more open per chunk with each day the Age has stood — **blight** (design §5.2.1).
+     * How many more open per chunk with each day the Age has stood — **the worsening** (design §5.2.1).
      *
      * Where [woundsPerChunk] is how holed the book made it, this is how holed it *becomes*. Unbounded on
      * purpose: a ceiling would promise the Age can be outlasted, and the only question the register asks
      * is how long you stay. Zero for every Age that is merely flawed rather than coming apart.
      */
-    blightPerDay: Double = NO_WOUNDS,
+    woundsPerDay: Double = NO_WOUNDS,
     /**
      * How many tears per cell this Age's floor is cut with — **collapse** (design §5.3). Zero for every
      * Age that is not ending; they widen themselves once cut.
      */
     collapseTears: Int = Collapse.NONE,
     /**
-     * The overworld tick this Age was written on, so [blightPerDay] has something to count from.
+     * The overworld tick this Age was written on, so [woundsPerDay] has something to count from.
      *
      * **On the generator because a chunk generated late must come out as torn as its neighbours**, which is
      * §5.4's derived-clock escape: a chunk that has never existed has no blocks to be legible from, so the
@@ -209,7 +209,7 @@ class AgeChunkGenerator(
      * and it is one reference rather than four fields precisely so a reader cannot catch half an update.
      */
     @Volatile
-    var consequence: Consequence = Consequence(woundsPerChunk, blightPerDay, collapseTears, writtenAt)
+    var consequence: Consequence = Consequence(woundsPerChunk, woundsPerDay, collapseTears, writtenAt)
         private set
 
     /** Tell a running Age that what it is has changed, so generation stops answering from the old one. */
@@ -638,14 +638,14 @@ class AgeChunkGenerator(
         super.applyBiomeDecoration(level, chunk, structures)
         val bought = consequence
         if (bought.isNothing) return
-        // **The Age's age is read here rather than at open**, so a chunk generated after a week of blight
+        // **The Age's age is read here rather than at open**, so a chunk generated after a week of worsening
         // comes out as torn as the ones beside it. Against the *overworld's* clock: an Age's own only runs
-        // while somebody is in it, which is exactly when blight is not supposed to be waiting.
+        // while somebody is in it, which is exactly when the worsening is not supposed to be waiting.
         val days = bought.daysBy(level.level.server.overworld().gameTime)
         // The floor giving way first: a column the Age has already swallowed is not somewhere to put a
         // wound, and carving after would take the wound straight back out again.
         Collapse.carveInto(level, chunk, level.getSeed(), bought.collapseTears)
-        val density = Tearing.densityAt(bought.woundsPerChunk, bought.blightPerDay, days)
+        val density = Tearing.densityAt(bought.woundsPerChunk, bought.woundsPerDay, days)
         // Nobody to tell and nothing to update: the chunk has not been sent to a client and will not be
         // until it is finished, so a wound here is written into it rather than announced.
         Tearing.tearInto(
@@ -751,17 +751,17 @@ class AgeChunkGenerator(
                 // Absent for every coherent Age, which is nearly all of them.
                 Codec.DOUBLE.optionalFieldOf("wounds_per_chunk", NO_WOUNDS).forGetter { it.consequence.woundsPerChunk },
                 // And absent for every Age that is merely flawed rather than coming apart.
-                Codec.DOUBLE.optionalFieldOf("blight_per_day", NO_WOUNDS).forGetter { it.consequence.blightPerDay },
+                Codec.DOUBLE.optionalFieldOf("wounds_per_day", NO_WOUNDS).forGetter { it.consequence.woundsPerDay },
                 // And absent for every Age that is not ending.
                 Codec.INT.optionalFieldOf("collapse_tears", Collapse.NONE).forGetter { it.consequence.collapseTears },
                 Codec.LONG.optionalFieldOf("written_at", 0L).forGetter { it.consequence.writtenAt },
             ).apply(instance) { biomes, rock, seaFill, rule, carvers, underground, tables, structures, climate,
-                                fill, window, wounds, blight, collapse, writtenAt ->
+                                fill, window, wounds, worsening, collapse, writtenAt ->
                 AgeChunkGenerator(
                     biomes, rock, seaFill, rule, carvers, underground, tables, structures,
                     climate.orElse(null), fill, window,
                     woundsPerChunk = wounds,
-                    blightPerDay = blight,
+                    woundsPerDay = worsening,
                     collapseTears = collapse,
                     writtenAt = writtenAt,
                 )

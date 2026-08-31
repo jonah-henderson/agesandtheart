@@ -12,14 +12,14 @@ import net.minecraft.world.level.levelgen.WorldgenRandom
 import kotlin.math.pow
 
 /**
- * How holed an Age is, and how that grows — wounds at generation (§5.1) and blight thereafter (§5.2.1).
+ * How holed an Age is, and how that grows — wounds at generation (§5.1) and more of them thereafter (§5.2.1).
  *
  * **One function, three touchpoints.** A chunk is torn when it generates, again when it loads after time
  * has passed, and a little at a time while somebody stands in it. All three ask [wantedIn] for the same
  * answer, so a chunk generated late, a chunk fast-forwarded on load and a chunk watched in real time agree
  * about how bad the Age has got. Nothing else may decide it.
  *
- * **The count is the state, which is §5.4 satisfied literally.** How far blight has crept is legible from
+ * **The count is the state, which is §5.4 satisfied literally.** How far it has crept is legible from
  * the wounds already there — so the pass places the *difference* between what a chunk holds and what it
  * should, and never has to remember what it did last time. That also makes it idempotent: running it twice
  * places nothing the second time.
@@ -27,14 +27,14 @@ import kotlin.math.pow
  * **Density is a property of the Age, never a lineage.** Wounds do not spawn children and a sealed wound
  * seeds nothing, because there is nothing to seed — the Age itself is unstable, and seals contain what a
  * wound does to its surroundings rather than whether the Age keeps tearing. You can box in every wound in
- * a blighted Age and come back to more of them.
+ * an Age that worsens and come back to more of them.
  */
 object Tearing {
 
     /**
      * How many wounds a chunk should hold, given what the Age was written with and how long it has stood.
      *
-     * **Blight is a rate, not an amount** (design §5.2.1). [written] is how holed the book made it and does
+     * **The worsening is a rate, not an amount** (design §5.2.1). [written] is how holed the book made it and does
      * not move; [perDay] is how much worse each of the Age's days makes it.
      *
      * It climbs until [MOST_PER_CHUNK], which is **saturation rather than a budget** — read that constant
@@ -188,13 +188,13 @@ object Tearing {
 
     /**
      * How much worse one of the Age's days makes it, at each step of
-     * [co.voik.agesandtheart.age.Manifestation.BLIGHT].
+     * [co.voik.agesandtheart.age.Manifestation.WORSENING_WOUNDS].
      *
      * The first step is a wound per chunk every four days — slow enough that a visit is not a countdown,
      * fast enough that coming back next session is visibly worse. Each further step is four times that, so
      * the top of the register is an Age holed through inside a week.
      */
-    fun blightPerDayAt(steps: Int): Double {
+    fun woundsPerDayAt(steps: Int): Double {
         if (steps <= 0) return NONE
         return FIRST_STEP_CREEPS * CROWDS_BY.pow(steps - 1)
     }
@@ -204,7 +204,7 @@ object Tearing {
      *
      * **This is an engineering limit and not a design one, and the distinction is the whole comment**
      * (Jonah, 2026-08-09, walked: "even with the custom renderer, eventually it gets out of hand").
-     * §5.2.1 rules that blight is *unbounded* — a bound is a promise the Age can be outlasted — and that
+     * §5.2.1 rules that the worsening is *unbounded* — a bound is a promise the Age can be outlasted — and that
      * ruling stands. What is bounded here is how many of them are **drawn**, which is a different claim:
      * past this many to a chunk the register has said everything it has to say and the rest is frames.
      *
@@ -233,7 +233,7 @@ object Tearing {
      */
     private const val FIRST_STEP_OPENS = 1.0 / 16.0
 
-    /** And what one day of the mildest blight adds. */
+    /** And what one day of the mildest worsening adds. */
     private const val FIRST_STEP_CREEPS = 0.25
 
     /** What each further step multiplies either of those by. */

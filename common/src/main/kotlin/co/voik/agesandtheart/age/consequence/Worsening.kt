@@ -11,13 +11,13 @@ import net.minecraft.world.level.chunk.ChunkAccess
 import java.util.WeakHashMap
 
 /**
- * An Age that will not stop tearing (design §5.2.1) — **blight, as a property of the Age rather than of any
- * wound**.
+ * An Age that will not stop tearing (design §5.2.1) — **wounds going on opening, as a property of the Age
+ * rather than of any one of them**.
  *
  * Nothing here spreads from anything. There are no child wounds and a sealed wound seeds nothing, because
  * there is nothing to seed: the *Age* is unstable, and a seal contains what one wound does to its
- * surroundings rather than whether the world keeps holing itself. Box in every wound in a blighted Age and
- * come back to more of them.
+ * surroundings rather than whether the world keeps holing itself. Box in every wound in an Age that
+ * worsens and come back to more of them.
  *
  * **One function, asked from three places.** [Tearing.wantedIn] says how holed a chunk should be;
  * generation asks it as a chunk is written, [catchUp] asks it for a chunk that has just come back, and
@@ -26,9 +26,9 @@ import java.util.WeakHashMap
  * never run past what the other two would have done, so none of them can disagree.
  *
  * **It advances whether or not anybody is there**, which §5.4 makes a per-manifestation choice rather than
- * an inherited property. A blight that waited for an audience would be one you could outlast by leaving.
+ * an inherited property. A register that waited for an audience would be one you could outlast by leaving.
  */
-object Blight {
+object Worsening {
 
     /**
      * Chunks that have arrived and not yet been brought up to date, by level.
@@ -68,21 +68,21 @@ object Blight {
     }
 
     /**
-     * One tick of blight in [level] — what has to catch up, then what is worsening in front of somebody.
+     * One tick of it in [level] — what has to catch up, then what is worsening in front of somebody.
      *
      * Takes what the Age bought rather than working it out, because the caller is holding it: `Happenings`
      * has already found the recipe and priced its instability for the phenomena, and doing it twice a tick
      * per Age is the same answer arrived at twice.
      */
     fun advance(level: ServerLevel, recipe: AgeRecipe, spending: Spending) {
-        val worsening = worseningIn(recipe, spending)
-        if (worsening == null) {
-            // Not a blighted Age, so nothing owes it anything and the queue is only holding memory.
+        val pace = paceIn(recipe, spending)
+        if (pace == null) {
+            // Not an Age that worsens, so nothing owes it anything and the queue is only holding memory.
             waiting.remove(level)
             return
         }
-        catchUp(level, worsening)
-        creep(level, worsening)
+        catchUp(level, pace)
+        creep(level, pace)
     }
 
     /**
@@ -90,7 +90,7 @@ object Blight {
      * has had a chance to look at it twice.**
      *
      * This is the third of [Tearing]'s touchpoints and the one the other two cannot cover. A chunk written
-     * after the blight started comes out at the right density, and a chunk somebody is standing in creeps
+     * after the worsening started comes out at the right density, and a chunk somebody is standing in creeps
      * toward it; a chunk written on day one and next seen on day thirty is neither, and without this it
      * stays as it was written however far the Age has come apart.
      *
@@ -105,7 +105,7 @@ object Blight {
      * up only by [creep], and not at all if it is beyond [Sampling]'s reach. Rare, and the alternative is
      * enumerating loaded chunks every tick to find the few that ever want it.
      */
-    private fun catchUp(level: ServerLevel, worsening: Worsening) {
+    private fun catchUp(level: ServerLevel, pace: Pace) {
         val here = waiting[level] ?: return
         val taken = takeFrom(here)
         var budget = WOUNDS_PER_TICK
@@ -120,7 +120,7 @@ object Blight {
                 level,
                 chunk,
                 level.seed,
-                worsening.wantedIn(chunk, level),
+                pace.wantedIn(chunk, level),
                 already = Wounds.countIn(level, chunk.pos),
             )
         }
@@ -150,13 +150,13 @@ object Blight {
     }
 
     /** And the part somebody is present for: one more hole, where they can watch it open. */
-    private fun creep(level: ServerLevel, worsening: Worsening) {
+    private fun creep(level: ServerLevel, pace: Pace) {
         Sampling.sweep(level, ONE_PLACE) { chunk, _ ->
             Tearing.tearInto(
                 level,
                 chunk,
                 level.seed,
-                worsening.wantedIn(chunk, level),
+                pace.wantedIn(chunk, level),
                 atMost = ONE_AT_A_TIME,
                 already = Wounds.countIn(level, chunk.pos),
             )
@@ -164,16 +164,16 @@ object Blight {
     }
 
     /** What an Age is worth tearing at, or null where it was written to hold together. */
-    private fun worseningIn(recipe: AgeRecipe, spending: Spending): Worsening? {
-        val perDay = Tearing.blightPerDayAt(spending.bought(Manifestation.BLIGHT))
+    private fun paceIn(recipe: AgeRecipe, spending: Spending): Pace? {
+        val perDay = Tearing.woundsPerDayAt(spending.bought(Manifestation.WORSENING_WOUNDS))
         // A coherent Age, or one holed exactly as far as its book holed it — either way nothing to do.
         if (perDay <= Tearing.NONE) return null
         val written = Tearing.writtenDensityAt(spending.bought(Manifestation.WOUNDS))
-        return Worsening(written, perDay, recipe)
+        return Pace(written, perDay, recipe)
     }
 
     /** How holed this Age should be by now, and what it takes to work that out for one chunk. */
-    private data class Worsening(val written: Double, val perDay: Double, val recipe: AgeRecipe) {
+    private data class Pace(val written: Double, val perDay: Double, val recipe: AgeRecipe) {
         fun wantedIn(chunk: ChunkAccess, level: ServerLevel): Int {
             val days = recipe.ageAt(level.server) / Tearing.TICKS_PER_DAY
             return Tearing.wantedIn(chunk.pos, level.seed, Tearing.densityAt(written, perDay, days))

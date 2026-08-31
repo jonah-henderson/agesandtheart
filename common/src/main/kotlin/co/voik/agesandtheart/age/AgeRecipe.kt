@@ -49,7 +49,7 @@ data class AgeRecipe(
      *
      * Immutable, and part of what an Age *is* in the way its seed is. §5.4's ruling is that a phenomenon
      * keeps no ledger and the blocks are its state; where that fails, the escape is to derive the state
-     * from how long the Age has existed rather than to track it. Blight and collapse both need that — how
+     * from how long the Age has existed rather than to track it. Worsening and collapse both need that — how
      * holed an Age is has to be knowable in a chunk nobody has ever visited, or fresh chunks generate at
      * the state it had when it was written and there is a seam at the edge of where people have walked.
      *

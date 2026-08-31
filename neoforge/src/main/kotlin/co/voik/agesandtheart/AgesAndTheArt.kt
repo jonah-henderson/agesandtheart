@@ -18,7 +18,7 @@ import co.voik.agesandtheart.desk.DeskSyncPayload
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.platform.NeoForgeInkFluids
 import net.minecraft.core.registries.Registries
-import co.voik.agesandtheart.age.consequence.Blight
+import co.voik.agesandtheart.age.consequence.Worsening
 import co.voik.agesandtheart.age.consequence.Wounds
 import net.minecraft.world.level.Level
 import net.neoforged.neoforge.event.level.ChunkEvent
@@ -200,15 +200,15 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
     private fun onChunkLoad(event: ChunkEvent.Load) {
         val level = event.level as? Level ?: return
         Wounds.stocked(level, event.chunk)
-        // And which of them owe the Age some tearing. Server levels only, which `Blight` decides rather
+        // And which of them owe the Age some tearing. Server levels only, which `Worsening` decides rather
         // than this listener, since the same listener answers for both sides here.
-        Blight.chunkArrived(level, event.chunk.pos)
+        Worsening.chunkArrived(level, event.chunk.pos)
     }
 
     private fun onChunkUnload(event: ChunkEvent.Unload) {
         val level = event.level as? Level ?: return
         Wounds.emptied(level, event.chunk.pos)
-        Blight.chunkLeft(level, event.chunk.pos)
+        Worsening.chunkLeft(level, event.chunk.pos)
     }
 
     private fun onRegisterCommands(event: RegisterCommandsEvent) {

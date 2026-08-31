@@ -160,10 +160,10 @@ object Wounds {
      * How many this chunk holds, off the index rather than off its blocks.
      *
      * **The reason this exists is a measured one.** [stocked] already walks a chunk as it loads, and the
-     * blight pass needs the same number a moment later — asking the chunk again means scanning every
+     * worsening pass needs the same number a moment later — asking the chunk again means scanning every
      * section that holds a wound, four thousand blocks apiece, on every chunk load. That is fine at four
      * wounds to a chunk and is minutes of generation at twelve, which is a thing an Age reaches two days
-     * into the mildest blight.
+     * into the mildest worsening.
      */
     fun countIn(level: Level, at: ChunkPos): Int = byLevel[level]?.get(ChunkPos.pack(at.x, at.z))?.size ?: 0
 

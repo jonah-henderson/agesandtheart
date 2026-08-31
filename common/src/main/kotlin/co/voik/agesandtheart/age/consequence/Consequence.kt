@@ -19,8 +19,8 @@ import net.minecraft.server.MinecraftServer
 data class Consequence(
     /** How many wounds a chunk holds from the book alone, before any time has passed (§5.1). */
     val woundsPerChunk: Double,
-    /** How many more each of the Age's days adds — blight (§5.2.1). */
-    val blightPerDay: Double,
+    /** How many more each of the Age's days adds — the Age going on tearing (§5.2.1). */
+    val woundsPerDay: Double,
     /** How many tears the Age's floor is cut with, per cell — collapse (§5.3). They widen themselves. */
     val collapseTears: Int,
     /** The overworld tick the Age was written on, which the two rates are counted from. */
@@ -29,7 +29,7 @@ data class Consequence(
     /** Whether anything at all is wrong, so a coherent Age can skip the whole pass. */
     val isNothing: Boolean
         get() = woundsPerChunk <= Tearing.NONE &&
-            blightPerDay <= Tearing.NONE &&
+            woundsPerDay <= Tearing.NONE &&
             collapseTears <= Collapse.NONE
 
     /** How long the Age has stood by [now], in its own days — what both rates are multiplied by. */
@@ -44,7 +44,7 @@ data class Consequence(
             val spending = Spending.of(server, recipe)
             return Consequence(
                 woundsPerChunk = Tearing.writtenDensityAt(spending.bought(Manifestation.WOUNDS)),
-                blightPerDay = Tearing.blightPerDayAt(spending.bought(Manifestation.BLIGHT)),
+                woundsPerDay = Tearing.woundsPerDayAt(spending.bought(Manifestation.WORSENING_WOUNDS)),
                 collapseTears = Collapse.tearsPerCellAt(spending.bought(Manifestation.COLLAPSE)),
                 writtenAt = recipe.writtenAt,
             )

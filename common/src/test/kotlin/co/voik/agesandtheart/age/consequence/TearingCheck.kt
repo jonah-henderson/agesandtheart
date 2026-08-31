@@ -51,12 +51,12 @@ class TearingCheck : FunSpec({
         check(Tearing.densityAt(1.0, 2.0, 4L) > early) { "a further day added nothing" }
     }
 
-    /** Blight is a rate over an Age's life; without it the density is exactly what the book wrote. */
-    test("an Age with no blight never worsens") {
+    /** The worsening is a rate over an Age's life; without it the density is exactly what the book wrote. */
+    test("an Age that does not worsen never gains a wound") {
         val written = Tearing.writtenDensityAt(steps = 2)
         for (days in 0L..1000L) {
             check(Tearing.densityAt(written, Tearing.NONE, days) == written) {
-                "an unblighted Age drifted on day $days"
+                "a steady Age drifted on day $days"
             }
         }
     }
@@ -65,24 +65,24 @@ class TearingCheck : FunSpec({
      * **It worsens until a chunk is saturated, and the ceiling is that saturation** (§5.2.1, and the walk of
      * 2026-08-09 that added it).
      *
-     * The design ruling is that blight is unbounded because a bound is a promise the Age can be outlasted.
+     * The design ruling is that it is unbounded because a bound is a promise the Age can be outlasted.
      * What is bounded is how many wounds are *drawn*, which is a different claim: at the ceiling a chunk
      * holds a hole every couple of blocks, so nothing about the Age is livable and there is nothing left for
      * another wound to say. The check that matters is therefore not "it never stops" but **"it does not stop
      * early"** — a low ceiling would be a budget wearing a saturation's clothes.
      */
-    test("blight worsens until the ground is nothing but holes") {
+    test("an Age worsens until the ground is nothing but holes") {
         val mildest = Tearing.densityAt(written = 0.0, perDay = 0.25, days = 100_000L)
-        check(mildest >= 64.0) { "even the mildest blight should saturate a chunk eventually, and reached $mildest" }
+        check(mildest >= 64.0) { "even the mildest worsening should saturate a chunk eventually, and reached $mildest" }
         // And it takes a long time to get there at the bottom of the register, or the ladder says nothing.
         val afterAWeek = Tearing.densityAt(written = 0.0, perDay = 0.25, days = 7L)
-        check(afterAWeek < 2.0) { "the mildest blight reached $afterAWeek in a week, which is not mild" }
+        check(afterAWeek < 2.0) { "the mildest worsening reached $afterAWeek in a week, which is not mild" }
     }
 
     /** A coherent Age tears nowhere, however long it stands — the case almost every Age is. */
     test("a coherent Age never tears") {
         check(Tearing.writtenDensityAt(0) == Tearing.NONE) { "a coherent Age was written holed" }
-        check(Tearing.blightPerDayAt(0) == Tearing.NONE) { "a coherent Age was written blighted" }
+        check(Tearing.woundsPerDayAt(0) == Tearing.NONE) { "a coherent Age was written worsening" }
         check(Tearing.wantedIn(anywhere, seed, Tearing.NONE) == 0) { "a chunk wanted a wound at zero density" }
     }
 
@@ -93,8 +93,8 @@ class TearingCheck : FunSpec({
     test("each step bought is a step worse") {
         val written = (0..4).map(Tearing::writtenDensityAt)
         check(written == written.sorted()) { "the written density is not monotone in steps: $written" }
-        val creep = (0..3).map(Tearing::blightPerDayAt)
-        check(creep == creep.sorted()) { "the blight rate is not monotone in steps: $creep" }
+        val creep = (0..3).map(Tearing::woundsPerDayAt)
+        check(creep == creep.sorted()) { "the worsening rate is not monotone in steps: $creep" }
     }
 
     /**

@@ -2,7 +2,7 @@ package co.voik.agesandtheart.age.phenomena
 
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.aspect.Span
-import co.voik.agesandtheart.age.consequence.Blight
+import co.voik.agesandtheart.age.consequence.Worsening
 import co.voik.agesandtheart.age.consequence.Hostility
 import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Atmosphere
@@ -65,9 +65,9 @@ object Happenings {
             // Not a phenomenon — a wound is what the Age could not hold rather than something it does — but
             // it wants the same walk, and the walk is the expensive part.
             Hostility.stir(level)
-            // Nor is this one: blight is the Age going on tearing — the ground that came back while
-            // nobody was looking, and then the hole opening in front of somebody. See [Blight].
-            Blight.advance(level, recipe, spending)
+            // Nor is this one: an Age goes on tearing — the ground that came back while nobody was
+            // looking, and then the hole opening in front of somebody. See [Worsening].
+            Worsening.advance(level, recipe, spending)
             // And a dragon an Age was written with needs telling where it is, or it flies to the world
             // origin to hold its pattern — see [Dragons].
             Dragons.findTheirOwnGround(level)

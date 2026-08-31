@@ -6,7 +6,7 @@ import io.kotest.core.spec.style.FunSpec
  * How an instability budget is spent (design §5.0).
  *
  * The budget model exists to make one guarantee arithmetic rather than hand-guarded: **a small mistake
- * cannot buy a dire manifestation.** §5.2.1 wants blight reserved for the severe end and §5.3 wants
+ * cannot buy a dire manifestation.** §5.2.1 wants the worsening reserved for the severe end and §5.3 wants
  * collapse for the unsalvageable, and under a threshold model each of those is a separate number to tune
  * and a separate place to drift. Here it is subtraction.
  */
@@ -20,7 +20,7 @@ class SpendingCheck : FunSpec({
         Manifestation.TORN_SEAMS to Price(costs = 2, most = 4),
         Manifestation.WOUNDS to Price(costs = 5, most = 4),
         Manifestation.SANDFALL to Price(costs = 7, most = 4),
-        Manifestation.BLIGHT to Price(costs = 9, most = 3),
+        Manifestation.WORSENING_WOUNDS to Price(costs = 9, most = 3),
         Manifestation.COLLAPSE to Price(costs = 14, most = 3),
     )
 
@@ -155,26 +155,26 @@ class SpendingCheck : FunSpec({
      * unaffordable until everything cheaper has been bought to its cap. This is the check that says so,
      * and it is the one to look at if the price list is ever retuned.
      */
-    test("blight and collapse are unaffordable until the cheap registers are full") {
-        fun blight(budget: Int) = Spending.of(budget, SHIPPED, 1L).bought(Manifestation.BLIGHT)
+    test("worsening wounds and collapse are unaffordable until the cheap registers are full") {
+        fun worsening(budget: Int) = Spending.of(budget, SHIPPED, 1L).bought(Manifestation.WORSENING_WOUNDS)
         fun collapse(budget: Int) = Spending.of(budget, SHIPPED, 1L).bought(Manifestation.COLLAPSE)
 
         // A five-page desk cannot hold enough contradiction to reach here, and the arithmetic agrees.
         for (budget in 0..27) {
-            check(blight(budget) == 0) { "instability $budget blighted an Age: ${blight(budget)}" }
+            check(worsening(budget) == 0) { "instability $budget set an Age worsening: ${worsening(budget)}" }
         }
         for (budget in 0..36) {
             check(collapse(budget) == 0) { "instability $budget collapsed an Age: ${collapse(budget)}" }
         }
         // Both are reachable by an Age genuinely written to come apart, or they would be dead content.
-        check(blight(65) >= 1) { "no budget at all reached blight" }
+        check(worsening(65) >= 1) { "no budget at all reached the worsening" }
         check(collapse(97) >= 1) { "no budget at all reached collapse" }
         // Accumulation: anything that can afford to collapse also bought everything below it (§5.0).
         val ruined = Spending.of(97, SHIPPED, 1L)
         check(ruined.bought(Manifestation.TORN_SEAMS) == 4) { "a collapsing Age skipped its seams" }
         check(ruined.bought(Manifestation.WOUNDS) == 4) { "a collapsing Age skipped its wounds" }
         check(ruined.bought(Manifestation.SANDFALL) == 4) { "a collapsing Age skipped its sandfalls" }
-        check(ruined.bought(Manifestation.BLIGHT) >= 1) { "a collapsing Age skipped blight" }
+        check(ruined.bought(Manifestation.WORSENING_WOUNDS) >= 1) { "a collapsing Age skipped the worsening" }
     }
 
     /**

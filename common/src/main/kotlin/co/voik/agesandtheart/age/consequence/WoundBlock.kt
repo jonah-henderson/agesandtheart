@@ -31,7 +31,7 @@ import net.minecraft.world.level.block.state.properties.BooleanProperty
  *
  * The reference is the Riven remake: a hole discovered, later found crudely boxed up by Gehn, the patch
  * legible *as* a patch and hiding the wrongness without touching it. So this is not damage and not a
- * blight — nothing spreads, nothing is on a timer, and nothing threatens what a player built. It is an
+ * plague — nothing spreads, nothing is on a timer, and nothing threatens what a player built. It is an
  * **absence** that makes a place dreadful, and the only thing anyone can do about it is wall it in.
  *
  * **Unbreakable, and that is the mechanic rather than an obstacle.** "Containable, not curable": the true

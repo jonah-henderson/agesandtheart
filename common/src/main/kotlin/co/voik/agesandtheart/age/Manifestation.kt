@@ -43,12 +43,12 @@ enum class Manifestation(val key: String) : StringRepresentable {
     /**
      * The tearing does not stop (design §5.2.1) — the Age goes on holing itself for as long as it exists.
      *
-     * **Blight, and it is a verdict rather than a fight.** What a step buys is how *fast* the wound density
-     * climbs with the Age's age, so [WOUNDS] is how holed it was written and this is how holed it becomes.
-     * Unbounded on purpose: a ceiling would promise the Age can be outlasted, and the only question this
-     * register asks is how long you stay.
+     * **A verdict rather than a fight.** What a step buys is how *fast* the wound density climbs with the
+     * Age's age, so [WOUNDS] is how holed it was written and this is how holed it becomes. Unbounded on
+     * purpose: a ceiling would promise the Age can be outlasted, and the only question this register asks
+     * is how long you stay.
      */
-    BLIGHT("blight"),
+    WORSENING_WOUNDS("worsening_wounds"),
 
     /**
      * Columns of sand walk the Age (design §5.2.2) — bigger, hungrier, longer-lived and more of them at
@@ -60,9 +60,10 @@ enum class Manifestation(val key: String) : StringRepresentable {
      * (§7.7's "a meteor storm you introduced *by contradiction*"). Nothing here tests whether the Age
      * already has a sandfall: where it does, the two **compound**.
      *
-     * **Priced below [BLIGHT] deliberately.** A sandfall is difficulty and blight is a verdict — you can
-     * roof over sand, and burial hands you the glass to do it with, where a blighted Age only asks how long
-     * you stay. Consequence should reach the hazard you can answer before the one you cannot.
+     * **Priced below [WORSENING_WOUNDS] deliberately.** A sandfall is difficulty and worsening is a
+     * verdict — you can roof over sand, and burial hands you the glass to do it with, where an Age that
+     * goes on holing itself only asks how long you stay. Consequence should reach the hazard you can
+     * answer before the one you cannot.
      */
     SANDFALL("sandfall"),
 

@@ -1044,8 +1044,8 @@ object AgeCommand {
      * `/age decay <name>` — how far an Age has come apart, and `/age decay <name> age <days>` to make it
      * older than it is.
      *
-     * **Without the second form none of this is observable.** Blight and collapse are read against the
-     * Age's own age (design §5.4), so the mildest blight takes four of its days to open one more wound per
+     * **Without the second form none of this is observable.** Worsening and collapse are read against the
+     * Age's own age (design §5.4), so the mildest of them takes four of its days to open one more wound per
      * chunk and the gentlest collapse a fortnight to be worth looking at. Backdating rewrites the one field
      * the clock is measured from, which is the whole of what "wait a month" means to everything downstream
      * — no separate debug path, and nothing that could disagree with the real one.
@@ -1123,7 +1123,7 @@ object AgeCommand {
         val spending = Spending.of(source.server, recipe)
         val days = recipe.ageAt(source.server) / Tearing.TICKS_PER_DAY
         val written = Tearing.writtenDensityAt(spending.bought(Manifestation.WOUNDS))
-        val perDay = Tearing.blightPerDayAt(spending.bought(Manifestation.BLIGHT))
+        val perDay = Tearing.woundsPerDayAt(spending.bought(Manifestation.WORSENING_WOUNDS))
         val density = Tearing.densityAt(written, perDay, days)
         val here = ChunkPos(at.x shr CHUNK_BITS, at.z shr CHUNK_BITS)
         val wanted = Tearing.wantedIn(here, level.seed, density)
@@ -1164,7 +1164,7 @@ object AgeCommand {
             when {
                 density <= Tearing.NONE -> "  → this Age bought no wounds at all"
                 holds >= wanted -> "  → this chunk is up to date"
-                perDay <= Tearing.NONE -> "  → behind, and nothing will fix it: no blight, so nothing catches up"
+                perDay <= Tearing.NONE -> "  → behind, and nothing will fix it: it does not worsen, so nothing catches up"
                 else -> "  → behind by ${'$'}{wanted - holds}; leave until it unloads and return, or stand here for the creep"
             }
         }
@@ -1227,7 +1227,7 @@ object AgeCommand {
         val spending = Spending.of(source.server, recipe)
         val days = recipe.ageAt(source.server) / Tearing.TICKS_PER_DAY
         val written = Tearing.writtenDensityAt(spending.bought(Manifestation.WOUNDS))
-        val perDay = Tearing.blightPerDayAt(spending.bought(Manifestation.BLIGHT))
+        val perDay = Tearing.woundsPerDayAt(spending.bought(Manifestation.WORSENING_WOUNDS))
         val density = Tearing.densityAt(written, perDay, days)
         val tears = Collapse.tearsPerCellAt(spending.bought(Manifestation.COLLAPSE))
 
@@ -1235,7 +1235,7 @@ object AgeCommand {
         report.fact("days", days) { "  days: $days" }
         report.fact("spending", spending.toString()) { "  bought: $spending" }
         report.fact("woundsWritten", written) { "  wounds the book tore: %.3f per chunk".format(written) }
-        report.fact("blightPerDay", perDay) { "  blight: %.3f more per chunk each day".format(perDay) }
+        report.fact("woundsPerDay", perDay) { "  worsening: %.3f more per chunk each day".format(perDay) }
         report.fact("woundsNow", density) { "  wounds now: %.3f per chunk".format(density) }
         report.fact("collapseTears", tears) {
             if (tears <= Collapse.NONE) "  no tears in the floor" else "  $tears tear(s) to every 96 blocks, widening"
@@ -1258,8 +1258,8 @@ object AgeCommand {
      * Make an Age older than it is, by moving the tick it was written on backwards.
      *
      * Generation reads the clock per chunk, so unvisited ground comes out at the new age immediately.
-     * Ground that already exists is brought up by `Blight`'s catch-up as its chunks reload — so unloading
-     * and returning is what makes it agree, and an Age that bought no blight has no catch-up and keeps
+     * Ground that already exists is brought up by `Worsening`'s catch-up as its chunks reload — so unloading
+     * and returning is what makes it agree, and an Age that does not worsen has no catch-up and keeps
      * what it was made with.
      */
     private fun runBackdate(context: CommandContext<CommandSourceStack>, days: Int, report: Report): Int {
@@ -1279,7 +1279,7 @@ object AgeCommand {
         // alone left an Age reporting a month and generating as though it were new.
         retellTheGenerator(source.server, id, aged)
         report.say { "Age '$name' now reads as $days days old." }
-        report.say { "  ground it has not generated comes out at the new age; ground that exists catches up as it reloads, if it blights." }
+        report.say { "  ground it has not generated comes out at the new age; ground that exists catches up as it reloads, if the Age worsens." }
         report.fact("days", days.toLong()) { "" }
         report.fact("writtenAt", aged.writtenAt) { "" }
         return SUCCESS
@@ -1301,7 +1301,7 @@ object AgeCommand {
      * Set an Age's instability outright, so the consequence registers can be tested without writing a book
      * that earns them.
      *
-     * Reaching blight honestly takes an index near forty and collapse near seventy, which is two dozen
+     * Reaching the worsening honestly takes an index near sixty-five and collapse near a hundred, which is two dozen
      * pages opposing two dozen different things — a great deal of fighting the vocabulary to exercise
      * arithmetic the vocabulary has nothing to do with. The index goes through the real price list from
      * here, so what it buys is exactly what a book of that index would have bought.
@@ -1322,7 +1322,7 @@ object AgeCommand {
         report.say { "Age '$name' is now instability $index, which buys $spending." }
         report.fact("instability", index) { "" }
         report.fact("spending", spending.toString()) { "" }
-        report.say { "  walk to ground it has not generated yet. What exists catches up as it reloads if this bought blight; without it, existing ground keeps what it was made with." }
+        report.say { "  walk to ground it has not generated yet. What exists catches up as it reloads if this bought worsening wounds; without them, existing ground keeps what it was made with." }
         return SUCCESS
     }
 
