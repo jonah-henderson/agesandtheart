@@ -1,6 +1,8 @@
 package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.age.phenomena.SandColumn
+import co.voik.agesandtheart.age.phenomena.Sampling
+import net.minecraft.core.BlockPos
 import co.voik.ephemeris.Rgba
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.world.attribute.EnvironmentAttributeSystem
@@ -47,6 +49,21 @@ object Engulfing {
         layers.addPositionalLayer(EnvironmentAttributes.FOG_END_DISTANCE) { was, at, _ ->
             if (engulfedAt(level, at)) YOUR_OWN_FEET else was
         }
+        // **And upward, or the one direction with nothing in it stays clear** (Jonah, 2026-08-31, walked).
+        // Ordinary fog is measured to what it is drawn over, and the sky is not drawn over anything — so
+        // looking straight up out of a column showed clouds sailing past through the sand. These two are
+        // the sky's own fog and the clouds' own, and they are the only way to close it.
+        layers.addPositionalLayer(EnvironmentAttributes.SKY_FOG_END_DISTANCE) { was, at, _ ->
+            if (engulfedAt(level, at)) YOUR_OWN_FEET else was
+        }
+        layers.addPositionalLayer(EnvironmentAttributes.CLOUD_FOG_END_DISTANCE) { was, at, _ ->
+            if (engulfedAt(level, at)) YOUR_OWN_FEET else was
+        }
+        // Belt and braces: with the sky fogged to nothing its own colour should never be reached, and if
+        // it is, sand overhead is a great deal less wrong than blue.
+        layers.addPositionalLayer(EnvironmentAttributes.SKY_COLOR) { was, at, _ ->
+            if (engulfedAt(level, at)) SAND.packed() else was
+        }
         return layers
     }
 
@@ -71,14 +88,26 @@ object Engulfing {
      * The columns near enough to be standing in, asked one at a time.
      *
      * A box query rather than a walk over the level's entities: it is indexed by chunk section, so the
-     * common case — no column anywhere near — costs a lookup and an empty list. [REACH] only has to cover
-     * the widest a column may stand.
+     * common case — no column anywhere near — costs a lookup and an empty list.
+     *
+     * **The box is the full height of the world, and that is a fix rather than caution** (Jonah,
+     * 2026-08-31, walked: the fog "switches off on occasion"). A column *is* the whole height, but the
+     * entity carrying it is a small box down at the ground, so a query that reached a fixed distance up and
+     * down from the camera stopped finding it the moment you were higher up the column than the box was
+     * tall. Horizontally it need only cover the widest a core may stand.
      */
     private fun searchFor(level: ClientLevel, at: Vec3): Boolean {
-        val near = AABB.ofSize(at, REACH, REACH, REACH)
+        val near = AABB(
+            at.x - REACH,
+            level.minY.toDouble(),
+            at.z - REACH,
+            at.x + REACH,
+            level.maxY.toDouble(),
+            at.z + REACH,
+        )
+        if (!Sampling.openToTheSky(level, BlockPos.containing(at))) return false
         return level.getEntitiesOfClass(SandColumn::class.java, near).any { column ->
-            // Above the ground it walks on, or you are in a cave under it and the roof is doing its job.
-            at.y >= column.y && column.covers(at.x, at.z, column.coreHalfWidth.toDouble())
+            column.covers(at.x, at.z, column.coreHalfWidth.toDouble())
         }
     }
 
@@ -91,6 +120,11 @@ object Engulfing {
     /** And where it is total. Enough to see what you are standing on and nothing beyond it. */
     private const val YOUR_OWN_FEET = 2.2f
 
-    /** Twice the widest a column may stand, which is all a search has to cover. */
-    private const val REACH = 42.0
+    /**
+     * How far a column's middle may be and still have you inside it, in blocks.
+     *
+     * A little past the widest a core may stand. **The other half of the switching-off**: this used to be
+     * the whole box, height included, which is not how a column is shaped.
+     */
+    private const val REACH = 12.0
 }
