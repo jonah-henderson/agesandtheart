@@ -14,15 +14,16 @@ correct itself in place. Rewrite the paragraph that is now wrong.
 
 - **`notes/the-world-model.md`** — **read this first, and before anything under `age/`.** What a world is
   made of (properties holding a value, a weighted set or a cast), what a word is, how a book resolves, and
-  what a word costs. Derived from scratch 2026-08-12 and **not built** — it supersedes `the-art-design.md`
-  §3 and §4, and the code still implements those. Its §10 maps the old concepts onto the new ones.
+  what a word costs. Derived from scratch 2026-08-12 and **built** — it supersedes `the-art-design.md`
+  §3 and §4, and is normative and current where they are history. Its §10 maps the old concepts onto the new ones.
 - **`notes/the-art-design.md`** — "the Art": the books, the language, aspects and tags, consequences,
   book editing, the economy. Still normative for §5 (consequence), §6 (book editing), §7 (the economy) and
   §8 (learning); **§3 and §4 are superseded** by the world model above.
-- **`notes/the-art-implementation-plan.md`** — the phases and what each has to prove. Phases 1–4.5 are
-  done and are a status line each; Phase 4's remainder and Phases 5–8 carry their full context.
+- **`notes/the-art-implementation-plan.md`** — the phases and what each has to prove. Phases 1–5 are done
+  and are a status line each, and Phase 6 is done but for its remainder; Phases 7–9 carry their full context.
 - **`notes/the-tag-layer.md`** — the thirty-nine tags, where each is derived from, and why three separate
-  things are called rarity. The implementation of the world model's §7, and **not built**. Read it before
+  things are called rarity. The implementation of the world model's §7, and **built** — what is left of it
+  is the hand-tuning its §7 step 4 describes, and `/age tags` is how a pass is done. Read it before
   touching `art/preset_tags/`, adding a tag, or authoring a word that queries one.
 - **`notes/terrain-architecture.md`** — the two-tier terrain system (composable field toolkit + bespoke
   presets): the evaluation contract, where things live, the performance budget. Built and shipped.
@@ -68,7 +69,7 @@ correct itself in place. Rewrite the paragraph that is now wrong.
 
 **Ages and the Art** — a Minecraft mod (Mystcraft-inspired: author dimensional "Ages" from written Symbol pages, link between them) for **Minecraft 26.1.2**, built as a **multiloader** mod running on both **Fabric** and **NeoForge** from one codebase. Mod id `agesandtheart`, root package `co.voik.agesandtheart`.
 
-Current state: Phases 1–4.5 are done and Phase 5 (the playable slice) is in progress. The Art's language, grammar, resolver and terrain system are built and checked; `/age write` authors an Age from a sentence. Phase 5 has added word pages, the notebook, the writer's desk with its screen, descriptive and linking books, the book entity, and the two acquaintance devices that put the derived corpus within reach. **Runtime dimensions work on both loaders**, on **Ephemeris** — our own library, now its own project at `../ephemeris` (see "Ephemeris" below).
+Current state: Phases 1–5 are done and Phase 6 (consequence) is built through its last register. The Art's language, grammar, resolver and terrain system are built and checked; `/age write` authors an Age from a sentence, and the loop runs without commands — word pages, the notebook, the writer's desk, descriptive and linking books, and the two acquaintance devices that put the derived corpus within reach. An Age's instability now reaches generation: seams widen, wounds open, blight climbs and collapse tears. Phases 7 (rewards), 8 (book editing) and 9 (the asset pass, and there are no textures at all) have not started. **Runtime dimensions work on both loaders**, on **Ephemeris** — our own library, now its own project at `../ephemeris` (see "Ephemeris" below).
 
 **26.1 is the first unobfuscated Minecraft release**, which is why there is no Parchment in the catalog: 1.21.11 was the last obfuscated one and there is nothing left to deobfuscate. Mappings-related advice written for the 1.21 line does not transfer.
 
@@ -269,7 +270,7 @@ pages) → Sentence` is the entire port; `Sentence`/`Phrase`/`Constraint`/`Scope
   page is asked of the data (`Aspect.confinable`, `Aspect.madeOfSomething`, `Word.aspects`), so the
   player-facing division can be redrawn without touching it. **Every clause ends with the page it is about** and modifiers lead it —
   `pillars and hills landmass`, and a book with no aiming page closes with `age`. A clause is closed by an
-  **aiming page** (`landmass`, `atmosphere`, `firmament`) and never by a word that fills something —
+  **aiming page** (`landmass`, `weather`, `sky` — one per aspect, synthesised from `Aspect.page`) and never by a word that fills something —
   presets are ours, not the player's. `Readout.of(sentence)` says the parse back as prose, which is how attachment is visible at
   all.
 - **`Holds`** — what an aspect holds: a catalogue, a weighted set, a population, or nothing but its own
@@ -289,7 +290,7 @@ pages) → Sentence` is the entire port; `Sentence`/`Phrase`/`Constraint`/`Scope
 - **`Instability`** — how far an Age is at odds with itself, in six registers, each `Flaw` naming the words,
   slot and tags involved. Provenance is the point: a flaw has to be diagnosable, and §5's consequences read
   this long after the book was written. Part of the recipe.
-- **`AgeCommand`** — the `/age` Brigadier tree (vanilla, so it's in `common`); the debug trigger until books exist. `/age write <name> [seed] <words…>` authors an Age from a sentence and `/age words` lists the vocabulary. `/age compare <a> <b>` generates two Ages and diffs them block for block — write two with the same seed to check a recipe reproduces.
+- **`AgeCommand`** — the `/age` Brigadier tree (vanilla, so it's in `common`); the operator and debug tools, kept permanently now that books have superseded them in play. `/age write <name> [seed] <words…>` authors an Age from a sentence and `/age words` lists the vocabulary. `/age compare <a> <b>` generates two Ages and diffs them block for block — write two with the same seed to check a recipe reproduces. The instruments are worth knowing before building another: `/age tags` says what a tag actually carries on a server, `/age spawns` what an Age offers a spawn attempt, `/age danger` and `/age decay` what a wound and an index have bought, and `/age showing` what is being drawn.
 - **`AgeBackend`** (service) — both halves call `RuntimeLevels.open` / `RuntimeLevels.delete` and are identical but for the class name. The service survives because the *policy* around a level (which recipe, which dimension type) is ours while opening one is Ephemeris'.
 
 Reload trigger is loader-specific: Fabric's `SERVER_STARTED` event and NeoForge's `ServerStartedEvent` both call `Ages.reloadSaved`. A level must be opened on the server thread (commands and lifecycle events already are).
