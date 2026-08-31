@@ -57,7 +57,13 @@ class VocabularyOnServerCheck : FunSpec({
         val vocabulary = server.ask("words")
         val authored = vocabulary.get("authored").asInt
         val derived = vocabulary.get("derived").asInt
-        check(derived > authored * 10) {
+        // **A floor rather than a ratio**, for the reason the paragraph below already gives about the other
+        // half of this test. A ratio says the same thing but tightens by ten every time anybody writes a
+        // word: two aspects and two words moved the bar past a corpus that had grown as well, and failed a
+        // build with nothing wrong in it (2026-08-30). What is being asked is only whether the dynamic
+        // registries arrived, and a thousand separates that from "they did not" however the pack grows.
+        val farMoreThanAnybodyAuthors = 1000
+        check(derived > farMoreThanAnybodyAuthors) {
             "only $derived derived words against $authored authored — the registries did not reach the corpus"
         }
 

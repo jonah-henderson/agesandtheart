@@ -158,6 +158,26 @@ enum class Aspect(
     STARS("stars"),
 
     /**
+     * What the grass of this world is coloured.
+     *
+     * **Its own aspect, and separate from [LEAVES] on purpose.** Nobody saying "purple grass" means the
+     * leaves as well, so one word for both would be wrong far more often than it was convenient. A writer
+     * who wants the whole world recoloured says both.
+     *
+     * **Sited, which is most of what it is for.** `purple grass in swamp` is the interesting sentence, and
+     * it costs nothing here: the parameter is `perBiome`, and `Atmosphere.cornersOf` already gathers every
+     * biome any confined clause named.
+     *
+     * A level cannot repaint a biome — it borrows the registry's, and repainting `minecraft:forest` would
+     * repaint the overworld's too — so this crosses on the look and is answered per level. See
+     * `co.voik.ephemeris.client.GroundTints`.
+     */
+    GRASS("grass"),
+
+    /** What its leaves are coloured, and its litter and dead brush with them. See [GRASS]. */
+    LEAVES("leaves"),
+
+    /**
      * The curtain that stands in it on some nights.
      *
      * **Its own aspect rather than a corner of the vault**, for the same reason the stars have one: it is a
@@ -223,7 +243,7 @@ enum class Aspect(
             // biome or a structure set is weighed rather than chosen. See [dials] and [Holds.WEIGHTED_SET].
             PHENOMENA -> Phenomenon.entries
             SEA, BIOMES, STRUCTURES, CLIMATE, SURFACE, FEATURES, SPAWNS, AIR, WATERS, WEATHER,
-            SUN, MOON, STARS, AURORA, RAINBOW,
+            SUN, MOON, STARS, GRASS, LEAVES, AURORA, RAINBOW,
             -> emptyList()
         }
 
@@ -252,6 +272,8 @@ enum class Aspect(
             SUN -> listOf(Sky.SHINING, Sky.SUNSIZE, Sky.SUNCOLOUR, Sky.RISING)
             MOON -> listOf(Sky.ORBITING, Sky.RISING)
             STARS -> listOf(Sky.STARS, Sky.STARGLOW)
+            GRASS -> listOf(Atmosphere.GRASSCOLOUR)
+            LEAVES -> listOf(Atmosphere.LEAFCOLOUR)
             AURORA -> listOf(Sky.AURORACOLOUR, Sky.AURORAGLOW, Sky.AURORASIZE, Sky.AURORAFREQUENCY)
             RAINBOW -> listOf(
                 Sky.RAINBOWCOLOUR,
@@ -320,7 +342,7 @@ enum class Aspect(
         FEATURES -> PlacedFeature.named(key)
         SPAWNS -> Spawn.named(key)
         TERRAIN, CARVERS, SKY, CLIMATE, SURFACE, PHENOMENA,
-        AIR, WATERS, WEATHER, SUN, MOON, STARS, AURORA, RAINBOW,
+        AIR, WATERS, WEATHER, SUN, MOON, STARS, GRASS, LEAVES, AURORA, RAINBOW,
         -> authored.firstOrNull { it.key == key }
     }
 

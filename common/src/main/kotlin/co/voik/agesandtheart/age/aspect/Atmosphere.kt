@@ -99,6 +99,17 @@ object Atmosphere {
     private fun colour(name: String) = Parameter(name, listOf(AS_EVER) + Colour.ALL).perBiome()
 
     /**
+     * What the grass is tinted, and what the leaves are — **the ground rather than the air**, kept here
+     * because this is where a [Look] is assembled and splitting the parameters from [lookIn] would put the
+     * two halves of one answer in two files.
+     *
+     * Sited like every other colour here, which is the whole of `purple grass in swamp`.
+     */
+    val GRASSCOLOUR = colour("grasscolour")
+
+    val LEAFCOLOUR = colour("leafcolour")
+
+    /**
      * This Age's own layer laid over the ones vanilla built, or the system untouched where the sentence
      * said nothing about the air.
      *
@@ -146,6 +157,12 @@ object Atmosphere {
             murk = band(water, MURK),
             haze = band(air, HAZE),
             ceiling = band(vault, CEILING),
+            grass = colourOf(parts.optionsFor(Aspect.GRASS), GRASSCOLOUR, biome),
+            // **One word for every leaf.** Litter and dead brush are leaves that have dried, and a world
+            // with purple trees over green leaf litter is the same mistake as purple grass under green
+            // leaves — one level further down.
+            foliage = colourOf(parts.optionsFor(Aspect.LEAVES), LEAFCOLOUR, biome),
+            dryFoliage = colourOf(parts.optionsFor(Aspect.LEAVES), LEAFCOLOUR, biome),
         )
     }
 

@@ -1,7 +1,7 @@
 {
   "_comment": [
     "One of the nine plain colours, and it sets every colour knob it can reach -- the vault, the air, the",
-    "cloud, the star this world goes round, the curtain over its cold and the bow opposite its sun. It declares no",
+    "cloud, the star this world goes round, the curtain over its cold, the bow opposite its sun, and the grass and leaves that grow in it. It declares no",
     "aspects: `Word.aspects` is widened from the parameters a word sets, so the `sets` map is the whole of",
     "the declaration and attachment does the rest. `red sky` paints the vault, `red sun` the star, `red and",
     "green aurora` the ramp from its crown to its hem, and `a red Age` means all of them at once.",
@@ -19,6 +19,8 @@
     "cloud": "purple",
     "suncolour": "purple",
     "auroracolour": "purple",
-    "rainbowcolour": "purple"
+    "rainbowcolour": "purple",
+    "grasscolour": "purple",
+    "leafcolour": "purple"
   }
 }
