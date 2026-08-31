@@ -54,6 +54,15 @@ class AgeSpawner(
         val spacing: Int,
         /** Its share of one attempt, against the others this Age places. */
         val weight: Int,
+        /**
+         * **The heightmap this creature's own placement was registered against**, which is the only one
+         * its placement check will agree with.
+         *
+         * Carried here rather than chosen where a column is picked, because two things pick columns — the
+         * spawner and `/age spawns` — and they must not each have their own idea of where the ground is.
+         * They did, and the census faithfully reproduced the spawner's mistake rather than exposing it.
+         */
+        val surface: Heightmap.Types,
     )
 
     private val choosing: WeightedList<Placement> =
@@ -63,7 +72,7 @@ class AgeSpawner(
         if (placedCreatures.isEmpty()) return
         val chosen = choosing.getRandom(level.random).orElse(null) ?: return
         if (!spawnEnemies && chosen.type.category == MobCategory.MONSTER) return
-        val at = somewhereIn(level) ?: return
+        val at = somewhereIn(level, chosen) ?: return
         val outcome = tryAt(chosen, level, at)
         if (outcome is Outcome.Standing) place(chosen, level, outcome.at)
     }
@@ -143,7 +152,7 @@ class AgeSpawner(
      * why this is cheap: an unloaded chunk is not somewhere to spawn and generating one to find out would
      * be a spawner that drives world generation.
      */
-    private fun somewhereIn(level: ServerLevel): BlockPos? {
+    fun somewhereIn(level: ServerLevel, chosen: Placement): BlockPos? {
         val players = level.players().filterNot { it.isSpectator }
         if (players.isEmpty()) return null
         val around = players[level.random.nextInt(players.size)].blockPosition()
@@ -151,7 +160,7 @@ class AgeSpawner(
         val x = around.x + level.random.nextInt(-reach, reach + 1)
         val z = around.z + level.random.nextInt(-reach, reach + 1)
         if (!level.hasChunkAt(BlockPos(x, level.minY, z))) return null
-        return BlockPos(x, level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z), z)
+        return BlockPos(x, level.getHeight(chosen.surface, x, z), z)
     }
 
     /** The first open block under the ground, for a creature that belongs in the rock. */
@@ -241,6 +250,15 @@ class AgeSpawner(
             return Placement(
                 type, spawning.groundOf(id), spawning.lightOf(id),
                 arrival, spacing, often.coerceAtLeast(1),
+                // **Vanilla's own answer for this creature, never a heightmap of our choosing.** An Age
+                // written for golems had almost none because this was `WORLD_SURFACE` for everything
+                // (Jonah, 2026-08-31, walked; `/age spawns` counted `WrongPlacement` on 169 of 169). An
+                // iron golem is registered `ON_GROUND` against `MOTION_BLOCKING_NO_LEAVES`, and the two
+                // disagree wherever anything grows: `WORLD_SURFACE` counts a grass tuft where the other
+                // does not, so on vegetated ground the column came back a block high, `ON_GROUND` looked
+                // underneath it, found the tuft rather than the soil, and refused. Bare rock and sand
+                // worked, which is exactly the scatter that reads as "they hardly ever spawn".
+                SpawnPlacements.getHeightmapType(type),
             )
         }
 

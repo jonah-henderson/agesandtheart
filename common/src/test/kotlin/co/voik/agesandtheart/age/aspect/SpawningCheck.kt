@@ -15,6 +15,7 @@ import net.minecraft.world.entity.SpawnPlacementTypes
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
 import net.minecraft.world.level.biome.MobSpawnSettings
+import net.minecraft.world.level.levelgen.Heightmap
 
 /**
  * **A creature a world never offered, written into one** — the same operation as skewing one that was
@@ -217,6 +218,40 @@ class SpawningCheck : FunSpec({
         val grounds = placing.placedCreatures.associate { it.type to it.ground }
         check(grounds[EntityType.ENDER_DRAGON] == Ground.IN_THE_AIR) { "the dragon is placed on $grounds" }
         check(grounds[EntityType.IRON_GOLEM] == Ground.SURFACE) { "the golem is placed on $grounds" }
+    }
+
+    /**
+     * **A creature is looked for on the heightmap its own placement was registered against**, and getting
+     * that wrong is silent.
+     *
+     * An Age written for golems had almost none until this was fixed (Jonah, 2026-08-31, walked; `/age
+     * spawns` counted `WrongPlacement` on 169 of 169 columns, and 82 of 169 *standing* after). Columns were
+     * picked on `WORLD_SURFACE` for every creature, and an iron golem is registered against
+     * `MOTION_BLOCKING_NO_LEAVES`. The two disagree wherever anything grows — `WORLD_SURFACE` counts a
+     * grass tuft where the other does not — so the column came back a block high, `ON_GROUND` looked under
+     * it, found the tuft rather than the soil, and refused. Bare rock worked, which is the scatter that
+     * reads as "they hardly ever spawn".
+     *
+     * **The golem's heightmap is spelled out rather than merely compared**, the way `SpendingCheck` spells
+     * out the shipped prices: comparing a placement against `SpawnPlacements` is tautological now that it
+     * reads it from there, and would go on passing if somebody put a constant back.
+     */
+    test("a creature is looked for on the heightmap vanilla registered it against") {
+        val placing = AgeSpawner.placing(
+            Options(mapOf(Spawns.LIVES.name to listOf("minecraft:iron_golem", "minecraft:ender_dragon"))),
+            MinecraftRegistries.spawning,
+        )
+        checkNotNull(placing) { "an Age that wrote a golem and a dragon places neither" }
+
+        val surfaces = placing.placedCreatures.associate { it.type to it.surface }
+        check(surfaces[EntityType.IRON_GOLEM] == Heightmap.Types.MOTION_BLOCKING_NO_LEAVES) {
+            "a golem is looked for on ${surfaces[EntityType.IRON_GOLEM]}, which is not what places it"
+        }
+        for ((type, surface) in surfaces) {
+            check(surface == SpawnPlacements.getHeightmapType(type)) {
+                "$type is looked for on $surface where vanilla places it on ${SpawnPlacements.getHeightmapType(type)}"
+            }
+        }
     }
 
     /**

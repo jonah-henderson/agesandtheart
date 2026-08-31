@@ -2415,7 +2415,9 @@ object AgeCommand {
             for (blockX in -spread..spread step SPAWN_SAMPLE_STRIDE) {
                 for (blockZ in -spread..spread step SPAWN_SAMPLE_STRIDE) {
                     level.getChunk(SectionPos.blockToSectionCoord(blockX), SectionPos.blockToSectionCoord(blockZ))
-                    val ground = level.getHeight(Heightmap.Types.WORLD_SURFACE, blockX, blockZ)
+                    // The creature's own heightmap, which is what the spawner picks columns on — a census
+                    // that chose its own would reproduce a disagreement instead of reporting one.
+                    val ground = level.getHeight(creature.surface, blockX, blockZ)
                     val outcome = checkNotNull(placing).tryAt(creature, level, BlockPos(blockX, ground, blockZ))
                     val said = if (outcome is AgeSpawner.Outcome.Standing) "would stand" else outcome.javaClass.simpleName
                     outcomes[said] = (outcomes[said] ?: 0) + 1
