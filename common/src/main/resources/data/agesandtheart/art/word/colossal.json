@@ -15,6 +15,6 @@
     "monumental": 1.0
   },
   "sets": {
-    "sunsize": "0.7..1.0"
+    "size": "0.7..1.0"
   }
 }

@@ -112,7 +112,7 @@ value class Options(val chosen: Map<String, List<String>> = emptyMap()) {
         chosen.keys - understood.map(Parameter::name).toSet()
 
     /**
-     * Values a parameter it *does* understand cannot take — `sunsize=huge` where the axis wants a span,
+     * Values a parameter it *does* understand cannot take — `sun.size=huge` where the axis wants a span,
      * `sealed=sometimes` where it takes two words.
      *
      * **Told apart from [unknownAmong], because the mistake and the remedy are different**: there the knob

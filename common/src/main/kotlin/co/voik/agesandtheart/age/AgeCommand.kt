@@ -1962,7 +1962,7 @@ object AgeCommand {
         val recipe = AgeSavedData.get(source.server).recipe(ageId(name))
 
         // The Art's own words and the library's knobs are told apart by name, so one line can carry both:
-        // `sky.sunsize=0.9..1.0 path=epicycle` reads as a sky the words describe with one thing turned.
+        // `sun.size=0.9..1.0 path=epicycle` reads as a sky the words describe with one thing turned.
         val said = preview?.split(' ')?.filter { it.isNotBlank() } ?: emptyList()
         val (knobs, words) = said.partition { SkyKnobs.offers(it.substringBefore('=')) }
 
@@ -2031,7 +2031,7 @@ object AgeCommand {
             source.sendFailure(
                 Component.literal(
                     "`/age sky` previews the sky only, but you named ${strayAspects.joinToString(" ")}. " +
-                        "Write it as `sky=plain sky.sunsize=0.6..1.0`, and use `/age compose` for the rest. " +
+                        "Write it as `sky=plain sun.size=0.6..1.0`, and use `/age compose` for the rest. " +
                         "The library's own knobs are ${SkyKnobs.describeOffered()}.",
                 ),
             )
@@ -2069,7 +2069,7 @@ object AgeCommand {
 
         // **Aimed at the aspect that owns each knob before it is read.** A preview spells everything
         // overhead `sky.…` because it is one instrument over one picture, but the bodies are the sun's, the
-        // moon's and the stars' aspects — so a `sky.suncolour` left as written is stored on the vault and
+        // moon's and the stars' aspects — so a `sky.colour` left as written is stored on the vault and
         // looked for on the sun, which is to say accepted and then ignored.
         val aimed = preview.split(' ').filter(String::isNotBlank).joinToString(" ") { token ->
             val name = token.substringBefore('=').removePrefix("$SKY_ASPECT.")

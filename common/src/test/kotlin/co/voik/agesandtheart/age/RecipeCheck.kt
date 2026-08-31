@@ -92,9 +92,12 @@ class RecipeCheck : FunSpec({
                 .withOption(aspect, parameter, value)
                 .unknownOptions
 
-        // A knob that exists, on an aspect with no preset, given a value its axis cannot read.
-        check(saidOf(Aspect.SUN, Sky.SUNSIZE.name, "huge") == listOf("sun.sunsize=huge")) {
-            "a value the axis cannot read went unreported: ${saidOf(Aspect.SUN, Sky.SUNSIZE.name, "huge")}"
+        // A knob that exists, on an aspect with no preset, given a value its axis cannot read. The
+        // expectation is spelled from the parameter rather than repeated, so renaming one cannot leave a
+        // check asserting the old name against the new behaviour.
+        val size = Sky.SUNSIZE.name
+        check(saidOf(Aspect.SUN, size, "huge") == listOf("sun.$size=huge")) {
+            "a value the axis cannot read went unreported: ${saidOf(Aspect.SUN, size, "huge")}"
         }
         // A knob that does not exist, on the same seatless aspect — the name alone, no value.
         check(saidOf(Aspect.SUN, "brightness", "0.5") == listOf("sun.brightness")) {

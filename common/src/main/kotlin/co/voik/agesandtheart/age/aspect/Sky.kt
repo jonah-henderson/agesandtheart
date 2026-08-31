@@ -274,7 +274,7 @@ enum class Sky(override val key: String) : AspectPreset {
          * **Never fainter than vanilla's**, for the reason [SUNSIZE] is never smaller: a sky with less
          * light in it overhead is a *sparser* one, and that is [STARS] to say.
          */
-        val STARGLOW = Parameter.ranged("starglow")
+        val STARGLOW = Parameter.ranged("glow")
 
         /**
          * The colours the curtain burns, crown first — **the one dial that holds several values in order**.
@@ -283,10 +283,10 @@ enum class Sky(override val key: String) : AspectPreset {
          * hem, and a writer naming two means both. `and` is what joins them, exactly as it joins two rocks
          * in a wall; [Parameter.keepsWrittenOrder] is what keeps the crown at the crown.
          */
-        val AURORACOLOUR = colour("auroracolour").copy(keepsWrittenOrder = true)
+        val AURORACOLOUR = colour("colour").copy(keepsWrittenOrder = true)
 
         /** How brightly the curtain burns, against an ordinary one. */
-        val AURORAGLOW = Parameter.ranged("auroraglow")
+        val AURORAGLOW = Parameter.ranged("glow")
 
         /**
          * How much of the sky the curtain takes up.
@@ -295,10 +295,10 @@ enum class Sky(override val key: String) : AspectPreset {
          * one is small, and a writer who wanted a wide low band and a narrow tall one is asking a question
          * §3.2 keeps away from them.
          */
-        val AURORASIZE = Parameter.ranged("aurorasize")
+        val AURORASIZE = Parameter.ranged("size")
 
         /** What share of nights it comes at all. */
-        val AURORAFREQUENCY = Parameter.ranged("aurorafrequency")
+        val AURORAFREQUENCY = Parameter.ranged("frequency")
 
         /**
          * The colours the bow burns, **outermost first** — red at the outside, as a real one is.
@@ -307,10 +307,10 @@ enum class Sky(override val key: String) : AspectPreset {
          * and which end is the outside is the one thing about it a writer states outright. The second bow
          * reverses this, so naming one band names both.
          */
-        val RAINBOWCOLOUR = colour("rainbowcolour").copy(keepsWrittenOrder = true)
+        val RAINBOWCOLOUR = colour("colour").copy(keepsWrittenOrder = true)
 
         /** How brightly the bow burns, against an ordinary one. */
-        val RAINBOWGLOW = Parameter.ranged("rainbowglow")
+        val RAINBOWGLOW = Parameter.ranged("glow")
 
         /**
          * How wide the arc stands from the point opposite its light.
@@ -322,10 +322,10 @@ enum class Sky(override val key: String) : AspectPreset {
          * less the light's own height, so a wide arc is still up under a sun that has already sunk a narrow
          * one below the ground.
          */
-        val RAINBOWSIZE = Parameter.ranged("rainbowsize")
+        val RAINBOWSIZE = Parameter.ranged("size")
 
         /** What share of days it comes at all. */
-        val RAINBOWFREQUENCY = Parameter.ranged("rainbowfrequency")
+        val RAINBOWFREQUENCY = Parameter.ranged("frequency")
 
         /**
          * How much falling water it needs — the top of the axis will not come without rain, the bottom
@@ -334,7 +334,7 @@ enum class Sky(override val key: String) : AspectPreset {
          * The dial that lets an Age hang arcs in a dry clear sky, and a thing to say on purpose rather than
          * a default to fall into: left alone, a bow is sunlight bent through rain and waits for some.
          */
-        val RAINBOWRAIN = Parameter.ranged("rainbowrain")
+        val RAINBOWRAIN = Parameter.ranged("rain")
 
         /**
          * How large the suns are, against vanilla's — [LARGEST_SUN] times it at the top of the axis.
@@ -343,7 +343,7 @@ enum class Sky(override val key: String) : AspectPreset {
          * an `angularSize` since the sky was built, and [SkySpec.drawn] already varied it for the *extra*
          * suns; what was missing was a writer's way to ask, and a way for the ask to reach the first one.
          */
-        val SUNSIZE = Parameter.ranged("sunsize")
+        val SUNSIZE = Parameter.ranged("size")
 
         /**
          * What colour the suns burn, or [Atmosphere.AS_EVER] for vanilla's white.
@@ -352,7 +352,7 @@ enum class Sky(override val key: String) : AspectPreset {
          * [SkySpec.drawn] already draws for the others: that one spreads a sky's extra bodies apart, and
          * this one is a statement about the star this world goes round.
          */
-        val SUNCOLOUR = colour("suncolour")
+        val SUNCOLOUR = colour("colour")
 
         /**
          * The compass, in the bearings `Orbit.risingAt` reads — due east is 90, which is where vanilla's

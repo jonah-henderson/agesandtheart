@@ -103,7 +103,7 @@ data class AgeComposition(
             val seated = presets.filter { it.aspect == aspect }
             options.allOf(aspect).indices.flatMap { member ->
                 // A seatless aspect understands its dials and nothing else — and was never asked at all,
-                // so `sun.sunsize` could be misspelled *and* misvalued in silence.
+                // so `sun.size` could be misspelled *and* misvalued in silence.
                 val understood = seated.getOrNull(member)?.parameters.orEmpty() + aspect.dials
                 val here = options.of(aspect, member)
                 here.unknownAmong(understood).map { name -> "${aspect.page}.$name" } +

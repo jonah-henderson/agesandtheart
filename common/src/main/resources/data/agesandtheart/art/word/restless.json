@@ -10,6 +10,6 @@
     "aurora"
   ],
   "sets": {
-    "aurorafrequency": "1.0..1.0"
+    "frequency": "1.0..1.0"
   }
 }

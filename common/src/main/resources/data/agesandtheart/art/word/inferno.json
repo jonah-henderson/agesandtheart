@@ -32,8 +32,8 @@
     "motes": "embers|flames",
     "sky": "red|orange|yellow",
     "suns": "1|2|3",
-    "sunsize": "0.3..1.0",
-    "suncolour": "red|blue"
+    "size": "0.3..1.0",
+    "colour": "red|blue"
   },
   "draws": 3
 }

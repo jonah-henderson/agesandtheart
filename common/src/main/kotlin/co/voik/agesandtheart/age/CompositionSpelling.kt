@@ -161,7 +161,7 @@ object CompositionSpelling {
         aspect.membersAreDescribed && (!aspect.spatial || membersIn(aspect) > 1)
 
     /**
-     * `sun=member,member[suncolour=red]` — a **cast**, one word per member.
+     * `sun=member,member[colour=red]` — a **cast**, one word per member.
      *
      * A body has no name of its own, having been described into being rather than chosen, so [BODY] stands
      * for one and the number of them is the roll. Spelled out rather than counted because the per-member

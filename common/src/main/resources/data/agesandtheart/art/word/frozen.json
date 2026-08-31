@@ -21,7 +21,7 @@
     "humidity": "-0.3..0.3",
     "sky": "white|grey",
     "fog": "white",
-    "sunsize": "-1.0..-0.7",
+    "size": "-1.0..-0.7",
     "haze": "0.2..0.6"
   },
   "draws": 2

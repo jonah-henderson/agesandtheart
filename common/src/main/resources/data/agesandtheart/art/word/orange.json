@@ -1,10 +1,16 @@
 {
   "_comment": [
-    "One of the nine plain colours, and it sets every colour knob it can reach -- the vault, the air, the",
-    "cloud, the star this world goes round, the curtain over its cold, the bow opposite its sun, and the grass and leaves that grow in it. It declares no",
-    "aspects: `Word.aspects` is widened from the parameters a word sets, so the `sets` map is the whole of",
-    "the declaration and attachment does the rest. `red sky` paints the vault, `red sun` the star, `red and",
-    "green aurora` the ramp from its crown to its hem, and `a red Age` means all of them at once.",
+    "One of the nine plain colours, and it sets every colour there is to set.",
+    "",
+    "`colour` is one name on five aspects -- the star this world goes round, the curtain over its cold, the",
+    "bow opposite its sun, and the grass and the leaves that grow in it. Each of those holds exactly one",
+    "colour, so the name needs no prefix and attachment decides which is meant. The vault, the air and the",
+    "cloud are still named outright, because the sky and the air each hold two colours and something has to",
+    "say which one is meant.",
+    "",
+    "It declares no aspects: `Word.aspects` is widened from the parameters a word sets, so the `sets` map is",
+    "the whole of the declaration. `red sky` paints the vault, `red sun` the star, `red and green aurora`",
+    "the ramp from its crown to its hem, and `a red Age` means all of them at once.",
     "",
     "The light is deliberately *not* among them. Saying the light here is red is a different claim from",
     "saying the sky is, and `witchlight` is the idiom that already makes it.",
@@ -14,13 +20,9 @@
   ],
   "tier": "exact",
   "sets": {
+    "colour": "orange",
     "sky": "orange",
     "fog": "orange",
-    "cloud": "orange",
-    "suncolour": "orange",
-    "auroracolour": "orange",
-    "rainbowcolour": "orange",
-    "grasscolour": "orange",
-    "leafcolour": "orange"
+    "cloud": "orange"
   }
 }

@@ -66,7 +66,7 @@ class SkyKnobsCheck : FunSpec({
     }
 
     test("several knobs at once, alongside the Art's own words") {
-        val report = server.run("age sky $age sky=plain sky.sunsize=0.5..0.9 path=epicycle glow=nearest deck=solid")
+        val report = server.run("age sky $age sky=plain sky.size=0.5..0.9 path=epicycle glow=nearest deck=solid")
         check("turned" in report) { "A mixed line was refused:\n$report" }
         check("sun" in report) { "A mixed line lost the Art's own words:\n$report" }
     }
@@ -75,14 +75,14 @@ class SkyKnobsCheck : FunSpec({
      * **A body knob on a preview line reaches the body**, which "it was accepted" does not say.
      *
      * Everything overhead is spelled `sky.…` because a preview is one instrument over one picture, but the
-     * bodies are the sun's, the moon's and the stars' aspects — so a `sky.sunsize` was validated against
+     * bodies are the sun's, the moon's and the stars' aspects — so a `sky.size` was validated against
      * the sun's dials, stored on the vault, and then looked for on the sun. Accepted, and ignored.
      */
     test("a body knob on a sky line changes the sky") {
         val plain = server.run("age sky $age sky=plain")
-        val sized = server.run("age sky $age sky=plain sky.sunsize=0.9..1.0")
+        val sized = server.run("age sky $age sky=plain sky.size=0.9..1.0")
         check(described(sized) != described(plain)) {
-            "'sky.sunsize' was accepted and changed nothing:\n$sized"
+            "'sky.size' was accepted and changed nothing:\n$sized"
         }
     }
 

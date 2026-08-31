@@ -105,9 +105,9 @@ object Atmosphere {
      *
      * Sited like every other colour here, which is the whole of `purple grass in swamp`.
      */
-    val GRASSCOLOUR = colour("grasscolour")
+    val GRASSCOLOUR = colour("colour")
 
-    val LEAFCOLOUR = colour("leafcolour")
+    val LEAFCOLOUR = colour("colour")
 
     /**
      * This Age's own layer laid over the ones vanilla built, or the system untouched where the sentence
