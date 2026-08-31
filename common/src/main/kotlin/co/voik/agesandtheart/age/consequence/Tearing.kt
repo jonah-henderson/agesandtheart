@@ -79,6 +79,13 @@ object Tearing {
      * caller is tearing a world somebody may be standing in, where a block written without
      * `UPDATE_CLIENTS` reaches no client at all and the wound is invisible until the chunk next loads.
      * Neighbour updates stay off either way — a wound is a hole appearing, not a block placed.
+     *
+     * **It also decides which heightmap says where the ground is, and the two do not overlap.** A chunk
+     * being generated carries only `OCEAN_FLOOR_WG` and `WORLD_SURFACE_WG`; a full one carries only the
+     * four that are not `_WG`, and asking a full chunk for a worldgen heightmap primes a fresh one that
+     * `setBlockState` then never updates. So a live pass reading the worldgen map gets a snapshot frozen
+     * at the moment it first asked — which in an Age with sandfalls in it means every later wound placed
+     * against a surface that has since been buried, several blocks under the sand.
      */
     fun tearInto(
         level: LevelAccessor,
@@ -93,6 +100,7 @@ object Tearing {
         if (opening <= 0) return 0
         val here = chunk.pos
         val update = if (alreadyRunning) Block.UPDATE_CLIENTS else Block.UPDATE_NONE
+        val ground = if (alreadyRunning) Heightmap.Types.OCEAN_FLOOR else Heightmap.Types.OCEAN_FLOOR_WG
         // Seeded per index rather than once per pass, so where the tenth wound goes does not depend on how
         // many were opened before it — which is what lets a fast-forward add to a chunk instead of redoing
         // it, and what makes the same chunk come out the same however the count was reached.
@@ -100,7 +108,7 @@ object Tearing {
         var opened = 0
         for (index in already..<(already + opening)) {
             random.setLargeFeatureSeed(worldSeed xor WOUND_SALT xor index.toLong(), here.x, here.z)
-            if (openOne(level, chunk, here, random, update)) opened++
+            if (openOne(level, chunk, here, random, update, ground)) opened++
         }
         return opened
     }
@@ -122,6 +130,7 @@ object Tearing {
         here: ChunkPos,
         random: WorldgenRandom,
         update: Int,
+        ground: Heightmap.Types,
     ): Boolean {
         val x = here.minBlockX + random.nextInt(SECTION)
         val z = here.minBlockZ + random.nextInt(SECTION)
@@ -132,7 +141,7 @@ object Tearing {
         // so one is as likely to be met deep in a cave as a spit under the surface. Two different
         // distributions on purpose: the surface ones are *near* it because that is what makes them visible,
         // and the buried ones are anywhere because that is what makes them a surprise.
-        val surface = chunk.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, x, z)
+        val surface = chunk.getHeight(ground, x, z)
         val floor = level.minY + 1
         val top = level.minY + level.height - 1
         val y = if (random.nextDouble() < ABOVE_GROUND) {

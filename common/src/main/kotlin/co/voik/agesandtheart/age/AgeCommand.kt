@@ -64,6 +64,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.minecraft.util.Mth
 import net.minecraft.resources.ResourceKey
+import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.phys.Vec3
 import kotlin.random.Random
@@ -132,6 +133,12 @@ object AgeCommand {
 
     /** `/age danger here` — a literal rather than a bare executable, so the tree stays uniform. */
     private const val HERE_LITERAL = "here"
+
+    /** How far `/age wounds here` looks — a good deal further than a wound corrupts, so it can say "none". */
+    private const val LOOKS_FOR_WOUNDS_WITHIN = 128.0
+
+    /** Blocks to a chunk, as a shift. */
+    private const val CHUNK_BITS = 4
 
     /** What one `/age showing <what>` branch is called — "stop waiting for it". */
     private const val NOW_LITERAL = "now"
@@ -304,6 +311,7 @@ object AgeCommand {
                 .then(probeSubcommand())
                 .then(decaySubcommand())
                 .then(dangerSubcommand())
+                .then(woundsSubcommand())
                 .then(listSubcommand()),
         )
     }
@@ -1088,6 +1096,80 @@ object AgeCommand {
         reporting("danger") { reportFor ->
             Commands.literal(HERE_LITERAL).executes { context -> runDanger(context, reportFor(context)) }
         }
+
+    /**
+     * `/age wounds here` — **what this ground should hold against what it does.**
+     *
+     * The one question a walk cannot answer by looking: a landscape with no wounds in it is either an Age
+     * that never bought any, ground that has not caught up, or placement putting them somewhere nobody
+     * goes — and those look identical from a hilltop. Wanted against held tells the three apart in a line.
+     */
+    private fun woundsSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        reporting("wounds") { reportFor ->
+            Commands.literal(HERE_LITERAL).executes { context -> runWounds(context, reportFor(context)) }
+        }
+
+    private fun runWounds(context: CommandContext<CommandSourceStack>, report: Report): Int {
+        val source = context.source
+        val level = source.level
+        val at = BlockPos.containing(source.position)
+        val id = level.dimension().identifier()
+        val saved = AgeSavedData.get(source.server)
+        if (id !in saved.ages) {
+            report.fail("Not standing in an Age — /age tp <name> first")
+            return FAILURE
+        }
+        val recipe = saved.recipe(id)
+        val spending = Spending.of(source.server, recipe)
+        val days = recipe.ageAt(source.server) / Tearing.TICKS_PER_DAY
+        val written = Tearing.writtenDensityAt(spending.bought(Manifestation.WOUNDS))
+        val perDay = Tearing.blightPerDayAt(spending.bought(Manifestation.BLIGHT))
+        val density = Tearing.densityAt(written, perDay, days)
+        val here = ChunkPos(at.x shr CHUNK_BITS, at.z shr CHUNK_BITS)
+        val wanted = Tearing.wantedIn(here, level.seed, density)
+        val holds = Wounds.countIn(level, here)
+
+        var within = 0
+        var nearest: BlockPos? = null
+        var nearestAway = Double.MAX_VALUE
+        Wounds.eachNear(level, at.center, LOOKS_FOR_WOUNDS_WITHIN) { wound ->
+            within++
+            val away = at.center.distanceTo(wound.center)
+            if (away < nearestAway) {
+                nearestAway = away
+                nearest = wound
+            }
+        }
+
+        report.say { "Standing in ${'$'}id at ${'$'}{at.x}, ${'$'}{at.y}, ${'$'}{at.z}, ${'$'}days days on:" }
+        report.fact("density", density) { "  the Age wants %.3f to a chunk".format(density) }
+        report.fact("wantedHere", wanted) { "  this chunk wants ${'$'}wanted" }
+        report.fact("holdsHere", holds) { "  this chunk holds ${'$'}holds" }
+        report.fact("within", within) {
+            "  ${'$'}within within ${'$'}{LOOKS_FOR_WOUNDS_WITHIN.toInt()} blocks"
+        }
+        val found = nearest
+        if (found == null) {
+            report.say { "  no wound in reach" }
+        } else {
+            report.fact("nearestX", found.x) { "" }
+            report.fact("nearestY", found.y) { "" }
+            report.fact("nearestZ", found.z) { "" }
+            report.fact("nearestAway", nearestAway) {
+                "  nearest at ${'$'}{found.x}, ${'$'}{found.y}, ${'$'}{found.z} — %.1f blocks".format(nearestAway)
+            }
+        }
+        // The three readings a walk needs told apart, said outright rather than left to arithmetic.
+        report.say {
+            when {
+                density <= Tearing.NONE -> "  → this Age bought no wounds at all"
+                holds >= wanted -> "  → this chunk is up to date"
+                perDay <= Tearing.NONE -> "  → behind, and nothing will fix it: no blight, so nothing catches up"
+                else -> "  → behind by ${'$'}{wanted - holds}; leave until it unloads and return, or stand here for the creep"
+            }
+        }
+        return SUCCESS
+    }
 
     private fun runDanger(context: CommandContext<CommandSourceStack>, report: Report): Int {
         val source = context.source
