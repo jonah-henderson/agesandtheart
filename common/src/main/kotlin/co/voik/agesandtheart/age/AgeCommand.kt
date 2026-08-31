@@ -62,6 +62,7 @@ import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
+import net.minecraft.util.Mth
 import net.minecraft.resources.ResourceKey
 import net.minecraft.world.level.Level
 import net.minecraft.world.phys.Vec3
@@ -207,7 +208,6 @@ object AgeCommand {
     /** Far enough out to watch one come, and inside what is loaded at an ordinary view distance. */
     private const val DEFAULT_SANDFALL_DISTANCE = 64
     private const val MAX_SANDFALL_DISTANCE = 256
-    private const val HALF_TURN = 180.0f
     private const val TICKS_PER_SECOND = 20
 
     /** What `/age sky`'s preview spec may name, and the prefix its parameters carry. */
@@ -675,10 +675,21 @@ object AgeCommand {
     }
 
     /** Where to stand looking, given a curtain crossing the sky at [bearingDegrees]. */
-    private fun facingFor(bearingDegrees: Float): String {
+    private fun facingFor(bearingDegrees: Float): String =
+        "It crosses the sky about ${compassPointFor(bearingDegrees)} — " +
+            "face that way and look well up, not at the horizon."
+
+    /**
+     * The nearest of the eight points to [bearingDegrees], where zero is north.
+     *
+     * Three things say a direction in prose and each phrases it differently, so what they share is the
+     * arithmetic and not the sentence. **Note this is a bearing rather than a yaw** — Minecraft's zero
+     * faces south, so anything reading an entity's rotation has half a turn to add first.
+     */
+    private fun compassPointFor(bearingDegrees: Float): String {
         val points = listOf("north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west")
         val step = (Math.round(bearingDegrees / (WHOLE_COMPASS / points.size)) % points.size + points.size) % points.size
-        return "It crosses the sky about ${points[step]} — face that way and look well up, not at the horizon."
+        return points[step]
     }
 
     /**
@@ -841,11 +852,9 @@ object AgeCommand {
     }
 
     /** Where to stand looking, given a bow centred on [bearingDegrees]. */
-    private fun lookingAwayFrom(bearingDegrees: Float): String {
-        val points = listOf("north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west")
-        val step = (Math.round(bearingDegrees / (WHOLE_COMPASS / points.size)) % points.size + points.size) % points.size
-        return "Put the light at your back and face ${points[step]} — the bow is centred there, low down."
-    }
+    private fun lookingAwayFrom(bearingDegrees: Float): String =
+        "Put the light at your back and face ${compassPointFor(bearingDegrees)} — " +
+            "the bow is centred there, low down."
 
     /** The bodies in [look] that give light, which are the ones that can cast a bow. */
     private fun lightsIn(look: LevelLook): List<CelestialBody> =
@@ -1976,27 +1985,35 @@ object AgeCommand {
         val level = source.level
         val facing = Vec3.directionFromRotation(source.rotation)
         val at = source.position.add(facing.scale(distance.toDouble()))
-        val behaviour = SandfallBehaviour.of(source.server)
+        val behaviour = SandfallBehaviour.of(source.server).column
         val random = level.random
         val column = SandColumn.raise(
             level = level,
             atX = at.x,
             atZ = at.z,
             // Turned around to walk back at you, so a column stood up ahead is one you then have to answer.
-            headingDegrees = source.rotation.y + HALF_TURN,
+            headingDegrees = source.rotation.y + HALF_COMPASS,
             speed = behaviour.slowestSpeed + random.nextDouble() * (behaviour.fastestSpeed - behaviour.slowestSpeed),
             lifetime = behaviour.shortestLife +
                 random.nextInt((behaviour.longestLife - behaviour.shortestLife).coerceAtLeast(1)),
         )
         if (column == null) {
-            source.sendFailure(Component.literal("Nothing is loaded that far out to stand one on"))
+            // Two causes, and saying which is the difference between a one-line fix and an afternoon: the
+            // ground can only be asked of a chunk that is already there, so the usual answer is to stand
+            // closer or to wait for the world to catch up.
+            val ground = SectionPos.blockToSectionCoord(Mth.floor(at.x)) to
+                SectionPos.blockToSectionCoord(Mth.floor(at.z))
+            source.sendFailure(
+                Component.literal("No column: chunk ${ground.first} ${ground.second} is not ticking entities"),
+            )
             return FAILURE
         }
         source.sendSuccess(
             {
                 Component.literal(
-                    "A sandfall at ${column.blockX} ${column.blockZ}, " +
-                        "walking ${facingFor(column.yRot)} for ${column.lifetime / TICKS_PER_SECOND}s",
+                    "A sandfall at ${column.blockX} ${column.blockZ}, walking " +
+                        "${compassPointFor(column.yRot + HALF_COMPASS)} for " +
+                        "${column.lifetime / TICKS_PER_SECOND}s",
                 )
             },
             true,

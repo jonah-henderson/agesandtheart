@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.phenomena
 
 import co.voik.agesandtheart.content.AgeContent
+import net.minecraft.core.BlockPos
 import net.minecraft.network.syncher.EntityDataAccessor
 import net.minecraft.network.syncher.EntityDataSerializers
 import net.minecraft.network.syncher.SynchedEntityData
@@ -57,6 +58,9 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
     var speed: Double = 0.0
         private set
 
+    /** How many ticks since anybody was near enough to see it. */
+    private var sinceSeen: Int = 0
+
     init {
         noPhysics = true
         isNoGravity = true
@@ -72,14 +76,17 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
         if (level !is ServerLevel) return
         age += 1
         val behaviour = SandfallBehaviour.of(level.server)
-        // Gone when its life is out, and gone when nobody is left to see it — the second is what stops a
-        // column standing frozen in an Age nobody has walked into for a week.
-        if (age > lifetime || level.getNearestPlayer(this, behaviour.forgottenAt) == null) {
+        val watched = level.getNearestPlayer(this, behaviour.forgottenAt) != null
+        sinceSeen = if (watched) FRESHLY_SEEN else sinceSeen + 1
+        // Gone when its life is out, and gone when nobody has been near it for a while — the second is what
+        // stops a column standing in a corner of an Age nobody walks to. **A grace rather than an instant**,
+        // or a column would vanish out from under anybody who stepped behind a hill.
+        if (age > lifetime || sinceSeen > behaviour.forgottenAfter) {
             discard()
             return
         }
-        halfWidth = behaviour.halfWidthAt(age, lifetime).toFloat()
-        steer(behaviour)
+        halfWidth = behaviour.column.halfWidthAt(age, lifetime).toFloat()
+        steer(behaviour.column)
         advance(level)
     }
 
@@ -90,7 +97,7 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
      * [SandfallBehaviour.turnEvery] rather than the cap: a turn is a rare event, and its size is drawn so
      * that small ones are much likelier than large.
      */
-    private fun steer(behaviour: SandfallBehaviour) {
+    private fun steer(behaviour: ColumnBehaviour) {
         if (behaviour.turnEvery <= 0 || age % behaviour.turnEvery != 0) return
         yRot = Mth.wrapDegrees(yRot + behaviour.turnedBy(random).toFloat())
     }
@@ -120,12 +127,14 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
 
     override fun readAdditionalSaveData(input: ValueInput) {
         age = input.getIntOr(AGE_KEY, 0)
+        sinceSeen = input.getIntOr(SINCE_SEEN_KEY, 0)
         lifetime = input.getIntOr(LIFETIME_KEY, 0)
         speed = input.getDoubleOr(SPEED_KEY, 0.0)
     }
 
     override fun addAdditionalSaveData(output: ValueOutput) {
         output.putInt(AGE_KEY, age)
+        output.putInt(SINCE_SEEN_KEY, sinceSeen)
         output.putInt(LIFETIME_KEY, lifetime)
         output.putDouble(SPEED_KEY, speed)
     }
@@ -142,14 +151,23 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
             SynchedEntityData.defineId(SandColumn::class.java, EntityDataSerializers.FLOAT)
 
         private const val AGE_KEY = "age"
+        private const val SINCE_SEEN_KEY = "since_seen"
+        private const val FRESHLY_SEEN = 0
         private const val LIFETIME_KEY = "lifetime"
         private const val SPEED_KEY = "speed"
         private const val CHUNK_BITS = 4
 
         /**
          * Stands one up at [atX], [atZ], headed [headingDegrees] and lasting [lifetime] ticks — or
-         * **null where there is no chunk there yet**, since asking the height of one would generate it on
-         * the tick thread.
+         * **null where nothing there would tick yet**.
+         *
+         * **The test is entity-ticking rather than merely loaded** (found 2026-08-31, driving a server). A
+         * chunk can be loaded enough to answer `getChunkNow` and still be outside the simulation distance,
+         * and a column raised in one stands frozen at nothing wide until somebody walks close enough to
+         * start it — it does not age, so it does not open, so there is nothing to see and nothing to walk
+         * away from. `isPositionEntityTicking` is the question actually being asked, and it also answers
+         * the one this used to: `getHeight` goes through `getChunk(…, FULL, true)` and would generate
+         * terrain on the tick thread.
          *
          * The height is taken from the ground rather than passed in, because the only place a column's
          * bottom belongs is on the ground under it.
@@ -164,7 +182,7 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
         ): SandColumn? {
             val blockX = Mth.floor(atX)
             val blockZ = Mth.floor(atZ)
-            level.chunkSource.getChunkNow(blockX shr CHUNK_BITS, blockZ shr CHUNK_BITS) ?: return null
+            if (!level.isPositionEntityTicking(BlockPos(blockX, level.minY, blockZ))) return null
             val column = AgeContent.SAND_COLUMN.create(level, EntitySpawnReason.EVENT) ?: return null
             val ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING, blockX, blockZ)
             column.setPos(atX, ground.toDouble(), atZ)

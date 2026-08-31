@@ -5,7 +5,6 @@ import com.mojang.serialization.JsonOps
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.numericDouble
-import io.kotest.property.arbitrary.int
 import io.kotest.property.checkAll
 import net.minecraft.util.RandomSource
 import java.nio.file.Path
@@ -21,25 +20,36 @@ import kotlin.math.abs
  */
 class SandfallCheck : FunSpec({
 
-    val ordinary = SandfallBehaviour.ORDINARY
+    val ordinary = ColumnBehaviour.ORDINARY
 
     test("the shipped sandfall reads, and says what the defaults say") {
         val shipped = Path.of("src/main/resources/data/agesandtheart/art/phenomenon/sandfall.json")
         val read = SandfallBehaviour.CODEC
             .parse(JsonOps.INSTANCE, JsonParser.parseString(shipped.readText()))
             .getOrThrow { problem -> IllegalStateException("the shipped sandfall would not read: $problem") }
-        check(read == ordinary) {
+        check(read == SandfallBehaviour.ORDINARY) {
             "the file and the defaults disagree, so one of them is not what was walked: $read"
         }
     }
 
     test("a file that says one thing leaves the rest alone") {
         val partial = SandfallBehaviour.CODEC
-            .parse(JsonOps.INSTANCE, JsonParser.parseString("""{"depth": 12.0}"""))
+            .parse(JsonOps.INSTANCE, JsonParser.parseString("""{"column": {"depth": 12.0}, "at_most": 4}"""))
             .getOrThrow { problem -> IllegalStateException("a partial file would not read: $problem") }
-        check(partial.depth == 12.0) { "the one field written did not land: $partial" }
-        check(partial.halfWidth == ordinary.halfWidth) { "writing one field moved another: $partial" }
-        check(partial.atMost == ordinary.atMost) { "writing one field moved another: $partial" }
+        check(partial.column.depth == 12.0) { "the one field written did not land: $partial" }
+        check(partial.atMost == 4) { "the one outer field written did not land: $partial" }
+        check(partial.column.halfWidth == ordinary.halfWidth) { "writing one field moved another: $partial" }
+        check(partial.betweenSpawns == SandfallBehaviour.ORDINARY.betweenSpawns) {
+            "writing one field moved another: $partial"
+        }
+    }
+
+    /** A file with no `column` at all is still a sandfall, and an unwritten one is the ordinary column. */
+    test("a file that says nothing about a column still reads") {
+        val bare = SandfallBehaviour.CODEC
+            .parse(JsonOps.INSTANCE, JsonParser.parseString("""{"at_most": 3}"""))
+            .getOrThrow { problem -> IllegalStateException("a bare file would not read: $problem") }
+        check(bare.column == ColumnBehaviour.ORDINARY) { "an unwritten column was not the ordinary one: $bare" }
     }
 
     /**
@@ -102,7 +112,7 @@ class SandfallCheck : FunSpec({
      * full width and back.
      */
     test("a ramp longer than half a life leaves a column that never fully opens") {
-        val overlapping = SandfallBehaviour(rampShare = 0.9)
+        val overlapping = ColumnBehaviour(rampShare = 0.9)
         val lifetime = 1200
         val widest = (0..lifetime).maxOf { overlapping.halfWidthAt(it, lifetime) }
         check(widest < overlapping.halfWidth) { "a column with overlapping ramps still opened fully" }
@@ -120,7 +130,7 @@ class SandfallCheck : FunSpec({
             Arb.numericDouble(0.5, 40.0),
             Arb.numericDouble(1.0, 8.0),
         ) { speed, depth, halfWidth ->
-            val behaviour = SandfallBehaviour(depth = depth, halfWidth = halfWidth)
+            val behaviour = ColumnBehaviour(depth = depth, halfWidth = halfWidth)
             val chance = behaviour.depositChanceFor(speed)
             val ticksUnderIt = halfWidth * 2 / speed
             val left = chance * ticksUnderIt
@@ -141,7 +151,7 @@ class SandfallCheck : FunSpec({
      */
     test("a chance is a probability, however extreme the dials") {
         checkAll(Arb.numericDouble(0.001, 4.0), Arb.numericDouble(-50.0, 200.0)) { speed, depth ->
-            val chance = SandfallBehaviour(depth = depth).depositChanceFor(speed)
+            val chance = ColumnBehaviour(depth = depth).depositChanceFor(speed)
             check(chance in 0.0..1.0) { "a deposit chance of $chance is not a probability" }
         }
     }
@@ -173,13 +183,15 @@ class SandfallCheck : FunSpec({
         }
     }
 
-    test("an ordinary column lives long enough to be worth watching") {
-        checkAll(Arb.int(1, 20)) { columns ->
-            check(ordinary.shortestLife < ordinary.longestLife) { "a life cannot be drawn from an empty range" }
-            check(ordinary.slowestSpeed < ordinary.fastestSpeed) { "a speed cannot be drawn from an empty range" }
-            check(ordinary.nearestSpawn < ordinary.furthestSpawn) { "a distance cannot be drawn from an empty range" }
-            check(columns > 0)
-        }
+    /**
+     * Every range the spawner draws from must be non-empty, because `nextInt` on an empty one throws rather
+     * than returning the single value — which would be a crash on the tick loop for a one-character typo.
+     */
+    test("every range a column is drawn from has room in it") {
+        val sending = SandfallBehaviour.ORDINARY
+        check(ordinary.shortestLife < ordinary.longestLife) { "a life cannot be drawn from an empty range" }
+        check(ordinary.slowestSpeed < ordinary.fastestSpeed) { "a speed cannot be drawn from an empty range" }
+        check(sending.nearestSpawn < sending.furthestSpawn) { "a distance cannot be drawn from an empty range" }
     }
 }) {
     private companion object {

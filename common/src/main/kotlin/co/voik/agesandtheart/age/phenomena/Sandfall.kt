@@ -73,6 +73,7 @@ object Sandfall {
         val watcher = watching[random.nextInt(watching.size)]
         val spread = behaviour.furthestSpawn - behaviour.nearestSpawn
         repeat(BEARINGS_TRIED) {
+            val column = behaviour.column
             val away = behaviour.nearestSpawn + random.nextInt(spread.coerceAtLeast(AT_ONCE))
             val bearing = random.nextDouble() * FULL_TURN
             val heading = bearing + HALF_TURN + (random.nextDouble() - random.nextDouble()) * SPREAD_DEGREES
@@ -81,10 +82,9 @@ object Sandfall {
                 atX = watcher.x - sin(bearing * Mth.DEG_TO_RAD) * away,
                 atZ = watcher.z + cos(bearing * Mth.DEG_TO_RAD) * away,
                 headingDegrees = heading.toFloat(),
-                speed = behaviour.slowestSpeed +
-                    random.nextDouble() * (behaviour.fastestSpeed - behaviour.slowestSpeed),
-                lifetime = behaviour.shortestLife +
-                    random.nextInt((behaviour.longestLife - behaviour.shortestLife).coerceAtLeast(AT_ONCE)),
+                speed = column.slowestSpeed + random.nextDouble() * (column.fastestSpeed - column.slowestSpeed),
+                lifetime = column.shortestLife +
+                    random.nextInt((column.longestLife - column.shortestLife).coerceAtLeast(AT_ONCE)),
             )
             if (raised != null) return
         }

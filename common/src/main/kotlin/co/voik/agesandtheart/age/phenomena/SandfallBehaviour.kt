@@ -12,14 +12,18 @@ import net.minecraft.util.RandomSource
 import kotlin.math.pow
 
 /**
- * How a sandfall comes — **datapack content** (`art/phenomenon/sandfall.json`), like [Intensity] and
- * [PhenomenonBehaviour] beside it, and cached on the resource manager's identity for the same reason.
+ * What one column of sand is like — the inner half of `art/phenomenon/sandfall.json`.
+ *
+ * **Split from [SandfallBehaviour] along the seam the code already has**: everything here is read by
+ * [SandColumn] once it is standing, and everything there is read by [Sandfall] deciding whether to stand
+ * one up. (The split was forced by a codec group being capped at sixteen fields, and it is the shape the
+ * file wanted regardless.)
  *
  * **What a pack sets is how deep a pass leaves the ground, not how fast sand falls.** The deposit rate is
  * derived from [depth], [halfWidth] and the column's own speed ([depositChanceFor]), so speed stays a free
  * variable instead of a second number to keep in step with this one.
  */
-data class SandfallBehaviour(
+data class ColumnBehaviour(
     /**
      * How many blocks deep one pass leaves the ground it crossed, edge to edge.
      *
@@ -49,15 +53,6 @@ data class SandfallBehaviour(
     val spillReach: Int = DEFAULT_SPILL_REACH,
     /** What share of the deposit chance survives each block past the edge. */
     val spillFalloff: Double = DEFAULT_SPILL_FALLOFF,
-    /** How many may stand in an Age at once, before the claim's rung multiplies it. */
-    val atMost: Int = DEFAULT_AT_MOST,
-    /** How long between one column and the next, in ticks, before the rung divides it. */
-    val betweenSpawns: Int = DEFAULT_BETWEEN_SPAWNS,
-    /** How far from a player one is stood up, in blocks — far enough to be seen coming. */
-    val nearestSpawn: Int = DEFAULT_NEAREST_SPAWN,
-    val furthestSpawn: Int = DEFAULT_FURTHEST_SPAWN,
-    /** How far a column may be from everyone before it is forgotten, in blocks. */
-    val forgottenAt: Double = DEFAULT_FORGOTTEN_AT,
 ) {
     /**
      * How likely one position under the footprint is to be given a block this tick.
@@ -69,6 +64,10 @@ data class SandfallBehaviour(
      */
     fun depositChanceFor(speed: Double): Double =
         (depth * speed / (halfWidth * BOTH_SIDES)).coerceIn(CLOSED, CERTAIN)
+
+    /** How likely a position [past] blocks outside the footprint is to be given a block. */
+    fun spillChanceFor(speed: Double, past: Int): Double =
+        depositChanceFor(speed) * spillFalloff.pow(past)
 
     /**
      * How wide the column stands at [age] of a life of [lifetime] — **the spawn animation and the death
@@ -93,16 +92,11 @@ data class SandfallBehaviour(
         if (ramp <= CLOSED) return halfWidth
         val rising = age / ramp
         val falling = (lifetime - age) / ramp
-        val openness = minOf(rising, falling, FULLY_OPEN)
-        return halfWidth * smoothed(openness)
+        return halfWidth * smoothed(minOf(rising, falling, FULLY_OPEN))
     }
 
     /** How far one course change may bend a column, drawn so that small turns are much likelier than large. */
     fun turnedBy(random: RandomSource): Double = (random.nextDouble() - random.nextDouble()) * turnMost
-
-    /** How likely a position [past] blocks outside the footprint is to be given a block. */
-    fun spillChanceFor(speed: Double, past: Int): Double =
-        depositChanceFor(speed) * spillFalloff.pow(past)
 
     companion object {
         private const val DEFAULT_DEPTH = 4.5
@@ -116,11 +110,6 @@ data class SandfallBehaviour(
         private const val DEFAULT_TURN_MOST = 30.0
         private const val DEFAULT_SPILL_REACH = 2
         private const val DEFAULT_SPILL_FALLOFF = 0.4
-        private const val DEFAULT_AT_MOST = 1
-        private const val DEFAULT_BETWEEN_SPAWNS = 3600
-        private const val DEFAULT_NEAREST_SPAWN = 96
-        private const val DEFAULT_FURTHEST_SPAWN = 192
-        private const val DEFAULT_FORGOTTEN_AT = 320.0
 
         private const val BOTH_SIDES = 2.0
         private const val CERTAIN = 1.0
@@ -134,32 +123,77 @@ data class SandfallBehaviour(
         private const val SMOOTH_PEAK = 3.0
         private const val SMOOTH_SLOPE = 2.0
 
+        val ORDINARY = ColumnBehaviour()
+
+        val CODEC: Codec<ColumnBehaviour> = RecordCodecBuilder.create { instance ->
+            instance.group(
+                Codec.DOUBLE.optionalFieldOf("depth", DEFAULT_DEPTH).forGetter(ColumnBehaviour::depth),
+                Codec.DOUBLE.optionalFieldOf("half_width", DEFAULT_HALF_WIDTH)
+                    .forGetter(ColumnBehaviour::halfWidth),
+                Codec.DOUBLE.optionalFieldOf("slowest_speed", DEFAULT_SLOWEST_SPEED)
+                    .forGetter(ColumnBehaviour::slowestSpeed),
+                Codec.DOUBLE.optionalFieldOf("fastest_speed", DEFAULT_FASTEST_SPEED)
+                    .forGetter(ColumnBehaviour::fastestSpeed),
+                Codec.INT.optionalFieldOf("shortest_life", DEFAULT_SHORTEST_LIFE)
+                    .forGetter(ColumnBehaviour::shortestLife),
+                Codec.INT.optionalFieldOf("longest_life", DEFAULT_LONGEST_LIFE)
+                    .forGetter(ColumnBehaviour::longestLife),
+                Codec.DOUBLE.optionalFieldOf("ramp_share", DEFAULT_RAMP_SHARE)
+                    .forGetter(ColumnBehaviour::rampShare),
+                Codec.INT.optionalFieldOf("turn_every", DEFAULT_TURN_EVERY)
+                    .forGetter(ColumnBehaviour::turnEvery),
+                Codec.DOUBLE.optionalFieldOf("turn_most", DEFAULT_TURN_MOST)
+                    .forGetter(ColumnBehaviour::turnMost),
+                Codec.INT.optionalFieldOf("spill_reach", DEFAULT_SPILL_REACH)
+                    .forGetter(ColumnBehaviour::spillReach),
+                Codec.DOUBLE.optionalFieldOf("spill_falloff", DEFAULT_SPILL_FALLOFF)
+                    .forGetter(ColumnBehaviour::spillFalloff),
+            ).apply(instance, ::ColumnBehaviour)
+        }
+    }
+}
+
+/**
+ * How a sandfall comes — **datapack content** (`art/phenomenon/sandfall.json`), like [Intensity] and
+ * [PhenomenonBehaviour] beside it, and cached on the resource manager's identity for the same reason.
+ *
+ * This half is the weather that sends columns; [column] is what one of them is like once it is standing.
+ */
+data class SandfallBehaviour(
+    val column: ColumnBehaviour = ColumnBehaviour.ORDINARY,
+    /** How many may stand in an Age at once, before the claim's rung multiplies it. */
+    val atMost: Int = DEFAULT_AT_MOST,
+    /** How long between one column and the next, in ticks, before the rung divides it. */
+    val betweenSpawns: Int = DEFAULT_BETWEEN_SPAWNS,
+    /** How far from a player one is stood up, in blocks — far enough to be seen coming. */
+    val nearestSpawn: Int = DEFAULT_NEAREST_SPAWN,
+    val furthestSpawn: Int = DEFAULT_FURTHEST_SPAWN,
+    /** How far a column may be from everyone and still count as watched, in blocks. */
+    val forgottenAt: Double = DEFAULT_FORGOTTEN_AT,
+    /**
+     * How long a column may go unwatched before it is given up, in ticks.
+     *
+     * **A grace rather than an instant**, because "nobody is near it" is true for a tick every time
+     * somebody steps out of range and comes back, and a column that died of that would vanish out from
+     * under a player who walked around a hill.
+     */
+    val forgottenAfter: Int = DEFAULT_FORGOTTEN_AFTER,
+) {
+    companion object {
+        private const val DEFAULT_AT_MOST = 1
+        private const val DEFAULT_BETWEEN_SPAWNS = 3600
+        private const val DEFAULT_NEAREST_SPAWN = 96
+        private const val DEFAULT_FURTHEST_SPAWN = 192
+        private const val DEFAULT_FORGOTTEN_AT = 320.0
+        private const val DEFAULT_FORGOTTEN_AFTER = 600
+
         /** What a sandfall nobody tuned comes at, so an absent file is a default rather than a dead one. */
         val ORDINARY = SandfallBehaviour()
 
         val CODEC: Codec<SandfallBehaviour> = RecordCodecBuilder.create { instance ->
             instance.group(
-                Codec.DOUBLE.optionalFieldOf("depth", DEFAULT_DEPTH).forGetter(SandfallBehaviour::depth),
-                Codec.DOUBLE.optionalFieldOf("half_width", DEFAULT_HALF_WIDTH)
-                    .forGetter(SandfallBehaviour::halfWidth),
-                Codec.DOUBLE.optionalFieldOf("slowest_speed", DEFAULT_SLOWEST_SPEED)
-                    .forGetter(SandfallBehaviour::slowestSpeed),
-                Codec.DOUBLE.optionalFieldOf("fastest_speed", DEFAULT_FASTEST_SPEED)
-                    .forGetter(SandfallBehaviour::fastestSpeed),
-                Codec.INT.optionalFieldOf("shortest_life", DEFAULT_SHORTEST_LIFE)
-                    .forGetter(SandfallBehaviour::shortestLife),
-                Codec.INT.optionalFieldOf("longest_life", DEFAULT_LONGEST_LIFE)
-                    .forGetter(SandfallBehaviour::longestLife),
-                Codec.DOUBLE.optionalFieldOf("ramp_share", DEFAULT_RAMP_SHARE)
-                    .forGetter(SandfallBehaviour::rampShare),
-                Codec.INT.optionalFieldOf("turn_every", DEFAULT_TURN_EVERY)
-                    .forGetter(SandfallBehaviour::turnEvery),
-                Codec.DOUBLE.optionalFieldOf("turn_most", DEFAULT_TURN_MOST)
-                    .forGetter(SandfallBehaviour::turnMost),
-                Codec.INT.optionalFieldOf("spill_reach", DEFAULT_SPILL_REACH)
-                    .forGetter(SandfallBehaviour::spillReach),
-                Codec.DOUBLE.optionalFieldOf("spill_falloff", DEFAULT_SPILL_FALLOFF)
-                    .forGetter(SandfallBehaviour::spillFalloff),
+                ColumnBehaviour.CODEC.optionalFieldOf("column", ColumnBehaviour.ORDINARY)
+                    .forGetter(SandfallBehaviour::column),
                 Codec.INT.optionalFieldOf("at_most", DEFAULT_AT_MOST).forGetter(SandfallBehaviour::atMost),
                 Codec.INT.optionalFieldOf("between_spawns", DEFAULT_BETWEEN_SPAWNS)
                     .forGetter(SandfallBehaviour::betweenSpawns),
@@ -169,6 +203,8 @@ data class SandfallBehaviour(
                     .forGetter(SandfallBehaviour::furthestSpawn),
                 Codec.DOUBLE.optionalFieldOf("forgotten_at", DEFAULT_FORGOTTEN_AT)
                     .forGetter(SandfallBehaviour::forgottenAt),
+                Codec.INT.optionalFieldOf("forgotten_after", DEFAULT_FORGOTTEN_AFTER)
+                    .forGetter(SandfallBehaviour::forgottenAfter),
             ).apply(instance, ::SandfallBehaviour)
         }
 
