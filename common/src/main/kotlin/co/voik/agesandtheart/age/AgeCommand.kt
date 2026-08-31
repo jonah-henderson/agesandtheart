@@ -208,6 +208,8 @@ object AgeCommand {
     /** Far enough out to watch one come, and inside what is loaded at an ordinary view distance. */
     private const val DEFAULT_SANDFALL_DISTANCE = 64
     private const val MAX_SANDFALL_DISTANCE = 256
+    private const val SECONDS_ARGUMENT = "seconds"
+    private const val MOST_SANDFALL_SECONDS = 3600
     private const val TICKS_PER_SECOND = 20
 
     /** What `/age sky`'s preview spec may name, and the prefix its parameters carry. */
@@ -957,15 +959,29 @@ object AgeCommand {
      * and a spread so that a column usually passes near you and sometimes passes wide, where this puts one
      * exactly where you are looking and turns it around to come back. That is what you want of a debug
      * trigger and emphatically not what you want of the phenomenon.
+     *
+     * **The optional life is what makes the trail measurable**, because the widening ramp is a share of it:
+     * an ordinary column spends its first minute or two opening, so anything measured inside that window is
+     * measuring a column that is not yet the width it will be. A short one is at full width in seconds.
      */
     private fun sandfallSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("sandfall")
-            .executes { context -> runSandfall(context, DEFAULT_SANDFALL_DISTANCE) }
+            .executes { context -> runSandfall(context, DEFAULT_SANDFALL_DISTANCE, null) }
             .then(
                 Commands.argument(DISTANCE_ARGUMENT, IntegerArgumentType.integer(0, MAX_SANDFALL_DISTANCE))
                     .executes { context ->
-                        runSandfall(context, IntegerArgumentType.getInteger(context, DISTANCE_ARGUMENT))
-                    },
+                        runSandfall(context, IntegerArgumentType.getInteger(context, DISTANCE_ARGUMENT), null)
+                    }
+                    .then(
+                        Commands.argument(SECONDS_ARGUMENT, IntegerArgumentType.integer(1, MOST_SANDFALL_SECONDS))
+                            .executes { context ->
+                                runSandfall(
+                                    context,
+                                    IntegerArgumentType.getInteger(context, DISTANCE_ARGUMENT),
+                                    IntegerArgumentType.getInteger(context, SECONDS_ARGUMENT),
+                                )
+                            },
+                    ),
             )
 
     /**
@@ -1980,7 +1996,11 @@ object AgeCommand {
         return SUCCESS
     }
 
-    private fun runSandfall(context: CommandContext<CommandSourceStack>, distance: Int): Int {
+    private fun runSandfall(
+        context: CommandContext<CommandSourceStack>,
+        distance: Int,
+        seconds: Int?,
+    ): Int {
         val source = context.source
         val level = source.level
         val facing = Vec3.directionFromRotation(source.rotation)
@@ -1994,8 +2014,11 @@ object AgeCommand {
             // Turned around to walk back at you, so a column stood up ahead is one you then have to answer.
             headingDegrees = source.rotation.y + HALF_COMPASS,
             speed = behaviour.slowestSpeed + random.nextDouble() * (behaviour.fastestSpeed - behaviour.slowestSpeed),
-            lifetime = behaviour.shortestLife +
-                random.nextInt((behaviour.longestLife - behaviour.shortestLife).coerceAtLeast(1)),
+            lifetime = seconds?.times(TICKS_PER_SECOND)
+                ?: (
+                    behaviour.shortestLife +
+                        random.nextInt((behaviour.longestLife - behaviour.shortestLife).coerceAtLeast(1))
+                    ),
         )
         if (column == null) {
             // Two causes, and saying which is the difference between a one-line fix and an afternoon: the

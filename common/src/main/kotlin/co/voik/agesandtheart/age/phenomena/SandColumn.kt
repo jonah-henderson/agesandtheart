@@ -12,10 +12,14 @@ import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntitySpawnReason
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.storage.ValueInput
 import net.minecraft.world.level.storage.ValueOutput
+import kotlin.math.abs
+import kotlin.math.ceil
 import kotlin.math.cos
+import kotlin.math.max
 import kotlin.math.sin
 
 /**
@@ -88,6 +92,71 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
         halfWidth = behaviour.column.halfWidthAt(age, lifetime).toFloat()
         steer(behaviour.column)
         advance(level)
+        bury(level, behaviour.column)
+    }
+
+    /**
+     * The sand it leaves, this tick.
+     *
+     * **Every position under the footprint is offered one block**, at a chance derived from how wide the
+     * column stands and how fast it walks ([ColumnBehaviour.depositChanceFor]) — so what a pack writes is
+     * how deep a pass should leave the ground, and the rate falls out of the geometry. There is no
+     * accumulator and nothing remembers how much has fallen here: the sand is the state (§5.4).
+     *
+     * **The trail is ragged because the edge is a ring rather than a line.** Positions outside the
+     * footprint are offered the same block at a chance that falls off with every block out, which is what
+     * makes the trail spill and wander at its edges instead of being a swept rectangle.
+     *
+     * The square is the column's own, so it turns with the heading: a position is inside when neither of
+     * its distances **along** and **across** the heading exceeds the half-width, which is one dot product
+     * each and no trigonometry per position.
+     */
+    private fun bury(level: ServerLevel, behaviour: ColumnBehaviour) {
+        val standing = halfWidth.toDouble()
+        if (standing <= NOTHING) return
+        val heading = yRot.toDouble() * Mth.DEG_TO_RAD
+        val forwardX = -sin(heading)
+        val forwardZ = cos(heading)
+        // The corners of a turned square reach half as far again as its edges, so the box swept has to
+        // allow for that on top of how far the spill can carry.
+        val reach = ceil(behaviour.spillReachAt(standing) * ROOT_TWO).toInt()
+        val onIt = behaviour.depositChanceFor(speed)
+        for (eastward in -reach..reach) {
+            for (southward in -reach..reach) {
+                val offsetX = blockX + eastward + MIDDLE - x
+                val offsetZ = blockZ + southward + MIDDLE - z
+                val along = abs(forwardX * offsetX + forwardZ * offsetZ)
+                val across = abs(forwardZ * offsetX - forwardX * offsetZ)
+                val chance = onIt * behaviour.spillFadeAt(standing, max(along, across) - standing)
+                if (random.nextDouble() >= chance) continue
+                pile(level, blockX + eastward, blockZ + southward)
+            }
+        }
+    }
+
+    /**
+     * One block of sand, on top of whatever is at that column.
+     *
+     * **[Sampling.skyward] is the shared sky primitive**, and the trap it carries is the one an inferno
+     * already paid for: `MOTION_BLOCKING` does not count a torch, a bush or a sapling, so where one stands
+     * the heightmap points *at* it rather than above it. That is exactly the block a falling sand block
+     * breaks — which is how a buried base goes dark and starts spawning things in itself, the compounding
+     * hazard §5.2.2 asks for, at the cost of no rule of its own.
+     *
+     * **A torch drops and a grass tuft does not**, which is not vanilla's rule and is a deliberate
+     * departure from it. `FallingBlockEntity` drops whatever it lands on; a column crossing a plains biome
+     * would break a tuft of grass at nearly every position it passed, and thousands of item entities over
+     * a life is a cost paid for something nobody would collect. What a player would miss is a torch, and a
+     * torch is exactly what `canBeReplaced` separates out.
+     */
+    private fun pile(level: ServerLevel, atX: Int, atZ: Int) {
+        val column = BlockPos(atX, level.minY, atZ)
+        if (!level.hasChunkAt(column)) return
+        val top = Sampling.skyward(level, column)
+        if (top.y >= level.maxY) return
+        val standing = level.getBlockState(top)
+        if (!standing.isAir && !standing.canBeReplaced()) level.destroyBlock(top, true)
+        level.setBlockAndUpdate(top, Blocks.SAND.defaultBlockState())
     }
 
     /**
@@ -149,6 +218,14 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
     companion object {
         private val HALF_WIDTH: EntityDataAccessor<Float> =
             SynchedEntityData.defineId(SandColumn::class.java, EntityDataSerializers.FLOAT)
+
+        /** Half a block, so a position is measured from its middle rather than its corner. */
+        private const val MIDDLE = 0.5
+
+        /** The diagonal of a unit square: how much further a turned square's corners reach than its edges. */
+        private const val ROOT_TWO = 1.4142135623730951
+
+        private const val NOTHING = 0.0
 
         private const val AGE_KEY = "age"
         private const val SINCE_SEEN_KEY = "since_seen"

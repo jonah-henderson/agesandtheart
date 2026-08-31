@@ -120,35 +120,91 @@ class SandfallCheck : FunSpec({
     }
 
     /**
-     * **The rate is derived so that a pass leaves what the pack asked for, at any speed** — the one claim
-     * the whole deposit rule rests on. A patch stands under the footprint for `2·halfWidth / speed` ticks,
-     * so the chance times the ticks must be the depth.
+     * **The one claim the whole deposit rule rests on: a pass leaves the depth the pack asked for.**
+     *
+     * Not the chance in isolation — that was checked before and passed while the rule was badly wrong. What
+     * matters is the chance *integrated over the crossing*, spill included, and this marches a column over
+     * one patch of ground and sums it. A driven server said fourteen blocks where four and a half were
+     * asked for (2026-08-31); this says the same thing offline and in a tenth of a second.
      */
-    test("one pass leaves the depth the pack asked for, however fast the column walks") {
-        checkAll(
-            Arb.numericDouble(0.005, 0.5),
-            Arb.numericDouble(0.5, 40.0),
-            Arb.numericDouble(1.0, 8.0),
-        ) { speed, depth, halfWidth ->
-            val behaviour = ColumnBehaviour(depth = depth, halfWidth = halfWidth)
-            val chance = behaviour.depositChanceFor(speed)
-            val ticksUnderIt = halfWidth * 2 / speed
-            val left = chance * ticksUnderIt
-            // Only where the chance did not have to be clamped: past certainty a pass cannot leave more,
-            // which is the rule working rather than failing.
-            if (chance < 1.0) {
-                check(abs(left - depth) < A_HAIR) {
-                    "at $speed a pass over a $halfWidth-wide column left $left where $depth was asked for"
-                }
+    fun depthLeftByOnePass(behaviour: ColumnBehaviour, speed: Double, standing: Double): Double {
+        val onIt = behaviour.depositChanceFor(speed)
+        val reach = standing * (1.0 + behaviour.spillShare)
+        var left = 0.0
+        var along = -reach
+        // One term per tick of the crossing, which is what the column does: it steps `speed` and rolls once.
+        while (along <= reach) {
+            left += onIt * behaviour.spillFadeAt(standing, abs(along) - standing)
+            along += speed
+        }
+        return left
+    }
+
+    test("a pass at full width leaves the depth the pack asked for, at any speed") {
+        checkAll(Arb.numericDouble(0.01, 0.2), Arb.numericDouble(1.0, 12.0)) { speed, depth ->
+            val behaviour = ColumnBehaviour(depth = depth)
+            val left = depthLeftByOnePass(behaviour, speed, behaviour.halfWidth)
+            // Loose, because the sum is over whole ticks and the crossing is not a whole number of them.
+            check(abs(left - depth) < depth * A_TENTH) {
+                "a pass at $speed left $left where $depth was asked for"
             }
         }
     }
 
     /**
-     * **A pack writing nonsense gets a probability anyway.** Every other dial is read from a file and a
-     * negative depth or an enormous one should give a column that deposits nothing or deposits always,
-     * rather than a chance that is not a number.
+     * **A narrow column leaves a shallow trail, because a narrow column is carrying less sand.** Holding
+     * the depth constant all through a life is the trap — see [ColumnBehaviour.depositChanceFor] — and this
+     * is the property that replaces it.
      */
+    test("a half-width column leaves about half as much") {
+        val speed = 0.06
+        val full = depthLeftByOnePass(ordinary, speed, ordinary.halfWidth)
+        val half = depthLeftByOnePass(ordinary, speed, ordinary.halfWidth / 2)
+        check(half < full * 0.6 && half > full * 0.4) { "a half-width pass left $half against a full $full" }
+    }
+
+    /** The spill scales with the column, so a hair-thin one does not throw sand two blocks either side. */
+    test("a narrower column reaches less far") {
+        check(ordinary.spillReachAt(2.5) > ordinary.spillReachAt(1.0)) {
+            "a narrow column reached as far as a wide one"
+        }
+        check(ordinary.spillReachAt(0.2) <= 1) { "a hair-thin column was still throwing sand a block out" }
+    }
+
+    /**
+     * **Nothing may pile up in one place, and this is the check that would have found the tower.**
+     *
+     * A whole life, simulated: the column widens, walks, and closes, and every tick every position under it
+     * is offered a block. The rule as first written scaled the rate by the *current* width, so a closing
+     * column saturated at certainty over a footprint that had shrunk to one position — it stopped walking
+     * and drilled seventeen blocks of sand straight up. Nothing that checked the chance, the ramp or a
+     * single crossing could see it; only walking a life could.
+     */
+    test("no position is buried far past the depth, over a whole life") {
+        val behaviour = ordinary
+        val lifetime = 500
+        val speed = 0.06
+        // Where the column's middle is, and how wide, at each tick of one straight walk.
+        val laidAt = mutableMapOf<Int, Double>()
+        for (age in 0..lifetime) {
+            val standing = behaviour.halfWidthAt(age, lifetime)
+            if (standing <= 0.0) continue
+            // Asked every tick rather than once, so this keeps testing the rule if the rule starts varying.
+            val onIt = behaviour.depositChanceFor(speed)
+            val middle = age * speed
+            val reach = behaviour.spillReachAt(standing)
+            for (position in (middle - reach).toInt()..(middle + reach).toInt() + 1) {
+                val past = abs(position + 0.5 - middle) - standing
+                val chance = onIt * behaviour.spillFadeAt(standing, past)
+                if (chance > 0.0) laidAt[position] = (laidAt[position] ?: 0.0) + chance
+            }
+        }
+        val deepest = laidAt.values.max()
+        check(deepest < behaviour.depth * NO_WORSE_THAN) {
+            "one position was buried $deepest deep where ${behaviour.depth} was asked for: ${laidAt.toSortedMap()}"
+        }
+    }
+
     test("a chance is a probability, however extreme the dials") {
         checkAll(Arb.numericDouble(0.001, 4.0), Arb.numericDouble(-50.0, 200.0)) { speed, depth ->
             val chance = ColumnBehaviour(depth = depth).depositChanceFor(speed)
@@ -156,14 +212,24 @@ class SandfallCheck : FunSpec({
         }
     }
 
-    test("spill falls off with every block past the edge, and never rises") {
-        val speed = 0.05
-        val onIt = ordinary.spillChanceFor(speed, 0)
-        check(onIt == ordinary.depositChanceFor(speed)) { "the edge itself was not the full chance" }
-        val out = (0..ordinary.spillReach).map { ordinary.spillChanceFor(speed, it) }
-        check(out.zipWithNext().all { (nearer, further) -> further < nearer }) {
-            "spill did not fall off with distance: $out"
+    test("the spill is whole under the footprint, gone past the band, and falls off between") {
+        val standing = ordinary.halfWidth
+        val band = standing * ordinary.spillShare
+        check(ordinary.spillFadeAt(standing, -1.0) == 1.0) { "a position under the footprint was faded" }
+        check(ordinary.spillFadeAt(standing, 0.0) == 1.0) { "the edge itself was faded" }
+        check(ordinary.spillFadeAt(standing, band) == 0.0) { "the outer limit still deposited" }
+        check(ordinary.spillFadeAt(standing, band * 2) == 0.0) { "sand landed past the outer limit" }
+        val across = (0..10).map { ordinary.spillFadeAt(standing, band * it / 10.0) }
+        check(across.zipWithNext().all { (nearer, further) -> further < nearer }) {
+            "the spill did not fall off across the band: $across"
         }
+    }
+
+    test("a column of no width at all deposits nothing") {
+        check(ColumnBehaviour(halfWidth = 0.0).depositChanceFor(0.05) == 0.0) {
+            "a column with no width was still depositing"
+        }
+        check(ordinary.spillFadeAt(0.0, 1.0) == 0.0) { "a closed column was still spilling" }
     }
 
     /**
@@ -196,6 +262,10 @@ class SandfallCheck : FunSpec({
 }) {
     private companion object {
         const val A_HAIR = 1e-9
+        const val A_TENTH = 0.1
+
+        /** How much deeper than the asked-for depth any one position may end up over a whole life. */
+        const val NO_WORSE_THAN = 1.6
         const val SETTLED_SEED = 20260831L
         const val TURNS_DRAWN = 20000
         const val MOSTLY_GENTLE = 0.7

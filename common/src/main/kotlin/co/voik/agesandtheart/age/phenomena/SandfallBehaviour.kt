@@ -9,7 +9,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.packs.resources.ResourceManager
 import net.minecraft.util.RandomSource
-import kotlin.math.pow
+import kotlin.math.ceil
 
 /**
  * What one column of sand is like — the inner half of `art/phenomenon/sandfall.json`.
@@ -49,25 +49,62 @@ data class ColumnBehaviour(
     val turnEvery: Int = DEFAULT_TURN_EVERY,
     /** The most one of those turns may bend it, in degrees. */
     val turnMost: Double = DEFAULT_TURN_MOST,
-    /** How far past the footprint sand may land, in blocks. */
-    val spillReach: Int = DEFAULT_SPILL_REACH,
-    /** What share of the deposit chance survives each block past the edge. */
-    val spillFalloff: Double = DEFAULT_SPILL_FALLOFF,
+    /**
+     * How far past the footprint sand may land, as a share of the column's **own** half-width.
+     *
+     * **Proportional rather than a count of blocks**, and that is a correction rather than a preference
+     * (measured on a driven server, 2026-08-31). A fixed band read fine at full width and was ruinous at
+     * the ends of a life: [depositChanceFor] scales as `1/width` to keep the depth constant, so a
+     * hair-thin column hit a band that had not shrunk with it at a rate that had risen to match a column
+     * four times its size. One pass left fourteen blocks where four and a half were asked for, and a
+     * column too narrow to see laid nearly a full trail. Scaling the band with the column makes the whole
+     * footprint linear in its width, so the thin ends leave thin trails.
+     */
+    val spillShare: Double = DEFAULT_SPILL_SHARE,
 ) {
     /**
      * How likely one position under the footprint is to be given a block this tick.
      *
      * **Derived rather than dialled**, which is the whole of why [depth] is what a pack writes. A patch of
      * ground stands under a footprint `2·halfWidth` wide moving at `speed` for `2·halfWidth / speed` ticks,
-     * so a chance of `depth · speed / (2 · halfWidth)` leaves `depth` blocks behind. A faster column
+     * so a chance of `depth · speed / (2 · halfWidth)` leaves [depth] blocks behind. A faster column
      * deposits harder per tick and leaves the same trail.
+     *
+     * **The rate is the column's full width, and how wide it stands *now* only decides which positions are
+     * covered** (measured on a driven server, 2026-08-31). Scaling the rate by the current width instead —
+     * to hold the depth constant all through a life — reads plausibly and is a trap: as a column closes,
+     * `1/width` saturates the chance at certainty while the footprint shrinks to a single position, so a
+     * dying column stops walking and **drills a tower of sand straight up**, seventeen blocks of it. A
+     * narrow column should leave a narrow *and shallow* trail, because a narrow column is carrying less
+     * sand — not the same sand through a smaller hole.
+     *
+     * **The spill is subtracted, so [depth] is what a pass actually leaves.** A patch in the middle is
+     * under the footprint *and* then inside the band on the way out, so it collects `spillShare / 2` of a
+     * pass over again; taking that off here is what keeps the number a pack writes honest, rather than a
+     * number a pack writes and then measures.
      */
-    fun depositChanceFor(speed: Double): Double =
-        (depth * speed / (halfWidth * BOTH_SIDES)).coerceIn(CLOSED, CERTAIN)
+    fun depositChanceFor(speed: Double): Double {
+        if (halfWidth <= CLOSED) return CLOSED
+        val alsoFromTheSpill = FULLY_OPEN + spillShare / BOTH_SIDES
+        return (depth * speed / (halfWidth * BOTH_SIDES * alsoFromTheSpill)).coerceIn(CLOSED, CERTAIN)
+    }
 
-    /** How likely a position [past] blocks outside the footprint is to be given a block. */
-    fun spillChanceFor(speed: Double, past: Int): Double =
-        depositChanceFor(speed) * spillFalloff.pow(past)
+    /**
+     * What share of the deposit survives [past] blocks outside a column standing [standing] wide — one
+     * inside it, nothing at the outer limit, and a straight line between.
+     *
+     * The straight line is what makes the trail's edge ragged rather than cut: near the footprint almost
+     * everything lands, and a block or two out only the occasional one does.
+     */
+    fun spillFadeAt(standing: Double, past: Double): Double {
+        if (past <= CLOSED) return FULLY_OPEN
+        val band = standing * spillShare
+        if (band <= CLOSED) return CLOSED
+        return (FULLY_OPEN - past / band).coerceAtLeast(CLOSED)
+    }
+
+    /** How far out a position can possibly be given a block, in whole blocks. */
+    fun spillReachAt(standing: Double): Int = ceil(standing * (FULLY_OPEN + spillShare)).toInt()
 
     /**
      * How wide the column stands at [age] of a life of [lifetime] — **the spawn animation and the death
@@ -108,8 +145,7 @@ data class ColumnBehaviour(
         private const val DEFAULT_RAMP_SHARE = 0.15
         private const val DEFAULT_TURN_EVERY = 120
         private const val DEFAULT_TURN_MOST = 30.0
-        private const val DEFAULT_SPILL_REACH = 2
-        private const val DEFAULT_SPILL_FALLOFF = 0.4
+        private const val DEFAULT_SPILL_SHARE = 0.8
 
         private const val BOTH_SIDES = 2.0
         private const val CERTAIN = 1.0
@@ -144,10 +180,8 @@ data class ColumnBehaviour(
                     .forGetter(ColumnBehaviour::turnEvery),
                 Codec.DOUBLE.optionalFieldOf("turn_most", DEFAULT_TURN_MOST)
                     .forGetter(ColumnBehaviour::turnMost),
-                Codec.INT.optionalFieldOf("spill_reach", DEFAULT_SPILL_REACH)
-                    .forGetter(ColumnBehaviour::spillReach),
-                Codec.DOUBLE.optionalFieldOf("spill_falloff", DEFAULT_SPILL_FALLOFF)
-                    .forGetter(ColumnBehaviour::spillFalloff),
+                Codec.DOUBLE.optionalFieldOf("spill_share", DEFAULT_SPILL_SHARE)
+                    .forGetter(ColumnBehaviour::spillShare),
             ).apply(instance, ::ColumnBehaviour)
         }
     }

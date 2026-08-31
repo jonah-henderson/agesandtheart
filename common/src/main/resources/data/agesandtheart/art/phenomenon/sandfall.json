@@ -12,6 +12,11 @@
     "0.09 blocks a tick is one block every one to two seconds, which is slow enough to outwalk and fast",
     "enough to watch. A life of two to six minutes carries a column a few hundred blocks.",
     "",
+    "`spill_share` is a share of the column's own half-width rather than a count of blocks, and that is a",
+    "correction rather than a preference: a fixed band read fine at full width and was ruinous at the ends",
+    "of a life, where the rate has risen to keep the depth constant but the band had not shrunk to match.",
+    "One pass left fourteen blocks where four and a half were asked for.",
+    "",
     "`at_most` and `between_spawns` are both moved by the claim's rung, which is the one place a rung",
     "reaches: `teeming sandfall` is more columns arriving sooner."
   ],
@@ -25,8 +30,7 @@
     "ramp_share": 0.15,
     "turn_every": 120,
     "turn_most": 30.0,
-    "spill_reach": 2,
-    "spill_falloff": 0.4
+    "spill_share": 0.8
   },
   "at_most": 1,
   "between_spawns": 3600,
