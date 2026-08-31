@@ -21,6 +21,10 @@ correct itself in place. Rewrite the paragraph that is now wrong.
   §8 (learning); **§3 and §4 are superseded** by the world model above.
 - **`notes/the-art-implementation-plan.md`** — the phases and what each has to prove. Phases 1–5 are done
   and are a status line each, and Phase 6 is done but for its remainder; Phases 7–9 carry their full context.
+- **`notes/vocabulary-pass-plan.md`** — the pass that writes the words: property consolidation, a guided
+  authoring tool, the `some`/`many`/`few` qualifier, which blocks may be the rock, and the corpus audit.
+  **Unbuilt, and it opens with the line that says to delete it when it is built.** Read it before authoring
+  a word or touching `art/word/`.
 - **`notes/the-tag-layer.md`** — the thirty-nine tags, where each is derived from, and why three separate
   things are called rarity. The implementation of the world model's §7, and **built** — what is left of it
   is the hand-tuning its §7 step 4 describes, and `/age tags` is how a pass is done. Read it before
