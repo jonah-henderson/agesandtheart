@@ -24,6 +24,9 @@ object AgeLooks {
 
         // The Age's own air first, then what its wounds do to it — corruption darkens whatever was there
         // rather than being blended into it, so a lurid sky still goes black at the throat of a tear.
-        LevelRendering.environment { level, layers -> Corruption.paint(level, AgeAir.paint(level, layers)) }
+        LevelRendering.environment { level, layers ->
+            // Outermost, so a column blinds whatever the Age and its wounds had already made of the air.
+            Engulfing.paint(level, Corruption.paint(level, AgeAir.paint(level, layers)))
+        }
     }
 }

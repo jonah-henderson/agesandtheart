@@ -14,11 +14,15 @@ import net.minecraft.world.entity.EntityType
 import net.minecraft.world.level.Level
 import net.minecraft.core.particles.BlockParticleOption
 import net.minecraft.core.particles.ParticleTypes
+import net.minecraft.sounds.SoundEvents
+import net.minecraft.sounds.SoundSource
+import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.item.FallingBlockEntity
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.storage.ValueInput
 import net.minecraft.world.level.storage.ValueOutput
+import net.minecraft.world.phys.AABB
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.cos
@@ -52,6 +56,31 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
     var halfWidth: Float
         get() = entityData.get(HALF_WIDTH)
         private set(value) = entityData.set(HALF_WIDTH, value)
+
+    /**
+     * Half the side of the solid middle — **the one definition of it**, because two things need to agree
+     * about where it is: the renderer draws the opaque shell there, and the air goes blind inside it.
+     * A rectangle stated twice is the defect the UI layer exists to prevent, and it is no different here.
+     *
+     * A **constant** two blocks in from the outside rather than a share of the width, so a wide column is
+     * mostly solid rather than mostly haze. The share is a floor for the ends of a life, when two blocks
+     * would be the whole column and there would be no shell left to see it through.
+     */
+    val coreHalfWidth: Float
+        get() = max(halfWidth - SHELL_BLOCKS, halfWidth * LEAST_CORE_SHARE)
+
+    /** Whether [atX], [atZ] is inside the column's own turned square of half-width [reach]. */
+    fun covers(atX: Double, atZ: Double, reach: Double): Boolean {
+        if (reach <= NOTHING) return false
+        val heading = yRot.toDouble() * Mth.DEG_TO_RAD
+        val forwardX = -sin(heading)
+        val forwardZ = cos(heading)
+        val offsetX = atX - x
+        val offsetZ = atZ - z
+        val along = abs(forwardX * offsetX + forwardZ * offsetZ)
+        val across = abs(forwardZ * offsetX - forwardX * offsetZ)
+        return max(along, across) <= reach
+    }
 
     /** How many ticks it has stood. */
     var age: Int = 0
@@ -94,8 +123,20 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
         isNoGravity = true
     }
 
+    /**
+     * How fast this column's sand pours, as a share of the fastest anything may — what the shader reads to
+     * make a column that buries deeper visibly stream harder.
+     *
+     * **Synced, and for the same reason [halfWidth] is**: it is arithmetic over the Age's dials and a client
+     * has no datapack to read them from, so it is settled once here and the answer is sent.
+     */
+    var pour: Float
+        get() = entityData.get(POUR)
+        private set(value) = entityData.set(POUR, value)
+
     override fun defineSynchedData(builder: SynchedEntityData.Builder) {
         builder.define(HALF_WIDTH, 0.0f)
+        builder.define(POUR, 0.0f)
     }
 
     override fun tick() {
@@ -117,6 +158,56 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
         steer(behaviour.column)
         advance(level)
         bury(level, behaviour.column)
+        drive(level, behaviour.column)
+        beHeard(level, behaviour.column)
+    }
+
+    /**
+     * What standing in it does: **everything caught under the sand is driven down, hard.**
+     *
+     * **There is no counterplay to being under a column and that is the design** — a sandfall's answer is
+     * not to be where it is, which is what its telegraph buys you. So this is not a nudge: it scales with
+     * how wide the column stands, so the twenty-across one an unstable Age sends is not survivable by
+     * walking, and it stacks with whatever the sand is doing to the space above your head.
+     *
+     * `hurtMarked` is what makes it reach a player at all: movement is the client's to decide, and this is
+     * vanilla's own way of saying otherwise — the same flag knockback sets.
+     */
+    private fun drive(level: ServerLevel, behaviour: ColumnBehaviour) {
+        val standing = halfWidth.toDouble()
+        if (standing <= NOTHING || behaviour.push <= NOTHING) return
+        val force = behaviour.push * (standing / behaviour.widestHalfWidth)
+        for (caught in level.getEntitiesOfClass(LivingEntity::class.java, sweptVolume(level, standing))) {
+            if (!covers(caught.x, caught.z, standing)) continue
+            caught.push(NOTHING, -force, NOTHING)
+            caught.hurtMarked = true
+        }
+    }
+
+    /** From the ground it walks on to the top of the world, which is all of what the column covers. */
+    private fun sweptVolume(level: ServerLevel, standing: Double): AABB =
+        AABB(x - standing, y, z - standing, x + standing, level.maxY.toDouble(), z + standing)
+
+    /**
+     * The sound of it — **fire, borrowed, and openly a stopgap** (Jonah, 2026-08-31).
+     *
+     * A crackle played fast and pitched well down is a passable roar of falling material, and it costs
+     * nothing to replace: when there is a sound of our own, this is one identifier and one pitch.
+     */
+    private fun beHeard(level: ServerLevel, behaviour: ColumnBehaviour) {
+        if (behaviour.betweenSounds <= NONE || age % behaviour.betweenSounds != 0) return
+        val standing = halfWidth.toDouble()
+        if (standing <= NOTHING) return
+        level.playSound(
+            null,
+            x + (random.nextDouble() - MIDDLE) * standing,
+            y + random.nextDouble() * HEARD_UP_TO,
+            z + (random.nextDouble() - MIDDLE) * standing,
+            SoundEvents.FIRE_AMBIENT,
+            SoundSource.WEATHER,
+            (standing / behaviour.widestHalfWidth).toFloat() * ROAR,
+            DEEP,
+        )
     }
 
     /**
@@ -319,6 +410,9 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
         private val HALF_WIDTH: EntityDataAccessor<Float> =
             SynchedEntityData.defineId(SandColumn::class.java, EntityDataSerializers.FLOAT)
 
+        private val POUR: EntityDataAccessor<Float> =
+            SynchedEntityData.defineId(SandColumn::class.java, EntityDataSerializers.FLOAT)
+
         /** Half a block, so a position is measured from its middle rather than its corner. */
         private const val MIDDLE = 0.5
 
@@ -339,6 +433,19 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
 
         /** Sand, as the dust that comes off it. */
         private val SAND_DUST = BlockParticleOption(ParticleTypes.FALLING_DUST, Blocks.SAND.defaultBlockState())
+
+        /** How much of a column, measured in from its edge, is see-through shell rather than solid middle. */
+        private const val SHELL_BLOCKS = 2.0f
+
+        /** What is left solid when a column is too narrow to spare two blocks — the ends of a life. */
+        private const val LEAST_CORE_SHARE = 0.3f
+
+        /** How far up a column its sound is thrown from, in blocks — the part a player is standing in. */
+        private const val HEARD_UP_TO = 24.0
+        private const val ROAR = 5.0f
+
+        /** Well down: a crackle at this pitch is a rush rather than a fire. */
+        private const val DEEP = 0.45f
 
         private const val NONE = 0
         private const val NOTHING = 0.0
@@ -388,6 +495,8 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
             column.lifetime = lifetime
             column.fullHalfWidth = fullHalfWidth
             column.depth = depth
+            column.pour = SandfallBehaviour.of(level.server).column.poursAt(depth).toFloat() /
+                ColumnBehaviour.FASTEST_POUR
             level.addFreshEntity(column)
             return column
         }

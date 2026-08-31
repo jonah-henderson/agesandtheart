@@ -42,6 +42,13 @@
     "`teeming sandfall` written into an Age that is also coming apart is worse than either alone -- capped",
     "at `fury.at_once`, which is the axis that costs to run.",
     "",
+    "`push` is what standing under one does to you, per tick, scaled by how wide the column is standing.",
+    "There is no counterplay to being underneath -- the answer to a sandfall is not to be where it is, which",
+    "is what its telegraph buys you -- so this is not a nudge.",
+    "",
+    "`between_sounds` plays fire's own crackle, pitched well down, as an openly borrowed stopgap until",
+    "there is a sound of our own.",
+    "",
     "Unwalked. `/age sandfall <distance> <seconds> <fury>` stands one up at a given percent of it."
   ],
   "column": {
@@ -58,7 +65,9 @@
     "spill_share": 0.8,
     "drama_reach": 32.0,
     "drama_share": 0.12,
-    "dust": 8
+    "dust": 8,
+    "push": 0.7,
+    "between_sounds": 4
   },
   "fury": {
     "half_width": 10.0,

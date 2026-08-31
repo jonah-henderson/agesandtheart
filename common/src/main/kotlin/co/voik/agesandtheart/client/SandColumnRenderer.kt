@@ -29,6 +29,8 @@ class SandColumnRenderState : EntityRenderState() {
     var below = 0.0f
     var heading = 0.0f
     var phase = 0.0f
+    var pour = 0.0f
+    var coreHalfWidth = 0.0f
 }
 
 /**
@@ -72,6 +74,10 @@ class SandColumnRenderer(context: EntityRendererProvider.Context) :
         // Its own place in the fall, so two columns standing at once do not come down in step. Taken off
         // the entity id because it is stable for the column's life and costs nothing to carry.
         state.phase = ((entity.id * PHASE_STEP) and PHASE_MASK).toFloat() / PHASE_WHOLE
+        state.pour = entity.pour
+        // Taken off the column rather than worked out again here: the air goes blind inside exactly this,
+        // so the two must not each have their own idea of where it is.
+        state.coreHalfWidth = entity.coreHalfWidth
     }
 
     /** Never — see the class doc. */
@@ -87,9 +93,16 @@ class SandColumnRenderer(context: EntityRendererProvider.Context) :
         poseStack.pushPose()
         // The prism turns with the column, so its faces stand square to where it is going.
         poseStack.mulPose(Axis.YP.rotationDegrees(-state.heading))
+        // **The core first, and through a render type of its own.** It is opaque, so it writes depth and
+        // belongs in a pipeline that says so; the shells around it must not, or the near one would reject
+        // the far one and take the parallax that sells the fall with it.
+        collector.submitCustomGeometry(poseStack, SAND_COLUMN_CORE) { pose, buffer ->
+            prism(pose, buffer, state, state.coreHalfWidth, CORE, SOLID)
+        }
         collector.submitCustomGeometry(poseStack, SAND_COLUMN) { pose, buffer ->
             prism(pose, buffer, state, state.halfWidth, OUTER, OUTER_SOLIDITY)
-            prism(pose, buffer, state, state.halfWidth * INNER_SHARE, INNER, INNER_SOLIDITY)
+            // Halfway between the two, so the shell reads as a graded haze rather than one flat sheet.
+            prism(pose, buffer, state, (state.halfWidth + state.coreHalfWidth) / BOTH_SIDES, INNER, INNER_SOLIDITY)
         }
         poseStack.popPose()
         super.submit(state, poseStack, collector, camera)
@@ -152,7 +165,9 @@ class SandColumnRenderer(context: EntityRendererProvider.Context) :
     ) {
         buffer.addVertex(pose, atX, atY, atZ)
             .setUv(around, down)
-            .setColor(state.phase, which, NOTHING, solidity)
+            // r: this column's own phase. g: which shell, which decides both its lanes and whether it is
+            // the solid one. b: how fast it pours. a: how solid the shell is before the fall thins it.
+            .setColor(state.phase, which, state.pour, solidity)
     }
 
     companion object {
@@ -168,8 +183,8 @@ class SandColumnRenderer(context: EntityRendererProvider.Context) :
          *
          * **Neither face is culled**, because a player walks through a column rather than around it.
          */
-        private val PIPELINE: RenderPipeline = RenderPipeline.builder()
-            .withLocation(Identifier.fromNamespaceAndPath(NAMESPACE, "pipeline/sand_column"))
+        private fun pipeline(named: String, writesDepth: Boolean): RenderPipeline = RenderPipeline.builder()
+            .withLocation(Identifier.fromNamespaceAndPath(NAMESPACE, "pipeline/$named"))
             .withVertexShader(Identifier.fromNamespaceAndPath(NAMESPACE, "sand_column"))
             .withFragmentShader(Identifier.fromNamespaceAndPath(NAMESPACE, "sand_column"))
             .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
@@ -177,10 +192,24 @@ class SandColumnRenderer(context: EntityRendererProvider.Context) :
             .withUniform("Globals", UniformType.UNIFORM_BUFFER)
             .withUniform("Fog", UniformType.UNIFORM_BUFFER)
             .withColorTargetState(ColorTargetState(BlendFunction.TRANSLUCENT))
-            .withDepthStencilState(DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false))
+            .withDepthStencilState(DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, writesDepth))
+            // Neither face, for both: a player walks through a column rather than around it, and the core
+            // is only a wall you cannot see out of if its inside is drawn.
             .withCull(false)
             .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS)
             .build()
+
+        private val PIPELINE: RenderPipeline = pipeline("sand_column", writesDepth = false)
+
+        /**
+         * The core's own, and the only difference is that it **writes depth**.
+         *
+         * An opaque thing that does not write depth is a lie the next translucent draw finds out: anything
+         * between the column and the ground behind it would blend straight through a wall of sand. The
+         * shells must not write it for the opposite reason — the near one would reject the far one and take
+         * the parallax with it — so this is two pipelines rather than one with a compromise.
+         */
+        private val CORE_PIPELINE: RenderPipeline = pipeline("sand_column_core", writesDepth = true)
 
         /**
          * The render type every column in the Age is drawn through — one, so they batch.
@@ -191,15 +220,21 @@ class SandColumnRenderer(context: EntityRendererProvider.Context) :
         private val SAND_COLUMN: RenderType =
             RenderType.create("sand_column", RenderSetup.builder(PIPELINE).createRenderSetup())
 
+        private val SAND_COLUMN_CORE: RenderType =
+            RenderType.create("sand_column_core", RenderSetup.builder(CORE_PIPELINE).createRenderSetup())
+
         private const val NAMESPACE = "agesandtheart"
 
         /** How far below the ground the prism starts, so a slope is answered by the depth test. */
         private const val BURIED_BY = 24.0f
 
-        /** How much narrower the inner prism is. Near enough to slide over the outer one, not to hide it. */
-        private const val INNER_SHARE = 0.72f
+        /** Which shell a vertex belongs to, as the shader reads it — see `sand_column.fsh`. */
         private const val OUTER = 0.0f
-        private const val INNER = 1.0f
+        private const val INNER = 0.5f
+        private const val CORE = 1.0f
+
+        /** The core keeps all of the roil and none of the transparency. */
+        private const val SOLID = 1.0f
         /**
          * How solid each layer is before the fall thins it. High, because the shader squares the fall into
          * the alpha: what is wanted is a curtain that is nearly opaque where the sand is and nearly clear

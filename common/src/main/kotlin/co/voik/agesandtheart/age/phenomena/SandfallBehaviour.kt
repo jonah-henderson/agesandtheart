@@ -12,6 +12,7 @@ import co.voik.agesandtheart.age.aspect.Rung
 import net.minecraft.util.RandomSource
 import kotlin.math.ceil
 import kotlin.math.roundToInt
+import kotlin.math.roundToInt
 
 /**
  * What one column of sand is like — the inner half of `art/phenomenon/sandfall.json`.
@@ -90,6 +91,16 @@ data class ColumnBehaviour(
     val dramaShare: Double = DEFAULT_DRAMA_SHARE,
     /** How many motes of dust hang in a column each tick, for somebody near enough to see them. */
     val dust: Int = DEFAULT_DUST,
+    /**
+     * How hard the falling sand drives what is standing in it downward, per tick, for a column of the
+     * ordinary width — a wider one pushes harder in proportion.
+     *
+     * There is no counterplay to being *under* it, and that is the design: a sandfall's answer is not to be
+     * where it is. What it does to somebody who ignores that should be immediate and not a nudge.
+     */
+    val push: Double = DEFAULT_PUSH,
+    /** How often the column is heard, in ticks. */
+    val betweenSounds: Int = DEFAULT_BETWEEN_SOUNDS,
 ) {
     /**
      * How likely one position under the footprint is to be given a block this tick.
@@ -137,6 +148,20 @@ data class ColumnBehaviour(
     fun spillReachAt(standing: Double): Int = ceil(standing * (FULLY_OPEN + spillShare)).toInt()
 
     /**
+     * How fast a column of this [depth] pours, in whole turns of the roil a day — **what ties what you can
+     * see to what it is doing to the ground.**
+     *
+     * A column that buries deeper visibly streams harder, which is the only cue a player has for how bad
+     * the one walking at them is before it arrives. Whole turns because the shader's drift is a day
+     * fraction that wraps at dawn, and quantised to a colour channel's step for the same reason — see
+     * `sand_column.fsh`.
+     */
+    fun poursAt(depth: Double): Int {
+        if (this.depth <= CLOSED) return ORDINARY_POUR
+        return (ORDINARY_POUR * depth / this.depth).roundToInt().coerceIn(ORDINARY_POUR, FASTEST_POUR)
+    }
+
+    /**
      * How wide a column of [fullHalfWidth] stands at [age] of a life of [lifetime] — **the spawn animation
      * and the death animation, which are one function read forwards.**
      *
@@ -177,6 +202,12 @@ data class ColumnBehaviour(
         private const val DEFAULT_DRAMA_REACH = 32.0
         private const val DEFAULT_DRAMA_SHARE = 0.12
         private const val DEFAULT_DUST = 8
+        private const val DEFAULT_PUSH = 0.7
+        private const val DEFAULT_BETWEEN_SOUNDS = 4
+
+        /** What an ordinary column pours at, and the fastest anything may — see [poursAt]. */
+        const val ORDINARY_POUR = 900
+        const val FASTEST_POUR = 2550
 
         private const val BOTH_SIDES = 2.0
         private const val CERTAIN = 1.0
@@ -220,6 +251,9 @@ data class ColumnBehaviour(
                 Codec.DOUBLE.optionalFieldOf("drama_share", DEFAULT_DRAMA_SHARE)
                     .forGetter(ColumnBehaviour::dramaShare),
                 Codec.INT.optionalFieldOf("dust", DEFAULT_DUST).forGetter(ColumnBehaviour::dust),
+                Codec.DOUBLE.optionalFieldOf("push", DEFAULT_PUSH).forGetter(ColumnBehaviour::push),
+                Codec.INT.optionalFieldOf("between_sounds", DEFAULT_BETWEEN_SOUNDS)
+                    .forGetter(ColumnBehaviour::betweenSounds),
             ).apply(instance, ::ColumnBehaviour)
         }
     }

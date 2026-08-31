@@ -370,6 +370,74 @@ class SandfallCheck : FunSpec({
     }
 
     /**
+     * **A column that buries deeper pours visibly faster**, which is the only cue a player has for how bad
+     * the one walking at them is before it arrives.
+     */
+    test("how fast a column pours follows how deep it buries") {
+        check(ordinary.poursAt(ordinary.depth) == ColumnBehaviour.ORDINARY_POUR) {
+            "an ordinary column did not pour at the ordinary rate"
+        }
+        check(ordinary.poursAt(ordinary.depth * 2) > ordinary.poursAt(ordinary.depth)) {
+            "a column burying twice as deep poured no faster"
+        }
+        check(ordinary.poursAt(ordinary.depth * 100) == ColumnBehaviour.FASTEST_POUR) {
+            "the pour was not capped at the fastest anything may go"
+        }
+        check(ordinary.poursAt(0.0) >= ColumnBehaviour.ORDINARY_POUR) {
+            "a column burying nothing poured slower than ordinary, which would read as stopping"
+        }
+    }
+
+    /**
+     * **The one constant that now lives in two languages.**
+     *
+     * The renderer sends the pour as a share of [ColumnBehaviour.FASTEST_POUR] in a colour byte, and
+     * `sand_column.fsh` multiplies it back out by its own `FASTEST_FALL`. If the two ever disagree, every
+     * column pours at the wrong rate and — worse — the drift stops landing on a whole number of turns a
+     * day, so the sand jerks at dawn. Nothing else would catch that.
+     */
+    test("the shader agrees with us about the fastest a column may pour") {
+        val shader = Path.of("src/main/resources/assets/agesandtheart/shaders/sand_column.fsh").readText()
+        val declared = Regex("""const float FASTEST_FALL = ([0-9.]+);""").find(shader)
+        check(declared != null) { "sand_column.fsh no longer declares FASTEST_FALL" }
+        val fastest = declared!!.groupValues[1].toDouble()
+        check(fastest == ColumnBehaviour.FASTEST_POUR.toDouble()) {
+            "the shader pours at $fastest where we send ${ColumnBehaviour.FASTEST_POUR}"
+        }
+    }
+
+    /**
+     * **The see-through shell is a constant two blocks, not a share of the width.**
+     *
+     * A share made a wide column mostly haze, which is what "a little too easy to see through" was (Jonah,
+     * 2026-08-31). The floor is what keeps a column that is closing from being solid to its own edge, where
+     * two blocks would be the whole of it.
+     */
+    test("the shell around the core stays about two blocks whatever the column") {
+        fun shellOf(standing: Float) = standing - coreOf(standing)
+        for (standing in listOf(4.0f, 5.0f, 6.0f, 8.0f, 10.0f)) {
+            check(abs(shellOf(standing) - SHELL) < A_HAIR.toFloat()) {
+                "a column standing $standing wide had a shell of ${shellOf(standing)}"
+            }
+        }
+        // And a column too narrow to spare two blocks keeps a core rather than losing it entirely.
+        check(coreOf(1.0f) > 0.0f) { "a closing column had no solid middle left at all" }
+        check(coreOf(1.0f) < 1.0f) { "a closing column was solid to its own edge" }
+    }
+
+    /** Being under a wider column is worse, and being under none is nothing. */
+    test("the shove scales with how wide the column stands") {
+        fun shoveAt(standing: Double) = ordinary.push * (standing / ordinary.widestHalfWidth)
+        check(shoveAt(0.0) == 0.0) { "a closed column still shoved" }
+        check(shoveAt(ordinary.widestHalfWidth) == ordinary.push) {
+            "a column at its ordinary widest did not shove at the written force"
+        }
+        check(shoveAt(SandfallBehaviour.ORDINARY.fury.halfWidth) > ordinary.push) {
+            "the widest a furious Age can send shoved no harder than an ordinary one"
+        }
+    }
+
+    /**
      * Every range the spawner draws from must be non-empty, because `nextInt` on an empty one throws rather
      * than returning the single value — which would be a crash on the tick loop for a one-character typo.
      */
@@ -386,6 +454,13 @@ class SandfallCheck : FunSpec({
     private companion object {
         const val A_HAIR = 1e-9
         const val NO_FURY = 0.0
+
+        /** `SandColumn.SHELL_BLOCKS`, which is private to it — this is the number a walk will judge. */
+        const val SHELL = 2.0f
+        const val LEAST_CORE = 0.3f
+
+        /** The same arithmetic the column does, so the check reads what a player sees. */
+        fun coreOf(standing: Float): Float = maxOf(standing - SHELL, standing * LEAST_CORE)
         const val ALL_FURY = 1.0
         const val A_TENTH = 0.1
 

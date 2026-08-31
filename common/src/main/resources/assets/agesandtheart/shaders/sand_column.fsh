@@ -13,13 +13,19 @@ out vec4 fragColor;
 
 const float TAU = 6.28318530718;
 
-// **How many whole turns the fall makes in one Minecraft day, and whole is the load-bearing word.**
-// `GameTime` is a day *fraction* -- `((gameTime % 24000) + partialTick) / 24000` -- so it wraps at dawn.
-// A whole number of turns wraps with it and nothing moves; a fractional one would jerk the sand a hand's
-// width every morning. Every coefficient below multiplies this by a whole number for the same reason,
-// including the per-lane rates, which is why those are drawn from a small set of integers rather than
-// from the hash directly.
-const float FALLS_A_DAY = 900.0;
+// **The fastest a column may pour, in whole turns a day**, and whole is the load-bearing word.
+// `GameTime` is a day *fraction* -- `((gameTime % 24000) + partialTick) / 24000` -- so it wraps at dawn. A
+// whole number of turns wraps with it and nothing moves; a fractional one would jerk the sand a hand's
+// width every morning. Every coefficient below multiplies the drift by a whole number for the same reason,
+// including the per-lane rates, which is why those are drawn from a small set of integers.
+//
+// **A column's own rate arrives quantised rather than continuous, and that is the same rule.** It rides in
+// a colour channel, so it is already a step of 1/255 of this, and rounding it back to a whole number of
+// turns is what keeps a fierce column's faster pour wrapping as cleanly as an ordinary one's.
+//
+// **`ColumnBehaviour.FASTEST_POUR` is this same number in Kotlin**, and `SandfallCheck` reads this file to
+// say so. If they ever disagree every column pours wrong and the drift stops landing on a whole turn.
+const float FASTEST_FALL = 2550.0;
 
 // How many lanes of falling sand there are to a block. Fine enough to read as grains at arm's length,
 // coarse enough that a column seen from across the Age is not a shimmer.
@@ -34,6 +40,9 @@ const float ARRIVES_BY = 64.0;
 // which is what the first attempt at this was.
 const vec3 SHADED = vec3(0.42, 0.33, 0.21);
 const vec3 LIT = vec3(1.00, 0.94, 0.76);
+
+// What `layer.g` reads at or above for the shell that is solid. The three shells are 0, a half and 1.
+const float CORE_IS_AT = 0.75;
 
 // The four amplitudes in `fallAt`, summed — what the total is divided by to land back in -1..1. Derived,
 // so it moves with them; the frequencies themselves are free.
@@ -73,18 +82,29 @@ float fallAt(vec2 there, float drifted) {
 }
 
 void main() {
-    float drifted = GameTime * TAU * FALLS_A_DAY;
-    // The two prisms read different lanes and fall at different rates, so the near one slides across the
-    // far one and the pair reads as depth. Two cloud decks over one patch of ground want exactly this
-    // (Ephemeris `CloudDeck.noiseOffsetX`), or they mirror each other and read as one flat sheet.
-    float inner = layer.g;
-    vec2 there = aroundAndDown + vec2(layer.r * 64.0 + inner * 13.0, inner * 41.0);
-    float fall = fallAt(there, drifted * (1.0 + inner));
+    // Rounded to a whole number of turns a day — see FASTEST_FALL. A column that buries deeper pours
+    // visibly faster, which is the one thing tying what you can see to what it is doing to the ground.
+    float fallsADay = floor(layer.b * FASTEST_FALL + 0.5);
+    float drifted = GameTime * TAU * fallsADay;
+
+    // **Which of the three shells this is**: 0 the outer, a half the inner, 1 the core. They read different
+    // lanes and fall at different rates, so the near ones slide across the far ones and the stack reads as
+    // depth — two cloud decks over one patch of ground want exactly this (Ephemeris `CloudDeck.noiseOffsetX`),
+    // or they mirror each other and read as one flat sheet.
+    float shell = layer.g;
+    vec2 there = aroundAndDown + vec2(layer.r * 64.0 + shell * 26.0, shell * 82.0);
+    float fall = fallAt(there, drifted * (1.0 + shell));
 
     vec3 tone = mix(SHADED, LIT, fall);
     // **The holes are what make it sand rather than a sheet.** Alpha follows the fall hard, so a lane that
     // is between grains is very nearly clear and the curtain is something you see the world through.
-    float alpha = layer.a * fall * fall;
+    //
+    // **Except the core, which is solid.** Three translucent shells read as depth and also as a thing you
+    // can see straight through, and a column of sand is not that. The innermost keeps every bit of the
+    // roil and none of the transparency, so the depth survives and the seeing-through does not — and from
+    // inside it, with neither face culled, there is nothing to see out of at all.
+    float solid = step(CORE_IS_AT, shell);
+    float alpha = mix(layer.a * fall * fall, 1.0, solid);
     alpha *= smoothstep(0.0, ARRIVES_BY, aroundAndDown.y);
     if (alpha <= 0.01) discard;
 
