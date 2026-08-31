@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age
 
 import co.voik.ephemeris.Rgba
 import co.voik.ephemeris.sky.Aurora
+import co.voik.ephemeris.sky.Rainbow
 import co.voik.ephemeris.sky.AuroraGround
 import co.voik.ephemeris.sky.CelestialBody
 import co.voik.ephemeris.sky.CloudDeck
@@ -40,6 +41,7 @@ object SkyKnobs {
         "deck" to Deck.entries.map { it.key },
         "air" to listOf("<0..2>", "how thick the air a body is seen through is; 0 is airless"),
         "aurora" to Curtain.entries.map { it.key },
+        "rainbow" to Bow.entries.map { it.key },
         "bearing" to listOf("<degrees>", "which way the aurora's band crosses, clockwise from north"),
     )
 
@@ -60,6 +62,7 @@ object SkyKnobs {
         var bodies = spec.bodies
         var decks = spec.decks
         var aurora = spec.aurora
+        var rainbow = spec.rainbow
         var rules = SkyRules.DEFAULT
 
         for (token in tokens) {
@@ -112,6 +115,12 @@ object SkyKnobs {
                     aurora = curtain.aurora()
                 }
 
+                "rainbow" -> {
+                    val arc = Bow.entries.firstOrNull { it.key == value }
+                        ?: return Result.failure(IllegalArgumentException(failure))
+                    rainbow = arc.rainbow()
+                }
+
                 // **After `aurora=`, or it has nothing to turn.** Left as its own knob rather than folded
                 // into the curtains, because which way a band crosses is the one thing about it you want to
                 // move while standing under it.
@@ -123,7 +132,12 @@ object SkyKnobs {
                 else -> return Result.failure(IllegalArgumentException("$name — no such knob"))
             }
         }
-        return Result.success(LevelLook(spec.copy(bodies = bodies, decks = decks, aurora = aurora), rules = rules))
+        return Result.success(
+            LevelLook(
+                spec.copy(bodies = bodies, decks = decks, aurora = aurora, rainbow = rainbow),
+                rules = rules,
+            ),
+        )
     }
 
     /**
@@ -204,6 +218,71 @@ object SkyKnobs {
      * is an instrument nobody uses. So every one of these is `frequency = 1`, and the ground rule is what a
      * walk of the *Art's* words is for.
      */
+    /**
+     * Bows to stand a walk under.
+     *
+     * **Every one comes on every day and asks nothing of the weather**, which is the whole reason they
+     * exist: a bow written as the Art writes it waits for rain *and* for a light under its own radius, and
+     * a walk that has to wait out both finds out nothing. `/age write` is where the real rules are seen;
+     * this is where the geometry is.
+     */
+    private enum class Bow(val key: String) {
+        NONE("none") {
+            override fun rainbow(): Rainbow? = null
+        },
+
+        /** What a bow nobody described looks like: the real one, both arcs, forty-two degrees. */
+        ORDINARY("ordinary") {
+            override fun rainbow() = alwaysUp()
+        },
+
+        /** The primary alone, for telling the two arcs apart. */
+        SINGLE("single") {
+            override fun rainbow() = alwaysUp().copy(secondary = false)
+        },
+
+        /** Wide enough to stand under a high sun, which is what the radius buys and nothing else shows. */
+        WIDE("wide") {
+            override fun rainbow() = alwaysUp().copy(radiusDegrees = WIDEST)
+        },
+
+        /** Narrow, so it hugs the antisolar point and clears the ground only near dawn and dusk. */
+        NARROW("narrow") {
+            override fun rainbow() = alwaysUp().copy(radiusDegrees = NARROWEST)
+        },
+
+        /**
+         * Three stops nothing would ever resolve to, so which end of the band is the outside is
+         * unmistakable — and so is whether the second arc reversed it. Not a sample of anything.
+         */
+        BANDED("banded") {
+            override fun rainbow() = alwaysUp().copy(
+                colours = listOf(BOLD_RED, BOLD_WHITE, BOLD_BLUE),
+                widthDegrees = BROAD,
+                glow = BRIGHT,
+            )
+        },
+        ;
+
+        abstract fun rainbow(): Rainbow?
+
+        companion object {
+            /** Every day and no weather asked, so a walk sees one the moment a light is low enough. */
+            fun alwaysUp() = Rainbow(frequency = EVERY_DAY, needsRain = NO_RAIN_WANTED)
+
+            private const val EVERY_DAY = 1.0f
+            private const val NO_RAIN_WANTED = 0.0f
+            private const val WIDEST = 66.0f
+            private const val NARROWEST = 24.0f
+            private const val BROAD = 6.0f
+            private const val BRIGHT = 1.6f
+
+            private val BOLD_RED = Rgba(0.95f, 0.15f, 0.15f)
+            private val BOLD_WHITE = Rgba(0.95f, 0.95f, 1.0f)
+            private val BOLD_BLUE = Rgba(0.15f, 0.35f, 0.95f)
+        }
+    }
+
     private enum class Curtain(val key: String) {
         NONE("none") {
             override fun aurora(): Aurora? = null
@@ -233,7 +312,7 @@ object SkyKnobs {
          * **Its colours are a fixture, not a sample.** Red, white and blue are three stops nothing would
          * ever resolve to, chosen so the ramp's two ends are unmistakable at a glance — which means this is
          * the one curtain here that can never tell you what an Age's own looks like. Reach for `ordinary`
-         * or `/age aurora now` for that (Jonah asked why it was always the same colours, 2026-08-30).
+         * or `/age showing aurora now` for that (Jonah asked why it was always the same colours, 2026-08-30).
          */
         EXTREME("extreme") {
             override fun aurora() = Aurora(

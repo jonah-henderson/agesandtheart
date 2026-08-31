@@ -94,10 +94,13 @@ class ResolverCheck : FunSpec({
      * spreads two Ages written alike, and quietly making every mingling ordered would have taken it away
      * everywhere at once.
      */
-    test("only a ramp keeps its written order") {
+    test("only a band keeps its written order") {
+        // Two dials hold a sequence where every other mingling knob holds a set, and both are bands read
+        // end to end: a curtain from its crown to its hem, a bow from its outside in. A third arriving here
+        // is a knob that has been given an order it has no way to mean.
         val ordered = Aspect.entries.flatMap { it.dials }.filter { it.keepsWrittenOrder }
-        check(ordered == listOf(Sky.AURORACOLOUR)) {
-            "written order is kept by ${ordered.map { it.name }}, which is more knobs than the one that means it"
+        check(ordered == listOf(Sky.AURORACOLOUR, Sky.RAINBOWCOLOUR)) {
+            "written order is kept by ${ordered.map { it.name }}, which is not the two that mean it"
         }
     }
 

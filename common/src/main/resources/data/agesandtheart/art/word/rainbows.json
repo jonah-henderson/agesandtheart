@@ -1,0 +1,29 @@
+{
+  "_comment": [
+    "An Age where bows stand opposite its light in the weather that makes one.",
+    "",
+    "The word rather than the page: `rainbow` is the aspect's own aiming page, minted by",
+    "`Vocabulary.aimingPages`, and an aspect already is its page -- so `art/word/rainbow.json` is a",
+    "collision the vocabulary refuses outright. This is what asks for one without aiming at it, and the",
+    "plural is what keeps the two legible side by side: `red and yellow rainbow` describes one, and",
+    "`a rainbows Age` says the Age has them.",
+    "",
+    "It *names* the phenomenon rather than searching for one (design 8.1), as `auroral` does and for the",
+    "same reason: a bow is the one thing this word means, so it arrives with its answer in hand where a tag",
+    "query would also have found whatever else was bright and colourful.",
+    "",
+    "**It says one thing and touches one aspect, deliberately.** A narrowing word is priced in its",
+    "lowest-ordinal aspect (`Resolver.pricedIn`) and phenomena are last, so the obvious second thing to",
+    "want here -- a rainfall bound, a bow needing rain -- would quietly reprice this as a word about the",
+    "weather. That is why the rain lives on `Phenomenon.RAINBOW.insistsOn` instead: a floor on the Age's",
+    "own weather, and the one phenomenon for which a floor is the right shape rather than the wrong one."
+  ],
+  "tier": "exact",
+  "aspects": [
+    "phenomena"
+  ],
+  "names": "rainbow",
+  "sets": {
+    "happens": "rainbow"
+  }
+}

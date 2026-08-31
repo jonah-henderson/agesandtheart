@@ -13,6 +13,9 @@ import co.voik.agesandtheart.age.aspect.AgeSpawner
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.ephemeris.sky.Aurora
 import co.voik.ephemeris.sky.AuroraGround
+import co.voik.ephemeris.sky.Blending
+import co.voik.ephemeris.sky.CelestialBody
+import co.voik.ephemeris.sky.Rainbow
 import co.voik.ephemeris.sky.Daylight
 import co.voik.ephemeris.sky.LevelDaylight
 import co.voik.ephemeris.debug.LevelLookPreview
@@ -127,8 +130,11 @@ object AgeCommand {
     /** `/age danger here` — a literal rather than a bare executable, so the tree stays uniform. */
     private const val HERE_LITERAL = "here"
 
-    /** What `/age aurora now` is called — "stop waiting for it". */
+    /** What one `/age showing <what>` branch is called — "stop waiting for it". */
     private const val NOW_LITERAL = "now"
+
+    /** The one subcommand every phenomenon that is *seen rather than done* answers under. See [Seen]. */
+    private const val SHOWING_LITERAL = "showing"
 
     /** How far ahead the report looks for the next night a curtain comes. */
     private const val NIGHTS_LOOKED_AHEAD = 60L
@@ -266,7 +272,7 @@ object AgeCommand {
                 .then(pagesSubcommand())
                 .then(forgetSubcommand())
                 .then(weatherSubcommand())
-                .then(auroraSubcommand())
+                .then(showingSubcommand())
                 .then(teleportSubcommand())
                 .then(deleteSubcommand())
                 .then(generateSubcommand())
@@ -505,8 +511,8 @@ object AgeCommand {
     }
 
     /**
-     * `/age aurora here` — **why there is or is not a curtain in the sky right now**, and `/age aurora now`
-     * to stop waiting for one.
+     * `/age showing aurora` — **why there is or is not a curtain in the sky right now**, and
+     * `/age showing aurora now` to stop waiting for one.
      *
      * Written because an aurora is the first thing here that can be *correct and invisible*. Everything
      * about it is decided on the client from arithmetic, so nothing is logged, nothing is stored, and a
@@ -519,10 +525,58 @@ object AgeCommand {
      * from the same numbers, and says which factor is the one at nought. If it says a curtain should be
      * overhead and the sky is empty, the fault is in the drawing and nowhere else.
      */
-    private fun auroraSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
-        reporting("aurora") { reportFor ->
-            Commands.literal(HERE_LITERAL).executes { context -> runAurora(context, reportFor(context)) }
-        }.then(Commands.literal(NOW_LITERAL).executes(::runAuroraNow))
+    private fun showingSubcommand(): LiteralArgumentBuilder<CommandSourceStack> {
+        fun branchesUnder(parent: LiteralArgumentBuilder<CommandSourceStack>, reportFor: ReportFor) =
+            Seen.entries.fold(parent) { tree, seen ->
+                tree.then(
+                    Commands.literal(seen.key)
+                        .executes { context -> seen.reportInto(context, reportFor(context)) }
+                        .then(Commands.literal(NOW_LITERAL).executes { context -> seen.bringOn(context) }),
+                )
+            }
+        val prose = branchesUnder(Commands.literal(SHOWING_LITERAL)) { context -> Report.prose(context.source) }
+        val structured = branchesUnder(Commands.literal(Report.STRUCTURED_LITERAL)) { context ->
+            Report.structured(context.source)
+        }
+        return prose.then(structured)
+    }
+
+    /**
+     * The phenomena that are **seen rather than done** — the ones `Happenings.befall` has nothing to run
+     * for, because everything they do happens on the client from arithmetic it does for itself.
+     *
+     * That is exactly the set that needs a command like this, and the reason there is one command rather
+     * than one per phenomenon. Each of these can be *correct and invisible*, for several different reasons
+     * at once, and none of them logs anything: a walk that sees nothing cannot tell an Age that has none
+     * from a day it does not come from a renderer that is broken. So the server recomputes what the client
+     * will and says which factor is the one at nought.
+     *
+     * **Adding a phenomenon adds a constant here and nothing else.** `/age` gains no subcommand, the tree
+     * is built by folding over these, and the third one to be seen rather than done costs a `key` and two
+     * methods (Jonah, 2026-08-30: "we're not cluttering the `/age` namespace with every new phenomenon").
+     */
+    private enum class Seen(val key: String) {
+        AURORA("aurora") {
+            override fun reportInto(context: CommandContext<CommandSourceStack>, report: Report) =
+                runAurora(context, report)
+
+            override fun bringOn(context: CommandContext<CommandSourceStack>) = runAuroraNow(context)
+        },
+
+        RAINBOW("rainbow") {
+            override fun reportInto(context: CommandContext<CommandSourceStack>, report: Report) =
+                runRainbow(context, report)
+
+            override fun bringOn(context: CommandContext<CommandSourceStack>) = runRainbowNow(context)
+        },
+        ;
+
+        /** Why it is or is not in the sky right now, factor by factor. */
+        abstract fun reportInto(context: CommandContext<CommandSourceStack>, report: Report): Int
+
+        /** The Age's own, with whatever makes it *wait* taken off — a preview, so there is nothing to undo. */
+        abstract fun bringOn(context: CommandContext<CommandSourceStack>): Int
+    }
 
     private fun runAurora(context: CommandContext<CommandSourceStack>, report: Report): Int {
         val source = context.source
@@ -533,6 +587,7 @@ object AgeCommand {
             report.fact("hasAurora", false) {
                 "  Write one with `auroral`, or describe one — `green aurora`. `beautiful` sometimes does too."
             }
+            report.finish()
             return SUCCESS
         }
 
@@ -564,6 +619,7 @@ object AgeCommand {
         report.fact("rain", raining) { "  weather is hiding %.2f of it".format(raining) }
         report.fact("showing", showing) { "  so a client should be drawing it at %.3f".format(showing) }
         report.say { "  ${whyNotOf(tonight, starlit, ground, raining, showing)}" }
+        report.finish()
         return SUCCESS
     }
 
@@ -572,7 +628,7 @@ object AgeCommand {
         when {
             showing > NOTHING_SHOWING ->
                 "It is up. If the sky is empty, the fault is in the drawing — say so, it is not this."
-            tonight <= NOTHING_SHOWING -> "Not tonight. `/age aurora $NOW_LITERAL` stops you waiting for it."
+            tonight <= NOTHING_SHOWING -> "Not tonight. `/age $SHOWING_LITERAL aurora $NOW_LITERAL` stops you waiting for it."
             starlit <= NOTHING_SHOWING -> "Too light. It keeps the hours its stars keep."
             ground <= NOTHING_SHOWING -> "Nowhere cold enough within sight. It stands where the snow lies."
             raining >= 1.0f -> "The weather has it."
@@ -580,7 +636,7 @@ object AgeCommand {
         }
 
     /**
-     * `/age aurora now` — tonight's curtain, over any ground, until you walk out and back in.
+     * `/age showing aurora now` — tonight's curtain, over any ground, until you walk out and back in.
      *
      * **The Age's own curtain rather than a demonstration one**, which is the whole difference from
      * `/age sky <name> aurora=ordinary`: what you see is what the book actually wrote, with the two things
@@ -615,6 +671,216 @@ object AgeCommand {
         val step = (Math.round(bearingDegrees / (WHOLE_COMPASS / points.size)) % points.size + points.size) % points.size
         return "It crosses the sky about ${points[step]} — face that way and look well up, not at the horizon."
     }
+
+    /**
+     * `/age showing rainbow` — **why there is or is not a bow in the sky right now**, and
+     * `/age showing rainbow now` to stop waiting for one.
+     *
+     * The aurora's problem, with one more way to have it. A bow can be correct and invisible because today
+     * is not one of its days, because nothing has fallen, *or* because every light in the sky stands higher
+     * than its own arc — and that last has no counterpart in a curtain and no symptom of its own.
+     *
+     * **The server can answer all of it but the wetness.** Which days a bow comes and where its light
+     * stands are pure functions of the spec and the clock, so this recomputes exactly what the client will.
+     * How long ago it rained is the one thing only the client remembers, so this says what is falling *now*
+     * and names the gap rather than guessing across it.
+     */
+    private fun runRainbow(context: CommandContext<CommandSourceStack>, report: Report): Int {
+        val source = context.source
+        val level = source.level
+        val look = Skies.lookOf(source.server, level.dimension())
+        val rainbow = look?.sky?.rainbow
+        if (look == null || rainbow == null) {
+            report.say { "Nothing writes a bow into ${level.dimension().identifier()}." }
+            report.fact("hasRainbow", false) {
+                "  Write one with `rainbows`, describe one — `red and yellow rainbow` — or `prismatic`."
+            }
+            report.finish()
+            return SUCCESS
+        }
+
+        val clock = level.defaultClockTime
+        val day = clock / VANILLA_DAY
+        val today = rainbow.strengthOn(day)
+        val raining = level.getRainLevel(1.0f)
+        val lights = lightsIn(look)
+        val highest = lights.maxOfOrNull { it.path.altitudeAt(clock) } ?: BELOW_EVERYTHING
+        val cast = lights.maxOfOrNull { rainbow.castAt(it.path.altitudeAt(clock)) } ?: NOTHING_SHOWING
+
+        report.say { "The bow over ${level.dimension().identifier()}, on day $day:" }
+        report.fact("colours", rainbow.colours.size) {
+            "  burns ${rainbow.colours.size} colour(s), outermost first, at radius %.0f°%s"
+                .format(rainbow.radiusDegrees, if (rainbow.secondary) " with a second arc" else "")
+        }
+        report.fact("frequency", rainbow.frequency) {
+            "  comes on %.0f%% of days, at glow %.2f, wanting %.0f%% rain"
+                .format(rainbow.frequency * PER_CENT, rainbow.glow, rainbow.needsRain * PER_CENT)
+        }
+        report.fact("today", today) {
+            if (today > NOTHING_SHOWING) "  today is one of its days, at %.2f".format(today)
+            else "  today is not one of its days"
+        }
+        report.fact("nextDay", nextDayAfter(rainbow, day)) {
+            "  the next day it comes is ${nextDayAfter(rainbow, day) ?: "further off than $NIGHTS_LOOKED_AHEAD days"}"
+        }
+        report.fact("lights", lights.size) { "  ${lights.size} light(s) in this sky could cast one" }
+        report.fact("highest", highest) {
+            "  the highest of them stands at %.0f°, and a bow needs one under %.0f°"
+                .format(highest, rainbow.radiusDegrees)
+        }
+        report.fact("cast", cast) { "  so the geometry allows %.2f of a bow".format(cast) }
+        report.fact("nextLow", nextLowEnough(rainbow, lights, clock)) {
+            "  the next time a light is low enough is " +
+                (nextLowEnough(rainbow, lights, clock)?.let { "in $it ticks" } ?: "not within a day")
+        }
+        report.fact("rain", raining) { "  %.2f is falling right now".format(raining) }
+        report.fact("showing", today * cast) {
+            "  so what the server can see comes to %.3f, before the air's own wetness".format(today * cast)
+        }
+        report.say { "  ${whyNoBow(rainbow, today, cast, highest, raining)}" }
+        report.finish()
+        return SUCCESS
+    }
+
+    /**
+     * The one factor at nought, named — or what to conclude when none of them is.
+     *
+     * **Wetness is deliberately never the answer here**, because the server does not have it: the client
+     * remembers the last of the rain for a couple of minutes and this cannot see that. So a dry reading is
+     * reported as a maybe rather than as a cause, which is the honest thing and stops this command
+     * confidently blaming the one factor it cannot measure.
+     */
+    private fun whyNoBow(
+        rainbow: Rainbow,
+        today: Float,
+        cast: Float,
+        highest: Float,
+        raining: Float,
+    ): String = when {
+        today <= NOTHING_SHOWING -> "Not today. `/age $SHOWING_LITERAL rainbow $NOW_LITERAL` stops you waiting for it."
+        cast <= NOTHING_SHOWING && highest >= rainbow.radiusDegrees ->
+            "Every light is too high. A bow is a circle about the point opposite one, so a light above " +
+                "%.0f° puts the whole arc underground. Wait for evening, or `/age $SHOWING_LITERAL rainbow $NOW_LITERAL`."
+                    .format(rainbow.radiusDegrees)
+        cast <= NOTHING_SHOWING -> "Nothing is up to light one."
+        rainbow.needsRain > NOTHING_SHOWING && raining <= NOTHING_SHOWING ->
+            "It should be up if it has rained in the last couple of minutes — the client remembers that " +
+                "and this cannot. If it has not, that is why. `/age $SHOWING_LITERAL rainbow $NOW_LITERAL` takes the rain off."
+        else -> "It is up. If the sky is empty, the fault is in the drawing — say so, it is not this."
+    }
+
+    /**
+     * `/age showing rainbow now` — the Age's own bow, every day, needing no rain, and opened out far enough that
+     * the light currently in the sky actually clears it.
+     *
+     * **The Age's own bow rather than a demonstration one**, which is the difference from
+     * `/age sky <name> rainbow=ordinary`: what you see is what the book wrote, with the things that make it
+     * *wait* taken off. A preview is shown and never given ([LevelLookPreview]).
+     *
+     * The radius is the part that cannot simply be insisted upon. A light standing above the arc's own
+     * radius leaves no arc above the ground at all, and no amount of forcing the day or the weather changes
+     * that — so this opens the radius until the crown clears, and says that it did.
+     */
+    private fun runRainbowNow(context: CommandContext<CommandSourceStack>): Int {
+        val source = context.source
+        val level = source.level
+        val look = Skies.lookOf(source.server, level.dimension())
+        val rainbow = look?.sky?.rainbow
+        if (look == null || rainbow == null) {
+            source.sendFailure(Component.literal("Nothing writes a bow here to bring on"))
+            return FAILURE
+        }
+        val clock = level.defaultClockTime
+        val lights = lightsIn(look)
+        val leading = lights.maxByOrNull { it.path.altitudeAt(clock) }
+        if (leading == null) {
+            source.sendFailure(Component.literal("Nothing in this sky gives light, so nothing can cast a bow"))
+            return FAILURE
+        }
+        val highest = leading.path.altitudeAt(clock)
+        if (highest < BELOW_THE_HORIZON) {
+            source.sendFailure(
+                Component.literal("Every light here has set. A bow is bent sunlight; come back when one is up."),
+            )
+            return FAILURE
+        }
+        val opened = highest >= rainbow.radiusDegrees
+        val insisted = rainbow.copy(
+            frequency = EVERY_NIGHT,
+            needsRain = NO_RAIN_WANTED,
+            radiusDegrees = if (opened) (highest + CLEARS_THE_GROUND).coerceAtMost(WIDEST_FORCED) else rainbow.radiusDegrees,
+        )
+        LevelLookPreview.show(level, look.copy(sky = look.sky.copy(rainbow = insisted)))
+        source.sendSuccess({ Component.literal("Today, and needing no rain. Until you walk out and back in.") }, false)
+        if (opened) {
+            source.sendSuccess(
+                {
+                    Component.literal(
+                        "  Its light stands at %.0f°, over its own %.0f° arc, so the radius is opened to %.0f° to clear the ground. Not the Age's own shape."
+                            .format(highest, rainbow.radiusDegrees, insisted.radiusDegrees),
+                    )
+                },
+                false,
+            )
+        }
+        // **Which way to look, because a bow is nowhere near its light.** It is a circle about the point
+        // exactly opposite, so the one reliable instruction is to put the light at your back — and a bow
+        // behind you is indistinguishable from one that is not there, which is what this command is for.
+        val away = (leading.path.bearingAt(clock) + HALF_COMPASS) % WHOLE_COMPASS
+        source.sendSuccess({ Component.literal("  ${lookingAwayFrom(away)}") }, false)
+        return SUCCESS
+    }
+
+    /** Where to stand looking, given a bow centred on [bearingDegrees]. */
+    private fun lookingAwayFrom(bearingDegrees: Float): String {
+        val points = listOf("north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west")
+        val step = (Math.round(bearingDegrees / (WHOLE_COMPASS / points.size)) % points.size + points.size) % points.size
+        return "Put the light at your back and face ${points[step]} — the bow is centred there, low down."
+    }
+
+    /** The bodies in [look] that give light, which are the ones that can cast a bow. */
+    private fun lightsIn(look: LevelLook): List<CelestialBody> =
+        look.sky.bodies.filter { it.blending == Blending.ADDS }
+
+    /** The next day after [day] that [rainbow] comes, or null within [NIGHTS_LOOKED_AHEAD]. */
+    private fun nextDayAfter(rainbow: Rainbow, day: Long): Long? =
+        (day + 1..day + NIGHTS_LOOKED_AHEAD).firstOrNull { rainbow.strengthOn(it) > NOTHING_SHOWING }
+
+    /**
+     * How many ticks until some light is low enough to cast a bow, or null within a day.
+     *
+     * Walked rather than solved, for `CelestialPath.swing`'s reason: a light's altitude is a stack of
+     * rotations and the tick it crosses a given angle has no closed form worth reading.
+     */
+    private fun nextLowEnough(rainbow: Rainbow, lights: List<CelestialBody>, clock: Long): Long? {
+        if (lights.isEmpty()) return null
+        var ahead = 0L
+        while (ahead < VANILLA_DAY) {
+            val at = clock + ahead
+            if (lights.any { rainbow.castAt(it.path.altitudeAt(at)) > NOTHING_SHOWING }) return ahead
+            ahead += LOOKING_AHEAD_STEP
+        }
+        return null
+    }
+
+    /** Nothing is up at all, in degrees — below any real altitude, so a sky with no lights sorts last. */
+    private const val BELOW_EVERYTHING = -90.0f
+
+    /** How far under the horizon still counts as a light that has set rather than one about to rise. */
+    private const val BELOW_THE_HORIZON = -1.5f
+
+    private const val NO_RAIN_WANTED = 0.0f
+
+    /** How far above the horizon a forced bow's crown is put, so it is unmistakably there. */
+    private const val CLEARS_THE_GROUND = 12.0f
+
+    /** Past this the antisolar axis is near vertical and a bow stops being a shape anybody recognises. */
+    private const val WIDEST_FORCED = 85.0f
+
+    private const val HALF_COMPASS = 180.0f
+
+    /** Coarse enough to be cheap and fine enough to be worth reading — a bow moves slowly. */
+    private const val LOOKING_AHEAD_STEP = 100L
 
     /** The curtain this level wears, or null where it wears none. */
     private fun auroraOf(level: ServerLevel): Aurora? =

@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "An Age whose air splits light of its own accord, so bows stand in it with no rain to make them.",
+    "",
+    "The dial rather than the phenomenon, and that is the whole trick: setting any dial on an aspect that",
+    "holds nothing is a writer saying the Age has one (`Sky.rainbowIn`), so this asserts bows and severs",
+    "them from the weather in a single word. Naming the phenomenon would have brought",
+    "`Phenomenon.RAINBOW`'s rainfall floor with it, which is the opposite of what this means.",
+    "",
+    "No query: this is a fact about the bow and there is no preset it could prefer, which is why it sets",
+    "and never narrows. The shape is `brilliant`'s exactly."
+  ],
+  "tier": "exact",
+  "aspects": [
+    "rainbow"
+  ],
+  "sets": {
+    "rainbowrain": "-1.0..-1.0"
+  }
+}

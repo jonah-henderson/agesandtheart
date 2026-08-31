@@ -11,6 +11,9 @@ import net.minecraft.util.StringRepresentable
  */
 private const val MOSTLY = 0.85
 
+/** Rain often enough that it is a fact about the Age, and broken enough that the light gets through. */
+private const val SHOWERY = 0.55
+
 /**
  * A process that befalls an Age — what [Phenomena]'s claims name (design §3.1, §5.2).
  *
@@ -81,10 +84,30 @@ enum class Phenomenon(
      * `in <biome>` stays the wrong scope for a phenomenon, exactly as [Aspect.confinable] says.
      *
      * **Insists on no weather**, like an inferno and for the same reason: [insistsOn] is a floor that can
-     * only raise, and a curtain wants a *clear* sky. The lean toward cold is said in `art/word/auroral.json`
-     * as a nudge, which composes with whatever else was written and can never fracture against it.
+     * only raise, and a curtain wants a *clear* sky. Nor does `art/word/auroral.json` lean the climate
+     * cold, though it drafted with one: a narrowing word is priced in its lowest-ordinal aspect and
+     * phenomena are last, so any second parameter would have repriced `auroral` as a word about that other
+     * thing. A writer wanting the cold has `frozen`, and the variation is drawn from the Age's seed.
      */
     AURORA("aurora"),
+
+    /**
+     * A bow standing opposite the Age's light — the second phenomenon that is *seen* rather than done, and
+     * the first that needs the weather to be doing something.
+     *
+     * **It befalls nothing**, as an aurora does not: it comes on its own days, it stands where the light
+     * puts it, and what a player does about it is look. Everything it does happens on the client.
+     *
+     * **The one phenomenon here that insists on rain, and the one for which a floor is the right shape.**
+     * An inferno wants a dry Age and a curtain a clear one, so neither could ask [insistsOn] for anything;
+     * a bow is sunlight bent through falling water and wants exactly what a floor can give. It cannot be
+     * said in `art/word/rainbows.json` either — a rainfall bound there is a second aspect, and the pricing
+     * rule above would take the word away from phenomena altogether.
+     *
+     * **Showery rather than streaming.** A bow needs the rain to *stop*, or at least to thin: the light has
+     * to reach the drops. An Age held at a downpour would have the wettest sky and no bows in it.
+     */
+    RAINBOW("rainbow", AgeWeather.Conditions(rainfall = SHOWERY)),
     ;
 
     override val aspect = Aspect.PHENOMENA

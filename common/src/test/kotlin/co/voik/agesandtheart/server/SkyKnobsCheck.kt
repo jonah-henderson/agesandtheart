@@ -57,6 +57,7 @@ class SkyKnobsCheck : FunSpec({
             "glow=additive",
             "daylight=primary_sun",
             "deck=both",
+            "rainbow=banded",
         )
         for (knob in each) {
             val report = server.run("age sky $age sky=plain $knob")

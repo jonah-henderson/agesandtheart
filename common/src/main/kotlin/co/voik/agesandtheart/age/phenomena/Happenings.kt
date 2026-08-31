@@ -117,6 +117,10 @@ object Happenings {
             // arithmetic every client does for itself, so there is no tick of it to run here and no state
             // for one to keep. See [Phenomenon.AURORA].
             Phenomenon.AURORA -> Unit
+            // Nothing either, and for the same reason — with one part done already: what a bow needs of
+            // the weather is `Phenomenon.RAINBOW.insistsOn`, which the Age was built with rather than
+            // something to arrange here. See [Phenomenon.RAINBOW].
+            Phenomenon.RAINBOW -> Unit
         }
     }
 

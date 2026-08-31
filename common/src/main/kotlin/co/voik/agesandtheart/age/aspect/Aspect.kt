@@ -173,6 +173,24 @@ enum class Aspect(
     AURORA("aurora"),
 
     /**
+     * The bow that stands opposite the Age's light when the weather makes one.
+     *
+     * **Its own aspect for the aurora's reason**: a writer aiming a clause at it — `red and yellow rainbow`
+     * — must be able to say the colours are the *bow's* and not the sky's. `Vocabulary.aimingPages` mints
+     * the page, which is why there is no `art/word/rainbow.json`; `rainbows` is the word that asks for one.
+     *
+     * **Describing it asserts it**, likewise. It holds nothing, so no clause can mint a member the way a
+     * clause mints a sun; what it has is dials, and anything set on one is a writer saying the Age has
+     * bows. See [Sky.rainbowIn].
+     *
+     * **Almost nothing about where it goes is written here**, which is the whole of what makes it cheap: a
+     * bow is a circle about the point opposite whatever lights it, so an Age with two suns has two of them
+     * and one whose sun climbs past the arc's own radius has none at midday. Neither is a case anything
+     * here or in Ephemeris was taught.
+     */
+    RAINBOW("rainbow"),
+
+    /**
      * What *happens* here: storms, meteors, a rising sea (design §3.1, §5.2).
      *
      * **Scaffolding — it names nothing and does nothing yet**, deliberately. The shape is here so the
@@ -205,7 +223,7 @@ enum class Aspect(
             // biome or a structure set is weighed rather than chosen. See [dials] and [Holds.WEIGHTED_SET].
             PHENOMENA -> Phenomenon.entries
             SEA, BIOMES, STRUCTURES, CLIMATE, SURFACE, FEATURES, SPAWNS, AIR, WATERS, WEATHER,
-            SUN, MOON, STARS, AURORA,
+            SUN, MOON, STARS, AURORA, RAINBOW,
             -> emptyList()
         }
 
@@ -235,6 +253,13 @@ enum class Aspect(
             MOON -> listOf(Sky.ORBITING, Sky.RISING)
             STARS -> listOf(Sky.STARS, Sky.STARGLOW)
             AURORA -> listOf(Sky.AURORACOLOUR, Sky.AURORAGLOW, Sky.AURORASIZE, Sky.AURORAFREQUENCY)
+            RAINBOW -> listOf(
+                Sky.RAINBOWCOLOUR,
+                Sky.RAINBOWGLOW,
+                Sky.RAINBOWSIZE,
+                Sky.RAINBOWFREQUENCY,
+                Sky.RAINBOWRAIN,
+            )
             // A preset aspect with dials: the two switches that pick the Age's dimension type. They sit
             // here rather than on `Atmosphere` because they are chosen when the Age is *made* and baked
             // into a pre-authored file, where every atmosphere dial is laid over a level that is already
@@ -295,7 +320,7 @@ enum class Aspect(
         FEATURES -> PlacedFeature.named(key)
         SPAWNS -> Spawn.named(key)
         TERRAIN, CARVERS, SKY, CLIMATE, SURFACE, PHENOMENA,
-        AIR, WATERS, WEATHER, SUN, MOON, STARS, AURORA,
+        AIR, WATERS, WEATHER, SUN, MOON, STARS, AURORA, RAINBOW,
         -> authored.firstOrNull { it.key == key }
     }
 
