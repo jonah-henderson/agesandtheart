@@ -4,7 +4,6 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.util.Mth
 import net.minecraft.world.level.entity.EntityTypeTest
 import kotlin.math.cos
-import kotlin.math.roundToInt
 import kotlin.math.sin
 
 /**
@@ -31,22 +30,18 @@ object Sandfall {
     /**
      * One tick of it: whether another column stands up, and where.
      *
-     * **The rung is the brief's two levers being one number.** A stronger claim raises how many may stand
-     * at once *and* shortens the wait between them, and the second is derived from the first so the two
-     * cannot disagree — `teeming sandfall` is more columns arriving sooner, `scarce sandfall` is fewer
-     * arriving later, and the phenomenon needs no knob of its own to be dialled.
+     * **The rung is the brief's two levers at once.** A stronger claim raises how many may stand together
+     * *and* shortens the wait between them — `teeming sandfall` is four columns arriving four times as
+     * often, `scarce sandfall` is one arriving four times as rarely — and the phenomenon needs no knob of
+     * its own to be dialled.
      */
     fun wander(level: ServerLevel, density: Double) {
         val behaviour = SandfallBehaviour.of(level.server)
         // A pack that wants an Age with none says so by writing none, and is not overruled by a rung.
         if (behaviour.atMost <= NONE) return
 
-        val allowed = Happenings.timesFor(density, behaviour.atMost)
-        if (standingIn(level) >= allowed) return
-
-        val soonerBy = allowed.toDouble() / behaviour.atMost
-        val between = (behaviour.betweenSpawns / soonerBy).roundToInt().coerceAtLeast(AT_ONCE)
-        if (level.random.nextInt(between) != NOW) return
+        if (standingIn(level) >= behaviour.atMostFor(density)) return
+        if (level.random.nextInt(behaviour.betweenSpawnsFor(density)) != NOW) return
 
         raiseOneNearSomebody(level, behaviour)
     }

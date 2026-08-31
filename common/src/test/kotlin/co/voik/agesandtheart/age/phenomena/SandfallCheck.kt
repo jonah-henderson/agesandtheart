@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.phenomena
 
+import co.voik.agesandtheart.age.aspect.Rung
 import com.google.gson.JsonParser
 import com.mojang.serialization.JsonOps
 import io.kotest.core.spec.style.FunSpec
@@ -265,6 +266,44 @@ class SandfallCheck : FunSpec({
         val gentle = turns.count { abs(it) < ordinary.turnMost / 2 }
         check(gentle > turns.size * MOSTLY_GENTLE) {
             "only $gentle of ${turns.size} turns were gentle, so a column would not read as walking straight"
+        }
+    }
+
+    /**
+     * **The rung is what buys more columns**, and both of its levers have to move — the count *and* the
+     * wait. `scarce` is the one that catches a bad derivation: the count floors at one, so a wait derived
+     * from the count leaves a quarter-strength claim identical to an ordinary one, which is what the first
+     * version did (found 2026-08-31, driving a server).
+     */
+    test("a rung moves how many columns stand and how long between them") {
+        val sending = SandfallBehaviour.ORDINARY
+        val ordinaryRung = Rung.ORDINARY
+        val teeming = 4.0
+        val scarce = 0.25
+
+        check(sending.atMostFor(ordinaryRung) == sending.atMost) { "an ordinary claim changed the count" }
+        check(sending.betweenSpawnsFor(ordinaryRung) == sending.betweenSpawns) {
+            "an ordinary claim changed the wait"
+        }
+
+        check(sending.atMostFor(teeming) > sending.atMostFor(ordinaryRung)) {
+            "a teeming claim did not raise how many may stand"
+        }
+        check(sending.betweenSpawnsFor(teeming) < sending.betweenSpawnsFor(ordinaryRung)) {
+            "a teeming claim did not shorten the wait"
+        }
+
+        // The count cannot fall below one, so the wait is the only thing left that can say "rarer".
+        check(sending.betweenSpawnsFor(scarce) > sending.betweenSpawnsFor(ordinaryRung)) {
+            "a scarce claim was no rarer than an ordinary one, which is the whole of the bug"
+        }
+    }
+
+    test("a rung never asks for a wait of no ticks at all") {
+        checkAll(Arb.numericDouble(0.0, 64.0)) { density ->
+            check(SandfallBehaviour.ORDINARY.betweenSpawnsFor(density) >= 1) {
+                "a density of $density asked for a wait of nothing, which is a roll every tick"
+            }
         }
     }
 

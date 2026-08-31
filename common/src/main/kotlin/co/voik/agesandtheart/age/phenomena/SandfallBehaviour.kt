@@ -8,8 +8,10 @@ import com.mojang.serialization.JsonOps
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.packs.resources.ResourceManager
+import co.voik.agesandtheart.age.aspect.Rung
 import net.minecraft.util.RandomSource
 import kotlin.math.ceil
+import kotlin.math.roundToInt
 
 /**
  * What one column of sand is like — the inner half of `art/phenomenon/sandfall.json`.
@@ -224,7 +226,26 @@ data class SandfallBehaviour(
      */
     val forgottenAfter: Int = DEFAULT_FORGOTTEN_AFTER,
 ) {
+    /** How many columns may stand at once at a claim's [density] — the rung multiplying [atMost]. */
+    fun atMostFor(density: Double): Int = Happenings.timesFor(density, atMost)
+
+    /**
+     * How long between one column and the next at a claim's [density], in ticks.
+     *
+     * **Read off the density rather than off [atMostFor], which is a correction** (2026-08-31, driven).
+     * Deriving the wait from the *count* looked tidier — the two could then never disagree — and made
+     * `scarce sandfall` do nothing at all: the count floors at one, so a quarter-strength claim came out
+     * with the same one column at the same interval as an ordinary one. Both are honest functions of the
+     * density instead, and the one that can still move is the one that moves.
+     */
+    fun betweenSpawnsFor(density: Double): Int {
+        if (density <= NO_CLAIM) return betweenSpawns
+        return (betweenSpawns / (density / Rung.ORDINARY)).roundToInt().coerceAtLeast(AT_ONCE)
+    }
+
     companion object {
+        private const val NO_CLAIM = 0.0
+        private const val AT_ONCE = 1
         private const val DEFAULT_AT_MOST = 1
         private const val DEFAULT_BETWEEN_SPAWNS = 3600
         private const val DEFAULT_NEAREST_SPAWN = 96
