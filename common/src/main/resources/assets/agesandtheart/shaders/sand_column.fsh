@@ -6,6 +6,7 @@
 
 in vec2 aroundAndDown;
 in vec4 layer;
+in vec4 worldLight;
 in float sphericalVertexDistance;
 in float cylindricalVertexDistance;
 
@@ -95,7 +96,8 @@ void main() {
     vec2 there = aroundAndDown + vec2(layer.r * 64.0 + shell * 26.0, shell * 82.0);
     float fall = fallAt(there, drifted * (1.0 + shell));
 
-    vec3 tone = mix(SHADED, LIT, fall);
+    // Lit by the world it stands in, so it goes down with the sun and is dark in a cave.
+    vec3 tone = mix(SHADED, LIT, fall) * worldLight.rgb;
     // **The holes are what make it sand rather than a sheet.** Alpha follows the fall hard, so a lane that
     // is between grains is very nearly clear and the curtain is something you see the world through.
     //

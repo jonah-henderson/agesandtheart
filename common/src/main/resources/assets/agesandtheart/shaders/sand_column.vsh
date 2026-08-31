@@ -3,6 +3,7 @@
 #moj_import <minecraft:dynamictransforms.glsl>
 #moj_import <minecraft:projection.glsl>
 #moj_import <minecraft:fog.glsl>
+#moj_import <minecraft:sample_lightmap.glsl>
 
 // One face of a column's prism. Position arrives already in camera-relative world space -- the pose is
 // applied on the CPU when the geometry is written -- so nothing here can work out where on the column a
@@ -14,9 +15,15 @@ in vec2 UV0;
 // r: this column's own phase, so two standing at once do not fall in step.
 // g: which of the two nested prisms this is.  a: how solid the layer is before the roil thins it.
 in vec4 Color;
+// Where the column stands, in the world's own light. Without this a column is full-bright: it kept its
+// noon colour after dark and lit itself in a cave, which is what a curtain of sand emphatically does not do.
+in ivec2 UV2;
+
+uniform sampler2D Sampler2;
 
 out vec2 aroundAndDown;
 out vec4 layer;
+out vec4 worldLight;
 out float sphericalVertexDistance;
 out float cylindricalVertexDistance;
 
@@ -31,4 +38,7 @@ void main() {
 
     aroundAndDown = UV0;
     layer = Color;
+    // One value for the whole column, taken where the column stands — `EntityRenderState.lightCoords`,
+    // which is what every other entity is lit by.
+    worldLight = sample_lightmap(Sampler2, UV2);
 }

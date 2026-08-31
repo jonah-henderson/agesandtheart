@@ -93,16 +93,16 @@ class SandColumnRenderer(context: EntityRendererProvider.Context) :
         poseStack.pushPose()
         // The prism turns with the column, so its faces stand square to where it is going.
         poseStack.mulPose(Axis.YP.rotationDegrees(-state.heading))
-        // **The core first, and through a render type of its own.** It is opaque, so it writes depth and
-        // belongs in a pipeline that says so; the shells around it must not, or the near one would reject
-        // the far one and take the parallax that sells the fall with it.
-        collector.submitCustomGeometry(poseStack, SAND_COLUMN_CORE) { pose, buffer ->
-            prism(pose, buffer, state, state.coreHalfWidth, CORE, SOLID)
-        }
+        // **Innermost first, in one submission, and that order is the whole of what makes it correct.**
+        // Every shell writes depth, so each one drawn after is nearer, passes, and blends over what is
+        // already there — which is back-to-front, the only order translucency can be composited in. It is
+        // one call because a render type's buffer keeps the order it was written in, and two calls would
+        // leave the collector to decide.
         collector.submitCustomGeometry(poseStack, SAND_COLUMN) { pose, buffer ->
-            prism(pose, buffer, state, state.halfWidth, OUTER, OUTER_SOLIDITY)
+            prism(pose, buffer, state, state.coreHalfWidth, CORE, SOLID)
             // Halfway between the two, so the shell reads as a graded haze rather than one flat sheet.
             prism(pose, buffer, state, (state.halfWidth + state.coreHalfWidth) / BOTH_SIDES, INNER, INNER_SOLIDITY)
+            prism(pose, buffer, state, state.halfWidth, OUTER, OUTER_SOLIDITY)
         }
         poseStack.popPose()
         super.submit(state, poseStack, collector, camera)
@@ -165,6 +165,7 @@ class SandColumnRenderer(context: EntityRendererProvider.Context) :
     ) {
         buffer.addVertex(pose, atX, atY, atZ)
             .setUv(around, down)
+            .setLight(state.lightCoords)
             // r: this column's own phase. g: which shell, which decides both its lanes and whether it is
             // the solid one. b: how fast it pours. a: how solid the shell is before the fall thins it.
             .setColor(state.phase, which, state.pour, solidity)
@@ -183,33 +184,37 @@ class SandColumnRenderer(context: EntityRendererProvider.Context) :
          *
          * **Neither face is culled**, because a player walks through a column rather than around it.
          */
-        private fun pipeline(named: String, writesDepth: Boolean): RenderPipeline = RenderPipeline.builder()
-            .withLocation(Identifier.fromNamespaceAndPath(NAMESPACE, "pipeline/$named"))
+        /**
+         * The column's own pipeline.
+         *
+         * Needs no registration: Blaze3D compiles one on first use, reading shaders through `ShaderManager`,
+         * which scans `shaders/` across every namespace.
+         *
+         * **It writes depth, and that is what fixes water and clouds** (Jonah, 2026-08-31, walked). Both are
+         * drawn *after* entities, so geometry that does not write depth is geometry they paint straight
+         * over — water stood in front of a column it was behind, and clouds added themselves to it. A
+         * translucent thing that writes depth is usually wrong, and is right here because the shells are
+         * submitted innermost-first: back-to-front is the order translucency wants anyway, so writing depth
+         * costs nothing and buys correctness against everything drawn later.
+         *
+         * **Neither face is culled**, because a player walks through a column rather than around it, and
+         * the core is only a wall you cannot see out of if its inside is drawn.
+         */
+        private val PIPELINE: RenderPipeline = RenderPipeline.builder()
+            .withLocation(Identifier.fromNamespaceAndPath(NAMESPACE, "pipeline/sand_column"))
             .withVertexShader(Identifier.fromNamespaceAndPath(NAMESPACE, "sand_column"))
             .withFragmentShader(Identifier.fromNamespaceAndPath(NAMESPACE, "sand_column"))
             .withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
             .withUniform("Projection", UniformType.UNIFORM_BUFFER)
             .withUniform("Globals", UniformType.UNIFORM_BUFFER)
             .withUniform("Fog", UniformType.UNIFORM_BUFFER)
+            // The world's own light, so a column goes down with the sun instead of glowing at midnight.
+            .withSampler("Sampler2")
             .withColorTargetState(ColorTargetState(BlendFunction.TRANSLUCENT))
-            .withDepthStencilState(DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, writesDepth))
-            // Neither face, for both: a player walks through a column rather than around it, and the core
-            // is only a wall you cannot see out of if its inside is drawn.
+            .withDepthStencilState(DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, true))
             .withCull(false)
-            .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS)
+            .withVertexFormat(DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR, VertexFormat.Mode.QUADS)
             .build()
-
-        private val PIPELINE: RenderPipeline = pipeline("sand_column", writesDepth = false)
-
-        /**
-         * The core's own, and the only difference is that it **writes depth**.
-         *
-         * An opaque thing that does not write depth is a lie the next translucent draw finds out: anything
-         * between the column and the ground behind it would blend straight through a wall of sand. The
-         * shells must not write it for the opposite reason — the near one would reject the far one and take
-         * the parallax with it — so this is two pipelines rather than one with a compromise.
-         */
-        private val CORE_PIPELINE: RenderPipeline = pipeline("sand_column_core", writesDepth = true)
 
         /**
          * The render type every column in the Age is drawn through — one, so they batch.
@@ -217,11 +222,10 @@ class SandColumnRenderer(context: EntityRendererProvider.Context) :
          * `RenderType.create` is the one widened line this route costs; `RenderSetup.builder` is already
          * public. See `agesandtheart.accesswidener`.
          */
-        private val SAND_COLUMN: RenderType =
-            RenderType.create("sand_column", RenderSetup.builder(PIPELINE).createRenderSetup())
-
-        private val SAND_COLUMN_CORE: RenderType =
-            RenderType.create("sand_column_core", RenderSetup.builder(CORE_PIPELINE).createRenderSetup())
+        private val SAND_COLUMN: RenderType = RenderType.create(
+            "sand_column",
+            RenderSetup.builder(PIPELINE).useLightmap().createRenderSetup(),
+        )
 
         private const val NAMESPACE = "agesandtheart"
 
