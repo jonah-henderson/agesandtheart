@@ -149,7 +149,7 @@ accessible	class	net/minecraft/world/level/levelgen/SurfaceRules$BlockRuleSource
 # `shaders/` across every namespace — but a pipeline can only reach the retained-mode renderer as a
 # `RenderType`, and `RenderType.create` is package-private.
 #
-# What it buys is the sandfall's roil running per *fragment*. The alternative was evaluating it per vertex
-# on the CPU, which is tens of thousands of vertices rebuilt every frame against this route's eight quads,
-# for the coarse interpolated wash Ephemeris already moved off (`notes/sandfall-plan.md` §6).
+# What it buys is the sandfall's roil running per *fragment* (design §5.2.2). The alternative was evaluating
+# it per vertex on the CPU, which is tens of thousands of vertices rebuilt every frame against this route's
+# handful of quads, for the coarse interpolated wash Ephemeris already moved off.
 accessible	method	net/minecraft/client/renderer/rendertype/RenderType	create	(Ljava/lang/String;Lnet/minecraft/client/renderer/rendertype/RenderSetup;)Lnet/minecraft/client/renderer/rendertype/RenderType;

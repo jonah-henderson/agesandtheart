@@ -337,7 +337,8 @@ data class SandfallBehaviour(
      *
      * **They compound rather than one winning** (Jonah, 2026-08-31): `teeming sandfall` written into an Age
      * that is also coming apart is worse than either alone. [Fury.atOnce] is the ceiling on the result
-     * whatever the rung asks, because this is the axis that costs — see the plan's §11 measurement.
+     * whatever the rung asks, because this is the axis that costs: six columns at their widest measured at
+     * about a third of a millisecond each, against a fifty-millisecond tick.
      */
     fun atMostFor(density: Double, fury: Double): Int {
         val furious = lerp(atMost.toDouble(), this.fury.atOnce.toDouble(), fury)
