@@ -1252,18 +1252,29 @@ object Resolver {
         asWritten: List<Constraint>,
         flaws: MutableList<Flaw>,
     ): AgeComposition {
-        val winner = contenders.first()
-        fun asksWhatTheWinnerAsks(said: Constraint) =
-            said.word.sets[parameter] == winner.word.sets[parameter]
-        val mingled = contenders.filter { it == winner || wereJoined(it, winner) || asksWhatTheWinnerAsks(it) }
-        for (loser in contenders - mingled.toSet()) {
-            flaws += flaw(vocabulary, Register.DISPLACED, listOf(loser, winner), aspect, emptyList(), loser.word.tier)
+        fun keptAmong(rivals: List<Constraint>): List<Constraint> {
+            val winner = rivals.first()
+            fun asksWhatTheWinnerAsks(said: Constraint) =
+                said.word.sets[parameter] == winner.word.sets[parameter]
+            val mingled = rivals.filter { it == winner || wereJoined(it, winner) || asksWhatTheWinnerAsks(it) }
+            for (loser in rivals - mingled.toSet()) {
+                flaws += flaw(vocabulary, Register.DISPLACED, listOf(loser, winner), aspect, emptyList(), loser.word.tier)
+            }
+            return ordered(mingled, parameter, aspect, asWritten)
         }
+        // **Two claims that apply in different places are not rivals**, which is what this used to miss. A
+        // dial confined to a biome is a second value winning in one corner rather than a second opinion
+        // about the same thing ([Options.of]) — so `blue grass purple grass in swamp` is a blue world with
+        // a purple swamp, and contending across the two displaced whichever was written second and charged
+        // the sentence for a contradiction it had not made (Jonah, 2026-08-30).
+        //
+        // Grouped rather than filtered, so two clauses sited in the *same* biome still contend with each
+        // other, which they should: they do both apply in one place.
+        val kept = contenders.groupBy { it.confinedTo }.values.flatMap(::keptAmong)
         return withOptions(
             aspect,
             parameter,
-            ordered(mingled, parameter, aspect, asWritten)
-                .map { Claim(it.word.sets.getValue(parameter), confinedTo = it.confinedTo).spelled() }
+            kept.map { Claim(it.word.sets.getValue(parameter), confinedTo = it.confinedTo).spelled() }
                 .distinct(),
         )
     }

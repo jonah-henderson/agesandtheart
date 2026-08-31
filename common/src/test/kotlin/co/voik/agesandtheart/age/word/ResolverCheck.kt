@@ -32,6 +32,7 @@ import io.kotest.core.spec.style.FunSpec
 import net.minecraft.resources.Identifier
 import co.voik.agesandtheart.age.aspect.Biomes
 import co.voik.agesandtheart.worldgen.biome.BiomePreference
+import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.agesandtheart.age.aspect.Surface
 import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.age.aspect.Features
@@ -69,6 +70,39 @@ class ResolverCheck : FunSpec({
      * Driven through a real sentence rather than hand-built options, because the ordering happens in the
      * resolver and everything downstream would pass a reversed ramp without complaint.
      */
+    /**
+     * **A clause sited in a biome does not compete with one that is not.**
+     *
+     * A confined dial is a second value that wins in one corner ([Options.of]) rather than a second opinion
+     * about the same thing, so the two are not rivals and neither displaces the other. Contending across
+     * them charged a sentence for a contradiction it had not made and quietly dropped half of what the
+     * writer had paid for (Jonah, 2026-08-30, walked).
+     */
+    test("a colour everywhere and a colour in one biome are both kept") {
+        val pages = listOf("age", "blue", "grass", "purple", "grass", "in", "swamp")
+        val resolved = Resolver.resolve(vocabulary, read(pages), SAMPLE_SEED)
+        val options = resolved.composition.optionsFor(Aspect.GRASS, 0)
+        val swamp = Identifier.fromNamespaceAndPath("minecraft", "swamp")
+        check(options.of(Atmosphere.GRASSCOLOUR) == "blue") {
+            "the unsited colour did not hold everywhere: ${options.allSpelled(Atmosphere.GRASSCOLOUR.name)}"
+        }
+        check(options.of(Atmosphere.GRASSCOLOUR, swamp) == "purple") {
+            "the sited colour did not win in its corner: ${options.allSpelled(Atmosphere.GRASSCOLOUR.name)}"
+        }
+        check(resolved.instability.flaws.none { it.register == Register.DISPLACED }) {
+            "the sentence was charged for displacing something: ${resolved.instability.flaws}"
+        }
+    }
+
+    /** And two sited in the *same* biome still contend, because they do both apply in one place. */
+    test("two colours in one biome are still rivals") {
+        val pages = listOf("age", "blue", "grass", "in", "swamp", "purple", "grass", "in", "swamp")
+        val resolved = Resolver.resolve(vocabulary, read(pages), SAMPLE_SEED)
+        check(resolved.instability.flaws.any { it.register == Register.DISPLACED }) {
+            "two colours claiming one swamp cost the sentence nothing: ${resolved.instability.flaws}"
+        }
+    }
+
     test("an aurora's colours keep the order the writer wrote them in") {
         fun ramp(vararg colours: String): List<String> {
             val pages = listOf("age") + colours.toList().flatMap { listOf(it, "and") }.dropLast(1) + "aurora"
