@@ -1,14 +1,14 @@
 package co.voik.agesandtheart.age.consequence
 
-import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.AgeRecipe
-import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.age.Manifestation
-import co.voik.agesandtheart.age.Price
 import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.phenomena.Sampling
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.world.level.ChunkPos
+import net.minecraft.world.level.Level
 import net.minecraft.world.level.chunk.ChunkAccess
+import java.util.WeakHashMap
 
 /**
  * An Age that will not stop tearing (design §5.2.1) — **blight, as a property of the Age rather than of any
@@ -19,11 +19,11 @@ import net.minecraft.world.level.chunk.ChunkAccess
  * surroundings rather than whether the world keeps holing itself. Box in every wound in a blighted Age and
  * come back to more of them.
  *
- * **One function, asked from more than one place.** [Tearing.wantedIn] says how holed a chunk should be;
- * generation asks it as a chunk is written, and [creep] asks it while somebody is standing there. The first
- * settles the truth in bulk and the second is the animation — it opens one at a time so the Age is seen to
- * worsen rather than found worse, and it can never run past what generation would have done, so the two
- * cannot disagree. The third caller, for chunks that already exist, is described below and is not built.
+ * **One function, asked from three places.** [Tearing.wantedIn] says how holed a chunk should be;
+ * generation asks it as a chunk is written, [catchUp] asks it for a chunk that has just come back, and
+ * [creep] asks it while somebody is standing there. The first two settle the truth in bulk and the third is
+ * the animation — it opens one at a time so the Age is seen to worsen rather than found worse, and it can
+ * never run past what the other two would have done, so none of them can disagree.
  *
  * **It advances whether or not anybody is there**, which §5.4 makes a per-manifestation choice rather than
  * an inherited property. A blight that waited for an audience would be one you could outlast by leaving.
@@ -31,55 +31,124 @@ import net.minecraft.world.level.chunk.ChunkAccess
 object Blight {
 
     /**
-     * How a chunk catches up on the time it spent unloaded — **which is not built, and the reason is
-     * written here so it is not attempted the same way twice.**
+     * Chunks that have arrived and not yet been brought up to date, by level.
      *
-     * It was: read the clock as a chunk loads and open the difference in one pass. That is the right *idea*
-     * — the count is a pure function of the clock, so arriving at it costs the same whether the Age was
-     * left for a minute or a month — and the wrong *place*. Writing blocks inside the chunk-load event
-     * means mutating a chunk in the middle of its own transition to full, which re-enters chunk loading and
-     * lighting; measured behaviour was a generation that never finished, where the same Age at zero days
-     * generated instantly.
+     * **A queue rather than a search**, because there is no cheap way to ask a level which of its chunks
+     * are behind: the answer is a property of each chunk's contents, and reading every loaded chunk to find
+     * out would cost more than the tearing does. A chunk announces itself instead, on the event both
+     * loaders already fire into [Wounds].
      *
-     * **Where it belongs is the tick**, beside [creep]: a pass over loaded chunks near a player that brings
-     * each up to the derived count in bulk rather than one at a time, running after the chunk is fully
-     * loaded and owned by nobody. That is a small piece of work and it is the next one.
-     *
-     * Until then blight is correct in the two places it is applied — a chunk *generated* late comes out at
-     * the right density, and a chunk somebody is standing in creeps toward it — and absent in the third:
-     * ground already generated, then left, then returned to.
+     * Weakly keyed on the same argument as [Wounds]: a world that goes away takes its queue with it and
+     * there is no cleanup for anyone to forget. Bounded by [chunkLeft], so it can never hold more than the
+     * chunks a level currently has loaded.
      */
-    fun creep(level: ServerLevel) {
-        val creeping = creepingIn(level) ?: return
+    private val waiting = WeakHashMap<Level, MutableSet<Long>>()
+
+    /**
+     * A chunk has arrived and may have missed some of the Age's days — **noted now, torn on the tick.**
+     *
+     * The work cannot happen here and the reason is worth keeping: writing blocks inside the chunk-load
+     * event mutates a chunk in the middle of its own transition to full, which re-enters chunk loading and
+     * lighting. Measured behaviour was a generation that never finished, where the same Age at zero days
+     * generated instantly. So this records a position and nothing else.
+     *
+     * Called from both loaders' chunk-load events, the same shape as [Wounds.stocked] — there is no shared
+     * entry point, and a service for one method would fragment `PlatformHelper` for a one-off (`CLAUDE.md`).
+     */
+    fun chunkArrived(level: Level, at: ChunkPos) {
+        if (level !is ServerLevel) return
+        waiting.getOrPut(level) { LinkedHashSet() }.add(ChunkPos.pack(at.x, at.z))
+    }
+
+    /** And as it goes, so the queue holds only chunks that are still there to tear. */
+    fun chunkLeft(level: Level, at: ChunkPos) {
+        val here = waiting[level] ?: return
+        here.remove(ChunkPos.pack(at.x, at.z))
+        if (here.isEmpty()) waiting.remove(level)
+    }
+
+    /**
+     * One tick of blight in [level] — what has to catch up, then what is worsening in front of somebody.
+     *
+     * Takes what the Age bought rather than working it out, because the caller is holding it: `Happenings`
+     * has already found the recipe and priced its instability for the phenomena, and doing it twice a tick
+     * per Age is the same answer arrived at twice.
+     */
+    fun advance(level: ServerLevel, recipe: AgeRecipe, spending: Spending) {
+        val worsening = worseningIn(recipe, spending)
+        if (worsening == null) {
+            // Not a blighted Age, so nothing owes it anything and the queue is only holding memory.
+            waiting.remove(level)
+            return
+        }
+        catchUp(level, worsening)
+        creep(level, worsening)
+    }
+
+    /**
+     * Ground that was generated, left, and returned to — **brought up to date in one pass, before anybody
+     * has had a chance to look at it twice.**
+     *
+     * This is the third of [Tearing]'s touchpoints and the one the other two cannot cover. A chunk written
+     * after the blight started comes out at the right density, and a chunk somebody is standing in creeps
+     * toward it; a chunk written on day one and next seen on day thirty is neither, and without this it
+     * stays as it was written however far the Age has come apart.
+     *
+     * **Spent by wounds rather than by chunks**, so the cost of a tick is bounded by the work actually
+     * done: a hundred chunks that are already up to date drain in one tick for a map lookup apiece, and a
+     * chunk that is fifty behind takes the budget and the rest wait. Every chunk here is one somebody is
+     * about to see, so the budget is what keeps a player arriving in a long-abandoned Age from paying for
+     * the whole of it in one frame.
+     *
+     * **One residue, and it is the honest place for it.** A chunk kept loaded while the Age was empty —
+     * forceloaded, or held by a spawn chunk — fires no load event when somebody comes back, so it catches
+     * up only by [creep], and not at all if it is beyond [Sampling]'s reach. Rare, and the alternative is
+     * enumerating loaded chunks every tick to find the few that ever want it.
+     */
+    private fun catchUp(level: ServerLevel, worsening: Worsening) {
+        val here = waiting[level] ?: return
+        var budget = WOUNDS_PER_TICK
+        val arrivals = here.iterator()
+        while (arrivals.hasNext() && budget > 0) {
+            val at = arrivals.next()
+            arrivals.remove()
+            val chunk = level.chunkSource.getChunkNow(ChunkPos.getX(at), ChunkPos.getZ(at)) ?: continue
+            budget -= Tearing.tearInto(
+                level,
+                chunk,
+                level.seed,
+                worsening.wantedIn(chunk, level),
+                already = Wounds.countIn(level, chunk.pos),
+            )
+        }
+        if (here.isEmpty()) waiting.remove(level)
+    }
+
+    /** And the part somebody is present for: one more hole, where they can watch it open. */
+    private fun creep(level: ServerLevel, worsening: Worsening) {
         Sampling.sweep(level, ONE_PLACE) { chunk, _ ->
             Tearing.tearInto(
                 level,
                 chunk,
                 level.seed,
-                creeping.wantedIn(chunk, level),
+                worsening.wantedIn(chunk, level),
                 atMost = ONE_AT_A_TIME,
                 already = Wounds.countIn(level, chunk.pos),
             )
         }
     }
 
-    /** What an Age is worth tearing at, or null where it is not one or was written to hold together. */
-    private fun creepingIn(level: ServerLevel): Creeping? {
-        val id = level.dimension().identifier()
-        if (id.namespace != Constants.MOD_ID) return null
-        val saved = AgeSavedData.get(level.server)
-        if (id !in saved.ages) return null
-        val recipe = saved.recipe(id)
-        val spending = Spending.of(level.server, recipe)
-        val written = Tearing.writtenDensityAt(spending.bought(Manifestation.WOUNDS))
+    /** What an Age is worth tearing at, or null where it was written to hold together. */
+    private fun worseningIn(recipe: AgeRecipe, spending: Spending): Worsening? {
         val perDay = Tearing.blightPerDayAt(spending.bought(Manifestation.BLIGHT))
         // A coherent Age, or one holed exactly as far as its book holed it — either way nothing to do.
         if (perDay <= Tearing.NONE) return null
-        return Creeping(written, perDay, recipe)
+        val written = Tearing.writtenDensityAt(spending.bought(Manifestation.WOUNDS))
+        return Worsening(written, perDay, recipe)
     }
 
     /** How holed this Age should be by now, and what it takes to work that out for one chunk. */
-    private data class Creeping(val written: Double, val perDay: Double, val recipe: AgeRecipe) {
+    private data class Worsening(val written: Double, val perDay: Double, val recipe: AgeRecipe) {
         fun wantedIn(chunk: ChunkAccess, level: ServerLevel): Int {
             val days = recipe.ageAt(level.server) / Tearing.TICKS_PER_DAY
             return Tearing.wantedIn(chunk.pos, level.seed, Tearing.densityAt(written, perDay, days))
@@ -89,12 +158,22 @@ object Blight {
     /**
      * How many wounds one visible step opens.
      *
-     * One, and the word is the design: a chunk is brought up to date in bulk when nobody is looking and a
-     * block at a time when somebody is, so what a player sees is a world opening in front of them rather
-     * than a chunk that changed while they blinked.
+     * One, and the word is the design: a chunk is brought up to date in bulk before anybody has looked at
+     * it and a block at a time while they are there, so what a player sees is a world opening in front of
+     * them rather than a chunk that changed while they blinked.
      */
     private const val ONE_AT_A_TIME = 1
 
     /** How many positions each loaded chunk offers per tick — vanilla's precipitation rate, once. */
     private const val ONE_PLACE = 1
+
+    /**
+     * How much tearing a catch-up may do in one tick, in wounds.
+     *
+     * One saturated chunk's worth ([Tearing]'s own ceiling), so the worst a single tick can cost is the
+     * worst a single chunk can hold. A player linking into an Age abandoned for a month loads several
+     * hundred chunks at once and the whole backlog is paid over a few seconds rather than in the frame
+     * they arrive in.
+     */
+    private const val WOUNDS_PER_TICK = 64
 }

@@ -228,7 +228,7 @@ When shared code needs something loader-specific, it goes through an interface, 
 - NeoForge: `@Mod("agesandtheart")` on the class in `neoforge/.../AgesAndTheArt.kt`; its constructor runs (Kotlin for Forge provides the Kotlin entry).
   Both immediately call `CommonSetup.init()`. Keep loader entrypoints tiny; put logic in `common`.
 
-**4. Six Mixins, all in `common`, all Java.**
+**4. Seven Mixins, all in `common`, all Java.**
 `common/src/main/resources/agesandtheart.mixins.json` declares them, and each earned its place by there being no loader event that carries what it needs. Each carries its own argument in-file; read that before touching one.
 
 - **`ServerPlayerMixin`** — the learned-word set. Four injectors: `readAdditionalSaveData` / `addAdditionalSaveData` persist it, `restoreFrom` carries it through death, and `initMenu` attaches the `ContainerListener` that notices a page arriving in the inventory. That last one is vanilla's own `inventory_changed` seam, which is why it beats polling.
@@ -240,6 +240,10 @@ When shared code needs something loader-specific, it goes through an interface, 
   approach steers by the player's absolute position normalised into a bearing from `(0, 0)`. Both are
   no-ops in the End, where the origin *is* zero. The accessor exists because `@Shadow` does not walk a
   target's hierarchy and `dragon` is declared on `AbstractDragonPhaseInstance`.
+- **`client/ClientLevelMixin`** — a wound arriving where the client can see it. `setBlocksDirty` is the
+  only seam that fires on both sides for a block change: `onPlace` is skipped client-side, so the index the
+  wound renderer draws from would otherwise never hear about one torn after its chunk arrived. Neither
+  loader has a client block-change event.
 - **`client/LevelRendererMixin`** — draws the Age's wounds in one submission. Declared under the config's `"client"` array, not `"mixins"`. The loader alternatives exist here (Fabric's world-render events, NeoForge's `RenderLevelStageEvent`) and are declined deliberately: they are different objects with different stages where the vanilla seam is identical on both sides.
 
 The sky Mixins left with Ephemeris and are `co.voik.ephemeris.mixin.client.*` now — do not look for them here.

@@ -73,6 +73,12 @@ object Tearing {
      * or animates.
      *
      * **Existing wounds are never touched**, so a sealed one stays sealed and a boxed-in one stays boxed.
+     *
+     * **[alreadyRunning] decides whether anybody is told**, and the default is that they are. Generation
+     * has no clients and wants no neighbour updates, so it writes the block and nothing else; every later
+     * caller is tearing a world somebody may be standing in, where a block written without
+     * `UPDATE_CLIENTS` reaches no client at all and the wound is invisible until the chunk next loads.
+     * Neighbour updates stay off either way — a wound is a hole appearing, not a block placed.
      */
     fun tearInto(
         level: LevelAccessor,
@@ -81,10 +87,12 @@ object Tearing {
         wanted: Int,
         atMost: Int = ALL_AT_ONCE,
         already: Int = countIn(chunk),
+        alreadyRunning: Boolean = true,
     ): Int {
         val opening = (wanted - already).coerceAtMost(atMost)
         if (opening <= 0) return 0
         val here = chunk.pos
+        val update = if (alreadyRunning) Block.UPDATE_CLIENTS else Block.UPDATE_NONE
         // Seeded per index rather than once per pass, so where the tenth wound goes does not depend on how
         // many were opened before it — which is what lets a fast-forward add to a chunk instead of redoing
         // it, and what makes the same chunk come out the same however the count was reached.
@@ -92,7 +100,7 @@ object Tearing {
         var opened = 0
         for (index in already..<(already + opening)) {
             random.setLargeFeatureSeed(worldSeed xor WOUND_SALT xor index.toLong(), here.x, here.z)
-            if (openOne(level, chunk, here, random)) opened++
+            if (openOne(level, chunk, here, random, update)) opened++
         }
         return opened
     }
@@ -108,7 +116,13 @@ object Tearing {
      * itself — the only bound in the register, and it is arithmetic rather than a budget: at the top of it
      * every column is a hole, and there is nowhere left for a wound to be.
      */
-    private fun openOne(level: LevelAccessor, chunk: ChunkAccess, here: ChunkPos, random: WorldgenRandom): Boolean {
+    private fun openOne(
+        level: LevelAccessor,
+        chunk: ChunkAccess,
+        here: ChunkPos,
+        random: WorldgenRandom,
+        update: Int,
+    ): Boolean {
         val x = here.minBlockX + random.nextInt(SECTION)
         val z = here.minBlockZ + random.nextInt(SECTION)
         // **Mostly above ground, which is the Riven image**: the striking thing about that tear is that it
@@ -129,7 +143,7 @@ object Tearing {
         }
         val at = BlockPos(x, y.coerceIn(floor, top), z)
         if (level.getBlockState(at).`is`(AgeContent.WOUND_BLOCK)) return false
-        level.setBlock(at, AgeContent.WOUND_BLOCK.defaultBlockState(), Block.UPDATE_NONE)
+        level.setBlock(at, AgeContent.WOUND_BLOCK.defaultBlockState(), update)
         return true
     }
 

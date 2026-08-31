@@ -646,7 +646,15 @@ class AgeChunkGenerator(
         // wound, and carving after would take the wound straight back out again.
         Collapse.carveInto(level, chunk, level.getSeed(), bought.collapseTears)
         val density = Tearing.densityAt(bought.woundsPerChunk, bought.blightPerDay, days)
-        Tearing.tearInto(level, chunk, level.getSeed(), Tearing.wantedIn(chunk.pos, level.getSeed(), density))
+        // Nobody to tell and nothing to update: the chunk has not been sent to a client and will not be
+        // until it is finished, so a wound here is written into it rather than announced.
+        Tearing.tearInto(
+            level,
+            chunk,
+            level.getSeed(),
+            Tearing.wantedIn(chunk.pos, level.getSeed(), density),
+            alreadyRunning = false,
+        )
     }
 
     /**

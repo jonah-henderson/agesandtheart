@@ -65,9 +65,9 @@ object Happenings {
             // Not a phenomenon — a wound is what the Age could not hold rather than something it does — but
             // it wants the same walk, and the walk is the expensive part.
             Hostility.stir(level)
-            // Nor is this one: blight is the Age going on tearing, and what happens here is only the part
-            // somebody is present for. The bulk of it is settled as chunks load — see [Blight].
-            Blight.creep(level)
+            // Nor is this one: blight is the Age going on tearing — the ground that came back while
+            // nobody was looking, and then the hole opening in front of somebody. See [Blight].
+            Blight.advance(level, recipe, spending)
             // And a dragon an Age was written with needs telling where it is, or it flies to the world
             // origin to hold its pattern — see [Dragons].
             Dragons.findTheirOwnGround(level)

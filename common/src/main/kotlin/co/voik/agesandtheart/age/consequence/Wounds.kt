@@ -90,6 +90,28 @@ object Wounds {
         if (chunks.isEmpty()) byLevel.remove(level)
     }
 
+    /**
+     * A block changing where a client can see it — **the only way the client hears of a wound torn after
+     * its chunk arrived.**
+     *
+     * [arrived] is called from `WoundBlock.onPlace`, and `LevelChunk.setBlockState` skips `onPlace`
+     * entirely on the client (verified against the 26.1.2 jar), so the client index would otherwise be
+     * whatever [stocked] read at chunk load and never move. A wound the Age tore while somebody stood
+     * there would then be a block the client holds and the renderer never draws, until they walked far
+     * enough away to unload the chunk and came back.
+     *
+     * The seam is `ClientLevel.setBlocksDirty`, which vanilla calls for every state change that actually
+     * changed something, before and regardless of the update flags. Sealing moves a wound from one state
+     * to another and is deliberately not a move in the index: it is the same wound in the same place, and
+     * whether it is sealed is read from the world.
+     */
+    fun noticed(level: Level, at: BlockPos, was: BlockState, now: BlockState) {
+        val wasOne = was.`is`(AgeContent.WOUND_BLOCK)
+        val isOne = now.`is`(AgeContent.WOUND_BLOCK)
+        if (wasOne == isOne) return
+        if (isOne) arrived(level, at) else gone(level, at)
+    }
+
     /** Everything, for a client leaving a server outright. */
     fun forget() = byLevel.clear()
 
