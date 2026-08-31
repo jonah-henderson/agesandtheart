@@ -2014,6 +2014,8 @@ object AgeCommand {
             // Turned around to walk back at you, so a column stood up ahead is one you then have to answer.
             headingDegrees = source.rotation.y + HALF_COMPASS,
             speed = behaviour.slowestSpeed + random.nextDouble() * (behaviour.fastestSpeed - behaviour.slowestSpeed),
+            fullHalfWidth = behaviour.narrowestHalfWidth +
+                random.nextDouble() * (behaviour.widestHalfWidth - behaviour.narrowestHalfWidth),
             lifetime = seconds?.times(TICKS_PER_SECOND)
                 ?: (
                     behaviour.shortestLife +

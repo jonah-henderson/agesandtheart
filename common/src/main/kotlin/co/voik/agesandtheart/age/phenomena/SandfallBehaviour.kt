@@ -30,8 +30,15 @@ data class ColumnBehaviour(
      * The number a person can picture, and the only one the deposit rule needs — see [depositChanceFor].
      */
     val depth: Double = DEFAULT_DEPTH,
-    /** Half the column's side at its widest, in blocks. `2.5` is the 5×5 first cut. */
-    val halfWidth: Double = DEFAULT_HALF_WIDTH,
+    /**
+     * Half a column's side at its widest, in blocks — rolled once per column, so no two are quite alike.
+     *
+     * `5.0` is a ten-by-ten column. **The first cut was half that and was wrong** (Jonah, 2026-08-31, seen):
+     * five blocks is honestly thin, and by a hundred and forty blocks out a column was a bright thread —
+     * at odds with the phenomenon's best property, which is that you can see one coming from across the Age.
+     */
+    val narrowestHalfWidth: Double = DEFAULT_NARROWEST_HALF_WIDTH,
+    val widestHalfWidth: Double = DEFAULT_WIDEST_HALF_WIDTH,
     /** How fast it wanders, in blocks per tick — rolled once per column and never again. */
     val slowestSpeed: Double = DEFAULT_SLOWEST_SPEED,
     val fastestSpeed: Double = DEFAULT_FASTEST_SPEED,
@@ -39,12 +46,15 @@ data class ColumnBehaviour(
     val shortestLife: Int = DEFAULT_SHORTEST_LIFE,
     val longestLife: Int = DEFAULT_LONGEST_LIFE,
     /**
-     * What share of a life is spent widening, and the same again narrowing.
+     * How long a column takes to open, in ticks, and the same again to close.
      *
-     * A **share** rather than a count of ticks, so a short column and a long one both open and close in
-     * proportion, and one dial says what two would have.
+     * **A count of ticks and not a share of the life** (Jonah, 2026-08-31). A share reads well on paper and
+     * is wrong in play: it ties how quickly a column arrives to how long it happens to last, so a long one
+     * spends its first two minutes as an invisible thread and a short one snaps open. What a player is
+     * watching is a column arriving, and that should take the same three seconds whatever the column then
+     * goes on to do.
      */
-    val rampShare: Double = DEFAULT_RAMP_SHARE,
+    val ramp: Int = DEFAULT_RAMP,
     /** How often it may change course, in ticks. Larger is straighter. */
     val turnEvery: Int = DEFAULT_TURN_EVERY,
     /** The most one of those turns may bend it, in degrees. */
@@ -67,11 +77,12 @@ data class ColumnBehaviour(
      *
      * **Derived rather than dialled**, which is the whole of why [depth] is what a pack writes. A patch of
      * ground stands under a footprint `2·halfWidth` wide moving at `speed` for `2·halfWidth / speed` ticks,
-     * so a chance of `depth · speed / (2 · halfWidth)` leaves [depth] blocks behind. A faster column
-     * deposits harder per tick and leaves the same trail.
+     * so a chance of `depth · speed / (2 · fullHalfWidth)` leaves [depth] blocks behind. A faster column
+     * deposits harder per tick and leaves the same trail, and a wider one deposits more slowly per position
+     * and leaves the same trail over more ground.
      *
-     * **The rate is the column's full width, and how wide it stands *now* only decides which positions are
-     * covered** (measured on a driven server, 2026-08-31). Scaling the rate by the current width instead —
+     * **[fullHalfWidth] is the width this column will reach, and how wide it stands *now* only decides
+     * which positions are covered** (measured on a driven server, 2026-08-31). Scaling the rate by the current width instead —
      * to hold the depth constant all through a life — reads plausibly and is a trap: as a column closes,
      * `1/width` saturates the chance at certainty while the footprint shrinks to a single position, so a
      * dying column stops walking and **drills a tower of sand straight up**, seventeen blocks of it. A
@@ -83,10 +94,10 @@ data class ColumnBehaviour(
      * pass over again; taking that off here is what keeps the number a pack writes honest, rather than a
      * number a pack writes and then measures.
      */
-    fun depositChanceFor(speed: Double): Double {
-        if (halfWidth <= CLOSED) return CLOSED
+    fun depositChanceFor(speed: Double, fullHalfWidth: Double): Double {
+        if (fullHalfWidth <= CLOSED) return CLOSED
         val alsoFromTheSpill = FULLY_OPEN + spillShare / BOTH_SIDES
-        return (depth * speed / (halfWidth * BOTH_SIDES * alsoFromTheSpill)).coerceIn(CLOSED, CERTAIN)
+        return (depth * speed / (fullHalfWidth * BOTH_SIDES * alsoFromTheSpill)).coerceIn(CLOSED, CERTAIN)
     }
 
     /**
@@ -107,29 +118,25 @@ data class ColumnBehaviour(
     fun spillReachAt(standing: Double): Int = ceil(standing * (FULLY_OPEN + spillShare)).toInt()
 
     /**
-     * How wide the column stands at [age] of a life of [lifetime] — **the spawn animation and the death
-     * animation, which are one function read forwards.**
+     * How wide a column of [fullHalfWidth] stands at [age] of a life of [lifetime] — **the spawn animation
+     * and the death animation, which are one function read forwards.**
      *
-     * Nothing at either end, [halfWidth] in the middle, and the two ramps are the same shape because the
-     * brief is that the column closes the way it opened.
+     * Nothing at either end, [fullHalfWidth] in the middle, and the two ramps are the same shape because the
+     * brief is that the column closes the way it opened. [ramp] is a count of ticks, so arriving takes the
+     * same three seconds whether the column then walks for two minutes or for six.
      *
-     * **The ramp is a share of the life rather than a count of ticks**, so every column opens fully whatever
-     * its lifetime and a short one simply opens faster. One dial says what two would have, and a debug
-     * column stood up to be looked at does not spend its whole life widening.
-     *
-     * `min(rising, falling, 1)` is the whole trapezoid, and the min is what handles the one degenerate case:
-     * a pack writing [rampShare] above a half has the two ramps overlap, and the column then never quite
-     * opens rather than snapping to full width and back.
+     * `min(rising, falling, 1)` is the whole trapezoid, and the min is what handles the degenerate case: a
+     * column that will not live long enough to open and close in turn never quite opens, rather than
+     * snapping to full width and back.
      *
      * Smoothed rather than linear, so it swells and settles instead of growing at a constant rate.
      */
-    fun halfWidthAt(age: Int, lifetime: Int): Double {
+    fun halfWidthAt(age: Int, lifetime: Int, fullHalfWidth: Double): Double {
         if (age <= 0 || age >= lifetime || lifetime <= 0) return CLOSED
-        val ramp = lifetime * rampShare
-        if (ramp <= CLOSED) return halfWidth
-        val rising = age / ramp
-        val falling = (lifetime - age) / ramp
-        return halfWidth * smoothed(minOf(rising, falling, FULLY_OPEN))
+        if (ramp <= NO_TICKS) return fullHalfWidth
+        val rising = age.toDouble() / ramp
+        val falling = (lifetime - age).toDouble() / ramp
+        return fullHalfWidth * smoothed(minOf(rising, falling, FULLY_OPEN))
     }
 
     /** How far one course change may bend a column, drawn so that small turns are much likelier than large. */
@@ -137,12 +144,14 @@ data class ColumnBehaviour(
 
     companion object {
         private const val DEFAULT_DEPTH = 4.5
-        private const val DEFAULT_HALF_WIDTH = 2.5
+        private const val DEFAULT_NARROWEST_HALF_WIDTH = 4.0
+        private const val DEFAULT_WIDEST_HALF_WIDTH = 6.0
         private const val DEFAULT_SLOWEST_SPEED = 0.03
         private const val DEFAULT_FASTEST_SPEED = 0.09
         private const val DEFAULT_SHORTEST_LIFE = 2400
         private const val DEFAULT_LONGEST_LIFE = 7200
-        private const val DEFAULT_RAMP_SHARE = 0.15
+        /** Three seconds, and the same again to close. */
+        private const val DEFAULT_RAMP = 60
         private const val DEFAULT_TURN_EVERY = 120
         private const val DEFAULT_TURN_MOST = 30.0
         private const val DEFAULT_SPILL_SHARE = 0.8
@@ -151,6 +160,7 @@ data class ColumnBehaviour(
         private const val CERTAIN = 1.0
         private const val CLOSED = 0.0
         private const val FULLY_OPEN = 1.0
+        private const val NO_TICKS = 0
 
         /** Hermite's own, so the ramp leaves and arrives at rest. */
         private fun smoothed(openness: Double): Double =
@@ -164,8 +174,10 @@ data class ColumnBehaviour(
         val CODEC: Codec<ColumnBehaviour> = RecordCodecBuilder.create { instance ->
             instance.group(
                 Codec.DOUBLE.optionalFieldOf("depth", DEFAULT_DEPTH).forGetter(ColumnBehaviour::depth),
-                Codec.DOUBLE.optionalFieldOf("half_width", DEFAULT_HALF_WIDTH)
-                    .forGetter(ColumnBehaviour::halfWidth),
+                Codec.DOUBLE.optionalFieldOf("narrowest_half_width", DEFAULT_NARROWEST_HALF_WIDTH)
+                    .forGetter(ColumnBehaviour::narrowestHalfWidth),
+                Codec.DOUBLE.optionalFieldOf("widest_half_width", DEFAULT_WIDEST_HALF_WIDTH)
+                    .forGetter(ColumnBehaviour::widestHalfWidth),
                 Codec.DOUBLE.optionalFieldOf("slowest_speed", DEFAULT_SLOWEST_SPEED)
                     .forGetter(ColumnBehaviour::slowestSpeed),
                 Codec.DOUBLE.optionalFieldOf("fastest_speed", DEFAULT_FASTEST_SPEED)
@@ -174,8 +186,7 @@ data class ColumnBehaviour(
                     .forGetter(ColumnBehaviour::shortestLife),
                 Codec.INT.optionalFieldOf("longest_life", DEFAULT_LONGEST_LIFE)
                     .forGetter(ColumnBehaviour::longestLife),
-                Codec.DOUBLE.optionalFieldOf("ramp_share", DEFAULT_RAMP_SHARE)
-                    .forGetter(ColumnBehaviour::rampShare),
+                Codec.INT.optionalFieldOf("ramp", DEFAULT_RAMP).forGetter(ColumnBehaviour::ramp),
                 Codec.INT.optionalFieldOf("turn_every", DEFAULT_TURN_EVERY)
                     .forGetter(ColumnBehaviour::turnEvery),
                 Codec.DOUBLE.optionalFieldOf("turn_most", DEFAULT_TURN_MOST)

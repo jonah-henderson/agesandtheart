@@ -62,6 +62,17 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
     var speed: Double = 0.0
         private set
 
+    /**
+     * How wide it will stand once it is open — half a side, in blocks, rolled once at spawn.
+     *
+     * **What the deposit rate divides by, and never [halfWidth].** The rate is derived to leave a fixed
+     * depth after one pass, so dividing by the width the column *happens* to be standing at saturates it at
+     * certainty as the column closes and leaves a tower of sand where a trail should be. Its own full
+     * width is constant for its life, which is what makes it safe to divide by.
+     */
+    var fullHalfWidth: Double = 0.0
+        private set
+
     /** How many ticks since anybody was near enough to see it. */
     private var sinceSeen: Int = 0
 
@@ -89,7 +100,7 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
             discard()
             return
         }
-        halfWidth = behaviour.column.halfWidthAt(age, lifetime).toFloat()
+        halfWidth = behaviour.column.halfWidthAt(age, lifetime, fullHalfWidth).toFloat()
         steer(behaviour.column)
         advance(level)
         bury(level, behaviour.column)
@@ -120,7 +131,7 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
         // The corners of a turned square reach half as far again as its edges, so the box swept has to
         // allow for that on top of how far the spill can carry.
         val reach = ceil(behaviour.spillReachAt(standing) * ROOT_TWO).toInt()
-        val onIt = behaviour.depositChanceFor(speed)
+        val onIt = behaviour.depositChanceFor(speed, fullHalfWidth)
         for (eastward in -reach..reach) {
             for (southward in -reach..reach) {
                 val offsetX = blockX + eastward + MIDDLE - x
@@ -199,6 +210,7 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
         sinceSeen = input.getIntOr(SINCE_SEEN_KEY, 0)
         lifetime = input.getIntOr(LIFETIME_KEY, 0)
         speed = input.getDoubleOr(SPEED_KEY, 0.0)
+        fullHalfWidth = input.getDoubleOr(FULL_HALF_WIDTH_KEY, 0.0)
     }
 
     override fun addAdditionalSaveData(output: ValueOutput) {
@@ -206,6 +218,7 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
         output.putInt(SINCE_SEEN_KEY, sinceSeen)
         output.putInt(LIFETIME_KEY, lifetime)
         output.putDouble(SPEED_KEY, speed)
+        output.putDouble(FULL_HALF_WIDTH_KEY, fullHalfWidth)
     }
 
     override fun shouldBeSaved(): Boolean = true
@@ -232,6 +245,7 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
         private const val FRESHLY_SEEN = 0
         private const val LIFETIME_KEY = "lifetime"
         private const val SPEED_KEY = "speed"
+        private const val FULL_HALF_WIDTH_KEY = "full_half_width"
         private const val CHUNK_BITS = 4
 
         /**
@@ -256,6 +270,7 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
             headingDegrees: Float,
             speed: Double,
             lifetime: Int,
+            fullHalfWidth: Double,
         ): SandColumn? {
             val blockX = Mth.floor(atX)
             val blockZ = Mth.floor(atZ)
@@ -266,6 +281,7 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
             column.yRot = Mth.wrapDegrees(headingDegrees)
             column.speed = speed
             column.lifetime = lifetime
+            column.fullHalfWidth = fullHalfWidth
             level.addFreshEntity(column)
             return column
         }

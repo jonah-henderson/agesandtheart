@@ -22,6 +22,9 @@ class SandfallCheck : FunSpec({
 
     val ordinary = ColumnBehaviour.ORDINARY
 
+    /** The width an ordinary column comes out in the middle of its range — what most checks here stand on. */
+    val typical = (ordinary.narrowestHalfWidth + ordinary.widestHalfWidth) / 2
+
     test("the shipped sandfall reads, and says what the defaults say") {
         val shipped = Path.of("src/main/resources/data/agesandtheart/art/phenomenon/sandfall.json")
         val read = SandfallBehaviour.CODEC
@@ -38,7 +41,9 @@ class SandfallCheck : FunSpec({
             .getOrThrow { problem -> IllegalStateException("a partial file would not read: $problem") }
         check(partial.column.depth == 12.0) { "the one field written did not land: $partial" }
         check(partial.atMost == 4) { "the one outer field written did not land: $partial" }
-        check(partial.column.halfWidth == ordinary.halfWidth) { "writing one field moved another: $partial" }
+        check(partial.column.narrowestHalfWidth == ordinary.narrowestHalfWidth) {
+            "writing one field moved another: $partial"
+        }
         check(partial.betweenSpawns == SandfallBehaviour.ORDINARY.betweenSpawns) {
             "writing one field moved another: $partial"
         }
@@ -58,9 +63,9 @@ class SandfallCheck : FunSpec({
      */
     test("a column is closed at both ends of its life and open in the middle") {
         val lifetime = 2400
-        check(ordinary.halfWidthAt(0, lifetime) == 0.0) { "a column was already open when it arrived" }
-        check(ordinary.halfWidthAt(lifetime, lifetime) == 0.0) { "a column was still open when it died" }
-        check(ordinary.halfWidthAt(lifetime / 2, lifetime) == ordinary.halfWidth) {
+        check(ordinary.halfWidthAt(0, lifetime, typical) == 0.0) { "a column was already open when it arrived" }
+        check(ordinary.halfWidthAt(lifetime, lifetime, typical) == 0.0) { "a column was still open when it died" }
+        check(ordinary.halfWidthAt(lifetime / 2, lifetime, typical) == typical) {
             "a column did not reach its full width halfway through its life"
         }
     }
@@ -69,8 +74,8 @@ class SandfallCheck : FunSpec({
     test("it closes the way it opened") {
         val lifetime = 2400
         for (into in 1..lifetime / 2) {
-            val opening = ordinary.halfWidthAt(into, lifetime)
-            val closing = ordinary.halfWidthAt(lifetime - into, lifetime)
+            val opening = ordinary.halfWidthAt(into, lifetime, typical)
+            val closing = ordinary.halfWidthAt(lifetime - into, lifetime, typical)
             check(abs(opening - closing) < A_HAIR) {
                 "at $into ticks in it was $opening wide, and $into ticks from the end it was $closing"
             }
@@ -79,7 +84,7 @@ class SandfallCheck : FunSpec({
 
     test("it only ever widens on the way in and narrows on the way out") {
         val lifetime = 1800
-        val widths = (0..lifetime).map { ordinary.halfWidthAt(it, lifetime) }
+        val widths = (0..lifetime).map { ordinary.halfWidthAt(it, lifetime, typical) }
         val widest = widths.indexOf(widths.max())
         check(widths.take(widest).zipWithNext().all { (earlier, later) -> later >= earlier }) {
             "a column narrowed while it was still opening"
@@ -90,32 +95,34 @@ class SandfallCheck : FunSpec({
     }
 
     /**
-     * **The ramp is a share of the life, not a count of ticks**, so a column stood up for ten seconds and one
-     * that walks for five minutes are the same width at the same fraction of the way through. That is what
-     * lets one dial say what two would have, and it is what makes a debug column worth looking at.
+     * **Arriving takes the same time whatever the column then goes on to do** (Jonah, 2026-08-31). The ramp
+     * was a share of the life, which ties how quickly a column appears to how long it happens to last: a
+     * long one spent its first two minutes as an invisible thread. What a player watches is a column
+     * arriving, and that is three seconds either way.
      */
-    test("two columns of different lifetimes are alike at the same point in their lives") {
-        val brief = 200
+    test("a column opens in the same time however long it will live") {
+        val brief = 600
         val long = 7200
-        for (tenth in 1..9) {
-            val early = ordinary.halfWidthAt(brief * tenth / 10, brief)
-            val late = ordinary.halfWidthAt(long * tenth / 10, long)
+        for (tick in 1..ordinary.ramp) {
+            val early = ordinary.halfWidthAt(tick, brief, typical)
+            val late = ordinary.halfWidthAt(tick, long, typical)
             check(abs(early - late) < A_HAIR) {
-                "a tenth of $tenth into its life one column was $early wide and the other $late"
+                "$tick ticks in, a short column was $early wide and a long one $late"
             }
+        }
+        check(ordinary.halfWidthAt(ordinary.ramp, brief, typical) == typical) {
+            "a column was not fully open once its ramp had run"
         }
     }
 
     /**
-     * **The one degenerate case, and the min is what handles it**: a pack writing a ramp longer than half a
-     * life has the two ramps overlap, and the column should then never quite open rather than snapping to
-     * full width and back.
+     * **The one degenerate case, and the min is what handles it**: a column that will not live long enough
+     * to open and close in turn should never quite open, rather than snapping to full width and back.
      */
-    test("a ramp longer than half a life leaves a column that never fully opens") {
-        val overlapping = ColumnBehaviour(rampShare = 0.9)
-        val lifetime = 1200
-        val widest = (0..lifetime).maxOf { overlapping.halfWidthAt(it, lifetime) }
-        check(widest < overlapping.halfWidth) { "a column with overlapping ramps still opened fully" }
+    test("a column too short-lived to open and close never fully opens") {
+        val lifetime = ordinary.ramp
+        val widest = (0..lifetime).maxOf { ordinary.halfWidthAt(it, lifetime, typical) }
+        check(widest < typical) { "a column with overlapping ramps still opened fully" }
         check(widest > 0.0) { "a column with overlapping ramps never opened at all" }
     }
 
@@ -128,7 +135,7 @@ class SandfallCheck : FunSpec({
      * asked for (2026-08-31); this says the same thing offline and in a tenth of a second.
      */
     fun depthLeftByOnePass(behaviour: ColumnBehaviour, speed: Double, standing: Double): Double {
-        val onIt = behaviour.depositChanceFor(speed)
+        val onIt = behaviour.depositChanceFor(speed, standing)
         val reach = standing * (1.0 + behaviour.spillShare)
         var left = 0.0
         var along = -reach
@@ -140,13 +147,16 @@ class SandfallCheck : FunSpec({
         return left
     }
 
-    test("a pass at full width leaves the depth the pack asked for, at any speed") {
-        checkAll(Arb.numericDouble(0.01, 0.2), Arb.numericDouble(1.0, 12.0)) { speed, depth ->
-            val behaviour = ColumnBehaviour(depth = depth)
-            val left = depthLeftByOnePass(behaviour, speed, behaviour.halfWidth)
+    test("a pass at full width leaves the depth the pack asked for, at any speed and any width") {
+        checkAll(
+            Arb.numericDouble(0.01, 0.2),
+            Arb.numericDouble(1.0, 12.0),
+            Arb.numericDouble(1.5, 10.0),
+        ) { speed, depth, full ->
+            val left = depthLeftByOnePass(ColumnBehaviour(depth = depth), speed, full)
             // Loose, because the sum is over whole ticks and the crossing is not a whole number of them.
             check(abs(left - depth) < depth * A_TENTH) {
-                "a pass at $speed left $left where $depth was asked for"
+                "a pass at $speed by a column $full wide left $left where $depth was asked for"
             }
         }
     }
@@ -156,16 +166,26 @@ class SandfallCheck : FunSpec({
      * the depth constant all through a life is the trap — see [ColumnBehaviour.depositChanceFor] — and this
      * is the property that replaces it.
      */
-    test("a half-width column leaves about half as much") {
+    test("a half-open column leaves about half as much") {
         val speed = 0.06
-        val full = depthLeftByOnePass(ordinary, speed, ordinary.halfWidth)
-        val half = depthLeftByOnePass(ordinary, speed, ordinary.halfWidth / 2)
-        check(half < full * 0.6 && half > full * 0.4) { "a half-width pass left $half against a full $full" }
+        val onIt = ordinary.depositChanceFor(speed, typical)
+        fun leftAt(standing: Double): Double {
+            var left = 0.0
+            var along = -standing * (1.0 + ordinary.spillShare)
+            while (along <= standing * (1.0 + ordinary.spillShare)) {
+                left += onIt * ordinary.spillFadeAt(standing, abs(along) - standing)
+                along += speed
+            }
+            return left
+        }
+        val full = leftAt(typical)
+        val half = leftAt(typical / 2)
+        check(half < full * 0.6 && half > full * 0.4) { "a half-open pass left $half against a full $full" }
     }
 
     /** The spill scales with the column, so a hair-thin one does not throw sand two blocks either side. */
     test("a narrower column reaches less far") {
-        check(ordinary.spillReachAt(2.5) > ordinary.spillReachAt(1.0)) {
+        check(ordinary.spillReachAt(5.0) > ordinary.spillReachAt(1.0)) {
             "a narrow column reached as far as a wide one"
         }
         check(ordinary.spillReachAt(0.2) <= 1) { "a hair-thin column was still throwing sand a block out" }
@@ -184,13 +204,14 @@ class SandfallCheck : FunSpec({
         val behaviour = ordinary
         val lifetime = 500
         val speed = 0.06
+        val full = typical
         // Where the column's middle is, and how wide, at each tick of one straight walk.
         val laidAt = mutableMapOf<Int, Double>()
         for (age in 0..lifetime) {
-            val standing = behaviour.halfWidthAt(age, lifetime)
+            val standing = behaviour.halfWidthAt(age, lifetime, full)
             if (standing <= 0.0) continue
             // Asked every tick rather than once, so this keeps testing the rule if the rule starts varying.
-            val onIt = behaviour.depositChanceFor(speed)
+            val onIt = behaviour.depositChanceFor(speed, full)
             val middle = age * speed
             val reach = behaviour.spillReachAt(standing)
             for (position in (middle - reach).toInt()..(middle + reach).toInt() + 1) {
@@ -207,13 +228,13 @@ class SandfallCheck : FunSpec({
 
     test("a chance is a probability, however extreme the dials") {
         checkAll(Arb.numericDouble(0.001, 4.0), Arb.numericDouble(-50.0, 200.0)) { speed, depth ->
-            val chance = ColumnBehaviour(depth = depth).depositChanceFor(speed)
+            val chance = ColumnBehaviour(depth = depth).depositChanceFor(speed, typical)
             check(chance in 0.0..1.0) { "a deposit chance of $chance is not a probability" }
         }
     }
 
     test("the spill is whole under the footprint, gone past the band, and falls off between") {
-        val standing = ordinary.halfWidth
+        val standing = typical
         val band = standing * ordinary.spillShare
         check(ordinary.spillFadeAt(standing, -1.0) == 1.0) { "a position under the footprint was faded" }
         check(ordinary.spillFadeAt(standing, 0.0) == 1.0) { "the edge itself was faded" }
@@ -226,9 +247,7 @@ class SandfallCheck : FunSpec({
     }
 
     test("a column of no width at all deposits nothing") {
-        check(ColumnBehaviour(halfWidth = 0.0).depositChanceFor(0.05) == 0.0) {
-            "a column with no width was still depositing"
-        }
+        check(ordinary.depositChanceFor(0.05, 0.0) == 0.0) { "a column with no width was still depositing" }
         check(ordinary.spillFadeAt(0.0, 1.0) == 0.0) { "a closed column was still spilling" }
     }
 
@@ -257,6 +276,9 @@ class SandfallCheck : FunSpec({
         val sending = SandfallBehaviour.ORDINARY
         check(ordinary.shortestLife < ordinary.longestLife) { "a life cannot be drawn from an empty range" }
         check(ordinary.slowestSpeed < ordinary.fastestSpeed) { "a speed cannot be drawn from an empty range" }
+        check(ordinary.narrowestHalfWidth < ordinary.widestHalfWidth) {
+            "a width cannot be drawn from an empty range"
+        }
         check(sending.nearestSpawn < sending.furthestSpawn) { "a distance cannot be drawn from an empty range" }
     }
 }) {

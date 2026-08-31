@@ -360,8 +360,9 @@ object AgeContent {
         .updateInterval(SAND_COLUMN_UPDATE_TICKS)
         .build(ResourceKey.create(Registries.ENTITY_TYPE, "sand_column".location()))
 
-    private const val SAND_COLUMN_WIDTH = 5.0f
-    private const val SAND_COLUMN_HEIGHT = 5.0f
+    /** The widest a column's footprint gets, so the box at least contains what the column is doing. */
+    private const val SAND_COLUMN_WIDTH = 12.0f
+    private const val SAND_COLUMN_HEIGHT = 12.0f
 
     /** As far as vanilla tracks anything — the ender dragon's own range. */
     private const val SAND_COLUMN_TRACKING_CHUNKS = 32
