@@ -60,10 +60,6 @@ correct itself in place. Rewrite the paragraph that is now wrong.
 - **`notes/config-research.md`** — how mod config UIs work (they introspect a spec, or host a screen you
   write), the 26.1 landscape, and why the recommendation is NeoForge's `ModConfigSpec` with Forge Config API
   Port on Fabric. Nothing in it is built. Read it before adding the first config value.
-- **`notes/walk-checklist.md`** — **the one file here that is not normative**: the in-game walk currently in
-  progress, ticked off as it goes. Read it to find out what has been seen working and what has only been
-  checked offline, and **update it when a walk turns something up or a fix lands**. It is deleted when the
-  walk is done, and anything learned from it moves to `decisions.md` or a design doc.
 - **`notes/authoring-tools.md`** — how structures and 3D models get authored: the external tooling and its
   version state, and what our own datapacks could carry that they do not yet. Nothing in it is built. Read it
   before building a structure, a model, or anything that wants to be pack data.
