@@ -8,11 +8,10 @@
     "**The top of the axis, with `enormous` the step below it.** Two words for big are worth having only",
     "where they do different things, so this is 1.0 and that is 0.7 upward.",
     "",
-    "**`landmass.mingling` is named outright, and the other way up.** How finely two rocks speckle together",
-    "is not how big anything is, so it keeps its own name rather than joining `size` -- and its axis runs",
-    "the other way, high being *finest*. A word meaning big therefore asks for the bottom of it: the",
-    "broadest blotches the rock can be laid in. Naming the aspect is what lets one word say two things about",
-    "the same clause.",
+    "It says nothing about `mingling`, and briefly did. A big landform reads as broad blotches of rock and",
+    "the implication is tempting, but binding the two made `colossal finely islands landmass` -- large",
+    "islands of finely mixed rock, an ordinary thing to want -- into two bands that cannot both be met, so",
+    "the writer was charged for a contradiction they did not make (Jonah, 2026-09-01).",
     "",
     "The query is flat rather than keyed because `monumental` means the same thing everywhere it is",
     "carried; a sun carries no tags at all, so asking it costs nothing and finds nothing."
@@ -25,7 +24,6 @@
     "monumental": 1.0
   },
   "sets": {
-    "size": "1.0..1.0",
-    "landmass.mingling": "-1.0..-1.0"
+    "size": "1.0..1.0"
   }
 }

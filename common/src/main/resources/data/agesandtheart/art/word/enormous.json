@@ -2,8 +2,8 @@
   "_comment": [
     "Big, but with somewhere left to go -- the step below `colossal`, which takes the top of the axis.",
     "",
-    "Same query and same reach; only the bands differ, which is the whole of what a second word for big is",
-    "allowed to be. See `colossal` for why the mingling runs the other way up."
+    "Same query and same reach; only the band differs, which is the whole of what a second word for big is",
+    "allowed to be."
   ],
   "tier": "exact",
   "aspects": [
@@ -13,7 +13,6 @@
     "monumental": 1.0
   },
   "sets": {
-    "size": "0.7..1.0",
-    "landmass.mingling": "-1.0..-0.4"
+    "size": "0.7..1.0"
   }
 }
