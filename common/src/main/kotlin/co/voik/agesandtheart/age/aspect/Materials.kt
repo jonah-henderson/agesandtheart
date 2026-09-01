@@ -10,7 +10,7 @@ import net.minecraft.world.level.EmptyBlockGetter
 import net.minecraft.world.level.block.Block
 
 /**
- * What a world may be **made of** — the rock under it and the skin over it (§3.2's material parameters).
+ * What an Age's **rock** may be made of — the fill a world is built from (§3.2's material parameters).
  *
  * **The fear this answers is an Age of wooden signs**: a writer names a block, the whole world is built of
  * it, and there is nothing to stand on. A sign has no collision, so the ground is not ground and a player
@@ -43,23 +43,44 @@ import net.minecraft.world.level.block.Block
 object Materials {
 
     /**
-     * Blocks the shape rule keeps that a world should not be made of anyway — behaviour rather than form,
+     * Blocks the shape rule keeps that a rock should not be made of anyway — behaviour rather than form,
      * which nothing about a block's shape can answer.
      *
      * Leaves are the case: a full cube, no block entity, and they **decay** where no log stands near, so a
      * world of them would quietly evaporate after it was written. A better answer exists — place them
      * `persistent` — and it is a placement change rather than a rule, so this is the honest stopgap.
-     *
-     * Empty offline, since a tag binds on a server; the shape rule is the whole of what an offline check
-     * sees, and that is the same bargain `DerivedWords.FORBIDDEN` already makes.
      */
-    val NOT_A_WORLD: TagKey<Block> = TagKey.create(Registries.BLOCK, "not_a_world".location())
+    val INVALID_FOR_TERRAIN: TagKey<Block> = TagKey.create(Registries.BLOCK, "invalid_for_terrain".location())
 
-    /** Whether an Age may be built out of [block] — see the rule above. */
+    /**
+     * And blocks the shape rule refuses that a rock may be made of anyway — the exception channel, for
+     * where one question is wrong about one block.
+     *
+     * Cake is what it was made for: seven sixteenths high, so not a full cube, and a world of it is
+     * exactly the sort of thing the Art should be able to say.
+     */
+    val VALID_FOR_TERRAIN: TagKey<Block> = TagKey.create(Registries.BLOCK, "valid_for_terrain".location())
+
+    /**
+     * Whether an Age's rock may be made of [block] — see the rule above.
+     *
+     * **Both tags are empty offline**, since a tag binds on a server: the shape rule is the whole of what
+     * an offline check sees, and holding the exceptions honest is a server check's job. That is the same
+     * bargain `DerivedWords.FORBIDDEN` already makes.
+     */
     fun makesAWorld(block: Block): Boolean {
         val state = block.defaultBlockState()
-        if (state.isAir || state.hasBlockEntity()) return false
-        if (block.builtInRegistryHolder().`is`(NOT_A_WORLD)) return false
+        // Nothing is a world made of nothing, and no tag may say otherwise.
+        if (state.isAir) return false
+        val holder = block.builtInRegistryHolder()
+        // **Refusal first**, so a block written into both files is refused: a contradiction between two
+        // authored lists is a mistake, and the safe way to read a mistake is the strict one.
+        if (holder.`is`(INVALID_FOR_TERRAIN)) return false
+        // **And the exception skips the whole rule, block entity and all.** That is a real way to make a
+        // world nobody can load, and it is left possible: writing a block into a tag file is as deliberate
+        // as an author gets, and a rule with no override is one that is simply wrong where it is wrong.
+        if (holder.`is`(VALID_FOR_TERRAIN)) return true
+        if (state.hasBlockEntity()) return false
         // **A fluid is allowed though nothing stands on it**, and the distinction is accident against
         // intent: an ocean world and a world of lava are Ages somebody meant, with a boat and a potion as
         // the answers, where a world of signs is a block nobody thought of as a world at all.
