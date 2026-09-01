@@ -217,7 +217,50 @@ data class Word(
      * *means*, which a draw must not move: a word charged as unbacked because this Age's draw happened to
      * miss the parameter that would have landed is a writer paying for a coin they did not toss.
      */
-    val canSet: Map<String, String> get() = sets + pool
+    val canSet: Map<String, String> get() = everySet + bare(pool)
+
+    /**
+     * Whether anything here names the aspect it is meant for — `sun.absent` rather than `absent`.
+     *
+     * Held rather than asked, because [setsIn] is called for every word in a sentence against every
+     * aspect it might land in, and the answer is no for nearly every word ever written. Where it is no,
+     * that method hands back the map it already has and allocates nothing.
+     */
+    private val someKnobNamesItsAspect: Boolean =
+        sets.keys.any(::namesAnAspect) || pool.keys.any(::namesAnAspect)
+
+    /**
+     * What this word sets on [aspect] — what it sets everywhere, and what it sets **only** here.
+     *
+     * The same shape as [queryIn], and for the same reason an aspect keys [weights]: an aspect is the unit
+     * a claim lands in. What it adds is the other direction — a word that must *not* say the same thing
+     * everywhere it could. `sun.absent` and `moon.absent` are one knob on two bodies, and `sunless` means
+     * only the first; without a way to say so the two words would be indistinguishable, since
+     * [reaching] only ever widens (`decisions.md`).
+     *
+     * An unqualified key still reaches every aspect owning it, which is what makes one `colour` word paint
+     * eight aspects. Qualifying is the exception and reads as one.
+     */
+    fun setsIn(aspect: Aspect): Map<String, String> =
+        if (!someKnobNamesItsAspect) sets else sets.mapNotNull { (spelled, value) ->
+            val meant = aspectMeantBy(spelled)
+            if (meant != null && meant != aspect) null else knobNameIn(spelled) to value
+        }.toMap()
+
+    /** Everything it could set anywhere, under plain names — the capability question, never the landing one. */
+    val everySet: Map<String, String> get() = bare(sets)
+
+    private fun bare(knobs: Map<String, String>): Map<String, String> =
+        if (!someKnobNamesItsAspect) knobs else knobs.mapKeys { knobNameIn(it.key) }
+
+    /**
+     * The aspects a key names that no aspect answers to — a typo, reported at load rather than ignored.
+     *
+     * A key nothing can read is inert, which is §3.3's silent drop wearing a different hat: the word costs
+     * a page, sets nothing, and says so nowhere.
+     */
+    val unreadableKnobs: List<String>
+        get() = (sets.keys + pool.keys).filter { it.contains(KNOB_MARK) && aspectMeantBy(it) == null }
 
     /**
      * What it actually chooses in the Age [draw] belongs to — the core, and [draws] of the pool.
@@ -469,7 +512,12 @@ data class Word(
             weighted: Set<Aspect>,
         ): Set<Aspect> {
             if (declared.isEmpty() && !tier.narrows) return emptySet()
-            val steered = Aspect.entries.filter { aspect -> steers.keys.any(aspect::ownsParameterNamed) }
+            val steered = Aspect.entries.filter { aspect ->
+                steers.keys.any { spelled ->
+                    val meant = aspectMeantBy(spelled)
+                    (meant == null || meant == aspect) && aspect.ownsParameterNamed(knobNameIn(spelled))
+                }
+            }
             val holdsTheName = Aspect.entries.filter { named != null && it.ownsPresetNamed(named) }
             return declared + steered + holdsTheName + weighted
         }
@@ -514,6 +562,22 @@ data class Word(
          * on every load, so it names parts of the world the way a writer does. Only a *save* is written in
          * keys, and no save holds one of these.
          */
+        /** What separates the aspect a knob is meant for from the knob — `/age compose`'s own spelling. */
+        private const val KNOB_MARK = '.'
+
+        private fun namesAnAspect(spelled: String) = spelled.contains(KNOB_MARK)
+
+        /** The aspect a key names, or null where it names none — including where it names one wrongly. */
+        private fun aspectMeantBy(spelled: String): Aspect? {
+            if (!spelled.contains(KNOB_MARK)) return null
+            val named = spelled.substringBefore(KNOB_MARK)
+            return Aspect.entries.firstOrNull { it.page == named }
+        }
+
+        /** The knob itself, with any aspect it named taken off — and left whole where it named none. */
+        private fun knobNameIn(spelled: String): String =
+            if (aspectMeantBy(spelled) == null) spelled else spelled.substringAfter(KNOB_MARK)
+
         private val ASPECT_CODEC: Codec<Aspect> = Codec.STRING.comapFlatMap(
             { named ->
                 Aspect.entries.firstOrNull { it.page == named }

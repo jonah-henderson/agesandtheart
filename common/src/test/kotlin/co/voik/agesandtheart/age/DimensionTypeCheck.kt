@@ -34,7 +34,7 @@ class DimensionTypeCheck : FunSpec({
     val shipped = File("src/main/resources/data/agesandtheart/dimension_type")
 
     val sealed = Options(mapOf(Sky.SEALED.name to listOf("always")))
-    val unlit = Options(mapOf(Sky.SHINING.name to listOf(Sky.NEVER)))
+    val unlit = Options(mapOf(Sky.ABSENT.name to listOf(Sky.ALWAYS)))
 
     /**
      * **Every set of facts an Age can have, and the type each earns.** Three rather than four: roofed and
@@ -189,7 +189,7 @@ class DimensionTypeCheck : FunSpec({
             check(file.isFile) { "'${expected.path}' is chosen by $sky $sun and ships no file" }
             val written = JsonParser.parseString(file.readText()).asJsonObject
             val wantsRoof = sky.of(Sky.SEALED) == "always"
-            val wantsSkylight = !wantsRoof && sun.of(Sky.SHINING) != Sky.NEVER
+            val wantsSkylight = !wantsRoof && sun.of(Sky.ABSENT) != Sky.ALWAYS
             check(written.get("has_skylight").asBoolean == wantsSkylight) {
                 "'${expected.path}' has_skylight is ${written.get("has_skylight")}, asked $wantsSkylight"
             }

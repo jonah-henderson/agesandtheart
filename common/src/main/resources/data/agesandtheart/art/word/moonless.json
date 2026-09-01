@@ -1,10 +1,13 @@
 {
-  "_comment": "A world nothing circles. The moon's counterpart to `sunless`, and for the same reason.",
+  "_comment": [
+    "No moon -- the sun's own word, said about the other body. See `sunless` for why the knob names the",
+    "aspect it is meant for."
+  ],
   "tier": "exact",
   "aspects": [
     "moon"
   ],
   "sets": {
-    "orbiting": "never"
+    "moon.absent": "always"
   }
 }

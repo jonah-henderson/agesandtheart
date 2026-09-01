@@ -86,9 +86,9 @@ enum class Sky(override val key: String) : AspectPreset {
         // **The cast is what the book described, or the template's where it described none.** A sun is
         // brought into being by a clause about it, so the number of bodies is the number of clauses —
         // there is no count to write and no second spelling for "two suns".
-        val suns = if (sun.of(SHINING) == NEVER) NONE
+        val suns = if (sun.of(ABSENT) == ALWAYS) NONE
             else parts.membersIn(Aspect.SUN).takeIf { it > NONE } ?: VANILLAS_ONE
-        val moons = if (parts.optionsFor(Aspect.MOON).of(ORBITING) == NEVER) NONE
+        val moons = if (parts.optionsFor(Aspect.MOON).of(ABSENT) == ALWAYS) NONE
             else parts.membersIn(Aspect.MOON).takeIf { it > NONE } ?: VANILLAS_ONE
         val drawn = SkySpec.drawn(
             suns = suns,
@@ -256,10 +256,20 @@ enum class Sky(override val key: String) : AspectPreset {
          * number of clauses. Nought is the exception: there is no clause that mints no body, so an empty
          * sky needs a word of its own, and `sunless` is it.
          */
-        val SHINING = Parameter("shining", Atmosphere.AS_EVER, NEVER)
-
-        /** The moon's own, and separate because one name may be owned by one aspect (`DerivedAspectsCheck`). */
-        val ORBITING = Parameter("orbiting", Atmosphere.AS_EVER, NEVER)
+        /**
+         * Whether the body a clause is about is **not there** — one knob on the sun and on the moon.
+         *
+         * It was two, `shining` and `orbiting`, kept apart by a rule that no longer exists and named for
+         * what a body *does* rather than for what is being said about it. `sun.absent` and `moon.absent`
+         * read as what a writer means (Jonah, 2026-08-31), and a word says which body it means by naming
+         * the aspect in the knob — without that the two would be one word, since `Word.reaching` only ever
+         * widens.
+         *
+         * **Only the first body can be absent, which is a quirk of how a sky is written rather than of
+         * this.** Every other sun is minted by a clause describing one, so there is no clause to say a
+         * body that was never minted is missing; this is the default body's own switch.
+         */
+        val ABSENT = Parameter("absent", Atmosphere.AS_EVER, ALWAYS)
 
         /** How thick the stars lie: none at the bottom of the axis, [DENSEST_STARS] times vanilla's at the top. */
         val STARS = Parameter.ranged("density")
@@ -416,7 +426,7 @@ enum class Sky(override val key: String) : AspectPreset {
          * world the game is holding pitch dark, which is the walked bug of 2026-08-05 arriving a second
          * time by a second route.
          */
-        fun isLightless(sky: Options, sun: Options): Boolean = isRoofed(sky) || sun.of(SHINING) == NEVER
+        fun isLightless(sky: Options, sun: Options): Boolean = isRoofed(sky) || sun.of(ABSENT) == ALWAYS
 
         /**
          * The pre-authored type an Age wearing these facts needs — **derived, never written** (Jonah,

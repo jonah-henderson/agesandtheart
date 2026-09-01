@@ -215,7 +215,7 @@ class SkyCheck : FunSpec({
         }
         // The bodies are the sun's, the moon's and the stars' rather than any sky preset's, so it is the
         // aspects that must hold their knobs — one nothing declares is a request silently dropped.
-        for (parameter in listOf(Sky.SHINING, Sky.SUNSIZE, Sky.SUNCOLOUR)) {
+        for (parameter in listOf(Sky.ABSENT, Sky.SUNSIZE, Sky.SUNCOLOUR)) {
             check(parameter in Aspect.SUN.dials) { "the sun does not hold ${parameter.name}" }
         }
         check(Sky.STARS in Aspect.STARS.dials) { "the stars do not hold their own density" }
@@ -259,7 +259,7 @@ class SkyCheck : FunSpec({
         val unusual = listOf(
             // Two suns is two clauses that minted one, which is the cast rather than any option.
             "two suns" to Sky.PLAIN.specFor(Described(cast = mapOf(Aspect.SUN to 2)), A_SEED),
-            "no suns" to Sky.PLAIN.specFor(steering(Aspect.SUN, Sky.SHINING, Sky.NEVER), A_SEED),
+            "no suns" to Sky.PLAIN.specFor(steering(Aspect.SUN, Sky.ABSENT, Sky.ALWAYS), A_SEED),
             "no stars" to Sky.PLAIN.specFor(steering(Aspect.STARS, Sky.STARS, EMPTIEST), A_SEED),
             "dense stars" to Sky.PLAIN.specFor(steering(Aspect.STARS, Sky.STARS, FULLEST), A_SEED),
         )
@@ -288,7 +288,7 @@ class SkyCheck : FunSpec({
      * sun is a fine thing to write, and `moonless` is the word for the other.
      */
     test("a sunless world is not a moonless one") {
-        val sunless = Described(mapOf(Aspect.SUN to Options(mapOf(Sky.SHINING.name to listOf(Sky.NEVER)))))
+        val sunless = Described(mapOf(Aspect.SUN to Options(mapOf(Sky.ABSENT.name to listOf(Sky.ALWAYS)))))
         val spec = Sky.PLAIN.specFor(sunless, A_SEED)
         check(spec.bodies.none { it.phase == null }) { "a sunless world kept a sun" }
         check(spec.bodies.any { it.phase != null }) { "a sunless world lost its moon as well" }

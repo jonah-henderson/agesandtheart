@@ -192,7 +192,7 @@ internal object ArtReading {
         private fun namesABiome(page: Page): Boolean {
             if (page.kind != PageClass.TERM) return false
             val word = page.word ?: return false
-            return Aspect.BIOMES in word.aspects && Biomes.GROWN.name in word.sets
+            return Aspect.BIOMES in word.aspects && Biomes.GROWN.name in word.everySet
         }
 
         /**

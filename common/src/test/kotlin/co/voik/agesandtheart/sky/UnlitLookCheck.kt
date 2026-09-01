@@ -33,7 +33,7 @@ class UnlitLookCheck : FunSpec({
     test("a world nothing shines on is painted as dark as it is held") {
         val ordinary = Options()
         val sealed = Options(mapOf(Sky.SEALED.name to listOf(Sky.ALWAYS)))
-        val sunless = Options(mapOf(Sky.SHINING.name to listOf(Sky.NEVER)))
+        val sunless = Options(mapOf(Sky.ABSENT.name to listOf(Sky.ALWAYS)))
         fun overOrdinary(sky: Options, sun: Options) =
             Atmosphere.unlitLook(Described(mapOf(Aspect.SKY to sky, Aspect.SUN to sun)), AgeTemplate.OVERWORLD)
 

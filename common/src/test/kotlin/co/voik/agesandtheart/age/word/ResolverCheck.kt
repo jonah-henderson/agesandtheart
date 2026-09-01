@@ -401,7 +401,7 @@ class ResolverCheck : FunSpec({
 
         for (template in listOf(AgeTemplate.INFERNAL, AgeTemplate.DARK_VOID)) {
             val silent = composed(template.key, "age")
-            check(silent.optionsFor(Aspect.SUN, 0).of(Sky.SHINING) == Sky.NEVER) {
+            check(silent.optionsFor(Aspect.SUN, 0).of(Sky.ABSENT) == Sky.ALWAYS) {
                 "${template.key} came out with a sun that shines"
             }
             check(typeOf(silent) == typeOf(template.world())) {
@@ -412,7 +412,7 @@ class ResolverCheck : FunSpec({
         // And the other half: a book that writes a sun of its own gets that sun and not the world's.
         val litVoid = composed("dark_void", "age", "sun")
         check(litVoid.membersIn(Aspect.SUN) == 1) { "the book minted ${litVoid.membersIn(Aspect.SUN)} suns" }
-        check(litVoid.optionsFor(Aspect.SUN, 0).of(Sky.SHINING) != Sky.NEVER) {
+        check(litVoid.optionsFor(Aspect.SUN, 0).of(Sky.ABSENT) != Sky.ALWAYS) {
             "a sun written into the void kept the void's dark"
         }
         check(typeOf(litVoid) == AgeGeneration.AGE_DIMENSION_TYPE) {

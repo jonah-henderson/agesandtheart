@@ -86,7 +86,7 @@ enum class AgeTemplate(
             carvers = listOf(Carvers.SOLID),
         )
             .withOptions(Aspect.SKY, Sky.SEALED.name, listOf(Sky.ALWAYS))
-            .withOptions(Aspect.SUN, Sky.SHINING.name, listOf(Sky.NEVER))
+            .withOptions(Aspect.SUN, Sky.ABSENT.name, listOf(Sky.ALWAYS))
         // **And it paints no fog, which it also used to.** `air.fog=red` was one colour for a whole world,
         // written while an infernal Age grew overworld biomes and had nothing else to make it look like
         // the nether. Its own biomes carry their fog now — crimson red, warped teal, soul-sand brown — and
@@ -117,11 +117,11 @@ enum class AgeTemplate(
             seas = listOf(Sea.NONE),
             carvers = listOf(Carvers.SOLID),
         )
-            .withOptions(Aspect.SUN, Sky.SHINING.name, listOf(Sky.NEVER))
+            .withOptions(Aspect.SUN, Sky.ABSENT.name, listOf(Sky.ALWAYS))
             // **And nothing circles it either.** Silencing the sun alone left a full moon over the void,
             // because a cast nobody described falls back to vanilla's one. The nether needs no such line —
             // it is sealed, and a world shut overhead has nothing overhead whatever its cast says.
-            .withOptions(Aspect.MOON, Sky.ORBITING.name, listOf(Sky.NEVER))
+            .withOptions(Aspect.MOON, Sky.ABSENT.name, listOf(Sky.ALWAYS))
             .withOptions(Aspect.SKY, Atmosphere.SKY.name, listOf("black"))
             .withOptions(Aspect.AIR, Atmosphere.FOG.name, listOf("purple"))
     },

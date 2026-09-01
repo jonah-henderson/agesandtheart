@@ -151,10 +151,18 @@ class VocabularyCheck : FunSpec({
                         "${word.wanted.joinToString(" ")} strongly enough (needs ${word.tier.threshold})"
                 }
             }
+            // A knob may name the aspect it is meant for — `sun.absent` — and a prefix naming no aspect at
+            // all is a knob nothing will ever read: it costs a page and sets nothing, which is §3.3's
+            // silent drop wearing a different hat.
+            check(word.unreadableKnobs.isEmpty()) {
+                "'${word.name}' sets ${word.unreadableKnobs.joinToString(" ")}, and no part of the world " +
+                    "is called that — a knob nothing can read is a page the writer pays for and never sees"
+            }
             // And every knob it turns exists in *some* aspect it is about — the typo guard the per-aspect
-            // loop above stopped being once one word's knobs could span aspects.
+            // loop above stopped being once one word's knobs could span aspects. Under plain names, since
+            // the question is whether the knob exists rather than where the word aimed it.
             val couldBeAimedAnywhere = word.aspects.isEmpty()
-            for (parameter in word.sets.keys) {
+            for (parameter in word.everySet.keys) {
                 check(couldBeAimedAnywhere || word.aspects.any { vocabulary.turnsAKnob(it, parameter) }) {
                     "'${word.name}' sets '$parameter', which nothing it is about turns"
                 }

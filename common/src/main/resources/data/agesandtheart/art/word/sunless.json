@@ -1,7 +1,13 @@
 {
   "_comment": [
-    "A world that goes round nothing. The one fact about the suns that minting cannot say -- every",
-    "other is written by describing a body, and there is no clause that brings none into being."
+    "No sun at all -- the one word that empties the sky rather than describing what is in it.",
+    "",
+    "`sun.absent` names the aspect in the knob because the sun and the moon share the switch, and",
+    "`Word.reaching` only ever widens: an unqualified `absent` would reach both bodies, and a sunless",
+    "Age would lose its moon as well (Jonah, 2026-08-31).",
+    "",
+    "The query is what makes it evocative as well as exact: an Age with no sun is a dark one, and the",
+    "word leans the rest of the draw that way rather than only blanking the body."
   ],
   "tier": "exact",
   "aspects": [
@@ -11,6 +17,6 @@
     "dark": 1.0
   },
   "sets": {
-    "shining": "never"
+    "sun.absent": "always"
   }
 }

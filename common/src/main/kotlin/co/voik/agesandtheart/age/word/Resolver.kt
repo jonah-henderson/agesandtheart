@@ -534,7 +534,7 @@ object Resolver {
      * no biomes is then a real contradiction for [wordsNothingHonours] to charge.
      */
     private fun capabilityFactor(preset: AspectPreset, speaking: List<Constraint>): Double {
-        val parametersAsked = speaking.flatMap { it.word.sets.keys }.distinct()
+        val parametersAsked = speaking.flatMap { it.word.setsIn(preset.aspect).keys }.distinct()
         if (parametersAsked.isEmpty()) return FULLY_CAPABLE
         val honoured = parametersAsked.count(preset::honoursParameterNamed)
         val share = honoured.toDouble() / parametersAsked.size
@@ -733,9 +733,9 @@ object Resolver {
             // leaving the frozen fragment carrying tropical's wetness. See [spanned].
             steered = steered.spanned(vocabulary, aspect, setting, draw, flaws)
             val settled = rangedNames(steered, aspect)
-            for (parameter in setting.flatMap { it.word.sets.keys }.distinct()
+            for (parameter in setting.flatMap { it.word.setsIn(aspect).keys }.distinct()
                 .filter { it !in settled && holds(steered, aspect, it) }) {
-                val contenders = setting.filter { parameter in it.word.sets }
+                val contenders = setting.filter { parameter in it.word.setsIn(aspect) }
                     .sortedWith(compareByDescending<Constraint> { it.word.tier }.thenBy { tieBreak(draw, aspect, it.word) })
                 val populative = parameterNamed(steered, aspect, parameter)
                     ?.takeIf { it.holds == Holds.WEIGHTED_SET }
@@ -754,7 +754,12 @@ object Resolver {
                         (0..<many).fold(steered) { held, member ->
                             val own = bodies.firstOrNull { it.describes == member } ?: ofAllOfThem
                             if (own == null) held
-                            else held.withOptionsFor(aspect, member, parameter, listOf(own.word.sets.getValue(parameter)))
+                            else held.withOptionsFor(
+                                aspect,
+                                member,
+                                parameter,
+                                listOf(own.word.setsIn(aspect).getValue(parameter)),
+                            )
                         }
                     }
                     // Populative values accumulate rather than conflict (§3.2), and the polarity travels
@@ -762,7 +767,11 @@ object Resolver {
                     // See [co.voik.agesandtheart.age.aspect.Claim].
                     populative != null -> {
                         flaws += crowdedOutOfAnOnly(vocabulary, contenders, aspect)
-                        steered.withOptions(aspect, parameter, contenders.map { it.claimed(populative) }.distinct())
+                        steered.withOptions(
+                            aspect,
+                            parameter,
+                            contenders.map { it.claimed(aspect, populative) }.distinct(),
+                        )
                     }
                     canFracture(steered, aspect, parameter, contenders) ->
                         steered.fractured(vocabulary, aspect, parameter, contenders, flaws)
@@ -813,13 +822,13 @@ object Resolver {
         flaws: MutableList<Flaw>,
     ): AgeComposition {
         val axes = rangedNames(this, aspect)
-        val speaking = setting.filter { said -> axes.any { it in said.word.sets } }
+        val speaking = setting.filter { said -> axes.any { it in said.word.setsIn(aspect) } }
             .sortedWith(compareByDescending<Constraint> { it.word.tier }.thenBy { tieBreak(draw, aspect, it.word) })
         if (speaking.isEmpty()) return this
 
         /** What a word *demands* of each axis — the only form that can put two words at odds. */
         fun boundsIn(said: Constraint): Map<String, Span> = axes.mapNotNull { axis ->
-            (said.word.sets[axis]?.let(Setting::read) as? Setting.Fixed)?.let { axis to it.span }
+            (said.word.setsIn(aspect)[axis]?.let(Setting::read) as? Setting.Fixed)?.let { axis to it.span }
         }.toMap()
 
         /**
@@ -830,7 +839,7 @@ object Resolver {
          * it and a nudge cannot fail at all. These settle onto whatever the demands left (see [Setting]).
          */
         fun askingIn(said: Constraint): List<Pair<String, Setting>> = axes.mapNotNull { axis ->
-            val asked = said.word.sets[axis]?.let(Setting::read) ?: return@mapNotNull null
+            val asked = said.word.setsIn(aspect)[axis]?.let(Setting::read) ?: return@mapNotNull null
             if (asked is Setting.Fixed) null else axis to asked
         }
 
@@ -1120,7 +1129,7 @@ object Resolver {
     ): Boolean {
         if (!aspect.spatial) return false
         if (composition.membersIn(aspect) != 1) return false
-        return groupsOf(parameter, contenders).size in 2..MOST_TERRITORIES
+        return groupsOf(aspect, parameter, contenders).size in 2..MOST_TERRITORIES
     }
 
     /**
@@ -1128,9 +1137,9 @@ object Resolver {
      * [Territory]. Two belong together when they asked for the same value, or the writer joined them with
      * `and`, which is what keeps the conjunction meaning "mingle" rather than "divide".
      */
-    private fun groupsOf(parameter: String, contenders: List<Constraint>): List<List<Constraint>> {
+    private fun groupsOf(aspect: Aspect, parameter: String, contenders: List<Constraint>): List<List<Constraint>> {
         fun agree(one: Constraint, other: Constraint) =
-            one.word.sets[parameter] == other.word.sets[parameter] || wereJoined(one, other)
+            one.word.setsIn(aspect)[parameter] == other.word.setsIn(aspect)[parameter] || wereJoined(one, other)
         return gathered(contenders, ::agree)
     }
 
@@ -1170,7 +1179,7 @@ object Resolver {
         contenders: List<Constraint>,
         flaws: MutableList<Flaw>,
     ): AgeComposition {
-        val groups = groupsOf(parameter, contenders)
+        val groups = groupsOf(aspect, parameter, contenders)
         val seated = presets.first { it.aspect == aspect }
         val leading = groups.first().first()
         for (group in groups.drop(1)) {
@@ -1188,7 +1197,7 @@ object Resolver {
         }
         var fractured = withPresets(aspect, List(groups.size) { seated.key })
         for ((member, group) in groups.withIndex()) {
-            val asked = group.map { it.word.sets.getValue(parameter) }.distinct()
+            val asked = group.map { it.word.setsIn(aspect).getValue(parameter) }.distinct()
             fractured = fractured.withOptionsFor(aspect, member, parameter, asked)
         }
         return fractured
@@ -1199,9 +1208,9 @@ object Resolver {
      * parameter reads the polarity and the rung back — `only` on a material is not built, and neither is
      * "a great deal of blackstone" (§3.2).
      */
-    private fun Constraint.claimed(parameter: Parameter): String =
+    private fun Constraint.claimed(aspect: Aspect, parameter: Parameter): String =
         Claim(
-            word.sets.getValue(parameter.name),
+            word.setsIn(aspect).getValue(parameter.name),
             polarity,
             Rung.legible(parameter.worthOfAMention * density),
             confinedTo,
@@ -1255,7 +1264,7 @@ object Resolver {
         fun keptAmong(rivals: List<Constraint>): List<Constraint> {
             val winner = rivals.first()
             fun asksWhatTheWinnerAsks(said: Constraint) =
-                said.word.sets[parameter] == winner.word.sets[parameter]
+                said.word.setsIn(aspect)[parameter] == winner.word.setsIn(aspect)[parameter]
             val mingled = rivals.filter { it == winner || wereJoined(it, winner) || asksWhatTheWinnerAsks(it) }
             for (loser in rivals - mingled.toSet()) {
                 flaws += flaw(vocabulary, Register.DISPLACED, listOf(loser, winner), aspect, emptyList(), loser.word.tier)
@@ -1274,7 +1283,7 @@ object Resolver {
         return withOptions(
             aspect,
             parameter,
-            kept.map { Claim(it.word.sets.getValue(parameter), confinedTo = it.confinedTo).spelled() }
+            kept.map { Claim(it.word.setsIn(aspect).getValue(parameter), confinedTo = it.confinedTo).spelled() }
                 .distinct(),
         )
     }

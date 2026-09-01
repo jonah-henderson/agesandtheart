@@ -11,7 +11,7 @@
   ],
   "sets": {
     "sealed": "always",
-    "shining": "never",
+    "sun.absent": "always",
     "density": "-1.0..-1.0"
   }
 }
