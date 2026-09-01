@@ -1,0 +1,13 @@
+{
+  "_comment": [
+    "Blocks a world may not be made of, though their shape says they could -- see `Materials`. The shape",
+    "rule asks whether a block is a whole cube you cannot fall through, and cannot ask whether it will",
+    "still be there tomorrow.",
+    "",
+    "Leaves are the whole of it so far: a full cube with no block entity, which decays wherever no log",
+    "stands near, so a world of them would evaporate shortly after it was written."
+  ],
+  "values": [
+    "#minecraft:leaves"
+  ]
+}

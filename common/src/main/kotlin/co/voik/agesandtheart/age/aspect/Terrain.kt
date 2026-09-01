@@ -488,7 +488,7 @@ enum class Terrain(
         private const val HALL_SEED = 0x4A_115L
 
         /** The one material parameter — the whole of what a writer means by "the land is andesite". */
-        val STONE = Parameter.material("stone")
+        val STONE = Parameter.material("stone", holdsYouUp = true)
 
         /**
          * How finely several materials speckle together. High on the axis brings a patch down to a block or

@@ -288,8 +288,17 @@ internal object ArtReading {
             // A material stands where the part of the world is made of something — and also where a
             // **minting** page is, since `ink springs` is a substance qualifying a pattern rather than a
             // claim of its own (world model §2).
+            //
+            // **And where it can be made of *this***, which the aspect alone cannot say. A world cannot be
+            // built of signs ([Materials]), so a sign aimed at the landmass is refused here rather than
+            // admitted and quietly dropped — `Repair` then moves the page somewhere it reads and the aiming
+            // is charged, which is what `stormy landmass` has always got.
             if (page.kind == PageClass.MATERIAL) {
-                return aim.any { it.madeOfSomething } || closing?.word?.mints != null
+                if (closing?.word?.mints != null) return true
+                val substance = page.word.material
+                return aim.any {
+                    it.madeOfSomething && (substance == null || it.canBeMadeOf(substance))
+                }
             }
             return declared.isEmpty() || declared.any { it in aim }
         }

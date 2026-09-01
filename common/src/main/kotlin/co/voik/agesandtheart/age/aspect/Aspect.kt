@@ -310,6 +310,18 @@ enum class Aspect(
         }
 
     /**
+     * Whether this part of the world may be made of [named] — asked of whatever material knobs it has,
+     * and true where it has none.
+     *
+     * **The sea is why this is not simply `Word.aspects`.** A solid does not volunteer for the sea and
+     * still reaches it by being aimed there (`DerivedWords.substance`), so a block's declared aspects are
+     * deliberately narrower than where it may be laid. What decides is the knob that would hold it: the
+     * rock refuses anything a player would fall through ([Materials]) and nothing else refuses anything.
+     */
+    fun canBeMadeOf(named: String): Boolean =
+        (dials + authored.flatMap { it.parameters }).filter { it.material }.all { it.accepts(named) }
+
+    /**
      * Whether a parameter by this name means anything here — its own [dials], or a knob one of its
      * presets offers.
      *
@@ -424,6 +436,16 @@ data class Parameter(
      */
     val material: Boolean = false,
     /**
+     * Whether what this holds has to be something a player can stand on — true of the rock and of nothing
+     * else so far (see [Materials]).
+     *
+     * **Not every material parameter, and the surface is why.** A skin is one layer over rock that already
+     * holds you up, so the worst a strange one costs is a block of fall onto solid ground — and a skin of
+     * *air* is how a writer says the ground wears nothing at all, which the rock could never allow. The
+     * fatal case is the fill: a world built of something you fall through is not a place at all.
+     */
+    val holdsYouUp: Boolean = false,
+    /**
      * Whether the order the writer wrote these in is part of what they said.
      *
      * **This knob's values are a sequence, where every other mingling knob's are a set** — and that is the
@@ -456,7 +478,12 @@ data class Parameter(
         val looksLikeARegistryId = namesReferent(option) && Identifier.tryParse(option) != null
         // Every form a word may ask a ranged axis for, not only a band — see [Setting].
         val looksLikeASpan = holds == Holds.RANGE && Setting.describes(option)
-        return isOneOfTheNamedOptions || looksLikeASpan || (open && looksLikeARegistryId)
+        if (isOneOfTheNamedOptions || looksLikeASpan) return true
+        if (!open || !looksLikeARegistryId) return false
+        // **Rock has to hold somebody up** ([Materials]). Asked here because this is the one gate every
+        // reader already goes through: `Options.of` filters on it and `unreadableValues` reports what it
+        // filtered, so a refused block falls back and is *said* rather than quietly becoming stone.
+        return !holdsYouUp || Materials.makesAWorld(option)
     }
 
     companion object {
@@ -467,7 +494,8 @@ data class Parameter(
         const val UNCHANGED = "unchanged"
 
         /** A block a preset is made of — the palette's stone, a terrain's spires, a structure's walls. */
-        fun material(name: String) = Parameter(name, listOf(UNCHANGED), open = true, material = true)
+        fun material(name: String, holdsYouUp: Boolean = false) =
+            Parameter(name, listOf(UNCHANGED), open = true, material = true, holdsYouUp = holdsYouUp)
 
         /**
          * A set of registry entries present here — the biomes an Age draws from. Populative, so naming

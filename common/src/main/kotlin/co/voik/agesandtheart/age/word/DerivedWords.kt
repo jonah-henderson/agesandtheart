@@ -8,6 +8,7 @@ import co.voik.agesandtheart.age.aspect.AspectPreset
 import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.age.aspect.Structures
+import co.voik.agesandtheart.age.aspect.Materials
 import co.voik.agesandtheart.age.aspect.Surface
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.location
@@ -76,10 +77,20 @@ object DerivedWords {
         // Every block can still *be* the sea or the skin, but naming a paving slab should not flood the
         // world, and naming a rock should say what the world is made of rather than what it is painted
         // with — a surface is reached by aiming at it (`Grammar`'s `scopeFor`).
-        aspects = if (pours) setOf(Aspect.SEA, Aspect.TERRAIN, Aspect.SURFACE) else setOf(Aspect.TERRAIN, Aspect.SURFACE),
+        aspects = buildSet {
+            add(Aspect.SURFACE)
+            if (pours) add(Aspect.SEA)
+            // **Only if a world could be made of it** (§3.2, [Materials]). A word that claimed the rock and
+            // was refused there would reach the landmass, set nothing and cost a page — §3.3's silent drop.
+            // A sign keeps its word and keeps every other use of it; what it stops being is a world.
+            if (Materials.makesAWorld(id.toString())) add(Aspect.TERRAIN)
+        },
         query = emptyMap(),
         names = Sea(id).key,
-        sets = mapOf(Terrain.STONE.name to id.toString(), Surface.MATERIAL.name to id.toString()),
+        sets = buildMap {
+            put(Surface.MATERIAL.name, id.toString())
+            if (Materials.makesAWorld(id.toString())) put(Terrain.STONE.name, id.toString())
+        },
     )
 
     private val FORBIDDEN_BIOMES: TagKey<Biome> = TagKey.create(Registries.BIOME, FORBIDDEN)
