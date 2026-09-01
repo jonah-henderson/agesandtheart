@@ -117,14 +117,14 @@ enum class Terrain(
     ),
 
     /**
-     * Islands in an endless sea, at the [EXTENT] asked for — one where the writer arrives and the rest a
+     * Islands in an endless sea, at the [SIZE] asked for — one where the writer arrives and the rest a
      * voyage away. Deliberately never a continent; see `Isle` for what makes that a property rather than
      * a tuning.
      */
     ISLANDS(
         "islands",
         waterline = IslandsField.SEA_LEVEL,
-        build = { options, salt -> IslandsField.world(options.steer(EXTENT, salt), salt) },
+        build = { options, salt -> IslandsField.world(options.steer(SIZE, salt), salt) },
     ),
 
     /**
@@ -214,7 +214,7 @@ enum class Terrain(
         get() = listOfNotNull(
             ARRANGEMENT.takeIf { this == PYRAMIDS },
             BEARING.takeIf { this == CANYON || this == CLIFFS },
-            EXTENT.takeIf { this == ISLANDS },
+            SIZE.takeIf { this == ISLANDS },
             SPACING.takeIf { this == CRATERLANDS },
             WEAR.takeIf { this == CRATERLANDS },
             RELIEF.takeIf { this == CRATERLANDS },
@@ -437,10 +437,16 @@ enum class Terrain(
         val BEARING = Parameter.ranged("bearing")
 
         /**
-         * How big an island is. Words rather than a distance, §3.2 keeping numbers away from a writer —
-         * and the largest is deliberately short of anywhere you could lose a coastline on.
+         * How big an island is — its shore, its height and how far apart they stand, which move together.
+         * Words rather than a distance, §3.2 keeping numbers away from a writer, and the largest is
+         * deliberately short of anywhere you could lose a coastline on.
+         *
+         * **`size`, the same name a sun and a feature use**, because it is the size of the whole thing and
+         * not one dimension of it: `colossal islands landmass` is the word a writer would reach for and it
+         * costs no word of its own. [MINGLING] keeps its own name for the opposite reason — how finely two
+         * rocks speckle together is not how big anything is.
          */
-        val EXTENT = Parameter.ranged("extent")
+        val SIZE = Parameter.ranged("size")
 
         /**
          * What lies under a terrain's surface — nothing, Minecraft's own noise caves, or storey upon

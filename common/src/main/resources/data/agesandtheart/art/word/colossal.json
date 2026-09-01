@@ -1,13 +1,18 @@
 {
   "_comment": [
     "Bigness at its limit, wherever bigness is a thing the part of the world can be -- `size` is one name",
-    "on the sun, the curtain, the bow and a feature, so one word says it about all of them and attachment",
-    "decides which is meant: `colossal landmass` is the rock, `colossal sun` the star, `colossal trees",
-    "features` the wood, and a colossal Age is every one of them.",
+    "on the sun, the curtain, the bow, a feature and an island, so one word says it about all of them and",
+    "attachment decides which is meant: `colossal sun` is the star, `colossal trees features` the wood,",
+    "`colossal islands landmass` the ground, and a colossal Age is every one of them.",
     "",
-    "**The top of the axis, with `enormous` the step below it** (Jonah, 2026-08-31). Two words for big are",
-    "worth having only where they do different things, so this is 1.0 and that is 0.7 upward. `sweeping`",
-    "was the aurora's own word for the same 1.0 and went into this one when the names were shared.",
+    "**The top of the axis, with `enormous` the step below it.** Two words for big are worth having only",
+    "where they do different things, so this is 1.0 and that is 0.7 upward.",
+    "",
+    "**`landmass.mingling` is named outright, and the other way up.** How finely two rocks speckle together",
+    "is not how big anything is, so it keeps its own name rather than joining `size` -- and its axis runs",
+    "the other way, high being *finest*. A word meaning big therefore asks for the bottom of it: the",
+    "broadest blotches the rock can be laid in. Naming the aspect is what lets one word say two things about",
+    "the same clause.",
     "",
     "The query is flat rather than keyed because `monumental` means the same thing everywhere it is",
     "carried; a sun carries no tags at all, so asking it costs nothing and finds nothing."
@@ -20,6 +25,7 @@
     "monumental": 1.0
   },
   "sets": {
-    "size": "1.0..1.0"
+    "size": "1.0..1.0",
+    "landmass.mingling": "-1.0..-1.0"
   }
 }

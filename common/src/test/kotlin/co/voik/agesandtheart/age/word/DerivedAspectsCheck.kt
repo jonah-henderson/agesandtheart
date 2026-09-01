@@ -37,16 +37,21 @@ class DerivedAspectsCheck : FunSpec({
      * knob exists twice for one thing and a word setting it is widened onto an aspect that merely contains
      * the preset. `sunsize` was owned by the sky through a stale preset declaration and by the sun through
      * its dials, and that is the shape this still refuses.
+     *
+     * **Asked of one aspect at a time**, which the wording above always meant and the code only managed
+     * while parameter names were unique. `size` is a landform's knob and four other aspects' dial, and
+     * that is one name doing its job in five places rather than one knob existing twice.
      */
-    test("a knob belongs to a preset or to an aspect, never both") {
+    test("a knob belongs to a preset or to an aspect, never both — asked of one aspect at a time") {
         val everyParameter = vocabulary.words.flatMap { it.canSet.keys }.distinct()
         for (parameter in everyParameter) {
-            val throughAPreset = Aspect.entries.filter { aspect ->
-                aspect.authored.any { it.honoursParameterNamed(parameter) }
+            val bothWays = Aspect.entries.filter { aspect ->
+                val throughAPreset = aspect.authored.any { it.honoursParameterNamed(parameter) }
+                val throughDials = aspect.dials.any { it.name == parameter }
+                throughAPreset && throughDials
             }
-            val throughDials = Aspect.entries.filter { aspect -> aspect.dials.any { it.name == parameter } }
-            check(throughAPreset.isEmpty() || throughDials.isEmpty()) {
-                "'$parameter' is a knob of the presets in $throughAPreset and a dial of $throughDials, " +
+            check(bothWays.isEmpty()) {
+                "'$parameter' is both a dial of $bothWays and a knob of its presets, " +
                     "so it exists twice for one thing"
             }
         }

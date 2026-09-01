@@ -25,12 +25,12 @@ object IslandsField {
 
     /**
      * How big an island is: at one end a day's walk across, at the other something that stops being an
-     * island and starts being somewhere. `Terrain.EXTENT` is the ranged knob a sentence bends.
+     * island and starts being somewhere. `Terrain.SIZE` is the ranged knob a sentence bends.
      *
      * **Low against their width on purpose.** These are islands rather than sea mountains: one from the
      * middle of the range stands about fifty blocks over its own beach across more than a kilometre of
      * ground, so walking it is a walk rather than a climb, and the coast stays the thing you notice about
-     * it. Height and width move together, so no extent draws a spike or a pancake.
+     * it. Height and width move together, so no size draws a spike or a pancake.
      */
     private const val SMALLEST_SHORE_RADIUS = 200.0
     private const val LARGEST_SHORE_RADIUS = 1100.0
@@ -38,34 +38,34 @@ object IslandsField {
     private const val LARGEST_PEAK_RISE = 70.0
 
     /** Where an island sits between those ends when nothing in the book spoke about its size. */
-    private const val ORDINARY_EXTENT = 0.35
+    private const val ORDINARY_SIZE = 0.35
 
-    private fun shoreRadiusAt(extent: Double?): Double =
-        betweenTheEnds(SMALLEST_SHORE_RADIUS, LARGEST_SHORE_RADIUS, extent)
+    private fun shoreRadiusAt(size: Double?): Double =
+        betweenTheEnds(SMALLEST_SHORE_RADIUS, LARGEST_SHORE_RADIUS, size)
 
-    private fun peakRiseAt(extent: Double?): Double =
-        betweenTheEnds(SMALLEST_PEAK_RISE, LARGEST_PEAK_RISE, extent)
+    private fun peakRiseAt(size: Double?): Double =
+        betweenTheEnds(SMALLEST_PEAK_RISE, LARGEST_PEAK_RISE, size)
 
     /**
-     * [extent] read as a fraction of the way from the smallest island to the largest.
+     * [size] read as a fraction of the way from the smallest island to the largest.
      *
      * A ranged parameter lives on the axis every span shares, so this is the one place that shared axis
-     * becomes this landform's own units — and null, the axis nobody spoke about, is [ORDINARY_EXTENT].
+     * becomes this landform's own units — and null, the axis nobody spoke about, is [ORDINARY_SIZE].
      */
-    private fun betweenTheEnds(smallest: Double, largest: Double, extent: Double?): Double {
-        val fraction = extent?.let(Span.NATURAL::fractionOf) ?: ORDINARY_EXTENT
+    private fun betweenTheEnds(smallest: Double, largest: Double, size: Double?): Double {
+        val fraction = size?.let(Span.NATURAL::fractionOf) ?: ORDINARY_SIZE
         return smallest + fraction * (largest - smallest)
     }
 
-    fun world(extent: Double? = null, salt: Long = 0L): TerrainField =
+    fun world(size: Double? = null, salt: Long = 0L): TerrainField =
         Isle(
             floorY = WORLD_FLOOR,
             seabedY = SEABED_Y,
             shoreY = SEA_LEVEL,
-            peakRise = peakRiseAt(extent),
-            shoreRadius = shoreRadiusAt(extent),
+            peakRise = peakRiseAt(size),
+            shoreRadius = shoreRadiusAt(size),
             radiusVariation = RADIUS_VARIATION,
-            spacing = spacingFor(extent),
+            spacing = spacingFor(size),
             jitter = JITTER,
             seed = ISLAND_SEED xor salt,
         )
@@ -106,14 +106,14 @@ object IslandsField {
      * stays high, so the size guarantee `IslandsCheck` makes about [world] cannot be made about this.
      * What bounds it is [PATCH_SCALE], softly.
      */
-    fun clustered(extent: Double? = null, salt: Long = 0L): TerrainField {
-        val lobeRadius = shoreRadiusAt(extent) * LOBE_SHARE_OF_AN_ISLAND
+    fun clustered(size: Double? = null, salt: Long = 0L): TerrainField {
+        val lobeRadius = shoreRadiusAt(size) * LOBE_SHARE_OF_AN_ISLAND
         val lobe = Cone(
             baseX = 0,
             baseZ = 0,
             baseRadius = lobeRadius,
             baseY = SEABED_Y,
-            tipY = SEA_LEVEL + peakRiseAt(extent).toInt(),
+            tipY = SEA_LEVEL + peakRiseAt(size).toInt(),
         )
         return Union(
             listOf(
@@ -134,7 +134,7 @@ object IslandsField {
                     ),
                     variation = Variation.NONE,
                     seed = ISLAND_SEED xor salt,
-                    blend = peakRiseAt(extent) * BLEND_SHARE_OF_A_RISE,
+                    blend = peakRiseAt(size) * BLEND_SHARE_OF_A_RISE,
                 ),
             ),
         )
@@ -148,14 +148,14 @@ object IslandsField {
      * smallest an absurd distance from its neighbour, and a multiple alone would put small ones in sight of
      * each other.
      */
-    fun spacingFor(extent: Double?): Double = max(LEAST_SPACING, shoreRadiusAt(extent) * LEAST_APART)
+    fun spacingFor(size: Double?): Double = max(LEAST_SPACING, shoreRadiusAt(size) * LEAST_APART)
 
     /**
      * The furthest an island of this size can reach from its centre — its radius at its largest draw, with
      * the coast wandering as far out as it goes. What [spacingFor] has to beat twice over.
      */
-    fun widestReach(extent: Double?): Double =
-        shoreRadiusAt(extent) * (1.0 + RADIUS_VARIATION) * (1.0 + Isle.DEFAULT_COAST_ROUGHNESS)
+    fun widestReach(size: Double?): Double =
+        shoreRadiusAt(size) * (1.0 + RADIUS_VARIATION) * (1.0 + Isle.DEFAULT_COAST_ROUGHNESS)
 
     /**
      * How far the *shape* reaches, shelf and all — further than [widestReach], which is about land.
@@ -164,8 +164,8 @@ object IslandsField {
      * spacing has to beat; shelves touching is two islands sharing shallows, which is fine and rather
      * good. This one exists so a check looking for open seabed knows where to start.
      */
-    fun shelfReach(extent: Double?): Double =
-        widestReach(extent) + (SEA_LEVEL - SEABED_Y) / Isle.DEFAULT_SHELF_SLOPE
+    fun shelfReach(size: Double?): Double =
+        widestReach(size) + (SEA_LEVEL - SEABED_Y) / Isle.DEFAULT_SHELF_SLOPE
 
     /**
      * The closest two neighbouring islands' centres can come, both jittered towards each other.
@@ -173,7 +173,7 @@ object IslandsField {
      * `cellHash` runs −0.5..0.5, so a jitter of *j* moves a centre by half of `j * spacing` either way and
      * a pair can close by `j * spacing` in total — not twice that.
      */
-    fun leastApart(extent: Double?): Double = spacingFor(extent) * (1.0 - JITTER)
+    fun leastApart(size: Double?): Double = spacingFor(size) * (1.0 - JITTER)
 
     private const val WORLD_FLOOR = -64
 
