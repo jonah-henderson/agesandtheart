@@ -17,6 +17,6 @@
     "dark": 1.0
   },
   "sets": {
-    "sun.absent": "always"
+    "sun.absent": "true"
   }
 }

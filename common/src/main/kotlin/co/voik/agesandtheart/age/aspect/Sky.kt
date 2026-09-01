@@ -86,9 +86,9 @@ enum class Sky(override val key: String) : AspectPreset {
         // **The cast is what the book described, or the template's where it described none.** A sun is
         // brought into being by a clause about it, so the number of bodies is the number of clauses —
         // there is no count to write and no second spelling for "two suns".
-        val suns = if (sun.of(ABSENT) == ALWAYS) NONE
+        val suns = if (sun.isTrue(ABSENT)) NONE
             else parts.membersIn(Aspect.SUN).takeIf { it > NONE } ?: VANILLAS_ONE
-        val moons = if (parts.optionsFor(Aspect.MOON).of(ABSENT) == ALWAYS) NONE
+        val moons = if (parts.optionsFor(Aspect.MOON).isTrue(ABSENT)) NONE
             else parts.membersIn(Aspect.MOON).takeIf { it > NONE } ?: VANILLAS_ONE
         val drawn = SkySpec.drawn(
             suns = suns,
@@ -269,7 +269,7 @@ enum class Sky(override val key: String) : AspectPreset {
          * this.** Every other sun is minted by a clause describing one, so there is no clause to say a
          * body that was never minted is missing; this is the default body's own switch.
          */
-        val ABSENT = Parameter("absent", Atmosphere.AS_EVER, ALWAYS)
+        val ABSENT = Parameter.flag("absent")
 
         /** How thick the stars lie: none at the bottom of the axis, [DENSEST_STARS] times vanilla's at the top. */
         val STARS = Parameter.ranged("density")
@@ -412,10 +412,10 @@ enum class Sky(override val key: String) : AspectPreset {
          * what the Age *is* without yet building it. `has_ceiling` never built one either — read against
          * 26.1.2, four things call it and none places a block.
          */
-        val SEALED = Parameter("sealed", Atmosphere.AS_EVER, ALWAYS)
+        val SEALED = Parameter.flag("sealed")
 
         /** Whether the Age is shut overhead. */
-        fun isRoofed(sky: Options): Boolean = sky.of(SEALED) == ALWAYS
+        fun isRoofed(sky: Options): Boolean = sky.isTrue(SEALED)
 
         /**
          * Whether nothing lights the Age from above — **one fact with three readers**: the dimension type
@@ -426,7 +426,7 @@ enum class Sky(override val key: String) : AspectPreset {
          * world the game is holding pitch dark, which is the walked bug of 2026-08-05 arriving a second
          * time by a second route.
          */
-        fun isLightless(sky: Options, sun: Options): Boolean = isRoofed(sky) || sun.of(ABSENT) == ALWAYS
+        fun isLightless(sky: Options, sun: Options): Boolean = isRoofed(sky) || sun.isTrue(ABSENT)
 
         /**
          * The pre-authored type an Age wearing these facts needs — **derived, never written** (Jonah,
@@ -451,11 +451,6 @@ enum class Sky(override val key: String) : AspectPreset {
                 isLightless(sky, sun) -> AgeGeneration.AGE_LIGHTLESS_DIMENSION_TYPE
                 else -> AgeGeneration.AGE_DIMENSION_TYPE
             }
-
-        const val NEVER = "never"
-
-        /** What [SEALED] says when the world is shut overhead. */
-        const val ALWAYS = "always"
 
         private const val NONE = 0
 

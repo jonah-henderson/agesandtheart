@@ -35,7 +35,7 @@ import net.minecraft.resources.Identifier
 object Atmosphere {
 
     /** Whether standing water boils away, as it does in the nether. */
-    val EVAPORATION = Parameter("evaporation", AS_EVER, "always").perBiome()
+    val EVAPORATION = Parameter.flag("evaporation").perBiome()
 
     /**
      * The three the eye sees, each taking one of [Colour]'s nine.
@@ -258,7 +258,7 @@ object Atmosphere {
 
     /** Every attribute the sentence set **where [biome] is the ground**, or Age-wide where it is null. */
     private fun airIn(options: Options, salt: Long, biome: Identifier?): List<Asked<*>> = buildList {
-        if (options.of(EVAPORATION, biome) != AS_EVER) add(Asked(EnvironmentAttributes.WATER_EVAPORATES, true))
+        if (options.isTrue(EVAPORATION, biome)) add(Asked(EnvironmentAttributes.WATER_EVAPORATES, true))
     }
 
     /**

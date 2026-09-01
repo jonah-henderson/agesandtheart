@@ -10,8 +10,8 @@
     "stars"
   ],
   "sets": {
-    "sealed": "always",
-    "sun.absent": "always",
+    "sealed": "true",
+    "sun.absent": "true",
     "density": "-1.0..-1.0"
   }
 }

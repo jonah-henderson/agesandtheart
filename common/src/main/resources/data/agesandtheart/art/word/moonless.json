@@ -8,6 +8,6 @@
     "moon"
   ],
   "sets": {
-    "moon.absent": "always"
+    "moon.absent": "true"
   }
 }

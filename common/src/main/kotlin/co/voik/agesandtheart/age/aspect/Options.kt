@@ -35,6 +35,13 @@ value class Options(val chosen: Map<String, List<String>> = emptyMap()) {
         return (here ?: said.firstOrNull { it.confinedTo == null })?.value ?: parameter.default
     }
 
+    /**
+     * Whether a flag was set — the only reading a [Parameter.flag] has, and the reason it is here rather
+     * than at each call site comparing against a constant.
+     */
+    fun isTrue(parameter: Parameter, biome: Identifier? = null): Boolean =
+        of(parameter, biome) == Parameter.TRUE
+
     /** Everything written for [parameter], brackets and all — what a second ground is appended to. */
     fun allSpelled(parameter: String): Set<String> = chosen[parameter].orEmpty().toSet()
 

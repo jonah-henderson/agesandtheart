@@ -30,7 +30,7 @@ class WordPoolCheck : FunSpec({
     val broad = wordAt(
         Tier.RESTRICTIVE,
         sets = mapOf("sunburn" to "always"),
-        pool = mapOf("evaporation" to "always", "motes" to "embers", "haze" to "0.15..0.45", "murk" to "0.1..0.4"),
+        pool = mapOf("evaporation" to "true", "motes" to "embers", "haze" to "0.15..0.45", "murk" to "0.1..0.4"),
         draws = 2,
     )
 
@@ -96,7 +96,7 @@ class WordPoolCheck : FunSpec({
             Tier.RESTRICTIVE,
             sets = mapOf("sunburn" to "always", "temperature" to "0.55..1.0"),
             pool = mapOf(
-                "evaporation" to "always",
+                "evaporation" to "true",
                 "motes" to "embers|flames|ash",
                 "haze" to "0.15..0.45",
                 "murk" to "0.1..0.4",

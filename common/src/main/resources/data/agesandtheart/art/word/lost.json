@@ -4,6 +4,6 @@
     "sky"
   ],
   "sets": {
-    "sealed": "always"
+    "sealed": "true"
   }
 }

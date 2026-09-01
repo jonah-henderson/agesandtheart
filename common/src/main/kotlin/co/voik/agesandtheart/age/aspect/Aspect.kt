@@ -508,6 +508,22 @@ data class Parameter(
          * axis, so an Age told nothing keeps whatever vanilla's noise produced.
          */
         fun ranged(name: String) = Parameter(name, listOf(Span.NATURAL.spelled()), holds = Holds.RANGE)
+
+        /**
+         * A property that is simply true or false — **a catalogue of two, and no new shape** (world model
+         * §2). A flag is one value drawn from a closed list like any other; what it is not is a scale.
+         *
+         * **Which is why the values are `true` and `false`** (Jonah, 2026-08-31). They were `as_ever` and
+         * `always`, which is two words implying a difference there is none of, and `always` implies a
+         * `sometimes` that does not exist. `as_ever` survives where it means something — a colour left as
+         * vanilla's is genuinely *as ever* and is not *false* — and nowhere else.
+         *
+         * [FALSE] first, so an unstated flag is off: [default] is the first option.
+         */
+        fun flag(name: String) = Parameter(name, FALSE, TRUE)
+
+        const val TRUE = "true"
+        const val FALSE = "false"
     }
 }
 

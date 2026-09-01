@@ -259,7 +259,7 @@ class SkyCheck : FunSpec({
         val unusual = listOf(
             // Two suns is two clauses that minted one, which is the cast rather than any option.
             "two suns" to Sky.PLAIN.specFor(Described(cast = mapOf(Aspect.SUN to 2)), A_SEED),
-            "no suns" to Sky.PLAIN.specFor(steering(Aspect.SUN, Sky.ABSENT, Sky.ALWAYS), A_SEED),
+            "no suns" to Sky.PLAIN.specFor(steering(Aspect.SUN, Sky.ABSENT, Parameter.TRUE), A_SEED),
             "no stars" to Sky.PLAIN.specFor(steering(Aspect.STARS, Sky.STARS, EMPTIEST), A_SEED),
             "dense stars" to Sky.PLAIN.specFor(steering(Aspect.STARS, Sky.STARS, FULLEST), A_SEED),
         )
@@ -276,7 +276,7 @@ class SkyCheck : FunSpec({
      * walked). The dimension type was right, the recipe was right, and the sky was drawn anyway.
      */
     test("a sealed world draws nothing overhead") {
-        val sealed = Described(mapOf(Aspect.SKY to Options(mapOf(Sky.SEALED.name to listOf(Sky.ALWAYS)))))
+        val sealed = Described(mapOf(Aspect.SKY to Options(mapOf(Sky.SEALED.name to listOf(Parameter.TRUE)))))
         val spec = Sky.PLAIN.specFor(sealed, A_SEED)
         check(spec.bodies.isEmpty()) { "a sealed world drew ${spec.bodies.size} bodies through its ceiling" }
         check(spec.stars.count == 0) { "a sealed world drew ${spec.stars.count} stars through its ceiling" }
@@ -288,7 +288,7 @@ class SkyCheck : FunSpec({
      * sun is a fine thing to write, and `moonless` is the word for the other.
      */
     test("a sunless world is not a moonless one") {
-        val sunless = Described(mapOf(Aspect.SUN to Options(mapOf(Sky.ABSENT.name to listOf(Sky.ALWAYS)))))
+        val sunless = Described(mapOf(Aspect.SUN to Options(mapOf(Sky.ABSENT.name to listOf(Parameter.TRUE)))))
         val spec = Sky.PLAIN.specFor(sunless, A_SEED)
         check(spec.bodies.none { it.phase == null }) { "a sunless world kept a sun" }
         check(spec.bodies.any { it.phase != null }) { "a sunless world lost its moon as well" }

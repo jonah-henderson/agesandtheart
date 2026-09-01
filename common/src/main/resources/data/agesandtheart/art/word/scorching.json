@@ -13,7 +13,7 @@
     "haze": "0.15..0.45"
   },
   "pool": {
-    "evaporation": "always",
+    "evaporation": "true",
     "motes": "ash",
     "murk": "0.1..0.4",
     "humidity": "-0.8..-0.2"

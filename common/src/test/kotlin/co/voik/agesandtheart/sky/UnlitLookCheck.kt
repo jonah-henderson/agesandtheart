@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.AgeTemplate
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.agesandtheart.age.aspect.Options
+import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.ephemeris.sky.Look
 import io.kotest.core.annotation.Tags
@@ -32,8 +33,8 @@ class UnlitLookCheck : FunSpec({
      */
     test("a world nothing shines on is painted as dark as it is held") {
         val ordinary = Options()
-        val sealed = Options(mapOf(Sky.SEALED.name to listOf(Sky.ALWAYS)))
-        val sunless = Options(mapOf(Sky.ABSENT.name to listOf(Sky.ALWAYS)))
+        val sealed = Options(mapOf(Sky.SEALED.name to listOf(Parameter.TRUE)))
+        val sunless = Options(mapOf(Sky.ABSENT.name to listOf(Parameter.TRUE)))
         fun overOrdinary(sky: Options, sun: Options) =
             Atmosphere.unlitLook(Described(mapOf(Aspect.SKY to sky, Aspect.SUN to sun)), AgeTemplate.OVERWORLD)
 
@@ -60,7 +61,7 @@ class UnlitLookCheck : FunSpec({
      * world the book started from.
      */
     test("a template already dark paints itself, and only loses its clouds") {
-        val sealed = Described(mapOf(Aspect.SKY to Options(mapOf(Sky.SEALED.name to listOf(Sky.ALWAYS)))))
+        val sealed = Described(mapOf(Aspect.SKY to Options(mapOf(Sky.SEALED.name to listOf(Parameter.TRUE)))))
         val overNether = Atmosphere.unlitLook(sealed, AgeTemplate.INFERNAL)
         check(overNether.fog == null && overNether.sky == null && overNether.tint == null) {
             "the nether's own air was painted over: $overNether"
