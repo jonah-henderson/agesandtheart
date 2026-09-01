@@ -330,14 +330,20 @@ object Resolver {
             .sortedWith(compareByDescending<Constraint> { it.word.tier }.thenBy { tieBreak(draw, aspect, it.word) })
 
         val territories = mutableListOf<Territory>()
-        for (said in narrowing) {
+        // **A word that also steers this aspect settles last, and never fractures it** (Jonah,
+        // 2026-09-01). A reusable word carries several senses and only has to land one of them: where
+        // `colossal islands landmass` cannot have both the monumental landform its query asks for and the
+        // islands the writer named, the answer is the size it sets and not two territories and a charge
+        // for a contradiction nobody wrote. Settling after the words that *only* choose is what makes that
+        // independent of the order they were laid in.
+        val (steering, choosing) = narrowing.partition { steersInstead(vocabulary, aspect, it) }
+        for (said in choosing + steering) {
             val carriers = vocabulary.carriersOf(said.word, aspect)
             if (carriers.isEmpty()) {
                 // Unless the word is here to turn a knob rather than choose a preset: a word may narrow in
                 // one aspect and merely steer in another, and charging that as unbacked told a writer their
                 // perfectly good sentence had failed.
-                val steersInstead = said.word.canSet.keys.any { vocabulary.turnsAKnob(aspect, it) }
-                if (steersInstead) continue
+                if (steersInstead(vocabulary, aspect, said)) continue
                 // Word against world: nothing in the aspect can be this, so no arrangement of the others is
                 // to blame. A content bug per §3.3, reported rather than dropped.
                 flaws += flaw(vocabulary, Register.UNBACKED, listOf(said), aspect, emptyList(), said.word.tier)
@@ -345,6 +351,10 @@ object Resolver {
             }
             val home = territories.indexOfFirst { it.candidates.any { candidate -> candidate in carriers } }
             if (home < 0) {
+                // **It still chooses where nothing else did**, which is the half a blanket rule would lose:
+                // `colossal landmass` with no landform named is a monumental one, and only a word already
+                // holding the ground can make this one give its choosing up.
+                if (territories.isNotEmpty() && steersInstead(vocabulary, aspect, said)) continue
                 territories += Territory(listOf(said), carriers)
             } else {
                 territories[home] += Territory(listOf(said), carriers)
@@ -373,6 +383,16 @@ object Resolver {
         chosen += company(vocabulary, aspect, kept, speaking, chosen, room, draw)
         return sharedOut(vocabulary, aspect, chosen, speaking)
     }
+
+    /**
+     * Whether this word has a *steering* sense here — something it sets that this aspect turns.
+     *
+     * The question behind the ruling that a word with a sense that works should use it rather than be
+     * charged for one that does not: a reusable word is worth more than a precise one, and a writer who
+     * laid `colossal` beside `islands` meant the islands to be large rather than to be somewhere else.
+     */
+    private fun steersInstead(vocabulary: Vocabulary, aspect: Aspect, said: Constraint): Boolean =
+        said.word.canSet.keys.any { vocabulary.turnsAKnob(aspect, it) }
 
     /**
      * What the sentence is charged for asking one aspect to be several things it cannot reconcile. The
