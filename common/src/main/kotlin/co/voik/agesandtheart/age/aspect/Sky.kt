@@ -200,7 +200,7 @@ enum class Sky(override val key: String) : AspectPreset {
      */
     private fun bandIn(own: Options): List<Rgba> {
         val named = own.allOf(RAINBOWCOLOUR)
-            .filter { it != Atmosphere.AS_EVER }
+            .filter { it != Parameter.DEFAULT }
             .mapNotNull { Colour.named(it)?.saturated(A_BOW_IS_ADDED) }
         return named.ifEmpty { Rainbow.ORDINARY_SPECTRUM }
     }
@@ -219,7 +219,7 @@ enum class Sky(override val key: String) : AspectPreset {
      */
     private fun rampIn(own: Options): List<Rgba> {
         val named = own.allOf(AURORACOLOUR)
-            .filter { it != Atmosphere.AS_EVER }
+            .filter { it != Parameter.DEFAULT }
             .mapNotNull { Colour.named(it)?.saturated(A_CURTAIN_IS_LOOKED_AT) }
         return named.ifEmpty { Aurora.ORDINARY_RAMP }
     }
@@ -356,7 +356,7 @@ enum class Sky(override val key: String) : AspectPreset {
         val SUNSIZE = Parameter.ranged("size")
 
         /**
-         * What colour the suns burn, or [Atmosphere.AS_EVER] for vanilla's white.
+         * What colour the suns burn, or [Parameter.DEFAULT] for vanilla's white.
          *
          * Reaches **every** sun including the first, which is what separates it from the tint
          * [SkySpec.drawn] already draws for the others: that one spreads a sky's extra bodies apart, and
@@ -396,7 +396,7 @@ enum class Sky(override val key: String) : AspectPreset {
          * **The sun's and the moon's alike**, which is one knob owned by two aspects: the word means the
          * same thing about either body and the clause it was laid in picks which one it is about.
          */
-        val RISING = Parameter("rising", listOf(Atmosphere.AS_EVER) + BEARINGS.keys)
+        val RISING = Parameter("rising", listOf(Parameter.DEFAULT) + BEARINGS.keys)
 
         /**
          * Whether the world is **sealed overhead** — a physical fact about the Age, and the one a writer
@@ -517,7 +517,7 @@ enum class Sky(override val key: String) : AspectPreset {
          */
         private const val SUN_IS_LOOKED_AT = 1.5f
 
-        private fun colour(name: String) = Parameter(name, listOf(Atmosphere.AS_EVER) + Colour.ALL)
+        private fun colour(name: String) = Parameter(name, listOf(Parameter.DEFAULT) + Colour.ALL)
 
         /**
          * How far a named colour is pushed from its own grey before a curtain burns it.

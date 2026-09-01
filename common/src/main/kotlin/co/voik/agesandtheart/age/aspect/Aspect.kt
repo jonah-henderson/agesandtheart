@@ -511,12 +511,8 @@ data class Parameter(
 
         /**
          * A property that is simply true or false — **a catalogue of two, and no new shape** (world model
-         * §2). A flag is one value drawn from a closed list like any other; what it is not is a scale.
-         *
-         * **Which is why the values are `true` and `false`** (Jonah, 2026-08-31). They were `as_ever` and
-         * `always`, which is two words implying a difference there is none of, and `always` implies a
-         * `sometimes` that does not exist. `as_ever` survives where it means something — a colour left as
-         * vanilla's is genuinely *as ever* and is not *false* — and nowhere else.
+         * §2). A flag is one value drawn from a closed list like any other; what it is not is a scale, and
+         * spelling it as one invites a value between the two that does not exist.
          *
          * [FALSE] first, so an unstated flag is off: [default] is the first option.
          */
@@ -524,6 +520,14 @@ data class Parameter(
 
         const val TRUE = "true"
         const val FALSE = "false"
+
+        /**
+         * What an option reads as when a writer left it alone — whatever the world would have done.
+         *
+         * **First in the list wherever it appears, so it is the [default]**, and named for that rather
+         * than for what it happens to mean in any one place.
+         */
+        const val DEFAULT = "default"
     }
 }
 

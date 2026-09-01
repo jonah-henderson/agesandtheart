@@ -94,9 +94,9 @@ object Atmosphere {
      * What hangs in the air — vanilla's own particles, named. Populative in spirit and a dial in shape: an
      * Age has one kind of dust in it, and the day that stops being true this becomes a claim.
      */
-    val MOTES = Parameter("motes", listOf(AS_EVER) + Motes.ALL).perBiome()
+    val MOTES = Parameter("motes", listOf(Parameter.DEFAULT) + Motes.ALL).perBiome()
 
-    private fun colour(name: String) = Parameter(name, listOf(AS_EVER) + Colour.ALL).perBiome()
+    private fun colour(name: String) = Parameter(name, listOf(Parameter.DEFAULT) + Colour.ALL).perBiome()
 
     /**
      * What the grass is tinted, and what the leaves are — **the ground rather than the air**, kept here
@@ -153,7 +153,7 @@ object Atmosphere {
             fog = colourOf(air, FOG, biome),
             cloud = colourOf(parts.optionsFor(Aspect.CLOUD), CLOUD, biome),
             tint = colourOf(air, TINT, biome),
-            motes = air.of(MOTES, biome).takeUnless { it == AS_EVER },
+            motes = air.of(MOTES, biome).takeUnless { it == Parameter.DEFAULT },
             murk = band(water, MURK),
             haze = band(air, HAZE),
             ceiling = band(vault, CEILING),
@@ -284,9 +284,6 @@ object Atmosphere {
             }
         }
     }
-
-    /** What an option reads as when a writer left an attribute alone — vanilla's own answer, whatever it is. */
-    const val AS_EVER = "as_ever"
 
     private const val NO_DAYLIGHT = 0f
 }
