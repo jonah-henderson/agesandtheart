@@ -24,7 +24,7 @@
 # scores — so what earns a large index is opposing many different things once each.
 # What matters below is the `bought:` line: whether the budget reaches blight, and how much went on the
 # cheap registers first.
-/age write ruin age beautiful foreboding homely desolate lifeless ancient frozen drenched arid dusty ashen atmosphere flat looming floating hollow finely landmass clear firmament
+/age write ruin age beautiful foreboding homely desolate lifeless ancient frozen drenched arid dusty ashen atmosphere flat looming floating hollow patchy landmass clear firmament
 /age decay ruin
 
 # What it looks like new, one day in, a fortnight in, and after a season.

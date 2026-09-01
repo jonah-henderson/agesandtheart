@@ -402,7 +402,9 @@ data class AgeRecipe(
                             mapOf(
                                 Terrain.STONE.name to SPIRE_ROCKS,
                                 // Speckled at block scale rather than in blotches: one mottled stone.
-                                Terrain.MINGLING.name to listOf(Span.at(Span.NATURAL_MOST).spelled()),
+                                // The floor of the axis, which is also where an unsaid one sits — stated
+                                // anyway, because a bespoke recipe should say what it wants of its rock.
+                                Terrain.MINGLING.name to listOf(Span.at(Span.NATURAL_LEAST).spelled()),
                             ),
                         ),
                     ),

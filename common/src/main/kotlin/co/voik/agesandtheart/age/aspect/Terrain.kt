@@ -382,8 +382,8 @@ enum class Terrain(
 
     /** How widely this terrain's materials speckle — see [MINGLING]. */
     fun mingling(options: Options, salt: Long): Double {
-        val fineness = options.steer(MINGLING, salt)?.let(Span.NATURAL::fractionOf) ?: PATCHY
-        return TerrainFill.PATCHY_MINGLING + fineness * (TerrainFill.FINE_MINGLING - TerrainFill.PATCHY_MINGLING)
+        val coarseness = options.steer(MINGLING, salt)?.let(Span.NATURAL::fractionOf) ?: EVENLY_MINGLED
+        return TerrainFill.FINE_MINGLING + coarseness * (TerrainFill.PATCHY_MINGLING - TerrainFill.FINE_MINGLING)
     }
 
     /**
@@ -491,13 +491,28 @@ enum class Terrain(
         val STONE = Parameter.material("stone", holdsYouUp = true)
 
         /**
-         * How finely several materials speckle together. High on the axis brings a patch down to a block or
-         * two, for a mixture reading as one mottled rock rather than blotches of two.
+         * **How coarsely several materials lie together** — the bottom of the axis is a speckle at block
+         * scale and the top is the widest patch that still reads as one mixed rock.
+         *
+         * **Low is fine, which is the same way up as every other ranged knob**: more of the axis is more of
+         * what the name says. It ran the other way and meant *fineness*, which made a word for the coarse
+         * end read as an argument with its own axis, and made the reader between here and
+         * `TerrainFill.mingleStretch` an inversion rather than a scale.
+         *
+         * The top is bounded by what mingling *is* rather than by taste — see
+         * [TerrainFill.PATCHY_MINGLING]: anything much wider stops being a mixture and reads as two
+         * territories, which has its own spelling in `and` and a seam.
          */
         val MINGLING = Parameter.ranged("mingling")
 
-        /** Where mingling sits when nothing said: blotches, which is what an unremarked mixture looks like. */
-        private const val PATCHY = 0.0
+        /**
+         * Where mingling sits when nothing said: **as evenly intermixed as the surface rules can manage**,
+         * so two rocks read as one mottled stone rather than as two regions (walked 2026-07-27).
+         *
+         * The floor of the axis rather than a value in the middle, so an unremarked mixture is the quietest
+         * a mixture can be and every word about it asks for more.
+         */
+        private const val EVENLY_MINGLED = 0.0
 
         /**
          * The height a column in [ALPS] reads as fully a summit at — around the crest rather than above the

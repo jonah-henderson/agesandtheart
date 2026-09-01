@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "Two rocks in blotches rather than mingled to a speckle -- you can see where one stops.",
+    "",
+    "It replaces `finely`, which asked for the *fine* end of the mingling and became a word for the",
+    "default when that end became the default (walked 2026-07-27: two materials should read as one",
+    "mottled stone unless somebody says otherwise). So the word that is worth having is the one for the",
+    "unusual answer, and this is it.",
+    "",
+    "It declares the landmass because mingling is a landform's knob and nothing else has one; when",
+    "something else grows a mixture, this word reaches it with no edit."
+  ],
+  "tier": "exact",
+  "aspects": [
+    "landmass"
+  ],
+  "sets": {
+    "mingling": "0.1..0.7"
+  }
+}
