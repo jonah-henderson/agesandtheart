@@ -17,8 +17,5 @@
   "tier": "exact",
   "chooses": {
     "phenomena": "sandfall"
-  },
-  "sets": {
-    "happens": "sandfall"
   }
 }

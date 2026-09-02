@@ -3,7 +3,7 @@ package co.voik.agesandtheart.preview.authoring
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.age.word.Vocabulary
-import co.voik.agesandtheart.age.word.Pool
+import co.voik.agesandtheart.age.word.Facets
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.age.word.grammar.Grammar
 
@@ -338,7 +338,7 @@ class Suggestions(private val vocabulary: Vocabulary) {
      * never fires; a count at or past the pool's size takes all of it, which makes the pool no different
      * from more `sets` and is equally worth saying.
      */
-    private fun poolOf(pool: Pool): Claim? {
+    private fun poolOf(pool: Facets): Claim? {
         if (pool.facets.isEmpty()) return null
         val members = pool.facets.entries.sortedBy { it.key }.map { "${it.key}=${it.value}" }
         val how = if (pool.draws.least >= pool.facets.size) {

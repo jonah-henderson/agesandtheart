@@ -32,7 +32,7 @@ object Phenomena {
      *
      * An Age with none is the ordinary case, which is why nothing is kept by default.
      */
-    val HAPPENS = Parameter.population(
+    val HAPPENS = Pool(
         "happens",
         leastKept = NOTHING_AT_ALL,
         emptiedBy = NOTHING,

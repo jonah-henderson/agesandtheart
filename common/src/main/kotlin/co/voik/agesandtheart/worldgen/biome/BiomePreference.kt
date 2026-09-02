@@ -42,12 +42,6 @@ data class BiomePreference(val biome: Identifier, val weight: Double) {
         const val ORDINARY = 1.0
 
         /**
-         * What a bare mention is worth. **Naming a biome has to mean more of it**, every biome being
-         * present already — where naming a structure set means the ordinary amount of one that was not.
-         */
-        const val WEIGHT_OF_A_MENTION = 2.0
-
-        /**
          * How little of the world a word may push a biome down to without striking it out. An evocative
          * word tilts and never removes (§3.3), so its floor is here rather than at zero.
          */

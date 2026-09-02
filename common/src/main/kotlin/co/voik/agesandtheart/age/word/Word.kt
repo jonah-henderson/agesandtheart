@@ -43,7 +43,7 @@ private val ASPECT_SET_CODEC: Codec<Set<Aspect>> = ASPECT_CODEC.listOf().xmap({ 
  */
 data class Claims(
     val sets: Map<String, String> = emptyMap(),
-    val pools: List<Pool> = emptyList(),
+    val pools: List<Facets> = emptyList(),
 ) {
     val isEmpty: Boolean get() = sets.isEmpty() && pools.isEmpty()
 
@@ -61,7 +61,7 @@ data class Claims(
             instance.group(
                 Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("sets", emptyMap())
                     .forGetter(Claims::sets),
-                Pool.CODEC.listOf().optionalFieldOf("pools", emptyList()).forGetter(Claims::pools),
+                Facets.CODEC.listOf().optionalFieldOf("pools", emptyList()).forGetter(Claims::pools),
             ).apply(instance, ::Claims)
         }
     }
@@ -230,7 +230,7 @@ data class Word(
      * they are also the whole of what a word *can* do, which is a different question from what it does
      * here — see [canSet] against [setsDrawnAt].
      */
-    val pools: List<Pool> = emptyList(),
+    val pools: List<Facets> = emptyList(),
     /**
      * The same three, **requested rather than required** — laid *under* the sentence instead of over it
      * (`the-world-model.md` §5).
@@ -788,7 +788,7 @@ data class Word(
                 },
                 Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("sets", emptyMap())
                     .forGetter(Word::sets),
-                Pool.CODEC.listOf().optionalFieldOf("pools", emptyList()).forGetter(Word::pools),
+                Facets.CODEC.listOf().optionalFieldOf("pools", emptyList()).forGetter(Word::pools),
                 Claims.CODEC.optionalFieldOf("requests", Claims.NOTHING).forGetter(Word::requests),
                 Codec.STRING.optionalFieldOf("template").forGetter { Optional.ofNullable(it.template) },
                 Codec.STRING.optionalFieldOf("mints").forGetter { Optional.ofNullable(it.mints) },

@@ -385,6 +385,9 @@ object Verdict {
 
     /** Whether the word has anything to do in one aspect it declares — mirroring `VocabularyCheck`'s gate. */
     private fun sayInFaults(word: Word, aspect: Aspect, corpus: Corpus): List<Finding> {
+        // A chosen member is the answer, searched for nowhere — including outside the curated pool, which
+        // is what choosing is for.
+        if (word.choiceIn(aspect) != null) return emptyList()
         val turnsAParameterHere = word.canSet.keys.any { corpus.vocabulary.turnsAParameter(aspect, it) }
         if (!word.constrainsPresetsIn(aspect) || turnsAParameterHere) return emptyList()
         if (aspect.holds == Holds.WEIGHTED_SET) {

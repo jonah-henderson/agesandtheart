@@ -1,13 +1,17 @@
 {
   "tier": "restrictive",
+  "admits": {
+    "phenomena": [
+      "aurora"
+    ]
+  },
   "biases": {
     "sea": {
       "#frozen": 0.7
     }
   },
   "sets": {
-    "temperature": "<-0.5",
-    "happens": "aurora"
+    "temperature": "<-0.5"
   },
   "requests": {
     "sets": {

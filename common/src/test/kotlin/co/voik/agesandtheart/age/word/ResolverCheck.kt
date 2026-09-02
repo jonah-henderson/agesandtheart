@@ -1090,10 +1090,16 @@ class ResolverCheck : FunSpec({
             return population.wanted.singleOrNull() ?: error("'villages' at $rung gave ${population.wanted}")
         }
 
+        // **It scales the mention rather than replacing it.** Naming a member is already a claim on the
+        // world, so `teeming villages` is that claim four times over — where reading the rung *as* the
+        // claim would have made `teeming` ask for less than the bare mention it was written on.
+        val unquantified = askedFor(Rung.ORDINARY).density
         for (rung in RUNGS) {
             val claim = askedFor(rung)
             check(claim.value == "minecraft:villages") { "the rung ate the value: ${claim.value}" }
-            check(claim.density == rung) { "asking for $rung villages gave ${claim.density}" }
+            check(claim.density == Rung.legible(unquantified * rung)) {
+                "asking for $rung villages gave ${claim.density}, against $unquantified for a bare mention"
+            }
         }
     }
 
@@ -1220,9 +1226,10 @@ class ResolverCheck : FunSpec({
         val composition = Resolver.resolve(vocabulary, Sentence.of(listOf(said)), SAMPLE_SEED).composition
         val named = preferences(composition).firstOrNull { it.biome.path == "cherry_grove" }
             ?: error("naming the cherry groves said nothing about them")
-        check(named.weight == BiomePreference.WEIGHT_OF_A_MENTION) {
-            "a mention was worth ${named.weight}, not ${BiomePreference.WEIGHT_OF_A_MENTION}"
-        }
+        // **Worth more than ordinary, without the pool naming a number.** A mention used to be scaled by a
+        // constant the biome pool carried for itself; a chosen member is now worth what its word's tier is
+        // worth, like every other claim on a population.
+        check(named.weight > Rung.ORDINARY) { "a mention was worth ${named.weight}, no more than ordinary" }
     }
 
     /**
@@ -1401,37 +1408,24 @@ private fun material(name: String, block: String) = Word(
     sets = mapOf(Terrain.STONE.name to block),
 )
 
-/** A word that asks for one vanilla structure set by name. */
-/** A creature word as §8 derives one. */
-private fun spawnWord(path: String) = Word(
+/**
+ * A word that names one member of a population outright, which is the shape `DerivedWords.choosing` gives
+ * every biome, feature, creature and structure set in the pack.
+ */
+private fun choosingWord(path: String, aspect: Aspect) = Word(
     id = Identifier.withDefaultNamespace(path),
     tier = Tier.EXACT,
-    aspects = setOf(Aspect.SPAWNS),
-    sets = mapOf(Spawns.LIVES.name to "minecraft:$path"),
+    aspects = setOf(aspect),
+    chooses = mapOf(aspect to "minecraft:$path"),
 )
 
-/** A feature word as §8 derives one — what every placed feature in the pack gets. */
-private fun featureWord(path: String) = Word(
-    id = Identifier.withDefaultNamespace(path),
-    tier = Tier.EXACT,
-    aspects = setOf(Aspect.FEATURES),
-    sets = mapOf(Features.PLACES.name to "minecraft:$path"),
-)
+private fun spawnWord(path: String) = choosingWord(path, Aspect.SPAWNS)
 
-/** A biome word as §8 derives one — the shape `DerivedWords.biomes` gives every biome in the pack. */
-private fun biomeWord(path: String) = Word(
-    id = Identifier.withDefaultNamespace(path),
-    tier = Tier.EXACT,
-    aspects = setOf(Aspect.BIOMES),
-    sets = mapOf(Biomes.GROWN.name to "minecraft:$path"),
-)
+private fun featureWord(path: String) = choosingWord(path, Aspect.FEATURES)
 
-private fun structureSet(path: String) = Word(
-    id = Identifier.withDefaultNamespace(path),
-    tier = Tier.EXACT,
-    aspects = setOf(Aspect.STRUCTURES),
-    sets = mapOf(Structures.BUILT.name to "minecraft:$path"),
-)
+private fun biomeWord(path: String) = choosingWord(path, Aspect.BIOMES)
+
+private fun structureSet(path: String) = choosingWord(path, Aspect.STRUCTURES)
 
 /**
  * Sentences chosen to cover the shapes a sentence can take: coherent, contradictory in an aspect that can

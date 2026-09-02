@@ -124,9 +124,12 @@ object Structures {
      * emptied, a world nobody ever built in being a world (`leastKept`), where every column must have
      * some biome whatever a word thinks of it.
      */
-    val BUILT = Parameter.population("built", leastKept = NOTHING_AT_ALL, emptiedBy = NOTHING,
-            help = "Which structures are built here.",
-        )
+    val BUILT = Pool(
+        "built",
+        leastKept = NOTHING_AT_ALL,
+        emptiedBy = NOTHING,
+        help = "Which structures are built here.",
+    )
 
     /**
      * How an Age says nobody ever built here: `built=nothing`, which drops the base whatever vanilla adds

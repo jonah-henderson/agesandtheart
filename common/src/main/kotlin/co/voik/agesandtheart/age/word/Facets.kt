@@ -19,7 +19,7 @@ import kotlin.random.Random
  * about is already spelled in the parameters it holds. So they are a list, [said] reads the label off the
  * facets, and the draw is salted by position.
  */
-data class Pool(val facets: Map<String, String>, val draws: Draws) {
+data class Facets(val facets: Map<String, String>, val draws: Draws) {
 
     /**
      * What this pool is about, **read off its facets rather than declared** — the aspect they all qualify
@@ -50,20 +50,20 @@ data class Pool(val facets: Map<String, String>, val draws: Draws) {
         /** What separates the aspect a parameter is meant for from the parameter — `Word`'s own spelling. */
         private const val QUALIFIER = '.'
 
-        val CODEC: Codec<Pool> = RecordCodecBuilder.create { instance ->
+        val CODEC: Codec<Facets> = RecordCodecBuilder.create { instance ->
             instance.group(
                 // **Required, unlike the count it replaced.** `pool` with no `draws` was a pool the Age
                 // never took, which read as three facets in the file and was three facets nothing would
                 // ever apply. A pool has to say how much of itself it is.
-                Draws.CODEC.fieldOf("draws").forGetter(Pool::draws),
-                Codec.unboundedMap(Codec.STRING, Codec.STRING).fieldOf("facets").forGetter(Pool::facets),
-            ).apply(instance) { draws, facets -> Pool(facets, draws) }
+                Draws.CODEC.fieldOf("draws").forGetter(Facets::draws),
+                Codec.unboundedMap(Codec.STRING, Codec.STRING).fieldOf("facets").forGetter(Facets::facets),
+            ).apply(instance) { draws, facets -> Facets(facets, draws) }
         }
     }
 }
 
 /**
- * How many of a [Pool] an Age takes — **every count it might be, one entry per chance.**
+ * How many of a [Facets] an Age takes — **every count it might be, one entry per chance.**
  *
  * Three spellings, and one rule behind them: everything listed is an option and one is taken at random.
  * `2` is always two. `1..3` is one, two or three. `1|2|2|3` is the same three with two twice as likely,

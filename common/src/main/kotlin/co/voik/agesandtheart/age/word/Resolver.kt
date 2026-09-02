@@ -11,6 +11,7 @@ import co.voik.agesandtheart.age.aspect.Claim
 import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.aspect.Parameter
+import co.voik.agesandtheart.age.aspect.Pool
 import co.voik.agesandtheart.age.aspect.Share
 import co.voik.agesandtheart.age.aspect.Setting
 import co.voik.agesandtheart.age.aspect.Span
@@ -93,9 +94,14 @@ object Resolver {
     // never zero, since a word that merely sets a parameter must not eliminate a preset (§3.2).
     private const val INCAPABLE_FACTOR = 0.04
 
+    // How much more of the world naming a member asks for, on top of the ordinary share it already had.
+    private const val A_MENTION_IS_WORTH = 1.0
+
     // As much of the world as any one member of a population may be talked into taking, so that a
-    // sentence full of words agreeing about one biome cannot quietly make an Age of nothing else.
-    private const val MOST_OF_A_WORLD = 4.0
+    // sentence full of words agreeing about one biome cannot quietly make an Age of nothing else. Room
+    // for the loudest thing a writer can say about one member and no more: `teeming <member>`, which is
+    // a mention at the top rung.
+    private const val MOST_OF_A_WORLD = 8.0
 
     // Where a population lets a member be pushed all the way down, the claim that says so.
     private const val NONE_OF_IT = 0.0
@@ -201,7 +207,7 @@ object Resolver {
         flaws += tensions(vocabulary, said, filled.mapValues { (_, filling) -> filling.map { it.preset } })
 
         val resolved = describedMembers(
-            weighed(vocabulary, steer(vocabulary, cast(compose(filled), said), said, draw, flaws), said),
+            weighed(vocabulary, steer(vocabulary, cast(compose(filled), said), said, draw, flaws), said, flaws),
             said,
         )
         // **The template underneath, what the sentence said on top.** Which aspects the sentence spoke to
@@ -864,8 +870,6 @@ object Resolver {
                 .filter { it != Parameter.CAST && it !in settled && holds(steered, aspect, it) }) {
                 val contenders = setting.filter { parameter in it.word.setsIn(aspect) }
                     .sortedWith(compareByDescending<Constraint> { it.word.tier }.thenBy { tieBreak(draw, aspect, it.word) })
-                val populative = parameterNamed(steered, aspect, parameter)
-                    ?.takeIf { it.holds == Holds.WEIGHTED_SET }
                 // **A body is steered on its own.** Each clause that minted one carries its index, so what
                 // was said about the second sun never reaches the first — the one place a claim is written
                 // to a member rather than across the aspect.
@@ -888,17 +892,6 @@ object Resolver {
                                 listOf(own.word.setsIn(aspect).getValue(parameter)),
                             )
                         }
-                    }
-                    // Populative values accumulate rather than conflict (§3.2), and the polarity travels
-                    // with the value — which is what makes `only` and `except` reach a population at all.
-                    // See [co.voik.agesandtheart.age.aspect.Claim].
-                    populative != null -> {
-                        flaws += crowdedOutOfAnOnly(vocabulary, contenders, aspect)
-                        steered.withOptions(
-                            aspect,
-                            parameter,
-                            contenders.map { it.claimed(aspect, populative) }.distinct(),
-                        )
                     }
                     canFracture(steered, aspect, parameter, contenders) ->
                         steered.fractured(vocabulary, aspect, parameter, contenders, flaws)
@@ -1168,22 +1161,29 @@ object Resolver {
         vocabulary: Vocabulary,
         composition: AgeComposition,
         sentence: List<Constraint>,
+        flaws: MutableList<Flaw>,
     ): AgeComposition {
         var weighed = composition
         for (aspect in Aspect.entries.filter { it.holds == Holds.WEIGHTED_SET }) {
-            val population = aspect.parameters.firstOrNull { it.holds == Holds.WEIGHTED_SET } ?: continue
+            val pool = aspect.pool ?: continue
             val speaking = sentence.filter { aspect in reachOf(vocabulary, it) }
             if (speaking.isEmpty()) continue
-            // **What the sentence put in**, the same widening a catalogue's draw gets. A member admitted
-            // by name was reaching nothing here, since this drew its pool from curation alone.
-            val pool = (
-                vocabulary.askableIn(aspect) +
-                    speaking.flatMap { it.word.admitsIn(aspect) }.distinct().mapNotNull(aspect::presetFor)
+            // **What the sentence put in**, the same widening a catalogue's draw gets. A member named — by
+            // being chosen or by being admitted — was reaching nothing here, since this drew from curation
+            // alone, and curation is exactly what a writer naming a biome outright is reaching past.
+            fun namedBy(said: Constraint) =
+                said.word.admitsIn(aspect) + listOfNotNull(said.word.choiceIn(aspect)?.key)
+            val curated = vocabulary.askableIn(aspect)
+            val drawnFrom = (
+                curated + speaking.flatMap(::namedBy).distinct().mapNotNull(aspect::presetFor)
                 ).distinct()
-            val reached = pool.mapNotNull { member -> claimForMember(vocabulary, member, population, speaking, aspect) }
+            val reached = drawnFrom.mapNotNull { member ->
+                claimForMember(vocabulary, member, pool, speaking, aspect, member in curated)
+            }
             if (reached.isEmpty()) continue
-            val named = weighed.optionsFor(aspect, 0).allOf(population)
-            weighed = weighed.withOptions(aspect, population.name, (named + spelled(reached, population, pool)).distinct())
+            flaws += crowdedOutOfAnOnly(vocabulary, speaking, aspect)
+            val settled = weighed.optionsFor(aspect, 0).allOf(pool)
+            weighed = weighed.withOptions(aspect, pool.name, (settled + spelled(reached, pool, drawnFrom)).distinct())
         }
         return weighed
     }
@@ -1201,12 +1201,25 @@ object Resolver {
      * `only` and `except` are the exception, and deliberately so: those are the writer saying outright
      * what to keep and what to strike, rather than what to prefer.
      */
+    /**
+     * What one [word] alone would claim of one [member] — [claimForMember] with a sentence of one page.
+     *
+     * Here so that a tool previewing a word draws the resolver's own arithmetic rather than a second
+     * opinion about it, the two having no way to be found disagreeing.
+     */
+    fun claimBy(vocabulary: Vocabulary, word: Word, aspect: Aspect, member: Taggable): Claim? {
+        val pool = aspect.pool ?: return null
+        val said = Constraint(word, setOf(aspect))
+        return claimForMember(vocabulary, member, pool, listOf(said), aspect, member in vocabulary.askableIn(aspect))
+    }
+
     private fun claimForMember(
         vocabulary: Vocabulary,
         member: Taggable,
-        population: Parameter,
+        pool: Pool,
         speaking: List<Constraint>,
         aspect: Aspect,
+        alreadyInThePool: Boolean,
     ): Claim? {
         val tags = vocabulary.tagsOf(member)
         // **A word that takes a member out takes it out.** Excluding is the pipeline's own removal, so it
@@ -1221,7 +1234,15 @@ object Resolver {
         val insisting = speaking.filter {
             it.word.tier.narrows && it.word.constrainsPresetsIn(aspect) && it.word.acceptsOn(member, tags)
         }
-        val insisted = insisting.sumOf { it.word.claimOn(member, tags) * it.word.tier.weight }
+        // **What a tier weighs is a tag query.** Naming a member is step one and stands on its own, so
+        // scoring it here too made every named member arrive at the ceiling — a share no rung could move
+        // and no second word could add to.
+        val insisted = insisting.sumOf { it.word.pullIn(aspect, tags) * it.word.tier.weight }
+        // **Naming a member asks for more of it**, which is the whole of what naming one does to a
+        // population: every member of a curated pool is present anyway, so a mention that claimed only
+        // the ordinary share would be a page read, charged, and worth nothing.
+        val mentions = speaking.count { it.word.choiceIn(aspect)?.key == member.key }
+        val mentioned = mentions * A_MENTION_IS_WORTH
         // **Every tier leans**, as it does for a catalogue. This counted an evocative word's lean and a
         // narrowing word's *dislike*, and dropped a narrowing word's liking on the floor — so `rich`
         // leaning the ores toward diamond did nothing at all while its dislike of barren bit.
@@ -1243,12 +1264,15 @@ object Resolver {
         // quarter added to it would still be more. Ordinary is one, so an unquantified word changes
         // nothing, and two quantified words compound — `teeming` said twice is very teeming.
         val rung = wanting.fold(Rung.ORDINARY) { standing, said -> standing * said.density }
-        val asked = (Rung.ORDINARY + insisted + leaned) * rung
-        val weight = Rung.legible(asked.coerceIn(population.leastKept, MOST_OF_A_WORLD))
+        val asked = (Rung.ORDINARY + mentioned + insisted + leaned) * rung
+        val weight = Rung.legible(asked.coerceIn(pool.leastKept, MOST_OF_A_WORLD))
         // Struck out rather than kept at nothing: a claim of none of something is what `except` says, and
         // saying it that way keeps one mechanism for removal instead of two.
         if (weight <= NONE_OF_IT) return Claim(member.key, Polarity.EXCEPT)
-        val nothingToSay = polarity == null && Rung.isOrdinary(weight)
+        // **Ordinary is only silence for a member the pool already had.** One a word put there by name
+        // arrives at ordinary standing and dropping the claim would drop the admission with it — the
+        // member would be reached, weighed, and then quietly left out of the world it was named into.
+        val nothingToSay = polarity == null && Rung.isOrdinary(weight) && alreadyInThePool
         if (nothingToSay) return null
         return Claim(member.key, polarity ?: Polarity.ASSERTED, weight)
     }
@@ -1260,9 +1284,9 @@ object Resolver {
      * A word meaning "nothing built here" would otherwise write an exclusion per structure set, which says
      * the same thing at ten times the length and stops saying it the moment a pack adds a set.
      */
-    private fun spelled(claims: List<Claim>, population: Parameter, pool: List<Taggable>): List<String> {
-        val emptied = population.emptiedBy ?: return claims.map { it.spelled() }
-        val everythingStruck = claims.size == pool.size && claims.all { it.polarity == Polarity.EXCEPT }
+    private fun spelled(claims: List<Claim>, pool: Pool, drawnFrom: List<Taggable>): List<String> {
+        val emptied = pool.emptiedBy ?: return claims.map { it.spelled() }
+        val everythingStruck = claims.size == drawnFrom.size && claims.all { it.polarity == Polarity.EXCEPT }
         return if (everythingStruck) listOf(emptied) else claims.map { it.spelled() }
     }
 
@@ -1354,19 +1378,6 @@ object Resolver {
         }
         return fractured
     }
-
-    /**
-     * What this constraint asks of [parameter], spelled the way a recipe holds it. Only a populative
-     * parameter reads the polarity and the rung back — `only` on a material is not built, and neither is
-     * "a great deal of blackstone" (§3.2).
-     */
-    private fun Constraint.claimed(aspect: Aspect, parameter: Parameter): String =
-        Claim(
-            word.setsIn(aspect).getValue(parameter.name),
-            polarity,
-            Rung.legible(parameter.worthOfAMention * density),
-            confinedTo,
-        ).spelled()
 
     /**
      * **`only` said of one thing, beside a plain mention of another that was not joined to it** — a

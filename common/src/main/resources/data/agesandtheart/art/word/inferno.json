@@ -38,6 +38,9 @@
     "make it more broken."
   ],
   "tier": "exact",
+  "chooses": {
+    "phenomena": "inferno"
+  },
   "biases": {
     "sea": {
       "#molten": 1.0,
@@ -46,7 +49,6 @@
     }
   },
   "sets": {
-    "happens": "inferno",
     "motes": "embers|flames",
     "temperature": "0.5..1.0",
     "rainfall": "-1.0..-0.4"

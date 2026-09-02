@@ -96,6 +96,10 @@ class VocabularyCheck : FunSpec({
                 // *means*, and a draw must not move it. Asked of the core alone, `scorching` — whose `murk`
                 // is in its pool — looked like a word that only narrows the water, and the water has
                 // nothing to narrow.
+                // **A chosen member is backed by being chosen.** It arrives with its answer in hand and
+                // searches nothing, which is also the one way to reach a member curation left out — so
+                // asking the curated pool to vouch for it is the wrong question.
+                if (word.choiceIn(aspect) != null) continue
                 val turnsAParameterHere = word.canSet.keys.any { vocabulary.turnsAParameter(aspect, it) }
                 if (!word.constrainsPresetsIn(aspect) || turnsAParameterHere) {
                     // **Only the parameters this aspect holds.** One word carries a single `sets` map across
@@ -385,8 +389,12 @@ class VocabularyCheck : FunSpec({
         for (word in derived) {
             for (aspect in Aspect.entries) {
                 val meant = word.choiceIn(aspect)?.key ?: continue
+                // **What a word admits is not vagueness reaching it.** Admitting is one word putting one
+                // member into one sentence's pool on purpose; the promise is about what a vague word draws
+                // from having *said* nothing, which is curation and nothing else.
                 val reachable = vocabulary.words.any { vague ->
-                    !vague.tier.narrows && meant in vocabulary.carriersOf(vague, aspect).map { it.key }
+                    !vague.tier.narrows && vague.admitsIn(aspect).isEmpty() &&
+                        meant in vocabulary.carriersOf(vague, aspect).map { it.key }
                 }
                 check(!reachable || meant in curated) {
                     "'${word.name}' is derived content a vague word can reach in ${aspect.key}, and it was never " +
@@ -469,9 +477,15 @@ class VocabularyCheck : FunSpec({
     test("a block word means the sea and no other part of the world") {
         val blocks = vocabulary.derivedWords.distinct().filter { it.material != null }
         check(blocks.isNotEmpty()) { "no derived block words at all" }
-        val wrong = blocks.filter { block ->
-            Aspect.entries.any { it != Aspect.SEA && block.choiceIn(it) != null }
+        // **The same id in another registry is not "elsewhere".** Thirteen ids are a block and a placed
+        // feature both — `bamboo`, `blue_ice`, `glow_lichen` — and the merged word carries a choice in each,
+        // every one of them minted by the registry that really holds it. What is refused is a block taken
+        // for something it is not, which is a chosen key that is not the block's own id.
+        fun meansSomethingItIsNot(block: Word) = Aspect.entries.any { aspect ->
+            val chosen = block.choiceIn(aspect)
+            aspect != Aspect.SEA && chosen != null && chosen.key != block.id.toString()
         }
+        val wrong = blocks.filter(::meansSomethingItIsNot)
         check(wrong.isEmpty()) { "${wrong.size} block words mean something elsewhere: ${wrong.take(5).map { it.name }}" }
         val ice = vocabulary.words.firstOrNull { it.name == "ice" }
         check(ice?.choiceIn(Aspect.SEA) != null) { "'ice sea' stopped being a sentence" }

@@ -3,7 +3,7 @@ package co.voik.agesandtheart.preview.authoring
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.word.Claims
 import co.voik.agesandtheart.age.word.Draws
-import co.voik.agesandtheart.age.word.Pool
+import co.voik.agesandtheart.age.word.Facets
 import co.voik.agesandtheart.age.word.Tier
 import co.voik.agesandtheart.age.word.Word
 import com.google.gson.JsonArray
@@ -48,8 +48,8 @@ data class Candidate(
     /** The same, leaned on every part of the world at once, and only ever on a word that does not narrow. */
     val leansEverywhere: Map<String, Double> = emptyMap(),
     val sets: Map<String, String> = emptyMap(),
-    /** Groups of facets an Age takes some of — see [Pool], and [Draws] for how many. */
-    val pools: List<Pool> = emptyList(),
+    /** Groups of facets an Age takes some of — see [Facets], and [Draws] for how many. */
+    val pools: List<Facets> = emptyList(),
     /**
      * The requested half — what the word **offers** rather than insists on, laid under the sentence.
      *
@@ -168,7 +168,7 @@ data class Candidate(
     }
 
     /** A pool says how much of itself it is before it says what is in it — the count is the shorter half. */
-    private fun poolsOf(pools: List<Pool>) = JsonArray().apply {
+    private fun poolsOf(pools: List<Facets>) = JsonArray().apply {
         pools.forEach { pool ->
             add(
                 JsonObject().apply {
@@ -289,11 +289,11 @@ data class Candidate(
         private fun readNumbers(json: JsonObject) =
             json.entrySet().associate { (key, value) -> key to value.asDouble }
 
-        private fun readPools(json: JsonArray): List<Pool> = json.map { entry ->
+        private fun readPools(json: JsonArray): List<Facets> = json.map { entry ->
             val pool = entry.asJsonObject
             val spelled = pool.get("draws")?.asString ?: error("a pool must say how many of itself it draws")
             requireNotNull(Draws.read(spelled)) { "'$spelled' is no count" }
-            Pool(pool.getAsJsonObject("facets")?.let(::readTexts).orEmpty(), Draws(spelled))
+            Facets(pool.getAsJsonObject("facets")?.let(::readTexts).orEmpty(), Draws(spelled))
         }
 
         private fun readTexts(json: JsonObject) =

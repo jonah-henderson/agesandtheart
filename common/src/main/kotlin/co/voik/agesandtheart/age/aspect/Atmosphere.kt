@@ -263,7 +263,9 @@ object Atmosphere {
      */
     fun cornersOf(parts: AgeParts): List<Identifier> =
         Aspect.entries.flatMap { aspect ->
-            aspect.confinableParameters.flatMap(parts.optionsFor(aspect)::confinedIn)
+            val options = parts.optionsFor(aspect)
+            aspect.confinableParameters.flatMap(options::confinedIn) +
+                listOfNotNull(aspect.confinablePool).flatMap(options::confinedIn)
         }.distinct()
 
     private fun colourOf(options: Options, parameter: Parameter, biome: Identifier?): Rgba? =

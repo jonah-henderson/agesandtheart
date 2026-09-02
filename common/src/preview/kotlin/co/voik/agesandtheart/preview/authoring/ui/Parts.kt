@@ -8,7 +8,7 @@ import co.voik.agesandtheart.age.aspect.Setting
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.word.Claims
 import co.voik.agesandtheart.age.word.Draws
-import co.voik.agesandtheart.age.word.Pool
+import co.voik.agesandtheart.age.word.Facets
 import co.voik.agesandtheart.age.word.Tier
 import com.github.ajalt.mordant.rendering.TextStyle
 import co.voik.agesandtheart.age.word.Word
@@ -395,7 +395,7 @@ class Parts(private val corpus: Corpus) {
      * [Pool.said] rather than a name somebody chose: what a pool is about is already spelled in the
      * parameters it holds, and every name anyone invented for one was a word this codebase did not have.
      */
-    private fun drawsRow(insistence: Insistence, at: Int, pool: Pool): Row = Row(
+    private fun drawsRow(insistence: Insistence, at: Int, pool: Facets): Row = Row(
         handle = "draws/${insistence.name}/$at",
         shown = listOf(
             Ink("    "),
@@ -406,7 +406,7 @@ class Parts(private val corpus: Corpus) {
     )
 
     /** What the count actually comes to, said back — the whole point of allowing a range to be written. */
-    private fun drawsNote(pool: Pool): String {
+    private fun drawsNote(pool: Facets): String {
         val options = pool.draws.options
         val counted = options.distinct().sorted().joinToString(" or ") { many ->
             val chances = options.count { it == many }
@@ -971,7 +971,7 @@ fun Candidate.claimsOn(insistence: Insistence): Claims =
 fun Candidate.settingOn(insistence: Insistence): Map<String, String> = claimsOn(insistence).sets
 
 /** The pools on that half, in the order they were written — which is also how the draw is salted. */
-fun Candidate.poolsOn(insistence: Insistence): List<Pool> = claimsOn(insistence).pools
+fun Candidate.poolsOn(insistence: Insistence): List<Facets> = claimsOn(insistence).pools
 
 /** Everything that half could ever turn, whatever an Age's draw settles on. */
 fun Candidate.everythingOn(insistence: Insistence): Map<String, String> = claimsOn(insistence).everything
@@ -1008,7 +1008,7 @@ fun Candidate.withoutInPool(insistence: Insistence, at: Int, parameter: String):
 /** This word with a pool added to [insistence] — one facet and a count of one, which is the least a pool is. */
 fun Candidate.addingAPool(insistence: Insistence, parameter: String, value: String): Candidate =
     withClaims(insistence, claimsOn(insistence).let {
-        it.copy(pools = it.pools + Pool(mapOf(parameter to value), Draws.of(1)))
+        it.copy(pools = it.pools + Facets(mapOf(parameter to value), Draws.of(1)))
     })
 
 fun Candidate.withoutPool(insistence: Insistence, at: Int): Candidate =
@@ -1018,7 +1018,7 @@ fun Candidate.withoutPool(insistence: Insistence, at: Int): Candidate =
 fun Candidate.drawing(insistence: Insistence, at: Int, draws: Draws): Candidate =
     changingPool(insistence, at) { it.copy(draws = draws) }
 
-private fun Candidate.changingPool(insistence: Insistence, at: Int, change: (Pool) -> Pool): Candidate =
+private fun Candidate.changingPool(insistence: Insistence, at: Int, change: (Facets) -> Facets): Candidate =
     withClaims(insistence, claimsOn(insistence).let { claims ->
         claims.copy(pools = claims.pools.mapIndexed { where, pool -> if (where == at) change(pool) else pool })
     })

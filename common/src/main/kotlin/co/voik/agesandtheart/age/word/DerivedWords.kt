@@ -112,7 +112,7 @@ object DerivedWords {
         val struckOut = lookup.struckOutBy(FORBIDDEN_BIOMES)
         lookup.listElements()
             .filter { holder -> holder.key() !in struckOut }
-            .map { holder -> setting(holder.key().identifier(), Aspect.BIOMES, Biomes.GROWN) }
+            .map { holder -> choosing(holder.key().identifier(), Aspect.BIOMES) }
             .toList()
     }
 
@@ -129,7 +129,7 @@ object DerivedWords {
         val struckOut = lookup.struckOutBy(FORBIDDEN_FEATURES)
         lookup.listElements()
             .filter { holder -> holder.key() !in struckOut }
-            .map { holder -> setting(holder.key().identifier(), Aspect.FEATURES, Features.PLACES) }
+            .map { holder -> choosing(holder.key().identifier(), Aspect.FEATURES) }
             .toList()
     }
 
@@ -145,7 +145,7 @@ object DerivedWords {
     fun spawns(writable: Set<Identifier> = emptySet()): List<Word> = BuiltInRegistries.ENTITY_TYPE.listElements()
         .filter { holder -> !holder.`is`(FORBIDDEN_SPAWNS) }
         .filter { holder -> livesSomewhere(holder.value()) || holder.key().identifier() in writable }
-        .map { holder -> setting(holder.key().identifier(), Aspect.SPAWNS, Spawns.LIVES) }
+        .map { holder -> choosing(holder.key().identifier(), Aspect.SPAWNS) }
         .toList()
 
     /**
@@ -173,21 +173,22 @@ object DerivedWords {
         val struckOut = lookup.struckOutBy(FORBIDDEN_STRUCTURE_SETS)
         lookup.listElements()
             .filter { holder -> holder.key() !in struckOut }
-            .map { holder -> setting(holder.key().identifier(), Aspect.STRUCTURES, Structures.BUILT) }
+            .map { holder -> choosing(holder.key().identifier(), Aspect.STRUCTURES) }
             .toList()
     }
 
     /**
-     * A word that turns a parameter rather than choosing a preset — how a referent reaches an open parameter.
-     * The value is the full `namespace:path`, never the bare one: a recipe is read back long after the
-     * word that set it is forgotten, so it must be unambiguous even where the word could be short.
+     * A word that **chooses one member** of a population — how a referent reaches the pool it belongs to.
+     *
+     * It set the pool's parameter by name until choosing worked on a weighted set, which is the same claim
+     * said in the language every other word about a population speaks: a member is chosen, admitted,
+     * removed or leaned, and naming one is choosing it.
      */
-    private fun setting(id: Identifier, aspect: Aspect, parameter: Parameter) = Word(
+    private fun choosing(id: Identifier, aspect: Aspect) = Word(
         id = id,
         tier = Tier.EXACT,
         aspects = setOf(aspect),
-
-        sets = mapOf(parameter.name to id.toString()),
+        chooses = mapOf(aspect to id.toString()),
     )
 
     /**

@@ -47,9 +47,8 @@ object Biomes {
          * The biomes grown here — populative, so naming one adds it and naming two adds both, with
          * `only`/`except` to narrow (§3.2). Named `grown` rather than `biomes` to avoid `biomes.biomes`.
          */
-        val GROWN = Parameter.population(
+        val GROWN = Pool(
             "grown",
-            worthOfAMention = BiomePreference.WEIGHT_OF_A_MENTION,
             // No word may empty it: every column has to have *some* biome, so being rare is as far down
             // as an Age can push one. `except` still strikes one out, that being an outright instruction.
             leastKept = BiomePreference.LEAST_KEPT,

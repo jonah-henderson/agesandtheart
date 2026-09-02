@@ -45,9 +45,13 @@ object Features {
      * **A rung here is absolute and takes nothing from anything else** ([FeatureDensity]): twice the trees
      * is twice the trees, where twice the desert is necessarily less of some other biome.
      */
-    val PLACES = Parameter.population("grows", leastKept = NOTHING_AT_ALL, emptiedBy = NOTHING,
-            help = "What is placed in the world: trees, ores, plants, ruins.",
-        ).perBiome()
+    val PLACES = Pool(
+        "grows",
+        leastKept = NOTHING_AT_ALL,
+        emptiedBy = NOTHING,
+        help = "What is placed in the world: trees, ores, plants, ruins.",
+        confinable = true,
+    )
 
     /** How an Age says nothing is placed here at all: bare ground, whatever its biomes would have carried. */
     const val NOTHING = "nothing"

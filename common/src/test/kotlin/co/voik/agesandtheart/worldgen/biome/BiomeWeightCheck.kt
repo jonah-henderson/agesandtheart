@@ -30,7 +30,7 @@ import java.util.Optional
 class BiomeWeightCheck : FunSpec({
 
     test("a weight above ordinary gives a biome more of the climate cube") {
-        val grown = applied(BiomePreference(FAVOURED, BiomePreference.WEIGHT_OF_A_MENTION))
+        val grown = applied(BiomePreference(FAVOURED, ABOVE_ORDINARY))
         check(reachOf(grown, FAVOURED) > reachOf(table(), FAVOURED)) {
             "a mention left the biome answering for ${reachOf(grown, FAVOURED)}, against ${reachOf(table(), FAVOURED)}"
         }
@@ -47,7 +47,7 @@ class BiomeWeightCheck : FunSpec({
     }
 
     test("a biome nobody spoke about is left exactly as it was") {
-        val grown = applied(BiomePreference(FAVOURED, BiomePreference.WEIGHT_OF_A_MENTION))
+        val grown = applied(BiomePreference(FAVOURED, ABOVE_ORDINARY))
         // The boxes, not the entries: a standalone holder is equal only to itself, and every table built
         // here builds its own.
         val untouched = entriesFor(grown, IGNORED).map { it.first }
@@ -82,6 +82,9 @@ class BiomeWeightCheck : FunSpec({
 
 private val FAVOURED = Identifier.withDefaultNamespace("cherry_grove")
 private val IGNORED = Identifier.withDefaultNamespace("badlands")
+
+/** Twice what the Age would have grown anyway — what naming a biome comes to (`Resolver.claimForMember`). */
+private const val ABOVE_ORDINARY = 2.0
 
 /** Half of what the Age would have grown anyway — a biome spoken against rather than struck out. */
 private const val HALF = 0.5

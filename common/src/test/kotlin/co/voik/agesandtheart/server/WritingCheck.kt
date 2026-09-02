@@ -85,7 +85,7 @@ class WritingCheck : FunSpec({
         server.ask("write", "onlyoneteems age woodland_mansions and teeming villages structures")
         val recipe = recipeOf(server, "onlyoneteems")
         check("minecraft:villages[amount=${TEEMING.written}]" in recipe) { "the rung did not reach its own term: $recipe" }
-        check("woodland_mansions[" !in recipe) { "the rung leaked onto the term beside it: $recipe" }
+        check("woodland_mansions[amount=$A_MENTION]" in recipe) { "the rung leaked onto the term beside it: $recipe" }
     }
 
     /** `only` and a rung are independent axes on one value, and must not eat each other. */
@@ -118,8 +118,14 @@ class WritingCheck : FunSpec({
  */
 private data class Quantifier(val said: String, val written: String)
 
-private val TEEMING = Quantifier("teeming", "4")
-private val SCARCE = Quantifier("scarce", "0.25")
+/**
+ * What naming one member comes to unquantified, which a rung then scales — see `Resolver.claimForMember`,
+ * where a mention is a claim on the world rather than a page waiting for a quantifier to give it one.
+ */
+private const val A_MENTION = "2"
+
+private val TEEMING = Quantifier("teeming", "8")
+private val SCARCE = Quantifier("scarce", "0.5")
 
 /** The recipe an Age was written with, read back out of `/age list`. */
 private fun recipeOf(server: DrivenServer, name: String): String {

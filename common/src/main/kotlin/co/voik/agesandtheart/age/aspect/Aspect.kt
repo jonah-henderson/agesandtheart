@@ -291,13 +291,11 @@ enum class Aspect(
         get() = when (this) {
             // Water boiling away is what a temperature does, not what the air is like.
             CLIMATE -> ClimateAxis.entries.map { it.parameter } + Atmosphere.EVAPORATION + Parameter.cast()
-            // A biome's population is the aspect's answer; `footing` says how it is *worn*, not which.
-            BIOMES -> listOf(Biomes.GROWN, Biomes.FOOTING)
-            STRUCTURES -> listOf(Structures.BUILT)
+            // A biome's population is the aspect's [pool] rather than a setting; `footing` says how it
+            // is *worn*, not which.
+            BIOMES -> listOf(Biomes.FOOTING)
             SURFACE -> listOf(Surface.MATERIAL)
-            FEATURES -> listOf(Features.PLACES, Features.SIZE, Features.THICKNESS, Features.HEIGHT)
-            SPAWNS -> listOf(Spawns.LIVES)
-            PHENOMENA -> listOf(Phenomena.HAPPENS)
+            FEATURES -> listOf(Features.SIZE, Features.THICKNESS, Features.HEIGHT)
             AIR -> listOf(Atmosphere.FOG, Atmosphere.TINT, Atmosphere.MOTES, Atmosphere.HAZE)
             WATERS -> listOf(Atmosphere.MURK)
             WEATHER -> listOf(Atmosphere.RAINFALL, Atmosphere.THUNDER)
@@ -325,7 +323,9 @@ enum class Aspect(
             )
             CLOUD -> listOf(Atmosphere.CLOUD)
             SEA -> listOf(Sea.DEPTH)
-            TERRAIN, CARVERS, UNDERGROUND -> emptyList()
+            // **Nothing settable at all**, which for the last three is because their whole answer is a
+            // [pool]: members are added, removed and leaned rather than set to a value.
+            TERRAIN, CARVERS, UNDERGROUND, STRUCTURES, SPAWNS, PHENOMENA -> emptyList()
         }
 
     /**
@@ -369,6 +369,25 @@ enum class Aspect(
     }
 
     /**
+     * Where this aspect's members are held, or null where it holds no population.
+     *
+     * **A field rather than a search.** `Resolver.weighed` used to hunt an aspect's parameters for one
+     * saying it held a weighted set, which is a lookup standing in for a fact: an aspect either has a pool
+     * or it does not.
+     */
+    val pool: Pool?
+        get() = when (this) {
+            BIOMES -> Biomes.GROWN
+            STRUCTURES -> Structures.BUILT
+            FEATURES -> Features.PLACES
+            SPAWNS -> Spawns.LIVES
+            PHENOMENA -> Phenomena.HAPPENS
+            TERRAIN, SEA, CARVERS, UNDERGROUND, SKY, CLIMATE, SURFACE,
+            AIR, WATERS, WEATHER, SUN, MOON, STARS, GRASS, LEAVES, CLOUD, AURORA, RAINBOW,
+            -> null
+        }
+
+    /**
      * Whether [key] is one of *this* aspect's presets, by exact name.
      *
      * Asked of [authored] rather than [presetFor], and that is the whole of why this is safe: an open
@@ -409,13 +428,19 @@ enum class Aspect(
 
     /**
      * Whether a clause about this may be **confined to one biome** — `spawns only slime in mushroom_fields`.
-     * True where any parameter of this aspect can be sited, which is where vanilla resolves the value
-     * through the biome.
+     * True where any parameter of this aspect can be sited, or where its population can, which is where
+     * vanilla resolves the value through the biome.
      *
      * A phenomenon is deliberately not among them: it is *sited* rather than resolved per biome (§5.2), so
      * `in <biome>` would be the wrong scope for it entirely.
      */
-    val confinable: Boolean get() = confinableParameters.isNotEmpty()
+    val confinable: Boolean get() = confinableParameters.isNotEmpty() || confinablePool != null
+
+    /**
+     * This aspect's population where a claim on it may be sited, and null otherwise — the other half of
+     * [confinable], which was all of it while a population was stored in a parameter of its own.
+     */
+    val confinablePool: Pool? get() = pool?.takeIf { it.confinable }
 
     /**
      * The parameters of this aspect a claim may be sited on — what [confinable] is the existence of.
@@ -466,12 +491,6 @@ data class Parameter(
      * the thing it describes, read by whatever wants to show it.
      */
     val landmarks: List<Landmark> = emptyList(),
-    /** What naming one of these is worth, where the value is a member of a population — see [population]. */
-    val worthOfAMention: Double = Rung.ORDINARY,
-    /** How little of a member a word may leave, where the value is a member of a population. */
-    val leastKept: Double = Rung.ORDINARY,
-    /** What this population calls having none of anything, where it may be emptied at all. */
-    val emptiedBy: String? = null,
     /**
      * Whether a claim on this may be sited in one biome — `in <biome>` (design §4.3.1). Set with [perBiome].
      *
@@ -566,43 +585,7 @@ data class Parameter(
         fun material(name: String, holdsYouUp: Boolean = false, help: String = "") =
             Parameter(name, listOf(UNCHANGED), open = true, material = true, holdsYouUp = holdsYouUp, help = help)
 
-        /**
-         * A set of registry entries present here — the biomes an Age draws from. Populative, so naming
-         * one adds it and naming two adds both: inclusive by default, with `only` and `except` as the
-         * modifiers that narrow it.
-         *
-         * [worthOfAMention] is how much of it naming one asks for, in multiples of what the Age would have
-         * had anyway. It differs by population, and the difference is real: a structure set is **opt-in**,
-         * so naming it asks for the ordinary amount of it, where every biome is present already and naming
-         * one has to mean *more of that*.
-         */
-        fun population(
-            name: String,
-            worthOfAMention: Double = Rung.ORDINARY,
-            leastKept: Double = Rung.ORDINARY,
-            emptiedBy: String? = null,
-            /**
-             * Values that are **ours** rather than a registry's, which closes the parameter.
-             *
-             * Every other population draws from the game — a creature is an entity type, a feature is a
-             * placed feature — so it takes any id and complains later, where the missing content bites. A
-             * phenomenon has nothing behind it in vanilla, so its values are written down and anything else
-             * is a typo rather than an unloaded pack.
-             */
-            named: List<String> = emptyList(),
-            help: String = "",
-        ) = Parameter(
-            name,
-            listOfNotNull(UNCHANGED, emptiedBy) + named,
-            open = named.isEmpty(),
-            holds = Holds.WEIGHTED_SET,
-            worthOfAMention = worthOfAMention,
-            leastKept = leastKept,
-            emptiedBy = emptiedBy,
-            help = help,
-        )
-
-        /**
+                /**
          * A continuous axis a word may bound — climate's temperature and humidity. Defaults to the whole
          * axis, so an Age told nothing keeps whatever vanilla's noise produced.
          */

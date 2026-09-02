@@ -12,8 +12,5 @@
   "tier": "exact",
   "chooses": {
     "phenomena": "tempest"
-  },
-  "sets": {
-    "happens": "tempest"
   }
 }

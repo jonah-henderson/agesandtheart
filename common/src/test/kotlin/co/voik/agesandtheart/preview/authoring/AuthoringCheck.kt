@@ -5,7 +5,7 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.word.Tier
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.age.word.Draws
-import co.voik.agesandtheart.age.word.Pool
+import co.voik.agesandtheart.age.word.Facets
 import co.voik.agesandtheart.preview.authoring.ui.Insistence
 import co.voik.agesandtheart.preview.authoring.ui.addingAPool
 import co.voik.agesandtheart.preview.authoring.ui.drawing
@@ -49,7 +49,7 @@ class AuthoringCheck : FunSpec({
             excludes = mapOf(Aspect.SEA to setOf("#watery")),
             biases = mapOf(Aspect.BIOMES to mapOf("minecraft:plains" to 1.0)),
             sets = mapOf("stone" to "minecraft:stone"),
-            pools = listOf(Pool(mapOf("spacing" to "0.4..1.0"), Draws("1..2"))),
+            pools = listOf(Facets(mapOf("spacing" to "0.4..1.0"), Draws("1..2"))),
             template = "dark_void",
             mints = "minecraft:spring_water",
             mintsSomethingThatFlows = true,
@@ -129,7 +129,7 @@ class AuthoringCheck : FunSpec({
      */
     test("a parameter nothing turns is refused, in the core and in the pool") {
         val base = Candidate(name = "probe", tier = Tier.EXACT, )
-        for (invented in listOf(base.copy(sets = mapOf("suns" to "1")), base.copy(pools = listOf(Pool(mapOf("suns" to "1"), Draws.of(1)))))) {
+        for (invented in listOf(base.copy(sets = mapOf("suns" to "1")), base.copy(pools = listOf(Facets(mapOf("suns" to "1"), Draws.of(1)))))) {
             val said = Verdict.refusals(Verdict.on(invented, corpus))
             check(said.any { it.says.contains("suns") }) {
                 "a parameter no aspect owns was not refused: ${said.joinToString { it.says }}"
@@ -271,8 +271,8 @@ class AuthoringCheck : FunSpec({
             tier = Tier.RESTRICTIVE,
             aspects = setOf(Aspect.SUN),
             pools = listOf(
-                Pool(mapOf("sun.colour" to "red", "sun.size" to "0.7..1.0"), Draws.of(1)),
-                Pool(mapOf("sky.colour" to "red", "haze" to "0.4"), Draws.of(1)),
+                Facets(mapOf("sun.colour" to "red", "sun.size" to "0.7..1.0"), Draws.of(1)),
+                Facets(mapOf("sky.colour" to "red", "haze" to "0.4"), Draws.of(1)),
             ),
         )
         for (draw in 0L..<40L) {

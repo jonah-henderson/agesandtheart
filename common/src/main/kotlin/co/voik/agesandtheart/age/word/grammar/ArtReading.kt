@@ -183,16 +183,13 @@ internal object ArtReading {
         /**
          * Whether this page is the name of a biome — one of §8's derived words, and nothing else.
          *
-         * **Asked of what a biome word actually is**, which is where this was wrong: it used to require
-         * the word to mean a preset outright, and `DerivedWords.biomes` builds every biome word with
-         * `setting` instead — deliberately, because a biome *enriches a table* where a sea *is* its
-         * block. So no biome in the game passed, `in <biome>` refused every one of them, and both pages
-         * were dropped as impossible. Nothing covered `in` at all, which is how it survived.
+         * **Asked of what a biome word actually is**: it chooses one member of the biomes, which every
+         * derived biome word does and nothing else in the corpus does by accident.
          */
         private fun namesABiome(page: Page): Boolean {
             if (page.kind != PageClass.TERM) return false
             val word = page.word ?: return false
-            return Aspect.BIOMES in word.aspects && Biomes.GROWN.name in word.everySet
+            return word.choiceIn(Aspect.BIOMES) != null
         }
 
         /**

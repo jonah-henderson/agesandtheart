@@ -71,6 +71,23 @@ value class Options(val chosen: Map<String, List<String>> = emptyMap()) {
     fun claimsOn(parameter: Parameter): List<Claim> =
         chosen[parameter.name].orEmpty().map(Claim::read).filter { parameter.accepts(it.value) }
 
+    // -- the same three, asked of a pool ---------------------------------------------------------------
+    //
+    // A pool holds members where a parameter holds a value, and both are stored under a name, so what
+    // differs is only what counts as a legal entry. `accepts` is the whole of the difference.
+
+    fun confinedIn(pool: Pool): List<Identifier> =
+        chosen[pool.name].orEmpty().mapNotNull { Claim.read(it).confinedTo }.distinct()
+
+    fun confinesAnywhere(pool: Pool): Boolean =
+        chosen[pool.name].orEmpty().any { Claim.read(it).confinedTo != null }
+
+    fun allOf(pool: Pool): List<String> =
+        chosen[pool.name].orEmpty().map { Claim.read(it).value }.filter(pool::accepts)
+
+    fun claimsOn(pool: Pool): List<Claim> =
+        chosen[pool.name].orEmpty().map(Claim::read).filter { pool.accepts(it.value) }
+
     /**
      * The blocks chosen for a **material** [parameter] — the ids read back as real blocks.
      *
