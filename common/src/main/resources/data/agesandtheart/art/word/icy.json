@@ -21,10 +21,14 @@
       "tint": "blue",
       "ceiling": "-0.4"
     },
-    "pool": {
-      "sun.colour": "blue|white|grey",
-      "sun.size": "<0.4"
-    },
-    "draws": 2
+    "pools": [
+      {
+        "draws": "2",
+        "facets": {
+          "sun.colour": "blue|white|grey",
+          "sun.size": "<0.4"
+        }
+      }
+    ]
   }
 }

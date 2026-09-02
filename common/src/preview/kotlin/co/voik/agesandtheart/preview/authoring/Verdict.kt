@@ -8,6 +8,9 @@ import co.voik.agesandtheart.age.aspect.Setting
 import co.voik.agesandtheart.age.aspect.namesARegistryEntry
 import co.voik.agesandtheart.age.word.Resolver
 import co.voik.agesandtheart.age.word.Word
+import co.voik.agesandtheart.preview.authoring.ui.Insistence
+import co.voik.agesandtheart.preview.authoring.ui.everythingOn
+import co.voik.agesandtheart.preview.authoring.ui.poolsOn
 
 /**
  * What is wrong with a word, and what is merely worth thinking about — **the same rules the checks hold,
@@ -59,35 +62,26 @@ object Verdict {
     // -- the name ------------------------------------------------------------------------------------
 
     /**
-     * A pool that never fires.
+     * A pool that takes all of itself.
      *
-     * **Zero draws nothing**, which `facetsDrawnAt` says outright and a file does not: `pool` with no
-     * `draws` looks like three facets and is three facets the Age will never take. Found on a word being
-     * written the day this was added, so it is not hypothetical.
+     * **The other half of this is gone, and could not come back.** `pool` with no `draws` looked like
+     * three facets and was three facets the Age would never take; a pool now has to say how much of
+     * itself it is, and a count that never draws is refused by the codec. What is left is the nudge: a
+     * pool drawing its whole size is what `sets` already means, spelled at more length.
      */
     private fun pooledButNeverDrawn(candidate: Candidate): List<Finding> = buildList {
-        fun look(pool: Map<String, String>, draws: Int, side: String) {
-            if (pool.isEmpty()) return
-            if (draws <= 0) {
-                add(
-                    Finding(
-                        Standing.ERROR,
-                        "the $side pool draws nothing",
-                        "`draws` is ${draws}, so none of ${pool.keys.sorted().joinToString(" ")} is ever taken",
-                    ),
-                )
-            } else if (draws >= pool.size) {
+        for (insistence in Insistence.entries) {
+            for (pool in candidate.poolsOn(insistence)) {
+                if (pool.draws.least < pool.facets.size) continue
                 add(
                     Finding(
                         Standing.NUDGED,
-                        "the $side pool takes all of itself",
-                        "`draws` is $draws of ${pool.size}, which is what `sets` already means",
+                        "the ${insistence.title} ${pool.said} pool takes all of itself",
+                        "it draws ${pool.draws} of ${pool.facets.size}, which is what `sets` already means",
                     ),
                 )
             }
         }
-        look(candidate.pool, candidate.draws, "required")
-        look(candidate.requests.pool, candidate.requests.draws, "requested")
     }
 
     private fun nameFaults(candidate: Candidate, corpus: Corpus): List<Finding> = buildList {
@@ -164,18 +158,6 @@ object Verdict {
             }
             addAll(valueFaults(word, parameter, value, corpus))
         }
-        if (word.draws > 0 && word.pool.isEmpty()) {
-            add(Finding(Standing.WARNED, "draws ${word.draws} from an empty pool", "there is nothing to draw"))
-        }
-        if (word.pool.isNotEmpty() && word.draws == 0) {
-            add(
-                Finding(
-                    Standing.WARNED,
-                    "a pool set to draw none of it",
-                    "nothing in it will ever apply",
-                ),
-            )
-        }
     }
 
     /**
@@ -187,7 +169,7 @@ object Verdict {
      * the moment a clause mints anything, which is the same rule the template already lives by.
      */
     private fun strengthFaults(candidate: Candidate): List<Finding> = buildList {
-        val demanded = candidate.sets + candidate.pool
+        val demanded = candidate.everythingOn(Insistence.REQUIRED)
         for (parameter in demanded.keys.filter { it.substringAfterLast('.') == Parameter.CAST }) {
             add(
                 Finding(
@@ -198,7 +180,7 @@ object Verdict {
                 ),
             )
         }
-        val offered = candidate.requests.sets + candidate.requests.pool
+        val offered = candidate.everythingOn(Insistence.REQUESTED)
         for (parameter in demanded.keys intersect offered.keys) {
             add(
                 Finding(
@@ -445,7 +427,7 @@ object Verdict {
     // -- the settled rulings -------------------------------------------------------------------------
 
     private fun nudges(candidate: Candidate, word: Word, corpus: Corpus): List<Finding> = buildList {
-        for (spelled in candidate.sets.keys + candidate.pool.keys) {
+        for (spelled in candidate.everythingOn(Insistence.REQUIRED).keys) {
             if (!spelled.contains('.')) continue
             val parameter = spelled.substringAfter('.')
             val owners = Aspect.entries.filter { it.ownsParameterNamed(parameter) }

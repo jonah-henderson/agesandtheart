@@ -19,11 +19,15 @@
   "sets": {
     "temperature": "-0.95..-0.45"
   },
-  "pool": {
-    "humidity": "-0.3..0.3",
-    "colour": "white|grey",
-    "size": "-1.0..-0.7",
-    "haze": "0.2..0.6"
-  },
-  "draws": 2
+  "pools": [
+    {
+      "draws": "2",
+      "facets": {
+        "humidity": "-0.3..0.3",
+        "colour": "white|grey",
+        "size": "-1.0..-0.7",
+        "haze": "0.2..0.6"
+      }
+    }
+  ]
 }

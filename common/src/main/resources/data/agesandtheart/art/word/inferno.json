@@ -52,13 +52,17 @@
         "watery": -0.8
       }
     },
-    "pool": {
-      "sun.cast": "2|3",
-      "sun.colour": "red|blue",
-      "sun.size": "0.7..1.0",
-      "sky.colour": "red",
-      "haze": "0.35..0.7"
-    },
-    "draws": 3
+    "pools": [
+      {
+        "draws": "3",
+        "facets": {
+          "sun.cast": "2|3",
+          "sun.colour": "red|blue",
+          "sun.size": "0.7..1.0",
+          "sky.colour": "red",
+          "haze": "0.35..0.7"
+        }
+      }
+    ]
   }
 }

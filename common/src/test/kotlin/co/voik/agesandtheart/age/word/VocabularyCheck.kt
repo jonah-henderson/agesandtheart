@@ -210,7 +210,7 @@ class VocabularyCheck : FunSpec({
      */
     test("no word insists on a cast") {
         for (word in vocabulary.words) {
-            val demanded = (word.sets + word.pool).keys
+            val demanded = word.required.everything.keys
                 .filter { it.substringAfterLast('.') == Parameter.CAST }
             check(demanded.isEmpty()) {
                 "'${word.name}' demands ${demanded.joinToString()} — a cast belongs in `requests`, where it " +
@@ -226,7 +226,7 @@ class VocabularyCheck : FunSpec({
      */
     test("no word both demands and offers one parameter") {
         for (word in vocabulary.words) {
-            val both = (word.sets + word.pool).keys intersect (word.requests.sets + word.requests.pool).keys
+            val both = word.required.everything.keys intersect word.requests.everything.keys
             check(both.isEmpty()) {
                 "'${word.name}' both demands and offers ${both.joinToString()}, so the offer can never land"
             }
@@ -407,7 +407,7 @@ class VocabularyCheck : FunSpec({
      */
     test("only the inferno may hang burning air") {
         val reserved = setOf("embers", "flames")
-        fun offers(word: Word) = (word.sets.entries + word.pool.entries)
+        fun offers(word: Word) = word.required.everything.entries
             .filter { it.key == "motes" }
             .flatMap { it.value.split(POOL_ALTERNATIVES) }
             .filter { it in reserved }

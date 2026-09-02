@@ -6,6 +6,9 @@ import co.voik.agesandtheart.age.aspect.Materials
 import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Setting
 import co.voik.agesandtheart.age.aspect.Span
+import co.voik.agesandtheart.age.word.Claims
+import co.voik.agesandtheart.age.word.Draws
+import co.voik.agesandtheart.age.word.Pool
 import co.voik.agesandtheart.age.word.Tier
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.preview.authoring.Candidate
@@ -35,16 +38,16 @@ enum class Part(val title: String, val about: String, val perilous: Boolean = fa
 }
 
 /**
- * Which of the four effect slots a row belongs to.
+ * **How hard a word claims something** — whether it insists, or merely offers and gives way to the book.
  *
- * Two questions, asked separately: does the word **insist** or merely **request**, and does it do this
- * **always** or is it **drawn** from a pool per Age. A word may want any mix of the four.
+ * It used to be four values, crossing this question with whether the claim was drawn per Age. A word may
+ * now carry several pools, so where a claim is drawn from is a *place* rather than a kind of claim, and the
+ * two questions came apart. This is the first of them; a pool says which of these it belongs to and where
+ * in that list it sits.
  */
-enum class Slot(val required: Boolean, val drawn: Boolean, val title: String, val about: String) {
-    REQUIRED_ALWAYS(true, false, "required", "always applies, and overrides anything else"),
-    REQUIRED_POOL(true, true, "required pool", "drawn per Age, then applies like the rest of required"),
-    REQUESTED_ALWAYS(false, false, "requested", "applies only where the book said nothing"),
-    REQUESTED_POOL(false, true, "requested pool", "drawn per Age, and still gives way to the book"),
+enum class Insistence(val required: Boolean, val title: String, val about: String) {
+    REQUIRED(true, "required", "always applies, and overrides anything else"),
+    REQUESTED(false, "requested", "applies only where the book said nothing"),
 }
 
 /**
@@ -184,8 +187,7 @@ class Parts(private val corpus: Corpus) {
             if (candidate.queries.containsKey(aspect)) add("it asks tags of ${aspect.page}")
             if (candidate.requests.queries.containsKey(aspect)) add("it offers tags to ${aspect.page}")
             if (candidate.weights.containsKey(aspect)) add("it weighs a preset in ${aspect.page}")
-            val parameters = candidate.sets.keys + candidate.pool.keys + candidate.requests.sets.keys +
-                candidate.requests.pool.keys
+            val parameters = Insistence.entries.flatMap { candidate.everythingOn(it).keys }
             val here = parameters.filter { aspect.ownsParameterNamed(it.substringAfterLast('.')) }
             if (here.isNotEmpty()) add("it turns ${here.sorted().joinToString(" ")}")
             candidate.meansExactly[aspect]?.let { add("it means $it outright") }
@@ -203,23 +205,29 @@ class Parts(private val corpus: Corpus) {
      * One list means what a word does is in one place, whatever shape it took.
      */
     private fun effectRows(candidate: Candidate, word: Word?): List<Row> = buildList {
-        for (slot in Slot.entries) {
-            val parameters = candidate.holding(slot)
-            val leaning = if (slot.required) emptyMap() else candidate.requests.queries
-            if (parameters.isEmpty() && (slot.drawn || leaning.isEmpty())) continue
-            add(headingFor(slot, candidate))
-            for ((parameter, value) in parameters.entries.sortedBy { it.key }) {
-                add(
-                    Row(
-                        handle = "${slot.name}/$parameter",
-                        shown = listOf(
-                            Ink("    "),
-                            Ink(parameter.padEnd(22), Palette.parameter),
-                            Ink(value, Palette.value),
-                        ),
-                        note = parameterNote(parameter, value, word),
-                    ),
-                )
+        for (insistence in Insistence.entries) {
+            val always = candidate.settingOn(insistence)
+            val pools = candidate.poolsOn(insistence)
+            val leaning = if (insistence.required) emptyMap() else candidate.requests.queries
+            if (always.isEmpty() && pools.isEmpty() && leaning.isEmpty()) continue
+            add(
+                Row(
+                    handle = "heading/${insistence.name}",
+                    shown = listOf(Ink(insistence.title, Palette.heading)),
+                    note = insistence.about,
+                ),
+            )
+            for ((parameter, value) in always.entries.sortedBy { it.key }) {
+                add(facetRow("${insistence.name}/$parameter", parameter, value, word))
+            }
+            // **Each pool under its own heading**, because what a pool is *for* is that its facets belong
+            // together — a writer laying `sun.colour` beside `sun.size` is saying the Age varies in its
+            // sun, and a single flat list of eight facets says only that it varies.
+            for ((at, pool) in pools.withIndex()) {
+                add(drawsRow(insistence, at, pool))
+                for ((parameter, value) in pool.facets.entries.sortedBy { it.key }) {
+                    add(facetRow("pool/${insistence.name}/$at/$parameter", parameter, value, word, deeper = true))
+                }
             }
         }
         candidate.mints?.let { pattern ->
@@ -229,7 +237,7 @@ class Parts(private val corpus: Corpus) {
                     handle = "mints",
                     shown = listOf(
                         Ink("    "),
-                        Ink(pattern.padEnd(22), Palette.parameter),
+                        Ink(pattern.padEnd(PARAMETER_COLUMN), Palette.parameter),
                         Ink(if (candidate.mintsSomethingThatFlows) "holds a fluid" else "holds a block", Palette.value),
                     ),
                     note = "the substance comes from the clause it is written in — `ink springs`",
@@ -238,20 +246,47 @@ class Parts(private val corpus: Corpus) {
         }
         add(Row("+", listOf(Ink("+ add an effect", Palette.faint))))
         // **A pool is a group and a count, so it is built rather than assembled.** Adding facets one at a
-        // time through `add an effect` meant choosing the pool slot again for every one and then finding
-        // the heading to set the draw — four walks for what is one decision.
+        // time through `add an effect` meant choosing the pool again for every one and then finding the
+        // heading to set the draw — four walks for what is one decision.
         add(Row("+pool", listOf(Ink("+ add a pool, drawn per Age", Palette.faint))))
     }
 
-    private fun headingFor(slot: Slot, candidate: Candidate): Row {
-        val pool = candidate.holding(slot)
-        val draws = if (slot.required) candidate.draws else candidate.requests.draws
-        val counted = if (slot.drawn) "  ${Glyph.BULLET} $draws of ${pool.size} drawn" else ""
-        return Row(
-            handle = if (slot.drawn) "draws/${slot.name}" else "heading/${slot.name}",
-            shown = listOf(Ink(slot.title, Palette.heading), Ink(counted, Palette.faint)),
-            note = slot.about,
+    private fun facetRow(handle: String, parameter: String, value: String, word: Word?, deeper: Boolean = false) =
+        Row(
+            handle = handle,
+            shown = listOf(
+                Ink(if (deeper) "      " else "    "),
+                Ink(parameter.padEnd(if (deeper) PARAMETER_COLUMN - 2 else PARAMETER_COLUMN), Palette.parameter),
+                Ink(value, Palette.value),
+            ),
+            note = parameterNote(parameter, value, word),
         )
+
+    /**
+     * A pool's own heading — what it is about, and how much of itself an Age takes.
+     *
+     * [Pool.said] rather than a name somebody chose: what a pool is about is already spelled in the
+     * parameters it holds, and every name anyone invented for one was a word this codebase did not have.
+     */
+    private fun drawsRow(insistence: Insistence, at: Int, pool: Pool): Row = Row(
+        handle = "draws/${insistence.name}/$at",
+        shown = listOf(
+            Ink("    "),
+            Ink(pool.said.padEnd(PARAMETER_COLUMN), Palette.tag),
+            Ink("${pool.draws} of ${pool.facets.size} drawn per Age", Palette.faint),
+        ),
+        note = drawsNote(pool),
+    )
+
+    /** What the count actually comes to, said back — the whole point of allowing a range to be written. */
+    private fun drawsNote(pool: Pool): String {
+        val options = pool.draws.options
+        val counted = options.distinct().sorted().joinToString(" or ") { many ->
+            val chances = options.count { it == many }
+            if (chances == 1) "$many" else "$many (${chances} in ${options.size})"
+        }
+        return "takes $counted of ${pool.facets.size}\n" +
+            "    a number, a range like 1..3, or 1|2|2 to make one likelier"
     }
 
     /**
@@ -662,50 +697,93 @@ class Parts(private val corpus: Corpus) {
         const val COMMENT_PREVIEW = 12
         const val VALUES_SHOWN = 6
         const val VALUE_LABEL = 14
+
+        /** Where a facet's value starts, so every row in the section lines up on it. */
+        const val PARAMETER_COLUMN = 22
     }
 }
 
-/** What one effect slot holds on this word. */
-fun Candidate.holding(slot: Slot): Map<String, String> = when (slot) {
-    Slot.REQUIRED_ALWAYS -> sets
-    Slot.REQUIRED_POOL -> pool
-    Slot.REQUESTED_ALWAYS -> requests.sets
-    Slot.REQUESTED_POOL -> requests.pool
-}
+/**
+ * Where a facet is going: a insistence's always-half, or one of that insistence's pools.
+ *
+ * One value because every flow that collects a facet — pick a parameter, qualify it, type a value — has
+ * to carry the destination through unchanged, and a insistence and an optional index threaded separately went
+ * out of step the first time a pool was added mid-flow.
+ */
+data class Into(val insistence: Insistence, val pool: Int? = null)
 
 /**
- * This word with [parameter] set to [value] in [slot].
+ * This word with [parameter] set to [value] wherever [into] points — **making the pool where it is new.**
  *
- * **A first facet brings a draw with it.** `pool` with `draws` still at zero is a pool the Age never
- * takes, which the file cannot show and `Verdict` has to refuse; starting the count at one means the
- * refusal is unreachable rather than merely rare, and a writer who wants more says so on the heading.
+ * A pool with nothing in it cannot be drawn from and has no heading to edit, so one is never created
+ * empty and waiting: the first facet is what brings it into being, pointed one past the last.
  */
-fun Candidate.putting(slot: Slot, parameter: String, value: String): Candidate = when (slot) {
-    Slot.REQUIRED_ALWAYS -> copy(sets = sets + (parameter to value))
-    Slot.REQUIRED_POOL -> copy(pool = pool + (parameter to value), draws = draws.coerceAtLeast(1))
-    Slot.REQUESTED_ALWAYS -> copy(requests = requests.copy(sets = requests.sets + (parameter to value)))
-    Slot.REQUESTED_POOL -> copy(
-        requests = requests.copy(
-            pool = requests.pool + (parameter to value),
-            draws = requests.draws.coerceAtLeast(1),
-        ),
-    )
+fun Candidate.putting(into: Into, parameter: String, value: String): Candidate = when {
+    into.pool == null -> putting(into.insistence, parameter, value)
+    into.pool >= poolsOn(into.insistence).size -> addingAPool(into.insistence, parameter, value)
+    else -> puttingInPool(into.insistence, into.pool, parameter, value)
 }
+
+/** What is already there, wherever [into] points. */
+fun Candidate.holding(into: Into): Map<String, String> =
+    if (into.pool == null) settingOn(into.insistence) else poolsOn(into.insistence).getOrNull(into.pool)?.facets.orEmpty()
+
+/** The half of this word [insistence] names, whole — what it always does, and every pool it draws from. */
+fun Candidate.claimsOn(insistence: Insistence): Claims =
+    if (insistence.required) Claims(sets, pools) else requests
+
+/** What that half always does, drawn or not. */
+fun Candidate.settingOn(insistence: Insistence): Map<String, String> = claimsOn(insistence).sets
+
+/** The pools on that half, in the order they were written — which is also how the draw is salted. */
+fun Candidate.poolsOn(insistence: Insistence): List<Pool> = claimsOn(insistence).pools
+
+/** Everything that half could ever turn, whatever an Age's draw settles on. */
+fun Candidate.everythingOn(insistence: Insistence): Map<String, String> = claimsOn(insistence).everything
+
+/** This word with [insistence]'s claims replaced — the one funnel every edit below goes through. */
+fun Candidate.withClaims(insistence: Insistence, claims: Claims): Candidate =
+    if (insistence.required) copy(sets = claims.sets, pools = claims.pools)
+    else copy(requests = requests.copy(sets = claims.sets, pools = claims.pools))
+
+/** This word with [parameter] claimed at [insistence] and always, rather than drawn from a pool. */
+fun Candidate.putting(insistence: Insistence, parameter: String, value: String): Candidate =
+    withClaims(insistence, claimsOn(insistence).let { it.copy(sets = it.sets + (parameter to value)) })
+
+/** This word without [parameter] among what it claims at [insistence] always. */
+fun Candidate.without(insistence: Insistence, parameter: String): Candidate =
+    withClaims(insistence, claimsOn(insistence).let { it.copy(sets = it.sets - parameter) })
+
+/** This word with [parameter] set to [value] in the pool [at], among what it claims at [insistence]. */
+fun Candidate.puttingInPool(insistence: Insistence, at: Int, parameter: String, value: String): Candidate =
+    changingPool(insistence, at) { it.copy(facets = it.facets + (parameter to value)) }
 
 /**
- * This word without [parameter] in [slot].
+ * This word without [parameter] in the pool [at] — **and without the pool where that was the last of it.**
  *
- * **The last facet out takes the draw with it.** A count left standing over an empty pool draws from
- * nothing, and the heading it is edited on is gone by then — so the only way back would be the file.
+ * A pool with nothing in it draws from nothing and has no heading left to edit, so the only way back
+ * would be the file.
  */
-fun Candidate.without(slot: Slot, parameter: String): Candidate = when (slot) {
-    Slot.REQUIRED_ALWAYS -> copy(sets = sets - parameter)
-    Slot.REQUIRED_POOL -> (pool - parameter).let { left -> copy(pool = left, draws = drawsFor(left, draws)) }
-    Slot.REQUESTED_ALWAYS -> copy(requests = requests.copy(sets = requests.sets - parameter))
-    Slot.REQUESTED_POOL -> (requests.pool - parameter).let { left ->
-        copy(requests = requests.copy(pool = left, draws = drawsFor(left, requests.draws)))
-    }
+fun Candidate.withoutInPool(insistence: Insistence, at: Int, parameter: String): Candidate {
+    val left = poolsOn(insistence).getOrNull(at)?.facets?.minus(parameter).orEmpty()
+    if (left.isEmpty()) return withoutPool(insistence, at)
+    return changingPool(insistence, at) { it.copy(facets = left, draws = Draws.of(it.draws.most.coerceAtMost(left.size))) }
 }
 
-/** A count no larger than the pool it draws from, and none at all where there is nothing left. */
-private fun drawsFor(pool: Map<String, String>, standing: Int) = standing.coerceAtMost(pool.size)
+/** This word with a pool added to [insistence] — one facet and a count of one, which is the least a pool is. */
+fun Candidate.addingAPool(insistence: Insistence, parameter: String, value: String): Candidate =
+    withClaims(insistence, claimsOn(insistence).let {
+        it.copy(pools = it.pools + Pool(mapOf(parameter to value), Draws.of(1)))
+    })
+
+fun Candidate.withoutPool(insistence: Insistence, at: Int): Candidate =
+    withClaims(insistence, claimsOn(insistence).let { it.copy(pools = it.pools.filterIndexed { where, _ -> where != at }) })
+
+/** This word with the pool [at] drawing [draws] of itself. */
+fun Candidate.drawing(insistence: Insistence, at: Int, draws: Draws): Candidate =
+    changingPool(insistence, at) { it.copy(draws = draws) }
+
+private fun Candidate.changingPool(insistence: Insistence, at: Int, change: (Pool) -> Pool): Candidate =
+    withClaims(insistence, claimsOn(insistence).let { claims ->
+        claims.copy(pools = claims.pools.mapIndexed { where, pool -> if (where == at) change(pool) else pool })
+    })

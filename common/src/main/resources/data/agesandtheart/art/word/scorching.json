@@ -28,19 +28,27 @@
     "temperature": "0.55..1.0",
     "haze": "0.15..0.45"
   },
-  "pool": {
-    "evaporation": "true",
-    "motes": "ash",
-    "murk": "0.1..0.4",
-    "humidity": "-0.8..-0.2"
-  },
-  "draws": 2,
+  "pools": [
+    {
+      "draws": "2",
+      "facets": {
+        "evaporation": "true",
+        "motes": "ash",
+        "murk": "0.1..0.4",
+        "humidity": "-0.8..-0.2"
+      }
+    }
+  ],
   "requests": {
-    "pool": {
-      "sun.cast": "2",
-      "sun.colour": "red|orange|yellow",
-      "sun.size": "0.5..0.75"
-    },
-    "draws": 1
+    "pools": [
+      {
+        "draws": "1",
+        "facets": {
+          "sun.cast": "2",
+          "sun.colour": "red|orange|yellow",
+          "sun.size": "0.5..0.75"
+        }
+      }
+    ]
   }
 }

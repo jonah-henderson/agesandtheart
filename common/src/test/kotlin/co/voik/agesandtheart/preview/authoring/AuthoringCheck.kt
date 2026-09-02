@@ -4,9 +4,14 @@ import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.word.Tier
 import co.voik.agesandtheart.age.word.Word
-import co.voik.agesandtheart.preview.authoring.ui.Slot
-import co.voik.agesandtheart.preview.authoring.ui.putting
-import co.voik.agesandtheart.preview.authoring.ui.without
+import co.voik.agesandtheart.age.word.Draws
+import co.voik.agesandtheart.age.word.Pool
+import co.voik.agesandtheart.preview.authoring.ui.Insistence
+import co.voik.agesandtheart.preview.authoring.ui.addingAPool
+import co.voik.agesandtheart.preview.authoring.ui.drawing
+import co.voik.agesandtheart.preview.authoring.ui.poolsOn
+import co.voik.agesandtheart.preview.authoring.ui.puttingInPool
+import co.voik.agesandtheart.preview.authoring.ui.withoutInPool
 import com.google.gson.JsonParser
 import com.mojang.serialization.JsonOps
 import io.kotest.core.annotation.Tags
@@ -41,8 +46,7 @@ class AuthoringCheck : FunSpec({
             queries = mapOf(Aspect.SKY to mapOf("bright" to 1.0)),
             meansExactly = mapOf(Aspect.TERRAIN to "hills"),
             sets = mapOf("stone" to "minecraft:stone"),
-            pool = mapOf("spacing" to "0.4..1.0"),
-            draws = 1,
+            pools = listOf(Pool(mapOf("spacing" to "0.4..1.0"), Draws("1..2"))),
             weights = mapOf(Aspect.BIOMES to mapOf("minecraft:plains" to 1.0)),
             template = "dark_void",
             mints = "minecraft:spring_water",
@@ -123,7 +127,7 @@ class AuthoringCheck : FunSpec({
      */
     test("a parameter nothing turns is refused, in the core and in the pool") {
         val base = Candidate(name = "probe", tier = Tier.EXACT, )
-        for (invented in listOf(base.copy(sets = mapOf("suns" to "1")), base.copy(pool = mapOf("suns" to "1"), draws = 1))) {
+        for (invented in listOf(base.copy(sets = mapOf("suns" to "1")), base.copy(pools = listOf(Pool(mapOf("suns" to "1"), Draws.of(1)))))) {
             val said = Verdict.refusals(Verdict.on(invented, corpus))
             check(said.any { it.says.contains("suns") }) {
                 "a parameter no aspect owns was not refused: ${said.joinToString { it.says }}"
@@ -243,13 +247,36 @@ class AuthoringCheck : FunSpec({
      */
     test("a pool carries its own count in and out") {
         val empty = Candidate(name = "probe", tier = Tier.EXACT)
-        val one = empty.putting(Slot.REQUIRED_POOL, "temperature", "0.5..1.0")
-        check(one.draws == 1) { "a first facet left the pool drawing ${one.draws}" }
+        val one = empty.addingAPool(Insistence.REQUIRED, "temperature", "0.5..1.0")
+        check(one.poolsOn(Insistence.REQUIRED).single().draws.most == 1) { "a first facet left the pool drawing none" }
 
-        val two = one.putting(Slot.REQUIRED_POOL, "rainfall", "-1.0..-0.4").copy(draws = 2)
-        check(two.without(Slot.REQUIRED_POOL, "rainfall").draws == 1) { "the count outran the pool" }
-        check(two.without(Slot.REQUIRED_POOL, "rainfall").without(Slot.REQUIRED_POOL, "temperature").draws == 0) {
-            "an emptied pool kept its count, and the heading it is edited on is gone"
+        val two = one.puttingInPool(Insistence.REQUIRED, 0, "rainfall", "-1.0..-0.4")
+            .drawing(Insistence.REQUIRED, 0, Draws.of(2))
+        val fewer = two.withoutInPool(Insistence.REQUIRED, 0, "rainfall")
+        check(fewer.poolsOn(Insistence.REQUIRED).single().draws.most == 1) { "the count outran the pool" }
+        check(fewer.withoutInPool(Insistence.REQUIRED, 0, "temperature").poolsOn(Insistence.REQUIRED).isEmpty()) {
+            "an emptied pool stayed, and the heading it is edited on is gone"
+        }
+    }
+
+    /**
+     * **A pool per thing being varied**, which is what one flat pool could never say: an inferno drawing
+     * three of five could roll every sun facet and no sky at all.
+     */
+    test("pools are drawn one at a time and never decide each other") {
+        val word = Word(
+            id = Identifier.fromNamespaceAndPath("agesandtheart", "probe"),
+            tier = Tier.RESTRICTIVE,
+            aspects = setOf(Aspect.SUN),
+            pools = listOf(
+                Pool(mapOf("sun.colour" to "red", "sun.size" to "0.7..1.0"), Draws.of(1)),
+                Pool(mapOf("sky.colour" to "red", "haze" to "0.4"), Draws.of(1)),
+            ),
+        )
+        for (draw in 0L..<40L) {
+            val drawn = word.setsDrawnAt(draw)
+            check(drawn.keys.count { it.startsWith("sun.") } == 1) { "the sun pool drew ${drawn.keys} at $draw" }
+            check(drawn.size == 2) { "a pool took another's turn at $draw: $drawn" }
         }
     }
 

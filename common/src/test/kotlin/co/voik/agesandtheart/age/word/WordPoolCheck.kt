@@ -17,22 +17,58 @@ import net.minecraft.resources.Identifier
  */
 class WordPoolCheck : FunSpec({
 
-    fun wordAt(tier: Tier, sets: Map<String, String>, pool: Map<String, String>, draws: Int) = Word(
+    fun wordAt(tier: Tier, sets: Map<String, String>, pool: Map<String, String>, draws: String) = Word(
         id = Identifier.fromNamespaceAndPath("agesandtheart", "scorching"),
         tier = tier,
         aspects = setOf(Aspect.AIR),
         everywhere = mapOf("dry" to 1.0),
         sets = sets,
-        pool = pool,
-        draws = draws,
+        pools = if (pool.isEmpty()) emptyList() else listOf(Pool(pool, Draws(draws))),
     )
 
     val broad = wordAt(
         Tier.RESTRICTIVE,
         sets = mapOf("sunburn" to "always"),
         pool = mapOf("evaporation" to "true", "motes" to "embers", "haze" to "0.15..0.45", "murk" to "0.1..0.4"),
-        draws = 2,
+        draws = "2",
     )
+
+    /**
+     * **How many, and the three ways of saying it.** A number is that many, a range is any of them, and a
+     * repeat is a heavier chance — which is how a count is weighted without a distribution needing a name.
+     */
+    test("a count reads as every number it might be") {
+        check(Draws.read("2") == listOf(2)) { "a plain count stopped being one" }
+        check(Draws.read("1..3") == listOf(1, 2, 3)) { "a range did not span" }
+        check(Draws.read("0..1") == listOf(0, 1)) { "a pool may draw nothing sometimes" }
+        check(Draws.read("1|2|2") == listOf(1, 2, 2)) { "a repeat is a chance, not a duplicate" }
+        check(Draws.read("1..2|3") == listOf(1, 2, 3)) { "a range and a listing do not compose" }
+        for (nonsense in listOf("", "two", "-1", "3..1", "1..")) {
+            check(Draws.read(nonsense) == null) { "'$nonsense' was read as a count" }
+        }
+        // A trailing separator is tolerated, as it is in a parameter's own `red|blue|` — being stricter
+        // here than the `|` a writer already knows would be an inconsistency with nothing behind it.
+        check(Draws.read("1|") == listOf(1)) { "a trailing separator stopped being harmless" }
+    }
+
+    /**
+     * A ranged count actually varies between Ages, and a weighted one leans — asserted over the draw
+     * rather than over the parsing, because the parsing is only half of what could be wrong.
+     */
+    test("a ranged count varies and a weighted one leans") {
+        val ranged = wordAt(
+            Tier.RESTRICTIVE,
+            sets = emptyMap(),
+            pool = mapOf("a" to "1", "b" to "2", "c" to "3"),
+            draws = "1..3",
+        )
+        val sizes = DRAWS.map { ranged.setsDrawnAt(it).size }.toSet()
+        check(sizes == setOf(1, 2, 3)) { "a 1..3 pool only ever drew $sizes" }
+
+        val leaning = ranged.copy(pools = listOf(Pool(ranged.pools.single().facets, Draws("1|3|3|3"))))
+        val threes = DRAWS.count { leaning.setsDrawnAt(it).size == 3 }
+        check(threes > DRAWS.count() / 2) { "'1|3|3|3' drew three only $threes times in ${DRAWS.count()}" }
+    }
 
     /**
      * **The core is never in the draw**, which is what stops a spectrum becoming a lottery: no roll may
@@ -42,8 +78,9 @@ class WordPoolCheck : FunSpec({
         for (draw in DRAWS) {
             val chosen = broad.setsDrawnAt(draw)
             check(chosen["sunburn"] == "always") { "the core went missing at draw $draw: $chosen" }
-            check(chosen.size == broad.sets.size + broad.draws) {
-                "drew ${chosen.size - broad.sets.size} facets rather than ${broad.draws} at $draw: $chosen"
+            val many = broad.pools.single().draws.most
+            check(chosen.size == broad.sets.size + many) {
+                "drew ${chosen.size - broad.sets.size} facets rather than $many at $draw: $chosen"
             }
         }
     }
@@ -75,7 +112,7 @@ class WordPoolCheck : FunSpec({
      */
     test("what a word can do is the same in every Age") {
         val canSet = broad.canSet
-        check(canSet.keys == (broad.sets.keys + broad.pool.keys)) { "capability lost the pool: ${canSet.keys}" }
+        check(canSet.keys == broad.required.everything.keys) { "capability lost the pool: ${canSet.keys}" }
         for (draw in DRAWS) {
             val drawn = broad.copy(sets = broad.setsDrawnAt(draw))
             check(drawn.canSet.keys == canSet.keys) {
@@ -102,7 +139,7 @@ class WordPoolCheck : FunSpec({
                 "murk" to "0.1..0.4",
                 "humidity" to "-0.8..-0.2",
             ),
-            draws = 2,
+            draws = "2",
         )
         val worn = NEIGHBOURING.mapNotNull { draw -> offering.setsDrawnAt(draw)["motes"] }
         check(worn.isNotEmpty()) { "the fixture never drew the facet under test" }
@@ -112,7 +149,7 @@ class WordPoolCheck : FunSpec({
 
     /** A word with no pool is exactly the word it was before any of this existed. */
     test("a word with no pool is untouched") {
-        val plain = wordAt(Tier.EXACT, sets = mapOf("temperature" to "0.4..0.9"), pool = emptyMap(), draws = 0)
+        val plain = wordAt(Tier.EXACT, sets = mapOf("temperature" to "0.4..0.9"), pool = emptyMap(), draws = "0")
         for (draw in DRAWS) {
             check(plain.setsDrawnAt(draw) == plain.sets) { "a pool-less word moved at draw $draw" }
         }

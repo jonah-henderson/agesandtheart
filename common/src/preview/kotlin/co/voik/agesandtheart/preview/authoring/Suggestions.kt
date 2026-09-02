@@ -3,6 +3,7 @@ package co.voik.agesandtheart.preview.authoring
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.age.word.Vocabulary
+import co.voik.agesandtheart.age.word.Pool
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.age.word.grammar.Grammar
 
@@ -270,17 +271,22 @@ class Suggestions(private val vocabulary: Vocabulary) {
         required.isNotEmpty() -> required.joinToString(", ") { it.spelled } +
             if (requested.isEmpty()) "" else "  (and offers ${requested.size} more)"
         requested.isNotEmpty() -> "offers " + requested.joinToString(", ") { it.spelled }
-        // What is left is an aiming page: it says which part of the world a clause is about and supplies
-        // nothing of its own. Which part is the targets column's to say, so this says the other half.
-        else -> "nothing of its own — it says what the clause is about"
+        // **What is left is an aiming page and nothing else** — now that a template counts as a claim.
+        // It opens a clause, says which part of the world that clause is about, and supplies no value of
+        // its own. Which part is the targets column's to say, so this says the other half.
+        else -> "opens a clause about this part of the world; sets nothing itself"
     }
 
     /** What the word demands: meant outright, set, drawn from a pool, minted, or asked of the tags. */
     private fun insistedOn(word: Word): List<Claim> = buildList {
+        // **The template is a claim like any other, and the largest one a page can make.** It was read
+        // nowhere here, so `dark_void` and `infernal` — whose whole job is choosing the world the book
+        // starts from — fell through to the sentence about aiming pages and said they did nothing.
+        word.template?.let { add(Claim("begins the Age from $it, not the overworld")) }
         word.meansExactly.forEach { (aspect, key) -> add(Claim("means $key in the ${aspect.page}")) }
         word.mints?.let { add(Claim("mints $it")) }
         addAll(word.everySet.map { (parameter, value) -> Claim("$parameter=$value") })
-        poolOf(word.pool, word.draws)?.let(::add)
+        addAll(word.pools.mapNotNull(::poolOf))
         if (word.wanted.isNotEmpty()) add(Claim(word.wanted.joinToString(" ") { "$TAG_MARK$it" }))
         if (word.unwanted.isNotEmpty()) add(Claim(word.unwanted.joinToString(" ") { "-$TAG_MARK$it" }))
     }
@@ -288,7 +294,7 @@ class Suggestions(private val vocabulary: Vocabulary) {
     /** What it offers instead — laid under the sentence, and given up wherever the book already spoke. */
     private fun offeredBy(word: Word): List<Claim> = buildList {
         addAll(word.requests.sets.map { (parameter, value) -> Claim("$parameter=$value") })
-        poolOf(word.requests.pool, word.requests.draws)?.let(::add)
+        addAll(word.requests.pools.mapNotNull(::poolOf))
         val tags = word.requests.queries.values.flatMap { it.entries }
         val pulled = tags.filter { it.value > 0.0 }.map { it.key }.distinct()
         val pushed = tags.filter { it.value < 0.0 }.map { it.key }.distinct()
@@ -303,17 +309,16 @@ class Suggestions(private val vocabulary: Vocabulary) {
      * never fires; a count at or past the pool's size takes all of it, which makes the pool no different
      * from more `sets` and is equally worth saying.
      */
-    private fun poolOf(pool: Map<String, String>, draws: Int): Claim? {
-        if (pool.isEmpty()) return null
-        val members = pool.entries.sortedBy { it.key }.map { "${it.key}=${it.value}" }
-        val how = when {
-            draws <= 0 -> "none of these — `draws` is 0, so the pool never fires"
-            draws >= pool.size -> "all of these, every Age"
-            else -> "$draws of these, drawn per Age"
+    private fun poolOf(pool: Pool): Claim? {
+        if (pool.facets.isEmpty()) return null
+        val members = pool.facets.entries.sortedBy { it.key }.map { "${it.key}=${it.value}" }
+        val how = if (pool.draws.least >= pool.facets.size) {
+            "all of these, every Age"
+        } else {
+            "${pool.draws} of these, drawn per Age"
         }
         return Claim(how, members)
     }
-
 
     private companion object {
         /** What marks a tag, the same mark the word screens use. */

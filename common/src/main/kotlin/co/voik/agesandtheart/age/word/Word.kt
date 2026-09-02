@@ -43,8 +43,7 @@ private val ASPECT_SET_CODEC: Codec<Set<Aspect>> = ASPECT_CODEC.listOf().xmap({ 
  */
 data class Claims(
     val sets: Map<String, String> = emptyMap(),
-    val pool: Map<String, String> = emptyMap(),
-    val draws: Int = 0,
+    val pools: List<Pool> = emptyList(),
     /**
      * Tags this side wants, **keyed by aspect and never flat** — how an offer reaches the *choice* of
      * preset rather than a parameter on the one that was chosen. An inferno's sea is the case: a sea is picked
@@ -56,10 +55,11 @@ data class Claims(
      */
     val queries: Map<Aspect, Map<String, Double>> = emptyMap(),
 ) {
-    val isEmpty: Boolean get() = sets.isEmpty() && pool.isEmpty() && queries.isEmpty()
+    val isEmpty: Boolean get() = sets.isEmpty() && pools.isEmpty() && queries.isEmpty()
 
     /** Everything this side could ever turn, whatever an Age's draw settles on. */
-    val everything: Map<String, String> get() = sets + pool
+    val everything: Map<String, String> get() = sets + pools.flatMap { it.facets.entries }
+        .associate { it.key to it.value }
 
     companion object {
         val NOTHING = Claims()
@@ -72,10 +72,8 @@ data class Claims(
                     .optionalFieldOf("queries", emptyMap()).forGetter(Claims::queries),
                 Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("sets", emptyMap())
                     .forGetter(Claims::sets),
-                Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("pool", emptyMap())
-                    .forGetter(Claims::pool),
-                Codec.INT.optionalFieldOf("draws", 0).forGetter(Claims::draws),
-            ).apply(instance) { queries, sets, pool, draws -> Claims(sets, pool, draws, queries) }
+                Pool.CODEC.listOf().optionalFieldOf("pools", emptyList()).forGetter(Claims::pools),
+            ).apply(instance) { queries, sets, pools -> Claims(sets, pools, queries) }
         }
     }
 }
@@ -210,19 +208,14 @@ data class Word(
      * A broad word covers a spectrum, and [sets] alone could not say so: `scorching` named evaporation,
      * sunburn and embers outright, so every scorched Age was the same scorched Age. What varies is not
      * *whether* a word lands but *which of its facets* do, so the word declares a core it always applies
-     * and a pool it draws [draws] of.
+     * and a pool it draws some of.
      *
      * **The core is what makes it that word**, and the pool is what makes this one different from the last:
      * a drawn subset can never leave an Age un-scorched, because `sets` was never in the draw. Together
      * they are also the whole of what a word *can* do, which is a different question from what it does
      * here — see [canSet] against [setsDrawnAt].
      */
-    val pool: Map<String, String> = emptyMap(),
-    /**
-     * How many of [pool] an Age takes. Zero means none of it, and a number at or past the pool's size
-     * means all of it — so a word with a pool and no `draws` is simply a word with more `sets`.
-     */
-    val draws: Int = 0,
+    val pools: List<Pool> = emptyList(),
     /**
      * The same three, **requested rather than required** — laid *under* the sentence instead of over it
      * (`the-world-model.md` §5).
@@ -335,10 +328,11 @@ data class Word(
      * *means*, which a draw must not move: a word charged as unbacked because this Age's draw happened to
      * miss the parameter that would have landed is a writer paying for a coin they did not toss.
      */
-    val canSet: Map<String, String> get() = everySet + bare(pool) + bare(requests.sets) + bare(requests.pool)
+    val canSet: Map<String, String>
+        get() = everySet + bare(required.everything) + bare(requests.everything)
 
     /** The demanded half, as one record — the shape [requests] already has, for the code that asks both. */
-    val required: Claims get() = Claims(sets, pool, draws)
+    val required: Claims get() = Claims(sets, pools)
 
     /**
      * Whether anything here names the aspect it is meant for — `sun.absent` rather than `absent`.
@@ -348,7 +342,7 @@ data class Word(
      * that method hands back the map it already has and allocates nothing.
      */
     private val someParameterNamesItsAspect: Boolean =
-        (sets.keys + pool.keys + requests.sets.keys + requests.pool.keys).any(::namesAnAspect)
+        (sets.keys + pools.flatMap { it.facets.keys } + requests.everything.keys).any(::namesAnAspect)
 
     /**
      * What this word sets on [aspect] — what it sets everywhere, and what it sets **only** here.
@@ -386,11 +380,11 @@ data class Word(
      * a page, sets nothing, and says so nowhere.
      */
     val unreadableParameters: List<String>
-        get() = (sets.keys + pool.keys + requests.sets.keys + requests.pool.keys)
+        get() = (required.everything.keys + requests.everything.keys)
             .filter { it.contains(PARAMETER_MARK) && aspectMeantBy(it) == null }
 
     /**
-     * What it actually chooses in the Age [draw] belongs to — the core, and [draws] of the pool.
+     * What it actually chooses in the Age [draw] belongs to — the core, and what each pool drew.
      *
      * Salted by the word's own id, so two broad words in one sentence draw differently and the same word
      * draws the same thing every time the Age is rebuilt. Resolution is a pure function of (vocabulary,
@@ -416,8 +410,8 @@ data class Word(
      */
     val varies: Boolean
         get() = listOf(required, requests).any { claims ->
-            (claims.pool.isNotEmpty() && claims.draws > 0) ||
-                (claims.sets + claims.pool).values.any { ALTERNATIVE in it }
+            claims.pools.any { it.facets.isNotEmpty() && it.draws.most > 0 } ||
+                claims.everything.values.any { ALTERNATIVE in it }
         }
 
     /**
@@ -451,16 +445,20 @@ data class Word(
         return mixed xor (mixed ushr 31)
     }
 
+    /**
+     * The core, and what each pool drew.
+     *
+     * **A generator per pool, salted by where it sits**, so what one pool takes can never decide what
+     * another does — two pools of the same size sharing a generator would fire the same positions for
+     * ever, which is the fault the required and requested halves were already salted apart for.
+     */
     private fun facetsDrawnAt(claims: Claims, draw: Long, salt: Long): Map<String, String> {
-        val (sets, pool, draws) = claims
-        if (pool.isEmpty() || draws <= 0) return sets
-        if (draws >= pool.size) return sets + pool
-        // Sorted first so the map's own iteration order cannot reach the answer, then shuffled by a
-        // generator seeded from the Age and the word. An earlier version sorted by a hash of the two
-        // xored together and drew the *same* facets every time: the draw only moves low bits, and the
-        // keys' hashes differ by far more than that, so nothing ever reordered.
-        val order = pool.keys.sorted().shuffled(Random(scrambled(draw xor id.hashCode().toLong() xor salt)))
-        return sets + order.take(draws).associateWith { pool.getValue(it) }
+        var settled = claims.sets
+        for ((at, pool) in claims.pools.withIndex()) {
+            val seed = scrambled(draw xor id.hashCode().toLong() xor salt xor at.toLong().inv())
+            settled = settled + pool.drawnWith(Random(seed))
+        }
+        return settled
     }
 
     /**
@@ -749,9 +747,7 @@ data class Word(
                     .forGetter(Word::meansExactly),
                 Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("sets", emptyMap())
                     .forGetter(Word::sets),
-                Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("pool", emptyMap())
-                    .forGetter(Word::pool),
-                Codec.INT.optionalFieldOf("draws", 0).forGetter(Word::draws),
+                Pool.CODEC.listOf().optionalFieldOf("pools", emptyList()).forGetter(Word::pools),
                 Claims.CODEC.optionalFieldOf("requests", Claims.NOTHING).forGetter(Word::requests),
                 Codec.unboundedMap(ASPECT_CODEC, Codec.unboundedMap(Codec.STRING, Codec.DOUBLE))
                     .optionalFieldOf("weights", emptyMap()).forGetter(Word::weights),
@@ -760,7 +756,7 @@ data class Word(
                 Codec.BOOL.optionalFieldOf("mints_something_that_flows", false)
                     .forGetter(Word::mintsSomethingThatFlows),
             ).apply(instance) {
-                tier, queries, meansExactly, sets, pool, draws, requests, weights, template,
+                tier, queries, meansExactly, sets, pools, requests, weights, template,
                 mints, flows,
                 ->
                 val everywhere = queries[EVERYWHERE].orEmpty()
@@ -770,12 +766,12 @@ data class Word(
                 // **Both halves widen the reach.** A word that only *offers* to redden a sun is still a
                 // word about the sun, and one that reached nowhere would have its offer skipped in the
                 // only aspect it meant it — which is the silent drop §3.3 exists to forbid.
-                val steers = sets + pool + requests.everything
+                val steers = sets + Claims(sets, pools).everything + requests.everything
                 // `all` deliberately adds nothing: a global tilt is not a claim on any one part.
                 val aimed = weights.keys + keyed.keys + requests.queries.keys
                 val reaches = reaching(steers, meansExactly.keys, aimed, mints.orElse(null))
                 Word(
-                    id, tier, reaches, everywhere, keyed, meansExactly, sets, pool, draws, requests,
+                    id, tier, reaches, everywhere, keyed, meansExactly, sets, pools, requests,
                     weights, template.orElse(null), mints.orElse(null), flows,
                 )
             }

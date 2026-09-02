@@ -2,6 +2,8 @@ package co.voik.agesandtheart.preview.authoring
 
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.word.Claims
+import co.voik.agesandtheart.age.word.Draws
+import co.voik.agesandtheart.age.word.Pool
 import co.voik.agesandtheart.age.word.Tier
 import co.voik.agesandtheart.age.word.Word
 import com.google.gson.JsonArray
@@ -42,8 +44,8 @@ data class Candidate(
     /** The preset this word means outright in each part of the world — see [Word.meansExactly]. */
     val meansExactly: Map<Aspect, String> = emptyMap(),
     val sets: Map<String, String> = emptyMap(),
-    val pool: Map<String, String> = emptyMap(),
-    val draws: Int = 0,
+    /** Groups of facets an Age takes some of — see [Pool], and [Draws] for how many. */
+    val pools: List<Pool> = emptyList(),
     /**
      * The requested half — what the word **offers** rather than insists on, laid under the sentence.
      *
@@ -128,9 +130,8 @@ data class Candidate(
         }
         if (meansExactly.isNotEmpty()) add("means_exactly", aspectTexts(meansExactly))
         if (sets.isNotEmpty()) add("sets", texts(sets))
-        if (pool.isNotEmpty()) add("pool", texts(pool))
-        if (draws != 0) addProperty("draws", draws)
-        if (!requests.isEmpty || requests.draws != 0) add("requests", claimsOf(requests))
+        if (pools.isNotEmpty()) add("pools", poolsOf(pools))
+        if (!requests.isEmpty) add("requests", claimsOf(requests))
         if (weights.isNotEmpty()) add("weights", perAspect(weights))
         template?.let { addProperty("template", it) }
         mints?.let { addProperty("mints", it) }
@@ -157,8 +158,19 @@ data class Candidate(
     private fun claimsOf(claims: Claims) = JsonObject().apply {
         if (claims.queries.isNotEmpty()) add("queries", perAspect(claims.queries))
         if (claims.sets.isNotEmpty()) add("sets", texts(claims.sets))
-        if (claims.pool.isNotEmpty()) add("pool", texts(claims.pool))
-        if (claims.draws != 0) addProperty("draws", claims.draws)
+        if (claims.pools.isNotEmpty()) add("pools", poolsOf(claims.pools))
+    }
+
+    /** A pool says how much of itself it is before it says what is in it — the count is the shorter half. */
+    private fun poolsOf(pools: List<Pool>) = JsonArray().apply {
+        pools.forEach { pool ->
+            add(
+                JsonObject().apply {
+                    addProperty("draws", pool.draws.spelled)
+                    add("facets", texts(pool.facets))
+                },
+            )
+        }
     }
 
     private fun numbers(weights: Map<String, Double>) =
@@ -189,7 +201,7 @@ data class Candidate(
          * which is the failure `GrammarSources` guards the same way and for the same reason.
          */
         val KNOWN_FIELDS = setOf(
-            "tier", "queries", "means_exactly", "sets", "pool", "draws", "requests",
+            "tier", "queries", "means_exactly", "sets", "pools", "requests",
             "weights", "template", "mints", "mints_something_that_flows",
         )
 
@@ -201,8 +213,7 @@ data class Candidate(
             queries = word.queries,
             meansExactly = word.meansExactly,
             sets = word.sets,
-            pool = word.pool,
-            draws = word.draws,
+            pools = word.pools,
             requests = word.requests,
             weights = word.weights,
             template = word.template,
@@ -231,8 +242,7 @@ data class Candidate(
                 queries = json.getAsJsonObject("queries")?.let(::readPerAspect).orEmpty(),
                 meansExactly = json.getAsJsonObject("means_exactly")?.let(::readAspectTexts).orEmpty(),
                 sets = json.getAsJsonObject("sets")?.let(::readTexts).orEmpty(),
-                pool = json.getAsJsonObject("pool")?.let(::readTexts).orEmpty(),
-                draws = json.get("draws")?.asInt ?: 0,
+                pools = json.getAsJsonArray("pools")?.let(::readPools).orEmpty(),
                 requests = json.getAsJsonObject("requests")?.let(::readClaims) ?: Claims.NOTHING,
                 weights = json.getAsJsonObject("weights")?.let(::readPerAspect).orEmpty(),
                 template = json.get("template")?.asString,
@@ -252,18 +262,24 @@ data class Candidate(
                 ?: error("no part of the world is called '$page'")
 
         private fun readClaims(json: JsonObject): Claims {
-            val unknown = json.keySet() - setOf("sets", "pool", "draws", "queries")
+            val unknown = json.keySet() - setOf("sets", "pools", "queries")
             require(unknown.isEmpty()) { "'requests' carries fields nothing reads: ${unknown.joinToString()}" }
             return Claims(
                 sets = json.getAsJsonObject("sets")?.let(::readTexts).orEmpty(),
-                pool = json.getAsJsonObject("pool")?.let(::readTexts).orEmpty(),
-                draws = json.get("draws")?.asInt ?: 0,
+                pools = json.getAsJsonArray("pools")?.let(::readPools).orEmpty(),
                 queries = json.getAsJsonObject("queries")?.let(::readPerAspect).orEmpty(),
             )
         }
 
         private fun readNumbers(json: JsonObject) =
             json.entrySet().associate { (key, value) -> key to value.asDouble }
+
+        private fun readPools(json: JsonArray): List<Pool> = json.map { entry ->
+            val pool = entry.asJsonObject
+            val spelled = pool.get("draws")?.asString ?: error("a pool must say how many of itself it draws")
+            requireNotNull(Draws.read(spelled)) { "'$spelled' is no count" }
+            Pool(pool.getAsJsonObject("facets")?.let(::readTexts).orEmpty(), Draws(spelled))
+        }
 
         private fun readTexts(json: JsonObject) =
             json.entrySet().associate { (key, value) -> key to value.asString }

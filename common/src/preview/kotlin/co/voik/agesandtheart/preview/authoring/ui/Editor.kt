@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.aspect.ownParameters
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Holds
 import co.voik.agesandtheart.age.aspect.Parameter
+import co.voik.agesandtheart.age.word.Draws
 import co.voik.agesandtheart.age.word.Tier
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.preview.authoring.Candidate
@@ -218,7 +219,7 @@ class Editor(
         Part.NAME -> if (candidate.name.isBlank()) "" else Glyph.TICK
         Part.TIER -> Glyph.TICK
         Part.ASPECTS -> word?.aspects?.size?.takeIf { it > 0 }?.toString().orEmpty()
-        Part.EFFECTS -> Slot.entries.sumOf { candidate.holding(it).size }
+        Part.EFFECTS -> Insistence.entries.sumOf { candidate.everythingOn(it).size }
             .takeIf { it > 0 }?.toString().orEmpty()
         Part.PICKS -> (candidate.everywhere.size + candidate.queries.values.sumOf { it.size } +
             candidate.requests.queries.values.sumOf { it.size } +
@@ -654,11 +655,14 @@ class Editor(
             "heading" -> Unit
             // **The pool's own menu**, where adding a facet and setting the count are the same size of
             // decision. Opening straight into the count made the count the price of looking at the pool.
-            "draws" -> Slot.entries.firstOrNull { it.name == rest }?.let { slot ->
-                building = slot
-                keepBuilding(slot)
+            "draws" -> pointedAt(rest)?.let { into ->
+                building = into
+                keepBuilding(into)
             }
-            else -> Slot.entries.firstOrNull { it.name == kind }?.let { slot -> retypeParameter(listOf(rest), slot) }
+            "pool" -> pointedAt(rest.substringBeforeLast('/'))?.let { into ->
+                retypeParameter(listOf(rest.substringAfterLast('/')), into)
+            }
+            else -> insistenceNamed(kind)?.let { insistence -> retypeParameter(listOf(rest), Into(insistence)) }
         }
     }
 
@@ -685,7 +689,7 @@ class Editor(
      * A field rather than a continuation threaded through five signatures: the parameter flow already has
      * four steps and each would have had to carry a callback it does nothing with.
      */
-    private var building: Slot? = null
+    private var building: Into? = null
 
     /**
      * A pool, built in one pass — **the facets and then the count.**
@@ -694,43 +698,58 @@ class Editor(
      * zero the whole thing does nothing. So it is asked for at the end rather than left on a heading row
      * for somebody to find, which is where `draws: 0` pools come from.
      */
-    private fun buildAPool(into: Slot? = null) {
-        if (into != null) {
-            building = into
-            // On the menu rather than straight into a facet: adding one is a choice like the others.
-            return keepBuilding(into)
-        }
-        // Adding to a pool that exists is the same errand as starting one, so the row says which it is.
-        val sides = listOf(Slot.REQUIRED_POOL, Slot.REQUESTED_POOL).map { slot ->
-            val standing = candidate.holding(slot).size
-            Picker.Option(
-                value = slot.name,
-                label = if (standing == 0) slot.title else "${slot.title} (add to its $standing)",
-                note = slot.about,
+    private fun buildAPool() {
+        // **Whether it insists, and then a new pool or one that exists.** A word may carry several pools
+        // now, so "the pool" is no longer a place — the list says what each is about, read off its facets.
+        val options = Insistence.entries.flatMap { insistence ->
+            val standing = candidate.poolsOn(insistence).mapIndexed { at, pool ->
+                Picker.Option(
+                    value = "${insistence.name}/$at",
+                    label = "${insistence.title}: ${pool.said}",
+                    note = "${pool.draws} of ${pool.facets.size} ${Glyph.BULLET} add to it",
+                )
+            }
+            standing + Picker.Option(
+                value = "${insistence.name}/$NEW_POOL",
+                label = "${insistence.title}: a new pool",
+                note = insistence.about,
+                startsGroup = standing.isNotEmpty(),
             )
         }
-        overlay = Picker("A pool of what?", sides) { picked -> buildAPool(Slot.valueOf(picked.value)) }
+        overlay = Picker("A pool of what?", options) { picked ->
+            val insistence = insistenceNamed(picked.value.substringBefore('/')) ?: return@Picker
+            val at = picked.value.substringAfter('/')
+            if (at == NEW_POOL) {
+                // A pool with nothing in it cannot be drawn from, so the first facet comes before it does
+                // — pointed one past the last, which is what `putting` reads as "make one".
+                val into = Into(insistence, candidate.poolsOn(insistence).size)
+                building = into
+                pickAParameter(into)
+            } else {
+                val into = Into(insistence, at.toIntOrNull() ?: return@Picker)
+                building = into
+                keepBuilding(into)
+            }
+        }
     }
 
     /** After a facet goes in: another, the count, or done. */
-    private fun keepBuilding(into: Slot) {
-        val pool = candidate.holding(into)
-        val drawn = if (into.required) candidate.draws else candidate.requests.draws
+    private fun keepBuilding(into: Into) {
+        val pool = candidate.poolsOn(into.insistence).getOrNull(into.pool ?: return) ?: return
         overlay = Picker(
-            title = "${into.title} — ${pool.size} facet(s)",
+            title = "${into.insistence.title} ${pool.said} — ${pool.facets.size} facet(s)",
             options = listOf(
                 Picker.Option(
                     ANOTHER_FACET,
-                    if (pool.isEmpty()) "add the first facet" else "add another facet",
-                    pool.keys.sorted().joinToString(" "),
+                    "add another facet",
+                    pool.facets.keys.sorted().joinToString(" "),
                 ),
                 Picker.Option(
                     HOW_MANY_DRAWN,
                     "how many are drawn",
                     when {
-                        drawn <= 0 -> "none — a pool at zero never fires"
-                        drawn >= pool.size -> "all of them, which is the same as `sets`"
-                        else -> "$drawn of ${pool.size}"
+                        pool.draws.most >= pool.facets.size -> "all of them, which is the same as `sets`"
+                        else -> "${pool.draws} of ${pool.facets.size}"
                     },
                 ),
                 Picker.Option(DONE_BUILDING, "done", "", startsGroup = true),
@@ -743,6 +762,14 @@ class Editor(
             }
         }
     }
+
+    /** The insistence a handle names, and the pool within it where one is spelled — `REQUIRED/2`. */
+    private fun pointedAt(handle: String): Into? {
+        val insistence = insistenceNamed(handle.substringBefore('/')) ?: return null
+        return Into(insistence, handle.substringAfter('/', "").toIntOrNull())
+    }
+
+    private fun insistenceNamed(named: String) = Insistence.entries.firstOrNull { it.name == named }
 
     private fun add() {
         when (part) {
@@ -758,9 +785,17 @@ class Editor(
         val handle = rows().getOrNull(row())?.handle ?: return
         if (handle == "+") return
         when (part) {
-            Part.EFFECTS -> {
-                val slot = Slot.entries.firstOrNull { it.name == handle.substringBefore('/') }
-                if (slot != null) edit { it.without(slot, handle.substringAfter('/')) }
+            Part.EFFECTS -> when (handle.substringBefore('/')) {
+                "pool" -> pointedAt(handle.removePrefix("pool/").substringBeforeLast('/'))?.let { into ->
+                    val parameter = handle.substringAfterLast('/')
+                    edit { it.withoutInPool(into.insistence, into.pool ?: return@edit it, parameter) }
+                }
+                "draws" -> pointedAt(handle.removePrefix("draws/"))?.let { into ->
+                    edit { it.withoutPool(into.insistence, into.pool ?: return@edit it) }
+                }
+                else -> insistenceNamed(handle.substringBefore('/'))?.let { insistence ->
+                    edit { it.without(insistence, handle.substringAfter('/')) }
+                }
             }
             Part.PICKS -> when {
                 handle.startsWith("heading/") -> Unit
@@ -859,11 +894,11 @@ class Editor(
      * word paints eight aspects, and the note says which before it is chosen rather than after.
      */
     /** [into] null asks which slot, which is what the add-an-effect row wants. */
-    private fun pickAParameter(into: Slot?) {
+    private fun pickAParameter(into: Into?) {
         // **What the word already turns is not on offer.** A parameter holds one value, so adding it again
         // either overwrites what is there or lands in the other half — and required and requested on one
         // parameter is a contradiction, the requested one giving way to a demand it can never outlive.
-        val alreadyTurned = Slot.entries.flatMap { candidate.holding(it).keys }.toSet()
+        val alreadyTurned = Insistence.entries.flatMap { candidate.everythingOn(it).keys }.toSet()
         val owners = Aspect.entries.flatMap { aspect -> parameterNamesIn(aspect).map { it to aspect } }
             .groupBy({ it.first }, { it.second })
             .filterKeys { it !in alreadyTurned }
@@ -1058,17 +1093,17 @@ class Editor(
      * thing — one of which quietly left the count at zero, where the pool never fires. `add a pool` is
      * the way in, and it asks for the count as part of the job.
      */
-    private fun certaintyFor(parameters: List<String>, into: Slot?) {
+    private fun certaintyFor(parameters: List<String>, into: Into?) {
         if (into != null) return typeValueFor(parameters, into)
         // **A cast is only ever offered** (world model §2): a population's members are the writer's to
         // describe, so a word that *insisted* on three suns would overrule them and there is no charge
         // that would make that fair. Offering the demanded slot here only to refuse it in the strip below
         // is a question with a wrong answer on it.
         val counts = parameters.any { it.substringAfterLast('.') == Parameter.CAST }
-        val slots = Slot.entries.filterNot { it.drawn }.filterNot { counts && it.required }
-        if (slots.size == 1) return typeValueFor(parameters, slots.first())
-        overlay = Picker("Demanded, or offered?", slots.map { Picker.Option(it.name, it.title, it.about) }) { picked ->
-            typeValueFor(parameters, Slot.valueOf(picked.value))
+        val offering = Insistence.entries.filterNot { counts && it.required }
+        if (offering.size == 1) return typeValueFor(parameters, Into(offering.first()))
+        overlay = Picker("Demanded, or offered?", offering.map { Picker.Option(it.name, it.title, it.about) }) { picked ->
+            insistenceNamed(picked.value)?.let { typeValueFor(parameters, Into(it)) }
         }
     }
 
@@ -1080,7 +1115,7 @@ class Editor(
      * walking the whole flow once per aspect and keeping track of which were done. Enter marks, right
      * takes one alone, and the row at the bottom takes everything marked.
      */
-    private fun qualify(parameter: String, aspects: List<Aspect>, into: Slot?) {
+    private fun qualify(parameter: String, aspects: List<Aspect>, into: Into?) {
         val ordered = aspects.sortedBy { it.ordinal }
         val everywhere = Picker.Option(
             value = EVERY_ASPECT,
@@ -1144,7 +1179,7 @@ class Editor(
      * hoping — with the list of what they could be one screen back. Marking builds the same string and
      * previews it while it is built. A band is still typed, because a band is a number and not a choice.
      */
-    private fun typeValueFor(parameters: List<String>, into: Slot) {
+    private fun typeValueFor(parameters: List<String>, into: Into) {
         val bare = parameters.first().substringAfterLast('.')
         // The aspect the parameter was qualified to, where it was — else whichever owns a parameter by that name.
         val on = Aspect.entries.firstOrNull { it.page == parameters.first().substringBefore('.', "") }
@@ -1199,7 +1234,7 @@ class Editor(
      * rows they had picked from. A band is different and still goes through the prompt: a shape like
      * `0.5..1.0` is a template to edit, not an answer.
      */
-    private fun settleValue(parameters: List<String>, into: Slot, picked: Picker.Option, marked: Set<String>) {
+    private fun settleValue(parameters: List<String>, into: Into, picked: Picker.Option, marked: Set<String>) {
         when {
             marked.isNotEmpty() -> setParameters(parameters, into, marked.joinToString(ALTERNATIVELY))
             picked.value == TAKE_THE_MARKED -> Unit
@@ -1208,14 +1243,14 @@ class Editor(
         }
     }
 
-    private fun setParameters(parameters: List<String>, into: Slot, value: String) {
+    private fun setParameters(parameters: List<String>, into: Into, value: String) {
         overlay = null
         edit { at -> parameters.fold(at) { word, parameter -> word.putting(into, parameter, value) } }
         building?.let(::keepBuilding)
     }
 
     /** One value, written to every parameter asked for — they were chosen together and they mean one thing. */
-    private fun retypeParameter(parameters: List<String>, into: Slot, starting: String? = null) {
+    private fun retypeParameter(parameters: List<String>, into: Into, starting: String? = null) {
         if (parameters.isEmpty()) return
         val bare = parameters.first().substringAfterLast('.')
         val said = Aspect.entries.firstNotNullOfOrNull { aspect ->
@@ -1238,29 +1273,32 @@ class Editor(
     }
 
     /** The count, typed on the pool's own heading — a number is not worth a screen of its own. */
-    private fun retypeDraws(of: Slot) {
-        val standing = if (of == Slot.REQUIRED_POOL) candidate.draws else candidate.requests.draws
-        val facets = candidate.holding(of).size
+    private fun retypeDraws(of: Into) {
+        val pool = candidate.poolsOn(of.insistence).getOrNull(of.pool ?: return) ?: return
+        val standing = pool.draws.spelled
+        val facets = pool.facets.size
         overlay = null
         building = null
         turnTo(Part.EFFECTS)
         inside = true
-        rows().indexOfFirst { it.handle == "draws/${of.name}" }.takeIf { it >= 0 }?.let { rowOf[Part.EFFECTS] = it }
+        val handle = "draws/${of.insistence.name}/${of.pool}"
+        rows().indexOfFirst { it.handle == handle }.takeIf { it >= 0 }?.let { rowOf[Part.EFFECTS] = it }
         typeOn(
-            handle = "draws/${of.name}",
-            standing = standing.toString(),
-            // Zero is a pool that never fires and more than the pool holds is a count with nothing behind
-            // it; taking all of it is merely what `sets` already says, so that one is a nudge and allowed.
+            handle = handle,
+            standing = standing,
+            // Never drawing is a pool that does nothing and more than the pool holds is a count with
+            // nothing behind it; taking all of it is merely what `sets` says, so that one is a nudge.
             complaint = { typed ->
-                val many = typed.toIntOrNull()
-                if (many != null && many in 1..facets) null else "a whole number, 1 to $facets"
+                val counts = Draws.read(typed)
+                when {
+                    counts == null -> "a number, a range like 1..3, or 1|2|2 to make one likelier"
+                    counts.max() == 0 -> "this never draws anything"
+                    counts.max() > facets -> "there are only $facets facets to draw from"
+                    else -> null
+                }
             },
         ) { typed ->
-            val many = typed.toInt()
-            edit { at ->
-                if (of == Slot.REQUIRED_POOL) at.copy(draws = many)
-                else at.copy(requests = at.requests.copy(draws = many))
-            }
+            edit { at -> at.drawing(of.insistence, of.pool, Draws(typed)) }
         }
     }
 
@@ -1619,6 +1657,8 @@ class Editor(
 
         const val ANOTHER_FACET = "\u0000another"
         const val HOW_MANY_DRAWN = "\u0000draws"
+        /** What the pool list calls the row that starts one rather than adding to an existing one. */
+        const val NEW_POOL = "new"
         const val DONE_BUILDING = "\u0000done"
 
         const val SAVE_AND_LEAVE = "\u0000save"
