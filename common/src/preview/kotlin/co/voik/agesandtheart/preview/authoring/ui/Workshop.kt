@@ -329,40 +329,49 @@ class Workshop(
      * wide screen for no reason at all. What is left after the page and the marker is what it gets, and
      * the arithmetic is `rowLine`'s own: four columns of indent, then ` │ ` between each pair.
      */
-    private fun columnsFor(width: Int): List<Table.Column> {
-        val spent = INDENT + PAGE_WIDTH + Frame.GUTTER + CLOSES_WIDTH + Frame.GUTTER +
-            TIER_WIDTH + Frame.GUTTER + TARGETS_WIDTH + Frame.GUTTER
-        return listOf(
-            Table.Column("page", PAGE_WIDTH),
-            Table.Column("", CLOSES_WIDTH),
-            Table.Column("specificity", TIER_WIDTH, order = Tier.entries.map { it.key }),
-            Table.Column("targets", TARGETS_WIDTH),
-            Table.Column("what it does", (width - spent).coerceAtLeast(MINIMUM_SAYS)),
-        )
-    }
+    private fun columnsFor(width: Int): List<Table.Column> = listOf(
+        Table.Column("page", PAGE_WIDTH),
+        Table.Column("specificity", TIER_WIDTH, order = Tier.entries.map { it.key }),
+        Table.Column("targets", TARGETS_WIDTH),
+        Table.Column("what it does", (width - COLUMNS_SPENT).coerceAtLeast(MINIMUM_SAYS)),
+    )
+
+    /** The narrowest the list can be drawn and still say something in every column. */
+    private val listPaneLeast: Int get() = COLUMNS_SPENT + MINIMUM_SAYS
+
+    /**
+     * Whether the screen can carry the book beside the list rather than above it.
+     *
+     * **Above it was the mistake.** The detail under the caret grows and shrinks with whatever page the
+     * cursor is on, so a list beneath it walked up and down the screen while it was being read. Beside
+     * it, the detail can take all the room it wants and the list never moves.
+     */
+    private val roomForTwoPanes: Boolean get() = canvas.width >= BOOK_PANE_LEAST + Frame.GUTTER + listPaneLeast
+
+    /** How wide the book pane is: a share of the screen, never so wide that the list is squeezed. */
+    private val bookPaneWidth: Int
+        get() = (canvas.width * BOOK_PANE_SHARE / SHARE_OF)
+            .coerceIn(BOOK_PANE_LEAST, canvas.width - Frame.GUTTER - listPaneLeast)
+
+    private val listPaneWidth: Int
+        get() = if (roomForTwoPanes) canvas.width - bookPaneWidth - Frame.GUTTER else canvas.width
 
     private fun emptyTable() = Table(
         title = "",
-        columns = columnsFor(canvas.width),
+        columns = columnsFor(listPaneWidth),
         rows = emptyList(),
         whenEmpty = "nothing the Art can read follows this",
     )
 
     private fun rebuildTheTable(filter: String) {
-        builtFor = canvas.width
+        builtFor = listPaneWidth
         table = Table(
             title = "",
-            columns = columnsFor(canvas.width),
+            columns = columnsFor(listPaneWidth),
             rows = listed().map { offer ->
                 Table.Row(
                     key = offer.page,
-                    cells = listOf(
-                        offer.page,
-                        if (offer.closes) "closes" else "",
-                        offer.tier,
-                        offer.targets,
-                        offer.says,
-                    ),
+                    cells = listOf(offer.page, offer.tier, offer.targets, offer.says),
                     tone = when {
                         offer.closes -> Palette.chosen
                         offer.authored -> Palette.value
@@ -385,7 +394,7 @@ class Workshop(
 
     private fun lines(): List<Line> {
         // A resize changes what `what it does` has room for, and the table holds its widths.
-        if (canvas.width != builtFor) rebuildTheTable(typed)
+        if (listPaneWidth != builtFor) rebuildTheTable(typed)
         val head = buildList {
             add(
                 Line("  the age workshop  ", Palette.heading) + Line(name.ifEmpty { "untitled" }, Palette.value) +
@@ -394,20 +403,10 @@ class Workshop(
                     Line(server?.let { "   ${Glyph.FILLED} localhost:${it.port}" }.orEmpty(), Palette.settled),
             )
             add(Frame.rule(canvas.width))
-            // **Above the row, not below it.** What the book reads as and what it costs are about the
-            // words being laid, and putting them under the list meant looking away from the row to check
-            // the thing the row had just changed.
-            addAll(readingLines())
-            add(Frame.rule(canvas.width))
-            add(rowLine())
-            add(Frame.rule(canvas.width))
-            addAll(whatWouldBeLaid())
-            add(Frame.rule(canvas.width))
-            add(headerLine(table))
         }
         val tail = buildList {
-            add(countLine())
             add(Frame.rule(canvas.width))
+            add(countLine())
             if (message.isNotEmpty()) add(Line("  $message", Palette.warned))
             val theGame = if (server == null) {
                 arrayOf("^o" to "open in minecraft")
@@ -419,7 +418,64 @@ class Workshop(
         // Counted rather than guessed: the chrome grows a line whenever the book gains a flaw, and a
         // constant for it went stale every time this frame was touched.
         val room = (canvas.height - head.size - tail.size).coerceAtLeast(1)
-        return head + offerLines(room) + tail
+        val middle = if (roomForTwoPanes) besidePanes(room) else stackedPanes(room)
+        return head + middle + tail
+    }
+
+    /**
+     * The book on the left and what could follow it on the right, each keeping its own column.
+     *
+     * The book pane is allowed to run past the room and is cut with a marker rather than being allowed to
+     * push the list: whatever it has to say, the row under the cursor stays where it was.
+     */
+    private fun besidePanes(room: Int): List<Line> {
+        val list = listOf(headerLine(table)) + offerLines(room - 1)
+        return Frame.beside(exactly(bookPane(bookPaneWidth), room), bookPaneWidth, list, listPaneWidth)
+    }
+
+    /**
+     * One above the other, for a screen too narrow to carry both.
+     *
+     * **The book keeps a fixed height here**, which is the whole of what this had to learn from the two
+     * panes: the detail grows and shrinks with whatever page the cursor is on, so a book that took only
+     * the room it needed walked the list up and down the screen underneath it. It is padded as well as
+     * cut, because a short book leaving the gap is what stops the list moving at all.
+     */
+    private fun stackedPanes(room: Int): List<Line> {
+        // The rule and the header the list wears, and one offer row, which is the least worth drawing.
+        val spentOnTheList = LIST_CHROME + 1
+        val tall = STACKED_BOOK_ROWS.coerceIn(1, (room - spentOnTheList).coerceAtLeast(1))
+        val book = exactly(bookPane(canvas.width), tall) +
+            listOf(Frame.rule(canvas.width), headerLine(table))
+        return book + offerLines((room - book.size).coerceAtLeast(1))
+    }
+
+    /**
+     * [lines] made exactly [rows] tall — cut with a marker where it overruns, padded where it falls short.
+     *
+     * Both halves matter and for the same reason: what is under the caret is the one thing on this screen
+     * whose height nobody chose, so it is given a height rather than allowed to take one.
+     */
+    private fun exactly(lines: List<Line>, rows: Int): List<Line> = when {
+        lines.size == rows -> lines
+        lines.size > rows -> lines.take(rows - 1) +
+            Line("  ${Glyph.ELIDED} ${lines.size - rows + 1} more", Palette.faint)
+        else -> lines + List(rows - lines.size) { Line.BLANK }
+    }
+
+    /**
+     * The book so far, what it reads as, and what the page under the cursor would do to it — in that
+     * order, because that is the order the questions are asked in.
+     */
+    private fun bookPane(width: Int): List<Line> = buildList {
+        addAll(rowLines(width))
+        add(Line.BLANK)
+        // The readout and the flaws are one long sentence each, so they wrap under their own label.
+        addAll(readingLines().flatMap { it.wrapped(width, READING_HANGING) })
+        add(Line.BLANK)
+        add(Frame.rule(width, "laying"))
+        // Already wrapped, and to its own hanging indents — a second pass would break it under the wrong one.
+        addAll(whatWouldBeLaid(width))
     }
 
     /**
@@ -429,20 +485,27 @@ class Workshop(
      * four tags and two parameters does not fit anywhere sensible. This is the one page it matters for: the
      * one about to go down.
      */
-    private fun whatWouldBeLaid(): List<Line> {
+    private fun whatWouldBeLaid(width: Int): List<Line> {
         // What enter would lay, which is the exact match ahead of wherever the cursor happens to sit.
         val offer = exactlyTyped() ?: focused ?: return listOf(Line("  nothing to lay", Palette.faint))
+        // **The page, then everything about it on its own line.** Beside the list there is height to
+        // spend and no width to waste, and the targets are the half a writer actually reads here — the
+        // column beside them cuts at two aspect pages and a word reaching nine says so nowhere else.
         val head = Line("  ") + Line(offer.page, if (offer.closes) Palette.chosen else Palette.value) +
             Line(if (offer.tier.isEmpty()) "" else "  ${offer.tier}", Palette.parameter) +
-            Line(if (offer.targets.isEmpty()) "" else "  ${offer.targets}", Palette.tag) +
             Line(if (offer.closes) "  closes the clause" else "", Palette.chosen) +
             Line(if (offer.authored || offer.tier.isEmpty()) "" else "  auto-generated", Palette.faint)
-        val said = claimLines("required ", offer.required, Palette.value) +
-            claimLines("requested", offer.requested, Palette.nudged)
+        val aimedAt = if (offer.targets.isEmpty()) emptyList() else {
+            (Line("    ") + Line("targets  ", Palette.faint) + Line(offer.targets, Palette.tag))
+                .wrapped(width, "             ")
+        }
+        val said = claimLines("required ", offer.required, Palette.value, width) +
+            claimLines("requested", offer.requested, Palette.nudged, width)
         return buildList {
             add(head)
+            addAll(aimedAt)
             if (said.isEmpty()) {
-                add(Line("    ") + Line(offer.says, Palette.faint))
+                addAll((Line("    ") + Line(offer.says, Palette.faint)).wrapped(width, "    "))
                 return@buildList
             }
             addAll(said.take(DETAIL_LINES))
@@ -451,9 +514,10 @@ class Workshop(
             }
             // **Why a block's targets and the clause line disagree**, said where the question is asked.
             if (offer.isMaterial) {
-                add(
-                    Line("    ") + Line("a block", Palette.parameter) +
-                        Line(" — so it can also be aimed at anything made of something", Palette.faint),
+                addAll(
+                    (Line("    ") + Line("a block", Palette.parameter) +
+                        Line(" — so it can also be aimed at anything made of something", Palette.faint))
+                        .wrapped(width, "    "),
                 )
             }
         }
@@ -469,10 +533,15 @@ class Workshop(
      * A pool is indented under the count that draws from it, so what an Age chooses *between* reads as a
      * group rather than as three more settings on the same list.
      */
-    private fun claimLines(label: String, claims: List<Suggestions.Claim>, tone: TextStyle): List<Line> {
+    private fun claimLines(
+        label: String,
+        claims: List<Suggestions.Claim>,
+        tone: TextStyle,
+        width: Int,
+    ): List<Line> {
         if (claims.isEmpty()) return emptyList()
         val gutter = " ".repeat(label.length + 2)
-        val room = (canvas.width - INDENT - gutter.length).coerceAtLeast(MINIMUM_SAYS)
+        val room = (width - INDENT - gutter.length).coerceAtLeast(MINIMUM_SAYS)
         return buildList {
             for ((at, claim) in claims.withIndex()) {
                 for ((line, said) in wrapped(claim.said, room).withIndex()) {
@@ -512,7 +581,7 @@ class Workshop(
      * Everything after the caret is dimmed: it is still in the book and it is not what the suggestions
      * are about, and showing the two alike made it look as though the list had stopped making sense.
      */
-    private fun rowLine(): Line {
+    private fun rowLines(width: Int): List<Line> {
         var line = Line("  ")
         for (page in laid.take(caret)) {
             line += Line("$page ", if (page in closingPages) Palette.chosen else Palette.value)
@@ -521,7 +590,9 @@ class Workshop(
         for (page in laid.drop(caret)) {
             line += Line(" $page", Palette.faint)
         }
-        return line.sized(canvas.width)
+        // **Wrapped rather than cut.** A book is written until it is finished and the caret is usually at
+        // the end of it, so a row sized to the pane would hide the very thing being typed.
+        return line.wrapped(width, "  ")
     }
 
     private fun offerLines(room: Int): List<Line> {
@@ -880,7 +951,6 @@ class Workshop(
 
     private companion object {
         const val PAGE_WIDTH = 26
-        const val CLOSES_WIDTH = 6
 
         /** `restrictive` is the longest of the three. */
         const val TIER_WIDTH = 12
@@ -892,10 +962,40 @@ class Workshop(
          * so searching `structures` still shows why the row is on the list.
          */
         const val TARGETS_WIDTH = 22
-        const val FLAWS_SHOWN = 3
 
         /** The four columns `rowLine` indents every row by. */
         const val INDENT = 4
+
+        /** Everything a list row spends before `what it does` takes what is left. */
+        const val COLUMNS_SPENT = INDENT + PAGE_WIDTH + Frame.GUTTER + TIER_WIDTH + Frame.GUTTER +
+            TARGETS_WIDTH + Frame.GUTTER
+
+        /**
+         * The narrowest the book pane is worth drawing beside the list — enough for a labelled line to
+         * wrap twice rather than become a column of single words. Below this the two go back to stacked.
+         */
+        const val BOOK_PANE_LEAST = 34
+
+        /** What share of the screen the book takes where there is more than the least to share out. */
+        const val BOOK_PANE_SHARE = 2
+        const val SHARE_OF = 5
+
+        /** Where a wrapped label's continuation starts, so `reads as …` runs under itself, not the label. */
+        const val READING_HANGING = "                   "
+
+        /**
+         * How tall the book is drawn where it sits above the list rather than beside it.
+         *
+         * Enough for the row, the reading and the first few lines of the detail. It shrinks on a short
+         * terminal so at least one offer is always visible — a list with no rows in it is worse than a
+         * detail with a `… 4 more` on the end.
+         */
+        const val STACKED_BOOK_ROWS = 10
+
+        /** The rule and the header the list carries above its rows. */
+        const val LIST_CHROME = 2
+
+        const val FLAWS_SHOWN = 3
 
         /** What `what it does` keeps on a terminal too narrow to give it anything. */
         const val MINIMUM_SAYS = 20
