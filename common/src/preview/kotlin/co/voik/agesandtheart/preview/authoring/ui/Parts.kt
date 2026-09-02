@@ -24,19 +24,28 @@ import co.voik.agesandtheart.preview.authoring.WordFile
  * Each is a list of rows. What a row means differs per section, so they are built here and the editor
  * only moves a cursor over them.
  */
-enum class Part(val title: String, val about: String, val perilous: Boolean = false) {
+enum class Part(
+    val title: String,
+    val about: String,
+    /** A blank line before it and nothing else — the same grouping the tool's own menu uses. */
+    val startsGroup: Boolean = false,
+    val perilous: Boolean = false,
+) {
     NAME("word", ""),
     TIER("specificity", ""),
     TEMPLATE("base dimension", "the world a book starts from, where this word chooses one"),
-    ASPECTS("targets", "where its claims put it — derived, and nothing a word can declare"),
+    LISTING("rarity", "how hard it is to find, and what it takes to write"),
+    COMMENT("comment", "why this word exists, for whoever reads it next"),
+
     /**
      * Claims about a **property** the world has — a temperature, a colour, how large a sun is. Keyed by
      * the parameter they set.
      */
-    PROPERTIES("properties", "what it sets, and whether it insists on it"),
+    PROPERTIES("properties", "what it sets, and whether it insists on it", startsGroup = true),
+
     /**
      * Claims about **which members** fill a part of the world — this landform, anything tagged cavernous,
-     * more of that biome. Keyed by a preset or a tag.
+     * more of that biome. Keyed by a member or a tag.
      *
      * The two sections are the world model's own division (§1): an aspect holds a value, or it holds
      * members, and a word speaks to one or the other. **Which claims are firm and which are loose cuts
@@ -44,20 +53,29 @@ enum class Part(val title: String, val about: String, val perilous: Boolean = fa
      * a tag, and either way that is how precisely the word speaks rather than what it speaks about.
      */
     POPULATIONS("populations", ""),
-    COMMENT("comment", ""),
-    LISTING("rarity", ""),
+
+    /**
+     * Everything the word does, said back in one place.
+     *
+     * It was `targets` and listed only where the word reaches, which is a fact about the word rather than
+     * a thing you can act on — and the reach is derived, so there was nothing to do there at all. What a
+     * writer wants before saving is the whole of it: where it lands, what it costs, what it sets, what it
+     * does to each population, and what is wrong with it.
+     */
+    REVIEW("review", "everything this word does, said back", startsGroup = true),
+
+    SAVE("save", "write it, and stay here", startsGroup = true),
+    SAVE_AND_LEAVE("save & exit", "write it and go back to the list"),
 
     /** Last, and marked, because it is the one thing here that cannot be undone. */
-    DELETE("delete", "", perilous = true),
+    DELETE("delete", "removing this word for good", perilous = true),
 }
 
 /**
- * **How hard a word claims something** — whether it insists, or merely offers and gives way to the book.
+ * **How hard a word claims a property** — whether it insists, or merely offers and gives way to the book.
  *
- * It used to be four values, crossing this question with whether the claim was drawn per Age. A word may
- * now carry several pools, so where a claim is drawn from is a *place* rather than a kind of claim, and the
- * two questions came apart. This is the first of them; a pool says which of these it belongs to and where
- * in that list it sits.
+ * Only properties have this: a claim on a population cannot fail, or is a removal, and neither has
+ * anything to yield (`Word.biases`). So it lives here and the population's own steps live in [Step].
  */
 enum class Insistence(val required: Boolean, val title: String, val about: String) {
     REQUIRED(true, "required", "always applies, and overrides anything else"),
@@ -109,12 +127,13 @@ class Parts(private val corpus: Corpus) {
     fun rowsOf(part: Part, candidate: Candidate, word: Word?): List<Row> = when (part) {
         Part.NAME -> nameRows(candidate)
         Part.TIER -> tierRows(candidate)
-        Part.ASPECTS -> aspectRows(candidate, word)
         Part.TEMPLATE -> templateRows(candidate)
         Part.PROPERTIES -> effectRows(candidate, word)
         Part.POPULATIONS -> pickRows(candidate, word)
+        Part.REVIEW -> reviewRows(candidate, word)
         Part.COMMENT -> commentRows(candidate)
         Part.LISTING -> listingRows(candidate)
+        Part.SAVE, Part.SAVE_AND_LEAVE -> doingRows(part, candidate)
         Part.DELETE -> deleteRows(candidate)
     }
 
@@ -138,6 +157,9 @@ class Parts(private val corpus: Corpus) {
 
     /** Whether this section holds a list you add to and delete from, which decides what `a` and `d` mean. */
     fun isAList(part: Part) = part in setOf(Part.PROPERTIES, Part.POPULATIONS)
+
+    /** Whether the cursor may rest on this row at all — a heading names what is under it and does nothing. */
+    fun isAHeading(row: Row) = row.handle.startsWith("heading/")
 
     // -- word and specificity ------------------------------------------------------------------------
 
@@ -189,28 +211,56 @@ class Parts(private val corpus: Corpus) {
      * bare `query`. Keying the query says the same thing in one place, so the declaration went and this
      * became what it always should have been: a reading of what the word's own claims add up to.
      */
-    private fun aspectRows(candidate: Candidate, word: Word?): List<Row> {
-        val reaches = word?.aspects.orEmpty().sortedBy { it.ordinal }
+    /**
+     * **Everything the word does, said back** — where it lands, what it costs, and what it does there.
+     *
+     * One row per part of the world it reaches, with what it says about that part spelled out beneath;
+     * the reach itself is derived and cannot be edited, so this is a page to read rather than fill in.
+     */
+    private fun reviewRows(candidate: Candidate, word: Word?): List<Row> {
+        if (word == null) {
+            return listOf(Row("none", listOf(Ink("this word will not load", Palette.refused))))
+        }
+        val reaches = word.aspects.sortedBy { it.ordinal }
+        val head = Row(
+            handle = "price",
+            shown = listOf(
+                Ink("costs".padEnd(MARK_COLUMN), Palette.faint),
+                Ink("${word.price} ink".padEnd(PARAMETER_COLUMN), Palette.value),
+                Ink("${word.tier.key} × ${word.versatility} part(s) of the world", Palette.faint),
+            ),
+            note = "specificity times the number of places it may be laid (world model §9)",
+        )
         if (reaches.isEmpty()) {
             return listOf(
+                head,
                 Row(
                     handle = "none",
-                    shown = listOf(Ink("nothing yet", Palette.warned)),
-                    note = "a word reaches wherever its effects and queries point; it has none that do",
+                    shown = listOf(Ink("reaches nothing", Palette.warned)),
+                    note = "a word lands wherever its claims point, and it has none that do",
                 ),
             )
         }
-        return reaches.map { aspect ->
+        return listOf(head) + reaches.map { aspect ->
             Row(
                 handle = aspect.page,
                 shown = listOf(
-                    Ink(aspect.page.padEnd(22), Palette.value),
+                    Ink(aspect.page.padEnd(MARK_COLUMN), Palette.value),
                     Ink(whatItHolds(aspect), Palette.faint),
                 ),
                 note = whyItReaches(aspect, candidate),
             )
         }
     }
+
+    /** A section that is one thing to do, so its whole list is the doing of it. */
+    private fun doingRows(part: Part, candidate: Candidate): List<Row> = listOf(
+        Row(
+            handle = part.name,
+            shown = listOf(Ink(part.title, if (candidate.isDerived) Palette.faint else Palette.value)),
+            note = if (candidate.isDerived) "an auto-generated word has no file to write" else part.about,
+        ),
+    )
 
     /**
      * What an aspect holds, said rather than named.
@@ -506,23 +556,49 @@ class Parts(private val corpus: Corpus) {
         }
     }
 
+    /**
+     * **A settled population reads as settled.** Choosing ends the pipeline there, so whatever the later
+     * steps say about that part of the world is never read — and a row that does nothing should not look
+     * like a row that does.
+     */
+    private fun settledNote(step: Step, candidate: Candidate, aspect: Aspect): String? {
+        if (step == Step.CHOOSE) return null
+        val chosen = candidate.chooses[aspect] ?: return null
+        return "never read: '$chosen' settles the ${aspect.page}, and nothing after that is asked"
+    }
+
     private fun stepRows(step: Step, candidate: Candidate, word: Word?): List<Row> = when (step) {
         Step.CHOOSE -> candidate.chooses.entries.sortedBy { it.key.ordinal }.map { (aspect, key) ->
             Row("chooses/${aspect.page}", populationInk(aspect, key, Palette.chosen), whatItMeans(aspect, key))
         }
         Step.ADD -> candidate.admits.entries.sortedBy { it.key.ordinal }.flatMap { (aspect, keys) ->
+            val settled = settledNote(step, candidate, aspect)
             keys.sorted().map { key ->
-                Row("admits/${aspect.page}/$key", populationInk(aspect, key, Palette.value), addedNote(aspect, key))
+                Row(
+                    "admits/${aspect.page}/$key",
+                    populationInk(aspect, key, if (settled == null) Palette.value else Palette.faint),
+                    settled ?: addedNote(aspect, key),
+                )
             }
         }
         Step.KEEP -> candidate.restricts.entries.sortedBy { it.key.ordinal }.flatMap { (aspect, tags) ->
+            val settled = settledNote(step, candidate, aspect)
             tags.entries.sortedByDescending { it.value }.map { (tag, weight) ->
-                Row("restricts/${aspect.page}/$tag", tagInk(tag, weight, aspect.page), tagNote(tag, word, aspect))
+                Row(
+                    "restricts/${aspect.page}/$tag",
+                    tagInk(tag, weight, aspect.page),
+                    settled ?: tagNote(tag, word, aspect),
+                )
             }
         }
         Step.REMOVE -> candidate.excludes.entries.sortedBy { it.key.ordinal }.flatMap { (aspect, keys) ->
+            val settled = settledNote(step, candidate, aspect)
             keys.sorted().map { key ->
-                Row("excludes/${aspect.page}/$key", populationInk(aspect, key, Palette.refused), struckNote(aspect, key))
+                Row(
+                    "excludes/${aspect.page}/$key",
+                    populationInk(aspect, key, if (settled == null) Palette.refused else Palette.faint),
+                    settled ?: struckNote(aspect, key),
+                )
             }
         }
         Step.BIAS -> leaningRows(candidate, word)
@@ -533,8 +609,13 @@ class Parts(private val corpus: Corpus) {
             Row("biases/${Word.EVERYWHERE}/$named", leanInk(named, weight, Word.EVERYWHERE), leanNote(null, named))
         }
         val keyed = candidate.biases.entries.sortedBy { it.key.ordinal }.flatMap { (aspect, by) ->
+            val settled = settledNote(Step.BIAS, candidate, aspect)
             by.entries.sortedByDescending { it.value }.map { (named, weight) ->
-                Row("biases/${aspect.page}/$named", leanInk(named, weight, aspect.page), leanNote(aspect, named))
+                Row(
+                    "biases/${aspect.page}/$named",
+                    leanInk(named, weight, aspect.page),
+                    settled ?: leanNote(aspect, named),
+                )
             }
         }
         return everywhere + keyed
@@ -774,6 +855,9 @@ class Parts(private val corpus: Corpus) {
         /** Where a facet's value starts, so every row in the section lines up on it. */
         const val PARAMETER_COLUMN = 22
 
+        /** Where a review row's second column starts. */
+        const val MARK_COLUMN = 14
+
         /** Where the value starts on a populations row, past the word saying what it does to the draw. */
         const val KIND_COLUMN = 10
 
@@ -821,6 +905,11 @@ fun Candidate.putting(into: Into, parameter: String, value: String): Candidate =
 /** What is already there, wherever [into] points. */
 fun Candidate.holding(into: Into): Map<String, String> =
     if (into.pool == null) settingOn(into.insistence) else poolsOn(into.insistence).getOrNull(into.pool)?.facets.orEmpty()
+
+/** This word leaning [named] by [weight], wherever [aspect] points — `null` being the whole Age. */
+fun Candidate.leaning(aspect: Aspect?, named: String, weight: Double): Candidate =
+    if (aspect == null) copy(leansEverywhere = leansEverywhere + (named to weight))
+    else copy(biases = biases + (aspect to (biases[aspect].orEmpty() + (named to weight))))
 
 /** The half of this word [insistence] names, whole — what it always does, and every pool it draws from. */
 fun Candidate.claimsOn(insistence: Insistence): Claims =

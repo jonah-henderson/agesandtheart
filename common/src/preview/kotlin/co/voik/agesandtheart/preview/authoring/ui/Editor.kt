@@ -200,7 +200,11 @@ class Editor(
         }
     }
 
-    private fun sectionList(): List<Line> = Part.entries.map { entry ->
+    private fun sectionList(): List<Line> = Part.entries.flatMap { entry ->
+        listOfNotNull(Line.BLANK.takeIf { entry.startsGroup }) + sectionLine(entry)
+    }
+
+    private fun sectionLine(entry: Part): Line = run {
         val here = entry == part
         val marker = if (here && !inside) "${Glyph.FOCUS} " else "  "
         val name = when {
@@ -219,7 +223,8 @@ class Editor(
     private fun filledness(entry: Part): String = when (entry) {
         Part.NAME -> if (candidate.name.isBlank()) "" else Glyph.TICK
         Part.TIER -> Glyph.TICK
-        Part.ASPECTS -> word?.aspects?.size?.takeIf { it > 0 }?.toString().orEmpty()
+        Part.REVIEW -> word?.price?.toString().orEmpty()
+        Part.SAVE, Part.SAVE_AND_LEAVE -> if (unsaved) Glyph.WARN else Glyph.TICK
         Part.PROPERTIES -> Insistence.entries.sumOf { candidate.everythingOn(it).size }
             .takeIf { it > 0 }?.toString().orEmpty()
         Part.POPULATIONS -> (candidate.chooses.size + candidate.admits.values.sumOf { it.size } +
@@ -457,6 +462,8 @@ class Editor(
             key.key == "PageDown" -> if (inside) move(rowsInView()) else turnTo(nextPart())
             key.key == "Home" -> if (inside) moveTo(0) else turnTo(Part.entries.first())
             key.key == "End" -> if (inside) moveTo(rows().size - 1) else turnTo(Part.entries.last())
+            key.key == "=" && inside -> step(A_STEP)
+            key.key == "-" && inside -> step(-A_STEP)
             key.key == "a" && inside && parts.isAList(part) -> add()
             key.key == "d" && inside && parts.isAList(part) -> remove()
         }
@@ -519,6 +526,8 @@ class Editor(
     /** Another section, with the inline help back on the first of whatever it finds there. */
     private fun turnTo(wanted: Part) {
         part = wanted
+        // The remembered row may be a heading now, or past the end of a section that has shrunk.
+        rowOf[part] = restingPlace(rowOf.getValue(part).coerceIn(0, (rows().size - 1).coerceAtLeast(0)), 1)
         parts.helpAspect = 0
     }
 
@@ -606,14 +615,31 @@ class Editor(
         // A page runs to the end rather than round it: wrapping is what the arrows do, and a page key
         // that jumped from the bottom back to the top would be a page nobody could read.
         val wanted = if (kotlin.math.abs(by) > 1) (row() + by).coerceIn(0, size - 1) else row() + by
-        rowOf[part] = ((wanted % size) + size) % size
+        rowOf[part] = restingPlace(((wanted % size) + size) % size, if (by < 0) -1 else 1)
         parts.helpAspect = 0
+    }
+
+    /**
+     * The nearest row the cursor may actually rest on, walking [towards].
+     *
+     * **A heading is read, never landed on.** It names what is under it and does nothing, so stopping
+     * there offers an empty note and keys that answer nothing — and every section now opens with one.
+     */
+    private fun restingPlace(from: Int, towards: Int): Int {
+        val listed = rows()
+        if (listed.isEmpty()) return 0
+        var at = from.coerceIn(0, listed.size - 1)
+        repeat(listed.size) {
+            if (!parts.isAHeading(listed[at])) return at
+            at = ((at + towards) % listed.size + listed.size) % listed.size
+        }
+        return from
     }
 
     private fun moveTo(where: Int) {
         val size = rows().size
         if (size == 0) return
-        rowOf[part] = where.coerceIn(0, size - 1)
+        rowOf[part] = restingPlace(where.coerceIn(0, size - 1), if (where == 0) 1 else -1)
         parts.helpAspect = 0
     }
 
@@ -624,12 +650,15 @@ class Editor(
         when (part) {
             Part.NAME -> if (rows().getOrNull(row())?.handle == "display") retitle() else renameTo()
             Part.TIER -> Tier.entries.firstOrNull { it.key == handle }?.let { tier -> edit { it.copy(tier = tier) } }
-            Part.ASPECTS -> if (handle == "+") add() else Unit
+            Part.REVIEW -> Unit
             Part.TEMPLATE -> pickABaseDimension()
             Part.PROPERTIES -> actOnAnEffect(handle)
             Part.POPULATIONS -> actOnAPick(handle)
             Part.COMMENT -> openTheEditor()
             Part.LISTING -> relist(handle)
+            Part.SAVE -> save()
+            // Leaving only where the write actually happened; a refusal keeps you on the word.
+            Part.SAVE_AND_LEAVE -> { save(); if (!unsaved) quitting = true }
             Part.DELETE -> askAboutDeleting()
         }
     }
@@ -1055,7 +1084,13 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
                 "an evocative word leans everything and rules nothing out",
             ),
         )
-        val holding = Aspect.entries.filter { it.holds != Holds.NOTHING }.sortedBy { it.ordinal }
+        val holding = Aspect.entries.filter { it.holds != Holds.NOTHING }
+            .filter { step == Step.CHOOSE || it !in candidate.chooses }
+            .sortedBy { it.ordinal }
+        if (holding.isEmpty() && whole.isEmpty()) {
+            message = "every part of the world this word speaks to is already settled by a choice"
+            return
+        }
         val options = whole + holding.mapIndexed { at, aspect ->
             val many = corpus.vocabulary.askableIn(aspect).size
             Picker.Option(
@@ -1134,7 +1169,14 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
                 .map { Picker.Option("$TAG_MARK$it", "$TAG_MARK$it", carriedNote(it)) }
         }
         overlay = Picker("Lean ${aspect?.page ?: "the whole Age"} toward what?", options) { picked ->
-            retypeLean(aspect, picked.value)
+            // **In at nothing, then stepped.** A lean's whole meaning is how far, and a prompt asked for a
+            // number before there was a bar to read it against; `-` and `=` move it on the row itself,
+            // which is also how several are set without walking the flow once each.
+            edit { at -> at.leaning(aspect, picked.value, 0.0) }
+            turnTo(Part.POPULATIONS)
+            inside = true
+            rows().indexOfFirst { it.handle == "biases/${aspect?.page ?: Word.EVERYWHERE}/${picked.value}" }
+                .takeIf { it >= 0 }?.let { rowOf[Part.POPULATIONS] = it }
         }
     }
 
@@ -1172,6 +1214,29 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
                 }
             },
         )
+    }
+
+    /** One step of the value under the cursor, where the row carries one. */
+    private fun step(by: Double) {
+        val handle = rows().getOrNull(row())?.handle ?: return
+        val rest = handle.substringAfter('/', "")
+        val page = rest.substringBefore('/')
+        val named = rest.substringAfter('/', "")
+        val aspect = Aspect.entries.firstOrNull { it.page == page }
+        when (handle.substringBefore('/')) {
+            "biases" -> edit { at ->
+                val standing = if (aspect == null) at.leansEverywhere[named] else at.biases[aspect]?.get(named)
+                at.leaning(aspect, named, ((standing ?: 0.0) + by).coerceIn(-1.0, 1.0))
+            }
+            "restricts" -> aspect?.let { where ->
+                edit { at ->
+                    val standing = at.restricts[where]?.get(named) ?: 0.0
+                    val kept = at.restricts[where].orEmpty() + (named to (standing + by).coerceIn(-1.0, 1.0))
+                    at.copy(restricts = at.restricts + (where to kept))
+                }
+            }
+            else -> Unit
+        }
     }
 
     /** A lean's strength — the last step, and the one that can never take anything out. */
@@ -1596,6 +1661,9 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
 
         const val ANOTHER_FACET = "\u0000another"
         const val HOW_MANY_DRAWN = "\u0000draws"
+        /** How far `-` and `=` move a weight on the row itself — a tenth, as the word lists step by. */
+        const val A_STEP = 0.1
+
         /** What the pool list calls the row that starts one rather than adding to an existing one. */
         const val NEW_POOL = "new"
 

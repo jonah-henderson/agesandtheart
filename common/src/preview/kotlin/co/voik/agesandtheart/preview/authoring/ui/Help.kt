@@ -155,6 +155,8 @@ class Help(
             keyRow("", "a short value — a name, a count — is typed on its own row;"),
             keyRow("", "enter accepts it, and moving off the row accepts it too"),
             keyRow("a  /  d", "add a row, or delete one"),
+            keyRow("- =", "step a weight under the cursor, in tenths"),
+            keyRow("", "a lean goes in at nothing, so this is how it is set"),
             keyRow("tab", "which target the inline help is about"),
             keyRow("pgup pgdn", "a page of a long section, or a page of a list"),
             keyRow("home end", "the first and last row of a section"),
