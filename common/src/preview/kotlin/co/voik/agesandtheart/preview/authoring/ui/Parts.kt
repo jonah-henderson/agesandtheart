@@ -61,7 +61,7 @@ enum class Part(
      * writer wants before saving is the whole of it: where it lands, what it costs, what it sets, what it
      * does to each population, and what is wrong with it.
      */
-    REVIEW("review", "everything this word does, said back", startsGroup = true),
+    REVIEW("review", "", startsGroup = true),
     COMMENT("comment", "why this word exists, for whoever reads it next"),
 
     SAVE("save", "write it, and stay here", startsGroup = true),
@@ -212,45 +212,89 @@ class Parts(private val corpus: Corpus) {
      * became what it always should have been: a reading of what the word's own claims add up to.
      */
     /**
-     * **Everything the word does, said back** — where it lands, what it costs, and what it does there.
+     * **The whole word on one page**, in the order somebody checks it: what it costs, where it lands, what
+     * it sets, what it does to each population, and why it exists.
      *
-     * One row per part of the world it reaches, with what it says about that part spelled out beneath;
-     * the reach itself is derived and cannot be edited, so this is a page to read rather than fill in.
+     * Read-only, and **empty sections are absent rather than stated**. What a word has not said is already
+     * on the section list to its left as a blank mark, so saying it again here is a line spent telling a
+     * writer something they can see, and the page is worth having only if scanning it is quick.
      */
     private fun reviewRows(candidate: Candidate, word: Word?): List<Row> {
         if (word == null) {
             return listOf(Row("none", listOf(Ink("this word will not load", Palette.refused))))
         }
-        val reaches = word.aspects.sortedBy { it.ordinal }
-        val head = Row(
-            handle = "price",
-            shown = listOf(
-                Ink("costs".padEnd(MARK_COLUMN), Palette.faint),
-                Ink("${word.price} ink".padEnd(PARAMETER_COLUMN), Palette.value),
-                Ink("${word.tier.key} × ${word.versatility} part(s) of the world", Palette.faint),
-            ),
-            note = "specificity times the number of places it may be laid (world model §9)",
-        )
-        if (reaches.isEmpty()) {
-            return listOf(
-                head,
-                Row(
-                    handle = "none",
-                    shown = listOf(Ink("reaches nothing", Palette.warned)),
-                    note = "a word lands wherever its claims point, and it has none that do",
-                ),
+        val listing = WordFile.listingFor(candidate.listingKey)
+        return buildList {
+            addAll(under("what it costs", costRows(candidate, word, listing)))
+            addAll(under("where it lands", landingRows(candidate, word)))
+            addAll(under("what it sets", propertyReview(candidate)))
+            addAll(under("what it does to populations", populationReview(candidate)))
+            addAll(under("why it exists", candidate.commentLines.map { said(it) }))
+            if (isEmpty()) add(Row("none", listOf(Ink("nothing said yet", Palette.faint))))
+        }
+    }
+
+    /** A heading and its rows, or nothing at all where there are none. */
+    private fun under(title: String, rows: List<Row>): List<Row> =
+        if (rows.isEmpty()) emptyList()
+        else listOf(Row("heading/$title", listOf(Ink(title, Palette.heading)))) + rows
+
+    /** A read-only line: a label, its value, and whatever is worth saying about it after. */
+    private fun told(label: String, value: String, after: String = "", tone: TextStyle = Palette.value) = Row(
+        handle = "told/$label/$value",
+        shown = listOf(
+            Ink("    "),
+            Ink(label.padEnd(REVIEW_LABEL), Palette.faint),
+            Ink(value.padEnd(REVIEW_VALUE), tone),
+            Ink(after, Palette.faint),
+        ),
+    )
+
+    private fun said(line: String) = Row("said", listOf(Ink("    "), Ink(line, Palette.faint)))
+
+    private fun costRows(candidate: Candidate, word: Word, listing: WordFile.Listing) = buildList {
+        add(told("ink", "${word.price}", "${word.tier.key} × ${word.versatility} part(s) of the world"))
+        listing.rarity?.let { add(told("rarity", it, "how hard it is to find")) }
+        inkOf(candidate)?.let { add(told("ink quality", it, "what it takes to write")) }
+        candidate.template?.let { add(told("base dimension", it, "the world a book starts from")) }
+    }
+
+    private fun landingRows(candidate: Candidate, word: Word) =
+        word.aspects.sortedBy { it.ordinal }.map { aspect ->
+            told(aspect.page, whatItHolds(aspect), whyItReaches(aspect, candidate).lines().first().trim())
+        }
+
+    private fun propertyReview(candidate: Candidate) = Insistence.entries.flatMap { insistence ->
+        val always = candidate.settingOn(insistence).entries.sortedBy { it.key }
+            .map { (parameter, value) -> told(parameter, value, insistence.title) }
+        val pools = candidate.poolsOn(insistence).map { pool ->
+            told(
+                pool.said,
+                "${pool.draws} of ${pool.facets.size}",
+                "${insistence.title} pool ${Glyph.BULLET} ${pool.facets.keys.sorted().joinToString(" ")}",
             )
         }
-        return listOf(head) + reaches.map { aspect ->
-            Row(
-                handle = aspect.page,
-                shown = listOf(
-                    Ink(aspect.page.padEnd(MARK_COLUMN), Palette.value),
-                    Ink(whatItHolds(aspect), Palette.faint),
-                ),
-                note = whyItReaches(aspect, candidate),
-            )
+        always + pools
+    }
+
+    /** One line per part of the world a claim about a population lands in, saying every step it takes. */
+    private fun populationReview(candidate: Candidate): List<Row> {
+        val everywhere = candidate.leansEverywhere.entries.sortedByDescending { it.value }
+            .map { (named, weight) -> told(Word.EVERYWHERE, "leans $named", "%+.2f".format(weight)) }
+        val keyed = Aspect.entries.sortedBy { it.ordinal }.flatMap { aspect ->
+            buildList {
+                candidate.chooses[aspect]?.let { add(told(aspect.page, "chooses $it", "nothing is searched for")) }
+                candidate.admits[aspect]?.sorted()?.forEach { add(told(aspect.page, "adds $it", "into the pool")) }
+                candidate.restricts[aspect]?.entries?.sortedByDescending { it.value }?.forEach { (tag, weight) ->
+                    add(told(aspect.page, "keeps only $TAG_MARK$tag", "%+.2f".format(weight)))
+                }
+                candidate.excludes[aspect]?.sorted()?.forEach { add(told(aspect.page, "removes $it", "out of the pool")) }
+                candidate.biases[aspect]?.entries?.sortedByDescending { it.value }?.forEach { (named, weight) ->
+                    add(told(aspect.page, "leans $named", "%+.2f".format(weight)))
+                }
+            }
         }
+        return everywhere + keyed
     }
 
     /** A section that is one thing to do, so its whole list is the doing of it. */
@@ -815,16 +859,20 @@ class Parts(private val corpus: Corpus) {
         ) + lines.take(COMMENT_PREVIEW).map { Row("", listOf(Ink("  $it", Palette.faint))) }
     }
 
+    /**
+     * What ink this word demands, from whichever of the two places holds it.
+     *
+     * A registry entry's is a tag on the entry rather than a name in `art/ink/`, which is what lets another
+     * mod's ore be worth the good ink without anybody editing our files. A page minted from one of our own
+     * designs has no entry to tag and is listed by name like the rest.
+     */
+    private fun inkOf(candidate: Candidate): String? =
+        if (candidate.inkedByTag) corpus.registryOf(candidate.id)?.let { WordFile.inkTagOn(candidate.id.toString(), it) }
+        else WordFile.listingFor(candidate.listingKey).ink
+
     private fun listingRows(candidate: Candidate): List<Row> {
         val listing = WordFile.listingFor(candidate.listingKey)
-        // A registry entry's ink is a tag on the entry, not a name in `art/ink/` — that is what lets
-        // another mod's ore be worth the good ink without anybody editing our files. A page minted from
-        // one of our own designs has no entry to tag and is listed by name like the rest.
-        val ink = if (candidate.inkedByTag) {
-            corpus.registryOf(candidate.id)?.let { WordFile.inkTagOn(candidate.id.toString(), it) }
-        } else {
-            listing.ink
-        }
+        val ink = inkOf(candidate)
         val labels = listOf("rarity", "required ink quality")
         val wide = labels.maxOf { it.length } + LABEL_GUTTER
         return listOf(
@@ -869,6 +917,10 @@ class Parts(private val corpus: Corpus) {
 
         /** The gap between a label and the value it labels, wherever the two share a row. */
         const val LABEL_GUTTER = 2
+
+        /** The three columns of a review line: what it is about, what it says, and the aside after. */
+        const val REVIEW_LABEL = 16
+        const val REVIEW_VALUE = 34
 
         /** Where the value starts on a populations row, past the word saying what it does to the draw. */
         const val KIND_COLUMN = 10
