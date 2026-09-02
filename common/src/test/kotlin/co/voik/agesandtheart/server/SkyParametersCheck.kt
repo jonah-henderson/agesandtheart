@@ -19,7 +19,7 @@ class SkyParametersCheck : FunSpec({
     val age = "skyparameters"
 
     beforeSpec {
-        server.run("age compose $age 5 landmass=hills sea=minecraft:water depths=caves sky=plain")
+        server.run("age compose $age 5 landmass=hills sea=minecraft:water rock=caves sky=plain")
     }
 
     test("a parameter is acted on and said back") {

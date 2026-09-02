@@ -10,7 +10,7 @@ frozen_age = <bleak_mood> age <cold_stone> landmass frozen climate x2
     | age <cold_stone> landmass frozen climate <cold_sky>
 
 molten_age = <bleak_mood> age <hot_stone> landmass molten sea x2
-    | age <hot_stone> landmass riddled depths molten sea
+    | age <hot_stone> landmass riddled rock molten sea
 
 bleak_mood = desolate x2 | ancient | foreboding
 

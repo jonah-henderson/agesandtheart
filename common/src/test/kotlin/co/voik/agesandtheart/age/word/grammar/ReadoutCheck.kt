@@ -111,8 +111,8 @@ class ReadoutCheck : FunSpec({
      * flooded" would read as one made out of the other, which is not what either page says.
      */
     test("a claim on an aspect takes no particle") {
-        val reading = readingOf("riddled", "flooded", "depths")
-        check(reading == "riddled, flooded depths.") { "read back as '$reading'" }
+        val reading = readingOf("riddled", "flooded", "rock")
+        check(reading == "riddled, flooded rock.") { "read back as '$reading'" }
     }
 
     /**

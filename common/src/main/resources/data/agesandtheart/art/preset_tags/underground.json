@@ -1,0 +1,22 @@
+{
+ "none": {
+  "tags": {
+   "solid": 1.0
+  }
+ },
+ "noise_caves": {
+  "tags": {
+   "cavernous": 0.9,
+   "dark": 0.5
+  }
+ },
+ "great_halls": {
+  "readiness": 0.3,
+  "tags": {
+   "cavernous": 0.6,
+   "monumental": 0.9,
+   "ordered": 0.8,
+   "dark": 0.6
+  }
+ }
+}

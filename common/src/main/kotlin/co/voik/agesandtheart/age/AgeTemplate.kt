@@ -7,6 +7,7 @@ import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.Terrain
+import co.voik.agesandtheart.age.aspect.Underground
 import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
 import co.voik.agesandtheart.worldgen.biome.BiomePreference
@@ -65,6 +66,7 @@ enum class AgeTemplate(
             terrains = listOf(Terrain.VANILLA),
             seas = listOf(Sea.WATER),
             carvers = listOf(Carvers.CAVES),
+            underground = Underground.NOISE_CAVES,
         )
     },
 
@@ -85,6 +87,8 @@ enum class AgeTemplate(
             terrains = listOf(Terrain.VANILLA),
             seas = listOf(Sea.LAVA),
             carvers = listOf(Carvers.SOLID),
+            // The nether's own rock is riddled enough; nothing of ours is cut into it.
+            underground = Underground.NONE,
         )
             .withOptions(Aspect.SKY, Sky.SEALED.name, listOf(Parameter.TRUE))
             .withOptions(Aspect.SUN, Sky.ABSENT.name, listOf(Parameter.TRUE))
@@ -117,6 +121,7 @@ enum class AgeTemplate(
             terrains = listOf(Terrain.VANILLA),
             seas = listOf(Sea.NONE),
             carvers = listOf(Carvers.SOLID),
+            underground = Underground.NONE,
         )
             .withOptions(Aspect.SUN, Sky.ABSENT.name, listOf(Parameter.TRUE))
             // **And nothing circles it either.** Silencing the sun alone left a full moon over the void,

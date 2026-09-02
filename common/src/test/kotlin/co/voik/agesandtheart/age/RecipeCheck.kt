@@ -160,7 +160,7 @@ class RecipeCheck : FunSpec({
     /**
      * **A writer's page and a recipe's key are two names, and these are the two aspects that differ.**
      *
-     * `terrain` became `landmass` and `carvers` became `depths` for readability, and each rename was a
+     * `terrain` became `landmass` and `carvers` became `rock` for readability, and each rename was a
      * save-format change until the two were told apart. Pack content and commands are pages, because they
      * are re-read on every load and a rename costs an edit to what ships; a save is keys, because a rename
      * there costs every Age ever written.
@@ -215,7 +215,7 @@ class RecipeCheck : FunSpec({
     /**
      * **A carving named against a rock we did not lay is dropped, and has to say so.**
      *
-     * The generator hands carving back to the superclass where the rock is vanilla's, so `depths=solid`
+     * The generator hands carving back to the superclass where the rock is vanilla's, so `rock=solid`
      * over the overworld leaves a world quite full of caves. Nothing anywhere else notices — the recipe
      * stores the carving happily and the world simply ignores it.
      */
@@ -227,7 +227,7 @@ class RecipeCheck : FunSpec({
         ).unhonoured
 
         val hollowedOverworld = over(AgeTemplate.OVERWORLD, Carvers.SOLID)
-        check(hollowedOverworld.size == 1) { "`depths=solid` over vanilla's rock said nothing: $hollowedOverworld" }
+        check(hollowedOverworld.size == 1) { "`rock=solid` over vanilla's rock said nothing: $hollowedOverworld" }
         check("solid" in hollowedOverworld.single()) { "the note does not name it: $hollowedOverworld" }
 
         // What the template already cuts is honoured, so silence is right for it.
@@ -439,7 +439,7 @@ class RecipeCheck : FunSpec({
 
         val spelling = composition.toString()
         check("landmass=hills,pillars,caverns" in spelling) { "A set should print comma-joined, got '$spelling'" }
-        check("depths=caves,solid" in spelling) { "So should a carving set, got '$spelling'" }
+        check("rock=caves,solid" in spelling) { "So should a carving set, got '$spelling'" }
         // Ids, because the sea aspect is open (design §3.1) — the referent is the value, not a preset naming it.
         check("sea=minecraft:water,minecraft:lava" in spelling) { "And a sea set, got '$spelling'" }
         check(AgeComposition.parse(spelling).getOrThrow() == composition) {
@@ -538,7 +538,7 @@ class RecipeCheck : FunSpec({
         }
 
         val spelling = uneven.toString()
-        check("depths=caves,porous@0.25,flooded_caves@0.06" in spelling) {
+        check("rock=caves,porous@0.25,flooded_caves@0.06" in spelling) {
             "an uneven division spells itself wrong: '$spelling'"
         }
         check(AgeComposition.parse(spelling).getOrThrow() == uneven) { "'$spelling' does not read back as itself" }
@@ -574,7 +574,7 @@ class RecipeCheck : FunSpec({
         }
 
         val spelling = riven.toString()
-        check("landmass.seam=rift" in spelling && "depths.seam=fuzzed" in spelling) {
+        check("landmass.seam=rift" in spelling && "rock.seam=fuzzed" in spelling) {
             "a riven Age spells its boundaries wrong: '$spelling'"
         }
         check(AgeComposition.parse(spelling).getOrThrow() == riven) { "'$spelling' does not read back as itself" }

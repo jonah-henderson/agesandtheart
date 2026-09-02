@@ -66,7 +66,7 @@ class SkyClockCheck : FunSpec({
     }
 
     test("an Age keeps the overworld's time of day") {
-        server.run("age compose clockage 7 landmass=hills sea=minecraft:water depths=caves sky=plain")
+        server.run("age compose clockage 7 landmass=hills sea=minecraft:water rock=caves sky=plain")
 
         server.run("time set noon")
         val atNoon = clockOf("clockage")

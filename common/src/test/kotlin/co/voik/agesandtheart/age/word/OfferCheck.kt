@@ -173,8 +173,8 @@ class OfferCheck : FunSpec({
 
     /** And harmony still happens where the sentence really did choose between several answers. */
     test("a sentence that chose may still keep company") {
-        val divided = SEEDS.count { resolve(it, "age", "riddled", "depths").composition.carvers.size > 1 }
-        check(divided > 0) { "no seed divided the depths, so the company rule has been switched off" }
+        val divided = SEEDS.count { resolve(it, "age", "riddled", "rock").composition.carvers.size > 1 }
+        check(divided > 0) { "no seed divided the rock, so the company rule has been switched off" }
     }
 
     /**

@@ -1,7 +1,10 @@
 {
   "tier": "exact",
   "queries": {
-    "depths": {
+    "rock": {
+      "solid": 1.0
+    },
+    "underground": {
       "solid": 1.0
     }
   }

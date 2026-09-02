@@ -205,7 +205,7 @@ object AgeGeneration {
                     if (ourGround == null) null else composition.terrains
                         .withIndex()
                         .firstNotNullOfOrNull { (member, terrain) ->
-                            terrain.undergroundBand(terrainOptions(member), window)
+                            terrain.undergroundBand(composition.underground, window)
                         }
                         ?.let { band -> Roofed(greatHallBiome(server), band.first, band.last) },
                 ),
@@ -434,7 +434,12 @@ object AgeGeneration {
         torn: Double,
     ): OurGround {
         val grounds = composition.terrains.mapIndexed { member, terrain ->
-            terrain.ground(composition.optionsFor(Aspect.TERRAIN, member), window, saltFor(seed, member))
+            terrain.ground(
+                composition.underground,
+                composition.optionsFor(Aspect.TERRAIN, member),
+                window,
+                saltFor(seed, member),
+            )
         }
         // Weathering is not applied here at all: a landform that wants wind carries it inside its own
         // field, where the profile and the shape were designed together. There is no Age-wide pass.

@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.aspect.Biomes
 import co.voik.agesandtheart.age.aspect.Claim
 import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.aspect.Terrain
+import co.voik.agesandtheart.age.aspect.Underground
 import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.Surface
@@ -109,7 +110,7 @@ data class AgeRecipe(
      *
      * The generator hands `applyCarvers` back to the superclass where the rock is vanilla's — its carvers
      * read the router the shape came out of, where ours would be cutting into a world they know nothing
-     * about. Which is right, and left `depths=solid` over the overworld quietly full of caves.
+     * about. Which is right, and left `rock=solid` over the overworld quietly full of caves.
      */
     private fun whateverItCutsItself(written: AgeComposition): String? {
         val asked = written.carvers
@@ -329,10 +330,7 @@ data class AgeRecipe(
                         terrains = listOf(Terrain.OVERWORLD),
                         seas = listOf(Sea.WATER),
                         carvers = listOf(Carvers.CAVES),
-                        options = AspectOptions().with(
-                            Aspect.TERRAIN,
-                            listOf(Options(mapOf(Terrain.UNDERGROUND.name to listOf(Terrain.GREAT_HALLS)))),
-                        ),
+                        underground = Underground.GREAT_HALLS,
                     ),
                 )
             }

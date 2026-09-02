@@ -1,7 +1,10 @@
 {
   "tier": "restrictive",
   "queries": {
-    "depths": {
+    "rock": {
+      "cavernous": 1.0
+    },
+    "underground": {
       "cavernous": 1.0
     }
   }

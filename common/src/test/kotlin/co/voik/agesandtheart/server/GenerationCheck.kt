@@ -29,8 +29,8 @@ class GenerationCheck : FunSpec({
      * Six orders of magnitude sit between the two readings.
      */
     test("a carver that cuts nothing keeps its own ground") {
-        server.run("age compose riddledonly 7 landmass=hills sea=minecraft:water depths=caves sky=plain")
-        server.run("age compose riddledsolid 7 landmass=hills sea=minecraft:water depths=caves,solid sky=plain")
+        server.run("age compose riddledonly 7 landmass=hills sea=minecraft:water rock=caves sky=plain")
+        server.run("age compose riddledsolid 7 landmass=hills sea=minecraft:water rock=caves,solid sky=plain")
         val differing = differingBlocks(server, "riddledonly", "riddledsolid", radius = 6)
         check(differing >= 10_000) {
             "'solid' is being swallowed again: only $differing block(s) differ, where uncut ground is ~174,000"
@@ -46,7 +46,7 @@ class GenerationCheck : FunSpec({
      * say the two cutting carvers had stopped unioning and started dividing, which is the bug next door.
      */
     test("two carvers that both cut still union") {
-        server.run("age compose riddledporous 7 landmass=hills sea=minecraft:water depths=caves,porous sky=plain")
+        server.run("age compose riddledporous 7 landmass=hills sea=minecraft:water rock=caves,porous sky=plain")
         val differing = differingBlocks(server, "riddledonly", "riddledporous", radius = 6)
         check(differing >= 1_000) { "porosity added nothing at all: $differing block(s) differ" }
         check(differing <= 150_000) {
@@ -67,7 +67,7 @@ class GenerationCheck : FunSpec({
      * outcome rather than the mechanism — ask for ore in a world of the wrong rock and see ground move.
      */
     test("ores reach an Age made of something other than stone") {
-        val blackstone = "landmass=hills[stone=minecraft:blackstone] sea=minecraft:water depths=solid sky=plain"
+        val blackstone = "landmass=hills[stone=minecraft:blackstone] sea=minecraft:water rock=solid sky=plain"
         server.run("age compose blackbare 4242 $blackstone")
         server.run("age compose blackrich 4242 $blackstone features.places=minecraft:ore_diamond[amount=8]")
         val differing = differingBlocks(server, "blackbare", "blackrich", radius = 2)

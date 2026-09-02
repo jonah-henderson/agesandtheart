@@ -13,7 +13,7 @@
     ],
     "molten_age": [
       {"weight":2.0,"produce":["<bleak_mood>","age","<hot_stone>","landmass","molten","sea"]},
-      {"produce":["age","<hot_stone>","landmass","riddled","depths","molten","sea"]}
+      {"produce":["age","<hot_stone>","landmass","riddled","rock","molten","sea"]}
     ],
     "bleak_mood": [
       {"weight":2.0,"produce":["desolate"]},

@@ -172,7 +172,7 @@ enum class Terrain(
     /**
      * Continents, seas and hills — ordinary ground, with the overhangs a volumetric field can say and a
      * heightmap cannot. Minecraft's own overworld approximated rather than reproduced, and it sits high
-     * so that there is room for an [UNDERGROUND] beneath it.
+     * so that there is room for an [Underground] beneath it.
      */
     OVERWORLD(
         "overworld",
@@ -233,7 +233,6 @@ enum class Terrain(
             SPACING.takeIf { this == CRATERLANDS },
             WEAR.takeIf { this == CRATERLANDS },
             RELIEF.takeIf { this == CRATERLANDS },
-            UNDERGROUND.takeIf { undergroundCeiling() != null },
             STONE,
             MINGLING,
         )
@@ -284,41 +283,36 @@ enum class Terrain(
     override fun getSerializedName(): String = key
 
     /**
-     * The rock this terrain lays down, steered by whichever [options] it understands.
-     *
-     * Takes the Age's [window] because an underground is cut between its floor and ceiling, and a [salt]
-     * because two territories of the *same* preset must not build the same rock.
-     */
-    fun field(options: Options, window: VerticalWindow, salt: Long): TerrainField =
-        ground(options, window, salt).shape
-
-    /**
      * The rock this terrain lays down **and** the rock it was cut from, which a generator needs both of.
      *
      * They share their nodes rather than being built twice: the cut holds the uncut field as its own child,
      * so asking for both costs one landform and answers from one cache. Building a second copy would pay
      * for the whole thing again, which for a [MountainRange] or a [Caved] is most of the generator's time.
      */
-    fun ground(options: Options, window: VerticalWindow, salt: Long): Ground {
+    fun ground(underground: Underground, options: Options, window: VerticalWindow, salt: Long): Ground {
         val uncut = build(options, salt)
-        return when (options.of(UNDERGROUND)) {
-            NOISE_CAVES -> Ground(
+        // **A landform with no room under it carries nothing**, whatever was asked for — the same shape as
+        // a preset ignoring a material it cannot be made of, and the reason the ceiling is declared here.
+        if (undergroundCeiling() == null) return Ground(uncut)
+        return when (underground) {
+            Underground.NOISE_CAVES -> Ground(
                 Caved.of(uncut, CAVE_SEED xor salt, window.minY + BEDROCK_MARGIN, window.topY),
                 // A carved cave meets the water table on its way out of the rock, so it answers to one.
                 hollows = uncut,
             )
-            GREAT_HALLS -> {
+            Underground.GREAT_HALLS -> {
                 val halls = hallsIn(window, salt)
                 Ground(Subtract(uncut, halls), dry = halls)
             }
-            else -> Ground(uncut)
+            Underground.NONE -> Ground(uncut)
         }
     }
 
     /**
-     * The storeys [GREAT_HALLS] takes out of this terrain, between the bedrock and [undergroundCeiling].
+     * The storeys [Underground.GREAT_HALLS] takes out of this terrain, between the bedrock and
+     * [undergroundCeiling].
      *
-     * A ceiling has to be named here, unlike [NOISE_CAVES] where the band is the whole world — `Caved`
+     * A ceiling has to be named here, unlike [Underground.NOISE_CAVES] where the band is the whole world — `Caved`
      * only ever walks rock the base actually has and its own entrance rule keeps the cut away from the
      * surface, so naming a ceiling there would be a second, worse copy of a decision the node already
      * makes better. A slab of halls has no such rule and would happily open onto a hillside.
@@ -330,12 +324,12 @@ enum class Terrain(
      * The band of world this terrain's underground is **indoors** in, or null where it has none — see
      * [co.voik.agesandtheart.worldgen.biome.Roofed].
      *
-     * Only [GREAT_HALLS] claims one. Noise caves are not indoors in this sense: they are open to the
+     * Only [Underground.GREAT_HALLS] claims one. Noise caves are not indoors in this sense: they are open to the
      * surface by design, they belong to the country they were cut into, and vanilla's own cave biomes
      * describe them exactly.
      */
-    fun undergroundBand(options: Options, window: VerticalWindow): IntRange? =
-        if (options.of(UNDERGROUND) != GREAT_HALLS) null
+    fun undergroundBand(underground: Underground, window: VerticalWindow): IntRange? =
+        if (underground != Underground.GREAT_HALLS) null
         else undergroundCeiling()?.let { ceiling -> window.minY + BEDROCK_MARGIN..ceiling }
 
     /**
@@ -347,7 +341,7 @@ enum class Terrain(
      * so without this a shape-cut cave comes out flooded to its roof. It is what a carved cave already
      * meets on its way out of the rock.
      *
-     * [dry] is the opposite answer, and what [GREAT_HALLS] takes: the space is simply never wet. A water
+     * [dry] is the opposite answer, and what [Underground.GREAT_HALLS] takes: the space is simply never wet. A water
      * table is a good description of rock that water seeps through and a bad one of a room — its wet and
      * dry patches have no walls between them, so a flooded bay ends mid-air against a dry one and reads as
      * a wall of water standing up by itself.
@@ -513,34 +507,6 @@ enum class Terrain(
                 Parameter.Landmark(1.0, "a continent"),
             ),
         )
-
-        /**
-         * What lies under a terrain's surface — nothing, Minecraft's own noise caves, or storey upon
-         * storey of pillared hall.
-         *
-         * Offered only by the terrains with room for one ([undergroundCeiling]), which is the shape the
-         * whole idea wants: an underground is a *layer* a landform either has or does not, rather than a
-         * property of every world — and it is why [GREAT_HALLS] is a value here rather than a landform of
-         * its own, since what is over the halls should be able to be any world at all. No word reaches it
-         * yet; it exists to be pinned by a recipe.
-         *
-         * Caves are the **default** where they are offered at all, since a world with room under it and
-         * nothing in that room is the odder of the two answers.
-         */
-        val UNDERGROUND = Parameter(
-            "underground",
-            listOf(NOISE_CAVES, GREAT_HALLS, UNDERGROUND_NONE),
-            help = "What lies beneath the surface.",
-            optionHelp = mapOf(
-                NOISE_CAVES to "Minecraft's own winding caves.",
-                GREAT_HALLS to "Storey upon storey of pillared hall.",
-                UNDERGROUND_NONE to "Solid rock, with nothing cut into it.",
-            ),
-        )
-
-        const val UNDERGROUND_NONE = "none"
-        const val NOISE_CAVES = "noise_caves"
-        const val GREAT_HALLS = "great_halls"
 
         /** Left whole, so the bedrock a cave might otherwise open through stays bedrock. */
         private const val BEDROCK_MARGIN = 5

@@ -61,7 +61,7 @@ object CompositionSpelling {
             } else {
                 namedALandform = namedALandform || aspect == Aspect.TERRAIN
                 // Commas are how a set-valued aspect is written: `landmass=hills,pillars`. An `@` after
-                // a preset is how much ground it covers: `depths=caves,porous@0.25`. Brackets after
+                // a preset is how much ground it covers: `rock=caves,porous@0.25`. Brackets after
                 // that steer that territory alone: `landmass=spires[stone=copper],hills`.
                 val filling = outsideBrackets(value)
                 val named = filling.map { it.substringBefore(STEER_OPEN) }
@@ -221,7 +221,7 @@ private const val TEMPLATE = "template"
 /** What stands for one member of a cast, having no name of its own — see `CompositionSpelling.castSpelling`. */
 private const val BODY = "member"
 
-/** How much ground a preset covers, after its name: `depths=caves,porous@0.25`. */
+/** How much ground a preset covers, after its name: `rock=caves,porous@0.25`. */
 private const val SHARE_MARK = '@'
 
 /** What opens and closes the steering written against one territory: `hills[stone=copper]`. */

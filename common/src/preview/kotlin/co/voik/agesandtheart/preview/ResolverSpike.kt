@@ -230,6 +230,7 @@ private fun presetsOf(aspect: Aspect): List<Taggable> = when (aspect) {
     // Four aspects stopped being preset-shaped entirely: two are populations, two are sets of parameters, and
     // none of them draws from a pool. Nothing here tags them, so the spike's findings do not move — this
     // is a record of an argument, not a model, and it is kept compiling rather than re-tagged.
+    Aspect.UNDERGROUND,
     Aspect.BIOMES, Aspect.STRUCTURES, Aspect.CLIMATE, Aspect.SURFACE, Aspect.FEATURES, Aspect.SPAWNS,
     Aspect.PHENOMENA, Aspect.AIR, Aspect.WATERS, Aspect.WEATHER,
     Aspect.SUN, Aspect.MOON, Aspect.STARS, Aspect.GRASS, Aspect.LEAVES, Aspect.CLOUD,

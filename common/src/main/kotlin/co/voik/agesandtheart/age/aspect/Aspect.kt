@@ -110,8 +110,23 @@ enum class Aspect(
     /** What fills the space the shape leaves — sea, lava, nothing. */
     SEA("sea", Holds.CATALOGUE, open = true, spatial = true, madeOfSomething = true, appetiteForCompany = 0.18),
 
-    /** What happens beneath the surface: caves cut back out, and where water stands in the rock. */
-    CARVERS("carvers", Holds.CATALOGUE, spatial = true, appetiteForCompany = 0.25, page = "depths"),
+    /**
+     * What has been cut back out of the rock, and where water stands in what was cut.
+     *
+     * **Said `rock` rather than `depths`**, because a carver runs wherever there is stone to cut and not
+     * only below: the four answers here — solid, porous, caved, flooded — are what the stone itself is
+     * like, where [UNDERGROUND] is a place built beneath it.
+     */
+    CARVERS("carvers", Holds.CATALOGUE, spatial = true, appetiteForCompany = 0.25, page = "rock"),
+
+    /**
+     * What is built into the rock beneath the surface — nothing, Minecraft's own noise caves, or halls.
+     *
+     * **Not spatial, where [CARVERS] is.** A carve pattern can hold one stretch of country and another
+     * pattern the next, but an underground claims a *band* of the world (`Roofed`), and an Age has one set
+     * of heights however many territories divide its rock.
+     */
+    UNDERGROUND("underground", Holds.CATALOGUE, appetiteForCompany = 0.2),
 
     /** Which biomes it grows. */
     BIOMES("biomes", Holds.WEIGHTED_SET, open = true),
@@ -254,6 +269,7 @@ enum class Aspect(
         get() = when (this) {
             TERRAIN -> Terrain.entries
             CARVERS -> Carvers.entries
+            UNDERGROUND -> Underground.entries
             SKY -> Sky.entries
             // Nothing to choose between: a climate and a surface are where their parameters were left, and a
             // biome or a structure set is weighed rather than chosen. See [parameters] and [Holds.WEIGHTED_SET].
@@ -309,7 +325,7 @@ enum class Aspect(
             )
             CLOUD -> listOf(Atmosphere.CLOUD)
             SEA -> listOf(Sea.DEPTH)
-            TERRAIN, CARVERS -> emptyList()
+            TERRAIN, CARVERS, UNDERGROUND -> emptyList()
         }
 
     /**
@@ -386,7 +402,7 @@ enum class Aspect(
         STRUCTURES -> StructureSet.named(key)
         FEATURES -> PlacedFeature.named(key)
         SPAWNS -> Spawn.named(key)
-        TERRAIN, CARVERS, SKY, CLIMATE, SURFACE, PHENOMENA,
+        TERRAIN, CARVERS, UNDERGROUND, SKY, CLIMATE, SURFACE, PHENOMENA,
         AIR, WATERS, WEATHER, SUN, MOON, STARS, GRASS, LEAVES, CLOUD, AURORA, RAINBOW,
         -> authored.firstOrNull { it.key == key }
     }

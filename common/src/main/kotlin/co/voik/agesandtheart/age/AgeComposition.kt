@@ -3,6 +3,7 @@ package co.voik.agesandtheart.age
 import co.voik.agesandtheart.age.aspect.ownParameters
 import co.voik.agesandtheart.age.aspect.Biomes
 import co.voik.agesandtheart.age.aspect.Terrain
+import co.voik.agesandtheart.age.aspect.Underground
 import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Share
@@ -35,6 +36,11 @@ data class AgeComposition(
     val seas: List<Sea> = listOf(Sea.NONE),
     /** What has been cut back out of the rock, and where water stands in it. Spatial too. */
     val carvers: List<Carvers> = listOf(Carvers.SOLID),
+    /**
+     * What is built into the rock beneath the surface. Singular — an underground claims a *band* of the
+     * world, and an Age has one set of heights however many territories divide its rock.
+     */
+    val underground: Underground = Underground.NOISE_CAVES,
     /** Which biomes it grows. Singular — one climate table spans the world however many terrains carve it. */
     val sky: Sky = Sky.PLAIN,
     val options: AspectOptions = AspectOptions(),
@@ -85,7 +91,7 @@ data class AgeComposition(
 
     /** Every preset this composition names, in aspect order — for listing, costing and diagnosis. */
     val presets: List<Taggable>
-        get() = terrains + seas + carvers + listOf(sky)
+        get() = terrains + seas + carvers + listOf(underground, sky)
 
     /** The one terrain, where there is only one — for the many places that still reasonably assume so. */
     val terrain: Terrain get() = terrains.first()
@@ -130,6 +136,7 @@ data class AgeComposition(
             Aspect.TERRAIN -> copy(terrains = keys.map { named<Terrain>(aspect, it) })
             Aspect.SEA -> copy(seas = keys.map { named<Sea>(aspect, it) })
             Aspect.CARVERS -> copy(carvers = keys.map { named<Carvers>(aspect, it) })
+            Aspect.UNDERGROUND -> copy(underground = named<Underground>(aspect, keys.last()))
             // A described member names no preset, so a key list can only mean "give it this many" — one
             // `body` per sun, one territory per climate.
             else -> if (aspect.membersAreDescribed) withCastOf(aspect, keys.size) else withSingle(aspect, keys.last())
@@ -161,6 +168,7 @@ data class AgeComposition(
         Aspect.TERRAIN -> copy(terrains = listOf(named<Terrain>(aspect, key)))
         Aspect.SEA -> copy(seas = listOf(named<Sea>(aspect, key)))
         Aspect.CARVERS -> copy(carvers = listOf(named<Carvers>(aspect, key)))
+        Aspect.UNDERGROUND -> copy(underground = named<Underground>(aspect, key))
         Aspect.SKY -> copy(sky = named<Sky>(aspect, key))
         // None of these seats anything: a biome and a structure set are weighed, and a climate and a
         // surface are where their parameters were left.
@@ -245,6 +253,7 @@ data class AgeComposition(
             terrains = seated(Aspect.TERRAIN, terrains, template.terrains).filterIsInstance<Terrain>(),
             seas = seated(Aspect.SEA, seas, template.seas).filterIsInstance<Sea>(),
             carvers = seated(Aspect.CARVERS, carvers, template.carvers).filterIsInstance<Carvers>(),
+            underground = if (Aspect.UNDERGROUND in spokenTo) underground else template.underground,
             sky = if (Aspect.SKY in spokenTo) sky else template.sky,
         )
         return Aspect.entries.fold(merged) { held, aspect ->
@@ -303,6 +312,8 @@ data class AgeComposition(
                 setOrSingle(enumCodec<Carvers>(), Carvers.SOLID)
                     .optionalFieldOf("carvers", listOf(Carvers.SOLID))
                     .forGetter(AgeComposition::carvers),
+                enumCodec<Underground>().optionalFieldOf("underground", Underground.NOISE_CAVES)
+                    .forGetter(AgeComposition::underground),
                 enumCodec<Sky>().optionalFieldOf("sky", Sky.PLAIN).forGetter(AgeComposition::sky),
                 AspectOptions.CODEC.optionalFieldOf("options", AspectOptions()).forGetter(AgeComposition::options),
                 Spreads.CODEC.optionalFieldOf("spread", Spreads()).forGetter(AgeComposition::spreads),

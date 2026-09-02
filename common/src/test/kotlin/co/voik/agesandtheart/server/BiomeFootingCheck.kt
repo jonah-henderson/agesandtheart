@@ -64,7 +64,7 @@ class BiomeFootingCheck : FunSpec({
     test("no column is both kept dry and answered for by the aquifer") {
         server.run(
             "age compose riftdry 1543517247 landmass=hills,pillars landmass.seam=rift " +
-                "sea=minecraft:water depths=solid sky=plain",
+                "sea=minecraft:water rock=solid sky=plain",
         )
         val contradictions = SAMPLED_COLUMNS.mapNotNull { (x, z) ->
             val probe = server.ask("probe", "riftdry $x $z")

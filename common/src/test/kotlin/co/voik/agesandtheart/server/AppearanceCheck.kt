@@ -21,7 +21,7 @@ class AppearanceCheck : FunSpec({
     test("an Age is described as it is written") {
         // The Spire's sky, because it is written down rather than resolved: its two cloud decks are content
         // no default could produce, so a look that arrived empty fails as loudly as one that never arrived.
-        server.run("age compose lookage 11 landmass=hills sea=minecraft:water depths=caves sky=spire")
+        server.run("age compose lookage 11 landmass=hills sea=minecraft:water rock=caves sky=spire")
 
         val report = server.run("age sky lookage")
 

@@ -305,8 +305,12 @@ class VocabularyCheck : FunSpec({
                 // so demanding one here asks the wrong question, and asks it of a corpus that cannot answer:
                 // biomes are datapack content, so their words exist only once a server has loaded.
                 if (namesARegistryEntry(preset.key)) continue
+                // **Where the word reaches, not where it is charged.** `Resolver.pricedIn` answers a
+                // different question by design — a narrowing word is priced in one aspect however many it
+                // is at home in — so asking it here said `unbroken` could not ask for a solid underground,
+                // when a clause aimed there is exactly how it does.
                 val reachable = vocabulary.words.any { word ->
-                    aspect in Resolver.pricedIn(vocabulary, word) && word.tier.narrows &&
+                    aspect in word.aspects && word.tier.narrows &&
                         preset in vocabulary.carriersOf(word, aspect)
                 }
                 check(reachable) {

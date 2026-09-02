@@ -9,13 +9,13 @@
       {"produce":["<parched_world>"]}
     ],
     "temperate_world": [
-      {"produce":["age","<settled_land>","landmass","<some_sea>","sea","riddled","depths","verdant","biomes","surface","grass","leaves","features","spawns","phenomena","<mild_sky>","sky","clouds","<mild_stars>","stars","aurora","rainbow","sun","moon","air","waters","weather","untouched","structures","temperate","climate"]}
+      {"produce":["age","<settled_land>","landmass","<some_sea>","sea","riddled","rock","underground","verdant","biomes","surface","grass","leaves","features","spawns","phenomena","<mild_sky>","sky","clouds","<mild_stars>","stars","aurora","rainbow","sun","moon","air","waters","weather","untouched","structures","temperate","climate"]}
     ],
     "frozen_world": [
-      {"produce":["age","<harsh_land>","landmass","<some_sea>","sea","unbroken","depths","biomes","surface","grass","leaves","features","spawns","phenomena","<cold_sky>","sky","clouds","<cold_stars>","stars","aurora","rainbow","sun","moon","air","waters","weather","untouched","structures","frozen","climate"]}
+      {"produce":["age","<harsh_land>","landmass","<some_sea>","sea","unbroken","rock","unbroken","underground","biomes","surface","grass","leaves","features","spawns","phenomena","<cold_sky>","sky","clouds","<cold_stars>","stars","aurora","rainbow","sun","moon","air","waters","weather","untouched","structures","frozen","climate"]}
     ],
     "parched_world": [
-      {"produce":["age","<dry_land>","landmass","<dry_sea>","sea","riddled","depths","biomes","surface","grass","leaves","features","spawns","phenomena","<dry_sky>","sky","clouds","<dry_stars>","stars","aurora","rainbow","sun","moon","air","waters","weather","untouched","structures","parched","climate"]}
+      {"produce":["age","<dry_land>","landmass","<dry_sea>","sea","riddled","rock","underground","biomes","surface","grass","leaves","features","spawns","phenomena","<dry_sky>","sky","clouds","<dry_stars>","stars","aurora","rainbow","sun","moon","air","waters","weather","untouched","structures","parched","climate"]}
     ],
     "some_sea": [
       {"weight":8.0,"produce":["drowned"]},
