@@ -187,11 +187,28 @@ class Parts(private val corpus: Corpus) {
                 handle = aspect.page,
                 shown = listOf(
                     Ink(aspect.page.padEnd(22), Palette.value),
-                    Ink("${aspect.holds.name.lowercase()}${if (aspect.open) ", open" else ""}", Palette.faint),
+                    Ink(whatItHolds(aspect), Palette.faint),
                 ),
                 note = whyItReaches(aspect, candidate),
             )
         }
+    }
+
+    /**
+     * What an aspect holds, said rather than named.
+     *
+     * `Holds` is the code's word for this and a fine one there; on screen the constant alone answers a
+     * question nobody asked — "weighted_set" says nothing to somebody looking at `biomes`.
+     */
+    private fun whatItHolds(aspect: Aspect): String {
+        val kind = when (aspect.holds) {
+            Holds.NOTHING -> "properties only, no members"
+            Holds.RANGE -> "one value on an axis"
+            Holds.CATALOGUE -> "one member, from a list"
+            Holds.WEIGHTED_SET -> "a table of kinds, weighed"
+            Holds.POPULATION -> "members written one at a time"
+        }
+        return kind + if (aspect.open) " ${Glyph.BULLET} anything in the game" else ""
     }
 
     /** Which of the word's own claims put it here — the answer to "why is this on the list". */
@@ -490,7 +507,7 @@ class Parts(private val corpus: Corpus) {
                 "means/${aspect.page}",
                 listOf(
                     Ink("    "),
-                    Ink("outright".padEnd(KIND_COLUMN), Palette.faint),
+                    Ink(SETTLES.padEnd(KIND_COLUMN), Palette.chosen),
                     Ink(key.padEnd(PARAMETER_COLUMN), Palette.value),
                     Ink("in ${aspect.page}", Palette.faint),
                 ),
@@ -551,7 +568,11 @@ class Parts(private val corpus: Corpus) {
         if (!insistence.required) {
             return candidate.requests.queries.entries.sortedBy { it.key.ordinal }.flatMap { (aspect, tags) ->
                 tags.entries.sortedByDescending { it.value }.map { (tag, weight) ->
-                    Row("requested/${aspect.page}/$tag", tagInk(tag, weight, aspect.page), leanNote(aspect, tag))
+                    Row(
+                        "requested/${aspect.page}/$tag",
+                        tagInk(tag, weight, aspect.page, does = OFFERS),
+                        leanNote(aspect, tag),
+                    )
                 }
             }
         }
@@ -583,9 +604,9 @@ class Parts(private val corpus: Corpus) {
         return (keyed + leaning).firstOrNull { it.first == handle }?.second
     }
 
-    private fun tagInk(tag: String, weight: Double, only: String): List<Ink> = listOf(
+    private fun tagInk(tag: String, weight: Double, only: String, does: String = KEEPS): List<Ink> = listOf(
         Ink("    "),
-        Ink("by tag".padEnd(KIND_COLUMN), Palette.faint),
+        Ink(does.padEnd(KIND_COLUMN), Palette.faint),
         Ink("$TAG_MARK$tag".padEnd(18), Palette.tag),
         Ink(bar(weight), if (weight < 0) Palette.refused else Palette.settled),
         Ink(" %+.2f".format(weight), Palette.value),
@@ -637,7 +658,7 @@ class Parts(private val corpus: Corpus) {
                     handle = "weight/${aspect.page}/$preset",
                     shown = listOf(
                         Ink("    "),
-                        Ink("by name".padEnd(KIND_COLUMN), Palette.faint),
+                        Ink(LEANS.padEnd(KIND_COLUMN), Palette.faint),
                         Ink(preset.padEnd(PARAMETER_COLUMN), Palette.value),
                         Ink("%+.2f".format(weight).padEnd(8), Palette.value),
                         Ink("in ${aspect.page}", Palette.faint),
@@ -702,7 +723,7 @@ class Parts(private val corpus: Corpus) {
         ),
     )
 
-    private companion object {
+    companion object {
         const val BAR_WIDTH = 10
         const val COMMENT_PREVIEW = 12
         const val VALUES_SHOWN = 6
@@ -711,8 +732,23 @@ class Parts(private val corpus: Corpus) {
         /** Where a facet's value starts, so every row in the section lines up on it. */
         const val PARAMETER_COLUMN = 22
 
-        /** Where the value starts on a populations row, past the word saying how precisely it speaks. */
+        /** Where the value starts on a populations row, past the word saying what it does to the draw. */
         const val KIND_COLUMN = 10
+
+        /**
+         * What each kind of claim actually does — **named for its force, not for how it is spelled.**
+         *
+         * `outright` and `by name` said how you wrote it and looked like two ways of writing one thing.
+         * They are not: measured over twenty seeds, a word that only *means* a landform seats it twenty
+         * times and one that only *weighs* it seats it seven. A weight never narrows at all
+         * (`Word.constrainsPresetsIn` is false for one) — it admits the preset to the draw and makes it
+         * likelier, where a meaning is the answer and no search happens.
+         */
+        const val SETTLES = "settles"
+        const val KEEPS = "keeps"
+        const val LEANS = "leans"
+        const val OFFERS = "offers"
+
     }
 }
 

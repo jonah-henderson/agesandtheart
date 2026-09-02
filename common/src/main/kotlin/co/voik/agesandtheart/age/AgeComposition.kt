@@ -257,7 +257,7 @@ data class AgeComposition(
             sky = if (Aspect.SKY in spokenTo) sky else template.sky,
         )
         return Aspect.entries.fold(merged) { held, aspect ->
-            val boughtItsOwnMembers = aspect.holds == Holds.DESCRIBED && described(aspect) > 0
+            val boughtItsOwnMembers = aspect.holds == Holds.POPULATION && described(aspect) > 0
             if (boughtItsOwnMembers) held else held.underlaidWith(aspect, template.options.of(aspect))
         }
     }

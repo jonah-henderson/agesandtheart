@@ -138,7 +138,7 @@ enum class Aspect(
     STRUCTURES("structures", Holds.WEIGHTED_SET, open = true, madeOfSomething = true),
 
     /** The coordinates its biomes are looked up at — how hot it is, and how wet. */
-    CLIMATE("climate", Holds.DESCRIBED, spatial = true),
+    CLIMATE("climate", Holds.POPULATION, spatial = true),
 
     /** What the ground wears over whatever it is made of. */
     SURFACE("surface", madeOfSomething = true),
@@ -166,10 +166,10 @@ enum class Aspect(
     WEATHER("weather"),
 
     /** Each star this world goes round. */
-    SUN("sun", Holds.DESCRIBED),
+    SUN("sun", Holds.POPULATION),
 
     /** Each thing that circles it. */
-    MOON("moon", Holds.DESCRIBED),
+    MOON("moon", Holds.POPULATION),
 
     /** The field behind it all. */
     STARS("stars"),
@@ -385,15 +385,11 @@ enum class Aspect(
      * Whether this aspect's members are **described into being** rather than drawn from a pool — so what a
      * composition stores for it *is* the roll, one entry per member (`the-world-model.md` §2).
      *
-     * Exactly [Holds.DESCRIBED], which is the whole of what that name says. It is not "the populated
-     * aspects": every aspect holding members has a population of them, and what separates these is that
-     * theirs are written rather than drawn.
-     *
-     * What climate becoming one bought: it seats no preset and its
+     * Exactly [Holds.POPULATION], which is what climate becoming one bought: it seats no preset and its
      * territories can only be the entries themselves, each holding a span per axis, so it was already this
      * shape while being spelled as a special case in five places.
      */
-    val membersAreDescribed: Boolean get() = holds == Holds.DESCRIBED
+    val membersAreDescribed: Boolean get() = holds == Holds.POPULATION
 
     /**
      * The preset this aspect means by [key], or null where the key names nothing it can hold — the single
@@ -771,9 +767,10 @@ enum class Holds {
      * two clauses, which is what took counts out of the language.
      *
      * Not to be confused with [WEIGHTED_SET]: a jungle is a kind the world has more or less of, where a
-     * sun is one of several individuals.
+     * sun is one of several individuals. Both are populations in the ordinary sense; what separates these
+     * is that their members are written rather than drawn.
      */
-    DESCRIBED,
+    POPULATION,
     ;
 
 }

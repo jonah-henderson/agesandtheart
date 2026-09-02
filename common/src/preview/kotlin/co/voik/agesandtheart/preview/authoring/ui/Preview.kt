@@ -31,25 +31,32 @@ object Preview {
             for (aspect in word.aspects.sortedBy { it.ordinal }) {
                 val askable = corpus.vocabulary.askableIn(aspect)
                 val kept = corpus.vocabulary.carriersOf(word, aspect)
-                val steersOnly = !word.constrainsPresetsIn(aspect)
+                val narrows = word.constrainsPresetsIn(aspect)
+                // **A weight is not a setting, and saying so hid what it does.** It never narrows, so this
+                // read as "sets a value; picks nothing" and listed nothing — where what it actually does
+                // is admit a preset to the draw and lean it, which is the one thing worth showing.
+                val leansHere = word.weights[aspect].orEmpty().isNotEmpty() ||
+                    word.requests.queries[aspect].orEmpty().isNotEmpty()
                 add(
                     Line(aspect.page.padEnd(12), Palette.heading) +
                         Line(
                             when {
+                                narrows && askable.isEmpty() -> "nothing to pick between"
+                                narrows -> "keeps ${kept.size} of ${askable.size}"
                                 // A word may narrow in one aspect and only turn a parameter in another, and
                                 // having no carrier here is then no fault at all — `arid` narrows the
                                 // ground on tags and bounds the climate's axes with spans, two real jobs.
-                                steersOnly -> "sets a value; picks nothing"
-                                askable.isEmpty() -> "nothing to pick between"
-                                else -> "keeps ${kept.size} of ${askable.size}"
+                                leansHere -> "leans the draw; settles nothing"
+                                else -> "sets a value; picks nothing"
                             },
                             Palette.value,
                         ) +
                         Line(rememberedFor(aspect, word, corpus), Palette.faint),
                 )
-                if (kept.isEmpty() && !steersOnly && askable.isNotEmpty()) {
+                if (kept.isEmpty() && narrows && askable.isNotEmpty()) {
                     add(Line("    nothing here is tagged strongly enough", Palette.warned))
                 }
+                if (!narrows && !leansHere) continue
                 for (preset in kept.take(SHOWN_PER_ASPECT)) {
                     val strength = word.pullOn(preset, corpus.vocabulary.tagsOf(preset))
                     add(

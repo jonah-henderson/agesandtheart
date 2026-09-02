@@ -1067,7 +1067,7 @@ class Editor(
                 Picker.Option(
                     value = "$MEANT/$key",
                     label = key,
-                    note = "outright ${Glyph.BULLET} it answers before any tag",
+                    note = "${Parts.SETTLES} ${Glyph.BULLET} this is the answer; nothing is searched for",
                 )
             }
         }
@@ -1076,7 +1076,10 @@ class Editor(
                 Picker.Option(
                     value = "$WEIGHED/${preset.key}",
                     label = preset.key,
-                    note = "by name ${Glyph.BULLET} " + corpus.vocabulary.tagsOf(preset).keys
+                    // **A weight leans, where a meaning settles.** It never narrows the aspect
+                    // (`Word.constrainsPresetsIn` is false for one); it admits the preset to the draw and
+                    // makes it likelier, so something else may still win.
+                    note = "${Parts.LEANS} ${Glyph.BULLET} " + corpus.vocabulary.tagsOf(preset).keys
                         .joinToString(" ") { "$TAG_MARK$it" },
                     startsGroup = ours.isNotEmpty() && preset == corpus.vocabulary.candidatesFor(aspect).first(),
                 )
@@ -1086,7 +1089,8 @@ class Editor(
             Picker.Option(
                 value = "$TAGGED/$tag",
                 label = "$TAG_MARK$tag",
-                note = "by tag ${Glyph.BULLET} " + carriedNote(tag),
+                note = "${if (insistence.required) Parts.KEEPS else Parts.OFFERS} ${Glyph.BULLET} " +
+                    carriedNote(tag),
                 startsGroup = at == 0 && (ours.isNotEmpty() || byName.isNotEmpty()),
             )
         }
