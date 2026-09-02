@@ -334,7 +334,7 @@ object Resolver {
      * The largest asked wins rather than the sum: `scorching inferno` is one hot sky, not five suns.
      */
     private fun cast(composition: AgeComposition, said: List<Constraint>): AgeComposition =
-        Aspect.entries.filter { it.holds == Holds.POPULATION }.fold(composition) { held, aspect ->
+        Aspect.entries.filter { it.holds == Holds.DESCRIBED }.fold(composition) { held, aspect ->
             val theBookMintedOne = said.any { it.describes != null && aspect in it.aimedAt }
             if (theBookMintedOne) return@fold held
             val asked = said.mapNotNull { it.word.setsIn(aspect)[Parameter.CAST]?.toIntOrNull() }.maxOrNull()

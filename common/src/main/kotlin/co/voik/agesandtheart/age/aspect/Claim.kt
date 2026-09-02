@@ -112,7 +112,7 @@ data class Claim(
  * **How a sentence skews a distribution** ([Holds.WEIGHTED_SET]) — what to introduce, what to strike out,
  * and whether anything was singled out.
  *
- * Named for what it does rather than what it is about, because `Population` is what [Holds.POPULATION]
+ * Named for what it does rather than what it is about, because `Population` is what [Holds.DESCRIBED]
  * means now: a cast of individuals, which is the other thing entirely.
  *
  * Reading the sentence is the only part that generalises: a structures claim names a set where the base is

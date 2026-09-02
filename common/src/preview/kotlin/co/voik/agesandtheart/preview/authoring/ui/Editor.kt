@@ -219,9 +219,9 @@ class Editor(
         Part.NAME -> if (candidate.name.isBlank()) "" else Glyph.TICK
         Part.TIER -> Glyph.TICK
         Part.ASPECTS -> word?.aspects?.size?.takeIf { it > 0 }?.toString().orEmpty()
-        Part.EFFECTS -> Insistence.entries.sumOf { candidate.everythingOn(it).size }
+        Part.PROPERTIES -> Insistence.entries.sumOf { candidate.everythingOn(it).size }
             .takeIf { it > 0 }?.toString().orEmpty()
-        Part.PICKS -> (candidate.everywhere.size + candidate.queries.values.sumOf { it.size } +
+        Part.POPULATIONS -> (candidate.everywhere.size + candidate.queries.values.sumOf { it.size } +
             candidate.requests.queries.values.sumOf { it.size } +
             candidate.weights.values.sumOf { it.size } + candidate.meansExactly.size)
             .takeIf { it > 0 }?.toString().orEmpty()
@@ -618,8 +618,8 @@ class Editor(
             Part.TIER -> Tier.entries.firstOrNull { it.key == handle }?.let { tier -> edit { it.copy(tier = tier) } }
             Part.ASPECTS -> if (handle == "+") add() else Unit
             Part.TEMPLATE -> pickABaseDimension()
-            Part.EFFECTS -> actOnAnEffect(handle)
-            Part.PICKS -> actOnAPick(handle)
+            Part.PROPERTIES -> actOnAnEffect(handle)
+            Part.POPULATIONS -> actOnAPick(handle)
             Part.COMMENT -> openTheEditor()
             Part.LISTING -> relist(handle)
             Part.DELETE -> askAboutDeleting()
@@ -638,19 +638,26 @@ class Editor(
      */
     private fun actOnAPick(handle: String) {
         when {
-            handle == "+" -> add()
+            handle.startsWith("+/") -> insistenceNamed(handle.removePrefix("+/"))?.let(::pickAPopulation)
             handle.startsWith("heading/") -> Unit
-            handle == "names" -> pickOneOfOurs()
+            handle.startsWith("means/") -> reMean(handle.removePrefix("means/"))
             handle.startsWith("weight/") -> retypePresetWeight(handle.removePrefix("weight/"))
+            handle.startsWith("requested/") -> retypeOfferedWeight(handle.removePrefix("requested/"))
             else -> retypeTagWeight(handle)
         }
+    }
+
+    /** The one design of ours this word means in a part of the world, changed for another. */
+    private fun reMean(page: String) {
+        val aspect = Aspect.entries.firstOrNull { it.page == page } ?: return
+        sayableIn(aspect, Insistence.REQUIRED)
     }
 
     private fun actOnAnEffect(handle: String) {
         val kind = handle.substringBefore('/')
         val rest = handle.substringAfter('/', "")
         when (kind) {
-            "+" -> insistenceNamed(rest)?.let { pickAParameter(Into(it)) }
+            "+" -> insistenceNamed(rest)?.let { pickATarget(Into(it)) }
             "+pool" -> insistenceNamed(rest)?.let(::buildAPool)
             "heading" -> Unit
             // **The pool's own menu**, where adding a facet and setting the count are the same size of
@@ -768,8 +775,8 @@ class Editor(
         when (part) {
             // Straight to the parameter: an effect is a value on a parameter, and the half it belongs to is
             // whichever group the cursor is standing in.
-            Part.EFFECTS -> pickAParameter(Into(insistenceAtTheCursor()))
-            Part.PICKS -> pickAWayToChoose()
+            Part.PROPERTIES -> pickATarget(Into(insistenceAtTheCursor()))
+            Part.POPULATIONS -> pickAPopulation(insistenceAtTheCursor())
             else -> Unit
         }
     }
@@ -788,7 +795,7 @@ class Editor(
         val handle = rows().getOrNull(row())?.handle ?: return
         if (handle.substringBefore('/').startsWith("+")) return
         when (part) {
-            Part.EFFECTS -> when (handle.substringBefore('/')) {
+            Part.PROPERTIES -> when (handle.substringBefore('/')) {
                 "pool" -> pointedAt(handle.removePrefix("pool/").substringBeforeLast('/'))?.let { into ->
                     val parameter = handle.substringAfterLast('/')
                     edit { it.withoutInPool(into.insistence, into.pool ?: return@edit it, parameter) }
@@ -800,7 +807,7 @@ class Editor(
                     edit { it.without(insistence, handle.substringAfter('/')) }
                 }
             }
-            Part.PICKS -> when {
+            Part.POPULATIONS -> when {
                 handle.startsWith("heading/") -> Unit
                 handle.startsWith("means/") -> forgetMeaning(handle.removePrefix("means/"))
                 handle.startsWith("weight/") -> forgetWeight(handle.removePrefix("weight/"))
@@ -882,10 +889,6 @@ class Editor(
         }
     }
 
-    /** Whether this part of the world holds any member a claim could land on. */
-    private fun hasSomethingToChooseBetween(aspect: Aspect) =
-        corpus.vocabulary.candidatesFor(aspect).isNotEmpty()
-
     private fun parameterNamesIn(aspect: Aspect): List<String> =
         (aspect.parameters.map { it.name } + corpus.vocabulary.candidatesFor(aspect).flatMap { preset ->
             preset.ownParameters.filter(preset::honours).map { it.name }
@@ -897,7 +900,36 @@ class Editor(
      * word paints eight aspects, and the note says which before it is chosen rather than after.
      */
     /** [into] null asks which slot, which is what the add-an-effect row wants. */
-    private fun pickAParameter(into: Into) {
+    /**
+     * **Which part of the world, or every parameter at once.**
+     *
+     * The flat list is the right answer when you know the parameter's name and the wrong one when you are
+     * looking for what a sun can even be asked — thirty-odd names with their targets in a note is a list
+     * you search rather than read. So the populations' own question is offered here too, and choosing one
+     * narrows the list to what that part of the world actually turns.
+     */
+    private fun pickATarget(into: Into) {
+        val owners = Aspect.entries.filter { parameterNamesIn(it).isNotEmpty() }.sortedBy { it.ordinal }
+        val everything = Picker.Option(
+            EVERY_PARAMETER,
+            "every parameter",
+            "all of them at once ${Glyph.BULLET} type to search",
+        )
+        val options = listOf(everything) + owners.mapIndexed { at, aspect ->
+            Picker.Option(
+                value = aspect.page,
+                label = aspect.page,
+                note = "${parameterNamesIn(aspect).size} to set",
+                startsGroup = at == 0,
+            )
+        }
+        overlay = Picker("Set what, where?", options) { picked ->
+            if (picked.value == EVERY_PARAMETER) pickAParameter(into)
+            else Aspect.entries.firstOrNull { it.page == picked.value }?.let { pickAParameter(into, only = it) }
+        }
+    }
+
+    private fun pickAParameter(into: Into, only: Aspect? = null) {
         // **What the word already turns is not on offer.** A parameter holds one value, so adding it again
         // either overwrites what is there or lands in the other half — and required and requested on one
         // parameter is a contradiction, the requested one giving way to a demand it can never outlive.
@@ -908,7 +940,8 @@ class Editor(
         // it — and now that the half is chosen by which group you added from, this is where it is asked.
         fun countsAMemberWeMayNotDemand(parameter: String) =
             into.insistence.required && parameter.substringAfterLast('.') == Parameter.CAST
-        val owners = Aspect.entries.flatMap { aspect -> parameterNamesIn(aspect).map { it to aspect } }
+        val owners = Aspect.entries.filter { only == null || it == only }
+            .flatMap { aspect -> parameterNamesIn(aspect).map { it to aspect } }
             .groupBy({ it.first }, { it.second })
             .filterKeys { it !in alreadyTurned && !countsAMemberWeMayNotDemand(it) }
         val options = owners.entries.sortedBy { it.key }.map { (parameter, aspects) ->
@@ -968,26 +1001,6 @@ class Editor(
         already == null || already == candidate.name
     }
 
-    private fun pickOneOfOurs() {
-        val options = oursStillToMean().map { (aspect, key) ->
-            Picker.Option(
-                value = "${aspect.page}$MEANING_MARK$key",
-                label = key,
-                note = "${aspect.page}  ${Glyph.BULLET}  " +
-                    corpus.vocabulary.candidatesFor(aspect).firstOrNull { it.key == key }
-                        ?.let { corpus.vocabulary.tagsOf(it).keys.joinToString(" ") { tag -> "$TAG_MARK$tag" } }
-                        .orEmpty(),
-                marked = candidate.meansExactly[aspect] == key,
-            )
-        }
-        overlay = Picker(
-            title = "Mean which of ours outright?",
-            options = options,
-            onClear = { edit { it.copy(meansExactly = emptyMap()) } },
-            onPick = { picked -> edit { it.copy(meansExactly = it.meansExactly + meaningIn(picked.value)) } },
-        )
-    }
-
     /** A picked option said back as the one entry it stands for — `landmass/alps` is the alps, there. */
     private fun meaningIn(picked: String): Pair<Aspect, String> {
         val page = picked.substringBefore(MEANING_MARK)
@@ -1000,71 +1013,102 @@ class Editor(
         edit { it.copy(meansExactly = it.meansExactly.filterKeys { aspect -> aspect.page != page }) }
 
     /** The three ways a word chooses a preset, offered in the order the resolver reads them. */
-    private fun pickAWayToChoose() {
-        // **Only a narrowing word may mean one outright.** `Resolver.fill` asks `carriersOf` of narrowing
-        // words alone, so an evocative word's meaning would never be read — and worse than ignored, the
-        // tag pass *excludes* a word that means a member, so the tilt it was written for goes too.
-        val meaning = if (!candidate.tier.narrows || oursStillToMean().isEmpty()) {
-            emptyList()
-        } else {
+    /**
+     * **The part of the world first, then what to say about it.**
+     *
+     * It used to ask the mechanism first — outright, by name, by tag — which is the one thing a writer is
+     * least sure of and the last thing they should have to decide. Which population the claim is about is
+     * what they came in knowing, and once it is chosen the mechanisms are just rows on one list: the
+     * designs of ours it could mean, the members it could weigh, the tags it could ask for.
+     */
+    private fun pickAPopulation(insistence: Insistence) {
+        val whole = if (insistence.required && !candidate.tier.narrows) {
             listOf(
                 Picker.Option(
-                    "names",
-                    "one of ours",
-                    "a carve pattern, sky or phenomenon this mod wrote; it answers before any tag",
+                    Word.EVERYWHERE,
+                    "the whole Age",
+                    "an evocative word leans everything and rules nothing out",
                 ),
             )
+        } else {
+            emptyList()
         }
-        val ways = meaning + listOf(
-            Picker.Option("weight", "one by name", "a weight on a named preset, which beats the tags"),
-            Picker.Option("tag", "by tag", "anything carrying the tags you ask for"),
-            // **Here rather than under the effects**, which is where it used to be: a leaned tag is a
-            // query, it is written into `requests.queries`, and it shows up in this section. Offering it
-            // from the other one meant adding an effect and watching the answer appear somewhere else.
+        val holding = Aspect.entries.filter { it.holds != Holds.NOTHING }.sortedBy { it.ordinal }
+        val options = whole + holding.mapIndexed { at, aspect ->
+            val many = corpus.vocabulary.askableIn(aspect).size
             Picker.Option(
-                "leaning",
-                "offered by tag",
-                "the same, and given up wherever the book already chose",
-            ),
-        )
-        overlay = Picker("Choose a preset how?", ways) { picked ->
-            when (picked.value) {
-                "names" -> pickOneOfOurs()
-                "weight" -> pickAnAspectToWeighIn()
-                "leaning" -> pickAnAspectToLean()
-                else -> pickATag()
-            }
+                value = aspect.page,
+                label = aspect.page,
+                note = if (many == 0) "nothing here to match — the tag would only count against others"
+                else "$many to choose between",
+                startsGroup = whole.isNotEmpty() && at == 0,
+            )
+        }
+        overlay = Picker("Say what about which part of the world?", options) { picked ->
+            if (picked.value == Word.EVERYWHERE) pickATagIn(Word.EVERYWHERE)
+            else Aspect.entries.firstOrNull { it.page == picked.value }
+                ?.let { sayableIn(it, insistence) }
         }
     }
 
-    /** An offered query names its aspect, because a flat one would lean everywhere the word reaches. */
-    private fun pickAnAspectToLean() {
-        val options = Aspect.entries.filter { it.holds == Holds.CATALOGUE }.sortedBy { it.ordinal }
-            .map { aspect ->
+    /**
+     * Everything this word could say about one population, on one list.
+     *
+     * Three kinds of row and each says which it is, because the difference is real and small: meaning a
+     * design of ours outright answers before any tag, a weight by name beats the tags and reaches things
+     * the tags never described, and a tag finds whatever carries it.
+     *
+     * **Only a tag on the offered half**, which is not a restriction so much as the shape of the data: a
+     * weight and a meaning live on the word rather than in `requests`, so there is nowhere to offer them.
+     */
+    private fun sayableIn(aspect: Aspect, insistence: Insistence) {
+        val ours = if (!insistence.required || !candidate.tier.narrows) emptyList() else {
+            oursStillToMean().filter { (where, _) -> where == aspect }.map { (_, key) ->
                 Picker.Option(
-                    aspect.page,
-                    aspect.page,
-                    "${corpus.vocabulary.askableIn(aspect).size} to choose between",
+                    value = "$MEANT/$key",
+                    label = key,
+                    note = "outright ${Glyph.BULLET} it answers before any tag",
                 )
             }
-        overlay = Picker("Lean which aspect?", options) { picked ->
-            Aspect.entries.firstOrNull { it.page == picked.value }?.let(::pickATagToLeanOn)
+        }
+        val byName = if (!insistence.required) emptyList() else {
+            corpus.vocabulary.candidatesFor(aspect).map { preset ->
+                Picker.Option(
+                    value = "$WEIGHED/${preset.key}",
+                    label = preset.key,
+                    note = "by name ${Glyph.BULLET} " + corpus.vocabulary.tagsOf(preset).keys
+                        .joinToString(" ") { "$TAG_MARK$it" },
+                    startsGroup = ours.isNotEmpty() && preset == corpus.vocabulary.candidatesFor(aspect).first(),
+                )
+            }
+        }
+        val tags = tagsWorthAsking(aspect).mapIndexed { at, tag ->
+            Picker.Option(
+                value = "$TAGGED/$tag",
+                label = "$TAG_MARK$tag",
+                note = "by tag ${Glyph.BULLET} " + carriedNote(tag),
+                startsGroup = at == 0 && (ours.isNotEmpty() || byName.isNotEmpty()),
+            )
+        }
+        overlay = Picker("What about the ${aspect.page}?", ours + byName + tags) { picked ->
+            val said = picked.value.substringAfter('/')
+            when (picked.value.substringBefore('/')) {
+                MEANT -> edit { it.copy(meansExactly = it.meansExactly + (aspect to said)) }
+                WEIGHED -> retypePresetWeight("${aspect.page}/$said")
+                else -> if (insistence.required) retypeTagWeight("${aspect.page}/$said")
+                else retypeOfferedWeight("${aspect.page}/$said")
+            }
         }
     }
 
-    private fun pickATagToLeanOn(aspect: Aspect) {
-        val options = corpus.vocabulary.candidatesFor(aspect)
+    /**
+     * The tags worth asking of one aspect — what something there carries, and the ones only a server
+     * grants, which are absent offline rather than absent.
+     */
+    private fun tagsWorthAsking(aspect: Aspect): List<String> {
+        val carried = corpus.vocabulary.candidatesFor(aspect)
             .flatMap { corpus.vocabulary.tagsOf(it).keys }
-            .distinct()
-            .sorted()
-            .map { tag ->
-                val carriers = corpus.vocabulary.candidatesFor(aspect)
-                    .filter { tag in corpus.vocabulary.tagsOf(it) }
-                Picker.Option(tag, tag, carriers.joinToString(" ") { it.key })
-            }
-        overlay = Picker("Lean ${aspect.page} toward which tag?", options) { picked ->
-            retypeOfferedWeight("${aspect.page}/${picked.value}")
-        }
+        return (carried + corpus.vocabulary.tagsOnlyAServerGrants).distinct().sorted()
     }
 
     private fun retypeOfferedWeight(handle: String) {
@@ -1266,10 +1310,10 @@ class Editor(
         val facets = pool.facets.size
         overlay = null
         building = null
-        turnTo(Part.EFFECTS)
+        turnTo(Part.PROPERTIES)
         inside = true
         val handle = "draws/${of.insistence.name}/${of.pool}"
-        rows().indexOfFirst { it.handle == handle }.takeIf { it >= 0 }?.let { rowOf[Part.EFFECTS] = it }
+        rows().indexOfFirst { it.handle == handle }.takeIf { it >= 0 }?.let { rowOf[Part.PROPERTIES] = it }
         typeOn(
             handle = handle,
             standing = standing,
@@ -1286,48 +1330,6 @@ class Editor(
             },
         ) { typed ->
             edit { at -> at.drawing(of.insistence, of.pool, Draws(typed)) }
-        }
-    }
-
-    /**
-     * A tag to want or to push away, **listed with what it actually carries** — which is the fact a query
-     * is otherwise written blind to, and the reason eight carried tags are asked by nobody.
-     */
-    /**
-     * **Where the tags are asked, before which tags.**
-     *
-     * A query has to name the part of the world it is about: a word cannot declare its targets any more,
-     * and a query keyed nowhere would reach nowhere. An evocative word may say `all` instead, which is
-     * what one has always meant — it is written on the Age rather than on a part of it.
-     */
-    private fun pickATag() {
-        val everywhere = if (candidate.tier.narrows) {
-            emptyList()
-        } else {
-            listOf(
-                Picker.Option(
-                    Word.EVERYWHERE,
-                    "the whole Age",
-                    "an evocative word leans everything and rules nothing out",
-                ),
-            )
-        }
-        // **Said rather than hidden.** An aspect holding no members can never answer a tag — `carriersOf`
-        // and `answersIn` both search an empty list — but six shipped words key one to the climate anyway,
-        // where it reaches nothing and still counts in the oppositions. That is a content question, so the
-        // list says which those are and leaves the choice.
-        val options = everywhere + Aspect.entries.sortedBy { it.ordinal }.map { aspect ->
-            val many = corpus.vocabulary.askableIn(aspect).size
-            Picker.Option(
-                value = aspect.page,
-                label = aspect.page,
-                note = if (many == 0) "nothing here to match — the tag would only count against others"
-                else "$many to choose between",
-                startsGroup = everywhere.isNotEmpty() && aspect == Aspect.entries.first(),
-            )
-        }
-        overlay = Picker("Ask it of which part of the world?", options) { picked ->
-            pickATagIn(picked.value)
         }
     }
 
@@ -1389,37 +1391,6 @@ class Editor(
                 val left = at.queries[aspect].orEmpty() - tag
                 at.copy(queries = if (left.isEmpty()) at.queries - aspect else at.queries + (aspect to left))
             }
-        }
-    }
-
-    private fun pickAnAspectToWeighIn() {
-        // **A weight needs somewhere for the preset to be.** An open aspect makes one out of any id and so
-        // admits it, but a closed one with no designs — the climate, the sun, the air — resolves the key to
-        // nothing at all, and the weight would sit in the file scoring a preset that does not exist.
-        val options = Aspect.entries.filter { it.open || hasSomethingToChooseBetween(it) }.sortedBy { it.ordinal }
-            .map { aspect ->
-                Picker.Option(
-                    aspect.page,
-                    aspect.page,
-                    "${corpus.vocabulary.candidatesFor(aspect).size} to choose between",
-                )
-            }
-        overlay = Picker("Weigh a preset in which aspect?", options) { picked ->
-            Aspect.entries.firstOrNull { it.page == picked.value }?.let(::pickAPreset)
-        }
-    }
-
-    private fun pickAPreset(aspect: Aspect) {
-        val options = corpus.vocabulary.candidatesFor(aspect).map { preset ->
-            Picker.Option(
-                value = preset.key,
-                label = preset.key,
-                note = corpus.vocabulary.tagsOf(preset).entries.sortedByDescending { it.value }
-                    .joinToString(" ") { "${it.key} ${"%.1f".format(it.value)}" },
-            )
-        }
-        overlay = Picker("Which ${aspect.page}?", options) { picked ->
-            retypePresetWeight("${aspect.page}/${picked.value}")
         }
     }
 
@@ -1646,6 +1617,11 @@ class Editor(
         const val HOW_MANY_DRAWN = "\u0000draws"
         /** What the pool list calls the row that starts one rather than adding to an existing one. */
         const val NEW_POOL = "new"
+
+        /** Which of the three things a row on the populations list is — carried in its own handle. */
+        const val MEANT = "meant"
+        const val WEIGHED = "weighed"
+        const val TAGGED = "tagged"
         const val DONE_BUILDING = "\u0000done"
 
         const val SAVE_AND_LEAVE = "\u0000save"
@@ -1654,6 +1630,9 @@ class Editor(
 
         /** The row standing for every aspect that owns the parameter, rather than for one of them. */
         const val EVERY_ASPECT = "\u0000all"
+
+        /** What the target list calls the row that leaves the parameters unnarrowed. */
+        const val EVERY_PARAMETER = "\u0000any"
 
         /** The row that takes whatever has been marked. */
         const val TAKE_THE_MARKED = "\u0000marked"

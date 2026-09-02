@@ -138,7 +138,7 @@ internal object ArtReading {
             at = if (confinedTo == null) sitingAt else sitingAt + PAGES_IN_A_SITING
             // A clause closing on a population brings a member of it into being, and everything said in the
             // clause is said about *that* one.
-            val population = aim.singleOrNull()?.takeIf { it.holds == Holds.POPULATION }
+            val population = aim.singleOrNull()?.takeIf { it.holds == Holds.DESCRIBED }
             val body = population?.let { described.getOrDefault(it, 0).also { at -> described[it] = at + 1 } }
             return Phrase(
                 modifiers = said.map { it.copy(describes = body) },

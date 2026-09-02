@@ -28,8 +28,21 @@ enum class Part(val title: String, val about: String, val perilous: Boolean = fa
     TIER("specificity", ""),
     TEMPLATE("base dimension", "the world a book starts from, where this word chooses one"),
     ASPECTS("targets", "where its claims put it — derived, and nothing a word can declare"),
-    EFFECTS("effects", "what it changes, and whether it insists on it"),
-    PICKS("picks", ""),
+    /**
+     * Claims about a **property** the world has — a temperature, a colour, how large a sun is. Keyed by
+     * the parameter they set.
+     */
+    PROPERTIES("properties", "what it sets, and whether it insists on it"),
+    /**
+     * Claims about **which members** fill a part of the world — this landform, anything tagged cavernous,
+     * more of that biome. Keyed by a preset or a tag.
+     *
+     * The two sections are the world model's own division (§1): an aspect holds a value, or it holds
+     * members, and a word speaks to one or the other. **Which claims are firm and which are loose cuts
+     * across both** and so is never the split — a temperature is a band or a nudge, a member is a name or
+     * a tag, and either way that is how precisely the word speaks rather than what it speaks about.
+     */
+    POPULATIONS("populations", ""),
     COMMENT("comment", ""),
     LISTING("rarity", ""),
 
@@ -80,8 +93,8 @@ class Parts(private val corpus: Corpus) {
         Part.TIER -> tierRows(candidate)
         Part.ASPECTS -> aspectRows(candidate, word)
         Part.TEMPLATE -> templateRows(candidate)
-        Part.EFFECTS -> effectRows(candidate, word)
-        Part.PICKS -> pickRows(candidate, word)
+        Part.PROPERTIES -> effectRows(candidate, word)
+        Part.POPULATIONS -> pickRows(candidate, word)
         Part.COMMENT -> commentRows(candidate)
         Part.LISTING -> listingRows(candidate)
         Part.DELETE -> deleteRows(candidate)
@@ -89,7 +102,7 @@ class Parts(private val corpus: Corpus) {
 
     /** What the section says about itself — some of it depends on the word, so it is not on the enum. */
     fun aboutOf(part: Part, candidate: Candidate): String = when (part) {
-        Part.PICKS -> whatTagsDoHere(candidate.tier)
+        Part.POPULATIONS -> "which members fill a part of the world — " + whatTagsDoHere(candidate.tier)
         Part.COMMENT -> "why this word exists, for whoever reads it next"
         Part.LISTING -> "how hard it is to find, and what it takes to write"
         Part.DELETE -> "removing this word for good"
@@ -106,7 +119,7 @@ class Parts(private val corpus: Corpus) {
     }
 
     /** Whether this section holds a list you add to and delete from, which decides what `a` and `d` mean. */
-    fun isAList(part: Part) = part in setOf(Part.EFFECTS, Part.PICKS)
+    fun isAList(part: Part) = part in setOf(Part.PROPERTIES, Part.POPULATIONS)
 
     // -- word and specificity ------------------------------------------------------------------------
 
@@ -450,39 +463,40 @@ class Parts(private val corpus: Corpus) {
      * every tag on the word, and nothing else says so.
      */
     private fun pickRows(candidate: Candidate, word: Word?): List<Row> = buildList {
-        if (candidate.meansExactly.isNotEmpty()) {
+        for (insistence in Insistence.entries) {
             add(
                 Row(
-                    "heading/ours",
-                    listOf(Ink("meant outright", Palette.heading)),
-                    "the one preset this word means in a part of the world, claimed without searching",
+                    handle = "heading/${insistence.name}",
+                    shown = listOf(Ink(insistence.title, Palette.heading)),
+                    note = insistence.about,
                 ),
             )
-            for ((aspect, key) in candidate.meansExactly.entries.sortedBy { it.key.ordinal }) {
-                add(
-                    Row(
-                        "means/${aspect.page}",
-                        listOf(Ink("    "), Ink(key, Palette.value), Ink("  in ${aspect.page}", Palette.faint)),
-                        whatItMeans(aspect, key),
-                    ),
-                )
-            }
+            add(Row("+/${insistence.name}", listOf(Ink("    + say something about a population", Palette.faint))))
+            addAll(if (insistence.required) claimedOutright(candidate) + weightRows(candidate) else emptyList())
+            addAll(queryRows(candidate, word, insistence))
         }
-        if (candidate.weights.isNotEmpty()) {
-            add(
-                Row(
-                    "heading/named",
-                    listOf(Ink("by name", Palette.heading)),
-                    "beats the tags, and reaches things the tags never described",
-                ),
-            )
-            addAll(weightRows(candidate))
-        }
-        val tags = queryRows(candidate, word)
-        if (tags.isNotEmpty()) add(Row("heading/tagged", listOf(Ink("by tag", Palette.heading))))
-        addAll(tags)
-        add(Row("+", listOf(Ink("+ add a tag, a weight or a name", Palette.faint))))
     }
+
+    /**
+     * The designs of ours this word means outright — **`outright` said on the row, not over it.**
+     *
+     * How precisely a word speaks is a fact about each claim, not a category claims belong to: these sat
+     * under a heading that came and went with whatever the word happened to carry, beside another for
+     * weights and a third for tags, which made three shifting sections out of one list.
+     */
+    private fun claimedOutright(candidate: Candidate): List<Row> =
+        candidate.meansExactly.entries.sortedBy { it.key.ordinal }.map { (aspect, key) ->
+            Row(
+                "means/${aspect.page}",
+                listOf(
+                    Ink("    "),
+                    Ink("outright".padEnd(KIND_COLUMN), Palette.faint),
+                    Ink(key.padEnd(PARAMETER_COLUMN), Palette.value),
+                    Ink("in ${aspect.page}", Palette.faint),
+                ),
+                whatItMeans(aspect, key),
+            )
+        }
 
     /**
      * What the named preset turns out to be.
@@ -533,7 +547,14 @@ class Parts(private val corpus: Corpus) {
         "dark_void" to "The end — islands in a void, and its own sky.",
     )
 
-    private fun queryRows(candidate: Candidate, word: Word?): List<Row> {
+    private fun queryRows(candidate: Candidate, word: Word?, insistence: Insistence): List<Row> {
+        if (!insistence.required) {
+            return candidate.requests.queries.entries.sortedBy { it.key.ordinal }.flatMap { (aspect, tags) ->
+                tags.entries.sortedByDescending { it.value }.map { (tag, weight) ->
+                    Row("requested/${aspect.page}/$tag", tagInk(tag, weight, aspect.page), leanNote(aspect, tag))
+                }
+            }
+        }
         val flat = candidate.everywhere.entries.sortedByDescending { it.value }.map { (tag, weight) ->
             Row(tag, tagInk(tag, weight, ""), tagNote(tag, word))
         }
@@ -542,16 +563,7 @@ class Parts(private val corpus: Corpus) {
                 Row("${aspect.page}/$tag", tagInk(tag, weight, aspect.page), tagNote(tag, word, aspect))
             }
         }
-        val leaning = candidate.requests.queries.entries.sortedBy { it.key.ordinal }.flatMap { (aspect, tags) ->
-            tags.entries.sortedByDescending { it.value }.map { (tag, weight) ->
-                Row(
-                    handle = "requested/${aspect.page}/$tag",
-                    shown = tagInk(tag, weight, aspect.page) + Ink("  requested", Palette.faint),
-                    note = leanNote(aspect, tag),
-                )
-            }
-        }
-        return flat + keyed + leaning
+        return flat + keyed
     }
 
     /**
@@ -573,6 +585,7 @@ class Parts(private val corpus: Corpus) {
 
     private fun tagInk(tag: String, weight: Double, only: String): List<Ink> = listOf(
         Ink("    "),
+        Ink("by tag".padEnd(KIND_COLUMN), Palette.faint),
         Ink("$TAG_MARK$tag".padEnd(18), Palette.tag),
         Ink(bar(weight), if (weight < 0) Palette.refused else Palette.settled),
         Ink(" %+.2f".format(weight), Palette.value),
@@ -624,9 +637,10 @@ class Parts(private val corpus: Corpus) {
                     handle = "weight/${aspect.page}/$preset",
                     shown = listOf(
                         Ink("    "),
-                        Ink(aspect.page.padEnd(12), Palette.faint),
-                        Ink(preset.padEnd(34), Palette.value),
-                        Ink("%+.2f".format(weight), Palette.value),
+                        Ink("by name".padEnd(KIND_COLUMN), Palette.faint),
+                        Ink(preset.padEnd(PARAMETER_COLUMN), Palette.value),
+                        Ink("%+.2f".format(weight).padEnd(8), Palette.value),
+                        Ink("in ${aspect.page}", Palette.faint),
                     ),
                 )
             }
@@ -696,6 +710,9 @@ class Parts(private val corpus: Corpus) {
 
         /** Where a facet's value starts, so every row in the section lines up on it. */
         const val PARAMETER_COLUMN = 22
+
+        /** Where the value starts on a populations row, past the word saying how precisely it speaks. */
+        const val KIND_COLUMN = 10
     }
 }
 
