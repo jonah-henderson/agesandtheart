@@ -35,7 +35,6 @@ enum class Part(
     TIER("specificity", ""),
     TEMPLATE("base dimension", "the world a book starts from, where this word chooses one"),
     LISTING("rarity", "how hard it is to find, and what it takes to write"),
-    COMMENT("comment", "why this word exists, for whoever reads it next"),
 
     /**
      * Claims about a **property** the world has — a temperature, a colour, how large a sun is. Keyed by
@@ -63,6 +62,7 @@ enum class Part(
      * does to each population, and what is wrong with it.
      */
     REVIEW("review", "everything this word does, said back", startsGroup = true),
+    COMMENT("comment", "why this word exists, for whoever reads it next"),
 
     SAVE("save", "write it, and stay here", startsGroup = true),
     SAVE_AND_LEAVE("save & exit", "write it and go back to the list"),
@@ -790,8 +790,15 @@ class Parts(private val corpus: Corpus) {
             }
         }
 
-    private fun field(name: String, value: String?) = listOf(
-        Ink(name.padEnd(12), Palette.faint),
+    /**
+     * A labelled value, lined up on a column [wide] enough for every label beside it.
+     *
+     * **The width is passed rather than assumed.** It was a constant of twelve, which `required ink
+     * quality` is eight characters past — so its value started where the label ended and the two ran
+     * together. A page knows its own labels; nothing else can.
+     */
+    private fun field(name: String, value: String?, wide: Int) = listOf(
+        Ink(name.padEnd(wide), Palette.faint),
         Ink(value ?: "—", if (value == null) Palette.faint else Palette.value),
     )
 
@@ -818,11 +825,13 @@ class Parts(private val corpus: Corpus) {
         } else {
             listing.ink
         }
+        val labels = listOf("rarity", "required ink quality")
+        val wide = labels.maxOf { it.length } + LABEL_GUTTER
         return listOf(
-            Row("rarity", field("rarity", listing.rarity)),
+            Row("rarity", field(labels[0], listing.rarity, wide)),
             Row(
                 handle = "ink",
-                shown = field("required ink quality", ink),
+                shown = field(labels[1], ink, wide),
                 note = if (candidate.inkedByTag) "written as a tag on ${candidate.id}" else "",
             ),
         )
@@ -857,6 +866,9 @@ class Parts(private val corpus: Corpus) {
 
         /** Where a review row's second column starts. */
         const val MARK_COLUMN = 14
+
+        /** The gap between a label and the value it labels, wherever the two share a row. */
+        const val LABEL_GUTTER = 2
 
         /** Where the value starts on a populations row, past the word saying what it does to the draw. */
         const val KIND_COLUMN = 10
