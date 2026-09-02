@@ -188,7 +188,10 @@ what it catches. The file already states its rule perfectly and hides only its c
 corpus: `Vocabulary.load(shippedData(), worldgen)` is the same call `VocabularyCheck` makes, so what a
 candidate reaches, what it costs, what its query keeps and what it contradicts are computed from the
 resolver's own code with **no server**. It refuses what the checks would refuse and names the check for
-each; it nudges towards the rulings in `notes/vocabulary-pass-plan.md` §5.2 without barring them. The one
+each; it nudges towards the rulings in `notes/vocabulary-pass-plan.md` §5.2 without barring them. It also
+**does not offer what it would have to refuse** — a count cannot be demanded, an evocative word is offered
+no preset to mean, a preset a page already means is off the list — while what is merely unwise is said
+rather than hidden (`decisions.md`). The one
 thing offline cannot know is a tag only a bound registry grants (`ore`), and `--refresh` drives the existing
 `/age tags` over RCON into `.authoring/server-snapshot.json` for every later run to read — a server is an
 errand, never a condition.

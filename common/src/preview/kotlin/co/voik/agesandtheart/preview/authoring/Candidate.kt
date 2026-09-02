@@ -63,6 +63,15 @@ data class Candidate(
      * write, and both of those are stored away from the word.
      */
     val derivedFrom: Identifier? = null,
+    /**
+     * Whether this word's ink is a **tag on the thing itself** rather than a name in `art/ink/`.
+     *
+     * True of a word that *is* a registry entry, which is what lets another mod's ore be worth the good
+     * ink without anybody editing our files. **Not true of every derived word**: a landform's page is
+     * minted from the landform (`AuthoredPreset.writtenWordFor`) and has no id in any registry to hang a
+     * tag on, so it is listed by name exactly as an authored word is.
+     */
+    val inkedByTag: Boolean = false,
 ) {
 
     val id: Identifier get() = derivedFrom ?: Identifier.fromNamespaceAndPath(NAMESPACE, name)
@@ -200,14 +209,15 @@ data class Candidate(
             mints = word.mints,
             mintsSomethingThatFlows = word.mintsSomethingThatFlows,
             derivedFrom = word.id,
+            inkedByTag = word.entryOf != null,
         )
 
         /** A blank word, which is what `--new` starts from. */
         fun blank(name: String) = Candidate(name = name, tier = Tier.EXACT)
 
         /**
-         * The candidate [json] describes — **read off the file rather than off a loaded [Word]**, so the
-         * declared aspects survive the trip.
+         * The candidate [json] describes — **read off the file rather than off a loaded [Word]**, so what
+         * the codec drops survives the trip: the reasoning, and the layout the fields were written in.
          */
         fun read(name: String, json: JsonObject): Result<Candidate> = runCatching {
             val unknown = json.keySet() - KNOWN_FIELDS - COMMENT

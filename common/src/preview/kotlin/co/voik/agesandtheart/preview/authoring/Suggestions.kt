@@ -151,7 +151,7 @@ class Suggestions(private val vocabulary: Vocabulary) {
     /**
      * Whether laying [word] in a clause aimed at [aspect] would do **anything at all**.
      *
-     * Every channel a word has, asked through the resolver's own functions: it names something there, its
+     * Every channel a word has, asked through the resolver's own functions: it means something there, its
      * query keeps something, anything answers it either way — `untouched` is entirely negative about a
      * population and perfectly well backed — or it turns a parameter that aspect honours, required or merely
      * requested. Only a word that fails all of them is hidden, so the bias is toward offering.

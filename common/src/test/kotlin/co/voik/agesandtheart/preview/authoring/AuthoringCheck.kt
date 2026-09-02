@@ -4,6 +4,9 @@ import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.word.Tier
 import co.voik.agesandtheart.age.word.Word
+import co.voik.agesandtheart.preview.authoring.ui.Slot
+import co.voik.agesandtheart.preview.authoring.ui.putting
+import co.voik.agesandtheart.preview.authoring.ui.without
 import com.google.gson.JsonParser
 import com.mojang.serialization.JsonOps
 import io.kotest.core.annotation.Tags
@@ -206,6 +209,67 @@ class AuthoringCheck : FunSpec({
      * second word — and the rarity, the ink and the display name stayed under a name nothing would look
      * up again. Those three belong to the word rather than to what it is called.
      */
+    /**
+     * The two ways a meaning goes wrong, both refused rather than merely shown — see `Verdict.meaningFaults`
+     * and the two `VocabularyCheck` tests it names.
+     */
+    test("a meaning only a narrowing word could carry is refused") {
+        val leaning = Candidate(
+            name = "probe",
+            tier = Tier.EVOCATIVE,
+            meansExactly = mapOf(Aspect.CARVERS to "caves"),
+        )
+        val said = Verdict.refusals(Verdict.on(leaning, corpus))
+        check(said.any { it.says.contains("evocative") }) {
+            "an evocative word meaning a preset outright was not refused: ${said.joinToString { it.says }}"
+        }
+    }
+
+    test("meaning a preset another page already means is refused") {
+        val second = Candidate(
+            name = "probe",
+            tier = Tier.EXACT,
+            meansExactly = mapOf(Aspect.TERRAIN to "alps"),
+        )
+        val said = Verdict.refusals(Verdict.on(second, corpus))
+        check(said.any { it.says.contains("alps") }) {
+            "a second page meaning the alps was not refused: ${said.joinToString { it.says }}"
+        }
+    }
+
+    /**
+     * **A pool and its count move together**, so neither of the two shapes `Verdict` has to refuse — a
+     * pool drawing none of itself, a count over an empty pool — can be reached by editing at all.
+     */
+    test("a pool carries its own count in and out") {
+        val empty = Candidate(name = "probe", tier = Tier.EXACT)
+        val one = empty.putting(Slot.REQUIRED_POOL, "temperature", "0.5..1.0")
+        check(one.draws == 1) { "a first facet left the pool drawing ${one.draws}" }
+
+        val two = one.putting(Slot.REQUIRED_POOL, "rainfall", "-1.0..-0.4").copy(draws = 2)
+        check(two.without(Slot.REQUIRED_POOL, "rainfall").draws == 1) { "the count outran the pool" }
+        check(two.without(Slot.REQUIRED_POOL, "rainfall").without(Slot.REQUIRED_POOL, "temperature").draws == 0) {
+            "an emptied pool kept its count, and the heading it is edited on is gone"
+        }
+    }
+
+    /**
+     * **Not every derived word is a registry entry**, which the ink screen had assumed: a landform's page
+     * is minted from the landform and has no id in any registry to hang a tag on, so asking for one said
+     * "nothing in the game has the id agesandtheart:alps" and its ink could not be set at all.
+     */
+    test("a page minted from one of our designs takes its ink by name") {
+        val alps = corpus.vocabulary.words.distinct().firstOrNull { it.name == "alps" }
+        checkNotNull(alps) { "no page means the alps — is DerivedWords.designs running?" }
+        val page = Candidate.of(alps)
+        check(page.isDerived) { "the alps page is not derived, so this check is testing nothing" }
+        check(!page.inkedByTag) { "the alps page would be inked by tagging '${page.id}', which is in no registry" }
+
+        val ice = corpus.vocabulary.words.distinct().firstOrNull { it.name == "ice" }
+        checkNotNull(ice) { "no derived word for ice" }
+        check(Candidate.of(ice).inkedByTag) { "a block's word must be inked by tagging the block" }
+    }
+
     test("a rename takes the word's rarity, ink and display with it") {
         val from = "probe_before_rename"
         val to = "probe_after_rename"

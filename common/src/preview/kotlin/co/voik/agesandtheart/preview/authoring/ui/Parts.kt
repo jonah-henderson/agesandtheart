@@ -24,7 +24,7 @@ enum class Part(val title: String, val about: String, val perilous: Boolean = fa
     NAME("word", ""),
     TIER("specificity", ""),
     TEMPLATE("base dimension", "the world a book starts from, where this word chooses one"),
-    ASPECTS("targets", "the aspects of an Age this word can affect"),
+    ASPECTS("targets", "where its claims put it — derived, and nothing a word can declare"),
     EFFECTS("effects", "what it changes, and whether it insists on it"),
     PICKS("picks", ""),
     COMMENT("comment", ""),
@@ -410,13 +410,13 @@ class Parts(private val corpus: Corpus) {
     /**
      * **How this word chooses which preset fills an aspect** — all three ways, strongest first.
      *
-     * `Word.pullOn` reads them in exactly this order: a named preset answers outright, else a weight on
-     * that preset by name, else the tags. They were three screens and one of them was labelled with
-     * another field's name, so `alps` — which does its whole job by naming one landform — read as an
-     * empty word everywhere you looked.
+     * `Word.pullOn` reads them in exactly this order: a preset meant outright answers first, else a weight
+     * on that preset by name, else the tags. They were three screens and one of them was labelled with
+     * another field's name, so a word doing its whole job by meaning one landform read as an empty word
+     * everywhere you looked.
      *
-     * Strongest first because that precedence is worth learning: a named preset silently beats every tag
-     * on the word, and nothing else says so.
+     * Strongest first because that precedence is worth learning: a preset meant outright silently beats
+     * every tag on the word, and nothing else says so.
      */
     private fun pickRows(candidate: Candidate, word: Word?): List<Row> = buildList {
         if (candidate.meansExactly.isNotEmpty()) {
@@ -465,6 +465,18 @@ class Parts(private val corpus: Corpus) {
         aspect.presetsAreEntriesOf != null -> "an entry of the ${aspect.page}'s own registry"
         else -> "nothing in the ${aspect.page} is called that"
     }
+
+    /**
+     * The page that already means this preset outright, or null where none does.
+     *
+     * **Landforms all have one now** — `AuthoredPreset.writtenWordFor` mints a page from the landform
+     * itself — so offering `alps` again would author a second word meaning what `alps` already means, and
+     * nothing downstream would catch it: `Verdict.duplicates` skips derived words deliberately, since a
+     * derived word *is* the thing it means and every one of them read as a synonym of itself.
+     */
+    fun alreadyMeantBy(aspect: Aspect, key: String): String? = corpus.vocabulary.words.distinct()
+        .firstOrNull { it.meaningIn(aspect)?.key == key }
+        ?.name
 
     /** Everything this mod wrote that a word may mean outright — see [Word.meansExactly]. */
     fun oursToName(): List<Pair<Aspect, String>> =
@@ -609,9 +621,10 @@ class Parts(private val corpus: Corpus) {
 
     private fun listingRows(candidate: Candidate): List<Row> {
         val listing = WordFile.listingFor(candidate.listingKey)
-        // A derived word's ink is a tag on the thing it names, not a name in `art/ink/` — that is what
-        // lets another mod's ore be worth the good ink without anybody editing our files.
-        val ink = if (candidate.isDerived) {
+        // A registry entry's ink is a tag on the entry, not a name in `art/ink/` — that is what lets
+        // another mod's ore be worth the good ink without anybody editing our files. A page minted from
+        // one of our own designs has no entry to tag and is listed by name like the rest.
+        val ink = if (candidate.inkedByTag) {
             corpus.registryOf(candidate.id)?.let { WordFile.inkTagOn(candidate.id.toString(), it) }
         } else {
             listing.ink
@@ -621,7 +634,7 @@ class Parts(private val corpus: Corpus) {
             Row(
                 handle = "ink",
                 shown = field("required ink quality", ink),
-                note = if (candidate.isDerived) "written as a tag on ${candidate.id}" else "",
+                note = if (candidate.inkedByTag) "written as a tag on ${candidate.id}" else "",
             ),
         )
     }
@@ -660,18 +673,39 @@ fun Candidate.holding(slot: Slot): Map<String, String> = when (slot) {
     Slot.REQUESTED_POOL -> requests.pool
 }
 
-/** This word with [parameter] set to [value] in [slot]. */
+/**
+ * This word with [parameter] set to [value] in [slot].
+ *
+ * **A first facet brings a draw with it.** `pool` with `draws` still at zero is a pool the Age never
+ * takes, which the file cannot show and `Verdict` has to refuse; starting the count at one means the
+ * refusal is unreachable rather than merely rare, and a writer who wants more says so on the heading.
+ */
 fun Candidate.putting(slot: Slot, parameter: String, value: String): Candidate = when (slot) {
     Slot.REQUIRED_ALWAYS -> copy(sets = sets + (parameter to value))
-    Slot.REQUIRED_POOL -> copy(pool = pool + (parameter to value))
+    Slot.REQUIRED_POOL -> copy(pool = pool + (parameter to value), draws = draws.coerceAtLeast(1))
     Slot.REQUESTED_ALWAYS -> copy(requests = requests.copy(sets = requests.sets + (parameter to value)))
-    Slot.REQUESTED_POOL -> copy(requests = requests.copy(pool = requests.pool + (parameter to value)))
+    Slot.REQUESTED_POOL -> copy(
+        requests = requests.copy(
+            pool = requests.pool + (parameter to value),
+            draws = requests.draws.coerceAtLeast(1),
+        ),
+    )
 }
 
-/** This word without [parameter] in [slot]. */
+/**
+ * This word without [parameter] in [slot].
+ *
+ * **The last facet out takes the draw with it.** A count left standing over an empty pool draws from
+ * nothing, and the heading it is edited on is gone by then — so the only way back would be the file.
+ */
 fun Candidate.without(slot: Slot, parameter: String): Candidate = when (slot) {
     Slot.REQUIRED_ALWAYS -> copy(sets = sets - parameter)
-    Slot.REQUIRED_POOL -> copy(pool = pool - parameter)
+    Slot.REQUIRED_POOL -> (pool - parameter).let { left -> copy(pool = left, draws = drawsFor(left, draws)) }
     Slot.REQUESTED_ALWAYS -> copy(requests = requests.copy(sets = requests.sets - parameter))
-    Slot.REQUESTED_POOL -> copy(requests = requests.copy(pool = requests.pool - parameter))
+    Slot.REQUESTED_POOL -> (requests.pool - parameter).let { left ->
+        copy(requests = requests.copy(pool = left, draws = drawsFor(left, requests.draws)))
+    }
 }
+
+/** A count no larger than the pool it draws from, and none at all where there is nothing left. */
+private fun drawsFor(pool: Map<String, String>, standing: Int) = standing.coerceAtMost(pool.size)

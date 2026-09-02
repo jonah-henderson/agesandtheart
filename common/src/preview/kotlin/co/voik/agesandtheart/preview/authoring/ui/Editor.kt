@@ -3,6 +3,7 @@ package co.voik.agesandtheart.preview.authoring.ui
 import co.voik.agesandtheart.age.aspect.ownParameters
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Holds
+import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.word.Tier
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.preview.authoring.Candidate
@@ -127,7 +128,7 @@ class Editor(
         // A derived word has no file, so there is nothing here to change but its rarity and its ink —
         // both of which live away from the word and are written straight out rather than through history.
         if (candidate.isDerived) {
-            message = "${candidate.name} comes from Minecraft — only its rarity and ink can be set"
+            message = "${candidate.name} is written by the game, not by a file — only its rarity and ink can be set"
             return
         }
         history += change(candidate)
@@ -843,6 +844,10 @@ class Editor(
         }
     }
 
+    /** Whether this part of the world holds any member a claim could land on. */
+    private fun hasSomethingToChooseBetween(aspect: Aspect) =
+        corpus.vocabulary.candidatesFor(aspect).isNotEmpty()
+
     private fun parameterNamesIn(aspect: Aspect): List<String> =
         (aspect.parameters.map { it.name } + corpus.vocabulary.candidatesFor(aspect).flatMap { preset ->
             preset.ownParameters.filter(preset::honours).map { it.name }
@@ -855,8 +860,13 @@ class Editor(
      */
     /** [into] null asks which slot, which is what the add-an-effect row wants. */
     private fun pickAParameter(into: Slot?) {
+        // **What the word already turns is not on offer.** A parameter holds one value, so adding it again
+        // either overwrites what is there or lands in the other half — and required and requested on one
+        // parameter is a contradiction, the requested one giving way to a demand it can never outlive.
+        val alreadyTurned = Slot.entries.flatMap { candidate.holding(it).keys }.toSet()
         val owners = Aspect.entries.flatMap { aspect -> parameterNamesIn(aspect).map { it to aspect } }
             .groupBy({ it.first }, { it.second })
+            .filterKeys { it !in alreadyTurned }
         val options = owners.entries.sortedBy { it.key }.map { (parameter, aspects) ->
             val said = aspects.firstNotNullOfOrNull { aspect ->
                 Verdict.parametersNamed(aspect, parameter, corpus).firstOrNull { it.help.isNotBlank() }?.help
@@ -902,8 +912,20 @@ class Editor(
      * our own pieces — an open aspect mints a preset from any id it is handed, and a derived word claims
      * its own registry entry without anybody writing that down.
      */
+    /**
+     * The designs of ours no page means yet, which is what is left for a word to say.
+     *
+     * **Every landform mints its own page now** (`AuthoredPreset.writtenWordFor`), so what remains is the
+     * carve patterns, the skies and a phenomenon nobody has spoken for. A second page meaning `alps` would
+     * be a synonym `Verdict.duplicates` cannot see, since that rule skips derived words deliberately.
+     */
+    private fun oursStillToMean(): List<Pair<Aspect, String>> = parts.oursToName().filter { (aspect, key) ->
+        val already = parts.alreadyMeantBy(aspect, key)
+        already == null || already == candidate.name
+    }
+
     private fun pickOneOfOurs() {
-        val options = parts.oursToName().map { (aspect, key) ->
+        val options = oursStillToMean().map { (aspect, key) ->
             Picker.Option(
                 value = "${aspect.page}$MEANING_MARK$key",
                 label = key,
@@ -935,12 +957,21 @@ class Editor(
 
     /** The three ways a word chooses a preset, offered in the order the resolver reads them. */
     private fun pickAWayToChoose() {
-        val ways = listOf(
-            Picker.Option(
-                "names",
-                "one of ours",
-                "a landform, sky or phenomenon this mod wrote; it answers before any tag",
-            ),
+        // **Only a narrowing word may mean one outright.** `Resolver.fill` asks `carriersOf` of narrowing
+        // words alone, so an evocative word's meaning would never be read — and worse than ignored, the
+        // tag pass *excludes* a word that means a member, so the tilt it was written for goes too.
+        val meaning = if (!candidate.tier.narrows || oursStillToMean().isEmpty()) {
+            emptyList()
+        } else {
+            listOf(
+                Picker.Option(
+                    "names",
+                    "one of ours",
+                    "a carve pattern, sky or phenomenon this mod wrote; it answers before any tag",
+                ),
+            )
+        }
+        val ways = meaning + listOf(
             Picker.Option("weight", "one by name", "a weight on a named preset, which beats the tags"),
             Picker.Option("tag", "by tag", "anything carrying the tags you ask for"),
             // **Here rather than under the effects**, which is where it used to be: a leaned tag is a
@@ -1029,8 +1060,14 @@ class Editor(
      */
     private fun certaintyFor(parameters: List<String>, into: Slot?) {
         if (into != null) return typeValueFor(parameters, into)
-        val slots = Slot.entries.filterNot { it.drawn }.map { Picker.Option(it.name, it.title, it.about) }
-        overlay = Picker("Demanded, or offered?", slots) { picked ->
+        // **A cast is only ever offered** (world model §2): a population's members are the writer's to
+        // describe, so a word that *insisted* on three suns would overrule them and there is no charge
+        // that would make that fair. Offering the demanded slot here only to refuse it in the strip below
+        // is a question with a wrong answer on it.
+        val counts = parameters.any { it.substringAfterLast('.') == Parameter.CAST }
+        val slots = Slot.entries.filterNot { it.drawn }.filterNot { counts && it.required }
+        if (slots.size == 1) return typeValueFor(parameters, slots.first())
+        overlay = Picker("Demanded, or offered?", slots.map { Picker.Option(it.name, it.title, it.about) }) { picked ->
             typeValueFor(parameters, Slot.valueOf(picked.value))
         }
     }
@@ -1203,6 +1240,7 @@ class Editor(
     /** The count, typed on the pool's own heading — a number is not worth a screen of its own. */
     private fun retypeDraws(of: Slot) {
         val standing = if (of == Slot.REQUIRED_POOL) candidate.draws else candidate.requests.draws
+        val facets = candidate.holding(of).size
         overlay = null
         building = null
         turnTo(Part.EFFECTS)
@@ -1211,7 +1249,12 @@ class Editor(
         typeOn(
             handle = "draws/${of.name}",
             standing = standing.toString(),
-            complaint = { typed -> if (typed.toIntOrNull()?.let { it >= 0 } == true) null else "a whole number, 0 or more" },
+            // Zero is a pool that never fires and more than the pool holds is a count with nothing behind
+            // it; taking all of it is merely what `sets` already says, so that one is a nudge and allowed.
+            complaint = { typed ->
+                val many = typed.toIntOrNull()
+                if (many != null && many in 1..facets) null else "a whole number, 1 to $facets"
+            },
         ) { typed ->
             val many = typed.toInt()
             edit { at ->
@@ -1244,11 +1287,17 @@ class Editor(
                 ),
             )
         }
+        // **Said rather than hidden.** An aspect holding no members can never answer a tag — `carriersOf`
+        // and `answersIn` both search an empty list — but six shipped words key one to the climate anyway,
+        // where it reaches nothing and still counts in the oppositions. That is a content question, so the
+        // list says which those are and leaves the choice.
         val options = everywhere + Aspect.entries.sortedBy { it.ordinal }.map { aspect ->
+            val many = corpus.vocabulary.askableIn(aspect).size
             Picker.Option(
                 value = aspect.page,
                 label = aspect.page,
-                note = "${corpus.vocabulary.askableIn(aspect).size} to choose between",
+                note = if (many == 0) "nothing here to match — the tag would only count against others"
+                else "$many to choose between",
                 startsGroup = everywhere.isNotEmpty() && aspect == Aspect.entries.first(),
             )
         }
@@ -1319,9 +1368,17 @@ class Editor(
     }
 
     private fun pickAnAspectToWeighIn() {
-        val options = Aspect.entries.sortedBy { it.ordinal }.map { aspect ->
-            Picker.Option(aspect.page, aspect.page, "${corpus.vocabulary.candidatesFor(aspect).size} to choose between")
-        }
+        // **A weight needs somewhere for the preset to be.** An open aspect makes one out of any id and so
+        // admits it, but a closed one with no designs — the climate, the sun, the air — resolves the key to
+        // nothing at all, and the weight would sit in the file scoring a preset that does not exist.
+        val options = Aspect.entries.filter { it.open || hasSomethingToChooseBetween(it) }.sortedBy { it.ordinal }
+            .map { aspect ->
+                Picker.Option(
+                    aspect.page,
+                    aspect.page,
+                    "${corpus.vocabulary.candidatesFor(aspect).size} to choose between",
+                )
+            }
         overlay = Picker("Weigh a preset in which aspect?", options) { picked ->
             Aspect.entries.firstOrNull { it.page == picked.value }?.let(::pickAPreset)
         }
@@ -1420,8 +1477,8 @@ class Editor(
      * tagging the entry is what lets another mod's ore be worth the good ink without touching our files.
      */
     private fun reink() {
-        val where = if (candidate.isDerived) corpus.registryOf(candidate.id) else null
-        if (candidate.isDerived && where == null) {
+        val where = if (candidate.inkedByTag) corpus.registryOf(candidate.id) else null
+        if (candidate.inkedByTag && where == null) {
             message = "nothing in the game has the id ${candidate.id}, so it cannot be tagged"
             return
         }

@@ -475,6 +475,41 @@ class VocabularyCheck : FunSpec({
     }
 
     /**
+     * **Only a narrowing word means a preset outright.**
+     *
+     * `Resolver.fill` asks `carriersOf` of narrowing words alone, so an evocative word's meaning is never
+     * read — and `weighed` then *excludes* a word that means a member, on the grounds that it arrived with
+     * its answer in hand. So the preset is not chosen and the lean the word was written for is dropped
+     * beside it: two claims lost for one that could never have landed.
+     */
+    test("only a narrowing word means a preset outright") {
+        val leaning = vocabulary.words.distinct()
+            .filter { !it.tier.narrows && it.meansExactly.isNotEmpty() }
+        check(leaning.isEmpty()) {
+            "${leaning.map { it.name }} lean the Age and also mean a preset outright, which is never read"
+        }
+    }
+
+    /**
+     * **A preset has one page that means it.**
+     *
+     * Every landform mints its own (`AuthoredPreset.writtenWordFor`), so a second word meaning one is a
+     * synonym for a page that already exists. "No authored word is a synonym for a derived one" above
+     * cannot see it: that rule is about registry referents, and this is about our own designs.
+     */
+    test("no two pages mean the same preset") {
+        val byPreset = vocabulary.words.distinct()
+            .flatMap { word -> word.meansExactly.map { (aspect, key) -> (aspect to key) to word.name } }
+            .groupBy({ it.first }, { it.second })
+            .filterValues { it.size > 1 }
+        check(byPreset.isEmpty()) {
+            byPreset.entries.joinToString("; ") { (where, words) ->
+                "${where.first.page}'s '${where.second}' is meant by ${words.sorted().joinToString(" ")}"
+            }
+        }
+    }
+
+    /**
      * The seventeen landform pages are minted from the landforms, so a landform arriving without one is a
      * gap that closes itself — see `AuthoredPreset.writtenWordFor`, and `DerivedWords.designs`.
      */

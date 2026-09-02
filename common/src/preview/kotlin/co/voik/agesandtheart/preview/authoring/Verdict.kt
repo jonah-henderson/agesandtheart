@@ -335,6 +335,7 @@ object Verdict {
             )
             return@buildList
         }
+        addAll(meaningFaults(candidate, word, corpus))
         for (aspect in word.aspects.sortedBy { it.ordinal }) {
             addAll(sayInFaults(word, aspect, corpus))
         }
@@ -350,6 +351,45 @@ object Verdict {
                     Standing.ERROR,
                     "there is already a word for this",
                     "${referents.joinToString()} already has its own word, and this adds nothing to it",
+                    "VocabularyCheck",
+                ),
+            )
+        }
+    }
+
+    /**
+     * What only a narrowing word may mean, and what only one page may mean.
+     *
+     * **An evocative word's meaning is never read.** `Resolver.fill` asks `carriersOf` of narrowing words
+     * alone, so the preset is not chosen — and the tag pass then *excludes* a word that means a member,
+     * on the grounds that it arrived with its answer in hand, so the tilt the word was written for goes
+     * with it. Two claims lost for one that was never going to land.
+     *
+     * **And a preset has one page.** Every landform mints its own now, so a word meaning one is a synonym
+     * for a page that already exists — which `duplicates` cannot see, since it skips derived words
+     * deliberately.
+     */
+    private fun meaningFaults(candidate: Candidate, word: Word, corpus: Corpus): List<Finding> = buildList {
+        for ((aspect, key) in word.meansExactly) {
+            if (!word.tier.narrows) {
+                add(
+                    Finding(
+                        Standing.ERROR,
+                        "an evocative word cannot mean '$key' outright",
+                        "only a narrowing word chooses a preset; here it would lose the lean as well",
+                        "VocabularyCheck",
+                    ),
+                )
+                continue
+            }
+            val already = corpus.vocabulary.words.distinct()
+                .firstOrNull { it.meaningIn(aspect)?.key == key && it.name != candidate.name }
+                ?: continue
+            add(
+                Finding(
+                    Standing.ERROR,
+                    "'${already.name}' already means '$key'",
+                    "a preset has one page, and ${aspect.page}'s '$key' has that one",
                     "VocabularyCheck",
                 ),
             )
