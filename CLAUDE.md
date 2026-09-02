@@ -21,14 +21,16 @@ correct itself in place. Rewrite the paragraph that is now wrong.
   §8 (learning); **§3 and §4 are superseded** by the world model above.
 - **`notes/the-art-implementation-plan.md`** — the phases and what each has to prove. Phases 1–5 are done
   and are a status line each, and Phase 6 is done but for its remainder; Phases 7–9 carry their full context.
-- **`notes/vocabulary-pass-plan.md`** — the pass that writes the words: property consolidation, a guided
-  authoring tool, the `some`/`many`/`few` qualifier, which blocks may be the rock, and the corpus audit.
-  **Unbuilt, and it opens with the line that says to delete it when it is built.** Read it before authoring
-  a word or touching `art/word/`.
+- **`notes/vocabulary-pass-plan.md`** — the pass that writes the words: property consolidation, which blocks
+  may be the rock, the guided authoring tool, and the corpus audit. **Partly built, and it opens with the
+  line that says to delete it when the last item goes.** Its §5 is the tool, which is `scripts/author-word.sh`;
+  §5.1 and §5.2 are what that tool refuses and nudges about. Read it before authoring a word or touching
+  `art/word/` — and author with the tool rather than by hand.
 - **`notes/the-tag-layer.md`** — the thirty-nine tags, where each is derived from, and why three separate
   things are called rarity. The implementation of the world model's §7, and **built** — what is left of it
-  is the hand-tuning its §7 step 4 describes, and `/age tags` is how a pass is done. Read it before
-  touching `art/preset_tags/`, adding a tag, or authoring a word that queries one.
+  is the hand-tuning its §7 step 4 describes, and the word forge's tag screen is how a pass is done now
+  (`/age tags` still answers the same question against a running server). Read it before touching
+  `art/preset_tags/`, adding a tag, or authoring a word that queries one.
 - **`notes/terrain-architecture.md`** — the two-tier terrain system (composable field toolkit + bespoke
   presets): the evaluation contract, where things live, the performance budget. Built and shipped.
 - **`notes/decisions.md`** — the compact ledger of settled decisions and hard-won learnings, one line each
@@ -65,6 +67,10 @@ correct itself in place. Rewrite the paragraph that is now wrong.
 - **`notes/config-research.md`** — how mod config UIs work (they introspect a spec, or host a screen you
   write), the 26.1 landscape, and why the recommendation is NeoForge's `ModConfigSpec` with Forge Config API
   Port on Fabric. Nothing in it is built. Read it before adding the first config value.
+- **`notes/before-release.md`** — what has to be true before anyone else plays this, and the freedoms that
+  end on release day. **Read it before putting off a rename or a codec change**: save compatibility is free
+  now and a migration later. Also holds the measured content debts and the case for a base dimension being
+  any dimension, modded ones included.
 - **`notes/authoring-tools.md`** — how structures and 3D models get authored: the external tooling and its
   version state, and what our own datapacks could carry that they do not yet. Nothing in it is built. Read it
   before building a structure, a model, or anything that wants to be pack data.
@@ -116,11 +122,19 @@ export JAVA_HOME="$HOME/.sdkman/candidates/java/current"; export PATH="$JAVA_HOM
 
 # Drive a headless server through a list of /age commands and read the output (see scripts/checks/)
 scripts/drive-server.sh scripts/checks/regions.txt
+
+# The word forge — a full-screen editor for authoring a word of the Art (see "Authoring a word" below)
+scripts/author-word.sh              # a new word
+scripts/author-word.sh colossal     # an authored one
+scripts/author-word.sh --audit      # every authored word, worst first
 ```
 
 **Server checks are `./gradlew :common:serverTest`, and they own their own acceptance.** A Kotest spec
 tagged `NEEDS_SERVER` uses `DrivenServer` (in `common/src/test/kotlin/.../server/`) to boot a dedicated
-server, drive it over **RCON**, and assert on what comes back. The concerns are split on purpose: the
+server, drive it over **RCON**, and assert on what comes back. The parts of that the word forge needs too —
+`Rcon`, `LaunchSpec`, `ServerLaunch`, and `MinecraftRegistries` — live in the **`preview`** source set,
+which `test` can see and which cannot see `test`; one direction only, so a check never becomes something a
+tool depends on. The concerns are split on purpose: the
 driver starts, sends and stops, and _asserts nothing_; Kotest decides whether an answer is right, so a
 failure carries a Power-Assert diagram rather than "nothing matched".
 
@@ -149,10 +163,47 @@ hour off the timestamp, so `at-least 100` could never pass and `at-most 2000` co
 
 Run directories are `runs/` (Fabric) and `run/` (NeoForge), both git-ignored. The first build/run downloads Minecraft, mappings, and the loader toolchains — slow once, then cached.
 
+**The age workshop writes books, and opens them in the game.** `scripts/author-word.sh` → "the age
+workshop" composes a sentence a page at a time: what could come next is computed by running
+`Grammar.parses` over the row with a closing page on the end, so the suggestions **are** what the parser
+accepts rather than a second opinion about it — and then filtered to the pages that would actually *do*
+something, because the grammar admits more than the world does (`decisions.md`). Inert pages are set aside
+and counted rather than dropped; `^i` shows them. The cost, the flaws and the aiming pages still open move as
+each page goes down. `^o` boots a dedicated server, writes the Age, and sends you in when you connect —
+kept up between rewrites, so changing a page and looking again is seconds. The world is thrown away when
+the screen is left, fenced on the name so it can never reach one somebody plays (`PreviewServerCheck`).
+Drafts live in `.authoring/ages/` and hold the **pages**, never the recipe.
+
+**The word forge reaches past the words.** Its main menu is four groups — the words, the world they
+describe, the age workshop, and the tool itself. Its tag screen edits `art/preset_tags/` with the overlay
+visible — every carrier says whether its weight was **authored**, **derived**, or **dropped**, because
+setting a weight on a derived tag *writes* an entry, clearing one lets the derived value back, and removing
+a derived tag is `drop` rather than deletion. It also renames a tag across the carriers, every word that
+asks and the antonym table together, which is the one edit a text editor is worst at. One further screen
+is **read-only on purpose**: the derivation rules, where enter runs one rule *by itself* to show exactly
+what it catches. The file already states its rule perfectly and hides only its consequence —
+`notes/decisions.md` carries the split.
+
+**Authoring a word is `scripts/author-word.sh`, and it works offline.** A full-screen editor over the real
+corpus: `Vocabulary.load(shippedData(), worldgen)` is the same call `VocabularyCheck` makes, so what a
+candidate reaches, what it costs, what its query keeps and what it contradicts are computed from the
+resolver's own code with **no server**. It refuses what the checks would refuse and names the check for
+each; it nudges towards the rulings in `notes/vocabulary-pass-plan.md` §5.2 without barring them. The one
+thing offline cannot know is a tag only a bound registry grants (`ore`), and `--refresh` drives the existing
+`/age tags` over RCON into `.authoring/server-snapshot.json` for every later run to read — a server is an
+errand, never a condition.
+
+It lives in `common/src/preview/kotlin/.../authoring/` and is started by the script rather than by Gradle,
+because a TTY is what Gradle cannot give a `JavaExec`. `:common:exportAuthoringLaunch` writes the launch
+down; the script runs it. **The tool owns the file text and the codec owns the value** — `Word.mapCodec`
+drops `_comment` and widens `aspects`, so a word written through it would lose its reasoning and freeze
+today's reach into the file. `AuthoringCheck` holds both halves, including a round trip over every authored
+word. `--rewrite` puts the whole corpus back in that layout and is run by hand, like `:common:grammars`.
+
 **Tests:** **Kotest**, in three tasks split by what they cost and what they are worth.
 
 ```bash
-./gradlew :common:test                     # the loop — everything but landforms and the server, ~17s
+./gradlew :common:test                     # the loop — everything but landforms and the server, ~27s
 ./gradlew :common:test -Pfast              # and without the specs that need Minecraft's registries
 ./gradlew :common:test --tests "*Grammar*" # one spec
 ./gradlew :common:serverTest               # boots a real server, drives it over RCON, ~4min
@@ -262,8 +313,12 @@ The core mechanic — creating dimensions ("Ages") at runtime and persisting the
 - **`AgeGeneration`** — turns a recipe into a `ChunkGenerator`, in an exhaustive `when` over `AgePreset`. A pure function of the recipe (plus the server, for registries), because an Age must rebuild identically on every open.
 - **`AgeSavedData`** — vanilla `SavedData` on the overworld's data storage, persisting each Age's recipe. Runtime-dimension libraries do **not** auto-restore dimensions on restart, so we track them ourselves. Reads the pre-recipe format (an id list plus generator-kind strings) and migrates it.
 - **`Ages`** — loader-agnostic policy: `create` / `open` / `ensure` / `delete` (delegating to `Services.AGE_BACKEND`) and `reloadSaved` (replay on boot).
-- **`age/word/`** — **the Art's language.** `Word` (tier, the slots it may fill, a signed tag query),
-  `PresetProfile`/`PresetTags` (what the world is like), `Vocabulary` (the corpus, **loaded from datapack
+- **`age/word/`** — **the Art's language.** `Word` (tier, a signed tag query keyed by aspect, and the
+  claims its reach is derived from — **a word does not declare where it speaks**; `queries` is keyed by
+  aspect page, or by `all` for an evocative word, which is the one that tilts the whole Age),
+  `PresetProfile`/`PresetTags` (what the world is like — hung on `Taggable`, which is an `AuthoredPreset`
+  this pack wrote or a `RegistryReference` into one of the game's registries; being describable by tag is
+  the only thing the two share, so the interface is named for it), `Vocabulary` (the corpus, **loaded from datapack
   JSON** under `data/<namespace>/art/` — words, domains, per-slot tag tables, antonym pages, structural words), and
   `Resolver` (a parsed sentence + seed → composition, cost and instability). `DerivedWords` gives **every
   block and biome in the pack a word of its own**, so the corpus is ~1100 offline and more on a server.
@@ -276,7 +331,10 @@ pages) → Sentence` is the entire port; `Sentence`/`Phrase`/`Constraint`/`Scope
   pages already looked up in the `Vocabulary` and stamped with a class, four productions long, and with no
   lexer because there is nothing left to lex. It names no aspect and no domain — which section admits which
   page is asked of the data (`Aspect.confinable`, `Aspect.madeOfSomething`, `Word.aspects`), so the
-  player-facing division can be redrawn without touching it. **Every clause ends with the page it is about** and modifiers lead it —
+  player-facing division can be redrawn without touching it. `Grammar.parses` is the other question the
+  port answers: whether a row reads **as laid**, with nothing repaired — `read` cannot say, because it
+  refuses only a missing `age` page and repairs everything else. `Grammar.reading` is the same question
+  with the row classified once, for a screen asking it of a thousand candidates against one row. **Every clause ends with the page it is about** and modifiers lead it —
   `pillars and hills landmass`, and a book with no aiming page closes with `age`. A clause is closed by an
   **aiming page** (`landmass`, `weather`, `sky` — one per aspect, synthesised from `Aspect.page`) and never by a word that fills something —
   presets are ours, not the player's. `Readout.of(sentence)` says the parse back as prose, which is how attachment is visible at
@@ -429,7 +487,7 @@ genuinely constrains the code, and worth dropping from ordinary description.
 
 **Anti-patterns to avoid** (common in mod code): `!!`; `lateinit` abuse (prefer `val` + constructor or `by lazy`); companion-object soup; **mutable global state** in `object`s/companions; magic numbers; deeply nested scope-function chains; `MutableList` leaking through public API; `when` + `else` on sealed/enum types silently swallowing new cases.
 
-**Save compatibility — not yet a constraint (2026-07-27, revisit at first release).** The mod is still in initial development with no players and no saves worth keeping, so **renaming slot keys, changing codec shapes and bumping `generatorVersion` are all free** — say so and move on. Do _not_ add `FORMER_KEYS`-style alias tables, either-or codecs chosen purely to keep old files byte-identical, or treat "no version had to move" as a design goal; prefer the clearer shape and let test Ages break. Still true regardless: a recipe must round-trip _within_ a version (`RecipeCheck`), which is correctness rather than compatibility.
+**Save compatibility — not yet a constraint (2026-07-27, revisit at first release; `notes/before-release.md` §1 keeps the list).** The mod is still in initial development with no players and no saves worth keeping, so **renaming slot keys, changing codec shapes and bumping `generatorVersion` are all free** — say so and move on. Do _not_ add `FORMER_KEYS`-style alias tables, either-or codecs chosen purely to keep old files byte-identical, or treat "no version had to move" as a design goal; prefer the clearer shape and let test Ages break. Still true regardless: a recipe must round-trip _within_ a version (`RecipeCheck`), which is correctness rather than compatibility.
 
 **When to break the rules:** hot per-tick loops may justify a plain `for`, a `var` accumulator, or primitive arrays (measure first, comment why); Java/MC interop forces platform types and mutable builders (contain them at the boundary). Immutability and functional style are defaults, not religion — but a break should be **local and commented**, never the ambient style.
 
