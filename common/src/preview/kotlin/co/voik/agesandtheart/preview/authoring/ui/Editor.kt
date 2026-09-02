@@ -505,6 +505,10 @@ class Editor(
                 key.key == "Home" -> shown.page(-shown.shown.size)
                 key.key == "End" -> shown.page(shown.shown.size)
                 key.key == "Backspace" -> shown.backspace()
+                // **Before the filter takes them**, where the list is one that steps: `-` and `=` are one
+                // character each and would otherwise be typed into the search.
+                shown.onStep != null && (key.key == "=" || key.key == "-") ->
+                    shown.focused?.let { shown.onStep.invoke(it, if (key.key == "=") A_STEP else -A_STEP) }
                 key.key.length == 1 && !key.ctrl && !key.alt -> shown.type(key.key)
             }
             is Reader -> when {
@@ -1101,7 +1105,7 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
             )
         }
         overlay = Picker("${step.adds.replaceFirstChar(Char::uppercase)} — where?", options) { picked ->
-            if (picked.value == Word.EVERYWHERE) pickSomethingToLean(null)
+            if (picked.value == Word.EVERYWHERE) leanOn(null)
             else Aspect.entries.firstOrNull { it.page == picked.value }?.let { sayableIn(step, it) }
         }
     }
@@ -1113,7 +1117,7 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
             Step.ADD -> pickAMemberToAdmit(aspect)
             Step.KEEP -> pickATagToKeep(aspect)
             Step.REMOVE -> pickSomethingToStrike(aspect)
-            Step.BIAS -> pickSomethingToLean(aspect)
+            Step.BIAS -> leanOn(aspect)
         }
     }
 
@@ -1162,22 +1166,43 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
         }
     }
 
-    /** The same list, leaned on instead of struck out — a null [aspect] is the evocative word's whole Age. */
-    private fun pickSomethingToLean(aspect: Aspect?) {
-        val options = if (aspect != null) membersAndTags(aspect) else {
+    /**
+     * **The list of things to lean *is* where the leaning is done.** A null [aspect] is the whole Age.
+     *
+     * A lean's whole meaning is how far, and several are usually wanted at once — so rather than picking a
+     * member, walking out to a prompt for its number and coming back for the next, every member and tag is
+     * on one list with its bar beside it and `-` and `=` set them in place. Enter, or the row at the
+     * bottom, has done. What is set here is still stepped the same way on the populations page after.
+     */
+    private fun leanOn(aspect: Aspect?, filter: String = "", index: Int = 0) {
+        val standing = { named: String ->
+            (if (aspect == null) candidate.leansEverywhere[named] else candidate.biases[aspect]?.get(named)) ?: 0.0
+        }
+        val leanable = if (aspect != null) membersAndTags(aspect) else {
             (corpus.vocabulary.carriedTags + corpus.vocabulary.tagsOnlyAServerGrants).distinct().sorted()
                 .map { Picker.Option("$TAG_MARK$it", "$TAG_MARK$it", carriedNote(it)) }
         }
-        overlay = Picker("Lean ${aspect?.page ?: "the whole Age"} toward what?", options) { picked ->
-            // **In at nothing, then stepped.** A lean's whole meaning is how far, and a prompt asked for a
-            // number before there was a bar to read it against; `-` and `=` move it on the row itself,
-            // which is also how several are set without walking the flow once each.
-            edit { at -> at.leaning(aspect, picked.value, 0.0) }
-            turnTo(Part.POPULATIONS)
-            inside = true
-            rows().indexOfFirst { it.handle == "biases/${aspect?.page ?: Word.EVERYWHERE}/${picked.value}" }
-                .takeIf { it >= 0 }?.let { rowOf[Part.POPULATIONS] = it }
-        }
+        val options = leanable.map { option ->
+            val weight = standing(option.value)
+            option.copy(
+                note = "%+.2f".format(weight).padEnd(LEAN_COLUMN) + option.note,
+                tone = if (weight != 0.0) Palette.settled else option.tone,
+            )
+        } + Picker.Option(DONE_LEANING, "done", "nothing more to lean here", startsGroup = true)
+        overlay = Picker(
+            title = "Lean ${aspect?.page ?: "the whole Age"} — ${Glyph.BULLET} - and = set it ${Glyph.BULLET} enter when done",
+            options = options,
+            filter = filter,
+            index = index,
+            onStep = { option, by ->
+                if (option.value != DONE_LEANING) {
+                    val was = (overlay as? Picker)
+                    edit { at -> at.leaning(aspect, option.value, (standing(option.value) + by).coerceIn(-1.0, 1.0)) }
+                    leanOn(aspect, was?.filter.orEmpty(), was?.index ?: 0)
+                }
+            },
+            onPick = { overlay = null },
+        )
     }
 
     /** Every member of an aspect by name, then every tag something there carries, marked as one. */
@@ -1663,6 +1688,12 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
         const val HOW_MANY_DRAWN = "\u0000draws"
         /** How far `-` and `=` move a weight on the row itself — a tenth, as the word lists step by. */
         const val A_STEP = 0.1
+
+        /** The row that closes the lean list, for somebody who would rather not guess that enter does. */
+        const val DONE_LEANING = "\u0000done"
+
+        /** How wide a lean's number is on its own list, so every note past it lines up. */
+        const val LEAN_COLUMN = 8
 
         /** What the pool list calls the row that starts one rather than adding to an existing one. */
         const val NEW_POOL = "new"

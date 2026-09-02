@@ -64,6 +64,14 @@ class Picker(
      * highlighted value shaded on it, and that changes as the cursor moves.
      */
     val chart: ((Option?) -> List<Line>)? = null,
+    /**
+     * What `-` and `=` do to the row under the cursor — for a list you **set** rather than pick from.
+     *
+     * Several leans are usually wanted at once and each is only a number, so walking out to a prompt and
+     * back per member was the whole of the work. The caller re-opens the list with the same filter and
+     * index, which is the same thing a re-sort already does.
+     */
+    val onStep: ((Option, Double) -> Unit)? = null,
     val onPick: (Option) -> Unit,
 ) : Overlay {
 
