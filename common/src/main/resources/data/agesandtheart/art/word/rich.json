@@ -1,14 +1,16 @@
 {
+  "_comment": "What a world holds in the ground. The query is the fact -- these are ore -- and the weights are the judgement, because which ore is a prize is a fact about the game's economy and not about the rock.",
   "tier": "evocative",
-  "query": {
-    "ore": 1.0,
-    "buried": 0.6,
-    "barren": -0.5
+  "queries": {
+    "all": {
+      "ore": 1.0,
+      "buried": 0.6,
+      "barren": -0.5
+    }
   },
   "sets": {
     "size": "0.5..1.0"
   },
-  "_comment": "What a world holds in the ground. The query is the fact -- these are ore -- and the weights are the judgement, because which ore is a prize is a fact about the game's economy and not about the rock.",
   "weights": {
     "features": {
       "minecraft:ore_diamond": 1.0,

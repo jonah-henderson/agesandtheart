@@ -1,9 +1,5 @@
 {
   "tier": "exact",
-  "aspects": [
-    "sun",
-    "moon"
-  ],
   "sets": {
     "rising": "southeast"
   }

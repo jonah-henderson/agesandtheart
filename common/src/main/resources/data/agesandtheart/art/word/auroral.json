@@ -6,7 +6,7 @@
     "`Vocabulary.aimingPages`, and an aspect already is its page -- so `art/word/aurora.json` is a",
     "collision the vocabulary refuses outright. This is what asks for one without aiming at it.",
     "",
-    "It *names* the phenomenon rather than searching for one (design 8.1), which is also what",
+    "It *means* the phenomenon outright rather than searching for one (design 8.1), which is also what",
     "`VocabularyCheck` insists on: a preset no word can ask for arrives only by chance. The aurora is the",
     "one thing this word means, so it arrives with its answer in hand where a tag query -- 'the bright",
     "colourful phenomenon' -- would also have found whatever else was bright.",
@@ -22,10 +22,9 @@
     "described should differ between Ages without a writer having to buy the difference."
   ],
   "tier": "exact",
-  "aspects": [
-    "phenomena"
-  ],
-  "names": "aurora",
+  "means_exactly": {
+    "phenomena": "aurora"
+  },
   "sets": {
     "happens": "aurora"
   }

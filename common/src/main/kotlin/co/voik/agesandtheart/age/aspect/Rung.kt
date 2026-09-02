@@ -3,7 +3,7 @@ package co.voik.agesandtheart.age.aspect
 import kotlin.math.round
 
 /**
- * How much of something occasional there is — the **absolute** emphasis knob, where [Share] is relative.
+ * How much of something occasional there is — the **absolute** emphasis parameter, where [Share] is relative.
  *
  * Every column must have some biome, so more of one is necessarily less of another; structures are
  * occasional, so "more villages" needs no reference to anything else and nothing has to give ground.

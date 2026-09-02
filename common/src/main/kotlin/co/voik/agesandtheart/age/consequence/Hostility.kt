@@ -73,7 +73,7 @@ object Hostility {
      * **Vanilla's own spawner does the deciding.** `spawnCategoryForPosition` reads the biome's spawn list,
      * checks the light and the space, and refuses what will not fit — so a wound in a mushroom field draws
      * what a mushroom field has and a wound at noon on open grass draws nothing at all. What is ours is
-     * *how often it is asked*, which is the only knob a gradient needs.
+     * *how often it is asked*, which is the only parameter a gradient needs.
      */
     fun draw(level: ServerLevel, at: BlockPos, how: Double) {
         if (level.random.nextDouble() >= how * DRAWS_AT_THE_THROAT) return

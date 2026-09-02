@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.word
 
+import co.voik.agesandtheart.age.aspect.ownParameters
 import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.AgeTemplate
 import co.voik.agesandtheart.age.Flaw
@@ -14,7 +15,7 @@ import co.voik.agesandtheart.age.aspect.Share
 import co.voik.agesandtheart.age.aspect.Setting
 import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.Aspect
-import co.voik.agesandtheart.age.aspect.AspectPreset
+import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.age.aspect.Holds
 import co.voik.agesandtheart.age.word.grammar.Constraint
 import co.voik.agesandtheart.age.word.grammar.Sentence
@@ -122,7 +123,67 @@ object Resolver {
      * readers has to know that `embers|ash` was ever a possibility.
      */
     private fun Constraint.drawnAt(draw: Long): Constraint =
-        if (!word.varies) this else copy(word = word.copy(sets = word.setsDrawnAt(draw)))
+        if (!word.varies) this else copy(
+            word = word.copy(
+                sets = word.setsDrawnAt(draw),
+                requests = word.requests.copy(sets = word.requestsDrawnAt(draw)),
+            ),
+        )
+
+    /**
+     * The sentence with every word's surviving **requests** folded into what it demands — the whole of how
+     * an offer differs from a claim (`the-world-model.md` §5).
+     *
+     * A request is laid *under* the sentence: it applies to a parameter nothing demanded, and vanishes without
+     * a word wherever something did. `a blue sun. an inferno Age.` is the case — the writer's blue is a
+     * demand, so the inferno's offered red is simply not there to argue with, and neither of them is
+     * charged for a contradiction nobody made.
+     *
+     * **Folded rather than threaded through**, which is what keeps this to one function: by the time
+     * anything downstream looks, a surviving request is an ordinary claim on an ordinary parameter, so
+     * fracturing, contention, siting and charging all work on it unchanged and none of them had to learn a
+     * second kind of claim.
+     *
+     * **At most one request survives per parameter**, taken in the order two demands would be taken — tier
+     * first, then the seed. Two offers on one parameter are not a quarrel the writer can be charged for, and
+     * collapsing them here is what stops the fold from manufacturing one: `scorching inferno` both offer a
+     * sun a colour, and the Age gets one of them rather than an instability.
+     *
+     * Written **qualified** — `sun.colour` — because a word may reach several aspects and be outbid in one
+     * of them: a flat key would carry the survivor into the aspect where it lost.
+     */
+    private fun offered(
+        vocabulary: Vocabulary,
+        said: List<Constraint>,
+        draw: Long,
+    ): List<Constraint> {
+        val requesting = said.filter { !it.word.requests.isEmpty }
+        if (requesting.isEmpty()) return said
+        val kept = mutableMapOf<Constraint, MutableMap<String, String>>()
+        for (aspect in Aspect.entries) {
+            val here = said.filter { aspect in reachOf(vocabulary, it) }
+            val demanded = here.flatMap { it.word.setsIn(aspect).keys }.toSet()
+            val asked = here.filter { it in requesting }
+            for (parameter in asked.flatMap { it.word.requestsIn(aspect).keys }.distinct()) {
+                if (parameter in demanded) continue
+                val winner = asked.filter { parameter in it.word.requestsIn(aspect) }
+                    .sortedWith(
+                        compareByDescending<Constraint> { it.word.tier }
+                            .thenBy { tieBreak(draw, aspect, it.word) },
+                    )
+                    .first()
+                kept.getOrPut(winner) { mutableMapOf() }["${aspect.page}$QUALIFIED$parameter"] =
+                    winner.word.requestsIn(aspect).getValue(parameter)
+            }
+        }
+        return said.map { constraint ->
+            val granted = kept[constraint] ?: return@map constraint
+            constraint.copy(word = constraint.word.copy(sets = constraint.word.sets + granted))
+        }
+    }
+
+    /** How a parameter names the aspect it is meant for — `sun.colour`. Spelled on [Word] and matched here. */
+    private const val QUALIFIED = "."
 
     /**
      * The world [sentence] describes at [seed]. Aspects resolve independently and in ordinal order, so an
@@ -132,7 +193,7 @@ object Resolver {
         // §4.6: the unconstrained should still vary with what was written, or two different sentences at
         // one seed draw identical filler wherever neither constrains anything.
         val draw = seed xor saltOf(sentence.words)
-        val said = sentence.constraints.map { it.drawnAt(draw) }
+        val said = offered(vocabulary, sentence.constraints.map { it.drawnAt(draw) }, draw)
         val flaws = mutableListOf<Flaw>()
         flaws += rehomings(vocabulary, sentence)
         flaws += impossibilities(vocabulary, sentence)
@@ -140,7 +201,7 @@ object Resolver {
         flaws += tensions(vocabulary, said, filled.mapValues { (_, filling) -> filling.map { it.preset } })
 
         val resolved = describedMembers(
-            weighed(vocabulary, steer(vocabulary, compose(filled), said, draw, flaws), said),
+            weighed(vocabulary, steer(vocabulary, cast(compose(filled), said), said, draw, flaws), said),
             said,
         )
         // **The template underneath, what the sentence said on top.** Which aspects the sentence spoke to
@@ -254,6 +315,32 @@ object Resolver {
      * steers nothing — so without this the roll would hold only the bodies somebody had an opinion about,
      * and `a sun. a sun.` would come out as one.
      */
+    /**
+     * A population's roll grown to what a **word** asked for, where the book described nobody.
+     *
+     * The one way a word brings a body into being, and the reason `cast` is a parameter at all: a writer mints
+     * a sun by describing one, and there is no clause in `a scorching Age` to mint anything. An inferno's
+     * sky wants more than one thing burning in it and no page said so.
+     *
+     * **Only into silence, and that is the same rule the template already lives by** — `AgeComposition
+     * .laidOver` grows a cast from underneath only where the book minted nothing, because §4's rule is
+     * that describing any member clears what was there. A word that could add a sun to the writer's own
+     * would be overruling them; one that fills an empty sky is answering a question nobody asked.
+     *
+     * **Before the steering, deliberately.** `withOptions` writes a parameter to every member there is, so a
+     * roll grown afterwards would leave the second and third suns blank — and they would then be filled
+     * from the template, which is how an inferno ends up with one red sun and two ordinary ones.
+     *
+     * The largest asked wins rather than the sum: `scorching inferno` is one hot sky, not five suns.
+     */
+    private fun cast(composition: AgeComposition, said: List<Constraint>): AgeComposition =
+        Aspect.entries.filter { it.holds == Holds.POPULATION }.fold(composition) { held, aspect ->
+            val theBookMintedOne = said.any { it.describes != null && aspect in it.aimedAt }
+            if (theBookMintedOne) return@fold held
+            val asked = said.mapNotNull { it.word.setsIn(aspect)[Parameter.CAST]?.toIntOrNull() }.maxOrNull()
+            if (asked == null) held else held.withCastOf(aspect, asked)
+        }
+
     private fun describedMembers(composition: AgeComposition, said: List<Constraint>): AgeComposition =
         said.mapNotNull { claim -> claim.describes?.let { it to claim } }
             .flatMap { (member, claim) -> claim.aimedAt.map { aspect -> aspect to member } }
@@ -319,7 +406,7 @@ object Resolver {
         flaws: MutableList<Flaw>,
     ): List<Filling> {
         // **Only a preset aspect is drawn between.** A population has everything already and is weighed by
-        // the parameter pass; a set of dials has nothing to choose at all. Seating one of either here would
+        // the parameter pass; a set of parameters has nothing to choose at all. Seating one of either here would
         // invent an answer neither kind has.
         if (aspect.holds != Holds.CATALOGUE) return emptyList()
 
@@ -340,7 +427,7 @@ object Resolver {
         for (said in choosing + steering) {
             val carriers = vocabulary.carriersOf(said.word, aspect)
             if (carriers.isEmpty()) {
-                // Unless the word is here to turn a knob rather than choose a preset: a word may narrow in
+                // Unless the word is here to turn a parameter rather than choose a preset: a word may narrow in
                 // one aspect and merely steer in another, and charging that as unbacked told a writer their
                 // perfectly good sentence had failed.
                 if (steersInstead(vocabulary, aspect, said)) continue
@@ -367,13 +454,13 @@ object Resolver {
         val kept = territories.take(room)
         chargeForContention(vocabulary, aspect, kept, territories.drop(room), flaws)
 
-        val chosen = mutableListOf<AspectPreset>()
+        val chosen = mutableListOf<Taggable>()
         for ((index, territory) in kept.withIndex()) {
             chosen += pick(vocabulary, territory.candidates, speaking, draw, aspect, seat = index)
         }
         if (chosen.isEmpty()) {
             val pool = vocabulary.askableIn(aspect)
-            // **An aspect with nothing to choose between draws nothing.** Its answer is where its dials
+            // **An aspect with nothing to choose between draws nothing.** Its answer is where its parameters
             // were left, which the parameter pass writes; there is no seat here to fill and no company to
             // keep, so this returns before either.
             if (pool.isEmpty()) return emptyList()
@@ -392,7 +479,7 @@ object Resolver {
      * laid `colossal` beside `islands` meant the islands to be large rather than to be somewhere else.
      */
     private fun steersInstead(vocabulary: Vocabulary, aspect: Aspect, said: Constraint): Boolean =
-        said.word.canSet.keys.any { vocabulary.turnsAKnob(aspect, it) }
+        said.word.canSet.keys.any { vocabulary.turnsAParameter(aspect, it) }
 
     /**
      * What the sentence is charged for asking one aspect to be several things it cannot reconcile. The
@@ -442,33 +529,42 @@ object Resolver {
      * The presets an aspect takes on because the sentence liked several of them, rather than because it
      * contradicted itself — the harmonious division, and free (design §3.4).
      *
-     * Three rules keep it from turning every Age into a patchwork: an exact word forbids it (§4.4 pins one
-     * value); company must be nearly as well liked as what is seated; and each aspect has its own
-     * [Aspect.appetiteForCompany].
+     * Four rules keep it from turning every Age into a patchwork: **something must have chosen here at
+     * all**; an exact word forbids it (§4.4 pins one value); company must be nearly as well liked as what
+     * is seated; and each aspect has its own [Aspect.appetiteForCompany].
+     *
+     * **The first is what an offer must not be able to buy.** Harmony is the sentence liking several
+     * answers, and an offer is not the sentence liking anything — nobody said a word. Where an offered
+     * query leant two seas to comparable strength the appetite happily divided them, so an inferno that
+     * asked for fire or nothing sometimes got a lake of lava beside open air: a seam invented out of
+     * silence, and free, because a harmonious division is never charged. A tilt may choose between
+     * answers; it may not multiply them.
      */
     private fun company(
         vocabulary: Vocabulary,
         aspect: Aspect,
         territories: List<Territory>,
         speaking: List<Constraint>,
-        seated: List<AspectPreset>,
+        seated: List<Taggable>,
         room: Int,
         draw: Long,
-    ): List<AspectPreset> {
+    ): List<Taggable> {
         if (!aspect.spatial || seated.size >= room) return emptyList()
+        // Nothing narrowed this aspect, so nothing *chose* here and there is no harmony to find.
+        if (territories.isEmpty()) return emptyList()
         // An exact word about *the preset* forbids company; one that merely sets a parameter does not, or
         // naming a material would quietly suppress harmony everywhere.
         if (speaking.any { it.word.tier == Tier.EXACT && it.word.constrainsPresetsIn(aspect) }) return emptyList()
 
-        // Whatever the narrowing words left, or the whole aspect where none spoke: company can only be
-        // something the sentence would have accepted anyway.
-        val eligible = territories.flatMap { it.candidates }.ifEmpty { vocabulary.askableIn(aspect) }
+        // Whatever the narrowing words left — company can only be something the sentence would have
+        // accepted anyway, and where none spoke the guard above has already returned.
+        val eligible = territories.flatMap { it.candidates }
         val bar = COMPANY_SHARE_OF_BEST * seated.maxOf { strengthOf(vocabulary, it, speaking, aspect) }
         val welcome = eligible.filter { it !in seated && strengthOf(vocabulary, it, speaking, aspect) >= bar }
         if (welcome.isEmpty()) return emptyList()
 
         val random = XoroshiroRandomSource(draw xor (aspect.ordinal * ASPECT_STRIDE) xor COMPANY_SALT)
-        val joining = mutableListOf<AspectPreset>()
+        val joining = mutableListOf<Taggable>()
         var appetite = aspect.appetiteForCompany
         while (seated.size + joining.size < room && random.nextDouble() < appetite) {
             val remaining = welcome.filter { it !in joining }
@@ -487,7 +583,7 @@ object Resolver {
     private fun sharedOut(
         vocabulary: Vocabulary,
         aspect: Aspect,
-        chosen: List<AspectPreset>,
+        chosen: List<Taggable>,
         speaking: List<Constraint>,
     ): List<Filling> {
         val claims = chosen.map { claimOn(vocabulary, it, speaking, aspect) }
@@ -510,7 +606,7 @@ object Resolver {
      */
     private fun claimOn(
         vocabulary: Vocabulary,
-        preset: AspectPreset,
+        preset: Taggable,
         speaking: List<Constraint>,
         aspect: Aspect,
     ): Double {
@@ -519,7 +615,7 @@ object Resolver {
             .maxOfOrNull { it.word.pullOn(preset, tags) * it.word.tier.weight } ?: 0.0
         val liked = speaking.filter { !it.word.tier.narrows }
             .sumOf { it.word.affinityOn(preset, tags) }
-        return (named + liked).coerceAtLeast(0.0)
+        return (named + liked + offered(speaking, preset, aspect, tags)).coerceAtLeast(0.0)
     }
 
     /**
@@ -532,7 +628,7 @@ object Resolver {
      */
     private fun strengthOf(
         vocabulary: Vocabulary,
-        preset: AspectPreset,
+        preset: Taggable,
         speaking: List<Constraint>,
         aspect: Aspect,
     ): Double {
@@ -541,9 +637,26 @@ object Resolver {
             .maxOfOrNull { it.word.pullOn(preset, tags) * it.word.tier.weight } ?: 0.0
         val liked = speaking.filter { !it.word.tier.narrows }
             .sumOf { it.word.affinityOn(preset, tags) }
-        val wanted = BASE_WEIGHT * vocabulary.readinessOf(preset) + named + liked
+        val wanted = BASE_WEIGHT * vocabulary.readinessOf(preset) + named + liked +
+            offered(speaking, preset, aspect, tags)
         return (wanted * capabilityFactor(preset, speaking)).coerceAtLeast(FAINTEST_CHANCE)
     }
+
+    /**
+     * What the sentence merely **offers** this preset — a fourth term beside the readiness, the pull and
+     * the affinity, and the only one a word of any tier may contribute.
+     *
+     * It is a tilt and never a filter, which is the whole of how an offer yields here: a demand narrows
+     * the aspect to what it will keep, and leaning on a choice that has already been made moves nothing.
+     * So no rule had to be written to make an offered query stand down — `an inferno Age. A drowned sea.`
+     * leaves water the only survivor, and the inferno's lean toward lava is simply spent on it.
+     */
+    private fun offered(
+        speaking: List<Constraint>,
+        preset: Taggable,
+        aspect: Aspect,
+        tags: Map<String, Double>,
+    ): Double = speaking.sumOf { it.word.offeredAffinityIn(aspect, tags) }
 
     /**
      * How much of what the sentence *set* this preset could actually honour — without which "a cherry
@@ -553,7 +666,7 @@ object Resolver {
      * without forbidding anything. "Cherry grove floating" still gets floating islands, and their having
      * no biomes is then a real contradiction for [wordsNothingHonours] to charge.
      */
-    private fun capabilityFactor(preset: AspectPreset, speaking: List<Constraint>): Double {
+    private fun capabilityFactor(preset: Taggable, speaking: List<Constraint>): Double {
         val parametersAsked = speaking.flatMap { it.word.setsIn(preset.aspect).keys }.distinct()
         if (parametersAsked.isEmpty()) return FULLY_CAPABLE
         val honoured = parametersAsked.count(preset::honoursParameterNamed)
@@ -562,7 +675,7 @@ object Resolver {
     }
 
     /** One preset an aspect ended up holding, and how much of the world it covers. */
-    private data class Filling(val preset: AspectPreset, val share: Double)
+    private data class Filling(val preset: Taggable, val share: Double)
 
     /**
      * A set of words that can all be satisfied at once, and what is left that satisfies them.
@@ -571,7 +684,7 @@ object Resolver {
      * existing one, and joining an existing one only removes candidates. So two territories can never draw
      * the same preset.
      */
-    private data class Territory(val words: List<Constraint>, val candidates: List<AspectPreset>) {
+    private data class Territory(val words: List<Constraint>, val candidates: List<Taggable>) {
         operator fun plus(joining: Territory) =
             Territory(words + joining.words, candidates.filter { it in joining.candidates })
     }
@@ -583,14 +696,18 @@ object Resolver {
      * [Constraint.aimedAt] carries the answer. So this is the evocative half alone.
      */
     fun purchaseFor(vocabulary: Vocabulary, word: Word): List<Aspect> {
-        if (word.aspects.isNotEmpty()) return word.aspects.sortedBy { it.ordinal }
-        // An evocative word declares no aspect: spanning aspects is what makes it evocative.
+        // **The tier decides, not an empty reach.** This used to read "declares no aspect" as "means
+        // everywhere", which held only while a word could declare one at all: now that the reach is
+        // derived, `beautiful` reaches the climate it bends and the biomes it weighs, and reading that as
+        // its whole purchase stopped it being beautiful anywhere else — one Age over fifty seeds.
+        if (word.tier.narrows) return word.aspects.sortedBy { it.ordinal }
+        // Spanning aspects is what makes a word evocative.
         return Aspect.entries.filter { aspect ->
             val likesSomethingThere = vocabulary.askableIn(aspect).any { word.pullOn(it, vocabulary.tagsOf(it)) > 0.0 }
-            // **And it reaches an aspect whose dials it bends**, which is the only way into one with no
+            // **And it reaches an aspect whose parameters it bends**, which is the only way into one with no
             // candidates to like. The declaration is both the mechanism and the evidence, so §4.4's charge
             // per aspect constrained stays honest with no tag table propping it up.
-            val bendsADialThere = aspect.dials.any { it.name in word.canSet }
+            val bendsADialThere = aspect.parameters.any { it.name in word.canSet }
             likesSomethingThere || bendsADialThere
         }
     }
@@ -612,12 +729,12 @@ object Resolver {
      */
     private fun pick(
         vocabulary: Vocabulary,
-        candidates: List<AspectPreset>,
+        candidates: List<Taggable>,
         speaking: List<Constraint>,
         draw: Long,
         aspect: Aspect,
         seat: Int,
-    ): AspectPreset {
+    ): Taggable {
         candidates.singleOrNull()?.let { return it }
         val scores = candidates.map { preset -> strengthOf(vocabulary, preset, speaking, aspect) }
         val random = XoroshiroRandomSource(draw xor (aspect.ordinal * ASPECT_STRIDE) xor (seat * TERRITORY_STRIDE))
@@ -639,7 +756,7 @@ object Resolver {
     private fun tensions(
         vocabulary: Vocabulary,
         sentence: List<Constraint>,
-        filled: Map<Aspect, List<AspectPreset>>,
+        filled: Map<Aspect, List<Taggable>>,
     ): List<Flaw> = buildList {
         for ((first, second) in sentence.pairs()) {
             // Joined words are not in tension: a writer who said "keep both" was not contradicting himself.
@@ -754,7 +871,10 @@ object Resolver {
             steered = steered.spanned(vocabulary, aspect, setting, draw, flaws)
             val settled = rangedNames(steered, aspect)
             for (parameter in setting.flatMap { it.word.setsIn(aspect).keys }.distinct()
-                .filter { it !in settled && holds(steered, aspect, it) }) {
+                // **The cast is not steered.** Its value is the size of the roll, which the stored entries
+                // already are, so writing it into the options would record the same fact in two places and
+                // let them disagree. [cast] read it before any of this ran.
+                .filter { it != Parameter.CAST && it !in settled && holds(steered, aspect, it) }) {
                 val contenders = setting.filter { parameter in it.word.setsIn(aspect) }
                     .sortedWith(compareByDescending<Constraint> { it.word.tier }.thenBy { tieBreak(draw, aspect, it.word) })
                 val populative = parameterNamed(steered, aspect, parameter)
@@ -795,7 +915,7 @@ object Resolver {
                     }
                     canFracture(steered, aspect, parameter, contenders) ->
                         steered.fractured(vocabulary, aspect, parameter, contenders, flaws)
-                    // The sentence's own order is handed down beside the ranked one, for the knobs whose
+                    // The sentence's own order is handed down beside the ranked one, for the parameters whose
                     // values are a sequence rather than a set — see [contended].
                     else -> steered.contended(vocabulary, aspect, parameter, contenders, setting, flaws)
                 }
@@ -1004,7 +1124,18 @@ object Resolver {
                     flaws += flaw(vocabulary, Register.DISPLACED, listOf(group.first(), leading), aspect, emptyList(), group.first().word.tier)
                 }
             }
-            return written(this, member = 0, bounds = settledWith(bentTo(climates.first())))
+            val agreed = settledWith(bentTo(climates.first()))
+            // **A claim naming no member is about the population rather than about one of it**, so it is
+            // written to every body there is — the same rule the catalogue path has always had, where
+            // `withOptions` writes a parameter to each member in turn.
+            //
+            // Unreachable until a *word* could grow a cast: every other route to a second body is a clause
+            // per body, and those take the branch above. It showed up the moment an inferno hung three
+            // suns and sized the first one, leaving the other two to be filled from the template.
+            if (!aspect.membersAreDescribed) return written(this, member = 0, bounds = agreed)
+            return (0..<maxOf(membersIn(aspect), 1)).fold(this) { held, member ->
+                written(held, member, agreed)
+            }
         }
 
         val leading = groups.first().first()
@@ -1029,7 +1160,7 @@ object Resolver {
 
     /** Which of [aspect]'s parameters bound a continuous axis — asked of the seated presets, as they own them. */
     private fun rangedNames(composition: AgeComposition, aspect: Aspect): List<String> =
-        (composition.presets.filter { it.aspect == aspect }.flatMap { it.parameters } + aspect.dials)
+        (composition.presets.filter { it.aspect == aspect }.flatMap { it.ownParameters } + aspect.parameters)
             .filter { it.holds == Holds.RANGE }
             .map { it.name }
             .distinct()
@@ -1053,11 +1184,11 @@ object Resolver {
     ): AgeComposition {
         var weighed = composition
         for (aspect in Aspect.entries.filter { it.holds == Holds.WEIGHTED_SET }) {
-            val population = aspect.dials.firstOrNull { it.holds == Holds.WEIGHTED_SET } ?: continue
-            // A word that names a member arrived with its answer in hand and was written by [steer]; asking
-            // its tags as well would weigh it twice.
+            val population = aspect.parameters.firstOrNull { it.holds == Holds.WEIGHTED_SET } ?: continue
+            // A word that means a member outright arrived with its answer in hand and was written by
+            // [steer]; asking its tags as well would weigh it twice.
             val speaking = sentence.filter { said ->
-                aspect in reachOf(vocabulary, said) && said.word.namedPreset(aspect) == null
+                aspect in reachOf(vocabulary, said) && said.word.meaningIn(aspect) == null
             }
             if (speaking.isEmpty()) continue
             val pool = vocabulary.askableIn(aspect)
@@ -1084,7 +1215,7 @@ object Resolver {
      */
     private fun claimForMember(
         vocabulary: Vocabulary,
-        member: AspectPreset,
+        member: Taggable,
         population: Parameter,
         speaking: List<Constraint>,
         aspect: Aspect,
@@ -1128,7 +1259,7 @@ object Resolver {
      * A word meaning "nothing built here" would otherwise write an exclusion per structure set, which says
      * the same thing at ten times the length and stops saying it the moment a pack adds a set.
      */
-    private fun spelled(claims: List<Claim>, population: Parameter, pool: List<AspectPreset>): List<String> {
+    private fun spelled(claims: List<Claim>, population: Parameter, pool: List<Taggable>): List<String> {
         val emptied = population.emptiedBy ?: return claims.map { it.spelled() }
         val everythingStruck = claims.size == pool.size && claims.all { it.polarity == Polarity.EXCEPT }
         return if (everythingStruck) listOf(emptied) else claims.map { it.spelled() }
@@ -1311,13 +1442,13 @@ object Resolver {
     /**
      * The mingled contenders in the order they should be *stored* — as ranked, or as the writer wrote them.
      *
-     * **Every mingling knob but one holds a set**, where two rocks in a wall are both in it and neither is
+     * **Every mingling parameter but one holds a set**, where two rocks in a wall are both in it and neither is
      * first, and ranking them by tier and then by a seeded tie-break is right: it spreads two Ages written
      * alike. **One holds a sequence.** An aurora's colours run from its crown to its hem, and which is the
      * crown is the one thing the writer stated outright — so `red and green aurora` and `green and red
      * aurora` are two different skies and must stay so.
      *
-     * The knob says which it is ([Parameter.keepsWrittenOrder]) rather than this function knowing any knob
+     * The parameter says which it is ([Parameter.keepsWrittenOrder]) rather than this function knowing any parameter
      * by name, which is what keeps the resolver from growing a list of special cases. Written order decides
      * one other thing in the whole resolver — which template a book starts from — and design §3.5 names
      * both.
@@ -1334,12 +1465,12 @@ object Resolver {
     }
 
     /**
-     * Whether this aspect has such a knob at all. One word carries a single `sets` map across every aspect
+     * Whether this aspect has such a parameter at all. One word carries a single `sets` map across every aspect
      * it speaks to, so a derived block word setting a material reaches the sea as well — and a sea does not
      * *wear* a substance, it **is** one.
      *
      * Asked of what the seated presets **declare**, not what they honour: an aspect that never heard of the
-     * knob is not being addressed, where one that declares it and ignores it is a sentence the world could
+     * parameter is not being addressed, where one that declares it and ignores it is a sentence the world could
      * not honour, which [wordsNothingHonours] charges.
      */
     private fun holds(composition: AgeComposition, aspect: Aspect, parameter: String): Boolean =
@@ -1347,25 +1478,25 @@ object Resolver {
 
     /**
      * Whether [parameter] accumulates rather than contends, asked of the presets seated in [aspect] (§3.2).
-     * Unknown to all of them counts as predicative: accumulating values for a knob that does not exist
+     * Unknown to all of them counts as predicative: accumulating values for a parameter that does not exist
      * would make a typo look deliberate.
      */
     private fun isPopulative(composition: AgeComposition, aspect: Aspect, parameter: String): Boolean =
         parameterNamed(composition, aspect, parameter)?.holds == Holds.WEIGHTED_SET
 
-    /** The knob [aspect] calls [parameter], from wherever it is owned — see [parametersOf]. */
+    /** The parameter [aspect] calls [parameter], from wherever it is owned — see [parametersOf]. */
     private fun parameterNamed(composition: AgeComposition, aspect: Aspect, parameter: String): Parameter? =
         parametersOf(composition, aspect).firstOrNull { it.name == parameter }
 
     /**
-     * Every knob [aspect] holds — its seated presets' own, and the aspect's own where it seats nothing.
+     * Every parameter [aspect] holds — its seated presets' own, and the aspect's own where it seats nothing.
      *
-     * Asked in one place because the two sources answer the same question: a preset owns its knobs where
+     * Asked in one place because the two sources answer the same question: a preset owns its parameters where
      * there is a preset, and an aspect owns them where there is not. Reading only the first is how a
      * population's claims went nowhere the moment it stopped seating anything.
      */
     private fun parametersOf(composition: AgeComposition, aspect: Aspect): List<Parameter> =
-        composition.presets.filter { it.aspect == aspect }.flatMap { it.parameters } + aspect.dials
+        composition.presets.filter { it.aspect == aspect }.flatMap { it.ownParameters } + aspect.parameters
 
     /**
      * A parameter named at something that cannot honour it — charged as unbacked rather than ignored
@@ -1379,11 +1510,11 @@ object Resolver {
     ): List<Flaw> {
         val seated = composition.presets.filter { it.aspect == aspect }
         // Charged only where *every* seated preset ignores the word: one territory honouring it is enough.
-        // An aspect that seats nothing honours its own dials — a climate cannot ignore its temperature, and
+        // An aspect that seats nothing honours its own parameters — a climate cannot ignore its temperature, and
         // a population cannot ignore what it was told to grow, there being nothing there to do the ignoring.
         fun anythingSeatedHonours(parameter: String) =
-            seated.any { it.honoursParameterNamed(parameter) } || aspect.dials.any { it.name == parameter }
-        // And only where the word addressed this aspect's knobs at all — see [holds].
+            seated.any { it.honoursParameterNamed(parameter) } || aspect.parameters.any { it.name == parameter }
+        // And only where the word addressed this aspect's parameters at all — see [holds].
         val addressing = setting.filter { said -> said.word.canSet.keys.any { holds(composition, aspect, it) } }
         val wentUnheeded = addressing.filter { said -> said.word.canSet.keys.none(::anythingSeatedHonours) }
         return wentUnheeded.map { said -> flaw(vocabulary, Register.UNBACKED, listOf(said), aspect, emptyList(), said.word.tier) }

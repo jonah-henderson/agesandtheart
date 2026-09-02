@@ -23,21 +23,45 @@ import net.minecraft.util.StringRepresentable
  *   shape, and shifting continentalness toward ocean returns ocean biomes over dry hills, because nothing
  *   made an ocean.
  */
-enum class ClimateAxis(val key: String) : StringRepresentable {
-    /** Cold to hot. */
-    TEMPERATURE("temperature"),
+enum class ClimateAxis(val key: String, val help: String) : StringRepresentable {
+    TEMPERATURE("temperature", "How hot the Age is, from frozen at the bottom to scorching at the top."),
 
-    /** Dry to wet. */
-    HUMIDITY("humidity"),
+    HUMIDITY("humidity", "How wet the Age is, from desert at the bottom to jungle at the top."),
     ;
 
     /**
-     * The knob a writer's words bound — a [Span] rather than one of a list of named steps. A ladder needed
+     * The parameter a writer's words bound — a [Span] rather than one of a list of named steps. A ladder needed
      * a preset per combination of axes; ranges on the words are linear where that was combinatorial, and
      * they keep an axis's numbers beside the other axes the same word speaks about, which is why a vague
      * word cannot produce an incoherent climate.
      */
-    val parameter: Parameter get() = Parameter.ranged(key)
+    val parameter: Parameter get() = Parameter.ranged(key, help, landmarks)
+
+    /**
+     * Where vanilla's own biomes sit on this axis.
+     *
+     * **Read off the overworld's climate table**, not remembered: our span is mapped onto vanilla's
+     * climate noise, so these are the same numbers `OverworldBiomeBuilder` divides the world at, and the
+     * biome named is one that really starts there. Written down rather than computed because the table is
+     * a registry the tool cannot always hold, and because these move about once a decade.
+     */
+    val landmarks: List<Parameter.Landmark>
+        get() = when (this) {
+            TEMPERATURE -> listOf(
+                Parameter.Landmark(-1.0, "snowy"),
+                Parameter.Landmark(-0.45, "plains"),
+                Parameter.Landmark(-0.15, "forest"),
+                Parameter.Landmark(0.2, "savanna"),
+                Parameter.Landmark(0.55, "desert"),
+            )
+            HUMIDITY -> listOf(
+                Parameter.Landmark(-1.0, "driest"),
+                Parameter.Landmark(-0.35, "plains"),
+                Parameter.Landmark(-0.1, "forest"),
+                Parameter.Landmark(0.1, "taiga"),
+                Parameter.Landmark(0.3, "jungle"),
+            )
+        }
 
     override fun getSerializedName(): String = key
 

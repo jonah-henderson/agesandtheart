@@ -1,7 +1,9 @@
 package co.voik.agesandtheart.age.aspect
 
 import co.voik.agesandtheart.worldgen.biome.ClimateAxis
+import net.minecraft.core.Registry
 import net.minecraft.resources.Identifier
+import net.minecraft.resources.ResourceKey
 import net.minecraft.util.StringRepresentable
 
 /**
@@ -12,7 +14,7 @@ import net.minecraft.util.StringRepresentable
  */
 val MATERIAL_PARAMETERS: Set<String> by lazy {
     Aspect.entries
-        .flatMap { aspect -> aspect.dials + aspect.authored.flatMap { it.parameters } }
+        .flatMap { aspect -> aspect.parameters + aspect.authored.flatMap { it.parameters } }
         .filter { it.material }
         .map { it.name }
         .toSet()
@@ -187,7 +189,7 @@ enum class Aspect(
      * word that asks for one.
      *
      * **Describing it asserts it.** It holds nothing, so no clause can mint a member the way a clause mints
-     * a sun; what it has is dials, and anything set on one is a writer saying the Age has an aurora. See
+     * a sun; what it has is parameters, and anything set on one is a writer saying the Age has an aurora. See
      * [Sky.auroraIn].
      */
     AURORA("aurora"),
@@ -200,7 +202,7 @@ enum class Aspect(
      * the page, which is why there is no `art/word/rainbow.json`; `rainbows` is the word that asks for one.
      *
      * **Describing it asserts it**, likewise. It holds nothing, so no clause can mint a member the way a
-     * clause mints a sun; what it has is dials, and anything set on one is a writer saying the Age has
+     * clause mints a sun; what it has is parameters, and anything set on one is a writer saying the Age has
      * bows. See [Sky.rainbowIn].
      *
      * **Almost nothing about where it goes is written here**, which is the whole of what makes it cheap: a
@@ -248,13 +250,13 @@ enum class Aspect(
      * A computed `when` rather than a stored list, because each of these enums names [Aspect] in its own
      * initialiser and an eager list would have the two classes waiting on each other.
      */
-    val authored: List<AspectPreset>
+    val authored: List<AuthoredPreset>
         get() = when (this) {
             TERRAIN -> Terrain.entries
             CARVERS -> Carvers.entries
             SKY -> Sky.entries
-            // Nothing to choose between: a climate and a surface are where their dials were left, and a
-            // biome or a structure set is weighed rather than chosen. See [dials] and [Holds.WEIGHTED_SET].
+            // Nothing to choose between: a climate and a surface are where their parameters were left, and a
+            // biome or a structure set is weighed rather than chosen. See [parameters] and [Holds.WEIGHTED_SET].
             PHENOMENA -> Phenomenon.entries
             SEA, BIOMES, STRUCTURES, CLIMATE, SURFACE, FEATURES, SPAWNS, AIR, WATERS, WEATHER,
             SUN, MOON, STARS, GRASS, LEAVES, CLOUD, AURORA, RAINBOW,
@@ -263,16 +265,16 @@ enum class Aspect(
 
     /**
      * Parameters belonging to the **aspect itself** rather than to a preset — empty for every aspect whose
-     * answer is a preset, since there the preset owns its own knobs.
+     * answer is a preset, since there the preset owns its own parameters.
      *
      * This is what an aspect with no candidates has instead. `Climate` was an enum of one member existing
      * only to hold these, which made a parameter bag wear a preset's clothes and made the composition
      * count its territories by counting a preset it always had exactly one of.
      */
-    val dials: List<Parameter>
+    val parameters: List<Parameter>
         get() = when (this) {
             // Water boiling away is what a temperature does, not what the air is like.
-            CLIMATE -> ClimateAxis.entries.map { it.parameter } + Atmosphere.EVAPORATION
+            CLIMATE -> ClimateAxis.entries.map { it.parameter } + Atmosphere.EVAPORATION + Parameter.cast()
             // A biome's population is the aspect's answer; `footing` says how it is *worn*, not which.
             BIOMES -> listOf(Biomes.GROWN, Biomes.FOOTING)
             STRUCTURES -> listOf(Structures.BUILT)
@@ -283,8 +285,8 @@ enum class Aspect(
             AIR -> listOf(Atmosphere.FOG, Atmosphere.TINT, Atmosphere.MOTES, Atmosphere.HAZE)
             WATERS -> listOf(Atmosphere.MURK)
             WEATHER -> listOf(Atmosphere.RAINFALL, Atmosphere.THUNDER)
-            SUN -> listOf(Sky.ABSENT, Sky.SUNSIZE, Sky.SUNCOLOUR, Sky.RISING)
-            MOON -> listOf(Sky.ABSENT, Sky.RISING)
+            SUN -> listOf(Sky.ABSENT, Sky.SUNSIZE, Sky.SUNCOLOUR, Sky.RISING, Parameter.cast())
+            MOON -> listOf(Sky.ABSENT, Sky.RISING, Parameter.cast())
             STARS -> listOf(Sky.STARS, Sky.STARGLOW)
             GRASS -> listOf(Atmosphere.GRASSCOLOUR)
             LEAVES -> listOf(Atmosphere.LEAFCOLOUR)
@@ -296,7 +298,7 @@ enum class Aspect(
                 Sky.RAINBOWFREQUENCY,
                 Sky.RAINBOWRAIN,
             )
-            // A preset aspect with dials: the two switches that pick the Age's dimension type. They sit
+            // A preset aspect with parameters: the two switches that pick the Age's dimension type. They sit
             // here rather than on `Atmosphere` because they are chosen when the Age is *made* and baked
             // into a pre-authored file, where every atmosphere dial is laid over a level that is already
             // open — which is also why these two alone cannot be confined to a biome.
@@ -306,32 +308,49 @@ enum class Aspect(
                 Sky.SEALED,
             )
             CLOUD -> listOf(Atmosphere.CLOUD)
-            TERRAIN, SEA, CARVERS -> emptyList()
+            SEA -> listOf(Sea.DEPTH)
+            TERRAIN, CARVERS -> emptyList()
         }
 
     /**
-     * Whether this part of the world may be made of [named] — asked of whatever material knobs it has,
+     * Whether this part of the world may be made of [named] — asked of whatever material parameters it has,
      * and true where it has none.
      *
      * **The sea is why this is not simply `Word.aspects`.** A solid does not volunteer for the sea and
      * still reaches it by being aimed there (`DerivedWords.substance`), so a block's declared aspects are
-     * deliberately narrower than where it may be laid. What decides is the knob that would hold it: the
+     * deliberately narrower than where it may be laid. What decides is the parameter that would hold it: the
      * rock refuses anything a player would fall through ([Materials]) and nothing else refuses anything.
      */
     fun canBeMadeOf(named: String): Boolean =
-        (dials + authored.flatMap { it.parameters }).filter { it.material }.all { it.accepts(named) }
+        (parameters + authored.flatMap { it.parameters }).filter { it.material }.all { it.accepts(named) }
 
     /**
-     * Whether a parameter by this name means anything here — its own [dials], or a knob one of its
+     * Whether a parameter by this name means anything here — its own [parameters], or a parameter one of its
      * presets offers.
      *
      * Static, and deliberately so: this is asked while the vocabulary is still being built, before there
-     * is a corpus to ask. It sees less than [co.voik.agesandtheart.age.word.Vocabulary.turnsAKnob], which
-     * can also reach an open aspect's data presets — but every steering knob an open aspect has is one of
-     * its dials, so for the question of *which aspect owns a name* the two agree.
+     * is a corpus to ask. It sees less than [co.voik.agesandtheart.age.word.Vocabulary.turnsAParameter], which
+     * can also reach an open aspect's data presets — but every steering parameter an open aspect has is one of
+     * its parameters, so for the question of *which aspect owns a name* the two agree.
      */
     fun ownsParameterNamed(name: String): Boolean =
-        dials.any { it.name == name } || authored.any { it.honoursParameterNamed(name) }
+        parameters.any { it.name == name } || authored.any { it.honoursParameterNamed(name) }
+
+    /**
+     * The registry this aspect's presets are entries of, or null where they are designs this pack wrote.
+     *
+     * **Asked of [presetFor] rather than listed**, so the pairing stays declared exactly once — on each
+     * [RegistryReference], where a `Sea` already says it is a block and a `Biome` that it is a biome. This
+     * is that same statement read from the aspect's side, which is the side a word arrives from: a derived
+     * word says only which registry it is an entry of, and the aspects it can answer for fall out.
+     *
+     * Lazy because every preset enum names an [Aspect] in its own initialiser, so resolving one while this
+     * class is still loading would leave the two waiting on each other — the same trap [MATERIAL_PARAMETERS]
+     * carries a note about.
+     */
+    val presetsAreEntriesOf: ResourceKey<out Registry<*>>? by lazy {
+        (presetFor(ANY_REGISTRY_ENTRY) as? RegistryReference)?.registry
+    }
 
     /**
      * Whether [key] is one of *this* aspect's presets, by exact name.
@@ -361,7 +380,7 @@ enum class Aspect(
      * place a key becomes a preset. An open aspect accepts an id it has never heard of and complains
      * later, where the missing content bites.
      */
-    fun presetFor(key: String): AspectPreset? = when (this) {
+    fun presetFor(key: String): Taggable? = when (this) {
         SEA -> Sea.named(key)
         BIOMES -> Biome.named(key)
         STRUCTURES -> StructureSet.named(key)
@@ -389,9 +408,18 @@ enum class Aspect(
      * replaced a hand-kept list on `Atmosphere` that had already drifted from the `when` above it.
      */
     val confinableParameters: List<Parameter>
-        get() = (dials + authored.flatMap { it.parameters }).filter { it.confinable }
+        get() = (parameters + authored.flatMap { it.parameters }).filter { it.confinable }
 
     override fun getSerializedName(): String = key
+
+    private companion object {
+        /**
+         * A well-formed id belonging to no registry in particular, for asking an aspect what *kind* of
+         * thing it holds without having a thing in hand. An open aspect parses any id into its own preset,
+         * which is exactly the property being used here; a closed one has never heard of it and says so.
+         */
+        const val ANY_REGISTRY_ENTRY = "minecraft:any"
+    }
 }
 
 /**
@@ -411,6 +439,17 @@ data class Parameter(
     val open: Boolean = false,
     /** What this property holds, which decides what a claim on it can mean — see [Holds]. */
     val holds: Holds = Holds.CATALOGUE,
+    /**
+     * Points along a [Holds.RANGE] axis and what they mean **in the game**.
+     *
+     * An axis runs −1 to 1 and the number says nothing on its own: a writer bounding a temperature has no
+     * way to know whether `0.2` is a meadow or a desert. The corpus can say where other *words* sit,
+     * which is useful and circular; this says what the *world* does there.
+     *
+     * Approximate on purpose, and here rather than in a document for the reason [help] is: one copy, in
+     * the thing it describes, read by whatever wants to show it.
+     */
+    val landmarks: List<Landmark> = emptyList(),
     /** What naming one of these is worth, where the value is a member of a population — see [population]. */
     val worthOfAMention: Double = Rung.ORDINARY,
     /** How little of a member a word may leave, where the value is a member of a population. */
@@ -431,7 +470,7 @@ data class Parameter(
      *
      * A fact about the parameter rather than a name to compare against. `Grammar` asks whether a word is a
      * material and `Resolver` asks what substance it carries, and both did it by looking for `Terrain.STONE`
-     * by name — one aspect's knob standing in for "a block", which is true of the corpus today and is not
+     * by name — one aspect's parameter standing in for "a block", which is true of the corpus today and is not
      * what either of them means.
      */
     val material: Boolean = false,
@@ -448,19 +487,30 @@ data class Parameter(
     /**
      * Whether the order the writer wrote these in is part of what they said.
      *
-     * **This knob's values are a sequence, where every other mingling knob's are a set** — and that is the
+     * **This parameter's values are a sequence, where every other mingling parameter's are a set** — and that is the
      * whole of the distinction. `landmass.stone=granite and andesite` is two rocks in one wall and neither
      * is first; an aurora's colours are a ramp from its crown to its hem, and which is the crown is the one
      * thing the writer stated outright.
      *
      * It is read in exactly one place, [co.voik.agesandtheart.age.word.Resolver.contended], which otherwise
      * hands back a mingling in tier-then-seeded order. Stating it here rather than casing on the name there
-     * is what keeps that function from having to know about individual knobs.
+     * is what keeps that function from having to know about individual parameters.
      *
      * Written order decides one other thing in the whole resolver — which template a book starts from — and
      * `the-art-design.md` §3.5 names both.
      */
     val keepsWrittenOrder: Boolean = false,
+    /**
+     * What this parameter is, in a sentence, for whoever is authoring a word against it.
+     *
+     * **Here rather than in a table the tool keeps**, because a second copy is a copy that goes stale:
+     * `footing` means nothing out of context and `free` means less, and a writer meeting either needs to
+     * be told at the moment they meet it. `ParameterHelpCheck` insists every parameter a word can reach has
+     * one, so a parameter added without a sentence fails the build rather than turning up blank in the tool.
+     */
+    val help: String = "",
+    /** The same for values that are not self-evident — `free`, `grounded`, `great_halls`. */
+    val optionHelp: Map<String, String> = emptyMap(),
 ) {
     /** This parameter, sited-in-a-biome — see [confinable]. */
     fun perBiome(): Parameter = copy(confinable = true)
@@ -475,7 +525,7 @@ data class Parameter(
      */
     fun accepts(option: String): Boolean {
         val isOneOfTheNamedOptions = option in options
-        val looksLikeARegistryId = namesReferent(option) && Identifier.tryParse(option) != null
+        val looksLikeARegistryId = namesARegistryEntry(option) && Identifier.tryParse(option) != null
         // Every form a word may ask a ranged axis for, not only a band — see [Setting].
         val looksLikeASpan = holds == Holds.RANGE && Setting.describes(option)
         if (isOneOfTheNamedOptions || looksLikeASpan) return true
@@ -486,6 +536,9 @@ data class Parameter(
         return !holdsYouUp || Materials.makesAWorld(option)
     }
 
+    /** A point on an axis, and what the game does there. */
+    data class Landmark(val at: Double, val said: String)
+
     companion object {
         /**
          * What a material parameter reads as when nobody named one: the preset's own substance. A named
@@ -494,8 +547,8 @@ data class Parameter(
         const val UNCHANGED = "unchanged"
 
         /** A block a preset is made of — the palette's stone, a terrain's spires, a structure's walls. */
-        fun material(name: String, holdsYouUp: Boolean = false) =
-            Parameter(name, listOf(UNCHANGED), open = true, material = true, holdsYouUp = holdsYouUp)
+        fun material(name: String, holdsYouUp: Boolean = false, help: String = "") =
+            Parameter(name, listOf(UNCHANGED), open = true, material = true, holdsYouUp = holdsYouUp, help = help)
 
         /**
          * A set of registry entries present here — the biomes an Age draws from. Populative, so naming
@@ -521,6 +574,7 @@ data class Parameter(
              * is a typo rather than an unloaded pack.
              */
             named: List<String> = emptyList(),
+            help: String = "",
         ) = Parameter(
             name,
             listOfNotNull(UNCHANGED, emptiedBy) + named,
@@ -529,13 +583,21 @@ data class Parameter(
             worthOfAMention = worthOfAMention,
             leastKept = leastKept,
             emptiedBy = emptiedBy,
+            help = help,
         )
 
         /**
          * A continuous axis a word may bound — climate's temperature and humidity. Defaults to the whole
          * axis, so an Age told nothing keeps whatever vanilla's noise produced.
          */
-        fun ranged(name: String) = Parameter(name, listOf(Span.NATURAL.spelled()), holds = Holds.RANGE)
+        fun ranged(name: String, help: String = "", landmarks: List<Landmark> = emptyList()) =
+            Parameter(
+                name,
+                listOf(Span.NATURAL.spelled()),
+                holds = Holds.RANGE,
+                help = help,
+                landmarks = landmarks,
+            )
 
         /**
          * A property that is simply true or false — **a catalogue of two, and no new shape** (world model
@@ -544,7 +606,33 @@ data class Parameter(
          *
          * [FALSE] first, so an unstated flag is off: [default] is the first option.
          */
-        fun flag(name: String) = Parameter(name, FALSE, TRUE)
+        fun flag(name: String, help: String = "") = Parameter(name, listOf(FALSE, TRUE), help = help)
+
+        /**
+         * **How many of a population there are** — the one parameter whose value is the size of the roll rather
+         * than an entry in it, and the only way a *word* can bring a body into being.
+         *
+         * A writer never turns it: they describe a sun and there is one, describe another and there are
+         * two, and `the-world-model.md` §2 is emphatic that there are no numbers in the language. This is
+         * for the corpus, where a word has to be able to say what an Age looks like when the writer said
+         * nothing at all — an inferno's sky wants more than one thing burning in it, and no clause was
+         * written to mint them.
+         *
+         * **Closed, and short.** Four is already a strange sky; leaving it open would let a word ask for
+         * forty suns and the renderer would oblige. The first option is the default, so an Age nobody asked
+         * has whatever its template gave it.
+         *
+         * `Resolver` reads this rather than steering it: the roll's size *is* the number of stored entries,
+         * so a `cast` that landed in the options would be a second place recording the same fact.
+         */
+        fun cast() = Parameter(
+            CAST,
+            listOf("1", "2", "3", "4"),
+            help = "How many of these the Age has, where the book described none of its own.",
+        )
+
+        /** The reserved name [cast] answers to, spelled once because three places compare against it. */
+        const val CAST = "cast"
 
         const val TRUE = "true"
         const val FALSE = "false"
@@ -560,13 +648,27 @@ data class Parameter(
 }
 
 /** A preset that fills an [aspect], possibly offering a few [parameters] to steer it. */
-interface AspectPreset : StringRepresentable {
+/**
+ * Something an aspect can hold — **and therefore something the tag layer can describe.**
+ *
+ * Two quite different things implement this. An [AuthoredPreset] is a design this pack wrote, enumerated
+ * in code, with parameters of its own; a [RegistryReference] is a pointer into one of the game's
+ * registries, of which there are thousands and which nobody here wrote. They share no shape and no
+ * provenance.
+ *
+ * **What they share is that a tag can be hung on them**, which is what puts them in one pool a word can
+ * reach, and it is the only thing they have in common — so the interface is named for it rather than for
+ * some noun that has to cover both. `art/preset_tags/` describes exactly these.
+ */
+interface Taggable : StringRepresentable {
+    /** How a recipe records it: a bare `lower_snake_case` name, or a `namespace:path` id. */
     val key: String
+
     val aspect: Aspect
-    val parameters: List<Parameter> get() = emptyList()
+
 
     /**
-     * Whether a sentence may ask for this preset, as opposed to only a pinned recipe naming it outright.
+     * Whether a sentence may ask for this, as opposed to only a pinned recipe naming it outright.
      *
      * Almost every preset is askable and `VocabularyCheck` insists on it, since one no word can reach is
      * content nobody can use. Declared here rather than inferred from a missing `preset_tags` entry,
@@ -583,7 +685,7 @@ interface AspectPreset : StringRepresentable {
      * The resolver reads this to prefer a preset that can honour what the sentence asked for. Where
      * nothing in the aspect can, the word is charged rather than dropped (§3.3).
      */
-    fun honours(parameter: Parameter): Boolean = parameters.any { it.name == parameter.name }
+    fun honours(parameter: Parameter): Boolean = ownParameters.any { it.name == parameter.name }
 
     /**
      * The same question asked by name, which is how the resolver has it. False for a name never declared,
@@ -591,7 +693,7 @@ interface AspectPreset : StringRepresentable {
      * [Options.unknownTo]'s job.
      */
     fun honoursParameterNamed(name: String): Boolean {
-        val declared = parameters.firstOrNull { it.name == name } ?: return false
+        val declared = ownParameters.firstOrNull { it.name == name } ?: return false
         return honours(declared)
     }
 

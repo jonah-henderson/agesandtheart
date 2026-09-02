@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.aspect
 
+import co.voik.agesandtheart.age.aspect.ownParameters
 import co.voik.agesandtheart.Constants
 import com.mojang.datafixers.util.Either
 import com.mojang.serialization.Codec
@@ -106,15 +107,15 @@ value class Options(val chosen: Map<String, List<String>> = emptyMap()) {
     }
 
     /**
-     * Names neither this preset nor its aspect understands — a typo, or a knob some later version removed.
+     * Names neither this preset nor its aspect understands — a typo, or a parameter some later version removed.
      *
-     * **The aspect's dials count too.** A preset aspect may hold knobs of its own that no preset declares —
+     * **The aspect's parameters count too.** A preset aspect may hold parameters of its own that no preset declares —
      * `Sky.SKYLIGHT` belongs to every sky rather than to one — and asking the preset alone reported them as
      * unrecognised in `/age list` while they were working perfectly.
      */
-    fun unknownTo(preset: AspectPreset): Set<String> = unknownAmong(preset.parameters + preset.aspect.dials)
+    fun unknownTo(preset: Taggable): Set<String> = unknownAmong(preset.ownParameters + preset.aspect.parameters)
 
-    /** The same, of an aspect that seats no preset: its dials are the whole of what it understands. */
+    /** The same, of an aspect that seats no preset: its parameters are the whole of what it understands. */
     fun unknownAmong(understood: Collection<Parameter>): Set<String> =
         chosen.keys - understood.map(Parameter::name).toSet()
 
@@ -122,8 +123,8 @@ value class Options(val chosen: Map<String, List<String>> = emptyMap()) {
      * Values a parameter it *does* understand cannot take — `sun.size=huge` where the axis wants a span,
      * `sealed=sometimes` where it takes two words.
      *
-     * **Told apart from [unknownAmong], because the mistake and the remedy are different**: there the knob
-     * does not exist, here the knob is right and the value means nothing. Both were silent, and this one
+     * **Told apart from [unknownAmong], because the mistake and the remedy are different**: there the parameter
+     * does not exist, here the parameter is right and the value means nothing. Both were silent, and this one
      * cost a walk — `[Options.of]` filters a value it cannot read and falls back to the default, so an Age
      * written with one is *identical* to an Age written without it and says so nowhere.
      */

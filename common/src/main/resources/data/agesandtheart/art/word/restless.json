@@ -6,9 +6,6 @@
     "it sets and never narrows. The shape is `glimmering`'s exactly."
   ],
   "tier": "exact",
-  "aspects": [
-    "aurora"
-  ],
   "sets": {
     "frequency": "1.0..1.0"
   }

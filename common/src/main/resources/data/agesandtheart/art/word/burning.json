@@ -1,9 +1,8 @@
 {
   "tier": "restrictive",
-  "aspects": [
-    "sea"
-  ],
-  "query": {
-    "molten": 1.0
+  "queries": {
+    "sea": {
+      "molten": 1.0
+    }
   }
 }

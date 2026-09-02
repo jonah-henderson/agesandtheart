@@ -1,8 +1,12 @@
 {
   "tier": "restrictive",
-  "query": {
-    "barren": 0.8,
-    "dark": 0.6
+  "queries": {
+    "biomes": {
+      "barren": 0.8
+    },
+    "sky": {
+      "dark": 0.6
+    }
   },
   "sets": {
     "colour": "grey",

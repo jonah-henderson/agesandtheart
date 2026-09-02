@@ -18,7 +18,7 @@ import co.voik.ephemeris.sky.SkySpec
 import net.minecraft.core.Direction
 
 /**
- * The knobs `/age sky` offers over and above the Art's own words — **an instrument, not a vocabulary**.
+ * The parameters `/age sky` offers over and above the Art's own words — **an instrument, not a vocabulary**.
  *
  * Ephemeris can do a great deal the Art has no word for yet: paths that are not circles, suns that never
  * set, orbits that swell, sprites that roll, and rules about which sun decides the day. None of it is
@@ -27,11 +27,11 @@ import net.minecraft.core.Direction
  *
  * **Nothing here is the Art's design.** Every one of these is a lever on the library, named after what it
  * does rather than after anything a writer would say, and it is applied to whatever the words already
- * resolved to. When the Art grows words for any of this, the word decides and the knob stays a knob.
+ * resolved to. When the Art grows words for any of this, the word decides and the parameter stays a parameter.
  */
-object SkyKnobs {
+object SkyParameters {
 
-    /** What one knob is called and what it accepts, so a mistyped one can say what it should have been. */
+    /** What one parameter is called and what it accepts, so a mistyped one can say what it should have been. */
     private val OFFERED: Map<String, List<String>> = linkedMapOf(
         "lift" to listOf("<degrees>", "e.g. 90 for a sun on the horizon all day"),
         "swell" to listOf("<0..0.9>", "how far the orbit's radius varies"),
@@ -53,10 +53,10 @@ object SkyKnobs {
     }
 
     /**
-     * [spec] with the knobs in [tokens] turned, or a message saying which one could not be read.
+     * [spec] with the parameters in [tokens] turned, or a message saying which one could not be read.
      *
      * Applied after the words rather than instead of them, so a preview is still the Age's own sky with one
-     * thing changed — which is what makes it possible to see what the knob did.
+     * thing changed — which is what makes it possible to see what the parameter did.
      */
     fun applyTo(spec: SkySpec, tokens: List<String>): Result<LevelLook> {
         var bodies = spec.bodies
@@ -121,7 +121,7 @@ object SkyKnobs {
                     rainbow = arc.rainbow()
                 }
 
-                // **After `aurora=`, or it has nothing to turn.** Left as its own knob rather than folded
+                // **After `aurora=`, or it has nothing to turn.** Left as its own parameter rather than folded
                 // into the curtains, because which way a band crosses is the one thing about it you want to
                 // move while standing under it.
                 "bearing" -> {
@@ -129,7 +129,7 @@ object SkyKnobs {
                     aurora = (aurora ?: Curtain.ORDINARY.aurora())?.copy(bearingDegrees = degrees)
                 }
 
-                else -> return Result.failure(IllegalArgumentException("$name — no such knob"))
+                else -> return Result.failure(IllegalArgumentException("$name — no such parameter"))
             }
         }
         return Result.success(
@@ -143,7 +143,7 @@ object SkyKnobs {
     /**
      * [change] applied to this body's path where it is a circle, and the body untouched where it is not.
      *
-     * Silent rather than refusing, because the knobs compose: `path=epicycle lift=40` is a reasonable thing
+     * Silent rather than refusing, because the parameters compose: `path=epicycle lift=40` is a reasonable thing
      * to type and the lift simply has nothing to act on once the path is a stack.
      */
     private fun CelestialBody.onCircle(change: (Orbit) -> Orbit): CelestialBody =

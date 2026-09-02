@@ -29,14 +29,14 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.BlockMatchTes
 /**
  * What an Age's features are *like*, as opposed to how many of them there are ([FeatureDensity]).
  *
- * Three knobs, chosen from a survey of every placement modifier and configuration 26.1.2 ships (design
+ * Three parameters, chosen from a survey of every placement modifier and configuration 26.1.2 ships (design
  * §7.2): how big one ore vein is, how thickly a vegetation patch fills, and how deep in the column a thing
  * sits.
  * Each is a single number in vanilla's own data, and each is reached by **rebuilding the record that holds
  * it** — a public constructor and no codec surgery, which is why these three and not the other thirty.
  *
  * **They apply to everything the Age places**, named or not: a dial is about how this world makes things,
- * where a rung is about one of them. A feature the knob does not fit — a lake, for a vein size — comes
+ * where a rung is about one of them. A feature the parameter does not fit — a lake, for a vein size — comes
  * back untouched rather than approximated.
  */
 object FeatureShape {
@@ -218,7 +218,7 @@ object FeatureShape {
      *
      * A modifier list is a stream transform, so a height range appended to a feature that has none simply
      * overrides whatever put it there: a tree that follows the heightmap would be torn off the ground and
-     * buried. So a feature with no band of its own is one this knob has nothing to say about.
+     * buried. So a feature with no band of its own is one this parameter has nothing to say about.
      *
      * The replacement is a uniform band, which loses the triangular distribution vanilla gives its ores.
      * That is the trade: a writer can say *where* a thing sits, and cannot say what shape the seam has.
@@ -241,14 +241,14 @@ object FeatureShape {
         return (ordinary * factor).roundToInt().coerceIn(1, most)
     }
 
-    /** A knob at the bottom of its axis leaves a quarter of what there was; at the top, four times. */
+    /** A parameter at the bottom of its axis leaves a quarter of what there was; at the top, four times. */
     private const val FAINTEST = 0.25
     private const val RICHEST = 4.0
 
     /** Vanilla's largest vein is 20-odd blocks, so this is generous rather than a real bound. */
     private const val MOST_OF_A_VEIN = 64
 
-    /** A chance stays a chance: a knob may fill a patch or thin it, never take it past certain. */
+    /** A chance stays a chance: a parameter may fill a patch or thin it, never take it past certain. */
     private fun scaledChance(ordinary: Float, dial: Double): Float {
         val factor = FAINTEST + Span.NATURAL.fractionOf(dial) * (RICHEST - FAINTEST)
         return (ordinary * factor).toFloat().coerceIn(0.05f, 1.0f)

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.aspect
 
+import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
 
 /**
@@ -15,8 +16,10 @@ import net.minecraft.resources.Identifier
  * the Age has: an Age holds whatever its biomes would until a sentence says otherwise, and a creature
  * nobody tagged is still perfectly reachable by name (§8.2).
  */
-data class Spawn(override val id: Identifier) : Referent {
+data class Spawn(override val id: Identifier) : RegistryReference {
     override val aspect = Aspect.SPAWNS
+
+    override val registry = Registries.ENTITY_TYPE
 
     companion object {
         /** The creature [key] names, or null where it is not a well-formed id. */

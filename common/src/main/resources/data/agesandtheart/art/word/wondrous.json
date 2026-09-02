@@ -1,10 +1,12 @@
 {
   "tier": "evocative",
-  "query": {
-    "monumental": 1.0,
-    "sheer": 0.8,
-    "floating": 0.7,
-    "glowing": 0.5,
-    "colourful": 0.4
+  "queries": {
+    "all": {
+      "monumental": 1.0,
+      "sheer": 0.8,
+      "floating": 0.7,
+      "glowing": 0.5,
+      "colourful": 0.4
+    }
   }
 }

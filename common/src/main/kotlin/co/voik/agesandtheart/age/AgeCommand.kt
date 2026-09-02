@@ -60,6 +60,7 @@ import com.mojang.brigadier.context.CommandContext
 import net.minecraft.ChatFormatting
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
+import net.minecraft.core.registries.Registries
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.minecraft.util.Mth
@@ -291,6 +292,7 @@ object AgeCommand {
                 .then(writeSubcommand())
                 .then(vocabularySubcommand())
                 .then(tagsSubcommand())
+                .then(dimensionsSubcommand())
                 .then(pagesSubcommand())
                 .then(forgetSubcommand())
                 .then(weatherSubcommand())
@@ -401,6 +403,38 @@ object AgeCommand {
      * the layer is vanilla's own tags, which are bound on a server and nowhere else, so this is the one
      * place the whole picture exists.
      */
+    /**
+     * **Every dimension this server has**, ours and everyone else's.
+     *
+     * A book starts from a base dimension — one of vanilla's three today, because `AgeTemplate` names
+     * their noise settings, biome sources and dimension types in code. Nothing about the mechanism is
+     * vanilla-only: what a base supplies is a chunk generator and a dimension type, which a modded
+     * dimension has as surely as the nether does.
+     *
+     * This is here so the word forge can see what a server actually offers, ahead of anything being able
+     * to use it. Reading the list is the cheap half; making a template out of one is the other half, and
+     * it wants `AgeTemplate` to stop being an enum first.
+     */
+    private fun dimensionsSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        reporting("dimensions") { reportFor ->
+            Commands.literal("all").executes { context -> runDimensions(context, reportFor(context)) }
+        }
+
+    private fun runDimensions(context: CommandContext<CommandSourceStack>, report: Report): Int {
+        val server = context.source.server
+        val ours = AgeSavedData.get(server).ages.map { it.toString() }.toSet()
+        val stems = server.registryAccess().lookupOrThrow(Registries.LEVEL_STEM)
+        val ids = stems.listElementIds().map { it.identifier().toString() }.toList().sorted()
+        report.fact("dimensions", ids.size) { "This server has ${ids.size} dimension(s):" }
+        for (id in ids) {
+            report.entry("dimension", mapOf("id" to id, "ours" to (id in ours))) {
+                "  $id${if (id in ours) "  (an Age)" else ""}"
+            }
+        }
+        report.finish()
+        return SUCCESS
+    }
+
     private fun tagsSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         reporting("tags") { reportFor ->
             Commands.argument(ASPECT_ARGUMENT, StringArgumentType.word())
@@ -1763,8 +1797,8 @@ object AgeCommand {
         report.fact("authored", authored.size) { "${authored.size} written by hand:" }
         for (word in authored) {
             val about = if (word.aspects.isEmpty()) "anywhere" else word.aspects.joinToString(" ") { it.page }
-            val asks = word.query.entries.sortedBy { it.key }
-                .joinToString(" ") { (tag, weight) -> if (weight < 0) "-$tag" else tag }
+            // Every tag it asks for, wherever it asks — a global tilt and a keyed one read the same here.
+            val asks = (word.wanted.sorted() + word.unwanted.sorted().map { "-$it" }).joinToString(" ")
             val fields = mapOf(
                 "word" to word.name,
                 "tier" to word.tier.key,
@@ -1961,12 +1995,12 @@ object AgeCommand {
         val level = openNamedAge(source, name, Report.prose(source)) ?: return FAILURE
         val recipe = AgeSavedData.get(source.server).recipe(ageId(name))
 
-        // The Art's own words and the library's knobs are told apart by name, so one line can carry both:
+        // The Art's own words and the library's parameters are told apart by name, so one line can carry both:
         // `sun.size=0.9..1.0 path=epicycle` reads as a sky the words describe with one thing turned.
         val said = preview?.split(' ')?.filter { it.isNotBlank() } ?: emptyList()
-        val (knobs, words) = said.partition { SkyKnobs.offers(it.substringBefore('=')) }
+        val (parameters, words) = said.partition { SkyParameters.offers(it.substringBefore('=')) }
 
-        // **A line with no words turns the Age's own sky**, and that is the only way a knob reaches a sky
+        // **A line with no words turns the Age's own sky**, and that is the only way a parameter reaches a sky
         // the words made: a preview spec resolves one sun and one moon whatever it says, bodies being
         // minted by clauses that a `sky.…` line cannot carry. Naming any word restates the sky in full, as
         // it always did — so `path=polar` alone tips the Age's own suns and `sky=plain path=polar` tips one.
@@ -1979,14 +2013,14 @@ object AgeCommand {
             previewSpec(source, words.joinToString(" "), recipe.seed) ?: return FAILURE
         }
 
-        // **Described after the knobs, not before.** Reporting the sky as written while showing the client
+        // **Described after the parameters, not before.** Reporting the sky as written while showing the client
         // the sky as turned is the one thing this instrument must not do: you would read an unchanged
         // description, look up at a changed sky, and conclude the feature was broken.
         val shown = if (preview == null) {
             null
         } else {
-            SkyKnobs.applyTo(asWritten, knobs).getOrElse { problem ->
-                source.sendFailure(Component.literal(problem.message ?: "Could not read a knob"))
+            SkyParameters.applyTo(asWritten, parameters).getOrElse { problem ->
+                source.sendFailure(Component.literal(problem.message ?: "Could not read a parameter"))
                 return FAILURE
             }
         }
@@ -1994,8 +2028,8 @@ object AgeCommand {
 
         val heading = if (preview == null) "Age '$name' sky" else "Previewing in '$name' (reverts on re-entry)"
         source.sendSuccess({ Component.literal(heading) }, false)
-        if (knobs.isNotEmpty()) {
-            source.sendSuccess({ Component.literal("  turned ${knobs.joinToString(" ")}") }, false)
+        if (parameters.isNotEmpty()) {
+            source.sendSuccess({ Component.literal("  turned ${parameters.joinToString(" ")}") }, false)
         }
         for (line in (shown?.sky ?: asWritten).described()) {
             source.sendSuccess({ Component.literal("  $line") }, false)
@@ -2032,7 +2066,7 @@ object AgeCommand {
                 Component.literal(
                     "`/age sky` previews the sky only, but you named ${strayAspects.joinToString(" ")}. " +
                         "Write it as `sky=plain sun.size=0.6..1.0`, and use `/age compose` for the rest. " +
-                        "The library's own knobs are ${SkyKnobs.describeOffered()}.",
+                        "The library's own parameters are ${SkyParameters.describeOffered()}.",
                 ),
             )
             return null
@@ -2043,15 +2077,15 @@ object AgeCommand {
         // **Everything overhead, not the vault alone.** The bodies are the sun's, the moon's and the
         // stars' aspects now, and a preview line still spells them all `sky.…` because it is one
         // instrument over one picture.
-        // Which of the four owns each knob, **first of them wins**: `rising` is the sun's and the moon's
+        // Which of the four owns each parameter, **first of them wins**: `rising` is the sun's and the moon's
         // alike, and a preview line naming one body means the sun. The moon's is reachable through
         // `/age compose moon.rising=…`, which spells the aspect out.
         val overhead = listOf(Aspect.SKY, Aspect.SUN, Aspect.MOON, Aspect.STARS)
-        val ownerOfKnob = overhead
-            .flatMap { aspect -> aspect.dials.map { it.name to aspect } }
+        val ownerOfParameter = overhead
+            .flatMap { aspect -> aspect.parameters.map { it.name to aspect } }
             .groupBy({ it.first }, { it.second })
             .mapValues { (_, owners) -> owners.first() }
-        val skyParameters = overhead.flatMap { it.dials }.associateBy { parameter -> parameter.name }
+        val skyParameters = overhead.flatMap { it.parameters }.associateBy { parameter -> parameter.name }
         val unreadable = preview.split(' ')
             .filter { token -> token.isNotBlank() && token.startsWith("$SKY_ASPECT.") }
             .mapNotNull { token ->
@@ -2067,13 +2101,13 @@ object AgeCommand {
             return null
         }
 
-        // **Aimed at the aspect that owns each knob before it is read.** A preview spells everything
+        // **Aimed at the aspect that owns each parameter before it is read.** A preview spells everything
         // overhead `sky.…` because it is one instrument over one picture, but the bodies are the sun's, the
         // moon's and the stars' aspects — so a `sky.colour` left as written is stored on the vault and
         // looked for on the sun, which is to say accepted and then ignored.
         val aimed = preview.split(' ').filter(String::isNotBlank).joinToString(" ") { token ->
             val name = token.substringBefore('=').removePrefix("$SKY_ASPECT.")
-            val owner = ownerOfKnob[name]
+            val owner = ownerOfParameter[name]
             if (!token.startsWith("$SKY_ASPECT.") || owner == null) token
             else "${owner.page}.$name=${token.substringAfter('=')}"
         }
@@ -2639,7 +2673,7 @@ object AgeCommand {
 
     /**
      * Every Age and the recipe it is rebuilt from, one to a line. Unrecognised options are called out,
-     * so a misspelt knob is distinguishable from one that had no effect.
+     * so a misspelt parameter is distinguishable from one that had no effect.
      */
     private fun runList(context: CommandContext<CommandSourceStack>, report: Report): Int {
         val source = context.source

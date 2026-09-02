@@ -35,7 +35,7 @@ import net.minecraft.resources.Identifier
 object Atmosphere {
 
     /** Whether standing water boils away, as it does in the nether. */
-    val EVAPORATION = Parameter.flag("evaporation").perBiome()
+    val EVAPORATION = Parameter.flag("evaporation", help = "Whether standing water boils away, as it does in the nether.").perBiome()
 
     /**
      * The three the eye sees, each taking one of [Colour]'s nine.
@@ -43,16 +43,24 @@ object Atmosphere {
      * **A colour and not a hex triple** — §3.2's rule at its least arguable: "green" is a thing a person
      * says about a sky where `#6DB563` is a fact about our arithmetic.
      */
-    val SKY = colour("colour")
-    val FOG = colour("colour")
-    val CLOUD = colour("colour")
+    val SKY = colour("colour", "The colour of the sky itself.")
+    val FOG = colour("colour", "The colour of the air and its fog.")
+    val CLOUD = colour("colour", "The colour of the clouds.")
 
     /**
-     * How close the fog closes in — **one knob for what vanilla holds as two distances**, since a writer
+     * How close the fog closes in — **one parameter for what vanilla holds as two distances**, since a writer
      * says "thick" rather than "starting at 32 and ending at 96". The two are derived, and the granular
      * pair stays available the day a word wants it.
      */
-    val HAZE = Parameter.ranged("haze").perBiome()
+    val HAZE = Parameter.ranged(
+        "haze",
+        help = "How close the fog closes in.",
+        landmarks = listOf(
+                Parameter.Landmark(-1.0, "clear to the horizon"),
+                Parameter.Landmark(0.0, "ordinary"),
+                Parameter.Landmark(1.0, "fog at arm's length"),
+            ),
+        ).perBiome()
 
     /**
      * How much of the time it rains, and how much of *that* is thunder.
@@ -67,11 +75,35 @@ object Atmosphere {
      * and so insists on them, but so might a drowned Age with no lightning in it at all, and neither should
      * have to be the other.
      */
-    val RAINFALL = Parameter.ranged("rainfall")
-    val THUNDER = Parameter.ranged("thunder")
+    val RAINFALL = Parameter.ranged(
+        "rainfall",
+        help = "How much of the time it rains.",
+        landmarks = listOf(
+                Parameter.Landmark(-1.0, "never"),
+                Parameter.Landmark(0.0, "ordinary"),
+                Parameter.Landmark(1.0, "almost always"),
+            ),
+        )
+    val THUNDER = Parameter.ranged(
+        "thunder",
+        help = "How much of the rain is thunder.",
+        landmarks = listOf(
+                Parameter.Landmark(-1.0, "never"),
+                Parameter.Landmark(0.0, "ordinary"),
+                Parameter.Landmark(1.0, "every storm"),
+            ),
+        )
 
     /** How high the clouds sit, on the same argument: one number a word bends. */
-    val CEILING = Parameter.ranged("ceiling").perBiome()
+    val CEILING = Parameter.ranged(
+        "ceiling",
+        help = "How high the clouds sit.",
+        landmarks = listOf(
+                Parameter.Landmark(-1.0, "low overhead"),
+                Parameter.Landmark(0.0, "vanilla's"),
+                Parameter.Landmark(1.0, "far above"),
+            ),
+        ).perBiome()
 
     /**
      * How far you see underwater — [HAZE]'s sibling, and named for the same direction it obscures.
@@ -80,23 +112,36 @@ object Atmosphere {
      * colour would only ever have moved the fog and left the surface vanilla blue, where a distance moves
      * the one thing a swimmer actually experiences.
      */
-    val MURK = Parameter.ranged("murk").perBiome()
+    val MURK = Parameter.ranged(
+        "murk",
+        help = "How far you can see underwater.",
+        landmarks = listOf(
+                Parameter.Landmark(-1.0, "clear water"),
+                Parameter.Landmark(0.0, "ordinary"),
+                Parameter.Landmark(1.0, "you can barely see"),
+            ),
+        ).perBiome()
 
     /**
      * What colour the light itself is — a world *lit* red, which is a different thing from a red sky.
      *
-     * One knob over both the sky's light and the ambient, because a writer who says the light is green
+     * One parameter over both the sky's light and the ambient, because a writer who says the light is green
      * means all of it.
      */
-    val TINT = colour("tint")
+    val TINT = colour("tint", "The colour of the light everything is lit by.")
 
     /**
      * What hangs in the air — vanilla's own particles, named. Populative in spirit and a dial in shape: an
      * Age has one kind of dust in it, and the day that stops being true this becomes a claim.
      */
-    val MOTES = Parameter("motes", listOf(Parameter.DEFAULT) + Motes.ALL).perBiome()
+    val MOTES = Parameter(
+        "motes",
+        listOf(Parameter.DEFAULT) + Motes.ALL,
+        help = "What hangs in the air.",
+    ).perBiome()
 
-    private fun colour(name: String) = Parameter(name, listOf(Parameter.DEFAULT) + Colour.ALL).perBiome()
+    private fun colour(name: String, help: String) =
+        Parameter(name, listOf(Parameter.DEFAULT) + Colour.ALL, help = help).perBiome()
 
     /**
      * What the grass is tinted, and what the leaves are — **the ground rather than the air**, kept here
@@ -105,9 +150,9 @@ object Atmosphere {
      *
      * Sited like every other colour here, which is the whole of `purple grass in swamp`.
      */
-    val GRASSCOLOUR = colour("colour")
+    val GRASSCOLOUR = colour("colour", "The colour of the grass.")
 
-    val LEAFCOLOUR = colour("colour")
+    val LEAFCOLOUR = colour("colour", "The colour of the leaves.")
 
     /**
      * This Age's own layer laid over the ones vanilla built, or the system untouched where the sentence
@@ -213,7 +258,7 @@ object Atmosphere {
     /**
      * Every biome any dial of this aspect was confined to, visual or not.
      *
-     * Asked of the aspect rather than of a list written here: which dials may be sited is the parameter's
+     * Asked of the aspect rather than of a list written here: which parameters may be sited is the parameter's
      * own answer now ([Parameter.confinable]), and the list this replaced had to be kept in step by hand.
      */
     fun cornersOf(parts: AgeParts): List<Identifier> =

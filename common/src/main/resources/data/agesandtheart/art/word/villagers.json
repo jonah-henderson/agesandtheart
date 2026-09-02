@@ -1,10 +1,9 @@
 {
   "tier": "restrictive",
-  "aspects": [
-    "spawns"
-  ],
-  "query": {
-    "inhabited": 1.0,
-    "built": 0.6
+  "queries": {
+    "spawns": {
+      "inhabited": 1.0,
+      "built": 0.6
+    }
   }
 }

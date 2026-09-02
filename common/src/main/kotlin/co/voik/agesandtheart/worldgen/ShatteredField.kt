@@ -43,7 +43,7 @@ object ShatteredField {
      * [RegionMap.blend] is zero because nothing here asks which cell a column is *in* — only how far it
      * stands from the nearest join, which is measured before the blend's dither would fray it anyway.
      * [CELLS] is what decides how often two neighbours draw the same number and run together, so it is a
-     * knob on how irregular the plate is as much as on anything.
+     * parameter on how irregular the plate is as much as on anything.
      */
     fun mosaic(salt: Long = 0L) = RegionMap(
         members = CELLS,
@@ -68,7 +68,7 @@ object ShatteredField {
      */
     private const val CELLS = 6
 
-    /** How far a cell runs, in blocks — the mesa-size knob, and the only one that matters much. */
+    /** How far a cell runs, in blocks — the mesa-size parameter, and the only one that matters much. */
     private const val CELL_SCALE = 620.0
 
     /** Half a join's width, so about 140 across against a 145-block drop. Canyonlands' proportion. */

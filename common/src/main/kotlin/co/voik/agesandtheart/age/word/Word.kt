@@ -2,7 +2,9 @@ package co.voik.agesandtheart.age.word
 
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.MATERIAL_PARAMETERS
-import co.voik.agesandtheart.age.aspect.AspectPreset
+import co.voik.agesandtheart.age.aspect.Taggable
+import net.minecraft.core.Registry
+import net.minecraft.resources.ResourceKey
 import com.mojang.serialization.Codec
 import com.mojang.serialization.DataResult
 import kotlin.random.Random
@@ -11,6 +13,72 @@ import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.resources.Identifier
 import net.minecraft.util.StringRepresentable
 import java.util.Optional
+
+/**
+ * A page name as an [Aspect] — **file-private rather than `Word`'s own**, because [Claims] needs it too
+ * and is declared above `Word`. It is the same reading `/age compose` and every tag table use.
+ */
+private val ASPECT_CODEC: Codec<Aspect> = Codec.STRING.comapFlatMap(
+    { named ->
+        Aspect.entries.firstOrNull { it.page == named }
+            ?.let { DataResult.success(it) }
+            ?: DataResult.error { "no part of the world is called '$named'" }
+    },
+    Aspect::page,
+)
+
+// A set rather than a list: "terrain terrain" means nothing, and pricing counts aspects constrained.
+private val ASPECT_SET_CODEC: Codec<Set<Aspect>> = ASPECT_CODEC.listOf().xmap({ it.toSet() }, { it.toList() })
+
+/**
+ * One side of what a word does to the world's parameters — **what it always turns, and what it might.**
+ *
+ * The same three fields appear twice on a [Word]: once flat at the top level, where they are what the word
+ * *demands*, and once under `requests`, where they are what it merely *offers* (`the-world-model.md` §5).
+ * Strength and certainty are separate questions and this is the half that answers certainty, so either
+ * strength may be a plain claim or a pool drawn from.
+ *
+ * Flat at the top level rather than under a `required` block of its own, because a word that only demands
+ * is nearly every word there is: `{"tier": "exact", "sets": {"colour": "red"}}` should not have to say so.
+ */
+data class Claims(
+    val sets: Map<String, String> = emptyMap(),
+    val pool: Map<String, String> = emptyMap(),
+    val draws: Int = 0,
+    /**
+     * Tags this side wants, **keyed by aspect and never flat** — how an offer reaches the *choice* of
+     * preset rather than a parameter on the one that was chosen. An inferno's sea is the case: a sea is picked
+     * from a catalogue by tag, and there is no parameter that says "lava".
+     *
+     * Keyed because a flat query must never be derived from (§4.4's worst finding: `stormy` means
+     * `gloomy`, `caverns` is also `gloomy`, and a word about the sky pinned the ground). An offer states
+     * its aspect and so may widen the reach honestly, exactly as [Word.queries] does.
+     */
+    val queries: Map<Aspect, Map<String, Double>> = emptyMap(),
+) {
+    val isEmpty: Boolean get() = sets.isEmpty() && pool.isEmpty() && queries.isEmpty()
+
+    /** Everything this side could ever turn, whatever an Age's draw settles on. */
+    val everything: Map<String, String> get() = sets + pool
+
+    companion object {
+        val NOTHING = Claims()
+
+        val CODEC: Codec<Claims> = RecordCodecBuilder.create { instance ->
+            // Queries before parameters, as `Word`'s own codec has it — a word file reads the same way at both
+            // levels, so nobody has to learn a second order for the nested block.
+            instance.group(
+                Codec.unboundedMap(ASPECT_CODEC, Codec.unboundedMap(Codec.STRING, Codec.DOUBLE))
+                    .optionalFieldOf("queries", emptyMap()).forGetter(Claims::queries),
+                Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("sets", emptyMap())
+                    .forGetter(Claims::sets),
+                Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("pool", emptyMap())
+                    .forGetter(Claims::pool),
+                Codec.INT.optionalFieldOf("draws", 0).forGetter(Claims::draws),
+            ).apply(instance) { queries, sets, pool, draws -> Claims(sets, pool, draws, queries) }
+        }
+    }
+}
 
 /**
  * How much freedom a word takes away — the whole of what precision means here (design §4.4). One
@@ -82,13 +150,18 @@ data class Word(
      */
     val aspects: Set<Aspect>,
     /**
-     * The tags this word asks for, weighted and **signed**, because a query may push away as well as pull
-     * (§3.3) — without negative weights "beautiful" reliably produced an ocean of lava.
+     * Tags this word asks of **every part of the world at once** — spelled `queries: { all: … }`.
      *
-     * Content tags stay unipolar: the negativity belongs to the query, never to the world, so two
-     * negative-carrying words down-weight independently rather than cancelling to mush.
+     * **Only an evocative word may have one**, and for it the global reach is the whole point: a word
+     * that does not narrow is written on the Age rather than on a part of it, and `Constraint.aimedAt` is
+     * empty for one because nothing consults it. `beautiful` leans the whole world green and cannot rule
+     * anything out.
+     *
+     * On a word that *narrows* it is §4.4's worst finding waiting to happen — `stormy` means `gloomy`,
+     * `caverns` is also `gloomy`, and a word about the sky pinned the ground. `VocabularyCheck` refuses
+     * one there, which is what lets this contribute nothing to [reaching] and stay safe by construction.
      */
-    val query: Map<String, Double>,
+    val everywhere: Map<String, Double> = emptyMap(),
     /**
      * The same, **asked only of one part of the world** — for a word that means different things in
      * different places rather than one thing everywhere.
@@ -104,18 +177,27 @@ data class Word(
      */
     val queries: Map<Aspect, Map<String, Double>> = emptyMap(),
     /**
-     * The one preset this word names outright, by its key — what makes a word referential rather than
-     * evaluative (§8.1). Every derived word has one; an authored word may.
+     * The one preset this word means in a part of the world, by its key — what makes a word referential
+     * rather than evaluative (§8.1).
      *
-     * A word that names a preset **does not search** for carriers, which is what keeps §8.2 structural:
-     * it arrives with its answer in hand, and a vague word can never reach it for want of a name.
+     * A word that means a preset outright **does not search** for carriers, which is what keeps §8.2
+     * structural: it arrives with its answer in hand, and a vague word can never reach it for want of a
+     * name. That is also the one way to reach something `Vocabulary.askableIn` leaves out.
      *
-     * The key rather than a resolved [AspectPreset], so a word stays plain data and an id naming content
-     * this pack lacks survives being read.
+     * **A name somebody chose**, and so not the same relation as [entryOf]: `spires` means
+     * `spire_islands` and `inverted` means `inverse_caves`, mappings that exist nowhere else. A word that
+     * simply *is* its content — every derived block word — says [entryOf] instead and repeats nothing.
+     *
+     * Keyed by aspect exactly as [queries] and [weights] are, and for the reason those are: an id says
+     * nothing about which registry it belongs to, so an unkeyed name let `minecraft:diamond_block` be a
+     * sea and a structure set and a biome at once.
+     *
+     * The key rather than a resolved [Taggable], so a word stays plain data and a key naming content this
+     * pack lacks survives being read.
      */
-    val names: String? = null,
+    val meansExactly: Map<Aspect, String> = emptyMap(),
     /**
-     * Parameters this word chooses, by name — how a word reaches a material (§3.2) or any other knob.
+     * Parameters this word chooses, by name — how a word reaches a material (§3.2) or any other parameter.
      * Applied to every aspect the word speaks to, since a parameter name only means anything within one.
      *
      * **One value per parameter**: a word names one thing, and what joins two is a conjunction in the
@@ -141,6 +223,24 @@ data class Word(
      * means all of it — so a word with a pool and no `draws` is simply a word with more `sets`.
      */
     val draws: Int = 0,
+    /**
+     * The same three, **requested rather than required** — laid *under* the sentence instead of over it
+     * (`the-world-model.md` §5).
+     *
+     * `scorching` "insists on the heat and offers a red sky, large suns, several of them", and until this
+     * existed there was no way to write the second half: [pool] draws *which* facets fire, and then
+     * demands whatever it drew. So an offer contended with the writer, and `a blue sun. an inferno Age.`
+     * displaced one of them and charged somebody for a contradiction the writer never made — the same
+     * fault the size words' coupling to mingling was retired for.
+     *
+     * **Strength and certainty are separate questions**, which is why this is the whole record again
+     * rather than a flag: a word may insist on one thing always, insist on another sometimes, offer a
+     * third always and offer a fourth sometimes, and an inferno wants at least three of those four.
+     *
+     * What it yields to is a *demand* on the same parameter of the same aspect, and nothing else. Two requests
+     * settle between themselves exactly as two demands would, and neither is ever charged for the other.
+     */
+    val requests: Claims = Claims.NOTHING,
     /**
      * What this word thinks of particular presets, by key — **said outright, where a tag is too coarse**.
      *
@@ -205,6 +305,24 @@ data class Word(
      * is where it would be spelled either way.
      */
     val mintsSomethingThatFlows: Boolean = false,
+    /**
+     * The registry this word **is** an entry of, where its own name is the content's id and nobody chose
+     * it — `minecraft:stone`, said `stone`.
+     *
+     * The other half of [meansExactly], and a different fact rather than a shorthand for the same one.
+     * Writing the key here would restate the word's own id 1168 times and say nothing; what is genuinely
+     * unknown is the registry, because **an id cannot say which one it belongs to** —
+     * `minecraft:diamond_block` and `minecraft:village_plains` are the same shape, and an open aspect's
+     * `presetFor` parses rather than looks up. Without it every derived word meant a preset in *every*
+     * open aspect: a block was a sea and a structure set and a biome at once, and `diamond_block
+     * structures` parsed, resolved, charged ink and generated a structure set no registry holds.
+     *
+     * The aspects it answers for fall out of [Aspect.presetsAreEntriesOf] rather than being listed.
+     *
+     * Not in the codec: a pack author writes [meansExactly], which says the same thing about one entry in
+     * the language the file already speaks. This is what a *derivation* over a whole registry says instead.
+     */
+    val entryOf: ResourceKey<out Registry<*>>? = null,
 ) {
     /** What a writer says to use it. */
     val name: String get() = id.path
@@ -217,7 +335,10 @@ data class Word(
      * *means*, which a draw must not move: a word charged as unbacked because this Age's draw happened to
      * miss the parameter that would have landed is a writer paying for a coin they did not toss.
      */
-    val canSet: Map<String, String> get() = everySet + bare(pool)
+    val canSet: Map<String, String> get() = everySet + bare(pool) + bare(requests.sets) + bare(requests.pool)
+
+    /** The demanded half, as one record — the shape [requests] already has, for the code that asks both. */
+    val required: Claims get() = Claims(sets, pool, draws)
 
     /**
      * Whether anything here names the aspect it is meant for — `sun.absent` rather than `absent`.
@@ -226,32 +347,37 @@ data class Word(
      * aspect it might land in, and the answer is no for nearly every word ever written. Where it is no,
      * that method hands back the map it already has and allocates nothing.
      */
-    private val someKnobNamesItsAspect: Boolean =
-        sets.keys.any(::namesAnAspect) || pool.keys.any(::namesAnAspect)
+    private val someParameterNamesItsAspect: Boolean =
+        (sets.keys + pool.keys + requests.sets.keys + requests.pool.keys).any(::namesAnAspect)
 
     /**
      * What this word sets on [aspect] — what it sets everywhere, and what it sets **only** here.
      *
      * The same shape as [queryIn], and for the same reason an aspect keys [weights]: an aspect is the unit
      * a claim lands in. What it adds is the other direction — a word that must *not* say the same thing
-     * everywhere it could. `sun.absent` and `moon.absent` are one knob on two bodies, and `sunless` means
+     * everywhere it could. `sun.absent` and `moon.absent` are one parameter on two bodies, and `sunless` means
      * only the first; without a way to say so the two words would be indistinguishable, since
      * [reaching] only ever widens (`decisions.md`).
      *
      * An unqualified key still reaches every aspect owning it, which is what makes one `colour` word paint
      * eight aspects. Qualifying is the exception and reads as one.
      */
-    fun setsIn(aspect: Aspect): Map<String, String> =
-        if (!someKnobNamesItsAspect) sets else sets.mapNotNull { (spelled, value) ->
+    fun setsIn(aspect: Aspect): Map<String, String> = meantFor(aspect, sets)
+
+    /** What this word *requests* on [aspect] — [setsIn] for the half that yields rather than demands. */
+    fun requestsIn(aspect: Aspect): Map<String, String> = meantFor(aspect, requests.sets)
+
+    private fun meantFor(aspect: Aspect, parameters: Map<String, String>): Map<String, String> =
+        if (!someParameterNamesItsAspect) parameters else parameters.mapNotNull { (spelled, value) ->
             val meant = aspectMeantBy(spelled)
-            if (meant != null && meant != aspect) null else knobNameIn(spelled) to value
+            if (meant != null && meant != aspect) null else parameterNameIn(spelled) to value
         }.toMap()
 
     /** Everything it could set anywhere, under plain names — the capability question, never the landing one. */
     val everySet: Map<String, String> get() = bare(sets)
 
-    private fun bare(knobs: Map<String, String>): Map<String, String> =
-        if (!someKnobNamesItsAspect) knobs else knobs.mapKeys { knobNameIn(it.key) }
+    private fun bare(parameters: Map<String, String>): Map<String, String> =
+        if (!someParameterNamesItsAspect) parameters else parameters.mapKeys { parameterNameIn(it.key) }
 
     /**
      * The aspects a key names that no aspect answers to — a typo, reported at load rather than ignored.
@@ -259,8 +385,9 @@ data class Word(
      * A key nothing can read is inert, which is §3.3's silent drop wearing a different hat: the word costs
      * a page, sets nothing, and says so nowhere.
      */
-    val unreadableKnobs: List<String>
-        get() = (sets.keys + pool.keys).filter { it.contains(KNOB_MARK) && aspectMeantBy(it) == null }
+    val unreadableParameters: List<String>
+        get() = (sets.keys + pool.keys + requests.sets.keys + requests.pool.keys)
+            .filter { it.contains(PARAMETER_MARK) && aspectMeantBy(it) == null }
 
     /**
      * What it actually chooses in the Age [draw] belongs to — the core, and [draws] of the pool.
@@ -269,15 +396,29 @@ data class Word(
      * draws the same thing every time the Age is rebuilt. Resolution is a pure function of (vocabulary,
      * sentence, seed) and this stays inside that promise.
      */
-    fun setsDrawnAt(draw: Long): Map<String, String> = facetsDrawnAt(draw).mapValues { (parameter, value) ->
-        oneOf(value, draw, parameter)
-    }
+    fun setsDrawnAt(draw: Long): Map<String, String> = settled(required, draw, REQUIRED_SALT)
+
+    /**
+     * The same for the requested half.
+     *
+     * **Salted apart from the required draw**, or one pool's shuffle would decide the other's: both are
+     * seeded from the Age and the word, and two pools of the same size would then fire the same positions
+     * every time — the facets a word demands and the ones it merely offers would move together for ever.
+     */
+    fun requestsDrawnAt(draw: Long): Map<String, String> = settled(requests, draw, REQUESTED_SALT)
+
+    private fun settled(claims: Claims, draw: Long, salt: Long): Map<String, String> =
+        facetsDrawnAt(claims, draw, salt).mapValues { (parameter, value) -> oneOf(value, draw, parameter) }
 
     /**
      * Whether anything about this word is left to the Age — a pool to draw from, or a value with
      * alternatives in it. A word with neither is the same word in every world it appears in.
      */
-    val varies: Boolean get() = (pool.isNotEmpty() && draws > 0) || (sets + pool).values.any { ALTERNATIVE in it }
+    val varies: Boolean
+        get() = listOf(required, requests).any { claims ->
+            (claims.pool.isNotEmpty() && claims.draws > 0) ||
+                (claims.sets + claims.pool).values.any { ALTERNATIVE in it }
+        }
 
     /**
      * One of `a|b|c`, chosen for this Age — **which value**, where the pool chooses **which parameter**.
@@ -310,19 +451,29 @@ data class Word(
         return mixed xor (mixed ushr 31)
     }
 
-    private fun facetsDrawnAt(draw: Long): Map<String, String> {
+    private fun facetsDrawnAt(claims: Claims, draw: Long, salt: Long): Map<String, String> {
+        val (sets, pool, draws) = claims
         if (pool.isEmpty() || draws <= 0) return sets
         if (draws >= pool.size) return sets + pool
         // Sorted first so the map's own iteration order cannot reach the answer, then shuffled by a
         // generator seeded from the Age and the word. An earlier version sorted by a hash of the two
         // xored together and drew the *same* facets every time: the draw only moves low bits, and the
         // keys' hashes differ by far more than that, so nothing ever reordered.
-        val order = pool.keys.sorted().shuffled(Random(scrambled(draw xor id.hashCode().toLong())))
+        val order = pool.keys.sorted().shuffled(Random(scrambled(draw xor id.hashCode().toLong() xor salt)))
         return sets + order.take(draws).associateWith { pool.getValue(it) }
     }
 
-    /** The preset this word names in [aspect], if it names one that aspect can hold. */
-    fun namedPreset(aspect: Aspect): AspectPreset? = names?.let(aspect::presetFor)
+    /**
+     * The one preset this word means in [aspect], or null where it means nothing there in particular.
+     *
+     * Two ways to mean one: a name somebody chose for a preset ([meansExactly]), or being the registry
+     * entry oneself ([entryOf]). The aspect has to be checked either way, because an open aspect parses
+     * any well-formed id into its own kind of preset and would otherwise take a block for a biome.
+     */
+    fun meaningIn(aspect: Aspect): Taggable? {
+        val itself = id.toString().takeIf { entryOf != null && aspect.presetsAreEntriesOf == entryOf }
+        return (meansExactly[aspect] ?: itself)?.let(aspect::presetFor)
+    }
 
     /**
      * Whether this word says nothing except which part of the world it is about — an **aiming page**
@@ -331,22 +482,32 @@ data class Word(
      * Recognised by shape rather than by a flag, because that shape *is* the definition: a word with no
      * query, no named preset and no parameter has nothing to contribute but its aspects.
      */
-    val aims: Boolean get() = everyQuery.isEmpty() && names == null && canSet.isEmpty() &&
+    val aims: Boolean get() = everyQuery.isEmpty() && meansNothingOutright && canSet.isEmpty() &&
         weights.isEmpty() && template == null && aspects.isNotEmpty()
 
     /** What this word asks of [aspect] — what it asks everywhere, and what it asks only here. */
-    fun queryIn(aspect: Aspect): Map<String, Double> = query + queries[aspect].orEmpty()
+    fun queryIn(aspect: Aspect): Map<String, Double> = everywhere + queries[aspect].orEmpty()
 
-    /** Every tag this word has an opinion about anywhere, which is the honest answer to "could it want X". */
+    /**
+     * Every tag this word has an opinion about anywhere, which is the honest answer to "could it want X".
+     *
+     * Public as [everyTagAsked] for the checks and the forge, which used to read the flat `query` and now
+     * have to ask across the keyed ones as well.
+     */
+    val everyTagAsked: Map<String, Double> get() = everyQuery
+
     private val everyQuery: Map<String, Double>
-        get() = queries.values.fold(query) { standing, next -> standing + next }
+        get() = queries.values.fold(everywhere) { standing, next -> standing + next }
 
     /**
      * Whether this word has anything to say about *which* preset fills an aspect, as opposed to how that
      * preset is steered. A word that only sets a parameter must not be treated as narrowing: an empty
      * carrier set is how the resolver recognises a word the world cannot satisfy (§3.3).
      */
-    val constrainsPresets: Boolean get() = names != null || everyQuery.values.any { it > 0.0 }
+    val constrainsPresets: Boolean get() = !meansNothingOutright || everyQuery.values.any { it > 0.0 }
+
+    /** Whether nothing anywhere is meant outright — neither a chosen name nor an entry it *is*. */
+    private val meansNothingOutright: Boolean get() = meansExactly.isEmpty() && entryOf == null
 
     /**
      * The same question asked of one aspect, which is the honest form. A derived block word names a *sea*
@@ -354,7 +515,7 @@ data class Word(
      * speaks to, finds no carrier in most, and is charged as unbacked for an opinion it never had.
      */
     fun constrainsPresetsIn(aspect: Aspect): Boolean =
-        namedPreset(aspect) != null || queryIn(aspect).values.any { it > 0.0 }
+        meaningIn(aspect) != null || queryIn(aspect).values.any { it > 0.0 }
 
     /**
      * The tags this word wants, which are the ones that must have a carrier somewhere (§3.3).
@@ -371,12 +532,30 @@ data class Word(
     val unwanted: Set<String> get() = everyQuery.filterValues { it < 0.0 }.keys
 
     /**
+     * Every tag this word merely **offers** an opinion about — deliberately apart from [wanted].
+     *
+     * The coverage checks want these: a misspelled tag in an offer is as inert as one in a demand. What
+     * must *not* see them is `Vocabulary.disagreement`, which reads [wanted] to say two words cannot both
+     * stand — an offer yields rather than argues, so an inferno offering the sea `molten` does not
+     * contradict a writer who wrote `drowned`; it simply is not there.
+     */
+    val offeredTags: Set<String> get() = requests.queries.values.flatMap { it.keys }.toSet()
+
+    /**
+     * How much this word would *lean* the draw in [aspect] toward a preset carrying [tags] — a tilt, and
+     * so the one kind of claim that yields by construction: where a demand narrowed the aspect to one
+     * survivor there is nothing left for a tilt to choose between.
+     */
+    fun offeredAffinityIn(aspect: Aspect, tags: Map<String, Double>): Double =
+        requests.queries[aspect].orEmpty().entries.sumOf { (tag, weight) -> weight * (tags[tag] ?: 0.0) }
+
+    /**
      * The block this word names, or null where it names none — every derived block word sets one, and
      * nothing authored does.
      *
      * Asked of [Parameter.material] rather than of a parameter by name. Two readers wanted this and both
      * looked for `Terrain.STONE` by name: `Grammar` to decide a page is a material at all, and `Resolver`
-     * to find what a minted pattern is made of. One aspect's knob was standing in for "a block".
+     * to find what a minted pattern is made of. One aspect's parameter was standing in for "a block".
      */
     val material: String? get() = sets.entries.firstOrNull { it.key in MATERIAL_PARAMETERS }?.value
 
@@ -428,25 +607,25 @@ data class Word(
      * absolutely. Without this a derived word would be scored on tags it does not have, so "creosote oil
      * beside a lava sea" gave creosote the *smaller* share.
      */
-    fun pullOn(preset: AspectPreset, tags: Map<String, Double>): Double = when {
-        names == preset.key -> NAMED_OUTRIGHT
+    fun pullOn(preset: Taggable, tags: Map<String, Double>): Double = when {
+        meaningIn(preset.aspect)?.key == preset.key -> MEANT_EXACTLY
         // The preset carries the aspect, so a per-aspect query needs no argument threaded to it: what a
         // word asks of a candidate is decided by where the candidate lives.
         else -> weightOn(preset) ?: pullIn(preset.aspect, tags)
     }
 
     /** What this word says about [preset] by name, in the aspect it belongs to, or null where it is silent. */
-    fun weightOn(preset: AspectPreset): Double? =
+    fun weightOn(preset: Taggable): Double? =
         weights.entries.firstNotNullOfOrNull { (aspect, byPreset) ->
             byPreset[preset.key]?.takeIf { aspect.presetFor(preset.key) != null }
         }
 
     /** [affinityIn], with a direct weight winning where this word named this preset outright. */
-    fun affinityOn(preset: AspectPreset, tags: Map<String, Double>): Double =
+    fun affinityOn(preset: Taggable, tags: Map<String, Double>): Double =
         weightOn(preset) ?: affinityIn(preset.aspect, tags)
 
     /** [accepts], asked of a preset this word may have an opinion about by name. */
-    fun acceptsOn(preset: AspectPreset, tags: Map<String, Double>): Boolean {
+    fun acceptsOn(preset: Taggable, tags: Map<String, Double>): Boolean {
         val strength = pullOn(preset, tags)
         return strength > 0.0 && strength >= tier.threshold
     }
@@ -470,8 +649,8 @@ data class Word(
         private const val FIRST_MIX = -0x40a7b892e31b1a47L
         private const val SECOND_MIX = -0x6b2fb644ecceee15L
 
-        /** What naming a thing outright is worth, against a tag weight, which never exceeds one. */
-        private const val NAMED_OUTRIGHT = 1.0
+        /** What meaning a thing outright is worth, against a tag weight, which never exceeds one. */
+        private const val MEANT_EXACTLY = 1.0
 
         /** What separates one alternative from the next inside a single value. */
         private const val ALTERNATIVE = '|'
@@ -479,66 +658,101 @@ data class Word(
         /** What a page at home in one part of the world is worth, as versatility — see [Word.price]. */
         private const val ONE_PLACE = 1
 
+        /** What keeps the two pools' draws independent — see [Word.requestsDrawnAt]. */
+        private const val REQUIRED_SALT = 0L
+        private const val REQUESTED_SALT = 0x5eed_0ffe_2ed0_1a1dL
+
         /**
-         * Where a word reaches, given what its file said and **every concrete claim it makes**.
+         * Where a word speaks, **derived from everything it claims and from nothing else.**
          *
          * A word acts on an aspect four ways, and three of them say which aspect outright: a parameter
-         * ([steers]) is owned by exactly one, a [named] preset belongs to the aspect whose list holds it,
-         * and [weighted] is *keyed* by aspect already. Each is unioned in, because a claim landing in an
-         * aspect the word does not reach is never applied — and worse than unapplied, it counts against
-         * the draw in the aspect the word *does* reach as a knob nothing there honours.
+         * ([steers]) is owned by exactly one, a preset [meant] outright is keyed by the aspect it is meant
+         * in, and [weighted] is keyed already. Each is unioned in, because a claim landing in an aspect the
+         * word does not reach is never applied — and worse than unapplied, it counts against the draw in
+         * the aspect the word *does* reach as a parameter nothing there honours.
          *
          * **The fourth is a tag query, and it must not be derived from.** Tags are properties of the
          * world, not of a word: `stormy` means `gloomy`, `gloomy` is also on `caverns`, so a word about
-         * the sky pinned the terrain to caverns and discarded `floating` in silence (§4.4, the spike's
+         * the sky pinned the *terrain* to caverns and discarded `floating` in silence (§4.4, the spike's
          * single most important finding). A query says what a word likes, never where it belongs.
          *
-         * **[Tier] decides what an empty declaration means**, which is §4.4's rule rather than a new one:
-         * an evocative word declaring none means *anywhere*, because tilting everywhere is what makes it
-         * evocative. `beautiful` nudges the climate axes and weights the biomes, so deriving would shut it
-         * into those two and it would stop being beautiful anywhere else — and it takes no freedom away
-         * anywhere, so being unaimed costs nothing.
+         * **[Tier] decides what claiming nowhere means.** An evocative word means *anywhere*, because
+         * tilting everywhere is what makes it evocative: `beautiful` nudges the climate axes and weights
+         * the biomes, and shutting it into those two would stop it being beautiful anywhere else. A
+         * narrowing word that lands nowhere is left empty on purpose, so `DerivedAspectsCheck` can refuse
+         * it — a word that removes candidates and is aimed at nothing removes them everywhere.
          *
-         * A **narrowing** word derives from its claims whether it declared anything or not, and a word
-         * that names a preset therefore need not also say which aspect the preset is in. One that narrows
-         * and lands nowhere at all is left empty on purpose, so `DerivedAspectsCheck` can refuse it: a
-         * word that removes candidates and is aimed at nothing removes them everywhere.
+         * There used to be a declared set of aspects laid alongside, and its only real job was aiming a
+         * flat query: every other claim already names the parts of the world it touches, so declaring was
+         * either the one thing holding a word up or noise. Measured before it went: of 128 authored
+         * words, 47 needed it and every one of those was a bare `query`; 33 declared it and changed
+         * nothing. Keying the query says the same thing in one place, so the declaration went.
          */
         fun reaching(
-            tier: Tier,
-            declared: Set<Aspect>,
             steers: Map<String, String>,
-            named: String?,
+            meant: Set<Aspect>,
             weighted: Set<Aspect>,
+            /** A pattern this word mints a member out of — see [mints], and `Resolver.mintedFeatures`. */
+            minted: String? = null,
         ): Set<Aspect> {
-            if (declared.isEmpty() && !tier.narrows) return emptySet()
             val steered = Aspect.entries.filter { aspect ->
                 steers.keys.any { spelled ->
-                    val meant = aspectMeantBy(spelled)
-                    (meant == null || meant == aspect) && aspect.ownsParameterNamed(knobNameIn(spelled))
+                    val meantBy = aspectMeantBy(spelled)
+                    (meantBy == null || meantBy == aspect) && aspect.ownsParameterNamed(parameterNameIn(spelled))
                 }
             }
-            val holdsTheName = Aspect.entries.filter { named != null && it.ownsPresetNamed(named) }
-            return declared + steered + holdsTheName + weighted
+            // **Minting is the features' own.** `Resolver.mintedFeatures` is the only reader of `mints`
+            // and it makes a placed feature out of the pattern, so a word that mints is a word about
+            // them — `lakes`, `springs` and `veins` claim nothing else at all.
+            val mints = if (minted == null) emptySet() else setOf(Aspect.FEATURES)
+            return (steered + meant + weighted + mints).toSet()
         }
+
+        /** The `queries` key that means every part of the world at once — see [everywhere]. */
+        const val EVERYWHERE = "all"
+
+        /**
+         * `queries`, keyed by aspect page or by [EVERYWHERE].
+         *
+         * Validated on the way in so a mistyped page is a word that fails to load and is reported, rather
+         * than a query that quietly asks nothing of nowhere.
+         */
+        private val QUERIES_CODEC: Codec<Map<String, Map<String, Double>>> =
+            Codec.unboundedMap(Codec.STRING, Codec.unboundedMap(Codec.STRING, Codec.DOUBLE))
+                .comapFlatMap(
+                    { raw ->
+                        val strange = raw.keys.filterNot { said ->
+                            said == EVERYWHERE || Aspect.entries.any { it.page == said }
+                        }
+                        if (strange.isEmpty()) {
+                            com.mojang.serialization.DataResult.success(raw)
+                        } else {
+                            com.mojang.serialization.DataResult.error {
+                                "queries names ${strange.joinToString(" ")}, which is no aspect page nor '$EVERYWHERE'"
+                            }
+                        }
+                    },
+                    { it },
+                )
 
         /** A word as its file says it, the id coming from where the file *is*, like every vanilla registry. */
         fun mapCodec(id: Identifier): MapCodec<Word> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
                 Tier.CODEC.fieldOf("tier").forGetter(Word::tier),
-                ASPECT_SET_CODEC.optionalFieldOf("aspects", emptySet()).forGetter(Word::aspects),
-                // Optional: a word naming a preset outright has nothing to ask of tag space. Both together
-                // is legal and means "this, and it is also like these".
-                Codec.unboundedMap(Codec.STRING, Codec.DOUBLE).optionalFieldOf("query", emptyMap())
-                    .forGetter(Word::query),
-                Codec.unboundedMap(ASPECT_CODEC, Codec.unboundedMap(Codec.STRING, Codec.DOUBLE))
-                    .optionalFieldOf("queries", emptyMap()).forGetter(Word::queries),
-                Codec.STRING.optionalFieldOf("names").forGetter { Optional.ofNullable(it.names) },
+                // **One field for both**, keyed by aspect page or by `all` — see [everywhere]. A key
+                // that names neither is a parse error rather than a silently dropped query.
+                QUERIES_CODEC.optionalFieldOf("queries", emptyMap()).forGetter { word ->
+                    word.queries.mapKeys { it.key.page } +
+                        (if (word.everywhere.isEmpty()) emptyMap() else mapOf(EVERYWHERE to word.everywhere))
+                },
+                Codec.unboundedMap(ASPECT_CODEC, Codec.STRING).optionalFieldOf("means_exactly", emptyMap())
+                    .forGetter(Word::meansExactly),
                 Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("sets", emptyMap())
                     .forGetter(Word::sets),
                 Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("pool", emptyMap())
                     .forGetter(Word::pool),
                 Codec.INT.optionalFieldOf("draws", 0).forGetter(Word::draws),
+                Claims.CODEC.optionalFieldOf("requests", Claims.NOTHING).forGetter(Word::requests),
                 Codec.unboundedMap(ASPECT_CODEC, Codec.unboundedMap(Codec.STRING, Codec.DOUBLE))
                     .optionalFieldOf("weights", emptyMap()).forGetter(Word::weights),
                 Codec.STRING.optionalFieldOf("template").forGetter { Optional.ofNullable(it.template) },
@@ -546,13 +760,23 @@ data class Word(
                 Codec.BOOL.optionalFieldOf("mints_something_that_flows", false)
                     .forGetter(Word::mintsSomethingThatFlows),
             ).apply(instance) {
-                tier, aspects, query, queries, names, sets, pool, draws, weights, template, mints, flows,
+                tier, queries, meansExactly, sets, pool, draws, requests, weights, template,
+                mints, flows,
                 ->
-                val named = names.orElse(null)
-                val reaches = reaching(tier, aspects, sets + pool, named, weights.keys + queries.keys)
+                val everywhere = queries[EVERYWHERE].orEmpty()
+                val keyed = queries.filterKeys { it != EVERYWHERE }
+                    .mapNotNull { (page, tags) -> Aspect.entries.firstOrNull { it.page == page }?.to(tags) }
+                    .toMap()
+                // **Both halves widen the reach.** A word that only *offers* to redden a sun is still a
+                // word about the sun, and one that reached nowhere would have its offer skipped in the
+                // only aspect it meant it — which is the silent drop §3.3 exists to forbid.
+                val steers = sets + pool + requests.everything
+                // `all` deliberately adds nothing: a global tilt is not a claim on any one part.
+                val aimed = weights.keys + keyed.keys + requests.queries.keys
+                val reaches = reaching(steers, meansExactly.keys, aimed, mints.orElse(null))
                 Word(
-                    id, tier, reaches, query, queries, named, sets, pool, draws, weights,
-                    template.orElse(null), mints.orElse(null), flows,
+                    id, tier, reaches, everywhere, keyed, meansExactly, sets, pool, draws, requests,
+                    weights, template.orElse(null), mints.orElse(null), flows,
                 )
             }
         }
@@ -562,33 +786,22 @@ data class Word(
          * on every load, so it names parts of the world the way a writer does. Only a *save* is written in
          * keys, and no save holds one of these.
          */
-        /** What separates the aspect a knob is meant for from the knob — `/age compose`'s own spelling. */
-        private const val KNOB_MARK = '.'
+        /** What separates the aspect a parameter is meant for from the parameter — `/age compose`'s own spelling. */
+        private const val PARAMETER_MARK = '.'
 
-        private fun namesAnAspect(spelled: String) = spelled.contains(KNOB_MARK)
+        private fun namesAnAspect(spelled: String) = spelled.contains(PARAMETER_MARK)
 
         /** The aspect a key names, or null where it names none — including where it names one wrongly. */
         private fun aspectMeantBy(spelled: String): Aspect? {
-            if (!spelled.contains(KNOB_MARK)) return null
-            val named = spelled.substringBefore(KNOB_MARK)
+            if (!spelled.contains(PARAMETER_MARK)) return null
+            val named = spelled.substringBefore(PARAMETER_MARK)
             return Aspect.entries.firstOrNull { it.page == named }
         }
 
-        /** The knob itself, with any aspect it named taken off — and left whole where it named none. */
-        private fun knobNameIn(spelled: String): String =
-            if (aspectMeantBy(spelled) == null) spelled else spelled.substringAfter(KNOB_MARK)
+        /** The parameter itself, with any aspect it named taken off — and left whole where it named none. */
+        private fun parameterNameIn(spelled: String): String =
+            if (aspectMeantBy(spelled) == null) spelled else spelled.substringAfter(PARAMETER_MARK)
 
-        private val ASPECT_CODEC: Codec<Aspect> = Codec.STRING.comapFlatMap(
-            { named ->
-                Aspect.entries.firstOrNull { it.page == named }
-                    ?.let { DataResult.success(it) }
-                    ?: DataResult.error { "no part of the world is called '$named'" }
-            },
-            Aspect::page,
-        )
-
-        // A set rather than a list: "terrain terrain" means nothing, and pricing counts aspects constrained.
-        private val ASPECT_SET_CODEC: Codec<Set<Aspect>> = ASPECT_CODEC.listOf().xmap({ it.toSet() }, { it.toList() })
     }
 }
 
@@ -660,7 +873,7 @@ data class PresetProfile(
 
 /** One aspect's worth of profiles, which is one `art/preset_tags/<aspect>.json`. */
 data class PresetTags(private val byPreset: Map<String, PresetProfile>) {
-    fun of(preset: AspectPreset): PresetProfile = byKey(preset.key)
+    fun of(preset: Taggable): PresetProfile = byKey(preset.key)
 
     /** The same, where only the preset's name is known — which is all a file being loaded has. */
     fun byKey(key: String): PresetProfile = byPreset[key] ?: EMPTY_PROFILE

@@ -1,9 +1,8 @@
 {
   "tier": "exact",
-  "aspects": [
-    "landmass"
-  ],
-  "query": {
-    "flat": 1.0
+  "queries": {
+    "landmass": {
+      "flat": 1.0
+    }
   }
 }

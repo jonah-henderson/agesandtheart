@@ -1,9 +1,8 @@
 {
   "tier": "restrictive",
-  "aspects": [
-    "depths"
-  ],
-  "query": {
-    "cavernous": 1.0
+  "queries": {
+    "depths": {
+      "cavernous": 1.0
+    }
   }
 }

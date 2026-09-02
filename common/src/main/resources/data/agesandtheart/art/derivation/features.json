@@ -210,10 +210,6 @@
     "end_platform": {
       "floating": 0.6,
       "built": 0.5
-    },
-    "random_patch": {
-      "grown": 0.9,
-      "undergrowth": 0.9
     }
   },
   "by_tag": {

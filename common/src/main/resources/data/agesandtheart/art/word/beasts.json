@@ -4,6 +4,9 @@
     "for the ones that graze."
   ],
   "tier": "restrictive",
-  "aspects": ["spawns"],
-  "query": { "fauna": 1.0 }
+  "queries": {
+    "spawns": {
+      "fauna": 1.0
+    }
+  }
 }

@@ -4,6 +4,7 @@ import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.RegionMap
 import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
@@ -18,18 +19,17 @@ import kotlin.math.roundToInt
  * The aspect chooses the substance only; the height comes from the [Terrain], which is what lets any sea
  * be poured over any terrain and land at a sensible level. [DEPTH] is the writer's one lever over it.
  */
-data class Sea(override val id: Identifier) : Referent {
+data class Sea(override val id: Identifier) : RegistryReference {
     override val aspect = Aspect.SEA
+
+    override val registry = Registries.BLOCK
 
     /**
      * A sea of air is the shape standing in open air, with no height to steer. Answered from the id rather
-     * than by resolving the block, so it needs no booted Minecraft — [parameters] asks it, and a recipe
-     * check and a datapack loader both reach that without a game running.
+     * than by resolving the block, so it needs no booted Minecraft — a recipe check and a datapack loader
+     * both reach it without a game running.
      */
     val isEmpty: Boolean get() = id in EMPTY_IDS
-
-    override val parameters: List<Parameter>
-        get() = if (isEmpty) emptyList() else listOf(DEPTH)
 
     /**
      * What this sea is made of; air for a sea of nothing. A block the pack does not have resolves to air,
@@ -97,7 +97,26 @@ data class Sea(override val id: Identifier) : Referent {
         }
 
         /** How far under or over its ordinary level this sea stands — see [DEEPEST_SHIFT]. */
-        val DEPTH = Parameter.ranged("depth")
+        /**
+         * How far the sea stands above or below the level the terrain left it.
+         *
+         * **The aspect's own**, though a sea of nothing has no level worth raising. It was the member's
+         * for a while, so that `Resolver.capabilityFactor` would lean the draw away from air whenever a
+         * writer asked for a level — which was a preference wearing a capability's clothes. Air can hold a
+         * depth perfectly well; the result is simply invisible. A word that wants a *deep* sea and not an
+         * empty one says so where preferences belong, by pushing the `empty` tag away.
+         */
+        val DEPTH = Parameter.ranged(
+            "depth",
+            help = "How far above or below its usual level the sea stands.",
+            landmarks = listOf(
+                Parameter.Landmark(-1.0, "12 blocks down"),
+                Parameter.Landmark(-0.5, "6 down"),
+                Parameter.Landmark(0.0, "its usual level"),
+                Parameter.Landmark(0.5, "6 up"),
+                Parameter.Landmark(1.0, "12 blocks up"),
+            ),
+        )
 
         /** Enough to redraw a coastline without drowning or stranding what the terrain built. */
         private const val DEEPEST_SHIFT = 12

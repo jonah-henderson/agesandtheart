@@ -1,10 +1,9 @@
 {
   "tier": "restrictive",
-  "aspects": [
-    "structures"
-  ],
-  "query": {
-    "built": -1.0,
-    "inhabited": -1.0
+  "queries": {
+    "structures": {
+      "built": -1.0,
+      "inhabited": -1.0
+    }
   }
 }

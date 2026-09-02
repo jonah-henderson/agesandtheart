@@ -6,11 +6,10 @@
     "allowed to be."
   ],
   "tier": "exact",
-  "aspects": [
-    "landmass"
-  ],
-  "query": {
-    "monumental": 1.0
+  "queries": {
+    "landmass": {
+      "monumental": 1.0
+    }
   },
   "sets": {
     "size": "0.7..1.0"

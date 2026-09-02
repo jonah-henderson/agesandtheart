@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.age
 
 import co.voik.agesandtheart.age.aspect.Aspect
-import co.voik.agesandtheart.age.aspect.AspectPreset
+import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Share
 import co.voik.agesandtheart.age.aspect.Terrain
@@ -140,7 +140,7 @@ object CompositionSpelling {
     /**
      * The options of an aspect that seats no preset, which the loop above cannot reach because it walks
      * presets. A weighted set is exactly that — an Age holds vanilla's whole table and the sentence adjusts
-     * it — and so is an aspect that is nothing but its dials.
+     * it — and so is an aspect that is nothing but its parameters.
      *
      * The one that divides is spelled apart, in [castSpelling]: a divided climate needs a form that says
      * which territory each stretch belongs to, where an Age-wide answer needs no such thing.
@@ -273,7 +273,7 @@ private fun readShare(spelled: String): Double = Share.read(spelled)
  * like the rest of the spelling. An open aspect has no list to offer, so it says what shape it wanted
  * instead (design §3.1).
  */
-internal inline fun <reified T : AspectPreset> named(aspect: Aspect, key: String): T {
+internal inline fun <reified T : Taggable> named(aspect: Aspect, key: String): T {
     val preset = aspect.presetFor(key)
         ?: error(
             if (aspect.open) {

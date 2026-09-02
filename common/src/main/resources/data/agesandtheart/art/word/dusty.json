@@ -1,8 +1,10 @@
 {
   "tier": "restrictive",
-  "query": {
-    "barren": 1.0,
-    "dry": 0.7
+  "queries": {
+    "biomes": {
+      "barren": 1.0,
+      "dry": 0.7
+    }
   },
   "sets": {
     "motes": "ash",

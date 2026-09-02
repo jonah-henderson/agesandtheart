@@ -1,8 +1,5 @@
 {
   "tier": "exact",
-  "aspects": [
-    "sky"
-  ],
   "sets": {
     "sealed": "true"
   }

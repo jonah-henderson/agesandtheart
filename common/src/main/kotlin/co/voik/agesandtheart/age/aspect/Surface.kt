@@ -9,7 +9,7 @@ import net.minecraft.world.level.levelgen.SurfaceRules
  * What the ground wears — the skin over whatever the rock is made of (design §3.1, vanilla's
  * `surface_rule`).
  *
- * **An aspect with no presets and one knob**, because there is nothing to choose between: a surface is a
+ * **An aspect with no presets and one parameter**, because there is nothing to choose between: a surface is a
  * material, or it is whatever the biome would have laid. That is why naming one *replaces* the skin rather
  * than switching it off, which is the whole of what this aspect adds — a granite body under a blackstone
  * skin was unsayable while `bare` lived on [Biomes] as a two-state dial.
@@ -26,7 +26,7 @@ object Surface {
      * The block the ground is dressed in. Open, so §8's derived vocabulary reaches it with no work: a
      * writer aims a block word at the surface section and that is the whole mechanism.
      */
-    val MATERIAL = Parameter.material("material")
+    val MATERIAL = Parameter.material("material", help = "The block the ground is dressed in: its top layer.")
 
     /**
      * The rule this Age's ground wears, over the rock that has to say which blocks are the top of the

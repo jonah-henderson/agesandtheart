@@ -5,7 +5,7 @@ import com.google.gson.JsonParser
 import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.age.aspect.Aspect
-import co.voik.agesandtheart.age.aspect.AspectPreset
+import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.age.aspect.Setting
 import co.voik.agesandtheart.age.aspect.Spawning
 import co.voik.agesandtheart.age.word.generation.GenerationGrammars
@@ -142,14 +142,14 @@ data class Vocabulary(
     fun grammarWord(name: String): GrammarWord? = structural[name]
 
     /** What [preset] is like — an empty profile being a preset no word can currently reach. */
-    fun profileOf(preset: AspectPreset): PresetProfile =
+    fun profileOf(preset: Taggable): PresetProfile =
         tagsBySlot[preset.aspect]?.of(preset) ?: PresetTags.EMPTY_PROFILE
 
     /** The tags [preset] carries — empty being a preset no word can currently reach. */
-    fun tagsOf(preset: AspectPreset): Map<String, Double> = profileOf(preset).tags
+    fun tagsOf(preset: Taggable): Map<String, Double> = profileOf(preset).tags
 
     /** How willingly the Art reaches for [preset] when nothing asked for it. */
-    fun readinessOf(preset: AspectPreset): Double =
+    fun readinessOf(preset: Taggable): Double =
         profileOf(preset).readiness ?: PresetProfile.ORDINARY_READINESS
 
     /** Every tag anything in the world carries, which bounds what any word can meaningfully ask for. */
@@ -180,7 +180,7 @@ data class Vocabulary(
      * remember: vagueness draws only from the curated pool because it has nothing else to draw from, and
      * the resolver's work is bounded by our curation rather than by the size of the modpack.
      */
-    fun candidatesFor(aspect: Aspect): List<AspectPreset> {
+    fun candidatesFor(aspect: Aspect): List<Taggable> {
         if (!aspect.open) return aspect.authored
         // Sorted, because a draw is made by index and nobody should change a world by reordering a file.
         // A closed aspect gets the same guarantee from its enum's declaration order.
@@ -194,8 +194,8 @@ data class Vocabulary(
      * Here because an open aspect's candidates are the presets its tag table describes, and a direct weight
      * on something the table has never heard of would otherwise score a preset that was never in the bag:
      * inert, and silently so. A weight has to *admit* a preset as well as rank it, which is the same
-     * courtesy [Word.names] already gets — naming a thing being "the one way to reach something
-     * `askableIn` leaves out".
+     * courtesy [Word.meansExactly] already gets — meaning a thing outright being "the one way to reach
+     * something `askableIn` leaves out".
      *
      * **Per aspect**, because an open aspect makes a preset out of any id it is handed: offering every
      * weighted id to every aspect turned a word's biomes into candidate structure sets.
@@ -221,13 +221,13 @@ data class Vocabulary(
      * false` and then leaving the preset in the bag a vague word draws from made it *rarer*, not
      * unreachable: the Spire's sky came up on one Age in three and took its dimension type with it.
      */
-    fun askableIn(aspect: Aspect): List<AspectPreset> =
+    fun askableIn(aspect: Aspect): List<Taggable> =
         candidatesFor(aspect).filter { it.askableInASentence }
 
     /**
-     * The presets in [aspect] this word would keep, at its tier's strictness. A word that **names** a
-     * preset never searches, which is what keeps derived vocabulary free at resolve time (§8.2) — and is
-     * the one way to reach something [askableIn] leaves out, so a deliberate word still can.
+     * The presets in [aspect] this word would keep, at its tier's strictness. A word that **means one
+     * outright** never searches, which is what keeps derived vocabulary free at resolve time (§8.2) — and
+     * is the one way to reach something [askableIn] leaves out, so a deliberate word still can.
      */
     /**
      * Whether anything in [aspect] answers [word] at all, either way — the question a **population** asks
@@ -240,20 +240,20 @@ data class Vocabulary(
     fun answersIn(word: Word, aspect: Aspect): Boolean =
         candidatesFor(aspect).any { word.affinityIn(aspect, tagsOf(it)) != 0.0 }
 
-    fun carriersOf(word: Word, aspect: Aspect): List<AspectPreset> {
-        word.namedPreset(aspect)?.let { return listOf(it) }
+    fun carriersOf(word: Word, aspect: Aspect): List<Taggable> {
+        word.meaningIn(aspect)?.let { return listOf(it) }
         return askableIn(aspect).filter { word.acceptsOn(it, tagsOf(it)) }
     }
 
     /**
      * Whether anything in [aspect] would actually *act* on [parameter], as opposed to declaring it — "has
      * this word anything to do here at all?" for a word that steers rather than chooses. A word may narrow
-     * presets in one aspect and only turn a knob in another, and treating the second as unbacked condemns
+     * presets in one aspect and only turn a parameter in another, and treating the second as unbacked condemns
      * a sentence that works.
      */
-    fun turnsAKnob(aspect: Aspect, parameter: String): Boolean =
+    fun turnsAParameter(aspect: Aspect, parameter: String): Boolean =
         candidatesFor(aspect).any { it.honoursParameterNamed(parameter) } ||
-            aspect.dials.any { it.name == parameter }
+            aspect.parameters.any { it.name == parameter }
 
     /** What a flaw of this [register] earns towards the budget here — its shipped default unless a pack says. */
     fun earnedBy(register: Register): Int = charges[register.key] ?: register.base
@@ -386,7 +386,8 @@ data class Vocabulary(
             val fromRegistries = registries?.let {
                 DerivedWords.biomes(it) + DerivedWords.structures(it) + DerivedWords.features(it)
             }.orEmpty()
-            val fromContent = DerivedWords.materials() + DerivedWords.spawns(spawning.writable) + fromRegistries
+            val fromContent = DerivedWords.materials() + DerivedWords.designs() +
+                DerivedWords.spawns(spawning.writable) + fromRegistries
             // **What the world says about itself, with what a pack said laid over it** — the tag half of
             // §8's "no per-mod work": a modded biome carrying `#minecraft:is_forest` is wooded without
             // anybody here having heard of it. Absent offline for want of bound tags, which is why the
@@ -441,11 +442,12 @@ data class Vocabulary(
             }
         }
 
-        /** One referent's word said whole: everywhere it speaks, and every knob it turns. */
+        /** One referent's word said whole: everywhere it speaks, and every parameter it turns. */
         private fun mergedCapabilities(word: Word, also: Word): Word = word.copy(
             aspects = word.aspects + also.aspects,
             sets = word.sets + also.sets,
-            names = word.names ?: also.names,
+            meansExactly = word.meansExactly + also.meansExactly,
+            entryOf = word.entryOf ?: also.entryOf,
         )
 
         /**
@@ -490,7 +492,6 @@ data class Vocabulary(
                     id = aspect.page.location(),
                     tier = Tier.RESTRICTIVE,
                     aspects = setOf(aspect),
-                    query = emptyMap(),
                 )
             }
 

@@ -245,7 +245,7 @@ data class Drainage(
 
     companion object {
         /**
-         * How many nodes across the scan is. **Seven, and it is not a tuning knob**: a reach is drawn for
+         * How many nodes across the scan is. **Seven, and it is not a tuning parameter**: a reach is drawn for
          * the middle nine, whose stream order needs their neighbours' flow, whose flow needs *their*
          * neighbours' heights. Three rings out, exactly.
          */

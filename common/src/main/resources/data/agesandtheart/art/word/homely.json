@@ -1,11 +1,13 @@
 {
   "tier": "evocative",
-  "query": {
-    "inhabited": 0.8,
-    "flat": 0.8,
-    "lush": 0.6,
-    "grown": 0.4,
-    "hostile": -0.8,
-    "sheer": -0.5
+  "queries": {
+    "all": {
+      "inhabited": 0.8,
+      "flat": 0.8,
+      "lush": 0.6,
+      "grown": 0.4,
+      "hostile": -0.8,
+      "sheer": -0.5
+    }
   }
 }

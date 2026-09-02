@@ -37,7 +37,8 @@ object Phenomena {
         leastKept = NOTHING_AT_ALL,
         emptiedBy = NOTHING,
         named = Phenomenon.entries.map { it.key },
-    )
+            help = "What happens here: a tempest, an inferno, an aurora.",
+        )
 
     /**
      * What these options say befalls the Age — empty where they say nothing.

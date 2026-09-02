@@ -106,6 +106,43 @@ object Grammar {
         pages.any { classify(vocabulary, it).kind == PageClass.NUCLEUS }
 
     /**
+     * Whether [pages] read **exactly as laid** — nothing repaired, nothing moved, nothing dropped.
+     *
+     * [read] cannot answer this. It says no for one reason only, a missing `age` page, and everything else
+     * it forgives by handing the row to [Repair] and returning the sentence the Art wrote instead. That is
+     * right for a book somebody wrote and wrong for a screen asking **what could be laid next**, where the
+     * question is whether this row is a sentence rather than what could be made of it — and asking it
+     * through [read] answers yes to every row alike, at the cost of running a repair to find out.
+     */
+    fun parses(vocabulary: Vocabulary, pages: List<String>): Boolean =
+        reading(vocabulary, emptyList()).parsesWith(pages)
+
+    /**
+     * A row already classified, ready to be asked what could follow it.
+     *
+     * **For a screen offering the next page**, which asks the same question of a thousand candidates
+     * against one unchanging row. [parses] classifies every page every time it is called, so the row is
+     * looked up again for each candidate and the cost is the row's length rather than the question's —
+     * on a book half written that was four fifths of the work.
+     */
+    fun reading(vocabulary: Vocabulary, laid: List<String>): Reading =
+        Reading(vocabulary, laid.map { classify(vocabulary, it) })
+
+    /** A classified row. [Page] stays inside the port: what a caller says and reads back is text. */
+    class Reading internal constructor(
+        private val vocabulary: Vocabulary,
+        private val laid: List<Page>,
+    ) {
+        /** Whether the row with [tail] on the end reads **exactly as laid** — see [Grammar.parses]. */
+        fun parsesWith(tail: List<String>): Boolean {
+            val whole = laid + tail.map { classify(vocabulary, it) }
+            if (whole.any { it.kind == null }) return false
+            if (whole.none { it.kind == PageClass.NUCLEUS }) return false
+            return ArtReading.parse(whole) != null
+        }
+    }
+
+    /**
      * What the Art makes of one page — its class, the word behind it, and the part of the world it is in.
      * [latent] where the page is the Art's own rather than a writer's.
      */

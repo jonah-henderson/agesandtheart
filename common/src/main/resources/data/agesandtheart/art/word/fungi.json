@@ -1,5 +1,8 @@
 {
   "tier": "restrictive",
-  "aspects": ["features"],
-  "query": { "fungal": 1.0 }
+  "queries": {
+    "features": {
+      "fungal": 1.0
+    }
+  }
 }

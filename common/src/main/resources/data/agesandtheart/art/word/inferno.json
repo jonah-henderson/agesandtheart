@@ -1,7 +1,9 @@
 {
   "_comment": [
-    "A world that burns (design 5.2.2). Reaches four aspects, and only the first is what it *is*: the rest",
-    "are what an inferno Age looks like when the writer said nothing else.",
+    "A world that burns (design 5.2.2). What it *is* is the phenomenon; the rest is what an inferno Age",
+    "looks like when the writer said nothing else -- and that sentence is finally true, because the",
+    "`requests` block is laid *under* the sentence rather than over it. Write `a blue sun. an inferno Age.`",
+    "and you get your blue sun, uncharged; the offer simply is not there to argue with.",
     "",
     "Temperature and rainfall are demands rather than limits, and that is the whole difference between",
     "'reached for' and 'insisted on' (Jonah, 2026-08-08). A limit yields silently to anything outside it, so",
@@ -9,30 +11,54 @@
     "writer should pay for, exactly as `scorching frozen` already does. A demand fractures against one it",
     "cannot meet, which is the charge. Compatible words still merge: `warm inferno` is not a quarrel.",
     "",
+    "The embers are required and undrawn. They are the largest warning a player gets, which is why no other",
+    "word may offer them (VocabularyCheck holds it) -- and a signal that only fires two Ages in three is no",
+    "better than one that fires where nothing is burning. They were pooled until 2026-09-01 and should not",
+    "be again.",
+    "",
+    "**The sky is where an inferno differs from mere heat.** `scorching` is a hot climate and leans on the",
+    "ground; this is the air itself alight, so it asks for a sky to match and asks harder: two or three suns",
+    "where scorching asks at most a second, red *or blue* where scorching keeps to the warm end -- a blue",
+    "star burns hotter than a red one, and that is the point of it -- and three facets drawn where scorching",
+    "draws one. `sun.cast` is the only way a word can bring a body into being: a writer mints a sun by",
+    "describing one, and there is no clause in `an inferno Age` to mint anything.",
+    "",
+    "**The sea is offered rather than set, and by tag rather than by parameter**, because a sea is a value from",
+    "a catalogue and there is no parameter that says `lava`. The tilt is the one kind of claim that yields by",
+    "construction: it leans the draw between whatever survived, so `an inferno Age. A drowned sea.` leaves",
+    "water the only survivor and the lean is simply spent on it. Lava first, air close behind -- a world",
+    "that burns has either a sea of fire or none at all -- and water pushed away, which is what stops the",
+    "readiness of the ordinary answer carrying the day in a world where it has no business.",
+    "",
+    "Every parameter here names its aspect. Unqualified they would reach every aspect owning the name, so",
+    "`colour` would paint the grass and the leaves and `size` would quietly shrink the trees.",
+    "",
     "Instability never compounds through this. A manifestation is bought with the index after the index is",
     "settled, so only what is *written* can charge -- an inferno the Art inflicted on a broken Age cannot",
-    "make it more broken.",
-    "",
-    "The embers are not decoration. They are the largest warning a player gets, which is why no other word",
-    "may offer them (VocabularyCheck holds it): a signal that also appears where nothing is burning is not",
-    "a signal."
+    "make it more broken."
   ],
   "tier": "exact",
-  "aspects": [
-    "phenomena",
-    "climate",
-    "sky"
-  ],
   "sets": {
     "happens": "inferno",
+    "motes": "embers|flames",
     "temperature": "0.5..1.0",
     "rainfall": "-1.0..-0.4"
   },
-  "pool": {
-    "motes": "embers|flames",
-    "colour": "red|blue",
-    "suns": "1|2|3",
-    "size": "0.3..1.0"
-  },
-  "draws": 3
+  "requests": {
+    "queries": {
+      "sea": {
+        "molten": 1.0,
+        "empty": 0.7,
+        "watery": -0.8
+      }
+    },
+    "pool": {
+      "sun.cast": "2|3",
+      "sun.colour": "red|blue",
+      "sun.size": "0.7..1.0",
+      "sky.colour": "red",
+      "haze": "0.35..0.7"
+    },
+    "draws": 3
+  }
 }

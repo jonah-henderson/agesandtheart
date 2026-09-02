@@ -499,7 +499,7 @@ data class MountainRange(
     companion object {
         /**
          * How many nodes across the scan is, and how many rings of them draw a reach. **Eleven and two, and
-         * neither is a tuning knob.** Two things set them, and getting either wrong is not a wrong-looking
+         * neither is a tuning parameter.** Two things set them, and getting either wrong is not a wrong-looking
          * valley but a **seam** — an answer that depends on which cell the question was asked from, which
          * shows as the terrain stepping along straight lines every [spacing] blocks.
          *

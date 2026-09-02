@@ -32,7 +32,7 @@ object Sandfall {
      *
      * **The rung is the brief's two levers at once.** A stronger claim raises how many may stand together
      * *and* shortens the wait between them — `teeming sandfall` is four columns arriving four times as
-     * often, `scarce sandfall` is one arriving four times as rarely — and the phenomenon needs no knob of
+     * often, `scarce sandfall` is one arriving four times as rarely — and the phenomenon needs no parameter of
      * its own to be dialled.
      */
     fun wander(level: ServerLevel, density: Double, fury: Double) {

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.aspect
 
+import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
 
 /**
@@ -15,8 +16,10 @@ import net.minecraft.resources.Identifier
  * reachable by name — §8.2 keeping the resolver's work proportional to our curation rather than to the
  * size of the registry.
  */
-data class Biome(override val id: Identifier) : Referent {
+data class Biome(override val id: Identifier) : RegistryReference {
     override val aspect = Aspect.BIOMES
+
+    override val registry = Registries.BIOME
 
     companion object {
         /** The biome [key] names, or null where it is not a well-formed id. */

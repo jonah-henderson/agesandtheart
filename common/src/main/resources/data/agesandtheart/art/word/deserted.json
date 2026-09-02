@@ -1,15 +1,14 @@
 {
   "tier": "restrictive",
-  "aspects": [
-    "spawns"
-  ],
-  "query": {
-    "undead": -1.0,
-    "arthropod": -1.0,
-    "grazing": -1.0,
-    "inhabited": -1.0,
-    "watery": -0.8,
-    "cavernous": -0.8,
-    "molten": -0.8
+  "queries": {
+    "spawns": {
+      "undead": -1.0,
+      "arthropod": -1.0,
+      "grazing": -1.0,
+      "inhabited": -1.0,
+      "watery": -0.8,
+      "cavernous": -0.8,
+      "molten": -0.8
+    }
   }
 }

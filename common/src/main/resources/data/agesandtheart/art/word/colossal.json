@@ -17,11 +17,10 @@
     "carried; a sun carries no tags at all, so asking it costs nothing and finds nothing."
   ],
   "tier": "exact",
-  "aspects": [
-    "landmass"
-  ],
-  "query": {
-    "monumental": 1.0
+  "queries": {
+    "landmass": {
+      "monumental": 1.0
+    }
   },
   "sets": {
     "size": "1.0..1.0"

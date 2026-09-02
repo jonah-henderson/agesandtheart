@@ -60,7 +60,7 @@ object CraterlandsField {
      * or **null on an axis no word bounded** — which means this landform's own tuning rather than a draw.
      *
      * Each is read here into several numbers at once, which is the point of it being an axis rather than a
-     * knob per dial. [relief] moves the rim, the bowl, the outer scarps *and* how often a peak ring is
+     * parameter per dial. [relief] moves the rim, the bowl, the outer scarps *and* how often a peak ring is
      * drawn; nothing outside can address those separately, and nothing inside has to be told what a block
      * is by the vocabulary.
      */
@@ -714,7 +714,7 @@ object CraterlandsField {
     private const val ISLAND_MEAN_Y = 73
     private const val ISLAND_RELIEF = 22.0
 
-    /** The isle's own dials — see [centralIsland]. */
+    /** The isle's own parameters — see [centralIsland]. */
     private const val ISLE_SHORE_RADIUS = 45.0
     private const val ISLE_PEAK_RISE = 34.0
     private const val ISLE_RELIEF = 20.0

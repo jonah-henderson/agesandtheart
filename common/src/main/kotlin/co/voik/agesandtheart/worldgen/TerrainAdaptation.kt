@@ -42,7 +42,7 @@ class TerrainAdaptation private constructor(
 
     companion object {
         /**
-         * How much beard it takes to overrule the field — the one tuning knob here. Low enough that a
+         * How much beard it takes to overrule the field — the one tuning parameter here. Low enough that a
          * piece's own pad and headroom land, high enough that the kernel's long tail does not quietly
          * reshape terrain a dozen blocks away.
          */

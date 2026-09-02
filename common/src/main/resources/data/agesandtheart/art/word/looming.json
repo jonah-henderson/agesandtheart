@@ -1,13 +1,12 @@
 {
   "tier": "evocative",
-  "aspects": [
-    "landmass"
-  ],
-  "query": {
-    "sheer": 1.0,
-    "monumental": 0.7,
-    "mountainous": 0.6,
-    "flat": -0.7
+  "queries": {
+    "all": {
+      "sheer": 1.0,
+      "monumental": 0.7,
+      "mountainous": 0.6,
+      "flat": -0.7
+    }
   },
   "sets": {
     "relief": "0.35..1.0"

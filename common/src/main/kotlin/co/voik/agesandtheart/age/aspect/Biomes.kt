@@ -53,6 +53,7 @@ object Biomes {
             // No word may empty it: every column has to have *some* biome, so being rare is as far down
             // as an Age can push one. `except` still strikes one out, that being an outright instruction.
             leastKept = BiomePreference.LEAST_KEPT,
+            help = "Which biomes grow here. Naming one asks for more of it.",
         )
 
         /**
@@ -75,7 +76,15 @@ object Biomes {
          * relationship to where our field put the rock. Sixty-three per cent is not a licence for the
          * occasional strange Age, it is the normal case — so the lever stays and points the other way.
          */
-        val FOOTING = Parameter("footing", GROUNDED_FOOTING, FREE_FOOTING)
+        val FOOTING = Parameter(
+            "footing",
+            listOf(GROUNDED_FOOTING, FREE_FOOTING),
+            help = "Whether the biomes follow the shape of the land.",
+            optionHelp = mapOf(
+                GROUNDED_FOOTING to "Biomes follow the terrain: high ground gets mountain biomes.",
+                FREE_FOOTING to "Biomes ignore the terrain, so an ocean biome can sit on a hilltop.",
+            ),
+        )
 
         const val FREE_FOOTING = "free"
         const val GROUNDED_FOOTING = "grounded"

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.aspect
 
+import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
 
 /**
@@ -16,8 +17,10 @@ import net.minecraft.resources.Identifier
  * not which the Age has: an Age grows whatever its biomes would until a sentence says otherwise, and a
  * feature nobody tagged is still perfectly reachable by name (§8.2).
  */
-data class PlacedFeature(override val id: Identifier) : Referent {
+data class PlacedFeature(override val id: Identifier) : RegistryReference {
     override val aspect = Aspect.FEATURES
+
+    override val registry = Registries.PLACED_FEATURE
 
     companion object {
         /** The feature [key] names, or null where it is not a well-formed id. */

@@ -11,9 +11,6 @@
     "and never narrows. The shape is `brilliant`'s exactly."
   ],
   "tier": "exact",
-  "aspects": [
-    "rainbow"
-  ],
   "sets": {
     "rain": "-1.0..-1.0"
   }

@@ -1,10 +1,11 @@
 {
   "tier": "restrictive",
-  "aspects": [
-    "sea",
-    "depths"
-  ],
-  "query": {
-    "watery": 1.0
+  "queries": {
+    "sea": {
+      "watery": 1.0
+    },
+    "depths": {
+      "watery": 1.0
+    }
   }
 }

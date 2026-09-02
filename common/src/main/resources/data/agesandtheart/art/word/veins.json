@@ -8,8 +8,5 @@
     "rather than a seam or a curiosity."
   ],
   "tier": "exact",
-  "aspects": [
-    "features"
-  ],
   "mints": "minecraft:ore_gold"
 }

@@ -33,7 +33,7 @@ private const val SHOWERY = 0.55
 enum class Phenomenon(
     override val key: String,
     /**
-     * The weather this insists on, however the Age's own dials were left.
+     * The weather this insists on, however the Age's own parameters were left.
      *
      * A **floor**, never a setting: a phenomenon that needs rain raises the rain, and one that needs none
      * leaves it where the writer put it. Keeping it declarative is what stops each phenomenon reaching for
@@ -52,7 +52,7 @@ enum class Phenomenon(
      * Age comes apart, unpredictably.
      */
     val inflictedBy: Manifestation? = null,
-) : AspectPreset {
+) : AuthoredPreset {
     /**
      * A world in permanent storm, struck far more often than weather alone would, and cratered where it
      * is struck.

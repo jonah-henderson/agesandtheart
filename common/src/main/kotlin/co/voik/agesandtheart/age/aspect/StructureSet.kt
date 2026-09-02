@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.aspect
 
+import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
 
 /**
@@ -8,15 +9,17 @@ import net.minecraft.resources.Identifier
  *
  * **A set, never a structure.** Within the overworld sets holding several, the members are biome
  * variations of one idea and vanilla re-rolls a set's selection until something fits the biome, so
- * per-structure control would mostly be a knob that did nothing. `minecraft:nether_complexes` is the one
+ * per-structure control would mostly be a parameter that did nothing. `minecraft:nether_complexes` is the one
  * set whose members genuinely differ, and it is split with data rather than code — see [Structures].
  *
  * As with a biome, what `preset_tags/structures.json` bounds is **which sets a vague word can reach**, not
  * which the Age has: an Age builds whatever vanilla would until a sentence says otherwise, and a set
  * nobody tagged is still perfectly reachable by name (§8.2).
  */
-data class StructureSet(override val id: Identifier) : Referent {
+data class StructureSet(override val id: Identifier) : RegistryReference {
     override val aspect = Aspect.STRUCTURES
+
+    override val registry = Registries.STRUCTURE_SET
 
     companion object {
         /** The set [key] names, or null where it is not a well-formed id. */

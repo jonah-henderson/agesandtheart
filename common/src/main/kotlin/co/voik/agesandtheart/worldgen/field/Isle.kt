@@ -38,7 +38,7 @@ data class Isle(
     val shoreY: Int,
     /** How far the middle of an island stands over its shore. */
     val peakRise: Double,
-    /** The mean distance from an island's centre to its coast. **The size knob.** */
+    /** The mean distance from an island's centre to its coast. **The size parameter.** */
     val shoreRadius: Double,
     /** What share of [shoreRadius] one island differs from the next by. */
     val radiusVariation: Double,

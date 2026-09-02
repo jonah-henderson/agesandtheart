@@ -1,8 +1,5 @@
 {
   "tier": "exact",
-  "aspects": [
-    "stars"
-  ],
   "sets": {
     "density": "1.0..1.0"
   }

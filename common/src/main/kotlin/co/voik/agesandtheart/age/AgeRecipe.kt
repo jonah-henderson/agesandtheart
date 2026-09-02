@@ -70,7 +70,7 @@ data class AgeRecipe(
 
     /**
      * What this Age asked for that the **world it was written over** cannot honour — said rather than
-     * silently dropped, on the same argument as [AgeComposition.unknownOptions]: a knob that does nothing
+     * silently dropped, on the same argument as [AgeComposition.unknownOptions]: a parameter that does nothing
      * should look wrong instead of merely being ineffective.
      *
      * One entry so far. Vanilla's router has a single `defaultBlock`, so rock made of two things is rock

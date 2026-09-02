@@ -23,5 +23,28 @@
       "bright": 0.4,
       "dry": 0.3
     }
+  },
+  "minecraft:ice": {
+    "readiness": 0.3,
+    "tags": {
+      "frozen": 1.0,
+      "solid": 0.8,
+      "bright": 0.3
+    }
+  },
+  "minecraft:packed_ice": {
+    "readiness": 0.15,
+    "tags": {
+      "frozen": 1.0,
+      "solid": 0.9
+    }
+  },
+  "minecraft:blue_ice": {
+    "readiness": 0.15,
+    "tags": {
+      "frozen": 1.0,
+      "solid": 1.0,
+      "bright": 0.5
+    }
   }
 }

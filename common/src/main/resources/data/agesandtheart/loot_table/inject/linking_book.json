@@ -2,7 +2,7 @@
   "_comment": [
     "A linking book someone left behind. Rarer than pages by design -- a page is a word, this is a way",
     "home, and finding one should change what you dare to do next.",
-    "stray_chance is the knob: 0 means every found book leads to the Overworld spawn, 1 means every one",
+    "stray_chance is the parameter: 0 means every found book leads to the Overworld spawn, 1 means every one",
     "leads to wherever it was found. A small fraction is the interesting setting -- most are the way",
     "home, a few are somebody else's route to a place you have never been."
   ],

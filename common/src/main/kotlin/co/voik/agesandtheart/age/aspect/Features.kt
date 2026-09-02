@@ -45,22 +45,48 @@ object Features {
      * **A rung here is absolute and takes nothing from anything else** ([FeatureDensity]): twice the trees
      * is twice the trees, where twice the desert is necessarily less of some other biome.
      */
-    val PLACES = Parameter.population("grows", leastKept = NOTHING_AT_ALL, emptiedBy = NOTHING).perBiome()
+    val PLACES = Parameter.population("grows", leastKept = NOTHING_AT_ALL, emptiedBy = NOTHING,
+            help = "What is placed in the world: trees, ores, plants, ruins.",
+        ).perBiome()
 
     /** How an Age says nothing is placed here at all: bare ground, whatever its biomes would have carried. */
     const val NOTHING = "nothing"
 
     /**
      * How big one of a thing is, how thick a patch of it is, and how deep in the column it sits — the
-     * three knobs [FeatureShape] found worth turning in the whole of vanilla's feature data.
+     * three parameters [FeatureShape] found worth turning in the whole of vanilla's feature data.
      *
      * **Dials rather than rungs, and the difference is what each is about.** A rung says how many of one
      * named thing there are; these say what *this Age* is like, so they apply to everything it grows. A
      * word bends them exactly as `arid` bends a climate axis.
      */
-    val SIZE = Parameter.ranged("size").perBiome()
-    val THICKNESS = Parameter.ranged("thickness").perBiome()
-    val HEIGHT = Parameter.ranged("height").perBiome()
+    val SIZE = Parameter.ranged(
+        "size",
+        help = "How big one of a thing is.",
+        landmarks = listOf(
+                Parameter.Landmark(-1.0, "stunted"),
+                Parameter.Landmark(0.0, "ordinary"),
+                Parameter.Landmark(1.0, "as big as it gets"),
+            ),
+        ).perBiome()
+    val THICKNESS = Parameter.ranged(
+        "thickness",
+        help = "How thick a patch of them is.",
+        landmarks = listOf(
+                Parameter.Landmark(-1.0, "one here and there"),
+                Parameter.Landmark(0.0, "ordinary"),
+                Parameter.Landmark(1.0, "a thicket"),
+            ),
+        ).perBiome()
+    val HEIGHT = Parameter.ranged(
+        "height",
+        help = "How deep in the column they sit.",
+        landmarks = listOf(
+                Parameter.Landmark(-1.0, "at the bedrock"),
+                Parameter.Landmark(0.0, "mid-column"),
+                Parameter.Landmark(1.0, "at the surface"),
+            ),
+        ).perBiome()
 
     private const val NOTHING_AT_ALL = 0.0
 
@@ -83,7 +109,7 @@ object Features {
             size = options.steer(SIZE, salt),
             thickness = options.steer(THICKNESS, salt),
             height = options.steer(HEIGHT, salt),
-            // **Not a knob a writer turns.** An ore replaces what its rule matches, and vanilla's rules
+            // **Not a parameter a writer turns.** An ore replaces what its rule matches, and vanilla's rules
             // match vanilla's stone — so an Age made of anything else grows no ore at all unless the rock
             // it *is* gets added to them. Carried here because this is where a feature is rebuilt.
             rock = rock,
@@ -113,7 +139,7 @@ object Features {
         }
     }
 
-    /** The three dials together, since every one of them travels to the same place. */
+    /** The three parameters together, since every one of them travels to the same place. */
     private data class Shape(
         val size: Double?,
         val thickness: Double?,

@@ -50,7 +50,7 @@ const float CORE_IS_AT = 0.75;
 // that blends writes depth whatever its alpha -- so a nearly-clear gap between grains was standing in
 // front of water and ice and taking them out of the picture, leaving the riverbed showing through the
 // hole. A hole has to be a real hole: a grain this faint is discarded, writes no depth, and lets the world
-// behind it through intact. **This is the knob if the curtain reads too thin or too solid** -- lower it for
+// behind it through intact. **This is the parameter if the curtain reads too thin or too solid** -- lower it for
 // a softer veil that eats more of what is behind it, raise it for harder grains and cleaner water.
 const float TOO_FAINT_TO_STAND_IN_FRONT = 0.4;
 

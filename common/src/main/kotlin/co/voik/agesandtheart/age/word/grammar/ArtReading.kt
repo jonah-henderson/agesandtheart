@@ -184,10 +184,10 @@ internal object ArtReading {
          * Whether this page is the name of a biome — one of §8's derived words, and nothing else.
          *
          * **Asked of what a biome word actually is**, which is where this was wrong: it used to require
-         * `Word.names`, and `DerivedWords.biomes` builds every biome word with `setting` rather than
-         * `referring` — deliberately, because a biome *enriches a table* where a sea *is* its block. So no
-         * biome in the game passed, `in <biome>` refused every one of them, and both pages were dropped as
-         * impossible. Nothing covered `in` at all, which is how it survived.
+         * the word to mean a preset outright, and `DerivedWords.biomes` builds every biome word with
+         * `setting` instead — deliberately, because a biome *enriches a table* where a sea *is* its
+         * block. So no biome in the game passed, `in <biome>` refused every one of them, and both pages
+         * were dropped as impossible. Nothing covered `in` at all, which is how it survived.
          */
         private fun namesABiome(page: Page): Boolean {
             if (page.kind != PageClass.TERM) return false

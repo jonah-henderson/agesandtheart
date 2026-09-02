@@ -34,7 +34,7 @@
   },
   "minecraft:phantom": {
     "tags": {
-      "aloft": 1.0,
+      "aloft": 0.9,
       "hostile": 0.9,
       "undead": 0.9,
       "dark": 0.7

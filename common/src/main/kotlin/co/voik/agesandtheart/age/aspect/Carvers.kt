@@ -18,7 +18,7 @@ import net.minecraft.world.level.levelgen.carver.ConfiguredWorldCarver
  * Named in the recipe rather than inherited from a biome — field Ages sit on biomes that carry none. See
  * [co.voik.agesandtheart.worldgen.AgeChunkGenerator.applyCarvers].
  */
-enum class Carvers(override val key: String) : AspectPreset {
+enum class Carvers(override val key: String) : AuthoredPreset {
     /**
      * Solid rock: whatever the shape laid down stays there. The empty set, and so the identity of the
      * union — carving is populative, so `solid ∪ caves` is `caves`.

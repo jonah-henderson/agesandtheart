@@ -4,11 +4,6 @@
     "rules and follow the facts now, so what is left is the two facts: sealed overhead, and no sun."
   ],
   "tier": "exact",
-  "aspects": [
-    "sky",
-    "sun",
-    "stars"
-  ],
   "sets": {
     "sealed": "true",
     "sun.absent": "true",

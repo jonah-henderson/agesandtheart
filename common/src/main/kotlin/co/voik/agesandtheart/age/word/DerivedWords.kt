@@ -1,10 +1,9 @@
 package co.voik.agesandtheart.age.word
 
 import co.voik.agesandtheart.age.aspect.Biomes
-import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Aspect
-import co.voik.agesandtheart.age.aspect.AspectPreset
+import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.age.aspect.Structures
@@ -50,8 +49,9 @@ object DerivedWords {
      * that". No filter beyond [FORBIDDEN]: any filter we invented would exclude somebody's obvious choice,
      * since "spikes made of copper blocks" is not a stone and a sea of packed ice is not a fluid.
      *
-     * One word carries every capability — it [Word.names] the sea, an open aspect whose value *is* a
-     * block, and [Word.sets] the material on the two aspects that wear one, the rock and the skin over it.
+     * One word carries every capability — it is an entry of the block registry ([Word.entryOf]), which is
+     * what lets it *be* the sea, an open aspect whose value is a block; and it [Word.sets] the material on
+     * the two aspects that wear one, the rock and the skin over it.
      * A fluid and its block share an id throughout vanilla, so deriving them separately would collide and
      * cost both bare names.
      *
@@ -66,9 +66,10 @@ object DerivedWords {
         .toList()
 
     /**
-     * A block, said as a word: the sea it could be, and the material it could be made into. [Word.names]
-     * carries the sea because an open aspect's value *is* the referent (§3.1); [Word.sets] carries the
-     * material because a closed aspect's preset *consumes* one (§3.2).
+     * A block, said as a word: the sea it could be, and the material it could be made into. [Word.entryOf]
+     * carries the sea, because an open aspect's value *is* the referent (§3.1) and this word already
+     * spells it — the id is the word's own name, so there is nothing left to write down but which registry
+     * it came from. [Word.sets] carries the material, because a closed aspect's preset *consumes* one (§3.2).
      */
     private fun substance(id: Identifier, pours: Boolean) = Word(
         id = id,
@@ -85,8 +86,11 @@ object DerivedWords {
             // A sign keeps its word and keeps every other use of it; what it stops being is a world.
             if (Materials.makesAWorld(id.toString())) add(Aspect.TERRAIN)
         },
-        query = emptyMap(),
-        names = Sea(id).key,
+        everywhere = emptyMap(),
+        // **A block, and nothing else.** The sea is the one aspect whose values are blocks, so saying so
+        // reaches it and reaches nothing else; without it every open aspect would take this id for one of
+        // its own — a structure set, a biome, a placed feature, a creature.
+        entryOf = Registries.BLOCK,
         sets = buildMap {
             put(Surface.MATERIAL.name, id.toString())
             if (Materials.makesAWorld(id.toString())) put(Terrain.STONE.name, id.toString())
@@ -174,7 +178,7 @@ object DerivedWords {
     }
 
     /**
-     * A word that turns a knob rather than choosing a preset — how a referent reaches an open parameter.
+     * A word that turns a parameter rather than choosing a preset — how a referent reaches an open parameter.
      * The value is the full `namespace:path`, never the bare one: a recipe is read back long after the
      * word that set it is forgotten, so it must be unambiguous even where the word could be short.
      */
@@ -182,16 +186,34 @@ object DerivedWords {
         id = id,
         tier = Tier.EXACT,
         aspects = setOf(aspect),
-        query = emptyMap(),
+        everywhere = emptyMap(),
         sets = mapOf(parameter.name to id.toString()),
     )
 
     /**
-     * One word naming one thing. The word's id is the referent's, so [Word.name] is the registry path and
-     * a writer says `creosote`; [Vocabulary] decides whether that bare path is unambiguous enough to offer.
+     * **A word for every design this pack wrote that is a thing with a name**, rather than a quality of
+     * one — see [co.voik.agesandtheart.age.aspect.AuthoredPreset.writtenWordFor], which decides which
+     * those are and what each is said as.
+     *
+     * The same bargain as [materials], one registry in: a landform arriving in the game arrives with the
+     * page that means it, so the corpus cannot fall behind the world. Seventeen word files said nothing
+     * but their own name before this, and a preset added without one was reachable only by chance.
+     *
+     * These *are* named rather than being their own id — `spires` means `spire_islands` — so they carry
+     * [Word.meansExactly] where a block carries [Word.entryOf].
      */
-    private fun referring(id: Identifier, aspect: Aspect, referent: (Identifier) -> AspectPreset) =
-        Word(id = id, tier = Tier.EXACT, aspects = setOf(aspect), query = emptyMap(), names = referent(id).key)
+    fun designs(): List<Word> = Aspect.entries.flatMap { aspect ->
+        aspect.authored.mapNotNull { preset ->
+            val said = preset.writtenWordFor ?: return@mapNotNull null
+            Word(
+                id = said.location(),
+                tier = Tier.EXACT,
+                aspects = setOf(aspect),
+                everywhere = emptyMap(),
+                meansExactly = mapOf(aspect to preset.key),
+            )
+        }
+    }
 
     /**
      * Every entry a pack struck out with `agesandtheart:forbidden` (§8.4).

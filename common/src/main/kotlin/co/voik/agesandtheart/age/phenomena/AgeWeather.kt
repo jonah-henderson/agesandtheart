@@ -70,7 +70,7 @@ object AgeWeather {
     }
 
     /**
-     * Puts [level]'s sky into [wants] for a good while, **and holds the Age off its own dials meanwhile.**
+     * Puts [level]'s sky into [wants] for a good while, **and holds the Age off its own parameters meanwhile.**
      *
      * The hold is the whole reason this is not two lines. [steer] runs every tick and [capped] cuts a spell
      * the Age does not want straight to zero, so asking a dry Age for rain would have been undone before

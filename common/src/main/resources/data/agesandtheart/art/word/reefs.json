@@ -1,10 +1,9 @@
 {
+  "_comment": "What grows in the water -- kelp, seagrass, coral, sea pickles. Named for the community rather than for the coral, because that is what the tag actually holds and a word should say what it finds.",
   "tier": "restrictive",
-  "aspects": [
-    "features"
-  ],
-  "query": {
-    "aquatic": 1.0
-  },
-  "_comment": "What grows in the water -- kelp, seagrass, coral, sea pickles. Named for the community rather than for the coral, because that is what the tag actually holds and a word should say what it finds."
+  "queries": {
+    "features": {
+      "aquatic": 1.0
+    }
+  }
 }

@@ -1,12 +1,9 @@
 {
   "_comment": [
-    "No moon -- the sun's own word, said about the other body. See `sunless` for why the knob names the",
+    "No moon -- the sun's own word, said about the other body. See `sunless` for why the parameter names the",
     "aspect it is meant for."
   ],
   "tier": "exact",
-  "aspects": [
-    "moon"
-  ],
   "sets": {
     "moon.absent": "true"
   }

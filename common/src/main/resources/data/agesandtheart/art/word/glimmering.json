@@ -7,9 +7,6 @@
     "this sets and never narrows."
   ],
   "tier": "exact",
-  "aspects": [
-    "stars"
-  ],
   "sets": {
     "glow": "1.0..1.0"
   }

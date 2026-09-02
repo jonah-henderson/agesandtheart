@@ -1,9 +1,8 @@
 {
   "tier": "restrictive",
-  "aspects": [
-    "features"
-  ],
-  "query": {
-    "flowering": 1.0
+  "queries": {
+    "features": {
+      "flowering": 1.0
+    }
   }
 }

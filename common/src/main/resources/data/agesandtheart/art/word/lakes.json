@@ -14,8 +14,5 @@
     "is water to decide about ice."
   ],
   "tier": "exact",
-  "aspects": [
-    "features"
-  ],
   "mints": "minecraft:lake_lava_surface"
 }

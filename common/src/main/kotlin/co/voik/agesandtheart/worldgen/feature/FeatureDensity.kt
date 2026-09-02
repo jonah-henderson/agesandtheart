@@ -46,7 +46,7 @@ object FeatureDensity {
 
     /**
      * The least a rung can ask for and still mean anything: a count of one is what the feature already
-     * had, and a rarity of one is every chunk. Rounding to either would be a knob that did nothing, so the
+     * had, and a rarity of one is every chunk. Rounding to either would be a parameter that did nothing, so the
      * faintest ask still doubles or halves.
      */
     private const val TWICE = 2

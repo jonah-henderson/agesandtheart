@@ -1,9 +1,8 @@
 {
   "tier": "restrictive",
-  "aspects": [
-    "spawns"
-  ],
-  "query": {
-    "arthropod": 1.0
+  "queries": {
+    "spawns": {
+      "arthropod": 1.0
+    }
   }
 }

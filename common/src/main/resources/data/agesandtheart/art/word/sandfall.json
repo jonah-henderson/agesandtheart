@@ -1,7 +1,7 @@
 {
   "_comment": [
-    "Columns of sand that walk the Age (design 5.2.2). It names the phenomenon rather than searching for",
-    "one, which is what `names` is for and what `VocabularyCheck` insists on: a tag query -- 'the burying",
+    "Columns of sand that walk the Age (design 5.2.2). It means the phenomenon outright rather than searching for",
+    "for one, which is what `means_exactly` is for and what `VocabularyCheck` insists on: a tag query -- 'the burying",
     "one' -- would also have found whatever else buried you.",
     "",
     "`deluge` would be the better word and is deliberately not spent here (Jonah, 2026-08-31). It belongs to",
@@ -15,10 +15,9 @@
     "wants a desert has `arid`."
   ],
   "tier": "exact",
-  "aspects": [
-    "phenomena"
-  ],
-  "names": "sandfall",
+  "means_exactly": {
+    "phenomena": "sandfall"
+  },
   "sets": {
     "happens": "sandfall"
   }

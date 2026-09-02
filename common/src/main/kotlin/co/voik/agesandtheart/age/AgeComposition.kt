@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age
 
+import co.voik.agesandtheart.age.aspect.ownParameters
 import co.voik.agesandtheart.age.aspect.Biomes
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.aspect.Sea
@@ -11,7 +12,7 @@ import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.AgeParts
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Holds
-import co.voik.agesandtheart.age.aspect.AspectPreset
+import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.age.aspect.Carvers
 import co.voik.agesandtheart.worldgen.biome.ClimateBias
 import com.mojang.datafixers.util.Either
@@ -62,7 +63,7 @@ data class AgeComposition(
 
     /**
      * How many territories [aspect] divides into. Presets answer for themselves; an aspect whose answer is
-     * a set of dials counts its own values, there being no preset to count.
+     * a set of parameters counts its own values, there being no preset to count.
      */
     override fun membersIn(aspect: Aspect): Int {
         // A described member has no preset to count: its entries *are* the roll — see
@@ -83,7 +84,7 @@ data class AgeComposition(
     private fun described(aspect: Aspect): Int = options.allOf(aspect).size
 
     /** Every preset this composition names, in aspect order — for listing, costing and diagnosis. */
-    val presets: List<AspectPreset>
+    val presets: List<Taggable>
         get() = terrains + seas + carvers + listOf(sky)
 
     /** The one terrain, where there is only one — for the many places that still reasonably assume so. */
@@ -94,7 +95,7 @@ data class AgeComposition(
     val carver: Carvers get() = carvers.first()
 
     /**
-     * Options no preset here understands, spelled `terrain.arrangment` — a typo, or a knob a later version
+     * Options no preset here understands, spelled `terrain.arrangment` — a typo, or a parameter a later version
      * dropped. Kept rather than discarded, and surfaced by `/age list`, so a misspelling looks wrong
      * instead of merely doing nothing.
      */
@@ -102,9 +103,9 @@ data class AgeComposition(
         get() = Aspect.entries.flatMap { aspect ->
             val seated = presets.filter { it.aspect == aspect }
             options.allOf(aspect).indices.flatMap { member ->
-                // A seatless aspect understands its dials and nothing else — and was never asked at all,
+                // A seatless aspect understands its parameters and nothing else — and was never asked at all,
                 // so `sun.size` could be misspelled *and* misvalued in silence.
-                val understood = seated.getOrNull(member)?.parameters.orEmpty() + aspect.dials
+                val understood = seated.getOrNull(member)?.ownParameters.orEmpty() + aspect.parameters
                 val here = options.of(aspect, member)
                 here.unknownAmong(understood).map { name -> "${aspect.page}.$name" } +
                     here.unreadableAmong(understood).map { (name, value) -> "${aspect.page}.$name=$value" }
@@ -162,7 +163,7 @@ data class AgeComposition(
         Aspect.CARVERS -> copy(carvers = listOf(named<Carvers>(aspect, key)))
         Aspect.SKY -> copy(sky = named<Sky>(aspect, key))
         // None of these seats anything: a biome and a structure set are weighed, and a climate and a
-        // surface are where their dials were left.
+        // surface are where their parameters were left.
         Aspect.BIOMES, Aspect.STRUCTURES, Aspect.SURFACE, Aspect.FEATURES, Aspect.SPAWNS,
         Aspect.PHENOMENA, Aspect.AIR, Aspect.WATERS, Aspect.WEATHER, Aspect.CLIMATE,
         Aspect.SUN, Aspect.MOON, Aspect.STARS, Aspect.GRASS, Aspect.LEAVES, Aspect.CLOUD,
@@ -238,7 +239,7 @@ data class AgeComposition(
      * minted, and one that wrote none is lit — or left dark — by the world it began from.
      */
     fun laidOver(template: AgeComposition, spokenTo: Set<Aspect>): AgeComposition {
-        fun seated(aspect: Aspect, mine: List<AspectPreset>, theirs: List<AspectPreset>) =
+        fun seated(aspect: Aspect, mine: List<Taggable>, theirs: List<Taggable>) =
             if (aspect in spokenTo) mine else theirs
         val merged = copy(
             terrains = seated(Aspect.TERRAIN, terrains, template.terrains).filterIsInstance<Terrain>(),
@@ -367,7 +368,7 @@ data class AspectOptions(private val bySlot: Map<Aspect, List<Options>> = emptyM
 /**
  * How much ground a preset covers, written after it: `carvers=caves,porous@0.25`.
  *
- * Not a colon: a colon tells a registry id from an authored key (`namesReferent`), so `sea=minecraft:air`
+ * Not a colon: a colon tells a registry id from an authored key (`namesARegistryEntry`), so `sea=minecraft:air`
  * read as the preset `minecraft` covering an `air` share. Only ever a command spelling — shares persist
  * as their own codec field.
  */
@@ -384,7 +385,7 @@ private fun <T> setOrSingle(single: Codec<T>, fallback: T): Codec<List<T>> =
         { many -> if (many.size == 1) Either.right(many.first()) else Either.left(many) },
     )
 
-/** A codec over any of our aspect-preset enums, which all serialise by their own [AspectPreset.key]. */
+/** A codec over any of our aspect-preset enums, which all serialise by their own [Taggable.key]. */
 private inline fun <reified E> enumCodec(): Codec<E> where E : Enum<E>, E : StringRepresentable =
     StringRepresentable.fromEnum { enumValues<E>() }
 
@@ -395,12 +396,12 @@ private inline fun <reified E> enumCodec(): Codec<E> where E : Enum<E>, E : Stri
  * so the key is handed to the aspect to interpret. Going through [Aspect.presetFor] is what stops a recipe,
  * a `preset_tags` file and a command from disagreeing about how a preset is spelled.
  */
-private inline fun <reified T : AspectPreset> presetCodec(aspect: Aspect): Codec<T> = Codec.STRING.comapFlatMap(
+private inline fun <reified T : Taggable> presetCodec(aspect: Aspect): Codec<T> = Codec.STRING.comapFlatMap(
     { key ->
         when (val preset = aspect.presetFor(key)) {
             is T -> DataResult.success(preset)
             else -> DataResult.error { "'$key' is no ${aspect.key}" }
         }
     },
-    AspectPreset::key,
+    Taggable::key,
 )

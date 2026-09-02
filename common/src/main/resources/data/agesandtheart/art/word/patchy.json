@@ -7,13 +7,10 @@
     "mottled stone unless somebody says otherwise). So the word that is worth having is the one for the",
     "unusual answer, and this is it.",
     "",
-    "It declares the landmass because mingling is a landform's knob and nothing else has one; when",
+    "It declares the landmass because mingling is a landform's parameter and nothing else has one; when",
     "something else grows a mixture, this word reaches it with no edit."
   ],
   "tier": "exact",
-  "aspects": [
-    "landmass"
-  ],
   "sets": {
     "mingling": "0.1..0.7"
   }

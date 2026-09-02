@@ -37,7 +37,7 @@ enum class Register(
      * *mechanical*: [TENSION], [FRACTURE] and [DISPLACED] are all charged for a collision, so two words that
      * contradict each other go free whenever it happens that no single preset, parameter or population had
      * to hold both. `drenched` against `arid` was exactly that — one steers the rain and the other the
-     * humidity, so a sentence saying both cost nothing at all. As aspects and dials multiply, so does the
+     * humidity, so a sentence saying both cost nothing at all. As aspects and parameters multiply, so does the
      * chance of that coincidence, and a writer contradicting themselves should not be rescued by where the
      * two happened to land.
      *

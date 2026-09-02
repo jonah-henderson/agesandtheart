@@ -1,12 +1,14 @@
 {
   "tier": "restrictive",
-  "aspects": [
-    "climate",
-    "landmass"
-  ],
-  "query": {
-    "dry": 1.0,
-    "barren": 0.6
+  "queries": {
+    "landmass": {
+      "dry": 1.0,
+      "barren": 0.6
+    },
+    "climate": {
+      "dry": 1.0,
+      "barren": 0.6
+    }
   },
   "sets": {
     "temperature": "0.2..0.8",

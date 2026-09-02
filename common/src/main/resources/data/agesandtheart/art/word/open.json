@@ -1,9 +1,8 @@
 {
   "tier": "restrictive",
-  "aspects": [
-    "sea"
-  ],
-  "query": {
-    "empty": 1.0
+  "queries": {
+    "sea": {
+      "empty": 1.0
+    }
   }
 }

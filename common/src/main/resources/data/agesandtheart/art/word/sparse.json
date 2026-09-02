@@ -1,13 +1,12 @@
 {
   "tier": "evocative",
-  "aspects": [
-    "landmass"
-  ],
-  "query": {
-    "barren": 0.8,
-    "scattered": 0.6,
-    "flat": 0.4,
-    "lush": -0.5
+  "queries": {
+    "all": {
+      "barren": 0.8,
+      "scattered": 0.6,
+      "flat": 0.4,
+      "lush": -0.5
+    }
   },
   "sets": {
     "spacing": "0.4..1.0"

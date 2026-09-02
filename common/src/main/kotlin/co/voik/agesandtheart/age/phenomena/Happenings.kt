@@ -133,7 +133,7 @@ object Happenings {
         Phenomena.claimsIn(composition.optionsFor(Aspect.PHENOMENA, 0))
 
     /**
-     * The weather an Age is asking for: its own dials, raised by anything befalling it that needs more.
+     * The weather an Age is asking for: its own parameters, raised by anything befalling it that needs more.
      *
      * **A floor and never a setting**, so the two can be written together without one silently erasing the
      * other — a tempest in an Age already written as drenched is exactly as wet as the wetter of the two.
@@ -153,7 +153,7 @@ object Happenings {
      *
      * The claim's rung is how *hard* it comes, which is the populative machinery already doing its job:
      * `teeming tempest` and `scarce tempest` are the same phenomenon at different strengths, and no
-     * phenomenon needs a knob of its own to be dialled.
+     * phenomenon needs a parameter of its own to be dialled.
      */
     private fun befall(level: ServerLevel, phenomenon: Phenomenon, density: Double, fury: Double) {
         when (phenomenon) {

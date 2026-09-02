@@ -81,12 +81,19 @@ data class WordRarity(val buckets: List<RarityBucket>) {
 
     /** What a bucket can actually offer on this server, or null if that is nothing. */
     private fun resolve(bucket: RarityBucket, vocabulary: Vocabulary, keep: (Word) -> Boolean): Entries? {
+        val spokenFor = buckets.flatMap { it.words }.toSet()
         val listed = bucket.words.mapNotNull(vocabulary::word).filter(keep).toMutableList()
         if (bucket.catchAll) {
-            val spokenFor = buckets.flatMap { it.words }.toSet()
             listed += vocabulary.authoredWords.filter { it.name !in spokenFor && keep(it) }
         }
-        val derived = if (bucket.derived > 0.0) vocabulary.derivedWords.filter(keep) else emptyList()
+        // **A word named in a bucket leaves the anonymous mass**, exactly as an authored one does. The
+        // derived half was unguarded, so naming `diamond_ore` rare made it drawable as rare *and* as an
+        // ordinary derived page — which is not what setting a rarity means.
+        val derived = if (bucket.derived > 0.0) {
+            vocabulary.derivedWords.filter { it.name !in spokenFor && it.id.toString() !in spokenFor && keep(it) }
+        } else {
+            emptyList()
+        }
         if (listed.isEmpty() && derived.isEmpty()) return null
         // A bucket listing nothing this server has must not still win its full share.
         val share = if (listed.isEmpty()) bucket.derived else bucket.weight

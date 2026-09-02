@@ -1,9 +1,8 @@
 {
   "tier": "restrictive",
-  "aspects": [
-    "sky"
-  ],
-  "query": {
-    "dark": 1.0
+  "queries": {
+    "sky": {
+      "dark": 1.0
+    }
   }
 }

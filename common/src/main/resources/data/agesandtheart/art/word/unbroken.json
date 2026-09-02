@@ -1,9 +1,8 @@
 {
   "tier": "exact",
-  "aspects": [
-    "depths"
-  ],
-  "query": {
-    "solid": 1.0
+  "queries": {
+    "depths": {
+      "solid": 1.0
+    }
   }
 }

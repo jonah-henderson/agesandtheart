@@ -1,5 +1,8 @@
 {
   "tier": "restrictive",
-  "aspects": ["features"],
-  "query": { "wooded": 1.0 }
+  "queries": {
+    "features": {
+      "wooded": 1.0
+    }
+  }
 }

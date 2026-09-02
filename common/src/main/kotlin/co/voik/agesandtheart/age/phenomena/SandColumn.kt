@@ -46,7 +46,7 @@ import kotlin.math.sin
  * the position, so the renderer gets the direction of travel for free and the prism turns with it.
  *
  * **What is synced is the width, not the clock that decides it.** The ramp is arithmetic over the Age's
- * dials ([SandfallBehaviour.halfWidthAt]) and a client has no datapack to read them from, so it is computed
+ * parameters ([SandfallBehaviour.halfWidthAt]) and a client has no datapack to read them from, so it is computed
  * once, here, and the answer is sent. A client that re-derived it would be a second copy of the rule to
  * keep in step, and the value it would need is larger than the value itself.
  */
@@ -127,7 +127,7 @@ class SandColumn(type: EntityType<out SandColumn>, level: Level) : Entity(type, 
      * How fast this column's sand pours, as a share of the fastest anything may — what the shader reads to
      * make a column that buries deeper visibly stream harder.
      *
-     * **Synced, and for the same reason [halfWidth] is**: it is arithmetic over the Age's dials and a client
+     * **Synced, and for the same reason [halfWidth] is**: it is arithmetic over the Age's parameters and a client
      * has no datapack to read them from, so it is settled once here and the answer is sent.
      */
     var pour: Float

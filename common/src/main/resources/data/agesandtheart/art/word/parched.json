@@ -1,10 +1,9 @@
 {
   "tier": "restrictive",
-  "aspects": [
-    "climate"
-  ],
-  "query": {
-    "dry": 1.0
+  "queries": {
+    "climate": {
+      "dry": 1.0
+    }
   },
   "sets": {
     "temperature": "0.4..0.9",

@@ -1,12 +1,15 @@
 {
   "tier": "restrictive",
-  "aspects": [
-    "climate",
-    "biomes",
-    "features"
-  ],
-  "query": {
-    "lush": 1.0
+  "queries": {
+    "biomes": {
+      "lush": 1.0
+    },
+    "climate": {
+      "lush": 1.0
+    },
+    "features": {
+      "lush": 1.0
+    }
   },
   "sets": {
     "temperature": "0.0..0.6",

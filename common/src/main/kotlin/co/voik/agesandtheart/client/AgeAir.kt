@@ -141,7 +141,7 @@ object AgeAir {
      * [Look.haze] and [Look.ceiling] arrive as fractions of their own axis rather than distances, because a
      * writer says how thick the air is and only the client knows how far it can see.
      *
-     * **One knob where vanilla has several**, twice over: fog is a far edge with the near one a fixed share
+     * **One parameter where vanilla has several**, twice over: fog is a far edge with the near one a fixed share
      * of it, so thickening always draws the fog in rather than inverting somewhere in the middle; and the
      * light is the sky's and the ambient together, because a writer who says the light is green means all
      * of it. Both granular sets are still there for the day a word wants one.
@@ -150,7 +150,7 @@ object AgeAir {
         look.sky?.let { add(Painted(EnvironmentAttributes.SKY_COLOR, it.packed())) }
         look.cloud?.let { add(Painted(EnvironmentAttributes.CLOUD_COLOR, it.packed())) }
         look.fog?.let { add(Painted(EnvironmentAttributes.FOG_COLOR, it.packed())) }
-        // One knob for the light, because a writer who says the light is green means all of it.
+        // One parameter for the light, because a writer who says the light is green means all of it.
         look.tint?.let {
             add(Painted(EnvironmentAttributes.SKY_LIGHT_COLOR, it.packed()))
             add(Painted(EnvironmentAttributes.AMBIENT_LIGHT_COLOR, it.packed()))

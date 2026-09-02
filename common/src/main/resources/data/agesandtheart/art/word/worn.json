@@ -1,9 +1,8 @@
 {
   "tier": "restrictive",
-  "aspects": [
-    "landmass"
-  ],
-  "query": {
-    "eroded": 1.0
+  "queries": {
+    "landmass": {
+      "eroded": 1.0
+    }
   }
 }

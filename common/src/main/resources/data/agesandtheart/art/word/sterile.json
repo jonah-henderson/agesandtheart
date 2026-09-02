@@ -1,10 +1,9 @@
 {
   "tier": "restrictive",
-  "aspects": [
-    "features"
-  ],
-  "query": {
-    "grown": -1.0,
-    "lush": -0.8
+  "queries": {
+    "features": {
+      "grown": -1.0,
+      "lush": -0.8
+    }
   }
 }

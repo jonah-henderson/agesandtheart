@@ -1,7 +1,9 @@
 {
   "tier": "restrictive",
-  "query": {
-    "watery": 1.0
+  "queries": {
+    "features": {
+      "watery": 1.0
+    }
   },
   "sets": {
     "rainfall": "0.6..1.0"

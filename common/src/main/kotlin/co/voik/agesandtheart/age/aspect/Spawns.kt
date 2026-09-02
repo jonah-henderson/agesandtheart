@@ -38,7 +38,9 @@ object Spawns {
      * asks for one that was not there rather than for more of one that was. And it may be emptied, a
      * lifeless world being a world a writer might well want.
      */
-    val LIVES = Parameter.population("lives", leastKept = NOTHING_AT_ALL, emptiedBy = NOTHING).perBiome()
+    val LIVES = Parameter.population("lives", leastKept = NOTHING_AT_ALL, emptiedBy = NOTHING,
+            help = "Which creatures live here.",
+        ).perBiome()
 
     /** How an Age says nothing lives here: no natural spawning at all, whatever its biomes would hold. */
     const val NOTHING = "nothing"

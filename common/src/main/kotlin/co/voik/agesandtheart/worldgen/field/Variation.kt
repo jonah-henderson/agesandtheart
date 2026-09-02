@@ -11,7 +11,7 @@ import kotlin.math.sin
 
 /**
  * How much each copy of an [Instanced] template may differ in *pose* — how far it is turned, and how big
- * it is. Both dials draw from **finite sets**: a copy's pose is a choice, never a continuous knob.
+ * it is. Both parameters draw from **finite sets**: a copy's pose is a choice, never a continuous parameter.
  *
  * That is what keeps the geometry honest. Sizes are a fixed set because [Instanced] pre-builds a
  * genuinely resized template for each ([TerrainField.resized]), so a bigger pyramid gets *more courses of

@@ -1,5 +1,8 @@
 {
   "tier": "restrictive",
-  "aspects": ["spawns"],
-  "query": { "aquatic": 1.0 }
+  "queries": {
+    "spawns": {
+      "aquatic": 1.0
+    }
+  }
 }

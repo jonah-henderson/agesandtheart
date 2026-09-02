@@ -1,9 +1,8 @@
 {
   "tier": "restrictive",
-  "aspects": [
-    "landmass"
-  ],
-  "query": {
-    "cavernous": 1.0
+  "queries": {
+    "landmass": {
+      "cavernous": 1.0
+    }
   }
 }

@@ -25,7 +25,7 @@ object IslandsField {
 
     /**
      * How big an island is: at one end a day's walk across, at the other something that stops being an
-     * island and starts being somewhere. `Terrain.SIZE` is the ranged knob a sentence bends.
+     * island and starts being somewhere. `Terrain.SIZE` is the ranged parameter a sentence bends.
      *
      * **Low against their width on purpose.** These are islands rather than sea mountains: one from the
      * middle of the range stands about fifty blocks over its own beach across more than a kilometre of

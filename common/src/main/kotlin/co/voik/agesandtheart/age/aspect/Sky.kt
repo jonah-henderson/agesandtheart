@@ -24,7 +24,7 @@ import kotlin.math.roundToInt
  * a writer: two moons is a thing to say about a sky, and fifteen hundred stars is not. [SkySpec.drawn] takes
  * it from there.
  */
-enum class Sky(override val key: String) : AspectPreset {
+enum class Sky(override val key: String) : AuthoredPreset {
     /** An ordinary sky — vanilla's own air and clouds. */
     PLAIN("plain"),
 
@@ -47,12 +47,12 @@ enum class Sky(override val key: String) : AspectPreset {
 
     override val aspect = Aspect.SKY
 
-    /** Only [SPIRE] is unaskable, and being so is the point of it — see [AspectPreset.askableInASentence]. */
+    /** Only [SPIRE] is unaskable, and being so is the point of it — see [Taggable.askableInASentence]. */
     override val askableInASentence: Boolean get() = this != SPIRE
 
     /**
      * **None.** The bodies overhead are the sun's, the moon's and the stars' — their own aspects — and the
-     * vault's own dials belong to the aspect rather than to any one of its presets. A preset declaring them
+     * vault's own parameters belong to the aspect rather than to any one of its presets. A preset declaring them
      * too made every one of those names owned twice, which `DerivedAspectsCheck` refuses outright.
      */
     override val parameters: List<Parameter> get() = emptyList()
@@ -257,22 +257,31 @@ enum class Sky(override val key: String) : AspectPreset {
          * sky needs a word of its own, and `sunless` is it.
          */
         /**
-         * Whether the body a clause is about is **not there** — one knob on the sun and on the moon.
+         * Whether the body a clause is about is **not there** — one parameter on the sun and on the moon.
          *
          * It was two, `shining` and `orbiting`, kept apart by a rule that no longer exists and named for
          * what a body *does* rather than for what is being said about it. `sun.absent` and `moon.absent`
          * read as what a writer means (Jonah, 2026-08-31), and a word says which body it means by naming
-         * the aspect in the knob — without that the two would be one word, since `Word.reaching` only ever
+         * the aspect in the parameter — without that the two would be one word, since `Word.reaching` only ever
          * widens.
          *
          * **Only the first body can be absent, which is a quirk of how a sky is written rather than of
          * this.** Every other sun is minted by a clause describing one, so there is no clause to say a
          * body that was never minted is missing; this is the default body's own switch.
          */
-        val ABSENT = Parameter.flag("absent")
+        val ABSENT = Parameter.flag("absent", help = "Whether this body is missing from the sky altogether.")
 
         /** How thick the stars lie: none at the bottom of the axis, [DENSEST_STARS] times vanilla's at the top. */
-        val STARS = Parameter.ranged("density")
+        val STARS = Parameter.ranged(
+            "density",
+            help = "How thickly the stars lie.",
+            landmarks = listOf(
+                Parameter.Landmark(-1.0, "none at all"),
+                Parameter.Landmark(-0.3333, "vanilla's"),
+                Parameter.Landmark(0.3333, "twice vanilla's"),
+                Parameter.Landmark(1.0, "three times"),
+            ),
+        )
 
         /**
          * How brightly the stars burn, against vanilla's own — [BRIGHTEST_STARS] times it at the top.
@@ -284,7 +293,15 @@ enum class Sky(override val key: String) : AspectPreset {
          * **Never fainter than vanilla's**, for the reason [SUNSIZE] is never smaller: a sky with less
          * light in it overhead is a *sparser* one, and that is [STARS] to say.
          */
-        val STARGLOW = Parameter.ranged("glow")
+        val STARGLOW = Parameter.ranged(
+            "glow",
+            help = "How brightly the stars burn.",
+            landmarks = listOf(
+                Parameter.Landmark(-1.0, "vanilla's"),
+                Parameter.Landmark(0.0, "half again"),
+                Parameter.Landmark(1.0, "twice as bright"),
+            ),
+        )
 
         /**
          * The colours the curtain burns, crown first — **the one dial that holds several values in order**.
@@ -293,10 +310,10 @@ enum class Sky(override val key: String) : AspectPreset {
          * hem, and a writer naming two means both. `and` is what joins them, exactly as it joins two rocks
          * in a wall; [Parameter.keepsWrittenOrder] is what keeps the crown at the crown.
          */
-        val AURORACOLOUR = colour("colour").copy(keepsWrittenOrder = true)
+        val AURORACOLOUR = colour("colour", "The colours of the aurora, from its crown to its hem.").copy(keepsWrittenOrder = true)
 
         /** How brightly the curtain burns, against an ordinary one. */
-        val AURORAGLOW = Parameter.ranged("glow")
+        val AURORAGLOW = Parameter.ranged("glow", help = "How brightly the aurora burns.")
 
         /**
          * How much of the sky the curtain takes up.
@@ -305,10 +322,18 @@ enum class Sky(override val key: String) : AspectPreset {
          * one is small, and a writer who wanted a wide low band and a narrow tall one is asking a question
          * §3.2 keeps away from them.
          */
-        val AURORASIZE = Parameter.ranged("size")
+        val AURORASIZE = Parameter.ranged(
+            "size",
+            help = "How much of the sky the aurora takes up.",
+            landmarks = listOf(
+                Parameter.Landmark(-1.0, "a narrow band"),
+                Parameter.Landmark(0.0, "a broad ribbon"),
+                Parameter.Landmark(1.0, "most of the sky"),
+            ),
+        )
 
         /** What share of nights it comes at all. */
-        val AURORAFREQUENCY = Parameter.ranged("frequency")
+        val AURORAFREQUENCY = Parameter.ranged("frequency", help = "What share of nights the aurora comes at all.")
 
         /**
          * The colours the bow burns, **outermost first** — red at the outside, as a real one is.
@@ -317,10 +342,10 @@ enum class Sky(override val key: String) : AspectPreset {
          * and which end is the outside is the one thing about it a writer states outright. The second bow
          * reverses this, so naming one band names both.
          */
-        val RAINBOWCOLOUR = colour("colour").copy(keepsWrittenOrder = true)
+        val RAINBOWCOLOUR = colour("colour", "The colours of the arc.").copy(keepsWrittenOrder = true)
 
         /** How brightly the bow burns, against an ordinary one. */
-        val RAINBOWGLOW = Parameter.ranged("glow")
+        val RAINBOWGLOW = Parameter.ranged("glow", help = "How brightly the rainbow burns.")
 
         /**
          * How wide the arc stands from the point opposite its light.
@@ -332,10 +357,18 @@ enum class Sky(override val key: String) : AspectPreset {
          * less the light's own height, so a wide arc is still up under a sun that has already sunk a narrow
          * one below the ground.
          */
-        val RAINBOWSIZE = Parameter.ranged("size")
+        val RAINBOWSIZE = Parameter.ranged(
+            "size",
+            help = "How wide the arc stands.",
+            landmarks = listOf(
+                Parameter.Landmark(-1.0, "a tight arc"),
+                Parameter.Landmark(0.0, "an ordinary bow"),
+                Parameter.Landmark(1.0, "a wide sweep"),
+            ),
+        )
 
         /** What share of days it comes at all. */
-        val RAINBOWFREQUENCY = Parameter.ranged("frequency")
+        val RAINBOWFREQUENCY = Parameter.ranged("frequency", help = "What share of days a rainbow comes at all.")
 
         /**
          * How much falling water it needs — the top of the axis will not come without rain, the bottom
@@ -344,7 +377,7 @@ enum class Sky(override val key: String) : AspectPreset {
          * The dial that lets an Age hang arcs in a dry clear sky, and a thing to say on purpose rather than
          * a default to fall into: left alone, a bow is sunlight bent through rain and waits for some.
          */
-        val RAINBOWRAIN = Parameter.ranged("rain")
+        val RAINBOWRAIN = Parameter.ranged("rain", help = "How much rain a rainbow needs before it will appear.")
 
         /**
          * How large the suns are, against vanilla's — [LARGEST_SUN] times it at the top of the axis.
@@ -353,7 +386,17 @@ enum class Sky(override val key: String) : AspectPreset {
          * an `angularSize` since the sky was built, and [SkySpec.drawn] already varied it for the *extra*
          * suns; what was missing was a writer's way to ask, and a way for the ask to reach the first one.
          */
-        val SUNSIZE = Parameter.ranged("size")
+        val SUNSIZE = Parameter.ranged(
+            "size",
+            help = "How large the suns are.",
+            // The bottom is vanilla's own and the top is LARGEST_SUN times it, evenly between.
+            landmarks = listOf(
+                    Parameter.Landmark(-1.0, "vanilla's"),
+                    Parameter.Landmark(-1.0 / 3.0, "twice"),
+                    Parameter.Landmark(1.0 / 3.0, "three times"),
+                    Parameter.Landmark(1.0, "four times"),
+                ),
+        )
 
         /**
          * What colour the suns burn, or [Parameter.DEFAULT] for vanilla's white.
@@ -362,7 +405,7 @@ enum class Sky(override val key: String) : AspectPreset {
          * [SkySpec.drawn] already draws for the others: that one spreads a sky's extra bodies apart, and
          * this one is a statement about the star this world goes round.
          */
-        val SUNCOLOUR = colour("colour")
+        val SUNCOLOUR = colour("colour", "The colour the suns burn.")
 
         /**
          * The compass, in the bearings `Orbit.risingAt` reads — due east is 90, which is where vanilla's
@@ -393,10 +436,14 @@ enum class Sky(override val key: String) : AspectPreset {
          * person says about a sun where ninety degrees of ascending node is a fact about our arithmetic.
          * `Orbit.risingAt` does the conversion and owns the sign trap in it.
          *
-         * **The sun's and the moon's alike**, which is one knob owned by two aspects: the word means the
+         * **The sun's and the moon's alike**, which is one parameter owned by two aspects: the word means the
          * same thing about either body and the clause it was laid in picks which one it is about.
          */
-        val RISING = Parameter("rising", listOf(Parameter.DEFAULT) + BEARINGS.keys)
+        val RISING = Parameter(
+            "rising",
+            listOf(Parameter.DEFAULT) + BEARINGS.keys,
+            help = "Which horizon this body rises over.",
+        )
 
         /**
          * Whether the world is **sealed overhead** — a physical fact about the Age, and the one a writer
@@ -412,7 +459,7 @@ enum class Sky(override val key: String) : AspectPreset {
          * what the Age *is* without yet building it. `has_ceiling` never built one either — read against
          * 26.1.2, four things call it and none places a block.
          */
-        val SEALED = Parameter.flag("sealed")
+        val SEALED = Parameter.flag("sealed", help = "Whether the world is roofed over, like the nether.")
 
         /** Whether the Age is shut overhead. */
         fun isRoofed(sky: Options): Boolean = sky.isTrue(SEALED)
@@ -474,7 +521,7 @@ enum class Sky(override val key: String) : AspectPreset {
          * How far the extra bodies wander off the first one's path, which reads as a sky rather than as a
          * diagram.
          *
-         * **No longer a knob**, and it will not become one again: a spread is a fact about the *arrangement*
+         * **No longer a parameter**, and it will not become one again: a spread is a fact about the *arrangement*
          * of a count of bodies, and once each body is written on its own page and says where it rises there
          * is nothing left for it to mean.
          */
@@ -517,7 +564,8 @@ enum class Sky(override val key: String) : AspectPreset {
          */
         private const val SUN_IS_LOOKED_AT = 1.5f
 
-        private fun colour(name: String) = Parameter(name, listOf(Parameter.DEFAULT) + Colour.ALL)
+        private fun colour(name: String, help: String) =
+            Parameter(name, listOf(Parameter.DEFAULT) + Colour.ALL, help = help)
 
         /**
          * How far a named colour is pushed from its own grey before a curtain burns it.

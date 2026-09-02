@@ -42,7 +42,7 @@ enum class Terrain(
     override val key: String,
     val waterline: Int?,
     private val build: (Options, Long) -> TerrainField,
-) : AspectPreset {
+) : AuthoredPreset {
     /**
      * Floating islands over open air: lobed masses, talons and roots, weathered to ribs. Its waterline is
      * the floor of the world they hang over rather than a sea anything stands on, which is why it is far
@@ -207,6 +207,21 @@ enum class Terrain(
      * named no landform at all, never something they can reach for.
      */
     override val askableInASentence: Boolean get() = this != VANILLA
+
+    /**
+     * Every landform a writer can reach for has a page that means it, and the page is minted from here —
+     * a landform is a thing with a name, where a carve pattern is a quality of the rock and is reached by
+     * `unbroken`, `riddled` and `flooded` instead.
+     */
+    override val writtenWordFor: String? get() = when (this) {
+        // Where the key is a noun for the thing and the page is what a writer says of an Age wearing it.
+        SPIRE_ISLANDS -> "spires"
+        INVERSE_CAVES -> "inverted"
+        VANILLA -> null
+        HILLS, CAVERNS, ERODED, PILLARS, PYRAMIDS, CANYON, CLIFFS, CANYONLANDS, SHATTERED,
+        RIVERLANDS, ISLANDS, ALPS, CRATERLANDS, OVERWORLD, SHAPES,
+        -> key
+    }
 
     override val aspect = Aspect.TERRAIN
 
@@ -403,7 +418,7 @@ enum class Terrain(
          * different stretches of one axis without either needing a step minted for it. See
          * [Holds.RANGE]; the numbers live on the words and a writer never types one.
          *
-         * **Shared on purpose.** Each names a quality many landforms have rather than a knob one of them
+         * **Shared on purpose.** Each names a quality many landforms have rather than a parameter one of them
          * owns, so a word that bends `spacing` bends a crater field, a pillar grid and an archipelago —
          * each in its own units, none of them told what a block is. A landform declares the ones it can
          * honour and stays silent about the rest, and a word that reaches only silent ones goes unbacked
@@ -413,9 +428,33 @@ enum class Terrain(
          * nothing else has: `craterlands` reads [RELIEF] as its rim height, its bowl depth **and** whether
          * a peak ring is drawn at all. The axis is the shared vocabulary; the reading is private.
          */
-        val SPACING = Parameter.ranged("spacing")
-        val WEAR = Parameter.ranged("wear")
-        val RELIEF = Parameter.ranged("relief")
+        val SPACING = Parameter.ranged(
+            "spacing",
+            help = "How far apart the landform's features stand.",
+            landmarks = listOf(
+                Parameter.Landmark(-1.0, "crowded together"),
+                Parameter.Landmark(0.0, "ordinary"),
+                Parameter.Landmark(1.0, "far apart"),
+            ),
+        )
+        val WEAR = Parameter.ranged(
+            "wear",
+            help = "How weathered and broken up the landform is.",
+            landmarks = listOf(
+                Parameter.Landmark(-1.0, "sharp and unbroken"),
+                Parameter.Landmark(0.0, "ordinary"),
+                Parameter.Landmark(1.0, "worn to rubble"),
+            ),
+        )
+        val RELIEF = Parameter.ranged(
+            "relief",
+            help = "How much height the landform has.",
+            landmarks = listOf(
+                Parameter.Landmark(-1.0, "nearly flat"),
+                Parameter.Landmark(0.0, "ordinary"),
+                Parameter.Landmark(1.0, "towering"),
+            ),
+        )
 
         /**
          * Where on [parameter]'s axis this Age sits, or **null where no word bounded it** — which means
@@ -427,14 +466,33 @@ enum class Terrain(
          * A *bounded* axis still draws, so two Ages written with the same word differ within the band it
          * asked for — the word says where, the seed says exactly where.
          */
-        val ARRANGEMENT = Parameter("arrangement", "grid", "rings", "varied")
+        val ARRANGEMENT = Parameter(
+            "arrangement",
+            listOf("grid", "rings", "varied"),
+            help = "How the landform's pieces are laid out.",
+            optionHelp = mapOf(
+                "grid" to "Evenly spaced, in rows and columns.",
+                "rings" to "In concentric rings about a centre.",
+                "varied" to "Scattered, with no pattern to it.",
+            ),
+        )
 
         /**
          * Which way a canyon runs, as a fraction of a half-turn — a line has no direction, so half a turn
          * is the whole of it. A word says "north to south"; the angle it lands on is the machine's, which
          * is the split §3.2 draws.
          */
-        val BEARING = Parameter.ranged("bearing")
+        val BEARING = Parameter.ranged(
+            "bearing",
+            help = "Which way a canyon runs.",
+            landmarks = listOf(
+                Parameter.Landmark(-1.0, "north to south"),
+                Parameter.Landmark(-0.5, "diagonal"),
+                Parameter.Landmark(0.0, "east to west"),
+                Parameter.Landmark(0.5, "the other diagonal"),
+                Parameter.Landmark(1.0, "north to south again"),
+            ),
+        )
 
         /**
          * How big an island is — its shore, its height and how far apart they stand, which move together.
@@ -446,7 +504,15 @@ enum class Terrain(
          * costs no word of its own. [MINGLING] keeps its own name for the opposite reason — how finely two
          * rocks speckle together is not how big anything is.
          */
-        val SIZE = Parameter.ranged("size")
+        val SIZE = Parameter.ranged(
+            "size",
+            help = "How big an island is: shore, height and spacing move together.",
+            landmarks = listOf(
+                Parameter.Landmark(-1.0, "a skerry"),
+                Parameter.Landmark(0.0, "an ordinary island"),
+                Parameter.Landmark(1.0, "a continent"),
+            ),
+        )
 
         /**
          * What lies under a terrain's surface — nothing, Minecraft's own noise caves, or storey upon
@@ -461,7 +527,16 @@ enum class Terrain(
          * Caves are the **default** where they are offered at all, since a world with room under it and
          * nothing in that room is the odder of the two answers.
          */
-        val UNDERGROUND = Parameter("underground", NOISE_CAVES, GREAT_HALLS, UNDERGROUND_NONE)
+        val UNDERGROUND = Parameter(
+            "underground",
+            listOf(NOISE_CAVES, GREAT_HALLS, UNDERGROUND_NONE),
+            help = "What lies beneath the surface.",
+            optionHelp = mapOf(
+                NOISE_CAVES to "Minecraft's own winding caves.",
+                GREAT_HALLS to "Storey upon storey of pillared hall.",
+                UNDERGROUND_NONE to "Solid rock, with nothing cut into it.",
+            ),
+        )
 
         const val UNDERGROUND_NONE = "none"
         const val NOISE_CAVES = "noise_caves"
@@ -488,13 +563,17 @@ enum class Terrain(
         private const val HALL_SEED = 0x4A_115L
 
         /** The one material parameter — the whole of what a writer means by "the land is andesite". */
-        val STONE = Parameter.material("stone", holdsYouUp = true)
+        val STONE = Parameter.material(
+            "stone",
+            holdsYouUp = true,
+            help = "The block the land itself is made of.",
+        )
 
         /**
          * **How coarsely several materials lie together** — the bottom of the axis is a speckle at block
          * scale and the top is the widest patch that still reads as one mixed rock.
          *
-         * **Low is fine, which is the same way up as every other ranged knob**: more of the axis is more of
+         * **Low is fine, which is the same way up as every other ranged parameter**: more of the axis is more of
          * what the name says. It ran the other way and meant *fineness*, which made a word for the coarse
          * end read as an argument with its own axis, and made the reader between here and
          * `TerrainFill.mingleStretch` an inversion rather than a scale.
@@ -503,7 +582,15 @@ enum class Terrain(
          * [TerrainFill.PATCHY_MINGLING]: anything much wider stops being a mixture and reads as two
          * territories, which has its own spelling in `and` and a seam.
          */
-        val MINGLING = Parameter.ranged("mingling")
+        val MINGLING = Parameter.ranged(
+            "mingling",
+            help = "How coarsely two materials lie together: low is a speckle, high is broad patches.",
+            landmarks = listOf(
+                Parameter.Landmark(-1.0, "an even speckle"),
+                Parameter.Landmark(0.0, "blotches"),
+                Parameter.Landmark(1.0, "broad patches"),
+            ),
+        )
 
         /**
          * Where mingling sits when nothing said: **as evenly intermixed as the surface rules can manage**,

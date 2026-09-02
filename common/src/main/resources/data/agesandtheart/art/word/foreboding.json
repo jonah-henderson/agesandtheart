@@ -1,9 +1,11 @@
 {
   "tier": "evocative",
-  "query": {
-    "dark": 1.0,
-    "hostile": 0.7,
-    "bright": -0.6,
-    "flowering": -0.4
+  "queries": {
+    "all": {
+      "dark": 1.0,
+      "hostile": 0.7,
+      "bright": -0.6,
+      "flowering": -0.4
+    }
   }
 }

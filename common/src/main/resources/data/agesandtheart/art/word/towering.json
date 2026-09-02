@@ -1,10 +1,9 @@
 {
   "tier": "restrictive",
-  "aspects": [
-    "landmass"
-  ],
-  "query": {
-    "mountainous": 1.0,
-    "sheer": 0.6
+  "queries": {
+    "landmass": {
+      "mountainous": 1.0,
+      "sheer": 0.6
+    }
   }
 }
