@@ -1172,13 +1172,14 @@ object Resolver {
         var weighed = composition
         for (aspect in Aspect.entries.filter { it.holds == Holds.WEIGHTED_SET }) {
             val population = aspect.parameters.firstOrNull { it.holds == Holds.WEIGHTED_SET } ?: continue
-            // A word that means a member outright arrived with its answer in hand and was written by
-            // [steer]; asking its tags as well would weigh it twice.
-            val speaking = sentence.filter { said ->
-                aspect in reachOf(vocabulary, said) && said.word.choiceIn(aspect) == null
-            }
+            val speaking = sentence.filter { aspect in reachOf(vocabulary, it) }
             if (speaking.isEmpty()) continue
-            val pool = vocabulary.askableIn(aspect)
+            // **What the sentence put in**, the same widening a catalogue's draw gets. A member admitted
+            // by name was reaching nothing here, since this drew its pool from curation alone.
+            val pool = (
+                vocabulary.askableIn(aspect) +
+                    speaking.flatMap { it.word.admitsIn(aspect) }.distinct().mapNotNull(aspect::presetFor)
+                ).distinct()
             val reached = pool.mapNotNull { member -> claimForMember(vocabulary, member, population, speaking, aspect) }
             if (reached.isEmpty()) continue
             val named = weighed.optionsFor(aspect, 0).allOf(population)
@@ -1220,12 +1221,17 @@ object Resolver {
         val insisting = speaking.filter {
             it.word.tier.narrows && it.word.constrainsPresetsIn(aspect) && it.word.acceptsOn(member, tags)
         }
-        val spurning = speaking.filter { it.word.tier.narrows && it.word.biasOn(member, tags) < 0.0 }
-        val liking = speaking.filter { !it.word.tier.narrows }
         val insisted = insisting.sumOf { it.word.claimOn(member, tags) * it.word.tier.weight }
-        val spurned = spurning.sumOf { it.word.biasOn(member, tags) * it.word.tier.weight }
-        val liked = liking.sumOf { it.word.biasOn(member, tags) }
-        val wanting = insisting + liking.filter { it.word.biasOn(member, tags) > 0.0 }
+        // **Every tier leans**, as it does for a catalogue. This counted an evocative word's lean and a
+        // narrowing word's *dislike*, and dropped a narrowing word's liking on the floor — so `rich`
+        // leaning the ores toward diamond did nothing at all while its dislike of barren bit.
+        val leaned = speaking.sumOf { said ->
+            val by = said.word.biasOn(member, tags)
+            if (said.word.tier.narrows) by * said.word.tier.weight else by
+        }
+        val wanting = insisting + speaking.filter {
+            it !in insisting && it.word.biasOn(member, tags) > 0.0
+        }
         val polarity = wanting.map { it.polarity }.firstOrNull { it != Polarity.ASSERTED }
         // **The rung reaches a member a tag chose, not only one a word named.** `frequent plants` was
         // losing its `frequent` in silence: a quantifier travels on the claim, and the claim a *named*
@@ -1237,7 +1243,7 @@ object Resolver {
         // quarter added to it would still be more. Ordinary is one, so an unquantified word changes
         // nothing, and two quantified words compound — `teeming` said twice is very teeming.
         val rung = wanting.fold(Rung.ORDINARY) { standing, said -> standing * said.density }
-        val asked = (Rung.ORDINARY + insisted + spurned + liked) * rung
+        val asked = (Rung.ORDINARY + insisted + leaned) * rung
         val weight = Rung.legible(asked.coerceIn(population.leastKept, MOST_OF_A_WORLD))
         // Struck out rather than kept at nothing: a claim of none of something is what `except` says, and
         // saying it that way keeps one mechanism for removal instead of two.

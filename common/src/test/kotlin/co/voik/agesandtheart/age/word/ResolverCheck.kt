@@ -1037,6 +1037,38 @@ class ResolverCheck : FunSpec({
     }
 
     /**
+     * **Every way of speaking to a population reaches it**, which three of the five did not.
+     *
+     * A population's members are stored on its aspect's own weighted parameter — `spawns.lives`,
+     * `structures.built` — and `weighed` compiles what a sentence says into it. Three of the steps were
+     * never getting that far: a narrowing word's lean was dropped where an evocative one's counted, the
+     * pool was taken from curation alone so nothing admitted could be reached, and a word that chose a
+     * member was skipped outright on the grounds it had already been written elsewhere.
+     */
+    test("a population hears every step a word takes") {
+        val zombie = "minecraft:zombie"
+        fun living(word: Word): List<String> = Resolver
+            .resolve(vocabulary, Sentence.flat(listOf(word)), SAMPLE_SEED)
+            .composition.optionsFor(Aspect.SPAWNS, 0).allOf(Spawns.LIVES)
+
+        val leaning = Word(
+            Identifier.fromNamespaceAndPath("test", "leaning"),
+            Tier.EXACT,
+            setOf(Aspect.SPAWNS),
+            biases = mapOf(Aspect.SPAWNS to mapOf(zombie to 1.0)),
+        )
+        check(living(leaning).isNotEmpty()) { "a narrowing word's lean reached the spawns not at all" }
+
+        val choosing = Word(
+            Identifier.fromNamespaceAndPath("test", "choosing"),
+            Tier.EXACT,
+            setOf(Aspect.SPAWNS),
+            chooses = mapOf(Aspect.SPAWNS to zombie),
+        )
+        check(living(choosing) == listOf(zombie)) { "choosing gave ${living(choosing)}" }
+    }
+
+    /**
      * **A rung reaches a population**, which is the other half of the quantifier: the parser binds it to a
      * term and this is what carries it into the recipe. Exactly the wire [Polarity] was missing above —
      * `teeming villages` would parse perfectly, cost ink and place vanilla's own number of villages.

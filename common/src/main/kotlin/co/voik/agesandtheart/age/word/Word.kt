@@ -649,6 +649,9 @@ data class Word(
      * never a filter.
      */
     fun acceptsOn(preset: Taggable, tags: Map<String, Double>): Boolean {
+        // **A choice answers for the whole aspect.** The pipeline ends there, so nothing else this word
+        // says about that part of the world is asked — and every other member is out, not merely unranked.
+        choiceIn(preset.aspect)?.let { return it.key == preset.key }
         if (excludes(preset, tags)) return false
         if (restrictsIn(preset.aspect).isEmpty()) return true
         val strength = pullIn(preset.aspect, tags)
