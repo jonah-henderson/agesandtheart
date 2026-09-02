@@ -33,14 +33,14 @@ enum class Part(
 ) {
     NAME("word", ""),
     TIER("specificity", ""),
-    TEMPLATE("base dimension", "the world a book starts from, where this word chooses one"),
-    LISTING("rarity", "how hard it is to find, and what it takes to write"),
+    TEMPLATE("base dimension", ""),
+    LISTING("rarity", ""),
 
     /**
      * Claims about a **property** the world has — a temperature, a colour, how large a sun is. Keyed by
      * the parameter they set.
      */
-    PROPERTIES("properties", "what it sets, and whether it insists on it", startsGroup = true),
+    PROPERTIES("properties", "settings an aspect offers, set to a value", startsGroup = true),
 
     /**
      * Claims about **which members** fill a part of the world — this landform, anything tagged cavernous,
@@ -51,7 +51,7 @@ enum class Part(
      * across both** and so is never the split — a temperature is a band or a nudge, a member is a name or
      * a tag, and either way that is how precisely the word speaks rather than what it speaks about.
      */
-    POPULATIONS("populations", ""),
+    POPULATIONS("populations", "sets of entries such as biomes and spawns, which a word modifies"),
 
     /**
      * Everything the word does, said back in one place.
@@ -62,13 +62,13 @@ enum class Part(
      * does to each population, and what is wrong with it.
      */
     REVIEW("review", "", startsGroup = true),
-    COMMENT("comment", "why this word exists, for whoever reads it next"),
+    COMMENT("comment", ""),
 
-    SAVE("save", "write it, and stay here", startsGroup = true),
-    SAVE_AND_LEAVE("save & exit", "write it and go back to the list"),
+    SAVE("save", "", startsGroup = true),
+    SAVE_AND_LEAVE("save & exit", ""),
 
     /** Last, and marked, because it is the one thing here that cannot be undone. */
-    DELETE("delete", "removing this word for good", perilous = true),
+    DELETE("delete", "", perilous = true),
 }
 
 /**
@@ -135,24 +135,6 @@ class Parts(private val corpus: Corpus) {
         Part.LISTING -> listingRows(candidate)
         Part.SAVE, Part.SAVE_AND_LEAVE -> doingRows(part, candidate)
         Part.DELETE -> deleteRows(candidate)
-    }
-
-    /** What the section says about itself — some of it depends on the word, so it is not on the enum. */
-    fun aboutOf(part: Part, candidate: Candidate): String = when (part) {
-        Part.POPULATIONS -> "which members fill a part of the world — " + whatTagsDoHere(candidate.tier)
-        Part.COMMENT -> "why this word exists, for whoever reads it next"
-        Part.LISTING -> "how hard it is to find, and what it takes to write"
-        Part.DELETE -> "removing this word for good"
-        else -> part.about
-    }
-
-    /**
-     * What a tag actually does, which depends on how specific the word is: an evocative word leans the
-     * draw and can rule nothing out, where the other two keep only what is tagged well enough.
-     */
-    private fun whatTagsDoHere(tier: Tier): String = when (tier) {
-        Tier.EVOCATIVE -> "leans the Age toward things carrying these tags — it cannot rule anything out"
-        else -> "keeps only things tagged ${tier.threshold} or better; negative weights push away"
     }
 
     /** Whether this section holds a list you add to and delete from, which decides what `a` and `d` mean. */
@@ -225,19 +207,25 @@ class Parts(private val corpus: Corpus) {
         }
         val listing = WordFile.listingFor(candidate.listingKey)
         return buildList {
-            addAll(under("what it costs", costRows(candidate, word, listing)))
-            addAll(under("where it lands", landingRows(candidate, word)))
-            addAll(under("what it sets", propertyReview(candidate)))
-            addAll(under("what it does to populations", populationReview(candidate)))
-            addAll(under("why it exists", candidate.commentLines.map { said(it) }))
+            addAll(under("cost", costRows(candidate, word, listing)))
+            addAll(under("aspects", landingRows(candidate, word)))
+            addAll(under("properties", propertyReview(candidate)))
+            addAll(under("populations", populationReview(candidate)))
+            addAll(under("comment", candidate.commentLines.map { said(it) }))
             if (isEmpty()) add(Row("none", listOf(Ink("nothing said yet", Palette.faint))))
         }
     }
 
-    /** A heading and its rows, or nothing at all where there are none. */
-    private fun under(title: String, rows: List<Row>): List<Row> =
-        if (rows.isEmpty()) emptyList()
-        else listOf(Row("heading/$title", listOf(Ink(title, Palette.heading)))) + rows
+    /**
+     * A heading and its rows, or nothing at all where there are none.
+     *
+     * The blank line before it carries a heading's handle so the cursor passes over it, which is the same
+     * rule that keeps it off the heading itself.
+     */
+    private fun under(title: String, rows: List<Row>): List<Row> = if (rows.isEmpty()) emptyList() else listOf(
+        Row("heading/space/$title", emptyList()),
+        Row("heading/$title", listOf(Ink(title, Palette.heading))),
+    ) + rows
 
     /** A read-only line: a label, its value, and whatever is worth saying about it after. */
     private fun told(label: String, value: String, after: String = "", tone: TextStyle = Palette.value) = Row(

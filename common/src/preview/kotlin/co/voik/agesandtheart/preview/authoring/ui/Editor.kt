@@ -241,7 +241,7 @@ class Editor(
     private fun partLines(width: Int, room: Int): List<Line> {
         val shown = rows()
         val at = row()
-        val about = parts.aboutOf(part, candidate)
+        val about = part.about
         val head = if (about.isEmpty()) listOf(Line.BLANK) else listOf(Line(about, Palette.faint), Line.BLANK)
         val listed = shown.mapIndexed { index, entry ->
             val marker = if (index == at && inside) "${Glyph.FOCUS} " else "  "
@@ -291,7 +291,7 @@ class Editor(
     /** How many rows fit in the pane at the moment — what a page means to [move]. */
     private fun rowsInView(): Int {
         val room = (canvas.height - CHROME_LINES).coerceAtLeast(MINIMUM_BODY)
-        val about = parts.aboutOf(part, candidate)
+        val about = part.about
         val head = if (about.isEmpty()) 1 else 2
         return (room - head - NOTE_LEAST).coerceAtLeast(1)
     }
