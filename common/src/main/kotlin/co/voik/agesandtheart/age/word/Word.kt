@@ -827,18 +827,36 @@ data class Word(
 
         private fun namesAnAspect(spelled: String) = spelled.contains(PARAMETER_MARK)
 
-        /** The aspect a key names, or null where it names none — including where it names one wrongly. */
-        private fun aspectMeantBy(spelled: String): Aspect? {
-            if (!spelled.contains(PARAMETER_MARK)) return null
-            val named = spelled.substringBefore(PARAMETER_MARK)
-            return Aspect.entries.firstOrNull { it.page == named }
-        }
+        private fun aspectMeantBy(spelled: String): Aspect? = aspectNamedBy(spelled)
 
-        /** The parameter itself, with any aspect it named taken off — and left whole where it named none. */
-        private fun parameterNameIn(spelled: String): String =
-            if (aspectMeantBy(spelled) == null) spelled else spelled.substringAfter(PARAMETER_MARK)
-
+        private fun parameterNameIn(spelled: String): String = parameterIn(spelled)
     }
+}
+
+/** The mark between an aspect and the parameter it qualifies — `sun.colour`. */
+private const val PARAMETER_MARK = '.'
+
+/**
+ * The aspect a parameter key names, or null where it names none — including where it names one wrongly.
+ *
+ * `sun.colour` is the sun's alone; a plain `colour` belongs to every aspect that owns one, which is what
+ * lets one word paint eight of them.
+ */
+fun aspectNamedBy(spelled: String): Aspect? {
+    if (!spelled.contains(PARAMETER_MARK)) return null
+    val named = spelled.substringBefore(PARAMETER_MARK)
+    return Aspect.entries.firstOrNull { it.page == named }
+}
+
+/** The parameter itself, with any aspect it named taken off — and left whole where it named none. */
+fun parameterIn(spelled: String): String =
+    if (aspectNamedBy(spelled) == null) spelled else spelled.substringAfter(PARAMETER_MARK)
+
+/** Whether a key spelled [spelled] can land on [aspect] — it named this one, or it named none and this owns it. */
+fun landsOn(spelled: String, aspect: Aspect): Boolean {
+    val named = aspectNamedBy(spelled)
+    if (named != null) return named == aspect
+    return aspect.ownsParameterNamed(spelled)
 }
 
 /**

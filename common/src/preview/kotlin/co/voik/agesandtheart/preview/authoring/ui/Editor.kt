@@ -136,7 +136,15 @@ class Editor(
         history += change(candidate)
     }
 
-    private fun rows() = parts.rowsOf(part, candidate, word)
+    private fun rows() = parts.rowsOf(part, candidate, word, paneWidth)
+
+    /**
+     * How wide the word pane was drawn last, which is what a section's columns are measured against.
+     *
+     * Held rather than passed, because the width is worked out while laying the panes out and every other
+     * caller of [rows] wants a handle rather than a picture.
+     */
+    private var paneWidth: Int = WORD_PANE_LEAST
 
     private fun row(): Int = rowOf.getValue(part).coerceIn(0, (rows().size - 1).coerceAtLeast(0))
 
@@ -186,6 +194,7 @@ class Editor(
         } else {
             rest.coerceAtLeast(MINIMUM_WIDTH / 2)
         }
+        paneWidth = wordWidth
 
         // The section list is the navigation, so a short terminal must not cut the last parts off the
         // bottom and leave them looking unreachable.
@@ -412,7 +421,15 @@ class Editor(
             )
         }
         is Reader -> hints("↑↓" to "scroll", "pgup/pgdn" to "a page", "home/end" to "ends", "←" to "close")
-        null -> if (inside) {
+        // The review page reads rather than edits, so it says what its one key does instead of offering
+        // six that answer nothing there.
+        null -> if (inside && part == Part.REVIEW) {
+            hints(
+                "↑↓" to "row", "pgup/pgdn" to "a page", "home/end" to "ends", "←" to "back",
+                "enter" to "open what it does", "?" to "help", "^p" to "preview", "^t" to "try",
+                "^f" to "faults", "^s" to "save",
+            )
+        } else if (inside) {
             hints(
                 "↑↓" to "row", "pgup/pgdn" to "a page", "home/end" to "ends", "←" to "back",
                 "enter" to "edit", "a" to "add", "d" to "delete", "tab" to "target",
@@ -654,7 +671,7 @@ class Editor(
         when (part) {
             Part.NAME -> if (rows().getOrNull(row())?.handle == "display") retitle() else renameTo()
             Part.TIER -> Tier.entries.firstOrNull { it.key == handle }?.let { tier -> edit { it.copy(tier = tier) } }
-            Part.REVIEW -> Unit
+            Part.REVIEW -> parts.openOrClose(handle)
             Part.TEMPLATE -> pickABaseDimension()
             Part.PROPERTIES -> actOnAnEffect(handle)
             Part.POPULATIONS -> actOnAPick(handle)

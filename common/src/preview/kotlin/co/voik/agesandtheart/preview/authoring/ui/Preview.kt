@@ -57,8 +57,7 @@ object Preview {
                 }
                 if (!narrows && !leansHere) continue
                 for (preset in kept.take(SHOWN_PER_ASPECT)) {
-                    val strength = word.claimOn(preset, corpus.vocabulary.tagsOf(preset)) +
-                        word.biasOn(preset, corpus.vocabulary.tagsOf(preset))
+                    val strength = Resolver.standingOf(corpus.vocabulary, word, aspect, preset).strength
                     add(
                         Line("    ") + Line(preset.key.padEnd(38), Palette.value) +
                             Line("%.2f".format(strength), Palette.settled) +

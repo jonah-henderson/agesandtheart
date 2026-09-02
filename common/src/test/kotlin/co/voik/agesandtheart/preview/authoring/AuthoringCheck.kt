@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.word.Tier
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.age.word.Draws
 import co.voik.agesandtheart.age.word.Facets
+import co.voik.agesandtheart.preview.authoring.ui.Columns
 import co.voik.agesandtheart.preview.authoring.ui.Insistence
 import co.voik.agesandtheart.preview.authoring.ui.addingAPool
 import co.voik.agesandtheart.preview.authoring.ui.drawing
@@ -350,5 +351,53 @@ class AuthoringCheck : FunSpec({
         check(!WordFile.textOf(single).contains("[")) {
             "a one-line comment should be written as a string, as the corpus spells it"
         }
+    }
+
+    /**
+     * **A column is as wide as what is in it**, which is the whole of what one shared layout buys: every
+     * list in the tool declared its own widths and one worked the last out from the canvas by hand, so a
+     * value longer than somebody's guess was cut on every terminal and a short one left a gutter.
+     */
+    test("columns are measured off their contents") {
+        val rows = listOf(listOf("sea", "minecraft:water"), listOf("landmass", "vanilla"))
+        val plain = listOf(Columns.Column(), Columns.Column())
+        val roomy = Columns.widths(rows, plain, room = 60, gap = 2)
+        check(roomy == listOf("landmass".length, "minecraft:water".length)) {
+            "a column with room to spare should fit its widest entry exactly, and gave $roomy"
+        }
+    }
+
+    /**
+     * **The room nobody wanted goes to whoever said they would take it**, so a table on a wide terminal
+     * spends the difference on the column holding a sentence rather than leaving it blank at the edge.
+     */
+    test("spare room goes to the growing column") {
+        val rows = listOf(listOf("sea", "it fills what the shapes leave"))
+        val columns = listOf(Columns.Column(), Columns.Column(grows = true))
+        val widths = Columns.widths(rows, columns, room = 80, gap = 2)
+        check(widths.sum() + 2 == 80) { "the spare room went nowhere: $widths" }
+        check(widths.first() == "sea".length) { "the fixed column grew as well: $widths" }
+    }
+
+    /**
+     * **The widest columns give the room up, not every column equally.**
+     *
+     * A flat share would take the same off a column of two-character counts as off one holding an id,
+     * which cuts the readable column to nothing to save four characters on the unreadable one.
+     */
+    test("a narrow pane levels the widest columns down") {
+        val rows = listOf(listOf("ab", "a very long value indeed that will not fit"))
+        val columns = listOf(Columns.Column(), Columns.Column())
+        val widths = Columns.widths(rows, columns, room = 20, gap = 2)
+        check(widths.sum() + 2 <= 20) { "the columns overran the room: $widths" }
+        check(widths.first() == 2) { "the short column was cut to pay for the long one: $widths" }
+    }
+
+    /** Nothing is drawn below the least it asked for, however little room there is. */
+    test("a column is never drawn below its least") {
+        val rows = listOf(listOf("a name that is long", "another that is long"))
+        val columns = listOf(Columns.Column(least = 12), Columns.Column(least = 12))
+        val widths = Columns.widths(rows, columns, room = 10, gap = 2)
+        check(widths == listOf(12, 12)) { "a least was given up: $widths" }
     }
 })

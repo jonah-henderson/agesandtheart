@@ -12,6 +12,8 @@ import co.voik.agesandtheart.age.word.Facets
 import co.voik.agesandtheart.age.word.Tier
 import com.github.ajalt.mordant.rendering.TextStyle
 import co.voik.agesandtheart.age.word.Word
+import co.voik.agesandtheart.age.word.landsOn
+import co.voik.agesandtheart.age.word.parameterIn
 import co.voik.agesandtheart.preview.authoring.Candidate
 import co.voik.agesandtheart.preview.authoring.Corpus
 import co.voik.agesandtheart.preview.authoring.Verdict
@@ -124,13 +126,26 @@ class Parts(private val corpus: Corpus) {
      */
     var helpAspect: Int = 0
 
-    fun rowsOf(part: Part, candidate: Candidate, word: Word?): List<Row> = when (part) {
+    /**
+     * Which review rows have been opened to the claims their one-line summary stands for.
+     *
+     * By handle rather than by index, so opening one and then editing the word elsewhere leaves it open on
+     * the row it was opened on rather than on whatever moved into that position.
+     */
+    private val opened = mutableSetOf<String>()
+
+    /** Opens a review row's breakdown, or closes it — the one thing that page's enter does. */
+    fun openOrClose(handle: String) {
+        if (!opened.add(handle)) opened.remove(handle)
+    }
+
+    fun rowsOf(part: Part, candidate: Candidate, word: Word?, width: Int): List<Row> = when (part) {
         Part.NAME -> nameRows(candidate)
         Part.TIER -> tierRows(candidate)
         Part.TEMPLATE -> templateRows(candidate)
         Part.PROPERTIES -> effectRows(candidate, word)
         Part.POPULATIONS -> pickRows(candidate, word)
-        Part.REVIEW -> reviewRows(candidate, word)
+        Part.REVIEW -> reviewRows(candidate, word, width)
         Part.COMMENT -> commentRows(candidate)
         Part.LISTING -> listingRows(candidate)
         Part.SAVE, Part.SAVE_AND_LEAVE -> doingRows(part, candidate)
@@ -184,35 +199,73 @@ class Parts(private val corpus: Corpus) {
         Tier.EXACT -> "names specific blocks, materials, mobs, structures, landforms"
     }
 
-    // -- targets -------------------------------------------------------------------------------------
+    // -- review --------------------------------------------------------------------------------------
 
     /**
-     * Where the word speaks — **read, never set.**
+     * One review line before it knows how wide its columns are.
      *
-     * A word used to declare this alongside deriving it, and the declaration's only real job was aiming a
-     * bare `query`. Keying the query says the same thing in one place, so the declaration went and this
-     * became what it always should have been: a reading of what the word's own claims add up to.
+     * Measured rather than declared, which is what the page was missing: its columns were sixteen and
+     * thirty-four characters whatever a terminal had, so a span was cut in the middle on every one of
+     * them while the aside beside it ran off the end.
      */
+    private sealed interface Told {
+        val handle: String
+
+        /** A line that owns the width: a heading, a comment, an opened breakdown. */
+        data class Whole(override val handle: String, val shown: List<Ink>) : Told
+
+        /** A line in the page's columns: what it is about, what it says, and the aside after. */
+        data class Columned(override val handle: String, val cells: List<Ink>, val note: String = "") : Told
+    }
+
     /**
      * **The whole word on one page**, in the order somebody checks it: what it costs, where it lands, what
      * it sets, what it does to each population, and why it exists.
      *
-     * Read-only, and **empty sections are absent rather than stated**. What a word has not said is already
-     * on the section list to its left as a blank mark, so saying it again here is a line spent telling a
-     * writer something they can see, and the page is worth having only if scanning it is quick.
+     * Read-only but for one key: a row saying what a word does to one part of the world is a summary, and
+     * enter opens it to the claims it summarised. **Empty sections are absent rather than stated** — what
+     * a word has not said is already on the section list to its left as a blank mark.
      */
-    private fun reviewRows(candidate: Candidate, word: Word?): List<Row> {
+    private fun reviewRows(candidate: Candidate, word: Word?, width: Int): List<Row> {
         if (word == null) {
             return listOf(Row("none", listOf(Ink("this word will not load", Palette.refused))))
         }
         val listing = WordFile.listingFor(candidate.listingKey)
-        return buildList {
-            addAll(under("cost", costRows(candidate, word, listing)))
-            addAll(under("aspects", landingRows(candidate, word)))
-            addAll(under("properties", propertyReview(candidate)))
-            addAll(under("populations", populationReview(candidate)))
-            addAll(under("comment", candidate.commentLines.map { said(it) }))
-            if (isEmpty()) add(Row("none", listOf(Ink("nothing said yet", Palette.faint))))
+        // **A section at a time.** One measurement for the whole page makes every value column as wide as
+        // the widest thing any section put there — the sentence saying what an aspect holds — so a
+        // temperature of `0.5..1.0` sat alone in fifty columns with its aside pushed off the end.
+        val sections = listOf(
+            under("cost", costTold(candidate, word, listing)),
+            under("aspects", aspectsTold(candidate, word)),
+            under("properties", propertiesTold(candidate)),
+            under("populations", populationsTold(candidate)),
+            under("comment", candidate.commentLines.map { said(it) }),
+        )
+        if (sections.all { it.isEmpty() }) {
+            return listOf(Row("none", listOf(Ink("nothing said yet", Palette.faint))))
+        }
+        return sections.flatMap { laidOut(it, width) }
+    }
+
+    /** One section's three columns measured against each other, and its rows drawn into them. */
+    private fun laidOut(told: List<Told>, width: Int): List<Row> {
+        val columned = told.filterIsInstance<Told.Columned>()
+        val widths = Columns.widths(
+            columned.map { row -> row.cells.map { it.text } },
+            REVIEW_COLUMNS,
+            (width - REVIEW_INDENT).coerceAtLeast(MINIMUM_ROOM),
+            gap = REVIEW_GAP,
+        )
+        val gap = Line(" ".repeat(REVIEW_GAP))
+        return told.map { row ->
+            when (row) {
+                is Told.Whole -> Row(row.handle, row.shown)
+                is Told.Columned -> Row(
+                    row.handle,
+                    listOf(Ink(" ".repeat(REVIEW_INDENT))) + Columns.laid(row.cells, widths, gap).inks,
+                    row.note,
+                )
+            }
         }
     }
 
@@ -222,77 +275,145 @@ class Parts(private val corpus: Corpus) {
      * The blank line before it carries a heading's handle so the cursor passes over it, which is the same
      * rule that keeps it off the heading itself.
      */
-    private fun under(title: String, rows: List<Row>): List<Row> = if (rows.isEmpty()) emptyList() else listOf(
-        Row("heading/space/$title", emptyList()),
-        Row("heading/$title", listOf(Ink(title, Palette.heading))),
-    ) + rows
+    private fun under(title: String, rows: List<Told>): List<Told> =
+        if (rows.isEmpty()) emptyList() else listOf(
+            Told.Whole("heading/space/$title", emptyList()),
+            Told.Whole("heading/$title", listOf(Ink(title, Palette.heading))),
+        ) + rows
 
-    /** A read-only line: a label, its value, and whatever is worth saying about it after. */
-    private fun told(label: String, value: String, after: String = "", tone: TextStyle = Palette.value) = Row(
-        handle = "told/$label/$value",
-        shown = listOf(
-            Ink("    "),
-            Ink(label.padEnd(REVIEW_LABEL), Palette.faint),
-            Ink(value.padEnd(REVIEW_VALUE), tone),
-            Ink(after, Palette.faint),
-        ),
-    )
+    /** A group inside a section — the required half of the properties, or one pool of them. */
+    private fun grouped(title: String, rows: List<Told>): List<Told> =
+        if (rows.isEmpty()) emptyList() else listOf(
+            Told.Whole("heading/group/$title", listOf(Ink("  $title", Palette.chosen))),
+        ) + rows
 
-    private fun said(line: String) = Row("said", listOf(Ink("    "), Ink(line, Palette.faint)))
+    private fun told(handle: String, label: String, value: String, after: String = "", tone: TextStyle = Palette.value) =
+        Told.Columned(handle, listOf(Ink(label, Palette.faint), Ink(value, tone), Ink(after, Palette.faint)))
 
-    private fun costRows(candidate: Candidate, word: Word, listing: WordFile.Listing) = buildList {
-        add(told("ink", "${word.price}", "${word.tier.key} × ${word.versatility} part(s) of the world"))
-        listing.rarity?.let { add(told("rarity", it, "how hard it is to find")) }
-        inkOf(candidate)?.let { add(told("ink quality", it, "what it takes to write")) }
-        candidate.template?.let { add(told("base dimension", it, "the world a book starts from")) }
+    private fun said(line: String) = Told.Whole("said", listOf(Ink("    "), Ink(line, Palette.faint)))
+
+    private fun costTold(candidate: Candidate, word: Word, listing: WordFile.Listing) = buildList {
+        add(told("cost/ink", "ink", "${word.price}", "${word.tier.key} × ${word.versatility} part(s) of the world"))
+        listing.rarity?.let { add(told("cost/rarity", "rarity", it, "how hard it is to find")) }
+        inkOf(candidate)?.let { add(told("cost/quality", "ink quality", it, "what it takes to write")) }
+        candidate.template?.let { add(told("cost/base", "base dimension", it, "the world a book starts from")) }
     }
 
-    private fun landingRows(candidate: Candidate, word: Word) =
-        word.aspects.sortedBy { it.ordinal }.map { aspect ->
-            told(aspect.page, whatItHolds(aspect), whyItReaches(aspect, candidate).lines().first().trim())
+    /**
+     * One line per part of the world the word reaches: what that part holds, and **what this word does to
+     * it** said in one line.
+     *
+     * It used to say which parameters the word turns, which is a list of names rather than an account of
+     * anything — and it read the names unqualified, so a word setting `sun.colour` claimed to turn the
+     * colour of the sky, the air, the clouds, the grass and the leaves as well. What is wanted here is
+     * what actually changes, and the exact claims are one keystroke away rather than on the line.
+     */
+    private fun aspectsTold(candidate: Candidate, word: Word): List<Told> =
+        word.aspects.sortedBy { it.ordinal }.flatMap { aspect ->
+            val handle = "aspect/${aspect.page}"
+            val done = doesHere(candidate, word, aspect)
+            val summary = done.joinToString("  ${Glyph.BULLET} ").ifEmpty { "nothing that lands here" }
+            val row = Told.Columned(
+                handle,
+                listOf(Ink(aspect.page, Palette.value), Ink(whatItHolds(aspect), Palette.faint), Ink(summary)),
+                note = when {
+                    done.size <= 1 -> ""
+                    handle in opened -> "enter closes it again"
+                    else -> "enter opens what it does here, claim by claim"
+                },
+            )
+            val breakdown = if (handle !in opened) emptyList() else done.map { one ->
+                Told.Whole("$handle/said", listOf(Ink("        $one", Palette.faint)))
+            }
+            listOf(row) + breakdown
         }
 
-    private fun propertyReview(candidate: Candidate) = Insistence.entries.flatMap { insistence ->
-        val always = candidate.settingOn(insistence).entries.sortedBy { it.key }
-            .map { (parameter, value) -> told(parameter, value, insistence.title) }
-        val pools = candidate.poolsOn(insistence).map { pool ->
-            told(
-                pool.said,
-                "${pool.draws} of ${pool.facets.size}",
-                "${insistence.title} pool ${Glyph.BULLET} ${pool.facets.keys.sorted().joinToString(" ")}",
+    /**
+     * Everything this word does to one part of the world, in the order the pipeline takes it.
+     *
+     * **Asked per aspect, honouring the qualifier** ([landsOn]): a claim on `sun.colour` belongs to the
+     * sun and nowhere else, and an unqualified `colour` belongs to every part that owns one.
+     */
+    private fun doesHere(candidate: Candidate, word: Word, aspect: Aspect): List<String> = buildList {
+        candidate.chooses[aspect]?.let { add("chooses $it") }
+        candidate.admits[aspect]?.sorted()?.forEach { add("adds $it") }
+        candidate.restricts[aspect]?.entries?.sortedByDescending { it.value }
+            ?.forEach { (tag, weight) -> add("keeps only $TAG_MARK$tag ${"%+.2f".format(weight)}") }
+        candidate.excludes[aspect]?.sorted()?.forEach { add("removes $it") }
+        candidate.biases[aspect]?.entries?.sortedByDescending { it.value }
+            ?.forEach { (named, weight) -> add("leans $named ${"%+.2f".format(weight)}") }
+        candidate.leansEverywhere.entries.sortedByDescending { it.value }
+            .forEach { (named, weight) -> add("leans $named ${"%+.2f".format(weight)} everywhere") }
+        for (insistence in Insistence.entries) {
+            val where = if (insistence.required) "" else " (requested)"
+            candidate.settingOn(insistence).entries.sortedBy { it.key }
+                .filter { landsOn(it.key, aspect) }
+                .forEach { (parameter, value) -> add("${parameterIn(parameter)} $value$where") }
+            for (pool in candidate.poolsOn(insistence)) {
+                val here = pool.facets.keys.filter { landsOn(it, aspect) }.sorted()
+                if (here.isEmpty()) continue
+                add("draws ${pool.said} of ${pool.facets.size}$where: ${here.joinToString(" ", transform = ::parameterIn)}")
+            }
+        }
+    }
+
+    /**
+     * What the word sets, **grouped by how hard it insists and then by which pool it draws from**.
+     *
+     * A pool is several claims of which an Age takes some, so squeezing one onto a line meant reading its
+     * count, its size and every facet it offers as one run-on aside. Its facets are claims like any other
+     * and belong in the same columns, under a heading that says what the draw is.
+     */
+    private fun propertiesTold(candidate: Candidate): List<Told> = Insistence.entries.flatMap { insistence ->
+        val always = grouped(
+            insistence.title,
+            candidate.settingOn(insistence).entries.sortedBy { it.key }.map { (parameter, value) ->
+                told("set/${insistence.name}/$parameter", parameterIn(parameter), value, wherever(parameter))
+            },
+        )
+        val pools = candidate.poolsOn(insistence).flatMapIndexed { at, pool ->
+            grouped(
+                "${insistence.title} pool ${Glyph.BULLET} draws ${pool.said} of ${pool.facets.size}",
+                pool.facets.entries.sortedBy { it.key }.map { (parameter, value) ->
+                    told("pool/${insistence.name}/$at/$parameter", parameterIn(parameter), value, wherever(parameter))
+                },
             )
         }
         always + pools
     }
 
-    /** One line per part of the world a claim about a population lands in, saying every step it takes. */
-    private fun populationReview(candidate: Candidate): List<Row> {
+    /** The parts of the world a parameter key lands in — the aside a property row carries. */
+    private fun wherever(spelled: String): String =
+        Aspect.entries.filter { landsOn(spelled, it) }.joinToString(" ") { it.page }
+
+    /** One line per step a claim about a set takes, under the part of the world it lands in. */
+    private fun populationsTold(candidate: Candidate): List<Told> {
         val everywhere = candidate.leansEverywhere.entries.sortedByDescending { it.value }
-            .map { (named, weight) -> told(Word.EVERYWHERE, "leans $named", "%+.2f".format(weight)) }
+            .map { (named, weight) ->
+                told("lean/all/$named", Word.EVERYWHERE, "leans $named", "%+.2f".format(weight))
+            }
         val keyed = Aspect.entries.sortedBy { it.ordinal }.flatMap { aspect ->
+            val page = aspect.page
             buildList {
-                candidate.chooses[aspect]?.let { add(told(aspect.page, "chooses $it", "nothing is searched for")) }
-                candidate.admits[aspect]?.sorted()?.forEach { add(told(aspect.page, "adds $it", "into the pool")) }
-                candidate.restricts[aspect]?.entries?.sortedByDescending { it.value }?.forEach { (tag, weight) ->
-                    add(told(aspect.page, "keeps only $TAG_MARK$tag", "%+.2f".format(weight)))
+                candidate.chooses[aspect]?.let {
+                    add(told("chooses/$page", page, "chooses $it", "nothing is searched for"))
                 }
-                candidate.excludes[aspect]?.sorted()?.forEach { add(told(aspect.page, "removes $it", "out of the pool")) }
+                candidate.admits[aspect]?.sorted()?.forEach {
+                    add(told("admits/$page/$it", page, "adds $it", "into the pool"))
+                }
+                candidate.restricts[aspect]?.entries?.sortedByDescending { it.value }?.forEach { (tag, weight) ->
+                    add(told("restricts/$page/$tag", page, "keeps only $TAG_MARK$tag", "%+.2f".format(weight)))
+                }
+                candidate.excludes[aspect]?.sorted()?.forEach {
+                    add(told("excludes/$page/$it", page, "removes $it", "out of the pool"))
+                }
                 candidate.biases[aspect]?.entries?.sortedByDescending { it.value }?.forEach { (named, weight) ->
-                    add(told(aspect.page, "leans $named", "%+.2f".format(weight)))
+                    add(told("biases/$page/$named", page, "leans $named", "%+.2f".format(weight)))
                 }
             }
         }
         return everywhere + keyed
     }
-
-    /** A section that is one thing to do, so its whole list is the doing of it. */
-    private fun doingRows(part: Part, candidate: Candidate): List<Row> = listOf(
-        Row(
-            handle = part.name,
-            shown = listOf(Ink(part.title, if (candidate.isDerived) Palette.faint else Palette.value)),
-            note = if (candidate.isDerived) "an auto-generated word has no file to write" else part.about,
-        ),
-    )
 
     /**
      * What an aspect holds, said rather than named.
@@ -311,20 +432,14 @@ class Parts(private val corpus: Corpus) {
         return kind + if (aspect.open) " ${Glyph.BULLET} anything in the game" else ""
     }
 
-    /** Which of the word's own claims put it here — the answer to "why is this on the list". */
-    private fun whyItReaches(aspect: Aspect, candidate: Candidate): String {
-        val because = buildList {
-            if (candidate.restricts.containsKey(aspect)) add("it keeps only what is tagged, in ${aspect.page}")
-            if (candidate.admits.containsKey(aspect)) add("it adds to the ${aspect.page}'s pool")
-            if (candidate.excludes.containsKey(aspect)) add("it takes something out of the ${aspect.page}")
-            if (candidate.biases.containsKey(aspect)) add("it leans the ${aspect.page}")
-            val parameters = Insistence.entries.flatMap { candidate.everythingOn(it).keys }
-            val here = parameters.filter { aspect.ownsParameterNamed(it.substringAfterLast('.')) }
-            if (here.isNotEmpty()) add("it turns ${here.sorted().joinToString(" ")}")
-            candidate.chooses[aspect]?.let { add("it chooses $it outright") }
-        }
-        return because.joinToString("\n    ").ifEmpty { "" }
-    }
+    /** A section that is one thing to do, so its whole list is the doing of it. */
+    private fun doingRows(part: Part, candidate: Candidate): List<Row> = listOf(
+        Row(
+            handle = part.name,
+            shown = listOf(Ink(part.title, if (candidate.isDerived) Palette.faint else Palette.value)),
+            note = if (candidate.isDerived) "an auto-generated word has no file to write" else part.about,
+        ),
+    )
 
     // -- effects -------------------------------------------------------------------------------------
 
@@ -900,15 +1015,23 @@ class Parts(private val corpus: Corpus) {
         /** Where a facet's value starts, so every row in the section lines up on it. */
         const val PARAMETER_COLUMN = 22
 
+        /**
+         * The three columns of the review page: what a line is about, what it says, and the aside after.
+         *
+         * Widths are measured off the page rather than declared ([Columns]); only the last takes room
+         * nobody else wanted, since it is the one holding a sentence rather than a name.
+         */
+        val REVIEW_COLUMNS = listOf(Columns.Column(), Columns.Column(), Columns.Column(grows = true))
+
+        /** What every review line is indented by, and the gap between its columns. */
+        const val REVIEW_INDENT = 4
+        const val REVIEW_GAP = 2
+
         /** Where a review row's second column starts. */
         const val MARK_COLUMN = 14
 
         /** The gap between a label and the value it labels, wherever the two share a row. */
         const val LABEL_GUTTER = 2
-
-        /** The three columns of a review line: what it is about, what it says, and the aside after. */
-        const val REVIEW_LABEL = 16
-        const val REVIEW_VALUE = 34
 
         /** Where the value starts on a populations row, past the word saying what it does to the draw. */
         const val KIND_COLUMN = 10

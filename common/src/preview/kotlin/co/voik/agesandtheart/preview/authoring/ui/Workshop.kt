@@ -320,20 +320,16 @@ class Workshop(
     }
 
     /** What the table was built for, so a resized terminal rebuilds it rather than keeping old widths. */
-    private var builtFor: Int = 0
 
     /**
-     * The columns, **measured off the terminal rather than guessed.**
-     *
-     * `what it does` was a fixed sixty characters, which truncated the interesting half of every row on a
-     * wide screen for no reason at all. What is left after the page and the marker is what it gets, and
-     * the arithmetic is `rowLine`'s own: four columns of indent, then ` │ ` between each pair.
+     * The columns. Each says the least it may be drawn at and the table measures the rest off its rows,
+     * so `what it does` takes whatever the terminal has left rather than a number written here.
      */
-    private fun columnsFor(width: Int): List<Table.Column> = listOf(
+    private val columns: List<Table.Column> = listOf(
         Table.Column("page", PAGE_WIDTH),
         Table.Column("specificity", TIER_WIDTH, order = Tier.entries.map { it.key }),
         Table.Column("targets", TARGETS_WIDTH),
-        Table.Column("what it does", (width - COLUMNS_SPENT).coerceAtLeast(MINIMUM_SAYS)),
+        Table.Column("what it does", MINIMUM_SAYS, grows = true),
     )
 
     /** The narrowest the list can be drawn and still say something in every column. */
@@ -358,16 +354,15 @@ class Workshop(
 
     private fun emptyTable() = Table(
         title = "",
-        columns = columnsFor(listPaneWidth),
+        columns = columns,
         rows = emptyList(),
         whenEmpty = "nothing the Art can read follows this",
     )
 
     private fun rebuildTheTable(filter: String) {
-        builtFor = listPaneWidth
         table = Table(
             title = "",
-            columns = columnsFor(listPaneWidth),
+            columns = columns,
             rows = listed().map { offer ->
                 Table.Row(
                     key = offer.page,
@@ -393,8 +388,6 @@ class Workshop(
     // -- the frame -------------------------------------------------------------------------------------
 
     private fun lines(): List<Line> {
-        // A resize changes what `what it does` has room for, and the table holds its widths.
-        if (listPaneWidth != builtFor) rebuildTheTable(typed)
         val head = buildList {
             add(
                 Line("  the age workshop  ", Palette.heading) + Line(name.ifEmpty { "untitled" }, Palette.value) +
@@ -429,6 +422,7 @@ class Workshop(
      * push the list: whatever it has to say, the row under the cursor stays where it was.
      */
     private fun besidePanes(room: Int): List<Line> {
+        table.room = (listPaneWidth - INDENT).coerceAtLeast(MINIMUM_ROOM)
         val list = listOf(headerLine(table)) + offerLines(room - 1)
         return Frame.beside(exactly(bookPane(bookPaneWidth), room), bookPaneWidth, list, listPaneWidth)
     }
@@ -442,6 +436,7 @@ class Workshop(
      * cut, because a short book leaving the gap is what stops the list moving at all.
      */
     private fun stackedPanes(room: Int): List<Line> {
+        table.room = (canvas.width - INDENT).coerceAtLeast(MINIMUM_ROOM)
         // The rule and the header the list wears, and one offer row, which is the least worth drawing.
         val spentOnTheList = LIST_CHROME + 1
         val tall = STACKED_BOOK_ROWS.coerceIn(1, (room - spentOnTheList).coerceAtLeast(1))

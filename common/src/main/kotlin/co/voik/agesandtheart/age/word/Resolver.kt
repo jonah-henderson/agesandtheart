@@ -70,6 +70,16 @@ data class Resolution(
  *
  * A pure function of (vocabulary, words, seed): an Age is rebuilt from its recipe on every open.
  */
+/**
+ * Where one member of a part of the world stands after one word has spoken — how strongly it is claimed,
+ * and whether the word leaves it in at all.
+ *
+ * A catalogue's [strength] is what decides which single preset is seated; a population's is the share of
+ * the world that member keeps. The two scales are not comparable across aspects and never need to be:
+ * every reader of this is ranking one aspect's members against each other.
+ */
+data class Standing(val strength: Double, val kept: Boolean)
+
 object Resolver {
     /**
      * How many ways one aspect may divide. A limit on legibility rather than machinery — region maps
@@ -1202,15 +1212,22 @@ object Resolver {
      * what to keep and what to strike, rather than what to prefer.
      */
     /**
-     * What one [word] alone would claim of one [member] — [claimForMember] with a sentence of one page.
+     * **How one [word] alone stands towards one member of [aspect]** — a sentence of one page, resolved.
      *
-     * Here so that a tool previewing a word draws the resolver's own arithmetic rather than a second
-     * opinion about it, the two having no way to be found disagreeing.
+     * Both kinds of draw answer here, because both are a draw from a set and a tool has no business
+     * knowing which arithmetic each uses. What differs is only the scale the number is on, and the caller
+     * does not need it: what a chart wants is one member against the others in the same list.
      */
-    fun claimBy(vocabulary: Vocabulary, word: Word, aspect: Aspect, member: Taggable): Claim? {
-        val pool = aspect.pool ?: return null
-        val said = Constraint(word, setOf(aspect))
-        return claimForMember(vocabulary, member, pool, listOf(said), aspect, member in vocabulary.askableIn(aspect))
+    fun standingOf(vocabulary: Vocabulary, word: Word, aspect: Aspect, member: Taggable): Standing {
+        val said = listOf(Constraint(word, setOf(aspect)))
+        val pool = aspect.pool
+            ?: return Standing(
+                strength = strengthOf(vocabulary, member, said, aspect),
+                kept = word.acceptsOn(member, vocabulary.tagsOf(member)),
+            )
+        val claim = claimForMember(vocabulary, member, pool, said, aspect, member in vocabulary.askableIn(aspect))
+            ?: return Standing(Rung.ORDINARY, kept = true)
+        return Standing(claim.density, kept = claim.polarity != Polarity.EXCEPT)
     }
 
     private fun claimForMember(

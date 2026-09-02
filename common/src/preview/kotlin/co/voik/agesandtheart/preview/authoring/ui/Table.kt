@@ -29,7 +29,12 @@ class Table(
      */
     data class Column(
         val title: String,
-        val width: Int,
+        /**
+         * The least it may be drawn at. **A floor, not a size** — how wide the column really is comes from
+         * what is in it ([Columns.widths]), so a value nobody guessed the length of is not cut and a column
+         * of short values does not leave a gutter.
+         */
+        val least: Int,
         val kind: String = "",
         /**
          * The order this column's values really run in, where that is not alphabetical.
@@ -39,6 +44,8 @@ class Table(
          * a name.
          */
         val order: List<String> = emptyList(),
+        /** Whether it takes the room the other columns did not want — the notes column of most tables. */
+        val grows: Boolean = false,
     ) {
         val cycles: Boolean get() = kind.isNotEmpty()
     }
@@ -73,6 +80,24 @@ class Table(
 
     /** How many rows the last frame had room for — what a page means, set by whatever drew it. */
     var window: Int = 1
+
+    /**
+     * How many columns wide the last frame drew it, set by whatever drew it — the room [widths] divides.
+     *
+     * A table may be the whole canvas or one pane of three, and it is the drawer that knows which.
+     */
+    var room: Int = MINIMUM_ROOM
+
+    /**
+     * What each column is drawn at, measured from every row the filter left rather than from the page in
+     * view — a column that resized as you scrolled would be a table with no columns at all.
+     */
+    val widths: List<Int>
+        get() = Columns.widths(
+            (listOf(columns.map { it.title }) + shown.map { it.cells }),
+            columns.map { Columns.Column(it.least, it.grows) },
+            room,
+        )
 
     /**
      * Rows the filter leaves, then ordered.
@@ -197,6 +222,7 @@ fun cell(text: String, width: Int, found: String = ""): String {
  * arithmetic to be subtly wrong.
  */
 fun tableLines(table: Table, canvas: Canvas, hints: List<Line>): List<Line> = buildList {
+    table.room = (canvas.width - CURSOR_COLUMN).coerceAtLeast(MINIMUM_ROOM)
     add(Line("  ${table.title}", Palette.heading))
     add(Line.BLANK)
     add(headerLine(table))
@@ -224,30 +250,40 @@ fun tableLines(table: Table, canvas: Canvas, hints: List<Line>): List<Line> = bu
 /** Title, blank, header, two rules, and a line the terminal keeps for itself. */
 private const val CHROME_AROUND_A_TABLE = 7
 
+/** The `  ▸ ` a focused row wears, which every row is indented by so none of them moves. */
+const val CURSOR_COLUMN = 4
+
+/** Narrow enough that nothing is readable, and the point below which arithmetic stops meaning anything. */
+const val MINIMUM_ROOM = 8
+
+/**
+ * What stands between two columns of a table.
+ *
+ * A function rather than a top-level value on purpose: a styled constant here would run [Palette] while
+ * this file's class was still loading, and `cell` is pure string arithmetic that ought to be usable —
+ * and checkable — without a terminal library on the classpath at all.
+ */
+private fun columnRule() = Line(" ${Glyph.BAR} ", Palette.rule)
+
 fun headerLine(table: Table): Line {
-    var line = Line("    ")
-    for ((at, column) in table.columns.withIndex()) {
-        val focused = at == table.column
+    val titles = table.columns.mapIndexed { at, column ->
         val sorted = table.sortedBy == at
         val title = if (sorted) "${column.title} ${if (table.descending) "↓" else "↑"}" else column.title
-        line += Line(cell(title, column.width), if (focused) Palette.chosen else Palette.faint)
-        if (at < table.columns.lastIndex) line += Line(" ${Glyph.BAR} ", Palette.rule)
+        Ink(title, if (at == table.column) Palette.chosen else Palette.faint)
     }
-    return line
+    return Line("    ") + Columns.laid(titles, table.widths, columnRule())
 }
 
 fun rowLine(table: Table, row: Table.Row, here: Boolean): Line {
-    var line = Line(if (here) "  ${Glyph.FOCUS} " else "    ", Palette.focused)
-    for ((at, column) in table.columns.withIndex()) {
-        val text = cell(row.cells.getOrElse(at) { "" }, column.width, table.filter)
+    val cells = table.columns.mapIndexed { at, column ->
         val underCursor = here && at == table.column
         val tone = when {
             underCursor && column.cycles -> Palette.chosen
             at == 0 -> row.tone ?: if (here) Palette.value else Palette.faint
             else -> row.tone ?: Palette.faint
         }
-        line += Line(highlighted(text, tone, table.filter))
-        if (at < table.columns.lastIndex) line += Line(" ${Glyph.BAR} ", Palette.rule)
+        Ink(row.cells.getOrElse(at) { "" }, tone)
     }
-    return line
+    return Line(if (here) "  ${Glyph.FOCUS} " else "    ", Palette.focused) +
+        Columns.laid(cells, table.widths, columnRule(), found = table.filter)
 }
