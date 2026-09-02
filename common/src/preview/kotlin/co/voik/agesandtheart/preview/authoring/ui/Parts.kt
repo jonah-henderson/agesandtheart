@@ -206,10 +206,6 @@ class Parts(private val corpus: Corpus) {
      */
     private fun effectRows(candidate: Candidate, word: Word?): List<Row> = buildList {
         for (insistence in Insistence.entries) {
-            val always = candidate.settingOn(insistence)
-            val pools = candidate.poolsOn(insistence)
-            val leaning = if (insistence.required) emptyMap() else candidate.requests.queries
-            if (always.isEmpty() && pools.isEmpty() && leaning.isEmpty()) continue
             add(
                 Row(
                     handle = "heading/${insistence.name}",
@@ -217,13 +213,18 @@ class Parts(private val corpus: Corpus) {
                     note = insistence.about,
                 ),
             )
-            for ((parameter, value) in always.entries.sortedBy { it.key }) {
+            // **Under the heading rather than at the foot of the list.** The half a claim belongs to is
+            // the question these used to open with, so putting one pair in each group asks it by where
+            // you are standing — and a word with a dozen effects does not bury the way to add another.
+            add(Row("+/${insistence.name}", listOf(Ink("    + add an effect", Palette.faint))))
+            add(Row("+pool/${insistence.name}", listOf(Ink("    + add a pool, drawn per Age", Palette.faint))))
+            for ((parameter, value) in candidate.settingOn(insistence).entries.sortedBy { it.key }) {
                 add(facetRow("${insistence.name}/$parameter", parameter, value, word))
             }
             // **Each pool under its own heading**, because what a pool is *for* is that its facets belong
             // together — a writer laying `sun.colour` beside `sun.size` is saying the Age varies in its
             // sun, and a single flat list of eight facets says only that it varies.
-            for ((at, pool) in pools.withIndex()) {
+            for ((at, pool) in candidate.poolsOn(insistence).withIndex()) {
                 add(drawsRow(insistence, at, pool))
                 for ((parameter, value) in pool.facets.entries.sortedBy { it.key }) {
                     add(facetRow("pool/${insistence.name}/$at/$parameter", parameter, value, word, deeper = true))
@@ -244,11 +245,6 @@ class Parts(private val corpus: Corpus) {
                 ),
             )
         }
-        add(Row("+", listOf(Ink("+ add an effect", Palette.faint))))
-        // **A pool is a group and a count, so it is built rather than assembled.** Adding facets one at a
-        // time through `add an effect` meant choosing the pool again for every one and then finding the
-        // heading to set the draw — four walks for what is one decision.
-        add(Row("+pool", listOf(Ink("+ add a pool, drawn per Age", Palette.faint))))
     }
 
     private fun facetRow(handle: String, parameter: String, value: String, word: Word?, deeper: Boolean = false) =

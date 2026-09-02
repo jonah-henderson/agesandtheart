@@ -650,8 +650,8 @@ class Editor(
         val kind = handle.substringBefore('/')
         val rest = handle.substringAfter('/', "")
         when (kind) {
-            "+" -> add()
-            "+pool" -> buildAPool()
+            "+" -> insistenceNamed(rest)?.let { pickAParameter(Into(it)) }
+            "+pool" -> insistenceNamed(rest)?.let(::buildAPool)
             "heading" -> Unit
             // **The pool's own menu**, where adding a facet and setting the count are the same size of
             // decision. Opening straight into the count made the count the price of looking at the pool.
@@ -698,35 +698,28 @@ class Editor(
      * zero the whole thing does nothing. So it is asked for at the end rather than left on a heading row
      * for somebody to find, which is where `draws: 0` pools come from.
      */
-    private fun buildAPool() {
-        // **Whether it insists, and then a new pool or one that exists.** A word may carry several pools
-        // now, so "the pool" is no longer a place — the list says what each is about, read off its facets.
-        val options = Insistence.entries.flatMap { insistence ->
-            val standing = candidate.poolsOn(insistence).mapIndexed { at, pool ->
-                Picker.Option(
-                    value = "${insistence.name}/$at",
-                    label = "${insistence.title}: ${pool.said}",
-                    note = "${pool.draws} of ${pool.facets.size} ${Glyph.BULLET} add to it",
-                )
-            }
-            standing + Picker.Option(
-                value = "${insistence.name}/$NEW_POOL",
-                label = "${insistence.title}: a new pool",
-                note = insistence.about,
-                startsGroup = standing.isNotEmpty(),
+    private fun buildAPool(insistence: Insistence) {
+        // A pool with nothing in it cannot be drawn from, so the first facet comes before it does —
+        // pointed one past the last, which is what `putting` reads as "make one".
+        fun startOne() {
+            val into = Into(insistence, candidate.poolsOn(insistence).size)
+            building = into
+            pickAParameter(into)
+        }
+        // **Adding to a pool that exists is the same errand as starting one.** A word may carry several
+        // now, so the list says what each is about, read off its facets rather than off a name.
+        val standing = candidate.poolsOn(insistence).mapIndexed { at, pool ->
+            Picker.Option(
+                value = at.toString(),
+                label = pool.said,
+                note = "${pool.draws} of ${pool.facets.size} ${Glyph.BULLET} add to it",
             )
         }
-        overlay = Picker("A pool of what?", options) { picked ->
-            val insistence = insistenceNamed(picked.value.substringBefore('/')) ?: return@Picker
-            val at = picked.value.substringAfter('/')
-            if (at == NEW_POOL) {
-                // A pool with nothing in it cannot be drawn from, so the first facet comes before it does
-                // — pointed one past the last, which is what `putting` reads as "make one".
-                val into = Into(insistence, candidate.poolsOn(insistence).size)
-                building = into
-                pickAParameter(into)
-            } else {
-                val into = Into(insistence, at.toIntOrNull() ?: return@Picker)
+        if (standing.isEmpty()) return startOne()
+        val options = standing + Picker.Option(NEW_POOL, "a new pool", insistence.about, startsGroup = true)
+        overlay = Picker("Which pool?", options) { picked ->
+            if (picked.value == NEW_POOL) startOne() else {
+                val into = Into(insistence, picked.value.toIntOrNull() ?: return@Picker)
                 building = into
                 keepBuilding(into)
             }
@@ -773,17 +766,27 @@ class Editor(
 
     private fun add() {
         when (part) {
-            // Straight to the parameter: an effect is a value on a parameter, and the other thing that question
-            // used to offer belongs — and now lives — in the picks.
-            Part.EFFECTS -> pickAParameter(null)
+            // Straight to the parameter: an effect is a value on a parameter, and the half it belongs to is
+            // whichever group the cursor is standing in.
+            Part.EFFECTS -> pickAParameter(Into(insistenceAtTheCursor()))
             Part.PICKS -> pickAWayToChoose()
             else -> Unit
         }
     }
 
+    /**
+     * Which half the cursor is in — read by walking back to the heading above it.
+     *
+     * `a` adds to the group you are looking at, which is the same answer pressing that group's own `+` row
+     * gives. Required where nothing is above the cursor at all, since that is the group the list opens on.
+     */
+    private fun insistenceAtTheCursor(): Insistence = rows().take(row() + 1).asReversed()
+        .firstNotNullOfOrNull { insistenceNamed(it.handle.substringAfter('/').substringBefore('/')) }
+        ?: Insistence.REQUIRED
+
     private fun remove() {
         val handle = rows().getOrNull(row())?.handle ?: return
-        if (handle == "+") return
+        if (handle.substringBefore('/').startsWith("+")) return
         when (part) {
             Part.EFFECTS -> when (handle.substringBefore('/')) {
                 "pool" -> pointedAt(handle.removePrefix("pool/").substringBeforeLast('/'))?.let { into ->
@@ -894,14 +897,20 @@ class Editor(
      * word paints eight aspects, and the note says which before it is chosen rather than after.
      */
     /** [into] null asks which slot, which is what the add-an-effect row wants. */
-    private fun pickAParameter(into: Into?) {
+    private fun pickAParameter(into: Into) {
         // **What the word already turns is not on offer.** A parameter holds one value, so adding it again
         // either overwrites what is there or lands in the other half — and required and requested on one
         // parameter is a contradiction, the requested one giving way to a demand it can never outlive.
         val alreadyTurned = Insistence.entries.flatMap { candidate.everythingOn(it).keys }.toSet()
+        // **Nor is a cast, on the demanded half** (world model §2): a population's members are the writer's
+        // to describe, so a word that *insisted* on three suns would overrule them and no charge makes that
+        // fair. Offering it here only to refuse it in the strip below is a question with a wrong answer on
+        // it — and now that the half is chosen by which group you added from, this is where it is asked.
+        fun countsAMemberWeMayNotDemand(parameter: String) =
+            into.insistence.required && parameter.substringAfterLast('.') == Parameter.CAST
         val owners = Aspect.entries.flatMap { aspect -> parameterNamesIn(aspect).map { it to aspect } }
             .groupBy({ it.first }, { it.second })
-            .filterKeys { it !in alreadyTurned }
+            .filterKeys { it !in alreadyTurned && !countsAMemberWeMayNotDemand(it) }
         val options = owners.entries.sortedBy { it.key }.map { (parameter, aspects) ->
             val said = aspects.firstNotNullOfOrNull { aspect ->
                 Verdict.parametersNamed(aspect, parameter, corpus).firstOrNull { it.help.isNotBlank() }?.help
@@ -915,7 +924,7 @@ class Editor(
         }
         overlay = Picker("Which value?", options) { picked ->
             val aspects = owners[picked.value].orEmpty()
-            if (aspects.size > 1) qualify(picked.value, aspects, into) else certaintyFor(listOf(picked.value), into)
+            if (aspects.size > 1) qualify(picked.value, aspects, into) else typeValueFor(listOf(picked.value), into)
         }
     }
 
@@ -1086,28 +1095,6 @@ class Editor(
     }
 
     /**
-     * Whether the effect is demanded or offered, asked where the caller did not already say.
-     *
-     * **The two pools are not here**, though they are two of the four slots. A pool is a group and a
-     * count, and reaching one through the same list as an ordinary effect gave two ways to build the same
-     * thing — one of which quietly left the count at zero, where the pool never fires. `add a pool` is
-     * the way in, and it asks for the count as part of the job.
-     */
-    private fun certaintyFor(parameters: List<String>, into: Into?) {
-        if (into != null) return typeValueFor(parameters, into)
-        // **A cast is only ever offered** (world model §2): a population's members are the writer's to
-        // describe, so a word that *insisted* on three suns would overrule them and there is no charge
-        // that would make that fair. Offering the demanded slot here only to refuse it in the strip below
-        // is a question with a wrong answer on it.
-        val counts = parameters.any { it.substringAfterLast('.') == Parameter.CAST }
-        val offering = Insistence.entries.filterNot { counts && it.required }
-        if (offering.size == 1) return typeValueFor(parameters, Into(offering.first()))
-        overlay = Picker("Demanded, or offered?", offering.map { Picker.Option(it.name, it.title, it.about) }) { picked ->
-            insistenceNamed(picked.value)?.let { typeValueFor(parameters, Into(it)) }
-        }
-    }
-
-    /**
      * Which aspect's parameter is meant, where several own one by that name.
      *
      * **Several can be marked at once**, because that is what a writer is usually doing: one `colour` is
@@ -1115,7 +1102,7 @@ class Editor(
      * walking the whole flow once per aspect and keeping track of which were done. Enter marks, right
      * takes one alone, and the row at the bottom takes everything marked.
      */
-    private fun qualify(parameter: String, aspects: List<Aspect>, into: Into?) {
+    private fun qualify(parameter: String, aspects: List<Aspect>, into: Into) {
         val ordered = aspects.sortedBy { it.ordinal }
         val everywhere = Picker.Option(
             value = EVERY_ASPECT,
@@ -1146,21 +1133,21 @@ class Editor(
             onOnly = { picked ->
                 val marked = standing?.marked.orEmpty()
                 when {
-                    marked.isNotEmpty() -> certaintyFor(marked.map { qualified(parameter, it) }, into)
+                    marked.isNotEmpty() -> typeValueFor(marked.map { qualified(parameter, it) }, into)
                     picked.value == TAKE_THE_MARKED -> Unit
-                    picked.value == EVERY_ASPECT -> certaintyFor(listOf(parameter), into)
-                    else -> certaintyFor(listOf(qualified(parameter, picked.value)), into)
+                    picked.value == EVERY_ASPECT -> typeValueFor(listOf(parameter), into)
+                    else -> typeValueFor(listOf(qualified(parameter, picked.value)), into)
                 }
             },
         ) { picked ->
             val marked = standing?.marked.orEmpty()
             when {
-                picked.value == EVERY_ASPECT -> { overlay = null; certaintyFor(listOf(parameter), into) }
+                picked.value == EVERY_ASPECT -> { overlay = null; typeValueFor(listOf(parameter), into) }
                 picked.value != TAKE_THE_MARKED -> standing?.mark(picked.value)
                 marked.isEmpty() -> Unit
                 else -> {
                     overlay = null
-                    certaintyFor(marked.map { qualified(parameter, it) }, into)
+                    typeValueFor(marked.map { qualified(parameter, it) }, into)
                 }
             }
         }
