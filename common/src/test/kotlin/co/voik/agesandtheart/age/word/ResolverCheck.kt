@@ -62,7 +62,7 @@ class ResolverCheck : FunSpec({
      * **A ramp keeps the order it was written in, and a wall of two rocks does not.**
      *
      * This is the one place written order means anything beyond which template a book starts from, and it
-     * is bought by a single flag on the knob ([co.voik.agesandtheart.age.aspect.Parameter.keepsWrittenOrder])
+     * is bought by a single flag on the parameter ([co.voik.agesandtheart.age.aspect.Parameter.keepsWrittenOrder])
      * read in one place. Both halves matter: an aurora's colours run from its crown to its hem and the
      * writer said which was which, where two rocks in one wall are a set and ranking them by tier and seed
      * is what spreads two Ages written alike.
@@ -122,17 +122,17 @@ class ResolverCheck : FunSpec({
     }
 
     /**
-     * And the flag reaches exactly one knob, so nothing else changed shape underneath it.
+     * And the flag reaches exactly one parameter, so nothing else changed shape underneath it.
      *
-     * A mingling knob that is a *set* must go on being ranked by tier and then by seed — that is what
+     * A mingling parameter that is a *set* must go on being ranked by tier and then by seed — that is what
      * spreads two Ages written alike, and quietly making every mingling ordered would have taken it away
      * everywhere at once.
      */
     test("only a band keeps its written order") {
-        // Two dials hold a sequence where every other mingling knob holds a set, and both are bands read
+        // Two parameters hold a sequence where every other mingling parameter holds a set, and both are bands read
         // end to end: a curtain from its crown to its hem, a bow from its outside in. A third arriving here
-        // is a knob that has been given an order it has no way to mean.
-        val ordered = Aspect.entries.flatMap { it.dials }.filter { it.keepsWrittenOrder }
+        // is a parameter that has been given an order it has no way to mean.
+        val ordered = Aspect.entries.flatMap { it.parameters }.filter { it.keepsWrittenOrder }
         check(ordered == listOf(Sky.AURORACOLOUR, Sky.RAINBOWCOLOUR)) {
             "written order is kept by ${ordered.map { it.name }}, which is not the two that mean it"
         }
@@ -428,7 +428,7 @@ class ResolverCheck : FunSpec({
      * wants; and the ranged pass wrote to member 0 unless the aspect was spatial, which a cast is not. So
      * `a colossal sun` beside any second sun made both of them colossal.
      *
-     * The check that should have caught it asked about two clauses setting the **same** knob, where the
+     * The check that should have caught it asked about two clauses setting the **same** parameter, where the
      * second write happens to overwrite the first's leak. These set different ones.
      */
     test("a claim about one body stays on it") {
@@ -444,8 +444,8 @@ class ResolverCheck : FunSpec({
         check(sized.size == 2) { "two clauses minted ${sized.size} suns" }
         check(sized[0].isEmpty() && sized[1].isNotEmpty()) { "'a sun. a colossal sun.' sized $sized" }
 
-        // And the other way about, with a different knob on the body that was not sized.
-        val andBack = sizes("colossal", "sun", "east_rising", "sun")
+        // And the other way about, with a different parameter on the body that was not sized.
+        val andBack = sizes("colossal", "sun", "rising_east", "sun")
         check(andBack[0].isNotEmpty() && andBack[1].isEmpty()) {
             "'a colossal sun. an east-rising sun.' sized $andBack"
         }
@@ -550,10 +550,10 @@ class ResolverCheck : FunSpec({
      */
     test("two suns are described apart") {
         // Colour still has no word for a sun; size does, and it is `colossal` — see below.
-        // Only the horizons here, because — the knobs are reachable
+        // Only the horizons here, because — the parameters are reachable
         // and nothing in the corpus turns them, which is the hand-tuned vocabulary pass's to fix. What this
         // holds is the machinery: two clauses, two bodies, each steered on its own.
-        val read = read(listOf("age", "east_rising", "sun", "southwest_rising", "sun"))
+        val read = read(listOf("age", "rising_east", "sun", "rising_southwest", "sun"))
         check(read.dropped.isEmpty()) { "the two-sun book lost pages: ${read.dropped}" }
         val composition = Resolver.resolve(vocabulary, read, SAMPLE_SEED).composition
         check(composition.membersIn(Aspect.SUN) == 2) {
@@ -574,7 +574,7 @@ class ResolverCheck : FunSpec({
 
     /**
      * **One word, two parts of the world, and the clause decides which** — the attachment rule doing the
-     * job it exists for. `colossal` picks monumental landforms by tag and fills the sky by knob, and a
+     * job it exists for. `colossal` picks monumental landforms by tag and fills the sky by parameter, and a
      * writer who says it about a sun means the sun.
      */
     test("colossal is a colossal landform and a colossal sun") {
@@ -839,10 +839,11 @@ class ResolverCheck : FunSpec({
      * `lava` rather than `water`, being the derived word most likely to collide with the curated pool's
      * opinions: `beautiful` pushes hard against `hostile`.
      */
-    test("a derived word names its referent") {
+    test("a derived word means its referent") {
         val lava = vocabulary.word("lava") ?: error("no derived word 'lava' — is derivation running?")
         check(lava.tier == Tier.EXACT) { "a derived word must be exact, not ${lava.tier.key}" }
-        check(lava.names == Sea.LAVA.key) { "'lava' names ${lava.names}, not ${Sea.LAVA.key}" }
+        val meant = lava.meaningIn(Aspect.SEA)
+        check(meant == Sea.LAVA) { "'lava' means $meant in the sea, not ${Sea.LAVA.key}" }
         check(vocabulary.word("minecraft:lava") == lava) { "a derived word must also answer to its full id" }
 
         for (seed in 0L..<SEEDS_SAMPLED) {
@@ -1073,7 +1074,7 @@ class ResolverCheck : FunSpec({
      *   multiplying, and *which* fragment a word was aimed at being a question the grammar cannot answer.
      */
     /**
-     * **A word that turns a numeric knob has to land where it means**, end to end: the word bounds an
+     * **A word that turns a numeric parameter has to land where it means**, end to end: the word bounds an
      * axis, a value is drawn inside it, and the sky is built from that. Nothing else checks the middle
      * step, and a span merely *near* the end of its axis reads as a working word — `starless` written as
      * a stretch rather than a point left a sky with two hundred stars in it, and every other check passed.
@@ -1365,7 +1366,6 @@ private fun material(name: String, block: String) = Word(
     id = Identifier.fromNamespaceAndPath(Constants.MOD_ID, name),
     tier = Tier.EXACT,
     aspects = setOf(Aspect.TERRAIN),
-    query = emptyMap(),
     sets = mapOf(Terrain.STONE.name to block),
 )
 
@@ -1375,7 +1375,6 @@ private fun spawnWord(path: String) = Word(
     id = Identifier.withDefaultNamespace(path),
     tier = Tier.EXACT,
     aspects = setOf(Aspect.SPAWNS),
-    query = emptyMap(),
     sets = mapOf(Spawns.LIVES.name to "minecraft:$path"),
 )
 
@@ -1384,7 +1383,6 @@ private fun featureWord(path: String) = Word(
     id = Identifier.withDefaultNamespace(path),
     tier = Tier.EXACT,
     aspects = setOf(Aspect.FEATURES),
-    query = emptyMap(),
     sets = mapOf(Features.PLACES.name to "minecraft:$path"),
 )
 
@@ -1393,7 +1391,6 @@ private fun biomeWord(path: String) = Word(
     id = Identifier.withDefaultNamespace(path),
     tier = Tier.EXACT,
     aspects = setOf(Aspect.BIOMES),
-    query = emptyMap(),
     sets = mapOf(Biomes.GROWN.name to "minecraft:$path"),
 )
 
@@ -1401,7 +1398,6 @@ private fun structureSet(path: String) = Word(
     id = Identifier.withDefaultNamespace(path),
     tier = Tier.EXACT,
     aspects = setOf(Aspect.STRUCTURES),
-    query = emptyMap(),
     sets = mapOf(Structures.BUILT.name to "minecraft:$path"),
 )
 

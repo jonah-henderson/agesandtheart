@@ -88,6 +88,15 @@ val main: SourceSet = sourceSets.main.get()
 preview.compileClasspath += main.compileClasspath + main.output
 preview.runtimeClasspath += main.compileClasspath + main.runtimeClasspath + main.output
 
+dependencies {
+    // Mordant draws the word-authoring tool: raw-mode key events, and widgets to lay an answer out in.
+    //
+    // **The one place a UI library is allowed.** `ui-libraries-research.md` rules against a Kotlin UI
+    // library because KFF supplies the stdlib as a *mod* on NeoForge and a bundled Kotlin library cannot
+    // see it — which is a fact about the shipped jar. Nothing in `preview` reaches one.
+    "previewImplementation"(libs.mordant)
+}
+
 // ---------------------------------------------------------------------------------------------------
 // The tests. One task, tagged — see `MinecraftRegistries.kt` for what the tag means and why.
 // ---------------------------------------------------------------------------------------------------
@@ -174,7 +183,7 @@ fun Test.narrowedToFeature() {
     }
 }
 
-/** Must match `NEEDS_REGISTRIES` in `common/src/test/kotlin/.../MinecraftRegistries.kt`. */
+/** Must match `NEEDS_REGISTRIES` in `common/src/test/kotlin/.../NeedsRegistries.kt`. */
 val NEEDS_REGISTRIES_TAG = "NeedsRegistries"
 
 /** Must match `NEEDS_SERVER` in `common/src/test/kotlin/.../server/DrivenServer.kt`. */
@@ -193,6 +202,12 @@ val test: SourceSet = sourceSets.test.get()
 // done-flag before doing the work. Tests then pass against a half-built registry. See NeedsRegistries.
 test.compileClasspath += main.compileClasspath + main.output
 test.runtimeClasspath += main.compileClasspath + main.runtimeClasspath + main.output
+// **The checks see `preview`, and not the other way round.** `MinecraftRegistries`, `Rcon` and
+// `LaunchSpec` are wanted by both the suite and the authoring tool, and a tool that read them out of the
+// test source set would be a tool depending on tests. One direction only, so a check can never become
+// something the tool needs.
+test.compileClasspath += preview.output
+test.runtimeClasspath += preview.output
 
 tasks.named<Test>("test") {
     useJUnitPlatform()
@@ -326,6 +341,52 @@ tasks.register<Test>("landformTest") {
         logger.lifecycle("  Full diagrams above, and in build/reports/tests/landformTest/index.html")
         logger.lifecycle("=".repeat(78))
         logger.lifecycle("")
+    }
+}
+
+/**
+ * Where the word-authoring tool's launch command is written down — `scripts/author-word.sh` reads it.
+ *
+ * **A file rather than a `JavaExec` task, because the tool wants a terminal.** Mordant needs raw mode on a
+ * real TTY, and Gradle gives a `JavaExec` neither: it owns stdin and strips the control characters a
+ * redraw is made of. So the build's only job is to say how to start the JVM, and the script starts it.
+ * `:fabric:exportServerLaunch` established the pattern and `LaunchSpec` reads the same tab-separated
+ * shape.
+ *
+ * The working directory is the **repository root**, which is where `MinecraftRegistries.shippedData()`
+ * finds `common/src/main/resources` and where the tool writes a word back.
+ */
+tasks.register("exportAuthoringLaunch") {
+    group = "build"
+    description = "Records how to start the word-authoring tool. scripts/author-word.sh runs it."
+
+    val classpath = objects.fileCollection().from(preview.runtimeClasspath)
+    val launchFile = layout.buildDirectory.file("authoring-launch.txt")
+    val root = rootProject.projectDir
+
+    inputs.files(classpath)
+    outputs.file(launchFile)
+
+    doLast {
+        val lines = listOf(
+            "workingDir\t${root.absolutePath}",
+            "mainClass\tco.voik.agesandtheart.preview.authoring.WordAuthoringKt",
+            // Measured against the checks, which need the same registries and die at Gradle's 512m default.
+            "jvmArg\t-Xmx2g",
+            // **The game's logging has to be off, or it writes over the editor's frame.** Minecraft
+            // configures log4j to swallow System.out and reprint it with a timestamp; the tool takes the
+            // real stream back after the bootstrap, and this stops the logger arriving from the other
+            // side. The file is in the `preview` source set and reaches no shipped jar.
+            "jvmArg\t-Dlog4j.configurationFile=authoring-log4j2.xml",
+            // Minecraft and Mordant both reach for native access, and the JVM's warnings about it would
+            // be the first four lines on the screen. Granted rather than silenced: they are the calls the
+            // game and the terminal genuinely make.
+            "jvmArg\t--enable-native-access=ALL-UNNAMED",
+            "jvmArg\t--sun-misc-unsafe-memory-access=allow",
+            "jvmArg\t-classpath",
+            "jvmArg\t${classpath.files.joinToString(File.pathSeparator) { it.absolutePath }}",
+        )
+        launchFile.get().asFile.apply { parentFile.mkdirs() }.writeText(lines.joinToString("\n", postfix = "\n"))
     }
 }
 

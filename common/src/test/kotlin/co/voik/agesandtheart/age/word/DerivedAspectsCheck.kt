@@ -1,7 +1,9 @@
 package co.voik.agesandtheart.age.word
 
 import co.voik.agesandtheart.MinecraftRegistries
+import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.word.grammar.Grammar
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
@@ -11,47 +13,47 @@ import io.kotest.core.spec.style.FunSpec
  * A word acts on an aspect four ways and **three of them name the aspect outright**: a parameter is owned
  * by exactly one, a named preset belongs to whichever aspect's list holds it, and a weight is keyed by
  * aspect already. A claim landing where the word does not reach is never applied — and worse than
- * unapplied, it counts against the draw in the aspect the word *does* reach as a knob nothing honours. So
+ * unapplied, it counts against the draw in the aspect the word *does* reach as a parameter nothing honours. So
  * all three are unioned in, and the case for deriving is closing that hole rather than sparing a line.
  *
  * **The fourth is the tag query, and deriving from it is the spike's worst bug.** `stormy` means `gloomy`,
  * `gloomy` is also on `caverns`, so a sky word pinned the terrain and discarded `floating` in silence. A
  * query says what a word likes; it never says where it belongs.
  */
-@Tags("NEEDS_REGISTRIES")
+@Tags(NEEDS_REGISTRIES)
 class DerivedAspectsCheck : FunSpec({
     val vocabulary by lazy { Vocabulary.load(MinecraftRegistries.shippedData(), MinecraftRegistries.worldgen) }
 
     fun aspectsOwning(parameter: String) = Aspect.entries.filter { it.ownsParameterNamed(parameter) }.toSet()
 
     /**
-     * **A knob is a preset's or an aspect's, never both** — which is the bug this rule was written for, and
+     * **A parameter is a preset's or an aspect's, never both** — which is the bug this rule was written for, and
      * all that is left of it.
      *
      * It used to forbid two *aspects* sharing a name outright, on the grounds that "which aspect owns this"
      * would be unanswerable. It is perfectly answerable: [Word.reaching] filters and takes every owner, so
-     * a word setting a shared knob reaches both aspects and attachment picks between them — which is how
-     * one `east_rising` means the same thing about a sun and about a moon.
+     * a word setting a shared parameter reaches both aspects and attachment picks between them — which is how
+     * one `rising_east` means the same thing about a sun and about a moon.
      *
-     * What is a real fault is a *preset* declaring a knob its own aspect also declares, because then the
-     * knob exists twice for one thing and a word setting it is widened onto an aspect that merely contains
+     * What is a real fault is a *preset* declaring a parameter its own aspect also declares, because then the
+     * parameter exists twice for one thing and a word setting it is widened onto an aspect that merely contains
      * the preset. `sunsize` was owned by the sky through a stale preset declaration and by the sun through
-     * its dials, and that is the shape this still refuses.
+     * its parameters, and that is the shape this still refuses.
      *
      * **Asked of one aspect at a time**, which the wording above always meant and the code only managed
-     * while parameter names were unique. `size` is a landform's knob and four other aspects' dial, and
-     * that is one name doing its job in five places rather than one knob existing twice.
+     * while parameter names were unique. `size` is a landform's parameter and four other aspects' dial, and
+     * that is one name doing its job in five places rather than one parameter existing twice.
      */
-    test("a knob belongs to a preset or to an aspect, never both — asked of one aspect at a time") {
+    test("a parameter belongs to a preset or to an aspect, never both — asked of one aspect at a time") {
         val everyParameter = vocabulary.words.flatMap { it.canSet.keys }.distinct()
         for (parameter in everyParameter) {
             val bothWays = Aspect.entries.filter { aspect ->
                 val throughAPreset = aspect.authored.any { it.honoursParameterNamed(parameter) }
-                val throughDials = aspect.dials.any { it.name == parameter }
+                val throughDials = aspect.parameters.any { it.name == parameter }
                 throughAPreset && throughDials
             }
             check(bothWays.isEmpty()) {
-                "'$parameter' is both a dial of $bothWays and a knob of its presets, " +
+                "'$parameter' is both a dial of $bothWays and a parameter of its presets, " +
                     "so it exists twice for one thing"
             }
         }
@@ -60,19 +62,19 @@ class DerivedAspectsCheck : FunSpec({
     /**
      * **The static form has to agree with the corpus's**, because the derivation runs while the corpus is
      * still being built and cannot ask it. [Aspect.ownsParameterNamed] sees only authored presets and
-     * dials, where [Vocabulary.turnsAKnob] also reaches an open aspect's data presets — the two agree
-     * because every knob an open aspect steers is one of its dials, and this is what says so.
+     * parameters, where [Vocabulary.turnsAParameter] also reaches an open aspect's data presets — the two agree
+     * because every parameter an open aspect steers is one of its parameters, and this is what says so.
      */
     test("asking the aspect and asking the vocabulary give the same answer") {
         for (parameter in vocabulary.words.flatMap { it.canSet.keys }.distinct()) {
-            val askingTheVocabulary = Aspect.entries.filter { vocabulary.turnsAKnob(it, parameter) }.toSet()
+            val askingTheVocabulary = Aspect.entries.filter { vocabulary.turnsAParameter(it, parameter) }.toSet()
             check(aspectsOwning(parameter) == askingTheVocabulary) {
                 "'$parameter': the aspect says ${aspectsOwning(parameter)}, the vocabulary says $askingTheVocabulary"
             }
         }
     }
 
-    /** No shipped word steers a knob where it cannot reach — the inert setting this exists to prevent. */
+    /** No shipped word steers a parameter where it cannot reach — the inert setting this exists to prevent. */
     test("every word reaches every aspect it sets a parameter in") {
         for (word in vocabulary.words) {
             if (word.aspects.isEmpty()) continue
@@ -95,13 +97,16 @@ class DerivedAspectsCheck : FunSpec({
      * and did nothing at all.
      *
      * Asked only of words whose whole content is what they set. A word that reaches by tag query means
-     * something wherever those tags are carried, and no parameter can confirm or deny that.
+     * something wherever those tags are carried, and no parameter can confirm or deny that — which holds
+     * for an *offered* query too, so the aspects one names count as places the word speaks to.
      */
     test("a word that only sets parameters declares nothing but the aspects owning them") {
         val setsAndNothingElse = vocabulary.authoredWords
             .filter { !it.constrainsPresets && it.weights.isEmpty() && it.canSet.isNotEmpty() }
         for (word in setsAndNothingElse) {
-            val owners = word.canSet.keys.flatMap(::aspectsOwning).toSet()
+            // An **offered** query names its aspect and means something there, exactly as a keyed demand
+            // does — `inferno` leans the sea toward lava and turns no parameter of the sea at all.
+            val owners = word.canSet.keys.flatMap(::aspectsOwning).toSet() + word.requests.queries.keys
             val idle = word.aspects - owners
             check(idle.isEmpty()) {
                 "${word.name} declares $idle, where it sets nothing and asks nothing — a clause aimed at " +
@@ -111,43 +116,41 @@ class DerivedAspectsCheck : FunSpec({
     }
 
     /**
-     * **Deriving only ever widens.** The words that disagree with their own concrete claims — `clear`,
-     * `arid`, `verdant` — each declare *more* than they claim, reaching further by tag query alone, and
-     * each is the vocabulary being natural rather than an author being sloppy.
+     * **A word reaches where its claims point, and nowhere else.**
+     *
+     * There is no declaration to survive any more: a word said where it spoke *and* derived it, and the
+     * declaration's only real job was aiming a bare `query`. Keying the query says the same thing once,
+     * so what is left is the derivation alone.
      */
-    test("what a file declared survives the derivation") {
-        val declared = setOf(Aspect.SKY, Aspect.WATERS)
-        val widened = Word.reaching(Tier.EXACT, declared, mapOf("murk" to "0.1..0.4"), named = null, weighted = emptySet())
-        check(declared.all { it in widened }) { "deriving dropped a declared aspect: $widened" }
-        check(Aspect.WATERS in widened) { "deriving missed the aspect that owns the parameter: $widened" }
+    test("a parameter puts the word in the aspect that owns it") {
+        val murk = Word.reaching(mapOf("murk" to "0.1..0.4"), meant = emptySet(), weighted = emptySet())
+        check(Aspect.WATERS in murk) { "deriving missed the aspect that owns the parameter: $murk" }
 
-        val steersElsewhere =
-            Word.reaching(Tier.EXACT, setOf(Aspect.SKY), mapOf("temperature" to "0.5..1.0"), null, emptySet())
-        check(steersElsewhere == setOf(Aspect.SKY, Aspect.CLIMATE)) { "a parameter reached nothing: $steersElsewhere" }
-    }
+        val warmth = Word.reaching(mapOf("temperature" to "0.5..1.0"), emptySet(), emptySet())
+        check(warmth == setOf(Aspect.CLIMATE)) { "a parameter reached nothing: $warmth" }
 
-    /** A named preset places a word exactly, which is what makes the seventeen terrain words derivable. */
-    test("naming a preset reaches the aspect whose preset it is") {
-        val fromAName = Word.reaching(Tier.EXACT, setOf(Aspect.SKY), emptyMap(), named = "alps", weighted = emptySet())
-        check(fromAName == setOf(Aspect.SKY, Aspect.TERRAIN)) { "a named preset reached nothing: $fromAName" }
+        // A keyed query is what a query is now, and it aims the word at what it asks of.
+        val asked = Word.reaching(emptyMap(), emptySet(), setOf(Aspect.SPAWNS))
+        check(asked == setOf(Aspect.SPAWNS)) { "a keyed query reached nothing: $asked" }
     }
 
     /**
-     * **An open aspect must not claim a name it was merely handed.** `Biome.named("alps")` succeeds — a
-     * bare path is a valid identifier — so asking every aspect whether it knows `alps` would widen a
-     * terrain word into the biomes, spawns, features and structures at once. Asking the authored list
-     * cannot do that, and this is what says so.
+     * A preset meant outright places a word exactly, which is what lets the seventeen landform pages be
+     * minted from the landforms themselves.
+     *
+     * **The aspect comes from the key it is written under, not from a search.** `Biome.named("alps")`
+     * succeeds — a bare path is a valid identifier — so a bare name offered to every open aspect would
+     * widen a terrain word into the biomes, spawns, features and structures at once.
      */
-    test("an id-shaped name does not belong to every open aspect") {
-        val claiming = Aspect.entries.filter { it.ownsPresetNamed("alps") }
-        check(claiming == listOf(Aspect.TERRAIN)) { "'alps' was claimed by $claiming" }
+    test("meaning a preset reaches the aspect it is meant in") {
+        val fromAMeaning = Word.reaching(emptyMap(), meant = setOf(Aspect.TERRAIN), weighted = emptySet())
+        check(fromAMeaning == setOf(Aspect.TERRAIN)) { "a meaning reached nothing: $fromAMeaning" }
     }
 
     /** A weight is keyed by aspect already, so it says where it applies and needs no deriving at all. */
     test("a weight reaches the aspect it is keyed under") {
-        val fromAWeight =
-            Word.reaching(Tier.EXACT, setOf(Aspect.CLIMATE), emptyMap(), null, weighted = setOf(Aspect.BIOMES))
-        check(fromAWeight == setOf(Aspect.CLIMATE, Aspect.BIOMES)) { "a weight reached nothing: $fromAWeight" }
+        val fromAWeight = Word.reaching(emptyMap(), emptySet(), weighted = setOf(Aspect.BIOMES))
+        check(fromAWeight == setOf(Aspect.BIOMES)) { "a weight reached nothing: $fromAWeight" }
     }
 
     /**
@@ -196,21 +199,31 @@ class DerivedAspectsCheck : FunSpec({
     }
 
     /**
-     * **Omitting the field never means "work it out"** — it still means anywhere.
+     * **An evocative word still means anywhere**, and the tier is what says so.
      *
-     * Three shipped words declare nothing and steer something, and all three are the case against: they
-     * nudge one dial and query tags over every aspect there is. Deriving from parameters would shut
-     * `beautiful` into the climate, and it would stop being beautiful anywhere else.
+     * `beautiful` nudges the climate and asks tags of everything, and shutting it into the climate would
+     * stop it being beautiful anywhere else. That used to be held by the derivation refusing to widen a
+     * word that declared nothing; with the declaration gone it is held where it always belonged — a
+     * constraint carries no aim at all unless its word narrows, so nothing consults the reach.
      */
-    test("a word that declared nothing still means anywhere") {
-        val claimingPlenty =
-            Word.reaching(Tier.EVOCATIVE, emptySet(), mapOf("temperature" to "0.5..1.0"), "alps", setOf(Aspect.BIOMES))
-        check(claimingPlenty.isEmpty()) { "deriving narrowed a word that meant anywhere: $claimingPlenty" }
-        val steersAndSaysNothing = vocabulary.authoredWords
-            .filter { it.aspects.isEmpty() && it.canSet.isNotEmpty() }
+    test("an evocative word carries no aim, whatever it reaches") {
+        val warm = Word.reaching(mapOf("temperature" to "0.5..1.0"), setOf(Aspect.TERRAIN), setOf(Aspect.BIOMES))
+        check(warm.isNotEmpty()) { "the derivation found nothing to check against" }
+
+        val read = Grammar.read(vocabulary, listOf("beautiful", "age"))
+        checkNotNull(read) { "'beautiful age' is not a book" }
+        val laid = read.phrases.flatMap { it.modifiers }.filter { it.word.name == "beautiful" }
+        check(laid.isNotEmpty()) { "'beautiful' was not laid at all" }
+        check(laid.all { it.aimedAt.isEmpty() }) {
+            "an evocative word was aimed at ${laid.map { it.aimedAt }}"
+        }
+
+        // And the words the rule exists for are still the shape it was written about.
+        val tilting = vocabulary.authoredWords
+            .filter { !it.tier.narrows && it.everywhere.isNotEmpty() }
             .map { it.name }
-        check(steersAndSaysNothing.containsAll(listOf("beautiful", "desolate", "rich"))) {
-            "the words this rule exists for are gone, so the rule wants re-arguing: $steersAndSaysNothing"
+        check(tilting.containsAll(listOf("beautiful", "desolate", "rich"))) {
+            "the words this rule exists for are gone, so the rule wants re-arguing: $tilting"
         }
     }
 })

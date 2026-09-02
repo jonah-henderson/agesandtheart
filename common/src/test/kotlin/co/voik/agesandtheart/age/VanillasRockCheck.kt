@@ -35,7 +35,7 @@ class VanillasRockCheck : FunSpec({
 
     /** A book over [template] saying exactly [said] and nothing else — the shape `/age compose` builds. */
     fun writing(template: AgeTemplate, vararg said: Pair<String, String>): AgeComposition {
-        val spelled = said.joinToString(" ") { (knob, value) -> "$knob=$value" }
+        val spelled = said.joinToString(" ") { (parameter, value) -> "$parameter=$value" }
         return AgeComposition.parse("template=${template.key} landmass=vanilla $spelled")
             .getOrElse { error("'$spelled' over ${template.key} is not a composition this build parses: $it") }
     }

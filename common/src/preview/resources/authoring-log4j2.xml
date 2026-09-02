@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Silence, for the word forge.
+
+  Minecraft configures log4j to swallow System.out and print it back with a timestamp and an [STDOUT]
+  prefix, which is fatal to a full-screen editor: every frame would arrive annotated and the redraw would
+  never line up. The tool takes the real stream back after `Bootstrap.bootStrap()` (see `Corpus.load`),
+  and this stops the game's own logging writing over the frame from the other side.
+
+  A root logger at `off` with no appender is the whole of it. Nothing here reaches a shipped jar: this
+  lives in the `preview` source set, which the loaders never pull from.
+-->
+<Configuration status="OFF">
+    <Appenders/>
+    <Loggers>
+        <Root level="off"/>
+    </Loggers>
+</Configuration>

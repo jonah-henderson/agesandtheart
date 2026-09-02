@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.word
 
+import co.voik.agesandtheart.age.aspect.ownParameters
 import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.AgePreset
@@ -7,9 +8,10 @@ import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.AgeTemplate
 import co.voik.agesandtheart.age.AgeWorld
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Holds
 import co.voik.agesandtheart.age.aspect.Setting
-import co.voik.agesandtheart.age.aspect.namesReferent
+import co.voik.agesandtheart.age.aspect.namesARegistryEntry
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
@@ -77,7 +79,7 @@ class VocabularyCheck : FunSpec({
             for (aspect in declared) {
                 // "Backed" means something different for a word that *steers* rather than *chooses* (§3.2):
                 // it constrains no presets, so it has no carriers by construction and asking for one would
-                // condemn every material word. What it needs instead is a preset that offers the knob.
+                // condemn every material word. What it needs instead is a preset that offers the parameter.
                 //
                 // Asked **per aspect**, because a derived block word does both: it names a sea, where the
                 // aspect's value simply *is* a block, and sets a material on the terrain and the dressing, which
@@ -86,41 +88,41 @@ class VocabularyCheck : FunSpec({
                 // A word may *narrow* in one aspect and merely *steer* in another, and then having no carrier
                 // here is no fault at all: `arid` narrows the terrain on `dry`/`barren` tags and bounds the
                 // climate's axes with spans, which is two real jobs. What the check is actually for is a word
-                // with *nothing* to do in an aspect it claims — so the question is whether it turns a knob this
+                // with *nothing* to do in an aspect it claims — so the question is whether it turns a parameter this
                 // aspect holds, not whether it happens to also carry a query.
                 // Asked of the vocabulary rather than of the candidates, because an aspect with no
-                // candidates can still hold knobs — a climate is nothing but its dials.
+                // candidates can still hold parameters — a climate is nothing but its parameters.
                 // `canSet` rather than `sets`: whether a word steers an aspect is a question about what it
                 // *means*, and a draw must not move it. Asked of the core alone, `scorching` — whose `murk`
                 // is in its pool — looked like a word that only narrows the water, and the water has
                 // nothing to narrow.
-                val turnsAKnobHere = word.canSet.keys.any { vocabulary.turnsAKnob(aspect, it) }
-                if (!word.constrainsPresetsIn(aspect) || turnsAKnobHere) {
-                    // **Only the knobs this aspect holds.** One word carries a single `sets` map across
+                val turnsAParameterHere = word.canSet.keys.any { vocabulary.turnsAParameter(aspect, it) }
+                if (!word.constrainsPresetsIn(aspect) || turnsAParameterHere) {
+                    // **Only the parameters this aspect holds.** One word carries a single `sets` map across
                     // every aspect it speaks to, and a derived block word now sets the rock's material and
                     // the skin's — so each aspect sees a key it has never heard of, and asking every aspect
                     // about every key condemns the whole block registry. That a key exists *somewhere* the
                     // word is about is asked once, after this loop, which is where a typo is caught.
-                    fun knobsHere(parameter: String) = (
-                        vocabulary.candidatesFor(aspect).flatMap { it.parameters } + aspect.dials
+                    fun parametersHere(parameter: String) = (
+                        vocabulary.candidatesFor(aspect).flatMap { it.ownParameters } + aspect.parameters
                         ).filter { it.name == parameter }
-                    for (parameter in word.canSet.keys.filter { knobsHere(it).isNotEmpty() }) {
-                        val offered = knobsHere(parameter)
-                        // Declaring a knob and turning it are different things (`AspectPreset.honours`), and only
+                    for (parameter in word.canSet.keys.filter { parametersHere(it).isNotEmpty() }) {
+                        val offered = parametersHere(parameter)
+                        // Declaring a parameter and turning it are different things (`Taggable.honours`), and only
                         // the second makes a word mean anything. Continentalness and erosion shipped as climate
                         // axes that nothing could honour and were invisible in game for a whole session — this
                         // is the check that would have caught them before they were written.
-                        val anythingTurnsIt = vocabulary.turnsAKnob(aspect, parameter)
+                        val anythingTurnsIt = vocabulary.turnsAParameter(aspect, parameter)
                         check(anythingTurnsIt) {
                             "'${word.name}' sets ${aspect.key}.$parameter, which every ${aspect.key} declares and " +
                                 "none acts on — so writing it would change nothing and say nothing"
                         }
                         // **This parameter's own value**, not every value the word carries: a word may set
-                        // two knobs of one aspect — `sunless` bounds `daylight` with a span and picks
-                        // `sunburn` by name — and asking each knob about the other's value condemns both.
+                        // two parameters of one aspect — `sunless` bounds `daylight` with a span and picks
+                        // `sunburn` by name — and asking each parameter about the other's value condemns both.
                         val option = word.canSet.getValue(parameter)
                         // A value may offer **alternatives** the Age draws one of — `red|orange|yellow` —
-                        // and every one of them has to be a value the knob takes. Asked of the whole
+                        // and every one of them has to be a value the parameter takes. Asked of the whole
                         // string, the bar and all, an offer of three good colours read as one bad one.
                         val alternatives = option.split('|').map(String::trim).filter(String::isNotEmpty)
                         val unacceptable = alternatives.filterNot { one -> offered.any { it.accepts(one) } }
@@ -141,7 +143,7 @@ class VocabularyCheck : FunSpec({
                     if (onlyAServerCouldAnswer) continue
                     check(vocabulary.answersIn(word, aspect)) {
                         "'${word.name}' is ${word.tier.key} about ${aspect.key}, and nothing there answers " +
-                            "${word.query.keys.joinToString(" ")} at all"
+                            "${word.everyTagAsked.keys.joinToString(" ")} at all"
                     }
                     continue
                 }
@@ -151,21 +153,82 @@ class VocabularyCheck : FunSpec({
                         "${word.wanted.joinToString(" ")} strongly enough (needs ${word.tier.threshold})"
                 }
             }
-            // A knob may name the aspect it is meant for — `sun.absent` — and a prefix naming no aspect at
-            // all is a knob nothing will ever read: it costs a page and sets nothing, which is §3.3's
+            // A parameter may name the aspect it is meant for — `sun.absent` — and a prefix naming no aspect at
+            // all is a parameter nothing will ever read: it costs a page and sets nothing, which is §3.3's
             // silent drop wearing a different hat.
-            check(word.unreadableKnobs.isEmpty()) {
-                "'${word.name}' sets ${word.unreadableKnobs.joinToString(" ")}, and no part of the world " +
-                    "is called that — a knob nothing can read is a page the writer pays for and never sees"
+            check(word.unreadableParameters.isEmpty()) {
+                "'${word.name}' sets ${word.unreadableParameters.joinToString(" ")}, and no part of the world " +
+                    "is called that — a parameter nothing can read is a page the writer pays for and never sees"
             }
-            // And every knob it turns exists in *some* aspect it is about — the typo guard the per-aspect
-            // loop above stopped being once one word's knobs could span aspects. Under plain names, since
-            // the question is whether the knob exists rather than where the word aimed it.
+            // And every parameter it turns exists in *some* aspect it is about — the typo guard the per-aspect
+            // loop above stopped being once one word's parameters could span aspects. Under plain names, since
+            // the question is whether the parameter exists rather than where the word aimed it.
+            //
+            // **`canSet` rather than `everySet`, which is `sets` alone.** A pool key went unasked for as
+            // long as this read the core, and `inferno` carried a pooled `suns` — a parameter no aspect has
+            // owned since the world model deleted counts — inert and unreported. Whether a parameter exists is
+            // a question about what a word *means*, so a draw must not decide whether it is asked.
             val couldBeAimedAnywhere = word.aspects.isEmpty()
-            for (parameter in word.everySet.keys) {
-                check(couldBeAimedAnywhere || word.aspects.any { vocabulary.turnsAKnob(it, parameter) }) {
+            for (parameter in word.canSet.keys) {
+                check(couldBeAimedAnywhere || word.aspects.any { vocabulary.turnsAParameter(it, parameter) }) {
                     "'${word.name}' sets '$parameter', which nothing it is about turns"
                 }
+            }
+        }
+    }
+
+    /**
+     * **A meaning has to be something the aspect could actually hold.**
+     *
+     * The two halves are different questions and this asks both. An aspect whose presets are designs of
+     * ours holds exactly what its `authored` list holds — asked of that rather than of `open`, which
+     * looked like the same question and is not: `phenomena` is open and every value it has is still ours,
+     * since nothing in vanilla is a tempest. An aspect whose presets are registry entries holds any
+     * namespaced id, because `presetFor` parses rather than looks up and the content may arrive later.
+     */
+    test("a word means something the part of the world it is meant in could hold") {
+        for (word in vocabulary.words.distinct()) {
+            for ((aspect, key) in word.meansExactly) {
+                val oneOfOurDesigns = aspect.ownsPresetNamed(key)
+                val anEntryOfItsRegistry = aspect.presetsAreEntriesOf != null && namesARegistryEntry(key)
+                check(oneOfOurDesigns || anEntryOfItsRegistry) {
+                    "'${word.name}' means '$key' in the ${aspect.page}, which holds neither — a design of " +
+                        "ours is a bare key that aspect lists, and a registry entry is a namespaced id"
+                }
+            }
+        }
+    }
+
+    /**
+     * **A cast is only ever offered, and no word may demand one.**
+     *
+     * A population's members are the writer's to describe (`the-world-model.md` §2) — they mint a sun by
+     * describing one, and there are no numbers in the language at all. `cast` exists so a word can say
+     * what an Age looks like when nobody described anything, which is a statement about silence; a word
+     * that *insisted* on three suns would be overruling a writer who asked for one, and no charge would
+     * make that fair. Offered, it fills an empty sky and vanishes the moment a clause mints a body.
+     */
+    test("no word insists on a cast") {
+        for (word in vocabulary.words) {
+            val demanded = (word.sets + word.pool).keys
+                .filter { it.substringAfterLast('.') == Parameter.CAST }
+            check(demanded.isEmpty()) {
+                "'${word.name}' demands ${demanded.joinToString()} — a cast belongs in `requests`, where it " +
+                    "yields to a writer who described a body of their own"
+            }
+        }
+    }
+
+    /**
+     * **Nothing is both insisted on and offered.** A request yields wherever something demanded the same
+     * parameter of the same aspect, so a word holding both would be yielding to itself and the offer could
+     * never land — a page paid for that says nothing, which is §3.3's silent drop again.
+     */
+    test("no word both demands and offers one parameter") {
+        for (word in vocabulary.words) {
+            val both = (word.sets + word.pool).keys intersect (word.requests.sets + word.requests.pool).keys
+            check(both.isEmpty()) {
+                "'${word.name}' both demands and offers ${both.joinToString()}, so the offer can never land"
             }
         }
     }
@@ -201,8 +264,8 @@ class VocabularyCheck : FunSpec({
      */
     test("no authored word is a synonym for a derived one") {
         for (word in vocabulary.authoredWords) {
-            val referents = (listOfNotNull(word.names) + word.sets.values).filter(::namesReferent)
-            val saysNothingElse = word.query.isEmpty()
+            val referents = (word.meansExactly.values + word.sets.values).filter(::namesARegistryEntry)
+            val saysNothingElse = word.everyTagAsked.isEmpty()
             check(referents.isEmpty() || !saysNothingElse) {
                 "'${word.name}' resolves to ${referents.joinToString()} and nothing else, which is what the " +
                     "derived word already does — so laying it buys a writer nothing over laying that"
@@ -241,7 +304,7 @@ class VocabularyCheck : FunSpec({
                 // A referent is reachable by name by construction — §8.1 mints a word per registry entry —
                 // so demanding one here asks the wrong question, and asks it of a corpus that cannot answer:
                 // biomes are datapack content, so their words exist only once a server has loaded.
-                if (namesReferent(preset.key)) continue
+                if (namesARegistryEntry(preset.key)) continue
                 val reachable = vocabulary.words.any { word ->
                     aspect in Resolver.pricedIn(vocabulary, word) && word.tier.narrows &&
                         preset in vocabulary.carriersOf(word, aspect)
@@ -311,16 +374,17 @@ class VocabularyCheck : FunSpec({
      */
     test("vagueness cannot reach derived content") {
         val curated = Aspect.entries.flatMap { aspect -> vocabulary.candidatesFor(aspect).map { it.key } }.toSet()
-        val derived = vocabulary.words.filter { it.names != null }
+        val derived = vocabulary.derivedWords.distinct()
         check(derived.isNotEmpty()) {
             "No derived words at all — the pack has fluids, so this means derivation is not running"
         }
         for (word in derived) {
-            for (aspect in word.aspects) {
+            for (aspect in Aspect.entries) {
+                val meant = word.meaningIn(aspect)?.key ?: continue
                 val reachable = vocabulary.words.any { vague ->
-                    !vague.tier.narrows && word.names in vocabulary.carriersOf(vague, aspect).map { it.key }
+                    !vague.tier.narrows && meant in vocabulary.carriersOf(vague, aspect).map { it.key }
                 }
-                check(!reachable || word.names in curated) {
+                check(!reachable || meant in curated) {
                     "'${word.name}' is derived content a vague word can reach in ${aspect.key}, and it was never " +
                         "curated — which is §8.2's promise broken, and invisible from the outside"
                 }
@@ -383,6 +447,42 @@ class VocabularyCheck : FunSpec({
                 "the inferno's $axis is '$said', which yields silently — a written contradiction would be free"
             }
         }
+    }
+
+    /**
+     * **A name belongs to one registry, and an id does not say which.**
+     *
+     * `minecraft:diamond_block` and `minecraft:village_plains` are the same shape, and an open aspect's
+     * `presetFor` parses rather than looks anything up — so an unkeyed name meant a preset in every open
+     * aspect at once. `diamond_block structures` parsed, resolved, charged a page and generated a
+     * structure set no registry holds, which is exactly the silent acceptance §3.3 forbids: the page was
+     * read, billed and dropped.
+     *
+     * Held two ways now, and this is both: `Word.meansExactly` is keyed by the aspect it is meant in, and
+     * `Word.entryOf` says which registry a derived word is an entry of so the aspects fall out of
+     * `Aspect.presetsAreEntriesOf` rather than out of a list somebody keeps in step.
+     */
+    test("a block word means the sea and no other part of the world") {
+        val blocks = vocabulary.derivedWords.distinct().filter { it.material != null }
+        check(blocks.isNotEmpty()) { "no derived block words at all" }
+        val wrong = blocks.filter { block ->
+            Aspect.entries.any { it != Aspect.SEA && block.meaningIn(it) != null }
+        }
+        check(wrong.isEmpty()) { "${wrong.size} block words mean something elsewhere: ${wrong.take(5).map { it.name }}" }
+        val ice = vocabulary.words.firstOrNull { it.name == "ice" }
+        check(ice?.meaningIn(Aspect.SEA) != null) { "'ice sea' stopped being a sentence" }
+        check(ice?.meaningIn(Aspect.STRUCTURES) == null) { "'ice' still means a structure set" }
+    }
+
+    /**
+     * The seventeen landform pages are minted from the landforms, so a landform arriving without one is a
+     * gap that closes itself — see `AuthoredPreset.writtenWordFor`, and `DerivedWords.designs`.
+     */
+    test("every landform a writer can reach for has a page that means it") {
+        val unsayable = Aspect.TERRAIN.authored
+            .filter { it.askableInASentence }
+            .filter { preset -> vocabulary.words.none { it.meaningIn(Aspect.TERRAIN)?.key == preset.key } }
+        check(unsayable.isEmpty()) { "no page means ${unsayable.map { it.key }}" }
     }
 })
 

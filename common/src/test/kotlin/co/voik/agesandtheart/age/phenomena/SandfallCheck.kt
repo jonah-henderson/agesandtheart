@@ -227,7 +227,7 @@ class SandfallCheck : FunSpec({
         }
     }
 
-    test("a chance is a probability, however extreme the dials") {
+    test("a chance is a probability, however extreme the parameters") {
         checkAll(Arb.numericDouble(0.001, 4.0), Arb.numericDouble(-50.0, 200.0)) { speed, depth ->
             val chance = ColumnBehaviour(depth = depth).depositChanceFor(speed, typical, depth)
             check(chance in 0.0..1.0) { "a deposit chance of $chance is not a probability" }

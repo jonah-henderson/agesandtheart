@@ -45,7 +45,7 @@ age write onlyoneteems age structures woodland_mansions and teeming villages
 # Expect: `structures.built=!minecraft:villages@teeming`, polarity `only` and density `teeming`.
 age write onlyteeming age structures only teeming villages
 
-# --- The knobs no word could reach ---------------------------------------------------------------
+# --- The parameters no word could reach ---------------------------------------------------------------
 # Each was pinned into a recipe and unreachable from a sentence.
 # Expect: `mingling=fine`.
 age write finemingle age landmass finely basalt and deepslate

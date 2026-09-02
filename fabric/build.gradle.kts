@@ -8,6 +8,9 @@ val modId = project.property("modId") as String
 /** Where the dedicated server runs, shared by Loom's run config and the launch spec the checks read. */
 val SERVER_RUN_DIR = "runs/server"
 
+/** Where the client runs, shared by Loom's run config and the launch spec the age workshop reads. */
+val CLIENT_RUN_DIR = "runs/client"
+
 dependencies {
     // Ephemeris, the mod this one is built on. `implementation` rather than `compileOnly`: the jar has to
     // be on the run classpath for the loader to find a second mod in it, and the classes come from that jar
@@ -90,6 +93,44 @@ val exportServerLaunch = tasks.register("exportServerLaunch") {
             // Headless. Loom adds this as the run starts, the same way it does the working directory, and a
             // server that opens a window is a server no check can drive.
             add("arg\tnogui")
+            runClasspath.files.forEach { add("classpath\t${it.absolutePath}") }
+        }
+        launchFile.get().asFile.writeText(lines.joinToString("\n", postfix = "\n"))
+    }
+}
+
+/**
+ * The same trick for the **client**, so the age workshop can start a game the way it starts a server.
+ *
+ * Everything `exportServerLaunch` learned applies here unchanged — a plain provider rather than
+ * `runClient.map`, and `configureLaunch` first or Loom's argument provider throws. What differs is that a
+ * client carries program arguments as well as JVM ones: the asset index, the assets directory and the
+ * offline username all arrive that way, and a client started without them dies looking for its sounds.
+ */
+val exportClientLaunch = tasks.register("exportClientLaunch") {
+    group = "build"
+    description = "Records the client's launch command, so the age workshop can start a game."
+
+    val runClasspath = objects.fileCollection().from(provider { tasks.getByName<JavaExec>("runClient").classpath })
+    val launchFile = layout.buildDirectory.file("client-launch.txt")
+
+    inputs.files(runClasspath)
+    outputs.file(launchFile)
+    dependsOn("configureLaunch")
+
+    val runDirectory = file(CLIENT_RUN_DIR)
+
+    doLast {
+        val runClient = tasks.getByName<JavaExec>("runClient")
+        val lines = buildList {
+            add("workingDir\t${runDirectory.absolutePath}")
+            add("mainClass\t${runClient.mainClass.get()}")
+            val declaredDirectly = runClient.jvmArgs.orEmpty()
+            val fromLoomsProvider = runClient.jvmArgumentProviders.flatMap { it.asArguments() }
+            (declaredDirectly + fromLoomsProvider).forEach { add("jvmArg\t$it") }
+            val programArguments = runClient.args.orEmpty() +
+                runClient.argumentProviders.flatMap { it.asArguments() }
+            programArguments.forEach { add("arg\t$it") }
             runClasspath.files.forEach { add("classpath\t${it.absolutePath}") }
         }
         launchFile.get().asFile.writeText(lines.joinToString("\n", postfix = "\n"))

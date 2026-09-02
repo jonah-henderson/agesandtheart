@@ -2,7 +2,7 @@ package co.voik.agesandtheart.preview
 
 /**
  * **A SPIKE — do not build on this.** It exists to answer one question with numbers instead of taste:
- * if an aspect's *value* were typed by what it actually is, rather than forced through `AspectPreset`,
+ * if an aspect's *value* were typed by what it actually is, rather than forced through `Taggable`,
  * how much of `Aspect.kt` would survive?
  *
  * The suspicion it tests: the resolver was written to be generic over aspects, and that genericity is
@@ -77,16 +77,16 @@ private fun reportRecipeShape() {
  */
 private enum class Kind(val key: String, val explanation: String) {
     /**
-     * A named, curated bundle of tuning, plus dials. Earns its name by hiding what a writer could not
+     * A named, curated bundle of tuning, plus parameters. Earns its name by hiding what a writer could not
      * assemble: a field tree of co-varying constants, tuned by hand until the landscape reads right.
      */
-    PRESET("preset", "one of a curated few, plus dials"),
+    PRESET("preset", "one of a curated few, plus parameters"),
 
     /**
-     * A registry object named outright, plus dials. The pool a *vague* word may draw from is curated
+     * A registry object named outright, plus parameters. The pool a *vague* word may draw from is curated
      * separately (§8.2); an exact word points at one and arrives with its answer in hand.
      */
-    REFERENT("referent", "a registry id, plus dials"),
+    REFERENT("referent", "a registry id, plus parameters"),
 
     /**
      * Weighted claims that **accumulate** — said plainly, singled out with `only`, struck with `except`,
@@ -96,9 +96,9 @@ private enum class Kind(val key: String, val explanation: String) {
 
     /**
      * Continuous axes bounded by spans, and nothing else. No value is chosen at all, because there is
-     * nothing to choose between — the whole answer is where the dials were left.
+     * nothing to choose between — the whole answer is where the parameters were left.
      */
-    DIALS("dials", "spans on continuous axes, and no choice at all"),
+    DIALS("parameters", "spans on continuous axes, and no choice at all"),
 }
 
 /**

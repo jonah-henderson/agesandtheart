@@ -5,7 +5,7 @@ import co.voik.agesandtheart.book.LinkTarget
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.worldgen.biome.ClimateAxis
-import co.voik.agesandtheart.age.aspect.AspectPreset
+import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.age.aspect.Carvers
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.aspect.Skew
@@ -49,7 +49,7 @@ class RecipeCheck : FunSpec({
      */
     withData(
         nameFn = { "the '${it.aspect.key}=${it.key}' aspect preset round-trips" },
-        everyAspectPreset(),
+        everyTaggable(),
     ) { preset ->
         val composition = AgeComposition(terrains = listOf(Terrain.HILLS)).withPreset(preset.aspect, preset.key)
         roundTrips(
@@ -76,7 +76,7 @@ class RecipeCheck : FunSpec({
     }
 
     /**
-     * **A value the knob cannot read is called out, and so is a knob on an aspect that seats nothing.**
+     * **A value the parameter cannot read is called out, and so is a parameter on an aspect that seats nothing.**
      *
      * `Options.of` filters a value its parameter will not accept and falls back to the default, so an Age
      * written with `sunsize=huge` is *identical* to one written without it. That is the silent drop that
@@ -92,16 +92,16 @@ class RecipeCheck : FunSpec({
                 .withOption(aspect, parameter, value)
                 .unknownOptions
 
-        // A knob that exists, on an aspect with no preset, given a value its axis cannot read. The
+        // A parameter that exists, on an aspect with no preset, given a value its axis cannot read. The
         // expectation is spelled from the parameter rather than repeated, so renaming one cannot leave a
         // check asserting the old name against the new behaviour.
         val size = Sky.SUNSIZE.name
         check(saidOf(Aspect.SUN, size, "huge") == listOf("sun.$size=huge")) {
             "a value the axis cannot read went unreported: ${saidOf(Aspect.SUN, size, "huge")}"
         }
-        // A knob that does not exist, on the same seatless aspect — the name alone, no value.
+        // A parameter that does not exist, on the same seatless aspect — the name alone, no value.
         check(saidOf(Aspect.SUN, "brightness", "0.5") == listOf("sun.brightness")) {
-            "a misspelt knob on a seatless aspect went unreported: ${saidOf(Aspect.SUN, "brightness", "0.5")}"
+            "a misspelt parameter on a seatless aspect went unreported: ${saidOf(Aspect.SUN, "brightness", "0.5")}"
         }
         // And a span it *can* read says nothing at all.
         check(saidOf(Aspect.CLIMATE, ClimateAxis.TEMPERATURE.key, "0.5..0.9").isEmpty()) {
@@ -371,7 +371,7 @@ class RecipeCheck : FunSpec({
      * `/age compose` cannot accept, which survives for months because each half looks right alone.
      */
     test("compositions are spelled the way they are read") {
-        val compositions = everyAspectPreset().map { preset ->
+        val compositions = everyTaggable().map { preset ->
             AgeComposition(terrains = listOf(Terrain.HILLS)).withPreset(preset.aspect, preset.key)
         } + AgeComposition(terrains = listOf(Terrain.PYRAMIDS))
             .withOption(Aspect.TERRAIN, Terrain.ARRANGEMENT.name, "rings")
@@ -663,7 +663,7 @@ private fun roundTrips(recipe: AgeRecipe, what: String): AgeRecipe {
  * **one referent naming content this pack does not have** — a recipe must hold an id from an uninstalled
  * mod and give it back unchanged, a save moving between modpacks being ordinary.
  */
-private fun everyAspectPreset(): List<AspectPreset> =
+private fun everyTaggable(): List<Taggable> =
     Aspect.entries.flatMap { it.authored } +
         listOf(Sea.NONE, Sea.WATER, Sea.LAVA, Sea(Identifier.parse("examplemod:creosote")))
 

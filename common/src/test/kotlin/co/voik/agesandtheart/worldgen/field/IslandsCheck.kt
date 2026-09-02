@@ -103,7 +103,7 @@ class IslandsCheck : FunSpec({
         }
     }
 
-    /** The size knob is a size knob: an island low on the axis is plainly smaller than one high on it. */
+    /** The size parameter is a size parameter: an island low on the axis is plainly smaller than one high on it. */
     test("the extents differ in the way they claim to") {
         fun landAcross(extent: Double): Int {
             val world = IslandsField.world(extent)

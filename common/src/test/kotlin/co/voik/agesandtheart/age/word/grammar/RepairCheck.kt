@@ -238,7 +238,7 @@ class RepairCheck : FunSpec({
      * write a world that argues with an ordinary word. If it can, the grammar is what changes.
      */
     test("repair never contradicts the one word a writer laid") {
-        val quarrelsome = vocabulary.authoredWords.filterNot { it.query.isEmpty() }
+        val quarrelsome = vocabulary.authoredWords.filterNot { it.everyTagAsked.isEmpty() }
         val complaints = mutableListOf<String>()
         for (word in quarrelsome) {
             // Aimed at a section the word is not about, which is what sends a book through repair at all —

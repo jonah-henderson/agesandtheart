@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.phenomena
 
 import co.voik.agesandtheart.MinecraftRegistries
+import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.aspect.Phenomenon
 import com.google.gson.JsonParser
 import com.mojang.serialization.JsonOps
@@ -16,7 +17,7 @@ import kotlin.io.path.readText
  * `tempest.json` stops parsing, every field falls back to its default and the storm carries on looking
  * exactly right — so nothing in play would notice, and the pack would be inert rather than broken.
  */
-@Tags("NEEDS_REGISTRIES")
+@Tags(NEEDS_REGISTRIES)
 class PhenomenonBehaviourCheck : FunSpec({
 
     val shipped = Path.of("src/main/resources/data/agesandtheart/art/phenomenon/tempest.json")

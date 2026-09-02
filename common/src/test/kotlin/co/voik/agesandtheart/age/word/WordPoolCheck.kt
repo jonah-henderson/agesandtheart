@@ -21,7 +21,7 @@ class WordPoolCheck : FunSpec({
         id = Identifier.fromNamespaceAndPath("agesandtheart", "scorching"),
         tier = tier,
         aspects = setOf(Aspect.AIR),
-        query = mapOf("dry" to 1.0),
+        everywhere = mapOf("dry" to 1.0),
         sets = sets,
         pool = pool,
         draws = draws,

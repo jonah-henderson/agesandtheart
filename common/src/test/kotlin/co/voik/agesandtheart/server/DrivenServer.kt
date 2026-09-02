@@ -3,8 +3,6 @@ package co.voik.agesandtheart.server
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import java.io.File
-import java.net.ConnectException
-import java.net.ServerSocket
 import java.util.concurrent.TimeUnit
 
 /**
@@ -86,7 +84,6 @@ class DrivenServer private constructor(
     companion object {
         private const val STARTUP_SECONDS = 240L
         private const val SHUTDOWN_SECONDS = 60L
-        private const val POLL_MILLIS = 500L
         private const val RCON_PASSWORD = "agesandtheart-checks"
 
         /**
@@ -130,9 +127,9 @@ class DrivenServer private constructor(
                     "let the server write its defaults"
             }
             val originalProperties = properties.readText()
-            val port = freePort()
+            val port = ServerLaunch.freePort()
             properties.writeText(
-                settingsFor(originalProperties, level, port),
+                ServerLaunch.overlaid(originalProperties, ServerLaunch.settingsFor(level, port, RCON_PASSWORD)),
             )
 
             val process = runCatching { launch.start() }
@@ -140,7 +137,7 @@ class DrivenServer private constructor(
                     properties.writeText(originalProperties)
                     throw failure
                 }
-            val rcon = runCatching { awaitRcon(process, port) }
+            val rcon = runCatching { ServerLaunch.awaitRcon(process, port, STARTUP_SECONDS, RCON_PASSWORD) }
                 .getOrElse { failure ->
                     process.destroyForcibly()
                     properties.writeText(originalProperties)
@@ -155,52 +152,6 @@ class DrivenServer private constructor(
                 launch.outputFile,
             )
         }
-
-        /**
-         * The server's own settings with ours laid over them, key by key, so anything a person configured
-         * that we say nothing about survives the run.
-         */
-        private fun settingsFor(original: String, level: String, port: Int): String {
-            val ours = mapOf(
-                "level-name" to level,
-                "enable-rcon" to "true",
-                "rcon.password" to RCON_PASSWORD,
-                "rcon.port" to port.toString(),
-                // Nothing here needs a world to be interesting, and generating one costs the whole startup.
-                "sync-chunk-writes" to "false",
-                // **The watchdog has to go, or the harness kills its own server.** RCON runs a command on
-                // the server thread and waits for it, so `/age compare` generating two Ages block for block
-                // happens *inside one tick* — and vanilla treats a tick past `max-tick-time` as a crash and
-                // forcibly shuts down. A check that is merely slow would then fail as a broken pipe.
-                "max-tick-time" to "-1",
-            )
-            val rewritten = original.lines().map { line ->
-                val key = line.substringBefore('=')
-                if (line.startsWith('#') || key !in ours) line else "$key=${ours.getValue(key)}"
-            }
-            val added = ours.filterKeys { key -> original.lines().none { it.substringBefore('=') == key } }
-            return (rewritten + added.map { (key, value) -> "$key=$value" }).joinToString("\n", postfix = "\n")
-        }
-
-        /**
-         * Waits for RCON to answer, and **gives up the moment the server dies** rather than at the timeout:
-         * a server that failed to start is the common case when something else is wrong, and four minutes of
-         * silence is a bad way to be told.
-         */
-        private fun awaitRcon(process: Process, port: Int): Rcon {
-            val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(STARTUP_SECONDS)
-            while (System.nanoTime() < deadline) {
-                check(process.isAlive) { "the server exited before RCON came up (code ${process.exitValue()})" }
-                val connected = runCatching { Rcon("127.0.0.1", port, RCON_PASSWORD) }
-                connected.getOrNull()?.let { return it }
-                if (connected.exceptionOrNull() !is ConnectException) Thread.sleep(POLL_MILLIS)
-                Thread.sleep(POLL_MILLIS)
-            }
-            error("the server did not open RCON on $port within ${STARTUP_SECONDS}s")
-        }
-
-        /** A port nobody is on. Racy in principle; in practice this is one process on a developer's machine. */
-        private fun freePort(): Int = ServerSocket(0).use { it.localPort }
 
         /**
          * The one server every check shares, started when the first of them asks and stopped when the JVM
@@ -218,68 +169,6 @@ class DrivenServer private constructor(
                 Runtime.getRuntime().addShutdownHook(Thread { runCatching { server.close() } })
             }
         }
-    }
-}
-
-/** How to start the server, as `:fabric:exportServerLaunch` wrote it down. */
-private class LaunchSpec(
-    val workingDirectory: File,
-    private val mainClass: String,
-    private val jvmArguments: List<String>,
-    private val arguments: List<String>,
-) {
-    /**
-     * Started with its output **kept**, into [outputFile].
-     *
-     * It used to be discarded, on the reasoning that the server writes its own log. That was true and it
-     * cost us: a datapack file the server cannot read is *logged* and not fatal, so two broken data files
-     * sat in the NeoForge build being reported on every boot and caught by nothing — the checks could not
-     * see the log, and a person only sees it if they happen to run the client. See `BootLogCheck`.
-     */
-    fun start(): Process {
-        val java = File(System.getProperty("java.home"), "bin/java").absolutePath
-        return ProcessBuilder(listOf(java) + jvmArguments + mainClass + arguments)
-            .directory(workingDirectory)
-            .redirectErrorStream(true)
-            .redirectOutput(ProcessBuilder.Redirect.to(outputFile))
-            .start()
-    }
-
-    /** Beside the launch spec, so it is found where the thing that produced it lives. */
-    val outputFile: File = File(workingDirectory, "checks-boot.log")
-
-    companion object {
-        fun read(): LaunchSpec {
-            val spec = candidatePaths().firstOrNull { it.isFile }
-                ?: error(
-                    "no server launch spec for ${loader()} — run ./gradlew :${loader()}:exportServerLaunch " +
-                        "first (the serverTest task does it for you)",
-                )
-            val fields = spec.readLines().filter { it.isNotBlank() }
-                .map { it.substringBefore('\t') to it.substringAfter('\t') }
-            fun all(key: String) = fields.filter { it.first == key }.map { it.second }
-            fun one(key: String) = all(key).singleOrNull() ?: error("$spec names no single $key")
-            return LaunchSpec(File(one("workingDir")), one("mainClass"), all("jvmArg"), all("arg"))
-        }
-
-        /**
-         * Which loader's server the checks drive — Fabric unless told otherwise.
-         *
-         * `-Pchecks.loader=neoforge` on `:common:serverTest` points the whole suite at the other side. The
-         * checks themselves know nothing about it and must not: what they assert is the *mod's* behaviour,
-         * and a check that passed on one loader and not the other would be saying something worth hearing
-         * rather than something worth special-casing.
-         */
-        private fun loader(): String = System.getProperty(LOADER_PROPERTY, "fabric")
-
-        const val LOADER_PROPERTY = "agesandtheart.checks.loader"
-
-        // Gradle runs the test task from the module directory, but a run from the repository root is the
-        // thing anyone tries first — so both are looked at rather than one being the wrong guess.
-        private fun candidatePaths() = listOf(
-            File("../${loader()}/build/server-launch.txt"),
-            File("${loader()}/build/server-launch.txt"),
-        )
     }
 }
 

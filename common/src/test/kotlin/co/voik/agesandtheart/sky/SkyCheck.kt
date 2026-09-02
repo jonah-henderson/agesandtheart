@@ -214,11 +214,11 @@ class SkyCheck : FunSpec({
             }
         }
         // The bodies are the sun's, the moon's and the stars' rather than any sky preset's, so it is the
-        // aspects that must hold their knobs — one nothing declares is a request silently dropped.
+        // aspects that must hold their parameters — one nothing declares is a request silently dropped.
         for (parameter in listOf(Sky.ABSENT, Sky.SUNSIZE, Sky.SUNCOLOUR)) {
-            check(parameter in Aspect.SUN.dials) { "the sun does not hold ${parameter.name}" }
+            check(parameter in Aspect.SUN.parameters) { "the sun does not hold ${parameter.name}" }
         }
-        check(Sky.STARS in Aspect.STARS.dials) { "the stars do not hold their own density" }
+        check(Sky.STARS in Aspect.STARS.parameters) { "the stars do not hold their own density" }
     }
 
     /**

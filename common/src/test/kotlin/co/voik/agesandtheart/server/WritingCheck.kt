@@ -96,15 +96,15 @@ class WritingCheck : FunSpec({
     }
 
     /**
-     * The knobs that were pinned into recipes and unreachable from a sentence. Each is now a word, which is
+     * The parameters that were pinned into recipes and unreachable from a sentence. Each is now a word, which is
      * the whole of what the Phase 4 remainder owed here.
      */
-    test("the pinned knobs can be written") {
-        val knobs = listOf(
+    test("the pinned parameters can be written") {
+        val parameters = listOf(
             Triple("blotchy", "age patchy basalt and deepslate landmass", "mingling=0.1..0.7"),
             Triple("bareground", "age minecraft:air surface", "surface.material=minecraft:air"),
         )
-        for ((name, sentence, expected) in knobs) {
+        for ((name, sentence, expected) in parameters) {
             server.ask("write", "$name $sentence")
             val recipe = recipeOf(server, name)
             check(expected in recipe) { "'$sentence' should have written $expected, and wrote $recipe" }

@@ -47,3 +47,6 @@ Thumbs.db
 /*.jpeg
 /*.png
 /*.webp
+
+# The word forge remembers what a server carried, and `./gradlew clean` must not throw that away.
+/.authoring/

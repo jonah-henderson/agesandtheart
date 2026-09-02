@@ -5,7 +5,7 @@ import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.aspect.Sea
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.agesandtheart.age.aspect.Aspect
-import co.voik.agesandtheart.age.aspect.AspectPreset
+import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.age.aspect.Carvers
 import kotlin.random.Random
 
@@ -37,7 +37,7 @@ fun main() {
  *
  * These are guesses made in half an hour. Their *plausibility* is the point, not their values.
  */
-private val TAGS: Map<AspectPreset, Map<String, Double>> = mapOf(
+private val TAGS: Map<Taggable, Map<String, Double>> = mapOf(
     Terrain.SPIRE_ISLANDS to mapOf("floating" to 1.0, "striking" to 0.9, "mountainous" to 0.7, "wild" to 0.6),
     Terrain.HILLS to mapOf("ordinary" to 0.9, "flat" to 0.4, "mountainous" to 0.3, "lush" to 0.3),
     Terrain.CAVERNS to mapOf("cavernous" to 1.0, "gloomy" to 0.7, "solid" to 0.8, "wild" to 0.4),
@@ -218,7 +218,7 @@ private data class Resolution(
             uncharged.sumOf { it.severity }
 }
 
-private fun presetsOf(aspect: Aspect): List<AspectPreset> = when (aspect) {
+private fun presetsOf(aspect: Aspect): List<Taggable> = when (aspect) {
     Aspect.TERRAIN -> Terrain.entries
     // The three the spike was written against, now that the aspect is open and has no enum to list.
     Aspect.SEA -> listOf(Sea.NONE, Sea.WATER, Sea.LAVA)
@@ -227,7 +227,7 @@ private fun presetsOf(aspect: Aspect): List<AspectPreset> = when (aspect) {
     // Listed so the spike still compiles, and deliberately left out of [TAGS]: the spike argued about the
     // five aspects that existed when it was written, and an aspect nothing here tags is one no sentence here
     // speaks to. So it draws on the base weight alone and none of the reported findings move.
-    // Four aspects stopped being preset-shaped entirely: two are populations, two are sets of dials, and
+    // Four aspects stopped being preset-shaped entirely: two are populations, two are sets of parameters, and
     // none of them draws from a pool. Nothing here tags them, so the spike's findings do not move — this
     // is a record of an argument, not a model, and it is kept compiling rather than re-tagged.
     Aspect.BIOMES, Aspect.STRUCTURES, Aspect.CLIMATE, Aspect.SURFACE, Aspect.FEATURES, Aspect.SPAWNS,
@@ -237,10 +237,10 @@ private fun presetsOf(aspect: Aspect): List<AspectPreset> = when (aspect) {
     -> emptyList()
 }
 
-private fun weight(preset: AspectPreset, tag: String): Double = TAGS[preset]?.get(tag) ?: 0.0
+private fun weight(preset: Taggable, tag: String): Double = TAGS[preset]?.get(tag) ?: 0.0
 
 /** How strongly [preset] answers to [word] at all — the single number every tier is expressed in. */
-private fun affinity(preset: AspectPreset, word: Word): Double = word.tags.maxOfOrNull { weight(preset, it) } ?: 0.0
+private fun affinity(preset: Taggable, word: Word): Double = word.tags.maxOfOrNull { weight(preset, it) } ?: 0.0
 
 /**
  * A word constrains every aspect that has anything to say about its tags. Nothing declares which aspect a
@@ -259,7 +259,7 @@ private fun slotsConstrainedBy(word: Word, policy: Policy = Policy.NAIVE): List<
  */
 private fun resolve(sentence: List<String>, seed: Long, policy: Policy = Policy.CORRECTED): Resolution {
     val words = sentence.map(::word)
-    val chosen = mutableMapOf<Aspect, AspectPreset>()
+    val chosen = mutableMapOf<Aspect, Taggable>()
     val unmet = mutableListOf<Unmet>()
 
     for (aspect in Aspect.entries) {
@@ -304,7 +304,7 @@ private fun resolve(sentence: List<String>, seed: Long, policy: Policy = Policy.
 }
 
 /** Seeded weighted draw — the "seeded RNG fills the rest" of §4.6. */
-private fun pick(candidates: List<AspectPreset>, scores: List<Double>, random: Random): AspectPreset {
+private fun pick(candidates: List<Taggable>, scores: List<Double>, random: Random): Taggable {
     val target = random.nextDouble() * scores.sum()
     var running = 0.0
     for ((index, score) in scores.withIndex()) {
@@ -339,7 +339,7 @@ private fun conflictsIn(words: List<Word>, policy: Policy): List<Conflict> = bui
 private fun <T> List<T>.pairs(): List<Pair<T, T>> =
     indices.flatMap { left -> (left + 1..<size).map { right -> this[left] to this[right] } }
 
-private fun compose(chosen: Map<Aspect, AspectPreset>): AgeComposition {
+private fun compose(chosen: Map<Aspect, Taggable>): AgeComposition {
     val terrain = chosen[Aspect.TERRAIN] as? Terrain ?: error("the terrain aspect resolved to nothing")
     var composition = AgeComposition(terrains = listOf(terrain))
     for ((aspect, preset) in chosen) composition = composition.withPreset(aspect, preset.key)

@@ -34,6 +34,12 @@ mixinExtras = "0.3.5"
 # — see the note beside the test dependencies in common/build.gradle.kts.
 kotest = "6.2.3"
 
+# Mordant — the terminal layer under the word-authoring tool. **A developer dependency and never a shipped
+# one**: it sits on `common`'s `preview` source set, which the loaders never pull from, so
+# `ui-libraries-research.md`'s ruling against a Kotlin UI library on NeoForge does not reach it —
+# `authoring-tools.md` Part III is the note that governs here.
+mordant = "3.1.0"
+
 # Ephemeris — the runtime-dimension library, its own project at ../ephemeris. See settings.gradle.kts.
 #
 # **Two ranges, because the two manifests do not share a version grammar** and each rejects the other's.
@@ -76,6 +82,11 @@ forgeConfigApiPort-fabric = { group = "fuzs.forgeconfigapiport", name = "forgeco
 kotestRunner = { group = "io.kotest", name = "kotest-runner-junit5", version.ref = "kotest" }
 kotestAssertions = { group = "io.kotest", name = "kotest-assertions-core", version.ref = "kotest" }
 kotestProperty = { group = "io.kotest", name = "kotest-property", version.ref = "kotest" }
+
+# The `mordant` artifact is the multiplatform umbrella; on the JVM it resolves to `mordant-jvm` and brings
+# the raw-mode terminal backend with it. Java 25 means the FFM backend, so there is no native library to
+# unpack and nothing to configure.
+mordant = { group = "com.github.ajalt.mordant", name = "mordant", version.ref = "mordant" }
 
 [plugins]
 kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

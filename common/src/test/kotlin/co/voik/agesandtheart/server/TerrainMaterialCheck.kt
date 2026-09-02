@@ -11,7 +11,7 @@ import io.kotest.core.spec.style.FunSpec
  * content, so offline they are empty and an offline check would pass on a rule that had lost both of them.
  * That is the same reason the tag layer's derivation is held by a server check.
  *
- * A knob a composition cannot read is *reported* rather than refused, since a composition is a save — so
+ * A parameter a composition cannot read is *reported* rather than refused, since a composition is a save — so
  * the question asked here is whether `/age list` complains, not whether the command failed.
  */
 @Tags(NEEDS_SERVER)

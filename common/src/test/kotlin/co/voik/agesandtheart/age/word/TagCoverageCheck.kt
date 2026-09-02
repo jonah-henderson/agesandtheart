@@ -49,14 +49,14 @@ class TagCoverageCheck : FunSpec({
         fun opposable(tag: String) = vocabulary.antonyms.any { it.first == tag || it.second == tag }
         val onlyAServerKnows = vocabulary.tagsOnlyAServerGrants
         val inert = vocabulary.authoredWords
-            .filter { it.query.isNotEmpty() || it.queries.isNotEmpty() }
+            .filter { it.everyTagAsked.isNotEmpty() || it.queries.isNotEmpty() }
             .filter { word -> reachOf(word).none { vocabulary.answersIn(word, it) } }
             .filterNot { word -> word.wanted.any(::opposable) }
             .filterNot { word -> word.wanted.any(onlyAServerKnows::contains) }
         check(inert.isEmpty()) {
             "these words ask for tags nothing carries and no antonym knows, so the query does nothing:\n" +
                 inert.joinToString("\n") { word ->
-                    "  ${word.name} (${word.aspects.joinToString(" ") { it.key }}) asks ${word.query.keys}"
+                    "  ${word.name} (${word.aspects.joinToString(" ") { it.key }}) asks ${word.everyTagAsked.keys}"
                 }
         }
     }
@@ -69,8 +69,10 @@ class TagCoverageCheck : FunSpec({
      */
     test("no word asks for a tag that does not exist") {
         val carried = vocabulary.carriedTags + vocabulary.tagsOnlyAServerGrants
+        // **Offered tags too.** A misspelling in a `requests` query is exactly as inert as one in a demand,
+        // and rather quieter: an offer that finds nothing simply leans on nothing and says so nowhere.
         val asked = vocabulary.authoredWords
-            .flatMap { word -> word.query.keys + word.queries.values.flatMap { it.keys } }
+            .flatMap { word -> word.everyTagAsked.keys + word.queries.values.flatMap { it.keys } + word.offeredTags }
             .toSet()
         val unknown = (asked - carried).sorted()
         check(unknown.isEmpty()) {

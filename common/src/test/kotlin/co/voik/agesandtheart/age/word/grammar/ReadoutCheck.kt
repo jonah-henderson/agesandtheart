@@ -120,7 +120,7 @@ class ReadoutCheck : FunSpec({
      * arid", a climate made out of another climate.
      *
      * A preset-naming word is caught by steering nothing at all, but these two steer — `frozen` and `arid`
-     * set the *same* two dials, temperature and humidity, which makes them rivals rather than one
+     * set the *same* two parameters, temperature and humidity, which makes them rivals rather than one
      * describing the other. What a particle claims is that the run says something about what came before
      * it; two words turning one dial say something about each other's chances instead.
      */
