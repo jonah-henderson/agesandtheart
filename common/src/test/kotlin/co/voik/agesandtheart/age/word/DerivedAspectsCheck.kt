@@ -102,11 +102,11 @@ class DerivedAspectsCheck : FunSpec({
      */
     test("a word that only sets parameters declares nothing but the aspects owning them") {
         val setsAndNothingElse = vocabulary.authoredWords
-            .filter { !it.constrainsPresets && it.weights.isEmpty() && it.canSet.isNotEmpty() }
+            .filter { !it.constrainsPresets && it.biases.isEmpty() && it.canSet.isNotEmpty() }
         for (word in setsAndNothingElse) {
-            // An **offered** query names its aspect and means something there, exactly as a keyed demand
-            // does — `inferno` leans the sea toward lava and turns no parameter of the sea at all.
-            val owners = word.canSet.keys.flatMap(::aspectsOwning).toSet() + word.requests.queries.keys
+            // A **lean** names its aspect and means something there, exactly as a restriction does —
+            // `inferno` leans the sea toward lava and turns no parameter of the sea at all.
+            val owners = word.canSet.keys.flatMap(::aspectsOwning).toSet() + word.biases.keys
             val idle = word.aspects - owners
             check(idle.isEmpty()) {
                 "${word.name} declares $idle, where it sets nothing and asks nothing — a clause aimed at " +
@@ -166,17 +166,20 @@ class DerivedAspectsCheck : FunSpec({
         check(clear.aspects == setOf(Aspect.SKY, Aspect.WATERS)) {
             "'clear' derived ${clear.aspects} from a keyed query and a murk dial"
         }
-        check(clear.queryIn(Aspect.SKY).containsKey("bright")) { "the keyed query did not reach the sky" }
-        check(!clear.queryIn(Aspect.SEA).containsKey("bright")) {
-            "a query asked only of the sky went looking for something bright in the sea"
+        check(clear.restrictsIn(Aspect.SKY).containsKey("bright")) { "the restriction did not reach the sky" }
+        check(!clear.restrictsIn(Aspect.SEA).containsKey("bright")) {
+            "a restriction asked only of the sky went looking for something bright in the sea"
         }
     }
 
-    /** And a flat query still means the same thing everywhere, which is what most words want. */
-    test("an unkeyed query is asked of every aspect") {
+    /** A lean on the whole Age still falls wherever the tag is carried, which is what makes it evocative. */
+    test("a lean on the whole Age is felt in every aspect") {
         val beautiful = vocabulary.word("beautiful") ?: error("the corpus lost 'beautiful'")
-        val everywhere = Aspect.entries.filter { beautiful.queryIn(it).containsKey("colourful") }
-        check(everywhere == Aspect.entries) { "'colourful' was not asked of ${Aspect.entries - everywhere}" }
+        check(beautiful.leansEverywhere.containsKey("#colourful")) { "'beautiful' stopped leaning colourful" }
+        val felt = Aspect.entries.filter { aspect ->
+            vocabulary.candidatesFor(aspect).any { beautiful.biasOn(it, vocabulary.tagsOf(it)) != 0.0 }
+        }
+        check(felt.size > 1) { "a lean on the whole Age was felt only in $felt" }
     }
 
     /**
@@ -220,7 +223,7 @@ class DerivedAspectsCheck : FunSpec({
 
         // And the words the rule exists for are still the shape it was written about.
         val tilting = vocabulary.authoredWords
-            .filter { !it.tier.narrows && it.everywhere.isNotEmpty() }
+            .filter { !it.tier.narrows && it.leansEverywhere.isNotEmpty() }
             .map { it.name }
         check(tilting.containsAll(listOf("beautiful", "desolate", "rich"))) {
             "the words this rule exists for are gone, so the rule wants re-arguing: $tilting"

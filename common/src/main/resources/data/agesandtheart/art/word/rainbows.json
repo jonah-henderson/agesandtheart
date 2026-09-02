@@ -19,7 +19,7 @@
     "own weather, and the one phenomenon for which a floor is the right shape rather than the wrong one."
   ],
   "tier": "exact",
-  "means_exactly": {
+  "chooses": {
     "phenomena": "rainbow"
   },
   "sets": {

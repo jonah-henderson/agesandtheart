@@ -1,9 +1,9 @@
 {
   "tier": "restrictive",
-  "queries": {
-    "structures": {
-      "built": -1.0,
-      "inhabited": -1.0
-    }
+  "excludes": {
+    "structures": [
+      "#built",
+      "#inhabited"
+    ]
   }
 }

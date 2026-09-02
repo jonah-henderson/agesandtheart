@@ -315,7 +315,7 @@ class ResolverCheck : FunSpec({
             Identifier.fromNamespaceAndPath("test", "moonless"),
             Tier.EXACT,
             setOf(Aspect.SKY),
-            mapOf("moonless" to 1.0),
+            restricts = mapOf(Aspect.SKY to mapOf("moonless" to 1.0)),
         )
         val resolution = Resolver.resolve(vocabulary, Sentence.flat(listOf(moonless)), SAMPLE_SEED)
         val unbacked = resolution.instability.flaws.firstOrNull { it.register == Register.UNBACKED }
@@ -842,7 +842,7 @@ class ResolverCheck : FunSpec({
     test("a derived word means its referent") {
         val lava = vocabulary.word("lava") ?: error("no derived word 'lava' — is derivation running?")
         check(lava.tier == Tier.EXACT) { "a derived word must be exact, not ${lava.tier.key}" }
-        val meant = lava.meaningIn(Aspect.SEA)
+        val meant = lava.choiceIn(Aspect.SEA)
         check(meant == Sea.LAVA) { "'lava' means $meant in the sea, not ${Sea.LAVA.key}" }
         check(vocabulary.word("minecraft:lava") == lava) { "a derived word must also answer to its full id" }
 

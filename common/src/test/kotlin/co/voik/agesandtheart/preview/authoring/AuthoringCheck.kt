@@ -42,12 +42,14 @@ class AuthoringCheck : FunSpec({
             id = Identifier.fromNamespaceAndPath("agesandtheart", "probe"),
             tier = Tier.EXACT,
             aspects = setOf(Aspect.SKY),
-            everywhere = mapOf("solid" to 1.0),
-            queries = mapOf(Aspect.SKY to mapOf("bright" to 1.0)),
-            meansExactly = mapOf(Aspect.TERRAIN to "hills"),
+            leansEverywhere = mapOf("#solid" to 1.0),
+            restricts = mapOf(Aspect.SKY to mapOf("bright" to 1.0)),
+            chooses = mapOf(Aspect.TERRAIN to "hills"),
+            admits = mapOf(Aspect.BIOMES to setOf("minecraft:plains")),
+            excludes = mapOf(Aspect.SEA to setOf("#watery")),
+            biases = mapOf(Aspect.BIOMES to mapOf("minecraft:plains" to 1.0)),
             sets = mapOf("stone" to "minecraft:stone"),
             pools = listOf(Pool(mapOf("spacing" to "0.4..1.0"), Draws("1..2"))),
-            weights = mapOf(Aspect.BIOMES to mapOf("minecraft:plains" to 1.0)),
             template = "dark_void",
             mints = "minecraft:spring_water",
             mintsSomethingThatFlows = true,
@@ -166,7 +168,7 @@ class AuthoringCheck : FunSpec({
         val invented = Candidate(
             name = "probe",
             tier = Tier.EVOCATIVE,
-            everywhere = mapOf("wondrous" to 1.0),
+            leansEverywhere = mapOf("#wondrous" to 1.0),
         )
         val said = Verdict.refusals(Verdict.on(invented, corpus))
         check(said.any { it.says.contains("wondrous") }) {
@@ -221,7 +223,7 @@ class AuthoringCheck : FunSpec({
         val leaning = Candidate(
             name = "probe",
             tier = Tier.EVOCATIVE,
-            meansExactly = mapOf(Aspect.CARVERS to "caves"),
+            chooses = mapOf(Aspect.CARVERS to "caves"),
         )
         val said = Verdict.refusals(Verdict.on(leaning, corpus))
         check(said.any { it.says.contains("evocative") }) {
@@ -233,7 +235,7 @@ class AuthoringCheck : FunSpec({
         val second = Candidate(
             name = "probe",
             tier = Tier.EXACT,
-            meansExactly = mapOf(Aspect.TERRAIN to "alps"),
+            chooses = mapOf(Aspect.TERRAIN to "alps"),
         )
         val said = Verdict.refusals(Verdict.on(second, corpus))
         check(said.any { it.says.contains("alps") }) {

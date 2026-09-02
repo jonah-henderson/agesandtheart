@@ -1,7 +1,7 @@
 {
   "_comment": "What grows close to the ground. A tree is a plant and `grown` says so, but a writer asking for plants means the undergrowth -- so this asks for the tag that is `grown` without the trees, and `trees` is the word for the rest.",
   "tier": "restrictive",
-  "queries": {
+  "restricts": {
     "features": {
       "undergrowth": 1.0
     }

@@ -1,6 +1,6 @@
 {
   "tier": "restrictive",
-  "queries": {
+  "restricts": {
     "rock": {
       "cavernous": 1.0
     },

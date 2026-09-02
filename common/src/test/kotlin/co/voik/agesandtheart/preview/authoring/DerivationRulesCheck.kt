@@ -43,7 +43,7 @@ class DerivationRulesCheck : FunSpec({
     /** Every tag a rule grants should be one the language can ask for, or the rule is writing to nobody. */
     test("a rule grants tags the corpus knows") {
         val carried = corpus.vocabulary.carriedTags
-        val asked = corpus.vocabulary.words.flatMap { it.wanted + it.unwanted + it.offeredTags }.toSet()
+        val asked = corpus.vocabulary.words.flatMap { it.wanted + it.unwanted + it.leanedTags }.toSet()
         val stray = DerivationRules.of(corpus)
             .flatMap { rule -> rule.grants.keys.map { rule.id to it } }
             .filterNot { (_, tag) -> tag in carried || tag in asked }

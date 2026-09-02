@@ -4,7 +4,7 @@
     "nobody is keeping it up, which is why it sits beside `settled` rather than under it."
   ],
   "tier": "restrictive",
-  "queries": {
+  "restricts": {
     "structures": {
       "ruined": 1.0
     }

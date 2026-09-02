@@ -1,24 +1,28 @@
 {
   "_comment": "Tags carry the broad strokes and reach biomes nobody here has heard of. The weights say what the tag set is too coarse for: a sunflower plain is lovely and no tag in the table says so, and a jungle is magnificent without being pretty.",
   "tier": "evocative",
-  "queries": {
+  "admits": {
+    "biomes": [
+      "minecraft:sunflower_plains",
+      "minecraft:jungle"
+    ]
+  },
+  "biases": {
+    "biomes": {
+      "minecraft:sunflower_plains": 0.95,
+      "minecraft:jungle": -0.5
+    },
     "all": {
-      "colourful": 1.0,
-      "lush": 0.9,
-      "flowering": 0.8,
-      "bright": 0.6,
-      "hostile": -0.8,
-      "dark": -0.4
+      "#colourful": 1.0,
+      "#lush": 0.9,
+      "#flowering": 0.8,
+      "#bright": 0.6,
+      "#hostile": -0.8,
+      "#dark": -0.4
     }
   },
   "sets": {
     "temperature": "-0.2..0.5",
     "humidity": "0..0.7"
-  },
-  "weights": {
-    "biomes": {
-      "minecraft:sunflower_plains": 0.95,
-      "minecraft:jungle": -0.5
-    }
   }
 }

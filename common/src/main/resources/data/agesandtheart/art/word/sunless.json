@@ -10,7 +10,7 @@
     "word leans the rest of the draw that way rather than only blanking the body."
   ],
   "tier": "exact",
-  "queries": {
+  "restricts": {
     "sun": {
       "dark": 1.0
     }

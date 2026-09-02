@@ -1,6 +1,6 @@
 {
   "tier": "restrictive",
-  "queries": {
+  "restricts": {
     "landmass": {
       "cavernous": 1.0
     }

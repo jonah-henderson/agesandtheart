@@ -1,22 +1,26 @@
 {
   "_comment": "What a world holds in the ground. The query is the fact -- these are ore -- and the weights are the judgement, because which ore is a prize is a fact about the game's economy and not about the rock.",
   "tier": "evocative",
-  "queries": {
-    "all": {
-      "ore": 1.0,
-      "buried": 0.6,
-      "barren": -0.5
-    }
+  "admits": {
+    "features": [
+      "minecraft:ore_gold",
+      "minecraft:ore_ancient_debris_large"
+    ]
   },
-  "sets": {
-    "size": "0.5..1.0"
-  },
-  "weights": {
+  "biases": {
     "features": {
       "minecraft:ore_diamond": 1.0,
       "minecraft:ore_emerald": 0.95,
       "minecraft:ore_gold": 0.8,
       "minecraft:ore_ancient_debris_large": 0.9
+    },
+    "all": {
+      "#ore": 1.0,
+      "#buried": 0.6,
+      "#barren": -0.5
     }
+  },
+  "sets": {
+    "size": "0.5..1.0"
   }
 }

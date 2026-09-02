@@ -1,9 +1,13 @@
 {
   "tier": "restrictive",
-  "queries": {
+  "excludes": {
+    "features": [
+      "#grown"
+    ]
+  },
+  "biases": {
     "features": {
-      "grown": -1.0,
-      "lush": -0.8
+      "#lush": -0.8
     }
   }
 }

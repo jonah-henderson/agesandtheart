@@ -4,7 +4,7 @@
     "for the ones that graze."
   ],
   "tier": "restrictive",
-  "queries": {
+  "restricts": {
     "spawns": {
       "fauna": 1.0
     }

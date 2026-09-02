@@ -38,6 +38,13 @@
     "make it more broken."
   ],
   "tier": "exact",
+  "biases": {
+    "sea": {
+      "#molten": 1.0,
+      "#empty": 0.7,
+      "#watery": -0.8
+    }
+  },
   "sets": {
     "happens": "inferno",
     "motes": "embers|flames",
@@ -45,13 +52,6 @@
     "rainfall": "-1.0..-0.4"
   },
   "requests": {
-    "queries": {
-      "sea": {
-        "molten": 1.0,
-        "empty": 0.7,
-        "watery": -0.8
-      }
-    },
     "pools": [
       {
         "draws": "3",

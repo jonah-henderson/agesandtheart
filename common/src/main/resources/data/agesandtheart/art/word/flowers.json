@@ -1,6 +1,6 @@
 {
   "tier": "restrictive",
-  "queries": {
+  "restricts": {
     "features": {
       "flowering": 1.0
     }

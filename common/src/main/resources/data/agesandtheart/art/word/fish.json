@@ -1,6 +1,6 @@
 {
   "tier": "restrictive",
-  "queries": {
+  "restricts": {
     "spawns": {
       "aquatic": 1.0
     }

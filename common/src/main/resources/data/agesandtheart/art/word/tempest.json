@@ -10,7 +10,7 @@
     "being able to say the word reaches it."
   ],
   "tier": "exact",
-  "means_exactly": {
+  "chooses": {
     "phenomena": "tempest"
   },
   "sets": {

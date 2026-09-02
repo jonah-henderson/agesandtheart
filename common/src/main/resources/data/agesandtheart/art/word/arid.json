@@ -1,6 +1,6 @@
 {
   "tier": "restrictive",
-  "queries": {
+  "restricts": {
     "landmass": {
       "dry": 1.0,
       "barren": 0.6

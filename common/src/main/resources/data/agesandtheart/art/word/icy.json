@@ -1,15 +1,15 @@
 {
   "tier": "restrictive",
+  "biases": {
+    "sea": {
+      "#frozen": 0.7
+    }
+  },
   "sets": {
     "temperature": "<-0.5",
     "happens": "aurora"
   },
   "requests": {
-    "queries": {
-      "sea": {
-        "frozen": 0.7
-      }
-    },
     "sets": {
       "sky.colour": "white|grey",
       "air.colour": "white|grey",

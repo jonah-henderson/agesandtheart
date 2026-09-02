@@ -35,8 +35,7 @@ object Preview {
                 // **A weight is not a setting, and saying so hid what it does.** It never narrows, so this
                 // read as "sets a value; picks nothing" and listed nothing — where what it actually does
                 // is admit a preset to the draw and lean it, which is the one thing worth showing.
-                val leansHere = word.weights[aspect].orEmpty().isNotEmpty() ||
-                    word.requests.queries[aspect].orEmpty().isNotEmpty()
+                val leansHere = word.biases[aspect].orEmpty().isNotEmpty()
                 add(
                     Line(aspect.page.padEnd(12), Palette.heading) +
                         Line(
@@ -58,7 +57,8 @@ object Preview {
                 }
                 if (!narrows && !leansHere) continue
                 for (preset in kept.take(SHOWN_PER_ASPECT)) {
-                    val strength = word.pullOn(preset, corpus.vocabulary.tagsOf(preset))
+                    val strength = word.claimOn(preset, corpus.vocabulary.tagsOf(preset)) +
+                        word.biasOn(preset, corpus.vocabulary.tagsOf(preset))
                     add(
                         Line("    ") + Line(preset.key.padEnd(38), Palette.value) +
                             Line("%.2f".format(strength), Palette.settled) +

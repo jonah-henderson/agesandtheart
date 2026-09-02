@@ -188,7 +188,7 @@ class VocabularyCheck : FunSpec({
      */
     test("a word means something the part of the world it is meant in could hold") {
         for (word in vocabulary.words.distinct()) {
-            for ((aspect, key) in word.meansExactly) {
+            for ((aspect, key) in word.chooses) {
                 val oneOfOurDesigns = aspect.ownsPresetNamed(key)
                 val anEntryOfItsRegistry = aspect.presetsAreEntriesOf != null && namesARegistryEntry(key)
                 check(oneOfOurDesigns || anEntryOfItsRegistry) {
@@ -264,7 +264,7 @@ class VocabularyCheck : FunSpec({
      */
     test("no authored word is a synonym for a derived one") {
         for (word in vocabulary.authoredWords) {
-            val referents = (word.meansExactly.values + word.sets.values).filter(::namesARegistryEntry)
+            val referents = (word.chooses.values + word.sets.values).filter(::namesARegistryEntry)
             val saysNothingElse = word.everyTagAsked.isEmpty()
             check(referents.isEmpty() || !saysNothingElse) {
                 "'${word.name}' resolves to ${referents.joinToString()} and nothing else, which is what the " +
@@ -384,7 +384,7 @@ class VocabularyCheck : FunSpec({
         }
         for (word in derived) {
             for (aspect in Aspect.entries) {
-                val meant = word.meaningIn(aspect)?.key ?: continue
+                val meant = word.choiceIn(aspect)?.key ?: continue
                 val reachable = vocabulary.words.any { vague ->
                     !vague.tier.narrows && meant in vocabulary.carriersOf(vague, aspect).map { it.key }
                 }
@@ -462,7 +462,7 @@ class VocabularyCheck : FunSpec({
      * structure set no registry holds, which is exactly the silent acceptance §3.3 forbids: the page was
      * read, billed and dropped.
      *
-     * Held two ways now, and this is both: `Word.meansExactly` is keyed by the aspect it is meant in, and
+     * Held two ways now, and this is both: `Word.chooses` is keyed by the aspect it is meant in, and
      * `Word.entryOf` says which registry a derived word is an entry of so the aspects fall out of
      * `Aspect.presetsAreEntriesOf` rather than out of a list somebody keeps in step.
      */
@@ -470,12 +470,12 @@ class VocabularyCheck : FunSpec({
         val blocks = vocabulary.derivedWords.distinct().filter { it.material != null }
         check(blocks.isNotEmpty()) { "no derived block words at all" }
         val wrong = blocks.filter { block ->
-            Aspect.entries.any { it != Aspect.SEA && block.meaningIn(it) != null }
+            Aspect.entries.any { it != Aspect.SEA && block.choiceIn(it) != null }
         }
         check(wrong.isEmpty()) { "${wrong.size} block words mean something elsewhere: ${wrong.take(5).map { it.name }}" }
         val ice = vocabulary.words.firstOrNull { it.name == "ice" }
-        check(ice?.meaningIn(Aspect.SEA) != null) { "'ice sea' stopped being a sentence" }
-        check(ice?.meaningIn(Aspect.STRUCTURES) == null) { "'ice' still means a structure set" }
+        check(ice?.choiceIn(Aspect.SEA) != null) { "'ice sea' stopped being a sentence" }
+        check(ice?.choiceIn(Aspect.STRUCTURES) == null) { "'ice' still means a structure set" }
     }
 
     /**
@@ -488,7 +488,7 @@ class VocabularyCheck : FunSpec({
      */
     test("only a narrowing word means a preset outright") {
         val leaning = vocabulary.words.distinct()
-            .filter { !it.tier.narrows && it.meansExactly.isNotEmpty() }
+            .filter { !it.tier.narrows && it.chooses.isNotEmpty() }
         check(leaning.isEmpty()) {
             "${leaning.map { it.name }} lean the Age and also mean a preset outright, which is never read"
         }
@@ -503,7 +503,7 @@ class VocabularyCheck : FunSpec({
      */
     test("no two pages mean the same preset") {
         val byPreset = vocabulary.words.distinct()
-            .flatMap { word -> word.meansExactly.map { (aspect, key) -> (aspect to key) to word.name } }
+            .flatMap { word -> word.chooses.map { (aspect, key) -> (aspect to key) to word.name } }
             .groupBy({ it.first }, { it.second })
             .filterValues { it.size > 1 }
         check(byPreset.isEmpty()) {
@@ -520,7 +520,7 @@ class VocabularyCheck : FunSpec({
     test("every landform a writer can reach for has a page that means it") {
         val unsayable = Aspect.TERRAIN.authored
             .filter { it.askableInASentence }
-            .filter { preset -> vocabulary.words.none { it.meaningIn(Aspect.TERRAIN)?.key == preset.key } }
+            .filter { preset -> vocabulary.words.none { it.choiceIn(Aspect.TERRAIN)?.key == preset.key } }
         check(unsayable.isEmpty()) { "no page means ${unsayable.map { it.key }}" }
     }
 })

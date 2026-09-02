@@ -1,6 +1,6 @@
 {
   "tier": "restrictive",
-  "queries": {
+  "restricts": {
     "biomes": {
       "barren": 1.0,
       "dry": 0.7

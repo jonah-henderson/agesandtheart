@@ -135,7 +135,7 @@ class Menu(
     /** What a word does, in one line — enough to recognise it without opening it. */
     private fun summaryOf(word: Word): String {
         val said = buildList {
-            word.meansExactly.values.forEach { add("means $it") }
+            word.chooses.values.forEach { add("chooses $it") }
             word.template?.let { add("template $it") }
             word.mints?.let { add("mints $it") }
             addAll(word.canSet.map { (parameter, value) -> "$parameter=$value" })

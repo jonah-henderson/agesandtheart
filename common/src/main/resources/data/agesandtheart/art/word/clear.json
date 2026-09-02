@@ -1,7 +1,7 @@
 {
   "_comment": "Clear water and a clear sky. The water is the murk dial; the sky is a tag, asked only of the sky so 'bright' cannot go looking for something to do in the sea. Between them they say where the word belongs, so it declares no aspects.",
   "tier": "exact",
-  "queries": {
+  "restricts": {
     "sky": {
       "bright": 1.0
     }

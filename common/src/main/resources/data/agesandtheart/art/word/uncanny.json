@@ -1,6 +1,6 @@
 {
   "tier": "restrictive",
-  "queries": {
+  "restricts": {
     "landmass": {
       "fungal": 0.7,
       "glowing": 0.7,

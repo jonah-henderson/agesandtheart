@@ -22,7 +22,7 @@
     "described should differ between Ages without a writer having to buy the difference."
   ],
   "tier": "exact",
-  "means_exactly": {
+  "chooses": {
     "phenomena": "aurora"
   },
   "sets": {

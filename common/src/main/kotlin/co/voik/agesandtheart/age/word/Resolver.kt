@@ -411,6 +411,10 @@ object Resolver {
         if (aspect.holds != Holds.CATALOGUE) return emptyList()
 
         val speaking = sentence.filter { aspect in reachOf(vocabulary, it) }
+        // **What the sentence put into the pool**, which is the one step that can widen it. Per sentence
+        // rather than per corpus: a member one word admits is in *this* Age's draw and nobody else's.
+        val pool = vocabulary.askableIn(aspect) +
+            speaking.flatMap { it.word.admitsIn(aspect) }.distinct().mapNotNull(aspect::presetFor)
         // Most precise first; where precision ties the seed decides, never word order. A word that only
         // sets a parameter narrows nothing, having no opinion about *which* preset fills the aspect.
         val narrowing = speaking.filter { it.word.tier.narrows && it.word.constrainsPresetsIn(aspect) }
@@ -459,7 +463,6 @@ object Resolver {
             chosen += pick(vocabulary, territory.candidates, speaking, draw, aspect, seat = index)
         }
         if (chosen.isEmpty()) {
-            val pool = vocabulary.askableIn(aspect)
             // **An aspect with nothing to choose between draws nothing.** Its answer is where its parameters
             // were left, which the parameter pass writes; there is no seat here to fill and no company to
             // keep, so this returns before either.
@@ -611,11 +614,12 @@ object Resolver {
         aspect: Aspect,
     ): Double {
         val tags = vocabulary.tagsOf(preset)
-        val named = speaking.filter { it.word.tier.narrows }
-            .maxOfOrNull { it.word.pullOn(preset, tags) * it.word.tier.weight } ?: 0.0
-        val liked = speaking.filter { !it.word.tier.narrows }
-            .sumOf { it.word.affinityOn(preset, tags) }
-        return (named + liked + offered(speaking, preset, aspect, tags)).coerceAtLeast(0.0)
+        val claimed = speaking.filter { it.word.tier.narrows }
+            .maxOfOrNull { it.word.claimOn(preset, tags) * it.word.tier.weight } ?: 0.0
+        // **Every tier leans**, which is the whole of the last step: a lean is not a filter, so nothing
+        // about it depends on whether the word that made it also narrowed.
+        val leaned = speaking.sumOf { it.word.biasOn(preset, tags) }
+        return (claimed + leaned).coerceAtLeast(0.0)
     }
 
     /**
@@ -633,30 +637,12 @@ object Resolver {
         aspect: Aspect,
     ): Double {
         val tags = vocabulary.tagsOf(preset)
-        val named = speaking.filter { it.word.tier.narrows }
-            .maxOfOrNull { it.word.pullOn(preset, tags) * it.word.tier.weight } ?: 0.0
-        val liked = speaking.filter { !it.word.tier.narrows }
-            .sumOf { it.word.affinityOn(preset, tags) }
-        val wanted = BASE_WEIGHT * vocabulary.readinessOf(preset) + named + liked +
-            offered(speaking, preset, aspect, tags)
+        val claimed = speaking.filter { it.word.tier.narrows }
+            .maxOfOrNull { it.word.claimOn(preset, tags) * it.word.tier.weight } ?: 0.0
+        val leaned = speaking.sumOf { it.word.biasOn(preset, tags) }
+        val wanted = BASE_WEIGHT * vocabulary.readinessOf(preset) + claimed + leaned
         return (wanted * capabilityFactor(preset, speaking)).coerceAtLeast(FAINTEST_CHANCE)
     }
-
-    /**
-     * What the sentence merely **offers** this preset — a fourth term beside the readiness, the pull and
-     * the affinity, and the only one a word of any tier may contribute.
-     *
-     * It is a tilt and never a filter, which is the whole of how an offer yields here: a demand narrows
-     * the aspect to what it will keep, and leaning on a choice that has already been made moves nothing.
-     * So no rule had to be written to make an offered query stand down — `an inferno Age. A drowned sea.`
-     * leaves water the only survivor, and the inferno's lean toward lava is simply spent on it.
-     */
-    private fun offered(
-        speaking: List<Constraint>,
-        preset: Taggable,
-        aspect: Aspect,
-        tags: Map<String, Double>,
-    ): Double = speaking.sumOf { it.word.offeredAffinityIn(aspect, tags) }
 
     /**
      * How much of what the sentence *set* this preset could actually honour — without which "a cherry
@@ -703,7 +689,8 @@ object Resolver {
         if (word.tier.narrows) return word.aspects.sortedBy { it.ordinal }
         // Spanning aspects is what makes a word evocative.
         return Aspect.entries.filter { aspect ->
-            val likesSomethingThere = vocabulary.askableIn(aspect).any { word.pullOn(it, vocabulary.tagsOf(it)) > 0.0 }
+            val likesSomethingThere = vocabulary.askableIn(aspect)
+                .any { word.biasOn(it, vocabulary.tagsOf(it)) > 0.0 }
             // **And it reaches an aspect whose parameters it bends**, which is the only way into one with no
             // candidates to like. The declaration is both the mechanism and the evidence, so §4.4's charge
             // per aspect constrained stays honest with no tag table propping it up.
@@ -1188,7 +1175,7 @@ object Resolver {
             // A word that means a member outright arrived with its answer in hand and was written by
             // [steer]; asking its tags as well would weigh it twice.
             val speaking = sentence.filter { said ->
-                aspect in reachOf(vocabulary, said) && said.word.meaningIn(aspect) == null
+                aspect in reachOf(vocabulary, said) && said.word.choiceIn(aspect) == null
             }
             if (speaking.isEmpty()) continue
             val pool = vocabulary.askableIn(aspect)
@@ -1221,16 +1208,24 @@ object Resolver {
         aspect: Aspect,
     ): Claim? {
         val tags = vocabulary.tagsOf(member)
-        val insisting = speaking.filter { it.word.tier.narrows && it.word.acceptsOn(member, tags) }
-        // A narrowing word this member does not qualify for still has an opinion where it *dislikes* the
-        // member's tags — which is the only way "untouched" can mean anything, there being no tag for the
-        // absence of a thing to put on the members that are present.
-        val spurning = speaking.filter { it.word.tier.narrows && it.word.affinityOn(member, tags) < 0.0 }
+        // **A word that takes a member out takes it out.** Excluding is the pipeline's own removal, so it
+        // does not have to argue the weight down to nothing — which is the only way `untouched` can mean
+        // anything, there being no tag for the absence of a thing to put on the members that are present.
+        if (speaking.any { it.word.tier.narrows && it.word.excludes(member, tags) }) {
+            return Claim(member.key, Polarity.EXCEPT)
+        }
+        // **Claiming something here is the price of insisting.** A word that only leans restricts nothing,
+        // and `acceptsOn` keeps every member where nothing was restricted — read as insistence that would
+        // be a word demanding the whole population it merely had a preference within.
+        val insisting = speaking.filter {
+            it.word.tier.narrows && it.word.constrainsPresetsIn(aspect) && it.word.acceptsOn(member, tags)
+        }
+        val spurning = speaking.filter { it.word.tier.narrows && it.word.biasOn(member, tags) < 0.0 }
         val liking = speaking.filter { !it.word.tier.narrows }
-        val insisted = insisting.sumOf { it.word.pullOn(member, tags) * it.word.tier.weight }
-        val spurned = spurning.sumOf { it.word.affinityOn(member, tags) * it.word.tier.weight }
-        val liked = liking.sumOf { it.word.affinityOn(member, tags) }
-        val wanting = insisting + liking.filter { it.word.affinityOn(member, tags) > 0.0 }
+        val insisted = insisting.sumOf { it.word.claimOn(member, tags) * it.word.tier.weight }
+        val spurned = spurning.sumOf { it.word.biasOn(member, tags) * it.word.tier.weight }
+        val liked = liking.sumOf { it.word.biasOn(member, tags) }
+        val wanting = insisting + liking.filter { it.word.biasOn(member, tags) > 0.0 }
         val polarity = wanting.map { it.polarity }.firstOrNull { it != Polarity.ASSERTED }
         // **The rung reaches a member a tag chose, not only one a word named.** `frequent plants` was
         // losing its `frequent` in silence: a quantifier travels on the claim, and the claim a *named*

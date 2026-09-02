@@ -1,6 +1,6 @@
 {
   "tier": "restrictive",
-  "queries": {
+  "restricts": {
     "landmass": {
       "mountainous": 1.0,
       "sheer": 0.6

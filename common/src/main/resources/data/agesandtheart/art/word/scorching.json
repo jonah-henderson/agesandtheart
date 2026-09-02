@@ -18,7 +18,7 @@
     "one, and is charged nothing for having disagreed with a word that was only offering."
   ],
   "tier": "restrictive",
-  "queries": {
+  "restricts": {
     "climate": {
       "molten": 1.0,
       "dry": 0.6

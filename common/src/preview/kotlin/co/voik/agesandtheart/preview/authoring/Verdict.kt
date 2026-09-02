@@ -49,6 +49,9 @@ object Verdict {
             addAll(strengthFaults(candidate))
             addAll(pooledButNeverDrawn(candidate))
             addAll(tagFaults(word, corpus))
+            // **On its own, not inside the reach rules.** A word that chooses a member it may not choose
+            // reaches nowhere, so nesting this under them lost it behind "this word does nothing".
+            addAll(meaningFaults(candidate, word, corpus))
             addAll(reachFaults(candidate, word, corpus))
             addAll(listingGaps(candidate))
             addAll(nudges(candidate, word, corpus))
@@ -242,7 +245,7 @@ object Verdict {
     private fun tagFaults(word: Word, corpus: Corpus): List<Finding> = buildList {
         val carried = corpus.vocabulary.carriedTags
         val onlyAServerGrants = corpus.vocabulary.tagsOnlyAServerGrants
-        for (tag in word.wanted + word.unwanted) {
+        for (tag in word.everyTagAsked.keys + word.leanedTags) {
             if (tag in carried) continue
             if (tag in onlyAServerGrants) {
                 val members = corpus.snapshot?.serverOnly?.get(tag)
@@ -324,10 +327,12 @@ object Verdict {
         // **Asked of authored words only**, as `VocabularyCheck` asks it. A derived word *is* the thing it
         // means — `amethyst_block` is the block, and sets it as the stone and as the surface — so measuring
         // it against this rule reported every one of them as a synonym of itself.
-        val referents = (word.meansExactly.values + word.sets.values)
+        val referents = (word.chooses.values + word.sets.values)
             .filter(::namesARegistryEntry)
             .distinct()
-        if (!candidate.isDerived && referents.isNotEmpty() && word.everywhere.isEmpty() && word.queries.isEmpty()) {
+        val saysNothingByTag = word.leansEverywhere.isEmpty() && word.biases.isEmpty() &&
+            word.restricts.isEmpty()
+        if (!candidate.isDerived && referents.isNotEmpty() && saysNothingByTag) {
             add(
                 Finding(
                     Standing.ERROR,
@@ -352,26 +357,26 @@ object Verdict {
      * deliberately.
      */
     private fun meaningFaults(candidate: Candidate, word: Word, corpus: Corpus): List<Finding> = buildList {
-        for ((aspect, key) in word.meansExactly) {
+        for ((aspect, key) in word.chooses) {
             if (!word.tier.narrows) {
                 add(
                     Finding(
                         Standing.ERROR,
-                        "an evocative word cannot mean '$key' outright",
-                        "only a narrowing word chooses a preset; here it would lose the lean as well",
+                        "an evocative word cannot choose '$key' outright",
+                        "only a narrowing word chooses a member; here it would lose the lean as well",
                         "VocabularyCheck",
                     ),
                 )
                 continue
             }
             val already = corpus.vocabulary.words.distinct()
-                .firstOrNull { it.meaningIn(aspect)?.key == key && it.name != candidate.name }
+                .firstOrNull { it.choiceIn(aspect)?.key == key && it.name != candidate.name }
                 ?: continue
             add(
                 Finding(
                     Standing.ERROR,
-                    "'${already.name}' already means '$key'",
-                    "a preset has one page, and ${aspect.page}'s '$key' has that one",
+                    "'${already.name}' already chooses '$key'",
+                    "a member has one page, and ${aspect.page}'s '$key' has that one",
                     "VocabularyCheck",
                 ),
             )
@@ -464,8 +469,9 @@ object Verdict {
      * counted those as agreement said `dark_void` duplicated every page in the corpus.
      */
     private fun duplicates(candidate: Candidate, word: Word, corpus: Corpus): List<Finding> {
-        val claimsSomething = word.everySet.isNotEmpty() || word.everywhere.isNotEmpty() ||
-            word.queries.isNotEmpty() || word.meansExactly.isNotEmpty()
+        val claimsSomething = word.everySet.isNotEmpty() || word.leansEverywhere.isNotEmpty() ||
+            word.biases.isNotEmpty() || word.restricts.isNotEmpty() || word.chooses.isNotEmpty() ||
+            word.admits.isNotEmpty() || word.excludes.isNotEmpty()
         if (!claimsSomething) return emptyList()
         return corpus.otherThan(candidate.name)
             .filterNot(corpus.vocabulary::isDerived)
@@ -474,8 +480,10 @@ object Verdict {
                 // `reefs`: both are restrictive and want `aquatic`, and one chooses creatures where the
                 // other chooses features.
                 other.tier == word.tier && other.aspects == word.aspects &&
-                    other.everySet == word.everySet && other.everywhere == word.everywhere && other.queries == word.queries &&
-                    other.meansExactly == word.meansExactly && other.template == word.template &&
+                    other.everySet == word.everySet && other.leansEverywhere == word.leansEverywhere &&
+                    other.biases == word.biases && other.restricts == word.restricts &&
+                    other.chooses == word.chooses && other.admits == word.admits &&
+                    other.excludes == word.excludes && other.template == word.template &&
                     other.mints == word.mints
             }
             .map { other ->

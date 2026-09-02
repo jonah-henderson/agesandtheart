@@ -18,7 +18,7 @@ class GapsCheck : FunSpec({
 
     /** Nothing reported as missing is something the corpus already reaches. */
     test("a tag something asks for is not missing") {
-        val asked = corpus.vocabulary.words.flatMap { it.wanted + it.unwanted + it.offeredTags }.toSet()
+        val asked = corpus.vocabulary.words.flatMap { it.wanted + it.unwanted + it.leanedTags }.toSet()
         val wrong = Gaps.of(corpus).filter { it.kind == Gaps.Kind.TAG && it.what in asked }
         check(wrong.isEmpty()) { "reported as missing but already asked for: ${wrong.map { it.what }}" }
     }

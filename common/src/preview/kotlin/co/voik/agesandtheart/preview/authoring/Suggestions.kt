@@ -158,11 +158,17 @@ class Suggestions(private val vocabulary: Vocabulary) {
      * requested. Only a word that fails all of them is hidden, so the bias is toward offering.
      */
     private fun bears(word: Word, aspect: Aspect): Boolean {
-        if (word.meaningIn(aspect) != null) return true
+        if (word.choiceIn(aspect) != null) return true
         if (word.setsIn(aspect).keys.any { turnsAParameter(aspect, it) }) return true
         if (word.requestsIn(aspect).keys.any { turnsAParameter(aspect, it) }) return true
-        if (word.requests.queries[aspect]?.isNotEmpty() == true) return true
-        if (askableIn(aspect).any { word.acceptsOn(it, vocabulary.tagsOf(it)) }) return true
+        if (word.admitsIn(aspect).isNotEmpty() || word.biases[aspect]?.isNotEmpty() == true) return true
+        // **Only where it claims something here.** `acceptsOn` keeps every member of an aspect the word
+        // restricted nothing in, so asking it unguarded offered `arthropods` for a landmass clause.
+        if (word.constrainsPresetsIn(aspect) &&
+            askableIn(aspect).any { word.acceptsOn(it, vocabulary.tagsOf(it)) }
+        ) {
+            return true
+        }
         return answersIn(word, aspect)
     }
 
@@ -175,8 +181,13 @@ class Suggestions(private val vocabulary: Vocabulary) {
      * this and the vocabulary's to the same answer for every word and every aspect, so the copy cannot
      * drift into a second opinion.
      */
-    fun answersIn(word: Word, aspect: Aspect): Boolean =
-        candidatesIn(aspect).any { word.affinityIn(aspect, vocabulary.tagsOf(it)) != 0.0 }
+    fun answersIn(word: Word, aspect: Aspect): Boolean {
+        if (!word.saysSomethingOf(aspect)) return false
+        return candidatesIn(aspect).any { member ->
+            val tags = vocabulary.tagsOf(member)
+            word.biasOn(member, tags) != 0.0 || word.excludes(member, tags) || word.pullIn(aspect, tags) > 0.0
+        }
+    }
 
     /**
      * The aiming pages this clause could still be closed with — the guidance a writer actually needs.
@@ -251,7 +262,7 @@ class Suggestions(private val vocabulary: Vocabulary) {
     private fun offerOf(page: String): Offer {
         val word = vocabulary.word(page)
         val required = word?.let { insistedOn(it) }.orEmpty()
-        val requested = word?.let { offeredBy(it) }.orEmpty()
+        val requested = word?.let { offeredBy(it) + leanedBy(it) }.orEmpty()
         return Offer(
             page = page,
             says = summaryOf(word, required, requested),
@@ -283,7 +294,13 @@ class Suggestions(private val vocabulary: Vocabulary) {
         // nowhere here, so `dark_void` and `infernal` — whose whole job is choosing the world the book
         // starts from — fell through to the sentence about aiming pages and said they did nothing.
         word.template?.let { add(Claim("begins the Age from $it, not the overworld")) }
-        word.meansExactly.forEach { (aspect, key) -> add(Claim("means $key in the ${aspect.page}")) }
+        word.chooses.forEach { (aspect, key) -> add(Claim("chooses $key in the ${aspect.page}")) }
+        word.admits.forEach { (aspect, keys) ->
+            add(Claim("adds ${keys.sorted().joinToString(" ")} to the ${aspect.page}"))
+        }
+        word.excludes.forEach { (aspect, keys) ->
+            add(Claim("takes ${keys.sorted().joinToString(" ")} out of the ${aspect.page}"))
+        }
         word.mints?.let { add(Claim("mints $it")) }
         addAll(word.everySet.map { (parameter, value) -> Claim("$parameter=$value") })
         addAll(word.pools.mapNotNull(::poolOf))
@@ -291,15 +308,27 @@ class Suggestions(private val vocabulary: Vocabulary) {
         if (word.unwanted.isNotEmpty()) add(Claim(word.unwanted.joinToString(" ") { "-$TAG_MARK$it" }))
     }
 
-    /** What it offers instead — laid under the sentence, and given up wherever the book already spoke. */
+    /**
+     * What it offers instead — laid under the sentence, and given up wherever the book already spoke.
+     *
+     * **Parameters only.** What a word says about a population is said once: a lean cannot fail, so it has
+     * nothing to yield and no offered half to be in.
+     */
     private fun offeredBy(word: Word): List<Claim> = buildList {
         addAll(word.requests.sets.map { (parameter, value) -> Claim("$parameter=$value") })
         addAll(word.requests.pools.mapNotNull(::poolOf))
-        val tags = word.requests.queries.values.flatMap { it.entries }
-        val pulled = tags.filter { it.value > 0.0 }.map { it.key }.distinct()
-        val pushed = tags.filter { it.value < 0.0 }.map { it.key }.distinct()
-        if (pulled.isNotEmpty()) add(Claim(pulled.joinToString(" ") { "$TAG_MARK$it" }))
-        if (pushed.isNotEmpty()) add(Claim(pushed.joinToString(" ") { "-$TAG_MARK$it" }))
+    }
+
+    /** What it leans the draw by, once the pool is settled — the last step, and the only one that cannot fail. */
+    private fun leanedBy(word: Word): List<Claim> = buildList {
+        val leaning = word.biases.entries.sortedBy { it.key.ordinal }
+            .map { (aspect, by) -> aspect.page to by } +
+            listOfNotNull(word.leansEverywhere.takeIf { it.isNotEmpty() }?.let { Word.EVERYWHERE to it })
+        for ((where, by) in leaning) {
+            val said = by.entries.sortedByDescending { it.value }
+                .joinToString(" ") { (named, weight) -> "$named ${"%+.2f".format(weight)}" }
+            add(Claim("leans the $where: $said"))
+        }
     }
 
     /**

@@ -86,7 +86,7 @@ object DerivedWords {
             // A sign keeps its word and keeps every other use of it; what it stops being is a world.
             if (Materials.makesAWorld(id.toString())) add(Aspect.TERRAIN)
         },
-        everywhere = emptyMap(),
+
         // **A block, and nothing else.** The sea is the one aspect whose values are blocks, so saying so
         // reaches it and reaches nothing else; without it every open aspect would take this id for one of
         // its own — a structure set, a biome, a placed feature, a creature.
@@ -186,7 +186,7 @@ object DerivedWords {
         id = id,
         tier = Tier.EXACT,
         aspects = setOf(aspect),
-        everywhere = emptyMap(),
+
         sets = mapOf(parameter.name to id.toString()),
     )
 
@@ -209,8 +209,7 @@ object DerivedWords {
                 id = said.location(),
                 tier = Tier.EXACT,
                 aspects = setOf(aspect),
-                everywhere = emptyMap(),
-                meansExactly = mapOf(aspect to preset.key),
+                    chooses = mapOf(aspect to preset.key),
             )
         }
     }

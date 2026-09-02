@@ -47,7 +47,7 @@ object Gaps {
      * and the phantom, and until `fliers` was written there was no way to say either.
      */
     private fun tags(corpus: Corpus): List<Gap> {
-        val asked = corpus.vocabulary.words.flatMap { it.wanted + it.unwanted + it.offeredTags }.toSet()
+        val asked = corpus.vocabulary.words.flatMap { it.wanted + it.unwanted + it.leanedTags }.toSet()
         return (corpus.vocabulary.carriedTags - asked).sorted().map { tag ->
             val carrying = Aspect.entries.filter { aspect ->
                 corpus.vocabulary.candidatesFor(aspect).any { tag in corpus.vocabulary.tagsOf(it) }
@@ -135,7 +135,7 @@ object Gaps {
         Kind.TAG -> Candidate(
             name = gap.what,
             tier = Tier.RESTRICTIVE,
-            queries = gap.where.associateWith { mapOf(gap.what to 1.0) },
+            restricts = gap.where.associateWith { mapOf(gap.what to 1.0) },
         )
         // A parameter names the aspects that own it, so setting one is all the reach the word needs.
         Kind.PARAMETER -> Candidate(

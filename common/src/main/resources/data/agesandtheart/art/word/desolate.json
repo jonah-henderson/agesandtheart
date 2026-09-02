@@ -1,12 +1,12 @@
 {
   "tier": "evocative",
-  "queries": {
+  "biases": {
     "all": {
-      "barren": 1.0,
-      "empty": 0.7,
-      "dry": 0.5,
-      "built": -0.6,
-      "lush": -0.8
+      "#barren": 1.0,
+      "#empty": 0.7,
+      "#dry": 0.5,
+      "#built": -0.6,
+      "#lush": -0.8
     }
   },
   "sets": {

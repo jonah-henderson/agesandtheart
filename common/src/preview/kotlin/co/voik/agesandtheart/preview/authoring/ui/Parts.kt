@@ -10,6 +10,7 @@ import co.voik.agesandtheart.age.word.Claims
 import co.voik.agesandtheart.age.word.Draws
 import co.voik.agesandtheart.age.word.Pool
 import co.voik.agesandtheart.age.word.Tier
+import com.github.ajalt.mordant.rendering.TextStyle
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.preview.authoring.Candidate
 import co.voik.agesandtheart.preview.authoring.Corpus
@@ -61,6 +62,23 @@ enum class Part(val title: String, val about: String, val perilous: Boolean = fa
 enum class Insistence(val required: Boolean, val title: String, val about: String) {
     REQUIRED(true, "required", "always applies, and overrides anything else"),
     REQUESTED(false, "requested", "applies only where the book said nothing"),
+}
+
+/**
+ * **The pipeline a claim about a population goes through**, in order, and the headings the section shows.
+ *
+ * Start with the pool the aspect curates. [CHOOSE] ends it there — that member is the answer and nothing
+ * is searched for. Otherwise [ADD] widens the pool and [REMOVE] narrows it, removals after additions so
+ * word order decides nothing (§3.5); [KEEP] is the same step said by complement, and the one nearly every
+ * narrowing word is written with. [BIAS] leans what survived and can never fail, which is why it comes
+ * last and why it has no offered half of its own.
+ */
+enum class Step(val title: String, val about: String, val adds: String) {
+    CHOOSE("choose", "this member and no other; nothing is searched for", "choose a member outright"),
+    ADD("add", "puts a member into the pool that curation left out", "add a member to the pool"),
+    KEEP("keep", "only members answering these tags survive", "keep only what carries a tag"),
+    REMOVE("remove", "takes members out, by name or by a tag they carry", "remove a member or a tag"),
+    BIAS("bias", "leans the draw between whatever is left; it never removes anything", "lean toward or away"),
 }
 
 /**
@@ -214,13 +232,14 @@ class Parts(private val corpus: Corpus) {
     /** Which of the word's own claims put it here — the answer to "why is this on the list". */
     private fun whyItReaches(aspect: Aspect, candidate: Candidate): String {
         val because = buildList {
-            if (candidate.queries.containsKey(aspect)) add("it asks tags of ${aspect.page}")
-            if (candidate.requests.queries.containsKey(aspect)) add("it offers tags to ${aspect.page}")
-            if (candidate.weights.containsKey(aspect)) add("it weighs a preset in ${aspect.page}")
+            if (candidate.restricts.containsKey(aspect)) add("it keeps only what is tagged, in ${aspect.page}")
+            if (candidate.admits.containsKey(aspect)) add("it adds to the ${aspect.page}'s pool")
+            if (candidate.excludes.containsKey(aspect)) add("it takes something out of the ${aspect.page}")
+            if (candidate.biases.containsKey(aspect)) add("it leans the ${aspect.page}")
             val parameters = Insistence.entries.flatMap { candidate.everythingOn(it).keys }
             val here = parameters.filter { aspect.ownsParameterNamed(it.substringAfterLast('.')) }
             if (here.isNotEmpty()) add("it turns ${here.sorted().joinToString(" ")}")
-            candidate.meansExactly[aspect]?.let { add("it means $it outright") }
+            candidate.chooses[aspect]?.let { add("it chooses $it outright") }
         }
         return because.joinToString("\n    ").ifEmpty { "" }
     }
@@ -480,40 +499,72 @@ class Parts(private val corpus: Corpus) {
      * every tag on the word, and nothing else says so.
      */
     private fun pickRows(candidate: Candidate, word: Word?): List<Row> = buildList {
-        for (insistence in Insistence.entries) {
-            add(
-                Row(
-                    handle = "heading/${insistence.name}",
-                    shown = listOf(Ink(insistence.title, Palette.heading)),
-                    note = insistence.about,
-                ),
-            )
-            add(Row("+/${insistence.name}", listOf(Ink("    + say something about a population", Palette.faint))))
-            addAll(if (insistence.required) claimedOutright(candidate) + weightRows(candidate) else emptyList())
-            addAll(queryRows(candidate, word, insistence))
+        for (step in Step.entries) {
+            add(Row("heading/${step.name}", listOf(Ink(step.title, Palette.heading)), step.about))
+            add(Row("+/${step.name}", listOf(Ink("    + ${step.adds}", Palette.faint))))
+            addAll(stepRows(step, candidate, word))
         }
     }
 
-    /**
-     * The designs of ours this word means outright — **`outright` said on the row, not over it.**
-     *
-     * How precisely a word speaks is a fact about each claim, not a category claims belong to: these sat
-     * under a heading that came and went with whatever the word happened to carry, beside another for
-     * weights and a third for tags, which made three shifting sections out of one list.
-     */
-    private fun claimedOutright(candidate: Candidate): List<Row> =
-        candidate.meansExactly.entries.sortedBy { it.key.ordinal }.map { (aspect, key) ->
-            Row(
-                "means/${aspect.page}",
-                listOf(
-                    Ink("    "),
-                    Ink(SETTLES.padEnd(KIND_COLUMN), Palette.chosen),
-                    Ink(key.padEnd(PARAMETER_COLUMN), Palette.value),
-                    Ink("in ${aspect.page}", Palette.faint),
-                ),
-                whatItMeans(aspect, key),
-            )
+    private fun stepRows(step: Step, candidate: Candidate, word: Word?): List<Row> = when (step) {
+        Step.CHOOSE -> candidate.chooses.entries.sortedBy { it.key.ordinal }.map { (aspect, key) ->
+            Row("chooses/${aspect.page}", populationInk(aspect, key, Palette.chosen), whatItMeans(aspect, key))
         }
+        Step.ADD -> candidate.admits.entries.sortedBy { it.key.ordinal }.flatMap { (aspect, keys) ->
+            keys.sorted().map { key ->
+                Row("admits/${aspect.page}/$key", populationInk(aspect, key, Palette.value), addedNote(aspect, key))
+            }
+        }
+        Step.KEEP -> candidate.restricts.entries.sortedBy { it.key.ordinal }.flatMap { (aspect, tags) ->
+            tags.entries.sortedByDescending { it.value }.map { (tag, weight) ->
+                Row("restricts/${aspect.page}/$tag", tagInk(tag, weight, aspect.page), tagNote(tag, word, aspect))
+            }
+        }
+        Step.REMOVE -> candidate.excludes.entries.sortedBy { it.key.ordinal }.flatMap { (aspect, keys) ->
+            keys.sorted().map { key ->
+                Row("excludes/${aspect.page}/$key", populationInk(aspect, key, Palette.refused), struckNote(aspect, key))
+            }
+        }
+        Step.BIAS -> leaningRows(candidate, word)
+    }
+
+    private fun leaningRows(candidate: Candidate, word: Word?): List<Row> {
+        val everywhere = candidate.leansEverywhere.entries.sortedByDescending { it.value }.map { (named, weight) ->
+            Row("biases/${Word.EVERYWHERE}/$named", leanInk(named, weight, Word.EVERYWHERE), leanNote(null, named))
+        }
+        val keyed = candidate.biases.entries.sortedBy { it.key.ordinal }.flatMap { (aspect, by) ->
+            by.entries.sortedByDescending { it.value }.map { (named, weight) ->
+                Row("biases/${aspect.page}/$named", leanInk(named, weight, aspect.page), leanNote(aspect, named))
+            }
+        }
+        return everywhere + keyed
+    }
+
+    /** A member on a populations row: what it is, and which part of the world it is in. */
+    private fun populationInk(aspect: Aspect, key: String, tone: TextStyle) = listOf(
+        Ink("    "),
+        Ink(key.padEnd(PARAMETER_COLUMN + KIND_COLUMN), tone),
+        Ink("in ${aspect.page}", Palette.faint),
+    )
+
+    /** A lean: the thing leaned on, the bar, the number, and where. */
+    private fun leanInk(named: String, weight: Double, where: String) = listOf(
+        Ink("    "),
+        Ink(named.padEnd(PARAMETER_COLUMN), if (named.startsWith(TAG_MARK)) Palette.tag else Palette.value),
+        Ink(bar(weight), if (weight < 0) Palette.refused else Palette.settled),
+        Ink(" %+.2f".format(weight), Palette.value),
+        Ink("  in $where", Palette.faint),
+    )
+
+    private fun addedNote(aspect: Aspect, key: String): String =
+        if (aspect.presetFor(key) == null) "nothing in the ${aspect.page} is called that"
+        else "curation left it out of the pool; this puts it in for this Age"
+
+    private fun struckNote(aspect: Aspect, key: String): String = when {
+        key.startsWith(TAG_MARK) -> "everything in the ${aspect.page} carrying $key is taken out"
+        aspect.presetFor(key) == null -> "nothing in the ${aspect.page} is called that"
+        else -> "taken out of the pool, however it got in"
+    }
 
     /**
      * What the named preset turns out to be.
@@ -536,11 +587,11 @@ class Parts(private val corpus: Corpus) {
      * nothing downstream would catch it: `Verdict.duplicates` skips derived words deliberately, since a
      * derived word *is* the thing it means and every one of them read as a synonym of itself.
      */
-    fun alreadyMeantBy(aspect: Aspect, key: String): String? = corpus.vocabulary.words.distinct()
-        .firstOrNull { it.meaningIn(aspect)?.key == key }
+    fun alreadyChosenBy(aspect: Aspect, key: String): String? = corpus.vocabulary.words.distinct()
+        .firstOrNull { it.choiceIn(aspect)?.key == key }
         ?.name
 
-    /** Everything this mod wrote that a word may mean outright — see [Word.meansExactly]. */
+    /** Everything this mod wrote that a word may choose outright — see [Word.chooses]. */
     fun oursToName(): List<Pair<Aspect, String>> =
         Aspect.entries.flatMap { aspect -> aspect.authored.map { aspect to it.key } }
 
@@ -564,50 +615,29 @@ class Parts(private val corpus: Corpus) {
         "dark_void" to "The end — islands in a void, and its own sky.",
     )
 
-    private fun queryRows(candidate: Candidate, word: Word?, insistence: Insistence): List<Row> {
-        if (!insistence.required) {
-            return candidate.requests.queries.entries.sortedBy { it.key.ordinal }.flatMap { (aspect, tags) ->
-                tags.entries.sortedByDescending { it.value }.map { (tag, weight) ->
-                    Row(
-                        "requested/${aspect.page}/$tag",
-                        tagInk(tag, weight, aspect.page, does = OFFERS),
-                        leanNote(aspect, tag),
-                    )
-                }
-            }
-        }
-        val flat = candidate.everywhere.entries.sortedByDescending { it.value }.map { (tag, weight) ->
-            Row(tag, tagInk(tag, weight, ""), tagNote(tag, word))
-        }
-        val keyed = candidate.queries.entries.sortedBy { it.key.ordinal }.flatMap { (aspect, weights) ->
-            weights.entries.sortedByDescending { it.value }.map { (tag, weight) ->
-                Row("${aspect.page}/$tag", tagInk(tag, weight, aspect.page), tagNote(tag, word, aspect))
-            }
-        }
-        return flat + keyed
-    }
-
     /**
-     * The tag a picks row is about, where it is about one.
+     * The tag a populations row is about, where it is about one.
      *
-     * Built from the same three sources [queryRows] draws from rather than by unpicking the handle: a
-     * preset named `requested` would otherwise be read as a leaning tag.
+     * Read off the claim rather than off the handle: a member named like a step would otherwise be taken
+     * for one, and a lean names members and tags in the same map.
      */
     fun tagOn(candidate: Candidate, handle: String): String? {
-        if (handle in candidate.everywhere) return handle
-        val keyed = candidate.queries.entries.flatMap { (aspect, tags) ->
-            tags.keys.map { "${aspect.page}/$it" to it }
+        val kept = candidate.restricts.entries.flatMap { (aspect, tags) ->
+            tags.keys.map { "restricts/${aspect.page}/$it" to it }
         }
-        val leaning = candidate.requests.queries.entries.flatMap { (aspect, tags) ->
-            tags.keys.map { "requested/${aspect.page}/$it" to it }
+        val struck = candidate.excludes.entries.flatMap { (aspect, keys) ->
+            keys.filter { it.startsWith(TAG_MARK) }.map { "excludes/${aspect.page}/$it" to it.drop(1) }
         }
-        return (keyed + leaning).firstOrNull { it.first == handle }?.second
+        val leaned = (candidate.biases.entries.map { it.key.page to it.value } +
+            listOf(Word.EVERYWHERE to candidate.leansEverywhere)).flatMap { (page, by) ->
+            by.keys.filter { it.startsWith(TAG_MARK) }.map { "biases/$page/$it" to it.drop(1) }
+        }
+        return (kept + struck + leaned).firstOrNull { it.first == handle }?.second
     }
 
-    private fun tagInk(tag: String, weight: Double, only: String, does: String = KEEPS): List<Ink> = listOf(
+    private fun tagInk(tag: String, weight: Double, only: String): List<Ink> = listOf(
         Ink("    "),
-        Ink(does.padEnd(KIND_COLUMN), Palette.faint),
-        Ink("$TAG_MARK$tag".padEnd(18), Palette.tag),
+        Ink("$TAG_MARK$tag".padEnd(PARAMETER_COLUMN), Palette.tag),
         Ink(bar(weight), if (weight < 0) Palette.refused else Palette.settled),
         Ink(" %+.2f".format(weight), Palette.value),
         Ink(if (only.isEmpty()) "" else "  in $only only", Palette.faint),
@@ -642,11 +672,23 @@ class Parts(private val corpus: Corpus) {
      * What a requested tag leans on. Not [tagNote], which counts what a *narrowing* word keeps — a
      * request narrows nothing, so that number is zero for every one of them.
      */
-    private fun leanNote(aspect: Aspect, tag: String): String {
-        val candidates = corpus.vocabulary.candidatesFor(aspect)
-        val carrying = candidates.filter { tag in corpus.vocabulary.tagsOf(it) }
-        if (carrying.isEmpty()) return "nothing in ${aspect.page} carries it, so the lean falls on nothing"
-        return "${carrying.size} of ${candidates.size}: ${carrying.joinToString(" ") { it.key }}"
+    /**
+     * What a lean actually falls on — a member by name, or everything carrying a tag.
+     *
+     * A null [aspect] is the `all` lean an evocative word makes, which falls wherever the tag is carried.
+     */
+    private fun leanNote(aspect: Aspect?, named: String): String {
+        if (!named.startsWith(TAG_MARK)) {
+            val where = aspect ?: return "'$named' is a member, so leaning it everywhere reaches nothing"
+            return if (where.presetFor(named) == null) "nothing in the ${where.page} is called that"
+            else "leans the draw toward it; it can still lose"
+        }
+        val tag = named.drop(1)
+        val looking = if (aspect == null) Aspect.entries else listOf(aspect)
+        val carrying = looking.flatMap { corpus.vocabulary.candidatesFor(it) }
+            .filter { tag in corpus.vocabulary.tagsOf(it) }
+        if (carrying.isEmpty()) return "nothing carries it, so the lean falls on nothing"
+        return "${carrying.size} carrier(s): ${carrying.take(CARRIERS_SHOWN).joinToString(" ") { it.key }}"
     }
 
     // -- the rest ------------------------------------------------------------------------------------
@@ -734,6 +776,9 @@ class Parts(private val corpus: Corpus) {
 
         /** Where the value starts on a populations row, past the word saying what it does to the draw. */
         const val KIND_COLUMN = 10
+
+        /** How many carriers a lean's note names before it stops. */
+        const val CARRIERS_SHOWN = 6
 
         /**
          * What each kind of claim actually does — **named for its force, not for how it is spelled.**

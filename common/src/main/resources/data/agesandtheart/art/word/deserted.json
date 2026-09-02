@@ -1,14 +1,18 @@
 {
   "tier": "restrictive",
-  "queries": {
+  "excludes": {
+    "spawns": [
+      "#undead",
+      "#arthropod",
+      "#grazing",
+      "#inhabited"
+    ]
+  },
+  "biases": {
     "spawns": {
-      "undead": -1.0,
-      "arthropod": -1.0,
-      "grazing": -1.0,
-      "inhabited": -1.0,
-      "watery": -0.8,
-      "cavernous": -0.8,
-      "molten": -0.8
+      "#watery": -0.8,
+      "#cavernous": -0.8,
+      "#molten": -0.8
     }
   }
 }

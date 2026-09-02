@@ -15,7 +15,7 @@
     "wants a desert has `arid`."
   ],
   "tier": "exact",
-  "means_exactly": {
+  "chooses": {
     "phenomena": "sandfall"
   },
   "sets": {

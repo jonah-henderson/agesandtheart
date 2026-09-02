@@ -49,7 +49,7 @@ class TagCoverageCheck : FunSpec({
         fun opposable(tag: String) = vocabulary.antonyms.any { it.first == tag || it.second == tag }
         val onlyAServerKnows = vocabulary.tagsOnlyAServerGrants
         val inert = vocabulary.authoredWords
-            .filter { it.everyTagAsked.isNotEmpty() || it.queries.isNotEmpty() }
+            .filter { it.everyTagAsked.isNotEmpty() }
             .filter { word -> reachOf(word).none { vocabulary.answersIn(word, it) } }
             .filterNot { word -> word.wanted.any(::opposable) }
             .filterNot { word -> word.wanted.any(onlyAServerKnows::contains) }
@@ -69,10 +69,10 @@ class TagCoverageCheck : FunSpec({
      */
     test("no word asks for a tag that does not exist") {
         val carried = vocabulary.carriedTags + vocabulary.tagsOnlyAServerGrants
-        // **Offered tags too.** A misspelling in a `requests` query is exactly as inert as one in a demand,
-        // and rather quieter: an offer that finds nothing simply leans on nothing and says so nowhere.
+        // **Leaned tags too.** A misspelling in a lean is exactly as inert as one in a restriction, and
+        // rather quieter: a lean that finds nothing simply falls on nothing and says so nowhere.
         val asked = vocabulary.authoredWords
-            .flatMap { word -> word.everyTagAsked.keys + word.queries.values.flatMap { it.keys } + word.offeredTags }
+            .flatMap { word -> word.everyTagAsked.keys + word.leanedTags }
             .toSet()
         val unknown = (asked - carried).sorted()
         check(unknown.isEmpty()) {
@@ -112,7 +112,11 @@ class TagCoverageCheck : FunSpec({
             Aspect.SKY to 2,
             Aspect.STRUCTURES to 17,
             Aspect.SPAWNS to 86,
-            Aspect.BIOMES to 43,
+            // **Forty-one, not forty-three.** Two biomes used to sit here because `beautiful` weighed them
+            // by name and a weight admitted its subject to the pool for the whole corpus. Admitting is a
+            // sentence's own business now, so those two are in the bag when `beautiful` is in the book and
+            // not otherwise — which is §8.2's promise kept rather than coverage lost.
+            Aspect.BIOMES to 41,
             Aspect.FEATURES to 190,
             Aspect.SEA to 3,
         )

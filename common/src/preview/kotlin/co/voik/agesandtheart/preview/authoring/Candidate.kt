@@ -35,14 +35,18 @@ data class Candidate(
      * which this project treats as the part worth keeping.
      */
     val comment: JsonElement? = null,
-    /**
-     * Tags asked of **every part of the world at once** — `queries: { all: … }`, and only ever on a word
-     * that does not narrow. See [Word.everywhere].
-     */
-    val everywhere: Map<String, Double> = emptyMap(),
-    val queries: Map<Aspect, Map<String, Double>> = emptyMap(),
-    /** The preset this word means outright in each part of the world — see [Word.meansExactly]. */
-    val meansExactly: Map<Aspect, String> = emptyMap(),
+    /** The one member chosen outright in each part of the world — step one. See [Word.chooses]. */
+    val chooses: Map<Aspect, String> = emptyMap(),
+    /** Members put into the pool by name — step two. See [Word.admits]. */
+    val admits: Map<Aspect, Set<String>> = emptyMap(),
+    /** Members taken out, by key or `#tag` — step three. See [Word.excludes]. */
+    val excludes: Map<Aspect, Set<String>> = emptyMap(),
+    /** The tags the pool is narrowed to — step three's other half. See [Word.restricts]. */
+    val restricts: Map<Aspect, Map<String, Double>> = emptyMap(),
+    /** What the draw is leaned toward or away from, by key or `#tag` — step four. See [Word.biases]. */
+    val biases: Map<Aspect, Map<String, Double>> = emptyMap(),
+    /** The same, leaned on every part of the world at once, and only ever on a word that does not narrow. */
+    val leansEverywhere: Map<String, Double> = emptyMap(),
     val sets: Map<String, String> = emptyMap(),
     /** Groups of facets an Age takes some of — see [Pool], and [Draws] for how many. */
     val pools: List<Pool> = emptyList(),
@@ -121,18 +125,21 @@ data class Candidate(
     fun asJson(): JsonObject = JsonObject().apply {
         comment?.let { add(COMMENT, it) }
         addProperty("tier", tier.key)
-        // One field, keyed by aspect page or by `all` — the whole of what a word asks of the tags.
-        val asked = queries.entries.sortedBy { it.key.ordinal }
-            .associate { (aspect, tags) -> aspect.page to tags } +
-            (if (everywhere.isEmpty()) emptyMap() else mapOf(Word.EVERYWHERE to everywhere))
-        if (asked.isNotEmpty()) {
-            add("queries", JsonObject().apply { asked.forEach { (key, tags) -> add(key, numbers(tags)) } })
+        // In pipeline order, which is the order they are read in and the order the screen shows them.
+        if (chooses.isNotEmpty()) add("chooses", aspectTexts(chooses))
+        if (admits.isNotEmpty()) add("admits", aspectLists(admits))
+        if (excludes.isNotEmpty()) add("excludes", aspectLists(excludes))
+        if (restricts.isNotEmpty()) add("restricts", perAspect(restricts))
+        // One field, keyed by aspect page or by `all` — the whole of what a word leans by.
+        val leaning = biases.entries.sortedBy { it.key.ordinal }
+            .associate { (aspect, by) -> aspect.page to by } +
+            (if (leansEverywhere.isEmpty()) emptyMap() else mapOf(Word.EVERYWHERE to leansEverywhere))
+        if (leaning.isNotEmpty()) {
+            add("biases", JsonObject().apply { leaning.forEach { (key, by) -> add(key, numbers(by)) } })
         }
-        if (meansExactly.isNotEmpty()) add("means_exactly", aspectTexts(meansExactly))
         if (sets.isNotEmpty()) add("sets", texts(sets))
         if (pools.isNotEmpty()) add("pools", poolsOf(pools))
         if (!requests.isEmpty) add("requests", claimsOf(requests))
-        if (weights.isNotEmpty()) add("weights", perAspect(weights))
         template?.let { addProperty("template", it) }
         mints?.let { addProperty("mints", it) }
         if (mintsSomethingThatFlows) addProperty("mints_something_that_flows", true)
@@ -156,7 +163,6 @@ data class Candidate(
     }
 
     private fun claimsOf(claims: Claims) = JsonObject().apply {
-        if (claims.queries.isNotEmpty()) add("queries", perAspect(claims.queries))
         if (claims.sets.isNotEmpty()) add("sets", texts(claims.sets))
         if (claims.pools.isNotEmpty()) add("pools", poolsOf(claims.pools))
     }
@@ -178,6 +184,12 @@ data class Candidate(
 
     private fun texts(parameters: Map<String, String>) =
         JsonObject().apply { parameters.forEach { (parameter, value) -> addProperty(parameter, value) } }
+
+    private fun aspectLists(byAspect: Map<Aspect, Set<String>>) = JsonObject().apply {
+        byAspect.entries.sortedBy { it.key.ordinal }.forEach { (aspect, keys) ->
+            add(aspect.page, JsonArray().apply { keys.forEach(::add) })
+        }
+    }
 
     private fun aspectTexts(byAspect: Map<Aspect, String>) = JsonObject().apply {
         byAspect.entries.sortedBy { it.key.ordinal }.forEach { (aspect, key) -> addProperty(aspect.page, key) }
@@ -201,21 +213,23 @@ data class Candidate(
          * which is the failure `GrammarSources` guards the same way and for the same reason.
          */
         val KNOWN_FIELDS = setOf(
-            "tier", "queries", "means_exactly", "sets", "pools", "requests",
-            "weights", "template", "mints", "mints_something_that_flows",
+            "tier", "chooses", "admits", "excludes", "restricts", "biases", "sets", "pools", "requests",
+            "template", "mints", "mints_something_that_flows",
         )
 
         /** A word the game gave us, opened so its rarity and ink can be set. */
         fun of(word: Word) = Candidate(
             name = word.name,
             tier = word.tier,
-            everywhere = word.everywhere,
-            queries = word.queries,
-            meansExactly = word.meansExactly,
+            chooses = word.chooses,
+            admits = word.admits,
+            excludes = word.excludes,
+            restricts = word.restricts,
+            biases = word.biases,
+            leansEverywhere = word.leansEverywhere,
             sets = word.sets,
             pools = word.pools,
             requests = word.requests,
-            weights = word.weights,
             template = word.template,
             mints = word.mints,
             mintsSomethingThatFlows = word.mintsSomethingThatFlows,
@@ -237,14 +251,16 @@ data class Candidate(
                 name = name,
                 tier = tierNamed(json.get("tier")?.asString),
                 comment = json.get(COMMENT),
-                everywhere = json.getAsJsonObject("queries")
+                chooses = json.getAsJsonObject("chooses")?.let(::readAspectTexts).orEmpty(),
+                admits = json.getAsJsonObject("admits")?.let(::readAspectLists).orEmpty(),
+                excludes = json.getAsJsonObject("excludes")?.let(::readAspectLists).orEmpty(),
+                restricts = json.getAsJsonObject("restricts")?.let(::readPerAspect).orEmpty(),
+                leansEverywhere = json.getAsJsonObject("biases")
                     ?.getAsJsonObject(Word.EVERYWHERE)?.let(::readNumbers).orEmpty(),
-                queries = json.getAsJsonObject("queries")?.let(::readPerAspect).orEmpty(),
-                meansExactly = json.getAsJsonObject("means_exactly")?.let(::readAspectTexts).orEmpty(),
+                biases = json.getAsJsonObject("biases")?.let(::readPerAspect).orEmpty(),
                 sets = json.getAsJsonObject("sets")?.let(::readTexts).orEmpty(),
                 pools = json.getAsJsonArray("pools")?.let(::readPools).orEmpty(),
                 requests = json.getAsJsonObject("requests")?.let(::readClaims) ?: Claims.NOTHING,
-                weights = json.getAsJsonObject("weights")?.let(::readPerAspect).orEmpty(),
                 template = json.get("template")?.asString,
                 mints = json.get("mints")?.asString,
                 mintsSomethingThatFlows = json.get("mints_something_that_flows")?.asBoolean ?: false,
@@ -262,12 +278,11 @@ data class Candidate(
                 ?: error("no part of the world is called '$page'")
 
         private fun readClaims(json: JsonObject): Claims {
-            val unknown = json.keySet() - setOf("sets", "pools", "queries")
+            val unknown = json.keySet() - setOf("sets", "pools")
             require(unknown.isEmpty()) { "'requests' carries fields nothing reads: ${unknown.joinToString()}" }
             return Claims(
                 sets = json.getAsJsonObject("sets")?.let(::readTexts).orEmpty(),
                 pools = json.getAsJsonArray("pools")?.let(::readPools).orEmpty(),
-                queries = json.getAsJsonObject("queries")?.let(::readPerAspect).orEmpty(),
             )
         }
 
@@ -283,6 +298,11 @@ data class Candidate(
 
         private fun readTexts(json: JsonObject) =
             json.entrySet().associate { (key, value) -> key to value.asString }
+
+        private fun readAspectLists(json: JsonObject) =
+            json.entrySet().associate { (page, keys) ->
+                aspectPaged(page) to keys.asJsonArray.map { it.asString }.toSet()
+            }
 
         private fun readAspectTexts(json: JsonObject) =
             json.entrySet().associate { (page, key) -> aspectPaged(page) to key.asString }

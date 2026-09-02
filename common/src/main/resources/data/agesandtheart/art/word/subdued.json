@@ -1,10 +1,10 @@
 {
   "tier": "evocative",
-  "queries": {
+  "biases": {
     "all": {
-      "flat": 1.0,
-      "sheer": -0.8,
-      "mountainous": -0.5
+      "#flat": 1.0,
+      "#sheer": -0.8,
+      "#mountainous": -0.5
     }
   },
   "sets": {

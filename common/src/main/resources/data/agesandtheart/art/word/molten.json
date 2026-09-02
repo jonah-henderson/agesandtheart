@@ -1,6 +1,6 @@
 {
   "tier": "exact",
-  "queries": {
+  "restricts": {
     "sea": {
       "molten": 1.0
     }

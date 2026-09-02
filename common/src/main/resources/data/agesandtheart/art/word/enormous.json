@@ -6,7 +6,7 @@
     "allowed to be."
   ],
   "tier": "exact",
-  "queries": {
+  "restricts": {
     "landmass": {
       "monumental": 1.0
     }

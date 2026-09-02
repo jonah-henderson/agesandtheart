@@ -1,6 +1,6 @@
 {
   "tier": "exact",
-  "queries": {
+  "restricts": {
     "landmass": {
       "flat": 1.0
     }

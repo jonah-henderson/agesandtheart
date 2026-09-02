@@ -1,6 +1,6 @@
 {
   "tier": "restrictive",
-  "queries": {
+  "restricts": {
     "spawns": {
       "inhabited": 1.0,
       "built": 0.6

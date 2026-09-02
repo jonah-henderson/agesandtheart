@@ -1,11 +1,11 @@
 {
   "tier": "evocative",
-  "queries": {
+  "biases": {
     "all": {
-      "eroded": 1.0,
-      "sheer": 0.5,
-      "barren": 0.5,
-      "ordered": -0.6
+      "#eroded": 1.0,
+      "#sheer": 0.5,
+      "#barren": 0.5,
+      "#ordered": -0.6
     }
   },
   "sets": {

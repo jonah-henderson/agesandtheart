@@ -4,7 +4,7 @@
     "the game's economy rather than about the rock, and `rich` is the word that means it."
   ],
   "tier": "restrictive",
-  "queries": {
+  "restricts": {
     "features": {
       "ore": 1.0
     }

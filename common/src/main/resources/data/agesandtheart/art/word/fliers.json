@@ -13,7 +13,7 @@
     "took: the category says what it can, and the rest is hand-authored. It belongs to the tag pass."
   ],
   "tier": "restrictive",
-  "queries": {
+  "restricts": {
     "spawns": {
       "aloft": 1.0
     }

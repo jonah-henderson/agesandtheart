@@ -1,6 +1,6 @@
 {
   "tier": "exact",
-  "queries": {
+  "restricts": {
     "rock": {
       "watery": 1.0
     }

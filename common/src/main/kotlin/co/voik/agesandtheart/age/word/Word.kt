@@ -44,18 +44,8 @@ private val ASPECT_SET_CODEC: Codec<Set<Aspect>> = ASPECT_CODEC.listOf().xmap({ 
 data class Claims(
     val sets: Map<String, String> = emptyMap(),
     val pools: List<Pool> = emptyList(),
-    /**
-     * Tags this side wants, **keyed by aspect and never flat** — how an offer reaches the *choice* of
-     * preset rather than a parameter on the one that was chosen. An inferno's sea is the case: a sea is picked
-     * from a catalogue by tag, and there is no parameter that says "lava".
-     *
-     * Keyed because a flat query must never be derived from (§4.4's worst finding: `stormy` means
-     * `gloomy`, `caverns` is also `gloomy`, and a word about the sky pinned the ground). An offer states
-     * its aspect and so may widen the reach honestly, exactly as [Word.queries] does.
-     */
-    val queries: Map<Aspect, Map<String, Double>> = emptyMap(),
 ) {
-    val isEmpty: Boolean get() = sets.isEmpty() && pools.isEmpty() && queries.isEmpty()
+    val isEmpty: Boolean get() = sets.isEmpty() && pools.isEmpty()
 
     /** Everything this side could ever turn, whatever an Age's draw settles on. */
     val everything: Map<String, String> get() = sets + pools.flatMap { it.facets.entries }
@@ -65,15 +55,14 @@ data class Claims(
         val NOTHING = Claims()
 
         val CODEC: Codec<Claims> = RecordCodecBuilder.create { instance ->
-            // Queries before parameters, as `Word`'s own codec has it — a word file reads the same way at both
-            // levels, so nobody has to learn a second order for the nested block.
+            // **Parameters only.** A lean has no offered half of its own — it cannot fail, so it has
+            // nothing to yield, and a required lean and an offered one would behave identically. What is
+            // said about a population is said once, in [Word.biases].
             instance.group(
-                Codec.unboundedMap(ASPECT_CODEC, Codec.unboundedMap(Codec.STRING, Codec.DOUBLE))
-                    .optionalFieldOf("queries", emptyMap()).forGetter(Claims::queries),
                 Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("sets", emptyMap())
                     .forGetter(Claims::sets),
                 Pool.CODEC.listOf().optionalFieldOf("pools", emptyList()).forGetter(Claims::pools),
-            ).apply(instance) { queries, sets, pools -> Claims(sets, pools, queries) }
+            ).apply(instance, ::Claims)
         }
     }
 }
@@ -148,52 +137,78 @@ data class Word(
      */
     val aspects: Set<Aspect>,
     /**
-     * Tags this word asks of **every part of the world at once** — spelled `queries: { all: … }`.
+     * **The one member this word chooses outright**, by its key — what makes a word referential rather
+     * than evaluative (§8.1), and the step the whole pipeline short-circuits on.
      *
-     * **Only an evocative word may have one**, and for it the global reach is the whole point: a word
-     * that does not narrow is written on the Age rather than on a part of it, and `Constraint.aimedAt` is
-     * empty for one because nothing consults it. `beautiful` leans the whole world green and cannot rule
-     * anything out.
+     * A word that chooses **does not search**: it arrives with its answer in hand, which is what keeps
+     * §8.2 structural and is the one way to reach something curation left out of the pool entirely.
      *
-     * On a word that *narrows* it is §4.4's worst finding waiting to happen — `stormy` means `gloomy`,
-     * `caverns` is also `gloomy`, and a word about the sky pinned the ground. `VocabularyCheck` refuses
-     * one there, which is what lets this contribute nothing to [reaching] and stay safe by construction.
+     * **A name somebody chose**, and so not the same relation as [entryOf]: `spires` chooses
+     * `spire_islands` and `inverted` chooses `inverse_caves`, mappings that exist nowhere else. A word
+     * that simply *is* its content — every derived block word — says [entryOf] instead and repeats nothing.
+     *
+     * Keyed by aspect, like every other claim about a population, because an id says nothing about which
+     * registry it belongs to: unkeyed, `minecraft:diamond_block` was a sea and a structure set and a biome
+     * at once.
      */
-    val everywhere: Map<String, Double> = emptyMap(),
+    val chooses: Map<Aspect, String> = emptyMap(),
     /**
-     * The same, **asked only of one part of the world** — for a word that means different things in
-     * different places rather than one thing everywhere.
+     * Members this word **puts into the pool by name** — the second step, and the only one that can widen
+     * what an Age may draw between.
      *
-     * `clear` is the case: a clear sky is `bright` and clear water is a `murk` of nearly nothing, and a
-     * flat query wanting `bright` had to be trusted not to find something bright to do in the sea. Keyed
-     * by aspect exactly as [weights] is, and for the same reason — an aspect is the unit a claim lands in.
+     * The pool a vague word draws from is what `preset_tags/<aspect>.json` describes and nothing else
+     * (§8.2), which keeps the resolver's work proportional to our curation rather than to the size of the
+     * modpack. This is how a word reaches past that deliberately, for one member, in one sentence.
      *
-     * **Merged over [query], not instead of it**: a word may mean something everywhere *and* something
-     * more particular somewhere, and a tag named in both takes the keyed weight there. Most words want
-     * neither half — `beautiful` means `lovely` wherever it lands, and enumerating that per aspect is the
-     * exhaustive taxonomy §3.3 refused.
+     * **By name only, and that is not an omission**: everything carrying a tag is in the tag table, and
+     * being in the tag table is what puts it in the pool — so admitting *by tag* could never add anything.
      */
-    val queries: Map<Aspect, Map<String, Double>> = emptyMap(),
+    val admits: Map<Aspect, Set<String>> = emptyMap(),
     /**
-     * The one preset this word means in a part of the world, by its key — what makes a word referential
-     * rather than evaluative (§8.1).
+     * Members this word **takes out of the pool** — by key, or by `#tag` for everything carrying one.
      *
-     * A word that means a preset outright **does not search** for carriers, which is what keeps §8.2
-     * structural: it arrives with its answer in hand, and a vague word can never reach it for want of a
-     * name. That is also the one way to reach something `Vocabulary.askableIn` leaves out.
-     *
-     * **A name somebody chose**, and so not the same relation as [entryOf]: `spires` means
-     * `spire_islands` and `inverted` means `inverse_caves`, mappings that exist nowhere else. A word that
-     * simply *is* its content — every derived block word — says [entryOf] instead and repeats nothing.
-     *
-     * Keyed by aspect exactly as [queries] and [weights] are, and for the reason those are: an id says
-     * nothing about which registry it belongs to, so an unkeyed name let `minecraft:diamond_block` be a
-     * sea and a structure set and a biome at once.
-     *
-     * The key rather than a resolved [Taggable], so a word stays plain data and a key naming content this
-     * pack lacks survives being read.
+     * The third step, and it beats [admits] rather than racing it: removals apply after additions, so a
+     * member both admitted and excluded stays out however the sentence was laid. **Word order decides
+     * nothing** (§3.5), which is what an ordering rule here would have quietly broken — two books with the
+     * same pages in a different order would generate different worlds.
      */
-    val meansExactly: Map<Aspect, String> = emptyMap(),
+    val excludes: Map<Aspect, Set<String>> = emptyMap(),
+    /**
+     * Tags the pool is **narrowed to**: only members answering these well enough survive, at this word's
+     * tier's threshold.
+     *
+     * The other half of the third step, and the one nearly every narrowing word is written with —
+     * `riddled` keeps what is cavernous and drops the rest. A removal by complement, where [excludes]
+     * removes what it names.
+     *
+     * **Keyed by aspect and never flat.** `stormy` means `gloomy`, `caverns` is also `gloomy`, and a word
+     * about the sky pinned the *terrain* to caverns and discarded `floating` in silence — §4.4's worst
+     * finding, and the reason a restriction has to say what part of the world it restricts.
+     */
+    val restricts: Map<Aspect, Map<String, Double>> = emptyMap(),
+    /**
+     * What this word **leans the draw toward or away from**, once the pool is settled — by member key, or
+     * by `#tag` for everything carrying one. Signed: positive pulls, negative pushes.
+     *
+     * The last step, and the only one that never filters. It cannot fail and so cannot contend: leaning on
+     * a choice already made moves nothing, which is how an offer yields without a rule saying so — `an
+     * inferno Age. A drowned sea.` leaves water the only survivor and the lean toward lava is spent on it.
+     * That is also why there is no offered half of this: a tilt has nothing to yield, so a required bias
+     * and an offered one would behave identically.
+     *
+     * **[EVERYWHERE] is allowed here and nowhere else.** A word that does not narrow is written on the Age
+     * rather than on a part of it, and leaning everything is what makes it evocative; `beautiful` leans the
+     * whole world green and rules nothing out.
+     */
+    val biases: Map<Aspect, Map<String, Double>> = emptyMap(),
+    /**
+     * The same, leaned on **every part of the world at once** — spelled `biases: { all: … }`.
+     *
+     * Only an evocative word may have one, and for it the global reach is the whole point: it is written
+     * on the Age rather than on a part of it, and `Constraint.aimedAt` is empty for one because nothing
+     * consults it.
+     */
+    val leansEverywhere: Map<String, Double> = emptyMap(),
     /**
      * Parameters this word chooses, by name — how a word reaches a material (§3.2) or any other parameter.
      * Applied to every aspect the word speaks to, since a parameter name only means anything within one.
@@ -234,27 +249,6 @@ data class Word(
      * settle between themselves exactly as two demands would, and neither is ever charged for the other.
      */
     val requests: Claims = Claims.NOTHING,
-    /**
-     * What this word thinks of particular presets, by key — **said outright, where a tag is too coarse**.
-     *
-     * Tags carry the broad strokes and reach content nobody enumerated: a pack tags its own biome `lovely`
-     * in one file and every word wanting `lovely` finds it. That generalisation is the whole reason they
-     * exist and it is not up for negotiation. What they were also being asked to do is *taxonomise every
-     * aspect exhaustively*, so that `beautiful` could only ever be as precise as the tag set allowed, and
-     * ten biomes carrying tags at all is what that ambition actually amounted to (Jonah, 2026-08-06).
-     *
-     * So a word may also just say what it means. **Direct beats tag**: where a weight names a preset, it is
-     * the answer and the query is not consulted for it. The tag set no longer has to be complete — only
-     * useful — because anything it is too coarse for can be said here instead.
-     *
-     * Negative weights work and mean what they look like: this word wants *not* that.
-     *
-     * **Keyed by aspect**, and that is not ceremony. An open aspect makes a preset out of any id it is
-     * handed, so a flat list of ids offered to every aspect turned `beautiful`'s biomes into candidate
-     * *structure sets* — which then broke `untouched`, a word that empties a population by striking
-     * everything in it, because the pool it had to strike was suddenly full of biomes.
-     */
-    val weights: Map<Aspect, Map<String, Double>> = emptyMap(),
     /**
      * The **world this book starts from**, by its key, or null for the overwhelming majority of words that
      * say something about a world rather than choosing one (`the-world-model.md` §4).
@@ -462,90 +456,135 @@ data class Word(
     }
 
     /**
-     * The one preset this word means in [aspect], or null where it means nothing there in particular.
+     * The one member this word chooses in [aspect], or null where it chooses none — **step one, and the
+     * only one that ends the pipeline.**
      *
-     * Two ways to mean one: a name somebody chose for a preset ([meansExactly]), or being the registry
-     * entry oneself ([entryOf]). The aspect has to be checked either way, because an open aspect parses
-     * any well-formed id into its own kind of preset and would otherwise take a block for a biome.
+     * Two ways to choose: a name somebody chose for a member ([chooses]), or being the registry entry
+     * oneself ([entryOf]). The aspect has to be checked either way, because an open aspect parses any
+     * well-formed id into its own kind of preset and would otherwise take a block for a biome.
      */
-    fun meaningIn(aspect: Aspect): Taggable? {
+    fun choiceIn(aspect: Aspect): Taggable? {
         val itself = id.toString().takeIf { entryOf != null && aspect.presetsAreEntriesOf == entryOf }
-        return (meansExactly[aspect] ?: itself)?.let(aspect::presetFor)
+        return (chooses[aspect] ?: itself)?.let(aspect::presetFor)
     }
+
+    /** Step two: the members this word puts into [aspect]'s pool by name. */
+    fun admitsIn(aspect: Aspect): Set<String> = admits[aspect].orEmpty()
+
+    /**
+     * Step three: whether this word takes [preset] out of the pool — by its key, or by a `#tag` it carries.
+     *
+     * Applied after [admitsIn], so a member both admitted and excluded stays out. Nothing here depends on
+     * the order the words were laid in (§3.5).
+     */
+    fun excludes(preset: Taggable, tags: Map<String, Double>): Boolean =
+        excludes[preset.aspect].orEmpty().any { struck ->
+            if (struck.startsWith(TAG_MARK)) tags.containsKey(struck.drop(1)) else struck == preset.key
+        }
+
+    /** Whether this word makes any claim at all about [aspect]'s members, of any of the five kinds. */
+    fun saysSomethingOf(aspect: Aspect): Boolean =
+        choiceIn(aspect) != null || admits[aspect].orEmpty().isNotEmpty() ||
+            excludes[aspect].orEmpty().isNotEmpty() || restrictsIn(aspect).isNotEmpty() ||
+            biases[aspect].orEmpty().isNotEmpty() || leansEverywhere.isNotEmpty()
+
+    /** Step three's other half: the tags [aspect]'s pool is narrowed to, or empty where it is not. */
+    fun restrictsIn(aspect: Aspect): Map<String, Double> = restricts[aspect].orEmpty()
 
     /**
      * Whether this word says nothing except which part of the world it is about — an **aiming page**
      * (§4.3.1), whose whole job is to open a section and scope what follows it.
      *
-     * Recognised by shape rather than by a flag, because that shape *is* the definition: a word with no
-     * query, no named preset and no parameter has nothing to contribute but its aspects.
+     * Recognised by shape rather than by a flag, because that shape *is* the definition: a word claiming
+     * nothing about a population and nothing about a property has only its aspects to contribute.
      */
-    val aims: Boolean get() = everyQuery.isEmpty() && meansNothingOutright && canSet.isEmpty() &&
-        weights.isEmpty() && template == null && aspects.isNotEmpty()
+    val aims: Boolean get() = saysNothingOfAPopulation && canSet.isEmpty() &&
+        template == null && aspects.isNotEmpty()
 
-    /** What this word asks of [aspect] — what it asks everywhere, and what it asks only here. */
-    fun queryIn(aspect: Aspect): Map<String, Double> = everywhere + queries[aspect].orEmpty()
+    private val saysNothingOfAPopulation: Boolean
+        get() = chooses.isEmpty() && entryOf == null && admits.isEmpty() && excludes.isEmpty() &&
+            restricts.isEmpty() && biases.isEmpty() && leansEverywhere.isEmpty()
 
     /**
      * Every tag this word has an opinion about anywhere, which is the honest answer to "could it want X".
      *
-     * Public as [everyTagAsked] for the checks and the forge, which used to read the flat `query` and now
-     * have to ask across the keyed ones as well.
+     * Both halves of the pipeline that take one — what it narrows to, and what it leans by — since a
+     * misspelled tag is as inert in a lean as in a restriction.
      */
-    val everyTagAsked: Map<String, Double> get() = everyQuery
-
-    private val everyQuery: Map<String, Double>
-        get() = queries.values.fold(everywhere) { standing, next -> standing + next }
+    val everyTagAsked: Map<String, Double>
+        get() = restricts.values.fold(emptyMap<String, Double>()) { standing, next -> standing + next } +
+            (biases.values + listOf(leansEverywhere)).flatMap { it.entries }
+                .filter { it.key.startsWith(TAG_MARK) }.associate { it.key.drop(1) to it.value }
 
     /**
-     * Whether this word has anything to say about *which* preset fills an aspect, as opposed to how that
-     * preset is steered. A word that only sets a parameter must not be treated as narrowing: an empty
-     * carrier set is how the resolver recognises a word the world cannot satisfy (§3.3).
+     * Whether this word has anything to say about *which* member fills an aspect, as opposed to how that
+     * member is steered — the three steps that can remove a candidate, and never the one that cannot.
+     *
+     * A word that only leans must not be treated as narrowing: an empty carrier set is how the resolver
+     * recognises a word the world cannot satisfy (§3.3), and a lean can never empty one.
      */
-    val constrainsPresets: Boolean get() = !meansNothingOutright || everyQuery.values.any { it > 0.0 }
-
-    /** Whether nothing anywhere is meant outright — neither a chosen name nor an entry it *is*. */
-    private val meansNothingOutright: Boolean get() = meansExactly.isEmpty() && entryOf == null
+    val constrainsPresets: Boolean
+        get() = chooses.isNotEmpty() || entryOf != null || excludes.isNotEmpty() ||
+            restricts.values.any { tags -> tags.values.any { it > 0.0 } }
 
     /**
-     * The same question asked of one aspect, which is the honest form. A derived block word names a *sea*
-     * and merely *sets* a material on the terrain — asked globally it claims to narrow every aspect it
-     * speaks to, finds no carrier in most, and is charged as unbacked for an opinion it never had.
+     * The same question asked of one aspect, which is the honest form. A derived block word chooses a
+     * *sea* and merely *sets* a material on the terrain — asked globally it claims to narrow every aspect
+     * it speaks to, finds no carrier in most, and is charged as unbacked for an opinion it never had.
      */
     fun constrainsPresetsIn(aspect: Aspect): Boolean =
-        meaningIn(aspect) != null || queryIn(aspect).values.any { it > 0.0 }
+        choiceIn(aspect) != null || excludes[aspect].orEmpty().isNotEmpty() ||
+            restrictsIn(aspect).values.any { it > 0.0 }
 
     /**
-     * The tags this word wants, which are the ones that must have a carrier somewhere (§3.3).
+     * The tags this word narrows on, which are the ones that must have a carrier somewhere (§3.3).
      *
      * Every aspect's, unioned. This is asked by opposition-finding, where the question is whether two
      * words can ever be at odds, and a word that wants `bright` only overhead still wants it.
      */
-    val wanted: Set<String> get() = everyQuery.filterValues { it > 0.0 }.keys
+    val wanted: Set<String> get() = restricts.values.flatMap { tags ->
+        tags.filterValues { it > 0.0 }.keys
+    }.toSet()
 
     /**
-     * The tags this word pushes *away* — [wanted]'s mirror, and half of what lets two words be found to
-     * disagree with no antonym table involved (`Vocabulary.disagreement`).
+     * The tags this word strikes out or leans away from — [wanted]'s mirror, and half of what lets two
+     * words be found to disagree with no antonym table involved (`Vocabulary.disagreement`).
      */
-    val unwanted: Set<String> get() = everyQuery.filterValues { it < 0.0 }.keys
+    val unwanted: Set<String> get() = (
+        excludes.values.flatMap { struck -> struck.filter { it.startsWith(TAG_MARK) }.map { it.drop(1) } } +
+            restricts.values.flatMap { it.filterValues { weight -> weight < 0.0 }.keys }
+        ).toSet()
 
     /**
-     * Every tag this word merely **offers** an opinion about — deliberately apart from [wanted].
+     * Every tag this word merely **leans** by — deliberately apart from [wanted].
      *
-     * The coverage checks want these: a misspelled tag in an offer is as inert as one in a demand. What
+     * The coverage checks want these: a misspelled tag in a lean is as inert as one in a restriction. What
      * must *not* see them is `Vocabulary.disagreement`, which reads [wanted] to say two words cannot both
-     * stand — an offer yields rather than argues, so an inferno offering the sea `molten` does not
-     * contradict a writer who wrote `drowned`; it simply is not there.
+     * stand — a lean yields rather than argues, so an inferno leaning the sea toward `molten` does not
+     * contradict a writer who wrote `drowned`; it simply is spent.
      */
-    val offeredTags: Set<String> get() = requests.queries.values.flatMap { it.keys }.toSet()
+    val leanedTags: Set<String>
+        get() = (biases.values + listOf(leansEverywhere)).flatMap { it.keys }
+            .filter { it.startsWith(TAG_MARK) }.map { it.drop(1) }.toSet()
 
     /**
-     * How much this word would *lean* the draw in [aspect] toward a preset carrying [tags] — a tilt, and
-     * so the one kind of claim that yields by construction: where a demand narrowed the aspect to one
-     * survivor there is nothing left for a tilt to choose between.
+     * **Step four**: how far this word leans the draw toward [preset] — by its key, or by a `#tag` it
+     * carries, summed because two leanings on one member are two opinions and not a choice between them.
+     *
+     * A tilt and never a filter, which is the whole of how a lean yields: a restriction narrows the aspect
+     * to what it will keep, and leaning on a choice already made moves nothing.
      */
-    fun offeredAffinityIn(aspect: Aspect, tags: Map<String, Double>): Double =
-        requests.queries[aspect].orEmpty().entries.sumOf { (tag, weight) -> weight * (tags[tag] ?: 0.0) }
+    fun biasOn(preset: Taggable, tags: Map<String, Double>): Double =
+        leaning(leansEverywhere, preset.key, tags) + leaning(biases[preset.aspect].orEmpty(), preset.key, tags)
+
+    private fun leaning(by: Map<String, Double>, key: String, tags: Map<String, Double>): Double =
+        by.entries.sumOf { (named, weight) ->
+            when {
+                named == key -> weight
+                named.startsWith(TAG_MARK) -> weight * (tags[named.drop(1)] ?: 0.0)
+                else -> 0.0
+            }
+        }
 
     /**
      * The block this word names, or null where it names none — every derived block word sets one, and
@@ -584,47 +623,35 @@ data class Word(
     val price: Int get() = tier.cost * versatility
 
     /**
-     * How strongly [tags] answers this word's *positive* terms in [aspect] — the number a narrowing word
-     * thresholds. The strongest single term rather than a sum, because a word asking for two tags asks
-     * for either.
+     * How well [tags] answers what this word narrowed [aspect] to — the number a narrowing word
+     * thresholds. The strongest single term rather than a sum, because a word restricting on two tags
+     * asks for either.
      */
     fun pullIn(aspect: Aspect, tags: Map<String, Double>): Double =
-        queryIn(aspect).filterValues { it > 0.0 }
+        restrictsIn(aspect).filterValues { it > 0.0 }
             .maxOfOrNull { (tag, weight) -> weight * (tags[tag] ?: 0.0) } ?: 0.0
 
     /**
-     * How much this word likes [tags] in [aspect], positive and negative terms together — what an
-     * evocative word tilts a draw by. A dot product where [pullIn] takes a maximum, which is the tier
-     * distinction: narrowing asks "does this qualify at all", tilting asks "how well does this answer".
-     */
-    fun affinityIn(aspect: Aspect, tags: Map<String, Double>): Double =
-        queryIn(aspect).entries.sumOf { (tag, weight) -> weight * (tags[tag] ?: 0.0) }
-
-    /**
-     * How strongly this word claims one particular preset — [pull], except that naming a preset claims it
-     * absolutely. Without this a derived word would be scored on tags it does not have, so "creosote oil
+     * How strongly this word claims [preset] — **absolute where it chose it**, else how well the member
+     * answers what the word restricted to.
+     *
+     * Without the first half a derived word would be scored on tags it does not have, so "creosote oil
      * beside a lava sea" gave creosote the *smaller* share.
      */
-    fun pullOn(preset: Taggable, tags: Map<String, Double>): Double = when {
-        meaningIn(preset.aspect)?.key == preset.key -> MEANT_EXACTLY
-        // The preset carries the aspect, so a per-aspect query needs no argument threaded to it: what a
-        // word asks of a candidate is decided by where the candidate lives.
-        else -> weightOn(preset) ?: pullIn(preset.aspect, tags)
-    }
+    fun claimOn(preset: Taggable, tags: Map<String, Double>): Double =
+        if (choiceIn(preset.aspect)?.key == preset.key) CHOSEN_OUTRIGHT else pullIn(preset.aspect, tags)
 
-    /** What this word says about [preset] by name, in the aspect it belongs to, or null where it is silent. */
-    fun weightOn(preset: Taggable): Double? =
-        weights.entries.firstNotNullOfOrNull { (aspect, byPreset) ->
-            byPreset[preset.key]?.takeIf { aspect.presetFor(preset.key) != null }
-        }
-
-    /** [affinityIn], with a direct weight winning where this word named this preset outright. */
-    fun affinityOn(preset: Taggable, tags: Map<String, Double>): Double =
-        weightOn(preset) ?: affinityIn(preset.aspect, tags)
-
-    /** [accepts], asked of a preset this word may have an opinion about by name. */
+    /**
+     * **Whether [preset] survives this word's pipeline** — the third step, asked of one member.
+     *
+     * Excluded members are out however they got in. What is left has to clear the tier's threshold on
+     * whatever the word restricted to; a word that restricted nothing removes nobody, since a lean is
+     * never a filter.
+     */
     fun acceptsOn(preset: Taggable, tags: Map<String, Double>): Boolean {
-        val strength = pullOn(preset, tags)
+        if (excludes(preset, tags)) return false
+        if (restrictsIn(preset.aspect).isEmpty()) return true
+        val strength = pullIn(preset.aspect, tags)
         return strength > 0.0 && strength >= tier.threshold
     }
 
@@ -647,8 +674,8 @@ data class Word(
         private const val FIRST_MIX = -0x40a7b892e31b1a47L
         private const val SECOND_MIX = -0x6b2fb644ecceee15L
 
-        /** What meaning a thing outright is worth, against a tag weight, which never exceeds one. */
-        private const val MEANT_EXACTLY = 1.0
+        /** What choosing a member outright is worth, against a tag weight, which never exceeds one. */
+        private const val CHOSEN_OUTRIGHT = 1.0
 
         /** What separates one alternative from the next inside a single value. */
         private const val ALTERNATIVE = '|'
@@ -706,8 +733,11 @@ data class Word(
             return (steered + meant + weighted + mints).toSet()
         }
 
-        /** The `queries` key that means every part of the world at once — see [everywhere]. */
+        /** The `biases` key that means every part of the world at once — see [leansEverywhere]. */
         const val EVERYWHERE = "all"
+
+        /** What marks a **tag** where a member's own key would otherwise stand — `#watery`. */
+        const val TAG_MARK = "#"
 
         /**
          * `queries`, keyed by aspect page or by [EVERYWHERE].
@@ -715,7 +745,7 @@ data class Word(
          * Validated on the way in so a mistyped page is a word that fails to load and is reported, rather
          * than a query that quietly asks nothing of nowhere.
          */
-        private val QUERIES_CODEC: Codec<Map<String, Map<String, Double>>> =
+        private val LEANINGS_CODEC: Codec<Map<String, Map<String, Double>>> =
             Codec.unboundedMap(Codec.STRING, Codec.unboundedMap(Codec.STRING, Codec.DOUBLE))
                 .comapFlatMap(
                     { raw ->
@@ -726,7 +756,7 @@ data class Word(
                             com.mojang.serialization.DataResult.success(raw)
                         } else {
                             com.mojang.serialization.DataResult.error {
-                                "queries names ${strange.joinToString(" ")}, which is no aspect page nor '$EVERYWHERE'"
+                                "biases names ${strange.joinToString(" ")}, which is no aspect page nor '$EVERYWHERE'"
                             }
                         }
                     },
@@ -737,30 +767,36 @@ data class Word(
         fun mapCodec(id: Identifier): MapCodec<Word> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
                 Tier.CODEC.fieldOf("tier").forGetter(Word::tier),
-                // **One field for both**, keyed by aspect page or by `all` — see [everywhere]. A key
-                // that names neither is a parse error rather than a silently dropped query.
-                QUERIES_CODEC.optionalFieldOf("queries", emptyMap()).forGetter { word ->
-                    word.queries.mapKeys { it.key.page } +
-                        (if (word.everywhere.isEmpty()) emptyMap() else mapOf(EVERYWHERE to word.everywhere))
+                Codec.unboundedMap(ASPECT_CODEC, Codec.STRING).optionalFieldOf("chooses", emptyMap())
+                    .forGetter(Word::chooses),
+                Codec.unboundedMap(ASPECT_CODEC, Codec.STRING.listOf())
+                    .optionalFieldOf("admits", emptyMap())
+                    .forGetter { word -> word.admits.mapValues { it.value.toList() } },
+                Codec.unboundedMap(ASPECT_CODEC, Codec.STRING.listOf())
+                    .optionalFieldOf("excludes", emptyMap())
+                    .forGetter { word -> word.excludes.mapValues { it.value.toList() } },
+                Codec.unboundedMap(ASPECT_CODEC, Codec.unboundedMap(Codec.STRING, Codec.DOUBLE))
+                    .optionalFieldOf("restricts", emptyMap()).forGetter(Word::restricts),
+                // **One field for both**, keyed by aspect page or by `all` — a key that names neither is a
+                // parse error rather than a silently dropped lean.
+                LEANINGS_CODEC.optionalFieldOf("biases", emptyMap()).forGetter { word ->
+                    word.biases.mapKeys { it.key.page } +
+                        (if (word.leansEverywhere.isEmpty()) emptyMap() else mapOf(EVERYWHERE to word.leansEverywhere))
                 },
-                Codec.unboundedMap(ASPECT_CODEC, Codec.STRING).optionalFieldOf("means_exactly", emptyMap())
-                    .forGetter(Word::meansExactly),
                 Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("sets", emptyMap())
                     .forGetter(Word::sets),
                 Pool.CODEC.listOf().optionalFieldOf("pools", emptyList()).forGetter(Word::pools),
                 Claims.CODEC.optionalFieldOf("requests", Claims.NOTHING).forGetter(Word::requests),
-                Codec.unboundedMap(ASPECT_CODEC, Codec.unboundedMap(Codec.STRING, Codec.DOUBLE))
-                    .optionalFieldOf("weights", emptyMap()).forGetter(Word::weights),
                 Codec.STRING.optionalFieldOf("template").forGetter { Optional.ofNullable(it.template) },
                 Codec.STRING.optionalFieldOf("mints").forGetter { Optional.ofNullable(it.mints) },
                 Codec.BOOL.optionalFieldOf("mints_something_that_flows", false)
                     .forGetter(Word::mintsSomethingThatFlows),
             ).apply(instance) {
-                tier, queries, meansExactly, sets, pools, requests, weights, template,
+                tier, chooses, admits, excludes, restricts, leanings, sets, pools, requests, template,
                 mints, flows,
                 ->
-                val everywhere = queries[EVERYWHERE].orEmpty()
-                val keyed = queries.filterKeys { it != EVERYWHERE }
+                val everywhere = leanings[EVERYWHERE].orEmpty()
+                val leaned = leanings.filterKeys { it != EVERYWHERE }
                     .mapNotNull { (page, tags) -> Aspect.entries.firstOrNull { it.page == page }?.to(tags) }
                     .toMap()
                 // **Both halves widen the reach.** A word that only *offers* to redden a sun is still a
@@ -768,11 +804,12 @@ data class Word(
                 // only aspect it meant it — which is the silent drop §3.3 exists to forbid.
                 val steers = sets + Claims(sets, pools).everything + requests.everything
                 // `all` deliberately adds nothing: a global tilt is not a claim on any one part.
-                val aimed = weights.keys + keyed.keys + requests.queries.keys
-                val reaches = reaching(steers, meansExactly.keys, aimed, mints.orElse(null))
+                val aimed = admits.keys + excludes.keys + restricts.keys + leaned.keys
+                val reaches = reaching(steers, chooses.keys, aimed, mints.orElse(null))
                 Word(
-                    id, tier, reaches, everywhere, keyed, meansExactly, sets, pools, requests,
-                    weights, template.orElse(null), mints.orElse(null), flows,
+                    id, tier, reaches, chooses, admits.mapValues { it.value.toSet() },
+                    excludes.mapValues { it.value.toSet() }, restricts, leaned, everywhere,
+                    sets, pools, requests, template.orElse(null), mints.orElse(null), flows,
                 )
             }
         }

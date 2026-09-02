@@ -185,32 +185,8 @@ data class Vocabulary(
         // Sorted, because a draw is made by index and nobody should change a world by reordering a file.
         // A closed aspect gets the same guarantee from its enum's declaration order.
         val described = tagsBySlot[aspect]?.described.orEmpty()
-        return (described + weightedIn(aspect)).distinct().sorted().mapNotNull(aspect::presetFor)
+        return described.distinct().sorted().mapNotNull(aspect::presetFor)
     }
-
-    /**
-     * Every preset some word has an opinion about **by name** — see [Word.weights].
-     *
-     * Here because an open aspect's candidates are the presets its tag table describes, and a direct weight
-     * on something the table has never heard of would otherwise score a preset that was never in the bag:
-     * inert, and silently so. A weight has to *admit* a preset as well as rank it, which is the same
-     * courtesy [Word.meansExactly] already gets — meaning a thing outright being "the one way to reach
-     * something `askableIn` leaves out".
-     *
-     * **Per aspect**, because an open aspect makes a preset out of any id it is handed: offering every
-     * weighted id to every aspect turned a word's biomes into candidate structure sets.
-     *
-     * Computed once. A pack's authored words are a few dozen and derived ones carry no weights, so this is
-     * a handful of ids however large the corpus grows.
-     */
-    private val weighted: Map<Aspect, Set<String>> by lazy {
-        val words = byName.values.distinct()
-        Aspect.entries.associateWith { aspect ->
-            words.flatMap { it.weights[aspect]?.keys.orEmpty() }.toSet()
-        }
-    }
-
-    private fun weightedIn(aspect: Aspect): Set<String> = weighted[aspect].orEmpty()
 
     /**
      * The curated pool less everything that opted out of being asked for — **what a sentence may actually
@@ -237,12 +213,21 @@ data class Vocabulary(
      * what must not be here, no structure set carries a tag for its own absence, and every one of them
      * answers the word.
      */
-    fun answersIn(word: Word, aspect: Aspect): Boolean =
-        candidatesFor(aspect).any { word.affinityIn(aspect, tagsOf(it)) != 0.0 }
+    fun answersIn(word: Word, aspect: Aspect): Boolean {
+        if (!word.saysSomethingOf(aspect)) return false
+        return candidatesFor(aspect).any { member ->
+            val tags = tagsOf(member)
+            // **Struck out counts as answered.** `untouched` empties a population by excluding everything
+            // in it, and asking only what *survives* read that as a word nothing answers — which is the
+            // one word the rule was written for.
+            word.biasOn(member, tags) != 0.0 || word.excludes(member, tags) || word.pullIn(aspect, tags) > 0.0
+        }
+    }
 
     fun carriersOf(word: Word, aspect: Aspect): List<Taggable> {
-        word.meaningIn(aspect)?.let { return listOf(it) }
-        return askableIn(aspect).filter { word.acceptsOn(it, tagsOf(it)) }
+        word.choiceIn(aspect)?.let { return listOf(it) }
+        val pool = askableIn(aspect) + word.admitsIn(aspect).mapNotNull(aspect::presetFor)
+        return pool.distinct().filter { word.acceptsOn(it, tagsOf(it)) }
     }
 
     /**
@@ -446,7 +431,7 @@ data class Vocabulary(
         private fun mergedCapabilities(word: Word, also: Word): Word = word.copy(
             aspects = word.aspects + also.aspects,
             sets = word.sets + also.sets,
-            meansExactly = word.meansExactly + also.meansExactly,
+            chooses = word.chooses + also.chooses,
             entryOf = word.entryOf ?: also.entryOf,
         )
 

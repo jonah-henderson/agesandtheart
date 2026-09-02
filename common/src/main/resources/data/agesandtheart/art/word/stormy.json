@@ -1,6 +1,6 @@
 {
   "tier": "exact",
-  "queries": {
+  "restricts": {
     "sky": {
       "dark": 1.0
     }
