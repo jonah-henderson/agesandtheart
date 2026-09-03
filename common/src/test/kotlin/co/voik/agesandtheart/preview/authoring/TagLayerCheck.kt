@@ -96,9 +96,9 @@ class TagLayerCheck : FunSpec({
         val layer = TagLayer(corpus)
         val mine = mutableMapOf<Pair<Aspect, String>, MutableMap<String, Double>>()
         for (fact in layer.facts()) {
-            for (carrier in layer.carriersOf(fact.tag)) {
-                if (carrier.source == TagLayer.Source.DROPPED) continue
-                mine.getOrPut(carrier.aspect to carrier.preset) { mutableMapOf() }[fact.tag] = carrier.weight
+            for (member in layer.membersTagged(fact.tag)) {
+                if (member.source == TagLayer.Source.DROPPED) continue
+                mine.getOrPut(member.aspect to member.preset) { mutableMapOf() }[fact.tag] = member.weight
             }
         }
         val wrong = Aspect.entries.flatMap { aspect ->
@@ -116,7 +116,43 @@ class TagLayerCheck : FunSpec({
         val corpus = Corpus.load()
         val layer = TagLayer(corpus)
         val opposed = corpus.vocabulary.antonyms.flatMap { listOf(it.first, it.second) }.toSet()
-        val idle = layer.facts().filter { it.carriers == 0 && it.asked == 0 && it.tag !in opposed }
+        val idle = layer.facts().filter { it.members == 0 && it.asked == 0 && it.tag !in opposed }
         check(idle.isEmpty()) { "listed for no reason: ${idle.map { it.tag }}" }
     }
+
+    /**
+     * **Tagging something new and putting it back leaves the file as it was.**
+     *
+     * The inverse the file's own KDoc claims for every edit, asked of the one that creates an entry from
+     * nothing: a member with no line gets one, and clearing the weight has to take the whole entry away
+     * rather than leave `{"tags": {}}` behind.
+     */
+    test("tagging a member that had no entry, and untagging it, is a round trip") {
+        val table = JsonParser.parseString("""{"minecraft:jungle": {"tags": {"lush": 1.0}}}""").asJsonObject
+        val was = table.toString()
+        val tagged = TagFile.withWeight(table, "minecraft:badlands", "dry", 1.0)
+        check(tagged.getAsJsonObject("minecraft:badlands") != null) { "no entry was made: $tagged" }
+        val back = TagFile.withWeight(tagged, "minecraft:badlands", "dry", null)
+        check(back.toString() == was) { "adding and undoing left $back, where it began $was" }
+    }
+
+    /**
+     * **What may be tagged is what the aspect can hold, less what already carries it.**
+     *
+     * A closed aspect offers the presets this pack wrote; an open one offers what the corpus knows,
+     * which is what its derived words choose. Offering something already tagged would be offering a
+     * second weight for one member, which the file cannot hold.
+     */
+    test("what is offered to tag excludes what already carries the tag") {
+        val layer = TagLayer(Corpus.load())
+        val tagged = layer.membersTagged("cavernous").filter { it.aspect == Aspect.CARVERS }.map { it.preset }
+        check(tagged.isNotEmpty()) { "nothing in the rock carries #cavernous, so this checks nothing" }
+        val offered = layer.untaggedIn(Aspect.CARVERS, "cavernous").map { it.preset }
+        check(offered.none { it in tagged }) { "it offered something already tagged: $offered" }
+        val everything = Aspect.CARVERS.authored.map { it.key }
+        check((offered + tagged).toSet() == everything.toSet()) {
+            "offered and tagged should be the whole aspect: ${offered + tagged} against $everything"
+        }
+    }
+
 })

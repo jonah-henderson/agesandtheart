@@ -43,7 +43,7 @@ class TagLayer(private val corpus: Corpus) {
         DROPPED("dropped"),
     }
 
-    data class Carrier(
+    data class Member(
         val aspect: Aspect,
         val preset: String,
         val weight: Double,
@@ -52,10 +52,34 @@ class TagLayer(private val corpus: Corpus) {
         val under: Double? = null,
     )
 
+    /**
+     * Everything [aspect] could hold that is not already tagged [tag] — what adding one may choose from.
+     *
+     * A closed aspect offers the presets this pack wrote; an open one offers every id the corpus knows,
+     * which is what its derived words choose. **Whether each is already in the curated pool is said
+     * separately**, because for an open aspect writing a tag onto a member that is not in it is what puts
+     * it there — curation rather than tuning, and a different size of decision (world model §8.2).
+     */
+    fun untaggedIn(aspect: Aspect, tag: String): List<Untagged> {
+        val already = membersTagged(tag).filter { it.aspect == aspect }.map { it.preset }.toSet()
+        val curated = corpus.vocabulary.candidatesFor(aspect).map { it.key }.toSet()
+        val everything = if (!aspect.open) {
+            aspect.authored.map { it.key }
+        } else {
+            corpus.vocabulary.derivedWords.mapNotNull { it.choiceIn(aspect)?.key }.distinct()
+        }
+        return (everything + curated).distinct().filterNot { it in already }
+            .sortedWith(compareBy({ it.substringBefore(':') != "minecraft" }, { it }))
+            .map { Untagged(it, inThePool = it in curated) }
+    }
+
+    /** A member that could be tagged, and whether tagging it would also put it in the curated pool. */
+    data class Untagged(val preset: String, val inThePool: Boolean)
+
     /** One tag, and everything about it a reader needs before touching a weight. */
     data class Fact(
         val tag: String,
-        val carriers: Int,
+        val members: Int,
         /** How many words mention it, either way round — a tag nothing asks for is inert. */
         val asked: Int,
         val aspects: List<Aspect>,
@@ -81,7 +105,7 @@ class TagLayer(private val corpus: Corpus) {
 
     private fun readTheTables() = Aspect.entries.associateWith { TagFile.authored(it.page) }
 
-    private var index: Map<String, List<Carrier>>? = null
+    private var index: Map<String, List<Member>>? = null
 
     /** Read the tables again — what a write is followed by, and it costs nine small files. */
     fun reread() {
@@ -89,9 +113,9 @@ class TagLayer(private val corpus: Corpus) {
         index = null
     }
 
-    private fun carriers(): Map<String, List<Carrier>> = index ?: build().also { index = it }
+    private fun carriers(): Map<String, List<Member>> = index ?: build().also { index = it }
 
-    private fun build(): Map<String, List<Carrier>> = buildMap<String, MutableList<Carrier>> {
+    private fun build(): Map<String, List<Member>> = buildMap<String, MutableList<Member>> {
         for (aspect in Aspect.entries) {
             val authored = overlay[aspect].orEmpty()
             val here = derived[aspect].orEmpty()
@@ -106,7 +130,7 @@ class TagLayer(private val corpus: Corpus) {
                 for ((tag, weight) in merged) {
                     val isAuthored = entry?.tags?.containsKey(tag) == true
                     val beneath = if (isAuthored) under[tag] else null
-                    getOrPut(tag) { mutableListOf() } += Carrier(
+                    getOrPut(tag) { mutableListOf() } += Member(
                         aspect = aspect,
                         preset = preset.key,
                         weight = weight,
@@ -121,7 +145,7 @@ class TagLayer(private val corpus: Corpus) {
                 // A dropped tag is carried by nothing and is still the answer to "why is this not on the
                 // list any more" — so it stays a row, at no weight.
                 for (tag in entry?.dropped.orEmpty()) {
-                    getOrPut(tag) { mutableListOf() } += Carrier(aspect, preset.key, 0.0, Source.DROPPED, under[tag])
+                    getOrPut(tag) { mutableListOf() } += Member(aspect, preset.key, 0.0, Source.DROPPED, under[tag])
                 }
             }
         }
@@ -150,7 +174,7 @@ class TagLayer(private val corpus: Corpus) {
             val carrying = everything[tag].orEmpty().filterNot { it.source == Source.DROPPED }
             Fact(
                 tag = tag,
-                carriers = carrying.size,
+                members = carrying.size,
                 asked = mentions[tag] ?: 0,
                 aspects = carrying.map { it.aspect }.distinct().sortedBy { it.ordinal },
                 opposed = tag in opposed,
@@ -167,11 +191,11 @@ class TagLayer(private val corpus: Corpus) {
      * about, and reading it against the derived mass underneath is the pass. Alphabetical is the looking
      * order — you know the preset's name and want its row.
      */
-    fun carriersOf(tag: String, grouped: Boolean = true): List<Carrier> {
+    fun membersTagged(tag: String, grouped: Boolean = true): List<Member> {
         val everything = carriers()[tag].orEmpty()
-        val byName = compareBy<Carrier>({ it.aspect.page }, { it.preset })
+        val byName = compareBy<Member>({ it.aspect.page }, { it.preset })
         return if (!grouped) everything.sortedWith(byName)
-        else everything.sortedWith(compareBy<Carrier> { it.source.ordinal }.then(byName))
+        else everything.sortedWith(compareBy<Member> { it.source.ordinal }.then(byName))
     }
 
     /** Which words mention [tag], so a rename or a retune can be read against what it would move. */

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.preview.authoring.ui
 
+import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.preview.authoring.Corpus
 import co.voik.agesandtheart.preview.authoring.TagFile
 import co.voik.agesandtheart.preview.authoring.TagLayer
@@ -54,22 +55,24 @@ class Tags(
         // the whole of a tuning pass; alphabetical is for when you know the name and want the row.
         var grouped = true
         var named = tag
-        val rowsOf = { layer.carriersOf(named, grouped).map(::carrierRow) }
+        // **The way to add one is a row**, above what is already there. It filters away as soon as
+        // anything is typed, which is right: while you are searching you are looking, not adding.
+        val rowsOf = { listOf(addingRow(named)) + layer.membersTagged(named, grouped).map(::memberRow) }
         val table = Table(
-            title = "what carries '$tag'",
+            title = "members tagged '$tag'",
             columns = listOf(
                 Table.Column("aspect", ASPECT_WIDTH),
-                Table.Column("carrier", CARRIER_WIDTH),
+                Table.Column("member", CARRIER_WIDTH),
                 Table.Column("weight", WEIGHT_WIDTH, WEIGHT),
                 Table.Column("source", SOURCE_WIDTH),
                 Table.Column("", NOTE_WIDTH),
             ),
             rows = canvas.whileBusy("Reading the tag layer") { rowsOf() },
-            whenEmpty = "nothing carries this tag \u2014 a word asking for it would find nothing",
+            whenEmpty = "nothing is tagged this \u2014 a word asking for it would find nothing",
         )
         terminal.enterRawMode(MouseTracking.Off).use { scope ->
             while (true) {
-                canvas.show(carrierLines(table, named, grouped))
+                canvas.show(memberLines(table, named, grouped))
                 val key = scope.readKey() ?: return
                 if (key.ctrl && key.key == "c") throw Leaving()
                 val row = table.focused
@@ -80,8 +83,8 @@ class Tags(
                 }
 
                 fun bump(by: Int) {
-                    val carrier = carrierFor(row, named) ?: return
-                    retune(carrier, named, by)
+                    val member = memberFor(row, named) ?: return
+                    retune(member, named, by)
                     rebuild()
                 }
 
@@ -93,11 +96,11 @@ class Tags(
                  * is offered on neither.
                  */
                 fun reset() {
-                    val carrier = carrierFor(row, named)?.takeIf { it.under != null } ?: return
-                    if (carrier.source == TagLayer.Source.DROPPED) {
-                        TagFile.setDropped(carrier.aspect.page, carrier.preset, named, dropped = false)
+                    val member = memberFor(row, named)?.takeIf { it.under != null } ?: return
+                    if (member.source == TagLayer.Source.DROPPED) {
+                        TagFile.setDropped(member.aspect.page, member.preset, named, dropped = false)
                     } else {
-                        carry(carrier, named, null)
+                        carry(member, named, null)
                     }
                     rebuild()
                 }
@@ -114,6 +117,10 @@ class Tags(
                     key.key == "PageUp" -> table.page(-1)
                     key.key == "PageDown" -> table.page(1)
                     key.key == "Tab" -> { grouped = !grouped; table.withRows(rowsOf()) }
+                    key.key == "Enter" -> if (row?.key == ADD) {
+                        addAMember(named)
+                        rebuild()
+                    }
                     key.key == "Backspace" -> table.backspace()
                     // **`^o` for the original value**, which is the column's own word. Backspace was the
                     // obvious key and is the search's: taking it meant finding a row by typing and then
@@ -122,7 +129,7 @@ class Tags(
                     key.key == "=" -> bump(1)
                     key.key == "-" -> bump(-1)
                     key.ctrl && key.key == "d" -> {
-                        carrierFor(row, named)?.let { drop(it, named) }
+                        memberFor(row, named)?.let { drop(it, named) }
                         rebuild()
                     }
                     key.ctrl && key.key == "r" -> {
@@ -136,50 +143,121 @@ class Tags(
         }
     }
 
-    private fun carrierFor(row: Table.Row?, tag: String): TagLayer.Carrier? {
+    private fun memberFor(row: Table.Row?, tag: String): TagLayer.Member? {
         val key = row?.key ?: return null
-        return layer.carriersOf(tag).firstOrNull { keyOf(it) == key }
+        return layer.membersTagged(tag).firstOrNull { keyOf(it) == key }
     }
 
-    private fun keyOf(carrier: TagLayer.Carrier) = "${carrier.aspect.page}/${carrier.preset}"
+    private fun addingRow(tag: String) = Table.Row(
+        key = ADD,
+        cells = listOf("+ tag something", "", "", "", "with $TAG_MARK$tag"),
+        tone = Palette.faint,
+    )
 
     /**
-     * A carrier's weight, moved one step — and **which file that writes depends on where it came from.**
+     * A member given this tag — **the part of the world first, then the thing**, as everywhere else.
+     *
+     * It lands at a whole weight and can be stepped from there, which is what a hand-written weight
+     * usually is: an exception is written because something is *very* one thing or not one at all.
+     */
+    private fun addAMember(tag: String) {
+        val holding = Aspect.entries.filter { layer.untaggedIn(it, tag).isNotEmpty() }.sortedBy { it.page }
+        val aspect = ask("Tag what, where?", holding.map { one ->
+            Picker.Option(one.page, one.page, "${layer.untaggedIn(one, tag).size} not tagged yet")
+        }) ?: return
+        val where = Aspect.entries.firstOrNull { it.page == aspect } ?: return
+        // **Whether it is already in the pool is the whole of what this asks a writer to notice.** For an
+        // open aspect the tag table *is* the curation, so tagging something new enrols it in what a vague
+        // word draws from (world model §8.2) — a bigger act than tuning, and one the row has to say.
+        val untagged = layer.untaggedIn(where, tag)
+        val preset = ask("Tag which ${where.page}?", untagged.map { one ->
+            Picker.Option(
+                value = one.preset,
+                label = one.preset,
+                note = if (one.inThePool) "" else "not in the pool yet — tagging it puts it there",
+                tone = if (one.inThePool) null else Palette.warned,
+            )
+        }) ?: return
+        TagFile.setWeight(where.page, preset, tag, WHOLLY)
+    }
+
+    /** One question, answered — the small blocking picker this screen's flows are made of. */
+    private fun ask(title: String, options: List<Picker.Option>): String? {
+        if (options.isEmpty()) return null
+        var picked: String? = null
+        val table = Table(
+            title = title,
+            columns = listOf(Table.Column("", CARRIER_WIDTH), Table.Column("", NOTE_WIDTH, grows = true)),
+            rows = options.map { Table.Row(it.value, listOf(it.label, it.note), tone = it.tone) },
+        )
+        terminal.enterRawMode(MouseTracking.Off).use { scope ->
+            while (true) {
+                canvas.show(
+                    tableLines(
+                        table,
+                        canvas,
+                        listOf(hints("enter" to "take it", "←" to "back", "" to table.filter)),
+                    ),
+                )
+                val key = scope.readKey() ?: return null
+                if (key.ctrl && key.key == "c") throw Leaving()
+                when {
+                    key.ctrl && (key.key == "q" || key.key == "c") -> return null
+                    key.key == "Escape" -> if (table.isFiltered) table.clearFilter() else return null
+                    key.key == "ArrowLeft" -> return null
+                    key.key == "ArrowUp" -> table.move(-1)
+                    key.key == "ArrowDown" -> table.move(1)
+                    key.key == "Home" -> table.home()
+                    key.key == "End" -> table.end()
+                    key.key == "PageUp" -> table.page(-1)
+                    key.key == "PageDown" -> table.page(1)
+                    key.key == "Backspace" -> table.backspace()
+                    key.key == "Enter" -> { picked = table.focused?.key; return picked }
+                    key.key.length == 1 && !key.ctrl && !key.alt -> table.type(key.key)
+                }
+            }
+        }
+    }
+
+    private fun keyOf(member: TagLayer.Member) = "${member.aspect.page}/${member.preset}"
+
+    /**
+     * A member's weight, moved one step — and **which file that writes depends on where it came from.**
      *
      * Stepping a derived weight writes the first authored entry for that preset; stepping an authored one
      * down past nothing takes the entry out again and lets the derivation come back, which is the
      * distinction that makes the screen trustworthy.
      */
-    private fun retune(carrier: TagLayer.Carrier, tag: String, by: Int) {
-        if (carrier.source == TagLayer.Source.DROPPED) {
-            if (by > 0) TagFile.setDropped(carrier.aspect.page, carrier.preset, tag, dropped = false)
+    private fun retune(member: TagLayer.Member, tag: String, by: Int) {
+        if (member.source == TagLayer.Source.DROPPED) {
+            if (by > 0) TagFile.setDropped(member.aspect.page, member.preset, tag, dropped = false)
             return
         }
-        val wanted = carrier.weight + by * STEP
-        carry(carrier, tag, wanted.coerceAtMost(1.0).takeIf { wanted >= STEP / 2 })
+        val wanted = member.weight + by * STEP
+        carry(member, tag, wanted.coerceAtMost(1.0).takeIf { wanted >= STEP / 2 })
     }
 
     /**
-     * A weight written for this carrier, or taken off where [weight] is null.
+     * A weight written for this member, or taken off where [weight] is null.
      *
      * Taking one off is not deleting the tag: where a rule granted it too, the rule's weight comes back —
      * which is what the row's last column says, and why `overridden` is its own word.
      */
-    private fun carry(carrier: TagLayer.Carrier, tag: String, weight: Double?) {
-        TagFile.setWeight(carrier.aspect.page, carrier.preset, tag, weight)
+    private fun carry(member: TagLayer.Member, tag: String, weight: Double?) {
+        TagFile.setWeight(member.aspect.page, member.preset, tag, weight)
     }
 
-    /** A derived tag taken off this one carrier, or given back — `drop`, never deletion. */
-    private fun drop(carrier: TagLayer.Carrier, tag: String) {
-        val page = carrier.aspect.page
-        when (carrier.source) {
-            TagLayer.Source.DROPPED -> TagFile.setDropped(page, carrier.preset, tag, dropped = false)
+    /** A derived tag taken off this one member, or given back — `drop`, never deletion. */
+    private fun drop(member: TagLayer.Member, tag: String) {
+        val page = member.aspect.page
+        when (member.source) {
+            TagLayer.Source.DROPPED -> TagFile.setDropped(page, member.preset, tag, dropped = false)
             // A written weight would come back over the top of a drop, so it goes first.
             TagLayer.Source.AUTHORED, TagLayer.Source.OVERRIDDEN -> {
-                TagFile.setWeight(page, carrier.preset, tag, null)
-                TagFile.setDropped(page, carrier.preset, tag, dropped = true)
+                TagFile.setWeight(page, member.preset, tag, null)
+                TagFile.setDropped(page, member.preset, tag, dropped = true)
             }
-            TagLayer.Source.DERIVED -> TagFile.setDropped(page, carrier.preset, tag, dropped = true)
+            TagLayer.Source.DERIVED -> TagFile.setDropped(page, member.preset, tag, dropped = true)
         }
     }
 
@@ -192,7 +270,7 @@ class Tags(
      */
     private fun renamed(tag: String): String? {
         val asked = layer.askedBy(tag)
-        val carriers = layer.carriersOf(tag).size
+        val carriers = layer.membersTagged(tag).size
         val typed = ask(
             title = "rename '$tag'",
             hint = "$carriers carriers ${Glyph.BULLET} ${asked.size} words ask for it" +
@@ -238,43 +316,43 @@ class Tags(
         key = fact.tag,
         cells = listOf(
             "$TAG_MARK${fact.tag}",
-            if (fact.carriers == 0) "" else fact.carriers.toString(),
+            if (fact.members == 0) "" else fact.members.toString(),
             if (fact.asked == 0) "" else fact.asked.toString(),
             fact.aspects.joinToString(" ") { it.page },
             noteOn(fact),
         ),
         tone = when {
-            fact.carriers == 0 && !fact.onlyOnAServer -> Palette.refused
+            fact.members == 0 && !fact.onlyOnAServer -> Palette.refused
             fact.asked == 0 -> Palette.warned
             else -> null
         },
     )
 
     private fun noteOn(fact: TagLayer.Fact): String = when {
-        fact.carriers == 0 && fact.onlyOnAServer -> "only a running server carries this"
-        fact.carriers == 0 -> "asked for, carried by nothing"
+        fact.members == 0 && fact.onlyOnAServer -> "only a running server carries this"
+        fact.members == 0 -> "asked for, carried by nothing"
         fact.asked == 0 -> "carried, asked by no word"
         fact.opposed -> "opposed in the antonym table"
         else -> ""
     }
 
     /**
-     * One carrier — and **the last column is what a rule had said**, where a rule said anything.
+     * One member — and **the last column is what a rule had said**, where a rule said anything.
      *
      * Only `overridden` and `dropped` have one: those are the two rows standing on top of something, and
      * the number is what backspace would put back. An authored weight stands on nothing and a derived one
      * *is* the rule, so for both the column is empty rather than restating the weight beside it.
      */
-    private fun carrierRow(carrier: TagLayer.Carrier) = Table.Row(
-        key = keyOf(carrier),
+    private fun memberRow(member: TagLayer.Member) = Table.Row(
+        key = keyOf(member),
         cells = listOf(
-            carrier.aspect.page,
-            carrier.preset,
-            if (carrier.source == TagLayer.Source.DROPPED) "—" else "%.2f".format(carrier.weight),
-            carrier.source.title,
-            carrier.under?.let { "original value %.2f".format(it) }.orEmpty(),
+            member.aspect.page,
+            member.preset,
+            if (member.source == TagLayer.Source.DROPPED) "—" else "%.2f".format(member.weight),
+            member.source.title,
+            member.under?.let { "original value %.2f".format(it) }.orEmpty(),
         ),
-        tone = when (carrier.source) {
+        tone = when (member.source) {
             TagLayer.Source.DROPPED -> Palette.warned
             TagLayer.Source.AUTHORED, TagLayer.Source.OVERRIDDEN -> Palette.value
             TagLayer.Source.DERIVED -> null
@@ -326,10 +404,11 @@ class Tags(
         }
     }
 
-    private fun carrierLines(table: Table, tag: String, grouped: Boolean): List<Line> {
+    private fun memberLines(table: Table, tag: String, grouped: Boolean): List<Line> {
         val asked = layer.askedBy(tag)
+        val adding = table.focused?.key == ADD
         // Offered only where there is something to go back to, which is a row standing on a rule.
-        val resettable = carrierFor(table.focused, tag)?.under
+        val resettable = memberFor(table.focused, tag)?.under
         return tableLines(
             table,
             canvas,
@@ -338,10 +417,14 @@ class Tags(
                     "  " + if (asked.isEmpty()) "no word asks for it" else "asked for by ${asked.joinToString(" ")}",
                     if (asked.isEmpty()) Palette.warned else Palette.faint,
                 ),
-                hints(
-                    "- =" to "step the weight",
-                    if (resettable == null) "" to "" else "^o" to "back to %.2f".format(resettable),
-                ),
+                if (adding) {
+                    hints("enter" to "give something this tag")
+                } else {
+                    hints(
+                        "- =" to "step the weight",
+                        if (resettable == null) "" to "" else "^o" to "back to %.2f".format(resettable),
+                    )
+                },
                 hints(
                     "tab" to if (grouped) "sort by name" else "group by source",
                     "^d" to "drop or restore",
@@ -416,6 +499,12 @@ class Tags(
         const val WEIGHT = "weight"
 
         /** What one press moves a weight — the corpus is written in tenths and reads as a scale of ten. */
+        /** The row that adds one, told from a member's `aspect/preset` key by having no slash in it. */
+        const val ADD = "+"
+
+        /** What a new entry lands at: an exception is written because something is very one thing. */
+        const val WHOLLY = 1.0
+
         const val STEP = 0.1
 
 
