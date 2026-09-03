@@ -42,7 +42,7 @@ class Menu(
         GAPS("missing words", ""),
 
         RULES("tagging rules", "", startsGroup = true),
-        TAGS("the world's tags", ""),
+        TAGS("tag editor", ""),
 
         WORKSHOP("the age workshop", "", startsGroup = true),
 

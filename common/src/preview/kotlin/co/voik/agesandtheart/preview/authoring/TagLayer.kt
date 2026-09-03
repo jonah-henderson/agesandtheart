@@ -21,11 +21,22 @@ import co.voik.agesandtheart.age.word.DerivedTags
 class TagLayer(private val corpus: Corpus) {
 
     /** Where a carrier's weight came from, which decides what changing it writes. */
+    /**
+     * Where a weight came from — **and so what changing it will do.**
+     *
+     * Four rather than three, because "authored" was covering two situations that undo differently: a
+     * weight standing alone leaves nothing behind when it is cleared, and one standing *over* a rule lets
+     * that rule back. A reader clearing the second and watching a number reappear is a reader who stops
+     * trusting the screen, so the two have their own names.
+     */
     enum class Source(val title: String) {
-        /** An entry in `art/preset_tags/`. Editing it edits that line. */
+        /** An entry in `art/preset_tags/` where no rule granted the tag. Clearing it takes it off. */
         AUTHORED("authored"),
 
-        /** A rule in `art/derivation/` made it, and no entry exists. Editing it writes one. */
+        /** An entry standing over a rule that granted it too. Clearing it lets the rule's weight back. */
+        OVERRIDDEN("overridden"),
+
+        /** A rule in `art/derivation/` made it, and no entry exists. Changing it writes one. */
         DERIVED("derived"),
 
         /** Derived, then taken back off by `drop` — so it is not carried, and the row says why. */
@@ -94,12 +105,17 @@ class TagLayer(private val corpus: Corpus) {
                 }
                 for ((tag, weight) in merged) {
                     val isAuthored = entry?.tags?.containsKey(tag) == true
+                    val beneath = if (isAuthored) under[tag] else null
                     getOrPut(tag) { mutableListOf() } += Carrier(
                         aspect = aspect,
                         preset = preset.key,
                         weight = weight,
-                        source = if (isAuthored) Source.AUTHORED else Source.DERIVED,
-                        under = if (isAuthored) under[tag] else null,
+                        source = when {
+                            !isAuthored -> Source.DERIVED
+                            beneath == null -> Source.AUTHORED
+                            else -> Source.OVERRIDDEN
+                        },
+                        under = beneath,
                     )
                 }
                 // A dropped tag is carried by nothing and is still the answer to "why is this not on the
@@ -144,13 +160,19 @@ class TagLayer(private val corpus: Corpus) {
     }
 
     /** Everything carrying [tag], strongest first, with the dropped rows last where they belong. */
-    fun carriersOf(tag: String): List<Carrier> =
-        carriers()[tag].orEmpty().sortedWith(
-            compareBy<Carrier> { it.source == Source.DROPPED }
-                .thenByDescending { it.weight }
-                .thenBy { it.aspect.ordinal }
-                .thenBy { it.preset },
-        )
+    /**
+     * What carries [tag] — **grouped by where the weight came from**, or in one flat alphabetical run.
+     *
+     * Grouped is the tuning order: what somebody wrote by hand is what somebody has already thought
+     * about, and reading it against the derived mass underneath is the pass. Alphabetical is the looking
+     * order — you know the preset's name and want its row.
+     */
+    fun carriersOf(tag: String, grouped: Boolean = true): List<Carrier> {
+        val everything = carriers()[tag].orEmpty()
+        val byName = compareBy<Carrier>({ it.aspect.page }, { it.preset })
+        return if (!grouped) everything.sortedWith(byName)
+        else everything.sortedWith(compareBy<Carrier> { it.source.ordinal }.then(byName))
+    }
 
     /** Which words mention [tag], so a rename or a retune can be read against what it would move. */
     fun askedBy(tag: String): List<String> =

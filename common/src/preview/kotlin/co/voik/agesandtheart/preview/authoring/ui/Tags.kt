@@ -30,11 +30,11 @@ class Tags(
     fun run() {
         val rowsOf = { layer.facts().map(::factRow) }
         val table = Table(
-            title = "the world's tags",
+            title = "tag editor",
             columns = listOf(
                 Table.Column("tag", TAG_WIDTH),
-                Table.Column("carried by", COUNT_WIDTH),
-                Table.Column("asked by", COUNT_WIDTH),
+                Table.Column("members", COUNT_WIDTH),
+                Table.Column("words using", COUNT_WIDTH),
                 Table.Column("where", WHERE_WIDTH),
                 Table.Column("", NOTE_WIDTH),
             ),
@@ -49,8 +49,12 @@ class Tags(
 
     /** One tag, opened straight — what the word editor does when the cursor is on a query row. */
     fun open(tag: String) {
-        val rowsOf = { layer.carriersOf(tag).map(::carrierRow) }
+        // **Grouped by where the weight came from, until asked otherwise.** What somebody wrote by hand is
+        // what somebody has already thought about, and reading that against the derived mass underneath is
+        // the whole of a tuning pass; alphabetical is for when you know the name and want the row.
+        var grouped = true
         var named = tag
+        val rowsOf = { layer.carriersOf(named, grouped).map(::carrierRow) }
         val table = Table(
             title = "what carries '$tag'",
             columns = listOf(
@@ -65,7 +69,7 @@ class Tags(
         )
         terminal.enterRawMode(MouseTracking.Off).use { scope ->
             while (true) {
-                canvas.show(carrierLines(table, named))
+                canvas.show(carrierLines(table, named, grouped))
                 val key = scope.readKey() ?: return
                 if (key.ctrl && key.key == "c") throw Leaving()
                 val row = table.focused
@@ -81,6 +85,13 @@ class Tags(
                     rebuild()
                 }
 
+                /** Enter says it whole, or takes it back off — the same as every other list that steps. */
+                fun sayItWhole() {
+                    val carrier = carrierFor(row, named) ?: return
+                    carry(carrier, named, if (carrier.weight >= WHOLLY) null else WHOLLY)
+                    rebuild()
+                }
+
                 when {
                     key.ctrl && (key.key == "q" || key.key == "c") -> return
                     key.key == "Escape" -> if (table.isFiltered) table.clearFilter() else return
@@ -92,9 +103,10 @@ class Tags(
                     key.key == "End" -> table.end()
                     key.key == "PageUp" -> table.page(-1)
                     key.key == "PageDown" -> table.page(1)
-                    key.key == "Tab" -> table.sortByTheColumnInHand()
+                    key.key == "Tab" -> { grouped = !grouped; table.withRows(rowsOf()) }
                     key.key == "Backspace" -> table.backspace()
-                    key.key == "=" || key.key == "Enter" -> bump(1)
+                    key.key == "Enter" -> sayItWhole()
+                    key.key == "=" -> bump(1)
                     key.key == "-" -> bump(-1)
                     key.ctrl && key.key == "d" -> {
                         carrierFor(row, named)?.let { drop(it, named) }
@@ -126,14 +138,22 @@ class Tags(
      * distinction that makes the screen trustworthy.
      */
     private fun retune(carrier: TagLayer.Carrier, tag: String, by: Int) {
-        val page = carrier.aspect.page
         if (carrier.source == TagLayer.Source.DROPPED) {
-            if (by > 0) TagFile.setDropped(page, carrier.preset, tag, dropped = false)
+            if (by > 0) TagFile.setDropped(carrier.aspect.page, carrier.preset, tag, dropped = false)
             return
         }
         val wanted = carrier.weight + by * STEP
-        val cleared = wanted < STEP / 2
-        TagFile.setWeight(page, carrier.preset, tag, if (cleared) null else wanted.coerceAtMost(1.0))
+        carry(carrier, tag, wanted.coerceAtMost(1.0).takeIf { wanted >= STEP / 2 })
+    }
+
+    /**
+     * A weight written for this carrier, or taken off where [weight] is null.
+     *
+     * Taking one off is not deleting the tag: where a rule granted it too, the rule's weight comes back —
+     * which is what the row's last column says, and why `overridden` is its own word.
+     */
+    private fun carry(carrier: TagLayer.Carrier, tag: String, weight: Double?) {
+        TagFile.setWeight(carrier.aspect.page, carrier.preset, tag, weight)
     }
 
     /** A derived tag taken off this one carrier, or given back — `drop`, never deletion. */
@@ -141,8 +161,8 @@ class Tags(
         val page = carrier.aspect.page
         when (carrier.source) {
             TagLayer.Source.DROPPED -> TagFile.setDropped(page, carrier.preset, tag, dropped = false)
-            // An authored weight would come back over the top of a drop, so it goes first.
-            TagLayer.Source.AUTHORED -> {
+            // A written weight would come back over the top of a drop, so it goes first.
+            TagLayer.Source.AUTHORED, TagLayer.Source.OVERRIDDEN -> {
                 TagFile.setWeight(page, carrier.preset, tag, null)
                 TagFile.setDropped(page, carrier.preset, tag, dropped = true)
             }
@@ -225,6 +245,10 @@ class Tags(
         else -> ""
     }
 
+    /**
+     * One carrier — and **what the last column says is what clearing this row would do**, not a second
+     * weight sitting beside the first with nothing to say which of them wins.
+     */
     private fun carrierRow(carrier: TagLayer.Carrier) = Table.Row(
         key = keyOf(carrier),
         cells = listOf(
@@ -232,14 +256,21 @@ class Tags(
             carrier.preset,
             if (carrier.source == TagLayer.Source.DROPPED) "—" else "%.2f".format(carrier.weight),
             carrier.source.title,
-            carrier.under?.let { "the rules said %.2f".format(it) }.orEmpty(),
+            whatUndoingItDoes(carrier),
         ),
         tone = when (carrier.source) {
             TagLayer.Source.DROPPED -> Palette.warned
-            TagLayer.Source.AUTHORED -> Palette.value
+            TagLayer.Source.AUTHORED, TagLayer.Source.OVERRIDDEN -> Palette.value
             TagLayer.Source.DERIVED -> null
         },
     )
+
+    private fun whatUndoingItDoes(carrier: TagLayer.Carrier): String = when (carrier.source) {
+        TagLayer.Source.OVERRIDDEN -> "clear it and a rule gives %.2f back".format(carrier.under ?: 0.0)
+        TagLayer.Source.AUTHORED -> "clear it and nothing carries it here"
+        TagLayer.Source.DROPPED -> "a rule gives %.2f — ^d gives it back".format(carrier.under ?: 0.0)
+        TagLayer.Source.DERIVED -> "a rule made it — changing it writes a line"
+    }
 
     private fun walkTheList(table: Table): String? {
         terminal.enterRawMode(MouseTracking.Off).use { scope ->
@@ -286,7 +317,7 @@ class Tags(
         }
     }
 
-    private fun carrierLines(table: Table, tag: String): List<Line> {
+    private fun carrierLines(table: Table, tag: String, grouped: Boolean): List<Line> {
         val asked = layer.askedBy(tag)
         return tableLines(
             table,
@@ -296,8 +327,9 @@ class Tags(
                     "  " + if (asked.isEmpty()) "no word asks for it" else "asked for by ${asked.joinToString(" ")}",
                     if (asked.isEmpty()) Palette.warned else Palette.faint,
                 ),
+                hints("- =" to "step the weight", "enter" to "say it whole, or take it off"),
                 hints(
-                    "- =" to "weight",
+                    "tab" to if (grouped) "sort by name" else "group by source",
                     "^d" to "drop or restore",
                     "^r" to "rename the tag",
                     "^w" to "what asks",
@@ -371,6 +403,9 @@ class Tags(
 
         /** What one press moves a weight — the corpus is written in tenths and reads as a scale of ten. */
         const val STEP = 0.1
+
+        /** What enter alone writes: the whole of the tag, which is what a hand-written weight usually is. */
+        const val WHOLLY = 1.0
 
         val LEGAL_TAG = Regex("[a-z0-9_]+")
     }
