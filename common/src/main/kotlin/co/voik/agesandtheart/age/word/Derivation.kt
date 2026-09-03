@@ -304,8 +304,8 @@ object DerivedTags {
         "temperate" to "temperature < $WARM",
         "warm" to "temperature < $SCALDING",
         "scalding" to "temperature ≥ $SCALDING",
-        "rainy" to "it rains",
-        "rainless" to "no precipitation",
+        "rainy" to "hasPrecipitation",
+        "rainless" to "no hasPrecipitation",
     )
 
     /**

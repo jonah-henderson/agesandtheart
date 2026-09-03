@@ -142,6 +142,21 @@ class Table(
 
     val focused: Row? get() = shown.getOrNull(index)
 
+    /**
+     * **How wide it would like to be** — every column at its widest entry, with the gaps between them.
+     *
+     * For a pane laid beside others rather than given the screen: a column told to grow takes whatever
+     * room it is handed, so a table with room to spare fills it and the pane next to it gets nothing.
+     * Asked this, the drawer can hand it what it needs and spend the rest elsewhere.
+     */
+    val wanted: Int
+        get() = Columns.widths(
+            listOf(columns.map { it.title }) + shown.map { it.cells },
+            columns.map { Columns.Column(it.least) },
+            room = ROOMY,
+            gap = Columns.GAP,
+        ).sum() + Columns.GAP * (columns.size - 1).coerceAtLeast(0)
+
     /** Whether the cursor is sitting on something that can be cycled rather than merely read. */
     val onACyclingColumn: Boolean get() = columns.getOrNull(column)?.cycles == true
 
@@ -270,6 +285,9 @@ const val CURSOR_COLUMN = 4
 
 /** Narrow enough that nothing is readable, and the point below which arithmetic stops meaning anything. */
 const val MINIMUM_ROOM = 8
+
+/** Wider than any terminal, for asking a table what it would like rather than what it has. */
+private const val ROOMY = 10_000
 
 /**
  * What stands between two columns of a table.
