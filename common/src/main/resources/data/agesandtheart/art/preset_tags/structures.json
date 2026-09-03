@@ -130,5 +130,11 @@
       "eroded": 0.6,
       "molten": 0.3
     }
+  },
+  "minecraft:nether_complexes": {
+    "tags": {
+      "built": 1.0,
+      "monumental": 1.0
+    }
   }
 }

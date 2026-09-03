@@ -162,16 +162,21 @@ class TagLayer(private val corpus: Corpus) {
         for (aspect in Aspect.entries) {
             val authored = overlay[aspect].orEmpty()
             val here = derived[aspect].orEmpty()
-            for (preset in corpus.vocabulary.candidatesFor(aspect)) {
-                val entry = authored[preset.key]
-                val under = here[preset.key].orEmpty()
+            // **The curated pool, and whatever the table names.** An entry written for a member the pool
+            // does not hold is exactly what enrolling one looks like: the pool comes from the vocabulary,
+            // which is read once at startup, so a layer reading only the pool showed a write landing in
+            // the file and nothing happening on the screen.
+            val curated = corpus.vocabulary.candidatesFor(aspect).map { it.key }
+            for (preset in (curated + authored.keys).distinct()) {
+                val entry = authored[preset]
+                val under = here[preset].orEmpty()
                 val merged = merged(entry, under)
                 for ((tag, weight) in merged) {
                     val isAuthored = entry?.tags?.containsKey(tag) == true
                     val beneath = if (isAuthored) under[tag] else null
                     getOrPut(tag) { mutableListOf() } += Member(
                         aspect = aspect,
-                        preset = preset.key,
+                        preset = preset,
                         weight = weight,
                         source = when {
                             !isAuthored -> Source.DERIVED
@@ -184,7 +189,7 @@ class TagLayer(private val corpus: Corpus) {
                 // A dropped tag is carried by nothing and is still the answer to "why is this not on the
                 // list any more" — so it stays a row, at no weight.
                 for (tag in entry?.dropped.orEmpty()) {
-                    getOrPut(tag) { mutableListOf() } += Member(aspect, preset.key, 0.0, Source.DROPPED, under[tag])
+                    getOrPut(tag) { mutableListOf() } += Member(aspect, preset, 0.0, Source.DROPPED, under[tag])
                 }
             }
         }
