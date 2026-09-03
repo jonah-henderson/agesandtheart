@@ -161,9 +161,19 @@ class Tags(
      * usually is: an exception is written because something is *very* one thing or not one at all.
      */
     private fun addAMember(tag: String) {
-        val holding = Aspect.entries.filter { layer.untaggedIn(it, tag).isNotEmpty() }.sortedBy { it.page }
-        val aspect = ask("Tag what, where?", holding.map { one ->
-            Picker.Option(one.page, one.page, "${layer.untaggedIn(one, tag).size} not tagged yet")
+        val offered = Aspect.entries.associateWith { layer.untaggedIn(it, tag) }
+            .filterValues { it.isNotEmpty() }
+        val aspect = ask("Tag what, where?", offered.keys.sortedBy { it.page }.map { one ->
+            // **Two counts, and they are not the same one.** How many could take *this* tag is what the
+            // list is for; how many carry nothing at all is the number worth acting on, and calling the
+            // first "untagged" said the second's word about the first's number.
+            val here = offered.getValue(one)
+            val bare = here.count { it.carriesNothing }
+            Picker.Option(
+                value = one.page,
+                label = one.page,
+                note = "${here.size} without it" + if (bare == 0) "" else "  ${Glyph.BULLET}  $bare untagged",
+            )
         }) ?: return
         val where = Aspect.entries.firstOrNull { it.page == aspect } ?: return
         // **Marked where nothing has ever described it** — no rule, no line. Those are the members the
