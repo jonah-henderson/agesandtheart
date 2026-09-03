@@ -41,6 +41,7 @@ import co.voik.agesandtheart.age.word.LearnedWordsPayload
 import co.voik.agesandtheart.age.word.learnedWords
 import co.voik.agesandtheart.platform.Services
 import net.minecraft.commands.SharedSuggestionProvider
+import co.voik.agesandtheart.age.word.DerivationRules
 import co.voik.agesandtheart.age.word.Tier
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.generation.TerminalKind
@@ -292,6 +293,7 @@ object AgeCommand {
                 .then(writeSubcommand())
                 .then(vocabularySubcommand())
                 .then(tagsSubcommand())
+                .then(rulesSubcommand())
                 .then(dimensionsSubcommand())
                 .then(pagesSubcommand())
                 .then(forgetSubcommand())
@@ -430,6 +432,42 @@ object AgeCommand {
             report.entry("dimension", mapOf("id" to id, "ours" to (id in ours))) {
                 "  $id${if (id in ours) "  (an Age)" else ""}"
             }
+        }
+        report.finish()
+        return SUCCESS
+    }
+
+    /**
+     * **What each derivation rule alone puts into a set** — the half of the tag layer an offline corpus
+     * cannot see.
+     *
+     * Registry tags are bound by a running game, so 84 of the 142 rules match nothing without one. The
+     * word forge asks this once through `--refresh` and remembers the answer, which is what lets it show
+     * what fills `ore` on a screen with no server behind it (`notes/the-tag-layer.md` §4).
+     */
+    private fun rulesSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        reporting("rules") { reportFor ->
+            Commands.literal("all").executes { context -> runRules(context, report = reportFor(context)) }
+        }
+
+    private fun runRules(context: CommandContext<CommandSourceStack>, report: Report): Int {
+        val server = context.source.server
+        val vocabulary = Vocabulary.of(server)
+        val registries = server.registryAccess()
+        val rules = DerivationRules.rulesIn(vocabulary.derivation)
+        report.fact("rules", rules.size) { "${rules.size} rules:" }
+        for (rule in rules) {
+            val caught = DerivationRules.catches(registries, rule)
+            report.entry(
+                "rule",
+                mapOf(
+                    "id" to rule.id,
+                    "aspect" to rule.aspect.page,
+                    "reads" to rule.key,
+                    "byTag" to rule.byTag,
+                    "caught" to caught,
+                ),
+            ) { "  ${rule.id} — ${caught.size}" }
         }
         report.finish()
         return SUCCESS

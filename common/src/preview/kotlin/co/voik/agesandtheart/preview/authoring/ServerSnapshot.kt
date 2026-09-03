@@ -39,6 +39,14 @@ data class ServerSnapshot(
     /** The members carrying a tag nothing offline can grant — the whole point of asking a server. */
     val serverOnly: Map<String, List<String>>,
     /**
+     * What each derivation rule alone caught, by [DerivationRules.Rule.id].
+     *
+     * The other half of the same point. 84 of the 142 rules key on a registry tag, which a running game
+     * binds and an offline corpus does not, so those rules catch nothing here and the screen that shows
+     * them had nothing to show. A server runs each rule alone and this is the answer, remembered.
+     */
+    val caught: Map<String, List<String>> = emptyMap(),
+    /**
      * Every dimension the server has, ours and everyone else's.
      *
      * **Nothing reads this yet.** A base dimension is one of `AgeTemplate`'s three, named in code; but what
@@ -95,6 +103,14 @@ data class ServerSnapshot(
             )
             add("dimensions", com.google.gson.JsonArray().apply { dimensions.forEach(::add) })
             add(
+                "caught",
+                JsonObject().apply {
+                    caught.forEach { (rule, members) ->
+                        add(rule, com.google.gson.JsonArray().apply { members.forEach(::add) })
+                    }
+                },
+            )
+            add(
                 "server_only",
                 JsonObject().apply {
                     serverOnly.forEach { (tag, members) ->
@@ -149,6 +165,11 @@ data class ServerSnapshot(
                         tag to members.asJsonArray.map { it.asString }
                     },
                     dimensions = json.getAsJsonArray("dimensions")?.map { it.asString }.orEmpty(),
+                    // Absent in a snapshot taken before rules were asked about, which reads as "nothing
+                    // remembered" rather than as a broken file — a refresh is what fills it.
+                    caught = json.getAsJsonObject("caught")?.entrySet()?.associate { (rule, members) ->
+                        rule to members.asJsonArray.map { it.asString }
+                    }.orEmpty(),
                 )
             }.getOrNull()
         }
@@ -233,6 +254,12 @@ data class ServerSnapshot(
                 JsonParser.parseString(rcon.run(command)).asJsonObject
 
             val corpus = ask("age words json")
+            say("asking what each tagging rule catches")
+            val caught = ask("age rules json all").getAsJsonArray("rule")?.associate { entry ->
+                val rule = entry.asJsonObject
+                rule.get("id").asString to
+                    rule.getAsJsonArray("caught")?.map { it.asString }.orEmpty()
+            }.orEmpty()
             say("asking what dimensions it has")
             val dimensions = ask("age dimensions json all").getAsJsonArray("dimension")
                 ?.map { it.asJsonObject.get("id").asString }.orEmpty()
@@ -265,6 +292,7 @@ data class ServerSnapshot(
                 words = corpus.get("words")?.asInt ?: 0,
                 reach = reach,
                 serverOnly = serverOnly,
+                caught = caught,
                 dimensions = dimensions,
             )
         }

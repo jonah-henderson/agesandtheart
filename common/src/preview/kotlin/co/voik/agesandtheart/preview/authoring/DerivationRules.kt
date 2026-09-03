@@ -1,58 +1,35 @@
 package co.voik.agesandtheart.preview.authoring
 
 import co.voik.agesandtheart.MinecraftRegistries
-import co.voik.agesandtheart.age.aspect.Aspect
-import co.voik.agesandtheart.age.word.Derivation
-import co.voik.agesandtheart.age.word.DerivedTags
+import co.voik.agesandtheart.age.word.DerivationRules.Rule
+import co.voik.agesandtheart.age.word.DerivationRules as Rules
 
 /**
- * The rules that read the world's own tags and facts into ours, and **what each one actually catches.**
+ * The rules that fill our sets from what the game already states, and **what each one actually catches.**
  *
- * Separate from the screen that shows them because this is the part worth checking: a rule keyed on a
- * fact nothing states is dead, and dead quietly — the derivation simply never fires and the tag it would
- * have granted is one nothing carries.
+ * The rules themselves and the running of one live in `main` ([Rules]), because a server answers the same
+ * question through `/age rules` and two implementations could disagree precisely where a reader is
+ * looking. What is here is the two things only the tool knows: which corpus, and what a snapshot
+ * remembers of a server that could answer where this cannot.
  */
 object DerivationRules {
 
-    /** One line of one `art/derivation/<aspect>.json`. */
-    data class Rule(
-        val aspect: Aspect,
-        val key: String,
-        val grants: Map<String, Double>,
-        /** Whether it keys on a registry tag the member carries, rather than on a fact it states. */
-        val byTag: Boolean,
-    ) {
-        val id: String get() = "${aspect.page}/${if (byTag) "tag" else "kind"}/$key"
-
-        val says: String
-            get() = grants.entries.joinToString(" ") { (tag, weight) -> "$tag %.1f".format(weight) }
-    }
-
-    fun of(corpus: Corpus): List<Rule> =
-        corpus.vocabulary.derivation.entries.sortedBy { it.key.ordinal }.flatMap { (aspect, derivation) ->
-            derivation.byTag.map { (key, grants) -> Rule(aspect, key, grants, byTag = true) } +
-                derivation.byKind.map { (key, grants) -> Rule(aspect, key, grants, byTag = false) }
-        }
+    fun of(corpus: Corpus): List<Rule> = Rules.rulesIn(corpus.vocabulary.derivation)
 
     /**
-     * Exactly what [rule] tags, **by running the derivation with nothing else in it.**
+     * What [rule] catches — **run here where that is knowable, remembered from a server where it is not.**
      *
-     * The real code rather than a reimplementation of it, which matters more here than anywhere: two
-     * rules granting one tag at one weight cannot be told apart by reading the merged answer, so a lens
-     * that guessed would be wrong precisely where rules overlap — which is where a reader is looking.
-     *
-     * **Offline this answers for the fact-keyed half only.** Registry tags are bound by a running game,
-     * so a `by_tag` rule matches nothing here; that is the harness rather than the rule
-     * (`notes/the-tag-layer.md` §4).
+     * A rule keyed on a registry tag matches nothing offline, tags being bound by a running game; 84 of
+     * the 142 are. Those are what `--refresh` asks about and what a snapshot holds, so the answer is the
+     * server's own rather than a shrug.
      */
-    fun catches(rule: Rule): List<String> {
-        val alone = if (rule.byTag) {
-            Derivation(byTag = mapOf(rule.key to rule.grants))
-        } else {
-            Derivation(byKind = mapOf(rule.key to rule.grants))
-        }
-        return DerivedTags.read(MinecraftRegistries.worldgen, mapOf(rule.aspect to alone), mutableListOf())
-            .getOrElse(rule.aspect) { emptyMap() }
-            .keys.sorted()
+    fun catches(rule: Rule, corpus: Corpus): Caught {
+        val here = Rules.catches(MinecraftRegistries.worldgen, rule)
+        if (here.isNotEmpty()) return Caught(here, fromAServer = false)
+        val remembered = corpus.snapshot?.caught?.get(rule.id) ?: return Caught(emptyList(), fromAServer = false)
+        return Caught(remembered, fromAServer = true)
     }
+
+    /** What a rule caught, and whether this corpus worked it out or a server did. */
+    data class Caught(val members: List<String>, val fromAServer: Boolean)
 }

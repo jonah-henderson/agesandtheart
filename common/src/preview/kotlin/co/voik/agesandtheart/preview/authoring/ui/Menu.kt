@@ -41,8 +41,8 @@ class Menu(
         AUDIT("audit words", ""),
         GAPS("missing words", ""),
 
-        RULES("tagging rules", "", startsGroup = true),
-        TAGS("tag editor", ""),
+        TAGS("tag editor", "", startsGroup = true),
+        RULES("tagging rules", "how the tags fill themselves ${'$'}{Glyph.BULLET} read only"),
 
         WORKSHOP("the age workshop", "", startsGroup = true),
 
