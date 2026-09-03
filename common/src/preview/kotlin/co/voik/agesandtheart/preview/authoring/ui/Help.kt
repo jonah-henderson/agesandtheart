@@ -106,14 +106,14 @@ class Help(
      * The help beside a row only covers parameters the word already reaches, which is no use when you are
      * trying to find out whether some other aspect has the thing you want.
      */
-    private fun parameters(): List<Line> = Aspect.entries.sortedBy { it.ordinal }.flatMap { aspect ->
+    private fun parameters(): List<Line> = Aspect.entries.sortedBy { it.page }.flatMap { aspect ->
         val here = parametersOf(aspect)
         if (here.isEmpty()) return@flatMap emptyList()
         listOf(Line(aspect.page, Palette.heading)) + here.flatMap { parameter ->
             listOf(
                 Line("  ") + Line(parameter.name.padEnd(PARAMETER_WIDTH), Palette.parameter) +
                     Line(parameter.help, Palette.faint),
-            ) + parameter.optionHelp.entries.map { (option, said) ->
+            ) + parameter.optionHelp.entries.sortedBy { it.key }.map { (option, said) ->
                 Line("      ") + Line(option.padEnd(VALUE_WIDTH), Palette.value) + Line(said, Palette.faint)
             }
         } + Line.BLANK
