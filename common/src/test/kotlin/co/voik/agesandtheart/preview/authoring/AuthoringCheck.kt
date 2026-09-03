@@ -2,6 +2,8 @@ package co.voik.agesandtheart.preview.authoring
 
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Setting
+import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.word.Tier
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.age.word.Draws
@@ -480,6 +482,39 @@ class AuthoringCheck : FunSpec({
         // Never both: a value with neither end says nothing, and the way to say nothing is to not take one.
         whole.dropTheEnd(high = true)
         check(whole.spelled == "<1") { "both ends came off: ${whole.spelled}" }
+    }
+
+    /**
+     * **The band row says the band, whatever the cursor is on.**
+     *
+     * A value is one setting, so the three rows are exclusive and each has to keep saying its own — the
+     * chart follows the cursor and the rows do not, or moving to `nudge` rewrote the band under it.
+     */
+    test("moving to a nudge leaves the band alone") {
+        val temperature = Aspect.CLIMATE.parameters.first { it.holds == Holds.RANGE }
+        val editing = Band("", temperature, emptyList(), "0.4..1.0") {}
+        check(editing.band == "0.4..1") { "the band opened as ${editing.band}" }
+        editing.move(1)
+        editing.step(0.5)
+        check(editing.row == Band.Row.NUDGE) { "the cursor did not reach the nudge" }
+        check(editing.band == "0.4..1") { "moving to the nudge rewrote the band as ${editing.band}" }
+        check(editing.spelled == "+0.5") { "the nudge said ${editing.spelled}" }
+        check(editing.drawn == "+0.5") { "the chart drew ${editing.drawn} rather than the nudge" }
+    }
+
+    /**
+     * **A nudge shown against a band actually moves it.**
+     *
+     * `settle` clamps a shift to the axis it is given, so handing it the example band as that axis gave
+     * the claim nowhere to go and drew `+1.0` as no change at all — the one thing the illustration exists
+     * to show.
+     */
+    test("an illustrated nudge lands somewhere else") {
+        val moved = Setting.settle(listOf(Setting.Fixed(Band.ILLUSTRATION), Setting.Shift(1.0)))
+        check(moved != null && moved != Band.ILLUSTRATION) { "a whole nudge left the band at $moved" }
+        check(moved.most == Span.NATURAL_MOST) { "a whole nudge should reach the top, and reached ${moved.most}" }
+        val widened = Setting.settle(listOf(Setting.Fixed(Band.ILLUSTRATION), Setting.Spread(0.5)))
+        check(widened != null && widened.width > Band.ILLUSTRATION.width) { "a spread did not widen: $widened" }
     }
 
     /** A nudge and a spread are scalars, so they are stepped rather than drawn, and each is its own value. */

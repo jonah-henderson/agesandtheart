@@ -282,6 +282,12 @@ class Band(
             onAPreset -> focusedPreset?.value.orEmpty()
             row == Row.NUDGE -> Setting.Shift(nudge).spelled()
             row == Row.SPREAD -> Setting.Spread(spread).spelled()
+            else -> band
+        }
+
+    /** The band as it stands, whatever row the cursor is on — what the `band` row itself always says. */
+    val band: String
+        get() = when {
             least != null && most != null -> Span(minOf(least!!, most!!), maxOf(least!!, most!!)).spelled()
             least != null -> Setting.Bound(least = least).spelled()
             most != null -> Setting.Bound(most = most).spelled()

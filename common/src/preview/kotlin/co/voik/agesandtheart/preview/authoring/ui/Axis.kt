@@ -122,38 +122,64 @@ object Axis {
      * Through `Setting.settle` rather than by reading the text: `>0.4` is a floor and `+0.3` is a nudge,
      * and what a writer wants to see is the band each of them leaves rather than the number they typed.
      */
+    /**
+     * Where [said] lands, shaded — and where it started, for a claim that works on a band rather than
+     * being one.
+     *
+     * **The illustration is a real settling, not a special case.** A nudge and a spread are clamped by the
+     * axis they move within, so handing `settle` the example band as its axis gave a claim nowhere to go
+     * and drew `+1.0` as no change at all. Said as `Fixed(illustration)` and then the claim, over the
+     * whole axis, it is exactly what an Age does when one word demands a band and another moves it.
+     */
     private fun bandLines(
         said: String,
         ruler: Int,
         handle: Double?,
-        natural: Span,
+        from: Span,
         forExample: Boolean,
     ): List<Line> {
-        val settled = Setting.read(said)?.let { Setting.settle(listOf(it), natural) } ?: return emptyList()
-        val tone = if (forExample) Palette.nudged else Palette.chosen
-        // **On its own row.** The scale is laid to the pane exactly, so anything after the band ran past
-        // the edge and was cut — which read as a stray character under the top of the axis.
-        val aside = Line(" ".repeat(LEAD)) + if (forExample) {
-            Line("${natural.spelled()} becomes ${settled.spelled()}", Palette.nudged)
-        } else {
+        val claim = Setting.read(said) ?: return emptyList()
+        val asked = if (forExample) listOf(Setting.Fixed(from), claim) else listOf(claim)
+        val settled = Setting.settle(asked) ?: return emptyList()
+        val was = from.takeIf { forExample }
+        val aside = Line(" ".repeat(LEAD)) + if (was == null) {
             Line(settled.spelled(), Palette.faint)
-        }
-        val from = columnFor(settled.least, ruler)
-        val to = columnFor(settled.most, ruler)
-        val row = CharArray(ruler) { at -> if (at in from..to) Glyph.FULL.single() else Glyph.EMPTY.single() }
-        // **The end the keys are moving, lit.** Two ends and one pair of keys is a guess about which is
-        // about to move; this is the answer, and it is the whole of what makes the band editable rather
-        // than merely drawn.
-        val lit = handle?.let { columnFor(it, ruler) }
-        val band = if (lit == null) {
-            Line(" ".repeat(LEAD)) + Line(String(row), tone)
         } else {
-            Line(" ".repeat(LEAD)) +
-                Line(String(row.copyOfRange(0, lit)), tone) +
-                Line(Glyph.FILLED, Palette.focused) +
-                Line(String(row.copyOfRange((lit + 1).coerceAtMost(ruler), ruler)), tone)
+            Line("${was.spelled()} becomes ${settled.spelled()}", Palette.nudged)
         }
-        return listOf(band, aside)
+        return listOf(bandRow(settled, was, ruler, handle), aside)
+    }
+
+    /**
+     * The band as a row of cells — **what it had in grey, and only what changed in colour.**
+     *
+     * The old band is drawn *under* the new one, so a claim that merely widens shows its two new ends and
+     * nothing else: the difference is the thing being looked at, and colouring the whole result made a
+     * nudge of a tenth look like a band moved wholesale.
+     */
+    private fun bandRow(settled: Span, was: Span?, ruler: Int, handle: Double?): Line {
+        val now = columnFor(settled.least, ruler)..columnFor(settled.most, ruler)
+        val before = was?.let { columnFor(it.least, ruler)..columnFor(it.most, ruler) }
+        val lit = handle?.let { columnFor(it, ruler) }
+        fun glyphAt(at: Int) = if (at in now || (before != null && at in before)) Glyph.FULL else Glyph.EMPTY
+        fun toneAt(at: Int) = when {
+            at == lit -> Palette.focused
+            before != null && at in before -> Palette.faint
+            at in now -> if (before == null) Palette.chosen else Palette.nudged
+            else -> Palette.faint
+        }
+        var line = Line(" ".repeat(LEAD))
+        var run = StringBuilder()
+        var tone = toneAt(0)
+        for (at in 0..<ruler) {
+            if (toneAt(at) != tone) {
+                line += Line(run.toString(), tone)
+                run = StringBuilder()
+                tone = toneAt(at)
+            }
+            run.append(glyphAt(at))
+        }
+        return line + Line(run.toString(), tone)
     }
 
     private fun columnFor(value: Double, ruler: Int): Int {

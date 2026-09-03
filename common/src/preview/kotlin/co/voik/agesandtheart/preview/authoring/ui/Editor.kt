@@ -344,7 +344,7 @@ class Editor(
         val listed = band.shown.mapIndexed { at, option ->
             val here = at == band.index
             val said = when (Band.Row.entries.getOrNull(at)) {
-                Band.Row.BAND -> band.drawn.ifEmpty { "nothing" }
+                Band.Row.BAND -> band.band.ifEmpty { "nothing" }
                 Band.Row.NUDGE -> Setting.Shift(band.nudge).spelled()
                 Band.Row.SPREAD -> Setting.Spread(band.spread).spelled()
                 null -> ""
