@@ -297,17 +297,21 @@ class Parts(private val corpus: Corpus) {
     }
 
     /**
-     * The five numbers a tier is — **shown always, editable only where the word states its own.**
+     * The five numbers a tier is — **shown always, reachable only where the word states its own.**
      *
-     * Grey throughout under a named tier, which is the whole of how a reader tells the two apart: the
+     * Grey and unfocusable under a named tier, which is the whole of how a reader tells the two apart: the
      * numbers are there to be read, and reading `exact`'s threshold is what tells you what `exact` means.
      */
     private fun costRows(candidate: Candidate, own: Boolean, width: Int): List<Row> {
         val tier = candidate.tier
         // **No note under the pane**: the third column already says what each number does, and a footer
         // repeating it in other words is the same sentence twice with the cursor between them.
+        //
+        // **Under a named tier the cursor passes over them**, the `heading/` handle being what makes a row
+        // unreachable. They are there to be read — reading `exact`'s threshold is what tells you what
+        // `exact` means — and a row that stops the cursor without taking an edit reads as one that broke.
         fun row(field: String, said: String, about: String) = Celled(
-            handle = "cost/$field",
+            handle = if (own) "cost/$field" else "heading/cost/$field",
             cells = listOf(
                 Ink(field, if (own) Palette.parameter else Palette.faint),
                 Ink(said, if (own) Palette.value else Palette.faint),
@@ -321,13 +325,11 @@ class Parts(private val corpus: Corpus) {
         } else {
             "parameter values and population members that conflict will be unlikely, but still selectable"
         }
+        // **The multiplier last, and the sum under it.** The worked example is the longest thing on this
+        // page and it belongs to the row above it, which reads as a crowd when there are three more rows
+        // beneath. `base ink cost` says what it is, so it is left to.
         val rows = listOf(
-            row("base ink cost", "${tier.cost}", "what the page costs before its reach is counted"),
-            row(
-                "versatility multiplier",
-                "%.2f".format(tier.versatilityMultiplier),
-                "scales the versatility cost by this amount",
-            ),
+            row("base ink cost", "${tier.cost}", ""),
             row("restricts", yesOrNo(tier.narrows), restricting),
             row(
                 "tag match threshold",
@@ -339,10 +341,16 @@ class Parts(private val corpus: Corpus) {
                 "${tier.weight}",
                 "how many instability points are penalised when this word is used in a contradiction",
             ),
+            row(
+                "versatility multiplier",
+                "%.2f".format(tier.versatilityMultiplier),
+                "scales the versatility cost by this amount",
+            ),
         )
         val laid = laidInColumns(rows, TIER_NUMBERS, width).toMutableList()
-        // The sum said out, under the row that is hardest to read off the numbers alone.
-        laid.add(MULTIPLIER_ROW + 1, Row("heading/sum", listOf(Ink("        ${inkSpelledOut(candidate)}", Palette.faint))))
+        // Anchored on the row rather than on its position, so moving one does not silently move the sum.
+        val multiplier = laid.indexOfFirst { it.handle == "cost/versatility multiplier" }
+        laid.add(multiplier + 1, Row("heading/sum", listOf(Ink("        ${inkSpelledOut(candidate)}", Palette.faint))))
         return laid
     }
 
@@ -1372,7 +1380,6 @@ class Parts(private val corpus: Corpus) {
         const val MARKER_ROOM = 2
 
         /** Where the worked sum goes: under the multiplier, which is the one nobody can read off. */
-        const val MULTIPLIER_ROW = 1
 
         /** The gap between a label and the value it labels, wherever the two share a row. */
         const val LABEL_GUTTER = 2

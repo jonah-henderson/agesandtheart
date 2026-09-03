@@ -547,7 +547,7 @@ class Editor(
             "↑↓" to "part",
             if (canLeave) "←" to "back" else "" to "",
             "?" to "help", "^p" to "preview", "^t" to "try",
-            "^f" to "faults", "^z" to "undo", "^s" to "write",
+            "^f" to "faults", "^z" to "undo", "^s" to "save",
         )
         else -> hints(
             "↑↓" to "row", "pgup/pgdn" to "a page", "home/end" to "ends", "←" to "back",
