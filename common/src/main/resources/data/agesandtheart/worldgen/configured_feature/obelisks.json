@@ -1,39 +1,53 @@
 {
   "_comment": [
-    "A tapering shaft under a pointed cap -- the shape that reads as somebody having stood it up.",
-    "Four yaws so a field of them is not all square to the same grid."
+    "A shaft under a pointed cap. Four yaws so a scatter of them is not all square to one grid."
   ],
   "type": "agesandtheart:formation",
   "config": {
-    "shape": {
-      "type": "union",
-      "fields": [
-        {
-          "type": "box",
-          "min_x": -1,
-          "min_y": 0,
-          "min_z": -1,
-          "max_x": 1,
-          "max_y": 11,
-          "max_z": 1
-        },
-        {
-          "type": "pyramid",
-          "center_x": 0,
-          "center_z": 0,
-          "base_y": 12,
-          "height": 3,
-          "base_half_width": 1
-        }
-      ]
-    },
+    "shapes": [
+      {
+        "type": "union",
+        "fields": [
+          {
+            "type": "box",
+            "min_x": -1,
+            "min_y": 0,
+            "min_z": -1,
+            "max_x": 1,
+            "max_y": 11,
+            "max_z": 1
+          },
+          {
+            "type": "pyramid",
+            "center_x": 0,
+            "center_z": 0,
+            "base_y": 12,
+            "height": 3,
+            "base_half_width": 1
+          }
+        ]
+      }
+    ],
     "variation": {
       "yaw_steps": 4,
       "min_scale": 1.0,
       "max_scale": 1.0,
       "scale_steps": 1,
-      "pivot_y": 0
+      "pivot_y": 0,
+      "min_lift": 0,
+      "max_lift": 0,
+      "lift_steps": 1
     },
+    "placement": {
+      "type": "scatter",
+      "cell_size": 112.0,
+      "least_per_cell": 0,
+      "most_per_cell": 2,
+      "at_origin": 1.0,
+      "at_edge": 1.0,
+      "falloff_radius": 1.0
+    },
+    "seed": 199300549,
     "substance": {
       "Name": "minecraft:stone"
     }

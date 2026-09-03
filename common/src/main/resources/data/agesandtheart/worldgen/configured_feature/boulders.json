@@ -1,40 +1,52 @@
 {
   "_comment": [
-    "An irregular lump. `undulated` is the one node here that roughens a shape whatever its slope,",
-    "shifting each column by a noise instead of cutting at a level -- on an ellipsoid that is exactly",
-    "a weathered rock.",
-    "The noise is sampled in the template's own frame, so the eight yaws are what make one boulder",
-    "differ from the next: each turn presents a different face of the same lump."
+    "Irregular lumps, roughened by a noise rather than cut to a level. Three sizes and eight",
+    "yaws: `undulated` samples in the template's own frame, so a turn presents a different face."
   ],
   "type": "agesandtheart:formation",
   "config": {
-    "shape": {
-      "type": "undulated",
-      "base": {
-        "type": "ellipsoid",
-        "center_x": 0,
-        "center_y": 2,
-        "center_z": 0,
-        "radius_xz": 3.5,
-        "radius_y": 2.5
-      },
-      "seed": 48271,
-      "first_octave": -3,
-      "amplitudes": [
-        1.0,
-        0.5
-      ],
-      "scale_x": 4.0,
-      "scale_z": 4.0,
-      "amount": 1.5
-    },
+    "shapes": [
+      {
+        "type": "undulated",
+        "base": {
+          "type": "ellipsoid",
+          "center_x": 0,
+          "center_y": 2,
+          "center_z": 0,
+          "radius_xz": 3.5,
+          "radius_y": 2.5
+        },
+        "seed": 48271,
+        "first_octave": -3,
+        "amplitudes": [
+          1.0,
+          0.5
+        ],
+        "scale_x": 4.0,
+        "scale_z": 4.0,
+        "amount": 1.5
+      }
+    ],
     "variation": {
       "yaw_steps": 8,
       "min_scale": 0.7,
-      "max_scale": 1.4,
-      "scale_steps": 4,
-      "pivot_y": 0
+      "max_scale": 1.5,
+      "scale_steps": 3,
+      "pivot_y": 0,
+      "min_lift": -1,
+      "max_lift": 0,
+      "lift_steps": 2
     },
+    "placement": {
+      "type": "scatter",
+      "cell_size": 64.0,
+      "least_per_cell": 0,
+      "most_per_cell": 4,
+      "at_origin": 1.0,
+      "at_edge": 1.0,
+      "falloff_radius": 1.0
+    },
+    "seed": 185425431,
     "substance": {
       "Name": "minecraft:stone"
     }

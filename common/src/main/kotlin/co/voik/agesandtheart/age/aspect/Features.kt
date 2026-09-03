@@ -127,6 +127,14 @@ object Features {
         // `applyBiomeDecoration` looks a feature up in that index every chunk. Hand it an equal-but-new
         // `PlacedFeature` the second time and the lookup misses, which is -1 into a list.
         val settled = ConcurrentHashMap<Holder<Biome>, BiomeGenerationSettings>()
+        // **And once per *claim*, for the same reason one step further in.** Remembering the settings is
+        // not enough on its own: a claim that lands in twenty biomes was minted and rescaled twenty times
+        // over, so the twenty copies were equal and none of them the same object. The sorted list keeps
+        // one of them and the other nineteen biomes look up an identity it does not hold.
+        //
+        // It bit the moment a formation went into every biome. A minted spring is the same shape of bug
+        // and had simply never been generated over enough ground to meet a second biome carrying it.
+        val grown = ConcurrentHashMap<Claim, Holder<VanillaPlacedFeature>>()
         return { biome ->
             settled.computeIfAbsent(biome) {
                 // A claim confined to one biome (§4.3.1) is absent from every other, so each biome's
@@ -134,7 +142,7 @@ object Features {
                 val here = Skew.of(claims, it.unwrapKey().orElse(null)?.identifier())
                 settingsFrom(
                     it,
-                    wanted(server, here),
+                    wanted(server, here, grown),
                     here.struck.mapNotNull(Identifier::tryParse).toSet(),
                     here.exclusive || here.wanted.any { claim -> claim.value == NOTHING },
                     shape,
@@ -144,7 +152,15 @@ object Features {
     }
 
     /** The three parameters together, since every one of them travels to the same place. */
-    private data class Shape(
+    /**
+     * The Age's three dials and its rock, and **one rebuilt feature per feature for the whole Age**.
+     *
+     * Not a data class, because the memo is the point of it: reshaping is a *new* placed feature, and the
+     * sorted list decoration reads is indexed by identity — so a feature reshaped separately for each of
+     * twenty biomes gives twenty equal objects, of which the list keeps one. Every other biome then looks
+     * up an identity it does not hold, and gets -1 into a list in the middle of generation.
+     */
+    private class Shape(
         val size: Double?,
         val thickness: Double?,
         val height: Double?,
@@ -154,8 +170,14 @@ object Features {
         val asksForNothing: Boolean
             get() = FeatureShape.asksForNothing(size, thickness, height) && FeatureShape.oresCanReach(rock)
 
+        private val rebuilt = ConcurrentHashMap<Holder<VanillaPlacedFeature>, Holder<VanillaPlacedFeature>>()
+
         fun applied(feature: Holder<VanillaPlacedFeature>): Holder<VanillaPlacedFeature> =
-            if (asksForNothing) feature else FeatureShape.reshaped(feature, size, thickness, height, rock)
+            if (asksForNothing) {
+                feature
+            } else {
+                rebuilt.computeIfAbsent(feature) { FeatureShape.reshaped(it, size, thickness, height, rock) }
+            }
     }
 
     /**
@@ -166,7 +188,11 @@ object Features {
      * already occupies wherever the pack uses it, and [ORPHAN_STEP] only where nothing does: an ore asked
      * for by name lands among the ores, and a flower among the flowers, with no table of ours to maintain.
      */
-    private fun wanted(server: MinecraftServer, asked: Skew): Map<Int, List<Holder<VanillaPlacedFeature>>> {
+    private fun wanted(
+        server: MinecraftServer,
+        asked: Skew,
+        grown: ConcurrentHashMap<Claim, Holder<VanillaPlacedFeature>>,
+    ): Map<Int, List<Holder<VanillaPlacedFeature>>> {
         val features = server.registryAccess().lookupOrThrow(Registries.PLACED_FEATURE)
         val biomes = server.registryAccess().lookupOrThrow(Registries.BIOME)
         val byStep = mutableMapOf<Int, MutableList<Holder<VanillaPlacedFeature>>>()
@@ -181,8 +207,14 @@ object Features {
             // **Minted where the claim says what it is made of** — `ink springs` is vanilla's own spring
             // running with something it never runs with. The pattern keeps its placement, its rarity and
             // its step; only the substance changes.
-            val shaped = claim.madeOf?.let { FeatureShape.mintedFrom(found, it) } ?: found
-            byStep.getOrPut(stepFor(named, biomes)) { mutableListOf() } += FeatureDensity.applied(shaped, claim.density)
+            //
+            // Built once for the whole Age and shared by every biome that carries it: what comes out is a
+            // *new* placed feature, and the sorted list decoration reads is indexed by identity.
+            val laid = grown.computeIfAbsent(claim) {
+                val shaped = claim.madeOf?.let { FeatureShape.mintedFrom(found, it) } ?: found
+                FeatureDensity.applied(shaped, claim.density)
+            }
+            byStep.getOrPut(stepFor(named, biomes)) { mutableListOf() } += laid
         }
         return byStep
     }

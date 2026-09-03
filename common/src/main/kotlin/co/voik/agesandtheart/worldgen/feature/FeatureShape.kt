@@ -187,9 +187,12 @@ object FeatureShape {
             // resized with it, its lifts being absolute blocks.
             is FormationConfiguration -> size?.let {
                 val factor = sizeFactor(it)
+                // **The layout is spread with the shapes**, as an instanced field's is: bigger formations
+                // at the old spacing would grow into one another.
                 configuration.copy(
-                    shape = configuration.shape.resized(factor, STANDING_ON_THE_GROUND),
+                    shapes = configuration.shapes.map { shape -> shape.resized(factor, STANDING_ON_THE_GROUND) },
                     variation = configuration.variation.resized(factor),
+                    placement = configuration.placement.resized(factor),
                 )
             }
 

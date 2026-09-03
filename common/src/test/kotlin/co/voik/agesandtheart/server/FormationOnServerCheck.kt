@@ -31,6 +31,47 @@ class FormationOnServerCheck : FunSpec({
         }
     }
 
+    /**
+     * **The one that proves an Age carrying formations actually generates**, which nothing else can: a
+     * claim in a recipe is not a ring in the ground, and decoration failing is not something a command
+     * reports. `applyBiomeDecoration` wraps whatever a feature throws in a `ReportedException` on a
+     * worker thread — the chunk is abandoned, generation quietly stalls, and every `/age` command still
+     * answers perfectly well. The server's own output is the only place it shows.
+     *
+     * This is the check that was missing when six formations went in: the offline ones all passed, the
+     * recipe held what it should, and chunk generation was throwing on every chunk.
+     */
+    test("an Age full of formations generates without throwing") {
+        val before = server.saidSoFar().length
+        // **`spires` rather than leaving the landform to the draw.** The failure this was written for only
+        // appears over a landform of *ours* — `AgeBiomeSource` rather than the template's — and which
+        // landform a sentence draws depends on the sentence, so a book that does not name one tests
+        // whatever it happened to get. `spires` chooses `spire_islands` outright.
+        server.run("age write formationworld 909 age spires landmass gold_block rings blackstone obelisks")
+
+        // **A region rather than the spawn chunks.** The failure needs a biome the Age can produce but
+        // that its biome source did not list, so it appears where the world varies — a handful of chunks
+        // around spawn can miss it entirely, and did.
+        server.run("execute in agesandtheart:formationworld run forceload add -7 -7 7 7")
+
+        // **Waited for rather than forced.** Creating an Age generates its spawn chunks on worker threads,
+        // so the failure lands a few seconds later and on another thread entirely — and `/age gen` cannot
+        // be used to hurry it, because a chunk that throws never completes and the command never returns.
+        fun saidSince() = server.saidSoFar().drop(before)
+        fun thrown() = saidSince().lineSequence()
+            .filter { "ReportedException" in it || "Biome decoration" in it }
+            .toList()
+        val waited = (1..DECORATION_ATTEMPTS).firstOrNull {
+            Thread.sleep(DECORATION_WAIT_MILLIS)
+            thrown().isNotEmpty()
+        }
+
+        check(saidSince().isNotEmpty()) { "the server said nothing at all, so this is watching nothing" }
+        check(waited == null) {
+            "generating an Age with formations threw:\n  ${thrown().take(4).joinToString("\n  ")}"
+        }
+    }
+
     /** Every shape is a page a writer can lay, which is the half a missing data file would lose in silence. */
     test("every shape the pack ships can be written") {
         val shapes = listOf("obelisks", "pyramids", "boulders", "spikes", "rings", "arches")
@@ -40,3 +81,6 @@ class FormationOnServerCheck : FunSpec({
         check(missed.isEmpty()) { "these shapes are words the Art cannot grow: $missed" }
     }
 })
+
+private const val DECORATION_ATTEMPTS = 12
+private const val DECORATION_WAIT_MILLIS = 2_500L

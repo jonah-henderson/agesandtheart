@@ -578,7 +578,8 @@ private fun horizontalDistance(x1: Int, z1: Int, x2: Int, z2: Int): Double {
 }
 
 /** Horizontal distance of a point from the local origin (0, 0). */
-private fun originDistance(x: Int, z: Int): Double = sqrt((x * x + z * z).toDouble())
+/** How far a shape authored away from the local origin reaches back towards it. */
+internal fun originDistance(x: Int, z: Int): Double = sqrt((x * x + z * z).toDouble())
 
 /** A length or an offset from the local origin, resized. */
 internal fun scaled(value: Int, factor: Double): Int = (value * factor).roundToInt()

@@ -1,23 +1,13 @@
 {
   "_comment": [
-    "Rare on purpose -- about one in ninety-six chunks, so it is a landmark rather than",
-    "scenery. A word that asks for more of them scales this rather than replacing it."
+    "**One position per chunk, and no modifier that moves it.** A formation may be wider than a chunk,",
+    "so it cannot be built outwards from a position vanilla hands it -- it runs once per chunk and lays",
+    "the part of every formation that crosses this one. Where they sit is the `scatter` in the",
+    "configured feature.",
+    "`count 1` rather than an empty list: an empty placement is a placed feature vanilla's own feature",
+    "sorter does not carry into the list `applyBiomeDecoration` indexes, so decoration looked ours up,",
+    "missed, and threw -1 into a list of 107 on every chunk."
   ],
   "feature": "agesandtheart:arches",
-  "placement": [
-    {
-      "type": "minecraft:rarity_filter",
-      "chance": 96
-    },
-    {
-      "type": "minecraft:in_square"
-    },
-    {
-      "type": "minecraft:heightmap",
-      "heightmap": "OCEAN_FLOOR_WG"
-    },
-    {
-      "type": "minecraft:biome"
-    }
-  ]
+  "placement": []
 }

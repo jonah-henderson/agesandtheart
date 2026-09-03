@@ -64,6 +64,7 @@ sealed interface TerrainField {
  * need the recursive [TerrainField.CODEC] (passed as `self`) to encode their children.
  */
 enum class FieldKind(private val makeCodec: (Codec<TerrainField>) -> MapCodec<out TerrainField>) : StringRepresentable {
+    TORUS({ Torus.CODEC }),
     ELLIPSOID({ Ellipsoid.CODEC }),
     CONE({ Cone.CODEC }),
     PYRAMID({ Pyramid.CODEC }),

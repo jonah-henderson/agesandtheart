@@ -1,25 +1,39 @@
 {
   "_comment": [
-    "Small and stepped -- five courses, nine across. A monument at the scale of a thing you walk",
-    "up to rather than one you see from another biome."
+    "Five courses, nine across -- the kind you walk up to."
   ],
   "type": "agesandtheart:formation",
   "config": {
-    "shape": {
-      "type": "pyramid",
-      "center_x": 0,
-      "center_z": 0,
-      "base_y": 0,
-      "height": 5,
-      "base_half_width": 4
-    },
+    "shapes": [
+      {
+        "type": "pyramid",
+        "center_x": 0,
+        "center_z": 0,
+        "base_y": 0,
+        "height": 5,
+        "base_half_width": 4
+      }
+    ],
     "variation": {
       "yaw_steps": 4,
       "min_scale": 1.0,
       "max_scale": 1.0,
       "scale_steps": 1,
-      "pivot_y": 0
+      "pivot_y": 0,
+      "min_lift": 0,
+      "max_lift": 0,
+      "lift_steps": 1
     },
+    "placement": {
+      "type": "scatter",
+      "cell_size": 128.0,
+      "least_per_cell": 0,
+      "most_per_cell": 1,
+      "at_origin": 1.0,
+      "at_edge": 1.0,
+      "falloff_radius": 1.0
+    },
+    "seed": 2074468653,
     "substance": {
       "Name": "minecraft:stone"
     }

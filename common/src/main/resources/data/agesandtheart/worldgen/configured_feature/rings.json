@@ -1,38 +1,86 @@
 {
   "_comment": [
-    "A low ring lying on the ground -- a cylinder with a narrower one taken out of it. Flat on",
-    "purpose: a standing ring would be an arch that had closed, and an arch is its own word."
+    "A torus, and it leans. Ordinary is twenty-five across, so `colossal rings` -- four times over",
+    "-- is the hundred-block ring this was drawn for.",
+    "Five leans rather than a rotation dial: `Variation` turns a shape by rotating the query",
+    "column, which is a yaw and nothing else, so the lean has to be in the shape. Yaw is left to",
+    "the variation, and each lean carries its own turn so the two do not multiply out.",
+    "The lift sinks some of them, since a ring half in the ground is the better half of them."
   ],
   "type": "agesandtheart:formation",
   "config": {
-    "shape": {
-      "type": "subtract",
-      "base": {
-        "type": "cylinder",
-        "axis": "y",
+    "shapes": [
+      {
+        "type": "torus",
         "center_x": 0,
-        "center_y": 1,
+        "center_y": 2,
         "center_z": 0,
-        "radius": 6.0,
-        "half_length": 1.0
+        "ring_radius": 11.0,
+        "tube_radius": 1.5,
+        "tilt": 0.0,
+        "turn": 0.0
       },
-      "cut": {
-        "type": "cylinder",
-        "axis": "y",
+      {
+        "type": "torus",
         "center_x": 0,
-        "center_y": 1,
+        "center_y": 4,
         "center_z": 0,
-        "radius": 4.0,
-        "half_length": 2.0
+        "ring_radius": 11.0,
+        "tube_radius": 1.5,
+        "tilt": 18.0,
+        "turn": 0.0
+      },
+      {
+        "type": "torus",
+        "center_x": 0,
+        "center_y": 6,
+        "center_z": 0,
+        "ring_radius": 11.0,
+        "tube_radius": 1.5,
+        "tilt": 35.0,
+        "turn": 45.0
+      },
+      {
+        "type": "torus",
+        "center_x": 0,
+        "center_y": 9,
+        "center_z": 0,
+        "ring_radius": 11.0,
+        "tube_radius": 1.5,
+        "tilt": 58.0,
+        "turn": 20.0
+      },
+      {
+        "type": "torus",
+        "center_x": 0,
+        "center_y": 12,
+        "center_z": 0,
+        "ring_radius": 11.0,
+        "tube_radius": 1.5,
+        "tilt": 82.0,
+        "turn": 70.0
       }
-    },
+    ],
     "variation": {
-      "yaw_steps": 4,
-      "min_scale": 1.0,
-      "max_scale": 1.0,
-      "scale_steps": 1,
-      "pivot_y": 0
+      "yaw_steps": 8,
+      "min_scale": 0.8,
+      "max_scale": 1.2,
+      "scale_steps": 3,
+      "pivot_y": 0,
+      "min_lift": -6,
+      "max_lift": 2,
+      "lift_steps": 5
     },
+    "placement": {
+      "type": "scatter",
+      "cell_size": 144.0,
+      "least_per_cell": 0,
+      "most_per_cell": 1,
+      "at_origin": 1.0,
+      "at_edge": 1.0,
+      "falloff_radius": 1.0
+    },
+    "seed": 35243280,
     "substance": {
       "Name": "minecraft:stone"
     }
