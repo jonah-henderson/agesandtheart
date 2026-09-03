@@ -56,9 +56,9 @@ class TagLayer(private val corpus: Corpus) {
      * Everything [aspect] could hold that is not already tagged [tag] — what adding one may choose from.
      *
      * A closed aspect offers the presets this pack wrote; an open one offers every id the corpus knows,
-     * which is what its derived words choose. **Whether each is already in the curated pool is said
-     * separately**, because for an open aspect writing a tag onto a member that is not in it is what puts
-     * it there — curation rather than tuning, and a different size of decision (world model §8.2).
+     * which is what its derived words choose. **Whether it carries anything at all is said separately**:
+     * a member no rule and no line has ever described is one the Art cannot reach by any vague word, and
+     * a first tag on one is a bigger act than another tag on something already described.
      */
     fun untaggedIn(aspect: Aspect, tag: String): List<Untagged> {
         val already = membersTagged(tag).filter { it.aspect == aspect }.map { it.preset }.toSet()
@@ -70,11 +70,11 @@ class TagLayer(private val corpus: Corpus) {
         }
         return (everything + curated).distinct().filterNot { it in already }
             .sortedWith(compareBy({ it.substringBefore(':') != "minecraft" }, { it }))
-            .map { Untagged(it, inThePool = it in curated) }
+            .map { Untagged(it, carriesNothing = tagsOn(aspect, it).isEmpty()) }
     }
 
-    /** A member that could be tagged, and whether tagging it would also put it in the curated pool. */
-    data class Untagged(val preset: String, val inThePool: Boolean)
+    /** A member that could be tagged, and whether anything — rule or line — has ever described it. */
+    data class Untagged(val preset: String, val carriesNothing: Boolean)
 
     /** One tag, and everything about it a reader needs before touching a weight. */
     data class Fact(
@@ -122,11 +122,7 @@ class TagLayer(private val corpus: Corpus) {
             for (preset in corpus.vocabulary.candidatesFor(aspect)) {
                 val entry = authored[preset.key]
                 val under = here[preset.key].orEmpty()
-                val merged = if (entry?.replaces == true) {
-                    entry.tags
-                } else {
-                    (under - entry?.dropped.orEmpty()) + entry?.tags.orEmpty()
-                }
+                val merged = merged(entry, under)
                 for ((tag, weight) in merged) {
                     val isAuthored = entry?.tags?.containsKey(tag) == true
                     val beneath = if (isAuthored) under[tag] else null
@@ -150,6 +146,14 @@ class TagLayer(private val corpus: Corpus) {
             }
         }
     }
+
+    /** The derivation with the overlay laid over it — one merge, wherever the answer is wanted. */
+    private fun merged(entry: TagFile.Authored?, under: Map<String, Double>): Map<String, Double> =
+        if (entry?.replaces == true) entry.tags else (under - entry?.dropped.orEmpty()) + entry?.tags.orEmpty()
+
+    /** Everything [preset] carries in [aspect], from either half — the answer to "is this tagged at all". */
+    private fun tagsOn(aspect: Aspect, preset: String): Map<String, Double> =
+        merged(overlay[aspect].orEmpty()[preset], derived[aspect].orEmpty()[preset].orEmpty())
 
     /** How many words mention each tag, wanted, pushed against, or merely offered. */
     private val mentions: Map<String, Int> by lazy {

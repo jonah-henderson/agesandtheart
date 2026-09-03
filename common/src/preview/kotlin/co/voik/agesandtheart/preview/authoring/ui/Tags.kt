@@ -166,16 +166,16 @@ class Tags(
             Picker.Option(one.page, one.page, "${layer.untaggedIn(one, tag).size} not tagged yet")
         }) ?: return
         val where = Aspect.entries.firstOrNull { it.page == aspect } ?: return
-        // **Whether it is already in the pool is the whole of what this asks a writer to notice.** For an
-        // open aspect the tag table *is* the curation, so tagging something new enrols it in what a vague
-        // word draws from (world model §8.2) — a bigger act than tuning, and one the row has to say.
+        // **Marked where nothing has ever described it** — no rule, no line. Those are the members the
+        // Art cannot reach by any vague word, and for an open aspect a first tag is also what enrols one
+        // in the pool a vague word draws from (world model §8.2).
         val untagged = layer.untaggedIn(where, tag)
         val preset = ask("Tag which ${where.page}?", untagged.map { one ->
             Picker.Option(
                 value = one.preset,
                 label = one.preset,
-                note = if (one.inThePool) "" else "not in the pool yet — tagging it puts it there",
-                tone = if (one.inThePool) null else Palette.warned,
+                note = if (one.carriesNothing) "untagged" else "",
+                tone = if (one.carriesNothing) Palette.warned else null,
             )
         }) ?: return
         TagFile.setWeight(where.page, preset, tag, WHOLLY)
