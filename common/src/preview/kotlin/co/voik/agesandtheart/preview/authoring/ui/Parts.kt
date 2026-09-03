@@ -228,6 +228,9 @@ class Parts(private val corpus: Corpus) {
     /** Whether the cursor may rest on this row at all — a heading names what is under it and does nothing. */
     fun isAHeading(row: Row) = row.handle.startsWith("heading/")
 
+    /** A line of air between two groups. A heading, so the cursor passes over it rather than into it. */
+    private fun spacer(named: String) = Row("heading/space/$named", emptyList())
+
     // -- word and specificity ------------------------------------------------------------------------
 
     private fun nameRows(candidate: Candidate): List<Row> {
@@ -301,14 +304,15 @@ class Parts(private val corpus: Corpus) {
      */
     private fun costRows(candidate: Candidate, own: Boolean, width: Int): List<Row> {
         val tier = candidate.tier
-        fun row(field: String, said: String, about: String, note: String) = Celled(
+        // **No note under the pane**: the third column already says what each number does, and a footer
+        // repeating it in other words is the same sentence twice with the cursor between them.
+        fun row(field: String, said: String, about: String) = Celled(
             handle = "cost/$field",
             cells = listOf(
                 Ink(field, if (own) Palette.parameter else Palette.faint),
                 Ink(said, if (own) Palette.value else Palette.faint),
                 Ink(about, Palette.faint),
             ),
-            note = note,
         )
         // **`restricts` on screen, `narrows` in the code**, since `Word.restricts` is already the tag query
         // and one word for two things is worse in the file than a second word for one thing is on a list.
@@ -318,26 +322,22 @@ class Parts(private val corpus: Corpus) {
             "parameter values and population members that conflict will be unlikely, but still selectable"
         }
         val rows = listOf(
-            row("base ink cost", "${tier.cost}", "", "what the page costs before its reach is counted"),
+            row("base ink cost", "${tier.cost}", "what the page costs before its reach is counted"),
             row(
                 "versatility multiplier",
                 "%.2f".format(tier.versatilityMultiplier),
                 "scales the versatility cost by this amount",
-                "how many times over each aspect counts; zero prices the page flat, and no page is ever " +
-                    "cheaper than its base cost",
             ),
-            row("restricts", yesOrNo(tier.narrows), restricting, restricting),
+            row("restricts", yesOrNo(tier.narrows), restricting),
             row(
                 "tag match threshold",
                 "%.2f".format(tier.threshold),
                 "how well a tag must align to be considered matching",
-                "unread while the word only steers, since nothing is being kept out",
             ),
             row(
                 "instability cost",
                 "${tier.weight}",
                 "how many instability points are penalised when this word is used in a contradiction",
-                "what it means for the thing said not to happen, which is not what saying it cost",
             ),
         )
         val laid = laidInColumns(rows, TIER_NUMBERS, width).toMutableList()
@@ -667,6 +667,7 @@ class Parts(private val corpus: Corpus) {
      */
     private fun effectRows(candidate: Candidate, word: Word?): List<Row> = buildList {
         for (insistence in Insistence.entries) {
+            if (isNotEmpty()) add(spacer(insistence.name))
             add(
                 Row(
                     handle = "heading/${insistence.name}",
@@ -991,6 +992,7 @@ class Parts(private val corpus: Corpus) {
      */
     private fun pickRows(candidate: Candidate, word: Word?): List<Row> = buildList {
         for (step in Step.entries) {
+            if (isNotEmpty()) add(spacer(step.name))
             add(Row("heading/${step.name}", listOf(Ink(step.title, Palette.heading)), step.about))
             add(Row("+/${step.name}", listOf(Ink("    + ${step.adds}", Palette.faint))))
             addAll(stepRows(step, candidate, word))

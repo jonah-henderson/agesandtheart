@@ -328,7 +328,7 @@ class Rules(
             hints(
                 "enter" to "the rules that fill it",
                 "tab" to "sort",
-                "^l" to "load minecraft data",
+                "^l" to "sync data from server",
                 "←" to "back",
                 searching(table.filter),
             ),

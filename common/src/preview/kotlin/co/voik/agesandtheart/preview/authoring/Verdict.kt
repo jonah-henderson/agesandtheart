@@ -255,7 +255,7 @@ object Verdict {
                         "'$tag' only exists on a running server",
                         members?.let {
                             "a server had it on ${it.size} thing(s) — ${corpus.snapshot?.provenance}"
-                        } ?: "nothing offline can carry it — load minecraft data to see what a server does",
+                        } ?: "nothing offline can carry it — sync data from server to see what one does",
                     ),
                 )
                 continue

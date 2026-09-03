@@ -44,11 +44,11 @@ class Menu(
         TAGS("tag editor", "", startsGroup = true),
         RULES("tagging rules", ""),
 
-        WORKSHOP("the age workshop", "", startsGroup = true),
+        WORKSHOP("age workshop", "", startsGroup = true),
 
         // The one name that does not explain itself: it boots a Minecraft server and reads what only a
         // running game knows — the tags on blocks, biomes and mobs, and anything a modpack adds.
-        REFRESH("load minecraft data", "boots a server and reads its tags, blocks, biomes and mobs", startsGroup = true),
+        REFRESH("sync data from server", "boots a server and reads its tags, blocks, biomes and mobs", startsGroup = true),
         HELP("help", ""),
         LEAVE("leave", ""),
     }
@@ -103,7 +103,8 @@ class Menu(
                 Table.Column("specificity", TIER_WIDTH, TIER, Tier.NAMED.keys.toList()),
                 Table.Column("rarity", RARITY_WIDTH, RARITY, WordFile.rarityBuckets()),
                 Table.Column("ink", INK_WIDTH, INK, WordFile.inkTiers()),
-                Table.Column("effects", EFFECTS_WIDTH),
+                Table.Column("parameters", HALF_A_SUMMARY),
+                Table.Column("populations", HALF_A_SUMMARY),
             ),
             rows = canvas.whileBusy(work = rowsOf),
             whenNothingMatches = { typed ->
@@ -144,21 +145,48 @@ class Menu(
                 word?.tier?.key.orEmpty(),
                 listing?.rarity.orEmpty(),
                 listing?.ink.orEmpty(),
-                word?.let(::summaryOf).orEmpty(),
+                word?.let(::parametersIn).orEmpty(),
+                word?.let(::populationsIn).orEmpty(),
             ),
         )
     }
 
-    /** What a word does, in one line — enough to recognise it without opening it. */
-    private fun summaryOf(word: Word): String {
+    /**
+     * What a word sets, in one line — its core, its pool and its requests, under plain names.
+     *
+     * [Word.canSet] rather than [Word.sets], so a word that only ever offers a parameter through a pool
+     * is not read as a word that sets nothing.
+     */
+    private fun parametersIn(word: Word): String {
         val said = buildList {
-            word.chooses.values.forEach { add("chooses $it") }
+            addAll(word.canSet.map { (parameter, value) -> "$parameter=$value" })
             word.template?.let { add("template $it") }
             word.mints?.let { add("mints $it") }
-            addAll(word.canSet.map { (parameter, value) -> "$parameter=$value" })
-            if (word.wanted.isNotEmpty()) add(word.wanted.joinToString(" ") { "$TAG_MARK$it" })
         }
-        return said.joinToString(", ").ifEmpty { "nothing" }
+        return said.joinToString(", ")
+    }
+
+    /**
+     * What a word does to a population, in the pipeline's own order — **the half `ancient` is made of.**
+     *
+     * One column counted parameters and the tags a narrowing word keeps by, so a word that only leans the
+     * draw set nothing, kept nothing out, and read as doing nothing at all. Two columns because that is
+     * the cut the editor makes, and a word is usually one or the other rather than both.
+     */
+    private fun populationsIn(word: Word): String {
+        fun tagged(name: String) = if (name.startsWith(TAG_MARK)) name else "$TAG_MARK$name"
+        val said = buildList {
+            word.chooses.values.forEach { add("chooses $it") }
+            word.admits.values.flatten().distinct().forEach { add("adds $it") }
+            word.restricts.values.flatMap { it.entries }.distinctBy { it.key }.forEach { (tag, weight) ->
+                add(if (weight >= 0.0) "keeps ${tagged(tag)}" else "drops ${tagged(tag)}")
+            }
+            word.excludes.values.flatten().distinct().forEach { add("removes $it") }
+            word.biases.values.flatMap { it.entries }.distinctBy { it.key }.forEach { (tag, weight) ->
+                add(if (weight >= 0.0) "favours ${tagged(tag)}" else "discourages ${tagged(tag)}")
+            }
+        }
+        return said.joinToString(", ")
     }
 
     /**
@@ -269,7 +297,7 @@ class Menu(
     private fun fillAGap() {
         val rowsOf = { canvas.whileBusy("Looking for what nothing reaches") { Gaps.of(corpus) }.map(::gapRow) }
         val table = Table(
-            title = "what nothing reaches yet",
+            title = "things that can't be expressed with the current corpus",
             columns = listOf(
                 Table.Column("kind", GAP_KIND_WIDTH),
                 Table.Column("what", NAME_WIDTH),
@@ -309,11 +337,11 @@ class Menu(
         while (true) {
             val judged = canvas.whileBusy("Auditing ${WordFile.authoredNames().size} words") { audited(byName) }
             if (judged.isEmpty()) {
-                read(Reader("Audit", listOf(Line("Nothing to answer for.", Palette.settled))))
+                read(Reader("Audit", listOf(Line("No word needs attention.", Palette.settled))))
                 return
             }
             val picker = Picker(
-                title = "${judged.size} words with something to answer for",
+                title = "${judged.size} words need attention",
                 options = judged.map(::rowFor),
                 filter = filter,
             ) {}
@@ -646,6 +674,9 @@ class Menu(
         const val RARITY_WIDTH = 9
         const val INK_WIDTH = 11
         const val EFFECTS_WIDTH = 60
+
+        /** Either summary column's floor — the two divide what the named columns left. */
+        const val HALF_A_SUMMARY = 26
         const val TIER_WIDTH = 12
         const val GAP_KIND_WIDTH = 7
         const val RARITY = "rarity"

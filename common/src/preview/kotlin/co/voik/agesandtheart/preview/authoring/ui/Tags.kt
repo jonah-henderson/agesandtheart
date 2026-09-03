@@ -62,7 +62,7 @@ class Tags(
 
     private fun makingRow() = Table.Row(
         key = MAKE,
-        cells = listOf("+ a new set", "", "", "", "named, then given its first member"),
+        cells = listOf("+ add a new tag", "", "", "", "named, then given its first member"),
         tone = Palette.faint,
     )
 
@@ -447,7 +447,7 @@ class Tags(
 
     private fun noteOn(fact: TagLayer.Fact): String = when {
         fact.members == 0 && fact.onlyOnAServer ->
-            "needs a server snapshot to populate — load minecraft data"
+            "needs a server snapshot to populate — sync data from server"
         fact.members == 0 -> "used by a word, but empty"
         fact.asked == 0 -> "has members, not used by any word"
         fact.opposed -> "opposed in the antonym table"
