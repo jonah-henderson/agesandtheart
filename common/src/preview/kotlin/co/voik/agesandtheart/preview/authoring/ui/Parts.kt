@@ -217,7 +217,7 @@ class Parts(private val corpus: Corpus) {
             listOf(
                 Ink(Tier.CUSTOM, if (own) Palette.value else Palette.faint),
                 Ink("", Palette.faint),
-                Ink("say what this word costs outright", Palette.faint),
+                Ink("", Palette.faint),
             ),
             mark = own,
         )
@@ -468,7 +468,9 @@ class Parts(private val corpus: Corpus) {
         add(told("cost/ink", "ink", "${word.price}", "${word.tier.key} ${Glyph.BULLET} $reach"))
         listing.rarity?.let { add(told("cost/rarity", "rarity", it, "how hard it is to find")) }
         inkOf(candidate)?.let { add(told("cost/quality", "ink quality", it, "what it takes to write")) }
-        candidate.template?.let { add(told("cost/base", "base dimension", it, "the world a book starts from")) }
+        candidate.template?.let {
+            add(told("cost/base", "base dimension", dimensionCalled(it), "the world a book starts from"))
+        }
     }
 
     /**
@@ -958,21 +960,28 @@ class Parts(private val corpus: Corpus) {
         Row(
             handle = "template",
             shown = listOf(
-                Ink(candidate.template ?: "overworld", if (candidate.template == null) Palette.faint else Palette.value),
-                Ink(if (candidate.template == null) "   (the default; this word does not change it)" else "", Palette.faint),
+                Ink(
+                    candidate.template?.let(::dimensionCalled) ?: UNSET,
+                    if (candidate.template == null) Palette.faint else Palette.value,
+                ),
             ),
-            note = "which of Minecraft's dimensions the Age is built on, before the book is read\n" +
-                "    a word with one does nothing else: it swaps the world, it does not describe it\n" +
-                "    only the three vanilla ones today; the mechanism is not vanilla-only",
         ),
     )
 
-    /** The base dimensions a word may choose, which is the whole of what a template is today. */
+    /**
+     * The base dimensions a word may choose, and the first row: none at all.
+     *
+     * **Unset is not the overworld**, though it generates the same world. Nearly every word says nothing
+     * about which dimension an Age is built on, and a word that has taken one has no way back to saying
+     * nothing without a row that says nothing.
+     */
     fun baseDimensions(): List<Pair<String, String>> = listOf(
+        UNSET to "this word does not say which dimension the Age is built on",
         "overworld" to "Minecraft's overworld: its rock, its biomes, its sky.",
-        "infernal" to "The nether — sealed overhead, lit by nothing, a sea of lava.",
-        "dark_void" to "The end — islands in a void, and its own sky.",
+        "infernal" to "sealed overhead, lit by nothing, a sea of lava.",
+        "dark_void" to "islands in a void, and its own sky.",
     )
+
 
     /**
      * The tag a populations row is about, where it is about one.
@@ -1132,6 +1141,22 @@ class Parts(private val corpus: Corpus) {
     )
 
     companion object {
+        /**
+         * What to call a base dimension here — **the game's name for it, not the Art's.**
+         *
+         * `infernal` and `dark_void` are what a player reads on a page; the key is what the recipe stores,
+         * and between the two there is nobody who benefits from the tool pretending they are not the
+         * nether and the end.
+         */
+        fun dimensionCalled(key: String): String = when (key) {
+            "infernal" -> "infernal (the nether)"
+            "dark_void" -> "dark void (the end)"
+            else -> key
+        }
+
+        /** The row that says a word does not choose a base dimension. */
+        const val UNSET = "unset"
+
         /** How wide a weight's bar is here — the same [Gauge] the list you set it on wears. */
         const val BAR_WIDTH = 13
 

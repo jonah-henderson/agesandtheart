@@ -273,7 +273,7 @@ class Editor(
         // operations over a couple of hundred members are invisible in the file: `#cavernous 1.0` says
         // nothing about whether four things carry it or none.
         val drawn = populationUnderTheCursor()
-            ?.let { PoolChart.of(it, word, corpus, canvas.width - PANE_MARGIN) }
+            ?.let { PoolChart.of(it, word, corpus, width) }
             .orEmpty()
         val tail = said + if (drawn.isEmpty()) emptyList() else listOf(Line.BLANK) + drawn
         // **The list is served first, and the note gets what is left.** The note used to be laid out
@@ -324,7 +324,7 @@ class Editor(
         val head = listOf(
             Line(picker.title, Palette.heading),
             hints("" to "type to search", "" to picker.filter),
-        ) + picker.chart?.invoke(picker.focused).orEmpty() + Line.BLANK
+        ) + picker.chart?.invoke(picker.focused, width).orEmpty() + Line.BLANK
         val listed = picker.shown.mapIndexed { index, option ->
             val here = index == picker.index
             Line(if (here) "${Glyph.FOCUS} " else "  ", Palette.focused) +
@@ -429,9 +429,16 @@ class Editor(
                 "?" to "help", "^p" to "preview", "^t" to "try", "^f" to "faults", "^s" to "save",
             )
         } else if (inside) {
+            // **Only the keys this section answers.** `a` and `d` are guarded by `isAList` and `tab` only
+            // moves between a parameter's targets, so on the rarity they were three hints for three keys
+            // that did nothing — which is worse than no hint at all, a reader having tried them.
+            val listing = parts.isAList(part)
             hints(
                 "↑↓" to "row", "pgup/pgdn" to "a page", "home/end" to "ends", "←" to "back",
-                "enter" to "edit", "a" to "add", "d" to "delete", "tab" to "target",
+                "enter" to "edit",
+                if (listing) "a" to "add" else "" to "",
+                if (listing) "d" to "delete" else "" to "",
+                if (listing) "tab" to "target" else "" to "",
                 "?" to "help", "^p" to "preview", "^t" to "try", "^f" to "faults",
                 "^z" to "undo", "^s" to "save",
             )
@@ -800,10 +807,13 @@ class Editor(
                 building = into
                 keepBuilding(into)
             }
+            // **Re-opening a claim asks what adding one asks.** Both used to end here, at a prompt with the
+            // standing value typed into it — so a temperature already set was edited as a string while the
+            // same temperature being set for the first time got the axis, the bands and the landmarks.
             "pool" -> pointedAt(rest.substringBeforeLast('/'))?.let { into ->
-                retypeParameter(listOf(rest.substringAfterLast('/')), into)
+                typeValueFor(listOf(rest.substringAfterLast('/')), into)
             }
-            else -> insistenceNamed(kind)?.let { insistence -> retypeParameter(listOf(rest), Into(insistence)) }
+            else -> insistenceNamed(kind)?.let { insistence -> typeValueFor(listOf(rest), Into(insistence)) }
         }
     }
 
@@ -1138,14 +1148,23 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
      * list says what actually works.
      */
     private fun pickABaseDimension() {
-        val options = parts.baseDimensions().map { (key, said) ->
-            Picker.Option(key, key, said, marked = key == candidate.template)
+        val options = parts.baseDimensions().mapIndexed { at, (key, said) ->
+            Picker.Option(
+                value = key,
+                label = Parts.dimensionCalled(key),
+                note = said,
+                marked = key == (candidate.template ?: Parts.UNSET),
+                // Saying nothing is not one of the dimensions, and reads as its own answer.
+                startsGroup = at == 1,
+            )
         }
         overlay = Picker(
             title = "Built on which dimension?",
             options = options,
             onClear = { edit { it.copy(template = null) } },
-            onPick = { picked -> edit { it.copy(template = picked.value) } },
+            onPick = { picked ->
+                edit { it.copy(template = picked.value.takeIf { said -> said != Parts.UNSET }) }
+            },
         )
     }
 
@@ -1493,6 +1512,9 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
      * `red|blue|green` and an Age draws one per world, which meant spelling three options exactly and
      * hoping — with the list of what they could be one screen back. Marking builds the same string and
      * previews it while it is built. A band is still typed, because a band is a number and not a choice.
+     *
+     * **Setting one and changing one are the same question**, so both arrive here. Typing it out is the
+     * way through where the list cannot help, and it starts from whatever the parameter says now.
      */
     private fun typeValueFor(parameters: List<String>, into: Into) {
         val bare = parameters.first().substringAfterLast('.')
@@ -1501,15 +1523,16 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
             ?: Aspect.entries.firstOrNull { it.ownsParameterNamed(bare) }
         val parameter = on?.let { Verdict.parametersNamed(it, bare, corpus).firstOrNull() }
         val shapes = parameter?.let { parts.optionsFor(it, on) }.orEmpty()
-        if (shapes.isEmpty()) return retypeParameter(parameters, into, starting = "")
+        if (shapes.isEmpty()) return retypeParameter(parameters, into)
         // **A band is the one thing still typed.** Its shapes are templates to edit rather than answers,
         // where every other parameter's values are the answers themselves and can simply be marked.
         if (parameter?.holds == Holds.RANGE) {
             overlay = Picker(
                 title = "What kind of value?",
                 options = shapes,
-                // The scale, with whatever the cursor is on shaded across the ground it would claim.
-                chart = { focused -> Axis.chart(parameter, focused?.value, canvas.width - PANE_MARGIN) },
+                // The scale, with whatever the cursor is on shaded across the ground it would claim —
+                // drawn to the pane it lands in rather than to a guess at how wide that will be.
+                chart = { focused, room -> Axis.chart(parameter, focused?.value, room) },
             ) { picked -> retypeParameter(parameters, into, starting = picked.value) }
             return
         }
@@ -1532,7 +1555,7 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
         ) { picked ->
             val marked = standing?.marked.orEmpty()
             when {
-                picked.value == TYPE_IT -> retypeParameter(parameters, into, starting = "")
+                picked.value == TYPE_IT -> retypeParameter(parameters, into)
                 picked.value != TAKE_THE_MARKED -> standing?.mark(picked.value)
                 marked.isEmpty() -> Unit
                 else -> setParameters(parameters, into, marked.joinToString(ALTERNATIVELY))
@@ -1553,7 +1576,7 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
         when {
             marked.isNotEmpty() -> setParameters(parameters, into, marked.joinToString(ALTERNATIVELY))
             picked.value == TAKE_THE_MARKED -> Unit
-            picked.value == TYPE_IT -> retypeParameter(parameters, into, starting = "")
+            picked.value == TYPE_IT -> retypeParameter(parameters, into)
             else -> setParameters(parameters, into, picked.value)
         }
     }
@@ -1649,22 +1672,33 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
         val standing = WordFile.listingFor(candidate.listingKey).rarity
         val standings = WordFile.rarityStandings()
         val total = standings.values.sumOf { (weight, _) -> weight }
-        val options = WordFile.rarityBuckets().map { bucket ->
+        val buckets = WordFile.rarityBuckets().map { bucket ->
             val (weight, listed) = standings[bucket] ?: (0.0 to 0)
             val share = if (total <= 0) "" else "%.0f%% of pages".format(weight / total * 100)
             Picker.Option(
                 value = bucket,
                 label = bucket,
                 note = "$share ${Glyph.BULLET} $listed words" + if (bucket == standing) "  ${Glyph.BULLET} current" else "",
+                marked = bucket == standing,
             )
         }
         overlay = Picker(
             title = "Which rarity?",
-            options = options,
-            onPick = { picked -> writeRarity(picked.value) },
+            options = unsetFirst("in no bucket, and drawn with the rest", standing == null) + buckets,
+            onPick = { picked -> writeRarity(picked.value.takeIf { it != Parts.UNSET }) },
             onClear = { writeRarity(null) },
         )
     }
+
+    /**
+     * The row that says "none of these", above whatever they are.
+     *
+     * `^d` clears from anywhere and is on the key line, but a keystroke is not an option: a list of four
+     * buckets with no way to say *not one of them* reads as a choice you cannot take back.
+     */
+    private fun unsetFirst(said: String, standing: Boolean) = listOf(
+        Picker.Option(Parts.UNSET, Parts.UNSET, said, marked = standing),
+    )
 
     private fun writeRarity(bucket: String?) {
         // A derived word is named by its full id, which is how `WordRarity` finds it and how it stops
@@ -1691,13 +1725,13 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
         } else {
             WordFile.listingFor(candidate.listingKey).ink
         }
-        val options = WordFile.inkTiers().map {
-            Picker.Option(it, it, if (it == standing) "current" else "")
+        val tiers = WordFile.inkTiers().map {
+            Picker.Option(it, it, if (it == standing) "current" else "", marked = it == standing)
         }
         overlay = Picker(
             title = "Which ink quality?",
-            options = options,
-            onPick = { picked -> writeInk(where, picked.value) },
+            options = unsetFirst("written with any ink at all", standing == null) + tiers,
+            onPick = { picked -> writeInk(where, picked.value.takeIf { it != Parts.UNSET }) },
             onClear = { writeInk(where, null) },
         )
     }
@@ -1880,8 +1914,6 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
          */
         const val NOTE_LEAST = 4
 
-        /** Roughly what the question pane leaves after the sections and the word beside it. */
-        const val PANE_MARGIN = 56
         const val STRIP_LINES = 4
         const val PICKER_LABEL = 30
         const val DEFAULT_EDITOR = "vi"

@@ -58,12 +58,15 @@ class Picker(
      */
     val joinsWith: String? = null,
     /**
-     * Something to draw above the list, given whatever the cursor is on.
+     * Something to draw above the list, given whatever the cursor is on and **how wide the pane it lands
+     * in turned out to be.**
      *
      * A function rather than lines, because what it shows depends on the row: a numeric axis wants the
-     * highlighted value shaded on it, and that changes as the cursor moves.
+     * highlighted value shaded on it, and that changes as the cursor moves. The width is passed rather
+     * than captured because only the frame knows it — a chart built with a guess at it was cut off on the
+     * right of a pane with room to spare.
      */
-    val chart: ((Option?) -> List<Line>)? = null,
+    val chart: ((Option?, Int) -> List<Line>)? = null,
     /**
      * What `-` and `=` do to the row under the cursor — for a list you **set** rather than pick from.
      *
