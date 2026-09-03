@@ -114,10 +114,11 @@ class Tags(
                     key.key == "PageUp" -> table.page(-1)
                     key.key == "PageDown" -> table.page(1)
                     key.key == "Tab" -> { grouped = !grouped; table.withRows(rowsOf()) }
-                    // **The filter first**, so a mistyped search is corrected the way it is everywhere;
-                    // with nothing typed there is no filter to shorten and the key is free to mean the
-                    // other thing.
-                    key.key == "Backspace" -> if (table.isFiltered) table.backspace() else reset()
+                    key.key == "Backspace" -> table.backspace()
+                    // **`^o` for the original value**, which is the column's own word. Backspace was the
+                    // obvious key and is the search's: taking it meant finding a row by typing and then
+                    // clearing the search before the row could be reset.
+                    key.ctrl && key.key == "o" -> reset()
                     key.key == "=" -> bump(1)
                     key.key == "-" -> bump(-1)
                     key.ctrl && key.key == "d" -> {
@@ -328,7 +329,7 @@ class Tags(
     private fun carrierLines(table: Table, tag: String, grouped: Boolean): List<Line> {
         val asked = layer.askedBy(tag)
         // Offered only where there is something to go back to, which is a row standing on a rule.
-        val resettable = carrierFor(table.focused, tag)?.under?.takeIf { !table.isFiltered }
+        val resettable = carrierFor(table.focused, tag)?.under
         return tableLines(
             table,
             canvas,
@@ -339,7 +340,7 @@ class Tags(
                 ),
                 hints(
                     "- =" to "step the weight",
-                    if (resettable == null) "" to "" else "backspace" to "back to %.2f".format(resettable),
+                    if (resettable == null) "" to "" else "^o" to "back to %.2f".format(resettable),
                 ),
                 hints(
                     "tab" to if (grouped) "sort by name" else "group by source",
