@@ -1,11 +1,17 @@
 {
   "tier": "restrictive",
   "excludes": {
+    "structures": [
+      "#inhabited"
+    ],
     "spawns": [
       "#undead",
       "#arthropod",
       "#grazing",
-      "#inhabited"
+      "#inhabited",
+      "#fauna",
+      "#watery",
+      "#flowering"
     ]
   },
   "biases": {
