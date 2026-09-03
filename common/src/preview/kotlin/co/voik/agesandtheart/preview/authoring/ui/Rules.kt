@@ -63,18 +63,10 @@ class Rules(
                     key.key == "ArrowLeft" -> return
                     key.key == "ArrowRight" || key.key == "Enter" ->
                         table.focused?.key?.let(::openTheRules)
-                    key.key == "ArrowUp" -> table.move(-1)
-                    key.key == "ArrowDown" -> table.move(1)
-                    key.key == "Home" -> table.home()
-                    key.key == "End" -> table.end()
-                    key.key == "PageUp" -> table.page(-1)
-                    key.key == "PageDown" -> table.page(1)
-                    key.key == "Tab" -> table.sortByTheColumnInHand()
-                    key.key == "Backspace" -> table.backspace()
                     key.ctrl && key.key == "l" -> if (refreshed()) table.withRows(
                         canvas.whileBusy("Reading the rules") { filling.keys.sorted().map(::tagRow) },
                     )
-                    key.key.length == 1 && !key.ctrl && !key.alt -> table.type(key.key)
+                    else -> table.tookTheKey(key)
                 }
             }
         }
@@ -84,46 +76,94 @@ class Rules(
      * The rules behind one tag, **three panes: where, which, and what it took.**
      *
      * A reading was a document and the fan-in makes that unreadable — `grown` has thirty-one rules across
-     * two aspects, each with a wrapped list of members underneath, so finding the one about biomes meant
-     * scrolling past twenty about features. The aspect is the first cut because it is the one a reader
-     * already has in mind, and the rules under it are a table like every other list here.
+     * two aspects, each with a list of members underneath, so finding the one about biomes meant scrolling
+     * past twenty about features. The aspect is the first cut because it is the one a reader already has
+     * in mind.
      *
-     * The third pane **follows the cursor rather than taking it**: what a rule caught is the answer to
-     * the row you are on, not a place to go.
+     * **All three are tables**, so all three scroll, page, sort and filter without this screen knowing
+     * how — the members of `#minecraft:logs` are seventy and a pane that could only be read to the bottom
+     * of the screen was the third thing here to hide its own answer. Left and right walk a table's columns
+     * and then step to the pane beside it, which is one pair of keys for both and no order to remember.
      */
     private fun openTheRules(tag: String) {
         val here = filling[tag].orEmpty()
         val aspects = here.map { it.aspect }.distinct().sortedBy { it.page }
         if (aspects.isEmpty()) return
-        var at = 0
-        var inside = false
-        var rules = tableOf(here, aspects[at])
+        val listed = Table(
+            title = "",
+            columns = listOf(Table.Column("aspect", ASPECT_LEAST, grows = true)),
+            rows = aspects.map { Table.Row(key = it.page, cells = listOf(it.page)) },
+        )
+        var pane = Pane.ASPECTS
+        var rules = tableOf(here, aspects[0])
+        var showingAspect = aspects[0].page
+        var members: Table? = null
+        var showingRule: String? = null
+
+        /** The panes to the right follow the cursor to their left, and only when it has moved. */
+        fun follow() {
+            val aspect = listed.focused?.key
+            if (aspect != null && aspect != showingAspect) {
+                showingAspect = aspect
+                rules = tableOf(here, aspects.first { it.page == aspect })
+            }
+            val rule = rules.focused?.key
+            if (rule != showingRule) {
+                showingRule = rule
+                members = here.firstOrNull { it.id == rule }?.let(::membersTable)
+            }
+        }
         terminal.enterRawMode(MouseTracking.Off).use { scope ->
             while (true) {
-                canvas.show(detailLines(tag, aspects, at, inside, rules))
+                follow()
+                var widths = widthsFor(rules, pane)
+                if (widths.members == 0 && pane == Pane.MEMBERS) {
+                    pane = Pane.RULES
+                    widths = widthsFor(rules, pane)
+                }
+                canvas.show(detailLines(tag, listed, rules, members, pane, widths))
                 val key = scope.readKey() ?: return
                 if (key.ctrl && key.key == "c") throw Leaving()
+                val focused = when (pane) {
+                    Pane.ASPECTS -> listed
+                    Pane.RULES -> rules
+                    Pane.MEMBERS -> members
+                }
 
-                /** Whichever list has the cursor, moved — and the rules rebuilt where the aspect moved. */
-                fun move(by: Int) {
-                    if (inside) return rules.move(by)
-                    at = (at + by).coerceIn(0, aspects.lastIndex)
-                    rules = tableOf(here, aspects[at])
+                /** A pane over, the table there taking its cursor to whichever edge was stepped through. */
+                fun stepTo(next: Pane, by: Int) {
+                    pane = next
+                    val landed = if (next == Pane.RULES) rules else if (next == Pane.MEMBERS) members else listed
+                    landed?.toColumn(if (by > 0) 0 else landed.columns.lastIndex)
+                }
+
+                /** Across the focused table's columns first, and on to the pane beside it once spent. */
+                fun step(by: Int): Boolean {
+                    if (focused?.acrossOrOff(by) == true) return true
+                    val next = when {
+                        by > 0 && pane == Pane.ASPECTS -> Pane.RULES
+                        by > 0 && pane == Pane.RULES && members != null -> Pane.MEMBERS
+                        by < 0 && pane == Pane.MEMBERS -> Pane.RULES
+                        by < 0 && pane == Pane.RULES -> Pane.ASPECTS
+                        else -> return false
+                    }
+                    stepTo(next, by)
+                    return true
                 }
                 when {
                     key.ctrl && (key.key == "q" || key.key == "c") -> return
-                    key.key == "Escape" -> if (inside) inside = false else return
-                    key.key == "ArrowLeft" -> if (inside) inside = false else return
-                    key.key == "ArrowRight" || key.key == "Enter" -> inside = true
-                    key.key == "ArrowUp" -> move(-1)
-                    key.key == "ArrowDown" -> move(1)
-                    key.key == "Home" -> if (inside) rules.home() else { at = 0; rules = tableOf(here, aspects[0]) }
-                    key.key == "End" -> if (inside) rules.end() else {
-                        at = aspects.lastIndex
-                        rules = tableOf(here, aspects[at])
+                    key.key == "Escape" -> when {
+                        focused?.isFiltered == true -> focused.clearFilter()
+                        !step(-1) -> return
                     }
-                    key.key == "PageUp" -> if (inside) rules.page(-1) else move(-1)
-                    key.key == "PageDown" -> if (inside) rules.page(1) else move(1)
+                    key.key == "ArrowLeft" -> if (!step(-1)) return
+                    key.key == "ArrowRight" -> step(1)
+                    key.key == "Enter" -> when (pane) {
+                        Pane.ASPECTS -> stepTo(Pane.RULES, 1)
+                        Pane.RULES -> if (members != null) stepTo(Pane.MEMBERS, 1)
+                        Pane.MEMBERS -> Unit
+                    }
+                    else -> focused?.tookTheKey(key)
                 }
             }
         }
@@ -139,13 +179,11 @@ class Rules(
     private fun tableOf(here: List<Rule>, aspect: Aspect): Table {
         val rules = here.filter { it.aspect == aspect }
         val tested = rules.any { testOf(it) != null }
-        val strength = Table.Column("strength", STRENGTH_WIDTH)
-        val members = Table.Column("members", COUNT_WIDTH)
         return Table(
             title = "",
             columns = listOf(Table.Column("predicate", PREDICATE_LEAST)) +
                 (if (tested) listOf(Table.Column("test", TEST_LEAST)) else emptyList()) +
-                listOf(strength, members),
+                listOf(Table.Column("strength", STRENGTH_WIDTH), Table.Column("members", COUNT_WIDTH)),
             rows = rules.map { rule ->
                 val caught = DerivationRules.catches(rule, corpus)
                 Table.Row(
@@ -163,44 +201,61 @@ class Rules(
         )
     }
 
+    /** Which of the three lists the keys are going to. */
+    private enum class Pane { ASPECTS, RULES, MEMBERS }
+
+    /** What each pane is drawn at; zero members means the pane is not drawn at all. */
+    private data class Widths(val rules: Int, val members: Int)
+
+    /**
+     * The width divided between the panes — **the rules take what they measure and the members get the
+     * rest**, since a column told to grow would spend the whole pane on a predicate.
+     *
+     * Nothing is drawn on the right until the cursor has reached a rule: while the aspect is still being
+     * chosen there is no row for a member list to be the answer to, and a pane standing there anyway is a
+     * third list with no visible reason to be showing what it shows.
+     */
+    private fun widthsFor(rules: Table, pane: Pane): Widths {
+        val beside = canvas.width - ASPECTS_PANE - Frame.GUTTER
+        if (pane == Pane.ASPECTS) return Widths(beside, 0)
+        val forRules = (rules.wanted + CURSOR_COLUMN).coerceIn(MINIMUM_ROOM, beside)
+        val left = beside - forRules - Frame.SEPARATION
+        return if (left < MEMBERS_LEAST) Widths(beside, 0) else Widths(forRules, left)
+    }
+
     private fun detailLines(
         tag: String,
-        aspects: List<Aspect>,
-        at: Int,
-        inside: Boolean,
+        listed: Table,
         rules: Table,
+        members: Table?,
+        pane: Pane,
+        widths: Widths,
     ): List<Line> {
         val room = (canvas.height - CHROME).coerceAtLeast(1)
-        val caught = rules.focused?.let { row -> filling[tag].orEmpty().firstOrNull { it.id == row.key } }
-            ?.let { DerivationRules.catches(it, corpus) }
-        // **The rules take what they need and the members get the rest.** A growing column would spend
-        // the whole pane on a predicate and leave nothing beside it, which is what the third pane is for.
-        val beside = canvas.width - ASPECTS_PANE - Frame.GUTTER
-        val forRules = (rules.wanted + CURSOR_COLUMN).coerceIn(MINIMUM_ROOM, beside)
-        val left = beside - forRules - Frame.GUTTER
-        val forMembers = if (caught == null || left < MEMBERS_LEAST) 0 else left
-        rules.room = (if (forMembers == 0) beside else forRules) - CURSOR_COLUMN
-        rules.window = room - 1
-
-        val listed = aspects.mapIndexed { where, aspect ->
-            val focused = where == at && !inside
-            Line(if (focused) "${Glyph.FOCUS} " else "  ", Palette.focused) +
-                Line(aspect.page, if (where == at) Palette.aspect else Palette.faint)
-        }
-        val shown = rules.shown
-        val first = (rules.index - room / 2).coerceIn(0, (shown.size - room + 1).coerceAtLeast(0))
-        val table = listOf(headerLine(rules)) + shown.drop(first).take(room - 1).mapIndexed { offset, row ->
-            rowLine(rules, row, here = inside && first + offset == rules.index)
-        }
-        val forTheRules = if (forMembers == 0) beside else forRules
-        val body = Frame.beside(listed, ASPECTS_PANE, table, forTheRules)
-        // **Laid beside rather than drawn along**, so a rule with fourteen members is not cut to the
-        // height of the four-rule table it sits next to.
-        val whole = if (forMembers == 0) {
+        listed.room = ASPECTS_PANE - CURSOR_COLUMN
+        rules.room = (widths.rules - CURSOR_COLUMN).coerceAtLeast(MINIMUM_ROOM)
+        members?.room = (widths.members - CURSOR_COLUMN).coerceAtLeast(MINIMUM_ROOM)
+        val body = Frame.beside(
+            paneLines(listed, room, focused = pane == Pane.ASPECTS),
+            ASPECTS_PANE,
+            paneLines(rules, room, focused = pane == Pane.RULES),
+            widths.rules,
+        )
+        // **Walled rather than ruled**, so the members read as a second list and not a fifth column.
+        val whole = if (members == null || widths.members == 0) {
             body
         } else {
-            val members = membersPane(requireNotNull(caught), forMembers)
-            Frame.beside(body, ASPECTS_PANE + Frame.GUTTER + forTheRules, members, forMembers)
+            Frame.apart(
+                body,
+                ASPECTS_PANE + Frame.GUTTER + widths.rules,
+                paneLines(members, room, focused = pane == Pane.MEMBERS),
+                widths.members,
+            )
+        }
+        val focused = when (pane) {
+            Pane.ASPECTS -> listed
+            Pane.RULES -> rules
+            Pane.MEMBERS -> members
         }
         return listOf(
             Line("  what fills ", Palette.heading) + Line("${Word.TAG_MARK}$tag", Palette.tag),
@@ -208,31 +263,42 @@ class Rules(
         ) + whole.take(room) + listOf(
             Frame.rule(canvas.width),
             hints(
-                "↑↓" to if (inside) "rule" else "aspect",
-                if (inside) "←" to "aspects" else "→" to "its rules",
+                "↑↓" to when (pane) {
+                    Pane.ASPECTS -> "aspect"
+                    Pane.RULES -> "rule"
+                    Pane.MEMBERS -> "member"
+                },
+                "←→" to if (pane == Pane.ASPECTS) "its rules" else "column, then pane",
+                "tab" to "sort",
                 "esc" to "back",
+                searching(focused?.filter.orEmpty()),
             ),
         )
     }
 
     /**
-     * What the rule under the cursor took, listed — the answer to the row rather than a place to go.
+     * What the rule under the cursor took, as a table of its own.
      *
-     * **A rule a server caught nothing with is not a rule nobody asked.** Eight of them are genuinely
-     * empty against vanilla, and reading "no snapshot to ask" off a snapshot that holds the answer sends
-     * the reader on an errand they have already run.
+     * A list rather than a pane of wrapped text because seventy members is longer than any terminal, and
+     * a table is the one thing here that already knows how to be read a page at a time.
+     *
+     * **A rule a server caught nothing with is not a rule nobody asked.** Eight of the hundred and
+     * forty-two are genuinely empty against vanilla, and reading "needs snapshot" off a snapshot that
+     * holds the answer sends the reader on an errand they have already run.
      */
-    private fun membersPane(caught: DerivationRules.Caught, width: Int): List<Line> = buildList {
-        add(
-            when {
-                caught.members.isNotEmpty() && caught.fromAServer ->
-                    Line("${caught.members.size} members, from a server", Palette.nudged)
-                caught.members.isNotEmpty() -> Line("${caught.members.size} members", Palette.settled)
-                caught.fromAServer -> Line("nothing — a server had none", Palette.warned)
-                else -> Line("nothing — needs a server snapshot", Palette.warned)
-            },
+    private fun membersTable(rule: Rule): Table {
+        val caught = DerivationRules.catches(rule, corpus)
+        val heading = when {
+            caught.members.isEmpty() -> "members"
+            caught.fromAServer -> "${caught.members.size} members, from a server"
+            else -> "${caught.members.size} members"
+        }
+        return Table(
+            title = "",
+            columns = listOf(Table.Column(heading, MEMBERS_LEAST - CURSOR_COLUMN, grows = true)),
+            rows = caught.members.map { Table.Row(key = it, cells = listOf(it)) },
+            whenEmpty = if (caught.fromAServer) "empty" else "needs snapshot",
         )
-        addAll(caught.members.map { Line(cell(it, width), Palette.faint) })
     }
 
     private fun tagRow(tag: String): Table.Row {
@@ -324,9 +390,10 @@ class Rules(
 
         /** The aspects down the left; the two panes beside them divide what is left. */
         const val ASPECTS_PANE = 14
+        const val ASPECT_LEAST = 10
 
-        /** Below this the third pane cannot say a member's name, so it is not drawn. */
-        const val MEMBERS_LEAST = 24
+        /** Below this the third pane cannot say its own heading, so it is not drawn. */
+        const val MEMBERS_LEAST = 30
 
         /** The rules table's own columns; every one of them measures its own contents. */
         const val PREDICATE_LEAST = 24

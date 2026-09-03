@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.preview.authoring.ui
 
+import com.github.ajalt.mordant.input.KeyboardEvent
 import com.github.ajalt.mordant.rendering.TextStyle
 
 /**
@@ -171,6 +172,24 @@ class Table(
     }
 
     /**
+     * The cursor a column over, or **false where that would run off the end.**
+     *
+     * How a table drawn as one pane of several hands left and right on: its own columns first, and the
+     * pane beside it once they are spent. A screen of one table never sees the false.
+     */
+    fun acrossOrOff(by: Int): Boolean {
+        val next = column + by
+        if (next !in columns.indices) return false
+        column = next
+        return true
+    }
+
+    /** The cursor put on a column outright — the near edge, for a pane just stepped into. */
+    fun toColumn(at: Int) {
+        column = at.coerceIn(0, columns.lastIndex)
+    }
+
+    /**
      * Ordered by whichever column the cursor is on — **and the cursor stays on the row it was on**, which
      * is the whole point of sorting from where you are rather than from the top.
      *
@@ -255,14 +274,33 @@ fun tableLines(table: Table, canvas: Canvas, hints: List<Line>): List<Line> = bu
     table.room = (canvas.width - CURSOR_COLUMN).coerceAtLeast(MINIMUM_ROOM)
     add(Line("  ${table.title}", Palette.heading))
     add(Line.BLANK)
-    add(headerLine(table))
-    add(Frame.rule(canvas.width))
     val room = (canvas.height - CHROME_AROUND_A_TABLE - hints.size).coerceAtLeast(1)
+    val body = paneLines(table, room + 1, focused = true)
+    add(body.first())
+    add(Frame.rule(canvas.width))
+    addAll(body.drop(1))
+    add(Frame.rule(canvas.width))
+    addAll(hints)
+}
+
+/**
+ * A table drawn as **one pane of a screen** — its header and as many rows as [rows] lines will hold.
+ *
+ * The same body [tableLines] draws, so a screen of three tables scrolls, pages and sorts exactly like a
+ * screen of one. The window arithmetic in particular is the part that is subtly wrong in a second copy,
+ * and a pane needs it as much as a page does.
+ *
+ * [focused] is whether the cursor is in *this* pane: an unfocused one shows neither its row marker nor
+ * its chosen column, so which list the keys are going to is never in doubt.
+ */
+fun paneLines(table: Table, rows: Int, focused: Boolean): List<Line> = buildList {
+    val room = (rows - 1).coerceAtLeast(1)
     table.window = room
+    add(headerLine(table, focused))
     val shown = table.shown
     val first = (table.index - room / 2).coerceIn(0, (shown.size - room).coerceAtLeast(0))
     for ((offset, row) in shown.drop(first).take(room).withIndex()) {
-        add(rowLine(table, row, here = first + offset == table.index))
+        add(rowLine(table, row, here = focused && first + offset == table.index))
     }
     if (shown.isEmpty()) {
         add(
@@ -273,8 +311,30 @@ fun tableLines(table: Table, canvas: Canvas, hints: List<Line>): List<Line> = bu
             },
         )
     }
-    add(Frame.rule(canvas.width))
-    addAll(hints)
+}
+
+/**
+ * The keys a table answers the same way wherever it is drawn: the cursor, the page, the sort, the filter.
+ *
+ * Says whether it took the key, so the screen around it handles only what is its own. **Left and right
+ * are deliberately not here** — on a screen of one table they walk the columns and on a screen of several
+ * they have to reach the pane beside it, and which of those it is is the screen's to know.
+ */
+fun Table.tookTheKey(key: KeyboardEvent): Boolean {
+    when {
+        key.ctrl || key.alt -> return false
+        key.key == "ArrowUp" -> move(-1)
+        key.key == "ArrowDown" -> move(1)
+        key.key == "Home" -> home()
+        key.key == "End" -> end()
+        key.key == "PageUp" -> page(-1)
+        key.key == "PageDown" -> page(1)
+        key.key == "Tab" -> sortByTheColumnInHand()
+        key.key == "Backspace" -> backspace()
+        key.key.length == 1 -> type(key.key)
+        else -> return false
+    }
+    return true
 }
 
 /** Title, blank, header, two rules, and a line the terminal keeps for itself. */
@@ -298,11 +358,11 @@ private const val ROOMY = 10_000
  */
 private fun columnRule() = Line(" ${Glyph.BAR} ", Palette.rule)
 
-fun headerLine(table: Table): Line {
+fun headerLine(table: Table, focused: Boolean = true): Line {
     val titles = table.columns.mapIndexed { at, column ->
         val sorted = table.sortedBy == at
         val title = if (sorted) "${column.title} ${if (table.descending) "↓" else "↑"}" else column.title
-        Ink(title, if (at == table.column) Palette.chosen else Palette.faint)
+        Ink(title, if (focused && at == table.column) Palette.chosen else Palette.faint)
     }
     return Line("    ") + Columns.laid(titles, table.widths, columnRule())
 }

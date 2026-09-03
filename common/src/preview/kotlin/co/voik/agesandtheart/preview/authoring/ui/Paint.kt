@@ -181,6 +181,9 @@ object Glyph {
     const val WARN = "!"
     const val RULE = "─"
     const val BAR = "│"
+
+    /** Between panes, where [BAR] between columns would read as one more column. */
+    const val WALL = "║"
     const val FULL = "█"
     const val EMPTY = "░"
 }
@@ -278,6 +281,25 @@ object Frame {
             here + Line(" ${Glyph.BAR} ", Palette.rule) + there
         }
     }
+
+    /**
+     * Two panes side by side, **walled rather than ruled.**
+     *
+     * The same arrangement as [beside] with a heavier divider and room around it, for where the thing on
+     * the right is a second list rather than one more column of the first. A column rule between them
+     * says the wrong thing, the eye having just read four of those inside the table itself.
+     */
+    fun apart(left: List<Line>, leftWidth: Int, right: List<Line>, rightWidth: Int): List<Line> {
+        val rows = maxOf(left.size, right.size)
+        return (0..<rows).map { row ->
+            val here = (left.getOrNull(row) ?: Line.BLANK).sized(leftWidth)
+            val there = (right.getOrNull(row) ?: Line.BLANK).sized(rightWidth)
+            here + Line("  ${Glyph.WALL}  ", Palette.rule) + there
+        }
+    }
+
+    /** What [apart] spends on the wall and the room around it. */
+    const val SEPARATION = 5
 
     fun rule(width: Int, label: String? = null): Line {
         if (label == null) return Line(Glyph.RULE.repeat(width), Palette.rule)
