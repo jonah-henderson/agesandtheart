@@ -72,6 +72,10 @@ class Menu(
         }
     }
 
+    /** Whether the list has nothing to show and what was typed could be a word's name. */
+    private fun offeringToWrite(table: Table, mayWriteOne: Boolean) =
+        mayWriteOne && table.shown.isEmpty() && table.isFiltered && WordFile.couldBeAName(table.filter)
+
     /**
      * A word, opened — and **the corpus read again afterwards**.
      *
@@ -102,18 +106,31 @@ class Menu(
                 Table.Column("effects", EFFECTS_WIDTH),
             ),
             rows = canvas.whileBusy(work = rowsOf),
+            whenNothingMatches = { typed ->
+                if (WordFile.couldBeAName(typed)) "nothing matches '$typed' — enter to write it"
+                else "nothing matches '$typed'"
+            },
         )
         // **Looped here rather than inside [walk]**, so the same table comes back after a word is closed:
         // the filter, the cursor and the sort are where you left them, and only leaving for the menu
         // starts again.
         while (true) {
-            val chosen = walk(table, rowsOf) ?: return
-            WordFile.read(chosen).fold(
-                onSuccess = ::edit,
-                onFailure = { failure ->
-                    read(Reader("'$chosen' would not read", listOf(Line(failure.message.orEmpty(), Palette.refused))))
-                },
-            )
+            val chosen = walk(table, rowsOf, mayWriteOne = true) ?: return
+            if (chosen.isNew) {
+                edit(Candidate.blank(chosen.key))
+            } else {
+                WordFile.read(chosen.key).fold(
+                    onSuccess = ::edit,
+                    onFailure = { failure ->
+                        read(
+                            Reader(
+                                "'${chosen.key}' would not read",
+                                listOf(Line(failure.message.orEmpty(), Palette.refused)),
+                            ),
+                        )
+                    },
+                )
+            }
             table.withRows(canvas.whileBusy(work = rowsOf))
         }
     }
@@ -174,7 +191,7 @@ class Menu(
         )
         while (true) {
             val chosen = walk(table, rowsOf) ?: return
-            derived.firstOrNull { it.name == chosen }?.let { edit(Candidate.of(it)) }
+            derived.firstOrNull { it.name == chosen.key }?.let { edit(Candidate.of(it)) }
             table.withRows(canvas.whileBusy(work = rowsOf))
         }
     }
@@ -265,7 +282,7 @@ class Menu(
         )
         while (true) {
             val chosen = walk(table, rowsOf) ?: return
-            val gap = Gaps.of(corpus).firstOrNull { it.key == chosen } ?: continue
+            val gap = Gaps.of(corpus).firstOrNull { it.key == chosen.key } ?: continue
             edit(Gaps.wordFor(gap, corpus))
             table.withRows(canvas.whileBusy(work = rowsOf))
         }
@@ -412,7 +429,20 @@ class Menu(
      *
      * [rowsOf] rather than a list, for that rebuild.
      */
-    private fun walk(table: Table, rowsOf: () -> List<Table.Row>): String? {
+    /**
+     * What walking a list came back with: a row, or a name to write that no row had.
+     *
+     * The second is why this is not a bare string — searching a corpus of a hundred words for one that is
+     * not there is exactly the moment somebody means to write it, and going back to the menu to say so is
+     * a trip taken because the list had nothing else to offer.
+     */
+    private data class Chosen(val key: String, val isNew: Boolean = false)
+
+    private fun walk(
+        table: Table,
+        rowsOf: () -> List<Table.Row>,
+        mayWriteOne: Boolean = false,
+    ): Chosen? {
         terminal.enterRawMode(MouseTracking.Off).use { scope ->
             while (true) {
                 canvas.show(tableLines(table))
@@ -446,8 +476,13 @@ class Menu(
                     key.key == "PageDown" -> table.page(1)
                     key.key == "Tab" -> table.sortByTheColumnInHand()
                     key.key == "Backspace" -> table.backspace()
-                    // On a value column enter steps it on; on the name it opens the word.
-                    key.key == "Enter" -> if (kind.isEmpty()) return row?.key ?: continue else bump(1)
+                    // On a value column enter steps it on; on the name it opens the word — or writes the
+                    // one that was searched for and not found, where the list says it will.
+                    key.key == "Enter" -> when {
+                        offeringToWrite(table, mayWriteOne) -> return Chosen(table.filter, isNew = true)
+                        kind.isEmpty() -> return Chosen(row?.key ?: continue)
+                        else -> bump(1)
+                    }
                     key.key == "=" -> bump(1)
                     key.key == "-" -> bump(-1)
                     // The function keys reach a column without moving to it.

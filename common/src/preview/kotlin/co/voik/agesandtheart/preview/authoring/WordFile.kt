@@ -80,6 +80,14 @@ object WordFile {
     private val LEGAL_NAME = Regex("[a-z0-9/._-]+")
 
     /**
+     * Whether [name] could be a word's file name — the same rule [write] refuses on, asked in advance.
+     *
+     * A screen that offers to make a word out of what was typed has to know before it offers, or the
+     * offer is a keystroke that leads to a word that cannot be saved.
+     */
+    fun couldBeAName(name: String): Boolean = name.matches(LEGAL_NAME)
+
+    /**
      * Which loot bucket and which ink a word is listed in — **stored away from the word**, in
      * `art/rarity/` and `art/ink/`, which is why the tool has to reach two more directories to answer a
      * question the word file cannot.

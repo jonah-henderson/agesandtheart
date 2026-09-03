@@ -22,6 +22,13 @@ class Table(
      * up reading as a search that failed — with no hint that the thing to do is make one.
      */
     val whenEmpty: String = "nothing here yet",
+    /**
+     * What to say when the *filter* leaves nothing, given what was typed.
+     *
+     * A lambda because a search that finds nothing is sometimes the start of something — a word list can
+     * offer to write what was typed, where a list of the game's own biomes has nothing to offer at all.
+     */
+    val whenNothingMatches: (String) -> String = { "nothing matches '$it'" },
 ) {
     /**
      * [kind] says what the column holds, so the caller can act on it without counting positions — adding
@@ -239,7 +246,7 @@ fun tableLines(table: Table, canvas: Canvas, hints: List<Line>): List<Line> = bu
             if (table.rows.isEmpty()) {
                 Line("    ${table.whenEmpty}", Palette.faint)
             } else {
-                Line("    nothing matches '${table.filter}'", Palette.warned)
+                Line("    ${table.whenNothingMatches(table.filter)}", Palette.warned)
             },
         )
     }
