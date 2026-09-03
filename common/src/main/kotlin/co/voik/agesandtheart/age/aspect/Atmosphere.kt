@@ -100,7 +100,7 @@ object Atmosphere {
         help = "How high the clouds sit.",
         landmarks = listOf(
                 Parameter.Landmark(-1.0, "low overhead"),
-                Parameter.Landmark(0.0, "vanilla's"),
+                Parameter.Landmark(0.0, "vanilla's", isVanilla = true),
                 Parameter.Landmark(1.0, "far above"),
             ),
         ).perBiome()

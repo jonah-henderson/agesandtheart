@@ -64,21 +64,35 @@ object Axis {
             val covered = settled != null && mark.at >= settled.least && mark.at <= settled.most
             Line("  ") +
                 Line("%5.2f".format(mark.at), if (covered) Palette.value else Palette.faint) +
-                Line(" ${Glyph.BAR} ", Palette.rule) +
+                Line(" ${if (mark.isVanilla) VANILLA_TICK else Glyph.BAR.single()} ", if (mark.isVanilla) Palette.chosen else Palette.rule) +
                 Line(if (covered) Glyph.FULL else Glyph.EMPTY, Palette.chosen) +
                 Line("  ${mark.said}", if (covered) Palette.value else Palette.faint)
         }
         return rows + listOfNotNull(settled?.let { Line("  ${it.spelled()}", Palette.faint) })
     }
 
-    /** `-1.0 ├───┬────┬──────┬─────┤ 1.0`, a tick at each landmark. */
+    /**
+     * `-1.0 ├───┬────╪──────┬─────┤ 1.0`, a tick at each landmark.
+     *
+     * **The game's own value wears a different tick and is lit**, because it is the one point on the axis
+     * a writer is measuring against rather than reading about: everything a word does here is a departure
+     * from it, and a scale that does not say where it starts is a scale of nothing.
+     */
     private fun scaleLine(marks: List<Parameter.Landmark>, ruler: Int): Line {
         val row = CharArray(ruler) { RULE }
-        for (mark in marks) row[columnFor(mark.at, ruler)] = TICK
+        for (mark in marks) row[columnFor(mark.at, ruler)] = if (mark.isVanilla) VANILLA_TICK else TICK
         row[0] = LEFT_END
         row[ruler - 1] = RIGHT_END
-        return Line("  ") + Line("%.1f ".format(Span.NATURAL_LEAST), Palette.faint) +
-            Line(String(row), Palette.rule) + Line(" %.1f".format(Span.NATURAL_MOST), Palette.faint)
+        val ends = Line("  ") + Line("%.1f ".format(Span.NATURAL_LEAST), Palette.faint)
+        val lit = marks.firstOrNull { it.isVanilla }?.let { columnFor(it.at, ruler) }
+        val scale = if (lit == null) {
+            Line(String(row), Palette.rule)
+        } else {
+            Line(String(row.copyOfRange(0, lit)), Palette.rule) +
+                Line(VANILLA_TICK.toString(), Palette.chosen) +
+                Line(String(row.copyOfRange((lit + 1).coerceAtMost(ruler), ruler)), Palette.rule)
+        }
+        return ends + scale + Line(" %.1f".format(Span.NATURAL_MOST), Palette.faint)
     }
 
     /** Each landmark's name under its tick, dropped where the one before has taken the room. */
@@ -167,6 +181,9 @@ object Axis {
 
     private const val RULE = '─'
     private const val TICK = '┬'
+
+    /** Where the game's own value sits, told apart from an ordinary landmark at a glance. */
+    private const val VANILLA_TICK = '╪'
     private const val LEFT_END = '├'
     private const val RIGHT_END = '┤'
 }

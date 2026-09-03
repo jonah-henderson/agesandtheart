@@ -571,8 +571,15 @@ data class Parameter(
         return !holdsYouUp || Materials.makesAWorld(option)
     }
 
-    /** A point on an axis, and what the game does there. */
-    data class Landmark(val at: Double, val said: String)
+    /**
+     * A point on an axis, and what the game does there.
+     *
+     * [isVanilla] marks the one that is **the game's own value** — where the axis sits for a world nobody
+     * wrote. Not every axis has one (a temperature runs a whole world's worth of them) and it is not
+     * always the middle, which is the whole reason it is stated rather than assumed: a writer reading
+     * `-0.3333` needs to know it is where they started, not a number somebody liked.
+     */
+    data class Landmark(val at: Double, val said: String, val isVanilla: Boolean = false)
 
     companion object {
         /**

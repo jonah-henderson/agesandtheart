@@ -277,7 +277,7 @@ enum class Sky(override val key: String) : AuthoredPreset {
             help = "How thickly the stars lie.",
             landmarks = listOf(
                 Parameter.Landmark(-1.0, "none at all"),
-                Parameter.Landmark(-0.3333, "vanilla's"),
+                Parameter.Landmark(-0.3333, "vanilla's", isVanilla = true),
                 Parameter.Landmark(0.3333, "twice vanilla's"),
                 Parameter.Landmark(1.0, "three times"),
             ),
@@ -297,7 +297,7 @@ enum class Sky(override val key: String) : AuthoredPreset {
             "glow",
             help = "How brightly the stars burn.",
             landmarks = listOf(
-                Parameter.Landmark(-1.0, "vanilla's"),
+                Parameter.Landmark(-1.0, "vanilla's", isVanilla = true),
                 Parameter.Landmark(0.0, "half again"),
                 Parameter.Landmark(1.0, "twice as bright"),
             ),
@@ -391,7 +391,7 @@ enum class Sky(override val key: String) : AuthoredPreset {
             help = "How large the suns are.",
             // The bottom is vanilla's own and the top is LARGEST_SUN times it, evenly between.
             landmarks = listOf(
-                    Parameter.Landmark(-1.0, "vanilla's"),
+                    Parameter.Landmark(-1.0, "vanilla's", isVanilla = true),
                     Parameter.Landmark(-1.0 / 3.0, "twice"),
                     Parameter.Landmark(1.0 / 3.0, "three times"),
                     Parameter.Landmark(1.0, "four times"),
