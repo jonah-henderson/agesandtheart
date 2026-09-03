@@ -85,10 +85,20 @@ class Tags(
                     rebuild()
                 }
 
-                /** Enter says it whole, or takes it back off — the same as every other list that steps. */
-                fun sayItWhole() {
-                    val carrier = carrierFor(row, named) ?: return
-                    carry(carrier, named, if (carrier.weight >= WHOLLY) null else WHOLLY)
+                /**
+                 * Back to what the rules had said — which is the only thing "reset" can mean here.
+                 *
+                 * An overridden weight loses its line and the rule's value returns; a dropped one is
+                 * un-dropped. A row standing on nothing has nothing to go back to, which is why the key
+                 * is offered on neither.
+                 */
+                fun reset() {
+                    val carrier = carrierFor(row, named)?.takeIf { it.under != null } ?: return
+                    if (carrier.source == TagLayer.Source.DROPPED) {
+                        TagFile.setDropped(carrier.aspect.page, carrier.preset, named, dropped = false)
+                    } else {
+                        carry(carrier, named, null)
+                    }
                     rebuild()
                 }
 
@@ -104,8 +114,10 @@ class Tags(
                     key.key == "PageUp" -> table.page(-1)
                     key.key == "PageDown" -> table.page(1)
                     key.key == "Tab" -> { grouped = !grouped; table.withRows(rowsOf()) }
-                    key.key == "Backspace" -> table.backspace()
-                    key.key == "Enter" -> sayItWhole()
+                    // **The filter first**, so a mistyped search is corrected the way it is everywhere;
+                    // with nothing typed there is no filter to shorten and the key is free to mean the
+                    // other thing.
+                    key.key == "Backspace" -> if (table.isFiltered) table.backspace() else reset()
                     key.key == "=" -> bump(1)
                     key.key == "-" -> bump(-1)
                     key.ctrl && key.key == "d" -> {
@@ -246,8 +258,11 @@ class Tags(
     }
 
     /**
-     * One carrier — and **what the last column says is what clearing this row would do**, not a second
-     * weight sitting beside the first with nothing to say which of them wins.
+     * One carrier — and **the last column is what a rule had said**, where a rule said anything.
+     *
+     * Only `overridden` and `dropped` have one: those are the two rows standing on top of something, and
+     * the number is what backspace would put back. An authored weight stands on nothing and a derived one
+     * *is* the rule, so for both the column is empty rather than restating the weight beside it.
      */
     private fun carrierRow(carrier: TagLayer.Carrier) = Table.Row(
         key = keyOf(carrier),
@@ -256,7 +271,7 @@ class Tags(
             carrier.preset,
             if (carrier.source == TagLayer.Source.DROPPED) "—" else "%.2f".format(carrier.weight),
             carrier.source.title,
-            whatUndoingItDoes(carrier),
+            carrier.under?.let { "original value %.2f".format(it) }.orEmpty(),
         ),
         tone = when (carrier.source) {
             TagLayer.Source.DROPPED -> Palette.warned
@@ -264,13 +279,6 @@ class Tags(
             TagLayer.Source.DERIVED -> null
         },
     )
-
-    private fun whatUndoingItDoes(carrier: TagLayer.Carrier): String = when (carrier.source) {
-        TagLayer.Source.OVERRIDDEN -> "clear it and a rule gives %.2f back".format(carrier.under ?: 0.0)
-        TagLayer.Source.AUTHORED -> "clear it and nothing carries it here"
-        TagLayer.Source.DROPPED -> "a rule gives %.2f — ^d gives it back".format(carrier.under ?: 0.0)
-        TagLayer.Source.DERIVED -> "a rule made it — changing it writes a line"
-    }
 
     private fun walkTheList(table: Table): String? {
         terminal.enterRawMode(MouseTracking.Off).use { scope ->
@@ -319,6 +327,8 @@ class Tags(
 
     private fun carrierLines(table: Table, tag: String, grouped: Boolean): List<Line> {
         val asked = layer.askedBy(tag)
+        // Offered only where there is something to go back to, which is a row standing on a rule.
+        val resettable = carrierFor(table.focused, tag)?.under?.takeIf { !table.isFiltered }
         return tableLines(
             table,
             canvas,
@@ -327,7 +337,10 @@ class Tags(
                     "  " + if (asked.isEmpty()) "no word asks for it" else "asked for by ${asked.joinToString(" ")}",
                     if (asked.isEmpty()) Palette.warned else Palette.faint,
                 ),
-                hints("- =" to "step the weight", "enter" to "say it whole, or take it off"),
+                hints(
+                    "- =" to "step the weight",
+                    if (resettable == null) "" to "" else "backspace" to "back to %.2f".format(resettable),
+                ),
                 hints(
                     "tab" to if (grouped) "sort by name" else "group by source",
                     "^d" to "drop or restore",
@@ -404,8 +417,6 @@ class Tags(
         /** What one press moves a weight — the corpus is written in tenths and reads as a scale of ten. */
         const val STEP = 0.1
 
-        /** What enter alone writes: the whole of the tag, which is what a hand-written weight usually is. */
-        const val WHOLLY = 1.0
 
         val LEGAL_TAG = Regex("[a-z0-9_]+")
     }
