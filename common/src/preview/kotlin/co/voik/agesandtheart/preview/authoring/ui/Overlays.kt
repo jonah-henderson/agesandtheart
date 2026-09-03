@@ -1,5 +1,8 @@
 package co.voik.agesandtheart.preview.authoring.ui
 
+import co.voik.agesandtheart.age.aspect.Parameter
+import co.voik.agesandtheart.age.aspect.Setting
+import co.voik.agesandtheart.age.aspect.Span
 import com.github.ajalt.mordant.rendering.TextStyle
 
 /**
@@ -175,5 +178,153 @@ class Reader(override val title: String, val lines: List<Line>) : Overlay {
     fun scroll(by: Int, window: Int) {
         val last = (rows - window).coerceAtLeast(0)
         offset = (offset + by).coerceIn(0, last)
+    }
+}
+
+/**
+ * **A ranged parameter's value, set on the axis itself** rather than described in words first.
+ *
+ * A range used to be chosen twice: once from a list naming the five shapes a value can take, and again in
+ * a prompt where the number was typed as text — with the axis, its bands and its landmarks on the screen
+ * before last. What a writer means by a temperature is a stretch of that axis, so the stretch is what they
+ * move, and the shape falls out of it: two ends is a band, one is a floor or a ceiling.
+ *
+ * [nudge] and [spread] cannot be drawn on the axis — a nudge moves whatever the band turned out to be and
+ * a spread widens it, so neither has a place of its own to stand. They are rows under it, stepped the same
+ * way every other number in the tool is.
+ *
+ * **A value is one setting**, so the rows are exclusive: what the cursor is on is what the parameter gets.
+ */
+class Band(
+    override val title: String,
+    val parameter: Parameter,
+    /** How the words already written say it — pickable, since "the same band as `arid`" is a thing to mean. */
+    val presets: List<Picker.Option>,
+    said: String,
+    val onDone: (String) -> Unit,
+) : Overlay {
+
+    enum class Row(val title: String, val about: String) {
+        BAND("band", "the stretch of the axis this word asks for"),
+        NUDGE("nudge", "more than it would have been; nudges add up"),
+        SPREAD("spread", "wider, or narrower, about the middle of the band"),
+    }
+
+    /** The low end of the band, or null where it has none and the value is a ceiling. */
+    var least: Double? = null
+        private set
+
+    /** The high end, or null where the value is a floor. */
+    var most: Double? = null
+        private set
+
+    var nudge: Double = 0.0
+        private set
+
+    var spread: Double = 0.0
+        private set
+
+    /** Which of [Row] the cursor is on, then on into [presets]. */
+    var index: Int = 0
+        private set
+
+    /** Which end of the band the keys move. */
+    var onTheHighEnd: Boolean = false
+        private set
+
+    var filter: String = ""
+        private set
+
+    init {
+        when (val standing = Setting.read(said)) {
+            is Setting.Fixed -> { least = standing.span.least; most = standing.span.most }
+            is Setting.Bound -> { least = standing.least; most = standing.most }
+            is Setting.Shift -> { nudge = standing.by; index = Row.NUDGE.ordinal }
+            is Setting.Spread -> { spread = standing.by; index = Row.SPREAD.ordinal }
+            null -> { least = Span.NATURAL_LEAST; most = Span.NATURAL_MOST }
+        }
+    }
+
+    /** The rows the filter leaves — the three shapes always, and whatever of [presets] matches. */
+    val shown: List<Picker.Option>
+        get() = Row.entries.map { Picker.Option(it.name, it.title, it.about) } +
+            presets.filter { it.label.contains(filter, ignoreCase = true) }
+                .mapIndexed { at, option -> if (at == 0) option.copy(startsGroup = true) else option }
+
+    /** Whether the cursor is down among the words already written, where typing searches. */
+    val onAPreset: Boolean get() = index >= Row.entries.size
+
+    val row: Row? get() = Row.entries.getOrNull(index)
+
+    val focusedPreset: Picker.Option? get() = shown.getOrNull(index).takeIf { onAPreset }
+
+    /** What the row under the cursor would write, or an empty string where it would write nothing. */
+    val spelled: String
+        get() = when {
+            onAPreset -> focusedPreset?.value.orEmpty()
+            row == Row.NUDGE -> if (nudge == 0.0) "" else Setting.Shift(nudge).spelled()
+            row == Row.SPREAD -> if (spread == 0.0) "" else Setting.Spread(spread).spelled()
+            least != null && most != null -> Span(minOf(least!!, most!!), maxOf(least!!, most!!)).spelled()
+            least != null -> Setting.Bound(least = least).spelled()
+            most != null -> Setting.Bound(most = most).spelled()
+            else -> ""
+        }
+
+    /** What the chart shades: the band as it stands, whatever row the cursor is on. */
+    val drawn: String
+        get() = when {
+            least != null && most != null -> Span(minOf(least!!, most!!), maxOf(least!!, most!!)).spelled()
+            least != null -> Setting.Bound(least = least).spelled()
+            most != null -> Setting.Bound(most = most).spelled()
+            else -> ""
+        }
+
+    /** The end the keys are moving, for the chart to mark. */
+    val handle: Double? get() = if (row != Row.BAND) null else if (onTheHighEnd) most else least
+
+    fun move(by: Int) {
+        val size = shown.size
+        if (size == 0) return
+        index = ((index + by) % size + size) % size
+    }
+
+    fun turn() { onTheHighEnd = !onTheHighEnd }
+
+    /** One step of whatever the cursor is on — an end of the band, or one of the two scalars. */
+    fun step(by: Double) {
+        when (row) {
+            Row.NUDGE -> nudge = (nudge + by).coerceIn(Span.NATURAL_LEAST, Span.NATURAL_MOST)
+            Row.SPREAD -> spread = (spread + by).coerceIn(Span.NATURAL_LEAST, Span.NATURAL_MOST)
+            Row.BAND -> {
+                val standing = handle ?: (if (onTheHighEnd) Span.NATURAL_MOST else Span.NATURAL_LEAST)
+                val moved = (standing + by).coerceIn(Span.NATURAL_LEAST, Span.NATURAL_MOST)
+                if (onTheHighEnd) most = moved else least = moved
+            }
+            null -> Unit
+        }
+    }
+
+    /**
+     * Take an end off, or put it back — a band with one end is a floor or a ceiling.
+     *
+     * Never both: a value with neither end says nothing, and the way to say nothing is to leave without
+     * taking anything.
+     */
+    fun dropTheEnd(high: Boolean) {
+        if (high) {
+            most = if (most == null) Span.NATURAL_MOST else if (least == null) return else null
+        } else {
+            least = if (least == null) Span.NATURAL_LEAST else if (most == null) return else null
+        }
+    }
+
+    fun type(character: String) {
+        filter += character
+        index = Row.entries.size
+    }
+
+    fun backspace() {
+        filter = filter.dropLast(1)
+        index = index.coerceAtMost(shown.size - 1)
     }
 }

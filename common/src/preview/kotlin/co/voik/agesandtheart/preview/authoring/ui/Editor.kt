@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.aspect.ownParameters
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Holds
 import co.voik.agesandtheart.age.aspect.Parameter
+import co.voik.agesandtheart.age.aspect.Setting
 import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.age.word.Draws
 import co.voik.agesandtheart.age.word.Tier
@@ -83,6 +84,9 @@ class Editor(
     private var leaving = false
     private var raw: RawModeScope? = null
     private var readerWindow = MINIMUM_BODY
+
+    /** How many rows the band screen's list had room for, which only drawing it knows. */
+    private var bandWindow = MINIMUM_BODY
 
     /** How many options the picker last had room for — what a page means to it. Set as it is drawn. */
     private var pickerWindow = MINIMUM_BODY
@@ -309,6 +313,37 @@ class Editor(
         is Prompt -> promptLines(shown, width)
         is Picker -> pickerLines(shown, width, room)
         is Reader -> readerLines(shown, width, room)
+        is Band -> bandLines(shown, width, room)
+    }
+
+    /**
+     * The axis, then the three shapes a value can take, then how the corpus already says it.
+     *
+     * The chart is the point of the screen and stays put; the list under it is what the keys are about,
+     * and the words already written are set apart because reaching them is a different errand — you have
+     * stopped moving an end and started looking for somebody who moved it already.
+     */
+    private fun bandLines(band: Band, width: Int, room: Int): List<Line> {
+        val head = listOf(Line(band.title, Palette.heading)) +
+            Axis.chart(band.parameter, band.drawn.ifEmpty { null }, width, band.handle) +
+            Line.BLANK
+        val listed = band.shown.mapIndexed { at, option ->
+            val here = at == band.index
+            val said = when (Band.Row.entries.getOrNull(at)) {
+                Band.Row.BAND -> band.drawn.ifEmpty { "nothing" }
+                Band.Row.NUDGE -> Setting.Shift(band.nudge).spelled()
+                Band.Row.SPREAD -> Setting.Spread(band.spread).spelled()
+                null -> ""
+            }
+            listOfNotNull(Line.BLANK.takeIf { option.startsGroup }) + listOf(
+                Line(if (here) "${Glyph.FOCUS} " else "  ", Palette.focused) +
+                    Line(option.label.padEnd(BAND_LABEL), if (here) Palette.value else Palette.faint) +
+                    Line(said.padEnd(BAND_VALUE), if (here) Palette.chosen else Palette.faint) +
+                    Line(option.note, Palette.faint),
+            )
+        }.flatten()
+        bandWindow = (room - head.size).coerceAtLeast(1)
+        return (head + scrolled(listed, band.index, bandWindow)).map { it.sized(width) }
     }
 
     private fun promptLines(prompt: Prompt, width: Int) = listOf(
@@ -422,6 +457,22 @@ class Editor(
             )
         }
         is Reader -> hints("↑↓" to "scroll", "pgup/pgdn" to "a page", "home/end" to "ends", "←" to "close")
+        is Band -> {
+            val asked = overlay as Band
+            when {
+                asked.onAPreset -> hints(
+                    "↑↓" to "move", "enter" to "take it", "esc" to "cancel",
+                    "" to "type to search: ${asked.filter}",
+                )
+                asked.row == Band.Row.BAND -> hints(
+                    "- =" to "move the ${if (asked.onTheHighEnd) "top" else "bottom"}",
+                    "tab" to "the other end",
+                    "_ +" to "drop the bottom or top",
+                    "enter" to "take it", "esc" to "cancel",
+                )
+                else -> hints("- =" to "step it", "↑↓" to "move", "enter" to "take it", "esc" to "cancel")
+            }
+        }
         // The review page reads rather than edits, so it offers none of the keys that change a word.
         null -> if (inside && part == Part.REVIEW) {
             hints(
@@ -537,6 +588,25 @@ class Editor(
                 // character each and would otherwise be typed into the search.
                 shown.onStep != null && (key.key == "=" || key.key == "-") ->
                     shown.focused?.let { shown.onStep.invoke(it, if (key.key == "=") A_STEP else -A_STEP) }
+                key.key.length == 1 && !key.ctrl && !key.alt -> shown.type(key.key)
+            }
+            is Band -> when {
+                key.key == "Escape" || key.key == "ArrowLeft" -> overlay = null
+                key.key == "Enter" -> {
+                    val said = shown.spelled
+                    overlay = null
+                    if (said.isEmpty()) Unit else shown.onDone(said)
+                }
+                key.key == "ArrowUp" -> shown.move(-1)
+                key.key == "ArrowDown" -> shown.move(1)
+                key.key == "Tab" -> shown.turn()
+                // **Before the filter takes them.** The four that move an end are one character each and
+                // would otherwise be typed into the search for a word that says it already.
+                key.key == "=" -> shown.step(A_STEP)
+                key.key == "-" -> shown.step(-A_STEP)
+                key.key == "+" -> shown.dropTheEnd(high = true)
+                key.key == "_" -> shown.dropTheEnd(high = false)
+                key.key == "Backspace" -> shown.backspace()
                 key.key.length == 1 && !key.ctrl && !key.alt -> shown.type(key.key)
             }
             is Reader -> when {
@@ -852,10 +922,13 @@ class Editor(
     private fun buildAPool(insistence: Insistence) {
         // A pool with nothing in it cannot be drawn from, so the first facet comes before it does —
         // pointed one past the last, which is what `putting` reads as "make one".
+        // **The part of the world first, then the parameter**, which is what adding a plain setting has
+        // asked since the list of every parameter in the game stopped being a reasonable first question.
+        // A pool went on asking it because it had its own way in.
         fun startOne() {
             val into = Into(insistence, candidate.poolsOn(insistence).size)
             building = into
-            pickAParameter(into)
+            pickATarget(into)
         }
         // **Adding to a pool that exists is the same errand as starting one.** A word may carry several
         // now, so the list says what each is about, read off its facets rather than off a name.
@@ -900,7 +973,7 @@ class Editor(
             ),
         ) { picked ->
             when (picked.value) {
-                ANOTHER_FACET -> pickAParameter(into)
+                ANOTHER_FACET -> pickATarget(into)
                 HOW_MANY_DRAWN -> retypeDraws(into)
                 else -> building = null
             }
@@ -1526,14 +1599,17 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
         if (shapes.isEmpty()) return retypeParameter(parameters, into)
         // **A band is the one thing still typed.** Its shapes are templates to edit rather than answers,
         // where every other parameter's values are the answers themselves and can simply be marked.
+        // **A band is moved on its axis, not chosen from a list of the shapes one can take.** The five
+        // names — band, floor, ceiling, nudge, spread — are what a value *is* rather than what a writer
+        // means, and picking one only to type its number was two screens between the axis and the answer.
         if (parameter?.holds == Holds.RANGE) {
-            overlay = Picker(
-                title = "What kind of value?",
-                options = shapes,
-                // The scale, with whatever the cursor is on shaded across the ground it would claim —
-                // drawn to the pane it lands in rather than to a guess at how wide that will be.
-                chart = { focused, room -> Axis.chart(parameter, focused?.value, room) },
-            ) { picked -> retypeParameter(parameters, into, starting = picked.value) }
+            overlay = Band(
+                title = "Set '$bare' to what?",
+                parameter = parameter,
+                presets = parts.wordsSaying(parameter),
+                said = candidate.holding(into)[parameters.first()].orEmpty(),
+                onDone = { said -> setParameters(parameters, into, said) },
+            )
             return
         }
         val take = Picker.Option(
@@ -1916,6 +1992,10 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
 
         const val STRIP_LINES = 4
         const val PICKER_LABEL = 30
+
+        /** The band screen's two columns: the shape or the word, and what it comes to. */
+        const val BAND_LABEL = 14
+        const val BAND_VALUE = 14
         const val DEFAULT_EDITOR = "vi"
 
         /** Header, two rules, the strip and the key line — what the body is not allowed to use. */

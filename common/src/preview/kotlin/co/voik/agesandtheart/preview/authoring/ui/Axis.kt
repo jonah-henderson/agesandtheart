@@ -25,7 +25,7 @@ object Axis {
      * landmark instead, which a narrow pane has and a short one does not. Empty only where the axis has
      * nothing to say about itself.
      */
-    fun chart(parameter: Parameter, said: String?, width: Int): List<Line> {
+    fun chart(parameter: Parameter, said: String?, width: Int, handle: Double? = null): List<Line> {
         val marks = parameter.landmarks
         if (marks.isEmpty()) return emptyList()
         if (width < NARROWEST) return upright(marks, said)
@@ -33,7 +33,7 @@ object Axis {
         return listOfNotNull(
             scaleLine(marks, ruler),
             labelLine(marks, ruler),
-            said?.let { bandLine(it, ruler) },
+            said?.let { bandLine(it, ruler, handle) },
         )
     }
 
@@ -94,12 +94,23 @@ object Axis {
      * Through `Setting.settle` rather than by reading the text: `>0.4` is a floor and `+0.3` is a nudge,
      * and what a writer wants to see is the band each of them leaves rather than the number they typed.
      */
-    private fun bandLine(said: String, ruler: Int): Line? {
+    private fun bandLine(said: String, ruler: Int, handle: Double?): Line? {
         val settled = Setting.read(said)?.let { Setting.settle(listOf(it)) } ?: return null
         val from = columnFor(settled.least, ruler)
         val to = columnFor(settled.most, ruler)
         val row = CharArray(ruler) { at -> if (at in from..to) Glyph.FULL.single() else Glyph.EMPTY.single() }
-        return Line(" ".repeat(LEAD)) + Line(String(row), Palette.chosen) +
+        // **The end the keys are moving, lit.** Two ends and one pair of keys is a guess about which is
+        // about to move; this is the answer, and it is the whole of what makes the band editable rather
+        // than merely drawn.
+        val lit = handle?.let { columnFor(it, ruler) }
+        if (lit == null) {
+            return Line(" ".repeat(LEAD)) + Line(String(row), Palette.chosen) +
+                Line("  ${settled.spelled()}", Palette.faint)
+        }
+        return Line(" ".repeat(LEAD)) +
+            Line(String(row.copyOfRange(0, lit)), Palette.chosen) +
+            Line(Glyph.FILLED, Palette.focused) +
+            Line(String(row.copyOfRange((lit + 1).coerceAtMost(ruler), ruler)), Palette.chosen) +
             Line("  ${settled.spelled()}", Palette.faint)
     }
 

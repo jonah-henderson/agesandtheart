@@ -6,6 +6,8 @@ import co.voik.agesandtheart.age.word.Tier
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.age.word.Draws
 import co.voik.agesandtheart.age.word.Facets
+import co.voik.agesandtheart.age.aspect.Holds
+import co.voik.agesandtheart.preview.authoring.ui.Band
 import co.voik.agesandtheart.preview.authoring.ui.Columns
 import co.voik.agesandtheart.preview.authoring.ui.Gauge
 import co.voik.agesandtheart.preview.authoring.ui.Glyph
@@ -453,6 +455,40 @@ class AuthoringCheck : FunSpec({
     test("a bar of nothing out of nothing is empty") {
         val drawn = Gauge.filled(0.0, 0.0, WIDE).inks.joinToString("") { it.text }
         check(drawn == Glyph.EMPTY.repeat(WIDE)) { "an empty gauge drew '$drawn'" }
+    }
+
+    /**
+     * **A band is what its two ends are**, and taking an end off is what makes a floor or a ceiling.
+     *
+     * The screen has no list of shapes any more, so nothing else says which shape a value ends up being:
+     * it falls out of how many ends the band has, and a shape nobody can reach is a shape the language
+     * has lost.
+     */
+    test("a band's shape falls out of its ends") {
+        val temperature = Aspect.CLIMATE.parameters.first { it.holds == Holds.RANGE }
+        fun editing(said: String) = Band("", temperature, emptyList(), said) {}
+
+        val whole = editing("0.5..1.0")
+        check(whole.spelled == "0.5..1") { "a band did not come back as one: ${whole.spelled}" }
+        whole.dropTheEnd(high = true)
+        check(whole.spelled == ">0.5") { "dropping the top should leave a floor, and left ${whole.spelled}" }
+        whole.dropTheEnd(high = true)
+        check(whole.spelled == "0.5..1") { "putting the top back should leave a band, and left ${whole.spelled}" }
+        whole.dropTheEnd(high = false)
+        check(whole.spelled == "<1") { "dropping the bottom should leave a ceiling, and left ${whole.spelled}" }
+        // Never both: a value with neither end says nothing, and the way to say nothing is to not take one.
+        whole.dropTheEnd(high = true)
+        check(whole.spelled == "<1") { "both ends came off: ${whole.spelled}" }
+    }
+
+    /** A nudge and a spread are scalars, so they are stepped rather than drawn, and each is its own value. */
+    test("a nudge is its own shape, not a band with one end") {
+        val temperature = Aspect.CLIMATE.parameters.first { it.holds == Holds.RANGE }
+        val nudging = Band("", temperature, emptyList(), "+0.3") {}
+        check(nudging.row == Band.Row.NUDGE) { "a nudge opened on ${nudging.row}" }
+        check(nudging.spelled == "+0.3") { "a nudge did not come back: ${nudging.spelled}" }
+        nudging.step(-0.1)
+        check(nudging.spelled == "+0.2") { "stepping a nudge gave ${nudging.spelled}" }
     }
 
     /**

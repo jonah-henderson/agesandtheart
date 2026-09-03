@@ -772,6 +772,15 @@ class Parts(private val corpus: Corpus) {
      *
      * They are pickable as well as readable, because "the same band as `arid`" is a thing a writer means.
      */
+    /**
+     * How the words already written say this axis — the corpus as its own set of landmarks.
+     *
+     * Public because the band screen offers them beside the axis rather than among the shapes a value can
+     * take: "the same band as `arid`" is a thing a writer means, and it is a different errand from moving
+     * an end.
+     */
+    fun wordsSaying(parameter: Parameter): List<Picker.Option> = bandsFor(parameter)
+
     private fun bandsFor(parameter: Parameter): List<Picker.Option> =
         corpus.vocabulary.authoredWords
             .mapNotNull { word -> word.everySet[parameter.name]?.let { said -> said to word.name } }

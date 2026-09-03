@@ -26,23 +26,40 @@ package co.voik.agesandtheart.age.aspect
  */
 sealed interface Setting {
 
+    /** How a word writes this — the other half of [read], so a tool that builds one can put it back. */
+    fun spelled(): String
+
     /** This band and no other. Two of these must overlap. */
-    data class Fixed(val span: Span) : Setting
+    data class Fixed(val span: Span) : Setting {
+        override fun spelled(): String = span.spelled()
+    }
 
     /** A floor, a ceiling, or both — whatever else happens, stay inside this. */
-    data class Bound(val least: Double? = null, val most: Double? = null) : Setting
+    data class Bound(val least: Double? = null, val most: Double? = null) : Setting {
+        // A floor and a ceiling at once is a band, and is spelled as one; this is each on its own.
+        override fun spelled(): String = when {
+            least != null && most != null -> Span(least, most).spelled()
+            least != null -> "$AT_LEAST${Span.trimmed(least)}"
+            most != null -> "$AT_MOST${Span.trimmed(most)}"
+            else -> ""
+        }
+    }
 
     /** Move whatever the band turned out to be. Sums with every other shift on the axis. */
-    data class Shift(val by: Double) : Setting
+    data class Shift(val by: Double) : Setting {
+        override fun spelled(): String = if (by < 0) Span.trimmed(by) else "$RAISE${Span.trimmed(by)}"
+    }
 
     /** Widen (positive) or narrow (negative) about the band's middle. */
-    data class Spread(val by: Double) : Setting
+    data class Spread(val by: Double) : Setting {
+        override fun spelled(): String = "$SPREAD${Span.trimmed(by)}"
+    }
 
     companion object {
-        private const val AT_LEAST = '>'
-        private const val AT_MOST = '<'
-        private const val SPREAD = '~'
-        private const val RAISE = '+'
+        internal const val AT_LEAST = '>'
+        internal const val AT_MOST = '<'
+        internal const val SPREAD = '~'
+        internal const val RAISE = '+'
 
         /** The [Setting] this text describes, or null where it is not one. */
         fun read(spelled: String): Setting? {

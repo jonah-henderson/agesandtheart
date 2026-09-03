@@ -93,10 +93,7 @@ data class Span(val least: Double, val most: Double, val bend: Double = EVEN) {
      * far worse thing to find in a saved Age or a `/age list`. Four places is more than any authored band
      * uses and far more than a climate axis can tell apart.
      */
-    private fun trimmed(number: Double): String {
-        val rounded = Math.round(number * PLACES) / PLACES
-        return if (rounded == rounded.toLong().toDouble()) rounded.toLong().toString() else rounded.toString()
-    }
+    private fun trimmed(number: Double): String = Companion.trimmed(number)
 
     override fun toString(): String = spelled()
 
@@ -126,6 +123,12 @@ data class Span(val least: Double, val most: Double, val bend: Double = EVEN) {
 
         /** An axis pinned to one point, which is how a recipe asks for a value outright. */
         fun at(value: Double): Span = Span(value, value)
+
+        /** A number as this file writes one — see [Span.spelled], whose argument is the whole of why. */
+        fun trimmed(number: Double): String {
+            val rounded = Math.round(number * PLACES) / PLACES
+            return if (rounded == rounded.toLong().toDouble()) rounded.toLong().toString() else rounded.toString()
+        }
 
         /** The span [spelled] describes, or null where the text is not one. */
         fun read(spelled: String): Span? {
