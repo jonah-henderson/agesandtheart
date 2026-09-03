@@ -127,4 +127,31 @@ class TagCoverageCheck : FunSpec({
             }
         }
     }
+
+    /**
+     * **A population whose emptiness is spelled by a word must be emptiable by that word.**
+     *
+     * `untouched` means "nothing built here" and says it by excluding `#built` and `#inhabited`; the
+     * recipe collapses to `built=nothing` only where *every* member the Art can reach is struck. So one
+     * structure set carrying neither tag does not merely go untagged — it stops the whole word working,
+     * and does it silently: the Age gets seventeen exclusions and an eighteenth structure set built in it.
+     *
+     * Found the day the tag editor could add a member: `nether_complexes` went in carrying `monumental`
+     * alone and `untouched` stopped meaning anything. **Structure sets are the case** because a structure
+     * set *is* a built thing — the tag is definitional there, where `wooded` on a biome is a judgement.
+     */
+    test("every structure set the Art can reach is built") {
+        val emptying = vocabulary.words.filter { it.excludes[Aspect.STRUCTURES].orEmpty().isNotEmpty() }
+        check(emptying.isNotEmpty()) { "no word strikes structure sets, so this checks nothing" }
+        val reachable = vocabulary.askableIn(Aspect.STRUCTURES)
+        val unstruck = reachable.filterNot { set ->
+            val tags = vocabulary.tagsOf(set)
+            emptying.any { word -> word.excludes(set, tags) }
+        }
+        check(unstruck.isEmpty()) {
+            "no word can empty the structures while these carry none of the tags one strikes — " +
+                "`untouched` would leave them standing: ${unstruck.map { it.key }}"
+        }
+    }
+
 })
