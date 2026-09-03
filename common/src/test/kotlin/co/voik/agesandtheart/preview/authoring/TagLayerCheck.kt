@@ -56,19 +56,12 @@ class TagLayerCheck : FunSpec({
         check(restored.entrySet().isEmpty()) { "restoring left something behind: $restored" }
     }
 
-    test("a rename moves the weight, the drop and the query alike") {
+    test("a rename moves the weight and the drop alike") {
         val tags = table("""{"canyon": {"tags": {"brilliant": 0.8}, "drop": ["brilliant"]}}""")
         check(TagFile.renameInTable(tags, "brilliant", "bright")) { "said it changed nothing" }
         val entry = tags.getAsJsonObject("canyon")
         check(entry.getAsJsonObject("tags").get("bright").asDouble == 0.8) { "weight did not move: $tags" }
         check(entry.getAsJsonArray("drop").map { it.asString } == listOf("bright")) { "drop did not move: $tags" }
-
-        val word = table("""{"query": {"brilliant": 1.0}, "requests": {"queries": {"sky": {"brilliant": -0.5}}}}""")
-        check(TagFile.renameInWord(word, "brilliant", "bright")) { "said the word did not mention it" }
-        check(word.getAsJsonObject("query").get("bright").asDouble == 1.0) { "flat query did not move: $word" }
-        val leaning = word.getAsJsonObject("requests").getAsJsonObject("queries").getAsJsonObject("sky")
-        // The sign is the whole meaning of a pushed tag, so it travels with the name.
-        check(leaning.get("bright").asDouble == -0.5) { "a requested query lost its sign: $word" }
     }
 
     test("a rename onto a tag already there takes the stronger claim") {
@@ -153,6 +146,52 @@ class TagLayerCheck : FunSpec({
         check((offered + tagged).toSet() == everything.toSet()) {
             "offered and tagged should be the whole aspect: ${offered + tagged} against $everything"
         }
+    }
+
+
+    /**
+     * **A rename reaches every place a word spells a tag** — and until 2026-09-02 it reached none of them.
+     *
+     * It read `query` and `queries`, which no word has carried since the world model landed, so a rename
+     * moved the tables and the antonyms and left every word asking for the old name: legal, silent, and
+     * finding nothing. The three places are `restricts` (bare), `biases` and `excludes` (marked), and the
+     * mark is what tells a tag from a member where both are legal.
+     */
+    test("a rename reaches restricts, biases and excludes") {
+        val word = JsonParser.parseString(
+            """
+            {
+              "restricts": {"biomes": {"frozen": 1.0}},
+              "biases": {"all": {"#frozen": -0.4, "minecraft:jungle": 0.5}},
+              "excludes": {"sea": ["#frozen", "minecraft:water"]}
+            }
+            """.trimIndent(),
+        ).asJsonObject
+        check(TagFile.renameInWord(word, "frozen", "icy")) { "it found nothing to rename" }
+        val said = word.toString()
+        check("frozen" !in said) { "something still says frozen: $said" }
+        check(""""icy":1.0""" in said) { "the bare weight did not move: $said" }
+        check(""""#icy":-0.4""" in said) { "the marked weight did not move, or lost its sign: $said" }
+        check("\"#icy\"" in said && "minecraft:water" in said) { "the exclusion did not move: $said" }
+    }
+
+    /** And a deletion reaches the same three, leaving the members alone. */
+    test("a deletion takes a tag out of every place a word spells it") {
+        val word = JsonParser.parseString(
+            """
+            {
+              "restricts": {"biomes": {"frozen": 1.0, "lush": 0.5}},
+              "biases": {"all": {"#frozen": -0.4, "minecraft:jungle": 0.5}},
+              "excludes": {"sea": ["#frozen"]}
+            }
+            """.trimIndent(),
+        ).asJsonObject
+        check(TagFile.forgetInWord(word, "frozen")) { "it found nothing to forget" }
+        val said = word.toString()
+        check("frozen" !in said) { "something still says frozen: $said" }
+        check("lush" in said && "minecraft:jungle" in said) { "it took something else with it: $said" }
+        // An exclusion list with nothing left in it goes, rather than sitting there striking nothing.
+        check("sea" !in said) { "an emptied exclusion was left behind: $said" }
     }
 
 })

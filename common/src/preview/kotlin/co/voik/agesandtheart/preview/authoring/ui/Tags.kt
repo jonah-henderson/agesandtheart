@@ -90,6 +90,64 @@ class Tags(
 
     private fun couldBeATag(said: String) = said.matches(LEGAL_TAG)
 
+    /**
+     * A tag unwritten everywhere, once somebody has read what that costs — **true where it is gone.**
+     *
+     * The one edit here that no other edit undoes: a weight cleared comes back off a rule, a drop is
+     * restored by the key that made it, and a rename can be renamed back. This takes lines out of files
+     * across three directories, and the count of them is the whole of what a reader needs before saying
+     * yes — so the question is what will be touched rather than "are you sure".
+     */
+    private fun deleted(tag: String): Boolean {
+        val members = layer.membersTagged(tag)
+        val asked = layer.askedBy(tag)
+        val rules = TagFile.rulesGranting(tag, corpus)
+        val says = buildList {
+            add(Line("${Glyph.WARN} this cannot be undone", Palette.refused))
+            add(Line.BLANK)
+            add(Line("takes $TAG_MARK$tag off ${members.size} member(s)", Palette.value))
+            add(
+                if (asked.isEmpty()) Line("no word asks for it", Palette.faint)
+                else Line("and out of ${asked.size} word(s): ${asked.joinToString(" ")}", Palette.value),
+            )
+            // **A rule would put it straight back**, and this cannot reach one: a rule moves dozens of
+            // members at once and is the rules screen's to delete, deliberately.
+            if (rules.isNotEmpty()) {
+                add(Line.BLANK)
+                add(Line("${Glyph.WARN} ${rules.size} rule(s) grant it and would give it back:", Palette.warned))
+                rules.forEach { add(Line("    $it", Palette.faint)) }
+            }
+        }
+        if (!confirmed("delete '$tag'?", says)) return false
+        val touched = canvas.whileBusy("Deleting") { TagFile.deleteTag(tag) }
+        layer.reread()
+        show(
+            "'$tag' is gone",
+            listOf(Line("changed ${touched.size} files", Palette.settled)) +
+                touched.map { Line("  $it", Palette.faint) },
+        )
+        return true
+    }
+
+    /** A dangerous thing asked about, and answered only by the key that says the word. */
+    private fun confirmed(title: String, says: List<Line>): Boolean {
+        terminal.enterRawMode(MouseTracking.Off).use { scope ->
+            while (true) {
+                canvas.show(
+                    listOf(Line("  $title", Palette.refused), Line.BLANK) +
+                        says.flatMap { (Line("  ") + it).wrapped(canvas.width) } +
+                        listOf(
+                            Frame.rule(canvas.width),
+                            hints("y" to "delete it", "anything else" to "keep it"),
+                        ),
+                )
+                val key = scope.readKey() ?: return false
+                if (key.ctrl && key.key == "c") throw Leaving()
+                return key.key == "y" && !key.ctrl
+            }
+        }
+    }
+
     /** One tag, opened straight — what the word editor does when the cursor is on a query row. */
     fun open(tag: String) {
         // **Grouped by where the weight came from, until asked otherwise.** What somebody wrote by hand is
@@ -179,6 +237,7 @@ class Tags(
                         table.withRows(rowsOf())
                     }
                     key.ctrl && key.key == "w" -> showWhatAsks(named)
+                    key.ctrl && key.key == "x" -> if (deleted(named)) return
                     key.key.length == 1 && !key.ctrl && !key.alt -> table.type(key.key)
                 }
             }
@@ -488,6 +547,7 @@ class Tags(
                     "^d" to "drop or restore",
                     "^r" to "rename the tag",
                     "^w" to "what asks",
+                    "^x" to "delete the tag",
                     "←" to "back",
                     searching(table.filter),
                 ),

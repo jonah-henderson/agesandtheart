@@ -228,6 +228,7 @@ class Help(
             keyRow("^d", "drop a derived tag off one carrier, or give it back"),
             keyRow("^r", "rename the tag \u2014 carriers, words and antonyms together"),
             keyRow("^w", "which words ask for it"),
+            keyRow("^x", "delete the tag \u2014 tables, words and antonyms together, and no undo"),
             Line("", Palette.faint),
             Line("  A weight says where it came from. Authored is a line in art/preset_tags", Palette.faint),
             Line("  standing alone; overridden is one standing over a rule, so taking it off", Palette.faint),

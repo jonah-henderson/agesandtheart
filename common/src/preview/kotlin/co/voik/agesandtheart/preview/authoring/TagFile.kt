@@ -3,6 +3,7 @@ package co.voik.agesandtheart.preview.authoring
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
+import co.voik.agesandtheart.age.word.Word
 import com.google.gson.JsonParser
 import java.io.File
 
@@ -26,6 +27,11 @@ object TagFile {
     private const val DROP = "drop"
     private const val REPLACE = "replace"
     private const val READINESS = "readiness"
+
+    /** The three fields of a word file a tag can be written in — see [spellings]. */
+    private const val RESTRICTS = "restricts"
+    private const val BIASES = "biases"
+    private const val EXCLUDES = "excludes"
 
     private val directory: File get() = WordFile.art.resolve("preset_tags")
 
@@ -136,6 +142,55 @@ object TagFile {
         }
     }
 
+    /**
+     * A tag **unwritten everywhere it is written down** — the tables that carry it, the words that ask for
+     * it, and the antonym table that opposes it.
+     *
+     * The same three places a rename reaches, and for the same reason: a deletion that missed the words
+     * would leave them asking for a tag nothing carries, which is legal and silent. What it cannot reach
+     * is `art/derivation/` — a rule granting it is a rule to delete on the rules screen, and a deletion
+     * here that left one standing would watch the tag come straight back.
+     */
+    fun deleteTag(tag: String): List<String> {
+        if (tag.isEmpty()) return emptyList()
+        return buildList {
+            addAll(forgetInTables(tag))
+            addAll(inEveryWord { word -> forgetInWord(word, tag) })
+            addAll(forgetInAntonyms(tag))
+        }
+    }
+
+    /** Which rules would grant [tag] again — what a deletion cannot reach, and has to say so. */
+    fun rulesGranting(tag: String, corpus: Corpus): List<String> =
+        corpus.vocabulary.derivation.entries.flatMap { (aspect, derivation) ->
+            (derivation.byTag + derivation.byKind).filterValues { it.containsKey(tag) }
+                .keys.map { "${aspect.page}: $it" }
+        }
+
+    private fun forgetInTables(tag: String): List<String> = pages().mapNotNull { page ->
+        val json = read(page)
+        var moved = false
+        for (preset in json.keySet().toList()) {
+            val entry = json.getAsJsonObject(preset) ?: continue
+            if (entry.getAsJsonObject(TAGS)?.has(tag) == true) {
+                withWeight(json, preset, tag, null)
+                moved = true
+            }
+            if (entry.getAsJsonArray(DROP)?.map { it.asString }?.contains(tag) == true) {
+                withDropped(json, preset, tag, dropped = false)
+                moved = true
+            }
+        }
+        if (!moved) return@mapNotNull null
+        write(page, json)
+        "preset_tags/$page"
+    }
+
+    private fun forgetInAntonyms(tag: String): List<String> = inEveryAntonymFile { pairs ->
+        val left = pairs.filterNot { it.get("first")?.asString == tag || it.get("second")?.asString == tag }
+        left.takeIf { it.size != pairs.size }
+    }
+
     private fun renameInTables(from: String, to: String): List<String> = pages().mapNotNull { page ->
         val json = read(page)
         if (!renameInTable(json, from, to)) return@mapNotNull null
@@ -170,25 +225,87 @@ object TagFile {
         return moved
     }
 
-    /** Every place a word file spells a tag: `query`, `queries.<aspect>`, and the same two under `requests`. */
     private fun renameInWords(from: String, to: String): List<String> =
+        inEveryWord { word -> renameInWord(word, from, to) }
+
+    /** Whatever [edit] changed, written back — one walk of the corpus for a rename and for a deletion. */
+    private fun inEveryWord(edit: (JsonObject) -> Boolean): List<String> =
         WordFile.authoredNames().mapNotNull { name ->
             val file = WordFile.fileFor(name)
             val json = runCatching { JsonParser.parseString(file.readText()).asJsonObject }.getOrNull()
                 ?: return@mapNotNull null
-            if (!renameInWord(json, from, to)) return@mapNotNull null
+            if (!edit(json)) return@mapNotNull null
             file.writeText(GSON.toJson(json) + "\n")
             "word/$name"
         }
 
+    /**
+     * **Every place a word file spells a tag** — `restricts` bare, `biases` and `excludes` marked.
+     *
+     * The mark is what tells a tag from a member where both are legal: `biases` may lean `#frozen` or
+     * `minecraft:jungle`, and `excludes` may strike either. `restricts` takes tags alone, so it needs no
+     * mark and does not carry one.
+     *
+     * **This read `query` and `queries` until 2026-09-02**, which no word has had since the world model
+     * landed — so a rename moved the tables and the antonyms and left every word asking for the old name,
+     * silently, a query for a tag nobody carries being legal and simply finding nothing.
+     */
+    private fun spellings(word: JsonObject): List<Spelling> = buildList {
+        for ((_, byAspect) in word.getAsJsonObject(RESTRICTS)?.entrySet().orEmpty()) {
+            add(Spelling.Weighted(byAspect.asJsonObject, marked = false))
+        }
+        for ((_, byAspect) in word.getAsJsonObject(BIASES)?.entrySet().orEmpty()) {
+            add(Spelling.Weighted(byAspect.asJsonObject, marked = true))
+        }
+        word.getAsJsonObject(EXCLUDES)?.let { struck ->
+            for (page in struck.keySet().toList()) add(Spelling.Struck(struck, page))
+        }
+    }
+
+    /** One place a tag may be written: a weight under its name, or a name in a list of what is struck. */
+    private sealed interface Spelling {
+        data class Weighted(val holder: JsonObject, val marked: Boolean) : Spelling
+        data class Struck(val holder: JsonObject, val page: String) : Spelling
+    }
+
+    private fun Spelling.spelt(tag: String) = when (this) {
+        is Spelling.Weighted -> if (marked) "${Word.TAG_MARK}$tag" else tag
+        is Spelling.Struck -> "${Word.TAG_MARK}$tag"
+    }
+
     /** True where this word file mentioned [from] anywhere it can spell a tag, and now says [to]. */
     fun renameInWord(word: JsonObject, from: String, to: String): Boolean =
-        listOfNotNull(word, word.getAsJsonObject("requests")).count { holder ->
-            val here = renameKey(holder.getAsJsonObject("query"), from, to)
-            val perAspect = holder.getAsJsonObject("queries")?.entrySet().orEmpty()
-                .count { (_, one) -> renameKey(one.asJsonObject, from, to) }
-            here || perAspect > 0
+        spellings(word).count { where ->
+            val was = where.spelt(from)
+            val wanted = where.spelt(to)
+            when (where) {
+                is Spelling.Weighted -> renameKey(where.holder, was, wanted)
+                is Spelling.Struck -> restruck(where) { standing ->
+                    if (was !in standing) null else standing.map { if (it == was) wanted else it }.distinct()
+                }
+            }
         } > 0
+
+    /** True where this word file said anything about [tag] and now says nothing. */
+    fun forgetInWord(word: JsonObject, tag: String): Boolean =
+        spellings(word).count { where ->
+            when (where) {
+                is Spelling.Weighted -> where.holder.remove(where.spelt(tag)) != null
+                is Spelling.Struck -> restruck(where) { standing ->
+                    if (where.spelt(tag) !in standing) null else standing - where.spelt(tag)
+                }
+            }
+        } > 0
+
+    /** A list of struck names rewritten, or left alone where [wanted] has nothing to change. */
+    private fun restruck(where: Spelling.Struck, wanted: (List<String>) -> List<String>?): Boolean {
+        val standing = where.holder.getAsJsonArray(where.page).map { it.asString }
+        val left = wanted(standing) ?: return false
+        if (left.isEmpty()) where.holder.remove(where.page) else {
+            where.holder.add(where.page, JsonArray().apply { left.forEach(::add) })
+        }
+        return true
+    }
 
     /** True where the key was there and moved. Weights are signed, so the sign travels with it. */
     private fun renameKey(holder: JsonObject?, from: String, to: String): Boolean {
@@ -199,21 +316,27 @@ object TagFile {
         return true
     }
 
-    private fun renameInAntonyms(from: String, to: String): List<String> {
+    private fun renameInAntonyms(from: String, to: String): List<String> = inEveryAntonymFile { pairs ->
+        var moved = false
+        for (body in pairs) {
+            for (side in listOf("first", "second")) {
+                if (body.get(side)?.asString != from) continue
+                body.addProperty(side, to)
+                moved = true
+            }
+        }
+        pairs.takeIf { moved }
+    }
+
+    /** Every antonym file, rewritten where [wanted] hands back a different set of pairs. */
+    private fun inEveryAntonymFile(wanted: (List<JsonObject>) -> List<JsonObject>?): List<String> {
         val directory = WordFile.art.resolve("antonyms")
         return directory.listFiles { file -> file.name.endsWith(JSON_SUFFIX) }.orEmpty().mapNotNull { file ->
             val json = runCatching { JsonParser.parseString(file.readText()).asJsonObject }.getOrNull()
                 ?: return@mapNotNull null
-            var moved = false
-            for (pair in json.getAsJsonArray("pairs").orEmpty()) {
-                val body = pair.asJsonObject
-                for (side in listOf("first", "second")) {
-                    if (body.get(side)?.asString != from) continue
-                    body.addProperty(side, to)
-                    moved = true
-                }
-            }
-            if (!moved) return@mapNotNull null
+            val pairs = json.getAsJsonArray("pairs").orEmpty().map { it.asJsonObject }
+            val left = wanted(pairs) ?: return@mapNotNull null
+            json.add("pairs", JsonArray().apply { left.forEach(::add) })
             file.writeText(GSON.toJson(json) + "\n")
             "antonyms/${file.name.removeSuffix(JSON_SUFFIX)}"
         }
