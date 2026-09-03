@@ -61,6 +61,7 @@ import net.minecraft.world.level.biome.BiomeSource
 import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.levelgen.SurfaceRules
 import net.minecraft.world.level.levelgen.carver.CarverConfiguration
+import co.voik.agesandtheart.worldgen.feature.Formation
 import co.voik.agesandtheart.worldgen.feature.SpilledSpring
 import net.minecraft.world.level.levelgen.feature.Feature
 import net.minecraft.world.level.levelgen.carver.WorldCarver
@@ -585,5 +586,6 @@ object AgeContent {
      */
     val features: List<Pair<Identifier, Feature<*>>> = listOf(
         "spilled_spring".location() to SpilledSpring,
+        "formation".location() to Formation,
     )
 }

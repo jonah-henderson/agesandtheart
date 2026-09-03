@@ -140,5 +140,78 @@
       "hostile": 0.9,
       "cavernous": 0.7
     }
+  },
+  "agesandtheart:obelisks": {
+    "_comment": [
+      "A quarter built, and that is the honest weight: a standing stone could be a formation or somebody's",
+      "work, and nothing about it answers which. A weight under a word's threshold is no longer the same as",
+      "nothing — see notes/tag-matching-research.md."
+    ],
+    "tags": {
+      "monumental": 0.7,
+      "ordered": 0.8,
+      "sheer": 0.5,
+      "built": 0.25,
+      "stony": 0.6
+    }
+  },
+  "agesandtheart:pyramids": {
+    "_comment": [
+      "Ordered before monumental: five courses is a shape somebody laid, at a scale nobody would call a",
+      "monument."
+    ],
+    "tags": {
+      "monumental": 0.5,
+      "ordered": 0.7,
+      "built": 0.3,
+      "ruined": 0.2,
+      "stony": 0.6
+    }
+  },
+  "agesandtheart:boulders": {
+    "_comment": [
+      "Not built at any weight. The one shape in this family that is plainly a rock, and tagging it even",
+      "faintly as somebody's work would make `untouched` an argument about scree."
+    ],
+    "tags": {
+      "stony": 0.9,
+      "monumental": 0.1
+    }
+  },
+  "agesandtheart:spikes": {
+    "_comment": [
+      "Sheer above all, that being the tag for standing up sharply rather than for being large."
+    ],
+    "tags": {
+      "sheer": 0.9,
+      "stony": 0.7,
+      "monumental": 0.2
+    }
+  },
+  "agesandtheart:rings": {
+    "_comment": [
+      "Ruined more than built: a ring lying flat reads as what is left of something rather than as a thing",
+      "still standing."
+    ],
+    "tags": {
+      "ordered": 0.6,
+      "built": 0.25,
+      "ruined": 0.3,
+      "monumental": 0.2,
+      "stony": 0.5
+    }
+  },
+  "agesandtheart:arches": {
+    "_comment": [
+      "The least built of the four that carry it at all — an arch is what weather leaves as often as what a",
+      "mason does."
+    ],
+    "tags": {
+      "monumental": 0.6,
+      "sheer": 0.4,
+      "stony": 0.5,
+      "built": 0.15,
+      "ruined": 0.3
+    }
   }
 }

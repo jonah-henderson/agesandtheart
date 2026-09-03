@@ -1,0 +1,9 @@
+{
+  "_comment": [
+    "A shaft under a pointed cap, made of whatever the clause names: `gold_block obelisks`,",
+    "`blackstone obelisks`. The pattern is ours rather than vanilla's -- nothing the game ships is",
+    "a standing stone -- and a shape is all it is, so anything a world can be made of can be one."
+  ],
+  "tier": "exact",
+  "mints": "agesandtheart:obelisks"
+}

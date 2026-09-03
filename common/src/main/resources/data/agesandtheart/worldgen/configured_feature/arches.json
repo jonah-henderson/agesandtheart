@@ -1,0 +1,55 @@
+{
+  "_comment": [
+    "A wall with a way through it: a slab, less a round opening and the square of ground under it.",
+    "Eight yaws, because an arch facing nowhere in particular is the whole of what makes it read as",
+    "weathered rather than as built."
+  ],
+  "type": "agesandtheart:formation",
+  "config": {
+    "shape": {
+      "type": "subtract",
+      "base": {
+        "type": "box",
+        "min_x": -4,
+        "min_y": 0,
+        "min_z": -1,
+        "max_x": 4,
+        "max_y": 7,
+        "max_z": 1
+      },
+      "cut": {
+        "type": "union",
+        "fields": [
+          {
+            "type": "cylinder",
+            "axis": "z",
+            "center_x": 0,
+            "center_y": 4,
+            "center_z": 0,
+            "radius": 2.5,
+            "half_length": 2.0
+          },
+          {
+            "type": "box",
+            "min_x": -2,
+            "min_y": 0,
+            "min_z": -2,
+            "max_x": 2,
+            "max_y": 4,
+            "max_z": 2
+          }
+        ]
+      }
+    },
+    "variation": {
+      "yaw_steps": 8,
+      "min_scale": 1.0,
+      "max_scale": 1.0,
+      "scale_steps": 1,
+      "pivot_y": 0
+    },
+    "substance": {
+      "Name": "minecraft:stone"
+    }
+  }
+}

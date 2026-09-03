@@ -1,0 +1,8 @@
+{
+  "_comment": [
+    "A low ring lying on the ground. Flat on purpose: a ring stood on edge is an arch that closed,",
+    "and `arches` is its own page."
+  ],
+  "tier": "exact",
+  "mints": "agesandtheart:rings"
+}

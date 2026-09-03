@@ -1,0 +1,42 @@
+{
+  "_comment": [
+    "An irregular lump. `undulated` is the one node here that roughens a shape whatever its slope,",
+    "shifting each column by a noise instead of cutting at a level -- on an ellipsoid that is exactly",
+    "a weathered rock.",
+    "The noise is sampled in the template's own frame, so the eight yaws are what make one boulder",
+    "differ from the next: each turn presents a different face of the same lump."
+  ],
+  "type": "agesandtheart:formation",
+  "config": {
+    "shape": {
+      "type": "undulated",
+      "base": {
+        "type": "ellipsoid",
+        "center_x": 0,
+        "center_y": 2,
+        "center_z": 0,
+        "radius_xz": 3.5,
+        "radius_y": 2.5
+      },
+      "seed": 48271,
+      "first_octave": -3,
+      "amplitudes": [
+        1.0,
+        0.5
+      ],
+      "scale_x": 4.0,
+      "scale_z": 4.0,
+      "amount": 1.5
+    },
+    "variation": {
+      "yaw_steps": 8,
+      "min_scale": 0.7,
+      "max_scale": 1.4,
+      "scale_steps": 4,
+      "pivot_y": 0
+    },
+    "substance": {
+      "Name": "minecraft:stone"
+    }
+  }
+}

@@ -138,4 +138,8 @@ class VocabularyOnServerCheck : FunSpec({
  * Authored, so listed rather than derived — and the list has to be moved when one is added. `lakes` was
  * added and this was not, so the check had been failing since (found 2026-08-29, while adding an aspect).
  */
-private val MINTING_PATTERNS = listOf("lakes", "springs", "veins")
+private val MINTING_PATTERNS = listOf(
+    "lakes", "springs", "veins",
+    // The formations, which are one feature carrying a shape rather than six.
+    "arches", "boulders", "obelisks", "pyramids", "rings", "spikes",
+)

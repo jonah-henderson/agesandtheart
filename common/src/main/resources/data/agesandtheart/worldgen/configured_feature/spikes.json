@@ -1,0 +1,27 @@
+{
+  "_comment": [
+    "A cone standing on its base. Sharper and taller than a boulder is wide, so a scatter of them",
+    "reads as a field of needles rather than of rocks."
+  ],
+  "type": "agesandtheart:formation",
+  "config": {
+    "shape": {
+      "type": "cone",
+      "base_x": 0,
+      "base_z": 0,
+      "base_radius": 2.5,
+      "base_y": 0,
+      "tip_y": 9
+    },
+    "variation": {
+      "yaw_steps": 1,
+      "min_scale": 0.6,
+      "max_scale": 1.5,
+      "scale_steps": 5,
+      "pivot_y": 0
+    },
+    "substance": {
+      "Name": "minecraft:stone"
+    }
+  }
+}

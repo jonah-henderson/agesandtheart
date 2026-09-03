@@ -115,6 +115,8 @@ object FeatureShape {
                 configuration.size,
                 configuration.discardChanceOnAirExposure,
             )
+            // A formation is a shape and a substance and nothing else, so this is the whole of minting one.
+            is FormationConfiguration -> configuration.copy(substance = block.defaultBlockState())
             else -> return pattern
         }
         @Suppress("UNCHECKED_CAST")
@@ -180,6 +182,17 @@ object FeatureShape {
                 )
             }
 
+            // **Resized rather than rebuilt**, which is what a field tree buys: the description grows, so a
+            // colossal obelisk has more courses of blocks rather than a stretched staircase. The pose is
+            // resized with it, its lifts being absolute blocks.
+            is FormationConfiguration -> size?.let {
+                val factor = sizeFactor(it)
+                configuration.copy(
+                    shape = configuration.shape.resized(factor, STANDING_ON_THE_GROUND),
+                    variation = configuration.variation.resized(factor),
+                )
+            }
+
             else -> null
         } ?: return configured
         // The generics are the record's own: a `ConfiguredFeature<FC, F>` pairs a configuration with the
@@ -236,10 +249,15 @@ object FeatureShape {
     }
 
     /** [ordinary] moved by [dial], read across the axis every span shares, and kept somewhere sane. */
-    private fun scaled(ordinary: Int, dial: Double, most: Int): Int {
-        val factor = FAINTEST + Span.NATURAL.fractionOf(dial) * (RICHEST - FAINTEST)
-        return (ordinary * factor).roundToInt().coerceIn(1, most)
-    }
+    private fun scaled(ordinary: Int, dial: Double, most: Int): Int =
+        (ordinary * sizeFactor(dial)).roundToInt().coerceIn(1, most)
+
+    /** What a dial at [dial] multiplies a size by — a quarter at the bottom of the axis, four at the top. */
+    private fun sizeFactor(dial: Double): Double =
+        FAINTEST + Span.NATURAL.fractionOf(dial) * (RICHEST - FAINTEST)
+
+    /** A formation is authored with its base at the origin, and the ground is where it is put. */
+    private const val STANDING_ON_THE_GROUND = 0
 
     /** A parameter at the bottom of its axis leaves a quarter of what there was; at the top, four times. */
     private const val FAINTEST = 0.25
@@ -249,10 +267,8 @@ object FeatureShape {
     private const val MOST_OF_A_VEIN = 64
 
     /** A chance stays a chance: a parameter may fill a patch or thin it, never take it past certain. */
-    private fun scaledChance(ordinary: Float, dial: Double): Float {
-        val factor = FAINTEST + Span.NATURAL.fractionOf(dial) * (RICHEST - FAINTEST)
-        return (ordinary * factor).toFloat().coerceIn(0.05f, 1.0f)
-    }
+    private fun scaledChance(ordinary: Float, dial: Double): Float =
+        (ordinary * sizeFactor(dial)).toFloat().coerceIn(0.05f, 1.0f)
 
     /**
      * A `RuleTest` takes a source of randomness, and a probabilistic one would answer differently each
