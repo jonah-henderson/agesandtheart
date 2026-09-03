@@ -87,35 +87,134 @@ class Rules(
      * suits the word editor's one-line notes is a column of cut-off sentences here. What is being read is
      * a document, and a document wants the width.
      */
+    /**
+     * The rules behind one tag, **three panes: where, which, and what it took.**
+     *
+     * A reading was a document and the fan-in makes that unreadable — `grown` has thirty-one rules across
+     * two aspects, each with a wrapped list of members underneath, so finding the one about biomes meant
+     * scrolling past twenty about features. The aspect is the first cut because it is the one a reader
+     * already has in mind, and the rules under it are a table like every other list here.
+     *
+     * The third pane **follows the cursor rather than taking it**: what a rule caught is the answer to
+     * the row you are on, not a place to go.
+     */
     private fun openTheRules(tag: String) {
-        val reader = Reader("what fills ${Word.TAG_MARK}$tag", canvas.whileBusy("Running the rules") {
-            rulesFilling(tag)
-        })
+        val here = filling[tag].orEmpty()
+        val aspects = here.map { it.aspect }.distinct().sortedBy { it.page }
+        if (aspects.isEmpty()) return
+        var at = 0
+        var inside = false
+        var rules = tableOf(here, aspects[at])
         terminal.enterRawMode(MouseTracking.Off).use { scope ->
             while (true) {
-                val window = (canvas.height - CHROME).coerceAtLeast(1)
-                val whole = reader.lines.flatMap { it.wrapped(canvas.width - INDENT, "      ") }
-                reader.rows = whole.size
-                canvas.show(
-                    listOf(Line("  ${reader.title}", Palette.heading), Line.BLANK) +
-                        whole.drop(reader.offset).take(window).map { Line("  ") + it } +
-                        listOf(
-                            Frame.rule(canvas.width),
-                            hints("↑↓" to "scroll", "pgup/pgdn" to "a page", "←" to "back"),
-                        ),
-                )
+                canvas.show(detailLines(tag, aspects, at, inside, rules))
                 val key = scope.readKey() ?: return
                 if (key.ctrl && key.key == "c") throw Leaving()
+
+                /** Whichever list has the cursor, moved — and the rules rebuilt where the aspect moved. */
+                fun move(by: Int) {
+                    if (inside) return rules.move(by)
+                    at = (at + by).coerceIn(0, aspects.lastIndex)
+                    rules = tableOf(here, aspects[at])
+                }
                 when {
                     key.ctrl && (key.key == "q" || key.key == "c") -> return
-                    key.key == "Escape" || key.key == "ArrowLeft" -> return
-                    key.key == "ArrowUp" -> reader.scroll(-1, window)
-                    key.key == "ArrowDown" -> reader.scroll(1, window)
-                    key.key == "PageUp" -> reader.scroll(-window, window)
-                    key.key == "PageDown" -> reader.scroll(window, window)
+                    key.key == "Escape" -> if (inside) inside = false else return
+                    key.key == "ArrowLeft" -> if (inside) inside = false else return
+                    key.key == "ArrowRight" || key.key == "Enter" -> inside = true
+                    key.key == "ArrowUp" -> move(-1)
+                    key.key == "ArrowDown" -> move(1)
+                    key.key == "Home" -> if (inside) rules.home() else { at = 0; rules = tableOf(here, aspects[0]) }
+                    key.key == "End" -> if (inside) rules.end() else {
+                        at = aspects.lastIndex
+                        rules = tableOf(here, aspects[at])
+                    }
+                    key.key == "PageUp" -> if (inside) rules.page(-1) else move(-1)
+                    key.key == "PageDown" -> if (inside) rules.page(1) else move(1)
                 }
             }
         }
+    }
+
+    /** One aspect's rules, as the table every other list on these screens is. */
+    private fun tableOf(here: List<Rule>, aspect: Aspect): Table = Table(
+        title = "",
+        columns = listOf(
+            Table.Column("predicate", PREDICATE_LEAST, grows = true),
+            Table.Column("strength", STRENGTH_WIDTH),
+            Table.Column("members", COUNT_WIDTH),
+        ),
+        rows = here.filter { it.aspect == aspect }.map { rule ->
+            val caught = DerivationRules.catches(rule, corpus)
+            Table.Row(
+                key = rule.id,
+                cells = listOf(
+                    saidOf(rule) + mechanicOf(rule)?.let { "  ($it)" }.orEmpty(),
+                    "%.1f".format(rule.fills.values.max()),
+                    if (caught.members.isEmpty()) "" else caught.members.size.toString(),
+                ),
+                tone = if (caught.members.isEmpty()) Palette.warned else null,
+            )
+        },
+        whenEmpty = "no rule here fills it",
+    )
+
+    private fun detailLines(
+        tag: String,
+        aspects: List<Aspect>,
+        at: Int,
+        inside: Boolean,
+        rules: Table,
+    ): List<Line> {
+        val room = (canvas.height - CHROME).coerceAtLeast(1)
+        val caught = rules.focused?.let { row -> filling[tag].orEmpty().firstOrNull { it.id == row.key } }
+            ?.let { DerivationRules.catches(it, corpus) }
+        val forMembers = if (caught == null || canvas.width < WIDE) 0 else MEMBERS_PANE
+        val forRules = canvas.width - ASPECTS_PANE - Frame.GUTTER -
+            if (forMembers == 0) 0 else forMembers + Frame.GUTTER
+        rules.room = (forRules - CURSOR_COLUMN).coerceAtLeast(MINIMUM_ROOM)
+        rules.window = room - 1
+
+        val listed = aspects.mapIndexed { where, aspect ->
+            val focused = where == at && !inside
+            Line(if (focused) "${Glyph.FOCUS} " else "  ", Palette.focused) +
+                Line(aspect.page, if (where == at) Palette.aspect else Palette.faint)
+        }
+        val shown = rules.shown
+        val first = (rules.index - room / 2).coerceIn(0, (shown.size - room + 1).coerceAtLeast(0))
+        val table = listOf(headerLine(rules)) + shown.drop(first).take(room - 1).mapIndexed { offset, row ->
+            rowLine(rules, row, here = inside && first + offset == rules.index)
+        }
+        val body = Frame.beside(listed, ASPECTS_PANE, table, forRules)
+        val whole = if (forMembers == 0) body else {
+            val members = membersPane(requireNotNull(caught), forMembers)
+            body.mapIndexed { line, drawn ->
+                drawn + Line(" ${Glyph.BAR} ", Palette.rule) + (members.getOrNull(line) ?: Line.BLANK)
+            }
+        }
+        return listOf(
+            Line("  what fills ", Palette.heading) + Line("${Word.TAG_MARK}$tag", Palette.tag),
+            Frame.rule(canvas.width),
+        ) + whole.take(room) + listOf(
+            Frame.rule(canvas.width),
+            hints(
+                "↑↓" to if (inside) "rule" else "aspect",
+                if (inside) "←" to "aspects" else "→" to "its rules",
+                "esc" to "back",
+            ),
+        )
+    }
+
+    /** What the rule under the cursor took, listed — the answer to the row rather than a place to go. */
+    private fun membersPane(caught: DerivationRules.Caught, width: Int): List<Line> = buildList {
+        add(
+            when {
+                caught.members.isEmpty() -> Line("nothing — no snapshot to ask", Palette.warned)
+                caught.fromAServer -> Line("${caught.members.size} members, from a server", Palette.nudged)
+                else -> Line("${caught.members.size} members", Palette.settled)
+            },
+        )
+        addAll(caught.members.map { Line(cell(it, width), Palette.faint) })
     }
 
     private fun tagRow(tag: String): Table.Row {
@@ -152,49 +251,6 @@ class Rules(
         ),
     )
 
-    /**
-     * The rules that fill one tag, each said as **a sentence about a member** — and what each caught.
-     *
-     * Three mechanisms wear three verbs on purpose. A feature carries no tags at all in vanilla, so a
-     * `by_tag` rule there reads the tags of the *blocks the feature places*, weighted by what share of
-     * them carry it; saying "carries" of that would be false of the largest group of rules there is.
-     */
-    private fun rulesFilling(tag: String): List<Line> = buildList {
-        val here = filling[tag].orEmpty()
-        add(Line("what fills ", Palette.faint) + Line("${Word.TAG_MARK}$tag", Palette.tag))
-        add(Line.BLANK)
-        for (rule in here) {
-            val caught = DerivationRules.catches(rule, corpus)
-            add(
-                Line(rule.aspect.page.padEnd(ASPECT_WIDTH), Palette.aspect) +
-                    Line(saidOf(rule), Palette.value) +
-                    Line(mechanicOf(rule)?.let { "  ($it)" }.orEmpty(), Palette.faint) +
-                    Line("  %.1f".format(rule.fills.getValue(tag)), Palette.faint),
-            )
-            add(
-                Line("  ".padEnd(ASPECT_WIDTH)) + when {
-                    caught.members.isEmpty() -> Line("catches nothing — no snapshot to ask", Palette.warned)
-                    caught.fromAServer -> Line("${caught.members.size} members, from a server", Palette.nudged)
-                    else -> Line("${caught.members.size} members", Palette.settled)
-                },
-            )
-            if (caught.members.isNotEmpty()) {
-                val shown = caught.members.take(SHOWN).joinToString("  ")
-                val more = (caught.members.size - SHOWN).takeIf { it > 0 }
-                    ?.let { "  ${Glyph.ELIDED} and $it more" }.orEmpty()
-                addAll(Line("  ".padEnd(ASPECT_WIDTH) + shown + more, Palette.faint).wrapped(PANE_TEXT, "    "))
-            }
-            add(Line.BLANK)
-        }
-    }
-
-    /**
-     * One rule as a predicate about a member: `places blocks tagged #minecraft:logs`, `is a monster`.
-     *
-     * The old screen had a column saying whether the key was "a tag it carries" or "a fact it states",
-     * which is a fact about the rule's shape rather than about the world — and wrong for every feature
-     * rule, features carrying no tags of their own.
-     */
     /**
      * A snapshot taken now, in the background, **without leaving the screen that needed it.**
      *
@@ -250,9 +306,19 @@ class Rules(
     }
 
     private companion object {
-        /** The two columns a reading is indented by, and the chrome around one. */
-        const val INDENT = 2
-        const val CHROME = 4
+        /** Title, two rules, the key line, and a row the terminal keeps. */
+        const val CHROME = 5
+
+        /** The aspects down the left, and what a rule's members get on the right. */
+        const val ASPECTS_PANE = 14
+        const val MEMBERS_PANE = 30
+
+        /** Below this the third pane cannot say a member's name, so it is not drawn. */
+        const val WIDE = 96
+
+        /** The rules table's own columns; the predicate takes whatever is left. */
+        const val PREDICATE_LEAST = 24
+        const val STRENGTH_WIDTH = 8
 
         /** How wide the refresh bar is drawn. */
         const val BAR = 24
@@ -262,15 +328,5 @@ class Rules(
         const val WHERE_WIDTH = 20
         const val ASPECT_WIDTH = 11
 
-        /** How wide the list stays when a tag is open beside it. */
-        const val RULES_PANE = 56
-
-        /** Below this the pane cannot say anything, so the list keeps the whole screen. */
-        const val NARROWEST = 40
-
-        /** What a wrapped member list is laid to, inside the pane. */
-        const val PANE_TEXT = RULES_PANE - 4
-
-        const val SHOWN = 60
     }
 }

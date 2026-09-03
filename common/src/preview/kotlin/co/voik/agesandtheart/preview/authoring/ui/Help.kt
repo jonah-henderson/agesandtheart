@@ -249,6 +249,8 @@ class Help(
             Line("  reachable by accident from a screen that nudges weights.", Palette.faint),
             Line("", Palette.faint),
             keyRow("enter", "the rules that fill the tag under the cursor"),
+            keyRow("", "then: aspects on the left, their rules beside them, and what the"),
+            keyRow("", "rule under the cursor took on the right"),
             keyRow("^l", "load minecraft data without leaving the screen"),
             Line("", Palette.faint),
             Line("  A rule reading a registry tag catches nothing without a running game, so", Palette.faint),
