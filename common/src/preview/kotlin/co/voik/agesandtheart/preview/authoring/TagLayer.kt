@@ -30,13 +30,13 @@ class TagLayer(private val corpus: Corpus) {
      * trusting the screen, so the two have their own names.
      */
     enum class Source(val title: String) {
-        /** An entry in `art/preset_tags/` where no rule granted the tag. Clearing it takes it off. */
+        /** An entry in `art/preset_tags/` that no rule also made. Clearing it takes the member out. */
         AUTHORED("authored"),
 
         /** An entry standing over a rule that granted it too. Clearing it lets the rule's weight back. */
         OVERRIDDEN("overridden"),
 
-        /** A rule in `art/derivation/` made it, and no entry exists. Changing it writes one. */
+        /** A rule in `art/derivation/` put it in, and no entry exists. Changing it writes one. */
         DERIVED("derived"),
 
         /**
@@ -49,7 +49,7 @@ class TagLayer(private val corpus: Corpus) {
          */
         REMEMBERED("from a server"),
 
-        /** Derived, then taken back off by `drop` — so it is not carried, and the row says why. */
+        /** Put in by a rule and then taken out by `drop` — so it is not a member, and the row says why. */
         DROPPED("dropped"),
     }
 
@@ -63,7 +63,7 @@ class TagLayer(private val corpus: Corpus) {
     )
 
     /**
-     * Everything [aspect] could hold that is not already tagged [tag] — what adding one may choose from.
+     * Everything [aspect] could hold that is not already in [tag] — what adding a member may choose from.
      *
      * A closed aspect offers the presets this pack wrote; an open one offers every id the corpus knows,
      * which is what its derived words choose. **Whether it carries anything at all is said separately**:
@@ -83,7 +83,7 @@ class TagLayer(private val corpus: Corpus) {
             .map { Untagged(it, carriesNothing = tagsOn(aspect, it).isEmpty()) }
     }
 
-    /** A member that could be tagged, and whether anything — rule or line — has ever described it. */
+    /** A member that could join, and whether it is in any set at all — rule or line.  */
     data class Untagged(val preset: String, val carriesNothing: Boolean)
 
     /** One tag, and everything about it a reader needs before touching a weight. */
@@ -237,7 +237,7 @@ class TagLayer(private val corpus: Corpus) {
 
     /** Everything carrying [tag], strongest first, with the dropped rows last where they belong. */
     /**
-     * What carries [tag] — **grouped by where the weight came from**, or in one flat alphabetical run.
+     * What is in [tag] — **grouped by where the membership came from**, or in one flat alphabetical run.
      *
      * Grouped is the tuning order: what somebody wrote by hand is what somebody has already thought
      * about, and reading it against the derived mass underneath is the pass. Alphabetical is the looking

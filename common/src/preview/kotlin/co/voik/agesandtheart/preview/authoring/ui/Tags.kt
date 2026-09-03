@@ -9,10 +9,15 @@ import com.github.ajalt.mordant.input.enterRawMode
 import com.github.ajalt.mordant.terminal.Terminal
 
 /**
- * The tag layer, read and retuned — **every tag, and everything that carries it.**
+ * The tag layer, read and retuned — **every tag as a set, and everything in it.**
  *
- * The primary view is one tag's carriers rather than one preset's tags, because that is how both
- * hand-tuning passes actually worked: asking each tag what it had picked up is how all eleven faults in
+ * **A tag owns members; it is not a label stuck on them** (Jonah, 2026-09-02). Both readings describe the
+ * same data and only one of them makes the screen's verbs come out right: you empty a set, take a member
+ * out of one, put one back. Said the other way the same acts are "take the tag off", "give it back", and
+ * a reader has to reverse the sentence before every keystroke.
+ *
+ * The primary view is one tag's members rather than one preset's tags, because that is how both
+ * hand-tuning passes actually worked: asking each set what it had picked up is how all eleven faults in
  * `notes/the-tag-layer.md` §7 were found, and reading the rules never found any of them.
  *
  * **The overlay has to be legible or the screen is a liar** — see [TagLayer]. Every row says whether its
@@ -44,8 +49,8 @@ class Tags(
             ),
             rows = canvas.whileBusy("Reading the tag layer") { rowsOf() },
             whenNothingMatches = { typed ->
-                if (couldBeATag(typed)) "no tag matches '$typed' — enter to make it"
-                else "no tag matches '$typed'"
+                if (couldBeATag(typed)) "no set matches '$typed' — enter to make it"
+                else "no set matches '$typed'"
             },
         )
         while (true) {
@@ -57,7 +62,7 @@ class Tags(
 
     private fun makingRow() = Table.Row(
         key = MAKE,
-        cells = listOf("+ a new tag", "", "", "", "named, then given something to sit on"),
+        cells = listOf("+ a new set", "", "", "", "named, then given its first member"),
         tone = Palette.faint,
     )
 
@@ -71,13 +76,13 @@ class Tags(
     private fun makeATag(searched: String?) {
         val standing = layer.facts().map { it.tag }.toSet()
         val named = searched?.takeUnless { it in standing } ?: ask(
-            title = "a new tag",
+            title = "a new set",
             hint = "what the world is like — `wooded`, `molten`, `ruined` ${Glyph.BULLET} " +
                 "${standing.size} so far",
         ) { said ->
             when {
-                said.isBlank() -> "a tag needs a name"
-                said in standing -> "'$said' is already a tag"
+                said.isBlank() -> "a set needs a name"
+                said in standing -> "'$said' is already a set"
                 !said.matches(LEGAL_TAG) -> "lower case, digits and _ only"
                 else -> null
             }
@@ -105,16 +110,16 @@ class Tags(
         val says = buildList {
             add(Line("${Glyph.WARN} this cannot be undone", Palette.refused))
             add(Line.BLANK)
-            add(Line("takes $TAG_MARK$tag off ${members.size} member(s)", Palette.value))
+            add(Line("empties $TAG_MARK$tag of its ${members.size} member(s)", Palette.value))
             add(
                 if (asked.isEmpty()) Line("no word asks for it", Palette.faint)
-                else Line("and out of ${asked.size} word(s): ${asked.joinToString(" ")}", Palette.value),
+                else Line("and leaves ${asked.size} word(s) asking for nothing: ${asked.joinToString(" ")}", Palette.value),
             )
             // **A rule would put it straight back**, and this cannot reach one: a rule moves dozens of
             // members at once and is the rules screen's to delete, deliberately.
             if (rules.isNotEmpty()) {
                 add(Line.BLANK)
-                add(Line("${Glyph.WARN} ${rules.size} rule(s) grant it and would give it back:", Palette.warned))
+                add(Line("${Glyph.WARN} ${rules.size} rule(s) fill it and would refill it:", Palette.warned))
                 rules.forEach { add(Line("    $it", Palette.faint)) }
             }
         }
@@ -159,7 +164,7 @@ class Tags(
         // anything is typed, which is right: while you are searching you are looking, not adding.
         val rowsOf = { listOf(addingRow(named)) + layer.membersTagged(named, grouped).map(::memberRow) }
         val table = Table(
-            title = "members tagged '$tag'",
+            title = "what is in '$tag'",
             columns = listOf(
                 Table.Column("aspect", ASPECT_WIDTH),
                 Table.Column("member", CARRIER_WIDTH),
@@ -168,7 +173,7 @@ class Tags(
                 Table.Column("", NOTE_WIDTH),
             ),
             rows = canvas.whileBusy("Reading the tag layer") { rowsOf() },
-            whenEmpty = "nothing is tagged this \u2014 a word asking for it would find nothing",
+            whenEmpty = "this set is empty \u2014 a word asking for it would find nothing",
         )
         terminal.enterRawMode(MouseTracking.Off).use { scope ->
             while (true) {
@@ -251,7 +256,7 @@ class Tags(
 
     private fun addingRow(tag: String) = Table.Row(
         key = ADD,
-        cells = listOf("+ tag something", "", "", "", "with $TAG_MARK$tag"),
+        cells = listOf("+ add a member", "", "", "", "into $TAG_MARK$tag"),
         tone = Palette.faint,
     )
 
@@ -264,7 +269,7 @@ class Tags(
     private fun addAMember(tag: String) {
         val offered = Aspect.entries.associateWith { layer.untaggedIn(it, tag) }
             .filterValues { it.isNotEmpty() }
-        val aspect = ask("Tag what, where?", offered.keys.sortedBy { it.page }.map { one ->
+        val aspect = ask("Add what, from where?", offered.keys.sortedBy { it.page }.map { one ->
             // **Two counts, and they are not the same one.** How many could take *this* tag is what the
             // list is for; how many carry nothing at all is the number worth acting on, and calling the
             // first "untagged" said the second's word about the first's number.
@@ -273,7 +278,7 @@ class Tags(
             Picker.Option(
                 value = one.page,
                 label = one.page,
-                note = "${here.size} without it" + if (bare == 0) "" else "  ${Glyph.BULLET}  $bare untagged",
+                note = "${here.size} outside it" + if (bare == 0) "" else "  ${Glyph.BULLET}  $bare in no set",
             )
         }) ?: return
         val where = Aspect.entries.firstOrNull { it.page == aspect } ?: return
@@ -281,11 +286,11 @@ class Tags(
         // Art cannot reach by any vague word, and for an open aspect a first tag is also what enrols one
         // in the pool a vague word draws from (world model §8.2).
         val untagged = layer.untaggedIn(where, tag)
-        val preset = ask("Tag which ${where.page}?", untagged.map { one ->
+        val preset = ask("Add which ${where.page}?", untagged.map { one ->
             Picker.Option(
                 value = one.preset,
                 label = one.preset,
-                note = if (one.carriesNothing) "untagged" else "",
+                note = if (one.carriesNothing) "in no set" else "",
                 tone = if (one.carriesNothing) Palette.warned else null,
             )
         }) ?: return
@@ -358,7 +363,7 @@ class Tags(
         TagFile.setWeight(member.aspect.page, member.preset, tag, weight)
     }
 
-    /** A derived tag taken off this one member, or given back — `drop`, never deletion. */
+    /** One member taken out of a set a rule put it in, or put back — `drop`, never deletion. */
     private fun drop(member: TagLayer.Member, tag: String) {
         val page = member.aspect.page
         when (member.source) {
@@ -382,14 +387,14 @@ class Tags(
      */
     private fun renamed(tag: String): String? {
         val asked = layer.askedBy(tag)
-        val carriers = layer.membersTagged(tag).size
+        val members = layer.membersTagged(tag).size
         val typed = ask(
             title = "rename '$tag'",
-            hint = "$carriers carriers ${Glyph.BULLET} ${asked.size} words ask for it" +
+            hint = "$members members ${Glyph.BULLET} ${asked.size} words ask for it" +
                 if (asked.isEmpty()) "" else " (${asked.joinToString(" ")})",
         ) { said ->
             when {
-                said.isBlank() -> "a tag needs a name"
+                said.isBlank() -> "a set needs a name"
                 said == tag -> "that is the name it has"
                 !said.matches(LEGAL_TAG) -> "lower case, digits and _ only"
                 else -> null
@@ -442,8 +447,8 @@ class Tags(
 
     private fun noteOn(fact: TagLayer.Fact): String = when {
         fact.members == 0 && fact.onlyOnAServer ->
-            "only a running server carries this — load minecraft data to see what"
-        fact.members == 0 -> "used by a word, but has no members"
+            "only a running server fills this — load minecraft data to see what is in it"
+        fact.members == 0 -> "used by a word, but empty"
         fact.asked == 0 -> "has members, not used by any word"
         fact.opposed -> "opposed in the antonym table"
         else -> ""
@@ -488,7 +493,7 @@ class Tags(
                                 "pgup/pgdn" to "a page",
                             ),
                             hints(
-                                "enter" to if (table.focused?.key == MAKE) "name a new tag" else "view details",
+                                "enter" to if (table.focused?.key == MAKE) "name a new set" else "view details",
                                 "←" to "back",
                                 searching(table.filter),
                             ),
@@ -535,7 +540,7 @@ class Tags(
                     if (asked.isEmpty()) Palette.warned else Palette.faint,
                 ),
                 if (adding) {
-                    hints("enter" to "give something this tag")
+                    hints("enter" to "add a member")
                 } else {
                     hints(
                         "- =" to "step the weight",
@@ -544,10 +549,10 @@ class Tags(
                 },
                 hints(
                     "tab" to if (grouped) "sort by name" else "group by source",
-                    "^d" to "drop or restore",
-                    "^r" to "rename the tag",
+                    "^d" to "take out or put back",
+                    "^r" to "rename the set",
                     "^w" to "what asks",
-                    "^x" to "delete the tag",
+                    "^x" to "delete the set",
                     "←" to "back",
                     searching(table.filter),
                 ),
