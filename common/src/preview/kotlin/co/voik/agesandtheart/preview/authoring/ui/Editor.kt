@@ -724,26 +724,38 @@ class Editor(
      * already on screen, is a keystroke spent on nothing.
      */
     private fun actOnACost(handle: String) {
-        Tier.NAMED[handle.substringAfter("named/", "")]?.let { named ->
-            edit { it.copy(tier = named) }
+        val named = handle.substringAfter("named/", "")
+        if (named.isNotEmpty()) {
+            parts.openTheCost(named == Tier.CUSTOM)
+            Tier.NAMED[named]?.let { tier -> edit { it.copy(tier = tier) } }
             return
         }
+        // The numbers are there to be read under a named tier, and only a word saying its own may move them.
+        if (!parts.statingItsOwnCost(candidate)) return
         when (handle.substringAfter("cost/", "")) {
-            "ink" -> retypeCost("ink", "${candidate.tier.cost}", "fine inks, before its reach") { tier, said ->
-                said.toIntOrNull()?.let { tier.copy(cost = it) }
+            "base ink cost" -> retypeCost(
+                "base ink cost",
+                "${candidate.tier.cost}",
+                "fine inks, before its reach is counted",
+            ) { tier, said -> said.toIntOrNull()?.takeIf { it >= 0 }?.let { tier.copy(cost = it) } }
+            "versatility multiplier" -> retypeCost(
+                "versatility multiplier",
+                "%.2f".format(candidate.tier.versatilityMultiplier),
+                "one charges every further aspect in full; zero prices the page flat",
+            ) { tier, said ->
+                said.toDoubleOrNull()?.takeIf { it >= 0.0 }?.let { tier.copy(versatilityMultiplier = it) }
             }
-            "threshold" -> retypeCost(
-                "threshold",
+            "tag match threshold" -> retypeCost(
+                "tag match threshold",
                 "%.2f".format(candidate.tier.threshold),
-                "how well a preset must answer to be kept — 0 keeps everything, 1 only a perfect carrier",
+                "how well a tag must align to be considered matching — 0 keeps everything, 1 only a perfect carrier",
             ) { tier, said -> said.toDoubleOrNull()?.takeIf { it in 0.0..1.0 }?.let { tier.copy(threshold = it) } }
-            "failure" -> retypeCost(
-                "failure",
+            "instability cost" -> retypeCost(
+                "instability cost",
                 "${candidate.tier.weight}",
-                "what a claim of this that cannot land costs the Age",
-            ) { tier, said -> said.toIntOrNull()?.let { tier.copy(weight = it) } }
-            "narrows" -> edit { it.copy(tier = it.tier.copy(narrows = !it.tier.narrows)) }
-            "times its reach" -> edit { it.copy(tier = it.tier.copy(timesItsReach = !it.tier.timesItsReach)) }
+                "points penalised when this word is used in a contradiction",
+            ) { tier, said -> said.toIntOrNull()?.takeIf { it >= 0 }?.let { tier.copy(weight = it) } }
+            "restricts" -> edit { it.copy(tier = it.tier.copy(narrows = !it.tier.narrows)) }
         }
     }
 
@@ -1373,12 +1385,16 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
 
     /** One of a tier's numbers nudged: a threshold in tenths, ink and a failure weight one at a time. */
     private fun stepACost(field: String, by: Double) {
+        if (!parts.statingItsOwnCost(candidate)) return
         val whole = if (by > 0) 1 else -1
         edit { at ->
             val tier = when (field) {
-                "ink" -> at.tier.copy(cost = (at.tier.cost + whole).coerceAtLeast(0))
-                "failure" -> at.tier.copy(weight = (at.tier.weight + whole).coerceAtLeast(0))
-                "threshold" -> at.tier.copy(threshold = (at.tier.threshold + by).coerceIn(0.0, 1.0))
+                "base ink cost" -> at.tier.copy(cost = (at.tier.cost + whole).coerceAtLeast(0))
+                "instability cost" -> at.tier.copy(weight = (at.tier.weight + whole).coerceAtLeast(0))
+                "tag match threshold" -> at.tier.copy(threshold = (at.tier.threshold + by).coerceIn(0.0, 1.0))
+                "versatility multiplier" -> at.tier.copy(
+                    versatilityMultiplier = (at.tier.versatilityMultiplier + by).coerceAtLeast(0.0),
+                )
                 else -> at.tier
             }
             at.copy(tier = tier)

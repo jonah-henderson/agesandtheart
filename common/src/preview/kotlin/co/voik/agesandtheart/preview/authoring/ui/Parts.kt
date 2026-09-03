@@ -42,7 +42,7 @@ enum class Part(
      * author to: a word called `evocative` that chooses four members outright is precise, and was priced
      * as though it were vague. The name is derived from the numbers now, so it can only ever be true.
      */
-    TIER("cost", "what writing the page costs, and how hard its claims bite"),
+    TIER("cost", ""),
     TEMPLATE("base dimension", ""),
     LISTING("rarity", ""),
 
@@ -134,6 +134,21 @@ class Parts(private val corpus: Corpus) {
      */
     var helpAspect: Int = 0
 
+    /**
+     * Whether the cost section's numbers have been opened to editing.
+     *
+     * **A state of the screen, not of the word.** A tier *is* its five numbers, so one still matching
+     * `restrictive` is restrictive whatever was picked, and writing `custom` beside restrictive's own
+     * numbers into a file would be a label the file could not honour. Taking a named tier closes it again.
+     */
+    private var costWasOpened = false
+
+    /** Whether this word says its cost in numbers rather than by name. */
+    fun statingItsOwnCost(candidate: Candidate) = costWasOpened || candidate.tier.key == Tier.CUSTOM
+
+    /** What the `custom` row does, and what taking one of the three undoes. */
+    fun openTheCost(open: Boolean) { costWasOpened = open }
+
     fun rowsOf(part: Part, candidate: Candidate, word: Word?, width: Int): List<Row> = when (part) {
         Part.NAME -> nameRows(candidate)
         Part.TIER -> tierRows(candidate)
@@ -178,94 +193,92 @@ class Parts(private val corpus: Corpus) {
     }
 
     /**
-     * **The three the Art names, and then the numbers they stand for.**
+     * **The three the Art names, then a fourth that is the numbers themselves, then the numbers.**
      *
-     * There is no fourth "custom" to pick, and there should not be: a word's tier *is* its five numbers,
-     * and a name is what those numbers are called where they match one of the three. Taking a name fills
-     * them all in at once; changing any of them afterwards is what makes the word's own, and it says so by
-     * none of the three being filled in any more. Nothing has to be switched into a mode first, and there
-     * is no state in which the name and the numbers can disagree.
+     * A name is a filling-in rather than a category: taking one sets all five at once, and the row that is
+     * filled in is whichever the numbers match. `custom` is what opens them to editing, and a word already
+     * stating its own arrives with them open — the numbers are shown either way, because what `exact`
+     * actually means is worth being able to read without having to change anything to see it.
      */
     private fun tierRows(candidate: Candidate): List<Row> = buildList {
+        val own = statingItsOwnCost(candidate)
         Tier.NAMED.forEach { (named, tier) ->
-            val here = candidate.tier == tier
-            add(
-                Row(
-                    handle = "named/$named",
-                    shown = listOf(
-                        Ink(if (here) "${Glyph.FILLED} " else "${Glyph.HOLLOW} ", Palette.chosen),
-                        Ink(named.padEnd(TIER_NAME), if (here) Palette.value else Palette.faint),
-                        Ink("ink ${tier.cost}".padEnd(TIER_INK), Palette.faint),
-                        Ink(whatATierMeans(named), Palette.faint),
-                    ),
-                    note = "takes all five numbers below at once",
-                ),
-            )
+            val here = !own && candidate.tier == tier
+            add(chosenRow("named/$named", named, here, "ink ${tier.cost}", whatATierMeans(named)))
         }
+        add(chosenRow("named/${Tier.CUSTOM}", Tier.CUSTOM, own, "", "say what this word costs outright"))
         add(Row("heading/space/numbers", emptyList()))
-        add(
-            Row(
-                "heading/numbers",
-                listOf(Ink(if (candidate.tier.key == Tier.CUSTOM) "its own numbers" else "what that means", Palette.heading)),
-            ),
-        )
-        addAll(costRows(candidate))
+        addAll(costRows(candidate, own))
     }
 
+    private fun chosenRow(handle: String, named: String, here: Boolean, ink: String, about: String) = Row(
+        handle = handle,
+        shown = listOf(
+            Ink(if (here) "${Glyph.FILLED} " else "${Glyph.HOLLOW} ", Palette.chosen),
+            Ink(named.padEnd(TIER_NAME), if (here) Palette.value else Palette.faint),
+            Ink(ink.padEnd(TIER_INK), Palette.faint),
+            Ink(about, Palette.faint),
+        ),
+    )
+
     private fun whatATierMeans(named: String) = when (named) {
-        "evocative" -> "tilts the draw; it can never remove a candidate"
-        "restrictive" -> "narrows to what carries the tag at all"
-        "exact" -> "pins: only a strong carrier will do"
+        "evocative" -> "steers and biases but imposes no hard constraints"
+        "restrictive" -> "narrows available options to a specific set, like hot temperatures"
+        "exact" -> "sets a parameter precisely"
         else -> ""
     }
 
     /**
-     * The five numbers a tier is, each editable.
+     * The five numbers a tier is — **shown always, editable only where the word states its own.**
      *
-     * `ink` and `times its reach` are what the page costs; `threshold` and `narrows` are how it reads;
-     * `failure` is what a claim of it that cannot land does to the Age. They were one word standing for
-     * all five, which nothing could stop an author contradicting — a word called `evocative` that chooses
-     * four members outright is precise and was priced as though it were vague.
+     * Grey throughout under a named tier, which is the whole of how a reader tells the two apart: the
+     * numbers are there to be read, and reading `exact`'s threshold is what tells you what `exact` means.
      */
-    private fun costRows(candidate: Candidate): List<Row> {
+    private fun costRows(candidate: Candidate, own: Boolean): List<Row> {
         val tier = candidate.tier
         fun row(field: String, said: String, about: String, note: String) = Row(
             handle = "cost/$field",
             shown = listOf(
                 Ink("    "),
-                Ink(field.padEnd(TIER_FIELD), Palette.parameter),
-                Ink(said.padEnd(TIER_VALUE), Palette.value),
+                Ink(field.padEnd(TIER_FIELD), if (own) Palette.parameter else Palette.faint),
+                Ink(said.padEnd(TIER_VALUE), if (own) Palette.value else Palette.faint),
                 Ink(about, Palette.faint),
             ),
-            note = note,
+            note = if (own) note else "take `custom` above to say what this word costs outright",
         )
-        val reach = if (tier.timesItsReach) "dearer for each part of the world it reaches" else "the same wherever it is laid"
+        // **`restricts` on screen, `narrows` in the code**, since `Word.restricts` is already the tag query
+        // and one word for two things is worse in the file than a second word for one thing is on a list.
+        val restricting = if (tier.narrows) {
+            "parameter values and population members that conflict will not be selected"
+        } else {
+            "parameter values and population members that conflict will be unlikely, but still selectable"
+        }
         return listOf(
-            row("ink", "${tier.cost}", "fine inks, before its reach", "what writing the page costs"),
+            row("base ink cost", "${tier.cost}", "", "what the page costs before its reach is counted"),
             row(
-                "times its reach",
-                yesOrNo(tier.timesItsReach),
-                reach,
-                "a page usable in several places is a better page to own — but a word that says the same " +
-                    "small thing wherever it goes is not worth more for going further",
+                "versatility multiplier",
+                "%.2f".format(tier.versatilityMultiplier),
+                "multiplies the base ink cost by how many aspects the word applies to",
+                "one charges every further aspect in full and zero charges none of them, so a word that " +
+                    "says the same small thing wherever it is laid can be priced flat",
             ),
             row(
-                "narrows",
+                "restricts",
                 yesOrNo(tier.narrows),
-                if (tier.narrows) "it removes candidates" else "it only tilts the draw",
-                "a word that only tilts can never fail, and so is never charged for failing",
+                restricting,
+                "a word that only steers can never fail, and so is never charged for failing",
             ),
             row(
-                "threshold",
+                "tag match threshold",
                 "%.2f".format(tier.threshold),
-                if (tier.narrows) "how well a preset must answer to be kept" else "unread while it only tilts",
-                "the strength a preset's tags have to reach before this word will keep it",
+                "how well a tag must align to be considered matching",
+                "unread while the word only steers, since nothing is being kept out",
             ),
             row(
-                "failure",
+                "instability cost",
                 "${tier.weight}",
-                "what a claim of this that cannot land costs the Age",
-                "instability, not ink — what it means for the thing said not to happen",
+                "how many instability points are penalised when this word is used in a contradiction",
+                "what it means for the thing said not to happen, which is not what saying it cost",
             ),
         )
     }
@@ -388,8 +401,9 @@ class Parts(private val corpus: Corpus) {
     private fun said(line: String) = Told.Whole("said", listOf(Ink("    "), Ink(line, Palette.faint)))
 
     private fun costTold(candidate: Candidate, word: Word, listing: WordFile.Listing) = buildList {
-        val reach = if (word.tier.timesItsReach) {
-            "${word.tier.cost} × ${word.versatility} part(s) of the world"
+        val reach = if (word.versatility > 1.0) {
+            "${word.tier.cost} × %.2f for reaching ${word.aspects.size} part(s) of the world"
+                .format(word.versatility)
         } else {
             "${word.tier.cost} flat, whatever it reaches"
         }

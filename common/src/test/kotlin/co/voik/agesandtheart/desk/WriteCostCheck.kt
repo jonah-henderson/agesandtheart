@@ -111,7 +111,7 @@ class WriteCostCheck : FunSpec({
             "an evocative word is not the cheapest thing in the language: " +
                 evocative.map { "${it.name}@${it.price}" }
         }
-        val narrow = vocabulary.words.first { it.tier == Tier.EXACT && it.versatility == 1 }
+        val narrow = vocabulary.words.first { it.tier == Tier.EXACT && it.versatility == 1.0 }
         val broad = vocabulary.words.first { it.tier == Tier.EXACT && it.versatility > 1 }
         check(broad.price > narrow.price) {
             "'${broad.name}' reaches more places than '${narrow.name}' and costs no more"

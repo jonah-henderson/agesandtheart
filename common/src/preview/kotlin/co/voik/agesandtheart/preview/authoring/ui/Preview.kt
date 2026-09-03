@@ -26,7 +26,10 @@ object Preview {
     fun carriers(candidate: Candidate, word: Word?, corpus: Corpus): Reader {
         if (word == null) return Reader("Preview", listOf(Line("this word will not load", Palette.refused)))
         val lines = buildList {
-            add(Line("ink ${word.price}", Palette.value) + Line("  = ${word.tier.key} × ${word.versatility} targets", Palette.faint))
+            val spent = "%s %d × %.2f for %d aspect(s)".format(
+                word.tier.key, word.tier.cost, word.versatility, word.aspects.size,
+            )
+            add(Line("ink ${word.price}", Palette.value) + Line("  = $spent", Palette.faint))
             add(Line.BLANK)
             for (aspect in word.aspects.sortedBy { it.ordinal }) {
                 val askable = corpus.vocabulary.askableIn(aspect)

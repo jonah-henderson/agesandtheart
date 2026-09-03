@@ -469,7 +469,7 @@ class AuthoringCheck : FunSpec({
                 "'$named' should still write as its name, and wrote $written"
             }
         }
-        val ownNumbers = Tier(cost = 6, threshold = 0.55, weight = 2, narrows = true, timesItsReach = false)
+        val ownNumbers = Tier(cost = 6, threshold = 0.55, weight = 2, narrows = true, versatilityMultiplier = Tier.FLAT)
         check(ownNumbers.key == Tier.CUSTOM) { "a tier matching none of the three called itself '${ownNumbers.key}'" }
         val written = Tier.CODEC.encodeStart(JsonOps.INSTANCE, ownNumbers).getOrThrow()
         val read = Tier.CODEC.parse(JsonOps.INSTANCE, written).getOrThrow()
@@ -489,9 +489,15 @@ class AuthoringCheck : FunSpec({
             restricts = mapOf(Aspect.SEA to mapOf("#molten" to 1.0)),
         )
         check(wide.price == Tier.RESTRICTIVE.cost * 3) { "reach stopped being charged: ${wide.price}" }
-        val flat = wide.copy(tier = Tier.RESTRICTIVE.copy(timesItsReach = false))
+        val flat = wide.copy(tier = Tier.RESTRICTIVE.copy(versatilityMultiplier = Tier.FLAT))
         check(flat.price == Tier.RESTRICTIVE.cost) { "a flat price still counted the reach: ${flat.price}" }
         check(flat.tier.narrows) { "turning the reach off stopped the word narrowing" }
+        // **A page at home in one place is its base cost whatever the multiplier**, which is what keeps
+        // the beginner's sentence the cheapest thing in the language however a pack tunes reach.
+        val narrow = wide.copy(aspects = setOf(Aspect.SEA), tier = Tier.RESTRICTIVE.copy(versatilityMultiplier = 4.0))
+        check(narrow.price == Tier.RESTRICTIVE.cost) { "one aspect was charged for reach: ${narrow.price}" }
+        val halved = wide.copy(tier = Tier.RESTRICTIVE.copy(versatilityMultiplier = 0.5))
+        check(halved.price == Tier.RESTRICTIVE.cost * 2) { "half a multiplier gave ${halved.price}" }
     }
 })
 

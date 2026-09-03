@@ -8,6 +8,7 @@ import net.minecraft.resources.ResourceKey
 import com.mojang.datafixers.util.Either
 import com.mojang.serialization.Codec
 import com.mojang.serialization.DataResult
+import kotlin.math.roundToInt
 import kotlin.random.Random
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -96,13 +97,14 @@ data class Tier(
     /** Whether it narrows the candidates, as opposed to merely tilting the draw between them. */
     val narrows: Boolean,
     /**
-     * Whether reaching further makes the page dearer — [Word.versatility] (world model §9).
+     * How much each further part of the world this word reaches adds to its price — [Word.versatility].
      *
-     * A page usable in several parts of the world is a better page to own than one usable in one, which is
-     * true of nearly every word and not of all of them: a word whose whole point is that it says the same
-     * small thing wherever it is laid is not worth more for saying it in more places.
+     * One is the ordinary answer and gives world model §9's rule exactly: a page usable in four places
+     * costs four times a page usable in one, because it is that much better a page to own. Zero is a flat
+     * price, for a word whose whole point is that it says the same small thing wherever it is laid; the
+     * numbers between are how much a pack thinks reach is worth.
      */
-    val timesItsReach: Boolean,
+    val versatilityMultiplier: Double,
 ) : Comparable<Tier> {
 
     /** What to call it: the name of the one it matches, or [CUSTOM] where a word states its own. */
@@ -124,13 +126,13 @@ data class Tier(
 
     companion object {
         /** Shifts the weights over whatever survived. Removes no freedom, so it can never fail. */
-        val EVOCATIVE = Tier(cost = 1, threshold = 0.0, weight = 1, narrows = false, timesItsReach = false)
+        val EVOCATIVE = Tier(cost = 1, threshold = 0.0, weight = 1, narrows = false, versatilityMultiplier = FLAT)
 
         /** Narrows the candidates to those that carry the tag at all. */
-        val RESTRICTIVE = Tier(cost = 2, threshold = 0.3, weight = 2, narrows = true, timesItsReach = true)
+        val RESTRICTIVE = Tier(cost = 2, threshold = 0.3, weight = 2, narrows = true, versatilityMultiplier = BY_REACH)
 
         /** Pins: only a strong carrier will do. */
-        val EXACT = Tier(cost = 4, threshold = 0.7, weight = 3, narrows = true, timesItsReach = true)
+        val EXACT = Tier(cost = 4, threshold = 0.7, weight = 3, narrows = true, versatilityMultiplier = BY_REACH)
 
         /** The three the Art names, in the order they grow stricter — what a screen offers and a file spells. */
         val NAMED: Map<String, Tier> = linkedMapOf(
@@ -141,6 +143,12 @@ data class Tier(
 
         /** What a tier matching none of the three is called, there being nothing else to call it. */
         const val CUSTOM = "custom"
+
+        /** The same price wherever the page is laid. */
+        const val FLAT = 0.0
+
+        /** World model §9's rule: a page usable in four places costs four times one usable in one. */
+        const val BY_REACH = 1.0
 
         private val BY_PRECISION = compareBy<Tier>({ it.narrows }, { it.threshold }, { it.weight })
 
@@ -154,7 +162,8 @@ data class Tier(
                 Codec.DOUBLE.optionalFieldOf("threshold", EVOCATIVE.threshold).forGetter(Tier::threshold),
                 Codec.INT.optionalFieldOf("weight", EVOCATIVE.weight).forGetter(Tier::weight),
                 Codec.BOOL.optionalFieldOf("narrows", true).forGetter(Tier::narrows),
-                Codec.BOOL.optionalFieldOf("times_its_reach", true).forGetter(Tier::timesItsReach),
+                Codec.DOUBLE.optionalFieldOf("versatility_multiplier", BY_REACH)
+                    .forGetter(Tier::versatilityMultiplier),
             ).apply(instance, ::Tier)
         }
 
@@ -668,12 +677,15 @@ data class Word(
      * declares, and one that landed nowhere is priced as though it landed somewhere — being empty on
      * purpose so `DerivedAspectsCheck` can refuse it, not so it can be free.
      *
-     * **A word may say it is not worth more for reaching further** ([Tier.timesItsReach]). It used to be
-     * read off `narrows`, which made the two inseparable: a word that narrows and wants a flat price had
-     * no way to say so.
+     * **How much reaching further is worth is the word's own to say** ([Tier.versatilityMultiplier]). It
+     * used to be read off `narrows`, which made the two inseparable: a word that narrows and wants a flat
+     * price had no way to say so. A page at home in one place is its base cost whatever the multiplier,
+     * which is what keeps the beginner's sentence the cheapest thing in the language.
      */
-    val versatility: Int get() =
-        if (!tier.timesItsReach) ONE_PLACE else aspects.size.coerceAtLeast(ONE_PLACE)
+    val versatility: Double get() {
+        val reach = aspects.size.coerceAtLeast(ONE_PLACE)
+        return 1.0 + (reach - ONE_PLACE) * tier.versatilityMultiplier
+    }
 
     /**
      * **What this page costs: specificity × versatility** (world model §9).
@@ -689,7 +701,7 @@ data class Word(
      * disagreed — the desk priced by tier alone, so versatility was charged to a book nobody paid for and
      * not to the page anybody buys.
      */
-    val price: Int get() = tier.cost * versatility
+    val price: Int get() = (tier.cost * versatility).roundToInt().coerceAtLeast(0)
 
     /**
      * How well [tags] answers what this word narrowed [aspect] to — the number a narrowing word
