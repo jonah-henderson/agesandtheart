@@ -5,20 +5,7 @@
       "#inhabited"
     ],
     "spawns": [
-      "#undead",
-      "#arthropod",
-      "#grazing",
-      "#inhabited",
-      "#fauna",
-      "#watery",
-      "#flowering"
+      "#mobs"
     ]
-  },
-  "biases": {
-    "spawns": {
-      "#watery": -0.8,
-      "#cavernous": -0.8,
-      "#molten": -0.8
-    }
   }
 }

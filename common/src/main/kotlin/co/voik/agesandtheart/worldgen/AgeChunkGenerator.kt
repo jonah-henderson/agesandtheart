@@ -661,9 +661,42 @@ class AgeChunkGenerator(
      * Nothing where the shape is ours — mob generation is disabled in [settingsFor], and the superclass
      * would otherwise consult its own [NoiseChunk] to decide. Vanilla's rock answers for itself: its
      * settings already say whether that world populates a fresh chunk, and the overworld's says it does.
+     *
+     * **And nothing where the Age says nothing lives here.** This pass is not the runtime spawner and does
+     * not come through [getMobsAt]: `NaturalSpawner.spawnMobsForChunkGeneration` takes the biome holder and
+     * reads its own mob settings, so the whole of `Spawns.LIVES` was invisible to it. An Age on vanilla
+     * rock got vanilla's chunk-generation animals whatever its sentence said — `deserted` emptied the
+     * spawner and left five horses standing where the chunk was made.
      */
     override fun spawnOriginalMobs(level: WorldGenRegion) {
-        if (rock !is AgeRock.Ours) super.spawnOriginalMobs(level)
+        if (rock is AgeRock.Ours) return
+        if (offersNoCreaturesIn(level)) return
+        super.spawnOriginalMobs(level)
+    }
+
+    /**
+     * Whether this Age would refuse every creature the chunk-generation pass could place.
+     *
+     * Asked of the same biome the superclass would use, so the question is the one vanilla is about to
+     * answer. **Only emptiness is acted on**: a sentence that merely narrows still gets vanilla's own list
+     * here, since the pass reads the biome directly and there is nowhere to hand it a shorter one.
+     *
+     * The situation is the surface in daylight because that is what this pass places — animals, out in the
+     * open, before there is any lighting to ask about.
+     */
+    private fun offersNoCreaturesIn(level: WorldGenRegion): Boolean {
+        val living = lives ?: return false
+        val at = level.center.worldPosition.atY(level.maxY)
+        val biome = level.getBiome(at)
+        val offered = biome.value().mobSettings.getMobs(MobCategory.CREATURE)
+        if (offered.isEmpty) return false
+        val kept = living.at(
+            biome.unwrapKey().orElse(null)?.identifier(),
+            MobCategory.CREATURE,
+            Spawns.Situation(at = at, skyIsOpen = true, brightness = FULLY_LIT),
+            offered,
+        )
+        return kept.isEmpty
     }
 
     /** The superclass renders noise-router values in F3, which describe terrain a field Age does not have. */

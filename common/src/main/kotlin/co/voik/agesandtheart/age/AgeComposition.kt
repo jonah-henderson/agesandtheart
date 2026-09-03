@@ -112,8 +112,12 @@ data class AgeComposition(
                 // A seatless aspect understands its parameters and nothing else — and was never asked at all,
                 // so `sun.size` could be misspelled *and* misvalued in silence.
                 val understood = seated.getOrNull(member)?.ownParameters.orEmpty() + aspect.parameters
+                // **And its pool, which is not one of its parameters.** `Aspect.pool` was split out of
+                // `parameters` and this was not told, so every aspect holding a population reported its own
+                // population as unrecognised — `spawns.lives=nothing` read as a typo while it was working.
+                val pooled = setOfNotNull(aspect.pool?.name)
                 val here = options.of(aspect, member)
-                here.unknownAmong(understood).map { name -> "${aspect.page}.$name" } +
+                (here.unknownAmong(understood) - pooled).map { name -> "${aspect.page}.$name" } +
                     here.unreadableAmong(understood).map { (name, value) -> "${aspect.page}.$name=$value" }
             }
         }.distinct()
