@@ -1603,9 +1603,12 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
     private fun tagOptions(aspect: Aspect): List<Picker.Option> {
         val here = corpus.vocabulary.candidatesFor(aspect)
         val carried = here.flatMap { corpus.vocabulary.tagsOf(it).keys }
+        // **The snapshot answers this outright.** `reachOf` is what a server said the tag carries *in this
+        // aspect*, which is the question — reading the member ids instead and asking whether the aspect
+        // could parse one only narrows it, every open aspect parsing any well-formed id it is handed.
         fun couldLandHere(tag: String): Boolean {
-            val members = corpus.snapshot?.serverOnly?.get(tag) ?: return here.isNotEmpty()
-            return members.any { aspect.presetFor(it) != null && (aspect.open || aspect.ownsPresetNamed(it)) }
+            val snapshot = corpus.snapshot ?: return here.isNotEmpty()
+            return (snapshot.reachOf(aspect, tag)?.carriers ?: 0) > 0
         }
         val fromAServer = corpus.vocabulary.tagsOnlyAServerGrants.filter(::couldLandHere)
         return (carried + fromAServer).distinct().sorted().map { Picker.Option(it, it, carriedNote(it)) }
