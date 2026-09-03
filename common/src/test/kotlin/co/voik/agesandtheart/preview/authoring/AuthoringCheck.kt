@@ -22,6 +22,7 @@ import com.google.gson.JsonParser
 import com.mojang.serialization.JsonOps
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
+import kotlin.random.Random
 import net.minecraft.resources.Identifier
 
 /**
@@ -55,7 +56,7 @@ class AuthoringCheck : FunSpec({
             excludes = mapOf(Aspect.SEA to setOf("#watery")),
             biases = mapOf(Aspect.BIOMES to mapOf("minecraft:plains" to 1.0)),
             sets = mapOf("stone" to "minecraft:stone"),
-            pools = listOf(Facets(mapOf("spacing" to "0.4..1.0"), Draws("1..2"))),
+            pools = listOf(Facets.of(mapOf("spacing" to "0.4..1.0"), Draws("1..2"))),
             template = "dark_void",
             mints = "minecraft:spring_water",
             mintsSomethingThatFlows = true,
@@ -135,7 +136,7 @@ class AuthoringCheck : FunSpec({
      */
     test("a parameter nothing turns is refused, in the core and in the pool") {
         val base = Candidate(name = "probe", tier = Tier.EXACT, )
-        for (invented in listOf(base.copy(sets = mapOf("suns" to "1")), base.copy(pools = listOf(Facets(mapOf("suns" to "1"), Draws.of(1)))))) {
+        for (invented in listOf(base.copy(sets = mapOf("suns" to "1")), base.copy(pools = listOf(Facets.of(mapOf("suns" to "1"), Draws.of(1)))))) {
             val said = Verdict.refusals(Verdict.on(invented, corpus))
             check(said.any { it.says.contains("suns") }) {
                 "a parameter no aspect owns was not refused: ${said.joinToString { it.says }}"
@@ -258,7 +259,7 @@ class AuthoringCheck : FunSpec({
         val one = empty.addingAPool(Insistence.REQUIRED, "temperature", "0.5..1.0")
         check(one.poolsOn(Insistence.REQUIRED).single().draws.most == 1) { "a first facet left the pool drawing none" }
 
-        val two = one.puttingInPool(Insistence.REQUIRED, 0, "rainfall", "-1.0..-0.4")
+        val two = one.puttingInPool(Insistence.REQUIRED, 0, null, "rainfall", "-1.0..-0.4")
             .drawing(Insistence.REQUIRED, 0, Draws.of(2))
         val fewer = two.withoutInPool(Insistence.REQUIRED, 0, "rainfall")
         check(fewer.poolsOn(Insistence.REQUIRED).single().draws.most == 1) { "the count outran the pool" }
@@ -277,8 +278,8 @@ class AuthoringCheck : FunSpec({
             tier = Tier.RESTRICTIVE,
             aspects = setOf(Aspect.SUN),
             pools = listOf(
-                Facets(mapOf("sun.colour" to "red", "sun.size" to "0.7..1.0"), Draws.of(1)),
-                Facets(mapOf("sky.colour" to "red", "haze" to "0.4"), Draws.of(1)),
+                Facets.of(mapOf("sun.colour" to "red", "sun.size" to "0.7..1.0"), Draws.of(1)),
+                Facets.of(mapOf("sky.colour" to "red", "haze" to "0.4"), Draws.of(1)),
             ),
         )
         for (draw in 0L..<40L) {
@@ -489,6 +490,44 @@ class AuthoringCheck : FunSpec({
         check(nudging.spelled == "+0.3") { "a nudge did not come back: ${nudging.spelled}" }
         nudging.step(-0.1)
         check(nudging.spelled == "+0.2") { "stepping a nudge gave ${nudging.spelled}" }
+    }
+
+    /**
+     * **Settings that only mean anything together are drawn together.**
+     *
+     * An ice halo is a bow's colours, its size and how much rain it wants said at once; drawn one at a
+     * time it comes out as an ordinary bow that happens to be white, which is not the thing anybody
+     * meant. A group counts as **one** thing drawn, however many settings it holds — otherwise `draws 1`
+     * over a halo and a glow would be a coin toss between four values rather than between two ideas.
+     */
+    test("a pool draws a group whole or not at all") {
+        val halo = mapOf("rainbow.colour" to "white", "rainbow.size" to "<0.3", "rainbow.rain" to "-1.0")
+        val pool = Facets(listOf(halo, mapOf("aurora.glow" to ">0.6")), Draws.of(1))
+        check(pool.offers.size == 2) { "two offers, and the pool held ${pool.offers.size}" }
+        check(pool.facets.size == 4) { "every setting it could make is four, and it said ${pool.facets.size}" }
+        val drawn = (0 until 40).map { pool.drawnWith(Random(it.toLong())) }
+        check(drawn.any { it.keys == halo.keys }) { "the halo never came whole" }
+        check(drawn.any { it.keys == setOf("aurora.glow") }) { "the glow never came at all" }
+        val broken = drawn.firstOrNull { it.keys.any(halo::containsKey) && it.keys != halo.keys }
+        check(broken == null) { "the halo came in pieces: $broken" }
+    }
+
+    /**
+     * **A pool of ordinary settings writes as the object it always was.**
+     *
+     * Every pool in the corpus is that shape, so a list of one-entry maps would have been noise added to
+     * every word to serve the one that needed the room — the same bargain `Tier` strikes.
+     */
+    test("only a pool with a group spells its groups out") {
+        val plain = Facets.of(mapOf("haze" to "0.4", "tint" to "blue"), Draws.of(1))
+        val written = Facets.CODEC.encodeStart(JsonOps.INSTANCE, plain).getOrThrow()
+        check(written.asJsonObject.get("facets").isJsonObject) { "a plain pool wrote $written" }
+        check(Facets.CODEC.parse(JsonOps.INSTANCE, written).getOrThrow() == plain) { "a plain pool did not return" }
+
+        val grouped = Facets(listOf(mapOf("a" to "1", "b" to "2"), mapOf("c" to "3")), Draws.of(1))
+        val out = Facets.CODEC.encodeStart(JsonOps.INSTANCE, grouped).getOrThrow()
+        check(out.asJsonObject.get("facets").isJsonArray) { "a grouped pool wrote $out" }
+        check(Facets.CODEC.parse(JsonOps.INSTANCE, out).getOrThrow() == grouped) { "a grouped pool did not return" }
     }
 
     /**

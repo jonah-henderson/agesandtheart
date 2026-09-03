@@ -1070,6 +1070,24 @@ class Editor(
 
     private fun insistenceNamed(named: String) = Insistence.entries.firstOrNull { it.name == named }
 
+    /**
+     * The pool and offer the cursor's row belongs to, where it is a facet of one.
+     *
+     * A parameter appears once in a pool, so which offer holds it is a lookup rather than something the
+     * handle has to carry — and a handle that carried it would have to be rewritten every time an offer
+     * was emptied and the ones after it moved up.
+     */
+    private fun offerAtTheCursor(): Into? {
+        if (part != Part.PROPERTIES) return null
+        val handle = rows().getOrNull(row())?.handle ?: return null
+        if (handle.substringBefore('/') != "pool") return null
+        val into = pointedAt(handle.removePrefix("pool/").substringBeforeLast('/')) ?: return null
+        val parameter = handle.substringAfterLast('/')
+        val pool = candidate.poolsOn(into.insistence).getOrNull(into.pool ?: return null) ?: return null
+        val which = pool.offers.indexOfFirst { parameter in it }.takeIf { it >= 0 } ?: return null
+        return into.copy(offer = which)
+    }
+
     /** Which step the cursor is in, read by walking back to the heading above it. */
     private fun stepAtTheCursor(): Step = rows().take(row() + 1).asReversed()
         .firstNotNullOfOrNull { stepNamed(it.handle.substringAfter('/').substringBefore('/')) }
@@ -1096,7 +1114,10 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
         when (part) {
             // Straight to the parameter: an effect is a value on a parameter, and the half it belongs to is
             // whichever group the cursor is standing in.
-            Part.PROPERTIES -> pickATarget(Into(insistenceAtTheCursor()))
+            // **`a` on a facet inside a pool joins that facet's offer**, which is the only place a group
+            // can be built from: a setting has to be told what it goes *with*, and the row under the
+            // cursor is the writer already pointing at it.
+            Part.PROPERTIES -> pickATarget(offerAtTheCursor() ?: Into(insistenceAtTheCursor()))
             Part.POPULATIONS -> pickAPopulation(stepAtTheCursor())
             else -> Unit
         }

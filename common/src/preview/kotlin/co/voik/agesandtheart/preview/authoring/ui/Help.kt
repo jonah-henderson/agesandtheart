@@ -155,6 +155,8 @@ class Help(
             keyRow("", "a short value — a name, a count — is typed on its own row;"),
             keyRow("", "enter accepts it, and moving off the row accepts it too"),
             keyRow("a  /  d", "add a row, or delete one"),
+            keyRow("", "on a facet inside a pool, the new one joins that facet's offer —"),
+            keyRow("", "drawn with it or not at all"),
             keyRow("- =", "step a weight under the cursor, in tenths"),
             keyRow("", "on a list of things to lean, and on the row afterwards"),
             keyRow("tab", "which target the inline help is about"),

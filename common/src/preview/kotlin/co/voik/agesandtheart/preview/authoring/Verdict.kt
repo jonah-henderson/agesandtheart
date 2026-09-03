@@ -75,12 +75,12 @@ object Verdict {
     private fun pooledButNeverDrawn(candidate: Candidate): List<Finding> = buildList {
         for (insistence in Insistence.entries) {
             for (pool in candidate.poolsOn(insistence)) {
-                if (pool.draws.least < pool.facets.size) continue
+                if (pool.draws.least < pool.offers.size) continue
                 add(
                     Finding(
                         Standing.NUDGED,
                         "a ${insistence.title} pool takes all of itself",
-                        "it draws ${pool.draws} of ${pool.facets.size}, which is what `sets` already means",
+                        "it draws ${pool.draws} of ${pool.offers.size}, which is what `sets` already means",
                     ),
                 )
             }

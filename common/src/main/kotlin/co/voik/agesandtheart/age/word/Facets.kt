@@ -1,25 +1,43 @@
 package co.voik.agesandtheart.age.word
 
+import com.mojang.datafixers.util.Either
 import com.mojang.serialization.Codec
 import com.mojang.serialization.DataResult
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import kotlin.random.Random
 
 /**
- * A group of facets an Age takes some of, and how many — what makes one scorched Age differ from the last
+ * A pool of offers an Age takes some of, and how many — what makes one scorched Age differ from the last
  * without letting it stop being scorched (design §4.4).
  *
- * **There may be several, and none of them has a name.** One pool per word could only ever say "three of
- * these five", which is variety by accident: an inferno drawing three of its suns and its sky could roll
- * all three sun facets and no sky at all. Two pools, one per thing being varied, say "a sun facet or two,
- * and the sky" — the same variety made deliberate.
+ * **An offer is one or more settings, taken together or not at all.** A halo is a bow's colours, its size
+ * and how much rain it wants said at once; drawn one at a time it comes out as an ordinary bow that
+ * happens to be white, which is not the thing anybody meant. A single setting is the ordinary case and is
+ * an offer of one, so nothing about the common shape changed.
+ *
+ * **A group counts as one thing drawn**, however many settings it holds. That is what makes it a group:
+ * `draws 1 of 2` between a three-setting halo and a lone glow is a coin toss between two ideas, not
+ * between four values.
+ *
+ * **There may be several pools, and none of them has a name.** One pool per word could only ever say
+ * "three of these five", which is variety by accident: an inferno drawing three of its suns and its sky
+ * could roll all three sun facets and no sky at all. Two pools, one per thing being varied, say "a sun
+ * facet or two, and the sky" — the same variety made deliberate.
  *
  * A name was the obvious way to tell them apart and is deliberately not here: every name anyone invented
- * for these — `look`, `overhead` — was a word the codebase did not already have, where what a pool is
- * about is already spelled in the parameters it holds. So they are a list, [said] reads the label off the
- * facets, and the draw is salted by position.
+ * for these — `look`, `overhead` — was a word the codebase did not already have. So they are a list, and
+ * the draw is salted by position.
  */
-data class Facets(val facets: Map<String, String>, val draws: Draws) {
+data class Facets(val offers: List<Map<String, String>>, val draws: Draws) {
+
+    /**
+     * Every setting this pool could ever make, whatever it draws — the capability question.
+     *
+     * Flattened, because nearly everything that asks wants to know which parameters the pool touches
+     * rather than how they are bundled. What the *draw* works on is [offers].
+     */
+    val facets: Map<String, String>
+        get() = offers.fold(emptyMap()) { standing, offer -> standing + offer }
 
     /**
      * What this pool is about, **read off its facets rather than declared** — the aspect they all qualify
@@ -35,20 +53,55 @@ data class Facets(val facets: Map<String, String>, val draws: Draws) {
             return if (shared.isNullOrEmpty()) facets.keys.sorted().joinToString(" ") else shared
         }
 
-    /** The facets this Age takes, drawn with [random] — the whole pool where [draws] reaches its size. */
+    /** The settings this Age takes, drawn with [random] — the whole pool where [draws] reaches its size. */
     fun drawnWith(random: Random): Map<String, String> {
         val many = draws.at(random)
         if (many <= 0) return emptyMap()
-        if (many >= facets.size) return facets
-        // Sorted first so the map's own iteration order cannot reach the answer, then shuffled. An earlier
-        // version sorted by a hash and drew the *same* facets every time: the draw only moves low bits,
-        // and the keys' hashes differ by far more than that, so nothing ever reordered.
-        return facets.keys.sorted().shuffled(random).take(many).associateWith(facets::getValue)
+        val taken = if (many >= offers.size) {
+            offers
+        } else {
+            // Sorted first so the list's own order cannot reach the answer, then shuffled. An earlier
+            // version sorted by a hash and drew the *same* facets every time: the draw only moves low
+            // bits, and the keys' hashes differ by far more than that, so nothing ever reordered.
+            offers.indices.sortedBy { offers[it].keys.sorted().joinToString() }.shuffled(random)
+                .take(many).map(offers::get)
+        }
+        return taken.fold(emptyMap()) { standing, offer -> standing + offer }
     }
 
     companion object {
         /** What separates the aspect a parameter is meant for from the parameter — `Word`'s own spelling. */
         private const val QUALIFIER = '.'
+
+        /** A pool of single settings, which is what nearly every one of them is. */
+        fun of(facets: Map<String, String>, draws: Draws) =
+            Facets(facets.entries.map { mapOf(it.key to it.value) }, draws)
+
+        private val ONE_EACH: Codec<Map<String, String>> = Codec.unboundedMap(Codec.STRING, Codec.STRING)
+
+        /**
+         * **A map where every setting stands alone, a list of maps where some of them go together.**
+         *
+         * Written back the same way round, so a pool of ordinary facets still reads as the object it
+         * always was and only one holding a group spells its groups out. The same shape `Tier` takes, and
+         * for the same reason: the common case should not pay for the one that needed more room.
+         */
+        private val OFFERS: Codec<List<Map<String, String>>> =
+            Codec.either(ONE_EACH, ONE_EACH.listOf()).xmap(
+                { either ->
+                    either.map(
+                        { flat -> flat.entries.map { mapOf(it.key to it.value) } },
+                        { grouped -> grouped },
+                    )
+                },
+                { offers ->
+                    if (offers.all { it.size <= 1 }) {
+                        Either.left(offers.fold(emptyMap()) { standing, offer -> standing + offer })
+                    } else {
+                        Either.right(offers)
+                    }
+                },
+            )
 
         val CODEC: Codec<Facets> = RecordCodecBuilder.create { instance ->
             instance.group(
@@ -56,8 +109,8 @@ data class Facets(val facets: Map<String, String>, val draws: Draws) {
                 // never took, which read as three facets in the file and was three facets nothing would
                 // ever apply. A pool has to say how much of itself it is.
                 Draws.CODEC.fieldOf("draws").forGetter(Facets::draws),
-                Codec.unboundedMap(Codec.STRING, Codec.STRING).fieldOf("facets").forGetter(Facets::facets),
-            ).apply(instance) { draws, facets -> Facets(facets, draws) }
+                OFFERS.fieldOf("facets").forGetter(Facets::offers),
+            ).apply(instance) { draws, offers -> Facets(offers, draws) }
         }
     }
 }

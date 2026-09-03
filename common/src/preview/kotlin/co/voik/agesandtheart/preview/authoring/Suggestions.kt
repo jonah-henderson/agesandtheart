@@ -339,9 +339,9 @@ class Suggestions(private val vocabulary: Vocabulary) {
      * from more `sets` and is equally worth saying.
      */
     private fun poolOf(pool: Facets): Claim? {
-        if (pool.facets.isEmpty()) return null
+        if (pool.offers.isEmpty()) return null
         val members = pool.facets.entries.sortedBy { it.key }.map { "${it.key}=${it.value}" }
-        val how = if (pool.draws.least >= pool.facets.size) {
+        val how = if (pool.draws.least >= pool.offers.size) {
             "all of these, every Age"
         } else {
             "${pool.draws} of these, drawn per Age"

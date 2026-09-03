@@ -462,7 +462,7 @@ class Parts(private val corpus: Corpus) {
             Palette.chosen,
         )
         return if (subject == null) {
-            listOf(head, Ink("of ${pool.facets.size}", Palette.chosen))
+            listOf(head, Ink("of ${pool.offers.size}", Palette.chosen))
         } else {
             listOf(head, Ink("from ", Palette.chosen), Ink(subject.page, Palette.aspect))
         }
@@ -522,8 +522,16 @@ class Parts(private val corpus: Corpus) {
                 grouped(
                     "${insistence.name}/pool/$at",
                     poolHeading(insistence, at, pool),
-                    pool.facets.entries.sortedBy { it.key }.map { (parameter, value) ->
-                        told("pool/${insistence.name}/$at/$parameter", saidAsAParameter(parameter), value, wherever(parameter))
+                    pool.offers.flatMapIndexed { which, offer ->
+                        val together = if (offer.size > 1) " ${Glyph.BULLET} with the rest of offer ${which + 1}" else ""
+                        offer.entries.sortedBy { it.key }.map { (parameter, value) ->
+                            told(
+                                "pool/${insistence.name}/$at/$parameter",
+                                saidAsAParameter(parameter),
+                                value,
+                                wherever(parameter) + together,
+                            )
+                        }
                     },
                 )
             }
@@ -620,9 +628,7 @@ class Parts(private val corpus: Corpus) {
             // sun, and a single flat list of eight facets says only that it varies.
             for ((at, pool) in candidate.poolsOn(insistence).withIndex()) {
                 add(drawsRow(insistence, at, pool))
-                for ((parameter, value) in pool.facets.entries.sortedBy { it.key }) {
-                    add(facetRow("pool/${insistence.name}/$at/$parameter", parameter, value, word, deeper = true))
-                }
+                addAll(offerRows(insistence, at, pool, word))
             }
         }
         candidate.mints?.let { pattern ->
@@ -641,17 +647,57 @@ class Parts(private val corpus: Corpus) {
         }
     }
 
-    private fun facetRow(handle: String, parameter: String, value: String, word: Word?, deeper: Boolean = false) =
+    /**
+     * A pool's offers, in order — **a group under a heading saying it is one.**
+     *
+     * A group of one is what every facet used to be and is drawn as one row with nothing said about it;
+     * saying "together" over a lone setting would be a word about the shape rather than about the world.
+     */
+    private fun offerRows(insistence: Insistence, at: Int, pool: Facets, word: Word?): List<Row> =
+        pool.offers.flatMapIndexed { which, offer ->
+            val grouped = offer.size > 1
+            val head = if (!grouped) emptyList() else listOf(
+                Row(
+                    handle = "heading/together/${insistence.name}/$at/$which",
+                    shown = listOf(Ink("      together", Palette.tag)),
+                ),
+            )
+            head + offer.entries.sortedBy { it.key }.map { (parameter, value) ->
+                facetRow(
+                    "pool/${insistence.name}/$at/$parameter",
+                    parameter,
+                    value,
+                    word,
+                    deeper = true,
+                    grouped = grouped,
+                )
+            }
+        }
+
+    private fun facetRow(
+        handle: String,
+        parameter: String,
+        value: String,
+        word: Word?,
+        deeper: Boolean = false,
+        grouped: Boolean = false,
+    ) =
         Row(
             handle = handle,
             shown = listOf(
-                Ink(if (deeper) "      " else "    "),
+                Ink(if (grouped) "        " else if (deeper) "      " else "    "),
                 // **The part of the world first**, where the key names one. `size` alone is a landform's
                 // and a sun's and a vein's, and which of them a row is about is the first thing to know.
-                Ink(saidAsAParameter(parameter).padEnd(if (deeper) PARAMETER_COLUMN - 2 else PARAMETER_COLUMN), Palette.parameter),
+                Ink(
+                    saidAsAParameter(parameter).padEnd(PARAMETER_COLUMN - if (grouped) 4 else if (deeper) 2 else 0),
+                    Palette.parameter,
+                ),
                 Ink(value, Palette.value),
             ),
-            note = parameterNote(parameter, value, word),
+            note = listOfNotNull(
+                parameterNote(parameter, value, word).ifEmpty { null },
+                if (deeper) "a  adds a setting to this offer, drawn with it or not at all" else null,
+            ).joinToString("\n    "),
         )
 
     /**
@@ -666,7 +712,7 @@ class Parts(private val corpus: Corpus) {
         shown = listOf(
             Ink("    "),
             Ink(poolNamed(at).padEnd(PARAMETER_COLUMN), Palette.tag),
-            Ink("${pool.draws} of ${pool.facets.size} drawn per Age", Palette.faint),
+            Ink("${pool.draws} of ${pool.offers.size} drawn per Age", Palette.faint),
         ),
         note = drawsNote(pool),
     )
@@ -678,7 +724,7 @@ class Parts(private val corpus: Corpus) {
             val chances = options.count { it == many }
             if (chances == 1) "$many" else "$many (${chances} in ${options.size})"
         }
-        return "takes $counted of ${pool.facets.size}\n" +
+        return "takes $counted of ${pool.offers.size}\n" +
             "    a number, a range like 1..3, or 1|2|2 to make one likelier"
     }
 
@@ -1260,7 +1306,13 @@ class Parts(private val corpus: Corpus) {
  * to carry the destination through unchanged, and a insistence and an optional index threaded separately went
  * out of step the first time a pool was added mid-flow.
  */
-data class Into(val insistence: Insistence, val pool: Int? = null)
+/**
+ * Where a setting is going: which half of the word, which pool, and which of that pool's offers.
+ *
+ * [offer] is null for a setting of its own — the ordinary case, and what every facet was before a pool
+ * could hold several together. Past the last is what makes a new one, exactly as [pool] does.
+ */
+data class Into(val insistence: Insistence, val pool: Int? = null, val offer: Int? = null)
 
 /**
  * This word with [parameter] set to [value] wherever [into] points — **making the pool where it is new.**
@@ -1271,7 +1323,7 @@ data class Into(val insistence: Insistence, val pool: Int? = null)
 fun Candidate.putting(into: Into, parameter: String, value: String): Candidate = when {
     into.pool == null -> putting(into.insistence, parameter, value)
     into.pool >= poolsOn(into.insistence).size -> addingAPool(into.insistence, parameter, value)
-    else -> puttingInPool(into.insistence, into.pool, parameter, value)
+    else -> puttingInPool(into.insistence, into.pool, into.offer, parameter, value)
 }
 
 /** What is already there, wherever [into] points. */
@@ -1309,9 +1361,28 @@ fun Candidate.putting(insistence: Insistence, parameter: String, value: String):
 fun Candidate.without(insistence: Insistence, parameter: String): Candidate =
     withClaims(insistence, claimsOn(insistence).let { it.copy(sets = it.sets - parameter) })
 
-/** This word with [parameter] set to [value] in the pool [at], among what it claims at [insistence]. */
-fun Candidate.puttingInPool(insistence: Insistence, at: Int, parameter: String, value: String): Candidate =
-    changingPool(insistence, at) { it.copy(facets = it.facets + (parameter to value)) }
+/**
+ * This word with [parameter] set to [value] in the pool [at], among what it claims at [insistence].
+ *
+ * **[offer] says which of the pool's offers it joins** — null, or past the last, for one of its own. A
+ * setting that joins an offer is drawn with the rest of it or not at all, which is the whole of what a
+ * group is; a setting of its own is what every facet used to be and still is by default.
+ */
+fun Candidate.puttingInPool(
+    insistence: Insistence,
+    at: Int,
+    offer: Int?,
+    parameter: String,
+    value: String,
+): Candidate = changingPool(insistence, at) { pool ->
+    val joining = offer?.takeIf { it in pool.offers.indices }
+    val offers = if (joining == null) {
+        pool.offers + listOf(mapOf(parameter to value))
+    } else {
+        pool.offers.mapIndexed { where, one -> if (where == joining) one + (parameter to value) else one }
+    }
+    pool.copy(offers = offers)
+}
 
 /**
  * This word without [parameter] in the pool [at] — **and without the pool where that was the last of it.**
@@ -1320,15 +1391,20 @@ fun Candidate.puttingInPool(insistence: Insistence, at: Int, parameter: String, 
  * would be the file.
  */
 fun Candidate.withoutInPool(insistence: Insistence, at: Int, parameter: String): Candidate {
-    val left = poolsOn(insistence).getOrNull(at)?.facets?.minus(parameter).orEmpty()
+    val standing = poolsOn(insistence).getOrNull(at) ?: return this
+    // Out of whichever offer held it, and the offer with it where that was the last of it — an empty
+    // offer is a thing the pool might draw and nothing would happen.
+    val left = standing.offers.map { it - parameter }.filter { it.isNotEmpty() }
     if (left.isEmpty()) return withoutPool(insistence, at)
-    return changingPool(insistence, at) { it.copy(facets = left, draws = Draws.of(it.draws.most.coerceAtMost(left.size))) }
+    return changingPool(insistence, at) {
+        it.copy(offers = left, draws = Draws.of(it.draws.most.coerceAtMost(left.size)))
+    }
 }
 
 /** This word with a pool added to [insistence] — one facet and a count of one, which is the least a pool is. */
 fun Candidate.addingAPool(insistence: Insistence, parameter: String, value: String): Candidate =
     withClaims(insistence, claimsOn(insistence).let {
-        it.copy(pools = it.pools + Facets(mapOf(parameter to value), Draws.of(1)))
+        it.copy(pools = it.pools + Facets(listOf(mapOf(parameter to value)), Draws.of(1)))
     })
 
 fun Candidate.withoutPool(insistence: Insistence, at: Int): Candidate =

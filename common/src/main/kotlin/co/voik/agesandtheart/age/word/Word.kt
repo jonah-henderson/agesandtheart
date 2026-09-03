@@ -478,7 +478,7 @@ data class Word(
      */
     val varies: Boolean
         get() = listOf(required, requests).any { claims ->
-            claims.pools.any { it.facets.isNotEmpty() && it.draws.most > 0 } ||
+            claims.pools.any { it.offers.isNotEmpty() && it.draws.most > 0 } ||
                 claims.everything.values.any { ALTERNATIVE in it }
         }
 

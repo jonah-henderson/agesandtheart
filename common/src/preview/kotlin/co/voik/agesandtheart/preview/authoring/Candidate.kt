@@ -176,13 +176,10 @@ data class Candidate(
 
     /** A pool says how much of itself it is before it says what is in it — the count is the shorter half. */
     private fun poolsOf(pools: List<Facets>) = JsonArray().apply {
+        // Encoded rather than spelled, so a pool of ordinary facets still writes as the object it always
+        // was and only one holding a group spells its groups out.
         pools.forEach { pool ->
-            add(
-                JsonObject().apply {
-                    addProperty("draws", pool.draws.spelled)
-                    add("facets", texts(pool.facets))
-                },
-            )
+            add(Facets.CODEC.encodeStart(JsonOps.INSTANCE, pool).getOrThrow { IllegalStateException(it) })
         }
     }
 
@@ -299,11 +296,12 @@ data class Candidate(
         private fun readNumbers(json: JsonObject) =
             json.entrySet().associate { (key, value) -> key to value.asDouble }
 
+        /**
+         * **Through the codec**, so the two shapes a pool's facets take — a map where each setting stands
+         * alone, a list of maps where some go together — are read in one place rather than two.
+         */
         private fun readPools(json: JsonArray): List<Facets> = json.map { entry ->
-            val pool = entry.asJsonObject
-            val spelled = pool.get("draws")?.asString ?: error("a pool must say how many of itself it draws")
-            requireNotNull(Draws.read(spelled)) { "'$spelled' is no count" }
-            Facets(pool.getAsJsonObject("facets")?.let(::readTexts).orEmpty(), Draws(spelled))
+            Facets.CODEC.parse(JsonOps.INSTANCE, entry).getOrThrow { IllegalArgumentException(it) }
         }
 
         private fun readTexts(json: JsonObject) =

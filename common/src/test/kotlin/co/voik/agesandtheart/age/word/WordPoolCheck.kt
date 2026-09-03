@@ -23,7 +23,7 @@ class WordPoolCheck : FunSpec({
         aspects = setOf(Aspect.AIR),
         leansEverywhere = mapOf("#dry" to 1.0),
         sets = sets,
-        pools = if (pool.isEmpty()) emptyList() else listOf(Facets(pool, Draws(draws))),
+        pools = if (pool.isEmpty()) emptyList() else listOf(Facets.of(pool, Draws(draws))),
     )
 
     val broad = wordAt(
@@ -65,7 +65,7 @@ class WordPoolCheck : FunSpec({
         val sizes = DRAWS.map { ranged.setsDrawnAt(it).size }.toSet()
         check(sizes == setOf(1, 2, 3)) { "a 1..3 pool only ever drew $sizes" }
 
-        val leaning = ranged.copy(pools = listOf(Facets(ranged.pools.single().facets, Draws("1|3|3|3"))))
+        val leaning = ranged.copy(pools = listOf(Facets.of(ranged.pools.single().facets, Draws("1|3|3|3"))))
         val threes = DRAWS.count { leaning.setsDrawnAt(it).size == 3 }
         check(threes > DRAWS.count() / 2) { "'1|3|3|3' drew three only $threes times in ${DRAWS.count()}" }
     }
