@@ -427,8 +427,12 @@ object Verdict {
                 ),
             )
         }
-        if (listing.ink == null) {
-            add(Finding(Standing.NOTED, "no ink quality set", "common by default"))
+        // **Not a gap.** Requiring the common ink is requiring nothing (`InkTier.satisfies` is an ordinal
+        // comparison and common is the lowest), so an unlisted word and one listed as common are the same
+        // word — and reading "common by default" beside a list that does not offer common sent a writer
+        // looking for a bucket the model has no room for.
+        if (listing.ink != null) {
+            add(Finding(Standing.NOTED, "wants ${listing.ink} ink", "ordinary ink will not write it"))
         }
     }
 

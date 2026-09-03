@@ -17,11 +17,46 @@
   "requests": {
     "pools": [
       {
-        "draws": "1",
+        "draws": "4",
         "facets": [
           {
             "rainbow.colour": "white|blue",
-            "rainbow.rain": "-1..-1"
+            "rainbow.rain": "-1..-1",
+            "rainbow.frequency": "0.7..1",
+            "rainbow.size": "-0.6..-0.2"
+          },
+          {
+            "air.colour": "white|grey"
+          },
+          {
+            "air.haze": "+0.4"
+          },
+          {
+            "air.motes": "snow"
+          },
+          {
+            "sky.ceiling": "-0.3"
+          },
+          {
+            "sky.colour": "default|blue|white|grey"
+          },
+          {
+            "air.tint": "white|grey|blue"
+          },
+          {
+            "aurora.frequency": "0.7..1"
+          },
+          {
+            "aurora.glow": "+0.5"
+          },
+          {
+            "aurora.size": "0.8..1"
+          },
+          {
+            "clouds.colour": "white|grey"
+          },
+          {
+            "stars.glow": "+0.2"
           }
         ]
       }

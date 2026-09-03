@@ -1967,7 +1967,7 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
         }
         overlay = Picker(
             title = "Which ink quality?",
-            options = unsetFirst("written with any ink at all", standing == null) + tiers,
+            options = unsetFirst("common ink writes it — which is what asking for nothing means", standing == null) + tiers,
             onPick = { picked -> writeInk(where, picked.value.takeIf { it != Parts.UNSET }) },
             onClear = { writeInk(where, null) },
         )

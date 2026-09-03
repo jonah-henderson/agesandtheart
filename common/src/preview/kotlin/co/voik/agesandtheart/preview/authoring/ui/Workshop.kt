@@ -321,17 +321,6 @@ class Workshop(
 
     /** What the table was built for, so a resized terminal rebuilds it rather than keeping old widths. */
 
-    /**
-     * The columns. Each says the least it may be drawn at and the table measures the rest off its rows,
-     * so `what it does` takes whatever the terminal has left rather than a number written here.
-     */
-    private val columns: List<Table.Column> = listOf(
-        Table.Column("page", PAGE_WIDTH),
-        Table.Column("specificity", TIER_WIDTH, order = Tier.NAMED.keys.toList()),
-        Table.Column("targets", TARGETS_WIDTH),
-        Table.Column("what it does", MINIMUM_SAYS, grows = true),
-    )
-
     /** The narrowest the list can be drawn and still say something in every column. */
     private val listPaneLeast: Int get() = COLUMNS_SPENT + MINIMUM_SAYS
 
@@ -354,7 +343,7 @@ class Workshop(
 
     private fun emptyTable() = Table(
         title = "",
-        columns = columns,
+        columns = COLUMNS,
         rows = emptyList(),
         whenEmpty = "nothing the Art can read follows this",
     )
@@ -362,7 +351,7 @@ class Workshop(
     private fun rebuildTheTable(filter: String) {
         table = Table(
             title = "",
-            columns = columns,
+            columns = COLUMNS,
             rows = listed().map { offer ->
                 Table.Row(
                     key = offer.page,
@@ -957,6 +946,20 @@ class Workshop(
          * so searching `structures` still shows why the row is on the list.
          */
         const val TARGETS_WIDTH = 22
+
+        /**
+         * The columns. Each says the least it may be drawn at and the table measures the rest off its
+         * rows, so `what it does` takes whatever the terminal has left rather than a number written here.
+         *
+         * **On the companion**, because the table is built while the screen is still being constructed —
+         * an instance property declared after that call is null when it runs, whatever its type says.
+         */
+        val COLUMNS: List<Table.Column> = listOf(
+            Table.Column("page", PAGE_WIDTH),
+            Table.Column("specificity", TIER_WIDTH, order = Tier.NAMED.keys.toList()),
+            Table.Column("targets", TARGETS_WIDTH),
+            Table.Column("what it does", MINIMUM_SAYS, grows = true),
+        )
 
         /** The four columns `rowLine` indents every row by. */
         const val INDENT = 4
