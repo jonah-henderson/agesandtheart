@@ -295,6 +295,20 @@ object DerivedTags {
     private const val SCALDING = 1.5f
 
     /**
+     * What each band a biome falls in actually tests — the same numbers [climateBandsOf] compares, so a
+     * screen saying `is freezing` beside `temperature ≤ 0.0` cannot drift from the code that decides it.
+     */
+    val BANDS: Map<String, String> = mapOf(
+        "freezing" to "temperature ≤ $FREEZING",
+        "cold" to "temperature < $TEMPERATE",
+        "temperate" to "temperature < $WARM",
+        "warm" to "temperature < $SCALDING",
+        "scalding" to "temperature ≥ $SCALDING",
+        "rainy" to "it rains",
+        "rainless" to "no precipitation",
+    )
+
+    /**
      * A structure set is the structures in it, and **those** are what vanilla tags — `#minecraft:village`,
      * `#mineshaft`, `#ocean_ruin`. The set is our unit because it is what a writer can ask for
      * (`Structures`), so its tags are the union of what it holds.

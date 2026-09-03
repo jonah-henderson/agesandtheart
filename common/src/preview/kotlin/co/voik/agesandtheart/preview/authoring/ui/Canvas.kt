@@ -91,7 +91,18 @@ class Canvas(private val terminal: Terminal) : AutoCloseable {
      *
      * Where nothing is on screen to decorate — the very first frame — the work simply runs.
      */
-    fun <T> whileBusy(said: String? = null, work: () -> T): T {
+    fun <T> whileBusy(said: String? = null, work: () -> T): T =
+        whileBusy(saying = said?.let { { it } }, work = work)
+
+    /**
+     * The same, where what it says **changes while it works** — a count, a bar, whichever step it is on.
+     *
+     * Asked once per frame rather than pushed, so the work reports into a value and the drawing reads it;
+     * a refresh that boots a server has forty steps and two minutes to fill, which is a long time to look
+     * at a spinner that says only that something is happening.
+     */
+    fun <T> whileBusy(saying: (() -> String)?, work: () -> T): T {
+        val said = saying?.invoke()
         // A named errand says so on the top line; an unnamed one spins where the cursor already is.
         val row = if (said == null) shown.indexOfFirst { it.contains(Glyph.FOCUS) } else 0
         val restore = shown.getOrNull(row)
@@ -108,7 +119,7 @@ class Canvas(private val terminal: Terminal) : AutoCloseable {
                 val spun = SPINNER[frame % SPINNER.size]
                 // The rendered line still holds the arrow as a plain character, styling and all around
                 // it, so swapping it keeps the row looking exactly as it did.
-                val line = said?.let { "  $spun $it" } ?: restore.orEmpty().replace(Glyph.FOCUS, spun)
+                val line = saying?.let { "  $spun ${it()}" } ?: restore.orEmpty().replace(Glyph.FOCUS, spun)
                 write(at(row) + line + ERASE_TO_END_OF_LINE)
             }
             frame++

@@ -42,7 +42,7 @@ class Menu(
         GAPS("missing words", ""),
 
         TAGS("tag editor", "", startsGroup = true),
-        RULES("tagging rules", "how the tags fill themselves ${'$'}{Glyph.BULLET} read only"),
+        RULES("tagging rules", ""),
 
         WORKSHOP("the age workshop", "", startsGroup = true),
 
@@ -386,7 +386,7 @@ class Menu(
                 ServerSnapshot.refresh(
                     attach = null,
                     serverOnlyTags = corpus.vocabulary.tagsOnlyAServerGrants,
-                ) { said -> terminal.println("  $said") }
+                ) { far -> terminal.println("  " + if (far.total <= 0) far.what else "${far.done}/${far.total} ${far.what}") }
             }.fold(
                 onSuccess = { it.write(); terminal.println("Wrote ${it.snapshotPath()}") },
                 onFailure = { terminal.println("Nothing loaded: ${it.message}") },

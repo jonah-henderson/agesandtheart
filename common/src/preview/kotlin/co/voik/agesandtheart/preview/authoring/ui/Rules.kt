@@ -1,10 +1,12 @@
 package co.voik.agesandtheart.preview.authoring.ui
 
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.word.DerivedTags
 import co.voik.agesandtheart.age.word.DerivationRules.Rule
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.preview.authoring.Corpus
 import co.voik.agesandtheart.preview.authoring.DerivationRules
+import co.voik.agesandtheart.preview.authoring.ServerSnapshot
 import com.github.ajalt.mordant.input.MouseTracking
 import com.github.ajalt.mordant.input.enterRawMode
 import com.github.ajalt.mordant.terminal.Terminal
@@ -28,7 +30,7 @@ import com.github.ajalt.mordant.terminal.Terminal
 class Rules(
     private val terminal: Terminal,
     private val canvas: Canvas,
-    private val corpus: Corpus,
+    private var corpus: Corpus,
 ) {
 
     private val rules: List<Rule> by lazy { DerivationRules.of(corpus) }
@@ -38,8 +40,6 @@ class Rules(
         rules.flatMap { rule -> rule.fills.keys.map { it to rule } }
             .groupBy({ it.first }, { it.second })
     }
-
-    private var open: String? = null
 
     fun run() {
         val table = Table(
@@ -59,30 +59,63 @@ class Rules(
                 if (key.ctrl && key.key == "c") throw Leaving()
                 when {
                     key.ctrl && (key.key == "q" || key.key == "c") -> return
-                    key.key == "Escape" -> when {
-                        table.isFiltered -> table.clearFilter()
-                        open != null -> open = null
-                        else -> return
-                    }
-                    key.key == "ArrowLeft" -> if (open != null) open = null else return
-                    key.key == "ArrowRight" || key.key == "Enter" -> open = table.focused?.key
-                    key.key == "ArrowUp" -> { table.move(-1); reopen(table) }
-                    key.key == "ArrowDown" -> { table.move(1); reopen(table) }
-                    key.key == "Home" -> { table.home(); reopen(table) }
-                    key.key == "End" -> { table.end(); reopen(table) }
-                    key.key == "PageUp" -> { table.page(-1); reopen(table) }
-                    key.key == "PageDown" -> { table.page(1); reopen(table) }
+                    key.key == "Escape" -> if (table.isFiltered) table.clearFilter() else return
+                    key.key == "ArrowLeft" -> return
+                    key.key == "ArrowRight" || key.key == "Enter" ->
+                        table.focused?.key?.let(::openTheRules)
+                    key.key == "ArrowUp" -> table.move(-1)
+                    key.key == "ArrowDown" -> table.move(1)
+                    key.key == "Home" -> table.home()
+                    key.key == "End" -> table.end()
+                    key.key == "PageUp" -> table.page(-1)
+                    key.key == "PageDown" -> table.page(1)
                     key.key == "Tab" -> table.sortByTheColumnInHand()
                     key.key == "Backspace" -> table.backspace()
+                    key.ctrl && key.key == "l" -> if (refreshed()) table.withRows(
+                        canvas.whileBusy("Reading the rules") { filling.keys.sorted().map(::tagRow) },
+                    )
                     key.key.length == 1 && !key.ctrl && !key.alt -> table.type(key.key)
                 }
             }
         }
     }
 
-    /** The pane follows the cursor once it is open, rather than needing enter on every row. */
-    private fun reopen(table: Table) {
-        if (open != null) open = table.focused?.key
+    /**
+     * The rules behind one tag, **on a screen of its own rather than in a pane beside the list.**
+     *
+     * `grown` has thirty-one of them and each carries a wrapped list of what it caught, so the pane that
+     * suits the word editor's one-line notes is a column of cut-off sentences here. What is being read is
+     * a document, and a document wants the width.
+     */
+    private fun openTheRules(tag: String) {
+        val reader = Reader("what fills ${Word.TAG_MARK}$tag", canvas.whileBusy("Running the rules") {
+            rulesFilling(tag)
+        })
+        terminal.enterRawMode(MouseTracking.Off).use { scope ->
+            while (true) {
+                val window = (canvas.height - CHROME).coerceAtLeast(1)
+                val whole = reader.lines.flatMap { it.wrapped(canvas.width - INDENT, "      ") }
+                reader.rows = whole.size
+                canvas.show(
+                    listOf(Line("  ${reader.title}", Palette.heading), Line.BLANK) +
+                        whole.drop(reader.offset).take(window).map { Line("  ") + it } +
+                        listOf(
+                            Frame.rule(canvas.width),
+                            hints("↑↓" to "scroll", "pgup/pgdn" to "a page", "←" to "back"),
+                        ),
+                )
+                val key = scope.readKey() ?: return
+                if (key.ctrl && key.key == "c") throw Leaving()
+                when {
+                    key.ctrl && (key.key == "q" || key.key == "c") -> return
+                    key.key == "Escape" || key.key == "ArrowLeft" -> return
+                    key.key == "ArrowUp" -> reader.scroll(-1, window)
+                    key.key == "ArrowDown" -> reader.scroll(1, window)
+                    key.key == "PageUp" -> reader.scroll(-window, window)
+                    key.key == "PageDown" -> reader.scroll(window, window)
+                }
+            }
+        }
     }
 
     private fun tagRow(tag: String): Table.Row {
@@ -100,30 +133,24 @@ class Rules(
         )
     }
 
-    private fun lines(table: Table): List<Line> {
-        val standing = open
-        val hints = listOf(
+    private fun lines(table: Table): List<Line> = tableLines(
+        table,
+        canvas,
+        listOf(
             Line(
-                "  read only ${Glyph.BULLET} how the sets fill themselves from the game's own tags and " +
+                "  read only ${Glyph.BULLET} how the tags fill themselves from the game's own tags and " +
                     "facts ${Glyph.BULLET} art/derivation/",
                 Palette.faint,
             ),
             hints(
-                if (standing == null) "enter" to "the rules that fill it" else "←" to "close",
+                "enter" to "the rules that fill it",
                 "tab" to "sort",
+                "^l" to "load minecraft data",
+                "←" to "back",
                 searching(table.filter),
             ),
-        )
-        if (standing == null) return tableLines(table, canvas, hints)
-        val room = canvas.width - RULES_PANE - Frame.GUTTER
-        if (room < NARROWEST) return tableLines(table, canvas, hints)
-        table.room = (room - CURSOR_COLUMN).coerceAtLeast(MINIMUM_ROOM)
-        val whole = tableLines(table, canvas, hints)
-        val detail = rulesFilling(standing)
-        return whole.mapIndexed { at, line ->
-            line.sized(room) + Line(" ${Glyph.BAR} ", Palette.rule) + (detail.getOrNull(at) ?: Line.BLANK)
-        }
-    }
+        ),
+    )
 
     /**
      * The rules that fill one tag, each said as **a sentence about a member** — and what each caught.
@@ -141,6 +168,7 @@ class Rules(
             add(
                 Line(rule.aspect.page.padEnd(ASPECT_WIDTH), Palette.aspect) +
                     Line(saidOf(rule), Palette.value) +
+                    Line(mechanicOf(rule)?.let { "  ($it)" }.orEmpty(), Palette.faint) +
                     Line("  %.1f".format(rule.fills.getValue(tag)), Palette.faint),
             )
             add(
@@ -167,6 +195,52 @@ class Rules(
      * which is a fact about the rule's shape rather than about the world — and wrong for every feature
      * rule, features carrying no tags of their own.
      */
+    /**
+     * A snapshot taken now, in the background, **without leaving the screen that needed it.**
+     *
+     * The rules that read a registry tag catch nothing until a game has bound one, so this is the one
+     * screen where the answer to "why is this empty" is a two-minute errand. Menu-and-back is a long way
+     * to go for it.
+     */
+    private fun refreshed(): Boolean {
+        var far = ServerSnapshot.Progress(0, 0, "starting")
+        val taken = canvas.whileBusy(saying = { bar(far) }) {
+            runCatching {
+                ServerSnapshot.refresh(
+                    attach = null,
+                    serverOnlyTags = corpus.vocabulary.tagsOnlyAServerGrants,
+                ) { far = it }
+            }
+        }
+        taken.onFailure { return false }
+        taken.getOrNull()?.write()
+        corpus = Corpus(corpus.vocabulary, ServerSnapshot.read())
+        return true
+    }
+
+    /** The errand and how far through it, drawn — a bar only once there is a total to be a share of. */
+    private fun bar(far: ServerSnapshot.Progress): String {
+        if (far.total <= 0) return far.what
+        val full = (far.share * BAR).toInt().coerceIn(0, BAR)
+        return Glyph.FULL.repeat(full) + Glyph.EMPTY.repeat(BAR - full) +
+            "  ${far.done}/${far.total}  ${far.what}"
+    }
+
+    /**
+     * What the sentence beside it actually tests, where a reader could not work it out.
+     *
+     * `is scalding` is a threshold and `spawns as monster` is a field on the entity type; saying which
+     * costs a parenthesis and saves a trip to the source. The bands come from [DerivedTags] itself rather
+     * than being written out here, so the words and the numbers cannot drift apart.
+     */
+    private fun mechanicOf(rule: Rule): String? = when {
+        rule.byTag && rule.aspect == Aspect.FEATURES -> "share of the blocks it places"
+        rule.byTag -> null
+        rule.aspect == Aspect.FEATURES -> "the feature it places"
+        rule.aspect == Aspect.SPAWNS -> "MobCategory"
+        else -> DerivedTags.BANDS[rule.key]
+    }
+
     private fun saidOf(rule: Rule): String = when {
         rule.aspect == Aspect.FEATURES && rule.byTag -> "places blocks tagged ${rule.key}"
         rule.aspect == Aspect.FEATURES -> "places a ${rule.key}"
@@ -176,6 +250,13 @@ class Rules(
     }
 
     private companion object {
+        /** The two columns a reading is indented by, and the chrome around one. */
+        const val INDENT = 2
+        const val CHROME = 4
+
+        /** How wide the refresh bar is drawn. */
+        const val BAR = 24
+
         const val TAG_WIDTH = 16
         const val COUNT_WIDTH = 7
         const val WHERE_WIDTH = 20

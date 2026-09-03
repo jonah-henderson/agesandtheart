@@ -58,6 +58,17 @@ data class ServerSnapshot(
 
     data class Reach(val carriers: Int, val found: Int)
 
+    /**
+     * How far a refresh has got — [done] of [total] questions asked, and what it is asking about.
+     *
+     * Counted rather than guessed at, which needs the tag lists first: the questions are three about the
+     * corpus, one per aspect to learn its tags, and one per tag after that. So the aspects are asked what
+     * they carry up front and the total is known before the long half begins.
+     */
+    data class Progress(val done: Int, val total: Int, val what: String) {
+        val share: Double get() = if (total <= 0) 0.0 else done.toDouble() / total
+    }
+
     /** What a server said this tag reaches in this aspect, or null where the snapshot never asked. */
     fun reachOf(aspect: Aspect, tag: String): Reach? = reach[aspect.page]?.get(tag)
 
@@ -183,7 +194,7 @@ data class ServerSnapshot(
          *
          * [say] is how progress reaches whoever asked, since this is minutes on a first run.
          */
-        fun refresh(attach: String?, serverOnlyTags: Set<String>, say: (String) -> Unit): ServerSnapshot =
+        fun refresh(attach: String?, serverOnlyTags: Set<String>, say: (Progress) -> Unit): ServerSnapshot =
             if (attach != null) {
                 attached(attach, say).use { gather(it, "attached", sourceOf(attach), serverOnlyTags, say) }
             } else {
@@ -193,10 +204,10 @@ data class ServerSnapshot(
         /** An attached server names itself by address; its world is not ours to know. */
         private fun sourceOf(attach: String) = attach.substringBeforeLast(':')
 
-        private fun attached(where: String, say: (String) -> Unit): Rcon {
+        private fun attached(where: String, say: (Progress) -> Unit): Rcon {
             val parts = where.split(':')
             require(parts.size == 3) { "--attach wants host:port:password, not '$where'" }
-            say("attaching to ${parts[0]}:${parts[1]}")
+            say(Progress(0, 0, "attaching to ${parts[0]}:${parts[1]}"))
             return Rcon(parts[0], parts[1].toInt(), parts[2])
         }
 
@@ -206,7 +217,7 @@ data class ServerSnapshot(
          * The world is left where it is. This tool has no business removing one, and keeping it is what
          * makes a second refresh quick.
          */
-        private fun <T> booted(say: (String) -> Unit, work: (Rcon, String, String) -> T): T {
+        private fun <T> booted(say: (Progress) -> Unit, work: (Rcon, String, String) -> T): T {
             val launch = LaunchSpec.read()
             val loader = System.getProperty(LaunchSpec.LOADER_PROPERTY, "fabric")
             val properties = launch.workingDirectory.resolve("server.properties")
@@ -219,7 +230,7 @@ data class ServerSnapshot(
             properties.writeText(
                 ServerLaunch.overlaid(original, ServerLaunch.settingsFor(WORLD, port, RCON_PASSWORD)),
             )
-            say("starting a $loader server on :$port — a minute or so the first time")
+            say(Progress(0, 0, "starting a $loader server on :$port — a minute or so the first time"))
             val process = runCatching { launch.start() }
                 .getOrElse { failure -> properties.writeText(original); throw failure }
             try {
@@ -227,7 +238,7 @@ data class ServerSnapshot(
                     ServerLaunch.awaitRcon(process, port, STARTUP_SECONDS, RCON_PASSWORD)
                 }.getOrElse { failure -> process.destroyForcibly(); throw failure }
                 val world = shortly(launch.workingDirectory.resolve(WORLD))
-                return rcon.use { work(it, loader, world) }.also { say("stopping the server") }
+                return rcon.use { work(it, loader, world) }.also { say(Progress(0, 0, "stopping the server")) }
             } finally {
                 runCatching { Rcon("127.0.0.1", port, RCON_PASSWORD).use { it.run("stop") } }
                 if (!process.waitFor(SHUTDOWN_SECONDS, TimeUnit.SECONDS)) process.destroyForcibly()
@@ -248,29 +259,38 @@ data class ServerSnapshot(
             loader: String,
             source: String,
             serverOnlyTags: Set<String>,
-            say: (String) -> Unit,
+            say: (Progress) -> Unit,
         ): ServerSnapshot {
             fun ask(command: String): JsonObject =
                 JsonParser.parseString(rcon.run(command)).asJsonObject
 
             val corpus = ask("age words json")
-            say("asking what each tagging rule catches")
+            say(Progress(0, 0, "asking what each tagging rule catches"))
             val caught = ask("age rules json all").getAsJsonArray("rule")?.associate { entry ->
                 val rule = entry.asJsonObject
                 rule.get("id").asString to
                     rule.getAsJsonArray("caught")?.map { it.asString }.orEmpty()
             }.orEmpty()
-            say("asking what dimensions it has")
+            say(Progress(0, 0, "asking what dimensions it has"))
             val dimensions = ask("age dimensions json all").getAsJsonArray("dimension")
                 ?.map { it.asJsonObject.get("id").asString }.orEmpty()
+            // **The tag lists first, so the long half can be counted.** Everything after this is one
+            // question per tag, and a bar that cannot say how many there are is a spinner with a number
+            // on it.
+            val carrying = Aspect.entries.associateWith { aspect ->
+                say(Progress(0, 0, "asking ${aspect.page} what it carries"))
+                ask("age tags json ${aspect.page}").getAsJsonArray("tags")
+                    ?.map { it.asJsonObject.get("tag").asString }.orEmpty()
+            }
+            val total = carrying.values.sumOf { it.size }
+            var asked = 0
             val reach = mutableMapOf<String, Map<String, Reach>>()
             val serverOnly = mutableMapOf<String, MutableList<String>>()
-            for (aspect in Aspect.entries) {
-                say("asking ${aspect.page} what it carries")
-                val tags = ask("age tags json ${aspect.page}").getAsJsonArray("tags")
-                    ?.map { it.asJsonObject.get("tag").asString }.orEmpty()
+            for ((aspect, tags) in carrying) {
                 val seen = mutableMapOf<String, Reach>()
                 for (tag in tags) {
+                    asked++
+                    say(Progress(asked, total, "${aspect.page} $tag"))
                     val answer = ask("age tags json ${aspect.page} $tag")
                     seen[tag] = Reach(
                         answer.get("carriers")?.asInt ?: 0,
@@ -279,8 +299,8 @@ data class ServerSnapshot(
                     if (tag !in serverOnlyTags) continue
                     // Only these are listed by member: they are the ones an offline corpus cannot name at
                     // all, and every other tag's members are already sitting in the pack's own tables.
-                    answer.getAsJsonArray("carrying")?.forEach { carrying ->
-                        serverOnly.getOrPut(tag) { mutableListOf() } += carrying.asJsonObject.get("member").asString
+                    answer.getAsJsonArray("carrying")?.forEach { member ->
+                        serverOnly.getOrPut(tag) { mutableListOf() } += member.asJsonObject.get("member").asString
                     }
                 }
                 if (seen.isNotEmpty()) reach[aspect.page] = seen
