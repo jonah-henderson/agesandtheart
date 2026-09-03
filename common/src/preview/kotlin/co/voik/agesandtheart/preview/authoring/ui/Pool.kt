@@ -83,3 +83,47 @@ object PoolChart {
     private const val BAR = 10
     private const val NAME = 30
 }
+
+/**
+ * **Which members a row of the populations page actually names**, listed.
+ *
+ * The chart beside this says what the *pool* came to; this says what the row under the cursor did to
+ * reach it. `remove #flowering` explaining itself as "everything with #flowering" is a definition rather
+ * than an answer — what a writer wants to know is that it took out the cherry grove, the meadow and the
+ * flower forest, and whether that is what they meant.
+ */
+object Touched {
+
+    fun of(aspect: Aspect, named: String, corpus: Corpus, width: Int): List<Line> {
+        if (width < NARROWEST) return emptyList()
+        val matching = matching(aspect, named, corpus)
+        if (matching.isEmpty()) {
+            return listOf(Line("  nothing in the ${aspect.page} answers $named", Palette.warned))
+        }
+        val head = Line("  ${matching.size}", Palette.value) +
+            Line(" in the ${aspect.page} ${Glyph.BULLET} $named", Palette.faint)
+        val shown = matching.take(SHOWN).joinToString("  ${Glyph.BULLET}  ")
+        val more = (matching.size - SHOWN).takeIf { it > 0 }?.let { "  ${Glyph.ELIDED} and $it more" }.orEmpty()
+        return listOf(head) + Line("  $shown$more", Palette.value).wrapped(width, hanging = "  ")
+    }
+
+    /**
+     * What [named] picks out of [aspect]'s pool — everything carrying the tag, or the one member itself.
+     *
+     * One function for all four steps on purpose: adding, keeping, removing and leaning differ in what
+     * they *do* with what they name, and the row above already says which. What they name is one question.
+     */
+    private fun matching(aspect: Aspect, named: String, corpus: Corpus): List<String> {
+        val pool = corpus.vocabulary.candidatesFor(aspect)
+        if (!named.startsWith(Word.TAG_MARK)) {
+            return pool.map { it.key }.filter { it == named }.ifEmpty {
+                listOfNotNull(aspect.presetFor(named)?.key?.takeIf { it == named })
+            }
+        }
+        val tag = named.drop(Word.TAG_MARK.length)
+        return pool.filter { corpus.vocabulary.tagsOf(it).containsKey(tag) }.map { it.key }.sorted()
+    }
+
+    private const val NARROWEST = 24
+    private const val SHOWN = 24
+}

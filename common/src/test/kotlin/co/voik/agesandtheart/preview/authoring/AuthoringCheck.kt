@@ -12,6 +12,7 @@ import co.voik.agesandtheart.age.aspect.Holds
 import co.voik.agesandtheart.preview.authoring.ui.Band
 import co.voik.agesandtheart.preview.authoring.ui.Columns
 import co.voik.agesandtheart.preview.authoring.ui.Gauge
+import co.voik.agesandtheart.preview.authoring.ui.Touched
 import co.voik.agesandtheart.preview.authoring.ui.Glyph
 import co.voik.agesandtheart.preview.authoring.ui.Insistence
 import co.voik.agesandtheart.preview.authoring.ui.addingAPool
@@ -610,7 +611,37 @@ class AuthoringCheck : FunSpec({
         val halved = wide.copy(tier = Tier.RESTRICTIVE.copy(versatilityMultiplier = 0.5))
         check(halved.price == 3) { "half a multiplier over three aspects gave ${halved.price}" }
     }
+
+    /**
+     * **A tag's row names what it caught, not what it is.**
+     *
+     * "removes everything with `#flowering`" is the definition read back; what a writer is checking is
+     * whether the cherry grove and the meadow are what they meant to lose. Drawn from the curated pool,
+     * so it says what the Art can actually reach rather than what the registry holds.
+     */
+    test("a tag's panel names the members it catches") {
+        val carrying = corpus.vocabulary.candidatesFor(Aspect.BIOMES)
+            .filter { corpus.vocabulary.tagsOf(it).containsKey("frozen") }
+        check(carrying.isNotEmpty()) { "nothing in the biomes carries #frozen, so this checks nothing" }
+        val said = plainly(Touched.of(Aspect.BIOMES, "#frozen", corpus, PANEL_WIDTH))
+        check(said.contains("${carrying.size}")) { "it did not count what it found: $said" }
+        check(carrying.take(3).all { it.key in said }) { "it did not name what it found: $said" }
+    }
+
+    /** A tag nothing carries says so, rather than an empty list under a count of zero. */
+    test("a tag nothing answers says so") {
+        val said = plainly(Touched.of(Aspect.BIOMES, "#nosuchtagexists", corpus, PANEL_WIDTH))
+        check("nothing in the biomes" in said) { "an unanswered tag drew '$said'" }
+    }
+
 })
 
 /** Wide enough to have a middle and six cells either side of it. */
 private const val WIDE = 13
+
+/** Wide enough for the panel to lay a list out rather than refuse to draw. */
+private const val PANEL_WIDTH = 78
+
+/** A drawing as plain text, for a check that is about what it says rather than how it is coloured. */
+private fun plainly(lines: List<co.voik.agesandtheart.preview.authoring.ui.Line>): String =
+    lines.joinToString(" ") { line -> line.inks.joinToString("") { it.text } }

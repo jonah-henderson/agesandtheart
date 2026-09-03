@@ -279,9 +279,24 @@ class Editor(
         // **What the claim actually does to the pool**, drawn where a range gets its axis. Five set
         // operations over a couple of hundred members are invisible in the file: `#cavernous 1.0` says
         // nothing about whether four things carry it or none.
-        val drawn = populationUnderTheCursor()
-            ?.let { PoolChart.of(it, word, corpus, width) }
-            .orEmpty()
+        // **What the pool came to, and what this row named to get there** — side by side where the pane
+        // has room for both. `remove #flowering` saying it removed everything with `#flowering` is a
+        // definition rather than an answer; the list beside it names the cherry grove and the meadow.
+        val aspect = populationUnderTheCursor()
+        val named = tagOrMemberUnderTheCursor()
+        val roomForBoth = named != null && width >= CHART_LEAST * 2 + Frame.GUTTER
+        val chartWidth = if (roomForBoth) (width - Frame.GUTTER) / 2 else width
+        val chart = aspect?.let { PoolChart.of(it, word, corpus, chartWidth) }.orEmpty()
+        val touched = if (aspect == null || named == null) {
+            emptyList()
+        } else {
+            Touched.of(aspect, named, corpus, if (roomForBoth) width - chartWidth - Frame.GUTTER else width)
+        }
+        val drawn = when {
+            touched.isEmpty() -> chart
+            !roomForBoth -> chart + Line.BLANK + touched
+            else -> Frame.beside(chart, chartWidth, touched, width - chartWidth - Frame.GUTTER)
+        }
         // **The axis above the words about it**, since `<-0.5` is a number and the scale is what says
         // whether it means snow. What a parameter is for is worth reading second; where the value it
         // holds actually lands is the thing you came to look at.
@@ -957,6 +972,23 @@ class Editor(
         val on = Aspect.entries.firstOrNull { it.page == spelled.substringBefore('.', "") }
             ?: Aspect.entries.firstOrNull { it.ownsParameterNamed(bare) }
         return on?.let { Verdict.parametersNamed(it, bare, corpus).firstOrNull() }
+    }
+
+    /**
+     * The tag or member the cursor's row names, where it names one.
+     *
+     * Only the four steps that take one: a choice is the whole answer and says so on its own row, and a
+     * heading names nothing.
+     */
+    private fun tagOrMemberUnderTheCursor(): String? {
+        if (part != Part.POPULATIONS) return null
+        val handle = rows().getOrNull(row())?.handle ?: return null
+        val kind = handle.substringBefore('/')
+        if (kind !in setOf("admits", "excludes", "restricts", "biases")) return null
+        val named = handle.substringAfter('/', "").substringAfter('/', "")
+        if (named.isEmpty()) return null
+        // A restriction's row spells its tag without the mark, the mark being what the row itself draws.
+        return if (kind == "restricts") "${Word.TAG_MARK}$named" else named
     }
 
     private fun populationUnderTheCursor(): Aspect? {
@@ -2204,6 +2236,9 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
 
         /** The band screen's three: the shape or the word, what it comes to, and what it means. */
         val BAND_COLUMNS = listOf(Columns.Column(), Columns.Column(), Columns.Column(grows = true))
+
+        /** The narrowest either half of the populations pane is worth drawing at. */
+        const val CHART_LEAST = 40
 
         /** The ` ✓ ` a marked row wears, and the gap between two columns. */
         const val TICK_ROOM = 3
