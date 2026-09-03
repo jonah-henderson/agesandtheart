@@ -221,6 +221,7 @@ class Help(
             Line.BLANK,
             Line("The tag editor", Palette.heading),
             keyRow("enter", "what is tagged, across every aspect \u2014 and on `+`, tag something new"),
+            keyRow("", "a search that finds no tag offers to make one of what you typed"),
             keyRow("- =", "the weight under the cursor, in tenths"),
             keyRow("^o", "back to the original value \u2014 where a rule said one"),
             keyRow("tab", "group the carriers by where their weight came from, or sort by name"),

@@ -29,7 +29,10 @@ class Tags(
 
     /** The whole list, from the top. */
     fun run() {
-        val rowsOf = { layer.facts().map(::factRow) }
+        // **The way to make one is a row, and a failed search is the other way in** — both, because
+        // somebody looking for a tag that is not there has already typed its name, and somebody who has
+        // not looked should not have to search for nothing to find the door.
+        val rowsOf = { listOf(makingRow()) + layer.facts().map(::factRow) }
         val table = Table(
             title = "tag editor",
             columns = listOf(
@@ -40,13 +43,52 @@ class Tags(
                 Table.Column("", NOTE_WIDTH),
             ),
             rows = canvas.whileBusy("Reading the tag layer") { rowsOf() },
+            whenNothingMatches = { typed ->
+                if (couldBeATag(typed)) "no tag matches '$typed' — enter to make it"
+                else "no tag matches '$typed'"
+            },
         )
         while (true) {
             val chosen = walkTheList(table) ?: return
-            open(chosen)
+            if (chosen == MAKE) makeATag(table.filter.takeIf(::couldBeATag)) else open(chosen)
             table.withRows(rowsOf())
         }
     }
+
+    private fun makingRow() = Table.Row(
+        key = MAKE,
+        cells = listOf("+ a new tag", "", "", "", "named, then given something to sit on"),
+        tone = Palette.faint,
+    )
+
+    /**
+     * A tag made — **named, and then given its first member in the same breath.**
+     *
+     * A tag nothing carries is one the top list already reports as a fault, and it is one a word can ask
+     * for and find nothing by. So there is no state in which one exists and is empty: the name is only
+     * half of making one, and leaving before the other half makes nothing.
+     */
+    private fun makeATag(searched: String?) {
+        val standing = layer.facts().map { it.tag }.toSet()
+        val named = searched?.takeUnless { it in standing } ?: ask(
+            title = "a new tag",
+            hint = "what the world is like — `wooded`, `molten`, `ruined` ${Glyph.BULLET} " +
+                "${standing.size} so far",
+        ) { said ->
+            when {
+                said.isBlank() -> "a tag needs a name"
+                said in standing -> "'$said' is already a tag"
+                !said.matches(LEGAL_TAG) -> "lower case, digits and _ only"
+                else -> null
+            }
+        } ?: return
+        addAMember(named)
+        layer.reread()
+        // Nothing was written where the member was never chosen, and a name alone is not a tag.
+        if (layer.membersTagged(named).isNotEmpty()) open(named)
+    }
+
+    private fun couldBeATag(said: String) = said.matches(LEGAL_TAG)
 
     /** One tag, opened straight — what the word editor does when the cursor is on a query row. */
     fun open(tag: String) {
@@ -387,7 +429,7 @@ class Tags(
                                 "pgup/pgdn" to "a page",
                             ),
                             hints(
-                                "enter" to "view details",
+                                "enter" to if (table.focused?.key == MAKE) "name a new tag" else "view details",
                                 "←" to "back",
                                 searching(table.filter),
                             ),
@@ -409,7 +451,11 @@ class Tags(
                     key.key == "PageDown" -> table.page(1)
                     key.key == "Tab" -> table.sortByTheColumnInHand()
                     key.key == "Backspace" -> table.backspace()
-                    key.key == "Enter" -> return table.focused?.key ?: continue
+                    // A search that found nothing is a name already typed, so enter takes it as one.
+                    key.key == "Enter" -> return when {
+                        table.shown.isEmpty() && couldBeATag(table.filter) -> MAKE
+                        else -> table.focused?.key ?: continue
+                    }
                     key.key.length == 1 && !key.ctrl && !key.alt -> table.type(key.key)
                 }
             }
@@ -513,6 +559,9 @@ class Tags(
         /** What one press moves a weight — the corpus is written in tenths and reads as a scale of ten. */
         /** The row that adds one, told from a member's `aspect/preset` key by having no slash in it. */
         const val ADD = "+"
+
+        /** The row that makes a tag, and what a search finding nothing comes back as. */
+        const val MAKE = "+tag"
 
         /** What a new entry lands at: an exception is written because something is very one thing. */
         const val WHOLLY = 1.0
