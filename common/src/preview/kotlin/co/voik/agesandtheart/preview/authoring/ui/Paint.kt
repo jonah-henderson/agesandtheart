@@ -146,6 +146,14 @@ object Palette {
      */
     val aspect: TextStyle = TextColors.brightMagenta
     val refused: TextStyle = TextColors.brightRed
+
+    /**
+     * Something the word takes out, drawn as struck out.
+     *
+     * The one thing on these screens that says *removed* without a word for it: a red mark and a "taken
+     * out" beside every row said it twice and then a third time in the heading above them.
+     */
+    val struck: TextStyle = TextStyles.strikethrough.style + TextColors.gray
     val warned: TextStyle = TextColors.yellow
     val nudged: TextStyle = TextColors.brightBlue
     val noted: TextStyle = TextColors.gray

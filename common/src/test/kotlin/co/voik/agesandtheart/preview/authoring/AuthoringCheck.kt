@@ -12,6 +12,7 @@ import co.voik.agesandtheart.age.aspect.Holds
 import co.voik.agesandtheart.preview.authoring.ui.Band
 import co.voik.agesandtheart.preview.authoring.ui.Columns
 import co.voik.agesandtheart.preview.authoring.ui.Gauge
+import co.voik.agesandtheart.preview.authoring.ui.Step
 import co.voik.agesandtheart.preview.authoring.ui.Touched
 import co.voik.agesandtheart.preview.authoring.ui.Glyph
 import co.voik.agesandtheart.preview.authoring.ui.Insistence
@@ -622,16 +623,30 @@ class AuthoringCheck : FunSpec({
     test("a tag's panel names the members it catches") {
         val carrying = corpus.vocabulary.candidatesFor(Aspect.BIOMES)
             .filter { corpus.vocabulary.tagsOf(it).containsKey("frozen") }
-        check(carrying.isNotEmpty()) { "nothing in the biomes carries #frozen, so this checks nothing" }
-        val said = plainly(Touched.of(Aspect.BIOMES, "#frozen", corpus, PANEL_WIDTH))
+        check(carrying.isNotEmpty()) { "nothing in biomes carries #frozen, so this checks nothing" }
+        val said = plainly(Touched.of(Aspect.BIOMES, "#frozen", Step.REMOVE, corpus, PANEL_WIDTH))
         check(said.contains("${carrying.size}")) { "it did not count what it found: $said" }
-        check(carrying.take(3).all { it.key in said }) { "it did not name what it found: $said" }
+        val named = carrying.map { it.key }.sorted().take(3)
+        check(named.all { it in said }) { "it did not name what it found: $said" }
+    }
+
+    /**
+     * **The heading says what the step did with them**, since one function serves all five and the list
+     * alone cannot tell "kept these" from "took these out".
+     */
+    test("the panel says which step named them") {
+        val verbs = Step.entries.associateWith { step ->
+            plainly(Touched.of(Aspect.BIOMES, "#frozen", step, corpus, PANEL_WIDTH)).lines().first()
+        }
+        check(verbs.getValue(Step.REMOVE).contains("removed from biomes")) { "remove said ${verbs[Step.REMOVE]}" }
+        check(verbs.getValue(Step.KEEP).contains("kept in biomes")) { "keep said ${verbs[Step.KEEP]}" }
+        check(verbs.values.distinct().size == verbs.size) { "two steps read the same: ${verbs.values}" }
     }
 
     /** A tag nothing carries says so, rather than an empty list under a count of zero. */
     test("a tag nothing answers says so") {
-        val said = plainly(Touched.of(Aspect.BIOMES, "#nosuchtagexists", corpus, PANEL_WIDTH))
-        check("nothing in the biomes" in said) { "an unanswered tag drew '$said'" }
+        val said = plainly(Touched.of(Aspect.BIOMES, "#nosuchtagexists", Step.REMOVE, corpus, PANEL_WIDTH))
+        check("nothing in biomes" in said) { "an unanswered tag drew '$said'" }
     }
 
 })

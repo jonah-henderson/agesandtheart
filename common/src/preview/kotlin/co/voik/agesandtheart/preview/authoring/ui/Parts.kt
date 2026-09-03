@@ -1015,7 +1015,7 @@ class Parts(private val corpus: Corpus) {
     private fun settledNote(step: Step, candidate: Candidate, aspect: Aspect): String? {
         if (step == Step.CHOOSE) return null
         val chosen = candidate.chooses[aspect] ?: return null
-        return "never read: '$chosen' settles the ${aspect.page}, and nothing after that is asked"
+        return "never read: '$chosen' settles ${aspect.page}, and nothing after that is asked"
     }
 
     private fun stepRows(step: Step, candidate: Candidate, word: Word?): List<Row> = when (step) {
@@ -1100,13 +1100,13 @@ class Parts(private val corpus: Corpus) {
     )
 
     private fun addedNote(aspect: Aspect, key: String): String =
-        if (aspect.presetFor(key) == null) "nothing in the ${aspect.page} is called that"
+        if (aspect.presetFor(key) == null) "nothing in ${aspect.page} is called that"
         else "curation left it out of the pool; this puts it in for this Age"
 
     private fun struckNote(aspect: Aspect, key: String): String = when {
-        key.startsWith(TAG_MARK) -> "everything in the ${aspect.page} carrying $key is taken out"
-        aspect.presetFor(key) == null -> "nothing in the ${aspect.page} is called that"
-        else -> "taken out of the pool, however it got in"
+        key.startsWith(TAG_MARK) -> "everything in ${aspect.page} carrying $key is removed"
+        aspect.presetFor(key) == null -> "nothing in ${aspect.page} is called that"
+        else -> "removed from the pool, however it got in"
     }
 
     /**
@@ -1117,9 +1117,9 @@ class Parts(private val corpus: Corpus) {
      * tempest. What makes a name sayable is that we wrote the thing.
      */
     private fun whatItMeans(aspect: Aspect, key: String): String = when {
-        aspect.ownsPresetNamed(key) -> "a design of ours, in the ${aspect.page}"
-        aspect.presetsAreEntriesOf != null -> "an entry of the ${aspect.page}'s own registry"
-        else -> "nothing in the ${aspect.page} is called that"
+        aspect.ownsPresetNamed(key) -> "a design of ours, in ${aspect.page}"
+        aspect.presetsAreEntriesOf != null -> "an entry of ${aspect.page}'s own registry"
+        else -> "nothing in ${aspect.page} is called that"
     }
 
     /**

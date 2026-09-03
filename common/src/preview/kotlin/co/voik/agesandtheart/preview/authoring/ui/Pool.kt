@@ -30,26 +30,24 @@ object PoolChart {
         if (chosen != null && aspect.holds != Holds.WEIGHTED_SET) {
             return listOf(
                 Line("  ") + Line(chosen.key, Palette.chosen) +
-                    Line(" is the answer; the ${aspect.page}'s pool is never searched", Palette.faint),
+                    Line(" is the answer; ${aspect.page} is never searched", Palette.faint),
             )
         }
         val curated = vocabulary.askableIn(aspect)
         val named = word.admitsIn(aspect).mapNotNull(aspect::presetFor) + listOfNotNull(chosen)
         val added = named.filterNot { it in curated }
         val pool = curated + added
-        if (pool.isEmpty()) return listOf(Line("  nothing in the ${aspect.page} to draw between", Palette.faint))
+        if (pool.isEmpty()) return listOf(Line("  nothing in ${aspect.page} to draw between", Palette.faint))
 
         val standing = pool.associateWith { Resolver.standingOf(vocabulary, word, aspect, it) }
         fun strengthOf(member: Taggable) = standing.getValue(member).strength
         val kept = pool.filter { standing.getValue(it).kept }
         val strongest = kept.maxOfOrNull(::strengthOf) ?: 0.0
+        // **What survived, and nothing about what did not.** The rows say that by being struck out, and
+        // the list beside this one counts them under the verb that did it — three sayings of one fact.
         val head = Line("  ${kept.size} of ${pool.size}", Palette.value) +
-            Line(" in the ${aspect.page}", Palette.faint) +
-            Line(if (added.isEmpty()) "" else "  ${Glyph.BULLET} ${added.size} added", Palette.settled) +
-            Line(
-                if (kept.size == pool.size) "" else "  ${Glyph.BULLET} ${pool.size - kept.size} taken out",
-                Palette.refused,
-            )
+            Line(" still included in ${aspect.page}", Palette.faint) +
+            Line(if (added.isEmpty()) "" else "  ${Glyph.BULLET} ${added.size} added", Palette.settled)
         val rows = pool.sortedByDescending { if (it in kept) strengthOf(it) else -1.0 }
             .take(SHOWN)
             .map { member -> row(member, member in kept, member in added, strongest, strengthOf(member)) }
@@ -67,15 +65,10 @@ object PoolChart {
         strength: Double,
     ): Line {
         val pull = if (kept) strength else 0.0
-        val mark = when {
-            !kept -> Glyph.WARN
-            added -> "+"
-            else -> " "
-        }
-        return Line("    ") + Line("$mark ", if (kept) Palette.settled else Palette.refused) +
-            Line(member.key.padEnd(NAME), if (kept) Palette.value else Palette.faint) +
+        return Line("    ") + Line(if (added) "+ " else "  ", Palette.settled) +
+            Line(member.key.padEnd(NAME), if (kept) Palette.value else Palette.struck) +
             Gauge.filled(pull, strongest, BAR) +
-            Line(if (kept) "  %.2f".format(pull) else "  taken out", Palette.faint)
+            Line(if (kept) "  %.2f".format(pull) else "", Palette.faint)
     }
 
     private const val NARROWEST = 40
@@ -94,17 +87,32 @@ object PoolChart {
  */
 object Touched {
 
-    fun of(aspect: Aspect, named: String, corpus: Corpus, width: Int): List<Line> {
+    fun of(aspect: Aspect, named: String, step: Step, corpus: Corpus, width: Int): List<Line> {
         if (width < NARROWEST) return emptyList()
         val matching = matching(aspect, named, corpus)
         if (matching.isEmpty()) {
-            return listOf(Line("  nothing in the ${aspect.page} answers $named", Palette.warned))
+            return listOf(Line("  nothing in ${aspect.page} answers $named", Palette.warned))
         }
-        val head = Line("  ${matching.size}", Palette.value) +
-            Line(" in the ${aspect.page} ${Glyph.BULLET} $named", Palette.faint)
-        val shown = matching.take(SHOWN).joinToString("  ${Glyph.BULLET}  ")
-        val more = (matching.size - SHOWN).takeIf { it > 0 }?.let { "  ${Glyph.ELIDED} and $it more" }.orEmpty()
-        return listOf(head) + Line("  $shown$more", Palette.value).wrapped(width, hanging = "  ")
+        // **The whole sentence in the heading**, and the tag it is about left to the row under the cursor,
+        // which is already saying it. One list read down rather than across, so the two panes line up.
+        val pool = corpus.vocabulary.candidatesFor(aspect).size.coerceAtLeast(matching.size)
+        val head = Line("  ${matching.size} of $pool", Palette.value) +
+            Line(" ${didTo(step)} ${aspect.page}", Palette.faint)
+        val tone = if (step == Step.REMOVE) Palette.struck else Palette.value
+        val rows = matching.take(SHOWN).map { Line("    ") + Line(it, tone) }
+        val more = (matching.size - SHOWN).takeIf { it > 0 }
+            ?.let { listOf(Line("    ${Glyph.ELIDED} and $it more", Palette.faint)) }
+            .orEmpty()
+        return listOf(head) + rows + more
+    }
+
+    /** What the step did to what the row named, said as the heading's verb. */
+    private fun didTo(step: Step): String = when (step) {
+        Step.CHOOSE -> "chosen from"
+        Step.ADD -> "added to"
+        Step.KEEP -> "kept in"
+        Step.REMOVE -> "removed from"
+        Step.BIAS -> "leaned in"
     }
 
     /**
@@ -125,5 +133,7 @@ object Touched {
     }
 
     private const val NARROWEST = 24
-    private const val SHOWN = 24
+
+    /** As many as the chart beside it shows, the two being read as one pair. */
+    private const val SHOWN = 8
 }

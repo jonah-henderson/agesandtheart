@@ -287,10 +287,11 @@ class Editor(
         val roomForBoth = named != null && width >= CHART_LEAST * 2 + Frame.GUTTER
         val chartWidth = if (roomForBoth) (width - Frame.GUTTER) / 2 else width
         val chart = aspect?.let { PoolChart.of(it, word, corpus, chartWidth) }.orEmpty()
-        val touched = if (aspect == null || named == null) {
+        val step = stepUnderTheCursor()
+        val touched = if (aspect == null || named == null || step == null) {
             emptyList()
         } else {
-            Touched.of(aspect, named, corpus, if (roomForBoth) width - chartWidth - Frame.GUTTER else width)
+            Touched.of(aspect, named, step, corpus, if (roomForBoth) width - chartWidth - Frame.GUTTER else width)
         }
         val drawn = when {
             touched.isEmpty() -> chart
@@ -996,6 +997,19 @@ class Editor(
         return if (kind == "restricts") "${Word.TAG_MARK}$named" else named
     }
 
+    /** Which of the five steps the row under the cursor is one of — what the list beside it is *for*. */
+    private fun stepUnderTheCursor(): Step? {
+        if (part != Part.POPULATIONS) return null
+        return when (rows().getOrNull(row())?.handle?.substringBefore('/')) {
+            "chooses" -> Step.CHOOSE
+            "admits" -> Step.ADD
+            "restricts" -> Step.KEEP
+            "excludes" -> Step.REMOVE
+            "biases" -> Step.BIAS
+            else -> null
+        }
+    }
+
     private fun populationUnderTheCursor(): Aspect? {
         if (part != Part.POPULATIONS) return null
         val page = rows().getOrNull(row())?.handle?.substringAfter('/', "")?.substringBefore('/')
@@ -1500,7 +1514,7 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
             Picker.Option(key, key, tagsSaid(aspect.presetFor(key)))
         }
         if (options.isEmpty()) {
-            message = "every design of ours in the ${aspect.page} already has a page that chooses it"
+            message = "every design of ours in ${aspect.page} already has a page that chooses it"
             return
         }
         overlay = Picker("Choose which ${aspect.page}?", options) { picked ->
@@ -1519,7 +1533,7 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
             .distinct().sorted().filterNot { it in already }
             .map { Picker.Option(it, it, "curation left it out of the pool") }
         if (options.isEmpty()) {
-            message = "everything the ${aspect.page} knows of is already in its pool"
+            message = "everything ${aspect.page} knows of is already in its pool"
             return
         }
         overlay = Picker("Add which ${aspect.page}?", options) { picked ->
@@ -1535,7 +1549,7 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
 
     /** Something to take out: a member by name, or everything carrying a tag. */
     private fun pickSomethingToStrike(aspect: Aspect) {
-        overlay = Picker("Remove what from the ${aspect.page}?", membersAndTags(aspect)) { picked ->
+        overlay = Picker("Remove what from ${aspect.page}?", membersAndTags(aspect)) { picked ->
             edit { at -> at.copy(excludes = at.excludes + (aspect to (at.excludes[aspect].orEmpty() + picked.value))) }
         }
     }

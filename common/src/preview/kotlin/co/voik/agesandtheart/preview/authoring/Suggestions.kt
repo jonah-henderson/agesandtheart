@@ -294,12 +294,12 @@ class Suggestions(private val vocabulary: Vocabulary) {
         // nowhere here, so `dark_void` and `infernal` — whose whole job is choosing the world the book
         // starts from — fell through to the sentence about aiming pages and said they did nothing.
         word.template?.let { add(Claim("begins the Age from $it, not the overworld")) }
-        word.chooses.forEach { (aspect, key) -> add(Claim("chooses $key in the ${aspect.page}")) }
+        word.chooses.forEach { (aspect, key) -> add(Claim("chooses $key in ${aspect.page}")) }
         word.admits.forEach { (aspect, keys) ->
-            add(Claim("adds ${keys.sorted().joinToString(" ")} to the ${aspect.page}"))
+            add(Claim("adds ${keys.sorted().joinToString(" ")} to ${aspect.page}"))
         }
         word.excludes.forEach { (aspect, keys) ->
-            add(Claim("takes ${keys.sorted().joinToString(" ")} out of the ${aspect.page}"))
+            add(Claim("removes ${keys.sorted().joinToString(" ")} from ${aspect.page}"))
         }
         word.mints?.let { add(Claim("mints $it")) }
         addAll(word.everySet.map { (parameter, value) -> Claim("$parameter=$value") })
