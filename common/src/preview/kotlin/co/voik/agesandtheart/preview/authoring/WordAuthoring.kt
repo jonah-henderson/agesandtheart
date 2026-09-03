@@ -9,7 +9,7 @@ import com.github.ajalt.mordant.rendering.TextStyles
 import com.github.ajalt.mordant.terminal.Terminal
 
 /**
- * The word forge — **a guided way to write a word of the Art**, run from `scripts/author-word.sh`.
+ * Scrivener — **a vocabulary editor for Ages and the Art**, run from `scripts/author-word.sh`.
  *
  * It answers offline. `Vocabulary.load` with vanilla's worldgen registries is the corpus
  * `VocabularyCheck` reads, so what a candidate reaches, what it costs, what its query keeps and what it
@@ -215,7 +215,7 @@ private fun refresh(terminal: Terminal, attach: String?) {
 }
 
 private val USAGE = """
-    |The word forge — a guided way to write a word of the Art.
+    |Scrivener — a vocabulary editor for Ages and the Art.
     |
     |  scripts/author-word.sh                 begin a new word
     |  scripts/author-word.sh <name>          open an authored one

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# The word forge — a guided way to write a word of the Art.
+# Scrivener — a vocabulary editor for Ages and the Art.
 #
 #   scripts/author-word.sh                 begin a new word
 #   scripts/author-word.sh <name>          open an authored one

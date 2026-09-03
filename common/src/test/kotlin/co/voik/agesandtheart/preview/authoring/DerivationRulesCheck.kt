@@ -7,7 +7,7 @@ import io.kotest.core.spec.style.FunSpec
 /**
  * The derivation rules, asked what they catch.
  *
- * The word forge shows this as a read-only lens because the file cannot: `"#minecraft:is_forest":
+ * Scrivener shows this as a read-only lens because the file cannot: `"#minecraft:is_forest":
  * {"wooded": 1.0}` states the rule perfectly and says nothing whatever about its consequence, and the
  * fault the tag pass keeps finding is a rule that was *nearly* the fact it stood for.
  *

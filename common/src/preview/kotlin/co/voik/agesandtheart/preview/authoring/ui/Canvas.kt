@@ -107,7 +107,7 @@ class Canvas(private val terminal: Terminal) : AutoCloseable {
         val row = if (said == null) shown.indexOfFirst { it.contains(Glyph.FOCUS) } else 0
         val restore = shown.getOrNull(row)
         var answer: Result<T>? = null
-        val worker = Thread({ answer = runCatching(work) }, "word-forge")
+        val worker = Thread({ answer = runCatching(work) }, "scrivener")
         worker.isDaemon = true
         worker.start()
         var frame = 0

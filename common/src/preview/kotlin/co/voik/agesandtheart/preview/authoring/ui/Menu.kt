@@ -431,8 +431,9 @@ class Menu(
                 Picker.Option(it.name, it.title, it.about, startsGroup = it.startsGroup)
             }
             val chosen = choose(
-                Picker("The word forge", options) {},
-                standing(),
+                Picker("Scrivener", options) {},
+                subtitle = "a vocabulary editor for Ages and the Art",
+                standing = standing(),
                 canLeave = false,
                 helpOn = true,
             ) ?: return null
@@ -567,6 +568,8 @@ class Menu(
     private fun choose(
         picker: Picker,
         subtitle: String = "",
+        /** What is loaded right now, under the subtitle — the corpus's size and where its data came from. */
+        standing: String = "",
         canLeave: Boolean = true,
         /**
          * Whether `?` opens the help rather than narrowing the list.
@@ -580,7 +583,7 @@ class Menu(
     ): String? {
         terminal.enterRawMode(MouseTracking.Off).use { scope ->
             while (true) {
-                canvas.show(pickerLines(picker, subtitle))
+                canvas.show(pickerLines(picker, subtitle, standing))
                 val key = scope.readKey() ?: return null
                 if (key.ctrl && key.key == "c") throw Leaving()
                 when {
@@ -617,15 +620,16 @@ class Menu(
         }
     }
 
-    private fun pickerLines(picker: Picker, subtitle: String): List<Line> = buildList {
+    private fun pickerLines(picker: Picker, subtitle: String, standing: String = ""): List<Line> = buildList {
         add(Line("  ${picker.title}", Palette.heading))
-        if (subtitle.isNotEmpty()) add(Line("  $subtitle", Palette.faint))
+        val under = listOf(subtitle, standing).filter { it.isNotEmpty() }
+        under.forEach { add(Line("  $it", Palette.faint)) }
         add(Line.BLANK)
         val shown = picker.shown
         val grouped = picker.filter.isEmpty()
         // The separators take room too, or a grouped list would run off the bottom of the frame.
         val spacers = if (grouped) shown.count { it.startsGroup } else 0
-        val room = (canvas.height - CHROME - 2 - spacers).coerceAtLeast(1)
+        val room = (canvas.height - CHROME - 1 - under.size - spacers).coerceAtLeast(1)
         val first = (picker.index - room / 2).coerceIn(0, (shown.size - room).coerceAtLeast(0))
         for ((offset, option) in shown.drop(first).take(room).withIndex()) {
             val here = first + offset == picker.index

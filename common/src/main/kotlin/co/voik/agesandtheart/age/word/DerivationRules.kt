@@ -10,7 +10,7 @@ import net.minecraft.core.HolderLookup
  * the tag pass keeps finding is a rule that was *nearly* the fact it stood for — visible only in the list
  * of what it caught (`notes/the-tag-layer.md` §4).
  *
- * **In `main` rather than in the tool** because two things ask: the word forge, offline, where every rule
+ * **In `main` rather than in the tool** because two things ask: Scrivener, offline, where every rule
  * keyed on a registry tag matches nothing; and `/age rules`, on a server, where they all do. One
  * implementation, so what a snapshot remembers and what the tool computes cannot be different answers.
  */

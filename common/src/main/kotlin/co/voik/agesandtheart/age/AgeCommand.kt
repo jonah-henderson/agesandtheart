@@ -413,7 +413,7 @@ object AgeCommand {
      * vanilla-only: what a base supplies is a chunk generator and a dimension type, which a modded
      * dimension has as surely as the nether does.
      *
-     * This is here so the word forge can see what a server actually offers, ahead of anything being able
+     * This is here so Scrivener can see what a server actually offers, ahead of anything being able
      * to use it. Reading the list is the cheap half; making a template out of one is the other half, and
      * it wants `AgeTemplate` to stop being an enum first.
      */
@@ -442,7 +442,7 @@ object AgeCommand {
      * cannot see.
      *
      * Registry tags are bound by a running game, so 84 of the 142 rules match nothing without one. The
-     * word forge asks this once through `--refresh` and remembers the answer, which is what lets it show
+     * Scrivener asks this once through `--refresh` and remembers the answer, which is what lets it show
      * what fills `ore` on a screen with no server behind it (`notes/the-tag-layer.md` §4).
      */
     private fun rulesSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =

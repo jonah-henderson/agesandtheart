@@ -8,7 +8,7 @@ import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
 
 /**
- * The tag layer as the word forge shows it.
+ * The tag layer as Scrivener shows it.
  *
  * Two halves, and they are checked for opposite reasons. The edits are pure transformations of a table
  * and are checked because **every one of them has an inverse somebody will expect to work** - set a

@@ -28,7 +28,7 @@ correct itself in place. Rewrite the paragraph that is now wrong.
   `art/word/` — and author with the tool rather than by hand.
 - **`notes/the-tag-layer.md`** — the thirty-eight tags, where each is derived from, and why three separate
   things are called rarity. The implementation of the world model's §7, and **built** — what is left of it
-  is the hand-tuning its §7 step 4 describes, and the word forge's tag screen is how a pass is done now
+  is the hand-tuning its §7 step 4 describes, and Scrivener's tag screen is how a pass is done now
   (`/age tags` still answers the same question against a running server). Read it before touching
   `art/preset_tags/`, adding a tag, or authoring a word that queries one.
 - **`notes/terrain-architecture.md`** — the two-tier terrain system (composable field toolkit + bespoke
@@ -123,7 +123,7 @@ export JAVA_HOME="$HOME/.sdkman/candidates/java/current"; export PATH="$JAVA_HOM
 # Drive a headless server through a list of /age commands and read the output (see scripts/checks/)
 scripts/drive-server.sh scripts/checks/regions.txt
 
-# The word forge — a full-screen editor for authoring a word of the Art (see "Authoring a word" below)
+# Scrivener — a vocabulary editor for Ages and the Art (see "Authoring a word" below)
 scripts/author-word.sh              # a new word
 scripts/author-word.sh colossal     # an authored one
 scripts/author-word.sh --audit      # every authored word, worst first
@@ -131,7 +131,7 @@ scripts/author-word.sh --audit      # every authored word, worst first
 
 **Server checks are `./gradlew :common:serverTest`, and they own their own acceptance.** A Kotest spec
 tagged `NEEDS_SERVER` uses `DrivenServer` (in `common/src/test/kotlin/.../server/`) to boot a dedicated
-server, drive it over **RCON**, and assert on what comes back. The parts of that the word forge needs too —
+server, drive it over **RCON**, and assert on what comes back. The parts of that Scrivener needs too —
 `Rcon`, `LaunchSpec`, `ServerLaunch`, and `MinecraftRegistries` — live in the **`preview`** source set,
 which `test` can see and which cannot see `test`; one direction only, so a check never becomes something a
 tool depends on. The concerns are split on purpose: the
@@ -174,7 +174,7 @@ kept up between rewrites, so changing a page and looking again is seconds. The w
 the screen is left, fenced on the name so it can never reach one somebody plays (`PreviewServerCheck`).
 Drafts live in `.authoring/ages/` and hold the **pages**, never the recipe.
 
-**The word forge reaches past the words.** Its main menu is four groups — the words, the world they
+**Scrivener reaches past the words.** Its main menu is four groups — the words, the world they
 describe, the age workshop, and the tool itself. Its tag screen edits `art/preset_tags/` with the overlay
 visible — every carrier says whether its weight was **authored**, **derived**, or **dropped**, because
 setting a weight on a derived tag *writes* an entry, clearing one lets the derived value back, and removing
