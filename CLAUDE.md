@@ -26,7 +26,7 @@ correct itself in place. Rewrite the paragraph that is now wrong.
   line that says to delete it when the last item goes.** Its §5 is the tool, which is `scripts/author-word.sh`;
   §5.1 and §5.2 are what that tool refuses and nudges about. Read it before authoring a word or touching
   `art/word/` — and author with the tool rather than by hand.
-- **`notes/the-tag-layer.md`** — the thirty-eight tags, where each is derived from, and why three separate
+- **`notes/the-tag-layer.md`** — the forty-one tags, where each is derived from, and why three separate
   things are called rarity. The implementation of the world model's §7, and **built** — what is left of it
   is the hand-tuning its §7 step 4 describes, and Scrivener's tag screen is how a pass is done now
   (`/age tags` still answers the same question against a running server). Read it before touching

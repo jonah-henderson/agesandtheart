@@ -154,4 +154,30 @@ class TagCoverageCheck : FunSpec({
         }
     }
 
+    /**
+     * **`mobs` is the whole spawn population, and that is what makes it worth striking.**
+     *
+     * The structure-set case above is the same invariant held member by member, and it needed holding
+     * because `#built` and `#inhabited` are judgements that a new member can simply miss. Here the rule
+     * is definitional: `Derivation.spawns` derives every entity type but `MISC`, and `mobs` is on every
+     * `MobCategory` there is — so a word striking `#mobs` strikes all of them, and a mob added to the
+     * game joins without anybody tagging it.
+     *
+     * Checked rather than trusted because the whole of that rests on the derivation naming *every*
+     * category. One added to `MobCategory` and missed here would leave a word meaning "no creatures at
+     * all" quietly leaving one kind in, which is precisely the fault `untouched` had.
+     */
+    test("every creature the Art can reach is a mob") {
+        val reachable = vocabulary.askableIn(Aspect.SPAWNS)
+        check(reachable.isNotEmpty()) { "no creature is reachable, so this checks nothing" }
+        val untagged = reachable.filterNot { MOBS in vocabulary.tagsOf(it) }
+        check(untagged.isEmpty()) {
+            "a word striking #$MOBS would leave these standing, so nothing can empty the spawns: " +
+                untagged.map { it.key }
+        }
+    }
+
 })
+
+/** The tag that is the whole spawn population — every `MobCategory` grants it. */
+private const val MOBS = "mobs"

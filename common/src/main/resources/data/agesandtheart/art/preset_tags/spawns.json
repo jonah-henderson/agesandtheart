@@ -68,8 +68,15 @@
     }
   },
   "minecraft:villager": {
+    "_comment": [
+      "Says `mobs` for itself because nothing derives it one: vanilla files a villager under",
+      "MobCategory.MISC, so `Derivation.spawns` never sees it and every by_kind rule misses it.",
+      "MISC is about spawn caps rather than about what a thing is, and a villager is plainly a creature —",
+      "so a word meaning 'nothing alive here' must reach it."
+    ],
     "tags": {
-      "inhabited": 1.0
+      "inhabited": 1.0,
+      "mobs": 1.0
     }
   },
   "minecraft:wandering_trader": {
