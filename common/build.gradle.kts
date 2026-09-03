@@ -444,6 +444,11 @@ instrument(
     "THROWAWAY: what survives of Aspect.kt if an aspect's value is typed by what it is? Read it, don't build on it.",
 )
 
+instrument(
+    "tagreachspike", "documentation", "co.voik.agesandtheart.preview.TagReachSpikeKt",
+    "THROWAWAY: when a vague word reaches a weighted set, how many members does it lift? Read it, don't build on it.",
+)
+
 
 
 

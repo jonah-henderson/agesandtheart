@@ -2,9 +2,14 @@ package co.voik.agesandtheart.worldgen.feature
 
 import co.voik.agesandtheart.age.aspect.Rung
 import net.minecraft.core.Holder
+import net.minecraft.util.random.Weighted
+import net.minecraft.util.random.WeightedList
+import net.minecraft.util.valueproviders.ConstantInt
+import net.minecraft.util.valueproviders.IntProvider
+import net.minecraft.util.valueproviders.WeightedListInt
 import net.minecraft.world.level.levelgen.placement.CountPlacement
 import net.minecraft.world.level.levelgen.placement.PlacedFeature
-import net.minecraft.world.level.levelgen.placement.RarityFilter
+import kotlin.math.floor
 import kotlin.math.roundToInt
 
 /**
@@ -15,11 +20,17 @@ import kotlin.math.roundToInt
  * transform*: it starts with one position, the chunk origin, and each modifier maps it to however many
  * positions it wants. `CountPlacement(7)` is what makes seven diamond veins out of one chunk.
  *
- * So more of something is another modifier at the **front** of that list, and less of it is a rarity
- * filter there — which is exactly how vanilla writes its own rare ores (`rareOrePlacement` puts a
- * `RarityFilter` first and a common one puts a `CountPlacement` first). Prepending rather than editing is
- * what keeps this out of every feature's private configuration: nothing here has to know what a modifier
- * list already holds, and a feature counted by noise or by layer scales like any other.
+ * So both more of something and less of it are one modifier at the **front** of that list: a count whose
+ * mean is the amount asked for, which lays the feature twice as often at two and four times in five at
+ * 0.8. Prepending rather than editing is what keeps this out of every feature's private configuration:
+ * nothing here has to know what a modifier list already holds, and a feature counted by noise or by layer
+ * scales like any other.
+ *
+ * **A count rather than vanilla's rarity filter for the thin end**, though vanilla writes its own rare
+ * ores with one. A filter is an integer *divisor*, so the only amounts it can say are a half, a third, a
+ * quarter — and the amounts a sentence actually produces are things like 0.9, which rounded to the
+ * nearest expressible filter is a half. Nine tenths became a half, and the scale the tag weights were
+ * building collapsed to a two-rung ladder at the last step.
  *
  * **Features do not compete.** Twice the trees is twice the trees, and it takes nothing from the ores —
  * unlike a biome, where every column has one and more of something is necessarily less of another. That is
@@ -35,21 +46,42 @@ object FeatureDensity {
      */
     fun applied(feature: Holder<PlacedFeature>, density: Double): Holder<PlacedFeature> {
         if (Rung.isOrdinary(density)) return feature
-        val asOftenAsAsked = if (density > Rung.ORDINARY) {
-            CountPlacement.of((density.roundToInt()).coerceAtLeast(TWICE))
-        } else {
-            RarityFilter.onAverageOnceEvery((ONE / density).roundToInt().coerceAtLeast(TWICE))
-        }
         val placed = feature.value()
+        val asOftenAsAsked = CountPlacement.of(timesOver(density))
         return Holder.direct(PlacedFeature(placed.feature(), listOf(asOftenAsAsked) + placed.placement()))
     }
 
     /**
-     * The least a rung can ask for and still mean anything: a count of one is what the feature already
-     * had, and a rarity of one is every chunk. Rounding to either would be a parameter that did nothing, so the
-     * faintest ask still doubles or halves.
+     * How many times over to lay the feature — a provider whose **mean is exactly [density]**, which is
+     * what makes the amount a scale rather than a ladder.
+     *
+     * A whole number is that number every time. Anything between is the two whole numbers either side of
+     * it, weighted so they average out: 1.2 is four ones to one two, and 0.9 is nine ones to one nothing.
+     * Both directions are the same mechanism, which is why there is no rarity filter here any more — a
+     * count of zero lays nothing, and `RepeatingPlacement` is an `IntStream.range` that is happy to be
+     * empty.
+     *
+     * **[SHARES] is a hundred because [Rung.legible] rounds an amount to two decimals**, so every amount a
+     * claim can hold is expressible here exactly and nothing is lost twice.
+     *
+     * Public so the mean can be checked without a world under it, as [SpilledSpring.spill] is.
      */
-    private const val TWICE = 2
+    fun timesOver(density: Double): IntProvider {
+        val wanted = density.coerceAtLeast(NONE)
+        val fewest = floor(wanted).toInt()
+        val overshoot = ((wanted - fewest) * SHARES).roundToInt()
+        if (overshoot == 0) return ConstantInt.of(fewest)
+        if (overshoot >= SHARES) return ConstantInt.of(fewest + 1)
+        return WeightedListInt(
+            WeightedList.of(
+                Weighted(ConstantInt.of(fewest), SHARES - overshoot),
+                Weighted(ConstantInt.of(fewest + 1), overshoot),
+            ),
+        )
+    }
 
-    private const val ONE = 1.0
+    /** How finely a fraction may be split, matching what [Rung.legible] keeps. */
+    private const val SHARES = 100
+
+    private const val NONE = 0.0
 }
