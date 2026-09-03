@@ -7,7 +7,6 @@
   "porous": {
     "readiness": 0.8,
     "tags": {
-      "porous": 1.0,
       "cavernous": 0.4,
       "watery": 0.3
     }
