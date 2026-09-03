@@ -674,7 +674,7 @@ class Editor(
         val handle = rows().getOrNull(row())?.handle ?: return
         when (part) {
             Part.NAME -> if (rows().getOrNull(row())?.handle == "display") retitle() else renameTo()
-            Part.TIER -> Tier.entries.firstOrNull { it.key == handle }?.let { tier -> edit { it.copy(tier = tier) } }
+            Part.TIER -> actOnACost(handle)
             Part.REVIEW -> Unit
             Part.TEMPLATE -> pickABaseDimension()
             Part.PROPERTIES -> actOnAnEffect(handle)
@@ -716,6 +716,52 @@ class Editor(
     }
 
     private fun stepNamed(named: String) = Step.entries.firstOrNull { it.name == named }
+
+    /**
+     * A row of the cost section: one of the three names, which fills all five numbers in, or one number.
+     *
+     * The two switches are turned rather than asked about — a question with two answers, one of which is
+     * already on screen, is a keystroke spent on nothing.
+     */
+    private fun actOnACost(handle: String) {
+        Tier.NAMED[handle.substringAfter("named/", "")]?.let { named ->
+            edit { it.copy(tier = named) }
+            return
+        }
+        when (handle.substringAfter("cost/", "")) {
+            "ink" -> retypeCost("ink", "${candidate.tier.cost}", "fine inks, before its reach") { tier, said ->
+                said.toIntOrNull()?.let { tier.copy(cost = it) }
+            }
+            "threshold" -> retypeCost(
+                "threshold",
+                "%.2f".format(candidate.tier.threshold),
+                "how well a preset must answer to be kept — 0 keeps everything, 1 only a perfect carrier",
+            ) { tier, said -> said.toDoubleOrNull()?.takeIf { it in 0.0..1.0 }?.let { tier.copy(threshold = it) } }
+            "failure" -> retypeCost(
+                "failure",
+                "${candidate.tier.weight}",
+                "what a claim of this that cannot land costs the Age",
+            ) { tier, said -> said.toIntOrNull()?.let { tier.copy(weight = it) } }
+            "narrows" -> edit { it.copy(tier = it.tier.copy(narrows = !it.tier.narrows)) }
+            "times its reach" -> edit { it.copy(tier = it.tier.copy(timesItsReach = !it.tier.timesItsReach)) }
+        }
+    }
+
+    /** One of a tier's numbers, typed. [reading] returns null for anything the field cannot take. */
+    private fun retypeCost(
+        field: String,
+        standing: String,
+        hint: String,
+        reading: (Tier, String) -> Tier?,
+    ) {
+        overlay = Prompt(
+            title = "What is this word's $field?",
+            hint = hint,
+            typed = standing,
+            complaint = { said -> if (reading(candidate.tier, said) == null) "not a $field this can take" else null },
+            onDone = { said -> edit { at -> reading(at.tier, said)?.let { at.copy(tier = it) } ?: at } },
+        )
+    }
 
     /**
      * Which population the cursor's row is about, where it is about one.
@@ -1306,6 +1352,9 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
         val page = rest.substringBefore('/')
         val named = rest.substringAfter('/', "")
         val aspect = Aspect.entries.firstOrNull { it.page == page }
+        // The cost section's numbers step too, which is what the two switches beside them already do with
+        // enter — a threshold in tenths, ink and a failure weight one at a time.
+        if (part == Part.TIER) return stepACost(handle.substringAfter("cost/", ""), by)
         when (handle.substringBefore('/')) {
             "biases" -> edit { at ->
                 val standing = if (aspect == null) at.leansEverywhere[named] else at.biases[aspect]?.get(named)
@@ -1319,6 +1368,20 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
                 }
             }
             else -> Unit
+        }
+    }
+
+    /** One of a tier's numbers nudged: a threshold in tenths, ink and a failure weight one at a time. */
+    private fun stepACost(field: String, by: Double) {
+        val whole = if (by > 0) 1 else -1
+        edit { at ->
+            val tier = when (field) {
+                "ink" -> at.tier.copy(cost = (at.tier.cost + whole).coerceAtLeast(0))
+                "failure" -> at.tier.copy(weight = (at.tier.weight + whole).coerceAtLeast(0))
+                "threshold" -> at.tier.copy(threshold = (at.tier.threshold + by).coerceIn(0.0, 1.0))
+                else -> at.tier
+            }
+            at.copy(tier = tier)
         }
     }
 
@@ -1747,7 +1810,7 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
         /** How far `-` and `=` move a weight on the row itself — a tenth, as the word lists step by. */
         const val A_STEP = 0.1
 
-        /** What enter alone leans by — the whole of it, which is where the page says `above all`. */
+        /** What enter alone leans by — the whole of it, a lean's own bar being what says how far. */
         const val A_WHOLE_LEAN = Parts.A_WHOLE_LEAN
 
         /** The row that closes the lean list, for somebody who would rather not guess that enter does. */

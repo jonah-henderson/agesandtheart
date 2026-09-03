@@ -124,7 +124,9 @@ data class Candidate(
      */
     fun asJson(): JsonObject = JsonObject().apply {
         comment?.let { add(COMMENT, it) }
-        addProperty("tier", tier.key)
+        // Encoded rather than spelled: a named tier writes its name and a word with its own numbers writes
+        // them, and which of the two it is is the codec's answer rather than a second one kept in step.
+        add("tier", Tier.CODEC.encodeStart(JsonOps.INSTANCE, tier).getOrThrow { IllegalStateException(it) })
         // In pipeline order, which is the order they are read in and the order the screen shows them.
         if (chooses.isNotEmpty()) add("chooses", aspectTexts(chooses))
         if (admits.isNotEmpty()) add("admits", aspectLists(admits))
@@ -254,7 +256,7 @@ data class Candidate(
             require(unknown.isEmpty()) { "'$name' carries fields nothing reads: ${unknown.joinToString()}" }
             Candidate(
                 name = name,
-                tier = tierNamed(json.get("tier")?.asString),
+                tier = tierRead(json.get("tier")),
                 comment = json.get(COMMENT),
                 chooses = json.getAsJsonObject("chooses")?.let(::readAspectTexts).orEmpty(),
                 admits = json.getAsJsonObject("admits")?.let(::readAspectLists).orEmpty(),
@@ -272,10 +274,13 @@ data class Candidate(
             )
         }
 
-        private fun tierNamed(spelled: String?): Tier {
-            requireNotNull(spelled) { "a word must say its tier" }
-            return Tier.entries.firstOrNull { it.key == spelled }
-                ?: error("no tier is called '$spelled'")
+        /**
+         * **Through the codec**, since a tier is a name or a set of numbers now and the tool must not own
+         * a second reading of which. What the game would refuse is refused here, in the same words.
+         */
+        private fun tierRead(said: JsonElement?): Tier {
+            requireNotNull(said) { "a word must say what it costs" }
+            return Tier.CODEC.parse(JsonOps.INSTANCE, said).getOrThrow { IllegalArgumentException(it) }
         }
 
         private fun aspectPaged(page: String): Aspect =

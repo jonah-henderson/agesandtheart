@@ -96,7 +96,7 @@ class Menu(
             title = "${WordFile.authoredNames().size} authored words",
             columns = listOf(
                 Table.Column("word", NAME_WIDTH),
-                Table.Column("specificity", TIER_WIDTH, TIER, Tier.entries.map { it.key }),
+                Table.Column("specificity", TIER_WIDTH, TIER, Tier.NAMED.keys.toList()),
                 Table.Column("rarity", RARITY_WIDTH, RARITY, WordFile.rarityBuckets()),
                 Table.Column("ink", INK_WIDTH, INK, WordFile.inkTiers()),
                 Table.Column("effects", EFFECTS_WIDTH),
@@ -165,7 +165,7 @@ class Menu(
                 Table.Column("word", NAME_WIDTH),
                 // Read-only here: an auto-generated word is exact because it names one thing exactly, and
                 // there is no file in which to say otherwise.
-                Table.Column("specificity", TIER_WIDTH, order = Tier.entries.map { it.key }),
+                Table.Column("specificity", TIER_WIDTH, order = Tier.NAMED.keys.toList()),
                 Table.Column("rarity", RARITY_WIDTH, RARITY, WordFile.rarityBuckets()),
                 Table.Column("ink", INK_WIDTH, INK, WordFile.inkTiers()),
                 Table.Column("from", EFFECTS_WIDTH),
@@ -226,8 +226,19 @@ class Menu(
      */
     private fun retier(name: String, standing: String?, by: Int) {
         val candidate = WordFile.read(name).getOrNull() ?: return
-        val wanted = cycled(Tier.entries.map { it.key }, standing, by) ?: return
-        val tier = Tier.entries.firstOrNull { it.key == wanted } ?: return
+        // **A word with its own numbers is not cycled past them.** Stepping it onto a named tier would
+        // throw away five values to save opening the word, and there is nowhere here to put them back.
+        if (candidate.tier.key == Tier.CUSTOM) {
+            read(
+                Reader(
+                    "'$name' states its own cost",
+                    listOf(Line("Open the word to change one of its numbers.", Palette.faint)),
+                ),
+            )
+            return
+        }
+        val wanted = cycled(Tier.NAMED.keys.toList(), standing, by) ?: return
+        val tier = Tier.NAMED[wanted] ?: return
         runCatching { WordFile.write(candidate.copy(tier = tier)) }
     }
 

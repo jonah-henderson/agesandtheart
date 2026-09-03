@@ -571,9 +571,11 @@ object Resolver {
         if (!aspect.spatial || seated.size >= room) return emptyList()
         // Nothing narrowed this aspect, so nothing *chose* here and there is no harmony to find.
         if (territories.isEmpty()) return emptyList()
-        // An exact word about *the preset* forbids company; one that merely sets a parameter does not, or
-        // naming a material would quietly suppress harmony everywhere.
-        if (speaking.any { it.word.tier == Tier.EXACT && it.word.constrainsPresetsIn(aspect) }) return emptyList()
+        // A word this exact about *the preset* forbids company; one that merely sets a parameter does not,
+        // or naming a material would quietly suppress harmony everywhere. Asked of the tier's own
+        // strictness rather than of its name, so a word stating those numbers behaves as one.
+        val pinned = speaking.any { it.word.tier.leavesNoRoomForCompany && it.word.constrainsPresetsIn(aspect) }
+        if (pinned) return emptyList()
 
         // Whatever the narrowing words left — company can only be something the sentence would have
         // accepted anyway, and where none spoke the guard above has already returned.

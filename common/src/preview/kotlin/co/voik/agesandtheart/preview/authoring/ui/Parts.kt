@@ -34,7 +34,15 @@ enum class Part(
     val perilous: Boolean = false,
 ) {
     NAME("word", ""),
-    TIER("specificity", ""),
+    /**
+     * **What a word costs, and how precisely it speaks** — five numbers, of which the three the Art names
+     * are a filling-in rather than a category.
+     *
+     * It was `specificity` and offered the three alone, which made a name a claim nothing could hold an
+     * author to: a word called `evocative` that chooses four members outright is precise, and was priced
+     * as though it were vague. The name is derived from the numbers now, so it can only ever be true.
+     */
+    TIER("cost", "what writing the page costs, and how hard its claims bite"),
     TEMPLATE("base dimension", ""),
     LISTING("rarity", ""),
 
@@ -169,22 +177,100 @@ class Parts(private val corpus: Corpus) {
         )
     }
 
-    private fun tierRows(candidate: Candidate) = Tier.entries.map { tier ->
-        Row(
-            handle = tier.key,
+    /**
+     * **The three the Art names, and then the numbers they stand for.**
+     *
+     * There is no fourth "custom" to pick, and there should not be: a word's tier *is* its five numbers,
+     * and a name is what those numbers are called where they match one of the three. Taking a name fills
+     * them all in at once; changing any of them afterwards is what makes the word's own, and it says so by
+     * none of the three being filled in any more. Nothing has to be switched into a mode first, and there
+     * is no state in which the name and the numbers can disagree.
+     */
+    private fun tierRows(candidate: Candidate): List<Row> = buildList {
+        Tier.NAMED.forEach { (named, tier) ->
+            val here = candidate.tier == tier
+            add(
+                Row(
+                    handle = "named/$named",
+                    shown = listOf(
+                        Ink(if (here) "${Glyph.FILLED} " else "${Glyph.HOLLOW} ", Palette.chosen),
+                        Ink(named.padEnd(TIER_NAME), if (here) Palette.value else Palette.faint),
+                        Ink("ink ${tier.cost}".padEnd(TIER_INK), Palette.faint),
+                        Ink(whatATierMeans(named), Palette.faint),
+                    ),
+                    note = "takes all five numbers below at once",
+                ),
+            )
+        }
+        add(Row("heading/space/numbers", emptyList()))
+        add(
+            Row(
+                "heading/numbers",
+                listOf(Ink(if (candidate.tier.key == Tier.CUSTOM) "its own numbers" else "what that means", Palette.heading)),
+            ),
+        )
+        addAll(costRows(candidate))
+    }
+
+    private fun whatATierMeans(named: String) = when (named) {
+        "evocative" -> "tilts the draw; it can never remove a candidate"
+        "restrictive" -> "narrows to what carries the tag at all"
+        "exact" -> "pins: only a strong carrier will do"
+        else -> ""
+    }
+
+    /**
+     * The five numbers a tier is, each editable.
+     *
+     * `ink` and `times its reach` are what the page costs; `threshold` and `narrows` are how it reads;
+     * `failure` is what a claim of it that cannot land does to the Age. They were one word standing for
+     * all five, which nothing could stop an author contradicting — a word called `evocative` that chooses
+     * four members outright is precise and was priced as though it were vague.
+     */
+    private fun costRows(candidate: Candidate): List<Row> {
+        val tier = candidate.tier
+        fun row(field: String, said: String, about: String, note: String) = Row(
+            handle = "cost/$field",
             shown = listOf(
-                Ink(if (candidate.tier == tier) "${Glyph.FILLED} " else "${Glyph.HOLLOW} ", Palette.chosen),
-                Ink(tier.key.padEnd(13), if (candidate.tier == tier) Palette.value else Palette.faint),
-                Ink(whatATierMeans(tier), Palette.faint),
+                Ink("    "),
+                Ink(field.padEnd(TIER_FIELD), Palette.parameter),
+                Ink(said.padEnd(TIER_VALUE), Palette.value),
+                Ink(about, Palette.faint),
+            ),
+            note = note,
+        )
+        val reach = if (tier.timesItsReach) "dearer for each part of the world it reaches" else "the same wherever it is laid"
+        return listOf(
+            row("ink", "${tier.cost}", "fine inks, before its reach", "what writing the page costs"),
+            row(
+                "times its reach",
+                yesOrNo(tier.timesItsReach),
+                reach,
+                "a page usable in several places is a better page to own — but a word that says the same " +
+                    "small thing wherever it goes is not worth more for going further",
+            ),
+            row(
+                "narrows",
+                yesOrNo(tier.narrows),
+                if (tier.narrows) "it removes candidates" else "it only tilts the draw",
+                "a word that only tilts can never fail, and so is never charged for failing",
+            ),
+            row(
+                "threshold",
+                "%.2f".format(tier.threshold),
+                if (tier.narrows) "how well a preset must answer to be kept" else "unread while it only tilts",
+                "the strength a preset's tags have to reach before this word will keep it",
+            ),
+            row(
+                "failure",
+                "${tier.weight}",
+                "what a claim of this that cannot land costs the Age",
+                "instability, not ink — what it means for the thing said not to happen",
             ),
         )
     }
 
-    private fun whatATierMeans(tier: Tier) = when (tier) {
-        Tier.EVOCATIVE -> "broad effects applied to the whole Age"
-        Tier.RESTRICTIVE -> "narrows parameters to certain bounds, e.g. warm temperatures"
-        Tier.EXACT -> "names specific blocks, materials, mobs, structures, landforms"
-    }
+    private fun yesOrNo(said: Boolean) = if (said) "yes" else "no"
 
     // -- review --------------------------------------------------------------------------------------
 
@@ -302,7 +388,12 @@ class Parts(private val corpus: Corpus) {
     private fun said(line: String) = Told.Whole("said", listOf(Ink("    "), Ink(line, Palette.faint)))
 
     private fun costTold(candidate: Candidate, word: Word, listing: WordFile.Listing) = buildList {
-        add(told("cost/ink", "ink", "${word.price}", "${word.tier.key} × ${word.versatility} part(s) of the world"))
+        val reach = if (word.tier.timesItsReach) {
+            "${word.tier.cost} × ${word.versatility} part(s) of the world"
+        } else {
+            "${word.tier.cost} flat, whatever it reaches"
+        }
+        add(told("cost/ink", "ink", "${word.price}", "${word.tier.key} ${Glyph.BULLET} $reach"))
         listing.rarity?.let { add(told("cost/rarity", "rarity", it, "how hard it is to find")) }
         inkOf(candidate)?.let { add(told("cost/quality", "ink quality", it, "what it takes to write")) }
         candidate.template?.let { add(told("cost/base", "base dimension", it, "the world a book starts from")) }
@@ -356,15 +447,13 @@ class Parts(private val corpus: Corpus) {
     /**
      * What a lean of [weight] does, said.
      *
-     * **Never `requires` or `disallows`.** Those are exactly what `keep only` and `remove` do, and they
-     * are rows of their own on this page; a lean cannot take anything out however far it goes, so lending
-     * it their verbs would put two different mechanics behind one word. `above all` is as strong as it
-     * gets to say without claiming a filter.
+     * **Never `requires` or `disallows`, and nothing stronger at the far end either.** Those verbs are
+     * exactly what `keep only` and `remove` do, and both are rows of their own on this page; a lean cannot
+     * take anything out or put anything in however far it goes, so a word for the maximum would be
+     * promising a difference in kind where there is only one of degree. The bar beside it says how far.
      */
     private fun leanSaid(weight: Double): String = when {
-        weight >= A_WHOLE_LEAN -> "favours above all"
         weight > 0.0 -> "favours"
-        weight <= -A_WHOLE_LEAN -> "discourages above all"
         weight < 0.0 -> "discourages"
         else -> "leans"
     }
@@ -974,7 +1063,7 @@ class Parts(private val corpus: Corpus) {
         /** How wide a weight's bar is here — the same [Gauge] the list you set it on wears. */
         const val BAR_WIDTH = 13
 
-        /** As far as a lean goes, which is where it stops being said the ordinary way. */
+        /** As far as a lean goes — what enter alone sets one to on the list that steps them. */
         const val A_WHOLE_LEAN = 1.0
         const val COMMENT_PREVIEW = 12
         const val VALUES_SHOWN = 6
@@ -997,6 +1086,12 @@ class Parts(private val corpus: Corpus) {
 
         /** Where a review row's second column starts. */
         const val MARK_COLUMN = 14
+
+        /** The cost section's three columns: the name or field, its value, and what it means. */
+        const val TIER_NAME = 13
+        const val TIER_INK = 8
+        const val TIER_FIELD = 18
+        const val TIER_VALUE = 8
 
         /** The gap between a label and the value it labels, wherever the two share a row. */
         const val LABEL_GUTTER = 2

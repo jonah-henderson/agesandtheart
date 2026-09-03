@@ -454,6 +454,45 @@ class AuthoringCheck : FunSpec({
         val drawn = Gauge.filled(0.0, 0.0, WIDE).inks.joinToString("") { it.text }
         check(drawn == Glyph.EMPTY.repeat(WIDE)) { "an empty gauge drew '$drawn'" }
     }
+
+    /**
+     * **A tier is its numbers, and its name is derived from them.**
+     *
+     * The three the Art names still write and read as names, so nothing in the corpus moves; a word that
+     * states its own writes them out and comes back the same. Without the first half every word in the
+     * pack would have gained five lines it did not ask for.
+     */
+    test("a named tier stays a name and its own numbers stay numbers") {
+        for ((named, tier) in Tier.NAMED) {
+            val written = Tier.CODEC.encodeStart(JsonOps.INSTANCE, tier).getOrThrow()
+            check(written.isJsonPrimitive && written.asString == named) {
+                "'$named' should still write as its name, and wrote $written"
+            }
+        }
+        val ownNumbers = Tier(cost = 6, threshold = 0.55, weight = 2, narrows = true, timesItsReach = false)
+        check(ownNumbers.key == Tier.CUSTOM) { "a tier matching none of the three called itself '${ownNumbers.key}'" }
+        val written = Tier.CODEC.encodeStart(JsonOps.INSTANCE, ownNumbers).getOrThrow()
+        val read = Tier.CODEC.parse(JsonOps.INSTANCE, written).getOrThrow()
+        check(read == ownNumbers) { "its own numbers did not come back: $written became $read" }
+    }
+
+    /**
+     * **What a word costs is its own to say.** A page reaching three parts of the world is dearer than one
+     * reaching one — unless it says otherwise, which is what the reach switch is for and what nothing
+     * could say while the multiplier was read off whether the word narrows.
+     */
+    test("a word may be priced flat however far it reaches") {
+        val wide = Word(
+            id = Identifier.fromNamespaceAndPath("test", "wide"),
+            tier = Tier.RESTRICTIVE,
+            aspects = setOf(Aspect.SEA, Aspect.SKY, Aspect.TERRAIN),
+            restricts = mapOf(Aspect.SEA to mapOf("#molten" to 1.0)),
+        )
+        check(wide.price == Tier.RESTRICTIVE.cost * 3) { "reach stopped being charged: ${wide.price}" }
+        val flat = wide.copy(tier = Tier.RESTRICTIVE.copy(timesItsReach = false))
+        check(flat.price == Tier.RESTRICTIVE.cost) { "a flat price still counted the reach: ${flat.price}" }
+        check(flat.tier.narrows) { "turning the reach off stopped the word narrowing" }
+    }
 })
 
 /** Wide enough to have a middle and six cells either side of it. */

@@ -5,13 +5,13 @@ import co.voik.agesandtheart.age.aspect.MATERIAL_PARAMETERS
 import co.voik.agesandtheart.age.aspect.Taggable
 import net.minecraft.core.Registry
 import net.minecraft.resources.ResourceKey
+import com.mojang.datafixers.util.Either
 import com.mojang.serialization.Codec
 import com.mojang.serialization.DataResult
 import kotlin.random.Random
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.resources.Identifier
-import net.minecraft.util.StringRepresentable
 import java.util.Optional
 
 /**
@@ -68,42 +68,106 @@ data class Claims(
 }
 
 /**
- * How much freedom a word takes away — the whole of what precision means here (design §4.4). One
- * mechanism serves all three: every word scores every candidate, and the tier decides how hard that
- * score bites. Nothing branches on tier beyond reading these two numbers.
+ * **How precisely a word speaks, what a failure of it costs, and what writing it costs** — one of the
+ * three the Art names, or a set of numbers a word states for itself.
+ *
+ * A value rather than an enum, and the reason is that a name cannot be enforced. Nothing stops an author
+ * calling a word `evocative` and then having it choose four members outright and set eight parameters, so
+ * the name was a label the word could contradict while still being priced by it. The three remain the
+ * defaults and suit nearly every word; stating the numbers is how one that does not fit them is priced
+ * honestly rather than mislabelled.
+ *
+ * One mechanism still serves all of them: every word scores every candidate, and these numbers decide how
+ * hard that score bites. Nothing branches on *which* tier a word has — only on what it says.
  */
-enum class Tier(
-    val key: String,
-    /** Fine inks per aspect constrained. Value-derived, the value being freedom removed (§4.4). */
+data class Tier(
+    /** Fine inks per part of the world constrained, before [timesItsReach]. */
     val cost: Int,
     /**
-     * How strongly a preset must answer a word for the word to keep it. Zero rather than absent for
-     * [EVOCATIVE], so "does this preset qualify?" needs no special case.
+     * How strongly a preset must answer a word for the word to keep it. Zero rather than absent where a
+     * word only tilts, so "does this preset qualify?" needs no special case.
      */
     val threshold: Double,
     /**
-     * How much a *failure* at this precision costs the Age. Separate from [cost]: cost is ink spent to
-     * say something precisely, weight is what it means for that thing not to happen.
+     * How much a *failure* at this precision costs the Age. Separate from [cost]: cost is ink spent to say
+     * something precisely, weight is what it means for that thing not to happen.
      */
     val weight: Int,
-) : StringRepresentable {
-    /** Shifts the weights over whatever survived. Removes no freedom, so it can never fail. */
-    EVOCATIVE("evocative", cost = 1, threshold = 0.0, weight = 1),
+    /** Whether it narrows the candidates, as opposed to merely tilting the draw between them. */
+    val narrows: Boolean,
+    /**
+     * Whether reaching further makes the page dearer — [Word.versatility] (world model §9).
+     *
+     * A page usable in several parts of the world is a better page to own than one usable in one, which is
+     * true of nearly every word and not of all of them: a word whose whole point is that it says the same
+     * small thing wherever it is laid is not worth more for saying it in more places.
+     */
+    val timesItsReach: Boolean,
+) : Comparable<Tier> {
 
-    /** Narrows the candidates to those that carry the tag at all. */
-    RESTRICTIVE("restrictive", cost = 2, threshold = 0.3, weight = 2),
+    /** What to call it: the name of the one it matches, or [CUSTOM] where a word states its own. */
+    val key: String get() = NAMED.entries.firstOrNull { it.value == this }?.key ?: CUSTOM
 
-    /** Pins: only a strong carrier will do. */
-    EXACT("exact", cost = 4, threshold = 0.7, weight = 3),
-    ;
+    /**
+     * Whether a word this precise leaves no room for a second answer beside its own (`Resolver.company`).
+     *
+     * Read off the threshold rather than off a name, which is the whole of what a value tier buys: a word
+     * stating [EXACT]'s strictness in numbers behaves as one, and always did — it simply could not say so.
+     */
+    val leavesNoRoomForCompany: Boolean get() = narrows && threshold >= EXACT.threshold
 
-    /** Whether this tier narrows the candidate set, as opposed to merely tilting the draw between them. */
-    val narrows: Boolean get() = this != EVOCATIVE
-
-    override fun getSerializedName(): String = key
+    /**
+     * Least precise first. **Narrowing outranks tilting whatever the numbers say**, since a word that only
+     * tilts never removes a candidate and so can never be the one that wins a contention.
+     */
+    override fun compareTo(other: Tier): Int = BY_PRECISION.compare(this, other)
 
     companion object {
-        val CODEC: Codec<Tier> = StringRepresentable.fromEnum(Tier::values)
+        /** Shifts the weights over whatever survived. Removes no freedom, so it can never fail. */
+        val EVOCATIVE = Tier(cost = 1, threshold = 0.0, weight = 1, narrows = false, timesItsReach = false)
+
+        /** Narrows the candidates to those that carry the tag at all. */
+        val RESTRICTIVE = Tier(cost = 2, threshold = 0.3, weight = 2, narrows = true, timesItsReach = true)
+
+        /** Pins: only a strong carrier will do. */
+        val EXACT = Tier(cost = 4, threshold = 0.7, weight = 3, narrows = true, timesItsReach = true)
+
+        /** The three the Art names, in the order they grow stricter — what a screen offers and a file spells. */
+        val NAMED: Map<String, Tier> = linkedMapOf(
+            "evocative" to EVOCATIVE,
+            "restrictive" to RESTRICTIVE,
+            "exact" to EXACT,
+        )
+
+        /** What a tier matching none of the three is called, there being nothing else to call it. */
+        const val CUSTOM = "custom"
+
+        private val BY_PRECISION = compareBy<Tier>({ it.narrows }, { it.threshold }, { it.weight })
+
+        /** The named tier called [key], or a complaint naming the three there are. */
+        fun named(key: String): DataResult<Tier> = NAMED[key]?.let { DataResult.success(it) }
+            ?: DataResult.error { "no specificity is called '$key' — try ${NAMED.keys.joinToString(", ")}" }
+
+        private val WRITTEN_OUT: Codec<Tier> = RecordCodecBuilder.create { instance ->
+            instance.group(
+                Codec.INT.fieldOf("ink").forGetter(Tier::cost),
+                Codec.DOUBLE.optionalFieldOf("threshold", EVOCATIVE.threshold).forGetter(Tier::threshold),
+                Codec.INT.optionalFieldOf("weight", EVOCATIVE.weight).forGetter(Tier::weight),
+                Codec.BOOL.optionalFieldOf("narrows", true).forGetter(Tier::narrows),
+                Codec.BOOL.optionalFieldOf("times_its_reach", true).forGetter(Tier::timesItsReach),
+            ).apply(instance, ::Tier)
+        }
+
+        /**
+         * A name where one of the three fits, and the numbers where none does.
+         *
+         * Written back the same way round, so a word saying `"exact"` still says `"exact"` after a
+         * round trip and only a word that really has its own numbers spells them out.
+         */
+        val CODEC: Codec<Tier> = Codec.either(Codec.STRING, WRITTEN_OUT).comapFlatMap(
+            { either -> either.map({ named(it) }, { DataResult.success(it) }) },
+            { tier -> if (tier.key == CUSTOM) Either.right(tier) else Either.left(tier.key) },
+        )
     }
 }
 
@@ -600,11 +664,16 @@ data class Word(
      * **How many places this page may be laid** — the second half of what it costs (world model §9).
      *
      * An evocative word is one: it may only ever be written on the Age itself, which is what makes it the
-     * cheapest thing in the language *with no exception written anywhere*. A narrowing word is at home in
-     * as many parts of the world as it declares, and one that landed nowhere is priced as though it landed
-     * somewhere — being empty on purpose so `DerivedAspectsCheck` can refuse it, not so it can be free.
+     * cheapest thing in the language. A narrowing word is at home in as many parts of the world as it
+     * declares, and one that landed nowhere is priced as though it landed somewhere — being empty on
+     * purpose so `DerivedAspectsCheck` can refuse it, not so it can be free.
+     *
+     * **A word may say it is not worth more for reaching further** ([Tier.timesItsReach]). It used to be
+     * read off `narrows`, which made the two inseparable: a word that narrows and wants a flat price had
+     * no way to say so.
      */
-    val versatility: Int get() = if (!tier.narrows) ONE_PLACE else aspects.size.coerceAtLeast(ONE_PLACE)
+    val versatility: Int get() =
+        if (!tier.timesItsReach) ONE_PLACE else aspects.size.coerceAtLeast(ONE_PLACE)
 
     /**
      * **What this page costs: specificity × versatility** (world model §9).

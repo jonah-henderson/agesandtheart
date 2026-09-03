@@ -327,7 +327,7 @@ class Workshop(
      */
     private val columns: List<Table.Column> = listOf(
         Table.Column("page", PAGE_WIDTH),
-        Table.Column("specificity", TIER_WIDTH, order = Tier.entries.map { it.key }),
+        Table.Column("specificity", TIER_WIDTH, order = Tier.NAMED.keys.toList()),
         Table.Column("targets", TARGETS_WIDTH),
         Table.Column("what it does", MINIMUM_SAYS, grows = true),
     )
