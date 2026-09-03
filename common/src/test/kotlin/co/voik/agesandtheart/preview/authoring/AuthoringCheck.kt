@@ -492,12 +492,13 @@ class AuthoringCheck : FunSpec({
         val flat = wide.copy(tier = Tier.RESTRICTIVE.copy(versatilityMultiplier = Tier.FLAT))
         check(flat.price == Tier.RESTRICTIVE.cost) { "a flat price still counted the reach: ${flat.price}" }
         check(flat.tier.narrows) { "turning the reach off stopped the word narrowing" }
-        // **A page at home in one place is its base cost whatever the multiplier**, which is what keeps
-        // the beginner's sentence the cheapest thing in the language however a pack tunes reach.
-        val narrow = wide.copy(aspects = setOf(Aspect.SEA), tier = Tier.RESTRICTIVE.copy(versatilityMultiplier = 4.0))
-        check(narrow.price == Tier.RESTRICTIVE.cost) { "one aspect was charged for reach: ${narrow.price}" }
+        // **Never below the base cost**, so no page is ever free — which is what a multiplier of zero
+        // means, and what keeps the beginner's sentence the cheapest thing in the language rather than
+        // the free one.
+        val free = wide.copy(tier = Tier.RESTRICTIVE.copy(cost = 3, versatilityMultiplier = 0.1))
+        check(free.price == 3) { "a small multiplier priced the page below its base: ${free.price}" }
         val halved = wide.copy(tier = Tier.RESTRICTIVE.copy(versatilityMultiplier = 0.5))
-        check(halved.price == Tier.RESTRICTIVE.cost * 2) { "half a multiplier gave ${halved.price}" }
+        check(halved.price == 3) { "half a multiplier over three aspects gave ${halved.price}" }
     }
 })
 

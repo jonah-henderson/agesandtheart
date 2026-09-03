@@ -97,12 +97,13 @@ data class Tier(
     /** Whether it narrows the candidates, as opposed to merely tilting the draw between them. */
     val narrows: Boolean,
     /**
-     * How much each further part of the world this word reaches adds to its price — [Word.versatility].
+     * How many times over each part of the world this word reaches counts towards its price —
+     * [Word.versatility].
      *
      * One is the ordinary answer and gives world model §9's rule exactly: a page usable in four places
-     * costs four times a page usable in one, because it is that much better a page to own. Zero is a flat
-     * price, for a word whose whole point is that it says the same small thing wherever it is laid; the
-     * numbers between are how much a pack thinks reach is worth.
+     * costs four times a page usable in one, because it is that much better a page to own. Zero prices the
+     * page flat, for a word whose whole point is that it says the same small thing wherever it is laid;
+     * the numbers between are how much a pack thinks reach is worth.
      */
     val versatilityMultiplier: Double,
 ) : Comparable<Tier> {
@@ -679,12 +680,15 @@ data class Word(
      *
      * **How much reaching further is worth is the word's own to say** ([Tier.versatilityMultiplier]). It
      * used to be read off `narrows`, which made the two inseparable: a word that narrows and wants a flat
-     * price had no way to say so. A page at home in one place is its base cost whatever the multiplier,
-     * which is what keeps the beginner's sentence the cheapest thing in the language.
+     * price had no way to say so.
+     *
+     * **Never below one**, so no page is ever free. That floor is what a multiplier of zero means — the
+     * base cost, flat — and it is what keeps the beginner's sentence the cheapest thing in the language
+     * rather than the free one.
      */
     val versatility: Double get() {
         val reach = aspects.size.coerceAtLeast(ONE_PLACE)
-        return 1.0 + (reach - ONE_PLACE) * tier.versatilityMultiplier
+        return (reach * tier.versatilityMultiplier).coerceAtLeast(ONE_PLACE.toDouble())
     }
 
     /**
