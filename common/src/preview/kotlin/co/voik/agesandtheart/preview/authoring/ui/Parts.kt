@@ -1045,21 +1045,32 @@ class Parts(private val corpus: Corpus) {
         Step.BIAS -> leaningRows(candidate, word)
     }
 
+    /**
+     * Every lean the word makes, **strongest first and across the aspects rather than within each.**
+     *
+     * A lean is a number, so the question a reader has of the list is which way it leans hardest — and
+     * grouped by aspect the answer was somewhere down the third group. Each row says where it lands, so
+     * nothing is lost by not gathering them.
+     */
     private fun leaningRows(candidate: Candidate, word: Word?): List<Row> {
-        val everywhere = candidate.leansEverywhere.entries.sortedByDescending { it.value }.map { (named, weight) ->
-            Row("biases/${Word.EVERYWHERE}/$named", leanInk(named, weight, Word.EVERYWHERE), leanNote(null, named))
+        val everywhere = candidate.leansEverywhere.entries.map { (named, weight) ->
+            weight to Row(
+                "biases/${Word.EVERYWHERE}/$named",
+                leanInk(named, weight, Word.EVERYWHERE),
+                leanNote(null, named),
+            )
         }
-        val keyed = candidate.biases.entries.sortedBy { it.key.ordinal }.flatMap { (aspect, by) ->
+        val keyed = candidate.biases.entries.flatMap { (aspect, by) ->
             val settled = settledNote(Step.BIAS, candidate, aspect)
-            by.entries.sortedByDescending { it.value }.map { (named, weight) ->
-                Row(
+            by.entries.map { (named, weight) ->
+                weight to Row(
                     "biases/${aspect.page}/$named",
                     leanInk(named, weight, aspect.page),
                     settled ?: leanNote(aspect, named),
                 )
             }
         }
-        return everywhere + keyed
+        return (everywhere + keyed).sortedByDescending { (weight, _) -> weight }.map { (_, row) -> row }
     }
 
     /** A member on a populations row: what it is, and which part of the world it is in. */
