@@ -22,6 +22,7 @@ fun main() {
     reportWhoComesForATag(vocabulary)
     reportExclusionIsWeightBlind(vocabulary)
     reportTagsNobodyAsksAfter(vocabulary)
+    reportMarginalCarriers(vocabulary)
 }
 
 private val weightedSets get() = Aspect.entries.filter { it.holds == Holds.WEIGHTED_SET && it.pool != null }
@@ -140,5 +141,31 @@ private fun reportTagsNobodyAsksAfter(vocabulary: Vocabulary) {
     println("only ever leaned on: ${carried.count { it !in read && it in leaned }}")
     println("read by nothing at all: ${inert.size}")
     if (inert.isNotEmpty()) println("    ${inert.joinToString(", ")}")
+    println()
+}
+
+/**
+ * **The members a word almost reaches** — carried above nothing and below the tier's threshold. Under a
+ * fixed threshold these are invisible; under a drawn one they are what varies from Age to Age.
+ */
+private fun reportMarginalCarriers(vocabulary: Vocabulary) {
+    println("=== Members a word almost reaches (0 < pull < threshold) ===")
+    for (word in vocabulary.words.filter { it.tier.narrows }.sortedBy { it.name }) {
+        for (aspect in weightedSets) {
+            if (word.restrictsIn(aspect).isEmpty()) continue
+            val marginal = vocabulary.askableIn(aspect).mapNotNull { member ->
+                val pull = word.pullIn(aspect, vocabulary.tagsOf(member))
+                if (pull > 0.0 && pull < word.tier.threshold) member to pull else null
+            }
+            if (marginal.isEmpty()) continue
+            val chances = marginal.map { (_, pull) -> pull / word.tier.threshold }
+            println(
+                "%-12s %-11s %2d almost-carriers, arriving in %.0f%%..%.0f%% of Ages".format(
+                    word.name, aspect.name.lowercase(), marginal.size,
+                    chances.min() * 100, chances.max() * 100,
+                ),
+            )
+        }
+    }
     println()
 }

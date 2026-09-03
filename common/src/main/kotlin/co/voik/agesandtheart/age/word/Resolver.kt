@@ -120,6 +120,7 @@ object Resolver {
     private const val ASPECT_STRIDE = 0x1F3B_5D79L
     private const val TERRITORY_STRIDE = 0x4C9E_1A2BL
     private const val COMPANY_SALT = 0x600D_C0A1L
+    private const val STRICTNESS_SALT = 0x5721_C7L
     private const val WORD_MIXER = -0x61c8_8646_80b5_83ebL
 
     /**
@@ -217,7 +218,7 @@ object Resolver {
         flaws += tensions(vocabulary, said, filled.mapValues { (_, filling) -> filling.map { it.preset } })
 
         val resolved = describedMembers(
-            weighed(vocabulary, steer(vocabulary, cast(compose(filled), said), said, draw, flaws), said, flaws),
+            weighed(vocabulary, steer(vocabulary, cast(compose(filled), said), said, draw, flaws), said, draw, flaws),
             said,
         )
         // **The template underneath, what the sentence said on top.** Which aspects the sentence spoke to
@@ -1173,6 +1174,7 @@ object Resolver {
         vocabulary: Vocabulary,
         composition: AgeComposition,
         sentence: List<Constraint>,
+        draw: Long,
         flaws: MutableList<Flaw>,
     ): AgeComposition {
         var weighed = composition
@@ -1190,7 +1192,7 @@ object Resolver {
                 curated + speaking.flatMap(::namedBy).distinct().mapNotNull(aspect::presetFor)
                 ).distinct()
             val reached = drawnFrom.mapNotNull { member ->
-                claimForMember(vocabulary, member, pool, speaking, aspect, member in curated)
+                claimForMember(vocabulary, member, pool, speaking, aspect, member in curated, draw)
             }
             if (reached.isEmpty()) continue
             flaws += crowdedOutOfAnOnly(vocabulary, speaking, aspect)
@@ -1227,7 +1229,7 @@ object Resolver {
                 strength = strengthOf(vocabulary, member, said, aspect),
                 kept = word.acceptsOn(member, vocabulary.tagsOf(member)),
             )
-        val claim = claimForMember(vocabulary, member, pool, said, aspect, member in vocabulary.askableIn(aspect))
+        val claim = claimForMember(vocabulary, member, pool, said, aspect, member in vocabulary.askableIn(aspect), draw = null)
             ?: return Standing(Rung.ORDINARY, kept = true)
         return Standing(claim.density, kept = claim.polarity != Polarity.EXCEPT)
     }
@@ -1239,6 +1241,8 @@ object Resolver {
         speaking: List<Constraint>,
         aspect: Aspect,
         alreadyInThePool: Boolean,
+        /** The Age being written, or null to ask what a word reaches in *every* Age — see [strictnessOf]. */
+        draw: Long?,
     ): Claim? {
         val tags = vocabulary.tagsOf(member)
         // **A word that takes a member out takes it out.** Excluding is the pipeline's own removal, so it
@@ -1250,8 +1254,18 @@ object Resolver {
         // **Claiming something here is the price of insisting.** A word that only leans restricts nothing,
         // and `acceptsOn` keeps every member where nothing was restricted — read as insistence that would
         // be a word demanding the whole population it merely had a preference within.
-        val insisting = speaking.filter {
-            it.word.tier.narrows && it.word.constrainsPresetsIn(aspect) && it.word.acceptsOn(member, tags)
+        // **How strict this Age is being, which only a plain mention is subject to.** `only` and `except`
+        // are the writer saying outright what to keep and what to strike, so they are read at the tier's
+        // own threshold however generous the Age: a preference may be lucky, an instruction may not.
+        fun strictnessFor(said: Constraint): Double =
+            if (draw == null || said.polarity != Polarity.ASSERTED) {
+                said.word.tier.threshold
+            } else {
+                strictnessOf(draw, aspect, said.word)
+            }
+        val insisting = speaking.filter { said ->
+            val narrowsHere = said.word.tier.narrows && said.word.constrainsPresetsIn(aspect)
+            narrowsHere && said.word.acceptsOn(member, tags, strictnessFor(said))
         }
         // **What a tier weighs is a tag query.** Naming a member is step one and stands on its own, so
         // scoring it here too made every named member arrive at the ceiling — a share no rung could move
@@ -1557,6 +1571,33 @@ object Resolver {
      */
     private fun saltOf(sentence: List<Word>): Long =
         sentence.fold(0L) { salt, word -> salt xor (word.id.hashCode().toLong() * WORD_MIXER) }
+
+    /**
+     * **How strict this Age is being about one word in one aspect** — a cut drawn once, somewhere between
+     * nothing and the tier's own threshold, and applied to every member the word is weighed against.
+     *
+     * What it buys is that the same word written twice gives two different worlds. A tag query was a pure
+     * function of the word and the corpus, so `settled` reached the same eighteen structure sets at the
+     * same amounts in every Age that ever said it; the seed decided the ground under them and nothing
+     * about what stood on it.
+     *
+     * **Only the uncertain carriers move.** A member answering at or above the tier's threshold is
+     * admitted whatever is drawn — a world of built things still gets the villages — while one answering
+     * at half of it arrives in half of Ages. So the rule reads plainly: the threshold is where a member
+     * *always* turns up, and below it a member turns up in proportion to how close it came.
+     *
+     * **One cut for the whole aspect, not one per member**, which is what makes the variation read as
+     * character rather than as confetti: this Age's `settled` was generous and took the odd ruin with it,
+     * that one's was spare. Per-member rolls would give every Age the same bland middle.
+     *
+     * Keyed on the word's *id* and the aspect rather than on anything positional, so adding a word to the
+     * corpus cannot reshuffle an Age already written.
+     */
+    private fun strictnessOf(draw: Long, aspect: Aspect, word: Word): Double {
+        val key = draw xor (aspect.ordinal * ASPECT_STRIDE) xor
+            (word.id.hashCode().toLong() * WORD_MIXER) xor STRICTNESS_SALT
+        return XoroshiroRandomSource(key).nextDouble() * word.tier.threshold
+    }
 
     /** A stable, unpredictable ordering key — how the seed arbitrates between equally precise words. */
     private fun tieBreak(draw: Long, aspect: Aspect, word: Word): Long =

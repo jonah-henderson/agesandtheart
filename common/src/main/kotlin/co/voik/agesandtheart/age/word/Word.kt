@@ -729,18 +729,22 @@ data class Word(
     /**
      * **Whether [preset] survives this word's pipeline** — the third step, asked of one member.
      *
-     * Excluded members are out however they got in. What is left has to clear the tier's threshold on
-     * whatever the word restricted to; a word that restricted nothing removes nobody, since a lean is
-     * never a filter.
+     * Excluded members are out however they got in. What is left has to clear [strictness] on whatever the
+     * word restricted to; a word that restricted nothing removes nobody, since a lean is never a filter.
+     *
+     * **[strictness] defaults to the tier's own threshold, which is the strict reading** — every member
+     * that answers this word whatever the Age. An Age may be more generous than that and pass its own
+     * lower cut (`Resolver.strictnessOf`); nothing may be stricter, so what this answers by default is
+     * what a word is *guaranteed* to reach, which is what every check and every screen wants of it.
      */
-    fun acceptsOn(preset: Taggable, tags: Map<String, Double>): Boolean {
+    fun acceptsOn(preset: Taggable, tags: Map<String, Double>, strictness: Double = tier.threshold): Boolean {
         // **A choice answers for the whole aspect.** The pipeline ends there, so nothing else this word
         // says about that part of the world is asked — and every other member is out, not merely unranked.
         choiceIn(preset.aspect)?.let { return it.key == preset.key }
         if (excludes(preset, tags)) return false
         if (restrictsIn(preset.aspect).isEmpty()) return true
         val strength = pullIn(preset.aspect, tags)
-        return strength > 0.0 && strength >= tier.threshold
+        return strength > 0.0 && strength >= strictness
     }
 
     /**
