@@ -151,21 +151,33 @@ object Axis {
     }
 
     /**
-     * The band as a row of cells — **what it had in grey, and only what changed in colour.**
+     * The band as a row of cells — **what it had in grey, what it came to in colour, and the smaller of
+     * the two drawn on top.**
      *
-     * The old band is drawn *under* the new one, so a claim that merely widens shows its two new ends and
-     * nothing else: the difference is the thing being looked at, and colouring the whole result made a
-     * nudge of a tenth look like a band moved wholesale.
+     * One rule, and the three things a claim can do to a band all fall out of it. A spread that *widens*
+     * puts the old band over the new, so what shows is the two new ends rather than a band recoloured
+     * end to end. A spread that *narrows* and a nudge both put the new band over the old, so what shows is
+     * where it went and what it left behind — drawn the other way round, a narrowing looked like the band
+     * had vanished and a nudge looked like it had merely grown.
      */
     private fun bandRow(settled: Span, was: Span?, ruler: Int, handle: Double?): Line {
         val now = columnFor(settled.least, ruler)..columnFor(settled.most, ruler)
         val before = was?.let { columnFor(it.least, ruler)..columnFor(it.most, ruler) }
+        val widened = before != null && now.first <= before.first && now.last >= before.last
         val lit = handle?.let { columnFor(it, ruler) }
-        fun glyphAt(at: Int) = if (at in now || (before != null && at in before)) Glyph.FULL else Glyph.EMPTY
+        // **The end being moved keeps its own glyph.** Lighting a full block against other full blocks
+        // says nothing at a glance, which is how the handle went missing when the band gained a second
+        // colour — a different shape is what makes it findable.
+        fun glyphAt(at: Int) = when {
+            at == lit -> Glyph.FILLED
+            at in now || (before != null && at in before) -> Glyph.FULL
+            else -> Glyph.EMPTY
+        }
         fun toneAt(at: Int) = when {
             at == lit -> Palette.focused
-            before != null && at in before -> Palette.faint
-            at in now -> if (before == null) Palette.chosen else Palette.nudged
+            before == null -> if (at in now) Palette.chosen else Palette.faint
+            widened && at in before -> Palette.faint
+            at in now -> Palette.nudged
             else -> Palette.faint
         }
         var line = Line(" ".repeat(LEAD))

@@ -166,6 +166,65 @@ class Parts(private val corpus: Corpus) {
     /** Whether this section holds a list you add to and delete from, which decides what `a` and `d` mean. */
     fun isAList(part: Part) = part in setOf(Part.PROPERTIES, Part.POPULATIONS)
 
+    /**
+     * **What the row under the cursor can do** — the contextual half of the key line.
+     *
+     * Here rather than in the editor because what a row *is* is decided here: the editor reads a handle to
+     * act on it and would be reading it a second time to say so, which is two places for one answer and a
+     * key line that quietly stops matching what a key does.
+     *
+     * It also replaces the hints that used to sit in a row's own note. A note is for what a thing means;
+     * which keys work on it belongs where every other key is listed.
+     */
+    fun keysFor(part: Part, row: Row?, candidate: Candidate): List<Pair<String, String>> {
+        val handle = row?.handle.orEmpty()
+        val kind = handle.substringBefore('/')
+        return when (part) {
+            Part.PROPERTIES -> when {
+                kind.startsWith("+") -> listOf("enter" to "do it")
+                kind == "group" -> listOf(
+                    "enter" to "add a setting to this group",
+                    "d" to "remove the whole group",
+                )
+                kind == "draws" -> listOf("enter" to "how many are drawn", "d" to "remove the pool")
+                kind == "pool" -> listOf(
+                    "enter" to "set it",
+                    "a" to "add to this one's group",
+                    "d" to "remove it",
+                )
+                kind == "mints" -> listOf("enter" to "change what it makes", "d" to "make nothing")
+                handle.isEmpty() -> emptyList()
+                else -> listOf("enter" to "set it", "a" to "add another", "d" to "remove it")
+            }
+            Part.POPULATIONS -> when {
+                kind.startsWith("+") -> listOf("enter" to "do it")
+                kind == "restricts" || kind == "biases" -> listOf(
+                    "enter" to "type the weight",
+                    "- =" to "step it",
+                    "d" to "remove it",
+                )
+                kind == "chooses" || kind == "admits" || kind == "excludes" ->
+                    listOf("enter" to "change it", "d" to "remove it")
+                handle.isEmpty() -> emptyList()
+                else -> listOf("a" to "add", "d" to "remove")
+            }
+            Part.TIER -> when {
+                kind == "named" -> listOf("enter" to "take these numbers")
+                kind == "cost" && statingItsOwnCost(candidate) ->
+                    listOf("enter" to "type it", "- =" to "step it")
+                kind == "cost" -> listOf("" to "take `custom` above to change these")
+                else -> emptyList()
+            }
+            Part.NAME -> listOf("enter" to "rename it")
+            Part.LISTING -> listOf("enter" to "choose one")
+            Part.TEMPLATE -> listOf("enter" to "choose one")
+            Part.COMMENT -> listOf("enter" to "open \$EDITOR")
+            Part.REVIEW -> emptyList()
+            Part.SAVE, Part.SAVE_AND_LEAVE -> listOf("enter" to "write the file")
+            Part.DELETE -> listOf("enter" to "delete the word")
+        }
+    }
+
     /** Whether the cursor may rest on this row at all — a heading names what is under it and does nothing. */
     fun isAHeading(row: Row) = row.handle.startsWith("heading/")
 
@@ -636,7 +695,7 @@ class Parts(private val corpus: Corpus) {
                     Row(
                         handle = "+group/${insistence.name}/$at",
                         shown = listOf(Ink("      + add a group", Palette.faint)),
-                        note = "settings drawn together or not at all, and counting as one thing drawn",
+                        note = "several settings the Age takes whole or not at all",
                     ),
                 )
                 addAll(offerRows(insistence, at, pool, word))
@@ -675,7 +734,7 @@ class Parts(private val corpus: Corpus) {
                 Row(
                     handle = "group/${insistence.name}/$at/$which",
                     shown = listOf(Ink("      group ${which + 1}", Palette.tag)),
-                    note = "d  removes the whole group ${Glyph.BULLET} enter or a  adds another setting to it",
+                    note = "these are drawn together or not at all, and count as one thing drawn",
                 ),
             )
             val settings = offer.entries.sortedBy { it.key }.map { (parameter, value) ->
@@ -720,10 +779,7 @@ class Parts(private val corpus: Corpus) {
                 ),
                 Ink(value, Palette.value),
             ),
-            note = listOfNotNull(
-                parameterNote(parameter, value, word).ifEmpty { null },
-                if (deeper) "a  puts another setting in this one's group" else null,
-            ).joinToString("\n    "),
+            note = parameterNote(parameter, value, word),
         )
 
     /**
@@ -828,20 +884,26 @@ class Parts(private val corpus: Corpus) {
         // **A material takes a block, so it offers the blocks.** It used to offer `unchanged` and the
         // words "or any registry id", which is a list of one and an instruction to go and find the rest —
         // with eleven hundred of them a keystroke away in the corpus this screen already holds.
-        parameter.material -> parameter.options.map { Picker.Option(it, it, "leave the preset's own") } +
+        parameter.material -> parameter.options.sorted().map { Picker.Option(it, it, "leave the preset's own") } +
             blocksFor(parameter)
         // **A population takes a registry id, so it offers the registry.** `grown`, `built`, `grows` and
         // `lives` are the biomes, structure sets, features and creatures an Age holds, and each used to
         // offer `unchanged`, `nothing`, and the words "or any registry id" — the id being the whole of
         // what a writer came to say, and the only thing not on the list.
-        parameter.open -> parameter.options.map { Picker.Option(it, it, "") } + membersOf(on, parameter)
-        else -> parameter.options.mapIndexed { at, option ->
-            val said = parameter.optionHelp[option].orEmpty()
-            val note = listOfNotNull(
-                said.ifEmpty { null },
-                if (at == 0) "the default, so asking for it says nothing" else null,
-            ).joinToString("  ${Glyph.BULLET}  ")
-            Picker.Option(option, option, note)
+        parameter.open -> parameter.options.sorted().map { Picker.Option(it, it, "") } + membersOf(on, parameter)
+        // **Alphabetical on screen, declared in the model.** A parameter's first option is its default and
+        // the order is what says so, which is a fact about the data and no help at all to somebody looking
+        // for `snow` among fourteen motes. Which one is the default is said in words instead.
+        else -> {
+            val default = parameter.options.firstOrNull()
+            parameter.options.sorted().map { option ->
+                val said = parameter.optionHelp[option].orEmpty()
+                val note = listOfNotNull(
+                    said.ifEmpty { null },
+                    if (option == default) "the default, so asking for it says nothing" else null,
+                ).joinToString("  ${Glyph.BULLET}  ")
+                Picker.Option(option, option, note)
+            }
         }
     }
 

@@ -13,5 +13,18 @@
   },
   "sets": {
     "temperature": "<-0.5"
+  },
+  "requests": {
+    "pools": [
+      {
+        "draws": "1",
+        "facets": [
+          {
+            "rainbow.colour": "white|blue",
+            "rainbow.rain": "-1..-1"
+          }
+        ]
+      }
+    ]
   }
 }

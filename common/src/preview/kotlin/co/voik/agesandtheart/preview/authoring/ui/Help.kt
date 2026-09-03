@@ -148,6 +148,9 @@ class Help(
         const val CHROME = 4
 
         val CONTROLS: List<Line> = listOf(
+            Line("  The two rows along the bottom are the keys: what the row under the", Palette.faint),
+            Line("  cursor answers to, then how to move about and what the tool does.", Palette.faint),
+            Line.BLANK,
             Line("Moving", Palette.heading),
             keyRow("↑ ↓", "move within a list"),
             keyRow("→ ←", "in and out of a list; ← backs out of a screen"),

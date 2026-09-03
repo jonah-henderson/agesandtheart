@@ -166,7 +166,7 @@ class Editor(
                 addAll(body(width, canvas.height))
                 add(Frame.rule(width))
                 addAll(strip(width))
-                add(keys(width))
+                addAll(keys(width))
             },
         )
     }
@@ -441,81 +441,72 @@ class Editor(
         Verdict.Standing.NOTED -> Glyph.BULLET
     }
 
-    private fun keys(width: Int): Line = typing?.let { said ->
-        val wrong = said.complaint(said.text)
-        hints(
-            "enter" to "accept", "↑↓" to "accept and move on", "esc" to "leave it alone",
-            "" to wrong.orEmpty(),
-        )
-    } ?: when (overlay) {
-        is Prompt -> hints("enter" to "accept", "esc" to "cancel")
-        is Picker -> if ((overlay as Picker).marking) {
-            val asked = overlay as Picker
+    /**
+     * The key line, in two rows: **what the thing under the cursor does, then how to get around.**
+     *
+     * One row had to hold both and so held neither well — every key the screen answered, whether or not
+     * the row under the cursor was one it applied to, and no room left to say what `d` would actually
+     * remove. The first row is the answer to "what can I do here"; the second is the same everywhere and
+     * so can be read once and forgotten.
+     */
+    private fun keys(width: Int): List<Line> = listOf(doingKeys(), gettingAround()).map { it.sized(width) }
+
+    private fun doingKeys(): Line = typing?.let { said ->
+        hints("enter" to "accept", "↑↓" to "accept and move on", "" to said.complaint(said.text).orEmpty())
+    } ?: when (val shown = overlay) {
+        is Prompt -> hints("enter" to "accept", "" to shown.says.orEmpty())
+        is Picker -> if (shown.marking) {
             // The preview *is* the value where marks build one, and a count where they pick several.
             val standing = when {
-                asked.marked.isEmpty() -> "nothing marked"
-                asked.joinsWith != null -> asked.marked.joinToString(asked.joinsWith)
-                else -> "${asked.marked.size} marked"
+                shown.marked.isEmpty() -> "nothing marked"
+                shown.joinsWith != null -> shown.marked.joinToString(shown.joinsWith)
+                else -> "${shown.marked.size} marked"
             }
             hints(
-                "↑↓" to "move",
                 "enter" to "mark",
-                "→" to if (asked.marked.isEmpty()) "take this one" else "take the ${asked.marked.size} marked",
-                "←" to "back",
+                "→" to if (shown.marked.isEmpty()) "take this one" else "take the ${shown.marked.size} marked",
                 "" to standing,
             )
         } else {
-            hints(
-                "↑↓" to "move", "pgup/pgdn" to "a page", "home/end" to "ends",
-                "→" to "pick", "^d" to "clear", "←" to "back",
-            )
+            hints("enter" to "pick", "→" to "pick", if (shown.onClear == null) "" to "" else "^d" to "clear")
         }
-        is Reader -> hints("↑↓" to "scroll", "pgup/pgdn" to "a page", "home/end" to "ends", "←" to "close")
-        is Band -> {
-            val asked = overlay as Band
-            when {
-                asked.onAPreset -> hints(
-                    "↑↓" to "move", "enter" to "take it", "esc" to "cancel",
-                    "" to "type to search: ${asked.filter}",
-                )
-                asked.row == Band.Row.BAND -> hints(
-                    "- =" to "move the ${if (asked.onTheHighEnd) "top" else "bottom"}",
-                    "tab" to "the other end",
-                    "_ +" to "drop the bottom or top",
-                    "enter" to "take it", "esc" to "cancel",
-                )
-                else -> hints("- =" to "step it", "↑↓" to "move", "enter" to "take it", "esc" to "cancel")
-            }
+        is Reader -> hints("" to "nothing to change here")
+        is Band -> when {
+            shown.onAPreset -> hints("enter" to "take it", "" to "type to search: ${shown.filter}")
+            shown.row == Band.Row.BAND -> hints(
+                "- =" to "move the ${if (shown.onTheHighEnd) "top" else "bottom"}",
+                "tab" to "the other end",
+                "_ +" to "drop the bottom or top",
+                "enter" to "take it",
+            )
+            else -> hints("- =" to "step it", "enter" to "take it")
         }
-        // The review page reads rather than edits, so it offers none of the keys that change a word.
-        null -> if (inside && part == Part.REVIEW) {
-            hints(
-                "↑↓" to "row", "pgup/pgdn" to "a page", "home/end" to "ends", "←" to "back",
-                "?" to "help", "^p" to "preview", "^t" to "try", "^f" to "faults", "^s" to "save",
-            )
-        } else if (inside) {
-            // **Only the keys this section answers.** `a` and `d` are guarded by `isAList` and `tab` only
-            // moves between a parameter's targets, so on the rarity they were three hints for three keys
-            // that did nothing — which is worse than no hint at all, a reader having tried them.
-            val listing = parts.isAList(part)
-            hints(
-                "↑↓" to "row", "pgup/pgdn" to "a page", "home/end" to "ends", "←" to "back",
-                "enter" to "edit",
-                if (listing) "a" to "add" else "" to "",
-                if (listing) "d" to "delete" else "" to "",
-                if (listing) "tab" to "target" else "" to "",
-                "?" to "help", "^p" to "preview", "^t" to "try", "^f" to "faults",
-                "^z" to "undo", "^s" to "save",
-            )
+        null -> if (!inside) {
+            hints("→" to "open this part")
         } else {
-            hints(
-                "↑↓" to "part", "→" to "open it",
-                if (canLeave) "←" to "back" else "" to "",
-                "?" to "help", "^p" to "preview", "^t" to "try",
-                "^f" to "faults", "^z" to "undo", "^s" to "write",
-            )
+            hints(*parts.keysFor(part, rows().getOrNull(row()), candidate).toTypedArray())
         }
-    }.sized(width)
+    }
+
+    /** The half that is the same wherever you are standing — moving about, and what the tool itself does. */
+    private fun gettingAround(): Line = when {
+        typing != null -> hints("esc" to "leave it alone")
+        overlay is Prompt -> hints("esc" to "cancel")
+        overlay != null -> hints(
+            "↑↓" to "move", "pgup/pgdn" to "a page", "home/end" to "ends", "←" to "back",
+        )
+        !inside -> hints(
+            "↑↓" to "part",
+            if (canLeave) "←" to "back" else "" to "",
+            "?" to "help", "^p" to "preview", "^t" to "try",
+            "^f" to "faults", "^z" to "undo", "^s" to "write",
+        )
+        else -> hints(
+            "↑↓" to "row", "pgup/pgdn" to "a page", "home/end" to "ends", "←" to "back",
+            "?" to "help", "^p" to "preview", "^t" to "try", "^f" to "faults",
+            "^z" to "undo", "^s" to "save",
+        )
+    }
 
     // -- keys ----------------------------------------------------------------------------------------
 
@@ -1282,34 +1273,29 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
      * narrows the list to what that part of the world actually turns.
      */
     private fun pickATarget(into: Into) {
-        val owners = Aspect.entries.filter { parameterNamesIn(it).isNotEmpty() }.sortedBy { it.ordinal }
+        // **Alphabetical**, which is how somebody looks a part of the world up. Ordinal order is the
+        // world model's own and means something to the resolver; it means nothing to a reader scanning
+        // twenty pages for `sun`.
+        val owners = Aspect.entries.filter { parameterNamesIn(it).isNotEmpty() }.sortedBy { it.page }
         val everything = Picker.Option(
             EVERY_PARAMETER,
             "every parameter",
             "all of them at once ${Glyph.BULLET} type to search",
         )
-        // **A group is offered where one can be made** — adding to a pool, and not already inside one.
-        // The keys can build a group from the row under the cursor, and nothing this tool does should be
-        // reachable only that way.
-        val grouping = if (into.pool == null || into.offer != null) emptyList() else listOf(
-            Picker.Option(NEW_GROUP, "add a group", "settings drawn together or not at all"),
-        )
-        val options = grouping + everything.copy(startsGroup = grouping.isNotEmpty()) +
-            owners.mapIndexed { at, aspect ->
-                Picker.Option(
-                    value = aspect.page,
-                    label = aspect.page,
-                    note = "${parameterNamesIn(aspect).size} to set",
-                    startsGroup = at == 0,
-                )
-            }
+        // **A group is not offered again here.** Every route in says which it is first — `add a setting`
+        // and `add a group` are rows under the pool, and the pool's own menu offers both — so restating
+        // it once the writer has already chosen is a question they just answered.
+        val options = listOf(everything) + owners.map { aspect ->
+            Picker.Option(
+                value = aspect.page,
+                label = aspect.page,
+                note = "${parameterNamesIn(aspect).size} to set",
+                startsGroup = aspect == owners.first(),
+            )
+        }
         overlay = Picker("Set what, where?", options) { picked ->
-            when {
-                picked.value == NEW_GROUP -> startAGroup(into)
-                picked.value == EVERY_PARAMETER -> pickAParameter(into)
-                else -> Aspect.entries.firstOrNull { it.page == picked.value }
-                    ?.let { pickAParameter(into, only = it) }
-            }
+            if (picked.value == EVERY_PARAMETER) pickAParameter(into)
+            else Aspect.entries.firstOrNull { it.page == picked.value }?.let { pickAParameter(into, only = it) }
         }
     }
 
@@ -1413,7 +1399,7 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
         )
         val holding = Aspect.entries.filter { it.holds != Holds.NOTHING }
             .filter { step == Step.CHOOSE || it !in candidate.chooses }
-            .sortedBy { it.ordinal }
+            .sortedBy { it.page }
         if (holding.isEmpty() && whole.isEmpty()) {
             message = "every part of the world this word speaks to is already settled by a choice"
             return
@@ -1675,7 +1661,7 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
      * takes one alone, and the row at the bottom takes everything marked.
      */
     private fun qualify(parameter: String, aspects: List<Aspect>, into: Into) {
-        val ordered = aspects.sortedBy { it.ordinal }
+        val ordered = aspects.sortedBy { it.page }
         val everywhere = Picker.Option(
             value = EVERY_ASPECT,
             label = "all of them",
@@ -2175,7 +2161,7 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
         const val BAND_VALUE = 14
         const val DEFAULT_EDITOR = "vi"
 
-        /** Header, two rules, the strip and the key line — what the body is not allowed to use. */
-        const val CHROME_LINES = 4 + STRIP_LINES
+        /** Header, two rules, the strip and the two key lines — what the body is not allowed to use. */
+        const val CHROME_LINES = 5 + STRIP_LINES
     }
 }
