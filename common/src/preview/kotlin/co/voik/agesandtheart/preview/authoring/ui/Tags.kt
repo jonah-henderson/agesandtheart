@@ -113,13 +113,13 @@ class Tags(
             add(Line("empties $TAG_MARK$tag of its ${members.size} member(s)", Palette.value))
             add(
                 if (asked.isEmpty()) Line("no word asks for it", Palette.faint)
-                else Line("and leaves ${asked.size} word(s) asking for nothing: ${asked.joinToString(" ")}", Palette.value),
+                else Line("and removes it from ${asked.size} word(s): ${asked.joinToString(" ")}", Palette.value),
             )
             // **A rule would put it straight back**, and this cannot reach one: a rule moves dozens of
             // members at once and is the rules screen's to delete, deliberately.
             if (rules.isNotEmpty()) {
                 add(Line.BLANK)
-                add(Line("${Glyph.WARN} ${rules.size} rule(s) fill it and would refill it:", Palette.warned))
+                add(Line("${Glyph.WARN} ${rules.size} rule(s) automatically populate it:", Palette.warned))
                 rules.forEach { add(Line("    $it", Palette.faint)) }
             }
         }
@@ -278,7 +278,7 @@ class Tags(
             Picker.Option(
                 value = one.page,
                 label = one.page,
-                note = "${here.size} outside it" + if (bare == 0) "" else "  ${Glyph.BULLET}  $bare in no set",
+                note = "${here.size} without it" + if (bare == 0) "" else "  ${Glyph.BULLET}  $bare untagged",
             )
         }) ?: return
         val where = Aspect.entries.firstOrNull { it.page == aspect } ?: return
@@ -290,7 +290,7 @@ class Tags(
             Picker.Option(
                 value = one.preset,
                 label = one.preset,
-                note = if (one.carriesNothing) "in no set" else "",
+                note = if (one.carriesNothing) "untagged" else "",
                 tone = if (one.carriesNothing) Palette.warned else null,
             )
         }) ?: return
@@ -447,7 +447,7 @@ class Tags(
 
     private fun noteOn(fact: TagLayer.Fact): String = when {
         fact.members == 0 && fact.onlyOnAServer ->
-            "only a running server fills this — load minecraft data to see what is in it"
+            "needs a server snapshot to populate — load minecraft data"
         fact.members == 0 -> "used by a word, but empty"
         fact.asked == 0 -> "has members, not used by any word"
         fact.opposed -> "opposed in the antonym table"
@@ -549,7 +549,7 @@ class Tags(
                 },
                 hints(
                     "tab" to if (grouped) "sort by name" else "group by source",
-                    "^d" to "take out or put back",
+                    "^d" to "drop or restore",
                     "^r" to "rename the set",
                     "^w" to "what asks",
                     "^x" to "delete the set",
