@@ -131,9 +131,14 @@ data class Candidate(
         if (excludes.isNotEmpty()) add("excludes", aspectLists(excludes))
         if (restricts.isNotEmpty()) add("restricts", perAspect(restricts))
         // One field, keyed by aspect page or by `all` — the whole of what a word leans by.
-        val leaning = biases.entries.sortedBy { it.key.ordinal }
-            .associate { (aspect, by) -> aspect.page to by } +
-            (if (leansEverywhere.isEmpty()) emptyMap() else mapOf(Word.EVERYWHERE to leansEverywhere))
+        //
+        // **A lean of nothing is not a lean.** Zero is how the screen says a member has not been leaned,
+        // and one stepped back to it — or toggled off — must leave the file rather than sit in it as an
+        // entry doing nothing, which would also make `Word.saysSomethingOf` claim the word spoke there.
+        val leaning = (
+            biases.entries.sortedBy { it.key.ordinal }.associate { (aspect, by) -> aspect.page to by } +
+                mapOf(Word.EVERYWHERE to leansEverywhere)
+            ).mapValues { (_, by) -> by.filterValues { it != 0.0 } }.filterValues { it.isNotEmpty() }
         if (leaning.isNotEmpty()) {
             add("biases", JsonObject().apply { leaning.forEach { (key, by) -> add(key, numbers(by)) } })
         }

@@ -504,8 +504,13 @@ class Editor(
                 // **Enter marks where several may be taken**, and leaves the overlay standing so the
                 // next one can be marked too; whatever the caller does with the accepting row is what
                 // closes it. Right takes one and has done, which is the common case a mark would slow.
+                //
+                // **A list you *set* is the same case.** Where `-` and `=` change the row under the
+                // cursor, enter is another way of saying that row rather than the way out of the list —
+                // closing on it meant choosing a member and losing it, in silence, which is the one thing
+                // a pick must never do. Such a list carries its own `done` row.
                 key.key == "Enter" -> shown.focused?.let { picked ->
-                    if (!shown.marking) overlay = null
+                    if (!shown.marking && shown.onStep == null) overlay = null
                     shown.onPick(picked)
                 }
                 key.key == "ArrowRight" -> shown.focused?.let { picked ->
@@ -1204,21 +1209,51 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
                 tone = if (weight != 0.0) Palette.settled else option.tone,
             )
         } + Picker.Option(DONE_LEANING, "done", "nothing more to lean here", startsGroup = true)
+        val where = aspect?.page ?: "the whole Age"
         overlay = Picker(
-            title = "Lean ${aspect?.page ?: "the whole Age"} — ${Glyph.BULLET} - and = set it ${Glyph.BULLET} enter when done",
+            title = "Lean $where — ${Glyph.BULLET} enter says one ${Glyph.BULLET} - and = adjust it " +
+                "${Glyph.BULLET} ← when done",
             options = options,
             filter = filter,
             index = index,
             onStep = { option, by ->
                 if (option.value != DONE_LEANING) {
-                    val was = (overlay as? Picker)
-                    edit { at -> at.leaning(aspect, option.value, (standing(option.value) + by).coerceIn(-1.0, 1.0)) }
-                    leanOn(aspect, was?.filter.orEmpty(), was?.index ?: 0)
+                    setLean(aspect, option.value, (standing(option.value) + by).coerceIn(-1.0, 1.0))
                 }
             },
-            onPick = { overlay = null },
+            // `→` says one and has done, which is what it means on every other list here.
+            onOnly = { picked ->
+                if (picked.value != DONE_LEANING) {
+                    edit { at -> at.leaning(aspect, picked.value, wholeOrNothing(standing(picked.value))) }
+                }
+            },
+            onPick = { picked ->
+                if (picked.value == DONE_LEANING) overlay = null
+                else setLean(aspect, picked.value, wholeOrNothing(standing(picked.value)))
+            },
         )
     }
+
+    /**
+     * A lean set from inside the list, which then reopens where it was.
+     *
+     * The filter and the cursor are read back off the standing picker rather than passed in, since a step
+     * may have been typed into the search before it.
+     */
+    private fun setLean(aspect: Aspect?, named: String, weight: Double) {
+        val was = overlay as? Picker
+        edit { at -> at.leaning(aspect, named, weight) }
+        leanOn(aspect, was?.filter.orEmpty(), was?.index ?: 0)
+    }
+
+    /**
+     * What enter does to a lean: **says it whole**, or takes it back off where it was said already.
+     *
+     * A lean is a number, so stepping one from nothing to a claim worth making is ten keystrokes and
+     * enter would otherwise be the key that did the least on the list. Saying it again is how a row is
+     * unsaid without leaving, which is the same shape marking has everywhere else.
+     */
+    private fun wholeOrNothing(standing: Double) = if (standing == 0.0) A_WHOLE_LEAN else 0.0
 
     /** Every member of an aspect by name, then every tag something there carries, marked as one. */
     private fun membersAndTags(aspect: Aspect): List<Picker.Option> {
@@ -1703,6 +1738,9 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
         const val HOW_MANY_DRAWN = "\u0000draws"
         /** How far `-` and `=` move a weight on the row itself — a tenth, as the word lists step by. */
         const val A_STEP = 0.1
+
+        /** What enter alone leans by — the whole of it, as `1.0` is what a restriction's prompt offers. */
+        const val A_WHOLE_LEAN = 1.0
 
         /** The row that closes the lean list, for somebody who would rather not guess that enter does. */
         const val DONE_LEANING = "\u0000done"

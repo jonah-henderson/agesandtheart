@@ -10,6 +10,7 @@ import co.voik.agesandtheart.preview.authoring.ui.Columns
 import co.voik.agesandtheart.preview.authoring.ui.Insistence
 import co.voik.agesandtheart.preview.authoring.ui.addingAPool
 import co.voik.agesandtheart.preview.authoring.ui.drawing
+import co.voik.agesandtheart.preview.authoring.ui.leaning
 import co.voik.agesandtheart.preview.authoring.ui.poolsOn
 import co.voik.agesandtheart.preview.authoring.ui.puttingInPool
 import co.voik.agesandtheart.preview.authoring.ui.withoutInPool
@@ -399,5 +400,32 @@ class AuthoringCheck : FunSpec({
         val columns = listOf(Columns.Column(least = 12), Columns.Column(least = 12))
         val widths = Columns.widths(rows, columns, room = 10, gap = 2)
         check(widths == listOf(12, 12)) { "a least was given up: $widths" }
+    }
+
+    /**
+     * **A lean of nothing is not a lean.**
+     *
+     * Zero is how the screen says a member has not been leaned — it is what every row on the leaning list
+     * starts at, and what enter puts one back to. Written out, it is an entry that steers nothing and
+     * makes `Word.saysSomethingOf` claim the word spoke to that part of the world.
+     */
+    test("a lean stepped back to nothing leaves the file") {
+        val leaned = Candidate.blank("leaner")
+            .leaning(Aspect.SEA, "#molten", 0.7)
+            .leaning(Aspect.SEA, "#frozen", 0.0)
+            .leaning(null, "#bright", 0.0)
+        val written = leaned.asJson()
+        val biases = written.getAsJsonObject("biases")
+        check(biases != null && biases.keySet() == setOf(Aspect.SEA.page)) {
+            "a lean of nothing was written: $written"
+        }
+        check(biases.getAsJsonObject(Aspect.SEA.page).keySet() == setOf("#molten")) {
+            "the sea kept a lean of nothing: $written"
+        }
+        val bare = Candidate.blank("bare").leaning(Aspect.SEA, "#molten", 0.0)
+        check(!bare.asJson().has("biases")) { "a word leaning nothing wrote a biases field: ${bare.asJson()}" }
+        check(bare.asWord().getOrThrow().saysSomethingOf(Aspect.SEA).not()) {
+            "a lean of nothing made the word claim to speak to the sea"
+        }
     }
 })
