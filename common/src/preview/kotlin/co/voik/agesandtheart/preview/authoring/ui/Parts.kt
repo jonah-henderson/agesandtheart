@@ -668,13 +668,17 @@ class Parts(private val corpus: Corpus) {
     private fun offerRows(insistence: Insistence, at: Int, pool: Facets, word: Word?): List<Row> =
         pool.offers.flatMapIndexed { which, offer ->
             val grouped = offer.size > 1
+            // **The heading is a row, not a heading.** A group is a thing you can delete whole, and the
+            // only place that means anything is the line naming it — a cursor that skipped past it left
+            // `d` deleting settings one at a time with no way to say "not this idea at all".
             val head = if (!grouped) emptyList() else listOf(
                 Row(
-                    handle = "heading/group/${insistence.name}/$at/$which",
-                    shown = listOf(Ink("      group", Palette.tag)),
+                    handle = "group/${insistence.name}/$at/$which",
+                    shown = listOf(Ink("      group ${which + 1}", Palette.tag)),
+                    note = "d  removes the whole group ${Glyph.BULLET} enter or a  adds another setting to it",
                 ),
             )
-            head + offer.entries.sortedBy { it.key }.map { (parameter, value) ->
+            val settings = offer.entries.sortedBy { it.key }.map { (parameter, value) ->
                 facetRow(
                     "pool/${insistence.name}/$at/$parameter",
                     parameter,
@@ -684,6 +688,16 @@ class Parts(private val corpus: Corpus) {
                     grouped = grouped,
                 )
             }
+            // **On the group, not on the pool.** What a group takes is a question about that group, and
+            // the row under it is where a reader already is when they think to ask.
+            val joining = if (!grouped) emptyList() else listOf(
+                Row(
+                    handle = "+into/${insistence.name}/$at/$which",
+                    shown = listOf(Ink("        + add to this group", Palette.faint)),
+                    note = "drawn with the rest of it or not at all",
+                ),
+            )
+            head + settings + joining
         }
 
     private fun facetRow(
@@ -708,7 +722,7 @@ class Parts(private val corpus: Corpus) {
             ),
             note = listOfNotNull(
                 parameterNote(parameter, value, word).ifEmpty { null },
-                if (deeper) "a  adds a setting to this offer, drawn with it or not at all" else null,
+                if (deeper) "a  puts another setting in this one's group" else null,
             ).joinToString("\n    "),
         )
 
@@ -1407,6 +1421,19 @@ fun Candidate.withoutInPool(insistence: Insistence, at: Int, parameter: String):
     // Out of whichever offer held it, and the offer with it where that was the last of it — an empty
     // offer is a thing the pool might draw and nothing would happen.
     val left = standing.offers.map { it - parameter }.filter { it.isNotEmpty() }
+    if (left.isEmpty()) return withoutPool(insistence, at)
+    return changingPool(insistence, at) {
+        it.copy(offers = left, draws = Draws.of(it.draws.most.coerceAtMost(left.size)))
+    }
+}
+
+/**
+ * This word without the whole of one of a pool's groups — **and without the pool where that was the last
+ * of it**, a pool with nothing to draw being a claim written down and never read.
+ */
+fun Candidate.withoutOffer(insistence: Insistence, at: Int, which: Int): Candidate {
+    val standing = poolsOn(insistence).getOrNull(at) ?: return this
+    val left = standing.offers.filterIndexed { where, _ -> where != which }
     if (left.isEmpty()) return withoutPool(insistence, at)
     return changingPool(insistence, at) {
         it.copy(offers = left, draws = Draws.of(it.draws.most.coerceAtMost(left.size)))

@@ -955,6 +955,12 @@ class Editor(
             // The two ways into a pool that exists, said on its own rows rather than left to `a`.
             "+in" -> pointedAt(rest)?.let { into -> building = into; pickATarget(into) }
             "+group" -> pointedAt(rest)?.let { into -> building = into; startAGroup(into) }
+            // A group's own rows — its heading and the `+` under it both ask what goes in *this* one.
+            "+into", "group" -> pointedAt(rest.substringBeforeLast('/'))?.let { into ->
+                val which = rest.substringAfterLast('/').toIntOrNull()
+                building = into.copy(offer = which)
+                pickATarget(into.copy(offer = which))
+            }
             "heading" -> Unit
             // **The pool's own menu**, where adding a facet and setting the count are the same size of
             // decision. Opening straight into the count made the count the price of looking at the pool.
@@ -1038,28 +1044,18 @@ class Editor(
     /** After a facet goes in: another, the count, or done. */
     private fun keepBuilding(into: Into) {
         val pool = candidate.poolsOn(into.insistence).getOrNull(into.pool ?: return) ?: return
-        val inAGroup = into.offer?.let { pool.offers.getOrNull(it) }
-        val alone = Picker.Option(
-            ANOTHER_FACET,
-            if (inAGroup == null) "add another setting" else "add another, on its own",
-            "drawn by itself, as one of ${pool.offers.size + 1}",
-        )
-        // **Staying in the group, or starting one** — whichever the writer is not already doing. A group
-        // is what a pool could not say before, so the way into one is offered wherever it can be taken.
-        val grouping = if (inAGroup != null) {
-            Picker.Option(
-                ANOTHER_IN_THE_GROUP,
-                "add another to this group",
-                "drawn with ${inAGroup.keys.sorted().joinToString(" ")} or not at all",
-            )
-        } else {
-            Picker.Option(NEW_GROUP, "add a group", "settings drawn together or not at all")
-        }
         overlay = Picker(
             title = "${into.insistence.title} ${Parts.poolNamed(into.pool)} — ${pool.offers.size} offer(s)",
             options = listOf(
-                alone,
-                grouping,
+                Picker.Option(
+                    ANOTHER_FACET,
+                    "add another setting",
+                    "drawn by itself, as one of ${pool.offers.size + 1}",
+                ),
+                // **What a group takes is asked on the group**, which is a row in the list under it. Here
+                // it was a question about whichever group happened to be under construction — state a
+                // writer had no way to see and so no way to aim.
+                Picker.Option(NEW_GROUP, "add a group", "settings drawn together or not at all"),
                 Picker.Option(
                     HOW_MANY_DRAWN,
                     "how many are drawn",
@@ -1073,7 +1069,6 @@ class Editor(
         ) { picked ->
             when (picked.value) {
                 ANOTHER_FACET -> into.copy(offer = null).let { building = it; pickATarget(it) }
-                ANOTHER_IN_THE_GROUP -> pickATarget(into)
                 NEW_GROUP -> startAGroup(into)
                 HOW_MANY_DRAWN -> retypeDraws(into)
                 else -> building = null
@@ -1161,6 +1156,11 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
         val named = rest.substringAfter('/', "")
         when (part) {
             Part.PROPERTIES -> when (handle.substringBefore('/')) {
+                // The whole idea, rather than a setting of it: what a group *is* is that it goes together.
+                "group" -> pointedAt(rest.substringBeforeLast('/'))?.let { into ->
+                    val which = rest.substringAfterLast('/').toIntOrNull() ?: return@let
+                    edit { it.withoutOffer(into.insistence, into.pool ?: return@edit it, which) }
+                }
                 "pool" -> pointedAt(handle.removePrefix("pool/").substringBeforeLast('/'))?.let { into ->
                     val parameter = handle.substringAfterLast('/')
                     edit { it.withoutInPool(into.insistence, into.pool ?: return@edit it, parameter) }
@@ -1812,7 +1812,30 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
     private fun setParameters(parameters: List<String>, into: Into, value: String) {
         overlay = null
         edit { at -> parameters.fold(at) { word, parameter -> word.putting(into, parameter, value) } }
-        building?.let(::keepBuilding)
+        // **A setting that joined a group is asked about the group**, not about the pool: a group of one
+        // is indistinguishable from a lone facet and has no heading yet, so ending here would leave a
+        // writer who had just said "add a group" with a group they could not get back into.
+        if (into.offer != null) keepTheGroup(into) else building?.let(::keepBuilding)
+    }
+
+    /** What else goes in the group [into] points at — the pool's menu asked one level down. */
+    private fun keepTheGroup(into: Into) {
+        val pool = candidate.poolsOn(into.insistence).getOrNull(into.pool ?: return) ?: return
+        val offer = pool.offers.getOrNull(into.offer ?: return) ?: return
+        building = into
+        overlay = Picker(
+            title = "${Parts.poolNamed(into.pool)}, group ${into.offer + 1} — ${offer.size} setting(s)",
+            options = listOf(
+                Picker.Option(
+                    ANOTHER_IN_THE_GROUP,
+                    "add another to this group",
+                    "drawn with ${offer.keys.sorted().joinToString(" ")} or not at all",
+                ),
+                Picker.Option(DONE_BUILDING, "done", "", startsGroup = true),
+            ),
+        ) { picked ->
+            if (picked.value == ANOTHER_IN_THE_GROUP) pickATarget(into) else building = null
+        }
     }
 
     /** One value, written to every parameter asked for — they were chosen together and they mean one thing. */
