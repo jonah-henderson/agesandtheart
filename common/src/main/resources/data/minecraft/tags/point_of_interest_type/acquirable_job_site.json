@@ -1,0 +1,10 @@
+{
+  "_comment": [
+    "Required, and it is the whole of what lets a villager take the job: VillagerProfession's",
+    "ALL_ACQUIRABLE_JOBS is literally 'is in this tag'. Additive -- a tag file merges with vanilla's",
+    "unless it says `replace`, so the thirteen vanilla job sites are untouched."
+  ],
+  "values": [
+    "agesandtheart:writer"
+  ]
+}

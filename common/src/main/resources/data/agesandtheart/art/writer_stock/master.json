@@ -1,0 +1,23 @@
+{
+  "_comment": [
+    "The master pool's authored half: words that are hard to come by any other way, since no device",
+    "derives one and page loot treats most of them as rare. The pool's derived half -- the Nether and End",
+    "materials -- is in tags/block/writer_stock/master.json."
+  ],
+  "words": [
+    "beautiful",
+    "colossal",
+    "delved",
+    "deserted",
+    "floating",
+    "foreboding",
+    "hollow",
+    "lifeless",
+    "starless",
+    "starlit",
+    "unbroken",
+    "uncanny",
+    "untouched",
+    "wondrous"
+  ]
+}

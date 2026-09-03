@@ -1,0 +1,14 @@
+{
+  "_comment": "Blank. The one with pages in it is an Expert trade.",
+  "wants": {
+    "id": "minecraft:emerald",
+    "count": 5
+  },
+  "gives": {
+    "id": "agesandtheart:notebook",
+    "count": 1
+  },
+  "max_uses": 12,
+  "xp": 10,
+  "reputation_discount": 0.05
+}

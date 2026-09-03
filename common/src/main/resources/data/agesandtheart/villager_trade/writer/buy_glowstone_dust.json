@@ -1,0 +1,14 @@
+{
+  "_comment": "What refines an ink. Tracks the fine ink recipe, which is itself still a stub.",
+  "wants": {
+    "id": "minecraft:glowstone_dust",
+    "count": 4
+  },
+  "gives": {
+    "id": "minecraft:emerald",
+    "count": 1
+  },
+  "max_uses": 12,
+  "xp": 10,
+  "reputation_discount": 0.05
+}

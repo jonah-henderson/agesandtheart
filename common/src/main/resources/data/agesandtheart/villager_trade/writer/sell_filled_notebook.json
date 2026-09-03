@@ -1,0 +1,25 @@
+{
+  "_comment": "Four or five apprentice words for what two would cost singly -- the reason to level a writer.",
+  "wants": {
+    "id": "minecraft:emerald",
+    "count": 24
+  },
+  "gives": {
+    "id": "agesandtheart:notebook",
+    "count": 1
+  },
+  "max_uses": 12,
+  "xp": 15,
+  "reputation_discount": 0.05,
+  "given_item_modifiers": [
+    {
+      "function": "agesandtheart:fill_notebook",
+      "pages": {
+        "type": "minecraft:uniform",
+        "min": 4,
+        "max": 5
+      },
+      "pool": "agesandtheart:writer_stock/apprentice"
+    }
+  ]
+}

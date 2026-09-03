@@ -14,6 +14,7 @@ import co.voik.agesandtheart.book.RepatternBookRecipe
 import co.voik.agesandtheart.worldgen.fissure.CollapsingFissureBlock
 import co.voik.agesandtheart.worldgen.fissure.StarFissureBlock
 import co.voik.agesandtheart.worldgen.fissure.StarFissureBlockEntity
+import co.voik.agesandtheart.desk.WriterProfession
 import co.voik.agesandtheart.desk.WritersDeskBlock
 import co.voik.agesandtheart.desk.WritersDeskBlockEntity
 import co.voik.agesandtheart.desk.InkCaseMenu
@@ -43,6 +44,8 @@ import net.minecraft.resources.Identifier
 import net.minecraft.resources.ResourceKey
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
+import net.minecraft.world.entity.ai.village.poi.PoiType
+import net.minecraft.world.entity.npc.villager.VillagerProfession
 import net.minecraft.world.item.BlockItem
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
@@ -269,6 +272,12 @@ object AgeContent {
     val WRITERS_DESK_ENTITY: BlockEntityType<WritersDeskBlockEntity> =
         BlockEntityType({ pos, state -> WritersDeskBlockEntity(pos, state) }, setOf(WRITERS_DESK_BLOCK))
 
+    /** The desk as a job site — see [WriterProfession] for why only its centre counts. */
+    val WRITERS_DESK_POI: PoiType = WriterProfession.poiType(WRITERS_DESK_BLOCK)
+
+    /** The villager who works one. */
+    val WRITER_PROFESSION: VillagerProfession = WriterProfession.profession()
+
     private val STAR_FISSURE_ID: Identifier = "star_fissure".location()
 
     /**
@@ -409,6 +418,19 @@ object AgeContent {
         COLLAPSING_FISSURE_ID to COLLAPSING_FISSURE_BLOCK,
         ANALYSIS_MACHINE_ID to ANALYSIS_MACHINE_BLOCK,
         SURVEYING_DEVICE_ID to SURVEYING_DEVICE_BLOCK,
+    )
+
+    /**
+     * **Each loader registers these its own way**, and that is the whole platform cost of the profession.
+     * NeoForge maps a point of interest's block states off the registry itself; Fabric's `PoiTypes` keeps
+     * that map private, so its API rebuilds the type from these three values.
+     */
+    val poiTypes: List<Pair<Identifier, PoiType>> = listOf(
+        WriterProfession.ID to WRITERS_DESK_POI,
+    )
+
+    val villagerProfessions: List<Pair<Identifier, VillagerProfession>> = listOf(
+        WriterProfession.ID to WRITER_PROFESSION,
     )
 
     val blockEntities: List<Pair<Identifier, BlockEntityType<*>>> = listOf(

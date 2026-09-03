@@ -1,0 +1,10 @@
+{
+  "_comment": "Two of these, drawn per villager -- vanilla's number, so writers differ and one is worth seeking.",
+  "trades": [
+    "agesandtheart:writer/buy_glowstone_dust",
+    "agesandtheart:writer/sell_fine_paper",
+    "agesandtheart:writer/sell_notebook"
+  ],
+  "amount": 2,
+  "allow_duplicates": false
+}

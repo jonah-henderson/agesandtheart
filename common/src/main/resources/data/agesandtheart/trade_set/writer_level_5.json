@@ -1,0 +1,9 @@
+{
+  "_comment": "Two of these, drawn per villager -- vanilla's number, so writers differ and one is worth seeking.",
+  "trades": [
+    "agesandtheart:writer/sell_master_page",
+    "agesandtheart:writer/sell_written_book"
+  ],
+  "amount": 2,
+  "allow_duplicates": false
+}

@@ -36,6 +36,16 @@ object AgeConfig {
      */
     val collectsUnreachableAges: ModConfigSpec.BooleanValue
 
+    /**
+     * Whether a villager will work a writer's desk (the plan's "can be done any time" list).
+     *
+     * Read **live** by both of the profession's job-site predicates rather than gating registration,
+     * which is not a thing a frozen registry allows: the profession exists on every server, and this
+     * decides whether anyone may hold it. That is also what makes turning it off take effect at once —
+     * `heldJobSite` stops matching, so writers already at a desk give it up.
+     */
+    val villagerWriters: ModConfigSpec.BooleanValue
+
     /** The spec each loader hands to its own config system. */
     val SPEC: ModConfigSpec
 
@@ -52,6 +62,17 @@ object AgeConfig {
             .translation(translationOf("collects_unreachable_ages"))
             .define("collectsUnreachableAges", false)
         builder.pop()
+        builder.comment("Villagers").push(VILLAGERS)
+        villagerWriters = builder
+            .comment(
+                "Let a villager take up a writer's desk as a job site, and trade pages, papers, inks and",
+                "written Descriptive Books. Turn this off for a world where the Art is found rather than",
+                "bought. TAKES EFFECT AT ONCE: villagers already working a desk lose the job and go back",
+                "to being unemployed, keeping neither their trades nor their level.",
+            )
+            .translation(translationOf("villager_writers"))
+            .define("villagerWriters", true)
+        builder.pop()
         SPEC = builder.build()
     }
 
@@ -59,4 +80,6 @@ object AgeConfig {
     private fun translationOf(option: String): String = "config.${Constants.MOD_ID}.$option"
 
     private const val HOUSEKEEPING = "housekeeping"
+
+    private const val VILLAGERS = "villagers"
 }

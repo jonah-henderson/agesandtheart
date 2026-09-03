@@ -1,0 +1,42 @@
+{
+  "_comment": [
+    "What a village writer sells at Apprentice. Decorative, a chore to gather, and worth nothing to an",
+    "Age beyond its colour -- so a page from here is a curiosity rather than a capability.",
+    "A pack adds its own by tagging a block; the authored half is art/writer_stock/apprentice.json."
+  ],
+  "values": [
+    "minecraft:white_glazed_terracotta",
+    "minecraft:orange_glazed_terracotta",
+    "minecraft:magenta_glazed_terracotta",
+    "minecraft:light_blue_glazed_terracotta",
+    "minecraft:yellow_glazed_terracotta",
+    "minecraft:lime_glazed_terracotta",
+    "minecraft:pink_glazed_terracotta",
+    "minecraft:gray_glazed_terracotta",
+    "minecraft:light_gray_glazed_terracotta",
+    "minecraft:cyan_glazed_terracotta",
+    "minecraft:purple_glazed_terracotta",
+    "minecraft:blue_glazed_terracotta",
+    "minecraft:brown_glazed_terracotta",
+    "minecraft:green_glazed_terracotta",
+    "minecraft:red_glazed_terracotta",
+    "minecraft:black_glazed_terracotta",
+    "minecraft:tube_coral_block",
+    "minecraft:brain_coral_block",
+    "minecraft:bubble_coral_block",
+    "minecraft:fire_coral_block",
+    "minecraft:horn_coral_block",
+    "minecraft:brown_mushroom_block",
+    "minecraft:red_mushroom_block",
+    "minecraft:mushroom_stem",
+    "minecraft:sponge",
+    "minecraft:wet_sponge",
+    "minecraft:packed_ice",
+    "minecraft:blue_ice",
+    "minecraft:moss_block",
+    "minecraft:sculk",
+    "minecraft:amethyst_block",
+    "minecraft:budding_amethyst",
+    "minecraft:honeycomb_block"
+  ]
+}

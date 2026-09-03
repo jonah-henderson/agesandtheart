@@ -92,6 +92,8 @@ data class Vocabulary(
     val rarity: WordRarity,
     /** Which ink each word demands. The first reader of the resolver's cost number (design 7.1.1). */
     val ink: InkRequirement,
+    /** What a village writer keeps in stock, by pool. Nothing about resolution reads this. */
+    val stock: WriterStock,
     /** The grammars the Art writes *out* of — books it could have written, names, repairs. */
     val generation: GenerationGrammars,
     /**
@@ -386,6 +388,7 @@ data class Vocabulary(
             val script = Script.load(resources, problems)
             val rarity = WordRarity.load(resources, problems)
             val ink = InkRequirement.load(resources, problems)
+            val stock = WriterStock.load(resources, problems)
             // After the words, since a grammar naming one that does not exist is the fault worth reporting.
             val generation = GenerationGrammars.load(
                 resources,
@@ -398,8 +401,8 @@ data class Vocabulary(
             val derivedIds = fromContent.map { it.id }.toSet() - authored.values.map { it.id }.toSet()
             val charges = readCharges(resources, problems)
             return Vocabulary(
-                words, structural, described, antonyms, script, rarity, ink, generation, charges, derivedIds,
-                rules, spawning, problems,
+                words, structural, described, antonyms, script, rarity, ink, stock, generation, charges,
+                derivedIds, rules, spawning, problems,
             )
         }
 

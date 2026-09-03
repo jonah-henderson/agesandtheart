@@ -1,0 +1,14 @@
+{
+  "_comment": "Ink sacs go in at Apprentice and come back out as ink here; the refining is the trade.",
+  "wants": {
+    "id": "minecraft:emerald",
+    "count": 1
+  },
+  "gives": {
+    "id": "agesandtheart:ink_bottle",
+    "count": 1
+  },
+  "max_uses": 16,
+  "xp": 1,
+  "reputation_discount": 0.05
+}

@@ -1,0 +1,14 @@
+{
+  "_comment": "A writer takes paper by the ream. Bought raw and sold on refined -- never handed back.",
+  "wants": {
+    "id": "minecraft:paper",
+    "count": 24
+  },
+  "gives": {
+    "id": "minecraft:emerald",
+    "count": 1
+  },
+  "max_uses": 16,
+  "xp": 2,
+  "reputation_discount": 0.05
+}

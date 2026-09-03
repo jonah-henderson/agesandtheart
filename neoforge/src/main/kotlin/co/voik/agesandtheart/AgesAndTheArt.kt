@@ -107,6 +107,15 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         event.register(Registries.BLOCK_ENTITY_TYPE) { helper ->
             AgeContent.blockEntities.forEach { (id, type) -> helper.register(id, type) }
         }
+        // NeoForge maps a point of interest's block states off the registry itself — see
+        // NeoForgeRegistryCallbacks.PoiTypeCallbacks — so plain registration is all it takes here.
+        // Fabric's half of this is `PoiHelper`, because vanilla's own state map is private.
+        event.register(Registries.POINT_OF_INTEREST_TYPE) { helper ->
+            AgeContent.poiTypes.forEach { (id, type) -> helper.register(id, type) }
+        }
+        event.register(Registries.VILLAGER_PROFESSION) { helper ->
+            AgeContent.villagerProfessions.forEach { (id, profession) -> helper.register(id, profession) }
+        }
         event.register(Registries.MENU) { helper ->
             AgeContent.menus.forEach { (id, type) -> helper.register(id, type) }
         }

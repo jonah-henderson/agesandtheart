@@ -1,0 +1,23 @@
+{
+  "_comment": [
+    "The master pool's derived half: Nether and End materials, which say plainly that this writer has",
+    "been somewhere else. The authored words are listed in art/writer_stock/master.json."
+  ],
+  "values": [
+    "minecraft:blackstone",
+    "minecraft:basalt",
+    "minecraft:soul_sand",
+    "minecraft:soul_soil",
+    "minecraft:magma_block",
+    "minecraft:glowstone",
+    "minecraft:shroomlight",
+    "minecraft:nether_wart_block",
+    "minecraft:warped_wart_block",
+    "minecraft:crimson_nylium",
+    "minecraft:warped_nylium",
+    "minecraft:end_stone",
+    "minecraft:purpur_block",
+    "minecraft:obsidian",
+    "minecraft:crying_obsidian"
+  ]
+}

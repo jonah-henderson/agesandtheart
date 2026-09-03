@@ -28,6 +28,8 @@ import co.voik.agesandtheart.platform.FabricInkFluids
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
 import net.fabricmc.fabric.api.loot.v3.LootTableEvents
+// `object` is a Kotlin keyword, and Fabric's package is spelled with one.
+import net.fabricmc.fabric.api.`object`.builder.v1.world.poi.PoiHelper
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents
@@ -60,6 +62,15 @@ fun init() {
     AgeContent.structureTypes.forEach { (id, type) -> Registry.register(BuiltInRegistries.STRUCTURE_TYPE, id, type) }
     AgeContent.structurePieces.forEach { (id, type) ->
         Registry.register(BuiltInRegistries.STRUCTURE_PIECE, id, type)
+    }
+    // **Through `PoiHelper`, not `Registry.register`.** `PoiTypes` keeps its block-state map private, so
+    // a plainly registered point of interest is never recognised on the ground — `PoiTypes.forState`
+    // returns nothing and no villager sees the desk. NeoForge's half needs no such help.
+    AgeContent.poiTypes.forEach { (id, type) ->
+        PoiHelper.register(id, type.maxTickets(), type.validRange(), type.matchingStates())
+    }
+    AgeContent.villagerProfessions.forEach { (id, profession) ->
+        Registry.register(BuiltInRegistries.VILLAGER_PROFESSION, id, profession)
     }
     AgeContent.menus.forEach { (id, type) -> Registry.register(BuiltInRegistries.MENU, id, type) }
     AgeContent.recipeSerializers.forEach { (id, serializer) ->
