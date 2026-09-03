@@ -6,12 +6,36 @@
       "watery": 0.3
     }
   },
+  "inferno": {
+    "_comment": "Fire as the world's condition rather than an event in it, so `molten` carries the whole of what it is and `hostile` is what that comes to for anybody standing in it. `dry` because the Age it wants is one the rain has left -- which is a fact about the phenomenon and not the weather it happens to arrive with.",
+    "tags": {
+      "molten": 1.0,
+      "hostile": 0.8,
+      "dry": 0.6
+    }
+  },
   "aurora": {
     "_comment": "Bright and colourful, and no more: a tag names what a thing essentially is. This is what puts a curtain within reach of `beautiful` -- which queries colourful 1.0 and bright 0.6 -- and out of reach of `foreboding`, whose negative terms strike it out rather than dimming it. `frozen` because an aurora belongs where the snow does, which is a fact about it and not a mood.",
     "tags": {
       "colourful": 1.0,
       "bright": 0.9,
       "frozen": 0.5
+    }
+  },
+  "rainbow": {
+    "_comment": "Colour is the whole of it, and the light behind the colour is the rest. `watery` because a bow is sunlight bent through falling rain and cannot happen in a dry Age -- weakly, since the water is what it is made of rather than what it is.",
+    "tags": {
+      "colourful": 1.0,
+      "bright": 0.7,
+      "watery": 0.4
+    }
+  },
+  "sandfall": {
+    "_comment": "A column of loose ground walking the Age, so `sandy` is what it is made of and what it leaves behind. `hostile` for the burial, and `dry` for the same reason an inferno is: the Age it belongs in is one nothing has watered.",
+    "tags": {
+      "sandy": 1.0,
+      "hostile": 0.7,
+      "dry": 0.6
     }
   }
 }

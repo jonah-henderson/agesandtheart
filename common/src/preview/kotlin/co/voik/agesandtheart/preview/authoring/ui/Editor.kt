@@ -421,13 +421,11 @@ class Editor(
             )
         }
         is Reader -> hints("↑↓" to "scroll", "pgup/pgdn" to "a page", "home/end" to "ends", "←" to "close")
-        // The review page reads rather than edits, so it says what its one key does instead of offering
-        // six that answer nothing there.
+        // The review page reads rather than edits, so it offers none of the keys that change a word.
         null -> if (inside && part == Part.REVIEW) {
             hints(
                 "↑↓" to "row", "pgup/pgdn" to "a page", "home/end" to "ends", "←" to "back",
-                "enter" to "open what it does", "?" to "help", "^p" to "preview", "^t" to "try",
-                "^f" to "faults", "^s" to "save",
+                "?" to "help", "^p" to "preview", "^t" to "try", "^f" to "faults", "^s" to "save",
             )
         } else if (inside) {
             hints(
@@ -671,7 +669,7 @@ class Editor(
         when (part) {
             Part.NAME -> if (rows().getOrNull(row())?.handle == "display") retitle() else renameTo()
             Part.TIER -> Tier.entries.firstOrNull { it.key == handle }?.let { tier -> edit { it.copy(tier = tier) } }
-            Part.REVIEW -> parts.openOrClose(handle)
+            Part.REVIEW -> Unit
             Part.TEMPLATE -> pickABaseDimension()
             Part.PROPERTIES -> actOnAnEffect(handle)
             Part.POPULATIONS -> actOnAPick(handle)

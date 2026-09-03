@@ -237,7 +237,7 @@ enum class Aspect(
      * The one aspect a sentence fills *and* consequences arrive at: a meteor storm you wrote is a hazard
      * you prepared for, and one you did not write is the Age telling you something is wrong (§7.7).
      */
-    PHENOMENA("phenomena", Holds.WEIGHTED_SET, open = true),
+    PHENOMENA("phenomena", Holds.WEIGHTED_SET),
 
     /**
      * What the clouds over this world are coloured.

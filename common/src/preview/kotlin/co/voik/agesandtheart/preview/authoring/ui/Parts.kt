@@ -126,19 +126,6 @@ class Parts(private val corpus: Corpus) {
      */
     var helpAspect: Int = 0
 
-    /**
-     * Which review rows have been opened to the claims their one-line summary stands for.
-     *
-     * By handle rather than by index, so opening one and then editing the word elsewhere leaves it open on
-     * the row it was opened on rather than on whatever moved into that position.
-     */
-    private val opened = mutableSetOf<String>()
-
-    /** Opens a review row's breakdown, or closes it — the one thing that page's enter does. */
-    fun openOrClose(handle: String) {
-        if (!opened.add(handle)) opened.remove(handle)
-    }
-
     fun rowsOf(part: Part, candidate: Candidate, word: Word?, width: Int): List<Row> = when (part) {
         Part.NAME -> nameRows(candidate)
         Part.TIER -> tierRows(candidate)
@@ -211,20 +198,19 @@ class Parts(private val corpus: Corpus) {
     private sealed interface Told {
         val handle: String
 
-        /** A line that owns the width: a heading, a comment, an opened breakdown. */
+        /** A line that owns the width: a heading, a blank, a line of the comment, the aspects it reaches. */
         data class Whole(override val handle: String, val shown: List<Ink>) : Told
 
         /** A line in the page's columns: what it is about, what it says, and the aside after. */
-        data class Columned(override val handle: String, val cells: List<Ink>, val note: String = "") : Told
+        data class Columned(override val handle: String, val cells: List<Ink>) : Told
     }
 
     /**
-     * **The whole word on one page**, in the order somebody checks it: what it costs, where it lands, what
-     * it sets, what it does to each population, and why it exists.
+     * **The whole word on one page**, read-only, in the order somebody checks it: what it costs, what it
+     * sets, what it does to each set of members, where all of that lands, and why it exists.
      *
-     * Read-only but for one key: a row saying what a word does to one part of the world is a summary, and
-     * enter opens it to the claims it summarised. **Empty sections are absent rather than stated** — what
-     * a word has not said is already on the section list to its left as a blank mark.
+     * **Empty sections are absent rather than stated** — what a word has not said is already on the
+     * section list to its left as a blank mark, and the page is worth having only if scanning it is quick.
      */
     private fun reviewRows(candidate: Candidate, word: Word?, width: Int): List<Row> {
         if (word == null) {
@@ -232,13 +218,13 @@ class Parts(private val corpus: Corpus) {
         }
         val listing = WordFile.listingFor(candidate.listingKey)
         // **A section at a time.** One measurement for the whole page makes every value column as wide as
-        // the widest thing any section put there — the sentence saying what an aspect holds — so a
-        // temperature of `0.5..1.0` sat alone in fifty columns with its aside pushed off the end.
+        // the longest thing any section puts there, so a temperature of `0.5..1.0` sits alone in the width
+        // of a tag query with its aside pushed off the end.
         val sections = listOf(
             under("cost", costTold(candidate, word, listing)),
-            under("aspects", aspectsTold(candidate, word)),
             under("properties", propertiesTold(candidate)),
             under("populations", populationsTold(candidate)),
+            under("aspects", aspectsTold(word, width)),
             under("comment", candidate.commentLines.map { said(it) }),
         )
         if (sections.all { it.isEmpty() }) {
@@ -263,7 +249,6 @@ class Parts(private val corpus: Corpus) {
                 is Told.Columned -> Row(
                     row.handle,
                     listOf(Ink(" ".repeat(REVIEW_INDENT))) + Columns.laid(row.cells, widths, gap).inks,
-                    row.note,
                 )
             }
         }
@@ -277,9 +262,12 @@ class Parts(private val corpus: Corpus) {
      */
     private fun under(title: String, rows: List<Told>): List<Told> =
         if (rows.isEmpty()) emptyList() else listOf(
-            Told.Whole("heading/space/$title", emptyList()),
+            blank(title),
             Told.Whole("heading/$title", listOf(Ink(title, Palette.heading))),
         ) + rows
+
+    /** A line that spaces two things apart, handled as a heading so the cursor passes over it. */
+    private fun blank(named: String) = Told.Whole("heading/space/$named", emptyList())
 
     /** A group inside a section — the required half of the properties, or one pool of them. */
     private fun grouped(title: String, rows: List<Told>): List<Told> =
@@ -300,61 +288,18 @@ class Parts(private val corpus: Corpus) {
     }
 
     /**
-     * One line per part of the world the word reaches: what that part holds, and **what this word does to
-     * it** said in one line.
+     * Every part of the world the word reaches, in one line that wraps.
      *
-     * It used to say which parameters the word turns, which is a list of names rather than an account of
-     * anything — and it read the names unqualified, so a word setting `sun.colour` claimed to turn the
-     * colour of the sky, the air, the clouds, the grass and the leaves as well. What is wanted here is
-     * what actually changes, and the exact claims are one keystroke away rather than on the line.
+     * **Read, never set, and read as names alone.** It used to say what the word holds and does in each,
+     * which is what the two sections above it now are — said claim by claim rather than summarised into an
+     * aside. Last, because it is the least of what a reader came here for.
      */
-    private fun aspectsTold(candidate: Candidate, word: Word): List<Told> =
-        word.aspects.sortedBy { it.ordinal }.flatMap { aspect ->
-            val handle = "aspect/${aspect.page}"
-            val done = doesHere(candidate, word, aspect)
-            val summary = done.joinToString("  ${Glyph.BULLET} ").ifEmpty { "nothing that lands here" }
-            val row = Told.Columned(
-                handle,
-                listOf(Ink(aspect.page, Palette.value), Ink(whatItHolds(aspect), Palette.faint), Ink(summary)),
-                note = when {
-                    done.size <= 1 -> ""
-                    handle in opened -> "enter closes it again"
-                    else -> "enter opens what it does here, claim by claim"
-                },
-            )
-            val breakdown = if (handle !in opened) emptyList() else done.map { one ->
-                Told.Whole("$handle/said", listOf(Ink("        $one", Palette.faint)))
-            }
-            listOf(row) + breakdown
-        }
-
-    /**
-     * Everything this word does to one part of the world, in the order the pipeline takes it.
-     *
-     * **Asked per aspect, honouring the qualifier** ([landsOn]): a claim on `sun.colour` belongs to the
-     * sun and nowhere else, and an unqualified `colour` belongs to every part that owns one.
-     */
-    private fun doesHere(candidate: Candidate, word: Word, aspect: Aspect): List<String> = buildList {
-        candidate.chooses[aspect]?.let { add("chooses $it") }
-        candidate.admits[aspect]?.sorted()?.forEach { add("adds $it") }
-        candidate.restricts[aspect]?.entries?.sortedByDescending { it.value }
-            ?.forEach { (tag, weight) -> add("keeps only $TAG_MARK$tag ${"%+.2f".format(weight)}") }
-        candidate.excludes[aspect]?.sorted()?.forEach { add("removes $it") }
-        candidate.biases[aspect]?.entries?.sortedByDescending { it.value }
-            ?.forEach { (named, weight) -> add("leans $named ${"%+.2f".format(weight)}") }
-        candidate.leansEverywhere.entries.sortedByDescending { it.value }
-            .forEach { (named, weight) -> add("leans $named ${"%+.2f".format(weight)} everywhere") }
-        for (insistence in Insistence.entries) {
-            val where = if (insistence.required) "" else " (requested)"
-            candidate.settingOn(insistence).entries.sortedBy { it.key }
-                .filter { landsOn(it.key, aspect) }
-                .forEach { (parameter, value) -> add("${parameterIn(parameter)} $value$where") }
-            for (pool in candidate.poolsOn(insistence)) {
-                val here = pool.facets.keys.filter { landsOn(it, aspect) }.sorted()
-                if (here.isEmpty()) continue
-                add("draws ${pool.said} of ${pool.facets.size}$where: ${here.joinToString(" ", transform = ::parameterIn)}")
-            }
-        }
+    private fun aspectsTold(word: Word, width: Int): List<Told> {
+        val reached = word.aspects.sortedBy { it.ordinal }.joinToString(", ") { it.page }
+        if (reached.isEmpty()) return emptyList()
+        val indent = " ".repeat(REVIEW_INDENT)
+        return Line(indent + reached, Palette.value).wrapped(width, hanging = indent)
+            .map { Told.Whole("reaches", it.inks) }
     }
 
     /**
@@ -364,22 +309,26 @@ class Parts(private val corpus: Corpus) {
      * count, its size and every facet it offers as one run-on aside. Its facets are claims like any other
      * and belong in the same columns, under a heading that says what the draw is.
      */
-    private fun propertiesTold(candidate: Candidate): List<Told> = Insistence.entries.flatMap { insistence ->
-        val always = grouped(
-            insistence.title,
-            candidate.settingOn(insistence).entries.sortedBy { it.key }.map { (parameter, value) ->
-                told("set/${insistence.name}/$parameter", parameterIn(parameter), value, wherever(parameter))
-            },
-        )
-        val pools = candidate.poolsOn(insistence).flatMapIndexed { at, pool ->
-            grouped(
-                "${insistence.title} pool ${Glyph.BULLET} draws ${pool.said} of ${pool.facets.size}",
-                pool.facets.entries.sortedBy { it.key }.map { (parameter, value) ->
-                    told("pool/${insistence.name}/$at/$parameter", parameterIn(parameter), value, wherever(parameter))
+    private fun propertiesTold(candidate: Candidate): List<Told> {
+        val groups = Insistence.entries.flatMap { insistence ->
+            val always = grouped(
+                insistence.title,
+                candidate.settingOn(insistence).entries.sortedBy { it.key }.map { (parameter, value) ->
+                    told("set/${insistence.name}/$parameter", parameterIn(parameter), value, wherever(parameter))
                 },
             )
-        }
-        always + pools
+            val pools = candidate.poolsOn(insistence).mapIndexed { at, pool ->
+                grouped(
+                    "${insistence.title} pool ${Glyph.BULLET} draws ${pool.said} of ${pool.facets.size}",
+                    pool.facets.entries.sortedBy { it.key }.map { (parameter, value) ->
+                        told("pool/${insistence.name}/$at/$parameter", parameterIn(parameter), value, wherever(parameter))
+                    },
+                )
+            }
+            listOf(always) + pools
+        }.filter { it.isNotEmpty() }
+        // A blank between the groups and none before the first, which the section heading already carries.
+        return groups.reduceOrNull { standing, next -> standing + blank("group") + next }.orEmpty()
     }
 
     /** The parts of the world a parameter key lands in — the aside a property row carries. */
@@ -413,23 +362,6 @@ class Parts(private val corpus: Corpus) {
             }
         }
         return everywhere + keyed
-    }
-
-    /**
-     * What an aspect holds, said rather than named.
-     *
-     * `Holds` is the code's word for this and a fine one there; on screen the constant alone answers a
-     * question nobody asked — "weighted_set" says nothing to somebody looking at `biomes`.
-     */
-    private fun whatItHolds(aspect: Aspect): String {
-        val kind = when (aspect.holds) {
-            Holds.NOTHING -> "properties only, no members"
-            Holds.RANGE -> "one value on an axis"
-            Holds.CATALOGUE -> "one member, from a list"
-            Holds.WEIGHTED_SET -> "a table of kinds, weighed"
-            Holds.POPULATION -> "members written one at a time"
-        }
-        return kind + if (aspect.open) " ${Glyph.BULLET} anything in the game" else ""
     }
 
     /** A section that is one thing to do, so its whole list is the doing of it. */
