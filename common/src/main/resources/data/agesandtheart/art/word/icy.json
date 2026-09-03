@@ -5,10 +5,19 @@
       "aurora"
     ]
   },
+  "excludes": {
+    "sea": [
+      "#molten"
+    ]
+  },
   "biases": {
     "sea": {
-      "#frozen": 0.7,
-      "#molten": -1.0
+      "#frozen": 0.7
+    },
+    "biomes": {
+      "#frozen": 0.30000000000000016,
+      "minecraft:ice_spikes": 0.6,
+      "minecraft:frozen_ocean": 0.1
     }
   },
   "sets": {

@@ -341,19 +341,29 @@ class Editor(
                 forExample = band.illustrated,
             ) +
             Line.BLANK
+        fun saidBy(at: Int) = when (Band.Row.entries.getOrNull(at)) {
+            Band.Row.BAND -> band.band.ifEmpty { "nothing" }
+            Band.Row.NUDGE -> Setting.Shift(band.nudge).spelled()
+            Band.Row.SPREAD -> Setting.Spread(band.spread).spelled()
+            null -> ""
+        }
+        val cells = band.shown.mapIndexed { at, option -> listOf(option.label, saidBy(at), option.note) }
+        val widths = Columns.widths(
+            cells,
+            BAND_COLUMNS,
+            (width - CURSOR_ROOM).coerceAtLeast(MINIMUM_ROOM),
+            gap = COLUMN_GAP,
+        )
         val listed = band.shown.mapIndexed { at, option ->
             val here = at == band.index
-            val said = when (Band.Row.entries.getOrNull(at)) {
-                Band.Row.BAND -> band.band.ifEmpty { "nothing" }
-                Band.Row.NUDGE -> Setting.Shift(band.nudge).spelled()
-                Band.Row.SPREAD -> Setting.Spread(band.spread).spelled()
-                null -> ""
-            }
+            val row = listOf(
+                Ink(option.label, if (here) Palette.value else Palette.faint),
+                Ink(saidBy(at), if (here) Palette.chosen else Palette.faint),
+                Ink(option.note, Palette.faint),
+            )
             listOfNotNull(Line.BLANK.takeIf { option.startsGroup }) + listOf(
                 Line(if (here) "${Glyph.FOCUS} " else "  ", Palette.focused) +
-                    Line(option.label.padEnd(BAND_LABEL), if (here) Palette.value else Palette.faint) +
-                    Line(said.padEnd(BAND_VALUE), if (here) Palette.chosen else Palette.faint) +
-                    Line(option.note, Palette.faint),
+                    Columns.laid(row, widths, Line(" ".repeat(COLUMN_GAP))),
             )
         }.flatten()
         bandWindow = (room - head.size).coerceAtLeast(1)
@@ -369,19 +379,37 @@ class Editor(
         Line("  ${prompt.says.orEmpty()}", Palette.refused),
     ).map { it.sized(width) }
 
+    /**
+     * A picker drawn — **its two columns measured off its rows**, like every other list in the tool.
+     *
+     * The label was thirty characters whatever it held, so a list of aspect pages left twenty columns of
+     * nothing while the note beside it was cut on the right of a pane with room to spare. What is not
+     * measured is the chrome either side: a cursor, a mark, a tick and a bar are the widths they are.
+     */
     private fun pickerLines(picker: Picker, width: Int, room: Int): List<Line> {
         val head = listOf(
             Line(picker.title, Palette.heading),
             hints("" to "type to search", "" to picker.filter),
         ) + picker.chart?.invoke(picker.focused, width).orEmpty() + Line.BLANK
-        val listed = picker.shown.mapIndexed { index, option ->
+        val shown = picker.shown
+        val marking = shown.maxOfOrNull { it.mark.length }?.takeIf { it > 0 }?.plus(1) ?: 0
+        val gauged = shown.firstNotNullOfOrNull { it.gauge }?.width?.plus(AFTER_A_GAUGE) ?: 0
+        val chrome = CURSOR_ROOM + marking + TICK_ROOM + gauged
+        val widths = Columns.widths(
+            shown.map { listOf(it.label, it.note) },
+            PICKER_COLUMNS,
+            (width - chrome).coerceAtLeast(MINIMUM_ROOM),
+            gap = COLUMN_GAP,
+        )
+        val listed = shown.mapIndexed { index, option ->
             val here = index == picker.index
+            val tone = option.tone ?: if (here) Palette.value else Palette.faint
             Line(if (here) "${Glyph.FOCUS} " else "  ", Palette.focused) +
-                Line(if (option.mark.isEmpty()) "" else "${option.mark} ", option.tone ?: Palette.faint) +
-                Line(option.label.padEnd(PICKER_LABEL), option.tone ?: if (here) Palette.value else Palette.faint) +
-                Line(if (picker.isMarked(option)) "${Glyph.TICK} " else "  ", Palette.settled) +
+                Line(" ".repeat(marking).let { if (option.mark.isEmpty()) it else "${option.mark} " }, option.tone ?: Palette.faint) +
+                Line(cell(option.label, widths[0]), tone) +
+                Line(if (picker.isMarked(option)) " ${Glyph.TICK} " else "   ", Palette.settled) +
                 (option.gauge?.let { it + Line("  ") } ?: Line("")) +
-                Line(option.note, Palette.faint)
+                Line(cell(option.note, widths[1]), Palette.faint)
         }
         val empty = listOf(Line("  nothing matches", Palette.warned))
         val body = listed.ifEmpty { empty }
@@ -1562,11 +1590,25 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
         return members + tags
     }
 
-    /** The tags worth saying of one aspect — what something there carries, plus the server-only ones. */
+    /**
+     * The tags worth saying of one aspect — what something there carries, plus the server-only ones **that
+     * could land there.**
+     *
+     * A tag only a bound registry grants carries nowhere offline, so it has to be offered on faith or not
+     * at all; offered on faith *everywhere*, `ore` turned up among the things a word could lean the
+     * climate by, and the climate has no members to carry anything. A snapshot says which members really
+     * hold it and settles the question; without one, faith is kept only where the aspect has members at
+     * all, which is the most that can honestly be said.
+     */
     private fun tagOptions(aspect: Aspect): List<Picker.Option> {
-        val carried = corpus.vocabulary.candidatesFor(aspect).flatMap { corpus.vocabulary.tagsOf(it).keys }
-        return (carried + corpus.vocabulary.tagsOnlyAServerGrants).distinct().sorted()
-            .map { Picker.Option(it, it, carriedNote(it)) }
+        val here = corpus.vocabulary.candidatesFor(aspect)
+        val carried = here.flatMap { corpus.vocabulary.tagsOf(it).keys }
+        fun couldLandHere(tag: String): Boolean {
+            val members = corpus.snapshot?.serverOnly?.get(tag) ?: return here.isNotEmpty()
+            return members.any { aspect.presetFor(it) != null && (aspect.open || aspect.ownsPresetNamed(it)) }
+        }
+        val fromAServer = corpus.vocabulary.tagsOnlyAServerGrants.filter(::couldLandHere)
+        return (carried + fromAServer).distinct().sorted().map { Picker.Option(it, it, carriedNote(it)) }
     }
 
     private fun tagsSaid(preset: Taggable?): String =
@@ -2154,11 +2196,15 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
         const val NOTE_LEAST = 4
 
         const val STRIP_LINES = 4
-        const val PICKER_LABEL = 30
+        /** A list's label and the note beside it, the note taking whatever the pane has left. */
+        val PICKER_COLUMNS = listOf(Columns.Column(), Columns.Column(grows = true))
 
-        /** The band screen's two columns: the shape or the word, and what it comes to. */
-        const val BAND_LABEL = 14
-        const val BAND_VALUE = 14
+        /** The band screen's three: the shape or the word, what it comes to, and what it means. */
+        val BAND_COLUMNS = listOf(Columns.Column(), Columns.Column(), Columns.Column(grows = true))
+
+        /** The ` ✓ ` a marked row wears, and the gap between two columns. */
+        const val TICK_ROOM = 3
+        const val COLUMN_GAP = 2
         const val DEFAULT_EDITOR = "vi"
 
         /** Header, two rules, the strip and the two key lines — what the body is not allowed to use. */

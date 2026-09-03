@@ -1429,10 +1429,21 @@ fun Candidate.putting(into: Into, parameter: String, value: String): Candidate =
 fun Candidate.holding(into: Into): Map<String, String> =
     if (into.pool == null) settingOn(into.insistence) else poolsOn(into.insistence).getOrNull(into.pool)?.facets.orEmpty()
 
-/** This word leaning [named] by [weight], wherever [aspect] points — `null` being the whole Age. */
-fun Candidate.leaning(aspect: Aspect?, named: String, weight: Double): Candidate =
-    if (aspect == null) copy(leansEverywhere = leansEverywhere + (named to weight))
-    else copy(biases = biases + (aspect to (biases[aspect].orEmpty() + (named to weight))))
+/**
+ * This word leaning [named] by [weight], wherever [aspect] points — `null` being the whole Age.
+ *
+ * **A lean of nothing is not a lean, so it leaves.** Zero is where every row on the leaning list starts
+ * and what enter puts one back to; kept, it is a row on the populations page saying the word does nothing
+ * to that member, which is what every member it never mentioned also does.
+ */
+fun Candidate.leaning(aspect: Aspect?, named: String, weight: Double): Candidate {
+    if (aspect == null) {
+        val left = if (weight == 0.0) leansEverywhere - named else leansEverywhere + (named to weight)
+        return copy(leansEverywhere = left)
+    }
+    val here = biases[aspect].orEmpty().let { if (weight == 0.0) it - named else it + (named to weight) }
+    return copy(biases = if (here.isEmpty()) biases - aspect else biases + (aspect to here))
+}
 
 /** The half of this word [insistence] names, whole — what it always does, and every pool it draws from. */
 fun Candidate.claimsOn(insistence: Insistence): Claims =
