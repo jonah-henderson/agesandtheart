@@ -67,7 +67,6 @@ object PoolChart {
         strength: Double,
     ): Line {
         val pull = if (kept) strength else 0.0
-        val filled = if (strongest <= 0.0) 0 else (pull / strongest * BAR).toInt().coerceIn(0, BAR)
         val mark = when {
             !kept -> Glyph.WARN
             added -> "+"
@@ -75,7 +74,7 @@ object PoolChart {
         }
         return Line("    ") + Line("$mark ", if (kept) Palette.settled else Palette.refused) +
             Line(member.key.padEnd(NAME), if (kept) Palette.value else Palette.faint) +
-            Line(Glyph.FULL.repeat(filled) + Glyph.EMPTY.repeat(BAR - filled), Palette.settled) +
+            Gauge.filled(pull, strongest, BAR) +
             Line(if (kept) "  %.2f".format(pull) else "  taken out", Palette.faint)
     }
 

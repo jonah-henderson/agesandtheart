@@ -7,6 +7,8 @@ import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.age.word.Draws
 import co.voik.agesandtheart.age.word.Facets
 import co.voik.agesandtheart.preview.authoring.ui.Columns
+import co.voik.agesandtheart.preview.authoring.ui.Gauge
+import co.voik.agesandtheart.preview.authoring.ui.Glyph
 import co.voik.agesandtheart.preview.authoring.ui.Insistence
 import co.voik.agesandtheart.preview.authoring.ui.addingAPool
 import co.voik.agesandtheart.preview.authoring.ui.drawing
@@ -428,4 +430,31 @@ class AuthoringCheck : FunSpec({
             "a lean of nothing made the word claim to speak to the sea"
         }
     }
+
+    /**
+     * **A lean's bar grows from the middle**, and which way is the half of it that changes what it does.
+     *
+     * Drawn as a plain string here rather than looked at: the styling is the terminal's business, but
+     * where the filled cells sit is arithmetic and is what a reader takes the sign from.
+     */
+    test("a signed bar grows the way the number leans") {
+        fun drawn(at: Double) = Gauge.signed(at, WIDE).inks.joinToString("") { it.text }
+        val nothing = drawn(0.0)
+        check(nothing == "░░░░░░│░░░░░░") { "nothing leaned should be an empty bar, and drew '$nothing'" }
+        val whole = drawn(1.0)
+        check(whole == "░░░░░░│██████") { "a whole lean toward should fill the right, and drew '$whole'" }
+        val away = drawn(-1.0)
+        check(away == "██████│░░░░░░") { "a whole lean away should fill the left, and drew '$away'" }
+        check(drawn(0.5).endsWith("░░░")) { "half a lean should reach halfway, and drew '${drawn(0.5)}'" }
+        check(drawn(2.0) == whole) { "a lean past the end should stop at it, and drew '${drawn(2.0)}'" }
+    }
+
+    /** An unsigned bar is empty where nothing is the most, rather than full. */
+    test("a bar of nothing out of nothing is empty") {
+        val drawn = Gauge.filled(0.0, 0.0, WIDE).inks.joinToString("") { it.text }
+        check(drawn == Glyph.EMPTY.repeat(WIDE)) { "an empty gauge drew '$drawn'" }
+    }
 })
+
+/** Wide enough to have a middle and six cells either side of it. */
+private const val WIDE = 13

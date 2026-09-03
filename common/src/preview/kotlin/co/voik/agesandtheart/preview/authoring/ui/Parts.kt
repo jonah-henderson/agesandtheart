@@ -271,9 +271,30 @@ class Parts(private val corpus: Corpus) {
 
     /** A group inside a section — the required half of the properties, or one pool of them. */
     private fun grouped(title: String, rows: List<Told>): List<Told> =
+        grouped(title, listOf(Ink(title, Palette.chosen)), rows)
+
+    /** The same, where the heading has something in it worth colouring apart from the rest. */
+    private fun grouped(named: String, shown: List<Ink>, rows: List<Told>): List<Told> =
         if (rows.isEmpty()) emptyList() else listOf(
-            Told.Whole("heading/group/$title", listOf(Ink("  $title", Palette.chosen))),
+            Told.Whole("heading/group/$named", listOf(Ink("  ")) + shown),
         ) + rows
+
+    /**
+     * A pool's heading: how many facets an Age takes of it, and what of.
+     *
+     * **The subject where the facets share one** — `sun.cast`, `sun.colour` and `sun.size` are the sun,
+     * and naming it says more than counting them does. Where they share nothing there is no subject to
+     * name and the count out of the whole is the honest answer instead.
+     */
+    private fun poolHeading(insistence: Insistence, pool: Facets): List<Ink> {
+        val subject = Aspect.entries.firstOrNull { it.page == pool.said }
+        val head = Ink("${insistence.title} pool ${Glyph.BULLET} draws ${pool.draws} ", Palette.chosen)
+        return if (subject == null) {
+            listOf(head, Ink("of ${pool.facets.size}", Palette.chosen))
+        } else {
+            listOf(head, Ink("from ", Palette.chosen), Ink(subject.page, Palette.aspect))
+        }
+    }
 
     private fun told(handle: String, label: String, value: String, after: String = "", tone: TextStyle = Palette.value) =
         Told.Columned(handle, listOf(Ink(label, Palette.faint), Ink(value, tone), Ink(after, Palette.faint)))
@@ -319,7 +340,8 @@ class Parts(private val corpus: Corpus) {
             )
             val pools = candidate.poolsOn(insistence).mapIndexed { at, pool ->
                 grouped(
-                    "${insistence.title} pool ${Glyph.BULLET} draws ${pool.said} of ${pool.facets.size}",
+                    "${insistence.name}/pool/$at",
+                    poolHeading(insistence, pool),
                     pool.facets.entries.sortedBy { it.key }.map { (parameter, value) ->
                         told("pool/${insistence.name}/$at/$parameter", parameterIn(parameter), value, wherever(parameter))
                     },
@@ -331,6 +353,22 @@ class Parts(private val corpus: Corpus) {
         return groups.reduceOrNull { standing, next -> standing + blank("group") + next }.orEmpty()
     }
 
+    /**
+     * What a lean of [weight] does, said.
+     *
+     * **Never `requires` or `disallows`.** Those are exactly what `keep only` and `remove` do, and they
+     * are rows of their own on this page; a lean cannot take anything out however far it goes, so lending
+     * it their verbs would put two different mechanics behind one word. `above all` is as strong as it
+     * gets to say without claiming a filter.
+     */
+    private fun leanSaid(weight: Double): String = when {
+        weight >= A_WHOLE_LEAN -> "favours above all"
+        weight > 0.0 -> "favours"
+        weight <= -A_WHOLE_LEAN -> "discourages above all"
+        weight < 0.0 -> "discourages"
+        else -> "leans"
+    }
+
     /** The parts of the world a parameter key lands in — the aside a property row carries. */
     private fun wherever(spelled: String): String =
         Aspect.entries.filter { landsOn(spelled, it) }.joinToString(" ") { it.page }
@@ -339,7 +377,7 @@ class Parts(private val corpus: Corpus) {
     private fun populationsTold(candidate: Candidate): List<Told> {
         val everywhere = candidate.leansEverywhere.entries.sortedByDescending { it.value }
             .map { (named, weight) ->
-                told("lean/all/$named", Word.EVERYWHERE, "leans $named", "%+.2f".format(weight))
+                told("lean/all/$named", Word.EVERYWHERE, "${leanSaid(weight)} $named", "%+.2f".format(weight))
             }
         val keyed = Aspect.entries.sortedBy { it.ordinal }.flatMap { aspect ->
             val page = aspect.page
@@ -357,7 +395,7 @@ class Parts(private val corpus: Corpus) {
                     add(told("excludes/$page/$it", page, "removes $it", "out of the pool"))
                 }
                 candidate.biases[aspect]?.entries?.sortedByDescending { it.value }?.forEach { (named, weight) ->
-                    add(told("biases/$page/$named", page, "leans $named", "%+.2f".format(weight)))
+                    add(told("biases/$page/$named", page, "${leanSaid(weight)} $named", "%+.2f".format(weight)))
                 }
             }
         }
@@ -711,7 +749,7 @@ class Parts(private val corpus: Corpus) {
     private fun leanInk(named: String, weight: Double, where: String) = listOf(
         Ink("    "),
         Ink(named.padEnd(PARAMETER_COLUMN), if (named.startsWith(TAG_MARK)) Palette.tag else Palette.value),
-        Ink(bar(weight), if (weight < 0) Palette.refused else Palette.settled),
+    ) + Gauge.signed(weight, BAR_WIDTH).inks + listOf(
         Ink(" %+.2f".format(weight), Palette.value),
         Ink("  in $where", Palette.faint),
     )
@@ -798,16 +836,10 @@ class Parts(private val corpus: Corpus) {
     private fun tagInk(tag: String, weight: Double, only: String): List<Ink> = listOf(
         Ink("    "),
         Ink("$TAG_MARK$tag".padEnd(PARAMETER_COLUMN), Palette.tag),
-        Ink(bar(weight), if (weight < 0) Palette.refused else Palette.settled),
+    ) + Gauge.signed(weight, BAR_WIDTH).inks + listOf(
         Ink(" %+.2f".format(weight), Palette.value),
         Ink(if (only.isEmpty()) "" else "  in $only only", Palette.faint),
     )
-
-    /** A signed weight drawn from the middle, so pushing away and pulling toward look different. */
-    private fun bar(weight: Double): String {
-        val filled = (kotlin.math.abs(weight) * BAR_WIDTH).toInt().coerceIn(0, BAR_WIDTH)
-        return Glyph.FULL.repeat(filled) + Glyph.EMPTY.repeat(BAR_WIDTH - filled)
-    }
 
     /** What the tag finds, which is what you cannot see from the file. */
     private fun tagNote(tag: String, word: Word?, only: Aspect? = null): String {
@@ -939,7 +971,11 @@ class Parts(private val corpus: Corpus) {
     )
 
     companion object {
-        const val BAR_WIDTH = 10
+        /** How wide a weight's bar is here — the same [Gauge] the list you set it on wears. */
+        const val BAR_WIDTH = 13
+
+        /** As far as a lean goes, which is where it stops being said the ordinary way. */
+        const val A_WHOLE_LEAN = 1.0
         const val COMMENT_PREVIEW = 12
         const val VALUES_SHOWN = 6
         const val VALUE_LABEL = 14

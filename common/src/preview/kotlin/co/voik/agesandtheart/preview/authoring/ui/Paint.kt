@@ -137,6 +137,14 @@ object Palette {
     val value: TextStyle = TextColors.brightWhite
     val parameter: TextStyle = TextColors.cyan
     val tag: TextStyle = TextColors.magenta
+
+    /**
+     * A part of the world, wherever one is named.
+     *
+     * Beside [tag] on purpose: an aspect and a tag are both names out of the world model rather than
+     * values a writer typed, and reading as a family is what tells them from the text around them.
+     */
+    val aspect: TextStyle = TextColors.brightMagenta
     val refused: TextStyle = TextColors.brightRed
     val warned: TextStyle = TextColors.yellow
     val nudged: TextStyle = TextColors.brightBlue

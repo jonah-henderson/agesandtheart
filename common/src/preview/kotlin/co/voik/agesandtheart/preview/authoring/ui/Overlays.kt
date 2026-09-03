@@ -99,6 +99,14 @@ class Picker(
         val mark: String = "",
         val tone: TextStyle? = null,
         /**
+         * A drawn value between the row and its note — a [Gauge], where the row carries one.
+         *
+         * Styled runs rather than text, which is the whole of why it is not part of [note]: a lean's sign
+         * is what changes what it does, and a bar that grows red one way and green the other says that
+         * without anybody reading the figure. It is also what makes a list you *set* look like one.
+         */
+        val gauge: Line? = null,
+        /**
          * A blank line before this row, and nothing else.
          *
          * A separator rather than a row, so nothing here has to be skipped when moving and the index is

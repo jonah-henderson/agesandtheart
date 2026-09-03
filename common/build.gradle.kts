@@ -208,6 +208,11 @@ test.runtimeClasspath += main.compileClasspath + main.runtimeClasspath + main.ou
 // something the tool needs.
 test.compileClasspath += preview.output
 test.runtimeClasspath += preview.output
+// **And what `preview` compiles against**, or a spec touching one of its screens dies on a missing class
+// rather than failing an assertion. `Palette` is a Mordant style, so the whole of the drawing layer —
+// column widths, gauges, the cells they are cut to — was unreachable from a check that never draws.
+test.compileClasspath += configurations.named("previewCompileClasspath").get()
+test.runtimeClasspath += configurations.named("previewRuntimeClasspath").get()
 
 tasks.named<Test>("test") {
     useJUnitPlatform()

@@ -331,6 +331,7 @@ class Editor(
                 Line(if (option.mark.isEmpty()) "" else "${option.mark} ", option.tone ?: Palette.faint) +
                 Line(option.label.padEnd(PICKER_LABEL), option.tone ?: if (here) Palette.value else Palette.faint) +
                 Line(if (picker.isMarked(option)) "${Glyph.TICK} " else "  ", Palette.settled) +
+                (option.gauge?.let { it + Line("  ") } ?: Line("")) +
                 Line(option.note, Palette.faint)
         }
         val empty = listOf(Line("  nothing matches", Palette.warned))
@@ -1202,13 +1203,20 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
             (corpus.vocabulary.carriedTags + corpus.vocabulary.tagsOnlyAServerGrants).distinct().sorted()
                 .map { Picker.Option("$TAG_MARK$it", "$TAG_MARK$it", carriedNote(it)) }
         }
+        // **The bar is what says the list can be set.** A column of figures reads as a list you pick
+        // from, so enter looked like the way to take a row and `-` and `=` went unread in the header.
         val options = leanable.map { option ->
             val weight = standing(option.value)
             option.copy(
+                gauge = Gauge.signed(weight, LEAN_BAR),
                 note = "%+.2f".format(weight).padEnd(LEAN_COLUMN) + option.note,
-                tone = if (weight != 0.0) Palette.settled else option.tone,
             )
-        } + Picker.Option(DONE_LEANING, "done", "nothing more to lean here", startsGroup = true)
+        } + Picker.Option(
+            DONE_LEANING,
+            "done",
+            " ".repeat(LEAN_BAR + LEAN_COLUMN + AFTER_A_GAUGE) + "nothing more to lean here",
+            startsGroup = true,
+        )
         val where = aspect?.page ?: "the whole Age"
         overlay = Picker(
             title = "Lean $where — ${Glyph.BULLET} enter says one ${Glyph.BULLET} - and = adjust it " +
@@ -1739,14 +1747,20 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
         /** How far `-` and `=` move a weight on the row itself — a tenth, as the word lists step by. */
         const val A_STEP = 0.1
 
-        /** What enter alone leans by — the whole of it, as `1.0` is what a restriction's prompt offers. */
-        const val A_WHOLE_LEAN = 1.0
+        /** What enter alone leans by — the whole of it, which is where the page says `above all`. */
+        const val A_WHOLE_LEAN = Parts.A_WHOLE_LEAN
 
         /** The row that closes the lean list, for somebody who would rather not guess that enter does. */
         const val DONE_LEANING = "\u0000done"
 
         /** How wide a lean's number is on its own list, so every note past it lines up. */
         const val LEAN_COLUMN = 8
+
+        /** How many cells a lean's bar takes, centre included — the same width the populations page draws. */
+        const val LEAN_BAR = Parts.BAR_WIDTH
+
+        /** The two spaces the picker leaves between a gauge and the note after it. */
+        const val AFTER_A_GAUGE = 2
 
         /** What the pool list calls the row that starts one rather than adding to an existing one. */
         const val NEW_POOL = "new"
