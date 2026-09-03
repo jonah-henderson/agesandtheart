@@ -159,7 +159,10 @@ Two things that follow, and both are load-bearing:
   `./gradlew` would wait on the outer build's locks, so `:fabric:exportServerLaunch` writes the launch
   command down and `DrivenServer` starts the JVM itself. It writes to a fresh `checks-…` world, restores
   `server.properties`, and removes that world afterwards — the only deletion in the harness, fenced on the
-  name and location so it can never reach a world a person plays.
+  name and location so it can never reach a world a person plays. **It tidies up when killed, too**: a
+  shutdown hook covers Ctrl-C and `SIGTERM`, and `LauncherWatch` inside the launched server covers
+  `SIGKILL`, which nothing in the launching JVM can. Before that, a cancelled run left a server holding a
+  world lock and a port for as long as it took somebody to notice.
 
 **`scripts/drive-server.sh` remains, as a driver only.** It runs a list of `/age` commands against a
 server and prints what they say, for the exploratory files that are meant to be _read_ — `aspects.txt`,

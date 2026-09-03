@@ -72,14 +72,39 @@ class DrivenServer private constructor(
      * The deletion comes last, after the process has exited: a running server holds the region files open
      * and would write them out again underneath us.
      */
+    /**
+     * The same tidying, for a run that never reaches [close] — a cancelled Gradle task, a Ctrl-C, an
+     * exception out of a spec's own setup.
+     *
+     * **Without it a killed run leaves three things behind**: a Minecraft server holding a world lock and
+     * a port, a `server.properties` still carrying the harness's RCON settings, and a `checks-…` world.
+     * `PreviewServer` has had this since it was written; this did not, and the servers it stranded were
+     * found running for hours.
+     *
+     * Forcible rather than the polite stop, for the reason `PreviewServer` gives: this runs while the JVM
+     * is going down, and a shutdown hook that waits a minute for a clean save is one somebody kills again.
+     * The world is a throwaway either way.
+     */
+    private val tidyUpIfWeAreKilled = Thread {
+        LaunchSpec.endTheTree(process)
+        properties.writeText(originalProperties)
+        discard(world)
+    }
+
+    init {
+        Runtime.getRuntime().addShutdownHook(tidyUpIfWeAreKilled)
+    }
+
     override fun close() {
         runCatching { rcon.run("stop") }
         rcon.close()
         if (!process.waitFor(SHUTDOWN_SECONDS, TimeUnit.SECONDS)) process.destroy()
         if (!process.waitFor(SHUTDOWN_SECONDS, TimeUnit.SECONDS)) process.destroyForcibly()
+        runCatching { Runtime.getRuntime().removeShutdownHook(tidyUpIfWeAreKilled) }
         properties.writeText(originalProperties)
         discard(world)
     }
+
 
     companion object {
         private const val STARTUP_SECONDS = 240L

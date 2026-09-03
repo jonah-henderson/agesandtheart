@@ -18,6 +18,8 @@ object CommonSetup {
         // And is dressed and aired as it opens, by whichever route opened it.
         Ages.attach()
         Skies.attach()
+        // Does nothing at all unless one of our own tools started this server — see [LauncherWatch].
+        LauncherWatch.attach()
         Constants.LOG.info(
             "Ages and the Art initialising on {} ({} environment)",
             Services.PLATFORM.name,

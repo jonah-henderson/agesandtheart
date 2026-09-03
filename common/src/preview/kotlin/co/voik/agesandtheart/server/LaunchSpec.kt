@@ -28,17 +28,50 @@ class LaunchSpec(
      */
     fun start(extra: List<String> = emptyList()): Process {
         val java = File(System.getProperty("java.home"), "bin/java").absolutePath
-        return ProcessBuilder(listOf(java) + jvmArguments + mainClass + arguments + extra)
+        val watched = listOf("-D$LAUNCHED_BY=${ProcessHandle.current().pid()}")
+        val process = ProcessBuilder(listOf(java) + watched + jvmArguments + mainClass + arguments + extra)
             .directory(workingDirectory)
             .redirectErrorStream(true)
             .redirectOutput(ProcessBuilder.Redirect.to(outputFile))
             .start()
+        Runtime.getRuntime().addShutdownHook(Thread { endTheTree(process) })
+        return process
     }
 
     /** Beside the launch spec, so it is found where the thing that produced it lives. */
     val outputFile: File = File(workingDirectory, "$which-boot.log")
 
     companion object {
+        /**
+         * **Three ways a launched server is stopped, because one is never enough.**
+         *
+         * A caller closing tidily is the first and the only one that saves anything — `DrivenServer.close`
+         * and `PreviewServer.close` both stop the server over RCON and wait for it. The other two are here
+         * because a tool is not always closed tidily, and a Minecraft server left running holds a world
+         * lock, a port, and a core.
+         *
+         * - **A shutdown hook**, registered by [start] for every process it makes. Covers an exception, a
+         *   `System.exit`, a Ctrl-C and a `SIGTERM` — which between them are how a killed Gradle run, a
+         *   cancelled test task and an interrupted tool all end.
+         * - **A watchdog inside the launched server**, told our own process id through [LAUNCHED_BY].
+         *   Nothing in this JVM runs when it is `SIGKILL`ed, so that case can only be answered from the
+         *   other end: the server notices its launcher is gone and halts itself. See `LauncherWatch`.
+         *
+         * The tree rather than the process: a launch may go through a wrapper, and killing the wrapper
+         * leaves the server it started.
+         */
+        fun endTheTree(process: Process) {
+            if (!process.isAlive) return
+            process.descendants().forEach { it.destroyForcibly() }
+            process.destroyForcibly()
+            process.waitFor(FORCIBLE_SECONDS, java.util.concurrent.TimeUnit.SECONDS)
+        }
+
+        /** What a launched server is told its launcher's process id under — read by `LauncherWatch`. */
+        const val LAUNCHED_BY = "agesandtheart.launchedBy"
+
+        private const val FORCIBLE_SECONDS = 10L
+
         /**
          * The launch [which] names — `server`, or `client` for the age workshop's preview game.
          *
