@@ -22,7 +22,7 @@ enum class Seeding(val title: String, val about: String) {
     SETTLED("the Age's own", "worked out from its name, exactly as the game does for a book with no seed"),
 
     /** Rolled fresh on the way into the game, which is how you see what else this book can be. */
-    DRAWN("a new one each time", "rolled when it opens, so the same book shows you a different Age"),
+    DRAWN("random", "rolled when it opens, so the same book shows you a different Age"),
 
     /** A number typed, and kept. */
     CHOSEN("one you pick", "a number you type, saved with the book"),

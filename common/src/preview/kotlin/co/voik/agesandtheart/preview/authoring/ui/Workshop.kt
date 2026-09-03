@@ -746,7 +746,7 @@ class Workshop(
             askForTheName()
             if (name.isEmpty()) return
         }
-        // Rolled here rather than when the mode was picked, because "a new one each time" means each time
+        // Rolled here rather than when the mode was picked, because a random seed means each time
         // it opens. Done before the reading is drawn again, so the screen never shows a seed that is not
         // the one written.
         if (seeding == Seeding.DRAWN) seed = draft().rolled().seed
