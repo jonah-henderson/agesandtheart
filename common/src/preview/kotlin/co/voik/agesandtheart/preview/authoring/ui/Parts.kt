@@ -523,7 +523,7 @@ class Parts(private val corpus: Corpus) {
                     "${insistence.name}/pool/$at",
                     poolHeading(insistence, at, pool),
                     pool.offers.flatMapIndexed { which, offer ->
-                        val together = if (offer.size > 1) " ${Glyph.BULLET} with the rest of offer ${which + 1}" else ""
+                        val together = if (offer.size > 1) " ${Glyph.BULLET} with the rest of group ${which + 1}" else ""
                         offer.entries.sortedBy { it.key }.map { (parameter, value) ->
                             told(
                                 "pool/${insistence.name}/$at/$parameter",
@@ -661,16 +661,17 @@ class Parts(private val corpus: Corpus) {
     /**
      * A pool's offers, in order — **a group under a heading saying it is one.**
      *
-     * A group of one is what every facet used to be and is drawn as one row with nothing said about it;
-     * saying "together" over a lone setting would be a word about the shape rather than about the world.
+     * The heading is the same word the two rows that build one use, so what `add a group` made is what
+     * the list then calls it. A group of one is what every facet used to be and is drawn as one row with
+     * nothing said about it.
      */
     private fun offerRows(insistence: Insistence, at: Int, pool: Facets, word: Word?): List<Row> =
         pool.offers.flatMapIndexed { which, offer ->
             val grouped = offer.size > 1
             val head = if (!grouped) emptyList() else listOf(
                 Row(
-                    handle = "heading/together/${insistence.name}/$at/$which",
-                    shown = listOf(Ink("      together", Palette.tag)),
+                    handle = "heading/group/${insistence.name}/$at/$which",
+                    shown = listOf(Ink("      group", Palette.tag)),
                 ),
             )
             head + offer.entries.sortedBy { it.key }.map { (parameter, value) ->
