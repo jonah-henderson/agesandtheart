@@ -628,6 +628,17 @@ class Parts(private val corpus: Corpus) {
             // sun, and a single flat list of eight facets says only that it varies.
             for ((at, pool) in candidate.poolsOn(insistence).withIndex()) {
                 add(drawsRow(insistence, at, pool))
+                // **Pinned above what is in it**, and both ways in are rows. `a` on a facet joins its
+                // offer, which is the quick way once you know it — and nothing here should be reachable
+                // only by knowing it.
+                add(Row("+in/${insistence.name}/$at", listOf(Ink("      + add a setting", Palette.faint))))
+                add(
+                    Row(
+                        handle = "+group/${insistence.name}/$at",
+                        shown = listOf(Ink("      + add a group", Palette.faint)),
+                        note = "settings drawn together or not at all, and counting as one thing drawn",
+                    ),
+                )
                 addAll(offerRows(insistence, at, pool, word))
             }
         }

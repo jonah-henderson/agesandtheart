@@ -952,6 +952,9 @@ class Editor(
         when (kind) {
             "+" -> insistenceNamed(rest)?.let { pickATarget(Into(it)) }
             "+pool" -> insistenceNamed(rest)?.let(::buildAPool)
+            // The two ways into a pool that exists, said on its own rows rather than left to `a`.
+            "+in" -> pointedAt(rest)?.let { into -> building = into; pickATarget(into) }
+            "+group" -> pointedAt(rest)?.let { into -> building = into; startAGroup(into) }
             "heading" -> Unit
             // **The pool's own menu**, where adding a facet and setting the count are the same size of
             // decision. Opening straight into the count made the count the price of looking at the pool.
@@ -1035,27 +1038,43 @@ class Editor(
     /** After a facet goes in: another, the count, or done. */
     private fun keepBuilding(into: Into) {
         val pool = candidate.poolsOn(into.insistence).getOrNull(into.pool ?: return) ?: return
+        val inAGroup = into.offer?.let { pool.offers.getOrNull(it) }
+        val alone = Picker.Option(
+            ANOTHER_FACET,
+            if (inAGroup == null) "add another setting" else "add another, on its own",
+            "drawn by itself, as one of ${pool.offers.size + 1}",
+        )
+        // **Staying in the group, or starting one** — whichever the writer is not already doing. A group
+        // is what a pool could not say before, so the way into one is offered wherever it can be taken.
+        val grouping = if (inAGroup != null) {
+            Picker.Option(
+                ANOTHER_IN_THE_GROUP,
+                "add another to this group",
+                "drawn with ${inAGroup.keys.sorted().joinToString(" ")} or not at all",
+            )
+        } else {
+            Picker.Option(NEW_GROUP, "add a group", "settings drawn together or not at all")
+        }
         overlay = Picker(
-            title = "${into.insistence.title} ${Parts.poolNamed(into.pool)} — ${pool.facets.size} facet(s)",
+            title = "${into.insistence.title} ${Parts.poolNamed(into.pool)} — ${pool.offers.size} offer(s)",
             options = listOf(
-                Picker.Option(
-                    ANOTHER_FACET,
-                    "add another facet",
-                    pool.facets.keys.sorted().joinToString(" "),
-                ),
+                alone,
+                grouping,
                 Picker.Option(
                     HOW_MANY_DRAWN,
                     "how many are drawn",
                     when {
-                        pool.draws.most >= pool.facets.size -> "all of them, which is the same as `sets`"
-                        else -> "${pool.draws} of ${pool.facets.size}"
+                        pool.draws.most >= pool.offers.size -> "all of them, which is the same as `sets`"
+                        else -> "${pool.draws} of ${pool.offers.size}"
                     },
                 ),
                 Picker.Option(DONE_BUILDING, "done", "", startsGroup = true),
             ),
         ) { picked ->
             when (picked.value) {
-                ANOTHER_FACET -> pickATarget(into)
+                ANOTHER_FACET -> into.copy(offer = null).let { building = it; pickATarget(it) }
+                ANOTHER_IN_THE_GROUP -> pickATarget(into)
+                NEW_GROUP -> startAGroup(into)
                 HOW_MANY_DRAWN -> retypeDraws(into)
                 else -> building = null
             }
@@ -1269,18 +1288,42 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
             "every parameter",
             "all of them at once ${Glyph.BULLET} type to search",
         )
-        val options = listOf(everything) + owners.mapIndexed { at, aspect ->
-            Picker.Option(
-                value = aspect.page,
-                label = aspect.page,
-                note = "${parameterNamesIn(aspect).size} to set",
-                startsGroup = at == 0,
-            )
-        }
+        // **A group is offered where one can be made** — adding to a pool, and not already inside one.
+        // The keys can build a group from the row under the cursor, and nothing this tool does should be
+        // reachable only that way.
+        val grouping = if (into.pool == null || into.offer != null) emptyList() else listOf(
+            Picker.Option(NEW_GROUP, "add a group", "settings drawn together or not at all"),
+        )
+        val options = grouping + everything.copy(startsGroup = grouping.isNotEmpty()) +
+            owners.mapIndexed { at, aspect ->
+                Picker.Option(
+                    value = aspect.page,
+                    label = aspect.page,
+                    note = "${parameterNamesIn(aspect).size} to set",
+                    startsGroup = at == 0,
+                )
+            }
         overlay = Picker("Set what, where?", options) { picked ->
-            if (picked.value == EVERY_PARAMETER) pickAParameter(into)
-            else Aspect.entries.firstOrNull { it.page == picked.value }?.let { pickAParameter(into, only = it) }
+            when {
+                picked.value == NEW_GROUP -> startAGroup(into)
+                picked.value == EVERY_PARAMETER -> pickAParameter(into)
+                else -> Aspect.entries.firstOrNull { it.page == picked.value }
+                    ?.let { pickAParameter(into, only = it) }
+            }
         }
+    }
+
+    /**
+     * A new offer in the pool [into] points at, and the same question again pointed into it.
+     *
+     * One past the last, which is what `puttingInPool` reads as "make one" — and once the first setting
+     * has landed the offer is *at* that index, so everything asked for afterwards joins it.
+     */
+    private fun startAGroup(into: Into) {
+        val standing = candidate.poolsOn(into.insistence).getOrNull(into.pool ?: return)?.offers?.size ?: 0
+        val grouping = into.copy(offer = standing)
+        building = grouping
+        pickATarget(grouping)
     }
 
     private fun pickAParameter(into: Into, only: Aspect? = null) {
@@ -2041,6 +2084,8 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
         const val TYPE_IT = "\u0000typed"
 
         const val ANOTHER_FACET = "\u0000another"
+        const val ANOTHER_IN_THE_GROUP = "\u0000withit"
+        const val NEW_GROUP = "\u0000group"
         const val HOW_MANY_DRAWN = "\u0000draws"
         /** How far `-` and `=` move a weight on the row itself — a tenth, as the word lists step by. */
         const val A_STEP = 0.1
