@@ -79,7 +79,7 @@ object Verdict {
                 add(
                     Finding(
                         Standing.NUDGED,
-                        "the ${insistence.title} ${pool.said} pool takes all of itself",
+                        "a ${insistence.title} pool takes all of itself",
                         "it draws ${pool.draws} of ${pool.facets.size}, which is what `sets` already means",
                     ),
                 )

@@ -12,6 +12,7 @@ import co.voik.agesandtheart.age.word.Facets
 import co.voik.agesandtheart.age.word.Tier
 import com.github.ajalt.mordant.rendering.TextStyle
 import co.voik.agesandtheart.age.word.Word
+import co.voik.agesandtheart.age.word.aspectNamedBy
 import co.voik.agesandtheart.age.word.landsOn
 import co.voik.agesandtheart.age.word.parameterIn
 import co.voik.agesandtheart.preview.authoring.Candidate
@@ -305,6 +306,17 @@ class Parts(private val corpus: Corpus) {
 
     private fun yesOrNo(said: Boolean) = if (said) "yes" else "no"
 
+    /**
+     * A parameter key as a row shows it — **the part of the world first**, where the key names one.
+     *
+     * `size` is a landform's, a sun's and a vein's; the qualifier is what tells them apart and it was
+     * being stripped for display, so three different parameters read as the same row.
+     */
+    private fun saidAsAParameter(spelled: String): String {
+        val named = aspectNamedBy(spelled) ?: return spelled
+        return "${named.page} ${parameterIn(spelled)}"
+    }
+
     /** A row before its columns are measured — what every list here with columns is built from. */
     private data class Celled(
         val handle: String,
@@ -443,9 +455,12 @@ class Parts(private val corpus: Corpus) {
      * and naming it says more than counting them does. Where they share nothing there is no subject to
      * name and the count out of the whole is the honest answer instead.
      */
-    private fun poolHeading(insistence: Insistence, pool: Facets): List<Ink> {
+    private fun poolHeading(insistence: Insistence, at: Int, pool: Facets): List<Ink> {
         val subject = Aspect.entries.firstOrNull { it.page == pool.said }
-        val head = Ink("${insistence.title} pool ${Glyph.BULLET} draws ${pool.draws} ", Palette.chosen)
+        val head = Ink(
+            "${insistence.title} ${poolNamed(at)} ${Glyph.BULLET} draws ${pool.draws} ",
+            Palette.chosen,
+        )
         return if (subject == null) {
             listOf(head, Ink("of ${pool.facets.size}", Palette.chosen))
         } else {
@@ -500,15 +515,15 @@ class Parts(private val corpus: Corpus) {
             val always = grouped(
                 insistence.title,
                 candidate.settingOn(insistence).entries.sortedBy { it.key }.map { (parameter, value) ->
-                    told("set/${insistence.name}/$parameter", parameterIn(parameter), value, wherever(parameter))
+                    told("set/${insistence.name}/$parameter", saidAsAParameter(parameter), value, wherever(parameter))
                 },
             )
             val pools = candidate.poolsOn(insistence).mapIndexed { at, pool ->
                 grouped(
                     "${insistence.name}/pool/$at",
-                    poolHeading(insistence, pool),
+                    poolHeading(insistence, at, pool),
                     pool.facets.entries.sortedBy { it.key }.map { (parameter, value) ->
-                        told("pool/${insistence.name}/$at/$parameter", parameterIn(parameter), value, wherever(parameter))
+                        told("pool/${insistence.name}/$at/$parameter", saidAsAParameter(parameter), value, wherever(parameter))
                     },
                 )
             }
@@ -631,23 +646,26 @@ class Parts(private val corpus: Corpus) {
             handle = handle,
             shown = listOf(
                 Ink(if (deeper) "      " else "    "),
-                Ink(parameter.padEnd(if (deeper) PARAMETER_COLUMN - 2 else PARAMETER_COLUMN), Palette.parameter),
+                // **The part of the world first**, where the key names one. `size` alone is a landform's
+                // and a sun's and a vein's, and which of them a row is about is the first thing to know.
+                Ink(saidAsAParameter(parameter).padEnd(if (deeper) PARAMETER_COLUMN - 2 else PARAMETER_COLUMN), Palette.parameter),
                 Ink(value, Palette.value),
             ),
             note = parameterNote(parameter, value, word),
         )
 
     /**
-     * A pool's own heading — what it is about, and how much of itself an Age takes.
+     * A pool's own heading — which one it is, and how much of itself an Age takes.
      *
-     * [Pool.said] rather than a name somebody chose: what a pool is about is already spelled in the
-     * parameters it holds, and every name anyone invented for one was a word this codebase did not have.
+     * **Numbered rather than named after what is in it.** `Facets.said` reads the subject off the facets,
+     * which is right where they share one and a run-on list of every parameter where they do not — and a
+     * label that grows as a pool does is a label you stop reading.
      */
     private fun drawsRow(insistence: Insistence, at: Int, pool: Facets): Row = Row(
         handle = "draws/${insistence.name}/$at",
         shown = listOf(
             Ink("    "),
-            Ink(pool.said.padEnd(PARAMETER_COLUMN), Palette.tag),
+            Ink(poolNamed(at).padEnd(PARAMETER_COLUMN), Palette.tag),
             Ink("${pool.draws} of ${pool.facets.size} drawn per Age", Palette.faint),
         ),
         note = drawsNote(pool),
@@ -1162,6 +1180,9 @@ class Parts(private val corpus: Corpus) {
             "dark_void" -> "dark void (the end)"
             else -> key
         }
+
+        /** What a pool is called: which one it is, since what is in it is on the rows underneath. */
+        fun poolNamed(at: Int) = "pool ${at + 1}"
 
         /** The row that says a word does not choose a base dimension. */
         const val UNSET = "unset"

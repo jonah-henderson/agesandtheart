@@ -88,6 +88,9 @@ class Editor(
     /** How many rows the band screen's list had room for, which only drawing it knows. */
     private var bandWindow = MINIMUM_BODY
 
+    /** The questions this one was opened over, innermost last — what `esc` and `←` walk back out through. */
+    private val wentThrough = ArrayDeque<Overlay>()
+
     /** How many options the picker last had room for — what a page means to it. Set as it is drawn. */
     private var pickerWindow = MINIMUM_BODY
 
@@ -329,7 +332,14 @@ class Editor(
      */
     private fun bandLines(band: Band, width: Int, room: Int): List<Line> {
         val head = listOf(Line(band.title, Palette.heading)) +
-            Axis.chart(band.parameter, band.drawn.ifEmpty { null }, width, band.handle) +
+            Axis.chart(
+                parameter = band.parameter,
+                said = band.drawn.ifEmpty { null },
+                width = width,
+                handle = band.handle,
+                from = band.drawnFrom,
+                forExample = band.illustrated,
+            ) +
             Line.BLANK
         val listed = band.shown.mapIndexed { at, option ->
             val here = at == band.index
@@ -547,7 +557,40 @@ class Editor(
         }
     }
 
+    /**
+     * **A question opened over another goes back to it**, rather than back to the word.
+     *
+     * Choosing a part of the world, then a parameter, then a value is three screens deep, and `esc` threw
+     * all three away — so a mistyped guess at which aspect owned something cost the whole errand. What is
+     * pushed is decided here rather than at each of the twenty places that open one: a handler that leaves
+     * a *different* question standing has opened one over this, and a handler that leaves none has
+     * finished.
+     *
+     * **Told apart by title**, because the leaning list re-opens itself on every keystroke and a stack
+     * that counted those would fill with copies of the screen you are looking at.
+     */
     private fun handleOverlay(shown: Overlay, key: KeyboardEvent) {
+        if (goingBack(shown, key) && wentThrough.isNotEmpty()) {
+            overlay = wentThrough.removeLast()
+            return
+        }
+        dispatchOverlay(shown, key)
+        val now = overlay
+        when {
+            now == null -> wentThrough.clear()
+            now.title == shown.title -> Unit
+            else -> wentThrough.addLast(shown)
+        }
+    }
+
+    /** Which key backs out of one, which differs by what else that key does inside it. */
+    private fun goingBack(shown: Overlay, key: KeyboardEvent): Boolean = when (shown) {
+        // A prompt is typing, and `←` is a cursor key there even where nothing yet moves one.
+        is Prompt -> key.key == "Escape"
+        else -> key.key == "Escape" || key.key == "ArrowLeft"
+    }
+
+    private fun dispatchOverlay(shown: Overlay, key: KeyboardEvent) {
         when (shown) {
             is Prompt -> when {
                 key.key == "Escape" -> overlay = null
@@ -635,6 +678,8 @@ class Editor(
         // The remembered row may be a heading now, or past the end of a section that has shrunk.
         rowOf[part] = restingPlace(rowOf.getValue(part).coerceIn(0, (rows().size - 1).coerceAtLeast(0)), 1)
         parts.helpAspect = 0
+        // Whatever was asked in another section is not a place to go back to from this one.
+        wentThrough.clear()
     }
 
     /**
@@ -972,7 +1017,7 @@ class Editor(
         val standing = candidate.poolsOn(insistence).mapIndexed { at, pool ->
             Picker.Option(
                 value = at.toString(),
-                label = pool.said,
+                label = Parts.poolNamed(at),
                 note = "${pool.draws} of ${pool.facets.size} ${Glyph.BULLET} add to it",
             )
         }
@@ -991,7 +1036,7 @@ class Editor(
     private fun keepBuilding(into: Into) {
         val pool = candidate.poolsOn(into.insistence).getOrNull(into.pool ?: return) ?: return
         overlay = Picker(
-            title = "${into.insistence.title} ${pool.said} — ${pool.facets.size} facet(s)",
+            title = "${into.insistence.title} ${Parts.poolNamed(into.pool)} — ${pool.facets.size} facet(s)",
             options = listOf(
                 Picker.Option(
                     ANOTHER_FACET,
@@ -1236,16 +1281,22 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
             val said = aspects.firstNotNullOfOrNull { aspect ->
                 Verdict.parametersNamed(aspect, parameter, corpus).firstOrNull { it.help.isNotBlank() }?.help
             }.orEmpty()
-            Picker.Option(
-                value = parameter,
-                label = parameter,
-                note = listOfNotNull(said.ifEmpty { null }, aspects.sortedBy { it.ordinal }.joinToString(" ") { it.page })
-                    .joinToString("  ${Glyph.BULLET}  "),
-            )
+            // **Which aspects own it is not said here.** The list is reached through the part of the
+            // world it belongs to, and where it was not — "every parameter" — a parameter owned by
+            // several asks which on a screen of its own. Either way the pages after the help answered a
+            // question nobody was still holding.
+            Picker.Option(value = parameter, label = parameter, note = said)
         }
         overlay = Picker("Which value?", options) { picked ->
             val aspects = owners[picked.value].orEmpty()
-            if (aspects.size > 1) qualify(picked.value, aspects, into) else typeValueFor(listOf(picked.value), into)
+            when {
+                aspects.size > 1 -> qualify(picked.value, aspects, into)
+                // **Qualified where the writer said which part of the world.** The list was narrowed to
+                // one aspect, so `size` reached here meaning the sun's; left bare it belongs to whichever
+                // aspect owns one first, and the sun's size was drawn against a landform's landmarks.
+                only != null -> typeValueFor(listOf(qualified(picked.value, only.page)), into)
+                else -> typeValueFor(listOf(picked.value), into)
+            }
         }
     }
 

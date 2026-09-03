@@ -25,16 +25,30 @@ object Axis {
      * landmark instead, which a narrow pane has and a short one does not. Empty only where the axis has
      * nothing to say about itself.
      */
-    fun chart(parameter: Parameter, said: String?, width: Int, handle: Double? = null): List<Line> {
-        val marks = parameter.landmarks
-        if (marks.isEmpty()) return emptyList()
+    fun chart(
+        parameter: Parameter,
+        said: String?,
+        width: Int,
+        handle: Double? = null,
+        /**
+         * The band [said] is applied to, where it is a claim about one rather than a band itself.
+         *
+         * A nudge and a spread say what becomes of whatever the Age had, so on the whole axis they move
+         * nothing and draw as everything. Given a band to work on they show what they do, which is the
+         * only way either of them can be seen at all.
+         */
+        from: Span = Span.NATURAL,
+        /** Whether what is drawn is an illustration rather than the value itself — coloured apart, and said. */
+        forExample: Boolean = false,
+    ): List<Line> {
+        // **A scale with nothing named on it is still a scale.** An axis nobody has written landmarks for
+        // used to draw nothing at all, so the one parameter where a number says least about itself was the
+        // one shown no ruler to read it against.
+        val marks = parameter.landmarks.ifEmpty { BARE }
         if (width < NARROWEST) return upright(marks, said)
         val ruler = width - ENDS
-        return listOfNotNull(
-            scaleLine(marks, ruler),
-            labelLine(marks, ruler),
-            said?.let { bandLine(it, ruler, handle) },
-        )
+        return listOfNotNull(scaleLine(marks, ruler), labelLine(marks, ruler)) +
+            said?.let { bandLines(it, ruler, handle, from, forExample) }.orEmpty()
     }
 
     /**
@@ -94,8 +108,22 @@ object Axis {
      * Through `Setting.settle` rather than by reading the text: `>0.4` is a floor and `+0.3` is a nudge,
      * and what a writer wants to see is the band each of them leaves rather than the number they typed.
      */
-    private fun bandLine(said: String, ruler: Int, handle: Double?): Line? {
-        val settled = Setting.read(said)?.let { Setting.settle(listOf(it)) } ?: return null
+    private fun bandLines(
+        said: String,
+        ruler: Int,
+        handle: Double?,
+        natural: Span,
+        forExample: Boolean,
+    ): List<Line> {
+        val settled = Setting.read(said)?.let { Setting.settle(listOf(it), natural) } ?: return emptyList()
+        val tone = if (forExample) Palette.nudged else Palette.chosen
+        // **On its own row.** The scale is laid to the pane exactly, so anything after the band ran past
+        // the edge and was cut — which read as a stray character under the top of the axis.
+        val aside = Line(" ".repeat(LEAD)) + if (forExample) {
+            Line("${natural.spelled()} becomes ${settled.spelled()}", Palette.nudged)
+        } else {
+            Line(settled.spelled(), Palette.faint)
+        }
         val from = columnFor(settled.least, ruler)
         val to = columnFor(settled.most, ruler)
         val row = CharArray(ruler) { at -> if (at in from..to) Glyph.FULL.single() else Glyph.EMPTY.single() }
@@ -103,15 +131,15 @@ object Axis {
         // about to move; this is the answer, and it is the whole of what makes the band editable rather
         // than merely drawn.
         val lit = handle?.let { columnFor(it, ruler) }
-        if (lit == null) {
-            return Line(" ".repeat(LEAD)) + Line(String(row), Palette.chosen) +
-                Line("  ${settled.spelled()}", Palette.faint)
+        val band = if (lit == null) {
+            Line(" ".repeat(LEAD)) + Line(String(row), tone)
+        } else {
+            Line(" ".repeat(LEAD)) +
+                Line(String(row.copyOfRange(0, lit)), tone) +
+                Line(Glyph.FILLED, Palette.focused) +
+                Line(String(row.copyOfRange((lit + 1).coerceAtMost(ruler), ruler)), tone)
         }
-        return Line(" ".repeat(LEAD)) +
-            Line(String(row.copyOfRange(0, lit)), Palette.chosen) +
-            Line(Glyph.FILLED, Palette.focused) +
-            Line(String(row.copyOfRange((lit + 1).coerceAtMost(ruler), ruler)), Palette.chosen) +
-            Line("  ${settled.spelled()}", Palette.faint)
+        return listOf(band, aside)
     }
 
     private fun columnFor(value: Double, ruler: Int): Int {
@@ -127,6 +155,15 @@ object Axis {
 
     /** Below this there is no room for a scale worth reading. */
     private const val NARROWEST = 24
+
+    /**
+     * What an axis with no landmarks of its own is marked with.
+     *
+     * **The middle rather than "the default"**, which it is not: a ranged parameter nobody speaks to keeps
+     * the whole span and a value is drawn inside it, so nothing about zero is what an Age would have got.
+     * It is a place to read the ruler against, and says so.
+     */
+    private val BARE = listOf(Parameter.Landmark(0.0, "the middle"))
 
     private const val RULE = '─'
     private const val TICK = '┬'

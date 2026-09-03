@@ -501,9 +501,11 @@ enum class Terrain(
         val SIZE = Parameter.ranged(
             "size",
             help = "How big an island is: shore, height and spacing move together.",
+            // Words anybody knows. A skerry is a rock in the sea and the right word for the low end, and
+            // a landmark nobody can read is a landmark that says nothing.
             landmarks = listOf(
-                Parameter.Landmark(-1.0, "a skerry"),
-                Parameter.Landmark(0.0, "an ordinary island"),
+                Parameter.Landmark(-1.0, "tiny"),
+                Parameter.Landmark(0.0, "an island"),
                 Parameter.Landmark(1.0, "a continent"),
             ),
         )

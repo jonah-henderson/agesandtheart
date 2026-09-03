@@ -270,14 +270,29 @@ class Band(
             else -> ""
         }
 
-    /** What the chart shades: the band as it stands, whatever row the cursor is on. */
+    /**
+     * **What the chart shades: whatever the cursor is on.**
+     *
+     * The band while you are moving it; the actual value of a word already written while you are reading
+     * one; and for a nudge or a spread what it would do to [ILLUSTRATION], since neither has a band of its
+     * own and on the whole axis neither moves anything.
+     */
     val drawn: String
         get() = when {
+            onAPreset -> focusedPreset?.value.orEmpty()
+            row == Row.NUDGE -> Setting.Shift(nudge).spelled()
+            row == Row.SPREAD -> Setting.Spread(spread).spelled()
             least != null && most != null -> Span(minOf(least!!, most!!), maxOf(least!!, most!!)).spelled()
             least != null -> Setting.Bound(least = least).spelled()
             most != null -> Setting.Bound(most = most).spelled()
             else -> ""
         }
+
+    /** The band [drawn] is applied to — a real one only where what is drawn works on one. */
+    val drawnFrom: Span get() = if (illustrated) ILLUSTRATION else Span.NATURAL
+
+    /** Whether what is drawn is an example rather than the value, which the chart colours apart and says. */
+    val illustrated: Boolean get() = !onAPreset && (row == Row.NUDGE || row == Row.SPREAD)
 
     /** The end the keys are moving, for the chart to mark. */
     val handle: Double? get() = if (row != Row.BAND) null else if (onTheHighEnd) most else least
@@ -326,5 +341,16 @@ class Band(
     fun backspace() {
         filter = filter.dropLast(1)
         index = index.coerceAtMost(shown.size - 1)
+    }
+
+    companion object {
+        /**
+         * The band a nudge and a spread are shown working on.
+         *
+         * The middle half of the axis, because it is the one band both of them visibly change: a nudge
+         * slides it and a spread opens it, where the whole axis has nowhere to slide to and nothing left
+         * to open into.
+         */
+        val ILLUSTRATION = Span(-0.25, 0.25)
     }
 }
