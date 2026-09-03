@@ -279,7 +279,11 @@ class Editor(
         val drawn = populationUnderTheCursor()
             ?.let { PoolChart.of(it, word, corpus, width) }
             .orEmpty()
-        val tail = said + if (drawn.isEmpty()) emptyList() else listOf(Line.BLANK) + drawn
+        // **The axis above the words about it**, since `<-0.5` is a number and the scale is what says
+        // whether it means snow. What a parameter is for is worth reading second; where the value it
+        // holds actually lands is the thing you came to look at.
+        val axis = axisUnderTheCursor(width)
+        val tail = axis + said + if (drawn.isEmpty()) emptyList() else listOf(Line.BLANK) + drawn
         // **The list is served first, and the note gets what is left.** The note used to be laid out
         // whole and the list squeezed into whatever remained, so a parameter with six lines of help about it
         // took six rows off a section of thirty and the rest scrolled away under a paragraph nobody was
@@ -858,6 +862,39 @@ class Editor(
      * Read off the row's handle, which carries the aspect page for every claim but the `all` lean — that
      * one is about every population at once and so about none in particular.
      */
+    /**
+     * The scale for the row the cursor is on, where that row sets a ranged parameter — the same chart the
+     * band screen is built around, shown before it is opened rather than only inside it.
+     */
+    private fun axisUnderTheCursor(width: Int): List<Line> {
+        if (part != Part.PROPERTIES) return emptyList()
+        val handle = rows().getOrNull(row())?.handle ?: return emptyList()
+        val kind = handle.substringBefore('/')
+        val rest = handle.substringAfter('/', "")
+        val into = when (kind) {
+            "pool" -> pointedAt(rest.substringBeforeLast('/'))
+            else -> insistenceNamed(kind)?.let(::Into)
+        } ?: return emptyList()
+        val spelled = if (kind == "pool") rest.substringAfterLast('/') else rest
+        val parameter = parameterNamed(spelled) ?: return emptyList()
+        if (parameter.holds != Holds.RANGE) return emptyList()
+        val said = candidate.holding(into)[spelled].orEmpty()
+        return listOf(Line.BLANK) + Axis.chart(parameter, said.ifEmpty { null }, width)
+    }
+
+    /**
+     * The parameter a key names — the aspect it was qualified to, else whichever owns one by that name.
+     *
+     * One reading, because two would drift: what the axis is drawn for has to be the same parameter the
+     * band screen then edits, or a writer is shown one scale and given another.
+     */
+    private fun parameterNamed(spelled: String): Parameter? {
+        val bare = spelled.substringAfterLast('.')
+        val on = Aspect.entries.firstOrNull { it.page == spelled.substringBefore('.', "") }
+            ?: Aspect.entries.firstOrNull { it.ownsParameterNamed(bare) }
+        return on?.let { Verdict.parametersNamed(it, bare, corpus).firstOrNull() }
+    }
+
     private fun populationUnderTheCursor(): Aspect? {
         if (part != Part.POPULATIONS) return null
         val page = rows().getOrNull(row())?.handle?.substringAfter('/', "")?.substringBefore('/')
@@ -1594,7 +1631,7 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
         // The aspect the parameter was qualified to, where it was — else whichever owns a parameter by that name.
         val on = Aspect.entries.firstOrNull { it.page == parameters.first().substringBefore('.', "") }
             ?: Aspect.entries.firstOrNull { it.ownsParameterNamed(bare) }
-        val parameter = on?.let { Verdict.parametersNamed(it, bare, corpus).firstOrNull() }
+        val parameter = parameterNamed(parameters.first())
         val shapes = parameter?.let { parts.optionsFor(it, on) }.orEmpty()
         if (shapes.isEmpty()) return retypeParameter(parameters, into)
         // **A band is the one thing still typed.** Its shapes are templates to edit rather than answers,

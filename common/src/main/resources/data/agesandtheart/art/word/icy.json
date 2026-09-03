@@ -13,27 +13,5 @@
   },
   "sets": {
     "temperature": "<-0.5"
-  },
-  "requests": {
-    "sets": {
-      "sky.colour": "white|grey",
-      "air.colour": "white|grey",
-      "clouds.colour": "white|grey",
-      "aurora.glow": ">0.6",
-      "aurora.frequency": ">0.75",
-      "motes": "snow",
-      "haze": "-0.2",
-      "tint": "blue",
-      "ceiling": "-0.4"
-    },
-    "pools": [
-      {
-        "draws": "2",
-        "facets": {
-          "sun.colour": "blue|white|grey",
-          "sun.size": "<0.4"
-        }
-      }
-    ]
   }
 }
