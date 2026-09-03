@@ -220,6 +220,16 @@ fun highlighted(text: String, base: TextStyle?, found: String): List<Ink> {
 }
 
 /**
+ * **The hint a list that filters wears**, and what has been typed into it so far.
+ *
+ * One thing rather than a label and a value on two pairs, so a screen cannot show the first and forget
+ * the second — which four of them did, leaving a list that quietly narrowed under you with nothing on
+ * screen to say why.
+ */
+fun searching(filter: String): Pair<String, String> =
+    "" to if (filter.isEmpty()) "type to search" else "type to search: $filter"
+
+/**
  * The row of key hints along the bottom of a screen — `[a] new book  •  [enter] write it`.
  *
  * **Bracketed and coloured, because a bare key does not read as one.** "a new book" is a key and a noun

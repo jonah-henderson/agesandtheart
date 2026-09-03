@@ -518,13 +518,13 @@ class Menu(
                     "- =" to "change",
                     "enter" to "change",
                     "F1" to "rarity", "F2" to "ink", "F3" to "specificity",
-                    "" to "type to search", "" to table.filter,
+                    searching(table.filter),
                 )
             } else {
                 hints(
                     "enter" to "open",
                     "F1" to "rarity", "F2" to "ink", "F3" to "specificity",
-                    "" to "type to search", "" to table.filter,
+                    searching(table.filter),
                 )
             },
         ),
@@ -619,8 +619,7 @@ class Menu(
                 "↑↓" to "move",
                 "→" to "choose",
                 "←" to "back",
-                "" to "type to search",
-                "" to picker.filter,
+                searching(picker.filter),
             ),
         )
     }

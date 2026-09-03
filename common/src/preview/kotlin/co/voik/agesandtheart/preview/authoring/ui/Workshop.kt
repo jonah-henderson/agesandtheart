@@ -149,6 +149,7 @@ class Workshop(
                                 "^o" to "open in minecraft",
                                 "d" to "delete",
                                 "←" to "back",
+                                searching(drafts.filter),
                             ),
                         ),
                     ),

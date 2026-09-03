@@ -121,12 +121,20 @@ class Table(
                 val value = row.cells.getOrElse(by) { "" }
                 return scale.indexOf(value).takeIf { it >= 0 } ?: scale.size
             }
+            fun said(row: Row) = row.cells.getOrElse(by) { "" }
+            // **A column of numbers sorts as numbers.** Read off the column rather than declared, so a
+            // count added anywhere gets it without somebody remembering to say so — and `10` stops
+            // sorting before `2`, which is what sorting by `members` did.
+            val counting = scale.isEmpty() &&
+                kept.all { said(it).isEmpty() || said(it).toDoubleOrNull() != null } &&
+                kept.any { said(it).toDoubleOrNull() != null }
             // Blank last either way: an unset rarity is not "before a" and sorting it there would bury
             // every word that still needs one at the top of the list you were trying to read.
             val ordered = kept.sortedWith(
-                compareBy<Row> { it.cells.getOrElse(by) { "" }.isEmpty() }
+                compareBy<Row> { said(it).isEmpty() }
                     .thenBy { if (scale.isEmpty()) 0 else rank(it) }
-                    .thenBy { if (scale.isEmpty()) it.cells.getOrElse(by) { "" } else "" }
+                    .thenBy { if (counting) said(it).toDoubleOrNull() ?: 0.0 else 0.0 }
+                    .thenBy { if (scale.isEmpty() && !counting) said(it) else "" }
                     .thenBy { it.cells.firstOrNull().orEmpty() },
             )
             return if (descending) ordered.reversed() else ordered

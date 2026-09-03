@@ -404,7 +404,7 @@ class Editor(
     private fun pickerLines(picker: Picker, width: Int, room: Int): List<Line> {
         val head = listOf(
             Line(picker.title, Palette.heading),
-            hints("" to "type to search", "" to picker.filter),
+            hints(searching(picker.filter)),
         ) + picker.chart?.invoke(picker.focused, width).orEmpty() + Line.BLANK
         val shown = picker.shown
         val marking = shown.maxOfOrNull { it.mark.length }?.takeIf { it > 0 }?.plus(1) ?: 0
@@ -515,7 +515,7 @@ class Editor(
         }
         is Reader -> hints("" to "nothing to change here")
         is Band -> when {
-            shown.onAPreset -> hints("enter" to "take it", "" to "type to search: ${shown.filter}")
+            shown.onAPreset -> hints("enter" to "take it")
             shown.row == Band.Row.BAND -> hints(
                 "- =" to "move the ${if (shown.onTheHighEnd) "top" else "bottom"}",
                 "tab" to "the other end",
@@ -535,6 +535,11 @@ class Editor(
     private fun gettingAround(): Line = when {
         typing != null -> hints("esc" to "leave it alone")
         overlay is Prompt -> hints("esc" to "cancel")
+        // A picker draws its own search line above the list; a band screen has no room for one, so its
+        // hint carries it — typing anywhere on that screen reaches the words already written.
+        overlay is Band -> hints(
+            "↑↓" to "move", "←" to "back", searching((overlay as Band).filter),
+        )
         overlay != null -> hints(
             "↑↓" to "move", "pgup/pgdn" to "a page", "home/end" to "ends", "←" to "back",
         )

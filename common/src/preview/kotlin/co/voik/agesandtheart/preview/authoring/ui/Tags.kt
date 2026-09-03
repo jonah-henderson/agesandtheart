@@ -206,7 +206,7 @@ class Tags(
                     tableLines(
                         table,
                         canvas,
-                        listOf(hints("enter" to "take it", "←" to "back", "" to table.filter)),
+                        listOf(hints("enter" to "take it", "←" to "back", searching(table.filter))),
                     ),
                 )
                 val key = scope.readKey() ?: return null
@@ -267,7 +267,8 @@ class Tags(
                 TagFile.setWeight(page, member.preset, tag, null)
                 TagFile.setDropped(page, member.preset, tag, dropped = true)
             }
-            TagLayer.Source.DERIVED -> TagFile.setDropped(page, member.preset, tag, dropped = true)
+            TagLayer.Source.DERIVED, TagLayer.Source.REMEMBERED ->
+                TagFile.setDropped(page, member.preset, tag, dropped = true)
         }
     }
 
@@ -339,9 +340,10 @@ class Tags(
     )
 
     private fun noteOn(fact: TagLayer.Fact): String = when {
-        fact.members == 0 && fact.onlyOnAServer -> "only a running server carries this"
-        fact.members == 0 -> "asked for, carried by nothing"
-        fact.asked == 0 -> "carried, asked by no word"
+        fact.members == 0 && fact.onlyOnAServer ->
+            "only a running server carries this — load minecraft data to see what"
+        fact.members == 0 -> "used by a word, but has no members"
+        fact.asked == 0 -> "has members, not used by any word"
         fact.opposed -> "opposed in the antonym table"
         else -> ""
     }
@@ -365,6 +367,7 @@ class Tags(
         tone = when (member.source) {
             TagLayer.Source.DROPPED -> Palette.warned
             TagLayer.Source.AUTHORED, TagLayer.Source.OVERRIDDEN -> Palette.value
+            TagLayer.Source.REMEMBERED -> Palette.nudged
             TagLayer.Source.DERIVED -> null
         },
     )
@@ -384,10 +387,9 @@ class Tags(
                                 "pgup/pgdn" to "a page",
                             ),
                             hints(
-                                "enter" to "what carries it",
+                                "enter" to "view details",
                                 "←" to "back",
-                                "" to "type to search",
-                                "" to table.filter,
+                                searching(table.filter),
                             ),
                         ),
                     ),
@@ -441,7 +443,7 @@ class Tags(
                     "^r" to "rename the tag",
                     "^w" to "what asks",
                     "←" to "back",
-                    "" to table.filter,
+                    searching(table.filter),
                 ),
             ),
         )

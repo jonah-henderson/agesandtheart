@@ -39,6 +39,16 @@ class TagLayer(private val corpus: Corpus) {
         /** A rule in `art/derivation/` made it, and no entry exists. Changing it writes one. */
         DERIVED("derived"),
 
+        /**
+         * A server said so, and nothing here can see it.
+         *
+         * Registry tags are bound by a running game, so every `by_tag` rule matches nothing offline —
+         * `ore` is the case, and it read as a tag nothing carries. `--refresh` writes down what a server
+         * answered and this is that, read back: the members are the snapshot's and the weight is what the
+         * rules grant, which is the sum the server was doing.
+         */
+        REMEMBERED("from a server"),
+
         /** Derived, then taken back off by `drop` — so it is not carried, and the row says why. */
         DROPPED("dropped"),
     }
@@ -115,7 +125,40 @@ class TagLayer(private val corpus: Corpus) {
 
     private fun carriers(): Map<String, List<Member>> = index ?: build().also { index = it }
 
-    private fun build(): Map<String, List<Member>> = buildMap<String, MutableList<Member>> {
+    /**
+     * What a server said carries each tag only it can grant — the snapshot, read back as members.
+     *
+     * Which aspect a member belongs to is the snapshot's own answer: `reach` is keyed by aspect page, so
+     * the tag names its aspects and the member is placed in whichever of them can hold it. The weight is
+     * what the rules grant, since that is the arithmetic the server was doing and the part we have.
+     */
+    private fun remembered(): Map<String, List<Member>> {
+        val snapshot = corpus.snapshot ?: return emptyMap()
+        return snapshot.serverOnly.mapValues { (tag, members) ->
+            val aspects = Aspect.entries.filter { snapshot.reachOf(it, tag) != null }
+            members.mapNotNull { id ->
+                val aspect = aspects.firstOrNull { it.presetFor(id) != null } ?: return@mapNotNull null
+                Member(aspect, id, granted(aspect, tag), Source.REMEMBERED)
+            }
+        }.filterValues { it.isNotEmpty() }
+    }
+
+    /** The strongest weight any rule of [aspect] grants [tag] — what the server's own merge came to. */
+    private fun granted(aspect: Aspect, tag: String): Double {
+        val rules = corpus.vocabulary.derivation[aspect] ?: return 0.0
+        return (rules.byTag.values + rules.byKind.values).mapNotNull { it[tag] }.maxOrNull() ?: 0.0
+    }
+
+    private fun build(): Map<String, List<Member>> = built().mapValues { (tag, here) ->
+        // A member the snapshot named and this corpus also has an entry for is one row, not two: what is
+        // written down here wins, exactly as it wins over a rule.
+        val already = here.map { it.aspect to it.preset }.toSet()
+        here + remembered()[tag].orEmpty().filterNot { (it.aspect to it.preset) in already }
+    }.let { standing ->
+        standing + remembered().filterKeys { it !in standing }
+    }
+
+    private fun built(): Map<String, List<Member>> = buildMap<String, MutableList<Member>> {
         for (aspect in Aspect.entries) {
             val authored = overlay[aspect].orEmpty()
             val here = derived[aspect].orEmpty()
