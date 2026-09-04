@@ -16,6 +16,7 @@ import net.minecraft.core.Registry
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.server.level.TicketType
 import net.minecraft.world.level.ChunkPos
+import net.minecraft.world.level.biome.BiomeManager
 import net.minecraft.world.level.Level
 import net.minecraft.resources.ResourceKey
 import java.util.UUID
@@ -58,6 +59,19 @@ object PanelViews {
     private val watching = mutableMapOf<UUID, View>()
 
     /**
+     * When each player last opened a panel, so one cannot be asked for faster than it can be served.
+     *
+     * **Because opening one is expensive and a client decides when it happens.** Streaming the ring
+     * generates up to [PanelProtocol.RING_CHUNKS] chunks, and on a freshly written Age none of them exists
+     * yet — so a client sending open requests in a loop would keep the server generating terrain and
+     * nothing else. A book is opened by hand; twice a second is far more than a person can ask for and far
+     * less than a loop would.
+     */
+    private val lastOpened = mutableMapOf<UUID, Long>()
+
+    private const val TICKS_BETWEEN_PANELS = 10L
+
+    /**
      * Opens a panel onto [dimension] for [player], streaming the ring around the Age's arrival point.
      *
      * Refuses anything that is not one of our Ages, and anything the server has no recipe for — a panel is
@@ -65,6 +79,10 @@ object PanelViews {
      * being.
      */
     fun open(server: MinecraftServer, player: ServerPlayer, dimension: ResourceKey<Level>) {
+        val now = server.overworld().gameTime
+        val previously = lastOpened[player.uuid]
+        if (previously != null && now - previously < TICKS_BETWEEN_PANELS) return
+        lastOpened[player.uuid] = now
         close(server, player)
         val identifier = dimension.identifier()
         if (identifier.namespace != Constants.MOD_ID) {
@@ -94,7 +112,7 @@ object PanelViews {
                 dimension = dimension,
                 dimensionType = dimensionTypeIdOf(level),
                 around = around,
-                biomeZoomSeed = level.seed,
+                biomeZoomSeed = BiomeManager.obfuscateSeed(level.seed),
                 seaLevel = level.seaLevel,
                 chunksComing = PanelProtocol.RING_CHUNKS,
             ),
@@ -110,7 +128,10 @@ object PanelViews {
     }
 
     /** Called when a player leaves, since a client that crashed with a book open never says so. */
-    fun forget(server: MinecraftServer, player: ServerPlayer) = close(server, player)
+    fun forget(server: MinecraftServer, player: ServerPlayer) {
+        close(server, player)
+        lastOpened.remove(player.uuid)
+    }
 
     /**
      * The point a visitor would arrive at, which is what the orbit is centred on.
@@ -136,7 +157,17 @@ object PanelViews {
         level.chunkSource.removeTicketWithRadius(PANEL_TICKET, centre, PanelProtocol.RING_RADIUS_CHUNKS + 1)
     }
 
-    /** Sends every chunk of the ring — the order, and the reason for it, are [PanelProtocol.ringAround]'s. */
+    /**
+     * Sends every chunk of the ring — the order, and the reason for it, are [PanelProtocol.ringAround]'s.
+     *
+     * **Synchronous, and that is a known cost rather than an oversight.** `getChunk` blocks until a chunk
+     * is generated, so opening a panel onto an Age nobody has visited generates the ring on the server
+     * thread while everything else waits. It is bounded — one ring, and the same terrain a visitor would
+     * have made by walking there — and it is rate-limited above so it cannot be provoked in a loop. The
+     * fix, when it is wanted, is `getChunkFuture` and sending each chunk as it completes; that turns one
+     * stall into a stream and wants a tick hook to drain, which is more machinery than a first version of
+     * a luxury feature has earned.
+     */
     private fun sendRing(player: ServerPlayer, level: ServerLevel, centre: ChunkPos) {
         for (position in PanelProtocol.ringAround(centre)) {
             val chunk = level.getChunk(position.x, position.z)
@@ -150,18 +181,5 @@ object PanelViews {
                 ),
             )
         }
-    }
-
-    /** For the checks: how many players are holding a panel open. */
-    fun openCount(): Int = watching.size
-
-    /** For the checks and for a reload: drops every view without touching the levels they named. */
-    fun forgetAll(server: MinecraftServer) {
-        for ((uuid, view) in watching) {
-            val level = server.getLevel(view.dimension) ?: continue
-            release(level, view.centre)
-            Constants.LOG.debug("Released a panel ring held by {}", uuid)
-        }
-        watching.clear()
     }
 }

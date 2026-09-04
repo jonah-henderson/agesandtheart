@@ -31,19 +31,14 @@ import net.minecraft.world.level.dimension.DimensionType
 class PreviewLevel private constructor(
     val level: ClientLevel,
     val renderer: LevelRenderer,
-    private val buffers: RenderBuffers,
     /** Ours rather than the game's: two renderers sharing one would collide over `levelRenderState`. */
     val renderState: GameRenderState,
-    val centre: ChunkPos,
     /** The orbit this preview is looked at from, made with the level so the two cannot disagree. */
     val camera: PanelCamera,
     private val chunksExpected: Int,
 ) : AutoCloseable {
 
     private var chunksArrived = 0
-
-    /** Whether every chunk of the ring has arrived, which is what ends the fade from black. */
-    val isWhole: Boolean get() = chunksArrived >= chunksExpected
 
     /** How far along the load is, `0..1` — what the fade actually reads. */
     val wholeness: Float
@@ -117,11 +112,11 @@ class PreviewLevel private constructor(
     }
 
     /**
-     * Drops the renderer, and with it the section builders the buffers handed out.
+     * Drops the renderer. The buffers outlive it deliberately — see [SHARED_BUFFERS].
      *
-     * `RenderBuffers` has nothing to close of its own — its pool is owned by the renderer that was given
-     * it — so closing the renderer is the whole of the teardown, and the buffers are held only to keep them
-     * alive for exactly as long as it is.
+     * `LevelRenderer.close` disposes its outline target, its sky renderer, its layer sampler and its cloud
+     * renderer, and **not** the `RenderBuffers` it was handed. That is the whole reason the buffers are
+     * shared rather than made per preview.
      */
     override fun close() {
         renderer.close()
@@ -130,13 +125,25 @@ class PreviewLevel private constructor(
     companion object {
 
         /**
-         * How many section builders the preview's own [RenderBuffers] gets.
+         * How many section builders the preview's [RenderBuffers] gets.
          *
          * **Small on purpose.** The game's own pool is sized for a render distance; a panel meshes a ring
          * of forty-nine chunks once and never grows, so this is the difference between the "large standing
-         * allocation" `link-panel-research.md` feared and something a screen can afford to hold.
+         * allocation" `link-panel-research.md` feared and something a client can afford to keep.
          */
         private const val SECTION_BUILDERS = 2
+
+        /**
+         * One set of buffers for every panel there will ever be, made on first use.
+         *
+         * **Shared rather than per preview because they cannot be given back.** A `RenderBuffers` holds a
+         * `SectionBufferBuilderPool` of off-heap `ByteBufferBuilder`s; the pool has no `close`, the packs
+         * inside it are not reachable from outside, and `LevelRenderer.close` does not dispose the buffers
+         * it was handed. So one per book opened is native memory that nothing can reclaim — where one for
+         * the life of the client is a bounded cost paid once. Only one panel is ever open (§7.8.1), so
+         * sharing costs nothing in contention.
+         */
+        private val SHARED_BUFFERS: RenderBuffers by lazy { RenderBuffers(SECTION_BUILDERS) }
 
         /**
          * Stands one up from what the server said.
@@ -161,12 +168,11 @@ class PreviewLevel private constructor(
                 SectionPos.blockToSectionCoord(payload.around.z),
             )
             val renderState = GameRenderState()
-            val buffers = RenderBuffers(SECTION_BUILDERS)
             val renderer = LevelRenderer(
                 minecraft,
                 minecraft.entityRenderDispatcher,
                 minecraft.blockEntityRenderDispatcher,
-                buffers,
+                SHARED_BUFFERS,
                 renderState,
                 minecraft.gameRenderer.featureRenderDispatcher,
             )
@@ -185,7 +191,7 @@ class PreviewLevel private constructor(
             renderer.setLevel(level)
             level.chunkSource.updateViewCenter(centre.x, centre.z)
             val camera = PanelCamera(level, payload.around)
-            return PreviewLevel(level, renderer, buffers, renderState, centre, camera, payload.chunksComing)
+            return PreviewLevel(level, renderer, renderState, camera, payload.chunksComing)
         }
 
         /**

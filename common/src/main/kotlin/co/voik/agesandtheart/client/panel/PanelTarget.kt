@@ -64,9 +64,4 @@ object PanelTarget {
         return TextureSetup.singleTexture(view, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR))
     }
 
-    /** Dropped when the client shuts down, or when a panel will not be wanted again for a long time. */
-    fun forget() {
-        target?.destroyBuffers()
-        target = null
-    }
 }

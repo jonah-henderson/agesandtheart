@@ -60,10 +60,17 @@ object PanelRenderer {
 
         fog.updateBuffer(state.fogData)
         val terrainFog = fog.getBuffer(FogRenderer.FogMode.WORLD)
+
+        // **Put back whatever was set.** This runs inside a screen's frame, where the GUI's own orthographic
+        // projection is in force; leaving a perspective one behind would bend every widget drawn after the
+        // book. `RenderSystem` hands the current one back, so the swap is symmetrical.
+        val outerProjection = RenderSystem.getProjectionMatrixBuffer()
+        val outerType = RenderSystem.getProjectionType()
         RenderSystem.setProjectionMatrix(
             projections.getBuffer(state.projectionMatrix),
             com.mojang.blaze3d.ProjectionType.PERSPECTIVE,
         )
+        try {
 
         // Extract first, then draw: `extractLevel` is what fills `chunkSectionsToRender`, which the draw
         // then consumes, and it is also what asks the sky and weather renderers about *this* level.
@@ -86,6 +93,11 @@ object PanelRenderer {
                 )
             }
             true
+        }
+        } finally {
+            // Null where nothing had set one yet, which is not a state we can put back — and not one a
+            // screen's frame can be in, since the GUI sets its own before any of this runs.
+            outerProjection?.let { RenderSystem.setProjectionMatrix(it, outerType) }
         }
     }
 
@@ -111,21 +123,15 @@ object PanelRenderer {
         state.orientation = camera.rotation()
         state.cullFrustum = camera.cullFrustum
         state.viewRotationMatrix = camera.getViewRotationMatrix(Matrix4f())
-        state.projectionMatrix = Matrix4f().setPerspective(
-            FIELD_OF_VIEW * Mth.DEG_TO_RAD,
-            width.toFloat() / height.toFloat(),
-            NEAR_PLANE,
-            FAR_PLANE,
-        )
-        state.depthFar = FAR_PLANE
-        state.hudFov = FIELD_OF_VIEW
+        // The camera's own, so the volume drawn and the volume culled are the same one. Building a second
+        // projection here is how they came to disagree, and a wider one silently culls what it would draw.
+        state.projectionMatrix = PanelCamera.projectionFor(width, height)
+        state.depthFar = PanelCamera.FAR_PLANE
+        state.hudFov = PanelCamera.FIELD_OF_VIEW
         // What the eye is *inside*, which decides whether the pass draws water or lava fog over the whole
         // frame. An orbit sits in open air by construction, so this is never anything else — and the Age's
         // own air reaches the panel as an environment layer rather than through here.
         state.fogType = FogType.NONE
     }
 
-    private const val FIELD_OF_VIEW = 70.0f
-    private const val NEAR_PLANE = 0.05f
-    private const val FAR_PLANE = 128.0f
 }

@@ -27,9 +27,6 @@ object LinkingPanel {
     /** What is being shown, or null while nothing is or the first chunks are still coming. */
     val preview: PreviewLevel? get() = showing
 
-    /** Whether a panel is open at all, including one still filling in. */
-    val isOpen: Boolean get() = showing != null || awaiting != null
-
     /**
      * Asks the server for a view of [dimension].
      *
@@ -47,13 +44,13 @@ object LinkingPanel {
     fun accept(payload: PanelLevelPayload) {
         if (awaiting != payload.dimension) {
             // A panel we stopped waiting for. Tell the server so its ring does not outlive our interest.
-            send(PanelCloseRequest())
+            send(PanelCloseRequest)
             return
         }
         awaiting = null
         showing?.close()
         showing = PreviewLevel.open(payload)
-        if (showing == null) send(PanelCloseRequest())
+        if (showing == null) send(PanelCloseRequest)
     }
 
     /** Called for each chunk of the ring. Chunks for a panel we have closed are dropped. */
@@ -73,7 +70,7 @@ object LinkingPanel {
         showing?.close()
         showing = null
         awaiting = null
-        if (had) send(PanelCloseRequest())
+        if (had) send(PanelCloseRequest)
     }
 
     /** Dropped without telling the server, for a disconnect — where there is nobody left to tell. */

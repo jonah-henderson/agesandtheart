@@ -96,17 +96,21 @@ data class PanelOpenRequest(val dimension: ResourceKey<Level>) : CustomPacketPay
  * also sent on disconnect by the server's own cleanup, since a client that crashes with a book open would
  * otherwise hold a ring of chunks loaded forever.
  */
-class PanelCloseRequest : CustomPacketPayload {
+object PanelCloseRequest : CustomPacketPayload {
 
     override fun type(): CustomPacketPayload.Type<PanelCloseRequest> = TYPE
 
-    companion object {
-        val TYPE: CustomPacketPayload.Type<PanelCloseRequest> =
-            CustomPacketPayload.Type("panel_close".location())
+    /**
+     * **An `object`, and that is load-bearing rather than tidy.** `StreamCodec.unit` captures one instance
+     * and *throws* on encode unless the value it is given `equals` it — so a class with identity equality,
+     * constructed fresh at each send, makes every close request throw instead of sending. The ring would
+     * then be held until the viewer disconnected, which is precisely the leak [PanelViews] is written to
+     * make impossible.
+     */
+    val TYPE: CustomPacketPayload.Type<PanelCloseRequest> =
+        CustomPacketPayload.Type("panel_close".location())
 
-        val STREAM_CODEC: StreamCodec<ByteBuf, PanelCloseRequest> =
-            StreamCodec.unit(PanelCloseRequest())
-    }
+    val STREAM_CODEC: StreamCodec<ByteBuf, PanelCloseRequest> = StreamCodec.unit(PanelCloseRequest)
 }
 
 /**
@@ -122,7 +126,13 @@ data class PanelLevelPayload(
     val dimensionType: Identifier,
     /** What the orbit is centred on: the Age's arrival point. */
     val around: BlockPos,
-    /** Vanilla's biome zoom seed, so biome colours match what a visitor would see. */
+    /**
+     * The **obfuscated** biome zoom seed, so biome colours land where a visitor would see them.
+     *
+     * Not the world seed: `ServerLevel` is built with `BiomeManager.obfuscateSeed(seed)` — Ephemeris'
+     * `RuntimeLevels` does exactly that for every Age — and a `ClientLevel` given the raw seed zooms its
+     * biomes differently, drawing grass and water boundaries in the wrong places.
+     */
     val biomeZoomSeed: Long,
     val seaLevel: Int,
     /** How many chunks are coming, so the panel knows when the picture is whole and can stop fading. */

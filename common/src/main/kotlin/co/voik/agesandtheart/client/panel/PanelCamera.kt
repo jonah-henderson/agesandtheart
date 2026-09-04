@@ -67,19 +67,40 @@ class PanelCamera(private val level: ClientLevel, private val centre: BlockPos) 
         setRotation(placedYaw, placedPitch)
 
         setupPerspective(NEAR_PLANE, FAR_PLANE, FIELD_OF_VIEW, width.toFloat(), height.toFloat())
-        val view = getViewRotationMatrix(Matrix4f())
-        val projection = Matrix4f().setPerspective(
-            FIELD_OF_VIEW * Mth.DEG_TO_RAD,
-            width.toFloat() / height.toFloat(),
-            NEAR_PLANE,
-            FAR_PLANE,
-        )
-        prepareCullFrustum(view, projection, position())
+        prepareCullFrustum(getViewRotationMatrix(Matrix4f()), projectionFor(width, height), position())
     }
 
     companion object {
         private const val TWO_PI = 2.0 * Math.PI
         private const val BLOCKS_PER_CHUNK = 16
+
+        /**
+         * The panel's optics, in one place.
+         *
+         * **They were in two and disagreed**, which is the kind of fault that shows as geometry ending in
+         * a sphere partway through the ring: the cull frustum is prepared from these, and anything that
+         * builds a *different* projection to draw with culls what it would otherwise have rendered. One
+         * source, read by the camera and by whatever fills the render state.
+         */
+        const val FIELD_OF_VIEW = 70.0f
+        const val NEAR_PLANE = 0.05f
+
+        /**
+         * How far the panel can see.
+         *
+         * Short on purpose, and it is the ring's own radius in blocks: seeing further would show the edge
+         * of what was streamed, which reads as the world ending rather than as a small view of it.
+         */
+        const val FAR_PLANE =
+            (co.voik.agesandtheart.book.panel.PanelProtocol.RING_RADIUS_CHUNKS * BLOCKS_PER_CHUNK).toFloat()
+
+        /** The projection both the frustum and the draw must use, for a target of [width] by [height]. */
+        fun projectionFor(width: Int, height: Int): Matrix4f = Matrix4f().setPerspective(
+            FIELD_OF_VIEW * Mth.DEG_TO_RAD,
+            width.toFloat() / height.toFloat(),
+            NEAR_PLANE,
+            FAR_PLANE,
+        )
 
         /**
          * How far out the orbit sits, in blocks.
@@ -98,16 +119,5 @@ class PanelCamera(private val level: ClientLevel, private val centre: BlockPos) 
         /** Looking down towards the arrival, since the eye is above it. */
         private const val PITCH_DEGREES = 20.0f
 
-        private const val FIELD_OF_VIEW = 70.0f
-        private const val NEAR_PLANE = 0.05f
-
-        /**
-         * How far the panel can see.
-         *
-         * Short on purpose, and it is the ring's own radius in blocks: seeing further would show the edge
-         * of what was streamed, which reads as the world ending rather than as a small view of it.
-         */
-        private const val FAR_PLANE =
-            (co.voik.agesandtheart.book.panel.PanelProtocol.RING_RADIUS_CHUNKS * BLOCKS_PER_CHUNK).toFloat()
     }
 }
