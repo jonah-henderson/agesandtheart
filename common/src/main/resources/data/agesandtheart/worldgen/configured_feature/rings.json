@@ -1,10 +1,9 @@
 {
   "_comment": [
-    "A torus, and it leans. Ordinary is twenty-five across, so `colossal rings` -- four times over",
-    "-- is the hundred-block ring this was drawn for.",
+    "A torus, and it leans. Twenty-five across as written, so `colossal` is the hundred-block",
+    "ring this was drawn for -- the standard every formation here shares.",
     "Five leans rather than a rotation dial: `Variation` turns a shape by rotating the query",
-    "column, which is a yaw and nothing else, so the lean has to be in the shape. Yaw is left to",
-    "the variation, and each lean carries its own turn so the two do not multiply out.",
+    "column, which is a yaw and nothing else, so the lean has to be in the shape.",
     "The lift sinks some of them, since a ring half in the ground is the better half of them."
   ],
   "type": "agesandtheart:formation",

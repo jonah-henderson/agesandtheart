@@ -21,6 +21,7 @@ import net.minecraft.world.level.levelgen.placement.HeightRangePlacement
 import net.minecraft.world.level.levelgen.placement.PlacedFeature
 import net.minecraft.world.level.levelgen.placement.PlacementModifier
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 import net.minecraft.tags.BlockTags
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
@@ -187,12 +188,16 @@ object FeatureShape {
             // resized with it, its lifts being absolute blocks.
             is FormationConfiguration -> size?.let {
                 val factor = sizeFactor(it)
-                // **The layout is spread with the shapes**, as an instanced field's is: bigger formations
-                // at the old spacing would grow into one another.
+                // **The layout is spread with the shapes, but by the root of the factor.** Spreading it
+                // linearly keeps the *fraction of ground covered* constant, which sounds right and makes a
+                // colossal formation doubly hard to meet: bigger, and no more of them per mile walked. A
+                // writer asking for colossal wants bigger, not scarcer — so the spacing grows with the
+                // square root, and a colossal ring sits about twice as far from its neighbour rather than
+                // four times. Walked at 4x: one every ~800 blocks became one every ~400.
                 configuration.copy(
                     shapes = configuration.shapes.map { shape -> shape.resized(factor, STANDING_ON_THE_GROUND) },
                     variation = configuration.variation.resized(factor),
-                    placement = configuration.placement.resized(factor),
+                    placement = configuration.placement.resized(sqrt(factor)),
                 )
             }
 

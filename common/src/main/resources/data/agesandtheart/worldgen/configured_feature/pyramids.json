@@ -1,6 +1,7 @@
 {
   "_comment": [
-    "Five courses, nine across -- the kind you walk up to."
+    "Twenty-five across the base as written, so `colossal` is a hundred. Half as tall as it is",
+    "wide, which is what keeps it reading as a pyramid rather than as a spike or a mound."
   ],
   "type": "agesandtheart:formation",
   "config": {
@@ -10,8 +11,8 @@
         "center_x": 0,
         "center_z": 0,
         "base_y": 0,
-        "height": 5,
-        "base_half_width": 4
+        "height": 12,
+        "base_half_width": 12
       }
     ],
     "variation": {

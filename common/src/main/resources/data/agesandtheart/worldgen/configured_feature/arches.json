@@ -1,6 +1,7 @@
 {
   "_comment": [
-    "A wall with a way through it, facing wherever it happens to face."
+    "Twenty-five tall as written, so `colossal` is a hundred. A wall with a way through it,",
+    "facing wherever it happens to face."
   ],
   "type": "agesandtheart:formation",
   "config": {
@@ -9,12 +10,12 @@
         "type": "subtract",
         "base": {
           "type": "box",
-          "min_x": -4,
+          "min_x": -12,
           "min_y": 0,
-          "min_z": -1,
-          "max_x": 4,
-          "max_y": 7,
-          "max_z": 1
+          "min_z": -2,
+          "max_x": 12,
+          "max_y": 25,
+          "max_z": 2
         },
         "cut": {
           "type": "union",
@@ -23,19 +24,19 @@
               "type": "cylinder",
               "axis": "z",
               "center_x": 0,
-              "center_y": 4,
+              "center_y": 13,
               "center_z": 0,
-              "radius": 2.5,
-              "half_length": 2.0
+              "radius": 8.0,
+              "half_length": 3.0
             },
             {
               "type": "box",
-              "min_x": -2,
+              "min_x": -8,
               "min_y": 0,
-              "min_z": -2,
-              "max_x": 2,
-              "max_y": 4,
-              "max_z": 2
+              "min_z": -3,
+              "max_x": 8,
+              "max_y": 13,
+              "max_z": 3
             }
           ]
         }

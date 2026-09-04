@@ -1,6 +1,10 @@
 {
   "_comment": [
-    "A shaft under a pointed cap. Four yaws so a scatter of them is not all square to one grid."
+    "A shaft under a pointed cap, twenty-five tall as written -- so `colossal` is a hundred, which is the",
+    "standard every formation here is drawn to.",
+    "**The shaft and the cap overlap by a block on purpose.** `max_y` is an inclusive coordinate, not a",
+    "height, so resizing scales the shaft's top and the cap's base separately and they drift apart: the cap",
+    "floated three blocks over the column at `colossal`. Overlapping them means no factor can part them."
   ],
   "type": "agesandtheart:formation",
   "config": {
@@ -10,20 +14,20 @@
         "fields": [
           {
             "type": "box",
-            "min_x": -1,
+            "min_x": -2,
             "min_y": 0,
-            "min_z": -1,
-            "max_x": 1,
-            "max_y": 11,
-            "max_z": 1
+            "min_z": -2,
+            "max_x": 2,
+            "max_y": 20,
+            "max_z": 2
           },
           {
             "type": "pyramid",
             "center_x": 0,
             "center_z": 0,
-            "base_y": 12,
-            "height": 3,
-            "base_half_width": 1
+            "base_y": 19,
+            "height": 6,
+            "base_half_width": 2
           }
         ]
       }
