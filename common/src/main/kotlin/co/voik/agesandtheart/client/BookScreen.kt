@@ -11,6 +11,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
+import net.minecraft.resources.Identifier
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.item.ItemStack
 
@@ -133,6 +134,15 @@ class BookScreen(
             view, PanelTarget.sampler(),
             x, y, x + PANEL_WIDTH, y + PANEL_HEIGHT,
             0.0f, 1.0f, 1.0f, 0.0f,
+        )
+        // TEMPORARY, and it separates the two things that both look like a black panel: a known-good
+        // vanilla texture in the corner. If the dirt shows, the blit path works and the panel's target is
+        // empty — so the world render is drawing nowhere. If the dirt is missing too, nothing this screen
+        // blits ever reaches the window and the target is beside the point.
+        graphics.blit(
+            Identifier.withDefaultNamespace("textures/block/dirt.png"),
+            x, y, x + DIAGNOSTIC_PATCH, y + DIAGNOSTIC_PATCH,
+            0.0f, 1.0f, 0.0f, 1.0f,
         )
     }
 
@@ -337,6 +347,9 @@ class BookScreen(
     private companion object {
         /** GLFW's right button, which is what a book is opened with and now what closes it. */
         const val RIGHT_BUTTON = 1
+
+        /** TEMPORARY — the known-good patch that says whether blitting works at all. */
+        const val DIAGNOSTIC_PATCH = 24
 
         const val WIDTH = 256
         const val HEIGHT = 180
