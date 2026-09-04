@@ -3,10 +3,13 @@ package co.voik.agesandtheart.client
 import co.voik.agesandtheart.age.word.grammar.Said
 import co.voik.agesandtheart.book.LinkRequest
 import co.voik.agesandtheart.client.panel.LinkingPanel
+import co.voik.agesandtheart.client.panel.PanelRenderer
+import co.voik.agesandtheart.client.panel.PanelTarget
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.screens.Screen
+import net.minecraft.client.renderer.RenderPipelines
 import net.minecraft.network.chat.Component
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.item.ItemStack
@@ -89,13 +92,30 @@ class BookScreen(
         val x = left + PANEL_X
         val y = top + PANEL_Y
         graphics.fill(x - 1, y - 1, x + PANEL_WIDTH + 1, y + PANEL_HEIGHT + 1, EDGE)
-        // Still the flat rectangle. `PanelRenderer` has an Age drawn into an off-screen target by now;
-        // what is missing is putting that target's colour texture into the retained-mode GUI, which is the
-        // one piece of this feature nobody has written yet.
+        // Black first, and always: it is what shows before any chunk has arrived, and what shows through
+        // wherever the Age is nothing. The fade *is* the load (§7.8.1), so there is nothing to hide behind.
         graphics.fill(x, y, x + PANEL_WIDTH, y + PANEL_HEIGHT, PANEL)
+        drawTheAge(graphics, x, y)
         if (overPanel(mouseX.toDouble(), mouseY.toDouble())) {
             graphics.fill(x, y, x + PANEL_WIDTH, y + PANEL_HEIGHT, PANEL_LIT)
         }
+    }
+
+    /**
+     * The Age itself, drawn over the black.
+     *
+     * `fill(pipeline, textureSetup, …)` is the retained-mode seam for a textured rectangle, and
+     * `TextureSetup.singleTexture` takes a target's colour view directly — so an off-screen render reaches
+     * a screen with no blit of ours in between.
+     *
+     * **A render target is bottom-up where a screen is top-down**, so if the first walk shows the Age
+     * upside down this is where that is fixed, and it is the expected first fault rather than a surprise.
+     */
+    private fun drawTheAge(graphics: GuiGraphicsExtractor, x: Int, y: Int) {
+        val preview = LinkingPanel.preview ?: return
+        if (!PanelRenderer.draw(preview, Minecraft.getInstance().deltaTracker)) return
+        val texture = PanelTarget.textureSetup() ?: return
+        graphics.fill(RenderPipelines.GUI_TEXTURED, texture, x, y, x + PANEL_WIDTH, y + PANEL_HEIGHT)
     }
 
     /** One page of writing, or nothing where the book has no such page. */
