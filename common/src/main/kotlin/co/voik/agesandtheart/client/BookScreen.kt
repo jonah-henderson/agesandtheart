@@ -255,6 +255,13 @@ class BookScreen(
         graphics.pose().popMatrix()
     }
 
+    /** Anywhere on the open book, spine and edges included — so what is *not* this is the world behind it. */
+    private fun overTheBook(mouseX: Double, mouseY: Double): Boolean {
+        val left = (width - WIDTH) / 2
+        val top = (height - HEIGHT) / 2
+        return mouseX >= left && mouseX <= left + WIDTH && mouseY >= top && mouseY <= top + HEIGHT
+    }
+
     private fun overPanel(mouseX: Double, mouseY: Double): Boolean {
         val x = (width - WIDTH) / 2 + PANEL_X
         val y = (height - HEIGHT) / 2 + PANEL_Y
@@ -279,6 +286,18 @@ class BookScreen(
      * would be a click that failed to strand you, but one that linked instead of turning is a book spent.
      */
     override fun mouseClicked(event: net.minecraft.client.input.MouseButtonEvent, doubleClick: Boolean): Boolean {
+        // **Right-click shuts the book, wherever it lands.** The book was opened with a right-click and
+        // closing it the same way is what a hand does; escape alone left the only way out on the keyboard.
+        if (event.button() == RIGHT_BUTTON) {
+            onClose()
+            return true
+        }
+        // **And so does clicking off the book**, which is what a screen with a small object in the middle
+        // of it reads as. Everything inside is a page, the panel or the spine, and each is handled below.
+        if (!overTheBook(event.x, event.y)) {
+            onClose()
+            return true
+        }
         if (spread == 0 && overPanel(event.x, event.y)) {
             ClientDeskNetwork.sender?.invoke(LinkRequest(hand))
             onClose()
@@ -311,6 +330,9 @@ class BookScreen(
     }
 
     private companion object {
+        /** GLFW's right button, which is what a book is opened with and now what closes it. */
+        const val RIGHT_BUTTON = 1
+
         const val WIDTH = 256
         const val HEIGHT = 180
 

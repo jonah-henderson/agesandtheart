@@ -3,6 +3,7 @@ package co.voik.agesandtheart.book.panel
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.age.Ages
+import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.platform.Services
 import net.minecraft.core.BlockPos
@@ -12,8 +13,6 @@ import net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
-import net.minecraft.core.Registry
-import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.server.level.TicketType
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.biome.BiomeManager
@@ -35,24 +34,8 @@ import java.util.UUID
  */
 object PanelViews {
 
-    /**
-     * The ticket that holds a panel's chunks.
-     *
-     * **Its own type rather than a borrowed one so that a leak is diagnosable**: chunks held by
-     * `agesandtheart:panel` with nobody looking at them name their own bug, where the same chunks held
-     * under `portal` or `unknown` would not.
-     *
-     * `FLAG_LOADING` and no `FLAG_SIMULATION`: a panel wants the terrain drawn and emphatically does not
-     * want the Age *ticking* while somebody glances at a book — no mobs, no growth, no phenomena running
-     * for a viewer who is not there. `FLAG_KEEP_DIMENSION_ACTIVE` because the level must not be unloaded
-     * out from under the ring. No timeout, because [close] is what ends a view and a ticket that expired
-     * on its own would blank a panel somebody was still looking at.
-     */
-    private val PANEL_TICKET: TicketType = Registry.register(
-        BuiltInRegistries.TICKET_TYPE,
-        "panel".location(),
-        TicketType(TicketType.NO_TIMEOUT, TicketType.FLAG_LOADING or TicketType.FLAG_KEEP_DIMENSION_ACTIVE),
-    )
+    /** Registered at init by each loader — see [AgeContent.PANEL_TICKET] for why it cannot live here. */
+    private val PANEL_TICKET: TicketType get() = AgeContent.PANEL_TICKET
 
     private data class View(val dimension: ResourceKey<Level>, val centre: ChunkPos)
 
@@ -106,6 +89,13 @@ object PanelViews {
         watching[player.uuid] = View(dimension, centre)
         hold(level, centre)
 
+        // **One line per panel opened, at info.** A book opened once is not noise, and the alternative was
+        // what happened the first time this ran: a black panel, thirty seconds of waiting, and nothing in
+        // the log to say whether anything had been asked for at all.
+        Constants.LOG.info(
+            "Panel opened onto {} for {}, streaming {} chunks around {}",
+            identifier, player.name.string, PanelProtocol.RING_CHUNKS, around,
+        )
         Services.NETWORK.sendToPlayer(
             player,
             PanelLevelPayload(

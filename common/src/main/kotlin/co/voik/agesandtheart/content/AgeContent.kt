@@ -41,6 +41,7 @@ import net.minecraft.world.flag.FeatureFlags
 import net.minecraft.world.inventory.ContainerLevelAccess
 import net.minecraft.world.inventory.MenuType
 import net.minecraft.resources.Identifier
+import net.minecraft.server.level.TicketType
 import net.minecraft.resources.ResourceKey
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MobCategory
@@ -396,6 +397,26 @@ object AgeContent {
 
     /** It moves slowly and in a straight line, so its position is worth sending rarely. */
     private const val SAND_COLUMN_UPDATE_TICKS = 10
+
+    /**
+     * The ticket that holds a linking panel's chunks (§7.8.1).
+     *
+     * **Here rather than beside the code that uses it, because registries freeze.** `PanelViews` is an
+     * `object`, so anything registered in its initialiser runs the first time a book is opened — long after
+     * `BuiltInRegistries` is shut — and throws `Registry is already frozen`, taking the server thread with
+     * it. Everything the mod registers is declared here and written into the registries by each loader's
+     * entrypoint at init, which is the only time that is allowed.
+     *
+     * `FLAG_LOADING` without `FLAG_SIMULATION`: a panel wants the terrain drawn and emphatically does not
+     * want an Age *ticking* for somebody glancing at a book — no mobs, no growth, no phenomena running for
+     * a viewer who is not there. `FLAG_KEEP_DIMENSION_ACTIVE` so the level is not unloaded under the ring.
+     * No timeout, because closing the book is what ends a view and a ticket that expired on its own would
+     * blank a panel somebody was still looking at.
+     */
+    val PANEL_TICKET: TicketType =
+        TicketType(TicketType.NO_TIMEOUT, TicketType.FLAG_LOADING or TicketType.FLAG_KEEP_DIMENSION_ACTIVE)
+
+    val tickets: List<Pair<Identifier, TicketType>> = listOf("panel".location() to PANEL_TICKET)
 
     val entities: List<Pair<Identifier, EntityType<*>>> = listOf(
         "descriptive_book".location() to BOOK_ENTITY,

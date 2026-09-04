@@ -63,6 +63,7 @@ fun init() {
     AgeContent.blocks.forEach { (id, block) -> Registry.register(BuiltInRegistries.BLOCK, id, block) }
     AgeContent.items.forEach { (id, item) -> Registry.register(BuiltInRegistries.ITEM, id, item) }
     AgeContent.entities.forEach { (id, type) -> Registry.register(BuiltInRegistries.ENTITY_TYPE, id, type) }
+    AgeContent.tickets.forEach { (id, type) -> Registry.register(BuiltInRegistries.TICKET_TYPE, id, type) }
     AgeContent.blockEntities.forEach { (id, type) -> Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, id, type) }
     AgeContent.structureTypes.forEach { (id, type) -> Registry.register(BuiltInRegistries.STRUCTURE_TYPE, id, type) }
     AgeContent.structurePieces.forEach { (id, type) ->
