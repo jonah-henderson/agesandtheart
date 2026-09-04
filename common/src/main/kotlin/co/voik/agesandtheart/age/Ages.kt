@@ -173,7 +173,24 @@ object Ages {
      * two different places. Loads the chunk it answers about, since neither caller can use a height read
      * off ungenerated ground.
      */
-    fun arrivalIn(level: ServerLevel): BlockPos {
+    fun arrivalIn(level: ServerLevel): BlockPos = arrivals.getOrPut(level.dimension().identifier()) {
+        workOutTheArrivalIn(level)
+    }
+
+    /**
+     * Where each Age's arrival is, worked out once.
+     *
+     * **Because working it out costs sixteen seconds and the answer never changes.** [findFooting] samples
+     * up to two and a half thousand columns of `getBaseHeight`, each a full run of the generator's density
+     * functions, and it is a pure function of a generator that is itself rebuilt identically on every open
+     * — so the second answer is always the first. Measured on a cold Age: 16,269ms to find the arrival
+     * against 122ms to roll and open the whole world.
+     *
+     * Both linking and the linking panel ask, and before this they each paid in full.
+     */
+    private val arrivals = mutableMapOf<Identifier, BlockPos>()
+
+    private fun workOutTheArrivalIn(level: ServerLevel): BlockPos {
         val (landingX, landingZ) = findFooting(level)
         level.getChunk(SectionPos.blockToSectionCoord(landingX), SectionPos.blockToSectionCoord(landingZ))
         val surfaceY = if (!level.dimensionType().hasCeiling()) {
@@ -261,6 +278,9 @@ object Ages {
         val saved = AgeSavedData.get(server)
         if (id !in saved.ages) return false
         evict(server, id)
+        // The memo outlives nothing: an Age written again under the same name is a different world, and a
+        // remembered arrival would send its first visitor to a place that Age never had.
+        arrivals.remove(id)
         if (!Services.AGE_BACKEND.deleteAge(server, id)) return false
         saved.remove(id)
         LevelAppearance.forget(ResourceKey.create(Registries.DIMENSION, id))
