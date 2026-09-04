@@ -11,6 +11,7 @@ import net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData
 import net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData
 import net.minecraft.resources.Identifier
 import net.minecraft.resources.ResourceKey
+import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 
 /**
@@ -42,6 +43,25 @@ object PanelProtocol {
 
     /** How many chunks one panel force-loads and streams. */
     val RING_CHUNKS: Int get() = RING_SIDE * RING_SIDE
+
+    /**
+     * Every chunk of the ring around [centre], **nearest first**.
+     *
+     * Nearest first because the fade *is* the load (§7.8.1): what a viewer sees first should be what the
+     * camera is closest to, so the picture assembles outwards from the arrival rather than in a raster from
+     * one corner.
+     *
+     * Chebyshev distance rather than Euclidean, because the ring is a square and the rings of a square are
+     * what a square grows in — sorting by true distance would interleave the corners of one ring with the
+     * edges of the next for no gain anybody could see.
+     */
+    fun ringAround(centre: ChunkPos): List<ChunkPos> = buildList {
+        for (dx in -RING_RADIUS_CHUNKS..RING_RADIUS_CHUNKS) {
+            for (dz in -RING_RADIUS_CHUNKS..RING_RADIUS_CHUNKS) {
+                add(ChunkPos(centre.x + dx, centre.z + dz))
+            }
+        }
+    }.sortedBy { maxOf(kotlin.math.abs(it.x - centre.x), kotlin.math.abs(it.z - centre.z)) }
 }
 
 /**

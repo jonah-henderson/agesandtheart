@@ -136,19 +136,9 @@ object PanelViews {
         level.chunkSource.removeTicketWithRadius(PANEL_TICKET, centre, PanelProtocol.RING_RADIUS_CHUNKS + 1)
     }
 
-    /**
-     * Sends every chunk of the ring, nearest first.
-     *
-     * Nearest first because the fade is the load (§7.8.1): what a viewer sees first should be what the
-     * camera is closest to, so the picture assembles outwards rather than in a raster.
-     */
+    /** Sends every chunk of the ring — the order, and the reason for it, are [PanelProtocol.ringAround]'s. */
     private fun sendRing(player: ServerPlayer, level: ServerLevel, centre: ChunkPos) {
-        val radius = PanelProtocol.RING_RADIUS_CHUNKS
-        val positions = buildList {
-            for (dx in -radius..radius) for (dz in -radius..radius) add(ChunkPos(centre.x + dx, centre.z + dz))
-        }.sortedBy { maxOf(Math.abs(it.x - centre.x), Math.abs(it.z - centre.z)) }
-
-        for (position in positions) {
+        for (position in PanelProtocol.ringAround(centre)) {
             val chunk = level.getChunk(position.x, position.z)
             Services.NETWORK.sendToPlayer(
                 player,
