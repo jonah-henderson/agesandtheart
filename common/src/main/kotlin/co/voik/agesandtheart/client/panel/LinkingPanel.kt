@@ -51,7 +51,12 @@ object LinkingPanel {
         }
         showing?.close()
         showing = PreviewLevel.open(payload)
-        if (showing == null) send(PanelCloseRequest)
+        if (showing == null) {
+            Constants.LOG.warn("Panel: the level payload for {} arrived and no preview could be built", payload.dimension.identifier())
+            send(PanelCloseRequest)
+        } else {
+            Constants.LOG.info("Panel: preview level stood up for {}", payload.dimension.identifier())
+        }
     }
 
     /** Called for each chunk of the ring. Chunks for a panel we have closed are dropped. */

@@ -15,6 +15,8 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.level.TicketType
 import net.minecraft.world.level.ChunkPos
+import net.minecraft.world.level.chunk.LevelChunk
+import net.minecraft.world.level.chunk.status.ChunkStatus
 import net.minecraft.world.level.biome.BiomeManager
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.level.Level
@@ -107,7 +109,7 @@ object PanelViews {
                 chunksComing = PanelProtocol.RING_CHUNKS,
             ),
         )
-        sendRing(player, level, centre)
+        sendRing(server, player, level, centre)
     }
 
     /** Releases whatever [player] was looking at, if anything. Safe to call when there is nothing. */
@@ -148,28 +150,37 @@ object PanelViews {
     }
 
     /**
-     * Sends every chunk of the ring — the order, and the reason for it, are [PanelProtocol.ringAround]'s.
+     * Sends every chunk of the ring as it becomes ready, nearest first.
      *
-     * **Synchronous, and that is a known cost rather than an oversight.** `getChunk` blocks until a chunk
-     * is generated, so opening a panel onto an Age nobody has visited generates the ring on the server
-     * thread while everything else waits. It is bounded — one ring, and the same terrain a visitor would
-     * have made by walking there — and it is rate-limited above so it cannot be provoked in a loop. The
-     * fix, when it is wanted, is `getChunkFuture` and sending each chunk as it completes; that turns one
-     * stall into a stream and wants a tick hook to drain, which is more machinery than a first version of
-     * a luxury feature has earned.
+     * **Asked for as futures rather than waited on, and that is not an optimisation.** `getChunk` blocks
+     * until a chunk is generated, so opening a panel onto an Age nobody had visited stopped the server for
+     * fourteen seconds while it made forty-nine of them — a freeze for everyone on it, and a black panel
+     * for the person who asked, because nothing could be sent until all of it was done.
+     *
+     * `getChunkFuture` hands each one back when it is ready and the send is marshalled onto the server
+     * thread, so the picture fills in from the arrival outwards while the game goes on running. Which is
+     * also what §7.8.1's fade wanted in the first place: the fade *is* the load, and a load that blocked
+     * had nothing to fade.
+     *
+     * The view is re-checked as each chunk lands, because a player may close the book long before
+     * forty-nine chunks have generated — and a panel nobody is looking at should stop talking.
      */
-    private fun sendRing(player: ServerPlayer, level: ServerLevel, centre: ChunkPos) {
+    private fun sendRing(server: MinecraftServer, player: ServerPlayer, level: ServerLevel, centre: ChunkPos) {
         for (position in PanelProtocol.ringAround(centre)) {
-            val chunk = level.getChunk(position.x, position.z)
-            Services.NETWORK.sendToPlayer(
-                player,
-                PanelChunkPayload(
-                    x = position.x,
-                    z = position.z,
-                    chunk = ClientboundLevelChunkPacketData(chunk),
-                    light = ClientboundLightUpdatePacketData(position, level.lightEngine, null, null),
-                ),
-            )
+            level.chunkSource.getChunkFuture(position.x, position.z, ChunkStatus.FULL, true)
+                .thenAcceptAsync({ result ->
+                    val chunk = result.orElse(null) as? LevelChunk ?: return@thenAcceptAsync
+                    if (watching[player.uuid]?.centre != centre) return@thenAcceptAsync
+                    Services.NETWORK.sendToPlayer(
+                        player,
+                        PanelChunkPayload(
+                            x = position.x,
+                            z = position.z,
+                            chunk = ClientboundLevelChunkPacketData(chunk),
+                            light = ClientboundLightUpdatePacketData(position, level.lightEngine, null, null),
+                        ),
+                    )
+                }, server)
         }
     }
 }

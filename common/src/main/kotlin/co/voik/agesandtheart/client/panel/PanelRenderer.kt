@@ -59,7 +59,7 @@ object PanelRenderer {
      *
      * Returns false so a caller can `return sayOnce(...)` where the answer is "nothing drawn".
      */
-    private fun sayOnce(what: String): Boolean {
+    fun sayOnce(what: String): Boolean {
         if (alreadySaid.add(what)) Constants.LOG.info("Panel: {}", what)
         return false
     }

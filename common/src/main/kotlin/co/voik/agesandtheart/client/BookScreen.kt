@@ -121,7 +121,20 @@ class BookScreen(
      * upside down this is where that is fixed, and it is the expected first fault rather than a surprise.
      */
     private fun drawTheAge(graphics: GuiGraphicsExtractor, x: Int, y: Int) {
-        val preview = LinkingPanel.preview ?: return
+        // TEMPORARY, and **first**, so it is drawn whatever else does or does not happen. Placed after the
+        // early returns it only ever ran once everything already worked, which made it useless as a test:
+        // no dirt meant "we returned early", not "blitting is broken", and those are the two things it was
+        // put here to tell apart.
+        graphics.blit(
+            Identifier.withDefaultNamespace("textures/block/dirt.png"),
+            x, y, x + DIAGNOSTIC_PATCH, y + DIAGNOSTIC_PATCH,
+            0.0f, 1.0f, 0.0f, 1.0f,
+        )
+        val preview = LinkingPanel.preview
+        if (preview == null) {
+            PanelRenderer.sayOnce("no preview level yet — the server's chunks have not been taken up")
+            return
+        }
         if (!PanelRenderer.draw(preview, Minecraft.getInstance().deltaTracker)) return
         val view = PanelTarget.colourView() ?: return
         // **`blit` and not `fill`**: a fill writes no texture coordinates, and `GUI_TEXTURED`'s vertex
@@ -134,15 +147,6 @@ class BookScreen(
             view, PanelTarget.sampler(),
             x, y, x + PANEL_WIDTH, y + PANEL_HEIGHT,
             0.0f, 1.0f, 1.0f, 0.0f,
-        )
-        // TEMPORARY, and it separates the two things that both look like a black panel: a known-good
-        // vanilla texture in the corner. If the dirt shows, the blit path works and the panel's target is
-        // empty — so the world render is drawing nowhere. If the dirt is missing too, nothing this screen
-        // blits ever reaches the window and the target is beside the point.
-        graphics.blit(
-            Identifier.withDefaultNamespace("textures/block/dirt.png"),
-            x, y, x + DIAGNOSTIC_PATCH, y + DIAGNOSTIC_PATCH,
-            0.0f, 1.0f, 0.0f, 1.0f,
         )
     }
 
