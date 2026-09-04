@@ -10,7 +10,6 @@ import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.screens.Screen
-import net.minecraft.client.renderer.RenderPipelines
 import net.minecraft.network.chat.Component
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.item.ItemStack
@@ -123,8 +122,18 @@ class BookScreen(
     private fun drawTheAge(graphics: GuiGraphicsExtractor, x: Int, y: Int) {
         val preview = LinkingPanel.preview ?: return
         if (!PanelRenderer.draw(preview, Minecraft.getInstance().deltaTracker)) return
-        val texture = PanelTarget.textureSetup() ?: return
-        graphics.fill(RenderPipelines.GUI_TEXTURED, texture, x, y, x + PANEL_WIDTH, y + PANEL_HEIGHT)
+        val view = PanelTarget.colourView() ?: return
+        // **`blit` and not `fill`**: a fill writes no texture coordinates, and `GUI_TEXTURED`'s vertex
+        // format demands them — see `PanelTarget.colourView`.
+        //
+        // **V runs bottom to top, which is why it is given backwards.** A render target's origin is at its
+        // bottom-left where a screen's is at its top-left, so `v0 = 1` at the panel's top and `v1 = 0` at
+        // its foot is what puts the Age the right way up.
+        graphics.blit(
+            view, PanelTarget.sampler(),
+            x, y, x + PANEL_WIDTH, y + PANEL_HEIGHT,
+            0.0f, 1.0f, 1.0f, 0.0f,
+        )
     }
 
     /** One page of writing, or nothing where the book has no such page. */

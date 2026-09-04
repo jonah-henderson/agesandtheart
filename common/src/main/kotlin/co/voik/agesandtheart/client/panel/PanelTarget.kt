@@ -4,7 +4,8 @@ import com.mojang.blaze3d.pipeline.RenderTarget
 import com.mojang.blaze3d.pipeline.TextureTarget
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.textures.FilterMode
-import net.minecraft.client.gui.render.TextureSetup
+import com.mojang.blaze3d.textures.GpuSampler
+import com.mojang.blaze3d.textures.GpuTextureView
 
 /**
  * The off-screen surface a panel's world is drawn onto, and the flag that redirects the renderer to it.
@@ -53,15 +54,16 @@ object PanelTarget {
     }
 
     /**
-     * The panel's colour texture, as the GUI wants it, or null before anything has been drawn into it.
+     * The panel's colour texture, or null before anything has been drawn into it.
      *
-     * `GuiGraphicsExtractor.fill(pipeline, textureSetup, …)` is the public seam for a textured rectangle,
-     * and `TextureSetup.singleTexture` takes exactly this pair — so an off-screen target reaches a screen
-     * without any blit of ours.
+     * **Handed to `GuiGraphicsExtractor.blit` and not to `fill`.** `fill(pipeline, textureSetup, …)` builds
+     * a `ColoredRectangleRenderState`, which writes position and colour and **no texture coordinates** — so
+     * pairing it with `GUI_TEXTURED`, whose vertex format demands `UV0`, throws *Missing elements in
+     * vertex: UV0* the moment the GUI mesh is built. `blit` is the seam that emits them.
      */
-    fun textureSetup(): TextureSetup? {
-        val view = target?.colorTextureView ?: return null
-        return TextureSetup.singleTexture(view, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR))
-    }
+    fun colourView(): GpuTextureView? = target?.colorTextureView
+
+    /** Clamped and linear: the panel is drawn at a size that has nothing to do with its own. */
+    fun sampler(): GpuSampler = RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR)
 
 }
