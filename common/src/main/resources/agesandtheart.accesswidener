@@ -153,3 +153,17 @@ accessible	class	net/minecraft/world/level/levelgen/SurfaceRules$BlockRuleSource
 # it per vertex on the CPU, which is tens of thousands of vertices rebuilt every frame against this route's
 # handful of quads, for the coarse interpolated wash Ephemeris already moved off.
 accessible	method	net/minecraft/client/renderer/rendertype/RenderType	create	(Ljava/lang/String;Lnet/minecraft/client/renderer/rendertype/RenderSetup;)Lnet/minecraft/client/renderer/rendertype/RenderType;
+
+# So the linking panel's orbit camera can have a frustum and a projection
+# (co.voik.agesandtheart.client.panel.PanelCamera, design §7.8.1).
+#
+# `setPosition` and `setRotation` are already `protected`, so a subclass places the camera without help.
+# **These two are private**, and the only public path that calls them — `Camera.update(DeltaTracker)` —
+# aligns the camera to `minecraft.player` and would throw the orbit away. A camera whose `getCullFrustum()`
+# is meaningless renders nothing, and that is exactly what `LevelRenderer.extractLevel` asks for.
+#
+# The alternative was assembling a `CameraRenderState` by hand and never using `Camera` at all. Declined:
+# it means reimplementing vanilla's culling maths, and disagreeing with it shows up as chunks silently
+# missing from the panel rather than as anything that fails.
+accessible	method	net/minecraft/client/Camera	prepareCullFrustum	(Lorg/joml/Matrix4fc;Lorg/joml/Matrix4f;Lnet/minecraft/world/phys/Vec3;)V
+accessible	method	net/minecraft/client/Camera	setupPerspective	(FFFFF)V

@@ -2,6 +2,7 @@ package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.age.word.grammar.Said
 import co.voik.agesandtheart.book.LinkRequest
+import co.voik.agesandtheart.client.panel.LinkingPanel
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
@@ -24,9 +25,11 @@ object BookScreenOpener {
  * pages of writing. Clicking the panel goes — nothing else does, because linking spends the book and can
  * strand you — and clicking a page turns it: the right page forward, the left page back.
  *
- * The panel is flat for now. It wants to be a view of the Age's spawn — computable from the chunk
- * generator rather than rendered, since a client that has never been there has no chunks — but that is
- * later work and a black panel is honest in the meantime.
+ * **The panel asks for its Age while the book is open, and gives it back when it closes** (§7.8.1). That
+ * lifetime is the whole of what makes a live panel affordable: one dimension held briefly while a screen
+ * is up, rather than one per book a player carries. What arrives is drawn by `PanelRenderer` into an
+ * off-screen target; drawing that target *into this screen* is the one step still missing, so the panel is
+ * still a flat rectangle here.
  */
 class BookScreen(
     private val book: ItemStack,
@@ -41,6 +44,24 @@ class BookScreen(
      * doing it per frame would re-wrap the whole book sixty times a second.
      */
     private val pages: List<List<Line>> by lazy { paginate() }
+
+    /** Asks for the Age as the screen opens, so the ring is already arriving by the first frame. */
+    override fun init() {
+        super.init()
+        ageOf(book)?.let { LinkingPanel.ask(it) }
+    }
+
+    /**
+     * Gives the ring back.
+     *
+     * **On every way out**, which is why it is here and not only in the link path: a book closed with
+     * escape, a book linked from, and a screen replaced by another all end here, and a panel that outlived
+     * its screen would hold a dimension open on the server for as long as the client ran.
+     */
+    override fun removed() {
+        super.removed()
+        LinkingPanel.release()
+    }
 
     override fun extractRenderState(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, a: Float) {
         super.extractRenderState(graphics, mouseX, mouseY, a)
@@ -68,6 +89,9 @@ class BookScreen(
         val x = left + PANEL_X
         val y = top + PANEL_Y
         graphics.fill(x - 1, y - 1, x + PANEL_WIDTH + 1, y + PANEL_HEIGHT + 1, EDGE)
+        // Still the flat rectangle. `PanelRenderer` has an Age drawn into an off-screen target by now;
+        // what is missing is putting that target's colour texture into the retained-mode GUI, which is the
+        // one piece of this feature nobody has written yet.
         graphics.fill(x, y, x + PANEL_WIDTH, y + PANEL_HEIGHT, PANEL)
         if (overPanel(mouseX.toDouble(), mouseY.toDouble())) {
             graphics.fill(x, y, x + PANEL_WIDTH, y + PANEL_HEIGHT, PANEL_LIT)
@@ -252,6 +276,19 @@ class BookScreen(
     }
 
     override fun isPauseScreen(): Boolean = false
+
+    /**
+     * Which Age this book leads to, or null for one that leads nowhere yet.
+     *
+     * Both kinds of book answer, differently: a descriptive book carries the Age it wrote as a component,
+     * and a linking book carries a whole [net.minecraft.world.level.Level] key on its target. A blank
+     * descriptive book has neither, and gets no panel — there is nothing to look at.
+     */
+    private fun ageOf(stack: ItemStack): net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level>? {
+        stack.get(AgeContent.LINK_TARGET)?.let { return it.dimension }
+        val id = stack.get(AgeContent.AGE_ID) ?: return null
+        return net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION, id)
+    }
 
     private companion object {
         const val WIDTH = 256

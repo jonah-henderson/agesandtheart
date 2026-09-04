@@ -35,6 +35,8 @@ class PreviewLevel private constructor(
     /** Ours rather than the game's: two renderers sharing one would collide over `levelRenderState`. */
     val renderState: GameRenderState,
     val centre: ChunkPos,
+    /** The orbit this preview is looked at from, made with the level so the two cannot disagree. */
+    val camera: PanelCamera,
     private val chunksExpected: Int,
 ) : AutoCloseable {
 
@@ -182,7 +184,8 @@ class PreviewLevel private constructor(
             )
             renderer.setLevel(level)
             level.chunkSource.updateViewCenter(centre.x, centre.z)
-            return PreviewLevel(level, renderer, buffers, renderState, centre, payload.chunksComing)
+            val camera = PanelCamera(level, payload.around)
+            return PreviewLevel(level, renderer, buffers, renderState, centre, camera, payload.chunksComing)
         }
 
         /**
