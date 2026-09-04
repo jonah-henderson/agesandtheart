@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.client.panel
 
 import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.Timing
 import co.voik.agesandtheart.book.panel.PanelChunkPayload
 import co.voik.agesandtheart.book.panel.PanelCloseRequest
 import co.voik.agesandtheart.book.panel.PanelLevelPayload
@@ -50,7 +51,7 @@ object LinkingPanel {
             return
         }
         showing?.close()
-        showing = PreviewLevel.open(payload)
+        showing = Timing.of("client: stand up the preview level") { PreviewLevel.open(payload) }
         if (showing == null) {
             Constants.LOG.warn("Panel: the level payload for {} arrived and no preview could be built", payload.dimension.identifier())
             send(PanelCloseRequest)
@@ -61,7 +62,7 @@ object LinkingPanel {
 
     /** Called for each chunk of the ring. Chunks for a panel we have closed are dropped. */
     fun accept(payload: PanelChunkPayload) {
-        showing?.accept(payload)
+        Timing.of("client: take up one chunk") { showing?.accept(payload) }
     }
 
     /**
@@ -73,10 +74,13 @@ object LinkingPanel {
      */
     fun release() {
         val had = showing != null || asked
-        showing?.close()
+        Timing.of("client: tear the preview down") { showing?.close() }
         showing = null
         asked = false
         PanelRenderer.forget()
+        // **Said when the book closes, which is the one moment the whole story is known.** Per-frame work
+        // is aggregated, so this is the only place the totals mean anything.
+        if (had) Timing.report("a linking panel, opened to closed")
         if (had) send(PanelCloseRequest)
     }
 

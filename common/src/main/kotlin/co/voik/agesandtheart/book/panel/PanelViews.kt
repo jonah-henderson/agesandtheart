@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.book.panel
 
 import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.Timing
 import co.voik.agesandtheart.age.Ages
 import co.voik.agesandtheart.book.BookAge
 import co.voik.agesandtheart.content.AgeContent
@@ -74,22 +75,25 @@ object PanelViews {
         lastOpened[player.uuid] = now
         close(server, player)
 
+        val openedAt = System.nanoTime()
         val stack = player.getItemInHand(hand)
         if (stack.item !== AgeContent.DESCRIPTIVE_BOOK) {
             Constants.LOG.info("Panel refused: {} is holding {}, which is not a book", player.name.string, stack.item)
             return
         }
-        val level = BookAge.of(server, stack)
+        val level = Timing.of("server: roll and open the Age") { BookAge.of(server, stack) }
         if (level == null) {
             Constants.LOG.warn("Panel wanted the Age of a book in {}'s hand and it would not open", player.name.string)
             return
         }
         val dimension = level.dimension()
 
-        val around = arrivalIn(level)
+        val around = Timing.of("server: find the arrival") { arrivalIn(level) }
         val centre = ChunkPos(SectionPos.blockToSectionCoord(around.x), SectionPos.blockToSectionCoord(around.z))
         watching[player.uuid] = View(dimension, centre)
-        hold(level, centre)
+        Timing.of("server: hold the ring") { hold(level, centre) }
+        ringBegan[player.uuid] = System.nanoTime()
+        stillComing[player.uuid] = PanelProtocol.RING_CHUNKS
 
         // **One line per panel opened, at info.** A book opened once is not noise, and the alternative was
         // what happened the first two times this ran: a black panel, thirty seconds of waiting, and nothing
@@ -110,7 +114,14 @@ object PanelViews {
             ),
         )
         sendRing(server, player, level, centre)
+        Timing.record("server: everything before the first chunk", System.nanoTime() - openedAt)
     }
+
+    /** When each player's ring was asked for, so the whole stream can be timed end to end. */
+    private val ringBegan = mutableMapOf<UUID, Long>()
+
+    /** How many chunks are still owed, so the last one can say how long the ring took. */
+    private val stillComing = mutableMapOf<UUID, Int>()
 
     /** Releases whatever [player] was looking at, if anything. Safe to call when there is nothing. */
     fun close(server: MinecraftServer, player: ServerPlayer) {
@@ -167,19 +178,29 @@ object PanelViews {
      */
     private fun sendRing(server: MinecraftServer, player: ServerPlayer, level: ServerLevel, centre: ChunkPos) {
         for (position in PanelProtocol.ringAround(centre)) {
+            val asked = System.nanoTime()
             level.chunkSource.getChunkFuture(position.x, position.z, ChunkStatus.FULL, true)
                 .thenAcceptAsync({ result ->
+                    Timing.record("server: generate one chunk", System.nanoTime() - asked)
                     val chunk = result.orElse(null) as? LevelChunk ?: return@thenAcceptAsync
                     if (watching[player.uuid]?.centre != centre) return@thenAcceptAsync
-                    Services.NETWORK.sendToPlayer(
-                        player,
-                        PanelChunkPayload(
-                            x = position.x,
-                            z = position.z,
-                            chunk = ClientboundLevelChunkPacketData(chunk),
-                            light = ClientboundLightUpdatePacketData(position, level.lightEngine, null, null),
-                        ),
-                    )
+                    Timing.of("server: serialise and send one chunk") {
+                        Services.NETWORK.sendToPlayer(
+                            player,
+                            PanelChunkPayload(
+                                x = position.x,
+                                z = position.z,
+                                chunk = ClientboundLevelChunkPacketData(chunk),
+                                light = ClientboundLightUpdatePacketData(position, level.lightEngine, null, null),
+                            ),
+                        )
+                    }
+                    val left = stillComing.merge(player.uuid, -1, Int::plus) ?: 0
+                    if (left <= 0) {
+                        ringBegan.remove(player.uuid)?.let {
+                            Timing.record("server: the whole ring, first ask to last send", System.nanoTime() - it)
+                        }
+                    }
                 }, server)
         }
     }

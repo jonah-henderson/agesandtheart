@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.content
 
+import co.voik.agesandtheart.Timing
 import co.voik.agesandtheart.age.word.PageLearning
 import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.age.word.grammar.Readout
@@ -88,7 +89,7 @@ class DescriptiveBookItem(properties: Properties) : Item(properties) {
         // Reading it is how the grammar is learned (§4.5): `and`, `only`, `except` and the rungs are pages
         // nobody is handed, so a book somebody wrote well is where a writer meets them. Server-side, since
         // the learned set is the player's own save data.
-        if (player is ServerPlayer) PageLearning.study(player, stack)
+        if (player is ServerPlayer) Timing.of("server: learn the book's words") { PageLearning.study(player, stack) }
         return InteractionResult.SUCCESS
     }
 

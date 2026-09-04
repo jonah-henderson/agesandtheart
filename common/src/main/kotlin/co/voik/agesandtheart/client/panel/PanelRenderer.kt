@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.client.panel
 
 import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.Timing
 import co.voik.ephemeris.client.OffscreenLevelRender
 import com.mojang.blaze3d.resource.GraphicsResourceAllocator
 import com.mojang.blaze3d.systems.RenderSystem
@@ -74,7 +75,11 @@ object PanelRenderer {
      * for the first moments after a book opens — the fade from black *is* the load (§7.8.1), so there is
      * nothing to hide and nothing to wait for.
      */
-    fun draw(preview: PreviewLevel, delta: DeltaTracker): Boolean {
+    fun draw(preview: PreviewLevel, delta: DeltaTracker): Boolean = Timing.of("client: a whole panel frame") {
+        drawOnce(preview, delta)
+    }
+
+    private fun drawOnce(preview: PreviewLevel, delta: DeltaTracker): Boolean {
         if (preview.wholeness <= 0.0f) return sayOnce("no chunks have arrived yet")
         val target = PanelTarget.get()
         sayOnce(
@@ -106,11 +111,13 @@ object PanelRenderer {
         // to the main target before every level render, and a target of ours that skipped it kept an
         // uninitialised depth buffer — so every fragment failed the depth test and the panel stayed black
         // while the whole world render ran happily behind it.
-        val colour = target.colorTexture
-        val depth = target.depthTexture
-        if (colour != null && depth != null) {
-            RenderSystem.getDevice().createCommandEncoder()
-                .clearColorAndDepthTextures(colour, BEHIND_THE_AGE, depth, FURTHEST_DEPTH)
+        Timing.of("client: clear the panel") {
+            val colour = target.colorTexture
+            val depth = target.depthTexture
+            if (colour != null && depth != null) {
+                RenderSystem.getDevice().createCommandEncoder()
+                    .clearColorAndDepthTextures(colour, BEHIND_THE_AGE, depth, FURTHEST_DEPTH)
+            }
         }
 
         // Extract first, then draw: `extractLevel` is what fills `chunkSectionsToRender`, which the draw
@@ -122,14 +129,17 @@ object PanelRenderer {
             // by `compileSections`: it decides which sections are visible and gets them meshed. Without it
             // `prepareChunkRenders` hands back an *empty* set rather than a null one, so every check passed,
             // the render was submitted, the right target was bound, and nothing was ever drawn into it.
-            preview.renderer.update(camera)
-            preview.renderer.extractLevel(delta, camera, delta.getGameTimeDeltaPartialTick(false))
+            Timing.of("client: cull and compile sections") { preview.renderer.update(camera) }
+            Timing.of("client: extract the level") {
+                preview.renderer.extractLevel(delta, camera, delta.getGameTimeDeltaPartialTick(false))
+            }
             // `extractLevel` is what fills this. Null means it decided there was nothing to draw, which is
             // not a failure and not something to draw a half-frame over.
             val sections = preview.renderState.levelRenderState.chunkSectionsToRender
                 ?: return@drawing sayOnce("extractLevel decided there was nothing to draw")
             sayOnce("submitting the level render, ${preview.renderer.countRenderedSections()} sections meshed")
-            PanelTarget.redirecting {
+            Timing.of("client: render the level") {
+              PanelTarget.redirecting {
                 preview.renderer.renderLevel(
                     GraphicsResourceAllocator.UNPOOLED,
                     delta,
@@ -141,6 +151,7 @@ object PanelRenderer {
                     true,
                     sections,
                 )
+              }
             }
             true
         }
