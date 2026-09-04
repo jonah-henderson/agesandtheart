@@ -76,7 +76,7 @@ object PanelViews {
         close(server, player)
 
         val openedAt = System.nanoTime()
-        val stack = player.getItemInHand(hand)
+        val stack = Timing.of("server: read the held book") { player.getItemInHand(hand) }
         if (stack.item !== AgeContent.DESCRIPTIVE_BOOK) {
             Constants.LOG.info("Panel refused: {} is holding {}, which is not a book", player.name.string, stack.item)
             return
@@ -102,7 +102,8 @@ object PanelViews {
             "Panel opened onto {} for {}, streaming {} chunks around {}",
             dimension.identifier(), player.name.string, PanelProtocol.RING_CHUNKS, around,
         )
-        Services.NETWORK.sendToPlayer(
+        Timing.of("server: send the level payload") {
+          Services.NETWORK.sendToPlayer(
             player,
             PanelLevelPayload(
                 dimension = dimension,
@@ -112,9 +113,14 @@ object PanelViews {
                 seaLevel = level.seaLevel,
                 chunksComing = PanelProtocol.RING_CHUNKS,
             ),
-        )
-        sendRing(server, player, level, centre)
-        Timing.record("server: everything before the first chunk", System.nanoTime() - openedAt)
+          )
+        }
+        // **Asking is not waiting, but it is not free either.** `getChunkFuture` on the server thread does
+        // its own bookkeeping per chunk before handing back a future, and the umbrella below hid how much:
+        // it was named for what precedes the ring and in fact spanned the whole handler, scheduling
+        // included, so five seconds of this looked like part of the wait before anything started.
+        Timing.of("server: ask for all the ring's chunks") { sendRing(server, player, level, centre) }
+        Timing.record("server: the open handler, end to end", System.nanoTime() - openedAt)
     }
 
     /** When each player's ring was asked for, so the whole stream can be timed end to end. */
