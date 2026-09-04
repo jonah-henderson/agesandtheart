@@ -188,6 +188,11 @@ class PreviewLevel private constructor(
                 payload.biomeZoomSeed,
                 payload.seaLevel,
             )
+            // **A hand-built `LevelRenderer` has no sky renderer until it is told to reload.** The game's own
+            // is a resource-reload listener, so vanilla never constructs one without a reload following;
+            // ours is made here and would otherwise carry a null `skyRenderer` into `extractLevel` and
+            // throw. The same call builds the entity-outline target.
+            renderer.onResourceManagerReload(minecraft.resourceManager)
             renderer.setLevel(level)
             level.chunkSource.updateViewCenter(centre.x, centre.z)
             val camera = PanelCamera(level, payload.around)
