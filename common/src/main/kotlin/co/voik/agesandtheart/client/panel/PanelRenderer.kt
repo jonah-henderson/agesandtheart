@@ -129,7 +129,16 @@ object PanelRenderer {
             // by `compileSections`: it decides which sections are visible and gets them meshed. Without it
             // `prepareChunkRenders` hands back an *empty* set rather than a null one, so every check passed,
             // the render was submitted, the right target was bound, and nothing was ever drawn into it.
-            Timing.of("client: cull and compile sections") { preview.renderer.update(camera) }
+            Timing.of("client: cull and compile sections") {
+                // **`update`'s two halves, called with our own answer to "is this a spectator".**
+                // `update` asks `minecraft.player.isSpectator()`, which is about the player and not about
+                // this camera. The flag turns smart culling *off* where the camera is inside a solid
+                // block — which is why a spectator sees out of one and everybody else sees black — and a
+                // panel's orbit is inside terrain often enough that leaving it false let the occlusion
+                // graph decide it was sealed in and cull the whole Age, meshed sections and all.
+                preview.renderer.cullTerrain(camera, camera.cullFrustum, true)
+                preview.renderer.compileSections(camera)
+            }
             Timing.of("client: extract the level") {
                 preview.renderer.extractLevel(delta, camera, delta.getGameTimeDeltaPartialTick(false))
             }
