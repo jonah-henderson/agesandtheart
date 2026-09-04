@@ -1,5 +1,5 @@
 {
-  "_comment": "Open overhead with nothing up there. The black sky and fog stay: black IS the answer for a void, where in a lit Age they would be pinning every biome to one colour. The light is not black, though \u2014 #3f473f is the End's own, the world this type restates, and it is what lets you see the ground you are standing on. Absent, the attribute defaults to #000000 and the Age is unlit rather than sunless.",
+  "_comment": "**Every visual colour is stated, and stated as the End's**, which is the world this type restates. An attribute a dimension type says nothing about falls back to its *registered* default, and for these three that default is #000000 — so an unstated colour is not a question handed to the biome, it is black. A biome overrides where it declares one and most do not: plains and beach carry no fog colour. `fog_color` and `sky_color` were left out on the reasoning that biomes carry their own, and every Age came up with black fog at every height over every landform (Jonah, 2026-09-03); `ambient_light_color` had already been caught the same way once. `ambient_light` is a separate system and is not the one you can see: it reaches only `LevelReader.getBrightness`, where the lightmap is built from `ambient_light_color`, `sky_light_color` and `sky_light_factor`.",
   "ambient_light": 0.0,
   "attributes": {
     "minecraft:gameplay/bed_rule": {
@@ -13,7 +13,7 @@
     "minecraft:visual/ambient_light_color": "#3F473F",
     "minecraft:visual/cloud_color": "#00000000",
     "minecraft:visual/cloud_height": 192.33,
-    "minecraft:visual/fog_color": "#000000",
+    "minecraft:visual/fog_color": "#181318",
     "minecraft:visual/sky_color": "#000000"
   },
   "coordinate_scale": 1.0,

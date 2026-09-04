@@ -14,6 +14,7 @@ import net.minecraft.core.registries.Registries
 import net.minecraft.data.worldgen.SurfaceRuleData
 import net.minecraft.resources.Identifier
 import net.minecraft.resources.ResourceKey
+import net.minecraft.world.attribute.EnvironmentAttribute
 import net.minecraft.world.attribute.EnvironmentAttributes
 import net.minecraft.world.level.dimension.DimensionType
 import net.minecraft.world.level.levelgen.SurfaceRules
@@ -157,28 +158,50 @@ class DimensionTypeCheck : FunSpec({
      * `LevelReader.getBrightness`, while the lightmap is extracted from this attribute,
      * `sky_light_color` and `sky_light_factor`.
      */
-    test("each type of ours lets through the light of the world it restates") {
+    /**
+     * **Every colour the world it restates states, ours states too.**
+     *
+     * An attribute a dimension type says nothing about falls back to its *registered* default, and for
+     * these three that default is `#000000`. A biome overrides them only where it declares them, and most
+     * do not — plains and beach carry no fog colour — so leaving one out does not hand the question to the
+     * biome. It paints every Age black.
+     *
+     * That was walked: `fog_color` and `sky_color` were left out deliberately, on the reasoning that a
+     * biome carries its own, and every Age came up with black fog at every height over every landform
+     * (Jonah, 2026-09-03). `ambient_light_color` had been caught the same way once already and was the
+     * only one this check knew about, which is why it did not catch the other two.
+     */
+    test("each type of ours states every colour of the world it restates") {
         MinecraftRegistries.ensureStoodUp()
         val vanillas = MinecraftRegistries.worldgen.lookupOrThrow(Registries.DIMENSION_TYPE)
 
-        fun lightOf(world: ResourceKey<DimensionType>): String {
-            val attributes = vanillas.getOrThrow(world).value().attributes()
-            val packed = attributes.applyModifier(EnvironmentAttributes.AMBIENT_LIGHT_COLOR, BLACK)
+        val colours = listOf(
+            EnvironmentAttributes.AMBIENT_LIGHT_COLOR to "minecraft:visual/ambient_light_color",
+            EnvironmentAttributes.FOG_COLOR to "minecraft:visual/fog_color",
+            EnvironmentAttributes.SKY_COLOR to "minecraft:visual/sky_color",
+        )
+
+        fun vanillasIs(world: ResourceKey<DimensionType>, attribute: EnvironmentAttribute<Int>): String {
+            val packed = vanillas.getOrThrow(world).value().attributes().applyModifier(attribute, BLACK)
             return "#%06X".format(packed and RGB)
         }
 
-        fun lightDeclaredBy(id: Identifier): String? = JsonParser.parseString(File(shipped, "${id.path}.json").readText())
-            .asJsonObject.getAsJsonObject("attributes")
-            .get("minecraft:visual/ambient_light_color")?.asString?.uppercase()
+        fun oursDeclares(id: Identifier, key: String): String? =
+            JsonParser.parseString(File(shipped, "${id.path}.json").readText())
+                .asJsonObject.getAsJsonObject("attributes").get(key)?.asString?.uppercase()
 
         for ((world, ours) in ourEquivalent) {
-            val declared = lightDeclaredBy(ours)
-            check(declared != null) {
-                "'${ours.path}' declares no ambient light, so it falls to the attribute's own #000000 and is " +
-                    "darker than ${world.identifier()}, the world it restates"
-            }
-            check(declared == lightOf(world)) {
-                "'${ours.path}' lets through $declared where ${world.identifier()} lets through ${lightOf(world)}"
+            for ((attribute, key) in colours) {
+                @Suppress("UNCHECKED_CAST")
+                val theirs = vanillasIs(world, attribute as EnvironmentAttribute<Int>)
+                val declared = oursDeclares(ours, key)
+                check(declared != null) {
+                    "'${ours.path}' declares no $key, so it falls to the attribute's own #000000 and is " +
+                        "blacker than ${world.identifier()}, the world it restates"
+                }
+                check(declared == theirs) {
+                    "'${ours.path}' states $declared for $key where ${world.identifier()} states $theirs"
+                }
             }
         }
     }
