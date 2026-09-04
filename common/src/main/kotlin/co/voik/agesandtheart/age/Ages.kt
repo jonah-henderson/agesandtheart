@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age
 
+import co.voik.agesandtheart.AgeConfig
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.platform.Services
 import co.voik.ephemeris.RuntimeLevelEvents
@@ -12,6 +13,7 @@ import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.dimension.end.EnderDragonFight
 import net.minecraft.world.level.levelgen.Heightmap
 import co.voik.agesandtheart.age.aspect.Aspect
@@ -158,6 +160,7 @@ object Ages {
         // the places a player starts travelling.
         LevelAppearance.expecting(player, level.dimension())
         val arrival = arrivalIn(level)
+        openUpArrival(level, arrival)
         // `teleportTo` gained a relative-movement set and a "set camera" flag. Nothing here is relative and
         // the camera should follow, which is the empty set and `true`.
         player.teleportTo(
@@ -180,26 +183,78 @@ object Ages {
     /**
      * Where each Age's arrival is, worked out once.
      *
-     * **Because working it out costs sixteen seconds and the answer never changes.** [findFooting] samples
-     * up to two and a half thousand columns of `getBaseHeight`, each a full run of the generator's density
-     * functions, and it is a pure function of a generator that is itself rebuilt identically on every open
-     * — so the second answer is always the first. Measured on a cold Age: 16,269ms to find the arrival
+     * **Because working it out is the slowest thing a first link does.** [findFooting] samples columns of
+     * `getBaseHeight`, each a full run of the generator's density functions, and both linking and the
+     * linking panel ask. Measured on a cold Age before it was memoised: 16,269ms to find the arrival
      * against 122ms to roll and open the whole world.
      *
-     * Both linking and the linking panel ask, and before this they each paid in full.
+     * A generator is rebuilt identically on every open, so the second answer would always be the first —
+     * except that `AgeConfig.searchesForFooting` can change between server runs, which is why this is a
+     * memo for the run rather than anything persisted.
      */
     private val arrivals = mutableMapOf<Identifier, BlockPos>()
 
     private fun workOutTheArrivalIn(level: ServerLevel): BlockPos {
         val (landingX, landingZ) = findFooting(level)
         level.getChunk(SectionPos.blockToSectionCoord(landingX), SectionPos.blockToSectionCoord(landingZ))
-        val surfaceY = if (!level.dimensionType().hasCeiling()) {
-            level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, landingX, landingZ)
-        } else {
-            floorUnderTheRoof(level, landingX, landingZ)
-        }
-        return BlockPos(landingX, surfaceY + 1, landingZ)
+        return footingIn(level, landingX, landingZ)
     }
+
+    /**
+     * Where a visitor stands in one column: the space above the highest thing that will hold them.
+     *
+     * Three answers, because a column need not have a floor in it. Ordinarily the top of the world's
+     * surface, or the first floor under the roof in a world that is shut overhead. Where the column holds
+     * nothing at all — an Age of open sky — the waterline instead, so a visitor arrives in the air rather
+     * than on the world's own floor. Where it is solid to the top there is no space above anything, and
+     * the answer is the highest a player fits; [openUpArrival] is what makes that survivable.
+     */
+    private fun footingIn(level: ServerLevel, x: Int, z: Int): BlockPos {
+        val topOfTheColumn = if (level.dimensionType().hasCeiling()) {
+            floorUnderTheRoof(level, x, z)
+        } else {
+            level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z)
+        }
+        val cursor = BlockPos.MutableBlockPos()
+        val holdsNothing = level.getBlockState(cursor.set(x, topOfTheColumn, z)).isAir
+        val standing = when {
+            holdsNothing -> level.seaLevel
+            topOfTheColumn + 1 + HEADROOM > level.maxY -> level.maxY - HEADROOM
+            else -> topOfTheColumn + 1
+        }
+        return BlockPos(x, standing, z)
+    }
+
+    /**
+     * Clears somewhere to stand at [arrival], for an Age that has no room there.
+     *
+     * Only on the way in, never on the way to a panel: a book that carved a pocket merely by being opened
+     * would edit an Age nobody had visited.
+     */
+    private fun openUpArrival(level: ServerLevel, arrival: BlockPos) {
+        val cursor = BlockPos.MutableBlockPos()
+        fun blocked(y: Int) = !level.getBlockState(cursor.set(arrival.x, y, arrival.z)).isAir
+        if (!blocked(arrival.y) && !blocked(arrival.y + 1)) return
+
+        Constants.LOG.info("Carving room to arrive at {} in {}", arrival, level.dimension().identifier())
+        for (y in arrival.y..arrival.y + HEADROOM) {
+            for (x in arrival.x - 1..arrival.x + 1) {
+                for (z in arrival.z - 1..arrival.z + 1) {
+                    level.setBlockAndUpdate(cursor.set(x, y, z), Blocks.AIR.defaultBlockState())
+                }
+            }
+        }
+        // A floor under the pocket, or one carved out of a hillside drops the visitor through it.
+        for (x in arrival.x - 1..arrival.x + 1) {
+            for (z in arrival.z - 1..arrival.z + 1) {
+                val under = cursor.set(x, arrival.y - 1, z)
+                if (level.getBlockState(under).isAir) level.setBlockAndUpdate(under, FOOTING_BLOCK)
+            }
+        }
+    }
+
+    /** What a carved arrival stands on, where there was nothing. */
+    private val FOOTING_BLOCK get() = Blocks.STONE.defaultBlockState()
 
     /**
      * The floor of a world that is **shut overhead**, found by walking down past the roof.
@@ -238,22 +293,37 @@ object Ages {
      * world, so no chunk is generated until one is chosen — which is what makes a wide search affordable.
      */
     private fun findFooting(level: ServerLevel): Pair<Int, Int> {
+        if (!AgeConfig.searchesForFooting.get()) return ORIGIN
+
         val generator = level.chunkSource.generator
         val randomState = level.chunkSource.randomState()
         val waterline = generator.seaLevel
-        for ((offsetX, offsetZ) in outwardFromOrigin()) {
-            val height = generator.getBaseHeight(offsetX, offsetZ, Heightmap.Types.WORLD_SURFACE_WG, level, randomState)
-            if (height > waterline) return offsetX to offsetZ
-        }
-        return 0 to 0
+        fun standsClearOfTheSea(x: Int, z: Int): Boolean =
+            generator.getBaseHeight(x, z, Heightmap.Types.WORLD_SURFACE_WG, level, randomState) > waterline
+
+        return candidateColumns().firstOrNull { standsClearOfTheSea(it.first, it.second) } ?: ORIGIN
     }
 
-    /** Coarse lattice of candidate columns, nearest ring first. */
-    private fun outwardFromOrigin(): Sequence<Pair<Int, Int>> = sequence {
-        yield(0 to 0)
-        for (ring in 1..FOOTING_RINGS) {
-            val extent = ring * FOOTING_STEP
-            for (along in -extent..extent step FOOTING_STEP) {
+    /**
+     * Every column worth trying, the widely spaced ones first.
+     *
+     * Every candidate is a full run of the generator's density functions, so the order is what the cost
+     * turns on. The wide lattice is a subset of the close one, which means putting it first reorders the
+     * same set rather than adding to it: an Age whose land is a long way out is found in a fraction of the
+     * samples, and an Age with none is no dearer than it was. Which of two dry columns is chosen matters
+     * far less than how long it takes to find one.
+     */
+    internal fun candidateColumns(): Sequence<Pair<Int, Int>> = sequence {
+        yieldAll(outwardFromOrigin(WIDE_STEP))
+        yieldAll(outwardFromOrigin(FOOTING_STEP))
+    }.distinct()
+
+    /** Lattice of candidate columns at [step], nearest ring first, out to [FOOTING_REACH]. */
+    private fun outwardFromOrigin(step: Int): Sequence<Pair<Int, Int>> = sequence {
+        yield(ORIGIN)
+        for (ring in 1..FOOTING_REACH / step) {
+            val extent = ring * step
+            for (along in -extent..extent step step) {
                 yield(along to -extent)
                 yield(along to extent)
                 yield(-extent to along)
@@ -262,9 +332,16 @@ object Ages {
         }
     }
 
+    private val ORIGIN = 0 to 0
+
     // A step under a chunk, out far enough to clear the widest island spacing we place.
     private const val FOOTING_STEP = 12
-    private const val FOOTING_RINGS = 24
+
+    /** Four chunks, and a multiple of [FOOTING_STEP] so its lattice is a subset of the close one. */
+    private const val WIDE_STEP = 48
+
+    /** How far out either sweep goes. */
+    private const val FOOTING_REACH = 288
 
     /** How many numbered variants of a name to try before falling back to the counter. */
     private const val NAME_ATTEMPTS = 64

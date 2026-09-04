@@ -72,7 +72,9 @@ correct itself in place. Rewrite the paragraph that is now wrong.
   server internals this note first estimated. **Read it before looking at either library again.**
 - **`notes/config-research.md`** — how mod config UIs work (they introspect a spec, or host a screen you
   write), the 26.1 landscape, and why the recommendation is NeoForge's `ModConfigSpec` with Forge Config API
-  Port on Fabric. Nothing in it is built. Read it before adding the first config value.
+  Port on Fabric. **Built** — the spec is `AgeConfig` in `common`, registered as `SERVER` by each loader,
+  and written once rather than behind the SPI because the port publishes its API under the original package
+  names. Read it before adding an option; add the option to `AgeConfig`, not a second spec.
 - **`notes/before-release.md`** — what has to be true before anyone else plays this, and the freedoms that
   end on release day. **Read it before putting off a rename or a codec change**: save compatibility is free
   now and a migration later. Also holds the measured content debts and the case for a base dimension being

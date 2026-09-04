@@ -46,6 +46,16 @@ object AgeConfig {
      */
     val villagerWriters: ModConfigSpec.BooleanValue
 
+    /**
+     * Whether linking hunts outward from an Age's origin for ground above the waterline.
+     *
+     * The search is the most expensive thing a first link does — every candidate column is a full run of
+     * the generator's density functions — and a bound book's panel now shows where it puts you, so a
+     * server can decide that arriving where the Age happens to put you is the visitor's problem to prepare
+     * for.
+     */
+    val searchesForFooting: ModConfigSpec.BooleanValue
+
     /** The spec each loader hands to its own config system. */
     val SPEC: ModConfigSpec
 
@@ -73,6 +83,18 @@ object AgeConfig {
             .translation(translationOf("villager_writers"))
             .define("villagerWriters", true)
         builder.pop()
+        builder.comment("Linking").push(LINKING)
+        searchesForFooting = builder
+            .comment(
+                "Look outward from an Age's origin for dry land to arrive on, instead of arriving at the",
+                "origin itself. The search is the slowest part of opening an Age for the first time, and a",
+                "bound book's panel shows you where you would land either way. Turn this off for a faster",
+                "first link, at the cost of arriving in whatever is at the origin — water, a cave, or the",
+                "open air.",
+            )
+            .translation(translationOf("searches_for_footing"))
+            .define("searchesForFooting", true)
+        builder.pop()
         SPEC = builder.build()
     }
 
@@ -82,4 +104,6 @@ object AgeConfig {
     private const val HOUSEKEEPING = "housekeeping"
 
     private const val VILLAGERS = "villagers"
+
+    private const val LINKING = "linking"
 }
