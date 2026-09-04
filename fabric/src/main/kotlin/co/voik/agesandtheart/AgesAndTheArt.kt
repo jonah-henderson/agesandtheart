@@ -14,6 +14,7 @@ import co.voik.agesandtheart.age.word.PageLoot
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.book.LinkRequest
 import co.voik.agesandtheart.book.panel.PanelChunkPayload
+import co.voik.agesandtheart.book.panel.PanelChunksWanted
 import co.voik.agesandtheart.book.panel.PanelCloseRequest
 import co.voik.agesandtheart.book.panel.PanelLevelPayload
 import co.voik.agesandtheart.book.panel.PanelOpenRequest
@@ -107,6 +108,7 @@ fun init() {
     PayloadTypeRegistry.clientboundPlay().register(PanelChunkPayload.TYPE, PanelChunkPayload.STREAM_CODEC)
     PayloadTypeRegistry.serverboundPlay().register(PanelOpenRequest.TYPE, PanelOpenRequest.STREAM_CODEC)
     PayloadTypeRegistry.serverboundPlay().register(PanelCloseRequest.TYPE, PanelCloseRequest.STREAM_CODEC)
+    PayloadTypeRegistry.serverboundPlay().register(PanelChunksWanted.TYPE, PanelChunksWanted.STREAM_CODEC)
 
     ServerPlayNetworking.registerGlobalReceiver(LinkRequest.TYPE) { payload, context ->
         context.server().execute { Linking.handle(context.player(), payload) }
@@ -122,6 +124,9 @@ fun init() {
     }
     ServerPlayNetworking.registerGlobalReceiver(PanelCloseRequest.TYPE) { _, context ->
         context.server().execute { PanelViews.close(context.server(), context.player()) }
+    }
+    ServerPlayNetworking.registerGlobalReceiver(PanelChunksWanted.TYPE) { payload, context ->
+        context.server().execute { PanelViews.resend(context.server(), context.player(), payload.positions) }
     }
     // A client that crashes with a book open never sends the close, so the ring is released here too.
     ServerPlayConnectionEvents.DISCONNECT.register { handler, server ->

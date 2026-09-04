@@ -1,154 +1,175 @@
 package co.voik.agesandtheart.client.panel
 
-import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.Timing
+import co.voik.agesandtheart.book.panel.PanelRing
 import co.voik.ephemeris.client.OffscreenLevelRender
+import com.mojang.blaze3d.buffers.GpuBufferSlice
+import com.mojang.blaze3d.pipeline.RenderTarget
 import com.mojang.blaze3d.resource.GraphicsResourceAllocator
 import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.client.DeltaTracker
-import net.minecraft.client.renderer.ProjectionMatrixBuffer
+import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.fog.FogRenderer
-import net.minecraft.util.Mth
-import net.minecraft.world.level.material.FogType
-import org.joml.Matrix4f
+import net.minecraft.client.renderer.state.level.CameraRenderState
+import net.minecraft.util.ARGB
+import net.minecraft.world.attribute.EnvironmentAttributes
 
 /**
  * Draws a preview level into the panel's target, once per frame a book is open (design §7.8.1).
  *
- * **This assembles by hand what `GameRenderer.renderLevel` assembles for the player**, because that method
- * is written around `mainCamera`, the player's `GameRenderState` and the window — none of which a panel
- * has. What it needs turns out to be reachable: `CameraRenderState` is a class of public fields,
- * `GraphicsResourceAllocator.UNPOOLED`, `FogRenderer()` and `ProjectionMatrixBuffer(String)` are all
- * public, and the camera's own frustum comes from the two widened methods.
- *
- * **Two scopes wrap the call and they are not the same claim.** `PanelTarget.redirecting` lies to *vanilla*
- * about where the window is, because `renderLevel` hard-codes `getMainRenderTarget()`.
- * `OffscreenLevelRender.drawing` tells *Ephemeris' painters* which level and camera this frame is for, so
- * the Age's own sky, clouds and horizon are drawn rather than the player's. Neither substitutes for the
- * other.
- *
- * **Unverified against a running client.** Every signature here was read off the 26.1.2 sources and the
- * whole file compiles, but no part of it has been seen to draw anything — see the note at the foot of
- * `notes/link-panel-research.md` for what a first walk should look for.
+ * Assembles by hand what `GameRenderer.renderLevel` assembles for the player, which is written around the
+ * player's camera, render state and window. Three scopes wrap the render and make three different claims:
+ * [BorrowedFrame] lends the panel the client's single projection, camera globals and crosshair;
+ * `PanelTarget.redirecting` tells vanilla where the window is; `OffscreenLevelRender.drawing` tells
+ * Ephemeris' painters which level and camera the frame is for.
  */
 object PanelRenderer {
 
     private val fog = FogRenderer()
-    private val projections = ProjectionMatrixBuffer("ages linking panel")
 
-    /** How long one full turn of the orbit takes, in seconds. Slow: this is a look, not a fly-by. */
+    /** A look rather than a fly-by, so one turn of the orbit is slow. */
     private const val SECONDS_PER_TURN = 24.0f
 
     private const val NANOS_PER_SECOND = 1_000_000_000.0f
 
     private val startedAt = System.nanoTime()
 
-    /** What shows where the Age is nothing — opaque black, as a panel with no world behind it should be. */
     private const val BEHIND_THE_AGE = 0xFF000000.toInt()
 
-    /** Vanilla's own clear depth. */
     private const val FURTHEST_DEPTH = 1.0
 
-    private val alreadySaid = mutableSetOf<String>()
+    /**
+     * The Age's distant haze as an opaque colour, from the frame last drawn.
+     *
+     * A level render clears its background to the fog colour at *alpha zero* and only the sky and the
+     * terrain write over it, so a panel blitted into a book needs something opaque underneath.
+     */
+    var haze: Int = BEHIND_THE_AGE
+        private set
 
     /**
-     * One line the first time each distinct thing happens, and never again.
+     * Renders one frame of [preview], answering whether anything was drawn.
      *
-     * **Because this runs every frame and the interesting facts are one-offs.** The panel spent four runs
-     * black with nothing to say which of half a dozen steps had stopped; a per-frame log would have been
-     * nine thousand lines of the same sentence, which is how the *last* diagnosis went wrong.
-     *
-     * Returns false so a caller can `return sayOnce(...)` where the answer is "nothing drawn".
+     * False until a chunk has arrived, which is the ordinary case for the first moments of a book.
      */
-    fun sayOnce(what: String): Boolean {
-        if (alreadySaid.add(what)) Constants.LOG.info("Panel: {}", what)
-        return false
-    }
-
-    /** Forgotten when a panel closes, so the next book reports its own story rather than inheriting one. */
-    fun forget() = alreadySaid.clear()
-
-    /**
-     * Renders one frame of [preview] into [PanelTarget].
-     *
-     * Returns false having drawn nothing when the preview has no chunks yet, which is the ordinary case
-     * for the first moments after a book opens — the fade from black *is* the load (§7.8.1), so there is
-     * nothing to hide and nothing to wait for.
-     */
-    fun draw(preview: PreviewLevel, delta: DeltaTracker): Boolean = Timing.of("client: a whole panel frame") {
-        drawOnce(preview, delta)
-    }
+    fun draw(preview: PreviewLevel, delta: DeltaTracker): Boolean =
+        Timing.of("client: a whole panel frame") { drawOnce(preview, delta) }
 
     private fun drawOnce(preview: PreviewLevel, delta: DeltaTracker): Boolean {
-        if (preview.wholeness <= 0.0f) return sayOnce("no chunks have arrived yet")
+        if (!preview.load.hasAnything) return false
+
         val target = PanelTarget.get()
-        sayOnce(
-            "drawing: target ${target.width}x${target.height}, colour=${target.colorTexture != null}, " +
-                "depth=${target.depthTexture != null}, chunks=${"%.0f".format(preview.wholeness * 100)}%"
-        )
         val camera = preview.camera
-        val turns = ((System.nanoTime() - startedAt) / NANOS_PER_SECOND / SECONDS_PER_TURN) % 1.0f
-        camera.placeAt(turns, target.width, target.height)
+        camera.placeAt(turnsSoFar(), target.width, target.height)
 
         val state = preview.renderState.levelRenderState.cameraRenderState
-        describe(state, camera, target.width, target.height)
+        camera.describeTo(state, target.width, target.height)
+        val terrainFog = describeAtmosphere(state, preview, delta)
 
-        fog.updateBuffer(state.fogData)
-        val terrainFog = fog.getBuffer(FogRenderer.FogMode.WORLD)
-
-        // **Put back whatever was set.** This runs inside a screen's frame, where the GUI's own orthographic
-        // projection is in force; leaving a perspective one behind would bend every widget drawn after the
-        // book. `RenderSystem` hands the current one back, so the swap is symmetrical.
-        val outerProjection = RenderSystem.getProjectionMatrixBuffer()
-        val outerType = RenderSystem.getProjectionType()
-        RenderSystem.setProjectionMatrix(
-            projections.getBuffer(state.projectionMatrix),
-            com.mojang.blaze3d.ProjectionType.PERSPECTIVE,
-        )
         try {
-
-        // **Clear the panel before drawing into it, colour *and depth*.** `GameRenderer` does exactly this
-        // to the main target before every level render, and a target of ours that skipped it kept an
-        // uninitialised depth buffer — so every fragment failed the depth test and the panel stayed black
-        // while the whole world render ran happily behind it.
-        Timing.of("client: clear the panel") {
-            val colour = target.colorTexture
-            val depth = target.depthTexture
-            if (colour != null && depth != null) {
-                RenderSystem.getDevice().createCommandEncoder()
-                    .clearColorAndDepthTextures(colour, BEHIND_THE_AGE, depth, FURTHEST_DEPTH)
+            return BorrowedFrame.lentTo(target, camera, preview.level, state.projectionMatrix, delta).use {
+                clear(target)
+                OffscreenLevelRender.drawing(preview.level, target, camera) {
+                    submit(preview, camera, state, terrainFog, delta)
+                }
             }
+        } finally {
+            // Rotates the fog's ring buffer and fences it, as `GameRenderer` does for its own. Without it
+            // every frame writes the same buffer with no fence while the last frame may still be reading.
+            fog.endFrame()
+            // The two dispatchers are the client's single instances, and `extractLevel` re-`prepare`s them
+            // against the orbit. Put the player's camera back rather than leaving anything that reads them
+            // later in the frame answering for a camera over another dimension.
+            restoreDispatchers()
+        }
+    }
+
+    /**
+     * The camera fields only. `prepare` would also re-set the crosshair entity, which the panel's own
+     * extract passed through unchanged because it reads the same global the player's frame does.
+     */
+    private fun restoreDispatchers() {
+        val minecraft = Minecraft.getInstance()
+        val playersCamera = minecraft.gameRenderer.mainCamera
+        minecraft.entityRenderDispatcher.camera = playersCamera
+        minecraft.blockEntityRenderDispatcher.prepare(playersCamera.position())
+    }
+
+    /** Where the orbit has got to, `0..1` for a full circle, off the clock rather than off ticks. */
+    private fun turnsSoFar(): Float =
+        ((System.nanoTime() - startedAt) / NANOS_PER_SECOND / SECONDS_PER_TURN) % 1.0f
+
+    /**
+     * Gives the render state the Age's fog and returns the buffer the terrain pass wants.
+     *
+     * The shown radius rather than the streamed one, so the fog ends before the outermost ring, which is
+     * sent only to let the ring inside it mesh. The sky is then unclamped again: `setupFog` derives the
+     * sky's fog from the same render distance, which for a ring this small would flatten the whole sky into
+     * one disc of fog colour with no sun or stars in it.
+     */
+    private fun describeAtmosphere(
+        state: CameraRenderState,
+        preview: PreviewLevel,
+        delta: DeltaTracker,
+    ): GpuBufferSlice {
+        val partial = delta.getGameTimeDeltaPartialTick(false)
+        state.fogData = fog.setupFog(preview.camera, PanelRing.SHOWN_RADIUS_CHUNKS, delta, 0.0f, preview.level)
+        state.fogData.skyEnd =
+            preview.camera.attributeProbe().getValue(EnvironmentAttributes.SKY_FOG_END_DISTANCE, partial)
+        fog.updateBuffer(state.fogData)
+
+        val colour = state.fogData.color
+        haze = ARGB.colorFromFloat(1.0f, colour.x, colour.y, colour.z)
+        return fog.getBuffer(FogRenderer.FogMode.WORLD)
+    }
+
+    /** Colour *and* depth: an uninitialised depth buffer fails every fragment. */
+    private fun clear(target: RenderTarget) = Timing.of("client: clear the panel") {
+        val colour = target.colorTexture ?: return@of
+        val depth = target.depthTexture ?: return@of
+        RenderSystem.getDevice().createCommandEncoder()
+            .clearColorAndDepthTextures(colour, BEHIND_THE_AGE, depth, FURTHEST_DEPTH)
+    }
+
+    /**
+     * What `GameRenderer` does to a level renderer each frame, in its order.
+     *
+     * The order is load-bearing: light before meshing, meshing before extraction, extraction before there
+     * is anything to submit.
+     */
+    private fun submit(
+        preview: PreviewLevel,
+        camera: PanelCamera,
+        state: CameraRenderState,
+        terrainFog: GpuBufferSlice,
+        delta: DeltaTracker,
+    ): Boolean {
+        Timing.of("client: run the preview's light") { preview.advanceLight() }
+
+        Timing.of("client: cull and compile sections") {
+            // Spectator, because that flag turns smart culling off where the camera is inside a solid
+            // block, and an orbit is inside terrain often enough that the occlusion graph would otherwise
+            // decide it was sealed in and cull the whole Age.
+            preview.renderer.cullTerrain(camera, camera.cullFrustum, true)
+            preview.renderer.compileSections(camera)
         }
 
-        // Extract first, then draw: `extractLevel` is what fills `chunkSectionsToRender`, which the draw
-        // then consumes, and it is also what asks the sky and weather renderers about *this* level.
-        return OffscreenLevelRender.drawing(preview.level, target, camera) {
-            // **`update` first, and its absence is why the panel was black with everything else right.**
-            // `GameRenderer` calls three things on the level renderer each frame — `tick`, `update`, then
-            // `extractLevel` — and only the last was being called here. `update` is `cullTerrain` followed
-            // by `compileSections`: it decides which sections are visible and gets them meshed. Without it
-            // `prepareChunkRenders` hands back an *empty* set rather than a null one, so every check passed,
-            // the render was submitted, the right target was bound, and nothing was ever drawn into it.
-            Timing.of("client: cull and compile sections") {
-                // **`update`'s two halves, called with our own answer to "is this a spectator".**
-                // `update` asks `minecraft.player.isSpectator()`, which is about the player and not about
-                // this camera. The flag turns smart culling *off* where the camera is inside a solid
-                // block — which is why a spectator sees out of one and everybody else sees black — and a
-                // panel's orbit is inside terrain often enough that leaving it false let the occlusion
-                // graph decide it was sealed in and cull the whole Age, meshed sections and all.
-                preview.renderer.cullTerrain(camera, camera.cullFrustum, true)
-                preview.renderer.compileSections(camera)
-            }
-            Timing.of("client: extract the level") {
-                preview.renderer.extractLevel(delta, camera, delta.getGameTimeDeltaPartialTick(false))
-            }
-            // `extractLevel` is what fills this. Null means it decided there was nothing to draw, which is
-            // not a failure and not something to draw a half-frame over.
-            val sections = preview.renderState.levelRenderState.chunkSectionsToRender
-                ?: return@drawing sayOnce("extractLevel decided there was nothing to draw")
-            sayOnce("submitting the level render, ${preview.renderer.countRenderedSections()} sections meshed")
-            Timing.of("client: render the level") {
-              PanelTarget.redirecting {
+        Timing.of("client: extract the level") {
+            preview.renderer.extractLevel(delta, camera, delta.getGameTimeDeltaPartialTick(false))
+        }
+        // Discarded rather than prevented: `extractLevel` takes particles from the global engine, so these
+        // are the player's, gathered into our render state. Preventing it would need a Mixin.
+        //
+        // The list only, never `reset()`: a group's render state is a field of the group itself, so the
+        // elements in this list are the same objects the player's frame is about to submit, and clearing
+        // them would empty the player's own particles rather than ours.
+        preview.renderState.levelRenderState.particlesRenderState.particles.clear()
+
+        // Null means the extract decided there was nothing to draw, which is not a failure.
+        val sections = preview.renderState.levelRenderState.chunkSectionsToRender ?: return false
+
+        Timing.of("client: render the level") {
+            PanelTarget.redirecting {
                 preview.renderer.renderLevel(
                     GraphicsResourceAllocator.UNPOOLED,
                     delta,
@@ -160,48 +181,8 @@ object PanelRenderer {
                     true,
                     sections,
                 )
-              }
             }
-            true
         }
-        } finally {
-            // Null where nothing had set one yet, which is not a state we can put back — and not one a
-            // screen's frame can be in, since the GUI sets its own before any of this runs.
-            outerProjection?.let { RenderSystem.setProjectionMatrix(it, outerType) }
-        }
+        return true
     }
-
-    /**
-     * Fills the render state from the camera, which is `GameRenderer`'s job for the player's frame.
-     *
-     * Every field here is one `renderLevel` or something under it reads. `initialized` is the flag that
-     * says so: left false, vanilla treats the state as a frame that never happened.
-     */
-    private fun describe(
-        state: net.minecraft.client.renderer.state.level.CameraRenderState,
-        camera: PanelCamera,
-        width: Int,
-        height: Int,
-    ) {
-        val eye = camera.position()
-        state.initialized = true
-        state.isPanoramicMode = false
-        state.pos = eye
-        state.blockPos = net.minecraft.core.BlockPos.containing(eye)
-        state.xRot = camera.placedPitch
-        state.yRot = camera.placedYaw
-        state.orientation = camera.rotation()
-        state.cullFrustum = camera.cullFrustum
-        state.viewRotationMatrix = camera.getViewRotationMatrix(Matrix4f())
-        // The camera's own, so the volume drawn and the volume culled are the same one. Building a second
-        // projection here is how they came to disagree, and a wider one silently culls what it would draw.
-        state.projectionMatrix = PanelCamera.projectionFor(width, height)
-        state.depthFar = PanelCamera.FAR_PLANE
-        state.hudFov = PanelCamera.FIELD_OF_VIEW
-        // What the eye is *inside*, which decides whether the pass draws water or lava fog over the whole
-        // frame. An orbit sits in open air by construction, so this is never anything else — and the Age's
-        // own air reaches the panel as an environment layer rather than through here.
-        state.fogType = FogType.NONE
-    }
-
 }

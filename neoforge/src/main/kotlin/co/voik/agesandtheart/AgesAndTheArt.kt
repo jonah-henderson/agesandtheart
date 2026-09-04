@@ -12,6 +12,7 @@ import co.voik.agesandtheart.desk.DeskCommandPayload
 import co.voik.agesandtheart.desk.DeskCommands
 import co.voik.agesandtheart.book.LinkRequest
 import co.voik.agesandtheart.book.panel.PanelChunkPayload
+import co.voik.agesandtheart.book.panel.PanelChunksWanted
 import co.voik.agesandtheart.book.panel.PanelCloseRequest
 import co.voik.agesandtheart.book.panel.PanelLevelPayload
 import co.voik.agesandtheart.book.panel.PanelOpenRequest
@@ -208,6 +209,11 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         registrar.playToServer(PanelCloseRequest.TYPE, PanelCloseRequest.STREAM_CODEC) { _, context ->
             (context.player() as? net.minecraft.server.level.ServerPlayer)?.let {
                 PanelViews.close(it.level().server ?: return@let, it)
+            }
+        }
+        registrar.playToServer(PanelChunksWanted.TYPE, PanelChunksWanted.STREAM_CODEC) { payload, context ->
+            (context.player() as? net.minecraft.server.level.ServerPlayer)?.let {
+                PanelViews.resend(it.level().server ?: return@let, it, payload.positions)
             }
         }
     }

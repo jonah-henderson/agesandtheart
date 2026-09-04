@@ -61,11 +61,11 @@ correct itself in place. Rewrite the paragraph that is now wrong.
 - **`notes/water-colour-research.md`** — how to make an Age's water shift colour over time: the tint is baked
   into the chunk mesh, and 26.1's `GameTime` UBO is the way around that. Nothing is built; it is meant to be
   built alongside the wound renderer, which needs the same pipeline.
-- **`notes/link-panel-research.md`** — the live view of an Age on a bound book's panel: why a preview
-  `ClientLevel` beats a hand-written mesh builder, and the refactor it demands first — our sky and cloud
-  hooks read `Minecraft.getInstance().level` and the main render target, and a second level breaks both.
-  Nothing is built. The three files it names moved to Ephemeris with the renderer, so read it before
-  touching the sky or cloud hooks **there** — the refactor it demands is now that project's to make.
+- **`notes/link-panel-research.md`** — the live view of an Age on a bound book's panel, and **built**: why a
+  preview `ClientLevel` beats a hand-written mesh builder, what it cost, and the register of everything
+  vanilla keeps exactly one of per client. **Read that register before standing up a second level of any
+  kind** — every fault this feature had was an item on it, and the question it teaches to ask is not "what
+  did we get wrong" but "what else is there exactly one of".
 - **`notes/neoforge-dimensions-research.md`** — the record of how runtime Ages stopped being Fabric-only.
   DynamicDimensions is dormant with no 26.1 and Fantasy is LGPL against our MIT, so neither could be used;
   what it cost to own the technique instead was four access-widener lines and one Mixin, not the ~10 into
@@ -295,7 +295,7 @@ When shared code needs something loader-specific, it goes through an interface, 
 - NeoForge: `@Mod("agesandtheart")` on the class in `neoforge/.../AgesAndTheArt.kt`; its constructor runs (Kotlin for Forge provides the Kotlin entry).
   Both immediately call `CommonSetup.init()`. Keep loader entrypoints tiny; put logic in `common`.
 
-**4. Seven Mixins, all in `common`, all Java.**
+**4. Ten Mixins and one accessor, all in `common`, all Java.**
 `common/src/main/resources/agesandtheart.mixins.json` declares them, and each earned its place by there being no loader event that carries what it needs. Each carries its own argument in-file; read that before touching one.
 
 - **`ServerPlayerMixin`** — the learned-word set. Four injectors: `readAdditionalSaveData` / `addAdditionalSaveData` persist it, `restoreFrom` carries it through death, and `initMenu` attaches the `ContainerListener` that notices a page arriving in the inventory. That last one is vanilla's own `inventory_changed` seam, which is why it beats polling.
@@ -312,6 +312,8 @@ When shared code needs something loader-specific, it goes through an interface, 
   wound renderer draws from would otherwise never hear about one torn after its chunk arrived. Neither
   loader has a client block-change event.
 - **`client/LevelRendererMixin`** — draws the Age's wounds in one submission. Declared under the config's `"client"` array, not `"mixins"`. The loader alternatives exist here (Fabric's world-render events, NeoForge's `RenderLevelStageEvent`) and are declined deliberately: they are different objects with different stages where the vanilla seam is identical on both sides.
+- **`MerchantResultSlotMixin`** and **`MerchantQuickMoveMixin`** — a page or notebook bought unwritten gets its word at the instant of purchase. An offer's `given_item_modifiers` run once for a stack handed out many times, so the draw cannot live there; and `quickMoveStack` merges into the inventory *before* calling `onTake`, so the shift-click path needs its own seam.
+- **`client/MainRenderTargetMixin`** — the linking panel's world render lands on the panel's target instead of the window. `LevelRenderer.renderLevel` hard-codes `getMainRenderTarget()` and sizes its whole frame graph from it, there is no parameter or event on either loader, and `Minecraft.mainRenderTarget` is `private final`. The redirect is live only inside `PanelTarget.redirecting`. It is the **only** Mixin the panel needs: everything else it borrows from the client has a public setter, and `BorrowedFrame` is where that is done.
 
 The sky Mixins left with Ephemeris and are `co.voik.ephemeris.mixin.client.*` now — do not look for them here.
 

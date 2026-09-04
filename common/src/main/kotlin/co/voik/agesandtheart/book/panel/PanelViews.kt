@@ -8,71 +8,74 @@ import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.platform.Services
 import net.minecraft.core.BlockPos
-import net.minecraft.core.SectionPos
 import net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData
 import net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData
+import net.minecraft.resources.ResourceKey
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.level.TicketType
+import net.minecraft.world.InteractionHand
 import net.minecraft.world.level.ChunkPos
+import net.minecraft.world.level.Level
+import net.minecraft.world.level.biome.BiomeManager
 import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.level.chunk.status.ChunkStatus
-import net.minecraft.world.level.biome.BiomeManager
-import net.minecraft.world.InteractionHand
-import net.minecraft.world.level.Level
-import net.minecraft.resources.ResourceKey
 import java.util.UUID
 
 /**
  * Who is looking at what, and the ring of chunks that costs.
  *
- * **One panel per player and never more.** A book renders only while it is open (§7.8.1), so this holds at
- * most one view each — which is what turns *a loaded dimension per book a player carries* into *one,
- * briefly, while a screen is up*, and is the ruling that makes the whole feature ordinary rather than
- * extravagant.
- *
- * **Everything it loads, it releases**: opening a second panel closes the first, closing the book closes
- * it, and leaving the server closes it. A ring that outlived its viewer would hold an Age open forever,
- * which is the failure this class exists to make impossible rather than unlikely.
+ * One panel per player, held only while a book is open (design §7.8.1). Everything it loads it releases:
+ * opening a second panel closes the first, closing the book closes it, and leaving the server closes it.
  */
 object PanelViews {
 
     /** Registered at init by each loader — see [AgeContent.PANEL_TICKET] for why it cannot live here. */
     private val PANEL_TICKET: TicketType get() = AgeContent.PANEL_TICKET
 
-    private data class View(val dimension: ResourceKey<Level>, val centre: ChunkPos)
+    /** One player's open panel: what it is looking at, and everything owed to it. */
+    private class Watch(
+        val dimension: ResourceKey<Level>,
+        val centre: ChunkPos,
+        /** When the ring was first asked for, so the whole stream can be timed end to end. */
+        val ringBeganAt: Long,
+    ) {
+        /**
+         * Which of the ring's chunks have been sent, so the last one can say how long the ring took.
+         *
+         * Positions rather than a counter, because a re-sent chunk would decrement one twice and step the
+         * total past the value that says the ring is whole.
+         */
+        val sent = mutableSetOf<Long>()
+    }
 
-    private val watching = mutableMapOf<UUID, View>()
+    private val watching = mutableMapOf<UUID, Watch>()
 
     /**
-     * When each player last opened a panel, so one cannot be asked for faster than it can be served.
+     * When each player last opened a panel, outliving the view it opened.
      *
-     * **Because opening one is expensive and a client decides when it happens.** Streaming the ring
-     * generates up to [PanelProtocol.RING_CHUNKS] chunks, and on a freshly written Age none of them exists
-     * yet — so a client sending open requests in a loop would keep the server generating terrain and
-     * nothing else. A book is opened by hand; twice a second is far more than a person can ask for and far
-     * less than a loop would.
+     * Opening generates up to [PanelRing.COUNT] chunks and a client decides when it happens. It cannot
+     * live on [Watch]: closing the book removes the watch, and a limit a close resets is not a limit.
      */
-    private val lastOpened = mutableMapOf<UUID, Long>()
+    private val openedOnTick = mutableMapOf<UUID, Long>()
+
+    /** And when each last asked again, for the same reason and by the same guard. */
+    private val chasedOnTick = mutableMapOf<UUID, Long>()
 
     private const val TICKS_BETWEEN_PANELS = 10L
+
+    /** Re-requests are cheaper than an open but still ask the chunk source for work. */
+    private const val TICKS_BETWEEN_CHASES = 20L
 
     /**
      * Opens a panel onto whatever bound book [player] is holding in [hand], streaming its arrival ring.
      *
-     * **Resolves the book through `BookAge`, which is the same call linking makes** — so the world shown
-     * and the world you arrive in are one, and whichever asks first is the one that mints it. A bound
-     * book's Age is decided by its words and its seed; making it here is bringing it into being, not
-     * choosing it, so nothing about §7.5 turns on which of the two asked.
-     *
-     * Refuses anything that is not a descriptive book, which is the only thing that carries an Age.
+     * Resolves the book through `BookAge`, the same call linking makes, so the world shown and the world
+     * you arrive in are one and whichever asks first is the one that mints it.
      */
     fun open(server: MinecraftServer, player: ServerPlayer, hand: InteractionHand) {
-        val now = server.overworld().gameTime
-        val previously = lastOpened[player.uuid]
-        if (previously != null && now - previously < TICKS_BETWEEN_PANELS) return
-        lastOpened[player.uuid] = now
+        if (!allow(server, player, openedOnTick, TICKS_BETWEEN_PANELS)) return
         close(server, player)
 
         val openedAt = System.nanoTime()
@@ -86,69 +89,99 @@ object PanelViews {
             Constants.LOG.warn("Panel wanted the Age of a book in {}'s hand and it would not open", player.name.string)
             return
         }
-        val dimension = level.dimension()
 
         val around = Timing.of("server: find the arrival") { arrivalIn(level) }
-        val centre = ChunkPos(SectionPos.blockToSectionCoord(around.x), SectionPos.blockToSectionCoord(around.z))
-        watching[player.uuid] = View(dimension, centre)
+        val centre = PanelRing.centreOf(around)
+        watching[player.uuid] = Watch(level.dimension(), centre, System.nanoTime())
         Timing.of("server: hold the ring") { hold(level, centre) }
-        ringBegan[player.uuid] = System.nanoTime()
-        stillComing[player.uuid] = PanelProtocol.RING_CHUNKS
 
-        // **One line per panel opened, at info.** A book opened once is not noise, and the alternative was
-        // what happened the first two times this ran: a black panel, thirty seconds of waiting, and nothing
-        // in the log to say whether anything had been asked for at all.
         Constants.LOG.info(
             "Panel opened onto {} for {}, streaming {} chunks around {}",
-            dimension.identifier(), player.name.string, PanelProtocol.RING_CHUNKS, around,
+            level.dimension().identifier(), player.name.string, PanelRing.COUNT, around,
         )
         Timing.of("server: send the level payload") {
-          Services.NETWORK.sendToPlayer(
-            player,
-            PanelLevelPayload(
-                dimension = dimension,
-                dimensionType = dimensionTypeIdOf(level),
-                around = around,
-                biomeZoomSeed = BiomeManager.obfuscateSeed(level.seed),
-                seaLevel = level.seaLevel,
-                chunksComing = PanelProtocol.RING_CHUNKS,
-            ),
-          )
+            Services.NETWORK.sendToPlayer(
+                player,
+                PanelLevelPayload(
+                    dimension = level.dimension(),
+                    dimensionType = dimensionTypeIdOf(level),
+                    around = around,
+                    biomeZoomSeed = BiomeManager.obfuscateSeed(level.seed),
+                    seaLevel = level.seaLevel,
+                    chunksComing = PanelRing.COUNT,
+                    gameTime = level.gameTime,
+                ),
+            )
         }
-        // **Asking is not waiting, but it is not free either.** `getChunkFuture` on the server thread does
-        // its own bookkeeping per chunk before handing back a future, and the umbrella below hid how much:
-        // it was named for what precedes the ring and in fact spanned the whole handler, scheduling
-        // included, so five seconds of this looked like part of the wait before anything started.
-        Timing.of("server: ask for all the ring's chunks") { sendRing(server, player, level, centre) }
+        // Timed apart from the ring itself: scheduling is not free, and its cost is not the wait.
+        Timing.of("server: ask for all the ring's chunks") {
+            PanelRing.around(centre).forEach { send(server, player, level, centre, it) }
+        }
         Timing.record("server: the open handler, end to end", System.nanoTime() - openedAt)
     }
 
-    /** When each player's ring was asked for, so the whole stream can be timed end to end. */
-    private val ringBegan = mutableMapOf<UUID, Long>()
+    /**
+     * Sends whatever of the ring the client says never reached it (see [PanelChunksWanted]).
+     *
+     * Trusts the list for what to resend and nothing else: the positions are intersected with the ring
+     * actually being held, so a request cannot load a chunk there is no ticket for or reach another Age.
+     */
+    fun resend(server: MinecraftServer, player: ServerPlayer, positions: List<ChunkPos>) {
+        val watch = watching[player.uuid] ?: return
+        val level = server.getLevel(watch.dimension) ?: return
 
-    /** How many chunks are still owed, so the last one can say how long the ring took. */
-    private val stillComing = mutableMapOf<UUID, Int>()
+        // Filtered before the clock is stamped, so a request naming nothing in the ring cannot spend the
+        // window that the next real one needs.
+        val ring = PanelRing.around(watch.centre).toSet()
+        val wanted = positions.filterTo(LinkedHashSet()) { it in ring }
+        if (wanted.isEmpty()) return
+        if (!allow(server, player, chasedOnTick, TICKS_BETWEEN_CHASES)) return
+
+        Constants.LOG.info(
+            "Panel: {} asked again for {} of {}'s chunks",
+            player.name.string, wanted.size, watch.dimension.identifier(),
+        )
+        wanted.forEach { send(server, player, level, watch.centre, it) }
+    }
 
     /** Releases whatever [player] was looking at, if anything. Safe to call when there is nothing. */
     fun close(server: MinecraftServer, player: ServerPlayer) {
-        val view = watching.remove(player.uuid) ?: return
-        val level = server.getLevel(view.dimension) ?: return
-        release(level, view.centre)
+        val watch = watching.remove(player.uuid) ?: return
+        val level = server.getLevel(watch.dimension) ?: return
+        release(level, watch.centre)
     }
 
     /** Called when a player leaves, since a client that crashed with a book open never says so. */
     fun forget(server: MinecraftServer, player: ServerPlayer) {
         close(server, player)
-        lastOpened.remove(player.uuid)
+        openedOnTick.remove(player.uuid)
+        chasedOnTick.remove(player.uuid)
+    }
+
+    /**
+     * Whether [player] may ask for something again yet, stamping the clock when they may.
+     *
+     * Shared by opening and re-requesting because they are the same guard against the same thing: both are
+     * client-initiated, both make the chunk source work, and neither is anything a person can do quickly.
+     */
+    private fun allow(
+        server: MinecraftServer,
+        player: ServerPlayer,
+        clock: MutableMap<UUID, Long>,
+        gap: Long,
+    ): Boolean {
+        val now = server.overworld().gameTime
+        val previously = clock[player.uuid]
+        if (previously != null && now - previously < gap) return false
+        clock[player.uuid] = now
+        return true
     }
 
     /**
      * The point a visitor would arrive at, which is what the orbit is centred on.
      *
-     * **`Ages.arrivalIn`, and deliberately the same call the link itself makes** — a panel that framed a
-     * different place from the one it puts you would be worse than no panel. It is the *arrival* rather
-     * than a good view, so an Age that lands you underwater or buried shows water or rock
-     * (`link-panel-research.md`). That is honest; the panel says what is there.
+     * Deliberately the same call the link makes, so a panel cannot frame somewhere other than where it
+     * puts you — including when that is underwater or buried.
      */
     private fun arrivalIn(level: ServerLevel): BlockPos = Ages.arrivalIn(level)
 
@@ -158,56 +191,59 @@ object PanelViews {
             .getKey(level.dimensionType())
             ?: net.minecraft.world.level.dimension.BuiltinDimensionTypes.OVERWORLD.identifier()
 
-    private fun hold(level: ServerLevel, centre: ChunkPos) {
-        level.chunkSource.addTicketWithRadius(PANEL_TICKET, centre, PanelProtocol.RING_RADIUS_CHUNKS + 1)
-    }
+    private fun hold(level: ServerLevel, centre: ChunkPos) =
+        level.chunkSource.addTicketWithRadius(PANEL_TICKET, centre, PanelRing.HELD_RADIUS_CHUNKS)
 
-    private fun release(level: ServerLevel, centre: ChunkPos) {
-        level.chunkSource.removeTicketWithRadius(PANEL_TICKET, centre, PanelProtocol.RING_RADIUS_CHUNKS + 1)
-    }
+    private fun release(level: ServerLevel, centre: ChunkPos) =
+        level.chunkSource.removeTicketWithRadius(PANEL_TICKET, centre, PanelRing.HELD_RADIUS_CHUNKS)
 
     /**
-     * Sends every chunk of the ring as it becomes ready, nearest first.
+     * One chunk of the ring, sent when it is ready.
      *
-     * **Asked for as futures rather than waited on, and that is not an optimisation.** `getChunk` blocks
-     * until a chunk is generated, so opening a panel onto an Age nobody had visited stopped the server for
-     * fourteen seconds while it made forty-nine of them — a freeze for everyone on it, and a black panel
-     * for the person who asked, because nothing could be sent until all of it was done.
-     *
-     * `getChunkFuture` hands each one back when it is ready and the send is marshalled onto the server
-     * thread, so the picture fills in from the arrival outwards while the game goes on running. Which is
-     * also what §7.8.1's fade wanted in the first place: the fade *is* the load, and a load that blocked
-     * had nothing to fade.
-     *
-     * The view is re-checked as each chunk lands, because a player may close the book long before
-     * forty-nine chunks have generated — and a panel nobody is looking at should stop talking.
+     * A future rather than `getChunk`, which blocks until the chunk is generated and would stop the server
+     * for the whole ring. The watch is re-checked when the chunk lands, since the book may have closed.
      */
-    private fun sendRing(server: MinecraftServer, player: ServerPlayer, level: ServerLevel, centre: ChunkPos) {
-        for (position in PanelProtocol.ringAround(centre)) {
-            val asked = System.nanoTime()
-            level.chunkSource.getChunkFuture(position.x, position.z, ChunkStatus.FULL, true)
-                .thenAcceptAsync({ result ->
-                    Timing.record("server: generate one chunk", System.nanoTime() - asked)
-                    val chunk = result.orElse(null) as? LevelChunk ?: return@thenAcceptAsync
-                    if (watching[player.uuid]?.centre != centre) return@thenAcceptAsync
-                    Timing.of("server: serialise and send one chunk") {
-                        Services.NETWORK.sendToPlayer(
-                            player,
-                            PanelChunkPayload(
-                                x = position.x,
-                                z = position.z,
-                                chunk = ClientboundLevelChunkPacketData(chunk),
-                                light = ClientboundLightUpdatePacketData(position, level.lightEngine, null, null),
-                            ),
-                        )
-                    }
-                    val left = stillComing.merge(player.uuid, -1, Int::plus) ?: 0
-                    if (left <= 0) {
-                        ringBegan.remove(player.uuid)?.let {
-                            Timing.record("server: the whole ring, first ask to last send", System.nanoTime() - it)
-                        }
-                    }
-                }, server)
-        }
+    private fun send(
+        server: MinecraftServer,
+        player: ServerPlayer,
+        level: ServerLevel,
+        centre: ChunkPos,
+        position: ChunkPos,
+    ) {
+        val asked = System.nanoTime()
+        level.chunkSource.getChunkFuture(position.x, position.z, ChunkStatus.FULL, true)
+            .thenAcceptAsync({ result ->
+                Timing.record("server: generate one chunk", System.nanoTime() - asked)
+                val chunk = result.orElse(null) as? LevelChunk
+                if (chunk == null) {
+                    // Said rather than dropped: a ring that finishes a chunk short is otherwise silent.
+                    Constants.LOG.warn(
+                        "Panel: {},{} came back from the chunk source with no chunk, so it goes unsent",
+                        position.x, position.z,
+                    )
+                    return@thenAcceptAsync
+                }
+                // The dimension as well as the centre: arrivals cluster near the origin, so two Ages
+                // sharing a centre chunk is ordinary, and a stale future would stream one Age's terrain
+                // into the other's panel — the payload carries only x and z.
+                val watch = watching[player.uuid]
+                    ?.takeIf { it.centre == centre && it.dimension == level.dimension() }
+                    ?: return@thenAcceptAsync
+                Timing.of("server: serialise and send one chunk") {
+                    Services.NETWORK.sendToPlayer(
+                        player,
+                        PanelChunkPayload(
+                            x = position.x,
+                            z = position.z,
+                            chunk = ClientboundLevelChunkPacketData(chunk),
+                            light = ClientboundLightUpdatePacketData(position, level.lightEngine, null, null),
+                        ),
+                    )
+                }
+                if (watch.sent.add(ChunkPos.pack(position.x, position.z)) && watch.sent.size == PanelRing.COUNT) {
+                    val ring = System.nanoTime() - watch.ringBeganAt
+                    Timing.record("server: the whole ring, first ask to last send", ring)
+                }
+            }, server)
     }
 }

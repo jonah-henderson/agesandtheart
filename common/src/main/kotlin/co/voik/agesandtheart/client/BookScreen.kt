@@ -11,7 +11,6 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
-import net.minecraft.resources.Identifier
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.item.ItemStack
 
@@ -25,15 +24,12 @@ object BookScreenOpener {
 /**
  * A Descriptive Book, held open at one spread.
  *
- * **The first spread is the linking panel and the opening page of writing**; every spread after it is two
- * pages of writing. Clicking the panel goes — nothing else does, because linking spends the book and can
- * strand you — and clicking a page turns it: the right page forward, the left page back.
+ * The first spread is the linking panel and the opening page of writing; every spread after it is two pages
+ * of writing. Clicking the panel goes — nothing else does, because linking spends the book and can strand
+ * you — and clicking a page turns it: the right page forward, the left page back.
  *
- * **The panel asks for its Age while the book is open, and gives it back when it closes** (§7.8.1). That
- * lifetime is the whole of what makes a live panel affordable: one dimension held briefly while a screen
- * is up, rather than one per book a player carries. What arrives is drawn by `PanelRenderer` into an
- * off-screen target; drawing that target *into this screen* is the one step still missing, so the panel is
- * still a flat rectangle here.
+ * The panel asks for its Age while the book is open and gives it back when it closes (design §7.8.1), which
+ * is what makes a live panel affordable at all.
  */
 class BookScreen(
     private val book: ItemStack,
@@ -50,31 +46,21 @@ class BookScreen(
     private val pages: List<List<Line>> by lazy { paginate() }
 
     /** Asks for the Age as the screen opens, so the ring is already arriving by the first frame. */
-    /**
-     * Asks for the Age as the screen opens, so the ring is already arriving by the first frame.
-     *
-     * **The hand, not a world.** This book is bound, so it *has* an Age whether or not anybody has been
-     * there — the server resolves the held stack and makes the world if this is the first time anything
-     * asked. A book that had to be visited before it would show you anything would be a panel you could
-     * only consult about places you already knew.
-     */
     override fun init() {
         super.init()
-        // **Read first, and locally.** Opening a book is reading it (§4.5), and the words are on the stack
-        // in hand — so the client learns them on this frame rather than after the server has finished
-        // rolling an Age and generating its ring. The server still teaches authoritatively; this is the
-        // client agreeing early, and its payload adds nothing when it lands.
+        // Learned locally on this frame rather than after the server has rolled an Age (design §4.5). The
+        // server still teaches authoritatively, and its payload adds nothing when it lands.
         KnownWords.readFrom(book.get(AgeContent.BOOK_WORDS).orEmpty())
         LinkingPanel.ask(hand)
     }
 
-    /**
-     * Gives the ring back.
-     *
-     * **On every way out**, which is why it is here and not only in the link path: a book closed with
-     * escape, a book linked from, and a screen replaced by another all end here, and a panel that outlived
-     * its screen would hold a dimension open on the server for as long as the client ran.
-     */
+    /** The panel's only tick: its camera's environment probe, and the wait for an unanswered request. */
+    override fun tick() {
+        super.tick()
+        LinkingPanel.tick()
+    }
+
+    /** Gives the ring back, on every way out rather than only the link path. */
     override fun removed() {
         super.removed()
         LinkingPanel.release()
@@ -106,8 +92,7 @@ class BookScreen(
         val x = left + PANEL_X
         val y = top + PANEL_Y
         graphics.fill(x - 1, y - 1, x + PANEL_WIDTH + 1, y + PANEL_HEIGHT + 1, EDGE)
-        // Black first, and always: it is what shows before any chunk has arrived, and what shows through
-        // wherever the Age is nothing. The fade *is* the load (§7.8.1), so there is nothing to hide behind.
+        // Black first: what shows before any chunk has arrived. The fade is the load (design §7.8.1).
         graphics.fill(x, y, x + PANEL_WIDTH, y + PANEL_HEIGHT, PANEL)
         drawTheAge(graphics, x, y)
         if (overPanel(mouseX.toDouble(), mouseY.toDouble())) {
@@ -115,53 +100,19 @@ class BookScreen(
         }
     }
 
-    /**
-     * The Age itself, drawn over the black.
-     *
-     * `fill(pipeline, textureSetup, …)` is the retained-mode seam for a textured rectangle, and
-     * `TextureSetup.singleTexture` takes a target's colour view directly — so an off-screen render reaches
-     * a screen with no blit of ours in between.
-     *
-     * **A render target is bottom-up where a screen is top-down**, so if the first walk shows the Age
-     * upside down this is where that is fixed, and it is the expected first fault rather than a surprise.
-     */
+    /** The Age itself, drawn over the black. */
     private fun drawTheAge(graphics: GuiGraphicsExtractor, x: Int, y: Int) {
-        // TEMPORARY, and **first**, so it is drawn whatever else does or does not happen. Placed after the
-        // early returns it only ever ran once everything already worked, which made it useless as a test:
-        // no dirt meant "we returned early", not "blitting is broken", and those are the two things it was
-        // put here to tell apart.
-        graphics.blit(
-            Identifier.withDefaultNamespace("textures/block/dirt.png"),
-            x, y, x + DIAGNOSTIC_PATCH, y + DIAGNOSTIC_PATCH,
-            0.0f, 1.0f, 0.0f, 1.0f,
-        )
-        // TEMPORARY, and it closes a gap in what the first patch proved. That one goes through
-        // `blit(Identifier, …)`, which resolves through the texture manager; the panel goes through
-        // `blit(GpuTextureView, GpuSampler, …)`, which is a *different* overload. So dirt appearing said
-        // nothing about the path the Age actually takes. This draws the same dirt through that path.
-        // Second patch present: the view overload works, so the panel's target is empty.
-        // Second patch missing: the view overload is the fault, and the target is beside the point.
-        val dirt = Minecraft.getInstance().textureManager.getTexture(
-            Identifier.withDefaultNamespace("textures/block/dirt.png"),
-        )
-        graphics.blit(
-            dirt.textureView, dirt.sampler,
-            x + DIAGNOSTIC_PATCH, y, x + DIAGNOSTIC_PATCH * 2, y + DIAGNOSTIC_PATCH,
-            0.0f, 1.0f, 0.0f, 1.0f,
-        )
-        val preview = LinkingPanel.preview
-        if (preview == null) {
-            PanelRenderer.sayOnce("no preview level yet — the server's chunks have not been taken up")
-            return
-        }
+        // Null while the server's chunks are still coming, which is the ordinary case for the first
+        // moments of a book and is what the black is for.
+        val preview = LinkingPanel.preview ?: return
         if (!PanelRenderer.draw(preview, Minecraft.getInstance().deltaTracker)) return
         val view = PanelTarget.colourView() ?: return
-        // **`blit` and not `fill`**: a fill writes no texture coordinates, and `GUI_TEXTURED`'s vertex
-        // format demands them — see `PanelTarget.colourView`.
-        //
-        // **V runs bottom to top, which is why it is given backwards.** A render target's origin is at its
-        // bottom-left where a screen's is at its top-left, so `v0 = 1` at the panel's top and `v1 = 0` at
-        // its foot is what puts the Age the right way up.
+
+        // A level render leaves its background transparent rather than coloured, so everything the Age
+        // does not cover — the band under the horizon and past the ring — needs the haze behind it.
+        graphics.fill(x, y, x + PANEL_WIDTH, y + PANEL_HEIGHT, PanelRenderer.haze)
+        // V is given backwards because a render target's origin is bottom-left where a screen's is
+        // top-left. `blit` rather than `fill`, which writes no texture coordinates.
         graphics.blit(
             view, PanelTarget.sampler(),
             x, y, x + PANEL_WIDTH, y + PANEL_HEIGHT,
@@ -370,9 +321,6 @@ class BookScreen(
     private companion object {
         /** GLFW's right button, which is what a book is opened with and now what closes it. */
         const val RIGHT_BUTTON = 1
-
-        /** TEMPORARY — the known-good patch that says whether blitting works at all. */
-        const val DIAGNOSTIC_PATCH = 24
 
         const val WIDTH = 256
         const val HEIGHT = 180

@@ -15,69 +15,19 @@ import net.minecraft.world.InteractionHand
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 
-/**
- * What an open book's panel asks for, and what comes back (`notes/link-panel-research.md`).
- *
- * **A narrow redirection of vanilla's own world packets**, which is the technique Immersive Portals needs
- * in full generality and we need for one dimension and a known ring of chunks. The chunk and light payloads
- * below carry `ClientboundLevelChunkPacketData` and `ClientboundLightUpdatePacketData` verbatim — both are
- * public, both write and read themselves — so nothing here reimplements chunk serialisation and a format
- * change in vanilla is a format change we inherit rather than one we chase.
- *
- * **The client never generates.** Density functions, noise settings and placed features are server-only
- * registries and are never synced, so a client holding a book's words and seed still cannot build the
- * generator. Chunk data comes over the wire or the panel stays black — which is also why the request names
- * a *book* rather than a world: only the server can turn the one into the other.
- */
-object PanelProtocol {
-
-    /**
-     * How far the orbit can see, in chunks, and therefore exactly what is force-loaded.
-     *
-     * **Fixed rather than derived from the render distance**, because the point of a fixed orbit is that
-     * the chunk set is known and constant (`link-panel-research.md`). A player on a low render distance
-     * gets the same panel as anyone else, and nobody's setting can make this unbounded.
-     */
-    const val RING_RADIUS_CHUNKS = 3
-
-    /** The ring's side, in chunks — seven across at [RING_RADIUS_CHUNKS] three. */
-    val RING_SIDE: Int get() = RING_RADIUS_CHUNKS * 2 + 1
-
-    /** How many chunks one panel force-loads and streams. */
-    val RING_CHUNKS: Int get() = RING_SIDE * RING_SIDE
-
-    /**
-     * Every chunk of the ring around [centre], **nearest first**.
-     *
-     * Nearest first because the fade *is* the load (§7.8.1): what a viewer sees first should be what the
-     * camera is closest to, so the picture assembles outwards from the arrival rather than in a raster from
-     * one corner.
-     *
-     * Chebyshev distance rather than Euclidean, because the ring is a square and the rings of a square are
-     * what a square grows in — sorting by true distance would interleave the corners of one ring with the
-     * edges of the next for no gain anybody could see.
-     */
-    fun ringAround(centre: ChunkPos): List<ChunkPos> = buildList {
-        for (dx in -RING_RADIUS_CHUNKS..RING_RADIUS_CHUNKS) {
-            for (dz in -RING_RADIUS_CHUNKS..RING_RADIUS_CHUNKS) {
-                add(ChunkPos(centre.x + dx, centre.z + dz))
-            }
-        }
-    }.sortedBy { maxOf(kotlin.math.abs(it.x - centre.x), kotlin.math.abs(it.z - centre.z)) }
-}
+// What an open book's panel asks for, and what comes back: a narrow redirection of vanilla's own world
+// packets, for one dimension and a known ring of chunks (`notes/link-panel-research.md`).
+//
+// Chunk data has to come over the wire because density functions, noise settings and placed features are
+// server-only registries and are never synced, so a client holding a book's words and seed still cannot
+// build the generator. The geometry both sides agree about is `PanelRing`, which is not a message.
 
 /**
  * *"Show me the book in my hand."* — sent when a bound book is opened to its panel.
  *
- * **Names the hand and not a dimension, because the Age may not exist yet.** A bound book's world is
- * already decided — the ink is spent and the words are fixed — but it is not *made* until something asks
- * for it, and the panel is now one of the two things that ask. So the server reads the held stack and
- * resolves it through `BookAge`, exactly as linking does, which is what keeps a preview and the journey
- * after it pointing at one world.
- *
- * **This does not reopen §7.5.** Commit-and-find-out is satisfied by the *binding*: a writer has already
- * paid, and there is nothing left to be talked out of. What §7.5 forbids is seeing a world you have not
- * committed to, and loose pages on a desk still have no panel.
+ * Names the hand rather than a dimension because the Age may not exist yet: a bound book's world is
+ * decided but is not made until something asks for it, and the server resolves the held stack through
+ * `BookAge` exactly as linking does. Design §7.5 is satisfied by the binding, not by the panel.
  */
 data class PanelOpenRequest(val hand: InteractionHand) : CustomPacketPayload {
 
@@ -89,7 +39,9 @@ data class PanelOpenRequest(val hand: InteractionHand) : CustomPacketPayload {
 
         val STREAM_CODEC: StreamCodec<ByteBuf, PanelOpenRequest> = StreamCodec.of(
             { buffer, value -> buffer.writeBoolean(value.hand == InteractionHand.MAIN_HAND) },
-            { buffer -> PanelOpenRequest(if (buffer.readBoolean()) InteractionHand.MAIN_HAND else InteractionHand.OFF_HAND) },
+            { buffer ->
+                PanelOpenRequest(if (buffer.readBoolean()) InteractionHand.MAIN_HAND else InteractionHand.OFF_HAND)
+            },
         )
     }
 }
@@ -106,16 +58,36 @@ object PanelCloseRequest : CustomPacketPayload {
     override fun type(): CustomPacketPayload.Type<PanelCloseRequest> = TYPE
 
     /**
-     * **An `object`, and that is load-bearing rather than tidy.** `StreamCodec.unit` captures one instance
-     * and *throws* on encode unless the value it is given `equals` it — so a class with identity equality,
-     * constructed fresh at each send, makes every close request throw instead of sending. The ring would
-     * then be held until the viewer disconnected, which is precisely the leak [PanelViews] is written to
-     * make impossible.
+     * An `object` because `StreamCodec.unit` throws on encode unless the value it is given `equals` the
+     * instance it captured, which a freshly constructed class with identity equality never would.
      */
     val TYPE: CustomPacketPayload.Type<PanelCloseRequest> =
         CustomPacketPayload.Type("panel_close".location())
 
     val STREAM_CODEC: StreamCodec<ByteBuf, PanelCloseRequest> = StreamCodec.unit(PanelCloseRequest)
+}
+
+/**
+ * *"These never arrived."* — the client naming the chunks of its ring it still has not got.
+ *
+ * The stream is fire-and-forget in both directions, and a chunk can be lost three ways: a future that
+ * comes back without a `LevelChunk`, a view closed while chunks are still generating, or a client cache
+ * that refuses a position. The client asks rather than the server retrying, because two of the three
+ * happen where the server believes it succeeded.
+ */
+data class PanelChunksWanted(val positions: List<ChunkPos>) : CustomPacketPayload {
+
+    override fun type(): CustomPacketPayload.Type<PanelChunksWanted> = TYPE
+
+    companion object {
+        val TYPE: CustomPacketPayload.Type<PanelChunksWanted> =
+            CustomPacketPayload.Type("panel_chunks_wanted".location())
+
+        /** Vanilla's own, so the cap is enforced on decode rather than by a truncation of ours. */
+        val STREAM_CODEC: StreamCodec<ByteBuf, PanelChunksWanted> =
+            ChunkPos.STREAM_CODEC.apply(ByteBufCodecs.list<ByteBuf, ChunkPos>(PanelRing.COUNT))
+                .map(::PanelChunksWanted, PanelChunksWanted::positions)
+    }
 }
 
 /**
@@ -132,16 +104,21 @@ data class PanelLevelPayload(
     /** What the orbit is centred on: the Age's arrival point. */
     val around: BlockPos,
     /**
-     * The **obfuscated** biome zoom seed, so biome colours land where a visitor would see them.
-     *
-     * Not the world seed: `ServerLevel` is built with `BiomeManager.obfuscateSeed(seed)` — Ephemeris'
-     * `RuntimeLevels` does exactly that for every Age — and a `ClientLevel` given the raw seed zooms its
-     * biomes differently, drawing grass and water boundaries in the wrong places.
+     * The obfuscated seed, not the world seed: a `ClientLevel` given the raw one zooms its biomes
+     * differently and draws grass and water boundaries in the wrong places.
      */
     val biomeZoomSeed: Long,
     val seaLevel: Int,
     /** How many chunks are coming, so the panel knows when the picture is whole and can stop fading. */
     val chunksComing: Int,
+    /**
+     * The Age's own clock, which nothing else would give the preview.
+     *
+     * A `ClientLevel` outside `minecraft.level` is never ticked and never told the time, so without this it
+     * sits at zero: the same moment of the same day for every Age, and no animated textures, since the
+     * Globals UBO's time drives those.
+     */
+    val gameTime: Long,
 ) : CustomPacketPayload {
 
     override fun type(): CustomPacketPayload.Type<PanelLevelPayload> = TYPE
@@ -158,6 +135,7 @@ data class PanelLevelPayload(
                 ByteBufCodecs.VAR_LONG.encode(buffer, value.biomeZoomSeed)
                 ByteBufCodecs.VAR_INT.encode(buffer, value.seaLevel)
                 ByteBufCodecs.VAR_INT.encode(buffer, value.chunksComing)
+                ByteBufCodecs.VAR_LONG.encode(buffer, value.gameTime)
             },
             { buffer ->
                 val dimension = Identifier.parse(ByteBufCodecs.STRING_UTF8.decode(buffer))
@@ -168,6 +146,7 @@ data class PanelLevelPayload(
                     biomeZoomSeed = ByteBufCodecs.VAR_LONG.decode(buffer),
                     seaLevel = ByteBufCodecs.VAR_INT.decode(buffer),
                     chunksComing = ByteBufCodecs.VAR_INT.decode(buffer),
+                    gameTime = ByteBufCodecs.VAR_LONG.decode(buffer),
                 )
             },
         )
