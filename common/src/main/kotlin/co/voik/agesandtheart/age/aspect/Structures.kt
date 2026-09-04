@@ -77,6 +77,8 @@ object Structures {
             // registry for it warned that the pack ships no `minecraft:nothing` on every Age ever written.
             if (claim.value == NOTHING) continue
             val named = Identifier.tryParse(claim.value) ?: continue
+            // **A description only reweighs what is built here already** — see [Claim.onlyWhereItGrows].
+            if (claim.onlyWhereItGrows && named !in seated) continue
             val found = sets.get(ResourceKey.create(Registries.STRUCTURE_SET, named)).orElse(null)
             if (found == null) {
                 Constants.LOG.warn("An Age asked to build '{}', which is no structure set in this pack", named)

@@ -31,8 +31,8 @@ object Biomes {
     fun preferencesIn(options: Options): List<BiomePreference> {
         val asked = Skew.of(options.claimsOn(GROWN))
         fun named(claims: List<Claim>) = claims.filter { it.value != Parameter.UNCHANGED }
-            .mapNotNull { claim -> Identifier.tryParse(claim.value)?.let { it to claim.density } }
-        return named(asked.wanted).map { (biome, weight) -> BiomePreference(biome, weight) } +
+            .mapNotNull { claim -> Identifier.tryParse(claim.value)?.let { Triple(it, claim.density, claim.onlyWhereItGrows) } }
+        return named(asked.wanted).map { (biome, weight, bendsOnly) -> BiomePreference(biome, weight, bendsOnly) } +
             asked.struck.filter { it != Parameter.UNCHANGED }.mapNotNull(Identifier::tryParse)
                 .map { biome -> BiomePreference(biome, BiomePreference.STRUCK_OUT) }
     }

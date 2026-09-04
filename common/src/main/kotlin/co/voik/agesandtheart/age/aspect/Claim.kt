@@ -72,6 +72,17 @@ data class Claim(
      */
     val size: Double? = null,
 ) {
+    /**
+     * Whether this could not bring its member about — a **description** ([onlyWhereItGrows]) asking for no
+     * more of the thing than ordinary.
+     *
+     * Where a claim may introduce at all, this is what decides it: less of something that is not here is
+     * nothing, and the floor an evocative word's weight is held at (§3.3) turned every one of its faintest
+     * reaches into an introduction — an inferno at a fifth strength in a beautiful Age, a ghast in every
+     * biome of one.
+     */
+    val bringsNothingAbout: Boolean get() = onlyWhereItGrows && density <= Rung.ORDINARY
+
     /** Whether this claim has anything to say where [biome] is what the ground holds. */
     fun appliesIn(biome: Identifier?): Boolean = confinedTo == null || confinedTo == biome
 

@@ -25,7 +25,19 @@ import kotlin.math.abs
  * after which vanilla's nearest-neighbour search fills the gap with what is climatically adjacent, so a
  * world without swamps gets more marsh-adjacent forest rather than a hole.
  */
-data class BiomePreference(val biome: Identifier, val weight: Double) {
+data class BiomePreference(
+    val biome: Identifier,
+    val weight: Double,
+    /**
+     * Whether this may only reweigh a biome the table already has — a **description** rather than a naming
+     * (`Claim.onlyWhereItGrows`).
+     *
+     * An evocative word reaches dozens of biomes through tags and means more or fewer of the ones this Age
+     * grows. Read as namings, its weakest reaches were *introductions*: `beautiful` put basalt deltas and
+     * the deep dark into an Age at a fifth strength, having asked for less of both (Jonah, 2026-09-03).
+     */
+    val onlyWhereItGrows: Boolean = false,
+) {
     /**
      * How much of the world this biome should have **against what it would have had anyway** — so
      * [ORDINARY] leaves it alone, twice that gives it twice the climate to answer for, and half that
@@ -54,6 +66,8 @@ data class BiomePreference(val biome: Identifier, val weight: Double) {
             instance.group(
                 Identifier.CODEC.fieldOf("biome").forGetter(BiomePreference::biome),
                 Codec.DOUBLE.optionalFieldOf("weight", ORDINARY).forGetter(BiomePreference::weight),
+                Codec.BOOL.optionalFieldOf("only_where_it_grows", false)
+                    .forGetter(BiomePreference::onlyWhereItGrows),
             ).apply(instance, ::BiomePreference)
         }
 
@@ -105,7 +119,12 @@ data class BiomePreference(val biome: Identifier, val weight: Double) {
                 if (weight == ORDINARY) entry else Pair(entry.first.scaledBy(weight), entry.second)
             }
             val alreadyHere = table.values().mapNotNull { idOf(it.second) }.toSet()
-            val added = preferences.filterNot { it.removes || it.biome in alreadyHere }
+            // **A description brings nothing in** — see [BiomePreference.onlyWhereItGrows]. It has already
+            // done its work above, scaling wherever the biome stands; there is nothing here for it.
+            val introduces = { preference: BiomePreference ->
+                !preference.removes && !preference.onlyWhereItGrows && preference.biome !in alreadyHere
+            }
+            val added = preferences.filter(introduces)
                 .flatMap { preference -> entriesFor(preference, table.values(), biomes, seed) }
             val kept = (standing + added).filter(survives)
             if (kept.isEmpty()) {

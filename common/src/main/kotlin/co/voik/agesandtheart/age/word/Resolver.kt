@@ -1321,9 +1321,15 @@ object Resolver {
         if (nothingToSay) return null
         // **Described rather than named**, which decides whether this asks for the thing or for more of
         // it where it already is (world model §3). A member reached only by a query is a description; one
-        // a writer mentioned is a naming. `only` and `except` are neither — they are instructions about
-        // what the Age holds — so they are left to mean what they always did.
-        val described = mentions == 0 && polarity == null
+        // a word named is a naming. `only` and `except` are neither — they are instructions about what the
+        // Age holds — so they are left to mean what they always did.
+        //
+        // **Admitting is naming**, and counting only [mentions] missed it: `beautiful` admits the
+        // sunflower plains outright because no tag in the table says a sunflower plain is lovely, and read
+        // as a description that admission could never put one anywhere.
+        fun namesItOutright(said: Constraint) =
+            said.word.choiceIn(aspect)?.key == member.key || member.key in said.word.admitsIn(aspect)
+        val described = polarity == null && speaking.none(::namesItOutright)
         return Claim(
             member.key,
             polarity ?: Polarity.ASSERTED,

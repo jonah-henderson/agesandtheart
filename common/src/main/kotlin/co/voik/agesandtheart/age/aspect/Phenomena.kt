@@ -49,6 +49,11 @@ object Phenomena {
      */
     fun claimsIn(options: Options): List<Claim> =
         Skew.of(options.allSpelled(HAPPENS.name).map(Claim::read)).wanted
+            // **The one pool that starts empty**, so a description here cannot mean "more of what is
+            // already happening" — nothing is. One asking for more than ordinary brings its phenomenon
+            // about, which is how `beautiful` earns its aurora; one asking for less asks for less of
+            // nothing, and used to light an inferno in a beautiful Age at a fifth strength.
+            .filterNot(Claim::bringsNothingAbout)
 
     /** The claim by which [phenomenon] befalls these options, or null where it does not. */
     fun claimFor(options: Options, phenomenon: Phenomenon): Claim? =

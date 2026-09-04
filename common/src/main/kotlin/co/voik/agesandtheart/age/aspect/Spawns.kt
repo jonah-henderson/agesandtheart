@@ -211,17 +211,25 @@ object Spawns {
      * spawn attempt. Measured at 0.9µs an attempt before, against 0.005µs for an Age that said nothing.
      */
     /**
-     * Every creature a claim names and how thickly, as ids — what [resolved] and [AgeSpawner] both start
-     * from, so the two cannot disagree about what the book asked for.
+     * Every creature a claim **names** and how thickly, as ids — what the Age places itself, which is a
+     * shorter list than what it offers a biome: [resolved] stocks a menu and this summons.
      */
     fun claimedCreatures(options: Options): List<Pair<Identifier, Double>> =
         Skew.of(options.claimsOn(LIVES)).wanted
-            .filterNot { it.value == NOTHING }
+            // **Summoning one takes naming it.** This is the Age's own placement — the golems, the wither,
+            // the dragon — and a boss is not an atmosphere: a word brushing the dragon through `hostile`
+            // put one in the sky of a beautiful Age. `teeming ender_dragon` still names it outright.
+            .filterNot { it.value == NOTHING || it.onlyWhereItGrows }
             .mapNotNull { claim -> Identifier.tryParse(claim.value)?.let { it to claim.density } }
 
     private fun resolved(asked: Skew, category: MobCategory, spawning: Spawning): List<Arriving> =
         asked.wanted
-            .filterNot { it.value == NOTHING }
+            // **A description may still stock a menu, but only with what it asks more of.** Adding here is
+            // safe by construction — vanilla re-checks every placement, which is what lets `villagers`
+            // work at all in a world whose biomes offer none — but an evocative word's faintest reaches
+            // are held at a floor rather than dropped (§3.3), so `beautiful` was asking for a fifth of a
+            // ghast and getting a ghast (Jonah, 2026-09-03). [narrowed] is where such a claim belongs.
+            .filterNot { it.value == NOTHING || it.bringsNothingAbout }
             .mapNotNull { claim -> Identifier.tryParse(claim.value)?.let { it to claim.density } }
             .mapNotNull { (id, density) ->
                 // **Asked whether it is there before asking what it is.** The entity registry is a
