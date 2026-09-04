@@ -13,6 +13,11 @@ import co.voik.agesandtheart.age.word.PageLearning
 import co.voik.agesandtheart.age.word.PageLoot
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.book.LinkRequest
+import co.voik.agesandtheart.book.panel.PanelChunkPayload
+import co.voik.agesandtheart.book.panel.PanelCloseRequest
+import co.voik.agesandtheart.book.panel.PanelLevelPayload
+import co.voik.agesandtheart.book.panel.PanelOpenRequest
+import co.voik.agesandtheart.book.panel.PanelViews
 import co.voik.agesandtheart.book.Linking
 import co.voik.agesandtheart.desk.WritersDeskBlock
 import co.voik.agesandtheart.platform.FabricInkTank
@@ -95,6 +100,12 @@ fun init() {
     PayloadTypeRegistry.clientboundPlay().register(DeskNoticePayload.TYPE, DeskNoticePayload.STREAM_CODEC)
     PayloadTypeRegistry.serverboundPlay().register(DeskCommandPayload.TYPE, DeskCommandPayload.STREAM_CODEC)
     PayloadTypeRegistry.serverboundPlay().register(LinkRequest.TYPE, LinkRequest.STREAM_CODEC)
+    // The linking panel (design 7.8.1). Two clientbound, two serverbound, and the chunk payload is the
+    // only one in the mod keyed to a registry buffer -- it carries vanilla's own chunk and light data.
+    PayloadTypeRegistry.clientboundPlay().register(PanelLevelPayload.TYPE, PanelLevelPayload.STREAM_CODEC)
+    PayloadTypeRegistry.clientboundPlay().register(PanelChunkPayload.TYPE, PanelChunkPayload.STREAM_CODEC)
+    PayloadTypeRegistry.serverboundPlay().register(PanelOpenRequest.TYPE, PanelOpenRequest.STREAM_CODEC)
+    PayloadTypeRegistry.serverboundPlay().register(PanelCloseRequest.TYPE, PanelCloseRequest.STREAM_CODEC)
 
     ServerPlayNetworking.registerGlobalReceiver(LinkRequest.TYPE) { payload, context ->
         context.server().execute { Linking.handle(context.player(), payload) }
@@ -103,6 +114,17 @@ fun init() {
     // The desk's instructions arrive here; every one of them is re-checked server-side.
     ServerPlayNetworking.registerGlobalReceiver(DeskCommandPayload.TYPE) { payload, context ->
         context.server().execute { DeskCommands.handle(context.player(), payload) }
+    }
+
+    ServerPlayNetworking.registerGlobalReceiver(PanelOpenRequest.TYPE) { payload, context ->
+        context.server().execute { PanelViews.open(context.server(), context.player(), payload.dimension) }
+    }
+    ServerPlayNetworking.registerGlobalReceiver(PanelCloseRequest.TYPE) { _, context ->
+        context.server().execute { PanelViews.close(context.server(), context.player()) }
+    }
+    // A client that crashes with a book open never sends the close, so the ring is released here too.
+    ServerPlayConnectionEvents.DISCONNECT.register { handler, server ->
+        PanelViews.forget(server, handler.player)
     }
 
     // Nothing here about skies: telling a joining client what each level looks like is Ephemeris' own

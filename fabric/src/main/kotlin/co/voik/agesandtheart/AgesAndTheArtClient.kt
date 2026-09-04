@@ -22,6 +22,9 @@ import net.minecraft.client.renderer.blockentity.BlockEntityRenderers
 import net.minecraft.client.gui.screens.MenuScreens
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents
+import co.voik.agesandtheart.book.panel.PanelChunkPayload
+import co.voik.agesandtheart.book.panel.PanelLevelPayload
+import co.voik.agesandtheart.client.panel.LinkingPanel
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 
 /**
@@ -59,6 +62,15 @@ fun initClient() {
     ClientPlayNetworking.registerGlobalReceiver(LexiconPayload.TYPE) { payload, _ ->
         KnownWords.remember(payload)
     }
+    // The linking panel's two, both of which land on the client thread the receiver already runs on.
+    ClientPlayNetworking.registerGlobalReceiver(PanelLevelPayload.TYPE) { payload, _ ->
+        LinkingPanel.accept(payload)
+    }
+    ClientPlayNetworking.registerGlobalReceiver(PanelChunkPayload.TYPE) { payload, _ ->
+        LinkingPanel.accept(payload)
+    }
+    ClientPlayConnectionEvents.DISCONNECT.register { _, _ -> LinkingPanel.forget() }
+
     ClientPlayNetworking.registerGlobalReceiver(LearnedWordsPayload.TYPE) { payload, _ ->
         KnownWords.remember(payload)
     }

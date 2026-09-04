@@ -1,0 +1,177 @@
+package co.voik.agesandtheart.book.panel
+
+import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.age.AgeSavedData
+import co.voik.agesandtheart.age.Ages
+import co.voik.agesandtheart.location
+import co.voik.agesandtheart.platform.Services
+import net.minecraft.core.BlockPos
+import net.minecraft.core.SectionPos
+import net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData
+import net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData
+import net.minecraft.server.MinecraftServer
+import net.minecraft.server.level.ServerLevel
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.core.Registry
+import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.server.level.TicketType
+import net.minecraft.world.level.ChunkPos
+import net.minecraft.world.level.Level
+import net.minecraft.resources.ResourceKey
+import java.util.UUID
+
+/**
+ * Who is looking at what, and the ring of chunks that costs.
+ *
+ * **One panel per player and never more.** A book renders only while it is open (§7.8.1), so this holds at
+ * most one view each — which is what turns *a loaded dimension per book a player carries* into *one,
+ * briefly, while a screen is up*, and is the ruling that makes the whole feature ordinary rather than
+ * extravagant.
+ *
+ * **Everything it loads, it releases**: opening a second panel closes the first, closing the book closes
+ * it, and leaving the server closes it. A ring that outlived its viewer would hold an Age open forever,
+ * which is the failure this class exists to make impossible rather than unlikely.
+ */
+object PanelViews {
+
+    /**
+     * The ticket that holds a panel's chunks.
+     *
+     * **Its own type rather than a borrowed one so that a leak is diagnosable**: chunks held by
+     * `agesandtheart:panel` with nobody looking at them name their own bug, where the same chunks held
+     * under `portal` or `unknown` would not.
+     *
+     * `FLAG_LOADING` and no `FLAG_SIMULATION`: a panel wants the terrain drawn and emphatically does not
+     * want the Age *ticking* while somebody glances at a book — no mobs, no growth, no phenomena running
+     * for a viewer who is not there. `FLAG_KEEP_DIMENSION_ACTIVE` because the level must not be unloaded
+     * out from under the ring. No timeout, because [close] is what ends a view and a ticket that expired
+     * on its own would blank a panel somebody was still looking at.
+     */
+    private val PANEL_TICKET: TicketType = Registry.register(
+        BuiltInRegistries.TICKET_TYPE,
+        "panel".location(),
+        TicketType(TicketType.NO_TIMEOUT, TicketType.FLAG_LOADING or TicketType.FLAG_KEEP_DIMENSION_ACTIVE),
+    )
+
+    private data class View(val dimension: ResourceKey<Level>, val centre: ChunkPos)
+
+    private val watching = mutableMapOf<UUID, View>()
+
+    /**
+     * Opens a panel onto [dimension] for [player], streaming the ring around the Age's arrival point.
+     *
+     * Refuses anything that is not one of our Ages, and anything the server has no recipe for — a panel is
+     * a view of a world that was written and paid for, so there is nothing here that could bring one into
+     * being.
+     */
+    fun open(server: MinecraftServer, player: ServerPlayer, dimension: ResourceKey<Level>) {
+        close(server, player)
+        val identifier = dimension.identifier()
+        if (identifier.namespace != Constants.MOD_ID) {
+            Constants.LOG.debug("Panel refused for {}, which is not an Age", identifier)
+            return
+        }
+        val written = AgeSavedData.get(server)
+        if (identifier !in written.ages) {
+            Constants.LOG.debug("Panel refused for {}, which no recipe describes", identifier)
+            return
+        }
+        val recipe = written.recipe(identifier)
+        val level = Ages.ensure(server, identifier, recipe)
+        if (level == null) {
+            Constants.LOG.warn("Panel wanted {} and it would not open", identifier)
+            return
+        }
+
+        val around = arrivalIn(level)
+        val centre = ChunkPos(SectionPos.blockToSectionCoord(around.x), SectionPos.blockToSectionCoord(around.z))
+        watching[player.uuid] = View(dimension, centre)
+        hold(level, centre)
+
+        Services.NETWORK.sendToPlayer(
+            player,
+            PanelLevelPayload(
+                dimension = dimension,
+                dimensionType = dimensionTypeIdOf(level),
+                around = around,
+                biomeZoomSeed = level.seed,
+                seaLevel = level.seaLevel,
+                chunksComing = PanelProtocol.RING_CHUNKS,
+            ),
+        )
+        sendRing(player, level, centre)
+    }
+
+    /** Releases whatever [player] was looking at, if anything. Safe to call when there is nothing. */
+    fun close(server: MinecraftServer, player: ServerPlayer) {
+        val view = watching.remove(player.uuid) ?: return
+        val level = server.getLevel(view.dimension) ?: return
+        release(level, view.centre)
+    }
+
+    /** Called when a player leaves, since a client that crashed with a book open never says so. */
+    fun forget(server: MinecraftServer, player: ServerPlayer) = close(server, player)
+
+    /**
+     * The point a visitor would arrive at, which is what the orbit is centred on.
+     *
+     * **`Ages.arrivalIn`, and deliberately the same call the link itself makes** — a panel that framed a
+     * different place from the one it puts you would be worse than no panel. It is the *arrival* rather
+     * than a good view, so an Age that lands you underwater or buried shows water or rock
+     * (`link-panel-research.md`). That is honest; the panel says what is there.
+     */
+    private fun arrivalIn(level: ServerLevel): BlockPos = Ages.arrivalIn(level)
+
+    private fun dimensionTypeIdOf(level: ServerLevel) =
+        level.registryAccess()
+            .lookupOrThrow(net.minecraft.core.registries.Registries.DIMENSION_TYPE)
+            .getKey(level.dimensionType())
+            ?: net.minecraft.world.level.dimension.BuiltinDimensionTypes.OVERWORLD.identifier()
+
+    private fun hold(level: ServerLevel, centre: ChunkPos) {
+        level.chunkSource.addTicketWithRadius(PANEL_TICKET, centre, PanelProtocol.RING_RADIUS_CHUNKS + 1)
+    }
+
+    private fun release(level: ServerLevel, centre: ChunkPos) {
+        level.chunkSource.removeTicketWithRadius(PANEL_TICKET, centre, PanelProtocol.RING_RADIUS_CHUNKS + 1)
+    }
+
+    /**
+     * Sends every chunk of the ring, nearest first.
+     *
+     * Nearest first because the fade is the load (§7.8.1): what a viewer sees first should be what the
+     * camera is closest to, so the picture assembles outwards rather than in a raster.
+     */
+    private fun sendRing(player: ServerPlayer, level: ServerLevel, centre: ChunkPos) {
+        val radius = PanelProtocol.RING_RADIUS_CHUNKS
+        val positions = buildList {
+            for (dx in -radius..radius) for (dz in -radius..radius) add(ChunkPos(centre.x + dx, centre.z + dz))
+        }.sortedBy { maxOf(Math.abs(it.x - centre.x), Math.abs(it.z - centre.z)) }
+
+        for (position in positions) {
+            val chunk = level.getChunk(position.x, position.z)
+            Services.NETWORK.sendToPlayer(
+                player,
+                PanelChunkPayload(
+                    x = position.x,
+                    z = position.z,
+                    chunk = ClientboundLevelChunkPacketData(chunk),
+                    light = ClientboundLightUpdatePacketData(position, level.lightEngine, null, null),
+                ),
+            )
+        }
+    }
+
+    /** For the checks: how many players are holding a panel open. */
+    fun openCount(): Int = watching.size
+
+    /** For the checks and for a reload: drops every view without touching the levels they named. */
+    fun forgetAll(server: MinecraftServer) {
+        for ((uuid, view) in watching) {
+            val level = server.getLevel(view.dimension) ?: continue
+            release(level, view.centre)
+            Constants.LOG.debug("Released a panel ring held by {}", uuid)
+        }
+        watching.clear()
+    }
+}

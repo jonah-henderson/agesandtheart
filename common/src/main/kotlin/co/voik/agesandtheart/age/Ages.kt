@@ -157,6 +157,23 @@ object Ages {
         // the route all the same, so going lazy is one call to `LevelAppearance.lazily` and no hunting for
         // the places a player starts travelling.
         LevelAppearance.expecting(player, level.dimension())
+        val arrival = arrivalIn(level)
+        // `teleportTo` gained a relative-movement set and a "set camera" flag. Nothing here is relative and
+        // the camera should follow, which is the empty set and `true`.
+        player.teleportTo(
+            level, arrival.x + 0.5, arrival.y.toDouble(), arrival.z + 0.5,
+            emptySet(), player.yRot, player.xRot, true,
+        )
+    }
+
+    /**
+     * Where a visitor lands — the block their feet occupy.
+     *
+     * **Shared with the linking panel** (§7.8.1) so that what a book shows and where it puts you cannot be
+     * two different places. Loads the chunk it answers about, since neither caller can use a height read
+     * off ungenerated ground.
+     */
+    fun arrivalIn(level: ServerLevel): BlockPos {
         val (landingX, landingZ) = findFooting(level)
         level.getChunk(SectionPos.blockToSectionCoord(landingX), SectionPos.blockToSectionCoord(landingZ))
         val surfaceY = if (!level.dimensionType().hasCeiling()) {
@@ -164,12 +181,7 @@ object Ages {
         } else {
             floorUnderTheRoof(level, landingX, landingZ)
         }
-        // `teleportTo` gained a relative-movement set and a "set camera" flag. Nothing here is relative and
-        // the camera should follow, which is the empty set and `true`.
-        player.teleportTo(
-            level, landingX + 0.5, (surfaceY + 1).toDouble(), landingZ + 0.5,
-            emptySet(), player.yRot, player.xRot, true,
-        )
+        return BlockPos(landingX, surfaceY + 1, landingZ)
     }
 
     /**

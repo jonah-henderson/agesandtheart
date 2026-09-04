@@ -11,6 +11,11 @@ import co.voik.agesandtheart.client.KnownWords
 import co.voik.agesandtheart.desk.DeskCommandPayload
 import co.voik.agesandtheart.desk.DeskCommands
 import co.voik.agesandtheart.book.LinkRequest
+import co.voik.agesandtheart.book.panel.PanelChunkPayload
+import co.voik.agesandtheart.book.panel.PanelCloseRequest
+import co.voik.agesandtheart.book.panel.PanelLevelPayload
+import co.voik.agesandtheart.book.panel.PanelOpenRequest
+import co.voik.agesandtheart.book.panel.PanelViews
 import co.voik.agesandtheart.book.Linking
 import co.voik.agesandtheart.desk.DeskNoticePayload
 import co.voik.agesandtheart.desk.DeskPricePayload
@@ -61,6 +66,7 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         // Commands are a game-bus event.
         NeoForge.EVENT_BUS.addListener(::onRegisterCommands)
         NeoForge.EVENT_BUS.addListener(::onPlayerLoggedIn)
+        NeoForge.EVENT_BUS.addListener(::onPlayerLoggedOut)
         NeoForge.EVENT_BUS.addListener(::onServerStarted)
         NeoForge.EVENT_BUS.addListener(::onServerTick)
         NeoForge.EVENT_BUS.addListener(::onChunkLoad)
@@ -182,11 +188,42 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
                 Linking.handle(it, payload)
             }
         }
+
+        // The linking panel (design 7.8.1). The chunk payload is the only one in the mod keyed to a
+        // registry buffer, carrying vanilla's own chunk and light data straight through.
+        registrar.playToClient(PanelLevelPayload.TYPE, PanelLevelPayload.STREAM_CODEC) { payload, _ ->
+            co.voik.agesandtheart.client.panel.LinkingPanel.accept(payload)
+        }
+        registrar.playToClient(PanelChunkPayload.TYPE, PanelChunkPayload.STREAM_CODEC) { payload, _ ->
+            co.voik.agesandtheart.client.panel.LinkingPanel.accept(payload)
+        }
+        registrar.playToServer(PanelOpenRequest.TYPE, PanelOpenRequest.STREAM_CODEC) { payload, context ->
+            (context.player() as? net.minecraft.server.level.ServerPlayer)?.let {
+                PanelViews.open(it.level().server ?: return@let, it, payload.dimension)
+            }
+        }
+        registrar.playToServer(PanelCloseRequest.TYPE, PanelCloseRequest.STREAM_CODEC) { _, context ->
+            (context.player() as? net.minecraft.server.level.ServerPlayer)?.let {
+                PanelViews.close(it.level().server ?: return@let, it)
+            }
+        }
     }
 
     private fun onPlayerLoggedIn(event: PlayerEvent.PlayerLoggedInEvent) {
         val player = event.entity as? net.minecraft.server.level.ServerPlayer ?: return
         PageLearning.tellEverything(player)
+    }
+
+    /**
+     * Releases a linking panel's chunk ring when its viewer leaves.
+     *
+     * A client that crashes with a book open never sends the close, so without this the ring — and the Age
+     * holding it — would stay loaded for the life of the server.
+     */
+    private fun onPlayerLoggedOut(event: PlayerEvent.PlayerLoggedOutEvent) {
+        val player = event.entity as? net.minecraft.server.level.ServerPlayer ?: return
+        val server = player.level().server ?: return
+        PanelViews.forget(server, player)
     }
 
     /** Re-open persisted Ages once the server has started — nothing auto-restores a runtime level. */
