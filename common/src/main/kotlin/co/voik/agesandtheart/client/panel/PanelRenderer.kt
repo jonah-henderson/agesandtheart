@@ -41,6 +41,12 @@ object PanelRenderer {
 
     private val startedAt = System.nanoTime()
 
+    /** What shows where the Age is nothing — opaque black, as a panel with no world behind it should be. */
+    private const val BEHIND_THE_AGE = 0xFF000000.toInt()
+
+    /** Vanilla's own clear depth. */
+    private const val FURTHEST_DEPTH = 1.0
+
     /**
      * Renders one frame of [preview] into [PanelTarget].
      *
@@ -71,6 +77,17 @@ object PanelRenderer {
             com.mojang.blaze3d.ProjectionType.PERSPECTIVE,
         )
         try {
+
+        // **Clear the panel before drawing into it, colour *and depth*.** `GameRenderer` does exactly this
+        // to the main target before every level render, and a target of ours that skipped it kept an
+        // uninitialised depth buffer — so every fragment failed the depth test and the panel stayed black
+        // while the whole world render ran happily behind it.
+        val colour = target.colorTexture
+        val depth = target.depthTexture
+        if (colour != null && depth != null) {
+            RenderSystem.getDevice().createCommandEncoder()
+                .clearColorAndDepthTextures(colour, BEHIND_THE_AGE, depth, FURTHEST_DEPTH)
+        }
 
         // Extract first, then draw: `extractLevel` is what fills `chunkSectionsToRender`, which the draw
         // then consumes, and it is also what asks the sky and weather renderers about *this* level.
