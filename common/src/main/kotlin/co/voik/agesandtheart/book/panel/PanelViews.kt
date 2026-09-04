@@ -69,12 +69,12 @@ object PanelViews {
         close(server, player)
         val identifier = dimension.identifier()
         if (identifier.namespace != Constants.MOD_ID) {
-            Constants.LOG.debug("Panel refused for {}, which is not an Age", identifier)
+            Constants.LOG.info("Panel refused for {}, which is not one of our Ages", identifier)
             return
         }
         val written = AgeSavedData.get(server)
         if (identifier !in written.ages) {
-            Constants.LOG.debug("Panel refused for {}, which no recipe describes", identifier)
+            Constants.LOG.info("Panel refused for {}, which no recipe describes", identifier)
             return
         }
         val recipe = written.recipe(identifier)

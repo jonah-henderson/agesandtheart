@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.client
 
+import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.word.grammar.Said
 import co.voik.agesandtheart.book.LinkRequest
 import co.voik.agesandtheart.client.panel.LinkingPanel
@@ -51,7 +52,16 @@ class BookScreen(
     /** Asks for the Age as the screen opens, so the ring is already arriving by the first frame. */
     override fun init() {
         super.init()
-        ageOf(book)?.let { LinkingPanel.ask(it) }
+        val age = ageOf(book)
+        if (age == null) {
+            // **Said out loud, because a book that leads nowhere looks exactly like one that is broken.**
+            // A descriptive book gets its Age when it is first linked with, so a blank or never-used one
+            // has none — and the panel is correctly black. Half an hour was spent on that black rectangle
+            // once; one line at info is cheaper than the next half hour.
+            Constants.LOG.info("A book was opened with no Age to show: it has been written but never linked with")
+            return
+        }
+        LinkingPanel.ask(age)
     }
 
     /**
