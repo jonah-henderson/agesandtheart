@@ -4,6 +4,7 @@ import net.minecraft.client.Camera
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
 import net.minecraft.util.Mth
+import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.phys.Vec3
 import org.joml.Matrix4f
 
@@ -49,21 +50,25 @@ class PanelCamera(private val level: ClientLevel, private val centre: BlockPos) 
      */
     fun placeAt(turns: Float, width: Int, height: Int) {
         val angle = turns.toDouble() * TWO_PI
-        val eye = Vec3(
-            centre.x + 0.5 + kotlin.math.cos(angle) * ORBIT_RADIUS,
-            centre.y + ORBIT_HEIGHT,
-            centre.z + 0.5 + kotlin.math.sin(angle) * ORBIT_RADIUS,
-        )
+        val eyeX = centre.x + 0.5 + kotlin.math.cos(angle) * ORBIT_RADIUS
+        val eyeZ = centre.z + 0.5 + kotlin.math.sin(angle) * ORBIT_RADIUS
+        // **Above whatever is under it, not a fixed height above the arrival.** An orbit at a flat
+        // fourteen blocks sits *inside* the hill it is passing over on any Age with relief, which draws
+        // black and flickers as it sweeps in and out of solid ground. The ring is loaded, so the client can
+        // ask how high the ground is here and clear it.
+        val ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING, eyeX.toInt(), eyeZ.toInt())
+        val eyeY = maxOf(centre.y + ORBIT_HEIGHT, ground + CLEARANCE)
+        val eye = Vec3(eyeX, eyeY, eyeZ)
         setPosition(eye)
-        // Looking inwards and slightly down. Vanilla's yaw is degrees clockwise from south, so the bearing
-        // back towards the centre is the orbit angle turned a quarter further round.
-        //
-        // The two-argument `setRotation` and not the three: the one taking a roll is NeoForge's own
-        // addition, and `common` compiles against vanilla, where it does not exist. An orbit wants no roll
-        // anyway.
-        @Suppress("DEPRECATION")
-        placedYaw = Mth.wrapDegrees(Math.toDegrees(angle).toFloat() + YAW_TO_FACE_INWARDS)
-        placedPitch = PITCH_DEGREES
+
+        // **Aimed at the arrival rather than tilted by a constant.** Once the eye rises to clear a hill a
+        // fixed pitch looks past the thing it came to show, so the angle is worked out from where the
+        // camera actually is to where the arrival actually is.
+        val toCentreX = centre.x + 0.5 - eyeX
+        val toCentreZ = centre.z + 0.5 - eyeZ
+        val overGround = kotlin.math.sqrt(toCentreX * toCentreX + toCentreZ * toCentreZ)
+        placedYaw = Mth.wrapDegrees(Math.toDegrees(kotlin.math.atan2(toCentreZ, toCentreX)).toFloat() - QUARTER_TURN)
+        placedPitch = Math.toDegrees(kotlin.math.atan2(eyeY - centre.y, overGround)).toFloat()
         setRotation(placedYaw, placedPitch)
 
         setupPerspective(NEAR_PLANE, FAR_PLANE, FIELD_OF_VIEW, width.toFloat(), height.toFloat())
@@ -113,10 +118,13 @@ class PanelCamera(private val level: ClientLevel, private val centre: BlockPos) 
         /** How high above the arrival the eye sits — enough to look down on it rather than stand in it. */
         private const val ORBIT_HEIGHT = 14.0
 
-        /** Degrees added to the orbit bearing to face the centre rather than away from it. */
-        private const val YAW_TO_FACE_INWARDS = 90.0f
+        /** Vanilla's yaw is degrees clockwise from south, where `atan2` is counted from east. */
+        private const val QUARTER_TURN = 90.0f
 
-        /** Looking down towards the arrival, since the eye is above it. */
+        /** How far above the ground the eye is kept, so it is never inside what it is looking at. */
+        private const val CLEARANCE = 6.0
+
+        /** Where the pitch starts before the first frame places it properly. */
         private const val PITCH_DEGREES = 20.0f
 
     }

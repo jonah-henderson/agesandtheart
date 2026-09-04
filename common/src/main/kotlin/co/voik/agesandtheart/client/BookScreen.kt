@@ -60,6 +60,11 @@ class BookScreen(
      */
     override fun init() {
         super.init()
+        // **Read first, and locally.** Opening a book is reading it (§4.5), and the words are on the stack
+        // in hand — so the client learns them on this frame rather than after the server has finished
+        // rolling an Age and generating its ring. The server still teaches authoritatively; this is the
+        // client agreeing early, and its payload adds nothing when it lands.
+        KnownWords.readFrom(book.get(AgeContent.BOOK_WORDS).orEmpty())
         LinkingPanel.ask(hand)
     }
 

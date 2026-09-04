@@ -39,6 +39,22 @@ object KnownWords {
         }
     }
 
+    /**
+     * Learns straight off a book being opened, without waiting for the server to say so.
+     *
+     * **Because nothing about reading needs a round trip.** The words are a component on the stack the
+     * client is already holding, so the toast can appear on the frame the book opens rather than after
+     * whatever the server is busy with — which, when opening a book also rolls an Age and generates its
+     * ring, was seconds.
+     *
+     * The server still teaches authoritatively: the learned set is save data and this is only the client
+     * agreeing early. Its payload arrives later and adds nothing, since [learned] is a set and only a word
+     * that was genuinely new is announced.
+     */
+    fun readFrom(words: Collection<Identifier>) {
+        words.filter(learned::add).forEach(::announce)
+    }
+
     /** These mean nothing on the next server: a pack there may spell the same word differently. */
     fun forgetAll() {
         known = Script.NONE
