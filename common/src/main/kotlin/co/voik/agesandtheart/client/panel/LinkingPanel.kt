@@ -71,6 +71,7 @@ object LinkingPanel {
         showing?.close()
         showing = null
         asked = false
+        PanelRenderer.forget()
         if (had) send(PanelCloseRequest)
     }
 

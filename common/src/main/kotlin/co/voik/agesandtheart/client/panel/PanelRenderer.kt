@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.client.panel
 
+import co.voik.agesandtheart.Constants
 import co.voik.ephemeris.client.OffscreenLevelRender
 import com.mojang.blaze3d.resource.GraphicsResourceAllocator
 import com.mojang.blaze3d.systems.RenderSystem
@@ -47,6 +48,25 @@ object PanelRenderer {
     /** Vanilla's own clear depth. */
     private const val FURTHEST_DEPTH = 1.0
 
+    private val alreadySaid = mutableSetOf<String>()
+
+    /**
+     * One line the first time each distinct thing happens, and never again.
+     *
+     * **Because this runs every frame and the interesting facts are one-offs.** The panel spent four runs
+     * black with nothing to say which of half a dozen steps had stopped; a per-frame log would have been
+     * nine thousand lines of the same sentence, which is how the *last* diagnosis went wrong.
+     *
+     * Returns false so a caller can `return sayOnce(...)` where the answer is "nothing drawn".
+     */
+    private fun sayOnce(what: String): Boolean {
+        if (alreadySaid.add(what)) Constants.LOG.info("Panel: {}", what)
+        return false
+    }
+
+    /** Forgotten when a panel closes, so the next book reports its own story rather than inheriting one. */
+    fun forget() = alreadySaid.clear()
+
     /**
      * Renders one frame of [preview] into [PanelTarget].
      *
@@ -55,8 +75,12 @@ object PanelRenderer {
      * nothing to hide and nothing to wait for.
      */
     fun draw(preview: PreviewLevel, delta: DeltaTracker): Boolean {
-        if (preview.wholeness <= 0.0f) return false
+        if (preview.wholeness <= 0.0f) return sayOnce("no chunks have arrived yet")
         val target = PanelTarget.get()
+        sayOnce(
+            "drawing: target ${target.width}x${target.height}, colour=${target.colorTexture != null}, " +
+                "depth=${target.depthTexture != null}, chunks=${"%.0f".format(preview.wholeness * 100)}%"
+        )
         val camera = preview.camera
         val turns = ((System.nanoTime() - startedAt) / NANOS_PER_SECOND / SECONDS_PER_TURN) % 1.0f
         camera.placeAt(turns, target.width, target.height)
@@ -95,7 +119,9 @@ object PanelRenderer {
             preview.renderer.extractLevel(delta, camera, delta.getGameTimeDeltaPartialTick(false))
             // `extractLevel` is what fills this. Null means it decided there was nothing to draw, which is
             // not a failure and not something to draw a half-frame over.
-            val sections = preview.renderState.levelRenderState.chunkSectionsToRender ?: return@drawing false
+            val sections = preview.renderState.levelRenderState.chunkSectionsToRender
+                ?: return@drawing sayOnce("extractLevel decided there was nothing to draw")
+            sayOnce("submitting the level render")
             PanelTarget.redirecting {
                 preview.renderer.renderLevel(
                     GraphicsResourceAllocator.UNPOOLED,

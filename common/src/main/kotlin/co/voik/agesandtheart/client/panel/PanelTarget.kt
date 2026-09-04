@@ -1,6 +1,8 @@
 package co.voik.agesandtheart.client.panel
 
+import co.voik.agesandtheart.Constants
 import com.mojang.blaze3d.pipeline.RenderTarget
+import net.minecraft.client.Minecraft
 import com.mojang.blaze3d.pipeline.TextureTarget
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.textures.FilterMode
@@ -27,6 +29,7 @@ object PanelTarget {
 
     private var target: TextureTarget? = null
     private var redirecting = false
+    private var checkedTheRedirect = false
 
     /** The panel's target, made on first use and kept for the life of the client. */
     fun get(): RenderTarget = target ?: TextureTarget("Ages linking panel", SIZE, SIZE, true).also { target = it }
@@ -43,10 +46,22 @@ object PanelTarget {
      * book.
      */
     fun <T> redirecting(block: () -> T): T {
-        get()
+        val mine = get()
         val outer = redirecting
         redirecting = true
         try {
+            // **Once, and it is the question no log has answered yet.** Everything downstream assumes the
+            // Mixin on `getMainRenderTarget` is applying; if it is not, the world render goes to the window
+            // behind the book and the panel is black with nothing wrong anywhere else.
+            if (!checkedTheRedirect) {
+                checkedTheRedirect = true
+                val seen = Minecraft.getInstance().mainRenderTarget
+                Constants.LOG.info(
+                    "Panel: the renderer is being handed {}",
+                    if (seen === mine) "the panel's target, so the Mixin is applying"
+                    else "THE WINDOW — the Mixin on getMainRenderTarget is not applying",
+                )
+            }
             return block()
         } finally {
             redirecting = outer
