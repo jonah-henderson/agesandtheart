@@ -42,6 +42,25 @@ class WritingCheck : FunSpec({
         }
     }
 
+    /**
+     * **Describing asks for more of what is here; naming asks for the thing.**
+     *
+     * `trees` reaches some seventy features through a tag. Read as seventy namings it put acacia, bamboo
+     * and cherry into every biome at once, and an Age came out uniformly forested with no regard for what
+     * grew where (Jonah, 2026-09-03). A word that names one outright still puts it where it was not,
+     * because that is the whole of what naming a thing is for.
+     */
+    test("a described feature is bent where it grows, a named one is put there") {
+        val described = server.run("age write describedtrees 7 age teeming trees features")
+        check("where_it_grows" in described) {
+            "'teeming trees' asked for trees to be *added* everywhere:\n$described"
+        }
+        val named = server.run("age write namedtree 7 age acacia features")
+        check("minecraft:acacia[" in named && "where_it_grows" !in named) {
+            "naming a feature stopped putting it where it was not:\n$named"
+        }
+    }
+
     /** Without an aiming page in front of them the same words are the nucleus, not a section of their own. */
     test("a book that aims at nothing is one section") {
         val written = server.ask("write", "unaimed floating basalt age")

@@ -7,6 +7,7 @@
     "DragonPhaseAccessor",
     "EnderDragonMixin",
     "LightningBoltMixin",
+    "MerchantResultSlotMixin",
     "ServerLevelMixin",
     "ServerPlayerMixin"
   ],

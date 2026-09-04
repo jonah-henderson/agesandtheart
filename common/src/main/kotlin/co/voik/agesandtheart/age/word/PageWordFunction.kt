@@ -56,12 +56,7 @@ class PageWordFunction(
         vocabulary: Vocabulary,
         registries: RegistryAccess,
         context: LootContext,
-    ): Word? {
-        val stocked = vocabulary.stock.words(requireNotNull(pool), vocabulary, registries)
-            .filterNot { Withheld.holdsBack(it, registries) }
-        if (stocked.isEmpty()) return null
-        return stocked[context.random.nextInt(stocked.size)]
-    }
+    ): Word? = vocabulary.stock.draw(requireNotNull(pool), vocabulary, registries, context.random)
 
     companion object {
         /** The registry holds the codec itself in 26.1 — there is no function-type wrapper any more. */

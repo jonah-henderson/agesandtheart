@@ -106,6 +106,23 @@ object AgeContent {
         .networkSynchronized(Identifier.STREAM_CODEC)
         .build()
 
+    /**
+     * The stock a page or notebook is still to be drawn from — **an unwritten page, not a blank one**.
+     *
+     * A villager's offer is built once and bought many times, so anything a trade writes into the item is
+     * written once: a page whose word was rolled when the offer was made hands out that same word for ever.
+     * Carrying the *pool* instead defers the draw to the moment somebody takes the item
+     * (`MerchantResultSlotMixin`), so every purchase is a different word.
+     *
+     * This is the one place §8's rule that a page's word is "rolled when the page is generated, never when
+     * it is read" is bent, and it is bent rather than broken: a found page is still rolled where it is
+     * found. What is deferred here is the roll for a page that has not been handed to anybody yet.
+     */
+    val STOCKED_FROM: DataComponentType<Identifier> = DataComponentType.builder<Identifier>()
+        .persistent(Identifier.CODEC)
+        .networkSynchronized(Identifier.STREAM_CODEC)
+        .build()
+
     private val PAGE_ID: Identifier = "page".location()
 
     /** Stacks: two pages of the same word are the same page, and differing words never merge anyway. */
@@ -505,6 +522,7 @@ object AgeContent {
         listOf("repattern_descriptive_book".location() to RepatternBookRecipe.SERIALIZER)
 
     val components: List<Pair<Identifier, DataComponentType<*>>> = listOf(
+        "stocked_from".location() to STOCKED_FROM,
         "age_id".location() to AGE_ID,
         "page_word".location() to PAGE_WORD,
         "book_words".location() to BOOK_WORDS,

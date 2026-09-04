@@ -5,15 +5,18 @@
   },
   "gives": {
     "id": "agesandtheart:page",
-    "count": 1
+    "count": 1,
+    "components": {
+      "agesandtheart:stocked_from": "agesandtheart:writer_stock/expert"
+    }
   },
   "max_uses": 12,
   "xp": 15,
   "reputation_discount": 0.05,
-  "given_item_modifiers": [
-    {
-      "function": "agesandtheart:roll_page_word",
-      "pool": "agesandtheart:writer_stock/expert"
-    }
+  "_comment": [
+    "**Sold unwritten, and that is what makes buying twice worth doing.** A villager's offer is built once",
+    "and bought many times, so a word rolled by `given_item_modifiers` would be the word every copy carries.",
+    "The page carries the *stock* instead and the draw happens as it is taken",
+    "(`MerchantResultSlotMixin`), so each purchase is a different word."
   ]
 }

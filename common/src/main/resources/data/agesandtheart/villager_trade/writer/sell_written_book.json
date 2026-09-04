@@ -1,7 +1,10 @@
 {
   "_comment": [
-    "An Age somebody else already wrote -- the same function that fills a found book, so it arrives",
-    "with a title and a reading, and teaches its grammar when read."
+    "A Descriptive Book sold **blank**, and that is what makes each one a different Age.",
+    "A trade's `given_item_modifiers` run once, when the offer is built -- so writing the book here would",
+    "sell the same world over and over. A blank book writes itself on its first inventory tick",
+    "(`DescriptiveBookItem.inventoryTick`) from a fresh seed, so every copy bought is somewhere new, and it",
+    "has its title before the player has finished closing the trade screen."
   ],
   "wants": {
     "id": "minecraft:emerald",
@@ -17,10 +20,5 @@
   },
   "max_uses": 12,
   "xp": 30,
-  "reputation_discount": 0.05,
-  "given_item_modifiers": [
-    {
-      "function": "agesandtheart:write_found_book"
-    }
-  ]
+  "reputation_discount": 0.05
 }

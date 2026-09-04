@@ -8,6 +8,7 @@ import net.minecraft.resources.Identifier
 import net.minecraft.resources.ResourceKey
 import net.minecraft.server.packs.resources.ResourceManager
 import net.minecraft.tags.TagKey
+import net.minecraft.util.RandomSource
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.levelgen.structure.StructureSet
@@ -36,6 +37,22 @@ class WriterStock(private val listed: Map<String, Set<String>>) {
         fun isListed(word: Word) = word.name in authored
         fun isTagged(word: Word) = carriesTag(word.id, pool, registries)
         return vocabulary.words.filter { isListed(it) || isTagged(it) }
+    }
+
+    /**
+     * One word from [pool], or null where the pool holds nothing a page may carry.
+     *
+     * **Drawn uniformly**, as a pooled page always has been: a pool is already a statement about what
+     * should turn up, and weighting it again would say the same thing twice.
+     */
+    fun draw(
+        pool: Identifier,
+        vocabulary: Vocabulary,
+        registries: RegistryAccess,
+        random: RandomSource,
+    ): Word? {
+        val held = words(pool, vocabulary, registries).filterNot { Withheld.holdsBack(it, registries) }
+        return if (held.isEmpty()) null else held[random.nextInt(held.size)]
     }
 
     /**

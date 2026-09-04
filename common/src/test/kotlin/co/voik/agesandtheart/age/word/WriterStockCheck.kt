@@ -120,6 +120,28 @@ class WriterStockCheck : FunSpec({
         }
     }
 
+    /**
+     * **A page or notebook sold unwritten must name a stock that exists**, or it is handed over blank and
+     * stays blank. The mixin that writes it cannot be reached from a check, so this is the half that can:
+     * the wiring between the trade and the stock it draws from.
+     */
+    test("every unwritten thing a trade sells names a stock") {
+        val trades = resources.listResources("villager_trade") { it.path.endsWith(".json") }
+        var stocked = 0
+        for ((file, resource) in trades) {
+            val json = resource.openAsReader().use(JsonParser::parseReader).asJsonObject
+            val components = json.getAsJsonObject("gives")?.getAsJsonObject("components") ?: continue
+            val named = components.get("agesandtheart:stocked_from")?.asString ?: continue
+            stocked++
+            val pool = Identifier.parse(named).path.removePrefix("writer_stock/")
+            check(pool in pools) { "$file sells something stocked from '$named', which no pool declares" }
+        }
+        check(stocked > 0) {
+            "no trade sells anything unwritten, so this is watching nothing — either the pages went back " +
+                "to being written when the offer is built, or the component was renamed"
+        }
+    }
+
     /** A trade drawing from a pool by a name nothing declares would hand over an unwritten page. */
     test("every pool a trade names is one that exists") {
         val trades = resources.listResources("villager_trade") { it.path.endsWith(".json") }
