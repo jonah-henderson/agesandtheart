@@ -18,14 +18,21 @@ import com.mojang.blaze3d.textures.GpuTextureView
  */
 object PanelTarget {
 
-    /** A book's panel is a square hole in a page. */
-    private const val SIZE = 384
+    /**
+     * The panel's own proportions, so the blit into the book neither stretches nor crops.
+     *
+     * `BookScreen`'s panel is the same eight to five; these are only larger, so the Age is sampled down
+     * into the page rather than up.
+     */
+    private const val WIDTH = 512
+    private const val HEIGHT = 320
 
     private var target: TextureTarget? = null
     private var redirecting = false
 
     /** Made on first use and kept for the life of the client. */
-    fun get(): RenderTarget = target ?: TextureTarget("Ages linking panel", SIZE, SIZE, true).also { target = it }
+    fun get(): RenderTarget =
+        target ?: TextureTarget("Ages linking panel", WIDTH, HEIGHT, true).also { target = it }
 
     /** What the Mixin asks. Null in every frame that is not drawing a panel. */
     @JvmStatic

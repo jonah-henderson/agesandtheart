@@ -39,6 +39,9 @@ class BookScreen(
     /** Which spread is open. Nought is the panel and the first page of writing. */
     private var spread = 0
 
+    /** When this book was opened, which is what the panel's wait is measured against. */
+    private val openedAt = System.nanoTime()
+
     /**
      * The writing, wrapped and cut into pages. Paginated once: the font is fixed, the column is fixed, and
      * doing it per frame would re-wrap the whole book sixty times a second.
@@ -98,6 +101,32 @@ class BookScreen(
         if (overPanel(mouseX.toDouble(), mouseY.toDouble())) {
             graphics.fill(x, y, x + PANEL_WIDTH, y + PANEL_HEIGHT, PANEL_LIT)
         }
+        drawWaiting(graphics, x, y)
+    }
+
+    /**
+     * A thread of movement under the panel while there is still nothing in it.
+     *
+     * Not diegetic, and a deliberate exception: a black rectangle says nothing about whether it is coming.
+     * It stays an exception by being scarce — nothing at all for the first [BEFORE_SAYING_SO_NANOS], which
+     * an Age whose footing is near its origin never exceeds, and gone the instant a chunk is drawn.
+     *
+     * It travels rather than fills because the client has nothing to fill it with: until the server sends
+     * the level payload it does not know the Age exists, let alone how far along it is.
+     */
+    private fun drawWaiting(graphics: GuiGraphicsExtractor, x: Int, y: Int) {
+        if (!LinkingPanel.isWaiting) return
+        val waited = System.nanoTime() - openedAt
+        if (waited < BEFORE_SAYING_SO_NANOS) return
+
+        val top = y + PANEL_HEIGHT + WAITING_GAP
+        graphics.fill(x, top, x + PANEL_WIDTH, top + WAITING_HEIGHT, WAITING_TRACK)
+
+        val throughSweep = ((waited % SWEEP_NANOS).toDouble() / SWEEP_NANOS).toFloat()
+        // Back and forth, so the mark never jumps from one end of the track to the other.
+        val alongTheTrack = if (throughSweep < 0.5f) throughSweep * 2 else (1.0f - throughSweep) * 2
+        val from = x + ((PANEL_WIDTH - WAITING_MARK) * alongTheTrack).toInt()
+        graphics.fill(from, top, from + WAITING_MARK, top + WAITING_HEIGHT, WAITING_INK)
     }
 
     /** The Age itself, drawn over the black. */
@@ -327,8 +356,14 @@ class BookScreen(
 
         const val PANEL_X = 18
         const val PANEL_Y = 30
-        const val PANEL_WIDTH = 92
-        const val PANEL_HEIGHT = 92
+
+        /**
+         * Wider than it is tall, as the games depict a panel — about eight to five.
+         *
+         * The width is what the left leaf allows: [PANEL_X] plus this clears the spine with a margin.
+         */
+        const val PANEL_WIDTH = 104
+        const val PANEL_HEIGHT = 65
 
         /** Where each leaf's writing column begins, clear of the spine and the outer edge. */
         const val LEFT_COLUMN_X = 18
@@ -366,5 +401,19 @@ class BookScreen(
         /** Black until it can show the Age. */
         val PANEL = 0xFF07070C.toInt()
         val PANEL_LIT = 0x18FFFFFF
+
+        /** How long a panel may be empty before it admits to it. */
+        const val BEFORE_SAYING_SO_NANOS = 2_000_000_000L
+
+        /** One pass of the mark along the track. */
+        const val SWEEP_NANOS = 1_600_000_000L
+
+        const val WAITING_GAP = 5
+        const val WAITING_HEIGHT = 1
+        const val WAITING_MARK = 22
+
+        /** Barely there: a line under a picture, not a control. */
+        val WAITING_TRACK = 0x14000000
+        val WAITING_INK = 0x662B2118
     }
 }

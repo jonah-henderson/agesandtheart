@@ -32,6 +32,18 @@ object LinkingPanel {
     val preview: PreviewLevel? get() = showing
 
     /**
+     * Whether there is still something to wait for, which is what the screen says out loud.
+     *
+     * False once a chunk has arrived, and false again once the server has been asked as often as it is
+     * going to be: a panel that has given up should stop suggesting otherwise.
+     */
+    val isWaiting: Boolean
+        get() {
+            val load = showing?.load ?: return asked && asksSoFar < MOST_ASKS
+            return !load.hasAnything
+        }
+
+    /**
      * Asks the server to show whatever bound book is in [hand].
      *
      * Idempotent, so a screen may call it more than once: asking twice would have the server drop and
