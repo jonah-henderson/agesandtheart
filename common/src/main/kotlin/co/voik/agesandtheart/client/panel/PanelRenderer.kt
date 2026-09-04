@@ -116,12 +116,19 @@ object PanelRenderer {
         // Extract first, then draw: `extractLevel` is what fills `chunkSectionsToRender`, which the draw
         // then consumes, and it is also what asks the sky and weather renderers about *this* level.
         return OffscreenLevelRender.drawing(preview.level, target, camera) {
+            // **`update` first, and its absence is why the panel was black with everything else right.**
+            // `GameRenderer` calls three things on the level renderer each frame — `tick`, `update`, then
+            // `extractLevel` — and only the last was being called here. `update` is `cullTerrain` followed
+            // by `compileSections`: it decides which sections are visible and gets them meshed. Without it
+            // `prepareChunkRenders` hands back an *empty* set rather than a null one, so every check passed,
+            // the render was submitted, the right target was bound, and nothing was ever drawn into it.
+            preview.renderer.update(camera)
             preview.renderer.extractLevel(delta, camera, delta.getGameTimeDeltaPartialTick(false))
             // `extractLevel` is what fills this. Null means it decided there was nothing to draw, which is
             // not a failure and not something to draw a half-frame over.
             val sections = preview.renderState.levelRenderState.chunkSectionsToRender
                 ?: return@drawing sayOnce("extractLevel decided there was nothing to draw")
-            sayOnce("submitting the level render")
+            sayOnce("submitting the level render, ${preview.renderer.countRenderedSections()} sections meshed")
             PanelTarget.redirecting {
                 preview.renderer.renderLevel(
                     GraphicsResourceAllocator.UNPOOLED,
