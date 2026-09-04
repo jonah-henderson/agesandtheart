@@ -18,6 +18,7 @@ import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Taggable
 import co.voik.agesandtheart.age.aspect.Holds
+import co.voik.agesandtheart.age.word.grammar.Phrase
 import co.voik.agesandtheart.age.word.grammar.Constraint
 import co.voik.agesandtheart.age.word.grammar.Sentence
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
@@ -217,10 +218,20 @@ object Resolver {
         //
         // By identity rather than by equality, and taken before the draw copies each constraint: two
         // `colossal` pages in one book are equal, and only the one inside the minting is spent.
+        //
+        // **Only where the clause really mints**, which is `substanceOf` and not merely a subject that
+        // could: `springs`, `lakes` and `veins` all declare `mints` with no `unstated`, so `tiny springs`
+        // mints nothing — and charging it for the size anyway took the word away and gave nothing back.
+        //
+        // **And only the size**, never the whole claim. `colossal` also restricts the landmass to
+        // `monumental`; `rich` admits two ores and biases three tags. Dropping the constraint spent all of
+        // that to pay for one parameter.
         val spent = sentence.phrases
-            .filter { it.subject?.word?.mints != null }
+            .filter { substanceOf(it, draw) != null }
             .flatMap { phrase -> phrase.modifiers.filter { it.word.sizeAsked != null } }
-        val kept = sentence.constraints.filterNot { constraint -> spent.any { it === constraint } }
+        val kept = sentence.constraints.map { constraint ->
+            if (spent.any { it === constraint }) constraint.copy(word = constraint.word.withoutItsSize()) else constraint
+        }
         val said = offered(vocabulary, kept.map { it.drawnAt(draw) }, draw)
         val flaws = mutableListOf<Flaw>()
         flaws += rehomings(vocabulary, sentence)
@@ -312,20 +323,32 @@ object Resolver {
      * The claim names the pattern and carries the substance, so nothing downstream has to know there were
      * ever two pages — `Features` looks the pattern up and swaps what it is made of.
      */
+    /**
+     * What [phrase] would mint out of, or null where it mints nothing.
+     *
+     * **One answer, asked in two places**, because they disagreed and that was the bug: `resolve` charged a
+     * clause for spending its size wherever the *subject* could mint, where this decides whether anything
+     * is actually minted. A pattern with no material and no [Word.unstated] — `springs`, `lakes`, `veins`
+     * — mints nothing, so `tiny springs` lost `tiny` and gained no spring.
+     *
+     * Drawn, like every other reader of a word's claims: a material carrying a pool chooses here too.
+     *
+     * **A pattern named alone is still made of something.** `obelisks` used to mint nothing at all and put
+     * nothing in the ground, which reads as the word not working; [Word.unstated] is what the pattern is
+     * made of when nobody says, and a tag there is a small pool the seed draws from where a bare id is one
+     * answer.
+     */
+    private fun substanceOf(phrase: Phrase, draw: Long): String? {
+        val subject = phrase.subject ?: return null
+        if (subject.word.mints == null) return null
+        return phrase.modifiers.firstNotNullOfOrNull { it.drawnAt(draw).word.material } ?: subject.word.unstated
+    }
+
     private fun mintedFeatures(composition: AgeComposition, sentence: Sentence, draw: Long): AgeComposition {
         val minted = sentence.phrases.mapNotNull { phrase ->
             val subject = phrase.subject ?: return@mapNotNull null
             val pattern = subject.word.mints ?: return@mapNotNull null
-            // Drawn, like every other reader of a word's claims: a material carrying a pool chooses here
-            // too, and this is the one place that read the undrawn sentence instead.
-            //
-            // **And a pattern named alone is still made of something.** `obelisks` used to mint nothing at
-            // all and put nothing in the ground, which reads as the word not working; `Word.unstated` is
-            // what the pattern is made of when nobody says, and a tag there is a small pool the seed
-            // draws from where a bare id is one answer.
-            val substance = phrase.modifiers.firstNotNullOfOrNull { it.drawnAt(draw).word.material }
-                ?: subject.word.unstated
-                ?: return@mapNotNull null
+            val substance = substanceOf(phrase, draw) ?: return@mapNotNull null
             Claim(
                 pattern,
                 subject.polarity,

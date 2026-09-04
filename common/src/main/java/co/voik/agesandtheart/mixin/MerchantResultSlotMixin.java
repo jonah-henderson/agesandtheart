@@ -19,12 +19,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * once: a writer would sell the same word for ever. The offer carries the *stock* instead, and the draw
  * happens here.
  *
- * <p><b>Why this seam and not a trade event.</b> {@code MerchantResultSlot.onTake} is the one moment a
+ * <p><b>Why this seam and not a trade event.</b> On the ordinary click, {@code onTake} is the moment a
  * purchase exists as a single stack that has not yet merged with anything in the inventory — which matters,
  * because two unwritten pages of the same stock are identical and would stack, and then one roll would
  * write both. Resolving on an inventory tick has that problem for anyone shift-clicking a trade;
  * {@code Villager.notifyTrade} is server-side and well-timed but is handed the offer rather than the stack
  * the player received, which is the thing that has to be written.
+ *
+ * <p><b>It does not cover shift-clicking, and {@link MerchantQuickMoveMixin} is why.</b> This class once
+ * claimed {@code onTake} was <i>the</i> moment a purchase is a single unmerged stack; on the quick-move
+ * path it is not, because vanilla moves the goods first and calls {@code onTake} with what is left. The
+ * pair covers both, and this one declines harmlessly when the other has already written the stack.
  *
  * <p><b>The loader alternatives, checked.</b> NeoForge has {@code TradeWithVillagerEvent} and would do;
  * Fabric API has no trade event at all since {@code TradeOfferHelper} left with the datapack trades in

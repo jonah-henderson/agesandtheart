@@ -243,6 +243,43 @@ class MintingCheck : FunSpec({
     }
 
     /**
+     * **Spending the size spends the size and nothing else.**
+     *
+     * The whole `Constraint` used to be dropped, so a word carrying a size *and* something else lost both.
+     * Asked of [Word.withoutItsSize] rather than of a resolved Age, and that is deliberate: no sentence
+     * could be found where the difference shows. A word written inside a minting clause is aimed at that
+     * clause, so `colossal`'s restriction of the landmass is inert there whether it survives or not, and
+     * `rich` — which would show it — is evocative and never attaches as a modifier at all.
+     *
+     * So this guards the mechanism rather than an outcome, and says so instead of dressing up a check that
+     * passes either way. What it prevents is the next word to carry a size beside a live claim.
+     */
+    test("taking a word's size away leaves everything else it says") {
+        val colossal = vocabulary.word("colossal") ?: error("no colossal in the corpus")
+        val stripped = colossal.withoutItsSize()
+        check(stripped.sizeAsked == null) { "the size survived: ${stripped.sizeAsked}" }
+        check(stripped.restricts == colossal.restricts) {
+            "colossal's restrictions went with its size: ${stripped.restricts}"
+        }
+        check(stripped.copy(sets = colossal.sets) == colossal) {
+            "something other than the size changed"
+        }
+    }
+
+    /**
+     * **A clause that mints nothing spends nothing.**
+     *
+     * `springs`, `lakes` and `veins` all declare `mints` with no `unstated`, so a clause naming one without
+     * a material mints nothing at all. Charging it for the size anyway took the word away and gave nothing
+     * back: `tiny springs` cost two pages and left the Age neither a spring nor a smaller one.
+     */
+    test("a size is not spent by a clause that mints nothing") {
+        check(sizeOf("tiny", "springs") == sizeOf("tiny", "trees", "features")) {
+            "'tiny springs' minted nothing and spent 'tiny' anyway: ${sizeOf("tiny", "springs")}"
+        }
+    }
+
+    /**
      * The other half: a claim carrying a substance becomes a feature made of it, keeping everything else
      * the pattern had. A spring that stopped wanting rock around it, or a vein that changed size, would be
      * a new feature wearing the pattern's name.

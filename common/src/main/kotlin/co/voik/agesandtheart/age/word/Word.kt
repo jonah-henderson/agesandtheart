@@ -699,6 +699,16 @@ data class Word(
         ?.let { (it.least + it.most) / 2.0 }
 
     /**
+     * The same word with its size taken away and everything else it says left standing.
+     *
+     * **For a size a minting clause spent** (`Resolver.resolve`). Discarding the whole claim instead was
+     * the fault this exists to prevent: `colossal` also restricts the landmass to `monumental`, and `rich`
+     * admits ores and biases three tags besides — so spending the size by dropping the word silently threw
+     * all of that away, and a writer paid for a page that then meant nothing at all.
+     */
+    fun withoutItsSize(): Word = if (SIZE_PARAMETER in sets) copy(sets = sets - SIZE_PARAMETER) else this
+
+    /**
      * **How many places this page may be laid** — the second half of what it costs (world model §9).
      *
      * An evocative word is one: it may only ever be written on the Age itself, which is what makes it the
