@@ -1,0 +1,14 @@
+{
+  "values": [
+    "minecraft:stone",
+    "minecraft:deepslate",
+    "minecraft:andesite",
+    "minecraft:diorite",
+    "minecraft:granite",
+    "minecraft:tuff",
+    "minecraft:blackstone",
+    "minecraft:sandstone",
+    "minecraft:amethyst_block",
+    "minecraft:copper_block"
+  ]
+}

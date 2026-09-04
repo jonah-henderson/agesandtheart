@@ -4,5 +4,6 @@
     "and `arches` is its own page."
   ],
   "tier": "exact",
-  "mints": "agesandtheart:rings"
+  "mints": "agesandtheart:rings",
+  "unstated": "#agesandtheart:formation_substance"
 }

@@ -1,0 +1,12 @@
+{
+  "_comment": [
+    "Little, but with somewhere left to go -- the step above `tiny`, which takes the bottom of the axis.",
+    "",
+    "Same reach and no query, exactly as `enormous` is `colossal`'s band; only the band differs, which is",
+    "the whole of what a second word for little is allowed to be."
+  ],
+  "tier": "exact",
+  "sets": {
+    "size": "-1.0..-0.7"
+  }
+}

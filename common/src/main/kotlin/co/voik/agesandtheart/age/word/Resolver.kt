@@ -210,7 +210,18 @@ object Resolver {
         // §4.6: the unconstrained should still vary with what was written, or two different sentences at
         // one seed draw identical filler wherever neither constrains anything.
         val draw = seed xor saltOf(sentence.words)
-        val said = offered(vocabulary, sentence.constraints.map { it.drawnAt(draw) }, draw)
+        // **A size a minting clause spent is spent**, and never reaches the aspect it was written in.
+        // `colossal gold_block obelisks` says how big the obelisks are; read as a word about the features
+        // aspect it also enlarged every tree in the Age, which is the same surprise as `lava springs`
+        // paving the world — and that one was already thought worth preventing.
+        //
+        // By identity rather than by equality, and taken before the draw copies each constraint: two
+        // `colossal` pages in one book are equal, and only the one inside the minting is spent.
+        val spent = sentence.phrases
+            .filter { it.subject?.word?.mints != null }
+            .flatMap { phrase -> phrase.modifiers.filter { it.word.sizeAsked != null } }
+        val kept = sentence.constraints.filterNot { constraint -> spent.any { it === constraint } }
+        val said = offered(vocabulary, kept.map { it.drawnAt(draw) }, draw)
         val flaws = mutableListOf<Flaw>()
         flaws += rehomings(vocabulary, sentence)
         flaws += impossibilities(vocabulary, sentence)
@@ -303,17 +314,25 @@ object Resolver {
      */
     private fun mintedFeatures(composition: AgeComposition, sentence: Sentence, draw: Long): AgeComposition {
         val minted = sentence.phrases.mapNotNull { phrase ->
-            val pattern = phrase.subject?.word?.mints ?: return@mapNotNull null
+            val subject = phrase.subject ?: return@mapNotNull null
+            val pattern = subject.word.mints ?: return@mapNotNull null
             // Drawn, like every other reader of a word's claims: a material carrying a pool chooses here
             // too, and this is the one place that read the undrawn sentence instead.
+            //
+            // **And a pattern named alone is still made of something.** `obelisks` used to mint nothing at
+            // all and put nothing in the ground, which reads as the word not working; `Word.unstated` is
+            // what the pattern is made of when nobody says, and a tag there is a small pool the seed
+            // draws from where a bare id is one answer.
             val substance = phrase.modifiers.firstNotNullOfOrNull { it.drawnAt(draw).word.material }
+                ?: subject.word.unstated
                 ?: return@mapNotNull null
             Claim(
                 pattern,
-                phrase.subject.polarity,
-                Rung.legible(phrase.subject.density),
-                phrase.subject.confinedTo,
+                subject.polarity,
+                Rung.legible(subject.density),
+                subject.confinedTo,
                 madeOf = substance,
+                size = phrase.modifiers.firstNotNullOfOrNull { it.word.sizeAsked },
             )
         }
         if (minted.isEmpty()) return composition
@@ -325,13 +344,6 @@ object Resolver {
         )
     }
 
-    /**
-     * [composition] with every member the sentence described into being counted, said about or not.
-     *
-     * A clause closing on a population brings a member of it into being, and one carrying no modifiers
-     * steers nothing — so without this the roll would hold only the bodies somebody had an opinion about,
-     * and `a sun. a sun.` would come out as one.
-     */
     /**
      * A population's roll grown to what a **word** asked for, where the book described nobody.
      *
@@ -1307,7 +1319,17 @@ object Resolver {
         // member would be reached, weighed, and then quietly left out of the world it was named into.
         val nothingToSay = polarity == null && Rung.isOrdinary(weight) && alreadyInThePool
         if (nothingToSay) return null
-        return Claim(member.key, polarity ?: Polarity.ASSERTED, weight)
+        // **Described rather than named**, which decides whether this asks for the thing or for more of
+        // it where it already is (world model §3). A member reached only by a query is a description; one
+        // a writer mentioned is a naming. `only` and `except` are neither — they are instructions about
+        // what the Age holds — so they are left to mean what they always did.
+        val described = mentions == 0 && polarity == null
+        return Claim(
+            member.key,
+            polarity ?: Polarity.ASSERTED,
+            weight,
+            onlyWhereItGrows = described,
+        )
     }
 
     /**

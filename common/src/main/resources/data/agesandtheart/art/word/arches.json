@@ -4,5 +4,6 @@
     "ground, so it is a thing you walk under rather than a porthole."
   ],
   "tier": "exact",
-  "mints": "agesandtheart:arches"
+  "mints": "agesandtheart:arches",
+  "unstated": "#agesandtheart:formation_substance"
 }

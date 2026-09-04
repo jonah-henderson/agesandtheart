@@ -49,20 +49,46 @@ data class Claim(
      * the two halves of that are these two fields.
      */
     val madeOf: String? = null,
+    /**
+     * Whether this asks for **more or less of the thing where it already is**, rather than for the thing
+     * itself — the difference between describing and naming (world model §3).
+     *
+     * `teeming trees` reaches seventy features by a tag and means "more of whatever trees grow here". Read
+     * as a naming word it meant "put all seventy in every biome", which is how an Age came out carrying
+     * acacia, bamboo and cherry everywhere at once (Jonah, 2026-09-03). Naming one outright — `acacia` —
+     * still puts it where it was not, because that is what naming a thing is for.
+     *
+     * Set where a member was reached by a query and never mentioned by name. `only` and `except` are
+     * exempt: those are instructions about what the Age holds, not preferences about how much of it.
+     */
+    val onlyWhereItGrows: Boolean = false,
+    /**
+     * How big this one is, or null to take the Age's own — **a size that belongs to its clause**.
+     *
+     * `colossal gold_block obelisks, tiny rings` asks for two sizes in one book, and a `Parameter` holds
+     * one: read off the aspect the two contended, colossal won, and the rings came out colossal too. Size
+     * sits here beside [madeOf] for the same reason [madeOf] does — both are things a clause says about
+     * *this* member rather than about the part of the world it belongs to.
+     */
+    val size: Double? = null,
 ) {
     /** Whether this claim has anything to say where [biome] is what the ground holds. */
     fun appliesIn(biome: Identifier?): Boolean = confinedTo == null || confinedTo == biome
 
     /** How this is written into a recipe — bare where nothing was asked, so the common case is unadorned. */
     fun spelled(): String {
+        // Held first: inside `buildList` the list's own `size` shadows this claim's.
+        val ownSize = size
         val parts = buildList {
             when (polarity) {
                 Polarity.ASSERTED -> Unit
                 Polarity.ONLY -> add(ONLY)
                 Polarity.EXCEPT -> add(EXCEPT)
             }
+            if (onlyWhereItGrows) add(WHERE_IT_GROWS)
             if (!Rung.isOrdinary(density)) add("$AMOUNT$SETS${Rung.spelled(density)}")
             madeOf?.let { add("$OF$SETS$it") }
+            ownSize?.let { add("$SIZE$SETS${Rung.spelled(it)}") }
             confinedTo?.let { add("$IN$SETS$it") }
         }
         if (parts.isEmpty()) return value
@@ -77,10 +103,14 @@ data class Claim(
         private const val SETS = '='
 
         const val ONLY = "only"
+
+        /** How a claim says it only bends what is already there — see [Claim.onlyWhereItGrows]. */
+        const val WHERE_IT_GROWS = "where_it_grows"
         const val EXCEPT = "except"
         const val AMOUNT = "amount"
         const val IN = "in"
         const val OF = "of"
+        const val SIZE = "size"
 
         /** The claim [spelled] describes: asserted, ordinary, everywhere, unless it says otherwise. */
         fun read(spelled: String): Claim {
@@ -99,7 +129,15 @@ data class Claim(
             }
             val amount = valueOf(parts, AMOUNT)?.toDoubleOrNull()?.takeIf { it > 0.0 } ?: Rung.ORDINARY
             val confinedTo = valueOf(parts, IN)?.let(Identifier::tryParse)
-            return Claim(value, polarity, amount, confinedTo, valueOf(parts, OF))
+            return Claim(
+                value,
+                polarity,
+                amount,
+                confinedTo,
+                valueOf(parts, OF),
+                onlyWhereItGrows = parts.any { it == WHERE_IT_GROWS },
+                size = valueOf(parts, SIZE)?.toDoubleOrNull(),
+            )
         }
 
         private fun valueOf(parts: List<String>, named: String): String? = parts

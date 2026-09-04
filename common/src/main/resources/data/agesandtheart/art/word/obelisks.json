@@ -5,5 +5,6 @@
     "a standing stone -- and a shape is all it is, so anything a world can be made of can be one."
   ],
   "tier": "exact",
-  "mints": "agesandtheart:obelisks"
+  "mints": "agesandtheart:obelisks",
+  "unstated": "#agesandtheart:formation_substance"
 }

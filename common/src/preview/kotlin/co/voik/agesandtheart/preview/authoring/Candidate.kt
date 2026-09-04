@@ -60,6 +60,8 @@ data class Candidate(
     val weights: Map<Aspect, Map<String, Double>> = emptyMap(),
     val template: String? = null,
     val mints: String? = null,
+    /** What [mints] is made of when the clause says nothing — a block id, or a tag naming a pool. */
+    val unstated: String? = null,
     val mintsSomethingThatFlows: Boolean = false,
     /**
      * The registry entry this word was read off, where it was read off one at all.
@@ -149,6 +151,7 @@ data class Candidate(
         if (!requests.isEmpty) add("requests", claimsOf(requests))
         template?.let { addProperty("template", it) }
         mints?.let { addProperty("mints", it) }
+        unstated?.let { addProperty("unstated", it) }
         if (mintsSomethingThatFlows) addProperty("mints_something_that_flows", true)
     }
 
@@ -218,7 +221,7 @@ data class Candidate(
          */
         val KNOWN_FIELDS = setOf(
             "tier", "chooses", "admits", "excludes", "restricts", "biases", "sets", "pools", "requests",
-            "template", "mints", "mints_something_that_flows",
+            "template", "mints", "unstated", "mints_something_that_flows",
         )
 
         /** A word the game gave us, opened so its rarity and ink can be set. */
@@ -236,6 +239,7 @@ data class Candidate(
             requests = word.requests,
             template = word.template,
             mints = word.mints,
+            unstated = word.unstated,
             mintsSomethingThatFlows = word.mintsSomethingThatFlows,
             derivedFrom = word.id,
             inkedByTag = word.entryOf != null,
@@ -267,6 +271,7 @@ data class Candidate(
                 requests = json.getAsJsonObject("requests")?.let(::readClaims) ?: Claims.NOTHING,
                 template = json.get("template")?.asString,
                 mints = json.get("mints")?.asString,
+                unstated = json.get("unstated")?.asString,
                 mintsSomethingThatFlows = json.get("mints_something_that_flows")?.asBoolean ?: false,
             )
         }

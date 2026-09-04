@@ -723,6 +723,19 @@ class Parts(private val corpus: Corpus) {
                     note = "the substance comes from the clause it is written in — `ink springs`",
                 ),
             )
+            candidate.unstated?.let { fallback ->
+                add(
+                    Row(
+                        handle = "unstated",
+                        shown = listOf(
+                            Ink("    "),
+                            Ink("when nobody says".padEnd(PARAMETER_COLUMN), Palette.parameter),
+                            Ink(fallback, Palette.value),
+                        ),
+                        note = "a tag here is a pool the Age draws one from",
+                    ),
+                )
+            }
         }
     }
 

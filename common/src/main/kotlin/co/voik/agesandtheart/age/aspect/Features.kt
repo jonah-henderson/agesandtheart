@@ -9,10 +9,12 @@ import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
 import net.minecraft.resources.ResourceKey
 import net.minecraft.server.MinecraftServer
+import net.minecraft.tags.TagKey
 import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.biome.BiomeGenerationSettings
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.GenerationStep
+import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import net.minecraft.world.level.levelgen.placement.PlacedFeature as VanillaPlacedFeature
 import java.util.concurrent.ConcurrentHashMap
 
@@ -135,6 +137,9 @@ object Features {
         // It bit the moment a formation went into every biome. A minted spring is the same shape of bug
         // and had simply never been generated over enough ground to meet a second biome carrying it.
         val grown = ConcurrentHashMap<Claim, Holder<VanillaPlacedFeature>>()
+        // Scaling a biome's own feature makes a new one too, so it is memoised for the same reason —
+        // keyed by the feature and the amount, which is what decides the object.
+        val bent = ConcurrentHashMap<Pair<Holder<VanillaPlacedFeature>, Double>, Holder<VanillaPlacedFeature>>()
         return { biome ->
             settled.computeIfAbsent(biome) {
                 // A claim confined to one biome (§4.3.1) is absent from every other, so each biome's
@@ -142,7 +147,9 @@ object Features {
                 val here = Skew.of(claims, it.unwrapKey().orElse(null)?.identifier())
                 settingsFrom(
                     it,
-                    wanted(server, here, grown),
+                    wanted(server, here, salt, grown),
+                    bentWhereItGrows(here),
+                    bent,
                     here.struck.mapNotNull(Identifier::tryParse).toSet(),
                     here.exclusive || here.wanted.any { claim -> claim.value == NOTHING },
                     shape,
@@ -181,6 +188,12 @@ object Features {
     }
 
     /**
+     * One thing the sentence asked to grow, and whether the clause said how big it is — a claim carrying
+     * its own size has already been built at that size, so the Age's dial must not be applied over it.
+     */
+    private data class Grown(val feature: Holder<VanillaPlacedFeature>, val atItsOwnSize: Boolean)
+
+    /**
      * The features the sentence asked for, each with the step it belongs in.
      *
      * **A placed feature does not know its own step** — the step is the *index* of the list it sits in, so
@@ -191,13 +204,17 @@ object Features {
     private fun wanted(
         server: MinecraftServer,
         asked: Skew,
+        salt: Long,
         grown: ConcurrentHashMap<Claim, Holder<VanillaPlacedFeature>>,
-    ): Map<Int, List<Holder<VanillaPlacedFeature>>> {
+    ): Map<Int, List<Grown>> {
         val features = server.registryAccess().lookupOrThrow(Registries.PLACED_FEATURE)
         val biomes = server.registryAccess().lookupOrThrow(Registries.BIOME)
-        val byStep = mutableMapOf<Int, MutableList<Holder<VanillaPlacedFeature>>>()
+        val byStep = mutableMapOf<Int, MutableList<Grown>>()
         for (claim in asked.wanted) {
             if (claim.value == NOTHING) continue
+            // A description asks for more of what grows here, never for something that does not — see
+            // [bentWhereItGrows] and `Claim.onlyWhereItGrows`.
+            if (claim.onlyWhereItGrows && claim.madeOf == null) continue
             val named = Identifier.tryParse(claim.value) ?: continue
             val found = features.get(ResourceKey.create(Registries.PLACED_FEATURE, named)).orElse(null)
             if (found == null) {
@@ -211,13 +228,57 @@ object Features {
             // Built once for the whole Age and shared by every biome that carries it: what comes out is a
             // *new* placed feature, and the sorted list decoration reads is indexed by identity.
             val laid = grown.computeIfAbsent(claim) {
-                val shaped = claim.madeOf?.let { FeatureShape.mintedFrom(found, it) } ?: found
-                FeatureDensity.applied(shaped, claim.density)
+                // A tag names a small pool the pattern is made of when the clause said nothing; a bare id
+                // is one answer. Drawn against the Age's own salt, so a world rebuilds identically.
+                val substance = claim.madeOf?.let { drawnSubstance(server, it, salt, claim.value) }
+                val shaped = substance?.let { one -> FeatureShape.mintedFrom(found, one) } ?: found
+                // **The clause's own size, applied before the amount**, so what is scaled is the shape and
+                // not the placement the amount prepends to.
+                val sized = claim.size?.let { FeatureShape.reshaped(shaped, it, null, null, emptyList()) }
+                    ?: shaped
+                FeatureDensity.applied(sized, claim.density)
             }
-            byStep.getOrPut(stepFor(named, biomes)) { mutableListOf() } += laid
+            byStep.getOrPut(stepFor(named, biomes)) { mutableListOf() } +=
+                Grown(laid, atItsOwnSize = claim.size != null)
         }
         return byStep
     }
+
+    /**
+     * **What a description asks for more or less of**, by feature, rather than what it asks to be put here.
+     *
+     * `teeming trees` reaches seventy features through a tag and means the trees *this* biome grows; read
+     * as seventy namings it put acacia, bamboo and cherry in every biome at once. A minted claim is never
+     * here: `ink springs` is a thing no biome has, so there is nothing to bend.
+     */
+    private fun bentWhereItGrows(asked: Skew): Map<Identifier, Double> =
+        asked.wanted
+            .filter { it.onlyWhereItGrows && it.madeOf == null && it.value != NOTHING }
+            .mapNotNull { claim -> Identifier.tryParse(claim.value)?.let { it to claim.density } }
+            .toMap()
+
+    /**
+     * The block a claim is made of — **a tag being a pool the Age draws one from**, and a bare id being
+     * itself.
+     *
+     * Resolved here rather than in the resolver, which is a pure function of (vocabulary, sentence, seed)
+     * and holds no registry. Salted by what is being made, so two patterns left unstated in one book do
+     * not come out of the same rock.
+     */
+    private fun drawnSubstance(server: MinecraftServer, named: String, salt: Long, of: String): String? {
+        if (!named.startsWith(TAG_MARK)) return named
+        val id = Identifier.tryParse(named.drop(1)) ?: return null
+        val blocks = server.registryAccess().lookupOrThrow(Registries.BLOCK)
+        val pool = blocks.get(TagKey.create(Registries.BLOCK, id)).orElse(null)?.toList().orEmpty()
+        if (pool.isEmpty()) {
+            Constants.LOG.warn("Nothing carries '{}', so '{}' is made of nothing in particular", named, of)
+            return null
+        }
+        val drawn = XoroshiroRandomSource(salt xor of.hashCode().toLong()).nextInt(pool.size)
+        return pool[drawn].unwrapKey().orElse(null)?.identifier()?.toString()
+    }
+
+    private const val TAG_MARK = '#'
 
     /** Which step a feature sits in wherever this pack already uses it — see [wanted]. */
     private fun stepFor(feature: Identifier, biomes: HolderLookup<Biome>): Int {
@@ -246,7 +307,9 @@ object Features {
      */
     private fun settingsFrom(
         biome: Holder<Biome>,
-        added: Map<Int, List<Holder<VanillaPlacedFeature>>>,
+        added: Map<Int, List<Grown>>,
+        bendingWhereItGrows: Map<Identifier, Double>,
+        bent: ConcurrentHashMap<Pair<Holder<VanillaPlacedFeature>, Double>, Holder<VanillaPlacedFeature>>,
         struck: Set<Identifier>,
         startsFromNothing: Boolean,
         shape: Shape,
@@ -259,10 +322,23 @@ object Features {
         val kept = if (startsFromNothing) emptyList() else own.features()
         kept.forEachIndexed { step, atStep ->
             atStep.filterNot { idOf(it) in struck }
-                .forEach { feature -> built.addFeature(step, shape.applied(feature)) }
+                .forEach { feature ->
+                    val amount = idOf(feature)?.let(bendingWhereItGrows::get)
+                    val asOften = if (amount == null) {
+                        feature
+                    } else {
+                        bent.computeIfAbsent(feature to amount) { (it, density) ->
+                            FeatureDensity.applied(it, density)
+                        }
+                    }
+                    built.addFeature(step, shape.applied(asOften))
+                }
         }
         for ((step, features) in added) {
-            features.forEach { feature -> built.addFeature(step, shape.applied(feature)) }
+            features.forEach { grownHere ->
+                val asAsked = if (grownHere.atItsOwnSize) grownHere.feature else shape.applied(grownHere.feature)
+                built.addFeature(step, asAsked)
+            }
         }
         return built.build()
     }

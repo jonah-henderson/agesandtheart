@@ -6,8 +6,10 @@ import co.voik.agesandtheart.age.Flaw
 import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.age.word.Resolver
 import co.voik.agesandtheart.age.word.Vocabulary
+import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.worldgen.feature.FeatureShape
+import com.google.gson.JsonParser
 import com.mojang.serialization.JsonOps
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature
 import net.minecraft.world.level.material.Fluids
@@ -15,6 +17,7 @@ import co.voik.agesandtheart.worldgen.feature.SpilledSpring
 import net.minecraft.world.level.levelgen.feature.configurations.BlockStateConfiguration
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
+import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.Identifier
 import net.minecraft.resources.ResourceKey
@@ -22,6 +25,7 @@ import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.levelgen.feature.configurations.OreConfiguration
 import net.minecraft.world.level.levelgen.feature.configurations.SpringConfiguration
 import net.minecraft.world.level.levelgen.placement.PlacedFeature
+import java.io.File
 
 /**
  * **A pattern made of something it is never made of** (world model §2) — `ink springs`, `gold block
@@ -46,6 +50,13 @@ class MintingCheck : FunSpec({
         val sentence = Grammar.read(vocabulary, listOf("age", *pages)) ?: error("not a book: ${pages.toList()}")
         val composition = Resolver.resolve(vocabulary, sentence, SAMPLE_SEED).composition
         return composition.optionsFor(Aspect.FEATURES, 0).allSpelled(Features.PLACES.name)
+    }
+
+    /** Where a book left the features aspect's own size dial. */
+    fun sizeOf(vararg pages: String): String {
+        val sentence = Grammar.read(vocabulary, listOf("age", *pages)) ?: error("not a book: ${pages.toList()}")
+        val composition = Resolver.resolve(vocabulary, sentence, SAMPLE_SEED).composition
+        return composition.optionsFor(Aspect.FEATURES, 0).of(Features.SIZE)
     }
 
     test("a material and a pattern said together mint one") {
@@ -173,8 +184,62 @@ class MintingCheck : FunSpec({
         check(rock.none { "lava" in it }) { "'lava springs' paved the world with lava: $rock" }
     }
 
-    test("a pattern named alone mints nothing") {
+    /**
+     * A pattern says what it is made of when the clause does not ([Word.unstated]), and one that says
+     * nothing still mints nothing — `springs` is the pattern with no fallback, so this is the half of the
+     * rule that did not move.
+     */
+    test("a pattern with nothing to fall back on mints nothing") {
         check(placed("springs").none { "of=" in it }) { "'springs' minted something out of nothing" }
+    }
+
+    /**
+     * **`obelisks` alone used to put nothing in the ground.** A writer laid the page, paid for it, and got
+     * a world with no obelisks in it, which reads as the word being broken rather than as the sentence
+     * being incomplete.
+     */
+    test("a pattern named alone is made of what it says it is made of") {
+        val grown = placed("obelisks")
+        check(grown.any { it.startsWith("agesandtheart:obelisks") }) {
+            "'obelisks' grew nothing at all, and left $grown"
+        }
+        check(grown.single().contains("of=#agesandtheart:formation_substance")) {
+            "'obelisks' should be made of the pool the word names, and was $grown"
+        }
+    }
+
+    /**
+     * **The size belongs to the clause, not to the aspect** — two sizes in one book contended before this,
+     * and colossal won for the rings as well as for the obelisks.
+     */
+    test("two clauses ask for two sizes and both get them") {
+        val grown = placed("colossal", "gold_block", "obelisks", "tiny", "rings")
+        val obelisks = grown.single { it.startsWith("agesandtheart:obelisks") }
+        val rings = grown.single { it.startsWith("agesandtheart:rings") }
+
+        check("of=minecraft:gold_block" in obelisks) { "the obelisks lost their substance: $obelisks" }
+        check("size=1" in obelisks) { "the obelisks were not colossal: $obelisks" }
+        check("size=-1" in rings) { "the rings were not tiny: $rings" }
+        check("of=#agesandtheart:formation_substance" in rings) {
+            "the rings should fall back to the pool, and were $rings"
+        }
+    }
+
+    /**
+     * The other half of that: a size a minting clause spent is **spent**. `colossal gold_block obelisks`
+     * enlarging every tree in the Age is the same surprise as `lava springs` paving the world.
+     */
+    test("a size spent on a minting never reaches the aspect") {
+        check(sizeOf("colossal", "gold_block", "obelisks") == sizeOf()) {
+            "'colossal gold_block obelisks' also resized the Age's own features"
+        }
+    }
+
+    /** And a size nothing minted still steers the aspect, which is what makes the spending a scoping. */
+    test("a size outside a minting still reaches the aspect") {
+        check(sizeOf("colossal", "trees", "features") != sizeOf()) {
+            "'colossal trees features' left the features aspect at its default size"
+        }
     }
 
     /**
@@ -210,6 +275,26 @@ class MintingCheck : FunSpec({
     }
 
 
+    /**
+     * **A pool nobody can draw from is a pattern made of nothing.** The tag is bound by a server where the
+     * words are read from files, so a stale id in either half never fails anything in play: generation says
+     * so once in the log and ships the shape's own stone, and the Age looks merely dull.
+     */
+    test("every pattern's unstated substance names something real") {
+        val patterns = vocabulary.words.filter { it.mints != null && it.unstated != null }
+        check(patterns.isNotEmpty()) { "no pattern says what it is made of, so this is checking nothing" }
+
+        for (word in patterns) {
+            val named = word.unstated ?: continue
+            val pool = if (named.startsWith("#")) blocksTagged(named.drop(1)) else listOf(named)
+            check(pool.isNotEmpty()) { "'${word.name}' falls back to '$named', which nothing carries" }
+            val missing = pool.filterNot { block ->
+                Identifier.tryParse(block)?.let { BuiltInRegistries.BLOCK.getOptional(it).isPresent } == true
+            }
+            check(missing.isEmpty()) { "'${word.name}' would be made of blocks nothing has: $missing" }
+        }
+    }
+
     test("a substance nothing answers to leaves the pattern alone") {
         val pattern = placedFeature("minecraft:spring_water")
         check(FeatureShape.mintedFrom(pattern, "agesandtheart:no_such_block") === pattern) {
@@ -219,6 +304,15 @@ class MintingCheck : FunSpec({
 })
 
 private const val SAMPLE_SEED = 0x5EEDL
+
+/** What the pack's own block tag holds, read off the file — nothing binds a tag without a server. */
+private fun blocksTagged(id: String): List<String> {
+    val named = Identifier.tryParse(id) ?: return emptyList()
+    val file = File("src/main/resources/data/${named.namespace}/tags/block/${named.path}.json")
+    if (!file.isFile) return emptyList()
+    return JsonParser.parseString(file.readText()).asJsonObject
+        .getAsJsonArray("values").map { it.asString }
+}
 
 private fun placedFeature(id: String) = MinecraftRegistries.worldgen
     .lookupOrThrow(Registries.PLACED_FEATURE)

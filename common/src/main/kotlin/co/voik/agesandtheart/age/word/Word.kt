@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.word
 
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.age.aspect.MATERIAL_PARAMETERS
 import co.voik.agesandtheart.age.aspect.Taggable
 import net.minecraft.core.Registry
@@ -349,6 +350,20 @@ data class Word(
      */
     val mints: String? = null,
     /**
+     * What the pattern [mints] names is made of when the clause says nothing — a block id, or a block
+     * **tag** naming a small pool the Age's seed draws one from.
+     *
+     * `obelisks` used to mint nothing at all and put nothing in the ground: a writer laid a page, paid for
+     * it, and got a world with no obelisks in it, which reads as the word being broken. What a pattern is
+     * made of when nobody says is a fact about the pattern, so it is written beside it.
+     *
+     * A pool rather than one answer because a formation nobody described should not be the same rock every
+     * time: a few plain stones with a rarer one among them is what makes an unasked-for obelisk worth
+     * walking to. A tag is resolved where the registries are (`Features.wanted`), never here — the
+     * resolver is a pure function of (vocabulary, sentence, seed) and holds no registry.
+     */
+    val unstated: String? = null,
+    /**
      * Whether the pattern [mints] names can only be made of something that **flows**.
      *
      * A spring runs with a fluid, and `fluidState` of a block that is not one is `Fluids.EMPTY` — so
@@ -671,6 +686,19 @@ data class Word(
     val material: String? get() = sets.entries.firstOrNull { it.key in MATERIAL_PARAMETERS }?.value
 
     /**
+     * The size this word asks for, or null where it says nothing about size — read the same way
+     * [material] is read, off what the word sets rather than off a name we would have to keep in step.
+     *
+     * A span rather than a number, since `enormous` is `0.7..1.0`; the middle of it is what a clause takes.
+     * The seed draws within a span where a *parameter* is filled, and has no business deciding how big a
+     * thing a writer named outright is — two obelisks in one book should not differ because one was read
+     * first.
+     */
+    val sizeAsked: Double? get() = sets[SIZE_PARAMETER]
+        ?.let(Span::read)
+        ?.let { (it.least + it.most) / 2.0 }
+
+    /**
      * **How many places this page may be laid** — the second half of what it costs (world model §9).
      *
      * An evocative word is one: it may only ever be written on the Age itself, which is what makes it the
@@ -765,6 +793,9 @@ data class Word(
         private const val GOLDEN = -0x61c8864680b583ebL
         private const val FIRST_MIX = -0x40a7b892e31b1a47L
         private const val SECOND_MIX = -0x6b2fb644ecceee15L
+
+        /** The parameter a size word sets — `Features.SIZE`'s name, and every other axis that shares it. */
+        private const val SIZE_PARAMETER = "size"
 
         /** What choosing a member outright is worth, against a tag weight, which never exceeds one. */
         private const val CHOSEN_OUTRIGHT = 1.0
@@ -883,9 +914,10 @@ data class Word(
                 Codec.STRING.optionalFieldOf("mints").forGetter { Optional.ofNullable(it.mints) },
                 Codec.BOOL.optionalFieldOf("mints_something_that_flows", false)
                     .forGetter(Word::mintsSomethingThatFlows),
+                Codec.STRING.optionalFieldOf("unstated").forGetter { Optional.ofNullable(it.unstated) },
             ).apply(instance) {
                 tier, chooses, admits, excludes, restricts, leanings, sets, pools, requests, template,
-                mints, flows,
+                mints, flows, unstated,
                 ->
                 val everywhere = leanings[EVERYWHERE].orEmpty()
                 val leaned = leanings.filterKeys { it != EVERYWHERE }
@@ -901,7 +933,8 @@ data class Word(
                 Word(
                     id, tier, reaches, chooses, admits.mapValues { it.value.toSet() },
                     excludes.mapValues { it.value.toSet() }, restricts, leaned, everywhere,
-                    sets, pools, requests, template.orElse(null), mints.orElse(null), flows,
+                    sets, pools, requests, template.orElse(null), mints.orElse(null),
+                    unstated.orElse(null), flows,
                 )
             }
         }
