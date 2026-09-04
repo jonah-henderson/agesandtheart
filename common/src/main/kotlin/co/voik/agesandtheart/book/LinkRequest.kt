@@ -61,11 +61,11 @@ object Linking {
         // book, say — and using it would spend the book on the room you are already standing in, which is
         // the same claim `LinkingBookItem` refuses and for the same reason.
         if (existing == level.dimension().identifier()) return complain(player, "same_world")
-        val ageId = existing
-            ?: Ages.allocateId(server, stack.get(AgeContent.BOOK_TITLE).orEmpty())
-                .also { stack.set(AgeContent.AGE_ID, it) }
-        val age = Ages.ensure(server, ageId, recipeFor(stack, server, ageId))
-        if (age == null) return complain(player, "failed")
+        // `BookAge` and not a second copy of this: the linking panel opens the same Age from the same
+        // stack, and a book that previewed one world and sent you to another would be the worst fault
+        // this could have.
+        val age = BookAge.of(server, stack) ?: return complain(player, "failed")
+        val ageId = age.dimension().identifier()
 
         // The book is left where the player stood, before the teleport moves them — otherwise it would
         // come to rest in the Age they are going to.

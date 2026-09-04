@@ -1,8 +1,8 @@
 package co.voik.agesandtheart.book.panel
 
 import co.voik.agesandtheart.Constants
-import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.age.Ages
+import co.voik.agesandtheart.book.BookAge
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.platform.Services
@@ -16,6 +16,7 @@ import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.level.TicketType
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.biome.BiomeManager
+import net.minecraft.world.InteractionHand
 import net.minecraft.world.level.Level
 import net.minecraft.resources.ResourceKey
 import java.util.UUID
@@ -55,34 +56,33 @@ object PanelViews {
     private const val TICKS_BETWEEN_PANELS = 10L
 
     /**
-     * Opens a panel onto [dimension] for [player], streaming the ring around the Age's arrival point.
+     * Opens a panel onto whatever bound book [player] is holding in [hand], streaming its arrival ring.
      *
-     * Refuses anything that is not one of our Ages, and anything the server has no recipe for — a panel is
-     * a view of a world that was written and paid for, so there is nothing here that could bring one into
-     * being.
+     * **Resolves the book through `BookAge`, which is the same call linking makes** — so the world shown
+     * and the world you arrive in are one, and whichever asks first is the one that mints it. A bound
+     * book's Age is decided by its words and its seed; making it here is bringing it into being, not
+     * choosing it, so nothing about §7.5 turns on which of the two asked.
+     *
+     * Refuses anything that is not a descriptive book, which is the only thing that carries an Age.
      */
-    fun open(server: MinecraftServer, player: ServerPlayer, dimension: ResourceKey<Level>) {
+    fun open(server: MinecraftServer, player: ServerPlayer, hand: InteractionHand) {
         val now = server.overworld().gameTime
         val previously = lastOpened[player.uuid]
         if (previously != null && now - previously < TICKS_BETWEEN_PANELS) return
         lastOpened[player.uuid] = now
         close(server, player)
-        val identifier = dimension.identifier()
-        if (identifier.namespace != Constants.MOD_ID) {
-            Constants.LOG.info("Panel refused for {}, which is not one of our Ages", identifier)
+
+        val stack = player.getItemInHand(hand)
+        if (stack.item !== AgeContent.DESCRIPTIVE_BOOK) {
+            Constants.LOG.info("Panel refused: {} is holding {}, which is not a book", player.name.string, stack.item)
             return
         }
-        val written = AgeSavedData.get(server)
-        if (identifier !in written.ages) {
-            Constants.LOG.info("Panel refused for {}, which no recipe describes", identifier)
-            return
-        }
-        val recipe = written.recipe(identifier)
-        val level = Ages.ensure(server, identifier, recipe)
+        val level = BookAge.of(server, stack)
         if (level == null) {
-            Constants.LOG.warn("Panel wanted {} and it would not open", identifier)
+            Constants.LOG.warn("Panel wanted the Age of a book in {}'s hand and it would not open", player.name.string)
             return
         }
+        val dimension = level.dimension()
 
         val around = arrivalIn(level)
         val centre = ChunkPos(SectionPos.blockToSectionCoord(around.x), SectionPos.blockToSectionCoord(around.z))
@@ -90,11 +90,11 @@ object PanelViews {
         hold(level, centre)
 
         // **One line per panel opened, at info.** A book opened once is not noise, and the alternative was
-        // what happened the first time this ran: a black panel, thirty seconds of waiting, and nothing in
-        // the log to say whether anything had been asked for at all.
+        // what happened the first two times this ran: a black panel, thirty seconds of waiting, and nothing
+        // in the log to say whether anything had been asked for at all.
         Constants.LOG.info(
             "Panel opened onto {} for {}, streaming {} chunks around {}",
-            identifier, player.name.string, PanelProtocol.RING_CHUNKS, around,
+            dimension.identifier(), player.name.string, PanelProtocol.RING_CHUNKS, around,
         )
         Services.NETWORK.sendToPlayer(
             player,

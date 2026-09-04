@@ -118,7 +118,7 @@ fun init() {
     }
 
     ServerPlayNetworking.registerGlobalReceiver(PanelOpenRequest.TYPE) { payload, context ->
-        context.server().execute { PanelViews.open(context.server(), context.player(), payload.dimension) }
+        context.server().execute { PanelViews.open(context.server(), context.player(), payload.hand) }
     }
     ServerPlayNetworking.registerGlobalReceiver(PanelCloseRequest.TYPE) { _, context ->
         context.server().execute { PanelViews.close(context.server(), context.player()) }

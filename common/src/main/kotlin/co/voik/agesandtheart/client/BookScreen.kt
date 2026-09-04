@@ -50,18 +50,17 @@ class BookScreen(
     private val pages: List<List<Line>> by lazy { paginate() }
 
     /** Asks for the Age as the screen opens, so the ring is already arriving by the first frame. */
+    /**
+     * Asks for the Age as the screen opens, so the ring is already arriving by the first frame.
+     *
+     * **The hand, not a world.** This book is bound, so it *has* an Age whether or not anybody has been
+     * there — the server resolves the held stack and makes the world if this is the first time anything
+     * asked. A book that had to be visited before it would show you anything would be a panel you could
+     * only consult about places you already knew.
+     */
     override fun init() {
         super.init()
-        val age = ageOf(book)
-        if (age == null) {
-            // **Said out loud, because a book that leads nowhere looks exactly like one that is broken.**
-            // A descriptive book gets its Age when it is first linked with, so a blank or never-used one
-            // has none — and the panel is correctly black. Half an hour was spent on that black rectangle
-            // once; one line at info is cheaper than the next half hour.
-            Constants.LOG.info("A book was opened with no Age to show: it has been written but never linked with")
-            return
-        }
-        LinkingPanel.ask(age)
+        LinkingPanel.ask(hand)
     }
 
     /**
@@ -325,19 +324,6 @@ class BookScreen(
     }
 
     override fun isPauseScreen(): Boolean = false
-
-    /**
-     * Which Age this book leads to, or null for one that leads nowhere yet.
-     *
-     * Both kinds of book answer, differently: a descriptive book carries the Age it wrote as a component,
-     * and a linking book carries a whole [net.minecraft.world.level.Level] key on its target. A blank
-     * descriptive book has neither, and gets no panel — there is nothing to look at.
-     */
-    private fun ageOf(stack: ItemStack): net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level>? {
-        stack.get(AgeContent.LINK_TARGET)?.let { return it.dimension }
-        val id = stack.get(AgeContent.AGE_ID) ?: return null
-        return net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION, id)
-    }
 
     private companion object {
         /** GLFW's right button, which is what a book is opened with and now what closes it. */

@@ -202,7 +202,7 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         }
         registrar.playToServer(PanelOpenRequest.TYPE, PanelOpenRequest.STREAM_CODEC) { payload, context ->
             (context.player() as? net.minecraft.server.level.ServerPlayer)?.let {
-                PanelViews.open(it.level().server ?: return@let, it, payload.dimension)
+                PanelViews.open(it.level().server ?: return@let, it, payload.hand)
             }
         }
         registrar.playToServer(PanelCloseRequest.TYPE, PanelCloseRequest.STREAM_CODEC) { _, context ->

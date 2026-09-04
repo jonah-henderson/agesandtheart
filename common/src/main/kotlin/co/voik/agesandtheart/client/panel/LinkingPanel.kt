@@ -6,8 +6,7 @@ import co.voik.agesandtheart.book.panel.PanelCloseRequest
 import co.voik.agesandtheart.book.panel.PanelLevelPayload
 import co.voik.agesandtheart.book.panel.PanelOpenRequest
 import net.minecraft.client.Minecraft
-import net.minecraft.world.level.Level
-import net.minecraft.resources.ResourceKey
+import net.minecraft.world.InteractionHand
 
 /**
  * The one panel a client is looking at, if any.
@@ -22,32 +21,34 @@ import net.minecraft.resources.ResourceKey
 object LinkingPanel {
 
     private var showing: PreviewLevel? = null
-    private var awaiting: ResourceKey<Level>? = null
+    private var asked = false
 
     /** What is being shown, or null while nothing is or the first chunks are still coming. */
     val preview: PreviewLevel? get() = showing
 
     /**
-     * Asks the server for a view of [dimension].
+     * Asks the server to show whatever bound book is in [hand].
      *
-     * Idempotent for the same dimension, so a screen may call it every frame without meaning to: asking
-     * twice would have the server drop and retake the ring, which is a stutter and a wasted round trip.
+     * **The hand rather than a world, because the Age may not exist yet**: a bound book's Age is decided
+     * but is only made when something asks for it, and the server resolves the held stack through
+     * `BookAge` exactly as linking does.
+     *
+     * Idempotent, so a screen may call it more than once without meaning to: asking twice would have the
+     * server drop and retake the ring, which is a stutter and a wasted round trip.
      */
-    fun ask(dimension: ResourceKey<Level>) {
-        if (awaiting == dimension || showing?.level?.dimension() == dimension) return
-        release()
-        awaiting = dimension
-        send(PanelOpenRequest(dimension))
+    fun ask(hand: InteractionHand) {
+        if (asked) return
+        asked = true
+        send(PanelOpenRequest(hand))
     }
 
     /** Called when the level payload arrives, which is the server agreeing to show it. */
     fun accept(payload: PanelLevelPayload) {
-        if (awaiting != payload.dimension) {
+        if (!asked) {
             // A panel we stopped waiting for. Tell the server so its ring does not outlive our interest.
             send(PanelCloseRequest)
             return
         }
-        awaiting = null
         showing?.close()
         showing = PreviewLevel.open(payload)
         if (showing == null) send(PanelCloseRequest)
@@ -66,10 +67,10 @@ object LinkingPanel {
      * hold a server-side ring for as long as the client ran.
      */
     fun release() {
-        val had = showing != null || awaiting != null
+        val had = showing != null || asked
         showing?.close()
         showing = null
-        awaiting = null
+        asked = false
         if (had) send(PanelCloseRequest)
     }
 
@@ -77,7 +78,7 @@ object LinkingPanel {
     fun forget() {
         showing?.close()
         showing = null
-        awaiting = null
+        asked = false
     }
 
     private fun send(payload: net.minecraft.network.protocol.common.custom.CustomPacketPayload) {

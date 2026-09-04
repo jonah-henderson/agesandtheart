@@ -11,6 +11,7 @@ import net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData
 import net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData
 import net.minecraft.resources.Identifier
 import net.minecraft.resources.ResourceKey
+import net.minecraft.world.InteractionHand
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 
@@ -25,7 +26,8 @@ import net.minecraft.world.level.Level
  *
  * **The client never generates.** Density functions, noise settings and placed features are server-only
  * registries and are never synced, so a client holding a book's words and seed still cannot build the
- * generator. Chunk data comes over the wire or the panel stays black.
+ * generator. Chunk data comes over the wire or the panel stays black — which is also why the request names
+ * a *book* rather than a world: only the server can turn the one into the other.
  */
 object PanelProtocol {
 
@@ -65,13 +67,19 @@ object PanelProtocol {
 }
 
 /**
- * *"Show me this Age."* — sent when a bound book is opened to its panel.
+ * *"Show me the book in my hand."* — sent when a bound book is opened to its panel.
  *
- * Names a dimension rather than a recipe, which is the whole of §7.5's guarantee holding here: **a panel
- * can only ask about an Age that already exists**, so opening a book can never write, generate or pay for
- * a world. A request naming a dimension the server does not know is dropped.
+ * **Names the hand and not a dimension, because the Age may not exist yet.** A bound book's world is
+ * already decided — the ink is spent and the words are fixed — but it is not *made* until something asks
+ * for it, and the panel is now one of the two things that ask. So the server reads the held stack and
+ * resolves it through `BookAge`, exactly as linking does, which is what keeps a preview and the journey
+ * after it pointing at one world.
+ *
+ * **This does not reopen §7.5.** Commit-and-find-out is satisfied by the *binding*: a writer has already
+ * paid, and there is nothing left to be talked out of. What §7.5 forbids is seeing a world you have not
+ * committed to, and loose pages on a desk still have no panel.
  */
-data class PanelOpenRequest(val dimension: ResourceKey<Level>) : CustomPacketPayload {
+data class PanelOpenRequest(val hand: InteractionHand) : CustomPacketPayload {
 
     override fun type(): CustomPacketPayload.Type<PanelOpenRequest> = TYPE
 
@@ -80,11 +88,8 @@ data class PanelOpenRequest(val dimension: ResourceKey<Level>) : CustomPacketPay
             CustomPacketPayload.Type("panel_open".location())
 
         val STREAM_CODEC: StreamCodec<ByteBuf, PanelOpenRequest> = StreamCodec.of(
-            { buffer, value -> ByteBufCodecs.STRING_UTF8.encode(buffer, value.dimension.identifier().toString()) },
-            { buffer ->
-                val id = Identifier.parse(ByteBufCodecs.STRING_UTF8.decode(buffer))
-                PanelOpenRequest(ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION, id))
-            },
+            { buffer, value -> buffer.writeBoolean(value.hand == InteractionHand.MAIN_HAND) },
+            { buffer -> PanelOpenRequest(if (buffer.readBoolean()) InteractionHand.MAIN_HAND else InteractionHand.OFF_HAND) },
         )
     }
 }
