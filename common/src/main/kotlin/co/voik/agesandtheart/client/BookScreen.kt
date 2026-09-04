@@ -135,6 +135,20 @@ class BookScreen(
             x, y, x + DIAGNOSTIC_PATCH, y + DIAGNOSTIC_PATCH,
             0.0f, 1.0f, 0.0f, 1.0f,
         )
+        // TEMPORARY, and it closes a gap in what the first patch proved. That one goes through
+        // `blit(Identifier, …)`, which resolves through the texture manager; the panel goes through
+        // `blit(GpuTextureView, GpuSampler, …)`, which is a *different* overload. So dirt appearing said
+        // nothing about the path the Age actually takes. This draws the same dirt through that path.
+        // Second patch present: the view overload works, so the panel's target is empty.
+        // Second patch missing: the view overload is the fault, and the target is beside the point.
+        val dirt = Minecraft.getInstance().textureManager.getTexture(
+            Identifier.withDefaultNamespace("textures/block/dirt.png"),
+        )
+        graphics.blit(
+            dirt.textureView, dirt.sampler,
+            x + DIAGNOSTIC_PATCH, y, x + DIAGNOSTIC_PATCH * 2, y + DIAGNOSTIC_PATCH,
+            0.0f, 1.0f, 0.0f, 1.0f,
+        )
         val preview = LinkingPanel.preview
         if (preview == null) {
             PanelRenderer.sayOnce("no preview level yet — the server's chunks have not been taken up")
