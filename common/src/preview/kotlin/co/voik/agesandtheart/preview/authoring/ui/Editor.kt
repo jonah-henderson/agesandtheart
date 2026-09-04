@@ -1032,6 +1032,12 @@ class Editor(
                 pickATarget(into.copy(offer = which))
             }
             "heading" -> Unit
+            // **The three rows of the `makes` section.** They drew themselves and did nothing else: enter
+            // fell through to `insistenceNamed("mints")`, which is null, so the footer's "change what it
+            // makes" was a promise nothing kept and a word could only ever mint by being edited as a file.
+            "mints", "+mints" -> pickAPattern()
+            "unstated", "+unstated" -> pickASubstance()
+            "flows" -> edit { it.copy(mintsSomethingThatFlows = !it.mintsSomethingThatFlows) }
             // **The pool's own menu**, where adding a facet and setting the count are the same size of
             // decision. Opening straight into the count made the count the price of looking at the pool.
             "draws" -> pointedAt(rest)?.let { into ->
@@ -1238,6 +1244,9 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
                 "draws" -> pointedAt(handle.removePrefix("draws/"))?.let { into ->
                     edit { it.withoutPool(into.insistence, into.pool ?: return@edit it) }
                 }
+                // Minting nothing has nothing to fall back to, so the two go together.
+                "mints" -> edit { it.copy(mints = null, unstated = null) }
+                "unstated" -> edit { it.copy(unstated = null) }
                 else -> insistenceNamed(handle.substringBefore('/'))?.let { insistence ->
                     edit { it.without(insistence, handle.substringAfter('/')) }
                 }
@@ -1983,20 +1992,37 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
         return "$carried ${Glyph.BULLET} asked by $asked word(s)"
     }
 
-    private fun retypeField(handle: String) {
-        if (handle == "flows") {
-            edit { it.copy(mintsSomethingThatFlows = !it.mintsSomethingThatFlows) }
-            return
+    /**
+     * **Which pattern this word mints from** — vanilla's placed features, and the pack's own where a
+     * snapshot has been taken. A word minting one of ours could only be written as a file before this.
+     */
+    private fun pickAPattern() {
+        val options = parts.patterns().map { pattern ->
+            Picker.Option(
+                value = pattern,
+                label = pattern,
+                note = if (pattern.startsWith(OURS)) "this pack's own" else "vanilla's",
+                marked = pattern == candidate.mints,
+            )
         }
-        overlay = Prompt(
-            title = "Set '$handle' to what?",
-            hint = "blank for none",
-            typed = candidate.mints.orEmpty(),
-            complaint = { null },
-            onDone = { typed ->
-                val said = typed.ifBlank { null }
-                edit { at -> at.copy(mints = said) }
-            },
+        overlay = Picker(
+            title = if (options.isEmpty()) NO_PATTERNS_KNOWN else "Made out of which pattern?",
+            options = options,
+            onClear = { edit { it.copy(mints = null, unstated = null) } },
+            onPick = { picked -> edit { it.copy(mints = picked.value) } },
+        )
+    }
+
+    /** What the pattern is made of when the clause says nothing — one block, or a tag naming a pool. */
+    private fun pickASubstance() {
+        val options = parts.substances().map { (substance, said) ->
+            Picker.Option(value = substance, label = substance, note = said, marked = substance == candidate.unstated)
+        }
+        overlay = Picker(
+            title = "Made of what, when nobody says?",
+            options = options,
+            onClear = { edit { it.copy(unstated = null) } },
+            onPick = { picked -> edit { it.copy(unstated = picked.value) } },
         )
     }
 
@@ -2266,5 +2292,11 @@ private fun Map<Aspect, Map<String, Double>>.dropping(
 
         /** Header, two rules, the strip and the two key lines — what the body is not allowed to use. */
         const val CHROME_LINES = 5 + STRIP_LINES
+
+        /** Which patterns are the pack's own, in a list where the rest are vanilla's. */
+        const val OURS = "agesandtheart:"
+
+        /** Said where even vanilla's are missing, which means the registries never stood up. */
+        const val NO_PATTERNS_KNOWN = "No patterns are known"
     }
 }

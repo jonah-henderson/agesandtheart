@@ -61,6 +61,7 @@ import com.mojang.brigadier.context.CommandContext
 import net.minecraft.ChatFormatting
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
+import net.minecraft.commands.arguments.IdentifierArgument
 import net.minecraft.core.registries.Registries
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
@@ -186,6 +187,8 @@ object AgeCommand {
 
     /** `/age tags <aspect> [tag]`. */
     private const val ASPECT_ARGUMENT = "aspect"
+    private const val REGISTRY_ARGUMENT = "registry"
+    private const val TAGS_LITERAL = "tags"
     private const val TAG_ARGUMENT = "tag"
 
     /** The other half of the corpus: one word per block in the pack, and all of them materials. */
@@ -295,6 +298,7 @@ object AgeCommand {
                 .then(tagsSubcommand())
                 .then(rulesSubcommand())
                 .then(dimensionsSubcommand())
+                .then(holdingsSubcommand())
                 .then(pagesSubcommand())
                 .then(forgetSubcommand())
                 .then(weatherSubcommand())
@@ -432,6 +436,63 @@ object AgeCommand {
             report.entry("dimension", mapOf("id" to id, "ours" to (id in ours))) {
                 "  $id${if (id in ours) "  (an Age)" else ""}"
             }
+        }
+        report.finish()
+        return SUCCESS
+    }
+
+    /**
+     * **What a registry holds, and what its tags carry** — the other half of what only a running game
+     * knows, and the one Scrivener needs to offer a list instead of a blank prompt.
+     *
+     * A pack's own placed features are datapack content and exist nowhere until a server has loaded them,
+     * so a word that mints one could only ever be typed. Block tags are the same: `#minecraft:stone_ore_
+     * replaceables` is a perfectly good pool for a formation to be made of and nothing offline can name it.
+     *
+     * General rather than one command per registry, because the next thing the tool wants to offer will be
+     * a third registry and this already answers for it. Named the way a registry is — `minecraft:block`,
+     * `minecraft:worldgen/placed_feature`.
+     */
+    private fun holdingsSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        reporting("holdings") { reportFor ->
+            // **An id argument, not a string one.** Brigadier's unquoted word stops at a colon and a
+            // slash, so `minecraft:worldgen/placed_feature` had to be typed in quotes to parse at all.
+            Commands.argument(REGISTRY_ARGUMENT, IdentifierArgument.id())
+                .suggests { context, builder ->
+                    SharedSuggestionProvider.suggest(registryNames(context.source.server), builder)
+                }
+                .executes { context -> runHoldings(context, tags = false, report = reportFor(context)) }
+                .then(
+                    Commands.literal(TAGS_LITERAL)
+                        .executes { context -> runHoldings(context, tags = true, report = reportFor(context)) },
+                )
+        }
+
+    private fun registryNames(server: MinecraftServer): List<String> =
+        server.registryAccess().listRegistryKeys().map { it.identifier().toString() }.sorted().toList()
+
+    private fun runHoldings(context: CommandContext<CommandSourceStack>, tags: Boolean, report: Report): Int {
+        val server = context.source.server
+        val id = IdentifierArgument.getId(context, REGISTRY_ARGUMENT)
+        val named = id.toString()
+        val registry = server.registryAccess().lookup(ResourceKey.createRegistryKey<Any>(id)).orElse(null)
+        if (registry == null) {
+            context.source.sendFailure(Component.literal("No registry called '$named'"))
+            return FAILURE
+        }
+        if (tags) {
+            val carried = registry.listTags()
+                .map { it.key().location().toString() to it.size() }
+                .toList()
+                .sortedBy { it.first }
+            report.fact("tags", carried.size) { "$named has ${carried.size} tag(s):" }
+            for ((tag, carriers) in carried) {
+                report.entry("tag", mapOf("id" to tag, "carriers" to carriers)) { "  $tag  ($carriers)" }
+            }
+        } else {
+            val ids = registry.listElementIds().map { it.identifier().toString() }.toList().sorted()
+            report.fact("holdings", ids.size) { "$named holds ${ids.size}:" }
+            for (held in ids) report.entry("holding", mapOf("id" to held)) { "  $held" }
         }
         report.finish()
         return SUCCESS

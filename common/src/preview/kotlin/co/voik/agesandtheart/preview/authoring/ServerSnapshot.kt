@@ -54,6 +54,21 @@ data class ServerSnapshot(
      * the nether does. Recording the list now means the data is here when something can use it.
      */
     val dimensions: List<String> = emptyList(),
+    /**
+     * What a registry holds, by registry id — the placed features, for now.
+     *
+     * **A pack's own are datapack content**, so `agesandtheart:obelisks` exists nowhere until a server has
+     * loaded its packs: a word minting one could only ever be typed at, never chosen from a list.
+     */
+    val holdings: Map<String, List<String>> = emptyMap(),
+    /**
+     * A registry's tags and how many carry each, by registry id — the block tags, for now.
+     *
+     * By count rather than by member, which is the whole difference between a hundred kilobytes and two:
+     * a picker wants the names and something to say beside each, and what is actually *in* a tag is a
+     * question for the Age being generated rather than for the word being written.
+     */
+    val tagged: Map<String, Map<String, Int>> = emptyMap(),
 ) {
 
     data class Reach(val carriers: Int, val found: Int)
@@ -68,6 +83,12 @@ data class ServerSnapshot(
     data class Progress(val done: Int, val total: Int, val what: String) {
         val share: Double get() = if (total <= 0) 0.0 else done.toDouble() / total
     }
+
+    /** Every placed feature a server had, ours among them — empty where none was ever asked. */
+    val placedFeatures: List<String> get() = holdings[PLACED_FEATURE_REGISTRY].orEmpty()
+
+    /** Every block tag a server had, with how many blocks carry it. */
+    val blockTags: Map<String, Int> get() = tagged[BLOCK_REGISTRY].orEmpty()
 
     /** What a server said this tag reaches in this aspect, or null where the snapshot never asked. */
     fun reachOf(aspect: Aspect, tag: String): Reach? = reach[aspect.page]?.get(tag)
@@ -122,6 +143,25 @@ data class ServerSnapshot(
                 },
             )
             add(
+                "holdings",
+                JsonObject().apply {
+                    holdings.forEach { (registry, ids) ->
+                        add(registry, com.google.gson.JsonArray().apply { ids.forEach(::add) })
+                    }
+                },
+            )
+            add(
+                "tagged",
+                JsonObject().apply {
+                    tagged.forEach { (registry, tags) ->
+                        add(
+                            registry,
+                            JsonObject().apply { tags.forEach { (tag, carriers) -> addProperty(tag, carriers) } },
+                        )
+                    }
+                },
+            )
+            add(
                 "server_only",
                 JsonObject().apply {
                     serverOnly.forEach { (tag, members) ->
@@ -140,6 +180,10 @@ data class ServerSnapshot(
          * away, and the whole point of a snapshot is that it outlives the errand that made it. Git-ignored.
          */
         val FILE = File(".authoring/server-snapshot.json")
+
+        /** The two registries the tool asks about, spelled once so the ask and the reading agree. */
+        const val PLACED_FEATURE_REGISTRY = "minecraft:worldgen/placed_feature"
+        const val BLOCK_REGISTRY = "minecraft:block"
 
         private const val RCON_PASSWORD = "agesandtheart-authoring"
         private const val STARTUP_SECONDS = 240L
@@ -180,6 +224,16 @@ data class ServerSnapshot(
                     // remembered" rather than as a broken file — a refresh is what fills it.
                     caught = json.getAsJsonObject("caught")?.entrySet()?.associate { (rule, members) ->
                         rule to members.asJsonArray.map { it.asString }
+                    }.orEmpty(),
+                    // Both absent from a snapshot taken before the tool offered a list of either, which
+                    // reads as "nothing remembered" — a refresh is what fills them.
+                    holdings = json.getAsJsonObject("holdings")?.entrySet()?.associate { (registry, ids) ->
+                        registry to ids.asJsonArray.map { it.asString }
+                    }.orEmpty(),
+                    tagged = json.getAsJsonObject("tagged")?.entrySet()?.associate { (registry, tags) ->
+                        registry to tags.asJsonObject.entrySet().associate { (tag, carriers) ->
+                            tag to carriers.asInt
+                        }
                     }.orEmpty(),
                 )
             }.getOrNull()
@@ -271,6 +325,21 @@ data class ServerSnapshot(
                 rule.get("id").asString to
                     rule.getAsJsonArray("caught")?.map { it.asString }.orEmpty()
             }.orEmpty()
+            say(Progress(0, 0, "asking what features it can place"))
+            val holdings = mapOf(
+                PLACED_FEATURE_REGISTRY to (
+                    ask("age holdings json $PLACED_FEATURE_REGISTRY").getAsJsonArray("holding")
+                        ?.map { it.asJsonObject.get("id").asString }.orEmpty()
+                    ),
+            )
+            say(Progress(0, 0, "asking what its block tags are"))
+            val tagged = mapOf(
+                BLOCK_REGISTRY to (
+                    ask("age holdings json $BLOCK_REGISTRY tags").getAsJsonArray("tag")
+                        ?.associate { it.asJsonObject.get("id").asString to it.asJsonObject.get("carriers").asInt }
+                        .orEmpty()
+                    ),
+            )
             say(Progress(0, 0, "asking what dimensions it has"))
             val dimensions = ask("age dimensions json all").getAsJsonArray("dimension")
                 ?.map { it.asJsonObject.get("id").asString }.orEmpty()
@@ -314,6 +383,8 @@ data class ServerSnapshot(
                 serverOnly = serverOnly,
                 caught = caught,
                 dimensions = dimensions,
+                holdings = holdings,
+                tagged = tagged,
             )
         }
     }

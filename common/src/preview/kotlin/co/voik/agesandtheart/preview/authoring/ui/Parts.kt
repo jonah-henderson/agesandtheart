@@ -11,10 +11,13 @@ import co.voik.agesandtheart.age.word.Draws
 import co.voik.agesandtheart.age.word.Facets
 import co.voik.agesandtheart.age.word.Tier
 import com.github.ajalt.mordant.rendering.TextStyle
+import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.core.registries.Registries
 import co.voik.agesandtheart.age.word.Word
 import co.voik.agesandtheart.age.word.aspectNamedBy
 import co.voik.agesandtheart.age.word.landsOn
 import co.voik.agesandtheart.age.word.parameterIn
+import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.preview.authoring.Candidate
 import co.voik.agesandtheart.preview.authoring.Corpus
 import co.voik.agesandtheart.preview.authoring.Verdict
@@ -192,7 +195,9 @@ class Parts(private val corpus: Corpus) {
                     "a" to "add to this one's group",
                     "d" to "remove it",
                 )
-                kind == "mints" -> listOf("enter" to "change what it makes", "d" to "make nothing")
+                kind == "mints" -> listOf("enter" to "change the pattern", "d" to "make nothing")
+                kind == "flows" -> listOf("enter" to "block or fluid")
+                kind == "unstated" -> listOf("enter" to "change the pool", "d" to "say nothing")
                 handle.isEmpty() -> emptyList()
                 else -> listOf("enter" to "set it", "a" to "add another", "d" to "remove it")
             }
@@ -710,33 +715,79 @@ class Parts(private val corpus: Corpus) {
                 addAll(offerRows(insistence, at, pool, word))
             }
         }
-        candidate.mints?.let { pattern ->
-            add(Row("heading/mints", listOf(Ink("makes", Palette.heading)), "a new member, out of a pattern the game already has"))
+        add(Row("heading/mints", listOf(Ink("makes", Palette.heading)), "a new member, out of a pattern the game already has"))
+        val pattern = candidate.mints
+        if (pattern == null) {
+            add(
+                Row(
+                    handle = "+mints",
+                    shown = listOf(Ink("    + make something out of a pattern", Palette.faint)),
+                    note = "`ink springs` is vanilla's spring running with ours — the pattern is the page",
+                ),
+            )
+        } else {
             add(
                 Row(
                     handle = "mints",
                     shown = listOf(
                         Ink("    "),
-                        Ink(pattern.padEnd(PARAMETER_COLUMN), Palette.parameter),
-                        Ink(if (candidate.mintsSomethingThatFlows) "holds a fluid" else "holds a block", Palette.value),
+                        Ink("pattern".padEnd(PARAMETER_COLUMN), Palette.parameter),
+                        Ink(pattern, Palette.value),
                     ),
                     note = "the substance comes from the clause it is written in — `ink springs`",
                 ),
             )
-            candidate.unstated?.let { fallback ->
-                add(
-                    Row(
-                        handle = "unstated",
-                        shown = listOf(
+            add(
+                Row(
+                    handle = "flows",
+                    shown = listOf(
+                        Ink("    "),
+                        Ink("made of".padEnd(PARAMETER_COLUMN), Palette.parameter),
+                        Ink(if (candidate.mintsSomethingThatFlows) "a fluid" else "a block", Palette.value),
+                    ),
+                    note = "a spring runs with a fluid and a solid holds none",
+                ),
+            )
+            add(
+                Row(
+                    handle = if (candidate.unstated == null) "+unstated" else "unstated",
+                    shown = candidate.unstated?.let { fallback ->
+                        listOf(
                             Ink("    "),
                             Ink("when nobody says".padEnd(PARAMETER_COLUMN), Palette.parameter),
                             Ink(fallback, Palette.value),
-                        ),
-                        note = "a tag here is a pool the Age draws one from",
-                    ),
-                )
-            }
+                        )
+                    } ?: listOf(Ink("    + say what it is made of when nobody does", Palette.faint)),
+                    note = "a tag here is a pool the Age draws one from",
+                ),
+            )
         }
+    }
+
+    /**
+     * Every pattern a word could mint from — **vanilla's offline, and the pack's own from a snapshot.**
+     *
+     * A placed feature is datapack content, so `agesandtheart:obelisks` exists nowhere until a server has
+     * loaded its packs and only [ServerSnapshot.placedFeatures] can name one. Vanilla's are in the built-in
+     * registries and need nobody.
+     */
+    fun patterns(): List<String> {
+        val vanillas = MinecraftRegistries.worldgen.lookupOrThrow(Registries.PLACED_FEATURE)
+            .listElementIds().map { it.identifier().toString() }.toList()
+        return (vanillas + corpus.snapshot?.placedFeatures.orEmpty()).distinct().sorted()
+    }
+
+    /**
+     * What a pattern may be made of when nobody says — every block, and every block **tag**, which is a
+     * pool the Age draws one from.
+     *
+     * The tags need a snapshot for the same reason the patterns do: nothing binds one without a server.
+     */
+    fun substances(): List<Pair<String, String>> {
+        val pools = corpus.snapshot?.blockTags.orEmpty().entries.sortedBy { it.key }
+            .map { (tag, carriers) -> "$TAG_MARK$tag" to "a pool of $carriers" }
+        val blocks = BuiltInRegistries.BLOCK.keySet().map { it.toString() }.sorted().map { it to "one block" }
+        return pools + blocks
     }
 
     /**

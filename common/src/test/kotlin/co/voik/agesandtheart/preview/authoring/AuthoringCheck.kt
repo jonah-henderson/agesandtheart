@@ -18,6 +18,8 @@ import co.voik.agesandtheart.preview.authoring.ui.Glyph
 import co.voik.agesandtheart.preview.authoring.ui.Insistence
 import co.voik.agesandtheart.preview.authoring.ui.addingAPool
 import co.voik.agesandtheart.preview.authoring.ui.drawing
+import co.voik.agesandtheart.preview.authoring.ui.Part
+import co.voik.agesandtheart.preview.authoring.ui.Parts
 import co.voik.agesandtheart.preview.authoring.ui.leaning
 import co.voik.agesandtheart.preview.authoring.ui.poolsOn
 import co.voik.agesandtheart.preview.authoring.ui.puttingInPool
@@ -63,6 +65,7 @@ class AuthoringCheck : FunSpec({
             pools = listOf(Facets.of(mapOf("spacing" to "0.4..1.0"), Draws("1..2"))),
             template = "dark_void",
             mints = "minecraft:spring_water",
+            unstated = "#agesandtheart:formation_substance",
             mintsSomethingThatFlows = true,
         )
         val encoded = Word.mapCodec(everything.id).codec()
@@ -72,6 +75,33 @@ class AuthoringCheck : FunSpec({
         val unknown = encoded.keySet() - Candidate.KNOWN_FIELDS
         check(unknown.isEmpty()) {
             "Word's codec writes ${unknown.joinToString()}, which Candidate.asJson would drop in silence"
+        }
+    }
+
+    /**
+     * **A field the tool can write must be a field the tool can reach.**
+     *
+     * `mints` was writable and unreachable for the whole life of the tool: the row drew itself only when
+     * the word already minted, so there was no way to start; `enter` on it fell through a `when` that had
+     * no branch for it; and the footer advertised both. Every pattern word in the corpus was written by
+     * hand in the JSON, which is the one thing the vocabulary pass says not to do. `unstated` inherited
+     * all of it the day it landed.
+     */
+    test("everything the makes section writes has a row to reach it") {
+        val parts = Parts(Corpus.load())
+        fun handlesFor(candidate: Candidate) =
+            parts.rowsOf(Part.PROPERTIES, candidate, word = null, width = PANEL_WIDTH).map { it.handle }.toSet()
+
+        check("+mints" in handlesFor(Candidate.blank("nothing"))) {
+            "a word that mints nothing has no way to start: ${handlesFor(Candidate.blank("nothing"))}"
+        }
+        val minting = Candidate.blank("something").copy(mints = "minecraft:spring_water")
+        val reachable = handlesFor(minting)
+        check(setOf("mints", "flows", "+unstated").all { it in reachable }) {
+            "a minting word cannot reach all of what it writes: $reachable"
+        }
+        check("unstated" in handlesFor(minting.copy(unstated = "minecraft:stone"))) {
+            "a fallback that is set cannot be changed"
         }
     }
 
