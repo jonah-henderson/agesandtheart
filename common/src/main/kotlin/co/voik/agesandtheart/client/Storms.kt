@@ -217,9 +217,14 @@ object Storms {
      * anything the storm is doing, because what a player is judging is how bad *this Age* is.
      */
     private fun seenThrough(was: Float, hard: Double): Float {
-        val bite = ((hard - ORDINARY) / (HARDEST - ORDINARY)).coerceIn(0.0, 1.0)
         val ordinary = was * CLEAREST
-        return (ordinary + (WHITEOUT - ordinary) * bite).toFloat().coerceAtLeast(WHITEOUT)
+        if (hard <= HARDEST_EARNED) {
+            val bite = ((hard - ORDINARY) / (HARDEST_EARNED - ORDINARY)).coerceIn(0.0, 1.0)
+            return (ordinary + (EARNED_WHITEOUT - ordinary) * bite).toFloat()
+        }
+        // Past what any Age can earn, and only `/age weather blizzard` goes here.
+        val over = ((hard - HARDEST_EARNED) / (HARDEST_FORCED - HARDEST_EARNED)).coerceIn(0.0, 1.0)
+        return (EARNED_WHITEOUT + (FORCED_WHITEOUT - EARNED_WHITEOUT) * over).toFloat()
     }
 
     /** Vanilla's own threshold, and the one the snow obeys. */
@@ -232,14 +237,20 @@ object Storms {
     private const val CLEAREST = 0.35f
 
     /**
-     * Where the view is gone entirely at the fiercest, in blocks.
+     * Where the view is gone at the worst storm an **Age can earn**, in blocks.
      *
-     * **Well short of `Engulfing`'s sandfall, and that is the right way round** (Jonah, 2026-09-05, walked
-     * twice down to this). A sandfall is a wall of ground you are standing inside and closes at a couple of
-     * blocks; a blizzard is weather you are walking through, and has to leave you enough to place a torch
-     * by. Four clear and gone by eight is what a walk settled on.
+     * **The ramp stops just short of the floor rather than on it** (Jonah, 2026-09-05). Landing the
+     * hardest earnable blizzard exactly on the limit made the top of the dial read as a clamp; a hair
+     * above leaves the absolute worst for something no Age can write, which is where it belongs.
+     *
+     * **Well short of `Engulfing`'s sandfall either way, and that is the right way round.** A sandfall is a
+     * wall of ground you are standing inside and closes at a couple of blocks; a blizzard is weather you
+     * walk through, and has to leave you enough to place a torch by.
      */
-    private const val WHITEOUT = 8.0f
+    private const val EARNED_WHITEOUT = 9.5f
+
+    /** And where it is gone for a storm somebody asked for by hand, past anything instability can buy. */
+    private const val FORCED_WHITEOUT = 8.0f
 
     /**
      * Where the white *begins*, as a share of where it becomes total.
@@ -252,7 +263,12 @@ object Storms {
     private const val BEGINS_AT = 0.5f
 
     private const val ORDINARY = 1.0
-    private const val HARDEST = 3.0
+
+    /** Everything an Age's instability can buy — see `Blizzard.howHardOf`. */
+    private const val HARDEST_EARNED = 3.0
+
+    /** The top of `/age weather blizzard`'s own range, which no Age reaches. */
+    private const val HARDEST_FORCED = 5.0
 
     /** How far around the player the storm is drawn, in blocks. */
     private const val AROUND = 14
