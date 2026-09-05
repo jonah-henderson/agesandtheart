@@ -119,6 +119,13 @@ data class PanelLevelPayload(
      * Globals UBO's time drives those.
      */
     val gameTime: Long,
+    /**
+     * The Age's instability index, which the panel wears as distortion (design §7.3).
+     *
+     * The index and nothing that went into it: the panel says *that* an Age is at odds with itself, and
+     * the desk still owns diagnosis.
+     */
+    val instability: Int,
 ) : CustomPacketPayload {
 
     override fun type(): CustomPacketPayload.Type<PanelLevelPayload> = TYPE
@@ -136,6 +143,7 @@ data class PanelLevelPayload(
                 ByteBufCodecs.VAR_INT.encode(buffer, value.seaLevel)
                 ByteBufCodecs.VAR_INT.encode(buffer, value.chunksComing)
                 ByteBufCodecs.VAR_LONG.encode(buffer, value.gameTime)
+                ByteBufCodecs.VAR_INT.encode(buffer, value.instability)
             },
             { buffer ->
                 val dimension = Identifier.parse(ByteBufCodecs.STRING_UTF8.decode(buffer))
@@ -147,6 +155,7 @@ data class PanelLevelPayload(
                     seaLevel = ByteBufCodecs.VAR_INT.decode(buffer),
                     chunksComing = ByteBufCodecs.VAR_INT.decode(buffer),
                     gameTime = ByteBufCodecs.VAR_LONG.decode(buffer),
+                    instability = ByteBufCodecs.VAR_INT.decode(buffer),
                 )
             },
         )

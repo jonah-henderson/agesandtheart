@@ -37,6 +37,9 @@ class PreviewLevel private constructor(
     /** Ours rather than the game's: two renderers sharing one would collide over `levelRenderState`. */
     val renderState: GameRenderState,
     val camera: PanelCamera,
+    val shots: PanelShots,
+    /** How far the Age is at odds with itself as the panel shows it, `0..1` (design §7.3). */
+    val unsettled: Float,
     private val around: BlockPos,
     val load: RingLoad,
 ) : AutoCloseable {
@@ -227,11 +230,16 @@ class PreviewLevel private constructor(
             val centre = PanelRing.centreOf(payload.around)
             level.chunkSource.updateViewCenter(centre.x, centre.z)
 
+            val unsettled = PanelDistortion.unsettledAt(payload.instability)
+            // A note to self rather than GPU work: the fields are made lazily, inside the render.
+            PanelTarget.showing(unsettled)
             return PreviewLevel(
                 level = level,
                 renderer = renderer,
                 renderState = renderState,
                 camera = PanelCamera(level, payload.around),
+                shots = PanelShots(payload.biomeZoomSeed, unsettled),
+                unsettled = unsettled,
                 around = payload.around,
                 load = RingLoad(payload.around, payload.chunksComing),
             )

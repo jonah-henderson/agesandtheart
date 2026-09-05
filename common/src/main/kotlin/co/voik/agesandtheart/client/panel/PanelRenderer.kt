@@ -26,16 +26,15 @@ object PanelRenderer {
 
     private val fog = FogRenderer()
 
-    /** A look rather than a fly-by, so one turn of the orbit is slow. */
-    private const val SECONDS_PER_TURN = 24.0f
-
-    private const val NANOS_PER_SECOND = 1_000_000_000.0f
-
-    private val startedAt = System.nanoTime()
+    /** Which shot the newest field holds, so a cut is noticed once rather than every frame. */
+    private var drawn = NO_SHOT
 
     private const val BEHIND_THE_AGE = 0xFF000000.toInt()
 
     private const val FURTHEST_DEPTH = 1.0
+
+    /** No shot has been drawn since the panel last started over. */
+    private const val NO_SHOT = -1
 
     /**
      * The Age's distant haze as an opaque colour, from the frame last drawn.
@@ -53,12 +52,26 @@ object PanelRenderer {
      */
     fun draw(preview: PreviewLevel, delta: DeltaTracker): Boolean = drawOnce(preview, delta)
 
+    /** Forgets what has been drawn, so one book's panel never interlaces with the last one's Age. */
+    fun startOver() {
+        drawn = NO_SHOT
+        PanelTarget.startOver()
+    }
+
     private fun drawOnce(preview: PreviewLevel, delta: DeltaTracker): Boolean {
         if (!preview.load.hasAnything) return false
 
+        // Before the target is asked for: turning over is what decides which field the frame lands in.
+        val shot = preview.shots.number
+        if (shot != drawn) {
+            // Never for a book's first shot, which has nothing behind it worth keeping.
+            if (drawn != NO_SHOT) PanelTarget.turnOver()
+            drawn = shot
+        }
+
         val target = PanelTarget.get()
         val camera = preview.camera
-        camera.placeAt(turnsSoFar(), target.width, target.height)
+        camera.placeAt(preview.shots.showing(), target.width, target.height)
 
         val state = preview.renderState.levelRenderState.cameraRenderState
         camera.describeTo(state, target.width, target.height)
@@ -92,10 +105,6 @@ object PanelRenderer {
         minecraft.entityRenderDispatcher.camera = playersCamera
         minecraft.blockEntityRenderDispatcher.prepare(playersCamera.position())
     }
-
-    /** Where the orbit has got to, `0..1` for a full circle, off the clock rather than off ticks. */
-    private fun turnsSoFar(): Float =
-        ((System.nanoTime() - startedAt) / NANOS_PER_SECOND / SECONDS_PER_TURN) % 1.0f
 
     /**
      * Gives the render state the Age's fog and returns the buffer the terrain pass wants.

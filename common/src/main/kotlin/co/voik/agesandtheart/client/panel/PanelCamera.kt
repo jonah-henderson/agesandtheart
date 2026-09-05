@@ -30,17 +30,19 @@ class PanelCamera(private val level: ClientLevel, private val centre: BlockPos) 
     private var placedPitch: Float = PITCH_DEGREES
 
     /**
-     * Places the camera for one frame, [turns] being how far round the orbit has gone (`0..1` is a circle).
+     * Places the camera for one [shot], whose three values are read against the ranges below.
      *
      * The order after placement is what `Camera.update` does and cannot do for this camera: the projection
      * has to be set up before a frustum can be prepared from it, and the frustum before `extractLevel` can
      * cull against it.
      */
-    fun placeAt(turns: Float, width: Int, height: Int) {
-        val angle = turns.toDouble() * TWO_PI
-        val eyeX = centre.x + 0.5 + kotlin.math.cos(angle) * ORBIT_RADIUS
-        val eyeZ = centre.z + 0.5 + kotlin.math.sin(angle) * ORBIT_RADIUS
-        val eyeY = liftedClear(eyeX, centre.y + ORBIT_HEIGHT, eyeZ)
+    fun placeAt(shot: Shot, width: Int, height: Int) {
+        val angle = shot.turns.toDouble() * TWO_PI
+        val orbit = Mth.lerp(shot.closeness, FURTHEST_ORBIT, NEAREST_ORBIT).toDouble()
+        val eyeX = centre.x + 0.5 + kotlin.math.cos(angle) * orbit
+        val eyeZ = centre.z + 0.5 + kotlin.math.sin(angle) * orbit
+        val lift = Mth.lerp(shot.loft, LOWEST_ORBIT, HIGHEST_ORBIT).toDouble()
+        val eyeY = liftedClear(eyeX, centre.y + lift, eyeZ)
         val eye = Vec3(eyeX, eyeY, eyeZ)
         setPosition(eye)
 
@@ -140,11 +142,18 @@ class PanelCamera(private val level: ClientLevel, private val centre: BlockPos) 
             FAR_PLANE,
         )
 
-        /** Half the streamed ring, so the whole of it stays in front of the eye. */
-        private const val ORBIT_RADIUS = 24.0
+        /**
+         * How far out a shot may stand, either side of half the streamed ring.
+         *
+         * The far end is what bounds it: a shot from outside the ring would look across the arrival at the
+         * ring's own edge, which only the fog over the shown radius hides.
+         */
+        private const val NEAREST_ORBIT = 16.0f
+        private const val FURTHEST_ORBIT = 30.0f
 
         /** High enough to look down on the arrival rather than stand in it. */
-        private const val ORBIT_HEIGHT = 14.0
+        private const val LOWEST_ORBIT = 8.0f
+        private const val HIGHEST_ORBIT = 22.0f
 
         /** Vanilla's yaw is degrees clockwise from south, where `atan2` is counted from east. */
         private const val QUARTER_TURN = 90.0f

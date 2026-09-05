@@ -4,8 +4,9 @@ import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.word.grammar.Said
 import co.voik.agesandtheart.book.LinkRequest
 import co.voik.agesandtheart.client.panel.LinkingPanel
+import co.voik.agesandtheart.client.panel.PanelDistortion
+import co.voik.agesandtheart.client.panel.PanelOverlay
 import co.voik.agesandtheart.client.panel.PanelRenderer
-import co.voik.agesandtheart.client.panel.PanelTarget
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
@@ -95,9 +96,12 @@ class BookScreen(
         val x = left + PANEL_X
         val y = top + PANEL_Y
         graphics.fill(x - 1, y - 1, x + PANEL_WIDTH + 1, y + PANEL_HEIGHT + 1, EDGE)
-        // Black first: what shows before any chunk has arrived. The fade is the load (design §7.8.1).
+        // Under everything, so a mist that thins never shows the page through it.
         graphics.fill(x, y, x + PANEL_WIDTH, y + PANEL_HEIGHT, PANEL)
         drawTheAge(graphics, x, y)
+        // Over the Age rather than behind it, at the strength the ring is still missing: the fade *is* the
+        // load (design §7.8.1), so the Age comes through the mist as it arrives rather than replacing it.
+        PanelOverlay.MIST.drawOver(graphics, x, y, PANEL_WIDTH, PANEL_HEIGHT, 1.0f - wholeness())
         if (overPanel(mouseX.toDouble(), mouseY.toDouble())) {
             graphics.fill(x, y, x + PANEL_WIDTH, y + PANEL_HEIGHT, PANEL_LIT)
         }
@@ -129,23 +133,24 @@ class BookScreen(
         graphics.fill(from, along, from + WAITING_MARK, along + WAITING_HEIGHT, WAITING_INK)
     }
 
+    /** How much of the Age has arrived, `0..1` — nothing at all before the server has answered. */
+    private fun wholeness(): Float = LinkingPanel.preview?.load?.wholeness ?: 0.0f
+
     /** The Age itself, drawn over the black. */
     private fun drawTheAge(graphics: GuiGraphicsExtractor, x: Int, y: Int) {
         // Null while the server's chunks are still coming, which is the ordinary case for the first
         // moments of a book and is what the black is for.
         val preview = LinkingPanel.preview ?: return
         if (!PanelRenderer.draw(preview, Minecraft.getInstance().deltaTracker)) return
-        val view = PanelTarget.colourView() ?: return
 
         // A level render leaves its background transparent rather than coloured, so everything the Age
         // does not cover — the band under the horizon and past the ring — needs the haze behind it.
         graphics.fill(x, y, x + PANEL_WIDTH, y + PANEL_HEIGHT, PanelRenderer.haze)
-        // V is given backwards because a render target's origin is bottom-left where a screen's is
-        // top-left. `blit` rather than `fill`, which writes no texture coordinates.
-        graphics.blit(
-            view, PanelTarget.sampler(),
-            x, y, x + PANEL_WIDTH, y + PANEL_HEIGHT,
-            0.0f, 1.0f, 1.0f, 0.0f,
+        PanelDistortion.draw(
+            graphics,
+            x, y, PANEL_WIDTH, PANEL_HEIGHT,
+            preview.shots.number,
+            preview.unsettled,
         )
     }
 

@@ -96,6 +96,7 @@ object LinkingPanel {
             return
         }
         showing?.close()
+        PanelRenderer.startOver()
         showing = PreviewLevel.open(payload)
         if (showing == null) {
             Constants.LOG.warn(

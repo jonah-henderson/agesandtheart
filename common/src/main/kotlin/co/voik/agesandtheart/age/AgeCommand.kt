@@ -47,6 +47,8 @@ import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.generation.TerminalKind
 import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.age.word.grammar.Readout
+import co.voik.agesandtheart.age.word.grammar.Said
+import co.voik.agesandtheart.location
 import co.voik.agesandtheart.age.word.grammar.Sentence
 import co.voik.agesandtheart.book.FoundBook
 import co.voik.agesandtheart.content.AgeContent
@@ -308,6 +310,7 @@ object AgeCommand {
                 .then(generateSubcommand())
                 .then(locateSubcommand())
                 .then(bookSubcommand())
+                .then(bindSubcommand())
                 .then(draftSubcommand())
                 .then(biomeCensusSubcommand())
                 .then(benchmarkSubcommand())
@@ -1526,6 +1529,56 @@ object AgeCommand {
                 Commands.argument(SEED_ARGUMENT, LongArgumentType.longArg())
                     .executes { context -> runBook(context, LongArgumentType.getLong(context, SEED_ARGUMENT)) },
             )
+
+    /**
+     * `/age bind <name>` — a Descriptive Book already bound to an Age that exists.
+     *
+     * **The instrument the panel had no way of reaching.** A book is bound by being written, at the desk
+     * or in a loot chest, and both decide the Age for you — so there was no way to look at a *chosen* Age
+     * through a panel, and in particular no way to look at one whose index had been set by hand with
+     * `/age decay <name> unstable <n>`, which is how the panel's distortion is looked at at all.
+     *
+     * The book is a real one and not a shim: the pages carry the Age's own sentence, so it reads, links
+     * and previews exactly as a written one does.
+     */
+    private fun bindSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        Commands.literal("bind").then(
+            Commands.argument(NAME_ARGUMENT, StringArgumentType.word()).executes(::runBind),
+        )
+
+    private fun runBind(context: CommandContext<CommandSourceStack>): Int {
+        val source = context.source
+        val player = source.playerOrException
+        val name = StringArgumentType.getString(context, NAME_ARGUMENT)
+        val saved = AgeSavedData.get(source.server)
+        val id = ageId(name)
+        if (id !in saved.ages) {
+            return Report.prose(source).fail("No Age named '$name' — create it with /age create $name")
+        }
+
+        val recipe = saved.recipe(id)
+        val book = ItemStack(AgeContent.DESCRIPTIVE_BOOK)
+        book.set(AgeContent.AGE_ID, id)
+        book.set(AgeContent.BOOK_TITLE, name)
+        // A recipe keeps the sentence as pages where a book keeps it as ids, and the path is the page.
+        // Set even where the Age was made by hand and has no sentence, so that a book with nothing to say
+        // is not taken for a blank one and written over as a found book on the next tick.
+        book.set(AgeContent.BOOK_WORDS, recipe.words.map { it.location() })
+        readingOf(source, recipe.words)?.let { book.set(AgeContent.BOOK_READING, it) }
+        if (!player.addItem(book)) player.drop(book, false)
+
+        source.sendSuccess({
+            Component.literal("Bound a book to Age '$name' at instability ${recipe.instability.index}")
+        }, false)
+        return SUCCESS
+    }
+
+    /** What the pages say, or null where they say nothing the grammar can read. */
+    private fun readingOf(source: CommandSourceStack, pages: List<String>): List<Said>? {
+        if (pages.isEmpty()) return null
+        val sentence = Grammar.read(Vocabulary.of(source.server), pages) ?: return null
+        return Readout.columnsOf(sentence)
+    }
 
     private fun draftSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("draft").then(

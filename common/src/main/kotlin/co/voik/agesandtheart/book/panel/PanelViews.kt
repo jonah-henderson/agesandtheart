@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.book.panel
 
 import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.age.Ages
 import co.voik.agesandtheart.book.BookAge
 import co.voik.agesandtheart.content.AgeContent
@@ -87,9 +88,10 @@ object PanelViews {
         watching[player.uuid] = Watch(level.dimension(), centre)
         hold(level, centre)
 
+        val instability = instabilityOf(level)
         Constants.LOG.info(
-            "Panel opened onto {} for {}, streaming {} chunks around {}",
-            level.dimension().identifier(), player.name.string, PanelRing.COUNT, around,
+            "Panel opened onto {} for {} at instability {}, streaming {} chunks around {}",
+            level.dimension().identifier(), player.name.string, instability, PanelRing.COUNT, around,
         )
         Services.NETWORK.sendToPlayer(
             player,
@@ -101,6 +103,7 @@ object PanelViews {
                 seaLevel = level.seaLevel,
                 chunksComing = PanelRing.COUNT,
                 gameTime = level.gameTime,
+                instability = instability,
             ),
         )
         // **Asked from anywhere but the server thread, and that is the whole of why.**
@@ -183,6 +186,14 @@ object PanelViews {
             .lookupOrThrow(net.minecraft.core.registries.Registries.DIMENSION_TYPE)
             .getKey(level.dimensionType())
             ?: net.minecraft.world.level.dimension.BuiltinDimensionTypes.OVERWORLD.identifier()
+
+    /** The Age's index, and nought for a level that is not one of ours — the Spire has no book. */
+    private fun instabilityOf(level: ServerLevel): Int {
+        val saved = AgeSavedData.get(level.server)
+        val id = level.dimension().identifier()
+        if (id !in saved.ages) return 0
+        return saved.recipe(id).instability.index
+    }
 
     private fun hold(level: ServerLevel, centre: ChunkPos) =
         level.chunkSource.addTicketWithRadius(PANEL_TICKET, centre, PanelRing.HELD_RADIUS_CHUNKS)
