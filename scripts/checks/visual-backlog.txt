@@ -23,10 +23,10 @@
 # recorded in `notes/decisions.md` or `notes/the-art-implementation-plan.md`; what was still unwalked is
 # items 6 to 8 below.
 
-# ══ 1. THE REWARD LOOP, END TO END ═══════════════════════════════════ Phase 7 steps 1-2, UNWALKED ══
+# ══ 1. THE REWARD LOOP ═══════════════════ WALKED AND GOOD 2026-09-05; CALIBRATION STILL OPEN ══
 # The phase's headline, and the reason the danger pole went first: **write a dangerous Age, read what it
-# will hold before you bind the book, go there and find it.** Every part is built and checked headlessly
-# and no part has ever been done in sequence by a person.
+# will hold before you bind the book, go there and find it.** The loop works end to end. What is left is
+# the one number it exists to settle.
 #
 # You need a desk with a geologist's tools in the room. The tools are a toolbox (shaped: plank/slab/plank
 # along the bottom, sticks up the middle) filled shapeless with a brush, a rime crystal, a lodestone, a
@@ -42,22 +42,38 @@
 #   danger 0.430 (made of 1.000, lives in 0.000, happens 0.000, dark 0.800) — pays out, no ruins.
 #   That is three veins a chunk, which the survey should word as **"a little"**.
 #
-# WHAT A WALK HAS TO SETTLE:
-#   - THAT THE SURVEY READS. Lay those two pages at the desk and look at the bind tab. It should name
-#     deretheni with an amount, BEFORE the book is bound. A bare desk (no tools) must look exactly as it
-#     did before — no heading, no gap.
-#   - THAT IT FITS. The pane holds the sentence and the survey under it, and the sentence is clipped to
-#     what the survey leaves. A twelve-page book is the case to try: the sentence should ellipsise and the
-#     survey should still be whole.
-#   - THAT IT AIMS RATHER THAN FORECASTS. It must never say what the danger IS, only how much comes out.
-#   - THAT THE AMOUNT IS HONEST. Measured at score 0.350: **4 ore in a chunk's whole band**, against a
-#     nominal two veins of four — the rest carved away or self-overlapping, as vanilla's own veins are.
-#     Does finding that much feel like the trip was worth making?
-#   - **THE CALIBRATION QUESTION, and this walk is the only instrument for it.** `pays_above` is a
-#     placeholder `0.25` in `art/danger.json`. Too low and every Age pays; too high and nobody sees the
-#     material before giving up. The three Ages in this file bracket it — `rimea` scores 0.100 and pays
-#     nothing, `hellish` 0.430, `doomed` 0.700 — so write one or two more either side and say where the
-#     line goes.
+# WALKED 2026-09-05 (Jonah): "everything worked as intended". The survey reads, it fits, and it reports
+# amounts rather than forecasts. Those sub-questions are settled and struck.
+#
+# WHAT IS LEFT IS THE CALIBRATION, and this walk is the only instrument for it. `pays_above` is a
+# placeholder `0.25` in `art/danger.json`.
+#
+# **JONAH'S ANCHOR (2026-09-05): a straight duplicate of the nether — `infernal age`, one page costing 3
+# ink — should JUST BARELY not qualify.** It scores 0.430, so the line goes just above that.
+#
+# Measured 2026-09-05, seed 11, the neighbourhood either side:
+#     0.080  a roof and nothing else
+#     0.180  age ghast spawns
+#     0.300  age inferno phenomena   /   age warden spawns
+#     0.350  a lava sea alone
+#     0.430  age infernal            <-- the anchor: must not pay
+#     0.475  lava + roof + monsters
+#     0.500  lava + inferno
+#     0.580  lava + roof + inferno
+#     0.720  age teeming ghast spawns
+#
+# The gap is 0.430 -> 0.475, so the line is somewhere in it. **0.45 sits dead centre** and gives a rule
+# worth stating: one template word never pays; the template plus one deliberate hazard does.
+#
+# TWO THINGS TO DECIDE WITH IT, because both follow from the same number:
+#   - `allowsRuins` is this threshold read backwards. Moving it to 0.45 flips lava-only, inferno-only,
+#     warden Ages and the nether copy itself from "too dangerous for ruins" into "may hold a city".
+#   - **It makes "a trace" unreachable.** The lowest paying score would be 0.45, which is three veins and
+#     already the LITTLE band. Design §7.7 names *a trace* as the bottom of the vocabulary, so the bands
+#     want rebasing on whatever the threshold becomes (TRACE 3-4, LITTLE 5-6, SOME 7-9, MUCH 10-19,
+#     IMMENSE 20+ for a threshold of 0.45).
+#
+# STILL WORTH WALKING: does finding ~4 ore in a chunk's band feel like the trip was worth making?
 
 # ══ 2. THE DERETHENI SUIT HAS NEVER BEEN WORN ════════════════════════════════ Built 2026-09-05 ══
 # Checked only as arithmetic (`ProtectiveSuitCheck`) and as a datapack that loads. The armour-stand probe
