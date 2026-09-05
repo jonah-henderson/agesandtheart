@@ -24,3 +24,10 @@
 *.otf binary
 *.woff binary
 *.woff2 binary
+
+# Sound. Same trap as the fonts above, and it caught the first blizzard commit: `* text eol=lf` rewrote
+# line endings inside Vorbis and git reported "CRLF will be replaced by LF" on an audio file.
+*.ogg binary
+*.wav binary
+*.aiff binary
+*.mp3 binary
