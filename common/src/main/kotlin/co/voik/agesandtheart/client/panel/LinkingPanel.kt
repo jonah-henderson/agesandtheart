@@ -1,7 +1,6 @@
 package co.voik.agesandtheart.client.panel
 
 import co.voik.agesandtheart.Constants
-import co.voik.agesandtheart.Timing
 import co.voik.agesandtheart.book.panel.PanelChunkPayload
 import co.voik.agesandtheart.book.panel.PanelChunksWanted
 import co.voik.agesandtheart.book.panel.PanelCloseRequest
@@ -97,7 +96,7 @@ object LinkingPanel {
             return
         }
         showing?.close()
-        showing = Timing.of("client: stand up the preview level") { PreviewLevel.open(payload) }
+        showing = PreviewLevel.open(payload)
         if (showing == null) {
             Constants.LOG.warn(
                 "Panel: the level payload for {} arrived and no preview could be built",
@@ -109,7 +108,7 @@ object LinkingPanel {
 
     /** Called for each chunk of the ring. Chunks for a panel we have closed are dropped. */
     fun accept(payload: PanelChunkPayload) {
-        Timing.of("client: take up one chunk") { showing?.accept(payload) }
+        showing?.accept(payload)
     }
 
     /**
@@ -134,12 +133,7 @@ object LinkingPanel {
      * hold a server-side ring for as long as the client ran.
      */
     fun release() {
-        val had = drop()
-        // Per-frame work is aggregated, so a closing book is the only moment the totals mean anything.
-        if (had) {
-            Timing.report("a linking panel, opened to closed")
-            send(PanelCloseRequest)
-        }
+        if (drop()) send(PanelCloseRequest)
     }
 
     /** Dropped without telling the server, for a disconnect — where there is nobody left to tell. */
@@ -150,7 +144,7 @@ object LinkingPanel {
     /** Tears down whatever is held, answering whether there was anything. */
     private fun drop(): Boolean {
         val had = showing != null || asked
-        Timing.of("client: tear the preview down") { showing?.close() }
+        showing?.close()
         showing = null
         asked = false
         asksSoFar = 0

@@ -1,10 +1,10 @@
 package co.voik.agesandtheart.content
 
-import co.voik.agesandtheart.Timing
 import co.voik.agesandtheart.age.word.PageLearning
 import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.age.word.grammar.Readout
 import co.voik.agesandtheart.book.FoundBook
+import co.voik.agesandtheart.book.panel.PanelWarming
 import co.voik.agesandtheart.client.BookScreenOpener
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
@@ -72,8 +72,14 @@ class DescriptiveBookItem(properties: Properties) : Item(properties) {
      * reading the stack as it was, by the time the server had written anything into it.
      */
     override fun inventoryTick(stack: ItemStack, level: ServerLevel, holder: Entity, slot: EquipmentSlot?) {
-        if (stack.has(AgeContent.BOOK_WORDS)) return
-        FoundBook.write(stack, level.server, level.random.nextLong())
+        if (!stack.has(AgeContent.BOOK_WORDS)) {
+            FoundBook.write(stack, level.server, level.random.nextLong())
+            // Writing itself is a found book's binding — nothing else ever binds one — so this is the
+            // moment its Age is decided, and the earliest it can be made ready.
+            PanelWarming.whenBound(level.server, stack)
+            return
+        }
+        PanelWarming.consider(level.server, stack, inHand = slot != null)
     }
 
     /**
@@ -89,7 +95,7 @@ class DescriptiveBookItem(properties: Properties) : Item(properties) {
         // Reading it is how the grammar is learned (§4.5): `and`, `only`, `except` and the rungs are pages
         // nobody is handed, so a book somebody wrote well is where a writer meets them. Server-side, since
         // the learned set is the player's own save data.
-        if (player is ServerPlayer) Timing.of("server: learn the book's words") { PageLearning.study(player, stack) }
+        if (player is ServerPlayer) PageLearning.study(player, stack)
         return InteractionResult.SUCCESS
     }
 

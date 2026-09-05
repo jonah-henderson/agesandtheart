@@ -3,54 +3,55 @@ package co.voik.agesandtheart.age
 import io.kotest.core.spec.style.StringSpec
 
 /**
- * The order the arrival search tries columns in, which is the whole of what it costs.
+ * Which columns the arrival search tries, and in what order — the whole of what it costs.
  *
- * Every candidate is a full run of the generator's density functions, so reordering is the only free
- * optimisation available — and it is free only while the wide lattice stays a *subset* of the close one.
- * A step that stopped dividing would quietly add samples rather than reorder them, and nothing about the
- * arrival it produced would look wrong.
+ * Every candidate is a full run of the generator's density functions, measured at about two milliseconds,
+ * so the count is a time budget wearing a different unit. An Age with no land above the waterline walks all
+ * of them to say so, which is the case these bound.
  */
 class FootingCheck : StringSpec({
 
-    "the wide lattice is a subset of the close one, so ordering adds no samples" {
-        val columns = Ages.candidateColumns().toList()
+    val columns = Ages.candidateColumns().toList()
+    fun distanceOf(column: Pair<Int, Int>) = maxOf(kotlin.math.abs(column.first), kotlin.math.abs(column.second))
+
+    "no column is tried twice" {
         check(columns.size == columns.toSet().size) {
             "the search tries ${columns.size - columns.toSet().size} columns twice"
         }
     }
 
-    "widely spaced columns are tried first, or distant land costs the whole lattice" {
-        val columns = Ages.candidateColumns().toList()
-        fun samplesToReach(distance: Int) =
-            columns.indexOfFirst { (x, z) -> maxOf(kotlin.math.abs(x), kotlin.math.abs(z)) >= distance } + 1
-
-        // Land at the far edge of the search is what used to cost sixteen seconds. Nearly all of the
-        // lattice lies closer than it, so finding it must not mean sampling nearly all of the lattice.
-        val far = samplesToReach(FAR)
-        check(far in 1..<columns.size / 4) {
-            "land $FAR blocks out is found after $far of ${columns.size} columns, which is not an ordering"
+    "the whole search stays inside its budget" {
+        // The worst case is an Age with no land anywhere, which samples every one of these.
+        check(columns.size <= MOST_COLUMNS) {
+            "the search may sample ${columns.size} columns, about ${columns.size * 2}ms of density functions"
         }
     }
 
-    "the origin is still tried first, so an Age with land underfoot costs one column" {
-        check(Ages.candidateColumns().first() == 0 to 0) {
-            "the search begins at ${Ages.candidateColumns().first()} rather than the origin"
+    "the origin is tried first, so an Age with land underfoot costs one column" {
+        check(columns.first() == 0 to 0) { "the search begins at ${columns.first()} rather than the origin" }
+    }
+
+    "somewhere far out is still reachable, or a distant landmass cannot be found at all" {
+        check(columns.any { distanceOf(it) >= FAR }) {
+            "nothing is tried further than ${columns.maxOf(::distanceOf)} blocks, so an Age's only land may be missed"
         }
     }
 
-    "the wide lattice is a small enough prefix to be worth giving up after" {
-        // An Age with no land anywhere walks the wide lattice and stops. That is only an optimisation
-        // while the wide lattice is a small fraction of the whole; if it crept up, the giving-up would
-        // save nothing and would only have cost some Age its island.
-        val columns = Ages.candidateColumns().toList()
-        val wide = columns.count { (x, z) -> x % 48 == 0 && z % 48 == 0 }
-        check(wide < columns.size / 10) {
-            "the wide lattice is $wide of ${columns.size} columns, too much of it to be a cheap first look"
+    "distant land is found early, not after most of the lattice" {
+        val far = columns.indexOfFirst { distanceOf(it) >= FAR } + 1
+        check(far in 1..EARLY) {
+            "land $FAR blocks out is found after $far columns, which is not the wide lattice being tried first"
         }
     }
 }) {
     private companion object {
-        /** The far edge of the search, in blocks. */
+        /** How far out the search reaches. */
         const val FAR = 288
+
+        /** About a second of density functions, which is as long as opening a book may spend looking. */
+        const val MOST_COLUMNS = 400
+
+        /** Land at the far edge should cost a small fraction of the budget, not most of it. */
+        const val EARLY = 160
     }
 }

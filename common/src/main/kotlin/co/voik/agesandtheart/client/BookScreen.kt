@@ -405,7 +405,7 @@ class BookScreen(
         /** One pass of the mark along the track. */
         const val SWEEP_NANOS = 1_600_000_000L
 
-        const val WAITING_HEIGHT = 1
+        const val WAITING_HEIGHT = 2
         const val WAITING_MARK = 22
 
         /** Read against [EDGE], which it travels along. */

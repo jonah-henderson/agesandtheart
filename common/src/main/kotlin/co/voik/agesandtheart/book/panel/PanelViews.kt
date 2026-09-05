@@ -1,12 +1,12 @@
 package co.voik.agesandtheart.book.panel
 
 import co.voik.agesandtheart.Constants
-import co.voik.agesandtheart.Timing
 import co.voik.agesandtheart.age.Ages
 import co.voik.agesandtheart.book.BookAge
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.platform.Services
+import net.minecraft.util.Util
 import net.minecraft.core.BlockPos
 import net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData
 import net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData
@@ -38,15 +38,8 @@ object PanelViews {
     private class Watch(
         val dimension: ResourceKey<Level>,
         val centre: ChunkPos,
-        /** When the ring was first asked for, so the whole stream can be timed end to end. */
-        val ringBeganAt: Long,
     ) {
-        /**
-         * Which of the ring's chunks have been sent, so the last one can say how long the ring took.
-         *
-         * Positions rather than a counter, because a re-sent chunk would decrement one twice and step the
-         * total past the value that says the ring is whole.
-         */
+        /** Which of the ring's chunks have gone out, so a re-request can tell them from what has not. */
         val sent = mutableSetOf<Long>()
     }
 
@@ -78,46 +71,46 @@ object PanelViews {
         if (!allow(server, player, openedOnTick, TICKS_BETWEEN_PANELS)) return
         close(server, player)
 
-        val openedAt = System.nanoTime()
-        val stack = Timing.of("server: read the held book") { player.getItemInHand(hand) }
+        val stack = player.getItemInHand(hand)
         if (stack.item !== AgeContent.DESCRIPTIVE_BOOK) {
             Constants.LOG.info("Panel refused: {} is holding {}, which is not a book", player.name.string, stack.item)
             return
         }
-        val level = Timing.of("server: roll and open the Age") { BookAge.of(server, stack) }
+        val level = BookAge.of(server, stack)
         if (level == null) {
             Constants.LOG.warn("Panel wanted the Age of a book in {}'s hand and it would not open", player.name.string)
             return
         }
 
-        val around = Timing.of("server: find the arrival") { arrivalIn(level) }
+        val around = arrivalIn(level)
         val centre = PanelRing.centreOf(around)
-        watching[player.uuid] = Watch(level.dimension(), centre, System.nanoTime())
-        Timing.of("server: hold the ring") { hold(level, centre) }
+        watching[player.uuid] = Watch(level.dimension(), centre)
+        hold(level, centre)
 
         Constants.LOG.info(
             "Panel opened onto {} for {}, streaming {} chunks around {}",
             level.dimension().identifier(), player.name.string, PanelRing.COUNT, around,
         )
-        Timing.of("server: send the level payload") {
-            Services.NETWORK.sendToPlayer(
-                player,
-                PanelLevelPayload(
-                    dimension = level.dimension(),
-                    dimensionType = dimensionTypeIdOf(level),
-                    around = around,
-                    biomeZoomSeed = BiomeManager.obfuscateSeed(level.seed),
-                    seaLevel = level.seaLevel,
-                    chunksComing = PanelRing.COUNT,
-                    gameTime = level.gameTime,
-                ),
-            )
-        }
-        // Timed apart from the ring itself: scheduling is not free, and its cost is not the wait.
-        Timing.of("server: ask for all the ring's chunks") {
+        Services.NETWORK.sendToPlayer(
+            player,
+            PanelLevelPayload(
+                dimension = level.dimension(),
+                dimensionType = dimensionTypeIdOf(level),
+                around = around,
+                biomeZoomSeed = BiomeManager.obfuscateSeed(level.seed),
+                seaLevel = level.seaLevel,
+                chunksComing = PanelRing.COUNT,
+                gameTime = level.gameTime,
+            ),
+        )
+        // **Asked from anywhere but the server thread, and that is the whole of why.**
+        // `ServerChunkCache.getChunkFuture` only returns a future when it is called from another thread;
+        // on the server thread it runs `managedBlock` and does not come back until the chunk is generated.
+        // So asking for a ring there generated the whole of it in one blocking run — the game frozen for
+        // its duration, and the panel shown nothing until the end of it.
+        Util.backgroundExecutor().execute {
             PanelRing.around(centre).forEach { send(server, player, level, centre, it) }
         }
-        Timing.record("server: the open handler, end to end", System.nanoTime() - openedAt)
     }
 
     /**
@@ -210,10 +203,8 @@ object PanelViews {
         centre: ChunkPos,
         position: ChunkPos,
     ) {
-        val asked = System.nanoTime()
         level.chunkSource.getChunkFuture(position.x, position.z, ChunkStatus.FULL, true)
             .thenAcceptAsync({ result ->
-                Timing.record("server: generate one chunk", System.nanoTime() - asked)
                 val chunk = result.orElse(null) as? LevelChunk
                 if (chunk == null) {
                     // Said rather than dropped: a ring that finishes a chunk short is otherwise silent.
@@ -229,21 +220,16 @@ object PanelViews {
                 val watch = watching[player.uuid]
                     ?.takeIf { it.centre == centre && it.dimension == level.dimension() }
                     ?: return@thenAcceptAsync
-                Timing.of("server: serialise and send one chunk") {
-                    Services.NETWORK.sendToPlayer(
-                        player,
-                        PanelChunkPayload(
-                            x = position.x,
-                            z = position.z,
-                            chunk = ClientboundLevelChunkPacketData(chunk),
-                            light = ClientboundLightUpdatePacketData(position, level.lightEngine, null, null),
-                        ),
-                    )
-                }
-                if (watch.sent.add(ChunkPos.pack(position.x, position.z)) && watch.sent.size == PanelRing.COUNT) {
-                    val ring = System.nanoTime() - watch.ringBeganAt
-                    Timing.record("server: the whole ring, first ask to last send", ring)
-                }
+                Services.NETWORK.sendToPlayer(
+                    player,
+                    PanelChunkPayload(
+                        x = position.x,
+                        z = position.z,
+                        chunk = ClientboundLevelChunkPacketData(chunk),
+                        light = ClientboundLightUpdatePacketData(position, level.lightEngine, null, null),
+                    ),
+                )
+                watch.sent.add(ChunkPos.pack(position.x, position.z))
             }, server)
     }
 }

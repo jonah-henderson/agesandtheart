@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.word.PageLearning
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.word.grammar.Grammar
 import co.voik.agesandtheart.age.word.grammar.Readout
+import co.voik.agesandtheart.book.panel.PanelWarming
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.NotebookItem
 import co.voik.agesandtheart.location
@@ -310,6 +311,9 @@ object DeskCommands {
         menu.composing.clear()
         // Into the output slot rather than the inventory: a book you take is a book you saw being made.
         menu.putOutput(book)
+        // The earliest an Age can be made ready, and the whole point of doing it here: the writer is still
+        // looking at the desk, so the terrain is generated while nobody is waiting on it.
+        PanelWarming.whenBound(player.level().server, book)
         // A fresh world for the next book: one desk read over and over must not hand out the same Age.
         player.rerollWritingSeed()
         Constants.LOG.debug("{} bound the Age '{}'", player.gameProfile.name, title)

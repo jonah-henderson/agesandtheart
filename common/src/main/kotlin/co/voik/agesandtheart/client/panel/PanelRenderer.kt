@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.client.panel
 
-import co.voik.agesandtheart.Timing
 import co.voik.agesandtheart.book.panel.PanelRing
 import co.voik.ephemeris.client.OffscreenLevelRender
 import com.mojang.blaze3d.buffers.GpuBufferSlice
@@ -52,8 +51,7 @@ object PanelRenderer {
      *
      * False until a chunk has arrived, which is the ordinary case for the first moments of a book.
      */
-    fun draw(preview: PreviewLevel, delta: DeltaTracker): Boolean =
-        Timing.of("client: a whole panel frame") { drawOnce(preview, delta) }
+    fun draw(preview: PreviewLevel, delta: DeltaTracker): Boolean = drawOnce(preview, delta)
 
     private fun drawOnce(preview: PreviewLevel, delta: DeltaTracker): Boolean {
         if (!preview.load.hasAnything) return false
@@ -124,9 +122,9 @@ object PanelRenderer {
     }
 
     /** Colour *and* depth: an uninitialised depth buffer fails every fragment. */
-    private fun clear(target: RenderTarget) = Timing.of("client: clear the panel") {
-        val colour = target.colorTexture ?: return@of
-        val depth = target.depthTexture ?: return@of
+    private fun clear(target: RenderTarget) {
+        val colour = target.colorTexture ?: return
+        val depth = target.depthTexture ?: return
         RenderSystem.getDevice().createCommandEncoder()
             .clearColorAndDepthTextures(colour, BEHIND_THE_AGE, depth, FURTHEST_DEPTH)
     }
@@ -144,19 +142,15 @@ object PanelRenderer {
         terrainFog: GpuBufferSlice,
         delta: DeltaTracker,
     ): Boolean {
-        Timing.of("client: run the preview's light") { preview.advanceLight() }
+        preview.advanceLight()
 
-        Timing.of("client: cull and compile sections") {
-            // Spectator, because that flag turns smart culling off where the camera is inside a solid
-            // block, and an orbit is inside terrain often enough that the occlusion graph would otherwise
-            // decide it was sealed in and cull the whole Age.
-            preview.renderer.cullTerrain(camera, camera.cullFrustum, true)
-            preview.renderer.compileSections(camera)
-        }
+        // Spectator, because that flag turns smart culling off where the camera is inside a solid block,
+        // and an orbit is inside terrain often enough that the occlusion graph would otherwise decide it
+        // was sealed in and cull the whole Age.
+        preview.renderer.cullTerrain(camera, camera.cullFrustum, true)
+        preview.renderer.compileSections(camera)
 
-        Timing.of("client: extract the level") {
-            preview.renderer.extractLevel(delta, camera, delta.getGameTimeDeltaPartialTick(false))
-        }
+        preview.renderer.extractLevel(delta, camera, delta.getGameTimeDeltaPartialTick(false))
         // Discarded rather than prevented: `extractLevel` takes particles from the global engine, so these
         // are the player's, gathered into our render state. Preventing it would need a Mixin.
         //
@@ -168,20 +162,18 @@ object PanelRenderer {
         // Null means the extract decided there was nothing to draw, which is not a failure.
         val sections = preview.renderState.levelRenderState.chunkSectionsToRender ?: return false
 
-        Timing.of("client: render the level") {
-            PanelTarget.redirecting {
-                preview.renderer.renderLevel(
-                    GraphicsResourceAllocator.UNPOOLED,
-                    delta,
-                    false,
-                    state,
-                    state.viewRotationMatrix,
-                    terrainFog,
-                    state.fogData.color,
-                    true,
-                    sections,
-                )
-            }
+        PanelTarget.redirecting {
+            preview.renderer.renderLevel(
+                GraphicsResourceAllocator.UNPOOLED,
+                delta,
+                false,
+                state,
+                state.viewRotationMatrix,
+                terrainFog,
+                state.fogData.color,
+                true,
+                sections,
+            )
         }
         return true
     }

@@ -2,17 +2,18 @@ package co.voik.agesandtheart.age
 
 import co.voik.agesandtheart.AgeConfig
 import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.book.panel.PanelWarming
 import co.voik.agesandtheart.platform.Services
 import co.voik.ephemeris.RuntimeLevelEvents
 import co.voik.ephemeris.sky.LevelAppearance
 import net.minecraft.core.BlockPos
-import net.minecraft.core.SectionPos
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
 import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.level.NoiseColumn
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.dimension.end.EnderDragonFight
 import net.minecraft.world.level.levelgen.Heightmap
@@ -196,29 +197,36 @@ object Ages {
 
     private fun workOutTheArrivalIn(level: ServerLevel): BlockPos {
         val (landingX, landingZ) = findFooting(level)
-        level.getChunk(SectionPos.blockToSectionCoord(landingX), SectionPos.blockToSectionCoord(landingZ))
         return footingIn(level, landingX, landingZ)
     }
 
     /**
      * Where a visitor stands in one column: the space above the highest thing that will hold them.
      *
-     * Three answers, because a column need not have a floor in it. Ordinarily the top of the world's
-     * surface, or the first floor under the roof in a world that is shut overhead. Where the column holds
-     * nothing at all — an Age of open sky — the waterline instead, so a visitor arrives in the air rather
-     * than on the world's own floor. Where it is solid to the top there is no space above anything, and
-     * the answer is the highest a player fits; [openUpArrival] is what makes that survivable.
+     * **Asked of the generator, never of the world.** Reading a heightmap means the chunk exists, and
+     * generating one to full costs seconds on a cold Age — eight and a half of them, measured, against
+     * seventeen milliseconds for the search that chose the column. It also blocks the server thread, so
+     * nothing else could start until it finished. The generator answers the same question about the same
+     * terrain without a chunk, and the chunk gets generated anyway a moment later as the ring's own centre.
+     *
+     * What is given up is decoration: this is the shape of the rock, so a visitor may arrive inside a tree
+     * that grew there. [openUpArrival] already handles being arrived somewhere solid.
+     *
+     * Three answers, because a column need not have a floor in it. Ordinarily the top of the surface, or
+     * the first floor under the roof in a world shut overhead. Where the column holds nothing at all — an
+     * Age of open sky — the waterline, so a visitor arrives in the air rather than on the world's floor.
+     * Where it is solid to the top, the highest a player fits.
      */
     private fun footingIn(level: ServerLevel, x: Int, z: Int): BlockPos {
+        val generator = level.chunkSource.generator
+        val randomState = level.chunkSource.randomState()
         val topOfTheColumn = if (level.dimensionType().hasCeiling()) {
-            floorUnderTheRoof(level, x, z)
+            floorUnderTheRoof(generator.getBaseColumn(x, z, level, randomState), level)
         } else {
-            level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z)
+            generator.getBaseHeight(x, z, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, level, randomState) - 1
         }
-        val cursor = BlockPos.MutableBlockPos()
-        val holdsNothing = level.getBlockState(cursor.set(x, topOfTheColumn, z)).isAir
         val standing = when {
-            holdsNothing -> level.seaLevel
+            topOfTheColumn < level.minY -> level.seaLevel
             topOfTheColumn + 1 + HEADROOM > level.maxY -> level.maxY - HEADROOM
             else -> topOfTheColumn + 1
         }
@@ -267,9 +275,8 @@ object Ages {
      * The column is read rather than the heightmap because a heightmap has no notion of "the second solid
      * thing down", which is the whole of what is wanted here.
      */
-    private fun floorUnderTheRoof(level: ServerLevel, x: Int, z: Int): Int {
-        val cursor = BlockPos.MutableBlockPos()
-        fun isAirAt(y: Int) = level.getBlockState(cursor.set(x, y, z)).isAir
+    private fun floorUnderTheRoof(column: NoiseColumn, level: ServerLevel): Int {
+        fun isAirAt(y: Int) = column.getBlock(y).isAir
         fun standingRoomAt(y: Int) = !isAirAt(y) && isAirAt(y + 1) && isAirAt(y + 2)
 
         var y = level.maxY - HEADROOM
@@ -280,9 +287,8 @@ object Ages {
             if (standingRoomAt(y)) return y
             y--
         }
-        // A column with no floor under its roof at all — the caller puts the player one above this, which
-        // is the bottom of the world rather than inside it.
-        return level.minY
+        // A column with no floor under its roof at all, which the caller reads as holding nothing.
+        return level.minY - 1
     }
 
     /** Room for a player above the floor they are put on, which is what makes a floor one. */
@@ -306,7 +312,6 @@ object Ages {
 
         var shallowest = ORIGIN
         var shallowestHeight = Int.MIN_VALUE
-        var sampled = 0
         for (column in candidateColumns()) {
             val height = heightAt(column)
             if (height > waterline) return column
@@ -314,44 +319,27 @@ object Ages {
                 shallowestHeight = height
                 shallowest = column
             }
-            // The wide lattice has been walked and every column of it is deep water. Terrain that breaks
-            // the surface anywhere near here would have come close to it at one of these, so the close
-            // lattice is fourteen times the samples for an answer this has already given.
-            if (++sampled == WIDE_COLUMNS && shallowestHeight < waterline - SHALLOWS) break
         }
         return shallowest
     }
 
-    /** How many columns the wide lattice covers, which is where the search decides whether to go on. */
-    private val WIDE_COLUMNS by lazy { outwardFromOrigin(WIDE_STEP).distinct().count() }
-
-    /**
-     * How near the waterline the wide lattice has to come for the close one to be worth walking.
-     *
-     * A guess, and a cheap one to be wrong about in the safe direction: too small and an oceanic Age pays
-     * the whole lattice as it used to, too large and an Age with one small island arrives beside it in the
-     * shallows rather than on it.
-     */
-    private const val SHALLOWS = 16
-
     /**
      * Every column worth trying, the widely spaced ones first.
      *
-     * Every candidate is a full run of the generator's density functions, so the order is what the cost
-     * turns on. The wide lattice is a subset of the close one, which means putting it first reorders the
-     * same set rather than adding to it: an Age whose land is a long way out is found in a fraction of the
-     * samples, and an Age with none is no dearer than it was. Which of two dry columns is chosen matters
-     * far less than how long it takes to find one.
+     * Every candidate is a full run of the generator's density functions, so how many there are and what
+     * order they come in is the whole of the cost. Widely across the whole reach, closely only near home:
+     * the wide lattice finds any landmass broader than its own step wherever it is, and the close one adds
+     * precision about small ground, which is only worth crossing a world for if it is nearby.
      */
     internal fun candidateColumns(): Sequence<Pair<Int, Int>> = sequence {
-        yieldAll(outwardFromOrigin(WIDE_STEP))
-        yieldAll(outwardFromOrigin(FOOTING_STEP))
+        yieldAll(outwardFromOrigin(WIDE_STEP, FOOTING_REACH))
+        yieldAll(outwardFromOrigin(FOOTING_STEP, CLOSE_REACH))
     }.distinct()
 
-    /** Lattice of candidate columns at [step], nearest ring first, out to [FOOTING_REACH]. */
-    private fun outwardFromOrigin(step: Int): Sequence<Pair<Int, Int>> = sequence {
+    /** Lattice of candidate columns at [step], nearest ring first, out to [reach]. */
+    private fun outwardFromOrigin(step: Int, reach: Int): Sequence<Pair<Int, Int>> = sequence {
         yield(ORIGIN)
-        for (ring in 1..FOOTING_REACH / step) {
+        for (ring in 1..reach / step) {
             val extent = ring * step
             for (along in -extent..extent step step) {
                 yield(along to -extent)
@@ -370,8 +358,11 @@ object Ages {
     /** Four chunks, and a multiple of [FOOTING_STEP] so its lattice is a subset of the close one. */
     private const val WIDE_STEP = 48
 
-    /** How far out either sweep goes. */
+    /** How far the wide lattice reaches, which is how far an Age is searched at all. */
     private const val FOOTING_REACH = 288
+
+    /** How far the close lattice reaches, past which small ground is not worth the columns to find. */
+    private const val CLOSE_REACH = 72
 
     /** How many numbered variants of a name to try before falling back to the counter. */
     private const val NAME_ATTEMPTS = 64
@@ -385,9 +376,11 @@ object Ages {
         val saved = AgeSavedData.get(server)
         if (id !in saved.ages) return false
         evict(server, id)
-        // The memo outlives nothing: an Age written again under the same name is a different world, and a
-        // remembered arrival would send its first visitor to a place that Age never had.
+        // The memos outlive nothing: an Age written again under the same name is a different world, and a
+        // remembered arrival would send its first visitor to a place that Age never had — while a ring
+        // remembered as ready would have the next reader wait out its generation with nothing said.
         arrivals.remove(id)
+        PanelWarming.forget(id)
         if (!Services.AGE_BACKEND.deleteAge(server, id)) return false
         saved.remove(id)
         LevelAppearance.forget(ResourceKey.create(Registries.DIMENSION, id))

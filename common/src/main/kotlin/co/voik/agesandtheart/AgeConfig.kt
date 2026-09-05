@@ -56,6 +56,15 @@ object AgeConfig {
      */
     val searchesForFooting: ModConfigSpec.BooleanValue
 
+    /**
+     * When an Age's terrain is made ready, which decides who waits for it.
+     *
+     * The first look at an Age generates its ring from nothing and costs tens of seconds; every look after
+     * that loads the same chunks from disk in a tenth of a second. So the question is never how fast that
+     * is, only who is sitting through it.
+     */
+    val warmAgesWhen: ModConfigSpec.EnumValue<WarmAgesWhen>
+
     /** The spec each loader hands to its own config system. */
     val SPEC: ModConfigSpec
 
@@ -94,6 +103,17 @@ object AgeConfig {
             )
             .translation(translationOf("searches_for_footing"))
             .define("searchesForFooting", true)
+        warmAgesWhen = builder
+            .comment(
+                "When to generate the terrain a book's panel shows. BOUND does it the moment the book's",
+                "Age is decided — as it is bound at a desk, or as a found one writes itself — so the panel",
+                "is ready long before anybody opens it. HELD waits until the book is in hand. OPENED does",
+                "not prepare anything, and the first person to open each book waits out the whole of its",
+                "Age being made.",
+                "Preparing early means an Age exists, and takes up room, from the moment its book does.",
+            )
+            .translation(translationOf("warm_ages_when"))
+            .defineEnum("warmAgesWhen", WarmAgesWhen.BOUND)
         builder.pop()
         SPEC = builder.build()
     }
@@ -106,4 +126,25 @@ object AgeConfig {
     private const val VILLAGERS = "villagers"
 
     private const val LINKING = "linking"
+}
+
+/**
+ * The moment an Age's terrain is generated, before anybody is waiting on it.
+ *
+ * Every value names a moment that has already happened by the time a panel is opened, except the last,
+ * which names the panel itself.
+ */
+enum class WarmAgesWhen {
+    /**
+     * The moment the book's Age is decided: as it is bound at a desk, or as a found one writes itself.
+     *
+     * Earlier than anything else can be, because until a book is bound it describes no world at all.
+     */
+    BOUND,
+
+    /** Only once a bound book is in hand. */
+    HELD,
+
+    /** Not until the panel asks, which is where the whole cost lands on the person who opened it. */
+    OPENED,
 }

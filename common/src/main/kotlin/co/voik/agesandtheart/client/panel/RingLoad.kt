@@ -66,10 +66,11 @@ class RingLoad(private val arrival: BlockPos, private val expected: Int) {
         /**
          * How long the stream may say nothing before it is taken to have stopped.
          *
-         * Longer than the gap between two chunks of a ring being generated, and longer than the wait for
-         * the first one, or a slow Age is mistaken for a broken one.
+         * Longer than a whole wave of the ring takes to generate on a cold Age, or a slow one is mistaken
+         * for a broken one and the server is asked to make the lot a second time — which is what happened
+         * at six seconds.
          */
-        private const val GONE_QUIET_NANOS = 6_000_000_000L
+        private const val GONE_QUIET_NANOS = 12_000_000_000L
 
         const val MOST_CHASES = 4
     }
