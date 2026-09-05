@@ -1,0 +1,5 @@
+{
+  "_comment": "Says what a written Age is likely to hold, before it exists (design 7.7) -- quantities and names, never a forecast of danger. Grants nothing visible yet: the readout is the desk's and is not built, which is the same way bookbinders_press waited for Phase 8.",
+  "blocks": ["agesandtheart:geologists_tools"],
+  "grants": ["survey_materials"]
+}

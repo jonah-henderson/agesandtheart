@@ -1,0 +1,4 @@
+{
+  "_comment": "A chiselled bookshelf stands in until the model pass -- the same case with things in its compartments.",
+  "variants": { "": { "model": "minecraft:block/chiseled_bookshelf_inventory" } }
+}

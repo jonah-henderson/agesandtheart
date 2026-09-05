@@ -1,0 +1,28 @@
+{
+  "_comment": [
+    "Filling the box. Shapeless on purpose (Jonah, 2026-09-05): how you arrange tools in a toolbox is not",
+    "a thing the world should have an opinion about, only whether you have them. What is shaped is",
+    "building the box.",
+    "",
+    "The six are a real field kit, each mapped to something that already exists rather than to an invented",
+    "intermediate: a brush to dust a specimen, a crystal for the hand lens, a lodestone for the magnetic",
+    "test, a diamond as the hardness reference (Mohs 10), a barrel for the samples, and deretheni because",
+    "the survey is about deretheni.",
+    "",
+    "The amethyst is a STAND-IN for the frost crystal, which does not exist yet -- the same bargain",
+    "analysis_machine.json already makes with its own rare materials. Swap it when the character materials",
+    "land; it is one line."
+  ],
+  "type": "minecraft:crafting_shapeless",
+  "category": "equipment",
+  "ingredients": [
+    "agesandtheart:toolbox",
+    "minecraft:brush",
+    "minecraft:amethyst_shard",
+    "minecraft:lodestone",
+    "minecraft:diamond",
+    "minecraft:barrel",
+    "agesandtheart:pitchstone_plate"
+  ],
+  "result": { "id": "agesandtheart:geologists_tools" }
+}

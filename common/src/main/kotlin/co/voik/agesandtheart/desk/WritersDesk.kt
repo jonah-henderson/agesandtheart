@@ -26,6 +26,16 @@ enum class DeskCapability(val key: String) : StringRepresentable {
 
     /** A finished Descriptive Book can be taken apart and rewritten (Phase 8, gated here). */
     EDIT_BOOKS("edit_books"),
+
+    /**
+     * What a written Age is likely to hold, read before it exists (design §7.7).
+     *
+     * **Quantities and names, never a forecast of danger.** A trace against a great deal tells a writer
+     * whether the trip is worth making and leaks nothing about the world, where saying what the *danger*
+     * was would be a preview and would move §7.5's line. Gated here and read by nothing yet: the readout
+     * is the desk's, and the desk screen is out of room.
+     */
+    SURVEY_MATERIALS("survey_materials"),
     ;
 
     override fun getSerializedName(): String = key

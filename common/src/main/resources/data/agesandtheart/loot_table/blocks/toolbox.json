@@ -1,0 +1,25 @@
+{
+  "_comment": "The contents travel with the box, on the shulker's own mechanism -- carrying spares is what a toolbox is for, so breaking one must not scatter them.",
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1.0,
+      "bonus_rolls": 0.0,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "agesandtheart:toolbox",
+          "functions": [
+            {
+              "function": "minecraft:copy_components",
+              "source": "block_entity",
+              "include": ["minecraft:custom_name", "minecraft:container"]
+            }
+          ]
+        }
+      ],
+      "conditions": [{ "condition": "minecraft:survives_explosion" }]
+    }
+  ],
+  "random_sequence": "agesandtheart:blocks/toolbox"
+}

@@ -1,0 +1,11 @@
+{
+  "_comment": "A case of shelves. Shaped, because building the box is a construction and the row reads as one -- a board, a shelf, a board.",
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "P": "#minecraft:planks",
+    "S": "#minecraft:wooden_slabs"
+  },
+  "pattern": ["PSP"],
+  "result": { "id": "agesandtheart:toolbox" }
+}

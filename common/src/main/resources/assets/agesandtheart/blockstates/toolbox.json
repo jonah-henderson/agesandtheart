@@ -1,0 +1,4 @@
+{
+  "_comment": "A bookshelf stands in until the model pass: a case of shelves is what this is.",
+  "variants": { "": { "model": "minecraft:block/bookshelf" } }
+}

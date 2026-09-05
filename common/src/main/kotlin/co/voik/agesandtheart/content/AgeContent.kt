@@ -266,6 +266,57 @@ object AgeContent {
             .attributes(ProtectiveSuit.attributesFor(type)),
     )
 
+    private val TOOLBOX_ID: Identifier = "toolbox".location()
+    private val GEOLOGISTS_TOOLS_ID: Identifier = "geologists_tools".location()
+
+    /**
+     * A case of shelves holding spares — see [Toolbox] for the thing it is actually for.
+     *
+     * **Useful before it is an ingredient**, which is the whole reason it exists as its own object: carry
+     * one and a tool that breaks in your hands is replaced from it. Being furniture the desk counts, and
+     * being what a geologist's kit is built in, are both things it does *afterwards*.
+     */
+    val TOOLBOX_BLOCK: ToolboxBlock = ToolboxBlock(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, TOOLBOX_ID))
+            .mapColor(MapColor.WOOD)
+            .strength(WOODEN_STRENGTH)
+            .sound(SoundType.WOOD),
+    )
+
+    /** The nine compartments, which travel with the block — see [ToolboxBlockEntity]. */
+    val TOOLBOX_ENTITY: BlockEntityType<ToolboxBlockEntity> =
+        BlockEntityType({ pos, state -> ToolboxBlockEntity(pos, state) }, setOf(TOOLBOX_BLOCK))
+
+    /**
+     * The same case with the instruments in it — §7.7's geologist's tools, which say what an Age will hold
+     * before it exists.
+     *
+     * **Filled by a shapeless recipe on purpose** (Jonah, 2026-09-05): how you arrange tools in a box is
+     * not a thing the world should have an opinion about. What is shaped is building the box.
+     */
+    val GEOLOGISTS_TOOLS_BLOCK: Block = Block(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, GEOLOGISTS_TOOLS_ID))
+            .mapColor(MapColor.WOOD)
+            .strength(WOODEN_STRENGTH)
+            .sound(SoundType.WOOD),
+    )
+
+    val TOOLBOX: Item = BlockItem(
+        TOOLBOX_BLOCK,
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, TOOLBOX_ID)).useBlockDescriptionPrefix(),
+    )
+
+    val GEOLOGISTS_TOOLS: Item = BlockItem(
+        GEOLOGISTS_TOOLS_BLOCK,
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, GEOLOGISTS_TOOLS_ID))
+            .useBlockDescriptionPrefix(),
+    )
+
+    /** A cabinet's, which is what both of these are. */
+    private const val WOODEN_STRENGTH = 2.5f
+
     private val ANALYSIS_MACHINE_ID: Identifier = "analysis_machine".location()
 
     /** See [AnalysisMachineBlock] — the station half of acquaintance learning. */
@@ -574,6 +625,8 @@ object AgeContent {
         PITCHSTONE_ORE_ID to PITCHSTONE_ORE_BLOCK,
         DEEPSLATE_PITCHSTONE_ORE_ID to DEEPSLATE_PITCHSTONE_ORE_BLOCK,
         PITCHSTONE_BLOCK_ID to PITCHSTONE_BLOCK_BLOCK,
+        TOOLBOX_ID to TOOLBOX_BLOCK,
+        GEOLOGISTS_TOOLS_ID to GEOLOGISTS_TOOLS_BLOCK,
     )
 
     /**
@@ -590,6 +643,7 @@ object AgeContent {
     )
 
     val blockEntities: List<Pair<Identifier, BlockEntityType<*>>> = listOf(
+        TOOLBOX_ID to TOOLBOX_ENTITY,
         WRITERS_DESK_ID to WRITERS_DESK_ENTITY,
         STAR_FISSURE_ID to STAR_FISSURE_ENTITY,
         ANALYSIS_MACHINE_ID to ANALYSIS_MACHINE_ENTITY,
@@ -711,6 +765,8 @@ object AgeContent {
         PITCHSTONE_CHESTPLATE_ID to PITCHSTONE_CHESTPLATE,
         PITCHSTONE_LEGGINGS_ID to PITCHSTONE_LEGGINGS,
         PITCHSTONE_BOOTS_ID to PITCHSTONE_BOOTS,
+        TOOLBOX_ID to TOOLBOX,
+        GEOLOGISTS_TOOLS_ID to GEOLOGISTS_TOOLS,
     )
 
     /** Chunk-generator codecs — a level's generator is serialised when it is saved, so it needs one. */
