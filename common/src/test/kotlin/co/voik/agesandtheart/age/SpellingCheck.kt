@@ -33,6 +33,34 @@ import io.kotest.property.checkAll
 @Tags(NEEDS_REGISTRIES)
 class SpellingCheck : FunSpec({
 
+    /**
+     * An index set by hand survives the spelling, and an Age with none says nothing about it.
+     *
+     * The second half is what keeps every existing spelling reading as it always did — `unstable=0` in
+     * front of every coherent Age would be noise in the one place a person reads a composition.
+     */
+    test("a forced instability round-trips through the spelling") {
+        val composition = AgeComposition(terrains = listOf(Terrain.HILLS))
+        val doomed = CompositionSpelling.Written(composition, instability = Instability.forced(FORCED_INDEX))
+        val spelled = CompositionSpelling.spell(doomed)
+        check("unstable=$FORCED_INDEX" in spelled) { "the index was not spelled: $spelled" }
+        val read = CompositionSpelling.read(spelled).getOrThrow()
+        check(read.instability.index == FORCED_INDEX) {
+            "the index came back as ${read.instability.index}, not $FORCED_INDEX"
+        }
+
+        val coherent = CompositionSpelling.Written(composition)
+        check("unstable" !in CompositionSpelling.spell(coherent)) {
+            "a coherent Age spells an instability it does not have"
+        }
+    }
+
+    test("an instability that is not a number is refused rather than ignored") {
+        val bad = CompositionSpelling.read("unstable=badly landmass=hills")
+        check(bad.isFailure) { "'unstable=badly' was accepted" }
+    }
+
+
     /** What a generated Age is made of — enough shapes to reach every branch of the spelling. */
     val landforms = Arb.element(Terrain.entries.filter { it.askableInASentence })
     val seas = Arb.element(Sea.WATER, Sea.LAVA, Sea.NONE)
@@ -108,3 +136,6 @@ class SpellingCheck : FunSpec({
 
 /** One seed, since what is under check does not vary with it. */
 private const val SPELLING_SEED = 4242L
+
+/** High enough to buy every step of every register, which is what a raid needs. */
+private const val FORCED_INDEX = 400

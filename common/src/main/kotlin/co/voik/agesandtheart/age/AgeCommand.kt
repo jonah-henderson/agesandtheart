@@ -1805,7 +1805,7 @@ object AgeCommand {
             context.source.sendFailure(Component.literal(problem.message ?: "Could not read '$specification'"))
             return FAILURE
         }
-        return write(context, AgeWorld.Composed(written.composition), seed, written.template)
+        return write(context, AgeWorld.Composed(written.composition), seed, written.template, written.instability)
     }
 
     /** Writes an Age down and opens it — the tail `create` and `compose` share. */
@@ -1814,13 +1814,20 @@ object AgeCommand {
         world: AgeWorld,
         seed: Long?,
         template: AgeTemplate = AgeTemplate.ORDINARY,
+        instability: Instability = Instability.NONE,
     ): Int {
         val source = context.source
         val report = Report.prose(source)
         val name = StringArgumentType.getString(context, NAME_ARGUMENT)
         val id = ageId(name)
         if (!canWrite(source, name, id, report)) return FAILURE
-        val recipe = AgeRecipe.written(source.server, world, seed ?: AgeRecipe.seedFor(id), template)
+        val recipe = AgeRecipe.written(
+            source.server,
+            world,
+            seed ?: AgeRecipe.seedFor(id),
+            template,
+            instability = instability,
+        )
         return open(source, name, id, recipe, report)
     }
 

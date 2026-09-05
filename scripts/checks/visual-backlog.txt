@@ -285,12 +285,11 @@
 # — that last is the line the design draws and the one a tick-scoped effect could plausibly get wrong.
 # The armour-stand probe was abandoned: a playerless server does not keep one selectable.
 
-# F. THE TERMINAL HOARD HAS NEVER BEEN SEEN, AND `/age decay` CANNOT SHOW IT. A doomed Age is meant to hold
-# ten times the veins at ten times the size, sited inside `Collapse.DEEP` so the fissures eat it first.
-# `Danger.isTerminal` is checked offline and the ordinary deposit is checked on a server, but the terminal
-# one is not reachable from either: `retellTheGenerator` rewrites only `consequence`, where the deposit is
-# baked into the biome-settings lambda built once at open. So a decayed Age *reports* terminal and
-# *generates* ordinary. Two ways out, neither built: give `AgeChunkGenerator` a `rewritePlaces` beside its
-# `rewriteConsequence` (it must redo BOTH `generationSettingsGetter` and the memoised `featuresPerStep`, or
-# the sorted list keeps identities nothing looks up); or write a book that earns collapse honestly, which
-# the decay command's own KDoc puts at an index near a hundred.
+# F. THE TERMINAL HOARD IS GENERATED BUT HAS NEVER BEEN SEEN. `age compose <name> <seed> unstable=400 ...`
+# sets the index before the Age opens, which is what `/age decay` cannot do — decay rewrites a recipe that
+# is already open, and an Age settles what it places when it opens. Measured 2026-09-05 with that: **3794
+# deretheni in one chunk's floor band** (-62..-40) against nothing at all in the same band of an ordinary
+# Age. That is about two thirds of the band solid ore, which is "absurd amounts" as asked and wants a
+# judgement: it may be right for a world you are raiding once, or it may want the x10 pulled back.
+# What a walk still has to settle: that the fissures actually reach it and eat it, which is the whole point
+# of siting it there, and that racing them is fun rather than merely fatal.

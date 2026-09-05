@@ -228,10 +228,12 @@ data class AgeRecipe(
             seed: Long,
             template: AgeTemplate = AgeTemplate.ORDINARY,
             authored: Boolean = true,
+            instability: Instability = Instability.NONE,
         ): AgeRecipe = AgeRecipe(
             seamed(world, seed),
             seed,
             AgeCharacter.drawn(server, seed),
+            instability = instability,
             writtenAt = server.overworld().gameTime,
             template = template,
             authored = authored,

@@ -65,3 +65,14 @@ execute in agesandtheart:quiet run fill 0 -56 0 15 39 15 minecraft:air replace a
 
 # And the structured form, which is what a check would assert on.
 age danger json score hellish
+
+# The raid (§7.7): a doomed Age is stuffed, and its hoard sits in the band the tear takes. `unstable=` sets
+# the index *before the Age opens*, which is the only moment anything reaching generation can be steered —
+# `/age decay` rewrites a recipe that is already open and so never reaches the deposit.
+# Measured 2026-09-05: 3794 against 0 in the same band.
+age compose doomed 11 unstable=400 landmass=hills sea=lava rock=solid sky=plain
+age danger score doomed
+age gen doomed
+execute in agesandtheart:doomed run forceload add 0 0 15 15
+execute in agesandtheart:doomed run fill 0 -62 0 15 -40 15 minecraft:air replace agesandtheart:pitchstone_ore
+execute in agesandtheart:alllava run fill 0 -62 0 15 -40 15 minecraft:air replace agesandtheart:pitchstone_ore

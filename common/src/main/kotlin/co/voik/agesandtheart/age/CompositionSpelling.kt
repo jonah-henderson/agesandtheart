@@ -26,7 +26,22 @@ object CompositionSpelling {
      * composition could not round-trip an infernal Age: `landmass=vanilla` says the rock is not ours, and
      * only the template says which vanilla it is.
      */
-    data class Written(val composition: AgeComposition, val template: AgeTemplate = AgeTemplate.ORDINARY)
+    data class Written(
+        val composition: AgeComposition,
+        val template: AgeTemplate = AgeTemplate.ORDINARY,
+        /**
+         * An index set by hand rather than earned by contradiction — `unstable=42`.
+         *
+         * **Here because it has to be set when the Age is written, not after.** `/age decay` rewrites a
+         * recipe that is already open, and an Age's generator settles what it places when it opens — so
+         * anything the consequence registers reach through *generation* is untestable from decay and
+         * perfectly testable from here.
+         *
+         * Like the template, this belongs to the recipe rather than to the composition, and it is read
+         * here because this is the only spelling a person types an Age in.
+         */
+        val instability: Instability = Instability.NONE,
+    )
 
     /**
      * Everything [specification] says, or a failure naming what could not be read.
@@ -38,6 +53,7 @@ object CompositionSpelling {
         // the sentence names a terrain over the top of it, or it is rejected below for naming none.
         var composition = AgeComposition(terrains = listOf(Terrain.SHAPES))
         var template = AgeTemplate.ORDINARY
+        var instability = Instability.NONE
         var namedALandform = false
 
         for (token in specification.split(' ').filter(String::isNotBlank)) {
@@ -48,6 +64,13 @@ object CompositionSpelling {
             if (key == TEMPLATE) {
                 template = AgeTemplate.named(value)
                     ?: error("No world called '$value'. Try: ${AgeTemplate.entries.joinToString(" ") { it.key }}")
+                continue
+            }
+            // The other token that is not an aspect's, and the same argument: the recipe's, not the world's.
+            if (key == UNSTABLE) {
+                val index = value.toIntOrNull()?.takeIf { it >= 0 }
+                    ?: error("'$value' is not an instability index. It is a whole number, nought or more.")
+                instability = Instability.forced(index)
                 continue
             }
             val aspect = Aspect.entries.firstOrNull { key.substringBefore('.') == it.page }
@@ -87,7 +110,7 @@ object CompositionSpelling {
             "`${Aspect.TERRAIN.page}=${Terrain.VANILLA.key}` is the whole world's rock and cannot " +
                 "divide it with ${ourOwnRockBeside.joinToString(" ") { it.key }}"
         }
-        Written(composition, template)
+        Written(composition, template, instability)
     }
 
     /**
@@ -100,7 +123,12 @@ object CompositionSpelling {
     fun spell(written: Written): String {
         val world = if (written.template == AgeTemplate.ORDINARY) emptyList()
         else listOf("$TEMPLATE=${written.template.key}")
-        return (world + written.composition.tokens()).joinToString(" ")
+        // Spelled only where there is one, so a coherent Age reads exactly as it always did. What comes
+        // back is an index and not the flaws that earned it — this is a spelling of an Age, not of an
+        // argument the writer had with themselves.
+        val wrong = if (written.instability.isCoherent) emptyList()
+        else listOf("$UNSTABLE=${written.instability.index}")
+        return (world + wrong + written.composition.tokens()).joinToString(" ")
     }
 
     /** Every token a composition alone says — what [AgeComposition.toString] is. */
@@ -217,6 +245,9 @@ object CompositionSpelling {
 
 /** Which world the Age is written over, the one token in the spelling that is not an aspect's. */
 private const val TEMPLATE = "template"
+
+/** `unstable=42` — an index set by hand, which no contradiction had to earn. */
+private const val UNSTABLE = "unstable"
 
 /** What stands for one member of a cast, having no name of its own — see `CompositionSpelling.castSpelling`. */
 private const val BODY = "member"

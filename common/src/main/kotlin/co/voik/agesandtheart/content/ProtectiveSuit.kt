@@ -135,6 +135,12 @@ object ProtectiveSuit {
      * says "this would have hurt you": the burning attribute prevents the ignition rather than absorbing
      * the damage, and the freeze tag prevents the freezing. So the wear is charged for *being* in the
      * hazard, which reads the same way round and is what a player would expect.
+     *
+     * **This is on top of the wear any armour takes, not instead of it.** Vanilla damages what you are
+     * wearing whenever damage gets through, so an ordinary fight wears this suit exactly as it wears iron.
+     * What it does not cover is *fire* attacks: the resistance makes the wearer invulnerable to those, and
+     * `hurtServer` returns before armour is consulted — so a ghast costs nothing, which is the price §7.7
+     * accepted for being able to swim a lava sea.
      */
     private fun theEnvironmentIsTryingToKillThem(player: ServerPlayer): Boolean {
         val inTheFire = player.isInLava || player.level().getBlockState(player.blockPosition()).`is`(BlockTags.FIRE)
