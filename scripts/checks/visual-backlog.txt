@@ -1,324 +1,191 @@
-# The visual backlog: everything built headlessly that still wants a pair of eyes, in priority order.
+# The walk checklist: everything built headlessly that still wants a pair of eyes, in priority order.
 #
 # NOT a drive-server script. `scripts/drive-server.sh` writes to a throwaway world, so an Age it creates is
-# not one you can walk. Paste these into a **client** chat (`./gradlew :fabric:runClient`), then `/age tp
-# <name>` each in turn. Every line is deliberately seeded so what you see is what the next person sees.
+# not one you can walk. Paste these into a **client** chat (`./gradlew :fabric:runClient`).
 #
-# What each is FOR is written above it. If something looks wrong, the seed and the sentence together are the
-# whole repro — `/age list` prints both, and pasting a printed composition into `/age compose` rebuilds it.
+# What each is FOR is written above it, and each says WHAT A WALK HAS TO SETTLE — that sentence is the
+# acceptance test, not "does it look all right". Every line is deliberately seeded so what you see is what
+# the next person sees; `/age list` prints a seed and a recipe, and pasting a printed composition back into
+# `/age compose` rebuilds it exactly.
 #
-# **Every "CHECKED 2026-07-27" verdict below predates the dressing's deletion (2026-07-29).** The `dressing=`
-# tokens are gone from these lines and each Age now wears vanilla's biome table, so what you see will differ
-# from what was signed off — the *shapes* are unchanged, the cover over them is not. Treat the verdicts as
-# evidence about the shape and the seam, not about how the world looks now.
+# **EVERY COMMAND BELOW WAS DRIVEN AGAINST A REAL SERVER ON 2026-09-05 AND CREATES THE AGE IT CLAIMS TO.**
+# Keep it that way. The last list rotted partly because it accumulated plausible-looking lines nobody had
+# run — `climate.temperature=frigid` (that slot takes a numeric range), `phenomena=blizzard` (silently
+# dropped; the key is `phenomena.happens=`), `two suns` (not a word). A line that errors in chat is worse
+# than no line, because it reads as the feature being broken.
 #
-# ── WALKED END TO END 2026-07-27. Every line below carries its verdict. Two things came out of it ──────
-#   CHANGED   `Seam` is now sheared 85 / keen 9 / soft 4 / blurred 2 — the knife edge is the DEFAULT and
-#             every softness is rare (design 3.4). It took two rounds: wide seams compound across divided
-#             aspects, and then a single fuzzy Age still read as too unstable on its own.
-#             **SUPERSEDED 2026-07-29 — `Seam` is no longer widths at all.** It is the four forms a fault
-#             takes: rift 40 / scarp 40 / sheared 15 / fuzzed 5, the fuzz capped at 16 blocks. The reasoning
-#             did not go away — it is what makes the fuzz 5% and 16 blocks wide. See section 0.
-#   CHANGED   `SpireField` rebuilt as two populations — big carved islands, hard-jittered and free to
-#             merge, plus a shoal of small noise blobs between the cloud decks. VERIFIED IN GAME, and it
-#             costs 64 ms/chunk. `Scatter` was built for this and proved unnecessary; it is on the shelf.
-#   OPEN      `solid` + `porous` (and `caves` + `flooded_caves`) divide into territories that are identical
-#             by construction. A real gap, written up in design 3.4, to settle during 3c.
-#   OPEN      the seam probably wants to be read off the instability index rather than the seed. Deferred
-#             to the instability pass, and it is now step 0 of Phase 6 in the implementation plan.
-#   NOT PROVEN  the `needle` line. The search was cut short, so 1%-findability is still unanswered.
-
-# ── 0. FAULTS — the newest thing here and the only one whose walk IS the acceptance test ─────────
-# Numbered zero rather than appended, because this file is in priority order and everything below has been
-# looked at at least once. Built 2026-07-29 (Phase 4.5 step 9), never seen in a client.
+# **DELETE AN ENTRY WHEN IT HAS BEEN WALKED.** Started over 2026-09-05 because the last one was not kept
+# that way: it grew verdicts on things since rebuilt, open items settled elsewhere and never struck out,
+# and two lettered sequences running at once. A verdict that outlives its code is worse than no note. When
+# a walk settles something the finding goes to `notes/decisions.md` in two lines and the entry goes here.
 #
-# The plan is explicit that this step can be cleanly DELETED: "if a scarp reads as broken rather than
-# dramatic, delete the node and nothing else in the phase moves". So the question is not "is anything wrong"
-# but "is this worth keeping" — and nothing is wired to instability until after you answer.
+# The old file is in git at `f8325b7:scripts/checks/visual-backlog.txt`. Everything live in it was already
+# recorded in `notes/decisions.md` or `notes/the-art-implementation-plan.md`; what was still unwalked is
+# items 6 to 8 below.
+
+# ══ 1. THE REWARD LOOP, END TO END ═══════════════════════════════════ Phase 7 steps 1-2, UNWALKED ══
+# The phase's headline, and the reason the danger pole went first: **write a dangerous Age, read what it
+# will hold before you bind the book, go there and find it.** Every part is built and checked headlessly
+# and no part has ever been done in sequence by a person.
 #
-# A seam now takes ONE OF FOUR FORMS, drawn per Age: rift 40%, scarp 40%, sheared 15%, fuzzed 5%.
-# `landmass.seam=` pins one, and pinning is the only way to see a given form on purpose, because nothing prints
-# what an Age drew. All four lines below are the SAME terrain either side, so the form is the only difference
-# between the sides, and `seamsheared` is the control — it should read as one ordinary landscape.
-#   1. drama or breakage? that is the whole call, and it is mostly about `seamscarp`.
-#   2. is 32 blocks (Terrain.SCARP_THROW) the right size, either way, giving a 64-block cliff?
-#      `HIGH_ALTITUDE_LIFT` was a guess of the same standing and turned out wrong by about a hundred blocks.
-#   3. `seamrift` should be FLOODED with no help — RIFT_FLOOR is y=40, under the waterline. Its floor was set
-#      to keep the chasm SWIMMABLE, so a rift divides an Age without partitioning it. Deep enough? too deep?
-#   4. `seamfuzzed` will look almost exactly like `seamsheared` and that is expected, not a bug: interlocking
-#      a shape with itself reproduces it. The fuzz only shows between two DIFFERENT shapes — see `mixedfuzzed`.
-/age compose seamsheared 4242 landmass=hills,hills sea=water landmass.seam=sheared
-/age compose seamscarp 4242 landmass=hills,hills sea=water landmass.seam=scarp
-/age compose seamrift 4242 landmass=hills,hills sea=water landmass.seam=rift
-/age compose seamfuzzed 4242 landmass=hills,hills sea=water landmass.seam=fuzzed
-/age tp seamscarp
+# You need a desk with a geologist's tools in the room. The tools are a toolbox (shaped: plank/slab/plank
+# along the bottom, sticks up the middle) filled shapeless with a brush, a rime crystal, a lodestone, a
+# diamond, a barrel and a deretheni plate. The rime crystal is the awkward one — it comes from item 5, so
+# either walk that first or `/give` yourself one.
+#
+# THE SENTENCE IS TWO PAGES — `infernal` and `age` — which is what makes this practical at a desk.
+/age write hellish 11 infernal age
+/age danger score hellish
+/age tp hellish
+#
+# MEASURED 2026-09-05, so the walk has something to disagree with:
+#   danger 0.430 (made of 1.000, lives in 0.000, happens 0.000, dark 0.800) — pays out, no ruins.
+#   That is three veins a chunk, which the survey should word as **"a little"**.
+#
+# WHAT A WALK HAS TO SETTLE:
+#   - THAT THE SURVEY READS. Lay those two pages at the desk and look at the bind tab. It should name
+#     deretheni with an amount, BEFORE the book is bound. A bare desk (no tools) must look exactly as it
+#     did before — no heading, no gap.
+#   - THAT IT FITS. The pane holds the sentence and the survey under it, and the sentence is clipped to
+#     what the survey leaves. A twelve-page book is the case to try: the sentence should ellipsise and the
+#     survey should still be whole.
+#   - THAT IT AIMS RATHER THAN FORECASTS. It must never say what the danger IS, only how much comes out.
+#   - THAT THE AMOUNT IS HONEST. Measured at score 0.350: **4 ore in a chunk's whole band**, against a
+#     nominal two veins of four — the rest carved away or self-overlapping, as vanilla's own veins are.
+#     Does finding that much feel like the trip was worth making?
+#   - **THE CALIBRATION QUESTION, and this walk is the only instrument for it.** `pays_above` is a
+#     placeholder `0.25` in `art/danger.json`. Too low and every Age pays; too high and nobody sees the
+#     material before giving up. The three Ages in this file bracket it — `rimea` scores 0.100 and pays
+#     nothing, `hellish` 0.430, `doomed` 0.700 — so write one or two more either side and say where the
+#     line goes.
 
-# The forms between two genuinely DIFFERENT shapes, which is what a written Age usually is. Design 3.4
-# is already true here — two terrains meet at a cliff anyway, since Regions blends no heights — so what to
-# judge is what each form ADDS to a step that was already there. `mixedfuzzed` is the one where the fuzz
-# finally has something to dissolve, so it is the one to look at for the rare form.
-/age compose mixedscarp 4242 landmass=hills,pillars sea=water landmass.seam=scarp
-/age compose mixedrift 4242 landmass=hills,pillars sea=water landmass.seam=rift
-/age compose mixedfuzzed 4242 landmass=hills,pillars sea=water landmass.seam=fuzzed
-/age tp mixedfuzzed
+# ══ 2. THE DERETHENI SUIT HAS NEVER BEEN WORN ════════════════════════════════ Built 2026-09-05 ══
+# Checked only as arithmetic (`ProtectiveSuitCheck`) and as a datapack that loads. The armour-stand probe
+# was abandoned: a playerless server does not keep one selectable. Item 1's `hellish` is the fire half;
+# this is the cold half, and it is the same Age item 5 wants.
+#
+/age write frozen 4242 age blizzard phenomena frozen climate
+/age tp frozen
+#
+# WHAT A WALK HAS TO SETTLE:
+#   - Four pieces really do stop you catching fire in an inferno (`/age tp hellish`).
+#   - Powder snow and a frozen Age do nothing to you.
+#   - A full set survives a swim in lava and a PARTIAL set does not.
+#   - **A fire-throwing mob is still dangerous in it.** That is the line the design draws and the one a
+#     contact-scoped effect could plausibly get wrong — a blaze should still be a fight.
+#   - The trade is felt: it is armour you wear INSTEAD of armour, so a fight should go worse in it.
 
-# Structures across a scarp. Vanilla WILL straddle one — it takes a height at a single column and builds from
-# there. Vanilla has the same problem at its own biome edges and mostly gets away with it; a scarp is sharper.
-# Look once before calling it broken. A village half on and half off a 64-block cliff might be the best thing
-# in here or the worst.
-/age compose scarpbuilt 4242 landmass=hills,hills sea=water landmass.seam=scarp structures=vanilla
-/age tp scarpbuilt
+# ══ 3. THE TOOLBOX HAS NEVER BEEN OPENED OR CARRIED ══════════════════════════ Built 2026-09-05 ══
+# Two halves, neither reachable from a headless server, and the first is the one that matters.
+#
+#   - THE FENCE. It must take only things that carry durability, or twenty-seven slots is a shulker box
+#     for four sticks. Cannot be checked offline AT ALL: `Bootstrap.bootStrap()` does not bind item
+#     components, so no `ItemStack` can be built in a spec ("Components not bound yet"). Try to put dirt
+#     in one.
+#   - THE REFILL. Carry a toolbox holding a spare, break the tool in your hand, and the spare should
+#     arrive in that hand. **ARMOUR TOO**, which is the less usual half — break a boot and the spare boot
+#     should go on. Besides that it fires: that it takes from the right compartment, that the contents
+#     survive the box being broken and replaced, and that the client does not flicker when a refused item
+#     is dragged in (the menu carries its own type precisely so that it should not).
 
-# What an Age draws for ITSELF, which is what almost every Age will do. No `landmass.seam`, four seeds. There is
-# no way to tell from in game which form one drew — that gap is real and noted in the design.
-/age compose drawnA 1 landmass=hills,pillars sea=water
-/age compose drawnB 2 landmass=hills,pillars sea=water
-/age tp drawnA
+# ══ 4. THE TERMINAL HOARD IS GENERATED BUT HAS NEVER BEEN SEEN ═══════════════ Built 2026-09-05 ══
+# `unstable=400` sets the index before the Age opens, which is what `/age decay` cannot do — decay rewrites
+# a recipe that is already open, and an Age settles what it places when it opens.
+#
+/age compose doomed 11 unstable=400 landmass=hills sea=lava rock=solid sky=plain
+/age danger score doomed
+/age tp doomed
+#
+# MEASURED 2026-09-05: danger 0.700, collapse reach 1.00 — terminal, so forty veins a chunk, the top of
+# the survey's scale. And **3794 deretheni in one chunk's floor band** (-62..-40) against nothing at all in
+# the same band of an ordinary Age. About two thirds of the band solid ore.
+#
+# WHAT A WALK HAS TO SETTLE:
+#   - **Whether that is right.** "Absurd amounts" is what was asked for, and it may be exactly right for a
+#     world you raid once — or the x10 may want pulling back. This is a judgement, not a measurement.
+#   - That the fissures actually reach it and eat it, which is the whole point of siting it in the tear.
+#   - That racing them is FUN rather than merely fatal.
+#   - NOT CHECKABLE AT THE DESK. `unstable=` is an operator override, so no sentence produces this Age and
+#     the survey cannot be asked about it. Whether a *written* book can reach full collapse at all is its
+#     own open question, and until it can, the top band is unreachable in play.
 
-# ALSO WORTH ONE OFFLINE LOOK, because a picture settles the forms faster than a walk does, and the
-# three subjects are the same territories with only the form changed:
-#   ./gradlew :common:preview --args=fault    (scarp)
-#   ./gradlew :common:preview --args=rift
-#   ./gradlew :common:preview --args=fuzz     (read against --args=regions, the same pair knife-edged)
+# ══ 5. THE RIME CRYSTALS AND THE SKATES HAVE NEVER BEEN SEEN OR WORN ═════════ Built 2026-09-05 ══
+# The placement was instrumented on a server — 118 sheer faces to 87 crystals over 64 chunks of a `cliffs`
+# Age, none refused, y 73 to 208 with a median of 137 — but nobody has looked at one. Both gates are hard:
+# every climate cold enough that nothing thaws, AND a blizzard.
+#
+# THE RICH ONE, composed, because `cliffs` is the landform that yields (3.77 a chunk against vanilla's
+# 0.19) and no word reaches it:
+/age compose rimea 4242 landmass=cliffs sea=water rock=solid sky=plain climate.temperature=-0.9..-0.6 phenomena.happens=blizzard
+/age tp rimea
+#
+# THE WRITABLE ONE, which is what a player can actually reach and what the desk survey can be asked about:
+/age write rimeb 4242 age blizzard phenomena frozen climate
+/age tp rimeb
+#
+# WHAT A WALK HAS TO SETTLE:
+#   - That a crystal on a cliff face reads as a FIND rather than as noise.
+#   - That the blue tint over vanilla's amethyst is legible at distance. It is a placeholder either way
+#     (Phase 9), so the question is only whether it carries until then.
+#   - That climbing to them is the scaffolding problem it was meant to be — more the higher you go.
+#   - **THAT `rimeb` GROWS ANY AT ALL.** It resolves to `climate.temperature=-0.95..-0.45`, and the gate is
+#     `most <= -0.45` — it passes by exactly nothing. If the writable path turns out to grow none, the gate
+#     wants a hundredth of slack, because "cold enough" should not hinge on a boundary the player cannot see.
+#   - **THE `alps` TRAP.** `/age write rimec 4242 age sheer landmass blizzard phenomena frozen climate`
+#     resolves to `landmass=alps`, which yields ZERO — it is the landform whose name most says "cold
+#     mountains" and the one word a player would reach for. Bug to fix, or a thing to teach?
+#   - THE SKATES: 2.26x a walk at terminal speed, no brakes, a ledge a real hazard. Fun, or just fast?
 
-# ── 1. Impossible geometry, and the thing with no vanilla equivalent ─────────────────────────────
-# An ocean of water meeting an ocean of lava at ONE level with no barrier between them. Look along the seam.
-# CHECKED 2026-07-27 — passes. The fuzzy transition takes a moment to get used to; the small pools of mixed
-# water and lava along it read as weird, and that is the weirdness this is meant to enable. Do not tidy the
-# seam (see `irregularities-are-a-feature`) — if it is ever revisited, it is a deliberate change, not a fix.
-/age compose twoseas 7 landmass=hills sea=water,lava depths=solid sky=plain
-/age tp twoseas
-
-# All four positional aspects divided at once — the busiest world the model can describe. The question is
-# whether it reads as varied or as noise; if it is noise, that is what `Share` and the per-aspect appetite for
-# company exist to tune (design 3.4).
-# CHECKED 2026-07-27 — passes as an *instability* reading: weird, fragmented, clearly wrong, which is the
-# alien-geometry-means-instability principle doing its job. One change came out of it: wide seams compound
-# across aspects, so `Seam` is now drawn biased low (sheared 40 / keen 35 / soft 18 / blurred 7) instead of
-# evenly, and mid-to-high is the oddity rather than half of all Ages. Design 3.4 records the reasoning.
-# NOTE: that draw is part of the character, so this line re-composed today will NOT have the seam it had
-# when it was looked at — expect it cut or nearly cut now. `/age list` prints what it actually got.
-/age compose everything 7 landmass=hills,pillars sea=water,lava depths=caves,solid climate=natural{temperature=0.6..0.9},natural{temperature=-0.9..-0.6} sky=storm
-/age tp everything
-
-# ── 2. Weighted territories: the newest mechanic, and the least looked at ────────────────────────
-# Mostly hills with scattered pillars, then the same pair evenly. The pillars should be somewhere you have to
-# WALK to in the first and unmissable in the second. If "scattered" feels like "absent", the ladder in
-# `Share` is what to move — but read `rarity-is-an-incentive` in memory first, because low is deliberate.
-# CHECKED 2026-07-27 — working as intended. The ladder stands; nothing to move.
-# RE-WALKED later the same day, and this is what settled the seam. `evenhills` came up with one of the
-# fuzzy variants and read as too weird and unstable ON ITS OWN — no compounding, nothing else odd about
-# the Age. So the first bias (40/35/18/7) was treating fuzziness as a flavour to sample fairly when it is
-# an exception: `Seam` became sheared 85 / keen 9 / soft 4 / blurred 2.
-# STILL THE REASONING, DIFFERENT SHAPE (2026-07-29): `Seam` is now three fault forms rather than four widths,
-# and the fuzz is 5% of them. This walk is why it is 5 and not a third. Re-walking these two lines is worth it
-# — they will now come up with a scarp or a rift roughly half the time each, which they never used to.
-/age compose mostlyhills 7 landmass=hills,pillars@scattered sea=water sky=plain
-/age compose evenhills 7 landmass=hills,pillars sea=water sky=plain
-/age tp mostlyhills
-
-# A rare territory at the floor: 1% of the world. This is the one that answers "is 1% findable?" — fly out.
-# CHECKED 2026-07-27 — INCONCLUSIVE, and deliberately left that way. The needle was not found, but the
-# search was cut short rather than exhausted, so this is not evidence the floor is too low. **Do not raise
-# `Share.LEAST_SHARE_OF_A_WORLD` on the strength of this line** — Jonah's explicit call. Re-run it when
-# there is time to actually hunt; a real failure looks like a long deliberate search coming up empty.
-/age compose needle 7 landmass=hills,spire_islands@rare sea=water sky=plain
-/age tp needle
-
-# ── 3. Words: does a sentence make a world you would have written? ──────────────────────────────
-# The whole point of Phase 3b. Nothing here is about correctness — the checks cover that — it is about whether
-# the tag weights and readiness produce Ages that feel like their sentences.
-# CHECKED 2026-07-27 — the whole section, to satisfaction. The vocabulary works *for the options it
-# currently has to choose from*, which is the honest scope of the result: a handful of presets per aspect.
-# Phase 3c multiplies that corpus, so this section is worth re-walking once derived words land — passing
-# here does not predict passing there.
-/age write lovely 7 beautiful
-/age write bleak 7 desolate foreboding
-/age write grand 7 wondrous colossal
-/age write gentle 7 homely verdant
-/age tp lovely
-
-# A contradiction the world absorbs: cherry-grove-abutting-desert, which is the tags-over-axes argument
-# (3.3) standing or falling in front of you. The exact word should hold most of the ground.
-/age write bothways 7 verdant lifeless
-/age tp bothways
-
-# Harmony: one vague word that liked several answers, charged nothing. Seeded to a case that actually divides.
-# CHECKED 2026-07-27 — divided the carvers into `solid` + `porous`, and the porous half could not be
-# found. NOT bad luck, and not a generation bug: those two presets carve nothing at all, a carvers
-# territory is consulted by carvers ONLY, and the water table — the sole difference between them — is
-# deliberately one-per-Age. The two territories are therefore identical by construction. Same goes for
-# `caves` + `flooded_caves`. Written up as OPEN in design 3.4; do not go hunting for it again until that
-# is settled, because there is nothing there to find.
-/age write manifold 12 beautiful
-/age tp manifold
-
-# ── 4. The retuned Spire, and Phase 2's novel compositions ──────────────────────────────────────
-# New cloud band at 145/265, sea at 63, islands varying in size and hang. The untested dial is crossing
-# FREQUENCY — whether you can get from island to island without flying.
-# CHECKED 2026-07-27 — FAILS, and worse than "hard to cross": no second island was VISIBLE from the
-# starter one. `SpireField.ISLAND_SPACING` is 330 blocks with `ISLAND_DENSITY` 0.75, so the nearest
-# neighbour averages well beyond a 12-chunk (192-block) view distance and a quarter of the cells are empty
-# on top of that. The preset's own doc wants "an archipelago sitting between the cloud decks" seen from a
-# distance — at 330 that picture cannot be seen at all at default settings.
-# RETUNED to 250 / 20 / 0.85. Not lower: `spacing - 2*jitter` must clear 210 blocks (two islands at
-# maxScale) or neighbours merge into one landmass, which is what the old 330/60 was quietly protecting.
-# Jitter paid for the tightening, so the lattice reads a little more regular. Verified with
-# `./gradlew :common:preview --args=spire`: separate islands, ~40 blocks of air between edges.
-# THEN REBUILT the same day, because at 250/20 it read as too regular. Now TWO POPULATIONS: the big
-# carved islands on a hard-jittered grid (250/105/0.85, and merging is now WANTED — a merged pair is
-# simply a bigger island), plus a dense shoal of small noise blobs hung anywhere between the cloud decks.
-# NOT WALKED IN A CLIENT AT ALL YET — everything above is the offline previewer. What to judge:
-#   1. does the archipelago still read as laid out? if so the fix is `Scatter` (built, unused here yet),
-#      because a grid randomises WHERE an island is but never HOW MANY, and that rhythm survives jitter;
-#   2. are the small islands too fragmented NOW? they were halved and broken up deliberately (envelope
-#      17x9, threshold 0.05 for a bit under half the envelope kept) because at 72% kept they still read
-#      as ellipsoids. `BLOB_THRESHOLD` is the dial; some now come out as two or three loose pieces;
-#   3. can you actually get between things now, and does the vertical spread read or just look chaotic.
-# VERIFIED IN GAME 2026-07-27 — satisfactory. Both populations read, and the layout no longer looks laid
-# out, so `Scatter` was NOT needed here after all; it stays on the shelf for whatever wants it next.
-# TIMED 2026-07-27: 64 ms/chunk, measured in game. That is UNDER the ~90 ms vanilla reference, so the
-# second layer cost far less than feared — the Intersect short-circuit is doing its job and the noise band
-# is only walked inside envelopes. No perf work wanted here.
-/age create field spire7 7
-/age tp spire7
-
-# Spire islands over ordinary water instead of plasma, and a lava sea under pillars: two sentences nobody
-# hand-wrote before aspects existed.
-# CHECKED 2026-07-27 — both good, signed off.
-/age compose spireocean 7 landmass=spire_islands sea=water depths=weathered sky=storm
-/age compose lavapillar 7 landmass=pillars sea=lava depths=solid sky=plain
-/age tp spireocean
-
-# ── 5. Free while you are in there ─────────────────────────────────────────────── CHECKED 2026-07-27 ──
-# Every Age above with its sentence, composition and instability index on one line each. Anything printed
-# here pastes straight back into `/age compose`.
-/age list
-
-# ── SCARP_THROW is a guess ─────────────────────────────────────────────────────────── OPEN 2026-07-30 ──
-# `Terrain.SCARP_THROW = 32` (a 64-block cliff where two territories throw opposite ways) was never
-# measured — the same standing HIGH_ALTITUDE_LIFT had before it was walked, and that one turned out wrong
-# by about a hundred blocks. `./gradlew :common:preview --args=fault` draws it without booting a server.
-# A scarp needs a divided TERRAIN, which is rare, so write until one turns up or pin the seam:
-/age compose scarp1 7 landmass=hills,pillars landmass.seam=scarp
-/age tp scarp1
-
-# ── SKY POLISH, after the first 26.1 walk ────────────────────────── OPEN 2026-07-30, DEFERRED ──
-# Jonah's call: park these until the main mod has more headway. Recorded now because they came out of a
-# walk and the leads are fresh; none is a bug, all three are "it works, and it should be better".
-
-# 1. THE CLOUD DECKS ARE A SQUARE IN A ROUND WORLD.
-# A deck is a 1024x1024 slab centred on the camera, and recent Minecraft fades loaded chunks into the fog
-# in a CIRCLE — so the deck's corners reach past where the world itself has faded out and the oblong reads
-# as an obvious edge. Want it to match the underlying fog as closely as possible; a plain radial fade is
-# the fallback if matching properly is not reachable.
-# THE LEAD: `cloud_deck.vsh`/`.fsh` deliberately do NOT import `minecraft:fog.glsl` — fog was left out
-# because it could not be checked without a client. That is exactly the hook. Adding a `Fog` uniform to
-# CLOUD_DECK_PIPELINE and running the deck through vanilla's own `fog_distance`/`apply_fog` would fade it
-# on the same curve as terrain rather than on a curve of ours. Check `RenderSystem.setShaderFog` is set
-# during the cloud pass before relying on it; `addCloudsPass` does not obviously set it the way
-# `addSkyPass` does.
-
-# 2. THE SPIRE SHOULD BE PERMANENTLY DUSK, WITH ITS STARS ALWAYS OUT.
-# It has no sun and nothing else, so a day/night cycle buys it nothing. Wanted: stars visible at ALL times,
-# light EVEN across the whole cycle at roughly dusk intensity, and time still PROGRESSING so the stars
-# rotate. Today it is on the overworld's clock and goes properly dark and properly bright.
-# THE LEAD, and the one real unknown: `star_angle` and `star_brightness` come from the SAME timeline
-# (`#minecraft:in_overworld`), so the rotation and the fading cannot be separated by dropping the timeline
-# — that would freeze the stars in place, which is the opposite of what is wanted. The question to settle
-# first is whether a constant `EnvironmentAttributeMap` entry on `age_spire.json` OVERRIDES a timeline
-# track or is merely another layer under it (`EnvironmentAttributeSystem.bakeLayerSampler` is where to
-# read). If it overrides, this is data only: pin `star_brightness` and the light attributes, leave
-# `star_angle` to the timeline. If it does not, the painter has to stop reading vanilla's `starBrightness`
-# for an Age that says so — which probably means `StarField` carrying its own constant brightness, and the
-# `StarReveal` going away entirely rather than being widened.
-
-# 3. THE WARM/COOL STAR AXIS IS TOO SUBTLE TO SEE.
-# `WARM_STAR` (0.95, 0.87, 0.76) and `COOL_STAR` (0.78, 0.85, 1.0) are both nearly white, so the variation
-# reads as noise rather than as colour. Push both toward saturation.
-# WORTH KNOWING BEFORE TURNING THAT DIAL: the tint is `WARM.lerp(COOL, random.nextFloat())`, and a uniform
-# draw puts most stars in the MIDDLE of the axis — i.e. neutral — however far apart the ends are. Biasing
-# the draw toward the ends will do at least as much as widening the axis, and probably more.
-
-# ── SEAMS, after the walk ──────────────────────────────── A/B/C DONE 2026-07-30, UNWALKED ─────────
-# A, B and C below are built. D stands as a verdict. What to look at, all four seeded 4242 so the pairs
-# are comparable:
+# ══ 6. THE FOUR SEAM FORMS, AFTER THE FIXES ══════════════════ Built 2026-07-30, UNWALKED SINCE ══
+# Carried forward from the old list, and now unwalked across the 26.1 upgrade as well. All four seeded 4242
+# so the pairs are comparable.
+#
 /age compose seamsheared 4242 landmass=hills,hills sea=water landmass.seam=sheared
 /age compose seamrift 4242 landmass=hills,hills sea=water landmass.seam=rift
 /age compose seamwall 4242 landmass=hills,hills sea=water landmass.seam=wall
 /age compose seamfuzzed 4242 landmass=hills,hills sea=water landmass.seam=fuzzed
 /age tp seamwall
-#   1. `seamsheared` and `seamfuzzed` should now SHOW something — that is the whole of A.
-#   2. the rift should be a V with a wandering rim, and DRY — the sea is now told to keep out of the chasm
-#      rather than the chasm being lifted above it, so its depth against the terrain is untouched.
-#   3. the wall is 48 wide and Hermite-tapered, so it has a broad crest and flanks that ease into the
-#      ground. `Ridge.DEFAULT_HALF_WIDTH` is the dial; height (`WALL_CREST`=108) is signed off.
+#
+# WHAT A WALK HAS TO SETTLE:
+#   - `seamsheared` and `seamfuzzed` should now SHOW something at all. Fields are salted per member now;
+#     before that, two territories of the same terrain were byte-identical and there was no boundary.
+#   - The rift should be a V with a wandering rim, and DRY — `SeaFill` carries a dry volume, so the sea is
+#     told to keep out of the chasm rather than the chasm being lifted above it.
+#   - The wall is 48 wide and Hermite-tapered: broad crest, flanks easing into the ground.
+#     `Ridge.DEFAULT_HALF_WIDTH` is the dial; `WALL_CREST` = 108 is signed off, do not touch it.
 # Offline first if it is faster: ./gradlew :common:preview --args=rift  and  --args=wall
+#
+# AND STILL NOT LOOKED AT: **vanilla structure placement straddling a scarp**, since it takes its height at
+# one column. This was in the old list as `scarpbuilt` and was never walked.
 
-# ── SEAMS, the original findings ──────────────────────────────────── OPEN 2026-07-30, Jonah's calls ──
-# The forms were walked and mostly land. Four things came out of it, in the order they should be done.
+# ══ 7. A GENERATED AGE'S SUNS AND MOONS HAVE NEVER BEEN LOOKED AT ═══════ Open since the upgrade ══
+# Both 26.1 sky walks were the Spire, which has neither — so the body-drawing half of the sky is compiled,
+# checked and unseen. `notes/version-upgrade.md` "Still open" item 1. Composed rather than written because
+# no word asks for a sun directly.
+#
+/age compose sunmoon 3 landmass=hills sea=water rock=solid sky=plain sun=member moon=member
+/age tp sunmoon
 
-# A. TWO TERRITORIES OF THE SAME TERRAIN ARE BYTE-IDENTICAL, so `seamsheared` and `seamfuzzed` show
-# nothing at all. Not a seam bug: `Terrain.field(options, window)` takes NO SEED, so `landmass=hills,hills`
-# builds the same field twice and there is genuinely no boundary to see. Salt the field per member — the
-# member index into the Age's seed — and every same-terrain pair starts working. Do this FIRST: it is the
-# reason two of the four forms could not be judged, and `mixedfuzzed` (which reads well) is only readable
-# because its two sides differ by preset.
-
-# B. THE RIFT IS TOO TIDY. Wanted: the border noised up rather than precise; deeper; V-shaped rather than
-# flat-floored; and NOT filled with water. Jonah: unnatural is the point, "especially if a sea ends up
-# spilling into it". Note that dropping the fill contradicts `Rift`'s current RIFT_FLOOR=y40 reasoning,
-# which put the floor under the waterline deliberately to keep a rift SWIMMABLE and so non-partitioning —
-# so crossing it becomes an open question again, and the V helps (you can walk down and up).
-
-# C. A FIFTH FORM: THE INVERSE OF THE RIFT. Like the scarp, but with the land either side at the SAME
-# level, so what sits between them is a jagged cliff — a wall along the boundary rather than a step across
-# it. The scarp itself is good and is not to be changed.
-
-# D. `seamfuzzed` IS THE RIGHT WIDTH — "clearly distorted, but resolves quickly enough it's recognisable
-# as a border and not a glitch". WIDEST_FUZZ_BLOCKS = 16 stands; do not retune it.
-
-# E. THE DERETHENI SUIT HAS NEVER BEEN WORN. Built 2026-09-05, checked only as arithmetic
-# (`ProtectiveSuitCheck`) and as a datapack that loads. What a walk has to settle: that four pieces really
-# do stop you catching fire in an inferno, that powder snow and a frozen Age do nothing, that a full set
-# survives a swim in lava and a partial set does not, and that a fire-throwing mob is still dangerous in it
-# — that last is the line the design draws and the one a tick-scoped effect could plausibly get wrong.
-# The armour-stand probe was abandoned: a playerless server does not keep one selectable.
-
-# F. THE TERMINAL HOARD IS GENERATED BUT HAS NEVER BEEN SEEN. `age compose <name> <seed> unstable=400 ...`
-# sets the index before the Age opens, which is what `/age decay` cannot do — decay rewrites a recipe that
-# is already open, and an Age settles what it places when it opens. Measured 2026-09-05 with that: **3794
-# deretheni in one chunk's floor band** (-62..-40) against nothing at all in the same band of an ordinary
-# Age. That is about two thirds of the band solid ore, which is "absurd amounts" as asked and wants a
-# judgement: it may be right for a world you are raiding once, or it may want the x10 pulled back.
-# What a walk still has to settle: that the fissures actually reach it and eat it, which is the whole point
-# of siting it there, and that racing them is fun rather than merely fatal.
-
-# G. THE TOOLBOX HAS NEVER BEEN OPENED OR CARRIED. Built 2026-09-05. Two halves, neither reachable from a
-# headless server, and the first is the one that matters:
-#   - THE FENCE. It must take only things that carry durability, or twenty-seven slots is a shulker box for
-#     four sticks. Cannot be checked offline at all: `Bootstrap.bootStrap()` does not bind item components,
-#     so no ItemStack can be built in a spec ("Components not bound yet"). Try to put dirt in one.
-#   - THE REFILL. Carry a toolbox holding a spare, break the tool in your hand, and the spare should arrive
-#     in that hand. ARMOUR TOO, which is the less usual half -- break a boot and the spare boot should go
-#     on. What a walk has to settle besides that it fires: that it takes from the right compartment, that
-#     the contents survive the box being broken and replaced, and that the client does not flicker when a
-#     refused item is dragged in (the menu carries its own type precisely so it should not).
-
-# H. THE RIME CRYSTALS AND THE SKATES HAVE NEVER BEEN SEEN OR WORN. Built 2026-09-05; the placement was
-# instrumented on a server (118 sheer faces -> 87 crystals over 64 chunks of a `cliffs` Age, none refused)
-# but nobody has looked at one. What a walk has to settle: that a crystal on a cliff face reads as a find
-# rather than as noise, that the blue tint over amethyst is legible at distance, that climbing to them is
-# the scaffolding problem it was meant to be, and that the skates are fun rather than merely fast -- 2.26x
-# a walk at terminal speed, no brakes, a ledge a real hazard.
-
-# I. THE SURVEY HAS NEVER BEEN READ. Built 2026-09-05, and it is the first thing on the bind tab that is
-# not the sentence. What a walk has to settle:
-#   - THAT IT FITS. The pane holds the sentence and the survey under it, and the sentence is clipped to
-#     what the survey leaves. A twelve-page book is the case to try: the sentence should ellipsise and the
-#     survey should still be whole. A bare desk (no tools) should look exactly as it did before.
-#   - THAT THE WORDS ARE RIGHT. `none` through `a great deal`, banded on veins per chunk. Whether a
-#     marginal Age reading "a trace" makes anybody want to write a worse one is the calibration question
-#     `pays_above` is waiting on, and this readout is the instrument for answering it.
-#   - THAT IT AIMS RATHER THAN FORECASTS. Write a cold Age with a blizzard and the survey should name the
-#     rime before the Age exists; write a hot one with the same words and it should not.
+# ══ 8. SKY POLISH ══════════════════════════════════════ OPEN 2026-07-30, DEFERRED BY JONAH ══
+# Park these until the main mod has more headway. Neither is a bug; both are "it works, and it should be
+# better". Recorded because the leads are fresh.
+#
+# 8a. THE SPIRE SHOULD BE PERMANENTLY DUSK, WITH ITS STARS ALWAYS OUT.
+# It has no sun, so a day/night cycle buys it nothing. Wanted: stars visible at ALL times, light EVEN
+# across the cycle at roughly dusk intensity, and time still PROGRESSING so the stars rotate. Today it is
+# on the overworld's clock and goes properly dark and properly bright.
+# THE LEAD, and the one real unknown: `star_angle` and `star_brightness` come from the SAME timeline
+# (`#minecraft:in_overworld`), so rotation and fading cannot be separated by dropping the timeline — that
+# would freeze the stars, which is the opposite of what is wanted. Settle first whether a constant
+# `EnvironmentAttributeMap` entry on `age_spire.json` OVERRIDES a timeline track or is merely another layer
+# under it (`EnvironmentAttributeSystem.bakeLayerSampler`). If it overrides, this is data only: pin
+# `star_brightness` and the light attributes and leave `star_angle` to the timeline. If it does not, the
+# painter has to stop reading vanilla's `starBrightness` for an Age that says so — which probably means
+# `StarField` carrying its own constant brightness and `StarReveal` going away rather than being widened.
+#
+# 8b. THE WARM/COOL STAR AXIS IS TOO SUBTLE TO SEE.
+# `WARM_STAR` (0.95, 0.87, 0.76) and `COOL_STAR` (0.78, 0.85, 1.0) are both nearly white, so the variation
+# reads as noise rather than as colour. Push both toward saturation.
+# WORTH KNOWING BEFORE TURNING THAT DIAL: the tint is `WARM.lerp(COOL, random.nextFloat())`, and a uniform
+# draw puts most stars in the MIDDLE of the axis — neutral — however far apart the ends are. Biasing the
+# draw toward the ends will do at least as much as widening it, and probably more.
