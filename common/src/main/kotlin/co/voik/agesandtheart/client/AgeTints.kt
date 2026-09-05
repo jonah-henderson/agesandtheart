@@ -1,24 +1,34 @@
 package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.content.AgeContent
-import net.minecraft.client.Minecraft
+import net.minecraft.client.color.block.BlockTintSource
 import net.minecraft.client.color.block.BlockTintSources
+import net.minecraft.world.level.block.Block
 
 /**
  * The colours our blocks are drawn in that their textures do not carry.
  *
- * **Vanilla's own `BlockColors`, called directly.** 26.1 took the block-colour hook off both loaders —
- * Fabric's `ColorProviderRegistry.BLOCK` is gone and NeoForge's `RegisterColorHandlersEvent.Block` with it,
- * leaving only registries for custom *kinds* of tint source. What is left underneath is vanilla's, it is
- * public, and it needs no wrapper: `BlockTintSources.constant` is exactly a flat colour.
+ * **Which block is what colour is all that is shared**, because the two loaders reach
+ * `BlockColors.register` by different routes and at a moment neither lets us choose. Fabric queues into
+ * `BlockColorRegistry`; NeoForge fires `RegisterColorHandlersEvent.BlockTintSources` from inside
+ * `BlockColors.createDefault`. Both take the same pair, so each passes its own [registrar] in.
+ *
+ * **Calling `Minecraft.getInstance().blockColors` from a client entrypoint does not work**, whatever the
+ * signature suggests: `Minecraft.<init>` runs the entrypoints ninety lines before it assigns `blockColors`,
+ * so the getter returns null and the crash report that would say so cannot be written either — the report
+ * asks for a render device that does not exist yet, and only that second failure reaches the console.
+ *
+ * A later hook is not an option either. Tints are read while models bake, so anything registered after the
+ * first resource reload is registered for nothing.
  *
  * **Why a tint and not a texture.** The mod ships no art, and a recoloured copy of Mojang's amethyst would
  * be Mojang's art in an MIT jar. A `tintindex` in our model and one number here get the same picture and
  * redistribute nothing. Both go when the asset pass draws a real crystal (Phase 9).
  */
 object AgeTints {
-    fun register() {
-        Minecraft.getInstance().blockColors.register(
+
+    fun register(registrar: (List<BlockTintSource>, Block) -> Unit) {
+        registrar(
             listOf(BlockTintSources.constant(AgeContent.RIME_CRYSTAL_TINT)),
             AgeContent.RIME_CRYSTAL_BLOCK,
         )

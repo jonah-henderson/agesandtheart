@@ -17,6 +17,7 @@ import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.client.AgeTints
 import co.voik.agesandtheart.client.Storms
 import net.neoforged.neoforge.client.event.ClientTickEvent
+import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent
 import net.minecraft.client.gui.screens.MenuScreens
 import net.minecraft.client.gui.screens.inventory.ContainerScreen
 import co.voik.agesandtheart.content.AgeFluids
@@ -55,6 +56,7 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
         // and an Age id can be reused, so one world's sky could otherwise appear in another's.
         NeoForge.EVENT_BUS.addListener(::onLoggingOut)
         eventBus.addListener(::onRegisterScreens)
+        eventBus.addListener(::onRegisterBlockTints)
         eventBus.addListener(::onRegisterFluidModels)
         eventBus.addListener(::onRegisterRenderers)
         ClientDeskNetwork.sender = { payload -> ClientPacketDistributor.sendToServer(payload) }
@@ -75,7 +77,14 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
         // Vanilla's own container screen: a toolbox is a chest's grid with a fence on what may go in it,
         // and the fence lives in the menu rather than in the drawing.
         event.register(AgeContent.TOOLBOX_MENU, ::ContainerScreen)
-        AgeTints.register()
+    }
+
+    /**
+     * The tints our block textures do not carry, at the one moment `BlockColors` exists and nothing has
+     * baked against it yet — this event is fired from inside `BlockColors.createDefault`.
+     */
+    private fun onRegisterBlockTints(event: RegisterColorHandlersEvent.BlockTintSources) {
+        AgeTints.register { sources, block -> event.register(sources, block) }
     }
 
     /**

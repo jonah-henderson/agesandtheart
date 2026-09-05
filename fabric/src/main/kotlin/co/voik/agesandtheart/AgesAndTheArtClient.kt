@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.word.LexiconPayload
 import co.voik.agesandtheart.client.BookEntityRenderer
 import co.voik.agesandtheart.client.SandColumnRenderer
 import co.voik.agesandtheart.client.ClientDeskNetwork
+import net.fabricmc.fabric.api.client.rendering.v1.BlockColorRegistry
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry
 import co.voik.agesandtheart.client.AgeLooks
 import co.voik.agesandtheart.client.DeskModel
@@ -56,7 +57,7 @@ fun initClient() {
     // Vanilla's own container screen: a toolbox is a chest's grid with a fence on what may go in it, and
     // the fence lives in the menu rather than in the drawing.
     MenuScreens.register(AgeContent.TOOLBOX_MENU, ::ContainerScreen)
-    AgeTints.register()
+    AgeTints.register { sources, block -> BlockColorRegistry.register(sources, block) }
     ClientDeskNetwork.sender = { payload -> ClientPlayNetworking.send(payload) }
     ClientPlayNetworking.registerGlobalReceiver(DeskSyncPayload.TYPE) { payload, _ ->
         DeskModel.remember(payload)
