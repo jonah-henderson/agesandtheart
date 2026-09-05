@@ -317,6 +317,7 @@ object AgeCommand {
                 .then(bindSubcommand())
                 .then(draftSubcommand())
                 .then(biomeCensusSubcommand())
+                .then(cliffSurveySubcommand())
                 .then(benchmarkSubcommand())
                 .then(compareSubcommand())
                 .then(spawnsSubcommand())
@@ -1663,6 +1664,29 @@ object AgeCommand {
             Commands.argument(NAME_ARGUMENT, StringArgumentType.word()).executes(::runGenerate),
         )
 
+    /**
+     * `/age cliffs <name> [radius]` — **how sheer this Age's ground is, and how that changes with height.**
+     *
+     * Written to answer one question with numbers rather than with an impression: a crystal that grows only
+     * on sheer faces needs to know what a sheer face *is* in terrain that actually exists, and eyeballing a
+     * mountain gives you the tallest thing you saw rather than the distribution.
+     *
+     * **Heightmaps, not chunks.** `getBaseHeight` samples the noise column without generating anything, so
+     * a survey of forty thousand columns costs seconds and touches no region file. What it measures is the
+     * drop from each column to its lowest neighbour, which is the height of the face standing there.
+     */
+    private fun cliffSurveySubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
+        reporting("cliffs") { reportFor ->
+            Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
+                .executes { context -> runCliffSurvey(context, DEFAULT_CLIFF_RADIUS, reportFor(context)) }
+                .then(
+                    Commands.argument(RADIUS_ARGUMENT, IntegerArgumentType.integer(1, MAX_CLIFF_RADIUS))
+                        .executes { context ->
+                            runCliffSurvey(context, IntegerArgumentType.getInteger(context, RADIUS_ARGUMENT), reportFor(context))
+                        },
+                )
+        }
+
     private fun biomeCensusSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         reporting("biomes") { reportFor ->
             Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
@@ -2788,6 +2812,99 @@ object AgeCommand {
         return SUCCESS
     }
 
+    /**
+     * Every column's drop to its lowest neighbour, gathered into a distribution.
+     *
+     * Two questions, and the second is the one that decides whether "more of them higher up" is a rule the
+     * terrain already keeps or one a feature has to impose: how *often* a face of each height occurs, and
+     * where those faces sit in the column.
+     */
+    private fun runCliffSurvey(
+        context: CommandContext<CommandSourceStack>,
+        radiusChunks: Int,
+        report: Report,
+    ): Int {
+        val source = context.source
+        val name = StringArgumentType.getString(context, NAME_ARGUMENT)
+        val level = openNamedAge(source, name, report) ?: return FAILURE
+        val generator = level.chunkSource.generator
+        val randomState = level.chunkSource.randomState()
+
+        val reach = radiusChunks * BLOCKS_PER_CHUNK
+        val across = reach * 2 + 1
+        val ground = Array(across) { x ->
+            IntArray(across) { z ->
+                generator.getBaseHeight(
+                    x - reach,
+                    z - reach,
+                    Heightmap.Types.WORLD_SURFACE_WG,
+                    level,
+                    randomState,
+                )
+            }
+        }
+
+        // The face standing at a column is how far the ground falls away beside it, so the lowest of the
+        // four neighbours is the one that matters — a column on a ledge has a face even if three sides
+        // are level with it.
+        val faces = mutableListOf<Pair<Int, Int>>()
+        for (x in 1..<across - 1) {
+            for (z in 1..<across - 1) {
+                val here = ground[x][z]
+                val lowest = minOf(ground[x - 1][z], ground[x + 1][z], ground[x][z - 1], ground[x][z + 1])
+                faces += (here - lowest) to here
+            }
+        }
+        if (faces.isEmpty()) {
+            report.fail("Nothing to measure in Age '$name'")
+            return FAILURE
+        }
+
+        report.say { "Age '$name', ${faces.size} columns within $radiusChunks chunks:" }
+        val tallest = faces.maxOf { it.first }
+        report.fact("columns", faces.size) { "" }
+        report.fact("tallest", tallest) { "  tallest face: $tallest blocks" }
+        for (height in CLIFF_BANDS) {
+            val standing = faces.filter { it.first >= height }
+            val share = standing.size.toDouble() / faces.size
+            report.entry(
+                "face$height",
+                mapOf(
+                    "atLeast" to height,
+                    "columns" to standing.size,
+                    "share" to share,
+                    "meanY" to standing.map { it.second }.average().takeIf { standing.isNotEmpty() },
+                ),
+            ) {
+                val where = if (standing.isEmpty()) "" else ", mean y %.0f".format(standing.map { it.second }.average())
+                "  a face of $height+ at %,d columns (%.3f%%)$where".format(standing.size, share * 100.0)
+            }
+        }
+        // And the same question asked the other way round: within each band of the column, how much of the
+        // ground there is standing at a sheer face. This is what says whether height already selects for it.
+        val floor = faces.minOf { it.second }
+        val ceiling = faces.maxOf { it.second }
+        val step = ((ceiling - floor) / CLIFF_Y_BANDS).coerceAtLeast(1)
+        var band = floor
+        while (band <= ceiling) {
+            val within = faces.filter { it.second >= band && it.second < band + step }
+            if (within.isNotEmpty()) {
+                val sheer = within.count { it.first >= CLIFF_WORTH_CALLING_ONE }
+                val share = sheer.toDouble() / within.size
+                report.entry(
+                    "band$band",
+                    mapOf("fromY" to band, "toY" to band + step, "columns" to within.size, "sheer" to share),
+                ) {
+                    "  y $band..${band + step - 1}: %.2f%% of %,d columns stand at a face of $CLIFF_WORTH_CALLING_ONE+"
+                        .format(share * 100.0, within.size)
+                }
+            }
+            band += step
+        }
+        report.finish()
+        return SUCCESS
+    }
+
     private fun runBiomeCensus(
         context: CommandContext<CommandSourceStack>,
         radiusChunks: Int,
@@ -2886,6 +3003,18 @@ object AgeCommand {
     /** How wide a spawn census looks, and how coarsely — enough places to be sure, few enough to be quick. */
     private const val SPAWN_SAMPLE_RADIUS = 2
     private const val SPAWN_SAMPLE_STRIDE = 16
+
+    /** Big enough to cross a mountain and small enough to answer in seconds. */
+    private const val DEFAULT_CLIFF_RADIUS = 6
+    private const val MAX_CLIFF_RADIUS = 16
+
+    /** The face heights worth knowing the frequency of, from a step up to a wall. */
+    private val CLIFF_BANDS = listOf(4, 8, 10, 12, 16, 24, 32)
+
+    /** What the y-band readout counts as sheer, so the two halves of the survey are asked at one height. */
+    private const val CLIFF_WORTH_CALLING_ONE = 10
+
+    private const val CLIFF_Y_BANDS = 8
 
     private const val SURVEY_QUART_STRIDE = 4
 
