@@ -1,0 +1,10 @@
+{
+  "_comment": "Half of what the suit is for, and vanilla's own mechanism: any one piece in this tag stops powder snow and a cold Age freezing you. Deretheni is the D'ni's answer to walking into a world nobody knows is survivable, so this is the plainest thing it should do.",
+  "replace": false,
+  "values": [
+    "agesandtheart:pitchstone_helmet",
+    "agesandtheart:pitchstone_chestplate",
+    "agesandtheart:pitchstone_leggings",
+    "agesandtheart:pitchstone_boots"
+  ]
+}

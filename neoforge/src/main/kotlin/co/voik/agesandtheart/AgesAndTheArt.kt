@@ -1,5 +1,6 @@
 package co.voik.agesandtheart
 
+import co.voik.agesandtheart.content.ProtectiveSuit
 import net.neoforged.neoforge.event.tick.ServerTickEvent
 import co.voik.agesandtheart.age.phenomena.Happenings
 import co.voik.agesandtheart.age.AgeCommand
@@ -243,6 +244,8 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
     /** Whatever befalls an Age. A tick has no shared entry point, so both loaders call the same one. */
     private fun onServerTick(event: ServerTickEvent.Post) {
         Happenings.tick(event.server)
+        // And what a deretheni suit keeps off its wearer, which is the half of that no attribute can reach.
+        ProtectiveSuit.tick(event.server)
     }
 
     /**

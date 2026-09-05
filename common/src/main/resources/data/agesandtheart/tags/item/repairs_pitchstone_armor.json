@@ -1,0 +1,5 @@
+{
+  "_comment": "What mends the suit at an anvil. A tag rather than an item so a pack may add to it.",
+  "replace": false,
+  "values": ["agesandtheart:pitchstone_plate"]
+}

@@ -277,3 +277,10 @@
 
 # D. `seamfuzzed` IS THE RIGHT WIDTH — "clearly distorted, but resolves quickly enough it's recognisable
 # as a border and not a glitch". WIDEST_FUZZ_BLOCKS = 16 stands; do not retune it.
+
+# E. THE DERETHENI SUIT HAS NEVER BEEN WORN. Built 2026-09-05, checked only as arithmetic
+# (`ProtectiveSuitCheck`) and as a datapack that loads. What a walk has to settle: that four pieces really
+# do stop you catching fire in an inferno, that powder snow and a frozen Age do nothing, that a full set
+# survives a swim in lava and a partial set does not, and that a fire-throwing mob is still dangerous in it
+# — that last is the line the design draws and the one a tick-scoped effect could plausibly get wrong.
+# The armour-stand probe was abandoned: a playerless server does not keep one selectable.

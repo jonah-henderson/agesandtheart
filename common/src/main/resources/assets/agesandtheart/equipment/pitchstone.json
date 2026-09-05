@@ -1,0 +1,7 @@
+{
+  "_comment": "Iron's overlays stand in until the asset pass; the layers name textures that do not exist yet, so this points at vanilla's rather than at nothing.",
+  "layers": {
+    "humanoid": [{ "texture": "minecraft:iron" }],
+    "humanoid_leggings": [{ "texture": "minecraft:iron" }]
+  }
+}

@@ -52,6 +52,7 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
 import net.minecraft.world.item.crafting.RecipeSerializer
+import net.minecraft.world.item.equipment.ArmorType
 import net.minecraft.util.valueproviders.UniformInt
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.DropExperienceBlock
@@ -227,6 +228,43 @@ object AgeContent {
     private const val ORE_RESISTANCE = 3.0f
     private const val LEAST_ORE_EXPERIENCE = 2
     private const val MOST_ORE_EXPERIENCE = 5
+
+    private val PITCHSTONE_PLATE_ID: Identifier = "pitchstone_plate".location()
+
+    /**
+     * Deretheni chipped into overlapping plates at a saw — the form the lore's suit was actually built of,
+     * and the only thing the armour is made from.
+     *
+     * **A stonecutter rather than a furnace**, because it is stone: four plates off one piece, which is the
+     * saw's usual generosity and what keeps a suit inside one dangerous Age's yield.
+     */
+    val PITCHSTONE_PLATE: Item =
+        Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, PITCHSTONE_PLATE_ID)))
+
+    private val PITCHSTONE_HELMET_ID: Identifier = "pitchstone_helmet".location()
+    private val PITCHSTONE_CHESTPLATE_ID: Identifier = "pitchstone_chestplate".location()
+    private val PITCHSTONE_LEGGINGS_ID: Identifier = "pitchstone_leggings".location()
+    private val PITCHSTONE_BOOTS_ID: Identifier = "pitchstone_boots".location()
+
+    /** See [ProtectiveSuit] — what a writer wears into an Age written to be survived. */
+    val PITCHSTONE_HELMET: Item = suitPiece(PITCHSTONE_HELMET_ID, ArmorType.HELMET)
+    val PITCHSTONE_CHESTPLATE: Item = suitPiece(PITCHSTONE_CHESTPLATE_ID, ArmorType.CHESTPLATE)
+    val PITCHSTONE_LEGGINGS: Item = suitPiece(PITCHSTONE_LEGGINGS_ID, ArmorType.LEGGINGS)
+    val PITCHSTONE_BOOTS: Item = suitPiece(PITCHSTONE_BOOTS_ID, ArmorType.BOOTS)
+
+    /**
+     * One piece of the suit.
+     *
+     * `humanoidArmor` sets the material's own modifiers, and [ProtectiveSuit.attributesFor] replaces them
+     * with the same set plus the burning-time modifier — so the attributes are stated once rather than
+     * being built here and again there.
+     */
+    private fun suitPiece(id: Identifier, type: ArmorType): Item = Item(
+        Item.Properties()
+            .setId(ResourceKey.create(Registries.ITEM, id))
+            .humanoidArmor(ProtectiveSuit.MATERIAL, type)
+            .attributes(ProtectiveSuit.attributesFor(type)),
+    )
 
     private val ANALYSIS_MACHINE_ID: Identifier = "analysis_machine".location()
 
@@ -668,6 +706,11 @@ object AgeContent {
         PITCHSTONE_ORE_ID to PITCHSTONE_ORE,
         DEEPSLATE_PITCHSTONE_ORE_ID to DEEPSLATE_PITCHSTONE_ORE,
         PITCHSTONE_BLOCK_ID to PITCHSTONE_BLOCK,
+        PITCHSTONE_PLATE_ID to PITCHSTONE_PLATE,
+        PITCHSTONE_HELMET_ID to PITCHSTONE_HELMET,
+        PITCHSTONE_CHESTPLATE_ID to PITCHSTONE_CHESTPLATE,
+        PITCHSTONE_LEGGINGS_ID to PITCHSTONE_LEGGINGS,
+        PITCHSTONE_BOOTS_ID to PITCHSTONE_BOOTS,
     )
 
     /** Chunk-generator codecs — a level's generator is serialised when it is saved, so it needs one. */
