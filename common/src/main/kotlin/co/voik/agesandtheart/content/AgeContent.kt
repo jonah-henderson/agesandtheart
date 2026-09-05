@@ -518,6 +518,24 @@ object AgeContent {
         .networkSynchronized(Said.STREAM_CODEC.apply(ByteBufCodecs.list()))
         .build()
 
+    /**
+     * That this book was bound at a desk by a player, rather than found already written (design §7.7) —
+     * what [co.voik.agesandtheart.age.AgeRecipe.authored] is set from when the Age is first made.
+     *
+     * **Stated rather than inferred, though it could be inferred today.** A found book happens to carry no
+     * [BOOK_SEED] and a bound one always does, so the two are already distinguishable — but that is a
+     * coincidence of two write paths rather than a claim either of them makes, and the moment a found book
+     * gains a seed the reward economy would quietly open to the loot table. The fact worth recording is
+     * *who wrote this*, so it is recorded.
+     *
+     * Absent on a found book, on a book bound before this existed, and on any hand-built stack — all of
+     * which read as not authored, which is the safe way round.
+     */
+    val BOOK_AUTHORED: DataComponentType<Boolean> = DataComponentType.builder<Boolean>()
+        .persistent(Codec.BOOL)
+        .networkSynchronized(ByteBufCodecs.BOOL)
+        .build()
+
     val WRITERS_DESK_MENU: MenuType<WritersDeskMenu> = MenuType(
         { containerId, inventory -> WritersDeskMenu(containerId, inventory, ContainerLevelAccess.NULL) },
         FeatureFlags.VANILLA_SET,
@@ -550,6 +568,7 @@ object AgeContent {
         "book_title".location() to BOOK_TITLE,
         "book_seed".location() to BOOK_SEED,
         "book_reading".location() to BOOK_READING,
+        "book_authored".location() to BOOK_AUTHORED,
         "link_target".location() to LINK_TARGET,
         "notebook_pages".location() to NOTEBOOK_PAGES,
     )

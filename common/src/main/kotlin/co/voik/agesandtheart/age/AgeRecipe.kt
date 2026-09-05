@@ -62,6 +62,20 @@ data class AgeRecipe(
      * faster, not a live one decay wrongly.
      */
     val writtenAt: Long = UNRECORDED,
+    /**
+     * Whether a **player** wrote this Age, as opposed to its having been found already written (design
+     * §7.7) — the provenance flag every reward reads before it pays.
+     *
+     * **The fence is that found books never pay.** A found book is an Age somebody else wrote, handed over
+     * whole; paying its author's rewards to whoever picked it up would make the loot table the shortest
+     * route to everything §7 gates behind comprehension. Nothing else about it differs — it links, it
+     * decays and it can be repatterned exactly as a bound one does.
+     *
+     * **False is the safe default and is why this is not derived.** A book from before the flag existed, a
+     * hand-built stack and a recipe some later code path forgets to mark all read as not paying, which
+     * costs a player a reward they can write again and never hands one out that was not earned.
+     */
+    val authored: Boolean = false,
 ) {
     /** How long this Age has existed, in ticks, against [server]'s overworld clock. Never negative. */
     fun ageAt(server: MinecraftServer): Long =
@@ -174,8 +188,12 @@ data class AgeRecipe(
                 // Absent on every Age written before a book started from a world.
                 AgeTemplate.CODEC.optionalFieldOf("template", AgeTemplate.ORDINARY)
                     .forGetter(AgeRecipe::template),
+                // Absent on every Age written before the rewards had a provenance to read, which reads as
+                // not having been written by a player — see [authored] for why that is the safe way round.
+                Codec.BOOL.optionalFieldOf("authored", false).forGetter(AgeRecipe::authored),
             ).apply(instance) {
                 world, legacyPreset, seed, version, character, instability, words, writtenAt, template,
+                authored,
                 ->
                 AgeRecipe(
                     world = world.orElseGet { worldFor(legacyPreset.orElse(AgePreset.SPIRE)) },
@@ -186,6 +204,7 @@ data class AgeRecipe(
                     generatorVersion = version,
                     template = template,
                     writtenAt = writtenAt,
+                    authored = authored,
                 )
             }
         }
@@ -196,22 +215,35 @@ data class AgeRecipe(
         fun of(preset: AgePreset, id: Identifier): AgeRecipe =
             AgeRecipe(worldFor(preset), seedFor(id))
 
-        /** A fresh recipe, with its character drawn from [seed] and the world [server] is running. */
+        /**
+         * A fresh recipe, with its character drawn from [seed] and the world [server] is running.
+         *
+         * [authored] defaults to true because everything that reaches this reached it because somebody
+         * asked for an Age — a composed command, a bound book. The one caller that must say otherwise is
+         * the found book, whose Age nobody here wrote (§7.7).
+         */
         fun written(
             server: MinecraftServer,
             world: AgeWorld,
             seed: Long,
             template: AgeTemplate = AgeTemplate.ORDINARY,
+            authored: Boolean = true,
         ): AgeRecipe = AgeRecipe(
             seamed(world, seed),
             seed,
             AgeCharacter.drawn(server, seed),
             writtenAt = server.overworld().gameTime,
             template = template,
+            authored = authored,
         )
 
         /** A fresh recipe for an Age somebody wrote: the resolved composition, plus words and instability. */
-        fun written(server: MinecraftServer, resolution: Resolution, seed: Long): AgeRecipe = AgeRecipe(
+        fun written(
+            server: MinecraftServer,
+            resolution: Resolution,
+            seed: Long,
+            authored: Boolean = true,
+        ): AgeRecipe = AgeRecipe(
             seamed(AgeWorld.Composed(resolution.composition), seed),
             seed,
             AgeCharacter.drawn(server, seed),
@@ -219,6 +251,7 @@ data class AgeRecipe(
             resolution.sentence,
             writtenAt = server.overworld().gameTime,
             template = resolution.template,
+            authored = authored,
         )
 
         /**

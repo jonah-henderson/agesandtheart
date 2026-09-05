@@ -1,0 +1,109 @@
+{
+  "_comment": [
+    "How dangerous a written Age is, before it exists (design 7.7).",
+    "",
+    "Content rather than config, on the same argument art/manifestation/ is: a pack that makes lava cheap",
+    "is a pack where nothing has to be committed to, which is a different mod rather than the same one run",
+    "differently. Every number here is a first guess and wants a walk -- read them together, because they",
+    "are only meaningful against each other, and `/age danger score <name>` prints the arithmetic.",
+    "",
+    "Blocks and entities are named by id rather than by tag, because a tag binds on a server and this must",
+    "be readable offline -- the same bargain Materials.INVALID_FOR_TERRAIN already makes.",
+    "",
+    "`weights` is what share of the score each of the four contributors carries, and they sum to one so",
+    "that an Age made of the worst of everything scores about one.",
+    "",
+    "`pays_above` is the one threshold, and it does two jobs: below it nothing pays, and above it the D'ni",
+    "ruins are suppressed. UNCALIBRATED -- the working target is about ten Ages to a first ruin.",
+    "",
+    "`spawns_full` and `phenomena_full` say how much asked-for life or weather counts as an Age being full",
+    "of it. A scale, not a cap: there is no ceiling, so an Age asking for more scores over one and means to.",
+    "`confined_weight` is what a claim confined to one biome is worth against the same claim made of the",
+    "whole Age. `wound_hostility` is what a full reach of wounds adds to the hostile population.",
+    "",
+    "`materials` is what an Age's rock, sea or surface is made of. One of these is what you stand on all",
+    "day, so the scale is what living on it costs rather than what touching it costs.",
+    "",
+    "`spawns` is what the book asked to live here, over and above whatever its biomes already hold.",
+    "`monsters` is what any MobCategory.MONSTER is worth where it is not named -- vanilla already",
+    "classifies every creature, so only the ones that are not ordinary for a monster need an entry.",
+    "",
+    "`phenomena` lists the two sights at nothing rather than leaving them out, so that a missing entry",
+    "reads as an oversight and this reads as a ruling.",
+    "",
+    "`lighting` counts only insofar as it drives mob pressure. Sealed is worse than merely sunless: a roof",
+    "means what walks under it walks at noon as well."
+  ],
+
+  "weights": {
+    "materials": 0.35,
+    "spawns": 0.3,
+    "phenomena": 0.25,
+    "lighting": 0.1
+  },
+
+  "pays_above": 0.25,
+
+  "spawns_full": 2.0,
+  "phenomena_full": 1.5,
+  "confined_weight": 0.25,
+  "wound_hostility": 0.5,
+
+  "materials": {
+    "minecraft:lava": 1.0,
+    "minecraft:fire": 0.9,
+    "minecraft:soul_fire": 0.9,
+    "minecraft:tnt": 0.7,
+    "minecraft:magma_block": 0.55,
+    "minecraft:sculk_shrieker": 0.55,
+    "minecraft:powder_snow": 0.5,
+    "minecraft:wither_rose": 0.5,
+    "minecraft:pointed_dripstone": 0.4,
+    "minecraft:cactus": 0.35,
+    "minecraft:soul_campfire": 0.35,
+    "minecraft:campfire": 0.3,
+    "minecraft:cobweb": 0.2,
+    "minecraft:sweet_berry_bush": 0.15
+  },
+
+  "spawns": {
+    "monsters": 0.3,
+    "minecraft:warden": 1.0,
+    "minecraft:wither": 1.0,
+    "minecraft:ender_dragon": 1.0,
+    "minecraft:evoker": 0.7,
+    "minecraft:piglin_brute": 0.7,
+    "minecraft:ravager": 0.7,
+    "minecraft:elder_guardian": 0.6,
+    "minecraft:ghast": 0.6,
+    "minecraft:zoglin": 0.6,
+    "minecraft:wither_skeleton": 0.6,
+    "minecraft:blaze": 0.5,
+    "minecraft:breeze": 0.5,
+    "minecraft:creeper": 0.5,
+    "minecraft:hoglin": 0.5,
+    "minecraft:vindicator": 0.5,
+    "minecraft:guardian": 0.4,
+    "minecraft:phantom": 0.4,
+    "minecraft:shulker": 0.4,
+    "minecraft:witch": 0.4,
+    "minecraft:enderman": 0.35,
+    "minecraft:magma_cube": 0.3,
+    "minecraft:slime": 0.15,
+    "minecraft:endermite": 0.1,
+    "minecraft:silverfish": 0.1
+  },
+
+  "phenomena": {
+    "inferno": 0.9,
+    "sandfall": 0.6,
+    "tempest": 0.5,
+    "aurora": 0.0,
+    "rainbow": 0.0
+  },
+
+  "lighting": {
+    "sealed": 0.8,
+    "lightless": 0.5
+  }
+}

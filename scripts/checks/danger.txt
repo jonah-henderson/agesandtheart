@@ -1,0 +1,40 @@
+# The danger evaluator: does the table load off a real resource stack, and does `/age danger score` answer?
+# Run with: scripts/drive-server.sh scripts/checks/danger.txt
+#
+# **Both risks here are ones the offline checks structurally cannot reach.** `DangerCheck` scores against a
+# table it writes itself, and `DangerTableCheck` reads the shipped file through `MinecraftRegistries
+# .shippedData()` — neither goes through `ResourceManager.getResourceStack` on a booted server, which is the
+# call that actually has to find `art/danger.json`, and neither builds the Brigadier tree at all. A branch
+# that fails to register throws at server start; a table that fails to load reports every Age at nought.
+#
+# **If every Age reads 0.000 the table did not load**, and nothing in the reward economy can ever pay. That
+# is the one failure this file exists to catch, and it looks like success everywhere else.
+#
+# Note the sentences: an aiming page **closes** the clause it belongs to. `age inferno phenomena` writes an
+# inferno; `age phenomena inferno` reads as a book with nothing aimed and is repaired into a whole random
+# Age, which is a fine way to think you have found a bug in the scoring.
+
+# The floor: an Age nobody said anything dangerous about.
+age compose quiet 11 landmass=hills sea=water rock=solid sky=plain
+age danger score quiet
+
+# What the Age is made of, over the whole of it, and then over half of it — the averaging rule on real
+# recipes. Read the two together: the same lava, half the ground, half the materials score.
+age compose alllava 11 landmass=hills sea=lava rock=solid sky=plain
+age danger score alllava
+age compose halflava 11 landmass=hills sea=lava,water rock=solid sky=plain
+age danger score halflava
+
+# What lives here, and what happens here.
+age write teeming 11 age teeming ghast spawns
+age danger score teeming
+age write burning 11 age inferno phenomena
+age danger score burning
+
+# A written Age over a template that brings its own lava and its own roof — the claim that a template needs
+# no special case, because what it supplied is merged into the composition before the recipe holds it.
+age write hellish 11 infernal age
+age danger score hellish
+
+# And the structured form, which is what a check would assert on.
+age danger json score hellish

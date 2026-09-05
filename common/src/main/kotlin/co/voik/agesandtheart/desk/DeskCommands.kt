@@ -308,6 +308,9 @@ object DeskCommands {
         // Read by **the same expression `DescriptiveBookRecipe` reads it by**, so what a book says and the
         // Age it makes can never be two different sentences.
         book.set(AgeContent.BOOK_READING, Readout.columnsOf(sentence))
+        // **The one place a book is marked as somebody's own work** (design §7.7). Set here rather than
+        // where the Age is made, because that path serves found books too and cannot tell them apart.
+        book.set(AgeContent.BOOK_AUTHORED, true)
         menu.composing.clear()
         // Into the output slot rather than the inventory: a book you take is a book you saw being made.
         menu.putOutput(book)

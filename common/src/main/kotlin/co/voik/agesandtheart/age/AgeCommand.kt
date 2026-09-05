@@ -8,6 +8,7 @@ import co.voik.agesandtheart.age.consequence.Wounds
 import net.minecraft.world.Difficulty
 import net.minecraft.world.DifficultyInstance
 import co.voik.agesandtheart.age.consequence.Tearing
+import co.voik.agesandtheart.age.reward.Danger
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.aspect.AgeSpawner
 import co.voik.agesandtheart.age.aspect.Aspect
@@ -138,6 +139,9 @@ object AgeCommand {
 
     /** `/age danger here` — a literal rather than a bare executable, so the tree stays uniform. */
     private const val HERE_LITERAL = "here"
+
+    /** `/age danger score <name>` — the recipe's worth, as against [HERE_LITERAL]'s worth of the ground. */
+    private const val SCORE_LITERAL = "score"
 
     /** How far `/age wounds here` looks — a good deal further than a wound corrupts, so it can say "none". */
     private const val LOOKS_FOR_WOUNDS_WITHIN = 128.0
@@ -1217,7 +1221,10 @@ object AgeCommand {
         }
 
     /**
-     * `/age danger` — what the ground you are standing on is worth, in vanilla's own terms.
+     * **Two different questions that are both "how dangerous is this", kept in one branch** because a
+     * reader looking for either would look here.
+     *
+     * `/age danger here` — what the ground you are standing on is worth, in vanilla's own terms.
      *
      * **Written because the register is otherwise unobservable** (Jonah, 2026-08-09, walked): a wound arms
      * what comes out of it by ageing the ground (§5.1), which is `DifficultyInstance` doing the work, and
@@ -1227,11 +1234,30 @@ object AgeCommand {
      * **F3 will not show this.** The debug screen computes local difficulty from the *client's* level, and
      * the seam a wound raises is on `ServerLevel.getCurrentDifficultyAt`, so the two legitimately disagree
      * and the client's is the one that is wrong.
+     *
+     * `/age danger score <name>` — what a written *recipe* is worth to §7.7's rewards, scored before the
+     * Age exists rather than measured in it. That is what the geologic survey will read at the desk, and
+     * what decides whether anything pays out at all.
+     *
+     * **Numbers, because this is an operator's tool.** §3.2 forbids showing a number to the *player*, and
+     * the survey obeys that by saying "a trace" against "a great deal". Calibrating [DangerTable] means
+     * seeing the arithmetic, so here it is spelled out.
      */
-    private fun dangerSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
-        reporting("danger") { reportFor ->
-            Commands.literal(HERE_LITERAL).executes { context -> runDanger(context, reportFor(context)) }
+    private fun dangerSubcommand(): LiteralArgumentBuilder<CommandSourceStack> {
+        fun branchesUnder(parent: LiteralArgumentBuilder<CommandSourceStack>, reportFor: ReportFor) = parent
+            .then(Commands.literal(HERE_LITERAL).executes { context -> runDanger(context, reportFor(context)) })
+            .then(
+                Commands.literal(SCORE_LITERAL).then(
+                    Commands.argument(NAME_ARGUMENT, StringArgumentType.word())
+                        .executes { context -> runAgeDanger(context, reportFor(context)) },
+                ),
+            )
+        val prose = branchesUnder(Commands.literal("danger")) { context -> Report.prose(context.source) }
+        val structured = branchesUnder(Commands.literal(Report.STRUCTURED_LITERAL)) { context ->
+            Report.structured(context.source)
         }
+        return prose.then(structured)
+    }
 
     /**
      * `/age wounds here` — **what this ground should hold against what it does.**
@@ -1348,6 +1374,48 @@ object AgeCommand {
             val chance = ARMS_ANYTHING_AT_ALL * raised.specialMultiplier
             report.say { "  → about %.0f%% of what spawns here should arrive armed".format(chance * 100.0f) }
         }
+        return SUCCESS
+    }
+
+    /**
+     * What a written Age is worth to §7.7, contributor by contributor.
+     *
+     * **The parts as well as the total**, because one number cannot be calibrated: the question a tuning
+     * session asks is *why* an Age scored what it did, and the answer is always which contributor carried
+     * it. Reading the four beside the score is what turns `art/danger.json` from a guess into a dial.
+     */
+    private fun runAgeDanger(context: CommandContext<CommandSourceStack>, report: Report): Int {
+        val source = context.source
+        val name = StringArgumentType.getString(context, NAME_ARGUMENT)
+        val id = ageId(name)
+        val saved = AgeSavedData.get(source.server)
+        if (id !in saved.ages) {
+            report.fail("No Age named '$name' — create it with /age create $name")
+            return FAILURE
+        }
+        val recipe = saved.recipe(id)
+        val danger = Danger.of(source.server, recipe)
+
+        report.say { "Age '$name':" }
+        report.fact("materials", danger.materials) { "  what it is made of: %.3f".format(danger.materials) }
+        report.fact("spawns", danger.spawns) { "  what lives in it:    %.3f".format(danger.spawns) }
+        report.fact("phenomena", danger.phenomena) { "  what happens in it:  %.3f".format(danger.phenomena) }
+        report.fact("lighting", danger.lighting) { "  how dark it is:      %.3f".format(danger.lighting) }
+        report.fact("score", danger.score) { "  → danger %.3f".format(danger.score) }
+        report.fact("authored", danger.authored) {
+            if (danger.authored) "  written by a player" else "  not written by a player, so it can never pay"
+        }
+        report.fact("paysOut", danger.paysOut) {
+            if (danger.paysOut) "  pays out" else "  pays nothing"
+        }
+        report.fact("allowsRuins", danger.allowsRuins) {
+            if (danger.allowsRuins) "  quiet enough to hold ruins" else "  too dangerous to hold ruins"
+        }
+        // Exposed rather than folded into the score: §7.7's terminal multiplier is still an open question.
+        report.fact("terminal", danger.terminal) {
+            if (danger.terminal > 0.0) "  and it will not last: collapse reach %.2f".format(danger.terminal) else ""
+        }
+        report.finish()
         return SUCCESS
     }
 

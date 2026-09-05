@@ -31,6 +31,9 @@ object DescriptiveBookRecipe {
         // The desk's own, where the book has one — so the Age is the world the writer was shown while
         // they were laying the pages out, and not merely one their words could have made.
         val seed = stack.get(AgeContent.BOOK_SEED) ?: AgeRecipe.seedFor(ageId)
-        return AgeRecipe.written(server, Resolver.resolve(vocabulary, read, seed), seed)
+        // Whether the rewards will pay out here (design §7.7). A found book carries no such mark, so an
+        // Age handed over already written is one you may live in and never one you are paid for.
+        val authored = stack.get(AgeContent.BOOK_AUTHORED) == true
+        return AgeRecipe.written(server, Resolver.resolve(vocabulary, read, seed), seed, authored)
     }
 }

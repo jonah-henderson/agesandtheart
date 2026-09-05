@@ -518,6 +518,28 @@ class RecipeCheck : FunSpec({
     }
 
     /**
+     * Who wrote an Age survives the trip, and an Age written before the question was asked answers no.
+     *
+     * Both halves matter: the flag is what every §7.7 reward reads before it pays, and a recipe that lost
+     * it would quietly stop paying a writer for work they did, where one that gained it would pay out on
+     * every Age already in every save.
+     */
+    test("whether a player wrote an Age round-trips, and an older recipe says they did not") {
+        val composition = AgeComposition(terrains = listOf(Terrain.HILLS))
+        val written = AgeRecipe(AgeWorld.Composed(composition), seed = SAMPLE_SEED, authored = true)
+        check(roundTrips(written, "an Age somebody wrote").authored) { "the writer was lost" }
+
+        val found = AgeRecipe(AgeWorld.Composed(composition), seed = SAMPLE_SEED)
+        check(!roundTrips(found, "an Age nobody wrote").authored) { "an unwritten Age came back written" }
+
+        val beforeTheFlag = AgeRecipe.CODEC.encodeStart(NbtOps.INSTANCE, found)
+            .getOrThrow { problem -> IllegalStateException("would not encode: $problem") }
+        check("authored" !in (beforeTheFlag as CompoundTag).keySet()) {
+            "the default is written down, so a recipe from before it would read as whatever it is today"
+        }
+    }
+
+    /**
      * An Age whose aspects divide unevenly keeps its shares, through NBT and through its own spelling.
      * Shares are generation inputs, so losing one hands back a different world on the next open — and an
      * even division must keep its old spelling, or every recipe written before shares reads as something
