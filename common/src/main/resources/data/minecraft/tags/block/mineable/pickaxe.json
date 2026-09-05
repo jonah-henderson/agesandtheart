@@ -3,6 +3,9 @@
   "replace": false,
   "values": [
     "agesandtheart:analysis_machine",
-    "agesandtheart:surveying_device"
+    "agesandtheart:surveying_device",
+    "agesandtheart:pitchstone_ore",
+    "agesandtheart:deepslate_pitchstone_ore",
+    "agesandtheart:pitchstone_block"
   ]
 }

@@ -52,7 +52,9 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
 import net.minecraft.world.item.crafting.RecipeSerializer
+import net.minecraft.util.valueproviders.UniformInt
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.DropExperienceBlock
 import net.minecraft.world.level.block.SoundType
 import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraft.world.level.block.state.BlockBehaviour
@@ -151,6 +153,80 @@ object AgeContent {
     val FINE_PAPER: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, FINE_PAPER_ID)))
 
     val MASTERWORK_PAPER: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, MASTERWORK_PAPER_ID)))
+
+    private val PITCHSTONE_ID: Identifier = "pitchstone".location()
+    private val PITCHSTONE_ORE_ID: Identifier = "pitchstone_ore".location()
+    private val DEEPSLATE_PITCHSTONE_ORE_ID: Identifier = "deepslate_pitchstone_ore".location()
+    private val PITCHSTONE_BLOCK_ID: Identifier = "pitchstone_block".location()
+
+    /**
+     * What a dangerous Age yields (design §7.7) — "Deretheni" in the language file, and named here for what
+     * it is, like the inks.
+     *
+     * **A mineral rather than a metal**, which the lore settles and the mechanics follow: the ore drops the
+     * material directly and it is crafted into a block, which is quartz's shape rather than iron's. There is
+     * no smelting step because there is nothing to smelt out — it is stone all the way down.
+     *
+     * **Fenced out of the vocabulary by `#agesandtheart:forbidden`**, and that fence is load-bearing rather
+     * than tidy: a writer who could ask for an Age full of this would have §8.4's duplication exploit with
+     * no danger required, which inverts the whole reward. You cause the conditions; you cannot name the
+     * outcome.
+     */
+    val PITCHSTONE: Item = Item(Item.Properties().setId(ResourceKey.create(Registries.ITEM, PITCHSTONE_ID)))
+
+    val PITCHSTONE_ORE_BLOCK: Block = DropExperienceBlock(
+        UniformInt.of(LEAST_ORE_EXPERIENCE, MOST_ORE_EXPERIENCE),
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, PITCHSTONE_ORE_ID))
+            .mapColor(MapColor.STONE)
+            .strength(ORE_STRENGTH, ORE_RESISTANCE)
+            .sound(SoundType.STONE)
+            .requiresCorrectToolForDrops(),
+    )
+
+    /** The same deposit found below the stone line, harder for the same reason vanilla's deepslate ores are. */
+    val DEEPSLATE_PITCHSTONE_ORE_BLOCK: Block = DropExperienceBlock(
+        UniformInt.of(LEAST_ORE_EXPERIENCE, MOST_ORE_EXPERIENCE),
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, DEEPSLATE_PITCHSTONE_ORE_ID))
+            .mapColor(MapColor.DEEPSLATE)
+            .strength(DEEPSLATE_ORE_STRENGTH, ORE_RESISTANCE)
+            .sound(SoundType.DEEPSLATE)
+            .requiresCorrectToolForDrops(),
+    )
+
+    /** Storage, and the form the crafts will ask for. Light for a stone, which is the whole of what it is. */
+    val PITCHSTONE_BLOCK_BLOCK: Block = Block(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, PITCHSTONE_BLOCK_ID))
+            .mapColor(MapColor.COLOR_BLACK)
+            .strength(ORE_STRENGTH, ORE_RESISTANCE)
+            .sound(SoundType.STONE)
+            .requiresCorrectToolForDrops(),
+    )
+
+    val PITCHSTONE_ORE: Item = BlockItem(
+        PITCHSTONE_ORE_BLOCK,
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, PITCHSTONE_ORE_ID)).useBlockDescriptionPrefix(),
+    )
+
+    val DEEPSLATE_PITCHSTONE_ORE: Item = BlockItem(
+        DEEPSLATE_PITCHSTONE_ORE_BLOCK,
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, DEEPSLATE_PITCHSTONE_ORE_ID))
+            .useBlockDescriptionPrefix(),
+    )
+
+    val PITCHSTONE_BLOCK: Item = BlockItem(
+        PITCHSTONE_BLOCK_BLOCK,
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, PITCHSTONE_BLOCK_ID)).useBlockDescriptionPrefix(),
+    )
+
+    /** Quartz's numbers, which is the ore this one is shaped after. */
+    private const val ORE_STRENGTH = 3.0f
+    private const val DEEPSLATE_ORE_STRENGTH = 4.5f
+    private const val ORE_RESISTANCE = 3.0f
+    private const val LEAST_ORE_EXPERIENCE = 2
+    private const val MOST_ORE_EXPERIENCE = 5
 
     private val ANALYSIS_MACHINE_ID: Identifier = "analysis_machine".location()
 
@@ -457,6 +533,9 @@ object AgeContent {
         COLLAPSING_FISSURE_ID to COLLAPSING_FISSURE_BLOCK,
         ANALYSIS_MACHINE_ID to ANALYSIS_MACHINE_BLOCK,
         SURVEYING_DEVICE_ID to SURVEYING_DEVICE_BLOCK,
+        PITCHSTONE_ORE_ID to PITCHSTONE_ORE_BLOCK,
+        DEEPSLATE_PITCHSTONE_ORE_ID to DEEPSLATE_PITCHSTONE_ORE_BLOCK,
+        PITCHSTONE_BLOCK_ID to PITCHSTONE_BLOCK_BLOCK,
     )
 
     /**
@@ -585,6 +664,10 @@ object AgeContent {
         MASTERWORK_PAPER_ID to MASTERWORK_PAPER,
         ANALYSIS_MACHINE_ID to ANALYSIS_MACHINE,
         SURVEYING_DEVICE_ID to SURVEYING_DEVICE,
+        PITCHSTONE_ID to PITCHSTONE,
+        PITCHSTONE_ORE_ID to PITCHSTONE_ORE,
+        DEEPSLATE_PITCHSTONE_ORE_ID to DEEPSLATE_PITCHSTONE_ORE,
+        PITCHSTONE_BLOCK_ID to PITCHSTONE_BLOCK,
     )
 
     /** Chunk-generator codecs — a level's generator is serialised when it is saved, so it needs one. */

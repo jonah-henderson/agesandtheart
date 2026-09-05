@@ -36,5 +36,32 @@ age danger score burning
 age write hellish 11 infernal age
 age danger score hellish
 
+# **The fence, which fails silently and can fail no other way.** Deretheni must never be a word: an Age a
+# writer could ask to be full of it is 8.4's duplication exploit with no danger required. The forbidden tag
+# is empty offline, so no offline check can see this -- only a bound registry can, which is here.
+# Expect NO pitchstone line in the corpus.
+age words json
+
+# The deposit itself. Generate the hellish Age, then count what is actually in the ground: `fill ... replace`
+# reports how many it changed, which is the only block census a vanilla server has. The quiet Age is the
+# control -- it is under the threshold, so it must come back with nothing at all.
+# `alllava` and `quiet` are the pair to read: the same landform over the same window, differing only in
+# what they are made of, so the deposit is the only thing that can differ. `hellish` is no good for this --
+# the infernal template floors at y=0, above the band a deposit is sited in.
+#
+# One chunk over the WHOLE deposit band (-56..39 is 96 levels; 16x16x96 = 24576, under fill's 32768 cap).
+# Counting a partial band is how you talk yourself into thinking this is broken: the triangle peaks near
+# y=-8, so a band that misses the peak reports a tenth of what is there.
+#
+# Measured 2026-09-05 at score 0.350: **4 blocks in one chunk**, against a nominal 2 veins x 4. The rest is
+# carved away or overlaps itself, which is what vanilla's own ore veins do. `quiet` must report nothing.
+age gen alllava
+age gen quiet
+execute in agesandtheart:alllava run forceload add 0 0 15 15
+execute in agesandtheart:quiet run forceload add 0 0 15 15
+execute in agesandtheart:alllava run fill 0 -56 0 15 39 15 minecraft:air replace agesandtheart:pitchstone_ore
+execute in agesandtheart:alllava run fill 0 -56 0 15 39 15 minecraft:air replace agesandtheart:deepslate_pitchstone_ore
+execute in agesandtheart:quiet run fill 0 -56 0 15 39 15 minecraft:air replace agesandtheart:pitchstone_ore
+
 # And the structured form, which is what a check would assert on.
 age danger json score hellish

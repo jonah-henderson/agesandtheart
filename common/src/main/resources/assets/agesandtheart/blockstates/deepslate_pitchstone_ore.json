@@ -1,0 +1,4 @@
+{
+  "_comment": "Stands in on deepslate coal ore until the model pass.",
+  "variants": { "": { "model": "minecraft:block/deepslate_coal_ore" } }
+}
