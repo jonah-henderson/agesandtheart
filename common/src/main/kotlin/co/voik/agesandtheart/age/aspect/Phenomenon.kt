@@ -169,15 +169,15 @@ enum class Phenomenon(
     ;
 
     /**
-     * The weather this insists on at [severity], where one is an ordinary claim and more is a rung or an
+     * The weather this insists on at [howOften], where one is an ordinary claim and more is a rung or an
      * Age's instability driving it.
      *
      * **Only a blizzard has anything to say here.** Every other phenomenon wants a condition or does not,
      * and wanting it *more* means nothing — a bow needs the rain to thin whatever rung asked for it. A
      * blizzard is the one whose whole scaling axis is how much of the time it is happening.
      */
-    fun insistsAt(severity: Double): AgeWeather.Conditions = when (this) {
-        BLIZZARD -> AgeWeather.Conditions(rainfall = Blizzard.shareOfTheTime(severity))
+    fun insistsAt(howOften: Double): AgeWeather.Conditions = when (this) {
+        BLIZZARD -> AgeWeather.Conditions(rainfall = Blizzard.shareOfTheTime(howOften))
         TEMPEST, INFERNO, AURORA, RAINBOW, SANDFALL -> insistsOn
     }
 

@@ -97,6 +97,18 @@ object Storms {
     }
 
     /**
+     * Whether we are drawing the weather ourselves here, and vanilla should not.
+     *
+     * Asked from `WeatherEffectRendererMixin`, on the render thread, where there is no level to hand in —
+     * so it reads the client's own rather than taking one.
+     */
+    @JvmStatic
+    fun drawingItsOwn(): Boolean {
+        val level = Minecraft.getInstance().level ?: return false
+        return blowingIn(level) != null
+    }
+
+    /**
      * Snow going past you sideways, at the speed it is actually landing.
      *
      * **Vanilla's own precipitation is a gentle drift and it reads as a lie here** — the ground is filling

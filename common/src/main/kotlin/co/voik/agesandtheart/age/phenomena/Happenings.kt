@@ -159,8 +159,8 @@ object Happenings {
             air.steer(parameter, WEATHER_SALT)?.let(Span.NATURAL::fractionOf) ?: AgeWeather.ORDINARY_SHARE
         val dialled = AgeWeather.Conditions(asked(Atmosphere.RAINFALL), asked(Atmosphere.THUNDER))
         return befalls.entries.fold(dialled) { wants, (phenomenon, density) ->
-            val severity = Blizzard.severityOf(density, furyOf(spending, prices, phenomenon))
-            wants.atLeast(phenomenon.insistsAt(severity))
+            val howOften = Blizzard.howOftenOf(density, furyOf(spending, prices, phenomenon))
+            wants.atLeast(phenomenon.insistsAt(howOften))
         }
     }
 

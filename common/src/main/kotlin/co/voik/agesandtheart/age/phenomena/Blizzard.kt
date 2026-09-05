@@ -8,11 +8,12 @@ import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.platform.Services
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.world.entity.LivingEntity
+import net.minecraft.world.phys.AABB
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.LightLayer
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
-import net.minecraft.world.level.block.SnowLayerBlock
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
@@ -51,7 +52,9 @@ object Blizzard {
      */
     fun blow(level: ServerLevel, density: Double, fury: Double) {
         if (!level.isRaining) return
-        val severity = severityOf(density, fury)
+        // How *hard*, not how often: by the time this runs the storm is already here, and what is left to
+        // decide is what it does while it lasts.
+        val severity = howHardOf(fury)
         val bearing = bearingIn(level)
         val cursor = BlockPos.MutableBlockPos()
         for (player in level.players()) {
@@ -61,6 +64,32 @@ object Blizzard {
                 val z = around.z + level.random.nextInt(-REACH, REACH)
                 driftAt(level, cursor, x, z, bearing, severity)
             }
+            chill(level, around, severity)
+        }
+    }
+
+    /**
+     * What standing out in it does to you — the second of the three things a blizzard denies (§5.2).
+     *
+     * **Vanilla's freezing, driven rather than reimplemented.** `ticksFrozen` already gives the shivering,
+     * the ice vignette and the damage, and `canFreeze` already refuses anybody wearing
+     * `#minecraft:freeze_immune_wearables` — leather, and a deretheni suit. So the counterplay costs
+     * nothing here and a player who owns either is simply not cold.
+     *
+     * **It has to out-pace the thaw.** `LivingEntity` sheds two ticks of frost every tick you are not in
+     * powder snow, so anything under three is a blizzard that never bites; three is vanilla's own pace in
+     * powder snow, and a fiercer storm gains faster.
+     */
+    private fun chill(level: ServerLevel, around: BlockPos, severity: Double) {
+        val exposed = AABB(around).inflate(REACH.toDouble())
+        for (living in level.getEntitiesOfClass(LivingEntity::class.java, exposed) { it.canFreeze() }) {
+            val at = living.blockPosition()
+            if (!level.canSeeSky(at)) continue
+            // The same threshold the snow obeys: what keeps the drift off your ground keeps the cold off
+            // you, so a lit shelter answers both and one discovery teaches the other.
+            if (level.getBrightness(LightLayer.BLOCK, at) >= KEEPS_ITS_GROUND) continue
+            val gaining = THAWS_BY + (BITES_BY * severity).roundToInt().coerceAtLeast(1)
+            living.ticksFrozen = (living.ticksFrozen + gaining).coerceAtMost(living.ticksRequiredToFreeze * DEEPEST_CHILL)
         }
     }
 
@@ -81,7 +110,7 @@ object Blizzard {
         val telling = if (density == null) {
             BlizzardPayload.noneIn(age)
         } else {
-            val severity = severityOf(density, Happenings.furyOf(spending, prices, Phenomenon.BLIZZARD))
+            val severity = howHardOf(Happenings.furyOf(spending, prices, Phenomenon.BLIZZARD))
             BlizzardPayload(age, severity, bearingIn(level).get2DDataValue())
         }
         for (player in level.players()) Services.NETWORK.sendToPlayer(player, telling)
@@ -99,19 +128,29 @@ object Blizzard {
      * instability or asked for at a rung is fiercer *and* more constant, because a storm that came more
      * often without getting worse would only be tedious.
      */
-    fun shareOfTheTime(severity: Double): Double =
-        (AS_OFTEN_AS_RAIN + (severity - Rung.ORDINARY) * MORE_OF_THE_TIME)
+    fun shareOfTheTime(howOften: Double): Double =
+        (AS_OFTEN_AS_RAIN + (howOften - Rung.ORDINARY) * MORE_OF_THE_TIME)
             .coerceIn(AS_OFTEN_AS_RAIN, ALMOST_ALWAYS)
 
     /**
-     * How hard this blizzard is, from what was written and what was inflicted together.
+     * **How often it blows** — the rung and the instability together.
      *
-     * A written rung says how hard a writer asked for it; an Age's instability arrives at
-     * [Rung.ORDINARY] with fury as the only thing making it fierce ([Happenings.befalling]). The two
-     * compound, because an Age that asked for a blizzard *and* fell apart has both.
+     * A rung is *how much of a thing there is* (`Rung`), which for weather is how much of the time it is
+     * happening: `teeming blizzard` is an Age that is often in one, not an Age whose storms are worse.
+     * That distinction is Jonah's (2026-09-05) and it is what keeps the quantifiers meaning one thing
+     * across every aspect they reach.
      */
-    fun severityOf(density: Double, fury: Double): Double =
-        (density / Rung.ORDINARY) * (Rung.ORDINARY + fury * FURY_DRIVES)
+    fun howOftenOf(density: Double, fury: Double): Double =
+        (density / Rung.ORDINARY) + fury * FURY_ALSO_LINGERS
+
+    /**
+     * **How hard it blows while it is here** — instability, and nothing a quantifier can say.
+     *
+     * Deliberately not the rung: asking for *more* blizzard is asking for more of the time in one. What
+     * makes a storm worse is an Age coming apart — and, when there is a word for it, a modifier of its own
+     * (`fierce`, `strong`; Jonah, 2026-09-05, not yet written). Both would raise this and nothing else.
+     */
+    fun howHardOf(fury: Double): Double = Rung.ORDINARY + fury * FURY_DRIVES
 
     /**
      * Which way the wind blows here today — the same answer for everyone, from nothing written down.
@@ -156,12 +195,39 @@ object Blizzard {
         // **Snow runs downhill before it piles up**, which is what stops a storm laying spikes and pits.
         // Each drift is placed at random and independently, so left alone the depths are Poisson noise;
         // real snow finds the low ground first, and one look at the neighbours is the whole of that.
-        val (atX, atZ) = downhillOf(level, x, z, open)
-        if (atX != x || atZ != z) {
-            driftOnto(level, cursor, atX, atZ, bearing, severity)
-            return
+        //
+        // **Except in the lee, which is the whole point of a wind.** Levelling everything flattened exactly
+        // the banks the bearing exists to build, so a column with something solid downwind of it is left
+        // alone to climb. Open ground smooths; sheltered ground piles.
+        if (!inTheLeeOfSomething(level, cursor, x, open, z, bearing)) {
+            val (atX, atZ) = downhillOf(level, x, z, open)
+            if (atX != x || atZ != z) {
+                driftOnto(level, cursor, atX, atZ, bearing, severity)
+                return
+            }
         }
         driftOnto(level, cursor, x, z, bearing, severity)
+    }
+
+    /**
+     * Whether something solid stands downwind of this column, at the height the drift is building.
+     *
+     * **Asked at the open air rather than at the ground**, which is where a wall actually is: a column
+     * beside a cliff has rock next to its *snow*, and asking one block lower found the ground the cliff
+     * stands on instead and answered no everywhere flat.
+     */
+    private fun inTheLeeOfSomething(
+        level: ServerLevel,
+        cursor: BlockPos.MutableBlockPos,
+        x: Int,
+        open: Int,
+        z: Int,
+        bearing: Direction,
+    ): Boolean {
+        cursor.set(x + bearing.stepX, open, z + bearing.stepZ)
+        val downwind = level.getBlockState(cursor).isSolidRender
+        cursor.set(x, open, z)
+        return downwind
     }
 
     /**
@@ -204,38 +270,20 @@ object Blizzard {
         severity: Double,
     ) {
         val open = level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z)
-        val top = open - 1
-        if (depthOfDriftAt(level, cursor, x, top, z) >= DEEPEST_DRIFT) return
+        if (depthOfDriftAt(level, cursor, x, open - 1, z) >= DEEPEST_DRIFT) return
 
-        cursor.set(x, top, z)
-        val standing = level.getBlockState(cursor)
-        val sheltered = level.getBlockState(cursor.immutable().relative(bearing)).isSolidRender
-        val laying = if (sheltered) inTheLee(severity) else ONE_LAYER
-
-        if (standing.`is`(Blocks.SNOW)) {
-            val deep = standing.getValue(SnowLayerBlock.LAYERS)
-            if (deep + laying <= SnowLayerBlock.MAX_HEIGHT) {
-                level.setBlock(cursor, snowOf(deep + laying), Block.UPDATE_ALL)
-            } else {
-                // **A full drift becomes a block and the next one starts on top of it**, which is what lets
-                // snow pile on itself. Vanilla would allow a layer over a full eight, but hardening it here
-                // is what makes the column a record of its own depth.
-                level.setBlock(cursor, Blocks.SNOW_BLOCK.defaultBlockState(), Block.UPDATE_ALL)
-                cursor.set(x, open, z)
-                level.setBlock(cursor, snowOf(deep + laying - SnowLayerBlock.MAX_HEIGHT), Block.UPDATE_ALL)
-            }
+        val laying = if (inTheLeeOfSomething(level, cursor, x, open, z, bearing)) {
+            inTheLee(severity)
         } else {
-            cursor.set(x, open, z)
-            if (Blocks.SNOW.defaultBlockState().canSurvive(level, cursor)) {
-                level.setBlock(cursor, snowOf(laying), Block.UPDATE_ALL)
-            }
+            ONE_BLOCK
         }
-        settle(level, cursor, x, top, z)
+        for (course in 0..<laying) {
+            cursor.set(x, open + course, z)
+            if (!level.getBlockState(cursor).isAir) break
+            level.setBlock(cursor, Blocks.POWDER_SNOW.defaultBlockState(), Block.UPDATE_ALL)
+        }
+        settle(level, cursor, x, open + laying - 1, z)
     }
-
-    /** A snow layer [layers] deep, clamped to what one block can hold. */
-    private fun snowOf(layers: Int): BlockState = Blocks.SNOW.defaultBlockState()
-        .setValue(SnowLayerBlock.LAYERS, layers.coerceIn(ONE_LAYER, SnowLayerBlock.MAX_HEIGHT))
 
     /**
      * How deep the drift standing over this column already is, in blocks of ours.
@@ -282,15 +330,32 @@ object Blizzard {
 
     /** Whether a blizzard could have put this here, which is what a drift is measured through. */
     private fun laidByAStorm(state: BlockState): Boolean =
-        state.`is`(Blocks.SNOW) || state.`is`(Blocks.SNOW_BLOCK) || state.`is`(Blocks.ICE) ||
+        state.`is`(Blocks.POWDER_SNOW) || state.`is`(Blocks.SNOW_BLOCK) || state.`is`(Blocks.ICE) ||
             state.`is`(Blocks.PACKED_ICE) || state.`is`(Blocks.BLUE_ICE)
 
-    /** What each stage of the drift hardens into, once three of it stand together. */
+    /**
+     * What each stage of the drift hardens into, once three of it stand together.
+     *
+     * **Powder snow is what falls**, which is the whole difference between this and weather: a fresh drift
+     * is something you fall into and freeze in rather than something you walk over, and leather boots are
+     * already the answer. What it compacts into is walkable, so a bank reads as dangerous on top and solid
+     * underneath — the gradient a player learns to trust.
+     */
     private val PACKING = listOf(
+        Blocks.POWDER_SNOW to Blocks.SNOW_BLOCK,
         Blocks.SNOW_BLOCK to Blocks.ICE,
         Blocks.ICE to Blocks.PACKED_ICE,
         Blocks.PACKED_ICE to Blocks.BLUE_ICE,
     )
+
+    /** What `LivingEntity` sheds every tick you are not freezing, and so what a storm must first replace. */
+    private const val THAWS_BY = 2
+
+    /** How fast an ordinary blizzard gains on that — vanilla's own pace in powder snow. */
+    private const val BITES_BY = 1.0
+
+    /** How far past frozen the cold is allowed to bank up, so stepping inside is not instant relief. */
+    private const val DEEPEST_CHILL = 2
 
     /** How much lower a neighbour must be before the snow goes there instead. */
     private const val A_STEEP_STEP = 2
@@ -306,9 +371,9 @@ object Blizzard {
      */
     private const val DEEPEST_DRIFT = 24
 
-    /** How many layers a sheltered column takes at once — more of them the fiercer the storm. */
+    /** How many courses a sheltered column takes at once — more of them the fiercer the storm. */
     private fun inTheLee(severity: Double): Int =
-        (LEE_LAYERS * severity).roundToInt().coerceIn(LEE_LAYERS, MOST_AT_ONCE)
+        (LEE_COURSES * severity).roundToInt().coerceIn(LEE_COURSES, MOST_AT_ONCE)
 
     /** How many columns are touched a tick, which is how fast the Age fills in. */
     private fun driftsPerTick(severity: Double): Int =
@@ -320,8 +385,8 @@ object Blizzard {
     /** How far from a player the storm is worked, in blocks. */
     private const val REACH = 48
 
-    private const val ONE_LAYER = 1
-    private const val LEE_LAYERS = 2
+    private const val ONE_BLOCK = 1
+    private const val LEE_COURSES = 2
     private const val MOST_AT_ONCE = 4
 
     private const val DRIFTS_ORDINARILY = 24
@@ -336,8 +401,11 @@ object Blizzard {
     /** How much of the axis a full rung or a full fury covers. */
     private const val MORE_OF_THE_TIME = 0.34
 
-    /** What a full reach of the manifestation multiplies a written rung by. */
+    /** What a full reach of the manifestation adds to how hard a storm blows. */
     private const val FURY_DRIVES = 2.0
+
+    /** And how much it adds to how often one comes, on top of whatever rung was written. */
+    private const val FURY_ALSO_LINGERS = 2.0
 
     private const val HORIZONS = 4
     private const val TICKS_PER_DAY = 24000L

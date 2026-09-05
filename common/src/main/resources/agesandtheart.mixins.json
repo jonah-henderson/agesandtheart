@@ -16,7 +16,8 @@
   "client": [
     "client.ClientLevelMixin",
     "client.LevelRendererMixin",
-    "client.MainRenderTargetMixin"
+    "client.MainRenderTargetMixin",
+    "client.WeatherEffectRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1
