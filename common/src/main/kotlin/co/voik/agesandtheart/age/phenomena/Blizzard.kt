@@ -244,7 +244,10 @@ object Blizzard {
             val overX = x + way.stepX
             val overZ = z + way.stepZ
             val theirs = level.getHeight(Heightmap.Types.WORLD_SURFACE, overX, overZ)
-            if (theirs < lowest - A_STEEP_STEP) {
+            // **Any lower at all, not merely a step lower.** Tolerating a block of difference let a column
+            // that had won a coin toss keep winning, and the Age grew spires; snow that always takes the
+            // low ground fills a hollow before it raises anything.
+            if (theirs < lowest) {
                 lowest = theirs
                 lowestX = overX
                 lowestZ = overZ
@@ -282,7 +285,10 @@ object Blizzard {
             if (!level.getBlockState(cursor).isAir) break
             level.setBlock(cursor, Blocks.POWDER_SNOW.defaultBlockState(), Block.UPDATE_ALL)
         }
-        settle(level, cursor, x, open + laying - 1, z)
+        // **Asked of the heightmap rather than assumed.** The loop above stops early wherever something
+        // was in the way, so counting on every course having been laid would have walked the ladder from a
+        // block of air and found no run to compact.
+        settle(level, cursor, x, level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - 1, z)
     }
 
     /**
@@ -303,35 +309,31 @@ object Blizzard {
     }
 
     /**
-     * The compression ladder, walked up the column: **three of a stage and the bottom one hardens**.
+     * The compression ladder: **what is on top of you is what packs you**.
      *
-     * Snow becomes ice, ice becomes packed, packed becomes blue, and blue is terminal — so a place cannot
-     * progress for ever the way a rising sea can, while the *column* goes on growing. What that leaves is a
-     * drift whose depth is its history: fresh snow at the top and blue ice at the bottom, readable at a
-     * glance from the side (§5.4). Nothing records how long a blizzard has worked a place; the drift is the
-     * record.
+     * A block three deep is snow, six deep is ice, nine is packed and twelve is blue — so a drift is a
+     * gradient with powder at the surface and blue ice at its floor, and its depth *is* its history,
+     * readable from the side with nothing written down (§5.4).
+     *
+     * **Keyed on depth rather than on runs of three, and the difference is not cosmetic.** Hardening the
+     * bottom of every run of three anywhere in the column cascades: the run resets, the next deposit
+     * remakes it, and a simulation of the old rule had a drift more than half blue ice after nine
+     * deposits, with the gradient gone. Depth cannot cascade — a block is exactly as pressed as what lies
+     * on it, which is also what the physical thing does.
      */
     private fun settle(level: ServerLevel, cursor: BlockPos.MutableBlockPos, x: Int, top: Int, z: Int) {
-        for ((stage, hardened) in PACKING) {
-            var run = 0
-            for (depth in 0..<DEEPEST_DRIFT) {
-                cursor.set(x, top - depth, z)
-                if (!level.getBlockState(cursor).`is`(stage)) {
-                    run = 0
-                    continue
-                }
-                run++
-                if (run < A_DEEP_ENOUGH_RUN) continue
-                level.setBlock(cursor, hardened.defaultBlockState(), Block.UPDATE_ALL)
-                run = 0
-            }
+        for (depth in 0..<DEEPEST_DRIFT) {
+            cursor.set(x, top - depth, z)
+            val standing = level.getBlockState(cursor)
+            val stage = PACKING.indexOfFirst { standing.`is`(it) }
+            if (stage < 0) return
+            val pressed = (depth / A_DEEP_ENOUGH_RUN).coerceAtMost(PACKING.lastIndex)
+            if (pressed > stage) level.setBlock(cursor, PACKING[pressed].defaultBlockState(), Block.UPDATE_ALL)
         }
     }
 
     /** Whether a blizzard could have put this here, which is what a drift is measured through. */
-    private fun laidByAStorm(state: BlockState): Boolean =
-        state.`is`(Blocks.POWDER_SNOW) || state.`is`(Blocks.SNOW_BLOCK) || state.`is`(Blocks.ICE) ||
-            state.`is`(Blocks.PACKED_ICE) || state.`is`(Blocks.BLUE_ICE)
+    private fun laidByAStorm(state: BlockState): Boolean = PACKING.any { state.`is`(it) }
 
     /**
      * What each stage of the drift hardens into, once three of it stand together.
@@ -342,10 +344,11 @@ object Blizzard {
      * underneath — the gradient a player learns to trust.
      */
     private val PACKING = listOf(
-        Blocks.POWDER_SNOW to Blocks.SNOW_BLOCK,
-        Blocks.SNOW_BLOCK to Blocks.ICE,
-        Blocks.ICE to Blocks.PACKED_ICE,
-        Blocks.PACKED_ICE to Blocks.BLUE_ICE,
+        Blocks.POWDER_SNOW,
+        Blocks.SNOW_BLOCK,
+        Blocks.ICE,
+        Blocks.PACKED_ICE,
+        Blocks.BLUE_ICE,
     )
 
     /** What `LivingEntity` sheds every tick you are not freezing, and so what a storm must first replace. */
@@ -357,10 +360,7 @@ object Blizzard {
     /** How far past frozen the cold is allowed to bank up, so stepping inside is not instant relief. */
     private const val DEEPEST_CHILL = 2
 
-    /** How much lower a neighbour must be before the snow goes there instead. */
-    private const val A_STEEP_STEP = 2
-
-    /** Three of a stage and the bottom one hardens, which is what lets the column keep growing. */
+    /** How many blocks have to lie on a block before it packs down a stage. */
     private const val A_DEEP_ENOUGH_RUN = 3
 
     /**
@@ -386,11 +386,18 @@ object Blizzard {
     private const val REACH = 48
 
     private const val ONE_BLOCK = 1
-    private const val LEE_COURSES = 2
-    private const val MOST_AT_ONCE = 4
+    private const val LEE_COURSES = 1
+    private const val MOST_AT_ONCE = 2
 
-    private const val DRIFTS_ORDINARILY = 24
-    private const val MOST_DRIFTS = 160
+    /**
+     * How many columns are touched a tick.
+     *
+     * **An eighth of what it was, because a block is eight layers.** These numbers were written when a
+     * drift laid one *layer* of snow; laying a whole powder-snow block at the same rate buried the Age
+     * eight times too fast (Jonah, 2026-09-05, walked).
+     */
+    private const val DRIFTS_ORDINARILY = 3
+    private const val MOST_DRIFTS = 20
 
     /** About as much of the time as vanilla rains, which is what an ordinary blizzard should feel like. */
     private const val AS_OFTEN_AS_RAIN = 0.3

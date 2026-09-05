@@ -2,6 +2,7 @@ package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.age.phenomena.BlizzardPayload
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.ephemeris.Rgba
 import net.minecraft.core.BlockPos
 import net.minecraft.core.particles.ParticleTypes
 import net.minecraft.client.Minecraft
@@ -59,41 +60,32 @@ object Storms {
      */
     fun paint(level: ClientLevel, layers: EnvironmentAttributeSystem.Builder): EnvironmentAttributeSystem.Builder {
         val blowing = blowingIn(level) ?: return layers
-        // How far you can see at this fierceness: a plain blizzard shortens the view, a bought one is a
-        // whiteout. Positional rather than flat, because the same layer has to leave the inside of a
-        // shelter alone — a roof over your head is the whole of the counterplay and it must be visible.
-        layers.addPositionalLayer(EnvironmentAttributes.FOG_END_DISTANCE) { was, at, _ ->
-            if (level.canSeeSky(BlockPos.containing(at))) seenThrough(was, blowing.severity) else was
+        val hard = blowing.severity
+
+        // The air itself going white, not merely the distance closing — a whiteout is a colour before it
+        // is a range, and fog left the biome's blue while the view shortened read as haze.
+        layers.addPositionalLayer(EnvironmentAttributes.FOG_COLOR) { was, at, _ ->
+            if (level.canSeeSky(BlockPos.containing(at))) DRIVEN_SNOW.packed() else was
         }
         layers.addPositionalLayer(EnvironmentAttributes.FOG_START_DISTANCE) { was, at, _ ->
-            if (level.canSeeSky(BlockPos.containing(at))) seenThrough(was, blowing.severity) else was
+            if (level.canSeeSky(BlockPos.containing(at))) seenThrough(was, hard) * BEGINS_AT else was
+        }
+        layers.addPositionalLayer(EnvironmentAttributes.FOG_END_DISTANCE) { was, at, _ ->
+            if (level.canSeeSky(BlockPos.containing(at))) seenThrough(was, hard) else was
+        }
+        // **And upward, which is the lesson `Engulfing` already paid for**: ordinary fog is measured to
+        // what it is drawn over and the sky is drawn over nothing, so looking straight up out of a
+        // whiteout showed clouds sailing past in clear blue. These two are the only way to close it.
+        layers.addPositionalLayer(EnvironmentAttributes.SKY_FOG_END_DISTANCE) { was, at, _ ->
+            if (level.canSeeSky(BlockPos.containing(at))) seenThrough(was, hard) else was
+        }
+        layers.addPositionalLayer(EnvironmentAttributes.CLOUD_FOG_END_DISTANCE) { was, at, _ ->
+            if (level.canSeeSky(BlockPos.containing(at))) seenThrough(was, hard) else was
+        }
+        layers.addPositionalLayer(EnvironmentAttributes.SKY_COLOR) { was, at, _ ->
+            if (level.canSeeSky(BlockPos.containing(at))) DRIVEN_SNOW.packed() else was
         }
         return layers
-    }
-
-    /**
-     * Keep the right wind playing, and only one of them.
-     *
-     * Two sounds and the switch between them is the mechanic: **sheltered** is the storm going on without
-     * you, which is what makes a dugout feel like one, and **exposed** is standing in it, which plays while
-     * the cold is on you so the sound and the harm are learned together.
-     */
-    fun heard(client: Minecraft) {
-        val level = client.level
-        val player = client.player
-        if (level == null || player == null) {
-            stop(client)
-            return
-        }
-        val blowing = blowingIn(level)
-        if (blowing == null) {
-            stop(client)
-            return
-        }
-        val wanted = if (exposed(level, player)) AgeContent.BLIZZARD_EXPOSED else AgeContent.BLIZZARD_SHELTERED
-        if (playing?.sound === wanted && playing?.isStopped == false) return
-        stop(client)
-        playing = Wind(wanted, blowing.severity).also(client.soundManager::play)
     }
 
     /**
@@ -147,6 +139,31 @@ object Storms {
         }
     }
 
+    /**
+     * Keep the right wind playing, and only one of them.
+     *
+     * Two sounds and the switch between them is the mechanic: **sheltered** is the storm going on without
+     * you, which is what makes a dugout feel like one, and **exposed** is standing in it, which plays while
+     * the cold is on you so the sound and the harm are learned together.
+     */
+    fun heard(client: Minecraft) {
+        val level = client.level
+        val player = client.player
+        if (level == null || player == null) {
+            stop(client)
+            return
+        }
+        val blowing = blowingIn(level)
+        if (blowing == null) {
+            stop(client)
+            return
+        }
+        val wanted = if (exposed(level, player)) AgeContent.BLIZZARD_EXPOSED else AgeContent.BLIZZARD_SHELTERED
+        if (playing?.sound === wanted && playing?.isStopped == false) return
+        stop(client)
+        playing = Wind(wanted, blowing.severity).also(client.soundManager::play)
+    }
+
     private fun stop(client: Minecraft) {
         playing?.let(client.soundManager::stop)
         playing = null
@@ -177,21 +194,42 @@ object Storms {
         }
     }
 
-    /** How much of [was] survives a storm of this severity, never closer than [NEAREST]. */
-    private fun seenThrough(was: Float, severity: Double): Float {
-        val left = CLEAREST - (CLEAREST - SEES_LEAST) * (severity - 1.0).coerceIn(0.0, 1.0)
-        return (was * left).toFloat().coerceAtLeast(NEAREST)
+    /**
+     * How far you can see through a storm this hard, in blocks.
+     *
+     * **The far end runs to a sandfall's** (Jonah, 2026-09-05): an ordinary blizzard shortens the view, and
+     * one bought at the top of the ladder is as blind as standing inside a column of falling sand, which
+     * `Engulfing` puts at a couple of blocks. Between the two it is linear in fierceness rather than in
+     * anything the storm is doing, because what a player is judging is how bad *this Age* is.
+     */
+    private fun seenThrough(was: Float, hard: Double): Float {
+        val bite = ((hard - ORDINARY) / (HARDEST - ORDINARY)).coerceIn(0.0, 1.0)
+        val ordinary = was * CLEAREST
+        return (ordinary + (WHITEOUT - ordinary) * bite).toFloat().coerceAtLeast(WHITEOUT)
     }
 
     /** Vanilla's own threshold, and the one the snow obeys. */
     private const val SHELTERED_BY_LIGHT = 10
 
-    /** What a blizzard leaves of the view at its worst, as a share of what you could see. */
-    private const val SEES_LEAST = 0.12
-    private const val CLEAREST = 0.5
+    /** The air in a whiteout: not white, which reads as a bug, but the grey-white of snow with no sun on it. */
+    private val DRIVEN_SNOW = Rgba.of(0xFFC8CFD8u.toInt())
 
-    /** How near the world closes in at the very worst of it. Blinding would be unfair; this is not. */
-    private const val NEAREST = 8.0f
+    /** What an ordinary blizzard leaves of the view, as a share of what you could otherwise see. */
+    private const val CLEAREST = 0.35f
+
+    /**
+     * And what the fiercest leaves, in blocks — near enough to `Engulfing`'s sandfall to read as its equal.
+     *
+     * Not equal to it: a sandfall is a wall of ground you are inside and this is weather, so a little
+     * further is right, and it is still far past what anybody could navigate by.
+     */
+    private const val WHITEOUT = 3.5f
+
+    /** Where the white begins, as a share of where it becomes total. */
+    private const val BEGINS_AT = 0.25f
+
+    private const val ORDINARY = 1.0
+    private const val HARDEST = 3.0
 
     /** How far around the player the storm is drawn, in blocks. */
     private const val AROUND = 14
