@@ -30,9 +30,6 @@ class DeskCapabilityCheck : FunSpec({
      */
     val notYetWired = mapOf(
         DeskCapability.EDIT_BOOKS to "Phase 8's gate, deliberately inert so the implement is findable first",
-        DeskCapability.SURVEY_MATERIALS to
-            "Phase 7 step 2's last piece. The evaluator behind it is built and checked; what is missing is " +
-            "the readout, which is the desk screen's, and the desk screen is out of room",
     )
 
     test("every capability the desk grants is consulted somewhere") {

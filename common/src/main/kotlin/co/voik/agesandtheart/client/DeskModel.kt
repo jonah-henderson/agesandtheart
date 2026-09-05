@@ -100,6 +100,9 @@ object DeskModel {
     /** The sentence the laid-out pages make, as the server read it back. */
     fun reading(): String = state?.reading.orEmpty()
 
+    /** What the Age would hold, or null where nothing is laid out or nothing in the room can survey it. */
+    fun survey(): co.voik.agesandtheart.age.reward.Survey? = state?.survey
+
     /**
      * Every word the player knows, each with however many pages of it the desk holds.
      *

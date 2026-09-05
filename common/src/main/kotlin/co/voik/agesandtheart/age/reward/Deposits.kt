@@ -49,15 +49,25 @@ object Deposits {
         danger: Danger,
         rock: List<BlockState>,
     ): (Holder<Biome>) -> BiomeGenerationSettings {
-        if (!danger.paysOut) return base
-        val raid = danger.isTerminal
-        val veins = veinsFor(danger.score) * if (raid) TERMINAL_MULTIPLE else ORDINARY_MULTIPLE
-        if (veins <= 0) return base
-        val deposit = depositIn(rock, veins, raid)
+        val veins = veinsPerChunk(danger)
+        if (veins <= NOTHING) return base
+        val deposit = depositIn(rock, veins, danger.isTerminal)
         // Remembered per biome for the same reason `Features` remembers its own: this builds a new
         // `BiomeGenerationSettings` and the one handed back has to be the same object every time.
         val settled = ConcurrentHashMap<Holder<Biome>, BiomeGenerationSettings>()
         return { biome -> settled.computeIfAbsent(biome) { added(base(it), deposit) } }
+    }
+
+    /**
+     * How many veins of deretheni a chunk of this Age is offered, or [NOTHING] where it earns none.
+     *
+     * Public because the geologic survey says *how much* (§7.7), and a survey that worked the amount out
+     * for itself would be a second statement of the yield, free to drift from the ground it describes.
+     */
+    fun veinsPerChunk(danger: Danger): Int {
+        if (!danger.paysOut) return NOTHING
+        val multiple = if (danger.isTerminal) TERMINAL_MULTIPLE else ORDINARY_MULTIPLE
+        return veinsFor(danger.score) * multiple
     }
 
     /**
@@ -160,6 +170,9 @@ object Deposits {
     private const val VEINS_AT_FULL_DANGER = 6
 
     private const val ONE_VEIN = 1
+
+    /** What an Age that earns no deposit is offered. */
+    private const val NOTHING = 0
 
     /**
      * What a terminal Age multiplies both the count and the vein size by (§7.7).

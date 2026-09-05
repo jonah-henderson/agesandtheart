@@ -34,6 +34,24 @@ import java.util.concurrent.ConcurrentHashMap
 object CharacterMaterials {
 
     /**
+     * Which of them this Age grows — the half of the geologic survey that reports names (§7.7).
+     *
+     * The `when` is exhaustive on purpose: a new material has to say what conditions grow it, rather than
+     * being added to the enum and quietly growing nowhere.
+     */
+    fun grownIn(
+        composition: AgeComposition,
+        spending: Spending,
+        prices: Map<Manifestation, Price>,
+    ): Set<CharacterMaterial> = CharacterMaterial.entries
+        .filter { material ->
+            when (material) {
+                CharacterMaterial.RIME -> growsRime(composition, spending, prices)
+            }
+        }
+        .toSet()
+
+    /**
      * Whether rime grows here at all.
      *
      * **Read from the recipe, like everything else that pays out**, so the answer is the same before the
@@ -127,4 +145,15 @@ object CharacterMaterials {
     private const val ONE_CLIMATE = 1
     private const val ONE_PASS = 1
     private const val NOTHING_INFLICTED = 0.0
+}
+
+/**
+ * A material an Age grows for being a certain way, named rather than measured — see [Survey].
+ *
+ * It holds no block: what a survey line reads is the material's own item name, looked up where the item
+ * registry is safe to touch, so the report can never call it something the player does not see on the
+ * block. Naming one here would also class-initialise `AgeContent`, which no offline check survives.
+ */
+enum class CharacterMaterial {
+    RIME,
 }

@@ -304,3 +304,21 @@
 #     on. What a walk has to settle besides that it fires: that it takes from the right compartment, that
 #     the contents survive the box being broken and replaced, and that the client does not flicker when a
 #     refused item is dragged in (the menu carries its own type precisely so it should not).
+
+# H. THE RIME CRYSTALS AND THE SKATES HAVE NEVER BEEN SEEN OR WORN. Built 2026-09-05; the placement was
+# instrumented on a server (118 sheer faces -> 87 crystals over 64 chunks of a `cliffs` Age, none refused)
+# but nobody has looked at one. What a walk has to settle: that a crystal on a cliff face reads as a find
+# rather than as noise, that the blue tint over amethyst is legible at distance, that climbing to them is
+# the scaffolding problem it was meant to be, and that the skates are fun rather than merely fast -- 2.26x
+# a walk at terminal speed, no brakes, a ledge a real hazard.
+
+# I. THE SURVEY HAS NEVER BEEN READ. Built 2026-09-05, and it is the first thing on the bind tab that is
+# not the sentence. What a walk has to settle:
+#   - THAT IT FITS. The pane holds the sentence and the survey under it, and the sentence is clipped to
+#     what the survey leaves. A twelve-page book is the case to try: the sentence should ellipsise and the
+#     survey should still be whole. A bare desk (no tools) should look exactly as it did before.
+#   - THAT THE WORDS ARE RIGHT. `none` through `a great deal`, banded on veins per chunk. Whether a
+#     marginal Age reading "a trace" makes anybody want to write a worse one is the calibration question
+#     `pays_above` is waiting on, and this readout is the instrument for answering it.
+#   - THAT IT AIMS RATHER THAN FORECASTS. Write a cold Age with a blizzard and the survey should name the
+#     rime before the Age exists; write a hot one with the same words and it should not.

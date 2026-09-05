@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.desk
 
+import co.voik.agesandtheart.age.reward.Survey
+import co.voik.agesandtheart.age.word.Resolution
 import co.voik.agesandtheart.age.word.grammar.Sentence
 import co.voik.agesandtheart.age.word.grammar.Readout
 import co.voik.agesandtheart.age.word.grammar.Grammar
@@ -208,10 +210,15 @@ class WritersDeskMenu(
 
     /** What the screen should be showing right now. */
     fun snapshot(player: ServerPlayer, desk: WritersDeskBlockEntity, capabilities: DeskState): DeskSyncPayload {
-        // Read once and handed to both: the readout and the conflicts are two questions about one sentence,
-        // and parsing it twice was two passes over the corpus for one row of pages.
+        // Read once and handed to all three: the readout, the conflicts and the survey are three questions
+        // about one sentence, and parsing it three times was three passes over the corpus for one row of
+        // pages. Resolving it is dearer still, and only two of the three ask for that — so it is done at
+        // most once, and only where something in the room can show what it says.
         val said = composing.takeIf { it.isNotEmpty() }
             ?.let { Grammar.read(vocabularyFor(player), it.map(Identifier::getPath)) }
+        val resolved = said
+            ?.takeIf { anythingReadsAResolution(capabilities) }
+            ?.let { Resolver.resolve(vocabularyFor(player), it, player.writingSeed) }
         return DeskSyncPayload(
             archive = desk.archive.words.associateWith { desk.archive.count(it) },
             ink = InkTier.entries.associateWith { desk.stores.ink(it) },
@@ -221,9 +228,16 @@ class WritersDeskMenu(
             capabilities = capabilities.capabilities,
             pageLimit = capabilities.pageLimit,
             composing = composing.toList(),
-            quarrels = quarrelsIn(player, capabilities, said),
+            quarrels = quarrelsIn(capabilities, resolved),
             reading = readingOf(capabilities, said),
+            survey = surveyOf(player, capabilities, resolved),
         )
+    }
+
+    private fun anythingReadsAResolution(capabilities: DeskState): Boolean {
+        val showsConflicts = DeskCapability.REVEAL_CONFLICTS in capabilities.capabilities
+        val surveysMaterials = DeskCapability.SURVEY_MATERIALS in capabilities.capabilities
+        return showsConflicts || surveysMaterials
     }
 
     /**
@@ -262,10 +276,9 @@ class WritersDeskMenu(
      * Each flaw becomes a mark on **both** its words. A flaw naming one word is paired with itself, which
      * is how "nothing here can be this" reaches a display that only knows how to mark pairs.
      */
-    private fun quarrelsIn(player: ServerPlayer, capabilities: DeskState, said: Sentence?): List<Quarrel> {
+    private fun quarrelsIn(capabilities: DeskState, resolved: Resolution?): List<Quarrel> {
         if (DeskCapability.REVEAL_CONFLICTS !in capabilities.capabilities) return emptyList()
-        val read = said ?: return emptyList()
-        val flaws = Resolver.resolve(vocabularyFor(player), read, player.writingSeed).instability.flaws
+        val flaws = resolved?.instability?.flaws ?: return emptyList()
         val byName = composing.associateBy { it.path }
         return flaws.flatMap { flaw ->
             val named = flaw.words.mapNotNull(byName::get)
@@ -277,6 +290,19 @@ class WritersDeskMenu(
                 listOf(Quarrel(first, second, flaw.register.key), Quarrel(second, first, flaw.register.key))
             }
         }
+    }
+
+    /**
+     * What the Age would hold — **empty without the geologist's tools** (design §7.3, §7.7), which is the
+     * same rule the reading and the conflicts follow: what a workspace shows is what it was furnished for.
+     *
+     * Read against [writingSeed] like the conflicts are, so the amount reported is the one the bound book
+     * will actually produce rather than one of the amounts it might have.
+     */
+    private fun surveyOf(player: ServerPlayer, capabilities: DeskState, resolved: Resolution?): Survey? {
+        if (DeskCapability.SURVEY_MATERIALS !in capabilities.capabilities) return null
+        val read = resolved ?: return null
+        return Survey.of(player.level().server, read.composition, read.instability, player.writingSeed)
     }
 
     /** Whether the player may write [word] at all — knowing it is the first gate (design §7.1.1). */
