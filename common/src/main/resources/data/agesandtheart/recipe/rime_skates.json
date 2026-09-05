@@ -1,0 +1,12 @@
+{
+  "_comment": "A boot with a blade under it -- leather over iron and rime, which is what the arrangement says.",
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "L": "minecraft:leather_boots",
+    "N": "minecraft:iron_nugget",
+    "C": "agesandtheart:rime_crystal"
+  },
+  "pattern": [" L ", "NCN"],
+  "result": { "id": "agesandtheart:rime_skates" }
+}

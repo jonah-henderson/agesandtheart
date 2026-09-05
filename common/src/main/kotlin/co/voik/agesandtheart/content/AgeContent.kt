@@ -35,6 +35,7 @@ import co.voik.agesandtheart.worldgen.fissure.StarFissureStructure
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType
 import net.minecraft.world.level.levelgen.structure.StructureType
 import net.minecraft.core.component.DataComponentType
+import net.minecraft.core.component.DataComponents
 import net.minecraft.core.registries.Registries
 import net.minecraft.network.codec.ByteBufCodecs
 import net.minecraft.world.flag.FeatureFlags
@@ -52,7 +53,15 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
 import net.minecraft.world.item.crafting.RecipeSerializer
+import net.minecraft.world.entity.EquipmentSlot
+import net.minecraft.world.entity.EquipmentSlotGroup
+import net.minecraft.world.entity.ai.attributes.AttributeModifier
+import net.minecraft.world.entity.ai.attributes.Attributes
+import net.minecraft.world.item.component.ItemAttributeModifiers
 import net.minecraft.world.item.equipment.ArmorType
+import net.minecraft.world.item.equipment.Equippable
+import net.minecraft.world.item.equipment.EquipmentAssets
+import net.minecraft.sounds.SoundEvents
 import net.minecraft.util.valueproviders.UniformInt
 import net.minecraft.world.level.block.AmethystClusterBlock
 import net.minecraft.world.level.block.Block
@@ -319,6 +328,54 @@ object AgeContent {
      * pass draws a real one (Phase 9).
      */
     const val RIME_CRYSTAL_TINT = 0x7FC8F0
+
+    private val RIME_SKATES_ID: Identifier = "rime_skates".location()
+
+    /**
+     * A rime blade under a leather boot — see [RimeSkates] for what wearing them does.
+     *
+     * **Equippable rather than armour**, because they defend nothing: what they carry is a movement speed
+     * and, through the mixin, the ground's grip on you. Vanilla's leather model dresses them, which
+     * references Mojang's art rather than shipping it — the same bargain the rime crystal's tint makes.
+     */
+    val RIME_SKATES: Item = Item(
+        Item.Properties()
+            .setId(ResourceKey.create(Registries.ITEM, RIME_SKATES_ID))
+            .stacksTo(1)
+            .durability(SKATE_DURABILITY)
+            .component(
+                DataComponents.EQUIPPABLE,
+                Equippable.builder(EquipmentSlot.FEET)
+                    .setAsset(EquipmentAssets.LEATHER)
+                    .setEquipSound(SoundEvents.ARMOR_EQUIP_LEATHER)
+                    .build(),
+            )
+            .attributes(
+                ItemAttributeModifiers.builder()
+                    .add(
+                        Attributes.MOVEMENT_SPEED,
+                        AttributeModifier(
+                            RIME_SKATES_ID,
+                            SKATE_HURRY,
+                            AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL,
+                        ),
+                        EquipmentSlotGroup.FEET,
+                    )
+                    .build(),
+            ),
+    )
+
+    /**
+     * How much faster a stride is on skates.
+     *
+     * **Read against what the slickness then does with it.** Friction near one holds nearly all of your
+     * speed from tick to tick, so a third more push comes out at something over twice a walk once you are
+     * running — about a horse on the flat, and a good deal worse than a horse anywhere with corners.
+     */
+    private const val SKATE_HURRY = 0.35
+
+    /** A boot's, and they take the wear of one. */
+    private const val SKATE_DURABILITY = 195
 
     private val TOOLBOX_ID: Identifier = "toolbox".location()
     private val GEOLOGISTS_TOOLS_ID: Identifier = "geologists_tools".location()
@@ -833,6 +890,7 @@ object AgeContent {
         PITCHSTONE_LEGGINGS_ID to PITCHSTONE_LEGGINGS,
         PITCHSTONE_BOOTS_ID to PITCHSTONE_BOOTS,
         RIME_CRYSTAL_ID to RIME_CRYSTAL,
+        RIME_SKATES_ID to RIME_SKATES,
         TOOLBOX_ID to TOOLBOX,
         GEOLOGISTS_TOOLS_ID to GEOLOGISTS_TOOLS,
     )
