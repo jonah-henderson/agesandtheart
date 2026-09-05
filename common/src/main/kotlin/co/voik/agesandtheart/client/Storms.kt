@@ -234,20 +234,22 @@ object Storms {
     /**
      * Where the view is gone entirely at the fiercest, in blocks.
      *
-     * A little past `Engulfing`'s sandfall, which is a wall of ground you are standing inside where this is
-     * weather — and far past anything you could navigate by either way.
+     * **Well short of `Engulfing`'s sandfall, and that is the right way round** (Jonah, 2026-09-05, walked
+     * twice down to this). A sandfall is a wall of ground you are standing inside and closes at a couple of
+     * blocks; a blizzard is weather you are walking through, and has to leave you enough to place a torch
+     * by. Four clear and gone by eight is what a walk settled on.
      */
-    private const val WHITEOUT = 4.0f
+    private const val WHITEOUT = 8.0f
 
     /**
      * Where the white *begins*, as a share of where it becomes total.
      *
-     * **The number that was actually wrong** (Jonah, 2026-09-05, walked): at a quarter, fog started under a
-     * block from the camera and the whole view was washed even where it had not closed, so a storm meant to
-     * leave two or three blocks of sight left none. At three fifths there is a clear band you can work in —
-     * about two and a half blocks at the fiercest — and the white then takes the rest quickly.
+     * **The number that was actually wrong** the first time: at a quarter, fog started under a block from
+     * the camera and the whole view was washed even where it had not closed, so a storm meant to leave a
+     * few blocks of sight left none. Half puts the clear band at four blocks against a whiteout at eight,
+     * which is a storm you can still work in and cannot navigate by.
      */
-    private const val BEGINS_AT = 0.6f
+    private const val BEGINS_AT = 0.5f
 
     private const val ORDINARY = 1.0
     private const val HARDEST = 3.0
