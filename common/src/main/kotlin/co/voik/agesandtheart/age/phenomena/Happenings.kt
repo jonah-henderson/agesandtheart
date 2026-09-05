@@ -61,7 +61,12 @@ object Happenings {
             // whole axis is how much of the time it is blowing, and an *inflicted* one is absent from the
             // written claims — so asking the weather from those alone left instability unable to drive the
             // one register it buys.
-            val befalls = befalling(happening, spending, prices)
+            val befalls = befalling(happening, spending, prices).toMutableMap().apply {
+                // A blizzard somebody asked for by hand happens here whether or not the book wrote one —
+                // see [Blizzard.force]. Without this, `/age weather blizzard 3` in an ordinary Age sets a
+                // fierceness nothing reads.
+                if (Blizzard.forcedIn(level) != null) putIfAbsent(Phenomenon.BLIZZARD, Rung.ORDINARY)
+            }
             AgeWeather.steer(level, wanted(composition, befalls, spending, prices))
             for ((phenomenon, density) in befalls) {
                 befall(level, phenomenon, density, furyOf(spending, prices, phenomenon))

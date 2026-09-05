@@ -7,6 +7,8 @@ import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.platform.Services
 import net.minecraft.core.BlockPos
+import net.minecraft.resources.Identifier
+import java.util.concurrent.ConcurrentHashMap
 import net.minecraft.core.Direction
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.phys.AABB
@@ -54,7 +56,7 @@ object Blizzard {
         if (!level.isRaining) return
         // How *hard*, not how often: by the time this runs the storm is already here, and what is left to
         // decide is what it does while it lasts.
-        val severity = howHardOf(fury)
+        val severity = hardnessIn(level, fury)
         val bearing = bearingIn(level)
         val cursor = BlockPos.MutableBlockPos()
         for (player in level.players()) {
@@ -110,7 +112,7 @@ object Blizzard {
         val telling = if (density == null) {
             BlizzardPayload.noneIn(age)
         } else {
-            val severity = howHardOf(Happenings.furyOf(spending, prices, Phenomenon.BLIZZARD))
+            val severity = hardnessIn(level, Happenings.furyOf(spending, prices, Phenomenon.BLIZZARD))
             BlizzardPayload(age, severity, bearingIn(level).get2DDataValue())
         }
         for (player in level.players()) Services.NETWORK.sendToPlayer(player, telling)
@@ -131,6 +133,29 @@ object Blizzard {
     fun shareOfTheTime(howOften: Double): Double =
         (AS_OFTEN_AS_RAIN + (howOften - Rung.ORDINARY) * MORE_OF_THE_TIME)
             .coerceIn(AS_OFTEN_AS_RAIN, ALMOST_ALWAYS)
+
+    /**
+     * A fierceness set by hand, for looking at one — `/age weather blizzard <intensity>`.
+     *
+     * **Transient and per Age.** It is a debug tool, so it survives no reload and is written nowhere; and
+     * it *summons* a blizzard as well as setting its strength, because the alternative is finding an Age
+     * that already has one before you can look at the thing you are tuning.
+     */
+    private val forced = ConcurrentHashMap<Identifier, Double>()
+
+    fun force(level: ServerLevel, hardness: Double) {
+        forced[level.dimension().identifier()] = hardness
+    }
+
+    fun release(level: ServerLevel) {
+        forced.remove(level.dimension().identifier())
+    }
+
+    /** What was set by hand here, or null where nothing was. */
+    fun forcedIn(level: ServerLevel): Double? = forced[level.dimension().identifier()]
+
+    /** How hard it blows here: what somebody asked for, else what the Age's own instability bought. */
+    fun hardnessIn(level: ServerLevel, fury: Double): Double = forcedIn(level) ?: howHardOf(fury)
 
     /**
      * **How often it blows** — the rung and the instability together.

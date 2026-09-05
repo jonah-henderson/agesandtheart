@@ -8,6 +8,8 @@ import co.voik.agesandtheart.age.consequence.Wounds
 import net.minecraft.world.Difficulty
 import net.minecraft.world.DifficultyInstance
 import co.voik.agesandtheart.age.consequence.Tearing
+import co.voik.agesandtheart.age.aspect.Phenomenon
+import co.voik.agesandtheart.age.phenomena.Blizzard
 import co.voik.agesandtheart.age.reward.Danger
 import co.voik.agesandtheart.worldgen.feature.SheerFace
 import co.voik.agesandtheart.age.aspect.Terrain
@@ -56,6 +58,7 @@ import co.voik.agesandtheart.book.FoundBook
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.NotebookItem
 import com.mojang.brigadier.CommandDispatcher
+import com.mojang.brigadier.arguments.DoubleArgumentType
 import com.mojang.brigadier.arguments.IntegerArgumentType
 import com.mojang.brigadier.arguments.LongArgumentType
 import com.mojang.brigadier.arguments.StringArgumentType
@@ -143,6 +146,11 @@ object AgeCommand {
 
     /** `/age danger score <name>` — the recipe's worth, as against [HERE_LITERAL]'s worth of the ground. */
     private const val SCORE_LITERAL = "score"
+
+    /** `/age weather blizzard <intensity>` — how hard, where one is ordinary and three is fully bought. */
+    private const val INTENSITY_ARGUMENT = "intensity"
+    private const val ORDINARY_STORM = 1.0
+    private const val WILDEST_STORM = 5.0
 
     /** How far `/age wounds here` looks — a good deal further than a wound corrupts, so it can say "none". */
     private const val LOOKS_FOR_WOUNDS_WITHIN = 128.0
@@ -655,7 +663,25 @@ object AgeCommand {
     private fun weatherSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("weather").apply {
             for ((name, wants) in AgeWeather.asked()) {
-                then(Commands.literal(name).executes { context -> runWeather(context, name, wants) })
+                val branch = Commands.literal(name)
+                    .executes { context -> runWeather(context, name, wants, hardness = null) }
+                // **Only the blizzard takes a strength**, because it is the only phenomenon whose weather
+                // and whose fierceness are two different dials — everything else either wants a condition
+                // or does not. One is ordinary and three is everything instability can buy.
+                if (name == Phenomenon.BLIZZARD.key) {
+                    branch.then(
+                        Commands.argument(INTENSITY_ARGUMENT, DoubleArgumentType.doubleArg(ORDINARY_STORM, WILDEST_STORM))
+                            .executes { context ->
+                                runWeather(
+                                    context,
+                                    name,
+                                    wants,
+                                    DoubleArgumentType.getDouble(context, INTENSITY_ARGUMENT),
+                                )
+                            },
+                    )
+                }
+                then(branch)
             }
         }
 
@@ -663,6 +689,7 @@ object AgeCommand {
         context: CommandContext<CommandSourceStack>,
         name: String,
         wants: AgeWeather.Conditions,
+        hardness: Double?,
     ): Int {
         val source = context.source
         val level = source.level
@@ -670,6 +697,11 @@ object AgeCommand {
         if (own == null) {
             source.sendFailure(Component.translatable("commands.agesandtheart.weather.not_an_age"))
             return 0
+        }
+        // Asking for a plain blizzard puts the Age back on its own fierceness, so the override is never
+        // something a walk can leave switched on without meaning to.
+        if (name == Phenomenon.BLIZZARD.key) {
+            if (hardness == null) Blizzard.release(level) else Blizzard.force(level, hardness)
         }
         AgeWeather.set(level, own, wants)
         source.sendSuccess({ Component.translatable("commands.agesandtheart.weather.set", name) }, true)

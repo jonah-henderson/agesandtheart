@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.phenomena.BlizzardPayload
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.ephemeris.Rgba
 import net.minecraft.core.BlockPos
+import net.minecraft.world.phys.Vec3
 import net.minecraft.core.particles.ParticleTypes
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
@@ -59,33 +60,46 @@ object Storms {
      * is what makes a fierce blizzard a different thing to be out in rather than merely a longer one.
      */
     fun paint(level: ClientLevel, layers: EnvironmentAttributeSystem.Builder): EnvironmentAttributeSystem.Builder {
-        val blowing = blowingIn(level) ?: return layers
-        val hard = blowing.severity
-
-        // The air itself going white, not merely the distance closing — a whiteout is a colour before it
-        // is a range, and fog left the biome's blue while the view shortened read as haze.
+        // **Every layer is laid unconditionally, and each one asks about the storm when it is sampled.**
+        // This runs once, when the level's attribute system is built — so an early return for "no blizzard
+        // right now" adds nothing and can never add anything later, and the whiteout simply never appeared
+        // however hard it blew. `Corruption` has always done it this way; its layers check the wound at the
+        // sample rather than at registration, and that is the only shape that works for a condition that
+        // comes and goes.
         layers.addPositionalLayer(EnvironmentAttributes.FOG_COLOR) { was, at, _ ->
-            if (level.canSeeSky(BlockPos.containing(at))) DRIVEN_SNOW.packed() else was
+            if (outInIt(level, at) == null) was else DRIVEN_SNOW.packed()
+        }
+        layers.addPositionalLayer(EnvironmentAttributes.SKY_COLOR) { was, at, _ ->
+            if (outInIt(level, at) == null) was else DRIVEN_SNOW.packed()
         }
         layers.addPositionalLayer(EnvironmentAttributes.FOG_START_DISTANCE) { was, at, _ ->
-            if (level.canSeeSky(BlockPos.containing(at))) seenThrough(was, hard) * BEGINS_AT else was
+            outInIt(level, at)?.let { seenThrough(was, it) * BEGINS_AT } ?: was
         }
         layers.addPositionalLayer(EnvironmentAttributes.FOG_END_DISTANCE) { was, at, _ ->
-            if (level.canSeeSky(BlockPos.containing(at))) seenThrough(was, hard) else was
+            outInIt(level, at)?.let { seenThrough(was, it) } ?: was
         }
         // **And upward, which is the lesson `Engulfing` already paid for**: ordinary fog is measured to
         // what it is drawn over and the sky is drawn over nothing, so looking straight up out of a
         // whiteout showed clouds sailing past in clear blue. These two are the only way to close it.
         layers.addPositionalLayer(EnvironmentAttributes.SKY_FOG_END_DISTANCE) { was, at, _ ->
-            if (level.canSeeSky(BlockPos.containing(at))) seenThrough(was, hard) else was
+            outInIt(level, at)?.let { seenThrough(was, it) } ?: was
         }
         layers.addPositionalLayer(EnvironmentAttributes.CLOUD_FOG_END_DISTANCE) { was, at, _ ->
-            if (level.canSeeSky(BlockPos.containing(at))) seenThrough(was, hard) else was
-        }
-        layers.addPositionalLayer(EnvironmentAttributes.SKY_COLOR) { was, at, _ ->
-            if (level.canSeeSky(BlockPos.containing(at))) DRIVEN_SNOW.packed() else was
+            outInIt(level, at)?.let { seenThrough(was, it) } ?: was
         }
         return layers
+    }
+
+    /**
+     * How hard the storm is where this sample is taken, or null where it does not reach.
+     *
+     * Asked per sample rather than once, because both halves of it change: a storm comes and goes, and a
+     * roof is a fact about the place. Shelter has to keep its own air, or the counterplay is invisible.
+     */
+    private fun outInIt(level: ClientLevel, at: Vec3): Double? {
+        val blowing = blowingIn(level) ?: return null
+        if (!level.canSeeSky(BlockPos.containing(at))) return null
+        return blowing.severity
     }
 
     /**
