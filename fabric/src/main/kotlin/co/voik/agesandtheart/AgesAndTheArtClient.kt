@@ -10,6 +10,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry
 import co.voik.agesandtheart.client.AgeLooks
 import co.voik.agesandtheart.client.DeskModel
 import co.voik.agesandtheart.age.phenomena.BlizzardPayload
+import co.voik.agesandtheart.client.AgeTints
 import co.voik.agesandtheart.client.KnownWords
 import co.voik.agesandtheart.client.Storms
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
@@ -55,6 +56,7 @@ fun initClient() {
     // Vanilla's own container screen: a toolbox is a chest's grid with a fence on what may go in it, and
     // the fence lives in the menu rather than in the drawing.
     MenuScreens.register(AgeContent.TOOLBOX_MENU, ::ContainerScreen)
+    AgeTints.register()
     ClientDeskNetwork.sender = { payload -> ClientPlayNetworking.send(payload) }
     ClientPlayNetworking.registerGlobalReceiver(DeskSyncPayload.TYPE) { payload, _ ->
         DeskModel.remember(payload)

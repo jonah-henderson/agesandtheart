@@ -247,7 +247,7 @@ object Storms {
      * wall of ground you are standing inside and closes at a couple of blocks; a blizzard is weather you
      * walk through, and has to leave you enough to place a torch by.
      */
-    private const val EARNED_WHITEOUT = 9.5f
+    private const val EARNED_WHITEOUT = 11.0f
 
     /** And where it is gone for a storm somebody asked for by hand, past anything instability can buy. */
     private const val FORCED_WHITEOUT = 8.0f
@@ -257,10 +257,13 @@ object Storms {
      *
      * **The number that was actually wrong** the first time: at a quarter, fog started under a block from
      * the camera and the whole view was washed even where it had not closed, so a storm meant to leave a
-     * few blocks of sight left none. Half puts the clear band at four blocks against a whiteout at eight,
-     * which is a storm you can still work in and cannot navigate by.
+     * few blocks of sight left none.
+     *
+     * Derived from the pair a walk settled on rather than chosen, so the two numbers that were actually
+     * judged — six clear, gone by eleven — are the ones written down.
      */
-    private const val BEGINS_AT = 0.5f
+    private const val EARNED_CLEAR = 6.0f
+    private const val BEGINS_AT = EARNED_CLEAR / EARNED_WHITEOUT
 
     private const val ORDINARY = 1.0
 

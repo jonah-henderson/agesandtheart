@@ -46,6 +46,7 @@ import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import co.voik.agesandtheart.age.aspect.Features
+import co.voik.agesandtheart.age.reward.CharacterMaterials
 import co.voik.agesandtheart.age.reward.Danger
 import co.voik.agesandtheart.age.reward.Deposits
 import co.voik.agesandtheart.age.aspect.AgeSpawner
@@ -241,10 +242,17 @@ object AgeGeneration {
             window,
             // What is placed, which vanilla's own decoration hook takes it — see [Features] for the seam,
             // and what the Age owes its writer laid over the top of it (design §7.7).
-            Deposits.laidOver(
-                Features.placedIn(server, composition.optionsFor(Aspect.FEATURES, 0), seed, fill.blocks.flatten()),
-                Danger.of(server, recipe),
-                fill.blocks.flatten(),
+            CharacterMaterials.laidOver(
+                Deposits.laidOver(
+                    Features.placedIn(server, composition.optionsFor(Aspect.FEATURES, 0), seed, fill.blocks.flatten()),
+                    Danger.of(server, recipe),
+                    fill.blocks.flatten(),
+                ),
+                CharacterMaterials.growsRime(
+                    composition,
+                    Spending.of(server, recipe),
+                    Price.list(server),
+                ),
             ),
             // What lives here, narrowing what vanilla resolves per biome and per structure.
             Spawns.livingIn(composition.optionsFor(Aspect.SPAWNS, 0), Vocabulary.of(server).spawning),

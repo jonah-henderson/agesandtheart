@@ -54,6 +54,7 @@ import net.minecraft.world.item.Items
 import net.minecraft.world.item.crafting.RecipeSerializer
 import net.minecraft.world.item.equipment.ArmorType
 import net.minecraft.util.valueproviders.UniformInt
+import net.minecraft.world.level.block.AmethystClusterBlock
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.DropExperienceBlock
 import net.minecraft.sounds.SoundEvent
@@ -67,6 +68,7 @@ import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.levelgen.SurfaceRules
 import net.minecraft.world.level.levelgen.carver.CarverConfiguration
 import co.voik.agesandtheart.worldgen.feature.Formation
+import co.voik.agesandtheart.worldgen.feature.RimeCrystal
 import co.voik.agesandtheart.worldgen.feature.SpilledSpring
 import net.minecraft.world.level.levelgen.feature.Feature
 import net.minecraft.world.level.levelgen.carver.WorldCarver
@@ -266,6 +268,57 @@ object AgeContent {
             .humanoidArmor(ProtectiveSuit.MATERIAL, type)
             .attributes(ProtectiveSuit.attributesFor(type)),
     )
+
+    private val RIME_CRYSTAL_ID: Identifier = "rime_crystal".location()
+
+    /**
+     * The crystal a frozen Age grows on its cliffs — the first of §7.1.2's **character materials**, the
+     * class that pays for having written many unlike Ages.
+     *
+     * **"Rime" is the English word for frost**, which is what makes it usable as an id at all: the Age it
+     * also nods to is a coincidence we are allowed to enjoy, where a name that were *only* the Age's would
+     * belong in the language file like every other. See CLAUDE.md's convention.
+     *
+     * **An amethyst cluster in shape and in blockstate**, because that is what it is: a crystal growing out
+     * of a face, at any of six orientations, and vanilla's own block already knows how to be one. Its blue
+     * is a tint over vanilla's texture rather than a texture of ours — the mod ships no art, and a
+     * recoloured copy of Mojang's would be their art in our jar.
+     */
+    val RIME_CRYSTAL_BLOCK: AmethystClusterBlock = AmethystClusterBlock(
+        CRYSTAL_HEIGHT,
+        CRYSTAL_WIDTH,
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, RIME_CRYSTAL_ID))
+            .mapColor(MapColor.ICE)
+            .forceSolidOn()
+            .noOcclusion()
+            .randomTicks()
+            .sound(SoundType.AMETHYST_CLUSTER)
+            .strength(CRYSTAL_STRENGTH)
+            .lightLevel { CRYSTAL_GLOW },
+    )
+
+    val RIME_CRYSTAL: Item = BlockItem(
+        RIME_CRYSTAL_BLOCK,
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, RIME_CRYSTAL_ID)).useBlockDescriptionPrefix(),
+    )
+
+    /** Vanilla's own full cluster, which is the shape this is. */
+    private const val CRYSTAL_HEIGHT = 7.0f
+    private const val CRYSTAL_WIDTH = 3.0f
+    private const val CRYSTAL_STRENGTH = 1.5f
+
+    /** Faint, so a cliff face full of them reads at a distance without lighting the Age. */
+    private const val CRYSTAL_GLOW = 4
+
+    /**
+     * The blue a rime crystal is rendered in — **a tint over vanilla's amethyst rather than art of ours**.
+     *
+     * The mod ships no textures, and a recoloured copy of Mojang's would be Mojang's art in our jar. A
+     * `tintindex` in the model and this number are the whole of the difference, and both go when the asset
+     * pass draws a real one (Phase 9).
+     */
+    const val RIME_CRYSTAL_TINT = 0x7FC8F0
 
     private val TOOLBOX_ID: Identifier = "toolbox".location()
     private val GEOLOGISTS_TOOLS_ID: Identifier = "geologists_tools".location()
@@ -626,6 +679,7 @@ object AgeContent {
         PITCHSTONE_ORE_ID to PITCHSTONE_ORE_BLOCK,
         DEEPSLATE_PITCHSTONE_ORE_ID to DEEPSLATE_PITCHSTONE_ORE_BLOCK,
         PITCHSTONE_BLOCK_ID to PITCHSTONE_BLOCK_BLOCK,
+        RIME_CRYSTAL_ID to RIME_CRYSTAL_BLOCK,
         TOOLBOX_ID to TOOLBOX_BLOCK,
         GEOLOGISTS_TOOLS_ID to GEOLOGISTS_TOOLS_BLOCK,
     )
@@ -778,6 +832,7 @@ object AgeContent {
         PITCHSTONE_CHESTPLATE_ID to PITCHSTONE_CHESTPLATE,
         PITCHSTONE_LEGGINGS_ID to PITCHSTONE_LEGGINGS,
         PITCHSTONE_BOOTS_ID to PITCHSTONE_BOOTS,
+        RIME_CRYSTAL_ID to RIME_CRYSTAL,
         TOOLBOX_ID to TOOLBOX,
         GEOLOGISTS_TOOLS_ID to GEOLOGISTS_TOOLS,
     )
@@ -859,5 +914,6 @@ object AgeContent {
     val features: List<Pair<Identifier, Feature<*>>> = listOf(
         "spilled_spring".location() to SpilledSpring,
         "formation".location() to Formation,
+        "rime_crystal".location() to RimeCrystal,
     )
 }

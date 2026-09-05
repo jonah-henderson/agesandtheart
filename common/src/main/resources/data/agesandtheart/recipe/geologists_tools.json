@@ -9,16 +9,16 @@
     "test, a diamond as the hardness reference (Mohs 10), a barrel for the samples, and deretheni because",
     "the survey is about deretheni.",
     "",
-    "The amethyst is a STAND-IN for the frost crystal, which does not exist yet -- the same bargain",
-    "analysis_machine.json already makes with its own rare materials. Swap it when the character materials",
-    "land; it is one line."
+    "The crystal is a rime crystal, which a cold Age with a blizzard in it grows on its cliffs -- so the",
+    "instrument that tells you what an Age holds is itself built from something only a written Age can",
+    "give you. It stood in as an amethyst until 2026-09-05."
   ],
   "type": "minecraft:crafting_shapeless",
   "category": "equipment",
   "ingredients": [
     "agesandtheart:toolbox",
     "minecraft:brush",
-    "minecraft:amethyst_shard",
+    "agesandtheart:rime_crystal",
     "minecraft:lodestone",
     "minecraft:diamond",
     "minecraft:barrel",

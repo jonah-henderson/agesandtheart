@@ -14,6 +14,7 @@ import co.voik.agesandtheart.client.InkCaseScreen
 import co.voik.agesandtheart.client.SupplyBinScreen
 import co.voik.agesandtheart.client.WritersDeskScreen
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.client.AgeTints
 import co.voik.agesandtheart.client.Storms
 import net.neoforged.neoforge.client.event.ClientTickEvent
 import net.minecraft.client.gui.screens.MenuScreens
@@ -74,6 +75,7 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
         // Vanilla's own container screen: a toolbox is a chest's grid with a fence on what may go in it,
         // and the fence lives in the menu rather than in the drawing.
         event.register(AgeContent.TOOLBOX_MENU, ::ContainerScreen)
+        AgeTints.register()
     }
 
     /**
