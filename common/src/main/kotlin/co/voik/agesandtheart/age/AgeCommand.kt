@@ -9,6 +9,7 @@ import net.minecraft.world.Difficulty
 import net.minecraft.world.DifficultyInstance
 import co.voik.agesandtheart.age.consequence.Tearing
 import co.voik.agesandtheart.age.reward.Danger
+import co.voik.agesandtheart.worldgen.feature.SheerFace
 import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.aspect.AgeSpawner
 import co.voik.agesandtheart.age.aspect.Aspect
@@ -2900,6 +2901,15 @@ object AgeCommand {
                 }
             }
             band += step
+        }
+        // And what a thing growing only on sheer faces would actually yield here, so the ramp is tuned
+        // against measured ground rather than against an impression of it.
+        val sheer = faces.filter { it.first >= SheerFace.SHEER_BLOCKS }
+        val expected = sheer.sumOf { SheerFace.likelihoodAt(it.second) }
+        val chunks = faces.size.toDouble() / (BLOCKS_PER_CHUNK * BLOCKS_PER_CHUNK)
+        report.fact("perChunk", expected / chunks) {
+            "  → a thing growing on sheer faces would come to %.2f a chunk (%,d faces over %.0f chunks)"
+                .format(expected / chunks, sheer.size, chunks)
         }
         report.finish()
         return SUCCESS
