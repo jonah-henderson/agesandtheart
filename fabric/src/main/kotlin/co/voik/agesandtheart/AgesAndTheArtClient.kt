@@ -20,6 +20,7 @@ import co.voik.agesandtheart.desk.DeskSyncPayload
 import co.voik.agesandtheart.client.StarFissureRenderer
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderers
 import net.minecraft.client.gui.screens.MenuScreens
+import net.minecraft.client.gui.screens.inventory.ContainerScreen
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents
 import co.voik.agesandtheart.book.panel.PanelChunkPayload
@@ -48,6 +49,9 @@ fun initClient() {
     MenuScreens.register(AgeContent.WRITERS_DESK_MENU, ::WritersDeskScreen)
     MenuScreens.register(AgeContent.INK_CASE_MENU, ::InkCaseScreen)
     MenuScreens.register(AgeContent.SUPPLY_BIN_MENU, ::SupplyBinScreen)
+    // Vanilla's own container screen: a toolbox is a chest's grid with a fence on what may go in it, and
+    // the fence lives in the menu rather than in the drawing.
+    MenuScreens.register(AgeContent.TOOLBOX_MENU, ::ContainerScreen)
     ClientDeskNetwork.sender = { payload -> ClientPlayNetworking.send(payload) }
     ClientPlayNetworking.registerGlobalReceiver(DeskSyncPayload.TYPE) { payload, _ ->
         DeskModel.remember(payload)

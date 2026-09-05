@@ -6,7 +6,6 @@ import net.minecraft.network.chat.Component
 import net.minecraft.world.ContainerHelper
 import net.minecraft.world.entity.player.Inventory
 import net.minecraft.world.inventory.AbstractContainerMenu
-import net.minecraft.world.inventory.DispenserMenu
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.block.entity.BaseContainerBlockEntity
 import net.minecraft.world.level.block.state.BlockState
@@ -14,9 +13,9 @@ import net.minecraft.world.level.block.state.BlockState
 /**
  * What a toolbox holds: nine compartments of spares.
  *
- * **Nine, laid out as a dispenser's three by three**, which is a shape vanilla already draws — so this
- * needs no screen of ours at all, and a toolbox reads as compartments rather than as a chest. It is
- * deliberately far short of a shulker box: this is a set of spares, not luggage.
+ * **A chest's twenty-seven, drawn by vanilla's own container screen** — so there is no screen of ours. It
+ * is not a cheap shulker box for all that room, because [ToolboxMenu] takes only what carries durability:
+ * a box of spares rather than luggage.
  *
  * **The contents travel with the block**, on the shulker's own mechanism — [BaseContainerBlockEntity]
  * already reads and writes `DataComponents.CONTAINER` for us, and the loot table copies it onto the item.
@@ -25,9 +24,12 @@ import net.minecraft.world.level.block.state.BlockState
 class ToolboxBlockEntity(pos: BlockPos, state: BlockState) :
     BaseContainerBlockEntity(AgeContent.TOOLBOX_ENTITY, pos, state) {
 
-    private var items: NonNullList<ItemStack> = NonNullList.withSize(COMPARTMENTS, ItemStack.EMPTY)
+    private var items: NonNullList<ItemStack> = NonNullList.withSize(ToolboxMenu.COMPARTMENTS, ItemStack.EMPTY)
 
-    override fun getContainerSize(): Int = COMPARTMENTS
+    override fun getContainerSize(): Int = ToolboxMenu.COMPARTMENTS
+
+    /** And the same fence for a hopper, which never goes through a slot. */
+    override fun canPlaceItem(slot: Int, stack: ItemStack): Boolean = ToolboxMenu.holdable(stack)
 
     override fun getItems(): NonNullList<ItemStack> = items
 
@@ -38,7 +40,7 @@ class ToolboxBlockEntity(pos: BlockPos, state: BlockState) :
     override fun getDefaultName(): Component = Component.translatable("block.agesandtheart.toolbox")
 
     override fun createMenu(containerId: Int, inventory: Inventory): AbstractContainerMenu =
-        DispenserMenu(containerId, inventory, this)
+        ToolboxMenu(containerId, inventory, this)
 
     /**
      * The first spare that is exactly [wanted], taken out — or nothing, where the box has none.
@@ -60,8 +62,4 @@ class ToolboxBlockEntity(pos: BlockPos, state: BlockState) :
     fun holdsSpare(wanted: net.minecraft.world.item.Item): Boolean =
         items.any { !it.isEmpty && it.item === wanted }
 
-    companion object {
-        /** A dispenser's grid, which is what vanilla can draw and what a toolbox looks like. */
-        const val COMPARTMENTS = 9
-    }
 }

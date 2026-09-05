@@ -294,8 +294,13 @@
 # What a walk still has to settle: that the fissures actually reach it and eat it, which is the whole point
 # of siting it there, and that racing them is fun rather than merely fatal.
 
-# G. THE TOOLBOX REFILL HAS NEVER BEEN SEEN. Built 2026-09-05: carry a toolbox holding a spare, break the
-# tool in your hand, and the spare should arrive in that hand. Checked only as far as a clean boot with the
-# mixin applied — a playerless server cannot break a tool in anybody's hands. What a walk has to settle:
-# that it fires at all, that it takes from the right compartment, that the box's contents survive being
-# broken and replaced, and that it does NOT fire for armour (deliberate).
+# G. THE TOOLBOX HAS NEVER BEEN OPENED OR CARRIED. Built 2026-09-05. Two halves, neither reachable from a
+# headless server, and the first is the one that matters:
+#   - THE FENCE. It must take only things that carry durability, or twenty-seven slots is a shulker box for
+#     four sticks. Cannot be checked offline at all: `Bootstrap.bootStrap()` does not bind item components,
+#     so no ItemStack can be built in a spec ("Components not bound yet"). Try to put dirt in one.
+#   - THE REFILL. Carry a toolbox holding a spare, break the tool in your hand, and the spare should arrive
+#     in that hand. ARMOUR TOO, which is the less usual half -- break a boot and the spare boot should go
+#     on. What a walk has to settle besides that it fires: that it takes from the right compartment, that
+#     the contents survive the box being broken and replaced, and that the client does not flicker when a
+#     refused item is dragged in (the menu carries its own type precisely so it should not).

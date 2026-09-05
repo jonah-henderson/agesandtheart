@@ -34,9 +34,10 @@ object Toolbox {
     fun replaceBroken(entity: LivingEntity, broken: Item, slot: EquipmentSlot) {
         if (entity.level().isClientSide) return
         val player = entity as? Player ?: return
-        // Only what you were holding. Armour that breaks is a different problem with a different answer,
-        // and swapping a chestplate on somebody mid-fight is a surprise rather than a convenience.
-        if (slot != EquipmentSlot.MAINHAND && slot != EquipmentSlot.OFFHAND) return
+        // **Armour too, which is the less usual half and the more useful one** (Jonah, 2026-09-05): a suit
+        // that fails in a hostile Age is exactly when you have neither the time nor the standing room to
+        // rummage. The one slot left out is the body, which no player wears.
+        if (slot == EquipmentSlot.BODY || slot == EquipmentSlot.SADDLE) return
         val spare = drawSpare(player, broken)
         if (spare.isEmpty) return
         player.setItemSlot(slot, spare)

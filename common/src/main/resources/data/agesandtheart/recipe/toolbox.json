@@ -1,11 +1,20 @@
 {
-  "_comment": "A case of shelves. Shaped, because building the box is a construction and the row reads as one -- a board, a shelf, a board.",
+  "_comment": [
+    "A base with a handle over it. Shaped, because building the box is a construction and its arrangement",
+    "is the thing -- boards and a shelf below, a carrying frame above. Filling it is the shapeless half,",
+    "because how you arrange tools inside a box is not a thing the world should have an opinion about."
+  ],
   "type": "minecraft:crafting_shaped",
   "category": "building",
   "key": {
     "P": "#minecraft:planks",
-    "S": "#minecraft:wooden_slabs"
+    "W": "#minecraft:wooden_slabs",
+    "I": "minecraft:stick"
   },
-  "pattern": ["PSP"],
+  "pattern": [
+    " I ",
+    "I I",
+    "PWP"
+  ],
   "result": { "id": "agesandtheart:toolbox" }
 }

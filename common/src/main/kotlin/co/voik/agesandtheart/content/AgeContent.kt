@@ -717,6 +717,17 @@ object AgeContent {
         FeatureFlags.VANILLA_SET,
     )
 
+    /**
+     * The toolbox's own type rather than `GENERIC_9x3`, because the client builds a menu from its type —
+     * borrowing vanilla's would give the client unrestricted slots and the server restricted ones.
+     */
+    val TOOLBOX_MENU: MenuType<ToolboxMenu> = MenuType(
+        { containerId, inventory ->
+            ToolboxMenu(containerId, inventory, ToolboxMenu.emptyContents())
+        },
+        FeatureFlags.VANILLA_SET,
+    )
+
     val SUPPLY_BIN_MENU: MenuType<SupplyBinMenu> = MenuType(
         { containerId, inventory -> SupplyBinMenu(containerId, inventory, ContainerLevelAccess.NULL) },
         FeatureFlags.VANILLA_SET,
@@ -726,6 +737,7 @@ object AgeContent {
         WRITERS_DESK_ID to WRITERS_DESK_MENU,
         "ink_case".location() to INK_CASE_MENU,
         "supply_bin".location() to SUPPLY_BIN_MENU,
+        TOOLBOX_ID to TOOLBOX_MENU,
     )
 
     val recipeSerializers: List<Pair<Identifier, RecipeSerializer<*>>> =

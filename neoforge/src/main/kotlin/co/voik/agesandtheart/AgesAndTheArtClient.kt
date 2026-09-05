@@ -15,6 +15,7 @@ import co.voik.agesandtheart.client.SupplyBinScreen
 import co.voik.agesandtheart.client.WritersDeskScreen
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.client.gui.screens.MenuScreens
+import net.minecraft.client.gui.screens.inventory.ContainerScreen
 import co.voik.agesandtheart.content.AgeFluids
 import co.voik.agesandtheart.platform.NeoForgeInkFluids
 import net.minecraft.client.color.block.BlockTintSource
@@ -60,6 +61,9 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
         event.register(AgeContent.WRITERS_DESK_MENU, ::WritersDeskScreen)
         event.register(AgeContent.INK_CASE_MENU, ::InkCaseScreen)
         event.register(AgeContent.SUPPLY_BIN_MENU, ::SupplyBinScreen)
+        // Vanilla's own container screen: a toolbox is a chest's grid with a fence on what may go in it,
+        // and the fence lives in the menu rather than in the drawing.
+        event.register(AgeContent.TOOLBOX_MENU, ::ContainerScreen)
     }
 
     /**
