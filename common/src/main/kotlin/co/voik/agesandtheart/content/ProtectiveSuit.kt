@@ -35,8 +35,12 @@ import net.minecraft.server.level.ServerPlayer
  *
  * **Two of the three protections are vanilla's own and cost no code at all.** Never catching fire is
  * [Attributes.BURNING_TIME] driven to nought, and never freezing is `#minecraft:freeze_immune_wearables`.
- * Only lava and standing in flame need [tick], because those damage you directly rather than by setting
- * you alight.
+ * Lava and open flame damage you where you stand rather than by igniting you, so those need [tick].
+ *
+ * **It is worn out by the thing it saves you from** (Jonah, 2026-09-05), and that is what pays for how
+ * strong it is. Fire immunity while the whole suit is on is unconditional — you may swim through lava, and
+ * a blaze is no threat while you do — so the cost is not a gap in the protection but the protection running
+ * out. A player who wants to cross a lava sea is spending the suit to do it, and can watch it go.
  */
 object ProtectiveSuit {
 
@@ -95,44 +99,68 @@ object ProtectiveSuit {
 
     /**
      * What the attribute cannot reach: lava and open flame, which hurt you where you stand rather than by
-     * igniting you.
+     * igniting you — and the wear that pays for all of it.
      *
-     * **Scoped to the moment of contact on purpose.** A suit that granted fire resistance outright would
-     * make blazes and ghasts harmless, and this is meant to leave a writer *weaker* in a fight rather than
-     * immune to a class of enemy. So the protection lasts a couple of seconds from the last tick spent in
-     * the fire — long enough to climb out of what you fell into, and worth nothing at all against something
-     * throwing fire at you across a room.
+     * **Unconditional while the whole suit is on** (Jonah, 2026-09-05). The earlier version granted this
+     * only on contact, so that a fire-throwing mob stayed dangerous; the ruling is that swimming through
+     * lava is worth having outright and a harmless blaze is an acceptable price. What keeps it from being
+     * free is [wearOut] rather than a gap in what it covers.
      *
      * Called from both loaders' end-of-tick beside `Happenings.tick`; there is no shared event.
      */
     fun tick(server: MinecraftServer) {
+        if (server.tickCount % A_SECOND != 0) return
         for (level in server.allLevels) {
             for (player in level.players()) {
-                if (!standingInFire(player)) continue
                 if (!wearingTheWholeSuit(player)) continue
                 player.addEffect(
                     MobEffectInstance(
                         MobEffects.FIRE_RESISTANCE,
-                        LONG_ENOUGH_TO_CLIMB_OUT,
+                        UNTIL_THE_NEXT_LOOK,
                         NO_AMPLIFIER,
                         true,
                         false,
                         true,
                     ),
                 )
+                if (theEnvironmentIsTryingToKillThem(player)) wearOut(player)
             }
         }
     }
 
-    /** Whether the fire is touching them, as opposed to being thrown at them. */
-    private fun standingInFire(player: ServerPlayer): Boolean =
-        player.isInLava || player.level().getBlockState(player.blockPosition()).`is`(BlockTags.FIRE)
+    /**
+     * Whether the suit is doing something for them right now.
+     *
+     * **The three things it protects against, asked as three conditions**, because there is no seam that
+     * says "this would have hurt you": the burning attribute prevents the ignition rather than absorbing
+     * the damage, and the freeze tag prevents the freezing. So the wear is charged for *being* in the
+     * hazard, which reads the same way round and is what a player would expect.
+     */
+    private fun theEnvironmentIsTryingToKillThem(player: ServerPlayer): Boolean {
+        val inTheFire = player.isInLava || player.level().getBlockState(player.blockPosition()).`is`(BlockTags.FIRE)
+        return inTheFire || player.isInPowderSnow
+    }
+
+    /**
+     * A point off every piece, once a second, for as long as the Age is trying to kill them.
+     *
+     * **Every piece rather than one**, because the protection is the set's: wearing out only the boots
+     * would leave three pieces of a suit that has stopped working. When a piece goes the set is broken and
+     * the protection stops with it on the next look, which is the failure a player can see coming.
+     */
+    private fun wearOut(player: ServerPlayer) {
+        for ((slot, piece) in SUIT) {
+            val worn = player.getItemBySlot(slot)
+            if (worn.item !== piece()) continue
+            worn.hurtAndBreak(A_POINT, player, slot)
+        }
+    }
 
     /**
      * Whether all four pieces are on.
      *
      * **The full set, where the burning attribute is per piece**, because this is the strong half: a pair
-     * of boots should take the edge off an inferno and should not let anybody wade into lava.
+     * of boots should take the edge off an inferno and should not let anybody swim a lava sea.
      */
     private fun wearingTheWholeSuit(player: ServerPlayer): Boolean =
         SUIT.all { (slot, piece) -> player.getItemBySlot(slot).item === piece() }
@@ -162,6 +190,13 @@ object ProtectiveSuit {
     /** Four of these take the burning time to nought exactly. */
     private const val A_QUARTER_OF_THE_BURN = 0.25
 
-    private const val LONG_ENOUGH_TO_CLIMB_OUT = 40
+    /** Long enough to outlast the gap between looks, so the protection never flickers. */
+    private const val UNTIL_THE_NEXT_LOOK = 100
+
     private const val NO_AMPLIFIER = 0
+
+    /** How often the suit is looked at, and so how often it is charged for what it is doing. */
+    private const val A_SECOND = 20
+
+    private const val A_POINT = 1
 }

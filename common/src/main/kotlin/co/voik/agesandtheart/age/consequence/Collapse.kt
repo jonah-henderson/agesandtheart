@@ -160,8 +160,13 @@ object Collapse {
      */
     private const val CELL_BLOCKS = 96
 
-    /** How deep the tear itself runs before it gives way to open shaft — the structure's own figure. */
-    private const val DEEP = 24
+    /**
+     * How deep the tear itself runs before it gives way to open shaft — the structure's own figure.
+     *
+     * Public because the terminal deposit is sited inside this band on purpose (design §7.7): what a
+     * doomed Age is stuffed with should be the first thing the floor takes.
+     */
+    const val DEEP = 24
 
     /**
      * How much of the world's own floor the tear does **not** take, in layers.

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.age.reward
 
+import co.voik.agesandtheart.age.consequence.Collapse
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.core.Holder
 import net.minecraft.tags.BlockTags
@@ -49,9 +50,10 @@ object Deposits {
         rock: List<BlockState>,
     ): (Holder<Biome>) -> BiomeGenerationSettings {
         if (!danger.paysOut) return base
-        val veins = veinsFor(danger.score)
+        val raid = danger.isTerminal
+        val veins = veinsFor(danger.score) * if (raid) TERMINAL_MULTIPLE else ORDINARY_MULTIPLE
         if (veins <= 0) return base
-        val deposit = depositIn(rock, veins)
+        val deposit = depositIn(rock, veins, raid)
         // Remembered per biome for the same reason `Features` remembers its own: this builds a new
         // `BiomeGenerationSettings` and the one handed back has to be the same object every time.
         val settled = ConcurrentHashMap<Holder<Biome>, BiomeGenerationSettings>()
@@ -78,23 +80,43 @@ object Deposits {
      * is trusted to make the trip cost something. Deep and dark is the half of that which is mechanical;
      * near the lava and near the wound are the half that is not, and neither is worth a placement modifier.
      */
-    private fun depositIn(rock: List<BlockState>, veins: Int): Holder<PlacedFeature> {
-        val configured = ConfiguredFeature(Feature.ORE, OreConfiguration(targetsIn(rock), VEIN_SIZE))
+    private fun depositIn(rock: List<BlockState>, veins: Int, raid: Boolean): Holder<PlacedFeature> {
+        val size = VEIN_SIZE * if (raid) TERMINAL_MULTIPLE else ORDINARY_MULTIPLE
+        val configured = ConfiguredFeature(Feature.ORE, OreConfiguration(targetsIn(rock), size))
         return Holder.direct(
             PlacedFeature(
                 Holder.direct(configured),
                 listOf(
                     CountPlacement.of(veins),
                     InSquarePlacement.spread(),
-                    HeightRangePlacement.triangle(
-                        VerticalAnchor.aboveBottom(OFF_THE_FLOOR),
-                        VerticalAnchor.absolute(DEEPEST_ORDINARY_GROUND),
-                    ),
+                    if (raid) inTheFloorItself() else deepInTheGround(),
                     BiomeFilter.biome(),
                 ),
             ),
         )
     }
+
+    /** Where an ordinary Age keeps it: spread through the deep half, thickest well under the sea. */
+    private fun deepInTheGround(): HeightRangePlacement = HeightRangePlacement.triangle(
+        VerticalAnchor.aboveBottom(OFF_THE_FLOOR),
+        VerticalAnchor.absolute(DEEPEST_ORDINARY_GROUND),
+    )
+
+    /**
+     * Where a doomed Age keeps it — **inside the band the tear takes**, so the hoard is the first thing the
+     * floor swallows (Jonah, 2026-09-05).
+     *
+     * That is the whole shape of §7.7's raid: the reward is absurd, it is at the bottom of a world that is
+     * coming apart from the bottom, and every trip down is a race against the ground you are standing on.
+     * Uniform rather than triangular, this being a band two dozen blocks thick rather than a distribution.
+     *
+     * Reads [Collapse.DEEP] rather than restating it: if the tear's reach ever moves, the hoard has to move
+     * with it or the whole point is lost quietly.
+     */
+    private fun inTheFloorItself(): HeightRangePlacement = HeightRangePlacement.uniform(
+        VerticalAnchor.aboveBottom(JUST_OFF_THE_FLOOR),
+        VerticalAnchor.aboveBottom(Collapse.DEEP),
+    )
 
     /**
      * What the vein replaces: vanilla's two ore hosts, and **whatever this Age is actually made of**.
@@ -138,6 +160,20 @@ object Deposits {
     private const val VEINS_AT_FULL_DANGER = 6
 
     private const val ONE_VEIN = 1
+
+    /**
+     * What a terminal Age multiplies both the count and the vein size by (§7.7).
+     *
+     * Absurd on purpose and unbalanced by design — "grab what you can before you cannot" is not a rate to
+     * be tuned against the ordinary economy, because the Age it comes from cannot be farmed. A first
+     * figure, and expected to move.
+     */
+    private const val TERMINAL_MULTIPLE = 10
+
+    private const val ORDINARY_MULTIPLE = 1
+
+    /** Clear of the layer `Collapse` keeps underfoot, so the hoard is in the tear rather than under it. */
+    private const val JUST_OFF_THE_FLOOR = 2
 
     /** Vanilla's own diamond vein, which is the scarcity this is aiming at. */
     private const val VEIN_SIZE = 4

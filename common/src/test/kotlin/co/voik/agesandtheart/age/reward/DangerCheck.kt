@@ -189,6 +189,23 @@ class DangerCheck : FunSpec({
         check(buried.phenomena > 0.0) { "an inflicted sandfall was not a hazard" }
     }
 
+    /**
+     * The raid's trigger, and it is a threshold at the very top rather than a slope.
+     *
+     * An Age that merely went badly wrong must not read as terminal: §7.7's absurd rewards are for the Age
+     * nobody could have lived in, and a multiplier that crept in as an Age got worse would make the whole
+     * economy a function of how sloppy the writer was.
+     */
+    test("only an Age that bought every step of collapse is terminal") {
+        check(!score(oneTerritory(), index = NOTHING_WRONG).isTerminal) { "a coherent Age is terminal" }
+        check(!score(oneTerritory(), index = AS_FAR_AS_SANDFALL).isTerminal) {
+            "an Age that never reached collapse is terminal"
+        }
+        check(score(oneTerritory(), index = AS_FAR_AS_COLLAPSE).isTerminal) {
+            "an Age that bought all the collapse there is is not terminal"
+        }
+    }
+
     /** Exposed rather than scored, so §7.7's terminal multiplier can be settled without reopening this. */
     test("an Age that will not last says so without it changing the score") {
         val terminal = score(oneTerritory(), index = AS_FAR_AS_COLLAPSE)
