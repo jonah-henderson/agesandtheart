@@ -20,6 +20,9 @@ class RingLoad(private val arrival: BlockPos, private val expected: Int) {
     /** Started now rather than at zero, or the first frame is already older than the interval. */
     private var lastChasedAt = System.nanoTime()
 
+    /** When the stream last made progress, which is what decides whether it has stopped. */
+    private var lastArrivalAt = System.nanoTime()
+
     /** How far along the load is, `0..1` — what the fade reads. */
     val wholeness: Float
         get() = if (expected <= 0) 1.0f else (arrived.size.toFloat() / expected).coerceIn(0.0f, 1.0f)
@@ -32,18 +35,21 @@ class RingLoad(private val arrival: BlockPos, private val expected: Int) {
 
     fun took(x: Int, z: Int) {
         arrived.add(ChunkPos.pack(x, z))
+        lastArrivalAt = System.nanoTime()
     }
 
     /**
-     * What to ask the server for again, or null when there is nothing to ask or it is not yet time.
+     * What to ask the server for again, or null while there is nothing to ask about.
      *
-     * The ordinary reason a chunk has not arrived is that the server is still making it, so the interval is
-     * long and the number of attempts small.
+     * Asked only when the stream has gone *quiet*, not merely when it is unfinished. A whole ring takes
+     * seconds to generate and arrives throughout, so chasing on elapsed time alone re-requested every
+     * chunk mid-stream and had the server generate the lot a second time.
      */
     fun toChase(): List<ChunkPos>? {
         if (wholeness >= 1.0f || chases >= MOST_CHASES) return null
         val now = System.nanoTime()
-        if (now - lastChasedAt < BETWEEN_CHASES_NANOS) return null
+        if (now - lastArrivalAt < GONE_QUIET_NANOS) return null
+        if (now - lastChasedAt < GONE_QUIET_NANOS) return null
         val missing = missing()
         if (missing.isEmpty()) return null
         lastChasedAt = now
@@ -57,7 +63,13 @@ class RingLoad(private val arrival: BlockPos, private val expected: Int) {
             .filterNot { ChunkPos.pack(it.x, it.z) in arrived }
 
     companion object {
-        private const val BETWEEN_CHASES_NANOS = 3_000_000_000L
+        /**
+         * How long the stream may say nothing before it is taken to have stopped.
+         *
+         * Longer than the gap between two chunks of a ring being generated, and longer than the wait for
+         * the first one, or a slow Age is mistaken for a broken one.
+         */
+        private const val GONE_QUIET_NANOS = 6_000_000_000L
 
         const val MOST_CHASES = 4
     }

@@ -289,8 +289,11 @@ object Ages {
     private const val HEADROOM = 2
 
     /**
-     * The nearest column to the origin standing clear of the sea. Asks the generator rather than the
-     * world, so no chunk is generated until one is chosen — which is what makes a wide search affordable.
+     * A column standing clear of the sea, or failing that the shallowest one found.
+     *
+     * Asks the generator rather than the world, so no chunk is generated until one is chosen — which is
+     * what makes a wide search affordable at all. Answering with the shallowest column rather than the
+     * origin costs nothing, since its height was sampled on the way past.
      */
     private fun findFooting(level: ServerLevel): Pair<Int, Int> {
         if (!AgeConfig.searchesForFooting.get()) return ORIGIN
@@ -298,11 +301,38 @@ object Ages {
         val generator = level.chunkSource.generator
         val randomState = level.chunkSource.randomState()
         val waterline = generator.seaLevel
-        fun standsClearOfTheSea(x: Int, z: Int): Boolean =
-            generator.getBaseHeight(x, z, Heightmap.Types.WORLD_SURFACE_WG, level, randomState) > waterline
+        fun heightAt(column: Pair<Int, Int>) =
+            generator.getBaseHeight(column.first, column.second, Heightmap.Types.WORLD_SURFACE_WG, level, randomState)
 
-        return candidateColumns().firstOrNull { standsClearOfTheSea(it.first, it.second) } ?: ORIGIN
+        var shallowest = ORIGIN
+        var shallowestHeight = Int.MIN_VALUE
+        var sampled = 0
+        for (column in candidateColumns()) {
+            val height = heightAt(column)
+            if (height > waterline) return column
+            if (height > shallowestHeight) {
+                shallowestHeight = height
+                shallowest = column
+            }
+            // The wide lattice has been walked and every column of it is deep water. Terrain that breaks
+            // the surface anywhere near here would have come close to it at one of these, so the close
+            // lattice is fourteen times the samples for an answer this has already given.
+            if (++sampled == WIDE_COLUMNS && shallowestHeight < waterline - SHALLOWS) break
+        }
+        return shallowest
     }
+
+    /** How many columns the wide lattice covers, which is where the search decides whether to go on. */
+    private val WIDE_COLUMNS by lazy { outwardFromOrigin(WIDE_STEP).distinct().count() }
+
+    /**
+     * How near the waterline the wide lattice has to come for the close one to be worth walking.
+     *
+     * A guess, and a cheap one to be wrong about in the safe direction: too small and an oceanic Age pays
+     * the whole lattice as it used to, too large and an Age with one small island arrives beside it in the
+     * shallows rather than on it.
+     */
+    private const val SHALLOWS = 16
 
     /**
      * Every column worth trying, the widely spaced ones first.

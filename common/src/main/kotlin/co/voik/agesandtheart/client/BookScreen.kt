@@ -119,14 +119,14 @@ class BookScreen(
         val waited = System.nanoTime() - openedAt
         if (waited < BEFORE_SAYING_SO_NANOS) return
 
-        val top = y + PANEL_HEIGHT + WAITING_GAP
-        graphics.fill(x, top, x + PANEL_WIDTH, top + WAITING_HEIGHT, WAITING_TRACK)
-
+        // Along the panel's own bottom border, which is the track: a picture with something moving in its
+        // frame rather than a picture with a bar under it.
+        val along = y + PANEL_HEIGHT
         val throughSweep = ((waited % SWEEP_NANOS).toDouble() / SWEEP_NANOS).toFloat()
-        // Back and forth, so the mark never jumps from one end of the track to the other.
+        // Back and forth, so the mark never jumps from one end of the border to the other.
         val alongTheTrack = if (throughSweep < 0.5f) throughSweep * 2 else (1.0f - throughSweep) * 2
         val from = x + ((PANEL_WIDTH - WAITING_MARK) * alongTheTrack).toInt()
-        graphics.fill(from, top, from + WAITING_MARK, top + WAITING_HEIGHT, WAITING_INK)
+        graphics.fill(from, along, from + WAITING_MARK, along + WAITING_HEIGHT, WAITING_INK)
     }
 
     /** The Age itself, drawn over the black. */
@@ -354,16 +354,13 @@ class BookScreen(
         const val WIDTH = 256
         const val HEIGHT = 180
 
-        const val PANEL_X = 18
-        const val PANEL_Y = 30
-
-        /**
-         * Wider than it is tall, as the games depict a panel — about eight to five.
-         *
-         * The width is what the left leaf allows: [PANEL_X] plus this clears the spine with a margin.
-         */
+        /** Wider than it is tall, as the games depict a panel — about eight to five. */
         const val PANEL_WIDTH = 104
         const val PANEL_HEIGHT = 65
+
+        /** Centred on the leaf, which the writing columns are not: they carry a book's wider outer margin. */
+        const val PANEL_X = (WIDTH / 2 - PANEL_WIDTH) / 2
+        const val PANEL_Y = 30
 
         /** Where each leaf's writing column begins, clear of the spine and the outer edge. */
         const val LEFT_COLUMN_X = 18
@@ -408,12 +405,10 @@ class BookScreen(
         /** One pass of the mark along the track. */
         const val SWEEP_NANOS = 1_600_000_000L
 
-        const val WAITING_GAP = 5
         const val WAITING_HEIGHT = 1
         const val WAITING_MARK = 22
 
-        /** Barely there: a line under a picture, not a control. */
-        val WAITING_TRACK = 0x14000000
-        val WAITING_INK = 0x662B2118
+        /** Read against [EDGE], which it travels along. */
+        val WAITING_INK = 0xAA2B2118.toInt()
     }
 }

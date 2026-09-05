@@ -157,8 +157,13 @@ object LinkingPanel {
         return had
     }
 
-    /** Long enough to cover a cold ring's arrival rather than racing it. */
-    private const val BEFORE_ASKING_AGAIN_NANOS = 5_000_000_000L
+    /**
+     * How long the server may say nothing at all before it is asked again.
+     *
+     * Longer than a cold open takes to answer: finding an Age's footing and scheduling its ring blocks the
+     * server thread, and at five seconds this fired every time rather than only when a request was lost.
+     */
+    private const val BEFORE_ASKING_AGAIN_NANOS = 20_000_000_000L
 
     private const val MOST_ASKS = 3
 

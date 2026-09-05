@@ -37,6 +37,17 @@ class FootingCheck : StringSpec({
             "the search begins at ${Ages.candidateColumns().first()} rather than the origin"
         }
     }
+
+    "the wide lattice is a small enough prefix to be worth giving up after" {
+        // An Age with no land anywhere walks the wide lattice and stops. That is only an optimisation
+        // while the wide lattice is a small fraction of the whole; if it crept up, the giving-up would
+        // save nothing and would only have cost some Age its island.
+        val columns = Ages.candidateColumns().toList()
+        val wide = columns.count { (x, z) -> x % 48 == 0 && z % 48 == 0 }
+        check(wide < columns.size / 10) {
+            "the wide lattice is $wide of ${columns.size} columns, too much of it to be a cheap first look"
+        }
+    }
 }) {
     private companion object {
         /** The far edge of the search, in blocks. */
