@@ -1,0 +1,30 @@
+{
+  "_comment": [
+    "Snow driven sideways (design 5.2) -- inferno's inverse, and written as its mirror on purpose.",
+    "",
+    "Temperature and rainfall are DEMANDS rather than limits, exactly as inferno.json's are, and for the",
+    "same reason: a limit yields silently to anything outside it, so `scorching blizzard` would have been",
+    "free. A demand fractures against one it cannot meet, which is the charge -- and writing a blizzard into",
+    "a hot Age should cost, because that is a writer asking for two things that cannot both be true",
+    "(Jonah, 2026-09-05). Compatible words still merge: `frozen blizzard` is not a quarrel.",
+    "",
+    "It is the mirror of inferno's demand and not a wider one. Inferno takes 0.5..1.0 of the temperature",
+    "axis and this takes -1.0..-0.5, so the two overlap nowhere and the opposition is exact.",
+    "",
+    "The snow is the warning sign and no other word may offer it, on the rule embers already live by: a",
+    "signal that also appears where nothing is wrong stops being one.",
+    "",
+    "How often it blows and how long it stays is NOT here. That is the phenomenon's own axis -- a rung on",
+    "this word says how hard it was asked for, and Blizzard.shareOfTheTime turns that into weather.",
+    "Nothing about the snow itself gets fiercer, which is the register 5.2 asks for."
+  ],
+  "tier": "exact",
+  "chooses": {
+    "phenomena": "blizzard"
+  },
+  "sets": {
+    "motes": "snow",
+    "temperature": "-1.0..-0.5",
+    "rainfall": "0.4..1.0"
+  }
+}

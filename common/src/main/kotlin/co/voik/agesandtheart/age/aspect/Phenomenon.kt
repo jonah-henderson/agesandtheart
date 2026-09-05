@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.aspect
 
 import co.voik.agesandtheart.age.Manifestation
+import co.voik.agesandtheart.age.phenomena.Blizzard
 import co.voik.agesandtheart.age.phenomena.AgeWeather
 import net.minecraft.util.StringRepresentable
 
@@ -143,7 +144,42 @@ enum class Phenomenon(
      * phenomena are last, so a second parameter would reprice the word as one about climate.
      */
     SANDFALL("sandfall", inflictedBy = Manifestation.SANDFALL),
+
+    /**
+     * Snow driven sideways: an Age you cannot see across, cannot stand out in, and cannot keep your ground
+     * in ([co.voik.agesandtheart.age.phenomena.Blizzard]).
+     *
+     * **Inferno's inverse, and the best fit in the set to a state the world keeps for itself.** What it
+     * lays progresses snow → ice → packed ice → blue ice, which is a compression ladder, so how long a
+     * blizzard has been working on a place is legible from the block you are standing on — and it is
+     * self-capping, blue ice being terminal.
+     *
+     * **Three denials and one answer.** It takes sight, exposure and ground; light of ten answers all
+     * three, and that is not a rule we invent — `Biome.shouldFreeze` and `shouldSnow` have both tested it
+     * since the first torch beside a pond. What is ours is holding the player's own body to the same
+     * threshold. The emergent behaviour is a lit path home, which is a build project nobody was told to do.
+     *
+     * **It insists on precipitation and scales with it**, which is the one thing here that is not a
+     * constant: [insistsAt] takes a blizzard from about as often as ordinary rain up to an Age scarcely
+     * ever out of one. The *cold* is not insisted on here — it is demanded in `art/word/blizzard.json`,
+     * mirroring `inferno.json`, so that writing a blizzard into a hot Age fractures and is charged for
+     * rather than yielding silently.
+     */
+    BLIZZARD("blizzard", AgeWeather.Conditions(rainfall = SHOWERY), Manifestation.BLIZZARD),
     ;
+
+    /**
+     * The weather this insists on at [severity], where one is an ordinary claim and more is a rung or an
+     * Age's instability driving it.
+     *
+     * **Only a blizzard has anything to say here.** Every other phenomenon wants a condition or does not,
+     * and wanting it *more* means nothing — a bow needs the rain to thin whatever rung asked for it. A
+     * blizzard is the one whose whole scaling axis is how much of the time it is happening.
+     */
+    fun insistsAt(severity: Double): AgeWeather.Conditions = when (this) {
+        BLIZZARD -> AgeWeather.Conditions(rainfall = Blizzard.shareOfTheTime(severity))
+        TEMPEST, INFERNO, AURORA, RAINBOW, SANDFALL -> insistsOn
+    }
 
     override val aspect = Aspect.PHENOMENA
 

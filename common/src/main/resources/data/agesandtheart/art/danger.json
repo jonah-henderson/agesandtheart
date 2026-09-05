@@ -96,6 +96,7 @@
 
   "phenomena": {
     "inferno": 0.9,
+    "blizzard": 0.6,
     "sandfall": 0.6,
     "tempest": 0.5,
     "aurora": 0.0,

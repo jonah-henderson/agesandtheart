@@ -20,9 +20,17 @@ class SpendingCheck : FunSpec({
         Manifestation.TORN_SEAMS to Price(costs = 2, most = 4),
         Manifestation.WOUNDS to Price(costs = 5, most = 4),
         Manifestation.SANDFALL to Price(costs = 7, most = 4),
+        Manifestation.BLIZZARD to Price(costs = 7, most = 4),
         Manifestation.WORSENING_WOUNDS to Price(costs = 9, most = 3),
         Manifestation.COLLAPSE to Price(costs = 14, most = 3),
     )
+
+    /** What it costs to buy every step of everything — the top of the ladder, whatever is on it. */
+    fun everythingCosts(): Int =
+        Manifestation.entries.sumOf { SHIPPED.getValue(it).costs * SHIPPED.getValue(it).most }
+
+    /** A stride over the budgets, so the sweep stays quick as the ladder grows. */
+    val A_FEW = 3
 
     val cheap = Manifestation.TORN_SEAMS
 
@@ -155,26 +163,31 @@ class SpendingCheck : FunSpec({
      * unaffordable until everything cheaper has been bought to its cap. This is the check that says so,
      * and it is the one to look at if the price list is ever retuned.
      */
-    test("worsening wounds and collapse are unaffordable until the cheap registers are full") {
-        fun worsening(budget: Int) = Spending.of(budget, SHIPPED, 1L).bought(Manifestation.WORSENING_WOUNDS)
-        fun collapse(budget: Int) = Spending.of(budget, SHIPPED, 1L).bought(Manifestation.COLLAPSE)
+    test("a dearer register is unaffordable until everything cheaper is at its cap") {
+        val cheapestFirst = Manifestation.entries
+            .sortedWith(compareBy({ SHIPPED.getValue(it).costs }, Manifestation::ordinal))
+        // Every budget worth asking about, rather than three that were true when they were written.
+        for (budget in 0..everythingCosts() step A_FEW) {
+            val spent = Spending.of(budget, SHIPPED, 1L)
+            for ((rung, manifestation) in cheapestFirst.withIndex()) {
+                if (spent.bought(manifestation) == 0) continue
+                for (cheaper in cheapestFirst.take(rung)) {
+                    check(spent.bought(cheaper) == SHIPPED.getValue(cheaper).most) {
+                        "instability $budget bought ${manifestation.key} with ${cheaper.key} not yet full"
+                    }
+                }
+            }
+        }
+    }
 
-        // A five-page desk cannot hold enough contradiction to reach here, and the arithmetic agrees.
-        for (budget in 0..27) {
-            check(worsening(budget) == 0) { "instability $budget set an Age worsening: ${worsening(budget)}" }
+    /** And that the dearest is reachable at all, or it is dead content whatever the ladder costs. */
+    test("everything is reachable by an Age written to come apart") {
+        val spent = Spending.of(everythingCosts(), SHIPPED, 1L)
+        for (manifestation in Manifestation.entries) {
+            check(spent.bought(manifestation) == SHIPPED.getValue(manifestation).most) {
+                "${manifestation.key} was unreachable even at the top of the ladder"
+            }
         }
-        for (budget in 0..36) {
-            check(collapse(budget) == 0) { "instability $budget collapsed an Age: ${collapse(budget)}" }
-        }
-        // Both are reachable by an Age genuinely written to come apart, or they would be dead content.
-        check(worsening(65) >= 1) { "no budget at all reached the worsening" }
-        check(collapse(97) >= 1) { "no budget at all reached collapse" }
-        // Accumulation: anything that can afford to collapse also bought everything below it (§5.0).
-        val ruined = Spending.of(97, SHIPPED, 1L)
-        check(ruined.bought(Manifestation.TORN_SEAMS) == 4) { "a collapsing Age skipped its seams" }
-        check(ruined.bought(Manifestation.WOUNDS) == 4) { "a collapsing Age skipped its wounds" }
-        check(ruined.bought(Manifestation.SANDFALL) == 4) { "a collapsing Age skipped its sandfalls" }
-        check(ruined.bought(Manifestation.WORSENING_WOUNDS) >= 1) { "a collapsing Age skipped the worsening" }
     }
 
     /**

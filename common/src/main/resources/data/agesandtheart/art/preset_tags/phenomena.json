@@ -37,5 +37,13 @@
       "hostile": 0.7,
       "dry": 0.6
     }
+  },
+  "blizzard": {
+    "_comment": "Snow driven sideways, so `frozen` is what it is made of and what it leaves. `hostile` for the burial and the freezing -- a shade above the sandfall's, since a drift takes your footing and the cold takes you. `watery` weakly, because a blizzard is precipitation however hard it has set: it needs a sky that gives something, which is the fact a bow shares and an inferno's `dry` is the inverse of.",
+    "tags": {
+      "frozen": 1.0,
+      "hostile": 0.8,
+      "watery": 0.4
+    }
   }
 }

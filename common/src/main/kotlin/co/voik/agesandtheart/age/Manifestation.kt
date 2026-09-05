@@ -68,6 +68,20 @@ enum class Manifestation(val key: String) : StringRepresentable {
     SANDFALL("sandfall"),
 
     /**
+     * The Age is driven under snow (design §5.2's blizzard) — storms that come more often and stay longer
+     * the further the budget reaches.
+     *
+     * **Priced beside [SANDFALL] and for the same reason**: it is difficulty you can answer rather than a
+     * verdict you cannot. Light stops the snow settling and leather stops the freezing, both of them
+     * vanilla's own rules, so an Age that keeps holing itself is still the dearer thing.
+     *
+     * **What a step buys is weather, not violence** — how often a blizzard blows and how long it stays.
+     * At the bottom that is about as often as ordinary rain and a few minutes of it; at the top the Age is
+     * scarcely ever out of one. The burial that follows is the hazard, and it is meant to be.
+     */
+    BLIZZARD("blizzard"),
+
+    /**
      * The world comes apart at the bottom (design §5.3) — fissures open at the world floor and widen, and
      * what falls in is put back in the overworld.
      *

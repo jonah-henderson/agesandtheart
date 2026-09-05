@@ -232,8 +232,17 @@ class DangerCheck : FunSpec({
         private const val NOTHING_WRONG = 0
         private const val ONLY_TORN_SEAMS = FULLY
         private const val AS_FAR_AS_WOUNDS = FULLY * 2
-        private const val AS_FAR_AS_SANDFALL = FULLY * 4
-        private const val AS_FAR_AS_COLLAPSE = FULLY * 5
+
+        /**
+         * Budgets counted from the ladder rather than written down.
+         *
+         * The ladder gains rungs as phenomena gain manifestations — a blizzard added one on 2026-09-05 —
+         * and a number written here would make every such addition a failure in a file about scoring.
+         * Every manifestation costs the same in [PRICES], so a rung is [FULLY] and the position of the
+         * dearest is however many there are.
+         */
+        private val AS_FAR_AS_SANDFALL = FULLY * (Manifestation.entries.indexOf(Manifestation.SANDFALL) + 1)
+        private val AS_FAR_AS_COLLAPSE = FULLY * Manifestation.entries.size
 
         private val PRICES = Manifestation.entries.associateWith { Price(A_STEP, STEPS_EACH) }
 

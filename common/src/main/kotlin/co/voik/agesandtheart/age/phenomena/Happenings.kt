@@ -53,13 +53,17 @@ object Happenings {
             val recipe = saved.takeIf { age in it.ages }?.recipe(age) ?: continue
             val composition = recipe.composition ?: continue
             val happening = claimsIn(composition)
-            // The weather first: a phenomenon that needs rain has to be standing in it by the time it runs.
-            AgeWeather.steer(level, wanted(composition, happening))
             // What the Age could not hold, and what that bought. Derived rather than stored, so it comes
             // out the same on every open — see [Spending].
             val spending = Spending.of(server, recipe)
             val prices = Price.list(server)
-            for ((phenomenon, density) in befalling(happening, spending, prices)) {
+            // **Before the weather, because a phenomenon may now scale what it asks of it.** A blizzard's
+            // whole axis is how much of the time it is blowing, and an *inflicted* one is absent from the
+            // written claims — so asking the weather from those alone left instability unable to drive the
+            // one register it buys.
+            val befalls = befalling(happening, spending, prices)
+            AgeWeather.steer(level, wanted(composition, befalls, spending, prices))
+            for ((phenomenon, density) in befalls) {
                 befall(level, phenomenon, density, furyOf(spending, prices, phenomenon))
             }
             // Not a phenomenon — a wound is what the Age could not hold rather than something it does — but
@@ -138,13 +142,19 @@ object Happenings {
      * **A floor and never a setting**, so the two can be written together without one silently erasing the
      * other — a tempest in an Age already written as drenched is exactly as wet as the wetter of the two.
      */
-    private fun wanted(composition: AgeComposition, happening: List<Claim>): AgeWeather.Conditions {
+    private fun wanted(
+        composition: AgeComposition,
+        befalls: Map<Phenomenon, Double>,
+        spending: Spending,
+        prices: Map<Manifestation, Price>,
+    ): AgeWeather.Conditions {
         val air = composition.optionsFor(Aspect.WEATHER, 0)
         fun asked(parameter: Parameter) =
             air.steer(parameter, WEATHER_SALT)?.let(Span.NATURAL::fractionOf) ?: AgeWeather.ORDINARY_SHARE
         val dialled = AgeWeather.Conditions(asked(Atmosphere.RAINFALL), asked(Atmosphere.THUNDER))
-        return happening.fold(dialled) { wants, claim ->
-            wants.atLeast(Phenomenon.named(claim.value)?.insistsOn ?: AgeWeather.Conditions.ORDINARY)
+        return befalls.entries.fold(dialled) { wants, (phenomenon, density) ->
+            val severity = Blizzard.severityOf(density, furyOf(spending, prices, phenomenon))
+            wants.atLeast(phenomenon.insistsAt(severity))
         }
     }
 
@@ -168,6 +178,7 @@ object Happenings {
             // something to arrange here. See [Phenomenon.RAINBOW].
             Phenomenon.RAINBOW -> Unit
             Phenomenon.SANDFALL -> Sandfall.wander(level, density, fury)
+            Phenomenon.BLIZZARD -> Blizzard.blow(level, density, fury)
         }
     }
 

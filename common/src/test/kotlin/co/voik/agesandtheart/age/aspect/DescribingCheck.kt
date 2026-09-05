@@ -109,13 +109,19 @@ class DescribingCheck : FunSpec({
     }
 
     /** The pool that starts empty, where a description asking for less asks for less of nothing. */
+    /** The two phenomena that are seen rather than done — see [co.voik.agesandtheart.age.aspect.Phenomenon]. */
+    val SIGHTS = setOf("aurora", "rainbow")
+
     test("a description brings about only the phenomenon it asks more of") {
-        check(happens("beautiful") == setOf("aurora", "rainbow")) {
-            "a beautiful Age's weather was ${happens("beautiful")}"
-        }
-        check(happens("foreboding") == setOf("tempest", "inferno", "sandfall")) {
-            "a foreboding Age's weather was ${happens("foreboding")}"
-        }
+        val admired = happens("beautiful")
+        check(admired.isNotEmpty()) { "a beautiful Age had no weather at all" }
+        check(admired.all { it in SIGHTS }) { "a beautiful Age was given a hazard: $admired" }
+        // **By kind rather than by name.** Which hazards exist is a list that grows — a blizzard joined it
+        // in 2026-09-05 and read as a failure here — where the rule that matters is that a dread word
+        // reaches hazards and never sights.
+        val dreaded = happens("foreboding")
+        check(dreaded.isNotEmpty()) { "a foreboding Age had no weather at all" }
+        check(SIGHTS.none { it in dreaded }) { "a foreboding Age was given something to look at: $dreaded" }
         check(happens("tempest") == setOf("tempest")) { "naming a tempest no longer brings one" }
     }
 
