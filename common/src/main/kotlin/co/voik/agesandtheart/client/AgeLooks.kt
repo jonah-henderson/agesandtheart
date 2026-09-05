@@ -26,7 +26,9 @@ object AgeLooks {
         // rather than being blended into it, so a lurid sky still goes black at the throat of a tear.
         LevelRendering.environment { level, layers ->
             // Outermost, so a column blinds whatever the Age and its wounds had already made of the air.
-            Engulfing.paint(level, Corruption.paint(level, AgeAir.paint(level, layers)))
+            // The storm sits under it and over the rest: a blizzard shortens the view of whatever the Age
+            // was painting, and a column standing in one still blinds you outright.
+            Engulfing.paint(level, Storms.paint(level, Corruption.paint(level, AgeAir.paint(level, layers))))
         }
     }
 }

@@ -14,6 +14,8 @@ import co.voik.agesandtheart.client.InkCaseScreen
 import co.voik.agesandtheart.client.SupplyBinScreen
 import co.voik.agesandtheart.client.WritersDeskScreen
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.client.Storms
+import net.neoforged.neoforge.client.event.ClientTickEvent
 import net.minecraft.client.gui.screens.MenuScreens
 import net.minecraft.client.gui.screens.inventory.ContainerScreen
 import co.voik.agesandtheart.content.AgeFluids
@@ -55,6 +57,13 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
         eventBus.addListener(::onRegisterFluidModels)
         eventBus.addListener(::onRegisterRenderers)
         ClientDeskNetwork.sender = { payload -> ClientPacketDistributor.sendToServer(payload) }
+        // Which of the two winds is playing has to be re-asked as a player walks in and out of shelter, so
+        // it rides the client tick rather than the payload.
+        NeoForge.EVENT_BUS.addListener(::onClientTick)
+    }
+
+    private fun onClientTick(event: ClientTickEvent.Post) {
+        Storms.heard(net.minecraft.client.Minecraft.getInstance())
     }
 
     private fun onRegisterScreens(event: RegisterMenuScreensEvent) {

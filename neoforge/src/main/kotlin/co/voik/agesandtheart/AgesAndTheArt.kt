@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.phenomena.Happenings
 import co.voik.agesandtheart.age.AgeCommand
 import co.voik.agesandtheart.age.Ages
 import co.voik.agesandtheart.age.word.LearnedWordsPayload
+import co.voik.agesandtheart.age.phenomena.BlizzardPayload
 import co.voik.agesandtheart.age.word.LexiconPayload
 import co.voik.agesandtheart.age.word.PageLearning
 import co.voik.agesandtheart.client.KnownWords
@@ -100,6 +101,9 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         event.register(Registries.BLOCK) { helper ->
             AgeContent.blocks.forEach { (id, block) -> helper.register(id, block) }
         }
+        event.register(Registries.SOUND_EVENT) { helper ->
+            AgeContent.soundEvents.forEach { (id, sound) -> helper.register(id, sound) }
+        }
         event.register(Registries.ITEM) { helper ->
             AgeContent.items.forEach { (id, item) -> helper.register(id, item) }
         }
@@ -169,6 +173,9 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         // `KnownWords` is never loaded on a dedicated server.
         registrar.playToClient(LexiconPayload.TYPE, LexiconPayload.STREAM_CODEC) { payload, _ ->
             KnownWords.remember(payload)
+        }
+        registrar.playToClient(BlizzardPayload.TYPE, BlizzardPayload.STREAM_CODEC) { payload, _ ->
+            co.voik.agesandtheart.client.Storms.remember(payload)
         }
         registrar.playToClient(LearnedWordsPayload.TYPE, LearnedWordsPayload.STREAM_CODEC) { payload, _ ->
             KnownWords.remember(payload)

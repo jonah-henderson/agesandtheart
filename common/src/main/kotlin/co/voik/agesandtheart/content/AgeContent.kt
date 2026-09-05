@@ -56,6 +56,7 @@ import net.minecraft.world.item.equipment.ArmorType
 import net.minecraft.util.valueproviders.UniformInt
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.DropExperienceBlock
+import net.minecraft.sounds.SoundEvent
 import net.minecraft.world.level.block.SoundType
 import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraft.world.level.block.state.BlockBehaviour
@@ -836,6 +837,25 @@ object AgeContent {
      * Our own features. As with [carvers], this registers the *kind*; what is made of it is built in code
      * rather than authored, there being one caller and no reason for a pack to name it.
      */
+    private val BLIZZARD_SHELTERED_ID: Identifier = "blizzard_sheltered".location()
+    private val BLIZZARD_EXPOSED_ID: Identifier = "blizzard_exposed".location()
+
+    /**
+     * The two faces of a blizzard, and which one you hear is the whole of what they are for.
+     *
+     * **Sheltered is the storm going on without you** — what a roof or a hillside between you and it sounds
+     * like, and what makes a dugout feel like one. **Exposed is standing in it**, and it plays while the
+     * cold is actually on you, so the sound and the harm arrive together and a player learns one from the
+     * other rather than from a tooltip.
+     */
+    val BLIZZARD_SHELTERED: SoundEvent = SoundEvent.createVariableRangeEvent(BLIZZARD_SHELTERED_ID)
+    val BLIZZARD_EXPOSED: SoundEvent = SoundEvent.createVariableRangeEvent(BLIZZARD_EXPOSED_ID)
+
+    val soundEvents: List<Pair<Identifier, SoundEvent>> = listOf(
+        BLIZZARD_SHELTERED_ID to BLIZZARD_SHELTERED,
+        BLIZZARD_EXPOSED_ID to BLIZZARD_EXPOSED,
+    )
+
     val features: List<Pair<Identifier, Feature<*>>> = listOf(
         "spilled_spring".location() to SpilledSpring,
         "formation".location() to Formation,

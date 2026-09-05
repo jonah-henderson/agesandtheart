@@ -9,6 +9,7 @@ import co.voik.agesandtheart.age.phenomena.Happenings
 import co.voik.agesandtheart.age.AgeCommand
 import co.voik.agesandtheart.age.Ages
 import co.voik.agesandtheart.age.word.LearnedWordsPayload
+import co.voik.agesandtheart.age.phenomena.BlizzardPayload
 import co.voik.agesandtheart.age.word.LexiconPayload
 import co.voik.agesandtheart.age.word.PageLearning
 import co.voik.agesandtheart.age.word.PageLoot
@@ -65,6 +66,7 @@ fun init() {
     AgeContent.blocks.forEach { (id, block) -> Registry.register(BuiltInRegistries.BLOCK, id, block) }
     AgeContent.items.forEach { (id, item) -> Registry.register(BuiltInRegistries.ITEM, id, item) }
     AgeContent.entities.forEach { (id, type) -> Registry.register(BuiltInRegistries.ENTITY_TYPE, id, type) }
+    AgeContent.soundEvents.forEach { (id, sound) -> Registry.register(BuiltInRegistries.SOUND_EVENT, id, sound) }
     AgeContent.tickets.forEach { (id, type) -> Registry.register(BuiltInRegistries.TICKET_TYPE, id, type) }
     AgeContent.blockEntities.forEach { (id, type) -> Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, id, type) }
     AgeContent.structureTypes.forEach { (id, type) -> Registry.register(BuiltInRegistries.STRUCTURE_TYPE, id, type) }
@@ -97,6 +99,7 @@ fun init() {
     // The payload type, registered here rather than in the client entrypoint: Fabric requires it on *both*
     // sides, and registering twice throws. Common init is the only place that is true of.
     PayloadTypeRegistry.clientboundPlay().register(LexiconPayload.TYPE, LexiconPayload.STREAM_CODEC)
+    PayloadTypeRegistry.clientboundPlay().register(BlizzardPayload.TYPE, BlizzardPayload.STREAM_CODEC)
     PayloadTypeRegistry.clientboundPlay().register(LearnedWordsPayload.TYPE, LearnedWordsPayload.STREAM_CODEC)
     PayloadTypeRegistry.clientboundPlay().register(DeskSyncPayload.TYPE, DeskSyncPayload.STREAM_CODEC)
     PayloadTypeRegistry.clientboundPlay().register(DeskPricePayload.TYPE, DeskPricePayload.STREAM_CODEC)

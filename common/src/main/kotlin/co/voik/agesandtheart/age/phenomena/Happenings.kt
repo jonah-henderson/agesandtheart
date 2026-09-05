@@ -66,6 +66,12 @@ object Happenings {
             for ((phenomenon, density) in befalls) {
                 befall(level, phenomenon, density, furyOf(spending, prices, phenomenon))
             }
+            // What the client cannot work out for itself — see [BlizzardPayload]. Sent on a slow beat
+            // rather than on change, because "changed" would need a memory per player and the message is
+            // a dozen bytes.
+            if (server.tickCount % TELLING_THE_CLIENT == 0) {
+                Blizzard.tellTheClients(level, befalls, spending, prices)
+            }
             // Not a phenomenon — a wound is what the Age could not hold rather than something it does — but
             // it wants the same walk, and the walk is the expensive part.
             Hostility.stir(level)
@@ -188,6 +194,9 @@ object Happenings {
      * Everywhere else a span is steered by the Age's seed, which spreads two Ages bounded alike. Weather is
      * read every tick, and a value that moved with the tick would be a different Age every time.
      */
+    /** How often a client is reminded what the weather here is, in ticks. */
+    private const val TELLING_THE_CLIENT = 20
+
     private const val WEATHER_SALT = 0L
 
     /** How many times over an ordinary claim asks for something. A rung multiplies it. */

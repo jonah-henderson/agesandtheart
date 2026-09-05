@@ -1,6 +1,11 @@
 package co.voik.agesandtheart.age.phenomena
 
+import co.voik.agesandtheart.age.Manifestation
+import co.voik.agesandtheart.age.Price
+import co.voik.agesandtheart.age.Spending
+import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.Rung
+import co.voik.agesandtheart.platform.Services
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.server.level.ServerLevel
@@ -24,6 +29,12 @@ import kotlin.math.roundToInt
  * **The bearing is derived, never stored** (§5.4). It comes from the Age's seed and the day, so every
  * client and every reload agree about which way the wind is blowing without anything being written down,
  * and a new day brings a new storm rather than the same one for ever.
+ *
+ * **A drift is a record of itself.** Snow piles into a layer, a full layer becomes a block and takes the
+ * next drift on top of it, and three of any stage standing together harden the bottom one — snow to ice,
+ * ice to packed, packed to blue, which is terminal. So a column grows while each block in it stops, and
+ * what is left is a bank with fresh snow at the top and blue ice at the bottom: how long a blizzard has
+ * worked this place, readable from the side, with nothing written down (§5.4).
  *
  * **Light is the answer and it is vanilla's own.** `Biome.shouldFreeze` and `shouldSnow` have both tested
  * `getBrightness(BLOCK) < 10` since the game had snow, so lighting your ground already stops it piling up;
@@ -54,12 +65,39 @@ object Blizzard {
     }
 
     /**
+     * Tell everyone in [level] whether a blizzard blows here and how hard.
+     *
+     * Sent even where there is none, because a client that is only told when there *is* one keeps the last
+     * storm it heard about after its owner links somewhere calm.
+     */
+    fun tellTheClients(
+        level: ServerLevel,
+        befalls: Map<Phenomenon, Double>,
+        spending: Spending,
+        prices: Map<Manifestation, Price>,
+    ) {
+        val age = level.dimension().identifier()
+        val density = befalls[Phenomenon.BLIZZARD]
+        val telling = if (density == null) {
+            BlizzardPayload.noneIn(age)
+        } else {
+            val severity = severityOf(density, Happenings.furyOf(spending, prices, Phenomenon.BLIZZARD))
+            BlizzardPayload(age, severity, bearingIn(level).get2DDataValue())
+        }
+        for (player in level.players()) Services.NETWORK.sendToPlayer(player, telling)
+    }
+
+    /**
      * How much of the time an Age at this severity is in a storm, as [AgeWeather.Conditions] wants it.
      *
-     * **The whole of how a blizzard scales.** An ordinary one comes about as often as vanilla's rain and
-     * passes in a few minutes; a furious one is an Age scarcely ever out of it. Nothing about the snow
-     * itself gets harder — what changes is how much of your time is spent in it, which is the register
-     * §5.2 asks for: inexorable rather than violent.
+     * **One of the two things severity drives**, and the one that decides how much of your life is spent
+     * in a storm: an ordinary blizzard comes about as often as vanilla's rain and passes in a few minutes,
+     * where a furious Age is scarcely ever out of one.
+     *
+     * The other is how hard it blows while it is here — [driftsPerTick] and [inTheLee] on this side, and
+     * the visibility, the wind and the speed of the snow on the client's. A blizzard bought with
+     * instability or asked for at a rung is fiercer *and* more constant, because a storm that came more
+     * often without getting worse would only be tedious.
      */
     fun shareOfTheTime(severity: Double): Double =
         (AS_OFTEN_AS_RAIN + (severity - Rung.ORDINARY) * MORE_OF_THE_TIME)
@@ -103,49 +141,120 @@ object Blizzard {
         bearing: Direction,
         severity: Double,
     ) {
-        val ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z)
-        cursor.set(x, ground, z)
+        val top = level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z)
+        cursor.set(x, top, z)
         if (!level.isLoaded(cursor)) return
         // Vanilla's own rule, obeyed rather than restated: a lit place keeps its ground.
         if (level.getBrightness(LightLayer.BLOCK, cursor) >= KEEPS_ITS_GROUND) return
         if (!level.canSeeSky(cursor)) return
+        // **The drift has a bound, and burial is not it.** A column that grew for ever would reach the top
+        // of the world; this only stops it swallowing the sky. Everything under it is meant to be buried.
+        if (depthOfDriftAt(level, cursor, x, top, z) >= DEEPEST_DRIFT) return
+
         val standing = level.getBlockState(cursor)
+        // **Deeper where the wind is stopped**, which is what "driving" means mechanically: the same
+        // snowfall, distributed by what is in its way. A column in the lee of a wall grows faster, and
+        // because a full column becomes a block and takes another on top of it, that growth *climbs* the
+        // wall rather than only thickening at its foot.
         val sheltered = level.getBlockState(cursor.immutable().relative(bearing)).isSolidRender
         val laying = if (sheltered) inTheLee(severity) else ONE_LAYER
         when {
-            standing.isAir -> if (Blocks.SNOW.defaultBlockState().canSurvive(level, cursor)) {
-                level.setBlock(cursor, deepened(Blocks.SNOW.defaultBlockState(), laying), Block.UPDATE_ALL)
+            standing.isAir -> {
+                cursor.set(x, top, z)
+                if (Blocks.SNOW.defaultBlockState().canSurvive(level, cursor)) {
+                    level.setBlock(cursor, snowOf(laying), Block.UPDATE_ALL)
+                }
             }
-            standing.`is`(Blocks.SNOW) -> level.setBlock(cursor, deepened(standing, laying), Block.UPDATE_ALL)
-            // A drift that has reached its full depth compresses, which is the ladder §5.2 wants: how long
-            // this has been going on is legible from the block rather than from a counter.
-            else -> compress(level, cursor, standing)
+            standing.`is`(Blocks.SNOW) -> {
+                val standingLayers = standing.getValue(SnowLayerBlock.LAYERS)
+                if (standingLayers + laying <= SnowLayerBlock.MAX_HEIGHT) {
+                    level.setBlock(cursor, snowOf(standingLayers + laying), Block.UPDATE_ALL)
+                } else {
+                    // **A full drift becomes a block and the next one starts on top of it.** This is what
+                    // lets snow pile on itself rather than stopping at one layer's worth (Jonah,
+                    // 2026-09-05), and it is what makes the column a legible record of how long this has
+                    // been going on.
+                    level.setBlock(cursor, Blocks.SNOW_BLOCK.defaultBlockState(), Block.UPDATE_ALL)
+                    cursor.set(x, top + 1, z)
+                    if (level.getBlockState(cursor).isAir) {
+                        level.setBlock(cursor, snowOf(standingLayers + laying - SnowLayerBlock.MAX_HEIGHT), Block.UPDATE_ALL)
+                    }
+                }
+            }
+            else -> Unit
         }
+        settle(level, cursor, x, top, z)
     }
 
-    /** [state] with [layers] more of it, up to what a snow layer can hold. */
-    private fun deepened(state: BlockState, layers: Int): BlockState {
-        val standing = state.getValueOrElse(SnowLayerBlock.LAYERS, ONE_LAYER)
-        return Blocks.SNOW.defaultBlockState()
-            .setValue(SnowLayerBlock.LAYERS, (standing + layers).coerceAtMost(SnowLayerBlock.MAX_HEIGHT))
+    /** A snow layer [layers] deep, clamped to what one block can hold. */
+    private fun snowOf(layers: Int): BlockState = Blocks.SNOW.defaultBlockState()
+        .setValue(SnowLayerBlock.LAYERS, layers.coerceIn(ONE_LAYER, SnowLayerBlock.MAX_HEIGHT))
+
+    /**
+     * How deep the drift standing over this column already is, in blocks of ours.
+     *
+     * Counts down from the top through anything the storm could have laid, so a column that has been
+     * compressing for a while is measured by what it has become rather than by what fell last.
+     */
+    private fun depthOfDriftAt(level: ServerLevel, cursor: BlockPos.MutableBlockPos, x: Int, top: Int, z: Int): Int {
+        var depth = 0
+        while (depth < DEEPEST_DRIFT) {
+            cursor.set(x, top - depth, z)
+            if (!laidByAStorm(level.getBlockState(cursor))) break
+            depth++
+        }
+        cursor.set(x, top, z)
+        return depth
     }
 
     /**
-     * The compression ladder: a full drift becomes ice, and ice becomes harder ice.
+     * The compression ladder, walked up the column: **three of a stage and the bottom one hardens**.
      *
-     * **Self-capping on purpose.** Blue ice is terminal, so a place cannot go on progressing for ever the
-     * way a rising sea can — which is what lets the burial be a hazard rather than a punishment with no
-     * end.
+     * Snow becomes ice, ice becomes packed, packed becomes blue, and blue is terminal — so a place cannot
+     * progress for ever the way a rising sea can, while the *column* goes on growing. What that leaves is a
+     * drift whose depth is its history: fresh snow at the top and blue ice at the bottom, readable at a
+     * glance from the side (§5.4). Nothing records how long a blizzard has worked a place; the drift is the
+     * record.
      */
-    private fun compress(level: ServerLevel, at: BlockPos, standing: BlockState) {
-        val next = when {
-            standing.`is`(Blocks.SNOW_BLOCK) -> Blocks.ICE
-            standing.`is`(Blocks.ICE) -> Blocks.PACKED_ICE
-            standing.`is`(Blocks.PACKED_ICE) -> Blocks.BLUE_ICE
-            else -> return
+    private fun settle(level: ServerLevel, cursor: BlockPos.MutableBlockPos, x: Int, top: Int, z: Int) {
+        for ((stage, hardened) in PACKING) {
+            var run = 0
+            for (depth in 0..<DEEPEST_DRIFT) {
+                cursor.set(x, top - depth, z)
+                if (!level.getBlockState(cursor).`is`(stage)) {
+                    run = 0
+                    continue
+                }
+                run++
+                if (run < A_DEEP_ENOUGH_RUN) continue
+                level.setBlock(cursor, hardened.defaultBlockState(), Block.UPDATE_ALL)
+                run = 0
+            }
         }
-        level.setBlock(at, next.defaultBlockState(), Block.UPDATE_ALL)
     }
+
+    /** Whether a blizzard could have put this here, which is what a drift is measured through. */
+    private fun laidByAStorm(state: BlockState): Boolean =
+        state.`is`(Blocks.SNOW) || state.`is`(Blocks.SNOW_BLOCK) || state.`is`(Blocks.ICE) ||
+            state.`is`(Blocks.PACKED_ICE) || state.`is`(Blocks.BLUE_ICE)
+
+    /** What each stage of the drift hardens into, once three of it stand together. */
+    private val PACKING = listOf(
+        Blocks.SNOW_BLOCK to Blocks.ICE,
+        Blocks.ICE to Blocks.PACKED_ICE,
+        Blocks.PACKED_ICE to Blocks.BLUE_ICE,
+    )
+
+    /** Three of a stage and the bottom one hardens, which is what lets the column keep growing. */
+    private const val A_DEEP_ENOUGH_RUN = 3
+
+    /**
+     * How deep a drift may get before the storm stops adding to it.
+     *
+     * **Not a fence against burial**, which is the hazard and is meant to happen — only against a column
+     * that would otherwise climb to the top of the world.
+     */
+    private const val DEEPEST_DRIFT = 24
 
     /** How many layers a sheltered column takes at once — more of them the fiercer the storm. */
     private fun inTheLee(severity: Double): Int =

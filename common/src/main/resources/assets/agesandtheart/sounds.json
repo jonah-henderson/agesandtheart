@@ -1,0 +1,16 @@
+{
+  "_comment": [
+    "The two faces of a blizzard. `sheltered` is what you hear with a roof or a hillside between you and",
+    "it -- the storm going on without you, which is what makes a dugout feel like one. `exposed` is what",
+    "you hear standing in it, and it plays while the freezing is on you, so the sound and the damage arrive",
+    "together and a player learns the one from the other."
+  ],
+  "blizzard_sheltered": {
+    "category": "weather",
+    "sounds": [{ "name": "agesandtheart:blizzard_sheltered", "stream": true }]
+  },
+  "blizzard_exposed": {
+    "category": "weather",
+    "sounds": [{ "name": "agesandtheart:blizzard_exposed", "stream": true }]
+  }
+}

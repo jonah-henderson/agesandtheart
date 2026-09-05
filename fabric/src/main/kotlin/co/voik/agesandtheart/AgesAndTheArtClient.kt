@@ -9,7 +9,10 @@ import co.voik.agesandtheart.client.ClientDeskNetwork
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry
 import co.voik.agesandtheart.client.AgeLooks
 import co.voik.agesandtheart.client.DeskModel
+import co.voik.agesandtheart.age.phenomena.BlizzardPayload
 import co.voik.agesandtheart.client.KnownWords
+import co.voik.agesandtheart.client.Storms
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import co.voik.agesandtheart.client.InkCaseScreen
 import co.voik.agesandtheart.client.SupplyBinScreen
 import co.voik.agesandtheart.client.WritersDeskScreen
@@ -66,6 +69,12 @@ fun initClient() {
     ClientPlayNetworking.registerGlobalReceiver(LexiconPayload.TYPE) { payload, _ ->
         KnownWords.remember(payload)
     }
+    ClientPlayNetworking.registerGlobalReceiver(BlizzardPayload.TYPE) { payload, _ ->
+        Storms.remember(payload)
+    }
+    // Which of the two winds is playing has to be re-asked as a player walks in and out of shelter, so it
+    // rides the client tick rather than the payload.
+    ClientTickEvents.END_CLIENT_TICK.register(Storms::heard)
     // The linking panel's two, both of which land on the client thread the receiver already runs on.
     ClientPlayNetworking.registerGlobalReceiver(PanelLevelPayload.TYPE) { payload, _ ->
         LinkingPanel.accept(payload)
