@@ -75,6 +75,7 @@ fun initClient() {
     // Which of the two winds is playing has to be re-asked as a player walks in and out of shelter, so it
     // rides the client tick rather than the payload.
     ClientTickEvents.END_CLIENT_TICK.register(Storms::heard)
+    ClientTickEvents.END_CLIENT_TICK.register(Storms::blow)
     // The linking panel's two, both of which land on the client thread the receiver already runs on.
     ClientPlayNetworking.registerGlobalReceiver(PanelLevelPayload.TYPE) { payload, _ ->
         LinkingPanel.accept(payload)

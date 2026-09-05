@@ -141,47 +141,94 @@ object Blizzard {
         bearing: Direction,
         severity: Double,
     ) {
-        val top = level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z)
-        cursor.set(x, top, z)
+        // **`WORLD_SURFACE`, not `MOTION_BLOCKING`**, and the difference is the whole of why nothing used
+        // to stack. A one-layer snow does not block motion and a two-layer one does, so the motion
+        // heightmap jumped above the drift the moment it reached two — and `SnowLayerBlock.canSurvive`
+        // refuses a layer on top of anything but a full face or a full eight, so every column in the Age
+        // stopped dead at two layers and the ground read as noise. `NOT_AIR` puts this above the drift
+        // whatever depth it is.
+        val open = level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z)
+        cursor.set(x, open, z)
         if (!level.isLoaded(cursor)) return
-        // Vanilla's own rule, obeyed rather than restated: a lit place keeps its ground.
         if (level.getBrightness(LightLayer.BLOCK, cursor) >= KEEPS_ITS_GROUND) return
         if (!level.canSeeSky(cursor)) return
-        // **The drift has a bound, and burial is not it.** A column that grew for ever would reach the top
-        // of the world; this only stops it swallowing the sky. Everything under it is meant to be buried.
+
+        // **Snow runs downhill before it piles up**, which is what stops a storm laying spikes and pits.
+        // Each drift is placed at random and independently, so left alone the depths are Poisson noise;
+        // real snow finds the low ground first, and one look at the neighbours is the whole of that.
+        val (atX, atZ) = downhillOf(level, x, z, open)
+        if (atX != x || atZ != z) {
+            driftOnto(level, cursor, atX, atZ, bearing, severity)
+            return
+        }
+        driftOnto(level, cursor, x, z, bearing, severity)
+    }
+
+    /**
+     * The column a flake laid here would actually come to rest on — this one, or a markedly lower neighbour.
+     *
+     * A snow bank has an angle of repose; a column of noise does not. Nothing here models an angle, it
+     * simply refuses to build a tower beside a hollow, which is enough for a drift to read as one.
+     */
+    private fun downhillOf(level: ServerLevel, x: Int, z: Int, open: Int): Pair<Int, Int> {
+        var lowestX = x
+        var lowestZ = z
+        var lowest = open
+        for (way in Direction.Plane.HORIZONTAL) {
+            val overX = x + way.stepX
+            val overZ = z + way.stepZ
+            val theirs = level.getHeight(Heightmap.Types.WORLD_SURFACE, overX, overZ)
+            if (theirs < lowest - A_STEEP_STEP) {
+                lowest = theirs
+                lowestX = overX
+                lowestZ = overZ
+            }
+        }
+        return lowestX to lowestZ
+    }
+
+    /**
+     * Lay this drift on the column at [x], [z].
+     *
+     * **Deeper where the wind is stopped**, which is what "driving" means mechanically: the same snowfall,
+     * distributed by what is in its way. A column in the lee grows faster, and because a full column
+     * becomes a block and takes another on top of it, that growth *climbs* the wall rather than only
+     * thickening at its foot.
+     */
+    private fun driftOnto(
+        level: ServerLevel,
+        cursor: BlockPos.MutableBlockPos,
+        x: Int,
+        z: Int,
+        bearing: Direction,
+        severity: Double,
+    ) {
+        val open = level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z)
+        val top = open - 1
         if (depthOfDriftAt(level, cursor, x, top, z) >= DEEPEST_DRIFT) return
 
+        cursor.set(x, top, z)
         val standing = level.getBlockState(cursor)
-        // **Deeper where the wind is stopped**, which is what "driving" means mechanically: the same
-        // snowfall, distributed by what is in its way. A column in the lee of a wall grows faster, and
-        // because a full column becomes a block and takes another on top of it, that growth *climbs* the
-        // wall rather than only thickening at its foot.
         val sheltered = level.getBlockState(cursor.immutable().relative(bearing)).isSolidRender
         val laying = if (sheltered) inTheLee(severity) else ONE_LAYER
-        when {
-            standing.isAir -> {
-                cursor.set(x, top, z)
-                if (Blocks.SNOW.defaultBlockState().canSurvive(level, cursor)) {
-                    level.setBlock(cursor, snowOf(laying), Block.UPDATE_ALL)
-                }
+
+        if (standing.`is`(Blocks.SNOW)) {
+            val deep = standing.getValue(SnowLayerBlock.LAYERS)
+            if (deep + laying <= SnowLayerBlock.MAX_HEIGHT) {
+                level.setBlock(cursor, snowOf(deep + laying), Block.UPDATE_ALL)
+            } else {
+                // **A full drift becomes a block and the next one starts on top of it**, which is what lets
+                // snow pile on itself. Vanilla would allow a layer over a full eight, but hardening it here
+                // is what makes the column a record of its own depth.
+                level.setBlock(cursor, Blocks.SNOW_BLOCK.defaultBlockState(), Block.UPDATE_ALL)
+                cursor.set(x, open, z)
+                level.setBlock(cursor, snowOf(deep + laying - SnowLayerBlock.MAX_HEIGHT), Block.UPDATE_ALL)
             }
-            standing.`is`(Blocks.SNOW) -> {
-                val standingLayers = standing.getValue(SnowLayerBlock.LAYERS)
-                if (standingLayers + laying <= SnowLayerBlock.MAX_HEIGHT) {
-                    level.setBlock(cursor, snowOf(standingLayers + laying), Block.UPDATE_ALL)
-                } else {
-                    // **A full drift becomes a block and the next one starts on top of it.** This is what
-                    // lets snow pile on itself rather than stopping at one layer's worth (Jonah,
-                    // 2026-09-05), and it is what makes the column a legible record of how long this has
-                    // been going on.
-                    level.setBlock(cursor, Blocks.SNOW_BLOCK.defaultBlockState(), Block.UPDATE_ALL)
-                    cursor.set(x, top + 1, z)
-                    if (level.getBlockState(cursor).isAir) {
-                        level.setBlock(cursor, snowOf(standingLayers + laying - SnowLayerBlock.MAX_HEIGHT), Block.UPDATE_ALL)
-                    }
-                }
+        } else {
+            cursor.set(x, open, z)
+            if (Blocks.SNOW.defaultBlockState().canSurvive(level, cursor)) {
+                level.setBlock(cursor, snowOf(laying), Block.UPDATE_ALL)
             }
-            else -> Unit
         }
         settle(level, cursor, x, top, z)
     }
@@ -244,6 +291,9 @@ object Blizzard {
         Blocks.ICE to Blocks.PACKED_ICE,
         Blocks.PACKED_ICE to Blocks.BLUE_ICE,
     )
+
+    /** How much lower a neighbour must be before the snow goes there instead. */
+    private const val A_STEEP_STEP = 2
 
     /** Three of a stage and the bottom one hardens, which is what lets the column keep growing. */
     private const val A_DEEP_ENOUGH_RUN = 3

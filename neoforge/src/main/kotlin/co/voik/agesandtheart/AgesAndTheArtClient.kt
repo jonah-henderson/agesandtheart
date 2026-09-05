@@ -64,6 +64,7 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
 
     private fun onClientTick(event: ClientTickEvent.Post) {
         Storms.heard(net.minecraft.client.Minecraft.getInstance())
+        Storms.blow(net.minecraft.client.Minecraft.getInstance())
     }
 
     private fun onRegisterScreens(event: RegisterMenuScreensEvent) {

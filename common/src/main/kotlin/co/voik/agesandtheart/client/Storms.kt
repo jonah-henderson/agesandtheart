@@ -3,6 +3,7 @@ package co.voik.agesandtheart.client
 import co.voik.agesandtheart.age.phenomena.BlizzardPayload
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.core.BlockPos
+import net.minecraft.core.particles.ParticleTypes
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.client.player.LocalPlayer
@@ -95,6 +96,45 @@ object Storms {
         playing = Wind(wanted, blowing.severity).also(client.soundManager::play)
     }
 
+    /**
+     * Snow going past you sideways, at the speed it is actually landing.
+     *
+     * **Vanilla's own precipitation is a gentle drift and it reads as a lie here** — the ground is filling
+     * in front of you while the air says light flurries. These are thrown along the storm's bearing at a
+     * speed that rises with its severity, so what you see and what the world is doing agree.
+     *
+     * Drawn around the player rather than from the sky: a blizzard is what you are *in*, and particles
+     * spawned overhead would spend their lives falling into view instead of tearing across it. Skipped
+     * where the sky cannot be seen, so a shelter is quiet as well as warm.
+     */
+    fun blow(client: Minecraft) {
+        val level = client.level ?: return
+        val player = client.player ?: return
+        val blowing = blowingIn(level) ?: return
+        val driving = blowing.driving()
+        val hurry = (RUSHING * blowing.severity).coerceAtMost(FASTEST)
+        val at = player.blockPosition()
+        val random = level.random
+        repeat((FLAKES * blowing.severity).toInt().coerceAtMost(MOST_FLAKES)) {
+            val here = at.offset(
+                random.nextInt(-AROUND, AROUND),
+                random.nextInt(-BELOW, ABOVE),
+                random.nextInt(-AROUND, AROUND),
+            )
+            if (!level.canSeeSky(here)) return@repeat
+            if (!level.getBlockState(here).isAir) return@repeat
+            level.addParticle(
+                ParticleTypes.SNOWFLAKE,
+                here.x + random.nextDouble(),
+                here.y + random.nextDouble(),
+                here.z + random.nextDouble(),
+                driving.stepX * hurry,
+                -FALLING * hurry,
+                driving.stepZ * hurry,
+            )
+        }
+    }
+
     private fun stop(client: Minecraft) {
         playing?.let(client.soundManager::stop)
         playing = null
@@ -140,6 +180,20 @@ object Storms {
 
     /** How near the world closes in at the very worst of it. Blinding would be unfair; this is not. */
     private const val NEAREST = 8.0f
+
+    /** How far around the player the storm is drawn, in blocks. */
+    private const val AROUND = 14
+    private const val ABOVE = 10
+    private const val BELOW = 4
+
+    /** How many flakes an ordinary storm throws past you each tick, and the ceiling on a furious one. */
+    private const val FLAKES = 60
+    private const val MOST_FLAKES = 220
+
+    /** How fast they go sideways, and how much of that they also fall at. */
+    private const val RUSHING = 0.9
+    private const val FASTEST = 2.4
+    private const val FALLING = 0.35
 
     private const val QUIETEST = 0.5
     private const val LOUDEST = 1.0
