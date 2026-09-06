@@ -80,6 +80,7 @@ import co.voik.agesandtheart.worldgen.feature.Formation
 import co.voik.agesandtheart.worldgen.feature.RimeCrystal
 import co.voik.agesandtheart.worldgen.feature.SpilledSpring
 import co.voik.agesandtheart.worldgen.feature.TemperedGround
+import co.voik.agesandtheart.worldgen.feature.VolcanoVents
 import net.minecraft.world.level.levelgen.feature.Feature
 import net.minecraft.world.level.levelgen.carver.WorldCarver
 import net.minecraft.world.level.storage.loot.functions.LootItemFunction
@@ -382,6 +383,31 @@ object AgeContent {
     private val SCORCHED_TEMPERSTONE_ID: Identifier = "scorched_temperstone".location()
     private val RAW_TEMPERSTONE_ID: Identifier = "raw_temperstone".location()
     private val TEMPERSTONE_CLIMBERS_ID: Identifier = "temperstone_climbers".location()
+    private val LAVA_TUBE_ID: Identifier = "lava_tube".location()
+
+    /**
+     * The vent in a volcano's caldera — see [co.voik.agesandtheart.content.LavaTubes] for what a mass does.
+     *
+     * Obsidian's blast resistance, so a volcano cannot destroy its own vents and switch itself off.
+     */
+    val LAVA_TUBE_BLOCK: Block = LavaTubeBlock(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, LAVA_TUBE_ID))
+            .mapColor(MapColor.COLOR_BLACK)
+            .strength(TEMPERSTONE_STRENGTH, BLAST_PROOF)
+            .sound(SoundType.BASALT)
+            .randomTicks()
+            .lightLevel { TUBE_GLOW }
+            .requiresCorrectToolForDrops(),
+    )
+
+    val LAVA_TUBE: Item = BlockItem(
+        LAVA_TUBE_BLOCK,
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, LAVA_TUBE_ID)).useBlockDescriptionPrefix(),
+    )
+
+    /** Enough to find a vent by in a dark caldera, not enough to light the crater. */
+    private const val TUBE_GLOW = 6
 
     /**
      * Stone baked at the right distance from lava (design §7.1.2) — the second early material.
@@ -836,6 +862,7 @@ object AgeContent {
         TEMPERSTONE_ID to TEMPERSTONE_BLOCK,
         SCORCHED_TEMPERSTONE_ID to SCORCHED_TEMPERSTONE_BLOCK,
         RAW_TEMPERSTONE_ID to RAW_TEMPERSTONE_BLOCK,
+        LAVA_TUBE_ID to LAVA_TUBE_BLOCK,
         TOOLBOX_ID to TOOLBOX_BLOCK,
         GEOLOGISTS_TOOLS_ID to GEOLOGISTS_TOOLS_BLOCK,
     )
@@ -993,6 +1020,7 @@ object AgeContent {
         TEMPERSTONE_ID to TEMPERSTONE,
         SCORCHED_TEMPERSTONE_ID to SCORCHED_TEMPERSTONE,
         RAW_TEMPERSTONE_ID to RAW_TEMPERSTONE,
+        LAVA_TUBE_ID to LAVA_TUBE,
         TEMPERSTONE_CLIMBERS_ID to TEMPERSTONE_CLIMBERS,
         TOOLBOX_ID to TOOLBOX,
         GEOLOGISTS_TOOLS_ID to GEOLOGISTS_TOOLS,
@@ -1077,5 +1105,6 @@ object AgeContent {
         "formation".location() to Formation,
         "rime_crystal".location() to RimeCrystal,
         "tempered_ground".location() to TemperedGround,
+        "volcano_vents".location() to VolcanoVents,
     )
 }

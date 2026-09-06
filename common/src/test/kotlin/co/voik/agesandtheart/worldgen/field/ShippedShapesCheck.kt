@@ -33,6 +33,12 @@ class ShippedShapesCheck : FunSpec({
         .orEmpty()
         .filter { it.extension == "json" }
         .sortedBy { it.name }
+        // Formations only. Not every configured feature the pack ships is one built out of shapes — a
+        // volcano's vents are found in the terrain rather than described — and reading `shapes` off one
+        // that has none is a null in a spec constructor rather than a legible failure.
+        .filter { file ->
+            JsonParser.parseString(file.readText()).asJsonObject.get("type")?.asString == FORMATION
+        }
         .flatMap { file ->
             val config = JsonParser.parseString(file.readText()).asJsonObject.getAsJsonObject("config")
             config.getAsJsonArray("shapes").mapIndexed { at, shape ->
@@ -114,5 +120,7 @@ class ShippedShapesCheck : FunSpec({
         const val ABOUT = 100
         const val SMALLEST = 80
         const val LARGEST = 120
+
+        const val FORMATION = "agesandtheart:formation"
     }
 }

@@ -1,0 +1,9 @@
+{
+  "_comment": [
+    "The lava tubes in a volcano's caldera. The cones themselves are terrain, not a feature -- this only",
+    "seats the vents in the crater the terrain already cut, which it finds by looking rather than by being",
+    "told where it is."
+  ],
+  "type": "agesandtheart:volcano_vents",
+  "config": {}
+}

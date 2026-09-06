@@ -89,10 +89,23 @@ object VolcanoField {
      */
     private const val BASE_Y = -32
 
-    private const val BASE_RADIUS = 56.0
-    private const val HEIGHT = 96
-    private const val CALDERA_RADIUS = 14.0
-    private const val CALDERA_DEPTH = 18
+    /**
+     * Tall enough to stand *above* the ground it is laid over, which is the thing arithmetic gets wrong.
+     *
+     * A cone is unioned with the Age's own terrain, so only the part clearing that terrain is a mountain at
+     * all: a summit at ordinary hill height is not a small volcano, it is an invisible one. Starting the
+     * foot at [BASE_Y] and rising [HEIGHT] puts the tip near y=168, well over anything hills reach.
+     *
+     * The radius is what keeps it from being a spire. Measured against the height the cone actually shows —
+     * the part above the land — these numbers give roughly a forty-degree flank, which is steep for a real
+     * volcano and reads as one in a game where a hill is already steep.
+     */
+    private const val BASE_RADIUS = 240.0
+    private const val HEIGHT = 200
+
+    /** A real fraction of the cone: a dimple would read as a damaged peak rather than as a crater. */
+    private const val CALDERA_RADIUS = 40.0
+    private const val CALDERA_DEPTH = 25
 
     /** Roughly a kilometre between candidates, before the patch noise thins them further. */
     private const val CELL = 1024.0

@@ -179,10 +179,24 @@
 /age compose volc 11 landmass=hills sea=water rock=solid sky=plain features.grows=agesandtheart:volcano
 /age tp volc
 #
-# It logs one WARN -- the placed feature it names does not exist until the lava tubes land -- and grows
-# cones with nothing in them. That is expected, not the bug.
+# The lava tubes are in as of 2026-09-06, so the WARN is gone and the vents are seated. The projectiles
+# are NOT built yet, so a volcano currently wells lava and throws nothing.
+#
+# **NOTHING HERE HAS BEEN SEEN.** Volcanoes sit roughly a kilometre apart, so a small generated area may
+# hold none at all -- fly, or generate wide, before concluding they are missing.
 #
 # WHAT A WALK HAS TO SETTLE, all of it dial-turning rather than pass/fail:
+#   - **THAT THE VENTS ARE FOUND AT ALL.** `VolcanoVents` looks for a column high up with higher ground on
+#     all four sides, which is the one piece of this most likely to be silently wrong -- if the caldera is
+#     wider or shallower than `RIM_REACH`/`RIM_CLIMB` expect, it finds nothing and the crater sits empty.
+#     An empty caldera is the symptom.
+#   - That the tubes well lava up into the caldera and STOP at the rim rather than running down the flank.
+#     The pool is capped at the mass's own height and 24 blocks from it; a breached rim should drain, and
+#     whether that is a bug or a feature is a judgement.
+#   - That PLUGGING works: put a solid block over a tube and the welling should stop. Lava over it must
+#     NOT count as a plug, or a volcano silences itself on its own output.
+#   - That mining the tubes out is a real, findable act -- can you tell where they are once the caldera has
+#     filled with lava?
 #   - Do they read as VOLCANOES from a distance, or as ordinary hills with a dent? Base radius 56, height
 #     96, caldera radius 14 and 18 deep are all first guesses.
 #   - Does the caldera look like somewhere you would climb into? It is where the tubes will go, so it has
