@@ -37,7 +37,7 @@ object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration
      * **A crater is tens of blocks wider than the chunk being decorated**, and a feature may only reach a
      * chunk or so past its own — read further and generation either cascades or throws, depending on where
      * the caldera happened to fall. The field has no such limit: it is a pure function of a column, so it
-     * answers for a rim fifty blocks away at the cost of the arithmetic and nothing else.
+     * answers for a rim tens of blocks away at the cost of the arithmetic and nothing else.
      *
      * Null for an Age wearing vanilla's rock, which cannot have raised one of our cones in the first place.
      */
@@ -81,6 +81,12 @@ object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration
      * Ordered on `(y, x, z)` rather than on height alone, because a caldera floor is broad and flat enough
      * to hold ties, and a tie under a height-only test lets every tied chunk seat a vent — the exact
      * failure this is here to prevent. A total order has exactly one winner however flat the floor is.
+     *
+     * **The rivals are counted in strides, not in blocks, and that is load-bearing.** Candidates are drawn
+     * from the [STRIDE] lattice, so a scan that lands anywhere else compares a column against columns that
+     * could never be candidates — and then nothing in a crater is ever alone at the bottom and no volcano
+     * anywhere erupts. Written as `-30..30 step STRIDE` it silently did exactly that, the range simply
+     * missing zero.
      */
     private fun aloneAtTheBottom(land: TerrainField, candidate: BlockPos): Boolean {
         fun sitsBelow(x: Int, y: Int, z: Int): Boolean = when {
@@ -88,10 +94,10 @@ object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration
             x != candidate.x -> x < candidate.x
             else -> z < candidate.z
         }
-        for (awayX in -SOLE_VENT_REACH..SOLE_VENT_REACH step STRIDE) {
-            for (awayZ in -SOLE_VENT_REACH..SOLE_VENT_REACH step STRIDE) {
-                val x = candidate.x + awayX
-                val z = candidate.z + awayZ
+        for (stepX in -SOLE_VENT_STRIDES..SOLE_VENT_STRIDES) {
+            for (stepZ in -SOLE_VENT_STRIDES..SOLE_VENT_STRIDES) {
+                val x = candidate.x + stepX * STRIDE
+                val z = candidate.z + stepZ * STRIDE
                 val y = surfaceAt(land, x, z)
                 // Height first: it settles all but a handful of columns, and the ringing test behind it
                 // is four more field evaluations that those columns then never pay for.
@@ -178,24 +184,27 @@ object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration
     private const val DEEPEST_VENT = 3
 
     /** How far a vent column may sit off the floor it was found at before it counts as the wall. */
-    private const val FLOOR_RELIEF = 1
+    private const val FLOOR_RELIEF = 2
 
     /** Past the widest caldera floor but inside the rim, for the craters the cones are cut to. */
-    private const val RIM_REACH = 50
+    private const val RIM_REACH = 30
 
     /** Enough of a climb that a gentle dip in a hillside is not mistaken for a crater. */
     private const val RIM_CLIMB = 6
 
-    /** As wide as a caldera, so one crater has one bottom and therefore one vent. */
-    private const val SOLE_VENT_REACH = 44
+    /** As wide as a caldera, so one crater has one bottom and therefore one vent — in [STRIDE]s. */
+    private const val SOLE_VENT_STRIDES = 8
 
     /**
      * Above anything ordinary ground reaches, so only a summit qualifies.
      *
-     * A caldera floor sits about thirty blocks under its summit and the smallest cone is its template's
-     * own size, so this clears the roll of the surface noise with room to spare.
+     * Low enough for the shield, whose crater floor sits around y=79 before the surface roll takes a few
+     * more off it — that shape is the constraint, and a bar set for the tall cones would have made it the
+     * one volcano that never erupts. Set this low and an ordinary hill basin can pass, which is an
+     * accepted trade (Jonah, 2026-09-06): a stray vent is dormant without a cluster behind it and reads
+     * as an Age being volcanically active either way.
      */
-    private const val HIGH_ENOUGH = 85
+    private const val HIGH_ENOUGH = 72
 
     private const val CHUNK = 16
 

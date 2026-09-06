@@ -174,7 +174,7 @@ object LavaTubes {
     private const val POURED_PER_TICK = 128
 
     /** Far enough to flood the widest caldera floor, short enough that a breached rim does not drain. */
-    private const val REACH_FROM_THE_MASS = 40.0
+    private const val REACH_FROM_THE_MASS = 22.0
 
     private const val ONE = 1
     private const val NOTHING_POURED = 0

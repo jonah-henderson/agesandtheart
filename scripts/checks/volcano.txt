@@ -18,10 +18,15 @@
 #     minecraft:overworld run …` and `execute in agesandtheart:volc run …` returned the same count, so the
 #     count is server-wide. Fine for "did anything erupt", useless for "in which dimension" — position the
 #     selector and read `Pos` if that is the question.
+#   - **A gobbet cannot be caught by sampling.** `LavaDroplet`s live a second or so after a bomb lands, so
+#     `if entity` almost always finds none even when they are working. Summon one instead — it converts
+#     where it lands, which is the whole of what it does:
+#       execute in agesandtheart:volc run summon agesandtheart:lava_droplet 8 110 8
+#     then check for lava one block above the rock. Measured: rock top y=72, lava left at y=73.
 
 age compose volc 11 landmass=hills sea=water rock=solid sky=plain features.grows=agesandtheart:volcano
 
-# The caldera the previewer puts at (622, -269); its floor sits around y=117.
+# The caldera the previewer puts at (622, -269); its floor sits around y=100.
 execute in agesandtheart:volc run forceload add 590 -300 660 -240
 tick sprint 400
 age list

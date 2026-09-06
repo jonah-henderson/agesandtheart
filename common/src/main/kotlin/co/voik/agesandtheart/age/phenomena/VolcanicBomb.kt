@@ -2,7 +2,6 @@ package co.voik.agesandtheart.age.phenomena
 
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.core.BlockPos
-import net.minecraft.core.Direction
 import net.minecraft.core.particles.ParticleTypes
 import net.minecraft.network.syncher.SynchedEntityData
 import net.minecraft.server.level.ServerLevel
@@ -19,13 +18,15 @@ import net.minecraft.world.phys.EntityHitResult
 import net.minecraft.world.phys.HitResult
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.roundToInt
 import kotlin.math.sin
 
 /**
  * A lump of molten rock thrown out of a volcano (design §7.1.2).
  *
  * It arcs, so it is a thrown projectile rather than a falling block — vanilla's falling block only ever
- * goes straight down. Where it lands it craters the ground and pools a little lava in the hole.
+ * goes straight down. Where it lands it craters the ground and throws off [LavaDroplet]s, which do the
+ * pooling by falling into whatever hole the explosion left.
  *
  * **A bomb that lands in lava does neither.** That is the bound on the whole mechanic rather than a
  * special case: ground that has already flooded stops accumulating, so a volcano deepens its own pool and
@@ -76,70 +77,24 @@ class VolcanicBomb(type: EntityType<out VolcanicBomb>, level: Level) : Throwable
         return level.getBlockState(blockPosition()).`is`(Blocks.LAVA)
     }
 
+    /**
+     * The explosion, and the molten rock it throws off.
+     *
+     * **Nothing here decides where the lava goes.** The bomb hands out [LavaDroplet]s and forgets about
+     * them; each falls and turns to lava on whatever it lands on, which is by definition the crater floor
+     * once the crater has finished being made. Working the floor out here instead meant asking where the
+     * ground was on the tick an explosion had just moved it, and the answer was a source block hanging in
+     * mid-air over the hole (Jonah, walked twice).
+     */
     private fun burst(level: ServerLevel, hit: HitResult) {
         val at = if (hit is BlockHitResult) hit.blockPos else blockPosition()
         level.explode(this, x, y, z, strength(), true, Level.ExplosionInteraction.TNT)
-        pool(level, at)
+        LavaDroplet.spatteredFrom(level, at, gobbets())
     }
 
-    /**
-     * A little lava in the floor of the hole it just made.
-     *
-     * **Poured from the bottom of the crater upward, never at the point of impact.** A bomb goes off at
-     * head height on whatever it clipped, so laying lava where it struck hangs a source block in the air
-     * over the hole it just dug. Falling to the floor first and filling from there is what makes the pool
-     * sit in the crater, and the depth is drawn per bomb so a bombarded slope ends up dappled with pools
-     * of different sizes rather than tiled with identical ones.
-     *
-     * A bomb that finds no floor within reach — one intercepted high over a valley — pools nothing.
-     */
-    private fun pool(level: ServerLevel, at: BlockPos) {
-        val floor = craterFloorUnder(level, at) ?: return
-        val layers = LEAST_LAYERS + level.random.nextInt(MOST_LAYERS - LEAST_LAYERS + ONE)
-        flood(level, floor, ceiling = floor.y + layers - ONE)
-    }
-
-    /** The lowest open block under the burst, or null if there is no ground under it worth pooling on. */
-    private fun craterFloorUnder(level: ServerLevel, at: BlockPos): BlockPos? {
-        var here = if (level.getBlockState(at).blocksMotion()) at.above() else at
-        for (drop in 0..<DEEPEST_CRATER) {
-            if (level.getBlockState(here.below()).blocksMotion()) return here
-            here = here.below()
-        }
-        return null
-    }
-
-    /** Outward along the crater floor, then up — the same spread a vent uses, at a crater's scale. */
-    private fun flood(level: ServerLevel, floor: BlockPos, ceiling: Int) {
-        val reach = strength().toDouble()
-        val seen = HashSet<BlockPos>()
-        var frontier = listOf(floor)
-        var laid = 0
-        while (frontier.isNotEmpty() && laid < MOST_POOLED) {
-            val next = mutableListOf<BlockPos>()
-            for (position in frontier) {
-                if (laid >= MOST_POOLED) break
-                if (!seen.add(position)) continue
-                if (position.y > ceiling) continue
-                if (!withinReach(position, floor, reach)) continue
-                val state = level.getBlockState(position)
-                if (state.blocksMotion()) continue
-                if (!state.`is`(Blocks.LAVA)) {
-                    level.setBlockAndUpdate(position, Blocks.LAVA.defaultBlockState())
-                    laid++
-                }
-                Direction.Plane.HORIZONTAL.forEach { way -> next += position.relative(way) }
-                next += position.above()
-            }
-            frontier = next
-        }
-    }
-
-    private fun withinReach(position: BlockPos, floor: BlockPos, reach: Double): Boolean {
-        val spreadX = (position.x - floor.x).toDouble()
-        val spreadZ = (position.z - floor.z).toDouble()
-        return spreadX * spreadX + spreadZ * spreadZ <= reach * reach
-    }
+    /** How much molten rock this one throws off — a bigger bomb leaves a bigger pool, by leaving more. */
+    private fun gobbets(): Int =
+        LEAST_GOBBETS + ((MOST_GOBBETS - LEAST_GOBBETS) * force).roundToInt()
 
     /** Creeper-sized at the least, and a good deal past TNT at a full vent. */
     private fun strength(): Float =
@@ -170,10 +125,9 @@ class VolcanicBomb(type: EntityType<out VolcanicBomb>, level: Level) : Throwable
         private const val LIKE_A_CREEPER = 3.0
         private const val AT_FULL_VENT = 7.0
 
-        private const val LEAST_LAYERS = 1
-        private const val MOST_LAYERS = 3
-        private const val DEEPEST_CRATER = 8
-        private const val MOST_POOLED = 96
+        /** A creeper-sized burst leaves a splash; a full vent's leaves a pool worth going round. */
+        private const val LEAST_GOBBETS = 3
+        private const val MOST_GOBBETS = 12
 
         /**
          * A snowball's, and light on purpose.
@@ -188,7 +142,6 @@ class VolcanicBomb(type: EntityType<out VolcanicBomb>, level: Level) : Throwable
         private const val FALLING = 0.0
         private const val NO_DRIFT = 0.0
         private const val LEAST = 0.0
-        private const val ONE = 1
 
         private const val FORCE_KEY = "force"
 

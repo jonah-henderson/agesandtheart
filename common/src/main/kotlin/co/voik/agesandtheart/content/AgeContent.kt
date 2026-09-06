@@ -8,6 +8,7 @@ import co.voik.agesandtheart.age.consequence.WoundBlock
 import co.voik.agesandtheart.book.BindLinkingBookFunction
 import co.voik.agesandtheart.book.WriteFoundBookFunction
 import co.voik.agesandtheart.age.phenomena.SandColumn
+import co.voik.agesandtheart.age.phenomena.LavaDroplet
 import co.voik.agesandtheart.age.phenomena.VolcanicBomb
 import co.voik.agesandtheart.book.BookEntity
 import co.voik.agesandtheart.book.LinkTarget
@@ -815,6 +816,23 @@ object AgeContent {
     private const val BOMB_UPDATE_TICKS = 1
 
     /**
+     * A gobbet of molten rock thrown off a bomb's impact.
+     * See [co.voik.agesandtheart.age.phenomena.LavaDroplet].
+     *
+     * Tracked less far than a bomb: it lives a second or two and never leaves the crater that made it, so
+     * anybody near enough to care is near enough to see it.
+     */
+    val LAVA_DROPLET: EntityType<LavaDroplet> = EntityType.Builder
+        .of({ type, level -> LavaDroplet(type, level) }, MobCategory.MISC)
+        .sized(DROPLET_SIZE, DROPLET_SIZE)
+        .clientTrackingRange(DROPLET_TRACKING_CHUNKS)
+        .updateInterval(BOMB_UPDATE_TICKS)
+        .build(ResourceKey.create(Registries.ENTITY_TYPE, "lava_droplet".location()))
+
+    private const val DROPLET_SIZE = 0.4f
+    private const val DROPLET_TRACKING_CHUNKS = 4
+
+    /**
      * The ticket that holds a linking panel's chunks (§7.8.1).
      *
      * **Here rather than beside the code that uses it, because registries freeze.** `PanelViews` is an
@@ -838,6 +856,7 @@ object AgeContent {
         "descriptive_book".location() to BOOK_ENTITY,
         "sand_column".location() to SAND_COLUMN,
         "volcanic_bomb".location() to VOLCANIC_BOMB,
+        "lava_droplet".location() to LAVA_DROPLET,
     )
 
     val WOUND_ID: Identifier = "wound".location()

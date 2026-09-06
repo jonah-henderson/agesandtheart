@@ -215,22 +215,43 @@
 #     and the tube all carried `requiresCorrectToolForDrops` with no `mineable/pickaxe` entry, which means
 #     they had been dropping NOTHING with any tool since they were written.
 #
+# ── WHAT THE THIRD WALK CHANGED (2026-09-06) ─────────────────────────────────────────────────────────
+# Reported: "they definitely look like volcanoes now" -- but so massive they posed no credible threat, the
+# bombs never coming near the rim; and the impact lava was STILL hanging in mid-air.
+#
+#   - **EVERYTHING IS HALF THE SIZE.** Nothing about the shape changed. A crater 30 across and 15 deep is
+#     one a bomb thrown off the floor clears; 60 and 30 was not.
+#   - A mountain is now authored in what anybody can SEE -- rise, foot, plateau above a nominal ground --
+#     and the cones are solved from those, so rescaling is halving numbers that mean something.
+#   - The shield lost its skirt: halving a volcano *widens* the radius a flat apron costs, and the squat
+#     shape is gentle enough over its own flank not to want one.
+#   - **BOMBS PLACE NO LAVA THEMSELVES ANY MORE.** An impact throws 3-12 gobbets which fall like sand and
+#     turn to lava sources where they land -- Jonah's design, and the point is that nothing has to model
+#     what the explosion did. The old code searched for the crater floor on the tick the blast moved it,
+#     which is why lava kept ending up in the air.
+#   - Stray vents in ordinary hill basins are now ACCEPTED rather than guarded against, which is what lets
+#     the vent search sit low enough for the shield to erupt at all.
+#
 # WHAT THIS WALK HAS TO SETTLE, most of it dial-turning rather than pass/fail:
-#   - **DO THEY READ AS VOLCANOES NOW**, from a distance and from the flank? Roughly 66 blocks of relief
-#     over a 150-block visible radius, four distinct shapes, turned eight ways, warped ~30 blocks.
-#   - **IS THE WARP STRONG ENOUGH, OR TOO STRONG?** It is the lever on regularity and the one most likely
-#     to be left too timid. Past a gradient of about 1 it folds and reads a second rim inside the crater;
-#     if you see that, it is too much rather than too little.
-#   - Spacing: cells are 580 apart with patch clustering, which measured at roughly 700-900 between
-#     neighbours. Asked for ~750.
+#   - **IS HALF THE RIGHT AMOUNT?** Roughly 33 blocks of relief over an 84-block visible radius for the
+#     broad cone, 44 over 72 for the steep one, 22 over 98 for the shield. Height was called "about right"
+#     at ~65 two walks ago, so if they now read as hills, RISE is the dial and it can move without the
+#     footprint following.
+#   - **DO THE BOMBS THREATEN ANYTHING NOW?** That is the whole reason for the resize: they should clear
+#     the rim often, and being three or four chunks away should not be safety.
+#   - **THE GOBBETS.** Does an impact leave a pool that looks like it belongs in the crater? Are 3-12 too
+#     few to read, or so many the ground turns to lava? Do they splash convincingly down a slope?
+#   - **IS THE WARP STILL RIGHT AT THIS SIZE?** It was halved with everything else. Past a gradient of
+#     about 1 it folds and reads a second rim inside the crater; if you see that, it is too much.
+#   - Spacing was NOT changed -- cells stay 580 apart, so half-size mountains sit relatively further from
+#     each other. Judge whether volcanic country still reads as country.
 #   - Does the caldera look like somewhere you would climb into, and can you find the vent once the lake
-#     has covered it? A dormant volcano you dig into is fine occasionally -- often is not.
-#   - **THE LAKE.** It now chains its own ticks and fills in seconds rather than hours. Does it stop at the
-#     rim, and does a breached rim drain down the flank -- bug or feature?
+#     has covered it?
+#   - **THE LAKE.** It chains its own ticks and fills in seconds. Does it stop at the rim, and does a
+#     breached rim drain down the flank -- bug or feature?
 #   - That PLUGGING works: a solid block over a tube stops the welling. Lava over it must NOT count.
 #   - **CAN YOU TRACK A BOMB?** Gravity is a snowball's on purpose; the counterplay is looking up, reading
-#     where one lands, and moving. If you cannot, nothing else about them matters.
-#   - Is being three or four chunks away genuinely unsafe now, and is that fun or exhausting?
+#     where one lands, and moving. Judged good last walk; confirm it survived the resize.
 #   - That a bomb landing IN lava is inert -- the bound on the whole mechanic. If it still explodes there,
 #     an Age drifts toward being made of lava.
 #   - Whether a full 64-mass at explosion strength 7 is exciting or merely unplayable near a base.
@@ -238,10 +259,9 @@
 #     only a walk shows.
 #   - Do they sit ON the landform convincingly? Try `cliffs` and `alps` as well as `hills` -- a cone
 #     growing out of a cliff face is the case most likely to look wrong.
-#   - Does the blend turn two overlapping aprons into one massif, or leave a crease?
-#   - **A STRAY VENT IN A HILLSIDE.** The crater test is "high, and the ground climbs on three of four
-#     bearings at 50 blocks" -- a deep enough hill valley above y=85 could pass. At most one per basin now,
-#     so the symptom is a lone lava tube somewhere that is not a volcano.
+#   - Does the blend turn two overlapping skirts into one massif, or leave a crease?
+#   - **VENTS AWAY FROM CALDERAS** are an OPEN design question, not a bug -- see design 7.1.2. Nothing is
+#     built. A stray vent in a hillside is expected and fine.
 
 # ══ 9. TEMPERSTONE'S THREE BANDS HAVE NEVER BEEN SEEN ════════════════════════ Built 2026-09-06 ══
 # The whole design is that ONE FORMATION TEACHES THE RULE: stone too close to lava comes out scorched and
