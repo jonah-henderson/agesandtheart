@@ -268,24 +268,27 @@
 #     levelled courses and that stacked three or four deep on the low columns of a rumpled floor, which
 #     with a gap beside them read as lava pillars. One course is held by its own tube whatever the
 #     neighbours do. Judge whether one still reads as "this has been here a while".
-#   - **THE BURIED CLUSTERS.** Small vent seams and rarer larger nests are scattered through the Age's rock
-#     now, undersea and underground included. They are INERT until you dig into one, then they well lava
-#     into the space you made and a nest may start throwing. Measured 5 tube blocks per chunk between
-#     y=-60 and y=60. Judge: are they findable while mining, too common, too rare? Is being attacked by a
-#     nest you just opened good or just nasty?
-#   - That PLUGGING works: a solid block over a tube stops the welling. Lava over it must NOT count.
+#   - **THE BURIED CLUSTERS -- THE ONE REAL ITEM LEFT, AND NOTHING HAS SEEN IT.** Built and shipped; only
+#     the count has ever been measured (5 tube blocks per chunk between y=-60 and y=60, plus rarer nests at
+#     1-in-6 chunks). They are INERT until something opens the rock over them, so they cannot be walked by
+#     standing anywhere -- you have to dig one out.
+#     **HOW TO FIND ONE:** a lava tube emits light level 6, so in spectator mode flying through solid rock
+#     they are visible as a glow. Find one, come back in survival, and mine into it.
+#     WHAT IT HAS TO SETTLE:
+#       * Are they findable while mining ordinarily, or only if you go looking? Too common, too rare?
+#       * **A SEAM you open should give a puddle** -- 4 to 7 tubes buys a pool of about four blocks' reach.
+#       * **A NEST is the one that could be nasty.** Thirty tubes is over the throwing threshold AND over
+#         the point where reach saturates, so opening one in a tunnel means a full-size lake filling the
+#         space you made and bombs starting up in it. Exciting, or does it just end the mine?
+#       * Does an undersea one do anything worth doing, or is it only an obsidian farm?
 #   - **CAN YOU TRACK A BOMB?** Gravity is a snowball's on purpose; the counterplay is looking up, reading
 #     where one lands, and moving. Judged good last walk; confirm it survived the resize.
 #   - That a bomb landing IN lava is inert -- the bound on the whole mechanic. If it still explodes there,
 #     an Age drifts toward being made of lava.
 #   - Whether a full 64-mass at explosion strength 7 is exciting or merely unplayable near a base.
-#   - **FIRE SPREAD.** A hot Age with rain suppressed and lava raining into it could be miserable in a way
-#     only a walk shows.
-#   - Do they sit ON the landform convincingly? Try `cliffs` and `alps` as well as `hills` -- a cone
-#     growing out of a cliff face is the case most likely to look wrong.
 #   - Does the blend turn two overlapping skirts into one massif, or leave a crease?
-#   - **VENTS AWAY FROM CALDERAS** are an OPEN design question, not a bug -- see design 7.1.2. Nothing is
-#     built. A stray vent in a hillside is expected and fine.
+#   - LOW PRIORITY, DEFERRED BY JONAH 2026-09-06: that PLUGGING works -- a solid block over a tube stops
+#     the welling, and lava over it does NOT count. Expected to work; walk it whenever.
 
 # ══ 9. TEMPERSTONE'S THREE BANDS HAVE NEVER BEEN SEEN ════════════════════════ Built 2026-09-06 ══
 # The whole design is that ONE FORMATION TEACHES THE RULE: stone too close to lava comes out scorched and
