@@ -22,7 +22,12 @@ import net.minecraft.world.level.block.state.BlockState
  */
 class LavaTubeBlock(properties: BlockBehaviour.Properties) : Block(properties) {
 
+    /**
+     * Most lava tubes in an Age are buried and inert, so this leaves early on the cheapest question there
+     * is: a cluster with stone over it wells nothing and throws nothing until something digs it out.
+     */
     override fun randomTick(state: BlockState, level: ServerLevel, at: BlockPos, random: RandomSource) {
+        if (LavaTubes.plugged(level, at)) return
         LavaTubes.erupt(level, at)
         keepFilling(level, at)
     }

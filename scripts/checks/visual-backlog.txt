@@ -247,8 +247,19 @@
 #     each other. Judge whether volcanic country still reads as country.
 #   - Does the caldera look like somewhere you would climb into, and can you find the vent once the lake
 #     has covered it?
-#   - **THE LAKE.** It chains its own ticks and fills in seconds. Does it stop at the rim, and does a
-#     breached rim drain down the flank -- bug or feature?
+#   - **THE LAKE NOW REFUSES TO LEAK.** A level of pool is walked in full before anything is laid, and a
+#     level that reaches open space with nothing under it is abandoned entirely -- which is what stops a
+#     vent on open ground hanging a disc of lava in the air. **The consequence to judge: a caldera whose
+#     rim is breached below the brim fills to the breach and stops, and one breached at floor level never
+#     fills at all.** That is a good mechanic (cut the rim to drain a volcano) and a bad accident (a warped
+#     rim that leaks by chance leaves a volcano dry). Which one it reads as is the walk.
+#   - **THE CALDERA ARRIVES WITH LAVA IN IT** -- two courses over the vent, laid at generation, so a
+#     volcano looks like it has been erupting for an age rather than for four seconds. Is two enough?
+#   - **THE BURIED CLUSTERS.** Small vent seams and rarer larger nests are scattered through the Age's rock
+#     now, undersea and underground included. They are INERT until you dig into one, then they well lava
+#     into the space you made and a nest may start throwing. Measured 5 tube blocks per chunk between
+#     y=-60 and y=60. Judge: are they findable while mining, too common, too rare? Is being attacked by a
+#     nest you just opened good or just nasty?
 #   - That PLUGGING works: a solid block over a tube stops the welling. Lava over it must NOT count.
 #   - **CAN YOU TRACK A BOMB?** Gravity is a snowball's on purpose; the counterplay is looking up, reading
 #     where one lands, and moving. Judged good last walk; confirm it survived the resize.

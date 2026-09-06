@@ -7,6 +7,7 @@ import co.voik.agesandtheart.worldgen.field.TerrainField
 import net.minecraft.core.BlockPos
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.WorldGenLevel
+import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.levelgen.feature.Feature
 import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration
@@ -142,20 +143,48 @@ object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration
     private fun seat(level: WorldGenLevel, land: TerrainField, floor: BlockPos, random: RandomSource): Boolean {
         val reach = NARROWEST_VENT + random.nextInt(WIDEST_VENT - NARROWEST_VENT + 1)
         val depth = SHALLOWEST_VENT + random.nextInt(DEEPEST_VENT - SHALLOWEST_VENT + 1)
-        var seated = false
+        val crowns = mutableListOf<BlockPos>()
         for ((offsetX, offsetZ) in discOf(reach)) {
             val x = floor.x + offsetX
             val z = floor.z + offsetZ
             val surface = surfaceAt(land, x, z)
             if (abs(surface - floor.y) > FLOOR_RELIEF) continue
+            var seated = false
             for (course in 0..<depth) {
                 val at = BlockPos(x, surface - course, z)
                 if (!level.getBlockState(at).isSolidRender) continue
                 level.setBlock(at, AgeContent.LAVA_TUBE_BLOCK.defaultBlockState(), UPDATE_NONE)
                 seated = true
             }
+            if (seated) crowns += BlockPos(x, surface, z)
         }
-        return seated
+        prime(level, crowns)
+        return crowns.isNotEmpty()
+    }
+
+    /**
+     * A little lava standing on the vents from the moment the chunk is made (Jonah, 2026-09-06).
+     *
+     * **A volcano you walk up to should have been erupting for an age, not for four seconds.** The pool a
+     * mass wells is laid at runtime, so an unvisited caldera arrived bone dry and began filling as you
+     * watched it — which reads as a volcano that has just switched on. Priming it is two courses over the
+     * vent and nothing else: the rest of the crater still fills the ordinary way, so what a walk sees is a
+     * lake that was already there *widening*, which is the thing that was wanted.
+     *
+     * Laid to one level rather than following the floor, because a pond is level and the vents are sunk
+     * from their own surfaces. Air only — a cluster buried in rock has nowhere to put it, and one under
+     * water would only make stone.
+     */
+    private fun prime(level: WorldGenLevel, crowns: List<BlockPos>) {
+        if (crowns.isEmpty()) return
+        val brim = crowns.maxOf { it.y } + PRIMED_DEPTH
+        for (crown in crowns) {
+            for (y in crown.y + ONE..brim) {
+                val at = BlockPos(crown.x, y, crown.z)
+                if (!level.getBlockState(at).isAir) break
+                level.setBlock(at, Blocks.LAVA.defaultBlockState(), UPDATE_NONE)
+            }
+        }
     }
 
     /**
@@ -210,6 +239,11 @@ object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration
 
     /** Coarse: a caldera is tens of blocks across, so every fourth column finds it. */
     private const val STRIDE = 4
+
+    /** How much lava a fresh caldera arrives with, over the vent — enough to read as established. */
+    private const val PRIMED_DEPTH = 2
+
+    private const val ONE = 1
 
     /** Below the world, so an empty column can never be mistaken for a crater floor or a rim. */
     private const val NO_ROCK = Int.MIN_VALUE / 2

@@ -18,6 +18,12 @@
 #     minecraft:overworld run …` and `execute in agesandtheart:volc run …` returned the same count, so the
 #     count is server-wide. Fine for "did anything erupt", useless for "in which dimension" — position the
 #     selector and read `Pos` if that is the question.
+#   - **`/clone … filtered` IS the block census this project had written off as impossible.** Cloning a
+#     region into a far corner of the same throwaway world answers "Successfully cloned N block(s)", where
+#     N counts the filtered block — so this says what generation actually placed:
+#       execute in agesandtheart:volc run clone 0 -60 0 15 60 15 2000 -60 2000 filtered agesandtheart:lava_tube
+#     Both regions must be forceloaded, and vanilla's 32768-block limit caps one query at about a chunk by
+#     128 deep. It WRITES at the destination, so it belongs here and nowhere near a save somebody plays.
 #   - **A gobbet cannot be caught by sampling.** `LavaDroplet`s live a second or so after a bomb lands, so
 #     `if entity` almost always finds none even when they are working. Summon one instead — it converts
 #     where it lands, which is the whole of what it does:

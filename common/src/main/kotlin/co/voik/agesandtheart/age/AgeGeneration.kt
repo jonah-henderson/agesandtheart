@@ -245,10 +245,18 @@ object AgeGeneration {
             // What is placed, which vanilla's own decoration hook takes it — see [Features] for the seam,
             // and what the Age owes its writer laid over the top of it (design §7.7).
             EarlyGameRareMaterials.laidOver(
-                Deposits.laidOver(
-                    Features.placedIn(server, composition.optionsFor(Aspect.FEATURES, 0), seed, fill.blocks.flatten()),
-                    Danger.of(server, recipe),
-                    fill.blocks.flatten(),
+                Volcanoes.laidOver(
+                    Deposits.laidOver(
+                        Features.placedIn(
+                            server,
+                            composition.optionsFor(Aspect.FEATURES, 0),
+                            seed,
+                            fill.blocks.flatten(),
+                        ),
+                        Danger.of(server, recipe),
+                        fill.blocks.flatten(),
+                    ),
+                    composition,
                 ),
                 EarlyGameRareMaterials.grownIn(
                     composition,

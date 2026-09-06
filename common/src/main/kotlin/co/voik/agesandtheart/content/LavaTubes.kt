@@ -72,12 +72,18 @@ object LavaTubes {
     }
 
     /**
-     * Lay some of the lava this mass owes its caldera, up to [POURED_PER_TICK], and say how much went in.
+     * Lay some of the lava this mass owes the hollow above it, up to [POURED_PER_TICK], and say how much
+     * went in.
      *
-     * **Outward first, then upward**, so a pool spreads across the crater floor before it deepens — which
-     * is what makes a wide shallow caldera fill like a lake rather than a column. The spread runs only
-     * through what a fluid could occupy, so the crater walls contain it without anything having to know
-     * where they are.
+     * **A level at a time, and only a level that is held in.** A pool is filled from the bottom up, one
+     * whole layer per pass, and a layer that reaches somewhere the lava would run *off* is abandoned
+     * entirely rather than partly laid — which is what stops a vent on open ground hanging a disc of lava
+     * in the air and cascading it down the hillside (Jonah, walked). What is left is a pool that rises to
+     * the brim of whatever holds it and no further.
+     *
+     * The consequence worth knowing: **a caldera whose rim is breached below the brim fills to the breach
+     * and stops**, and one breached at the floor never fills at all. That makes cutting the rim a second,
+     * permanent way to silence a volcano's lake, beside plugging the vents.
      *
      * Lava is placed as **source blocks in a computed volume, never allowed to flow**. Flowing is the
      * expensive half, and a computed pool is idempotent: running this again over a full caldera walks the
@@ -86,41 +92,62 @@ object LavaTubes {
     fun pour(level: ServerLevel, at: BlockPos): Int {
         if (plugged(level, at)) return NOTHING_POURED
         val mass = massAround(level, at)
-        val ceiling = mass.maxOf { it.y } + depthOf(mass)
-        // The reach is measured from one point rather than from every block of the mass: a mass is a
-        // small disc, so the answers differ by a block or two, and asking sixty-four of them per candidate
-        // is the whole cost of a pool that runs to thousands.
-        val middleX = mass.sumOf { it.x } / mass.size
-        val middleZ = mass.sumOf { it.z } / mass.size
-        val seen = HashSet<BlockPos>(mass)
-        var frontier = mass.map { it.above() }.filter { it !in mass }
+        val brim = mass.maxOf { it.y } + depthOf(mass)
         var poured = 0
-        while (frontier.isNotEmpty() && poured < POURED_PER_TICK) {
-            val next = mutableListOf<BlockPos>()
-            for (position in frontier) {
-                if (poured >= POURED_PER_TICK) break
-                if (!seen.add(position)) continue
-                if (position.y > ceiling) continue
-                if (!withinReach(position, middleX, middleZ)) continue
-                val state = level.getBlockState(position)
-                if (state.blocksMotion()) continue
-                if (!state.`is`(Blocks.LAVA)) {
-                    level.setBlockAndUpdate(position, Blocks.LAVA.defaultBlockState())
-                    poured++
-                }
-                // Sideways before up, so the frontier finishes a floor before it climbs.
-                Direction.Plane.HORIZONTAL.forEach { way -> next += position.relative(way) }
-                next += position.above()
+        var resting: Collection<BlockPos> = mass
+        var height = mass.maxOf { it.y } + ONE
+        while (height <= brim) {
+            val layer = heldLayer(level, height, resting) ?: break
+            if (layer.isEmpty()) break
+            for (position in layer) {
+                if (poured >= POURED_PER_TICK) return poured
+                if (level.getBlockState(position).`is`(Blocks.LAVA)) continue
+                level.setBlockAndUpdate(position, Blocks.LAVA.defaultBlockState())
+                poured++
             }
-            frontier = next
+            resting = layer
+            height++
         }
         return poured
     }
 
-    private fun withinReach(position: BlockPos, middleX: Int, middleZ: Int): Boolean {
-        val spreadX = (position.x - middleX).toDouble()
-        val spreadZ = (position.z - middleZ).toDouble()
-        return spreadX * spreadX + spreadZ * spreadZ <= REACH_FROM_THE_MASS * REACH_FROM_THE_MASS
+    /**
+     * The whole of one level of pool standing on [resting], or **null where it would run off**.
+     *
+     * The walk spreads sideways through anything a fluid could occupy and stops at anything that blocks
+     * motion, which is a wall holding the pool in. Reaching open space with *nothing under it* is the
+     * other outcome, and it is not a smaller pool — it is a leak, and the level cannot stand at all.
+     *
+     * Bounded by [MOST_IN_A_LAYER] as well: a level too big to walk is one this cannot show is held in, and
+     * refusing it is both the cheap answer and the right one.
+     */
+    private fun heldLayer(level: ServerLevel, height: Int, resting: Collection<BlockPos>): Set<BlockPos>? {
+        val found = LinkedHashSet<BlockPos>()
+        val queue = ArrayDeque<BlockPos>()
+        for (under in resting) {
+            val seed = under.above()
+            if (seed.y != height) continue
+            if (level.getBlockState(seed).blocksMotion()) continue
+            queue += seed
+        }
+        while (queue.isNotEmpty()) {
+            val here = queue.removeFirst()
+            if (!found.add(here)) continue
+            if (found.size > MOST_IN_A_LAYER) return null
+            for (way in Direction.Plane.HORIZONTAL) {
+                val neighbour = here.relative(way)
+                if (level.getBlockState(neighbour).blocksMotion()) continue
+                if (!heldUp(level, neighbour)) return null
+                queue += neighbour
+            }
+        }
+        return found
+    }
+
+    /** Whether there is anything under [at] for lava to rest on — the rock it sits in, or its own pool. */
+    private fun heldUp(level: BlockGetter, at: BlockPos): Boolean {
+        val under = level.getBlockState(at.below())
+        return under.blocksMotion() || under.`is`(Blocks.LAVA)
     }
 
     /**
@@ -173,8 +200,13 @@ object LavaTubes {
      */
     private const val POURED_PER_TICK = 128
 
-    /** Far enough to flood the widest caldera floor, short enough that a breached rim does not drain. */
-    private const val REACH_FROM_THE_MASS = 22.0
+    /**
+     * How wide a single level of pool may be before this gives up on showing it is held in.
+     *
+     * Comfortably past the widest caldera floor, and it is the only size bound left — a pool no longer has
+     * a radius, it has a container.
+     */
+    private const val MOST_IN_A_LAYER = 2048
 
     private const val ONE = 1
     private const val NOTHING_POURED = 0
