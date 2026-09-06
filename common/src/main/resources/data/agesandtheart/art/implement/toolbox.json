@@ -1,7 +1,0 @@
-{
-  "_comment": "Furniture, and the least of what a toolbox does -- see the block for the rest. Grants no named capability but counts toward the desk's tier, because the room matters as a room.",
-  "blocks": [
-    "agesandtheart:toolbox"
-  ],
-  "grants": []
-}
