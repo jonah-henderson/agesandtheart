@@ -32,7 +32,18 @@
     "reads as an oversight and this reads as a ruling.",
     "",
     "`lighting` counts only insofar as it drives mob pressure. Sealed is worse than merely sunless: a roof",
-    "means what walks under it walks at noon as well."
+    "means what walks under it walks at noon as well.",
+    "",
+    "RETUNED 2026-09-06 (Jonah): BEING NETHER-LIKE IS NO LONGER SUFFICIENT. Lava fell 1.0 -> 0.7 and the",
+    "roof 0.8 -> 0.55 (sunless 0.5 -> 0.35 with it, so the roof stays worse than mere darkness), while every",
+    "phenomenon that does something to you rose. The rule this encodes: a world merely MADE of bad stuff is",
+    "less dangerous than one ACTIVELY THROWING THINGS AT YOU, and a straight copy of the nether should read",
+    "as scenery rather than as a hazard. It also separates two gates that were colliding -- the heat-altered",
+    "early material wants hot-and-lava-rich Ages, and deretheni wants dangerous ones, and before this the",
+    "most obvious Age was both.",
+    "",
+    "EVERY MEASURED SCORE RECORDED BEFORE THIS DATE IS STALE, including the calibration neighbourhood in",
+    "scripts/checks/visual-backlog.txt item 1 and the 0.45 that was about to be written into `pays_above`."
   ],
 
   "weights": {
@@ -50,7 +61,7 @@
   "wound_hostility": 0.5,
 
   "materials": {
-    "minecraft:lava": 1.0,
+    "minecraft:lava": 0.7,
     "minecraft:fire": 0.9,
     "minecraft:soul_fire": 0.9,
     "minecraft:tnt": 0.7,
@@ -95,16 +106,16 @@
   },
 
   "phenomena": {
-    "inferno": 0.9,
-    "blizzard": 0.6,
-    "sandfall": 0.6,
-    "tempest": 0.5,
+    "inferno": 1.0,
+    "blizzard": 0.8,
+    "sandfall": 0.8,
+    "tempest": 0.7,
     "aurora": 0.0,
     "rainbow": 0.0
   },
 
   "lighting": {
-    "sealed": 0.8,
-    "lightless": 0.5
+    "sealed": 0.55,
+    "lightless": 0.35
   }
 }
