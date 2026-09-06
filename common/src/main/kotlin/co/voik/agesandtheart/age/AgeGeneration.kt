@@ -32,6 +32,7 @@ import co.voik.agesandtheart.location
 import co.voik.agesandtheart.worldgen.AgeChunkGenerator
 import co.voik.agesandtheart.worldgen.AgeRock
 import co.voik.agesandtheart.worldgen.CeilingField
+import co.voik.agesandtheart.worldgen.VolcanoField
 import co.voik.agesandtheart.worldgen.SpireChunkGenerator
 import co.voik.agesandtheart.worldgen.VerticalWindow
 import co.voik.agesandtheart.worldgen.VanillaDelegate
@@ -55,6 +56,7 @@ import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.age.word.Vocabulary
 import co.voik.agesandtheart.age.aspect.Structures
 import co.voik.agesandtheart.age.aspect.Sky
+import co.voik.agesandtheart.age.aspect.Volcanoes
 import co.voik.agesandtheart.age.aspect.Surface
 
 /**
@@ -467,16 +469,22 @@ object AgeGeneration {
         // — no skylight, and open air to the top of the world (Jonah, 2026-08-14, walked).
         val lid = if (!Sky.isRoofed(composition.optionsFor(Aspect.SKY))) null
         else CeilingField.over(window, seed)
+        // Volcanoes stand *on* whatever landform the Age has rather than replacing it, so they are a layer
+        // over the finished rock — the same shape of thing a roof is, and read from the same recipe fact
+        // the lava tubes and the danger evaluator read.
+        val cones = if (Volcanoes.askedFor(composition)) VolcanoField.over(seed) else null
+        val standingRock = Union(listOfNotNull(shape, cones, lid)).takeIf { cones != null || lid != null }
         return OurGround(
             // The rock the underground was taken out of is **handed to the generator rather than to the
             // sea**. A flat waterline fills any empty space beneath it, so a shape-cut cave or hall comes
             // out flooded to the roof; making it simply *dry* instead would only trade one uniform answer
             // for the other. What that space wants is the same three-way `WaterTable` a carved cave meets.
             AgeRock.Ours(
-                field = if (lid == null) shape else Union(listOf(shape, lid)),
+                field = standingRock ?: shape,
                 hollows = openedBy(hollowedRock(grounds, ground), riftCut),
-                // The land kept apart from the lid, since a ceiling is not ground however solid it is.
-                ground = shape.takeIf { lid != null },
+                // The land kept apart from the lid, since a ceiling is not ground however solid it is. A
+                // cone is ground, so it stays in — what this separates is the roof, not everything added.
+                ground = Union(listOfNotNull(shape, cones)).takeIf { lid != null },
             ),
             chasm = keptDry(riftCut, grounds, ground),
             standing = carriedWater(composition, landmass.seam, ground, seed, torn),
