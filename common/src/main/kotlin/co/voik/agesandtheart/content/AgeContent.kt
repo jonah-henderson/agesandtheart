@@ -79,6 +79,7 @@ import net.minecraft.world.level.levelgen.carver.CarverConfiguration
 import co.voik.agesandtheart.worldgen.feature.Formation
 import co.voik.agesandtheart.worldgen.feature.RimeCrystal
 import co.voik.agesandtheart.worldgen.feature.SpilledSpring
+import co.voik.agesandtheart.worldgen.feature.TemperedGround
 import net.minecraft.world.level.levelgen.feature.Feature
 import net.minecraft.world.level.levelgen.carver.WorldCarver
 import net.minecraft.world.level.storage.loot.functions.LootItemFunction
@@ -376,6 +377,101 @@ object AgeContent {
 
     /** A boot's, and they take the wear of one. */
     private const val SKATE_DURABILITY = 195
+
+    private val TEMPERSTONE_ID: Identifier = "temperstone".location()
+    private val SCORCHED_TEMPERSTONE_ID: Identifier = "scorched_temperstone".location()
+    private val RAW_TEMPERSTONE_ID: Identifier = "raw_temperstone".location()
+    private val TEMPERSTONE_CLIMBERS_ID: Identifier = "temperstone_climbers".location()
+
+    /**
+     * Stone baked at the right distance from lava (design §7.1.2) — the second early material.
+     *
+     * A stone's mining time with obsidian's blast resistance: the two numbers answer different questions,
+     * and obsidian's strength would make the stuff a chore to gather. Climbable while
+     * [TEMPERSTONE_CLIMBERS] are worn — see [co.voik.agesandtheart.content.Temperstone].
+     */
+    val TEMPERSTONE_BLOCK: Block = TemperstoneBlock(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, TEMPERSTONE_ID))
+            .mapColor(MapColor.DEEPSLATE)
+            .strength(TEMPERSTONE_STRENGTH, BLAST_PROOF)
+            .sound(SoundType.BASALT)
+            .requiresCorrectToolForDrops(),
+    )
+
+    /**
+     * The untempered form: the outermost band of a formation, and what turns up in blobs elsewhere.
+     *
+     * Random-ticks so that a block left near lava bakes where it lies, which is what lets a player work the
+     * rule the ground taught them — see [co.voik.agesandtheart.content.RawTemperstoneBlock].
+     */
+    val RAW_TEMPERSTONE_BLOCK: Block = RawTemperstoneBlock(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, RAW_TEMPERSTONE_ID))
+            .mapColor(MapColor.STONE)
+            .strength(TEMPERSTONE_STRENGTH)
+            .sound(SoundType.STONE)
+            .randomTicks()
+            .requiresCorrectToolForDrops(),
+    )
+
+    /**
+     * The band that sat too close to the heat: cooked past use as a stone, and ground down for gunpowder.
+     */
+    val SCORCHED_TEMPERSTONE_BLOCK: Block = Block(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, SCORCHED_TEMPERSTONE_ID))
+            .mapColor(MapColor.COLOR_BLACK)
+            .strength(SCORCHED_STRENGTH)
+            .sound(SoundType.NETHERRACK),
+    )
+
+    val TEMPERSTONE: Item = BlockItem(
+        TEMPERSTONE_BLOCK,
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, TEMPERSTONE_ID)).useBlockDescriptionPrefix(),
+    )
+
+    val SCORCHED_TEMPERSTONE: Item = BlockItem(
+        SCORCHED_TEMPERSTONE_BLOCK,
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, SCORCHED_TEMPERSTONE_ID))
+            .useBlockDescriptionPrefix(),
+    )
+
+    val RAW_TEMPERSTONE: Item = BlockItem(
+        RAW_TEMPERSTONE_BLOCK,
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, RAW_TEMPERSTONE_ID)).useBlockDescriptionPrefix(),
+    )
+
+    /**
+     * Temperstone underfoot — see [co.voik.agesandtheart.content.Temperstone] for what wearing them does.
+     *
+     * Equippable rather than armour, for the reason the skates are: they defend nothing.
+     */
+    val TEMPERSTONE_CLIMBERS: Item = Item(
+        Item.Properties()
+            .setId(ResourceKey.create(Registries.ITEM, TEMPERSTONE_CLIMBERS_ID))
+            .stacksTo(1)
+            .durability(CLIMBER_DURABILITY)
+            .component(
+                DataComponents.EQUIPPABLE,
+                Equippable.builder(EquipmentSlot.FEET)
+                    .setAsset(EquipmentAssets.LEATHER)
+                    .setEquipSound(SoundEvents.ARMOR_EQUIP_GENERIC)
+                    .build(),
+            ),
+    )
+
+    /** A stone's mining time, so gathering it is not a chore. */
+    private const val TEMPERSTONE_STRENGTH = 1.5f
+
+    /** Obsidian's, which is the point of the material. */
+    private const val BLAST_PROOF = 1200.0f
+
+    /** Netherrack's: it crumbles, which is what being cooked too hard means. */
+    private const val SCORCHED_STRENGTH = 0.4f
+
+    /** A boot's, like the skates. */
+    private const val CLIMBER_DURABILITY = 195
 
     private val TOOLBOX_ID: Identifier = "toolbox".location()
     private val GEOLOGISTS_TOOLS_ID: Identifier = "geologists_tools".location()
@@ -737,6 +833,9 @@ object AgeContent {
         DEEPSLATE_PITCHSTONE_ORE_ID to DEEPSLATE_PITCHSTONE_ORE_BLOCK,
         PITCHSTONE_BLOCK_ID to PITCHSTONE_BLOCK_BLOCK,
         RIME_CRYSTAL_ID to RIME_CRYSTAL_BLOCK,
+        TEMPERSTONE_ID to TEMPERSTONE_BLOCK,
+        SCORCHED_TEMPERSTONE_ID to SCORCHED_TEMPERSTONE_BLOCK,
+        RAW_TEMPERSTONE_ID to RAW_TEMPERSTONE_BLOCK,
         TOOLBOX_ID to TOOLBOX_BLOCK,
         GEOLOGISTS_TOOLS_ID to GEOLOGISTS_TOOLS_BLOCK,
     )
@@ -891,6 +990,10 @@ object AgeContent {
         PITCHSTONE_BOOTS_ID to PITCHSTONE_BOOTS,
         RIME_CRYSTAL_ID to RIME_CRYSTAL,
         RIME_SKATES_ID to RIME_SKATES,
+        TEMPERSTONE_ID to TEMPERSTONE,
+        SCORCHED_TEMPERSTONE_ID to SCORCHED_TEMPERSTONE,
+        RAW_TEMPERSTONE_ID to RAW_TEMPERSTONE,
+        TEMPERSTONE_CLIMBERS_ID to TEMPERSTONE_CLIMBERS,
         TOOLBOX_ID to TOOLBOX,
         GEOLOGISTS_TOOLS_ID to GEOLOGISTS_TOOLS,
     )
@@ -973,5 +1076,6 @@ object AgeContent {
         "spilled_spring".location() to SpilledSpring,
         "formation".location() to Formation,
         "rime_crystal".location() to RimeCrystal,
+        "tempered_ground".location() to TemperedGround,
     )
 }

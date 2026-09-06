@@ -1,0 +1,4 @@
+{
+  "_comment": "minecraft:block/netherrack stands in until the model pass.",
+  "variants": { "": { "model": "minecraft:block/netherrack" } }
+}

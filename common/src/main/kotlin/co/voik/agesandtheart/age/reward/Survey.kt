@@ -16,11 +16,11 @@ import net.minecraft.server.MinecraftServer
  * word that the writer themselves cannot unpack. The lesson — that the Ages surveying well are the ones
  * with hazards written into them — is left to be noticed rather than told.
  *
- * **[deposit] carries no number and [character] carries no amount**, which is the split §7.7 asks for: the
- * danger material is one name, so all of its information is in how much there is, where the character
+ * **[deposit] carries no number and [earlyMaterials] carries no amount**, which is the split §7.7 asks
+ * for: the danger material is one name, so all of its information is in how much there is, where the early
  * materials are several and a name a writer does not recognise is already a lure.
  */
-data class Survey(val deposit: Yield, val character: Set<CharacterMaterial>) {
+data class Survey(val deposit: Yield, val earlyMaterials: Set<EarlyGameRareMaterial>) {
 
     companion object {
         /** What the Age this composition describes would hold, on the server about to be asked to build it. */
@@ -45,7 +45,7 @@ data class Survey(val deposit: Yield, val character: Set<CharacterMaterial>) {
             val spending = Spending.of(instability.index, prices, seed)
             return Survey(
                 deposit = Yield.forVeins(Deposits.veinsPerChunk(danger)),
-                character = CharacterMaterials.grownIn(composition, spending, prices),
+                earlyMaterials = EarlyGameRareMaterials.grownIn(composition, spending, prices),
             )
         }
     }

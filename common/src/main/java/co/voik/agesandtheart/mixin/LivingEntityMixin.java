@@ -1,15 +1,18 @@
 package co.voik.agesandtheart.mixin;
 
 import co.voik.agesandtheart.content.RimeSkates;
+import co.voik.agesandtheart.content.Temperstone;
 import co.voik.agesandtheart.content.Toolbox;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * Lets a toolbox hand you a spare when a tool breaks in your hands.
@@ -55,5 +58,42 @@ public abstract class LivingEntityMixin {
     private float agesandtheart$skatingOverIt(float blockFriction) {
         Float skated = RimeSkates.underfoot((LivingEntity) (Object) this);
         return skated == null ? blockFriction : skated;
+    }
+
+    /**
+     * Lets temperstone climbers make any face of the stuff a ladder.
+     *
+     * <p>Climbability is normally the block's own business through {@code BlockTags.CLIMBABLE}, and a tag
+     * cannot say "only for the entity wearing these". NeoForge has an entity-aware {@code isLadder} hook
+     * where Fabric has nothing equivalent, so {@link LivingEntity#onClimbable} is the seam both share.
+     *
+     * <p>It only ever widens the answer: the return is set solely to {@code true}, so vanilla decides every
+     * case this does not claim.
+     *
+     * @see co.voik.agesandtheart.content.Temperstone
+     */
+    @Inject(method = "onClimbable", at = @At("HEAD"), cancellable = true)
+    private void agesandtheart$climbingIt(CallbackInfoReturnable<Boolean> callback) {
+        if (Temperstone.climbing((LivingEntity) (Object) this)) {
+            callback.setReturnValue(true);
+        }
+    }
+
+    /**
+     * Lets a climber hold station on temperstone instead of sliding as a ladder does.
+     *
+     * <p>{@code handleOnClimbable} is private, and identical on both loaders — NeoForge patches only the
+     * scaffolding test beside it. Modifying the returned vector rather than the {@code yd} local keeps this
+     * off the shape of a method body that has already been patched once.
+     *
+     * @see co.voik.agesandtheart.content.Temperstone#heldOn
+     */
+    @Inject(method = "handleOnClimbable", at = @At("RETURN"), cancellable = true)
+    private void agesandtheart$holdingOn(Vec3 delta, CallbackInfoReturnable<Vec3> callback) {
+        Vec3 climbed = callback.getReturnValue();
+        Double held = Temperstone.heldOn((LivingEntity) (Object) this, climbed.y);
+        if (held != null) {
+            callback.setReturnValue(new Vec3(climbed.x, held, climbed.z));
+        }
     }
 }

@@ -1,7 +1,7 @@
 package co.voik.agesandtheart.desk
 
 import co.voik.agesandtheart.Constants
-import co.voik.agesandtheart.age.reward.CharacterMaterial
+import co.voik.agesandtheart.age.reward.EarlyGameRareMaterial
 import co.voik.agesandtheart.age.reward.Survey
 import co.voik.agesandtheart.age.reward.Yield
 import co.voik.agesandtheart.age.word.InkTier
@@ -110,13 +110,13 @@ data class DeskSyncPayload(
             },
         )
 
-        private val MATERIAL_STREAM: StreamCodec<ByteBuf, CharacterMaterial> =
-            ByteBufCodecs.idMapper({ CharacterMaterial.entries[it] }, { it.ordinal })
+        private val MATERIAL_STREAM: StreamCodec<ByteBuf, EarlyGameRareMaterial> =
+            ByteBufCodecs.idMapper({ EarlyGameRareMaterial.entries[it] }, { it.ordinal })
 
         private val SURVEY_STREAM: StreamCodec<ByteBuf, Survey> = StreamCodec.of(
             { buffer, value ->
                 ByteBufCodecs.VAR_INT.encode(buffer, value.deposit.ordinal)
-                MATERIAL_STREAM.apply(ByteBufCodecs.list()).encode(buffer, value.character.toList())
+                MATERIAL_STREAM.apply(ByteBufCodecs.list()).encode(buffer, value.earlyMaterials.toList())
             },
             { buffer ->
                 Survey(

@@ -1,0 +1,12 @@
+{
+  "_comment": "Temperstone spiked into a boot, which is what a set of pole climbers is. Shaped like the skates, since the arrangement says the same thing: what goes under the foot is what the boot does.",
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "L": "minecraft:leather_boots",
+    "N": "minecraft:iron_nugget",
+    "T": "agesandtheart:temperstone"
+  },
+  "pattern": [" L ", "NTN"],
+  "result": { "id": "agesandtheart:temperstone_climbers" }
+}

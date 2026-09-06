@@ -10,6 +10,7 @@
     "LivingEntityMixin",
     "MerchantQuickMoveMixin",
     "MerchantResultSlotMixin",
+    "PistonStructureResolverMixin",
     "ServerLevelMixin",
     "ServerPlayerMixin"
   ],

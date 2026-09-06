@@ -3,10 +3,21 @@
     "Blocks so potent that only the finest ink can hold them (design 7.1.1: 'a small ink cannot hold a",
     "mighty one'). This is also the always-on brake on treasure Ages -- a sea of diamonds costs a sea of",
     "the rarest ink. Other mods extend this with their own materials by adding to the tag.",
-    "Entries are optional-safe: a block from a mod that is not installed is simply skipped."
+    "Entries are optional-safe: a block from a mod that is not installed is simply skipped.",
+    "",
+    "The mod's own stones are here rather than in `forbidden` (2026-09-06): deretheni and temperstone are",
+    "writable, and what stops an Age made of one being free treasure is that it costs the rarest ink there",
+    "is. Same brake as a sea of diamonds, and it keeps the vocabulary honest -- a writer who has seen the",
+    "stuff can name it."
   ],
   "replace": false,
   "values": [
+    "agesandtheart:pitchstone_block",
+    "agesandtheart:pitchstone_ore",
+    "agesandtheart:deepslate_pitchstone_ore",
+    "agesandtheart:temperstone",
+    "agesandtheart:scorched_temperstone",
+    "agesandtheart:raw_temperstone",
     "minecraft:ancient_debris",
     "minecraft:barrier",
     "minecraft:beacon",

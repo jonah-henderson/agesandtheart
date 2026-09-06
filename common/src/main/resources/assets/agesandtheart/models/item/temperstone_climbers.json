@@ -1,0 +1,1 @@
+{ "_comment": "Iron boots stand in until the model pass.", "parent": "minecraft:item/generated", "textures": { "layer0": "minecraft:item/iron_boots" } }

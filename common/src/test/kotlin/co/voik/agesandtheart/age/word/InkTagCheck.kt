@@ -26,14 +26,26 @@ class InkTagCheck : FunSpec({
         JsonParser.parseString(file.readText()).asJsonObject
             .getAsJsonArray("values").map { it.asString }
 
+    /**
+     * Ours are asked of the resource tree rather than the registry.
+     *
+     * `BuiltInRegistries` holds vanilla's blocks and not ours — ours are registered by each loader at
+     * runtime, and `AgeContent` cannot be class-initialised in a spec at all. A blockstate file is what
+     * every real block of ours has, so it catches the thing this check exists for: a typo.
+     */
+    fun exists(named: String): Boolean {
+        val id = Identifier.parse(named)
+        if (id.namespace != "agesandtheart") return BuiltInRegistries.BLOCK.containsKey(id)
+        return File("src/main/resources/assets/agesandtheart/blockstates/${id.path}.json").isFile
+    }
+
     test("every block named by an ink tag exists") {
         MinecraftRegistries.ensureStoodUp()
         val files = File(tagRoot, "block").listFiles { f -> f.name.startsWith("requires_") }.orEmpty()
         check(files.isNotEmpty()) { "No ink tags found under ${tagRoot.absolutePath}/block" }
 
         val missing = files.flatMap { file ->
-            valuesIn(file).filterNot { BuiltInRegistries.BLOCK.containsKey(Identifier.parse(it)) }
-                .map { "${file.name}: $it" }
+            valuesIn(file).filterNot(::exists).map { "${file.name}: $it" }
         }
         check(missing.isEmpty()) { "Ink tags name blocks that do not exist:\n  ${missing.joinToString("\n  ")}" }
     }

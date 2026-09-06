@@ -51,19 +51,31 @@
 # **JONAH'S ANCHOR (2026-09-05): a straight duplicate of the nether — `infernal age`, one page costing 3
 # ink — should JUST BARELY not qualify.** It scores 0.430, so the line goes just above that.
 #
-# Measured 2026-09-05, seed 11, the neighbourhood either side:
-#     0.080  a roof and nothing else
-#     0.180  age ghast spawns
-#     0.300  age inferno phenomena   /   age warden spawns
-#     0.350  a lava sea alone
-#     0.430  age infernal            <-- the anchor: must not pay
-#     0.475  lava + roof + monsters
-#     0.500  lava + inferno
-#     0.580  lava + roof + inferno
+# ┌── THE 2026-09-05 NEIGHBOURHOOD IS STALE. `art/danger.json` WAS RETUNED 2026-09-06 ────────────────┐
+# │ Lava fell 1.0 -> 0.7, the roof 0.55, sunless 0.35, and every phenomenon that does something to you │
+# │ rose. Being nether-like is no longer sufficient to be dangerous: the Age has to be throwing things │
+# │ at you. Every score below the line was re-measured on a server the same day.                       │
+# └────────────────────────────────────────────────────────────────────────────────────────────────────┘
+#
+# Re-measured 2026-09-06, seed 11:
+#     0.000  a quiet Age
+#     0.122  half a lava sea
+#     0.245  a lava sea alone
+#     0.300  age infernal            <-- the anchor: must not pay
+#     0.333  age inferno phenomena   <-- and this one SHOULD
 #     0.720  age teeming ghast spawns
 #
-# The gap is 0.430 -> 0.475, so the line is somewhere in it. **0.45 sits dead centre** and gives a rule
-# worth stating: one template word never pays; the template plus one deliberate hazard does.
+# **THE RETUNE BOUGHT THE INVERSION THAT WAS WANTED.** Before it, a world made of lava under a roof
+# (0.430) outscored a world actively raining fire on you (0.300). Now it is the other way round, by the
+# narrow margin the threshold has to thread: **0.300 -> 0.333.**
+#
+# The old anchor still applies -- a straight nether duplicate must JUST BARELY not pay -- so the line now
+# wants to sit just above 0.300 rather than the 0.45 that was about to be written down. Roughly **0.31**,
+# which keeps the rule intact: the template alone never pays; the template plus one deliberate hazard does.
+# THE GAP IS NARROWER THAN IT WAS (0.033 against 0.045). If a walk finds that uncomfortable, the dial to
+# turn is the WEIGHTS rather than these values -- shifting `phenomena` up and `materials`/`lighting` down
+# widens exactly this gap and nothing else. That was deliberately NOT done at the same time, so this
+# measurement would attribute to one change.
 #
 # TWO THINGS TO DECIDE WITH IT, because both follow from the same number:
 #   - `allowsRuins` is this threshold read backwards. Moving it to 0.45 flips lava-only, inferno-only,
@@ -121,9 +133,14 @@
 #     world you raid once — or the x10 may want pulling back. This is a judgement, not a measurement.
 #   - That the fissures actually reach it and eat it, which is the whole point of siting it in the tear.
 #   - That racing them is FUN rather than merely fatal.
-#   - NOT CHECKABLE AT THE DESK. `unstable=` is an operator override, so no sentence produces this Age and
-#     the survey cannot be asked about it. Whether a *written* book can reach full collapse at all is its
-#     own open question, and until it can, the top band is unreachable in play.
+#   - NOT CHECKABLE AT THE DESK *YET*. `unstable=` is an operator override, so no sentence produces this
+#     Age today and the survey cannot be asked about it.
+#     **CORRECTED 2026-09-06 (Jonah): that a written book cannot reach full collapse is a VOCABULARY GAP,
+#     NOT A DESIGN RULE.** An earlier note here read as though terminal Ages were deliberately fenced off
+#     from writers. They are not, and never were — the corpus simply could not yet express enough
+#     instability to reach the top of the ladder, and the limitation got codified by being written down.
+#     Writers are absolutely meant to be able to write an Age that collapses, and as the vocabulary grows
+#     they will. Do not design around this as a constraint.
 
 # ══ 5. THE RIME CRYSTALS AND THE SKATES HAVE NEVER BEEN SEEN OR WORN ═════════ Built 2026-09-05 ══
 # The placement was instrumented on a server — 118 sheer faces to 87 crystals over 64 chunks of a `cliffs`
@@ -151,6 +168,48 @@
 #     resolves to `landmass=alps`, which yields ZERO — it is the landform whose name most says "cold
 #     mountains" and the one word a player would reach for. Bug to fix, or a thing to teach?
 #   - THE SKATES: 2.26x a walk at terminal speed, no brakes, a ledge a real hazard. Fun, or just fast?
+
+# ══ 9. TEMPERSTONE'S THREE BANDS HAVE NEVER BEEN SEEN ════════════════════════ Built 2026-09-06 ══
+# The whole design is that ONE FORMATION TEACHES THE RULE: stone too close to lava comes out scorched and
+# worthless, stone at the right remove is temperstone, stone beyond that never changed. If a player cannot
+# read that off the ground without being told, the material has no reason to exist in this shape.
+#
+# The gate is checked offline (`EarlyGameRareMaterialsCheck`, 5 tests) and the `forbidden` fence is checked
+# on a server (`scripts/checks/temperstone.txt` — all three exploit compositions were refused). Neither can
+# see a placed block: there is no block census command, and `/age probe` reads the generator rather than
+# what decoration laid down.
+#
+# Composed, not written: no word reaches a numeric temperature span yet, so the gate sentence is still open.
+/age compose baked 11 landmass=hills sea=lava rock=solid sky=plain climate.temperature=0.6..0.9
+/age tp baked
+#
+# WHAT A WALK HAS TO SETTLE:
+#   - **THAT THE FOUR BANDS ARE LEGIBLE AS BANDS.** Scorched at 1, temperstone at 2-3, raw at 4-5, ordinary
+#     ground beyond. THIS IS THE WHOLE FEATURE: "this far is too far, this close is too close, this
+#     distance gets you the good stuff." If the eye cannot separate them at the lava's edge, the
+#     thicknesses are wrong -- and smooth basalt / netherrack / tuff are standing in for all three, so
+#     judge the SHAPE and not the colour.
+#   - Whether one lava sea yields far too much temperstone. The bands are a skin on the contact area,
+#     which for a sea is large.
+#   - That the scorched band reads as SPOILED rather than as a second reward. It is the toll.
+#   - **THAT THE PRACTICE WORKS, which is the half the formation only teaches.** Mine raw temperstone from
+#     a blob (14 a chunk, size 9 -- deliberately common), carry it to lava, place it at the right remove,
+#     and wait for the random tick. It should temper. Place it too close and it should spoil. If this is
+#     tedious rather than satisfying, the tick rate or the band widths are the dials.
+#   - **THE CLIMBERS.** Any temperstone face, from any side, wearing them. Vanilla has no free-climb, so
+#     there is nothing to compare it to -- does it feel like climbing, or like sticking to a wall?
+#     Stopping should HOLD YOU IN PLACE, forward or jump should rise, sneak should descend. The thing to
+#     try to break is letting go of everything halfway up.
+#   - That the boot-slot trade against the skates is a real choice and not a dominated one.
+#   - **THE PISTON, WHICH IS UNVERIFIED ON BOTH LOADERS AND CANNOT BE CHECKED HEADLESSLY** -- it needs a
+#     piston to actually fire. A run of temperstone must move as ONE, and must NOT drag anything else
+#     (that would be a slime block). **Walk it on Fabric AND NeoForge**: the two halves are entirely
+#     different code. Fabric goes through `PistonStructureResolverMixin`; NeoForge through the two plain
+#     methods on `TemperstoneBlock`, which are overrides only at runtime and would fail silently if the
+#     signature ever drifts.
+#   - NOT BUILT AND DELIBERATELY: the underside. Hanging from a temperstone roof was cut with ceiling
+#     walking rather than shipped as its cheap half -- design 7.4 carries the argument.
+#   - NOT BUILT: scorched temperstone currently grinds into nothing at all, the station being deferred.
 
 # ══ 6. THE FOUR SEAM FORMS, AFTER THE FIXES ══════════════════ Built 2026-07-30, UNWALKED SINCE ══
 # Carried forward from the old list, and now unwalked across the 26.1 upgrade as well. All four seeded 4242

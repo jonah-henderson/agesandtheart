@@ -4,15 +4,15 @@
     "derivation rather than at resolution so a forbidden thing is honestly absent instead of silently",
     "dropped. Distinct from `withheld`, which is a timing fence on things that DO become writable later.",
     "",
-    "Deretheni is here because 7.7 makes it load-bearing: the material is placed by danger, and a writer",
-    "who could name 'an Age full of it' would have 8.4's duplication exploit with no danger required. You",
-    "cause the conditions; you cannot ask for the outcome. It is the one thing in this phase that must",
-    "never become sayable, so it goes in the fence the same day the block exists."
+    "REVERSED 2026-09-06 (Jonah): the mod's own stones are NOT forbidden. Deretheni and temperstone were",
+    "both fenced here on the argument that naming 'an Age full of it' is 8.4's duplication exploit. The",
+    "ruling now is that they are writable and gated by PRICE instead -- they carry",
+    "`requires_masterwork_ink`, so an Age made of one costs the rarest ink there is, which is the same",
+    "brake a sea of diamonds already runs into. Rarity of the find does the rest.",
+    "",
+    "So this file is empty again, and that is the honest state rather than an oversight: nothing in the",
+    "pack currently needs a prohibition that a price cannot express."
   ],
   "replace": false,
-  "values": [
-    "agesandtheart:pitchstone_ore",
-    "agesandtheart:deepslate_pitchstone_ore",
-    "agesandtheart:pitchstone_block"
-  ]
+  "values": []
 }

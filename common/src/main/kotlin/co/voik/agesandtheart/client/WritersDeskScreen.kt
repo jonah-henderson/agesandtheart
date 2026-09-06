@@ -1,6 +1,6 @@
 package co.voik.agesandtheart.client
 
-import co.voik.agesandtheart.age.reward.CharacterMaterial
+import co.voik.agesandtheart.age.reward.EarlyGameRareMaterial
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.client.ui.BookWritingWorkSurface
@@ -499,7 +499,7 @@ class WritersDeskScreen(
             Component.translatable(AgeContent.PITCHSTONE.descriptionId),
             translated("survey_${survey.deposit.key}"),
         )
-        val grown = survey.character.map { translated("survey_grows", nameOf(it)) }
+        val grown = survey.earlyMaterials.map { translated("survey_grows", nameOf(it)) }
         return listOf(translated("survey"), deposit) + grown
     }
 
@@ -507,8 +507,9 @@ class WritersDeskScreen(
      * What a character material is called, taken from the thing itself so the survey can never name it
      * something other than what comes out of the ground.
      */
-    private fun nameOf(material: CharacterMaterial): Component = when (material) {
-        CharacterMaterial.RIME -> AgeContent.RIME_CRYSTAL_BLOCK.name
+    private fun nameOf(material: EarlyGameRareMaterial): Component = when (material) {
+        EarlyGameRareMaterial.RIME -> AgeContent.RIME_CRYSTAL_BLOCK.name
+        EarlyGameRareMaterial.TEMPERSTONE -> AgeContent.TEMPERSTONE_BLOCK.name
     }
 
     /** [lines] as one component, which is what a `MultiLineTextWidget` reads. */
