@@ -7,6 +7,7 @@ import co.voik.agesandtheart.worldgen.field.Placement
 import co.voik.agesandtheart.worldgen.field.Scatter
 import co.voik.agesandtheart.worldgen.field.Subtract
 import co.voik.agesandtheart.worldgen.field.TerrainField
+import co.voik.agesandtheart.worldgen.field.Undulated
 import co.voik.agesandtheart.worldgen.field.Variation
 
 /**
@@ -61,14 +62,33 @@ object VolcanoField {
         blend = SHOULDERS,
     )
 
-    /** One mountain: a broad cone with its summit hollowed into a caldera. */
+    /**
+     * One mountain: a roughened cone with its summit cut into a caldera.
+     *
+     * **The roughening is not decoration.** A cone is the most regular shape in the toolkit and reads as
+     * geometry rather than as country — the silhouette gives it away from any distance. Long wavelengths
+     * put shoulders and spurs on the flanks; short ones break up the slope.
+     */
     private fun cone(): TerrainField = Subtract(
-        Cone(
-            baseX = 0,
-            baseZ = 0,
-            baseRadius = BASE_RADIUS,
-            baseY = BASE_Y,
-            tipY = BASE_Y + HEIGHT,
+        // **The mountain is roughened and the crater is not**, which is the order that matters. Undulating
+        // the finished shape would move the caldera with everything else, and the noise runs deeper than
+        // the crater does — a bowl 22 blocks deep under a 26-block swing is a bowl that sometimes is not
+        // there. Cutting afterwards leaves the crater exact, and the rim ragged anyway, because a clean
+        // cut through a rough surface meets it along an irregular line.
+        Undulated(
+            base = Cone(
+                baseX = 0,
+                baseZ = 0,
+                baseRadius = BASE_RADIUS,
+                baseY = BASE_Y,
+                tipY = BASE_Y + HEIGHT,
+            ),
+            seed = ROUGHENING_SEED,
+            firstOctave = FIRST_OCTAVE,
+            amplitudes = ROUGHNESS,
+            scaleX = ROUGHNESS_SCALE,
+            scaleZ = ROUGHNESS_SCALE,
+            amount = ROUGHNESS_AMOUNT,
         ),
         // Inverted, so it eats downward from above the summit and leaves a bowl rather than a spike.
         Cone(
@@ -94,22 +114,35 @@ object VolcanoField {
      *
      * A cone is unioned with the Age's own terrain, so only the part clearing that terrain is a mountain at
      * all: a summit at ordinary hill height is not a small volcano, it is an invisible one. Starting the
-     * foot at [BASE_Y] and rising [HEIGHT] puts the tip near y=168, well over anything hills reach.
+     * foot at [BASE_Y] and rising [HEIGHT] puts the tip near y=133, well over anything hills reach.
      *
      * The radius is what keeps it from being a spire. Measured against the height the cone actually shows —
      * the part above the land — these numbers give roughly a forty-degree flank, which is steep for a real
      * volcano and reads as one in a game where a hill is already steep.
      */
-    private const val BASE_RADIUS = 240.0
-    private const val HEIGHT = 200
+    private const val BASE_RADIUS = 150.0
+    private const val HEIGHT = 165
 
     /** A real fraction of the cone: a dimple would read as a damaged peak rather than as a crater. */
-    private const val CALDERA_RADIUS = 40.0
-    private const val CALDERA_DEPTH = 25
+    private const val CALDERA_RADIUS = 34.0
+    private const val CALDERA_DEPTH = 22
 
-    /** Roughly a kilometre between candidates, before the patch noise thins them further. */
-    private const val CELL = 1024.0
-    private const val REGION = 3000.0
+    /**
+     * How hard the cone is roughened, and over what wavelength.
+     *
+     * Deliberately heavy. A boulder gets away with a light touch because it is small enough to read as one
+     * rock; a mountain at this size needs the coarse octaves to move whole flanks, or the underlying cone
+     * shows through whatever is laid on it.
+     */
+    private const val ROUGHENING_SEED = 0x5643414CL
+    private const val FIRST_OCTAVE = -5
+    private val ROUGHNESS = listOf(1.0, 0.9, 0.6, 0.35)
+    private const val ROUGHNESS_SCALE = 90.0
+    private const val ROUGHNESS_AMOUNT = 26.0
+
+    /** Close enough to meet more than one on a walk, before the patch noise thins them further. */
+    private const val CELL = 560.0
+    private const val REGION = 2200.0
 
     private const val NONE_AT_ALL = 0
     private const val ONE = 1
@@ -117,8 +150,12 @@ object VolcanoField {
     private const val SPARSE = 0.55
     private const val CLUSTERED = 0.45
 
-    private const val SMALLEST = 0.6
-    private const val LARGEST = 1.4
+    /**
+     * Kept off the small end deliberately: a cone scaled far down never clears the ground it is laid over,
+     * which is not a small volcano but an invisible one with a vent wired into a hillside.
+     */
+    private const val SMALLEST = 0.85
+    private const val LARGEST = 1.35
     private const val SIZES = 5
 
     /** Enough to turn two overlapping cones into one massif rather than a crease. */

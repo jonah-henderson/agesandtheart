@@ -82,12 +82,24 @@ object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration
         return seated
     }
 
-    /** A plus, so the run is connected six-ways and reads as one vent rather than as scattered blocks. */
-    private val MASS_SHAPE = listOf(0 to 0, 1 to 0, -1 to 0, 0 to 1, 0 to -1)
+    /**
+     * A disc, so the vent is wide rather than tall.
+     *
+     * **Width is what the mechanic actually needs, twice over.** The pool a mass wells is capped at the
+     * mass's own height, so depth buys almost nothing and a caldera floor wants covering — and the bombs
+     * only start above sixteen connected blocks, which a five-block plus three deep could never reach. A
+     * radius-two disc is thirteen to a layer, so three layers is thirty-nine and a natural vent throws.
+     */
+    private val MASS_SHAPE = (-2..2).flatMap { x -> (-2..2).map { z -> x to z } }
+        .filter { (x, z) -> x * x + z * z <= DISC }
 
     private val RIM_BEARINGS = listOf(1 to 0, -1 to 0, 0 to 1, 0 to -1)
 
+    /** Three, and no more: the pool is as deep as the mass is tall, and a deep hole is a poor caldera. */
     private const val MASS_DEPTH = 3
+
+    /** Radius two, squared — thirteen cells to a layer. */
+    private const val DISC = 4
 
     /** Out past the caldera floor but inside the rim, for a crater of the size the cones are cut to. */
     private const val RIM_REACH = 24
@@ -102,7 +114,7 @@ object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration
      * enough down never clears the terrain it is laid over — which makes it not a small volcano but an
      * invisible one, and an invisible volcano should not be quietly wiring lava into a hillside.
      */
-    private const val HIGH_ENOUGH = 100
+    private const val HIGH_ENOUGH = 85
 
     private const val CHUNK = 16
 

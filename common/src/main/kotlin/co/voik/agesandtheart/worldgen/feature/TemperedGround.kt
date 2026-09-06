@@ -1,11 +1,15 @@
 package co.voik.agesandtheart.worldgen.feature
 
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.location
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.core.registries.Registries
 import net.minecraft.tags.BlockTags
+import net.minecraft.tags.TagKey
 import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.WorldGenLevel
+import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.feature.Feature
@@ -42,8 +46,8 @@ object TemperedGround : Feature<NoneFeatureConfiguration>(NoneFeatureConfigurati
             for (offsetZ in 0..<CHUNK) {
                 for (y in level.minY..<(level.minY + level.height)) {
                     cursor.set(origin.x + offsetX, y, origin.z + offsetZ)
-                    val isLava = level.getBlockState(cursor).`is`(Blocks.LAVA)
-                    if (isLava && touchesAnythingElse(level, cursor)) found += cursor.immutable()
+                    val isHeat = level.getBlockState(cursor).`is`(COOKS_STONE)
+                    if (isHeat && touchesAnythingElse(level, cursor)) found += cursor.immutable()
                 }
             }
         }
@@ -51,7 +55,7 @@ object TemperedGround : Feature<NoneFeatureConfiguration>(NoneFeatureConfigurati
     }
 
     private fun touchesAnythingElse(level: WorldGenLevel, at: BlockPos): Boolean =
-        Direction.entries.any { way -> !level.getBlockState(at.relative(way)).`is`(Blocks.LAVA) }
+        Direction.entries.any { way -> !level.getBlockState(at.relative(way)).`is`(COOKS_STONE) }
 
     /**
      * Walk outward from the contact surfaces, converting each band as it is reached.
@@ -110,7 +114,7 @@ object TemperedGround : Feature<NoneFeatureConfiguration>(NoneFeatureConfigurati
                 for (way in Direction.entries) {
                     val neighbour = position.relative(way)
                     if (!seen.add(neighbour)) continue
-                    if (level.getBlockState(neighbour).`is`(Blocks.LAVA)) return distance
+                    if (level.getBlockState(neighbour).`is`(COOKS_STONE)) return distance
                     next += neighbour
                 }
             }
@@ -142,9 +146,17 @@ object TemperedGround : Feature<NoneFeatureConfiguration>(NoneFeatureConfigurati
      * generous reach would put more of the material in one Age than the economy is worth. The raw band is
      * the widest because it is the one meant to be carried away.
      */
-    private const val SCORCHED_BAND = 1
-    private const val TEMPERED_BAND = 3
-    private const val RAW_BAND = 5
+    private const val SCORCHED_BAND = 2
+    private const val TEMPERED_BAND = 4
+    private const val RAW_BAND = 6
+
+    /**
+     * What counts as heat.
+     *
+     * A tag rather than lava, so a later material of ours — or a pack's — can cook stone without this
+     * feature knowing it exists.
+     */
+    private val COOKS_STONE: TagKey<Block> = TagKey.create(Registries.BLOCK, "cooks_stone".location())
 
     private const val CHUNK = 16
 

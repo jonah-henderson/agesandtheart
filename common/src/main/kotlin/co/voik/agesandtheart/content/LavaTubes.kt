@@ -118,15 +118,34 @@ object LavaTubes {
     }
 
     /**
-     * Throw something, if this vent is big enough and the sky over it is open.
+     * Throw something, if this vent is big enough.
      *
-     * Rare per tick because a random tick is already frequent: a caldera full of vents would otherwise be a
-     * continuous barrage rather than a hazard with a rhythm you can move between.
+     * **The random tick IS the rhythm, and a second gate on top of it was too much.** Only the top layer of
+     * a mass is ever unplugged — everything under it has a tube overhead — so a caldera offers around a
+     * dozen tickable blocks, and a random tick finds one of those every few seconds. Rolling again on top
+     * of that put eruptions minutes apart, which reads as a volcano that does not work.
      */
     private fun throwSomething(level: ServerLevel, at: BlockPos, mass: Set<BlockPos>) {
         val force = forceOf(mass) ?: return
-        if (level.random.nextInt(ONE_TICK_IN) != 0) return
-        VolcanicBomb.thrownFrom(level, mass.maxByOrNull { it.y } ?: at, force)
+        VolcanicBomb.thrownFrom(level, mouthOver(level, mass.maxByOrNull { it.y } ?: at), force)
+    }
+
+    /**
+     * The open air over a vent, above whatever lava is standing on it.
+     *
+     * **A vent fills its own caldera, so it throws from under its own lake.** Spawning at the tube put
+     * every bomb inside lava, where it was quenched by the rule meant to stop the Age flooding — the
+     * volcano threw nothing and looked broken. Climbing out of the lava first makes it erupt from the
+     * surface, which is both what a volcano does and what lets the quenching rule mean what it should.
+     */
+    private fun mouthOver(level: ServerLevel, vent: BlockPos): BlockPos {
+        var mouth = vent.above()
+        var climbed = 0
+        while (climbed < MOST_LAVA_OVERHEAD && level.getBlockState(mouth).`is`(Blocks.LAVA)) {
+            mouth = mouth.above()
+            climbed++
+        }
+        return mouth
     }
 
     private const val MOST_IN_A_MASS = 64
@@ -134,13 +153,18 @@ object LavaTubes {
     /** Under this a vent only seeps. A quarter of a full mass, so it is a real threshold to cross. */
     private const val ENOUGH_TO_THROW = 16
 
-    /** Rare enough that a hazard has a rhythm rather than being a barrage. */
-    private const val ONE_TICK_IN = 6
+    /** A pool is capped at the mass's own height, so there is never much more lava than this to climb. */
+    private const val MOST_LAVA_OVERHEAD = 8
 
     private const val POURED_PER_TICK = 32
 
-    /** Far enough to flood a caldera floor, short enough that a breached rim does not drain into the world. */
-    private const val REACH_FROM_THE_MASS = 24.0
+    /**
+     * Far enough to flood a caldera floor, short enough that a breached rim does not drain into the world.
+     *
+     * Widened from 24, which left a pool that did not reach the edges of the crater it sat in. The cones
+     * are cut to a caldera radius of 34, so the reach has to clear that or the lake is a puddle in a bowl.
+     */
+    private const val REACH_FROM_THE_MASS = 40.0
 
     private const val ONE = 1
     private const val NOTHING = 0.0

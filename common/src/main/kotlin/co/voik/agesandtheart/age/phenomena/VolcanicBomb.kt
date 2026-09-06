@@ -65,8 +65,12 @@ class VolcanicBomb(type: EntityType<out VolcanicBomb>, level: Level) : Throwable
      * Asked of the block it is *in* rather than the one it struck: a bomb arriving in a lava pool never
      * reaches a surface to hit, and one that clips a rim above the lava has not really landed in it.
      */
-    private fun quenched(level: ServerLevel): Boolean =
-        level.getBlockState(blockPosition()).`is`(Blocks.LAVA)
+    private fun quenched(level: ServerLevel): Boolean {
+        // **Only on the way down.** A bomb erupting through the last of its own lava is still being thrown,
+        // and quenching it there would have a volcano put out every shot it fired.
+        if (deltaMovement.y > FALLING) return false
+        return level.getBlockState(blockPosition()).`is`(Blocks.LAVA)
+    }
 
     private fun burst(level: ServerLevel, hit: HitResult) {
         val at = if (hit is BlockHitResult) hit.blockPos else blockPosition()
@@ -117,9 +121,17 @@ class VolcanicBomb(type: EntityType<out VolcanicBomb>, level: Level) : Throwable
 
         private const val POOL_DEPTH = 3
 
-        /** Rock, so it falls harder than a snowball and its arc is short and mean. */
-        private const val HEAVY = 0.12
+        /**
+         * A snowball's, and light on purpose.
+         *
+         * **Readability beats realism here.** Rock ought to fall hard, and at four times this it did — but
+         * a fast bomb is one you cannot look up and track, and the whole counterplay is seeing where a
+         * shot will land and moving. A slow arc also reads as *mass*, oddly, because the eye takes a heavy
+         * object's flight as slow and floating.
+         */
+        private const val HEAVY = 0.03
 
+        private const val FALLING = 0.0
         private const val NO_DRIFT = 0.0
         private const val LEAST = 0.0
 

@@ -199,10 +199,11 @@
 #     NOT count as a plug, or a volcano silences itself on its own output.
 #   - That mining the tubes out is a real, findable act -- can you tell where they are once the caldera has
 #     filled with lava?
-#   - **THE BOMBS, WHICH ARE THE WHOLE HAZARD AND ARE ENTIRELY UNSEEN.** They arc, they are drawn as a
-#     magma block, they explode on hitting a block or a player and pool a little lava in the crater. Are
-#     they DODGEABLE -- can you see one coming and move? That is the counterplay, and if the arc is too
-#     flat or too fast there is none.
+#   - **THE BOMBS.** Reported as never spawning, and there were two reasons, both fixed: the natural vent
+#     was fifteen blocks against a threshold of sixteen, and a second one-in-six roll on top of an already
+#     sparse random tick. Confirmed erupting headlessly (six airborne at once). Gravity is now a
+#     SNOWBALL'S, so they arc slowly on purpose -- the counterplay is looking up, reading where one will
+#     land, and moving. **Judge that first**: if you cannot track one, nothing else about them matters.
 #   - That a bomb landing IN lava is inert. This is the bound on the whole mechanic: flooded ground stops
 #     accumulating, so a volcano deepens its pool and then stops enlarging it. If it still explodes there,
 #     an Age drifts toward being made of lava.
@@ -238,29 +239,26 @@
 /age tp baked
 #
 # WHAT A WALK HAS TO SETTLE:
-#   - **THAT THE FOUR BANDS ARE LEGIBLE AS BANDS.** Scorched at 1, temperstone at 2-3, raw at 4-5, ordinary
-#     ground beyond. THIS IS THE WHOLE FEATURE: "this far is too far, this close is too close, this
-#     distance gets you the good stuff." If the eye cannot separate them at the lava's edge, the
-#     thicknesses are wrong -- and smooth basalt / netherrack / tuff are standing in for all three, so
-#     judge the SHAPE and not the colour.
+#   - WALKED 2026-09-06: bands were close but cramped, so they are now scorched 1-2, temperstone 3-4, raw
+#     5-6. Heat is the `#agesandtheart:cooks_stone` tag rather than lava, so plasma can cook later. Look
+#     again at the widths -- and note the search was ALREADY six-way, so a band that looks flat is the
+#     gradient meeting a surface rather than the rule ignoring the vertical.
 #   - Whether one lava sea yields far too much temperstone. The bands are a skin on the contact area,
 #     which for a sea is large.
 #   - That the scorched band reads as SPOILED rather than as a second reward. It is the toll.
-#   - **THAT THE PRACTICE WORKS, which is the half the formation only teaches.** Mine raw temperstone from
-#     a blob (14 a chunk, size 9 -- deliberately common), carry it to lava, place it at the right remove,
-#     and wait for the random tick. It should temper. Place it too close and it should spoil. If this is
-#     tedious rather than satisfying, the tick rate or the band widths are the dials.
+#   - WALKED 2026-09-06: the practice works and was far too slow. Baking now SPREADS -- one baked block
+#     schedules its raw neighbours -- so a pile converts as a wave from the first random tick. Check the
+#     pace again; `SPREAD_DELAY` is the dial.
 #   - **THE CLIMBERS.** Any temperstone face, from any side, wearing them. Vanilla has no free-climb, so
 #     there is nothing to compare it to -- does it feel like climbing, or like sticking to a wall?
 #     Stopping should HOLD YOU IN PLACE, forward or jump should rise, sneak should descend. The thing to
 #     try to break is letting go of everything halfway up.
 #   - That the boot-slot trade against the skates is a real choice and not a dominated one.
-#   - **THE PISTON, WHICH IS UNVERIFIED ON BOTH LOADERS AND CANNOT BE CHECKED HEADLESSLY** -- it needs a
-#     piston to actually fire. A run of temperstone must move as ONE, and must NOT drag anything else
-#     (that would be a slime block). **Walk it on Fabric AND NeoForge**: the two halves are entirely
-#     different code. Fabric goes through `PistonStructureResolverMixin`; NeoForge through the two plain
-#     methods on `TemperstoneBlock`, which are overrides only at runtime and would fail silently if the
-#     signature ever drifts.
+#   - THE PISTON IS SETTLED ON FABRIC and it works. It was reported dead; it is vanilla's TWELVE-BLOCK
+#     push limit, which slime hits identically. Measured over RCON: one block pushes, 2x2x2 pushes as one,
+#     3x3x3 does not move and the piston does not extend. `notes/decisions.md` has the rig.
+#     **STILL WALK IT ON NEOFORGE** -- that half is entirely different code (plain methods on
+#     `TemperstoneBlock` that are overrides only at runtime) and would fail silently if a signature drifted.
 #   - NOT BUILT AND DELIBERATELY: the underside. Hanging from a temperstone roof was cut with ceiling
 #     walking rather than shipped as its cheap half -- design 7.4 carries the argument.
 #   - NOT BUILT: scorched temperstone currently grinds into nothing at all, the station being deferred.

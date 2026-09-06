@@ -1,0 +1,9 @@
+{
+  "_comment": [
+    "What bakes ordinary rock into temperstone by standing near it (design 7.1.2).",
+    "A tag rather than lava alone so that a pack -- or a later material of ours, the plasma block being the",
+    "one already in view -- can be a heat source without the feature knowing it exists."
+  ],
+  "replace": false,
+  "values": ["minecraft:lava"]
+}
