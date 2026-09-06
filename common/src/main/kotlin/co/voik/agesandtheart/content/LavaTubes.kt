@@ -99,6 +99,7 @@ object LavaTubes {
         val lowestItMayReach = top - MOST_DESCENT
         val middleX = mass.sumOf { it.x } / mass.size
         val middleZ = mass.sumOf { it.z } / mass.size
+        val reach = reachOf(mass)
 
         val seen = HashSet<BlockPos>(mass)
         val queue = ArrayDeque<BlockPos>()
@@ -110,7 +111,7 @@ object LavaTubes {
             if (!seen.add(here)) continue
             walked++
             if (here.y > brim || here.y < lowestItMayReach) continue
-            if (!withinReach(here, middleX, middleZ)) continue
+            if (!withinReach(here, middleX, middleZ, reach)) continue
             val standing = level.getBlockState(here)
             if (standing.blocksMotion()) continue
             // **Nothing under it: the lava falls rather than hangs.** Following it down is what fills a
@@ -120,27 +121,75 @@ object LavaTubes {
                 queue += here.below()
                 continue
             }
+            // Walked past either way: the far side of a lip is where a dip's floor is found, and filling
+            // that floor is what stops the lip being one on the next pass.
+            Direction.Plane.HORIZONTAL.forEach { way -> queue += here.relative(way) }
+            if (atTheLipOfADrop(level, here)) continue
             if (!standing.`is`(Blocks.LAVA)) {
                 level.setBlockAndUpdate(here, Blocks.LAVA.defaultBlockState())
                 poured++
             }
-            Direction.Plane.HORIZONTAL.forEach { way -> queue += here.relative(way) }
             queue += here.above()
         }
         return poured
     }
 
+    /**
+     * Whether anything beside [at] is open with nothing under it — the lip of a drop.
+     *
+     * A pool should not sit flush against a precipice, so it keeps a block back from one. It costs a
+     * caldera nothing — a crater wall rises, so it is solid rather than a drop, and the only places a lake
+     * gives up a block are the breaches it would have drained through anyway.
+     *
+     * **It does not stop lava pouring over the edge, and it was measured not to.** A source always spreads
+     * flowing lava to its neighbours, so a margin is simply crossed: on a vent standing alone this took the
+     * pool from forty-nine sources to twenty-five and left five hundred blocks of vanilla's own flowing
+     * lava falling off the same edge. Worth knowing before reaching for a wider margin — the containable
+     * distance is lava's whole flow reach, which is four blocks and eight in an ultrawarm Age.
+     */
+    private fun atTheLipOfADrop(level: BlockGetter, at: BlockPos): Boolean =
+        Direction.Plane.HORIZONTAL.any { way ->
+            val beside = at.relative(way)
+            !level.getBlockState(beside).blocksMotion() && !heldUp(level, beside)
+        }
+
     /** Whether the pool may stand this far from the vent at all — the size of a lake, not its shape. */
-    private fun withinReach(position: BlockPos, middleX: Int, middleZ: Int): Boolean {
+    private fun withinReach(position: BlockPos, middleX: Int, middleZ: Int, reach: Double): Boolean {
         val spreadX = (position.x - middleX).toDouble()
         val spreadZ = (position.z - middleZ).toDouble()
-        return spreadX * spreadX + spreadZ * spreadZ <= REACH_FROM_THE_MASS * REACH_FROM_THE_MASS
+        return spreadX * spreadX + spreadZ * spreadZ <= reach * reach
     }
 
-    /** Whether there is anything under [at] for lava to rest on — the rock it sits in, or its own pool. */
+    /**
+     * How wide a lake this mass is owed — **the size of the vent, squared into the size of the pool**.
+     *
+     * A flat reach gave a five-block seam exposed on a hillside the same lake as a volcano's crater, which
+     * is what a walk saw as a huge disc of lava on the side of a hill. A vent that only ever seeps should
+     * make a puddle; a caldera's should make a lake.
+     *
+     * **Squared, and saturating at [ENOUGH_TO_THROW], for two reasons.** Squaring is what makes the small
+     * end small — a seam of five gets a couple of blocks where a straight share would still give it eight
+     * — and saturating at the throwing threshold means every mass big enough to throw already has the full
+     * reach, so no caldera vent's lake changes by a block.
+     */
+    private fun reachOf(mass: Set<BlockPos>): Double {
+        val share = (mass.size.toDouble() / ENOUGH_TO_THROW).coerceAtMost(EVERYTHING)
+        return REACH_FROM_THE_MASS * share * share
+    }
+
+    /**
+     * Whether there is anything under [at] for lava to rest on — the rock it sits in, or its own pool.
+     *
+     * **A *source* of lava, never a running one, and the distinction is the whole of a bug this had.**
+     * Placing a source lets vanilla spread flowing lava off the edge and down the drop, and flowing lava is
+     * the same block: counting it as support made a falling sheet look like a floor, so the next pass laid
+     * fresh sources against the fall, which ran further still. A vent on a hillside grew a disc of lava
+     * hanging in the air a fifteenth the size of what it should have laid, and it grew every couple of
+     * ticks because the two mechanisms fed each other.
+     */
     private fun heldUp(level: BlockGetter, at: BlockPos): Boolean {
         val under = level.getBlockState(at.below())
-        return under.blocksMotion() || under.`is`(Blocks.LAVA)
+        return under.blocksMotion() || (under.`is`(Blocks.LAVA) && under.fluidState.isSource)
     }
 
     /**
@@ -202,7 +251,7 @@ object LavaTubes {
      */
     private const val MOST_DESCENT = 4
 
-    /** Far enough to flood the widest caldera floor, short enough that a lake stays a lake. */
+    /** What a vent big enough to throw is owed. Smaller ones get a share of it — see [reachOf]. */
     private const val REACH_FROM_THE_MASS = 24.0
 
     /** A bound on the walk rather than on the lava: what one pass may look at before yielding the tick. */

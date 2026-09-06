@@ -247,12 +247,18 @@
 #     each other. Judge whether volcanic country still reads as country.
 #   - Does the caldera look like somewhere you would climb into, and can you find the vent once the lake
 #     has covered it?
-#   - **THE LAKE RESTS ON THINGS, AND FALLS INTO DIPS.** Third version of this rule; the first hung lava
-#     in the air over open ground and the second refused to fill a caldera that had one block of drop in
-#     it. Now: lava is laid only where something holds it up, and where nothing does it FALLS, followed
-#     down up to four blocks. So a rumpled crater floor fills and a cascade off the rim lays nothing.
-#     Measured 643 lava blocks around one vent where the strict version managed 119. Judge: does the lake
-#     reach the crater walls, does it look level enough, and is there any lava left standing in the air?
+#   - **CALDERA LAKES ARE SETTLED** (Jonah: "works amazingly well, would not want to change a thing") and
+#     measured unchanged at ~1900 source blocks after the small-vent work below. If a walk ever finds them
+#     shrunk, `reachOf` saturating at ENOUGH_TO_THROW is the thing that broke.
+#   - **A SMALL VENT NOW MAKES A SMALL POOL.** Reach is the vent's size squared, saturating at the throwing
+#     threshold, so a nine-tube seam exposed on a hillside fell from ~1800 source blocks to 177 while
+#     calderas kept everything. Judge whether a seam you dig into gives a satisfying amount of lava.
+#   - **WHAT IS LEFT AT AN EDGE IS VANILLA'S FLOW, NOT OURS.** Measured on an isolated vent: 49 sources
+#     placed (exactly right) and 672 further blocks of *flowing* lava pouring off the edge. A source always
+#     spreads to its neighbours, so no rule about placement can stop it -- the pool keeps a block back from
+#     a lip, which is not the same as stopping the spill. **If curtains of lava down a cliff still read as
+#     wrong, the only remaining lever is a dry margin of lava's full flow reach (4 blocks, 8 in an
+#     ultrawarm Age) from every drop**, which is a real cost and should be a decision rather than a tweak.
 #   - **THE CALDERA ARRIVES WITH LAVA IN IT** -- ONE course over the vent, laid at generation. It was two
 #     levelled courses and that stacked three or four deep on the low columns of a rumpled floor, which
 #     with a gap beside them read as lava pillars. One course is held by its own tube whatever the
