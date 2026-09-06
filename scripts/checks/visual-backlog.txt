@@ -169,6 +169,32 @@
 #     mountains" and the one word a player would reach for. Bug to fix, or a thing to teach?
 #   - THE SKATES: 2.26x a walk at terminal speed, no brakes, a ledge a real hazard. Fun, or just fast?
 
+# ══ 10. THE VOLCANIC CONES HAVE NEVER BEEN SEEN ══════════════════════════════ Built 2026-09-06 ══
+# Step one of the volcanoes: the recipe entry and the shape. The cones generate; nothing is in them yet.
+#
+# **SHAPE IS JUDGED BY EYE, NOT BY A CHECK** (Jonah, 2026-09-06). These are meant to be organic and noisy
+# rather than cookie-cutter, so pinning them with assertions buys flaky tests and an incentive to make the
+# generation more regular than it should be. A shape check written for this was deleted the same day.
+#
+/age compose volc 11 landmass=hills sea=water rock=solid sky=plain features.grows=agesandtheart:volcano
+/age tp volc
+#
+# It logs one WARN -- the placed feature it names does not exist until the lava tubes land -- and grows
+# cones with nothing in them. That is expected, not the bug.
+#
+# WHAT A WALK HAS TO SETTLE, all of it dial-turning rather than pass/fail:
+#   - Do they read as VOLCANOES from a distance, or as ordinary hills with a dent? Base radius 56, height
+#     96, caldera radius 14 and 18 deep are all first guesses.
+#   - Does the caldera look like somewhere you would climb into? It is where the tubes will go, so it has
+#     to be enterable and worth entering.
+#   - Are they RARE ENOUGH TO BE A LANDMARK and common enough to find? Roughly a kilometre between
+#     candidates with patch clustering, so volcanic country should come in fields with quiet ground
+#     between rather than an even sprinkle.
+#   - Do they sit ON the landform convincingly? They are a layer unioned over the Age's own ground, so try
+#     them over `cliffs` and `alps` as well as `hills` -- a cone growing out of a cliff face is the case
+#     most likely to look wrong.
+#   - Does the blend turn two overlapping cones into one massif, or leave a crease?
+
 # ══ 9. TEMPERSTONE'S THREE BANDS HAVE NEVER BEEN SEEN ════════════════════════ Built 2026-09-06 ══
 # The whole design is that ONE FORMATION TEACHES THE RULE: stone too close to lava comes out scorched and
 # worthless, stone at the right remove is temperstone, stone beyond that never changed. If a player cannot
