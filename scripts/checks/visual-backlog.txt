@@ -169,7 +169,12 @@
 #   - **THE `alps` TRAP.** `/age write rimec 4242 age sheer landmass blizzard phenomena frozen climate`
 #     resolves to `landmass=alps`, which yields ZERO — it is the landform whose name most says "cold
 #     mountains" and the one word a player would reach for. Bug to fix, or a thing to teach?
-#   - THE SKATES: 2.26x a walk at terminal speed, no brakes, a ledge a real hazard. Fun, or just fast?
+#   - THE SKATES: **WALKED AND RETUNED TWICE 2026-09-06, now "they feel good"** -- about 3x a walk, quick
+#     to it, coasting a long way, and NOTHING lost in the air so speed carries over a gap. What is left to
+#     judge is the WEAR, which is new and unwalked: a pair costs nothing below a sprint (so pottering about
+#     a base is free) and about a point per 40 blocks above it, or roughly 8000 blocks to a pair. Is that
+#     a maintenance chore, an irrelevance, or right? And is the ramp long enough to hold yourself under
+#     the threshold on purpose, which is the reason acceleration was eased back.
 
 # ══ 10. THE VOLCANIC CONES HAVE NEVER BEEN SEEN ══════════════════════════════ Built 2026-09-06 ══
 # Step one of the volcanoes: the recipe entry and the shape. The cones generate; nothing is in them yet.

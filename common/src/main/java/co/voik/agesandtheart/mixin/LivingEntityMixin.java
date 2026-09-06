@@ -77,6 +77,22 @@ public abstract class LivingEntityMixin {
     }
 
     /**
+     * Spends rime skates by the distance their wearer actually covers.
+     *
+     * <p><b>After the move rather than during it</b>, which is the whole reason it hangs off the tick and
+     * not off {@code travelInAir}: what is being charged for is ground gained, and only once movement has
+     * been resolved does {@code deltaMovement} mean that — a skater held against a wall has a velocity and
+     * has gone nowhere, and should not pay.
+     *
+     * <p>NeoForge has {@code PlayerTickEvent} and Fabric has no per-player tick event at all, so the seam
+     * they share is vanilla's own. {@link RimeSkates} carries what is charged and why walking is free.
+     */
+    @Inject(method = "tick", at = @At("TAIL"))
+    private void agesandtheart$wearingTheBlades(CallbackInfo callback) {
+        RimeSkates.wearFromSkating((LivingEntity) (Object) this);
+    }
+
+    /**
      * Lets temperstone climbers make any face of the stuff a ladder.
      *
      * <p>Climbability is normally the block's own business through {@code BlockTags.CLIMBABLE}, and a tag

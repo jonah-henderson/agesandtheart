@@ -3,6 +3,7 @@ package co.voik.agesandtheart.content
 import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.player.Player
+import kotlin.math.sqrt
 
 /**
  * Boots with a rime blade under them: the ground stops holding you back.
@@ -56,25 +57,58 @@ object RimeSkates {
         return if (entity.onGround()) HOLDS_ITS_SPEED else NOTHING_IN_THE_AIR
     }
 
+    /**
+     * Spend a little of the blades, but **only while actually going somewhere** (Jonah, 2026-09-06).
+     *
+     * The threshold is a sprint on ordinary ground: below it a pair costs nothing at all, so pottering
+     * about a base in them is free and there is no reason to take them off between journeys. Above it they
+     * wear by *distance*, which is what "you pay for what the item does for you" comes to when the thing it
+     * does is speed — a block of skating costs the same whether you cross it fast or faster, and only the
+     * blocks you would not have crossed on foot are charged for at all.
+     *
+     * **Drawn rather than accumulated**, at a chance proportional to the distance covered this tick. A
+     * running total would want somewhere to live — a component on the stack, saved and synced — to buy
+     * nothing a player could tell apart from this.
+     */
+    @JvmStatic
+    fun wearFromSkating(entity: LivingEntity) {
+        if (entity.level().isClientSide) return
+        if (!skating(entity)) return
+        val travelled = alongTheGround(entity)
+        if (travelled <= FASTER_THAN_A_SPRINT) return
+        if (entity.random.nextDouble() * BLOCKS_PER_POINT >= travelled) return
+        entity.getItemBySlot(EquipmentSlot.FEET).hurtAndBreak(ONE_POINT, entity, EquipmentSlot.FEET)
+    }
+
     private fun skating(entity: LivingEntity): Boolean =
         entity is Player && entity.getItemBySlot(EquipmentSlot.FEET).item === AgeContent.RIME_SKATES
 
-    private fun goingFasterThanTheyMay(entity: LivingEntity): Boolean {
+    /** How far this entity moved across the ground last tick — the vertical is nobody's business here. */
+    private fun alongTheGround(entity: LivingEntity): Double {
         val movement = entity.deltaMovement
-        val alongTheGround = movement.x * movement.x + movement.z * movement.z
-        return alongTheGround > TOP_SPEED * TOP_SPEED
+        return sqrt(movement.x * movement.x + movement.z * movement.z)
     }
+
+    private fun goingFasterThanTheyMay(entity: LivingEntity): Boolean =
+        alongTheGround(entity) > TOP_SPEED
 
     /**
      * Slicker than stone and nowhere near ice, which is what makes a skater quick off the mark.
      *
-     * Against the cube law this is about three fifths more push per tick than blue ice's own number gave,
-     * so the speed the old skates topped out at arrives in roughly a third of the time.
+     * Against the cube law this is about half again more push per tick than blue ice's own number gave, so
+     * the speed the old skates topped out at arrives in a fraction of the time. **Eased back a hair from
+     * 0.88 once the wear below existed** (Jonah): a slightly longer ramp is what gives a player room to
+     * hold themselves under the threshold that charges them, if they care to.
      */
-    private const val GRIP_UNDER_A_PUSH = 0.88f
+    private const val GRIP_UNDER_A_PUSH = 0.91f
 
-    /** Most of it, so a skater coasts: about eight ticks to shed half their speed, against five on ice. */
-    private const val HOLDS_ITS_SPEED = 0.92f
+    /**
+     * Most of it, so a skater coasts: about nine ticks to shed half their speed, against five on ice.
+     *
+     * Raised alongside the easing above so the two changes cancel at the top end — the ramp is a tenth
+     * longer and the speed it arrives at is the one that was walked and liked.
+     */
+    private const val HOLDS_ITS_SPEED = 0.928f
 
     /** None of it. A jump is for crossing a gap without paying for it. */
     private const val NOTHING_IN_THE_AIR = 1.0f
@@ -93,4 +127,23 @@ object RimeSkates {
      * — if it turns out lower, this is the number that has to come down.
      */
     private const val TOP_SPEED = 0.66
+
+    /**
+     * The speed above which a pair starts to wear — a sprint on ordinary ground, near enough.
+     *
+     * **The point of it is that walking about is free.** A skater under this is going no faster than
+     * anyone could on foot, so there is nothing to charge for; and since it is a *speed* rather than a
+     * state, short hops about a base never reach it while a journey is charged from end to end.
+     */
+    private const val FASTER_THAN_A_SPRINT = 0.29
+
+    /**
+     * How far a skater travels, over that threshold, per point of durability.
+     *
+     * A pair runs to something like eight thousand blocks of real travel — long enough that they are worth
+     * making, short enough to be a thing you maintain rather than a thing you own.
+     */
+    private const val BLOCKS_PER_POINT = 40.0
+
+    private const val ONE_POINT = 1
 }
