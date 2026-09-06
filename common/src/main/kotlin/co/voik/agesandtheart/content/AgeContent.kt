@@ -372,9 +372,10 @@ object AgeContent {
     /**
      * How much faster a stride is on skates.
      *
-     * **Read against what the slickness then does with it.** Friction near one holds nearly all of your
-     * speed from tick to tick, so a third more push comes out at something over twice a walk once you are
-     * running — about a horse on the flat, and a good deal worse than a horse anywhere with corners.
+     * **Read against what [co.voik.agesandtheart.content.RimeSkates] then does with it**, which is where
+     * the speed actually comes from: this is the push, and the drag a skater keeps is what turns it into
+     * about three times a walk once running. Left where it was when those were retuned, because it is the
+     * half of the arrangement a player can read off the boots.
      */
     private const val SKATE_HURRY = 0.35
 

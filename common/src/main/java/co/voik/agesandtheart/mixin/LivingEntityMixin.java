@@ -56,8 +56,24 @@ public abstract class LivingEntityMixin {
      */
     @ModifyVariable(method = "travelInAir", at = @At("STORE"), ordinal = 0)
     private float agesandtheart$skatingOverIt(float blockFriction) {
-        Float skated = RimeSkates.underfoot((LivingEntity) (Object) this);
+        Float skated = RimeSkates.gripUnderfoot((LivingEntity) (Object) this);
         return skated == null ? blockFriction : skated;
+    }
+
+    /**
+     * Lets rime skates decide how much of their wearer's speed survives the tick.
+     *
+     * <p><b>The second float stored in {@code travelInAir}, and it has to be its own injection.</b> Vanilla
+     * works this out as {@code blockFriction * 0.91} from the very local above, so the one number sets both
+     * how fast a skater accelerates and how long they keep it — and sets them against each other, the
+     * acceleration going as the inverse cube. Modifying the product separately is what takes the two dials
+     * apart, and it is also the only place that can say "and nothing at all is lost in the air".
+     *
+     * <p>{@link RimeSkates} carries the reasoning and the governor that airborne freedom needs.
+     */
+    @ModifyVariable(method = "travelInAir", at = @At("STORE"), ordinal = 1)
+    private float agesandtheart$keepingItsSpeed(float damping) {
+        return RimeSkates.dampingOn((LivingEntity) (Object) this, damping);
     }
 
     /**
