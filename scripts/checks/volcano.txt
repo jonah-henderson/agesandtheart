@@ -1,0 +1,36 @@
+# Volcanoes: that a caldera gets exactly one vent, and that the vent throws.
+# Run with: scripts/drive-server.sh scripts/checks/volcano.txt
+#
+# **Seed 11 is shared with the offline previewer on purpose.** `./gradlew :common:preview --args=volcano`
+# draws this same Age's nearest cone and prints where it stands, and a cone is placed from the recipe seed
+# unchanged — so the picture and this run are of the same mountain, and the coordinates below came from
+# the picture. `--args=volcanoes` is the wide view, for spacing and for whether they look like copies.
+#
+# **THE SHAPE IS NOT CHECKED HERE AND MUST NOT BE** (Jonah, 2026-09-06): volcanoes are meant to be organic
+# and noisy, so an assertion about their shape is both flaky and an argument for regularity. What this file
+# is for is the things that are true or false rather than good or bad — a vent exists, and it erupts.
+#
+# WHAT THIS LEARNED THE HARD WAY:
+#   - **`forceload add` first, or nothing generates.** A playerless server holds no chunks, and every probe
+#     answers about air.
+#   - **A trailing command after `tick sprint`**, or the driver stops the server before the ticks run.
+#   - **`@e` is not scoped by `execute in` here.** All three of `execute if entity`, `execute in
+#     minecraft:overworld run …` and `execute in agesandtheart:volc run …` returned the same count, so the
+#     count is server-wide. Fine for "did anything erupt", useless for "in which dimension" — position the
+#     selector and read `Pos` if that is the question.
+
+age compose volc 11 landmass=hills sea=water rock=solid sky=plain features.grows=agesandtheart:volcano
+
+# The caldera the previewer puts at (622, -269); its floor sits around y=117.
+execute in agesandtheart:volc run forceload add 590 -300 660 -240
+tick sprint 400
+age list
+
+# **The one assertion that covers the whole chain.** A bomb in the air means a caldera was found, a vent
+# seated in it, the mass cleared the sixteen-block throwing threshold, its top was unplugged, and the
+# mouth over its own lava was located. Nothing upstream can be broken while this passes.
+#
+# Expect a HANDFUL, not a barrage. Seating a vent per chunk gave one crater twenty masses and 95 bombs
+# airborne at once; one vent per crater gives about four.
+execute if entity @e[type=agesandtheart:volcanic_bomb]
+execute in agesandtheart:volc positioned 622 120 -269 run data get entity @e[type=agesandtheart:volcanic_bomb,distance=..400,limit=1,sort=nearest] Pos

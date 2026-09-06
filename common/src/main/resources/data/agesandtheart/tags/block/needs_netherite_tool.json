@@ -1,0 +1,7 @@
+{
+  "_comment": "The rung vanilla never built. Its ladder stops at needs_diamond_tool, and every incorrect_for_<tier> tag below netherite's points at this one, so a block listed here can only be mined for drops with netherite. Add a block here rather than editing six tag files.",
+  "replace": false,
+  "values": [
+    "agesandtheart:lava_tube"
+  ]
+}

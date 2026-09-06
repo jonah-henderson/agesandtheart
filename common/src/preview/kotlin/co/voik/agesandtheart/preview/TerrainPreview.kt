@@ -17,6 +17,8 @@ import co.voik.agesandtheart.worldgen.RiverlandsField
 import co.voik.agesandtheart.worldgen.ShapesField
 import co.voik.agesandtheart.worldgen.ShatteredField
 import co.voik.agesandtheart.worldgen.SpireField
+import co.voik.agesandtheart.worldgen.VolcanoField
+import co.voik.agesandtheart.worldgen.field.Union
 import co.voik.agesandtheart.age.Seam
 import co.voik.agesandtheart.worldgen.carver.Weathering
 import co.voik.agesandtheart.worldgen.field.Caved
@@ -29,9 +31,11 @@ import co.voik.agesandtheart.worldgen.field.Subtract
 import co.voik.agesandtheart.worldgen.field.Rift
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Weathered
+import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import java.awt.image.BufferedImage
 import java.io.File
 import javax.imageio.ImageIO
+import kotlin.math.sqrt
 import co.voik.agesandtheart.worldgen.field.NORTH_SOUTH
 
 /**
@@ -175,6 +179,45 @@ private const val INVERSE_CEILING = 320
 // generation. Spelled again here because the preview has no Age to ask.
 private const val HALL_FLOOR = -59
 private const val HALL_ROOF = OverworldField.WATERLINE - 40
+
+/**
+ * The Age the two volcano subjects are drawn from.
+ *
+ * The same seed `scripts/checks/volcano.txt` writes its Age with, and a cone is placed from the recipe
+ * seed unchanged — so the coordinates this prints are where that volcano stands in the running game, and
+ * the picture and the walk are of the same mountain.
+ */
+private const val VOLCANIC_SEED = 11L
+
+/** Flat rock to stand them on, at about the height an ordinary Age's land sits. */
+private const val VOLCANIC_GROUND = 68
+
+/** Several cells out, so there is a cone to find even where the patch noise has thinned them. */
+private const val VOLCANO_SEARCH = 4000.0
+
+private fun volcanicCountry(): TerrainField =
+    Union(listOf(Slab(-64, VOLCANIC_GROUND), VolcanoField.over(VOLCANIC_SEED)))
+
+/**
+ * Where the cone nearest the origin stands, so the close-up looks at a volcano rather than at whatever
+ * happens to be at (0, 0) — which for a scatter is usually nothing.
+ *
+ * Asks [VolcanoField.sites] with the random factory an instanced field would build from the same seed, so
+ * this is the answer generation gets rather than a second guess at it.
+ */
+private val NEAREST_VOLCANO: Pair<Int, Int> = run {
+    val random = XoroshiroRandomSource(VOLCANIC_SEED).forkPositional()
+    var closest = 0 to 0
+    var away = Double.MAX_VALUE
+    VolcanoField.sites(VOLCANIC_SEED).forEachInstanceNear(0, 0, VOLCANO_SEARCH, random) { x, z, _ ->
+        val distance = sqrt(x.toDouble() * x + z.toDouble() * z)
+        if (distance < away) {
+            away = distance
+            closest = x to z
+        }
+    }
+    closest
+}
 
 private val subjects: Map<String, Subject> = mapOf(
     // Wide enough to hold more than one island, because size and lift variation is a thing you can only
@@ -602,6 +645,35 @@ private val subjects: Map<String, Subject> = mapOf(
         lowestY = 30,
         highestY = 185,
         radius = 420,
+    ),
+
+    // **Volcanoes have to be drawn standing on something.** They are a layer unioned over an Age's own
+    // ground, so only the part clearing that ground is a mountain at all — a picture of the bare cone
+    // measures a shape nobody ever sees, most of it buried. Flat rock at the waterline is the ground that
+    // adds nothing of its own, which is what leaves the silhouette to be judged on its own terms.
+    //
+    // Wide enough for several, because what this is for is whether they look like copies.
+    "volcanoes" to Subject(
+        volcanicCountry(),
+        lowestY = VOLCANIC_GROUND,
+        highestY = 320,
+        radius = 1400,
+        step = 4,
+    ),
+
+    // One of them close up: the plateau, the caldera cut into it and the floor at the bottom. **Both cuts
+    // are named and run through the cone's own axis** — the fullest row would find the rim, tangent it,
+    // and draw a wall with no crater behind it.
+    "volcano" to Subject(
+        volcanicCountry(),
+        lowestY = VOLCANIC_GROUND,
+        highestY = 280,
+        radius = 340,
+        step = 2,
+        centreX = NEAREST_VOLCANO.first,
+        centreZ = NEAREST_VOLCANO.second,
+        sliceAtZ = NEAREST_VOLCANO.second,
+        sliceAtX = NEAREST_VOLCANO.first,
     ),
 )
 

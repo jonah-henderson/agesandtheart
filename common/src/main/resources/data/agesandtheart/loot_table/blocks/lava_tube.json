@@ -1,11 +1,24 @@
 {
+  "_comment": "Silk touch or nothing. Mining a vent is the permanent way to stop a volcano, so breaking one has to be a decision that costs something; carrying the tube away is a further prize on top of netherite (see agesandtheart:needs_netherite_tool).",
   "type": "minecraft:block",
   "pools": [
     {
       "rolls": 1.0,
       "bonus_rolls": 0.0,
       "entries": [{ "type": "minecraft:item", "name": "agesandtheart:lava_tube" }],
-      "conditions": [{ "condition": "minecraft:survives_explosion" }]
+      "conditions": [
+        { "condition": "minecraft:survives_explosion" },
+        {
+          "condition": "minecraft:match_tool",
+          "predicate": {
+            "predicates": {
+              "minecraft:enchantments": [
+                { "enchantments": "minecraft:silk_touch", "levels": { "min": 1 } }
+              ]
+            }
+          }
+        }
+      ]
     }
   ],
   "random_sequence": "agesandtheart:blocks/lava_tube"

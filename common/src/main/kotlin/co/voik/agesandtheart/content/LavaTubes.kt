@@ -1,10 +1,10 @@
 package co.voik.agesandtheart.content
 
+import co.voik.agesandtheart.age.phenomena.VolcanicBomb
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.BlockGetter
-import co.voik.agesandtheart.age.phenomena.VolcanicBomb
 import net.minecraft.world.level.block.Blocks
 
 /**
@@ -13,6 +13,12 @@ import net.minecraft.world.level.block.Blocks
  * A mass wells lava up into the caldera above it, as deep as the mass is tall, and the same mass is what
  * decides how hard the volcano throws. So mining some of it makes a volcano quieter rather than only
  * killing it outright.
+ *
+ * **Throwing and pouring are separate errands on separate clocks.** A random tick is the right rhythm for
+ * an eruption — rare, and a volcano that fired on a schedule would read as a machine — but it is far too
+ * slow to fill a caldera, which is thousands of blocks and would take hours at one visit every few
+ * seconds. So a random tick throws and *starts* the pour, and the pour then runs on scheduled ticks until
+ * the lake is complete and stops paying for itself.
  */
 object LavaTubes {
 
@@ -57,8 +63,16 @@ object LavaTubes {
         return highest - lowest + ONE
     }
 
+    /** Throw something, if this vent is big enough to. */
+    fun erupt(level: ServerLevel, at: BlockPos) {
+        if (plugged(level, at)) return
+        val mass = massAround(level, at)
+        val force = forceOf(mass) ?: return
+        VolcanicBomb.thrownFrom(level, mouthOver(level, mass.maxByOrNull { it.y } ?: at), force)
+    }
+
     /**
-     * Lay some of the lava this mass owes its caldera, up to [POURED_PER_TICK].
+     * Lay some of the lava this mass owes its caldera, up to [POURED_PER_TICK], and say how much went in.
      *
      * **Outward first, then upward**, so a pool spreads across the crater floor before it deepens — which
      * is what makes a wide shallow caldera fill like a lake rather than a column. The spread runs only
@@ -67,14 +81,17 @@ object LavaTubes {
      *
      * Lava is placed as **source blocks in a computed volume, never allowed to flow**. Flowing is the
      * expensive half, and a computed pool is idempotent: running this again over a full caldera walks the
-     * same space and places nothing.
+     * same space, places nothing, and answers zero — which is what tells the caller to stop.
      */
-    fun wellUp(level: ServerLevel, at: BlockPos) {
-        if (plugged(level, at)) return
+    fun pour(level: ServerLevel, at: BlockPos): Int {
+        if (plugged(level, at)) return NOTHING_POURED
         val mass = massAround(level, at)
-        throwSomething(level, at, mass)
         val ceiling = mass.maxOf { it.y } + depthOf(mass)
-        val reach = REACH_FROM_THE_MASS
+        // The reach is measured from one point rather than from every block of the mass: a mass is a
+        // small disc, so the answers differ by a block or two, and asking sixty-four of them per candidate
+        // is the whole cost of a pool that runs to thousands.
+        val middleX = mass.sumOf { it.x } / mass.size
+        val middleZ = mass.sumOf { it.z } / mass.size
         val seen = HashSet<BlockPos>(mass)
         var frontier = mass.map { it.above() }.filter { it !in mass }
         var poured = 0
@@ -84,7 +101,7 @@ object LavaTubes {
                 if (poured >= POURED_PER_TICK) break
                 if (!seen.add(position)) continue
                 if (position.y > ceiling) continue
-                if (!mass.any { it.closerThan(position, reach) }) continue
+                if (!withinReach(position, middleX, middleZ)) continue
                 val state = level.getBlockState(position)
                 if (state.blocksMotion()) continue
                 if (!state.`is`(Blocks.LAVA)) {
@@ -97,6 +114,13 @@ object LavaTubes {
             }
             frontier = next
         }
+        return poured
+    }
+
+    private fun withinReach(position: BlockPos, middleX: Int, middleZ: Int): Boolean {
+        val spreadX = (position.x - middleX).toDouble()
+        val spreadZ = (position.z - middleZ).toDouble()
+        return spreadX * spreadX + spreadZ * spreadZ <= REACH_FROM_THE_MASS * REACH_FROM_THE_MASS
     }
 
     /**
@@ -115,19 +139,6 @@ object LavaTubes {
         val over = (mass.size - ENOUGH_TO_THROW).toDouble()
         val span = (MOST_IN_A_MASS - ENOUGH_TO_THROW).toDouble()
         return (over / span).coerceIn(NOTHING, EVERYTHING)
-    }
-
-    /**
-     * Throw something, if this vent is big enough.
-     *
-     * **The random tick IS the rhythm, and a second gate on top of it was too much.** Only the top layer of
-     * a mass is ever unplugged — everything under it has a tube overhead — so a caldera offers around a
-     * dozen tickable blocks, and a random tick finds one of those every few seconds. Rolling again on top
-     * of that put eruptions minutes apart, which reads as a volcano that does not work.
-     */
-    private fun throwSomething(level: ServerLevel, at: BlockPos, mass: Set<BlockPos>) {
-        val force = forceOf(mass) ?: return
-        VolcanicBomb.thrownFrom(level, mouthOver(level, mass.maxByOrNull { it.y } ?: at), force)
     }
 
     /**
@@ -156,17 +167,17 @@ object LavaTubes {
     /** A pool is capped at the mass's own height, so there is never much more lava than this to climb. */
     private const val MOST_LAVA_OVERHEAD = 8
 
-    private const val POURED_PER_TICK = 32
-
     /**
-     * Far enough to flood a caldera floor, short enough that a breached rim does not drain into the world.
-     *
-     * Widened from 24, which left a pool that did not reach the edges of the crater it sat in. The cones
-     * are cut to a caldera radius of 34, so the reach has to clear that or the lake is a puddle in a bowl.
+     * A caldera floor runs to a couple of thousand blocks and the pour is chained until it is covered, so
+     * this is what a tick of that fill costs rather than what the whole lake does.
      */
+    private const val POURED_PER_TICK = 128
+
+    /** Far enough to flood the widest caldera floor, short enough that a breached rim does not drain. */
     private const val REACH_FROM_THE_MASS = 40.0
 
     private const val ONE = 1
+    private const val NOTHING_POURED = 0
     private const val NOTHING = 0.0
     private const val EVERYTHING = 1.0
 }

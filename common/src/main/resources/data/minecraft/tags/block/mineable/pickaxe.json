@@ -1,5 +1,5 @@
 {
-  "_comment": "Both instruments are metal and stone; they should ask for a pickaxe, and requiresCorrectToolForDrops needs this to mean anything.",
+  "_comment": "Both instruments are metal and stone; they should ask for a pickaxe, and requiresCorrectToolForDrops needs this to mean anything. Anything carrying that property must be listed here or no tool is ever the correct one and the block drops nothing at all — which is what the three temperstones and the lava tube were doing.",
   "replace": false,
   "values": [
     "agesandtheart:analysis_machine",
@@ -7,6 +7,10 @@
     "agesandtheart:pitchstone_ore",
     "agesandtheart:deepslate_pitchstone_ore",
     "agesandtheart:pitchstone_block",
-    "agesandtheart:rime_crystal"
+    "agesandtheart:rime_crystal",
+    "agesandtheart:temperstone",
+    "agesandtheart:raw_temperstone",
+    "agesandtheart:scorched_temperstone",
+    "agesandtheart:lava_tube"
   ]
 }

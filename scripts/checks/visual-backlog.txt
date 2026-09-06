@@ -181,48 +181,67 @@
 /age compose volc 11 landmass=hills sea=water rock=solid sky=plain features.grows=agesandtheart:volcano
 /age tp volc
 #
-# The lava tubes and the projectiles are in as of 2026-09-06. A vent under 16 connected blocks only seeps;
-# from there the bombs ramp to a full 64-block mass, creeper-strength up to well past TNT.
+# **SEED 11 IS DRAWN OFFLINE TOO.** `./gradlew :common:preview --args=volcano` renders this same Age's
+# nearest cone and prints where it stands (622, -269 -- floor around y=117); `--args=volcanoes` is the wide
+# view. A cone is placed from the recipe seed unchanged, so the pictures and the walk are the same
+# mountains, and looking at a shape no longer costs a flight. `scripts/checks/volcano.txt` drives the
+# functional half.
 #
-# **NOTHING HERE HAS BEEN SEEN.** Volcanoes sit roughly a kilometre apart, so a small generated area may
-# hold none at all -- fly, or generate wide, before concluding they are missing.
+# ── WHAT THE SECOND WALK CHANGED (2026-09-06) ────────────────────────────────────────────────────────
+# Reported: still extremely pointed; the caldera had one block in the middle and no findable tubes;
+# still far too regular; bombs too weak and too samey; impact lava left hanging in mid-air.
 #
-# WHAT A WALK HAS TO SETTLE, all of it dial-turning rather than pass/fail:
-#   - **THAT THE VENTS ARE FOUND AT ALL.** `VolcanoVents` looks for a column high up with higher ground on
-#     all four sides, which is the one piece of this most likely to be silently wrong -- if the caldera is
-#     wider or shallower than `RIM_REACH`/`RIM_CLIMB` expect, it finds nothing and the crater sits empty.
-#     An empty caldera is the symptom.
-#   - That the tubes well lava up into the caldera and STOP at the rim rather than running down the flank.
-#     The pool is capped at the mass's own height and 24 blocks from it; a breached rim should drain, and
-#     whether that is a bug or a feature is a judgement.
-#   - That PLUGGING works: put a solid block over a tube and the welling should stop. Lava over it must
-#     NOT count as a plug, or a volcano silences itself on its own output.
-#   - That mining the tubes out is a real, findable act -- can you tell where they are once the caldera has
-#     filled with lava?
-#   - **THE BOMBS.** Reported as never spawning, and there were two reasons, both fixed: the natural vent
-#     was fifteen blocks against a threshold of sixteen, and a second one-in-six roll on top of an already
-#     sparse random tick. Confirmed erupting headlessly (six airborne at once). Gravity is now a
-#     SNOWBALL'S, so they arc slowly on purpose -- the counterplay is looking up, reading where one will
-#     land, and moving. **Judge that first**: if you cannot track one, nothing else about them matters.
-#   - That a bomb landing IN lava is inert. This is the bound on the whole mechanic: flooded ground stops
-#     accumulating, so a volcano deepens its pool and then stops enlarging it. If it still explodes there,
+#   - **The caldera bottomed out at a point because the cut was an inverted CONE.** Its tip *is* one block.
+#     It is now a truncated cone -- walls aimed to reach full depth exactly where a flat floor begins -- so
+#     a crater is 40 to 60 blocks across at the rim with a real floor to stand a vent in.
+#   - **The peak is truncated too**, or there is nothing to cut a crater into: a cone is one block wide
+#     where the crater wants to be, and a bowl cut there only decapitates the mountain.
+#   - **The profile is two cones now, steep over shallow**, which is what makes a flank concave and stops
+#     the whole thing reading as a spike. The apron costs a lot of radius -- a cone based 100 blocks under
+#     the ground shows only its last tenth -- and that radius is what the per-column cost is paid in.
+#   - **The roughening had never worked.** A wavelength is `scale x 2^-firstOctave`, so `scale = 90` at
+#     octave -5 is a swing 2,880 blocks across laid over a 300-block mountain: a constant, and a constant
+#     shift only MOVES a cone. Fixed, and joined by `Warped`, a new toolkit node that displaces the query
+#     column instead of its height -- the only thing here that reaches a silhouette, because undulating
+#     something steep barely moves its outline.
+#   - **One vent per crater, not one per chunk.** Every chunk of a caldera could see a bowl, so one volcano
+#     had twenty masses and 95 bombs in the air at once. Now about four.
+#   - **Bombs draw a bearing, a climb and a speed separately**, so a volcano spreads its fire instead of
+#     shelling one ring: the flat fast shots carry seven or eight chunks, the steep slow ones fall back
+#     into the crater.
+#   - **Impact lava pours from the crater FLOOR upward**, one to three layers deep drawn per bomb, and a
+#     bomb that finds no floor beneath it pools nothing.
+#   - Lava tubes are **netherite-only and silk-touch-only**. Also fixed while there: the three temperstones
+#     and the tube all carried `requiresCorrectToolForDrops` with no `mineable/pickaxe` entry, which means
+#     they had been dropping NOTHING with any tool since they were written.
+#
+# WHAT THIS WALK HAS TO SETTLE, most of it dial-turning rather than pass/fail:
+#   - **DO THEY READ AS VOLCANOES NOW**, from a distance and from the flank? Roughly 66 blocks of relief
+#     over a 150-block visible radius, four distinct shapes, turned eight ways, warped ~30 blocks.
+#   - **IS THE WARP STRONG ENOUGH, OR TOO STRONG?** It is the lever on regularity and the one most likely
+#     to be left too timid. Past a gradient of about 1 it folds and reads a second rim inside the crater;
+#     if you see that, it is too much rather than too little.
+#   - Spacing: cells are 580 apart with patch clustering, which measured at roughly 700-900 between
+#     neighbours. Asked for ~750.
+#   - Does the caldera look like somewhere you would climb into, and can you find the vent once the lake
+#     has covered it? A dormant volcano you dig into is fine occasionally -- often is not.
+#   - **THE LAKE.** It now chains its own ticks and fills in seconds rather than hours. Does it stop at the
+#     rim, and does a breached rim drain down the flank -- bug or feature?
+#   - That PLUGGING works: a solid block over a tube stops the welling. Lava over it must NOT count.
+#   - **CAN YOU TRACK A BOMB?** Gravity is a snowball's on purpose; the counterplay is looking up, reading
+#     where one lands, and moving. If you cannot, nothing else about them matters.
+#   - Is being three or four chunks away genuinely unsafe now, and is that fun or exhausting?
+#   - That a bomb landing IN lava is inert -- the bound on the whole mechanic. If it still explodes there,
 #     an Age drifts toward being made of lava.
-#   - That 16 connected tubes is the right place for the threshold, and that mining back under it really
-#     does silence a volcano without having to dig out every block.
 #   - Whether a full 64-mass at explosion strength 7 is exciting or merely unplayable near a base.
 #   - **FIRE SPREAD.** A hot Age with rain suppressed and lava raining into it could be miserable in a way
 #     only a walk shows.
-#   - Do they read as VOLCANOES from a distance, or as ordinary hills with a dent? Base radius 56, height
-#     96, caldera radius 14 and 18 deep are all first guesses.
-#   - Does the caldera look like somewhere you would climb into? It is where the tubes will go, so it has
-#     to be enterable and worth entering.
-#   - Are they RARE ENOUGH TO BE A LANDMARK and common enough to find? Roughly a kilometre between
-#     candidates with patch clustering, so volcanic country should come in fields with quiet ground
-#     between rather than an even sprinkle.
-#   - Do they sit ON the landform convincingly? They are a layer unioned over the Age's own ground, so try
-#     them over `cliffs` and `alps` as well as `hills` -- a cone growing out of a cliff face is the case
-#     most likely to look wrong.
-#   - Does the blend turn two overlapping cones into one massif, or leave a crease?
+#   - Do they sit ON the landform convincingly? Try `cliffs` and `alps` as well as `hills` -- a cone
+#     growing out of a cliff face is the case most likely to look wrong.
+#   - Does the blend turn two overlapping aprons into one massif, or leave a crease?
+#   - **A STRAY VENT IN A HILLSIDE.** The crater test is "high, and the ground climbs on three of four
+#     bearings at 50 blocks" -- a deep enough hill valley above y=85 could pass. At most one per basin now,
+#     so the symptom is a lone lava tube somewhere that is not a volcano.
 
 # ══ 9. TEMPERSTONE'S THREE BANDS HAVE NEVER BEEN SEEN ════════════════════════ Built 2026-09-06 ══
 # The whole design is that ONE FORMATION TEACHES THE RULE: stone too close to lava comes out scorched and

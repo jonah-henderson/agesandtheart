@@ -1,0 +1,7 @@
+{
+  "_comment": "Everything in agesandtheart:needs_netherite_tool is out of reach of this tier. The six of these together are how a netherite-only block is expressed — vanilla's own ladder stops at diamond.",
+  "replace": false,
+  "values": [
+    "#agesandtheart:needs_netherite_tool"
+  ]
+}

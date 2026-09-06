@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age.phenomena
 
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import net.minecraft.core.particles.ParticleTypes
 import net.minecraft.network.syncher.SynchedEntityData
 import net.minecraft.server.level.ServerLevel
@@ -16,12 +17,15 @@ import net.minecraft.world.level.storage.ValueOutput
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.EntityHitResult
 import net.minecraft.world.phys.HitResult
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 /**
  * A lump of molten rock thrown out of a volcano (design §7.1.2).
  *
  * It arcs, so it is a thrown projectile rather than a falling block — vanilla's falling block only ever
- * goes straight down. Where it lands it cratates the ground and pools a little lava in the hole.
+ * goes straight down. Where it lands it craters the ground and pools a little lava in the hole.
  *
  * **A bomb that lands in lava does neither.** That is the bound on the whole mechanic rather than a
  * special case: ground that has already flooded stops accumulating, so a volcano deepens its own pool and
@@ -79,15 +83,62 @@ class VolcanicBomb(type: EntityType<out VolcanicBomb>, level: Level) : Throwable
     }
 
     /**
-     * A little lava in the hole it just made.
+     * A little lava in the floor of the hole it just made.
      *
-     * Poured into the floor of the crater rather than at the point of impact, so it settles where the
-     * explosion left room instead of hanging in the air above it.
+     * **Poured from the bottom of the crater upward, never at the point of impact.** A bomb goes off at
+     * head height on whatever it clipped, so laying lava where it struck hangs a source block in the air
+     * over the hole it just dug. Falling to the floor first and filling from there is what makes the pool
+     * sit in the crater, and the depth is drawn per bomb so a bombarded slope ends up dappled with pools
+     * of different sizes rather than tiled with identical ones.
+     *
+     * A bomb that finds no floor within reach — one intercepted high over a valley — pools nothing.
      */
     private fun pool(level: ServerLevel, at: BlockPos) {
-        val floor = (0..POOL_DEPTH).map { at.below(it) }.firstOrNull { level.getBlockState(it).isAir }
-            ?: return
-        level.setBlockAndUpdate(floor, Blocks.LAVA.defaultBlockState())
+        val floor = craterFloorUnder(level, at) ?: return
+        val layers = LEAST_LAYERS + level.random.nextInt(MOST_LAYERS - LEAST_LAYERS + ONE)
+        flood(level, floor, ceiling = floor.y + layers - ONE)
+    }
+
+    /** The lowest open block under the burst, or null if there is no ground under it worth pooling on. */
+    private fun craterFloorUnder(level: ServerLevel, at: BlockPos): BlockPos? {
+        var here = if (level.getBlockState(at).blocksMotion()) at.above() else at
+        for (drop in 0..<DEEPEST_CRATER) {
+            if (level.getBlockState(here.below()).blocksMotion()) return here
+            here = here.below()
+        }
+        return null
+    }
+
+    /** Outward along the crater floor, then up — the same spread a vent uses, at a crater's scale. */
+    private fun flood(level: ServerLevel, floor: BlockPos, ceiling: Int) {
+        val reach = strength().toDouble()
+        val seen = HashSet<BlockPos>()
+        var frontier = listOf(floor)
+        var laid = 0
+        while (frontier.isNotEmpty() && laid < MOST_POOLED) {
+            val next = mutableListOf<BlockPos>()
+            for (position in frontier) {
+                if (laid >= MOST_POOLED) break
+                if (!seen.add(position)) continue
+                if (position.y > ceiling) continue
+                if (!withinReach(position, floor, reach)) continue
+                val state = level.getBlockState(position)
+                if (state.blocksMotion()) continue
+                if (!state.`is`(Blocks.LAVA)) {
+                    level.setBlockAndUpdate(position, Blocks.LAVA.defaultBlockState())
+                    laid++
+                }
+                Direction.Plane.HORIZONTAL.forEach { way -> next += position.relative(way) }
+                next += position.above()
+            }
+            frontier = next
+        }
+    }
+
+    private fun withinReach(position: BlockPos, floor: BlockPos, reach: Double): Boolean {
+        val spreadX = (position.x - floor.x).toDouble()
+        val spreadZ = (position.z - floor.z).toDouble()
+        return spreadX * spreadX + spreadZ * spreadZ <= reach * reach
     }
 
     /** Creeper-sized at the least, and a good deal past TNT at a full vent. */
@@ -119,7 +170,10 @@ class VolcanicBomb(type: EntityType<out VolcanicBomb>, level: Level) : Throwable
         private const val LIKE_A_CREEPER = 3.0
         private const val AT_FULL_VENT = 7.0
 
-        private const val POOL_DEPTH = 3
+        private const val LEAST_LAYERS = 1
+        private const val MOST_LAYERS = 3
+        private const val DEEPEST_CRATER = 8
+        private const val MOST_POOLED = 96
 
         /**
          * A snowball's, and light on purpose.
@@ -134,27 +188,59 @@ class VolcanicBomb(type: EntityType<out VolcanicBomb>, level: Level) : Throwable
         private const val FALLING = 0.0
         private const val NO_DRIFT = 0.0
         private const val LEAST = 0.0
+        private const val ONE = 1
 
         private const val FORCE_KEY = "force"
 
-        /** Thrown from a vent, with enough spread that a volcano does not shell one spot. */
+        /**
+         * Thrown from a vent, on a bearing, a climb and a speed all drawn separately.
+         *
+         * **Drawing the shot rather than its three components is what gives a volcano its spread.**
+         * Perturbing each axis a little around one nominal throw makes every bomb land in much the same
+         * ring, so a volcano shelled its own crater and nothing else. Drawing a *climb* between nearly
+         * flat and nearly vertical, and a speed across the whole band this vent can manage, puts some
+         * shots back in the caldera and sends others miles out over the flanks — which is both what a
+         * volcano looks like and what makes standing three or four chunks away no kind of safety.
+         *
+         * The band's ceiling is what [force] buys, so a vent grows its reach as it grows its mass; its
+         * floor is a share of that ceiling, so even the weakest vent varies its shots instead of firing
+         * the same one every time.
+         */
         fun thrownFrom(level: ServerLevel, from: BlockPos, force: Double) {
             val bomb = VolcanicBomb(AgeContent.VOLCANIC_BOMB, level)
             bomb.force = force
             bomb.setPos(from.x + HALF, from.y + HALF, from.z + HALF)
             val random = level.random
-            bomb.setDeltaMovement(
-                (random.nextDouble() - HALF) * SPREAD,
-                UPWARD + random.nextDouble() * UPWARD_SPREAD,
-                (random.nextDouble() - HALF) * SPREAD,
-            )
+
+            val bearing = random.nextDouble() * FULL_TURN
+            val climb = FLATTEST_SHOT + random.nextDouble() * (STEEPEST_SHOT - FLATTEST_SHOT)
+            val hardest = SOFTEST_THROW + (HARDEST_THROW - SOFTEST_THROW) * force
+            val speed = hardest * (WEAKEST_SHARE + random.nextDouble() * (WHOLE_SHARE - WEAKEST_SHARE))
+
+            val across = speed * cos(climb)
+            bomb.setDeltaMovement(across * cos(bearing), speed * sin(climb), across * sin(bearing))
             level.addFreshEntity(bomb)
             level.playSound(null, from, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.BLOCKS)
         }
 
         private const val HALF = 0.5
-        private const val SPREAD = 1.2
-        private const val UPWARD = 0.9
-        private const val UPWARD_SPREAD = 0.5
+        private const val FULL_TURN = 2.0 * PI
+
+        /** Nearly flat to nearly straight up, in radians — the dial that decides how far a shot carries. */
+        private const val FLATTEST_SHOT = 0.49
+        private const val STEEPEST_SHOT = 1.47
+
+        /**
+         * What a seeping vent and a full one can put behind a shot.
+         *
+         * At the top of the band a bomb clears seven or eight chunks before it lands; at the bottom it
+         * falls back inside the crater that threw it.
+         */
+        private const val SOFTEST_THROW = 1.35
+        private const val HARDEST_THROW = 2.6
+
+        /** The slowest share of its own ceiling a vent will throw at, so no vent is monotonous. */
+        private const val WEAKEST_SHARE = 0.55
+        private const val WHOLE_SHARE = 1.0
     }
 }
