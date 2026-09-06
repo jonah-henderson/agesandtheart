@@ -272,8 +272,12 @@
 #     the count has ever been measured (5 tube blocks per chunk between y=-60 and y=60, plus rarer nests at
 #     1-in-6 chunks). They are INERT until something opens the rock over them, so they cannot be walked by
 #     standing anywhere -- you have to dig one out.
-#     **HOW TO FIND ONE:** a lava tube emits light level 6, so in spectator mode flying through solid rock
-#     they are visible as a glow. Find one, come back in survival, and mine into it.
+#     **HOW TO FIND ONE: WALK A CAVE.** Carvers run before decoration and the ore pass does not discard
+#     air-exposed blocks, so tubes turn up in cave walls, floors and ceilings -- and they emit light 6, so
+#     in a dark cave they announce themselves. Note the difference while you are down there: a tube in a
+#     WALL or CEILING still has rock above it, so it is plugged and inert and only glows, while one in a
+#     cave FLOOR has air above and is live, welling a small pool into the cave. Strip mining works too;
+#     five tube blocks per chunk over a 120-block band is findable but slower.
 #     WHAT IT HAS TO SETTLE:
 #       * Are they findable while mining ordinarily, or only if you go looking? Too common, too rare?
 #       * **A SEAM you open should give a puddle** -- 4 to 7 tubes buys a pool of about four blocks' reach.
