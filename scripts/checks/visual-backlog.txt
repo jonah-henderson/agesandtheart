@@ -247,9 +247,14 @@
 #     each other. Judge whether volcanic country still reads as country.
 #   - Does the caldera look like somewhere you would climb into, and can you find the vent once the lake
 #     has covered it?
-#   - **CALDERA LAKES ARE SETTLED** (Jonah: "works amazingly well, would not want to change a thing") and
-#     measured unchanged at ~1900 source blocks after the small-vent work below. If a walk ever finds them
-#     shrunk, `reachOf` saturating at ENOUGH_TO_THROW is the thing that broke.
+#   - **CALDERA LAKES: the vent was sitting ON the threshold that sizes a lake, and sometimes fell under.**
+#     A crater's vent is a disc filtered by how far each column sits off the floor, so its mass is a DRAW:
+#     a radius-two disc two deep is 26 nominal and a rumpled floor could cut it under the 16 that buys a
+#     full pool -- so the caldera filled a patch of its own crater ("regularly failing to fill the bottom
+#     level"). The disc is always radius three now and the floor filter admits three blocks of relief.
+#     Measured 69 tubes / 1932 lake -> 87 / 2876, with wild vents unchanged at 177. **Judge whether the
+#     lake now reaches the crater walls everywhere, and whether 2876 is too much lava rather than too
+#     little** -- the mass also got deeper, so the pool rises higher than it used to.
 #   - **A SMALL VENT NOW MAKES A SMALL POOL.** Reach is the vent's size squared, saturating at the throwing
 #     threshold, so a nine-tube seam exposed on a hillside fell from ~1800 source blocks to 177 while
 #     calderas kept everything. Judge whether a seam you dig into gives a satisfying amount of lava.

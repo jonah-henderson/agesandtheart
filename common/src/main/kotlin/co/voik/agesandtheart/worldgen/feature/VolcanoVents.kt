@@ -202,16 +202,32 @@ object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration
 
     private const val ENOUGH_BEARINGS = 3
 
-    /** Thirteen columns to a layer at the narrowest, twenty-nine at the widest. */
-    private const val NARROWEST_VENT = 2
+    /**
+     * Twenty-nine columns to a layer, and **never the thirteen a radius of two gives**.
+     *
+     * A vent has to clear [co.voik.agesandtheart.content.LavaTubes]' throwing threshold *after* the floor
+     * filter below has taken its cut, and a narrow disc could not be relied on to: thirteen columns two
+     * deep is twenty-six nominal, which a rumpled floor can drop under sixteen. Below that a vent throws
+     * nothing and — since a pool's reach is sized by its vent — fills only a patch of the crater it sits
+     * in, which is what a walk saw as calderas "regularly failing to fill the bottom level". Twenty-nine
+     * columns survive the same cut with room to spare.
+     */
+    private const val NARROWEST_VENT = 3
     private const val WIDEST_VENT = 3
 
     /** The pool is as deep as the mass is tall, and a deep hole is a poor caldera. */
     private const val SHALLOWEST_VENT = 2
     private const val DEEPEST_VENT = 3
 
-    /** How far a vent column may sit off the floor it was found at before it counts as the wall. */
-    private const val FLOOR_RELIEF = 2
+    /**
+     * How far a vent column may sit off the floor it was found at before it counts as the wall.
+     *
+     * The surface noise rolls a caldera floor by about three blocks across a vent's width, so two rejected
+     * a good share of a disc for being ordinary floor. Three keeps them, which is most of what makes the
+     * mass dependable — and the deeper mass it leaves wells a deeper lake, since a pool rises as far as
+     * the vent is tall.
+     */
+    private const val FLOOR_RELIEF = 3
 
     /** Past the widest caldera floor but inside the rim, for the craters the cones are cut to. */
     private const val RIM_REACH = 30
