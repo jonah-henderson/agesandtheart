@@ -1,0 +1,7 @@
+{
+  "_comment": "NeoForge ships this rung already (empty, and wired into all six incorrect_for_<tier> tags), so on this loader ours feeds into theirs rather than standing beside it — a mod asking the ecosystem tag which blocks need netherite gets a true answer. Fabric ships no equivalent, which is why agesandtheart:needs_netherite_tool exists at all and why the six tag files stay in common.",
+  "replace": false,
+  "values": [
+    "#agesandtheart:needs_netherite_tool"
+  ]
+}

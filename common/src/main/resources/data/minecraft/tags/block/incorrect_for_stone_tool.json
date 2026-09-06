@@ -1,5 +1,5 @@
 {
-  "_comment": "Everything in agesandtheart:needs_netherite_tool is out of reach of this tier. The six of these together are how a netherite-only block is expressed — vanilla's own ladder stops at diamond.",
+  "_comment": "Everything in agesandtheart:needs_netherite_tool is out of reach of this tier. The six of these together are how a netherite-only block is expressed, vanilla's own ladder stopping at diamond. NeoForge already says the same of its own needs_netherite_tool, so on that loader this merges with identical wiring and only Fabric actually needs it.",
   "replace": false,
   "values": [
     "#agesandtheart:needs_netherite_tool"

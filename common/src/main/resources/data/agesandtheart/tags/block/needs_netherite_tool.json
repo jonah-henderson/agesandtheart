@@ -1,5 +1,5 @@
 {
-  "_comment": "The rung vanilla never built. Its ladder stops at needs_diamond_tool, and every incorrect_for_<tier> tag below netherite's points at this one, so a block listed here can only be mined for drops with netherite. Add a block here rather than editing six tag files.",
+  "_comment": "The rung vanilla never built: its ladder stops at needs_diamond_tool. NeoForge builds it (neoforge:needs_netherite_tool, empty and already wired into all six incorrect_for_<tier> tags) and Fabric does not, so this is ours and loader-neutral — the six tag files in data/minecraft point here, and the NeoForge module feeds this into theirs so the ecosystem tag stays true. Add a block here and nowhere else.",
   "replace": false,
   "values": [
     "agesandtheart:lava_tube"
