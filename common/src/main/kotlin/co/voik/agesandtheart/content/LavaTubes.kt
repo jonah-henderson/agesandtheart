@@ -75,15 +75,17 @@ object LavaTubes {
      * Lay some of the lava this mass owes the hollow above it, up to [POURED_PER_TICK], and say how much
      * went in.
      *
-     * **A level at a time, and only a level that is held in.** A pool is filled from the bottom up, one
-     * whole layer per pass, and a layer that reaches somewhere the lava would run *off* is abandoned
-     * entirely rather than partly laid — which is what stops a vent on open ground hanging a disc of lava
-     * in the air and cascading it down the hillside (Jonah, walked). What is left is a pool that rises to
-     * the brim of whatever holds it and no further.
+     * **Every block of it rests on something, and that is the whole rule.** The first version spread
+     * through anything a fluid could occupy, which on open ground is *air* — so a vent on a shelf hung a
+     * disc of lava out over the edge and cascaded it down the hillside. The second refused a whole level
+     * the moment any part of it would run off, which is the same mistake from the other side: one
+     * block of drop anywhere near the vent and a caldera never filled at all (Jonah, walked, twice).
      *
-     * The consequence worth knowing: **a caldera whose rim is breached below the brim fills to the breach
-     * and stops**, and one breached at the floor never fills at all. That makes cutting the rim a second,
-     * permanent way to silence a volcano's lake, beside plugging the vents.
+     * What is here instead is local and has no opinion about containment. Lava stands where something
+     * holds it up; where nothing does, it **falls**, and is followed down until it finds a floor. A dip in
+     * the crater floor is filled by that fall, and a drop off the rim is told apart from a dip by nothing
+     * cleverer than how far the fall goes: [MOST_DESCENT] blocks of it and this stops following, so a
+     * cascade lays nothing while a hollow gets everything.
      *
      * Lava is placed as **source blocks in a computed volume, never allowed to flow**. Flowing is the
      * expensive half, and a computed pool is idempotent: running this again over a full caldera walks the
@@ -92,56 +94,47 @@ object LavaTubes {
     fun pour(level: ServerLevel, at: BlockPos): Int {
         if (plugged(level, at)) return NOTHING_POURED
         val mass = massAround(level, at)
-        val brim = mass.maxOf { it.y } + depthOf(mass)
+        val top = mass.maxOf { it.y }
+        val brim = top + depthOf(mass)
+        val lowestItMayReach = top - MOST_DESCENT
+        val middleX = mass.sumOf { it.x } / mass.size
+        val middleZ = mass.sumOf { it.z } / mass.size
+
+        val seen = HashSet<BlockPos>(mass)
+        val queue = ArrayDeque<BlockPos>()
+        mass.forEach { tube -> queue += tube.above() }
         var poured = 0
-        var resting: Collection<BlockPos> = mass
-        var height = mass.maxOf { it.y } + ONE
-        while (height <= brim) {
-            val layer = heldLayer(level, height, resting) ?: break
-            if (layer.isEmpty()) break
-            for (position in layer) {
-                if (poured >= POURED_PER_TICK) return poured
-                if (level.getBlockState(position).`is`(Blocks.LAVA)) continue
-                level.setBlockAndUpdate(position, Blocks.LAVA.defaultBlockState())
+        var walked = 0
+        while (queue.isNotEmpty() && poured < POURED_PER_TICK && walked < MOST_IN_A_POOL) {
+            val here = queue.removeFirst()
+            if (!seen.add(here)) continue
+            walked++
+            if (here.y > brim || here.y < lowestItMayReach) continue
+            if (!withinReach(here, middleX, middleZ)) continue
+            val standing = level.getBlockState(here)
+            if (standing.blocksMotion()) continue
+            // **Nothing under it: the lava falls rather than hangs.** Following it down is what fills a
+            // dip in the crater floor, and running out of descent before finding a floor is what tells a
+            // cascade off the rim from a hollow worth filling — one gets no lava, the other gets it all.
+            if (!heldUp(level, here)) {
+                queue += here.below()
+                continue
+            }
+            if (!standing.`is`(Blocks.LAVA)) {
+                level.setBlockAndUpdate(here, Blocks.LAVA.defaultBlockState())
                 poured++
             }
-            resting = layer
-            height++
+            Direction.Plane.HORIZONTAL.forEach { way -> queue += here.relative(way) }
+            queue += here.above()
         }
         return poured
     }
 
-    /**
-     * The whole of one level of pool standing on [resting], or **null where it would run off**.
-     *
-     * The walk spreads sideways through anything a fluid could occupy and stops at anything that blocks
-     * motion, which is a wall holding the pool in. Reaching open space with *nothing under it* is the
-     * other outcome, and it is not a smaller pool — it is a leak, and the level cannot stand at all.
-     *
-     * Bounded by [MOST_IN_A_LAYER] as well: a level too big to walk is one this cannot show is held in, and
-     * refusing it is both the cheap answer and the right one.
-     */
-    private fun heldLayer(level: ServerLevel, height: Int, resting: Collection<BlockPos>): Set<BlockPos>? {
-        val found = LinkedHashSet<BlockPos>()
-        val queue = ArrayDeque<BlockPos>()
-        for (under in resting) {
-            val seed = under.above()
-            if (seed.y != height) continue
-            if (level.getBlockState(seed).blocksMotion()) continue
-            queue += seed
-        }
-        while (queue.isNotEmpty()) {
-            val here = queue.removeFirst()
-            if (!found.add(here)) continue
-            if (found.size > MOST_IN_A_LAYER) return null
-            for (way in Direction.Plane.HORIZONTAL) {
-                val neighbour = here.relative(way)
-                if (level.getBlockState(neighbour).blocksMotion()) continue
-                if (!heldUp(level, neighbour)) return null
-                queue += neighbour
-            }
-        }
-        return found
+    /** Whether the pool may stand this far from the vent at all — the size of a lake, not its shape. */
+    private fun withinReach(position: BlockPos, middleX: Int, middleZ: Int): Boolean {
+        val spreadX = (position.x - middleX).toDouble()
+        val spreadZ = (position.z - middleZ).toDouble()
+        return spreadX * spreadX + spreadZ * spreadZ <= REACH_FROM_THE_MASS * REACH_FROM_THE_MASS
     }
 
     /** Whether there is anything under [at] for lava to rest on — the rock it sits in, or its own pool. */
@@ -201,12 +194,19 @@ object LavaTubes {
     private const val POURED_PER_TICK = 128
 
     /**
-     * How wide a single level of pool may be before this gives up on showing it is held in.
+     * How far a fall is followed before it counts as running away rather than settling.
      *
-     * Comfortably past the widest caldera floor, and it is the only size bound left — a pool no longer has
-     * a radius, it has a container.
+     * This is the only thing separating a dip in a crater floor from a drop off the crater's rim, and it
+     * wants to stay small: generous enough for the rumple the surface noise leaves, mean enough that a
+     * mountainside is never mistaken for a hollow.
      */
-    private const val MOST_IN_A_LAYER = 2048
+    private const val MOST_DESCENT = 4
+
+    /** Far enough to flood the widest caldera floor, short enough that a lake stays a lake. */
+    private const val REACH_FROM_THE_MASS = 24.0
+
+    /** A bound on the walk rather than on the lava: what one pass may look at before yielding the tick. */
+    private const val MOST_IN_A_POOL = 4096
 
     private const val ONE = 1
     private const val NOTHING_POURED = 0

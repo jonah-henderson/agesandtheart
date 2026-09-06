@@ -163,27 +163,25 @@ object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration
     }
 
     /**
-     * A little lava standing on the vents from the moment the chunk is made (Jonah, 2026-09-06).
+     * A skin of lava standing on the vents from the moment the chunk is made (Jonah, 2026-09-06).
      *
      * **A volcano you walk up to should have been erupting for an age, not for four seconds.** The pool a
      * mass wells is laid at runtime, so an unvisited caldera arrived bone dry and began filling as you
-     * watched it — which reads as a volcano that has just switched on. Priming it is two courses over the
-     * vent and nothing else: the rest of the crater still fills the ordinary way, so what a walk sees is a
-     * lake that was already there *widening*, which is the thing that was wanted.
+     * watched it — which reads as a volcano that has just switched on.
      *
-     * Laid to one level rather than following the floor, because a pond is level and the vents are sunk
-     * from their own surfaces. Air only — a cluster buried in rock has nowhere to put it, and one under
-     * water would only make stone.
+     * **One course, and never a level.** Filling to a shared brim looks right on paper and is wrong on the
+     * ground: the vents follow a rumpled floor, so a column sitting a couple of blocks low gets three or
+     * four courses stacked on it, and where the disc has a gap beside it that stack is a lava *pillar*
+     * standing in the air (Jonah, walked). A single course over each tube is held up by that tube whatever
+     * its neighbours do, and the runtime pour deepens it within a tick or two of the chunk waking up.
+     *
+     * Air only — a cluster buried in rock has nowhere to put it, and one under water would only make stone.
      */
     private fun prime(level: WorldGenLevel, crowns: List<BlockPos>) {
-        if (crowns.isEmpty()) return
-        val brim = crowns.maxOf { it.y } + PRIMED_DEPTH
         for (crown in crowns) {
-            for (y in crown.y + ONE..brim) {
-                val at = BlockPos(crown.x, y, crown.z)
-                if (!level.getBlockState(at).isAir) break
-                level.setBlock(at, Blocks.LAVA.defaultBlockState(), UPDATE_NONE)
-            }
+            val at = crown.above()
+            if (!level.getBlockState(at).isAir) continue
+            level.setBlock(at, Blocks.LAVA.defaultBlockState(), UPDATE_NONE)
         }
     }
 
@@ -239,11 +237,6 @@ object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration
 
     /** Coarse: a caldera is tens of blocks across, so every fourth column finds it. */
     private const val STRIDE = 4
-
-    /** How much lava a fresh caldera arrives with, over the vent — enough to read as established. */
-    private const val PRIMED_DEPTH = 2
-
-    private const val ONE = 1
 
     /** Below the world, so an empty column can never be mistaken for a crater floor or a rim. */
     private const val NO_ROCK = Int.MIN_VALUE / 2
