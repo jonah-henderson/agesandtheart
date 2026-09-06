@@ -57,25 +57,27 @@
 # │ at you. Every score below the line was re-measured on a server the same day.                       │
 # └────────────────────────────────────────────────────────────────────────────────────────────────────┘
 #
-# Re-measured 2026-09-06, seed 11:
+# Re-measured 2026-09-06 AFTER the features channel was added and the weights redivided across five
+# contributors (materials .28, spawns .24, phenomena .24, features .17, lighting .07), seed 11:
 #     0.000  a quiet Age
-#     0.122  half a lava sea
-#     0.245  a lava sea alone
-#     0.300  age infernal            <-- the anchor: must not pay
-#     0.333  age inferno phenomena   <-- and this one SHOULD
+#     0.170  a volcano alone
+#     0.196  a lava sea alone
+#     0.235  age infernal                     <-- the anchor: must not pay
+#     0.320  age inferno phenomena            <-- and this one SHOULD
+#     0.366  a volcano over a lava sea
 #     0.720  age teeming ghast spawns
 #
 # **THE RETUNE BOUGHT THE INVERSION THAT WAS WANTED.** Before it, a world made of lava under a roof
-# (0.430) outscored a world actively raining fire on you (0.300). Now it is the other way round, by the
-# narrow margin the threshold has to thread: **0.300 -> 0.333.**
+# (0.430) outscored a world actively raining fire on you (0.300). Now it is the other way round.
 #
-# The old anchor still applies -- a straight nether duplicate must JUST BARELY not pay -- so the line now
-# wants to sit just above 0.300 rather than the 0.45 that was about to be written down. Roughly **0.31**,
-# which keeps the rule intact: the template alone never pays; the template plus one deliberate hazard does.
-# THE GAP IS NARROWER THAN IT WAS (0.033 against 0.045). If a walk finds that uncomfortable, the dial to
-# turn is the WEIGHTS rather than these values -- shifting `phenomena` up and `materials`/`lighting` down
-# widens exactly this gap and nothing else. That was deliberately NOT done at the same time, so this
-# measurement would attribute to one change.
+# **AND THE SHIPPED `pays_above` OF 0.25 NOW SATISFIES JONAH'S ANCHOR BY ITSELF**, which it did not before.
+# It sits inside the 0.235 -> 0.320 gap, so the nether duplicate just barely does not pay and the template
+# plus one deliberate hazard does. That was luck rather than design and it should still be walked, but
+# nothing has to be changed to make the rule hold.
+#
+# THE GAP IS NOW 0.085, against 0.033 before the features channel and 0.045 originally -- so the threshold
+# has more room than it has ever had. A volcano alone does not pay and a volcanic lava world does, which
+# reads right: one volcano is a local hazard, a world built around them is a dangerous Age.
 #
 # TWO THINGS TO DECIDE WITH IT, because both follow from the same number:
 #   - `allowsRuins` is this threshold read backwards. Moving it to 0.45 flips lava-only, inferno-only,
@@ -179,8 +181,8 @@
 /age compose volc 11 landmass=hills sea=water rock=solid sky=plain features.grows=agesandtheart:volcano
 /age tp volc
 #
-# The lava tubes are in as of 2026-09-06, so the WARN is gone and the vents are seated. The projectiles
-# are NOT built yet, so a volcano currently wells lava and throws nothing.
+# The lava tubes and the projectiles are in as of 2026-09-06. A vent under 16 connected blocks only seeps;
+# from there the bombs ramp to a full 64-block mass, creeper-strength up to well past TNT.
 #
 # **NOTHING HERE HAS BEEN SEEN.** Volcanoes sit roughly a kilometre apart, so a small generated area may
 # hold none at all -- fly, or generate wide, before concluding they are missing.
@@ -197,6 +199,18 @@
 #     NOT count as a plug, or a volcano silences itself on its own output.
 #   - That mining the tubes out is a real, findable act -- can you tell where they are once the caldera has
 #     filled with lava?
+#   - **THE BOMBS, WHICH ARE THE WHOLE HAZARD AND ARE ENTIRELY UNSEEN.** They arc, they are drawn as a
+#     magma block, they explode on hitting a block or a player and pool a little lava in the crater. Are
+#     they DODGEABLE -- can you see one coming and move? That is the counterplay, and if the arc is too
+#     flat or too fast there is none.
+#   - That a bomb landing IN lava is inert. This is the bound on the whole mechanic: flooded ground stops
+#     accumulating, so a volcano deepens its pool and then stops enlarging it. If it still explodes there,
+#     an Age drifts toward being made of lava.
+#   - That 16 connected tubes is the right place for the threshold, and that mining back under it really
+#     does silence a volcano without having to dig out every block.
+#   - Whether a full 64-mass at explosion strength 7 is exciting or merely unplayable near a base.
+#   - **FIRE SPREAD.** A hot Age with rain suppressed and lava raining into it could be miserable in a way
+#     only a walk shows.
 #   - Do they read as VOLCANOES from a distance, or as ordinary hills with a dent? Base radius 56, height
 #     96, caldera radius 14 and 18 deep are all first guesses.
 #   - Does the caldera look like somewhere you would climb into? It is where the tubes will go, so it has

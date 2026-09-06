@@ -4,6 +4,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.BlockGetter
+import co.voik.agesandtheart.age.phenomena.VolcanicBomb
 import net.minecraft.world.level.block.Blocks
 
 /**
@@ -71,6 +72,7 @@ object LavaTubes {
     fun wellUp(level: ServerLevel, at: BlockPos) {
         if (plugged(level, at)) return
         val mass = massAround(level, at)
+        throwSomething(level, at, mass)
         val ceiling = mass.maxOf { it.y } + depthOf(mass)
         val reach = REACH_FROM_THE_MASS
         val seen = HashSet<BlockPos>(mass)
@@ -98,21 +100,49 @@ object LavaTubes {
     }
 
     /**
-     * How hard a volcano with this mass throws.
+     * How hard a volcano with this mass throws, or null where it is too small to throw at all.
      *
-     * Named as a share rather than a size so the projectile can decide what to do with it, and so the
-     * shape of the curve lives in one place: a lone tube is barely worth avoiding, and a full caldera
-     * floor is the thing you build shelter against.
+     * **A critical mass, then a ramp.** Under [ENOUGH_TO_THROW] a vent only seeps: it wells its lava and
+     * is otherwise a warm place to stand, which gives a player something to find and read before anything
+     * is thrown at them. From there it climbs to full at [MOST_IN_A_MASS], so mining a vent back under the
+     * line silences it without having to dig out every last block — the volcano is *tamed* rather than
+     * only killed.
+     *
+     * A share rather than a size, so the curve lives here and what a bomb does with it lives there.
      */
-    fun forceOf(mass: Set<BlockPos>): Double =
-        (mass.size.toDouble() / MOST_IN_A_MASS).coerceAtMost(EVERYTHING)
+    fun forceOf(mass: Set<BlockPos>): Double? {
+        if (mass.size < ENOUGH_TO_THROW) return null
+        val over = (mass.size - ENOUGH_TO_THROW).toDouble()
+        val span = (MOST_IN_A_MASS - ENOUGH_TO_THROW).toDouble()
+        return (over / span).coerceIn(NOTHING, EVERYTHING)
+    }
+
+    /**
+     * Throw something, if this vent is big enough and the sky over it is open.
+     *
+     * Rare per tick because a random tick is already frequent: a caldera full of vents would otherwise be a
+     * continuous barrage rather than a hazard with a rhythm you can move between.
+     */
+    private fun throwSomething(level: ServerLevel, at: BlockPos, mass: Set<BlockPos>) {
+        val force = forceOf(mass) ?: return
+        if (level.random.nextInt(ONE_TICK_IN) != 0) return
+        VolcanicBomb.thrownFrom(level, mass.maxByOrNull { it.y } ?: at, force)
+    }
 
     private const val MOST_IN_A_MASS = 64
+
+    /** Under this a vent only seeps. A quarter of a full mass, so it is a real threshold to cross. */
+    private const val ENOUGH_TO_THROW = 16
+
+    /** Rare enough that a hazard has a rhythm rather than being a barrage. */
+    private const val ONE_TICK_IN = 6
+
     private const val POURED_PER_TICK = 32
 
     /** Far enough to flood a caldera floor, short enough that a breached rim does not drain into the world. */
     private const val REACH_FROM_THE_MASS = 24.0
 
     private const val ONE = 1
+    private const val NOTHING = 0.0
     private const val EVERYTHING = 1.0
 }

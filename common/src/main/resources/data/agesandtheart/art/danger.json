@@ -10,7 +10,7 @@
     "Blocks and entities are named by id rather than by tag, because a tag binds on a server and this must",
     "be readable offline -- the same bargain Materials.INVALID_FOR_TERRAIN already makes.",
     "",
-    "`weights` is what share of the score each of the four contributors carries, and they sum to one so",
+    "`weights` is what share of the score each of the five contributors carries, and they sum to one so",
     "that an Age made of the worst of everything scores about one.",
     "",
     "`pays_above` is the one threshold, and it does two jobs: below it nothing pays, and above it the D'ni",
@@ -34,6 +34,11 @@
     "`lighting` counts only insofar as it drives mob pressure. Sealed is worse than merely sunless: a roof",
     "means what walks under it walks at noon as well.",
     "",
+    "`features` is the channel for a hazard that lives in the GROUND rather than in the weather or the",
+    "population -- a volcano is none of the other four, and without a line here the evaluator cannot see the",
+    "most literal case of a world throwing things at you. The worst entry wins, like materials: an Age with",
+    "a volcano and a wheat field is as dangerous as its volcano. Ordinary features score nothing.",
+    "",
     "RETUNED 2026-09-06 (Jonah): BEING NETHER-LIKE IS NO LONGER SUFFICIENT. Lava fell 1.0 -> 0.7 and the",
     "roof 0.8 -> 0.55 (sunless 0.5 -> 0.35 with it, so the roof stays worse than mere darkness), while every",
     "phenomenon that does something to you rose. The rule this encodes: a world merely MADE of bad stuff is",
@@ -47,10 +52,11 @@
   ],
 
   "weights": {
-    "materials": 0.35,
-    "spawns": 0.3,
-    "phenomena": 0.25,
-    "lighting": 0.1
+    "materials": 0.28,
+    "spawns": 0.24,
+    "phenomena": 0.24,
+    "features": 0.17,
+    "lighting": 0.07
   },
 
   "pays_above": 0.25,
@@ -117,5 +123,9 @@
   "lighting": {
     "sealed": 0.55,
     "lightless": 0.35
+  },
+
+  "features": {
+    "agesandtheart:volcano": 1.0
   }
 }

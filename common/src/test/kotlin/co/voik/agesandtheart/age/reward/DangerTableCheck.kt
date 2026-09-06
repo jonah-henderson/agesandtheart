@@ -33,9 +33,10 @@ class DangerTableCheck : FunSpec({
 
     test("the weights are a division of one whole") {
         val weights = table.weights
-        val total = weights.materials + weights.spawns + weights.phenomena + weights.lighting
+        val total = weights.materials + weights.spawns + weights.phenomena + weights.lighting +
+            weights.features
         check(abs(total - ONE_WHOLE) < A_ROUNDING) {
-            "the four contributors share $total of the score rather than one"
+            "the contributors share $total of the score rather than one"
         }
     }
 

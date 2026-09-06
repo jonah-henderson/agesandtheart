@@ -57,9 +57,20 @@ data class DangerTable(
     private val spawns: Map<String, Double>,
     private val phenomena: Map<String, Double>,
     private val lighting: Map<String, Double>,
+    private val features: Map<String, Double>,
 ) {
     /** What a block named as an Age's rock, sea or surface is worth. Nothing, for almost everything. */
     fun material(named: String): Double = materials[named] ?: NOTHING
+
+    /**
+     * What a thing the Age asked to have *placed* in it is worth.
+     *
+     * The channel that lets a hazard live in the ground rather than in the weather or the population. A
+     * volcano is the first: it is not what an Age is made of, not what lives there and not what the sky
+     * does, and without a line here the evaluator is blind to the most literal case of a world throwing
+     * things at you. Ordinary features score nothing, as ordinary blocks do.
+     */
+    fun feature(named: String): Double = features[named] ?: NOTHING
 
     /**
      * What a creature asked for is worth — its own entry, else what any monster is worth, else nothing.
@@ -97,12 +108,13 @@ data class DangerTable(
         return type.category == MobCategory.MONSTER
     }
 
-    /** What share of the score each of §7.7's four contributors carries. */
+    /** What share of the score each contributor carries. */
     data class Weights(
         val materials: Double,
         val spawns: Double,
         val phenomena: Double,
         val lighting: Double,
+        val features: Double,
     ) {
         companion object {
             val CODEC: Codec<Weights> = RecordCodecBuilder.create { instance ->
@@ -111,6 +123,7 @@ data class DangerTable(
                     Codec.DOUBLE.fieldOf("spawns").forGetter(Weights::spawns),
                     Codec.DOUBLE.fieldOf("phenomena").forGetter(Weights::phenomena),
                     Codec.DOUBLE.fieldOf("lighting").forGetter(Weights::lighting),
+                    Codec.DOUBLE.fieldOf("features").forGetter(Weights::features),
                 ).apply(instance, ::Weights)
             }
         }
@@ -133,7 +146,7 @@ data class DangerTable(
          * meaningful so the arithmetic is still well defined.
          */
         val NONE = DangerTable(
-            weights = Weights(0.0, 0.0, 0.0, 0.0),
+            weights = Weights(0.0, 0.0, 0.0, 0.0, 0.0),
             paysAbove = Double.MAX_VALUE,
             spawnsFull = 1.0,
             phenomenaFull = 1.0,
@@ -143,6 +156,7 @@ data class DangerTable(
             spawns = emptyMap(),
             phenomena = emptyMap(),
             lighting = emptyMap(),
+            features = emptyMap(),
         )
 
         private val RATINGS: Codec<Map<String, Double>> = Codec.unboundedMap(Codec.STRING, Codec.DOUBLE)
@@ -159,6 +173,7 @@ data class DangerTable(
                 RATINGS.fieldOf("spawns").forGetter { it.spawns },
                 RATINGS.fieldOf("phenomena").forGetter { it.phenomena },
                 RATINGS.fieldOf("lighting").forGetter { it.lighting },
+                RATINGS.fieldOf("features").forGetter { it.features },
             ).apply(instance, ::DangerTable)
         }
 

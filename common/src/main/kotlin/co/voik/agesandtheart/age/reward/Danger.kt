@@ -9,6 +9,7 @@ import co.voik.agesandtheart.age.Price
 import co.voik.agesandtheart.age.Spending
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Claim
+import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Phenomena
 import co.voik.agesandtheart.age.aspect.Phenomenon
@@ -52,6 +53,13 @@ data class Danger(
     /** How dark it is, and only insofar as that drives mob pressure. */
     val lighting: Double,
     /**
+     * What it asked to have placed in it, where that is a hazard rather than scenery.
+     *
+     * The channel for a danger that lives in the ground: a volcano is not what an Age is made of, not what
+     * lives there and not what its sky does, and without this the evaluator cannot see one at all.
+     */
+    val features: Double,
+    /**
      * How far into [Manifestation.COLLAPSE] the Age went, from nothing to everything it could buy.
      *
      * **Deliberately not part of [score].** §7.7 turns the rewards up to absurd amounts where an Age will
@@ -76,7 +84,8 @@ data class Danger(
         get() = materials * weights.materials +
             spawns * weights.spawns +
             phenomena * weights.phenomena +
-            lighting * weights.lighting
+            lighting * weights.lighting +
+            features * weights.features
 
     /**
      * Whether this Age pays at all — the threshold, **and the provenance flag with it**.
@@ -149,6 +158,7 @@ data class Danger(
                 spawns = spawnsOf(composition, table, spent, prices),
                 phenomena = phenomenaOf(composition, table, spent, prices),
                 lighting = lightingOf(composition, table),
+                features = featuresOf(composition, table),
                 terminal = spent.reach(Manifestation.COLLAPSE, prices),
                 authored = authored,
                 weights = table.weights,
@@ -161,6 +171,7 @@ data class Danger(
             spawns = 0.0,
             phenomena = 0.0,
             lighting = 0.0,
+            features = 0.0,
             terminal = 0.0,
             authored = authored,
             weights = table.weights,
@@ -271,6 +282,17 @@ data class Danger(
          * what walks under it". So an Age that spawns nothing at all takes no danger from its roof, which
          * is the sentence read literally rather than a special case bolted on.
          */
+        /**
+         * The worst of what the Age asked to have placed in it.
+         *
+         * **The worst rather than the sum**, like the materials: an Age with a volcano and a wheat field is
+         * as dangerous as its volcano, and adding scenery to a hazard should not make it worse.
+         */
+        private fun featuresOf(composition: AgeComposition, table: DangerTable): Double =
+            composition.optionsFor(Aspect.FEATURES, 0).claimsOn(Features.PLACES)
+                .maxOfOrNull { claim -> table.feature(claim.value) }
+                ?: 0.0
+
         private fun lightingOf(composition: AgeComposition, table: DangerTable): Double {
             if (spawnsNothing(composition)) return 0.0
             val sky = composition.optionsFor(Aspect.SKY, 0)

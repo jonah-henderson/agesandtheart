@@ -68,13 +68,14 @@ class SurveyCheck : FunSpec({
 
         /** Everything in one contributor, so a test names a score rather than four of them. */
         private val WEIGHTS =
-            DangerTable.Weights(materials = 1.0, spawns = 0.0, phenomena = 0.0, lighting = 0.0)
+            DangerTable.Weights(materials = 1.0, spawns = 0.0, phenomena = 0.0, lighting = 0.0, features = 0.0)
 
         private fun danger(score: Double, authored: Boolean = true, terminal: Double = 0.0) = Danger(
             materials = score,
             spawns = 0.0,
             phenomena = 0.0,
             lighting = 0.0,
+            features = 0.0,
             terminal = terminal,
             authored = authored,
             weights = WEIGHTS,

@@ -71,13 +71,14 @@ class DepositsCheck : FunSpec({
         private const val A_PART_OF_IT = 0.67
         private const val ALL_OF_IT = 1.0
 
-        private val WEIGHTS = DangerTable.Weights(materials = 1.0, spawns = 0.0, phenomena = 0.0, lighting = 0.0)
+        private val WEIGHTS = DangerTable.Weights(materials = 1.0, spawns = 0.0, phenomena = 0.0, lighting = 0.0, features = 0.0)
 
         private fun danger(materials: Double, authored: Boolean, terminal: Double = 0.0) = Danger(
             materials = materials,
             spawns = 0.0,
             phenomena = 0.0,
             lighting = 0.0,
+            features = 0.0,
             terminal = terminal,
             authored = authored,
             weights = WEIGHTS,

@@ -8,6 +8,7 @@ import co.voik.agesandtheart.age.consequence.WoundBlock
 import co.voik.agesandtheart.book.BindLinkingBookFunction
 import co.voik.agesandtheart.book.WriteFoundBookFunction
 import co.voik.agesandtheart.age.phenomena.SandColumn
+import co.voik.agesandtheart.age.phenomena.VolcanicBomb
 import co.voik.agesandtheart.book.BookEntity
 import co.voik.agesandtheart.book.LinkTarget
 import co.voik.agesandtheart.book.RepatternBookRecipe
@@ -797,6 +798,23 @@ object AgeContent {
     private const val SAND_COLUMN_UPDATE_TICKS = 10
 
     /**
+     * Molten rock thrown out of a volcano. See [co.voik.agesandtheart.age.phenomena.VolcanicBomb].
+     *
+     * Updated every tick, unlike the sand column: this one arcs, and the whole of its counterplay is
+     * watching where it is going to land.
+     */
+    val VOLCANIC_BOMB: EntityType<VolcanicBomb> = EntityType.Builder
+        .of({ type, level -> VolcanicBomb(type, level) }, MobCategory.MISC)
+        .sized(BOMB_SIZE, BOMB_SIZE)
+        .clientTrackingRange(BOMB_TRACKING_CHUNKS)
+        .updateInterval(BOMB_UPDATE_TICKS)
+        .build(ResourceKey.create(Registries.ENTITY_TYPE, "volcanic_bomb".location()))
+
+    private const val BOMB_SIZE = 0.98f
+    private const val BOMB_TRACKING_CHUNKS = 8
+    private const val BOMB_UPDATE_TICKS = 1
+
+    /**
      * The ticket that holds a linking panel's chunks (§7.8.1).
      *
      * **Here rather than beside the code that uses it, because registries freeze.** `PanelViews` is an
@@ -819,6 +837,7 @@ object AgeContent {
     val entities: List<Pair<Identifier, EntityType<*>>> = listOf(
         "descriptive_book".location() to BOOK_ENTITY,
         "sand_column".location() to SAND_COLUMN,
+        "volcanic_bomb".location() to VOLCANIC_BOMB,
     )
 
     val WOUND_ID: Identifier = "wound".location()

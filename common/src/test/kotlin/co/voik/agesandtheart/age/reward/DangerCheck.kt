@@ -261,6 +261,7 @@ class DangerCheck : FunSpec({
                 spawns = 0.25,
                 phenomena = 0.25,
                 lighting = 0.25,
+                features = 0.0,
             ),
             paysAbove = 0.2,
             spawnsFull = 1.0,
@@ -271,6 +272,7 @@ class DangerCheck : FunSpec({
             spawns = mapOf(GHASTS to 0.5),
             phenomena = mapOf(INFERNO to 1.0, "sandfall" to 1.0, AURORA to 0.0),
             lighting = mapOf("sealed" to 1.0, "lightless" to 0.5),
+            features = emptyMap(),
         )
 
         /** One landform covering the whole Age, made of nothing in particular. */
