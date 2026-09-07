@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.content
 
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.sounds.SoundEvents
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.AgeableMob
 import net.minecraft.world.entity.EntityType
@@ -67,12 +68,28 @@ class AstriteGolem(type: EntityType<out AstriteGolem>, level: Level) : TamableAn
      * Only for whoever assembled it — a golem that anybody could switch off is not a companion.
      */
     override fun mobInteract(player: Player, hand: net.minecraft.world.InteractionHand): InteractionResult {
+        val holding = player.getItemInHand(hand)
+        if (holding.`is`(AgeContent.ASTRITE_SHARD) && health < maxHealth) return mendWith(player, holding)
         if (!isOwnedBy(player)) return super.mobInteract(player, hand)
         if (level().isClientSide) return InteractionResult.SUCCESS
         isOrderedToSit = !isOrderedToSit
         jumping = false
         navigation.stop()
         target = null
+        return InteractionResult.SUCCESS
+    }
+
+    /**
+     * A shard of what it is made of puts some of it back — an iron golem's contract, in this material.
+     *
+     * **Anybody may mend one, and only its owner may switch it off.** Repairing somebody's golem is a
+     * kindness and there is no reason to forbid it; ordering one about is not.
+     */
+    private fun mendWith(player: Player, shard: net.minecraft.world.item.ItemStack): InteractionResult {
+        if (level().isClientSide) return InteractionResult.SUCCESS
+        heal(MENDED_BY)
+        shard.consume(ONE_SHARD, player)
+        playSound(SoundEvents.IRON_GOLEM_REPAIR, REPAIR_VOLUME, REPAIR_PITCH)
         return InteractionResult.SUCCESS
     }
 
@@ -106,11 +123,26 @@ class AstriteGolem(type: EntityType<out AstriteGolem>, level: Level) : TamableAn
         private const val TOUGHER_THAN_IRON = 120.0
         private const val HARDER_THAN_IRON = 18.0
 
+        /** What a shard puts back, against an iron ingot's 25 on the golem it is shaped after. */
+        private const val MENDED_BY = 25.0f
+        private const val ONE_SHARD = 1
+        private const val REPAIR_VOLUME = 1.0f
+        private const val REPAIR_PITCH = 1.0f
+
         /**
-         * Fast enough to stay with somebody running and no faster — a wolf's number, which is about what a
-         * sprint comes to once a mob's own movement is worked out.
+         * Fast enough to stay with somebody sprinting.
+         *
+         * **This is a ceiling, not a cruising speed, and that is why it is not 0.13.** `MoveControl` sets
+         * a mob's speed to its attribute times the goal's modifier, in the same units a player's movement
+         * speed uses — where walking is 0.1 and a sprint is 0.13. So a number equal to a sprint would make
+         * this *slower* than one, because pathfinding never realises the ceiling: recalculating a route
+         * after a moving target, cornering and stopping to re-aim all cost speed a player does not pay.
+         * The ceiling is set well above a sprint so the realised pace can reach one, and the teleport
+         * inside [FollowOwnerGoal] covers what is left (Jonah, walked: it was falling behind at 0.32).
+         *
+         * It still loses to skates and an elytra, which are far above even this.
          */
-        private const val A_SPRINT = 0.32
+        private const val A_SPRINT = 0.42
 
         private const val IMMOVABLE = 1.0
         private const val SENDS_THEM_FLYING = 1.0
@@ -121,8 +153,13 @@ class AstriteGolem(type: EntityType<out AstriteGolem>, level: Level) : TamableAn
         private const val KEEPING_PACE = 1.0
         private const val WANDERING_PACE = 0.8
 
-        /** It sets off after you past this and stops this close, in blocks. */
-        private const val GETS_THIS_FAR = 10.0f
+        /**
+         * It sets off after you past this and stops this close, in blocks.
+         *
+         * Sooner than vanilla's ten: a companion that waits until you are ten blocks off spends the whole
+         * time catching up, and never looks like it is *with* you.
+         */
+        private const val GETS_THIS_FAR = 6.0f
         private const val CLOSE_ENOUGH = 2.0f
         private const val NOTICES_AT = 8.0f
 

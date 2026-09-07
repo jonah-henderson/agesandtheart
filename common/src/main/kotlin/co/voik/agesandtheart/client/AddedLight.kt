@@ -11,12 +11,18 @@ import org.joml.Matrix4fc
 /**
  * Geometry that is **light rather than a surface** — it adds itself to whatever is behind it.
  *
- * `RenderTypes.lightning()` is vanilla's own arrangement for exactly this and is borrowed whole: a bare
+ * `RenderTypes.dragonRays()` is vanilla's own arrangement for exactly this and is borrowed whole: a bare
  * position and a colour, blended `SRC_ALPHA, ONE`, which is what "glowing" means and what an ordinary
  * translucent quad cannot do however bright its colour. It needs no texture, so nothing here waits on the
  * asset pass.
  *
- * **Every quad is wound both ways** because the pipeline culls back faces and neither of these shapes has
+ * **It must not write depth, and the sibling that looks right does.** This was `RenderTypes.lightning()`,
+ * which is the same blend on `DepthStencilState.DEFAULT` — so every glow stamped the depth buffer, and
+ * water drawn afterwards failed its test and simply vanished in the patch behind one (Jonah, walked). The
+ * dragon's rays are the same thing with the write turned off. The cost is that they are triangles rather
+ * than quads, which is why the shapes below are assembled a triangle at a time.
+ *
+ * **Every face is wound both ways** because the pipeline culls back faces and neither of these shapes has
  * a front — a ribbon is a ribbon from either side, and which way round it came out would otherwise depend
  * on where the camera happened to be.
  */
@@ -42,7 +48,7 @@ object AddedLight {
         val back = travel.scale(-ONE_WHOLE / speed)
         val side = acrossFrom(back, towardCamera) ?: return
         val length = speed * TICKS_OF_TRAIL
-        collector.submitCustomGeometry(poseStack, RenderTypes.lightning()) { pose, buffer ->
+        collector.submitCustomGeometry(poseStack, RenderTypes.dragonRays()) { pose, buffer ->
             val matrix = pose.pose()
             ribbon(matrix, buffer, Ribbon(back, side, length, headWidth * SPREAD, colour.faded(HALO_KEEPS)))
             ribbon(matrix, buffer, Ribbon(back, side, length, headWidth, colour))
@@ -65,7 +71,7 @@ object AddedLight {
         val facing = towardCamera.normalize()
         val right = acrossFrom(facing, ANY_OTHER_WAY) ?: acrossFrom(facing, OR_THIS_WAY) ?: return
         val up = facing.cross(right)
-        collector.submitCustomGeometry(poseStack, RenderTypes.lightning()) { pose, buffer ->
+        collector.submitCustomGeometry(poseStack, RenderTypes.dragonRays()) { pose, buffer ->
             val matrix = pose.pose()
             disc(matrix, buffer, right, up, radius * SPREAD, colour.faded(HALO_KEEPS))
             disc(matrix, buffer, right, up, radius, colour)
@@ -105,14 +111,12 @@ object AddedLight {
             buffer.addVertex(pose, at.x.toFloat(), at.y.toFloat(), at.z.toFloat())
                 .setColor(colour.red, colour.green, colour.blue, colour.alpha)
         }
-        corner(-ONE_WHOLE, -ONE_WHOLE)
-        corner(ONE_WHOLE, -ONE_WHOLE)
-        corner(ONE_WHOLE, ONE_WHOLE)
-        corner(-ONE_WHOLE, ONE_WHOLE)
-        corner(-ONE_WHOLE, ONE_WHOLE)
-        corner(ONE_WHOLE, ONE_WHOLE)
-        corner(ONE_WHOLE, -ONE_WHOLE)
-        corner(-ONE_WHOLE, -ONE_WHOLE)
+        // Four triangles: the square, and the square again wound the other way.
+        corner(-ONE_WHOLE, -ONE_WHOLE); corner(ONE_WHOLE, -ONE_WHOLE); corner(ONE_WHOLE, ONE_WHOLE)
+        corner(-ONE_WHOLE, -ONE_WHOLE); corner(ONE_WHOLE, ONE_WHOLE); corner(-ONE_WHOLE, ONE_WHOLE)
+
+        corner(ONE_WHOLE, ONE_WHOLE); corner(ONE_WHOLE, -ONE_WHOLE); corner(-ONE_WHOLE, -ONE_WHOLE)
+        corner(-ONE_WHOLE, ONE_WHOLE); corner(ONE_WHOLE, ONE_WHOLE); corner(-ONE_WHOLE, -ONE_WHOLE)
     }
 
     /** One trail, laid out so a quad of it is two numbers along its length. */
@@ -123,9 +127,13 @@ object AddedLight {
         val headWidth: Double,
         val colour: Rgba,
     ) {
+        /** One segment of the trail, as the two triangles a four-cornered piece of it comes to. */
         fun quad(pose: Matrix4fc, buffer: VertexConsumer, from: Double, to: Double) {
             corner(pose, buffer, from, ONE_EDGE)
             corner(pose, buffer, from, THE_OTHER_EDGE)
+            corner(pose, buffer, to, THE_OTHER_EDGE)
+
+            corner(pose, buffer, from, ONE_EDGE)
             corner(pose, buffer, to, THE_OTHER_EDGE)
             corner(pose, buffer, to, ONE_EDGE)
         }

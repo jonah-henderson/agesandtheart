@@ -313,10 +313,14 @@
 #     three golems while it is there -- snow, iron and copper all run through the same method.
 #   - **DOES IT KNOW WHO MADE IT?** The placement seam carries no player, so the nearest one within 8
 #     blocks is taken as its owner. Build one with a second player stood nearby and see who it follows.
-#   - **THE SPEED IS THE DIAL MOST LIKELY TO BE WRONG.** It is meant to keep up with a sprint and lose to
-#     skates and an elytra, at MOVEMENT_SPEED 0.32, which is a guess calibrated off a wolf. Sprint away
-#     from it: it should fall behind slowly and then TELEPORT rather than either pacing you exactly or
-#     giving up.
+#   - **THE SPEED, AGAIN.** Walked at 0.32 and it fell behind, so it is 0.42 and sets off at 6 blocks
+#     rather than 10. NOTE THE ARITHMETIC BEFORE TUNING IT FURTHER: MoveControl sets a mob's speed to its
+#     attribute times the goal's modifier, in the same units a player's uses -- walking is 0.1 and a
+#     SPRINT IS 0.13. So the attribute is a CEILING, not a cruising speed, and it is far above a sprint
+#     already; what eats the difference is pathfinding, which recalculates after a moving target and pays
+#     for every corner. Raising it raises the ceiling the realised pace can reach, and nothing else.
+#   - **REPAIR IT** with astrite shards, 25 health a shard. Anyone may mend one; only the owner may
+#     switch it off.
 #   - Right-click it: it should power down and stay put, like a dog. Right-click again to wake it.
 #   - It should fight hostile mobs on sight, and anything that hits you.
 #   - It is 120 health and 18 damage against an iron golem's 100 and 15. Does "a bit tougher" read?
@@ -473,7 +477,13 @@
 #     slows (the glow is drawn off speed, not a clock), and lies there until you break it open. Then it
 #     drops 0-2 ASTRITE SHARDS. Things to settle:
 #       - Does it read as loot lying in your pond, or as litter? That is the whole case for the entity.
-#       - Is the bobbing right, or does it jitter? RISES_AT/SINKS_AT/SLOWS_BY in Meteor.kt.
+#       - **DOES IT COME TO REST?** The first bobbing never stopped, because the buoyant push was simply
+#         on below the surface and off above it -- a controller that can only overshoot. The lift now
+#         fades as it surfaces, so there is a level where lift and weight cancel, and anything left under
+#         COME_TO_REST is stopped outright. It should settle to floating still within a second or two.
+#       - **AND THE HALO SHOULD NO LONGER PUNCH A HOLE IN THE WATER.** It was drawn on a render type that
+#         WRITES DEPTH, so water drawn afterwards failed its test and vanished in that patch. Same
+#         additive blend, depth write off. Check it over water, in water, and looking up from underneath.
 #       - Breaking it: netherite pickaxe should be one blow, wood about five, a sword or arrow 3, bare
 #         hands nine. Damage is the tool's own dig speed, so no tier gate -- check it FEELS gated anyway.
 #       - **SHOOT ONE OUT OF THE AIR.** It should break, drop its shards along its path (they keep 40% of

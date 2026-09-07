@@ -32,6 +32,7 @@ import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.EntityHitResult
 import net.minecraft.world.phys.HitResult
 import net.minecraft.world.phys.Vec3
+import kotlin.math.abs
 
 /**
  * One body coming in out of a meteor storm (design §5.2).
@@ -248,11 +249,28 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
      * what it caught. It bobs because the push does not stop the instant it breaks the surface.
      */
     private fun bobAbout() {
-        val held = !level().getFluidState(blockPosition()).isEmpty
-        val pushed = deltaMovement.add(NO_DRIFT, if (held) RISES_AT else -SINKS_AT, NO_DRIFT)
-        deltaMovement = pushed.scale(SLOWS_BY)
+        deltaMovement = deltaMovement.add(NO_DRIFT, liftHere(), NO_DRIFT).scale(SLOWS_BY)
+        // Once the bobbing has damped down to nothing worth drawing, stop it outright — otherwise a
+        // rounding error keeps a rock trembling in a pond for ever (Jonah, walked).
+        if (abs(deltaMovement.y) < COME_TO_REST) deltaMovement = deltaMovement.multiply(KEPT, NONE, KEPT)
         move(MoverType.SELF, deltaMovement)
-        if (onGround()) deltaMovement = deltaMovement.multiply(ROLLS_ON, NOTHING_LEFT.toDouble(), ROLLS_ON)
+        if (onGround()) deltaMovement = deltaMovement.multiply(ROLLS_ON, NONE, ROLLS_ON)
+    }
+
+    /**
+     * The push up on it where it is: none in air, and in fluid **as much as it is still submerged**.
+     *
+     * A push that is simply on below the surface and off above it can only ever overshoot and come back,
+     * which is a bob that never ends. Fading it out as the thing surfaces gives it a level to settle at —
+     * where the lift and the weight cancel — and the damping does the rest.
+     */
+    private fun liftHere(): Double {
+        val at = blockPosition()
+        val fluid = level().getFluidState(at)
+        if (fluid.isEmpty) return -WEIGHS
+        val surface = at.y + fluid.getHeight(level(), at)
+        val submerged = (surface - y).coerceIn(NONE, A_WHOLE_BLOCK)
+        return submerged * FLOATS - WEIGHS
     }
 
     private fun shatter(level: ServerLevel) {
@@ -362,11 +380,24 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
         /** Three blocks of it, whatever it is made of — these are arriving from space. */
         const val CAUGHT_BY = 3
 
-        /** How a caught one lies: buoyed in fluid, dropping in air, and slowed either way so it settles. */
-        private const val RISES_AT = 0.045
-        private const val SINKS_AT = 0.045
+        /**
+         * How a caught one lies: buoyed in fluid, dropping in air, and slowed either way so it settles.
+         *
+         * The two together set where it floats. Lift is a share of how submerged it still is, so it comes
+         * to rest where that share cancels the weight — about a third of a block under the surface, which
+         * is a rock riding low rather than a cork.
+         */
+        private const val FLOATS = 0.12
+        private const val WEIGHS = 0.04
         private const val SLOWS_BY = 0.88
         private const val ROLLS_ON = 0.7
+
+        /** Below this the bobbing is over and is stopped, rather than left to tremble. */
+        private const val COME_TO_REST = 0.006
+
+        private const val A_WHOLE_BLOCK = 1.0
+        private const val KEPT = 1.0
+        private const val NONE = 0.0
 
         /**
          * What it takes to break one open, against `ToolMaterial.speed` — two for wood, nine for
