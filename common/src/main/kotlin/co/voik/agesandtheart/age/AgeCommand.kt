@@ -11,6 +11,7 @@ import co.voik.agesandtheart.age.consequence.Tearing
 import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.phenomena.Blizzard
 import co.voik.agesandtheart.age.phenomena.MeteorStorm
+import co.voik.agesandtheart.age.phenomena.Meteors
 import co.voik.agesandtheart.age.reward.Danger
 import co.voik.agesandtheart.worldgen.feature.SheerFace
 import co.voik.agesandtheart.age.aspect.Terrain
@@ -259,6 +260,7 @@ object AgeCommand {
     /** Which body's light `look` turns you to, and how far along its approach that light is. */
     private const val FIRST_BODY = 0
     private const val JUST_SIGHTED = 0.0f
+    private const val MIDDLE_OF_A_BLOCK = 0.5
     private const val MAX_SANDFALL_DISTANCE = 256
     private const val SECONDS_ARGUMENT = "seconds"
 
@@ -1249,7 +1251,13 @@ object AgeCommand {
         val ahead = source.position.add(facing.scale(distance.toDouble()))
         val fury = furyPercent.toDouble() / ALL_FURY
         val middle = BlockPos.containing(ahead.x, source.position.y, ahead.z)
-        val where = Vec3.atBottomCenterOf(source.level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, middle))
+        // The same plane a written storm uses, so the command cannot quietly behave differently from the
+        // thing it exists to show — over tall land the two would otherwise disagree by a mountain.
+        val where = Vec3(
+            middle.x + MIDDLE_OF_A_BLOCK,
+            Meteors.standsAbove(source.level, middle, MeteorStorm.REACH),
+            middle.z + MIDDLE_OF_A_BLOCK,
+        )
         val falling = seconds?.times(TICKS_PER_SECOND) ?: MeteorStorm.SHORTEST_FALL
         val slant = degrees?.let { Math.toRadians(it.toDouble()) }
         val storm = MeteorStorm.gatherAt(source.level, where, falling / STORM_EVERY, falling, fury, slant)

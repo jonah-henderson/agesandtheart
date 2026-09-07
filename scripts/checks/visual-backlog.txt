@@ -354,6 +354,18 @@
 #     too weak or the blast too soft.
 #   - The violet CAST still covers the full 135, deliberately, so the warning stays wide even when the
 #     impacts pull in. Check that does not read as a bug.
+#   - **WALK ONE ON TALL LAND -- alps, pillars, spire_islands -- NOT JUST HILLS.** Every meteor walk so
+#     far has been on terrain that is uniformly low, which hid this: a storm's plane used to be the ground
+#     under its MIDDLE, so on an Age whose land reaches the ceiling a shallow arrival started inside a
+#     mountain a hundred blocks away. It is the highest ground under the disc now. Bodies should arrive in
+#     open air; one clipping a peak between samples is expected and reads as a meteor hitting a mountain.
+#
+# ALSO WORTH KNOWING BEFORE DESIGNING ROUND THE LURE PLATFORM: meteors exist between the ground and about
+# y170 (they are thrown 150 up their own entry line, at 10-45 degrees). A lure at y288 is a hundred blocks
+# above the highest one, so THE PLATFORM NEEDS NO BLAST PROOFING -- standing at your own lure is already
+# out of the way. What is exposed is the ground: the pond, and you while collecting from it. And vanilla
+# blast resistance is effectively binary, ~6 for ordinary blocks and 1200 for tough ones, so "blast proof"
+# means obsidian and obsidian passes twenty-five times over. There is no middle tier to tune against.
 
 # ══ 11. THE METEOR STORM HAS NO SKY YET ══════════════════════════════════════ Built 2026-09-06 ══
 # Design 5.2's meteor storm. A storm gathers, hangs for thirty seconds of telegraph, pounds a 128-block

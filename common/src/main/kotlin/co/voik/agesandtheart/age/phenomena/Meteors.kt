@@ -49,6 +49,38 @@ object Meteors {
         gatherOneNearSomebody(level, somebody, drawn, density, fury)
     }
 
+    /**
+     * The plane a storm hangs its bodies off: **the highest ground under the disc, not the ground under
+     * its middle** (Jonah, 2026-09-07).
+     *
+     * A body is thrown from a point up its own entry line measured off this plane, and aimed at the ground
+     * where it lands. Taking the plane from the middle alone is right on a hillside and wrong on anything
+     * steep: over an Age whose land reaches the ceiling, a shallow arrival starts twenty-odd blocks above
+     * the *centre's* ground and therefore well inside a mountain a hundred blocks away. Sampling the disc
+     * and taking the highest costs a handful of heightmap lookups three times an hour, and on flat ground
+     * it is exactly what the old rule gave.
+     *
+     * **It is not a guarantee.** A spire between the samples can still poke above the plane, and a body
+     * aimed past it will meet it — which is a meteor hitting a mountain, and reads as one. What this rules
+     * out is the systematic case: an entire storm starting underground.
+     */
+    fun standsAbove(level: ServerLevel, middle: BlockPos, reach: Double): Double {
+        var highest = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, middle).y
+        val step = (reach * TWICE / ACROSS_THE_DISC).roundToInt().coerceAtLeast(ONE)
+        var awayX = -reach.roundToInt()
+        while (awayX <= reach) {
+            var awayZ = -reach.roundToInt()
+            while (awayZ <= reach) {
+                val at = middle.offset(awayX, 0, awayZ)
+                val ground = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, at).y
+                if (ground > highest) highest = ground
+                awayZ += step
+            }
+            awayX += step
+        }
+        return highest.toDouble()
+    }
+
     /** How many are already up. Bounded by [atMostFor], so this is a walk over one or two. */
     private fun gatheringIn(level: ServerLevel): Int =
         level.getEntities(EntityTypeTest.forClass(MeteorStorm::class.java)) { true }.size
@@ -84,11 +116,11 @@ object Meteors {
             val away = NEAREST_APPROACH + random.nextDouble() * (FURTHEST_APPROACH - NEAREST_APPROACH)
             BlockPos.containing(somebody.x + cos(bearing) * away, somebody.y, somebody.z + sin(bearing) * away)
         }
-        val where = Vec3.atBottomCenterOf(level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, middle))
+        val reach = drawn?.let { Lures.reachFor(it.blocks) } ?: MeteorStorm.REACH
+        val where = Vec3(middle.x + HALF, standsAbove(level, middle, reach), middle.z + HALF)
         val baseline = MeteorStorm.SHORTEST_FALL +
             random.nextInt(MeteorStorm.ORDINARY_FALL - MeteorStorm.SHORTEST_FALL + ONE)
         val falling = lengthenedBy(baseline, density)
-        val reach = drawn?.let { Lures.reachFor(it.blocks) } ?: MeteorStorm.REACH
         MeteorStorm.gatherAt(level, where, bodiesFor(fury, falling), falling, fury, reach = reach)
     }
 
@@ -183,6 +215,11 @@ object Meteors {
 
     /** No rung goes to nothing; a claim this faint still means the Age has meteors in it. */
     private const val A_TRICKLE = 0.1
+
+    /** How many samples span the disc when looking for the highest ground under it. */
+    private const val ACROSS_THE_DISC = 6
+    private const val TWICE = 2.0
+    private const val HALF = 0.5
 
     /** What a lure takes off the wait, and the share that must be thinned out again without one. */
     private const val WITH_A_LURE = 0.75
