@@ -324,8 +324,11 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
     }
 
     private fun shatter(level: ServerLevel) {
-        // Never `MOB`: that respects `mobGriefing`, and a server with the rule off would get a meteor storm
-        // that leaves no craters at all. An Age was written with this in it, so it is not a setting.
+        // Never `MOB` or `BLOCK`. `MOB` respects `mobGriefing`, and a server with the rule off would get a
+        // meteor storm that leaves no craters at all — an Age was written with this in it, so it is not a
+        // setting. Both also resolve through a drop-decay rule that defaults *on*, where `TNT`'s defaults
+        // off: this drops everything it breaks, which is what makes a lured storm over bare rock a mining
+        // rig rather than a hole (design §7.1.2).
         level.explode(this, x, y, z, blast, true, Level.ExplosionInteraction.TNT)
     }
 
