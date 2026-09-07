@@ -9,6 +9,8 @@ import co.voik.agesandtheart.book.BindLinkingBookFunction
 import co.voik.agesandtheart.book.WriteFoundBookFunction
 import co.voik.agesandtheart.age.phenomena.SandColumn
 import co.voik.agesandtheart.age.phenomena.LavaDroplet
+import co.voik.agesandtheart.age.phenomena.Meteor
+import co.voik.agesandtheart.age.phenomena.MeteorStorm
 import co.voik.agesandtheart.age.phenomena.VolcanicBomb
 import co.voik.agesandtheart.book.BookEntity
 import co.voik.agesandtheart.book.LinkTarget
@@ -853,11 +855,48 @@ object AgeContent {
 
     val tickets: List<Pair<Identifier, TicketType>> = listOf("panel".location() to PANEL_TICKET)
 
+    /**
+     * A body out of a meteor storm. See [co.voik.agesandtheart.age.phenomena.Meteor].
+     *
+     * Updated every tick and tracked far: it arrives fast enough that a client hearing about it late would
+     * see it already landed, and the streak is most of what it is.
+     */
+    val METEOR: EntityType<Meteor> = EntityType.Builder
+        .of({ type, level -> Meteor(type, level) }, MobCategory.MISC)
+        .sized(METEOR_SIZE, METEOR_SIZE)
+        .clientTrackingRange(METEOR_TRACKING_CHUNKS)
+        .updateInterval(BOMB_UPDATE_TICKS)
+        .build(ResourceKey.create(Registries.ENTITY_TYPE, Meteor.ID))
+
+    /**
+     * The storm itself, which is a clock standing in the sky.
+     *
+     * **Tracked much further than it is big**, because it is nothing to look at and everything to look
+     * *for*: the client draws the approach in the sky from this, and a telegraph you can only see once you
+     * are already underneath is not one.
+     */
+    val METEOR_STORM: EntityType<MeteorStorm> = EntityType.Builder
+        .of({ type, level -> MeteorStorm(type, level) }, MobCategory.MISC)
+        .sized(STORM_SIZE, STORM_SIZE)
+        .clientTrackingRange(STORM_TRACKING_CHUNKS)
+        .updateInterval(STORM_UPDATE_TICKS)
+        .build(ResourceKey.create(Registries.ENTITY_TYPE, MeteorStorm.ID))
+
+    private const val METEOR_SIZE = 0.7f
+    private const val METEOR_TRACKING_CHUNKS = 12
+    private const val STORM_SIZE = 0.5f
+    private const val STORM_TRACKING_CHUNKS = 32
+
+    /** It only ever hangs there; what changes about it is its own clock, which a client counts itself. */
+    private const val STORM_UPDATE_TICKS = 20
+
     val entities: List<Pair<Identifier, EntityType<*>>> = listOf(
         "descriptive_book".location() to BOOK_ENTITY,
         "sand_column".location() to SAND_COLUMN,
         "volcanic_bomb".location() to VOLCANIC_BOMB,
         "lava_droplet".location() to LAVA_DROPLET,
+        Meteor.ID to METEOR,
+        MeteorStorm.ID to METEOR_STORM,
     )
 
     val WOUND_ID: Identifier = "wound".location()

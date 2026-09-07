@@ -82,6 +82,21 @@ enum class Manifestation(val key: String) : StringRepresentable {
     BLIZZARD("blizzard"),
 
     /**
+     * The sky falls on the Age in showers (design §5.2) — storms that come more often, last longer and
+     * hit harder the further the budget reaches.
+     *
+     * **Priced beside [SANDFALL] and [BLIZZARD]**, and for the same reason all three share: it is
+     * difficulty you can answer rather than a verdict you cannot. A roof of anything in
+     * `#agesandtheart:seals_wounds` is immune at any power worth using, and being properly indoors is
+     * free — so an Age that keeps holing itself is still the dearer thing.
+     *
+     * **What a step buys is all three of its dials at once**, which no other manifestation does: more
+     * storms, longer ones, and bodies coming in harder. A shower that only came more often would read as
+     * the bottom of the ramp repeated.
+     */
+    METEORS("meteors"),
+
+    /**
      * The world comes apart at the bottom (design §5.3) — fissures open at the world floor and widen, and
      * what falls in is put back in the overworld.
      *

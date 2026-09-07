@@ -166,6 +166,23 @@ enum class Phenomenon(
      * rather than yielding silently.
      */
     BLIZZARD("blizzard", AgeWeather.Conditions(rainfall = SHOWERY), Manifestation.BLIZZARD),
+
+    /**
+     * The sky falls on it in showers ([co.voik.agesandtheart.age.phenomena.Meteors]).
+     *
+     * **The one hazard here that is concentrated rather than scattered**, and the brief was explicitly not
+     * to make a second tempest: a tempest strikes rarely over a wide country, and a meteor storm pounds a
+     * small area for ten or fifteen seconds and then stops. So its counterplay is a *place* — see it
+     * coming, get out from under it, come back to it afterwards.
+     *
+     * **It insists on no weather**, like a sandfall and an inferno. What it would actually want is a clear
+     * sky to be seen against, and [insistsOn] is a floor that can only raise, so there is nothing here it
+     * could say.
+     *
+     * **And it is a supply, which is the whole reason to write one** (§7.1.2): a body caught in three
+     * blocks of cushion rather than shattered is where the meteoric material comes from.
+     */
+    METEORS("meteors", inflictedBy = Manifestation.METEORS),
     ;
 
     /**
@@ -178,7 +195,7 @@ enum class Phenomenon(
      */
     fun insistsAt(howOften: Double): AgeWeather.Conditions = when (this) {
         BLIZZARD -> AgeWeather.Conditions(rainfall = Blizzard.shareOfTheTime(howOften))
-        TEMPEST, INFERNO, AURORA, RAINBOW, SANDFALL -> insistsOn
+        TEMPEST, INFERNO, AURORA, RAINBOW, SANDFALL, METEORS -> insistsOn
     }
 
     override val aspect = Aspect.PHENOMENA

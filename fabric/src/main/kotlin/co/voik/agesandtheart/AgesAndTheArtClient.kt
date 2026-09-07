@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.word.LexiconPayload
 import co.voik.agesandtheart.client.BookEntityRenderer
 import co.voik.agesandtheart.client.SandColumnRenderer
 import co.voik.agesandtheart.client.MoltenLumpRenderer
+import net.minecraft.client.renderer.entity.NoopRenderer
 import co.voik.agesandtheart.client.ClientDeskNetwork
 import net.fabricmc.fabric.api.client.rendering.v1.BlockColorRegistry
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry
@@ -53,6 +54,9 @@ fun initClient() {
     EntityRendererRegistry.register(AgeContent.SAND_COLUMN, ::SandColumnRenderer)
     EntityRendererRegistry.register(AgeContent.VOLCANIC_BOMB) { MoltenLumpRenderer(it, MoltenLumpRenderer.WHOLE_LUMP) }
     EntityRendererRegistry.register(AgeContent.LAVA_DROPLET) { MoltenLumpRenderer(it, MoltenLumpRenderer.GOBBET) }
+    EntityRendererRegistry.register(AgeContent.METEOR) { MoltenLumpRenderer(it, MoltenLumpRenderer.GOBBET) }
+    // The storm is a clock standing in the sky and is drawn by the sky, not as an entity.
+    EntityRendererRegistry.register(AgeContent.METEOR_STORM) { NoopRenderer(it) }
     BlockEntityRenderers.register(AgeContent.STAR_FISSURE_ENTITY) { StarFissureRenderer() }
     MenuScreens.register(AgeContent.WRITERS_DESK_MENU, ::WritersDeskScreen)
     MenuScreens.register(AgeContent.INK_CASE_MENU, ::InkCaseScreen)

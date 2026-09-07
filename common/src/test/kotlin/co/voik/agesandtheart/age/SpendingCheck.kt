@@ -21,6 +21,7 @@ class SpendingCheck : FunSpec({
         Manifestation.WOUNDS to Price(costs = 5, most = 4),
         Manifestation.SANDFALL to Price(costs = 7, most = 4),
         Manifestation.BLIZZARD to Price(costs = 7, most = 4),
+        Manifestation.METEORS to Price(costs = 7, most = 4),
         Manifestation.WORSENING_WOUNDS to Price(costs = 9, most = 3),
         Manifestation.COLLAPSE to Price(costs = 14, most = 3),
     )

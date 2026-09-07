@@ -299,6 +299,33 @@
 #   - LOW PRIORITY, DEFERRED BY JONAH 2026-09-06: that PLUGGING works -- a solid block over a tube stops
 #     the welling, and lava over it does NOT count. Expected to work; walk it whenever.
 
+# ══ 11. THE METEOR STORM HAS NO SKY YET ══════════════════════════════════════ Built 2026-09-06 ══
+# The server half of design 5.2's meteor storm. Storms gather, approach for four and a half seconds,
+# pound a 28-block disc for ten to fifteen, and expire. Verified headlessly: 16, 21 and 28 bodies in the
+# air a second apart, and the storm removing itself when its clock ran down.
+#
+/age write shower 11 meteors phenomena age
+/age tp shower
+#
+# **THE TELEGRAPH IS NOT BUILT YET, WHICH IS HALF THE MECHANIC.** Design 5.2 is explicit that a crater
+# which simply appears is a punishment and one that arcs in is a challenge. Today the approach phase is
+# four and a half seconds of NOTHING VISIBLE, then bodies. Judge the rest knowing that.
+#
+# WHAT A WALK HAS TO SETTLE:
+#   - **Is it a pounding rather than weather?** That is the whole brief -- a tempest strikes rarely over a
+#     wide country, this hammers a small area and stops. If it reads as "lightning with rocks", it failed.
+#   - Is a 28-block disc the right size, and 10-15 seconds the right length?
+#   - Can you WALK OUT of one? The counterplay is spatial, so the answer has to be your feet.
+#   - **THE CUSHIONS.** Three blocks of water, wool or honey catches a body whole; anything less and it
+#     craters. Build a pond and a wool pad under a storm and check both. Nothing drops yet -- the material
+#     is unnamed -- so a catch is a body that simply does not explode.
+#   - **THE SLIME BOUNCE**, which is there because it is funny: a body off a slime block keeps ALL of its
+#     energy and ricochets. Does it read as absurd-good or just confusing?
+#   - Does the water lesson teach itself? A meteor at sea is caught; one on the shore digs a crater the
+#     water fills deeper than three, so the next one there is caught.
+#   - Storms gather 40 to 110 blocks from a player and never overhead, deliberately. Does that read as
+#     weather happening near you rather than at you?
+
 # ══ 9. TEMPERSTONE'S THREE BANDS HAVE NEVER BEEN SEEN ════════════════════════ Built 2026-09-06 ══
 # The whole design is that ONE FORMATION TEACHES THE RULE: stone too close to lava comes out scorched and
 # worthless, stone at the right remove is temperstone, stone beyond that never changed. If a player cannot

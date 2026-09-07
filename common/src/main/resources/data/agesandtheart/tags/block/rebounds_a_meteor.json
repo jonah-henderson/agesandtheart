@@ -1,0 +1,7 @@
+{
+  "_comment": "Does not catch one -- returns it, at a hundred per cent of the energy it arrived with. Impractical and deliberate: slime is the one block built to give energy back, and something arriving this fast should do something absurd when it meets one.",
+  "replace": false,
+  "values": [
+    "minecraft:slime_block"
+  ]
+}

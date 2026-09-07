@@ -1,0 +1,16 @@
+{
+  "_comment": [
+    "The sky falls on the Age in showers (design 5.2). It means the phenomenon outright rather than searching",
+    "for one, which is what `means_exactly` is for and what `VocabularyCheck` insists on -- a tag query would",
+    "also have found whatever else fell on you.",
+    "",
+    "**One aspect, and the sky is not touched.** What a meteor storm actually wants is a clear night to be",
+    "seen against, and it is deliberately not asking for one here: a narrowing word is priced in its",
+    "lowest-ordinal aspect (`Resolver.pricedIn`) and phenomena are last, so a sky bound in this file would",
+    "quietly reprice this as a word about the sky. `sandfall` and `auroral` both paid for that lesson."
+  ],
+  "tier": "exact",
+  "chooses": {
+    "phenomena": "meteors"
+  }
+}

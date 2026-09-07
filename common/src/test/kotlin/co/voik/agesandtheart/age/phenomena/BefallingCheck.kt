@@ -23,6 +23,11 @@ class BefallingCheck : FunSpec({
         Manifestation.WOUNDS to Price(costs = 5, most = 4),
         Manifestation.SANDFALL to Price(costs = 7, most = 4),
         Manifestation.BLIZZARD to Price(costs = 7, most = 4),
+        // **A second copy of the shipped list, and it must gain every entry SpendingCheck's does.** An
+        // unpriced manifestation falls back to `Price.ORDINARY`, which is cheaper than anything shipped, so
+        // it eats the budget from the bottom and the failure surfaces here as a *sandfall* going unbought.
+        // SpendingCheck's "prices every manifestation" test guards its own copy and cannot see this one.
+        Manifestation.METEORS to Price(costs = 7, most = 4),
         Manifestation.WORSENING_WOUNDS to Price(costs = 9, most = 3),
         Manifestation.COLLAPSE to Price(costs = 14, most = 3),
     )

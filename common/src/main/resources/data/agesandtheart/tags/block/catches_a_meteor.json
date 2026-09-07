@@ -1,0 +1,9 @@
+{
+  "_comment": "Three blocks of any of these takes the fall out of a body coming in from space (design 7.1.2). Water is the one that teaches the rule: a meteor at sea is caught, and one on the shore digs a crater the water fills deeper than three, so the next one there is caught too.",
+  "replace": false,
+  "values": [
+    "minecraft:water",
+    "minecraft:honey_block",
+    "#minecraft:wool"
+  ]
+}

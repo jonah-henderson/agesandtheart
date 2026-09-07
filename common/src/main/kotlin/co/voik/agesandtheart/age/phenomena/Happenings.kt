@@ -190,6 +190,7 @@ object Happenings {
             Phenomenon.RAINBOW -> Unit
             Phenomenon.SANDFALL -> Sandfall.wander(level, density, fury)
             Phenomenon.BLIZZARD -> Blizzard.blow(level, density, fury)
+            Phenomenon.METEORS -> Meteors.fall(level, density, fury)
         }
     }
 
