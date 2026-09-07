@@ -1,0 +1,6 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": ["agesandtheart:astrite_block"],
+  "result": { "id": "agesandtheart:astrite_shard", "count": 9 }
+}

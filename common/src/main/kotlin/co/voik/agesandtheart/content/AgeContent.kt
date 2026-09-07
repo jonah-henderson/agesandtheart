@@ -403,6 +403,33 @@ object AgeContent {
         Item.Properties().setId(ResourceKey.create(Registries.ITEM, ASTRITE_SHARD_ID)),
     )
 
+    private val ASTRITE_BLOCK_ID: Identifier = "astrite_block".location()
+
+    /**
+     * Nine shards worked together, and what the golem is built out of (design §7.1.2).
+     *
+     * **Iron's numbers rather than stone's**, because this is a metal and because the thirty-six shards a
+     * companion costs should feel like something you assembled rather than something you piled up. Any
+     * pickaxe will do it — the material asks for no tier, on the reasoning that it fell out of the sky.
+     */
+    val ASTRITE_BLOCK_BLOCK: Block = Block(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, ASTRITE_BLOCK_ID))
+            .mapColor(MapColor.COLOR_PURPLE)
+            .strength(ASTRITE_STRENGTH, ASTRITE_RESISTANCE)
+            .sound(SoundType.METAL)
+            .requiresCorrectToolForDrops(),
+    )
+
+    val ASTRITE_BLOCK: Item = BlockItem(
+        ASTRITE_BLOCK_BLOCK,
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, ASTRITE_BLOCK_ID)).useBlockDescriptionPrefix(),
+    )
+
+    /** Iron's, which is what a block of worked metal should cost to get through. */
+    private const val ASTRITE_STRENGTH = 5.0f
+    private const val ASTRITE_RESISTANCE = 6.0f
+
     /**
      * The vent in a volcano's caldera — see [co.voik.agesandtheart.content.LavaTubes] for what a mass does.
      *
@@ -951,6 +978,7 @@ object AgeContent {
         PITCHSTONE_ORE_ID to PITCHSTONE_ORE_BLOCK,
         DEEPSLATE_PITCHSTONE_ORE_ID to DEEPSLATE_PITCHSTONE_ORE_BLOCK,
         PITCHSTONE_BLOCK_ID to PITCHSTONE_BLOCK_BLOCK,
+        ASTRITE_BLOCK_ID to ASTRITE_BLOCK_BLOCK,
         RIME_CRYSTAL_ID to RIME_CRYSTAL_BLOCK,
         TEMPERSTONE_ID to TEMPERSTONE_BLOCK,
         SCORCHED_TEMPERSTONE_ID to SCORCHED_TEMPERSTONE_BLOCK,
@@ -1118,6 +1146,7 @@ object AgeContent {
         TOOLBOX_ID to TOOLBOX,
         GEOLOGISTS_TOOLS_ID to GEOLOGISTS_TOOLS,
         ASTRITE_SHARD_ID to ASTRITE_SHARD,
+        ASTRITE_BLOCK_ID to ASTRITE_BLOCK,
     )
 
     /** Chunk-generator codecs — a level's generator is serialised when it is saved, so it needs one. */

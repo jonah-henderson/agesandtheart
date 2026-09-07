@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": { "X": "agesandtheart:astrite_shard" },
+  "pattern": ["XXX", "XXX", "XXX"],
+  "result": { "id": "agesandtheart:astrite_block" }
+}

@@ -1,0 +1,4 @@
+{
+  "_comment": "Amethyst stands in until the model pass, being vanilla's own violet mineral block.",
+  "variants": { "": { "model": "minecraft:block/amethyst_block" } }
+}
