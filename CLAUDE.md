@@ -79,6 +79,11 @@ correct itself in place. Rewrite the paragraph that is now wrong.
   end on release day. **Read it before putting off a rename or a codec change**: save compatibility is free
   now and a migration later. Also holds the measured content debts and the case for a base dimension being
   any dimension, modded ones included.
+- **`notes/dni-sources.md`** — where the D'ni comes from, and how good the transliteration actually is.
+  The two fan compilations we spell from (and why they stay out of this repository), the finding that the
+  fuller one's headwords *are* our typeface encoding, and the measurement that says our rules reproduce
+  43% of its 717 pairs where one rule change would make it 84%. Read it before touching
+  `art/script/dni.json` or `art/transliteration.json`.
 - **`notes/authoring-tools.md`** — how structures and 3D models get authored: the external tooling and its
   version state, and what our own datapacks could carry that they do not yet. Nothing in it is built. Read it
   before building a structure, a model, or anything that wants to be pack data.
