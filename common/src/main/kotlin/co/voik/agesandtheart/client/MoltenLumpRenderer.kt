@@ -48,6 +48,7 @@ open class MoltenLumpRenderer<T : Entity>(
     private val scale: Float,
     private val block: Block = Blocks.MAGMA_BLOCK,
     private val burn: Rgba? = null,
+    private val atRest: Float = GONE_OUT,
 ) : EntityRenderer<T, MoltenLumpRenderState>(context) {
 
     override fun createRenderState() = MoltenLumpRenderState()
@@ -100,7 +101,11 @@ open class MoltenLumpRenderer<T : Entity>(
         camera: CameraRenderState,
         colour: Rgba,
     ) {
-        val heat = heatOf(state.travel)
+        // **A floor under the cooling, so a body at rest still shows.** Speed alone would take a caught
+        // meteor to nothing, and one lying in a pond at night is then unfindable. Nothing here is
+        // *lighting* — an entity cannot light anything in vanilla, the engine being block-only — but a
+        // bloom of its own colour is what makes it a thing you can spot from across the water.
+        val heat = maxOf(heatOf(state.travel), atRest)
         if (heat <= GONE_OUT) return
         val towardCamera = camera.pos.subtract(state.x, state.y, state.z)
         val burning = colour.copy(alpha = colour.alpha * heat)
@@ -118,6 +123,14 @@ open class MoltenLumpRenderer<T : Entity>(
         /** How fast a lump has to be going to be at its brightest, in blocks a tick. */
         const val GLOWS_AT = 3.0
         private const val GONE_OUT = 0.02f
+
+        /**
+         * What a caught meteor keeps burning at once it has stopped.
+         *
+         * Faint — it is a cooled rock with something of its arrival still in it, and it has to be findable
+         * at night without lighting the place up like a beacon.
+         */
+        const val EMBER = 0.16f
 
         /**
          * A meteor's own light: violet-white, and the same violet its storm hangs in the sky and casts on

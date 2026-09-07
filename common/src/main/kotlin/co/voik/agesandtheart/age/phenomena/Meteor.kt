@@ -288,12 +288,20 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
      * where the lift and the weight cancel — and the damping does the rest.
      */
     private fun liftHere(): Double {
-        val at = blockPosition()
+        val here = blockPosition()
+        // The block below as well, or a body riding exactly at the line falls out of the fluid it is
+        // floating in for a tick, is told to sink, and flickers between the two for ever.
+        val surface = surfaceAt(here) ?: surfaceAt(here.below()) ?: return -WEIGHS
+        // **Zero where the surface is level with the entity's own origin**, which is where the drawn lump
+        // is centred — so it comes to rest half in and half out rather than just under (Jonah, walked).
+        // Signed, so it is pulled down as readily as up and settles on the line from either side.
+        return (surface - y).coerceIn(-A_WHOLE_BLOCK, A_WHOLE_BLOCK) * FLOATS
+    }
+
+    private fun surfaceAt(at: BlockPos): Double? {
         val fluid = level().getFluidState(at)
-        if (fluid.isEmpty) return -WEIGHS
-        val surface = at.y + fluid.getHeight(level(), at)
-        val submerged = (surface - y).coerceIn(NONE, A_WHOLE_BLOCK)
-        return submerged * FLOATS - WEIGHS
+        if (fluid.isEmpty) return null
+        return at.y + fluid.getHeight(level(), at).toDouble()
     }
 
     private fun shatter(level: ServerLevel) {
@@ -415,9 +423,9 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
         /**
          * How a caught one lies: buoyed in fluid, dropping in air, and slowed either way so it settles.
          *
-         * The two together set where it floats. Lift is a share of how submerged it still is, so it comes
-         * to rest where that share cancels the weight — about a third of a block under the surface, which
-         * is a rock riding low rather than a cork.
+         * [FLOATS] is a spring toward the waterline rather than a lift against a weight, so where it
+         * settles is not a balance of the two — it is exactly the line, and the line is level with the
+         * entity's own origin. [WEIGHS] is only what pulls one down in air.
          */
         private const val FLOATS = 0.12
         private const val WEIGHS = 0.04
