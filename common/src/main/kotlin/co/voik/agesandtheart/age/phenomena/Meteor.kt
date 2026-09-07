@@ -164,8 +164,13 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
         shedSparks()
     }
 
-    /** When the world was, when this was thrown — see [overdue]. */
-    private var thrownAt: Long = NOT_YET_THROWN
+    /**
+     * When the world was, when this was *due* — see [overdue].
+     *
+     * Set by the storm rather than read off the clock here, because a body whose moment went by while
+     * nobody was near has to arrive already too old to fly: backdating it is the whole of that.
+     */
+    var thrownAt: Long = NOT_YET_THROWN
 
     /**
      * The sparks it sheds coming in — an accent on the drawn streak, not the streak itself.

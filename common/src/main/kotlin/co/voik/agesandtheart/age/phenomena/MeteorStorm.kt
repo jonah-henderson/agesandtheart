@@ -70,10 +70,36 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         get() = entityData.get(SLANT)
         set(value) = entityData.set(SLANT, value)
 
+    /**
+     * When the world was, when this gathered — and so, with the world's clock, how old it is.
+     *
+     * **The storm's own [tickCount] cannot be that clock, and a stress test is where it shows** (Jonah,
+     * walked). A client ticks its entities at a fixed twenty a second whatever the server manages; a
+     * server under load simply runs slower and never catches up. So the two counts drift apart without
+     * bound — on a laggy server the client's lights went out seconds before the ground threw the bodies
+     * they had been promising, which reads as lights that never arrive.
+     *
+     * `gameTime` is the fix because it is the *server's* count and it is put right on every client every
+     * twenty ticks. An Age's level data is derived from the overworld's, so it is the same number here as
+     * there, and the drift it can accumulate between corrections is a second at worst.
+     */
+    private var gatheredAt: Long
+        get() = entityData.get(GATHERED_AT)
+        set(value) = entityData.set(GATHERED_AT, value)
+
+    /** How far through its life this is, in ticks. Both sides work it out; neither counts it. */
+    val age: Int
+        get() {
+            val gathered = gatheredAt
+            if (gathered == NEVER) return JUST_GATHERED
+            return (level().gameTime - gathered).toInt().coerceAtLeast(JUST_GATHERED)
+        }
+
     override fun defineSynchedData(builder: SynchedEntityData.Builder) {
         builder.define(BODIES, FEW)
         builder.define(FALLING, SHORTEST_FALL)
         builder.define(SLANT, MeteorFlight.angleOf(uuid.leastSignificantBits).toFloat())
+        builder.define(GATHERED_AT, NEVER)
     }
 
     /**
@@ -87,27 +113,23 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
      * A pure function of the entity's own clock, so neither side has to be told: [tickCount] ticks on both.
      */
     fun castStrength(): Float {
-        if (tickCount < WELLING_UP) return tickCount.toFloat() / WELLING_UP
+        val age = age
+        if (age < WELLING_UP) return age.toFloat() / WELLING_UP
         val ends = APPROACHING + falling + LINGERING
-        if (tickCount > ends - LINGERING) return ((ends - tickCount).toFloat() / LINGERING).coerceAtLeast(NONE_OF_IT)
+        if (age > ends - LINGERING) return ((ends - age).toFloat() / LINGERING).coerceAtLeast(NONE_OF_IT)
         return ALL_OF_IT
     }
-
-    /** How far through its approach this is, nought to one — what a sky animation is drawn from. */
-    fun approachedBy(partial: Float): Float =
-        ((tickCount + partial) / APPROACHING).coerceIn(NONE_OF_IT, ALL_OF_IT)
 
     override fun tick() {
         super.tick()
         val level = level()
         if (level !is ServerLevel) return
         // Outlives its last body by [LINGERING], which is the violet fading out rather than being switched
-        // off — and it is why the storm is what holds the clock: nothing else knows the shower has ended.
-        if (tickCount > APPROACHING + falling + LINGERING) {
+        // off — and it will not go while it still owes anything, however long it has been kept waiting.
+        if (age > APPROACHING + falling + LINGERING && droppedTo >= bodies) {
             discard()
             return
         }
-        if (tickCount <= APPROACHING) return
         dropSome(level)
     }
 
@@ -165,14 +187,31 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
      * **Read off the same list the sky is drawing**, rather than rolled here: a body announced in the sky
      * and a body dropped on the ground have to be the same body, and the only way to promise that without
      * sending anything is for both sides to ask the same pure function.
+     *
+     * **A walk through the list rather than a search for this exact tick** (Jonah, walked). Asking which
+     * bodies were due *now* meant any tick that never came was a body that never fell — and there were
+     * several: the earliest bodies are all clamped to the first tick of the fall, which the old guard
+     * skipped outright, and a chunk that stops ticking loses every moment it was asleep for. Walking an
+     * index throws each body exactly once whatever the clock did, and lets a body come down at once when
+     * its moment is long gone, since it is thrown already as old as it should be.
+     *
+     * Capped per tick, so catching up on a storm that was left alone for an hour is a busy few seconds
+     * rather than three hundred explosions between two frames.
      */
     private fun dropSome(level: ServerLevel) {
-        for (number in 0..<bodies) {
-            val flight = flightOf(number)
-            if (flight.fallsAt != tickCount) continue
-            throwOne(level, flight)
+        val age = age
+        var thrown = 0
+        while (droppedTo < bodies && thrown < MOST_IN_A_TICK) {
+            val flight = flightOf(droppedTo)
+            if (flight.fallsAt > age) return
+            throwOne(level, flight, level.gameTime - (age - flight.fallsAt))
+            droppedTo++
+            thrown++
         }
     }
+
+    /** How many of this storm's bodies have been thrown. Saved, so a reload does not throw them again. */
+    private var droppedTo = NONE_THROWN_YET
 
     /**
      * One body, entering obliquely at the angle its flight drew.
@@ -183,7 +222,7 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
      * placed back along its own entry line and pointed at where it is going, so however shallow the angle
      * it still lands where it was announced.
      */
-    private fun throwOne(level: ServerLevel, flight: MeteorFlight) {
+    private fun throwOne(level: ServerLevel, flight: MeteorFlight, dueAt: Long) {
         val landsAt = BlockPos.containing(x + flight.landsAwayX, y, z + flight.landsAwayZ)
         val ground = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, landsAt)
         // **Thrown from exactly where its own light was**, so the handover is a light becoming a rock
@@ -195,6 +234,9 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         body.blast = (AT_REST + (AT_FULL_FURY - AT_REST) * fury).toFloat()
         body.setPos(from.x, from.y, from.z)
         body.setDeltaMovement(toTheGround.normalize().scale(speed))
+        // Aged from the moment it was *due* rather than the moment it was thrown, so one whose moment went
+        // by while nobody was here is already past its flight and comes straight down.
+        body.thrownAt = dueAt
         level.addFreshEntity(body)
     }
 
@@ -209,6 +251,8 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         output.putDouble(FURY_KEY, fury)
         output.putInt(BODIES_KEY, bodies)
         output.putFloat(SLANT_KEY, slant)
+        output.putLong(GATHERED_KEY, gatheredAt)
+        output.putInt(DROPPED_KEY, droppedTo)
     }
 
     override fun readAdditionalSaveData(input: ValueInput) {
@@ -216,6 +260,8 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         fury = input.getDoubleOr(FURY_KEY, ORDINARY_FURY)
         bodies = input.getIntOr(BODIES_KEY, FEW)
         slant = input.getFloatOr(SLANT_KEY, MeteorFlight.angleOf(uuid.leastSignificantBits).toFloat())
+        gatheredAt = input.getLongOr(GATHERED_KEY, NEVER)
+        droppedTo = input.getIntOr(DROPPED_KEY, NONE_THROWN_YET)
     }
 
     companion object {
@@ -225,6 +271,8 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
             SynchedEntityData.defineId(MeteorStorm::class.java, EntityDataSerializers.INT)
         private val SLANT: EntityDataAccessor<Float> =
             SynchedEntityData.defineId(MeteorStorm::class.java, EntityDataSerializers.FLOAT)
+        private val GATHERED_AT: EntityDataAccessor<Long> =
+            SynchedEntityData.defineId(MeteorStorm::class.java, EntityDataSerializers.LONG)
 
         /**
          * How long it hangs in the sky before anything falls, in ticks — **thirty seconds** (Jonah).
@@ -324,6 +372,16 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
 
         private const val FALLING_KEY = "falling"
         private const val SLANT_KEY = "slant"
+        private const val GATHERED_KEY = "gathered_at"
+        private const val DROPPED_KEY = "dropped_to"
+
+        /** A storm nobody has stood up yet, which is as old as it is going to get until somebody does. */
+        private const val NEVER = 0L
+        private const val JUST_GATHERED = 0
+        private const val NONE_THROWN_YET = 0
+
+        /** How many bodies may be thrown in one tick while a storm catches up on what it slept through. */
+        private const val MOST_IN_A_TICK = 3
         private const val FURY_KEY = "fury"
         private const val BODIES_KEY = "bodies"
 
@@ -351,6 +409,7 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
             storm.bodies = bodies
             storm.falling = falling
             storm.fury = fury
+            storm.gatheredAt = level.gameTime
             if (slant != null) storm.slant = slant.toFloat()
             level.addFreshEntity(storm)
             return storm

@@ -337,7 +337,19 @@
 # ("way too much, but it was super cool"). A bit under a creeper ordinarily; the old middle is the new
 # ceiling and wants an Age broken enough to buy the whole manifestation.
 #
-# WHAT THE SEVENTH PASS CHANGED, all of it unwalked:
+# WHAT THE EIGHTH PASS CHANGED, all of it unwalked:
+#   - **LIGHTS THAT NEVER BECAME ROCKS: TWO CAUSES, BOTH FIXED.** (a) The storm's clock was its own
+#     `tickCount`, counted separately on each side -- a client ticks at a fixed 20/s whatever the server
+#     manages, and a lagging server never catches up, so on a stress test the sky put lights out seconds
+#     before the ground threw them. The clock is `gameTime` now: the SERVER's count, resynchronised to
+#     every client every second, and the same number in an Age since its level data is the overworld's.
+#     (b) The ground asked which bodies were due THIS EXACT TICK, so any tick that never came was a body
+#     that never fell -- and the earliest bodies are all clamped to the first tick of the fall, which the
+#     guard skipped outright. It walks an index now, so each body is thrown exactly once whatever the
+#     clock did, capped at 3 a tick so catching up is a busy second rather than a spike.
+#   - The angle argument now takes **1-90**; straight down works and breaks nothing in the drawing.
+#
+# WHAT THE SEVENTH PASS CHANGED, also unwalked:
 #   - **THE SKY AND THE ROCK NOW AGREE ON THE ANGLE, EXACTLY.** The whole mismatch was the storm hanging
 #     45 blocks over the ground it aimed at, which steepened every arrival: 10 degrees drawn came in at
 #     26. A storm sits ON the surface now (nothing collides with it or draws it), so the entry angle is

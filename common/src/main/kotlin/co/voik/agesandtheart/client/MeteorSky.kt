@@ -61,7 +61,7 @@ object MeteorSky {
     private fun gatherWhatIsStillToCome(storm: MeteorStorm, eye: Vec3, into: MutableList<Glow>) {
         for (number in 0..<storm.bodies) {
             val flight = storm.flightOf(number)
-            val until = flight.fallsAt - storm.tickCount
+            val until = flight.fallsAt - storm.age
             if (until <= NONE_LEFT) continue
             if (until > SEEN_COMING) continue
             val nearness = ONE_WHOLE - until.toFloat() / SEEN_COMING

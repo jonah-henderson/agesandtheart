@@ -254,7 +254,7 @@ object AgeCommand {
      */
     private const val DEGREES_ARGUMENT = "degrees"
     private const val SHALLOWEST_SLANT = 1
-    private const val STEEPEST_SLANT = 89
+    private const val STEEPEST_SLANT = 90
 
     /** Which body's light `look` turns you to, and how far along its approach that light is. */
     private const val FIRST_BODY = 0
