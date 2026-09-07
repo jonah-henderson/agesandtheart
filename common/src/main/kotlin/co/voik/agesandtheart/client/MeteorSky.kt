@@ -1,14 +1,12 @@
 package co.voik.agesandtheart.client
 
-import co.voik.agesandtheart.age.phenomena.MeteorFlight
 import co.voik.agesandtheart.age.phenomena.MeteorStorm
 import co.voik.ephemeris.Rgba
 import co.voik.ephemeris.client.Blaze3dSkyCanvas
 import co.voik.ephemeris.client.LevelRendering
 import co.voik.ephemeris.client.SkyMoment
+import net.minecraft.world.phys.Vec3
 import org.joml.Quaternionf
-import kotlin.math.cos
-import kotlin.math.sin
 
 /**
  * A meteor storm coming in, drawn where it can be seen from a long way off (design §5.2).
@@ -44,7 +42,7 @@ object MeteorSky {
     private fun draw(moment: SkyMoment) {
         for (entity in moment.level.entitiesForRendering()) {
             val storm = entity as? MeteorStorm ?: continue
-            drawWhatIsStillToCome(storm)
+            drawWhatIsStillToCome(storm, moment.camera.position())
         }
     }
 
@@ -54,7 +52,7 @@ object MeteorSky {
      * **Capped at the nearest few in time**, which is what keeps a shower of a hundred bodies from being a
      * hundred quads: the ones further off would be a pixel apiece and indistinguishable from the stars.
      */
-    private fun drawWhatIsStillToCome(storm: MeteorStorm) {
+    private fun drawWhatIsStillToCome(storm: MeteorStorm, eye: Vec3) {
         var showing = 0
         for (number in 0..<storm.bodies) {
             if (showing >= MOST_AT_ONCE) return
@@ -63,39 +61,38 @@ object MeteorSky {
             if (until <= NONE_LEFT) continue
             if (until > SEEN_COMING) continue
             showing++
-            drawOne(flight, ONE_WHOLE - until.toFloat() / SEEN_COMING)
+            val nearness = ONE_WHOLE - until.toFloat() / SEEN_COMING
+            drawOne(storm.seenFrom(flight, nearness).subtract(eye), nearness)
         }
     }
 
     /**
-     * One body's light, [nearness] of the way from first sighting to falling.
+     * One body's light, [awayFromTheEye] blocks off and [nearness] of the way from sighting to falling.
      *
-     * **Hung where it is coming *from*, not where it will land**, which is what makes a light and the rock
-     * that follows it the same object: a body enters obliquely, so a light over its landing site would go
-     * out on one side of the sky and reappear as a streak on the other.
+     * **Pointed at where the body actually is, rather than at a bearing chosen for the sky.** The lights
+     * used to be hung on the storm's entry bearing alone, which put every storm's telegraph in the same
+     * part of the sky wherever the storm itself was — so a shower could be pounding the country north of
+     * you while its lights hung in the west (Jonah, walked). [MeteorStorm.seenFrom] is the one place that
+     * answers where a light is, and the command that turns you to face one asks it too.
      *
-     * **The whole storm shares one line in and each body strays only slightly off it** (Jonah, walked).
-     * Bodies each drawing their own bearing came in from all over the sky, so the approach read as
-     * unrelated lights rather than as one thing breaking up — and "it splits" means nothing unless they
-     * were together first. The stray is enough to cover the ground being aimed at and no more, so what a
-     * player watches is a single arrival separating, which is neither a fan nor a scatter.
+     * **Which is also what makes them split.** The bodies are aimed across a disc and hang three thousand
+     * blocks out to begin with, where that whole disc is a couple of degrees; they come apart as they
+     * close, on nothing but the geometry, and no animation says so.
      */
-    private fun drawOne(flight: MeteorFlight, nearness: Float) {
-        val across = cos(flight.entryAngle)
+    private fun drawOne(awayFromTheEye: Vec3, nearness: Float) {
         val aim = Quaternionf().rotateTo(
             UP_X,
             UP_Y,
             UP_Z,
-            (cos(flight.comingFrom) * across).toFloat(),
-            sin(flight.entryAngle).toFloat(),
-            (sin(flight.comingFrom) * across).toFloat(),
+            awayFromTheEye.x.toFloat(),
+            awayFromTheEye.y.toFloat(),
+            awayFromTheEye.z.toFloat(),
         )
         Blaze3dSkyCanvas.drawGlow(
             orientation = aim,
             distance = FAR_OFF,
             // Squared, so most of the growth is at the end: a light swelling evenly would read as being
-            // turned up rather than coming closer. It stops well short of what it first did — the jump
-            // from the light to the much smaller rock that replaced it was the tell (Jonah, walked).
+            // turned up rather than coming closer.
             angularSize = LIKE_A_STAR + (ON_ARRIVAL - LIKE_A_STAR) * nearness * nearness,
             tint = COLD_FIRE.copy(alpha = COLD_FIRE.alpha * (DIMMEST + (ONE_WHOLE - DIMMEST) * nearness)),
         )
@@ -111,17 +108,19 @@ object MeteorSky {
     private const val MOST_AT_ONCE = 14
 
     /**
-     * Vanilla's sun is 30 at a distance of 100, so this runs from under a star to a good deal under a moon.
+     * **A star, growing to about two of them** (Jonah, walked), and measured rather than judged: vanilla
+     * draws its own stars as quads of half-extent 0.15 to 0.25 at this same distance of 100, so these are
+     * one of them and then two, once the halo `drawGlow` puts round a core is counted.
      *
-     * **Judged against the rock, not against the sky.** Twice now the arrival size has read as too big,
-     * and the measure that matters is the jump: a light noticeably larger than the body that replaces it
-     * reads as a swap. The bodies were made bigger at the same time, so the two meet nearer the middle.
+     * Three walks read the arrival size as too big — the last of them "comparable to the moon" — because
+     * the halo was never in the arithmetic. It is now: the apparent size is the core times the spread.
      */
-    private const val LIKE_A_STAR = 0.7f
-    private const val ON_ARRIVAL = 2.2f
+    private const val LIKE_A_STAR = 0.12f
+    private const val ON_ARRIVAL = 0.25f
     private const val FAR_OFF = 100.0f
 
-    private const val DIMMEST = 0.3f
+    /** Small lights need to be bright to be lights at all, so they arrive already burning. */
+    private const val DIMMEST = 0.5f
 
     private const val NONE_LEFT = 0
     private const val ONE_WHOLE = 1.0f

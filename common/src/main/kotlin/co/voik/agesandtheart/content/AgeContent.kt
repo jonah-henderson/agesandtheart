@@ -883,7 +883,9 @@ object AgeContent {
         .build(ResourceKey.create(Registries.ENTITY_TYPE, MeteorStorm.ID))
 
     private const val METEOR_SIZE = 0.7f
-    private const val METEOR_TRACKING_CHUNKS = 12
+
+    /** Far, because one is thrown from a long way out and crosses that ground in about a second. */
+    private const val METEOR_TRACKING_CHUNKS = 16
     private const val STORM_SIZE = 0.5f
     private const val STORM_TRACKING_CHUNKS = 32
 

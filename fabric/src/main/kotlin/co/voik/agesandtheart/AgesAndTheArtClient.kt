@@ -54,7 +54,9 @@ fun initClient() {
     EntityRendererRegistry.register(AgeContent.SAND_COLUMN, ::SandColumnRenderer)
     EntityRendererRegistry.register(AgeContent.VOLCANIC_BOMB) { MoltenLumpRenderer(it, MoltenLumpRenderer.WHOLE_LUMP) }
     EntityRendererRegistry.register(AgeContent.LAVA_DROPLET) { MoltenLumpRenderer(it, MoltenLumpRenderer.GOBBET) }
-    EntityRendererRegistry.register(AgeContent.METEOR) { MoltenLumpRenderer(it, MoltenLumpRenderer.METEOR) }
+    EntityRendererRegistry.register(AgeContent.METEOR) {
+        MoltenLumpRenderer(it, MoltenLumpRenderer.METEOR, MoltenLumpRenderer.METEOR_ROCK, MoltenLumpRenderer.COLD_FIRE)
+    }
     // The storm is a clock standing in the sky and is drawn by the sky, not as an entity.
     EntityRendererRegistry.register(AgeContent.METEOR_STORM) { NoopRenderer(it) }
     BlockEntityRenderers.register(AgeContent.STAR_FISSURE_ENTITY) { StarFissureRenderer() }

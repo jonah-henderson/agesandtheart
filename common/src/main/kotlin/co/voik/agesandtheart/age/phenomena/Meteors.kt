@@ -99,8 +99,15 @@ object Meteors {
     private const val NEAREST_APPROACH = 40.0
     private const val FURTHEST_APPROACH = 110.0
 
-    /** Where a storm hangs while it drops, above the player it gathered near. */
-    private const val OVERHEAD = 70.0
+    /**
+     * Where a storm hangs while it drops, above the player it gathered near.
+     *
+     * **Lower than it looks like it should be, and it is the entry angle that decides it.** A body is
+     * thrown from where its own light was — out on the storm's plane — and aimed at the ground, so every
+     * block the storm hangs above that ground steepens the approach past the angle it was drawn at. This
+     * is as high as it can be while a shallow arrival still crosses real sky.
+     */
+    private const val OVERHEAD = 45.0
 
     private const val MORE_AT_ONCE = 1.5
     /** A body every this many ticks at an ordinary claim — six or seven a second. */

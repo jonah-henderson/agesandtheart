@@ -67,8 +67,14 @@ object MeteorGlow {
     /** Violet, and the same violet the sky is coming in at, so the two read as one arrival. */
     private val COLD_FIRE = Rgba(0.55f, 0.42f, 1.0f)
 
-    /** A good deal wider than the fall itself, so the light arrives before the bodies do. */
-    private const val CAST_OVER = 46.0f
+    /**
+     * A good deal wider than the fall itself, so the light arrives before the bodies do.
+     *
+     * Derived from the fall rather than set beside it, since widening one and not the other is how a cast
+     * stops covering the ground it is meant to be warning about.
+     */
+    private const val WIDER_THAN_THE_FALL = 1.6
+    private val CAST_OVER = (MeteorStorm.REACH * WIDER_THAN_THE_FALL).toFloat()
 
     private const val NONE = 0.0f
     private const val ONE = 1.0f

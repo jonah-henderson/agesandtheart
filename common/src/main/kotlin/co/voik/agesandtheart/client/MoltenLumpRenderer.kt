@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.client
 
+import co.voik.ephemeris.Rgba
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.client.renderer.SubmitNodeCollector
@@ -10,26 +11,33 @@ import net.minecraft.client.renderer.entity.state.EntityRenderState
 import net.minecraft.client.renderer.state.level.CameraRenderState
 import net.minecraft.core.BlockPos
 import net.minecraft.world.entity.Entity
+import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.phys.Vec3
 
 /** What the renderer needs of a lump of molten rock, taken off it before drawing. */
 class MoltenLumpRenderState : EntityRenderState() {
     val block = MovingBlockRenderState()
+
+    /** How far it moved over the last tick, which is what a streak is laid along. */
+    var travel: Vec3 = Vec3.ZERO
 }
 
 /**
- * A lump of molten rock in flight, drawn as the block it is.
+ * A lump of rock in flight, drawn as the block it is.
  *
  * **Vanilla's moving-block submission rather than a model of ours**, which is the same bargain the rime
  * crystal's tint makes: magma is already a block that reads as molten at a distance, and drawing it costs
  * nothing but the state it is drawn from.
  *
- * [scale] is the only thing that separates a bomb from one of the gobbets it throws off, which is why this
- * is one renderer and not two.
+ * A bomb, one of the gobbets it throws off and a meteor differ in [scale], in the [block] they are made of
+ * and in whether they [burn] — three parameters rather than three renderers.
  */
 open class MoltenLumpRenderer<T : Entity>(
     context: EntityRendererProvider.Context,
     private val scale: Float,
+    private val block: Block = Blocks.MAGMA_BLOCK,
+    private val burn: Rgba? = null,
 ) : EntityRenderer<T, MoltenLumpRenderState>(context) {
 
     override fun createRenderState() = MoltenLumpRenderState()
@@ -39,7 +47,10 @@ open class MoltenLumpRenderer<T : Entity>(
         val at = BlockPos.containing(entity.x, entity.boundingBox.maxY, entity.z)
         state.block.randomSeedPos = at
         state.block.blockPos = at
-        state.block.blockState = Blocks.MAGMA_BLOCK.defaultBlockState()
+        state.block.blockState = block.defaultBlockState()
+        // Where it actually went rather than its velocity, so a streak is drawn off movement a viewer can
+        // see: a client that is lerping an entity rather than integrating it still moves it.
+        state.travel = Vec3(entity.x - entity.xOld, entity.y - entity.yOld, entity.z - entity.zOld)
         val level = entity.level()
         if (level is ClientLevel) {
             state.block.biome = level.getBiome(at)
@@ -61,11 +72,41 @@ open class MoltenLumpRenderer<T : Entity>(
         poseStack.translate(-HALF_BLOCK, -HALF_BLOCK, -HALF_BLOCK)
         collector.submitMovingBlock(poseStack, state.block)
         poseStack.popPose()
+        if (burn != null) submitBurning(state, poseStack, collector, camera, burn)
         super.submit(state, poseStack, collector, camera)
+    }
+
+    /**
+     * The light one of these carries: a bloom around it and a streak behind it.
+     *
+     * **Drawn geometry rather than particles**, because a trail made of sprites is a line of dots at these
+     * speeds however many are thrown, and cannot glow at all — an ordinary particle blends with the sky
+     * where a meteor has to be brighter than it (Jonah, walked).
+     */
+    private fun submitBurning(
+        state: MoltenLumpRenderState,
+        poseStack: PoseStack,
+        collector: SubmitNodeCollector,
+        camera: CameraRenderState,
+        colour: Rgba,
+    ) {
+        val towardCamera = camera.pos.subtract(state.x, state.y, state.z)
+        AddedLight.halo(collector, poseStack, towardCamera, colour, scale * BLOOM_ACROSS)
+        AddedLight.streak(collector, poseStack, state.travel, towardCamera, colour, scale * STREAK_ACROSS)
     }
 
     companion object {
         private const val HALF_BLOCK = 0.5
+
+        /** The bloom and the head of the streak, as multiples of how big the lump is drawn. */
+        private const val BLOOM_ACROSS = 1.1
+        private const val STREAK_ACROSS = 0.55
+
+        /**
+         * A meteor's own light: violet-white, and the same violet its storm hangs in the sky and casts on
+         * the ground, so the three read as one arrival.
+         */
+        val COLD_FIRE = Rgba(0.72f, 0.56f, 1.0f, 0.9f)
 
         /** A bomb is a block of rock; a gobbet is a splash off one. */
         const val WHOLE_LUMP = 1.0f
@@ -79,5 +120,8 @@ open class MoltenLumpRenderer<T : Entity>(
          * this came up as the sky came down and they meet in the middle.
          */
         const val METEOR = 0.75f
+
+        /** And made of a violet stone rather than magma, since everything else about one is violet. */
+        val METEOR_ROCK: Block = Blocks.AMETHYST_BLOCK
     }
 }

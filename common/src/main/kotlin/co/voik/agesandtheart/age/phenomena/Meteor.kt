@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age.phenomena
 
 import co.voik.agesandtheart.location
 import net.minecraft.core.BlockPos
+import net.minecraft.core.particles.DustParticleOptions
 import net.minecraft.core.particles.ParticleTypes
 import net.minecraft.core.registries.Registries
 import net.minecraft.network.syncher.SynchedEntityData
@@ -120,8 +121,28 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
     override fun tick() {
         super.tick()
         if (!level().isClientSide) return
-        level().addParticle(ParticleTypes.FLAME, x, y, z, NO_DRIFT, NO_DRIFT, NO_DRIFT)
-        level().addParticle(ParticleTypes.LARGE_SMOKE, x, y, z, NO_DRIFT, NO_DRIFT, NO_DRIFT)
+        shedSparks()
+    }
+
+    /**
+     * The sparks it sheds coming in — an accent on the drawn streak, not the streak itself.
+     *
+     * **Laid along where it actually went, not at where it is.** One particle a tick at these speeds is a
+     * dot every ten blocks or so, which reads as a dotted line rather than as anything burning.
+     *
+     * **Forced past the limiter**, because the ordinary call drops anything more than thirty-two blocks
+     * from the camera — which is nearly the whole of a flight that starts a hundred and fifty out.
+     */
+    private fun shedSparks() {
+        val travelled = position().subtract(xOld, yOld, zOld)
+        val steps = travelled.length().toInt().coerceAtLeast(AT_LEAST_ONE)
+        for (step in 0..<steps) {
+            val along = step.toDouble() / steps
+            val at = position().subtract(travelled.scale(along))
+            level().addParticle(EMBER, FORCED, SHOW_ANYWAY, at.x, at.y, at.z, NO_DRIFT, NO_DRIFT, NO_DRIFT)
+            if (step % EVERY_FEW != NONE_LEFT) continue
+            level().addParticle(ParticleTypes.END_ROD, FORCED, SHOW_ANYWAY, at.x, at.y, at.z, NO_DRIFT, NO_DRIFT, NO_DRIFT)
+        }
     }
 
     /** How hard this one goes off, set by the storm that threw it. */
@@ -151,6 +172,20 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
         private const val STRUCK = 6.0f
         /** Twice TNT — see [MeteorStorm]. Only ever used by a body somebody summoned without a storm. */
         private const val TWICE_TNT = 8.0f
+
+        /**
+         * A violet mote, which is the one particle in the game that takes a colour it is told.
+         *
+         * Redstone dust as a shape and nothing of redstone as a colour — the alternative was a bespoke
+         * particle type, and that needs a texture the asset pass has not written.
+         */
+        private val EMBER = DustParticleOptions(0x9E72FF, 0.9f)
+
+        private const val FORCED = true
+        private const val SHOW_ANYWAY = true
+        private const val EVERY_FEW = 4
+        private const val AT_LEAST_ONE = 1
+        private const val NONE_LEFT = 0
         private const val NO_DRIFT = 0.0
         private const val BLAST_KEY = "blast"
 

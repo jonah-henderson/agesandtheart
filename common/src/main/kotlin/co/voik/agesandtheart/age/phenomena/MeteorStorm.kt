@@ -17,9 +17,6 @@ import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.storage.ValueInput
 import net.minecraft.world.level.storage.ValueOutput
 import net.minecraft.world.phys.Vec3
-import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.sin
 
 /**
  * One meteor storm: a place, a clock, and the bodies it drops (design §5.2).
@@ -126,7 +123,6 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
      * area, which is the entire point of the thing being in the player's favour.
      */
     private fun forEachMarker(visit: (BlockPos) -> Unit) {
-        val step = (REACH * ACROSS_THE_DISC / MARKERS_ACROSS).toInt().coerceAtLeast(AT_LEAST_ONE)
         var awayX = -REACH.toInt()
         while (awayX <= REACH) {
             var awayZ = -REACH.toInt()
@@ -134,9 +130,9 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
                 if (awayX * awayX + awayZ * awayZ <= REACH * REACH) {
                     visit(BlockPos.containing(x + awayX, y, z + awayZ))
                 }
-                awayZ += step
+                awayZ += MARKERS_APART
             }
-            awayX += step
+            awayX += MARKERS_APART
         }
     }
 
@@ -149,6 +145,24 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
     /** What body [number] of this storm does — the one answer a client works out for itself as well. */
     fun flightOf(number: Int): MeteorFlight =
         MeteorFlight.of(uuid.leastSignificantBits, number, bodies, falling, APPROACHING)
+
+    /**
+     * Where a body's light hangs, [nearness] of the way from first sighting to its own fall.
+     *
+     * **A real place on the body's own entry line**, closing from [TELEGRAPHED_FROM] to the range it is
+     * actually thrown from — not a direction picked for the sky. That is what hangs the telegraph over the
+     * storm rather than wherever the viewer happens to be facing, what makes the lights swing as the
+     * bodies bear down, and what lets them start as one point and come apart on their own.
+     *
+     * Asked by the sky that draws the light and by the command that turns you to face it, so those two
+     * cannot disagree about where it is.
+     */
+    fun seenFrom(flight: MeteorFlight, nearness: Float): Vec3 {
+        val stillToCome = (ALL_OF_IT - nearness).toDouble()
+        val range = ENTRY_RANGE + (TELEGRAPHED_FROM - ENTRY_RANGE) * stillToCome
+        val (offsetX, offsetY, offsetZ) = flight.entryOffset(range)
+        return Vec3(x + flight.landsAwayX + offsetX, y + offsetY, z + flight.landsAwayZ + offsetZ)
+    }
 
     /**
      * The bodies whose moment is this tick.
@@ -176,17 +190,15 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
     private fun throwOne(level: ServerLevel, flight: MeteorFlight) {
         val landsAt = BlockPos.containing(x + flight.landsAwayX, y, z + flight.landsAwayZ)
         val ground = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, landsAt)
-        val (offsetX, offsetY, offsetZ) = flight.entryOffset(ENTRY_RANGE)
+        // **Thrown from exactly where its own light was**, so the handover is a light becoming a rock
+        // rather than one thing going out and another appearing seventy blocks below it.
+        val from = seenFrom(flight, ARRIVING)
+        val toTheGround = Vec3(ground.x + HALF, ground.y.toDouble(), ground.z + HALF).subtract(from)
+        val speed = SLOWEST_ARRIVAL + (FASTEST_ARRIVAL - SLOWEST_ARRIVAL) * fury
         val body = Meteor(AgeContent.METEOR, level)
         body.blast = (AT_REST + (AT_FULL_FURY - AT_REST) * fury).toFloat()
-        body.setPos(ground.x + offsetX, ground.y + offsetY, ground.z + offsetZ)
-        val speed = SLOWEST_ARRIVAL + (FASTEST_ARRIVAL - SLOWEST_ARRIVAL) * fury
-        val toTheGround = ENTRY_RANGE
-        body.setDeltaMovement(
-            -offsetX / toTheGround * speed,
-            -offsetY / toTheGround * speed,
-            -offsetZ / toTheGround * speed,
-        )
+        body.setPos(from.x, from.y, from.z)
+        body.setDeltaMovement(toTheGround.normalize().scale(speed))
         level.addFreshEntity(body)
     }
 
@@ -231,17 +243,28 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
          */
         const val LIGHTING_UP = 200
 
-        /** How wide the pounding is. Small on purpose — this is a shower, not weather. */
-        const val REACH = 28.0
+        /**
+         * How wide the pounding is.
+         *
+         * **Wide enough to read as weather rather than as an attack aimed at you** (Jonah, walked). It was
+         * a third of this, on the reasoning that a tight disc is what separates a storm from the tempest's
+         * chunk-wide roll — but a disc that narrow is a target, and standing in one felt personal rather
+         * than meteorological. The difference from a tempest is the *concentration in time*, which the
+         * fifteen seconds already carry; the area can afford to be a place.
+         */
+        const val REACH = 64.0
 
         /** Ten to fifteen seconds of it (Jonah), which the storm draws between. */
         const val SHORTEST_FALL = 200
         const val LONGEST_FALL = 300
 
-        /** How many markers span the disc, so the lattice below is about six blocks apart. */
-        private const val MARKERS_ACROSS = 10
-        private const val ACROSS_THE_DISC = 2.0
-        private const val AT_LEAST_ONE = 1
+        /**
+         * How far apart the ground markers are laid, in blocks.
+         *
+         * A spacing rather than a count across the disc, so widening [REACH] lights more ground instead of
+         * lighting the same ground more thinly — which is what the old count would have done.
+         */
+        private const val MARKERS_APART = 8
 
         /** How often the markers are laid again, since the bodies keep blowing them up. */
         private const val RELIGHTING = 40
@@ -262,11 +285,21 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         private const val AT_FULL_FURY = 11.0
 
         /** How far back along its own entry line a body starts. Far enough to cross real sky. */
-        private const val ENTRY_RANGE = 150.0
+        const val ENTRY_RANGE = 150.0
 
-        /** Quick, and a walk asked for quicker still: a body should streak rather than sail. */
-        private const val SLOWEST_ARRIVAL = 3.6
-        private const val FASTEST_ARRIVAL = 6.0
+        /**
+         * How far out a body's light hangs when it first appears, in blocks.
+         *
+         * **Far beyond anything that renders, which is the illusion the whole telegraph rests on.** A
+         * shower has to look like it is arriving from somewhere else, and at this range the whole disc the
+         * bodies are aimed at is under two degrees of sky — so they start as one light and come apart as
+         * they close, with no animation saying so.
+         */
+        const val TELEGRAPHED_FROM = 4500.0
+
+        /** Doubled off a walk: a body should streak rather than sail. */
+        private const val SLOWEST_ARRIVAL = 7.2
+        private const val FASTEST_ARRIVAL = 12.0
 
         private const val FALLING_KEY = "falling"
         private const val FURY_KEY = "fury"
@@ -274,20 +307,23 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
 
         private const val ORDINARY_FURY = 0.0
         private const val HALF = 0.5
-        private const val FULL_TURN = 2.0 * PI
         private const val NONE_OF_IT = 0.0f
         private const val ALL_OF_IT = 1.0f
+
+        /** A body's light at the instant the rock takes over from it. */
+        private const val ARRIVING = 1.0f
 
         val ID: Identifier = "meteor_storm".location()
 
         /** Stand one up at [where], to approach and then fall. */
-        fun gatherAt(level: ServerLevel, where: Vec3, bodies: Int, falling: Int, fury: Double) {
+        fun gatherAt(level: ServerLevel, where: Vec3, bodies: Int, falling: Int, fury: Double): MeteorStorm {
             val storm = MeteorStorm(AgeContent.METEOR_STORM, level)
             storm.setPos(where.x, where.y, where.z)
             storm.bodies = bodies
             storm.falling = falling
             storm.fury = fury
             level.addFreshEntity(storm)
+            return storm
         }
     }
 }

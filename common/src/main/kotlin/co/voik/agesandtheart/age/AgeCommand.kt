@@ -242,12 +242,16 @@ object AgeCommand {
     private const val MAX_STORM_DISTANCE = 512
 
     /** Where a storm hangs over the ground it is about to hit. */
-    private const val STORM_HEIGHT = 70.0
+    private const val STORM_HEIGHT = 45.0
 
     /** A body every this many ticks, matching what an ordinary written storm drops. */
     private const val STORM_EVERY = 3
 
     private const val LOOK_LITERAL = "look"
+
+    /** Which body's light `look` turns you to, and how far along its approach that light is. */
+    private const val FIRST_BODY = 0
+    private const val JUST_SIGHTED = 0.0f
     private const val MAX_SANDFALL_DISTANCE = 256
     private const val SECONDS_ARGUMENT = "seconds"
 
@@ -1223,9 +1227,12 @@ object AgeCommand {
         val fury = furyPercent.toDouble() / ALL_FURY
         val where = Vec3(ahead.x, source.position.y + STORM_HEIGHT, ahead.z)
         val falling = seconds?.times(TICKS_PER_SECOND) ?: MeteorStorm.SHORTEST_FALL
-        MeteorStorm.gatherAt(source.level, where, falling / STORM_EVERY, falling, fury)
-        // Turned to the storm rather than to where it lands, because the sky is what wants watching first.
-        if (look) source.player?.lookAt(EntityAnchorArgument.Anchor.EYES, where)
+        val storm = MeteorStorm.gatherAt(source.level, where, falling / STORM_EVERY, falling, fury)
+        // Turned to the *light*, which is thousands of blocks out along the storm's entry line and nowhere
+        // near the storm itself. Facing the storm left a walk staring at empty sky (Jonah, walked).
+        if (look) {
+            source.player?.lookAt(EntityAnchorArgument.Anchor.EYES, storm.seenFrom(storm.flightOf(FIRST_BODY), JUST_SIGHTED))
+        }
         Report.prose(source).say {
             "A storm gathers $distance blocks away. It falls in ${MeteorStorm.APPROACHING / TICKS_PER_SECOND}s."
         }

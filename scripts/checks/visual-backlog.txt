@@ -300,9 +300,9 @@
 #     the welling, and lava over it does NOT count. Expected to work; walk it whenever.
 
 # ══ 11. THE METEOR STORM HAS NO SKY YET ══════════════════════════════════════ Built 2026-09-06 ══
-# The server half of design 5.2's meteor storm. Storms gather, approach for four and a half seconds,
-# pound a 28-block disc for ten to fifteen, and expire. Verified headlessly: 16, 21 and 28 bodies in the
-# air a second apart, and the storm removing itself when its clock ran down.
+# Design 5.2's meteor storm. A storm gathers, hangs for thirty seconds of telegraph, pounds a 128-block
+# disc for ten to fifteen, and expires. Verified headlessly: 16, 21 and 28 bodies in the air a second
+# apart, and the storm removing itself when its clock ran down.
 #
 /age write shower 11 meteors phenomena age
 /age tp shower
@@ -314,11 +314,11 @@
 #     -- distance, seconds of falling, fury 0-100, and `look` turns you to face it. The telegraph is
 #     DIRECTIONAL, so without `look` you spend the thirty seconds hunting the sky for it.
 #
-# **THE TELEGRAPH IS BUILT AND HAS NEVER BEEN SEEN.** Thirty seconds of it, and it is the half of the
-# mechanic that cannot be checked headlessly at all -- it is drawn, so only a walk can say. What should
-# happen: a point of light like a star appears in the direction the storm will fall, brightening and
-# swelling; at about 45% it SPLITS into as many pieces as will actually land; those open out and grow
-# until the real bodies take over. Violet-blue on purpose -- everything else the pack burns is red or
+# **THE TELEGRAPH IS BUILT AND HAS NEVER BEEN SEEN WORKING.** Thirty seconds of it, and it is the half of
+# the mechanic that cannot be checked headlessly at all -- it is drawn, so only a walk can say. What should
+# happen: what looks like ONE star appears over the ground the storm will fall on, brightening and swelling
+# to about twice a star; as it does it comes apart into as many pieces as will actually land; those open
+# out until the real bodies take over. Violet-blue on purpose -- everything else the pack burns is red or
 # orange, so this reads as a different KIND of thing.
 #
 # **And the ground is lit** from the last ten seconds of the warning right through the fall, in VIOLET.
@@ -330,11 +330,25 @@
 # ("way too much, but it was super cool"). A bit under a creeper ordinarily; the old middle is the new
 # ceiling and wants an Age broken enough to buy the whole manifestation.
 #
-# WHAT THE THIRD PASS CHANGED, all of it unwalked: every sky light is now a PARTICULAR body and goes out
-# when that body falls, so they keep coming through the storm; the lights are bare untextured quads rather
-# than a tinted sun sprite; they arrive much smaller, since the jump to the real rock was the tell; the
-# split is no longer a symmetric fan but each body drawing its own bearing; and bodies come in OBLIQUELY
-# at 10-45 degrees so they cross the sky instead of dropping.
+# WHAT THE FOURTH PASS CHANGED, all of it unwalked:
+#   - **THE LIGHTS ARE ANCHORED TO THE STORM.** They used to be hung on a bearing alone, so every storm's
+#     telegraph appeared in the same part of the sky wherever the storm actually was -- which is why
+#     `look` sent you staring at empty sky. A light is now a real point on its body's own entry line,
+#     4500 blocks out and closing to 150, and `look` asks the same function the sky does.
+#   - **AND THAT IS ALSO WHAT MAKES THEM SPLIT.** Measured: 1.7 degrees of sky apart at first sighting
+#     (three moon-widths, for fourteen of them), 2.6 halfway, ~35 at the arrival. Nothing is animated.
+#   - **THEY ARE STAR-SIZED.** Vanilla draws its own stars at half-extent 0.15-0.25 at distance 100; these
+#     are 0.23 growing to 0.48, halo included. The halo was never in the arithmetic before, which is how
+#     three walks running read the size as too big.
+#   - **THE STREAK IS DRAWN GEOMETRY, NOT PARTICLES** -- a tapered additive ribbon on vanilla's own
+#     `RenderTypes.lightning()`, plus a bloom around the body, so a meteor is BRIGHTER than the sky behind
+#     it rather than blended into it. The rock is amethyst rather than magma, and the fire and smoke are
+#     gone; what is left is a violet mote trail laid ALONG the tick's movement (one a block, forced past
+#     the 32-block particle cull) with an end-rod spark every fourth.
+#   - **TWICE THE SPEED** (7.2 to 12 blocks a tick) and a 128-block disc rather than 56.
+#   - The storm hangs 45 blocks up rather than 70. A body is thrown from where its own light was and aimed
+#     at the ground, so every block of that height steepens the approach past the angle it was drawn at:
+#     10-45 degrees on paper is 26-55 in fact, and 45 is as high as it can hang and still arrive shallow.
 #
 # ~~OLD:~~ The pack has been pricing blasts against a
 # creeper at 3 and TNT at 4, so these are deliberately off the top of that scale -- a body from outside
@@ -342,12 +356,15 @@
 #
 # WHAT A WALK HAS TO SETTLE:
 #   - **DOES THE SKY SELL IT?** The whole illusion is an arrival from further away than anything can be
-#     rendered, and it is drawn with vanilla's sun sprite tinted violet at a small angular size. If it
-#     reads as "a weird blue sun", the size ramp or the split is wrong rather than the idea.
+#     rendered. Does it start as ONE light, and does it come apart without ever reading as a cut?
+#   - **DOES THE STREAK READ AS A METEOR?** It is meant to be a bright glowing line, not a trail of
+#     sprites. If it reads as a lit block with a smear behind it, the ribbon's width or length is wrong.
 #   - Is thirty seconds right? It was four and a half, which was not time to do anything.
 #   - **Is it a pounding rather than weather?** That is the whole brief -- a tempest strikes rarely over a
-#     wide country, this hammers a small area and stops. If it reads as "lightning with rocks", it failed.
-#   - Is a 28-block disc the right size, and 10-15 seconds the right length?
+#     wide country, this hammers one place hard and stops. It was widened this pass BECAUSE the narrow
+#     version played as an attack aimed at you; the concentration is meant to be in the time, not the area.
+#   - Is a 128-block disc the right size, and 10-15 seconds the right length?
+#   - **Is 26-55 degrees oblique enough?** The ask was 10-45 and the storm's own height steepens it.
 #   - Can you WALK OUT of one? The counterplay is spatial, so the answer has to be your feet.
 #   - **THE CUSHIONS.** Three blocks of water, wool or honey catches a body whole; anything less and it
 #     craters. Build a pond and a wool pad under a storm and check both. Nothing drops yet -- the material

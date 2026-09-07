@@ -3,6 +3,7 @@ package co.voik.agesandtheart.age.phenomena
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 /**
  * Everything about one body of a storm, worked out from the storm and the body's number and nothing else.
@@ -46,12 +47,16 @@ data class MeteorFlight(
             val evenly = if (count <= ONE) NONE else number.toDouble() / (count - ONE)
             val jitter = mixed(storm, number, WHEN_SALT)
             val fallsAt = startingAt + (evenly * spread + (jitter - HALF) * WANDER).toInt()
+            // Aimed at a disc rather than a square, and evenly over it — the square's corners lay outside
+            // the ring the storm lights, so a body could land where nothing had warned it would.
+            val away = sqrt(mixed(storm, number, ACROSS_SALT)) * MeteorStorm.REACH
+            val round = mixed(storm, number, ALONG_SALT) * FULL_TURN
             return MeteorFlight(
                 fallsAt = fallsAt.coerceAtLeast(startingAt),
                 comingFrom = bearingOf(storm) + (mixed(storm, number, BEARING_SALT) - HALF) * FANS_OUT,
                 entryAngle = angleOf(storm) + (mixed(storm, number, ANGLE_SALT) - HALF) * FANS_OUT,
-                landsAwayX = (mixed(storm, number, ACROSS_SALT) - HALF) * TWICE * MeteorStorm.REACH,
-                landsAwayZ = (mixed(storm, number, ALONG_SALT) - HALF) * TWICE * MeteorStorm.REACH,
+                landsAwayX = cos(round) * away,
+                landsAwayZ = sin(round) * away,
             )
         }
 
@@ -61,8 +66,8 @@ data class MeteorFlight(
          *
          * **This is what sells the first half of the arrival.** Bodies each drawing their own bearing came
          * in from all over the sky, so the approach read as unrelated lights rather than as one thing
-         * breaking up — and "it splits into multiple" only means anything if they were together first. The
-         * spread is [FANS_OUT], which is just enough to cover the ground the storm is aimed at.
+         * breaking up — and "it splits into multiple" only means anything if they were together first.
+         * What separates them by the end is the disc they are aimed at closing; [FANS_OUT] is the wobble.
          */
         fun bearingOf(storm: Long): Double = mixed(storm, WHOLE_STORM, STORM_BEARING_SALT) * FULL_TURN
 
@@ -90,12 +95,17 @@ data class MeteorFlight(
         private const val WANDER = 14.0
 
         /**
-         * How far a body strays from its storm's own line, in radians.
+         * How far a body strays from its storm's own line, in radians — **rather under a degree**.
          *
-         * Small: enough that a dozen of them cover the impact area and separate visibly as they near, and
-         * not so much that the shower stops looking like one thing coming apart.
+         * Nearly nothing, because the separation a watcher sees is not this: the bodies are aimed across a
+         * disc [MeteorStorm.REACH] wide and hang far enough out that the disc is under two degrees, so
+         * they come apart on their own as they close — from about one and a half degrees at first sighting
+         * to five and thirty at the arrival. This is only the wobble on top of that, and it is *angular*
+         * rather than a displacement, so unlike the disc it does not shrink with how far out they hang.
+         * A walk read fifteen times as much as lights arriving from all over rather than one thing
+         * splitting.
          */
-        private const val FANS_OUT = 0.30
+        private const val FANS_OUT = 0.02
 
         /** The index the storm's own answers are mixed at, which no body can take. */
         private const val WHOLE_STORM = -1
@@ -123,7 +133,6 @@ data class MeteorFlight(
         private const val ONE = 1
         private const val NONE = 0.0
         private const val HALF = 0.5
-        private const val TWICE = 2.0
         private const val FULL_TURN = 2.0 * PI
     }
 
