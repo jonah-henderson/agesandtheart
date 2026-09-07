@@ -58,16 +58,25 @@ object Meteors {
             somebody.y + OVERHEAD,
             somebody.z + sin(bearing) * away,
         )
-        val falling = MeteorStorm.SHORTEST_FALL +
-            random.nextInt(MeteorStorm.LONGEST_FALL - MeteorStorm.SHORTEST_FALL + ONE)
-        MeteorStorm.gatherAt(level, where, bodiesFor(density), lengthenedBy(falling, fury), fury)
+        val falling = lengthenedBy(
+            MeteorStorm.SHORTEST_FALL + random.nextInt(MeteorStorm.LONGEST_FALL - MeteorStorm.SHORTEST_FALL + ONE),
+            fury,
+        )
+        MeteorStorm.gatherAt(level, where, bodiesFor(density, falling), falling, fury)
     }
 
     /** How many storms may be up at once — one ordinarily, and more as a rung asks for more. */
     private fun atMostFor(density: Double): Int = (ONE + density * MORE_AT_ONCE).roundToInt()
 
-    /** How many bodies a storm splits into, which is also what the sky promises. */
-    private fun bodiesFor(density: Double): Int = (FEWEST_BODIES + density * MORE_BODIES).roundToInt()
+    /**
+     * How many bodies a storm drops over the whole of its life, which is also what the sky promises.
+     *
+     * **Worked out from how long it falls for**, so a longer storm is not a denser one: what a rung buys
+     * is the *rate*, and the length is bought separately by [lengthenedBy]. Every one of these is a light
+     * in the sky before it is a rock on the ground, so this number is what a player actually counts.
+     */
+    private fun bodiesFor(density: Double, falling: Int): Int =
+        (falling / EVERY * (ONE_WHOLE + (density - ONE_WHOLE) * MORE_OFTEN_STILL)).roundToInt().coerceAtLeast(ONE)
 
     /** A storm's own length, stretched by how fierce the Age is. */
     private fun lengthenedBy(falling: Int, fury: Double): Int =
@@ -94,8 +103,11 @@ object Meteors {
     private const val OVERHEAD = 70.0
 
     private const val MORE_AT_ONCE = 1.5
-    private const val FEWEST_BODIES = 3.0
-    private const val MORE_BODIES = 6.0
+    /** A body every this many ticks at an ordinary claim — six or seven a second. */
+    private const val EVERY = 3
+
+    /** What a rung adds to the rate on top of that. */
+    private const val MORE_OFTEN_STILL = 1.2
     private const val LONGER_WHEN_FIERCE = 0.6
     private const val BETWEEN_STORMS = 3600.0
     private const val MORE_OFTEN = 5.0

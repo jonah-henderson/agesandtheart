@@ -133,28 +133,48 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         super.remove(reason)
     }
 
+    /** What body [number] of this storm does — the one answer a client works out for itself as well. */
+    fun flightOf(number: Int): MeteorFlight =
+        MeteorFlight.of(uuid.leastSignificantBits, number, bodies, falling, APPROACHING)
+
     /**
-     * The bodies for this tick, spread over the ground under the storm.
+     * The bodies whose moment is this tick.
      *
-     * Spread by **drawing a bearing and a distance** rather than a square, so the fall is a disc rather
-     * than a box and the middle of it is hit hardest — which is what a shower looks like and what makes
-     * walking out of one a decision about direction rather than about corners.
+     * **Read off the same list the sky is drawing**, rather than rolled here: a body announced in the sky
+     * and a body dropped on the ground have to be the same body, and the only way to promise that without
+     * sending anything is for both sides to ask the same pure function.
      */
     private fun dropSome(level: ServerLevel) {
-        val random = level.random
-        repeat(bodies) {
-            if (random.nextInt(SPREAD_OVER) != NOW) return@repeat
-            val bearing = random.nextDouble() * FULL_TURN
-            val away = random.nextDouble() * REACH
-            val body = Meteor(AgeContent.METEOR, level)
-            body.blast = (TWICE_TNT + (AT_FULL_FURY - TWICE_TNT) * fury).toFloat()
-            body.setPos(x + cos(bearing) * away, y, z + sin(bearing) * away)
-            // Nearly straight down, leaning a little so a streak reads as an arrival rather than a drop.
-            val speed = SLOWEST_ARRIVAL + (FASTEST_ARRIVAL - SLOWEST_ARRIVAL) * fury
-            val lean = (random.nextDouble() - HALF) * LEAN
-            body.setDeltaMovement(lean, -speed, (random.nextDouble() - HALF) * LEAN)
-            level.addFreshEntity(body)
+        for (number in 0..<bodies) {
+            if (flightOf(number).fallsAt != tickCount) continue
+            throwOne(level, flightOf(number))
         }
+    }
+
+    /**
+     * One body, entering obliquely at the angle its flight drew.
+     *
+     * **Aimed at the ground rather than dropped from overhead** (Jonah, 2026-09-06): a body that comes
+     * straight down is on screen for a moment and reads as a falling block, where one entering between ten
+     * and forty-five degrees crosses the sky and reads as something arriving from somewhere else. It is
+     * placed back along its own entry line and pointed at where it is going, so however shallow the angle
+     * it still lands where it was announced.
+     */
+    private fun throwOne(level: ServerLevel, flight: MeteorFlight) {
+        val landsAt = BlockPos.containing(x + flight.landsAwayX, y, z + flight.landsAwayZ)
+        val ground = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, landsAt)
+        val (offsetX, offsetY, offsetZ) = flight.entryOffset(ENTRY_RANGE)
+        val body = Meteor(AgeContent.METEOR, level)
+        body.blast = (AT_REST + (AT_FULL_FURY - AT_REST) * fury).toFloat()
+        body.setPos(ground.x + offsetX, ground.y + offsetY, ground.z + offsetZ)
+        val speed = SLOWEST_ARRIVAL + (FASTEST_ARRIVAL - SLOWEST_ARRIVAL) * fury
+        val toTheGround = ENTRY_RANGE
+        body.setDeltaMovement(
+            -offsetX / toTheGround * speed,
+            -offsetY / toTheGround * speed,
+            -offsetZ / toTheGround * speed,
+        )
+        level.addFreshEntity(body)
     }
 
     /** Nothing about a storm is worth colliding with; it is a clock standing in the sky. */
@@ -211,19 +231,22 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         private const val RELIGHTING = 40
         private const val TWO = 2
 
-        private const val SPREAD_OVER = 6
         private const val NOW = 0
         private const val FEW = 4
 
         /**
-         * **Twice TNT at rest, and half as much again at full fury** (Jonah, 2026-09-06).
+         * **A bit under a creeper at rest, and past twice TNT at the very top** (Jonah, 2026-09-06).
          *
-         * The pack has been pricing blasts against a creeper at 3 and TNT at 4; this is deliberately past
-         * the top of that scale, because a body arriving from outside the world should not land like
-         * something a player could have crafted. It is the hardest thing the modpack throws.
+         * Walked at half fury under the first numbers and judged far too much — "way too much, but it was
+         * super cool" — so what was the middle of the old scale is now its ceiling, and reachable only by
+         * an Age broken enough to buy the whole of the manifestation. An ordinary storm is a nuisance you
+         * shelter from; a ruined Age's is the hardest thing in the modpack.
          */
-        private const val TWICE_TNT = 8.0
-        private const val AT_FULL_FURY = 14.0
+        private const val AT_REST = 2.5
+        private const val AT_FULL_FURY = 11.0
+
+        /** How far back along its own entry line a body starts. Far enough to cross real sky. */
+        private const val ENTRY_RANGE = 150.0
 
         private const val SLOWEST_ARRIVAL = 2.4
         private const val FASTEST_ARRIVAL = 4.2

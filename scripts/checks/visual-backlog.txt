@@ -326,7 +326,17 @@
 # re-laid as the bodies blow them up), and an environment layer tints the block light violet near a storm.
 # Verified headlessly: 6 markers still lit deep into the fall, with 33 bodies in the air.
 #
-# **IMPACTS ARE NOW TWICE TNT AT REST AND 14 AT FULL FURY.** The pack has been pricing blasts against a
+# **IMPACTS ARE NOW 2.5 AT REST AND 11 AT FULL FURY**, after a walk at half fury under the old numbers
+# ("way too much, but it was super cool"). A bit under a creeper ordinarily; the old middle is the new
+# ceiling and wants an Age broken enough to buy the whole manifestation.
+#
+# WHAT THE THIRD PASS CHANGED, all of it unwalked: every sky light is now a PARTICULAR body and goes out
+# when that body falls, so they keep coming through the storm; the lights are bare untextured quads rather
+# than a tinted sun sprite; they arrive much smaller, since the jump to the real rock was the tell; the
+# split is no longer a symmetric fan but each body drawing its own bearing; and bodies come in OBLIQUELY
+# at 10-45 degrees so they cross the sky instead of dropping.
+#
+# ~~OLD:~~ The pack has been pricing blasts against a
 # creeper at 3 and TNT at 4, so these are deliberately off the top of that scale -- a body from outside
 # the world should not land like something you could have crafted. Expect to tune this.
 #

@@ -244,8 +244,8 @@ object AgeCommand {
     /** Where a storm hangs over the ground it is about to hit. */
     private const val STORM_HEIGHT = 70.0
 
-    /** Enough pieces that the split in the sky is unmistakably a split. */
-    private const val STORM_BODIES = 6
+    /** A body every this many ticks, matching what an ordinary written storm drops. */
+    private const val STORM_EVERY = 3
 
     private const val LOOK_LITERAL = "look"
     private const val MAX_SANDFALL_DISTANCE = 256
@@ -1223,7 +1223,7 @@ object AgeCommand {
         val fury = furyPercent.toDouble() / ALL_FURY
         val where = Vec3(ahead.x, source.position.y + STORM_HEIGHT, ahead.z)
         val falling = seconds?.times(TICKS_PER_SECOND) ?: MeteorStorm.SHORTEST_FALL
-        MeteorStorm.gatherAt(source.level, where, STORM_BODIES, falling, fury)
+        MeteorStorm.gatherAt(source.level, where, falling / STORM_EVERY, falling, fury)
         // Turned to the storm rather than to where it lands, because the sky is what wants watching first.
         if (look) source.player?.lookAt(EntityAnchorArgument.Anchor.EYES, where)
         Report.prose(source).say {
