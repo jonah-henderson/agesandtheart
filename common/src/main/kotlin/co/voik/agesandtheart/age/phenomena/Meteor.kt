@@ -342,6 +342,15 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
                 comeDownNow(level)
                 return
             }
+            // **The cushion catches it, not the bed under the cushion.** This used to happen only where a
+            // body struck a block, which quietly made being caught a question about the seabed you
+            // eventually reached rather than about the water you were in — and a body coming in at twenty
+            // blocks a tick reached that bed in a way that did not catch (Jonah, walked). Asked every tick
+            // instead, so the rule is what §7.1.2 says it is: three blocks of the stuff, and you are held.
+            if (cushionAround(level, blockPosition()) >= CAUGHT_BY) {
+                settle(level, blockPosition())
+                return
+            }
         }
         super.tick()
         if (!level.isClientSide) return

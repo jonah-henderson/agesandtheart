@@ -1,0 +1,52 @@
+# READ THIS BEFORE TRUSTING ANYTHING BELOW. This file did NOT settle the question it was written for,
+# and it is kept for the two traps it found rather than for its answers (2026-09-07).
+#
+# WHAT IT CANNOT DO: a meteor's whole landing happens in about three ticks, and every command here is a
+# round trip of roughly a second — twenty ticks. So `data get ... settled` almost always asks after the
+# event and gets nothing back, and NOTHING is what you cannot tell apart: settled-then-removed, shattered,
+# and mistimed all look identical. Do not read an empty result as a failure. Anything at this timescale
+# wants a Kotest spec in common/src/test/.../server/ that can step ticks, or Jonah's eyes.
+#
+# TRAP 1 -- THE FILL LIMIT IS 32768 BLOCKS. An 81x20x81 column silently fills nothing at all, and then
+# every meteor falls into the void and the run reads exactly like a code fault. 28x20x28 is 15680.
+# TRAP 2 -- an explosion UNDERWATER breaks no blocks, so an intact floor is not evidence that a body
+# failed to go off. Ask the entity, never the terrain.
+#
+# THE ONE RESULT THAT WAS CLEAN: a body dropped a block onto the floor under thirty of water reports
+# settled=1b. So the cushion test itself is sound, and the walked fault was never in it.
+#
+# AND THE ANSWER, WHICH JONAH SUPPLIED AND NO PROBE HERE WOULD HAVE FOUND: the walked Age had a SLIME
+# SEABED. `onHit` tests REBOUNDS before it tests the cushion, so every body reaching the bottom bounced
+# back up instead of being caught -- and then the new rule that removes one still climbing when its time
+# runs out quietly deleted it mid-bounce. "Flies through the water and never settles", exactly.
+# The fix is that the WATER catches it now, every tick, before it can ever reach the bed.
+forceload add 100 100 160 160
+fill 112 -50 112 139 -41 139 minecraft:stone
+fill 112 -40 112 139 -21 139 minecraft:water
+say ---- built ----
+execute if block 120 -30 120 minecraft:water run say WATER OK
+execute if block 120 -45 120 minecraft:stone run say FLOOR OK
+
+summon agesandtheart:meteor 116 -18 116 {Motion:[0.0,-2.0,0.0]}
+say settle
+data get entity @e[type=agesandtheart:meteor,limit=1] settled
+kill @e[type=agesandtheart:meteor]
+say ---- speed 2 above ----
+
+summon agesandtheart:meteor 122 -18 122 {Motion:[0.0,-6.0,0.0]}
+say settle
+data get entity @e[type=agesandtheart:meteor,limit=1] settled
+kill @e[type=agesandtheart:meteor]
+say ---- speed 6 above ----
+
+summon agesandtheart:meteor 128 -18 128 {Motion:[0.0,-12.0,0.0]}
+say settle
+data get entity @e[type=agesandtheart:meteor,limit=1] settled
+kill @e[type=agesandtheart:meteor]
+say ---- speed 12 above ----
+
+summon agesandtheart:meteor 134 -18 134 {Motion:[0.0,-20.0,0.0]}
+say settle
+data get entity @e[type=agesandtheart:meteor,limit=1] settled
+say ---- speed 20 above ----
+say ---- done ----
