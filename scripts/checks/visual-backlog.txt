@@ -481,10 +481,12 @@
 #         can only overshoot) and the second settled with the whole rock under. The lift is a spring
 #         toward the waterline now, zero where the surface is level with the entity's origin -- which is
 #         where the drawn lump is centred, so the line should cross its middle.
-#       - **A CAUGHT ONE KEEPS A FAINT VIOLET BLOOM** so it can be found at night. NOTE WHAT THAT IS AND
-#         IS NOT: entities cannot emit light in vanilla at all, the engine being block-only, so this is
-#         drawn glow and lights nothing around it. If it needs to actually illuminate, that means placing
-#         a light BLOCK and moving it as the rock bobs, with all the cleanup that implies.
+#       - ~~A caught one keeps a faint violet bloom~~ TRIED AND CUT 2026-09-07 (Jonah: "the additive glow
+#         doesn't look great, let's just cut it, it's fine without light"). A settled body goes fully cold.
+#         WORTH KNOWING IF IT COMES UP AGAIN: entities cannot emit light in vanilla at all, the engine
+#         being block-only, so there was never a light-source budget to worry about -- and equally, drawn
+#         glow lights nothing around it. Real illumination would mean placing a light BLOCK and moving it
+#         as the rock bobs, with all the cleanup that implies.
 #       - **AND THE HALO SHOULD NO LONGER PUNCH A HOLE IN THE WATER.** It was drawn on a render type that
 #         WRITES DEPTH, so water drawn afterwards failed its test and vanished in that patch. Same
 #         additive blend, depth write off. Check it over water, in water, and looking up from underneath.

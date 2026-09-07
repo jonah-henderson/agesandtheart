@@ -100,7 +100,7 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
         event.registerEntityRenderer(AgeContent.VOLCANIC_BOMB) { MoltenLumpRenderer(it, MoltenLumpRenderer.WHOLE_LUMP) }
         event.registerEntityRenderer(AgeContent.LAVA_DROPLET) { MoltenLumpRenderer(it, MoltenLumpRenderer.GOBBET) }
         event.registerEntityRenderer(AgeContent.METEOR) {
-            MoltenLumpRenderer(it, MoltenLumpRenderer.METEOR, MoltenLumpRenderer.METEOR_ROCK, MoltenLumpRenderer.COLD_FIRE, MoltenLumpRenderer.EMBER)
+            MoltenLumpRenderer(it, MoltenLumpRenderer.METEOR, MoltenLumpRenderer.METEOR_ROCK, MoltenLumpRenderer.COLD_FIRE)
         }
         // The storm is a clock standing in the sky and is drawn by the sky, not as an entity.
         event.registerEntityRenderer(AgeContent.ASTRITE_GOLEM) { AstriteGolemRenderer(it) }
