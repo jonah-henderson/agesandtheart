@@ -353,16 +353,22 @@
 #     which is who it is for; it is forced past the 32-block particle cull for that reason.
 #   - **DOES THE STORM COME TO IT?** It should centre on the cluster rather than on a bearing off you.
 #   - **AND TIGHTEN.** EVERY ONE OF THESE IS A RADIUS -- 135 with no lure is 270 blocks of ground across,
-#     90 for one block is 180, and the floor of 40 at twenty-seven or more is 80 across.
+#     90 for one block is 180, and the floor of 8 at twenty-seven or more is ONE CHUNK across.
+#   - **THE VIOLET CAST NARROWS WITH IT.** A drawn storm lights the chunk it falls in and no more, so at
+#     the floor you should be able to walk in and out of the warning in a couple of seconds. It used to
+#     take the un-lured 135 whatever the storm was doing, which was the lie it exists to refuse.
 #     A cluster is anything within 8 blocks -- a cube, a flat pad, or a scattered handful should all read
 #     the same. NO shape, NO connection, NO chunk alignment.
 #   - The frequency buff is a flat 0.75x for having any lure at all, and does NOT stack. Hard to see by
 #     eye; trust the code or time it.
 #   - **THE PLAY THIS IS MEANT TO FORCE:** stay within simulation distance so the storm runs, but nowhere
-#     near a 40-block disc taking fifty blasts. If it is survivable to stand in, the concentration is
-#     too weak or the blast too soft.
-#   - The violet CAST still covers the full 135, deliberately, so the warning stays wide even when the
-#     impacts pull in. Check that does not read as a bug.
+#     near one chunk taking fifty blasts. If it is survivable to stand in, the concentration is too weak
+#     or the blast too soft.
+#   - **AND THE QUESTION THE FLOOR RAISES, WHICH ONLY A WALK SETTLES:** a chunk is EASY to stand outside
+#     of -- thirty blocks off and you are clear, where the old 40 wanted sixty-odd. So the danger stops
+#     being "do not get caught out" and becomes "everything you built there is gone". Judge whether that
+#     is still a cost. If it is not, the lever is the body count or the blast, NOT the disc: what a tight
+#     disc buys is that one pond catches every body instead of a few, which is the mechanic itself.
 #   - **WALK ONE ON TALL LAND -- alps, pillars, spire_islands -- NOT JUST HILLS.** Every meteor walk so
 #     far has been on terrain that is uniformly low, which hid this: a storm's plane used to be the ground
 #     under its MIDDLE, so on an Age whose land reaches the ceiling a shallow arrival started inside a

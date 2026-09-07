@@ -46,8 +46,7 @@ object Lures {
     /**
      * How far from its middle a storm falls when this many blocks are drawing it, in blocks.
      *
-     * **A radius, like every other reach here**, so the disc is twice this across: the floor of forty is
-     * eighty blocks of ground, not forty.
+     * **A radius, like every other reach here**, so the disc is twice this across.
      *
      * One block already tightens it hard — the lure is the mechanic, not a slow ramp — and past
      * [ENOUGH_OF_THEM] there is nothing more to buy.
@@ -102,9 +101,14 @@ object Lures {
     /** How near two blocks must be to be drawing together, in blocks. Generous, so no shape is implied. */
     private const val TOGETHER = 8.0
 
-    /** What one block draws a storm down to, and what any number past [ENOUGH_OF_THEM] does. */
+    /**
+     * What one block draws a storm down to, and what any number past [ENOUGH_OF_THEM] does.
+     *
+     * **The floor is a chunk** (Jonah) — eight from the middle, sixteen across — which is the figure the
+     * mechanic was agreed on and worth holding to rather than rounding up to something that felt safer.
+     */
     private const val ONE_LURE_REACHES = 90.0
-    private const val TIGHTEST = 40.0
+    private const val TIGHTEST = 8.0
     private const val ENOUGH_OF_THEM = 27
 
     private const val SECTION = 16

@@ -131,7 +131,8 @@ object MeteorGlow {
             val awayX = storm.x - at.x
             val awayZ = storm.z - at.z
             val away = sqrt(awayX * awayX + awayZ * awayZ).toFloat()
-            val within = Mth.clamp((CAST_OVER - away) / (CAST_OVER - CAST_WHOLLY), NONE, ONE)
+            val castOver = storm.reach + FEATHERED_BY
+            val within = Mth.clamp((castOver - away) / FEATHERED_BY, NONE, ONE)
             val how = within * storm.castStrength() * open
             if (how > strongest) strongest = how
         }
@@ -155,18 +156,23 @@ object MeteorGlow {
     private const val HELD_DOWN = 0.35f
 
     /**
-     * How far the cast carries, in blocks — **the impact disc, and a short feather past its edge**.
+     * How far past the impact disc the cast carries, in blocks.
+     *
+     * **The disc itself is read off the storm rather than off [MeteorStorm.REACH]**, which is the whole
+     * of what a lure changes: a drawn storm falls in a chunk and must therefore light a chunk. Taking the
+     * constant lit two hundred and seventy blocks of ground for sixteen blocks of pounding — the lie this
+     * is supposed to refuse, in the direction that also wastes the warning.
      *
      * There is nothing left in view to go untouched, because the lightmap is read at the camera: standing
      * anywhere inside this turns the whole world violet to the horizon, rather than painting a ring on the
      * ground with ordinary country beyond it.
      *
      * The feather has to stay well inside the smallest view distance a server is likely to run, or the
-     * storm stops being tracked before the cast has faded and [easedStrengthAt] is doing all the work.
+     * storm stops being tracked before the cast has faded and [easedStrengthAt] is doing all the work. It
+     * does not scale with the disc: what it smooths is a boundary you walk across, and that is the same
+     * walk however small the thing inside it.
      */
-    private const val FEATHERED_BY = 16.0
-    private val CAST_WHOLLY = MeteorStorm.REACH.toFloat()
-    private val CAST_OVER = (MeteorStorm.REACH + FEATHERED_BY).toFloat()
+    private const val FEATHERED_BY = 16.0f
 
     /** The sky light at which the cast is at full strength; below it, it dims away to nothing. */
     private const val MOSTLY_OPEN = 10.0f
