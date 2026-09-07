@@ -118,12 +118,25 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         }
     }
 
-    /** The ring of places a marker goes — the edge of what is about to be hit, and its middle. */
+    /**
+     * Where the markers go — **across the whole disc, not round its edge**.
+     *
+     * A ring of a dozen lights over ground fifty-six blocks across lit almost nothing, and a walk could
+     * not make it out at all (Jonah, 2026-09-06). A lattice inside the disc is what actually lights the
+     * area, which is the entire point of the thing being in the player's favour.
+     */
     private fun forEachMarker(visit: (BlockPos) -> Unit) {
-        visit(BlockPos.containing(x, y, z))
-        for (mark in 0..<MARKERS) {
-            val around = FULL_TURN * mark / MARKERS
-            visit(BlockPos.containing(x + cos(around) * REACH, y, z + sin(around) * REACH))
+        val step = (REACH * ACROSS_THE_DISC / MARKERS_ACROSS).toInt().coerceAtLeast(AT_LEAST_ONE)
+        var awayX = -REACH.toInt()
+        while (awayX <= REACH) {
+            var awayZ = -REACH.toInt()
+            while (awayZ <= REACH) {
+                if (awayX * awayX + awayZ * awayZ <= REACH * REACH) {
+                    visit(BlockPos.containing(x + awayX, y, z + awayZ))
+                }
+                awayZ += step
+            }
+            awayX += step
         }
     }
 
@@ -225,7 +238,10 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         const val SHORTEST_FALL = 200
         const val LONGEST_FALL = 300
 
-        private const val MARKERS = 12
+        /** How many markers span the disc, so the lattice below is about six blocks apart. */
+        private const val MARKERS_ACROSS = 10
+        private const val ACROSS_THE_DISC = 2.0
+        private const val AT_LEAST_ONE = 1
 
         /** How often the markers are laid again, since the bodies keep blowing them up. */
         private const val RELIGHTING = 40
@@ -248,9 +264,9 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         /** How far back along its own entry line a body starts. Far enough to cross real sky. */
         private const val ENTRY_RANGE = 150.0
 
-        private const val SLOWEST_ARRIVAL = 2.4
-        private const val FASTEST_ARRIVAL = 4.2
-        private const val LEAN = 0.5
+        /** Quick, and a walk asked for quicker still: a body should streak rather than sail. */
+        private const val SLOWEST_ARRIVAL = 3.6
+        private const val FASTEST_ARRIVAL = 6.0
 
         private const val FALLING_KEY = "falling"
         private const val FURY_KEY = "fury"

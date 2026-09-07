@@ -48,12 +48,27 @@ data class MeteorFlight(
             val fallsAt = startingAt + (evenly * spread + (jitter - HALF) * WANDER).toInt()
             return MeteorFlight(
                 fallsAt = fallsAt.coerceAtLeast(startingAt),
-                comingFrom = mixed(storm, number, BEARING_SALT) * FULL_TURN,
-                entryAngle = SHALLOWEST + mixed(storm, number, ANGLE_SALT) * (STEEPEST - SHALLOWEST),
+                comingFrom = bearingOf(storm) + (mixed(storm, number, BEARING_SALT) - HALF) * FANS_OUT,
+                entryAngle = angleOf(storm) + (mixed(storm, number, ANGLE_SALT) - HALF) * FANS_OUT,
                 landsAwayX = (mixed(storm, number, ACROSS_SALT) - HALF) * TWICE * MeteorStorm.REACH,
                 landsAwayZ = (mixed(storm, number, ALONG_SALT) - HALF) * TWICE * MeteorStorm.REACH,
             )
         }
+
+        /**
+         * The bearing the **whole storm** comes in on, which every one of its bodies varies only slightly
+         * off (Jonah, 2026-09-06).
+         *
+         * **This is what sells the first half of the arrival.** Bodies each drawing their own bearing came
+         * in from all over the sky, so the approach read as unrelated lights rather than as one thing
+         * breaking up — and "it splits into multiple" only means anything if they were together first. The
+         * spread is [FANS_OUT], which is just enough to cover the ground the storm is aimed at.
+         */
+        fun bearingOf(storm: Long): Double = mixed(storm, WHOLE_STORM, STORM_BEARING_SALT) * FULL_TURN
+
+        /** And the angle it comes in at, ten to forty-five degrees off the horizontal. */
+        fun angleOf(storm: Long): Double =
+            SHALLOWEST + mixed(storm, WHOLE_STORM, STORM_ANGLE_SALT) * (STEEPEST - SHALLOWEST)
 
         /**
          * A number in nought to one for this storm, body and purpose.
@@ -73,6 +88,20 @@ data class MeteorFlight(
 
         /** How far a body's moment may wander from its even share, in ticks. */
         private const val WANDER = 14.0
+
+        /**
+         * How far a body strays from its storm's own line, in radians.
+         *
+         * Small: enough that a dozen of them cover the impact area and separate visibly as they near, and
+         * not so much that the shower stops looking like one thing coming apart.
+         */
+        private const val FANS_OUT = 0.30
+
+        /** The index the storm's own answers are mixed at, which no body can take. */
+        private const val WHOLE_STORM = -1
+
+        private const val STORM_BEARING_SALT = 0x4D_45_54_36L
+        private const val STORM_ANGLE_SALT = 0x4D_45_54_37L
 
         private val SHALLOWEST = Math.toRadians(10.0)
         private val STEEPEST = Math.toRadians(45.0)

@@ -74,9 +74,11 @@ object MeteorSky {
      * that follows it the same object: a body enters obliquely, so a light over its landing site would go
      * out on one side of the sky and reappear as a streak on the other.
      *
-     * The wander is its own — a bearing and an entry angle drawn per body — so what looks like one light
-     * splitting is a dozen lights separating at their own rates, which is the noise a symmetric fan of
-     * pieces could not have.
+     * **The whole storm shares one line in and each body strays only slightly off it** (Jonah, walked).
+     * Bodies each drawing their own bearing came in from all over the sky, so the approach read as
+     * unrelated lights rather than as one thing breaking up — and "it splits" means nothing unless they
+     * were together first. The stray is enough to cover the ground being aimed at and no more, so what a
+     * player watches is a single arrival separating, which is neither a fan nor a scatter.
      */
     private fun drawOne(flight: MeteorFlight, nearness: Float) {
         val across = cos(flight.entryAngle)
@@ -108,9 +110,15 @@ object MeteorSky {
     /** Enough to read as a shower, few enough to tell apart. */
     private const val MOST_AT_ONCE = 14
 
-    /** Vanilla's sun is 30 at a distance of 100, so this runs from under a star to well under a moon. */
-    private const val LIKE_A_STAR = 0.9f
-    private const val ON_ARRIVAL = 4.5f
+    /**
+     * Vanilla's sun is 30 at a distance of 100, so this runs from under a star to a good deal under a moon.
+     *
+     * **Judged against the rock, not against the sky.** Twice now the arrival size has read as too big,
+     * and the measure that matters is the jump: a light noticeably larger than the body that replaces it
+     * reads as a swap. The bodies were made bigger at the same time, so the two meet nearer the middle.
+     */
+    private const val LIKE_A_STAR = 0.7f
+    private const val ON_ARRIVAL = 2.2f
     private const val FAR_OFF = 100.0f
 
     private const val DIMMEST = 0.3f

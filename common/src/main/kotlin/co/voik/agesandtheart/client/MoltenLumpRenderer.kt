@@ -70,5 +70,14 @@ open class MoltenLumpRenderer<T : Entity>(
         /** A bomb is a block of rock; a gobbet is a splash off one. */
         const val WHOLE_LUMP = 1.0f
         const val GOBBET = 0.4f
+
+        /**
+         * A meteor, drawn bigger than a gobbet and smaller than a bomb.
+         *
+         * **Sized against the light that announced it** rather than against its own hitbox: a walk read
+         * the handover from sky to rock as a swap because the rock was much the smaller of the two, so
+         * this came up as the sky came down and they meet in the middle.
+         */
+        const val METEOR = 0.75f
     }
 }
