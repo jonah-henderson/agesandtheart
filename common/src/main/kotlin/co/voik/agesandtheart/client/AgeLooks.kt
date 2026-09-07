@@ -32,7 +32,12 @@ object AgeLooks {
             // Outermost, so a column blinds whatever the Age and its wounds had already made of the air.
             // The storm sits under it and over the rest: a blizzard shortens the view of whatever the Age
             // was painting, and a column standing in one still blinds you outright.
-            Engulfing.paint(level, Storms.paint(level, Corruption.paint(level, AgeAir.paint(level, layers))))
+            Engulfing.paint(
+                level,
+                // Outermost but one: a storm's violet is laid over whatever the Age and its wounds had
+                // made of the light, and a sand column standing in one still blinds you through it.
+                MeteorGlow.paint(level, Storms.paint(level, Corruption.paint(level, AgeAir.paint(level, layers)))),
+            )
         }
     }
 }

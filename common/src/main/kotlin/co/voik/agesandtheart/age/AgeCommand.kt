@@ -10,6 +10,7 @@ import net.minecraft.world.DifficultyInstance
 import co.voik.agesandtheart.age.consequence.Tearing
 import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.phenomena.Blizzard
+import co.voik.agesandtheart.age.phenomena.MeteorStorm
 import co.voik.agesandtheart.age.reward.Danger
 import co.voik.agesandtheart.worldgen.feature.SheerFace
 import co.voik.agesandtheart.age.aspect.Terrain
@@ -68,6 +69,7 @@ import com.mojang.brigadier.context.CommandContext
 import net.minecraft.ChatFormatting
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
+import net.minecraft.commands.arguments.EntityAnchorArgument
 import net.minecraft.commands.arguments.IdentifierArgument
 import net.minecraft.core.registries.Registries
 import net.minecraft.core.BlockPos
@@ -234,6 +236,18 @@ object AgeCommand {
 
     /** Far enough out to watch one come, and inside what is loaded at an ordinary view distance. */
     private const val DEFAULT_SANDFALL_DISTANCE = 64
+
+    /** Far enough that the sky reads as somewhere else, near enough to walk to before it falls. */
+    private const val DEFAULT_STORM_DISTANCE = 90
+    private const val MAX_STORM_DISTANCE = 512
+
+    /** Where a storm hangs over the ground it is about to hit. */
+    private const val STORM_HEIGHT = 70.0
+
+    /** Enough pieces that the split in the sky is unmistakably a split. */
+    private const val STORM_BODIES = 6
+
+    private const val LOOK_LITERAL = "look"
     private const val MAX_SANDFALL_DISTANCE = 256
     private const val SECONDS_ARGUMENT = "seconds"
 
@@ -333,6 +347,7 @@ object AgeCommand {
                 .then(skySubcommand())
                 .then(strikeSubcommand())
                 .then(sandfallSubcommand())
+                .then(meteorsSubcommand())
                 .then(probeSubcommand())
                 .then(decaySubcommand())
                 .then(dangerSubcommand())
@@ -1151,6 +1166,72 @@ object AgeCommand {
      * an ordinary column spends its first minute or two opening, so anything measured inside that window is
      * measuring a column that is not yet the width it will be. A short one is at full width in seconds.
      */
+    /**
+     * `/age meteors [<distance>] [<seconds>] [<fury>] [look]` — gather a storm ahead of you, now.
+     *
+     * **A storm is thirty seconds of sky before it is anything at all**, which is exactly what makes it
+     * unwalkable without this: waiting for one to happen by itself, in the right Age, close enough to see
+     * and facing the right way, is several minutes a look. Here it is one line.
+     *
+     * `look` turns you to face it, which sounds like a convenience and is closer to the point: the
+     * telegraph is *directional*, so a debug command that leaves you hunting the sky for it cannot show
+     * you the thing it was written to show.
+     */
+    private fun meteorsSubcommand(): LiteralArgumentBuilder<CommandSourceStack> {
+        fun gathering(look: Boolean) = { context: CommandContext<CommandSourceStack> ->
+            runMeteors(context, DEFAULT_STORM_DISTANCE, null, NO_FURY, look)
+        }
+        fun withFury(look: Boolean) = { context: CommandContext<CommandSourceStack> ->
+            runMeteors(
+                context,
+                IntegerArgumentType.getInteger(context, DISTANCE_ARGUMENT),
+                IntegerArgumentType.getInteger(context, SECONDS_ARGUMENT),
+                IntegerArgumentType.getInteger(context, FURY_ARGUMENT),
+                look,
+            )
+        }
+        return Commands.literal("meteors")
+            .executes(gathering(false))
+            .then(Commands.literal(LOOK_LITERAL).executes(gathering(true)))
+            .then(
+                Commands.argument(DISTANCE_ARGUMENT, IntegerArgumentType.integer(0, MAX_STORM_DISTANCE)).then(
+                    Commands.argument(SECONDS_ARGUMENT, IntegerArgumentType.integer(1, MOST_SANDFALL_SECONDS)).then(
+                        Commands.argument(FURY_ARGUMENT, IntegerArgumentType.integer(0, ALL_FURY.toInt()))
+                            .executes(withFury(false))
+                            .then(Commands.literal(LOOK_LITERAL).executes(withFury(true))),
+                    ),
+                ),
+            )
+    }
+
+    /**
+     * Stands a storm up [distance] blocks ahead and, if asked, turns the caller to face it.
+     *
+     * The height is the storm's own rather than the caller's: a storm hangs well above the ground it
+     * falls on, and one gathered at eye level would drop its bodies from under your feet.
+     */
+    private fun runMeteors(
+        context: CommandContext<CommandSourceStack>,
+        distance: Int,
+        seconds: Int?,
+        furyPercent: Int,
+        look: Boolean,
+    ): Int {
+        val source = context.source
+        val facing = Vec3.directionFromRotation(source.rotation)
+        val ahead = source.position.add(facing.scale(distance.toDouble()))
+        val fury = furyPercent.toDouble() / ALL_FURY
+        val where = Vec3(ahead.x, source.position.y + STORM_HEIGHT, ahead.z)
+        val falling = seconds?.times(TICKS_PER_SECOND) ?: MeteorStorm.SHORTEST_FALL
+        MeteorStorm.gatherAt(source.level, where, STORM_BODIES, falling, fury)
+        // Turned to the storm rather than to where it lands, because the sky is what wants watching first.
+        if (look) source.player?.lookAt(EntityAnchorArgument.Anchor.EYES, where)
+        Report.prose(source).say {
+            "A storm gathers $distance blocks away. It falls in ${MeteorStorm.APPROACHING / TICKS_PER_SECOND}s."
+        }
+        return SUCCESS
+    }
+
     private fun sandfallSubcommand(): LiteralArgumentBuilder<CommandSourceStack> =
         Commands.literal("sandfall")
             .executes { context -> runSandfall(context, DEFAULT_SANDFALL_DISTANCE, null, NO_FURY) }

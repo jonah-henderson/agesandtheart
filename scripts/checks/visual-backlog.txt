@@ -307,6 +307,13 @@
 /age write shower 11 meteors phenomena age
 /age tp shower
 #
+# **AND THE DEBUG COMMAND, WHICH IS HOW TO ACTUALLY WALK THIS.** Waiting for a storm to happen by itself,
+# in the right Age, close enough to see and facing the right way, is minutes a look:
+/age meteors look
+/age meteors 60 12 100 look
+#     -- distance, seconds of falling, fury 0-100, and `look` turns you to face it. The telegraph is
+#     DIRECTIONAL, so without `look` you spend the thirty seconds hunting the sky for it.
+#
 # **THE TELEGRAPH IS BUILT AND HAS NEVER BEEN SEEN.** Thirty seconds of it, and it is the half of the
 # mechanic that cannot be checked headlessly at all -- it is drawn, so only a walk can say. What should
 # happen: a point of light like a star appears in the direction the storm will fall, brightening and
@@ -314,9 +321,14 @@
 # until the real bodies take over. Violet-blue on purpose -- everything else the pack burns is red or
 # orange, so this reads as a different KIND of thing.
 #
-# **And the last ten seconds light the ground** under where it will hit -- a cheap trick, deliberately in
-# the player's favour. Verified headlessly: 5 light blocks placed at 20 seconds in, and none once the
-# fall began. What a walk has to say is whether they read as a warning or as a mystery.
+# **And the ground is lit** from the last ten seconds of the warning right through the fall, in VIOLET.
+# Two halves, because Minecraft's light has no colour at all: real light blocks do the brightness (and are
+# re-laid as the bodies blow them up), and an environment layer tints the block light violet near a storm.
+# Verified headlessly: 6 markers still lit deep into the fall, with 33 bodies in the air.
+#
+# **IMPACTS ARE NOW TWICE TNT AT REST AND 14 AT FULL FURY.** The pack has been pricing blasts against a
+# creeper at 3 and TNT at 4, so these are deliberately off the top of that scale -- a body from outside
+# the world should not land like something you could have crafted. Expect to tune this.
 #
 # WHAT A WALK HAS TO SETTLE:
 #   - **DOES THE SKY SELL IT?** The whole illusion is an arrival from further away than anything can be

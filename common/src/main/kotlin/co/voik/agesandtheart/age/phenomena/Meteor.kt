@@ -125,7 +125,7 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
     }
 
     /** How hard this one goes off, set by the storm that threw it. */
-    var blast: Float = LIKE_A_CREEPER
+    var blast: Float = TWICE_TNT
 
     override fun addAdditionalSaveData(output: net.minecraft.world.level.storage.ValueOutput) {
         super.addAdditionalSaveData(output)
@@ -134,7 +134,7 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
 
     override fun readAdditionalSaveData(input: net.minecraft.world.level.storage.ValueInput) {
         super.readAdditionalSaveData(input)
-        blast = input.getFloatOr(BLAST_KEY, LIKE_A_CREEPER)
+        blast = input.getFloatOr(BLAST_KEY, TWICE_TNT)
     }
 
     companion object {
@@ -149,7 +149,8 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
 
         private const val ALMOST_NONE = 0.01
         private const val STRUCK = 6.0f
-        private const val LIKE_A_CREEPER = 3.0f
+        /** Twice TNT — see [MeteorStorm]. Only ever used by a body somebody summoned without a storm. */
+        private const val TWICE_TNT = 8.0f
         private const val NO_DRIFT = 0.0
         private const val BLAST_KEY = "blast"
 

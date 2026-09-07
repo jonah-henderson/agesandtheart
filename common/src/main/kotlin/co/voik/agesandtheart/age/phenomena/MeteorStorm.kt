@@ -59,6 +59,14 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         builder.define(BODIES, FEW)
     }
 
+    /**
+     * Whether the ground under this is lit right now — the last of the warning and the whole of the fall.
+     *
+     * Asked by the client as well as the server, and it is a pure function of the entity's own clock, so
+     * neither has to be told: [tickCount] is ticked on both sides.
+     */
+    fun lighting(): Boolean = tickCount >= APPROACHING - LIGHTING_UP
+
     /** How far through its approach this is, nought to one — what a sky animation is drawn from. */
     fun approachedBy(partial: Float): Float =
         ((tickCount + partial) / APPROACHING).coerceIn(NONE_OF_IT, ALL_OF_IT)
@@ -71,8 +79,10 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
             discard()
             return
         }
-        if (tickCount == APPROACHING - LIGHTING_UP) lightTheGround(level)
-        if (tickCount == APPROACHING) putTheLightsOut(level)
+        // **Lit from the last of the warning right through the fall** (Jonah), and re-laid as it goes:
+        // the bodies blow the markers up along with everything else, and a light that goes out halfway
+        // through the pounding is worse than one that was never there.
+        if (tickCount >= APPROACHING - LIGHTING_UP && tickCount % RELIGHTING == NOW) lightTheGround(level)
         if (tickCount <= APPROACHING) return
         dropSome(level)
     }
@@ -92,12 +102,12 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
     }
 
     /**
-     * And take them away again the instant the first body falls.
+     * And take them away when the storm is over.
      *
-     * **Cleared here and again on removal**, because the two failures are different: a storm that runs its
-     * course puts its own lights out, and one that goes with an unloading chunk would otherwise leave them
-     * burning for ever. A light block is invisible and replaceable, so a stray one is untidy rather than
-     * harmful — but a hazard marker that outlives the hazard is a lie, which is worse.
+     * **On removal, whatever the reason** — a storm that runs its course puts its own lights out, and one
+     * that goes with an unloading chunk would otherwise leave them burning for ever. A light block is
+     * invisible and replaceable, so a stray one is untidy rather than harmful — but a hazard marker that
+     * outlives the hazard is a lie, which is worse.
      */
     private fun putTheLightsOut(level: ServerLevel) {
         forEachMarker { at ->
@@ -137,7 +147,7 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
             val bearing = random.nextDouble() * FULL_TURN
             val away = random.nextDouble() * REACH
             val body = Meteor(AgeContent.METEOR, level)
-            body.blast = (LIKE_A_CREEPER + (AT_FULL_FURY - LIKE_A_CREEPER) * fury).toFloat()
+            body.blast = (TWICE_TNT + (AT_FULL_FURY - TWICE_TNT) * fury).toFloat()
             body.setPos(x + cos(bearing) * away, y, z + sin(bearing) * away)
             // Nearly straight down, leaning a little so a streak reads as an arrival rather than a drop.
             val speed = SLOWEST_ARRIVAL + (FASTEST_ARRIVAL - SLOWEST_ARRIVAL) * fury
@@ -196,14 +206,24 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         const val LONGEST_FALL = 300
 
         private const val MARKERS = 12
+
+        /** How often the markers are laid again, since the bodies keep blowing them up. */
+        private const val RELIGHTING = 40
         private const val TWO = 2
 
         private const val SPREAD_OVER = 6
         private const val NOW = 0
         private const val FEW = 4
 
-        private const val LIKE_A_CREEPER = 3.0
-        private const val AT_FULL_FURY = 6.0
+        /**
+         * **Twice TNT at rest, and half as much again at full fury** (Jonah, 2026-09-06).
+         *
+         * The pack has been pricing blasts against a creeper at 3 and TNT at 4; this is deliberately past
+         * the top of that scale, because a body arriving from outside the world should not land like
+         * something a player could have crafted. It is the hardest thing the modpack throws.
+         */
+        private const val TWICE_TNT = 8.0
+        private const val AT_FULL_FURY = 14.0
 
         private const val SLOWEST_ARRIVAL = 2.4
         private const val FASTEST_ARRIVAL = 4.2
