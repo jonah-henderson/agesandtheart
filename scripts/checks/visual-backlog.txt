@@ -299,6 +299,32 @@
 #   - LOW PRIORITY, DEFERRED BY JONAH 2026-09-06: that PLUGGING works -- a solid block over a tube stops
 #     the welling, and lava over it does NOT count. Expected to work; walk it whenever.
 
+# ══ 12. THE ASTRITE GOLEM HAS NEVER BEEN STOOD UP ════════════════════════════ Built 2026-09-07 ══
+# The pack's FIRST MOB, so a lot of this is wiring nobody has watched work. Build one the way you build an
+# iron golem -- four blocks of astrite in a T, carved pumpkin on top:
+#
+/give @s agesandtheart:astrite_block 4
+/give @s minecraft:carved_pumpkin
+#     -- or /summon agesandtheart:astrite_golem to skip the assembly and just watch the thing.
+#
+# WHAT A WALK HAS TO SETTLE:
+#   - **DOES IT ASSEMBLE AT ALL?** The seam is a mixin on CarvedPumpkinBlock.onPlace, because neither
+#     loader has a golem hook and vanilla's own spawning is private. Check it does NOT break vanilla's
+#     three golems while it is there -- snow, iron and copper all run through the same method.
+#   - **DOES IT KNOW WHO MADE IT?** The placement seam carries no player, so the nearest one within 8
+#     blocks is taken as its owner. Build one with a second player stood nearby and see who it follows.
+#   - **THE SPEED IS THE DIAL MOST LIKELY TO BE WRONG.** It is meant to keep up with a sprint and lose to
+#     skates and an elytra, at MOVEMENT_SPEED 0.32, which is a guess calibrated off a wolf. Sprint away
+#     from it: it should fall behind slowly and then TELEPORT rather than either pacing you exactly or
+#     giving up.
+#   - Right-click it: it should power down and stay put, like a dog. Right-click again to wake it.
+#   - It should fight hostile mobs on sight, and anything that hits you.
+#   - It is 120 health and 18 damage against an iron golem's 100 and 15. Does "a bit tougher" read?
+#   - **IT IS DRAWN AS A VIOLET IRON GOLEM**, borrowing vanilla's model and texture under a tint until the
+#     asset pass. Check the tint reads as astrite rather than as a bug.
+#   - It inherits breeding from TamableAnimal and should show none of it: no hearts, no baby, no interest
+#     in food.
+
 # ══ 11. THE METEOR STORM HAS NO SKY YET ══════════════════════════════════════ Built 2026-09-06 ══
 # Design 5.2's meteor storm. A storm gathers, hangs for thirty seconds of telegraph, pounds a 128-block
 # disc for ten to fifteen, and expires. Verified headlessly: 16, 21 and 28 bodies in the air a second

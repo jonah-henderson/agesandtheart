@@ -32,6 +32,9 @@ import co.voik.agesandtheart.desk.DeskNoticePayload
 import co.voik.agesandtheart.desk.DeskPricePayload
 import co.voik.agesandtheart.desk.DeskSyncPayload
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.content.AstriteGolem
+// `object` is a Kotlin keyword and Fabric put one in the package path, so it needs quoting.
+import net.fabricmc.fabric.api.`object`.builder.v1.entity.FabricDefaultAttributeRegistry
 import co.voik.agesandtheart.platform.FabricInkFluids
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
@@ -66,6 +69,9 @@ fun init() {
     AgeContent.blocks.forEach { (id, block) -> Registry.register(BuiltInRegistries.BLOCK, id, block) }
     AgeContent.items.forEach { (id, item) -> Registry.register(BuiltInRegistries.ITEM, id, item) }
     AgeContent.entities.forEach { (id, type) -> Registry.register(BuiltInRegistries.ENTITY_TYPE, id, type) }
+    // The first mob the pack has, and a mob is the one kind of entity that needs its attributes declared
+    // separately from its type — without this it has no health and the game refuses to spawn it.
+    FabricDefaultAttributeRegistry.register(AgeContent.ASTRITE_GOLEM, AstriteGolem.createAttributes())
     AgeContent.soundEvents.forEach { (id, sound) -> Registry.register(BuiltInRegistries.SOUND_EVENT, id, sound) }
     AgeContent.tickets.forEach { (id, type) -> Registry.register(BuiltInRegistries.TICKET_TYPE, id, type) }
     AgeContent.blockEntities.forEach { (id, type) -> Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, id, type) }

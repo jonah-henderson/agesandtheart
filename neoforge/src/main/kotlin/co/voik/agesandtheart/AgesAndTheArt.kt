@@ -24,6 +24,8 @@ import co.voik.agesandtheart.desk.DeskNoticePayload
 import co.voik.agesandtheart.desk.DeskPricePayload
 import co.voik.agesandtheart.desk.DeskSyncPayload
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.content.AstriteGolem
+import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent
 import co.voik.agesandtheart.platform.NeoForgeInkFluids
 import net.minecraft.core.registries.Registries
 import co.voik.agesandtheart.age.consequence.Worsening
@@ -66,6 +68,7 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         // Payload registration is a mod-bus event, so it cannot be a call from common init the way Fabric's is.
         eventBus.addListener(::onRegisterPayloads)
         eventBus.addListener(::onRegisterCapabilities)
+        eventBus.addListener(::onCreateAttributes)
         // Commands are a game-bus event.
         NeoForge.EVENT_BUS.addListener(::onRegisterCommands)
         NeoForge.EVENT_BUS.addListener(::onPlayerLoggedIn)
@@ -89,6 +92,16 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
             },
             AgeContent.WRITERS_DESK_BLOCK,
         )
+    }
+
+    /**
+     * The golem's health, reach and speed.
+     *
+     * A mob is the one kind of entity whose attributes are declared apart from its type, and one with none
+     * is refused at spawn — so this is not optional wiring, it is the second half of registering it.
+     */
+    private fun onCreateAttributes(event: EntityAttributeCreationEvent) {
+        event.put(AgeContent.ASTRITE_GOLEM, AstriteGolem.createAttributes().build())
     }
 
     private fun onRegister(event: RegisterEvent) {

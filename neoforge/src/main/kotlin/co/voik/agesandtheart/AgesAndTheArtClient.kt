@@ -1,6 +1,7 @@
 package co.voik.agesandtheart
 
 import co.voik.agesandtheart.client.AgeLooks
+import co.voik.agesandtheart.client.AstriteGolemRenderer
 import co.voik.agesandtheart.age.consequence.Wounds
 import co.voik.agesandtheart.client.BookEntityRenderer
 import co.voik.agesandtheart.client.SandColumnRenderer
@@ -102,6 +103,7 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
             MoltenLumpRenderer(it, MoltenLumpRenderer.METEOR, MoltenLumpRenderer.METEOR_ROCK, MoltenLumpRenderer.COLD_FIRE)
         }
         // The storm is a clock standing in the sky and is drawn by the sky, not as an entity.
+        event.registerEntityRenderer(AgeContent.ASTRITE_GOLEM) { AstriteGolemRenderer(it) }
         event.registerEntityRenderer(AgeContent.METEOR_STORM) { NoopRenderer(it) }
         // The wound's flicker and the fissure's shaft, both block entities drawn by shader rather than by
         // a baked model — the same event on this loader, where Fabric has a registry of its own.

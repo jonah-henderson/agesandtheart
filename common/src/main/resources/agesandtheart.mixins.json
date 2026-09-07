@@ -3,6 +3,7 @@
   "package": "co.voik.agesandtheart.mixin",
   "compatibilityLevel": "JAVA_${java_version}",
   "mixins": [
+    "CarvedPumpkinBlockMixin",
     "DragonHoldingPatternMixin",
     "DragonPhaseAccessor",
     "EnderDragonMixin",

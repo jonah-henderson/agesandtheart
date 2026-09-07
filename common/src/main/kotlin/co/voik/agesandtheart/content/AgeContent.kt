@@ -932,7 +932,25 @@ object AgeContent {
     /** It only ever hangs there; what changes about it is its own clock, which a client counts itself. */
     private const val STORM_UPDATE_TICKS = 20
 
+    private val ASTRITE_GOLEM_ID: Identifier = "astrite_golem".location()
+
+    /**
+     * The companion assembled out of astrite blocks — see [AstriteGolem].
+     *
+     * `MISC` rather than `CREATURE`, which is the iron golem's own category and carries the two things
+     * that matter: it counts against no spawn cap, and nothing despawns it.
+     */
+    val ASTRITE_GOLEM: EntityType<AstriteGolem> = EntityType.Builder
+        .of({ type, level -> AstriteGolem(type, level) }, MobCategory.MISC)
+        .sized(GOLEM_WIDTH, GOLEM_HEIGHT)
+        .build(ResourceKey.create(Registries.ENTITY_TYPE, ASTRITE_GOLEM_ID))
+
+    /** An iron golem's footprint, since it is drawn as one. */
+    private const val GOLEM_WIDTH = 1.4f
+    private const val GOLEM_HEIGHT = 2.7f
+
     val entities: List<Pair<Identifier, EntityType<*>>> = listOf(
+        ASTRITE_GOLEM_ID to ASTRITE_GOLEM,
         "descriptive_book".location() to BOOK_ENTITY,
         "sand_column".location() to SAND_COLUMN,
         "volcanic_bomb".location() to VOLCANIC_BOMB,
