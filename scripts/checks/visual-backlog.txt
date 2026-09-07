@@ -724,17 +724,24 @@
 #   -- shaped: nuggets round the top and left, chain above the astrite, clock under it, paper bottom right.
 #
 # WHAT A WALK HAS TO SETTLE:
-#   - **THE READING APPEARS ON THE BIND TAB AND ONLY WITH THE BLOCK IN THE ROOM.** Take it away and the
-#     lines should vanish -- visibility is a property of the workspace, the same rule the survey follows.
-#   - **THE THREE STATES, and they must be reachable.** Try a coherent sentence (stable), one with a few
-#     flaws (unstable, and it should NAME what they buy -- torn seams, wounds, sand columns), and a
-#     thoroughly broken one (collapsing).
+#   - **IT HAS ITS OWN SCREEN. RIGHT-CLICK IT.** Nothing about it appears on the desk -- that extraction
+#     is the point (Jonah): upgrade blocks carry their own functionality now, and the desk stays the place
+#     you write. A headline, then a terse list.
+#   - **THE THREE STATES, and they must be reachable.** Lay out a coherent sentence at a desk in the room
+#     (No instability detected), one with a few flaws (Instability detected, and it should NAME them --
+#     Incongruous landmasses, Spatial anomalies, Migrating sand columns), and a thoroughly broken one
+#     (Extreme instability detected).
+#   - **IT UPDATES WHILE OPEN.** Leave the seismograph screen up, have somebody lay a page at the desk --
+#     or lay one yourself and reopen -- and the reading should follow within a fifth of a second.
+#   - **IT IS NEVER IDLE.** With no desk in range, or a desk with nothing laid out, it reads THE WORLD IT
+#     STANDS IN instead. At home that is "This world is perfectly stable". **Carry one into a badly
+#     written Age and it should say what is wrong with that Age** -- that is the case worth checking,
+#     because a fixed "perfectly stable" would have been a lie in exactly the place it matters.
 #   - **THE INTERESTING CASE, and the reason this is not just a second scribe's lens:** a sentence with
-#     flaws whose index is too small to afford ANY manifestation should read STABLE while the lens is
-#     still complaining about it. If that never happens, the instrument is redundant and the design is
-#     wrong. Write something mildly contradictory and check the two disagree.
-#   - It shares the survey's text widget, so check a long sentence plus a full reading does not push the
-#     name field off the panel -- `rowsLeftForTheSentence` measures the block rather than allowing for it.
+#     flaws whose index is too small to afford ANY manifestation should read "No instability detected"
+#     while the lens is still complaining about it. If that never happens, the instrument is redundant and
+#     the design is wrong. Write something mildly contradictory and check the two disagree.
+#   - The item tooltip should say "Place near a writer's desk to upgrade it".
 #
 # PLACEHOLDER ART: a lodestone stands in. **THE ASSET PASS OWES THIS THREE ANIMATIONS**, one per footing,
 # so the reading can be had at a glance without opening the desk -- that wants a `footing` block state and

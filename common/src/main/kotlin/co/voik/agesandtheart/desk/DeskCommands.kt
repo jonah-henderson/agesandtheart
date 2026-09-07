@@ -139,7 +139,6 @@ object DeskCommands {
                 quarrels = emptyList(),
                 reading = "",
                 survey = null,
-                tremor = null,
             ),
         )
     }

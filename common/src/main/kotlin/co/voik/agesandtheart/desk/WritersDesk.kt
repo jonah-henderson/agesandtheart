@@ -36,16 +36,6 @@ enum class DeskCapability(val key: String) : StringRepresentable {
      * is the desk's, and the desk screen is out of room.
      */
     SURVEY_MATERIALS("survey_materials"),
-
-    /**
-     * Whether the Age's ground will hold, and what its instability will buy (design §7.3).
-     *
-     * **The complement of [REVEAL_CONFLICTS] rather than a second helping of it.** The scribe's lens names
-     * what the sentence contradicts; this says whether those contradictions will amount to anything, which
-     * is a different question with a different answer — a flawed Age whose budget affords no manifestation
-     * stands up perfectly well.
-     */
-    MEASURE_INSTABILITY("measure_instability"),
     ;
 
     override fun getSerializedName(): String = key

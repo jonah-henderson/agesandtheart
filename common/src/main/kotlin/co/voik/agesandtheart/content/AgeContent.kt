@@ -23,6 +23,7 @@ import co.voik.agesandtheart.desk.WritersDeskBlock
 import co.voik.agesandtheart.desk.WritersDeskBlockEntity
 import co.voik.agesandtheart.desk.InkCaseMenu
 import co.voik.agesandtheart.desk.SupplyBinMenu
+import co.voik.agesandtheart.desk.SeismographMenu
 import co.voik.agesandtheart.desk.WritersDeskMenu
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.worldgen.AgeChunkGenerator
@@ -619,7 +620,7 @@ object AgeContent {
      * world. Astrite is the one thing in the pack that is not of any Age, so the recipe hangs a shard of it
      * from a chain over a clock-driven drum.
      */
-    val SEISMOGRAPH_BLOCK: Block = Block(
+    val SEISMOGRAPH_BLOCK: SeismographBlock = SeismographBlock(
         BlockBehaviour.Properties.of()
             .setId(ResourceKey.create(Registries.BLOCK, SEISMOGRAPH_ID))
             .mapColor(MapColor.METAL)
@@ -628,7 +629,7 @@ object AgeContent {
             .requiresCorrectToolForDrops(),
     )
 
-    val SEISMOGRAPH: Item = BlockItem(
+    val SEISMOGRAPH: Item = SeismographItem(
         SEISMOGRAPH_BLOCK,
         Item.Properties().setId(ResourceKey.create(Registries.ITEM, SEISMOGRAPH_ID)).useBlockDescriptionPrefix(),
     )
@@ -1162,11 +1163,23 @@ object AgeContent {
         FeatureFlags.VANILLA_SET,
     )
 
+    /**
+     * The seismograph's, which has no slots at all — its whole content is two synced data slots.
+     *
+     * The client builds its own with a `SimpleContainerData` and the server hands the menu a live one, so
+     * the reading arrives through vanilla's own data syncing rather than a payload of ours.
+     */
+    val SEISMOGRAPH_MENU: MenuType<SeismographMenu> = MenuType(
+        { containerId, inventory -> SeismographMenu(containerId, inventory, ContainerLevelAccess.NULL) },
+        FeatureFlags.VANILLA_SET,
+    )
+
     val menus: List<Pair<Identifier, MenuType<*>>> = listOf(
         WRITERS_DESK_ID to WRITERS_DESK_MENU,
         "ink_case".location() to INK_CASE_MENU,
         "supply_bin".location() to SUPPLY_BIN_MENU,
         TOOLBOX_ID to TOOLBOX_MENU,
+        SEISMOGRAPH_ID to SEISMOGRAPH_MENU,
     )
 
     val recipeSerializers: List<Pair<Identifier, RecipeSerializer<*>>> =

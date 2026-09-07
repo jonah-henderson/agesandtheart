@@ -20,6 +20,7 @@ import co.voik.agesandtheart.client.LureLooks
 import co.voik.agesandtheart.client.Storms
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import co.voik.agesandtheart.client.InkCaseScreen
+import co.voik.agesandtheart.client.SeismographScreen
 import co.voik.agesandtheart.client.SupplyBinScreen
 import co.voik.agesandtheart.client.WritersDeskScreen
 import co.voik.agesandtheart.content.AgeContent
@@ -66,6 +67,9 @@ fun initClient() {
     MenuScreens.register(AgeContent.WRITERS_DESK_MENU, ::WritersDeskScreen)
     MenuScreens.register(AgeContent.INK_CASE_MENU, ::InkCaseScreen)
     MenuScreens.register(AgeContent.SUPPLY_BIN_MENU, ::SupplyBinScreen)
+    // Its own screen rather than a line on the desk's -- an implement that does something is the thing
+    // you go and look at (Jonah, 2026-09-07).
+    MenuScreens.register(AgeContent.SEISMOGRAPH_MENU, ::SeismographScreen)
     // Vanilla's own container screen: a toolbox is a chest's grid with a fence on what may go in it, and
     // the fence lives in the menu rather than in the drawing.
     MenuScreens.register(AgeContent.TOOLBOX_MENU, ::ContainerScreen)
