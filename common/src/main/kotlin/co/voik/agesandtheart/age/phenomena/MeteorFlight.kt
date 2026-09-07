@@ -50,13 +50,14 @@ data class MeteorFlight(
             spread: Int,
             startingAt: Int,
             steepness: Double,
+            reach: Double,
         ): MeteorFlight {
             val evenly = if (count <= ONE) NONE else number.toDouble() / (count - ONE)
             val jitter = mixed(storm, number, WHEN_SALT)
             val fallsAt = startingAt + (evenly * spread + (jitter - HALF) * WANDER).toInt()
             // Aimed at a disc rather than a square, and evenly over it — the square's corners lay outside
             // the ring the storm lights, so a body could land where nothing had warned it would.
-            val away = sqrt(mixed(storm, number, ACROSS_SALT)) * MeteorStorm.REACH
+            val away = sqrt(mixed(storm, number, ACROSS_SALT)) * reach
             val round = mixed(storm, number, ALONG_SALT) * FULL_TURN
             return MeteorFlight(
                 fallsAt = fallsAt.coerceAtLeast(startingAt),

@@ -329,6 +329,32 @@
 #   - It inherits breeding from TamableAnimal and should show none of it: no hearts, no baby, no interest
 #     in food.
 
+# ══ 13. THE ASTRITE LURE, AND STORMS THAT ARE NOT CONSTANT ═══════════════════ Built 2026-09-07 ══
+# **STORMS ARE TWENTY MINUTES APART NOW, NOT THIRTY SECONDS.** The old formula put an ordinary claim at
+# six times its own written base and nobody had read it that way. So the first thing to check is simply
+# that a meteoric Age feels like weather rather than a siege -- and that a rung still buys more:
+#
+/age write shower 11 meteors phenomena age
+/age write teeming 11 teeming meteors phenomena age
+#     -- ordinary waits ~20 min, teeming ~10, and 4x claims ~5. /age meteors still forces one on demand.
+#
+# **THE LURE.** Astrite blocks at or above Y=288 become lures. Build a cluster up there, then wait (or
+# force a storm) and see where it falls:
+/give @s agesandtheart:astrite_block 27
+#   - A lure block should look different when placed high (budding amethyst stands in) and pulse a ring
+#     of violet dust. Below 288 it should look and do nothing.
+#   - **DOES THE STORM COME TO IT?** It should centre on the cluster rather than on a bearing off you.
+#   - **AND TIGHTEN.** 135 blocks wide with no lure, 90 for one block, 40 for twenty-seven or more.
+#     A cluster is anything within 8 blocks -- a cube, a flat pad, or a scattered handful should all read
+#     the same. NO shape, NO connection, NO chunk alignment.
+#   - The frequency buff is a flat 0.75x for having any lure at all, and does NOT stack. Hard to see by
+#     eye; trust the code or time it.
+#   - **THE PLAY THIS IS MEANT TO FORCE:** stay within simulation distance so the storm runs, but nowhere
+#     near a 40-block disc taking fifty blasts. If it is survivable to stand in, the concentration is
+#     too weak or the blast too soft.
+#   - The violet CAST still covers the full 135, deliberately, so the warning stays wide even when the
+#     impacts pull in. Check that does not read as a bug.
+
 # ══ 11. THE METEOR STORM HAS NO SKY YET ══════════════════════════════════════ Built 2026-09-06 ══
 # Design 5.2's meteor storm. A storm gathers, hangs for thirty seconds of telegraph, pounds a 128-block
 # disc for ten to fifteen, and expires. Verified headlessly: 16, 21 and 28 bodies in the air a second

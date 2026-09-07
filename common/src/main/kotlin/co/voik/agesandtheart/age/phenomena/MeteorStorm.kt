@@ -71,6 +71,17 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         set(value) = entityData.set(SLANT, value)
 
     /**
+     * How wide this storm's bodies are spread, in blocks — [REACH] unless a lure drew it in.
+     *
+     * Watched, because the sky draws its lights from where the bodies are aimed and the ground throws
+     * them there; a client working from the default would put a concentrated storm's lights all over a
+     * sky it is falling in one spot of.
+     */
+    var reach: Float
+        get() = entityData.get(REACHES)
+        set(value) = entityData.set(REACHES, value)
+
+    /**
      * When the world was, when this gathered — and so, with the world's clock, how old it is.
      *
      * **The storm's own [tickCount] cannot be that clock, and a stress test is where it shows** (Jonah,
@@ -100,6 +111,7 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         builder.define(FALLING, SHORTEST_FALL)
         builder.define(SLANT, MeteorFlight.angleOf(uuid.leastSignificantBits).toFloat())
         builder.define(GATHERED_AT, NEVER)
+        builder.define(REACHES, REACH.toFloat())
     }
 
     /**
@@ -142,12 +154,17 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
      * bodies, so that was the lights lagging (Jonah, walked).
      */
     fun flightOf(number: Int): MeteorFlight {
-        if (flights.size != bodies || flightsSpanned != falling || flightsSlanted != slant) {
+        if (flights.size != bodies || flightsSpanned != falling || flightsSlanted != slant ||
+            flightsReached != reach
+        ) {
+            flightsReached = reach
             flightsSpanned = falling
             flightsSlanted = slant
             val steepness = slant.toDouble()
             flights = List(bodies) {
-                MeteorFlight.of(uuid.leastSignificantBits, it, bodies, falling, APPROACHING, steepness)
+                MeteorFlight.of(
+                    uuid.leastSignificantBits, it, bodies, falling, APPROACHING, steepness, reach.toDouble(),
+                )
             }
         }
         return flights[number]
@@ -156,6 +173,7 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
     private var flights: List<MeteorFlight> = emptyList()
     private var flightsSpanned = NOT_YET
     private var flightsSlanted = Float.NaN
+    private var flightsReached = Float.NaN
 
     /**
      * Where a body's light hangs, [nearness] of the way from first sighting to its own fall.
@@ -253,6 +271,7 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         output.putFloat(SLANT_KEY, slant)
         output.putLong(GATHERED_KEY, gatheredAt)
         output.putInt(DROPPED_KEY, droppedTo)
+        output.putFloat(REACH_KEY, reach)
     }
 
     override fun readAdditionalSaveData(input: ValueInput) {
@@ -262,6 +281,7 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         slant = input.getFloatOr(SLANT_KEY, MeteorFlight.angleOf(uuid.leastSignificantBits).toFloat())
         gatheredAt = input.getLongOr(GATHERED_KEY, NEVER)
         droppedTo = input.getIntOr(DROPPED_KEY, NONE_THROWN_YET)
+        reach = input.getFloatOr(REACH_KEY, REACH.toFloat())
     }
 
     companion object {
@@ -273,6 +293,8 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
             SynchedEntityData.defineId(MeteorStorm::class.java, EntityDataSerializers.FLOAT)
         private val GATHERED_AT: EntityDataAccessor<Long> =
             SynchedEntityData.defineId(MeteorStorm::class.java, EntityDataSerializers.LONG)
+        private val REACHES: EntityDataAccessor<Float> =
+            SynchedEntityData.defineId(MeteorStorm::class.java, EntityDataSerializers.FLOAT)
 
         /**
          * How long it hangs in the sky before anything falls, in ticks — **thirty seconds** (Jonah).
@@ -374,6 +396,7 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         private const val SLANT_KEY = "slant"
         private const val GATHERED_KEY = "gathered_at"
         private const val DROPPED_KEY = "dropped_to"
+        private const val REACH_KEY = "reach"
 
         /** A storm nobody has stood up yet, which is as old as it is going to get until somebody does. */
         private const val NEVER = 0L
@@ -403,6 +426,7 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
             falling: Int,
             fury: Double,
             slant: Double? = null,
+            reach: Double = REACH,
         ): MeteorStorm {
             val storm = MeteorStorm(AgeContent.METEOR_STORM, level)
             storm.setPos(where.x, where.y, where.z)
@@ -410,6 +434,7 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
             storm.falling = falling
             storm.fury = fury
             storm.gatheredAt = level.gameTime
+            storm.reach = reach.toFloat()
             if (slant != null) storm.slant = slant.toFloat()
             level.addFreshEntity(storm)
             return storm

@@ -1,7 +1,9 @@
 package co.voik.agesandtheart.age.phenomena
 
 import co.voik.agesandtheart.age.aspect.Rung
+import co.voik.agesandtheart.content.Lures
 import net.minecraft.core.BlockPos
+import net.minecraft.world.entity.player.Player
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.entity.EntityTypeTest
 import net.minecraft.world.level.levelgen.Heightmap
@@ -35,8 +37,16 @@ object Meteors {
     fun fall(level: ServerLevel, density: Double, fury: Double) {
         if (level.players().isEmpty()) return
         if (gatheringIn(level) >= atMostFor(density)) return
-        if (level.random.nextInt(betweenStormsFor(density)) != NOW) return
-        gatherOneNearSomebody(level, density, fury)
+        // **Rolled at the quickened rate, and thinned back out again when nothing drew it.** A lure
+        // shortens the wait, but asking whether one exists is a scan — so doing it on every tick to
+        // decide whether to roll would cost a thousand times what it saves. Rolling at the faster rate
+        // and letting three in four through without a lure comes to the same two rates and asks the
+        // question about three times an hour instead.
+        if (level.random.nextInt(quickenedFor(density)) != NOW) return
+        val somebody = level.players()[level.random.nextInt(level.players().size)]
+        val drawn = Lures.nearest(level, somebody.position(), FURTHEST_APPROACH)
+        if (drawn == null && level.random.nextDouble() > WITHOUT_A_LURE) return
+        gatherOneNearSomebody(level, somebody, drawn, density, fury)
     }
 
     /** How many are already up. Bounded by [atMostFor], so this is a walk over one or two. */
@@ -58,17 +68,28 @@ object Meteors {
      * you are in* makes shelter useless, because you are being aimed at. One gathered a little way off is
      * a place you can see being pounded, walk out of, or walk toward once it is over.
      */
-    private fun gatherOneNearSomebody(level: ServerLevel, density: Double, fury: Double) {
+    private fun gatherOneNearSomebody(
+        level: ServerLevel,
+        somebody: Player,
+        drawn: Lures.Drawn?,
+        density: Double,
+        fury: Double,
+    ) {
         val random = level.random
-        val somebody = level.players()[random.nextInt(level.players().size)]
-        val bearing = random.nextDouble() * FULL_TURN
-        val away = NEAREST_APPROACH + random.nextDouble() * (FURTHEST_APPROACH - NEAREST_APPROACH)
-        val middle = BlockPos.containing(somebody.x + cos(bearing) * away, somebody.y, somebody.z + sin(bearing) * away)
+        // A lure says where; without one it is a bearing and a distance, as it has always been.
+        val middle = if (drawn != null) {
+            BlockPos.containing(drawn.at.x, somebody.y, drawn.at.z)
+        } else {
+            val bearing = random.nextDouble() * FULL_TURN
+            val away = NEAREST_APPROACH + random.nextDouble() * (FURTHEST_APPROACH - NEAREST_APPROACH)
+            BlockPos.containing(somebody.x + cos(bearing) * away, somebody.y, somebody.z + sin(bearing) * away)
+        }
         val where = Vec3.atBottomCenterOf(level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, middle))
         val baseline = MeteorStorm.SHORTEST_FALL +
             random.nextInt(MeteorStorm.ORDINARY_FALL - MeteorStorm.SHORTEST_FALL + ONE)
         val falling = lengthenedBy(baseline, density)
-        MeteorStorm.gatherAt(level, where, bodiesFor(fury, falling), falling, fury)
+        val reach = drawn?.let { Lures.reachFor(it.blocks) } ?: MeteorStorm.REACH
+        MeteorStorm.gatherAt(level, where, bodiesFor(fury, falling), falling, fury, reach = reach)
     }
 
     /** How many storms may be up at once — one ordinarily, and more as a rung asks for more. */
@@ -111,7 +132,11 @@ object Meteors {
      * subtracted so the ends of the range stay proportionate however the middle is tuned.
      */
     private fun betweenStormsFor(density: Double): Int =
-        (BETWEEN_STORMS / (ONE_WHOLE + density * MORE_OFTEN)).roundToInt().coerceAtLeast(ONE)
+        (BETWEEN_STORMS / (density / Rung.ORDINARY).coerceAtLeast(A_TRICKLE)).roundToInt().coerceAtLeast(ONE)
+
+    /** The wait a lure would buy, which is what the roll is actually made at — see [fall]. */
+    private fun quickenedFor(density: Double): Int =
+        (betweenStormsFor(density) * WITH_A_LURE).roundToInt().coerceAtLeast(ONE)
 
     private const val NOW = 0
     private const val ONE = 1
@@ -142,8 +167,26 @@ object Meteors {
     /** What a rung adds to a storm's length: an ordinary Age ten seconds, a teeming one a minute. */
     private const val LONGER_WHEN_TEEMING = 1.0
 
-    private const val BETWEEN_STORMS = 3600.0
-    private const val MORE_OFTEN = 5.0
+    /**
+     * How long an ordinary meteoric Age waits between storms, in ticks — **twenty minutes** (Jonah).
+     *
+     * **The rung divides this rather than multiplying a base nobody sees.** The old shape was
+     * `3600 / (1 + density × 5)`, which put an *ordinary* claim at six times its own base rate and left
+     * the written figure meaning nothing — thirty seconds between storms, which is a siege rather than
+     * weather. A rung now says what it does: twice the claim, twice as often.
+     *
+     * Rain is the scale this is pitched against: vanilla begins a downpour about every eighty minutes.
+     * A storm being rarer than the material's own farm wants is deliberate — the crater deposit (§5.2)
+     * is the trickle that makes the first astrite affordable, and the lure is what makes the rest of it.
+     */
+    private const val BETWEEN_STORMS = 24000.0
+
+    /** No rung goes to nothing; a claim this faint still means the Age has meteors in it. */
+    private const val A_TRICKLE = 0.1
+
+    /** What a lure takes off the wait, and the share that must be thinned out again without one. */
+    private const val WITH_A_LURE = 0.75
+    private const val WITHOUT_A_LURE = 0.75
 
     private const val FULL_TURN = 2.0 * PI
 }

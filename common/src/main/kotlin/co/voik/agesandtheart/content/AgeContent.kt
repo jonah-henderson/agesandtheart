@@ -412,7 +412,7 @@ object AgeContent {
      * companion costs should feel like something you assembled rather than something you piled up. Any
      * pickaxe will do it — the material asks for no tier, on the reasoning that it fell out of the sky.
      */
-    val ASTRITE_BLOCK_BLOCK: Block = Block(
+    val ASTRITE_BLOCK_BLOCK: Block = AstriteBlock(
         BlockBehaviour.Properties.of()
             .setId(ResourceKey.create(Registries.BLOCK, ASTRITE_BLOCK_ID))
             .mapColor(MapColor.COLOR_PURPLE)

@@ -1,4 +1,12 @@
 {
-  "_comment": "Amethyst stands in until the model pass, being vanilla's own violet mineral block.",
-  "variants": { "": { "model": "minecraft:block/amethyst_block" } }
+  "_comment": [
+    "Amethyst stands in until the model pass, being vanilla's own violet mineral block. A block set high",
+    "enough to draw a storm borrows BUDDING amethyst instead -- the same violet, visibly doing something.",
+    "REPLACE BOTH AT THE ASSET PASS (Phase 9): what this wants is one texture and an emissive variant, not",
+    "two unrelated borrowed blocks."
+  ],
+  "variants": {
+    "aloft=false": { "model": "minecraft:block/amethyst_block" },
+    "aloft=true": { "model": "minecraft:block/budding_amethyst" }
+  }
 }
