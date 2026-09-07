@@ -153,7 +153,7 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
      */
     private fun breakOpen(level: ServerLevel) {
         val flung = deltaMovement.scale(SHARDS_KEEP)
-        repeat(level.random.nextInt(MOST_SHARDS + ONE_MORE)) {
+        repeat(worthBreaking(level)) {
             val shard = ItemEntity(level, x, y, z, ItemStack(AgeContent.ASTRITE_SHARD))
             shard.deltaMovement = flung.add(scatterOf(level), scatterOf(level), scatterOf(level))
             level.addFreshEntity(shard)
@@ -163,6 +163,25 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
     }
 
     private fun scatterOf(level: ServerLevel): Double = (level.random.nextDouble() - HALF) * SCATTERS_BY
+
+    /**
+     * What a body is worth: **nought to two always, and up to three more the harder it lands.**
+     *
+     * Without the second half a weak storm is *strictly* the better farm (Jonah): every body paid the
+     * same whatever it hit like, while a gentle one leaves a hole you patch and a fierce one leaves a base
+     * you rebuild. Danger paying nothing inverts the whole premise of §7.
+     *
+     * **Each extra shard is its own roll against how fierce the body was**, which is the shape vanilla
+     * uses for a bonus and is why it *ramps*. Sizing the ceiling instead made it step: with the ceiling
+     * rounded, everything below half fury bought nothing at all and then it jumped, so half the range was
+     * dead. This way every degree of fury is worth something.
+     */
+    private fun worthBreaking(level: ServerLevel): Int {
+        var shards = level.random.nextInt(MOST_SHARDS + ONE_MORE)
+        val fierce = MeteorStorm.fiercenessOf(blast)
+        repeat(MOST_BESIDES) { if (level.random.nextDouble() < fierce) shards++ }
+        return shards
+    }
 
     /** What it has left before it comes apart. Saved, so a half-broken one stays half-broken. */
     private var toughness: Float = WHOLE
@@ -456,6 +475,17 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
         /** Nought to two (design §7.1.2): a catch is worth something, and not always. */
         private const val MOST_SHARDS = 2
         private const val ONE_MORE = 1
+
+        /**
+         * How many extra a body may be worth on top, one roll each against how hard it lands — so the
+         * most destructive meteor an Age can throw is worth **five** (Jonah).
+         *
+         * Worth knowing that this multiplies with something that already scales: a fierce Age throws
+         * about two and a half times the bodies as well, so the top of the ladder is roughly ten times a
+         * resting Age's yield before a lure concentrates it. That is the apocalypse case and wants
+         * watching rather than fixing.
+         */
+        private const val MOST_BESIDES = 3
 
         /** What will take the fall out of one: water, wool, honey. */
         val CATCHES: TagKey<Block> = TagKey.create(Registries.BLOCK, "catches_a_meteor".location())

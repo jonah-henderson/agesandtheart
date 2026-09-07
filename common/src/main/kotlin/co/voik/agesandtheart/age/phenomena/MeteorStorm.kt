@@ -363,6 +363,15 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         private const val AT_REST = 2.5
         private const val AT_FULL_FURY = 11.0
 
+        /**
+         * How fierce a body is, nought to one, read back off how hard it lands.
+         *
+         * The one definition of that scale, so a body can be *worth* what it costs without being told a
+         * second number it would then have to carry and save.
+         */
+        fun fiercenessOf(blast: Float): Double =
+            ((blast - AT_REST) / (AT_FULL_FURY - AT_REST)).coerceIn(NONE_OF_IT.toDouble(), ALL_OF_IT.toDouble())
+
         /** How far back along its own entry line a body starts. Far enough to cross real sky. */
         const val ENTRY_RANGE = 150.0
 

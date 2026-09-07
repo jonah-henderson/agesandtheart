@@ -513,7 +513,11 @@
 #     whole; anything less and it craters. Build a pond and a wool pad under a storm and check both.
 #     A caught body no longer just fails to explode -- IT STAYS. It ploughs in, rolls or bobs, cools as it
 #     slows (the glow is drawn off speed, not a clock), and lies there until you break it open. Then it
-#     drops 0-2 ASTRITE SHARDS. Things to settle:
+#     drops ASTRITE SHARDS: 0-2 always, and up to 3 more the harder the body landed, so FIVE at full
+#     fury. Each extra is its own roll against fierceness, so it ramps -- mean 1.0 at rest, 2.5 at half,
+#     4.0 at the top. Before this a weak storm was STRICTLY the better farm: danger cost you a rebuild
+#     and paid nothing extra, which inverts the point of 7. Check a fierce Age now feels worth it.
+#     Things to settle:
 #       - Does it read as loot lying in your pond, or as litter? That is the whole case for the entity.
 #       - **DOES IT COME TO REST, HALF IN AND HALF OUT?** The first bobbing never stopped (an on/off push
 #         can only overshoot) and the second settled with the whole rock under. The lift is a spring
