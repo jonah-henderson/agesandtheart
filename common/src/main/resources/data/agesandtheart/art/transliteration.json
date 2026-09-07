@@ -3,8 +3,12 @@
     "How an English word is approximated in D'ni when nobody has spelled it (art/dni/*.json).",
     "Rewrites are tried in this order at each position, so longer sequences come first.",
     "The right-hand side is the TYPEFACE's encoding, not a romanisation: capitals are separate",
-    "glyphs, and the font has no 'q'. Derived from the paired forms in the D'ni Lexicon, which",
-    "these rules reproduce for about 88% of its entries."
+    "glyphs, and the font has no 'q'. Derived from the paired forms two fan compilations attest,",
+    "and measured against the fuller of them 2026-09-07: these rules reproduce 84% of its 717",
+    "usable pairs. The last rule is why. English 'a' is usually the vowel of 'cat', so sending it",
+    "to 'å' is right about the word going in and wrong about D'ni, which overwhelmingly writes",
+    "plain 'a' — that one rule was 336 of 421 misses on its own, and 43% against 84%. Ask for the",
+    "other vowel deliberately with 'ah'. See notes/dni-sources.md."
   ],
   "font": "agesandtheart:script",
   "rules": [
@@ -50,6 +54,6 @@
     { "from": "x", "to": "Ks" },
     { "from": "d", "to": "D" },
     { "from": "k", "to": "K" },
-    { "from": "a", "to": "å" }
+    { "from": "a", "to": "a" }
   ]
 }
