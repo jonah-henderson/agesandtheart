@@ -22,9 +22,10 @@ import kotlin.math.sin
  *
  * **The rings and the column are found by opposite routes, and that is the point.** A ring is a close-up
  * detail of a block you are standing at, so it starts from the viewer and costs nothing at any ordinary
- * altitude. A column announces to *the ground* that the lure worked, at the moment the violet wells up
- * two hundred blocks below it — so it starts from the storm instead, which already stands on the cluster's
- * own middle. Hanging it off the viewer's height put it behind the one condition that made it unwatchable.
+ * altitude. A column announces to *the ground* that this lure is what the storm came for, and it stands
+ * for as long as the violet does — so it starts from the storm instead, which already stands on the
+ * cluster's own middle. Hanging it off the viewer's height put it behind the one condition that made it
+ * unwatchable.
  */
 object LureLooks {
 
@@ -68,36 +69,37 @@ object LureLooks {
     }
 
     /**
-     * The column a lure throws up when a storm actually answers it, while the violet wells up below.
+     * The column a lure throws up for as long as a storm is answering it.
      *
      * **Found from the storm rather than from the viewer.** A storm drawn to a lure stands on that
      * cluster's own middle, so its position *is* where the column goes; all the scan has to settle is how
      * high the blocks were stacked. Nothing is sent for this — a narrowed reach is a reach no storm has on
-     * its own, and both sides already know the storm's age.
+     * its own, and both sides work the rest out from the storm's own clock.
+     *
+     * **It rides [MeteorStorm.castStrength] rather than a window of its own**, which is what makes "up
+     * with the warning light and down with it" true by construction: the column and the violet are then
+     * the same curve read twice, and retiming one cannot leave the other behind.
      */
     private fun answer(level: ClientLevel) {
         for (entity in level.entitiesForRendering()) {
             val storm = entity as? MeteorStorm ?: continue
-            if (!justDrawnIn(storm)) continue
+            if (!drawnIn(storm)) continue
+            val standing = storm.castStrength()
+            if (standing <= NOTHING) continue
             val lure = Lures.nearest(level, aloftOver(storm), NEAR_ITS_MIDDLE) ?: continue
-            raise(level, lure, storm.age)
+            raise(level, lure, standing)
         }
     }
 
-    private fun justDrawnIn(storm: MeteorStorm): Boolean {
-        val narrowerThanAnyStormOfItsOwn = storm.reach < MeteorStorm.REACH - A_LITTLE
-        val stillWellingUp = storm.age in FIRST..<MeteorStorm.WELLING_UP
-        return narrowerThanAnyStormOfItsOwn && stillWellingUp
-    }
+    private fun drawnIn(storm: MeteorStorm): Boolean = storm.reach < MeteorStorm.REACH - A_LITTLE
 
     /** Where to look for the blocks that drew a storm: straight up its own middle, into the headroom. */
     private fun aloftOver(storm: MeteorStorm): Vec3 =
         Vec3(storm.x, (AstriteBlock.HIGH_ENOUGH + INTO_THE_HEADROOM).toDouble(), storm.z)
 
-    private fun raise(level: ClientLevel, lure: Lures.Drawn, age: Int) {
-        val risen = age.toDouble() / MeteorStorm.WELLING_UP
+    private fun raise(level: ClientLevel, lure: Lures.Drawn, standing: Float) {
         repeat(MOTES_A_COLUMN) {
-            val up = level.random.nextDouble() * risen * COLUMN_REACHES
+            val up = level.random.nextDouble() * standing * COLUMN_REACHES
             // Thinner the higher it goes, so the head of it frays out rather than stopping flat.
             if (level.random.nextDouble() * COLUMN_REACHES < up) return@repeat
             mote(
@@ -147,7 +149,7 @@ object LureLooks {
     private const val WIDER_WHEN_DRAWN_HARD = 3.4
     private const val MOTES_A_RING = 4
 
-    /** The column, which rises over exactly as long as the violet takes to come up. */
+    /** The column, whose height is the cast's own strength — so it stands for the whole of the storm. */
     private const val COLUMN_REACHES = 8.0
     private const val COLUMN_WANDERS = 0.7
     private const val MOTES_A_COLUMN = 12
@@ -159,6 +161,7 @@ object LureLooks {
     private const val EVERY_OTHER = 2
     private const val FIRST = 0
     private const val AT_LEAST_ONE = 1
+    private const val NOTHING = 0.0f
     private const val MIDDLE = 0.5
     private const val NO_DRIFT = 0.0
     private const val ALL_OF_IT = 1.0

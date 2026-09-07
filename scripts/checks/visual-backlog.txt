@@ -347,10 +347,11 @@
 #     dust on the centroid, on different clocks and sizes, some running out and some in, and WIDER for a
 #     cluster that draws harder (2.6 blocks at one, 6 at twenty-seven). Eight blocks should be ONE set of
 #     rings, not eight overlapping ones. Placeholder particles; a proper asset is owed.
-#   - **A LURED STORM SHOOTS A COLUMN.** When a storm actually answers this lure, the same dust goes up
-#     about eight blocks and frays out at the top, rising over exactly the three seconds the violet cast
-#     takes to well up -- so it and the warning light start together. **WATCH FOR IT FROM THE GROUND**,
-#     which is who it is for; it is forced past the 32-block particle cull for that reason.
+#   - **A LURED STORM STANDS A COLUMN UP FOR THE WHOLE STORM.** The same dust goes up about eight blocks
+#     and frays out at the top. Its height IS the cast's own strength, so it rises with the warning light,
+#     stands full while the bodies come down, and sinks away as the violet goes out -- one curve read
+#     twice rather than two clocks to keep in step. **WATCH FOR IT FROM THE GROUND**, which is who it is
+#     for; it is forced past the 32-block particle cull for that reason.
 #   - **DOES THE STORM COME TO IT?** It should centre on the cluster rather than on a bearing off you.
 #   - **AND TIGHTEN.** EVERY ONE OF THESE IS A RADIUS -- 135 with no lure is 270 blocks of ground across,
 #     90 for one block is 180, and the floor of 8 at twenty-seven or more is ONE CHUNK across.
