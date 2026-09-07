@@ -708,3 +708,35 @@
 # without being enough to replace the storms? A small crater every 28 chunks at even odds of a shard is
 # roughly one shard per 56 chunks explored; a block costs nine and a full lure 243. If it feels like a
 # grind, SMALL_EVERY is the dial. If shards are lying everywhere, SMALL_KEEPS is.
+
+# ══ 15. THE SEISMOGRAPH HAS NEVER BEEN BUILT OR READ ═════════════════════════ Built 2026-09-07 ══
+# The last of the astrite chain, and the desk's second reading instrument. Says whether an Age's ground
+# will HOLD, where the geologist's tools say what is IN it.
+#
+# Craft one, stand it in the desk's room (anywhere within 5 blocks, any direction, through anything):
+/give @s minecraft:iron_nugget 4
+/give @s minecraft:iron_chain
+/give @s minecraft:iron_ingot
+/give @s minecraft:clock
+/give @s agesandtheart:astrite_shard
+/give @s agesandtheart:ink_bottle
+/give @s agesandtheart:fine_paper
+#   -- shaped: nuggets round the top and left, chain above the astrite, clock under it, paper bottom right.
+#
+# WHAT A WALK HAS TO SETTLE:
+#   - **THE READING APPEARS ON THE BIND TAB AND ONLY WITH THE BLOCK IN THE ROOM.** Take it away and the
+#     lines should vanish -- visibility is a property of the workspace, the same rule the survey follows.
+#   - **THE THREE STATES, and they must be reachable.** Try a coherent sentence (stable), one with a few
+#     flaws (unstable, and it should NAME what they buy -- torn seams, wounds, sand columns), and a
+#     thoroughly broken one (collapsing).
+#   - **THE INTERESTING CASE, and the reason this is not just a second scribe's lens:** a sentence with
+#     flaws whose index is too small to afford ANY manifestation should read STABLE while the lens is
+#     still complaining about it. If that never happens, the instrument is redundant and the design is
+#     wrong. Write something mildly contradictory and check the two disagree.
+#   - It shares the survey's text widget, so check a long sentence plus a full reading does not push the
+#     name field off the panel -- `rowsLeftForTheSentence` measures the block rather than allowing for it.
+#
+# PLACEHOLDER ART: a lodestone stands in. **THE ASSET PASS OWES THIS THREE ANIMATIONS**, one per footing,
+# so the reading can be had at a glance without opening the desk -- that wants a `footing` block state and
+# a renderer, neither of which exists. The readout is deliberately written so the animation can replace
+# the state line without taking the detail with it.

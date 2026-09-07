@@ -1,6 +1,9 @@
 package co.voik.agesandtheart.desk
 
 import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.age.Manifestation
+import co.voik.agesandtheart.age.reward.Footing
+import co.voik.agesandtheart.age.reward.Tremor
 import co.voik.agesandtheart.age.reward.EarlyGameRareMaterial
 import co.voik.agesandtheart.age.reward.Survey
 import co.voik.agesandtheart.age.reward.Yield
@@ -71,6 +74,8 @@ data class DeskSyncPayload(
      * and a price list, and none of the three is on the client.
      */
     val survey: Survey?,
+    /** Whether the ground will hold, or null where nothing is laid out or nothing in the room measures it. */
+    val tremor: Tremor?,
 ) : CustomPacketPayload {
 
     override fun type(): CustomPacketPayload.Type<DeskSyncPayload> = TYPE
@@ -126,6 +131,22 @@ data class DeskSyncPayload(
             },
         )
 
+        private val MANIFEST_STREAM: StreamCodec<ByteBuf, Manifestation> =
+            ByteBufCodecs.idMapper({ Manifestation.entries[it] }, { it.ordinal })
+
+        private val TREMOR_STREAM: StreamCodec<ByteBuf, Tremor> = StreamCodec.of(
+            { buffer, value ->
+                ByteBufCodecs.VAR_INT.encode(buffer, value.footing.ordinal)
+                MANIFEST_STREAM.apply(ByteBufCodecs.list()).encode(buffer, value.manifests)
+            },
+            { buffer ->
+                Tremor(
+                    Footing.entries[ByteBufCodecs.VAR_INT.decode(buffer)],
+                    MANIFEST_STREAM.apply(ByteBufCodecs.list()).decode(buffer),
+                )
+            },
+        )
+
         val STREAM_CODEC: StreamCodec<ByteBuf, DeskSyncPayload> = StreamCodec.of(
             { buffer, value ->
                 ARCHIVE_STREAM.encode(buffer, LinkedHashMap(value.archive))
@@ -140,6 +161,8 @@ data class DeskSyncPayload(
                 ByteBufCodecs.STRING_UTF8.encode(buffer, value.reading)
                 ByteBufCodecs.optional(SURVEY_STREAM)
                     .encode(buffer, java.util.Optional.ofNullable(value.survey))
+                ByteBufCodecs.optional(TREMOR_STREAM)
+                    .encode(buffer, java.util.Optional.ofNullable(value.tremor))
             },
             { buffer ->
                 DeskSyncPayload(
@@ -154,6 +177,7 @@ data class DeskSyncPayload(
                     quarrels = QUARREL_STREAM.apply(ByteBufCodecs.list()).decode(buffer),
                     reading = ByteBufCodecs.STRING_UTF8.decode(buffer),
                     survey = ByteBufCodecs.optional(SURVEY_STREAM).decode(buffer).orElse(null),
+                    tremor = ByteBufCodecs.optional(TREMOR_STREAM).decode(buffer).orElse(null),
                 )
             },
         )

@@ -1,0 +1,36 @@
+{
+  "_comment": [
+    "The centre column is the instrument. A seismometer works because its mass does NOT move with the",
+    "ground -- decouple it from the frame or it rides along and records nothing -- so the astrite hangs",
+    "from the chain, and the clock beneath it turns the drum. That is why the mass is astrite rather than",
+    "any dense thing: it is the one material in the pack that is not of any Age, which is exactly the",
+    "property the physics asks for. The ink beside it inks the stylus; the paper beside the clock is what",
+    "the clock turns.",
+    "",
+    "A SHARD and not a block (Jonah, 2026-09-07). A block was argued for on heft and refused on economy:",
+    "astrite's bulk already goes into blocks, for the golem and for the lure, so an instrument taking one",
+    "too would leave the shard as nothing but an intermediate. Its direct uses are what keep it a material.",
+    "",
+    "Deliberately lighter than the geologist's tools, and the pair divides by ERA rather than by cost. The",
+    "tools span the vanilla worlds -- Nether, deep dark, a geode, a diamond, a lodestone -- and are the",
+    "early instrument. This one gates on a written Age survived: one unassuming shard carries a meteoric",
+    "Age and a storm caught or a crater hunted, which is why the list reads cheaper than the instrument is."
+  ],
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "nCn",
+    "nSb",
+    "IKp"
+  ],
+  "key": {
+    "n": "minecraft:iron_nugget",
+    "C": "minecraft:iron_chain",
+    "S": "agesandtheart:astrite_shard",
+    "b": "agesandtheart:ink_bottle",
+    "I": "minecraft:iron_ingot",
+    "K": "minecraft:clock",
+    "p": "agesandtheart:fine_paper"
+  },
+  "result": { "id": "agesandtheart:seismograph" }
+}

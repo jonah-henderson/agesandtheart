@@ -1,0 +1,5 @@
+{
+  "_comment": "Says whether an Age's ground will hold, and what its instability will buy (design 7.3). The complement of the scribe's lens rather than more of it: the lens names what the sentence contradicts, this says whether those contradictions amount to anything.",
+  "blocks": ["agesandtheart:seismograph"],
+  "grants": ["measure_instability"]
+}

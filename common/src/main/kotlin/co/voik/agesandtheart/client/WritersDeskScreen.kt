@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.client
 
+import co.voik.agesandtheart.age.reward.Footing
 import co.voik.agesandtheart.age.reward.EarlyGameRareMaterial
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.WordNames
@@ -95,7 +96,7 @@ class WritersDeskScreen(
     private lateinit var inkButtons: List<Button>
     private lateinit var bindButton: Button
     private lateinit var reading: MultiLineTextWidget
-    private lateinit var surveying: MultiLineTextWidget
+    private lateinit var readings: MultiLineTextWidget
     private lateinit var columns: Map<DeskTab, FlexColumn>
     private lateinit var bindingRow: LinearLayout
 
@@ -288,7 +289,7 @@ class WritersDeskScreen(
         // The geologist's tools, under the sentence they are reading. Its own widget rather than more
         // lines on the one above, because the column sizes it from what it holds — which is what keeps a
         // long sentence from pushing the survey out of the panel instead of being clipped itself.
-        surveying = addShownOn(
+        readings = addShownOn(
             MultiLineTextWidget(Component.empty(), font).setMaxWidth(layout.content(DeskTab.BIND).width),
             ::binds,
         )
@@ -342,7 +343,7 @@ class WritersDeskScreen(
                 column.gap(GAP)
                 // No height: the survey is however many lines it has today, and the sentence above takes
                 // whatever that leaves.
-                column.add(surveying)
+                column.add(readings)
                 column.gap(GAP)
                 column.add(ageName, height = LINE)
             }
@@ -468,7 +469,7 @@ class WritersDeskScreen(
     private fun refreshReading() {
         if (!reading.visible) return
         val said = DeskModel.reading()
-        surveying.message = stacked(surveyLines())
+        readings.message = stacked(surveyLines() + tremorLines())
         reading.message = when {
             !DeskModel.can(DeskCapability.READABLE_GRAMMAR) -> translated("grammar_unread")
             said.isEmpty() -> translated("nothing_written")
@@ -481,7 +482,7 @@ class WritersDeskScreen(
     }
 
     private fun rowsLeftForTheSentence(): Int {
-        val room = layout.content(DeskTab.BIND).height - GAP - surveying.height - GAP - LINE
+        val room = layout.content(DeskTab.BIND).height - GAP - readings.height - GAP - LINE
         return (room / TEXT_LINE).coerceAtLeast(ONE_ROW)
     }
 
@@ -501,6 +502,21 @@ class WritersDeskScreen(
         )
         val grown = survey.earlyMaterials.map { translated("survey_grows", nameOf(it)) }
         return listOf(translated("survey"), deposit) + grown
+    }
+
+    /**
+     * What the seismograph reads: whether the ground holds, and what the instability will buy.
+     *
+     * **The footing first and on its own line**, because that is the line the asset pass replaces with an
+     * animation — a writer who has learned the three shapes should never need the words, and the words
+     * should not be arranged so that removing them takes the detail with them.
+     */
+    private fun tremorLines(): List<Component> {
+        val tremor = DeskModel.tremor() ?: return emptyList()
+        val footing = translated("tremor_${tremor.footing.key}")
+        if (tremor.footing == Footing.STABLE) return listOf(translated("tremor"), footing)
+        val buys = tremor.manifests.map { translated("tremor_buys", translated("manifest_${it.key}")) }
+        return listOf(translated("tremor"), footing) + buys
     }
 
     /**

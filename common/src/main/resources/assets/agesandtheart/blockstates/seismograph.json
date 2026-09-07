@@ -1,0 +1,4 @@
+{
+  "_comment": "A lodestone stands in until the model pass -- an instrument-looking block with a mechanism on top. THE ASSET PASS OWES THIS THREE ANIMATIONS, one per Footing (stable, unstable, collapsing), so the reading can be had at a glance without opening the desk. That wants a `footing` block state and a renderer, neither of which exists: the reading is currently the desk's only.",
+  "variants": { "": { "model": "minecraft:block/lodestone" } }
+}

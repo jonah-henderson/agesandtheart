@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.desk
 
+import co.voik.agesandtheart.age.reward.Tremor
 import co.voik.agesandtheart.age.reward.Survey
 import co.voik.agesandtheart.age.word.Resolution
 import co.voik.agesandtheart.age.word.grammar.Sentence
@@ -231,13 +232,15 @@ class WritersDeskMenu(
             quarrels = quarrelsIn(capabilities, resolved),
             reading = readingOf(capabilities, said),
             survey = surveyOf(player, capabilities, resolved),
+            tremor = tremorOf(player, capabilities, resolved),
         )
     }
 
     private fun anythingReadsAResolution(capabilities: DeskState): Boolean {
         val showsConflicts = DeskCapability.REVEAL_CONFLICTS in capabilities.capabilities
         val surveysMaterials = DeskCapability.SURVEY_MATERIALS in capabilities.capabilities
-        return showsConflicts || surveysMaterials
+        val measuresInstability = DeskCapability.MEASURE_INSTABILITY in capabilities.capabilities
+        return showsConflicts || surveysMaterials || measuresInstability
     }
 
     /**
@@ -303,6 +306,19 @@ class WritersDeskMenu(
         if (DeskCapability.SURVEY_MATERIALS !in capabilities.capabilities) return null
         val read = resolved ?: return null
         return Survey.of(player.level().server, read.composition, read.instability, player.writingSeed)
+    }
+
+    /**
+     * Whether the ground will hold — **empty without the seismograph**, the same rule everything else on
+     * this panel follows.
+     *
+     * Read against [writingSeed] like the survey and the conflicts, so what it reports is what the bound
+     * book will actually produce rather than one of the things it might.
+     */
+    private fun tremorOf(player: ServerPlayer, capabilities: DeskState, resolved: Resolution?): Tremor? {
+        if (DeskCapability.MEASURE_INSTABILITY !in capabilities.capabilities) return null
+        val read = resolved ?: return null
+        return Tremor.of(player.level().server, read.instability, player.writingSeed)
     }
 
     /** Whether the player may write [word] at all — knowing it is the first gate (design §7.1.1). */

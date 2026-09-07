@@ -609,6 +609,33 @@ object AgeContent {
         Item.Properties().setId(ResourceKey.create(Registries.ITEM, TOOLBOX_ID)).useBlockDescriptionPrefix(),
     )
 
+    private val SEISMOGRAPH_ID: Identifier = "seismograph".location()
+
+    /**
+     * Reads whether an Age's ground will hold, where the geologist's tools read what is in it (design §7.3).
+     *
+     * **A mass that does not belong to the ground it measures**, which is the instrument's real physics
+     * rather than a pun: a seismometer works only because its bob stays put while the frame moves with the
+     * world. Astrite is the one thing in the pack that is not of any Age, so the recipe hangs a shard of it
+     * from a chain over a clock-driven drum.
+     */
+    val SEISMOGRAPH_BLOCK: Block = Block(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, SEISMOGRAPH_ID))
+            .mapColor(MapColor.METAL)
+            .strength(IRON_STRENGTH)
+            .sound(SoundType.LANTERN)
+            .requiresCorrectToolForDrops(),
+    )
+
+    val SEISMOGRAPH: Item = BlockItem(
+        SEISMOGRAPH_BLOCK,
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, SEISMOGRAPH_ID)).useBlockDescriptionPrefix(),
+    )
+
+    /** Iron's, which is what the frame is made of. */
+    private const val IRON_STRENGTH = 5.0f
+
     val GEOLOGISTS_TOOLS: Item = BlockItem(
         GEOLOGISTS_TOOLS_BLOCK,
         Item.Properties().setId(ResourceKey.create(Registries.ITEM, GEOLOGISTS_TOOLS_ID))
@@ -1028,6 +1055,7 @@ object AgeContent {
         LAVA_TUBE_ID to LAVA_TUBE_BLOCK,
         TOOLBOX_ID to TOOLBOX_BLOCK,
         GEOLOGISTS_TOOLS_ID to GEOLOGISTS_TOOLS_BLOCK,
+        SEISMOGRAPH_ID to SEISMOGRAPH_BLOCK,
     )
 
     /**
@@ -1187,6 +1215,7 @@ object AgeContent {
         TEMPERSTONE_CLIMBERS_ID to TEMPERSTONE_CLIMBERS,
         TOOLBOX_ID to TOOLBOX,
         GEOLOGISTS_TOOLS_ID to GEOLOGISTS_TOOLS,
+        SEISMOGRAPH_ID to SEISMOGRAPH,
         ASTRITE_SHARD_ID to ASTRITE_SHARD,
         ASTRITE_BLOCK_ID to ASTRITE_BLOCK,
     )

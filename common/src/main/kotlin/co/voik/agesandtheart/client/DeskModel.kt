@@ -103,6 +103,9 @@ object DeskModel {
     /** What the Age would hold, or null where nothing is laid out or nothing in the room can survey it. */
     fun survey(): co.voik.agesandtheart.age.reward.Survey? = state?.survey
 
+    /** Whether the ground will hold, or null where nothing is laid out or nothing in the room measures it. */
+    fun tremor(): co.voik.agesandtheart.age.reward.Tremor? = state?.tremor
+
     /**
      * Every word the player knows, each with however many pages of it the desk holds.
      *
