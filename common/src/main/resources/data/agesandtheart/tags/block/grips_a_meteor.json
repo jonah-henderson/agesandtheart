@@ -1,0 +1,7 @@
+{
+  "_comment": "Of the things that catch a body (#agesandtheart:catches_a_meteor), these also hold it where it landed. Everything else lets it skid and roll and bob a while before it settles; honey stops it dead, which is what honey does to everything else in the game and is the one property a player already knows it by.",
+  "replace": false,
+  "values": [
+    "minecraft:honey_block"
+  ]
+}

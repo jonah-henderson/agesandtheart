@@ -204,9 +204,26 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
     private fun overdue(level: ServerLevel): Boolean = level.gameTime - thrownAt > A_WHOLE_FLIGHT
 
     private fun comeDownNow(level: ServerLevel) {
-        val underneath = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, blockPosition())
-        setPos(underneath.x + MIDDLE, underneath.y.toDouble(), underneath.z + MIDDLE)
-        landOn(level, underneath)
+        // **On its way up, it is not late — it is bouncing** (Jonah, walked). A body climbing off a slime
+        // block has done nothing wrong and there is no sense in snapping it to the ground and setting it
+        // off; it simply goes, the way it would have if the chunk had held on a moment longer.
+        if (deltaMovement.y > STILL_CLIMBING) {
+            discard()
+            return
+        }
+        // **Where it is, before where the column ends.** Deep water slows a body to a stop long before it
+        // reaches the bed, so one that ran out of time is often already lying in three blocks of the very
+        // thing that would have caught it.
+        if (cushionAround(level, blockPosition()) >= CAUGHT_BY) {
+            settle(level, blockPosition())
+            return
+        }
+        val surface = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, blockPosition())
+        setPos(surface.x + MIDDLE, surface.y.toDouble(), surface.z + MIDDLE)
+        // The heightmap answers with the free space *above* the column, and the cushion has to be read
+        // from the block itself — testing the air is how one that came down on water or on a wool pad
+        // went off anyway (Jonah, walked).
+        landOn(level, surface.below())
     }
 
     /**
@@ -238,6 +255,12 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
         // **Its momentum is not taken off it**, which is what buys the rolling and the cooling both: it
         // ploughs into what caught it and is slowed by drag rather than by decree, and the glow is drawn
         // off how fast it is going, so it dims as it comes to rest instead of switching off.
+        //
+        // **Unless honey caught it** (`#agesandtheart:grips_a_meteor`), which stops one dead where it
+        // landed — the property honey already has over everything else in the game, so it needs no
+        // teaching. The cost is that such a body goes cold at once rather than fading, the glow being
+        // read off speed; a thing gripped by honey having stopped instantly is the point of it.
+        if (level.getBlockState(at).`is`(GRIPS)) deltaMovement = Vec3.ZERO
         level.playSound(null, at, SoundEvents.LAVA_EXTINGUISH, SoundSource.BLOCKS)
     }
 
@@ -423,6 +446,9 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
         /** And what will not so much catch it as return it. */
         val REBOUNDS: TagKey<Block> = TagKey.create(Registries.BLOCK, "rebounds_a_meteor".location())
 
+        /** And which of the things that catch one also hold it exactly where it landed. */
+        val GRIPS: TagKey<Block> = TagKey.create(Registries.BLOCK, "grips_a_meteor".location())
+
         private const val ALMOST_NONE = 0.01
         private const val STRUCK = 6.0f
         /** Twice TNT — see [MeteorStorm]. Only ever used by a body somebody summoned without a storm. */
@@ -449,6 +475,9 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
 
         private const val NOT_YET_THROWN = -1L
         private const val MIDDLE = 0.5
+
+        /** Any upward movement at all counts as still bouncing rather than still falling. */
+        private const val STILL_CLIMBING = 0.0
 
         private const val FORCED = true
         private const val SHOW_ANYWAY = true

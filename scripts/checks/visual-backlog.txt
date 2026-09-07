@@ -492,8 +492,14 @@
 #         storm cannot knock itself down but an orbital cannon can. Worth trying both.
 #       - Walk away from a caught one and come back: it must still be there. The overdue rule that lands
 #         airborne bodies is exempted for settled ones, and that exemption has never been walked.
-#   - **THE SLIME BOUNCE**, which is there because it is funny: a body off a slime block keeps ALL of its
-#     energy and ricochets. Does it read as absurd-good or just confusing?
+#   - **THE SLIME BOUNCE** -- WALKED AND GOOD 2026-09-07. What changed after it: a body still CLIMBING
+#     when its time runs out is simply removed rather than snapped to the ground and set off. It was
+#     bouncing, not late. Check a slime-floored Age no longer punctuates itself with explosions.
+#   - **HONEY STOPS ONE DEAD** (`#agesandtheart:grips_a_meteor`), where water, lava and wool let it skid
+#     and roll and bob a while. Side effect worth knowing: a honey-caught body goes cold at once rather
+#     than fading, since the glow is read off speed.
+#   - **THE THREE TAGS ARE THE WHOLE RULE**, and a datapack owns them: catches_a_meteor, rebounds_a_meteor,
+#     grips_a_meteor. Nothing about catching or bouncing is hardcoded to a block.
 #   - Does the water lesson teach itself? A meteor at sea is caught; one on the shore digs a crater the
 #     water fills deeper than three, so the next one there is caught.
 #   - Storms gather 40 to 110 blocks from a player and never overhead, deliberately. Does that read as
