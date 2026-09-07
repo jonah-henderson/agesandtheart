@@ -323,8 +323,9 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         private const val NOTICING = 60
 
         /**
-         * How wide the pounding is — **exactly as far as you can run in the warning you are given**
-         * (Jonah), which is why it is worked out here rather than chosen.
+         * How far the pounding reaches from its middle — **exactly as far as you can run in the warning
+         * you are given** (Jonah), which is why it is worked out here rather than chosen. A radius, so the
+         * disc is twice this across; every reach in this phenomenon is one, a lure's included.
          *
          * Take the telegraph, take off the seconds the warning itself spends coming up, take off a few
          * more for noticing it and turning round, and multiply what is left by a sprint. A storm that

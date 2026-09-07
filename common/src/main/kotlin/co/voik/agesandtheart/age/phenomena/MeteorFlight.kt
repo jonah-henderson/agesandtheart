@@ -111,7 +111,7 @@ data class MeteorFlight(
          * How far a body strays from its storm's own line, in radians — **about a third of a degree**.
          *
          * Nearly nothing, because the separation a watcher sees is not this: the bodies are aimed across a
-         * disc [MeteorStorm.REACH] wide and hang far enough out that the disc is half a degree, so they
+         * disc of radius [MeteorStorm.REACH] and hang far enough out that the disc is half a degree, so they
          * come apart on their own as they close — from about six tenths of a degree at first sighting to
          * five and thirty at the arrival. This is only the wobble on top of that, and it is *angular*
          * rather than a displacement, so unlike the disc it does not shrink with how far out they hang —

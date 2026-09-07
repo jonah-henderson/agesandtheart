@@ -348,10 +348,12 @@
 #     cluster that draws harder (2.6 blocks at one, 6 at twenty-seven). Eight blocks should be ONE set of
 #     rings, not eight overlapping ones. Placeholder particles; a proper asset is owed.
 #   - **A LURED STORM SHOOTS A COLUMN.** When a storm actually answers this lure, the same dust goes up
-#     about eight blocks over two seconds and frays out at the top. It fires once, at the gather -- if it
-#     never appears, the storm was not drawn to it, which is the real thing to check.
+#     about eight blocks and frays out at the top, rising over exactly the three seconds the violet cast
+#     takes to well up -- so it and the warning light start together. **WATCH FOR IT FROM THE GROUND**,
+#     which is who it is for; it is forced past the 32-block particle cull for that reason.
 #   - **DOES THE STORM COME TO IT?** It should centre on the cluster rather than on a bearing off you.
-#   - **AND TIGHTEN.** 135 blocks wide with no lure, 90 for one block, 40 for twenty-seven or more.
+#   - **AND TIGHTEN.** EVERY ONE OF THESE IS A RADIUS -- 135 with no lure is 270 blocks of ground across,
+#     90 for one block is 180, and the floor of 40 at twenty-seven or more is 80 across.
 #     A cluster is anything within 8 blocks -- a cube, a flat pad, or a scattered handful should all read
 #     the same. NO shape, NO connection, NO chunk alignment.
 #   - The frequency buff is a flat 0.75x for having any lure at all, and does NOT stack. Hard to see by

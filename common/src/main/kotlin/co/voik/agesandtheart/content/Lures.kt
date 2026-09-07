@@ -44,7 +44,10 @@ object Lures {
     }
 
     /**
-     * How wide a storm falls when this many blocks are drawing it, in blocks.
+     * How far from its middle a storm falls when this many blocks are drawing it, in blocks.
+     *
+     * **A radius, like every other reach here**, so the disc is twice this across: the floor of forty is
+     * eighty blocks of ground, not forty.
      *
      * One block already tightens it hard — the lure is the mechanic, not a slow ramp — and past
      * [ENOUGH_OF_THEM] there is nothing more to buy.

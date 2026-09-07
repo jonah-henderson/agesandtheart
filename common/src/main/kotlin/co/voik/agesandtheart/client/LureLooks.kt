@@ -6,6 +6,7 @@ import co.voik.agesandtheart.content.Lures
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.particles.DustParticleOptions
+import net.minecraft.world.phys.Vec3
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -19,9 +20,11 @@ import kotlin.math.sin
  * cost a scan per block per tick. From the client's own tick there is one scan, one centroid and one set of
  * rings, which is both cheaper and the picture that was wanted.
  *
- * **It costs nothing anywhere a lure cannot be.** The whole thing is behind a check on the viewer's own
- * height, and a lure only exists above [AstriteBlock.HIGH_ENOUGH] — so at any ordinary altitude this is one
- * comparison and a return.
+ * **The rings and the column are found by opposite routes, and that is the point.** A ring is a close-up
+ * detail of a block you are standing at, so it starts from the viewer and costs nothing at any ordinary
+ * altitude. A column announces to *the ground* that the lure worked, at the moment the violet wells up
+ * two hundred blocks below it — so it starts from the storm instead, which already stands on the cluster's
+ * own middle. Hanging it off the viewer's height put it behind the one condition that made it unwatchable.
  */
 object LureLooks {
 
@@ -29,10 +32,10 @@ object LureLooks {
     fun pulse(client: Minecraft) {
         val level = client.level ?: return
         val player = client.player ?: return
+        answer(level)
         if (player.y < AstriteBlock.HIGH_ENOUGH - WITHIN_SIGHT) return
         val drawn = Lures.nearest(level, player.position(), WITHIN_SIGHT) ?: return
         breathe(level, drawn)
-        answer(level, drawn)
     }
 
     /**
@@ -40,7 +43,8 @@ object LureLooks {
      *
      * Several at once, each on its own clock and its own size, and **every other one running inward** — so
      * the set breathes rather than pulsing in step, which is what stops a handful of rings reading as one
-     * flashing ring. They thin as they widen, so the outer edge fades instead of ending.
+     * flashing ring. They thin as they widen, so the outer edge fades instead of ending, and the whole set
+     * grows with how hard the cluster draws, which is how adding blocks is visibly worth something.
      */
     private fun breathe(level: ClientLevel, drawn: Lures.Drawn) {
         val widest = WIDEST_OUT + Lures.drawnness(drawn.blocks) * WIDER_WHEN_DRAWN_HARD
@@ -52,13 +56,11 @@ object LureLooks {
             val motes = (MOTES_A_RING * (ALL_OF_IT - out)).toInt() + AT_LEAST_ONE
             repeat(motes) {
                 val around = level.random.nextDouble() * FULL_TURN
-                level.addParticle(
-                    DRAWING,
+                mote(
+                    level,
                     drawn.at.x + cos(around) * radius,
                     drawn.at.y + MIDDLE,
                     drawn.at.z + sin(around) * radius,
-                    NO_DRIFT,
-                    NO_DRIFT,
                     NO_DRIFT,
                 )
             }
@@ -66,39 +68,56 @@ object LureLooks {
     }
 
     /**
-     * The column it throws up when a storm actually answers it.
+     * The column a lure throws up when a storm actually answers it, while the violet wells up below.
      *
-     * **Read off the storm rather than sent**: a storm that was drawn in carries a reach narrower than a
-     * storm ever has on its own, and it knows its own age — so "this lure has just been answered" is two
-     * comparisons on an entity the client already has.
+     * **Found from the storm rather than from the viewer.** A storm drawn to a lure stands on that
+     * cluster's own middle, so its position *is* where the column goes; all the scan has to settle is how
+     * high the blocks were stacked. Nothing is sent for this — a narrowed reach is a reach no storm has on
+     * its own, and both sides already know the storm's age.
      */
-    private fun answer(level: ClientLevel, drawn: Lures.Drawn) {
-        val storm = level.entitiesForRendering()
-            .filterIsInstance<MeteorStorm>()
-            .firstOrNull { justAnswered(it, drawn) } ?: return
-        val risen = storm.age.toDouble() / COLUMN_LASTS
+    private fun answer(level: ClientLevel) {
+        for (entity in level.entitiesForRendering()) {
+            val storm = entity as? MeteorStorm ?: continue
+            if (!justDrawnIn(storm)) continue
+            val lure = Lures.nearest(level, aloftOver(storm), NEAR_ITS_MIDDLE) ?: continue
+            raise(level, lure, storm.age)
+        }
+    }
+
+    private fun justDrawnIn(storm: MeteorStorm): Boolean {
+        val narrowerThanAnyStormOfItsOwn = storm.reach < MeteorStorm.REACH - A_LITTLE
+        val stillWellingUp = storm.age in FIRST..<MeteorStorm.WELLING_UP
+        return narrowerThanAnyStormOfItsOwn && stillWellingUp
+    }
+
+    /** Where to look for the blocks that drew a storm: straight up its own middle, into the headroom. */
+    private fun aloftOver(storm: MeteorStorm): Vec3 =
+        Vec3(storm.x, (AstriteBlock.HIGH_ENOUGH + INTO_THE_HEADROOM).toDouble(), storm.z)
+
+    private fun raise(level: ClientLevel, lure: Lures.Drawn, age: Int) {
+        val risen = age.toDouble() / MeteorStorm.WELLING_UP
         repeat(MOTES_A_COLUMN) {
             val up = level.random.nextDouble() * risen * COLUMN_REACHES
             // Thinner the higher it goes, so the head of it frays out rather than stopping flat.
             if (level.random.nextDouble() * COLUMN_REACHES < up) return@repeat
-            level.addParticle(
-                DRAWING,
-                drawn.at.x + strayed(level),
-                drawn.at.y + MIDDLE + up,
-                drawn.at.z + strayed(level),
-                NO_DRIFT,
+            mote(
+                level,
+                lure.at.x + strayed(level),
+                lure.at.y + MIDDLE + up,
+                lure.at.z + strayed(level),
                 RISES_AT,
-                NO_DRIFT,
             )
         }
     }
 
-    private fun justAnswered(storm: MeteorStorm, drawn: Lures.Drawn): Boolean {
-        val wasDrawn = storm.reach < MeteorStorm.REACH - A_LITTLE
-        val stillRising = storm.age in FIRST..<COLUMN_LASTS
-        val overThisOne = storm.position().multiply(ALL_OF_IT, NO_DRIFT, ALL_OF_IT)
-            .distanceToSqr(drawn.at.multiply(ALL_OF_IT, NO_DRIFT, ALL_OF_IT)) < OVER_IT * OVER_IT
-        return wasDrawn && stillRising && overThisOne
+    /**
+     * One mote, drawn however far off it is.
+     *
+     * Forced past the thirty-two-block cull on purpose: both of these are signals rather than ambience,
+     * and the column's whole job is to be read from the ground a couple of hundred blocks below.
+     */
+    private fun mote(level: ClientLevel, x: Double, y: Double, z: Double, drift: Double) {
+        level.addParticle(DRAWING, FORCED, SHOW_ANYWAY, x, y, z, NO_DRIFT, drift, NO_DRIFT)
     }
 
     private fun strayed(level: ClientLevel): Double = (level.random.nextDouble() - MIDDLE) * COLUMN_WANDERS
@@ -106,9 +125,15 @@ object LureLooks {
     /** The pack's violet, in the one particle vanilla lets us colour. */
     private val DRAWING = DustParticleOptions(0x9E72FF, 1.0f)
 
-    /** How far off a lure is still worth drawing, and how near a storm must be to be *this* lure's. */
+    private const val FORCED = true
+    private const val SHOW_ANYWAY = true
+
+    /** How far off a lure is still worth drawing rings for. */
     private const val WITHIN_SIGHT = 48.0
-    private const val OVER_IT = 24.0
+
+    /** And how far above a storm's own middle to go looking for the blocks that drew it. */
+    private const val NEAR_ITS_MIDDLE = 32.0
+    private const val INTO_THE_HEADROOM = 16
 
     /** How many rings turn at once, and how far apart their clocks and their sizes run. */
     private const val RINGS = 3
@@ -122,8 +147,7 @@ object LureLooks {
     private const val WIDER_WHEN_DRAWN_HARD = 3.4
     private const val MOTES_A_RING = 4
 
-    /** The column: how long it takes to reach its height, and what that height is. */
-    private const val COLUMN_LASTS = 40
+    /** The column, which rises over exactly as long as the violet takes to come up. */
     private const val COLUMN_REACHES = 8.0
     private const val COLUMN_WANDERS = 0.7
     private const val MOTES_A_COLUMN = 12
