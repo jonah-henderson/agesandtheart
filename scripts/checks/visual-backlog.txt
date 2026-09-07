@@ -333,7 +333,27 @@
 # ("way too much, but it was super cool"). A bit under a creeper ordinarily; the old middle is the new
 # ceiling and wants an Age broken enough to buy the whole manifestation.
 #
-# WHAT THE FIFTH PASS CHANGED, all of it unwalked:
+# WHAT THE SIXTH PASS CHANGED, all of it unwalked:
+#   - **THE MISSING TRAILS WERE A RENDER-DISTANCE CULL.** Vanilla draws an entity only within its own
+#     bounding-box size times 64, and a meteor's box is 0.7 -- so the streak existed for the last 45
+#     blocks of a 175-block flight and any body not landing at your feet arrived with nothing.
+#     `shouldRenderAtSqrDistance` is overridden now; a meteor draws for its whole flight.
+#   - **THE REACH IS CALCULATED, NOT CHOSEN: 134.7 blocks.** Thirty seconds of telegraph, less three for
+#     the warning to come up and three for noticing it, times a sprint (0.2806 blocks a tick). So a storm
+#     dead over you is escapable by running and by nothing else. THE CAST IS THE SAME DISC EXACTLY.
+#   - **THE CAST NO LONGER SNAPS ON THE WAY OUT.** The cause was the storm ENTITY untracking at the
+#     player's view distance, so the old 160-224 falloff band was entirely outside tracking. The feather
+#     is now just past the disc (16 blocks) AND the client eases the cast downward over a second, which
+#     also covers a storm being discarded or a player linking away.
+#   - **SHELTER DIMS IT**, via `getBrightness(LightLayer.SKY)` -- the lighting engine's own answer, so an
+#     overhang or a tree canopy barely counts and a roof or a cave counts entirely.
+#   - **THINNED**: a body every 5 ticks rather than 3, with the rung widened (2.2 from 1.2) so a ruined
+#     Age is back past where it was. Storms now gather 40-270 blocks out rather than 40-110, so with the
+#     wider disc being caught in one is about two in five rather than every time.
+#   - The lag was mostly `MeteorFlight` being rebuilt per body per frame AND twice per body per server
+#     tick. They are memoised on the storm now.
+#
+# WHAT THE FIFTH PASS CHANGED, also unwalked:
 #   - **EVERY BODY IS NOW IN THE SKY FOR ITS WHOLE APPROACH.** The old cap drew the first fourteen it
 #     found, so on a long storm the rest appeared from nowhere at nine tenths of their size the moment a
 #     slot freed -- which is exactly what a walk reported. `SkyCanvas.drawGlows` puts a hundred in one

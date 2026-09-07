@@ -99,9 +99,24 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         dropSome(level)
     }
 
-    /** What body [number] of this storm does — the one answer a client works out for itself as well. */
-    fun flightOf(number: Int): MeteorFlight =
-        MeteorFlight.of(uuid.leastSignificantBits, number, bodies, falling, APPROACHING)
+    /**
+     * What body [number] of this storm does — the one answer a client works out for itself as well.
+     *
+     * **Kept once worked out**, which is a memo of a pure function rather than state: a storm's flights
+     * cannot change while its two numbers hold, and both sides were building every one of them afresh —
+     * the sky once a body a frame, the server twice a body a tick. A long storm is a couple of hundred
+     * bodies, so that was the lights lagging (Jonah, walked).
+     */
+    fun flightOf(number: Int): MeteorFlight {
+        if (flights.size != bodies || flightsSpanned != falling) {
+            flightsSpanned = falling
+            flights = List(bodies) { MeteorFlight.of(uuid.leastSignificantBits, it, bodies, falling, APPROACHING) }
+        }
+        return flights[number]
+    }
+
+    private var flights: List<MeteorFlight> = emptyList()
+    private var flightsSpanned = NOT_YET
 
     /**
      * Where a body's light hangs, [nearness] of the way from first sighting to its own fall.
@@ -130,8 +145,9 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
      */
     private fun dropSome(level: ServerLevel) {
         for (number in 0..<bodies) {
-            if (flightOf(number).fallsAt != tickCount) continue
-            throwOne(level, flightOf(number))
+            val flight = flightOf(number)
+            if (flight.fallsAt != tickCount) continue
+            throwOne(level, flight)
         }
     }
 
@@ -203,22 +219,33 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         const val WELLING_UP = 60
         const val LINGERING = 60
 
+        /** Vanilla sprinting, in blocks a tick — 4.317 a second walking, a third again running. */
+        private const val A_SPRINT = 0.2806
+
+        /** And what a player is allowed for seeing the warning and deciding, in ticks. */
+        private const val NOTICING = 60
+
         /**
-         * How wide the pounding is.
+         * How wide the pounding is — **exactly as far as you can run in the warning you are given**
+         * (Jonah), which is why it is worked out here rather than chosen.
          *
-         * **Wide enough to read as weather rather than as an attack aimed at you** (Jonah, walked). It was
-         * a third of this, on the reasoning that a tight disc is what separates a storm from the tempest's
-         * chunk-wide roll — but a disc that narrow is a target, and standing in one felt personal rather
-         * than meteorological. The difference from a tempest is the *concentration in time*, which the
-         * fifteen seconds already carry; the area can afford to be a place.
+         * Take the telegraph, take off the seconds the warning itself spends coming up, take off a few
+         * more for noticing it and turning round, and multiply what is left by a sprint. A storm that
+         * gathers dead over you is then survivable by running and by nothing else — which is the whole of
+         * this phenomenon's counterplay, and the number that makes the promise true rather than nearly.
+         *
+         * Widening it is therefore not free: every block wants a tenth of a second more warning.
          */
-        const val REACH = 64.0
+        const val REACH = A_SPRINT * (APPROACHING - WELLING_UP - NOTICING)
 
         /** Ten to fifteen seconds of it (Jonah), which the storm draws between. */
         const val SHORTEST_FALL = 200
         const val LONGEST_FALL = 300
 
         private const val FEW = 4
+
+        /** No length a storm can have, so the flights are worked out the first time they are asked for. */
+        private const val NOT_YET = -1
 
         /**
          * **A bit under a creeper at rest, and past twice TNT at the very top** (Jonah, 2026-09-06).

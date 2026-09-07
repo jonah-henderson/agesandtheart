@@ -39,6 +39,17 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
     override fun defineSynchedData(builder: SynchedEntityData.Builder) = Unit
 
     /**
+     * Drawn from as far off as it is tracked.
+     *
+     * **Vanilla would draw one for the last forty-five blocks of a two-hundred-block flight**, because its
+     * rule is the entity's own width times sixty-four and a meteor is a small thing carrying a very large
+     * streak. So a body landing anywhere but at your feet arrived with no trail at all, which is exactly
+     * what a walk reported (Jonah). Nothing about the rule is wrong in general; it is wrong for a thing
+     * whose drawn size has nothing to do with its hitbox.
+     */
+    override fun shouldRenderAtSqrDistance(distance: Double): Boolean = distance < SEEN_FROM * SEEN_FROM
+
+    /**
      * Barely any, and it hardly matters: a body arrives at a speed that makes its own path nearly straight,
      * so gravity here is a lean rather than a fall. It is [MeteorStorm] that decides how hard one comes in.
      */
@@ -180,6 +191,9 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
          * particle type, and that needs a texture the asset pass has not written.
          */
         private val EMBER = DustParticleOptions(0x9E72FF, 0.9f)
+
+        /** How far off one is still drawn, in blocks — its whole flight, and then some. */
+        private const val SEEN_FROM = 320.0
 
         private const val FORCED = true
         private const val SHOW_ANYWAY = true

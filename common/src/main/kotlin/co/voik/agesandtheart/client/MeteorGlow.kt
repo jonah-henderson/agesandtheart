@@ -3,9 +3,11 @@ package co.voik.agesandtheart.client
 import co.voik.agesandtheart.age.phenomena.MeteorStorm
 import co.voik.ephemeris.Rgba
 import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.core.BlockPos
 import net.minecraft.util.Mth
 import net.minecraft.world.attribute.EnvironmentAttributeSystem
 import net.minecraft.world.attribute.EnvironmentAttributes
+import net.minecraft.world.level.LightLayer
 import net.minecraft.world.phys.Vec3
 import kotlin.math.sqrt
 
@@ -68,19 +70,61 @@ object MeteorGlow {
 
     /** One packed colour dragged [toward] the violet by however much of a storm reaches [at]. */
     private fun turnedViolet(level: ClientLevel, was: Int, at: Vec3, toward: Rgba): Int {
-        val how = strengthAt(level, at)
+        val how = easedStrengthAt(level, at)
         return if (how <= NONE) was else Rgba.of(was).lerp(toward, how).packed()
     }
 
     /**
-     * How much of a storm's violet reaches this point, one under it and nothing outside its reach.
+     * [strengthAt], but it can only ever *fall* by a little each tick.
      *
-     * **Uniform across the whole disc and well past it**, rather than falling off from the middle: since
-     * the lightmap asks about the camera, a gradient here would be the world changing colour as you walked
-     * about under a storm rather than as you walked *out* of one. The falloff is at the far edge only, and
-     * it is wide — a storm you can see should not have untouched country standing behind it.
+     * **Because the thing this is read off can vanish rather than recede.** A storm is an entity, and an
+     * entity stops being tracked at the player's view distance — so walking out of one snapped the world
+     * back to its own colours between one step and the next, even though the falloff below is sixteen
+     * blocks wide (Jonah, walked). The same cliff is there whenever a storm is discarded, or a player
+     * links away. Rising needs no help: the storm's own clock and the falloff already ease it in.
+     *
+     * The two fields are the exception to no-mutable-state-in-an-object, and a narrow one: they are a
+     * smoothing of what is drawn, they are the client's alone, and being wrong about them costs a frame.
+     */
+    private fun easedStrengthAt(level: ClientLevel, at: Vec3): Float {
+        val now = level.gameTime
+        if (now != lastStepped) {
+            lastStepped = now
+            showing += (strongestLastTick - showing).coerceIn(-FADES_BY, FADES_BY)
+            strongestLastTick = NONE
+        }
+        val here = strengthAt(level, at)
+        // The strongest of everything asked this tick, since these layers are read at more than one place
+        // and the eased value has to follow the brightest of them rather than the last.
+        if (here > strongestLastTick) strongestLastTick = here
+        return maxOf(showing, here)
+    }
+
+    private var showing = NONE
+    private var strongestLastTick = NONE
+    private var lastStepped = Long.MIN_VALUE
+
+    /** How much of the cast may go out in one tick — a second from full to nothing. */
+    private const val FADES_BY = 0.05f
+
+    /**
+     * How much of a storm's violet reaches this point.
+     *
+     * **Uniform across the whole disc**, rather than falling off from the middle: since the lightmap asks
+     * about the camera, a gradient here would be the world changing colour as you walked about *under* a
+     * storm rather than as you walked *out* of one. The feather is at the edge only.
+     *
+     * **And it is the disc the bodies land on, exactly** (Jonah) — the lit ground and the pounded ground
+     * being different sizes is the same lie either way round.
+     *
+     * **Scaled by how much of the sky gets in**, which is the lighting engine's own answer and much better
+     * than any test we could write: sky light walks round an overhang and through a canopy, so a tree does
+     * not switch the warning off, and it is nought in a place genuinely closed in. Sheltering from a
+     * meteor storm therefore dims it, which is the right thing for it to mean.
      */
     private fun strengthAt(level: ClientLevel, at: Vec3): Float {
+        val open = Mth.clamp(level.getBrightness(LightLayer.SKY, BlockPos.containing(at)) / MOSTLY_OPEN, NONE, ONE)
+        if (open <= NONE) return NONE
         var strongest = NONE
         for (entity in level.entitiesForRendering()) {
             val storm = entity as? MeteorStorm ?: continue
@@ -88,7 +132,7 @@ object MeteorGlow {
             val awayZ = storm.z - at.z
             val away = sqrt(awayX * awayX + awayZ * awayZ).toFloat()
             val within = Mth.clamp((CAST_OVER - away) / (CAST_OVER - CAST_WHOLLY), NONE, ONE)
-            val how = within * storm.castStrength()
+            val how = within * storm.castStrength() * open
             if (how > strongest) strongest = how
         }
         return strongest
@@ -111,14 +155,21 @@ object MeteorGlow {
     private const val HELD_DOWN = 0.35f
 
     /**
-     * How far the cast carries, in blocks — **out past what a default render distance draws** (Jonah).
+     * How far the cast carries, in blocks — **the impact disc, and a short feather past its edge**.
      *
-     * The point is that nothing untouched is left in view: a violet ring with ordinary country beyond it
-     * reads as an effect, where violet to the horizon reads as the place. Twelve chunks is 192, so this is
-     * whole to a comfortable distance past the impacts and gone a little past what is drawn.
+     * There is nothing left in view to go untouched, because the lightmap is read at the camera: standing
+     * anywhere inside this turns the whole world violet to the horizon, rather than painting a ring on the
+     * ground with ordinary country beyond it.
+     *
+     * The feather has to stay well inside the smallest view distance a server is likely to run, or the
+     * storm stops being tracked before the cast has faded and [easedStrengthAt] is doing all the work.
      */
-    private const val CAST_WHOLLY = 160.0f
-    private const val CAST_OVER = 224.0f
+    private const val FEATHERED_BY = 16.0
+    private val CAST_WHOLLY = MeteorStorm.REACH.toFloat()
+    private val CAST_OVER = (MeteorStorm.REACH + FEATHERED_BY).toFloat()
+
+    /** The sky light at which the cast is at full strength; below it, it dims away to nothing. */
+    private const val MOSTLY_OPEN = 10.0f
 
     private const val NONE = 0.0f
     private const val ONE = 1.0f

@@ -73,7 +73,14 @@ object Meteors {
      *
      * **Worked out from how long it falls for**, so a longer storm is not a denser one: what a rung buys
      * is the *rate*, and the length is bought separately by [lengthenedBy]. Every one of these is a light
-     * in the sky before it is a rock on the ground, so this number is what a player actually counts.
+     * in the sky before it is a rock on the ground, so this number is what a player actually counts — and
+     * it is a third dial the instability already had rather than a fourth.
+     *
+     * **Thinned, and the rung widened to make up for it** (Jonah, walked). A forty-five-second storm at
+     * the old rate was three hundred bodies, which is three hundred lights drawn every frame; and the
+     * impact disc is four times the area it was, so the same count over it was never going to read as the
+     * same pounding anyway. An ordinary storm is now a body every quarter-second and a ruined Age's is
+     * back past where this started.
      */
     private fun bodiesFor(density: Double, falling: Int): Int =
         (falling / EVERY * (ONE_WHOLE + (density - ONE_WHOLE) * MORE_OFTEN_STILL)).roundToInt().coerceAtLeast(ONE)
@@ -95,9 +102,16 @@ object Meteors {
     private const val ONE = 1
     private const val ONE_WHOLE = 1.0
 
-    /** Far enough out to be somewhere else, near enough to see and to reach afterwards. */
+    /**
+     * Far enough out to be somewhere else, near enough to see and to reach afterwards.
+     *
+     * **Widened with the disc, so that being caught in one stays a thing that happens sometimes.** These
+     * were set when the pounding was a third as wide, and a storm gathering inside two hundred blocks now
+     * lands on you every time — which would make the running mandatory rather than a thing you sometimes
+     * have to do. Roughly two in five gather over ground you are standing on.
+     */
     private const val NEAREST_APPROACH = 40.0
-    private const val FURTHEST_APPROACH = 110.0
+    private const val FURTHEST_APPROACH = 270.0
 
     /**
      * Where a storm hangs while it drops, above the player it gathered near.
@@ -110,11 +124,11 @@ object Meteors {
     private const val OVERHEAD = 45.0
 
     private const val MORE_AT_ONCE = 1.5
-    /** A body every this many ticks at an ordinary claim — six or seven a second. */
-    private const val EVERY = 3
+    /** A body every this many ticks at an ordinary claim — four a second. */
+    private const val EVERY = 5
 
     /** What a rung adds to the rate on top of that. */
-    private const val MORE_OFTEN_STILL = 1.2
+    private const val MORE_OFTEN_STILL = 2.2
     private const val LONGER_WHEN_FIERCE = 0.6
     private const val BETWEEN_STORMS = 3600.0
     private const val MORE_OFTEN = 5.0
