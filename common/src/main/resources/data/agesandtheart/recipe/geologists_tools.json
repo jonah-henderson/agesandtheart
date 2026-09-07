@@ -6,13 +6,23 @@
     "",
     "The six are a real field kit, each mapped to something that already exists rather than to an invented",
     "intermediate: a brush to dust a specimen, a streak plate to scratch it against, a lodestone for the",
-    "magnetic test, a diamond as the hardness reference (Mohs 10), a barrel for the samples, and deretheni",
-    "because the survey is about deretheni.",
+    "magnetic test, a diamond as the hardness reference (Mohs 10), a barrel for the samples, and a control",
+    "specimen to compare a find against.",
     "",
     "The streak plate is temperstone, which a hot Age standing in lava bakes out of its own ground -- so",
     "the instrument that tells you what an Age holds is itself built from something only a written Age can",
     "give you. The rime crystal that stood here goes to the crystal viewer, where a crystal is the thing",
-    "itself rather than a stand-in for a hand lens."
+    "itself rather than a stand-in for a hand lens.",
+    "",
+    "The control specimen is SCORCHED temperstone (Jonah, 2026-09-07), which took deretheni's place when",
+    "deretheni became a mid-game material and this kit stayed an early one. It is the better fit anyway on",
+    "two counts: a reference sample is the UNREMARKABLE one you hold a find against, and scorched",
+    "temperstone is precisely that -- stone that sat too near the heat and came out worth nothing. It also",
+    "gave the byproduct its first purpose; before this, nothing in the pack crafted with it at all.",
+    "",
+    "Two from the temperstone family is deliberate rather than lazy: their JOBS are distinct, a formation",
+    "yields both on the same trip, and it makes temperstone the geologist's material the way deretheni is",
+    "the writer's."
   ],
   "type": "minecraft:crafting_shapeless",
   "category": "equipment",
@@ -23,7 +33,7 @@
     "minecraft:lodestone",
     "minecraft:diamond",
     "minecraft:barrel",
-    "agesandtheart:pitchstone_plate"
+    "agesandtheart:scorched_temperstone"
   ],
   "result": { "id": "agesandtheart:geologists_tools" }
 }
