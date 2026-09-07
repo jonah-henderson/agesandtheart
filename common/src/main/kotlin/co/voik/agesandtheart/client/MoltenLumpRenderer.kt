@@ -24,6 +24,16 @@ class MoltenLumpRenderState : EntityRenderState() {
 }
 
 /**
+ * How hot a lump still looks, from how fast it is still going.
+ *
+ * **Speed stands in for heat**, which costs nothing and is right about both ends: a body crossing the sky
+ * is at its brightest, and one that has ploughed into a pond and is bobbing there has gone out. It also
+ * means the cooling needs no clock and nothing sent — the thing that fades is the thing that slows.
+ */
+private fun heatOf(travel: Vec3): Float =
+    (travel.length() / MoltenLumpRenderer.GLOWS_AT).toFloat().coerceIn(0.0f, 1.0f)
+
+/**
  * A lump of rock in flight, drawn as the block it is.
  *
  * **Vanilla's moving-block submission rather than a model of ours**, which is the same bargain the rime
@@ -90,9 +100,12 @@ open class MoltenLumpRenderer<T : Entity>(
         camera: CameraRenderState,
         colour: Rgba,
     ) {
+        val heat = heatOf(state.travel)
+        if (heat <= GONE_OUT) return
         val towardCamera = camera.pos.subtract(state.x, state.y, state.z)
-        AddedLight.halo(collector, poseStack, towardCamera, colour, scale * BLOOM_ACROSS)
-        AddedLight.streak(collector, poseStack, state.travel, towardCamera, colour, scale * STREAK_ACROSS)
+        val burning = colour.copy(alpha = colour.alpha * heat)
+        AddedLight.halo(collector, poseStack, towardCamera, burning, scale * BLOOM_ACROSS)
+        AddedLight.streak(collector, poseStack, state.travel, towardCamera, burning, scale * STREAK_ACROSS)
     }
 
     companion object {
@@ -101,6 +114,10 @@ open class MoltenLumpRenderer<T : Entity>(
         /** The bloom and the head of the streak, as multiples of how big the lump is drawn. */
         private const val BLOOM_ACROSS = 1.1
         private const val STREAK_ACROSS = 0.55
+
+        /** How fast a lump has to be going to be at its brightest, in blocks a tick. */
+        const val GLOWS_AT = 3.0
+        private const val GONE_OUT = 0.02f
 
         /**
          * A meteor's own light: violet-white, and the same violet its storm hangs in the sky and casts on

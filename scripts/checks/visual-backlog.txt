@@ -441,9 +441,21 @@
 #   - Is a 128-block disc the right size, and 10-15 seconds the right length?
 #   - **Is 26-55 degrees oblique enough?** The ask was 10-45 and the storm's own height steepens it.
 #   - Can you WALK OUT of one? The counterplay is spatial, so the answer has to be your feet.
-#   - **THE CUSHIONS.** Three blocks of water, wool or honey catches a body whole; anything less and it
-#     craters. Build a pond and a wool pad under a storm and check both. Nothing drops yet -- the material
-#     is unnamed -- so a catch is a body that simply does not explode.
+#   - **THE CUSHIONS, AND WHAT A CATCH IS NOW.** Three blocks of water, LAVA, wool or honey catches a body
+#     whole; anything less and it craters. Build a pond and a wool pad under a storm and check both.
+#     A caught body no longer just fails to explode -- IT STAYS. It ploughs in, rolls or bobs, cools as it
+#     slows (the glow is drawn off speed, not a clock), and lies there until you break it open. Then it
+#     drops 0-2 ASTRITE SHARDS. Things to settle:
+#       - Does it read as loot lying in your pond, or as litter? That is the whole case for the entity.
+#       - Is the bobbing right, or does it jitter? RISES_AT/SINKS_AT/SLOWS_BY in Meteor.kt.
+#       - Breaking it: netherite pickaxe should be one blow, wood about five, a sword or arrow 3, bare
+#         hands nine. Damage is the tool's own dig speed, so no tier gate -- check it FEELS gated anyway.
+#       - **SHOOT ONE OUT OF THE AIR.** It should break, drop its shards along its path (they keep 40% of
+#         its velocity, so you chase them), and leave no crater. Hard on purpose; check it is possible.
+#       - **TNT SHOULD BREAK ONE AND A METEOR SHOULD NOT.** A body is immune to its own kind only, so a
+#         storm cannot knock itself down but an orbital cannon can. Worth trying both.
+#       - Walk away from a caught one and come back: it must still be there. The overdue rule that lands
+#         airborne bodies is exempted for settled ones, and that exemption has never been walked.
 #   - **THE SLIME BOUNCE**, which is there because it is funny: a body off a slime block keeps ALL of its
 #     energy and ricochets. Does it read as absurd-good or just confusing?
 #   - Does the water lesson teach itself? A meteor at sea is caught; one on the shore digs a crater the

@@ -1,8 +1,9 @@
 {
-  "_comment": "Three blocks of any of these takes the fall out of a body coming in from space (design 7.1.2). Water is the one that teaches the rule: a meteor at sea is caught, and one on the shore digs a crater the water fills deeper than three, so the next one there is caught too.",
+  "_comment": "Three blocks of any of these takes the fall out of a body coming in from space (design 7.1.2). Water is the one that teaches the rule: a meteor at sea is caught, and one on the shore digs a crater the water fills deeper than three, so the next one there is caught too. Lava catches one for the same reason it catches anything, and a body is fire-immune, so a lava lake keeps what it takes.",
   "replace": false,
   "values": [
     "minecraft:water",
+    "minecraft:lava",
     "minecraft:honey_block",
     "#minecraft:wool"
   ]

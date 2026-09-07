@@ -390,6 +390,19 @@ object AgeContent {
     private val TEMPERSTONE_CLIMBERS_ID: Identifier = "temperstone_climbers".location()
     private val LAVA_TUBE_ID: Identifier = "lava_tube".location()
 
+    private val ASTRITE_SHARD_ID: Identifier = "astrite_shard".location()
+
+    /**
+     * What a meteor breaks into (design §7.1.2).
+     *
+     * **The only thing in the pack that is not of any Age**, which is the whole of what it is for: it did
+     * not grow here and it was not written here, it arrived. A body that is caught rather than shattered
+     * keeps the metal, and breaking the body open is what yields this.
+     */
+    val ASTRITE_SHARD: Item = Item(
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, ASTRITE_SHARD_ID)),
+    )
+
     /**
      * The vent in a volcano's caldera — see [co.voik.agesandtheart.content.LavaTubes] for what a mass does.
      *
@@ -1104,6 +1117,7 @@ object AgeContent {
         TEMPERSTONE_CLIMBERS_ID to TEMPERSTONE_CLIMBERS,
         TOOLBOX_ID to TOOLBOX,
         GEOLOGISTS_TOOLS_ID to GEOLOGISTS_TOOLS,
+        ASTRITE_SHARD_ID to ASTRITE_SHARD,
     )
 
     /** Chunk-generator codecs — a level's generator is serialised when it is saved, so it needs one. */

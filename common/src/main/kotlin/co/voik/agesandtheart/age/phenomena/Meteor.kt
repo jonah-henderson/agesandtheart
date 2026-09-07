@@ -1,24 +1,37 @@
 package co.voik.agesandtheart.age.phenomena
 
+import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.location
 import net.minecraft.core.BlockPos
 import net.minecraft.core.particles.DustParticleOptions
 import net.minecraft.core.particles.ParticleTypes
 import net.minecraft.core.registries.Registries
+import net.minecraft.network.syncher.EntityDataAccessor
+import net.minecraft.network.syncher.EntityDataSerializers
 import net.minecraft.network.syncher.SynchedEntityData
 import net.minecraft.resources.Identifier
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.sounds.SoundEvents
 import net.minecraft.sounds.SoundSource
+import net.minecraft.tags.DamageTypeTags
+import net.minecraft.tags.ItemTags
 import net.minecraft.tags.TagKey
+import net.minecraft.world.damagesource.DamageSource
+import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
+import net.minecraft.world.entity.LivingEntity
+import net.minecraft.world.entity.MoverType
+import net.minecraft.world.entity.item.ItemEntity
 import net.minecraft.world.entity.projectile.ThrowableProjectile
+import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.EntityHitResult
 import net.minecraft.world.phys.HitResult
+import net.minecraft.world.phys.Vec3
 
 /**
  * One body coming in out of a meteor storm (design §5.2).
@@ -36,8 +49,36 @@ import net.minecraft.world.phys.HitResult
  */
 class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(type, level) {
 
-    /** Nothing about one is watched by the client but its position, which vanilla already sends. */
-    override fun defineSynchedData(builder: SynchedEntityData.Builder) = Unit
+    /**
+     * Whether this one has been caught and come to rest.
+     *
+     * **One flag, four behaviours**, which is why it is a state and not four. Before it, a body flies
+     * through fluid, glows, cannot be kept, and is landed by [overdue] if the world stopped ticking under
+     * it. After it, the same body floats, cools, persists indefinitely and can be broken open. Watched,
+     * because the cooling is drawn.
+     */
+    var settled: Boolean
+        get() = entityData.get(SETTLED)
+        set(value) = entityData.set(SETTLED, value)
+
+    override fun defineSynchedData(builder: SynchedEntityData.Builder) {
+        builder.define(SETTLED, false)
+    }
+
+    /**
+     * Hittable, in flight as well as at rest.
+     *
+     * A caught body has to be, or there would be no breaking it open. **In flight it is a stunt**: a
+     * player who can hit a thing crossing twenty blocks a tick has earned what falls out of it, and has
+     * bought off the crater into the bargain.
+     */
+    override fun isPickable(): Boolean = true
+
+    /** But never by another body of the same storm, or a shower would knock itself down mid-air. */
+    override fun canHitEntity(target: Entity): Boolean = target !is Meteor && super.canHitEntity(target)
+
+    /** It came in through an atmosphere. Fire is not what breaks one. */
+    override fun fireImmune(): Boolean = true
 
     /**
      * Drawn from as far off as it is tracked.
@@ -61,6 +102,70 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
         hit.entity.hurt(damageSources().thrown(this, getOwner()), STRUCK)
     }
 
+    /**
+     * What breaks one open, and what merely happens to it.
+     *
+     * **A pickaxe does what a pickaxe does — its own digging speed** (`ToolMaterial.speed`, two for wood
+     * and nine for netherite), rather than a multiplier on whatever the swing was worth. Multiplying would
+     * have a diamond *sword* nearly halving a meteor, which is silly; reading the digging speed gives the
+     * ladder for nothing and needs no tier of our own to author. Anything else in hand is a few hits, bare
+     * hands are a long job, and an arrow is worth exactly what an arrow is worth — which is what makes
+     * shooting one down possible at all.
+     */
+    override fun hurtServer(level: ServerLevel, source: DamageSource, amount: Float): Boolean {
+        if (shieldedFrom(source)) return false
+        toughness -= biteOf(source, amount)
+        if (toughness > NOTHING_LEFT) return true
+        breakOpen(level)
+        return true
+    }
+
+    /**
+     * **Its own kind, and the things it arrived through.**
+     *
+     * A storm is hundreds of blasts among hundreds of bodies, so a body that could be broken by another
+     * body's explosion is a shower that knocks itself out of the sky. Nothing else is excused — and
+     * *deliberately* nothing else: a blast that is not a meteor's still tells, so anyone who works out how
+     * to put TNT where a meteor is going to be has earned what falls out of it (Jonah).
+     */
+    private fun shieldedFrom(source: DamageSource): Boolean {
+        val oneOfItsOwn = source.directEntity is Meteor
+        val whatItCameThrough = source.`is`(DamageTypeTags.IS_FIRE) || source.`is`(DamageTypeTags.IS_DROWNING)
+        return oneOfItsOwn || whatItCameThrough
+    }
+
+    private fun biteOf(source: DamageSource, amount: Float): Float {
+        // Not a swing at all — an arrow, or a blast. Those are worth what they are worth.
+        val swinging = source.directEntity as? LivingEntity ?: return amount
+        val holding = swinging.mainHandItem
+        if (holding.isEmpty) return BARE_HANDED
+        if (!holding.`is`(ItemTags.PICKAXES)) return THE_WRONG_TOOL
+        return holding.getDestroySpeed(Blocks.STONE.defaultBlockState())
+    }
+
+    /**
+     * Broken open, wherever that happened.
+     *
+     * **The shards keep most of what it was doing** (Jonah), so one broken on the ground spills at your
+     * feet and one shot out of the sky throws its astrite along the way it was going. Tracking them down
+     * is the price of the shot.
+     */
+    private fun breakOpen(level: ServerLevel) {
+        val flung = deltaMovement.scale(SHARDS_KEEP)
+        repeat(level.random.nextInt(MOST_SHARDS + ONE_MORE)) {
+            val shard = ItemEntity(level, x, y, z, ItemStack(AgeContent.ASTRITE_SHARD))
+            shard.deltaMovement = flung.add(scatterOf(level), scatterOf(level), scatterOf(level))
+            level.addFreshEntity(shard)
+        }
+        level.playSound(null, blockPosition(), SoundEvents.AMETHYST_BLOCK_BREAK, SoundSource.BLOCKS)
+        discard()
+    }
+
+    private fun scatterOf(level: ServerLevel): Double = (level.random.nextDouble() - HALF) * SCATTERS_BY
+
+    /** What it has left before it comes apart. Saved, so a half-broken one stays half-broken. */
+    private var toughness: Float = WHOLE
+
     override fun onHit(hit: HitResult) {
         super.onHit(hit)
         val level = level()
@@ -76,7 +181,11 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
 
     /** Caught or shattered, whichever the ground it came to rest on deserves. */
     private fun landOn(level: ServerLevel, at: BlockPos) {
-        if (cushionAround(level, at) >= CAUGHT_BY) settle(level, at) else shatter(level)
+        if (cushionAround(level, at) >= CAUGHT_BY) {
+            settle(level, at)
+            return
+        }
+        shatter(level)
         discard()
     }
 
@@ -115,9 +224,35 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
         level.playSound(null, hit.blockPos, SoundEvents.SLIME_BLOCK_HIT, SoundSource.BLOCKS)
     }
 
-    /** Caught whole. There is nothing to leave behind yet — the material it carries is unnamed. */
+    /**
+     * Caught whole — and it stays, which is the point of catching one.
+     *
+     * **It does not become a block and it does not spill items** (Jonah). Either would end the thing as an
+     * object, and the object is the reward: what a pond you dug and stocked with three blocks of water
+     * gets you is a meteor lying in it, visibly the one you watched come down. Turning it into astrite is
+     * a second act, and one you have to go and do.
+     */
     private fun settle(level: ServerLevel, at: BlockPos) {
+        settled = true
+        // **Its momentum is not taken off it**, which is what buys the rolling and the cooling both: it
+        // ploughs into what caught it and is slowed by drag rather than by decree, and the glow is drawn
+        // off how fast it is going, so it dims as it comes to rest instead of switching off.
         level.playSound(null, at, SoundEvents.LAVA_EXTINGUISH, SoundSource.BLOCKS)
+    }
+
+    /**
+     * How it lies once it has been caught: floating where it was caught, or rolling where it was not.
+     *
+     * **Water and lava hold one up rather than swallowing it** (Jonah), which is also the picture the
+     * catching rule was always painting — a cushion deep enough to take the fall is deep enough to float
+     * what it caught. It bobs because the push does not stop the instant it breaks the surface.
+     */
+    private fun bobAbout() {
+        val held = !level().getFluidState(blockPosition()).isEmpty
+        val pushed = deltaMovement.add(NO_DRIFT, if (held) RISES_AT else -SINKS_AT, NO_DRIFT)
+        deltaMovement = pushed.scale(SLOWS_BY)
+        move(MoverType.SELF, deltaMovement)
+        if (onGround()) deltaMovement = deltaMovement.multiply(ROLLS_ON, NOTHING_LEFT.toDouble(), ROLLS_ON)
     }
 
     private fun shatter(level: ServerLevel) {
@@ -152,6 +287,14 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
 
     override fun tick() {
         val level = level()
+        // A caught body has stopped being a projectile: it ages, it floats, and nothing else about a
+        // flight applies to it — least of all [overdue], which exists to stop one hanging in the air and
+        // would otherwise quietly resolve away the very thing a player built a pond to keep.
+        if (settled) {
+            baseTick()
+            bobAbout()
+            return
+        }
         if (level is ServerLevel) {
             if (thrownAt == NOT_YET_THROWN) thrownAt = level.gameTime
             if (overdue(level)) {
@@ -200,17 +343,48 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
         super.addAdditionalSaveData(output)
         output.putFloat(BLAST_KEY, blast)
         output.putLong(THROWN_KEY, thrownAt)
+        output.putBoolean(SETTLED_KEY, settled)
+        output.putFloat(TOUGHNESS_KEY, toughness)
     }
 
     override fun readAdditionalSaveData(input: net.minecraft.world.level.storage.ValueInput) {
         super.readAdditionalSaveData(input)
         blast = input.getFloatOr(BLAST_KEY, TWICE_TNT)
         thrownAt = input.getLongOr(THROWN_KEY, NOT_YET_THROWN)
+        settled = input.getBooleanOr(SETTLED_KEY, false)
+        toughness = input.getFloatOr(TOUGHNESS_KEY, WHOLE)
     }
 
     companion object {
+        private val SETTLED: EntityDataAccessor<Boolean> =
+            SynchedEntityData.defineId(Meteor::class.java, EntityDataSerializers.BOOLEAN)
+
         /** Three blocks of it, whatever it is made of — these are arriving from space. */
         const val CAUGHT_BY = 3
+
+        /** How a caught one lies: buoyed in fluid, dropping in air, and slowed either way so it settles. */
+        private const val RISES_AT = 0.045
+        private const val SINKS_AT = 0.045
+        private const val SLOWS_BY = 0.88
+        private const val ROLLS_ON = 0.7
+
+        /**
+         * What it takes to break one open, against `ToolMaterial.speed` — two for wood, nine for
+         * netherite. So the best pickaxe does it in a blow and the worst takes five.
+         */
+        private const val WHOLE = 9.0f
+        private const val NOTHING_LEFT = 0.0f
+        private const val THE_WRONG_TOOL = 3.0f
+        private const val BARE_HANDED = 1.0f
+
+        /** How much of what it was doing the shards carry away, and how far they spread off it. */
+        private const val SHARDS_KEEP = 0.4
+        private const val SCATTERS_BY = 0.3
+        private const val HALF = 0.5
+
+        /** Nought to two (design §7.1.2): a catch is worth something, and not always. */
+        private const val MOST_SHARDS = 2
+        private const val ONE_MORE = 1
 
         /** What will take the fall out of one: water, wool, honey. */
         val CATCHES: TagKey<Block> = TagKey.create(Registries.BLOCK, "catches_a_meteor".location())
@@ -253,6 +427,8 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
         private const val NO_DRIFT = 0.0
         private const val BLAST_KEY = "blast"
         private const val THROWN_KEY = "thrown_at"
+        private const val SETTLED_KEY = "settled"
+        private const val TOUGHNESS_KEY = "toughness"
 
         val ID: Identifier = "meteor".location()
     }
