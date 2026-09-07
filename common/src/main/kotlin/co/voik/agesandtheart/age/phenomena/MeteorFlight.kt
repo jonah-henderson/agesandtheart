@@ -95,17 +95,16 @@ data class MeteorFlight(
         private const val WANDER = 14.0
 
         /**
-         * How far a body strays from its storm's own line, in radians — **rather under a degree**.
+         * How far a body strays from its storm's own line, in radians — **about a third of a degree**.
          *
          * Nearly nothing, because the separation a watcher sees is not this: the bodies are aimed across a
-         * disc [MeteorStorm.REACH] wide and hang far enough out that the disc is under two degrees, so
-         * they come apart on their own as they close — from about one and a half degrees at first sighting
-         * to five and thirty at the arrival. This is only the wobble on top of that, and it is *angular*
-         * rather than a displacement, so unlike the disc it does not shrink with how far out they hang.
-         * A walk read fifteen times as much as lights arriving from all over rather than one thing
-         * splitting.
+         * disc [MeteorStorm.REACH] wide and hang far enough out that the disc is half a degree, so they
+         * come apart on their own as they close — from about six tenths of a degree at first sighting to
+         * five and thirty at the arrival. This is only the wobble on top of that, and it is *angular*
+         * rather than a displacement, so unlike the disc it does not shrink with how far out they hang —
+         * which is why it has to come down whenever the sighting is meant to read tighter.
          */
-        private const val FANS_OUT = 0.02
+        private const val FANS_OUT = 0.005
 
         /** The index the storm's own answers are mixed at, which no body can take. */
         private const val WHOLE_STORM = -1

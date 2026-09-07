@@ -12,7 +12,6 @@ import net.minecraft.world.damagesource.DamageSource
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.level.Level
-import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.storage.ValueInput
 import net.minecraft.world.level.storage.ValueOutput
@@ -46,23 +45,41 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         get() = entityData.get(BODIES)
         set(value) = entityData.set(BODIES, value)
 
-    /** How long it goes on dropping once it starts, in ticks. */
-    var falling: Int = SHORTEST_FALL
+    /**
+     * How long it goes on dropping once it starts, in ticks.
+     *
+     * Watched, like [bodies], because the client needs to know when the last body has landed — the violet
+     * it casts fades out after that, and a cast that outlives its storm is the same lie a hazard marker
+     * that outlives its hazard would be.
+     */
+    var falling: Int
+        get() = entityData.get(FALLING)
+        set(value) = entityData.set(FALLING, value)
 
     /** How fast the bodies come in, and so how hard they land. */
     var fury: Double = ORDINARY_FURY
 
     override fun defineSynchedData(builder: SynchedEntityData.Builder) {
         builder.define(BODIES, FEW)
+        builder.define(FALLING, SHORTEST_FALL)
     }
 
     /**
-     * Whether the ground under this is lit right now — the last of the warning and the whole of the fall.
+     * How strongly the violet is cast over this place — nought before, one through, and fading at each end.
      *
-     * Asked by the client as well as the server, and it is a pure function of the entity's own clock, so
-     * neither has to be told: [tickCount] is ticked on both sides.
+     * **Up for the whole of the storm rather than the last of the warning** (Jonah, walked). It was ten
+     * seconds of ground light at the end, which over a disc this wide read as a spotlight on somewhere
+     * else; what it is now is the place turning violet while the storm is over it, which is a warning you
+     * cannot miss and cannot mistake for anything.
+     *
+     * A pure function of the entity's own clock, so neither side has to be told: [tickCount] ticks on both.
      */
-    fun lighting(): Boolean = tickCount >= APPROACHING - LIGHTING_UP
+    fun castStrength(): Float {
+        if (tickCount < WELLING_UP) return tickCount.toFloat() / WELLING_UP
+        val ends = APPROACHING + falling + LINGERING
+        if (tickCount > ends - LINGERING) return ((ends - tickCount).toFloat() / LINGERING).coerceAtLeast(NONE_OF_IT)
+        return ALL_OF_IT
+    }
 
     /** How far through its approach this is, nought to one — what a sky animation is drawn from. */
     fun approachedBy(partial: Float): Float =
@@ -72,74 +89,14 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         super.tick()
         val level = level()
         if (level !is ServerLevel) return
-        if (tickCount > APPROACHING + falling) {
+        // Outlives its last body by [LINGERING], which is the violet fading out rather than being switched
+        // off — and it is why the storm is what holds the clock: nothing else knows the shower has ended.
+        if (tickCount > APPROACHING + falling + LINGERING) {
             discard()
             return
         }
-        // **Lit from the last of the warning right through the fall** (Jonah), and re-laid as it goes:
-        // the bodies blow the markers up along with everything else, and a light that goes out halfway
-        // through the pounding is worse than one that was never there.
-        if (tickCount >= APPROACHING - LIGHTING_UP && tickCount % RELIGHTING == NOW) lightTheGround(level)
         if (tickCount <= APPROACHING) return
         dropSome(level)
-    }
-
-    /**
-     * Light blocks over the ground this is about to hit, so a player can see where not to stand.
-     *
-     * **Placed on the surface rather than in the air**, so what is lit is the ground itself: an invisible
-     * lamp hanging at the storm's own height would light nothing anybody is standing on.
-     */
-    private fun lightTheGround(level: ServerLevel) {
-        forEachMarker { at ->
-            val ground = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, at)
-            if (!level.getBlockState(ground).isAir) return@forEachMarker
-            level.setBlockAndUpdate(ground, Blocks.LIGHT.defaultBlockState())
-        }
-    }
-
-    /**
-     * And take them away when the storm is over.
-     *
-     * **On removal, whatever the reason** — a storm that runs its course puts its own lights out, and one
-     * that goes with an unloading chunk would otherwise leave them burning for ever. A light block is
-     * invisible and replaceable, so a stray one is untidy rather than harmful — but a hazard marker that
-     * outlives the hazard is a lie, which is worse.
-     */
-    private fun putTheLightsOut(level: ServerLevel) {
-        forEachMarker { at ->
-            val ground = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, at).below()
-            for (near in listOf(ground, ground.above(), ground.above(TWO))) {
-                if (level.getBlockState(near).`is`(Blocks.LIGHT)) level.removeBlock(near, false)
-            }
-        }
-    }
-
-    /**
-     * Where the markers go — **across the whole disc, not round its edge**.
-     *
-     * A ring of a dozen lights over ground fifty-six blocks across lit almost nothing, and a walk could
-     * not make it out at all (Jonah, 2026-09-06). A lattice inside the disc is what actually lights the
-     * area, which is the entire point of the thing being in the player's favour.
-     */
-    private fun forEachMarker(visit: (BlockPos) -> Unit) {
-        var awayX = -REACH.toInt()
-        while (awayX <= REACH) {
-            var awayZ = -REACH.toInt()
-            while (awayZ <= REACH) {
-                if (awayX * awayX + awayZ * awayZ <= REACH * REACH) {
-                    visit(BlockPos.containing(x + awayX, y, z + awayZ))
-                }
-                awayZ += MARKERS_APART
-            }
-            awayX += MARKERS_APART
-        }
-    }
-
-    override fun remove(reason: RemovalReason) {
-        val level = level()
-        if (level is ServerLevel) putTheLightsOut(level)
-        super.remove(reason)
     }
 
     /** What body [number] of this storm does — the one answer a client works out for itself as well. */
@@ -223,6 +180,8 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
     companion object {
         private val BODIES: EntityDataAccessor<Int> =
             SynchedEntityData.defineId(MeteorStorm::class.java, EntityDataSerializers.INT)
+        private val FALLING: EntityDataAccessor<Int> =
+            SynchedEntityData.defineId(MeteorStorm::class.java, EntityDataSerializers.INT)
 
         /**
          * How long it hangs in the sky before anything falls, in ticks — **thirty seconds** (Jonah).
@@ -234,14 +193,15 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         const val APPROACHING = 600
 
         /**
-         * How long before it falls the ground under it is lit, in ticks — the last ten seconds.
+         * How long the violet takes to come up at the start, and to go out after the last body, in ticks.
          *
          * **A cheap trick, and deliberately in the player's favour** (Jonah): the sky says a storm is
-         * coming and roughly where, and this says *exactly* where not to stand. Light rather than a marker
-         * because it costs nothing to understand — ground that is suddenly lit at night is a thing
-         * anybody reads without being taught it.
+         * coming and roughly where, and the cast says *exactly* where you are standing. Light rather than
+         * a marker because it costs nothing to understand — a place that turns violet is a thing anybody
+         * reads without being taught it.
          */
-        const val LIGHTING_UP = 200
+        const val WELLING_UP = 60
+        const val LINGERING = 60
 
         /**
          * How wide the pounding is.
@@ -258,19 +218,6 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         const val SHORTEST_FALL = 200
         const val LONGEST_FALL = 300
 
-        /**
-         * How far apart the ground markers are laid, in blocks.
-         *
-         * A spacing rather than a count across the disc, so widening [REACH] lights more ground instead of
-         * lighting the same ground more thinly — which is what the old count would have done.
-         */
-        private const val MARKERS_APART = 8
-
-        /** How often the markers are laid again, since the bodies keep blowing them up. */
-        private const val RELIGHTING = 40
-        private const val TWO = 2
-
-        private const val NOW = 0
         private const val FEW = 4
 
         /**
@@ -292,10 +239,10 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
          *
          * **Far beyond anything that renders, which is the illusion the whole telegraph rests on.** A
          * shower has to look like it is arriving from somewhere else, and at this range the whole disc the
-         * bodies are aimed at is under two degrees of sky — so they start as one light and come apart as
-         * they close, with no animation saying so.
+         * bodies are aimed at is about half a degree of sky — a moon's width for the lot of them — so they
+         * start as one light and come apart as they close, with no animation saying so.
          */
-        const val TELEGRAPHED_FROM = 4500.0
+        const val TELEGRAPHED_FROM = 12000.0
 
         /** Doubled off a walk: a body should streak rather than sail. */
         private const val SLOWEST_ARRIVAL = 7.2

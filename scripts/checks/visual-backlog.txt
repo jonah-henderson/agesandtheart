@@ -321,16 +321,32 @@
 # out until the real bodies take over. Violet-blue on purpose -- everything else the pack burns is red or
 # orange, so this reads as a different KIND of thing.
 #
-# **And the ground is lit** from the last ten seconds of the warning right through the fall, in VIOLET.
-# Two halves, because Minecraft's light has no colour at all: real light blocks do the brightness (and are
-# re-laid as the bodies blow them up), and an environment layer tints the block light violet near a storm.
-# Verified headlessly: 6 markers still lit deep into the fall, with 33 bodies in the air.
+# **AND THE WHOLE PLACE TURNS VIOLET** while a storm is over it -- everything in view, like a darkroom's
+# red light. Wells up over three seconds as the storm arrives, holds through the telegraph AND the fall,
+# and fades three seconds after the last body lands. There are no light blocks any more: the ambient floor
+# does the brightness, which costs nothing, fades smoothly and cannot be left burning by an unloading
+# chunk. All four of the lightmap's colours go violet (ambient, sky, block-light tint AND night vision --
+# the last is why night vision defeated the old version) and sky light is held down so a bright day cannot
+# sum its way back to white.
 #
 # **IMPACTS ARE NOW 2.5 AT REST AND 11 AT FULL FURY**, after a walk at half fury under the old numbers
 # ("way too much, but it was super cool"). A bit under a creeper ordinarily; the old middle is the new
 # ceiling and wants an Age broken enough to buy the whole manifestation.
 #
-# WHAT THE FOURTH PASS CHANGED, all of it unwalked:
+# WHAT THE FIFTH PASS CHANGED, all of it unwalked:
+#   - **EVERY BODY IS NOW IN THE SKY FOR ITS WHOLE APPROACH.** The old cap drew the first fourteen it
+#     found, so on a long storm the rest appeared from nowhere at nine tenths of their size the moment a
+#     slot freed -- which is exactly what a walk reported. `SkyCanvas.drawGlows` puts a hundred in one
+#     submission; the cap only existed because a glow cost a render pass apiece.
+#   - **THE ORIGIN IS ONE LIGHT.** Measured at 0.6 degrees of sky for fourteen bodies -- about a moon's
+#     width for the whole cluster -- opening to 0.9 halfway and ~35 at the arrival.
+#   - **THE VIOLET CAST**, described above, replacing the ground markers entirely.
+#   - The cast carries 160 blocks whole and is gone by 224, which is past a default render distance, so
+#     nothing untouched is left standing in view. THE IMPACTS DID NOT WIDEN -- they are still a 128-block
+#     disc. If the pounding should cover what the cast covers, that is `MeteorStorm.REACH` and it wants
+#     more bodies with it or the shower goes thin.
+#
+# WHAT THE FOURTH PASS CHANGED, also unwalked:
 #   - **THE LIGHTS ARE ANCHORED TO THE STORM.** They used to be hung on a bearing alone, so every storm's
 #     telegraph appeared in the same part of the sky wherever the storm actually was -- which is why
 #     `look` sent you staring at empty sky. A light is now a real point on its body's own entry line,

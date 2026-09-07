@@ -3,6 +3,7 @@ package co.voik.agesandtheart.client
 import co.voik.agesandtheart.age.phenomena.MeteorStorm
 import co.voik.ephemeris.Rgba
 import co.voik.ephemeris.client.Blaze3dSkyCanvas
+import co.voik.ephemeris.client.Glow
 import co.voik.ephemeris.client.LevelRendering
 import co.voik.ephemeris.client.SkyMoment
 import net.minecraft.world.phys.Vec3
@@ -40,29 +41,31 @@ object MeteorSky {
     }
 
     private fun draw(moment: SkyMoment) {
+        val lights = mutableListOf<Glow>()
         for (entity in moment.level.entitiesForRendering()) {
             val storm = entity as? MeteorStorm ?: continue
-            drawWhatIsStillToCome(storm, moment.camera.position())
+            gatherWhatIsStillToCome(storm, moment.camera.position(), lights)
         }
+        Blaze3dSkyCanvas.drawGlows(lights)
     }
 
     /**
      * Every body of this storm that has not fallen yet and is near enough its moment to be showing.
      *
-     * **Capped at the nearest few in time**, which is what keeps a shower of a hundred bodies from being a
-     * hundred quads: the ones further off would be a pixel apiece and indistinguishable from the stars.
+     * **Uncapped, and that is a correctness matter rather than a budget one** (Jonah, walked). This used to
+     * draw the first fourteen it found, because a glow cost a render pass apiece — but the ones it left out
+     * were still approaching, so each appeared from nowhere at nine tenths of its size the moment a slot
+     * freed. A long storm is a hundred bodies and every one has to be in the sky for its whole approach or
+     * the sky and the ground are telling different stories. `drawGlows` puts the lot in one submission.
      */
-    private fun drawWhatIsStillToCome(storm: MeteorStorm, eye: Vec3) {
-        var showing = 0
+    private fun gatherWhatIsStillToCome(storm: MeteorStorm, eye: Vec3, into: MutableList<Glow>) {
         for (number in 0..<storm.bodies) {
-            if (showing >= MOST_AT_ONCE) return
             val flight = storm.flightOf(number)
             val until = flight.fallsAt - storm.tickCount
             if (until <= NONE_LEFT) continue
             if (until > SEEN_COMING) continue
-            showing++
             val nearness = ONE_WHOLE - until.toFloat() / SEEN_COMING
-            drawOne(storm.seenFrom(flight, nearness).subtract(eye), nearness)
+            into += lightFor(storm.seenFrom(flight, nearness).subtract(eye), nearness)
         }
     }
 
@@ -79,7 +82,7 @@ object MeteorSky {
      * blocks out to begin with, where that whole disc is a couple of degrees; they come apart as they
      * close, on nothing but the geometry, and no animation says so.
      */
-    private fun drawOne(awayFromTheEye: Vec3, nearness: Float) {
+    private fun lightFor(awayFromTheEye: Vec3, nearness: Float): Glow {
         val aim = Quaternionf().rotateTo(
             UP_X,
             UP_Y,
@@ -88,7 +91,7 @@ object MeteorSky {
             awayFromTheEye.y.toFloat(),
             awayFromTheEye.z.toFloat(),
         )
-        Blaze3dSkyCanvas.drawGlow(
+        return Glow(
             orientation = aim,
             distance = FAR_OFF,
             // Squared, so most of the growth is at the end: a light swelling evenly would read as being
@@ -103,9 +106,6 @@ object MeteorSky {
 
     /** How long before its own fall a body's light appears, in ticks — the thirty-second warning. */
     private const val SEEN_COMING = MeteorStorm.APPROACHING
-
-    /** Enough to read as a shower, few enough to tell apart. */
-    private const val MOST_AT_ONCE = 14
 
     /**
      * **A star, growing to about two of them** (Jonah, walked), and measured rather than judged: vanilla
