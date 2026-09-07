@@ -246,6 +246,16 @@ object AgeCommand {
 
     private const val LOOK_LITERAL = "look"
 
+    /**
+     * How steeply a storm may be asked to come in, in degrees off the horizontal.
+     *
+     * Wider than the ten to forty-five a storm draws for itself, deliberately: this is the instrument for
+     * judging whether that range is the right one, and it cannot answer that from inside it.
+     */
+    private const val DEGREES_ARGUMENT = "degrees"
+    private const val SHALLOWEST_SLANT = 1
+    private const val STEEPEST_SLANT = 89
+
     /** Which body's light `look` turns you to, and how far along its approach that light is. */
     private const val FIRST_BODY = 0
     private const val JUST_SIGHTED = 0.0f
@@ -1177,17 +1187,21 @@ object AgeCommand {
      * `look` turns you to face it, which sounds like a convenience and is closer to the point: the
      * telegraph is *directional*, so a debug command that leaves you hunting the sky for it cannot show
      * you the thing it was written to show.
+     *
+     * `degrees` forces the angle a storm would otherwise draw for itself, which is the only way to put its
+     * shallow and steep ends beside each other rather than waiting for the draw to offer them.
      */
     private fun meteorsSubcommand(): LiteralArgumentBuilder<CommandSourceStack> {
         fun gathering(look: Boolean) = { context: CommandContext<CommandSourceStack> ->
-            runMeteors(context, DEFAULT_STORM_DISTANCE, null, NO_FURY, look)
+            runMeteors(context, DEFAULT_STORM_DISTANCE, null, NO_FURY, null, look)
         }
-        fun withFury(look: Boolean) = { context: CommandContext<CommandSourceStack> ->
+        fun withFury(slanted: Boolean, look: Boolean) = { context: CommandContext<CommandSourceStack> ->
             runMeteors(
                 context,
                 IntegerArgumentType.getInteger(context, DISTANCE_ARGUMENT),
                 IntegerArgumentType.getInteger(context, SECONDS_ARGUMENT),
                 IntegerArgumentType.getInteger(context, FURY_ARGUMENT),
+                if (slanted) IntegerArgumentType.getInteger(context, DEGREES_ARGUMENT) else null,
                 look,
             )
         }
@@ -1198,8 +1212,19 @@ object AgeCommand {
                 Commands.argument(DISTANCE_ARGUMENT, IntegerArgumentType.integer(0, MAX_STORM_DISTANCE)).then(
                     Commands.argument(SECONDS_ARGUMENT, IntegerArgumentType.integer(1, MOST_SANDFALL_SECONDS)).then(
                         Commands.argument(FURY_ARGUMENT, IntegerArgumentType.integer(0, ALL_FURY.toInt()))
-                            .executes(withFury(false))
-                            .then(Commands.literal(LOOK_LITERAL).executes(withFury(true))),
+                            .executes(withFury(slanted = false, look = false))
+                            .then(Commands.literal(LOOK_LITERAL).executes(withFury(slanted = false, look = true)))
+                            .then(
+                                Commands.argument(
+                                    DEGREES_ARGUMENT,
+                                    IntegerArgumentType.integer(SHALLOWEST_SLANT, STEEPEST_SLANT),
+                                )
+                                    .executes(withFury(slanted = true, look = false))
+                                    .then(
+                                        Commands.literal(LOOK_LITERAL)
+                                            .executes(withFury(slanted = true, look = true)),
+                                    ),
+                            ),
                     ),
                 ),
             )
@@ -1216,6 +1241,7 @@ object AgeCommand {
         distance: Int,
         seconds: Int?,
         furyPercent: Int,
+        degrees: Int?,
         look: Boolean,
     ): Int {
         val source = context.source
@@ -1225,7 +1251,8 @@ object AgeCommand {
         val middle = BlockPos.containing(ahead.x, source.position.y, ahead.z)
         val where = Vec3.atBottomCenterOf(source.level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, middle))
         val falling = seconds?.times(TICKS_PER_SECOND) ?: MeteorStorm.SHORTEST_FALL
-        val storm = MeteorStorm.gatherAt(source.level, where, falling / STORM_EVERY, falling, fury)
+        val slant = degrees?.let { Math.toRadians(it.toDouble()) }
+        val storm = MeteorStorm.gatherAt(source.level, where, falling / STORM_EVERY, falling, fury, slant)
         // Turned to the *light*, which is thousands of blocks out along the storm's entry line and nowhere
         // near the storm itself. Facing the storm left a walk staring at empty sky (Jonah, walked).
         if (look) {

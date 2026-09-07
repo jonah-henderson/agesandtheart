@@ -43,7 +43,14 @@ data class MeteorFlight(
          * [spread] is how many ticks the whole fall runs over and [count] how many bodies it drops, which
          * together space them evenly; the jitter on top of that is what stops the shower being a metronome.
          */
-        fun of(storm: Long, number: Int, count: Int, spread: Int, startingAt: Int): MeteorFlight {
+        fun of(
+            storm: Long,
+            number: Int,
+            count: Int,
+            spread: Int,
+            startingAt: Int,
+            steepness: Double,
+        ): MeteorFlight {
             val evenly = if (count <= ONE) NONE else number.toDouble() / (count - ONE)
             val jitter = mixed(storm, number, WHEN_SALT)
             val fallsAt = startingAt + (evenly * spread + (jitter - HALF) * WANDER).toInt()
@@ -54,7 +61,7 @@ data class MeteorFlight(
             return MeteorFlight(
                 fallsAt = fallsAt.coerceAtLeast(startingAt),
                 comingFrom = bearingOf(storm) + (mixed(storm, number, BEARING_SALT) - HALF) * FANS_OUT,
-                entryAngle = angleOf(storm) + (mixed(storm, number, ANGLE_SALT) - HALF) * FANS_OUT,
+                entryAngle = steepness + (mixed(storm, number, ANGLE_SALT) - HALF) * FANS_OUT,
                 landsAwayX = cos(round) * away,
                 landsAwayZ = sin(round) * away,
             )
@@ -71,7 +78,12 @@ data class MeteorFlight(
          */
         fun bearingOf(storm: Long): Double = mixed(storm, WHOLE_STORM, STORM_BEARING_SALT) * FULL_TURN
 
-        /** And the angle it comes in at, ten to forty-five degrees off the horizontal. */
+        /**
+         * And the angle it comes in at, ten to forty-five degrees off the horizontal.
+         *
+         * Drawn once when a storm gathers and then carried by it, rather than worked out here on demand,
+         * because a storm somebody asked for at a named angle has to be able to say so.
+         */
         fun angleOf(storm: Long): Double =
             SHALLOWEST + mixed(storm, WHOLE_STORM, STORM_ANGLE_SALT) * (STEEPEST - SHALLOWEST)
 

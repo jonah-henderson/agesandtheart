@@ -311,8 +311,12 @@
 # in the right Age, close enough to see and facing the right way, is minutes a look:
 /age meteors look
 /age meteors 60 12 100 look
-#     -- distance, seconds of falling, fury 0-100, and `look` turns you to face it. The telegraph is
-#     DIRECTIONAL, so without `look` you spend the thirty seconds hunting the sky for it.
+/age meteors 60 15 0 10 look
+/age meteors 60 15 0 45 look
+#     -- distance, seconds of falling, fury 0-100, optional ANGLE in degrees off the horizontal, and
+#     `look` turns you to face it. The telegraph is DIRECTIONAL, so without `look` you spend the thirty
+#     seconds hunting the sky for it. The last two are the shallow and steep ends of the range a storm
+#     draws for itself; the argument itself takes 1-89, so the range can be judged from outside it.
 #
 # **THE TELEGRAPH IS BUILT AND HAS NEVER BEEN SEEN WORKING.** Thirty seconds of it, and it is the half of
 # the mechanic that cannot be checked headlessly at all -- it is drawn, so only a walk can say. What should
@@ -338,8 +342,13 @@
 #     45 blocks over the ground it aimed at, which steepened every arrival: 10 degrees drawn came in at
 #     26. A storm sits ON the surface now (nothing collides with it or draws it), so the entry angle is
 #     the one the telegraph showed -- measured 10.0/27.0/45.0 against 10/27/45.
-#   - **AND ON THE SPEED.** The light's range now closes on a curve rather than a ramp, so it is doing
-#     9.6 blocks a tick at the handover instead of 20, against the rock's 7.2-12.
+#   - **AND ON THE SPEED -- BY SPEEDING THE ROCK UP, NOT SLOWING THE LIGHT DOWN** (Jonah, walked twice).
+#     The light closes evenly at 19.75 blocks a tick and the rock now LEAVES at exactly that, up to 27.65
+#     at full fury. Derived from the telegraph rather than written beside it, so moving either cannot put
+#     them out of step again. A flight is 7.6 ticks now, and the streak is 51 blocks long.
+#     WORTH WATCHING FOR: entity TRACKING is clamped to the player's view distance, so a body thrown from
+#     the far side of the disc may not be tracked for the first few of those 7.6 ticks. If streaks look
+#     truncated, `MeteorStorm.ENTRY_RANGE` is the lever -- throw them from closer in.
 #   - **METEORS NO LONGER HANG IN UNLOADED CHUNKS.** Measured against the WORLD clock, not their own: a
 #     body more than 80 ticks old comes straight down where it is and craters. So walking away and back
 #     finds the storm has been and gone rather than resuming in slow motion.

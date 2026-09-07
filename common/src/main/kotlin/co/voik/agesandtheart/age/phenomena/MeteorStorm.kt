@@ -59,9 +59,21 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
     /** How fast the bodies come in, and so how hard they land. */
     var fury: Double = ORDINARY_FURY
 
+    /**
+     * How steeply this storm's bodies come in, in radians off the horizontal.
+     *
+     * Watched, because the sky draws the approach from it and the ground throws along it. Carried rather
+     * than worked out from the storm's identity so that a storm can be *asked* for at a named angle —
+     * which is the only way to look at the shallow and the steep ends of the range side by side.
+     */
+    var slant: Float
+        get() = entityData.get(SLANT)
+        set(value) = entityData.set(SLANT, value)
+
     override fun defineSynchedData(builder: SynchedEntityData.Builder) {
         builder.define(BODIES, FEW)
         builder.define(FALLING, SHORTEST_FALL)
+        builder.define(SLANT, MeteorFlight.angleOf(uuid.leastSignificantBits).toFloat())
     }
 
     /**
@@ -108,15 +120,20 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
      * bodies, so that was the lights lagging (Jonah, walked).
      */
     fun flightOf(number: Int): MeteorFlight {
-        if (flights.size != bodies || flightsSpanned != falling) {
+        if (flights.size != bodies || flightsSpanned != falling || flightsSlanted != slant) {
             flightsSpanned = falling
-            flights = List(bodies) { MeteorFlight.of(uuid.leastSignificantBits, it, bodies, falling, APPROACHING) }
+            flightsSlanted = slant
+            val steepness = slant.toDouble()
+            flights = List(bodies) {
+                MeteorFlight.of(uuid.leastSignificantBits, it, bodies, falling, APPROACHING, steepness)
+            }
         }
         return flights[number]
     }
 
     private var flights: List<MeteorFlight> = emptyList()
     private var flightsSpanned = NOT_YET
+    private var flightsSlanted = Float.NaN
 
     /**
      * Where a body's light hangs, [nearness] of the way from first sighting to its own fall.
@@ -126,20 +143,18 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
      * storm rather than wherever the viewer happens to be facing, what makes the lights swing as the
      * bodies bear down, and what lets them start as one point and come apart on their own.
      *
-     * **It closes on a curve rather than evenly**, so that the light is moving at about the speed of the
-     * rock at the instant one becomes the other. A straight ramp from twelve thousand blocks to a hundred
-     * and fifty over thirty seconds arrives doing twenty blocks a tick, which is twice what the body then
-     * does — so a light that had been bearing down on you handed over to something visibly dawdling
-     * (Jonah, walked). Slowing the last of the approach also holds the lights further out for longer,
-     * which tightens the sighting.
+     * **It closes evenly, and the rock is what matches** ([CLOSING_IN]). The two were briefly reconciled
+     * the other way round, by easing the last of the approach down to the body's speed — which agreed, and
+     * agreed on the slower of the two: a light that had been bearing down on you handed over to something
+     * dawdling. What a watcher has been promised for thirty seconds is the light's own speed, so that is
+     * the one that stands.
      *
      * Asked by the sky that draws the light and by the command that turns you to face it, so those two
      * cannot disagree about where it is.
      */
     fun seenFrom(flight: MeteorFlight, nearness: Float): Vec3 {
         val stillToCome = (ALL_OF_IT - nearness).toDouble()
-        val range = ENTRY_RANGE + CLOSES_AT * stillToCome + (TELEGRAPHED_FROM - ENTRY_RANGE - CLOSES_AT) *
-            stillToCome * stillToCome
+        val range = ENTRY_RANGE + (TELEGRAPHED_FROM - ENTRY_RANGE) * stillToCome
         val (offsetX, offsetY, offsetZ) = flight.entryOffset(range)
         return Vec3(x + flight.landsAwayX + offsetX, y + offsetY, z + flight.landsAwayZ + offsetZ)
     }
@@ -193,12 +208,14 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         output.putInt(FALLING_KEY, falling)
         output.putDouble(FURY_KEY, fury)
         output.putInt(BODIES_KEY, bodies)
+        output.putFloat(SLANT_KEY, slant)
     }
 
     override fun readAdditionalSaveData(input: ValueInput) {
         falling = input.getIntOr(FALLING_KEY, SHORTEST_FALL)
         fury = input.getDoubleOr(FURY_KEY, ORDINARY_FURY)
         bodies = input.getIntOr(BODIES_KEY, FEW)
+        slant = input.getFloatOr(SLANT_KEY, MeteorFlight.angleOf(uuid.leastSignificantBits).toFloat())
     }
 
     companion object {
@@ -206,6 +223,8 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
             SynchedEntityData.defineId(MeteorStorm::class.java, EntityDataSerializers.INT)
         private val FALLING: EntityDataAccessor<Int> =
             SynchedEntityData.defineId(MeteorStorm::class.java, EntityDataSerializers.INT)
+        private val SLANT: EntityDataAccessor<Float> =
+            SynchedEntityData.defineId(MeteorStorm::class.java, EntityDataSerializers.FLOAT)
 
         /**
          * How long it hangs in the sky before anything falls, in ticks — **thirty seconds** (Jonah).
@@ -287,17 +306,24 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
          */
         const val TELEGRAPHED_FROM = 12000.0
 
-        /** Doubled off a walk: a body should streak rather than sail. */
-        private const val SLOWEST_ARRIVAL = 7.2
-        private const val FASTEST_ARRIVAL = 12.0
-
         /**
-         * How far a light still has to close in its last tick of approach, so it hands over to a rock
-         * moving at about the same speed. The middle of the arrival speeds, times the whole telegraph.
+         * How fast a light closes, in blocks a tick — the whole approach over the whole telegraph.
+         *
+         * **And therefore how fast the rock comes in.** The handover is the one moment the two are the
+         * same object, so the body leaves at exactly the speed the light arrived at and a fierce Age
+         * throws them faster still. Derived rather than written down, so that moving the telegraph or the
+         * range it is watched from cannot quietly put them out of step again (Jonah, walked twice).
          */
-        private const val CLOSES_AT = (SLOWEST_ARRIVAL + FASTEST_ARRIVAL) / 2.0 * APPROACHING
+        const val CLOSING_IN = (TELEGRAPHED_FROM - ENTRY_RANGE) / APPROACHING
+
+        /** What being fierce adds on top of that. */
+        private const val HARDER_STILL = 1.4
+
+        private const val SLOWEST_ARRIVAL = CLOSING_IN
+        private const val FASTEST_ARRIVAL = CLOSING_IN * HARDER_STILL
 
         private const val FALLING_KEY = "falling"
+        private const val SLANT_KEY = "slant"
         private const val FURY_KEY = "fury"
         private const val BODIES_KEY = "bodies"
 
@@ -312,12 +338,20 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         val ID: Identifier = "meteor_storm".location()
 
         /** Stand one up at [where], to approach and then fall. */
-        fun gatherAt(level: ServerLevel, where: Vec3, bodies: Int, falling: Int, fury: Double): MeteorStorm {
+        fun gatherAt(
+            level: ServerLevel,
+            where: Vec3,
+            bodies: Int,
+            falling: Int,
+            fury: Double,
+            slant: Double? = null,
+        ): MeteorStorm {
             val storm = MeteorStorm(AgeContent.METEOR_STORM, level)
             storm.setPos(where.x, where.y, where.z)
             storm.bodies = bodies
             storm.falling = falling
             storm.fury = fury
+            if (slant != null) storm.slant = slant.toFloat()
             level.addFreshEntity(storm)
             return storm
         }
