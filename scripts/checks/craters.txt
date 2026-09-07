@@ -1,0 +1,34 @@
+# Do a meteoric Age's old craters generate, and do they cost anything?
+# Run with: scripts/drive-server.sh scripts/checks/craters.txt
+#
+# THIS ASSERTS NOTHING -- read the output. What it is protecting is a *walk*: an ImpactCrater that
+# throws inside worldgen, or a Craters wiring that never selects the feature, both look identical from
+# inside the game (an Age with no craters in it), and finding that out on foot costs half an hour.
+#
+# So: generate a lot of chunks of a meteoric Age and watch for two things.
+#   1. NO stack traces mentioning ImpactCrater. A feature that throws is caught per-chunk and logged.
+#   2. NO "Detected setBlock in a far chunk" -- that is the chunk pyramid's write radius being exceeded,
+#      which would mean the WHOLE_CRATER arithmetic is wrong and craters have bites out of them.
+#
+# MEASURED 2026-09-07: unpocked 78.08 ms/chunk, pocked 79.51, hammered 77.69. Craters cost NOTHING
+# measurable -- the Age with twice as many of them came out fastest, so the whole spread is noise. The
+# carve is a few thousand columns three or four times in a hundred chunks, against a generator already
+# doing far more than that per chunk. If a later run shows craters costing real time, something is wrong.
+
+# The Age that wears them. Ordinary rung, so this is the common case rather than the loud one.
+age write pocked 4242 meteors phenomena age
+age gen pocked
+age bench pocked 6
+
+# The control: the SAME sentence the repair gave `pocked`, with the phenomenon taken out and nothing
+# else touched, so any difference in the numbers is the craters and not the terrain. A bare `age` is
+# not a sentence the Art will take, which is why this is spelled out in full.
+age write unpocked 4242 worn landmass drowned sea riddled rock underground verdant biomes surface grass leaves features spawns overcast sky clouds starless stars aurora rainbow sun moon air waters weather untouched structures temperate climate age
+age gen unpocked
+age bench unpocked 6
+
+# And a teeming one, which buys craters more often -- the rarity divides by the rung, so this should be
+# visibly more pocked than `pocked` and is the fastest way to see the shape of one at all.
+age write hammered 4242 teeming meteors phenomena age
+age gen hammered
+age bench hammered 6

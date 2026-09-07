@@ -1,0 +1,13 @@
+{
+  "_comment": "Drops itself, which is the whole of what makes a shard placeable rather than a growth to harvest.",
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1.0,
+      "bonus_rolls": 0.0,
+      "entries": [{ "type": "minecraft:item", "name": "agesandtheart:astrite_shard" }],
+      "conditions": [{ "condition": "minecraft:survives_explosion" }]
+    }
+  ],
+  "random_sequence": "agesandtheart:blocks/astrite_shard"
+}

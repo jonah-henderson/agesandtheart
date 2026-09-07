@@ -32,5 +32,9 @@ object AgeTints {
             listOf(BlockTintSources.constant(AgeContent.RIME_CRYSTAL_TINT)),
             AgeContent.RIME_CRYSTAL_BLOCK,
         )
+        registrar(
+            listOf(BlockTintSources.constant(AgeContent.ASTRITE_TINT)),
+            AgeContent.ASTRITE_SHARD_BLOCK,
+        )
     }
 }

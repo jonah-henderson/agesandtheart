@@ -1,6 +1,7 @@
 {
   "block.agesandtheart.analysis_machine": "D'ni Analysis Machine",
   "block.agesandtheart.astrite_block": "Block of Astrite",
+  "block.agesandtheart.astrite_shard": "Astrite Shard",
   "block.agesandtheart.deepslate_pitchstone_ore": "Deepslate Deretheni Ore",
   "block.agesandtheart.fine_ink": "Fine Ink",
   "block.agesandtheart.geologists_tools": "Geologist's Tools",
@@ -78,6 +79,8 @@
   "container.agesandtheart.writers_desk.write_costs": "Write a page — %s bottles of %s",
   "container.agesandtheart.writers_desk.write_short": "Needs %s bottles of %s",
   "container.agesandtheart.writers_desk.write_unpriced": "Write a page",
+  "death.attack.astrite_shard": "%1$s was cut open on a shard of astrite",
+  "death.attack.astrite_shard.player": "%1$s was cut open on a shard of astrite while fighting %2$s",
   "device.agesandtheart.already_known": "You already know the word for %s",
   "device.agesandtheart.analysis_machine.hint": "Use a block or a bucket on it to begin a study",
   "device.agesandtheart.analysis_machine.started": "The machine begins grinding the sample down",

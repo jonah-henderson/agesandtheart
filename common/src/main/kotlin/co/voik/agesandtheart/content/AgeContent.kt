@@ -84,6 +84,7 @@ import co.voik.agesandtheart.worldgen.feature.Formation
 import co.voik.agesandtheart.worldgen.feature.RimeCrystal
 import co.voik.agesandtheart.worldgen.feature.SpilledSpring
 import co.voik.agesandtheart.worldgen.feature.TemperedGround
+import co.voik.agesandtheart.worldgen.feature.ImpactCrater
 import co.voik.agesandtheart.worldgen.feature.VolcanoVents
 import net.minecraft.world.level.levelgen.feature.Feature
 import net.minecraft.world.level.levelgen.carver.WorldCarver
@@ -399,9 +400,31 @@ object AgeContent {
      * not grow here and it was not written here, it arrived. A body that is caught rather than shattered
      * keeps the metal, and breaking the body open is what yields this.
      */
-    val ASTRITE_SHARD: Item = Item(
+    val ASTRITE_SHARD_BLOCK: AstriteShardBlock = AstriteShardBlock(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, ASTRITE_SHARD_ID))
+            .mapColor(MapColor.COLOR_PURPLE)
+            .forceSolidOn()
+            .noOcclusion()
+            .sound(SoundType.AMETHYST_CLUSTER)
+            .strength(SHARD_STRENGTH),
+    )
+
+    /**
+     * **A `BlockItem`, so a shard is set down as readily as it is carried.** Amethyst splits the two —
+     * the cluster is a block and the shard it drops is not — but a shard of astrite is one object that
+     * happens to be sharp, and a player who has collected a pile of them should be able to build with it.
+     */
+    val ASTRITE_SHARD: Item = BlockItem(
+        ASTRITE_SHARD_BLOCK,
         Item.Properties().setId(ResourceKey.create(Registries.ITEM, ASTRITE_SHARD_ID)),
     )
+
+    /** A cluster's, which is what it is: brittle, and no tier asked for. */
+    private const val SHARD_STRENGTH = 1.5f
+
+    /** The pack's violet over vanilla's amethyst texture, on the same terms as [RIME_CRYSTAL_TINT]. */
+    const val ASTRITE_TINT = 0x9E72FF
 
     private val ASTRITE_BLOCK_ID: Identifier = "astrite_block".location()
 
@@ -997,6 +1020,7 @@ object AgeContent {
         DEEPSLATE_PITCHSTONE_ORE_ID to DEEPSLATE_PITCHSTONE_ORE_BLOCK,
         PITCHSTONE_BLOCK_ID to PITCHSTONE_BLOCK_BLOCK,
         ASTRITE_BLOCK_ID to ASTRITE_BLOCK_BLOCK,
+        ASTRITE_SHARD_ID to ASTRITE_SHARD_BLOCK,
         RIME_CRYSTAL_ID to RIME_CRYSTAL_BLOCK,
         TEMPERSTONE_ID to TEMPERSTONE_BLOCK,
         SCORCHED_TEMPERSTONE_ID to SCORCHED_TEMPERSTONE_BLOCK,
@@ -1247,5 +1271,6 @@ object AgeContent {
         "rime_crystal".location() to RimeCrystal,
         "tempered_ground".location() to TemperedGround,
         "volcano_vents".location() to VolcanoVents,
+        "impact_crater".location() to ImpactCrater,
     )
 }

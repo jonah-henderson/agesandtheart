@@ -48,6 +48,7 @@ import net.minecraft.world.level.levelgen.NoiseGeneratorSettings
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.reward.EarlyGameRareMaterials
+import co.voik.agesandtheart.age.reward.Craters
 import co.voik.agesandtheart.age.reward.Danger
 import co.voik.agesandtheart.age.reward.Deposits
 import co.voik.agesandtheart.age.aspect.AgeSpawner
@@ -245,18 +246,22 @@ object AgeGeneration {
             // What is placed, which vanilla's own decoration hook takes it — see [Features] for the seam,
             // and what the Age owes its writer laid over the top of it (design §7.7).
             EarlyGameRareMaterials.laidOver(
-                Volcanoes.laidOver(
-                    Deposits.laidOver(
-                        Features.placedIn(
-                            server,
-                            composition.optionsFor(Aspect.FEATURES, 0),
-                            seed,
+                Craters.laidOver(
+                    Volcanoes.laidOver(
+                        Deposits.laidOver(
+                            Features.placedIn(
+                                server,
+                                composition.optionsFor(Aspect.FEATURES, 0),
+                                seed,
+                                fill.blocks.flatten(),
+                            ),
+                            Danger.of(server, recipe),
                             fill.blocks.flatten(),
                         ),
-                        Danger.of(server, recipe),
-                        fill.blocks.flatten(),
+                        composition,
                     ),
                     composition,
+                    seed,
                 ),
                 EarlyGameRareMaterials.grownIn(
                     composition,

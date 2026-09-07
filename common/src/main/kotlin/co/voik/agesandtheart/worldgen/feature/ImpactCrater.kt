@@ -1,0 +1,516 @@
+package co.voik.agesandtheart.worldgen.feature
+
+import co.voik.agesandtheart.content.AgeContent
+import com.mojang.serialization.Codec
+import com.mojang.serialization.codecs.RecordCodecBuilder
+import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
+import net.minecraft.util.RandomSource
+import net.minecraft.world.level.WorldGenLevel
+import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.block.state.properties.BlockStateProperties
+import net.minecraft.world.level.levelgen.Heightmap
+import net.minecraft.world.level.levelgen.feature.Feature
+import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext
+import net.minecraft.world.level.levelgen.feature.configurations.FeatureConfiguration
+import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.atan2
+import kotlin.math.ceil
+import kotlin.math.max
+import kotlin.math.roundToInt
+import kotlin.math.sin
+import kotlin.math.sqrt
+
+/**
+ * An old impact crater, left by a storm that fell long before anybody arrived (design §5.2).
+ *
+ * **The bowl is cut bare and nothing is re-laid** (Jonah, 2026-09-07). Surface rules run at the `SURFACE`
+ * stage, well before any feature, so a carve exposes whatever the Age's rock is underneath — and putting a
+ * surface back would mean guessing at rules that differ per Age. Whatever is there is there, which also
+ * gives the shards the stone they want to stand on rather than turf.
+ *
+ * **Built on the ruined portal's lesson rather than its machinery** (Jonah, 2026-09-07). A ruined portal
+ * avoids looking stamped through three things: a handful of genuinely different variants, a few properties
+ * drawn per instance, and a degradation pass that chews what was placed. Its *mechanism* — NBT templates
+ * run through a `worldgen/processor_list` — cannot be borrowed, because a processor list only runs on
+ * template placement and a template cannot follow the hillside a crater lands on. All three ideas are here
+ * directly instead: [Profile] is the variants, [Struck] is the drawn properties, and [erosionAt] and
+ * [scatterEjecta] are the chewing.
+ *
+ * **Its size is bounded by the chunk pyramid, not by taste.** `ChunkStatus.FEATURES` runs with
+ * `blockStateWriteRadius(1)`, so a feature may only write into the eight chunks around its own — anything
+ * further is dropped on the floor with a log line. From an arbitrary spot in a chunk that guarantees
+ * [FREELY_PLACED] blocks in every direction; from the chunk's *middle* it guarantees [PINNED_REACHES].
+ * So a crater big enough to need it is pinned to the middle, and only those are.
+ */
+object ImpactCrater : Feature<CraterScale>(CraterScale.CODEC) {
+
+    override fun place(context: FeaturePlaceContext<CraterScale>): Boolean {
+        val level = context.level()
+        val random = context.random()
+        val scale = context.config()
+        val drawn = scale.leastReach + random.nextInt(scale.mostReach - scale.leastReach + ONE)
+        // Clamped rather than trusted: a scale asking for more than the chunk pyramid allows would have
+        // its outer blocks silently dropped, which reads as a crater with a bite taken out of it.
+        val reach = drawn.coerceAtMost(PINNED_REACHES)
+        val middle = middleFor(context.origin(), reach)
+        if (submerged(level, middle.x, middle.z)) return false
+        val struck = Struck.drawnBy(random, reach, roomAround(middle, context.origin()))
+        val out = struck.carriesTo()
+        for (awayX in -out..out) {
+            for (awayZ in -out..out) {
+                reshape(level, middle.x + awayX, middle.z + awayZ, struck.offsetAt(awayX, awayZ))
+            }
+        }
+        scatterEjecta(level, middle, struck)
+        seedWithAstrite(level, random, middle, reach, scale.mostShards)
+        return true
+    }
+
+    /**
+     * One column moved by [offset] — cut down into the rock, or built up out of what the column already
+     * had.
+     *
+     * A raised column is filled with the block *under* the surface and capped with the surface block
+     * itself, which is the ejecta being what was thrown out of the hole: the rim of a crater in sand is
+     * sand, and in stone it is stone, with nothing here needing to know which.
+     */
+    private fun reshape(level: WorldGenLevel, x: Int, z: Int, offset: Int) {
+        if (offset == UNMOVED) return
+        if (submerged(level, x, z)) return
+        val surface = groundAt(level, x, z)
+        if (offset < UNMOVED) {
+            for (y in surface + offset + ONE..surface) level.setBlock(BlockPos(x, y, z), AIR, Block.UPDATE_CLIENTS)
+            return
+        }
+        val top = level.getBlockState(BlockPos(x, surface, z))
+        val under = level.getBlockState(BlockPos(x, surface - ONE, z))
+        for (y in surface + ONE..surface + offset) level.setBlock(BlockPos(x, y, z), under, Block.UPDATE_CLIENTS)
+        level.setBlock(BlockPos(x, surface + offset, z), top, Block.UPDATE_CLIENTS)
+    }
+
+    /**
+     * The debris thrown clear of the rim: single blocks and pairs, thinning outward into ordinary country.
+     *
+     * **This is the strongest cue that a crater is not a formula**, and it is the one a ruined portal makes
+     * too — vanilla scatters netherrack round a portal's base for exactly this reason. A rim that simply
+     * stops has an edge; a rim that frays into scattered rock does not.
+     */
+    private fun scatterEjecta(level: WorldGenLevel, middle: BlockPos, struck: Struck) {
+        val out = struck.carriesTo()
+        for (awayX in -out..out) {
+            for (awayZ in -out..out) {
+                val away = sqrt((awayX * awayX + awayZ * awayZ).toDouble())
+                val beyond = struck.beyondTheRim(awayX, awayZ, away) ?: continue
+                if (hashedAt(awayX, awayZ, struck.grain) > struck.ejecta * beyond) continue
+                val x = middle.x + awayX
+                val z = middle.z + awayZ
+                if (submerged(level, x, z)) continue
+                val surface = groundAt(level, x, z)
+                val thrown = level.getBlockState(BlockPos(x, surface - ONE, z))
+                level.setBlock(BlockPos(x, surface + ONE, z), thrown, Block.UPDATE_CLIENTS)
+            }
+        }
+    }
+
+    /**
+     * The shards a crater kept, clustered rather than scattered.
+     *
+     * **Well inside the lip**, because that is where the carve has certainly cut past the soil into rock —
+     * out at the shallow edge it may have taken only the turf, and a shard standing in dirt is the one
+     * thing this was asked not to look like.
+     */
+    private fun seedWithAstrite(
+        level: WorldGenLevel,
+        random: RandomSource,
+        middle: BlockPos,
+        reach: Int,
+        most: Int,
+    ) {
+        val kept = random.nextInt(most + ONE)
+        if (kept == NONE) return
+        val inner = (reach * SHARDS_WITHIN).roundToInt().coerceAtLeast(ONE)
+        val about = BlockPos(middle.x + spread(random, inner), middle.y, middle.z + spread(random, inner))
+        repeat(kept) {
+            val x = about.x + spread(random, TOGETHER)
+            val z = about.z + spread(random, TOGETHER)
+            if (submerged(level, x, z)) return@repeat
+            val standing = BlockPos(x, groundAt(level, x, z) + ONE, z)
+            val shard = AgeContent.ASTRITE_SHARD_BLOCK.defaultBlockState()
+                .setValue(BlockStateProperties.FACING, Direction.UP)
+            if (!shard.canSurvive(level, standing)) return@repeat
+            level.setBlock(standing, shard, Block.UPDATE_CLIENTS)
+        }
+    }
+
+    /**
+     * Where the crater sits, which is where it was asked for unless it is too big to fit there.
+     *
+     * Pinning costs a little scatter and buys seven blocks of reach; only the sizes that cannot be placed
+     * freely pay it, so the common small ones still land wherever the placement put them.
+     */
+    private fun middleFor(origin: BlockPos, reach: Int): BlockPos {
+        if (reach <= FREELY_PLACED) return origin
+        val chunkX = (origin.x shr CHUNK_BITS) shl CHUNK_BITS
+        val chunkZ = (origin.z shr CHUNK_BITS) shl CHUNK_BITS
+        return BlockPos(chunkX + HALF_A_CHUNK, origin.y, chunkZ + HALF_A_CHUNK)
+    }
+
+    /**
+     * How many blocks of writable room this crater's middle has on its tightest side.
+     *
+     * The box is the origin's own chunk and the ring around it, so it runs from sixteen blocks west of
+     * that chunk to thirty-one east. Measured rather than assumed because it is what the debris is clipped
+     * against: the crater proper is sized to fit by construction, and the scatter is simply cut off at the
+     * edge — which is invisible, since it is thinning out there anyway.
+     */
+    private fun roomAround(middle: BlockPos, origin: BlockPos): Int {
+        val chunkX = (origin.x shr CHUNK_BITS) shl CHUNK_BITS
+        val chunkZ = (origin.z shr CHUNK_BITS) shl CHUNK_BITS
+        return minOf(
+            middle.x - (chunkX - CHUNK),
+            (chunkX + CHUNK + CHUNK - ONE) - middle.x,
+            middle.z - (chunkZ - CHUNK),
+            (chunkZ + CHUNK + CHUNK - ONE) - middle.z,
+        )
+    }
+
+    /** The top solid block of a column, which is one below where the heightmap stops. */
+    private fun groundAt(level: WorldGenLevel, x: Int, z: Int): Int =
+        level.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, x, z) - ONE
+
+    /**
+     * Whether this column stands under water.
+     *
+     * Two heightmaps rather than a block read: one counts fluid and the other does not, so their
+     * disagreement *is* the depth. Carving under water would leave an air pocket that nothing floods until
+     * something updates it, so submerged columns are simply left alone and a crater by the shore stops at
+     * the waterline.
+     */
+    private fun submerged(level: WorldGenLevel, x: Int, z: Int): Boolean =
+        level.getHeight(Heightmap.Types.WORLD_SURFACE_WG, x, z) > level.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, x, z)
+
+    private fun spread(random: RandomSource, within: Int): Int = random.nextInt(within * TWICE + ONE) - within
+
+    /**
+     * A number in nought to one for this offset and this crater, the same every time it is asked.
+     *
+     * A hash rather than the feature's own [RandomSource]: the erosion has to be a *function of the place*
+     * so that neighbouring columns can be asked in any order and a re-generated chunk agrees with itself.
+     * Drawing it would make the ragged edge depend on which column happened to be visited first.
+     */
+    private fun hashedAt(awayX: Int, awayZ: Int, grain: Long): Double {
+        var value = awayX * PRIME_ONE + awayZ * PRIME_TWO + grain
+        value = value xor (value ushr 33)
+        value *= PRIME_THREE
+        value = value xor (value ushr 29)
+        return (value ushr SPARE_BITS).toDouble() / KEPT
+    }
+
+    /**
+     * How far this column's own ground wanders off the arithmetic, in blocks.
+     *
+     * **Strongest at the lip and nothing at the floor**, which is what erosion actually does: debris runs
+     * downhill and settles, so a bowl's bottom is the smoothest part of it and its rim is the roughest.
+     * Applied to the shape rather than to the blocks, so the rim is *ragged* rather than *speckled* — a
+     * per-block coin toss reads as damage, and this reads as weather.
+     */
+    private fun erosionAt(awayX: Int, awayZ: Int, atTheRim: Double, struck: Struck): Int {
+        if (atTheRim <= NOTHING) return UNMOVED
+        val wander = hashedAt(awayX, awayZ, struck.grain) - HALF
+        return (wander * TWICE * struck.eroded * atTheRim * struck.reach * WEARS_BY).roundToInt()
+    }
+
+    /**
+     * What a crater is shaped like, which is drawn rather than derived.
+     *
+     * Four profiles that are actually different rather than one formula with a knob, on the ruined
+     * portal's reasoning: ten hand-made variants is what stops a player recognising the shape after the
+     * second one. [PEAKED] is gated on size because a central uplift is a thing only a big strike makes,
+     * which means finding one is finding a big one.
+     */
+    private enum class Profile {
+        /** The plain paraboloid: a hole, and what most of them are. */
+        BOWL,
+
+        /** Wide, shallow and flat-floored — one that has been filling in for a very long time. */
+        SAUCER,
+
+        /** Narrow, deep and steep-walled, with a floor rather than a point. */
+        PUNCH,
+
+        /** A bowl with the ground rebounded into a hill at its middle, as a large strike leaves. */
+        PEAKED,
+        ;
+
+        /** How deep this profile runs at [inward], nought at the middle and one at the lip. */
+        fun depthAt(inward: Double, deepest: Double): Double = when (this) {
+            BOWL -> deepest * (ALL_OF_IT - inward * inward)
+            SAUCER -> deepest * SAUCER_KEEPS * (ALL_OF_IT - inward * inward * inward)
+            PUNCH -> deepest * PUNCH_DIGS * (ALL_OF_IT - squared(squared(inward)))
+            PEAKED -> deepest * (ALL_OF_IT - inward * inward) - upliftAt(inward, deepest)
+        }
+
+        private fun upliftAt(inward: Double, deepest: Double): Double {
+            if (inward >= PEAK_WIDTH) return NOTHING
+            return deepest * PEAK_RISES * (ALL_OF_IT - inward / PEAK_WIDTH)
+        }
+
+        companion object {
+            /** Weighted by how many craters really look like each, with the big-strike shape held back. */
+            fun drawnBy(random: RandomSource, reach: Int): Profile {
+                val roll = random.nextDouble()
+                if (reach >= PEAKS_ABOVE && roll < PEAKED_SHARE) return PEAKED
+                if (roll < SAUCER_SHARE) return SAUCER
+                if (roll < SAUCER_SHARE + PUNCH_SHARE) return PUNCH
+                return BOWL
+            }
+
+            private fun squared(value: Double) = value * value
+
+            private const val SAUCER_KEEPS = 0.55
+            private const val PUNCH_DIGS = 1.35
+            private const val PEAK_WIDTH = 0.30
+            private const val PEAK_RISES = 0.62
+
+            private const val PEAKS_ABOVE = 15
+            private const val PEAKED_SHARE = 0.30
+            private const val SAUCER_SHARE = 0.26
+            private const val PUNCH_SHARE = 0.18
+        }
+    }
+
+    /** One body's hole: where it landed relative to the crater's own middle, how big, and what shape. */
+    private class Blow(
+        val awayX: Int,
+        val awayZ: Int,
+        val reach: Int,
+        val profile: Profile,
+        val lobed: Lobes,
+    ) {
+
+        /** How far the lip stands from this blow's middle along the bearing to a column, lobes and all. */
+        fun lipToward(offsetX: Int, offsetZ: Int): Double =
+            reach * lobed.at(atan2(offsetZ.toDouble(), offsetX.toDouble()))
+    }
+
+    /**
+     * Everything drawn once for one crater: its blows, how worn it is, and how much it threw clear.
+     *
+     * The ruined portal's `Properties` in shape — a handful of numbers settled per instance so that the
+     * placement code has variety to read rather than variety to invent, and so the two halves of one
+     * crater cannot disagree about how worn it is.
+     */
+    private class Struck(
+        val reach: Int,
+        val blows: List<Blow>,
+        val eroded: Double,
+        val ejecta: Double,
+        val grain: Long,
+        val room: Int,
+    ) {
+
+        /**
+         * How far out anything this crater does may reach, which bounds every loop over it.
+         *
+         * Clipped to the writable room, which only ever bites into the debris: the crater proper is sized
+         * to fit by [PINNED_REACHES] before this is asked.
+         */
+        fun carriesTo(): Int =
+            ceil(reach * WHOLE_CRATER * EJECTA_CARRIES).toInt().coerceAtMost(room)
+
+        /**
+         * How far the ground moves at this offset — down inside a lip, up across a skirt, and nothing
+         * beyond.
+         *
+         * **A hole wins over a rim wherever they overlap**, which is what makes twinned craters read as
+         * one event: the second blow's skirt does not build a wall across the first one's floor, it is
+         * simply cut away by it, exactly as the later impact would have.
+         */
+        fun offsetAt(awayX: Int, awayZ: Int): Int {
+            var deepest = NOTHING
+            var highest = NOTHING
+            var atTheRim = NOTHING
+            for (blow in blows) {
+                val offsetX = awayX - blow.awayX
+                val offsetZ = awayZ - blow.awayZ
+                val away = sqrt((offsetX * offsetX + offsetZ * offsetZ).toDouble())
+                val lip = blow.lipToward(offsetX, offsetZ)
+                val skirt = blow.reach * RIM_REACHES
+                if (away > lip + skirt) continue
+                atTheRim = max(atTheRim, ALL_OF_IT - abs(away - lip) / skirt)
+                if (away < lip) {
+                    deepest = max(deepest, blow.profile.depthAt(away / lip, blow.reach * DEEPEST_SHARE))
+                } else {
+                    val across = (away - lip) / skirt
+                    highest = max(highest, blow.reach * RIM_RISES * FULL_BUMP * across * (ALL_OF_IT - across))
+                }
+            }
+            if (deepest <= NOTHING && highest <= NOTHING) return UNMOVED
+            val shaped = if (deepest > NOTHING) -deepest else highest
+            return shaped.roundToInt() + erosionAt(awayX, awayZ, atTheRim, this)
+        }
+
+        /**
+         * How far past every rim this column lies, nought at the outermost skirt and one at the far edge of
+         * the debris — or null for a column that is still part of the crater proper.
+         */
+        fun beyondTheRim(awayX: Int, awayZ: Int, away: Double): Double? {
+            var outermost = NOTHING
+            for (blow in blows) {
+                val offsetX = awayX - blow.awayX
+                val offsetZ = awayZ - blow.awayZ
+                val lip = blow.lipToward(offsetX, offsetZ) + blow.reach * RIM_REACHES
+                val from = sqrt((offsetX * offsetX + offsetZ * offsetZ).toDouble())
+                if (from < lip) return null
+                outermost = max(outermost, lip)
+            }
+            val carries = carriesTo() - outermost
+            if (carries <= NOTHING) return null
+            return (ALL_OF_IT - (away - outermost) / carries).coerceIn(NOTHING, ALL_OF_IT)
+        }
+
+        companion object {
+            fun drawnBy(random: RandomSource, reach: Int, room: Int): Struck {
+                val first = Blow(NONE, NONE, reach, Profile.drawnBy(random, reach), Lobes.drawnBy(random))
+                val twinned = random.nextDouble() < TWINNED
+                return Struck(
+                    reach = reach,
+                    blows = if (twinned) listOf(first, alongside(random, reach)) else listOf(first),
+                    eroded = WORN_LEAST + random.nextDouble() * (WORN_MOST - WORN_LEAST),
+                    ejecta = THREW_LEAST + random.nextDouble() * (THREW_MOST - THREW_LEAST),
+                    grain = random.nextLong(),
+                    room = room,
+                )
+            }
+
+            /**
+             * The second body, which lands beside the first and is smaller.
+             *
+             * Bounded so that its own lip and skirt stay inside the first crater's reach — the write radius
+             * is measured from the middle, and a companion that pushed past it would have its far side
+             * quietly dropped.
+             */
+            private fun alongside(random: RandomSource, reach: Int): Blow {
+                val smaller = (reach * COMPANION_KEEPS).roundToInt().coerceAtLeast(ONE)
+                val out = (reach * WHOLE_CRATER - smaller * WHOLE_CRATER).coerceAtLeast(NOTHING)
+                val bearing = random.nextDouble() * FULL_TURN
+                val away = random.nextDouble() * out
+                return Blow(
+                    (kotlin.math.cos(bearing) * away).roundToInt(),
+                    (kotlin.math.sin(bearing) * away).roundToInt(),
+                    smaller,
+                    Profile.drawnBy(random, smaller),
+                    Lobes.drawnBy(random),
+                )
+            }
+
+            private const val TWINNED = 0.18
+            private const val COMPANION_KEEPS = 0.45
+            private const val WORN_LEAST = 0.25
+            private const val WORN_MOST = 1.0
+            private const val THREW_LEAST = 0.10
+            private const val THREW_MOST = 0.34
+        }
+    }
+
+    /**
+     * What keeps a crater from being a circle — a couple of slow waves round its edge, drawn once.
+     *
+     * Per-column noise would fray the lip into gravel; two harmonics lobe it at the scale a rim actually
+     * varies at, and being drawn once per blow means the two sides of one hole agree about its shape.
+     */
+    private class Lobes(private val firstPhase: Double, private val secondPhase: Double) {
+
+        fun at(angle: Double): Double =
+            ALL_OF_IT + LOBED_BY * (sin(angle * FEW_LOBES + firstPhase) + sin(angle * MANY_LOBES + secondPhase)) / TWICE
+
+        companion object {
+            fun drawnBy(random: RandomSource): Lobes =
+                Lobes(random.nextDouble() * FULL_TURN, random.nextDouble() * FULL_TURN)
+
+            private const val FEW_LOBES = 3.0
+            private const val MANY_LOBES = 5.0
+            private const val LOBED_BY = 0.12
+        }
+    }
+
+    private val AIR: BlockState = Blocks.AIR.defaultBlockState()
+
+    /** How deep the bowl goes at its middle, and how far out and how high the rim carries, all as shares. */
+    private const val DEEPEST_SHARE = 0.42
+    private const val RIM_REACHES = 0.30
+    private const val RIM_RISES = 0.13
+
+    /** How far the rim may wander off the arithmetic, as a share of the reach at full wear. */
+    private const val WEARS_BY = 0.09
+
+    /** How far debris carries past the outermost skirt, as a multiple of the crater's own extent. */
+    private const val EJECTA_CARRIES = 1.45
+
+    /** Where shards may stand, as a share of the reach — well inside, where the carve reached rock. */
+    private const val SHARDS_WITHIN = 0.45
+    private const val TOGETHER = 3
+
+    /**
+     * How far a whole crater stands from its middle, as a multiple of its reach.
+     *
+     * The lip is the reach as [Lobes] moved it, up to [LOBED_BY] out, and the skirt carries
+     * [RIM_REACHES] past that. So the visible crater is nearly half again its own reach, and the reach
+     * that fits a box is the box divided by this.
+     */
+    private const val WHOLE_CRATER = 1.42
+
+    /**
+     * What a crater may reach from anywhere in its chunk, and from the middle of it.
+     *
+     * `blockStateWriteRadius(1)` gives sixteen blocks on the tightest side from anywhere in a chunk, and
+     * twenty-three from its middle; [WHOLE_CRATER] is what turns those into a reach. So the biggest hole
+     * this can cut is thirty-two blocks across with its rim carrying it to about forty-six, and the debris
+     * beyond that is clipped rather than shrinking the crater to make room for it.
+     */
+    private const val FREELY_PLACED = 11
+    private const val PINNED_REACHES = 16
+
+    private const val CHUNK = 16
+
+    private const val CHUNK_BITS = 4
+    private const val HALF_A_CHUNK = 8
+    private const val FULL_BUMP = 4.0
+    private const val UNMOVED = 0
+    private const val NONE = 0
+    private const val ONE = 1
+    private const val TWICE = 2
+    private const val HALF = 0.5
+    private const val NOTHING = 0.0
+    private const val ALL_OF_IT = 1.0
+    private const val FULL_TURN = 2.0 * PI
+
+    private const val SPARE_BITS = 11
+    private const val KEPT = (1L shl 53).toDouble()
+    private val PRIME_ONE = 0x9E3779B97F4A7C15uL.toLong()
+    private val PRIME_TWO = 0xBF58476D1CE4E5B9uL.toLong()
+    private val PRIME_THREE = 0xFF51AFD7ED558CCDuL.toLong()
+}
+
+/**
+ * How big a crater is and what it may have kept.
+ *
+ * One feature with a scale rather than two features, because a small crater and a large one differ in
+ * nothing but their numbers — everything that makes them look unalike is drawn inside the feature.
+ */
+data class CraterScale(val leastReach: Int, val mostReach: Int, val mostShards: Int) : FeatureConfiguration {
+
+    companion object {
+        val CODEC: Codec<CraterScale> = RecordCodecBuilder.create { instance ->
+            instance.group(
+                Codec.INT.fieldOf("least_reach").forGetter(CraterScale::leastReach),
+                Codec.INT.fieldOf("most_reach").forGetter(CraterScale::mostReach),
+                Codec.INT.fieldOf("most_shards").forGetter(CraterScale::mostShards),
+            ).apply(instance, ::CraterScale)
+        }
+    }
+}

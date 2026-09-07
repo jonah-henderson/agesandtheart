@@ -1,0 +1,11 @@
+{
+  "_comment": "Vanilla's amethyst cluster orientations exactly -- a shard is set into whichever face it was pushed against.",
+  "variants": {
+    "facing=down":  { "model": "agesandtheart:block/astrite_shard", "x": 180 },
+    "facing=up":    { "model": "agesandtheart:block/astrite_shard" },
+    "facing=north": { "model": "agesandtheart:block/astrite_shard", "x": 90 },
+    "facing=south": { "model": "agesandtheart:block/astrite_shard", "x": 90, "y": 180 },
+    "facing=east":  { "model": "agesandtheart:block/astrite_shard", "x": 90, "y": 90 },
+    "facing=west":  { "model": "agesandtheart:block/astrite_shard", "x": 90, "y": 270 }
+  }
+}
