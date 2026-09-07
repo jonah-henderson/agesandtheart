@@ -333,7 +333,25 @@
 # ("way too much, but it was super cool"). A bit under a creeper ordinarily; the old middle is the new
 # ceiling and wants an Age broken enough to buy the whole manifestation.
 #
-# WHAT THE SIXTH PASS CHANGED, all of it unwalked:
+# WHAT THE SEVENTH PASS CHANGED, all of it unwalked:
+#   - **THE SKY AND THE ROCK NOW AGREE ON THE ANGLE, EXACTLY.** The whole mismatch was the storm hanging
+#     45 blocks over the ground it aimed at, which steepened every arrival: 10 degrees drawn came in at
+#     26. A storm sits ON the surface now (nothing collides with it or draws it), so the entry angle is
+#     the one the telegraph showed -- measured 10.0/27.0/45.0 against 10/27/45.
+#   - **AND ON THE SPEED.** The light's range now closes on a curve rather than a ramp, so it is doing
+#     9.6 blocks a tick at the handover instead of 20, against the rock's 7.2-12.
+#   - **METEORS NO LONGER HANG IN UNLOADED CHUNKS.** Measured against the WORLD clock, not their own: a
+#     body more than 80 ticks old comes straight down where it is and craters. So walking away and back
+#     finds the storm has been and gone rather than resuming in slow motion.
+#   - **A STORM IS 10 SECONDS TO A FULL MINUTE**, from 10-15. And the dials are split so they vary
+#     independently: THE RUNG (`teeming meteors`) buys frequency and LENGTH; THE SPENDING (how broken the
+#     Age is) buys THICKNESS and force. So "a few enormous ones" and "very many small ones for a minute"
+#     are both reachable, which was the point.
+#   - Storms gather 40-152 blocks out rather than 40-270. The bound is SIMULATION DISTANCE: an entity
+#     only ticks in a chunk somebody is keeping alive, so a storm further out than that does not happen
+#     at all until you walk at it. About one in seven is now centred far enough off to watch from outside.
+#
+# WHAT THE SIXTH PASS CHANGED, also unwalked:
 #   - **THE MISSING TRAILS WERE A RENDER-DISTANCE CULL.** Vanilla draws an entity only within its own
 #     bounding-box size times 64, and a meteor's box is 0.7 -- so the streak existed for the last 45
 #     blocks of a 175-block flight and any body not landing at your feet arrived with nothing.

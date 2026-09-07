@@ -1,7 +1,10 @@
 package co.voik.agesandtheart.age.phenomena
 
+import co.voik.agesandtheart.age.aspect.Rung
+import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.entity.EntityTypeTest
+import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.phys.Vec3
 import kotlin.math.PI
 import kotlin.math.cos
@@ -41,9 +44,16 @@ object Meteors {
         level.getEntities(EntityTypeTest.forClass(MeteorStorm::class.java)) { true }.size
 
     /**
-     * Gathers one out past somebody, high up.
+     * Gathers one out past somebody, **on the ground it will fall on**.
      *
-     * **Out past, and never overhead.** A storm centred on a player is a scripted event rather than
+     * A storm is a place rather than a thing in the air, and where that place *is* has to include its
+     * height: a body is thrown from where its own light hung and aimed at the ground, so every block a
+     * storm hangs above that ground steepens the arrival past the angle it was drawn at. Hanging one
+     * forty-five up turned a ten-degree approach into twenty-six, and the sky and the rock stopped
+     * agreeing about how a meteor comes in (Jonah, walked). Sitting it on the surface costs nothing —
+     * nothing collides with it, nothing draws it, and the lights it hangs are thousands of blocks up.
+     *
+     * **Out past, and rarely overhead.** A storm centred on a player is a scripted event rather than
      * weather, and design §5.2 refuses it in as many words: falling *near you* rather than *over an area
      * you are in* makes shelter useless, because you are being aimed at. One gathered a little way off is
      * a place you can see being pounded, walk out of, or walk toward once it is over.
@@ -53,16 +63,12 @@ object Meteors {
         val somebody = level.players()[random.nextInt(level.players().size)]
         val bearing = random.nextDouble() * FULL_TURN
         val away = NEAREST_APPROACH + random.nextDouble() * (FURTHEST_APPROACH - NEAREST_APPROACH)
-        val where = Vec3(
-            somebody.x + cos(bearing) * away,
-            somebody.y + OVERHEAD,
-            somebody.z + sin(bearing) * away,
-        )
-        val falling = lengthenedBy(
-            MeteorStorm.SHORTEST_FALL + random.nextInt(MeteorStorm.LONGEST_FALL - MeteorStorm.SHORTEST_FALL + ONE),
-            fury,
-        )
-        MeteorStorm.gatherAt(level, where, bodiesFor(density, falling), falling, fury)
+        val middle = BlockPos.containing(somebody.x + cos(bearing) * away, somebody.y, somebody.z + sin(bearing) * away)
+        val where = Vec3.atBottomCenterOf(level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, middle))
+        val baseline = MeteorStorm.SHORTEST_FALL +
+            random.nextInt(MeteorStorm.ORDINARY_FALL - MeteorStorm.SHORTEST_FALL + ONE)
+        val falling = lengthenedBy(baseline, density)
+        MeteorStorm.gatherAt(level, where, bodiesFor(fury, falling), falling, fury)
     }
 
     /** How many storms may be up at once — one ordinarily, and more as a rung asks for more. */
@@ -82,12 +88,21 @@ object Meteors {
      * same pounding anyway. An ordinary storm is now a body every quarter-second and a ruined Age's is
      * back past where this started.
      */
-    private fun bodiesFor(density: Double, falling: Int): Int =
-        (falling / EVERY * (ONE_WHOLE + (density - ONE_WHOLE) * MORE_OFTEN_STILL)).roundToInt().coerceAtLeast(ONE)
+    private fun bodiesFor(fury: Double, falling: Int): Int =
+        (falling / EVERY * (ONE_WHOLE + fury * THICKER_WHEN_FIERCE))
+            .roundToInt()
+            .coerceIn(ONE, falling / CLOSEST_TOGETHER)
 
-    /** A storm's own length, stretched by how fierce the Age is. */
-    private fun lengthenedBy(falling: Int, fury: Double): Int =
-        (falling * (ONE_WHOLE + fury * LONGER_WHEN_FIERCE)).roundToInt()
+    /**
+     * A storm's own length — **ten seconds at the low end, a full minute at the high** (Jonah).
+     *
+     * A minute of bodies at full weight drills a landscape down rather than pocking it, which is what the
+     * top of this scale is meant to be: not a longer nuisance but a different order of event.
+     */
+    private fun lengthenedBy(falling: Int, density: Double): Int =
+        (falling * (ONE_WHOLE + (density - Rung.ORDINARY) * LONGER_WHEN_TEEMING))
+            .roundToInt()
+            .coerceIn(MeteorStorm.SHORTEST_FALL, MeteorStorm.LONGEST_FALL)
 
     /**
      * How long to wait between storms, in ticks of rolling.
@@ -105,31 +120,28 @@ object Meteors {
     /**
      * Far enough out to be somewhere else, near enough to see and to reach afterwards.
      *
-     * **Widened with the disc, so that being caught in one stays a thing that happens sometimes.** These
-     * were set when the pounding was a third as wide, and a storm gathering inside two hundred blocks now
-     * lands on you every time — which would make the running mandatory rather than a thing you sometimes
-     * have to do. Roughly two in five gather over ground you are standing on.
+     * **Bounded above by the simulation distance, which is the real constraint.** Entities tick only in
+     * chunks a player keeps ticking — about ten chunks — so a storm gathered further out than this does
+     * not happen at all until somebody walks towards it, which is worse than one that lands on you. With
+     * a disc a hundred and thirty-five wide, that leaves about one storm in seven centred far enough off
+     * to be watched from outside; the rest are somewhere you are standing, and running is the answer.
      */
     private const val NEAREST_APPROACH = 40.0
-    private const val FURTHEST_APPROACH = 270.0
+    private const val FURTHEST_APPROACH = 152.0
 
-    /**
-     * Where a storm hangs while it drops, above the player it gathered near.
-     *
-     * **Lower than it looks like it should be, and it is the entry angle that decides it.** A body is
-     * thrown from where its own light was — out on the storm's plane — and aimed at the ground, so every
-     * block the storm hangs above that ground steepens the approach past the angle it was drawn at. This
-     * is as high as it can be while a shallow arrival still crosses real sky.
-     */
-    private const val OVERHEAD = 45.0
 
     private const val MORE_AT_ONCE = 1.5
-    /** A body every this many ticks at an ordinary claim — four a second. */
+
+    /** A body every this many ticks in an Age at rest — four a second. */
     private const val EVERY = 5
 
-    /** What a rung adds to the rate on top of that. */
-    private const val MORE_OFTEN_STILL = 2.2
-    private const val LONGER_WHEN_FIERCE = 0.6
+    /** What being fierce adds to that, and how close together bodies may get however fierce it is. */
+    private const val THICKER_WHEN_FIERCE = 2.2
+    private const val CLOSEST_TOGETHER = 2
+
+    /** What a rung adds to a storm's length: an ordinary Age ten seconds, a teeming one a minute. */
+    private const val LONGER_WHEN_TEEMING = 1.0
+
     private const val BETWEEN_STORMS = 3600.0
     private const val MORE_OFTEN = 5.0
 

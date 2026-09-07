@@ -15,6 +15,7 @@ import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.projectile.ThrowableProjectile
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.phys.BlockHitResult
 import net.minecraft.world.phys.EntityHitResult
 import net.minecraft.world.phys.HitResult
@@ -70,12 +71,32 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
             reboundOff(level, hit)
             return
         }
-        if (cushionAround(level, at) >= CAUGHT_BY) {
-            settle(level, at)
-        } else {
-            shatter(level)
-        }
+        landOn(level, at)
+    }
+
+    /** Caught or shattered, whichever the ground it came to rest on deserves. */
+    private fun landOn(level: ServerLevel, at: BlockPos) {
+        if (cushionAround(level, at) >= CAUGHT_BY) settle(level, at) else shatter(level)
         discard()
+    }
+
+    /**
+     * A body whose flight outlasted the world it was flying through comes down where it is, at once.
+     *
+     * **Because a chunk that stops ticking stops a meteor mid-air.** Run far enough from a storm and its
+     * bodies are simply paused; walk back and they resume, arriving out of a clear sky seconds or minutes
+     * after the storm that threw them (Jonah, walked). Neither leaving them hanging nor deleting them is
+     * right — the crater is the reward, and coming back to a landscape nothing happened to is the loop
+     * broken. So it lands: by the time you return, the thing has been and gone, which is the truth.
+     *
+     * Measured against the **world's** clock rather than its own, since its own is what stopped.
+     */
+    private fun overdue(level: ServerLevel): Boolean = level.gameTime - thrownAt > A_WHOLE_FLIGHT
+
+    private fun comeDownNow(level: ServerLevel) {
+        val underneath = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, blockPosition())
+        setPos(underneath.x + MIDDLE, underneath.y.toDouble(), underneath.z + MIDDLE)
+        landOn(level, underneath)
     }
 
     /**
@@ -130,10 +151,21 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
     }
 
     override fun tick() {
+        val level = level()
+        if (level is ServerLevel) {
+            if (thrownAt == NOT_YET_THROWN) thrownAt = level.gameTime
+            if (overdue(level)) {
+                comeDownNow(level)
+                return
+            }
+        }
         super.tick()
-        if (!level().isClientSide) return
+        if (!level.isClientSide) return
         shedSparks()
     }
+
+    /** When the world was, when this was thrown — see [overdue]. */
+    private var thrownAt: Long = NOT_YET_THROWN
 
     /**
      * The sparks it sheds coming in — an accent on the drawn streak, not the streak itself.
@@ -162,11 +194,13 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
     override fun addAdditionalSaveData(output: net.minecraft.world.level.storage.ValueOutput) {
         super.addAdditionalSaveData(output)
         output.putFloat(BLAST_KEY, blast)
+        output.putLong(THROWN_KEY, thrownAt)
     }
 
     override fun readAdditionalSaveData(input: net.minecraft.world.level.storage.ValueInput) {
         super.readAdditionalSaveData(input)
         blast = input.getFloatOr(BLAST_KEY, TWICE_TNT)
+        thrownAt = input.getLongOr(THROWN_KEY, NOT_YET_THROWN)
     }
 
     companion object {
@@ -195,6 +229,17 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
         /** How far off one is still drawn, in blocks — its whole flight, and then some. */
         private const val SEEN_FROM = 320.0
 
+        /**
+         * How long one may be in the air before it is simply put on the ground, in ticks.
+         *
+         * A real flight is fifteen to thirty; anything past this is a body that spent the difference in an
+         * unloaded chunk, and it has no business finishing that arrival in front of somebody.
+         */
+        private const val A_WHOLE_FLIGHT = 80
+
+        private const val NOT_YET_THROWN = -1L
+        private const val MIDDLE = 0.5
+
         private const val FORCED = true
         private const val SHOW_ANYWAY = true
         private const val EVERY_FEW = 4
@@ -202,6 +247,7 @@ class Meteor(type: EntityType<out Meteor>, level: Level) : ThrowableProjectile(t
         private const val NONE_LEFT = 0
         private const val NO_DRIFT = 0.0
         private const val BLAST_KEY = "blast"
+        private const val THROWN_KEY = "thrown_at"
 
         val ID: Identifier = "meteor".location()
     }

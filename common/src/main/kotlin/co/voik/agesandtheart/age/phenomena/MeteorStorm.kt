@@ -126,12 +126,20 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
      * storm rather than wherever the viewer happens to be facing, what makes the lights swing as the
      * bodies bear down, and what lets them start as one point and come apart on their own.
      *
+     * **It closes on a curve rather than evenly**, so that the light is moving at about the speed of the
+     * rock at the instant one becomes the other. A straight ramp from twelve thousand blocks to a hundred
+     * and fifty over thirty seconds arrives doing twenty blocks a tick, which is twice what the body then
+     * does — so a light that had been bearing down on you handed over to something visibly dawdling
+     * (Jonah, walked). Slowing the last of the approach also holds the lights further out for longer,
+     * which tightens the sighting.
+     *
      * Asked by the sky that draws the light and by the command that turns you to face it, so those two
      * cannot disagree about where it is.
      */
     fun seenFrom(flight: MeteorFlight, nearness: Float): Vec3 {
         val stillToCome = (ALL_OF_IT - nearness).toDouble()
-        val range = ENTRY_RANGE + (TELEGRAPHED_FROM - ENTRY_RANGE) * stillToCome
+        val range = ENTRY_RANGE + CLOSES_AT * stillToCome + (TELEGRAPHED_FROM - ENTRY_RANGE - CLOSES_AT) *
+            stillToCome * stillToCome
         val (offsetX, offsetY, offsetZ) = flight.entryOffset(range)
         return Vec3(x + flight.landsAwayX + offsetX, y + offsetY, z + flight.landsAwayZ + offsetZ)
     }
@@ -238,9 +246,17 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
          */
         const val REACH = A_SPRINT * (APPROACHING - WELLING_UP - NOTICING)
 
-        /** Ten to fifteen seconds of it (Jonah), which the storm draws between. */
+        /**
+         * How long the pounding lasts, in ticks — **ten seconds at the low end, a full minute at the
+         * high** (Jonah).
+         *
+         * Ten to fifteen is the baseline a storm draws between before its Age's rung stretches it; the
+         * minute is what a teeming Age reaches, and it is meant to be a different order of event rather
+         * than a longer nuisance.
+         */
         const val SHORTEST_FALL = 200
-        const val LONGEST_FALL = 300
+        const val ORDINARY_FALL = 300
+        const val LONGEST_FALL = 1200
 
         private const val FEW = 4
 
@@ -274,6 +290,12 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         /** Doubled off a walk: a body should streak rather than sail. */
         private const val SLOWEST_ARRIVAL = 7.2
         private const val FASTEST_ARRIVAL = 12.0
+
+        /**
+         * How far a light still has to close in its last tick of approach, so it hands over to a rock
+         * moving at about the same speed. The middle of the arrival speeds, times the whole telegraph.
+         */
+        private const val CLOSES_AT = (SLOWEST_ARRIVAL + FASTEST_ARRIVAL) / 2.0 * APPROACHING
 
         private const val FALLING_KEY = "falling"
         private const val FURY_KEY = "fury"

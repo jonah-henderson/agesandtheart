@@ -241,11 +241,8 @@ object AgeCommand {
     private const val DEFAULT_STORM_DISTANCE = 90
     private const val MAX_STORM_DISTANCE = 512
 
-    /** Where a storm hangs over the ground it is about to hit. */
-    private const val STORM_HEIGHT = 45.0
-
     /** A body every this many ticks, matching what an ordinary written storm drops. */
-    private const val STORM_EVERY = 3
+    private const val STORM_EVERY = 5
 
     private const val LOOK_LITERAL = "look"
 
@@ -1225,7 +1222,8 @@ object AgeCommand {
         val facing = Vec3.directionFromRotation(source.rotation)
         val ahead = source.position.add(facing.scale(distance.toDouble()))
         val fury = furyPercent.toDouble() / ALL_FURY
-        val where = Vec3(ahead.x, source.position.y + STORM_HEIGHT, ahead.z)
+        val middle = BlockPos.containing(ahead.x, source.position.y, ahead.z)
+        val where = Vec3.atBottomCenterOf(source.level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, middle))
         val falling = seconds?.times(TICKS_PER_SECOND) ?: MeteorStorm.SHORTEST_FALL
         val storm = MeteorStorm.gatherAt(source.level, where, falling / STORM_EVERY, falling, fury)
         // Turned to the *light*, which is thousands of blocks out along the storm's entry line and nowhere
