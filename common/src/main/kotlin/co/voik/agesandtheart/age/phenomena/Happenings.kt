@@ -107,6 +107,23 @@ object Happenings {
     }
 
     /**
+     * What this Age's own instability makes of [phenomenon], nought to one — and nought for anywhere that
+     * is not an Age.
+     *
+     * The same answer [tick] works out for itself, offered to anything that wants to *imitate* what an Age
+     * would do rather than wait for it. A debug command that raised storms at a fierceness the Age had
+     * never bought was showing something the game does not contain.
+     */
+    fun furyIn(level: ServerLevel, phenomenon: Phenomenon): Double {
+        val age = level.dimension().identifier()
+        if (age.namespace != Constants.MOD_ID) return NOTHING_INFLICTED
+        val saved = AgeSavedData.get(level.server)
+        if (age !in saved.ages) return NOTHING_INFLICTED
+        val recipe = saved.recipe(age)
+        return furyOf(Spending.of(level.server, recipe), Price.list(level.server), phenomenon)
+    }
+
+    /**
      * Everything that befalls the Age and how hard, from **both** directions (design §7.7).
      *
      * A phenomenon is here because a book named it, because the Age's instability inflicted it, or both —

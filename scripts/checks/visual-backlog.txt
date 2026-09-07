@@ -341,8 +341,15 @@
 # **THE LURE.** Astrite blocks at or above Y=288 become lures. Build a cluster up there, then wait (or
 # force a storm) and see where it falls:
 /give @s agesandtheart:astrite_block 27
-#   - A lure block should look different when placed high (budding amethyst stands in) and pulse a ring
-#     of violet dust. Below 288 it should look and do nothing.
+#   - A lure block should look different when placed high (budding amethyst stands in). Below 288 it
+#     should look and do nothing.
+#   - **THE RINGS ARE DRAWN ABOUT THE CLUSTER, NOT ABOUT EACH BLOCK** -- three horizontal rings of violet
+#     dust on the centroid, on different clocks and sizes, some running out and some in, and WIDER for a
+#     cluster that draws harder (2.6 blocks at one, 6 at twenty-seven). Eight blocks should be ONE set of
+#     rings, not eight overlapping ones. Placeholder particles; a proper asset is owed.
+#   - **A LURED STORM SHOOTS A COLUMN.** When a storm actually answers this lure, the same dust goes up
+#     about eight blocks over two seconds and frays out at the top. It fires once, at the gather -- if it
+#     never appears, the storm was not drawn to it, which is the real thing to check.
 #   - **DOES THE STORM COME TO IT?** It should centre on the cluster rather than on a bearing off you.
 #   - **AND TIGHTEN.** 135 blocks wide with no lure, 90 for one block, 40 for twenty-seven or more.
 #     A cluster is anything within 8 blocks -- a cube, a flat pad, or a scattered handful should all read

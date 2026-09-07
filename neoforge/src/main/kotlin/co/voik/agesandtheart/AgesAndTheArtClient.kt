@@ -18,6 +18,7 @@ import co.voik.agesandtheart.client.SupplyBinScreen
 import co.voik.agesandtheart.client.WritersDeskScreen
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.client.AgeTints
+import co.voik.agesandtheart.client.LureLooks
 import co.voik.agesandtheart.client.Storms
 import net.neoforged.neoforge.client.event.ClientTickEvent
 import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent
@@ -71,6 +72,8 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
     private fun onClientTick(event: ClientTickEvent.Post) {
         Storms.heard(net.minecraft.client.Minecraft.getInstance())
         Storms.blow(net.minecraft.client.Minecraft.getInstance())
+        // A lure is drawn about its cluster rather than by each block, so it rides the tick as well.
+        LureLooks.pulse(net.minecraft.client.Minecraft.getInstance())
     }
 
     private fun onRegisterScreens(event: RegisterMenuScreensEvent) {

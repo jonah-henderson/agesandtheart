@@ -2,7 +2,7 @@ package co.voik.agesandtheart.content
 
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
-import net.minecraft.server.level.ServerLevel
+import net.minecraft.world.level.Level
 import net.minecraft.world.phys.Vec3
 import kotlin.math.roundToInt
 
@@ -31,7 +31,7 @@ object Lures {
      * The nearest qualifying block anchors it and everything within [TOGETHER] of that joins; the centroid
      * is where the storm falls and the count is how tightly.
      */
-    fun nearest(level: ServerLevel, around: Vec3, within: Double): Drawn? {
+    fun nearest(level: Level, around: Vec3, within: Double): Drawn? {
         val found = aloftNear(level, around, within)
         val anchor = found.minByOrNull { it.distToCenterSqr(around) } ?: return null
         val cluster = found.filter { it.distSqr(anchor) <= TOGETHER * TOGETHER }
@@ -49,13 +49,20 @@ object Lures {
      * One block already tightens it hard — the lure is the mechanic, not a slow ramp — and past
      * [ENOUGH_OF_THEM] there is nothing more to buy.
      */
-    fun reachFor(blocks: Int): Double {
-        val share = (blocks - ONE).toDouble() / (ENOUGH_OF_THEM - ONE)
-        val drawn = share.coerceIn(NONE, ALL_OF_IT)
-        return ONE_LURE_REACHES + (TIGHTEST - ONE_LURE_REACHES) * drawn
-    }
+    fun reachFor(blocks: Int): Double =
+        ONE_LURE_REACHES + (TIGHTEST - ONE_LURE_REACHES) * drawnness(blocks)
 
-    private fun aloftNear(level: ServerLevel, around: Vec3, within: Double): List<BlockPos> {
+    /**
+     * How much of the tightening this many blocks have bought, from none of it to all of it.
+     *
+     * Named separately because the drawing wants the same number: rings that widen with the cluster are
+     * how a player sees that adding blocks did anything, and reading it off the mechanic is the only way
+     * that stays true when the mechanic is retuned.
+     */
+    fun drawnness(blocks: Int): Double =
+        ((blocks - ONE).toDouble() / (ENOUGH_OF_THEM - ONE)).coerceIn(NONE, ALL_OF_IT)
+
+    private fun aloftNear(level: Level, around: Vec3, within: Double): List<BlockPos> {
         val found = mutableListOf<BlockPos>()
         val middle = BlockPos.containing(around)
         val reach = within.roundToInt()

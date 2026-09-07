@@ -44,7 +44,7 @@ object Meteors {
         // question about three times an hour instead.
         if (level.random.nextInt(quickenedFor(density)) != NOW) return
         val somebody = level.players()[level.random.nextInt(level.players().size)]
-        val drawn = Lures.nearest(level, somebody.position(), FURTHEST_APPROACH)
+        val drawn = drawnNear(level, somebody.position())
         if (drawn == null && level.random.nextDouble() > WITHOUT_A_LURE) return
         gatherOneNearSomebody(level, somebody, drawn, density, fury)
     }
@@ -108,21 +108,50 @@ object Meteors {
         fury: Double,
     ) {
         val random = level.random
-        // A lure says where; without one it is a bearing and a distance, as it has always been.
+        val bearing = random.nextDouble() * FULL_TURN
+        val away = NEAREST_APPROACH + random.nextDouble() * (FURTHEST_APPROACH - NEAREST_APPROACH)
+        val spot = BlockPos.containing(somebody.x + cos(bearing) * away, somebody.y, somebody.z + sin(bearing) * away)
+        raise(level, spot, density, fury, drawn)
+    }
+
+    /**
+     * **The one place a storm is stood up**, whoever asked for it.
+     *
+     * Everything about where it falls and how it behaves is decided here — the lure, the plane it hangs
+     * off, how long it lasts and how many bodies that comes to — because the debug command has now twice
+     * drifted from written weather by working any of it out for itself. Once over the ground it hangs off,
+     * and once over lures, which it simply never consulted (Jonah, walked both). A caller supplies where
+     * it would otherwise fall and what the Age is like; anything it passes beyond that is an override.
+     *
+     * [otherwise] is where it goes with nothing drawing it; [drawn] wins when there is.
+     */
+    fun raise(
+        level: ServerLevel,
+        otherwise: BlockPos,
+        density: Double,
+        fury: Double,
+        drawn: Lures.Drawn?,
+        slant: Double? = null,
+        lasting: Int? = null,
+    ): MeteorStorm {
         val middle = if (drawn != null) {
-            BlockPos.containing(drawn.at.x, somebody.y, drawn.at.z)
+            BlockPos.containing(drawn.at.x, otherwise.y.toDouble(), drawn.at.z)
         } else {
-            val bearing = random.nextDouble() * FULL_TURN
-            val away = NEAREST_APPROACH + random.nextDouble() * (FURTHEST_APPROACH - NEAREST_APPROACH)
-            BlockPos.containing(somebody.x + cos(bearing) * away, somebody.y, somebody.z + sin(bearing) * away)
+            otherwise
         }
         val reach = drawn?.let { Lures.reachFor(it.blocks) } ?: MeteorStorm.REACH
         val where = Vec3(middle.x + HALF, standsAbove(level, middle, reach), middle.z + HALF)
-        val baseline = MeteorStorm.SHORTEST_FALL +
-            random.nextInt(MeteorStorm.ORDINARY_FALL - MeteorStorm.SHORTEST_FALL + ONE)
-        val falling = lengthenedBy(baseline, density)
-        MeteorStorm.gatherAt(level, where, bodiesFor(fury, falling), falling, fury, reach = reach)
+        val falling = lasting ?: lengthenedBy(
+            MeteorStorm.SHORTEST_FALL +
+                level.random.nextInt(MeteorStorm.ORDINARY_FALL - MeteorStorm.SHORTEST_FALL + ONE),
+            density,
+        )
+        return MeteorStorm.gatherAt(level, where, bodiesFor(fury, falling), falling, fury, slant, reach)
     }
+
+    /** What is drawing a storm near here, if anything — the lure a caller must consult before [raise]. */
+    fun drawnNear(level: ServerLevel, around: Vec3): Lures.Drawn? =
+        Lures.nearest(level, around, FURTHEST_APPROACH)
 
     /** How many storms may be up at once — one ordinarily, and more as a rung asks for more. */
     private fun atMostFor(density: Double): Int = (ONE + density * MORE_AT_ONCE).roundToInt()

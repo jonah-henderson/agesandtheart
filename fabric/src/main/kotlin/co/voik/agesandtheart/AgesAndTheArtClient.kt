@@ -16,6 +16,7 @@ import co.voik.agesandtheart.client.DeskModel
 import co.voik.agesandtheart.age.phenomena.BlizzardPayload
 import co.voik.agesandtheart.client.AgeTints
 import co.voik.agesandtheart.client.KnownWords
+import co.voik.agesandtheart.client.LureLooks
 import co.voik.agesandtheart.client.Storms
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import co.voik.agesandtheart.client.InkCaseScreen
@@ -90,6 +91,8 @@ fun initClient() {
     // rides the client tick rather than the payload.
     ClientTickEvents.END_CLIENT_TICK.register(Storms::heard)
     ClientTickEvents.END_CLIENT_TICK.register(Storms::blow)
+    // A lure is drawn about its cluster rather than by each block, so it rides the tick as well.
+    ClientTickEvents.END_CLIENT_TICK.register(LureLooks::pulse)
     // The linking panel's two, both of which land on the client thread the receiver already runs on.
     ClientPlayNetworking.registerGlobalReceiver(PanelLevelPayload.TYPE) { payload, _ ->
         LinkingPanel.accept(payload)

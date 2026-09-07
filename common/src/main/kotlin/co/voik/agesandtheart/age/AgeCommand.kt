@@ -10,6 +10,7 @@ import net.minecraft.world.DifficultyInstance
 import co.voik.agesandtheart.age.consequence.Tearing
 import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.phenomena.Blizzard
+import co.voik.agesandtheart.age.phenomena.Happenings
 import co.voik.agesandtheart.age.phenomena.MeteorStorm
 import co.voik.agesandtheart.age.phenomena.Meteors
 import co.voik.agesandtheart.age.reward.Danger
@@ -253,6 +254,9 @@ object AgeCommand {
      * Wider than the ten to forty-five a storm draws for itself, deliberately: this is the instrument for
      * judging whether that range is the right one, and it cannot answer that from inside it.
      */
+    /** Raises one as if nothing were drawing it, for telling a lure's doing from a storm's own. */
+    private const val IGNORE_LURE_LITERAL = "ignore_lure"
+
     private const val DEGREES_ARGUMENT = "degrees"
     private const val SHALLOWEST_SLANT = 1
     private const val STEEPEST_SLANT = 90
@@ -1194,42 +1198,61 @@ object AgeCommand {
      * shallow and steep ends beside each other rather than waiting for the draw to offer them.
      */
     private fun meteorsSubcommand(): LiteralArgumentBuilder<CommandSourceStack> {
-        fun gathering(look: Boolean) = { context: CommandContext<CommandSourceStack> ->
-            runMeteors(context, DEFAULT_STORM_DISTANCE, null, NO_FURY, null, look)
+        fun runner(given: Boolean, slanted: Boolean) =
+            { context: CommandContext<CommandSourceStack>, look: Boolean, ignoreLure: Boolean ->
+                runMeteors(
+                    context,
+                    if (given) IntegerArgumentType.getInteger(context, DISTANCE_ARGUMENT) else null,
+                    if (given) IntegerArgumentType.getInteger(context, SECONDS_ARGUMENT) else null,
+                    if (given) IntegerArgumentType.getInteger(context, FURY_ARGUMENT) else null,
+                    if (slanted) IntegerArgumentType.getInteger(context, DEGREES_ARGUMENT) else null,
+                    look,
+                    ignoreLure,
+                )
+            }
+
+        val asked = Commands.argument(FURY_ARGUMENT, IntegerArgumentType.integer(0, ALL_FURY.toInt()))
+        flagged(asked, runner(given = true, slanted = false))
+        val slanted = Commands.argument(
+            DEGREES_ARGUMENT,
+            IntegerArgumentType.integer(SHALLOWEST_SLANT, STEEPEST_SLANT),
+        )
+        flagged(slanted, runner(given = true, slanted = true))
+        asked.then(slanted)
+
+        val meteors = Commands.literal("meteors")
+        flagged(meteors, runner(given = false, slanted = false))
+        return meteors.then(
+            Commands.argument(DISTANCE_ARGUMENT, IntegerArgumentType.integer(0, MAX_STORM_DISTANCE)).then(
+                Commands.argument(SECONDS_ARGUMENT, IntegerArgumentType.integer(1, MOST_SANDFALL_SECONDS))
+                    .then(asked),
+            ),
+        )
+    }
+
+    /**
+     * Hangs `look` and `ignore_lure` off a node, in either order and in any combination.
+     *
+     * Written out rather than as two literals because a flag a player has to remember the position of is a
+     * flag they will get wrong, and this command already carries four positional arguments.
+     */
+    private fun flagged(
+        node: ArgumentBuilder<CommandSourceStack, *>,
+        run: (CommandContext<CommandSourceStack>, Boolean, Boolean) -> Int,
+        look: Boolean = false,
+        ignoreLure: Boolean = false,
+    ) {
+        node.executes { run(it, look, ignoreLure) }
+        if (!look) {
+            val next = Commands.literal(LOOK_LITERAL)
+            flagged(next, run, look = true, ignoreLure = ignoreLure)
+            node.then(next)
         }
-        fun withFury(slanted: Boolean, look: Boolean) = { context: CommandContext<CommandSourceStack> ->
-            runMeteors(
-                context,
-                IntegerArgumentType.getInteger(context, DISTANCE_ARGUMENT),
-                IntegerArgumentType.getInteger(context, SECONDS_ARGUMENT),
-                IntegerArgumentType.getInteger(context, FURY_ARGUMENT),
-                if (slanted) IntegerArgumentType.getInteger(context, DEGREES_ARGUMENT) else null,
-                look,
-            )
+        if (!ignoreLure) {
+            val next = Commands.literal(IGNORE_LURE_LITERAL)
+            flagged(next, run, look = look, ignoreLure = true)
+            node.then(next)
         }
-        return Commands.literal("meteors")
-            .executes(gathering(false))
-            .then(Commands.literal(LOOK_LITERAL).executes(gathering(true)))
-            .then(
-                Commands.argument(DISTANCE_ARGUMENT, IntegerArgumentType.integer(0, MAX_STORM_DISTANCE)).then(
-                    Commands.argument(SECONDS_ARGUMENT, IntegerArgumentType.integer(1, MOST_SANDFALL_SECONDS)).then(
-                        Commands.argument(FURY_ARGUMENT, IntegerArgumentType.integer(0, ALL_FURY.toInt()))
-                            .executes(withFury(slanted = false, look = false))
-                            .then(Commands.literal(LOOK_LITERAL).executes(withFury(slanted = false, look = true)))
-                            .then(
-                                Commands.argument(
-                                    DEGREES_ARGUMENT,
-                                    IntegerArgumentType.integer(SHALLOWEST_SLANT, STEEPEST_SLANT),
-                                )
-                                    .executes(withFury(slanted = true, look = false))
-                                    .then(
-                                        Commands.literal(LOOK_LITERAL)
-                                            .executes(withFury(slanted = true, look = true)),
-                                    ),
-                            ),
-                    ),
-                ),
-            )
     }
 
     /**
@@ -1240,34 +1263,42 @@ object AgeCommand {
      */
     private fun runMeteors(
         context: CommandContext<CommandSourceStack>,
-        distance: Int,
+        distance: Int?,
         seconds: Int?,
-        furyPercent: Int,
+        furyPercent: Int?,
         degrees: Int?,
         look: Boolean,
+        ignoreLure: Boolean,
     ): Int {
         val source = context.source
+        val level = source.level
+        // **A bare `/age meteors` imitates what this Age would raise on its own** (Jonah), rather than
+        // inventing a storm the game does not contain: the rung its book claimed and the fury its
+        // instability actually bought. Anything passed is an override on top of that.
+        val density = Happenings.claimFor(level, Phenomenon.METEORS)?.density ?: Rung.ORDINARY
+        // toDouble FIRST: ALL_FURY is an Int, so dividing without it makes every fury under a hundred nought.
+        val fury = furyPercent?.let { it.toDouble() / ALL_FURY } ?: Happenings.furyIn(level, Phenomenon.METEORS)
         val facing = Vec3.directionFromRotation(source.rotation)
-        val ahead = source.position.add(facing.scale(distance.toDouble()))
-        val fury = furyPercent.toDouble() / ALL_FURY
-        val middle = BlockPos.containing(ahead.x, source.position.y, ahead.z)
-        // The same plane a written storm uses, so the command cannot quietly behave differently from the
-        // thing it exists to show — over tall land the two would otherwise disagree by a mountain.
-        val where = Vec3(
-            middle.x + MIDDLE_OF_A_BLOCK,
-            Meteors.standsAbove(source.level, middle, MeteorStorm.REACH),
-            middle.z + MIDDLE_OF_A_BLOCK,
-        )
-        val falling = seconds?.times(TICKS_PER_SECOND) ?: MeteorStorm.SHORTEST_FALL
+        val ahead = source.position.add(facing.scale((distance ?: DEFAULT_STORM_DISTANCE).toDouble()))
+        val spot = BlockPos.containing(ahead.x, source.position.y, ahead.z)
+        // Lures are consulted exactly as written weather consults them, unless asked not to — the whole
+        // point of this command is that it does what a storm does.
+        val drawn = if (ignoreLure) null else Meteors.drawnNear(level, source.position)
         val slant = degrees?.let { Math.toRadians(it.toDouble()) }
-        val storm = MeteorStorm.gatherAt(source.level, where, falling / STORM_EVERY, falling, fury, slant)
+        val storm = Meteors.raise(level, spot, density, fury, drawn, slant, seconds?.times(TICKS_PER_SECOND))
         // Turned to the *light*, which is thousands of blocks out along the storm's entry line and nowhere
         // near the storm itself. Facing the storm left a walk staring at empty sky (Jonah, walked).
         if (look) {
             source.player?.lookAt(EntityAnchorArgument.Anchor.EYES, storm.seenFrom(storm.flightOf(FIRST_BODY), JUST_SIGHTED))
         }
+        // Says what it actually raised rather than what was asked for, because most of this now comes from
+        // the Age: an operator has to be able to see whether a bare call read anything at all.
         Report.prose(source).say {
-            "A storm gathers $distance blocks away. It falls in ${MeteorStorm.APPROACHING / TICKS_PER_SECOND}s."
+            val drawnIn = drawn?.let { "drawn in by ${it.blocks} aloft, ${storm.reach.toInt()} wide" }
+                ?: "${storm.reach.toInt()} wide, nothing drawing it"
+            "A storm gathers, $drawnIn, ${(fury * ALL_FURY).toInt()}% fierce, " +
+                "${storm.bodies} bodies over ${storm.falling / TICKS_PER_SECOND}s. " +
+                "It falls in ${MeteorStorm.APPROACHING / TICKS_PER_SECOND}s."
         }
         return SUCCESS
     }
