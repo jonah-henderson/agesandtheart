@@ -22,6 +22,10 @@ object AgeLooks {
         // each frame rather than set once, so turning it down in a settings screen takes effect at once.
         AuroraPainter.mostCurtainsDrawn = { AgeClientLook.auroraCurtains.get() }
 
+        // A meteor storm's first thirty seconds, which are the sky and nothing else. An overlay rather
+        // than a sky of our own, so an Age keeps whatever sun and stars it was written with underneath.
+        MeteorSky.register()
+
         // The Age's own air first, then what its wounds do to it — corruption darkens whatever was there
         // rather than being blended into it, so a lurid sky still goes black at the throat of a tear.
         LevelRendering.environment { level, layers ->

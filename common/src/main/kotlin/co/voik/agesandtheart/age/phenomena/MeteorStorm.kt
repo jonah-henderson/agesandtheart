@@ -6,11 +6,14 @@ import net.minecraft.network.syncher.EntityDataAccessor
 import net.minecraft.network.syncher.EntityDataSerializers
 import net.minecraft.network.syncher.SynchedEntityData
 import net.minecraft.resources.Identifier
+import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.damagesource.DamageSource
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.storage.ValueInput
 import net.minecraft.world.level.storage.ValueOutput
 import net.minecraft.world.phys.Vec3
@@ -68,8 +71,56 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
             discard()
             return
         }
+        if (tickCount == APPROACHING - LIGHTING_UP) lightTheGround(level)
+        if (tickCount == APPROACHING) putTheLightsOut(level)
         if (tickCount <= APPROACHING) return
         dropSome(level)
+    }
+
+    /**
+     * Light blocks over the ground this is about to hit, so a player can see where not to stand.
+     *
+     * **Placed on the surface rather than in the air**, so what is lit is the ground itself: an invisible
+     * lamp hanging at the storm's own height would light nothing anybody is standing on.
+     */
+    private fun lightTheGround(level: ServerLevel) {
+        forEachMarker { at ->
+            val ground = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, at)
+            if (!level.getBlockState(ground).isAir) return@forEachMarker
+            level.setBlockAndUpdate(ground, Blocks.LIGHT.defaultBlockState())
+        }
+    }
+
+    /**
+     * And take them away again the instant the first body falls.
+     *
+     * **Cleared here and again on removal**, because the two failures are different: a storm that runs its
+     * course puts its own lights out, and one that goes with an unloading chunk would otherwise leave them
+     * burning for ever. A light block is invisible and replaceable, so a stray one is untidy rather than
+     * harmful — but a hazard marker that outlives the hazard is a lie, which is worse.
+     */
+    private fun putTheLightsOut(level: ServerLevel) {
+        forEachMarker { at ->
+            val ground = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, at).below()
+            for (near in listOf(ground, ground.above(), ground.above(TWO))) {
+                if (level.getBlockState(near).`is`(Blocks.LIGHT)) level.removeBlock(near, false)
+            }
+        }
+    }
+
+    /** The ring of places a marker goes — the edge of what is about to be hit, and its middle. */
+    private fun forEachMarker(visit: (BlockPos) -> Unit) {
+        visit(BlockPos.containing(x, y, z))
+        for (mark in 0..<MARKERS) {
+            val around = FULL_TURN * mark / MARKERS
+            visit(BlockPos.containing(x + cos(around) * REACH, y, z + sin(around) * REACH))
+        }
+    }
+
+    override fun remove(reason: RemovalReason) {
+        val level = level()
+        if (level is ServerLevel) putTheLightsOut(level)
+        super.remove(reason)
     }
 
     /**
@@ -119,12 +170,23 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
             SynchedEntityData.defineId(MeteorStorm::class.java, EntityDataSerializers.INT)
 
         /**
-         * How long it hangs in the sky before anything falls, in ticks.
+         * How long it hangs in the sky before anything falls, in ticks — **thirty seconds** (Jonah).
          *
-         * Long enough to see, read and act on: the counterplay is spatial, so the warning has to leave
-         * time to walk out from under it.
+         * Long enough to see it, read where it is going and *do something about it*: the counterplay is
+         * spatial, so the warning has to leave time to walk somewhere else, and half a minute is what a
+         * walk asked for over the four and a half seconds this first had.
          */
-        const val APPROACHING = 90
+        const val APPROACHING = 600
+
+        /**
+         * How long before it falls the ground under it is lit, in ticks — the last ten seconds.
+         *
+         * **A cheap trick, and deliberately in the player's favour** (Jonah): the sky says a storm is
+         * coming and roughly where, and this says *exactly* where not to stand. Light rather than a marker
+         * because it costs nothing to understand — ground that is suddenly lit at night is a thing
+         * anybody reads without being taught it.
+         */
+        const val LIGHTING_UP = 200
 
         /** How wide the pounding is. Small on purpose — this is a shower, not weather. */
         const val REACH = 28.0
@@ -132,6 +194,9 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         /** Ten to fifteen seconds of it (Jonah), which the storm draws between. */
         const val SHORTEST_FALL = 200
         const val LONGEST_FALL = 300
+
+        private const val MARKERS = 12
+        private const val TWO = 2
 
         private const val SPREAD_OVER = 6
         private const val NOW = 0

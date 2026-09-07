@@ -307,11 +307,22 @@
 /age write shower 11 meteors phenomena age
 /age tp shower
 #
-# **THE TELEGRAPH IS NOT BUILT YET, WHICH IS HALF THE MECHANIC.** Design 5.2 is explicit that a crater
-# which simply appears is a punishment and one that arcs in is a challenge. Today the approach phase is
-# four and a half seconds of NOTHING VISIBLE, then bodies. Judge the rest knowing that.
+# **THE TELEGRAPH IS BUILT AND HAS NEVER BEEN SEEN.** Thirty seconds of it, and it is the half of the
+# mechanic that cannot be checked headlessly at all -- it is drawn, so only a walk can say. What should
+# happen: a point of light like a star appears in the direction the storm will fall, brightening and
+# swelling; at about 45% it SPLITS into as many pieces as will actually land; those open out and grow
+# until the real bodies take over. Violet-blue on purpose -- everything else the pack burns is red or
+# orange, so this reads as a different KIND of thing.
+#
+# **And the last ten seconds light the ground** under where it will hit -- a cheap trick, deliberately in
+# the player's favour. Verified headlessly: 5 light blocks placed at 20 seconds in, and none once the
+# fall began. What a walk has to say is whether they read as a warning or as a mystery.
 #
 # WHAT A WALK HAS TO SETTLE:
+#   - **DOES THE SKY SELL IT?** The whole illusion is an arrival from further away than anything can be
+#     rendered, and it is drawn with vanilla's sun sprite tinted violet at a small angular size. If it
+#     reads as "a weird blue sun", the size ramp or the split is wrong rather than the idea.
+#   - Is thirty seconds right? It was four and a half, which was not time to do anything.
 #   - **Is it a pounding rather than weather?** That is the whole brief -- a tempest strikes rarely over a
 #     wide country, this hammers a small area and stops. If it reads as "lightning with rocks", it failed.
 #   - Is a 28-block disc the right size, and 10-15 seconds the right length?
