@@ -424,13 +424,17 @@ givable away. What it owns and what we own is in its README.
   - Two traps, both already paid for: `AbstractContainerWidget` routes clicks and scrolls straight to its children **without consulting its own `visible` flag**, so a hidden list still answers them unless the guards in `LabelledList` are copied; and switching tabs must toggle `visible` rather than rebuild widgets, because a rebuild mutates the widget list that the dispatching click is iterating.
 - **Mod identity lives in `gradle.properties`** (`modId`, `modName`, `group`, `version`, `license`, etc.). Metadata files (`fabric.mod.json`, `neoforge.mods.toml`, `pack.mcmeta`, `*.mixins.json`) are **templated**: their `${...}` placeholders are filled at build time by `processResources` (see `buildSrc/.../multiloader-common.gradle`). Edit identity/versions in `gradle.properties` + the catalog, not by hand in the manifests.
 - Shared build logic is in `buildSrc/` convention plugins (`multiloader-common`, `multiloader-loader`); per-module `build.gradle.kts` files stay small.
-- **Lore names live in `lang/`, never in an id.** Registry ids, class names, tags and datapack keys say what
-  a thing _is_ — `fine_ink`, `masterwork_paper`, `analysis_machine`, `paper_tree` — and `en_us.json` gives it
-  the D'ni name: "D'ni Ink", "Deretheni", "Yema". Words of the Art get the same treatment for free through
-  `WordNames.readable`, whose `word.<namespace>.<path>` key is what a page actually shows, so a player reads
-  "Yema" off a page whose word is `paper_tree_log`. **This is a swap-out seam**: if the setting ever has to
-  go, it should cost a language file and not a migration. Comments and design notes are exempt and should
-  use the lore name, because that is where the reasoning lives.
+- **A D'ni name lives in `lang/`, never in an id — and that is the only reason to split the two.** Where a
+  thing's display name is D'ni, its id says what the thing _is_ instead: `pitchstone` shows as "Deretheni",
+  `paper_tree` as "Yema", `masterwork_ink` as "D'ni Ink". **That split is a swap-out seam and exists for
+  exactly one purpose**: if the setting ever has to go, it should cost a language file and not a migration.
+  Words of the Art get it free through `WordNames.readable`, whose `word.<namespace>.<path>` key is what a
+  page actually shows, so a player reads "Yema" off a word called `paper_tree_log`.
+  **Everywhere else, an id and its display name may simply be the same** (Jonah, 2026-09-07), and several
+  are: `temperstone`, `rime_crystal`, `astrite`. A name we invented wholesale carries no D'ni to strip out,
+  so there is nothing for the seam to protect and inventing a second name for the id buys nothing.
+  Comments and design notes are exempt and should use the lore name, because that is where the reasoning
+  lives.
 - Use `Constants.LOG` (SLF4J) for logging and `Constants.MOD_ID` as the namespace. `Util.kt` provides `String.location()` to build `agesandtheart:<path>` `ResourceLocation`s.
 
 ## Kotlin style
