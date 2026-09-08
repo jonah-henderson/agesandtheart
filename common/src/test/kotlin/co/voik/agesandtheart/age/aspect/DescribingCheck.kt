@@ -108,7 +108,6 @@ class DescribingCheck : FunSpec({
         }
     }
 
-    /** The pool that starts empty, where a description asking for less asks for less of nothing. */
     /** The two phenomena that are seen rather than done — see [co.voik.agesandtheart.age.aspect.Phenomenon]. */
     val SIGHTS = setOf("aurora", "rainbow")
 

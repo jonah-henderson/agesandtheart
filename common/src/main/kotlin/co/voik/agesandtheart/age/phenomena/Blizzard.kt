@@ -359,7 +359,16 @@ object Blizzard {
         bearing: Direction,
         severity: Double,
     ) {
+        // **Asked again here, and not only where the column was chosen.** A drift runs downhill onto a
+        // *neighbour*, and that neighbour has passed none of these: left unchecked, an unlit column rolled
+        // its snow onto the lit one beside it and took the ground back that a torch had bought, which is
+        // the counterplay the whole phenomenon is built around. The chunk is asked for first, since
+        // reading a heightmap out of one that is not loaded would fetch it.
+        if (!level.isLoaded(cursor.set(x, level.minY, z))) return
         val open = level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z)
+        cursor.set(x, open, z)
+        if (level.getBrightness(LightLayer.BLOCK, cursor) >= KEEPS_ITS_GROUND) return
+        if (!level.canSeeSky(cursor)) return
         if (depthOfDriftAt(level, cursor, x, open - 1, z) >= DEEPEST_DRIFT) return
 
         val laying = if (inTheLeeOfSomething(level, cursor, x, open, z, bearing)) {

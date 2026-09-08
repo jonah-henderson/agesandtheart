@@ -9,8 +9,6 @@ import co.voik.agesandtheart.worldgen.feature.CraterScale
 import co.voik.agesandtheart.worldgen.feature.ImpactCrater
 import net.minecraft.core.Holder
 import net.minecraft.util.RandomSource
-import net.minecraft.world.level.biome.Biome
-import net.minecraft.world.level.biome.BiomeGenerationSettings
 import net.minecraft.world.level.levelgen.GenerationStep
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature
@@ -18,7 +16,6 @@ import net.minecraft.world.level.levelgen.placement.HeightmapPlacement
 import net.minecraft.world.level.levelgen.placement.InSquarePlacement
 import net.minecraft.world.level.levelgen.placement.PlacedFeature
 import net.minecraft.world.level.levelgen.placement.RarityFilter
-import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.roundToInt
 
 /**
@@ -50,16 +47,15 @@ object Craters {
      * [Deposits] spells out: the sorted feature list is indexed by identity, and an equal-but-new object
      * is a lookup miss in the middle of generation.
      */
-    fun laidOver(
-        base: (Holder<Biome>) -> BiomeGenerationSettings,
-        composition: AgeComposition,
-        seed: Long,
-    ): (Holder<Biome>) -> BiomeGenerationSettings {
-        val claim = claimIn(composition) ?: return base
-        if (!pockmarked(seed)) return base
-        val laid = listOf(small(claim.density), large(claim.density))
-        val settled = ConcurrentHashMap<Holder<Biome>, BiomeGenerationSettings>()
-        return { biome -> settled.computeIfAbsent(biome) { added(base(it), laid) } }
+    fun layer(composition: AgeComposition, seed: Long): Decoration.Layer? {
+        val claim = claimIn(composition) ?: return null
+        if (!pockmarked(seed)) return null
+        // Before the ores and everything that grows, so a crater is decorated rather than cutting through
+        // decoration — a bowl carved after the trees would leave them standing in the air over it.
+        return Decoration.layerOf(
+            GenerationStep.Decoration.LOCAL_MODIFICATIONS,
+            listOf(small(claim.density), large(claim.density)),
+        )
     }
 
     /**
@@ -115,18 +111,6 @@ object Craters {
     private fun claimIn(composition: AgeComposition) =
         Phenomena.claimFor(composition.optionsFor(Aspect.PHENOMENA, 0), Phenomenon.METEORS)
 
-    private fun added(
-        settings: BiomeGenerationSettings,
-        laid: List<Holder<PlacedFeature>>,
-    ): BiomeGenerationSettings {
-        val built = BiomeGenerationSettings.PlainBuilder()
-        settings.carvers.forEach(built::addCarver)
-        settings.features().forEachIndexed { step, atStep -> atStep.forEach { built.addFeature(step, it) } }
-        // Before the ores and everything that grows, so a crater is decorated rather than cutting through
-        // decoration — a bowl carved after the trees would leave them standing in the air over it.
-        laid.forEach { built.addFeature(GenerationStep.Decoration.LOCAL_MODIFICATIONS.ordinal, it) }
-        return built.build()
-    }
 
     /** How many meteoric Ages wear their history. Most, so one that does not is the surprise. */
     private const val OFTEN_ENOUGH = 0.8f

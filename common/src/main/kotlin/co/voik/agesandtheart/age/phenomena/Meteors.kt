@@ -36,13 +36,17 @@ object Meteors {
      */
     fun fall(level: ServerLevel, density: Double, fury: Double) {
         if (level.players().isEmpty()) return
-        if (gatheringIn(level) >= atMostFor(density)) return
         // **Rolled at the quickened rate, and thinned back out again when nothing drew it.** A lure
         // shortens the wait, but asking whether one exists is a scan — so doing it on every tick to
         // decide whether to roll would cost a thousand times what it saves. Rolling at the faster rate
         // and letting three in four through without a lure comes to the same two rates and asks the
         // question about three times an hour instead.
         if (level.random.nextInt(quickenedFor(density)) != NOW) return
+        // **Counted after the roll, not before it.** This walks the level's whole entity list, and asking
+        // it on every tick of every meteoric Age is thousands of class checks twenty times a second for an
+        // answer that is nearly always the same. Behind the roll it is asked about three times an hour,
+        // which is the same argument the comment above makes about the lure.
+        if (gatheringIn(level) >= atMostFor(density)) return
         val somebody = level.players()[level.random.nextInt(level.players().size)]
         val drawn = drawnNear(level, somebody.position())
         if (drawn == null && level.random.nextDouble() > WITHOUT_A_LURE) return
@@ -81,7 +85,13 @@ object Meteors {
         return highest.toDouble()
     }
 
-    /** How many are already up. Bounded by [atMostFor], so this is a walk over one or two. */
+    /**
+     * How many are already up.
+     *
+     * **A walk of every entity in the level**, not of the storms — `EntityTypeTest` filters the result and
+     * does not index it. Bounded by [atMostFor] in what it *returns*, which is not the same as what it
+     * costs, so it is asked behind the roll rather than in front of it.
+     */
     private fun gatheringIn(level: ServerLevel): Int =
         level.getEntities(EntityTypeTest.forClass(MeteorStorm::class.java)) { true }.size
 

@@ -50,6 +50,7 @@ import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.reward.EarlyGameRareMaterials
 import co.voik.agesandtheart.age.reward.Craters
 import co.voik.agesandtheart.age.reward.Danger
+import co.voik.agesandtheart.age.reward.Decoration
 import co.voik.agesandtheart.age.reward.Deposits
 import co.voik.agesandtheart.age.aspect.AgeSpawner
 import net.minecraft.world.level.CustomSpawner
@@ -162,6 +163,9 @@ object AgeGeneration {
             // The first territory's, like `Sea.DEPTH`: the mingling noise is one field over the whole Age.
             composition.terrains.first().mingling(terrainOptions(0), seed),
         )
+        // The Age's rock as one list, worked out once: the ores are seeded into it and the features are
+        // placed on it, and it was flattened separately for each.
+        val rockBlocks = fill.blocks.flatten()
         val below = character.mapFor(Aspect.CARVERS, composition.spreadOf(Aspect.CARVERS), seed)
         // Climate divides on a map of its own: which climate a column has is a different question from what
         // paints it. One climate needs no map and gets `whole` (see [RegionalClimate]).
@@ -249,28 +253,19 @@ object AgeGeneration {
             window,
             // What is placed, which vanilla's own decoration hook takes it — see [Features] for the seam,
             // and what the Age owes its writer laid over the top of it (design §7.7).
-            EarlyGameRareMaterials.laidOver(
-                Craters.laidOver(
-                    Volcanoes.laidOver(
-                        Deposits.laidOver(
-                            Features.placedIn(
-                                server,
-                                composition.optionsFor(Aspect.FEATURES, 0),
-                                seed,
-                                fill.blocks.flatten(),
-                            ),
-                            Danger.of(server, recipe),
-                            fill.blocks.flatten(),
-                        ),
-                        composition,
+            //
+            // **The order of the layers is the order they are laid**, features being appended: the
+            // deposits sit nearest the biome's own and the character materials furthest out, which is the
+            // order the four nested wrappers this replaced happened to produce. See [Decoration].
+            Decoration.laidOver(
+                Features.placedIn(server, composition.optionsFor(Aspect.FEATURES, 0), seed, rockBlocks),
+                listOfNotNull(
+                    Deposits.layer(Danger.of(server, recipe), rockBlocks),
+                    Volcanoes.layer(composition),
+                    Craters.layer(composition, seed),
+                    EarlyGameRareMaterials.layer(
+                        EarlyGameRareMaterials.grownIn(composition, spending, prices),
                     ),
-                    composition,
-                    seed,
-                ),
-                EarlyGameRareMaterials.grownIn(
-                    composition,
-                    Spending.of(server, recipe),
-                    Price.list(server),
                 ),
             ),
             // What lives here, narrowing what vanilla resolves per biome and per structure.

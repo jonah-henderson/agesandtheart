@@ -248,15 +248,15 @@ object AgeCommand {
 
     private const val LOOK_LITERAL = "look"
 
+    /** Raises one as if nothing were drawing it, for telling a lure's doing from a storm's own. */
+    private const val IGNORE_LURE_LITERAL = "ignore_lure"
+
     /**
      * How steeply a storm may be asked to come in, in degrees off the horizontal.
      *
      * Wider than the ten to forty-five a storm draws for itself, deliberately: this is the instrument for
      * judging whether that range is the right one, and it cannot answer that from inside it.
      */
-    /** Raises one as if nothing were drawing it, for telling a lure's doing from a storm's own. */
-    private const val IGNORE_LURE_LITERAL = "ignore_lure"
-
     private const val DEGREES_ARGUMENT = "degrees"
     private const val SHALLOWEST_SLANT = 1
     private const val STEEPEST_SLANT = 90
@@ -1182,8 +1182,7 @@ object AgeCommand {
      * **The optional life is what makes the trail measurable**, because the widening ramp is a share of it:
      * an ordinary column spends its first minute or two opening, so anything measured inside that window is
      * measuring a column that is not yet the width it will be. A short one is at full width in seconds.
-     */
-    /**
+     *
      * `/age meteors [<distance>] [<seconds>] [<fury>] [look]` — gather a storm ahead of you, now.
      *
      * **A storm is thirty seconds of sky before it is anything at all**, which is exactly what makes it
@@ -1587,6 +1586,7 @@ object AgeCommand {
         report.fact("spawns", danger.spawns) { "  what lives in it:    %.3f".format(danger.spawns) }
         report.fact("phenomena", danger.phenomena) { "  what happens in it:  %.3f".format(danger.phenomena) }
         report.fact("lighting", danger.lighting) { "  how dark it is:      %.3f".format(danger.lighting) }
+        report.fact("features", danger.features) { "  what is placed in it: %.3f".format(danger.features) }
         report.fact("score", danger.score) { "  → danger %.3f".format(danger.score) }
         report.fact("authored", danger.authored) {
             if (danger.authored) "  written by a player" else "  not written by a player, so it can never pay"

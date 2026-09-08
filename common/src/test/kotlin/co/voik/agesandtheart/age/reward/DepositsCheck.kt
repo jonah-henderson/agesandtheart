@@ -29,16 +29,20 @@ import net.minecraft.world.level.block.Blocks
 @Tags(NEEDS_REGISTRIES)
 class DepositsCheck : FunSpec({
 
-    test("an Age that earns nothing is handed its own settings back") {
+    test("an Age that earns nothing lays no layer, and so is handed its own settings back") {
         val safe = danger(materials = 0.0, authored = true)
-        check(Deposits.laidOver(BASE, safe, ROCK) === BASE) {
-            "a safe Age had its biome settings rebuilt, which costs every feature in it its identity"
+        check(Deposits.layer(safe, ROCK) == null) { "a safe Age was given a deposit" }
+        // The identity this protects is now [Decoration]'s to keep: a reward that lays nothing contributes
+        // no layer, and an empty list hands the base back rather than rebuilding it — which is what costs
+        // every feature in it the identity `FeatureSorter` indexes by.
+        check(Decoration.laidOver(BASE, emptyList()) === BASE) {
+            "an Age owed nothing had its biome settings rebuilt"
         }
     }
 
-    test("an Age nobody wrote is handed its own settings back, however dangerous") {
+    test("an Age nobody wrote lays no layer, however dangerous") {
         val found = danger(materials = 1.0, authored = false)
-        check(Deposits.laidOver(BASE, found, ROCK) === BASE) { "a found Age was given a deposit" }
+        check(Deposits.layer(found, ROCK) == null) { "a found Age was given a deposit" }
     }
 
     /**

@@ -32,7 +32,7 @@ object AstriteGolems {
      * ever places.
      */
     fun tryAssemble(level: Level, pumpkin: BlockPos): Boolean {
-        val match = shape().find(level, pumpkin) ?: return false
+        val match = shape.find(level, pumpkin) ?: return false
         clearTheBlocks(level, match)
         val golem = AgeContent.ASTRITE_GOLEM.create(level, EntitySpawnReason.TRIGGERED) ?: return false
         val stands = match.getBlock(MIDDLE, FOOT, ONLY_LAYER).pos
@@ -57,7 +57,12 @@ object AstriteGolems {
         }
     }
 
-    private fun shape(): BlockPattern = built ?: build().also { built = it }
+    /**
+     * The pattern, built once. `by lazy` rather than a hand-rolled null check on a `var`: mutable state in
+     * an `object` is what `CLAUDE.md` names as an anti-pattern, and this one was reached from a Mixin on
+     * the server thread with no synchronisation of its own.
+     */
+    private val shape: BlockPattern by lazy { build() }
 
     private fun build(): BlockPattern = BlockPatternBuilder.start()
         .aisle(HEAD, ARMS, BODY)
@@ -65,8 +70,6 @@ object AstriteGolems {
         .where(ASTRITE, BlockInWorld.hasState(BlockStatePredicate.forBlock(AgeContent.ASTRITE_BLOCK_BLOCK)))
         .where(EMPTY, BlockInWorld.hasState(BlockBehaviour.BlockStateBase::isAir))
         .build()
-
-    private var built: BlockPattern? = null
 
     /** Read downwards: the head, the arms and the block it stands on. */
     private const val HEAD = "~^~"

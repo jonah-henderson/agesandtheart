@@ -211,15 +211,15 @@ object Happenings {
         }
     }
 
+    /** How often a client is reminded what the weather here is, in ticks. */
+    private const val TELLING_THE_CLIENT = 20
+
     /**
      * Fixed, so an Age's weather does not wander about inside the span a word bounded it to.
      *
      * Everywhere else a span is steered by the Age's seed, which spreads two Ages bounded alike. Weather is
      * read every tick, and a value that moved with the tick would be a different Age every time.
      */
-    /** How often a client is reminded what the weather here is, in ticks. */
-    private const val TELLING_THE_CLIENT = 20
-
     private const val WEATHER_SALT = 0L
 
     /** How many times over an ordinary claim asks for something. A rung multiplies it. */

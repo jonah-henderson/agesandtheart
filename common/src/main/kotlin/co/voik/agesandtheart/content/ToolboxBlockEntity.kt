@@ -43,26 +43,6 @@ class ToolboxBlockEntity(pos: BlockPos, state: BlockState) :
         ToolboxMenu(containerId, inventory, this)
 
     /**
-     * The first spare that is exactly [wanted], taken out — or nothing, where the box has none.
-     *
-     * **Exactly the same item, never merely a similar one.** A box that handed back a stone pickaxe when a
-     * diamond one broke would be helping in a way nobody asked for, and the case that matters — a silk
-     * touch pick replaced by a plain one — is a genuine loss. Carrying identical spares is the player's
-     * side of the bargain, and it is what a real toolbox holds anyway.
-     */
-    fun takeSpare(wanted: net.minecraft.world.item.Item): ItemStack {
-        val slot = items.indexOfFirst { !it.isEmpty && it.item === wanted }
-        if (slot < 0) return ItemStack.EMPTY
-        val taken = ContainerHelper.takeItem(items, slot)
-        setChanged()
-        return taken
-    }
-
-    /** Whether any compartment holds one, asked without taking it. */
-    fun holdsSpare(wanted: net.minecraft.world.item.Item): Boolean =
-        items.any { !it.isEmpty && it.item === wanted }
-
-    /**
      * **Nothing is scattered when the box is broken**, which is the shulker box's own override and the one
      * line that makes a container luggage rather than furniture.
      *

@@ -2,6 +2,7 @@ package co.voik.agesandtheart.content
 
 import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
+import net.minecraft.core.RegistryAccess
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
 import net.minecraft.world.damagesource.DamageSource
@@ -53,8 +54,24 @@ class AstriteShardBlock(properties: BlockBehaviour.Properties) :
      * wrong: dying to a shard of sky-metal should not say a cactus did it. `DamageSources.source` is
      * private, so the holder is looked up and the source built.
      */
-    private fun cuttingIn(level: Level): DamageSource =
-        DamageSource(level.registryAccess().lookupOrThrow(Registries.DAMAGE_TYPE).getOrThrow(CUTTING))
+    private fun cuttingIn(level: Level): DamageSource {
+        val known = cutting
+        if (known != null && known.first === level.registryAccess()) return known.second
+        val made = DamageSource(level.registryAccess().lookupOrThrow(Registries.DAMAGE_TYPE).getOrThrow(CUTTING))
+        cutting = level.registryAccess() to made
+        return made
+    }
+
+    /**
+     * The source, remembered against the registries it came out of.
+     *
+     * `entityInside` runs **per entity per tick** for everything standing on a shard, and a crater floor
+     * is seeded with them — so resolving a registry and allocating a source there was paid thousands of
+     * times a second for an answer that changes only when the server's registries do. Keyed on the
+     * `RegistryAccess` rather than cached outright, because a `DamageSource` holds a `Holder` from that
+     * set and a reload replaces it.
+     */
+    private var cutting: Pair<RegistryAccess, DamageSource>? = null
 
     companion object {
         val CODEC: MapCodec<AmethystClusterBlock> = simpleCodec(::AstriteShardBlock)

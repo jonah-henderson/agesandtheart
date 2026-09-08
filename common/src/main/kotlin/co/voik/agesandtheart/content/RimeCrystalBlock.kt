@@ -79,7 +79,6 @@ class RimeCrystalBlock(val colour: RimeColour, properties: BlockBehaviour.Proper
          */
         val CODEC: MapCodec<AmethystClusterBlock> = simpleCodec { AmethystClusterBlock(CRYSTAL_HEIGHT, CRYSTAL_WIDTH, it) }
 
-        /** Vanilla's own full cluster, which is the shape this is. */
         /**
          * **Deliberately larger than the amethyst cluster it is shaped like**, which is `7 × 3` — a spike
          * three sixteenths wide, standing seven out of the face.

@@ -409,7 +409,13 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         private const val REACH_KEY = "reach"
 
         /** A storm nobody has stood up yet, which is as old as it is going to get until somebody does. */
-        private const val NEVER = 0L
+        /**
+         * **Minus one, because zero is a time.** A storm that gathered on tick zero — a fresh world, or a
+         * level whose clock reads zero — matched the sentinel, so its age stayed [JUST_GATHERED] for ever:
+         * it never aged past its own flight, never dropped a body and never discarded. `Meteor` already
+         * used −1 for the same reason.
+         */
+        private const val NEVER = -1L
         private const val JUST_GATHERED = 0
         private const val NONE_THROWN_YET = 0
 

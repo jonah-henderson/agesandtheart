@@ -4,8 +4,6 @@ import co.voik.agesandtheart.age.consequence.Collapse
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.core.Holder
 import net.minecraft.tags.BlockTags
-import net.minecraft.world.level.biome.Biome
-import net.minecraft.world.level.biome.BiomeGenerationSettings
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.GenerationStep
 import net.minecraft.world.level.levelgen.VerticalAnchor
@@ -19,7 +17,6 @@ import net.minecraft.world.level.levelgen.placement.InSquarePlacement
 import net.minecraft.world.level.levelgen.placement.PlacedFeature
 import net.minecraft.world.level.levelgen.structure.templatesystem.BlockMatchTest
 import net.minecraft.world.level.levelgen.structure.templatesystem.TagMatchTest
-import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.roundToInt
 
 /**
@@ -44,18 +41,13 @@ object Deposits {
      * list in the middle of generation. [Features] pays for this lesson twice in its own comments; this is
      * the third place it applies.
      */
-    fun laidOver(
-        base: (Holder<Biome>) -> BiomeGenerationSettings,
-        danger: Danger,
-        rock: List<BlockState>,
-    ): (Holder<Biome>) -> BiomeGenerationSettings {
+    fun layer(danger: Danger, rock: List<BlockState>): Decoration.Layer? {
         val veins = veinsPerChunk(danger)
-        if (veins <= NOTHING) return base
-        val deposit = depositIn(rock, veins, danger.isTerminal)
-        // Remembered per biome for the same reason `Features` remembers its own: this builds a new
-        // `BiomeGenerationSettings` and the one handed back has to be the same object every time.
-        val settled = ConcurrentHashMap<Holder<Biome>, BiomeGenerationSettings>()
-        return { biome -> settled.computeIfAbsent(biome) { added(base(it), deposit) } }
+        if (veins <= NOTHING) return null
+        return Decoration.layerOf(
+            GenerationStep.Decoration.UNDERGROUND_ORES,
+            listOf(depositIn(rock, veins, danger.isTerminal)),
+        )
     }
 
     /**
@@ -149,16 +141,6 @@ object Deposits {
     }
 
     /** [settings] with [deposit] among its ores, everything else untouched. */
-    private fun added(
-        settings: BiomeGenerationSettings,
-        deposit: Holder<PlacedFeature>,
-    ): BiomeGenerationSettings {
-        val built = BiomeGenerationSettings.PlainBuilder()
-        settings.carvers.forEach(built::addCarver)
-        settings.features().forEachIndexed { step, atStep -> atStep.forEach { built.addFeature(step, it) } }
-        built.addFeature(GenerationStep.Decoration.UNDERGROUND_ORES.ordinal, deposit)
-        return built.build()
-    }
 
     /**
      * Veins per chunk at a score of one — a whole Age of the worst of everything.

@@ -21,14 +21,11 @@ import net.minecraft.world.level.levelgen.feature.configurations.OreConfiguratio
 import net.minecraft.world.level.levelgen.placement.HeightRangePlacement
 import net.minecraft.world.level.levelgen.placement.InSquarePlacement
 import net.minecraft.world.level.levelgen.structure.templatesystem.TagMatchTest
-import net.minecraft.world.level.biome.Biome
-import net.minecraft.world.level.biome.BiomeGenerationSettings
 import net.minecraft.world.level.levelgen.GenerationStep
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration
 import net.minecraft.world.level.levelgen.placement.CountPlacement
 import net.minecraft.world.level.levelgen.placement.PlacedFeature
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * What an Age grows for **being a certain way** (design §7.1.2) — the earliest of the three material
@@ -159,15 +156,8 @@ object EarlyGameRareMaterials {
      * [Deposits] spells out: the sorted feature list is indexed by identity, and an equal-but-new object is
      * a lookup miss in the middle of generation.
      */
-    fun laidOver(
-        base: (Holder<Biome>) -> BiomeGenerationSettings,
-        grown: Set<EarlyGameRareMaterial>,
-    ): (Holder<Biome>) -> BiomeGenerationSettings {
-        if (grown.isEmpty()) return base
-        val laid = grown.flatMap(::placementsOf)
-        val settled = ConcurrentHashMap<Holder<Biome>, BiomeGenerationSettings>()
-        return { biome -> settled.computeIfAbsent(biome) { added(base(it), laid) } }
-    }
+    fun layer(grown: Set<EarlyGameRareMaterial>): Decoration.Layer? =
+        Decoration.layerOf(GenerationStep.Decoration.LOCAL_MODIFICATIONS, grown.flatMap(::placementsOf))
 
     /** How a material is placed — one pass, or several where the material arrives more than one way. */
     private fun placementsOf(material: EarlyGameRareMaterial): List<Holder<PlacedFeature>> = when (material) {
@@ -220,16 +210,6 @@ object EarlyGameRareMaterials {
         )
     }
 
-    private fun added(
-        settings: BiomeGenerationSettings,
-        laid: List<Holder<PlacedFeature>>,
-    ): BiomeGenerationSettings {
-        val built = BiomeGenerationSettings.PlainBuilder()
-        settings.carvers.forEach(built::addCarver)
-        settings.features().forEachIndexed { step, atStep -> atStep.forEach { built.addFeature(step, it) } }
-        laid.forEach { built.addFeature(GenerationStep.Decoration.LOCAL_MODIFICATIONS.ordinal, it) }
-        return built.build()
-    }
 
     /**
      * Where `OverworldBiomeBuilder` stops calling a temperature snowy, read off [ClimateAxis.landmarks].

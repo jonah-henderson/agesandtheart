@@ -1,13 +1,12 @@
 package co.voik.agesandtheart.age.aspect
 
 import co.voik.agesandtheart.age.AgeComposition
+import co.voik.agesandtheart.age.reward.Decoration
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.location
 import net.minecraft.core.Holder
 import net.minecraft.resources.Identifier
 import net.minecraft.tags.BlockTags
-import net.minecraft.world.level.biome.Biome
-import net.minecraft.world.level.biome.BiomeGenerationSettings
 import net.minecraft.world.level.levelgen.GenerationStep
 import net.minecraft.world.level.levelgen.VerticalAnchor
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature
@@ -19,7 +18,6 @@ import net.minecraft.world.level.levelgen.placement.InSquarePlacement
 import net.minecraft.world.level.levelgen.placement.PlacedFeature
 import net.minecraft.world.level.levelgen.placement.RarityFilter
 import net.minecraft.world.level.levelgen.structure.templatesystem.TagMatchTest
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Whether an Age has volcanoes in it (design §7.1.2).
@@ -62,14 +60,12 @@ object Volcanoes {
      * under [co.voik.agesandtheart.content.LavaTubes] sixteen-block threshold and only seep; the nests
      * straddle it.
      */
-    fun laidOver(
-        base: (Holder<Biome>) -> BiomeGenerationSettings,
-        composition: AgeComposition,
-    ): (Holder<Biome>) -> BiomeGenerationSettings {
-        if (!askedFor(composition)) return base
-        val laid = listOf(clustersOf(SEAM_SIZE, SEAMS_PER_CHUNK), clustersOf(NEST_SIZE, ONE, NEST_RARITY))
-        val settled = ConcurrentHashMap<Holder<Biome>, BiomeGenerationSettings>()
-        return { biome -> settled.computeIfAbsent(biome) { added(base(it), laid) } }
+    fun layer(composition: AgeComposition): Decoration.Layer? {
+        if (!askedFor(composition)) return null
+        return Decoration.layerOf(
+            GenerationStep.Decoration.UNDERGROUND_ORES,
+            listOf(clustersOf(SEAM_SIZE, SEAMS_PER_CHUNK), clustersOf(NEST_SIZE, ONE, NEST_RARITY)),
+        )
     }
 
     /**
@@ -95,16 +91,6 @@ object Volcanoes {
         )
     }
 
-    private fun added(
-        settings: BiomeGenerationSettings,
-        laid: List<Holder<PlacedFeature>>,
-    ): BiomeGenerationSettings {
-        val built = BiomeGenerationSettings.PlainBuilder()
-        settings.carvers.forEach(built::addCarver)
-        settings.features().forEachIndexed { step, atStep -> atStep.forEach { built.addFeature(step, it) } }
-        laid.forEach { built.addFeature(GenerationStep.Decoration.UNDERGROUND_ORES.ordinal, it) }
-        return built.build()
-    }
 
     /** Small and common: a warm seam in the rock that seeps if you open it, and never throws. */
     private const val SEAM_SIZE = 7

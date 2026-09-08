@@ -114,8 +114,8 @@ data class Danger(
     val isTerminal: Boolean get() = terminal >= EVERY_STEP_OF_IT
 
     override fun toString(): String =
-        "danger %.3f (materials %.3f, spawns %.3f, phenomena %.3f, lighting %.3f)"
-            .format(score, materials, spawns, phenomena, lighting)
+        "danger %.3f (materials %.3f, spawns %.3f, phenomena %.3f, lighting %.3f, features %.3f)"
+            .format(score, materials, spawns, phenomena, lighting, features)
 
     companion object {
         /** A collapse bought as far as it goes — see [isTerminal]. */
@@ -276,13 +276,6 @@ data class Danger(
         }
 
         /**
-         * How dark it is — **and nothing where nothing walks**.
-         *
-         * §7.7 counts lighting "only insofar as it drives mob pressure: a sealed sky is danger because of
-         * what walks under it". So an Age that spawns nothing at all takes no danger from its roof, which
-         * is the sentence read literally rather than a special case bolted on.
-         */
-        /**
          * The worst of what the Age asked to have placed in it.
          *
          * **The worst rather than the sum**, like the materials: an Age with a volcano and a wheat field is
@@ -293,6 +286,13 @@ data class Danger(
                 .maxOfOrNull { claim -> table.feature(claim.value) }
                 ?: 0.0
 
+        /**
+         * How dark it is — **and nothing where nothing walks**.
+         *
+         * §7.7 counts lighting "only insofar as it drives mob pressure: a sealed sky is danger because of
+         * what walks under it". So an Age that spawns nothing at all takes no danger from its roof, which
+         * is the sentence read literally rather than a special case bolted on.
+         */
         private fun lightingOf(composition: AgeComposition, table: DangerTable): Double {
             if (spawnsNothing(composition)) return 0.0
             return when {
