@@ -43,6 +43,18 @@
 #   TRIP 6  volc ........................ item 10  (try `preview --args=volcano` offline first)
 #   TRIP 7  seams + sunmoon ............. items 6, 7  (`--args=rift` / `--args=wall` offline first)
 #
+# ADDED 2026-09-08 WITH ITEMS 18-20, and the first of them is where the newest machinery is:
+#   * ITEMS 19 AND 20 WANT THE SAME AGE. `dnifull` is the whole canonical formula -- solid landmass,
+#     colossal chambered underground, a water sea and the algae -- so one trip walks the vault, the lake,
+#     the arrival and the glow cycle together. There is no reason to write `vaults` separately.
+#
+#   TRIP 8  dnifull ..................... items 19, 20   <-- DO THIS ONE EARLY. It is the phase's
+#           headline, none of it has been seen, and three separate mechanisms meet in it for the first
+#           time: a landform that makes the world roofed on its own, an underground carrying its own
+#           water, and block light on a clock. Offline first: `./gradlew :common:preview --args=chambers`
+#           and `--args=chambers-void`, which show the vault's shape without launching anything.
+#   TRIP 9  plain + alone ............... item 18  (two small Ages, nothing else in them)
+#
 # **ITEM 17 IS NOT ON THAT LIST AND SHOULD GO FIRST OF ALL.** It is a Mixin on the chunk mesher with
 # `defaultRequire: 1`, so a wrong target CRASHES THE CLIENT on startup rather than doing nothing. Five
 # minutes of `runClient` settles it, and everything else is wasted if it does not start.
@@ -815,14 +827,16 @@
 #   - Every recipe and the pickaxe gate ask for `#agesandtheart:rime_crystals`, so skates should craft
 #     from ANY colour. Try an odd one.
 
-# ══ 17. COLOURED LIGHT, WHICH HAS NEVER BEEN SEEN AT ALL ═════════════════════ Built 2026-09-08 ══
+# ══ 17. COLOURED LIGHT, WHICH HAS NEVER BEEN SEEN AT ALL ═══ PARTLY WALKED 2026-09-08; TWO FIXES IN ══
+# **THE CLIENT STARTS, so the Mixin target is right.** Two bugs were found and fixed before the feature
+# itself could be judged, and both are in `decisions.md`: every tinted block was INVISIBLE (a six-digit
+# tint constant has an alpha byte of zero, and vanilla multiplies alpha into the quad), and the painter's
+# early-out never fired (`castsAnything` asks whether a block KIND is registered, which is always true).
+# What is still unwalked is everything below the give lines -- the tint itself has never been seen.
+#
 # **THE HIGHEST-RISK THING IN THIS FILE. WALK IT FIRST OF THE NEW ONES.** It is a Mixin on the chunk
 # mesher, it is client-only, and NOTHING HEADLESS EXERCISES IT -- both loaders build and every suite
 # passes without a single quad having been drawn through it.
-#
-# **THE FIRST QUESTION IS WHETHER THE CLIENT STARTS.** `defaultRequire: 1` means a Mixin that fails to
-# find its target CRASHES THE CLIENT rather than doing nothing quietly. If `./gradlew :fabric:runClient`
-# dies on startup, read the log for `putQuadWithTint` and the answer is that the target moved.
 #
 # Then: build a wall in a dark place, set a rime crystal against it, and put a signal on the crystal.
 /give @s agesandtheart:magenta_rime_crystal 8
@@ -854,3 +868,102 @@
 # ALSO IN THIS COMMIT, AND UNRELATED: `age_lightless_roofed` now carries `"cardinal_light": "nether"`,
 # which flattens the underside face shading from 0.5 to 0.9. Compare a roofed Age against a lightless one
 # and see whether it stops reading as a cave with the lights off.
+
+# ══ 18. TWO NEW LANDFORMS, NEITHER OF THEM LOOKED AT ═════════════════════════ Built 2026-09-08 ══
+# Both are cheap and both were driven against a real server (`scripts/checks/new-landforms.txt`), so what
+# is left is entirely a matter of whether they read as places. NO TRAVEL IS NEEDED BEYOND LINKING: both
+# put you where the thing is.
+#
+/age compose plain 7 landmass=flatlands rock=caves sky=plain
+/age compose alone 7 landmass=isle sea=water rock=caves sky=plain
+/age compose alonelarge 7 landmass=isle[size=0.9..1.0] sea=water rock=caves sky=plain
+#
+# WHAT A WALK HAS TO SETTLE:
+#   - **IS `flatlands` DEAD LEVEL AND DOES IT STAY THAT WAY?** Every column tops at y=64 offline. In game
+#     the thing to look for is what vanilla's own decoration does to it -- a lake feature or a small
+#     boulder is the only relief there will ever be, and whether that reads as charming or as litter is a
+#     judgement no measurement makes.
+#   - **DOES IT READ AS DRY COUNTRY RATHER THAN AS ONE ENDLESS BEACH?** It declares no waterline, so
+#     `Grounding` files it all inland: measured 29% plains, 18% forest, 13% savanna, and no ocean or shore
+#     anywhere. What is worth an eye is the 1.5% of frozen and jagged PEAK biomes vanilla's weirdness axis
+#     files on a plain -- a patch of snowy stone in a meadow is either good variety or plainly wrong, and
+#     only looking settles it.
+#   - **`/age compose plainhalls 7 landmass=flatlands rock=caves underground=great_halls sky=plain`** --
+#     a level world leaves room for exactly ONE storey of hall. Is one enough to be worth finding?
+#   - **IS THE LONE ISLAND ALONE, AND DOES THAT READ AS LONELY OR AS EMPTY?** Sail out. There is no second
+#     island at any distance, by construction, which is a stronger promise than `islands` makes and a
+#     harder one to enjoy -- the whole question is whether an ocean with nothing in it is a place.
+#   - **THE BEACH AT THE LARGE END.** `alonelarge` is 2000 blocks of radius with a beach held to ninety
+#     blocks rather than to a fifth of the island. Walk from the water inland and see whether ninety reads
+#     as a shore or as a desert; the small ones keep the old fifth and should be unchanged.
+#   - **DOES THE MIDDLE STAND UP?** The interior rolls +/-20 blocks on a 64-block wavelength whatever the
+#     island's size, so a continental one is a broad plain with fine texture on it rather than a mountain.
+#     That was accepted rather than tuned. If a 4km island reads as flat and dull, the relief scale is the
+#     dial and it lives in `Isle`, not in `IslandsField`.
+
+# ══ 19. A WORLD WITH NO SURFACE, AND THE VAULTS UNDER IT ═════════════════════ Built 2026-09-08 ══
+# The canonical D'ni environment bar the algae, which does not exist yet. All four were driven against a
+# real server (`scripts/checks/chambered.txt`), so what is left is whether they read as places.
+#
+/age compose warren 7 landmass=solid sea=water underground=noise_caves sky=plain
+/age compose vaults 7 landmass=solid sea=water underground=chambered[size=1.0..1.0] sky=plain
+/age write dni 7 age solid landmass colossal chambered underground water sea
+/age compose undercanyon 7 landmass=canyon sea=water underground=chambered sky=plain
+#
+# WHAT A WALK HAS TO SETTLE:
+#   - **WHERE DO YOU ARRIVE?** This is the load-bearing one. `solid` declares that it roofs the world, so
+#     the Age wears the roofed dimension type WITHOUT anybody writing `sealed`, and `Ages.footingIn` should
+#     therefore walk DOWN from the ceiling and stand you on the first floor under it. If you arrive on top
+#     of the world instead, the declaration is not reaching the dimension type and nothing else here
+#     matters. Check the compass spins and a bed explodes while you are at it.
+#   - **IS THERE A CHAMBER AT THE ORIGIN, AND IS THERE WATER IN IT?** The grid lays cell zero on the world
+#     origin bar a tenth of its spacing, so `vaults` should put you in one. Offline the colossal vault is
+#     760 blocks across with 126 blocks of headroom and its lake at y=-3; what a walk decides is whether
+#     that reads as a cavern or as a low ceiling over a big room.
+#   - **DOES THE LAKE HAVE ISLANDS IN IT?** The bed swings +/-33 about y=-16 on a 256-block wavelength and
+#     the water stands at -3, so rather more of the floor should be under water than out of it. Too few
+#     islands and `LAKE_ABOVE_THE_BED` comes down; too many and it goes up.
+#   - **IS THE ROOF BEDROCK?** It is meant to be, top five layers, fading like vanilla's floor. It came out
+#     GRASS the first time because the gradient was not negated, so this is worth an actual look.
+#   - **WHAT DO THE BIOMES DO IN THERE?** 12 distinct in `vaults` against 20 in `warren`. A vault is a cave
+#     biome by depth, which is where the algae will eventually ride -- so whether it comes out lush caves,
+#     dripstone or deep dark decides what the algae has to be written against.
+#   - **`warren` IS THE EXPENSIVE ONE**: 148 ms/chunk against a same-session `hills` of 88, which is
+#     vanilla's cave stack paid over 384 blocks instead of 200. Inside the budget, but watch it in play.
+#     `vaults` is 72 and needs no watching.
+#   - **AND THE CHAMBERS GO ANYWHERE**: `undercanyon` puts them under an ordinary gorge, which is the whole
+#     reason they are an underground rather than a landform. Do they read as belonging to that world?
+
+# ══ 20. THE ALGAE ════════════════════════════════════════════════════════════ Built 2026-09-08 ══
+# The last of the D'ni environment. Driven against a server (`scripts/checks/chambered.txt`): the sentence
+# resolves and 1731 mats grow over 49 chunks. What is left is entirely how it looks and feels.
+#
+/age write dnifull 7 age solid landmass colossal chambered underground water sea algae features
+/give @s agesandtheart:algae 64
+#
+# WHAT A WALK HAS TO SETTLE:
+#   - **DOES THE LAKE KEEP THE HOUR?** This is the one to watch. The glow runs every light level off the
+#     dimension's own clock -- full (14) at noon, OUT at midnight -- and each mat jumps to the hour on its
+#     own random tick, so the lake should shade raggedly across over a minute or two rather than switching.
+#     `/time set noon` then `/time set midnight` and watch it cross. If it steps all at once, the stagger
+#     is not working; if it never arrives, the chunk is not random-ticking.
+#   - **AND IS IT DARK ENOUGH AT MIDNIGHT TO SPAWN THINGS?** The bottom rung emits nothing and the roofed
+#     type sets `monster_spawn_block_light_limit: 0`, so the vault should turn hostile after dusk. That is
+#     deliberate; if it makes the place unliveable rather than tense, the floor rung is the dial.
+#   - **IS THE LAKE THE LIGHT AT NOON?** A colossal vault is 760 blocks across. Full glow should read as
+#     the reason the place is habitable. If it comes out as a floodlit swimming pool rather than deep red
+#     water, `AlgaeBlock.EMITTED` is the ladder to lower.
+#   - **WATCH THE FRAME RATE WHILE IT CROSSES.** A thousand mats relighting over a couple of minutes is
+#     the one cost here that no offline measurement covers.
+#   - **DOES IT READ AS FLOATING?** It sits IN the top water block with the water still rendering, laid
+#     flat at 15.2/16 and tinted red over vanilla's glow lichen. Watch for z-fighting with the water top.
+#   - **PLANT ONE.** Right-click water and it should sow; right-click nothing and it should eat. Aiming at
+#     lit water should FEED you rather than doing nothing -- that fallthrough is deliberate.
+#   - **DOES IT SPREAD, AND DOES IT STOP?** Mushroom rules: 1 random tick in 25, and it declines once 20
+#     mats stand within 4 blocks. Sit in a vault a while and see whether the lake thickens and then holds.
+#     If it paves over, `MOST_IN_REACH` comes down.
+#   - **DOES THE SUN KILL IT?** Carry a stack to the overworld and plant it in a lit pond -- it should
+#     refuse. Plant it in a cave pool and it should take. Then break the roof over it and watch it wither
+#     on the next random ticks.
+#   - **IS IT WORTH EATING?** 2 hunger, 0.1 saturation -- deliberately poor, since the processing that
+#     makes it worth eating is the thing still to be designed.
