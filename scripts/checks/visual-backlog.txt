@@ -788,3 +788,40 @@
 #     colour and what it shines on is ordinary white. Judge whether that lands or reads as a miss.
 #   - Every recipe and the pickaxe gate ask for `#agesandtheart:rime_crystals`, so skates should craft
 #     from ANY colour. Try an odd one.
+
+# ══ 17. COLOURED LIGHT, WHICH HAS NEVER BEEN SEEN AT ALL ═════════════════════ Built 2026-09-08 ══
+# **THE HIGHEST-RISK THING IN THIS FILE. WALK IT FIRST OF THE NEW ONES.** It is a Mixin on the chunk
+# mesher, it is client-only, and NOTHING HEADLESS EXERCISES IT -- both loaders build and every suite
+# passes without a single quad having been drawn through it.
+#
+# **THE FIRST QUESTION IS WHETHER THE CLIENT STARTS.** `defaultRequire: 1` means a Mixin that fails to
+# find its target CRASHES THE CLIENT rather than doing nothing quietly. If `./gradlew :fabric:runClient`
+# dies on startup, read the log for `putQuadWithTint` and the answer is that the target moved.
+#
+# Then: build a wall in a dark place, set a rime crystal against it, and put a signal on the crystal.
+/give @s agesandtheart:magenta_rime_crystal 8
+/give @s minecraft:redstone_block
+#
+# WHAT A WALK HAS TO SETTLE:
+#   - **DOES THE WALL TAKE THE COLOUR?** Unpowered, nothing should happen at all -- an unlit crystal casts
+#     no tint on purpose. Powered, the blocks around it should read magenta-ish.
+#   - **IT IS A MULTIPLY, SO IT CAN ONLY DARKEN.** The brightness comes from the crystal's own light level
+#     (4 at rest, 12 powered) and the tint only bends that brightness toward the hue. If it looks like a
+#     dirty stain rather than coloured light, that is the two halves not balancing -- POWERED_GLOW and
+#     `FULLY_LIT` in the painter are the dials, not the tint.
+#   - **DOES IT STOP AT WALLS?** Put a crystal on one side of a one-block partition. The far side should
+#     be untouched, and this costs no code: the hue is weighted by the light that actually reached each
+#     corner, which the light engine had already worked out.
+#   - **DOES IT GRADE ACROSS A FACE?** The four corners are tinted independently, so a long floor should
+#     fade rather than step. If it steps per block, the per-corner weighting is not landing.
+#   - **TWO COLOURS TOGETHER SHOULD MIX**, not fight -- set a cyan and a red crystal a few blocks apart
+#     and look at the ground between them.
+#   - **BREAK ONE AND WATCH IT GO.** The colour lives in the chunk mesh, so it only changes when the mesh
+#     is rebuilt; `TintedLights.rebuildAround` dirties the sections in reach. A tint left behind on a
+#     broken crystal means that call is not reaching far enough.
+#   - **FRAME RATE.** This runs per quad of every block in every section of every world. Watch F3 while
+#     flying somewhere with nothing registered nearby -- it should be indistinguishable.
+#
+# ALSO IN THIS COMMIT, AND UNRELATED: `age_lightless_roofed` now carries `"cardinal_light": "nether"`,
+# which flattens the underside face shading from 0.5 to 0.9. Compare a roofed Age against a lightless one
+# and see whether it stops reading as a cave with the lights off.

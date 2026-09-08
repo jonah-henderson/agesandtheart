@@ -17,6 +17,7 @@ import co.voik.agesandtheart.age.phenomena.BlizzardPayload
 import co.voik.agesandtheart.client.AgeTints
 import co.voik.agesandtheart.client.KnownWords
 import co.voik.agesandtheart.client.LureLooks
+import co.voik.agesandtheart.client.light.TintedLights
 import co.voik.agesandtheart.client.Storms
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import co.voik.agesandtheart.client.InkCaseScreen
@@ -114,12 +115,16 @@ fun initClient() {
     // `WoundField` draws straight out of it. A wound carries no block entity, so the index is filled by
     // reading each chunk as it arrives; see `Wounds`, which dismisses a section off its palette first.
     ClientChunkEvents.CHUNK_LOAD.register { level, chunk -> Wounds.stocked(level, chunk) }
+    // The coloured-light index, filled the same way and off the same palette dismissal.
+    ClientChunkEvents.CHUNK_LOAD.register { level, chunk -> TintedLights.stocked(level, chunk) }
     ClientChunkEvents.CHUNK_UNLOAD.register { level, chunk -> Wounds.emptied(level, chunk.pos) }
+    ClientChunkEvents.CHUNK_UNLOAD.register { level, chunk -> TintedLights.emptied(level, chunk.pos) }
 
     // These keys mean nothing on the next server, and an Age id can be reused.
     ClientPlayConnectionEvents.DISCONNECT.register { _, _ ->
         KnownWords.forgetAll()
         DeskModel.forget()
         Wounds.forget()
+        TintedLights.forget()
     }
 }

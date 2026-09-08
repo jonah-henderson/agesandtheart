@@ -20,6 +20,7 @@ import co.voik.agesandtheart.client.WritersDeskScreen
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.client.AgeTints
 import co.voik.agesandtheart.client.LureLooks
+import co.voik.agesandtheart.client.light.TintedLights
 import co.voik.agesandtheart.client.Storms
 import net.neoforged.neoforge.client.event.ClientTickEvent
 import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent
@@ -133,6 +134,7 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
         KnownWords.forgetAll()
         DeskModel.forget()
         Wounds.forget()
+        TintedLights.forget()
         // A book open when the connection drops never reaches `Screen.removed`, so its preview level and
         // renderer would outlive the connection that fed them. Fabric forgets in its own entrypoint.
         LinkingPanel.forget()

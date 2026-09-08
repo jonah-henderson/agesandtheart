@@ -1,6 +1,8 @@
 package co.voik.agesandtheart.client
 
+import co.voik.agesandtheart.client.light.TintedLights
 import co.voik.agesandtheart.content.AgeContent
+import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.client.color.block.BlockTintSource
 import net.minecraft.client.color.block.BlockTintSources
 import net.minecraft.world.level.block.Block
@@ -31,6 +33,11 @@ object AgeTints {
         // One tint apiece, which is the whole of what makes eight colours cost one model.
         for ((colour, block) in AgeContent.RIME_CRYSTAL_BLOCKS) {
             registrar(listOf(BlockTintSources.constant(colour.tint)), block)
+            // And the same colour cast on what stands near it, but only while it is lit — a crystal at
+            // rest glows too faintly for its colour to be doing anything to the wall behind it.
+            TintedLights.cast(block) { state ->
+                if (state.getValue(BlockStateProperties.POWERED)) colour.tint else null
+            }
         }
         registrar(
             listOf(BlockTintSources.constant(AgeContent.ASTRITE_TINT)),

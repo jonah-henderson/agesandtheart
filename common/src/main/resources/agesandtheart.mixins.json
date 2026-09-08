@@ -19,6 +19,7 @@
     "client.ClientLevelMixin",
     "client.LevelRendererMixin",
     "client.MainRenderTargetMixin",
+    "client.ModelBlockRendererMixin",
     "client.WeatherEffectRendererMixin"
   ],
   "injectors": {
