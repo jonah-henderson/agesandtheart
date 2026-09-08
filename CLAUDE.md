@@ -61,6 +61,12 @@ correct itself in place. Rewrite the paragraph that is now wrong.
 - **`notes/water-colour-research.md`** — how to make an Age's water shift colour over time: the tint is baked
   into the chunk mesh, and 26.1's `GameTime` UBO is the way around that. Nothing is built; it is meant to be
   built alongside the wound renderer, which needs the same pipeline.
+- **`notes/coloured-light-research.md`** — coloured light, and why the lightmap can never give it: it is a
+  16×16 texture indexed by (block, sky) with no position in it, so every lightmap route tints the *whole
+  view*. The route that works is per-vertex colour at section-compile time, and the note carries the one
+  seam it needs plus the four things that make it cheap — chiefly that **occlusion is already solved before
+  the hook runs**. Read it before proposing coloured light, a lightmap trick, or a post effect. Also holds
+  26.1's `CardinalLighting`, which is a per-Age look knob for one line of datapack.
 - **`notes/link-panel-research.md`** — the live view of an Age on a bound book's panel, and **built**: why a
   preview `ClientLevel` beats a hand-written mesh builder, what it cost, and the register of everything
   vanilla keeps exactly one of per client. **Read that register before standing up a second level of any
