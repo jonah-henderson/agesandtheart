@@ -22,6 +22,8 @@ import co.voik.agesandtheart.client.AgeTints
 import co.voik.agesandtheart.client.LureLooks
 import co.voik.agesandtheart.client.light.TintedLights
 import co.voik.agesandtheart.client.Storms
+import net.minecraft.client.multiplayer.ClientLevel
+import net.neoforged.neoforge.event.level.ChunkEvent
 import net.neoforged.neoforge.client.event.ClientTickEvent
 import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent
 import net.minecraft.client.gui.screens.MenuScreens
@@ -69,6 +71,21 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
         // Which of the two winds is playing has to be re-asked as a player walks in and out of shelter, so
         // it rides the client tick rather than the payload.
         NeoForge.EVENT_BUS.addListener(::onClientTick)
+        // The coloured-light index, filled as chunks arrive. **Registered here rather than beside the
+        // wound index in the main class**, which feeds both sides from one listener: this one is the
+        // client's alone, and `TintedLights` reaches client classes a dedicated server does not have.
+        NeoForge.EVENT_BUS.addListener(::onChunkLoad)
+        NeoForge.EVENT_BUS.addListener(::onChunkUnload)
+    }
+
+    private fun onChunkLoad(event: ChunkEvent.Load) {
+        val level = event.level as? ClientLevel ?: return
+        TintedLights.stocked(level, event.chunk)
+    }
+
+    private fun onChunkUnload(event: ChunkEvent.Unload) {
+        val level = event.level as? ClientLevel ?: return
+        TintedLights.emptied(level, event.chunk.pos)
     }
 
     private fun onClientTick(event: ClientTickEvent.Post) {

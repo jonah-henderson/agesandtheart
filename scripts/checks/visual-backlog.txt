@@ -819,6 +819,9 @@
 #   - **BREAK ONE AND WATCH IT GO.** The colour lives in the chunk mesh, so it only changes when the mesh
 #     is rebuilt; `TintedLights.rebuildAround` dirties the sections in reach. A tint left behind on a
 #     broken crystal means that call is not reaching far enough.
+#   - **IF YOU HAVE SODIUM OR IRIS INSTALLED, NOTHING WILL HAPPEN AND THAT IS BY DESIGN.** They replace
+#     the mesher, so the seam is never called. The log says so once at startup; check for that line before
+#     concluding the feature is broken.
 #   - **FRAME RATE.** This runs per quad of every block in every section of every world. Watch F3 while
 #     flying somewhere with nothing registered nearby -- it should be indistinguishable.
 #

@@ -1,5 +1,7 @@
 package co.voik.agesandtheart.client.light
 
+import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.platform.Services
 import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import net.minecraft.util.ARGB
@@ -38,8 +40,46 @@ object TintedLights {
      * it — which is the whole of the thread-safety story on this side.
      */
     fun cast(block: Block, colour: (BlockState) -> Int?) {
+        if (!theMesherIsVanillas()) return
         casts[block] = colour
     }
+
+    /**
+     * Whether the chunk mesher this hangs on is still the one we hooked.
+     *
+     * **Sodium and its forks replace the mesher outright**, so `ModelBlockRenderer.putQuadWithTint` — the
+     * one place per-position colour can enter terrain — is never called and this feature simply is not
+     * there. Nothing breaks and nothing crashes; it goes quiet, which is the worst way for a feature to be
+     * absent because it looks like a bug in ours. So it is refused up front and said once in the log.
+     *
+     * **Iris and Oculus are named for the log's sake rather than the test's**: both require one of the
+     * others to run, so the mesher check already covers them, but somebody reading the line wants to see
+     * the mod they actually installed.
+     *
+     * Asked once. The answer cannot change while the game is running, and this is called per registration.
+     */
+    private fun theMesherIsVanillas(): Boolean {
+        val known = replaced
+        if (known != null) return !known
+        val by = MESHER_REPLACEMENTS.firstOrNull { Services.PLATFORM.isModLoaded(it) }
+        replaced = by != null
+        if (by != null) {
+            Constants.LOG.info(
+                "Coloured light is off: {} replaces the chunk mesher, so the seam it needs is never called.",
+                by,
+            )
+        }
+        return by == null
+    }
+
+    private var replaced: Boolean? = null
+
+    /**
+     * The renderers that take the mesher over.
+     *
+     * Ordered so the log names the thing a player would recognise first where more than one is present.
+     */
+    private val MESHER_REPLACEMENTS = listOf("iris", "oculus", "sodium", "embeddium", "rubidium", "nvidium")
 
     fun castsAnything(): Boolean = casts.isNotEmpty()
 
