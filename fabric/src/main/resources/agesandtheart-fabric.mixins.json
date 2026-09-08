@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "package": "co.voik.agesandtheart.mixin.fabric",
+  "compatibilityLevel": "JAVA_${java_version}",
+  "client": [
+    "client.RendererManagerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

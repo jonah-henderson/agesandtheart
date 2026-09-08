@@ -29,7 +29,8 @@
     ]
   },
   "mixins": [
-    "agesandtheart.mixins.json"
+    "agesandtheart.mixins.json",
+    "agesandtheart-fabric.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=${fabric_loader_version}",

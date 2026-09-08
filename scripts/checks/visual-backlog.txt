@@ -55,9 +55,8 @@
 #           and `--args=chambers-void`, which show the vault's shape without launching anything.
 #   TRIP 9  plain + alone ............... item 18  (two small Ages, nothing else in them)
 #
-# **ITEM 17 IS NOT ON THAT LIST AND SHOULD GO FIRST OF ALL.** It is a Mixin on the chunk mesher with
-# `defaultRequire: 1`, so a wrong target CRASHES THE CLIENT on startup rather than doing nothing. Five
-# minutes of `runClient` settles it, and everything else is wasted if it does not start.
+# **COLOURED LIGHT IS DONE AND OFF THE LIST**, walked on both loaders 2026-09-08. What is left under item
+# 17 is one line of dimension type that rode along in the same commit and can be settled from anywhere.
 #
 # Item 8 is parked by Jonah and is not on the list.
 
@@ -827,47 +826,17 @@
 #   - Every recipe and the pickaxe gate ask for `#agesandtheart:rime_crystals`, so skates should craft
 #     from ANY colour. Try an odd one.
 
-# ══ 17. COLOURED LIGHT, WHICH HAS NEVER BEEN SEEN AT ALL ═══ PARTLY WALKED 2026-09-08; TWO FIXES IN ══
-# **THE CLIENT STARTS, so the Mixin target is right.** Two bugs were found and fixed before the feature
-# itself could be judged, and both are in `decisions.md`: every tinted block was INVISIBLE (a six-digit
-# tint constant has an alpha byte of zero, and vanilla multiplies alpha into the quad), and the painter's
-# early-out never fired (`castsAnything` asks whether a block KIND is registered, which is always true).
-# What is still unwalked is everything below the give lines -- the tint itself has never been seen.
+# ══ 17. THE ROOFED AGE'S FACE SHADING ═══════════════════════════════════════ Built 2026-09-07 ══
+# All that is left of what was the coloured-light item, which was WALKED AND GOOD ON BOTH LOADERS on
+# 2026-09-08 and is struck out. This rode along in the same commit and is unrelated.
 #
-# **THE HIGHEST-RISK THING IN THIS FILE. WALK IT FIRST OF THE NEW ONES.** It is a Mixin on the chunk
-# mesher, it is client-only, and NOTHING HEADLESS EXERCISES IT -- both loaders build and every suite
-# passes without a single quad having been drawn through it.
-#
-# Then: build a wall in a dark place, set a rime crystal against it, and put a signal on the crystal.
-/give @s agesandtheart:magenta_rime_crystal 8
-/give @s minecraft:redstone_block
+# `age_lightless_roofed` carries `"cardinal_light": "nether"`, which flattens the underside face shading
+# from 0.5 to 0.9 -- one line of dimension type, no code.
 #
 # WHAT A WALK HAS TO SETTLE:
-#   - **DOES THE WALL TAKE THE COLOUR?** Unpowered, nothing should happen at all -- an unlit crystal casts
-#     no tint on purpose. Powered, the blocks around it should read magenta-ish.
-#   - **IT IS A MULTIPLY, SO IT CAN ONLY DARKEN.** The brightness comes from the crystal's own light level
-#     (4 at rest, 12 powered) and the tint only bends that brightness toward the hue. If it looks like a
-#     dirty stain rather than coloured light, that is the two halves not balancing -- POWERED_GLOW and
-#     `FULLY_LIT` in the painter are the dials, not the tint.
-#   - **DOES IT STOP AT WALLS?** Put a crystal on one side of a one-block partition. The far side should
-#     be untouched, and this costs no code: the hue is weighted by the light that actually reached each
-#     corner, which the light engine had already worked out.
-#   - **DOES IT GRADE ACROSS A FACE?** The four corners are tinted independently, so a long floor should
-#     fade rather than step. If it steps per block, the per-corner weighting is not landing.
-#   - **TWO COLOURS TOGETHER SHOULD MIX**, not fight -- set a cyan and a red crystal a few blocks apart
-#     and look at the ground between them.
-#   - **BREAK ONE AND WATCH IT GO.** The colour lives in the chunk mesh, so it only changes when the mesh
-#     is rebuilt; `TintedLights.rebuildAround` dirties the sections in reach. A tint left behind on a
-#     broken crystal means that call is not reaching far enough.
-#   - **IF YOU HAVE SODIUM OR IRIS INSTALLED, NOTHING WILL HAPPEN AND THAT IS BY DESIGN.** They replace
-#     the mesher, so the seam is never called. The log says so once at startup; check for that line before
-#     concluding the feature is broken.
-#   - **FRAME RATE.** This runs per quad of every block in every section of every world. Watch F3 while
-#     flying somewhere with nothing registered nearby -- it should be indistinguishable.
-#
-# ALSO IN THIS COMMIT, AND UNRELATED: `age_lightless_roofed` now carries `"cardinal_light": "nether"`,
-# which flattens the underside face shading from 0.5 to 0.9. Compare a roofed Age against a lightless one
-# and see whether it stops reading as a cave with the lights off.
+#   - **DOES A ROOFED AGE STOP READING AS A CAVE WITH THE LIGHTS OFF?** Compare one against a lightless
+#     Age that is not roofed. The ceiling and the undersides of overhangs are where to look. If it makes
+#     no difference, the field is not worth carrying; if it does, every roofed Age should have it.
 
 # ══ 18. TWO NEW LANDFORMS, NEITHER OF THEM LOOKED AT ═════════════════════════ Built 2026-09-08 ══
 # Both are cheap and both were driven against a real server (`scripts/checks/new-landforms.txt`), so what

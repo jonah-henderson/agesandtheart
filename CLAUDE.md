@@ -308,8 +308,8 @@ When shared code needs something loader-specific, it goes through an interface, 
 - NeoForge: `@Mod("agesandtheart")` on the class in `neoforge/.../AgesAndTheArt.kt`; its constructor runs (Kotlin for Forge provides the Kotlin entry).
   Both immediately call `CommonSetup.init()`. Keep loader entrypoints tiny; put logic in `common`.
 
-**4. Ten Mixins and one accessor, all in `common`, all Java.**
-`common/src/main/resources/agesandtheart.mixins.json` declares them, and each earned its place by there being no loader event that carries what it needs. Each carries its own argument in-file; read that before touching one.
+**4. Fifteen Mixins and one accessor in `common`, one more in `fabric`, all Java.**
+`common/src/main/resources/agesandtheart.mixins.json` declares the shared ones, and each earned its place by there being no loader event that carries what it needs. Each carries its own argument in-file; read that before touching one.
 
 - **`ServerPlayerMixin`** — the learned-word set. Four injectors: `readAdditionalSaveData` / `addAdditionalSaveData` persist it, `restoreFrom` carries it through death, and `initMenu` attaches the `ContainerListener` that notices a page arriving in the inventory. That last one is vanilla's own `inventory_changed` seam, which is why it beats polling.
 - **`ServerLevelMixin`** — local difficulty near a wound (§5.1). No event exists on either loader: difficulty is computed on demand and returned by value, so this one method is the only place it exists.
@@ -326,6 +326,7 @@ When shared code needs something loader-specific, it goes through an interface, 
   loader has a client block-change event.
 - **`client/LevelRendererMixin`** — draws the Age's wounds in one submission. Declared under the config's `"client"` array, not `"mixins"`. The loader alternatives exist here (Fabric's world-render events, NeoForge's `RenderLevelStageEvent`) and are declined deliberately: they are different objects with different stages where the vanilla seam is identical on both sides.
 - **`MerchantResultSlotMixin`** and **`MerchantQuickMoveMixin`** — a page or notebook bought unwritten gets its word at the instant of purchase. An offer's `given_item_modifiers` run once for a stack handed out many times, so the draw cannot live there; and `quickMoveStack` merges into the inventory *before* calling `onTake`, so the shift-click path needs its own seam.
+- **`fabric/.../mixin/fabric/client/RendererManagerMixin`** — the **only Mixin outside `common`**, declared by its own `agesandtheart-fabric.mixins.json`, and the only one that targets another mod. Fabric API's Indigo redirects chunk building away from `ModelBlockRenderer`, so coloured light needs a second seam on that loader; the registry takes exactly one renderer plug-in and Indigo has it, so what is handed out is decorated instead. `TintingRenderer` carries the argument and the alternatives. **A Fabric-only Mixin needs the Fabric config** — the common one ships in both jars, so a target that exists on only one loader cannot go in it.
 - **`client/MainRenderTargetMixin`** — the linking panel's world render lands on the panel's target instead of the window. `LevelRenderer.renderLevel` hard-codes `getMainRenderTarget()` and sizes its whole frame graph from it, there is no parameter or event on either loader, and `Minecraft.mainRenderTarget` is `private final`. The redirect is live only inside `PanelTarget.redirecting`. It is the **only** Mixin the panel needs: everything else it borrows from the client has a public setter, and `BorrowedFrame` is where that is done.
 
 The sky Mixins left with Ephemeris and are `co.voik.ephemeris.mixin.client.*` now — do not look for them here.

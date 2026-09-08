@@ -39,17 +39,18 @@ object TintedLights {
      * it — which is the whole of the thread-safety story on this side.
      */
     fun cast(block: Block, colour: (BlockState) -> Int?) {
-        if (!theMesherIsVanillas()) return
+        if (!weCanReachTheMesher()) return
         casts[block] = colour
     }
 
     /**
-     * Whether the chunk mesher this hangs on is still the one we hooked.
+     * Whether the chunk mesher in use is one there is a seam in.
      *
-     * **Sodium and its forks replace the mesher outright**, so `ModelBlockRenderer.putQuadWithTint` — the
-     * one place per-position colour can enter terrain — is never called and this feature simply is not
-     * there. Nothing breaks and nothing crashes; it goes quiet, which is the worst way for a feature to be
-     * absent because it looks like a bug in ours. So it is refused up front and said once in the log.
+     * Two are: vanilla's, through `ModelBlockRenderer.putQuadWithTint`, and Fabric's Indigo, through a
+     * quad transform pushed onto the emitter it is handed. **The ones listed below replace the mesher
+     * outright** and neither seam is called, so the feature simply is not there. Nothing breaks and
+     * nothing crashes; it goes quiet, which is the worst way for a feature to be absent because it looks
+     * like a bug in ours. So it is refused up front and said once in the log.
      *
      * **Iris and Oculus are named for the log's sake rather than the test's**: both require one of the
      * others to run, so the mesher check already covers them, but somebody reading the line wants to see
@@ -57,7 +58,7 @@ object TintedLights {
      *
      * Asked once. The answer cannot change while the game is running, and this is called per registration.
      */
-    private fun theMesherIsVanillas(): Boolean {
+    private fun weCanReachTheMesher(): Boolean {
         val known = replaced
         if (known != null) return !known
         val by = MESHER_REPLACEMENTS.firstOrNull { Services.PLATFORM.isModLoaded(it) }
@@ -76,16 +77,14 @@ object TintedLights {
     /**
      * The renderers that take the mesher over.
      *
-     * **`fabric-renderer-indigo` is the one that matters and it was missing** (walked 2026-09-08). Indigo
-     * is Fabric API's own terrain renderer, it replaces the chunk mesher wholesale, and it ships *inside*
-     * Fabric API — so it is present in every Fabric installation there will ever be, and this feature has
-     * never once run on that loader. The Mixin applies, finds its target and is simply never called, which
-     * is exactly the silent absence this list exists to turn into a sentence.
+     * **Indigo is deliberately not among them**, though it does replace the mesher and ships inside Fabric
+     * API, so it is present in every Fabric installation there will ever be. It listed here from the day
+     * the omission was found until the day the Fabric seam was built, and that was the honest state: the
+     * vanilla Mixin applied, found its target and was never once called on that loader.
      *
      * Ordered so the log names the thing a player would recognise first where more than one is present.
      */
-    private val MESHER_REPLACEMENTS =
-        listOf("iris", "oculus", "sodium", "embeddium", "rubidium", "nvidium", "fabric-renderer-indigo")
+    private val MESHER_REPLACEMENTS = listOf("iris", "oculus", "sodium", "embeddium", "rubidium", "nvidium")
 
     fun castsAnything(): Boolean = casts.isNotEmpty()
 
@@ -119,6 +118,10 @@ object TintedLights {
                 if (nowHolding) "Coloured light: something is casting, and quads near it are being tinted"
                 else "Coloured light: nothing is casting anywhere loaded, so the painter is idle",
             )
+            // Starting over here rather than at the world boundary is what makes the reading an
+            // experiment: walk away until the log says the painter is idle, and the next approach
+            // reports from nothing again.
+            if (!nowHolding) TintedLightPainter.forgetTheBrightest()
         }
         anythingPlaced = nowHolding
     }
