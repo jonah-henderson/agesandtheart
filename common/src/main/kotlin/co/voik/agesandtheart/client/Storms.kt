@@ -40,16 +40,30 @@ object Storms {
     }
 
     /**
-     * Whether the storm is actually on [player], as opposed to going on over their head.
+     * How much of the storm is actually on [player], from none of it to all of it.
      *
-     * **The same test the snow itself obeys**, which is the point: what keeps the drift off your ground is
-     * what keeps the wind off you, so a player who has worked out one has worked out the other. A roof or a
-     * lit room is shelter; standing out in it is not.
+     * **Graded rather than a switch** (Jonah, 2026-09-07), and read off both lights, because a blizzard has
+     * two kinds of shelter and the design turns on the second one.
+     *
+     * **A roof, by sky light.** It walks round an overhang and down through a canopy, so a lip of rock buys
+     * a little quiet, a stand of trees buys some, and a cave or a roofed room buys all of it. There is
+     * nothing here about what a roof *is*; the lighting engine already knows.
+     *
+     * **And a lamp, by block light**, which is the half it would have been easy to drop. Design §5.2's
+     * whole counterplay is that light of ten stops the snow settling, stops the water icing and stops you
+     * freezing — *the thing that protects your ground already protects you* — and `Blizzard.chill` still
+     * enforces exactly that. Grading the sound on sky light alone would have left a torchlit field roaring
+     * while the cold had already stopped, which is the one place the sound and the harm must agree.
+     *
+     * The two are taken at whichever is **more** sheltering, so lighting a path home quietens it the same
+     * way roofing it does.
      */
-    fun exposed(level: ClientLevel, player: LocalPlayer): Boolean {
+    fun exposure(level: ClientLevel, player: LocalPlayer): Float {
         val at = player.blockPosition()
-        if (!level.canSeeSky(at)) return false
-        return level.getBrightness(LightLayer.BLOCK, at) < SHELTERED_BY_LIGHT
+        val underTheSky = level.getBrightness(LightLayer.SKY, at).toFloat() / OPEN_TO_THE_SKY
+        val underALamp = level.getBrightness(LightLayer.BLOCK, at).toFloat() / SHELTERED_BY_LIGHT
+        val sheltered = maxOf(ALL_OF_IT - underTheSky, underALamp)
+        return (ALL_OF_IT - sheltered).coerceIn(NONE, ALL_OF_IT)
     }
 
     /**
@@ -154,36 +168,45 @@ object Storms {
     }
 
     /**
-     * Keep the right wind playing, and only one of them.
+     * Keep both winds playing, and let the shelter decide the balance between them.
      *
-     * Two sounds and the switch between them is the mechanic: **sheltered** is the storm going on without
-     * you, which is what makes a dugout feel like one, and **exposed** is standing in it, which plays while
-     * the cold is on you so the sound and the harm are learned together.
+     * Two sounds: **sheltered** is the storm going on without you, which is what makes a dugout feel like
+     * one, and **exposed** is standing in it.
+     *
+     * **Both at once, crossfaded** (Jonah, 2026-09-07). They used to be a switch, which put a hard cut on
+     * a doorway and made every shelter equal — where what a player is actually doing is *finding* cover,
+     * and cover comes in degrees. Playing the pair and moving [exposure] between them costs one extra
+     * looping sound and makes an overhang audibly worth standing under.
      */
     fun heard(client: Minecraft) {
-        val level = client.level
-        val player = client.player
-        if (level == null || player == null) {
-            stop(client)
-            return
-        }
-        val blowing = blowingIn(level)
-        if (blowing == null) {
-            stop(client)
-            return
-        }
-        val wanted = if (exposed(level, player)) AgeContent.BLIZZARD_EXPOSED else AgeContent.BLIZZARD_SHELTERED
-        if (playing?.sound === wanted && playing?.isStopped == false) return
+        val level = client.level ?: return stop(client)
+        val player = client.player ?: return stop(client)
+        if (blowingIn(level) == null) return stop(client)
+        if (playing.isNotEmpty() && playing.none(Wind::isStopped)) return
         stop(client)
-        playing = Wind(wanted, blowing.severity).also(client.soundManager::play)
+        playing = listOf(
+            Wind(AgeContent.BLIZZARD_EXPOSED, whenOpen = true),
+            Wind(AgeContent.BLIZZARD_SHELTERED, whenOpen = false),
+        )
+        playing.forEach(client.soundManager::play)
     }
 
     private fun stop(client: Minecraft) {
-        playing?.let(client.soundManager::stop)
-        playing = null
+        playing.forEach(client.soundManager::stop)
+        playing = emptyList()
     }
 
-    private var playing: Wind? = null
+    private var playing: List<Wind> = emptyList()
+
+    /**
+     * How loud a storm this hard is at all, before shelter takes its share.
+     *
+     * Unchanged from when there was one wind: fierceness is what makes a blizzard louder, and the crossfade
+     * only ever divides this between the two.
+     */
+    private fun loudnessOf(severity: Double): Float =
+        (QUIETEST + (LOUDEST - QUIETEST) * (severity - ORDINARY).coerceIn(NONE.toDouble(), ALL_OF_IT.toDouble()))
+            .toFloat()
 
     /**
      * One of the two winds, looping while the storm holds.
@@ -191,20 +214,38 @@ object Storms {
      * Tickable so it can stop itself the moment the storm does, rather than playing on to the end of a
      * two-minute file in an Age that has gone quiet.
      */
-    private class Wind(val sound: SoundEvent, severity: Double) :
+    private class Wind(val sound: SoundEvent, private val whenOpen: Boolean) :
         AbstractTickableSoundInstance(sound, SoundSource.WEATHER, net.minecraft.util.RandomSource.create()) {
 
         init {
             looping = true
             delay = 0
-            volume = (QUIETEST + (LOUDEST - QUIETEST) * (severity - 1.0).coerceIn(0.0, 1.0)).toFloat()
             relative = true
+            volume = SILENT
         }
 
+        /**
+         * **Started silent on purpose**, which vanilla refuses unless a sound says it can take it: whichever
+         * of the two is wrong for where you are standing begins at nothing and fades up as you move. Without
+         * this the engine drops it before its first tick — "Skipped playing sound, volume was zero" — and a
+         * player who started a storm outdoors would never hear the sheltered wind at all.
+         */
+        override fun canStartSilent(): Boolean = true
+
+        /**
+         * Its share of the storm, re-read every tick.
+         *
+         * The engine recalculates a *tickable* sound's volume on every tick and pushes it to the channel,
+         * so a crossfade is this and nothing else — no second sound to schedule, no fade to time.
+         */
         override fun tick() {
             val client = Minecraft.getInstance()
             val level = client.level
-            if (level == null || blowingIn(level) == null) stop()
+            val player = client.player
+            val blowing = level?.let(::blowingIn)
+            if (level == null || player == null || blowing == null) return stop()
+            val open = exposure(level, player)
+            volume = loudnessOf(blowing.severity) * (if (whenOpen) open else ALL_OF_IT - open)
         }
     }
 
@@ -227,8 +268,21 @@ object Storms {
         return (EARNED_WHITEOUT + (FORCED_WHITEOUT - EARNED_WHITEOUT) * over).toFloat()
     }
 
-    /** Vanilla's own threshold, and the one the snow obeys. */
-    private const val SHELTERED_BY_LIGHT = 10
+    /** The sky light of open ground, so the first block of cover is already worth something. */
+    private const val OPEN_TO_THE_SKY = 15.0f
+
+    /**
+     * And the block light that answers a blizzard outright — vanilla's own threshold, the one the snow
+     * obeys, and the one `Blizzard.chill` stops the cold at.
+     *
+     * Reached at ten rather than fifteen for that reason: the crossfade must be fully quiet exactly where
+     * the freezing stops, or the sound would go on promising a harm that is no longer there.
+     */
+    private const val SHELTERED_BY_LIGHT = 10.0f
+
+    private const val NONE = 0.0f
+    private const val ALL_OF_IT = 1.0f
+    private const val SILENT = 0.0f
 
     /** The air in a whiteout: not white, which reads as a bug, but the grey-white of snow with no sun on it. */
     private val DRIVEN_SNOW = Rgba.of(0xFFC8CFD8u.toInt())
