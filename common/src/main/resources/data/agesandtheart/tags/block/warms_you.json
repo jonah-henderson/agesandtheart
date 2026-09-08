@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "What takes the edge off a blizzard's cold -- genuinely hot things, never merely bright ones.",
+    "A torch lights your ground and keeps the snow off it (that is vanilla's own rule, and `driftAt`",
+    "keeps it); it does not warm you, because a field of torches is a lit field you are still standing",
+    "in the wind of. A fire does, and never enough to replace cover.",
+    "",
+    "A tag so a pack can add its own hearth. Minecraft has no heat model, so this is the smallest one",
+    "there is: a set of blocks and a radius."
+  ],
+  "values": [
+    "minecraft:fire",
+    "minecraft:soul_fire",
+    "minecraft:campfire",
+    "minecraft:soul_campfire",
+    "minecraft:lava",
+    "minecraft:magma_block",
+    "agesandtheart:lava_tube"
+  ]
+}

@@ -10,6 +10,10 @@ import net.minecraft.core.BlockPos
 import net.minecraft.resources.Identifier
 import java.util.concurrent.ConcurrentHashMap
 import net.minecraft.core.Direction
+import net.minecraft.core.SectionPos
+import net.minecraft.core.registries.Registries
+import net.minecraft.tags.TagKey
+import co.voik.agesandtheart.location
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.phys.AABB
 import net.minecraft.server.level.ServerLevel
@@ -83,16 +87,74 @@ object Blizzard {
      * powder snow, and a fiercer storm gains faster.
      */
     private fun chill(level: ServerLevel, around: BlockPos, severity: Double) {
-        val exposed = AABB(around).inflate(REACH.toDouble())
-        for (living in level.getEntitiesOfClass(LivingEntity::class.java, exposed) { it.canFreeze() }) {
+        val nearby = AABB(around).inflate(REACH.toDouble())
+        for (living in level.getEntitiesOfClass(LivingEntity::class.java, nearby) { it.canFreeze() }) {
             val at = living.blockPosition()
-            if (!level.canSeeSky(at)) continue
-            // The same threshold the snow obeys: what keeps the drift off your ground keeps the cold off
-            // you, so a lit shelter answers both and one discovery teaches the other.
-            if (level.getBrightness(LightLayer.BLOCK, at) >= KEEPS_ITS_GROUND) continue
-            val gaining = THAWS_BY + (BITES_BY * severity).roundToInt().coerceAtLeast(1)
+            val onYou = exposureAt(level, at) * (ALL_OF_IT - warmthAt(level, at))
+            if (onYou <= NOTHING) continue
+            val bite = (BITES_BY * severity * onYou).roundToInt().coerceAtLeast(1)
+            val gaining = THAWS_BY + bite
             living.ticksFrozen = (living.ticksFrozen + gaining).coerceAtMost(living.ticksRequiredToFreeze * DEEPEST_CHILL)
         }
+    }
+
+    /**
+     * How much of the storm is on this spot, from none of it to all of it — **the one definition**, read
+     * by the cold here and by the wind's crossfade on the client.
+     *
+     * **Cover, and graded** (Jonah, 2026-09-07). Sky light is the answer because it walks round an overhang
+     * and down through a canopy, so a lip of rock slows the cold, a stand of trees halves it and a cave or
+     * a roofed room stops it. There is nothing here about what a roof *is*; the lighting engine knows.
+     *
+     * **Block light is deliberately not consulted, and that is a change.** It used to stop the freezing
+     * outright, on the argument that what keeps the drift off your ground keeps the cold off you — but a
+     * field of torches is not warm, it is a lit field you are still standing in the wind of (Jonah). Light
+     * still keeps your *ground*; see [driftAt], which is vanilla's own rule and keeps it. What answers the
+     * cold is cover, a real fire, or the leather the design always meant to be the portable answer.
+     */
+    fun exposureAt(level: ServerLevel, at: BlockPos): Float =
+        (level.getBrightness(LightLayer.SKY, at).toFloat() / OPEN_TO_THE_SKY).coerceIn(NOTHING, ALL_OF_IT)
+
+    /**
+     * How much a real fire nearby takes off the cold, from none of it to [MOST_A_FIRE_GIVES].
+     *
+     * **Never all of it, which is the whole distinction being drawn.** A campfire in the open is warmth in
+     * a place you are still exposed, so it slows the freezing and cannot stop it; only cover does that.
+     * That is what keeps a ring of campfires from becoming the field of torches this replaced.
+     *
+     * **Dismissed off the section palette before a single position is read** — the trick `Wounds` and
+     * `Lures` use, and it is what makes this affordable at all: this runs for every freezable entity every
+     * tick, and almost none of them are ever near a fire. A section holding nothing warm answers in one
+     * predicate over a handful of palette entries.
+     */
+    private fun warmthAt(level: ServerLevel, at: BlockPos): Float {
+        if (!anythingWarmNear(level, at)) return NOTHING
+        val cursor = BlockPos.MutableBlockPos()
+        var closest = Int.MAX_VALUE
+        for (x in -WARMED_WITHIN..WARMED_WITHIN) {
+            for (y in -WARMED_WITHIN..WARMED_WITHIN) {
+                for (z in -WARMED_WITHIN..WARMED_WITHIN) {
+                    cursor.setWithOffset(at, x, y, z)
+                    if (!level.getBlockState(cursor).`is`(WARMS_YOU)) continue
+                    closest = minOf(closest, x * x + y * y + z * z)
+                }
+            }
+        }
+        if (closest == Int.MAX_VALUE) return NOTHING
+        val away = kotlin.math.sqrt(closest.toDouble()).toFloat()
+        return MOST_A_FIRE_GIVES * (ALL_OF_IT - away / (WARMED_WITHIN + ONE_MORE))
+    }
+
+    /** Whether any section this spot's reach touches holds anything warm at all. */
+    private fun anythingWarmNear(level: ServerLevel, at: BlockPos): Boolean {
+        val chunk = level.getChunk(SectionPos.blockToSectionCoord(at.x), SectionPos.blockToSectionCoord(at.z))
+        val lowest = level.getSectionIndex(at.y - WARMED_WITHIN)
+        val highest = level.getSectionIndex(at.y + WARMED_WITHIN)
+        for (index in lowest..highest) {
+            val section = chunk.sections.getOrNull(index) ?: continue
+            if (!section.hasOnlyAir() && section.maybeHas { it.`is`(WARMS_YOU) }) return true
+        }
+        return false
     }
 
     /**
@@ -409,6 +471,26 @@ object Blizzard {
 
     /** How far from a player the storm is worked, in blocks. */
     private const val REACH = 48
+
+    /** The sky light of open ground, so the first block of cover is already worth something. */
+    private const val OPEN_TO_THE_SKY = 15.0f
+
+    /**
+     * What may warm you, as a tag — genuinely hot things, never merely bright ones.
+     *
+     * A tag rather than a list so a pack can add its own hearth, and so the line between "gives light" and
+     * "gives heat" is one a datapack can move. Minecraft has no heat model, which is why this is the
+     * smallest possible one: a set of blocks and a radius.
+     */
+    val WARMS_YOU: TagKey<Block> = TagKey.create(Registries.BLOCK, "warms_you".location())
+
+    /** How far a fire carries, in blocks, and the most of the cold it can ever take off. */
+    private const val WARMED_WITHIN = 3
+    private const val MOST_A_FIRE_GIVES = 0.6f
+
+    private const val ONE_MORE = 1
+    private const val NOTHING = 0.0f
+    private const val ALL_OF_IT = 1.0f
 
     private const val ONE_BLOCK = 1
     private const val LEE_COURSES = 1

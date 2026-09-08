@@ -42,28 +42,17 @@ object Storms {
     /**
      * How much of the storm is actually on [player], from none of it to all of it.
      *
-     * **Graded rather than a switch** (Jonah, 2026-09-07), and read off both lights, because a blizzard has
-     * two kinds of shelter and the design turns on the second one.
+     * **The same arithmetic the cold uses**, written out here only because `Blizzard.exposureAt` takes a
+     * `ServerLevel` and this side has a `ClientLevel`. It is sky light over fifteen and nothing else, and
+     * if one of the two ever moves the other must move with it — the wind saying you are out in it while
+     * the freezing has stopped is the mismatch this whole shape exists to prevent.
      *
-     * **A roof, by sky light.** It walks round an overhang and down through a canopy, so a lip of rock buys
-     * a little quiet, a stand of trees buys some, and a cave or a roofed room buys all of it. There is
-     * nothing here about what a roof *is*; the lighting engine already knows.
-     *
-     * **And a lamp, by block light**, which is the half it would have been easy to drop. Design §5.2's
-     * whole counterplay is that light of ten stops the snow settling, stops the water icing and stops you
-     * freezing — *the thing that protects your ground already protects you* — and `Blizzard.chill` still
-     * enforces exactly that. Grading the sound on sky light alone would have left a torchlit field roaring
-     * while the cold had already stopped, which is the one place the sound and the harm must agree.
-     *
-     * The two are taken at whichever is **more** sheltering, so lighting a path home quietens it the same
-     * way roofing it does.
+     * **Cover only, deliberately.** A fire warms you without sheltering you, so it takes the edge off the
+     * cold and changes nothing here: you are still standing in the wind, and the sound should say so.
      */
     fun exposure(level: ClientLevel, player: LocalPlayer): Float {
-        val at = player.blockPosition()
-        val underTheSky = level.getBrightness(LightLayer.SKY, at).toFloat() / OPEN_TO_THE_SKY
-        val underALamp = level.getBrightness(LightLayer.BLOCK, at).toFloat() / SHELTERED_BY_LIGHT
-        val sheltered = maxOf(ALL_OF_IT - underTheSky, underALamp)
-        return (ALL_OF_IT - sheltered).coerceIn(NONE, ALL_OF_IT)
+        val open = level.getBrightness(LightLayer.SKY, player.blockPosition()).toFloat()
+        return (open / OPEN_TO_THE_SKY).coerceIn(NONE, ALL_OF_IT)
     }
 
     /**
@@ -270,15 +259,6 @@ object Storms {
 
     /** The sky light of open ground, so the first block of cover is already worth something. */
     private const val OPEN_TO_THE_SKY = 15.0f
-
-    /**
-     * And the block light that answers a blizzard outright — vanilla's own threshold, the one the snow
-     * obeys, and the one `Blizzard.chill` stops the cold at.
-     *
-     * Reached at ten rather than fifteen for that reason: the crossfade must be fully quiet exactly where
-     * the freezing stops, or the sound would go on promising a harm that is no longer there.
-     */
-    private const val SHELTERED_BY_LIGHT = 10.0f
 
     private const val NONE = 0.0f
     private const val ALL_OF_IT = 1.0f
