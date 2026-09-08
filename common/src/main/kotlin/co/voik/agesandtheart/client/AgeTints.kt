@@ -32,7 +32,7 @@ object AgeTints {
     fun register(registrar: (List<BlockTintSource>, Block) -> Unit) {
         // One tint apiece, which is the whole of what makes eight colours cost one model.
         for ((colour, block) in AgeContent.RIME_CRYSTAL_BLOCKS) {
-            registrar(listOf(BlockTintSources.constant(colour.tint)), block)
+            registrar(listOf(BlockTintSources.constant(opaque(colour.tint))), block)
             // And the same colour cast on what stands near it, but only while it is lit — a crystal at
             // rest glows too faintly for its colour to be doing anything to the wall behind it.
             TintedLights.cast(block) { state ->
@@ -40,9 +40,27 @@ object AgeTints {
             }
         }
         registrar(
-            listOf(BlockTintSources.constant(AgeContent.ASTRITE_TINT)),
+            listOf(BlockTintSources.constant(opaque(AgeContent.ASTRITE_TINT))),
             AgeContent.ASTRITE_SHARD_BLOCK,
         )
-        registrar(listOf(BlockTintSources.constant(AgeContent.ALGAE_TINT)), AgeContent.ALGAE_BLOCK)
+        registrar(listOf(BlockTintSources.constant(opaque(AgeContent.ALGAE_TINT))), AgeContent.ALGAE_BLOCK)
     }
+
+    /**
+     * [rgb] with a full alpha byte on it — **and without this a tinted block is invisible**, which is a
+     * thing worth stating plainly because nothing about it looks like a colour bug.
+     *
+     * Vanilla multiplies a tint into the quad with `ARGB.multiply`, which multiplies **alpha along with
+     * the colour channels**. A constant written the way anybody writes a colour — six hex digits,
+     * `0xE0575B` — has an alpha byte of zero, so the quad comes out `255 * 0 / 255` and the block does not
+     * draw at all. It renders perfectly in the hand, because the item pipeline applies its tints
+     * differently, which is what makes the symptom so misleading (Jonah, walked 2026-09-08).
+     *
+     * Done here rather than in the constants so a colour stays readable as a colour, and so the one place
+     * that hands them to the renderer is the one place that has to know about the alpha byte.
+     */
+    private fun opaque(rgb: Int): Int = rgb or ALPHA
+
+    /** A full alpha byte, which is what an `AARRGGBB` tint needs and an `RRGGBB` constant lacks. */
+    private const val ALPHA = 0xFF shl 24
 }

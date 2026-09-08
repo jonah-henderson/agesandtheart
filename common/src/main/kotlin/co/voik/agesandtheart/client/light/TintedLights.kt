@@ -11,7 +11,7 @@ import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
 import java.util.Collections
-import java.util.WeakHashMap
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Blocks that give their light a colour, and where they are (see `notes/coloured-light-research.md`).
@@ -77,11 +77,51 @@ object TintedLights {
     /**
      * The renderers that take the mesher over.
      *
+     * **`fabric-renderer-indigo` is the one that matters and it was missing** (walked 2026-09-08). Indigo
+     * is Fabric API's own terrain renderer, it replaces the chunk mesher wholesale, and it ships *inside*
+     * Fabric API — so it is present in every Fabric installation there will ever be, and this feature has
+     * never once run on that loader. The Mixin applies, finds its target and is simply never called, which
+     * is exactly the silent absence this list exists to turn into a sentence.
+     *
      * Ordered so the log names the thing a player would recognise first where more than one is present.
      */
-    private val MESHER_REPLACEMENTS = listOf("iris", "oculus", "sodium", "embeddium", "rubidium", "nvidium")
+    private val MESHER_REPLACEMENTS =
+        listOf("iris", "oculus", "sodium", "embeddium", "rubidium", "nvidium", "fabric-renderer-indigo")
 
     fun castsAnything(): Boolean = casts.isNotEmpty()
+
+    /**
+     * Whether any block that casts a tint is **standing in a world** — the early-out that actually fires.
+     *
+     * [castsAnything] asks whether any block *kind* is registered, and once the crystals register at
+     * startup the answer is yes for ever; on its own it never saves a thing, and every quad of every block
+     * in the game went on to the nine-chunk scan in [reaching]. This is the question that is false almost
+     * always, and it is a remembered flag rather than a walk of the index so that asking it stays free.
+     */
+    fun anythingIsPlaced(): Boolean = anythingPlaced
+
+    /**
+     * Whether the index holds anything at all — recomputed whenever it changes rather than counted up and
+     * down, because a count has to be right at four call sites and a recount only has to be run at them.
+     * Every one of those is a chunk arriving, a chunk going, or a block changing, so it is never hot.
+     */
+    @Volatile
+    private var anythingPlaced = false
+
+    private fun restock() {
+        val nowHolding = byLevel.values.any { chunks -> chunks.isNotEmpty() }
+        // **Said once at each crossing, and it earns the line.** Whether anything is indexed at all is the
+        // first question when no tint appears, and it is otherwise invisible from inside the game: a
+        // crystal renders its own colour through an unrelated seam, so the feature looks alive when the
+        // index is empty and nothing is being painted.
+        if (nowHolding != anythingPlaced) {
+            Constants.LOG.info(
+                if (nowHolding) "Coloured light: something is casting, and quads near it are being tinted"
+                else "Coloured light: nothing is casting anywhere loaded, so the painter is idle",
+            )
+        }
+        anythingPlaced = nowHolding
+    }
 
     fun colourOf(state: BlockState): Int? = casts[state.block]?.invoke(state)
 
@@ -93,7 +133,15 @@ object TintedLights {
      * index answers in one map lookup, is filled off the palette as chunks arrive, and is the pattern this
      * pack already trusts.
      */
-    private val byLevel = WeakHashMap<Level, MutableMap<Long, MutableMap<BlockPos, Int>>>()
+    /**
+     * **A concurrent map rather than a weak one, and that is a correctness fix rather than a preference.**
+     * It is written from the client thread as chunks arrive and blocks change, and read from **every
+     * mesher worker** through `TintedLightPainter`. A `WeakHashMap` read while another thread is writing
+     * it may answer null for a key that is present, or spin — so the inner maps being synchronised bought
+     * nothing while the outer one was not. Nothing leaks by dropping the weakness: [forget] clears it when
+     * the client leaves a world, which is the same moment the reference would have been released.
+     */
+    private val byLevel = ConcurrentHashMap<Level, MutableMap<Long, MutableMap<BlockPos, Int>>>()
 
     /**
      * Reads [chunk] into the index, dismissing each section off its palette first.
@@ -117,13 +165,18 @@ object TintedLights {
         }
         val chunks = byLevel.getOrPut(level) { Collections.synchronizedMap(mutableMapOf()) }
         if (found.isEmpty()) chunks.remove(ChunkPos.pack(chunk.pos.x, chunk.pos.z)) else chunks[ChunkPos.pack(chunk.pos.x, chunk.pos.z)] = found
+        restock()
     }
 
     fun emptied(level: Level, at: ChunkPos) {
         byLevel[level]?.remove(ChunkPos.pack(at.x, at.z))
+        restock()
     }
 
-    fun forget() = byLevel.clear()
+    fun forget() {
+        byLevel.clear()
+        restock()
+    }
 
     /**
      * One block changed — kept in step by hand, because a chunk is only read whole when it arrives.
@@ -140,6 +193,7 @@ object TintedLights {
         val holding = chunks.getOrPut(key) { mutableMapOf() }
         if (after == null) holding.remove(at) else holding[at] = after
         if (holding.isEmpty()) chunks.remove(key)
+        restock()
         rebuildAround(at)
         return true
     }
@@ -196,18 +250,29 @@ object TintedLights {
             }
         }
         if (weight <= NOTHING) return null
-        // Pulled back toward white by how weak the strongest contribution was, so a crystal far off tints
-        // faintly rather than painting the far wall its full colour.
-        val strength = weight.coerceAtMost(FULLY)
+        // **Light adds, and the peak is what is normalised away.** Dividing by the weight was a weighted
+        // *average*, which is how paint mixes: two complementary hues average to grey, so a red and a cyan
+        // crystal cancelled each other into white light with no colour left in it. Light does not work
+        // that way — red and blue make magenta, red and green make yellow, and red and cyan genuinely do
+        // make white. So the contributions are summed, and the sum is scaled until its brightest channel
+        // is full.
+        //
+        // Scaling by the peak rather than clamping is what keeps the obvious case right: two red crystals
+        // sum to twice red, which clamped would be a *duller* red than one of them and normalised is the
+        // same red. What survives is the **hue**; how bright it lands is the light engine's, and how
+        // strongly it is taken is the painter's.
+        val peak = maxOf(red, green, blue)
+        if (peak <= NOTHING) return null
         return ARGB.color(
-            mixed(red / weight, strength),
-            mixed(green / weight, strength),
-            mixed(blue / weight, strength),
+            atFullSaturation(red, peak),
+            atFullSaturation(green, peak),
+            atFullSaturation(blue, peak),
         )
     }
 
-    private fun mixed(channel: Double, strength: Double): Int =
-        (WHITE + (channel - WHITE) * strength).toInt().coerceIn(NONE, WHITE.toInt())
+    /** One channel of a summed colour, against its brightest — see the reading in [reaching]. */
+    private fun atFullSaturation(channel: Double, peak: Double): Int =
+        (channel / peak * FULL_CHANNEL).toInt().coerceIn(NONE, FULL_CHANNEL)
 
     /** How far a tint carries, in blocks. Shorter than the light itself, so the colour fades first. */
     const val REACH = 10.0
@@ -216,7 +281,6 @@ object TintedLights {
     private const val CHUNK_BITS = 4
     private val CHUNKS_IN_REACH = (REACH.toInt() shr CHUNK_BITS) + 1
     private const val NOTHING = 0.0
-    private const val FULLY = 1.0
-    private const val WHITE = 255.0
+    private const val FULL_CHANNEL = 255
     private const val NONE = 0
 }

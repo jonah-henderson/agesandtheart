@@ -58,6 +58,6 @@ public class ModelBlockRendererMixin {
             BlockPos pos,
             BakedQuad quad,
             CallbackInfo callback) {
-        TintedLightPainter.INSTANCE.paint(level, pos, this.quadInstance);
+        TintedLightPainter.INSTANCE.paint(pos, quad, this.quadInstance);
     }
 }

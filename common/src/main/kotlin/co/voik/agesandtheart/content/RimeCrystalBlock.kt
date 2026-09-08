@@ -80,11 +80,27 @@ class RimeCrystalBlock(val colour: RimeColour, properties: BlockBehaviour.Proper
         val CODEC: MapCodec<AmethystClusterBlock> = simpleCodec { AmethystClusterBlock(CRYSTAL_HEIGHT, CRYSTAL_WIDTH, it) }
 
         /** Vanilla's own full cluster, which is the shape this is. */
-        const val CRYSTAL_HEIGHT = 7.0f
-        const val CRYSTAL_WIDTH = 3.0f
+        /**
+         * **Deliberately larger than the amethyst cluster it is shaped like**, which is `7 × 3` — a spike
+         * three sixteenths wide, standing seven out of the face.
+         *
+         * Vanilla can afford that because an amethyst cluster is a rarity you break once. These grow in
+         * fields down a cliff and are *harvested*, so a hitbox you have to hunt for is felt every time
+         * (Jonah, walked 2026-09-08). This still stops well short of the block behind it, so a crystal on
+         * a wall can be mined without taking the wall with it.
+         */
+        const val CRYSTAL_HEIGHT = 11.0f
+        const val CRYSTAL_WIDTH = 6.0f
 
         /** What one gives off standing on a cliff, and what it gives off with a signal on it. */
         const val RESTING_GLOW = 4
-        const val POWERED_GLOW = 12
+        /**
+         * **Vanilla's brightest, and it pays for the colour.** A tint is a multiply and a multiply can only
+         * darken — a wall taking a strong red loses most of its green and blue, so the surface comes out
+         * dimmer the more colour it takes. The light engine is where the brightness comes back from, so a
+         * crystal meant to cast a saturated colour has to be a bright source or the corner reads as a dark
+         * stain rather than as something lit.
+         */
+        const val POWERED_GLOW = 15
     }
 }

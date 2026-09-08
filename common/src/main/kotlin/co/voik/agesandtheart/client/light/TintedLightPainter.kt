@@ -2,10 +2,11 @@ package co.voik.agesandtheart.client.light
 
 import com.mojang.blaze3d.vertex.QuadInstance
 import net.minecraft.client.Minecraft
+import net.minecraft.client.resources.model.geometry.BakedQuad
 import net.minecraft.core.BlockPos
 import net.minecraft.util.ARGB
 import net.minecraft.util.LightCoordsUtil
-import net.minecraft.client.renderer.block.BlockAndTintGetter
+import net.minecraft.world.level.Level
 
 /**
  * Tints a quad by whatever coloured light reaches it, at chunk-mesh time.
@@ -29,24 +30,73 @@ object TintedLightPainter {
      * Paints [instance] for the face of the block at [pos], or leaves it alone.
      *
      * **The early-outs are the design.** This runs for every quad of every block in every section of every
-     * world, so the common case — a pack with nothing registered, or country with nothing glowing in it —
-     * has to cost a field read and a return. The order is deliberate: cheapest question first.
+     * world, so the common case has to cost a field read and a return.
+     *
+     * **Two of them, and the second is the one that matters.** `castsAnything` asks whether any block
+     * *kind* is registered, and the answer is always yes — the crystals register at startup and never
+     * unregister, so on its own it never fires and every quad in the game went on to a nine-chunk scan.
+     * `anythingIsPlaced` asks whether any such block actually stands in a world, which is the question
+     * that is false almost always.
      */
-    fun paint(level: BlockAndTintGetter, pos: BlockPos, instance: QuadInstance) {
+    fun paint(pos: BlockPos, quad: BakedQuad, instance: QuadInstance) {
         if (!TintedLights.castsAnything()) return
+        if (!TintedLights.anythingIsPlaced()) return
         // **The client's own level rather than the one being meshed**, because a `RenderSectionRegion`
         // keeps its level private and reaching it would cost a widener for a lookup key. The one place the
         // two differ is the linking panel's preview level, where the worst case is a previewed crystal not
         // colouring its wall. Worth revisiting if the panel ever wants this.
         val world = Minecraft.getInstance().level ?: return
-        val tint = TintedLights.reaching(world, pos) ?: return
+        // One reading at the block to reject the common case: a quad with nothing in reach of it costs a
+        // single scan and leaves, where the per-corner work below is four.
+        TintedLights.reaching(world, pos) ?: return
         for (corner in 0..<CORNERS) {
             val lit = LightCoordsUtil.smoothBlock(instance.getLightCoords(corner))
             if (lit <= UNLIT) continue
+            val tint = tintAtVertex(world, pos, quad, corner) ?: continue
             val share = (lit.toFloat() / FULLY_LIT).coerceIn(NONE, ALL_OF_IT)
             instance.setColor(corner, ARGB.multiply(instance.getColor(corner), softened(tint, share)))
         }
     }
+
+    /**
+     * The tint at one **corner of the quad** rather than at the block it belongs to.
+     *
+     * **This is what stops a mix seaming.** Where one source is in reach the hue is the same everywhere and
+     * only the per-corner strength varies, so a block-wide hue is invisible; where two are, the hue is
+     * genuinely different from place to place and reading it once per block steps it at every boundary.
+     * Corners are **shared between neighbouring blocks**, so asking there makes the hue continuous across a
+     * face by construction — the same reason smooth lighting samples at corners rather than at centres.
+     *
+     * Rounded to the block corner it sits on, which is both what makes neighbours agree exactly and what
+     * gives [remembered] anything to hit: a vertex is shared by up to eight blocks and their quads.
+     */
+    private fun tintAtVertex(world: Level, pos: BlockPos, quad: BakedQuad, corner: Int): Int? {
+        val local = quad.position(corner)
+        val x = Math.round(pos.x + local.x())
+        val y = Math.round(pos.y + local.y())
+        val z = Math.round(pos.z + local.z())
+        val cache = remembered.get()
+        val key = BlockPos.asLong(x, y, z)
+        val slot = (BlockPos.asLong(x, y, z) * SPREAD).toInt() and SLOT_MASK
+        if (cache.keys[slot] == key && cache.filled[slot]) return cache.tints[slot].takeIf { it != NOTHING_THERE }
+        val found = TintedLights.reaching(world, BlockPos(x, y, z))
+        cache.keys[slot] = key
+        cache.filled[slot] = true
+        cache.tints[slot] = found ?: NOTHING_THERE
+        return found
+    }
+
+    /**
+     * A vertex is asked for by every quad that meets at it, so the same answer is wanted a dozen times over
+     * in a row — thread-confined, since a mesher worker owns its section and nothing else reads this.
+     */
+    private class VertexCache {
+        val keys = LongArray(SLOTS) { Long.MIN_VALUE }
+        val tints = IntArray(SLOTS)
+        val filled = BooleanArray(SLOTS)
+    }
+
+    private val remembered = ThreadLocal.withInitial { VertexCache() }
 
     /**
      * [tint] pulled back toward white by [share].
@@ -60,15 +110,35 @@ object TintedLightPainter {
         tint,
     )
 
+    /**
+     * **A temporary reading, and it is here because nothing else can see this happen.** Whether a quad is
+     * ever painted at all is invisible from in game: a crystal renders its own colour through an unrelated
+     * seam, so the feature looks alive whether or not a single tint has been applied. This says, once,
+     * that one was — and with what — so an absent line means `reaching` never answered near a drawn quad.
+     *
+     * Remove it when the walk settles.
+     */
     private const val CORNERS = 4
 
+    private const val SLOTS = 128
+    private const val SLOT_MASK = SLOTS - 1
+
+    /** An odd multiplier, so neighbouring vertices land in different slots rather than colliding in a row. */
+    private const val SPREAD = 0x9E3779B1L
+
+    /** Remembered "nothing reaches here", which is not a colour and must not be read as one. */
+    private const val NOTHING_THERE = Int.MIN_VALUE
+
     /**
-     * The block light at which a surface takes the tint fully.
+     * The lightmap coordinate at which a surface takes the tint fully — **vanilla's brightest**, in the
+     * 0..240 units [LightCoordsUtil.smoothBlock] answers in.
      *
-     * Below vanilla's fifteen on purpose: a crystal at light twelve should still colour what it is standing
-     * against, and anything brighter than this is being lit by something else as well.
+     * It was eleven *light levels*, which is below the twelve a powered crystal emits: everything the
+     * crystal actually lit was therefore at or past the threshold, took the tint at full strength, and the
+     * grade this whole per-corner path exists to draw was squeezed into the dim fringe beyond it. Setting
+     * it at the top of the range spends the grade over the lit region instead, which is where it is seen.
      */
-    private const val FULLY_LIT = 11.0f
+    private const val FULLY_LIT = 240.0f
 
     private const val UNLIT = 0
     private const val NONE = 0.0f
