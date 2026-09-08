@@ -1,4 +1,9 @@
 {
-  "_comment": "A bookshelf stands in until the model pass: a case of shelves is what this is.",
-  "variants": { "": { "model": "minecraft:block/bookshelf" } }
+  "_comment": [
+    "A barrel stands in until the model pass. NOT a shulker box, which is what the behaviour is derived",
+    "from: a shulker box has no baked model at all -- it is drawn by ShulkerBoxRenderer -- so pointing at",
+    "one would render nothing. A barrel is the nearest container that is an ordinary model.",
+    "It stood as a BOOKSHELF before, which read as furniture and hid that this is luggage."
+  ],
+  "variants": { "": { "model": "minecraft:block/barrel" } }
 }

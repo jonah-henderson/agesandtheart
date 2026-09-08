@@ -62,4 +62,15 @@ class ToolboxBlockEntity(pos: BlockPos, state: BlockState) :
     fun holdsSpare(wanted: net.minecraft.world.item.Item): Boolean =
         items.any { !it.isEmpty && it.item === wanted }
 
+    /**
+     * **Nothing is scattered when the box is broken**, which is the shulker box's own override and the one
+     * line that makes a container luggage rather than furniture.
+     *
+     * `BlockEntity.preRemoveSideEffects` drops the contents of *any* `Container` by default, so a box that
+     * says nothing here empties itself onto the floor however carefully its loot table copies the contents
+     * onto the item — which is exactly what a toolbox must not do. `ShulkerBoxBlockEntity` overrides it to
+     * do nothing for the same reason, and the loot table's `copy_components` is then what carries the
+     * spares away in your hand.
+     */
+    override fun preRemoveSideEffects(pos: BlockPos, state: BlockState) = Unit
 }

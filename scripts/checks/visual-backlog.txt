@@ -114,9 +114,18 @@
 #     in one.
 #   - THE REFILL. Carry a toolbox holding a spare, break the tool in your hand, and the spare should
 #     arrive in that hand. **ARMOUR TOO**, which is the less usual half — break a boot and the spare boot
-#     should go on. Besides that it fires: that it takes from the right compartment, that the contents
-#     survive the box being broken and replaced, and that the client does not flicker when a refused item
-#     is dragged in (the menu carries its own type precisely so that it should not).
+#     should go on. Besides that it fires: that it takes from the right compartment, and that the client
+#     does not flicker when a refused item is dragged in (the menu carries its own type precisely so that
+#     it should not).
+#   - **THE CONTENTS TRAVEL WITH THE BOX -- FIXED 2026-09-07 (Jonah reported it), SO RE-WALK IT.** It was
+#     scattering them on the floor. The cause was a DEFAULT, not the bookshelf it looked like: any block
+#     entity that is a `Container` empties itself in `BlockEntity.preRemoveSideEffects` unless it says
+#     otherwise, and the shulker box's whole trick is one empty override. Break a full one and the spares
+#     must come away IN THE ITEM, in survival AND in creative -- creative runs no loot table, so that half
+#     is a separate code path (`playerWillDestroy`) and would fail on its own.
+#   - It stands as a BARREL now rather than a bookshelf. **Not a shulker box** despite the behaviour being
+#     the shulker's: a shulker box has no baked model at all, being drawn by `ShulkerBoxRenderer`, so a
+#     blockstate pointing at one renders nothing. Placeholder until the model pass either way.
 
 # ══ 4. THE TERMINAL HOARD IS GENERATED BUT HAS NEVER BEEN SEEN ═══════════════ Built 2026-09-05 ══
 # `unstable=400` sets the index before the Age opens, which is what `/age decay` cannot do — decay rewrites
