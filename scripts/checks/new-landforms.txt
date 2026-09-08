@@ -1,0 +1,49 @@
+# The two landforms added for Phase 7 step 4 — do they generate, and does a book reach them?
+# Run with: scripts/drive-server.sh scripts/checks/new-landforms.txt
+#
+# Both are exercised twice over: once composed by hand, which says the field tree and the biome layer
+# agree about them, and once written as a sentence, which says the minted page actually resolves to the
+# preset. The second is the half a unit check cannot see, `DerivedWords.designs` minting from an enum
+# that a datapack then has to carry a tag profile for.
+
+# The flat world. What to read: `flatlands` claims no waterline at all, so the biomes have to come out as
+# dry inland country rather than as one endless coast — see `Grounding.hasSea`.
+age compose plain 7 landmass=flatlands rock=solid sky=plain
+age gen plain
+age biomes plain
+
+# The same with caves under it, which is what the demo preset writes: a level world with somewhere to go.
+age compose plaincaves 7 landmass=flatlands rock=caves sky=plain
+age gen plaincaves
+
+# And with the halls, since a plain at y=64 leaves room for exactly one storey and the arithmetic that
+# decides that is `GreatHalls.storeysBetween` against `Terrain.undergroundCeiling`.
+age compose plainhalls 7 landmass=flatlands rock=caves underground=great_halls sky=plain
+age gen plainhalls
+
+# The lone island at its ordinary size. What to read: one island at the origin, ocean biomes over the sea
+# round it, and a sandy shore where the two meet.
+age compose alone 7 landmass=isle sea=water rock=caves sky=plain
+age gen alone
+age biomes alone
+
+# The two ends of its size ladder, which reaches further than the archipelago's at both.
+age compose alonesmall 7 landmass=isle[size=-1.0..-0.9] sea=water sky=plain
+age gen alonesmall
+age compose alonelarge 7 landmass=isle[size=0.9..1.0] sea=water sky=plain
+age gen alonelarge
+
+# Written rather than composed: the minted pages have to resolve to the presets, and the readout has to
+# say them back.
+age write writtenplain 7 age flatlands landmass
+age write writtenisle 7 age isle landmass
+age gen writtenplain
+age gen writtenisle
+
+# Cost against a same-session reference, since both are meant to be cheap — one is a slab and the other
+# is two noise samples a column.
+age compose reference 7 landmass=hills sea=water rock=caves sky=plain
+age gen reference
+age bench reference 4
+age bench plaincaves 4
+age bench alone 4

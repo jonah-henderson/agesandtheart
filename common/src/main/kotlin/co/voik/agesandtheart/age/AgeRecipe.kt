@@ -266,6 +266,9 @@ data class AgeRecipe(
             is AgeWorld.Bespoke -> world
         }
 
+        /** The top of the size axis, which is what `colossal` sets and what a D'ni vault wants. */
+        private const val COLOSSAL = "1.0..1.0"
+
         /** An Age from before an Age had an age — read as having been written when the world began. */
         const val UNRECORDED = 0L
 
@@ -305,6 +308,24 @@ data class AgeRecipe(
                     AgeComposition(
                         terrains = listOf(Terrain.ISLANDS),
                         seas = listOf(Sea.WATER),
+                        carvers = listOf(Carvers.CAVES),
+                    ),
+                )
+                // The same, and grounded for the same two reasons — an ocean this size wants ocean biomes,
+                // and there is one coast for the sand to be at.
+                AgePreset.ISLE -> grounded(
+                    AgeComposition(
+                        terrains = listOf(Terrain.ISLE),
+                        seas = listOf(Sea.WATER),
+                        carvers = listOf(Carvers.CAVES),
+                    ),
+                )
+                // No sea, which is what makes the biomes read as dry country rather than as one endless
+                // shore: with nothing poured, `Grounding` files every column as inland (see its `hasSea`).
+                // Carved, so there is something under a world with nothing on it.
+                AgePreset.FLATLANDS -> grounded(
+                    AgeComposition(
+                        terrains = listOf(Terrain.FLATLANDS),
                         carvers = listOf(Carvers.CAVES),
                     ),
                 )
@@ -355,6 +376,24 @@ data class AgeRecipe(
                 AgePreset.INVERSE_CAVES -> AgeComposition(
                     terrains = listOf(Terrain.INVERSE_CAVES),
                     carvers = listOf(Carvers.CAVES),
+                )
+                // No sky anywhere, so nothing is grounded and nothing is carved: the landform is a slab
+                // and the caves *are* the underground, which is the whole division of labour it exists for.
+                AgePreset.SOLID -> AgeComposition(
+                    terrains = listOf(Terrain.SOLID),
+                    seas = listOf(Sea.WATER),
+                    underground = Underground.NOISE_CAVES,
+                )
+                // And the same rock chambered instead, at the size the D'ni formula asks for: the vaults
+                // carry their own lakes, so the sea here is what they are made of rather than a level.
+                AgePreset.CHAMBERS -> AgeComposition(
+                    terrains = listOf(Terrain.SOLID),
+                    seas = listOf(Sea.WATER),
+                    underground = Underground.CHAMBERED,
+                    options = AspectOptions().with(
+                        Aspect.UNDERGROUND,
+                        listOf(Options(mapOf(Terrain.SIZE.name to listOf(COLOSSAL)))),
+                    ),
                 )
                 // Grounded, because the whole of what is above ground here is meant to read as ordinary —
                 // the halls are the strange part and they are better for arriving under somewhere real.

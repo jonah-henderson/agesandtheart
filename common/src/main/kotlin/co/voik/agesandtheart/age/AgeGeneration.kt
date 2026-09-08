@@ -223,7 +223,11 @@ object AgeGeneration {
             // Only where the rock is ours: a rule delegating to the biomes does so *through* the field
             // tree, and an Age wearing vanilla's rock has none to delegate through. `vanillasRockFor`
             // carries that Age's skin instead.
-            ourGround?.let { Surface.ruleFor(composition.optionsFor(Aspect.SURFACE, 0), it.rock, recipe.template) }
+            ourGround?.let {
+                val skin = Surface.ruleFor(composition.optionsFor(Aspect.SURFACE, 0), it.rock, recipe.template)
+                // A landform that is its own roof closes it with bedrock, as vanilla closes the nether's.
+                if (composition.roofedByItsRock) SurfacingStrategy.shutOverhead(skin) else skin
+            }
                 ?: SurfacingStrategy.SUPPRESSED,
             composition.carvers.map { it.configuredCarvers(server) },
             below,
@@ -403,6 +407,23 @@ object AgeGeneration {
      * and a neighbour that does not is unaffected — an Age is allowed to be wet next door to dry, so long
      * as the boundary is a wall of rock rather than of water.
      */
+    /**
+     * [carried] with whatever water the **underground** holds added to it — the lakes standing in a
+     * chambered Age's vaults, which answer to their own level rather than to the Age's waterline.
+     *
+     * The same shape as [keptDry] and for the same reason: an underground is per territory, so its water
+     * is laid on the territory map beside the terrain's own rather than poured over the whole world.
+     */
+    private fun withLakes(
+        carried: TerrainField?,
+        grounds: List<Terrain.Ground>,
+        ground: RegionMap,
+    ): TerrainField? {
+        if (grounds.none { it.wet != null }) return carried
+        val perTerritory = Regions.of(grounds.map { it.wet ?: Union(emptyList()) }, ground)
+        return if (carried == null) perTerritory else Union(listOf(carried, perTerritory))
+    }
+
     private fun keptDry(
         chasm: TerrainField?,
         grounds: List<Terrain.Ground>,
@@ -466,6 +487,7 @@ object AgeGeneration {
         val grounds = composition.terrains.mapIndexed { member, terrain ->
             terrain.ground(
                 composition.underground,
+                composition.optionsFor(Aspect.UNDERGROUND, 0),
                 composition.optionsFor(Aspect.TERRAIN, member),
                 window,
                 saltFor(seed, member),
@@ -480,7 +502,10 @@ object AgeGeneration {
         // **A world shut overhead needs something to shut it.** A template's roof is part of its rock, so
         // naming a landform took it away and left `sealed=always` saying only what the dimension type says
         // — no skylight, and open air to the top of the world (Jonah, 2026-08-14, walked).
-        val lid = if (!Sky.isRoofed(composition.optionsFor(Aspect.SKY))) null
+        // **Nothing to add where the landform is already the roof**, and adding it anyway would hang the
+        // vault's own pendants inside solid rock and pay for a second field to do it.
+        val roofsItself = composition.terrains.any { it.roofsTheWorld }
+        val lid = if (roofsItself || !Sky.isRoofed(composition)) null
         else CeilingField.over(window, seed)
         // Volcanoes stand *on* whatever landform the Age has rather than replacing it, so they are a layer
         // over the finished rock — the same shape of thing a roof is, and read from the same recipe fact
@@ -500,7 +525,7 @@ object AgeGeneration {
                 ground = Union(listOfNotNull(shape, cones)).takeIf { lid != null },
             ),
             chasm = keptDry(riftCut, grounds, ground),
-            standing = carriedWater(composition, landmass.seam, ground, seed, torn),
+            standing = withLakes(carriedWater(composition, landmass.seam, ground, seed, torn), grounds, ground),
         )
     }
 
@@ -518,7 +543,8 @@ object AgeGeneration {
         AgePreset.FIELD, AgePreset.PYRAMIDS, AgePreset.PYRINGS, AgePreset.PYRVARIED, AgePreset.HILLS,
         AgePreset.SHAPES, AgePreset.PILLARS, AgePreset.CAVERNS, AgePreset.ERODED, AgePreset.CANYON,
         AgePreset.CLIFFS, AgePreset.CANYONLANDS, AgePreset.SHATTERED, AgePreset.RIVERLANDS,
-        AgePreset.ISLANDS, AgePreset.ALPS, AgePreset.CRATERLANDS, AgePreset.INVERSE_CAVES, AgePreset.HALLS,
+        AgePreset.ISLANDS, AgePreset.ISLE, AgePreset.ALPS, AgePreset.CRATERLANDS, AgePreset.INVERSE_CAVES,
+        AgePreset.HALLS, AgePreset.FLATLANDS, AgePreset.SOLID, AgePreset.CHAMBERS,
         -> error("'${preset.key}' names a composition, so AgeRecipe.worldFor should never have sent it here")
     }
 
@@ -619,15 +645,12 @@ object AgeGeneration {
      * it was written over, rather than whether any word was said.
      */
     private fun typeFor(composition: AgeComposition, template: AgeTemplate): Identifier {
-        val ours = Sky.dimensionType(
-            composition.optionsFor(Aspect.SKY, 0),
-            composition.optionsFor(Aspect.SUN, 0),
-        )
+        val ours = Sky.dimensionType(composition)
         // Only where the rock is the template's: a landform of ours generates into our own vertical band,
         // and vanilla's nether is a hundred and twenty-eight blocks tall.
         if (Terrain.VANILLA !in composition.terrains) return ours
         val world = template.world()
-        val theirs = Sky.dimensionType(world.optionsFor(Aspect.SKY, 0), world.optionsFor(Aspect.SUN, 0))
+        val theirs = Sky.dimensionType(world)
         return if (ours == theirs) template.dimensionType.identifier() else ours
     }
 

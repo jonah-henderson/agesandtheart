@@ -86,6 +86,36 @@ object SurfacingStrategy {
         solid(Blocks.BEDROCK.defaultBlockState()),
     )
 
+    /**
+     * The ceiling of the world — bedrock, fading in just below the top, and the mirror of [worldFloor].
+     *
+     * **Only an Age whose rock reaches the ceiling wears one**, which is why it is applied over a chosen
+     * rule rather than being part of every palette: a surface rule paints blocks that already exist, so
+     * this would turn a canyon's plateau — which genuinely stands at the top of the world — into bedrock.
+     */
+    private fun worldRoof(): SurfaceRules.RuleSource = SurfaceRules.ifTrue(
+        // **Negated, unlike the floor.** A vertical gradient is certainly true at its lower anchor and
+        // certainly false at its upper one, so read straight it says "not the roof"; vanilla's own nether
+        // roof inverts it for exactly this reason.
+        not(
+            SurfaceRules.verticalGradient(
+                "bedrock_roof",
+                VerticalAnchor.belowTop(BEDROCK_FADE),
+                VerticalAnchor.top(),
+            ),
+        ),
+        solid(Blocks.BEDROCK.defaultBlockState()),
+    )
+
+    /**
+     * [rule] with the world closed overhead — what a landform solid to the ceiling wears so that its own
+     * roof cannot be mined through (`Terrain.roofsTheWorld`).
+     *
+     * **First in the sequence**, for the same reason the floor is: a world boundary is not the palette's to
+     * decide, and a material least of all.
+     */
+    fun shutOverhead(rule: SurfaceRules.RuleSource): SurfaceRules.RuleSource = layers(worldRoof(), rule)
+
     // --- The three an Age can wear ---
 
     /**

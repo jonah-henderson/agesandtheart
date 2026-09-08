@@ -40,6 +40,19 @@ object IslandsField {
     /** Where an island sits between those ends when nothing in the book spoke about its size. */
     private const val ORDINARY_SIZE = 0.35
 
+    /**
+     * And the ends [lone] runs between, which are wider at both because nothing has to fit around it: the
+     * smallest is a rock you can see the whole of from the water, and the largest is a genuine continent
+     * that the archipelago deliberately cannot draw.
+     */
+    private const val SMALLEST_LONE_SHORE_RADIUS = 140.0
+    private const val LARGEST_LONE_SHORE_RADIUS = 2000.0
+    private const val SMALLEST_LONE_PEAK_RISE = 22.0
+    private const val LARGEST_LONE_PEAK_RISE = 150.0
+
+    /** How wide a lone island's beach is, where its radius is large enough to have the room — see [loneBeachShare]. */
+    private const val LONE_BEACH_WIDTH = 90.0
+
     private fun shoreRadiusAt(size: Double?): Double =
         betweenTheEnds(SMALLEST_SHORE_RADIUS, LARGEST_SHORE_RADIUS, size)
 
@@ -69,6 +82,56 @@ object IslandsField {
             jitter = JITTER,
             seed = ISLAND_SEED xor salt,
         )
+
+    /**
+     * **One island, and open sea however far you sail from it** — the same shape with its lattice reduced
+     * to the cell the origin stands in.
+     *
+     * It gets a size ladder of its own, reaching well past [world]'s at both ends. What caps an island in
+     * an archipelago is having to leave a voyage of open water before the next one; alone, nothing has to
+     * fit around it, so the top of the range can be a landmass it takes a day to cross and the bottom a
+     * rock you can see the whole of from the water.
+     */
+    fun lone(size: Double? = null, salt: Long = 0L): TerrainField {
+        val shoreRadius = loneShoreRadiusAt(size)
+        return Isle(
+            floorY = WORLD_FLOOR,
+            seabedY = SEABED_Y,
+            shoreY = SEA_LEVEL,
+            peakRise = betweenTheEnds(SMALLEST_LONE_PEAK_RISE, LARGEST_LONE_PEAK_RISE, size),
+            shoreRadius = shoreRadius,
+            // The size asked for is the size drawn — see `Isle.solitary` for why a variation here would be
+            // a fixed offset rather than a difference between one Age and the next.
+            radiusVariation = 0.0,
+            spacing = LEAST_SPACING,
+            jitter = 0.0,
+            seed = ISLAND_SEED xor salt,
+            beachShare = loneBeachShare(shoreRadius),
+            layout = Isle.Layout.SOLITARY,
+        )
+    }
+
+    /**
+     * How much of a lone island's radius is beach — **a width rather than a share**, since a beach is a
+     * distance you walk across and not a proportion of what is behind it.
+     *
+     * The two agree at an archipelago's sizes and part company at a continent's: [Isle.DEFAULT_BEACH_SHARE]
+     * is a fifth, which is forty blocks of sand on the smallest island here and four hundred on the
+     * largest. So the share is capped at the default and otherwise reads back off [LONE_BEACH_WIDTH],
+     * which leaves the small islands exactly as they were and keeps the big ones walkable.
+     */
+    private fun loneBeachShare(shoreRadius: Double): Double =
+        (LONE_BEACH_WIDTH / shoreRadius).coerceAtMost(Isle.DEFAULT_BEACH_SHARE)
+
+    private fun loneShoreRadiusAt(size: Double?): Double =
+        betweenTheEnds(SMALLEST_LONE_SHORE_RADIUS, LARGEST_LONE_SHORE_RADIUS, size)
+
+    /** The furthest a lone island of this size can reach from the origin — its coast at its widest wander. */
+    fun loneReach(size: Double?): Double = loneShoreRadiusAt(size) * (1.0 + Isle.DEFAULT_COAST_ROUGHNESS)
+
+    /** And how far its shallows carry past that, which is where open ocean actually begins. */
+    fun loneShelfReach(size: Double?): Double =
+        loneReach(size) + (SEA_LEVEL - SEABED_Y) / Isle.DEFAULT_SHELF_SLOPE
 
     /**
      * The same idea **composed from the toolkit** rather than written as a node — Jonah's construction, and

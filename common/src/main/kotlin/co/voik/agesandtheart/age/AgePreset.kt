@@ -25,6 +25,9 @@ enum class AgePreset(val key: String) : StringRepresentable {
     /** Rolling noise hills over a sea — vanilla's biomes, carvers and structures. */
     HILLS("hills"),
 
+    /** A level plain to the horizon, with caves under it — our superflat. */
+    FLATLANDS("flatlands"),
+
     /** A walkable sampler of the shape vocabulary and its combinators. */
     SHAPES("shapes"),
 
@@ -55,6 +58,9 @@ enum class AgePreset(val key: String) : StringRepresentable {
     /** Islands in an endless sea — one at the origin, the rest a voyage away. */
     ISLANDS("islands"),
 
+    /** One island at the origin, and no other anywhere. */
+    ISLE("isle"),
+
     /** An alpine range: a foreland plain, foothills, and a glaciated crest behind them. */
     ALPS("alps"),
 
@@ -66,6 +72,12 @@ enum class AgePreset(val key: String) : StringRepresentable {
 
     /** Ordinary ground, with storey upon storey of pillared hall taken out from under it. */
     HALLS("halls"),
+
+    /** Rock floor to ceiling, hollowed by vanilla's own caves — a world that is all underground. */
+    SOLID("solid"),
+
+    /** The same rock, with great lake-floored vaults in it instead. */
+    CHAMBERS("chambers"),
 
     /** Tier-B delegates to Minecraft's own generation — our benchmark reference points. */
     VANILLA("vanilla"),

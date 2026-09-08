@@ -4,9 +4,11 @@ import co.voik.agesandtheart.worldgen.AlpsField
 import co.voik.agesandtheart.worldgen.CanyonField
 import co.voik.agesandtheart.worldgen.CanyonlandsField
 import co.voik.agesandtheart.worldgen.CavernField
+import co.voik.agesandtheart.worldgen.Chambers
 import co.voik.agesandtheart.worldgen.CliffField
 import co.voik.agesandtheart.worldgen.CraterlandsField
 import co.voik.agesandtheart.worldgen.ErodedField
+import co.voik.agesandtheart.worldgen.FlatlandsField
 import co.voik.agesandtheart.worldgen.GreatHalls
 import co.voik.agesandtheart.worldgen.InverseCavesField
 import co.voik.agesandtheart.worldgen.IslandsField
@@ -17,6 +19,7 @@ import co.voik.agesandtheart.worldgen.PyramidField
 import co.voik.agesandtheart.worldgen.RiverlandsField
 import co.voik.agesandtheart.worldgen.ShapesField
 import co.voik.agesandtheart.worldgen.ShatteredField
+import co.voik.agesandtheart.worldgen.SolidField
 import co.voik.agesandtheart.worldgen.SpireField
 import co.voik.agesandtheart.worldgen.VerticalWindow
 import co.voik.agesandtheart.worldgen.biome.Elevation
@@ -52,6 +55,13 @@ enum class Terrain(
 
     /** Rolling noise hills breaking a sea — the closest thing here to ordinary ground. */
     HILLS("hills", waterline = 63, build = { _, salt -> NoiseField.hills(salt) }),
+
+    /**
+     * A level plain to the horizon and no relief anywhere in it — Minecraft's own superflat. Its waterline
+     * is null for the same reason [PYRAMIDS]' is: ground this even has nowhere to hold a sea, and a
+     * phantom level under it would file the whole world as coast (see [Grounding.hasSea]).
+     */
+    FLATLANDS("flatlands", waterline = null, build = { _, _ -> FlatlandsField.world() }),
 
     /** Rock riddled by ridged 3D noise: this Age's caves *are* its shape, not something cut from it. */
     CAVERNS("caverns", waterline = 63, build = { _, salt -> CavernField.world(salt) }),
@@ -128,6 +138,19 @@ enum class Terrain(
     ),
 
     /**
+     * **One** island at the [SIZE] asked for, with open ocean however far you sail from it — where
+     * [ISLANDS] promises another a voyage away, this promises there is no other.
+     *
+     * Its ladder reaches further at both ends than the archipelago's for exactly that reason: nothing has
+     * to fit around it, so it may be a continent or a rock, neither of which an archipelago can draw.
+     */
+    ISLE(
+        "isle",
+        waterline = IslandsField.SEA_LEVEL,
+        build = { options, salt -> IslandsField.lone(options.steer(SIZE, salt), salt) },
+    ),
+
+    /**
      * An alpine range at about one to sixteen: a foreland plain, foothills, and a glaciated crest. The one
      * landform here whose surface is built **up from its own drainage** rather than cut into a given one —
      * every ridge is where two hillslopes met.
@@ -180,6 +203,20 @@ enum class Terrain(
         build = { _, salt -> OverworldField.world(salt) },
     ),
 
+    /**
+     * Rock from the floor of the world to its ceiling: **the one landform with no surface**, and the only
+     * one that shuts the world overhead by being what it is rather than by wearing a lid ([roofsTheWorld]).
+     *
+     * What is hollowed out of it is the [Underground]'s to say, which is the whole of why the shape is one
+     * node — see [SolidField]. Its waterline is a water table rather than a sea, there being no open
+     * ground for a sea to stand on.
+     */
+    SOLID(
+        "solid",
+        waterline = SolidField.WATERLINE,
+        build = { _, _ -> SolidField.world() },
+    ),
+
     /** A walkable sampler of the shape vocabulary and its combinators — a reference, not a world. */
     SHAPES("shapes", waterline = null, build = { _, salt -> ShapesField.world(salt) }),
 
@@ -219,7 +256,7 @@ enum class Terrain(
         INVERSE_CAVES -> "inverted"
         VANILLA -> null
         HILLS, CAVERNS, ERODED, PILLARS, PYRAMIDS, CANYON, CLIFFS, CANYONLANDS, SHATTERED,
-        RIVERLANDS, ISLANDS, ALPS, CRATERLANDS, OVERWORLD, SHAPES,
+        RIVERLANDS, ISLANDS, ISLE, ALPS, CRATERLANDS, OVERWORLD, SHAPES, FLATLANDS, SOLID,
         -> key
     }
 
@@ -229,7 +266,7 @@ enum class Terrain(
         get() = listOfNotNull(
             ARRANGEMENT.takeIf { this == PYRAMIDS },
             BEARING.takeIf { this == CANYON || this == CLIFFS },
-            SIZE.takeIf { this == ISLANDS },
+            SIZE.takeIf { this == ISLANDS || this == ISLE },
             SPACING.takeIf { this == CRATERLANDS },
             WEAR.takeIf { this == CRATERLANDS },
             RELIEF.takeIf { this == CRATERLANDS },
@@ -269,13 +306,18 @@ enum class Terrain(
         SHATTERED -> ShatteredField.FLOOR_Y - ROOM_FOR_A_ROOF
         CLIFFS -> CliffField.SEABED_Y - ROOM_FOR_A_ROOF
         RIVERLANDS -> RiverlandsField.WATERLINE - DEEP_ENOUGH_TO_MISS_A_RIVERBED
-        ISLANDS -> IslandsField.SEA_LEVEL - DEEP_ENOUGH_TO_MISS_A_SEABED
+        ISLANDS, ISLE -> IslandsField.SEA_LEVEL - DEEP_ENOUGH_TO_MISS_A_SEABED
+        // A plain with no sea, and the only thing over the top storey is the plain itself.
+        FLATLANDS -> FlatlandsField.SURFACE_Y - ROOM_FOR_A_ROOF
         // The basin is already the deepest thing here, and it is dug from a plain standing well above
         // the waterline — so this datums on the crater floor rather than on the sea in it.
         CRATERLANDS -> CraterlandsField.BOWL_FLOOR_Y - ROOM_FOR_A_ROOF
         HILLS, ERODED, PILLARS -> ORDINARY_SEA_LEVEL - DEEP_ENOUGH_TO_MISS_A_SEABED
         // A plain with no sea, so the only thing overhead is the plain itself.
         PYRAMIDS -> ORDINARY_SEA_LEVEL - ROOM_FOR_A_ROOF
+        // **The most room of anything here, and for once nothing is being cleared.** There is no surface
+        // for an underground to open into, so this is bounded by the bedrock roof alone.
+        SOLID -> SolidField.UNDERGROUND_CEILING
         // VANILLA has no shape of ours to hollow under, its rock being vanilla's to describe.
         SPIRE_ISLANDS, CAVERNS, ALPS, SHAPES, INVERSE_CAVES, VANILLA -> null
     }
@@ -289,7 +331,13 @@ enum class Terrain(
      * so asking for both costs one landform and answers from one cache. Building a second copy would pay
      * for the whole thing again, which for a [MountainRange] or a [Caved] is most of the generator's time.
      */
-    fun ground(underground: Underground, options: Options, window: VerticalWindow, salt: Long): Ground {
+    fun ground(
+        underground: Underground,
+        undergroundOptions: Options,
+        options: Options,
+        window: VerticalWindow,
+        salt: Long,
+    ): Ground {
         val uncut = build(options, salt)
         // **A landform with no room under it carries nothing**, whatever was asked for — the same shape as
         // a preset ignoring a material it cannot be made of, and the reason the ceiling is declared here.
@@ -303,6 +351,21 @@ enum class Terrain(
             Underground.GREAT_HALLS -> {
                 val halls = hallsIn(window, salt)
                 Ground(Subtract(uncut, halls), dry = halls)
+            }
+            // **Dry *and* wet**, which is not a contradiction: the vaults are kept out of the Age's own
+            // flat fill outright, and the lake standing in each is put back by the field that knows where
+            // its own water line is. Handing them to a water table instead would stand a flooded bay
+            // against a dry one with nothing between, which is what `GreatHallsWaterCheck` records.
+            Underground.CHAMBERED -> {
+                val floor = window.minY + BEDROCK_MARGIN
+                val roof = undergroundCeiling() ?: 0
+                val size = undergroundOptions.steer(SIZE, salt)
+                val vaults = Chambers.voidBetween(floor, roof, size, CHAMBER_SEED xor salt)
+                Ground(
+                    Subtract(uncut, vaults),
+                    dry = vaults,
+                    wet = Chambers.lakesIn(floor, roof, size, CHAMBER_SEED xor salt),
+                )
             }
             Underground.NONE -> Ground(uncut)
         }
@@ -350,7 +413,28 @@ enum class Terrain(
         val shape: TerrainField,
         val hollows: TerrainField? = null,
         val dry: TerrainField? = null,
+        /**
+         * Water the underground carries **itself**, standing wherever this says regardless of the Age's own
+         * waterline — the counterpart of [dry] and the same channel a river's water runs through.
+         *
+         * It exists because every landform's underground ceiling sits *below* its waterline, so a chamber
+         * filled by the Age's sea is a drowned chamber everywhere. A lake that knows its own level is what
+         * lets one be written under any shape with room for it.
+         */
+        val wet: TerrainField? = null,
     )
+
+    /**
+     * Whether this shape **shuts the world overhead by being what it is** — solid rock all the way to the
+     * ceiling, with no surface anywhere for a sky to reach.
+     *
+     * A physical fact about the Age, which is what `sky.sealed` already claims to be — so it is read
+     * beside it rather than instead of it (`AgeComposition.isRoofed`), and everything that follows from
+     * being roofed follows here too: the dimension type, where a visitor arrives, and what is painted
+     * overhead. [CANYON] is the one that looks like it belongs here and does not: its plateau reaches the
+     * ceiling, but the gorge is open to the sky and that is the whole landform.
+     */
+    val roofsTheWorld: Boolean get() = this == SOLID
 
     /**
      * Water this terrain carries **itself**, or null where a waterline is all it needs.
@@ -374,7 +458,7 @@ enum class Terrain(
      * is one subject and belongs in one table; see [Grounding.Declared] for what the facts mean.
      */
     fun grounding(): Grounding.Declared = when (this) {
-        ISLANDS -> Grounding.Declared(hasSandyShores = true)
+        ISLANDS, ISLE -> Grounding.Declared(hasSandyShores = true)
         CANYON -> Grounding.Declared(waterlineIsRiver = true)
         // Measured from the basin's *shoulder* rather than its floor: the floor is the bottom of a hollow
         // in the middle of a cell, so datuming there chills the whole country by the depth of its lowest
@@ -529,6 +613,9 @@ enum class Terrain(
 
         // And its halls likewise, decorrelated from both.
         private const val HALL_SEED = 0x4A_115L
+
+        // And its chambers, so a world's vaults are not laid where its caves were.
+        private const val CHAMBER_SEED = 0x0C_4A_9BEL
 
         /** The one material parameter — the whole of what a writer means by "the land is andesite". */
         val STONE = Parameter.material(

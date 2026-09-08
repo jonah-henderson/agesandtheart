@@ -53,6 +53,20 @@
       "lush": 0.5
     }
   },
+  "isle": {
+    "readiness": 0.6,
+    "tags": {
+      "watery": 0.9,
+      "lush": 0.5
+    }
+  },
+  "flatlands": {
+    "readiness": 0.35,
+    "tags": {
+      "flat": 1.0,
+      "solid": 0.9
+    }
+  },
   "alps": {
     "tags": {
       "mountainous": 1.0,
@@ -139,6 +153,14 @@
       "mountainous": 0.6,
       "sheer": 0.6,
       "ordered": 0.5
+    }
+  },
+  "solid": {
+    "readiness": 0.3,
+    "tags": {
+      "solid": 1.0,
+      "dark": 0.9,
+      "cavernous": 0.5
     }
   }
 }

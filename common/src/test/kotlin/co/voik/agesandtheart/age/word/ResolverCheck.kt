@@ -396,8 +396,7 @@ class ResolverCheck : FunSpec({
         fun composed(vararg pages: String) =
             Resolver.resolve(vocabulary, read(listOf(*pages)), SAMPLE_SEED).composition
 
-        fun typeOf(composition: AgeComposition) =
-            Sky.dimensionType(composition.optionsFor(Aspect.SKY, 0), composition.optionsFor(Aspect.SUN, 0))
+        fun typeOf(composition: AgeComposition) = Sky.dimensionType(composition)
 
         for (template in listOf(AgeTemplate.INFERNAL, AgeTemplate.DARK_VOID)) {
             val silent = composed(template.key, "age")

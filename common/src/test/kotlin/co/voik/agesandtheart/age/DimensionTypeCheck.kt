@@ -7,6 +7,9 @@ import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Options
 import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Sky
+import co.voik.agesandtheart.age.aspect.Terrain
+import co.voik.agesandtheart.sky.Described
+import co.voik.agesandtheart.sky.described
 import co.voik.agesandtheart.worldgen.VerticalWindow
 import com.google.gson.JsonParser
 import com.mojang.serialization.JsonOps
@@ -55,9 +58,38 @@ class DimensionTypeCheck : FunSpec({
         Triple(sealed, Options(), AgeGeneration.AGE_LIGHTLESS_ROOFED_DIMENSION_TYPE),
     )
 
+    /**
+     * **A world of solid rock is roofed whether or not anybody wrote the word**, which is the whole of what
+     * `AgeParts.roofedByItsRock` exists for: the seal is a physical fact about the Age, and a landform that
+     * reaches the ceiling settles it on its own.
+     *
+     * It matters beyond tidiness. The roofed type is what `Ages.footingIn` branches on to come *down* from
+     * the ceiling for somewhere to stand, so without this a visitor to a world with no surface arrives on
+     * top of it.
+     */
+    test("a landform that reaches the ceiling is roofed without the word") {
+        val open = Described()
+        check(Sky.dimensionType(open) == AgeGeneration.AGE_DIMENSION_TYPE) {
+            "an Age with nothing said about it is not the ordinary one"
+        }
+        val solidRock = Described(roofedByItsRock = true)
+        check(Sky.dimensionType(solidRock) == AgeGeneration.AGE_LIGHTLESS_ROOFED_DIMENSION_TYPE) {
+            "a world of solid rock wears ${Sky.dimensionType(solidRock)} rather than the roofed type"
+        }
+        check(Sky.isRoofed(solidRock) && Sky.isLightless(solidRock)) {
+            "a world of solid rock reads as open to the sky"
+        }
+    }
+
+    /** And the landform is what says so, rather than the fact being asserted about a flag. */
+    test("solid is the landform that roofs the world, and the only one") {
+        val roofing = Terrain.entries.filter { it.roofsTheWorld }
+        check(roofing == listOf(Terrain.SOLID)) { "these landforms claim to roof the world: $roofing" }
+    }
+
     test("each set of facts picks its own type") {
         for ((sky, sun, expected) in everyCombination) {
-            val chosen = Sky.dimensionType(sky, sun)
+            val chosen = Sky.dimensionType(described(sky, sun))
             check(chosen == expected) { "$sky $sun picked $chosen rather than $expected" }
         }
         check(everyCombination.map { it.third }.distinct().size == everyCombination.size) {
@@ -108,7 +140,7 @@ class DimensionTypeCheck : FunSpec({
         MinecraftRegistries.ensureStoodUp()
         for (template in AgeTemplate.entries) {
             val world = template.world()
-            val facts = Sky.dimensionType(world.optionsFor(Aspect.SKY, 0), world.optionsFor(Aspect.SUN, 0))
+            val facts = Sky.dimensionType(world)
             val restated = ourEquivalent[template.dimensionType]
             check(restated != null) { "${template.key} wears ${template.dimensionType}, which restates none of ours" }
             check(restated == facts) {

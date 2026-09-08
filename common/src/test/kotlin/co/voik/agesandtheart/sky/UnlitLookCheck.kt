@@ -36,9 +36,9 @@ class UnlitLookCheck : FunSpec({
         val sealed = Options(mapOf(Sky.SEALED.name to listOf(Parameter.TRUE)))
         val sunless = Options(mapOf(Sky.ABSENT.name to listOf(Parameter.TRUE)))
         fun overOrdinary(sky: Options, sun: Options) =
-            Atmosphere.unlitLook(Described(mapOf(Aspect.SKY to sky, Aspect.SUN to sun)), AgeTemplate.OVERWORLD)
+            Atmosphere.unlitLook(described(sky, sun), AgeTemplate.OVERWORLD)
 
-        check(!Sky.isLightless(ordinary, ordinary)) { "an ordinary Age came out lightless" }
+        check(!Sky.isLightless(described(ordinary, ordinary))) { "an ordinary Age came out lightless" }
         check(overOrdinary(ordinary, ordinary) == Look.NOTHING) {
             "an ordinary Age was painted dark: ${overOrdinary(ordinary, ordinary)}"
         }
@@ -46,7 +46,7 @@ class UnlitLookCheck : FunSpec({
         val dark = listOf("sealed" to (sealed to ordinary), "sunless" to (ordinary to sunless), "both" to (sealed to sunless))
         for ((described, options) in dark) {
             val (sky, sun) = options
-            check(Sky.isLightless(sky, sun)) { "a $described Age is lit" }
+            check(Sky.isLightless(described(sky, sun))) { "a $described Age is lit" }
             check(overOrdinary(sky, sun).sky != null) { "a $described Age kept its blue sky" }
         }
     }

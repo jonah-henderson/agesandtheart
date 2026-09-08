@@ -295,11 +295,9 @@ data class Danger(
 
         private fun lightingOf(composition: AgeComposition, table: DangerTable): Double {
             if (spawnsNothing(composition)) return 0.0
-            val sky = composition.optionsFor(Aspect.SKY, 0)
-            val sun = composition.optionsFor(Aspect.SUN, 0)
             return when {
-                Sky.isRoofed(sky) -> table.sealed
-                Sky.isLightless(sky, sun) -> table.lightless
+                Sky.isRoofed(composition) -> table.sealed
+                Sky.isLightless(composition) -> table.lightless
                 else -> 0.0
             }
         }

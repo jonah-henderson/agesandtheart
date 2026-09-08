@@ -8,6 +8,7 @@ import co.voik.agesandtheart.worldgen.CavernField
 import co.voik.agesandtheart.worldgen.CliffField
 import co.voik.agesandtheart.worldgen.CraterlandsField
 import co.voik.agesandtheart.worldgen.ErodedField
+import co.voik.agesandtheart.worldgen.FlatlandsField
 import co.voik.agesandtheart.worldgen.GreatHalls
 import co.voik.agesandtheart.worldgen.IslandsField
 import co.voik.agesandtheart.worldgen.NoiseField
@@ -15,11 +16,14 @@ import co.voik.agesandtheart.worldgen.OverworldField
 import co.voik.agesandtheart.worldgen.PillarField
 import co.voik.agesandtheart.worldgen.RiverlandsField
 import co.voik.agesandtheart.worldgen.ShapesField
+import co.voik.agesandtheart.worldgen.Chambers
 import co.voik.agesandtheart.worldgen.ShatteredField
+import co.voik.agesandtheart.worldgen.SolidField
 import co.voik.agesandtheart.worldgen.SpireField
 import co.voik.agesandtheart.worldgen.VolcanoField
 import co.voik.agesandtheart.worldgen.field.Union
 import co.voik.agesandtheart.age.Seam
+import co.voik.agesandtheart.age.aspect.Span
 import co.voik.agesandtheart.worldgen.carver.Weathering
 import co.voik.agesandtheart.worldgen.field.Caved
 import co.voik.agesandtheart.worldgen.field.Fault
@@ -529,6 +533,53 @@ private val subjects: Map<String, Subject> = mapOf(
         lowestY = 20,
         highestY = IslandsField.SEA_LEVEL + 120,
         radius = 1100,
+    ),
+
+    // The lone island at its ordinary size, whole. This one *can* be drawn whole where `islands` cannot,
+    // there being no second island for the window to have to reach.
+    "isle" to Subject(
+        IslandsField.lone(),
+        lowestY = 20,
+        highestY = IslandsField.SEA_LEVEL + 120,
+        radius = 1200,
+        step = 2,
+    ),
+
+    // **Read the slices, never the plan**: from above a hollowed world is just that world, so the two
+    // cross-sections are the whole of what this subject shows. What to look for is a chamber wide enough
+    // to hold a city, air over the water in it, and rock over that.
+    "chambers" to Subject(
+        Subtract(
+            SolidField.world(),
+            Chambers.voidBetween(-59, SolidField.UNDERGROUND_CEILING, size = Span.NATURAL_MOST),
+        ),
+        lowestY = -64,
+        highestY = SolidField.WORLD_CEILING,
+        radius = 700,
+        step = 2,
+        sliceAtZ = 0,
+        sliceAtX = 0,
+    ),
+
+    // The vaults on their own, which is far easier to read than absence inside a slab — the same reason
+    // `CavernField.caves` is public.
+    "chambers-void" to Subject(
+        Chambers.voidBetween(-59, SolidField.UNDERGROUND_CEILING, size = Span.NATURAL_MOST),
+        lowestY = -64,
+        highestY = SolidField.WORLD_CEILING,
+        radius = 700,
+        step = 2,
+        sliceAtZ = 0,
+        sliceAtX = 0,
+    ),
+
+    // A rectangle, and that is the point: read the report rather than the picture, where the percentile
+    // spread of column tops is a single number if the plain is level.
+    "flatlands" to Subject(
+        FlatlandsField.world(),
+        lowestY = -64,
+        highestY = FlatlandsField.SURFACE_Y + 16,
+        radius = 128,
     ),
 
     // The same islands **composed from the toolkit** rather than written as a node — read it against

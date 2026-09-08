@@ -71,6 +71,9 @@ data class AgeComposition(
      * How many territories [aspect] divides into. Presets answer for themselves; an aspect whose answer is
      * a set of parameters counts its own values, there being no preset to count.
      */
+    /** Solid to the ceiling, and so shut overhead whether or not a book said the word. */
+    override val roofedByItsRock: Boolean get() = terrains.any { it.roofsTheWorld }
+
     override fun membersIn(aspect: Aspect): Int {
         // A described member has no preset to count: its entries *are* the roll — see
         // [Aspect.membersAreDescribed], which covers a cast of suns and a divided climate alike.

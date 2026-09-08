@@ -79,7 +79,7 @@ enum class Sky(override val key: String) : AuthoredPreset {
         // something a writer has to remember to say. Silencing the sun is not enough: a moon and a full
         // field of stars were still drawn through the ceiling of an infernal Age, because the cast falls
         // back to vanilla's one moon wherever no clause described a body and `orbiting` was never set.
-        if (isRoofed(parts.optionsFor(Aspect.SKY))) return SkySpec.drawn(NONE, NONE, NONE, ORDINARY_SPREAD.toFloat(), seed)
+        if (isRoofed(parts)) return SkySpec.drawn(NONE, NONE, NONE, ORDINARY_SPREAD.toFloat(), seed)
         // **Assembled from three aspects**, which is what the split made explicit: the suns, the moons and
         // the star field are each their own part of the world, and a spec is where they meet.
         val sun = parts.optionsFor(Aspect.SUN)
@@ -461,8 +461,14 @@ enum class Sky(override val key: String) : AuthoredPreset {
          */
         val SEALED = Parameter.flag("sealed", help = "Whether the world is roofed over, like the nether.")
 
-        /** Whether the Age is shut overhead. */
-        fun isRoofed(sky: Options): Boolean = sky.isTrue(SEALED)
+        /**
+         * Whether the Age is shut overhead — **because its book said so, or because its rock does it**.
+         *
+         * The two are one fact and are read as one everywhere. A landform solid to the ceiling is sealed
+         * whether or not anybody wrote the word, which is what makes the physical claim above true rather
+         * than merely intended (see [AgeParts.roofedByItsRock]).
+         */
+        fun isRoofed(parts: AgeParts): Boolean = parts.optionsFor(Aspect.SKY).isTrue(SEALED) || parts.roofedByItsRock
 
         /**
          * Whether nothing lights the Age from above — **one fact with three readers**: the dimension type
@@ -473,7 +479,8 @@ enum class Sky(override val key: String) : AuthoredPreset {
          * world the game is holding pitch dark, which is the walked bug of 2026-08-05 arriving a second
          * time by a second route.
          */
-        fun isLightless(sky: Options, sun: Options): Boolean = isRoofed(sky) || sun.isTrue(ABSENT)
+        fun isLightless(parts: AgeParts): Boolean =
+            isRoofed(parts) || parts.optionsFor(Aspect.SUN).isTrue(ABSENT)
 
         /**
          * The pre-authored type an Age wearing these facts needs — **derived, never written** (Jonah,
@@ -490,12 +497,12 @@ enum class Sky(override val key: String) : AuthoredPreset {
          * four declare [co.voik.agesandtheart.worldgen.VerticalWindow.DEFAULT], so no sky moves an Age's
          * floor.
          */
-        fun dimensionType(sky: Options, sun: Options): Identifier =
+        fun dimensionType(parts: AgeParts): Identifier =
             // **Three, not four.** A world sealed overhead cannot also let the sky reach the ground, so
             // roofed-and-lit is a combination the facts cannot produce and the file for it is gone.
             when {
-                isRoofed(sky) -> AgeGeneration.AGE_LIGHTLESS_ROOFED_DIMENSION_TYPE
-                isLightless(sky, sun) -> AgeGeneration.AGE_LIGHTLESS_DIMENSION_TYPE
+                isRoofed(parts) -> AgeGeneration.AGE_LIGHTLESS_ROOFED_DIMENSION_TYPE
+                isLightless(parts) -> AgeGeneration.AGE_LIGHTLESS_DIMENSION_TYPE
                 else -> AgeGeneration.AGE_DIMENSION_TYPE
             }
 

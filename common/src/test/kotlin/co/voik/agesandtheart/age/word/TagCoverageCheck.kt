@@ -107,7 +107,7 @@ class TagCoverageCheck : FunSpec({
      */
     test("no aspect reaches less than it did") {
         val floors = mapOf(
-            Aspect.TERRAIN to 17,
+            Aspect.TERRAIN to 20,
             Aspect.CARVERS to 4,
             Aspect.SKY to 2,
             Aspect.STRUCTURES to 17,

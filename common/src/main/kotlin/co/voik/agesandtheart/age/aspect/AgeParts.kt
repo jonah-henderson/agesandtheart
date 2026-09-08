@@ -21,6 +21,16 @@ interface AgeParts {
     /** How many members [aspect] holds: its territories, or the bodies a book described into being. */
     fun membersIn(aspect: Aspect): Int
 
+    /**
+     * Whether the **shape** of this Age shuts it overhead, as against its sky having been told to — see
+     * [Terrain.roofsTheWorld].
+     *
+     * Here rather than beside the terrains because being roofed is one fact with several readers, and
+     * every one of them holds parts rather than a composition: the dimension type it wears, the sky it is
+     * painted, what a danger score makes of it, and where a visitor lands.
+     */
+    val roofedByItsRock: Boolean get() = false
+
     companion object {
         /**
          * An Age with no parts to ask about — what a **bespoke** world is, being a whole generator with a

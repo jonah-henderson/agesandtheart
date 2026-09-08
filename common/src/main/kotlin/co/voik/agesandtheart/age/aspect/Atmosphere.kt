@@ -230,17 +230,14 @@ object Atmosphere {
      * grey.
      */
     fun unlitLook(parts: AgeParts, template: AgeTemplate): Look {
-        val sky = parts.optionsFor(Aspect.SKY)
-        val sun = parts.optionsFor(Aspect.SUN)
-        if (!Sky.isLightless(sky, sun)) return Look.NOTHING
+        if (!Sky.isLightless(parts)) return Look.NOTHING
         val nothingIsUpThere = Look(cloud = NO_CLOUD)
         if (isAlreadyDark(template.world())) return nothingIsUpThere
         return nothingIsUpThere.copy(sky = STARLESS, fog = STARLESS, tint = STARLESS)
     }
 
     /** Whether the world a book was written over was unlit before the book said anything. */
-    private fun isAlreadyDark(world: AgeParts): Boolean =
-        Sky.isLightless(world.optionsFor(Aspect.SKY), world.optionsFor(Aspect.SUN))
+    private fun isAlreadyDark(world: AgeParts): Boolean = Sky.isLightless(world)
 
     /** Not quite black: pure zero reads as a hole cut in the world rather than as a dark sky. */
     private val STARLESS = Rgba(0.02f, 0.02f, 0.03f)
@@ -284,7 +281,7 @@ object Atmosphere {
      * `skylight` switch that picks the dimension type says the same thing from the other side.
      */
     private fun lightFrom(parts: AgeParts, template: AgeTemplate): List<Asked<*>> {
-        val nothingIsUpThere = Sky.isLightless(parts.optionsFor(Aspect.SKY), parts.optionsFor(Aspect.SUN))
+        val nothingIsUpThere = Sky.isLightless(parts)
         if (!nothingIsUpThere) return emptyList()
         // **Unless the world it was written over is already dark**, which answers this better than a zero:
         // the nether's own is 4, a dim constant, and it is why it is never truly black in there. The same

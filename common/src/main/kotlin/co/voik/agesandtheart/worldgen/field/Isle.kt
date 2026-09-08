@@ -3,6 +3,7 @@ package co.voik.agesandtheart.worldgen.field
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
+import net.minecraft.util.StringRepresentable
 import kotlin.math.floor
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
@@ -74,14 +75,8 @@ data class Isle(
      * height for the relief to work on.
      */
     val shoulder: Double = DEFAULT_SHOULDER,
-    /**
-     * Whether the island whose cell holds the world's origin is centred on it, jitter and all.
-     *
-     * **Not a tidiness.** `Ages.findFooting` walks out 288 blocks looking for somewhere over the waterline
-     * and then gives up; islands lie thousands apart, so a jittered origin cell puts the spawn in open
-     * ocean with no land in any direction it can see. One island has to be where the writer arrives.
-     */
-    val anchorsTheOrigin: Boolean = true,
+    /** How many islands there are, and whether one of them is where the writer arrives — see [Layout]. */
+    val layout: Layout = Layout.ANCHORED,
 ) : TerrainField {
     override val kind = FieldKind.ISLE
 
@@ -91,14 +86,17 @@ data class Isle(
     override val samplesPerColumn = 2
 
     override fun columnSpans(worldX: Int, worldZ: Int): Spans {
-        val cellX = floor(worldX / spacing).toInt()
-        val cellZ = floor(worldZ / spacing).toInt()
-
         // The coast is read once for the column rather than once per island: it is what makes a shoreline
         // ragged, and two neighbouring islands have no business disagreeing about it where they meet.
         val wandered = 1.0 + coastNoise.getValue(worldX / coastStretch, 0.0, worldZ / coastStretch)
             .coerceIn(-1.0, 1.0) * coastRoughness
 
+        if (layout == Layout.SOLITARY) {
+            return Spans.of(floorY, islandAt(0, 0, worldX, worldZ, wandered).roundToInt())
+        }
+
+        val cellX = floor(worldX / spacing).toInt()
+        val cellZ = floor(worldZ / spacing).toInt()
         var highest = seabedY.toDouble()
         for (aroundX in -1..1) {
             for (aroundZ in -1..1) {
@@ -117,7 +115,7 @@ data class Isle(
      * flattens again at the coast, which is what leaves a beach rather than a cone dipping into the water.
      */
     private fun islandAt(cellX: Int, cellZ: Int, worldX: Int, worldZ: Int, wandered: Double): Double {
-        val holdsTheOrigin = anchorsTheOrigin && cellX == 0 && cellZ == 0
+        val holdsTheOrigin = layout != Layout.SCATTERED && cellX == 0 && cellZ == 0
         val centreX = if (holdsTheOrigin) 0.0 else (cellX + HALF + cellHash(cellX, cellZ, X_SALT) * jitter) * spacing
         val centreZ = if (holdsTheOrigin) 0.0 else (cellZ + HALF + cellHash(cellX, cellZ, Z_SALT) * jitter) * spacing
         val radius = shoreRadius * (1.0 + cellHash(cellX, cellZ, SIZE_SALT) * 2.0 * radiusVariation)
@@ -161,6 +159,42 @@ data class Isle(
         relief = relief * factor,
         beachRise = beachRise * factor,
     )
+
+    /**
+     * **How many islands there are, and where the first one is.** One fact rather than two flags, because
+     * the two questions are not independent: an island alone that is not the one you arrive on is a world
+     * with no land you can reach.
+     */
+    enum class Layout : StringRepresentable {
+        /** A lattice of them, every cell jittered off its own point — including the one holding the origin. */
+        SCATTERED,
+
+        /**
+         * The same lattice with the origin cell centred on the world origin.
+         *
+         * **Not a tidiness.** `Ages.findFooting` walks out 288 blocks looking for somewhere over the
+         * waterline and then gives up; islands lie thousands apart, so a jittered origin cell puts the
+         * spawn in open ocean with no land in any direction it can see.
+         */
+        ANCHORED,
+
+        /**
+         * One island, on the origin, and open sea everywhere else however far you sail.
+         *
+         * [spacing] and [jitter] go unread, there being no second cell for either to place, and
+         * [radiusVariation] wants to be zero beside it: `cellHash` is a hash of the cell rather than of
+         * the seed, so cell `(0, 0)` draws the same value in every world and a variation here is a fixed
+         * offset on the size that was asked for rather than a difference between one Age and the next.
+         */
+        SOLITARY,
+        ;
+
+        override fun getSerializedName(): String = name.lowercase()
+
+        companion object {
+            val CODEC: Codec<Layout> = StringRepresentable.fromEnum(Layout::values)
+        }
+    }
 
     companion object {
         private const val HALF = 0.5
@@ -232,7 +266,7 @@ data class Isle(
                 Codec.DOUBLE.optionalFieldOf("beach_share", DEFAULT_BEACH_SHARE).forGetter(Isle::beachShare),
                 Codec.DOUBLE.optionalFieldOf("beach_rise", DEFAULT_BEACH_RISE).forGetter(Isle::beachRise),
                 Codec.DOUBLE.optionalFieldOf("shoulder", DEFAULT_SHOULDER).forGetter(Isle::shoulder),
-                Codec.BOOL.optionalFieldOf("anchors_the_origin", true).forGetter(Isle::anchorsTheOrigin),
+                Layout.CODEC.optionalFieldOf("layout", Layout.ANCHORED).forGetter(Isle::layout),
             ).apply(instance, ::Isle)
         }
     }

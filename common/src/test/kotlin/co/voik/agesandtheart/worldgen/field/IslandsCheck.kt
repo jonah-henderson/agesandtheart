@@ -120,13 +120,90 @@ class IslandsCheck : FunSpec({
         check(smallest > 0) { "the smallest island had no land across its middle at all" }
     }
 
+    /**
+     * **The lone island is where the writer arrives**, and it has no second island to fall back on — so
+     * this is the same guarantee `islands` makes, made where failing it strands somebody in open ocean
+     * with nowhere at all to go.
+     */
+    test("the lone island stands over the waterline at the origin") {
+        for (extent in EXTENTS) {
+            val here = IslandsField.lone(extent).columnSpans(0, 0).highestSolidY
+            check(here != null && here > IslandsField.SEA_LEVEL) {
+                "${said(extent)}: the origin stands at $here, against a waterline of ${IslandsField.SEA_LEVEL}"
+            }
+        }
+    }
+
+    /**
+     * **And there is no other island, however far you sail** — the one property this preset exists for,
+     * and the one that separates it from an archipelago whose next island is merely a long way off.
+     *
+     * Sampled well past the *shelf*, since shallows are not open ocean, and out to many times the largest
+     * island's own reach on all four bearings and both diagonals.
+     */
+    test("there is nothing but seabed beyond the lone island, in every direction") {
+        for (extent in EXTENTS) {
+            val world = IslandsField.lone(extent)
+            val from = IslandsField.loneShelfReach(extent).toInt() + 1
+            var sampled = 0
+            for (out in from..from + OPEN_OCEAN step 719) {
+                val bearings = listOf(
+                    out to 0, 0 to out, -out to 0, 0 to -out,
+                    out to out, -out to -out, out to -out, -out to out,
+                )
+                for (bearing in bearings) {
+                    val top = world.columnSpans(bearing.first, bearing.second).highestSolidY
+                    sampled++
+                    check(top == IslandsField.SEABED_Y) {
+                        "${said(extent)}: at $bearing the ground stood at $top rather than the seabed"
+                    }
+                }
+            }
+            check(sampled > 40) { "${said(extent)}: only $sampled columns of open sea were sampled" }
+        }
+    }
+
+    /**
+     * **A beach stays a beach at continental sizes**, which is what `IslandsField.loneBeachShare` is for: a
+     * fifth of the radius is forty blocks of sand on the smallest island here and four hundred on the
+     * largest, and four hundred blocks of dead-level sand is not a shore.
+     */
+    test("the lone island's beach is walkable at every size") {
+        for (extent in EXTENTS) {
+            val world = IslandsField.lone(extent)
+            fun topAt(out: Int) = world.columnSpans(out, 0).highestSolidY ?: 0
+            val reach = IslandsField.loneReach(extent).toInt()
+
+            val coast = (reach downTo 0).firstOrNull { topAt(it) > IslandsField.SEA_LEVEL }
+                ?: error("${said(extent)}: no coast found along +x")
+            val backOfTheBeach = (coast downTo 0).firstOrNull { topAt(it) > IslandsField.SEA_LEVEL + BEACH_HEIGHT }
+                ?: error("${said(extent)}: the island never rose past beach height")
+            val width = coast - backOfTheBeach
+
+            check(width >= LEAST_BEACH) { "${said(extent)}: the beach ran only $width blocks before rising" }
+            check(width <= WIDEST_BEACH) { "${said(extent)}: $width blocks of level sand is not a shore" }
+        }
+    }
+
+    /** And it reaches past what an archipelago can draw, which is the whole reason it has a ladder of its own. */
+    test("the lone island can be larger than any island in the archipelago") {
+        val largestAlone = IslandsField.loneReach(Span.NATURAL_MOST)
+        val largestTogether = IslandsField.widestReach(Span.NATURAL_MOST)
+        check(largestAlone > largestTogether) {
+            "alone it reaches $largestAlone against the archipelago's $largestTogether"
+        }
+    }
+
     test("the world round-trips through its codec") {
-        val written = IslandsField.world(Span.NATURAL_MOST)
-        val encoded = TerrainField.CODEC.encodeStart(com.mojang.serialization.JsonOps.INSTANCE, written)
-            .getOrThrow { failure -> error("the islands would not encode: $failure") }
-        val read = TerrainField.CODEC.parse(com.mojang.serialization.JsonOps.INSTANCE, encoded)
-            .getOrThrow { failure -> error("the islands would not read back: $failure") }
-        check(read == written) { "read back as a different world" }
+        // Both shapes, since the lone one is the same node carrying one more flag — and a flag that fails
+        // to survive its codec reads back as an archipelago with the islands a voyage apart.
+        for (written in listOf(IslandsField.world(Span.NATURAL_MOST), IslandsField.lone(Span.NATURAL_MOST))) {
+            val encoded = TerrainField.CODEC.encodeStart(com.mojang.serialization.JsonOps.INSTANCE, written)
+                .getOrThrow { failure -> error("the islands would not encode: $failure") }
+            val read = TerrainField.CODEC.parse(com.mojang.serialization.JsonOps.INSTANCE, encoded)
+                .getOrThrow { failure -> error("the islands would not read back: $failure") }
+            check(read == written) { "read back as a different world" }
+        }
     }
 }) {
     private companion object {
@@ -148,6 +225,12 @@ class IslandsCheck : FunSpec({
 
         /** And how far it has to run. Wide enough to be somewhere, at even the smallest extent. */
         const val LEAST_BEACH = 25
+
+        /** Past which it stops reading as a shore and starts reading as a desert with a sea beside it. */
+        const val WIDEST_BEACH = 140
+
+        /** How far past its own shelf a lone island is checked for company. Many times its widest reach. */
+        const val OPEN_OCEAN = 30_000
     }
 }
 
