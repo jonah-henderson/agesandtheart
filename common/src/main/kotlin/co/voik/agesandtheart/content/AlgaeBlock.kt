@@ -88,11 +88,11 @@ class AlgaeBlock(properties: BlockBehaviour.Properties) : Block(properties) {
             level.setBlockAndUpdate(pos, Blocks.WATER.defaultBlockState())
             return
         }
+        // **The hour is followed and the tick carries on**, rather than being spent on it. The glow crosses
+        // twenty-eight rungs a day against about seventeen random ticks, so returning here would have
+        // skipped the spread on most of them and quietly halved a rate the comment below calls vanilla's.
         val hour = glowAtHour(level.defaultClockTime)
-        if (state.getValue(GLOW) != hour) {
-            level.setBlock(pos, state.setValue(GLOW, hour), UPDATE_CLIENTS)
-            return
-        }
+        if (state.getValue(GLOW) != hour) level.setBlock(pos, state.setValue(GLOW, hour), UPDATE_CLIENTS)
         if (random.nextInt(SPREADS_ONE_TICK_IN) != 0) return
         if (crowdedAround(level, pos)) return
         val reachX = random.nextInt(SPREAD_ACROSS * 2 + 1) - SPREAD_ACROSS

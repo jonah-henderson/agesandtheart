@@ -68,12 +68,21 @@ data class AgeComposition(
     fun spreadOf(aspect: Aspect): Spread = spreads.of(aspect).over(membersIn(aspect))
 
     /**
+     * Solid to the ceiling, and so shut overhead whether or not a book said the word.
+     *
+     * **Every territory, not any of them** — being roofed is one fact for the whole Age, since a dimension
+     * type is one file and a lid is one field. `solid and hills landmass` divides the world between rock
+     * to the ceiling and open hills, and reading `any` there put a bedrock roof and no skylight over the
+     * hills as well. Where only part of the world closes itself, the Age has a sky, and a writer who wants
+     * it shut says so — which then lays `CeilingField` over the half that needs one.
+     */
+    override val roofedByItsRock: Boolean get() =
+        terrains.isNotEmpty() && terrains.all { it.roofsTheWorld }
+
+    /**
      * How many territories [aspect] divides into. Presets answer for themselves; an aspect whose answer is
      * a set of parameters counts its own values, there being no preset to count.
      */
-    /** Solid to the ceiling, and so shut overhead whether or not a book said the word. */
-    override val roofedByItsRock: Boolean get() = terrains.any { it.roofsTheWorld }
-
     override fun membersIn(aspect: Aspect): Int {
         // A described member has no preset to count: its entries *are* the roll — see
         // [Aspect.membersAreDescribed], which covers a cast of suns and a divided climate alike.

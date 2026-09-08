@@ -46,9 +46,9 @@ object TintedLightPainter {
         // two differ is the linking panel's preview level, where the worst case is a previewed crystal not
         // colouring its wall. Worth revisiting if the panel ever wants this.
         val world = Minecraft.getInstance().level ?: return
-        // One reading at the block to reject the common case: a quad with nothing in reach of it costs a
-        // single scan and leaves, where the per-corner work below is four.
-        TintedLights.reaching(world, pos) ?: return
+        // One reading at the block to reject the common case, **through the same cache the corners use**:
+        // every quad of a block asks it, so it is answered once and read from memory thereafter.
+        tintAt(world, pos.x, pos.y, pos.z) ?: return
         for (corner in 0..<CORNERS) {
             val lit = LightCoordsUtil.smoothBlock(instance.getLightCoords(corner))
             if (lit <= UNLIT) continue
@@ -72,16 +72,28 @@ object TintedLightPainter {
      */
     private fun tintAtVertex(world: Level, pos: BlockPos, quad: BakedQuad, corner: Int): Int? {
         val local = quad.position(corner)
-        val x = Math.round(pos.x + local.x())
-        val y = Math.round(pos.y + local.y())
-        val z = Math.round(pos.z + local.z())
+        return tintAt(world, Math.round(pos.x + local.x()), Math.round(pos.y + local.y()), Math.round(pos.z + local.z()))
+    }
+
+    /**
+     * The tint at one position, remembered.
+     *
+     * **The remembered answer carries the index's version with it**, because a mesher worker outlives the
+     * thing it is drawing: `TintedLights.noticed` changes the index and then asks for the very sections
+     * this cache was filled from to be rebuilt, on these same threads. Without the version the first
+     * rebuild after placing or breaking a crystal repaints it in the colour that stood there before.
+     */
+    private fun tintAt(world: Level, x: Int, y: Int, z: Int): Int? {
         val cache = remembered.get()
+        val version = TintedLights.version
         val key = BlockPos.asLong(x, y, z)
-        val slot = (BlockPos.asLong(x, y, z) * SPREAD).toInt() and SLOT_MASK
-        if (cache.keys[slot] == key && cache.filled[slot]) return cache.tints[slot].takeIf { it != NOTHING_THERE }
+        val slot = (key * SPREAD).toInt() and SLOT_MASK
+        if (cache.keys[slot] == key && cache.versions[slot] == version) {
+            return cache.tints[slot].takeIf { it != NOTHING_THERE }
+        }
         val found = TintedLights.reaching(world, BlockPos(x, y, z))
         cache.keys[slot] = key
-        cache.filled[slot] = true
+        cache.versions[slot] = version
         cache.tints[slot] = found ?: NOTHING_THERE
         return found
     }
@@ -93,7 +105,7 @@ object TintedLightPainter {
     private class VertexCache {
         val keys = LongArray(SLOTS) { Long.MIN_VALUE }
         val tints = IntArray(SLOTS)
-        val filled = BooleanArray(SLOTS)
+        val versions = IntArray(SLOTS) { NEVER_FILLED }
     }
 
     private val remembered = ThreadLocal.withInitial { VertexCache() }
@@ -110,14 +122,6 @@ object TintedLightPainter {
         tint,
     )
 
-    /**
-     * **A temporary reading, and it is here because nothing else can see this happen.** Whether a quad is
-     * ever painted at all is invisible from in game: a crystal renders its own colour through an unrelated
-     * seam, so the feature looks alive whether or not a single tint has been applied. This says, once,
-     * that one was — and with what — so an absent line means `reaching` never answered near a drawn quad.
-     *
-     * Remove it when the walk settles.
-     */
     private const val CORNERS = 4
 
     private const val SLOTS = 128
@@ -128,6 +132,9 @@ object TintedLightPainter {
 
     /** Remembered "nothing reaches here", which is not a colour and must not be read as one. */
     private const val NOTHING_THERE = Int.MIN_VALUE
+
+    /** A version no index will ever report, so an untouched slot never reads as a hit. */
+    private const val NEVER_FILLED = -1
 
     /**
      * The lightmap coordinate at which a surface takes the tint fully — **vanilla's brightest**, in the

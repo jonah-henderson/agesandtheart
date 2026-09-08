@@ -10,7 +10,6 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
-import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -109,6 +108,7 @@ object TintedLights {
     private var anythingPlaced = false
 
     private fun restock() {
+        version++
         val nowHolding = byLevel.values.any { chunks -> chunks.isNotEmpty() }
         // **Said once at each crossing, and it earns the line.** Whether anything is indexed at all is the
         // first question when no tint appears, and it is otherwise invisible from inside the game: a
@@ -144,6 +144,15 @@ object TintedLights {
     private val byLevel = ConcurrentHashMap<Level, MutableMap<Long, MutableMap<BlockPos, Int>>>()
 
     /**
+     * Bumped whenever the index moves, so a reader that remembers an answer can tell that it has gone
+     * stale — see `TintedLightPainter`'s vertex cache, which lives on mesher threads and would otherwise
+     * repaint a section from the colours that stood there before the change that asked for the repaint.
+     */
+    @Volatile
+    var version: Int = 0
+        private set
+
+    /**
      * Reads [chunk] into the index, dismissing each section off its palette first.
      *
      * A section holding nothing that tints is settled without a single position being read, which is what
@@ -151,7 +160,7 @@ object TintedLights {
      */
     fun stocked(level: Level, chunk: ChunkAccess) {
         if (casts.isEmpty()) return
-        val found = mutableMapOf<BlockPos, Int>()
+        val found = ConcurrentHashMap<BlockPos, Int>()
         val holds = { state: BlockState -> state.block in casts }
         for (index in chunk.sections.indices) {
             val section = chunk.sections[index]
@@ -163,7 +172,7 @@ object TintedLights {
                 found[BlockPos(chunk.pos.minBlockX + x, bottom + y, chunk.pos.minBlockZ + z)] = colour
             }
         }
-        val chunks = byLevel.getOrPut(level) { Collections.synchronizedMap(mutableMapOf()) }
+        val chunks = byLevel.getOrPut(level) { ConcurrentHashMap() }
         if (found.isEmpty()) chunks.remove(ChunkPos.pack(chunk.pos.x, chunk.pos.z)) else chunks[ChunkPos.pack(chunk.pos.x, chunk.pos.z)] = found
         restock()
     }
@@ -188,9 +197,9 @@ object TintedLights {
         val before = colourOf(was)
         val after = colourOf(now)
         if (before == after) return false
-        val chunks = byLevel.getOrPut(level) { Collections.synchronizedMap(mutableMapOf()) }
+        val chunks = byLevel.getOrPut(level) { ConcurrentHashMap() }
         val key = ChunkPos.pack(at.x shr CHUNK_BITS, at.z shr CHUNK_BITS)
-        val holding = chunks.getOrPut(key) { mutableMapOf() }
+        val holding = chunks.getOrPut(key) { ConcurrentHashMap() }
         if (after == null) holding.remove(at) else holding[at] = after
         if (holding.isEmpty()) chunks.remove(key)
         restock()
@@ -235,17 +244,18 @@ object TintedLights {
         for (chunkX in fromChunk - CHUNKS_IN_REACH..fromChunk + CHUNKS_IN_REACH) {
             for (chunkZ in fromZ - CHUNKS_IN_REACH..fromZ + CHUNKS_IN_REACH) {
                 val holding = chunks[ChunkPos.pack(chunkX, chunkZ)] ?: continue
-                synchronized(holding) {
-                    for ((where, colour) in holding) {
-                        val away = where.distSqr(at)
-                        if (away > REACH * REACH) continue
-                        val near = 1.0 - Math.sqrt(away) / REACH
-                        val share = near * near
-                        red += ARGB.red(colour) * share
-                        green += ARGB.green(colour) * share
-                        blue += ARGB.blue(colour) * share
-                        weight += share
-                    }
+                // **No lock, because both maps are concurrent.** The monitor that used to be taken here
+                // was never taken by the writers, so it guarded nothing while a mesher worker iterated a
+                // map the client thread was rehashing underneath it.
+                for ((where, colour) in holding) {
+                    val away = where.distSqr(at)
+                    if (away > REACH * REACH) continue
+                    val near = 1.0 - Math.sqrt(away) / REACH
+                    val share = near * near
+                    red += ARGB.red(colour) * share
+                    green += ARGB.green(colour) * share
+                    blue += ARGB.blue(colour) * share
+                    weight += share
                 }
             }
         }

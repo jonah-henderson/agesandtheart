@@ -503,9 +503,9 @@ object AgeGeneration {
         // naming a landform took it away and left `sealed=always` saying only what the dimension type says
         // — no skylight, and open air to the top of the world (Jonah, 2026-08-14, walked).
         // **Nothing to add where the landform is already the roof**, and adding it anyway would hang the
-        // vault's own pendants inside solid rock and pay for a second field to do it.
-        val roofsItself = composition.terrains.any { it.roofsTheWorld }
-        val lid = if (roofsItself || !Sky.isRoofed(composition)) null
+        // vault's own pendants inside solid rock and pay for a second field to do it. Read off the
+        // composition rather than re-derived, so the two cannot disagree about what "roofed" means.
+        val lid = if (composition.roofedByItsRock || !Sky.isRoofed(composition)) null
         else CeilingField.over(window, seed)
         // Volcanoes stand *on* whatever landform the Age has rather than replacing it, so they are a layer
         // over the finished rock — the same shape of thing a roof is, and read from the same recipe fact

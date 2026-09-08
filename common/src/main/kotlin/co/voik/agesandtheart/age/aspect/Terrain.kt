@@ -390,6 +390,13 @@ enum class Terrain(
      * Only [Underground.GREAT_HALLS] claims one. Noise caves are not indoors in this sense: they are open to the
      * surface by design, they belong to the country they were cut into, and vanilla's own cave biomes
      * describe them exactly.
+     *
+     * **[Underground.CHAMBERED] is enclosed and still does not claim one**, which is a decision rather
+     * than an omission (Jonah, 2026-09-08). A band here overrides the climate table with one fixed biome,
+     * and what a vault wants is the opposite: the cave biomes are what carry the lush growth the algae
+     * rides on, and pinning every chamber to a hall's biome would take its features and its mob list with
+     * it. A hall is somebody's architecture and reads as one room however far it runs; a chamber is a
+     * place, and places are what biomes are for.
      */
     fun undergroundBand(underground: Underground, window: VerticalWindow): IntRange? =
         if (underground != Underground.GREAT_HALLS) null

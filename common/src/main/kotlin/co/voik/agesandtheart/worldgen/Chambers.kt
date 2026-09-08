@@ -141,7 +141,8 @@ object Chambers {
         private val wanted = betweenTheEnds(SHALLOWEST_CHAMBER, DEEPEST_CHAMBER, size)
 
         /** How far the dome stands over its bed — the headroom, and what a chamber's height means here. */
-        val height = wanted.coerceAtMost((band - 2.0 * ROCK_AROUND_A_CHAMBER - BED_SWING * wanted) / 1.0)
+        val height = wanted
+            .coerceAtMost(band - 2.0 * ROCK_AROUND_A_CHAMBER - BED_SWING * wanted)
             .coerceAtLeast(0.0)
 
         /** How far the bed swings either way about its own mean. */
@@ -181,7 +182,7 @@ object Chambers {
     private const val SMALLEST_RADIUS = 90.0
     private const val LARGEST_RADIUS = 380.0
 
-    /** And how deep, floor to crown. Read with [LAKE_SHARE_OF_A_HEIGHT]: most of it is air. */
+    /** And how deep, floor to crown. Read with [LAKE_ABOVE_THE_BED]: most of it is air. */
     private const val SHALLOWEST_CHAMBER = 44.0
     private const val DEEPEST_CHAMBER = 150.0
 
@@ -210,7 +211,6 @@ object Chambers {
     /** The smallest a chamber is drawn against its kind, and how many sizes are drawn between. */
     private const val SMALLEST_AGAINST_ITS_KIND = 0.7
     private const val DISTINCT_SIZES = 3
-    private const val DISTINCT_LIFTS = 3
 
     private const val CHAMBER_SEED = 0xC4A_9BE45L
     private const val FLOOR_SEED = 0x5E_ABED_5L
