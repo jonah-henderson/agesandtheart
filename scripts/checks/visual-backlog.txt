@@ -22,6 +22,32 @@
 # The old file is in git at `f8325b7:scripts/checks/visual-backlog.txt`. Everything live in it was already
 # recorded in `notes/decisions.md` or `notes/the-art-implementation-plan.md`; what was still unwalked is
 # items 6 to 8 below.
+#
+# ══ HOW TO CLEAR THIS, GROUPED BY TRIP RATHER THAN BY NUMBER (worked out 2026-09-08) ══════════════════
+# The real cost is Ages written and travelled, not items read, and several items share one Age. Two
+# consolidations do most of the saving:
+#   * ITEMS 2 AND 5 WANT THE SAME AGE. `frozen` and `rimeb` are the same sentence and the same seed.
+#   * ITEMS 11, 13 AND 14 WANT ONE TEEMING METEORIC AGE -- storms, lure and craters in one world.
+#
+# BEFORE LEAVING THE OVERWORLD, at a desk with a full study. Clears 1, 3, 12, and half of 15, no travel:
+#   /give @s agesandtheart:astrite_shard 300     (golem 36, lure 243, seismograph 1)
+#   /give @s minecraft:echo_shard  minecraft:lodestone  minecraft:brush
+#   -- the geologist's tools also want quartz, an amethyst shard, a diamond, temperstone and a toolbox.
+#      Temperstone comes from trip 5, so do that first or /give it.
+#
+#   TRIP 1  hellish + frozen ............ items 1, 2, and the writable half of 5
+#   TRIP 2  rimea ....................... item 5 proper, and item 16's eight colours
+#   TRIP 3  hammered .................... items 11, 13, 14
+#   TRIP 4  doomed ...................... item 4, and the second half of 15 (a torn Age to read)
+#   TRIP 5  baked ....................... item 9
+#   TRIP 6  volc ........................ item 10  (try `preview --args=volcano` offline first)
+#   TRIP 7  seams + sunmoon ............. items 6, 7  (`--args=rift` / `--args=wall` offline first)
+#
+# **ITEM 17 IS NOT ON THAT LIST AND SHOULD GO FIRST OF ALL.** It is a Mixin on the chunk mesher with
+# `defaultRequire: 1`, so a wrong target CRASHES THE CLIENT on startup rather than doing nothing. Five
+# minutes of `runClient` settles it, and everything else is wasted if it does not start.
+#
+# Item 8 is parked by Jonah and is not on the list.
 
 # ══ 1. THE REWARD LOOP ═══════════════════ WALKED AND GOOD 2026-09-05; CALIBRATION STILL OPEN ══
 # The phase's headline, and the reason the danger pole went first: **write a dangerous Age, read what it
