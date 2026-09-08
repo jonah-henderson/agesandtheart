@@ -22,6 +22,7 @@ import co.voik.agesandtheart.client.ui.TabStrip
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.AgeFluids
 import co.voik.agesandtheart.content.NotebookItem
+import co.voik.agesandtheart.content.RimeColour
 import co.voik.agesandtheart.desk.DeskAction
 import co.voik.agesandtheart.desk.DeskCapability
 import co.voik.agesandtheart.desk.DeskCommandPayload
@@ -508,7 +509,7 @@ class WritersDeskScreen(
      * something other than what comes out of the ground.
      */
     private fun nameOf(material: EarlyGameRareMaterial): Component = when (material) {
-        EarlyGameRareMaterial.RIME -> AgeContent.RIME_CRYSTAL_BLOCK.name
+        EarlyGameRareMaterial.RIME -> AgeContent.RIME_CRYSTAL_BLOCKS.getValue(RimeColour.CYAN).name
         EarlyGameRareMaterial.TEMPERSTONE -> AgeContent.TEMPERSTONE_BLOCK.name
     }
 

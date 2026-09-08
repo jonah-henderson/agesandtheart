@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.worldgen.feature
 
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.content.RimeColour
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.world.level.WorldGenLevel
@@ -74,8 +75,17 @@ object RimeCrystal : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration.
     private fun standsOpen(level: WorldGenLevel, from: BlockPos): Boolean =
         (1..SheerFace.OPEN_ABOVE).all { level.getBlockState(from.above(it)).isAir }
 
+    /**
+     * One crystal, in whatever colour grows around here.
+     *
+     * **The colour is a fact about the place, not about the crystal** (Jonah, 2026-09-07): [RimeColour]
+     * hashes the position down to a coarse cell, so an outcrop comes out one colour and a long range
+     * changes every so often. Drawing it per crystal would be confetti, and per Age would put a puzzle
+     * needing several colours behind writing several books.
+     */
     private fun grow(level: WorldGenLevel, face: Standing): Boolean {
-        val crystal = AgeContent.RIME_CRYSTAL_BLOCK.defaultBlockState()
+        val colour = RimeColour.around(level.seed, face.at.x, face.at.z)
+        val crystal = AgeContent.RIME_CRYSTAL_BLOCKS.getValue(colour).defaultBlockState()
             .setValue(BlockStateProperties.FACING, face.growingFrom)
         if (!crystal.canSurvive(level, face.at)) return false
         level.setBlock(face.at, crystal, Block.UPDATE_CLIENTS)

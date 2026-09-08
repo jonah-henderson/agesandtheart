@@ -1,0 +1,17 @@
+{
+  "_comment": "Vanilla's amethyst cluster orientations, and one model for all eight colours -- the colour is a tint registered in AgeTints, so eight crystals cost one model. `powered` changes only the light level, which is on the block's properties and needs no variant of its own.",
+  "variants": {
+    "facing=down,powered=false":  { "model": "agesandtheart:block/rime_crystal", "x": 180 },
+    "facing=down,powered=true":   { "model": "agesandtheart:block/rime_crystal", "x": 180 },
+    "facing=up,powered=false":    { "model": "agesandtheart:block/rime_crystal" },
+    "facing=up,powered=true":     { "model": "agesandtheart:block/rime_crystal" },
+    "facing=north,powered=false": { "model": "agesandtheart:block/rime_crystal", "x": 90 },
+    "facing=north,powered=true":  { "model": "agesandtheart:block/rime_crystal", "x": 90 },
+    "facing=south,powered=false": { "model": "agesandtheart:block/rime_crystal", "x": 90, "y": 180 },
+    "facing=south,powered=true":  { "model": "agesandtheart:block/rime_crystal", "x": 90, "y": 180 },
+    "facing=east,powered=false":  { "model": "agesandtheart:block/rime_crystal", "x": 90, "y": 90 },
+    "facing=east,powered=true":   { "model": "agesandtheart:block/rime_crystal", "x": 90, "y": 90 },
+    "facing=west,powered=false":  { "model": "agesandtheart:block/rime_crystal", "x": 90, "y": 270 },
+    "facing=west,powered=true":   { "model": "agesandtheart:block/rime_crystal", "x": 90, "y": 270 }
+  }
+}

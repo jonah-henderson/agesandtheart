@@ -28,10 +28,10 @@ import net.minecraft.world.level.block.Block
 object AgeTints {
 
     fun register(registrar: (List<BlockTintSource>, Block) -> Unit) {
-        registrar(
-            listOf(BlockTintSources.constant(AgeContent.RIME_CRYSTAL_TINT)),
-            AgeContent.RIME_CRYSTAL_BLOCK,
-        )
+        // One tint apiece, which is the whole of what makes eight colours cost one model.
+        for ((colour, block) in AgeContent.RIME_CRYSTAL_BLOCKS) {
+            registrar(listOf(BlockTintSources.constant(colour.tint)), block)
+        }
         registrar(
             listOf(BlockTintSources.constant(AgeContent.ASTRITE_TINT)),
             AgeContent.ASTRITE_SHARD_BLOCK,

@@ -75,6 +75,7 @@ import net.minecraft.sounds.SoundEvent
 import net.minecraft.world.level.block.SoundType
 import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraft.world.level.block.state.BlockBehaviour
+import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.material.MapColor
 import net.minecraft.world.level.material.PushReaction
 import net.minecraft.world.level.biome.BiomeSource
@@ -286,8 +287,6 @@ object AgeContent {
             .attributes(ProtectiveSuit.attributesFor(type)),
     )
 
-    private val RIME_CRYSTAL_ID: Identifier = "rime_crystal".location()
-
     /**
      * The crystal a frozen Age grows on its cliffs — the first of §7.1.2's **character materials**, the
      * class that pays for having written many unlike Ages.
@@ -297,45 +296,48 @@ object AgeContent {
      * belong in the language file like every other. See CLAUDE.md's convention.
      *
      * **An amethyst cluster in shape and in blockstate**, because that is what it is: a crystal growing out
-     * of a face, at any of six orientations, and vanilla's own block already knows how to be one. Its blue
-     * is a tint over vanilla's texture rather than a texture of ours — the mod ships no art, and a
+     * of a face, at any of six orientations, and vanilla's own block already knows how to be one. Its
+     * colour is a tint over vanilla's texture rather than a texture of ours — the mod ships no art, and a
      * recoloured copy of Mojang's would be their art in our jar.
-     */
-    val RIME_CRYSTAL_BLOCK: AmethystClusterBlock = AmethystClusterBlock(
-        CRYSTAL_HEIGHT,
-        CRYSTAL_WIDTH,
-        BlockBehaviour.Properties.of()
-            .setId(ResourceKey.create(Registries.BLOCK, RIME_CRYSTAL_ID))
-            .mapColor(MapColor.ICE)
-            .forceSolidOn()
-            .noOcclusion()
-            .randomTicks()
-            .sound(SoundType.AMETHYST_CLUSTER)
-            .strength(CRYSTAL_STRENGTH)
-            .lightLevel { CRYSTAL_GLOW },
-    )
-
-    val RIME_CRYSTAL: Item = BlockItem(
-        RIME_CRYSTAL_BLOCK,
-        Item.Properties().setId(ResourceKey.create(Registries.ITEM, RIME_CRYSTAL_ID)).useBlockDescriptionPrefix(),
-    )
-
-    /** Vanilla's own full cluster, which is the shape this is. */
-    private const val CRYSTAL_HEIGHT = 7.0f
-    private const val CRYSTAL_WIDTH = 3.0f
-    private const val CRYSTAL_STRENGTH = 1.5f
-
-    /** Faint, so a cliff face full of them reads at a distance without lighting the Age. */
-    private const val CRYSTAL_GLOW = 4
-
-    /**
-     * The blue a rime crystal is rendered in — **a tint over vanilla's amethyst rather than art of ours**.
      *
-     * The mod ships no textures, and a recoloured copy of Mojang's would be Mojang's art in our jar. A
-     * `tintindex` in the model and this number are the whole of the difference, and both go when the asset
-     * pass draws a real one (Phase 9).
+     * **Eight of them, one per [RimeColour]** (Jonah, 2026-09-07). Separate blocks rather than one block
+     * carrying a colour, for the reason [RimeCrystalBlock] gives: a comparator reads the state, so a colour
+     * in a component would cost a block entity apiece across thousands of them. What they share is the
+     * `#agesandtheart:rime_crystals` tag, which is what every recipe actually asks for.
      */
-    const val RIME_CRYSTAL_TINT = 0x7FC8F0
+    val RIME_CRYSTAL_BLOCKS: Map<RimeColour, RimeCrystalBlock> = RimeColour.entries.associateWith { colour ->
+        RimeCrystalBlock(
+            colour,
+            BlockBehaviour.Properties.of()
+                .setId(ResourceKey.create(Registries.BLOCK, colour.id.location()))
+                .mapColor(MapColor.ICE)
+                .forceSolidOn()
+                .noOcclusion()
+                .randomTicks()
+                .sound(SoundType.AMETHYST_CLUSTER)
+                .strength(CRYSTAL_STRENGTH)
+                // Faint standing on a cliff so a face of them reads at distance without lighting the Age,
+                // and properly lit with a signal on it. **The light is not coloured and cannot be**: block
+                // light is one channel with no hue, so what is tinted is the crystal, not what it shines on.
+                .lightLevel { state ->
+                    if (state.getValue(BlockStateProperties.POWERED)) {
+                        RimeCrystalBlock.POWERED_GLOW
+                    } else {
+                        RimeCrystalBlock.RESTING_GLOW
+                    }
+                },
+        )
+    }
+
+    val RIME_CRYSTALS: Map<RimeColour, Item> = RIME_CRYSTAL_BLOCKS.mapValues { (colour, block) ->
+        BlockItem(
+            block,
+            Item.Properties().setId(ResourceKey.create(Registries.ITEM, colour.id.location()))
+                .useBlockDescriptionPrefix(),
+        )
+    }
+
+    private const val CRYSTAL_STRENGTH = 1.5f
 
     private val RIME_SKATES_ID: Identifier = "rime_skates".location()
 
@@ -424,7 +426,7 @@ object AgeContent {
     /** A cluster's, which is what it is: brittle, and no tier asked for. */
     private const val SHARD_STRENGTH = 1.5f
 
-    /** The pack's violet over vanilla's amethyst texture, on the same terms as [RIME_CRYSTAL_TINT]. */
+    /** The pack's violet over vanilla's amethyst texture, on the same terms as a rime crystal's. */
     const val ASTRITE_TINT = 0x9E72FF
 
     private val ASTRITE_BLOCK_ID: Identifier = "astrite_block".location()
@@ -1049,7 +1051,7 @@ object AgeContent {
         PITCHSTONE_BLOCK_ID to PITCHSTONE_BLOCK_BLOCK,
         ASTRITE_BLOCK_ID to ASTRITE_BLOCK_BLOCK,
         ASTRITE_SHARD_ID to ASTRITE_SHARD_BLOCK,
-        RIME_CRYSTAL_ID to RIME_CRYSTAL_BLOCK,
+        *RIME_CRYSTAL_BLOCKS.map { (colour, block) -> colour.id.location() to block }.toTypedArray(),
         TEMPERSTONE_ID to TEMPERSTONE_BLOCK,
         SCORCHED_TEMPERSTONE_ID to SCORCHED_TEMPERSTONE_BLOCK,
         RAW_TEMPERSTONE_ID to RAW_TEMPERSTONE_BLOCK,
@@ -1219,7 +1221,7 @@ object AgeContent {
         PITCHSTONE_CHESTPLATE_ID to PITCHSTONE_CHESTPLATE,
         PITCHSTONE_LEGGINGS_ID to PITCHSTONE_LEGGINGS,
         PITCHSTONE_BOOTS_ID to PITCHSTONE_BOOTS,
-        RIME_CRYSTAL_ID to RIME_CRYSTAL,
+        *RIME_CRYSTALS.map { (colour, item) -> colour.id.location() to item }.toTypedArray(),
         RIME_SKATES_ID to RIME_SKATES,
         TEMPERSTONE_ID to TEMPERSTONE,
         SCORCHED_TEMPERSTONE_ID to SCORCHED_TEMPERSTONE,

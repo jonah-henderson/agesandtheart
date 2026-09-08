@@ -1,0 +1,13 @@
+{
+  "_comment": "The eight colours, as one thing. Every recipe and every tool gate asks for the tag rather than a colour, so adding or renaming a colour touches this file and nothing else -- which is the whole reason the colours are separate blocks and not a property.",
+  "values": [
+    "agesandtheart:red_rime_crystal",
+    "agesandtheart:orange_rime_crystal",
+    "agesandtheart:yellow_rime_crystal",
+    "agesandtheart:green_rime_crystal",
+    "agesandtheart:cyan_rime_crystal",
+    "agesandtheart:indigo_rime_crystal",
+    "agesandtheart:magenta_rime_crystal",
+    "agesandtheart:white_rime_crystal"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1.0,
+      "bonus_rolls": 0.0,
+      "entries": [{ "type": "minecraft:item", "name": "agesandtheart:cyan_rime_crystal" }],
+      "conditions": [{ "condition": "minecraft:survives_explosion" }]
+    }
+  ],
+  "random_sequence": "agesandtheart:blocks/cyan_rime_crystal"
+}

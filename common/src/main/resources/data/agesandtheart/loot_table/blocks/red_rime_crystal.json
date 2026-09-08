@@ -4,9 +4,9 @@
     {
       "rolls": 1.0,
       "bonus_rolls": 0.0,
-      "entries": [{ "type": "minecraft:item", "name": "agesandtheart:rime_crystal" }],
+      "entries": [{ "type": "minecraft:item", "name": "agesandtheart:red_rime_crystal" }],
       "conditions": [{ "condition": "minecraft:survives_explosion" }]
     }
   ],
-  "random_sequence": "agesandtheart:blocks/rime_crystal"
+  "random_sequence": "agesandtheart:blocks/red_rime_crystal"
 }
