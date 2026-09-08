@@ -110,7 +110,13 @@ class SeismographMenu(
  */
 private class LiveReading(private val player: ServerPlayer?, private val pos: BlockPos) : ContainerData {
 
-    private var settledAt = Long.MIN_VALUE
+    /**
+     * **Minus one rather than [Long.MIN_VALUE]**, which is the difference between a reading and no reading
+     * at all: `now - Long.MIN_VALUE` overflows for every game time there is, wraps negative, and so is
+     * always under [SETTLES_EVERY] — the throttle returned on every poll, `settledAt` was never written,
+     * and the seismograph reported the world's own footing for ever whatever was laid at the desk.
+     */
+    private var settledAt = NOT_YET_SETTLED
     private var footing = Footing.STABLE.ordinal
     private var bought = NOTHING_BOUGHT
     private var source = SeismographMenu.THE_WORLD
@@ -199,6 +205,9 @@ private class LiveReading(private val player: ServerPlayer?, private val pos: Bl
     private companion object {
         /** How often the instrument settles, in ticks. Five a second is far more than a readout needs. */
         const val SETTLES_EVERY = 4L
+
+        /** Before the first reading. Any negative would do; this one cannot overflow a subtraction. */
+        const val NOT_YET_SETTLED = -1L
         const val NOTHING_BOUGHT = 0
     }
 }
