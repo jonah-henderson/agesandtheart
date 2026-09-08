@@ -42,10 +42,23 @@ class LifelessAgeCheck : FunSpec({
         return COUNT.find(said)?.groupValues?.get(1)?.toIntOrNull() ?: 0
     }
 
+    /**
+     * **The runtime spawner off, or it answers for everything.** It fills a loaded chunk in seconds, so a
+     * count taken with it running measures `getMobsAt` — which was never the broken path — and says
+     * nothing at all about what the chunk was made with.
+     *
+     * **That was said in a comment and done nowhere**, which is where this check's flakiness came from: it
+     * forceloads and then polls for up to a minute, so on a loaded machine the chunks tick long enough for
+     * the spawner to fill BOTH Ages and the difference this exists to measure is swamped. Two runs of four
+     * failed, at 287 against 274 and 330 against 326 — two worlds equally full rather than one empty.
+     *
+     * Put back in `afterSpec` rather than at the end of the test, because the server is shared with every
+     * other spec and a failing check must not leave the world without its mobs.
+     */
+    beforeSpec { server.run("gamerule doMobSpawning false") }
+    afterSpec { server.run("gamerule doMobSpawning true") }
+
     test("an Age nothing lives in is generated with nothing living in it") {
-        // **The runtime spawner off, or it answers for everything.** It fills a loaded chunk in seconds,
-        // so a count taken with it running measures `getMobsAt` — which was never the broken path — and
-        // says nothing at all about what the chunk was made with.
         val written = mapOf(ALIVE to SAYS_NOTHING_OF_LIFE, LIFELESS to "deserted age")
         for ((name, sentence) in written) {
             val said = server.run("age write $name $SEED $sentence")
