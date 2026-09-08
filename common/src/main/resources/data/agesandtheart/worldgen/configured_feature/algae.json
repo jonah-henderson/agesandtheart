@@ -1,0 +1,9 @@
+{
+  "_comment": [
+    "The algae, sown across the face of any sunless still water the scatter drops it over. The feature",
+    "finds the water itself by falling from wherever it was put -- a lake in a chamber is nowhere near",
+    "the heightmap, so nothing could have pointed at it."
+  ],
+  "type": "agesandtheart:algae",
+  "config": {}
+}

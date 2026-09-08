@@ -74,6 +74,7 @@ import net.minecraft.world.level.block.DropExperienceBlock
 import net.minecraft.sounds.SoundEvent
 import net.minecraft.world.level.block.SoundType
 import net.minecraft.world.level.block.entity.BlockEntityType
+import net.minecraft.world.food.FoodProperties
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.level.material.MapColor
@@ -83,6 +84,7 @@ import net.minecraft.world.level.chunk.ChunkGenerator
 import net.minecraft.world.level.levelgen.SurfaceRules
 import net.minecraft.world.level.levelgen.carver.CarverConfiguration
 import co.voik.agesandtheart.worldgen.feature.Formation
+import co.voik.agesandtheart.worldgen.feature.Algae
 import co.voik.agesandtheart.worldgen.feature.RimeCrystal
 import co.voik.agesandtheart.worldgen.feature.SpilledSpring
 import co.voik.agesandtheart.worldgen.feature.TemperedGround
@@ -1039,6 +1041,48 @@ object AgeContent {
             .pushReaction(net.minecraft.world.level.material.PushReaction.BLOCK),
     )
 
+    private val ALGAE_ID: Identifier = "algae".location()
+
+    /**
+     * **What the D'ni lived on** (design §7.6) — a red mat lying in the top of sunless water, glowing.
+     *
+     * Grass's numbers: it is a growth, it comes away in the hand, and nothing about harvesting it should
+     * be work. Its light is read off the state rather than fixed, because the glow keeps the hour — see
+     * [AlgaeBlock.GLOW].
+     */
+    val ALGAE_BLOCK: AlgaeBlock = AlgaeBlock(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, ALGAE_ID))
+            .mapColor(MapColor.COLOR_RED)
+            .replaceable()
+            .noCollision()
+            .instabreak()
+            .sound(SoundType.WET_GRASS)
+            .lightLevel(AlgaeBlock::lightAt)
+            .randomTicks()
+            .noOcclusion(),
+    )
+
+    /**
+     * Sown or eaten, on one gesture — see [AlgaeItem].
+     *
+     * **Deliberately poor food.** It is subsistence: what a people shut under the ground ate because it
+     * was there, and the reason §7.6's reward ladder has somewhere to go when the processing that makes it
+     * worth eating is built.
+     */
+    val ALGAE: Item = AlgaeItem(
+        ALGAE_BLOCK,
+        Item.Properties()
+            .setId(ResourceKey.create(Registries.ITEM, ALGAE_ID))
+            .food(FoodProperties.Builder().nutrition(ALGAE_NUTRITION).saturationModifier(ALGAE_SATURATION).build()),
+    )
+
+    private const val ALGAE_NUTRITION = 2
+    private const val ALGAE_SATURATION = 0.1f
+
+    /** The pack's red over vanilla's glow lichen, on the same terms as a crystal's — see `AgeTints`. */
+    const val ALGAE_TINT = 0xC4384A
+
     val blocks: List<Pair<Identifier, Block>> = listOf(
         WOUND_ID to WOUND_BLOCK,
         WRITERS_DESK_ID to WRITERS_DESK_BLOCK,
@@ -1051,6 +1095,7 @@ object AgeContent {
         PITCHSTONE_BLOCK_ID to PITCHSTONE_BLOCK_BLOCK,
         ASTRITE_BLOCK_ID to ASTRITE_BLOCK_BLOCK,
         ASTRITE_SHARD_ID to ASTRITE_SHARD_BLOCK,
+        ALGAE_ID to ALGAE_BLOCK,
         *RIME_CRYSTAL_BLOCKS.map { (colour, block) -> colour.id.location() to block }.toTypedArray(),
         TEMPERSTONE_ID to TEMPERSTONE_BLOCK,
         SCORCHED_TEMPERSTONE_ID to SCORCHED_TEMPERSTONE_BLOCK,
@@ -1232,6 +1277,7 @@ object AgeContent {
         GEOLOGISTS_TOOLS_ID to GEOLOGISTS_TOOLS,
         SEISMOGRAPH_ID to SEISMOGRAPH,
         ASTRITE_SHARD_ID to ASTRITE_SHARD,
+        ALGAE_ID to ALGAE,
         ASTRITE_BLOCK_ID to ASTRITE_BLOCK,
     )
 
@@ -1310,6 +1356,7 @@ object AgeContent {
     )
 
     val features: List<Pair<Identifier, Feature<*>>> = listOf(
+        "algae".location() to Algae,
         "spilled_spring".location() to SpilledSpring,
         "formation".location() to Formation,
         "rime_crystal".location() to RimeCrystal,

@@ -1,0 +1,8 @@
+{
+  "_comment": "Tinted in the hand as it is in the world, so a stack of it reads as the same red growth.",
+  "model": {
+    "type": "minecraft:model",
+    "model": "agesandtheart:item/algae",
+    "tints": [{ "type": "minecraft:constant", "value": 12859466 }]
+  }
+}

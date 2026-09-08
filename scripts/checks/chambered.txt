@@ -36,3 +36,16 @@ age gen reference
 age bench reference 4
 age bench warren 4
 age bench vaults 4
+
+# The algae, which is the fourth criterion and the last of step 4. What to read: the two Ages below are
+# the same world bar the algae, so `/age compare` counts the mats it grew -- and they can only have gone
+# on the face of the vault's lake, since a `solid` Age has no open sky in it anywhere.
+age compose bare 7 landmass=solid sea=water underground=chambered[size=1.0..1.0] sky=plain
+age compose grown 7 landmass=solid sea=water underground=chambered[size=1.0..1.0] features.grows=agesandtheart:algae sky=plain
+age gen bare
+age gen grown
+age compare bare grown 3
+
+# And the whole formula as a sentence, which is what a player would lay.
+age write dnifull 7 age solid landmass colossal chambered underground water sea algae features
+age gen dnifull

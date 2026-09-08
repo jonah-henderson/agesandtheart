@@ -117,7 +117,7 @@ class TagCoverageCheck : FunSpec({
             // sentence's own business now, so those two are in the bag when `beautiful` is in the book and
             // not otherwise — which is §8.2's promise kept rather than coverage lost.
             Aspect.BIOMES to 41,
-            Aspect.FEATURES to 190,
+            Aspect.FEATURES to 191,
             Aspect.SEA to 3,
         )
         val shortfall = floors.filter { (aspect, floor) -> vocabulary.askableIn(aspect).size < floor }

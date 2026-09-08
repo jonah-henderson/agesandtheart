@@ -43,5 +43,6 @@ object AgeTints {
             listOf(BlockTintSources.constant(AgeContent.ASTRITE_TINT)),
             AgeContent.ASTRITE_SHARD_BLOCK,
         )
+        registrar(listOf(BlockTintSources.constant(AgeContent.ALGAE_TINT)), AgeContent.ALGAE_BLOCK)
     }
 }

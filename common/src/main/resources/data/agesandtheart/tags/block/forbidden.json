@@ -10,9 +10,14 @@
     "`requires_masterwork_ink`, so an Age made of one costs the rarest ink there is, which is the same",
     "brake a sea of diamonds already runs into. Rarity of the find does the rest.",
     "",
-    "So this file is empty again, and that is the honest state rather than an oversight: nothing in the",
-    "pack currently needs a prohibition that a price cannot express."
+    "**The algae is here for a different reason, and it is a collision rather than a prohibition.** The",
+    "block and its placed feature share the id `agesandtheart:algae`, so the derived BLOCK word claims that",
+    "name for a material and the feature -- the one a writer actually wants -- is shadowed by it. Measured:",
+    "`algae features` resolved to `surface.material=agesandtheart:algae` and grew nothing. Fencing the",
+    "block leaves the name meaning the growth, which is what design 7.6 means by the algae being outside",
+    "the derived pool. It costs nothing real: an Age paved in algae is not a thing to want, and the mat is",
+    "still placeable by hand."
   ],
   "replace": false,
-  "values": []
+  "values": ["agesandtheart:algae"]
 }

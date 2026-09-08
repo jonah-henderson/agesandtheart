@@ -1,4 +1,5 @@
 {
+  "block.agesandtheart.algae": "Algae",
   "block.agesandtheart.analysis_machine": "D'ni Analysis Machine",
   "block.agesandtheart.astrite_block": "Block of Astrite",
   "block.agesandtheart.astrite_shard": "Astrite Shard",
@@ -116,6 +117,7 @@
   "entity.agesandtheart.sand_column": "Sand Column",
   "entity.agesandtheart.villager.writer": "Writer",
   "entity.agesandtheart.volcanic_bomb": "Volcanic Bomb",
+  "item.agesandtheart.algae": "Algae",
   "item.agesandtheart.astrite_shard": "Astrite Shard",
   "item.agesandtheart.descriptive_book": "Descriptive Book",
   "item.agesandtheart.descriptive_book.named": "%s",
@@ -149,6 +151,7 @@
   "tag.item.c.papers": "Papers",
   "toast.agesandtheart.word_learned": "Word Learned",
   "toast.agesandtheart.words_learned": "Words Learned",
+  "word.agesandtheart.algae": "Algae",
   "word.agesandtheart.ancient": "Ancient",
   "word.agesandtheart.arid": "Arid",
   "word.agesandtheart.bare": "Bare",

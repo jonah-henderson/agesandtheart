@@ -1,0 +1,26 @@
+{
+  "_comment": [
+    "**Shipped as a placed feature rather than built in code**, unlike the rime crystals, and that is what",
+    "makes it writable: `Features.PLACES` resolves by `ResourceKey` out of the registry, so only a feature",
+    "with an id can be named in a sentence, weighed by a rung, or matched by the D'ni city looking for its",
+    "third criterion. A direct holder would be invisible to all three.",
+    "",
+    "Scattered up the whole column because the water it wants may be anywhere -- a cavern lake, a flooded",
+    "hall, an overhung pool. Each attempt falls until it finds a surface or runs out, so the tries that",
+    "start in rock cost a short walk and nothing else."
+  ],
+  "feature": "agesandtheart:algae",
+  "placement": [
+    { "type": "minecraft:count", "count": 24 },
+    { "type": "minecraft:in_square" },
+    {
+      "type": "minecraft:height_range",
+      "height": {
+        "type": "minecraft:uniform",
+        "min_inclusive": { "absolute": -60 },
+        "max_inclusive": { "absolute": 300 }
+      }
+    },
+    { "type": "minecraft:biome" }
+  ]
+}
