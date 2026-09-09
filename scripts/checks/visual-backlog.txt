@@ -887,7 +887,7 @@
 #     but `sultry` can no longer draw a cold Age at all, where before it could draw anything. If a word
 #     that leans now feels like a word that demands, `Span.leaned` is where the strength lives.
 
-# ══ 22. ORE THAT WILL NOT BE CAUGHT ══════════ PARTLY WALKED 2026-09-09; SIX TO RE-READ ══
+# ══ 22. ORE THAT WILL NOT BE CAUGHT ══════════ PARTLY WALKED TWICE 2026-09-09; SEVEN TO RE-READ ══
 # The first walk of the magnetic material (design §7.1.2) -- and the first thing in the mod drawn as a
 # cluster of real blocks moved as one entity. Nothing about it has been looked at. The whole feature turns
 # on one question a screenshot answers and no test can: does a sky of procedurally weathered rubble read as
@@ -960,6 +960,34 @@
 #
 # STILL UNREAD FROM THE ORIGINAL LIST: whether a pillar built under a body really does shove it away (the
 # inversion the whole design rests on), and whether an arrow stops where the stone is.
+
+# SECOND WALK 2026-09-09 -- shapes confirmed good, standing on large and medium bodies confirmed good.
+# SEVEN MORE CHANGES:
+#   - **THE ROTATING TEXTURES WERE A TRAVELLING SEED, and your guess was right.** Deepslate has FOUR
+#     variants (plain and mirrored, each at two turns) picked from `blockState.getSeed(randomSeedPos)`,
+#     and we fed it the WORLD position -- so every cell re-rolled its variant each time the body crossed a
+#     block boundary and the whole rock re-tiled as it drifted. It is seeded off the cell's own offset now,
+#     mixed with shape and tier so two bodies are not tiled alike.
+#   - **SMALL BODIES SHOOK BECAUSE THE CARRY WAS APPLIED TWICE.** Vanilla already lifts what stands on a
+#     rising box and drops it when the box falls, so adding the vertical delta on top shoved a rider up,
+#     resolved them down and shoved again -- worst on a two-cube, where a player has nowhere to settle.
+#     The carry is SIDEWAYS ONLY now, which is the part vanilla does not do.
+#   - **FAR FEWER CRYSTALS IN THE ROCK**: a count per tier (1 / 4 / 6) instead of a quarter of every cell,
+#     which was thirty-five in a big one. Purely how it looks -- the yield comes only from breaking the
+#     smallest tier and has not moved.
+#   - **THE CLIMB IS A CLIMB NOW.** Seeking its band is capped at twice the drift, derived from the drift
+#     rather than written down, so a fragment sinking to the band below is something you watch. Say if it
+#     is now too slow to read as purposeful.
+#   - **THE TERRAIN PUSH IS TWO AND A HALF TIMES HARDER** (`SHOVE`). It should hold five or six blocks off
+#     anything built. Pillar up under one: it should visibly refuse to be caught, which is the inversion
+#     the whole design rests on and the thing still least confirmed.
+#   - **FEWER BODIES, AND WEIGHTED DOWN.** Four within 160 blocks rather than six, and each band up is a
+#     third as likely as the one below -- so the lowest band is busy (it is the signpost) and the top is
+#     something you go looking for. This is also the likeliest fix for the jitter, which may simply have
+#     been the number of bodies each running a block scan.
+#   - **IF THE JITTER PERSISTS AFTER THAT**, it is not entity count and the next place to look is the
+#     block walk in `pushedFromRock`: at tier 2 it reads a 15x15x15 cube whenever a section near the body
+#     holds anything at all, every tick. Say so and it gets sampled rather than walked.
 # ══ 23. THE CHARGED MACHINES ═══════════════════ WALKED 2026-09-09 BAR THE STORM ══
 # Arc crystal's second use, and it needs no Age at all -- build it in the overworld in creative. The
 # material's whole thesis is that the reward is the force you spent the acquisition fighting, so what this

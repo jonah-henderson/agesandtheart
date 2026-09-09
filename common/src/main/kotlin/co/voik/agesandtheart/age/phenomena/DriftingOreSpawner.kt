@@ -28,15 +28,30 @@ class DriftingOreSpawner : CustomSpawner {
 
     override fun tick(level: ServerLevel, spawnEnemies: Boolean) {
         if (level.gameTime % TRIED_EVERY != 0L) return
-        // Only the tiers this Age has a band for, so a two-band Age never puts up a body with nowhere of
-        // its own to go — `ChargedBands.homeFor` would coerce it onto the top band beside the tier below.
-        val tier = level.random.nextInt(ChargedBands.tiersIn(level))
+        val tier = tierFor(level)
         val at = somewhereIn(level, ChargedBands.homeFor(level, tier), tier) ?: return
         val body = AgeContent.DRIFTING_ORE.create(level, EntitySpawnReason.NATURAL) ?: return
         body.tier = tier
         body.shape = level.random.nextInt(OreClusters.SHAPES)
         body.snapTo(at)
         level.addFreshEntity(body)
+    }
+
+    /**
+     * Which band this one goes to — **the lowest most of the time, and rarer with every climb**.
+     *
+     * Only the tiers this Age has a band for, so a two-band Age never puts up a body with nowhere of its
+     * own to go: `ChargedBands.homeFor` would coerce it onto the top band beside the tier below.
+     *
+     * **Weighted rather than even** (Jonah, 2026-09-09). An even roll made the top band as busy as the
+     * bottom, which reads backwards twice over — the richest bodies should be the ones you go looking for,
+     * and the lowest band is the signpost that has to be *seen* from the ground to do its job.
+     */
+    private fun tierFor(level: ServerLevel): Int {
+        val bands = ChargedBands.tiersIn(level)
+        var tier = 0
+        while (tier < bands - 1 && level.random.nextInt(RARER_EACH_BAND) == 0) tier++
+        return tier
     }
 
     /**
@@ -82,7 +97,15 @@ class DriftingOreSpawner : CustomSpawner {
         private const val TRIED_EVERY = 60L
 
         /** How many bodies may stand within [CROWDED_WITHIN] of one another. */
-        private const val MOST_IN_SIGHT = 6
+        /**
+         * **Thinned 2026-09-09**: a sky is meant to be a scattering you go to, and every one of these is
+         * an entity ticking a block scan. A crowd of them was the likeliest thing behind a walk reporting
+         * jittery motion.
+         */
+        private const val MOST_IN_SIGHT = 4
+
+        /** How much rarer each band up is than the one below it — see [tierFor]. */
+        private const val RARER_EACH_BAND = 3
         private const val CROWDED_WITHIN = 160.0
 
         /** How far off its band a body may be put. It will seek the band itself; this only stops a row. */

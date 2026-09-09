@@ -61,7 +61,10 @@ object OreClusters {
         }
         // The crystal is scattered through the rock rather than cased in it, so a body reads as ore from
         // any side. Drawn after the shape, so the same cluster is the same cluster whichever cells glow.
-        return standing.map { Cell(it, random.nextInt(CRYSTAL_ONE_IN) == 0) }
+        val loose = standing.toMutableList()
+        val glowing = HashSet<BlockPos>()
+        repeat(crystalsIn(tier).coerceAtMost(loose.size)) { glowing += loose.removeAt(random.nextInt(loose.size)) }
+        return standing.map { Cell(it, it in glowing) }
     }
 
     /**
@@ -159,8 +162,16 @@ object OreClusters {
     private const val NEVER = -1.0
     private const val NOTHING_EXPOSED = 0
 
-    /** How much of a body is crystal rather than the rock it grew in. */
-    private const val CRYSTAL_ONE_IN = 4
+    /**
+     * How many cells of a body are crystal rather than the rock it grew in — **a count, not a share**.
+     *
+     * A share of a quarter put thirty-five crystals in a top-tier body, which reads as a lump of gemstone
+     * rather than as ore in stone (Jonah, 2026-09-09). A handful is what makes the rock read as *bearing*
+     * something. It says nothing about the yield, which comes only from breaking the smallest tier.
+     */
+    private fun crystalsIn(tier: Int): Int = CRYSTALS_A_TIER[tier.coerceIn(CRYSTALS_A_TIER.indices)]
+
+    private val CRYSTALS_A_TIER = listOf(1, 4, 6)
 
     private const val SHAPE_SALT = 0x9E_37_79_B1L
     private const val TIER_SALT = 0x51_0E_1EL

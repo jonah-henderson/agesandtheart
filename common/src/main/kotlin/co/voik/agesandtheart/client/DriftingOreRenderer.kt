@@ -63,7 +63,12 @@ class DriftingOreRenderer(context: EntityRendererProvider.Context) :
             drawn.origin = at
             drawn.cluster = cluster
             drawn.span = span
-            drawn.randomSeedPos = where
+            // **A seed that does not travel with the body.** Deepslate has four variants — plain and
+            // mirrored, each at two turns — picked from `blockState.getSeed(randomSeedPos)`, so feeding it
+            // the *world* position re-rolled every cell of the cluster each time the body crossed a block
+            // boundary and the whole rock visibly re-tiled as it drifted. The cell's own offset never
+            // moves; the shape and tier are mixed in so two bodies of different rock are not tiled alike.
+            drawn.randomSeedPos = cell.at.offset(entity.shape, entity.tier, entity.shape)
             drawn.blockPos = where
             drawn.blockState = cluster.getValue(cell.at)
             // **Lit where it is rather than where it came from.** A body at the build limit is in full

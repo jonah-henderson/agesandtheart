@@ -118,7 +118,12 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
             move(MoverType.SELF, settled.add(driftOf(level())))
             discardIfNobodyIsAround()
         }
-        carryWhatStandsOnIt(position().subtract(before))
+        // **Sideways only.** Vanilla already lifts whatever is standing on a box that rises and drops it
+        // when the box falls, so adding the vertical delta on top applied it twice: a rider was shoved up,
+        // resolved down, shoved up again — a shudder that got worse the smaller the body was, because a
+        // player on a two-cube has nowhere to settle. Sideways is the part vanilla does not do.
+        val moved = position().subtract(before)
+        carryWhatStandsOnIt(Vec3(moved.x, 0.0, moved.z))
     }
 
     /**
@@ -222,8 +227,18 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
     private fun towardItsBand(): Vec3 {
         val off = homeY - y
         if (abs(off) < AT_HOME) return Vec3.ZERO
-        return Vec3(0.0, off.coerceIn(-RISE, RISE) * HOMING, 0.0)
+        return Vec3(0.0, off.coerceIn(-RISE, RISE) * homingRate(), 0.0)
     }
+
+    /**
+     * How fast a body climbs or sinks to its own band, at most.
+     *
+     * **Twice the drift and no more** (Jonah, 2026-09-09) — a long graceful ascent rather than a plummet,
+     * which is what makes a fragment sinking to the band below something you watch rather than something
+     * that has already happened. Derived from the drift and the damping rather than written down, so the
+     * relationship survives either of them being retuned.
+     */
+    private fun homingRate(): Double = DRIFT_SPEED * SEEKS_AGAINST_DRIFT * (1.0 - SETTLING) / RISE
 
     /**
      * Nothing to look at and nobody looking: a body far from every player is not worth ticking.
@@ -361,8 +376,15 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
         /** How much of its motion a body keeps from tick to tick. Heavy: these wallow rather than dart. */
         private const val SETTLING = 0.82
 
-        /** How hard a shove is at its strongest, before the tier multiplies it. */
-        private const val SHOVE = 0.06
+        /**
+         * How hard a shove is at its strongest, before the tier multiplies it.
+         *
+         * **Raised two and a half times 2026-09-09** (Jonah: "it looks like it can barely move them").
+         * The inversion is the whole design — a body has to be visibly unable to be caught — so this
+         * wants to read as *repelled*, holding five or six blocks off anything built, rather than as
+         * drifting past a wall it happens to avoid.
+         */
+        private const val SHOVE = 0.15
         private const val SMALLEST_SHOVE = 1.0
         private const val SHOVE_A_TIER = 0.35
 
@@ -373,10 +395,12 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
         private const val CLOSEST = 0.001
         private const val NOTHING = 1.0e-6
 
-        /** How close to its band counts as home, and how fast it climbs back. */
+        /** How close to its band counts as home, and how far off it the climb is at full speed. */
         private const val AT_HOME = 0.35
-        private const val HOMING = 0.045
         private const val RISE = 12.0
+
+        /** And how fast that climb is, against the drift — see [homingRate]. */
+        private const val SEEKS_AGAINST_DRIFT = 2.0
 
         /** Doubled 2026-09-09 (Jonah): a sky that barely moves reads as scenery rather than weather. */
         private const val DRIFT_SPEED = 0.034
