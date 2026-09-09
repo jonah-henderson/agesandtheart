@@ -40,20 +40,20 @@ class ChargedMetalCheck : FunSpec({
     }
 
     /**
-     * **The aliasing trap, and it is the reason this ramp is a function at all.**
+     * **Every interval it can name, it can actually keep.**
      *
-     * A bite is timed off the world clock against `ChargedMetal.STIRRED_EVERY`, so an interval that is not
-     * a whole number of turns lands on one far less often than it says — thirteen ticks fires every
-     * sixty-five, a machine five times weaker than its own number with nothing to show for it. Nothing in
-     * a screenshot would ever say so.
+     * This used to have to round: the machines turned over once every five ticks, so an interval that was
+     * not a multiple of the beat landed on one far less often than it said — thirteen ticks fired every
+     * sixty-five, a machine five times weaker than its own number with nothing in a screenshot to say so.
+     * Applying the force every tick took the trap away rather than working around it. What is left to hold
+     * is that the ramp stays inside the ends it promises, which is what makes the ceiling and the floor
+     * mean something.
      */
-    test("a machine bites on a whole number of turns, whatever its ratio") {
-        for (hundredths in 1..800) {
+    test("every interval the ramp names is one it can keep") {
+        for (hundredths in 1..1200) {
             val force = hundredths / 100.0
             val every = ChargedMetal.bitesEvery(force)
-            check(every % ChargedMetal.STIRRED_EVERY == 0L) {
-                "a machine at force $force wants to bite every $every ticks, which is not a whole turn"
-            }
+            check(every in FASTEST..SLOWEST) { "a machine at force $force wants to bite every $every ticks" }
         }
     }
 
@@ -61,7 +61,7 @@ class ChargedMetalCheck : FunSpec({
     test("the ramps run the way the ratio does") {
         var faster = Long.MAX_VALUE
         var harder = 0.0f
-        for (hundredths in 1..800) {
+        for (hundredths in 1..1200) {
             val force = hundredths / 100.0
             check(ChargedMetal.bitesEvery(force) <= faster) { "the bite got slower at force $force" }
             check(ChargedMetal.bitesFor(force) >= harder) { "the bite got lighter at force $force" }
@@ -112,5 +112,9 @@ class ChargedMetalCheck : FunSpec({
 
         /** Four for the first and one each after: 4 + 12 = 16, and the fourteenth rod buys nothing. */
         private const val THE_MOST_THAT_BUYS_ANYTHING = 13
+
+        /** The ends of the bite ramp, which the ceiling and the floor of the material are read off. */
+        private const val FASTEST = 10L
+        private const val SLOWEST = 60L
     }
 }

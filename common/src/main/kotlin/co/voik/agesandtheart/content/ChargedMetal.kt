@@ -16,6 +16,8 @@ import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.item.Items
+import java.util.WeakHashMap
+import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.phys.AABB
@@ -50,24 +52,36 @@ object ChargedMetal {
      */
     fun stir(server: MinecraftServer) {
         for (level in server.allLevels) {
-            // **One clock, and it is the level's own.** The bite is timed off `gameTime` against this
-            // interval, and that only means anything if the same counter decides when a turn happens:
-            // gating here on `server.tickCount` left two counters that merely happen to advance together
-            // — a frozen tick would have kept turning them over while `gameTime` stood still, so a machine
-            // would bite every turn or never. `gameTime` is what the rest of this codebase schedules on.
-            if (level.gameTime % STIRRED_EVERY != 0L) continue
-            // Deduplicated across players before anything is driven, or a machine two people are standing
-            // near would pull twice as hard as the one machine a builder laid.
-            val crystals = LinkedHashSet<BlockPos>()
-            for (player in level.players()) {
-                if (player.isSpectator) continue
-                crystals += Arcs.crystalsNear(level, player.position(), LOOKED_FOR_WITHIN)
-            }
-            if (crystals.isNotEmpty()) drive(level, crystals)
+            // **Found on a slow beat, applied every tick**, and the split is what makes a field feel like
+            // one. Reading the world is the expensive half — a palette scan per player — and pushing what
+            // was found is nearly free, so shoving once every five ticks bought nothing and cost the
+            // whole feel of it: an entity took a yank, then four ticks of drag, then another yank. The
+            // machines are cached between beats and the force goes on every tick at a fifth the size.
+            //
+            // **One clock, and it is the level's own.** A bite is timed off `gameTime` too, and that only
+            // means anything if one counter decides both — `server.tickCount` is a different number that
+            // merely happens to advance alongside it, and stands still in neither of the same cases.
+            if (level.gameTime % LOOKED_FOR_EVERY == 0L) standing[level] = whatIsBuiltIn(level)
+            val machines = standing[level] ?: continue
+            drive(level, machines)
         }
     }
 
-    private fun drive(level: ServerLevel, crystals: Set<BlockPos>) {
+    /**
+     * Every machine anybody is near, as it stands this moment.
+     *
+     * **Stale by up to [LOOKED_FOR_EVERY] ticks, deliberately.** A run whose crystal was just mined goes
+     * on pulling for a fifth of a second; the alternative is reading the world every tick to catch a case
+     * a player cannot perceive.
+     */
+    private fun whatIsBuiltIn(level: ServerLevel): Machines {
+        // Deduplicated across players before anything is driven, or a machine two people are standing
+        // near would pull twice as hard as the one machine a builder laid.
+        val crystals = LinkedHashSet<BlockPos>()
+        for (player in level.players()) {
+            if (player.isSpectator) continue
+            crystals += Arcs.crystalsNear(level, player.position(), LOOKED_FOR_WITHIN)
+        }
         val pulling = mutableListOf<Arcs.Run>()
         val pushing = mutableListOf<Arcs.Run>()
         val biting = mutableListOf<Arcs.Run>()
@@ -90,13 +104,27 @@ object ChargedMetal {
             // the rules that were here; the only thing the lightning does that is its own is [struck].
             Arcs.massDrivenFrom(level, at, live)?.let { biting += it }
         }
-        field(level, pulling, TOWARD)
-        field(level, pushing, AWAY)
-        for (run in biting) {
+        return Machines(pulling, pushing, biting)
+    }
+
+    /** What a level is standing on, between beats. Server-side only, so a plain weak map does. */
+    private val standing = WeakHashMap<Level, Machines>()
+
+    private class Machines(
+        val pulling: List<Arcs.Run>,
+        val pushing: List<Arcs.Run>,
+        val biting: List<Arcs.Run>,
+    )
+
+    private fun drive(level: ServerLevel, machines: Machines) {
+        field(level, machines.pulling, TOWARD)
+        field(level, machines.pushing, AWAY)
+        val showing = level.gameTime % LOOKED_FOR_EVERY == 0L
+        for (run in machines.biting) {
             val rods = Arcs.rodsOn(level, run.blocks)
-            // Before the bite and regardless of it: a live assembly says so whether or not there is
-            // anything standing in it, which is the point of saying it.
-            showItIsLive(level, run, rods)
+            // On the slow beat rather than every tick: a live assembly says it is live whether or not
+            // there is anything standing in it, and saying so sixty times a second would be a light.
+            if (showing) showItIsLive(level, run, rods)
             bite(level, run, rods)
         }
     }
@@ -120,7 +148,7 @@ object ChargedMetal {
         // single run and never a sum is stated once, in the place that explains it; reimplementing the
         // comparison inline left the documented rule and the applied rule as two pieces of code.
         for ((entity, reaching) in over) Arcs.strongest(reaching)?.let { shove(entity, it, sense) }
-        for (run in runs) showTheBeam(level, run, sense)
+        if (level.gameTime % LOOKED_FOR_EVERY == 0L) runs.forEach { showTheBeam(level, it, sense) }
     }
 
     /**
@@ -141,10 +169,11 @@ object ChargedMetal {
      */
     private fun shove(entity: Entity, run: Arcs.Run, sense: Double) {
         val along = alongOf(run) ?: return
-        val past = entity.position().subtract(Vec3.atCenterOf(run.blocks.last())).dot(along)
-        val falloff = (1.0 - past / run.reach).coerceIn(NONE, ALL_OF_IT)
-        if (falloff <= NONE) return
-        val strength = PULL_AT_ONE_TO_ONE * run.force.coerceAtMost(MOST_FORCE) * falloff
+        // **The same everywhere in the beam** (Jonah, 2026-09-09). It used to fall off down the length,
+        // which is the physics and the wrong call: what a builder can see is where the field starts and
+        // stops, not that it is two thirds as strong three blocks in, so the gradient only made the reach
+        // feel shorter than it is. In or out is the whole of it.
+        val strength = PULL_AT_ONE_TO_ONE * run.force.coerceAtMost(MOST_FORCE)
         // Attraction hauls back *up* the beam toward the metal; repulsion drives on down it.
         entity.push(along.scale(-sense * strength))
         // A server that moves a player has to say so, or their own client puts them straight back — the
@@ -169,7 +198,7 @@ object ChargedMetal {
      */
     private fun bite(level: ServerLevel, run: Arcs.Run, rods: Set<BlockPos>) {
         val force = run.force.coerceAtMost(MOST_FORCE)
-        if (level.gameTime % bitesEvery(force) >= STIRRED_EVERY) return
+        if (level.gameTime % bitesEvery(force) != 0L) return
         val hurt = bitesFor(force)
         val source = biting(level)
         // **A mast adds range; it does not replace the contact.** A rod turns a fence into a turret, so
@@ -329,20 +358,18 @@ object ChargedMetal {
     /**
      * How often a machine of this ratio bites, in ticks.
      *
-     * **Always a whole number of turns**, and that is not tidiness: the bite is timed off the world clock
-     * against [STIRRED_EVERY], so an interval that is not a multiple of it aliases — thirteen ticks lands
-     * on a turn only every sixty-five, which is a machine five times weaker than the number says and no
-     * way to tell from reading it.
+     * **Any whole number of ticks, exactly**, which it was not while the machines only turned over every
+     * fifth tick: an interval that was not a multiple of the beat landed on one far less often than it
+     * said, and thirteen ticks fired every sixty-five — a machine five times weaker than its own number,
+     * with nothing in a screenshot to say so. Applying the force every tick took the trap away rather than
+     * working around it, so the rounding that used to be here is gone.
      *
      * Public and pure because it is the calibration surface: one crystal to one copper block is the anchor
      * the whole material is tuned against, and reading it off the mechanic is the only way a check stays
      * true when the mechanic is retuned ([Lures.reachFor] is public for the same reason).
      */
-    fun bitesEvery(force: Double): Long {
-        val wanted = (ANCHOR_BITE_EVERY / force.coerceAtLeast(CLOSEST)).roundToLong()
-        val turns = (wanted.toDouble() / STIRRED_EVERY).roundToLong().coerceAtLeast(1L)
-        return (turns * STIRRED_EVERY).coerceIn(FASTEST_BITE, SLOWEST_BITE)
-    }
+    fun bitesEvery(force: Double): Long =
+        (ANCHOR_BITE_EVERY / force.coerceAtLeast(CLOSEST)).roundToLong().coerceIn(FASTEST_BITE, SLOWEST_BITE)
 
     /** And how hard, on the same ratio and against the same anchor. */
     fun bitesFor(force: Double): Float =
@@ -436,15 +463,18 @@ object ChargedMetal {
     private const val LOOKED_FOR_WITHIN = Arcs.LONGEST_RUN * 2.0
 
     /** How often the machines turn over. Fine enough to feel continuous, coarse enough to be cheap. */
-    const val STIRRED_EVERY = 5L
+    const val LOOKED_FOR_EVERY = 5L
 
     /**
      * How hard a one-to-one array shoves at point blank, per turn.
      *
-     * About a third of gravity, so an ordinary array is a drag you lean against and a well-fed one lifts
-     * you. [MOST_FORCE] is what stops an absurd ratio launching anything into orbit.
+     * **Per tick now, not per beat**, and much harder than it was (Jonah, 2026-09-09: iron and gold felt
+     * weak beside copper). About two thirds of gravity at one-to-one, against a sixth of it before once
+     * the old falloff was averaged in — so an ordinary array is a drag you lean against and a well-fed
+     * one carries you off. [MOST_FORCE] is what stops an absurd ratio firing anything into orbit, and at
+     * that ceiling this is six times gravity, which is the catastrophic end the copper ladder also has.
      */
-    private const val PULL_AT_ONE_TO_ONE = 0.12
+    private const val PULL_AT_ONE_TO_ONE = 0.05
     private const val MOST_FORCE = 12.0
     private const val TOWARD = 1.0
     private const val AWAY = -1.0

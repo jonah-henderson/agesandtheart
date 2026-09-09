@@ -958,6 +958,14 @@
 #     reason about; that is what the change was for.
 #     The beam is one block across, but entities are caught by box OVERLAP, so an ordinary mob is caught
 #     across about a block and a half. Say if it still feels fiddly to stand in.
+#   - **RE-READ 2026-09-09 (third pass): IRON AND GOLD ARE MUCH STRONGER AND SMOOTH NOW.** Three things
+#     changed together. (a) Base force is up from 0.12 a beat to 0.05 a TICK -- about two thirds of gravity
+#     at one-to-one, against roughly a sixth of it before, so call it six times harder in the hand.
+#     `PULL_AT_ONE_TO_ONE` is the dial. (b) The falloff down the beam is gone: the pull is the same
+#     everywhere in it. (c) The force is applied every tick rather than every fifth, so it should be a
+#     steady haul rather than a yank-and-drift. What to settle: does it now feel like being dragged rather
+#     than shoved, and at the top of the ratio is it fun or merely lethal? At MOST_FORCE (12) it is six
+#     times gravity, which will fire you a long way.
 #     **Watch for one thing the change may have cost**: the force is purely axial now, so nothing recentres
 #     anything. A beam above the ground will have things fall out of it sideways as they are hauled. If a
 #     grinder leaks, a small centring term inside the beam is the fix and does not break the rule.
