@@ -127,28 +127,12 @@
 #
 # STILL WORTH WALKING: does finding ~4 ore in a chunk's band feel like the trip was worth making?
 
-# ══ 2. THE DERETHENI SUIT ══════════════════ WALKED AND GOOD 2026-09-09; THREE FIXES TO RE-READ ══
+# ══ 2. THE DERETHENI SUIT ══════════════════════════ WALKED AND GOOD 2026-09-09 ══
 # All five settled: four pieces stop you catching fire, powder snow and a frozen Age do nothing, a full
 # set survives a lava swim where a partial one does not, a fire-throwing mob is still a fight, and the
-# trade is felt -- it is armour you wear INSTEAD of armour and a fight goes worse in it.
-#
-# THREE FIXES FROM THE SAME WALK, all in the blizzard rather than the suit:
-#   - **THE COLD GRADES BY COVER NOW.** It could not before: the rate has to out-pace vanilla's thaw of
-#     two whole ticks, so every exposure above nothing rounded to the same bite and a doorway was as good
-#     as a mountain. Cover decides how cold you can GET instead -- under about 40% sky light you shiver
-#     and stop, over it the frost runs on to the damage, and deep in nothing starts. Walk in from open
-#     ground under a lip, then a shallow cave, then a deep one, and it should ease off in three stages.
-#   - **AND SO DOES THE HAZE.** It asked `canSeeSky`, which is a yes or a no, so the whiteout switched off
-#     at a doorway while the WIND it is supposed to agree with faded over a dozen blocks. Fog distance and
-#     the whiteout colour both follow sky light now, the same one definition the sound already used.
-#   - **RIME CRYSTALS NO LONGER GENERATE LIT.** `POWERED` had no registered default and a boolean property
-#     defaults to its FIRST value, which is `true` -- so every crystal the world grew came out glowing at
-#     fifteen, and only looked intermittent because any block update near one corrects it.
-#   - **AND THEY NEED A CLIMB.** They grew from y=63 at a quarter, so a noise cave breaking a plain grew
-#     them round its lip -- technically a sheer face and no climb at all. Nothing below y=96 now, which
-#     clears vanilla's ordinary country and the caves that open in it: 25% at the floor, 41% on windswept
-#     hills, 65% on a real mountain, certain at the peaks. Check they read as something seen from below
-#     and climbed to. `/age cliffs` counts faces off the same number, so the survey follows.
+# trade is felt. Four faults came out of the same walk and NONE were in the suit -- the blizzard's cold
+# and haze both read as binary where they were meant to grade by cover, and rime crystals generated lit
+# and at sea level. All fixed and confirmed; see decisions.md for why a rate could not carry that gradient.
 
 # ══ 3. THE TOOLBOX ═════════════════════════════════ WALKED AND GOOD 2026-09-09 ══
 # All four halves confirmed: the durability fence holds, the refill fires into the hand, ARMOUR refills
