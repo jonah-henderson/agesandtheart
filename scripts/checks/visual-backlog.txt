@@ -832,35 +832,33 @@
 #     Age that is not roofed. The ceiling and the undersides of overhangs are where to look. If it makes
 #     no difference, the field is not worth carrying; if it does, every roofed Age should have it.
 
-# ══ 18. TWO NEW LANDFORMS, NEITHER OF THEM LOOKED AT ═════════════════════════ Built 2026-09-08 ══
-# Both are cheap and both were driven against a real server (`scripts/checks/new-landforms.txt`), so what
-# is left is entirely a matter of whether they read as places. NO TRAVEL IS NEEDED BEYOND LINKING: both
-# put you where the thing is.
+# ══ 18. THE LONE ISLAND, AFTER THE REBALANCE ═══ PARTLY WALKED 2026-09-08; TWO CHANGES TO RE-READ ══
+# **SETTLED ON THE FIRST WALK AND STRUCK OUT**: `flatlands` is dead level and reads as dry country rather
+# than one endless beach; its frozen and jagged PEAK biomes are noise caves breaking the surface, which is
+# a sinkhole in a plain and better than not having one. One storey of great hall is worth finding. The
+# lone island is alone, and the ninety-block beach clamp was the right call.
 #
-/age compose plain 7 landmass=flatlands rock=caves sky=plain
-/age compose alone 7 landmass=isle sea=water rock=caves sky=plain
+# WHAT CHANGED AFTER THAT WALK, AND WANTS READING AGAIN — both only at the LARGE end:
+#
 /age compose alonelarge 7 landmass=isle[size=0.9..1.0] sea=water rock=caves sky=plain
+/age compose alone 7 landmass=isle sea=water rock=caves sky=plain
 #
-# WHAT A WALK HAS TO SETTLE:
-#   - **IS `flatlands` DEAD LEVEL AND DOES IT STAY THAT WAY?** Every column tops at y=64 offline. In game
-#     the thing to look for is what vanilla's own decoration does to it -- a lake feature or a small
-#     boulder is the only relief there will ever be, and whether that reads as charming or as litter is a
-#     judgement no measurement makes.
-#   - **DOES IT READ AS DRY COUNTRY RATHER THAN AS ONE ENDLESS BEACH?** It declares no waterline, so
-#     `Grounding` files it all inland: measured 29% plains, 18% forest, 13% savanna, and no ocean or shore
-#     anywhere. What is worth an eye is the 1.5% of frozen and jagged PEAK biomes vanilla's weirdness axis
-#     files on a plain -- a patch of snowy stone in a meadow is either good variety or plainly wrong, and
-#     only looking settles it.
-#   - **`/age compose plainhalls 7 landmass=flatlands rock=caves underground=great_halls sky=plain`** --
-#     a level world leaves room for exactly ONE storey of hall. Is one enough to be worth finding?
-#   - **IS THE LONE ISLAND ALONE, AND DOES THAT READ AS LONELY OR AS EMPTY?** Sail out. There is no second
-#     island at any distance, by construction, which is a stronger promise than `islands` makes and a
-#     harder one to enjoy -- the whole question is whether an ocean with nothing in it is a place.
-#   - **THE BEACH AT THE LARGE END.** `alonelarge` is 2000 blocks of radius with a beach held to ninety
-#     blocks rather than to a fifth of the island. Walk from the water inland and see whether ninety reads
-#     as a shore or as a desert; the small ones keep the old fifth and should be unchanged.
-#   - **DOES THE MIDDLE STAND UP?** The interior rolls +/-20 blocks on a 64-block wavelength whatever the
-#     island's size, so a continental one is a broad plain with fine texture on it rather than a mountain.
-#     That was accepted rather than tuned. If a 4km island reads as flat and dull, the relief scale is the
-#     dial and it lives in `Isle`, not in `IslandsField`.
-
+#   - **IS IT UNDER THE WEATHER NOW?** It crowned at y=213 and stood mostly over the lower cloud deck at
+#     153. Size is a footprint now: the radius still runs fourteenfold across the ladder and the rise runs
+#     two and a half, so it crowns at 176 with **1% of columns above the deck** — peaks through it, ground
+#     under it. If that still reads as too much sky, `LARGEST_LONE_PEAK_RISE` is the dial.
+#   - **DOES THE MIDDLE READ AS COUNTRY?** The interior rolled sixty-four blocks at a time whatever the
+#     island, which on two kilometres is one hill repeated. It is a share of the radius now — about 250
+#     blocks on a continent — and the relief runs past the crown, so there should be **peaks, basins, and
+#     lagoons where it dips under the water**. What it must NOT do is cut the island in two; if you can
+#     sail through it, say so and the wavelength comes up.
+#   - **LEAVING THE SAND.** The climb behind the beach was a third of the radius — 660 blocks to rise 55,
+#     which is a ramp. It is 220 blocks now. Walk inland from the water: beach, then a slope you notice,
+#     then interior. `IslandsCheck` caught this one and it is worth confirming by foot.
+#   - **AND THE ARCHIPELAGO, IN PASSING.** `islands` was walked and good and is very slightly smoothed by
+#     the relief octaves being re-weighted. `/age compose isles 7 landmass=islands sea=water sky=plain` —
+#     no need for a trip of its own, but worth an eye if one goes there.
+#
+# Offline first, and it is where all of the above was measured:
+#   ./gradlew :common:preview --args=isle-large      (the top of the ladder — read the deck percentages)
+#   ./gradlew :common:preview --args=isle            (ordinary, and unchanged)

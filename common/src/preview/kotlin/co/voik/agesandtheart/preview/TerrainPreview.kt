@@ -545,6 +545,21 @@ private val subjects: Map<String, Subject> = mapOf(
         step = 2,
     ),
 
+    /**
+     * And at the top of its ladder, **which is the end that has no room for error**. The ordinary size
+     * above never came near the weather, so nothing measured what the largest one did until a walk found
+     * it standing mostly over the lower cloud deck. Read the deck percentages in the report rather than
+     * the picture: what is wanted is peaks breaking through and ground that does not.
+     */
+    "isle-large" to Subject(
+        IslandsField.lone(Span.NATURAL_MOST),
+        lowestY = 20,
+        highestY = IslandsField.SEA_LEVEL + 200,
+        radius = 2600,
+        step = 4,
+        sliceAtZ = 0,
+    ),
+
     // **Read the slices, never the plan**: from above a hollowed world is just that world, so the two
     // cross-sections are the whole of what this subject shows. What to look for is a chamber wide enough
     // to hold a city, air over the water in it, and rock over that.

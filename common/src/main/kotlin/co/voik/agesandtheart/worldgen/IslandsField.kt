@@ -47,11 +47,37 @@ object IslandsField {
      */
     private const val SMALLEST_LONE_SHORE_RADIUS = 140.0
     private const val LARGEST_LONE_SHORE_RADIUS = 2000.0
+
+    /**
+     * **Size is a footprint, and only a little of it is height** (Jonah, 2026-09-08).
+     *
+     * The radius runs fourteenfold across this ladder and the rise runs two and a half, which is what
+     * makes a continent read as a country rather than as a mountain in the sea. It was seven, reaching a
+     * hundred and fifty: a large island crowned at y=213 and stood *mostly above the lower cloud deck*,
+     * so the thing you noticed about the biggest island the Art can write was that you were looking down
+     * on the weather. Peaks may still break the deck — see [SMALLEST_LONE_RELIEF] — but the ground they
+     * stand on does not.
+     */
     private const val SMALLEST_LONE_PEAK_RISE = 22.0
-    private const val LARGEST_LONE_PEAK_RISE = 150.0
+    private const val LARGEST_LONE_PEAK_RISE = 55.0
+
+    /**
+     * How far a lone island's interior rolls about that crown.
+     *
+     * **Large against the rise on purpose**, which is what buys peaks, basins and flooded valleys instead
+     * of one long swell: at the top of the ladder the interior ranges from the waterline to half again the
+     * crown, so an island has somewhere to climb and somewhere to look down into. What keeps that from
+     * cutting one in half is the *wavelength*, which `Isle` takes as a share of the island — a basin an
+     * eighth of the island wide is a lagoon and the same depth across all of it would be a strait.
+     */
+    private const val SMALLEST_LONE_RELIEF = 18.0
+    private const val LARGEST_LONE_RELIEF = 70.0
 
     /** How wide a lone island's beach is, where its radius is large enough to have the room — see [loneBeachShare]. */
     private const val LONE_BEACH_WIDTH = 90.0
+
+    /** And how far the climb behind it runs — see [loneShoulder]. */
+    private const val LONE_SHOULDER_WIDTH = 220.0
 
     private fun shoreRadiusAt(size: Double?): Double =
         betweenTheEnds(SMALLEST_SHORE_RADIUS, LARGEST_SHORE_RADIUS, size)
@@ -99,6 +125,7 @@ object IslandsField {
             seabedY = SEABED_Y,
             shoreY = SEA_LEVEL,
             peakRise = betweenTheEnds(SMALLEST_LONE_PEAK_RISE, LARGEST_LONE_PEAK_RISE, size),
+            relief = betweenTheEnds(SMALLEST_LONE_RELIEF, LARGEST_LONE_RELIEF, size),
             shoreRadius = shoreRadius,
             // The size asked for is the size drawn — see `Isle.solitary` for why a variation here would be
             // a fixed offset rather than a difference between one Age and the next.
@@ -107,6 +134,7 @@ object IslandsField {
             jitter = 0.0,
             seed = ISLAND_SEED xor salt,
             beachShare = loneBeachShare(shoreRadius),
+            shoulder = loneShoulder(shoreRadius),
             layout = Isle.Layout.SOLITARY,
         )
     }
@@ -122,6 +150,22 @@ object IslandsField {
      */
     private fun loneBeachShare(shoreRadius: Double): Double =
         (LONE_BEACH_WIDTH / shoreRadius).coerceAtMost(Isle.DEFAULT_BEACH_SHARE)
+
+    /**
+     * And how far behind the beach the ground takes to reach its full height — **a width, for the reason
+     * the beach is one**, and the reason showed up the moment the crown came down.
+     *
+     * A third of a two-kilometre radius is six hundred and sixty blocks to climb fifty-five, which is a
+     * grade of one in twelve: not a hillside but a ramp, and `IslandsCheck` caught it by measuring a
+     * hundred and seventy-seven blocks of level going before the ground rose past beach height. A stated
+     * width climbs the same fifty-five over two hundred, which is a slope you notice leaving the sand —
+     * and it hands the interior back the ground the ramp was eating, which is where the relief lives.
+     *
+     * Capped at the default, so every island small enough for a third of its radius to be the shorter
+     * answer is exactly as it was.
+     */
+    private fun loneShoulder(shoreRadius: Double): Double =
+        (LONE_SHOULDER_WIDTH / shoreRadius).coerceAtMost(Isle.DEFAULT_SHOULDER)
 
     private fun loneShoreRadiusAt(size: Double?): Double =
         betweenTheEnds(SMALLEST_LONE_SHORE_RADIUS, LARGEST_LONE_SHORE_RADIUS, size)

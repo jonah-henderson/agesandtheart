@@ -50,7 +50,13 @@ data class Isle(
     val seed: Long,
     /** How far the coast wanders in and out, as a share of the radius — bays and headlands. */
     val coastRoughness: Double = DEFAULT_COAST_ROUGHNESS,
-    /** How far the interior rolls above and below its profile. Nothing at the shore, all of it inland. */
+    /**
+     * How far the interior rolls above and below its profile. Nothing at the shore, all of it inland.
+     *
+     * **It is allowed to reach the water, and that is deliberate**: an interior that dips under the shore
+     * is a lagoon or a flooded valley, which is a thing worth finding on an island. What it must not do is
+     * sever one, and what stops it is the wavelength rather than the amplitude — see [reliefStretch].
+     */
     val relief: Double = DEFAULT_RELIEF,
     /** How steeply the ground falls away outside the shore, in blocks per block. */
     val shelfSlope: Double = DEFAULT_SHELF_SLOPE,
@@ -138,7 +144,7 @@ data class Isle(
         // Hermite over the shoulder alone: flat where it meets the beach, flat again once it is up, and
         // everything further in is interior rather than more slope.
         val profile = climbing * climbing * (3.0 - 2.0 * climbing)
-        val rolling = reliefNoise.getValue(worldX / RELIEF_STRETCH, 0.0, worldZ / RELIEF_STRETCH)
+        val rolling = reliefNoise.getValue(worldX / reliefStretch, 0.0, worldZ / reliefStretch)
             .coerceIn(-1.0, 1.0) * relief
         return shoreY + beachRise + (peakRise - beachRise) * profile + rolling * profile
     }
@@ -148,6 +154,22 @@ data class Isle(
 
     /** A wavelength of a fraction of an island, so a coast has bays rather than one lopsided bulge. */
     private val coastStretch = (shoreRadius * COAST_SHARE_OF_AN_ISLAND).coerceAtLeast(SMALLEST_STRETCH)
+
+    /**
+     * And the interior's, **a share of the island rather than a fixed distance** — which is what decides
+     * whether a big island reads as country or as texture.
+     *
+     * It was sixty-four blocks whatever the island, and on a two-kilometre one that is a rumple: the same
+     * hill over and over for an hour's walk, with nothing at the scale a person navigates by (Jonah,
+     * walked 2026-09-08, "a little samey, especially on the large islands"). At an eighth of the radius a
+     * continent gets ridges and basins hundreds of blocks across and a rock keeps its texture, because the
+     * floor holds the small end exactly where it was.
+     *
+     * **The wavelength is also what keeps [relief] from severing an island.** A basin a quarter of the
+     * island wide is a lagoon; the same depth at the same scale as the island would be a strait.
+     */
+    private val reliefStretch =
+        (shoreRadius * RELIEF_SHARE_OF_AN_ISLAND / NOISE_WAVELENGTH).coerceAtLeast(SMALLEST_RELIEF_STRETCH)
 
     override fun resized(factor: Double, pivotY: Int) = copy(
         floorY = scaledAbout(floorY, factor, pivotY),
@@ -239,8 +261,27 @@ data class Isle(
         private const val COAST_SHARE_OF_AN_ISLAND = 0.024
 
         private const val RELIEF_OCTAVE = -4
-        private val RELIEF_AMPLITUDES = listOf(1.0, 0.6, 0.3)
-        private const val RELIEF_STRETCH = 4.0
+
+        /**
+         * **Weighted hard onto the first octave**, because the amplitude the whole stack is scaled by is
+         * now large enough for the harmonics to matter. At a continent's relief the third octave was
+         * thirty-three blocks of rise and fall across sixty, which is scree rather than country and read
+         * from above as static laid over the landforms underneath. An archipelago's relief is a third of
+         * that and never noticed, which is why this went unseen until the ladder grew.
+         */
+        private val RELIEF_AMPLITUDES = listOf(1.0, 0.5, 0.18)
+
+        /**
+         * How much of an island one ridge or basin spans, and the shortest that may get — see
+         * [reliefStretch]. The floor is what the whole ladder used to be, so the smallest islands are
+         * untouched and only the ones with room to spare grow features to match.
+         */
+        private const val RELIEF_SHARE_OF_AN_ISLAND = 0.125
+        private const val SMALLEST_RELIEF_STRETCH = 4.0
+
+        /** Blocks per unit of noise at [RELIEF_OCTAVE], which is what turns a wanted width into a stretch. */
+        private const val NOISE_WAVELENGTH = 16.0
+
         private const val RELIEF_SALT = 0x15_1E_5L
 
         // Three separate draws from one cell: where it sits, and how big it is.
