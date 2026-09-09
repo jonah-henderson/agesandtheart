@@ -887,7 +887,7 @@
 #     but `sultry` can no longer draw a cold Age at all, where before it could draw anything. If a word
 #     that leans now feels like a word that demands, `Span.leaned` is where the strength lives.
 
-# ══ 22. ORE THAT WILL NOT BE CAUGHT ══════════ WALKED 2026-09-09 AND GOOD; TWO NEVER READ ══
+# ══ 22. ORE THAT WILL NOT BE CAUGHT ══════════ WALKED 2026-09-09; ONE THING TO RE-READ ══
 # The first walk of the magnetic material (design §7.1.2) -- and the first thing in the mod drawn as a
 # cluster of real blocks moved as one entity. Nothing about it has been looked at. The whole feature turns
 # on one question a screenshot answers and no test can: does a sky of procedurally weathered rubble read as
@@ -1001,7 +1001,22 @@
 #   - **AND WHAT DOES A SKY OF THEM COST?** F3 with several in view. One submit per visible cell, 94 on a
 #     top-tier body now (it was 133 before the culling and the erosion fix). If the frame rate moves,
 #     `MOST_IN_SIGHT` is the first dial and `pushedFromRock`'s block walk is the second.
-# ══ 23. THE CHARGED MACHINES ═══════════════════ WALKED 2026-09-09 BAR THE STORM ══
+
+# FOURTH WALK 2026-09-09: the sky's cost is "within acceptable limits", and the box was judged too loose --
+# "too easy to stand or shoot at empty space and have it work". SO THE SHAPED COLLIDER IS BUILT:
+#   - **STAND ON ONE AND SHOOT ONE.** A body is its own outline now rather than the cube it weathered from,
+#     which was better than a third gaps. Two Mixins, because neither path has a hook:
+#     `Entity.collectAllColliders` for what you stand on, and `Projectile.canHitEntity` for what an arrow
+#     hits. What to settle: standing on a notch should now fail, and a shot into a gap should pass THROUGH
+#     rather than stopping in the air. A shot fast enough to cross the whole rock in one tick still
+#     tunnels, which is vanilla's own behaviour and not worth a sweep to fix -- say if it happens often.
+#   - **AND WHETHER IT COST ANYTHING.** `collectAllColliders` runs for every moving entity every tick and
+#     now asks the entity index whether a body is nearby. The sky's cost was already acceptable; this is
+#     the one that would show up as everything ELSE getting slower rather than as the sky being expensive.
+# ══ 23. THE CHARGED MACHINES ═══════════════════════ WALKED AND GOOD 2026-09-09 ══
+#
+# STORM CONFIRMED 2026-09-09 -- the whole item is walked. Left here only for the two things it records
+# rather than asks: the redstone switch's narrowness (below), and what is not built.
 # Arc crystal's second use, and it needs no Age at all -- build it in the overworld in creative. The
 # material's whole thesis is that the reward is the force you spent the acquisition fighting, so what this
 # has to settle is whether owning that force FEELS like the payoff.
@@ -1023,21 +1038,6 @@
 #   * **Setting a block down in midair**, at three blocks out.
 #   * **The redstone switch**, with the narrowness below understood and left as it is pending playtesting.
 #   * **The bolt.** "Looks fantastic, no notes." It is vanilla's own geometry, rotated and scaled.
-#
-# ONE THING LEFT, AND IT WANTS THE CHARGED AGE -- so it rides on item 22's trip:
-#   - **THE STORM.** Write a tempest Age, build a pile of arc crystal blocks with a rod on top, and wait.
-#     A bolt should light the whole pile up (light level 14, so it is obvious) and everything it feeds
-#     should double. Then try to mine it back -- that is meant to hurt, and deretheni is the answer.
-#     The charge drains as it bites and does not survive being picked up.
-#     **Take the rod off and it should go quiet.** A bare charged pile is stored charge and nothing else --
-#     a charged crystal has no discharge path of its own, it just powers copper twice as hard. A lightning
-#     rod IS copper, so a rod on a pile is a one-block conducting mass and needs no rule; check that an
-#     UNcharged pile with a rod also zaps, at half the rate.
-#   - **AND TWO THINGS WORTH AN EYE WHILE YOU ARE IN THERE**, both consequences flagged rather than
-#     tested. Two crossing beams should still be easy to reason about -- that is what the beam change was
-#     for. And a beam above ground level may leak things sideways as it hauls them, the force being purely
-#     axial with nothing recentring; if a grinder leaks, a small centring term inside the beam fixes it
-#     without breaking the rule.
 #
 # THE REDSTONE SWITCH IS NARROWER THAN IT LOOKS, and is left that way on purpose (Jonah, 2026-09-09:
 # "will need playtesting and feedback"). A run is walked from metal ADJACENT TO THE DRIVING CRYSTAL, so

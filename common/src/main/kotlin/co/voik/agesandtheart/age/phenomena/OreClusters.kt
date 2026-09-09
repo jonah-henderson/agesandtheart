@@ -4,6 +4,8 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import java.util.concurrent.ConcurrentHashMap
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
+import net.minecraft.world.phys.shapes.Shapes
+import net.minecraft.world.phys.shapes.VoxelShape
 
 /**
  * The shape of one body of drifting ore — **a cluster of cells grown from a number**, so no two bodies in
@@ -115,6 +117,29 @@ object OreClusters {
 
     /** Remembered for [remembered]'s reason, and because a renderer asks this per body per frame. */
     private val drawn = ConcurrentHashMap<Int, List<Cell>>()
+
+    /**
+     * The exact shape of a body — **what it can be stood on and shot at**, rather than the cube it
+     * weathered from.
+     *
+     * A weathered rock is a third gaps, so the box was a third wrong in every direction and it was too
+     * easy to stand on and shoot at nothing (Jonah, 2026-09-09). Built from unit boxes on the same lattice
+     * the cells are drawn on, so the collider and the drawing cannot disagree: a cell at offset `o` fills
+     * `o` to `o + 1`, exactly as `DriftingOreRenderer` places it.
+     *
+     * Remembered, because merging a hundred and forty boxes is not something to do per entity per tick —
+     * though it is cheaper than it looks, the merged shape only ever having seven coordinates an axis.
+     */
+    fun shapeOf(shape: Int, tier: Int): VoxelShape =
+        shapes.computeIfAbsent(shape * DriftingOre.MOST_TIERS + tier) {
+            of(shape, tier)
+                .fold(Shapes.empty()) { built, cell -> Shapes.or(built, ONE_CELL.move(cell.at)) }
+                .optimize()
+        }
+
+    private val shapes = ConcurrentHashMap<Int, VoxelShape>()
+
+    private val ONE_CELL: VoxelShape = Shapes.block()
 
     /**
      * How wide a body of this tier is, in blocks — what a collider and a bounding box are sized from.

@@ -7,11 +7,13 @@
     "DragonHoldingPatternMixin",
     "DragonPhaseAccessor",
     "EnderDragonMixin",
+    "EntityCollidersMixin",
     "LightningBoltMixin",
     "LivingEntityMixin",
     "MerchantQuickMoveMixin",
     "MerchantResultSlotMixin",
     "PistonStructureResolverMixin",
+    "ProjectileMixin",
     "ServerLevelMixin",
     "ServerPlayerMixin"
   ],

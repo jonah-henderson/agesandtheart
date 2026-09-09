@@ -106,6 +106,33 @@ class OreClustersCheck : FunSpec({
     }
 
     /**
+     * **The collider is the cluster, cell for cell** — filled where the rock is and empty where it is not.
+     *
+     * These are two descriptions of one body written in different units, and they have to agree exactly:
+     * a collider that is bigger is standing on air and arrows stopping short of the stone, which is what
+     * the cube was doing; one that is smaller is falling through a rock you can see. Neither shows up
+     * anywhere but in play, and both read as the physics being broken rather than as a number being wrong.
+     */
+    test("the collider fills the cluster and nothing but the cluster") {
+        for (tier in 0..<DriftingOre.MOST_TIERS) {
+            for (shape in listOf(0, 17, 63)) {
+                val cells = OreClusters.of(shape, tier).map { it.at }.toSet()
+                val boxes = OreClusters.shapeOf(shape, tier).toAabbs()
+                fun filled(at: BlockPos) = boxes.any { it.contains(at.x + HALF, at.y + HALF, at.z + HALF) }
+                val side = OreClusters.sideOf(tier)
+                val across = -(side / 2)..<(-(side / 2) + side)
+                for (x in across) for (y in across) for (z in across) {
+                    val at = BlockPos(x, y, z)
+                    check(filled(at) == (at in cells)) {
+                        val complaint = if (at in cells) "left a hole where the rock is" else "fills a gap"
+                        "shape $shape at tier $tier $complaint, at $at"
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * **What a body actually looks like**, sliced and printed — the instrument the shape is tuned with.
      *
      * A cluster's silhouette is the one thing about it that matters and the one thing no assertion can
@@ -161,5 +188,8 @@ class OreClustersCheck : FunSpec({
 
         /** The one worth looking at: the smaller tiers have too few cells to have a silhouette. */
         const val TALLEST_TIER = 2
+
+        /** The middle of a cell, which is what a shape is asked about. */
+        const val HALF = 0.5
     }
 }

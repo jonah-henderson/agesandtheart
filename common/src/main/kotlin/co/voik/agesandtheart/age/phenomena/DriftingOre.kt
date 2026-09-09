@@ -23,6 +23,7 @@ import net.minecraft.world.level.storage.ValueInput
 import net.minecraft.world.level.storage.ValueOutput
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
+import net.minecraft.world.phys.shapes.VoxelShape
 
 /**
  * Ore that will not be caught: a body of charged rock adrift at altitude, which an Age with a charged sky
@@ -299,14 +300,20 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
     override fun isPickable(): Boolean = true
 
     /**
-     * **Solid, so a body can be stood on** — which is most of what makes one worth flying to.
+     * **Nothing collides with the box, because the box is a third gaps.**
      *
-     * It is the whole cube for now rather than the cluster's own outline: the notches a weathered rock has
-     * are drawn but not carved out of the collider, which wants a Mixin on `Entity.collectAllColliders`
-     * (`notes/authoring-tools.md` Part IV). Standing on the box is the difference between a rock and a
-     * decoration; standing on its exact shape is a refinement.
+     * Answering yes here is what makes vanilla add `Shapes.create(getBoundingBox())` for this body, and a
+     * weathered rock does not fill its own cube — so a player stood on air a third of the time. Saying no
+     * takes the box out of the reckoning and `OreColliders` puts [collider] in instead, through the one
+     * seam there is (`notes/authoring-tools.md` Part IV).
+     *
+     * The box still matters for everything that is *not* collision: it is what decides whether this is
+     * near enough to be worth asking about at all.
      */
-    override fun canBeCollidedWith(against: Entity?): Boolean = true
+    override fun canBeCollidedWith(against: Entity?): Boolean = false
+
+    /** The cluster's own outline, where it is standing — see [OreClusters.shapeOf]. */
+    fun collider(): VoxelShape = OreClusters.shapeOf(shape, tier).move(position())
 
     override fun readAdditionalSaveData(input: ValueInput) {
         tier = input.getIntOr(TIER_KEY, 0)
