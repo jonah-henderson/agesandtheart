@@ -1070,7 +1070,11 @@ object AgeContent {
     private const val ARC_BOLT_TRACKING_CHUNKS = 4
 
     const val DRIFTING_ORE_TRACKING_CHUNKS = 16
-    const val DRIFTING_ORE_UPDATE_TICKS = 4
+    /**
+     * How often a body's position is sent. Read with `DriftingOre.CATCHING_UP_MARGIN`, which has to stay
+     * larger — a client that finishes catching up before the next word arrives stands still until it does.
+     */
+    const val DRIFTING_ORE_UPDATE_TICKS = 2
 
     /**
      * The storm itself, which is a clock standing in the sky.

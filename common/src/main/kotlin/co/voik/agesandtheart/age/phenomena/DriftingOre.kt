@@ -149,10 +149,21 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
     }
 
     /**
-     * How a client is told where this is: **caught up to over as many ticks as the server waits between
-     * telling it**, so the two beats line up and there is no held frame at the end of one.
+     * How a client is told where this is: **caught up to over MORE ticks than the server waits between
+     * telling it**, which is the whole of what makes the motion continuous.
+     *
+     * Matching the two exactly was the obvious thing and the wrong one (Jonah, 2026-09-09: "move a little,
+     * pause for a fraction of a second, then keep moving"). `InterpolationHandler` converges *exactly* on
+     * its last step — a quarter, then a third, then a half, then all of the rest — so a body arrives at the
+     * target on the same tick the next word is due, and any offset at all between the two beats leaves a
+     * dead tick where it has arrived and has nowhere further to go. There is no phase that is safe.
+     *
+     * Overrunning instead means the target is always refreshed before the catching up finishes, so a body
+     * is always mid-step. It rides a fraction of a block behind where the server has it, which nothing can
+     * see, and it never stops.
      */
-    private val interpolation = InterpolationHandler(this, AgeContent.DRIFTING_ORE_UPDATE_TICKS)
+    private val interpolation =
+        InterpolationHandler(this, AgeContent.DRIFTING_ORE_UPDATE_TICKS + CATCHING_UP_MARGIN)
 
     override fun getInterpolation(): InterpolationHandler = interpolation
 
@@ -404,6 +415,13 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
         }
 
         private const val SECTION_BITS = 4
+
+        /**
+         * How many ticks past the sending interval a client keeps catching up over — see [interpolation].
+         *
+         * One is enough: what it has to buy is that the lerp is never finished when the next word lands.
+         */
+        const val CATCHING_UP_MARGIN = 1
 
         /** How far above a body something has to be to count as standing on it. */
         private const val A_FOOT = 0.35
