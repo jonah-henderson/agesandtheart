@@ -165,37 +165,21 @@
 #     Writers are absolutely meant to be able to write an Age that collapses, and as the vocabulary grows
 #     they will. Do not design around this as a constraint.
 
-# ══ 5. THE RIME CRYSTALS AND THE SKATES HAVE NEVER BEEN SEEN OR WORN ═════════ Built 2026-09-05 ══
-# The placement was instrumented on a server — 118 sheer faces to 87 crystals over 64 chunks of a `cliffs`
-# Age, none refused, y 73 to 208 with a median of 137 — but nobody has looked at one. Both gates are hard:
-# every climate cold enough that nothing thaws, AND a blizzard.
+# ══ 5. THE RIME CRYSTALS AND THE SKATES ═══ WALKED AND GOOD 2026-09-09; TWO FIXES TO RE-READ ══
+# A crystal on a cliff reads as a find, the blue tint carries at distance, the climb feels right, and the
+# WRITABLE Age grows them -- `rimeb` passes its gate by exactly nothing and does yield, so no slack is
+# needed. The `alps` trap is NOT a bug (Jonah): alps do generate them, just rarely, because alpine slopes
+# are gradual -- the ones found were where a carver had cut a steeper gap. Working as intended.
 #
-# THE RICH ONE, composed, because `cliffs` is the landform that yields (3.77 a chunk against vanilla's
-# 0.19) and no word reaches it:
-/age compose rimea 4242 landmass=cliffs sea=water rock=solid sky=plain climate.temperature=-0.9..-0.6 phenomena.happens=blizzard
-/age tp rimea
-#
-# THE WRITABLE ONE, which is what a player can actually reach and what the desk survey can be asked about:
-/age write rimeb 4242 age blizzard phenomena frozen climate
-/age tp rimeb
-#
-# WHAT A WALK HAS TO SETTLE:
-#   - That a crystal on a cliff face reads as a FIND rather than as noise.
-#   - That the blue tint over vanilla's amethyst is legible at distance. It is a placeholder either way
-#     (Phase 9), so the question is only whether it carries until then.
-#   - That climbing to them is the scaffolding problem it was meant to be — more the higher you go.
-#   - **THAT `rimeb` GROWS ANY AT ALL.** It resolves to `climate.temperature=-0.95..-0.45`, and the gate is
-#     `most <= -0.45` — it passes by exactly nothing. If the writable path turns out to grow none, the gate
-#     wants a hundredth of slack, because "cold enough" should not hinge on a boundary the player cannot see.
-#   - **THE `alps` TRAP.** `/age write rimec 4242 age sheer landmass blizzard phenomena frozen climate`
-#     resolves to `landmass=alps`, which yields ZERO — it is the landform whose name most says "cold
-#     mountains" and the one word a player would reach for. Bug to fix, or a thing to teach?
-#   - THE SKATES: **WALKED AND RETUNED TWICE 2026-09-06, now "they feel good"** -- about 3x a walk, quick
-#     to it, coasting a long way, and NOTHING lost in the air so speed carries over a gap. What is left to
-#     judge is the WEAR, which is new and unwalked: a pair costs nothing below a sprint (so pottering about
-#     a base is free) and about a point per 40 blocks above it, or roughly 8000 blocks to a pair. Is that
-#     a maintenance chore, an irrelevance, or right? And is the ramp long enough to hold yourself under
-#     the threshold on purpose, which is the reason acceleration was eased back.
+# TWO FIXES TO RE-READ:
+#   - **THE SKATES WEAR NOW.** They never did: the wear read `deltaMovement`, and a server never sets that
+#     from a player's move packets -- it is theirs for knockback and sits near zero however fast they are
+#     going, so a pair at full tilt was charged for nothing. `knownMovement` is what the client actually
+#     reported having done. **Check in SURVIVAL**, since creative wears nothing at all. About a point per
+#     40 blocks above a sprint, ~8000 blocks to a pair: chore, irrelevance, or right?
+#   - **AND THEY STAY ON TOP OF POWDER SNOW**, like leather boots. Skates are the cold Age's movement
+#     answer and powder snow is its floor; a pair that crossed an ice field and dropped you into the first
+#     drift answered half of what it was made for. The freezing half was already covered by the tag.
 
 # ══ 10. THE VOLCANIC CONES HAVE NEVER BEEN SEEN ══════════════════════════════ Built 2026-09-06 ══
 # Step one of the volcanoes: the recipe entry and the shape. The cones generate; nothing is in them yet.

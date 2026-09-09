@@ -13,6 +13,7 @@
     "MerchantQuickMoveMixin",
     "MerchantResultSlotMixin",
     "PistonStructureResolverMixin",
+    "PowderSnowBlockMixin",
     "ProjectileMixin",
     "ServerLevelMixin",
     "ServerPlayerMixin"

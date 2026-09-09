@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.content
 
+import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.player.Player
@@ -80,12 +81,29 @@ object RimeSkates {
         entity.getItemBySlot(EquipmentSlot.FEET).hurtAndBreak(ONE_POINT, entity, EquipmentSlot.FEET)
     }
 
-    private fun skating(entity: LivingEntity): Boolean =
-        entity is Player && entity.getItemBySlot(EquipmentSlot.FEET).item === AgeContent.RIME_SKATES
+    private fun skating(entity: LivingEntity): Boolean = entity is Player && wornBy(entity)
 
-    /** How far this entity moved across the ground last tick — the vertical is nobody's business here. */
+    /**
+     * Whether these are on somebody's feet at all — **anybody's**, where the wear asks only about players.
+     *
+     * A mob that got hold of a pair should not sink into powder snow either; what it should not do is
+     * quietly wear them out where nobody can see, which is what the wear's own narrower test is for.
+     */
+    @JvmStatic
+    fun wornBy(entity: Entity): Boolean =
+        entity is LivingEntity && entity.getItemBySlot(EquipmentSlot.FEET).item === AgeContent.RIME_SKATES
+
+    /**
+     * How far this entity moved across the ground last tick — the vertical is nobody's business here.
+     *
+     * **`knownMovement`, not `deltaMovement`, and that is the difference between wearing and not.** A
+     * server never sets a player's `deltaMovement` from their move packets: it is theirs for knockback and
+     * sits near zero however fast they are going, so a pair of skates at full tilt was charged for
+     * nothing at all (Jonah, 2026-09-09, walked). `Player.getKnownMovement` is what the client actually
+     * reported having done, which is the number this was always about.
+     */
     private fun alongTheGround(entity: LivingEntity): Double {
-        val movement = entity.deltaMovement
+        val movement = entity.knownMovement
         return sqrt(movement.x * movement.x + movement.z * movement.z)
     }
 
