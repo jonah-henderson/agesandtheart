@@ -766,17 +766,13 @@
 #   - Every recipe and the pickaxe gate ask for `#agesandtheart:rime_crystals`, so skates should craft
 #     from ANY colour. Try an odd one.
 
-# ══ 17. THE ROOFED AGE'S FACE SHADING ═══════════════════════════════════════ Built 2026-09-07 ══
-# All that is left of what was the coloured-light item, which was WALKED AND GOOD ON BOTH LOADERS on
-# 2026-09-08 and is struck out. This rode along in the same commit and is unrelated.
-#
-# `age_lightless_roofed` carries `"cardinal_light": "nether"`, which flattens the underside face shading
-# from 0.5 to 0.9 -- one line of dimension type, no code.
-#
-# WHAT A WALK HAS TO SETTLE:
-#   - **DOES A ROOFED AGE STOP READING AS A CAVE WITH THE LIGHTS OFF?** Compare one against a lightless
-#     Age that is not roofed. The ceiling and the undersides of overhangs are where to look. If it makes
-#     no difference, the field is not worth carrying; if it does, every roofed Age should have it.
+# ══ 17. THE ROOFED AGE'S FACE SHADING ═══════ WALKED AND DROPPED 2026-09-09 ══
+# A negative result, and the cheapest kind to get. `age_lightless_roofed` carried
+# `"cardinal_light": "nether"`, which flattens the underside face shading from 0.5 to 0.9 -- one line, no
+# code, and the reasoning was that it is what stops a roofed world reading as a cave with the lights off.
+# Against a lightless Age that is not roofed, Jonah could not tell a difference, so the line is gone.
+# How the field works is kept in `notes/coloured-light-research.md` for whoever wants it for something the
+# eye can actually catch; what is NOT kept is a line in a shipped file that nobody can justify.
 
 # ══ 18. THE LONE ISLAND ════════════════════════════ WALKED AND GOOD 2026-09-09 ══
 # Both ends of the ladder confirmed, and the rebalance holds: the large island crowns under the cloud deck
