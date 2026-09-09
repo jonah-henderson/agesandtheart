@@ -1,0 +1,13 @@
+{
+  "_comment": "Drops itself, so a crystal set down is a crystal picked back up -- the ore is won in the sky and never mined twice.",
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1.0,
+      "bonus_rolls": 0.0,
+      "entries": [{ "type": "minecraft:item", "name": "agesandtheart:arc_crystal" }],
+      "conditions": [{ "condition": "minecraft:survives_explosion" }]
+    }
+  ],
+  "random_sequence": "agesandtheart:blocks/arc_crystal"
+}

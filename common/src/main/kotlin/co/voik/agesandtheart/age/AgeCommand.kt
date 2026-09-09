@@ -13,6 +13,7 @@ import co.voik.agesandtheart.age.phenomena.Blizzard
 import co.voik.agesandtheart.age.phenomena.Happenings
 import co.voik.agesandtheart.age.phenomena.MeteorStorm
 import co.voik.agesandtheart.age.phenomena.Meteors
+import co.voik.agesandtheart.age.reward.EarlyGameRareMaterials
 import co.voik.agesandtheart.age.reward.Danger
 import co.voik.agesandtheart.worldgen.feature.SheerFace
 import co.voik.agesandtheart.age.aspect.Terrain
@@ -1607,6 +1608,22 @@ object AgeCommand {
         // Exposed rather than folded into the score: §7.7's terminal multiplier is still an open question.
         report.fact("terminal", danger.terminal) {
             if (danger.terminal > 0.0) "  and it will not last: collapse reach %.2f".format(danger.terminal) else ""
+        }
+        // **The other half of what a recipe pays out** (design §7.7), and here because it is the same
+        // question asked of the same recipe: the desk's survey answers it before a book is written, and
+        // there was nowhere to ask it of an Age that already exists. Which matters most for the ones that
+        // are hard to see — arc crystal is a hundred and twenty blocks up before it is anything at all.
+        recipe.composition?.let { composition ->
+            val grown = EarlyGameRareMaterials.grownIn(
+                composition,
+                recipe.seed,
+                Spending.of(source.server, recipe),
+                Price.list(source.server),
+            )
+            report.fact("grows", grown.map { it.name.lowercase() }) {
+                if (grown.isEmpty()) "  grows none of the early materials"
+                else "  grows " + grown.joinToString(", ") { it.name.lowercase() }
+            }
         }
         report.finish()
         return SUCCESS

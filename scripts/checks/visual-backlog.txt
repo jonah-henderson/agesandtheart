@@ -879,3 +879,41 @@
 #   - **AND HAS ANYTHING GOT WORSE?** A lean narrows the range as well as moving it, which is the point --
 #     but `sultry` can no longer draw a cold Age at all, where before it could draw anything. If a word
 #     that leans now feels like a word that demands, `Span.leaned` is where the strength lives.
+
+# ══ 22. ORE THAT WILL NOT BE CAUGHT ════════════════════════════════════════ Built 2026-09-09 ══
+# The first walk of the magnetic material (design §7.1.2) -- and the first thing in the mod drawn as a
+# cluster of real blocks moved as one entity. Nothing about it has been looked at. The whole feature turns
+# on one question a screenshot answers and no test can: does a sky of procedurally weathered rubble read as
+# VARIED, or does it read as the same rock over and over? If it is the second, the answer is a handful of
+# hand-made silhouettes instead, and none of the collision work is worth doing.
+#
+/age write charged 7 electromagnetic tempests weather age
+#
+# CONFIRM IT IS ON BEFORE CLIMBING -- the gate is two halves and the ore is 120 blocks up before it is
+# anything at all:
+/age danger score charged
+#   ...the last line should say `grows arc_crystal`. If it does not, nothing above y=120 will be there and
+#   the walk is about the gate rather than about the rock.
+#
+# WHAT A WALK HAS TO SETTLE:
+#   - **DO THEY READ AS ROCKS?** Weathered out of 2-, 4- and 6-cubes, corners first, sixty-four shapes a
+#     tier. Look at several of one tier together. Boulders, or dice with chips out of them?
+#   - **AND DO THE TIERS READ AS A LADDER?** A six-cube is meant to be a PLATFORM and a two-cube a pebble.
+#     If the top band does not look worth flying to, `OreClusters.SMALLEST_SIDE`/`SIDE_A_TIER` is the dial.
+#   - **IS THE LOWEST BAND A SIGNPOST?** It sits at y 120-140 and its whole job is to be seen from sea
+#     level, so that up reads as the direction to explore. Stand on the ground at dusk and look up.
+#   - **DOES THE BOX MATCH THE ROCK?** Shoot one. The arrow should stop where the stone is, not a block
+#     early or a block late, and not half a body low. (The checks assert the span; only an eye can say
+#     whether the drawing and the box agree in the world.)
+#   - **DOES BREAKING ONE WORK THE WAY IT READS?** Hit a big one until it comes apart: three of the tier
+#     below, thrown clear, which then SINK to their own band on their own. Break the smallest for the
+#     crystal itself. Three breakings from the top band to an item in hand.
+#   - **DOES BUILDING PUSH THEM AWAY?** Pillar up under one. Any block repels, not just solid ones, so a
+#     catching platform should shove its own target out over the next valley. That inversion is the whole
+#     design and it has never been seen working.
+#   - **AND WHAT DOES A SKY FULL OF THEM COST?** F3. Six per 160 blocks, one submit per visible cell, 133
+#     of them on a top-tier body. If the frame rate moves, `MOST_IN_SIGHT` is the first dial.
+#
+# NOT BUILT YET, so do not look for it: shaped collision (a body is an axis-aligned box for now, so you
+# cannot stand on the notches), being carried by one, the tether, the arc-green particles, and every one of
+# the charged-metal machines. Textures are stand-ins -- emerald and amethyst until the asset pass.

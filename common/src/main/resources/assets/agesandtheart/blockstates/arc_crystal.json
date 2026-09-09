@@ -1,0 +1,4 @@
+{
+  "_comment": "minecraft:block/amethyst_cluster stands in until the model pass -- the same shape, and the tint is what the pass will change.",
+  "variants": { "": { "model": "minecraft:block/amethyst_cluster" } }
+}

@@ -45,7 +45,7 @@ data class Survey(val deposit: Yield, val earlyMaterials: Set<EarlyGameRareMater
             val spending = Spending.of(instability.index, prices, seed)
             return Survey(
                 deposit = Yield.forVeins(Deposits.veinsPerChunk(danger)),
-                earlyMaterials = EarlyGameRareMaterials.grownIn(composition, spending, prices),
+                earlyMaterials = EarlyGameRareMaterials.grownIn(composition, seed, spending, prices),
             )
         }
     }

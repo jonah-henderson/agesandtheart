@@ -53,6 +53,7 @@ import co.voik.agesandtheart.age.reward.Danger
 import co.voik.agesandtheart.age.reward.Decoration
 import co.voik.agesandtheart.age.reward.Deposits
 import co.voik.agesandtheart.age.aspect.AgeSpawner
+import co.voik.agesandtheart.age.phenomena.DriftingOreSpawner
 import net.minecraft.world.level.CustomSpawner
 import co.voik.agesandtheart.age.aspect.Spawns
 import co.voik.agesandtheart.age.word.Vocabulary
@@ -264,7 +265,7 @@ object AgeGeneration {
                     Volcanoes.layer(composition),
                     Craters.layer(composition, seed),
                     EarlyGameRareMaterials.layer(
-                        EarlyGameRareMaterials.grownIn(composition, spending, prices),
+                        EarlyGameRareMaterials.grownIn(composition, seed, spending, prices),
                     ),
                 ),
             ),
@@ -619,7 +620,16 @@ object AgeGeneration {
             composition.optionsFor(Aspect.SPAWNS, 0),
             Vocabulary.of(server).spawning,
         )
-        return listOfNotNull(placing)
+        // **The one reward that arrives as an entity**, so it is here rather than among the decoration
+        // layers — asked of the recipe by the same gate the survey reads, so a book can promise it before
+        // the Age is opened (design §7.7).
+        val charged = EarlyGameRareMaterials.growsArcCrystal(
+            composition,
+            recipe.seed,
+            Spending.of(server, recipe),
+            Price.list(server),
+        )
+        return listOfNotNull(placing, DriftingOreSpawner().takeIf { charged })
     }
 
     fun dimensionType(recipe: AgeRecipe): Identifier = when (val world = recipe.world) {

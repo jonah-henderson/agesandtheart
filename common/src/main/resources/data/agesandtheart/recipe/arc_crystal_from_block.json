@@ -1,0 +1,6 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": ["agesandtheart:arc_crystal_block"],
+  "result": { "id": "agesandtheart:arc_crystal", "count": 9 }
+}

@@ -1,0 +1,4 @@
+{
+  "_comment": "minecraft:block/emerald_block stands in until the model pass -- green, and it is what a drifting body's crystal cells are drawn as.",
+  "variants": { "": { "model": "minecraft:block/emerald_block" } }
+}

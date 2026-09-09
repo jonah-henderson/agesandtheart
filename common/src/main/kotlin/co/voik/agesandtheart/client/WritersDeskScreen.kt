@@ -505,12 +505,13 @@ class WritersDeskScreen(
     }
 
     /**
-     * What a character material is called, taken from the thing itself so the survey can never name it
-     * something other than what comes out of the ground.
+     * What an early material is called, taken from the block itself so the survey can never name it
+     * something other than what the player ends up holding.
      */
     private fun nameOf(material: EarlyGameRareMaterial): Component = when (material) {
         EarlyGameRareMaterial.RIME -> AgeContent.RIME_CRYSTAL_BLOCKS.getValue(RimeColour.CYAN).name
         EarlyGameRareMaterial.TEMPERSTONE -> AgeContent.TEMPERSTONE_BLOCK.name
+        EarlyGameRareMaterial.ARC_CRYSTAL -> AgeContent.ARC_CRYSTAL_CLUSTER.name
     }
 
     /** [lines] as one component, which is what a `MultiLineTextWidget` reads. */

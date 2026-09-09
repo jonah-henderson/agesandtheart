@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": { "X": "agesandtheart:arc_crystal" },
+  "pattern": ["XXX", "XXX", "XXX"],
+  "result": { "id": "agesandtheart:arc_crystal_block" }
+}

@@ -60,6 +60,7 @@ object EarlyGameRareMaterials {
      */
     fun grownIn(
         composition: AgeComposition,
+        seed: Long,
         spending: Spending,
         prices: Map<Manifestation, Price>,
     ): Set<EarlyGameRareMaterial> = EarlyGameRareMaterial.entries
@@ -67,9 +68,35 @@ object EarlyGameRareMaterials {
             when (material) {
                 EarlyGameRareMaterial.RIME -> growsRime(composition, spending, prices)
                 EarlyGameRareMaterial.TEMPERSTONE -> bakesTemperstone(composition)
+                EarlyGameRareMaterial.ARC_CRYSTAL -> growsArcCrystal(composition, seed, spending, prices)
             }
         }
         .toSet()
+
+    /**
+     * Whether the sky here is charged enough to put ore up in it.
+     *
+     * **Two halves, as rime's gate has two**: the storms, and curtains that are both frequent and fierce.
+     * `electromagnetic` is the word written for it and clears both comfortably, but nothing here asks
+     * whether that word was said — a writer who reaches the same sky another way earns the same reward,
+     * which is what the whole class means by rewarding an Age for *being* a certain way.
+     *
+     * **The curtain is read off the spec the client is sent**, rather than off the dials behind it. That
+     * is the same aurora a player looks up at, so the reward cannot come to disagree with the sky that is
+     * supposed to explain it.
+     */
+    fun growsArcCrystal(
+        composition: AgeComposition,
+        seed: Long,
+        spending: Spending,
+        prices: Map<Manifestation, Price>,
+    ): Boolean = befalls(Phenomenon.TEMPEST, composition, spending, prices) &&
+        theCurtainsAreConstant(composition, seed)
+
+    private fun theCurtainsAreConstant(composition: AgeComposition, seed: Long): Boolean {
+        val curtain = composition.sky.specFor(composition, seed).aurora ?: return false
+        return curtain.frequency >= MOST_NIGHTS && curtain.glow >= FIERCE_CURTAIN
+    }
 
     /**
      * Whether stone is baked into temperstone here.
@@ -112,7 +139,7 @@ object EarlyGameRareMaterials {
         composition: AgeComposition,
         spending: Spending,
         prices: Map<Manifestation, Price>,
-    ): Boolean = neverThaws(composition) && aBlizzardBlows(composition, spending, prices)
+    ): Boolean = neverThaws(composition) && befalls(Phenomenon.BLIZZARD, composition, spending, prices)
 
     /**
      * Whether every one of the Age's climates tops out at or below the snow.
@@ -132,20 +159,21 @@ object EarlyGameRareMaterials {
     }
 
     /**
-     * Whether a blizzard blows here, written or inflicted.
+     * Whether [phenomenon] befalls this Age at all, written or inflicted.
      *
-     * **Inflicted counts.** A blizzard an Age fell into is still a blizzard to stand in, and the cold gate
-     * beside it already refuses the case where that would be absurd — an inflicted storm in a hot Age has
-     * no teeth and no crystals either.
+     * **Inflicted counts.** A blizzard an Age fell into is still a blizzard to stand in, and the other half
+     * of each gate already refuses the case where that would be absurd — an inflicted storm in a hot Age
+     * has no teeth and no crystals either.
      */
-    private fun aBlizzardBlows(
+    private fun befalls(
+        phenomenon: Phenomenon,
         composition: AgeComposition,
         spending: Spending,
         prices: Map<Manifestation, Price>,
     ): Boolean {
         val written = Phenomena.claimsIn(composition.optionsFor(Aspect.PHENOMENA, 0))
-            .any { it.value == Phenomenon.BLIZZARD.key }
-        val manifestation = Phenomenon.BLIZZARD.inflictedBy ?: return written
+            .any { it.value == phenomenon.key }
+        val manifestation = phenomenon.inflictedBy ?: return written
         return written || spending.reach(manifestation, prices) > NOTHING_INFLICTED
     }
 
@@ -163,6 +191,11 @@ object EarlyGameRareMaterials {
     private fun placementsOf(material: EarlyGameRareMaterial): List<Holder<PlacedFeature>> = when (material) {
         EarlyGameRareMaterial.RIME -> listOf(scanningTheChunk(RimeCrystal))
         EarlyGameRareMaterial.TEMPERSTONE -> listOf(scanningTheChunk(TemperedGround), rawBlobs())
+        // **Nothing is decorated for it, and that is its whole design.** Arc crystal arrives as drifting
+        // bodies a spawner puts in the air (`DriftingOreSpawner`), because what is being rewarded is
+        // getting it down rather than finding it. A placed feature would be the reward this one exists to
+        // not be.
+        EarlyGameRareMaterial.ARC_CRYSTAL -> emptyList()
     }
 
     /**
@@ -222,6 +255,17 @@ object EarlyGameRareMaterials {
     /** Where `OverworldBiomeBuilder` starts calling a temperature desert, read off [ClimateAxis.landmarks]. */
     private const val DESERT = 0.55
 
+    /**
+     * What "frequent, intense auroras" is, in the units the spec actually carries.
+     *
+     * An undescribed curtain is drawn around a quarter to three fifths of nights at an ordinary glow of
+     * one, so these sit above anything an Age gets by accident and below what `electromagnetic` asks for.
+     * A writer who reaches them by leaning on `auroral` instead has earned the same reward, which is the
+     * gate working rather than leaking.
+     */
+    private const val MOST_NIGHTS = 0.75f
+    private const val FIERCE_CURTAIN = 1.2f
+
     private val LAVA: Identifier = Identifier.withDefaultNamespace("lava")
 
     /**
@@ -251,4 +295,5 @@ object EarlyGameRareMaterials {
 enum class EarlyGameRareMaterial {
     RIME,
     TEMPERSTONE,
+    ARC_CRYSTAL,
 }
