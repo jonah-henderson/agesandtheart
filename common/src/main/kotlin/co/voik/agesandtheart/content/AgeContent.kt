@@ -459,6 +459,62 @@ object AgeContent {
     private const val ASTRITE_STRENGTH = 5.0f
     private const val ASTRITE_RESISTANCE = 6.0f
 
+    private val ARC_CRYSTAL_ID: Identifier = "arc_crystal".location()
+    private val ARC_CRYSTAL_BLOCK_ID: Identifier = "arc_crystal_block".location()
+
+    /**
+     * **Arc crystal** — what a charged Age's drifting ore comes apart into (design §7.1.2).
+     *
+     * Amethyst's numbers: it is a crystal, it comes away in the hand, and the work was getting it out of
+     * the sky rather than out of the ground. It lights faintly on its own, which is what the whole set is
+     * green for — a pile of it in a chest reads as charged before anything has been built with it.
+     */
+    val ARC_CRYSTAL_CLUSTER: Block = Block(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, ARC_CRYSTAL_ID))
+            .mapColor(MapColor.EMERALD)
+            .forceSolidOn()
+            .noOcclusion()
+            .sound(SoundType.AMETHYST_CLUSTER)
+            .lightLevel { ARC_CRYSTAL_GLOW }
+            .strength(ARC_CRYSTAL_STRENGTH),
+    )
+
+    /** A `BlockItem` for the reason astrite's shard is one: it is one object that can also be set down. */
+    val ARC_CRYSTAL: Item = BlockItem(
+        ARC_CRYSTAL_CLUSTER,
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, ARC_CRYSTAL_ID)),
+    )
+
+    /**
+     * Nine of them, and **the unit the machines are actually reckoned in**.
+     *
+     * Force is crystal *per metal block*, so an ambitious array is paid for in these rather than in
+     * loose crystal — which is the whole of what makes building the sink.
+     */
+    val ARC_CRYSTAL_BLOCK_BLOCK: Block = Block(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, ARC_CRYSTAL_BLOCK_ID))
+            .mapColor(MapColor.EMERALD)
+            .strength(ARC_CRYSTAL_BLOCK_STRENGTH, ARC_CRYSTAL_BLOCK_RESISTANCE)
+            .sound(SoundType.AMETHYST)
+            .lightLevel { ARC_CRYSTAL_BLOCK_GLOW }
+            .requiresCorrectToolForDrops(),
+    )
+
+    val ARC_CRYSTAL_BLOCK: Item = BlockItem(
+        ARC_CRYSTAL_BLOCK_BLOCK,
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, ARC_CRYSTAL_BLOCK_ID)).useBlockDescriptionPrefix(),
+    )
+
+    /** Faint on its own and brighter in bulk, so a stack of blocks reads as the power supply it is. */
+    private const val ARC_CRYSTAL_GLOW = 4
+    private const val ARC_CRYSTAL_BLOCK_GLOW = 7
+
+    private const val ARC_CRYSTAL_STRENGTH = 1.5f
+    private const val ARC_CRYSTAL_BLOCK_STRENGTH = 5.0f
+    private const val ARC_CRYSTAL_BLOCK_RESISTANCE = 6.0f
+
     /**
      * The vent in a volcano's caldera — see [co.voik.agesandtheart.content.LavaTubes] for what a mass does.
      *
@@ -1123,6 +1179,8 @@ object AgeContent {
         DEEPSLATE_PITCHSTONE_ORE_ID to DEEPSLATE_PITCHSTONE_ORE_BLOCK,
         PITCHSTONE_BLOCK_ID to PITCHSTONE_BLOCK_BLOCK,
         ASTRITE_BLOCK_ID to ASTRITE_BLOCK_BLOCK,
+        ARC_CRYSTAL_ID to ARC_CRYSTAL_CLUSTER,
+        ARC_CRYSTAL_BLOCK_ID to ARC_CRYSTAL_BLOCK_BLOCK,
         ASTRITE_SHARD_ID to ASTRITE_SHARD_BLOCK,
         ALGAE_ID to ALGAE_BLOCK,
         *RIME_CRYSTAL_BLOCKS.map { (colour, block) -> colour.id.location() to block }.toTypedArray(),
@@ -1305,6 +1363,8 @@ object AgeContent {
         TOOLBOX_ID to TOOLBOX,
         GEOLOGISTS_TOOLS_ID to GEOLOGISTS_TOOLS,
         SEISMOGRAPH_ID to SEISMOGRAPH,
+        ARC_CRYSTAL_ID to ARC_CRYSTAL,
+        ARC_CRYSTAL_BLOCK_ID to ARC_CRYSTAL_BLOCK,
         ASTRITE_SHARD_ID to ASTRITE_SHARD,
         ALGAE_ID to ALGAE,
         ASTRITE_BLOCK_ID to ASTRITE_BLOCK,

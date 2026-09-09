@@ -13,6 +13,7 @@ import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntitySpawnReason
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.MoverType
+import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.storage.ValueInput
 import net.minecraft.world.level.storage.ValueOutput
@@ -173,7 +174,12 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
                 level.addFreshEntity(piece)
             }
         }
-        // TODO: the smallest tier drops the ore, which is waiting on the material being named and made.
+        else {
+            // The smallest tier is where the ore actually comes out. Three of three is nine, so a body
+            // from the top band is worth nine of these — which is the arithmetic that pays for the climb.
+            val yield = YIELD_LEAST + level.random.nextInt(YIELD_MOST - YIELD_LEAST + 1)
+            repeat(yield) { spawnAtLocation(level, ItemStack(AgeContent.ARC_CRYSTAL)) }
+        }
         discard()
     }
 
@@ -206,6 +212,10 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
 
         /** How many pieces of the tier below a break gives. Read with the tiers: three of three is nine. */
         const val FRAGMENTS = 3
+
+        /** And what the smallest gives, which is the only tier that yields the material itself. */
+        private const val YIELD_LEAST = 2
+        private const val YIELD_MOST = 4
 
         /** How many sizes there are, and so how many bands and how many breakings to the ore. */
         const val MOST_TIERS = 3
