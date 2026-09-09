@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.content
 
 import net.minecraft.server.level.ServerLevel
+import net.minecraft.core.particles.DustParticleOptions
 import net.minecraft.sounds.SoundEvents
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.AgeableMob
@@ -48,7 +49,14 @@ class AstriteGolem(type: EntityType<out AstriteGolem>, level: Level) : TamableAn
     override fun registerGoals() {
         goalSelector.addGoal(SWIMMING, FloatGoal(this))
         goalSelector.addGoal(BEING_TOLD, SitWhenOrderedToGoal(this))
-        goalSelector.addGoal(FIGHTING, MeleeAttackGoal(this, ATTACK_PACE, true))
+        // **Swinging faster than vanilla's twenty ticks**, which is the one part of "harder-hitting" that
+        // is not an attribute: `MeleeAttackGoal` hard-codes its interval, so it takes a subclass to say.
+        goalSelector.addGoal(
+            FIGHTING,
+            object : MeleeAttackGoal(this, ATTACK_PACE, true) {
+                override fun getAttackInterval(): Int = adjustedTickDelay(SWINGS_EVERY)
+            },
+        )
         goalSelector.addGoal(KEEPING_UP, FollowOwnerGoal(this, KEEPING_PACE, GETS_THIS_FAR, CLOSE_ENOUGH))
         goalSelector.addGoal(IDLING, RandomStrollGoal(this, WANDERING_PACE))
         goalSelector.addGoal(LOOKING, LookAtPlayerGoal(this, Player::class.java, NOTICES_AT))
@@ -86,10 +94,26 @@ class AstriteGolem(type: EntityType<out AstriteGolem>, level: Level) : TamableAn
      * kindness and there is no reason to forbid it; ordering one about is not.
      */
     private fun mendWith(player: Player, shard: net.minecraft.world.item.ItemStack): InteractionResult {
-        if (level().isClientSide) return InteractionResult.SUCCESS
+        val level = level()
+        if (level !is ServerLevel) return InteractionResult.SUCCESS
         heal(MENDED_BY)
         shard.consume(ONE_SHARD, player)
         playSound(SoundEvents.IRON_GOLEM_REPAIR, REPAIR_VOLUME, REPAIR_PITCH)
+        // **Seen as well as heard.** The sound alone left mending a thing you did rather than a thing that
+        // happened (Jonah, 2026-09-09): a golem at full health and one just mended looked identical, and
+        // the shard going out of the hand was the only sign it had worked. Astrite's own violet, so what
+        // is going in is legible as the material rather than as a generic heal.
+        level.sendParticles(
+            MENDING,
+            x,
+            y + bbHeight * MENDED_UP_THE_BODY,
+            z,
+            MENDING_MOTES,
+            bbWidth * MENDING_SPREAD,
+            bbHeight * MENDING_SPREAD,
+            bbWidth * MENDING_SPREAD,
+            MENDING_DRIFT,
+        )
         return InteractionResult.SUCCESS
     }
 
@@ -119,15 +143,30 @@ class AstriteGolem(type: EntityType<out AstriteGolem>, level: Level) : TamableAn
             .add(Attributes.ATTACK_KNOCKBACK, SENDS_THEM_FLYING)
             .add(Attributes.STEP_HEIGHT, CLIMBS_A_BLOCK)
 
-        /** An iron golem is 100 and 15. */
-        private const val TOUGHER_THAN_IRON = 120.0
-        private const val HARDER_THAN_IRON = 18.0
+        /**
+         * An iron golem is 100 and 15, and swings every twenty ticks.
+         *
+         * **Raised 2026-09-09** (Jonah: "that's pretty subtle"). Twenty per cent more of everything reads
+         * where twenty per cent of one thing did not — the health is what you notice surviving a fight,
+         * the damage is what you notice winning it, and the swing rate is what makes both legible while it
+         * is happening rather than afterwards.
+         */
+        private const val TOUGHER_THAN_IRON = 150.0
+        private const val HARDER_THAN_IRON = 20.0
+        private const val SWINGS_EVERY = 15
 
         /** What a shard puts back, against an iron ingot's 25 on the golem it is shaped after. */
         private const val MENDED_BY = 25.0f
         private const val ONE_SHARD = 1
         private const val REPAIR_VOLUME = 1.0f
         private const val REPAIR_PITCH = 1.0f
+
+        /** What mending looks like: astrite's own violet, about the body. */
+        private val MENDING = DustParticleOptions(AgeContent.ASTRITE_TINT, 1.0f)
+        private const val MENDING_MOTES = 24
+        private const val MENDING_SPREAD = 0.45
+        private const val MENDED_UP_THE_BODY = 0.6
+        private const val MENDING_DRIFT = 0.02
 
         /**
          * Fast enough to stay with somebody sprinting.

@@ -329,35 +329,14 @@
 #   - LOW PRIORITY, DEFERRED BY JONAH 2026-09-06: that PLUGGING works -- a solid block over a tube stops
 #     the welling, and lava over it does NOT count. Expected to work; walk it whenever.
 
-# ══ 12. THE ASTRITE GOLEM HAS NEVER BEEN STOOD UP ════════════════════════════ Built 2026-09-07 ══
-# The pack's FIRST MOB, so a lot of this is wiring nobody has watched work. Build one the way you build an
-# iron golem -- four blocks of astrite in a T, carved pumpkin on top:
-#
-/give @s agesandtheart:astrite_block 4
-/give @s minecraft:carved_pumpkin
-#     -- or /summon agesandtheart:astrite_golem to skip the assembly and just watch the thing.
-#
-# WHAT A WALK HAS TO SETTLE:
-#   - **DOES IT ASSEMBLE AT ALL?** The seam is a mixin on CarvedPumpkinBlock.onPlace, because neither
-#     loader has a golem hook and vanilla's own spawning is private. Check it does NOT break vanilla's
-#     three golems while it is there -- snow, iron and copper all run through the same method.
-#   - **DOES IT KNOW WHO MADE IT?** The placement seam carries no player, so the nearest one within 8
-#     blocks is taken as its owner. Build one with a second player stood nearby and see who it follows.
-#   - **THE SPEED, AGAIN.** Walked at 0.32 and it fell behind, so it is 0.42 and sets off at 6 blocks
-#     rather than 10. NOTE THE ARITHMETIC BEFORE TUNING IT FURTHER: MoveControl sets a mob's speed to its
-#     attribute times the goal's modifier, in the same units a player's uses -- walking is 0.1 and a
-#     SPRINT IS 0.13. So the attribute is a CEILING, not a cruising speed, and it is far above a sprint
-#     already; what eats the difference is pathfinding, which recalculates after a moving target and pays
-#     for every corner. Raising it raises the ceiling the realised pace can reach, and nothing else.
-#   - **REPAIR IT** with astrite shards, 25 health a shard. Anyone may mend one; only the owner may
-#     switch it off.
-#   - Right-click it: it should power down and stay put, like a dog. Right-click again to wake it.
-#   - It should fight hostile mobs on sight, and anything that hits you.
-#   - It is 120 health and 18 damage against an iron golem's 100 and 15. Does "a bit tougher" read?
-#   - **IT IS DRAWN AS A VIOLET IRON GOLEM**, borrowing vanilla's model and texture under a tint until the
-#     asset pass. Check the tint reads as astrite rather than as a bug.
-#   - It inherits breeding from TamableAnimal and should show none of it: no hearts, no baby, no interest
-#     in food.
+# ══ 12. THE ASTRITE GOLEM ══════════════════════════ WALKED AND GOOD 2026-09-09 ══
+# The pack's first mob, and all of the wiring works: it assembles through the CarvedPumpkinBlock mixin
+# without disturbing vanilla's three golems, it knows who made it, it sits and wakes on a right-click,
+# shards mend it, it fights on sight, the speed is right, and it shows none of the breeding it inherits.
+# Two changes on the reading: mending now throws astrite-violet motes as well as playing the iron golem's
+# sound (it was audible and invisible), and "a bit tougher" was too subtle -- 150 health and 20 damage
+# against an iron golem's 100 and 15, swinging every 15 ticks rather than 20.
+# The violet tint is a placeholder and Jonah is not concerned about it until the asset pass.
 
 # ══ 13. THE ASTRITE LURE, AND STORMS THAT ARE NOT CONSTANT ═══════════════════ Built 2026-09-07 ══
 # **STORMS ARE TWENTY MINUTES APART NOW, NOT THIRTY SECONDS.** The old formula put an ordinary claim at
