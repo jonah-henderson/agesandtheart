@@ -294,8 +294,9 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
                 // their boxes being upright cubes.
                 body.snapTo(position().add(outward.scale(clear)).add(0.0, scattered(level.random) * clear, 0.0))
                 // And thrown outward as well as set out, so the ring is a moment rather than an
-                // arrangement and they visibly come apart before they start seeking their own band.
-                body.deltaMovement = outward.scale(THROWN)
+                // arrangement and a break reads as one — the pieces blowing apart and only then settling
+                // to seek their own bands.
+                body.deltaMovement = outward.scale(thrownHard())
                 level.addFreshEntity(body)
             }
         }
@@ -454,8 +455,18 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
         private const val SMALLEST_TOUGHNESS = 6.0f
         private const val TOUGHNESS_A_TIER = 6.0f
 
-        /** How hard a fragment is thrown clear of the ring it is set out on. */
-        private const val THROWN = 0.35
+        /**
+         * The kick a fragment leaves with, as **how far it will actually travel** rather than as a number
+         * of blocks a tick.
+         *
+         * Written the other way round it lied about itself: 0.35 sounds like a shove and against
+         * [SETTLING] it is two blocks of drift over half a second, which is why a break barely read as one
+         * (Jonah, 2026-09-09). What a burst wants is a distance, so the distance is what is written and
+         * the impulse is worked out from the damping — and it stays right if the damping is ever retuned.
+         */
+        private fun thrownHard(): Double = THROWN_CLEAR * (1.0 - SETTLING)
+
+        private const val THROWN_CLEAR = 5.0
 
         /** How far off its share of the ring a fragment may sit, so three do not read as a diagram. */
         const val WANDER_OFF_THE_RING = 0.08
@@ -473,8 +484,14 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
 
         private const val A_FULL_TURN = Math.PI * 2
 
-        /** How far either side of its fellows a body drifts and climbs — see [driftPace]. */
-        private const val PACE_LEAST = 0.75
-        private const val PACE_MOST = 1.25
+        /**
+         * How far either side of its fellows a body drifts and climbs — see [driftPace].
+         *
+         * **Half to double** (Jonah, 2026-09-09), which is a wider spread than it sounds: a quarter either
+         * side was still a sheet moving together, and it takes a fourfold range between the slowest and
+         * the fastest before a sky reads as bodies each going their own way.
+         */
+        private const val PACE_LEAST = 0.5
+        private const val PACE_MOST = 2.0
     }
 }

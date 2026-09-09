@@ -1021,10 +1021,12 @@
 #   - **A BREAK SHOULD COME APART NOW.** Fragments were jittered off one point, which was harmless while a
 #     body was a hitbox and is not now they are shaped and solid to each other -- three born overlapping
 #     spent their lives shoving, so a break read as one rock going lumpy. They are set out on a ring a
-#     quarter wider than they need and thrown outward along it. Watch one break: three pieces, visibly
-#     separating, each then seeking its own band.
-#   - **AND NO TWO BODIES MOVE ALIKE.** Each rolls its own pace for the drift and for the climb, a quarter
-#     either side. The DIRECTION is still shared, deliberately -- everything charged going one way is what
+#     quarter wider than they need and thrown outward along it. **The kick is written as a DISTANCE now**
+#     (`THROWN_CLEAR`, five blocks) rather than as a speed: 0.35 a tick sounded like a shove and against
+#     the damping was under two blocks of drift, which is why a break barely read as one. Watch one break:
+#     three pieces blowing apart, and only then settling to seek their own bands.
+#   - **AND NO TWO BODIES MOVE ALIKE.** Each rolls its own pace for the drift and for the climb, anywhere
+#     from half to double. The DIRECTION is still shared, deliberately -- everything charged going one way is what
 #     sells a field they are all following; what was wrong was that they went at one speed too, so a sky
 #     of them slid about like a sheet.
 # ══ 23. THE CHARGED MACHINES ═══════════════════════ WALKED AND GOOD 2026-09-09 ══
