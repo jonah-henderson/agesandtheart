@@ -196,7 +196,28 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
         val stillToCome = (ALL_OF_IT - nearness).toDouble()
         val range = ENTRY_RANGE + (TELEGRAPHED_FROM - ENTRY_RANGE) * stillToCome
         val (offsetX, offsetY, offsetZ) = flight.entryOffset(range)
-        return Vec3(x + flight.landsAwayX + offsetX, y + offsetY, z + flight.landsAwayZ + offsetZ)
+        return landingOf(flight).add(offsetX, offsetY, offsetZ)
+    }
+
+    /**
+     * **Where a body is actually going, ground and all** — the one point the sky's line and the rock's
+     * flight both converge on.
+     *
+     * They converged on two different points and that is the whole of why the two angles drifted apart
+     * (Jonah, 2026-09-09, walked, and the second time this has gone wrong). A storm sits on the ground at
+     * *its own* spot; a body lands somewhere else in the disc, on terrain of its own height. The sky drew
+     * its approach converging on the storm's height and the throw aimed at the body's, so every block of
+     * difference between them tilted the flight against the light it was announced by — a body landing
+     * twenty blocks below the storm centre flew at thirty-six degrees where thirty had been drawn.
+     *
+     * The height is asked of the world rather than carried, on both sides. A client has the heightmap for
+     * anything inside a storm's disc, that being well within render distance of somebody near enough to be
+     * having a storm at all.
+     */
+    fun landingOf(flight: MeteorFlight): Vec3 {
+        val landsAt = BlockPos.containing(x + flight.landsAwayX, y, z + flight.landsAwayZ)
+        val ground = level().getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, landsAt)
+        return Vec3(ground.x + HALF, ground.y.toDouble(), ground.z + HALF)
     }
 
     /**
@@ -241,12 +262,12 @@ class MeteorStorm(type: EntityType<out MeteorStorm>, level: Level) : Entity(type
      * it still lands where it was announced.
      */
     private fun throwOne(level: ServerLevel, flight: MeteorFlight, dueAt: Long) {
-        val landsAt = BlockPos.containing(x + flight.landsAwayX, y, z + flight.landsAwayZ)
-        val ground = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, landsAt)
-        // **Thrown from exactly where its own light was**, so the handover is a light becoming a rock
-        // rather than one thing going out and another appearing seventy blocks below it.
+        // **Thrown from exactly where its own light was, at exactly the angle that light came in on.**
+        // Both ends of the line are [landingOf] and [seenFrom] now rather than one of each worked out
+        // here: the handover is a light becoming a rock, and it has to keep the angle as well as the
+        // place, which asking the ground a second time in this method is precisely how it stopped doing.
         val from = seenFrom(flight, ARRIVING)
-        val toTheGround = Vec3(ground.x + HALF, ground.y.toDouble(), ground.z + HALF).subtract(from)
+        val toTheGround = landingOf(flight).subtract(from)
         val speed = SLOWEST_ARRIVAL + (FASTEST_ARRIVAL - SLOWEST_ARRIVAL) * fury
         val body = Meteor(AgeContent.METEOR, level)
         body.blast = (AT_REST + (AT_FULL_FURY - AT_REST) * fury).toFloat()

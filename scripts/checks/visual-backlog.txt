@@ -338,64 +338,21 @@
 # against an iron golem's 100 and 15, swinging every 15 ticks rather than 20.
 # The violet tint is a placeholder and Jonah is not concerned about it until the asset pass.
 
-# ══ 13. THE ASTRITE LURE, AND STORMS THAT ARE NOT CONSTANT ═══════════════════ Built 2026-09-07 ══
-# **STORMS ARE TWENTY MINUTES APART NOW, NOT THIRTY SECONDS.** The old formula put an ordinary claim at
-# six times its own written base and nobody had read it that way. So the first thing to check is simply
-# that a meteoric Age feels like weather rather than a siege -- and that a rung still buys more:
+# ══ 13. THE ASTRITE LURE ═══════════════════ WALKED AND GOOD 2026-09-09; ONE FIX TO RE-READ ══
+# All nine settled: storms are twenty minutes apart rather than thirty seconds, a lure block reads as one
+# only above y=288, the rings are drawn about the CLUSTER and widen with it, the column stands for the
+# whole storm and is visible from the ground, the storm comes to the lure, the disc tightens to one chunk,
+# the violet cast narrows with it, standing in a floored storm is not survivable, and losing what you built
+# there is a real cost.
 #
-/age write shower 11 meteors phenomena age
-/age write teeming 11 teeming meteors phenomena age
-#     -- ordinary waits ~20 min, teeming ~10, and 4x claims ~5. /age meteors still forces one on demand.
-#
-# **THE LURE.** Astrite blocks at or above Y=288 become lures. Build a cluster up there, then wait (or
-# force a storm) and see where it falls:
-/give @s agesandtheart:astrite_block 27
-#   - A lure block should look different when placed high (budding amethyst stands in). Below 288 it
-#     should look and do nothing.
-#   - **THE RINGS ARE DRAWN ABOUT THE CLUSTER, NOT ABOUT EACH BLOCK** -- three horizontal rings of violet
-#     dust on the centroid, on different clocks and sizes, some running out and some in, and WIDER for a
-#     cluster that draws harder (2.6 blocks at one, 6 at twenty-seven). Eight blocks should be ONE set of
-#     rings, not eight overlapping ones. Placeholder particles; a proper asset is owed.
-#   - **A LURED STORM STANDS A COLUMN UP FOR THE WHOLE STORM.** The same dust goes up about eight blocks
-#     and frays out at the top. Its height IS the cast's own strength, so it rises with the warning light,
-#     stands full while the bodies come down, and sinks away as the violet goes out -- one curve read
-#     twice rather than two clocks to keep in step. **WATCH FOR IT FROM THE GROUND**, which is who it is
-#     for; it is forced past the 32-block particle cull for that reason.
-#   - **DOES THE STORM COME TO IT?** It should centre on the cluster rather than on a bearing off you.
-#   - **AND TIGHTEN.** EVERY ONE OF THESE IS A RADIUS -- 135 with no lure is 270 blocks of ground across,
-#     90 for one block is 180, and the floor of 8 at twenty-seven or more is ONE CHUNK across.
-#   - **THE VIOLET CAST NARROWS WITH IT.** A drawn storm lights the chunk it falls in and no more, so at
-#     the floor you should be able to walk in and out of the warning in a couple of seconds. It used to
-#     take the un-lured 135 whatever the storm was doing, which was the lie it exists to refuse.
-#     A cluster is anything within 8 blocks -- a cube, a flat pad, or a scattered handful should all read
-#     the same. NO shape, NO connection, NO chunk alignment.
-#   - The frequency buff is a flat 0.75x for having any lure at all, and does NOT stack. Hard to see by
-#     eye; trust the code or time it.
-#   - **THE PLAY THIS IS MEANT TO FORCE:** stay within simulation distance so the storm runs, but nowhere
-#     near one chunk taking fifty blasts. If it is survivable to stand in, the concentration is too weak
-#     or the blast too soft.
-#   - **AND THE QUESTION THE FLOOR RAISES, WHICH ONLY A WALK SETTLES:** a chunk is EASY to stand outside
-#     of -- thirty blocks off and you are clear, where the old 40 wanted sixty-odd. So the danger stops
-#     being "do not get caught out" and becomes "everything you built there is gone". Judge whether that
-#     is still a cost. If it is not, the lever is the body count or the blast, NOT the disc: what a tight
-#     disc buys is that one pond catches every body instead of a few, which is the mechanic itself.
-#   - **WORTH TRYING ONCE, AND MEANT TO WORK:** lure a storm onto BARE ROCK instead of a pond. Nothing
-#     catches, so the whole storm detonates in one chunk and each body is still aimed at the plane the
-#     storm gathered against -- so they keep going down and dig a shaft. Meteors explode as TNT, whose
-#     drop-decay rule defaults OFF, so it drops everything it breaks. A catastrophic Age should get you
-#     through the strata. If that stops working, check nothing has moved the explosion to BLOCK or MOB.
-#   - **WALK ONE ON TALL LAND -- alps, pillars, spire_islands -- NOT JUST HILLS.** Every meteor walk so
-#     far has been on terrain that is uniformly low, which hid this: a storm's plane used to be the ground
-#     under its MIDDLE, so on an Age whose land reaches the ceiling a shallow arrival started inside a
-#     mountain a hundred blocks away. It is the highest ground under the disc now. Bodies should arrive in
-#     open air; one clipping a peak between samples is expected and reads as a meteor hitting a mountain.
-#
-# ALSO WORTH KNOWING BEFORE DESIGNING ROUND THE LURE PLATFORM: meteors exist between the ground and about
-# y170 (they are thrown 150 up their own entry line, at 10-45 degrees). A lure at y288 is a hundred blocks
-# above the highest one, so THE PLATFORM NEEDS NO BLAST PROOFING -- standing at your own lure is already
-# out of the way. What is exposed is the ground: the pond, and you while collecting from it. And vanilla
-# blast resistance is effectively binary, ~6 for ordinary blocks and 1200 for tough ones, so "blast proof"
-# means obsidian and obsidian passes twenty-five times over. There is no middle tier to tune against.
+# ONE FIX TO RE-READ, and it is the second time this has drifted:
+#   - **THE SKY'S ANGLE AND THE ROCK'S ANGLE ARE ONE LINE AGAIN.** A storm sits on the ground at ITS OWN
+#     spot; a body lands elsewhere in the disc, on terrain of its own height. The sky drew its approach
+#     converging on the storm's height and the throw aimed at the body's, so every block of difference
+#     tilted the flight against the light that announced it -- a body landing twenty blocks below the
+#     storm centre flew at 36 degrees where 30 had been drawn, which is why it showed most around 30-40.
+#     Both ends now ask `MeteorStorm.landingOf`. Watch a lured storm on UNEVEN ground especially, and at a
+#     forced shallow angle (`/age meteors 60 15 0 10 look`) where the error was largest.
 
 # ══ 11. THE METEOR STORM ═══════════════════════════ WALKED AND GOOD 2026-09-09 ══
 # Jonah: "all looking fantastic, probably my favourite of the phenomena". The arrival reads as a storm
