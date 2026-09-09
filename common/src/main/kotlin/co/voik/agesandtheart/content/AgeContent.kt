@@ -507,7 +507,8 @@ object AgeContent {
             .requiresCorrectToolForDrops(),
     )
 
-    val ARC_CRYSTAL_BLOCK: Item = BlockItem(
+    /** Settable in midair, which is the material saying what it is — see [MidairBlockItem]. */
+    val ARC_CRYSTAL_BLOCK: Item = MidairBlockItem(
         ARC_CRYSTAL_BLOCK_BLOCK,
         Item.Properties().setId(ResourceKey.create(Registries.ITEM, ARC_CRYSTAL_BLOCK_ID)).useBlockDescriptionPrefix(),
     )

@@ -71,10 +71,8 @@ object ChargedMetal {
             pulling += Arcs.runsDrivenFrom(level, at, Arcs::attracts)
             pushing += Arcs.runsDrivenFrom(level, at, Arcs::repels)
             Arcs.massDrivenFrom(level, at)?.let { biting += it }
-            // **A charged block bites on its own account**, with no copper anywhere near it — it *is* a
-            // live conductor. That is what makes collecting a pile the game rather than a chore: the
-            // reward for drawing a bolt is a hazard you built and now have to mine.
-            liveOnItsOwn(level, at)?.let { biting += it }
+            // And a charged pile throws through its mast — see [liveThroughAMast].
+            liveThroughAMast(level, at)?.let { biting += it }
         }
         field(level, pulling, TOWARD)
         field(level, pushing, AWAY)
@@ -82,17 +80,34 @@ object ChargedMetal {
     }
 
     /**
-     * A charged crystal read as a machine of one block, or null where the bolt's charge is spent.
+     * A charged pile read as a machine, or null where it has no charge or **no mast to throw it through**.
      *
-     * Its own worth over its own block, so a charged one comes out at exactly twice the anchor: two damage
-     * every ten ticks, which is a wall somebody has to answer rather than walk through. A mast on it
-     * throws that as far as a mast on copper does, which is the design's scene exactly — the rod that drew
-     * the bolt is now the turret.
+     * **The rod is the only way the charge gets out** (Jonah, 2026-09-09), and that is what keeps the
+     * copper apparatus worth building. A charged pile that bit whatever touched it would have been a
+     * complete machine made of one material — no run to lay, no ratio to tune, no oxide to maintain — and
+     * every reason to build in copper would have gone with it. Bare, a charged pile is *stored* charge and
+     * nothing else; it is inert until somebody stands a rod on it.
+     *
+     * That is also the design's scene arriving exactly as written: the rod you put up to draw the bolt is
+     * the turret you then have to walk into to collect the pile.
+     *
+     * Its own worth over its own blocks, so a charged pile comes out at twice the anchor whatever its
+     * size — two damage every ten ticks. Bigger buys duration and reach, never a harder bite.
      */
-    private fun liveOnItsOwn(level: ServerLevel, at: BlockPos): Arcs.Run? {
+    private fun liveThroughAMast(level: ServerLevel, at: BlockPos): Arcs.Run? {
+        if (level.getBlockState(at).getValue(ArcCrystalBlock.CHARGE) <= ArcCrystalBlock.FLAT) return null
+        val pile = Arcs.pileStruckAt(level, at).filter { charged(level, it) }
+        // One run per pile, by the driver rule every other shape here uses: without it a pile of thirty
+        // would be thirty machines standing in the same place.
+        if (pile.minWithOrNull(POSITION_ORDER) != at) return null
+        if (Arcs.rodsOn(level, pile).isEmpty()) return null
+        return Arcs.Run(along = null, blocks = pile, crystal = pile.sumOf { Arcs.worthOf(level.getBlockState(it)) })
+    }
+
+    private fun charged(level: ServerLevel, at: BlockPos): Boolean {
         val state = level.getBlockState(at)
-        if (state.getValue(ArcCrystalBlock.CHARGE) <= ArcCrystalBlock.FLAT) return null
-        return Arcs.Run(along = null, blocks = listOf(at), crystal = Arcs.worthOf(state))
+        return state.`is`(AgeContent.ARC_CRYSTAL_BLOCK_BLOCK) &&
+            state.getValue(ArcCrystalBlock.CHARGE) > ArcCrystalBlock.FLAT
     }
 
     /**
@@ -390,6 +405,9 @@ object ChargedMetal {
     private const val SPARK_DRIFT = 0.08
     private const val SPARK_SPREAD = 0.25
     private const val SPARK_SPEED = 0.02
+
+    /** Any total order will do, and only agreeing matters — `Arcs.runsDrivenFrom` carries the argument. */
+    private val POSITION_ORDER = compareBy<BlockPos>({ it.x }, { it.y }, { it.z })
 
     /** How far past the copper a bare mass is still touching you. */
     private const val AN_ARC = 0.35

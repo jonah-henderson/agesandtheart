@@ -946,6 +946,15 @@
 #     A bolt should light the whole pile up (light level 14, so it is obvious) and everything it feeds
 #     should double. Then try to mine it back -- that is meant to hurt, and deretheni is the answer.
 #     The charge drains as it bites and does not survive being picked up.
+#     **Take the rod off and it should go quiet.** A bare charged pile is stored charge and nothing else;
+#     the mast is the only way out, which is what keeps the copper apparatus worth building at all.
+#   - **SETTING A BLOCK DOWN IN MIDAIR.** Sneak and use with a block of arc crystal while looking at open
+#     sky: it should appear about three blocks in front of your eyes, hanging on nothing. Aiming at a block
+#     within reach must still place the ordinary way, sneaking or not. Try bridging out from a ledge, and
+#     try looking straight down while flying -- that should drop one under your feet to land on.
+#     What this has to settle is the DISTANCE: three blocks is meant to be near enough to break again and
+#     near enough that looking a little down puts it at your feet. If it feels awkward, `SET_DOWN_AT` is
+#     the dial.
 #   - **AND THE SWITCH.** Redstone into a crystal turns it off. Whole machine, immediately.
 #
 # NOT BUILT: the tether/lift, and the maintainer's log. The numbers live in `ChargedMetal` and its check
