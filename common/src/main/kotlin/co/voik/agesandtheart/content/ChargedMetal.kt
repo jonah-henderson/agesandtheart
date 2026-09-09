@@ -88,6 +88,12 @@ object ChargedMetal {
         // **A redstone signal switches a crystal off**, which is the whole of the control surface: the
         // machine is the arrangement, so the only thing left to say about it is whether it is live.
         //
+        // **It switches one crystal, not a pile**, and that is narrower than it sounds. A run is walked
+        // from metal adjacent to its driver, so the switch is whichever crystal actually touches the
+        // machine — one crystal on a bar, or a bank with a single face on it, both go dead outright, but a
+        // bank with several blocks against the same bar hands the run to the next one along. Left as it is
+        // pending playtesting (Jonah, 2026-09-09); the fork if it proves fiddly is to kill the whole pile.
+        //
         // Handed to the election rather than only checked here. Skipping a powered crystal at this level
         // alone let it go on *winning* the driver election for a bar it then refused to drive, so a lever
         // on one end of a shared run silently killed the whole run — the crystal at the other end could

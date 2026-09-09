@@ -930,7 +930,7 @@
 # body (you can stand on one, but it will slide out from under you), and the tether. Textures are
 # stand-ins -- emerald and amethyst until the asset pass.
 
-# ══ 23. THE CHARGED MACHINES ═══════════════════ PARTLY WALKED 2026-09-09; SEVEN LEFT ══
+# ══ 23. THE CHARGED MACHINES ═══════════════════ WALKED 2026-09-09 BAR THE STORM ══
 # Arc crystal's second use, and it needs no Age at all -- build it in the overworld in creative. The
 # material's whole thesis is that the reward is the force you spent the acquisition fighting, so what this
 # has to settle is whether owning that force FEELS like the payoff.
@@ -947,14 +947,13 @@
 #   * **Chainmail stops the field and not the bite**, which is the split the design turns on.
 #   * **The assembly twinkle and the rod point.** "The visuals look good."
 #
-#   - **IS MORE METAL WEAKER?** Stretch that iron line without adding crystal. It should reach further and
-#     pull *less*, which is what makes the sink building rather than fuel. Add a second crystal and it
-#     should come back.
-#   - **IS A BIG ARRAY A WAY TO GET ABOUT?** Chainmail is settled, but the other half of that bullet is
-#     not: a strong attractor is meant to be a movement mechanic as much as a hazard. Stand in one without
-#     the chestplate and see whether being hauled is fun or merely something that happens to you.
-#   - **THE TURRET.** Stand a lightning rod on a charged copper mass. One rod buys four blocks of range
-#     from the TIP; each further rod one more, to sixteen. Stack them and see the reach climb.
+#   * **More metal is weaker**, and the mast ladder reads: four blocks for the first rod, one for each
+#     after. A rod adds range and does not replace the contact.
+#   * **Setting a block down in midair**, at three blocks out.
+#   * **The redstone switch**, with the narrowness below understood and left as it is pending playtesting.
+#   * **The bolt.** "Looks fantastic, no notes." It is vanilla's own geometry, rotated and scaled.
+#
+# ONE THING LEFT, AND IT WANTS THE CHARGED AGE -- so it rides on item 22's trip:
 #   - **THE STORM.** Write a tempest Age, build a pile of arc crystal blocks with a rod on top, and wait.
 #     A bolt should light the whole pile up (light level 14, so it is obvious) and everything it feeds
 #     should double. Then try to mine it back -- that is meant to hurt, and deretheni is the answer.
@@ -963,25 +962,20 @@
 #     a charged crystal has no discharge path of its own, it just powers copper twice as hard. A lightning
 #     rod IS copper, so a rod on a pile is a one-block conducting mass and needs no rule; check that an
 #     UNcharged pile with a rod also zaps, at half the rate.
-#   - **A ROD ADDS RANGE, IT DOES NOT REPLACE CONTACT.** Put a rod on a copper fence: leaning on the fence
-#     should still hurt, and the tip should now reach four blocks past it. And a taller mast should be
-#     WEAKER unless you feed it more crystal -- a rod is a metal block, so it dilutes the ratio like any
-#     other. That is meant to fall out of "more metal is reach, more crystal is force"; say so if it feels
-#     like a bug instead of a rule.
-#   - **SETTING A BLOCK DOWN IN MIDAIR.** Sneak and use with a block of arc crystal while looking at open
-#     sky: it should appear about three blocks in front of your eyes, hanging on nothing. Aiming at a block
-#     within reach must still place the ordinary way, sneaking or not. Try bridging out from a ledge, and
-#     try looking straight down while flying -- that should drop one under your feet to land on.
-#     What this has to settle is the DISTANCE: three blocks is meant to be near enough to break again and
-#     near enough that looking a little down puts it at your feet. If it feels awkward, `SET_DOWN_AT` is
-#     the dial.
-#   - **AND THE SWITCH.** Redstone into a crystal turns it off. Whole machine, immediately.
-#   - **THE BOLT, WHICH CHANGED AFTER YOU LAST SAW IT.** The particle line is gone; a zap now draws
-#     VANILLA'S OWN lightning geometry, rotated onto the line to the victim and scaled down. Its fork and
-#     its thickness are a single dial (`FORK_ACROSS`, 1.0 = vanilla's own proportions) because the quad
-#     widths live in the same coordinates as the wander -- so if it reads as a thread, raising it fattens
-#     AND splays at once. If that trade is wrong, the fallback is ~40 lines using vanilla's own algorithm
-#     with the two separated.
+#   - **AND TWO THINGS WORTH AN EYE WHILE YOU ARE IN THERE**, both consequences flagged rather than
+#     tested. Two crossing beams should still be easy to reason about -- that is what the beam change was
+#     for. And a beam above ground level may leak things sideways as it hauls them, the force being purely
+#     axial with nothing recentring; if a grinder leaks, a small centring term inside the beam fixes it
+#     without breaking the rule.
+#
+# THE REDSTONE SWITCH IS NARROWER THAN IT LOOKS, and is left that way on purpose (Jonah, 2026-09-09:
+# "will need playtesting and feedback"). A run is walked from metal ADJACENT TO THE DRIVING CRYSTAL, so
+# the switch is whichever crystal actually touches the machine: one crystal on one bar, or a bank with a
+# single face on it, both go dead outright. A bank with SEVERAL blocks touching the same bar hands the run
+# to the next one along at slightly less force, and a crystal buried inside a bank only docks supply. The
+# open fork, if playtesting says the switch is too fiddly: power any block of a pile and the whole pile
+# dies. The alternative reading is that per-crystal is a FEATURE -- redstone that dials a machine's force
+# rather than killing it.
 #
 # NOT BUILT: the tether/lift, and the maintainer's log. The numbers live in `ChargedMetal` and its check
 # has the ramps; the check can say the anchor is 1 damage per 20 ticks, but only a walk can say whether
