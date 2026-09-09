@@ -440,7 +440,9 @@
 # says what is wrong with THAT Age rather than reading a desk. Two changes on the readings: the calm
 # wording is four sentences rather than two (a bare desk, an Age, an unwritten world, a clean sentence),
 # and the panel is as tall as its own worst case -- a full list ran off the bottom, the height having been
-# a hand-written 96 that was three lines short even before instability could set an Age alight.
+# a hand-written 96 that was three lines short even before instability could set an Age alight. It is also
+# CAPPED to the window less a little air, with a scroll behind the cap, because counting fixes today and
+# not tomorrow: check a full list still reads, and that a very small window scrolls rather than clips.
 #
 # LEFT FOR THE INSTABILITY PASS (Jonah): "extremely unstable" is hard to reach. That is the instability
 # system's thresholds rather than the instrument's.
