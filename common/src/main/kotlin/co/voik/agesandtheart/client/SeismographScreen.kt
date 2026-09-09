@@ -89,9 +89,26 @@ class SeismographScreen(menu: SeismographMenu, inventory: Inventory, title: Comp
     private companion object {
         const val WIDTH = 176
 
-        /** Room for the headline and every manifestation at once, which is the tallest it can ever be. */
-        const val HEIGHT = 96
+        /**
+         * Room for the headline and every manifestation at once — **counted rather than written down**.
+         *
+         * It was ninety-six, which was three lines short of the seven manifestations there were then and
+         * a whole line short again once instability could set an Age alight: a badly written Age ran its
+         * own list off the bottom of the panel (Jonah, 2026-09-09). A scroll bar is the wrong answer for a
+         * list that is bounded and this short — the panel should simply be as tall as the worst case, and
+         * the worst case is a thing the code can count.
+         *
+         * The spare line is for a name long enough to wrap at this width; there is one already at
+         * "Spreading spatial anomalies".
+         */
+        val HEIGHT = CONTENT_TOP + (Manifestation.entries.size + A_HEADLINE + A_SPARE_LINE) * A_LINE + MARGIN * 2
+
         const val MARGIN = 8
+
+        /** Vanilla's font, which is what `MultiLineTextWidget` lays its lines out on. */
+        private const val A_LINE = 9
+        private const val A_HEADLINE = 1
+        private const val A_SPARE_LINE = 1
 
         /** Clear of the title, as every container screen's contents are. */
         const val CONTENT_TOP = 20

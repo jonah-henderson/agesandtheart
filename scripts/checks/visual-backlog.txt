@@ -139,31 +139,26 @@
 # onto the body, and the contents travel with the box in survival and in creative both. One tweak on the
 # reading -- it breaks like a leaf now rather than like wood, being luggage rather than furniture.
 
-# ══ 4. THE TERMINAL HOARD IS GENERATED BUT HAS NEVER BEEN SEEN ═══════════════ Built 2026-09-05 ══
-# `unstable=400` sets the index before the Age opens, which is what `/age decay` cannot do — decay rewrites
-# a recipe that is already open, and an Age settles what it places when it opens.
+# ══ 4. THE TERMINAL HOARD ══════ WALKED 2026-09-09; ONE FIX TO RE-READ, ONE THING DEFERRED ══
+# The amounts are right -- 3794 deretheni in a chunk's floor band is what "absurd" was meant to be for a
+# world you raid once -- and the fissures do reach it and spread.
 #
-/age compose doomed 11 unstable=400 landmass=hills sea=lava rock=solid sky=plain
-/age danger score doomed
-/age tp doomed
+# ONE FIX TO RE-READ:
+#   - **THE WHOLE TEAR IS VISIBLE NOW.** Only the columns the tear had SPREAD into were drawn; the ones
+#     written when the chunk generated were see-through to the rock at the bottom, though the carve and the
+#     teleport both worked. `ProtoChunk.setBlockState` sets state, lighting and heightmaps and never makes
+#     a block entity, where `LevelChunk.setBlockState` does -- and a fissure is drawn by a block entity
+#     RENDERER. The generated columns make theirs by hand now. Fly over a fresh chunk of `doomed` and the
+#     tear should read as one thing rather than as a few lit columns in a hole.
 #
-# MEASURED 2026-09-05: danger 0.700, collapse reach 1.00 — terminal, so forty veins a chunk, the top of
-# the survey's scale. And **3794 deretheni in one chunk's floor band** (-62..-40) against nothing at all in
-# the same band of an ordinary Age. About two thirds of the band solid ore.
+# DEFERRED BY JONAH (2026-09-09): whether RACING the collapse is fun. It is not yet, and the work it wants
+# is not in this item -- a cap on active phenomena for performance, and collapse-only phenomena with more
+# drama in them: huge fissures taken out of the ground at once, possibly random explosions. Revisit once
+# the phenomena have settled; see notes/decisions.md.
 #
-# WHAT A WALK HAS TO SETTLE:
-#   - **Whether that is right.** "Absurd amounts" is what was asked for, and it may be exactly right for a
-#     world you raid once — or the x10 may want pulling back. This is a judgement, not a measurement.
-#   - That the fissures actually reach it and eat it, which is the whole point of siting it in the tear.
-#   - That racing them is FUN rather than merely fatal.
-#   - NOT CHECKABLE AT THE DESK *YET*. `unstable=` is an operator override, so no sentence produces this
-#     Age today and the survey cannot be asked about it.
-#     **CORRECTED 2026-09-06 (Jonah): that a written book cannot reach full collapse is a VOCABULARY GAP,
-#     NOT A DESIGN RULE.** An earlier note here read as though terminal Ages were deliberately fenced off
-#     from writers. They are not, and never were — the corpus simply could not yet express enough
-#     instability to reach the top of the ladder, and the limitation got codified by being written down.
-#     Writers are absolutely meant to be able to write an Age that collapses, and as the vocabulary grows
-#     they will. Do not design around this as a constraint.
+# **A written book cannot reach full collapse today, and that is a VOCABULARY GAP, NOT A DESIGN RULE**
+# (Jonah, 2026-09-06). Writers are meant to be able to write an Age that collapses; the corpus simply
+# cannot yet express enough instability. Do not design around it as a constraint.
 
 # ══ 5. THE RIME CRYSTALS AND THE SKATES ═══ WALKED AND GOOD 2026-09-09; TWO FIXES TO RE-READ ══
 # A crystal on a cliff reads as a find, the blue tint carries at distance, the climb feels right, and the
@@ -440,21 +435,15 @@
 #   - Watch also that a crater by the SHORE still stops at the waterline: the submerged test used to be
 #     two heightmaps disagreeing, which a blade of grass also does, so it is a fluid read now.
 
-# ══ 15. THE SEISMOGRAPH ═══════════════ WALKED 2026-09-09; ONE THING FOR THE INSTABILITY PASS ══
-# Built, read, and all five criteria settled: its own screen, the states, live updating while open, never
-# idle, and the case that justifies it existing -- a sentence whose index is too small to afford anything
-# reads clean while the scribe's lens still complains.
+# ══ 15. THE SEISMOGRAPH ═══════════════ WALKED AND GOOD 2026-09-09; ONE FOR THE INSTABILITY PASS ══
+# All five criteria settled, and the fourth confirmed in a badly written Age: carried into `doomed` it
+# says what is wrong with THAT Age rather than reading a desk. Two changes on the readings: the calm
+# wording is four sentences rather than two (a bare desk, an Age, an unwritten world, a clean sentence),
+# and the panel is as tall as its own worst case -- a full list ran off the bottom, the height having been
+# a hand-written 96 that was three lines short even before instability could set an Age alight.
 #
-# Changed on the reading: the calm wording is four different sentences now rather than two, because they
-# are four different things to say. A bare desk in the room says "No Age is currently being written"
-# (it used to answer about the world, which is answering a question nobody asked while a book is being
-# started); an Age says "This Age is stable"; an unwritten world keeps "This world is perfectly stable";
-# and a sentence that buys nothing keeps "No instability detected". Two manifestations -- blizzards and
-# meteors -- had NO name in the language file at all and would have listed a raw translation key;
-# `NamedForReadingCheck` now fails if a new one is added without one.
-#
-# LEFT FOR THE INSTABILITY PASS (Jonah): "extremely unstable" is hard to reach. Not tuned here because the
-# thresholds are the instability system's rather than the instrument's.
+# LEFT FOR THE INSTABILITY PASS (Jonah): "extremely unstable" is hard to reach. That is the instability
+# system's thresholds rather than the instrument's.
 
 # ══ 16. EIGHT RIME CRYSTALS ════════════════════════ WALKED AND GOOD 2026-09-09 ══
 # Eight colours off one model and one tint, a comparator reads which colour a crystal is, and a powered

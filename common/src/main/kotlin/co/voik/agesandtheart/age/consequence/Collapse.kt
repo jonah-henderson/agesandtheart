@@ -7,6 +7,7 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.LevelAccessor
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.EntityBlock
 import net.minecraft.world.level.chunk.ChunkAccess
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.levelgen.LegacyRandomSource
@@ -76,6 +77,14 @@ object Collapse {
             // Through the chunk rather than the level: a column is hundreds of writes and a chunk still
             // being built has no use for the neighbour and lighting bookkeeping `setBlock` carries.
             chunk.setBlockState(cursor, TEAR, Block.UPDATE_NONE)
+            // **And the block entity by hand, which is the whole of why half a tear was invisible.**
+            // `ProtoChunk.setBlockState` sets the state, the lighting and the heightmaps and stops — it
+            // never makes a block entity, where `LevelChunk.setBlockState` does. A fissure is drawn by a
+            // block entity *renderer*, so every column written while the chunk was still being generated
+            // had nothing to draw it and you looked straight through the tear to the rock at the bottom,
+            // while the columns the tear later spread into through the level rendered perfectly (Jonah,
+            // 2026-09-09, walked).
+            standTheStarsUp(chunk, cursor)
         }
         for (y in lowest + DEEP + 1..surface) {
             cursor.set(x, y, z)
@@ -107,6 +116,17 @@ object Collapse {
             if (level.getBlockState(cursor).isAir) continue
             level.setBlock(cursor, AIR, Block.UPDATE_ALL)
         }
+    }
+
+    /**
+     * The block entity a fissure is drawn from, made where the chunk will not make one itself.
+     *
+     * A copy of the position, not the cursor: a block entity keeps the position it was handed, and this
+     * one is walked down a whole column.
+     */
+    private fun standTheStarsUp(chunk: ChunkAccess, at: BlockPos.MutableBlockPos) {
+        val block = TEAR.block as? EntityBlock ?: return
+        block.newBlockEntity(at.immutable(), TEAR)?.let(chunk::setBlockEntity)
     }
 
     /** Every tear whose reach could touch this chunk, with where it is centred. */
