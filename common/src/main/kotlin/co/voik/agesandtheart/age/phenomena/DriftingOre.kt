@@ -116,7 +116,7 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
             // shove it remembers: everything charged in the Age moves the same way at the same speed,
             // which is what sells a field they are all following.
             deltaMovement = settled
-            move(MoverType.SELF, settled.add(driftOf(level())))
+            move(MoverType.SELF, settled.add(driftOf(level()).scale(driftPace)))
             discardIfNobodyIsAround()
         }
         // **Sideways only.** Vanilla already lifts whatever is standing on a box that rises and drops it
@@ -228,7 +228,7 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
     private fun towardItsBand(): Vec3 {
         val off = homeY - y
         if (abs(off) < AT_HOME) return Vec3.ZERO
-        return Vec3(0.0, off.coerceIn(-RISE, RISE) * homingRate(), 0.0)
+        return Vec3(0.0, off.coerceIn(-RISE, RISE) * homingRate() * climbPace, 0.0)
     }
 
     /**
@@ -274,16 +274,29 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
 
     private fun breakApart(level: ServerLevel) {
         if (tier > 0) {
-            repeat(FRAGMENTS) {
-                val piece = AgeContent.DRIFTING_ORE.create(level, EntitySpawnReason.TRIGGERED) ?: return@repeat
-                piece.tier = tier - 1
-                piece.shape = level.random.nextInt(OreClusters.SHAPES)
-                piece.snapTo(position().add(scattered(level.random), scattered(level.random), scattered(level.random)))
-                // Thrown outward rather than dropped, so a break reads as one and the pieces are not a
-                // stack of bodies at the same point arguing about where to be.
-                piece.deltaMovement = Vec3(scattered(level.random), scattered(level.random), scattered(level.random))
-                    .normalize().scale(THROWN)
-                level.addFreshEntity(piece)
+            // **Laid out clear of one another rather than scattered from a point.** Fragments used to be
+            // jittered off the middle, which was fine while a body was a hitbox and is not now they are
+            // shaped and solid to each other: three of them overlapping at birth spent their lives shoving
+            // and getting nowhere, so a break read as one rock going lumpy rather than as three coming
+            // apart. Set out around a ring instead, wide enough that no two can touch however the ring is
+            // turned and however far each wanders off its share of it — see [ringRadiusFor], which is
+            // checked rather than reasoned about, the margin at a radius of one span being 1%.
+            val clear = ringRadiusFor(OreClusters.spanOf(tier - 1))
+            val turned = level.random.nextDouble() * A_FULL_TURN
+            for (piece in 0..<FRAGMENTS) {
+                val body = AgeContent.DRIFTING_ORE.create(level, EntitySpawnReason.TRIGGERED) ?: continue
+                body.tier = tier - 1
+                body.shape = level.random.nextInt(OreClusters.SHAPES)
+                val bearing = turned + piece * (A_FULL_TURN / FRAGMENTS) +
+                    (level.random.nextDouble() - HALF) * A_FULL_TURN * WANDER_OFF_THE_RING
+                val outward = Vec3(Math.cos(bearing), 0.0, Math.sin(bearing))
+                // Free to be off the ring vertically: the horizontal spacing alone keeps them apart,
+                // their boxes being upright cubes.
+                body.snapTo(position().add(outward.scale(clear)).add(0.0, scattered(level.random) * clear, 0.0))
+                // And thrown outward as well as set out, so the ring is a moment rather than an
+                // arrangement and they visibly come apart before they start seeking their own band.
+                body.deltaMovement = outward.scale(THROWN)
+                level.addFreshEntity(body)
             }
         }
         else {
@@ -295,7 +308,7 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
         discard()
     }
 
-    private fun scattered(random: RandomSource): Double = (random.nextDouble() - HALF) * SCATTER
+    private fun scattered(random: RandomSource): Double = random.nextDouble() - HALF
 
     override fun isPickable(): Boolean = true
 
@@ -329,6 +342,21 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
 
     /** How much it has taken so far. Not synched: nothing is drawn from it. */
     private var struck: Float = 0.0f
+
+    /**
+     * **How fast this one takes the Age's current, and how eagerly it seeks its band** — a little either
+     * side of its fellows (Jonah, 2026-09-09).
+     *
+     * The *direction* stays shared, which is the point of the drift: everything charged in the Age going
+     * one way is what sells a field they are all following. What was wrong was that they went at exactly
+     * one speed too, so a sky of them slid about like a single sheet. Varying only the pace keeps the
+     * current and loses the rigidity.
+     *
+     * Rolled per body and never sent: the client stopped simulating when it started interpolating, so this
+     * is the server's business alone and costs nothing to keep.
+     */
+    private val driftPace = PACE_LEAST + random.nextDouble() * (PACE_MOST - PACE_LEAST)
+    private val climbPace = PACE_LEAST + random.nextDouble() * (PACE_MOST - PACE_LEAST)
 
     companion object {
         private val TIER: EntityDataAccessor<Int> =
@@ -426,8 +454,27 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
         private const val SMALLEST_TOUGHNESS = 6.0f
         private const val TOUGHNESS_A_TIER = 6.0f
 
-        /** How far a fragment starts from where its parent was, and how hard it is thrown clear. */
-        private const val SCATTER = 2.4
-        private const val THROWN = 0.22
+        /** How hard a fragment is thrown clear of the ring it is set out on. */
+        private const val THROWN = 0.35
+
+        /** How far off its share of the ring a fragment may sit, so three do not read as a diagram. */
+        const val WANDER_OFF_THE_RING = 0.08
+
+        /**
+         * How wide a ring [FRAGMENTS] of a body this wide are set out on, so none of them touch.
+         *
+         * **A quarter wider than it strictly needs to be.** At exactly one span the worst turn of the ring
+         * leaves a hundredth of a block between two boxes, which is clear on paper and not something to
+         * build a break on; this leaves a quarter of a span. `DriftingOreCheck` holds it.
+         */
+        fun ringRadiusFor(span: Double): Double = span * RING_ROOM
+
+        private const val RING_ROOM = 1.25
+
+        private const val A_FULL_TURN = Math.PI * 2
+
+        /** How far either side of its fellows a body drifts and climbs — see [driftPace]. */
+        private const val PACE_LEAST = 0.75
+        private const val PACE_MOST = 1.25
     }
 }

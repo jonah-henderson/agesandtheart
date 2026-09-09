@@ -887,7 +887,7 @@
 #     but `sultry` can no longer draw a cold Age at all, where before it could draw anything. If a word
 #     that leans now feels like a word that demands, `Span.leaned` is where the strength lives.
 
-# ══ 22. ORE THAT WILL NOT BE CAUGHT ══════════ WALKED 2026-09-09; ONE THING TO RE-READ ══
+# ══ 22. ORE THAT WILL NOT BE CAUGHT ══════════ WALKED AND GOOD 2026-09-09; ONE LAST LOOK ══
 # The first walk of the magnetic material (design §7.1.2) -- and the first thing in the mod drawn as a
 # cluster of real blocks moved as one entity. Nothing about it has been looked at. The whole feature turns
 # on one question a screenshot answers and no test can: does a sky of procedurally weathered rubble read as
@@ -1015,6 +1015,18 @@
 #   - **AND WHETHER IT COST ANYTHING.** `collectAllColliders` runs for every moving entity every tick and
 #     now asks the entity index whether a body is nearby. The sky's cost was already acceptable; this is
 #     the one that would show up as everything ELSE getting slower rather than as the sky being expensive.
+
+# FIFTH WALK 2026-09-09: the shaped collider works and "FPS holds steady", so the cost question is
+# answered too. TWO LAST CHANGES, and then this item is done:
+#   - **A BREAK SHOULD COME APART NOW.** Fragments were jittered off one point, which was harmless while a
+#     body was a hitbox and is not now they are shaped and solid to each other -- three born overlapping
+#     spent their lives shoving, so a break read as one rock going lumpy. They are set out on a ring a
+#     quarter wider than they need and thrown outward along it. Watch one break: three pieces, visibly
+#     separating, each then seeking its own band.
+#   - **AND NO TWO BODIES MOVE ALIKE.** Each rolls its own pace for the drift and for the climb, a quarter
+#     either side. The DIRECTION is still shared, deliberately -- everything charged going one way is what
+#     sells a field they are all following; what was wrong was that they went at one speed too, so a sky
+#     of them slid about like a sheet.
 # ══ 23. THE CHARGED MACHINES ═══════════════════════ WALKED AND GOOD 2026-09-09 ══
 #
 # STORM CONFIRMED 2026-09-09 -- the whole item is walked. Left here only for the two things it records
