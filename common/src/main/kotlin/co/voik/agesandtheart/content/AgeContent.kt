@@ -1070,7 +1070,7 @@ object AgeContent {
     private const val ARC_BOLT_TRACKING_CHUNKS = 4
 
     const val DRIFTING_ORE_TRACKING_CHUNKS = 16
-    private const val DRIFTING_ORE_UPDATE_TICKS = 4
+    const val DRIFTING_ORE_UPDATE_TICKS = 4
 
     /**
      * The storm itself, which is a clock standing in the sky.

@@ -13,6 +13,8 @@ import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntitySpawnReason
 import net.minecraft.world.entity.EntityDimensions
 import net.minecraft.world.entity.EntityType
+import net.minecraft.world.entity.InterpolationHandler
+import net.minecraft.world.entity.player.Player
 import net.minecraft.world.entity.Pose
 import net.minecraft.world.entity.MoverType
 import net.minecraft.world.item.ItemStack
@@ -96,18 +98,57 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
 
     override fun tick() {
         super.tick()
-        // **The push first, because it is the only term that can be expensive**, and it answers zero for
-        // nearly every body on nearly every tick — see [pushedFromRock].
-        val pushed = pushedFromRock()
-        val sought = towardItsBand()
-        val settled = deltaMovement.add(pushed).add(sought).scale(SETTLING)
-        // Drift is added rather than accumulated, so it is a *current* the body sits in rather than a
-        // shove it remembers: everything charged in the Age moves the same way at the same speed, which
-        // is what sells a field they are all following.
-        deltaMovement = settled
-        move(MoverType.SELF, settled.add(driftOf(level())))
-        if (!level().isClientSide) discardIfNobodyIsAround()
+        val before = position()
+        if (level().isClientSide) {
+            // **The client never simulates one, it only catches up.** Both sides running the physics was
+            // the jitter: the client's `deltaMovement` starts at nothing and is never sent, so the two
+            // drift apart and every position packet snapped the body back. A plain `Entity` returns no
+            // interpolation handler, so a packet *is* a snap — see [getInterpolation].
+            interpolation.interpolate()
+        } else {
+            // **The push first, because it is the only term that can be expensive**, and it answers zero
+            // for nearly every body on nearly every tick — see [pushedFromRock].
+            val pushed = pushedFromRock()
+            val sought = towardItsBand()
+            val settled = deltaMovement.add(pushed).add(sought).scale(SETTLING)
+            // Drift is added rather than accumulated, so it is a *current* the body sits in rather than a
+            // shove it remembers: everything charged in the Age moves the same way at the same speed,
+            // which is what sells a field they are all following.
+            deltaMovement = settled
+            move(MoverType.SELF, settled.add(driftOf(level())))
+            discardIfNobodyIsAround()
+        }
+        carryWhatStandsOnIt(position().subtract(before))
     }
+
+    /**
+     * **A body that holds still can be stood on; one that is going somewhere has to take you with it.**
+     *
+     * Vanilla carries *passengers*, never riders on a roof, so without this a boulder slides out from
+     * under whoever climbed on — which is the whole of what makes one worth landing on rather than
+     * bouncing off.
+     *
+     * **Each side carries what it owns.** A server moving a player fights that player's own client and
+     * rubber-bands; a client moving a mob is drawing a lie the next packet corrects. So the server takes
+     * everything that is not a player and the client takes the players, which is exactly the split the
+     * game already makes about who decides where a thing is.
+     */
+    private fun carryWhatStandsOnIt(moved: Vec3) {
+        if (moved.lengthSqr() < NOTHING) return
+        val ledge = boundingBox.setMinY(boundingBox.maxY).expandTowards(0.0, A_FOOT, 0.0)
+        for (rider in level().getEntities(this, ledge) { it !== this }) {
+            if (level().isClientSide != (rider is Player)) continue
+            rider.setPos(rider.position().add(moved))
+        }
+    }
+
+    /**
+     * How a client is told where this is: **caught up to over as many ticks as the server waits between
+     * telling it**, so the two beats line up and there is no held frame at the end of one.
+     */
+    private val interpolation = InterpolationHandler(this, AgeContent.DRIFTING_ORE_UPDATE_TICKS)
+
+    override fun getInterpolation(): InterpolationHandler = interpolation
 
     /**
      * Away from every block within reach, or nothing at all — **and the common case is nothing**.
@@ -283,9 +324,15 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
         /** How many pieces of the tier below a break gives. Read with the tiers: three of three is nine. */
         const val FRAGMENTS = 3
 
-        /** And what the smallest gives, which is the only tier that yields the material itself. */
-        private const val YIELD_LEAST = 2
-        private const val YIELD_MOST = 4
+        /**
+         * And what the smallest gives, which is the only tier that yields the material itself.
+         *
+         * **Halved 2026-09-09** (Jonah: "loads of crystals from just a few boulders"). Read against the
+         * ladder rather than against one body: three fragments of three means a top-band body is nine of
+         * these, so even one apiece is nine to eighteen crystal for a climb, a shot and three breakings.
+         */
+        private const val YIELD_LEAST = 1
+        private const val YIELD_MOST = 2
 
         /** How many sizes there are, and so how many bands and how many breakings to the ore. */
         const val MOST_TIERS = 3
@@ -306,6 +353,9 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
         }
 
         private const val SECTION_BITS = 4
+
+        /** How far above a body something has to be to count as standing on it. */
+        private const val A_FOOT = 0.35
         private const val HALF = 0.5
 
         /** How much of its motion a body keeps from tick to tick. Heavy: these wallow rather than dart. */
@@ -328,7 +378,8 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
         private const val HOMING = 0.045
         private const val RISE = 12.0
 
-        private const val DRIFT_SPEED = 0.017
+        /** Doubled 2026-09-09 (Jonah): a sky that barely moves reads as scenery rather than weather. */
+        private const val DRIFT_SPEED = 0.034
         private const val DRIFT_SALT = 0.000_37
 
         /** How often the emptiness around it is checked, and how far away is far enough to forget it. */

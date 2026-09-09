@@ -887,7 +887,7 @@
 #     but `sultry` can no longer draw a cold Age at all, where before it could draw anything. If a word
 #     that leans now feels like a word that demands, `Span.leaned` is where the strength lives.
 
-# ══ 22. ORE THAT WILL NOT BE CAUGHT ════════════════════════════════════════ Built 2026-09-09 ══
+# ══ 22. ORE THAT WILL NOT BE CAUGHT ══════════ PARTLY WALKED 2026-09-09; SIX TO RE-READ ══
 # The first walk of the magnetic material (design §7.1.2) -- and the first thing in the mod drawn as a
 # cluster of real blocks moved as one entity. Nothing about it has been looked at. The whole feature turns
 # on one question a screenshot answers and no test can: does a sky of procedurally weathered rubble read as
@@ -930,6 +930,36 @@
 # body (you can stand on one, but it will slide out from under you), and the tether. Textures are
 # stand-ins -- emerald and amethyst until the asset pass.
 
+
+# WALKED 2026-09-09 AND GOOD: the tiered bands read, the variation is worth keeping, and the approach is
+# confirmed -- "drifting ore is on the right track". SIX THINGS CHANGED SINCE, all from that walk:
+#   - **THE BOULDERS WERE STILL CUBES, AND THE SCORING WAS WHY.** An eaten neighbour was counted twice --
+#     once as an open face (it is not standing, so it is open) and again by a clustering term -- so an
+#     eaten face outscored a pristine corner and the erosion COMPOUNDED into whichever corner it began on,
+#     leaving the other seven square. Openness alone rounds the whole rock at once. More is taken now too
+#     (0.36 against 0.22): a fifth off a cube is still a cube. Sliced and read offline rather than guessed
+#     -- `./gradlew :common:test --tests "*OreClusters*"` prints every layer of two shapes, which is the
+#     instrument to turn `TAKEN_AWAY` and `JITTER` against if these are now too eroded or not enough.
+#   - **THE FLICKERING WAS Z-FIGHTING, NOT CACHING.** A `MovingBlockRenderState` answers `getBlockState`
+#     with AIR everywhere but its own cell, and that state IS the level vanilla culls faces against -- so
+#     every cell drew all six faces and each shared face was drawn twice in the same plane. Each cell is
+#     handed the whole cluster now, so vanilla culls the interior itself. It also deleted the hidden
+#     geometry: a top-tier body draws 94 cells where it drew 133.
+#   - **THE JITTERY MOTION WAS BOTH SIDES SIMULATING.** A plain `Entity` has no interpolation handler, so
+#     every position packet was a SNAP, and the client's own physics had already drifted (its
+#     `deltaMovement` starts at nothing and is never sent). The client only interpolates now, over exactly
+#     the four ticks the server waits between telling it.
+#   - **DRIFT IS DOUBLED** (0.017 -> 0.034 a tick). Say if the sky now moves too fast to shoot at.
+#   - **THE LOWEST TIER YIELDS HALF** (1-2 crystal, was 2-4). Read it against the ladder rather than one
+#     body: three fragments of three means a top-band body is nine of these, so 9-18 for a climb, a shot
+#     and three breakings. Say if that is still loads.
+#   - **YOU SHOULD BE CARRIED NOW.** Stand on a drifting body and it should take you with it rather than
+#     sliding out from under you. Each side carries what it owns -- the server everything that is not a
+#     player, the client the players -- because a server moving a player rubber-bands. Watch for that
+#     anyway: if standing on one fights your own movement, this is where to look.
+#
+# STILL UNREAD FROM THE ORIGINAL LIST: whether a pillar built under a body really does shove it away (the
+# inversion the whole design rests on), and whether an arrow stops where the stone is.
 # ══ 23. THE CHARGED MACHINES ═══════════════════ WALKED 2026-09-09 BAR THE STORM ══
 # Arc crystal's second use, and it needs no Age at all -- build it in the overworld in creative. The
 # material's whole thesis is that the reward is the force you spent the acquisition fighting, so what this

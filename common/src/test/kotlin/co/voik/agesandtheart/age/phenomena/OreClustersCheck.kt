@@ -106,6 +106,27 @@ class OreClustersCheck : FunSpec({
     }
 
     /**
+     * **What a body actually looks like**, sliced and printed — the instrument the shape is tuned with.
+     *
+     * A cluster's silhouette is the one thing about it that matters and the one thing no assertion can
+     * judge, and reading it off a screenshot means a walk per turn of a dial. Layer by layer in ASCII is
+     * enough to see whether a cube has stopped being a cube.
+     */
+    test("a body sliced, for reading") {
+        for (shape in listOf(0, 17)) {
+            val cells = OreClusters.of(shape, TALLEST_TIER).map { it.at }.toSet()
+            val side = OreClusters.sideOf(TALLEST_TIER)
+            val from = -(side / 2)
+            val across = from..<(from + side)
+            println("  shape $shape at tier $TALLEST_TIER — ${cells.size} cells, layers bottom to top:")
+            for (y in across) {
+                val rows = across.map { z -> across.joinToString("") { x -> if (BlockPos(x, y, z) in cells) "#" else "·" } }
+                println("    y=$y  " + rows.joinToString("   "))
+            }
+        }
+    }
+
+    /**
      * **What the generator actually produces**, printed rather than asserted — the sizes and spans a
      * renderer, a collider and a bounding box are all sized from, where a wrong one is invisible in a
      * screenshot and obvious in a number.
@@ -137,5 +158,8 @@ class OreClustersCheck : FunSpec({
          * a number to watch in a bench rather than a limit anybody chose.
          */
         const val MOST_CELLS_WORTH_DRAWING = 140
+
+        /** The one worth looking at: the smaller tiers have too few cells to have a silhouette. */
+        const val TALLEST_TIER = 2
     }
 }

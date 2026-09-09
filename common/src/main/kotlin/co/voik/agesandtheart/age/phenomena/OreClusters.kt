@@ -54,12 +54,10 @@ object OreClusters {
         for (x in 0..<side) for (y in 0..<side) for (z in 0..<side) {
             standing += BlockPos(from + x, from + y, from + z)
         }
-        val gone = HashSet<BlockPos>()
         val taking = (standing.size * TAKEN_AWAY).toInt()
         repeat(taking) {
-            val next = standing.maxByOrNull { weathering(it, standing, gone, random) } ?: return@repeat
+            val next = standing.maxByOrNull { weathering(it, standing, random) } ?: return@repeat
             standing -= next
-            gone += next
         }
         // The crystal is scattered through the rock rather than cased in it, so a body reads as ore from
         // any side. Drawn after the shape, so the same cluster is the same cluster whichever cells glow.
@@ -67,31 +65,25 @@ object OreClusters {
     }
 
     /**
-     * How ready a cell is to come away: **exposed faces first, and then whether the weather has already
-     * been here.**
+     * How ready a cell is to come away: **how much of it is already exposed, and nothing else.**
      *
      * A corner has three faces to the sky and a cell in the middle of a face has one, so corners round off
-     * first — which is what a boulder is. The second term is what keeps a bite a bite: a cell beside one
-     * already gone goes next, rather than a fresh hole opening on the far side.
+     * first — which is what a boulder is. As cells go their neighbours become more exposed in turn, so a
+     * bite widens on its own without being told to.
+     *
+     * **There used to be a second term for that widening and it made one bite eat the body** (sliced and
+     * read, 2026-09-09). An eaten neighbour is already counted here — it is not standing, so it is open —
+     * and scoring it again on top made an eaten face worth more than a pristine corner. The erosion then
+     * compounded into whichever corner it started on and left the other seven square, which is exactly the
+     * "still reading mainly as cubes" a walk reported. Openness alone rounds the whole rock at once.
      *
      * The jitter is what makes sixty-four of these differ at all; without it every cube would weather into
      * the same rock.
      */
-    private fun weathering(
-        at: BlockPos,
-        standing: Set<BlockPos>,
-        gone: Set<BlockPos>,
-        random: XoroshiroRandomSource,
-    ): Double {
-        var open = 0
-        var eaten = 0
-        for (heading in Direction.entries) {
-            val beside = at.relative(heading)
-            if (beside !in standing) open++
-            if (beside in gone) eaten++
-        }
-        if (open == 0) return NEVER
-        return open * PER_OPEN_FACE + eaten * PER_EATEN_NEIGHBOUR + random.nextDouble() * JITTER
+    private fun weathering(at: BlockPos, standing: Set<BlockPos>, random: XoroshiroRandomSource): Double {
+        val open = Direction.entries.count { at.relative(it) !in standing }
+        if (open == NOTHING_EXPOSED) return NEVER
+        return open * PER_OPEN_FACE + random.nextDouble() * JITTER
     }
 
     /** How wide a body of this tier is before anything is taken off it: two, four, six. */
@@ -156,14 +148,16 @@ object OreClusters {
      *
      * **The same share at every tier**, so the ladder is a size rather than a texture: a big body is a big
      * rock and not a lacier one. It is the lever a richer band would move later.
+     *
+     * Raised from a fifth 2026-09-09: a fifth off a cube is still a cube, and the slices say so.
      */
-    private const val TAKEN_AWAY = 0.22
+    private const val TAKEN_AWAY = 0.36
 
     /** What a cell's readiness is made of, and the jitter that makes sixty-four cubes weather differently. */
     private const val PER_OPEN_FACE = 1.0
-    private const val PER_EATEN_NEIGHBOUR = 0.55
-    private const val JITTER = 1.4
+    private const val JITTER = 2.4
     private const val NEVER = -1.0
+    private const val NOTHING_EXPOSED = 0
 
     /** How much of a body is crystal rather than the rock it grew in. */
     private const val CRYSTAL_ONE_IN = 4
