@@ -95,7 +95,6 @@ object TemperedGround : Feature<NoneFeatureConfiguration>(NoneFeatureConfigurati
      * is what stops the lesson and the practice drifting apart.
      */
     fun bakedAt(level: BlockGetter, at: BlockPos): BlockState? {
-        if (!deepEnough(at)) return null
         val heat = distanceToLava(level, at) ?: return null
         val baked = becomes(heat)
         return baked.takeIf { !level.getBlockState(at).`is`(baked.block) }
@@ -149,23 +148,25 @@ object TemperedGround : Feature<NoneFeatureConfiguration>(NoneFeatureConfigurati
      * the widest because it is the one meant to be carried away.
      */
     /**
-     * **Heat alone does not temper stone; it wants depth with it** — nothing above [NOTHING_ABOVE].
+     * How deep a natural formation may be found — **where the bands GENERATE, and nothing about the rule.**
      *
      * A lava sea's rim yielded enough for the armour without anybody trying, which is not what a material
-     * gated on "an Age that is hot *and* substantially lava" is worth (Jonah, 2026-09-09, walked). Rime is
-     * a climb and this is its opposite: the crystals want you a hundred blocks up and the stone wants you
-     * down, so the two early materials ask for opposite journeys rather than both being surface work.
+     * gated on a whole Age's character is worth (Jonah, 2026-09-09, walked). So the ground only cooks its
+     * own stone down here, and finding temperstone is a descent.
      *
-     * **A rule and not a placement filter**, so it governs the practice as well as the formation. Filtering
-     * where the bands generate would have left a player carrying raw stone to the nearest surface lava and
-     * baking it there, which is the same easy harvest with an extra step in it. What a player learns
-     * instead is that shallow lava does nothing, which is a thing the ground can teach.
+     * **It was briefly a rule and that was wrong** (Jonah, same walk). Putting the depth into [bakedAt]
+     * would also have governed the practice — carrying raw stone to shallow lava would have done nothing —
+     * which closes the loophole and makes no physical sense whatever: heat tempers stone because it is
+     * heat, and a player who watched a formation and then reproduced it at the wrong altitude would learn
+     * only that the game had refused them for no reason they could see. **A gate on generation is a fact
+     * about where a thing is found; a gate on the rule is a lie about how it works.**
      *
-     * Thirty-two is the dial: clearly under any waterline, so a lava sea's shore is out and its floor is
-     * in, and anything found by digging works.
+     * So the loophole stays open on purpose: read the bands, carry the stone to any lava, and it tempers.
+     * That is the practice working, and it is the reward for having understood the formation.
      */
     private fun deepEnough(at: BlockPos): Boolean = at.y <= NOTHING_ABOVE
 
+    /** Clearly under any waterline, so a lava sea's shore is out and its floor is in. */
     private const val NOTHING_ABOVE = 32
 
     private const val SCORCHED_BAND = 2

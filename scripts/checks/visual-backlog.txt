@@ -335,12 +335,13 @@
 #     ever. Look along a shore for tempered stone touching lava: it should go scorched. Moving a block too
 #     close by hand should spoil it too. It only ever goes FORWARD -- taking the heat away does not
 #     un-temper anything.
-#   - **AND IT WANTS DEPTH AS WELL AS HEAT: nothing above y=32.** A lava sea's rim yielded enough for the
-#     armour without trying. This is a RULE rather than a placement filter, so it governs the practice too
-#     -- carrying raw stone to shallow lava now does nothing, which is the part a filter would have left
-#     open. Rime is a climb and this is its opposite: the crystals want you a hundred blocks up and the
-#     stone wants you down. `NOTHING_ABOVE` is the dial; judge whether a lava sea still yields ENOUGH once
-#     you go down to its floor.
+#   - **NATURAL FORMATIONS ONLY COOK BELOW y=32.** A lava sea's rim yielded enough for the armour without
+#     trying, so finding it is a descent now. **A gate on GENERATION and deliberately not on the rule** --
+#     it was briefly both and that was reverted: heat tempers stone because it is heat, and a player who
+#     read a formation, reproduced it faithfully at the wrong altitude and got nothing would learn only
+#     that the game had refused them for no reason they could see. So carrying raw stone to ANY lava still
+#     works, and is meant to. `NOTHING_ABOVE` is the dial; judge whether a lava sea still yields enough
+#     once you go down to its floor.
 #   - **THE BAKING WAVE IS HALF AS FAST** (`SPREAD_DELAY` 10 -> 20). It was right in kind and a little
 #     quick to read as a process.
 #
