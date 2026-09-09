@@ -21,9 +21,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * spawning, hurting and ticking, and Fabric API has nothing in this area at all. A shaped entity is simply
  * not a vanilla capability, and this is the one place the list of shapes is assembled.
  *
- * <p><b>Why here rather than at {@code getEntityCollisions}.</b> That is an interface default on
- * {@code EntityGetter}, implemented by several levels; this is the single static method all of them funnel
- * into, so one target serves every caller and there is no risk of catching one level and missing another.
+ * <p><b>Why {@code collectColliders} and not {@code collectAllColliders}</b>, which is the one that reads
+ * like the funnel and is not. {@code Entity.collide} — the actual movement path — calls
+ * {@code getEntityCollisions} itself and then goes to {@code collideBoundingBox}, which reaches
+ * {@code collectColliders} directly; {@code collectAllColliders} is only a convenience wrapper used by a
+ * floor-height query and by outside callers, so a body added there is added to a list nothing moving ever
+ * reads. This one is the genuine funnel: the plain move, the step-up and the wrapper all end here.
  *
  * <p><b>Bodies say they cannot be collided with</b>, so vanilla adds nothing for them and there is nothing
  * to remove here — the shapes are added beside what vanilla found rather than replacing anything, which is
@@ -32,10 +35,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(Entity.class)
 public abstract class EntityCollidersMixin {
 
-    @Inject(method = "collectAllColliders", at = @At("RETURN"), cancellable = true)
+    @Inject(method = "collectColliders", at = @At("RETURN"), cancellable = true)
     private static void agesandtheart$standOnTheRock(
         Entity source,
         Level level,
+        List<VoxelShape> entityColliders,
         AABB boundingBox,
         CallbackInfoReturnable<List<VoxelShape>> collision
     ) {

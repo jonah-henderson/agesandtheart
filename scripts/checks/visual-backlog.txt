@@ -1004,7 +1004,9 @@
 
 # FOURTH WALK 2026-09-09: the sky's cost is "within acceptable limits", and the box was judged too loose --
 # "too easy to stand or shoot at empty space and have it work". SO THE SHAPED COLLIDER IS BUILT:
-#   - **STAND ON ONE AND SHOOT ONE.** A body is its own outline now rather than the cube it weathered from,
+#   - **STAND ON ONE AND SHOOT ONE** (fixed once already -- the first build targeted `collectAllColliders`,
+#     which is named like the collision funnel and is not one, so bodies had NO collision at all).
+#     A body is its own outline now rather than the cube it weathered from,
 #     which was better than a third gaps. Two Mixins, because neither path has a hook:
 #     `Entity.collectAllColliders` for what you stand on, and `Projectile.canHitEntity` for what an arrow
 #     hits. What to settle: standing on a notch should now fail, and a shot into a gap should pass THROUGH
