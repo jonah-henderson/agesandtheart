@@ -77,6 +77,27 @@ class SettingCheck : FunSpec({
         check(dropped matches Span(-1.0, -0.6)) { "a band pushed off the bottom lost its width: $dropped" }
     }
 
+    /**
+     * **A nudge with nothing to nudge leans the axis instead**, which is the difference between `sultry`
+     * meaning something and meaning nothing.
+     *
+     * Sliding keeps a band's width, and a band nothing narrowed is already the whole axis — so there was
+     * nowhere for it to go and every lone shift was quietly dropped. `sultry` is two nudges and nothing
+     * else, and it resolved to the full range on both of its axes.
+     */
+    test("a shift with no band to move leans the whole axis") {
+        val warmer = settled("+0.25")
+        check(warmer matches Span(-0.75, 1.0)) { "a lone nudge did not lean the axis: $warmer" }
+        val cooler = settled("-0.3")
+        check(cooler matches Span(-1.0, 0.7)) { "a lone fall did not lean the axis: $cooler" }
+    }
+
+    /** And a width somebody *did* ask for still slides, so the rule above only reaches what nobody claimed. */
+    test("a shift beside a bound still slides") {
+        val bounded = settled(">0.6", "+5.0")
+        check(bounded matches Span(0.6, 1.0)) { "a bounded band did not keep its width: $bounded" }
+    }
+
     /** Spread says how sure a word is, about the band's own middle. */
     test("a spread widens and narrows around the middle") {
         val wider = settled("0.2..0.4", "~0.1")

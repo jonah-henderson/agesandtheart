@@ -1100,9 +1100,14 @@ object Resolver {
          * [bounds] with every limit and nudge in the sentence settled onto it.
          *
          * After the bend, so an evocative word's pull on the middle survives a nudge to the ends, and
-         * after the grouping, so a word that only leans never divided anything. An axis nobody demanded
-         * but somebody nudged starts from the whole natural range, which is what lets a word lean an Age
-         * warm without narrowing it at all.
+         * after the grouping, so a word that only leans never divided anything.
+         *
+         * **A demand is passed on as a demand and the natural range is not**, which is the whole of
+         * whether a lone nudge does anything. `Setting.settle` slides a band somebody asked for and leans
+         * one nobody did, and it tells the two apart by whether it was given a demand — so seeding the
+         * list with the natural range as a `Fixed` made every axis look claimed, and every shift on an
+         * otherwise-unsaid axis was silently discarded. `sultry` is two nudges and nothing else, and it
+         * resolved to the full range on both of its axes (measured 2026-09-08).
          *
          * A limit that cannot be met at all loses rather than failing the Age: it is the weaker claim, and
          * the demand it argues with was already priced when the groups were formed.
@@ -1111,9 +1116,10 @@ object Resolver {
             val asking = speaking.flatMap(::askingIn)
             if (asking.isEmpty()) return bounds
             return (bounds.keys + asking.map { it.first }).associateWith { axis ->
-                val band = bounds[axis] ?: Span.NATURAL
+                val demanded = bounds[axis]
                 val onThisAxis = asking.filter { it.first == axis }.map { it.second }
-                Setting.settle(listOf(Setting.Fixed(band)) + onThisAxis) ?: band
+                val asked = listOfNotNull(demanded?.let(Setting::Fixed)) + onThisAxis
+                Setting.settle(asked) ?: demanded ?: Span.NATURAL
             }
         }
 

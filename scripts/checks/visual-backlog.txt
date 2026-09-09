@@ -862,3 +862,20 @@
 # Offline first, and it is where all of the above was measured:
 #   ./gradlew :common:preview --args=isle-large      (the top of the ladder — read the deck percentages)
 #   ./gradlew :common:preview --args=isle            (ordinary, and unchanged)
+
+# ══ 21. THREE WORDS THAT MEANT NOTHING, AND NOW MEAN WHAT THEY SAY ═══════════ Fixed 2026-09-08 ══
+# Not really a walk so much as an eye: a nudge on an axis nobody else had spoken about was silently
+# discarded, so `sultry` resolved to the full natural range on BOTH its axes and did nothing at all.
+# `icy` lost four of its dials the same way. Both had been walked before, so both mean something new now.
+#
+/age write sultry1 7 sultry age
+/age write icy1 7 icy age
+#
+# WHAT AN EYE HAS TO SETTLE:
+#   - **IS A SULTRY AGE ACTUALLY WARM AND DAMP?** It resolves to temperature -0.75..1 and humidity
+#     -0.7..1 now, against -1..1 for both before. Jungle-ish rather than merely possible.
+#   - **IS `icy` HAZIER AND ARE ITS CURTAINS BRIGHTER?** air.haze -0.6..1 and aurora.glow -0.5..1 now.
+#     It was already a good Age; this should be more of what it was, not different.
+#   - **AND HAS ANYTHING GOT WORSE?** A lean narrows the range as well as moving it, which is the point --
+#     but `sultry` can no longer draw a cold Age at all, where before it could draw anything. If a word
+#     that leans now feels like a word that demands, `Span.leaned` is where the strength lives.

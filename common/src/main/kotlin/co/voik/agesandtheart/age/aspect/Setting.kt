@@ -87,6 +87,18 @@ sealed interface Setting {
          * Demands intersect, limits clip, and only then do nudges and spreads move what is left. A shift
          * that pushes a band off the end of the axis is slid back rather than clipped: `+1.0` on a hot
          * band means "as hot as this world goes", not "a band of one point at the top".
+         *
+         * **Unless nobody asked for that width, in which case a shift leans the band instead of sliding
+         * it** — and the difference is the whole of whether a lone nudge does anything at all. Sliding
+         * keeps the width, and a band nothing narrowed is already the whole axis, so there is nowhere for
+         * it to go: every shift on it was silently discarded. `sultry` is two nudges and nothing else, and
+         * it resolved to the full range on both axes — a word that parsed, cost ink, read as meaningful
+         * and changed nothing (measured 2026-09-08). Four of `icy`'s dials were inert the same way.
+         *
+         * The width of a band nobody claimed is not a promise, so leaning it is honest: `+0.25` on the
+         * natural axis leaves the upper four fifths of it, which is what "warmer than it would have been"
+         * means when nothing else has spoken. A width somebody *did* claim still slides, so the paragraph
+         * above holds wherever it was ever true.
          */
         fun settle(asked: List<Setting>, natural: Span = Span.NATURAL): Span? {
             val demanded = asked.filterIsInstance<Fixed>().map { it.span }
@@ -111,11 +123,25 @@ sealed interface Setting {
                 )
             }
             val shift = asked.filterIsInstance<Shift>().sumOf { it.by }
-            if (shift != 0.0) band = band.slid(shift, natural)
-            return band
+            if (shift == 0.0) return band
+            val widthWasAskedFor = demanded.isNotEmpty() || asked.any { it is Bound } || spread != 0.0
+            return if (widthWasAskedFor) band.slid(shift, natural) else band.leaned(shift, natural)
         }
     }
 }
+
+/**
+ * This band moved by [by] and **clipped** to [within] — what a nudge does to a width nobody asked for.
+ *
+ * The counterpart to [slid], and see `Setting.settle` for which applies when. Where sliding protects a
+ * width somebody claimed, this gives width up at the trailing end, because the only width here is the
+ * axis's own and a shift that cannot narrow it cannot do anything at all.
+ */
+fun Span.leaned(by: Double, within: Span): Span = Span(
+    (least + by).coerceIn(within.least, within.most),
+    (most + by).coerceIn(within.least, within.most),
+    bend,
+)
 
 /**
  * This band moved by [by], kept whole inside [within].
