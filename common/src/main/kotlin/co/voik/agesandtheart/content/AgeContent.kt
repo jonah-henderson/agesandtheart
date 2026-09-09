@@ -9,6 +9,7 @@ import co.voik.agesandtheart.book.BindLinkingBookFunction
 import co.voik.agesandtheart.book.WriteFoundBookFunction
 import co.voik.agesandtheart.age.phenomena.SandColumn
 import co.voik.agesandtheart.age.phenomena.LavaDroplet
+import co.voik.agesandtheart.age.phenomena.DriftingOre
 import co.voik.agesandtheart.age.phenomena.Meteor
 import co.voik.agesandtheart.age.phenomena.MeteorStorm
 import co.voik.agesandtheart.age.phenomena.VolcanicBomb
@@ -964,6 +965,30 @@ object AgeContent {
         .build(ResourceKey.create(Registries.ENTITY_TYPE, Meteor.ID))
 
     /**
+     * Charged rock adrift at altitude — see [co.voik.agesandtheart.age.phenomena.DriftingOre].
+     *
+     * **Tracked far and updated slowly**, which is the pair its design asks for: the whole point of the
+     * lowest band is to be *seen from the ground* so that up reads as the direction to explore, and a body
+     * that drifts at a fifth of a block a second has nothing worth sending twenty times a second.
+     */
+    val DRIFTING_ORE: EntityType<DriftingOre> = EntityType.Builder
+        .of({ type, level -> DriftingOre(type, level) }, MobCategory.MISC)
+        .sized(DRIFTING_ORE_SIZE, DRIFTING_ORE_SIZE)
+        .clientTrackingRange(DRIFTING_ORE_TRACKING_CHUNKS)
+        .updateInterval(DRIFTING_ORE_UPDATE_TICKS)
+        .build(ResourceKey.create(Registries.ENTITY_TYPE, "drifting_ore".location()))
+
+    private const val DRIFTING_ORE_SIZE = 1.4f
+
+    /**
+     * Sixteen chunks, which is vanilla's own longest (the lightning bolt's) and what the bands need: the
+     * highest sits at the build limit, a quarter of a kilometre over a player at sea level, and a body
+     * nobody is told about cannot be a signpost.
+     */
+    private const val DRIFTING_ORE_TRACKING_CHUNKS = 16
+    private const val DRIFTING_ORE_UPDATE_TICKS = 4
+
+    /**
      * The storm itself, which is a clock standing in the sky.
      *
      * **Tracked much further than it is big**, because it is nothing to look at and everything to look
@@ -1012,6 +1037,7 @@ object AgeContent {
         "lava_droplet".location() to LAVA_DROPLET,
         Meteor.ID to METEOR,
         MeteorStorm.ID to METEOR_STORM,
+        "drifting_ore".location() to DRIFTING_ORE,
     )
 
     val WOUND_ID: Identifier = "wound".location()
