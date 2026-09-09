@@ -3,6 +3,7 @@ package co.voik.agesandtheart
 import co.voik.agesandtheart.age.consequence.Worsening
 import co.voik.agesandtheart.age.consequence.Wounds
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents
+import co.voik.agesandtheart.content.ChargedMetal
 import co.voik.agesandtheart.content.ProtectiveSuit
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
 import co.voik.agesandtheart.age.phenomena.Happenings
@@ -181,6 +182,10 @@ fun init() {
 
     // And what a deretheni suit keeps off its wearer, which is the half of that no attribute can reach.
     ServerTickEvents.END_SERVER_TICK.register(ProtectiveSuit::tick)
+
+    // And every charged machine anybody is standing near — every level, not only the Ages, since crystal
+    // carried home through a book has to work where it is set down.
+    ServerTickEvents.END_SERVER_TICK.register(ChargedMetal::stir)
 
     // Where the wounds are. A wound carries no block entity, so the index is filled by reading each chunk
     // as it loads — see `Wounds`, which dismisses a section off its palette before touching a block.

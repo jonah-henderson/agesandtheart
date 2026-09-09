@@ -1,0 +1,319 @@
+package co.voik.agesandtheart.content
+
+import co.voik.agesandtheart.location
+import kotlin.math.roundToLong
+import net.minecraft.core.BlockPos
+import net.minecraft.core.particles.DustParticleOptions
+import net.minecraft.core.particles.ParticleTypes
+import net.minecraft.core.registries.Registries
+import net.minecraft.resources.ResourceKey
+import net.minecraft.server.MinecraftServer
+import net.minecraft.server.level.ServerLevel
+import net.minecraft.server.level.ServerPlayer
+import net.minecraft.world.damagesource.DamageSource
+import net.minecraft.world.damagesource.DamageType
+import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.EquipmentSlot
+import net.minecraft.world.entity.LivingEntity
+import net.minecraft.world.item.Items
+import net.minecraft.world.phys.AABB
+import net.minecraft.world.phys.Vec3
+
+/**
+ * What a block of arc crystal actually *does* to the metal around it (design §7.1.2) — iron pulls, gold
+ * pushes, and bare copper bites.
+ *
+ * **The reckoning is [Arcs] and this is only the applying**, which is the split worth keeping: what a run
+ * is and how well fed it is can be asked of any `BlockGetter` with no level ticking, and everything here
+ * needs a server, a clock and entities to move.
+ *
+ * **Driven from the players outward, not from the blocks in.** A machine matters where somebody can feel
+ * it, and chunks only tick near players anyway — so the search starts at each player, dismisses nearly
+ * every section off its palette ([Arcs.crystalsNear]), and the machines it finds then reach out to
+ * whatever is in range. That way the cost scales with how many people are about rather than with how much
+ * crystal has ever been laid.
+ *
+ * **A field is the strongest run over you, never the sum of them** ([Arcs.strongest]'s rule, pooled here
+ * across crystals): two arrays crossing are two descriptions of one charge reaching one place, and adding
+ * them would pay a builder twice for a field they can only see once.
+ */
+object ChargedMetal {
+
+    /**
+     * One turn of every charged machine anybody is standing near.
+     *
+     * Called from both loaders' end-of-tick beside `Happenings.tick`; there is no shared event. Not inside
+     * `Happenings`, deliberately — that walks Ages only, and a machine built at home out of crystal
+     * carried back through a book has to work exactly as well as one built where the crystal fell.
+     */
+    fun stir(server: MinecraftServer) {
+        if (server.tickCount % STIRRED_EVERY != 0L) return
+        for (level in server.allLevels) {
+            // Deduplicated across players before anything is driven, or a machine two people are standing
+            // near would pull twice as hard as the one machine a builder laid.
+            val crystals = LinkedHashSet<BlockPos>()
+            for (player in level.players()) {
+                if (player.isSpectator) continue
+                crystals += Arcs.crystalsNear(level, player.position(), LOOKED_FOR_WITHIN)
+            }
+            if (crystals.isNotEmpty()) drive(level, crystals)
+        }
+    }
+
+    private fun drive(level: ServerLevel, crystals: Set<BlockPos>) {
+        val pulling = mutableListOf<Arcs.Run>()
+        val pushing = mutableListOf<Arcs.Run>()
+        val biting = mutableListOf<Arcs.Run>()
+        for (at in crystals) {
+            // **A redstone signal switches a crystal off**, which is the whole of the control surface: the
+            // machine is the arrangement, so the only thing left to say about it is whether it is live.
+            if (level.hasNeighborSignal(at)) continue
+            pulling += Arcs.runsDrivenFrom(level, at, Arcs::attracts)
+            pushing += Arcs.runsDrivenFrom(level, at, Arcs::repels)
+            Arcs.massDrivenFrom(level, at)?.let { biting += it }
+        }
+        field(level, pulling, TOWARD)
+        field(level, pushing, AWAY)
+        for (run in biting) bite(level, run)
+    }
+
+    /**
+     * The pull or the push, applied once to everything either kind of run reaches.
+     *
+     * **Gathered per entity before anything is moved**, because the rule is the strongest run rather than
+     * all of them: applying each run as it is found would have summed them, and a builder cannot see a sum.
+     */
+    private fun field(level: ServerLevel, runs: List<Arcs.Run>, sense: Double) {
+        if (runs.isEmpty()) return
+        val strongest = HashMap<Entity, Arcs.Run>()
+        for (run in runs) {
+            for (entity in level.getEntities(null as Entity?, reachOf(run)) { movedByAField(it) }) {
+                val already = strongest[entity]
+                if (already == null || run.force > already.force) strongest[entity] = run
+            }
+        }
+        for ((entity, run) in strongest) shove(entity, run, sense)
+        for (run in runs) sparkle(level, run, sense)
+    }
+
+    /**
+     * Toward the nearest metal of the run, or away from it — **and it is the metal that pulls, not the
+     * crystal**, which is what makes the shape of a build the shape of its field.
+     *
+     * It falls off across the run's own reach, so a long array is a broad gentle field and a short one is
+     * a hard local yank. That is the same ramp [co.voik.agesandtheart.age.phenomena.DriftingOre] is shoved
+     * on, and for the same reason: a wall should push where a pebble nudges.
+     */
+    private fun shove(entity: Entity, run: Arcs.Run, sense: Double) {
+        val from = entity.position()
+        val nearest = run.blocks.minByOrNull { it.distToCenterSqr(from) } ?: return
+        val toward = Vec3.atCenterOf(nearest).subtract(from)
+        val span = toward.length()
+        if (span < CLOSEST) return
+        val falloff = (1.0 - span / run.reach).coerceAtLeast(NONE)
+        if (falloff <= NONE) return
+        val strength = PULL_AT_ONE_TO_ONE * run.force.coerceAtMost(MOST_FORCE) * falloff * sense
+        entity.push(toward.normalize().scale(strength))
+        // A server that moves a player has to say so, or their own client puts them straight back — the
+        // same flag an explosion sets.
+        if (entity is ServerPlayer) entity.hurtMarked = true
+    }
+
+    /**
+     * What a charged mass of copper does to whatever is in reach of it.
+     *
+     * **Both halves scale with the same ratio**, which is what the design asks of it: much crystal over
+     * little copper gives fast deadly bursts, and a little spread over a lot gives slow light ones down to
+     * a floor. One crystal to one copper block is the anchor — about half a heart a second, noticeably
+     * better than a snow golem and no more.
+     *
+     * **The rate is read off the clock rather than remembered per victim.** A machine that kept a cooldown
+     * per entity would need bookkeeping that goes stale the moment something despawns; the world's own
+     * clock says the same thing and forgets nothing.
+     */
+    private fun bite(level: ServerLevel, run: Arcs.Run) {
+        val force = run.force.coerceAtMost(MOST_FORCE)
+        if (level.gameTime % bitesEvery(force) >= STIRRED_EVERY) return
+        val rods = Arcs.rodsOn(level, run.blocks)
+        val throws = Arcs.reachOfAMast(rods.size)
+        val bitten = if (throws <= NONE) contactWith(run) else fromTheTip(rods, throws)
+        val hurt = bitesFor(force)
+        val source = biting(level)
+        var struck = false
+        for (entity in level.getEntities(null as Entity?, bitten) { it is LivingEntity }) {
+            if ((entity as LivingEntity).hurtServer(level, source, hurt)) struck = true
+        }
+        if (struck) crackle(level, rods, run)
+    }
+
+    /**
+     * How often a machine of this ratio bites, in ticks.
+     *
+     * **Always a whole number of turns**, and that is not tidiness: the bite is timed off the world clock
+     * against [STIRRED_EVERY], so an interval that is not a multiple of it aliases — thirteen ticks lands
+     * on a turn only every sixty-five, which is a machine five times weaker than the number says and no
+     * way to tell from reading it.
+     *
+     * Public and pure because it is the calibration surface: one crystal to one copper block is the anchor
+     * the whole material is tuned against, and reading it off the mechanic is the only way a check stays
+     * true when the mechanic is retuned ([Lures.reachFor] is public for the same reason).
+     */
+    fun bitesEvery(force: Double): Long {
+        val wanted = (ANCHOR_BITE_EVERY / force.coerceAtLeast(CLOSEST)).roundToLong()
+        val turns = (wanted.toDouble() / STIRRED_EVERY).roundToLong().coerceAtLeast(1L)
+        return (turns * STIRRED_EVERY).coerceIn(FASTEST_BITE, SLOWEST_BITE)
+    }
+
+    /** And how hard, on the same ratio and against the same anchor. */
+    fun bitesFor(force: Double): Float =
+        (ANCHOR_BITE * force).coerceIn(LIGHTEST_BITE, HEAVIEST_BITE).toFloat()
+
+    /** How far out a run's field is worth asking about: the metal itself, and its own length past it. */
+    private fun reachOf(run: Arcs.Run): AABB = around(run).inflate(run.reach.toDouble())
+
+    /** Touching the copper itself, which is what a fence with no mast is worth. */
+    private fun contactWith(run: Arcs.Run): AABB = around(run).inflate(AN_ARC)
+
+    private fun around(run: Arcs.Run): AABB =
+        run.blocks.fold(AABB(run.blocks.first())) { box, block -> box.minmax(AABB(block)) }
+
+    /** And with a mast, measured from its tip — so a stack of rods is height as well as reach. */
+    private fun fromTheTip(rods: Set<BlockPos>, throws: Double): AABB {
+        val tip = rods.maxBy { it.y }
+        return AABB.ofSize(Vec3.atCenterOf(tip), throws * 2, throws * 2, throws * 2)
+    }
+
+    /**
+     * Whether a field may move this at all.
+     *
+     * **Chainmail is the shield, and it is a mesh rather than a metaphor** (Jonah, 2026-09-09): a Faraday
+     * cage is a conducting mesh, which is what chainmail is, and vanilla's one armour set with no crafting
+     * recipe had nothing else to be for. It stops the *field* and not the bite — being inside a cage is no
+     * help when you are touching the live thing yourself, which is also what keeps deretheni the answer to
+     * a charged pile.
+     *
+     * Worn by anything, not only a player. A chainmail zombie walking unbothered through a grinder is the
+     * kind of oddity worth keeping.
+     */
+    private fun movedByAField(entity: Entity): Boolean {
+        // Spectators only. A creative player is *not* exempt, and that is deliberate: creative is how this
+        // gets looked at, and a field somebody cannot feel while testing it is a field nobody can tune.
+        if (entity.isSpectator) return false
+        val caged = entity is LivingEntity &&
+            entity.getItemBySlot(EquipmentSlot.CHEST).`is`(Items.CHAINMAIL_CHESTPLATE)
+        return !caged
+    }
+
+    /**
+     * Arc green at the operative end — **the far end of the run**, which is where a field is doing its
+     * work and the only part of a build a player can watch.
+     *
+     * Drawn moving with the sense of the field, so a puller draws inward and a pusher outward and the two
+     * are told apart without a tooltip.
+     */
+    private fun sparkle(level: ServerLevel, run: Arcs.Run, sense: Double) {
+        if (level.random.nextInt(SPARKS_ONE_STIR_IN) != 0) return
+        val end = run.blocks.last()
+        val along = run.along?.let { Vec3.atLowerCornerOf(it.unitVec3i) } ?: Vec3.ZERO
+        val drift = along.scale(SPARK_DRIFT * sense)
+        level.sendParticles(
+            ARC_GREEN,
+            end.x + HALF,
+            end.y + HALF,
+            end.z + HALF,
+            SPARKS_AT_A_TIME,
+            drift.x,
+            drift.y,
+            drift.z,
+            SPARK_SPEED,
+        )
+    }
+
+    /** And a white spark where it bit, which is the one part of this that is not a field. */
+    private fun crackle(level: ServerLevel, rods: Set<BlockPos>, run: Arcs.Run) {
+        val from = rods.maxByOrNull { it.y } ?: run.blocks.first()
+        level.sendParticles(
+            ParticleTypes.ELECTRIC_SPARK,
+            from.x + HALF,
+            from.y + HALF,
+            from.z + HALF,
+            SPARKS_AT_A_TIME,
+            SPARK_SPREAD,
+            SPARK_SPREAD,
+            SPARK_SPREAD,
+            SPARK_SPEED,
+        )
+    }
+
+    /**
+     * The source, remembered against the registries it came out of — `AstriteShardBlock`'s reasoning, for
+     * the same reason: a `DamageSource` holds a `Holder` from that set, so a reload replaces it.
+     */
+    private var biting: Pair<Any, DamageSource>? = null
+
+    private fun biting(level: ServerLevel): DamageSource {
+        val registries = level.registryAccess()
+        biting?.let { (from, made) -> if (from === registries) return made }
+        val made = DamageSource(registries.lookupOrThrow(Registries.DAMAGE_TYPE).getOrThrow(ARC_CURRENT))
+        biting = registries to made
+        return made
+    }
+
+    val ARC_CURRENT: ResourceKey<DamageType> =
+        ResourceKey.create(Registries.DAMAGE_TYPE, "arc_current".location())
+
+    /**
+     * How far from a player a machine is looked for.
+     *
+     * A run may be [Arcs.LONGEST_RUN] long and reaches its own length past its end, so this is what it
+     * takes for the furthest machine that could touch somebody to be found. **The first dial if a sky of
+     * these ever costs anything**, since the section count goes as its cube.
+     */
+    private const val LOOKED_FOR_WITHIN = Arcs.LONGEST_RUN * 2.0
+
+    /** How often the machines turn over. Fine enough to feel continuous, coarse enough to be cheap. */
+    const val STIRRED_EVERY = 5L
+
+    /**
+     * How hard a one-to-one array shoves at point blank, per turn.
+     *
+     * About a third of gravity, so an ordinary array is a drag you lean against and a well-fed one lifts
+     * you. [MOST_FORCE] is what stops an absurd ratio launching anything into orbit.
+     */
+    private const val PULL_AT_ONE_TO_ONE = 0.12
+    private const val MOST_FORCE = 8.0
+    private const val TOWARD = 1.0
+    private const val AWAY = -1.0
+
+    /** What a one-to-one machine bites for and how often — half a heart a second, and the anchor. */
+    private const val ANCHOR_BITE = 1.0
+    private const val ANCHOR_BITE_EVERY = 20.0
+
+    /**
+     * And the ends of both ramps.
+     *
+     * [FASTEST_BITE] is ten ticks because that is vanilla's own invulnerability window: anything faster
+     * would be swallowed rather than felt, and a machine whose extra crystal did nothing is worse than one
+     * that stops improving.
+     */
+    private const val FASTEST_BITE = 10L
+    private const val SLOWEST_BITE = 60L
+    private const val LIGHTEST_BITE = 0.5
+    private const val HEAVIEST_BITE = 12.0
+
+    /** Brilliant electric green — the set's key colour, as violet is the meteors'. */
+    private val ARC_GREEN = DustParticleOptions(0x3C_FF_6A, 1.0f)
+
+    private const val SPARKS_ONE_STIR_IN = 3
+    private const val SPARKS_AT_A_TIME = 2
+    private const val SPARK_DRIFT = 0.08
+    private const val SPARK_SPREAD = 0.25
+    private const val SPARK_SPEED = 0.02
+
+    /** How far past the copper a bare mass is still touching you. */
+    private const val AN_ARC = 0.35
+
+    private const val CLOSEST = 0.001
+    private const val NONE = 0.0
+    private const val HALF = 0.5
+}

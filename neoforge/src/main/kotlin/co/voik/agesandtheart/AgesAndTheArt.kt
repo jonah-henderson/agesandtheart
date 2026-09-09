@@ -1,5 +1,6 @@
 package co.voik.agesandtheart
 
+import co.voik.agesandtheart.content.ChargedMetal
 import co.voik.agesandtheart.content.ProtectiveSuit
 import net.neoforged.neoforge.event.tick.ServerTickEvent
 import co.voik.agesandtheart.age.phenomena.Happenings
@@ -266,6 +267,9 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         Happenings.tick(event.server)
         // And what a deretheni suit keeps off its wearer, which is the half of that no attribute can reach.
         ProtectiveSuit.tick(event.server)
+        // And every charged machine anybody is standing near — every level, not only the Ages, since
+        // crystal carried home through a book has to work where it is set down.
+        ChargedMetal.stir(event.server)
     }
 
     /**

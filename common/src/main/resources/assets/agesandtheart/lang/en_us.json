@@ -101,6 +101,8 @@
   "container.agesandtheart.writers_desk.write_costs": "Write a page — %s bottles of %s",
   "container.agesandtheart.writers_desk.write_short": "Needs %s bottles of %s",
   "container.agesandtheart.writers_desk.write_unpriced": "Write a page",
+  "death.attack.arc_current": "%1$s was electrocuted",
+  "death.attack.arc_current.player": "%1$s was electrocuted while fighting %2$s",
   "death.attack.astrite_shard": "%1$s was cut open on a shard of astrite",
   "death.attack.astrite_shard.player": "%1$s was cut open on a shard of astrite while fighting %2$s",
   "device.agesandtheart.already_known": "You already know the word for %s",

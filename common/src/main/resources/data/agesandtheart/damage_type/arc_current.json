@@ -1,0 +1,6 @@
+{
+  "_comment": "The bite of a charged run of copper. Scaled like a mob's, since a machine is something somebody built and pointed at you.",
+  "message_id": "arc_current",
+  "scaling": "when_caused_by_living_non_player",
+  "exhaustion": 0.1
+}

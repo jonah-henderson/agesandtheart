@@ -1,13 +1,18 @@
 package co.voik.agesandtheart.content
 
 import co.voik.agesandtheart.location
+import kotlin.math.roundToInt
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.core.SectionPos
 import net.minecraft.core.registries.Registries
 import net.minecraft.tags.TagKey
 import net.minecraft.world.level.BlockGetter
+import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.phys.Vec3
 
 /**
  * What a block of arc crystal is powering, and how hard — the reckoning behind every charged machine
@@ -31,7 +36,14 @@ object Arcs {
 
     /** One run of metal a crystal is powering: which way it lies, how long, and how well fed. */
     data class Run(
-        val along: Direction,
+        /**
+         * Which way it lies, or **null for copper**, which conducts as a mass and so has no direction.
+         *
+         * The two shapes share this type because they share everything that is read off it — how far the
+         * charge carries, and how well fed it is — and splitting them would have bought a field nobody
+         * asks for.
+         */
+        val along: Direction?,
         val blocks: List<BlockPos>,
         val crystal: Int,
     ) {
@@ -107,6 +119,20 @@ object Arcs {
     }
 
     /**
+     * The mass of copper this crystal is the one to drive, or null where it drives none.
+     *
+     * [runsDrivenFrom]'s rule, applied to the shape that has no direction: a mass with two crystals on it
+     * is one machine, and left alone both walks would find the same copper and bite twice.
+     */
+    fun massDrivenFrom(level: BlockGetter, at: BlockPos): Run? {
+        val mass = copperAround(level, at)
+        if (mass.isEmpty()) return null
+        val touching = crystalsAround(level, mass)
+        if (touching.minWithOrNull(POSITION_ORDER) != at) return null
+        return Run(along = null, blocks = mass.toList(), crystal = touching.size)
+    }
+
+    /**
      * The connected mass of unweathered copper touching [at], six ways, up to [MOST_IN_A_MASS].
      *
      * Capped for the reason [LavaTubes] caps its own: a mass is walked from a block change, and a player
@@ -144,6 +170,77 @@ object Arcs {
     }
 
     /**
+     * The lightning rods standing on [mass] — **the mast a charged fence throws from**.
+     *
+     * Walked outward through the rods themselves as well as off the copper, because a stack of them is one
+     * mast rather than one rod repeated: what a builder puts up is a spire, and only its tip throws.
+     */
+    fun rodsOn(level: BlockGetter, mass: Collection<BlockPos>): Set<BlockPos> {
+        val found = LinkedHashSet<BlockPos>()
+        val queue = ArrayDeque<BlockPos>()
+        mass.forEach { block -> Direction.entries.forEach { queue.addLast(block.relative(it)) } }
+        while (queue.isNotEmpty() && found.size < MOST_ON_A_MAST) {
+            val next = queue.removeFirst()
+            if (next in found) continue
+            if (!level.getBlockState(next).`is`(Blocks.LIGHTNING_ROD)) continue
+            found += next
+            Direction.entries.forEach { queue.addLast(next.relative(it)) }
+        }
+        return found
+    }
+
+    /**
+     * How far a charged mass bites past itself, given the rods on it — nothing at all without one.
+     *
+     * The first rod is worth four blocks and each after it one more, so a mast is worth building and worth
+     * stopping: thirteen rods reach [FURTHEST_A_MAST_THROWS] and a fourteenth buys nothing.
+     */
+    fun reachOfAMast(rods: Int): Double = when {
+        rods <= 0 -> BY_CONTACT
+        else -> (FIRST_ROD_REACHES + (rods - 1)).coerceAtMost(FURTHEST_A_MAST_THROWS).toDouble()
+    }
+
+    /**
+     * Every block of arc crystal within [within] of [around] — **found by scanning, and not indexed**.
+     *
+     * [Lures] carries the whole argument and it holds here for the same reason: a section's palette says
+     * whether it holds any at all, so all but a handful are dismissed without a single block being read,
+     * and there is nothing to keep up to date, nothing to go stale when a chunk unloads, and no
+     * bookkeeping to get wrong. An index would have wanted a block class, two block-change hooks and a
+     * per-level map to buy back a cost that is not being paid.
+     */
+    fun crystalsNear(level: Level, around: Vec3, within: Double): List<BlockPos> {
+        val found = mutableListOf<BlockPos>()
+        val middle = BlockPos.containing(around)
+        val reach = within.roundToInt()
+        val fromX = SectionPos.blockToSectionCoord(middle.x - reach)
+        val toX = SectionPos.blockToSectionCoord(middle.x + reach)
+        val fromZ = SectionPos.blockToSectionCoord(middle.z - reach)
+        val toZ = SectionPos.blockToSectionCoord(middle.z + reach)
+        val holds = { state: BlockState -> state.`is`(AgeContent.ARC_CRYSTAL_BLOCK_BLOCK) }
+        for (chunkX in fromX..toX) {
+            for (chunkZ in fromZ..toZ) {
+                val chunk = level.chunkSource.getChunkNow(chunkX, chunkZ) ?: continue
+                for (index in chunk.sections.indices) {
+                    val bottom = chunk.getSectionYFromSectionIndex(index) * SECTION
+                    // Bounded up and down as well as sideways. A column is two dozen sections and all but
+                    // a few are nowhere near the asker; skipping them costs a comparison where reading a
+                    // palette costs a lookup.
+                    if (bottom + SECTION < middle.y - reach || bottom > middle.y + reach) continue
+                    val states = chunk.sections[index]
+                    if (states.hasOnlyAir() || !states.maybeHas(holds)) continue
+                    for (x in 0..<SECTION) for (y in 0..<SECTION) for (z in 0..<SECTION) {
+                        if (!holds(states.getBlockState(x, y, z))) continue
+                        val at = BlockPos(chunk.pos.minBlockX + x, bottom + y, chunk.pos.minBlockZ + z)
+                        if (at.distToCenterSqr(around) <= within * within) found += at
+                    }
+                }
+            }
+        }
+        return found
+    }
+
+    /**
      * **The three currents, as tags of ours** — what pulls, what pushes, and what bites.
      *
      * Tags rather than a list in code, so a pack can add a metal without touching the jar and the three
@@ -165,8 +262,17 @@ object Arcs {
     private val POSITION_ORDER = compareBy<BlockPos>({ it.x }, { it.y }, { it.z })
 
     /** How far one run of iron or gold may reach. A long array is a build, not a bug. */
-    private const val LONGEST_RUN = 32
+    const val LONGEST_RUN = 32
 
     /** And how much copper one charge may run through, for the reason [LavaTubes] caps a mass. */
     private const val MOST_IN_A_MASS = 256
+
+    /** And how tall a mast may be. Past [FURTHEST_A_MAST_THROWS] rods there is nothing left to buy. */
+    private const val MOST_ON_A_MAST = 32
+
+    private const val BY_CONTACT = 0.0
+    private const val FIRST_ROD_REACHES = 4
+    private const val FURTHEST_A_MAST_THROWS = 16
+
+    private const val SECTION = 16
 }
