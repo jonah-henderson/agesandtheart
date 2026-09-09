@@ -83,14 +83,18 @@ object Arcs {
         at: BlockPos,
         metal: (BlockState) -> Boolean,
         live: (BlockPos) -> Boolean = ANY,
+        worth: (BlockState) -> Int = WORTH,
     ): List<Run> = Direction.entries.mapNotNull { heading ->
         val blocks = lineFrom(level, at, heading, metal)
         if (blocks.isEmpty()) return@mapNotNull null
-        // One walk, answering both questions. Asking `crystalsAround` again to elect a driver was a
-        // second walk of the same thirty-two blocks for a set already in hand.
-        val feeding = supplyingCrystal(level, blocks).filter(live)
-        if (feeding.minWithOrNull(POSITION_ORDER) != at) return@mapNotNull null
-        Run(heading, blocks, supplyOf(level, feeding))
+        // **Two questions, and they take two different sets.** Who drives is settled among the crystals
+        // *touching* the metal, because those are the only ones that could; what it is worth is the whole
+        // pile behind them. Electing over the pile — one walk answering both, which is what this was for a
+        // day — hands the run to whichever block of a bank happens to sort lowest, and that block has no
+        // metal beside it to drive, so a bank against a bar drove nothing at all.
+        val touching = crystalsAround(level, blocks, worth).filter(live)
+        if (touching.minWithOrNull(POSITION_ORDER) != at) return@mapNotNull null
+        Run(heading, blocks, supplyOf(level, supplyingCrystal(level, blocks, worth).filter(live), worth))
     }
 
     /**
@@ -132,12 +136,20 @@ object Arcs {
      * of copper apart is two machines' worth of metal, force is per mass so each half is diluted to match,
      * and the alternative is an uncapped flood fill run from a block change.
      */
-    fun massDrivenFrom(level: BlockGetter, at: BlockPos, live: (BlockPos) -> Boolean = ANY): Run? {
+    fun massDrivenFrom(
+        level: BlockGetter,
+        at: BlockPos,
+        live: (BlockPos) -> Boolean = ANY,
+        worth: (BlockState) -> Int = WORTH,
+    ): Run? {
         val mass = copperAround(level, at)
         if (mass.isEmpty()) return null
-        val feeding = supplyingCrystal(level, mass).filter(live)
-        if (feeding.minWithOrNull(POSITION_ORDER) != at) return null
-        return Run(along = null, blocks = mass.toList(), crystal = supplyOf(level, feeding))
+        // Touching elects, the pile pays — see [runsDrivenFrom], which explains what electing over the
+        // pile costs.
+        val touching = crystalsAround(level, mass, worth).filter(live)
+        if (touching.minWithOrNull(POSITION_ORDER) != at) return null
+        val feeding = supplyingCrystal(level, mass, worth).filter(live)
+        return Run(along = null, blocks = mass.toList(), crystal = supplyOf(level, feeding, worth))
     }
 
     /**
@@ -169,8 +181,11 @@ object Arcs {
      *
      * Takes the crystals rather than finding them, because every caller has just walked for them.
      */
-    fun supplyOf(level: BlockGetter, crystals: Collection<BlockPos>): Int =
-        crystals.sumOf { worthOf(level.getBlockState(it)) }
+    fun supplyOf(
+        level: BlockGetter,
+        crystals: Collection<BlockPos>,
+        worth: (BlockState) -> Int = WORTH,
+    ): Int = crystals.sumOf { worth(level.getBlockState(it)) }
 
     /** What one block of crystal is worth to a machine — two while a bolt's charge is still in it. */
     fun worthOf(state: BlockState): Int = when {
@@ -193,16 +208,21 @@ object Arcs {
      * is the pile against it, and a pile against some *other* metal on the far side of the same build is
      * that machine's supply rather than this one's.
      *
-     * It is also what makes the driver election stable, since every crystal in one pile now sees the same
-     * set and elects the same winner.
+     * **It is not what elects a driver**, and saying otherwise cost a walk: every crystal in a pile does
+     * see the same set here, but the winner of that election need not be touching the metal at all, and a
+     * driver with no metal beside it drives nothing. [runsDrivenFrom] elects among the touching layer.
      */
-    fun supplyingCrystal(level: BlockGetter, blocks: Collection<BlockPos>): Set<BlockPos> {
+    fun supplyingCrystal(
+        level: BlockGetter,
+        blocks: Collection<BlockPos>,
+        worth: (BlockState) -> Int = WORTH,
+    ): Set<BlockPos> {
         val found = LinkedHashSet<BlockPos>()
-        val queue = ArrayDeque(crystalsAround(level, blocks))
+        val queue = ArrayDeque(crystalsAround(level, blocks, worth))
         while (queue.isNotEmpty() && found.size < MOST_IN_A_PILE) {
             val next = queue.removeFirst()
             if (next in found) continue
-            if (!level.getBlockState(next).`is`(AgeContent.ARC_CRYSTAL_BLOCK_BLOCK)) continue
+            if (worth(level.getBlockState(next)) <= NOTHING_AT_ALL) continue
             found += next
             Direction.entries.forEach { queue.addLast(next.relative(it)) }
         }
@@ -210,13 +230,17 @@ object Arcs {
     }
 
     /** And which touch it, which is where [supplyingCrystal] starts its walk. */
-    fun crystalsAround(level: BlockGetter, blocks: Collection<BlockPos>): Set<BlockPos> {
+    fun crystalsAround(
+        level: BlockGetter,
+        blocks: Collection<BlockPos>,
+        worth: (BlockState) -> Int = WORTH,
+    ): Set<BlockPos> {
         val found = LinkedHashSet<BlockPos>()
         for (block in blocks) {
             for (heading in Direction.entries) {
                 val beside = block.relative(heading)
                 if (beside in found) continue
-                if (level.getBlockState(beside).`is`(AgeContent.ARC_CRYSTAL_BLOCK_BLOCK)) found += beside
+                if (worth(level.getBlockState(beside)) > NOTHING_AT_ALL) found += beside
             }
         }
         return found
@@ -332,6 +356,16 @@ object Arcs {
 
     /** Everything counts, for a caller with no notion of a crystal being switched off. */
     private val ANY: (BlockPos) -> Boolean = { true }
+
+    /**
+     * What a block is worth, ordinarily — **injected for the reason the metal already is**.
+     *
+     * Both halves of a machine are then a predicate the caller hands in, which is what lets the driver
+     * election be checked without a server: `AgeContent` cannot be class-initialised offline (the item
+     * registry is frozen by then, and building one throws "can't create intrusive holders"), so a check
+     * that had to name the real block could only ever be a walk.
+     */
+    private val WORTH: (BlockState) -> Int = ::worthOf
 
     private const val NOTHING_AT_ALL = 0
 
