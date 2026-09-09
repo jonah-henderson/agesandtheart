@@ -338,21 +338,13 @@
 # against an iron golem's 100 and 15, swinging every 15 ticks rather than 20.
 # The violet tint is a placeholder and Jonah is not concerned about it until the asset pass.
 
-# ══ 13. THE ASTRITE LURE ═══════════════════ WALKED AND GOOD 2026-09-09; ONE FIX TO RE-READ ══
+# ══ 13. THE ASTRITE LURE ═══════════════════════════ WALKED AND GOOD 2026-09-09 ══
 # All nine settled: storms are twenty minutes apart rather than thirty seconds, a lure block reads as one
 # only above y=288, the rings are drawn about the CLUSTER and widen with it, the column stands for the
 # whole storm and is visible from the ground, the storm comes to the lure, the disc tightens to one chunk,
-# the violet cast narrows with it, standing in a floored storm is not survivable, and losing what you built
-# there is a real cost.
-#
-# ONE FIX TO RE-READ, and it is the second time this has drifted:
-#   - **THE SKY'S ANGLE AND THE ROCK'S ANGLE ARE ONE LINE AGAIN.** A storm sits on the ground at ITS OWN
-#     spot; a body lands elsewhere in the disc, on terrain of its own height. The sky drew its approach
-#     converging on the storm's height and the throw aimed at the body's, so every block of difference
-#     tilted the flight against the light that announced it -- a body landing twenty blocks below the
-#     storm centre flew at 36 degrees where 30 had been drawn, which is why it showed most around 30-40.
-#     Both ends now ask `MeteorStorm.landingOf`. Watch a lured storm on UNEVEN ground especially, and at a
-#     forced shallow angle (`/age meteors 60 15 0 10 look`) where the error was largest.
+# the violet cast narrows with it, standing in a floored storm is not survivable, and losing what you
+# built there is a real cost. The sky's angle and the rock's angle are one line again (see decisions.md --
+# they shared the angle all along and disagreed about the point the line ends at) and that is confirmed.
 
 # ══ 11. THE METEOR STORM ═══════════════════════════ WALKED AND GOOD 2026-09-09 ══
 # Jonah: "all looking fantastic, probably my favourite of the phenomena". The arrival reads as a storm
