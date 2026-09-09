@@ -1,5 +1,9 @@
 package co.voik.agesandtheart.content
 
+import co.voik.agesandtheart.worldgen.feature.TemperedGround
+import net.minecraft.core.BlockPos
+import net.minecraft.server.level.ServerLevel
+import net.minecraft.util.RandomSource
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.state.BlockState
@@ -20,6 +24,26 @@ import net.minecraft.world.level.block.state.BlockState
  */
 @Suppress("VIRTUAL_MEMBER_HIDDEN")
 class TemperstoneBlock(properties: BlockBehaviour.Properties) : Block(properties) {
+
+    /**
+     * **Heat that reaches tempered stone spoils it**, which is the second half of the rule the ground
+     * teaches and was not happening at all.
+     *
+     * The bands are laid at generation against the lava as it stood then, and a lava sea settles after
+     * that — so tempered stone ended up sitting against lava and stayed tempered for ever, which reads as
+     * the rule being decorative (Jonah, 2026-09-09, walked). It also means a player who moves a block too
+     * close now sees it spoil, where before only *raw* stone answered to heat and the finished material
+     * was immune to the hazard it was made in.
+     *
+     * **Only ever forward.** `bakedAt` answers with whatever band a position is in, raw included, so this
+     * takes the scorched answer and no other: tempering is a change you made to the material and taking
+     * the heat away does not undo it.
+     */
+    override fun randomTick(state: BlockState, level: ServerLevel, at: BlockPos, random: RandomSource) {
+        val spoiled = TemperedGround.bakedAt(level, at) ?: return
+        if (!spoiled.`is`(AgeContent.SCORCHED_TEMPERSTONE_BLOCK)) return
+        level.setBlockAndUpdate(at, spoiled)
+    }
 
     fun isStickyBlock(state: BlockState): Boolean = bindsToItsOwnKind(state)
 

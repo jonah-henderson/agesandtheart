@@ -559,6 +559,8 @@ object AgeContent {
             .mapColor(MapColor.DEEPSLATE)
             .strength(TEMPERSTONE_STRENGTH, BLAST_PROOF)
             .sound(SoundType.BASALT)
+            // So heat that reaches it can spoil it — see TemperstoneBlock.randomTick.
+            .randomTicks()
             .requiresCorrectToolForDrops(),
     )
 

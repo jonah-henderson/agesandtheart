@@ -49,7 +49,12 @@ class RawTemperstoneBlock(properties: BlockBehaviour.Properties) : Block(propert
     }
 
     private companion object {
-        /** Long enough to watch it travel, short enough that a pile is done while you are still there. */
-        const val SPREAD_DELAY = 10
+        /**
+         * Long enough to watch it travel, short enough that a pile is done while you are still there.
+         *
+         * **Halved in speed 2026-09-09** (Jonah): the wave was right in kind and a little quick to read as
+         * a process rather than as a flash.
+         */
+        const val SPREAD_DELAY = 20
     }
 }

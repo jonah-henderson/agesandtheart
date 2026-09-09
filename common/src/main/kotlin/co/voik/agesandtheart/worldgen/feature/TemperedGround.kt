@@ -46,6 +46,7 @@ object TemperedGround : Feature<NoneFeatureConfiguration>(NoneFeatureConfigurati
             for (offsetZ in 0..<CHUNK) {
                 for (y in level.minY..<(level.minY + level.height)) {
                     cursor.set(origin.x + offsetX, y, origin.z + offsetZ)
+                    if (!deepEnough(cursor)) continue
                     val isHeat = level.getBlockState(cursor).`is`(COOKS_STONE)
                     if (isHeat && touchesAnythingElse(level, cursor)) found += cursor.immutable()
                 }
@@ -94,6 +95,7 @@ object TemperedGround : Feature<NoneFeatureConfiguration>(NoneFeatureConfigurati
      * is what stops the lesson and the practice drifting apart.
      */
     fun bakedAt(level: BlockGetter, at: BlockPos): BlockState? {
+        if (!deepEnough(at)) return null
         val heat = distanceToLava(level, at) ?: return null
         val baked = becomes(heat)
         return baked.takeIf { !level.getBlockState(at).`is`(baked.block) }
@@ -146,6 +148,26 @@ object TemperedGround : Feature<NoneFeatureConfiguration>(NoneFeatureConfigurati
      * generous reach would put more of the material in one Age than the economy is worth. The raw band is
      * the widest because it is the one meant to be carried away.
      */
+    /**
+     * **Heat alone does not temper stone; it wants depth with it** — nothing above [NOTHING_ABOVE].
+     *
+     * A lava sea's rim yielded enough for the armour without anybody trying, which is not what a material
+     * gated on "an Age that is hot *and* substantially lava" is worth (Jonah, 2026-09-09, walked). Rime is
+     * a climb and this is its opposite: the crystals want you a hundred blocks up and the stone wants you
+     * down, so the two early materials ask for opposite journeys rather than both being surface work.
+     *
+     * **A rule and not a placement filter**, so it governs the practice as well as the formation. Filtering
+     * where the bands generate would have left a player carrying raw stone to the nearest surface lava and
+     * baking it there, which is the same easy harvest with an extra step in it. What a player learns
+     * instead is that shallow lava does nothing, which is a thing the ground can teach.
+     *
+     * Thirty-two is the dial: clearly under any waterline, so a lava sea's shore is out and its floor is
+     * in, and anything found by digging works.
+     */
+    private fun deepEnough(at: BlockPos): Boolean = at.y <= NOTHING_ABOVE
+
+    private const val NOTHING_ABOVE = 32
+
     private const val SCORCHED_BAND = 2
     private const val TEMPERED_BAND = 4
     private const val RAW_BAND = 6

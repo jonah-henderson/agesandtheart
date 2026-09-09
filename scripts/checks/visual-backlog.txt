@@ -322,44 +322,31 @@
 # the chunk it falls in and no more, now that it narrows with the lure's disc; and the debug forms drive it
 # at every angle and intensity without waiting on weather.
 
-# ══ 9. TEMPERSTONE'S THREE BANDS HAVE NEVER BEEN SEEN ════════════════════════ Built 2026-09-06 ══
-# The whole design is that ONE FORMATION TEACHES THE RULE: stone too close to lava comes out scorched and
-# worthless, stone at the right remove is temperstone, stone beyond that never changed. If a player cannot
-# read that off the ground without being told, the material has no reason to exist in this shape.
+# ══ 9. TEMPERSTONE'S THREE BANDS ══════ WALKED 2026-09-09; THREE FIXES TO RE-READ ══
+# The formation teaches the rule, the scorched band reads as the toll rather than a second reward, the
+# climbers feel like climbing (and hold you when you let go), the boot-slot trade against the skates is a
+# real choice, and the piston works on NeoForge too -- the "dead" piston was vanilla's twelve-block push
+# limit all along, which slime hits identically.
 #
-# The gate is checked offline (`EarlyGameRareMaterialsCheck`, 5 tests) and the `forbidden` fence is checked
-# on a server (`scripts/checks/temperstone.txt` — all three exploit compositions were refused). Neither can
-# see a placed block: there is no block census command, and `/age probe` reads the generator rather than
-# what decoration laid down.
+# THREE FIXES TO RE-READ:
+#   - **TEMPERED STONE SPOILS NOW IF THE HEAT REACHES IT.** Only RAW stone answered to heat, so the
+#     finished material was immune to the hazard it was made in -- and the bands are laid at generation
+#     against the lava as it stood then, so a settling lava sea left temperstone sitting against lava for
+#     ever. Look along a shore for tempered stone touching lava: it should go scorched. Moving a block too
+#     close by hand should spoil it too. It only ever goes FORWARD -- taking the heat away does not
+#     un-temper anything.
+#   - **AND IT WANTS DEPTH AS WELL AS HEAT: nothing above y=32.** A lava sea's rim yielded enough for the
+#     armour without trying. This is a RULE rather than a placement filter, so it governs the practice too
+#     -- carrying raw stone to shallow lava now does nothing, which is the part a filter would have left
+#     open. Rime is a climb and this is its opposite: the crystals want you a hundred blocks up and the
+#     stone wants you down. `NOTHING_ABOVE` is the dial; judge whether a lava sea still yields ENOUGH once
+#     you go down to its floor.
+#   - **THE BAKING WAVE IS HALF AS FAST** (`SPREAD_DELAY` 10 -> 20). It was right in kind and a little
+#     quick to read as a process.
 #
-# Composed, not written: no word reaches a numeric temperature span yet, so the gate sentence is still open.
-/age compose baked 11 landmass=hills sea=lava rock=solid sky=plain climate.temperature=0.6..0.9
-/age tp baked
-#
-# WHAT A WALK HAS TO SETTLE:
-#   - WALKED 2026-09-06: bands were close but cramped, so they are now scorched 1-2, temperstone 3-4, raw
-#     5-6. Heat is the `#agesandtheart:cooks_stone` tag rather than lava, so plasma can cook later. Look
-#     again at the widths -- and note the search was ALREADY six-way, so a band that looks flat is the
-#     gradient meeting a surface rather than the rule ignoring the vertical.
-#   - Whether one lava sea yields far too much temperstone. The bands are a skin on the contact area,
-#     which for a sea is large.
-#   - That the scorched band reads as SPOILED rather than as a second reward. It is the toll.
-#   - WALKED 2026-09-06: the practice works and was far too slow. Baking now SPREADS -- one baked block
-#     schedules its raw neighbours -- so a pile converts as a wave from the first random tick. Check the
-#     pace again; `SPREAD_DELAY` is the dial.
-#   - **THE CLIMBERS.** Any temperstone face, from any side, wearing them. Vanilla has no free-climb, so
-#     there is nothing to compare it to -- does it feel like climbing, or like sticking to a wall?
-#     Stopping should HOLD YOU IN PLACE, forward or jump should rise, sneak should descend. The thing to
-#     try to break is letting go of everything halfway up.
-#   - That the boot-slot trade against the skates is a real choice and not a dominated one.
-#   - THE PISTON IS SETTLED ON FABRIC and it works. It was reported dead; it is vanilla's TWELVE-BLOCK
-#     push limit, which slime hits identically. Measured over RCON: one block pushes, 2x2x2 pushes as one,
-#     3x3x3 does not move and the piston does not extend. `notes/decisions.md` has the rig.
-#     **STILL WALK IT ON NEOFORGE** -- that half is entirely different code (plain methods on
-#     `TemperstoneBlock` that are overrides only at runtime) and would fail silently if a signature drifted.
-#   - NOT BUILT AND DELIBERATELY: the underside. Hanging from a temperstone roof was cut with ceiling
-#     walking rather than shipped as its cheap half -- design 7.4 carries the argument.
-#   - NOT BUILT: scorched temperstone currently grinds into nothing at all, the station being deferred.
+# NOT BUILT AND DELIBERATELY: the underside (hanging from a temperstone roof was cut in favour of ceiling
+# walking -- design 7.4 carries it), and scorched temperstone grinding into anything, the station being
+# deferred.
 
 # ══ 6. THE FOUR SEAM FORMS, AFTER THE FIXES ══════════════════ Built 2026-07-30, UNWALKED SINCE ══
 # Carried forward from the old list, and now unwalked across the 26.1 upgrade as well. All four seeded 4242
