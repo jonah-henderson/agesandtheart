@@ -650,7 +650,7 @@ object AgeContent {
         BlockBehaviour.Properties.of()
             .setId(ResourceKey.create(Registries.BLOCK, TOOLBOX_ID))
             .mapColor(MapColor.WOOD)
-            .strength(WOODEN_STRENGTH)
+            .strength(SET_DOWN_OFTEN)
             .sound(SoundType.WOOD),
     )
 
@@ -713,6 +713,16 @@ object AgeContent {
 
     /** A cabinet's, which is what both of these are. */
     private const val WOODEN_STRENGTH = 2.5f
+
+    /**
+     * A leaf's, and the toolbox has it because **it is luggage rather than furniture** (Jonah,
+     * 2026-09-09).
+     *
+     * Everything else made of wood here is built once and stands; this one is carried, set down where the
+     * work is and picked up again, so a wooden block's two and a half seconds of chopping is paid over and
+     * over for nothing. It keeps its contents when it comes away, so there is nothing to protect either.
+     */
+    private const val SET_DOWN_OFTEN = 0.2f
 
     private val ANALYSIS_MACHINE_ID: Identifier = "analysis_machine".location()
 
