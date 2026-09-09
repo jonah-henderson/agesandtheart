@@ -456,37 +456,9 @@
 # LEFT FOR THE INSTABILITY PASS (Jonah): "extremely unstable" is hard to reach. Not tuned here because the
 # thresholds are the instability system's rather than the instrument's.
 
-# ══ 16. EIGHT RIME CRYSTALS, COMPARATORS AND POWERED GLOW ════════════════════ Built 2026-09-07 ══
-# Rime crystals come in eight colours now, they read out on a comparator, and they brighten when powered.
-#
-# **FIRST, THE THING ITEM 5 WAS WRONG ABOUT.** Jonah reported finding none in a cliffs/frozen/blizzard
-# Age. They were there -- the save held **4807 of them across 277 chunks**, y -3 to 214, median 168,
-# every one facing HORIZONTALLY out of a vertical wall. Placement is fine and item 5's question changes:
-# it is not "do they grow" but "can you SEE one", and there are three reasons you could not.
-#   1. They grow sideways out of cliff faces, so from the clifftop you are standing on them.
-#   2. They were pale ice-blue on snow, packed ice and blue ice -- camouflaged against the exact terrain
-#      their own gate guarantees. **THE EIGHT COLOURS SHOULD LARGELY FIX THIS**; check that they do.
-#   3. The Age has a blizzard, which cuts the view to about eleven blocks. **THE REWARD'S OWN GATE
-#      BLINDS YOU.** Look between storms, or `/weather clear`. Judge whether that tension is acceptable.
-#
-/age compose rimea 4242 landmass=cliffs sea=water rock=solid sky=plain climate.temperature=-0.9..-0.6 phenomena.happens=blizzard
-#   -- and in Jonah's own save, a known one is at 26 77 1.
-#
-# WHAT A WALK HAS TO SETTLE:
-#   - **DO THE EIGHT READ AS EIGHT?** red, orange, yellow, green, cyan, indigo, magenta, white. They are
-#     tints over vanilla's amethyst cluster until the asset pass, so the question is whether the hues are
-#     far enough apart to tell at cliff distance -- especially indigo against magenta.
-#   - **COLOUR IS PER OUTCROP, NOT PER CRYSTAL.** A 24-block cell hashed off the seed, so one face comes
-#     out one colour and a long range changes every so often. If it reads as confetti the cell is too
-#     small; if a whole Age looks monochrome it is too big.
-#   - **A COMPARATOR READS THE COLOUR**, 1 to 8 in spectrum order -- red 1 through white 8. That order is
-#     deliberate: it is the rainbow, so the table is learnable without being told. Check a comparator
-#     against a placed crystal gives the number you expect.
-#   - **POWERED THEM BRIGHTENS THEM**, light 4 at rest to 12 with a signal on it. **THE LIGHT IS NOT
-#     COLOURED AND CANNOT BE** -- block light is one channel with no hue, so the crystal glows in its
-#     colour and what it shines on is ordinary white. Judge whether that lands or reads as a miss.
-#   - Every recipe and the pickaxe gate ask for `#agesandtheart:rime_crystals`, so skates should craft
-#     from ANY colour. Try an odd one.
+# ══ 16. EIGHT RIME CRYSTALS ════════════════════════ WALKED AND GOOD 2026-09-09 ══
+# Eight colours off one model and one tint, a comparator reads which colour a crystal is, and a powered
+# one glows where an unpowered one -- and every crystal the world grew -- does not.
 
 # ══ 17. THE ROOFED AGE'S FACE SHADING ═══════ WALKED AND DROPPED 2026-09-09 ══
 # A negative result, and the cheapest kind to get. `age_lightless_roofed` carried
