@@ -492,13 +492,18 @@ object AgeContent {
      * Force is crystal *per metal block*, so an ambitious array is paid for in these rather than in
      * loose crystal — which is the whole of what makes building the sink.
      */
-    val ARC_CRYSTAL_BLOCK_BLOCK: Block = Block(
+    val ARC_CRYSTAL_BLOCK_BLOCK: Block = ArcCrystalBlock(
         BlockBehaviour.Properties.of()
             .setId(ResourceKey.create(Registries.BLOCK, ARC_CRYSTAL_BLOCK_ID))
             .mapColor(MapColor.EMERALD)
             .strength(ARC_CRYSTAL_BLOCK_STRENGTH, ARC_CRYSTAL_BLOCK_RESISTANCE)
             .sound(SoundType.AMETHYST)
-            .lightLevel { ARC_CRYSTAL_BLOCK_GLOW }
+            // **A charged pile says so from across a cavern**, which is the only warning it gives before
+            // you walk up to collect it.
+            .lightLevel { state ->
+                if (state.getValue(ArcCrystalBlock.CHARGE) > ArcCrystalBlock.FLAT) CHARGED_CRYSTAL_GLOW
+                else ARC_CRYSTAL_BLOCK_GLOW
+            }
             .requiresCorrectToolForDrops(),
     )
 
@@ -510,6 +515,7 @@ object AgeContent {
     /** Faint on its own and brighter in bulk, so a stack of blocks reads as the power supply it is. */
     private const val ARC_CRYSTAL_GLOW = 4
     private const val ARC_CRYSTAL_BLOCK_GLOW = 7
+    private const val CHARGED_CRYSTAL_GLOW = 14
 
     private const val ARC_CRYSTAL_STRENGTH = 1.5f
     private const val ARC_CRYSTAL_BLOCK_STRENGTH = 5.0f

@@ -917,3 +917,37 @@
 # NOT BUILT YET, so do not look for it: shaped collision (a body is an axis-aligned box for now, so you
 # cannot stand on the notches), being carried by one, the tether, the arc-green particles, and every one of
 # the charged-metal machines. Textures are stand-ins -- emerald and amethyst until the asset pass.
+
+# ══ 23. THE CHARGED MACHINES ═══════════════════════════════════════════════ Built 2026-09-09 ══
+# Arc crystal's second use, and it needs no Age at all -- build it in the overworld in creative. The
+# material's whole thesis is that the reward is the force you spent the acquisition fighting, so what this
+# has to settle is whether owning that force FEELS like the payoff.
+#
+# GIVE YOURSELF: arc crystal blocks, iron blocks, gold blocks, copper blocks, lightning rods, a chainmail
+# chestplate, redstone. Nothing here is gated -- /give works.
+#
+# WHAT A WALK HAS TO SETTLE:
+#   - **THE ANCHOR.** One arc crystal block touching one copper block, and stand in it. Should be about
+#     half a heart a second -- noticeably better than a snow golem and no more. Every other number in the
+#     material is set against this one, so if it feels wrong say so before anything else is tuned.
+#   - **DOES THE SHAPE OF THE BUILD READ AS THE SHAPE OF THE FIELD?** Lay a line of iron blocks out from a
+#     crystal. The pull should reach about as far as the line is long, and be a broad gentle drag for a
+#     long line and a hard local yank for a short one. Gold is the same thing pushing.
+#   - **IS MORE METAL WEAKER?** Stretch that iron line without adding crystal. It should reach further and
+#     pull *less*, which is what makes the sink building rather than fuel. Add a second crystal and it
+#     should come back.
+#   - **CAN YOU FEEL IT AS A PLAYER?** You are attracted too -- a big array should be a movement mechanic
+#     and a hazard at once. Then put on a **chainmail chestplate**: the field should stop dead and the
+#     copper should still bite. (That split is deliberate; a cage is no help when you are touching the
+#     live thing.)
+#   - **THE TURRET.** Stand a lightning rod on a charged copper mass. One rod buys four blocks of range
+#     from the TIP; each further rod one more, to sixteen. Stack them and see the reach climb.
+#   - **THE STORM.** Write a tempest Age, build a pile of arc crystal blocks with a rod on top, and wait.
+#     A bolt should light the whole pile up (light level 14, so it is obvious) and everything it feeds
+#     should double. Then try to mine it back -- that is meant to hurt, and deretheni is the answer.
+#     The charge drains as it bites and does not survive being picked up.
+#   - **AND THE SWITCH.** Redstone into a crystal turns it off. Whole machine, immediately.
+#
+# NOT BUILT: the tether/lift, and the maintainer's log. The numbers live in `ChargedMetal` and its check
+# has the ramps; the check can say the anchor is 1 damage per 20 ticks, but only a walk can say whether
+# that is the right anchor.

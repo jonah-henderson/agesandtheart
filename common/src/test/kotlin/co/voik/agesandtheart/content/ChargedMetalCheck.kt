@@ -23,6 +23,23 @@ class ChargedMetalCheck : FunSpec({
     }
 
     /**
+     * **A bolt doubles a machine, and that is the whole of what the lightning buys.**
+     *
+     * A charged crystal is worth two ([ArcCrystalBlock]), so a machine reading its supply comes out at
+     * twice the ratio with nothing about storms written into it. What that has to mean at the anchor is
+     * literally double: twice the damage, twice as often.
+     */
+    test("a bolt doubles the anchor machine") {
+        val charged = ONE_TO_ONE * ArcCrystalBlock.CHARGED_IS_WORTH
+        check(ChargedMetal.bitesFor(charged) == HALF_A_HEART * 2) {
+            "a charged anchor bit for ${ChargedMetal.bitesFor(charged)} rather than double"
+        }
+        check(ChargedMetal.bitesEvery(charged) == A_SECOND / 2) {
+            "a charged anchor bit every ${ChargedMetal.bitesEvery(charged)} ticks rather than twice as often"
+        }
+    }
+
+    /**
      * **The aliasing trap, and it is the reason this ramp is a function at all.**
      *
      * A bite is timed off the world clock against `ChargedMetal.STIRRED_EVERY`, so an interval that is not

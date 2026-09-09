@@ -69,7 +69,7 @@ object Arcs {
     fun runsFrom(level: BlockGetter, at: BlockPos, metal: (BlockState) -> Boolean): List<Run> =
         Direction.entries.mapNotNull { heading ->
             val blocks = lineFrom(level, at, heading, metal)
-            if (blocks.isEmpty()) null else Run(heading, blocks, crystalAround(level, blocks))
+            if (blocks.isEmpty()) null else Run(heading, blocks, supplyAround(level, blocks))
         }
 
     /**
@@ -129,7 +129,7 @@ object Arcs {
         if (mass.isEmpty()) return null
         val touching = crystalsAround(level, mass)
         if (touching.minWithOrNull(POSITION_ORDER) != at) return null
-        return Run(along = null, blocks = mass.toList(), crystal = touching.size)
+        return Run(along = null, blocks = mass.toList(), crystal = supplyAround(level, mass))
     }
 
     /**
@@ -152,9 +152,22 @@ object Arcs {
         return found
     }
 
-    /** How many blocks of arc crystal touch any part of [blocks] — the supply, wherever it was stacked. */
-    fun crystalAround(level: BlockGetter, blocks: Collection<BlockPos>): Int =
-        crystalsAround(level, blocks).size
+    /**
+     * What the arc crystal touching any part of [blocks] is worth — the supply, wherever it was stacked.
+     *
+     * **A worth rather than a count, because a charged block is worth two** ([ArcCrystalBlock]). Reading
+     * the lightning here is what lets it reach the pull, the push and the bite at once: none of them knows
+     * about storms, and all three double when one lands.
+     */
+    fun supplyAround(level: BlockGetter, blocks: Collection<BlockPos>): Int =
+        crystalsAround(level, blocks).sumOf { worthOf(level.getBlockState(it)) }
+
+    /** What one block of crystal is worth to a machine — two while a bolt's charge is still in it. */
+    fun worthOf(state: BlockState): Int = when {
+        !state.`is`(AgeContent.ARC_CRYSTAL_BLOCK_BLOCK) -> NOTHING_AT_ALL
+        state.getValue(ArcCrystalBlock.CHARGE) > ArcCrystalBlock.FLAT -> ArcCrystalBlock.CHARGED_IS_WORTH
+        else -> ArcCrystalBlock.ORDINARY_IS_WORTH
+    }
 
     /** And which they are, which is what [runsDrivenFrom] needs to pick one of them. */
     fun crystalsAround(level: BlockGetter, blocks: Collection<BlockPos>): Set<BlockPos> {
@@ -167,6 +180,30 @@ object Arcs {
             }
         }
         return found
+    }
+
+    /**
+     * The pile of arc crystal a bolt landing at [at] has reached, walking **through the mast as well as
+     * through the crystal**.
+     *
+     * A rod that drew a strike is usually standing on the pile rather than in it, and a tall mast is
+     * several rods before the crystal starts — so a walk that only knew about crystal would charge nothing
+     * in exactly the arrangement the design tells a player to build.
+     */
+    fun pileStruckAt(level: BlockGetter, at: BlockPos): Set<BlockPos> {
+        val crystal = LinkedHashSet<BlockPos>()
+        val walked = HashSet<BlockPos>()
+        val queue = ArrayDeque(listOf(at) + Direction.entries.map { at.relative(it) })
+        while (queue.isNotEmpty() && walked.size < MOST_IN_A_PILE) {
+            val next = queue.removeFirst()
+            if (!walked.add(next)) continue
+            val state = level.getBlockState(next)
+            val isCrystal = state.`is`(AgeContent.ARC_CRYSTAL_BLOCK_BLOCK)
+            if (!isCrystal && !state.`is`(Blocks.LIGHTNING_ROD)) continue
+            if (isCrystal) crystal += next
+            Direction.entries.forEach { queue.addLast(next.relative(it)) }
+        }
+        return crystal
     }
 
     /**
@@ -261,6 +298,8 @@ object Arcs {
     /** Any total order will do — see [runsDrivenFrom] for why only the agreeing matters. */
     private val POSITION_ORDER = compareBy<BlockPos>({ it.x }, { it.y }, { it.z })
 
+    private const val NOTHING_AT_ALL = 0
+
     /** How far one run of iron or gold may reach. A long array is a build, not a bug. */
     const val LONGEST_RUN = 32
 
@@ -269,6 +308,9 @@ object Arcs {
 
     /** And how tall a mast may be. Past [FURTHEST_A_MAST_THROWS] rods there is nothing left to buy. */
     private const val MOST_ON_A_MAST = 32
+
+    /** And how much of a pile one bolt charges, for the reason a mass is capped. */
+    private const val MOST_IN_A_PILE = 512
 
     private const val BY_CONTACT = 0.0
     private const val FIRST_ROD_REACHES = 4

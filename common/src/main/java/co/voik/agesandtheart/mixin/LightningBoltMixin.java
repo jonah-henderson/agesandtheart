@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.mixin;
 
 import co.voik.agesandtheart.age.phenomena.Tempest;
+import co.voik.agesandtheart.content.ChargedMetal;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LightningBolt;
@@ -61,6 +62,10 @@ public abstract class LightningBoltMixin {
         LightningBolt bolt = (LightningBolt) (Object) this;
         if (bolt.level() instanceof ServerLevel level) {
             Tempest.struck(level, bolt, this.getStrikePosition());
+            // And a pile of arc crystal under the rod that drew it is now charged — see
+            // ChargedMetal#struck. Beside the tempest rather than in it: a bolt charges a pile in any
+            // world, where a tempest is something only an Age has.
+            ChargedMetal.INSTANCE.struck(level, this.getStrikePosition());
         }
     }
 }

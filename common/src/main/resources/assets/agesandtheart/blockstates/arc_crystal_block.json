@@ -1,4 +1,36 @@
 {
-  "_comment": "minecraft:block/emerald_block stands in until the model pass -- green, and it is what a drifting body's crystal cells are drawn as.",
-  "variants": { "": { "model": "minecraft:block/emerald_block" } }
+  "_comment": [
+    "minecraft:block/emerald_block stands in until the model pass -- green, and it is what a drifting body's",
+    "crystal cells are drawn as.",
+    "",
+    "Every charge wears the same model on purpose: what a charged block does differently is *glow*, which is",
+    "on the block's properties (AgeContent) and needs no variant. Eight entries because a blockstate file has",
+    "to answer for every state, not because eight of them look different."
+  ],
+  "variants": {
+    "charge=0": {
+      "model": "minecraft:block/emerald_block"
+    },
+    "charge=1": {
+      "model": "minecraft:block/emerald_block"
+    },
+    "charge=2": {
+      "model": "minecraft:block/emerald_block"
+    },
+    "charge=3": {
+      "model": "minecraft:block/emerald_block"
+    },
+    "charge=4": {
+      "model": "minecraft:block/emerald_block"
+    },
+    "charge=5": {
+      "model": "minecraft:block/emerald_block"
+    },
+    "charge=6": {
+      "model": "minecraft:block/emerald_block"
+    },
+    "charge=7": {
+      "model": "minecraft:block/emerald_block"
+    }
+  }
 }

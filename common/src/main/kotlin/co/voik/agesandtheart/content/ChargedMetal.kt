@@ -71,10 +71,28 @@ object ChargedMetal {
             pulling += Arcs.runsDrivenFrom(level, at, Arcs::attracts)
             pushing += Arcs.runsDrivenFrom(level, at, Arcs::repels)
             Arcs.massDrivenFrom(level, at)?.let { biting += it }
+            // **A charged block bites on its own account**, with no copper anywhere near it — it *is* a
+            // live conductor. That is what makes collecting a pile the game rather than a chore: the
+            // reward for drawing a bolt is a hazard you built and now have to mine.
+            liveOnItsOwn(level, at)?.let { biting += it }
         }
         field(level, pulling, TOWARD)
         field(level, pushing, AWAY)
         for (run in biting) bite(level, run)
+    }
+
+    /**
+     * A charged crystal read as a machine of one block, or null where the bolt's charge is spent.
+     *
+     * Its own worth over its own block, so a charged one comes out at exactly twice the anchor: two damage
+     * every ten ticks, which is a wall somebody has to answer rather than walk through. A mast on it
+     * throws that as far as a mast on copper does, which is the design's scene exactly — the rod that drew
+     * the bolt is now the turret.
+     */
+    private fun liveOnItsOwn(level: ServerLevel, at: BlockPos): Arcs.Run? {
+        val state = level.getBlockState(at)
+        if (state.getValue(ArcCrystalBlock.CHARGE) <= ArcCrystalBlock.FLAT) return null
+        return Arcs.Run(along = null, blocks = listOf(at), crystal = Arcs.worthOf(state))
     }
 
     /**
@@ -139,11 +157,71 @@ object ChargedMetal {
         val bitten = if (throws <= NONE) contactWith(run) else fromTheTip(rods, throws)
         val hurt = bitesFor(force)
         val source = biting(level)
-        var struck = false
+        var bit = false
         for (entity in level.getEntities(null as Entity?, bitten) { it is LivingEntity }) {
-            if ((entity as LivingEntity).hurtServer(level, source, hurt)) struck = true
+            if ((entity as LivingEntity).hurtServer(level, source, hurt)) bit = true
         }
-        if (struck) crackle(level, rods, run)
+        if (!bit) return
+        crackle(level, rods, run)
+        spendACharge(level, run)
+    }
+
+    /**
+     * What a bite costs the crystal feeding it — **one discharge from every charged block on the machine**.
+     *
+     * So a pile lasts the number of discharges the bolt left in it whatever its size, which is what "the
+     * whole pile for some number of discharges" means: stacking more crystal buys force, and only another
+     * storm buys more time.
+     *
+     * Nothing is spent by a pull or a push. A field is the charge sitting there being read; a bite is the
+     * charge leaving.
+     */
+    private fun spendACharge(level: ServerLevel, run: Arcs.Run) {
+        // **The whole pile, not the block that happened to bite.** Every charged block in a pile offers a
+        // bite each turn and vanilla's invulnerability window lets exactly one of them land, so charging
+        // only the winner would have made a big pile last as many times longer as it was big — which is
+        // the opposite of "the whole pile for some number of discharges".
+        val feeding = Arcs.crystalsAround(level, run.blocks) +
+            run.blocks.filter { level.getBlockState(it).`is`(AgeContent.ARC_CRYSTAL_BLOCK_BLOCK) }
+                .flatMap { Arcs.pileStruckAt(level, it) }
+        for (at in feeding) {
+            val state = level.getBlockState(at)
+            if (!state.`is`(AgeContent.ARC_CRYSTAL_BLOCK_BLOCK)) continue
+            val left = state.getValue(ArcCrystalBlock.CHARGE)
+            if (left <= ArcCrystalBlock.FLAT) continue
+            level.setBlockAndUpdate(at, state.setValue(ArcCrystalBlock.CHARGE, left - 1))
+        }
+    }
+
+    /**
+     * A bolt coming down on a pile of arc crystal, which fills it (design §7.1.2).
+     *
+     * Called from `LightningBoltMixin` beside `Tempest.struck` — the one seam that fires once per bolt,
+     * server side, with the trap's harmless flashes already filtered out.
+     *
+     * **A tempest Age charges the crystal and scours the copper in the same stroke**, vanilla's own
+     * `clearCopperOnLightningStrike` doing the second half: the world that gives you the material is where
+     * the machines run best, with no maintenance economy needing to be written.
+     */
+    fun struck(level: ServerLevel, at: BlockPos) {
+        val pile = Arcs.pileStruckAt(level, at)
+        if (pile.isEmpty()) return
+        for (block in pile) {
+            val state = level.getBlockState(block)
+            level.setBlockAndUpdate(block, state.setValue(ArcCrystalBlock.CHARGE, ArcCrystalBlock.FULLY_CHARGED))
+        }
+        val middle = pile.first()
+        level.sendParticles(
+            ARC_GREEN,
+            middle.x + HALF,
+            middle.y + HALF,
+            middle.z + HALF,
+            SPARKS_ON_A_STRIKE,
+            SPARK_SPREAD,
+            SPARK_SPREAD,
+            SPARK_SPREAD,
+            SPARK_SPEED,
+        )
     }
 
     /**
@@ -306,6 +384,9 @@ object ChargedMetal {
 
     private const val SPARKS_ONE_STIR_IN = 3
     private const val SPARKS_AT_A_TIME = 2
+
+    /** And what a bolt landing on a pile throws, which should be seen from wherever you were sheltering. */
+    private const val SPARKS_ON_A_STRIKE = 60
     private const val SPARK_DRIFT = 0.08
     private const val SPARK_SPREAD = 0.25
     private const val SPARK_SPEED = 0.02
