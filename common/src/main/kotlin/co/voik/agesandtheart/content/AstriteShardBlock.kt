@@ -82,8 +82,16 @@ class AstriteShardBlock(properties: BlockBehaviour.Properties) :
         /** A cactus's, which is what was asked for and what a player already knows the feel of. */
         private const val CUTS_FOR = 1.0f
 
-        /** Slighter than vanilla's full cluster: a shard rather than a growth. */
-        private const val SHARD_HEIGHT = 5.0f
-        private const val SHARD_WIDTH = 3.0f
+        /**
+         * How far it stands off the face it grew on, and how wide it is — **both in pixels**, which is
+         * what `AmethystClusterBlock` takes and what the width was written as though it were not.
+         *
+         * Three pixels across is a needle: vanilla's *smallest* bud is eight and its full cluster is ten,
+         * so this was a sixteenth of a block wide and near enough impossible to click or to be cut by
+         * (Jonah, 2026-09-09, walked). Ten across and six tall now — a shard rather than a growth, which
+         * was the intent all along, and the height is where that reads rather than the width.
+         */
+        private const val SHARD_HEIGHT = 6.0f
+        private const val SHARD_WIDTH = 10.0f
     }
 }

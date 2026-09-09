@@ -82,14 +82,24 @@ object ImpactCrater : Feature<CraterScale>(CraterScale.CODEC) {
         if (offset == UNMOVED) return
         if (submerged(level, x, z)) return
         val surface = groundAt(level, x, z)
+        // **Whatever is *standing* on the column as well as the column itself.** The ground heightmap
+        // counts what blocks motion, and grass, bushes and flowers do not — so carving to it took the dirt
+        // out from under a meadow and left it hanging (Jonah, 2026-09-09, walked: "trees, grass, bushes
+        // floating in the air"). Leaves are missed the same way. An impact leaves none of it.
+        val standing = topOf(level, x, z)
         if (offset < UNMOVED) {
-            for (y in surface + offset + ONE..surface) level.setBlock(BlockPos(x, y, z), AIR, Block.UPDATE_CLIENTS)
+            for (y in surface + offset + ONE..maxOf(surface, standing)) {
+                level.setBlock(BlockPos(x, y, z), AIR, Block.UPDATE_CLIENTS)
+            }
             return
         }
         val top = level.getBlockState(BlockPos(x, surface, z))
         val under = level.getBlockState(BlockPos(x, surface - ONE, z))
         for (y in surface + ONE..surface + offset) level.setBlock(BlockPos(x, y, z), under, Block.UPDATE_CLIENTS)
         level.setBlock(BlockPos(x, surface + offset, z), top, Block.UPDATE_CLIENTS)
+        // And nothing left poking out of what was thrown over it: a trunk taller than the rim is buried
+        // to the rim's height and would otherwise stand out of the top of it.
+        for (y in surface + offset + ONE..standing) level.setBlock(BlockPos(x, y, z), AIR, Block.UPDATE_CLIENTS)
     }
 
     /**
@@ -183,15 +193,27 @@ object ImpactCrater : Feature<CraterScale>(CraterScale.CODEC) {
         level.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, x, z) - ONE
 
     /**
-     * Whether this column stands under water.
+     * And the top of *anything at all* in the column, plants and leaves included.
      *
-     * Two heightmaps rather than a block read: one counts fluid and the other does not, so their
-     * disagreement *is* the depth. Carving under water would leave an air pocket that nothing floods until
-     * something updates it, so submerged columns are simply left alone and a crater by the shore stops at
-     * the waterline.
+     * The difference between this and [groundAt] is exactly what a meadow standing on the ground is, which
+     * is what the carve has to take with it.
+     */
+    private fun topOf(level: WorldGenLevel, x: Int, z: Int): Int =
+        level.getHeight(Heightmap.Types.WORLD_SURFACE_WG, x, z) - ONE
+
+    /**
+     * Whether this column stands under water. Carving under water would leave an air pocket that nothing
+     * floods until something updates it, so submerged columns are left alone and a crater by the shore
+     * stops at the waterline.
+     *
+     * **A fluid read rather than two heightmaps**, which is what this used and what made it wrong. The
+     * old test was that the surface heightmap stood above the ground one, on the reasoning that only water
+     * could be between them — and a blade of grass is between them too, so every decorated column on land
+     * read as submerged and would have been skipped outright the moment anything else asked about what was
+     * standing on it. Asking whether the block above the ground holds fluid is the question that was meant.
      */
     private fun submerged(level: WorldGenLevel, x: Int, z: Int): Boolean =
-        level.getHeight(Heightmap.Types.WORLD_SURFACE_WG, x, z) > level.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, x, z)
+        !level.getFluidState(BlockPos(x, groundAt(level, x, z) + ONE, z)).isEmpty
 
     private fun spread(random: RandomSource, within: Int): Int = random.nextInt(within * TWICE + ONE) - within
 

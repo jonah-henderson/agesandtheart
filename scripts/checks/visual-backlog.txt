@@ -445,47 +445,25 @@
 # draw puts most stars in the MIDDLE of the axis — neutral — however far apart the ends are. Biasing the
 # draw toward the ends will do at least as much as widening it, and probably more.
 
-# ══ 14. OLD CRATERS, AND THE SHARD AS A BLOCK ════════════════════════════════ Built 2026-09-07 ══
-# §5.2's trickle route. A meteoric Age wears the craters of storms that fell before you arrived, and a
-# shard of astrite is now a block you can set into a wall.
+# ══ 14. OLD CRATERS ═══════════════════ WALKED AND GOOD 2026-09-09; TWO FIXES TO RE-READ ══
+# The craters read as impacts, the four profiles are tellable apart, twinned ones were found, the biggest
+# have no straight-edged bite, and the shard places on all six facings, cuts with its own damage type and
+# gives itself back. The trickle rate is settled too and deliberately mean: one shard unlocks the upgrade
+# block and that is its primary use, so making them rare is right -- the point is to push a player into
+# solving the CATCH at an authoring level (a sea Age, a honey surface, teeming meteors) rather than by
+# block-building (Jonah, 2026-09-09).
 #
-# HEADLESS ALREADY SAYS: no exceptions, no far-chunk writes, and no measurable cost
-# (scripts/checks/craters.txt). What it CANNOT say is whether they look like craters, which is all of
-# what is left.
-#
-/age write pocked 4242 meteors phenomena age
-/age write hammered 4242 teeming meteors phenomena age
-#   -- `hammered` has them twice as often and is the fastest way to find one at all. Fly `pocked` for
-#      what the common case actually feels like; the rarity is 1 chunk in 28 for small and 1 in 420 for
-#      large at an ordinary rung, so a large one is a genuine hunt.
-#
-#   - **DO THEY READ AS IMPACTS?** Bowl below grade, raised rim, debris fraying outward past it. The
-#     thing to judge is whether the rim looks WEATHERED or looks like a circle with noise on it.
-#   - **FOUR PROFILES, AND YOU SHOULD BE ABLE TO TELL THEM APART.** A plain bowl; a wide shallow saucer;
-#     a narrow steep punch with a floor rather than a point; and -- only on large ones -- a PEAKED one
-#     with a hill rebounded at its middle. If they all read the same, the shares in `Profile` are wrong.
-#   - **AND ABOUT ONE IN SIX IS TWINNED** -- a second smaller body beside the first. It should read as
-#     one event, not two circles: the later hole cuts the earlier one's rim away rather than walling it.
-#   - The floor is BARE, whatever the rock under the Age is. That is deliberate (Jonah): surface rules
-#     run before features, and re-laying turf would mean guessing at rules that differ per Age.
-#   - **SIZE CEILING IS REAL AND WORTH SEEING.** The biggest hole is 32 blocks across, ~46 with its rim.
-#     That is the chunk pyramid's write radius, not taste. If one has a straight-edged bite out of it,
-#     the WHOLE_CRATER arithmetic is wrong -- and the log will have said "setBlock in a far chunk".
-#
-# **THE SHARDS.** Small craters keep 0 or 1; large ones 0 to 5, clustered near the middle where the carve
-# certainly reached rock rather than soil.
-/give @s agesandtheart:astrite_shard 64
-#   - It is a BLOCK ITEM now -- place it on a floor, a wall and a ceiling, all six facings.
-#   - **IT CUTS.** A cactus's damage exactly, every tick you are against it. Death message should say
-#     astrite, not cactus -- that is a damage type of ours and the one place the pack does not borrow
-#     vanilla's.
-#   - Breaking one gives the shard back, so it is build material as well as crafting material.
-#   - Placeholder art: vanilla's amethyst cluster texture under our violet, shortened. Owed a real one.
-#
-# **THE ECONOMY QUESTION ONLY A PLAY SESSION SETTLES:** is this enough to bootstrap the FIRST astrite
-# without being enough to replace the storms? A small crater every 28 chunks at even odds of a shard is
-# roughly one shard per 56 chunks explored; a block costs nine and a full lure 243. If it feels like a
-# grind, SMALL_EVERY is the dial. If shards are lying everywhere, SMALL_KEEPS is.
+# TWO FIXES TO RE-READ:
+#   - **NOTHING SHOULD FLOAT OVER A CRATER NOW.** The carve read the ground off a heightmap that counts
+#     what blocks MOTION -- and grass, bushes and flowers do not -- so it took the dirt out from under a
+#     meadow and left it hanging. It clears whatever is standing on the column too now, and buries what a
+#     rim is thrown over. Fly `hammered` and look for anything left in the air, especially at a crater's
+#     edge where it crosses into a chunk that was decorated first.
+#   - **AND THE SHARD IS CLICKABLE.** Its hitbox was THREE pixels across, against vanilla's smallest bud at
+#     eight, so it was a sixteenth of a block wide -- near enough impossible to click or to be cut by. Ten
+#     across and six tall now.
+#   - Watch also that a crater by the SHORE still stops at the waterline: the submerged test used to be
+#     two heightmaps disagreeing, which a blade of grass also does, so it is a fluid read now.
 
 # ══ 15. THE SEISMOGRAPH ═══════════════ WALKED 2026-09-09; ONE THING FOR THE INSTABILITY PASS ══
 # Built, read, and all five criteria settled: its own screen, the states, live updating while open, never
