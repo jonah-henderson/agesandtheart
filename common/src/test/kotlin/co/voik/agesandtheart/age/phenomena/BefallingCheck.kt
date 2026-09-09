@@ -28,6 +28,8 @@ class BefallingCheck : FunSpec({
         // it eats the budget from the bottom and the failure surfaces here as a *sandfall* going unbought.
         // SpendingCheck's "prices every manifestation" test guards its own copy and cannot see this one.
         Manifestation.METEORS to Price(costs = 7, most = 4),
+        // One step rather than four: an inferno has no designed ramp — see `Manifestation.INFERNO`.
+        Manifestation.INFERNO to Price(costs = 7, most = 1),
         Manifestation.WORSENING_WOUNDS to Price(costs = 9, most = 3),
         Manifestation.COLLAPSE to Price(costs = 14, most = 3),
     )

@@ -1,0 +1,17 @@
+{
+  "_comment": [
+    "What it costs an Age's instability budget to be set alight (design 5.0, 5.2).",
+    "",
+    "Priced with the sandfall, the blizzard and the meteor storm, on the argument all four share: this is",
+    "difficulty you can answer rather than a verdict you cannot. Fire goes out in rain by vanilla's own",
+    "rule, so an inflicted inferno in a wet Age is a nuisance and in a dry one is a siege -- and which of",
+    "those it is falls out of the Age's own climate rather than out of anything written here.",
+    "",
+    "`most` is ONE, where its three neighbours are four. They each buy a designed ramp -- how often, how",
+    "long, how hard -- and an inferno has none: what a written one does is a fact about the sun rather than",
+    "a dial. So this either happens or it does not, which is a complete thing to say. A ramp would have to",
+    "be designed in `Inferno.burn` before it could be priced here."
+  ],
+  "costs": 7,
+  "most": 1
+}

@@ -97,6 +97,23 @@ enum class Manifestation(val key: String) : StringRepresentable {
     METEORS("meteors"),
 
     /**
+     * The Age is set alight (design §5.2) — the sun scours frost off the ground and lights whatever will
+     * burn, in a world that was never written to be fiery.
+     *
+     * **One step and no ramp, deliberately** (Jonah, 2026-09-09, adding it to the list). The three above
+     * it each buy a designed ramp — how often, how long, how hard — and an inferno has none: what a
+     * written one does is a fact about the sun, not a dial. So instability either sets the Age alight or
+     * it does not, which is a complete thing to say rather than a ramp invented to match its neighbours.
+     * If the instability pass wants a ramp, `Inferno.burn` is where one would have to be designed first.
+     *
+     * **It is difficulty you can answer, like its neighbours**, and more sharply than most: rain puts fire
+     * out by vanilla's own rule, so an inflicted inferno in a wet Age is a nuisance and in a dry one is a
+     * siege. That an Age's own climate decides which is the best thing about it, and none of it is written
+     * here.
+     */
+    INFERNO("inferno"),
+
+    /**
      * The world comes apart at the bottom (design §5.3) — fissures open at the world floor and widen, and
      * what falls in is put back in the overworld.
      *

@@ -80,7 +80,7 @@ enum class Phenomenon(
      * And the rain that does fall is the lull rather than a leak: `FireBlock` puts itself out in it, so an
      * inferno Age gets its build-and-repair rhythm from vanilla with nothing written for it (§5.2.2).
      */
-    INFERNO("inferno"),
+    INFERNO("inferno", inflictedBy = Manifestation.INFERNO),
 
     /**
      * A curtain of light standing over the cold — the first phenomenon that is *seen* rather than done.
