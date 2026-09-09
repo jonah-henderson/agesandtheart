@@ -60,6 +60,37 @@ object Arcs {
             if (blocks.isEmpty()) null else Run(heading, blocks, crystalAround(level, blocks))
         }
 
+    /**
+     * The runs this crystal is the one to drive — **the same runs, minus the ones somebody else is already
+     * driving**, which is how two crystals on one bar stop counting it twice.
+     *
+     * `crystal — iron — iron — iron — crystal` is one bar and two walks find it, once from each end. Both
+     * see the same three blocks and both see both crystals, so both come out at the same force — and left
+     * alone the bar would pull twice as hard as anything a player could read off it. Naming one driver per
+     * run is the whole fix, and it needs no ownership bookkeeping: **the run picks its own driver** from
+     * the crystals already touching it, so nothing distant can change the answer.
+     *
+     * The lowest position wins, which is arbitrary and has to be — what matters is only that every crystal
+     * on a run agrees, and a position sorts the same way from either end.
+     */
+    fun runsDrivenFrom(level: BlockGetter, at: BlockPos, metal: (BlockState) -> Boolean): List<Run> =
+        runsFrom(level, at, metal).filter { drives(level, it, at) }
+
+    private fun drives(level: BlockGetter, run: Run, crystal: BlockPos): Boolean =
+        crystalsAround(level, run.blocks).minWithOrNull(POSITION_ORDER) == crystal
+
+    /**
+     * The strongest of [runs] acting on one thing, **never their sum**.
+     *
+     * Two runs that overlap are two ways of describing the same charge reaching the same place, so adding
+     * them would pay a player twice for one field. It also means an underfed long array cannot be topped
+     * up by laying a short one across it: what the ground feels is the best single run over it, which is
+     * the number the builder can see.
+     *
+     * Runs from *different* crystals are pooled by whatever is applying them; this is the rule they pool by.
+     */
+    fun strongest(runs: Collection<Run>): Run? = runs.maxByOrNull { it.force }
+
     private fun lineFrom(
         level: BlockGetter,
         at: BlockPos,
@@ -96,16 +127,20 @@ object Arcs {
     }
 
     /** How many blocks of arc crystal touch any part of [blocks] — the supply, wherever it was stacked. */
-    fun crystalAround(level: BlockGetter, blocks: Collection<BlockPos>): Int {
-        val counted = HashSet<BlockPos>()
+    fun crystalAround(level: BlockGetter, blocks: Collection<BlockPos>): Int =
+        crystalsAround(level, blocks).size
+
+    /** And which they are, which is what [runsDrivenFrom] needs to pick one of them. */
+    fun crystalsAround(level: BlockGetter, blocks: Collection<BlockPos>): Set<BlockPos> {
+        val found = LinkedHashSet<BlockPos>()
         for (block in blocks) {
             for (heading in Direction.entries) {
                 val beside = block.relative(heading)
-                if (beside in counted) continue
-                if (level.getBlockState(beside).`is`(AgeContent.ARC_CRYSTAL_BLOCK_BLOCK)) counted += beside
+                if (beside in found) continue
+                if (level.getBlockState(beside).`is`(AgeContent.ARC_CRYSTAL_BLOCK_BLOCK)) found += beside
             }
         }
-        return counted.size
+        return found
     }
 
     /**
@@ -125,6 +160,9 @@ object Arcs {
     fun attracts(state: BlockState): Boolean = state.`is`(ATTRACTIVE)
 
     fun repels(state: BlockState): Boolean = state.`is`(REPULSIVE)
+
+    /** Any total order will do — see [runsDrivenFrom] for why only the agreeing matters. */
+    private val POSITION_ORDER = compareBy<BlockPos>({ it.x }, { it.y }, { it.z })
 
     /** How far one run of iron or gold may reach. A long array is a build, not a bug. */
     private const val LONGEST_RUN = 32
