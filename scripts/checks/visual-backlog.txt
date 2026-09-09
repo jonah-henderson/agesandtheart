@@ -718,44 +718,21 @@
 # roughly one shard per 56 chunks explored; a block costs nine and a full lure 243. If it feels like a
 # grind, SMALL_EVERY is the dial. If shards are lying everywhere, SMALL_KEEPS is.
 
-# ══ 15. THE SEISMOGRAPH HAS NEVER BEEN BUILT OR READ ═════════════════════════ Built 2026-09-07 ══
-# The last of the astrite chain, and the desk's second reading instrument. Says whether an Age's ground
-# will HOLD, where the geologist's tools say what is IN it.
+# ══ 15. THE SEISMOGRAPH ═══════════════ WALKED 2026-09-09; ONE THING FOR THE INSTABILITY PASS ══
+# Built, read, and all five criteria settled: its own screen, the states, live updating while open, never
+# idle, and the case that justifies it existing -- a sentence whose index is too small to afford anything
+# reads clean while the scribe's lens still complains.
 #
-# Craft one, stand it in the desk's room (anywhere within 5 blocks, any direction, through anything):
-/give @s minecraft:iron_nugget 4
-/give @s minecraft:iron_chain
-/give @s minecraft:iron_ingot
-/give @s minecraft:clock
-/give @s agesandtheart:astrite_shard
-/give @s agesandtheart:ink_bottle
-/give @s agesandtheart:fine_paper
-#   -- shaped: nuggets round the top and left, chain above the astrite, clock under it, paper bottom right.
+# Changed on the reading: the calm wording is four different sentences now rather than two, because they
+# are four different things to say. A bare desk in the room says "No Age is currently being written"
+# (it used to answer about the world, which is answering a question nobody asked while a book is being
+# started); an Age says "This Age is stable"; an unwritten world keeps "This world is perfectly stable";
+# and a sentence that buys nothing keeps "No instability detected". Two manifestations -- blizzards and
+# meteors -- had NO name in the language file at all and would have listed a raw translation key;
+# `NamedForReadingCheck` now fails if a new one is added without one.
 #
-# WHAT A WALK HAS TO SETTLE:
-#   - **IT HAS ITS OWN SCREEN. RIGHT-CLICK IT.** Nothing about it appears on the desk -- that extraction
-#     is the point (Jonah): upgrade blocks carry their own functionality now, and the desk stays the place
-#     you write. A headline, then a terse list.
-#   - **THE THREE STATES, and they must be reachable.** Lay out a coherent sentence at a desk in the room
-#     (No instability detected), one with a few flaws (Instability detected, and it should NAME them --
-#     Incongruous landmasses, Spatial anomalies, Migrating sand columns), and a thoroughly broken one
-#     (Extreme instability detected).
-#   - **IT UPDATES WHILE OPEN.** Leave the seismograph screen up, have somebody lay a page at the desk --
-#     or lay one yourself and reopen -- and the reading should follow within a fifth of a second.
-#   - **IT IS NEVER IDLE.** With no desk in range, or a desk with nothing laid out, it reads THE WORLD IT
-#     STANDS IN instead. At home that is "This world is perfectly stable". **Carry one into a badly
-#     written Age and it should say what is wrong with that Age** -- that is the case worth checking,
-#     because a fixed "perfectly stable" would have been a lie in exactly the place it matters.
-#   - **THE INTERESTING CASE, and the reason this is not just a second scribe's lens:** a sentence with
-#     flaws whose index is too small to afford ANY manifestation should read "No instability detected"
-#     while the lens is still complaining about it. If that never happens, the instrument is redundant and
-#     the design is wrong. Write something mildly contradictory and check the two disagree.
-#   - The item tooltip should say "Place near a writer's desk to upgrade it".
-#
-# PLACEHOLDER ART: a lodestone stands in. **THE ASSET PASS OWES THIS THREE ANIMATIONS**, one per footing,
-# so the reading can be had at a glance without opening the desk -- that wants a `footing` block state and
-# a renderer, neither of which exists. The readout is deliberately written so the animation can replace
-# the state line without taking the detail with it.
+# LEFT FOR THE INSTABILITY PASS (Jonah): "extremely unstable" is hard to reach. Not tuned here because the
+# thresholds are the instability system's rather than the instrument's.
 
 # ══ 16. EIGHT RIME CRYSTALS, COMPARATORS AND POWERED GLOW ════════════════════ Built 2026-09-07 ══
 # Rime crystals come in eight colours now, they read out on a comparator, and they brighten when powered.

@@ -49,16 +49,22 @@ class SeismographScreen(menu: SeismographMenu, inventory: Inventory, title: Comp
     /**
      * The headline, then one line per thing the instability bought.
      *
-     * **The instrument is never idle**, so there is no "nothing to read" state to draw: with no sentence
-     * in reach it reads the world it stands in, and the only thing that changes is how the calm case is
-     * worded — a world that is quiet is *perfectly stable*, where a sentence that buys nothing merely has
-     * no instability in it yet.
+     * **The instrument is never idle**, so there is no "nothing to read" state to draw — but there are
+     * four different calm things to say and they are not interchangeable (Jonah, 2026-09-09). A sentence
+     * that buys nothing has no instability *yet*; a bare desk in the room has nothing to read at all and
+     * saying the world is stable there answers a question nobody asked; an ordinary world was never
+     * written; and a stable Age was written well, which is a compliment rather than a fact about physics.
      */
     private fun lines(): List<Component> {
+        if (menu.source == SeismographMenu.AN_IDLE_DESK) return listOf(translated("desk_idle"))
         val state = Footing.entries.getOrNull(menu.footing) ?: Footing.STABLE
-        val quiet = state == Footing.STABLE && menu.readsTheWorld
-        val headline = if (quiet) translated("world_stable") else translated("headline_${state.key}")
-        return listOf(headline) + bought()
+        if (state != Footing.STABLE) return listOf(translated("headline_${state.key}")) + bought()
+        val calm = when (menu.source) {
+            SeismographMenu.A_PLAIN_WORLD -> "world_stable"
+            SeismographMenu.AN_AGE -> "age_stable"
+            else -> "headline_stable"
+        }
+        return listOf(translated(calm))
     }
 
     private fun bought(): List<Component> =

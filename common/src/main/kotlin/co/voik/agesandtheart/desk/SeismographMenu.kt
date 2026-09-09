@@ -68,8 +68,14 @@ class SeismographMenu(
     /** What the instability bought, as a bitmask over `Manifestation.entries`. */
     val bought: Int get() = reading.get(BOUGHT)
 
-    /** Whether that is a reading of a sentence at a desk, or of the world the instrument stands in. */
-    val readsTheWorld: Boolean get() = reading.get(SOURCE) == THE_WORLD
+    /**
+     * **What it is reading**, which is what decides the calm wording rather than a second opinion about it.
+     *
+     * The four cases say four different things when nothing is wrong, and they are genuinely different
+     * things to say: a sentence that buys nothing has no instability *yet*, a desk with a bare surface has
+     * nothing to read at all, an ordinary world was never written, and a stable Age was written well.
+     */
+    val source: Int get() = reading.get(SOURCE)
 
     /** No slots at all, so nothing can be moved into or out of this. */
     override fun quickMoveStack(player: Player, index: Int): ItemStack = ItemStack.EMPTY
@@ -83,8 +89,17 @@ class SeismographMenu(
         const val SOURCE = 2
         const val READINGS = 3
 
+        /** Pages laid out at a desk in the room, which is what the instrument is really for. */
         const val A_SENTENCE = 0
-        const val THE_WORLD = 1
+
+        /** A desk in the room with nothing on it, or nothing on it that reads as a book yet. */
+        const val AN_IDLE_DESK = 1
+
+        /** No desk in the room, and the world it stands in was never written. */
+        const val A_PLAIN_WORLD = 2
+
+        /** No desk in the room, and the world it stands in is an Age. */
+        const val AN_AGE = 3
     }
 }
 
@@ -119,7 +134,7 @@ private class LiveReading(private val player: ServerPlayer?, private val pos: Bl
     private var settledAt = NOT_YET_SETTLED
     private var footing = Footing.STABLE.ordinal
     private var bought = NOTHING_BOUGHT
-    private var source = SeismographMenu.THE_WORLD
+    private var source = SeismographMenu.A_PLAIN_WORLD
 
     /**
      * Where the desk was found, so the room is only searched while there is no desk in it.
@@ -149,18 +164,38 @@ private class LiveReading(private val player: ServerPlayer?, private val pos: Bl
         val now = writer.level().gameTime
         if (now - settledAt < SETTLES_EVERY) return
         settledAt = now
-        val said = sentenceNearby(writer)
-        if (said == null) report(worldsOwn(writer), SeismographMenu.THE_WORLD) else report(said, SeismographMenu.A_SENTENCE)
+        // **A desk in the room answers even when it is bare**, which is the distinction the wording turns
+        // on: an instrument beside an empty desk has nothing to read, and saying the *world* is stable
+        // there would be answering a question nobody asked while a book was being started (Jonah,
+        // 2026-09-09).
+        val laid = laidOutNearby(writer)
+        val said = laid?.let { sentenceFrom(writer, it) }
+        when {
+            said != null -> report(said, SeismographMenu.A_SENTENCE)
+            laid != null -> report(nothingAtAll(writer), SeismographMenu.AN_IDLE_DESK)
+            else -> report(worldsOwn(writer), whereItStands(writer))
+        }
     }
 
-    /** What a desk in the room has laid out, resolved — or null where there is no desk or no pages. */
-    private fun sentenceNearby(writer: ServerPlayer): Tremor? {
-        val laid = laidOutNearby(writer)?.takeIf { it.isNotEmpty() } ?: return null
+    /** What a desk in the room has laid out, resolved — or null where it has nothing that reads as a book. */
+    private fun sentenceFrom(writer: ServerPlayer, laid: List<Identifier>): Tremor? {
+        if (laid.isEmpty()) return null
         val server = writer.level().server
         val vocabulary = Vocabulary.of(server)
         val said = Grammar.read(vocabulary, laid.map(Identifier::getPath)) ?: return null
         val resolved = Resolver.resolve(vocabulary, said, writer.writingSeed)
         return Tremor.of(server, resolved.instability, writer.writingSeed)
+    }
+
+    private fun nothingAtAll(writer: ServerPlayer): Tremor =
+        Tremor.of(writer.level().server, Instability.NONE, writer.writingSeed)
+
+    /** Whether the world it stands in was written, which is the difference between a world and an Age. */
+    private fun whereItStands(writer: ServerPlayer): Int {
+        val level = writer.level()
+        val here = level.dimension().identifier()
+        return if (here in AgeSavedData.get(level.server).ages) SeismographMenu.AN_AGE
+        else SeismographMenu.A_PLAIN_WORLD
     }
 
     /**
