@@ -930,7 +930,7 @@
 # body (you can stand on one, but it will slide out from under you), and the tether. Textures are
 # stand-ins -- emerald and amethyst until the asset pass.
 
-# ══ 23. THE CHARGED MACHINES ═══════════════════════════════════════════════ Built 2026-09-09 ══
+# ══ 23. THE CHARGED MACHINES ═══════════════════ PARTLY WALKED 2026-09-09; SEVEN LEFT ══
 # Arc crystal's second use, and it needs no Age at all -- build it in the overworld in creative. The
 # material's whole thesis is that the reward is the force you spent the acquisition fighting, so what this
 # has to settle is whether owning that force FEELS like the payoff.
@@ -939,46 +939,20 @@
 # chestplate, redstone. Nothing here is gated -- /give works.
 #
 # WHAT A WALK HAS TO SETTLE:
-#   - **THE ANCHOR.** One arc crystal block touching one copper block, and stand in it. Should be about
-#     half a heart a second -- noticeably better than a snow golem and no more. Every other number in the
-#     material is set against this one, so if it feels wrong say so before anything else is tuned.
-#     **The anchor is unchanged by the 2026-09-09 supply fix**; what changed is everything above it.
-#   - **RE-READ 2026-09-09: DOES STACKING CRYSTAL DO ANYTHING NOW?** It did not. The supply counted only
-#     the crystal *touching the metal*, so a rod on a pile could only ever be fed by the one block under
-#     it however many were stacked -- which is exactly the half a heart Jonah measured against twenty-odd
-#     blocks. It walks the whole pile now. Put one rod on one block: half a heart a second. Add blocks
-#     under it and it should climb hard and fast. **`MOST_FORCE` is 12 as of 2026-09-09** (Jonah, raised
-#     from 8): if you can truly gather that much arc crystal you should be able to build something
-#     catastrophically dangerous. Twelve crystal to one metal block is 12 damage every 10 ticks -- six
-#     hearts twice a second, through armour.
-#   - **RE-READ 2026-09-09: IRON AND GOLD ARE BEAMS NOW, NOT MAGNETS.** They used to pull from every
-#     direction toward the nearest metal. A run now throws straight out of its far END, along its own
-#     heading, for its own length, and NOTHING to the side of it -- `aaaiii+++`, three iron giving three
-#     blocks of pull in the line and nothing off it. Lay two crossing runs and check they are still easy to
-#     reason about; that is what the change was for.
-#     The beam is one block across, but entities are caught by box OVERLAP, so an ordinary mob is caught
-#     across about a block and a half. Say if it still feels fiddly to stand in.
-#   - **RE-READ 2026-09-09 (third pass): IRON AND GOLD ARE MUCH STRONGER AND SMOOTH NOW.** Three things
-#     changed together. (a) Base force is up from 0.12 a beat to 0.05 a TICK -- about two thirds of gravity
-#     at one-to-one, against roughly a sixth of it before, so call it six times harder in the hand.
-#     `PULL_AT_ONE_TO_ONE` is the dial. (b) The falloff down the beam is gone: the pull is the same
-#     everywhere in it. (c) The force is applied every tick rather than every fifth, so it should be a
-#     steady haul rather than a yank-and-drift. What to settle: does it now feel like being dragged rather
-#     than shoved, and at the top of the ratio is it fun or merely lethal? At MOST_FORCE (12) it is six
-#     times gravity, which will fire you a long way.
-#     **Watch for one thing the change may have cost**: the force is purely axial now, so nothing recentres
-#     anything. A beam above the ground will have things fall out of it sideways as they are hauled. If a
-#     grinder leaks, a small centring term inside the beam is the fix and does not break the rule.
-#   - **AND THE BEAM IS VISIBLE.** Arc-green sparks run down its whole length now, drifting the way the
-#     force pushes -- so you can see where a field stops instead of finding out by walking into it, and
-#     tell a puller from a pusher by watching rather than by remembering which metal is which.
+# WALKED AND GOOD 2026-09-09 -- the anchor, stacking, the beams and chainmail are all settled:
+#   * **The anchor and the ratio.** Copper "feels very good, very powerful with the amount of blocks I
+#     have". Half a heart a second at one to one, climbing to a lethal turret; the whole ladder reads.
+#   * **Iron and gold as beams**, at the strength and smoothness they ended on -- 0.05 a tick, uniform
+#     down the beam, applied every tick. "Confirmed copper, gold, and iron are all working the way I want."
+#   * **Chainmail stops the field and not the bite**, which is the split the design turns on.
+#   * **The assembly twinkle and the rod point.** "The visuals look good."
+#
 #   - **IS MORE METAL WEAKER?** Stretch that iron line without adding crystal. It should reach further and
 #     pull *less*, which is what makes the sink building rather than fuel. Add a second crystal and it
 #     should come back.
-#   - **CAN YOU FEEL IT AS A PLAYER?** You are attracted too -- a big array should be a movement mechanic
-#     and a hazard at once. Then put on a **chainmail chestplate**: the field should stop dead and the
-#     copper should still bite. (That split is deliberate; a cage is no help when you are touching the
-#     live thing.)
+#   - **IS A BIG ARRAY A WAY TO GET ABOUT?** Chainmail is settled, but the other half of that bullet is
+#     not: a strong attractor is meant to be a movement mechanic as much as a hazard. Stand in one without
+#     the chestplate and see whether being hauled is fun or merely something that happens to you.
 #   - **THE TURRET.** Stand a lightning rod on a charged copper mass. One rod buys four blocks of range
 #     from the TIP; each further rod one more, to sixteen. Stack them and see the reach climb.
 #   - **THE STORM.** Write a tempest Age, build a pile of arc crystal blocks with a rod on top, and wait.
@@ -1002,17 +976,12 @@
 #     near enough that looking a little down puts it at your feet. If it feels awkward, `SET_DOWN_AT` is
 #     the dial.
 #   - **AND THE SWITCH.** Redstone into a crystal turns it off. Whole machine, immediately.
-#   - **NEW 2026-09-09, THE THREE VISUALS.** (a) Every block of a live copper assembly should twinkle
-#     arc-green now and then, so a charged fence is distinguishable from a decorative one before it hurts
-#     you -- sparse on purpose, `A_BLOCK_SPARKS_ONE_TURN_IN` if it is too busy or too quiet. (b) Every
-#     lightning rod's POINT should spark constantly while its assembly is live, so a mast reads at a
-#     glance. (c) A zap should draw a small forked bolt from the rod tip (or the nearest metal, with no
-#     rod) to whatever it hit. **It is vanilla's own lightning geometry** -- `LightningBoltRenderer.submit`
-#     is public and its render state is one seed, so the bolt is drawn by the game's own code with nothing
-#     but a rotated, shrunk PoseStack in front of it. `FORK_ACROSS` (1.0 = vanilla's own proportions) is
-#     the dial, and the trade is baked into the geometry: the bolt's THICKNESS rides on the same scale as
-#     its fork, so if it reads as too thin, raising it fattens the bolt and splays it further at once.
-#     Vanilla's own bolt could not be spawned instead -- even `visualOnly` thunderclaps at volume 10000.
+#   - **THE BOLT, WHICH CHANGED AFTER YOU LAST SAW IT.** The particle line is gone; a zap now draws
+#     VANILLA'S OWN lightning geometry, rotated onto the line to the victim and scaled down. Its fork and
+#     its thickness are a single dial (`FORK_ACROSS`, 1.0 = vanilla's own proportions) because the quad
+#     widths live in the same coordinates as the wander -- so if it reads as a thread, raising it fattens
+#     AND splays at once. If that trade is wrong, the fallback is ~40 lines using vanilla's own algorithm
+#     with the two separated.
 #
 # NOT BUILT: the tether/lift, and the maintainer's log. The numbers live in `ChargedMetal` and its check
 # has the ramps; the check can say the anchor is 1 damage per 20 ticks, but only a walk can say whether
