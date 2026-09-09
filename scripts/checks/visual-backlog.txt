@@ -778,36 +778,11 @@
 #     Age that is not roofed. The ceiling and the undersides of overhangs are where to look. If it makes
 #     no difference, the field is not worth carrying; if it does, every roofed Age should have it.
 
-# ══ 18. THE LONE ISLAND, AFTER THE REBALANCE ═══ PARTLY WALKED 2026-09-08; TWO CHANGES TO RE-READ ══
-# **SETTLED ON THE FIRST WALK AND STRUCK OUT**: `flatlands` is dead level and reads as dry country rather
-# than one endless beach; its frozen and jagged PEAK biomes are noise caves breaking the surface, which is
-# a sinkhole in a plain and better than not having one. One storey of great hall is worth finding. The
-# lone island is alone, and the ninety-block beach clamp was the right call.
-#
-# WHAT CHANGED AFTER THAT WALK, AND WANTS READING AGAIN — both only at the LARGE end:
-#
-/age compose alonelarge 7 landmass=isle[size=0.9..1.0] sea=water rock=caves sky=plain
-/age compose alone 7 landmass=isle sea=water rock=caves sky=plain
-#
-#   - **IS IT UNDER THE WEATHER NOW?** It crowned at y=213 and stood mostly over the lower cloud deck at
-#     153. Size is a footprint now: the radius still runs fourteenfold across the ladder and the rise runs
-#     two and a half, so it crowns at 176 with **1% of columns above the deck** — peaks through it, ground
-#     under it. If that still reads as too much sky, `LARGEST_LONE_PEAK_RISE` is the dial.
-#   - **DOES THE MIDDLE READ AS COUNTRY?** The interior rolled sixty-four blocks at a time whatever the
-#     island, which on two kilometres is one hill repeated. It is a share of the radius now — about 250
-#     blocks on a continent — and the relief runs past the crown, so there should be **peaks, basins, and
-#     lagoons where it dips under the water**. What it must NOT do is cut the island in two; if you can
-#     sail through it, say so and the wavelength comes up.
-#   - **LEAVING THE SAND.** The climb behind the beach was a third of the radius — 660 blocks to rise 55,
-#     which is a ramp. It is 220 blocks now. Walk inland from the water: beach, then a slope you notice,
-#     then interior. `IslandsCheck` caught this one and it is worth confirming by foot.
-#   - **AND THE ARCHIPELAGO, IN PASSING.** `islands` was walked and good and is very slightly smoothed by
-#     the relief octaves being re-weighted. `/age compose isles 7 landmass=islands sea=water sky=plain` —
-#     no need for a trip of its own, but worth an eye if one goes there.
-#
-# Offline first, and it is where all of the above was measured:
-#   ./gradlew :common:preview --args=isle-large      (the top of the ladder — read the deck percentages)
-#   ./gradlew :common:preview --args=isle            (ordinary, and unchanged)
+# ══ 18. THE LONE ISLAND ════════════════════════════ WALKED AND GOOD 2026-09-09 ══
+# Both ends of the ladder confirmed, and the rebalance holds: the large island crowns under the cloud deck
+# with only its peaks through it, the interior reads as country (peaks, basins and lagoons) without cutting
+# the island in two, the climb off the beach is a slope you notice rather than a 660-block ramp, and the
+# archipelago is unharmed by the relief octaves being re-weighted.
 
 # ══ 21. THREE WORDS THAT MEANT NOTHING ══════════ STRUCK UNWALKED 2026-09-09 ══
 # Deferred rather than settled (Jonah): the vocabulary is about to be reworked wholesale, so reading
