@@ -887,7 +887,7 @@
 #     but `sultry` can no longer draw a cold Age at all, where before it could draw anything. If a word
 #     that leans now feels like a word that demands, `Span.leaned` is where the strength lives.
 
-# ══ 22. ORE THAT WILL NOT BE CAUGHT ══════════ PARTLY WALKED TWICE 2026-09-09; SEVEN TO RE-READ ══
+# ══ 22. ORE THAT WILL NOT BE CAUGHT ══════════ WALKED 2026-09-09 AND GOOD; TWO NEVER READ ══
 # The first walk of the magnetic material (design §7.1.2) -- and the first thing in the mod drawn as a
 # cluster of real blocks moved as one entity. Nothing about it has been looked at. The whole feature turns
 # on one question a screenshot answers and no test can: does a sky of procedurally weathered rubble read as
@@ -988,6 +988,19 @@
 #   - **IF THE JITTER PERSISTS AFTER THAT**, it is not entity count and the next place to look is the
 #     block walk in `pushedFromRock`: at tier 2 it reads a 15x15x15 cube whenever a section near the body
 #     holds anything at all, every tick. Say so and it gets sampled rather than walked.
+
+# THIRD WALK 2026-09-09: "much better ... everything is looking pretty good". The rotating textures, the
+# small-body shudder, the crystal count, the climb rate, the thinner sky and being carried are all
+# confirmed. `SHOVE` doubled once more on that reading (0.15 -> 0.30, five times where it started).
+#
+# TWO THINGS IN THIS ITEM HAVE STILL NEVER BEEN READ, and neither needs a trip of its own:
+#   - **DOES AN ARROW STOP WHERE THE STONE IS?** The box is the cluster's whole CUBE, not its outline, so
+#     what is being judged is whether the box being bigger than the rock is noticeable. If you can stand
+#     on visible air or an arrow stops early, that is what decides whether the shaped-collider Mixin is
+#     worth building at all.
+#   - **AND WHAT DOES A SKY OF THEM COST?** F3 with several in view. One submit per visible cell, 94 on a
+#     top-tier body now (it was 133 before the culling and the erosion fix). If the frame rate moves,
+#     `MOST_IN_SIGHT` is the first dial and `pushedFromRock`'s block walk is the second.
 # ══ 23. THE CHARGED MACHINES ═══════════════════ WALKED 2026-09-09 BAR THE STORM ══
 # Arc crystal's second use, and it needs no Age at all -- build it in the overworld in creative. The
 # material's whole thesis is that the reward is the force you spent the acquisition fighting, so what this

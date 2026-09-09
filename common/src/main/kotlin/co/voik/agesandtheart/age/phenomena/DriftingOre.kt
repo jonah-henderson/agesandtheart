@@ -379,12 +379,16 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
         /**
          * How hard a shove is at its strongest, before the tier multiplies it.
          *
-         * **Raised two and a half times 2026-09-09** (Jonah: "it looks like it can barely move them").
-         * The inversion is the whole design — a body has to be visibly unable to be caught — so this
-         * wants to read as *repelled*, holding five or six blocks off anything built, rather than as
-         * drifting past a wall it happens to avoid.
+         * **Raised five times over 2026-09-09**, in two goes and both by eye. The inversion is the whole
+         * design — a body has to be visibly unable to be caught — so this wants to read as *repelled*,
+         * holding five or six blocks off anything built, rather than as drifting past a wall it happens
+         * to avoid.
+         *
+         * Against [SETTLING], full shove settles at about a block and a half a tick, and half again for
+         * the largest bodies. It is only ever that at point blank: the falloff across [reachOf] is what
+         * makes the standoff a distance rather than a wall.
          */
-        private const val SHOVE = 0.15
+        private const val SHOVE = 0.30
         private const val SMALLEST_SHOVE = 1.0
         private const val SHOVE_A_TIER = 0.35
 
