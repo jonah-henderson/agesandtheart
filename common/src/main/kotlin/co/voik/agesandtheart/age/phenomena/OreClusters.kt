@@ -118,24 +118,27 @@ object OreClusters {
     fun cellsFor(tier: Int): Int = of(0, tier).size
 
     /**
-     * How wide a body of this tier can be, in blocks — what a collider and a bounding box are sized from.
+     * How wide a body of this tier is, in blocks — what a collider and a bounding box are sized from.
      *
-     * **The widest of every shape, not one of them.** Growth is random, so shapes differ in reach as well
-     * as in outline; a box sized from the first would have let two thirds of them hang out of it.
-     * Remembered, because it is asked per body and answered from a table of three.
+     * **The smallest cube centred on the body that holds every cell of every shape.** A cell at offset `o`
+     * fills `o` to `o + 1`, so its reach from the middle is one more on the positive side than the offset
+     * says; and the shapes differ in what the weather took, so a box sized from the first would have let
+     * the others hang out of it. Remembered, because it is asked per body and answered from a table of
+     * three.
      */
     fun spanOf(tier: Int): Double = widest[tier.coerceIn(0, DriftingOre.MOST_TIERS - 1)]
 
     private val widest: List<Double> by lazy {
         (0..<DriftingOre.MOST_TIERS).map { tier ->
             val reach = (0..<SHAPES).maxOf { shape ->
-                of(shape, tier).maxOf { cell -> maxOf(abs(cell.at.x), abs(cell.at.y), abs(cell.at.z)) }
+                of(shape, tier).maxOf { cell -> reachOf(cell.at) }
             }
-            (reach * 2 + 1).toDouble()
+            (reach * 2).toDouble()
         }
     }
 
-    private fun abs(value: Int) = if (value < 0) -value else value
+    private fun reachOf(at: BlockPos): Int =
+        maxOf(-at.x, at.x + 1, -at.y, at.y + 1, -at.z, at.z + 1)
 
     /** How many distinct bodies there are per tier. Far past what anybody will catch repeating in a sky. */
     const val SHAPES = 64
@@ -160,9 +163,6 @@ object OreClusters {
 
     /** How much of a body is crystal rather than the rock it grew in. */
     private const val CRYSTAL_ONE_IN = 4
-
-    /** How many places a cell is offered before the most central is taken — see [of]. */
-    private const val CANDIDATES = 4
 
     private const val SHAPE_SALT = 0x9E_37_79_B1L
     private const val TIER_SALT = 0x51_0E_1EL

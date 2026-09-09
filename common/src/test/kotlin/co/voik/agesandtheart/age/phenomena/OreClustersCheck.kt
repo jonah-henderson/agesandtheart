@@ -18,8 +18,9 @@ class OreClustersCheck : FunSpec({
     fun everyShape() = (0..<OreClusters.SHAPES).toList()
 
     /**
-     * **Connected, six ways.** Growth is by accretion so this should hold by construction — which is
-     * exactly why it is worth asserting: the day somebody speeds the generator up, this is what notices.
+     * **Connected, six ways.** A cube weathered from the outside in should hold this by construction —
+     * which is exactly why it is worth asserting: it is what notices the day the weathering is tuned into
+     * eating a body's waist through.
      */
     test("every body is one piece") {
         for (tier in 0..<DriftingOre.MOST_TIERS) {
@@ -84,6 +85,27 @@ class OreClustersCheck : FunSpec({
     }
 
     /**
+     * **The box holds the rock, and holds it centred** — the one thing about a body that is invisible in a
+     * screenshot and lethal in play, since it is the same box a player stands on and an arrow is stopped by.
+     *
+     * A cell at offset `o` fills `o` to `o + 1`, so both the near and the far face have to be inside half
+     * the span. Reading only the offsets would have made the box half a block short on every positive side.
+     */
+    test("every cell sits inside the span the box is built from") {
+        for (tier in 0..<DriftingOre.MOST_TIERS) {
+            val half = OreClusters.spanOf(tier) / 2.0
+            for (shape in everyShape()) {
+                for (cell in OreClusters.of(shape, tier)) {
+                    val faces = listOf(cell.at.x, cell.at.y, cell.at.z).flatMap { listOf(it, it + 1) }
+                    check(faces.all { it >= -half && it <= half }) {
+                        "shape $shape at tier $tier has a cell at ${cell.at} outside a span of ${half * 2}"
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * **What the generator actually produces**, printed rather than asserted — the sizes and spans a
      * renderer, a collider and a bounding box are all sized from, where a wrong one is invisible in a
      * screenshot and obvious in a number.
@@ -109,7 +131,6 @@ class OreClustersCheck : FunSpec({
     }
 }) {
     private companion object {
-        /** Each cell is a block model submitted per body per frame; a few dozen is a rock, hundreds is a wall. */
         /**
          * Each drawn cell is a block model submitted per body per frame. A six-cube is a *platform* rather
          * than a pebble, which is the point of it, so this is set where the top tier actually lands and is

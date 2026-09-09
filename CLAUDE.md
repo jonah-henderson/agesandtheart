@@ -91,8 +91,10 @@ correct itself in place. Rewrite the paragraph that is now wrong.
   43% of its 717 pairs where one rule change would make it 84%. Read it before touching
   `art/script/dni.json` or `art/transliteration.json`.
 - **`notes/authoring-tools.md`** — how structures and 3D models get authored: the external tooling and its
-  version state, and what our own datapacks could carry that they do not yet. Nothing in it is built. Read it
-  before building a structure, a model, or anything that wants to be pack data.
+  version state, and what our own datapacks could carry that they do not yet. Read it before building a
+  structure, a model, or anything that wants to be pack data. Parts I–III are unbuilt; **Part IV's drawing
+  half is built** — blocks submitted from an entity renderer, which is why there is no baked mesh anywhere —
+  and its shaped-collision half is still the open question, with the one constraint that decides it.
 
 ## What this is
 

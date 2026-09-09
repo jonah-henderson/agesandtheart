@@ -6,6 +6,7 @@ import co.voik.agesandtheart.age.word.LexiconPayload
 import co.voik.agesandtheart.client.AstriteGolemRenderer
 import co.voik.agesandtheart.client.BookEntityRenderer
 import co.voik.agesandtheart.client.SandColumnRenderer
+import co.voik.agesandtheart.client.DriftingOreRenderer
 import co.voik.agesandtheart.client.MoltenLumpRenderer
 import net.minecraft.client.renderer.entity.NoopRenderer
 import co.voik.agesandtheart.client.ClientDeskNetwork
@@ -61,6 +62,7 @@ fun initClient() {
     EntityRendererRegistry.register(AgeContent.METEOR) {
         MoltenLumpRenderer(it, MoltenLumpRenderer.METEOR, MoltenLumpRenderer.METEOR_ROCK, MoltenLumpRenderer.COLD_FIRE)
     }
+    EntityRendererRegistry.register(AgeContent.DRIFTING_ORE) { DriftingOreRenderer(it) }
     EntityRendererRegistry.register(AgeContent.ASTRITE_GOLEM, ::AstriteGolemRenderer)
     // The storm is a clock standing in the sky and is drawn by the sky, not as an entity.
     EntityRendererRegistry.register(AgeContent.METEOR_STORM) { NoopRenderer(it) }

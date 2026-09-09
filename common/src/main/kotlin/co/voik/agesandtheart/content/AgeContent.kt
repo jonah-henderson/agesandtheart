@@ -1034,7 +1034,11 @@ object AgeContent {
         .updateInterval(DRIFTING_ORE_UPDATE_TICKS)
         .build(ResourceKey.create(Registries.ENTITY_TYPE, "drifting_ore".location()))
 
-    private const val DRIFTING_ORE_SIZE = 1.4f
+    /**
+     * The smallest a body ever is. Every other size comes from `DriftingOre.getDimensions`, because a
+     * tier is a width; this is only what a body measures before it has been told which tier it is.
+     */
+    private const val DRIFTING_ORE_SIZE = 2.0f
 
     /**
      * Sixteen chunks, which is vanilla's own longest (the lightning bolt's) and what the bands need: the

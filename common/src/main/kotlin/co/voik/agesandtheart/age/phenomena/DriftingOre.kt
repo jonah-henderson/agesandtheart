@@ -11,12 +11,15 @@ import net.minecraft.util.RandomSource
 import net.minecraft.world.damagesource.DamageSource
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EntitySpawnReason
+import net.minecraft.world.entity.EntityDimensions
 import net.minecraft.world.entity.EntityType
+import net.minecraft.world.entity.Pose
 import net.minecraft.world.entity.MoverType
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.storage.ValueInput
 import net.minecraft.world.level.storage.ValueOutput
+import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 
 /**
@@ -44,6 +47,14 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
         set(value) = entityData.set(TIER, value.coerceIn(0, MOST_TIERS - 1))
 
     /**
+     * Which of [OreClusters.SHAPES] this body weathered into — **the whole of what is sent about its
+     * shape**, since server and client grow the same rock from the same number.
+     */
+    var shape: Int
+        get() = entityData.get(SHAPE)
+        set(value) = entityData.set(SHAPE, Math.floorMod(value, OreClusters.SHAPES))
+
+    /**
      * The height this body returns to when nothing is acting on it — **its tier's band, asked rather than
      * remembered**, which is what makes a fragment sink with no code for sinking anywhere.
      */
@@ -51,6 +62,36 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
 
     override fun defineSynchedData(builder: SynchedEntityData.Builder) {
         builder.define(TIER, 0)
+        builder.define(SHAPE, 0)
+    }
+
+    /**
+     * As big as the rock actually is — **two, four or six across**, rather than the one size an
+     * `EntityType` can be told at registration.
+     *
+     * It has to be the cluster's own span or the two halves disagree about where the body is: a box
+     * smaller than the rock means arrows pass through stone, and a larger one means a player stands on
+     * air. What the type was registered with is only the fallback for a body whose tier has not arrived.
+     */
+    override fun getDimensions(pose: Pose): EntityDimensions =
+        OreClusters.spanOf(tier).toFloat().let { EntityDimensions.fixed(it, it) }
+
+    /**
+     * And the box is **centred on the body**, where vanilla's stands on it.
+     *
+     * A rock's position is its middle: the bands it seeks are heights of its middle, and it is drawn from
+     * its middle outward. A box rising from `y` would have put the whole cluster half a body below what
+     * anything else in the world thought it was hitting.
+     */
+    override fun makeBoundingBox(at: Vec3): AABB {
+        val across = bbWidth.toDouble()
+        return AABB.ofSize(at, across, bbHeight.toDouble(), across)
+    }
+
+    /** And it is rebuilt when the tier arrives, since a client learns that after the entity itself. */
+    override fun onSyncedDataUpdated(key: EntityDataAccessor<*>) {
+        if (key == TIER) refreshDimensions()
+        super.onSyncedDataUpdated(key)
     }
 
     override fun tick() {
@@ -166,6 +207,7 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
             repeat(FRAGMENTS) {
                 val piece = AgeContent.DRIFTING_ORE.create(level, EntitySpawnReason.TRIGGERED) ?: return@repeat
                 piece.tier = tier - 1
+                piece.shape = level.random.nextInt(OreClusters.SHAPES)
                 piece.snapTo(position().add(scattered(level.random), scattered(level.random), scattered(level.random)))
                 // Thrown outward rather than dropped, so a break reads as one and the pieces are not a
                 // stack of bodies at the same point arguing about where to be.
@@ -189,11 +231,13 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
 
     override fun readAdditionalSaveData(input: ValueInput) {
         tier = input.getIntOr(TIER_KEY, 0)
+        shape = input.getIntOr(SHAPE_KEY, 0)
         struck = input.getFloatOr(STRUCK_KEY, 0.0f)
     }
 
     override fun addAdditionalSaveData(output: ValueOutput) {
         output.putInt(TIER_KEY, tier)
+        output.putInt(SHAPE_KEY, shape)
         output.putFloat(STRUCK_KEY, struck)
     }
 
@@ -203,8 +247,11 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
     companion object {
         private val TIER: EntityDataAccessor<Int> =
             SynchedEntityData.defineId(DriftingOre::class.java, EntityDataSerializers.INT)
+        private val SHAPE: EntityDataAccessor<Int> =
+            SynchedEntityData.defineId(DriftingOre::class.java, EntityDataSerializers.INT)
 
         private const val TIER_KEY = "tier"
+        private const val SHAPE_KEY = "shape"
         private const val STRUCK_KEY = "struck"
 
         /** How much a body of this tier takes before it comes apart. Bigger bodies are more work. */
@@ -231,7 +278,7 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
          * world**, drawn from the level's own seed so every body agrees without being told.
          */
         fun driftOf(level: Level): Vec3 {
-            val bearing = (level.dimension().identifier().hashCode() * DRIFT_SALT).toDouble()
+            val bearing = level.dimension().identifier().hashCode() * DRIFT_SALT
             return Vec3(Math.cos(bearing), 0.0, Math.sin(bearing)).scale(DRIFT_SPEED)
         }
 
