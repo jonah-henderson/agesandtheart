@@ -1,0 +1,25 @@
+{
+  "_comment": [
+    "What carries a charge and bites -- **purely unweathered copper and nothing else**.",
+    "",
+    "Oxide is an insulator, and that is what hands us the decay for free: a run greens over and stops",
+    "conducting until it is waxed or a bolt scours it clean (vanilla's own",
+    "`LightningBolt.clearCopperOnLightningStrike` walks a connected run doing exactly that).",
+    "",
+    "**Waxed variants are in.** Wax keeps copper bare rather than covering it, which is the whole reason",
+    "waxing is the maintenance verb here rather than a way of cheating the rule.",
+    "",
+    "Spelled out rather than built on `minecraft:copper_blocks`, which would drag every oxidised stage in",
+    "with it -- and *which* stage conducts is the mechanic, not an implementation detail."
+  ],
+  "values": [
+    "minecraft:copper_block",
+    "minecraft:waxed_copper_block",
+    "minecraft:chiseled_copper",
+    "minecraft:waxed_chiseled_copper",
+    "minecraft:copper_grate",
+    "minecraft:waxed_copper_grate",
+    "minecraft:cut_copper",
+    "minecraft:waxed_cut_copper"
+  ]
+}

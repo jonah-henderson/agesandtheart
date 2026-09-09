@@ -1,0 +1,9 @@
+{
+  "_comment": [
+    "What a charged run pulls with -- iron, and whatever else a pack decides is iron enough (design §7.1.2).",
+    "",
+    "A tag rather than a list in code, so a pack can add a metal without touching the jar, and so the",
+    "three currents read as one family in the data rather than as three arms of a `when`."
+  ],
+  "values": ["minecraft:iron_block"]
+}

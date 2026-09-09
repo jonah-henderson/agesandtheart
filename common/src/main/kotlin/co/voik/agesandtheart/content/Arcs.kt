@@ -1,9 +1,12 @@
 package co.voik.agesandtheart.content
 
+import co.voik.agesandtheart.location
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.core.registries.Registries
+import net.minecraft.tags.TagKey
 import net.minecraft.world.level.BlockGetter
-import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 
 /**
@@ -106,35 +109,22 @@ object Arcs {
     }
 
     /**
-     * Whether this block carries a charge — **bare copper and nothing else**.
+     * **The three currents, as tags of ours** — what pulls, what pushes, and what bites.
      *
-     * Waxed counts: wax keeps copper bare rather than covering it, which is the whole reason waxing is the
-     * maintenance verb here. Every oxidised stage is out, because oxide is an insulator and that is what
-     * gives a run something to lose.
+     * Tags rather than a list in code, so a pack can add a metal without touching the jar and the three
+     * read as one family in the data rather than as three arms of a `when`. What they must *not* be built
+     * on is `minecraft:copper_blocks`, which would drag every oxidised stage in with it: which stage
+     * conducts is the mechanic here, not an implementation detail, and the tag spells the bare ones out.
      */
-    fun conducts(state: BlockState): Boolean = CONDUCTORS.any { state.`is`(it) }
+    val ATTRACTIVE: TagKey<Block> = TagKey.create(Registries.BLOCK, "carries_attractive_current".location())
+    val REPULSIVE: TagKey<Block> = TagKey.create(Registries.BLOCK, "carries_repulsive_current".location())
+    val ELECTRIC: TagKey<Block> = TagKey.create(Registries.BLOCK, "carries_electric_current".location())
 
-    /** Whether this block is the metal that pulls, and the one that pushes. */
-    fun attracts(state: BlockState): Boolean = state.`is`(Blocks.IRON_BLOCK)
+    fun conducts(state: BlockState): Boolean = state.`is`(ELECTRIC)
 
-    fun repels(state: BlockState): Boolean = state.`is`(Blocks.GOLD_BLOCK)
+    fun attracts(state: BlockState): Boolean = state.`is`(ATTRACTIVE)
 
-    /**
-     * The bare copper a run may be made of.
-     *
-     * Named rather than tagged: `minecraft:copper_blocks` would take the oxidised stages with it, and
-     * *which* stage conducts is the mechanic rather than an implementation detail.
-     */
-    private val CONDUCTORS = listOf(
-        Blocks.COPPER_BLOCK,
-        Blocks.WAXED_COPPER_BLOCK,
-        Blocks.CHISELED_COPPER,
-        Blocks.WAXED_CHISELED_COPPER,
-        Blocks.COPPER_GRATE,
-        Blocks.WAXED_COPPER_GRATE,
-        Blocks.CUT_COPPER,
-        Blocks.WAXED_CUT_COPPER,
-    )
+    fun repels(state: BlockState): Boolean = state.`is`(REPULSIVE)
 
     /** How far one run of iron or gold may reach. A long array is a build, not a bug. */
     private const val LONGEST_RUN = 32
