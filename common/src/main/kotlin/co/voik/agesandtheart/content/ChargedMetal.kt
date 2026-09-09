@@ -111,7 +111,8 @@ object ChargedMetal {
         if (runs.isEmpty()) return
         val over = HashMap<Entity, MutableList<Arcs.Run>>()
         for (run in runs) {
-            for (entity in level.getEntities(null as Entity?, reachOf(run)) { movedByAField(it) }) {
+            val beam = beamOf(run) ?: continue
+            for (entity in level.getEntities(null as Entity?, beam) { movedByAField(it) }) {
                 over.getOrPut(entity) { mutableListOf() } += run
             }
         }
@@ -119,31 +120,40 @@ object ChargedMetal {
         // single run and never a sum is stated once, in the place that explains it; reimplementing the
         // comparison inline left the documented rule and the applied rule as two pieces of code.
         for ((entity, reaching) in over) Arcs.strongest(reaching)?.let { shove(entity, it, sense) }
-        for (run in runs) sparkle(level, run, sense)
+        for (run in runs) showTheBeam(level, run, sense)
     }
 
     /**
-     * Toward the nearest metal of the run, or away from it — **and it is the metal that pulls, not the
-     * crystal**, which is what makes the shape of a build the shape of its field.
+     * **Along the run's own axis and nothing else** (Jonah, 2026-09-09) — never toward the nearest metal.
      *
-     * It falls off across the run's own reach, so a long array is a broad gentle field and a short one is
-     * a hard local yank. That is the same ramp [co.voik.agesandtheart.age.phenomena.DriftingOre] is shoved
-     * on, and for the same reason: a wall should push where a pebble nudges.
+     * A field that pulled from every direction is more like a magnet and much harder to build with: two
+     * arrays near one another produce a resultant nobody can predict from looking at them. Reading a run
+     * as a *beam* out of its own end makes the shape of a build the shape of its field literally —
+     * `crystal crystal iron iron iron` throws three blocks of pull straight out of the last iron and
+     * nothing at all to the side of it, so overlapping two is a question about two lines rather than about
+     * two force fields.
+     *
+     * **A one-block beam is not as tight as it sounds.** Entities are gathered by box overlap, so anything
+     * whose own width touches the column is caught — about a block and a half of catch for an ordinary
+     * mob. Wanting a wider field means laying more runs, which is the sink working rather than a tax.
+     *
+     * It falls off down the beam, so the far end is a nudge and the mouth of it is a yank.
      */
     private fun shove(entity: Entity, run: Arcs.Run, sense: Double) {
-        val from = entity.position()
-        val nearest = run.blocks.minByOrNull { it.distToCenterSqr(from) } ?: return
-        val toward = Vec3.atCenterOf(nearest).subtract(from)
-        val span = toward.length()
-        if (span < CLOSEST) return
-        val falloff = (1.0 - span / run.reach).coerceAtLeast(NONE)
+        val along = alongOf(run) ?: return
+        val past = entity.position().subtract(Vec3.atCenterOf(run.blocks.last())).dot(along)
+        val falloff = (1.0 - past / run.reach).coerceIn(NONE, ALL_OF_IT)
         if (falloff <= NONE) return
-        val strength = PULL_AT_ONE_TO_ONE * run.force.coerceAtMost(MOST_FORCE) * falloff * sense
-        entity.push(toward.normalize().scale(strength))
+        val strength = PULL_AT_ONE_TO_ONE * run.force.coerceAtMost(MOST_FORCE) * falloff
+        // Attraction hauls back *up* the beam toward the metal; repulsion drives on down it.
+        entity.push(along.scale(-sense * strength))
         // A server that moves a player has to say so, or their own client puts them straight back — the
         // same flag an explosion sets.
         if (entity is ServerPlayer) entity.hurtMarked = true
     }
+
+    private fun alongOf(run: Arcs.Run): Vec3? =
+        run.along?.let { Vec3.atLowerCornerOf(it.unitVec3i) }
 
     /**
      * What a charged mass of copper does to whatever is in reach of it.
@@ -339,7 +349,19 @@ object ChargedMetal {
         (ANCHOR_BITE * force).coerceIn(LIGHTEST_BITE, HEAVIEST_BITE).toFloat()
 
     /** How far out a run's field is worth asking about: the metal itself, and its own length past it. */
-    private fun reachOf(run: Arcs.Run): AABB = around(run).inflate(run.reach.toDouble())
+    /**
+     * The column a run throws into: **out of its far end, along its own heading, its own length**.
+     *
+     * One block across, which is the run's own cross-section — a line of metal projects a line of field.
+     * Null for a run with no heading, which is copper; a mass has no axis to throw along and bites by
+     * touch instead.
+     */
+    private fun beamOf(run: Arcs.Run): AABB? {
+        val along = run.along ?: return null
+        val mouth = run.blocks.last().relative(along)
+        val far = run.blocks.last().relative(along, run.reach)
+        return AABB(mouth).minmax(AABB(far))
+    }
 
     private fun around(run: Arcs.Run): AABB =
         run.blocks.fold(AABB(run.blocks.first())) { box, block -> box.minmax(AABB(block)) }
@@ -372,17 +394,18 @@ object ChargedMetal {
      * Drawn moving with the sense of the field, so a puller draws inward and a pusher outward and the two
      * are told apart without a tooltip.
      */
-    private fun sparkle(level: ServerLevel, run: Arcs.Run, sense: Double) {
-        if (level.random.nextInt(SPARKS_ONE_STIR_IN) != 0) return
-        val along = run.along?.let { Vec3.atLowerCornerOf(it.unitVec3i) } ?: return
+    private fun showTheBeam(level: ServerLevel, run: Arcs.Run, sense: Double) {
+        val along = alongOf(run) ?: return
         val end = Vec3.atCenterOf(run.blocks.last())
-        // **Count nought, or the direction is thrown away.** With any count above nought the client reads
-        // these three numbers as a symmetric spread about the point and picks its own random velocity —
-        // so a drift vector only flipped the sign of a distribution that is the same either way, and a
-        // puller and a pusher drew identically. At nought they *are* the velocity, one particle a call.
-        repeat(SPARKS_AT_A_TIME) {
-            val drift = along.scale(SPARK_DRIFT * sense)
-            level.sendParticles(ARC_GREEN, end.x, end.y, end.z, NONE_SO_IT_MOVES, drift.x, drift.y, drift.z, SPARK_SPEED)
+        // **Down the whole beam, so its reach is visible rather than inferred.** A field nobody can see
+        // the end of is a field a builder has to discover by walking into it; this is the only thing that
+        // says where it stops. Drifting with the sense, so a puller and a pusher are told apart by
+        // watching rather than by remembering which metal is which.
+        repeat(SPARKS_ALONG_A_BEAM) {
+            val down = ONE_BLOCK_OUT + level.random.nextDouble() * run.reach
+            val at = end.add(along.scale(down))
+            val drift = along.scale(-sense * SPARK_DRIFT)
+            level.sendParticles(ARC_GREEN, at.x, at.y, at.z, NONE_SO_IT_MOVES, drift.x, drift.y, drift.z, SPARK_SPEED)
         }
     }
 
@@ -445,7 +468,10 @@ object ChargedMetal {
     /** Brilliant electric green — the set's key colour, as violet is the meteors'. */
     private val ARC_GREEN = DustParticleOptions(0x3C_FF_6A, 1.0f)
 
-    private const val SPARKS_ONE_STIR_IN = 3
+    /** How many sparks a beam shows a turn. Enough to read its length at a glance, no more. */
+    private const val SPARKS_ALONG_A_BEAM = 2
+    private const val ONE_BLOCK_OUT = 1.0
+    private const val ALL_OF_IT = 1.0
 
     /** How often one block of a live assembly twinkles. Sparse: a fence should not read as a light. */
     private const val A_BLOCK_SPARKS_ONE_TURN_IN = 22

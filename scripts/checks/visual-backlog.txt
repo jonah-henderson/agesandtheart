@@ -951,9 +951,19 @@
 #     from 8): if you can truly gather that much arc crystal you should be able to build something
 #     catastrophically dangerous. Twelve crystal to one metal block is 12 damage every 10 ticks -- six
 #     hearts twice a second, through armour.
-#   - **DOES THE SHAPE OF THE BUILD READ AS THE SHAPE OF THE FIELD?** Lay a line of iron blocks out from a
-#     crystal. The pull should reach about as far as the line is long, and be a broad gentle drag for a
-#     long line and a hard local yank for a short one. Gold is the same thing pushing.
+#   - **RE-READ 2026-09-09: IRON AND GOLD ARE BEAMS NOW, NOT MAGNETS.** They used to pull from every
+#     direction toward the nearest metal. A run now throws straight out of its far END, along its own
+#     heading, for its own length, and NOTHING to the side of it -- `aaaiii+++`, three iron giving three
+#     blocks of pull in the line and nothing off it. Lay two crossing runs and check they are still easy to
+#     reason about; that is what the change was for.
+#     The beam is one block across, but entities are caught by box OVERLAP, so an ordinary mob is caught
+#     across about a block and a half. Say if it still feels fiddly to stand in.
+#     **Watch for one thing the change may have cost**: the force is purely axial now, so nothing recentres
+#     anything. A beam above the ground will have things fall out of it sideways as they are hauled. If a
+#     grinder leaks, a small centring term inside the beam is the fix and does not break the rule.
+#   - **AND THE BEAM IS VISIBLE.** Arc-green sparks run down its whole length now, drifting the way the
+#     force pushes -- so you can see where a field stops instead of finding out by walking into it, and
+#     tell a puller from a pusher by watching rather than by remembering which metal is which.
 #   - **IS MORE METAL WEAKER?** Stretch that iron line without adding crystal. It should reach further and
 #     pull *less*, which is what makes the sink building rather than fuel. Add a second crystal and it
 #     should come back.
