@@ -3,7 +3,6 @@ package co.voik.agesandtheart.age
 import co.voik.ephemeris.Rgba
 import co.voik.ephemeris.sky.Aurora
 import co.voik.ephemeris.sky.Rainbow
-import co.voik.ephemeris.sky.AuroraGround
 import co.voik.ephemeris.sky.CelestialBody
 import co.voik.ephemeris.sky.CloudDeck
 import co.voik.ephemeris.sky.Daylight
@@ -339,7 +338,7 @@ object SkyParameters {
          * then walk out of the ice and back in.
          */
         POLAR("polar") {
-            override fun aurora() = Aurora(frequency = EVERY_NIGHT, ground = AuroraGround.WHERE_IT_SNOWS)
+            override fun aurora() = Aurora(frequency = EVERY_NIGHT, warmestGround = Aurora.SNOW_LINE)
         },
         ;
 

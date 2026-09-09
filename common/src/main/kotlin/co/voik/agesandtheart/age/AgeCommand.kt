@@ -19,7 +19,7 @@ import co.voik.agesandtheart.age.aspect.Terrain
 import co.voik.agesandtheart.age.aspect.AgeSpawner
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.ephemeris.sky.Aurora
-import co.voik.ephemeris.sky.AuroraGround
+import co.voik.ephemeris.sky.AuroraGroundRule
 import co.voik.ephemeris.sky.Blending
 import co.voik.ephemeris.sky.CelestialBody
 import co.voik.ephemeris.sky.Rainbow
@@ -831,7 +831,7 @@ object AgeCommand {
 
         report.say { "The curtain over ${level.dimension().identifier()}, on night $night:" }
         report.fact("colours", aurora.colours.size) {
-            "  burns ${aurora.colours.size} colour(s), crown first, over ${aurora.ground.serializedName}"
+            "  burns ${aurora.colours.size} colour(s), crown first, over ${groundSaid(aurora)}"
         }
         report.fact("frequency", aurora.frequency) {
             "  comes on %.0f%% of nights, at glow %.2f, breadth %.2f, height %.2f"
@@ -882,7 +882,7 @@ object AgeCommand {
             source.sendFailure(Component.literal("Nothing hangs a curtain here to bring on"))
             return FAILURE
         }
-        val insisted = aurora.copy(frequency = EVERY_NIGHT, ground = AuroraGround.ANYWHERE)
+        val insisted = aurora.copy(frequency = EVERY_NIGHT, warmestGround = null)
         LevelLookPreview.show(level, look.copy(sky = look.sky.copy(aurora = insisted)))
         source.sendSuccess(
             { Component.literal("Tonight, and over any ground. Still needs darkness — it keeps its stars' hours.") },
@@ -1148,10 +1148,17 @@ object AgeCommand {
      * and the window is a disagreement about *drawing* and never about the rule.
      */
     private fun groundShareFor(aurora: Aurora, level: ServerLevel, at: BlockPos): Float {
-        if (aurora.ground == AuroraGround.ANYWHERE) return 1.0f
+        val warmest = aurora.warmestGround ?: return 1.0f
         val around = listOf(at) + Direction.Plane.HORIZONTAL.map { at.relative(it, GROUND_RING_BLOCKS) }
-        val cold = around.count { level.getBiome(it).value().coldEnoughToSnow(it, level.seaLevel) }
-        return cold.toFloat() / around.size
+        val cool = around.count { AuroraGroundRule.isCoolEnough(level, it, warmest) }
+        return cool.toFloat() / around.size
+    }
+
+    /** What ground this curtain admits, in words — the ceiling read back against vanilla's own snow line. */
+    private fun groundSaid(aurora: Aurora): String = when (val warmest = aurora.warmestGround) {
+        null -> "any ground at all"
+        Aurora.SNOW_LINE -> "ground where the snow lies"
+        else -> "ground up to %.2f".format(warmest)
     }
 
     /** The next night the curtain comes, or null where none of the next [NIGHTS_LOOKED_AHEAD] is one. */

@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.sky
 
+import co.voik.agesandtheart.MinecraftRegistries
 import co.voik.agesandtheart.NEEDS_REGISTRIES
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Atmosphere
@@ -19,6 +20,12 @@ import net.minecraft.resources.Identifier
  */
 @Tags(NEEDS_REGISTRIES)
 class GroundColourCheck : FunSpec({
+
+    // **The tag alone does not stand the registries up**, it only decides whether `-Pfast` runs this at
+    // all — something has to actually bootstrap, the way `UnlitLookCheck` does. Without this the spec
+    // passes in a full run, where another spec has already done it, and fails under `-Pon=sky`, where none
+    // of the subset has: `Aspect.getPool` reaches `Structures`, whose class init wants a registry.
+    beforeSpec { MinecraftRegistries.ensureStoodUp() }
 
     val seed = 4242L
     val swamp = Identifier.fromNamespaceAndPath("minecraft", "swamp")

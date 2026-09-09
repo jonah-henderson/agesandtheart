@@ -8,7 +8,6 @@ import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.aspect.Sky
 import co.voik.ephemeris.sky.Aurora
-import co.voik.ephemeris.sky.AuroraGround
 import io.kotest.core.spec.style.FunSpec
 
 /**
@@ -47,10 +46,23 @@ class AuroraAuthoringCheck : FunSpec({
         check(sky(described).aurora != null) { "`green aurora` described a curtain that was never hung" }
     }
 
-    test("a curtain is held to the snow line") {
-        // The whole point of the feature: an aurora belongs where the snow does.
-        check(curtain(happens("aurora")).ground == AuroraGround.WHERE_IT_SNOWS) {
+    test("a curtain nobody described is held to the snow line") {
+        // An aurora belongs where the snow does, unless a writer has said otherwise.
+        check(curtain(happens("aurora")).warmestGround == Aurora.SNOW_LINE) {
             "An Age's own aurora is not held to the ground, so it plays over deserts"
+        }
+    }
+
+    /**
+     * **And a writer can loosen that**, which is the whole of why the rule became a ceiling: the cold was
+     * only ever a proxy for a latitude an Age does not carry, and a charged Age has no reason to be cold.
+     */
+    test("a curtain can be asked to stand over warmer ground") {
+        val warm = Aspect.AURORA to options(Sky.AURORAWARMTH.name to listOf("0.9..1"))
+        val asked = curtain(happens("aurora"), warm)
+        val ordinary = curtain(happens("aurora")).warmestGround ?: 0.0f
+        check((asked.warmestGround ?: 0.0f) > ordinary) {
+            "asking for warmth left the curtain at ${asked.warmestGround} against an ordinary $ordinary"
         }
     }
 

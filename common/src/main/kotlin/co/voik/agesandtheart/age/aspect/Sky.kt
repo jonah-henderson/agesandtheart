@@ -4,7 +4,6 @@ import co.voik.agesandtheart.age.AgeGeneration
 import co.voik.ephemeris.Rgba
 import co.voik.ephemeris.sky.Appearance
 import co.voik.ephemeris.sky.Aurora
-import co.voik.ephemeris.sky.AuroraGround
 import co.voik.ephemeris.sky.Rainbow
 import co.voik.ephemeris.sky.CelestialBody
 import co.voik.ephemeris.sky.Look
@@ -145,11 +144,22 @@ enum class Sky(override val key: String) : AuthoredPreset {
             // Drawn rather than written: which way a band lies is a fact about this Age's sky and not
             // something §3.2 would put in front of a writer.
             bearingDegrees = XoroshiroRandomSource(seed xor AURORA_SALT).nextInt(WHOLE_COMPASS).toFloat(),
-            // **The whole point of the feature.** An aurora belongs where the snow does, and vanilla's own
-            // line between snow and rain is a boundary every player has already learned by walking over it.
-            ground = AuroraGround.WHERE_IT_SNOWS,
+            // **Where the snow lies unless a writer says otherwise**, and vanilla's own line between snow
+            // and rain is a boundary every player has already learned by walking over it. It is a ceiling
+            // rather than a rule now, which is what lets a word ask for curtains over temperate ground —
+            // see [AURORAWARMTH] for why that coupling was worth loosening.
+            warmestGround = warmthAt(own.steer(AURORAWARMTH, seed) ?: WHERE_THE_SNOW_LIES),
             seed = seed,
         )
+    }
+
+    /**
+     * [AURORAWARMTH] read as a temperature ceiling — nought is vanilla's snow line, and either end runs to
+     * where no biome is left to exclude or include.
+     */
+    private fun warmthAt(steered: Double): Float = when {
+        steered <= 0.0 -> (Aurora.SNOW_LINE + (Aurora.SNOW_LINE - COLDEST_GROUND) * steered).toFloat()
+        else -> (Aurora.SNOW_LINE + (WARMEST_GROUND - Aurora.SNOW_LINE) * steered).toFloat()
     }
 
     /**
@@ -334,6 +344,29 @@ enum class Sky(override val key: String) : AuthoredPreset {
 
         /** What share of nights it comes at all. */
         val AURORAFREQUENCY = Parameter.ranged("frequency", help = "What share of nights the aurora comes at all.")
+
+        /**
+         * How warm the ground under it may be and still show one.
+         *
+         * **The cold was only ever a proxy for the poles**, and a loose one: nothing in an Age carries
+         * anything electromagnetic for a curtain to key on, so `coldEnoughToSnow` stood in for a latitude
+         * we do not have. That is a fair default and a bad requirement — an Age charged enough to hang
+         * curtains has no reason to be a cold one (Jonah, 2026-09-08). So the coupling is loosened *here*,
+         * where a writer can ask, rather than removed: an aurora nobody described still stands where the
+         * snow does.
+         *
+         * **What it does not loosen is anything that reads the cold for its own sake.** Rime demands a
+         * frozen climate outright and takes the curtain as incidental, so nothing about it moves.
+         */
+        val AURORAWARMTH = Parameter.ranged(
+            "warmth",
+            help = "How warm the ground under the aurora may be and still show one.",
+            landmarks = listOf(
+                Parameter.Landmark(-1.0, "only over deep ice"),
+                Parameter.Landmark(0.0, "where the snow lies"),
+                Parameter.Landmark(1.0, "over any ground at all"),
+            ),
+        )
 
         /**
          * The colours the bow burns, **outermost first** — red at the outside, as a real one is.
@@ -589,6 +622,16 @@ enum class Sky(override val key: String) : AuthoredPreset {
         /** The band [AURORAFREQUENCY] runs over. Never every night by default, and never truly never. */
         private const val RAREST_NIGHTS = 0.08f
         private const val EVERY_NIGHT = 1.0f
+
+        /**
+         * Where [AURORAWARMTH] sits when nothing said — vanilla's snow line, so an undescribed curtain
+         * stands exactly where it always did.
+         */
+        private const val WHERE_THE_SNOW_LIES = 0.0
+
+        /** The band [AURORAWARMTH] runs over: deep ice at one end, and past any biome vanilla has at the other. */
+        private const val COLDEST_GROUND = -0.5f
+        private const val WARMEST_GROUND = 2.5f
 
         /** How much of the sky [AURORASIZE] reaches, either way. */
         private const val NARROWEST_BAND = 0.3f

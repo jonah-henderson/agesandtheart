@@ -304,7 +304,7 @@ enum class Aspect(
             STARS -> listOf(Sky.STARS, Sky.STARGLOW)
             GRASS -> listOf(Atmosphere.GRASSCOLOUR)
             LEAVES -> listOf(Atmosphere.LEAFCOLOUR)
-            AURORA -> listOf(Sky.AURORACOLOUR, Sky.AURORAGLOW, Sky.AURORASIZE, Sky.AURORAFREQUENCY)
+            AURORA -> listOf(Sky.AURORACOLOUR, Sky.AURORAGLOW, Sky.AURORASIZE, Sky.AURORAFREQUENCY, Sky.AURORAWARMTH)
             RAINBOW -> listOf(
                 Sky.RAINBOWCOLOUR,
                 Sky.RAINBOWGLOW,

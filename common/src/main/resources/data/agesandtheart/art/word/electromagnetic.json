@@ -1,0 +1,50 @@
+{
+  "_comment": [
+    "An Age with a charged sky: storms that never leave it, and curtains standing over ground that has no",
+    "business showing them. It is the gate the magnetic ore reads (design 7.1.2).",
+    "",
+    "**No phenomenon was invented for this, and that was the point** (Jonah, 2026-09-08). What a charged",
+    "sky *is* comes out as two things that already exist turned up -- which is exactly what a word is for.",
+    "The ore itself is an entity rather than a phenomenon, and it gates on finding tempests in the Age.",
+    "",
+    "**It means neither of them, and cannot.** `tempest` and `auroral` already mean those presets, and",
+    "`VocabularyCheck` refuses a second page meaning either -- which is the right rule and the right answer",
+    "here: this narrows the Age's phenomena to the two and leans hard on both, and a writer who wants the",
+    "storms guaranteed writes `tempests` beside it. Words composing is how the Art says a compound thing.",
+    "",
+    "**It touches one aspect, deliberately**, which is the rule `auroral.json` records: a narrowing word is",
+    "priced in its lowest-ordinal aspect and phenomena are last, so a climate nudge or a weather bound here",
+    "would quietly reprice this as a word about that other thing. Everything below is phenomena or the",
+    "aurora's own dials.",
+    "",
+    "`aurora.warmth` is new and is the whole reason the aurora needed touching at all: the cold was only",
+    "ever a proxy for a latitude an Age does not carry, and a charged Age has no reason to be a cold one.",
+    "Asked near the top of its band, the curtains stand over temperate ground as well as ice."
+  ],
+  "tier": "restrictive",
+  "admits": {
+    "phenomena": [
+      "tempest",
+      "aurora"
+    ]
+  },
+  "biases": {
+    "phenomena": {
+      "tempest": 0.9,
+      "aurora": 0.9
+    }
+  },
+  "requests": {
+    "pools": [
+      {
+        "draws": "4",
+        "facets": {
+          "aurora.frequency": "0.75..1",
+          "aurora.glow": "+0.6",
+          "aurora.size": "0.5..1",
+          "aurora.warmth": "0.6..1"
+        }
+      }
+    ]
+  }
+}
