@@ -33,7 +33,7 @@ object Algae : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration.CODEC)
         // Sown at whatever the hour is, so a chunk generated now matches the lake it joins rather than
         // arriving at full glow and fading to meet it.
         val sown = AgeContent.ALGAE_BLOCK.defaultBlockState()
-            .setValue(AlgaeBlock.GLOW, AlgaeBlock.glowAtHour(level.level.defaultClockTime))
+            .setValue(AlgaeBlock.LIT, AlgaeBlock.isLitAtHour(level.level.defaultClockTime))
 
         var grew = 0
         for (attempt in 0..<SEEDS_PER_PATCH) {

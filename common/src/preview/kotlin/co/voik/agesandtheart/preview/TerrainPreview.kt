@@ -573,6 +573,20 @@ private val subjects: Map<String, Subject> = mapOf(
         sliceAtX = 0,
     ),
 
+    // **Ordinary chambers rather than colossal, which is the only size that stacks.** A band that holds
+    // one colossal vault holds two of these and four of the smallest, so the storeys are invisible in the
+    // subject above and this is the one to read them in. What to look for in the Z slice is a second
+    // chamber under the first with its own lake, and rock between them rather than a shaft.
+    "chambers-storeys" to Subject(
+        Chambers.voidBetween(-59, SolidField.UNDERGROUND_CEILING),
+        lowestY = -64,
+        highestY = SolidField.WORLD_CEILING,
+        radius = 900,
+        step = 2,
+        sliceAtZ = 0,
+        sliceAtX = 0,
+    ),
+
     // A rectangle, and that is the point: read the report rather than the picture, where the percentile
     // spread of column tops is a single number if the plain is level.
     "flatlands" to Subject(

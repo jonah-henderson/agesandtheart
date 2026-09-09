@@ -1,54 +1,11 @@
 {
   "_comment": [
-    "One model at every rung: the glow is a light level, not a shape, so all fifteen states share a look",
-    "and differ only in what they emit. A variant apiece is still required -- a blockstate must answer for",
-    "every state the block has."
+    "One model at either state, because the state is what a mat *emits* and not how it looks: the mat is",
+    "drawn full-bright at every hour (`block/algae` carries the `light_emission`), so a night lake reads as",
+    "red specks in a black cavern while casting nothing."
   ],
   "variants": {
-    "glow=0": {
-      "model": "agesandtheart:block/algae"
-    },
-    "glow=1": {
-      "model": "agesandtheart:block/algae"
-    },
-    "glow=2": {
-      "model": "agesandtheart:block/algae"
-    },
-    "glow=3": {
-      "model": "agesandtheart:block/algae"
-    },
-    "glow=4": {
-      "model": "agesandtheart:block/algae"
-    },
-    "glow=5": {
-      "model": "agesandtheart:block/algae"
-    },
-    "glow=6": {
-      "model": "agesandtheart:block/algae"
-    },
-    "glow=7": {
-      "model": "agesandtheart:block/algae"
-    },
-    "glow=8": {
-      "model": "agesandtheart:block/algae"
-    },
-    "glow=9": {
-      "model": "agesandtheart:block/algae"
-    },
-    "glow=10": {
-      "model": "agesandtheart:block/algae"
-    },
-    "glow=11": {
-      "model": "agesandtheart:block/algae"
-    },
-    "glow=12": {
-      "model": "agesandtheart:block/algae"
-    },
-    "glow=13": {
-      "model": "agesandtheart:block/algae"
-    },
-    "glow=14": {
-      "model": "agesandtheart:block/algae"
-    }
+    "lit=true": { "model": "agesandtheart:block/algae" },
+    "lit=false": { "model": "agesandtheart:block/algae" }
   }
 }

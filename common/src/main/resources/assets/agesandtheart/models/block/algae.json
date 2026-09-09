@@ -1,12 +1,27 @@
 {
-  "_comment": "Vanilla's glow lichen under a tint of ours, laid flat in the top of the water block, until the asset pass draws a real growth. Full-bright, since the mat is the thing giving the light.",
+  "_comment": [
+    "Vanilla's glow lichen under a tint of ours, laid flat in the top of the water block, until the asset",
+    "pass draws a real growth.",
+    "",
+    "**`light_emission` is fixed and the block's own light level is not**, and that split is the whole",
+    "point of it. The mat is drawn at full brightness whatever the hour, so a lake reads as red specks in",
+    "a black cavern at midnight -- spider eyes, not a lamp -- while what it actually *radiates* follows",
+    "`AlgaeBlock.glowAtHour` and leaves the water around it genuinely dark. One is what you can see, the",
+    "other is what you can see *by*.",
+    "",
+    "It is vanilla's own idiom: `block/cross_emissive`, which the firefly bush and the open eyeblossom",
+    "wear. Theirs lays an emissive overlay over part of a texture; ours has no separate overlay to lay,",
+    "so the whole mat glows."
+  ],
   "textures": { "particle": "minecraft:block/glow_lichen", "mat": "minecraft:block/glow_lichen" },
   "elements": [
     {
-      "from": [0, 15.2, 0], "to": [16, 15.2, 16],
+      "from": [0, 15.2, 0],
+      "to": [16, 15.2, 16],
       "shade": false,
+      "light_emission": 15,
       "faces": {
-        "up":   { "uv": [0, 0, 16, 16], "texture": "#mat", "tintindex": 0 },
+        "up": { "uv": [0, 0, 16, 16], "texture": "#mat", "tintindex": 0 },
         "down": { "uv": [0, 0, 16, 16], "texture": "#mat", "tintindex": 0 }
       }
     }

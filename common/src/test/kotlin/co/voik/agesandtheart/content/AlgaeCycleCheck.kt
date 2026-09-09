@@ -12,54 +12,41 @@ import io.kotest.core.spec.style.FunSpec
  */
 class AlgaeCycleCheck : FunSpec({
 
-    test("it is brightest at noon and out at midnight") {
-        check(AlgaeBlock.glowAtHour(NOON) == AlgaeBlock.BRIGHTEST) {
-            "at noon it stands at ${AlgaeBlock.glowAtHour(NOON)} rather than ${AlgaeBlock.BRIGHTEST}"
-        }
-        check(AlgaeBlock.glowAtHour(MIDNIGHT) == 0) {
-            "at midnight it stands at ${AlgaeBlock.glowAtHour(MIDNIGHT)} rather than out"
-        }
-    }
-
-    /** And it climbs through the morning and falls through the evening, rather than jumping at dawn. */
-    test("it rises and falls rather than switching") {
-        val morning = (MIDNIGHT..MIDNIGHT + HALF_A_DAY step A_MOMENT).map(AlgaeBlock::glowAtHour)
-        check(morning == morning.sorted()) { "the morning did not climb: $morning" }
-        val evening = (NOON..NOON + HALF_A_DAY step A_MOMENT).map(AlgaeBlock::glowAtHour)
-        check(evening == evening.sortedDescending()) { "the evening did not fall: $evening" }
+    test("it burns by day and is out by night") {
+        check(AlgaeBlock.isLitAtHour(NOON)) { "it was out at noon" }
+        check(!AlgaeBlock.isLitAtHour(MIDNIGHT)) { "it was burning at midnight" }
     }
 
     /**
-     * **Every rung is reached**, or the fade steps through states nobody ever sees and the light jumps
-     * where the state list says it should not.
+     * **The whole night, not merely midnight.** A curve stood here once and was only truly out at the one
+     * instant, so every mat that had not ticked since the evening still carried a rung and the lake came
+     * out speckled with lights in the dark.
      */
-    test("the whole ladder is used across a day") {
-        val throughTheDay = (0..<A_DAY step A_MOMENT).map(AlgaeBlock::glowAtHour).toSet()
-        val ladder = (0..AlgaeBlock.BRIGHTEST).toSet()
-        check(throughTheDay == ladder) { "a day reaches $throughTheDay of $ladder" }
+    test("it is out for the whole night") {
+        val night = (SUNSET..<A_DAY step A_MOMENT).filter(AlgaeBlock::isLitAtHour)
+        check(night.isEmpty()) { "it was still burning at ${night.size} moments after sunset: ${night.take(5)}" }
+    }
+
+    test("it is burning for the whole day") {
+        val day = (0..<SUNSET step A_MOMENT).filterNot(AlgaeBlock::isLitAtHour)
+        check(day.isEmpty()) { "it was out at ${day.size} moments before sunset: ${day.take(5)}" }
     }
 
     /** The clock is absolute rather than wrapped, so a world a hundred days old still reads its own hour. */
     test("it reads the same hour on any day") {
         for (day in listOf(0L, 1L, 99L, 100_000L)) {
-            val later = day * A_DAY + NOON
-            check(AlgaeBlock.glowAtHour(later) == AlgaeBlock.BRIGHTEST) {
-                "noon on day $day stands at ${AlgaeBlock.glowAtHour(later)}"
-            }
+            check(AlgaeBlock.isLitAtHour(day * A_DAY + NOON)) { "noon on day $day was out" }
+            check(!AlgaeBlock.isLitAtHour(day * A_DAY + MIDNIGHT)) { "midnight on day $day was burning" }
         }
     }
 }) {
     private companion object {
         const val A_DAY = 24_000L
-        const val HALF_A_DAY = 12_000L
         const val NOON = 6_000L
+        const val SUNSET = 12_000L
         const val MIDNIGHT = 18_000L
 
-        /**
-         * Fine enough that every one of the fifteen rungs is sampled. The curve moves fastest at dawn and
-         * dusk, where a coarse walk skips levels — and the ladder check would then be failing on how it
-         * was sampled rather than on the cycle.
-         */
+        /** Fine enough to catch a boundary put a few ticks wrong, which is the only way this can be wrong. */
         const val A_MOMENT = 20L
     }
 }

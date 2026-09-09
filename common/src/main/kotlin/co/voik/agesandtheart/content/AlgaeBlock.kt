@@ -2,24 +2,24 @@ package co.voik.agesandtheart.content
 
 import com.mojang.serialization.MapCodec
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.LevelReader
 import net.minecraft.world.level.LightLayer
+import net.minecraft.world.level.ScheduledTickAccess
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.item.context.BlockPlaceContext
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
-import net.minecraft.world.level.block.state.properties.IntegerProperty
+import net.minecraft.world.level.block.state.properties.BooleanProperty
 import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.level.material.Fluids
 import net.minecraft.world.phys.shapes.CollisionContext
 import net.minecraft.world.phys.shapes.VoxelShape
-import kotlin.math.cos
-import kotlin.math.roundToInt
 
 /**
  * The algae the D'ni lived on: a red mat lying in the top of still, sunless water, glowing (design §7.6).
@@ -32,35 +32,33 @@ import kotlin.math.roundToInt
  * makes it a cavern plant rather than a dark-cave one: a D'ni city may be lit as brightly as its builders
  * like and the crop is untouched, and no amount of roofing over an open pond will grow it.
  *
- * **And it keeps the hour.** The glow rises and falls with the world's own day, which is how a people with
- * no sky had one — so what the light is doing lives in [GLOW], a state the light engine can read, rather
- * than in the time, which it cannot. Every light level is a rung, so the lake shades rather than bands.
+ * **And it keeps the hour.** A mat is burning or it is out — [LIT], a state the light engine can read,
+ * where the clock is not — and the world's own day decides which: alight from sunrise, dark from sunset.
+ * **What you see and what you see by are separate**: the model is drawn full-bright at every hour, so a
+ * night lake reads as red specks in a black cavern, while the light it *casts* is all or nothing.
  *
- * **Each mat jumps to the hour on its own random tick rather than walking toward it**, and the arithmetic
- * is what settles that. A block is random-ticked about seventeen times a Minecraft day where the hour
- * crosses twenty-eight rungs, so a mat that could only move one rung a tick could never keep up: it would
- * lag further behind through every dawn and never reach either end of the cycle. Jumping also means a
- * chunk that has been asleep is right again one tick after it wakes.
+ * **The fade is the lake's, never a mat's.** No mat is ever half lit; what crosses gradually is which
+ * mats have woken to the hour, so a lake turns in patches. That is also the whole of what it costs — two
+ * light changes a day apiece rather than the twenty-eight a ladder of rungs needed, which on a vault's
+ * lake is the difference between a relight and a storm of them.
  *
- * What makes it a *fade* is that the ticks are scattered, not that the steps are small — so a lake crosses
- * raggedly over a minute or two, every mat at its own point on the curve, which is also what keeps the
- * relighting spread out instead of arriving as one spike.
+ * **And a mat that wakes wakes the ones around it**, which is not decoration — see [wakeTheNeighbours].
  */
 class AlgaeBlock(properties: BlockBehaviour.Properties) : Block(properties) {
 
     init {
-        registerDefaultState(stateDefinition.any().setValue(GLOW, BRIGHTEST))
+        registerDefaultState(stateDefinition.any().setValue(LIT, true))
     }
 
     override fun codec(): MapCodec<AlgaeBlock> = CODEC
 
     override fun createBlockStateDefinition(builder: StateDefinition.Builder<Block, BlockState>) {
-        builder.add(GLOW)
+        builder.add(LIT)
     }
 
     /** Sown at whatever the hour is, so a planted mat matches the lake it was planted in. */
     override fun getStateForPlacement(context: BlockPlaceContext): BlockState? =
-        defaultBlockState().setValue(GLOW, glowAtHour(context.level.defaultClockTime))
+        defaultBlockState().setValue(LIT, isLitAtHour(context.level.defaultClockTime))
 
     /** The water it lies in, so the surface is unbroken and anything swimming through carries on. */
     override fun getFluidState(state: BlockState): FluidState = Fluids.WATER.getSource(false)
@@ -76,6 +74,29 @@ class AlgaeBlock(properties: BlockBehaviour.Properties) : Block(properties) {
         canGrowAt(level, pos)
 
     /**
+     * **Washed away the moment it stops being the surface of still water**, and back into the water it was
+     * lying in rather than into air, so a lake keeps its face where a mat goes.
+     *
+     * Declaring [canSurvive] alone bought nothing: it is only ever asked through this, which is where a
+     * plant answers a neighbour changing, and without it the mat survived anything at all happening around
+     * it — lava ran across a lake and simply capped the growth, which is what a walk found (2026-09-08).
+     * Fluid running over it is now the ordinary case: the mat dissolves, and the lava meets water rather
+     * than algae.
+     */
+    override fun updateShape(
+        state: BlockState,
+        level: LevelReader,
+        ticks: ScheduledTickAccess,
+        pos: BlockPos,
+        direction: Direction,
+        neighbourPos: BlockPos,
+        neighbourState: BlockState,
+        random: RandomSource,
+    ): BlockState =
+        if (canSurvive(state, level, pos)) state
+        else Blocks.WATER.defaultBlockState()
+
+    /**
      * Wither in the sun, and otherwise spread across the water.
      *
      * **The spread is a mushroom's**, which is the shape that fills a place and then stops: a crowded
@@ -88,11 +109,13 @@ class AlgaeBlock(properties: BlockBehaviour.Properties) : Block(properties) {
             level.setBlockAndUpdate(pos, Blocks.WATER.defaultBlockState())
             return
         }
-        // **The hour is followed and the tick carries on**, rather than being spent on it. The glow crosses
-        // twenty-eight rungs a day against about seventeen random ticks, so returning here would have
-        // skipped the spread on most of them and quietly halved a rate the comment below calls vanilla's.
-        val hour = glowAtHour(level.defaultClockTime)
-        if (state.getValue(GLOW) != hour) level.setBlock(pos, state.setValue(GLOW, hour), UPDATE_CLIENTS)
+        // **The hour is followed and the tick carries on**, rather than being spent on it: returning here
+        // would skip the spread on the ticks that happen to fall at dawn or dusk.
+        val lit = isLitAtHour(level.defaultClockTime)
+        if (state.getValue(LIT) != lit) {
+            level.setBlock(pos, state.setValue(LIT, lit), UPDATE_CLIENTS)
+            wakeTheNeighbours(level, pos, lit)
+        }
         if (random.nextInt(SPREADS_ONE_TICK_IN) != 0) return
         if (crowdedAround(level, pos)) return
         val reachX = random.nextInt(SPREAD_ACROSS * 2 + 1) - SPREAD_ACROSS
@@ -101,7 +124,36 @@ class AlgaeBlock(properties: BlockBehaviour.Properties) : Block(properties) {
         val to = pos.offset(reachX, reachY, reachZ)
         if (!level.getBlockState(to).`is`(Blocks.WATER)) return
         if (!canGrowAt(level, to)) return
-        level.setBlockAndUpdate(to, defaultBlockState())
+        // **At the hour, not at the default**, which is lit. A mat sown into a dark lake would otherwise
+        // come up burning and stay that way until its own random tick found it a minute later — and one
+        // mat lights a wide circle of water, so what that reads as is a patch of the lake turning *on* at
+        // midnight (Jonah, walked 2026-09-08).
+        level.setBlockAndUpdate(to, defaultBlockState().setValue(LIT, lit))
+    }
+
+    /**
+     * Every mat within reach brought to the same hour as the one that just woke.
+     *
+     * **This is what makes the lake turn at one speed in both directions**, and without it the two are not
+     * even close. Lighting up looks quick because a lake reads as lit once the *first* mats have caught
+     * up, each one lighting a wide radius; going dark waits on the *last*, and the tail of a random-tick
+     * process is about `ln(mats)` times its mean — eight minutes against twenty-five seconds for a
+     * thousand of them (Jonah, walked 2026-09-08: "it takes ages for them all to darken").
+     *
+     * Waking a neighbourhood rather than a block turns that tail into a patchwork: every mat now has as
+     * many chances to be caught as there are mats near it. It costs nothing when the lake is settled,
+     * because a mat that was already at the hour never gets here.
+     */
+    private fun wakeTheNeighbours(level: ServerLevel, pos: BlockPos, lit: Boolean) {
+        for (around in BlockPos.betweenClosed(
+            pos.offset(-WAKES_WITHIN, -WAKES_BELOW, -WAKES_WITHIN),
+            pos.offset(WAKES_WITHIN, WAKES_BELOW, WAKES_WITHIN),
+        )) {
+            val neighbour = level.getBlockState(around)
+            if (!neighbour.`is`(this)) continue
+            if (neighbour.getValue(LIT) == lit) continue
+            level.setBlock(around.immutable(), neighbour.setValue(LIT, lit), UPDATE_CLIENTS)
+        }
     }
 
     /** Whether this neighbourhood already holds as much as it will hold — see [MOST_IN_REACH]. */
@@ -143,34 +195,36 @@ class AlgaeBlock(properties: BlockBehaviour.Properties) : Block(properties) {
         const val NO_SUN_AT_ALL = 0
 
         /**
-         * How far up its cycle a mat is burning — **a state rather than a brightness**, because
-         * `lightLevel` is asked of the block state and can never be asked of the clock.
+         * Whether a mat is burning — **a state rather than a brightness**, because `lightLevel` is asked
+         * of the block state and can never be asked of the clock.
          */
-        val GLOW: IntegerProperty = IntegerProperty.create("glow", 0, BRIGHTEST)
+        val LIT: BooleanProperty = BooleanProperty.create("lit")
 
         /**
-         * What a mat emits: **the rung itself**, there being a state for every level it can burn at.
+         * What a mat emits: everything or nothing.
          *
-         * **The bottom is nothing at all**, which is the whole of what makes this a night: the roofed
-         * dimension type admits monsters at block light zero, so a floor of even one would keep every
-         * hostile thing off the lake for ever, where going properly dark makes the cavern a different
-         * place after dusk.
+         * **Nothing is the load-bearing half**, and it is what makes this a night: the roofed dimension
+         * type admits monsters at block light zero, so a floor of even one would keep every hostile thing
+         * off the lake for ever, where going properly dark makes the cavern a different place after dusk.
          */
-        fun lightAt(state: BlockState): Int = state.getValue(GLOW)
+        fun lightAt(state: BlockState): Int = if (state.getValue(LIT)) BRIGHTEST else OUT
 
         /**
-         * Where the cycle stands at [clockTime] — full at noon, out at midnight, and a cosine between so
-         * the change is slowest at both ends and quickest at dawn and dusk.
+         * Whether the hour at [clockTime] is one the algae burns at — **the world's own day, kept by a
+         * plant that cannot see it**: alight at sunrise, out at sunset, and nothing in between to be
+         * halfway through.
+         *
+         * A ladder of rungs stood here and read the hour as a curve. It cost every mat twenty-eight light
+         * changes a day, and it bought nothing a walk could see: the lake's fade was always the scatter of
+         * the random ticks rather than the shape of the curve, and near midnight a mat that had not ticked
+         * since the evening still carried a rung or two, so the lake came out speckled with lights when it
+         * should have been black.
          *
          * **The dimension's own clock** (`Level.getDefaultClockTime`), which is what 26.1 replaced
          * `getDayTime` with: a world declares which clock it runs on, and a sealed Age with no sun still
          * runs on one. That is the whole trick — the algae is how a people with no sky read the hour.
          */
-        fun glowAtHour(clockTime: Long): Int {
-            val throughTheDay = Math.floorMod(clockTime, A_DAY).toDouble() / A_DAY
-            val risen = (1.0 - cos((throughTheDay - AT_MIDNIGHT) * FULL_TURN)) / 2.0
-            return (risen * BRIGHTEST).roundToInt().coerceIn(0, BRIGHTEST)
-        }
+        fun isLitAtHour(clockTime: Long): Boolean = Math.floorMod(clockTime, A_DAY) < NIGHT_FALLS
 
         /**
          * The top rung, and so how many there are — **cave vines' own**, which is what the lake being the
@@ -179,12 +233,23 @@ class AlgaeBlock(properties: BlockBehaviour.Properties) : Block(properties) {
          */
         const val BRIGHTEST = 14
 
+        /** And what it emits when it is not — see [lightAt] for why nothing is the number that matters. */
+        const val OUT = 0
+
         private const val A_DAY = 24000L
 
-        /** Where in the day the cycle bottoms out, as a fraction — Minecraft's own midnight. */
-        private const val AT_MIDNIGHT = 0.75
+        /** Vanilla's own sunset, and zero is its sunrise — so "dark from sundown to sunup" is literal. */
+        private const val NIGHT_FALLS = 12000L
 
-        private const val FULL_TURN = 2.0 * Math.PI
+        /**
+         * How far a waking mat reaches, and how far down it looks — see [wakeTheNeighbours].
+         *
+         * Twenty-five columns, which is enough to collapse the straggler tail without making a random tick
+         * expensive. It is smaller than the spread's own reach on purpose: this is the hour travelling
+         * through a patch that already exists, not the patch growing.
+         */
+        private const val WAKES_WITHIN = 2
+        private const val WAKES_BELOW = 1
 
         /** Told to clients, not to neighbours: a rung is a look, and nothing is listening for it. */
         private const val UPDATE_CLIENTS = 2

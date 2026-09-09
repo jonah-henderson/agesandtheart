@@ -467,6 +467,10 @@ enum class Terrain(
     fun grounding(): Grounding.Declared = when (this) {
         ISLANDS, ISLE -> Grounding.Declared(hasSandyShores = true)
         CANYON -> Grounding.Declared(waterlineIsRiver = true)
+        // Rock to the ceiling has no coast in it anywhere, and vanilla's continentalness curve has no
+        // anchor that far over the water — so without this a sealed world files as mid inland and grows
+        // plains in its own rock. See [Grounding.Declared.isDeepInland].
+        SOLID -> Grounding.Declared(isDeepInland = true)
         // Measured from the basin's *shoulder* rather than its floor: the floor is the bottom of a hollow
         // in the middle of a cell, so datuming there chills the whole country by the depth of its lowest
         // hole and the basins come out snowy. The shoulder is where the plains actually sit.

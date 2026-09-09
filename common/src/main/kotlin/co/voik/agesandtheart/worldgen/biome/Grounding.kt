@@ -98,6 +98,20 @@ data class Grounding(
          * do without it and a coast has no use for it.
          */
         val elevation: Elevation? = null,
+        /**
+         * Whether this landform is rock with **no surface at all**, so there is no coast anywhere in it and
+         * no ocean for one to meet — every column is the deep interior of a landmass.
+         *
+         * Vanilla's continentalness curve stops caring sixty blocks over the waterline, because that is as
+         * far as a hill goes; a world solid to the ceiling stands two hundred and fifty-six over it and
+         * came out at **0.5, mid inland** — where dripstone caves want 0.8 and up. So a sealed world grew
+         * plains and savanna in its rock, and the reason was never how buried it was but what its shape
+         * claimed about being near the sea (measured 2026-09-08, and the depth axis was tried first).
+         *
+         * It extends the top of the curve rather than answering outright, so an Age that is part solid and
+         * part something else keeps a real coast wherever it has one.
+         */
+        val isDeepInland: Boolean = false,
     ) {
         companion object {
             /**
@@ -112,6 +126,9 @@ data class Grounding(
                 hasSandyShores = all.any { it.hasSandyShores },
                 waterlineIsRiver = all.any { it.waterlineIsRiver },
                 elevation = all.firstNotNullOfOrNull { it.elevation },
+                // Safe to take from any territory, unlike the rest, because it lengthens a curve rather
+                // than replacing an answer: a height no ordinary landform reaches is the only one it moves.
+                isDeepInland = all.any { it.isDeepInland },
             )
 
             val CODEC: Codec<Declared> = RecordCodecBuilder.create { instance ->
@@ -121,8 +138,9 @@ data class Grounding(
                         .forGetter(Declared::waterlineIsRiver),
                     Elevation.CODEC.optionalFieldOf("elevation")
                         .forGetter { Optional.ofNullable(it.elevation) },
-                ).apply(instance) { sandyShores, waterlineIsRiver, elevation ->
-                    Declared(sandyShores, waterlineIsRiver, elevation.orElse(null))
+                    Codec.BOOL.optionalFieldOf("deep_inland", false).forGetter(Declared::isDeepInland),
+                ).apply(instance) { sandyShores, waterlineIsRiver, elevation, deepInland ->
+                    Declared(sandyShores, waterlineIsRiver, elevation.orElse(null), deepInland)
                 }
             }
         }
@@ -147,7 +165,7 @@ data class Grounding(
         // And one with no sea and no relief to read is simply inland, everywhere. There is no shore to
         // find and no ocean floor to stand on, so the only honest answer is the one vanilla files dry
         // country under — see [hasSea].
-        if (!hasSea) return INLAND_WITH_NO_COAST
+        if (!hasSea) return if (declared.isDeepInland) DEEP_INLAND else INLAND_WITH_NO_COAST
         return cache.continentalness(slot)
     }
 
@@ -250,7 +268,12 @@ data class Grounding(
             val along = (overTheWater - HEIGHTS[anchor - 1]) / (HEIGHTS[anchor] - HEIGHTS[anchor - 1])
             return BANDS[anchor - 1] + (BANDS[anchor] - BANDS[anchor - 1]) * along
         }
-        return BANDS.last()
+        if (!declared.isDeepInland) return BANDS.last()
+        // One more anchor, and only for a landform that says it has no coast: the published curve ends at
+        // sixty blocks over the water because that is as far as a hill goes, so everything past it reads
+        // as mid inland. See [Declared.isDeepInland].
+        val beyond = ((overTheWater - HEIGHTS.last()) / (DEEP_INLAND_HEIGHT - HEIGHTS.last())).coerceIn(0.0f, 1.0f)
+        return BANDS.last() + (DEEP_INLAND - BANDS.last()) * beyond
     }
 
     /**
@@ -350,6 +373,14 @@ data class Grounding(
          * is asked first and answers with the whole band where it has one.
          */
         private const val INLAND_WITH_NO_COAST = 0.16f
+
+        /**
+         * Where a landform with no coast at all sits on the axis, and how far over the waterline it has to
+         * stand to get there. **Inside vanilla's far-inland band and inside dripstone's own 0.8..1.0**,
+         * which is the whole point of it — see [Declared.isDeepInland].
+         */
+        private const val DEEP_INLAND = 0.9f
+        private const val DEEP_INLAND_HEIGHT = 160.0f
 
         /**
          * The middle of vanilla's *valley* band. Its peaks-and-valleys curve is

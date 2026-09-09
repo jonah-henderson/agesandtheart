@@ -113,8 +113,19 @@ object SurfacingStrategy {
      *
      * **First in the sequence**, for the same reason the floor is: a world boundary is not the palette's to
      * decide, and a material least of all.
+     *
+     * **And [rule] is kept out of the band entirely**, which is not tidiness. [worldRoof] fades its bedrock
+     * over those blocks the way vanilla's floor does, so some of them are not bedrock — and a sequence
+     * falls through, so each of those reached the palette instead. The palette is the biome's own tree,
+     * the ceiling is a rock face by every test it makes, and it dressed the gaps in the world's roof with
+     * grass over dirt. Nothing matching leaves the block as the generator laid it, which is the Age's rock.
      */
-    fun shutOverhead(rule: SurfaceRules.RuleSource): SurfaceRules.RuleSource = layers(worldRoof(), rule)
+    fun shutOverhead(rule: SurfaceRules.RuleSource): SurfaceRules.RuleSource =
+        layers(worldRoof(), SurfaceRules.ifTrue(not(withinTheRoof()), rule))
+
+    /** The band [worldRoof] fades its bedrock through — where the palette has no business. */
+    private fun withinTheRoof(): SurfaceRules.ConditionSource =
+        SurfaceRules.yBlockCheck(VerticalAnchor.belowTop(BEDROCK_FADE), 0)
 
     // --- The three an Age can wear ---
 

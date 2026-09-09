@@ -96,6 +96,9 @@ data class WaterTable(
          */
         private var columnWaterY = 0
 
+        /** Where this column's own water actually stands, rather than how high it reaches — see below. */
+        private var columnStanding: Spans? = null
+
         override fun computeSubstance(context: DensityFunction.FunctionContext, substance: Double): BlockState? {
             // Positive means solid: nothing is being removed here, so the block stands as it is.
             if (substance > 0.0) return null
@@ -104,6 +107,15 @@ data class WaterTable(
             val worldZ = context.blockZ()
             readColumn(worldX, worldZ)
 
+            // **Water the shape poured is water, and no threshold gets a vote.** A carver cutting into a
+            // river or into a chamber's lake must find it: this is a body of water somebody can see, not
+            // groundwater to be judged wet or dry by a noise. It was read as a *level* alone, which meant
+            // a lake deep under a roofed world was still put to the deep thresholds — where dry is the
+            // common case — and most tunnels into one came out as air, leaving holes through the lake.
+            if (columnStanding?.contains(worldY) == true) {
+                placedFluid = true
+                return fluid
+            }
             val wet = worldY < standingLevel(worldX, worldY, worldZ)
             placedFluid = wet
             return if (wet) fluid else AIR
@@ -149,7 +161,8 @@ data class WaterTable(
             columnSurface = field.columnSpans(worldX, worldZ).highestSolidY ?: seaLevel
             // Under the sea, or under water the shape carries itself. Both are "there is water over this
             // ground"; only one of them is a level.
-            val carried = standing?.columnSpans(worldX, worldZ)?.highestSolidY ?: Int.MIN_VALUE
+            columnStanding = standing?.columnSpans(worldX, worldZ)
+            val carried = columnStanding?.highestSolidY ?: Int.MIN_VALUE
             columnWaterY = maxOf(seaLevel, carried)
             columnSubmerged = columnSurface < columnWaterY
         }

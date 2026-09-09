@@ -7,11 +7,20 @@
     "",
     "Scattered up the whole column because the water it wants may be anywhere -- a cavern lake, a flooded",
     "hall, an overhung pool. Each attempt falls until it finds a surface or runs out, so the tries that",
-    "start in rock cost a short walk and nothing else."
+    "start in rock cost a short walk and nothing else.",
+    "",
+    "**The count is a weak dial and the numbers say how weak.** One patch covers 169 columns and a chunk",
+    "has 256, so at any count worth having the patches overlap about tenfold and most seeds land on water",
+    "that already has a mat. Measured over the same 49 chunks of a colossal vault: 24 sows 29450, 15 sows",
+    "26390, 8 sows 20869 -- a two-thirds cut in the count for a third off the lake.",
+    "",
+    "Sown thinner because at 24 the lake arrived at the density the spread declines at, so nothing ever",
+    "visibly grew and the mottling the mushroom rule exists to make was invisible (Jonah, walked",
+    "2026-09-08). If it wants thinning again, this is still the dial -- just not a proportional one."
   ],
   "feature": "agesandtheart:algae",
   "placement": [
-    { "type": "minecraft:count", "count": 24 },
+    { "type": "minecraft:count", "count": 8 },
     { "type": "minecraft:in_square" },
     {
       "type": "minecraft:height_range",

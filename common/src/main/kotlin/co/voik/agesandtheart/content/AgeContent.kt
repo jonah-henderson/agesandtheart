@@ -1048,7 +1048,7 @@ object AgeContent {
      *
      * Grass's numbers: it is a growth, it comes away in the hand, and nothing about harvesting it should
      * be work. Its light is read off the state rather than fixed, because the glow keeps the hour — see
-     * [AlgaeBlock.GLOW].
+     * [AlgaeBlock.LIT].
      */
     val ALGAE_BLOCK: AlgaeBlock = AlgaeBlock(
         BlockBehaviour.Properties.of()
@@ -1060,7 +1060,10 @@ object AgeContent {
             .sound(SoundType.WET_GRASS)
             .lightLevel(AlgaeBlock::lightAt)
             .randomTicks()
-            .noOcclusion(),
+            .noOcclusion()
+            // A growth on the water, and nothing about it should survive being shoved: a piston takes it
+            // rather than carrying it, the way it takes grass.
+            .pushReaction(net.minecraft.world.level.material.PushReaction.DESTROY),
     )
 
     /**
