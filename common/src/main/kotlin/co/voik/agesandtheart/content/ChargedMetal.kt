@@ -70,44 +70,16 @@ object ChargedMetal {
             if (level.hasNeighborSignal(at)) continue
             pulling += Arcs.runsDrivenFrom(level, at, Arcs::attracts)
             pushing += Arcs.runsDrivenFrom(level, at, Arcs::repels)
+            // **And nothing special for a charged one** (Jonah, 2026-09-09). A charged crystal powers
+            // copper exactly as an ordinary one does and is simply worth twice as much doing it — and
+            // since a lightning rod *is* copper, a rod stood on a pile is already a conducting mass of one
+            // block driven by the crystal under it. Every arrangement the design describes falls out of
+            // the rules that were here; the only thing the lightning does that is its own is [struck].
             Arcs.massDrivenFrom(level, at)?.let { biting += it }
-            // And a charged pile throws through its mast — see [liveThroughAMast].
-            liveThroughAMast(level, at)?.let { biting += it }
         }
         field(level, pulling, TOWARD)
         field(level, pushing, AWAY)
         for (run in biting) bite(level, run)
-    }
-
-    /**
-     * A charged pile read as a machine, or null where it has no charge or **no mast to throw it through**.
-     *
-     * **The rod is the only way the charge gets out** (Jonah, 2026-09-09), and that is what keeps the
-     * copper apparatus worth building. A charged pile that bit whatever touched it would have been a
-     * complete machine made of one material — no run to lay, no ratio to tune, no oxide to maintain — and
-     * every reason to build in copper would have gone with it. Bare, a charged pile is *stored* charge and
-     * nothing else; it is inert until somebody stands a rod on it.
-     *
-     * That is also the design's scene arriving exactly as written: the rod you put up to draw the bolt is
-     * the turret you then have to walk into to collect the pile.
-     *
-     * Its own worth over its own blocks, so a charged pile comes out at twice the anchor whatever its
-     * size — two damage every ten ticks. Bigger buys duration and reach, never a harder bite.
-     */
-    private fun liveThroughAMast(level: ServerLevel, at: BlockPos): Arcs.Run? {
-        if (level.getBlockState(at).getValue(ArcCrystalBlock.CHARGE) <= ArcCrystalBlock.FLAT) return null
-        val pile = Arcs.pileStruckAt(level, at).filter { charged(level, it) }
-        // One run per pile, by the driver rule every other shape here uses: without it a pile of thirty
-        // would be thirty machines standing in the same place.
-        if (pile.minWithOrNull(POSITION_ORDER) != at) return null
-        if (Arcs.rodsOn(level, pile).isEmpty()) return null
-        return Arcs.Run(along = null, blocks = pile, crystal = pile.sumOf { Arcs.worthOf(level.getBlockState(it)) })
-    }
-
-    private fun charged(level: ServerLevel, at: BlockPos): Boolean {
-        val state = level.getBlockState(at)
-        return state.`is`(AgeContent.ARC_CRYSTAL_BLOCK_BLOCK) &&
-            state.getValue(ArcCrystalBlock.CHARGE) > ArcCrystalBlock.FLAT
     }
 
     /**
@@ -168,17 +140,45 @@ object ChargedMetal {
         val force = run.force.coerceAtMost(MOST_FORCE)
         if (level.gameTime % bitesEvery(force) >= STIRRED_EVERY) return
         val rods = Arcs.rodsOn(level, run.blocks)
-        val throws = Arcs.reachOfAMast(rods.size)
-        val bitten = if (throws <= NONE) contactWith(run) else fromTheTip(rods, throws)
         val hurt = bitesFor(force)
         val source = biting(level)
         var bit = false
-        for (entity in level.getEntities(null as Entity?, bitten) { it is LivingEntity }) {
-            if ((entity as LivingEntity).hurtServer(level, source, hurt)) bit = true
+        // **A mast adds range; it does not replace the contact.** A rod turns a fence into a turret, so
+        // the fence has to go on being a fence — leaning on the metal itself was still a way to be hurt
+        // before anybody stood a rod on it and stays one afterwards.
+        for (entity in touching(level, run) + thrownAt(level, rods)) {
+            if (entity.hurtServer(level, source, hurt)) bit = true
         }
         if (!bit) return
         crackle(level, rods, run)
         spendACharge(level, run)
+    }
+
+    /**
+     * Whatever is against the metal — **block by block, not by the shape's bounding box**.
+     *
+     * A fence is rarely a cuboid, and the box around an L covers the whole yard inside the corner: read
+     * off the box, a copper wall round a field would have bitten everything standing in the field.
+     */
+    private fun touching(level: ServerLevel, run: Arcs.Run): Set<LivingEntity> {
+        val near = level.getEntities(null as Entity?, around(run).inflate(AN_ARC)) { it is LivingEntity }
+        return near.filterIsInstanceTo(LinkedHashSet<LivingEntity>()).filterTo(LinkedHashSet()) { entity ->
+            run.blocks.any { entity.boundingBox.intersects(AABB(it).inflate(AN_ARC)) }
+        }
+    }
+
+    /**
+     * And whatever the mast reaches, **measured from the tip** — a ball round it rather than a box, so a
+     * stack of rods reads as one thing throwing rather than as a cube nobody can see the edges of.
+     */
+    private fun thrownAt(level: ServerLevel, rods: Set<BlockPos>): Set<LivingEntity> {
+        val throws = Arcs.reachOfAMast(rods.size)
+        if (throws <= NONE) return emptySet()
+        val tip = Vec3.atCenterOf(rods.maxBy { it.y })
+        val around = AABB.ofSize(tip, throws * 2, throws * 2, throws * 2)
+        return level.getEntities(null as Entity?, around) { it is LivingEntity }
+            .filterIsInstanceTo(LinkedHashSet<LivingEntity>())
+            .filterTo(LinkedHashSet()) { it.position().distanceTo(tip) <= throws }
     }
 
     /**
@@ -196,9 +196,8 @@ object ChargedMetal {
         // bite each turn and vanilla's invulnerability window lets exactly one of them land, so charging
         // only the winner would have made a big pile last as many times longer as it was big — which is
         // the opposite of "the whole pile for some number of discharges".
-        val feeding = Arcs.crystalsAround(level, run.blocks) +
-            run.blocks.filter { level.getBlockState(it).`is`(AgeContent.ARC_CRYSTAL_BLOCK_BLOCK) }
-                .flatMap { Arcs.pileStruckAt(level, it) }
+        val feeding = Arcs.crystalsAround(level, run.blocks)
+            .flatMapTo(LinkedHashSet()) { Arcs.pileConnectedTo(level, it) }
         for (at in feeding) {
             val state = level.getBlockState(at)
             if (!state.`is`(AgeContent.ARC_CRYSTAL_BLOCK_BLOCK)) continue
@@ -219,7 +218,7 @@ object ChargedMetal {
      * the machines run best, with no maintenance economy needing to be written.
      */
     fun struck(level: ServerLevel, at: BlockPos) {
-        val pile = Arcs.pileStruckAt(level, at)
+        val pile = Arcs.pileConnectedTo(level, at)
         if (pile.isEmpty()) return
         for (block in pile) {
             val state = level.getBlockState(block)
@@ -264,17 +263,8 @@ object ChargedMetal {
     /** How far out a run's field is worth asking about: the metal itself, and its own length past it. */
     private fun reachOf(run: Arcs.Run): AABB = around(run).inflate(run.reach.toDouble())
 
-    /** Touching the copper itself, which is what a fence with no mast is worth. */
-    private fun contactWith(run: Arcs.Run): AABB = around(run).inflate(AN_ARC)
-
     private fun around(run: Arcs.Run): AABB =
         run.blocks.fold(AABB(run.blocks.first())) { box, block -> box.minmax(AABB(block)) }
-
-    /** And with a mast, measured from its tip — so a stack of rods is height as well as reach. */
-    private fun fromTheTip(rods: Set<BlockPos>, throws: Double): AABB {
-        val tip = rods.maxBy { it.y }
-        return AABB.ofSize(Vec3.atCenterOf(tip), throws * 2, throws * 2, throws * 2)
-    }
 
     /**
      * Whether a field may move this at all.
@@ -405,9 +395,6 @@ object ChargedMetal {
     private const val SPARK_DRIFT = 0.08
     private const val SPARK_SPREAD = 0.25
     private const val SPARK_SPEED = 0.02
-
-    /** Any total order will do, and only agreeing matters — `Arcs.runsDrivenFrom` carries the argument. */
-    private val POSITION_ORDER = compareBy<BlockPos>({ it.x }, { it.y }, { it.z })
 
     /** How far past the copper a bare mass is still touching you. */
     private const val AN_ARC = 0.35

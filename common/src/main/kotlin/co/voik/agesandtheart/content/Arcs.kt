@@ -183,14 +183,15 @@ object Arcs {
     }
 
     /**
-     * The pile of arc crystal a bolt landing at [at] has reached, walking **through the mast as well as
-     * through the crystal**.
+     * The arc crystal wired to [at] — **the pile a bolt fills**, walked through the crystal and through
+     * anything that conducts.
      *
-     * A rod that drew a strike is usually standing on the pile rather than in it, and a tall mast is
-     * several rods before the crystal starts — so a walk that only knew about crystal would charge nothing
-     * in exactly the arrangement the design tells a player to build.
+     * A rod that drew a strike stands on the pile rather than in it, and a mast is several blocks before
+     * the crystal starts, so a walk that only knew about crystal would charge nothing in exactly the
+     * arrangement the design tells a player to build. Conductors carry it because that is what conductors
+     * do; the bolt reaches whatever the charge could have reached anyway.
      */
-    fun pileStruckAt(level: BlockGetter, at: BlockPos): Set<BlockPos> {
+    fun pileConnectedTo(level: BlockGetter, at: BlockPos): Set<BlockPos> {
         val crystal = LinkedHashSet<BlockPos>()
         val walked = HashSet<BlockPos>()
         val queue = ArrayDeque(listOf(at) + Direction.entries.map { at.relative(it) })
@@ -199,7 +200,7 @@ object Arcs {
             if (!walked.add(next)) continue
             val state = level.getBlockState(next)
             val isCrystal = state.`is`(AgeContent.ARC_CRYSTAL_BLOCK_BLOCK)
-            if (!isCrystal && !state.`is`(Blocks.LIGHTNING_ROD)) continue
+            if (!isCrystal && !conducts(state)) continue
             if (isCrystal) crystal += next
             Direction.entries.forEach { queue.addLast(next.relative(it)) }
         }
@@ -207,24 +208,15 @@ object Arcs {
     }
 
     /**
-     * The lightning rods standing on [mass] — **the mast a charged fence throws from**.
+     * The lightning rods in [mass] — **the mast it throws from**.
      *
-     * Walked outward through the rods themselves as well as off the copper, because a stack of them is one
-     * mast rather than one rod repeated: what a builder puts up is a spire, and only its tip throws.
+     * A filter rather than a walk of its own, because **a lightning rod is copper** and so is already part
+     * of the mass [copperAround] found. That one fact is what makes a rod stood on a pile of arc crystal
+     * need no rule: it is a conducting mass of one block, driven by the crystal under it, and everything
+     * about what it is worth was already written.
      */
-    fun rodsOn(level: BlockGetter, mass: Collection<BlockPos>): Set<BlockPos> {
-        val found = LinkedHashSet<BlockPos>()
-        val queue = ArrayDeque<BlockPos>()
-        mass.forEach { block -> Direction.entries.forEach { queue.addLast(block.relative(it)) } }
-        while (queue.isNotEmpty() && found.size < MOST_ON_A_MAST) {
-            val next = queue.removeFirst()
-            if (next in found) continue
-            if (!level.getBlockState(next).`is`(Blocks.LIGHTNING_ROD)) continue
-            found += next
-            Direction.entries.forEach { queue.addLast(next.relative(it)) }
-        }
-        return found
-    }
+    fun rodsOn(level: BlockGetter, mass: Collection<BlockPos>): Set<BlockPos> =
+        mass.filterTo(LinkedHashSet()) { level.getBlockState(it).`is`(Blocks.LIGHTNING_ROD) }
 
     /**
      * How far a charged mass bites past itself, given the rods on it — nothing at all without one.
@@ -305,9 +297,6 @@ object Arcs {
 
     /** And how much copper one charge may run through, for the reason [LavaTubes] caps a mass. */
     private const val MOST_IN_A_MASS = 256
-
-    /** And how tall a mast may be. Past [FURTHEST_A_MAST_THROWS] rods there is nothing left to buy. */
-    private const val MOST_ON_A_MAST = 32
 
     /** And how much of a pile one bolt charges, for the reason a mass is capped. */
     private const val MOST_IN_A_PILE = 512

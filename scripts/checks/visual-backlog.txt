@@ -946,8 +946,15 @@
 #     A bolt should light the whole pile up (light level 14, so it is obvious) and everything it feeds
 #     should double. Then try to mine it back -- that is meant to hurt, and deretheni is the answer.
 #     The charge drains as it bites and does not survive being picked up.
-#     **Take the rod off and it should go quiet.** A bare charged pile is stored charge and nothing else;
-#     the mast is the only way out, which is what keeps the copper apparatus worth building at all.
+#     **Take the rod off and it should go quiet.** A bare charged pile is stored charge and nothing else --
+#     a charged crystal has no discharge path of its own, it just powers copper twice as hard. A lightning
+#     rod IS copper, so a rod on a pile is a one-block conducting mass and needs no rule; check that an
+#     UNcharged pile with a rod also zaps, at half the rate.
+#   - **A ROD ADDS RANGE, IT DOES NOT REPLACE CONTACT.** Put a rod on a copper fence: leaning on the fence
+#     should still hurt, and the tip should now reach four blocks past it. And a taller mast should be
+#     WEAKER unless you feed it more crystal -- a rod is a metal block, so it dilutes the ratio like any
+#     other. That is meant to fall out of "more metal is reach, more crystal is force"; say so if it feels
+#     like a bug instead of a rule.
 #   - **SETTING A BLOCK DOWN IN MIDAIR.** Sneak and use with a block of arc crystal while looking at open
 #     sky: it should appear about three blocks in front of your eyes, hanging on nothing. Aiming at a block
 #     within reach must still place the ordinary way, sneaking or not. Try bridging out from a ledge, and

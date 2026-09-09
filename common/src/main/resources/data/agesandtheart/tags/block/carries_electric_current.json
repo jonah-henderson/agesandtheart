@@ -9,6 +9,11 @@
     "**Waxed variants are in.** Wax keeps copper bare rather than covering it, which is the whole reason",
     "waxing is the maintenance verb here rather than a way of cheating the rule.",
     "",
+    "**And so is the lightning rod, because a lightning rod is made of copper** (Jonah, 2026-09-09). That",
+    "one line is what makes a rod stood on a pile of arc crystal work with no rule of its own: it is a",
+    "conducting mass of one block, driven by the crystal touching it, and `Arcs.reachOfAMast` already says",
+    "what a rod on a mass is worth. It never oxidises, which is correct -- vanilla has no weathered rod.",
+    "",
     "Spelled out rather than built on `minecraft:copper_blocks`, which would drag every oxidised stage in",
     "with it -- and *which* stage conducts is the mechanic, not an implementation detail."
   ],
@@ -20,6 +25,7 @@
     "minecraft:copper_grate",
     "minecraft:waxed_copper_grate",
     "minecraft:cut_copper",
-    "minecraft:waxed_cut_copper"
+    "minecraft:waxed_cut_copper",
+    "minecraft:lightning_rod"
   ]
 }
