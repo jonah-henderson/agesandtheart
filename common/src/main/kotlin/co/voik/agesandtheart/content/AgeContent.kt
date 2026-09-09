@@ -1052,6 +1052,23 @@ object AgeContent {
      * highest sits at the build limit, a quarter of a kilometre over a player at sea level, and a body
      * nobody is told about cannot be a signpost.
      */
+    /**
+     * The arc a charged machine throws when it bites — see [ArcBolt], which explains why vanilla's own
+     * lightning could not be spawned instead.
+     *
+     * **Tiny, unsaved, and tracked no further than it can be seen.** It is a visual with a three-tick life,
+     * so what matters is that one costs almost nothing to send and nothing at all to keep.
+     */
+    val ARC_BOLT: EntityType<ArcBolt> = EntityType.Builder
+        .of({ type, level -> ArcBolt(type, level) }, MobCategory.MISC)
+        .sized(ARC_BOLT_SIZE, ARC_BOLT_SIZE)
+        .clientTrackingRange(ARC_BOLT_TRACKING_CHUNKS)
+        .noSave()
+        .build(ResourceKey.create(Registries.ENTITY_TYPE, "arc_bolt".location()))
+
+    private const val ARC_BOLT_SIZE = 0.1f
+    private const val ARC_BOLT_TRACKING_CHUNKS = 4
+
     const val DRIFTING_ORE_TRACKING_CHUNKS = 16
     private const val DRIFTING_ORE_UPDATE_TICKS = 4
 
@@ -1105,6 +1122,7 @@ object AgeContent {
         Meteor.ID to METEOR,
         MeteorStorm.ID to METEOR_STORM,
         "drifting_ore".location() to DRIFTING_ORE,
+        "arc_bolt".location() to ARC_BOLT,
     )
 
     val WOUND_ID: Identifier = "wound".location()

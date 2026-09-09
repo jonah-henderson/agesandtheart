@@ -169,7 +169,7 @@ object ChargedMetal {
             .filter { it.hurtServer(level, source, hurt) }
         if (struck.isEmpty()) return
         val from = throwsFrom(rods, run, struck.first().position())
-        for (entity in struck) arcTo(level, from, entity.boundingBox.center)
+        for (entity in struck) ArcBolt.thrown(level, from, entity.boundingBox.center)
         spendACharge(level, run)
     }
 
@@ -183,31 +183,6 @@ object ChargedMetal {
         val tip = rods.maxByOrNull { it.y }
         if (tip != null) return Vec3.atCenterOf(tip)
         return Vec3.atCenterOf(run.blocks.minByOrNull { it.distToCenterSqr(victim) } ?: run.blocks.first())
-    }
-
-    /**
-     * **A bolt drawn between two points**, which is the whole of what makes a zap read as a zap.
-     *
-     * Vanilla's own lightning is an entity with a renderer; at this scale that would be a packet, a
-     * client class and a registration for something on screen for a tenth of a second. Particles walked
-     * along the line cost none of that and read the same — the jitter is what stops it being a laser, and
-     * it is pinched to nothing at both ends so the arc visibly starts at the rod and lands on the victim.
-     */
-    private fun arcTo(level: ServerLevel, from: Vec3, to: Vec3) {
-        val span = to.subtract(from)
-        val steps = (span.length() / A_STEP).toInt().coerceIn(FEWEST_STEPS, MOST_STEPS)
-        for (step in 0..steps) {
-            val along = step.toDouble() / steps
-            val straight = from.add(span.scale(along))
-            // Widest in the middle and nothing at the ends, which is how a real arc wanders.
-            val wander = Math.sin(along * Math.PI) * ARC_WANDER
-            val at = straight.add(
-                (level.random.nextDouble() - HALF) * wander,
-                (level.random.nextDouble() - HALF) * wander,
-                (level.random.nextDouble() - HALF) * wander,
-            )
-            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, at.x, at.y, at.z, ONE_SPARK, NONE, NONE, NONE, NONE)
-        }
     }
 
     /**
@@ -447,7 +422,7 @@ object ChargedMetal {
      * you. [MOST_FORCE] is what stops an absurd ratio launching anything into orbit.
      */
     private const val PULL_AT_ONE_TO_ONE = 0.12
-    private const val MOST_FORCE = 8.0
+    private const val MOST_FORCE = 12.0
     private const val TOWARD = 1.0
     private const val AWAY = -1.0
 

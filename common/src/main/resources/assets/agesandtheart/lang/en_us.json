@@ -113,6 +113,7 @@
   "device.agesandtheart.surveying_device.started": "The device begins its survey of this place",
   "device.agesandtheart.surveying_device.working": "The survey is still running",
   "device.agesandtheart.unnameable": "The Art has no word for this",
+  "entity.agesandtheart.arc_bolt": "Arc",
   "entity.agesandtheart.astrite_golem": "Astrite Golem",
   "entity.agesandtheart.descriptive_book": "Descriptive Book",
   "entity.agesandtheart.drifting_ore": "Drifting Ore",

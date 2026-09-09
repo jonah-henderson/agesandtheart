@@ -947,9 +947,10 @@
 #     the crystal *touching the metal*, so a rod on a pile could only ever be fed by the one block under
 #     it however many were stacked -- which is exactly the half a heart Jonah measured against twenty-odd
 #     blocks. It walks the whole pile now. Put one rod on one block: half a heart a second. Add blocks
-#     under it and it should climb hard and fast. `MOST_FORCE` (8) is where it stops climbing and is the
-#     first dial if the ramp is too steep or the ceiling too easy to reach -- eight crystal to one metal
-#     block is currently a lethal turret.
+#     under it and it should climb hard and fast. **`MOST_FORCE` is 12 as of 2026-09-09** (Jonah, raised
+#     from 8): if you can truly gather that much arc crystal you should be able to build something
+#     catastrophically dangerous. Twelve crystal to one metal block is 12 damage every 10 ticks -- six
+#     hearts twice a second, through armour.
 #   - **DOES THE SHAPE OF THE BUILD READ AS THE SHAPE OF THE FIELD?** Lay a line of iron blocks out from a
 #     crystal. The pull should reach about as far as the line is long, and be a broad gentle drag for a
 #     long line and a hard local yank for a short one. Gold is the same thing pushing.
@@ -988,8 +989,12 @@
 #     you -- sparse on purpose, `A_BLOCK_SPARKS_ONE_TURN_IN` if it is too busy or too quiet. (b) Every
 #     lightning rod's POINT should spark constantly while its assembly is live, so a mast reads at a
 #     glance. (c) A zap should draw a small forked bolt from the rod tip (or the nearest metal, with no
-#     rod) to whatever it hit. It is particles walked along the line rather than a real bolt entity --
-#     `ARC_WANDER` is how much it forks, `A_STEP` how dense it is. Say if it reads as a laser instead.
+#     rod) to whatever it hit. **It is vanilla's own lightning geometry** -- `LightningBoltRenderer.submit`
+#     is public and its render state is one seed, so the bolt is drawn by the game's own code with nothing
+#     but a rotated, shrunk PoseStack in front of it. `FORK_ACROSS` (1.0 = vanilla's own proportions) is
+#     the dial, and the trade is baked into the geometry: the bolt's THICKNESS rides on the same scale as
+#     its fork, so if it reads as too thin, raising it fattens the bolt and splays it further at once.
+#     Vanilla's own bolt could not be spawned instead -- even `visualOnly` thunderclaps at volume 10000.
 #
 # NOT BUILT: the tether/lift, and the maintainer's log. The numbers live in `ChargedMetal` and its check
 # has the ramps; the check can say the anchor is 1 damage per 20 ticks, but only a walk can say whether
