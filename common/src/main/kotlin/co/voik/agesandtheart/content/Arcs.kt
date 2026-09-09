@@ -88,7 +88,7 @@ object Arcs {
         if (blocks.isEmpty()) return@mapNotNull null
         // One walk, answering both questions. Asking `crystalsAround` again to elect a driver was a
         // second walk of the same thirty-two blocks for a set already in hand.
-        val feeding = crystalsAround(level, blocks).filter(live)
+        val feeding = supplyingCrystal(level, blocks).filter(live)
         if (feeding.minWithOrNull(POSITION_ORDER) != at) return@mapNotNull null
         Run(heading, blocks, supplyOf(level, feeding))
     }
@@ -135,7 +135,7 @@ object Arcs {
     fun massDrivenFrom(level: BlockGetter, at: BlockPos, live: (BlockPos) -> Boolean = ANY): Run? {
         val mass = copperAround(level, at)
         if (mass.isEmpty()) return null
-        val feeding = crystalsAround(level, mass).filter(live)
+        val feeding = supplyingCrystal(level, mass).filter(live)
         if (feeding.minWithOrNull(POSITION_ORDER) != at) return null
         return Run(along = null, blocks = mass.toList(), crystal = supplyOf(level, feeding))
     }
@@ -179,7 +179,37 @@ object Arcs {
         else -> ArcCrystalBlock.ORDINARY_IS_WORTH
     }
 
-    /** And which they are, which is what [runsDrivenFrom] needs to pick one of them. */
+    /**
+     * **All the crystal feeding [blocks]** — what touches the metal, and the whole pile stacked behind it.
+     *
+     * The supply used to be the touching layer alone, and that made the force ceiling a fact about the
+     * *metal's surface area* rather than about what a player built: a lightning rod is one block with one
+     * face into a pile, so it could only ever be fed by a single crystal however many were stacked under
+     * it, and the anchor was the strongest machine that arrangement could make (Jonah, 2026-09-09,
+     * measured at half a heart a second against a pile of twenty-odd).
+     *
+     * That contradicted the design's own sink — ambition is meant to be paid for in bulk crystal — so the
+     * walk goes on through the crystal. **Through crystal only**, not through the metal: what feeds a run
+     * is the pile against it, and a pile against some *other* metal on the far side of the same build is
+     * that machine's supply rather than this one's.
+     *
+     * It is also what makes the driver election stable, since every crystal in one pile now sees the same
+     * set and elects the same winner.
+     */
+    fun supplyingCrystal(level: BlockGetter, blocks: Collection<BlockPos>): Set<BlockPos> {
+        val found = LinkedHashSet<BlockPos>()
+        val queue = ArrayDeque(crystalsAround(level, blocks))
+        while (queue.isNotEmpty() && found.size < MOST_IN_A_PILE) {
+            val next = queue.removeFirst()
+            if (next in found) continue
+            if (!level.getBlockState(next).`is`(AgeContent.ARC_CRYSTAL_BLOCK_BLOCK)) continue
+            found += next
+            Direction.entries.forEach { queue.addLast(next.relative(it)) }
+        }
+        return found
+    }
+
+    /** And which touch it, which is where [supplyingCrystal] starts its walk. */
     fun crystalsAround(level: BlockGetter, blocks: Collection<BlockPos>): Set<BlockPos> {
         val found = LinkedHashSet<BlockPos>()
         for (block in blocks) {

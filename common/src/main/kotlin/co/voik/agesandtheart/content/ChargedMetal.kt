@@ -17,6 +17,7 @@ import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.item.Items
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.state.properties.BlockStateProperties
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 
@@ -91,7 +92,13 @@ object ChargedMetal {
         }
         field(level, pulling, TOWARD)
         field(level, pushing, AWAY)
-        for (run in biting) bite(level, run)
+        for (run in biting) {
+            val rods = Arcs.rodsOn(level, run.blocks)
+            // Before the bite and regardless of it: a live assembly says so whether or not there is
+            // anything standing in it, which is the point of saying it.
+            showItIsLive(level, run, rods)
+            bite(level, run, rods)
+        }
     }
 
     /**
@@ -150,22 +157,94 @@ object ChargedMetal {
      * per entity would need bookkeeping that goes stale the moment something despawns; the world's own
      * clock says the same thing and forgets nothing.
      */
-    private fun bite(level: ServerLevel, run: Arcs.Run) {
+    private fun bite(level: ServerLevel, run: Arcs.Run, rods: Set<BlockPos>) {
         val force = run.force.coerceAtMost(MOST_FORCE)
         if (level.gameTime % bitesEvery(force) >= STIRRED_EVERY) return
-        val rods = Arcs.rodsOn(level, run.blocks)
         val hurt = bitesFor(force)
         val source = biting(level)
-        var bit = false
         // **A mast adds range; it does not replace the contact.** A rod turns a fence into a turret, so
         // the fence has to go on being a fence — leaning on the metal itself was still a way to be hurt
         // before anybody stood a rod on it and stays one afterwards.
-        for (entity in touching(level, run) + thrownAt(level, rods)) {
-            if (entity.hurtServer(level, source, hurt)) bit = true
-        }
-        if (!bit) return
-        crackle(level, rods, run)
+        val struck = (touching(level, run) + thrownAt(level, rods))
+            .filter { it.hurtServer(level, source, hurt) }
+        if (struck.isEmpty()) return
+        val from = throwsFrom(rods, run, struck.first().position())
+        for (entity in struck) arcTo(level, from, entity.boundingBox.center)
         spendACharge(level, run)
+    }
+
+    /**
+     * Where a bite is drawn from — the tip of the mast, or the nearest metal where there is none.
+     *
+     * The charge leaves from the highest thing on the assembly, which is what a rod is for and what makes
+     * a turret read as a turret; a bare fence bites from wherever you are leaning on it.
+     */
+    private fun throwsFrom(rods: Set<BlockPos>, run: Arcs.Run, victim: Vec3): Vec3 {
+        val tip = rods.maxByOrNull { it.y }
+        if (tip != null) return Vec3.atCenterOf(tip)
+        return Vec3.atCenterOf(run.blocks.minByOrNull { it.distToCenterSqr(victim) } ?: run.blocks.first())
+    }
+
+    /**
+     * **A bolt drawn between two points**, which is the whole of what makes a zap read as a zap.
+     *
+     * Vanilla's own lightning is an entity with a renderer; at this scale that would be a packet, a
+     * client class and a registration for something on screen for a tenth of a second. Particles walked
+     * along the line cost none of that and read the same — the jitter is what stops it being a laser, and
+     * it is pinched to nothing at both ends so the arc visibly starts at the rod and lands on the victim.
+     */
+    private fun arcTo(level: ServerLevel, from: Vec3, to: Vec3) {
+        val span = to.subtract(from)
+        val steps = (span.length() / A_STEP).toInt().coerceIn(FEWEST_STEPS, MOST_STEPS)
+        for (step in 0..steps) {
+            val along = step.toDouble() / steps
+            val straight = from.add(span.scale(along))
+            // Widest in the middle and nothing at the ends, which is how a real arc wanders.
+            val wander = Math.sin(along * Math.PI) * ARC_WANDER
+            val at = straight.add(
+                (level.random.nextDouble() - HALF) * wander,
+                (level.random.nextDouble() - HALF) * wander,
+                (level.random.nextDouble() - HALF) * wander,
+            )
+            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, at.x, at.y, at.z, ONE_SPARK, NONE, NONE, NONE, NONE)
+        }
+    }
+
+    /**
+     * **That an assembly is live, said by the assembly itself.**
+     *
+     * A charged machine is otherwise indistinguishable from a decorative one until it hurts somebody,
+     * which is the wrong moment to find out. Sparse and random rather than steady — a few blocks of the
+     * mass a turn, on the vanilla random-tick feel — so a long fence twinkles rather than glows.
+     */
+    private fun showItIsLive(level: ServerLevel, run: Arcs.Run, rods: Set<BlockPos>) {
+        for (block in run.blocks) {
+            if (level.random.nextInt(A_BLOCK_SPARKS_ONE_TURN_IN) != 0) continue
+            val at = Vec3.atCenterOf(block)
+            level.sendParticles(ARC_GREEN, at.x, at.y, at.z, ONE_SPARK, ANY_FACE, ANY_FACE, ANY_FACE, NONE)
+        }
+        // **And every rod's own point, every turn.** A mast is the business end and the one part of a
+        // build a player is meant to read at a glance, so it does not twinkle — it burns.
+        for (rod in rods) {
+            val point = pointOf(level, rod)
+            level.sendParticles(
+                ParticleTypes.ELECTRIC_SPARK,
+                point.x,
+                point.y,
+                point.z,
+                SPARKS_AT_A_TIME,
+                AT_THE_POINT,
+                AT_THE_POINT,
+                AT_THE_POINT,
+                SPARK_SPEED,
+            )
+        }
+    }
+
+    /** The sharp end of a rod, which is where it points rather than where it sits. */
+    private fun pointOf(level: ServerLevel, rod: BlockPos): Vec3 {
+        val facing = level.getBlockState(rod).getValue(BlockStateProperties.FACING)
+        return Vec3.atCenterOf(rod).add(Vec3.atLowerCornerOf(facing.unitVec3i).scale(HALF))
     }
 
     /**
@@ -332,22 +411,6 @@ object ChargedMetal {
         }
     }
 
-    /** And a white spark where it bit, which is the one part of this that is not a field. */
-    private fun crackle(level: ServerLevel, rods: Set<BlockPos>, run: Arcs.Run) {
-        val from = rods.maxByOrNull { it.y } ?: run.blocks.first()
-        level.sendParticles(
-            ParticleTypes.ELECTRIC_SPARK,
-            from.x + HALF,
-            from.y + HALF,
-            from.z + HALF,
-            SPARKS_AT_A_TIME,
-            SPARK_SPREAD,
-            SPARK_SPREAD,
-            SPARK_SPREAD,
-            SPARK_SPEED,
-        )
-    }
-
     /**
      * The source, remembered against the registries it came out of — `AstriteShardBlock`'s reasoning, for
      * the same reason: a `DamageSource` holds a `Holder` from that set, so a reload replaces it.
@@ -408,6 +471,18 @@ object ChargedMetal {
     private val ARC_GREEN = DustParticleOptions(0x3C_FF_6A, 1.0f)
 
     private const val SPARKS_ONE_STIR_IN = 3
+
+    /** How often one block of a live assembly twinkles. Sparse: a fence should not read as a light. */
+    private const val A_BLOCK_SPARKS_ONE_TURN_IN = 22
+    private const val ONE_SPARK = 1
+    private const val ANY_FACE = 0.35
+    private const val AT_THE_POINT = 0.08
+
+    /** How a drawn bolt is walked: a particle every half block, and how far it wanders at its middle. */
+    private const val A_STEP = 0.5
+    private const val FEWEST_STEPS = 3
+    private const val MOST_STEPS = 48
+    private const val ARC_WANDER = 0.7
     private const val SPARKS_AT_A_TIME = 2
 
     /** And what a bolt landing on a pile throws, which should be seen from wherever you were sheltering. */

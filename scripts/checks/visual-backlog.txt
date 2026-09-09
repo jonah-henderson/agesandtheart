@@ -49,6 +49,13 @@
 #   of Phase 7 step 4, and what is left below is the backlog it was built past.
 #   TRIP 9  plain + alone ............... item 18  (two small Ages, nothing else in them)
 #
+# ADDED 2026-09-09 WITH ITEMS 22-23 -- **THE CHEAPEST TRIP ON THE LIST, AND IT CLEARS BOTH**:
+#   TRIP 10  charged ..................... items 23 then 22, in that order, one session
+#   Item 23 needs no Age at all: /give yourself the blocks and build the machines where you stand. Then
+#   `/age write charged 7 electromagnetic tempests weather age`, link, and item 22 is the sky you arrive
+#   under -- and the Age carries tempests, so item 23's STORM bullet gets done on the same trip rather
+#   than wanting a tempest Age of its own.
+#
 # **COLOURED LIGHT IS DONE AND OFF THE LIST**, walked on both loaders 2026-09-08. What is left under item
 # 17 is one line of dimension type that rode along in the same commit and can be settled from anywhere.
 #
@@ -935,6 +942,14 @@
 #   - **THE ANCHOR.** One arc crystal block touching one copper block, and stand in it. Should be about
 #     half a heart a second -- noticeably better than a snow golem and no more. Every other number in the
 #     material is set against this one, so if it feels wrong say so before anything else is tuned.
+#     **The anchor is unchanged by the 2026-09-09 supply fix**; what changed is everything above it.
+#   - **RE-READ 2026-09-09: DOES STACKING CRYSTAL DO ANYTHING NOW?** It did not. The supply counted only
+#     the crystal *touching the metal*, so a rod on a pile could only ever be fed by the one block under
+#     it however many were stacked -- which is exactly the half a heart Jonah measured against twenty-odd
+#     blocks. It walks the whole pile now. Put one rod on one block: half a heart a second. Add blocks
+#     under it and it should climb hard and fast. `MOST_FORCE` (8) is where it stops climbing and is the
+#     first dial if the ramp is too steep or the ceiling too easy to reach -- eight crystal to one metal
+#     block is currently a lethal turret.
 #   - **DOES THE SHAPE OF THE BUILD READ AS THE SHAPE OF THE FIELD?** Lay a line of iron blocks out from a
 #     crystal. The pull should reach about as far as the line is long, and be a broad gentle drag for a
 #     long line and a hard local yank for a short one. Gold is the same thing pushing.
@@ -968,6 +983,13 @@
 #     near enough that looking a little down puts it at your feet. If it feels awkward, `SET_DOWN_AT` is
 #     the dial.
 #   - **AND THE SWITCH.** Redstone into a crystal turns it off. Whole machine, immediately.
+#   - **NEW 2026-09-09, THE THREE VISUALS.** (a) Every block of a live copper assembly should twinkle
+#     arc-green now and then, so a charged fence is distinguishable from a decorative one before it hurts
+#     you -- sparse on purpose, `A_BLOCK_SPARKS_ONE_TURN_IN` if it is too busy or too quiet. (b) Every
+#     lightning rod's POINT should spark constantly while its assembly is live, so a mast reads at a
+#     glance. (c) A zap should draw a small forked bolt from the rod tip (or the nearest metal, with no
+#     rod) to whatever it hit. It is particles walked along the line rather than a real bolt entity --
+#     `ARC_WANDER` is how much it forks, `A_STEP` how dense it is. Say if it reads as a laser instead.
 #
 # NOT BUILT: the tether/lift, and the maintainer's log. The numbers live in `ChargedMetal` and its check
 # has the ramps; the check can say the anchor is 1 damage per 20 ticks, but only a walk can say whether
