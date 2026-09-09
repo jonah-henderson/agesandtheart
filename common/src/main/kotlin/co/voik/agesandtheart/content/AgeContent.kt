@@ -483,7 +483,7 @@ object AgeContent {
     /** A `BlockItem` for the reason astrite's shard is one: it is one object that can also be set down. */
     val ARC_CRYSTAL: Item = BlockItem(
         ARC_CRYSTAL_CLUSTER,
-        Item.Properties().setId(ResourceKey.create(Registries.ITEM, ARC_CRYSTAL_ID)),
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, ARC_CRYSTAL_ID)).useBlockDescriptionPrefix(),
     )
 
     /**
@@ -1052,7 +1052,7 @@ object AgeContent {
      * highest sits at the build limit, a quarter of a kilometre over a player at sea level, and a body
      * nobody is told about cannot be a signpost.
      */
-    private const val DRIFTING_ORE_TRACKING_CHUNKS = 16
+    const val DRIFTING_ORE_TRACKING_CHUNKS = 16
     private const val DRIFTING_ORE_UPDATE_TICKS = 4
 
     /**

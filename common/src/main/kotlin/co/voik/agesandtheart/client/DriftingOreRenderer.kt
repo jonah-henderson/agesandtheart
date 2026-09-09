@@ -38,32 +38,32 @@ class DriftingOreRenderer(context: EntityRendererProvider.Context) :
         super.extractRenderState(entity, state, partialTicks)
         val at = BlockPos.containing(entity.x, entity.y, entity.z)
         val level = entity.level() as? ClientLevel
-        // **Built once per body and then only refreshed**, because this runs per body per frame and a top
-        // tier is over a hundred cells: rebuilding the list would be a hundred allocations a frame each,
-        // for a rock whose shape cannot change. Only where the cells *are* moves.
-        if (state.shape != entity.shape || state.tier != entity.tier) {
-            state.shape = entity.shape
-            state.tier = entity.tier
-            state.cells = OreClusters.facesOf(entity.shape, entity.tier).map { cell ->
-                val drawn = MovingBlockRenderState()
-                drawn.blockState =
-                    if (cell.isCrystal) AgeContent.ARC_CRYSTAL_BLOCK_BLOCK.defaultBlockState()
-                    else ROCK.defaultBlockState()
-                Drawn(cell.at, drawn)
-            }
-        }
-        for (drawn in state.cells) {
-            val where = at.offset(drawn.at)
-            drawn.block.randomSeedPos = where
-            drawn.block.blockPos = where
+        // **A render state is new every frame and nothing can be kept on it.**
+        // `EntityRenderer.createRenderState(entity, partialTicks)` is final and allocates one through
+        // `createRenderState()` before every extract, so a memo hung here never hits — it looked like it
+        // worked and cached nothing. The cells themselves are memoised in `OreClusters.facesOf` instead,
+        // which is where the expensive half was; what is left is one small state per drawn cell, which is
+        // exactly what `FallingBlockRenderer` allocates per falling block per frame.
+        //
+        // These cannot be pooled across bodies either: `submitMovingBlock` stores the state *by reference*
+        // and draws it at flush, so two bodies sharing one would both come out where the second is.
+        state.cells = OreClusters.facesOf(entity.shape, entity.tier).map { cell ->
+            val drawn = MovingBlockRenderState()
+            val where = at.offset(cell.at)
+            drawn.randomSeedPos = where
+            drawn.blockPos = where
+            drawn.blockState =
+                if (cell.isCrystal) AgeContent.ARC_CRYSTAL_BLOCK_BLOCK.defaultBlockState()
+                else ROCK.defaultBlockState()
             // **Lit where it is rather than where it came from.** A body at the build limit is in full
             // skylight and one in a player's shadow is not, and a cluster lit from a single point would
             // read as a sticker at exactly the moment somebody flew up to it.
             if (level != null) {
-                drawn.block.biome = level.getBiome(where)
-                drawn.block.cardinalLighting = level.cardinalLighting()
-                drawn.block.lightEngine = level.lightEngine
+                drawn.biome = level.getBiome(where)
+                drawn.cardinalLighting = level.cardinalLighting()
+                drawn.lightEngine = level.lightEngine
             }
+            Drawn(cell.at, drawn)
         }
     }
 
@@ -101,8 +101,4 @@ class DriftingOreRenderer(context: EntityRendererProvider.Context) :
 
 class DriftingOreRenderState : EntityRenderState() {
     var cells: List<DriftingOreRenderer.Drawn> = emptyList()
-
-    /** What [cells] was built from, so it is only built again when the rock is a different rock. */
-    var shape: Int = -1
-    var tier: Int = -1
 }

@@ -60,36 +60,38 @@ object Arcs {
     }
 
     /**
-     * The lines of [metal] leading away from the crystal block [at] — **one per direction, measured
-     * separately**, and never a mass.
+     * The runs of [metal] this crystal is the one to drive — **one line per direction, never a mass**, and
+     * never a run somebody else is already driving.
      *
      * A run stops at the first block that is not this metal, so a corner is two runs rather than one bent
      * one. That is the simplification: what a player sees laid out is what they get.
-     */
-    fun runsFrom(level: BlockGetter, at: BlockPos, metal: (BlockState) -> Boolean): List<Run> =
-        Direction.entries.mapNotNull { heading ->
-            val blocks = lineFrom(level, at, heading, metal)
-            if (blocks.isEmpty()) null else Run(heading, blocks, supplyAround(level, blocks))
-        }
-
-    /**
-     * The runs this crystal is the one to drive — **the same runs, minus the ones somebody else is already
-     * driving**, which is how two crystals on one bar stop counting it twice.
      *
      * `crystal — iron — iron — iron — crystal` is one bar and two walks find it, once from each end. Both
      * see the same three blocks and both see both crystals, so both come out at the same force — and left
      * alone the bar would pull twice as hard as anything a player could read off it. Naming one driver per
      * run is the whole fix, and it needs no ownership bookkeeping: **the run picks its own driver** from
-     * the crystals already touching it, so nothing distant can change the answer.
+     * the crystals already touching it, so nothing distant can change the answer. The lowest position
+     * wins, which is arbitrary and has to be — what matters is only that every crystal on a run agrees.
      *
-     * The lowest position wins, which is arbitrary and has to be — what matters is only that every crystal
-     * on a run agrees, and a position sorts the same way from either end.
+     * **[live] decides which crystals count, and it decides both things at once.** A switched-off crystal
+     * must neither feed a run nor win the election for it: electing it and then declining to drive would
+     * make one lever silently kill a whole shared bar, which is what a redstone check applied only at the
+     * call site did.
      */
-    fun runsDrivenFrom(level: BlockGetter, at: BlockPos, metal: (BlockState) -> Boolean): List<Run> =
-        runsFrom(level, at, metal).filter { drives(level, it, at) }
-
-    private fun drives(level: BlockGetter, run: Run, crystal: BlockPos): Boolean =
-        crystalsAround(level, run.blocks).minWithOrNull(POSITION_ORDER) == crystal
+    fun runsDrivenFrom(
+        level: BlockGetter,
+        at: BlockPos,
+        metal: (BlockState) -> Boolean,
+        live: (BlockPos) -> Boolean = ANY,
+    ): List<Run> = Direction.entries.mapNotNull { heading ->
+        val blocks = lineFrom(level, at, heading, metal)
+        if (blocks.isEmpty()) return@mapNotNull null
+        // One walk, answering both questions. Asking `crystalsAround` again to elect a driver was a
+        // second walk of the same thirty-two blocks for a set already in hand.
+        val feeding = crystalsAround(level, blocks).filter(live)
+        if (feeding.minWithOrNull(POSITION_ORDER) != at) return@mapNotNull null
+        Run(heading, blocks, supplyOf(level, feeding))
+    }
 
     /**
      * The strongest of [runs] acting on one thing, **never their sum**.
@@ -123,13 +125,19 @@ object Arcs {
      *
      * [runsDrivenFrom]'s rule, applied to the shape that has no direction: a mass with two crystals on it
      * is one machine, and left alone both walks would find the same copper and bite twice.
+     *
+     * **The election is only as good as the walk, and the walk is capped.** Past [MOST_IN_A_MASS] two
+     * crystals far apart on one enormous structure each see a different truncated subset, each elects
+     * itself, and the structure bites twice. That is accepted: two hundred and fifty-six connected blocks
+     * of copper apart is two machines' worth of metal, force is per mass so each half is diluted to match,
+     * and the alternative is an uncapped flood fill run from a block change.
      */
-    fun massDrivenFrom(level: BlockGetter, at: BlockPos): Run? {
+    fun massDrivenFrom(level: BlockGetter, at: BlockPos, live: (BlockPos) -> Boolean = ANY): Run? {
         val mass = copperAround(level, at)
         if (mass.isEmpty()) return null
-        val touching = crystalsAround(level, mass)
-        if (touching.minWithOrNull(POSITION_ORDER) != at) return null
-        return Run(along = null, blocks = mass.toList(), crystal = supplyAround(level, mass))
+        val feeding = crystalsAround(level, mass).filter(live)
+        if (feeding.minWithOrNull(POSITION_ORDER) != at) return null
+        return Run(along = null, blocks = mass.toList(), crystal = supplyOf(level, feeding))
     }
 
     /**
@@ -153,14 +161,16 @@ object Arcs {
     }
 
     /**
-     * What the arc crystal touching any part of [blocks] is worth — the supply, wherever it was stacked.
+     * What these crystals are worth to a machine — the supply, wherever it was stacked.
      *
      * **A worth rather than a count, because a charged block is worth two** ([ArcCrystalBlock]). Reading
      * the lightning here is what lets it reach the pull, the push and the bite at once: none of them knows
      * about storms, and all three double when one lands.
+     *
+     * Takes the crystals rather than finding them, because every caller has just walked for them.
      */
-    fun supplyAround(level: BlockGetter, blocks: Collection<BlockPos>): Int =
-        crystalsAround(level, blocks).sumOf { worthOf(level.getBlockState(it)) }
+    fun supplyOf(level: BlockGetter, crystals: Collection<BlockPos>): Int =
+        crystals.sumOf { worthOf(level.getBlockState(it)) }
 
     /** What one block of crystal is worth to a machine — two while a bolt's charge is still in it. */
     fun worthOf(state: BlockState): Int = when {
@@ -289,6 +299,9 @@ object Arcs {
 
     /** Any total order will do — see [runsDrivenFrom] for why only the agreeing matters. */
     private val POSITION_ORDER = compareBy<BlockPos>({ it.x }, { it.y }, { it.z })
+
+    /** Everything counts, for a caller with no notion of a crystal being switched off. */
+    private val ANY: (BlockPos) -> Boolean = { true }
 
     private const val NOTHING_AT_ALL = 0
 

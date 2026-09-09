@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age.phenomena
 
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import java.util.concurrent.ConcurrentHashMap
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource
 
 /**
@@ -18,9 +19,12 @@ import net.minecraft.world.level.levelgen.XoroshiroRandomSource
  * mesh every frame. Sixty-four is far past the count anybody will notice repeating in a sky.
  *
  * **They do not tumble** (Jonah, 2026-09-09), and that is what makes the cells worth having at all: a
- * `VoxelShape` is axis-aligned and cannot be rotated, so a body that held still can carry an exact collider
- * — which is what lets a player stand on one and be carried by it. A tumbling rock would have had to be a
- * box however carefully it was drawn.
+ * `VoxelShape` is axis-aligned and cannot be rotated, so a body that holds still *can* carry an exact
+ * collider. A tumbling rock would have had to be a box however carefully it was drawn.
+ *
+ * That collider is **not built yet** — a body is solid across its whole cube, so you can stand on one but
+ * not in its notches, and standing on a moving one does not carry you. Both want a Mixin on
+ * `Entity.collectAllColliders` (`notes/authoring-tools.md` Part IV).
  */
 object OreClusters {
 
@@ -40,7 +44,7 @@ object OreClusters {
      * a boulder rather than into swiss cheese.
      */
     fun of(shape: Int, tier: Int): List<Cell> =
-        remembered.getOrPut(shape * DriftingOre.MOST_TIERS + tier) { weathered(shape, tier) }
+        remembered.computeIfAbsent(shape * DriftingOre.MOST_TIERS + tier) { weathered(shape, tier) }
 
     private fun weathered(shape: Int, tier: Int): List<Cell> {
         val random = XoroshiroRandomSource(shape.toLong() * SHAPE_SALT xor (tier.toLong() * TIER_SALT))
@@ -93,7 +97,13 @@ object OreClusters {
     /** How wide a body of this tier is before anything is taken off it: two, four, six. */
     fun sideOf(tier: Int): Int = SMALLEST_SIDE + tier.coerceIn(0, DriftingOre.MOST_TIERS - 1) * SIDE_A_TIER
 
-    private val remembered = HashMap<Int, List<Cell>>()
+    /**
+     * **Concurrent because two threads genuinely ask.** The class note says the same call answers on the
+     * server, on every client and in the renderer — and in single player that is the server thread sizing
+     * a body's box while the render thread asks the same question for the same body. A plain `HashMap`
+     * resized under that can lose an entry or spin in a corrupted bucket.
+     */
+    private val remembered = ConcurrentHashMap<Int, List<Cell>>()
 
     /**
      * The cells of this body that anything can see — **what a renderer actually submits**.
@@ -102,20 +112,14 @@ object OreClusters {
      * walled in: culling them is a third of the work at the top tier. Worth being its own question rather
      * than a filter inside a renderer, because it is also the honest measure of what a body costs to draw.
      */
-    fun facesOf(shape: Int, tier: Int): List<Cell> {
-        val standing = of(shape, tier).associateBy { it.at }
-        return standing.values.filter { cell ->
-            Direction.entries.any { cell.at.relative(it) !in standing }
+    fun facesOf(shape: Int, tier: Int): List<Cell> =
+        drawn.computeIfAbsent(shape * DriftingOre.MOST_TIERS + tier) {
+            val standing = of(shape, tier).associateBy { it.at }
+            standing.values.filter { cell -> Direction.entries.any { cell.at.relative(it) !in standing } }
         }
-    }
 
-    /**
-     * How many cells a body of this tier is made of.
-     *
-     * Read against the yield rather than against the picture: a body worth nine of the smallest should
-     * look worth nine of them, so the count climbs steeply and the top band is a rock rather than a stone.
-     */
-    fun cellsFor(tier: Int): Int = of(0, tier).size
+    /** Remembered for [remembered]'s reason, and because a renderer asks this per body per frame. */
+    private val drawn = ConcurrentHashMap<Int, List<Cell>>()
 
     /**
      * How wide a body of this tier is, in blocks — what a collider and a bounding box are sized from.

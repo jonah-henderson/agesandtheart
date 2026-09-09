@@ -156,7 +156,11 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
         val most = BlockPos.containing(from.add(reach, reach, reach))
         for (chunkX in (least.x shr SECTION_BITS)..(most.x shr SECTION_BITS)) {
             for (chunkZ in (least.z shr SECTION_BITS)..(most.z shr SECTION_BITS)) {
-                val chunk = level().getChunk(chunkX, chunkZ)
+                // **Never `getChunk`, which loads or generates.** A body drifting at the edge of the
+                // simulated area reaches into a column nobody has been to, and asking for it would stall
+                // the server thread generating one, every tick, for every body. Every other hot scan in
+                // this codebase takes the same escape (`Arcs.crystalsNear`, `Lures`, `Worsening`).
+                val chunk = level().chunkSource.getChunkNow(chunkX, chunkZ) ?: continue
                 for (y in (least.y shr SECTION_BITS)..(most.y shr SECTION_BITS)) {
                     val index = chunk.getSectionIndexFromSectionY(y)
                     if (index < 0 || index >= chunk.sections.size) continue
@@ -180,9 +184,18 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
         return Vec3(0.0, off.coerceIn(-RISE, RISE) * HOMING, 0.0)
     }
 
-    /** Nothing to look at and nobody looking: a body far from every player is not worth ticking. */
+    /**
+     * Nothing to look at and nobody looking: a body far from every player is not worth ticking.
+     *
+     * **Measured against the tracking range rather than a figure of its own.** `getNearestPlayer` asks in
+     * three dimensions, and the highest band is at the build limit — a body up there is 236 blocks from a
+     * player standing at sea level *directly underneath it*, so a radius chosen as a plausible-sounding
+     * number deleted the whole top band seconds after it spawned, which is the tier the entire ladder
+     * climbs towards. The honest rule is the one the client already uses: forget a body when nobody is
+     * being sent it.
+     */
     private fun discardIfNobodyIsAround() {
-        if (tickCount % LOOKED_FOR_EVERY != 0) return
+        if (level().gameTime % LOOKED_FOR_EVERY != 0L) return
         if (level().getNearestPlayer(this, FORGOTTEN_BEYOND) == null) discard()
     }
 
@@ -228,6 +241,16 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
     private fun scattered(random: RandomSource): Double = (random.nextDouble() - HALF) * SCATTER
 
     override fun isPickable(): Boolean = true
+
+    /**
+     * **Solid, so a body can be stood on** — which is most of what makes one worth flying to.
+     *
+     * It is the whole cube for now rather than the cluster's own outline: the notches a weathered rock has
+     * are drawn but not carved out of the collider, which wants a Mixin on `Entity.collectAllColliders`
+     * (`notes/authoring-tools.md` Part IV). Standing on the box is the difference between a rock and a
+     * decoration; standing on its exact shape is a refinement.
+     */
+    override fun canBeCollidedWith(against: Entity?): Boolean = true
 
     override fun readAdditionalSaveData(input: ValueInput) {
         tier = input.getIntOr(TIER_KEY, 0)
@@ -309,8 +332,10 @@ class DriftingOre(type: EntityType<out DriftingOre>, level: Level) : Entity(type
         private const val DRIFT_SALT = 0.000_37
 
         /** How often the emptiness around it is checked, and how far away is far enough to forget it. */
-        private const val LOOKED_FOR_EVERY = 40
-        private const val FORGOTTEN_BEYOND = 192.0
+        private const val LOOKED_FOR_EVERY = 40L
+
+        /** A fact about the bands rather than about this entity — see [ChargedBands.FORGOTTEN_BEYOND]. */
+        private const val FORGOTTEN_BEYOND = ChargedBands.FORGOTTEN_BEYOND
 
         private const val SMALLEST_TOUGHNESS = 6.0f
         private const val TOUGHNESS_A_TIER = 6.0f

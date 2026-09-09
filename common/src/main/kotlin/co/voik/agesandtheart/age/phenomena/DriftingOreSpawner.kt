@@ -28,11 +28,10 @@ class DriftingOreSpawner : CustomSpawner {
 
     override fun tick(level: ServerLevel, spawnEnemies: Boolean) {
         if (level.gameTime % TRIED_EVERY != 0L) return
-        val bands = ChargedBands.heightsIn(level)
         // Only the tiers this Age has a band for, so a two-band Age never puts up a body with nowhere of
         // its own to go — `ChargedBands.homeFor` would coerce it onto the top band beside the tier below.
-        val tier = level.random.nextInt(bands.size)
-        val at = somewhereIn(level, bands[tier], tier) ?: return
+        val tier = level.random.nextInt(ChargedBands.tiersIn(level))
+        val at = somewhereIn(level, ChargedBands.homeFor(level, tier), tier) ?: return
         val body = AgeContent.DRIFTING_ORE.create(level, EntitySpawnReason.NATURAL) ?: return
         body.tier = tier
         body.shape = level.random.nextInt(OreClusters.SHAPES)

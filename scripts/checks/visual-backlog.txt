@@ -914,9 +914,14 @@
 #   - **AND WHAT DOES A SKY FULL OF THEM COST?** F3. Six per 160 blocks, one submit per visible cell, 133
 #     of them on a top-tier body. If the frame rate moves, `MOST_IN_SIGHT` is the first dial.
 #
-# NOT BUILT YET, so do not look for it: shaped collision (a body is an axis-aligned box for now, so you
-# cannot stand on the notches), being carried by one, the tether, the arc-green particles, and every one of
-# the charged-metal machines. Textures are stand-ins -- emerald and amethyst until the asset pass.
+#   - **CAN YOU STAND ON ONE?** Fly up and land on a body. It is solid across its whole CUBE -- the notches
+#     a weathered rock has are drawn but not carved out of the collider -- so what you are judging is
+#     whether the box being bigger than the rock is noticeable. If you can stand on visible air, that is
+#     the thing that decides whether the collision Mixin is worth building.
+#
+# NOT BUILT YET, so do not look for it: the exact-shaped collider (see above), being CARRIED by a moving
+# body (you can stand on one, but it will slide out from under you), and the tether. Textures are
+# stand-ins -- emerald and amethyst until the asset pass.
 
 # ══ 23. THE CHARGED MACHINES ═══════════════════════════════════════════════ Built 2026-09-09 ══
 # Arc crystal's second use, and it needs no Age at all -- build it in the overworld in creative. The

@@ -16,6 +16,7 @@ import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.EquipmentSlot
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.item.Items
+import net.minecraft.world.level.block.Block
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 
@@ -47,8 +48,13 @@ object ChargedMetal {
      * carried back through a book has to work exactly as well as one built where the crystal fell.
      */
     fun stir(server: MinecraftServer) {
-        if (server.tickCount % STIRRED_EVERY != 0L) return
         for (level in server.allLevels) {
+            // **One clock, and it is the level's own.** The bite is timed off `gameTime` against this
+            // interval, and that only means anything if the same counter decides when a turn happens:
+            // gating here on `server.tickCount` left two counters that merely happen to advance together
+            // — a frozen tick would have kept turning them over while `gameTime` stood still, so a machine
+            // would bite every turn or never. `gameTime` is what the rest of this codebase schedules on.
+            if (level.gameTime % STIRRED_EVERY != 0L) continue
             // Deduplicated across players before anything is driven, or a machine two people are standing
             // near would pull twice as hard as the one machine a builder laid.
             val crystals = LinkedHashSet<BlockPos>()
@@ -64,18 +70,24 @@ object ChargedMetal {
         val pulling = mutableListOf<Arcs.Run>()
         val pushing = mutableListOf<Arcs.Run>()
         val biting = mutableListOf<Arcs.Run>()
+        // **A redstone signal switches a crystal off**, which is the whole of the control surface: the
+        // machine is the arrangement, so the only thing left to say about it is whether it is live.
+        //
+        // Handed to the election rather than only checked here. Skipping a powered crystal at this level
+        // alone let it go on *winning* the driver election for a bar it then refused to drive, so a lever
+        // on one end of a shared run silently killed the whole run — the crystal at the other end could
+        // never take it over.
+        val live = { at: BlockPos -> !level.hasNeighborSignal(at) }
         for (at in crystals) {
-            // **A redstone signal switches a crystal off**, which is the whole of the control surface: the
-            // machine is the arrangement, so the only thing left to say about it is whether it is live.
-            if (level.hasNeighborSignal(at)) continue
-            pulling += Arcs.runsDrivenFrom(level, at, Arcs::attracts)
-            pushing += Arcs.runsDrivenFrom(level, at, Arcs::repels)
+            if (!live(at)) continue
+            pulling += Arcs.runsDrivenFrom(level, at, Arcs::attracts, live)
+            pushing += Arcs.runsDrivenFrom(level, at, Arcs::repels, live)
             // **And nothing special for a charged one** (Jonah, 2026-09-09). A charged crystal powers
             // copper exactly as an ordinary one does and is simply worth twice as much doing it — and
             // since a lightning rod *is* copper, a rod stood on a pile is already a conducting mass of one
             // block driven by the crystal under it. Every arrangement the design describes falls out of
             // the rules that were here; the only thing the lightning does that is its own is [struck].
-            Arcs.massDrivenFrom(level, at)?.let { biting += it }
+            Arcs.massDrivenFrom(level, at, live)?.let { biting += it }
         }
         field(level, pulling, TOWARD)
         field(level, pushing, AWAY)
@@ -90,14 +102,16 @@ object ChargedMetal {
      */
     private fun field(level: ServerLevel, runs: List<Arcs.Run>, sense: Double) {
         if (runs.isEmpty()) return
-        val strongest = HashMap<Entity, Arcs.Run>()
+        val over = HashMap<Entity, MutableList<Arcs.Run>>()
         for (run in runs) {
             for (entity in level.getEntities(null as Entity?, reachOf(run)) { movedByAField(it) }) {
-                val already = strongest[entity]
-                if (already == null || run.force > already.force) strongest[entity] = run
+                over.getOrPut(entity) { mutableListOf() } += run
             }
         }
-        for ((entity, run) in strongest) shove(entity, run, sense)
+        // **[Arcs.strongest] rather than a second max written here.** The rule that a field is the best
+        // single run and never a sum is stated once, in the place that explains it; reimplementing the
+        // comparison inline left the documented rule and the applied rule as two pieces of code.
+        for ((entity, reaching) in over) Arcs.strongest(reaching)?.let { shove(entity, it, sense) }
         for (run in runs) sparkle(level, run, sense)
     }
 
@@ -196,14 +210,24 @@ object ChargedMetal {
         // bite each turn and vanilla's invulnerability window lets exactly one of them land, so charging
         // only the winner would have made a big pile last as many times longer as it was big — which is
         // the opposite of "the whole pile for some number of discharges".
-        val feeding = Arcs.crystalsAround(level, run.blocks)
-            .flatMapTo(LinkedHashSet()) { Arcs.pileConnectedTo(level, it) }
+        // Walked once per *pile*, not once per crystal touching the machine: every crystal on one pile
+        // returns the same component, so a wall of them was re-flooding the identical five hundred blocks
+        // for each and throwing all but the first away.
+        val feeding = LinkedHashSet<BlockPos>()
+        for (crystal in Arcs.crystalsAround(level, run.blocks)) {
+            if (crystal in feeding) continue
+            feeding += Arcs.pileConnectedTo(level, crystal)
+        }
         for (at in feeding) {
             val state = level.getBlockState(at)
             if (!state.`is`(AgeContent.ARC_CRYSTAL_BLOCK_BLOCK)) continue
             val left = state.getValue(ArcCrystalBlock.CHARGE)
             if (left <= ArcCrystalBlock.FLAT) continue
-            level.setBlockAndUpdate(at, state.setValue(ArcCrystalBlock.CHARGE, left - 1))
+            // Told to the clients and no further. Nothing reads a crystal's charge through a neighbour
+            // update, and a pile spending one every ten ticks would otherwise fire the whole comparator
+            // and redstone cascade for every block in it. The light still re-propagates: that is decided
+            // by the emission changing, not by these flags.
+            level.setBlock(at, state.setValue(ArcCrystalBlock.CHARGE, left - 1), Block.UPDATE_CLIENTS)
         }
     }
 
@@ -296,20 +320,16 @@ object ChargedMetal {
      */
     private fun sparkle(level: ServerLevel, run: Arcs.Run, sense: Double) {
         if (level.random.nextInt(SPARKS_ONE_STIR_IN) != 0) return
-        val end = run.blocks.last()
-        val along = run.along?.let { Vec3.atLowerCornerOf(it.unitVec3i) } ?: Vec3.ZERO
-        val drift = along.scale(SPARK_DRIFT * sense)
-        level.sendParticles(
-            ARC_GREEN,
-            end.x + HALF,
-            end.y + HALF,
-            end.z + HALF,
-            SPARKS_AT_A_TIME,
-            drift.x,
-            drift.y,
-            drift.z,
-            SPARK_SPEED,
-        )
+        val along = run.along?.let { Vec3.atLowerCornerOf(it.unitVec3i) } ?: return
+        val end = Vec3.atCenterOf(run.blocks.last())
+        // **Count nought, or the direction is thrown away.** With any count above nought the client reads
+        // these three numbers as a symmetric spread about the point and picks its own random velocity —
+        // so a drift vector only flipped the sign of a distribution that is the same either way, and a
+        // puller and a pusher drew identically. At nought they *are* the velocity, one particle a call.
+        repeat(SPARKS_AT_A_TIME) {
+            val drift = along.scale(SPARK_DRIFT * sense)
+            level.sendParticles(ARC_GREEN, end.x, end.y, end.z, NONE_SO_IT_MOVES, drift.x, drift.y, drift.z, SPARK_SPEED)
+        }
     }
 
     /** And a white spark where it bit, which is the one part of this that is not a field. */
@@ -392,7 +412,10 @@ object ChargedMetal {
 
     /** And what a bolt landing on a pile throws, which should be seen from wherever you were sheltering. */
     private const val SPARKS_ON_A_STRIKE = 60
-    private const val SPARK_DRIFT = 0.08
+    private const val SPARK_DRIFT = 0.6
+
+    /** Vanilla's flag for "these three numbers are a velocity", which is a count of nought. */
+    private const val NONE_SO_IT_MOVES = 0
     private const val SPARK_SPREAD = 0.25
     private const val SPARK_SPEED = 0.02
 
