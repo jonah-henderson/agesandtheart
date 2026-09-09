@@ -94,7 +94,14 @@ object Blizzard {
             if (onYou <= NOTHING) continue
             val bite = (BITES_BY * severity * onYou).roundToInt().coerceAtLeast(1)
             val gaining = THAWS_BY + bite
-            living.ticksFrozen = (living.ticksFrozen + gaining).coerceAtMost(living.ticksRequiredToFreeze * DEEPEST_CHILL)
+            // **Cover decides how cold you can get, not how fast you get there** (Jonah, 2026-09-09,
+            // walked: "zero transition between freezing and protected"). The rate cannot carry the
+            // gradient — `ticksFrozen` is whole ticks and the bite has to out-pace vanilla's thaw of two,
+            // so every exposure above nothing rounded to the same +1 and a doorway was as good as a
+            // mountain. The ceiling can: a few blocks in and you shiver and stop, deep in and the cold
+            // never starts, out in it and it runs all the way to the damage.
+            val deepest = living.ticksRequiredToFreeze * DEEPEST_CHILL * onYou
+            living.ticksFrozen = (living.ticksFrozen + gaining).coerceAtMost(deepest.toInt())
         }
     }
 

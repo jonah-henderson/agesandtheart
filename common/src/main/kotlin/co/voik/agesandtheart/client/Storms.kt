@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.phenomena.BlizzardPayload
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.ephemeris.Rgba
 import net.minecraft.core.BlockPos
+import net.minecraft.util.ARGB
 import net.minecraft.world.phys.Vec3
 import net.minecraft.core.particles.ParticleTypes
 import net.minecraft.client.Minecraft
@@ -50,8 +51,12 @@ object Storms {
      * **Cover only, deliberately.** A fire warms you without sheltering you, so it takes the edge off the
      * cold and changes nothing here: you are still standing in the wind, and the sound should say so.
      */
-    fun exposure(level: ClientLevel, player: LocalPlayer): Float {
-        val open = level.getBrightness(LightLayer.SKY, player.blockPosition()).toFloat()
+    fun exposure(level: ClientLevel, player: LocalPlayer): Float =
+        exposureAt(level, player.blockPosition())
+
+    /** The same, of a place rather than of the player — which is what a positional layer is sampled at. */
+    fun exposureAt(level: ClientLevel, at: BlockPos): Float {
+        val open = level.getBrightness(LightLayer.SKY, at).toFloat()
         return (open / OPEN_TO_THE_SKY).coerceIn(NONE, ALL_OF_IT)
     }
 
@@ -70,10 +75,10 @@ object Storms {
         // sample rather than at registration, and that is the only shape that works for a condition that
         // comes and goes.
         layers.addPositionalLayer(EnvironmentAttributes.FOG_COLOR) { was, at, _ ->
-            if (outInIt(level, at) == null) was else DRIVEN_SNOW.packed()
+            if (outInIt(level, at) == null) was else whitenedBy(level, at, was)
         }
         layers.addPositionalLayer(EnvironmentAttributes.SKY_COLOR) { was, at, _ ->
-            if (outInIt(level, at) == null) was else DRIVEN_SNOW.packed()
+            if (outInIt(level, at) == null) was else whitenedBy(level, at, was)
         }
         layers.addPositionalLayer(EnvironmentAttributes.FOG_START_DISTANCE) { was, at, _ ->
             outInIt(level, at)?.let { seenThrough(was, it) * BEGINS_AT } ?: was
@@ -101,8 +106,19 @@ object Storms {
      */
     private fun outInIt(level: ClientLevel, at: Vec3): Double? {
         val blowing = blowingIn(level) ?: return null
-        if (!level.canSeeSky(BlockPos.containing(at))) return null
-        return blowing.severity
+        // **Graded, the way the wind beside it already was.** This asked `canSeeSky`, which is a yes or a
+        // no — so the whiteout switched off at a doorway while the sound it is supposed to agree with
+        // faded over a dozen blocks, and stepping under a lip went from a blizzard to a clear day in one
+        // step (Jonah, 2026-09-09, walked). Sky light is the one definition; there is no second one now.
+        val exposed = exposureAt(level, BlockPos.containing(at))
+        if (exposed <= NONE) return null
+        return blowing.severity * exposed
+    }
+
+    /** How far toward a whiteout this sample is — the colour follows the distances rather than snapping. */
+    private fun whitenedBy(level: ClientLevel, at: Vec3, was: Int): Int {
+        val exposed = exposureAt(level, BlockPos.containing(at))
+        return ARGB.srgbLerp(exposed, was, DRIVEN_SNOW.packed())
     }
 
     /**

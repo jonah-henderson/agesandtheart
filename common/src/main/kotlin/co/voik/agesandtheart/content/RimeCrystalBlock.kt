@@ -29,6 +29,18 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties
 class RimeCrystalBlock(val colour: RimeColour, properties: BlockBehaviour.Properties) :
     AmethystClusterBlock(CRYSTAL_HEIGHT, CRYSTAL_WIDTH, properties) {
 
+    /**
+     * **Unpowered unless something is powering it**, which is not what an unstated boolean property means.
+     *
+     * `BooleanProperty`'s values are `true` then `false`, and a state definition takes the *first* of a
+     * property nobody registered a default for — so a crystal the world grew came out lit and glowing at
+     * fifteen. It only ever looked intermittent because `neighborChanged` corrects one the moment any
+     * block update reaches it, and out on a cliff face most never get one (Jonah, 2026-09-09, walked).
+     */
+    init {
+        registerDefaultState(defaultBlockState().setValue(BlockStateProperties.POWERED, false))
+    }
+
     // Typed as the parent's own: `codec()` is invariant, so a narrower return is not an override.
     override fun codec(): MapCodec<AmethystClusterBlock> = CODEC
 
