@@ -274,10 +274,12 @@
 #   - **IS THE CALDERA WHAT YOU WANTED?** The lava now stands SIX blocks under the rim, about fifteen deep
 #     -- floor at y=95, surface at y=110, rim 112 to 118 on seed 11's nearest cone. The plateau is floored
 #     just under the lava so no rim column can fail, which is what let the freeboard come down.
-#   - **AND DOES IT SPILL?** A channel is cut through one bearing of every rim and the lake fills it, so a
-#     crater overflows down its own flank and keeps doing it -- generation laid sources, and a source does
-#     not empty. Measured at 52 blocks of lava facing open air, lowest at y=107. `Variation` turns every
-#     instance, so no two volcanoes spill the same way. Cinematic or a scar?
+#   - **AND DOES IT SPILL?** The summit ring is eaten into by a wandering slab, so a rim comes out notched
+#     where the noise chose and lava runs over the lip and down the flank -- permanently, since generation
+#     laid sources and a source does not empty. **Three craters in six spill and three do not**, which is
+#     the point: a guaranteed channel through every rim was tried first and read as cookie-cutter.
+#     Measured at 69 blocks of lava facing open air on the nearest cone, lowest at y=107 against a surface
+#     of 110. MOUNTAIN_EROSION is the dial -- more of it means more craters spill and deeper notches.
 #   - **THE VENT IS A CONE RISING THROUGH THE LAKE NOW**, 267 tubes against 117, which is a shot every five
 #     ticks -- several in the air at once. It stops three blocks under the surface so it always erupts
 #     from under its own lava. Too much?

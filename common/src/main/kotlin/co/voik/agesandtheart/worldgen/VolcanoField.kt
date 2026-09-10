@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.worldgen
 
-import co.voik.agesandtheart.worldgen.field.Box
 import co.voik.agesandtheart.worldgen.field.Cone
 import co.voik.agesandtheart.worldgen.field.Cylinder
 import co.voik.agesandtheart.worldgen.field.Density
@@ -238,6 +237,14 @@ object VolcanoField {
         val freeboard: Int,
         val roll: Double,
         val warp: Double,
+        /**
+         * How deeply the summit is eaten into — **the only thing that can make a crater spill**, and the
+         * reason is worth knowing before turning it. A lake is bounded by the crater's own cut, which is
+         * clean geometry, so its edge always meets the wall at exactly its own height however the flanks
+         * are roughened. For lava to face open air, the *body* of the mountain has to be lower than the
+         * lava somewhere beside it — which on a summit means eroding the ring the crater is cut into.
+         */
+        val erosion: Double,
         /** Separates this shape's noise from the others', so four templates are four mountains. */
         val salt: Long,
     ) {
@@ -254,89 +261,70 @@ object VolcanoField {
          * of their noise, so the lake is bounded by geometry that cannot wander.
          */
         fun built(seed: Long): TerrainField =
-            warped(Subtract(Union(listOf(roughened(mountain(), seed), rimFloor())), craterCut()), seed)
+            warped(Subtract(Subtract(roughened(mountain(), seed), eatenSummit(seed)), craterCut()), seed)
+
+        /**
+         * What is taken off the top of the cone, so a rim is uneven and dips under its own lava in places
+         * (Jonah, 2026-09-09: a guaranteed channel through every rim "will make every volcano feel cookie
+         * cutter").
+         *
+         * A slab wandering up and down over the summit takes the rock above wherever it goes, so the ring
+         * around a crater comes out notched at whatever bearings the noise chose and at none on some
+         * cones. Bounded to a cylinder over the summit: this is an erosion of the *tip*, and applied to
+         * the whole mountain it would plane the flanks off at one height.
+         *
+         * The crater cut runs after it and removes everything inside the caldera anyway, so eating into
+         * that has no effect — what this reaches is the ring between the crater and the flank.
+         */
+        private fun eatenSummit(seed: Long): TerrainField {
+            val rim = BASE_Y + summitHeight
+            val floor = rim - BITE - erosion.roundToInt()
+            val roof = rim + HEADROOM
+            return Intersect(
+                listOf(
+                    Cylinder(
+                        axis = Direction.Axis.Y,
+                        centerX = ON_AXIS,
+                        centerY = (floor + roof) / 2,
+                        centerZ = ON_AXIS,
+                        radius = plateau + BITTEN_MARGIN,
+                        halfLength = (roof - floor) / 2.0,
+                    ),
+                    Undulated(
+                        base = Slab(rim - BITE, roof),
+                        seed = seed + salt + BITE_SALT,
+                        firstOctave = BITE_OCTAVE,
+                        amplitudes = ROUGHNESS,
+                        scaleX = BITE_SCALE,
+                        scaleZ = BITE_SCALE,
+                        amount = erosion,
+                    ),
+                ),
+            )
+        }
 
         /**
          * The lava standing in that crater — everything inside the same cut, from the floor to [freeboard]
          * under the rim, and under the same warp so it meets the rock it was cut from exactly.
+         *
+         * **The summit ring is left to the noise, and that is what makes a crater spill** (Jonah,
+         * 2026-09-09). The crater's inner wall is clean geometry, so a lake bounded by it can never reach
+         * anywhere lower than itself — measured, and it is why nothing spilled at all for a while. What
+         * *can* dip under the lava is the ring outside the cut, which is rock the roll moves like any
+         * other: wherever it pulls a column past the freeboard, that column comes out under the surface
+         * and lava runs over the lip and down the flank. In as many places as the noise chooses, at
+         * whatever bearings, and on some cones not at all.
+         *
+         * **Nothing has to hold it back.** A channel was cut through every rim for a while and read as
+         * cookie-cutter (Jonah), and the floor put under the ring before that was guarding against a lake
+         * draining through a notch — which cannot happen, because generation lays *sources* and a source
+         * does not empty. What a notch buys is a permanent lavafall off a full crater. The chunk fill
+         * already marks any carried fluid with an open neighbour for post-processing, which is the tick
+         * that sets it running.
          */
         fun lake(seed: Long): TerrainField {
             val rim = BASE_Y + summitHeight
-            return warped(
-                Intersect(
-                    listOf(
-                        craterCut(),
-                        Slab(rim - calderaDepth, rim - freeboard),
-                        // **Only where the mountain was.** The overflow channel is cut whether or not
-                        // there is rock that far out, which costs nothing when subtracting but would put
-                        // a ribbon of lava in mid-air past the flank if the lake followed it — the old
-                        // floating-disc failure, arriving by a third road. Clipped to the roughened body
-                        // rather than the clean one, so the roll cannot leave it hanging either.
-                        roughened(mountain(), seed),
-                    ),
-                ),
-                seed,
-            )
-        }
-
-        /**
-         * **The one thing that makes a full lake safe**: the summit ring cannot stand lower than the lava
-         * does, whatever the roughening did to it.
-         *
-         * A rim is roughened where a crater floor is not, and the roll can pull a column its whole amplitude
-         * down — so a rim left to the noise dips under its own lava wherever the roll goes deep, in as
-         * many places as the noise likes. Rather than paying for that in freeboard, the plateau is given a
-         * floor near the lava's height: rock is only ever *added*, so the ring keeps every block of its
-         * upward roughness and most of its downward, and the whole wall stands.
-         *
-         * **[WEEP] blocks under the lava rather than level with it, and that is deliberate** (Jonah,
-         * 2026-09-09): "a bit of lava spilling over the edge would be cinematic". Set level, nothing ever
-         * spills; set this low, the handful of rim columns the roll pulls furthest come out under the
-         * surface and lava runs over the lip and down the flank. A lake does not drain through one —
-         * generation laid *sources*, and a source does not empty — so what it buys is a permanent
-         * lavafall off a full crater. The chunk fill already marks any carried fluid with an open
-         * neighbour for post-processing, which is the tick that sets it running.
-         *
-         * Bounded to the plateau's own radius, or it would fill in the flanks' roughness for the whole
-         * mountain below the waterline.
-         */
-        /**
-         * **A channel through the rim, so a full crater has somewhere to overflow** (Jonah, 2026-09-09:
-         * "a bit of lava spilling over the edge would be cinematic").
-         *
-         * Nothing else in the shape can spill, and it took a measurement to see why: a lake's edge is
-         * bounded by the crater's own cone, which rises everywhere it is met, so however low the roll
-         * pulls the *rim* the lava never reaches it. Six craters came out with not one block of lava
-         * facing open air. A spill has to be cut.
-         *
-         * The channel is part of the cut, so the lake fills it as far as it goes and then faces air at its
-         * mouth — which is a ribbon of lava running out of the crater and a fall down the flank, standing
-         * from the moment the chunk is made. It cannot drain the crater: generation laid *sources*, and a
-         * source does not empty. [Variation] turns every instance, so no two volcanoes spill the same way.
-         */
-        private fun spillway(): TerrainField {
-            val rim = BASE_Y + summitHeight
-            return Box(
-                minX = ON_AXIS,
-                minY = rim - freeboard - WEEP,
-                minZ = -CHANNEL_HALF_WIDTH,
-                maxX = (foot * CHANNEL_REACH).roundToInt(),
-                maxY = rim + HEADROOM,
-                maxZ = CHANNEL_HALF_WIDTH,
-            )
-        }
-
-        private fun rimFloor(): TerrainField {
-            val rim = BASE_Y + summitHeight
-            val standing = rim - freeboard - WEEP - BASE_Y
-            return Cylinder(
-                axis = Direction.Axis.Y,
-                centerX = ON_AXIS,
-                centerY = BASE_Y + standing / 2,
-                centerZ = ON_AXIS,
-                radius = plateau,
-                halfLength = standing / 2.0,
-            )
+            return warped(Intersect(listOf(craterCut(), Slab(rim - calderaDepth, rim - freeboard))), seed)
         }
 
         /** Whole flanks moving, then surface texture over them. */
@@ -457,7 +445,7 @@ object VolcanoField {
                 radius = calderaRadius,
                 halfLength = HEADROOM / 2.0,
             )
-            return Union(listOf(bowl, shaft, spillway()))
+            return Union(listOf(bowl, shaft))
         }
     }
 
@@ -479,6 +467,7 @@ object VolcanoField {
             freeboard = MOUNTAIN_FREEBOARD,
             roll = ROLL_AMOUNT,
             warp = WARP_AMOUNT,
+            erosion = MOUNTAIN_EROSION,
             salt = 0x11L,
         ),
         Mountain(
@@ -493,6 +482,7 @@ object VolcanoField {
             freeboard = MOUNTAIN_FREEBOARD,
             roll = ROLL_AMOUNT,
             warp = WARP_AMOUNT,
+            erosion = MOUNTAIN_EROSION,
             salt = 0x2222L,
         ),
         // The shield: gentle enough over its own flank that a skirt would buy nothing but reach.
@@ -508,6 +498,7 @@ object VolcanoField {
             freeboard = MOUNTAIN_FREEBOARD,
             roll = ROLL_AMOUNT,
             warp = WARP_AMOUNT,
+            erosion = MOUNTAIN_EROSION,
             salt = 0x333333L,
         ),
         Mountain(
@@ -522,6 +513,7 @@ object VolcanoField {
             freeboard = MOUNTAIN_FREEBOARD,
             roll = ROLL_AMOUNT,
             warp = WARP_AMOUNT,
+            erosion = MOUNTAIN_EROSION,
             salt = 0x44444444L,
         ),
     )
@@ -552,6 +544,7 @@ object VolcanoField {
             freeboard = MAAR_FREEBOARD,
             roll = MAAR_ROLL,
             warp = MAAR_WARP,
+            erosion = MAAR_EROSION,
             salt = 0x5A11L,
         ),
         // A pond in the ground with barely a lip, which is what a maar proper is.
@@ -567,6 +560,7 @@ object VolcanoField {
             freeboard = MAAR_FREEBOARD,
             roll = MAAR_ROLL,
             warp = MAAR_WARP,
+            erosion = MAAR_EROSION,
             salt = 0x5A2222L,
         ),
         // A steep spatter cone, the one that reads as a vent rather than as a pool.
@@ -582,6 +576,7 @@ object VolcanoField {
             freeboard = MAAR_FREEBOARD,
             roll = MAAR_ROLL,
             warp = MAAR_WARP,
+            erosion = MAAR_EROSION,
             salt = 0x5A333333L,
         ),
         Mountain(
@@ -596,6 +591,7 @@ object VolcanoField {
             freeboard = MAAR_FREEBOARD,
             roll = MAAR_ROLL,
             warp = MAAR_WARP,
+            erosion = MAAR_EROSION,
             salt = 0x5A44444444L,
         ),
     )
@@ -641,24 +637,6 @@ object VolcanoField {
     private const val HEADROOM = 12
 
     /**
-     * How far under its own lava a rim is allowed to stand, so a crater weeps somewhere.
-     *
-     * Two, because the roll has to reach most of its amplitude before a column drops this far and the
-     * noise seldom does — which is what makes a spill a feature of one or two places on a rim rather than
-     * of the whole of it.
-     */
-    private const val WEEP = 2
-
-    /**
-     * How wide the overflow channel is, and how far down the flank it is cut.
-     *
-     * Narrow, because a wide one is a valley rather than a channel; and carried well past the plateau so
-     * the lava it holds is running down the mountain rather than sitting in a notch in the rim.
-     */
-    private const val CHANNEL_HALF_WIDTH = 2
-    private const val CHANNEL_REACH = 0.9
-
-    /**
      * How far the outline wanders, and over what wavelength.
      *
      * The big lever on whether a volcano reads as a landform, because it is the only one that reaches the
@@ -679,6 +657,9 @@ object VolcanoField {
     /** Six blocks of lip over the lava, which is what a walk asked for. */
     private const val MOUNTAIN_FREEBOARD = 6
 
+    /** Far enough past the freeboard that the noise reaches under the lava sometimes and not often. */
+    private const val MOUNTAIN_EROSION = 7.0
+
     /**
      * What a small crater wears instead, all three cut to its own scale.
      *
@@ -688,6 +669,7 @@ object VolcanoField {
     private const val MAAR_FREEBOARD = 2
     private const val MAAR_ROLL = 2.0
     private const val MAAR_WARP = 3.5
+    private const val MAAR_EROSION = 2.5
 
     /**
      * How far apart the small craters sit, and how likely a cell is to hold one.
@@ -699,6 +681,19 @@ object VolcanoField {
      */
     private const val VENT_CELL = 120.0
     private const val VENTS_LIKELY = 0.5
+
+    /**
+     * How the summit is eaten into: how far the erosion starts below the rim, how far it wanders, over
+     * what wavelength, and how far past the plateau it reaches.
+     *
+     * The wavelength is short on purpose — a notch in a rim wants to be a gap you can see the far side
+     * of rather than half the crater standing lower than the other half.
+     */
+    private const val BITE = 2
+    private const val BITE_OCTAVE = -5
+    private const val BITE_SCALE = 0.8
+    private const val BITTEN_MARGIN = 6.0
+    private const val BITE_SALT = 0x42_4954_45L
 
     /** Separates every draw the small craters make from every draw the mountains make. */
     private const val MAAR_SALT = 0x4D_4141_5253L
