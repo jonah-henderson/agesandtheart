@@ -15,36 +15,19 @@ import net.minecraft.world.level.block.state.BlockState
  * whoever is standing there, so mining the tubes is the permanent answer and plugging them the reversible
  * one.
  *
- * **The pour chains its own ticks.** A random tick is far too sparse to fill a crater and too precious to
- * spend on one, so it throws once and hands the filling to a scheduled tick, which keeps rescheduling
- * itself for as long as it is still finding somewhere to put lava. A full caldera pours nothing and the
- * chain ends, so a finished volcano costs a visit every few seconds and nothing else.
+ * **Everything it does happens on a random tick**, which is the rhythm the material is designed around
+ * rather than a budget it is squeezed into: a caldera arrives full because its Age's shape filled it, so
+ * nothing here has a crater to race, and what is left is a slow ratchet outward and a rare shot. Vanilla
+ * is already paying for these visits, so a world full of buried tubes costs one block read apiece.
  */
 class LavaTubeBlock(properties: BlockBehaviour.Properties) : Block(properties) {
 
     /**
-     * Most lava tubes in an Age are buried and inert, so this leaves early on the cheapest question there
-     * is: a cluster with stone over it wells nothing and throws nothing until something digs it out.
+     * Most lava tubes in an Age are buried and inert, so both errands leave early on the cheapest question
+     * there is: a cluster with stone over it wells nothing and throws nothing until something digs it out.
      */
     override fun randomTick(state: BlockState, level: ServerLevel, at: BlockPos, random: RandomSource) {
-        if (LavaTubes.plugged(level, at)) return
-        LavaTubes.erupt(level, at)
-        keepFilling(level, at)
-    }
-
-    override fun tick(state: BlockState, level: ServerLevel, at: BlockPos, random: RandomSource) {
-        if (LavaTubes.pour(level, at) > NOTHING_LEFT_TO_DO) keepFilling(level, at)
-    }
-
-    private fun keepFilling(level: ServerLevel, at: BlockPos) {
-        if (level.blockTicks.hasScheduledTick(at, this)) return
-        level.scheduleTick(at, this, FILL_DELAY)
-    }
-
-    private companion object {
-        /** Short, because a crater is thousands of blocks and a lake that creeps in reads as a bug. */
-        const val FILL_DELAY = 2
-
-        const val NOTHING_LEFT_TO_DO = 0
+        LavaTubes.well(level, at)
+        LavaTubes.erupt(level, at, random)
     }
 }
