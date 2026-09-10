@@ -341,6 +341,10 @@ class AgeChunkGenerator(
                         // What the rock *is*, which is vanilla's `default_block` and now ours — the surface
                         // system paints its skin over this afterwards, exactly as it does for vanilla.
                         isRock -> fill.blockAt(worldX, y, worldZ)
+                        // A body the shape carries, which answers before either of the two below it: a
+                        // caldera's lava is neither groundwater nor the sea, and both of those would take
+                        // the space and put the wrong substance in it.
+                        band.carried(at, y) != null -> band.carried(at, y)
                         // Inside the rock a cave system opened: the table answers, not the waterline. Asked
                         // before the sea, since this space is under it and the sea would otherwise take it.
                         band.hollow(at, y) -> water.computeSubstance(
@@ -394,6 +398,7 @@ class AgeChunkGenerator(
         private val dryness = arrayOfNulls<Spans>(SIDE * SIDE)
         private val wetness = arrayOfNulls<Spans>(SIDE * SIDE)
         private val hollowness = arrayOfNulls<Spans>(SIDE * SIDE)
+        private val bodies = arrayOfNulls<List<Spans>>(SIDE * SIDE)
 
         init {
             for (bandX in 0..<SIDE) {
@@ -405,12 +410,16 @@ class AgeChunkGenerator(
                     dryness[at] = seaFill.drynessAt(worldX, worldZ)
                     wetness[at] = seaFill.wetnessAt(worldX, worldZ)
                     hollowness[at] = hollows?.columnSpans(worldX, worldZ) ?: Spans.EMPTY
+                    bodies[at] = seaFill.carriedAt(worldX, worldZ)
                 }
             }
         }
 
         /** Whether this level is inside the rock a cave system was cut from — see [hollows]. */
         fun hollow(at: Int, y: Int): Boolean = hollowness[at]!!.contains(y)
+
+        /** What a body the shape carries puts here, if one reaches — see [StandingFluid]. */
+        fun carried(at: Int, y: Int): BlockState? = seaFill.carriedAt(y, bodies[at]!!)
 
         fun indexOf(localX: Int, localZ: Int): Int = (localX + MARGIN) * SIDE + (localZ + MARGIN)
 
@@ -423,7 +432,8 @@ class AgeChunkGenerator(
             isOpen(indexOf(localX - 1, localZ), y) || isOpen(indexOf(localX + 1, localZ), y) ||
                 isOpen(indexOf(localX, localZ - 1), y) || isOpen(indexOf(localX, localZ + 1), y)
 
-        private fun isOpen(at: Int, y: Int): Boolean = !spans[at]!!.contains(y) && !fills(at, y)
+        private fun isOpen(at: Int, y: Int): Boolean =
+            !spans[at]!!.contains(y) && !fills(at, y) && carried(at, y) == null
 
         private companion object {
             const val MARGIN = 1
@@ -456,7 +466,9 @@ class AgeChunkGenerator(
         val mediumTop = if (!counts.test(seaFill.blockAt(x, z))) nothing else {
             maxOf(seaFill.surfaceY ?: nothing, seaFill.wetnessAt(x, z).highestSolidY ?: nothing)
         }
-        return (maxOf(rockTop, mediumTop) + 1).coerceIn(level.minY, level.maxY + 1)
+        // And so does a lake the shape carries, which is made of something else and asks on its own behalf.
+        val carriedTop = seaFill.carriedSurfaceY(x, z) { counts.test(it) } ?: nothing
+        return (maxOf(rockTop, maxOf(mediumTop, carriedTop)) + 1).coerceIn(level.minY, level.maxY + 1)
     }
 
     override fun getBaseColumn(x: Int, z: Int, level: LevelHeightAccessor, randomState: RandomState): NoiseColumn {
@@ -465,12 +477,13 @@ class AgeChunkGenerator(
         val sea = seaFill.blockAt(x, z)
         val dryness = seaFill.drynessAt(x, z)
         val wetness = seaFill.wetnessAt(x, z)
+        val bodies = seaFill.carriedAt(x, z)
         val column = Array(window.height) { index ->
             val y = window.minY + index
             when {
                 spans.contains(y) -> fill.blockAt(x, y, z)
-                seaFill.fillsAt(y, dryness, wetness) -> sea
-                else -> AIR
+                else -> seaFill.carriedAt(y, bodies)
+                    ?: if (seaFill.fillsAt(y, dryness, wetness)) sea else AIR
             }
         }
         return NoiseColumn(window.minY, column)
@@ -482,7 +495,8 @@ class AgeChunkGenerator(
      * pockets. It mints a fresh aquifer per carving pass, since that object carries state.
      */
     private val tables: List<WaterTable> =
-        waterTables.ifEmpty { listOf(WaterTable.matching(seaFill, seaLevel)) }
+        waterTables.map { it.copy(carried = seaFill.carried) }
+            .ifEmpty { listOf(WaterTable.matching(seaFill, seaLevel)) }
 
     /**
      * Every carving's carvers together — the union described on [carvers]. Built once and **in composition

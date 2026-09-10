@@ -25,9 +25,11 @@ import co.voik.agesandtheart.worldgen.field.Ridge
 import co.voik.agesandtheart.worldgen.field.Rift
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Subtract
+import co.voik.agesandtheart.worldgen.field.StandingFluid
 import co.voik.agesandtheart.worldgen.field.Union
 import co.voik.agesandtheart.worldgen.field.Weathered
 import co.voik.agesandtheart.worldgen.field.TerrainFill
+import net.minecraft.world.level.block.Blocks
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.worldgen.AgeChunkGenerator
 import co.voik.agesandtheart.worldgen.AgeRock
@@ -144,7 +146,7 @@ object AgeGeneration {
             composition.optionsFor(Aspect.SEA, 0),
             flow,
             seed,
-        ).copy(dry = chasm, wet = standing)
+        ).copy(dry = chasm, wet = standing, carried = ourGround?.lakes.orEmpty())
 
         // What the rock *is*, on the terrain's own map, laid by the fill rather than painted by a rule — which
         // is what lets vanilla's surface tree keep its skin over our fill (see [TerrainFill]).
@@ -466,6 +468,8 @@ object AgeGeneration {
         val chasm: TerrainField?,
         /** Water a landform carries above the waterline, which is the shape's rather than the sea's. */
         val standing: TerrainField?,
+        /** And bodies made of something else entirely — a caldera's lava. See [StandingFluid]. */
+        val lakes: List<StandingFluid> = emptyList(),
     ) {
         /** The land, without whatever shuts it overhead — see [AgeRock.Ours.ground]. */
         val landform: TerrainField get() = rock.landform
@@ -506,7 +510,8 @@ object AgeGeneration {
         // Volcanoes stand *on* whatever landform the Age has rather than replacing it, so they are a layer
         // over the finished rock — the same shape of thing a roof is, and read from the same recipe fact
         // the lava tubes and the danger evaluator read.
-        val cones = if (Volcanoes.askedFor(composition)) VolcanoField.over(seed) else null
+        val volcanoes = if (Volcanoes.askedFor(composition)) VolcanoField.over(seed) else null
+        val cones = volcanoes?.cones
         val standingRock = Union(listOfNotNull(shape, cones, lid)).takeIf { cones != null || lid != null }
         return OurGround(
             // The rock the underground was taken out of is **handed to the generator rather than to the
@@ -522,6 +527,10 @@ object AgeGeneration {
             ),
             chasm = keptDry(riftCut, grounds, ground),
             standing = withLakes(carriedWater(composition, landmass.seam, ground, seed, torn), grounds, ground),
+            // A caldera arrives flooded, and the shape is what floods it. Nothing at runtime can lay a
+            // level lake — where fluid may stand is vanilla's fluid to know, and it only knows one block
+            // at a time — where the field already knows the crater's floor, its walls and its rim.
+            lakes = volcanoes?.let { listOf(StandingFluid(it.lakes, Blocks.LAVA.defaultBlockState())) }.orEmpty(),
         )
     }
 

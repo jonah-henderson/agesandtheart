@@ -199,8 +199,17 @@ private const val VOLCANIC_GROUND = 68
 /** Several cells out, so there is a cone to find even where the patch noise has thinned them. */
 private const val VOLCANO_SEARCH = 4000.0
 
-private fun volcanicCountry(): TerrainField =
-    Union(listOf(Slab(-64, VOLCANIC_GROUND), VolcanoField.over(VOLCANIC_SEED)))
+/**
+ * The rock **and the lava standing in it**, drawn as one solid.
+ *
+ * A previewer reads heights, so a lake it cannot see is a hole in the summit — which is the one thing a
+ * flat crater lake is guaranteed to look like from above if you forget it is there. Unioning it in means
+ * the picture shows the surface a player would actually be standing over.
+ */
+private fun volcanicCountry(): TerrainField {
+    val volcanoes = VolcanoField.over(VOLCANIC_SEED)
+    return Union(listOf(Slab(-64, VOLCANIC_GROUND), volcanoes.cones, volcanoes.lakes))
+}
 
 /**
  * Where the cone nearest the origin stands, so the close-up looks at a volcano rather than at whatever

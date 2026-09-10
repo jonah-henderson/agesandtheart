@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.worldgen
 
 import co.voik.agesandtheart.worldgen.field.Cone
+import co.voik.agesandtheart.worldgen.field.Cylinder
 import co.voik.agesandtheart.worldgen.field.Density
 import co.voik.agesandtheart.worldgen.field.Instanced
 import co.voik.agesandtheart.worldgen.field.Intersect
@@ -13,6 +14,7 @@ import co.voik.agesandtheart.worldgen.field.Undulated
 import co.voik.agesandtheart.worldgen.field.Union
 import co.voik.agesandtheart.worldgen.field.Variation
 import co.voik.agesandtheart.worldgen.field.Warped
+import net.minecraft.core.Direction
 import kotlin.math.roundToInt
 
 /**
@@ -59,11 +61,23 @@ object VolcanoField {
         ),
     )
 
-    /** The cones themselves, ready to be unioned over the Age's own ground. */
-    fun over(seed: Long): TerrainField = Instanced(
-        templates = SHAPES.map { it.built(seed) },
-        placement = sites(seed),
-        variation = Variation(
+    /**
+     * The cones and the lava standing in them — **two fields that have to describe one mountain**.
+     *
+     * They are built here together rather than by two calls because agreeing is not optional: a lake
+     * poured into a crater some other instance drew is a slab of lava hanging in the air. What makes them
+     * agree is that [Instanced] takes its per-instance random from the cell alone
+     * (`random.at(cellX, 0, cellZ)`), so two layers sharing a seed, a placement and a variation pick the
+     * same template at the same pose in every cell — provided their template lists stay the same length
+     * and the same order, which is why both are built from [SHAPES] in one place.
+     *
+     * The lake reaches only as far as a crater does where the cones reach a skirt's whole foot, and
+     * [Instanced] prices its cell scan off the templates' own reach — so the second layer costs a small
+     * fraction of the first, and a column nowhere near a summit pays only for the cell walk.
+     */
+    fun over(seed: Long): Volcanoes {
+        val placement = sites(seed)
+        val variation = Variation(
             // Turned, because four shapes repeated unturned is still four shapes: a warped mountain has
             // a recognisable outline, and seeing the same one twice on a walk is what gives it away.
             yawSteps = TURNS,
@@ -71,10 +85,17 @@ object VolcanoField {
             maxScale = LARGEST,
             scaleSteps = SIZES,
             pivotY = BASE_Y,
-        ),
-        seed = seed,
-        blend = SHOULDERS,
-    )
+        )
+        return Volcanoes(
+            cones = Instanced(SHAPES.map { it.built(seed) }, placement, variation, seed, SHOULDERS),
+            // Unblended: easing two lakes together would smear one flat surface into another at a
+            // different height, where easing two flanks is what makes a massif.
+            lakes = Instanced(SHAPES.map { it.lake(seed) }, placement, variation, seed, Instanced.NO_BLEND),
+        )
+    }
+
+    /** An Age's volcanoes: the rock they are made of, and the lava standing in their craters. */
+    data class Volcanoes(val cones: TerrainField, val lakes: TerrainField)
 
     /**
      * One mountain, **written down as the part of it anybody sees**.
@@ -106,24 +127,50 @@ object VolcanoField {
         val salt: Long,
     ) {
 
-        fun built(seed: Long): TerrainField = Warped(
+        /**
+         * The mountain, roughened, with the crater cut out of it **after** the roughening rather than
+         * before.
+         *
+         * That ordering is what a flat lake needs. [Undulated] shifts a whole column, so a crater cut
+         * before it moves with the rock: the floor and the rim of one crater then differ by as much as
+         * the roll on either side of it, and no level surface can both cover such a floor and stay inside
+         * such a rim — the two constraints have no overlap at the depths a caldera is. Cutting afterwards
+         * leaves a floor and an inner wall at absolute heights while the flank and the rim keep every bit
+         * of their noise, so the lake is bounded by geometry that cannot wander.
+         */
+        fun built(seed: Long): TerrainField = warped(Subtract(roughened(mountain(), seed), craterCut()), seed)
+
+        /**
+         * The lava standing in that crater — a flat band off the floor, inside the same cut and under the
+         * same warp, so it meets the rock it was cut from exactly.
+         */
+        fun lake(seed: Long): TerrainField {
+            val floorY = BASE_Y + summitHeight - calderaDepth
+            return warped(Intersect(listOf(craterCut(), Slab(floorY, floorY + FLOODED_DEPTH - ONE))), seed)
+        }
+
+        /** Whole flanks moving, then surface texture over them. */
+        private fun roughened(base: TerrainField, seed: Long): TerrainField = Undulated(
             base = Undulated(
-                base = Undulated(
-                    base = Subtract(mountain(), caldera()),
-                    seed = seed + salt + ROLL_SALT,
-                    firstOctave = ROLL_OCTAVE,
-                    amplitudes = ROUGHNESS,
-                    scaleX = ROLL_SCALE,
-                    scaleZ = ROLL_SCALE,
-                    amount = ROLL_AMOUNT,
-                ),
-                seed = seed + salt + RIPPLE_SALT,
-                firstOctave = RIPPLE_OCTAVE,
+                base = base,
+                seed = seed + salt + ROLL_SALT,
+                firstOctave = ROLL_OCTAVE,
                 amplitudes = ROUGHNESS,
-                scaleX = RIPPLE_SCALE,
-                scaleZ = RIPPLE_SCALE,
-                amount = RIPPLE_AMOUNT,
+                scaleX = ROLL_SCALE,
+                scaleZ = ROLL_SCALE,
+                amount = ROLL_AMOUNT,
             ),
+            seed = seed + salt + RIPPLE_SALT,
+            firstOctave = RIPPLE_OCTAVE,
+            amplitudes = ROUGHNESS,
+            scaleX = RIPPLE_SCALE,
+            scaleZ = RIPPLE_SCALE,
+            amount = RIPPLE_AMOUNT,
+        )
+
+        /** The outline wandering, which is the half undulation cannot reach — and the lake wears it too. */
+        private fun warped(base: TerrainField, seed: Long): TerrainField = Warped(
+            base = base,
             seed = seed + salt,
             firstOctave = WARP_OCTAVE,
             amplitudes = WARP_ROUGHNESS,
@@ -190,11 +237,17 @@ object VolcanoField {
          *
          * The walls are aimed to reach full depth exactly where the floor begins, so the three dials agree
          * whatever any of them is set to and there is never a ledge ringing the floor.
+         *
+         * **The shaft over the rim is what stops the crater being roofed.** Cutting after the roughening
+         * means a column the roll lifted stands higher than the rim the cut reaches, and the rock left
+         * over it is a lid across the caldera. Widening the cone upward instead would eat the whole
+         * summit ring — it is already at the plateau's radius nine blocks up — so the cut goes straight
+         * up at the rim's own width.
          */
-        private fun caldera(): TerrainField {
+        private fun craterCut(): TerrainField {
             val rim = BASE_Y + summitHeight
             val wallRun = calderaDepth / (ONE_WHOLE - calderaFloorRadius / calderaRadius)
-            return Intersect(
+            val bowl = Intersect(
                 listOf(
                     Cone(
                         baseX = ON_AXIS,
@@ -206,6 +259,15 @@ object VolcanoField {
                     Slab(lowY = rim - calderaDepth, highY = rim),
                 ),
             )
+            val shaft = Cylinder(
+                axis = Direction.Axis.Y,
+                centerX = ON_AXIS,
+                centerY = rim + HEADROOM / 2,
+                centerZ = ON_AXIS,
+                radius = calderaRadius,
+                halfLength = HEADROOM / 2.0,
+            )
+            return Union(listOf(bowl, shaft))
         }
     }
 
@@ -221,7 +283,7 @@ object VolcanoField {
             plateau = 40.0,
             calderaRadius = 30.0,
             calderaFloorRadius = 12.0,
-            calderaDepth = 15,
+            calderaDepth = 18,
             skirtRise = 20,
             skirtFoot = 106.0,
             salt = 0x11L,
@@ -232,7 +294,7 @@ object VolcanoField {
             plateau = 26.0,
             calderaRadius = 17.0,
             calderaFloorRadius = 6.0,
-            calderaDepth = 14,
+            calderaDepth = 17,
             skirtRise = 24,
             skirtFoot = 96.0,
             salt = 0x2222L,
@@ -244,7 +306,7 @@ object VolcanoField {
             plateau = 46.0,
             calderaRadius = 34.0,
             calderaFloorRadius = 15.0,
-            calderaDepth = 13,
+            calderaDepth = 17,
             skirtRise = NO_SKIRT,
             skirtFoot = 0.0,
             salt = 0x333333L,
@@ -255,7 +317,7 @@ object VolcanoField {
             plateau = 36.0,
             calderaRadius = 26.0,
             calderaFloorRadius = 10.0,
-            calderaDepth = 16,
+            calderaDepth = 19,
             skirtRise = 21,
             skirtFoot = 102.0,
             salt = 0x44444444L,
@@ -282,6 +344,20 @@ object VolcanoField {
     private const val GROUND_RISE = 102
 
     private const val NO_SKIRT = 0
+
+    /**
+     * How deep the lava stands off a crater floor, and what the rest of the crater's depth buys.
+     *
+     * The freeboard above it is not decoration: the rim is roughened where the floor is not, so the lake
+     * has to sit clear of the deepest the roll can pull a rim down — a little over eight blocks between
+     * [ROLL_AMOUNT] and [RIPPLE_AMOUNT], and a rim that dips under the surface anywhere drains the whole
+     * lake through it. So a caldera's depth is this plus that margin, and the craters were deepened by
+     * three rather than the lake being thinned to nothing.
+     */
+    private const val FLOODED_DEPTH = 7
+
+    /** Above the rim, past anything the roll can lift over it — see [Mountain.craterCut]. */
+    private const val HEADROOM = 12
 
     /**
      * How far the outline wanders, and over what wavelength.

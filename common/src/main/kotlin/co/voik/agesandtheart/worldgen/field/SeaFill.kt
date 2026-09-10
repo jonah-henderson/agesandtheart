@@ -35,6 +35,15 @@ data class SeaFill(
      * *sea* stands at. See [co.voik.agesandtheart.worldgen.field.Drainage.describes].
      */
     val wet: TerrainField? = null,
+    /**
+     * Bodies the shape carries that are **not made of the sea** — see [StandingFluid].
+     *
+     * They ride here rather than on the landform because this is the one object every filler already
+     * asks: the chunk fill, the height contract, the aquifer a carver meets and the offline probe all
+     * consult a `SeaFill` and nothing else, so a second home would be the same field threaded four more
+     * times to say the same thing.
+     */
+    val carried: List<StandingFluid> = emptyList(),
 ) {
 
     /** Which part of this column the sea is kept out of. Asked once per column, like [blockAt]. */
@@ -42,6 +51,22 @@ data class SeaFill(
 
     /** And which part of it holds water whatever the level says. Asked once per column, the same way. */
     fun wetnessAt(worldX: Int, worldZ: Int): Spans = wet?.columnSpans(worldX, worldZ) ?: Spans.EMPTY
+
+    /** Where each of [carried] stands in this column, in its own order. Read once per column, like the rest. */
+    fun carriedAt(worldX: Int, worldZ: Int): List<Spans> =
+        if (carried.isEmpty()) emptyList() else carried.map { it.where.columnSpans(worldX, worldZ) }
+
+    /** What one of [carried] puts at this level, or null where none of them reaches it. */
+    fun carriedAt(y: Int, bodies: List<Spans>): BlockState? {
+        for (index in bodies.indices) {
+            if (bodies[index].contains(y)) return carried[index].fluid
+        }
+        return null
+    }
+
+    /** The highest any carried body stands in this column, for the questions that mean "what is on top". */
+    fun carriedSurfaceY(worldX: Int, worldZ: Int, counts: (BlockState) -> Boolean): Int? =
+        carried.filter { counts(it.fluid) }.mapNotNull { it.where.columnSpans(worldX, worldZ).highestSolidY }.maxOrNull()
 
     /** What fills the empty space at this column. */
     fun blockAt(worldX: Int, worldZ: Int): BlockState =
@@ -88,8 +113,10 @@ data class SeaFill(
                     .forGetter { fill -> java.util.Optional.ofNullable(fill.dry) },
                 TerrainField.CODEC.optionalFieldOf("wet")
                     .forGetter { fill -> java.util.Optional.ofNullable(fill.wet) },
-            ).apply(instance) { blocks, level, map, dry, wet ->
-                SeaFill(blocks, level, map, dry.orElse(null), wet.orElse(null))
+                StandingFluid.codec(TerrainField.CODEC).codec().listOf().optionalFieldOf("carried", emptyList())
+                    .forGetter(SeaFill::carried),
+            ).apply(instance) { blocks, level, map, dry, wet, carried ->
+                SeaFill(blocks, level, map, dry.orElse(null), wet.orElse(null), carried)
             }
         }
 

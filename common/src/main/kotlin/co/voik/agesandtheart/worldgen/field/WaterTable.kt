@@ -52,6 +52,11 @@ data class WaterTable(
      * find water rather than air or it opens a hole in the river.
      */
     val standing: TerrainField? = null,
+    /**
+     * Bodies the shape carries that are made of something else — the same [StandingFluid]s [SeaFill]
+     * fills, so a carver cutting into a caldera's lava lake finds lava rather than a hole in it.
+     */
+    val carried: List<StandingFluid> = emptyList(),
 ) {
     private val floodedness = fieldNoise(seed, firstOctave, amplitudes)
     private val acrossStretch = horizontalScale.coerceAtLeast(SMALLEST_STRETCH)
@@ -99,6 +104,9 @@ data class WaterTable(
         /** Where this column's own water actually stands, rather than how high it reaches — see below. */
         private var columnStanding: Spans? = null
 
+        /** And where each body of something else stands, in [carried]'s own order. */
+        private var columnCarried: List<Spans> = emptyList()
+
         override fun computeSubstance(context: DensityFunction.FunctionContext, substance: Double): BlockState? {
             // Positive means solid: nothing is being removed here, so the block stands as it is.
             if (substance > 0.0) return null
@@ -112,6 +120,12 @@ data class WaterTable(
             // groundwater to be judged wet or dry by a noise. It was read as a *level* alone, which meant
             // a lake deep under a roofed world was still put to the deep thresholds — where dry is the
             // common case — and most tunnels into one came out as air, leaving holes through the lake.
+            // A body made of something else answers first, and answers with what it is made of.
+            for (index in columnCarried.indices) {
+                if (!columnCarried[index].contains(worldY)) continue
+                placedFluid = true
+                return carried[index].fluid
+            }
             if (columnStanding?.contains(worldY) == true) {
                 placedFluid = true
                 return fluid
@@ -162,6 +176,7 @@ data class WaterTable(
             // Under the sea, or under water the shape carries itself. Both are "there is water over this
             // ground"; only one of them is a level.
             columnStanding = standing?.columnSpans(worldX, worldZ)
+            columnCarried = if (carried.isEmpty()) emptyList() else carried.map { it.where.columnSpans(worldX, worldZ) }
             val carried = columnStanding?.highestSolidY ?: Int.MIN_VALUE
             columnWaterY = maxOf(seaLevel, carried)
             columnSubmerged = columnSurface < columnWaterY
@@ -236,6 +251,7 @@ data class WaterTable(
             amplitudes = listOf(1.0, 1.0),
             // Whatever the shape pours for itself, so a carver under a river finds the river.
             standing = seaFill.wet,
+            carried = seaFill.carried,
         )
 
         val CODEC: MapCodec<WaterTable> = RecordCodecBuilder.mapCodec { instance ->
@@ -252,10 +268,12 @@ data class WaterTable(
                 Codec.BOOL.optionalFieldOf("floods", false).forGetter(WaterTable::floods),
                 TerrainField.CODEC.optionalFieldOf("standing")
                     .forGetter { table -> java.util.Optional.ofNullable(table.standing) },
-            ).apply(instance) { fluid, level, drying, margin, across, down, seed, octave, amplitudes, floods, standing ->
+                StandingFluid.codec(TerrainField.CODEC).codec().listOf().optionalFieldOf("carried", emptyList())
+                    .forGetter(WaterTable::carried),
+            ).apply(instance) { fluid, level, drying, margin, across, down, seed, octave, amplitudes, floods, standing, carried ->
                 WaterTable(
                     fluid, level, drying, margin, across, down, seed, octave, amplitudes, floods,
-                    standing.orElse(null),
+                    standing.orElse(null), carried,
                 )
             }
         }

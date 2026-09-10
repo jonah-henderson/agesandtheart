@@ -1770,6 +1770,12 @@ object AgeCommand {
         report.fact("rock", said(rock)) { "  rock: ${said(rock)}" }
         report.fact("keptDry", said(dryness)) { "  kept dry: ${said(dryness)}" }
         report.fact("carriedWater", said(wetness)) { "  carried water: ${said(wetness)}" }
+        seaFill.carried.forEachIndexed { index, body ->
+            val stands = body.where.columnSpans(x, z)
+            report.fact("carried${index}", said(stands)) {
+                "  carried ${body.fluid.block.descriptionId}: ${said(stands)}"
+            }
+        }
         // The aquifer's claim, and the one that hid a flooded rift: it is asked *before* the sea and
         // answers from the water table, so anything it claims is wet whatever keeps the sea out.
         val hollow = generator.hollows?.columnSpans(x, z) ?: Spans.EMPTY
