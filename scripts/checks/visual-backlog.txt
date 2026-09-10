@@ -237,64 +237,72 @@
 #   - Stray vents in ordinary hill basins are now ACCEPTED rather than guarded against, which is what lets
 #     the vent search sit low enough for the shield to erupt at all.
 #
-# WHAT THIS WALK HAS TO SETTLE, most of it dial-turning rather than pass/fail:
-#   - **IS HALF THE RIGHT AMOUNT?** Roughly 33 blocks of relief over an 84-block visible radius for the
-#     broad cone, 44 over 72 for the steep one, 22 over 98 for the shield. Height was called "about right"
-#     at ~65 two walks ago, so if they now read as hills, RISE is the dial and it can move without the
-#     footprint following.
-#   - **DO THE BOMBS THREATEN ANYTHING NOW?** That is the whole reason for the resize: they should clear
-#     the rim often, and being three or four chunks away should not be safety.
-#   - **THE GOBBETS.** Does an impact leave a pool that looks like it belongs in the crater? Are 3-12 too
-#     few to read, or so many the ground turns to lava? Do they splash convincingly down a slope?
-#   - **IS THE WARP STILL RIGHT AT THIS SIZE?** It was halved with everything else. Past a gradient of
-#     about 1 it folds and reads a second rim inside the crater; if you see that, it is too much.
-#   - Spacing was NOT changed -- cells stay 580 apart, so half-size mountains sit relatively further from
-#     each other. Judge whether volcanic country still reads as country.
-#   - Does the caldera look like somewhere you would climb into, and can you find the vent once the lake
-#     has covered it?
-#   - **CALDERA LAKES: the vent was sitting ON the threshold that sizes a lake, and sometimes fell under.**
-#     A crater's vent is a disc filtered by how far each column sits off the floor, so its mass is a DRAW:
-#     a radius-two disc two deep is 26 nominal and a rumpled floor could cut it under the 16 that buys a
-#     full pool -- so the caldera filled a patch of its own crater ("regularly failing to fill the bottom
-#     level"). The disc is always radius three now and the floor filter admits three blocks of relief.
-#     Measured 69 tubes / 1932 lake -> 87 / 2876, with wild vents unchanged at 177. **Judge whether the
-#     lake now reaches the crater walls everywhere, and whether 2876 is too much lava rather than too
-#     little** -- the mass also got deeper, so the pool rises higher than it used to.
-#   - **A SMALL VENT NOW MAKES A SMALL POOL.** Reach is the vent's size squared, saturating at the throwing
-#     threshold, so a nine-tube seam exposed on a hillside fell from ~1800 source blocks to 177 while
-#     calderas kept everything. Judge whether a seam you dig into gives a satisfying amount of lava.
-#   - **WHAT IS LEFT AT AN EDGE IS VANILLA'S FLOW, NOT OURS.** Measured on an isolated vent: 49 sources
-#     placed (exactly right) and 672 further blocks of *flowing* lava pouring off the edge. A source always
-#     spreads to its neighbours, so no rule about placement can stop it -- the pool keeps a block back from
-#     a lip, which is not the same as stopping the spill. **If curtains of lava down a cliff still read as
-#     wrong, the only remaining lever is a dry margin of lava's full flow reach (4 blocks, 8 in an
-#     ultrawarm Age) from every drop**, which is a real cost and should be a decision rather than a tweak.
-#   - **THE CALDERA ARRIVES WITH LAVA IN IT** -- ONE course over the vent, laid at generation. It was two
-#     levelled courses and that stacked three or four deep on the low columns of a rumpled floor, which
-#     with a gap beside them read as lava pillars. One course is held by its own tube whatever the
-#     neighbours do. Judge whether one still reads as "this has been here a while".
-#   - **THE BURIED CLUSTERS -- THE ONE REAL ITEM LEFT, AND NOTHING HAS SEEN IT.** Built and shipped; only
-#     the count has ever been measured (5 tube blocks per chunk between y=-60 and y=60, plus rarer nests at
-#     1-in-6 chunks). They are INERT until something opens the rock over them, so they cannot be walked by
-#     standing anywhere -- you have to dig one out.
-#     **HOW TO FIND ONE: WALK A CAVE.** Carvers run before decoration and the ore pass does not discard
-#     air-exposed blocks, so tubes turn up in cave walls, floors and ceilings -- and they emit light 6, so
-#     in a dark cave they announce themselves. Note the difference while you are down there: a tube in a
-#     WALL or CEILING still has rock above it, so it is plugged and inert and only glows, while one in a
-#     cave FLOOR has air above and is live, welling a small pool into the cave. Strip mining works too;
-#     five tube blocks per chunk over a 120-block band is findable but slower.
-#     WHAT IT HAS TO SETTLE:
-#       * Are they findable while mining ordinarily, or only if you go looking? Too common, too rare?
-#       * **A SEAM you open should give a puddle** -- 4 to 7 tubes buys a pool of about four blocks' reach.
-#       * **A NEST is the one that could be nasty.** Thirty tubes is over the throwing threshold AND over
-#         the point where reach saturates, so opening one in a tunnel means a full-size lake filling the
-#         space you made and bombs starting up in it. Exciting, or does it just end the mine?
-#       * Does an undersea one do anything worth doing, or is it only an obsidian farm?
-#   - **CAN YOU TRACK A BOMB?** Gravity is a snowball's on purpose; the counterplay is looking up, reading
-#     where one lands, and moving. Judged good last walk; confirm it survived the resize.
-#   - That a bomb landing IN lava is inert -- the bound on the whole mechanic. If it still explodes there,
-#     an Age drifts toward being made of lava.
-#   - Whether a full 64-mass at explosion strength 7 is exciting or merely unplayable near a base.
+# ── WHAT THE FOURTH WALK SETTLED, AND WHAT IT CHANGED (2026-09-09) ───────────────────────────────────
+# Struck, all confirmed good: the half scale, the silhouette and the warp, the caldera as somewhere to
+# climb into, the gobbets, volcanic country and the spacing, a full 64-mass at strength 7, and that bombs
+# clear the rim (infrequently from a caldera, "but the other non caldera tubes cover this case pretty
+# well"). Vanilla's flow off a lip is accepted as it stands -- no dry margin, no further work.
+#
+# Reported: the lake arrives but "doesn't reach the entire way" and still "doesn't quite reach"; the
+# clusters want to be more frequent and more deadly; and the one real problem -- **lava forming huge
+# unsupported mounds wherever it is not inside a caldera**.
+#
+#   - **THE MOUNDS: A VENT NOW BUILDS ITS OWN RIM** (Jonah's design). A pool holds its shape by resting on
+#     something, which says nothing about what stops it spreading -- so on open ground every column of a
+#     lake is held up and the lake simply keeps going, ending in a vertical face. Inferring containment
+#     from the terrain was tried twice and fails from both ends, so the vent builds the containment: a
+#     spatter cone from radius 10 out to 16, cresting nine blocks over the vent floor. Rock is only ever
+#     ADDED, so on a hillside it is a crescent buttress on the low side and nothing on the high side, and
+#     **nothing is built over a drop** -- ground more than four below the vent already stops the pour.
+#   - **AND THE DECISION IS PER BEARING, NOT PER SITE.** "Skip it if we are in a big caldera" turns out not
+#     to be a property of a site: the vent sits at the crater's LOWEST column rather than its middle, so
+#     the very first cone a walk sees climbs its wall on three bearings (+11, +16, +15 at thirty blocks)
+#     and runs flat for thirty on the fourth (+4). Measured. So each rim column asks the land along its
+#     own bearing, and the crater got an arc over 128 of its 492 ring columns while a stray vent in a hill
+#     basin got 455 -- nearly a full cone. **Judge the arc first: it is the one that could look wrong.**
+#   - **THE LAKE WAS BEING STOPPED BY A WALK BUDGET, NOT BY THE CRATER.** The pour restarts at the tubes
+#     every pass and counts every cell it crosses, lava included, so once the pool was bigger than 4,096
+#     cells the frontier could not be reached -- which is exactly the 2,876 blocks that was measured and
+#     read as the lake's size. It is 24,576 now, over geometry that bounds itself, and 512 blocks go in
+#     per pass rather than 128 so the re-walk is not paid over and over.
+#   - **VENTS ARE 3-5 COURSES DEEP RATHER THAN 2-3**, because a pool is as deep as its mass is tall and a
+#     crater floor is not flat: two courses put the brim two blocks over tubes that follow a floor rolling
+#     by three, so the lake could not climb to the walls whatever its reach.
+#   - **THE PRIMED COURSE COVERS THE FLOOR, NOT THE VENT.** The tubes are a disc three wide and a crater
+#     floor is twenty, so priming only what a vent stands on arrived as a puddle in a dry bowl. Still one
+#     course per column, each resting on its own column's rock -- the rule that stopped the lava pillars.
+#   - Measured on seed 11's cone at (612, -284): 3,873 lava blocks over the four chunk columns of the
+#     crater, against 2,876 before. **Judge whether that is now too much rather than too little.**
+#   - **THE CLUSTERS ARE BIGGER AND COMMONER**: seams 7 -> 12 blocks and 5 -> 7 per chunk, nests 1-in-6 ->
+#     1-in-4. A seam is still under the sixteen-block throwing threshold so it never shells you; what the
+#     size buys is reach, which is the mass squared, so twelve wells about thirteen blocks of pool where
+#     seven welled four. That is the "single tube exposed, barely a puddle" complaint.
+#   - **AND THEY STAY BURIED, WHICH IS WHAT MAKES THE ROCK THEIR ENCLOSURE.** A cluster is safe to find
+#     because it floods the space you opened; one that surfaced on a hillside had nothing round it at all,
+#     which is the same mound from the other direction. Eight blocks under the heightmap now, which breaks
+#     nothing about caves -- a heightmap is the top of the terrain, so a cluster under it can still be in a
+#     cavern wall, where they are meant to be found.
+#
+# WHAT THIS WALK HAS TO SETTLE:
+#   - **THE BUILT RIMS, WHICH NOTHING HAS SEEN.** Does a stray vent read as a small volcano now, or as a
+#     donut of rock? It is made of whatever the Age's rock is six blocks under the vent -- terracotta and
+#     sandstone on seed 11 -- laid raw, with no surface rule over it, which should read as freshly thrown.
+#     RIM_HEIGHT, POOL_EDGE and CREST_AT are the dials; BASIN_REACH is not, it is the write radius.
+#   - **THE ARC INSIDE THE CALDERA.** On the flat lobe of a crater the rim is a rampart standing in the
+#     open floor. Better than the mound it replaces, or worse?
+#   - **DOES THE LAKE REACH THE WALLS NOW**, and is 3,873 the right amount of lava for a crater?
+#   - **A SEAM YOU DIG INTO.** Four to seven tubes bought a four-block puddle and twelve should buy a
+#     thirteen-block pool. Satisfying, or does an ordinary mining trip now end in lava?
+#   - **A NEST, at one chunk in four.** Thirty tubes is over the throwing threshold AND over the point
+#     where reach saturates, so opening one means a full-size lake filling the space you made and bombs
+#     starting up in it. Exciting, or does it just end the mine? This is the one that could be too much.
+#   - **ARE CLUSTERS FINDABLE WHILE MINING ORDINARILY?** Walk a cave: carvers run before decoration, so
+#     tubes turn up in cave walls, floors and ceilings, and they emit light 6 so they announce themselves.
+#     Note the difference while you are down there -- a tube in a WALL or CEILING still has rock above it,
+#     so it is plugged and inert and only glows, while one in a cave FLOOR is live and wells a pool.
+#     Does an undersea one do anything worth doing, or is it only an obsidian farm?
+#   - **THE DROPS**, which Jonah was mid-check on: lava tubes are netherite-only and silk-touch-only, and
+#     all four blocks had been dropping NOTHING with any tool until the mineable/pickaxe entry was added.
 #   - Does the blend turn two overlapping skirts into one massif, or leave a crease?
 #   - LOW PRIORITY, DEFERRED BY JONAH 2026-09-06: that PLUGGING works -- a solid block over a tube stops
 #     the welling, and lava over it does NOT count. Expected to work; walk it whenever.

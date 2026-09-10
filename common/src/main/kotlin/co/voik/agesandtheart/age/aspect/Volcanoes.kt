@@ -8,6 +8,7 @@ import net.minecraft.core.Holder
 import net.minecraft.resources.Identifier
 import net.minecraft.tags.BlockTags
 import net.minecraft.world.level.levelgen.GenerationStep
+import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.levelgen.VerticalAnchor
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature
 import net.minecraft.world.level.levelgen.feature.Feature
@@ -17,6 +18,7 @@ import net.minecraft.world.level.levelgen.placement.HeightRangePlacement
 import net.minecraft.world.level.levelgen.placement.InSquarePlacement
 import net.minecraft.world.level.levelgen.placement.PlacedFeature
 import net.minecraft.world.level.levelgen.placement.RarityFilter
+import net.minecraft.world.level.levelgen.placement.SurfaceRelativeThresholdFilter
 import net.minecraft.world.level.levelgen.structure.templatesystem.TagMatchTest
 
 /**
@@ -73,6 +75,12 @@ object Volcanoes {
      *
      * The whole height of the world, like the raw-temperstone blobs: an ore feature is a no-op wherever it
      * finds no stone, so the range costs a handful of misses rather than a rule about where rock is.
+     *
+     * **Except that it stays under the surface, which is the whole of what keeps a cluster safe to find.**
+     * A cluster is enclosed by the rock it is buried in, so opening one floods the space you opened; one
+     * that surfaced on a hillside had nothing round it at all and welled a disc of lava standing proud of
+     * the land. A cave breaks nothing here — a heightmap is the top of the terrain, so a cluster under it
+     * can still be in a cavern wall, which is where they are meant to be found.
      */
     private fun clustersOf(size: Int, perChunk: Int, rarity: Int = EVERY_CHUNK): Holder<PlacedFeature> {
         val tube = AgeContent.LAVA_TUBE_BLOCK.defaultBlockState()
@@ -85,6 +93,7 @@ object Volcanoes {
             add(CountPlacement.of(perChunk))
             add(InSquarePlacement.spread())
             add(HeightRangePlacement.uniform(VerticalAnchor.bottom(), VerticalAnchor.top()))
+            add(SurfaceRelativeThresholdFilter.of(Heightmap.Types.OCEAN_FLOOR_WG, ANY_DEPTH, -BURIED_UNDER))
         }
         return Holder.direct(
             PlacedFeature(Holder.direct(ConfiguredFeature(Feature.ORE, OreConfiguration(targets, size))), spread),
@@ -92,13 +101,26 @@ object Volcanoes {
     }
 
 
-    /** Small and common: a warm seam in the rock that seeps if you open it, and never throws. */
-    private const val SEAM_SIZE = 7
-    private const val SEAMS_PER_CHUNK = 5
+    /**
+     * Common, and big enough that opening one floods what you opened — a seam is a hazard you walk into
+     * rather than a warm patch you notice (Jonah, 2026-09-09).
+     *
+     * Still under [co.voik.agesandtheart.content.LavaTubes]' sixteen-block throwing threshold, so a seam
+     * never shells you; what it buys at this size is reach, which is the vent's own mass squared, so
+     * twelve wells about thirteen blocks of pool where seven wells four.
+     */
+    private const val SEAM_SIZE = 12
+    private const val SEAMS_PER_CHUNK = 7
 
-    /** Rare and large enough to straddle the throwing threshold, so some of them are a real find. */
+    /** Large enough to straddle the throwing threshold, so some of them are a real find. */
     private const val NEST_SIZE = 30
-    private const val NEST_RARITY = 6
+    private const val NEST_RARITY = 4
+
+    /** Enough rock over the deepest blob of a cluster that nothing of it reaches open sky. */
+    private const val BURIED_UNDER = 8
+
+    /** No floor: a cluster may be as far under the surface as the world goes. */
+    private const val ANY_DEPTH = -4096
 
     private const val EVERY_CHUNK = 1
     private const val ONE = 1

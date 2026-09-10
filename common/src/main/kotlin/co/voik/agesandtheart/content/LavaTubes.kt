@@ -239,8 +239,12 @@ object LavaTubes {
     /**
      * A caldera floor runs to a couple of thousand blocks and the pour is chained until it is covered, so
      * this is what a tick of that fill costs rather than what the whole lake does.
+     *
+     * Each pass re-walks the pool it has already laid to reach the frontier, so pouring more per pass is
+     * what stops that walk being paid over and over — and a caldera that fills in a second reads as one
+     * that was already full.
      */
-    private const val POURED_PER_TICK = 128
+    private const val POURED_PER_TICK = 512
 
     /**
      * How far a fall is followed before it counts as running away rather than settling.
@@ -248,14 +252,26 @@ object LavaTubes {
      * This is the only thing separating a dip in a crater floor from a drop off the crater's rim, and it
      * wants to stay small: generous enough for the rumple the surface noise leaves, mean enough that a
      * mountainside is never mistaken for a hollow.
+     *
+     * It is also how far below a vent the ground has to fall before it holds the lava on its own, which is
+     * what [co.voik.agesandtheart.worldgen.feature.VolcanoVents] builds a rim down to and no further.
      */
-    private const val MOST_DESCENT = 4
+    const val MOST_DESCENT = 4
 
     /** What a vent big enough to throw is owed. Smaller ones get a share of it — see [reachOf]. */
     private const val REACH_FROM_THE_MASS = 24.0
 
-    /** A bound on the walk rather than on the lava: what one pass may look at before yielding the tick. */
-    private const val MOST_IN_A_POOL = 4096
+    /**
+     * A bound on the walk rather than on the lava: what one pass may look at before yielding the tick.
+     *
+     * **It was the thing stopping a caldera lake at the walls.** The walk restarts at the tubes every pass
+     * and counts every cell it crosses, lava included, so once the pool was bigger than this the frontier
+     * simply could not be reached and the lake stopped at a ring — measured at 2,876 blocks, which is the
+     * cap and not the crater. The pool is already bounded by [REACH_FROM_THE_MASS] and by the brim, so
+     * this is the safety net over that geometry rather than a size anybody chose: a disc of the full reach
+     * is about 1,800 columns and a dozen levels is generous for what one may hold.
+     */
+    private const val MOST_IN_A_POOL = 24576
 
     private const val ONE = 1
     private const val NOTHING_POURED = 0

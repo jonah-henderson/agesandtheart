@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.worldgen.feature
 
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.content.LavaTubes
 import co.voik.agesandtheart.worldgen.AgeChunkGenerator
 import co.voik.agesandtheart.worldgen.AgeRock
 import co.voik.agesandtheart.worldgen.field.TerrainField
@@ -8,10 +9,14 @@ import net.minecraft.core.BlockPos
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.WorldGenLevel
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.levelgen.feature.Feature
 import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration
 import kotlin.math.abs
+import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 /**
  * Lava tubes, seated in the floor of a volcanic caldera (design §7.1.2).
@@ -29,7 +34,9 @@ object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration
     override fun place(context: FeaturePlaceContext<NoneFeatureConfiguration>): Boolean {
         val land = landUnder(context) ?: return false
         val floor = calderaFloorIn(land, context.origin()) ?: return false
-        return seat(context.level(), land, floor, context.random())
+        val level = context.level()
+        raiseARim(level, land, floor, rockUnder(level, floor), context.random())
+        return seat(level, land, floor, context.random())
     }
 
     /**
@@ -130,6 +137,96 @@ object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration
     }
 
     /**
+     * The rim a vent raises for itself, so the lava it wells has somewhere to stand (Jonah, 2026-09-09).
+     *
+     * **A pool holds its shape by resting on something, which says nothing about what stops it spreading.**
+     * On open ground every column of a lake is held up by the rock under it and the lake simply keeps
+     * going, so what a vent outside a crater laid was a disc of lava standing proud of the land with a
+     * vertical face all the way round — the "huge unsupported mounds" a walk saw. Inferring containment
+     * from the terrain was tried twice and fails from both ends, so the vent builds the containment.
+     *
+     * The shape is a cone with a crater in it: the ground climbs from the pool's edge to a crest and falls
+     * away outside, which is a spatter cone and not a fence. **Rock is only ever added.** A column already
+     * standing above what the rim wants is left exactly as it is, so on a hillside this is a crescent
+     * buttress on the low side and nothing at all on the high side.
+     *
+     * **And it is decided one bearing at a time, not one site at a time.** A whole crater either holding a
+     * lake or not is the wrong question, because the craters that leak leak in one place: the vent sits at
+     * the lowest column rather than the middle, so three bearings out of a caldera climb its wall and the
+     * fourth runs flat for thirty blocks — measured, on the very first cone a walk sees. Asking the land
+     * along each column's own bearing puts an arc across that lobe and nothing anywhere else.
+     *
+     * **Nothing is built over a drop.** Ground more than [LavaTubes.MOST_DESCENT] below the vent already
+     * stops the pour on its own, so a rim there would be a wall standing in the air holding back lava that
+     * was never coming — which is the one way this could look worse than what it fixes.
+     *
+     * [BASIN_REACH] is as far as a feature may reach, not a size chosen for the look: a caldera floor sits
+     * on the [STRIDE] lattice inside its own chunk, and the write radius is one chunk on every side.
+     */
+    private fun raiseARim(
+        level: WorldGenLevel,
+        land: TerrainField,
+        floor: BlockPos,
+        rock: BlockState,
+        random: RandomSource,
+    ) {
+        for (offsetX in -BASIN_REACH..BASIN_REACH) {
+            for (offsetZ in -BASIN_REACH..BASIN_REACH) {
+                val distance = sqrt((offsetX * offsetX + offsetZ * offsetZ).toDouble())
+                if (distance < POOL_EDGE || distance > BASIN_REACH) continue
+                if (landBeyondHolds(land, floor, offsetX, offsetZ, distance)) continue
+                val x = floor.x + offsetX
+                val z = floor.z + offsetZ
+                val ground = level.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, x, z) - ONE
+                if (ground < floor.y - LavaTubes.MOST_DESCENT) continue
+                val crest = floor.y + rimHeightAt(distance) + random.nextInt(RIM_ROUGHNESS)
+                for (y in ground + ONE..crest) {
+                    level.setBlock(BlockPos(x, y, z), rock, UPDATE_NONE)
+                }
+            }
+        }
+    }
+
+    /**
+     * Whether the ground out beyond this column already stands higher than a rim would, on this column's
+     * own bearing — a crater wall, which needs no help.
+     *
+     * Read at [RIM_REACH], which is past the widest caldera floor: nearer than that is floor a lake is
+     * meant to cover, and further is the mountainside outside the crater.
+     */
+    private fun landBeyondHolds(
+        land: TerrainField,
+        floor: BlockPos,
+        offsetX: Int,
+        offsetZ: Int,
+        distance: Double,
+    ): Boolean {
+        val outward = RIM_REACH / distance
+        val beyondX = floor.x + (offsetX * outward).roundToInt()
+        val beyondZ = floor.z + (offsetZ * outward).roundToInt()
+        return surfaceAt(land, beyondX, beyondZ) >= floor.y + RIM_HEIGHT
+    }
+
+    /** The rim's profile: climbing out of the pool to a crest, then falling away to the land outside. */
+    private fun rimHeightAt(distance: Double): Int {
+        val climbing = (distance - POOL_EDGE) / (CREST_AT - POOL_EDGE)
+        val falling = (BASIN_REACH - distance) / (BASIN_REACH - CREST_AT)
+        return (RIM_HEIGHT * minOf(climbing, falling).coerceIn(NOTHING, EVERYTHING)).roundToInt()
+    }
+
+    /**
+     * What the volcano is made of, sampled below the vent rather than at it — the surface rule has dressed
+     * the top of the column and a rim of grass is not a rim.
+     */
+    private fun rockUnder(level: WorldGenLevel, floor: BlockPos): BlockState {
+        for (down in DEEPEST_VENT + ONE..DEEPEST_VENT + ONE + ROCK_SAMPLE_DEPTH) {
+            val state = level.getBlockState(floor.below(down))
+            if (state.isSolidRender) return state
+        }
+        return Blocks.STONE.defaultBlockState()
+    }
+
+    /**
      * A short run of tubes in the floor, which is what makes a mass rather than a single vent.
      *
      * **Each column is sunk from its own surface**, not from one height read at the middle. A caldera
@@ -143,23 +240,21 @@ object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration
     private fun seat(level: WorldGenLevel, land: TerrainField, floor: BlockPos, random: RandomSource): Boolean {
         val reach = NARROWEST_VENT + random.nextInt(WIDEST_VENT - NARROWEST_VENT + 1)
         val depth = SHALLOWEST_VENT + random.nextInt(DEEPEST_VENT - SHALLOWEST_VENT + 1)
-        val crowns = mutableListOf<BlockPos>()
+        var seatedAnything = false
         for ((offsetX, offsetZ) in discOf(reach)) {
             val x = floor.x + offsetX
             val z = floor.z + offsetZ
             val surface = surfaceAt(land, x, z)
             if (abs(surface - floor.y) > FLOOR_RELIEF) continue
-            var seated = false
             for (course in 0..<depth) {
                 val at = BlockPos(x, surface - course, z)
                 if (!level.getBlockState(at).isSolidRender) continue
                 level.setBlock(at, AgeContent.LAVA_TUBE_BLOCK.defaultBlockState(), UPDATE_NONE)
-                seated = true
+                seatedAnything = true
             }
-            if (seated) crowns += BlockPos(x, surface, z)
         }
-        prime(level, crowns)
-        return crowns.isNotEmpty()
+        if (seatedAnything) prime(level, land, floor)
+        return seatedAnything
     }
 
     /**
@@ -176,11 +271,20 @@ object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration
      * its neighbours do, and the runtime pour deepens it within a tick or two of the chunk waking up.
      *
      * Air only — a cluster buried in rock has nowhere to put it, and one under water would only make stone.
+     *
+     * **Laid across the floor rather than over the tubes**, because the tubes are a disc three wide and a
+     * crater floor is twenty: priming only what a vent stands on arrived as a puddle in the middle of a dry
+     * bowl, which is the shape of a volcano that has just been switched on rather than one you found.
      */
-    private fun prime(level: WorldGenLevel, crowns: List<BlockPos>) {
-        for (crown in crowns) {
-            val at = crown.above()
+    private fun prime(level: WorldGenLevel, land: TerrainField, floor: BlockPos) {
+        for ((offsetX, offsetZ) in discOf(PRIMED_REACH)) {
+            val x = floor.x + offsetX
+            val z = floor.z + offsetZ
+            val surface = surfaceAt(land, x, z)
+            if (abs(surface - floor.y) > FLOOR_RELIEF) continue
+            val at = BlockPos(x, surface + ONE, z)
             if (!level.getBlockState(at).isAir) continue
+            if (!level.getBlockState(at.below()).isSolidRender) continue
             level.setBlock(at, Blocks.LAVA.defaultBlockState(), UPDATE_NONE)
         }
     }
@@ -215,9 +319,16 @@ object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration
     private const val NARROWEST_VENT = 3
     private const val WIDEST_VENT = 3
 
-    /** The pool is as deep as the mass is tall, and a deep hole is a poor caldera. */
-    private const val SHALLOWEST_VENT = 2
-    private const val DEEPEST_VENT = 3
+    /**
+     * The pool is as deep as the mass is tall, so this is what decides how high a lake can stand.
+     *
+     * **A crater floor is not flat and a lake has to climb it.** Two courses put the brim two blocks over
+     * the tubes, which on a floor the surface noise rolls by [FLOOR_RELIEF] left the lake short of the
+     * walls all round; the vents follow that same roll, so the deeper mass raises the brim above it. A
+     * deep hole is still a poor caldera, which is what keeps the far end short.
+     */
+    private const val SHALLOWEST_VENT = 3
+    private const val DEEPEST_VENT = 5
 
     /**
      * How far a vent column may sit off the floor it was found at before it counts as the wall.
@@ -249,6 +360,42 @@ object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration
      */
     private const val HIGH_ENOUGH = 72
 
+    /**
+     * How far a lake arrives already laid, which wants to be most of a crater floor and no more.
+     *
+     * The runtime pour takes it from here within a tick or two of the chunk waking up, so this only has to
+     * cover what somebody sees on the way in.
+     */
+    private const val PRIMED_REACH = 12
+
+    /**
+     * As far as a rim may be built — **the write radius, not a shape**.
+     *
+     * A feature may write one chunk past its own on every side and a caldera floor is found inside the
+     * chunk being decorated, so sixteen is what is always safe from wherever the floor lands. Anything
+     * further is dropped with a log line rather than an error, which is the quiet way to build half a rim.
+     */
+    private const val BASIN_REACH = 16
+
+    /** Where the pool ends and the rim starts to climb, and where it crests before falling away outside. */
+    private const val POOL_EDGE = 10.0
+    private const val CREST_AT = 13.0
+
+    /**
+     * How high the crest stands over the vent's own floor.
+     *
+     * It has to clear the lake, which stands [DEEPEST_VENT] over tubes that themselves follow a floor
+     * rolling by [FLOOR_RELIEF] — so eight is the highest brim a vent can produce and nine is the first
+     * number that holds it.
+     */
+    private const val RIM_HEIGHT = 9
+
+    /** A block of wobble on the crest, so a built rim is rock rather than masonry. */
+    private const val RIM_ROUGHNESS = 2
+
+    /** Past the tubes, so the sample is the Age's rock and not the vent that replaced it. */
+    private const val ROCK_SAMPLE_DEPTH = 8
+
     private const val CHUNK = 16
 
     /** Coarse: a caldera is tens of blocks across, so every fourth column finds it. */
@@ -258,4 +405,8 @@ object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration
     private const val NO_ROCK = Int.MIN_VALUE / 2
 
     private const val UPDATE_NONE = 2
+
+    private const val ONE = 1
+    private const val NOTHING = 0.0
+    private const val EVERYTHING = 1.0
 }
