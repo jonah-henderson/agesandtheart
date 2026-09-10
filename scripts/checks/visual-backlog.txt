@@ -1,393 +1,196 @@
-# The walk checklist: everything built headlessly that still wants a pair of eyes, in priority order.
+# The walk checklist: everything built headlessly that still wants a pair of eyes.
 #
 # NOT a drive-server script. `scripts/drive-server.sh` writes to a throwaway world, so an Age it creates is
 # not one you can walk. Paste these into a **client** chat (`./gradlew :fabric:runClient`).
 #
-# What each is FOR is written above it, and each says WHAT A WALK HAS TO SETTLE — that sentence is the
-# acceptance test, not "does it look all right". Every line is deliberately seeded so what you see is what
-# the next person sees; `/age list` prints a seed and a recipe, and pasting a printed composition back into
-# `/age compose` rebuilds it exactly.
+# WHAT A WALK HAS TO SETTLE is written under each item — that sentence is the acceptance test, not "does it
+# look all right". Every line is deliberately seeded, so what you see is what the next person sees;
+# `/age list` prints a seed and a recipe, and pasting a printed composition back into `/age compose`
+# rebuilds it exactly.
 #
-# **EVERY COMMAND BELOW WAS DRIVEN AGAINST A REAL SERVER ON 2026-09-05 AND CREATES THE AGE IT CLAIMS TO.**
-# Keep it that way. The last list rotted partly because it accumulated plausible-looking lines nobody had
-# run — `climate.temperature=frigid` (that slot takes a numeric range), `phenomena=blizzard` (silently
-# dropped; the key is `phenomena.happens=`), `two suns` (not a word). A line that errors in chat is worse
-# than no line, because it reads as the feature being broken.
+# **EVERY COMMAND BELOW HAS BEEN RUN AGAINST A REAL SERVER AND CREATES THE AGE IT CLAIMS TO.** Keep it that
+# way. The last list rotted partly because it accumulated plausible-looking lines nobody had run —
+# `climate.temperature=frigid` (that slot takes a numeric range), `phenomena=blizzard` (silently dropped;
+# the key is `phenomena.happens=`), `two suns` (not a word). A line that errors in chat is worse than no
+# line, because it reads as the feature being broken.
 #
-# **DELETE AN ENTRY WHEN IT HAS BEEN WALKED.** Started over 2026-09-05 because the last one was not kept
-# that way: it grew verdicts on things since rebuilt, open items settled elsewhere and never struck out,
-# and two lettered sequences running at once. A verdict that outlives its code is worse than no note. When
-# a walk settles something the finding goes to `notes/decisions.md` in two lines and the entry goes here.
+# **DELETE AN ENTRY WHEN IT IS WALKED, AND DELETE THE WHOLE ENTRY** rather than marking it done. A verdict
+# that outlives its code is worse than no note, and this file had grown to two and a half times its length
+# in walked items and their history before being cut back to what is actually outstanding. When a walk
+# settles something the finding goes to `notes/decisions.md` in two lines and the entry goes here. History
+# is in git.
 #
-# The old file is in git at `f8325b7:scripts/checks/visual-backlog.txt`. Everything live in it was already
-# recorded in `notes/decisions.md` or `notes/the-art-implementation-plan.md`; what was still unwalked is
-# items 6 to 8 below.
+# ══ HOW TO CLEAR WHAT IS LEFT, GROUPED BY TRIP RATHER THAN BY NUMBER ═════════════════════════════════
+# The real cost is Ages written and travelled, not items read.
 #
-# ══ HOW TO CLEAR THIS, GROUPED BY TRIP RATHER THAN BY NUMBER (worked out 2026-09-08) ══════════════════
-# The real cost is Ages written and travelled, not items read, and several items share one Age. Two
-# consolidations do most of the saving:
-#   * ITEMS 2 AND 5 WANT THE SAME AGE. `frozen` and `rimeb` are the same sentence and the same seed.
-#   * ITEMS 11, 13 AND 14 WANT ONE TEEMING METEORIC AGE -- storms, lure and craters in one world.
+#   TRIP A  volc ........... item 10 — THE BIG ONE, and none of it has been seen
+#   TRIP B  doomed ......... item 4
+#   TRIP C  rimeb .......... item 5      (in SURVIVAL; creative settles nothing here)
+#   TRIP D  baked .......... item 9
+#   TRIP E  hammered ....... item 14
+#   TRIP F  charged ........ item 22
+#   TRIP G  hellish ........ item 1      (wants a desk with a geologist's tools in the room)
+#   TRIP H  seams + sunmoon  items 6, 7  (`preview --args=rift` / `--args=wall` offline first)
 #
-# BEFORE LEAVING THE OVERWORLD, at a desk with a full study. Clears 1, 3, 12, and half of 15, no travel:
-#   /give @s agesandtheart:astrite_shard 300     (golem 36, lure 243, seismograph 1)
-#   /give @s minecraft:echo_shard  minecraft:lodestone  minecraft:brush
-#   -- the geologist's tools also want quartz, an amethyst shard, a diamond, temperstone and a toolbox.
-#      Temperstone comes from trip 5, so do that first or /give it.
-#
-#   TRIP 1  hellish + frozen ............ items 1, 2, and the writable half of 5
-#   TRIP 2  rimea ....................... item 5 proper, and item 16's eight colours
-#   TRIP 3  hammered .................... items 11, 13, 14
-#   TRIP 4  doomed ...................... item 4, and the second half of 15 (a torn Age to read)
-#   TRIP 5  baked ....................... item 9
-#   TRIP 6  volc ........................ item 10  (try `preview --args=volcano` offline first)
-#   TRIP 7  seams + sunmoon ............. items 6, 7  (`--args=rift` / `--args=wall` offline first)
-#
-# ADDED 2026-09-08 WITH ITEMS 18-20:
-#   **THE D'NI ENVIRONMENT IS DONE.** Items 19 and 20 are both walked and struck out — the vaults read as
-#   vast organic caverns with dripstone pillars, and the algae keeps the hour in them. That is the whole
-#   of Phase 7 step 4, and what is left below is the backlog it was built past.
-#   TRIP 9  plain + alone ............... item 18  (two small Ages, nothing else in them)
-#
-# ADDED 2026-09-09 WITH ITEMS 22-23 -- **THE CHEAPEST TRIP ON THE LIST, AND IT CLEARS BOTH**:
-#   TRIP 10  charged ..................... items 23 then 22, in that order, one session
-#   Item 23 needs no Age at all: /give yourself the blocks and build the machines where you stand. Then
-#   `/age write charged 7 electromagnetic tempests weather age`, link, and item 22 is the sky you arrive
-#   under -- and the Age carries tempests, so item 23's STORM bullet gets done on the same trip rather
-#   than wanting a tempest Age of its own.
-#
-# **COLOURED LIGHT IS DONE AND OFF THE LIST**, walked on both loaders 2026-09-08. What is left under item
-# 17 is one line of dimension type that rode along in the same commit and can be settled from anywhere.
-#
-# Item 8 is parked by Jonah and is not on the list.
+# Items 8 and 15 need no trip, and item 8 is parked.
 
-# ══ 1. THE REWARD LOOP ═══════════════════ WALKED AND GOOD 2026-09-05; CALIBRATION STILL OPEN ══
-# The phase's headline, and the reason the danger pole went first: **write a dangerous Age, read what it
-# will hold before you bind the book, go there and find it.** The loop works end to end. What is left is
-# the one number it exists to settle.
-#
-# You need a desk with a geologist's tools in the room. The tools are a toolbox (shaped: plank/slab/plank
-# along the bottom, sticks up the middle) filled shapeless with a brush, a rime crystal, a lodestone, a
-# diamond, a barrel and a deretheni plate. The rime crystal is the awkward one — it comes from item 5, so
-# either walk that first or `/give` yourself one.
-#
-# THE SENTENCE IS TWO PAGES — `infernal` and `age` — which is what makes this practical at a desk.
-/age write hellish 11 infernal age
-/age danger score hellish
-/age tp hellish
-#
-# MEASURED 2026-09-05, so the walk has something to disagree with:
-#   danger 0.430 (made of 1.000, lives in 0.000, happens 0.000, dark 0.800) — pays out, no ruins.
-#   That is three veins a chunk, which the survey should word as **"a little"**.
-#
-# WALKED 2026-09-05 (Jonah): "everything worked as intended". The survey reads, it fits, and it reports
-# amounts rather than forecasts. Those sub-questions are settled and struck.
-#
-# WHAT IS LEFT IS THE CALIBRATION, and this walk is the only instrument for it. `pays_above` is a
-# placeholder `0.25` in `art/danger.json`.
-#
-# **JONAH'S ANCHOR (2026-09-05): a straight duplicate of the nether — `infernal age`, one page costing 3
-# ink — should JUST BARELY not qualify.** It scores 0.430, so the line goes just above that.
-#
-# ┌── THE 2026-09-05 NEIGHBOURHOOD IS STALE. `art/danger.json` WAS RETUNED 2026-09-06 ────────────────┐
-# │ Lava fell 1.0 -> 0.7, the roof 0.55, sunless 0.35, and every phenomenon that does something to you │
-# │ rose. Being nether-like is no longer sufficient to be dangerous: the Age has to be throwing things │
-# │ at you. Every score below the line was re-measured on a server the same day.                       │
-# └────────────────────────────────────────────────────────────────────────────────────────────────────┘
-#
-# Re-measured 2026-09-06 AFTER the features channel was added and the weights redivided across five
-# contributors (materials .28, spawns .24, phenomena .24, features .17, lighting .07), seed 11:
-#     0.000  a quiet Age
-#     0.170  a volcano alone
-#     0.196  a lava sea alone
-#     0.235  age infernal                     <-- the anchor: must not pay
-#     0.320  age inferno phenomena            <-- and this one SHOULD
-#     0.366  a volcano over a lava sea
-#     0.720  age teeming ghast spawns
-#
-# **THE RETUNE BOUGHT THE INVERSION THAT WAS WANTED.** Before it, a world made of lava under a roof
-# (0.430) outscored a world actively raining fire on you (0.300). Now it is the other way round.
-#
-# **AND THE SHIPPED `pays_above` OF 0.25 NOW SATISFIES JONAH'S ANCHOR BY ITSELF**, which it did not before.
-# It sits inside the 0.235 -> 0.320 gap, so the nether duplicate just barely does not pay and the template
-# plus one deliberate hazard does. That was luck rather than design and it should still be walked, but
-# nothing has to be changed to make the rule hold.
-#
-# THE GAP IS NOW 0.085, against 0.033 before the features channel and 0.045 originally -- so the threshold
-# has more room than it has ever had. A volcano alone does not pay and a volcanic lava world does, which
-# reads right: one volcano is a local hazard, a world built around them is a dangerous Age.
-#
-# TWO THINGS TO DECIDE WITH IT, because both follow from the same number:
-#   - `allowsRuins` is this threshold read backwards. Moving it to 0.45 flips lava-only, inferno-only,
-#     warden Ages and the nether copy itself from "too dangerous for ruins" into "may hold a city".
-#   - **It makes "a trace" unreachable.** The lowest paying score would be 0.45, which is three veins and
-#     already the LITTLE band. Design §7.7 names *a trace* as the bottom of the vocabulary, so the bands
-#     want rebasing on whatever the threshold becomes (TRACE 3-4, LITTLE 5-6, SOME 7-9, MUCH 10-19,
-#     IMMENSE 20+ for a threshold of 0.45).
-#
-# STILL WORTH WALKING: does finding ~4 ore in a chunk's band feel like the trip was worth making?
-
-# ══ 2. THE DERETHENI SUIT ══════════════════════════ WALKED AND GOOD 2026-09-09 ══
-# All five settled: four pieces stop you catching fire, powder snow and a frozen Age do nothing, a full
-# set survives a lava swim where a partial one does not, a fire-throwing mob is still a fight, and the
-# trade is felt. Four faults came out of the same walk and NONE were in the suit -- the blizzard's cold
-# and haze both read as binary where they were meant to grade by cover, and rime crystals generated lit
-# and at sea level. All fixed and confirmed; see decisions.md for why a rate could not carry that gradient.
-
-# ══ 3. THE TOOLBOX ═════════════════════════════════ WALKED AND GOOD 2026-09-09 ══
-# All four halves confirmed: the durability fence holds, the refill fires into the hand, ARMOUR refills
-# onto the body, and the contents travel with the box in survival and in creative both. One tweak on the
-# reading -- it breaks like a leaf now rather than like wood, being luggage rather than furniture.
-
-# ══ 4. THE TERMINAL HOARD ══════ WALKED 2026-09-09; ONE FIX TO RE-READ, ONE THING DEFERRED ══
-# The amounts are right -- 3794 deretheni in a chunk's floor band is what "absurd" was meant to be for a
-# world you raid once -- and the fissures do reach it and spread.
-#
-# ONE FIX TO RE-READ:
-#   - **THE WHOLE TEAR IS VISIBLE NOW.** Only the columns the tear had SPREAD into were drawn; the ones
-#     written when the chunk generated were see-through to the rock at the bottom, though the carve and the
-#     teleport both worked. `ProtoChunk.setBlockState` sets state, lighting and heightmaps and never makes
-#     a block entity, where `LevelChunk.setBlockState` does -- and a fissure is drawn by a block entity
-#     RENDERER. The generated columns make theirs by hand now. Fly over a fresh chunk of `doomed` and the
-#     tear should read as one thing rather than as a few lit columns in a hole.
-#
-# DEFERRED BY JONAH (2026-09-09): whether RACING the collapse is fun. It is not yet, and the work it wants
-# is not in this item -- a cap on active phenomena for performance, and collapse-only phenomena with more
-# drama in them: huge fissures taken out of the ground at once, possibly random explosions. Revisit once
-# the phenomena have settled; see notes/decisions.md.
-#
-# **A written book cannot reach full collapse today, and that is a VOCABULARY GAP, NOT A DESIGN RULE**
-# (Jonah, 2026-09-06). Writers are meant to be able to write an Age that collapses; the corpus simply
-# cannot yet express enough instability. Do not design around it as a constraint.
-
-# ══ 5. THE RIME CRYSTALS AND THE SKATES ═══ WALKED AND GOOD 2026-09-09; TWO FIXES TO RE-READ ══
-# A crystal on a cliff reads as a find, the blue tint carries at distance, the climb feels right, and the
-# WRITABLE Age grows them -- `rimeb` passes its gate by exactly nothing and does yield, so no slack is
-# needed. The `alps` trap is NOT a bug (Jonah): alps do generate them, just rarely, because alpine slopes
-# are gradual -- the ones found were where a carver had cut a steeper gap. Working as intended.
-#
-# TWO FIXES TO RE-READ:
-#   - **THE SKATES WEAR NOW.** They never did: the wear read `deltaMovement`, and a server never sets that
-#     from a player's move packets -- it is theirs for knockback and sits near zero however fast they are
-#     going, so a pair at full tilt was charged for nothing. `knownMovement` is what the client actually
-#     reported having done. **Check in SURVIVAL**, since creative wears nothing at all. About a point per
-#     40 blocks above a sprint, ~8000 blocks to a pair: chore, irrelevance, or right?
-#   - **AND THEY STAY ON TOP OF POWDER SNOW**, like leather boots. Skates are the cold Age's movement
-#     answer and powder snow is its floor; a pair that crossed an ice field and dropped you into the first
-#     drift answered half of what it was made for. The freezing half was already covered by the tag.
-
-# ══ 10. THE VOLCANIC CONES HAVE NEVER BEEN SEEN ══════════════════════════════ Built 2026-09-06 ══
-# Step one of the volcanoes: the recipe entry and the shape. The cones generate; nothing is in them yet.
-#
-# **SHAPE IS JUDGED BY EYE, NOT BY A CHECK** (Jonah, 2026-09-06). These are meant to be organic and noisy
-# rather than cookie-cutter, so pinning them with assertions buys flaky tests and an incentive to make the
-# generation more regular than it should be. A shape check written for this was deleted the same day.
-#
-/age compose volc 11 landmass=hills sea=water rock=solid sky=plain features.grows=agesandtheart:volcano
-/age tp volc
-#
-# **SEED 11 IS DRAWN OFFLINE TOO.** `./gradlew :common:preview --args=volcano` renders this same Age's
-# nearest cone and prints where it stands (622, -269 -- floor around y=117); `--args=volcanoes` is the wide
-# view. A cone is placed from the recipe seed unchanged, so the pictures and the walk are the same
-# mountains, and looking at a shape no longer costs a flight. `scripts/checks/volcano.txt` drives the
-# functional half.
-#
-# ── WHAT THE SECOND WALK CHANGED (2026-09-06) ────────────────────────────────────────────────────────
-# Reported: still extremely pointed; the caldera had one block in the middle and no findable tubes;
-# still far too regular; bombs too weak and too samey; impact lava left hanging in mid-air.
-#
-#   - **The caldera bottomed out at a point because the cut was an inverted CONE.** Its tip *is* one block.
-#     It is now a truncated cone -- walls aimed to reach full depth exactly where a flat floor begins -- so
-#     a crater is 40 to 60 blocks across at the rim with a real floor to stand a vent in.
-#   - **The peak is truncated too**, or there is nothing to cut a crater into: a cone is one block wide
-#     where the crater wants to be, and a bowl cut there only decapitates the mountain.
-#   - **The profile is two cones now, steep over shallow**, which is what makes a flank concave and stops
-#     the whole thing reading as a spike. The apron costs a lot of radius -- a cone based 100 blocks under
-#     the ground shows only its last tenth -- and that radius is what the per-column cost is paid in.
-#   - **The roughening had never worked.** A wavelength is `scale x 2^-firstOctave`, so `scale = 90` at
-#     octave -5 is a swing 2,880 blocks across laid over a 300-block mountain: a constant, and a constant
-#     shift only MOVES a cone. Fixed, and joined by `Warped`, a new toolkit node that displaces the query
-#     column instead of its height -- the only thing here that reaches a silhouette, because undulating
-#     something steep barely moves its outline.
-#   - **One vent per crater, not one per chunk.** Every chunk of a caldera could see a bowl, so one volcano
-#     had twenty masses and 95 bombs in the air at once. Now about four.
-#   - **Bombs draw a bearing, a climb and a speed separately**, so a volcano spreads its fire instead of
-#     shelling one ring: the flat fast shots carry seven or eight chunks, the steep slow ones fall back
-#     into the crater.
-#   - **Impact lava pours from the crater FLOOR upward**, one to three layers deep drawn per bomb, and a
-#     bomb that finds no floor beneath it pools nothing.
-#   - Lava tubes are **netherite-only and silk-touch-only**. Also fixed while there: the three temperstones
-#     and the tube all carried `requiresCorrectToolForDrops` with no `mineable/pickaxe` entry, which means
-#     they had been dropping NOTHING with any tool since they were written.
-#
-# ── WHAT THE THIRD WALK CHANGED (2026-09-06) ─────────────────────────────────────────────────────────
-# Reported: "they definitely look like volcanoes now" -- but so massive they posed no credible threat, the
-# bombs never coming near the rim; and the impact lava was STILL hanging in mid-air.
-#
-#   - **EVERYTHING IS HALF THE SIZE.** Nothing about the shape changed. A crater 30 across and 15 deep is
-#     one a bomb thrown off the floor clears; 60 and 30 was not.
-#   - A mountain is now authored in what anybody can SEE -- rise, foot, plateau above a nominal ground --
-#     and the cones are solved from those, so rescaling is halving numbers that mean something.
-#   - The shield lost its skirt: halving a volcano *widens* the radius a flat apron costs, and the squat
-#     shape is gentle enough over its own flank not to want one.
-#   - **BOMBS PLACE NO LAVA THEMSELVES ANY MORE.** An impact throws 3-12 gobbets which fall like sand and
-#     turn to lava sources where they land -- Jonah's design, and the point is that nothing has to model
-#     what the explosion did. The old code searched for the crater floor on the tick the blast moved it,
-#     which is why lava kept ending up in the air.
-#   - Stray vents in ordinary hill basins are now ACCEPTED rather than guarded against, which is what lets
-#     the vent search sit low enough for the shield to erupt at all.
-#
-# ── WHAT THE FOURTH WALK SETTLED (2026-09-09) ────────────────────────────────────────────────────────
-# Struck, all confirmed good: the half scale, the silhouette and the warp, the caldera as somewhere to
-# climb into, the gobbets, volcanic country and the spacing, a full 64-mass at strength 7, and that bombs
-# clear the rim (infrequently from a caldera, "but the other non caldera tubes cover this case pretty
-# well"). Vanilla's flow off a lip is accepted as it stands -- no dry margin, no further work.
-#
-# **AND THEN THE WHOLE LAVA RULESET WAS BINNED** (Jonah: "these are just not viable"). A rim built around
-# each vent was a fifth mechanism holding up one bad idea, and the walk after it would have been the
-# fourth spent on containment. What replaced it is below; the mounds, the rims, the creeping fill and the
-# sixteen-block throwing threshold are all gone, and so is about 150 lines of inference.
-
-# ══ 10. THE VOLCANOES, REDESIGNED ══════════════════ Rebuilt 2026-09-09, NOTHING WALKED ══
-# Jonah's design, in two halves. **Lava is terrain now**: a caldera arrives completely and uniformly
-# flooded because the Age's own shape filled it, so nothing at runtime has a crater to race. And a tube
-# no longer computes a pool at all -- it lays one block overhead if there is room, then turns the NEAREST
-# RUNNING LAVA ITS OWN POOL REACHES into a source. Vanilla's fluid only ever puts flowing lava where lava
-# could go, so containment is inherited rather than worked out, and the one guard that makes it safe is
-# that falling lava is never hardened (a converted fall is a pillar in the air).
+# ══ 10. THE VOLCANOES ══════════════════════════════ Rebuilt 2026-09-09, NOTHING WALKED ══
+# Jonah's design, in two halves. **Lava is terrain**: a caldera arrives completely and uniformly flooded
+# because the Age's own shape filled it, so nothing at runtime has a crater to race. And a tube no longer
+# computes a pool at all — it lays one block overhead if there is room, then turns the NEAREST RUNNING LAVA
+# ITS OWN POOL REACHES into a source. Vanilla's fluid only ever puts flowing lava where lava could go, so
+# containment is inherited rather than worked out.
 #
 # Throwing is a PROBABILITY rather than a threshold: a lone tube about every two minutes, a crowded one on
-# every visit, so a mass scales danger twice over -- more visits, and each likelier.
+# every visit, so a mass scales danger twice over — more visits, and each likelier.
 #
 /age compose volc 11 landmass=hills sea=water rock=solid sky=plain features.grows=agesandtheart:volcano
 /age tp volc
 #
-# **THE OFFLINE HALF IS ALREADY MEASURED.** `VolcanoLakesCheck` holds the two things that fail silently --
-# a lava surface at one height, and no column beside a lake lower than it -- and prints a cross-section:
-# on seed 11's nearest cone, floor flat at y=95, lava level at y=104, rim 115 to 118. `LavaTubesCheck`
-# holds the cadence: 2,395 ticks between a lone tube's shots, 144 for a seam of twelve, 13 for a caldera
-# vent. Driven on a real server: 1,046 lava blocks over two chunk columns of the crater, a 117-block vent
-# seated under it, 31 bombs in the air, and a single tube in a sealed pit growing 4 -> 66 -> 173 -> 254
-# blocks and levelling at 285, which is its reach-8 ball and nothing more.
+# **THE OFFLINE HALF IS ALREADY MEASURED.** `VolcanoLakesCheck` holds the two things that fail silently —
+# every block of lava met by lava or rock, and every crater holding some — and prints a cross-section: on
+# seed 11's nearest cone, floor flat at y=95, lava level at y=110, rim 112 to 118. `LavaTubesCheck` holds
+# the cadence: 2,395 ticks between a lone tube's shots, 144 for a seam of twelve, 13 for a caldera vent.
+# Driven on a real server: 4,693 lava over two chunk columns of the crater, a 267-block vent under it,
+# bombs in the air, and a single tube in a sealed pit growing 4 -> 66 -> 173 -> 254 and levelling at 285,
+# which is its reach-8 ball and nothing more.
 #
-# WHAT THIS WALK HAS TO SETTLE -- all of it, because none of it has been seen:
-#   - **IS THE CALDERA WHAT YOU WANTED?** The lava now stands SIX blocks under the rim, about fifteen deep
-#     -- floor at y=95, surface at y=110, rim 112 to 118 on seed 11's nearest cone. The plateau is floored
-#     just under the lava so no rim column can fail, which is what let the freeboard come down.
+# WHAT THIS WALK HAS TO SETTLE — all of it, because none of it has been seen:
+#   - **IS THE CALDERA WHAT YOU WANTED?** The lava stands SIX blocks under the rim, about fifteen deep.
+#   - **THE INNER WALLS ARE SMOOTHER THAN THE FLANKS**, because the crater is cut clean AFTER the mountain
+#     is roughened. That is what buys a level lake. Does it read as a collapse scarp, or as a cookie
+#     cutter? The rim, the flank and the outline all keep every bit of their noise.
 #   - **AND DOES IT SPILL?** The summit ring is eaten into by a wandering slab, so a rim comes out notched
-#     where the noise chose and lava runs over the lip and down the flank -- permanently, since generation
+#     where the noise chose and lava runs over the lip and down the flank — permanently, since generation
 #     laid sources and a source does not empty. **Three craters in six spill and three do not**, which is
 #     the point: a guaranteed channel through every rim was tried first and read as cookie-cutter.
 #     Measured at 69 blocks of lava facing open air on the nearest cone, lowest at y=107 against a surface
-#     of 110. MOUNTAIN_EROSION is the dial -- more of it means more craters spill and deeper notches.
-#   - **THE VENT IS A CONE RISING THROUGH THE LAKE NOW**, 267 tubes against 117, which is a shot every five
-#     ticks -- several in the air at once. It stops three blocks under the surface so it always erupts
-#     from under its own lava. Too much?
-#   - **THE INNER WALLS ARE SMOOTHER THAN THE FLANKS NOW**, because the crater is cut clean after the
-#     mountain is roughened. That is what buys a level lake. Does it read as a collapse scarp, or as a
-#     cookie cutter? The rim, the flank and the outline all keep every bit of their noise.
-#   - **THE CRATERS ARE THREE DEEPER** (18, 17, 17, 19) to make room for that freeboard. Still somewhere
-#     you would climb into?
-#   - **DOES A VENT UNDER NINE BLOCKS OF LAVA STILL READ AS A VENT?** It throws from the surface of its own
-#     lake. Can you find it at all -- and should you be able to?
-#   - **THE BOMBS ARE AT THE SAME RATE AS THE WALKED ONES** (a shot every ~13 ticks off a caldera vent,
-#     against ~12 before), so this should feel unchanged. Confirm it does.
+#     of 110. MOUNTAIN_EROSION is the dial — more means more craters spill and deeper notches.
+#   - **DOES A VENT UNDER SIX BLOCKS OF LAVA STILL READ AS A VENT?** It is a cone rising through the lake
+#     now, 267 tubes against 117, which is a shot every five ticks — several in the air at once. It stops
+#     three blocks under the surface so it always erupts from under its own lava. Too much?
+#   - **THE SMALL CRATERS, WHICH ARE NEW.** A second instanced layer at a fifth the scale, on 120-block
+#     cells: spatter cones, a shallow maar, a pond with barely a lip. Each holds a level lake of its own
+#     and `VolcanoVents` seats a vent in it exactly as it does a caldera, so they shoot too — weakly, being
+#     small. Measured over a square kilometre: 618 of 66,049 columns hold lava in NINE bodies. Is that the
+#     right pocking, and do they read as volcanic rather than as puddles?
+#   - **THE MAGMA CHAMBERS, ALSO NEW, AND THE ONE THING HERE WITH TWO FACES.** An ellipsoid cavity with a
+#     level pool in its bottom, cut from the rock at generation, about one per 260 blocks square and spread
+#     down the rock from y=14 to y=-50. Where a carver opens one it is a lava lake in a cavern with
+#     headroom; where the rock is whole it is a hazard that floods the tunnel the moment you break in.
+#     Nothing decides which — caves and chambers are scattered independently. **Walk a cave and also dig a
+#     tunnel**, because those are two different findings.
+#   - **AND THE FALLS**, which is what the chambers were for: does a cave coming in above a chamber give
+#     you a lavafall into it?
+#   - **PLACE A TUBE BY HAND.** Breaking the rock over one is a neighbour change, so it starts welling AT
+#     ONCE rather than on whatever visit vanilla gets round to — which is what a walk found when a tube
+#     laid on flat ground appeared to do nothing for a minute. Driven at the default tick rate: five blocks
+#     of lava in the first second, then 25, 40, and 265 after four minutes, level there because that is its
+#     reach. Is the SUDDEN part sudden enough and the rest slow enough not to be a faucet?
 #   - **A LONE TUBE THROWS EVERY TWO MINUTES**, which is new: there is no minimum mass any more. In a mine
 #     that is a rare, weak, genuinely surprising shot. Exciting or annoying?
-#   - **DIG INTO A SEAM AND WATCH IT.** Breaking the rock over a tube is a neighbour change, so it starts
-#     welling AT ONCE rather than on whatever visit vanilla gets round to -- which is what a walk found
-#     when a tube laid on flat ground appeared to do nothing for a minute. Driven at the default tick
-#     rate: five blocks of lava in the first second, then 25, 40, and 265 after four minutes, level there
-#     because that is its reach. Is the SUDDEN part sudden enough and the rest slow enough not to be a
-#     faucet?
-#   - **A NEST, at one chunk in four.** Thirty tubes each hardening within eight blocks of itself is a
-#     lake filling the space you made, with shots starting up in it. Exciting, or does it end the mine?
+#   - **A SEAM, AND THEN A NEST at one chunk in four.** Seams of 12 at 7 a chunk, all kept eight blocks
+#     under the heightmap so the rock is their enclosure. Thirty tubes each hardening within eight blocks
+#     of itself is a lake filling the space you made, with shots starting up in it. Exciting, or does it
+#     end the mine? Findable while mining ordinarily? They emit light 6, and a tube in a WALL or CEILING is
+#     plugged and only glows while one in a FLOOR is live.
 #   - **IS IT TOO GOOD A LAVA SOURCE?** Deliberately renewable, deliberately constrained by the danger:
 #     roughly a bucket every two seconds at a nest, against vanilla dripstone at one per eight with no
 #     limit. And you have to leave it uncovered and erupting, which is the trade.
-#   - **LAVAFALLS.** A pool that overflows a ledge makes one, and the fall itself is never hardened, so a
-#     second pool forms at its foot. Nothing has seen this. Does it read as dramatic or as a mess?
-#   - **NOTHING EXPOSED ON THE SURFACE OUTSIDE A CRATER.** Stray vents in ordinary hill basins are gone --
-#     a vent is seated where the Age's lava already stands and nowhere else. Confirm you find no bare
-#     tubes on open hillsides.
-#   - **THE CLUSTERS ARE UNCHANGED FROM THE LAST PASS**: seams of 12 at 7 a chunk, nests 1-in-4, all kept
-#     eight blocks under the heightmap so the rock is their enclosure. Findable while mining ordinarily?
-#     Walk a cave -- they emit light 6, and a tube in a WALL or CEILING is plugged and only glows while
-#     one in a FLOOR is live.
+#   - **NOTHING EXPOSED ON THE SURFACE OUTSIDE A CRATER.** Stray vents in ordinary hill basins are gone — a
+#     vent is seated where the Age's lava already stands and nowhere else. Confirm you find no bare tubes
+#     on open hillsides.
 #   - **THE DROPS**, which Jonah was mid-check on: netherite-only and silk-touch-only, and all four blocks
 #     had been dropping NOTHING with any tool until the mineable/pickaxe entry was added.
-#   - **THE SMALL CRATERS, WHICH ARE NEW AND UNSEEN.** A second instanced layer at a fifth the scale, on
-#     120-block cells: spatter cones, a shallow maar, a pond with barely a lip. Each holds a level lake of
-#     its own and `VolcanoVents` seats a vent in it exactly as it does a caldera, so they shoot too --
-#     weakly, being small. Measured over a square kilometre: 618 of 66,049 columns hold lava in NINE
-#     bodies. Is that the right pocking, and do they read as volcanic rather than as puddles?
-#   - **THE MAGMA CHAMBERS, ALSO NEW AND UNSEEN, AND THE ONE THING HERE WITH TWO FACES.** An ellipsoid
-#     cavity with a level pool in its bottom, cut from the rock at generation, about one per 260 blocks
-#     square and spread down the rock from y=14 to y=-50. Where a carver opens one it is a lava lake in a
-#     cavern with headroom; where the rock is whole it is a hazard that floods the tunnel the moment you
-#     break in. Nothing decides which -- caves and chambers are scattered independently. **Walk a cave and
-#     also dig a tunnel**, because those are two different findings.
-#   - **AND THE FALLS**, which is what the chambers were for: does a cave that comes in above a chamber
-#     give you a lavafall into it?
 #   - Does the blend turn two overlapping skirts into one massif, or leave a crease?
-#   - LOW PRIORITY, DEFERRED BY JONAH 2026-09-06: that PLUGGING works -- a solid block over a tube stops
-#     the welling, and lava over it does NOT count. It is the only control surface left, so it matters
-#     more than it did: a tube you cover produces nothing and throws nothing.
+#   - LOW PRIORITY, DEFERRED BY JONAH: that PLUGGING works — a solid block over a tube stops the welling,
+#     and lava over it does NOT count. It is the only control surface left, so it matters more than it did:
+#     a tube you cover produces nothing and throws nothing.
 
-
-# ══ 12. THE ASTRITE GOLEM ══════════════════════════ WALKED AND GOOD 2026-09-09 ══
-# The pack's first mob, and all of the wiring works: it assembles through the CarvedPumpkinBlock mixin
-# without disturbing vanilla's three golems, it knows who made it, it sits and wakes on a right-click,
-# shards mend it, it fights on sight, the speed is right, and it shows none of the breeding it inherits.
-# Two changes on the reading: mending now throws astrite-violet motes as well as playing the iron golem's
-# sound (it was audible and invisible), and "a bit tougher" was too subtle -- 150 health and 20 damage
-# against an iron golem's 100 and 15, swinging every 15 ticks rather than 20.
-# The violet tint is a placeholder and Jonah is not concerned about it until the asset pass.
-
-# ══ 13. THE ASTRITE LURE ═══════════════════════════ WALKED AND GOOD 2026-09-09 ══
-# All nine settled: storms are twenty minutes apart rather than thirty seconds, a lure block reads as one
-# only above y=288, the rings are drawn about the CLUSTER and widen with it, the column stands for the
-# whole storm and is visible from the ground, the storm comes to the lure, the disc tightens to one chunk,
-# the violet cast narrows with it, standing in a floored storm is not survivable, and losing what you
-# built there is a real cost. The sky's angle and the rock's angle are one line again (see decisions.md --
-# they shared the angle all along and disagreed about the point the line ends at) and that is confirmed.
-
-# ══ 11. THE METEOR STORM ═══════════════════════════ WALKED AND GOOD 2026-09-09 ══
-# Jonah: "all looking fantastic, probably my favourite of the phenomena". The arrival reads as a storm
-# rather than as objects falling, which is the thing no number could have answered; the violet cast lights
-# the chunk it falls in and no more, now that it narrows with the lure's disc; and the debug forms drive it
-# at every angle and intensity without waiting on weather.
-
-# ══ 9. TEMPERSTONE'S THREE BANDS ══════ WALKED 2026-09-09; THREE FIXES TO RE-READ ══
-# The formation teaches the rule, the scorched band reads as the toll rather than a second reward, the
-# climbers feel like climbing (and hold you when you let go), the boot-slot trade against the skates is a
-# real choice, and the piston works on NeoForge too -- the "dead" piston was vanilla's twelve-block push
-# limit all along, which slime hits identically.
+# ══ 4. THE TERMINAL HOARD ══════════════════════════ ONE FIX TO RE-READ, ONE THING DEFERRED ══
+/age compose doomed 11 unstable=400 landmass=hills sea=lava rock=solid sky=plain
+/age tp doomed
 #
-# THREE FIXES TO RE-READ:
+#   - **THE WHOLE TEAR IS VISIBLE NOW.** Only the columns the tear had SPREAD into were drawn; the ones
+#     written when the chunk generated were see-through to the rock at the bottom, though the carve and the
+#     teleport both worked. `ProtoChunk.setBlockState` sets state, lighting and heightmaps and never makes
+#     a block entity, where `LevelChunk.setBlockState` does — and a fissure is drawn by a block entity
+#     RENDERER. The generated columns make theirs by hand now. Fly over a fresh chunk and the tear should
+#     read as one thing rather than as a few lit columns in a hole.
+#
+# DEFERRED BY JONAH: whether RACING the collapse is fun. It is not yet, and the work it wants is not in
+# this item — a cap on active phenomena for performance, and collapse-only phenomena with more drama in
+# them: huge fissures taken out of the ground at once, possibly random explosions. Revisit once the
+# phenomena have settled; see notes/decisions.md.
+
+# ══ 5. THE SKATES ══════════════════════════════════ TWO FIXES TO RE-READ, IN SURVIVAL ══
+/age write rimeb 4242 age blizzard phenomena frozen climate
+/age tp rimeb
+#
+#   - **THE SKATES WEAR NOW.** They never did: the wear read `deltaMovement`, and a server never sets that
+#     from a player's move packets — it is theirs for knockback and sits near zero however fast they are
+#     going, so a pair at full tilt was charged for nothing. `knownMovement` is what the client actually
+#     reported having done. **Creative wears nothing at all**, so this settles in survival or not at all.
+#     About a point per 40 blocks above a sprint, ~8000 blocks to a pair: chore, irrelevance, or right?
+#   - **AND THEY STAY ON TOP OF POWDER SNOW**, like leather boots. Skates are the cold Age's movement
+#     answer and powder snow is its floor; a pair that crossed an ice field and dropped you into the first
+#     drift answered half of what it was made for.
+
+# ══ 9. TEMPERSTONE'S THREE BANDS ═══════════════════ THREE FIXES TO RE-READ ══
+/age compose baked 11 landmass=hills sea=lava rock=solid sky=plain climate.temperature=0.6..0.9
+/age tp baked
+#
 #   - **TEMPERED STONE SPOILS NOW IF THE HEAT REACHES IT.** Only RAW stone answered to heat, so the
-#     finished material was immune to the hazard it was made in -- and the bands are laid at generation
+#     finished material was immune to the hazard it was made in — and the bands are laid at generation
 #     against the lava as it stood then, so a settling lava sea left temperstone sitting against lava for
 #     ever. Look along a shore for tempered stone touching lava: it should go scorched. Moving a block too
-#     close by hand should spoil it too. It only ever goes FORWARD -- taking the heat away does not
+#     close by hand should spoil it too. It only ever goes FORWARD — taking the heat away does not
 #     un-temper anything.
 #   - **NATURAL FORMATIONS ONLY COOK BELOW y=32.** A lava sea's rim yielded enough for the armour without
-#     trying, so finding it is a descent now. **A gate on GENERATION and deliberately not on the rule** --
-#     it was briefly both and that was reverted: heat tempers stone because it is heat, and a player who
-#     read a formation, reproduced it faithfully at the wrong altitude and got nothing would learn only
-#     that the game had refused them for no reason they could see. So carrying raw stone to ANY lava still
-#     works, and is meant to. `NOTHING_ABOVE` is the dial; judge whether a lava sea still yields enough
-#     once you go down to its floor.
+#     trying, so finding it is a descent now. **A gate on GENERATION and deliberately not on the rule** —
+#     carrying raw stone to ANY lava still works, and is meant to. `NOTHING_ABOVE` is the dial; judge
+#     whether a lava sea still yields enough once you go down to its floor.
 #   - **THE BAKING WAVE IS HALF AS FAST** (`SPREAD_DELAY` 10 -> 20). It was right in kind and a little
 #     quick to read as a process.
-#
-# NOT BUILT AND DELIBERATELY: the underside (hanging from a temperstone roof was cut in favour of ceiling
-# walking -- design 7.4 carries it), and scorched temperstone grinding into anything, the station being
-# deferred.
 
-# ══ 6. THE FOUR SEAM FORMS, AFTER THE FIXES ══════════════════ Built 2026-07-30, UNWALKED SINCE ══
-# Carried forward from the old list, and now unwalked across the 26.1 upgrade as well. All four seeded 4242
-# so the pairs are comparable.
+# ══ 14. OLD CRATERS ════════════════════════════════ TWO FIXES TO RE-READ ══
+/age write hammered 4242 teeming meteors phenomena age
+/age tp hammered
+#
+#   - **NOTHING SHOULD FLOAT OVER A CRATER NOW.** The carve read the ground off a heightmap that counts
+#     what blocks MOTION — and grass, bushes and flowers do not — so it took the dirt out from under a
+#     meadow and left it hanging. It clears whatever is standing on the column too now, and buries what a
+#     rim is thrown over. Fly and look for anything left in the air, especially at a crater's edge where it
+#     crosses into a chunk that was decorated first.
+#   - **AND THE SHARD IS CLICKABLE.** Its hitbox was THREE pixels across, against vanilla's smallest bud at
+#     eight, so it was a sixteenth of a block wide — near enough impossible to click or to be cut by. Ten
+#     across and six tall now.
+#   - Watch also that a crater by the SHORE still stops at the waterline: the submerged test used to be two
+#     heightmaps disagreeing, which a blade of grass also does, so it is a fluid read now.
+
+# ══ 22. ORE THAT WILL NOT BE CAUGHT ════════════════ TWO FIXES TO RE-READ ══
+/age write charged 7 electromagnetic tempests weather age
+#
+# CONFIRM IT IS ON BEFORE CLIMBING — the gate is two halves and the ore is 120 blocks up before it is
+# anything at all:
+/age danger score charged
+#   ...the last line should say `grows arc_crystal`. If it does not, nothing above y=120 will be there.
+#
+#   - **A BREAK SHOULD COME APART NOW.** Fragments were jittered off one point, which was harmless while a
+#     body was a hitbox and is not now they are shaped and solid to each other — three born overlapping
+#     spent their lives shoving, so a break read as one rock going lumpy. They are set out on a ring a
+#     quarter wider than they need and thrown outward along it. **The kick is written as a DISTANCE now**
+#     (`THROWN_CLEAR`, five blocks) rather than as a speed: 0.35 a tick sounded like a shove and against
+#     the damping was under two blocks of drift. Watch one break: three pieces blowing apart, and only then
+#     settling to seek their own bands.
+#   - **AND NO TWO BODIES MOVE ALIKE.** Each rolls its own pace for the drift and for the climb, anywhere
+#     from half to double. The DIRECTION is still shared, deliberately — everything charged going one way
+#     is what sells a field they are all following; what was wrong was that they went at one speed too, so
+#     a sky of them slid about like a sheet.
+
+# ══ 6. THE FOUR SEAM FORMS ═════════════════════════ Built 2026-07-30, NEVER SEEN ══
+# Unwalked since, and now unwalked across the 26.1 upgrade as well. All four seeded 4242 so the pairs are
+# comparable.
 #
 /age compose seamsheared 4242 landmass=hills,hills sea=water landmass.seam=sheared
 /age compose seamrift 4242 landmass=hills,hills sea=water landmass.seam=rift
@@ -407,7 +210,7 @@
 # AND STILL NOT LOOKED AT: **vanilla structure placement straddling a scarp**, since it takes its height at
 # one column. This was in the old list as `scarpbuilt` and was never walked.
 
-# ══ 7. A GENERATED AGE'S SUNS AND MOONS HAVE NEVER BEEN LOOKED AT ═══════ Open since the upgrade ══
+# ══ 7. A GENERATED AGE'S SUNS AND MOONS ════════════ Open since the upgrade, NEVER SEEN ══
 # Both 26.1 sky walks were the Spire, which has neither — so the body-drawing half of the sky is compiled,
 # checked and unseen. `notes/version-upgrade.md` "Still open" item 1. Composed rather than written because
 # no word asks for a sun directly.
@@ -415,9 +218,48 @@
 /age compose sunmoon 3 landmass=hills sea=water rock=solid sky=plain sun=member moon=member
 /age tp sunmoon
 
-# ══ 8. SKY POLISH ══════════════════════════════════════ OPEN 2026-07-30, DEFERRED BY JONAH ══
+# ══ 1. THE REWARD LOOP'S ONE NUMBER ════════════════ The loop is walked; `pays_above` is not ══
+# `pays_above` is a placeholder `0.25` in `art/danger.json`, and this walk is the only instrument for it.
+# You need a desk with a geologist's tools in the room: a toolbox (shaped plank/slab/plank along the
+# bottom, sticks up the middle) filled shapeless with a brush, a rime crystal, a lodestone, a diamond, a
+# barrel and a deretheni plate. The rime crystal comes from a cold Age, so `/give` yourself one.
+#
+/age write hellish 11 infernal age
+/age danger score hellish
+/age tp hellish
+#
+# **JONAH'S ANCHOR: a straight duplicate of the nether — `infernal age`, one page costing 3 ink — should
+# JUST BARELY not qualify.** Measured after the 2026-09-06 retune, seed 11:
+#     0.000  a quiet Age
+#     0.170  a volcano alone
+#     0.196  a lava sea alone
+#     0.235  age infernal                     <-- the anchor: must not pay
+#     0.320  age inferno phenomena            <-- and this one SHOULD
+#     0.366  a volcano over a lava sea
+#     0.720  age teeming ghast spawns
+#
+# **THE SHIPPED 0.25 SATISFIES THE ANCHOR BY ITSELF**, sitting inside the 0.235 -> 0.320 gap. That was luck
+# rather than design and should still be walked, but nothing has to change to make the rule hold. The gap
+# is 0.085, against 0.033 before the features channel — more room than the threshold has ever had.
+#
+# TWO THINGS TO DECIDE WITH IT, because both follow from the same number:
+#   - `allowsRuins` is this threshold read backwards. Moving it to 0.45 flips lava-only, inferno-only,
+#     warden Ages and the nether copy itself from "too dangerous for ruins" into "may hold a city".
+#   - **It makes "a trace" unreachable.** The lowest paying score would be 0.45, which is three veins and
+#     already the LITTLE band. Design §7.7 names *a trace* as the bottom of the vocabulary, so the bands
+#     want rebasing on whatever the threshold becomes (TRACE 3-4, LITTLE 5-6, SOME 7-9, MUCH 10-19,
+#     IMMENSE 20+ for a threshold of 0.45).
+#
+# AND THE PLAY QUESTION: does finding ~4 ore in a chunk's band feel like the trip was worth making?
+
+# ══ 15. "EXTREMELY UNSTABLE" IS HARD TO REACH ══════ For the instability pass; no trip needed ══
+# The seismograph itself is walked and good. This is the instability system's thresholds rather than the
+# instrument's: a written book cannot climb far enough up the ladder for the readout's top band to be
+# reachable, which is a vocabulary gap rather than a design rule — see the-art-implementation-plan.md.
+
+# ══ 8. SKY POLISH ══════════════════════════════════ DEFERRED BY JONAH; leads kept fresh ══
 # Park these until the main mod has more headway. Neither is a bug; both are "it works, and it should be
-# better". Recorded because the leads are fresh.
+# better".
 #
 # 8a. THE SPIRE SHOULD BE PERMANENTLY DUSK, WITH ITS STARS ALWAYS OUT.
 # It has no sun, so a day/night cycle buys it nothing. Wanted: stars visible at ALL times, light EVEN
@@ -438,242 +280,3 @@
 # WORTH KNOWING BEFORE TURNING THAT DIAL: the tint is `WARM.lerp(COOL, random.nextFloat())`, and a uniform
 # draw puts most stars in the MIDDLE of the axis — neutral — however far apart the ends are. Biasing the
 # draw toward the ends will do at least as much as widening it, and probably more.
-
-# ══ 14. OLD CRATERS ═══════════════════ WALKED AND GOOD 2026-09-09; TWO FIXES TO RE-READ ══
-# The craters read as impacts, the four profiles are tellable apart, twinned ones were found, the biggest
-# have no straight-edged bite, and the shard places on all six facings, cuts with its own damage type and
-# gives itself back. The trickle rate is settled too and deliberately mean: one shard unlocks the upgrade
-# block and that is its primary use, so making them rare is right -- the point is to push a player into
-# solving the CATCH at an authoring level (a sea Age, a honey surface, teeming meteors) rather than by
-# block-building (Jonah, 2026-09-09).
-#
-# TWO FIXES TO RE-READ:
-#   - **NOTHING SHOULD FLOAT OVER A CRATER NOW.** The carve read the ground off a heightmap that counts
-#     what blocks MOTION -- and grass, bushes and flowers do not -- so it took the dirt out from under a
-#     meadow and left it hanging. It clears whatever is standing on the column too now, and buries what a
-#     rim is thrown over. Fly `hammered` and look for anything left in the air, especially at a crater's
-#     edge where it crosses into a chunk that was decorated first.
-#   - **AND THE SHARD IS CLICKABLE.** Its hitbox was THREE pixels across, against vanilla's smallest bud at
-#     eight, so it was a sixteenth of a block wide -- near enough impossible to click or to be cut by. Ten
-#     across and six tall now.
-#   - Watch also that a crater by the SHORE still stops at the waterline: the submerged test used to be
-#     two heightmaps disagreeing, which a blade of grass also does, so it is a fluid read now.
-
-# ══ 15. THE SEISMOGRAPH ═══════════════ WALKED AND GOOD 2026-09-09; ONE FOR THE INSTABILITY PASS ══
-# All five criteria settled, and the fourth confirmed in a badly written Age: carried into `doomed` it
-# says what is wrong with THAT Age rather than reading a desk. Two changes on the readings: the calm
-# wording is four sentences rather than two (a bare desk, an Age, an unwritten world, a clean sentence),
-# and the panel is as tall as its own worst case -- a full list ran off the bottom, the height having been
-# a hand-written 96 that was three lines short even before instability could set an Age alight. It is also
-# CAPPED to the window less a little air, with a scroll behind the cap, because counting fixes today and
-# not tomorrow: check a full list still reads, and that a very small window scrolls rather than clips.
-#
-# LEFT FOR THE INSTABILITY PASS (Jonah): "extremely unstable" is hard to reach. That is the instability
-# system's thresholds rather than the instrument's.
-
-# ══ 16. EIGHT RIME CRYSTALS ════════════════════════ WALKED AND GOOD 2026-09-09 ══
-# Eight colours off one model and one tint, a comparator reads which colour a crystal is, and a powered
-# one glows where an unpowered one -- and every crystal the world grew -- does not.
-
-# ══ 17. THE ROOFED AGE'S FACE SHADING ═══════ WALKED AND DROPPED 2026-09-09 ══
-# A negative result, and the cheapest kind to get. `age_lightless_roofed` carried
-# `"cardinal_light": "nether"`, which flattens the underside face shading from 0.5 to 0.9 -- one line, no
-# code, and the reasoning was that it is what stops a roofed world reading as a cave with the lights off.
-# Against a lightless Age that is not roofed, Jonah could not tell a difference, so the line is gone.
-# How the field works is kept in `notes/coloured-light-research.md` for whoever wants it for something the
-# eye can actually catch; what is NOT kept is a line in a shipped file that nobody can justify.
-
-# ══ 18. THE LONE ISLAND ════════════════════════════ WALKED AND GOOD 2026-09-09 ══
-# Both ends of the ladder confirmed, and the rebalance holds: the large island crowns under the cloud deck
-# with only its peaks through it, the interior reads as country (peaks, basins and lagoons) without cutting
-# the island in two, the climb off the beach is a slope you notice rather than a 660-block ramp, and the
-# archipelago is unharmed by the relief octaves being re-weighted.
-
-# ══ 21. THREE WORDS THAT MEANT NOTHING ══════════ STRUCK UNWALKED 2026-09-09 ══
-# Deferred rather than settled (Jonah): the vocabulary is about to be reworked wholesale, so reading
-# `sultry` and `icy` as they stand now would be reading something that is going to change. What the fix
-# did is recorded in `notes/decisions.md` -- a nudge on an axis nobody else had spoken about was silently
-# discarded, so both words resolved to their full natural range and meant nothing. The open question rides
-# with the vocabulary pass: a lean NARROWS as well as moves, so `sultry` can no longer draw a cold Age at
-# all. If a word that leans starts to feel like a word that demands, `Span.leaned` is where that lives.
-
-# ══ 22. ORE THAT WILL NOT BE CAUGHT ══════════ WALKED AND GOOD 2026-09-09; ONE LAST LOOK ══
-# The first walk of the magnetic material (design §7.1.2) -- and the first thing in the mod drawn as a
-# cluster of real blocks moved as one entity. Nothing about it has been looked at. The whole feature turns
-# on one question a screenshot answers and no test can: does a sky of procedurally weathered rubble read as
-# VARIED, or does it read as the same rock over and over? If it is the second, the answer is a handful of
-# hand-made silhouettes instead, and none of the collision work is worth doing.
-#
-/age write charged 7 electromagnetic tempests weather age
-#
-# CONFIRM IT IS ON BEFORE CLIMBING -- the gate is two halves and the ore is 120 blocks up before it is
-# anything at all:
-/age danger score charged
-#   ...the last line should say `grows arc_crystal`. If it does not, nothing above y=120 will be there and
-#   the walk is about the gate rather than about the rock.
-#
-# WHAT A WALK HAS TO SETTLE:
-#   - **DO THEY READ AS ROCKS?** Weathered out of 2-, 4- and 6-cubes, corners first, sixty-four shapes a
-#     tier. Look at several of one tier together. Boulders, or dice with chips out of them?
-#   - **AND DO THE TIERS READ AS A LADDER?** A six-cube is meant to be a PLATFORM and a two-cube a pebble.
-#     If the top band does not look worth flying to, `OreClusters.SMALLEST_SIDE`/`SIDE_A_TIER` is the dial.
-#   - **IS THE LOWEST BAND A SIGNPOST?** It sits at y 120-140 and its whole job is to be seen from sea
-#     level, so that up reads as the direction to explore. Stand on the ground at dusk and look up.
-#   - **DOES THE BOX MATCH THE ROCK?** Shoot one. The arrow should stop where the stone is, not a block
-#     early or a block late, and not half a body low. (The checks assert the span; only an eye can say
-#     whether the drawing and the box agree in the world.)
-#   - **DOES BREAKING ONE WORK THE WAY IT READS?** Hit a big one until it comes apart: three of the tier
-#     below, thrown clear, which then SINK to their own band on their own. Break the smallest for the
-#     crystal itself. Three breakings from the top band to an item in hand.
-#   - **DOES BUILDING PUSH THEM AWAY?** Pillar up under one. Any block repels, not just solid ones, so a
-#     catching platform should shove its own target out over the next valley. That inversion is the whole
-#     design and it has never been seen working.
-#   - **AND WHAT DOES A SKY FULL OF THEM COST?** F3. Six per 160 blocks, one submit per visible cell, 133
-#     of them on a top-tier body. If the frame rate moves, `MOST_IN_SIGHT` is the first dial.
-#
-#   - **CAN YOU STAND ON ONE?** Fly up and land on a body. It is solid across its whole CUBE -- the notches
-#     a weathered rock has are drawn but not carved out of the collider -- so what you are judging is
-#     whether the box being bigger than the rock is noticeable. If you can stand on visible air, that is
-#     the thing that decides whether the collision Mixin is worth building.
-#
-# NOT BUILT YET, so do not look for it: the exact-shaped collider (see above), being CARRIED by a moving
-# body (you can stand on one, but it will slide out from under you), and the tether. Textures are
-# stand-ins -- emerald and amethyst until the asset pass.
-
-
-# WALKED 2026-09-09 AND GOOD: the tiered bands read, the variation is worth keeping, and the approach is
-# confirmed -- "drifting ore is on the right track". SIX THINGS CHANGED SINCE, all from that walk:
-#   - **THE BOULDERS WERE STILL CUBES, AND THE SCORING WAS WHY.** An eaten neighbour was counted twice --
-#     once as an open face (it is not standing, so it is open) and again by a clustering term -- so an
-#     eaten face outscored a pristine corner and the erosion COMPOUNDED into whichever corner it began on,
-#     leaving the other seven square. Openness alone rounds the whole rock at once. More is taken now too
-#     (0.36 against 0.22): a fifth off a cube is still a cube. Sliced and read offline rather than guessed
-#     -- `./gradlew :common:test --tests "*OreClusters*"` prints every layer of two shapes, which is the
-#     instrument to turn `TAKEN_AWAY` and `JITTER` against if these are now too eroded or not enough.
-#   - **THE FLICKERING WAS Z-FIGHTING, NOT CACHING.** A `MovingBlockRenderState` answers `getBlockState`
-#     with AIR everywhere but its own cell, and that state IS the level vanilla culls faces against -- so
-#     every cell drew all six faces and each shared face was drawn twice in the same plane. Each cell is
-#     handed the whole cluster now, so vanilla culls the interior itself. It also deleted the hidden
-#     geometry: a top-tier body draws 94 cells where it drew 133.
-#   - **THE JITTERY MOTION WAS BOTH SIDES SIMULATING.** A plain `Entity` has no interpolation handler, so
-#     every position packet was a SNAP, and the client's own physics had already drifted (its
-#     `deltaMovement` starts at nothing and is never sent). The client only interpolates now, over exactly
-#     the four ticks the server waits between telling it.
-#   - **DRIFT IS DOUBLED** (0.017 -> 0.034 a tick). Say if the sky now moves too fast to shoot at.
-#   - **THE LOWEST TIER YIELDS HALF** (1-2 crystal, was 2-4). Read it against the ladder rather than one
-#     body: three fragments of three means a top-band body is nine of these, so 9-18 for a climb, a shot
-#     and three breakings. Say if that is still loads.
-#   - **YOU SHOULD BE CARRIED NOW.** Stand on a drifting body and it should take you with it rather than
-#     sliding out from under you. Each side carries what it owns -- the server everything that is not a
-#     player, the client the players -- because a server moving a player rubber-bands. Watch for that
-#     anyway: if standing on one fights your own movement, this is where to look.
-#
-# STILL UNREAD FROM THE ORIGINAL LIST: whether a pillar built under a body really does shove it away (the
-# inversion the whole design rests on), and whether an arrow stops where the stone is.
-
-# SECOND WALK 2026-09-09 -- shapes confirmed good, standing on large and medium bodies confirmed good.
-# SEVEN MORE CHANGES:
-#   - **THE ROTATING TEXTURES WERE A TRAVELLING SEED, and your guess was right.** Deepslate has FOUR
-#     variants (plain and mirrored, each at two turns) picked from `blockState.getSeed(randomSeedPos)`,
-#     and we fed it the WORLD position -- so every cell re-rolled its variant each time the body crossed a
-#     block boundary and the whole rock re-tiled as it drifted. It is seeded off the cell's own offset now,
-#     mixed with shape and tier so two bodies are not tiled alike.
-#   - **SMALL BODIES SHOOK BECAUSE THE CARRY WAS APPLIED TWICE.** Vanilla already lifts what stands on a
-#     rising box and drops it when the box falls, so adding the vertical delta on top shoved a rider up,
-#     resolved them down and shoved again -- worst on a two-cube, where a player has nowhere to settle.
-#     The carry is SIDEWAYS ONLY now, which is the part vanilla does not do.
-#   - **FAR FEWER CRYSTALS IN THE ROCK**: a count per tier (1 / 4 / 6) instead of a quarter of every cell,
-#     which was thirty-five in a big one. Purely how it looks -- the yield comes only from breaking the
-#     smallest tier and has not moved.
-#   - **THE CLIMB IS A CLIMB NOW.** Seeking its band is capped at twice the drift, derived from the drift
-#     rather than written down, so a fragment sinking to the band below is something you watch. Say if it
-#     is now too slow to read as purposeful.
-#   - **THE TERRAIN PUSH IS TWO AND A HALF TIMES HARDER** (`SHOVE`). It should hold five or six blocks off
-#     anything built. Pillar up under one: it should visibly refuse to be caught, which is the inversion
-#     the whole design rests on and the thing still least confirmed.
-#   - **FEWER BODIES, AND WEIGHTED DOWN.** Four within 160 blocks rather than six, and each band up is a
-#     third as likely as the one below -- so the lowest band is busy (it is the signpost) and the top is
-#     something you go looking for. This is also the likeliest fix for the jitter, which may simply have
-#     been the number of bodies each running a block scan.
-#   - **IF THE JITTER PERSISTS AFTER THAT**, it is not entity count and the next place to look is the
-#     block walk in `pushedFromRock`: at tier 2 it reads a 15x15x15 cube whenever a section near the body
-#     holds anything at all, every tick. Say so and it gets sampled rather than walked.
-
-# THIRD WALK 2026-09-09: "much better ... everything is looking pretty good". The rotating textures, the
-# small-body shudder, the crystal count, the climb rate, the thinner sky and being carried are all
-# confirmed. `SHOVE` doubled once more on that reading (0.15 -> 0.30, five times where it started).
-#
-# TWO THINGS IN THIS ITEM HAVE STILL NEVER BEEN READ, and neither needs a trip of its own:
-#   - **DOES AN ARROW STOP WHERE THE STONE IS?** The box is the cluster's whole CUBE, not its outline, so
-#     what is being judged is whether the box being bigger than the rock is noticeable. If you can stand
-#     on visible air or an arrow stops early, that is what decides whether the shaped-collider Mixin is
-#     worth building at all.
-#   - **AND WHAT DOES A SKY OF THEM COST?** F3 with several in view. One submit per visible cell, 94 on a
-#     top-tier body now (it was 133 before the culling and the erosion fix). If the frame rate moves,
-#     `MOST_IN_SIGHT` is the first dial and `pushedFromRock`'s block walk is the second.
-
-# FOURTH WALK 2026-09-09: the sky's cost is "within acceptable limits", and the box was judged too loose --
-# "too easy to stand or shoot at empty space and have it work". SO THE SHAPED COLLIDER IS BUILT:
-#   - **STAND ON ONE AND SHOOT ONE** (fixed once already -- the first build targeted `collectAllColliders`,
-#     which is named like the collision funnel and is not one, so bodies had NO collision at all).
-#     A body is its own outline now rather than the cube it weathered from,
-#     which was better than a third gaps. Two Mixins, because neither path has a hook:
-#     `Entity.collectAllColliders` for what you stand on, and `Projectile.canHitEntity` for what an arrow
-#     hits. What to settle: standing on a notch should now fail, and a shot into a gap should pass THROUGH
-#     rather than stopping in the air. A shot fast enough to cross the whole rock in one tick still
-#     tunnels, which is vanilla's own behaviour and not worth a sweep to fix -- say if it happens often.
-#   - **AND WHETHER IT COST ANYTHING.** `collectAllColliders` runs for every moving entity every tick and
-#     now asks the entity index whether a body is nearby. The sky's cost was already acceptable; this is
-#     the one that would show up as everything ELSE getting slower rather than as the sky being expensive.
-
-# FIFTH WALK 2026-09-09: the shaped collider works and "FPS holds steady", so the cost question is
-# answered too. TWO LAST CHANGES, and then this item is done:
-#   - **A BREAK SHOULD COME APART NOW.** Fragments were jittered off one point, which was harmless while a
-#     body was a hitbox and is not now they are shaped and solid to each other -- three born overlapping
-#     spent their lives shoving, so a break read as one rock going lumpy. They are set out on a ring a
-#     quarter wider than they need and thrown outward along it. **The kick is written as a DISTANCE now**
-#     (`THROWN_CLEAR`, five blocks) rather than as a speed: 0.35 a tick sounded like a shove and against
-#     the damping was under two blocks of drift, which is why a break barely read as one. Watch one break:
-#     three pieces blowing apart, and only then settling to seek their own bands.
-#   - **AND NO TWO BODIES MOVE ALIKE.** Each rolls its own pace for the drift and for the climb, anywhere
-#     from half to double. The DIRECTION is still shared, deliberately -- everything charged going one way is what
-#     sells a field they are all following; what was wrong was that they went at one speed too, so a sky
-#     of them slid about like a sheet.
-# ══ 23. THE CHARGED MACHINES ═══════════════════════ WALKED AND GOOD 2026-09-09 ══
-#
-# STORM CONFIRMED 2026-09-09 -- the whole item is walked. Left here only for the two things it records
-# rather than asks: the redstone switch's narrowness (below), and what is not built.
-# Arc crystal's second use, and it needs no Age at all -- build it in the overworld in creative. The
-# material's whole thesis is that the reward is the force you spent the acquisition fighting, so what this
-# has to settle is whether owning that force FEELS like the payoff.
-#
-# GIVE YOURSELF: arc crystal blocks, iron blocks, gold blocks, copper blocks, lightning rods, a chainmail
-# chestplate, redstone. Nothing here is gated -- /give works.
-#
-# WHAT A WALK HAS TO SETTLE:
-# WALKED AND GOOD 2026-09-09 -- the anchor, stacking, the beams and chainmail are all settled:
-#   * **The anchor and the ratio.** Copper "feels very good, very powerful with the amount of blocks I
-#     have". Half a heart a second at one to one, climbing to a lethal turret; the whole ladder reads.
-#   * **Iron and gold as beams**, at the strength and smoothness they ended on -- 0.05 a tick, uniform
-#     down the beam, applied every tick. "Confirmed copper, gold, and iron are all working the way I want."
-#   * **Chainmail stops the field and not the bite**, which is the split the design turns on.
-#   * **The assembly twinkle and the rod point.** "The visuals look good."
-#
-#   * **More metal is weaker**, and the mast ladder reads: four blocks for the first rod, one for each
-#     after. A rod adds range and does not replace the contact.
-#   * **Setting a block down in midair**, at three blocks out.
-#   * **The redstone switch**, with the narrowness below understood and left as it is pending playtesting.
-#   * **The bolt.** "Looks fantastic, no notes." It is vanilla's own geometry, rotated and scaled.
-#
-# THE REDSTONE SWITCH IS NARROWER THAN IT LOOKS, and is left that way on purpose (Jonah, 2026-09-09:
-# "will need playtesting and feedback"). A run is walked from metal ADJACENT TO THE DRIVING CRYSTAL, so
-# the switch is whichever crystal actually touches the machine: one crystal on one bar, or a bank with a
-# single face on it, both go dead outright. A bank with SEVERAL blocks touching the same bar hands the run
-# to the next one along at slightly less force, and a crystal buried inside a bank only docks supply. The
-# open fork, if playtesting says the switch is too fiddly: power any block of a pile and the whole pile
-# dies. The alternative reading is that per-crystal is a FEATURE -- redstone that dials a machine's force
-# rather than killing it.
-#
-# NOT BUILT: the tether/lift, and the maintainer's log. The numbers live in `ChargedMetal` and its check
-# has the ramps; the check can say the anchor is 1 damage per 20 ticks, but only a walk can say whether
-# that is the right anchor.
