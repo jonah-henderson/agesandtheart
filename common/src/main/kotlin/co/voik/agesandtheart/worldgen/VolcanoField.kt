@@ -138,15 +138,43 @@ object VolcanoField {
          * leaves a floor and an inner wall at absolute heights while the flank and the rim keep every bit
          * of their noise, so the lake is bounded by geometry that cannot wander.
          */
-        fun built(seed: Long): TerrainField = warped(Subtract(roughened(mountain(), seed), craterCut()), seed)
+        fun built(seed: Long): TerrainField =
+            warped(Subtract(Union(listOf(roughened(mountain(), seed), rimFloor())), craterCut()), seed)
 
         /**
-         * The lava standing in that crater — a flat band off the floor, inside the same cut and under the
-         * same warp, so it meets the rock it was cut from exactly.
+         * The lava standing in that crater — everything inside the same cut, from the floor to [FREEBOARD]
+         * under the rim, and under the same warp so it meets the rock it was cut from exactly.
          */
         fun lake(seed: Long): TerrainField {
-            val floorY = BASE_Y + summitHeight - calderaDepth
-            return warped(Intersect(listOf(craterCut(), Slab(floorY, floorY + FLOODED_DEPTH - ONE))), seed)
+            val rim = BASE_Y + summitHeight
+            return warped(Intersect(listOf(craterCut(), Slab(rim - calderaDepth, rim - FREEBOARD))), seed)
+        }
+
+        /**
+         * **The one thing that makes a full lake safe**: the summit ring cannot stand lower than the lava
+         * does, whatever the roughening did to it.
+         *
+         * A rim is roughened where a crater floor is not, and the roll can pull a column eight blocks
+         * down — so a lake with less freeboard than that drains through the first column of rim it finds
+         * under its own surface, and takes the whole crater with it. Rather than paying for that in
+         * freeboard, the plateau is given a floor at exactly the lava's height: rock is only ever *added*,
+         * so the ring keeps every block of its upward roughness and six of its downward, and a spillway
+         * becomes impossible rather than unlikely.
+         *
+         * Bounded to the plateau's own radius, or it would fill in the flanks' roughness for the whole
+         * mountain below the waterline.
+         */
+        private fun rimFloor(): TerrainField {
+            val rim = BASE_Y + summitHeight
+            val standing = rim - FREEBOARD - BASE_Y
+            return Cylinder(
+                axis = Direction.Axis.Y,
+                centerX = ON_AXIS,
+                centerY = BASE_Y + standing / 2,
+                centerZ = ON_AXIS,
+                radius = plateau,
+                halfLength = standing / 2.0,
+            )
         }
 
         /** Whole flanks moving, then surface texture over them. */
@@ -346,15 +374,14 @@ object VolcanoField {
     private const val NO_SKIRT = 0
 
     /**
-     * How deep the lava stands off a crater floor, and what the rest of the crater's depth buys.
+     * How far under the rim the lava stands (Jonah, 2026-09-09) — so a crater is nearly full and what is
+     * left of its wall is a lip rather than a shaft.
      *
-     * The freeboard above it is not decoration: the rim is roughened where the floor is not, so the lake
-     * has to sit clear of the deepest the roll can pull a rim down — a little over eight blocks between
-     * [ROLL_AMOUNT] and [RIPPLE_AMOUNT], and a rim that dips under the surface anywhere drains the whole
-     * lake through it. So a caldera's depth is this plus that margin, and the craters were deepened by
-     * three rather than the lake being thinned to nothing.
+     * It used to have to clear the deepest the roll could pull a rim down, which is a little over eight
+     * blocks between [ROLL_AMOUNT] and [RIPPLE_AMOUNT]. [Mountain.rimFloor] takes that constraint away by
+     * flooring the plateau at exactly this height, so what is left here is only what looks right.
      */
-    private const val FLOODED_DEPTH = 7
+    private const val FREEBOARD = 6
 
     /** Above the rim, past anything the roll can lift over it — see [Mountain.craterCut]. */
     private const val HEADROOM = 12

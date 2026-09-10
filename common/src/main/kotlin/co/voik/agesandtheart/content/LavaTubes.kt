@@ -69,12 +69,16 @@ object LavaTubes {
      * the pool reaches is **turned to a source**, so the pool creeps out one block at a time along
      * whatever path vanilla's flow actually found. That is a slow ratchet on a fast spread: the flowing
      * lava arrives in seconds and is what hurts, and this is what makes it permanent.
+     *
+     * Answers whether anything went in, which is what tells [LavaTubeBlock] whether to come back: a tube
+     * with nowhere left to put lava stops costing anything at all until something changes near it.
      */
-    fun well(level: ServerLevel, at: BlockPos) {
-        if (plugged(level, at)) return
-        if (floodedOverhead(level, at)) return
-        val running = nearestRunning(level, at) ?: return
+    fun well(level: ServerLevel, at: BlockPos): Boolean {
+        if (plugged(level, at)) return NOTHING_TO_DO
+        if (floodedOverhead(level, at)) return SOMETHING_WENT_IN
+        val running = nearestRunning(level, at) ?: return NOTHING_TO_DO
         level.setBlockAndUpdate(running, LAVA)
+        return SOMETHING_WENT_IN
     }
 
     /** Whether a block of lava went in directly overhead. */
@@ -214,8 +218,11 @@ object LavaTubes {
      */
     private const val REACH = 8
 
-    /** A safety net over a search the reach already bounds — the ball is smaller than this on any path. */
-    private const val MOST_LOOKED_AT = 1024
+    /** A safety net over a search the reach already bounds — the ball itself is smaller than this. */
+    private const val MOST_LOOKED_AT = 2500
+
+    private const val NOTHING_TO_DO = false
+    private const val SOMETHING_WENT_IN = true
 
     /** Every block touching this one, corners included. */
     private const val MOST_NEIGHBOURS = 26

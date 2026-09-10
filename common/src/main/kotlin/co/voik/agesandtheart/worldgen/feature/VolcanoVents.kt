@@ -12,6 +12,7 @@ import net.minecraft.world.level.levelgen.feature.Feature
 import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 /**
  * Lava tubes, seated under the lava a volcano's crater arrived full of (design §7.1.2).
@@ -114,33 +115,46 @@ object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration
         land.columnSpans(x, z).ranges.lastOrNull()?.last ?: NO_ROCK
 
     /**
-     * A short run of tubes in the floor, which is what makes a mass rather than a single vent.
+     * **A cone of tubes rising through the lake, not a disc sunk in its floor** (Jonah, 2026-09-09).
      *
-     * **Each column is sunk from its own surface**, not from one height read at the middle. A caldera's
-     * floor is cut flat so this costs nothing there, but the rock under a crater is whatever the Age put
-     * there and a tube left buried is a plugged one, which wells nothing and throws nothing.
+     * How often a volcano throws is how many tubes it has, because every one of them is visited on its
+     * own — so a vent that climbs most of the way to the surface throws several times a second where a
+     * skin of one on the floor threw once in ten. Tapering it means the count comes from the base rather
+     * than from a chimney, and what stands under the lava reads as a plug rather than a pillar.
+     *
+     * It is laid into whatever is already there, rock or the crater's own lava, and stops [LAVA_OVER_THE_VENT]
+     * short of the surface so the mass stays drowned — a tube in open air over the lake would be a chimney
+     * you could stand on, and the whole force of a caldera comes of it erupting from under its own lake.
+     *
+     * Columns are filtered once by their own floor: well above the middle's is the crater wall, and tubes
+     * up a wall are a seam running out of a hillside rather than a vent under a lake.
      */
     private fun seat(level: WorldGenLevel, land: TerrainField, middle: BlockPos, random: RandomSource): Boolean {
         val floor = surfaceAt(land, middle.x, middle.z)
-        val reach = NARROWEST_VENT + random.nextInt(WIDEST_VENT - NARROWEST_VENT + 1)
-        val depth = SHALLOWEST_VENT + random.nextInt(DEEPEST_VENT - SHALLOWEST_VENT + 1)
+        val base = NARROWEST_VENT + random.nextInt(WIDEST_VENT - NARROWEST_VENT + 1)
+        val crown = middle.y - LAVA_OVER_THE_VENT
+        val climb = (crown - floor).coerceAtLeast(ONE)
+        val columns = discOf(base).filter { (offsetX, offsetZ) ->
+            abs(surfaceAt(land, middle.x + offsetX, middle.z + offsetZ) - floor) <= FLOOR_RELIEF
+        }
         var seatedAnything = false
-        for ((offsetX, offsetZ) in discOf(reach)) {
-            val x = middle.x + offsetX
-            val z = middle.z + offsetZ
-            val surface = surfaceAt(land, x, z)
-            // Well above the floor is the crater wall, and tubes up a wall are a seam running out of a
-            // hillside rather than a vent under a lake.
-            if (abs(surface - floor) > FLOOR_RELIEF) continue
-            for (course in 0..<depth) {
-                val at = BlockPos(x, surface - course, z)
-                if (!level.getBlockState(at).isSolidRender) continue
+        for (y in floor - ROOTED..crown) {
+            val reach = reachAt(base, (y - floor).coerceAtLeast(0), climb)
+            for ((offsetX, offsetZ) in columns) {
+                if (offsetX * offsetX + offsetZ * offsetZ > reach * reach) continue
+                val at = BlockPos(middle.x + offsetX, y, middle.z + offsetZ)
+                val standing = level.getBlockState(at)
+                if (!standing.isSolidRender && !standing.`is`(Blocks.LAVA)) continue
                 level.setBlock(at, AgeContent.LAVA_TUBE_BLOCK.defaultBlockState(), UPDATE_NONE)
                 seatedAnything = true
             }
         }
         return seatedAnything
     }
+
+    /** The cone's width this far up it — full at the floor, down to a point's worth at the crown. */
+    private fun reachAt(base: Int, climbed: Int, climb: Int): Int =
+        (base - (base - TIP) * climbed.toDouble() / climb).roundToInt().coerceAtLeast(TIP)
 
     /**
      * The columns within [reach] of the middle.
@@ -153,12 +167,18 @@ object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration
         (-reach..reach).flatMap { x -> (-reach..reach).map { z -> x to z } }
             .filter { (x, z) -> x * x + z * z <= reach * reach }
 
+    /** How wide the cone is at the floor, drawn per crater so two volcanoes are not the same machine. */
     private const val NARROWEST_VENT = 3
-    private const val WIDEST_VENT = 3
+    private const val WIDEST_VENT = 4
 
-    /** Drawn per crater, so two volcanoes side by side are not the same machine. */
-    private const val SHALLOWEST_VENT = 3
-    private const val DEEPEST_VENT = 5
+    /** And how wide at the crown — a point's worth, so the mass is a cone and not a chimney. */
+    private const val TIP = 1
+
+    /** How far it carries on under the floor, so a drained crater still has a vent in it. */
+    private const val ROOTED = 2
+
+    /** How much lava is left standing over the mass, so it always erupts from under its own lake. */
+    private const val LAVA_OVER_THE_VENT = 3
 
     /** How far a vent column may sit off the floor at the middle before it counts as the crater wall. */
     private const val FLOOR_RELIEF = 3
@@ -181,4 +201,6 @@ object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration
     private const val NO_ROCK = Int.MIN_VALUE / 2
 
     private const val UPDATE_NONE = 2
+
+    private const val ONE = 1
 }

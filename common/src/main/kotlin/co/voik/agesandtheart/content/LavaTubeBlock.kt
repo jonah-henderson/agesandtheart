@@ -3,31 +3,84 @@ package co.voik.agesandtheart.content
 import net.minecraft.core.BlockPos
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.util.RandomSource
+import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.redstone.Orientation
 
 /**
- * The vent in a caldera floor: it wells lava up, and it is what throws (design §7.1.2).
+ * The vent in a crater floor: it wells lava up, and it is what throws (design §7.1.2).
  *
  * Blast-resistant on purpose. A volcano's projectiles crater the ground they land on, and a volcano that
  * could destroy its own vents would quietly switch itself off — the decision to stop one belongs to
  * whoever is standing there, so mining the tubes is the permanent answer and plugging them the reversible
  * one.
  *
- * **Everything it does happens on a random tick**, which is the rhythm the material is designed around
- * rather than a budget it is squeezed into: a caldera arrives full because its Age's shape filled it, so
- * nothing here has a crater to race, and what is left is a slow ratchet outward and a rare shot. Vanilla
- * is already paying for these visits, so a world full of buried tubes costs one block read apiece.
+ * **Throwing rides the random tick and welling does not, because the two want opposite rhythms.** A shot
+ * is meant to be rare and unscheduled, which is exactly what a random tick is; but a block is visited only
+ * about once a minute, and a lava supply that takes a minute to show its first block reads as broken —
+ * which is what a walk found when a tube laid on flat ground appeared to do nothing at all.
+ *
+ * So welling is **event-driven and then self-chaining**: being placed starts it, a neighbour changing
+ * starts it, and each pass that puts lava somewhere books the next. That is also what makes a buried
+ * cluster a hazard rather than a curiosity — breaking the rock over one is a neighbour change, so it
+ * begins flooding what you just opened at once instead of on whatever tick vanilla gets round to it.
+ *
+ * **The chain ends by itself**, which is why it can afford to exist: the reach bounds how much lava a
+ * tube may ever harden, so a pass that finds nowhere left to put a block books nothing and the tube goes
+ * back to costing one block read per visit.
  */
 class LavaTubeBlock(properties: BlockBehaviour.Properties) : Block(properties) {
 
+    override fun onPlace(state: BlockState, level: Level, at: BlockPos, was: BlockState, moving: Boolean) {
+        if (level is ServerLevel) startWelling(level, at)
+    }
+
+    /** Something changed beside it — most importantly the rock over a buried cluster being broken. */
+    override fun neighborChanged(
+        state: BlockState,
+        level: Level,
+        at: BlockPos,
+        neighbour: Block,
+        orientation: Orientation?,
+        moving: Boolean,
+    ) {
+        if (level is ServerLevel) startWelling(level, at)
+    }
+
+    override fun tick(state: BlockState, level: ServerLevel, at: BlockPos, random: RandomSource) {
+        if (LavaTubes.well(level, at)) keepWelling(level, at)
+    }
+
     /**
-     * Most lava tubes in an Age are buried and inert, so both errands leave early on the cheapest question
-     * there is: a cluster with stone over it wells nothing and throws nothing until something digs it out.
+     * Most lava tubes in an Age are buried and inert, so this leaves early on the cheapest question there
+     * is: a cluster with stone over it wells nothing and throws nothing until something digs it out.
+     *
+     * Welling is booked from here too, as the safety net over the event-driven half — a chunk can load
+     * with work already waiting for it, and nothing changed to say so.
      */
     override fun randomTick(state: BlockState, level: ServerLevel, at: BlockPos, random: RandomSource) {
-        LavaTubes.well(level, at)
         LavaTubes.erupt(level, at, random)
+        startWelling(level, at)
+    }
+
+    private fun startWelling(level: ServerLevel, at: BlockPos) {
+        if (LavaTubes.plugged(level, at)) return
+        keepWelling(level, at)
+    }
+
+    private fun keepWelling(level: ServerLevel, at: BlockPos) {
+        if (level.blockTicks.hasScheduledTick(at, this)) return
+        level.scheduleTick(at, this, WELL_DELAY)
+    }
+
+    private companion object {
+        /**
+         * Faster than lava's own spread, which is every thirty ticks, so a pool a tube is hardening
+         * visibly gains on the flow that found the ground for it — and slow enough that filling a whole
+         * reach is minutes rather than a moment.
+         */
+        const val WELL_DELAY = 10
     }
 }
