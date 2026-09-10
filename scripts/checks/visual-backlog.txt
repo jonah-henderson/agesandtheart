@@ -271,10 +271,16 @@
 # blocks and levelling at 285, which is its reach-8 ball and nothing more.
 #
 # WHAT THIS WALK HAS TO SETTLE -- all of it, because none of it has been seen:
-#   - **IS THE CALDERA WHAT YOU WANTED?** Completely and uniformly flooded, about nine blocks deep, with
-#     ten or so of crater wall above the surface. FLOODED_DEPTH is the dial and the freeboard above it is
-#     not free -- the rim is roughened where the floor is not, so a lake that stands too high drains
-#     through the first column of rim the roll pulled under it.
+#   - **IS THE CALDERA WHAT YOU WANTED?** The lava now stands SIX blocks under the rim, about fifteen deep
+#     -- floor at y=95, surface at y=110, rim 112 to 118 on seed 11's nearest cone. The plateau is floored
+#     just under the lava so no rim column can fail, which is what let the freeboard come down.
+#   - **AND DOES IT SPILL?** A channel is cut through one bearing of every rim and the lake fills it, so a
+#     crater overflows down its own flank and keeps doing it -- generation laid sources, and a source does
+#     not empty. Measured at 52 blocks of lava facing open air, lowest at y=107. `Variation` turns every
+#     instance, so no two volcanoes spill the same way. Cinematic or a scar?
+#   - **THE VENT IS A CONE RISING THROUGH THE LAKE NOW**, 267 tubes against 117, which is a shot every five
+#     ticks -- several in the air at once. It stops three blocks under the surface so it always erupts
+#     from under its own lava. Too much?
 #   - **THE INNER WALLS ARE SMOOTHER THAN THE FLANKS NOW**, because the crater is cut clean after the
 #     mountain is roughened. That is what buys a level lake. Does it read as a collapse scarp, or as a
 #     cookie cutter? The rim, the flank and the outline all keep every bit of their noise.
@@ -286,9 +292,12 @@
 #     against ~12 before), so this should feel unchanged. Confirm it does.
 #   - **A LONE TUBE THROWS EVERY TWO MINUTES**, which is new: there is no minimum mass any more. In a mine
 #     that is a rare, weak, genuinely surprising shot. Exciting or annoying?
-#   - **DIG INTO A SEAM AND WATCH IT.** The flowing lava arrives on vanilla's own schedule and is what
-#     hurts; the hardening is slow and is what makes it permanent. Is the SUDDEN part sudden enough, and
-#     the permanent part slow enough not to be a faucet?
+#   - **DIG INTO A SEAM AND WATCH IT.** Breaking the rock over a tube is a neighbour change, so it starts
+#     welling AT ONCE rather than on whatever visit vanilla gets round to -- which is what a walk found
+#     when a tube laid on flat ground appeared to do nothing for a minute. Driven at the default tick
+#     rate: five blocks of lava in the first second, then 25, 40, and 265 after four minutes, level there
+#     because that is its reach. Is the SUDDEN part sudden enough and the rest slow enough not to be a
+#     faucet?
 #   - **A NEST, at one chunk in four.** Thirty tubes each hardening within eight blocks of itself is a
 #     lake filling the space you made, with shots starting up in it. Exciting, or does it end the mine?
 #   - **IS IT TOO GOOD A LAVA SOURCE?** Deliberately renewable, deliberately constrained by the danger:
@@ -305,10 +314,19 @@
 #     one in a FLOOR is live.
 #   - **THE DROPS**, which Jonah was mid-check on: netherite-only and silk-touch-only, and all four blocks
 #     had been dropping NOTHING with any tool until the mineable/pickaxe entry was added.
-#   - **STILL UNBUILT, AND THE ONE PIECE OF THE DESIGN THAT IS**: the small craters and lava lakes outside
-#     the calderas, as a second dense instanced layer with lakes of their own; and the deep exposed
-#     chambers, which want the same `StandingFluid` treatment or a lava fluid on the deep water table.
-#     Item 4 of Jonah's four outcomes, and half of item 5.
+#   - **THE SMALL CRATERS, WHICH ARE NEW AND UNSEEN.** A second instanced layer at a fifth the scale, on
+#     120-block cells: spatter cones, a shallow maar, a pond with barely a lip. Each holds a level lake of
+#     its own and `VolcanoVents` seats a vent in it exactly as it does a caldera, so they shoot too --
+#     weakly, being small. Measured over a square kilometre: 618 of 66,049 columns hold lava in NINE
+#     bodies. Is that the right pocking, and do they read as volcanic rather than as puddles?
+#   - **THE MAGMA CHAMBERS, ALSO NEW AND UNSEEN, AND THE ONE THING HERE WITH TWO FACES.** An ellipsoid
+#     cavity with a level pool in its bottom, cut from the rock at generation, about one per 260 blocks
+#     square and spread down the rock from y=14 to y=-50. Where a carver opens one it is a lava lake in a
+#     cavern with headroom; where the rock is whole it is a hazard that floods the tunnel the moment you
+#     break in. Nothing decides which -- caves and chambers are scattered independently. **Walk a cave and
+#     also dig a tunnel**, because those are two different findings.
+#   - **AND THE FALLS**, which is what the chambers were for: does a cave that comes in above a chamber
+#     give you a lavafall into it?
 #   - Does the blend turn two overlapping skirts into one massif, or leave a crease?
 #   - LOW PRIORITY, DEFERRED BY JONAH 2026-09-06: that PLUGGING works -- a solid block over a tube stops
 #     the welling, and lava over it does NOT count. It is the only control surface left, so it matters

@@ -69,33 +69,46 @@ object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration
     }
 
     /**
-     * The middle of the lake [from] stands in — its bounding box, halved.
+     * The middle of the lake [from] stands in — the middle of its own extent, found by spreading across
+     * it on the [STRIDE] lattice.
      *
-     * **Columns are gathered by their surface height, and that is what makes one lake one lake.** A
-     * crater's lava is level to the block, so a height is an exact name for a body of it and no flood
-     * fill is needed to tell one from the crater over the ridge, which stands at its own.
+     * **Spread rather than a box scan, and the difference is two craters standing near each other.** A
+     * height alone is not a name for one body of lava: small craters come in fields, and two of them a
+     * few tens of blocks apart on the same ground stand at the same level, so a box would take them for
+     * one lake and put the middle in the ridge between them. Spreading only ever crosses lava, so it
+     * stops at a shore however close the next lake is — and it is *cheaper* than the box it replaces,
+     * since it reads the lake instead of the square that contains it.
      *
-     * Every chunk over one lake reads the same box and so computes the same middle, which is what lets
-     * the election be "does that middle fall inside me" — a question with exactly one yes.
+     * Every chunk over one lake spreads across the same columns and so computes the same middle, which is
+     * what lets the election be "does that middle fall inside me" — a question with exactly one yes.
      */
     private fun middleOfTheLakeAt(lakes: TerrainField, from: BlockPos): BlockPos {
+        val found = HashSet<Long>()
+        found += keyOf(from.x, from.z)
+        val queue = ArrayDeque(listOf(from.x to from.z))
         var leastX = from.x
         var mostX = from.x
         var leastZ = from.z
         var mostZ = from.z
-        for (stepX in -LAKE_STRIDES..LAKE_STRIDES) {
-            for (stepZ in -LAKE_STRIDES..LAKE_STRIDES) {
-                val x = from.x + stepX * STRIDE
-                val z = from.z + stepZ * STRIDE
-                if (surfaceOfLava(lakes, x, z) != from.y) continue
-                leastX = minOf(leastX, x)
-                mostX = maxOf(mostX, x)
-                leastZ = minOf(leastZ, z)
-                mostZ = maxOf(mostZ, z)
+        while (queue.isNotEmpty() && found.size < MOST_IN_A_LAKE) {
+            val (x, z) = queue.removeFirst()
+            leastX = minOf(leastX, x)
+            mostX = maxOf(mostX, x)
+            leastZ = minOf(leastZ, z)
+            mostZ = maxOf(mostZ, z)
+            for ((stepX, stepZ) in BESIDE) {
+                val nextX = x + stepX * STRIDE
+                val nextZ = z + stepZ * STRIDE
+                if (!found.add(keyOf(nextX, nextZ))) continue
+                if (surfaceOfLava(lakes, nextX, nextZ) != from.y) continue
+                queue += nextX to nextZ
             }
         }
         return BlockPos((leastX + mostX) / 2, from.y, (leastZ + mostZ) / 2)
     }
+
+    /** One long per column, so the spread's seen-set costs no allocation per step. */
+    private fun keyOf(x: Int, z: Int): Long = (x.toLong() shl Int.SIZE_BITS) or (z.toLong() and INT_MASK)
 
     private fun inside(origin: BlockPos, at: BlockPos): Boolean =
         at.x - origin.x in 0..<CHUNK && at.z - origin.z in 0..<CHUNK
@@ -183,14 +196,16 @@ object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration
     /** How far a vent column may sit off the floor at the middle before it counts as the crater wall. */
     private const val FLOOR_RELIEF = 3
 
+    private val BESIDE = listOf(1 to 0, -1 to 0, 0 to 1, 0 to -1)
+
     /**
-     * How far the search for a lake's edges reaches, in [STRIDE]s — **wider than the widest lake**, or a
-     * crater's box comes back clipped, its middle moves with whichever chunk asked, and no chunk holds it.
+     * A bound on the spread rather than on a lake — **generous, because clipping it moves the middle**,
+     * and a middle that moves with whichever chunk asked is one no chunk holds and a crater with no vent.
      *
-     * The broadest crater here is a shield's at its largest pose, a little under ninety blocks across, so
-     * twenty-four strides reaches its far side from a column on the near one with room over.
+     * The broadest crater here is a shield's at its largest pose, a little under ninety blocks across,
+     * which is about four hundred columns on the lattice.
      */
-    private const val LAKE_STRIDES = 24
+    private const val MOST_IN_A_LAKE = 4096
 
     private const val CHUNK = 16
 
@@ -203,4 +218,6 @@ object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration
     private const val UPDATE_NONE = 2
 
     private const val ONE = 1
+
+    private const val INT_MASK = 0xFFFF_FFFFL
 }

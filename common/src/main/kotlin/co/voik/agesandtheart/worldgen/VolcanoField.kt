@@ -1,8 +1,10 @@
 package co.voik.agesandtheart.worldgen
 
+import co.voik.agesandtheart.worldgen.field.Box
 import co.voik.agesandtheart.worldgen.field.Cone
 import co.voik.agesandtheart.worldgen.field.Cylinder
 import co.voik.agesandtheart.worldgen.field.Density
+import co.voik.agesandtheart.worldgen.field.Ellipsoid
 import co.voik.agesandtheart.worldgen.field.Instanced
 import co.voik.agesandtheart.worldgen.field.Intersect
 import co.voik.agesandtheart.worldgen.field.Placement
@@ -76,7 +78,29 @@ object VolcanoField {
      * fraction of the first, and a column nowhere near a summit pays only for the cell walk.
      */
     fun over(seed: Long): Volcanoes {
-        val placement = sites(seed)
+        val mountains = layerOf(SHAPES, sites(seed), seed, SHOULDERS)
+        val maars = layerOf(MAARS, vents(seed), seed + MAAR_SALT, Instanced.NO_BLEND)
+        return Volcanoes(
+            cones = Union(listOf(mountains.cones, maars.cones)),
+            lakes = Union(listOf(mountains.lakes, maars.lakes)),
+        )
+    }
+
+    /**
+     * One scattering of one set of shapes, as the pair of fields that describe it.
+     *
+     * **The two layers have to agree, and building them side by side is what makes them.** A lake poured
+     * into a crater some other instance drew is a slab of lava hanging in the air. What makes them agree
+     * is that [Instanced] takes its per-instance random from the cell alone (`random.at(cellX, 0, cellZ)`),
+     * so two layers sharing a seed, a placement and a variation pick the same template at the same pose in
+     * every cell — provided their template lists stay the same length and the same order, which is why
+     * they are mapped from one list here.
+     *
+     * A lake reaches only as far as a crater does where a cone reaches a skirt's whole foot, and
+     * [Instanced] prices its cell scan off the templates' own reach — so the lake layer costs a small
+     * fraction of the rock layer, and a column nowhere near a summit pays only for the cell walk.
+     */
+    private fun layerOf(shapes: List<Mountain>, placement: Placement, seed: Long, blend: Double): Volcanoes {
         val variation = Variation(
             // Turned, because four shapes repeated unturned is still four shapes: a warped mountain has
             // a recognisable outline, and seeing the same one twice on a walk is what gives it away.
@@ -87,15 +111,98 @@ object VolcanoField {
             pivotY = BASE_Y,
         )
         return Volcanoes(
-            cones = Instanced(SHAPES.map { it.built(seed) }, placement, variation, seed, SHOULDERS),
-            // Unblended: easing two lakes together would smear one flat surface into another at a
-            // different height, where easing two flanks is what makes a massif.
-            lakes = Instanced(SHAPES.map { it.lake(seed) }, placement, variation, seed, Instanced.NO_BLEND),
+            cones = Instanced(shapes.map { it.built(seed) }, placement, variation, seed, blend),
+            // A lake is never blended: easing two flat surfaces at different heights into one another
+            // smears them, where easing two flanks is what makes a massif.
+            lakes = Instanced(shapes.map { it.lake(seed) }, placement, variation, seed, Instanced.NO_BLEND),
         )
     }
 
+    /**
+     * Where an Age's **small** craters stand — the spatter cones and lava ponds between the mountains
+     * (Jonah, 2026-09-09).
+     *
+     * Far denser than [sites] and patchy on its own scale, so volcanic country has ponds scattered through
+     * it rather than one mountain and then nothing. They cost little to look for: a maar's whole foot is
+     * about a fifth of a stratovolcano's, and the cell scan is priced off exactly that.
+     */
+    fun vents(seed: Long): Placement = Scatter(
+        cellSize = VENT_CELL,
+        leastPerCell = NONE_AT_ALL,
+        mostPerCell = ONE,
+        density = Density(
+            atOrigin = VENTS_LIKELY,
+            atEdge = VENTS_LIKELY,
+            falloffRadius = VENT_CELL,
+            patchiness = CLUSTERED,
+            patchScale = REGION,
+            patchSeed = seed + MAAR_SALT,
+        ),
+    )
+
     /** An Age's volcanoes: the rock they are made of, and the lava standing in their craters. */
     data class Volcanoes(val cones: TerrainField, val lakes: TerrainField)
+
+    /**
+     * **The magma chambers, deep under everything** (design §7.1.2, Jonah 2026-09-09) — a hollow with a
+     * pool of lava standing in its bottom, and the underground half of what a volcanic Age is.
+     *
+     * The same pair of fields as a crater and for the same reason: the cavity is taken out of the rock and
+     * the pool is poured into it at generation, so what a player finds is level and complete rather than
+     * something that began filling as they watched.
+     *
+     * **One shape gives both halves of what the design asks for, and which half you get is where you dig.**
+     * A chamber a carver happens to open is a lava lake in a cavern with headroom over it and a fall where
+     * the cave comes in above; the same chamber sealed in rock is a mining hazard that floods the tunnel
+     * the moment a pick reaches it. Nothing has to decide which — the caves and these are scattered
+     * independently, so the world sorts them.
+     *
+     * Deep on purpose: a chamber that reached daylight would be a lava lake on a hillside, which is what
+     * the small craters are for and what these are emphatically not.
+     */
+    fun chambers(seed: Long): Volcanoes {
+        val placement = Scatter(
+            cellSize = CHAMBER_CELL,
+            leastPerCell = NONE_AT_ALL,
+            mostPerCell = ONE,
+            density = Density(
+                atOrigin = CHAMBERS_LIKELY,
+                atEdge = CHAMBERS_LIKELY,
+                falloffRadius = CHAMBER_CELL,
+                patchiness = CLUSTERED,
+                patchScale = REGION,
+                patchSeed = seed + CHAMBER_SALT,
+            ),
+        )
+        // Pivoted on the rock rather than on a cone's foot: a chamber is authored at the depth it sits
+        // at, and scaling about anything else would drag it up or down as it grew.
+        val variation = Variation(
+            yawSteps = TURNS,
+            minScale = SMALLEST,
+            maxScale = LARGEST,
+            scaleSteps = SIZES,
+            pivotY = ON_AXIS,
+        )
+        val salt = seed + CHAMBER_SALT
+        return Volcanoes(
+            cones = Instanced(CHAMBERS.map { it.hollow() }, placement, variation, salt, Instanced.NO_BLEND),
+            lakes = Instanced(CHAMBERS.map { it.pool() }, placement, variation, salt, Instanced.NO_BLEND),
+        )
+    }
+
+    /**
+     * One chamber, at its own depth — **the depth is per template because [Instanced] moves a copy across
+     * the world and never up or down**, so a single shape would put every chamber in an Age on one level.
+     */
+    private data class Chamber(val at: Int, val across: Double, val tall: Double, val flooded: Double) {
+
+        fun hollow(): TerrainField = Ellipsoid(ON_AXIS, at, ON_AXIS, across, tall)
+
+        /** The lava in the bottom of it, level on top, with the rest left as headroom. */
+        fun pool(): TerrainField = Intersect(
+            listOf(hollow(), Slab(at - tall.roundToInt(), at - ((ONE_WHOLE - flooded) * tall).roundToInt())),
+        )
+    }
 
     /**
      * One mountain, **written down as the part of it anybody sees**.
@@ -123,6 +230,14 @@ object VolcanoField {
         /** How high the skirt stands at the axis — below [rise], or it would swallow the peak. Zero: none. */
         val skirtRise: Int,
         val skirtFoot: Double,
+        /**
+         * How far under the rim the lava stands, and how hard the flanks are roughened and the outline
+         * warped — **per shape, because a small crater cannot wear a mountain's noise**. A roll of seven
+         * over a cone that clears the ground by six is not a rough volcano, it is gravel.
+         */
+        val freeboard: Int,
+        val roll: Double,
+        val warp: Double,
         /** Separates this shape's noise from the others', so four templates are four mountains. */
         val salt: Long,
     ) {
@@ -142,31 +257,78 @@ object VolcanoField {
             warped(Subtract(Union(listOf(roughened(mountain(), seed), rimFloor())), craterCut()), seed)
 
         /**
-         * The lava standing in that crater — everything inside the same cut, from the floor to [FREEBOARD]
+         * The lava standing in that crater — everything inside the same cut, from the floor to [freeboard]
          * under the rim, and under the same warp so it meets the rock it was cut from exactly.
          */
         fun lake(seed: Long): TerrainField {
             val rim = BASE_Y + summitHeight
-            return warped(Intersect(listOf(craterCut(), Slab(rim - calderaDepth, rim - FREEBOARD))), seed)
+            return warped(
+                Intersect(
+                    listOf(
+                        craterCut(),
+                        Slab(rim - calderaDepth, rim - freeboard),
+                        // **Only where the mountain was.** The overflow channel is cut whether or not
+                        // there is rock that far out, which costs nothing when subtracting but would put
+                        // a ribbon of lava in mid-air past the flank if the lake followed it — the old
+                        // floating-disc failure, arriving by a third road. Clipped to the roughened body
+                        // rather than the clean one, so the roll cannot leave it hanging either.
+                        roughened(mountain(), seed),
+                    ),
+                ),
+                seed,
+            )
         }
 
         /**
          * **The one thing that makes a full lake safe**: the summit ring cannot stand lower than the lava
          * does, whatever the roughening did to it.
          *
-         * A rim is roughened where a crater floor is not, and the roll can pull a column eight blocks
-         * down — so a lake with less freeboard than that drains through the first column of rim it finds
-         * under its own surface, and takes the whole crater with it. Rather than paying for that in
-         * freeboard, the plateau is given a floor at exactly the lava's height: rock is only ever *added*,
-         * so the ring keeps every block of its upward roughness and six of its downward, and a spillway
-         * becomes impossible rather than unlikely.
+         * A rim is roughened where a crater floor is not, and the roll can pull a column its whole amplitude
+         * down — so a rim left to the noise dips under its own lava wherever the roll goes deep, in as
+         * many places as the noise likes. Rather than paying for that in freeboard, the plateau is given a
+         * floor near the lava's height: rock is only ever *added*, so the ring keeps every block of its
+         * upward roughness and most of its downward, and the whole wall stands.
+         *
+         * **[WEEP] blocks under the lava rather than level with it, and that is deliberate** (Jonah,
+         * 2026-09-09): "a bit of lava spilling over the edge would be cinematic". Set level, nothing ever
+         * spills; set this low, the handful of rim columns the roll pulls furthest come out under the
+         * surface and lava runs over the lip and down the flank. A lake does not drain through one —
+         * generation laid *sources*, and a source does not empty — so what it buys is a permanent
+         * lavafall off a full crater. The chunk fill already marks any carried fluid with an open
+         * neighbour for post-processing, which is the tick that sets it running.
          *
          * Bounded to the plateau's own radius, or it would fill in the flanks' roughness for the whole
          * mountain below the waterline.
          */
+        /**
+         * **A channel through the rim, so a full crater has somewhere to overflow** (Jonah, 2026-09-09:
+         * "a bit of lava spilling over the edge would be cinematic").
+         *
+         * Nothing else in the shape can spill, and it took a measurement to see why: a lake's edge is
+         * bounded by the crater's own cone, which rises everywhere it is met, so however low the roll
+         * pulls the *rim* the lava never reaches it. Six craters came out with not one block of lava
+         * facing open air. A spill has to be cut.
+         *
+         * The channel is part of the cut, so the lake fills it as far as it goes and then faces air at its
+         * mouth — which is a ribbon of lava running out of the crater and a fall down the flank, standing
+         * from the moment the chunk is made. It cannot drain the crater: generation laid *sources*, and a
+         * source does not empty. [Variation] turns every instance, so no two volcanoes spill the same way.
+         */
+        private fun spillway(): TerrainField {
+            val rim = BASE_Y + summitHeight
+            return Box(
+                minX = ON_AXIS,
+                minY = rim - freeboard - WEEP,
+                minZ = -CHANNEL_HALF_WIDTH,
+                maxX = (foot * CHANNEL_REACH).roundToInt(),
+                maxY = rim + HEADROOM,
+                maxZ = CHANNEL_HALF_WIDTH,
+            )
+        }
+
         private fun rimFloor(): TerrainField {
             val rim = BASE_Y + summitHeight
-            val standing = rim - FREEBOARD - BASE_Y
+            val standing = rim - freeboard - WEEP - BASE_Y
             return Cylinder(
                 axis = Direction.Axis.Y,
                 centerX = ON_AXIS,
@@ -186,7 +348,7 @@ object VolcanoField {
                 amplitudes = ROUGHNESS,
                 scaleX = ROLL_SCALE,
                 scaleZ = ROLL_SCALE,
-                amount = ROLL_AMOUNT,
+                amount = roll,
             ),
             seed = seed + salt + RIPPLE_SALT,
             firstOctave = RIPPLE_OCTAVE,
@@ -203,7 +365,7 @@ object VolcanoField {
             firstOctave = WARP_OCTAVE,
             amplitudes = WARP_ROUGHNESS,
             scale = WARP_SCALE,
-            amount = WARP_AMOUNT,
+            amount = warp,
         )
 
         /** Where the plateau sits, measured from the cones' shared foot. */
@@ -295,7 +457,7 @@ object VolcanoField {
                 radius = calderaRadius,
                 halfLength = HEADROOM / 2.0,
             )
-            return Union(listOf(bowl, shaft))
+            return Union(listOf(bowl, shaft, spillway()))
         }
     }
 
@@ -314,6 +476,9 @@ object VolcanoField {
             calderaDepth = 18,
             skirtRise = 20,
             skirtFoot = 106.0,
+            freeboard = MOUNTAIN_FREEBOARD,
+            roll = ROLL_AMOUNT,
+            warp = WARP_AMOUNT,
             salt = 0x11L,
         ),
         Mountain(
@@ -325,6 +490,9 @@ object VolcanoField {
             calderaDepth = 17,
             skirtRise = 24,
             skirtFoot = 96.0,
+            freeboard = MOUNTAIN_FREEBOARD,
+            roll = ROLL_AMOUNT,
+            warp = WARP_AMOUNT,
             salt = 0x2222L,
         ),
         // The shield: gentle enough over its own flank that a skirt would buy nothing but reach.
@@ -337,6 +505,9 @@ object VolcanoField {
             calderaDepth = 17,
             skirtRise = NO_SKIRT,
             skirtFoot = 0.0,
+            freeboard = MOUNTAIN_FREEBOARD,
+            roll = ROLL_AMOUNT,
+            warp = WARP_AMOUNT,
             salt = 0x333333L,
         ),
         Mountain(
@@ -348,8 +519,101 @@ object VolcanoField {
             calderaDepth = 19,
             skirtRise = 21,
             skirtFoot = 102.0,
+            freeboard = MOUNTAIN_FREEBOARD,
+            roll = ROLL_AMOUNT,
+            warp = WARP_AMOUNT,
             salt = 0x44444444L,
         ),
+    )
+
+    /**
+     * The small craters — **the same construction at a fifth the size**, which is the whole reason they
+     * are `Mountain`s rather than a shape of their own: a maar is a crater with a lava pond in it, and
+     * that is what this type already describes.
+     *
+     * What they cannot share is the noise. A roll of seven over a cone that clears the ground by eight is
+     * gravel rather than a rough volcano, and a warp of fourteen on a twenty-block foot tears the outline
+     * off it — so both are cut right down, and the freeboard with them, since a lip six blocks over the
+     * lava on a crater eight deep would leave a pond two thick.
+     *
+     * No skirts: an apron costs radius in the ratio of how far under the ground its cone is based, which
+     * is ruinous at this size (see [Mountain.skirt]).
+     */
+    private val MAARS = listOf(
+        Mountain(
+            rise = 8,
+            foot = 22.0,
+            plateau = 15.0,
+            calderaRadius = 11.0,
+            calderaFloorRadius = 4.0,
+            calderaDepth = 9,
+            skirtRise = NO_SKIRT,
+            skirtFoot = 0.0,
+            freeboard = MAAR_FREEBOARD,
+            roll = MAAR_ROLL,
+            warp = MAAR_WARP,
+            salt = 0x5A11L,
+        ),
+        // A pond in the ground with barely a lip, which is what a maar proper is.
+        Mountain(
+            rise = 4,
+            foot = 30.0,
+            plateau = 22.0,
+            calderaRadius = 18.0,
+            calderaFloorRadius = 9.0,
+            calderaDepth = 8,
+            skirtRise = NO_SKIRT,
+            skirtFoot = 0.0,
+            freeboard = MAAR_FREEBOARD,
+            roll = MAAR_ROLL,
+            warp = MAAR_WARP,
+            salt = 0x5A2222L,
+        ),
+        // A steep spatter cone, the one that reads as a vent rather than as a pool.
+        Mountain(
+            rise = 13,
+            foot = 18.0,
+            plateau = 11.0,
+            calderaRadius = 8.0,
+            calderaFloorRadius = 3.0,
+            calderaDepth = 10,
+            skirtRise = NO_SKIRT,
+            skirtFoot = 0.0,
+            freeboard = MAAR_FREEBOARD,
+            roll = MAAR_ROLL,
+            warp = MAAR_WARP,
+            salt = 0x5A333333L,
+        ),
+        Mountain(
+            rise = 6,
+            foot = 26.0,
+            plateau = 18.0,
+            calderaRadius = 14.0,
+            calderaFloorRadius = 6.0,
+            calderaDepth = 9,
+            skirtRise = NO_SKIRT,
+            skirtFoot = 0.0,
+            freeboard = MAAR_FREEBOARD,
+            roll = MAAR_ROLL,
+            warp = MAAR_WARP,
+            salt = 0x5A44444444L,
+        ),
+    )
+
+    /**
+     * The chambers an Age holds, spread down the rock rather than sitting on one level.
+     *
+     * They differ in kind rather than by a few blocks, like the cones do: a wide shallow sump, a tall
+     * narrow shaft, a great flooded hall. How much of each is lava is drawn with them, so some are a pool
+     * with a cavern over it and others are nearly full to the roof.
+     */
+    private val CHAMBERS = listOf(
+        Chamber(at = -8, across = 15.0, tall = 7.0, flooded = 0.45),
+        Chamber(at = -34, across = 11.0, tall = 11.0, flooded = 0.6),
+        Chamber(at = 14, across = 19.0, tall = 6.0, flooded = 0.35),
+        Chamber(at = -50, across = 22.0, tall = 9.0, flooded = 0.5),
+        Chamber(at = -22, across = 9.0, tall = 5.0, flooded = 0.7),
+        Chamber(at = 2, across = 13.0, tall = 8.0, flooded = 0.4),
     )
 
     /**
@@ -373,18 +637,26 @@ object VolcanoField {
 
     private const val NO_SKIRT = 0
 
-    /**
-     * How far under the rim the lava stands (Jonah, 2026-09-09) — so a crater is nearly full and what is
-     * left of its wall is a lip rather than a shaft.
-     *
-     * It used to have to clear the deepest the roll could pull a rim down, which is a little over eight
-     * blocks between [ROLL_AMOUNT] and [RIPPLE_AMOUNT]. [Mountain.rimFloor] takes that constraint away by
-     * flooring the plateau at exactly this height, so what is left here is only what looks right.
-     */
-    private const val FREEBOARD = 6
-
     /** Above the rim, past anything the roll can lift over it — see [Mountain.craterCut]. */
     private const val HEADROOM = 12
+
+    /**
+     * How far under its own lava a rim is allowed to stand, so a crater weeps somewhere.
+     *
+     * Two, because the roll has to reach most of its amplitude before a column drops this far and the
+     * noise seldom does — which is what makes a spill a feature of one or two places on a rim rather than
+     * of the whole of it.
+     */
+    private const val WEEP = 2
+
+    /**
+     * How wide the overflow channel is, and how far down the flank it is cut.
+     *
+     * Narrow, because a wide one is a valley rather than a channel; and carried well past the plateau so
+     * the lava it holds is running down the mountain rather than sitting in a notch in the rim.
+     */
+    private const val CHANNEL_HALF_WIDTH = 2
+    private const val CHANNEL_REACH = 0.9
 
     /**
      * How far the outline wanders, and over what wavelength.
@@ -403,6 +675,45 @@ object VolcanoField {
     private val WARP_ROUGHNESS = listOf(1.0, 0.45)
     private const val WARP_SCALE = 1.05
     private const val WARP_AMOUNT = 14.0
+
+    /** Six blocks of lip over the lava, which is what a walk asked for. */
+    private const val MOUNTAIN_FREEBOARD = 6
+
+    /**
+     * What a small crater wears instead, all three cut to its own scale.
+     *
+     * Two of the lip and the rest lava, so a pond you come across reads as full to the brim rather than
+     * as a hole with something at the bottom of it.
+     */
+    private const val MAAR_FREEBOARD = 2
+    private const val MAAR_ROLL = 2.0
+    private const val MAAR_WARP = 3.5
+
+    /**
+     * How far apart the small craters sit, and how likely a cell is to hold one.
+     *
+     * Close enough that volcanic country is *pocked* rather than punctuated: at this spacing a walk across
+     * one patch crosses several, where the mountains are half a kilometre apart. The patch noise is shared
+     * with the mountains at its own salt, so the ponds cluster where the cones do without being tied to
+     * them — a field of vents with no mountain in it is a good thing to come across.
+     */
+    private const val VENT_CELL = 120.0
+    private const val VENTS_LIKELY = 0.5
+
+    /** Separates every draw the small craters make from every draw the mountains make. */
+    private const val MAAR_SALT = 0x4D_4141_5253L
+
+    /**
+     * How far apart the chambers sit, and how likely a cell is to hold one.
+     *
+     * Rarer than the ponds by a good margin: one of these is a find rather than scenery, and a tunnel that
+     * met one every hundred blocks would be a tunnel nobody digs. About one per two hundred and sixty
+     * square, which over a kilometre of country is a dozen or so.
+     */
+    private const val CHAMBER_CELL = 260.0
+    private const val CHAMBERS_LIKELY = 0.45
+
+    private const val CHAMBER_SALT = 0x43_4841_4D42L
 
     /** Whole flanks moving, then surface texture on top of them — about 60 blocks, then about 20. */
     private const val ROLL_OCTAVE = -7

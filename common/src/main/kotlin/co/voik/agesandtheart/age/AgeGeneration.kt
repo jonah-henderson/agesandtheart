@@ -511,15 +511,19 @@ object AgeGeneration {
         // over the finished rock — the same shape of thing a roof is, and read from the same recipe fact
         // the lava tubes and the danger evaluator read.
         val volcanoes = if (Volcanoes.askedFor(composition)) VolcanoField.over(seed) else null
+        val chambers = if (Volcanoes.askedFor(composition)) VolcanoField.chambers(seed) else null
         val cones = volcanoes?.cones
-        val standingRock = Union(listOfNotNull(shape, cones, lid)).takeIf { cones != null || lid != null }
+        val raised = Union(listOfNotNull(shape, cones, lid)).takeIf { cones != null || lid != null } ?: shape
+        // The magma chambers are taken out of everything, cones included: a hollow in a volcano's own root
+        // is exactly where one belongs, and the pool poured into it below is the same shape.
+        val standingRock = if (chambers == null) raised else Subtract(raised, chambers.cones)
         return OurGround(
             // The rock the underground was taken out of is **handed to the generator rather than to the
             // sea**. A flat waterline fills any empty space beneath it, so a shape-cut cave or hall comes
             // out flooded to the roof; making it simply *dry* instead would only trade one uniform answer
             // for the other. What that space wants is the same three-way `WaterTable` a carved cave meets.
             AgeRock.Ours(
-                field = standingRock ?: shape,
+                field = standingRock,
                 hollows = openedBy(hollowedRock(grounds, ground), riftCut),
                 // The land kept apart from the lid, since a ceiling is not ground however solid it is. A
                 // cone is ground, so it stays in — what this separates is the roof, not everything added.
@@ -530,7 +534,8 @@ object AgeGeneration {
             // A caldera arrives flooded, and the shape is what floods it. Nothing at runtime can lay a
             // level lake — where fluid may stand is vanilla's fluid to know, and it only knows one block
             // at a time — where the field already knows the crater's floor, its walls and its rim.
-            lakes = volcanoes?.let { listOf(StandingFluid(it.lakes, Blocks.LAVA.defaultBlockState())) }.orEmpty(),
+            lakes = listOfNotNull(volcanoes?.lakes, chambers?.lakes)
+                .map { StandingFluid(it, Blocks.LAVA.defaultBlockState()) },
         )
     }
 
