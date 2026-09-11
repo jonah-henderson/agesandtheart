@@ -49,6 +49,15 @@ class Hadalfish(type: EntityType<out Hadalfish>, level: Level) : Guardian(type, 
         // `setAlertOthers`: a shoal that ganged up on whatever hit one of them would be a shoal, and this
         // is not one. Each answers for itself.
         targetSelector.addGoal(RETALIATION, HurtByTargetGoal(this))
+        // **A player is preferred, not required** (Jonah, 2026-09-10). Two goals rather than one predicate:
+        // this one only ever finds people, so while anybody is in range they are the quarry, and the
+        // general one below still brings it after a drowned or a squid when nobody is. Ranking rather than
+        // exclusivity — a fish that ignored everything but players would be a scripted encounter, and one
+        // that took the nearest body would spend the fight eating cod.
+        targetSelector.addGoal(
+            PREFERRED_QUARRY,
+            NearestAttackableTargetGoal(this, Player::class.java, true, ::worthBiting),
+        )
         targetSelector.addGoal(
             HUNTING,
             NearestAttackableTargetGoal(this, LivingEntity::class.java, true, ::worthBiting),
@@ -112,8 +121,16 @@ class Hadalfish(type: EntityType<out Hadalfish>, level: Level) : Guardian(type, 
         /** A guardian is 0.85 across, so this is a shade over two blocks — big, without being a monument. */
         private const val TIMES_A_GUARDIAN = 2.5
 
-        private const val HUNTING = 1
+        /**
+         * Retaliation first, then people, then anything at all.
+         *
+         * Three ranks where there were two, because preferring a player is a *rank* and not a rule — see
+         * [registerGoals]. Whatever just hit it still outranks both: an animal that ignored the thing
+         * wounding it to swim at somebody else reads as scripted rather than as hungry.
+         */
         private const val RETALIATION = 1
+        private const val PREFERRED_QUARRY = 2
+        private const val HUNTING = 3
         private const val LOITERING = 5
         private const val IDLING = 8
 

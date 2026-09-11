@@ -58,7 +58,10 @@ class HadalfishLoiter(private val fish: Hadalfish) : Goal() {
         repeat(TRIES) {
             val at = fish.blockPosition().offset(
                 fish.random.nextInt(-REACHES, REACHES),
-                fish.random.nextInt(-RISES, RISES),
+                // **Down further than up**, so idling settles it deeper rather than letting a long series
+                // of even draws walk it toward the ceiling of the abyss. Where its reward is, is where it
+                // should be found (Jonah, 2026-09-10).
+                fish.random.nextInt(-SINKS, RISES),
                 fish.random.nextInt(-REACHES, REACHES),
             )
             if (level.getFluidState(at).`is`(DeepWater.DEEP_WATER)) return at
@@ -79,7 +82,10 @@ class HadalfishLoiter(private val fish: Hadalfish) : Goal() {
 
         const val TRIES = 12
         const val REACHES = 20
+
+        /** Three down for every one up — see [somewhereElseDeep]. */
         const val RISES = 8
+        const val SINKS = 24
 
         const val DRIFTS_AT = 0.7
         const val HALF = 0.5

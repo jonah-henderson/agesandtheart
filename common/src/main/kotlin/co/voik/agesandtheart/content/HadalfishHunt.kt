@@ -50,10 +50,27 @@ class HadalfishHunt(private val fish: Hadalfish) : Goal() {
 
     override fun canUse(): Boolean {
         val quarry = fish.target
-        return quarry != null && quarry.isAlive && fish.isInWater
+        return quarry != null && quarry.isAlive && fish.isInWater && !hasRisenTooFar()
     }
 
     override fun canContinueToUse(): Boolean = canUse()
+
+    /**
+     * Whether the hunt has carried the fish too far up out of the abyss to go on.
+     *
+     * **Rising is the counterplay** (Jonah, 2026-09-10). The encounter is made of the pressure and the
+     * dark, so a fish that followed you into the shallows would be a mini-boss fought from a boat with
+     * none of it — and a player who cannot win should always have a direction to swim in. It gives up
+     * [GIVES_UP_ABOVE_THE_LINE] blocks over the line rather than exactly at it, so the edge is a retreat
+     * rather than a wall you bounce off.
+     *
+     * Measured on the fish and not on the quarry: what matters is where the *animal* has been drawn to,
+     * which is also what stops it hanging at the surface waiting.
+     */
+    private fun hasRisenTooFar(): Boolean {
+        val line = DeepWater.lineIn(fish.level()) ?: return false
+        return fish.blockY > line + GIVES_UP_ABOVE_THE_LINE
+    }
 
     /** The orbit moves every tick, so this may not be run on the goal selector's slower beat. */
     override fun requiresUpdateEveryTick(): Boolean = true
@@ -95,6 +112,7 @@ class HadalfishHunt(private val fish: Hadalfish) : Goal() {
             sin(bearing) * ORBIT_RADIUS,
         )
         steer(station, ORBIT_SPEED, ORBIT_EASE)
+        facePlainly(quarry)
         if (--patience <= 0) {
             phase = Phase.CHARGING
             patience = GIVES_UP_CHARGING_AFTER
@@ -161,6 +179,25 @@ class HadalfishHunt(private val fish: Hadalfish) : Goal() {
 
     private fun withinReach(quarry: LivingEntity): Boolean = fish.isWithinMeleeAttackRange(quarry)
 
+    /**
+     * Turn the **body** to the quarry, not only the head.
+     *
+     * The lure hangs in front of the face and at this range is the only part of the animal anybody can
+     * see, so it has to stay pointed at the player — and the look control alone cannot manage it. Vanilla
+     * clamps head yaw to a bound either side of the body, and a body tangential to its own circle is
+     * broadside on, which swung the lure in and out of view for reasons a player could not read (Jonah,
+     * walked 2026-09-10).
+     *
+     * Set rather than eased: the circle already turns slowly, so the facing follows it without snapping.
+     */
+    private fun facePlainly(quarry: LivingEntity) {
+        val toward = quarry.position().subtract(fish.position())
+        if (toward.horizontalDistanceSqr() < TOO_CLOSE_TO_AIM) return
+        val bearingTo = (Math.toDegrees(kotlin.math.atan2(toward.z, toward.x)) - QUARTER_TURN).toFloat()
+        fish.yBodyRot = bearingTo
+        fish.yRot = bearingTo
+    }
+
     /** Ease toward the velocity that would carry it to [station], rather than snapping onto it. */
     private fun steer(station: Vec3, speed: Double, ease: Double) {
         val toward = station.subtract(fish.position())
@@ -168,22 +205,73 @@ class HadalfishHunt(private val fish: Hadalfish) : Goal() {
         fish.deltaMovement = fish.deltaMovement.lerp(toward.normalize().scale(speed), ease)
     }
 
-    private companion object {
+    companion object {
+        /**
+         * What a steer actually delivers, as a share of the velocity it is aimed at.
+         *
+         * `Guardian.travelInWater` moves by the delta and *then* damps it by nine tenths, and [steer] eases
+         * [ORBIT_EASE] of the way toward its target each tick, so the steady state settles below the
+         * target. Public because the three speeds are only comparable through it — see `HadalfishCheck`.
+         */
+        const val STEERING_KEEPS = 0.714
+
+        /** How fast the orbit has to travel to stay on a circle that is turning under it. */
+        val holdingTheOrbitCosts: Double get() = TURN_RATE * ORBIT_RADIUS
+
+        /** And what the steering can actually supply against that. */
+        val orbitCanSupply: Double get() = ORBIT_SPEED * STEERING_KEEPS
+
+        /** Blocks a second, for the three that have to read as three different things. */
+        val circlesAt: Double get() = orbitCanSupply * A_SECOND
+        val chargesAt: Double get() = CHARGE_SPEED * A_SECOND
+
+        private const val A_SECOND = 20.0
+
         const val FULL_TURN = Math.PI * 2
 
-        /** Radians a tick — a lap in about nine seconds, slow enough to read as deliberate. */
-        const val TURN_RATE = 0.035
+        /**
+         * **Beyond the fog, so the body is never seen circling** — the lantern fading out to uncover the
+         * fish is the best thing the animal does, and it only happens if the reveal belongs to the charge.
+         * Past `DeepWaterFog`'s reach, where eleven blocks put the whole approach in plain view.
+         */
+        const val ORBIT_RADIUS = 28.0
 
-        const val ORBIT_RADIUS = 11.0
+        /**
+         * Radians a tick, and **it had to halve when the orbit widened**.
+         *
+         * Holding station on a circle costs a tangential speed of this times [ORBIT_RADIUS]. At the old
+         * rate over the new radius that is 0.98 blocks a tick — nearly [CHARGE_SPEED], which the steering
+         * cannot deliver and should not, since a circle taken at a run is not a circle. Halved, the station
+         * asks 0.50 and [ORBIT_SPEED] supplies it. A lap is seventeen seconds now, and a circling phase was
+         * never a whole lap anyway.
+         */
+        const val TURN_RATE = 0.018
 
         /** It hangs a little over you, which is where a thing that is about to drop on you should be. */
         const val ABOVE_THE_QUARRY = 2.5
 
-        const val ORBIT_SPEED = 0.45
+        /**
+         * What the orbit steers at — **a target velocity, of which about five parts in seven survive**.
+         *
+         * `Guardian.travelInWater` moves by the delta and *then* damps it by nine tenths, and [steer] eases
+         * a fifth of the way toward this each tick, so the steady state moves at [STEERING_KEEPS] of it:
+         * 0.54 blocks a tick, eleven a second. That is deliberately just under a wander and nothing like
+         * [CHARGE_SPEED] — the three speeds have to read as three things (Jonah, 2026-09-10).
+         *
+         * **A little over what the station costs, not exactly it.** Sized to the circle at 0.70 it came out
+         * a fraction short, and a fish that is permanently one percent behind its own station never catches
+         * up — it falls away from the circle instead of riding it. `HadalfishCheck` is what says so.
+         */
+        const val ORBIT_SPEED = 0.75
         const val ORBIT_EASE = 0.2
 
-        /** Blocks a tick. Roughly twenty a second — it crosses the orbit in well under one. */
-        const val CHARGE_SPEED = 1.05
+        /**
+         * Blocks a tick, and **exactly that**: `Guardian.travelInWater` calls `move` before it damps, so a
+         * delta set outright is the distance covered. Thirty-five a second, up from twenty-one, which is
+         * what the longer run through the dark costs — a charge from beyond the fog at the old speed would
+         * spend the reveal as a slow drift into view rather than performing it.
+         */
+        const val CHARGE_SPEED = 1.75
 
         /** How much of the charge it keeps while biting, so it stays on a retreating player. */
         const val PRESSING_IN = 0.35
@@ -194,17 +282,32 @@ class HadalfishHunt(private val fish: Hadalfish) : Goal() {
 
         const val BITES_A_RUN = 3
 
-        /** Ticks between bites: fast enough to read as one flurry rather than three attacks. */
-        const val BETWEEN_BITES = 5
+        /**
+         * Ticks between bites, and **past vanilla's invulnerability window rather than inside it**.
+         *
+         * Five read as one flurry and landed as two: a hit inside twenty ticks of the last one is swallowed
+         * whole, so a third of every run went nowhere and the animal was quietly weaker than its numbers
+         * (Jonah, walked 2026-09-10). Three bites that read as two is the outcome to avoid — either they
+         * all land or there is one deliberate bite, and this is the first of those.
+         */
+        const val BETWEEN_BITES = 25
 
         const val CIRCLES_FOR_AT_LEAST = 70
         const val CIRCLES_FOR_UP_TO_ANOTHER = 70
 
         const val GIVES_UP_CHARGING_AFTER = 60
-        const val GIVES_UP_STRIKING_AFTER = 50
+
+        /** Long enough to hold [BITES_A_RUN] bites [BETWEEN_BITES] apart, or the run ends mid-flurry. */
+        const val GIVES_UP_STRIKING_AFTER = 90
         const val GIVES_UP_WITHDRAWING_AFTER = 60
 
         const val TOO_CLOSE_TO_AIM = 1.0E-4
+
+        /** Minecraft's yaw has zero facing south, which is a quarter turn off `atan2`'s zero. */
+        const val QUARTER_TURN = 90.0
+
+        /** How far over the abyss's own line it will still follow you — see [hasRisenTooFar]. */
+        const val GIVES_UP_ABOVE_THE_LINE = 16
 
         const val LOOK_YAW = 30.0f
         const val LOOK_PITCH = 30.0f
