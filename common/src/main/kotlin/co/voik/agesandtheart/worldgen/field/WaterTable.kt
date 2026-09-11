@@ -165,14 +165,26 @@ data class WaterTable(
                 band.toDouble(),
                 floorDiv(worldZ, PERCHED_CELL).toDouble(),
             ) * PERCHED_SPREAD
-            return minOf(columnSurface, middle + nudge.roundToInt())
+            // **Capped by the ceiling of the space this point is in, not by the top of the column.**
+            // `columnSurface` is the highest rock anywhere in the column, which under a hill is the
+            // *hilltop* — so a perched pocket in a big cave was filled to a level hundreds of blocks above
+            // its own roof, which meant filling the cave to the roof and then pouring out of it for as far
+            // as the hill was tall (Jonah, walked 2026-09-11). A pool is bounded by the room it is in.
+            val roomFor = columnSpans?.ceilingAbove(worldY)?.minus(1) ?: columnSurface
+            return minOf(columnSurface, roomFor, middle + nudge.roundToInt())
         }
+
+        private var columnSpans: Spans? = null
 
         private fun readColumn(worldX: Int, worldZ: Int) {
             if (worldX == columnX && worldZ == columnZ) return
             columnX = worldX
             columnZ = worldZ
-            columnSurface = field.columnSpans(worldX, worldZ).highestSolidY ?: seaLevel
+            // Kept whole rather than reduced to its top: a perched pool has to know the ceiling of the
+            // room it is standing in, which no single height can answer. See [perchedLevel].
+            val rock = field.columnSpans(worldX, worldZ)
+            columnSpans = rock
+            columnSurface = rock.highestSolidY ?: seaLevel
             // Under the sea, or under water the shape carries itself. Both are "there is water over this
             // ground"; only one of them is a level.
             columnStanding = standing?.columnSpans(worldX, worldZ)

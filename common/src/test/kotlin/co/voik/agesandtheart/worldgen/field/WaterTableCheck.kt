@@ -52,6 +52,39 @@ class WaterTableCheck : FunSpec({
      * **A carver cutting the seabed finds water.** This was the defect: the shallow threshold was a real
      * threshold, so two blocks in five came out air and the ocean floor filled with pockets.
      */
+    /**
+     * **A pool in a cave never stands against that cave's ceiling** — the water is bounded by the room it
+     * is in, not by the hill above it (Jonah, walked 2026-09-11).
+     *
+     * `perchedLevel` capped its answer at `columnSurface`, which is the highest rock *anywhere* in the
+     * column: under a mountain that is the summit. So a cave beneath a tall hill was filled to a level
+     * hundreds of blocks above its own roof — which fills the cave to the brim and then pours out of it,
+     * for as far as the hill is tall. What a walk saw was water coming out of the ceiling.
+     *
+     * Checked at the topmost open block of the cave, over many columns: whatever the noise decides about
+     * how wet this rock is, that block must be air, because a level equal to the ceiling is one the room
+     * cannot hold.
+     */
+    test("a perched pool never reaches the ceiling of the cave it stands in") {
+        val summit = 200
+        val roof = 100
+        val floor = 40
+        // A tall hill with a wide, deep room under it — the shape the failure needed. The room's ceiling is
+        // a hundred blocks below the summit, which is the gap the old cap fell through.
+        val hollow = Box(minX = -400, minY = floor, minZ = -400, maxX = 400, maxY = roof, maxZ = 400)
+        val shape = Subtract(Box(minX = -400, minY = -64, minZ = -400, maxX = 400, maxY = summit, maxZ = 400), hollow)
+        val table = tableOver(shape)
+
+        val wetCeilings = (-380..380 step 37).flatMap { worldX ->
+            (-380..380 step 41).map { worldX to it }
+        }.count { (worldX, worldZ) -> floodsAt(table, shape, worldX, roof, worldZ) }
+
+        check(wetCeilings == 0) {
+            "water stands against the cave roof in $wetCeilings columns, so it is being levelled by the " +
+                "hill above rather than by the room it is in"
+        }
+    }
+
     test("rock just under the sea always floods when it is opened") {
         val surfaceY = seaLevel - 20
         val seabed = Slab(lowY = -64, highY = surfaceY)
