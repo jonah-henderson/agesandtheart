@@ -73,22 +73,22 @@ class ChargedMetalCheck : FunSpec({
     /**
      * **A mast is worth building and worth stopping.**
      *
-     * Four blocks for the first rod and one for each after it, to sixteen — so thirteen rods is the most
-     * that buys anything and a fourteenth is a rod somebody wasted. That last figure is the one nobody
-     * would notice being off by one.
+     * Four blocks for the first rod and two for each after it, to sixteen — so seven rods is the most that
+     * buys anything and an eighth is a rod somebody wasted. That last figure is the one nobody would
+     * notice being off by one.
      */
-    test("a mast reaches four for the first rod and one for each after, to sixteen") {
+    test("a mast reaches four for the first rod and two for each after, to sixteen") {
         check(Arcs.reachOfAMast(NO_RODS) == NOTHING) { "a bare mass threw ${Arcs.reachOfAMast(NO_RODS)}" }
         check(Arcs.reachOfAMast(1) == 4.0) { "one rod bought ${Arcs.reachOfAMast(1)}" }
-        check(Arcs.reachOfAMast(2) == 5.0) { "two rods bought ${Arcs.reachOfAMast(2)}" }
+        check(Arcs.reachOfAMast(2) == 6.0) { "two rods bought ${Arcs.reachOfAMast(2)}" }
         check(Arcs.reachOfAMast(THE_MOST_THAT_BUYS_ANYTHING) == 16.0) {
-            "thirteen rods bought ${Arcs.reachOfAMast(THE_MOST_THAT_BUYS_ANYTHING)}, not the full sixteen"
+            "seven rods bought ${Arcs.reachOfAMast(THE_MOST_THAT_BUYS_ANYTHING)}, not the full sixteen"
         }
         check(Arcs.reachOfAMast(THE_MOST_THAT_BUYS_ANYTHING - 1) < 16.0) {
-            "twelve rods already bought the full sixteen, so the thirteenth is decorative"
+            "six rods already bought the full sixteen, so the seventh is decorative"
         }
         check(Arcs.reachOfAMast(THE_MOST_THAT_BUYS_ANYTHING + 1) == 16.0) {
-            "a fourteenth rod bought more, and the maximum is not a maximum"
+            "an eighth rod bought more, and the maximum is not a maximum"
         }
     }
 
@@ -111,7 +111,7 @@ class ChargedMetalCheck : FunSpec({
         private const val NOTHING = 0.0
 
         /** Four for the first and one each after: 4 + 12 = 16, and the fourteenth rod buys nothing. */
-        private const val THE_MOST_THAT_BUYS_ANYTHING = 13
+        private const val THE_MOST_THAT_BUYS_ANYTHING = 7
 
         /** The ends of the bite ramp, which the ceiling and the floor of the material are read off. */
         private const val FASTEST = 10L

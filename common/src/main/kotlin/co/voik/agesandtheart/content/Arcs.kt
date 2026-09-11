@@ -285,12 +285,16 @@ object Arcs {
     /**
      * How far a charged mass bites past itself, given the rods on it — nothing at all without one.
      *
-     * The first rod is worth four blocks and each after it one more, so a mast is worth building and worth
-     * stopping: thirteen rods reach [FURTHEST_A_MAST_THROWS] and a fourteenth buys nothing.
+     * The first rod is worth four blocks and each after it [EACH_FURTHER_ROD_REACHES] more, so a mast is
+     * worth building and worth stopping: seven rods reach [FURTHEST_A_MAST_THROWS] and an eighth buys
+     * nothing. At one block a rod it took thirteen, which is a mast necessarily too tall to stand on the
+     * ground — the height-against-reach tension is the point, and that was past it.
      */
     fun reachOfAMast(rods: Int): Double = when {
         rods <= 0 -> BY_CONTACT
-        else -> (FIRST_ROD_REACHES + (rods - 1)).coerceAtMost(FURTHEST_A_MAST_THROWS).toDouble()
+        else -> (FIRST_ROD_REACHES + (rods - 1) * EACH_FURTHER_ROD_REACHES)
+            .coerceAtMost(FURTHEST_A_MAST_THROWS)
+            .toDouble()
     }
 
     /**
@@ -380,6 +384,7 @@ object Arcs {
 
     private const val BY_CONTACT = 0.0
     private const val FIRST_ROD_REACHES = 4
+    private const val EACH_FURTHER_ROD_REACHES = 2
     private const val FURTHEST_A_MAST_THROWS = 16
 
     private const val SECTION = 16

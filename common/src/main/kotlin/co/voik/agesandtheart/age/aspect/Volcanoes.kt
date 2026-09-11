@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.reward.Decoration
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.location
+import co.voik.agesandtheart.worldgen.feature.FeatureDensity
 import net.minecraft.core.Holder
 import net.minecraft.resources.Identifier
 import net.minecraft.tags.BlockTags
@@ -38,15 +39,18 @@ object Volcanoes {
     val ID: Identifier = "volcano".location()
 
     /**
-     * Whether this composition asks for volcanoes.
+     * The claim asking for volcanoes, or null for an Age that asks for none.
      *
      * Read off the claim rather than the placed feature registry, so it answers the same before an Age is
      * opened as after — which is what lets the desk survey and `/age danger score` ask it of a recipe that
      * has never been built.
      */
-    fun askedFor(composition: AgeComposition): Boolean =
+    private fun claimIn(composition: AgeComposition): Claim? =
         composition.optionsFor(Aspect.FEATURES, 0).claimsOn(Features.PLACES)
-            .any { claim -> Identifier.tryParse(claim.value) == ID }
+            .firstOrNull { claim -> Identifier.tryParse(claim.value) == ID }
+
+    /** Whether this composition asks for volcanoes — the terrain's question, which has no amount in it. */
+    fun askedFor(composition: AgeComposition): Boolean = claimIn(composition) != null
 
     /**
      * The Age's rock, seeded with lava tubes away from the calderas (Jonah, 2026-09-06).
@@ -61,12 +65,20 @@ object Volcanoes {
      * Two sizes, because the interesting question is whether the one you found will throw. The seams are
      * under [co.voik.agesandtheart.content.LavaTubes] sixteen-block threshold and only seep; the nests
      * straddle it.
+     *
+     * **Both read the claim's own amount**, which is the same number [Features] applies to the `volcano`
+     * placed feature — so a quantifier moves the buried clusters and the vents together rather than half
+     * of what a writer asked for. Naming the feature at all is worth more than [Rung.ORDINARY], so an Age
+     * that merely says `volcano` already gets a multiple of the counts below.
      */
     fun layer(composition: AgeComposition): Decoration.Layer? {
-        if (!askedFor(composition)) return null
+        val asked = claimIn(composition) ?: return null
         return Decoration.layerOf(
             GenerationStep.Decoration.UNDERGROUND_ORES,
-            listOf(clustersOf(SEAM_SIZE, SEAMS_PER_CHUNK), clustersOf(NEST_SIZE, ONE, NEST_RARITY)),
+            listOf(
+                FeatureDensity.applied(clustersOf(SEAM_SIZE, SEAMS_PER_CHUNK), asked.density),
+                FeatureDensity.applied(clustersOf(NEST_SIZE, ONE, NEST_RARITY), asked.density),
+            ),
         )
     }
 

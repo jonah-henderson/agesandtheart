@@ -159,11 +159,12 @@ data class Rift(
 
     companion object {
         /**
-         * How wide a rift is either side of the seam, so a chasm about twice this across. Sized to read as
-         * a canyon against a territory a few hundred blocks wide. **Untuned by eye** — the distance is
-         * proportionate rather than exact, so the first thing to do with a rift is look at one.
+         * How wide a rift is either side of the seam, so a chasm about twice this across.
+         *
+         * **The same width as a wall** ([Ridge.DEFAULT_HALF_WIDTH]), which is what walking one settled: at
+         * two thirds of it a rift read as a trench beside the landform it is meant to be the equal of.
          */
-        const val DEFAULT_HALF_WIDTH = 16.0
+        const val DEFAULT_HALF_WIDTH = 24.0
 
         /** How far the rim wanders either way. Enough to break the ruled line without hiding the chasm. */
         const val DEFAULT_RIM_WANDER = 6.0
@@ -262,7 +263,7 @@ data class Ridge(
     )
 
     companion object {
-        /** Half again a rift's, so the wall reads as a landform rather than a fence. */
+        /** Wide enough to read as a landform rather than a fence, and a rift now matches it. */
         const val DEFAULT_HALF_WIDTH = 24.0
 
         /** The flat share of the top. Zero would taper from the crest itself and leave a needle. */

@@ -333,18 +333,6 @@ object DeepWater {
     // ── Pressure ──────────────────────────────────────────────────────────────────────────────────────
 
     /**
-     * One look at everybody who might be being crushed.
-     *
-     * **Driven from the players outward, never from the blocks in** — `ChargedMetal`'s argument holds
-     * exactly: the cost should scale with how many people are about rather than with how much abyss has
-     * ever been generated, and an ocean is a great many blocks. The first thing read is the one block the
-     * player's eyes are in, which dismisses everybody who is not underwater for the price of a lookup.
-     *
-     * **Called from both loaders' end-of-tick beside `ChargedMetal.stir`**, and deliberately not from
-     * `Happenings.tick`: that walks Ages only, and deep water carried home in a bucket is water, but deep
-     * water reached through somebody *else's* book should crush you exactly as hard as your own does.
-     */
-    /**
      * What the deep does to one body standing in it, called by the block that *is* the deep.
      *
      * **Driven by the water rather than swept for from the players — SETTLED 2026-09-10 (Jonah).** This was
@@ -353,11 +341,13 @@ object DeepWater {
      * a player near its top, and took nothing. `entityInside` has no such geometry to get wrong — whatever
      * is in the water is what the water acts on, whether anyone is watching or not.
      *
-     * **Three ways out, and they do different jobs.** A turtle helmet doubles the clock; a deretheni suit
-     * stops it; and **riding something the deep does not crush stops it while you are riding** — which is
-     * travel rather than work, since dismounting to mine starts the clock again. That last one is what
-     * puts a saddled nautilus in `#immune_to_pressure` and is the whole of why the tag is about entity
-     * *types* rather than about players.
+     * **Two ways out, and they do different jobs.** A turtle helmet doubles the clock; a deretheni suit
+     * stops it.
+     *
+     * **`#immune_to_pressure` is read off the body being pressed and never off what it is riding.** A
+     * mount in the tag is exempt on its own account — a nautilus drowning under its own rider reads as a
+     * bug — but it shelters nobody, or the saddle would be a better suit than the suit. The mount buys
+     * travel through the abyss; the rider is pressed exactly as if swimming (design §7.1.2).
      *
      * **Uniform, and that is a fix rather than a simplification.** The damage used to square against a depth
      * of twenty-four blocks of abyss, and a real abyss measures twenty-six — so with a turtle helmet's
@@ -373,10 +363,6 @@ object DeepWater {
         if (level !is ServerLevel || level.gameTime % PRESSED_EVERY != 0L) return
         if (body !is LivingEntity || body.isSpectator) return
         if (body.type.builtInRegistryHolder().`is`(IMMUNE_TO_PRESSURE)) return
-        // **Carried by something the deep does not crush**, which is the third counterplay and the reason
-        // the nautilus is in that tag (Jonah, 2026-09-10). The direct vehicle rather than the root: what is
-        // meant is *this* is carrying you, and a chain of mounts into an abyss is not a thing to support.
-        if (body.vehicle?.type?.builtInRegistryHolder()?.`is`(IMMUNE_TO_PRESSURE) == true) return
         // The suit is the answer §7.7 designed it to be, and it is charged for the saving in the same coin
         // the lava and the cold charge it in. Worn by anything, but only a player has one.
         if (body is ServerPlayer && ProtectiveSuit.wearingTheWholeSuit(body)) {

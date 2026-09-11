@@ -13,12 +13,13 @@
     "Everything absent from it takes the pressure -- a drowned, a squid, anything that wandered down. An",
     "abyss that only hurt players would be scenery with a damage tick on it rather than somewhere hostile.",
     "",
-    "**The nautilus is here to be RIDDEN down** (Jonah, 2026-09-10), and it is the one member of this tag",
-    "that changes what a player can do: `DeepWater.press` exempts whatever is riding something exempt, so a",
-    "saddled nautilus carries you through the abyss. It carries you and nothing more -- dismount to mine and",
-    "the clock starts -- so it is TRAVEL where deretheni is WORK, and the ladder in design 7.1.2 is intact.",
-    "The zombie nautilus comes too, for the reason the guardians did: what lives down there should not be",
-    "cleared out by the place it lives in."
+    "**Every member of this tag is exempt on its own account only, and shelters nobody.** `DeepWater.press`",
+    "reads the tag off the body being pressed and never off what that body is riding, so a saddled nautilus",
+    "swims the abyss unharmed while whoever rides it is pressed exactly as if swimming. Passing the mount's",
+    "exemption through to its rider made the saddle a better suit than the suit, which is the one thing the",
+    "ladder in design 7.1.2 cannot afford. The nautilus is still here because it lives there, and the zombie",
+    "nautilus with it, for the reason the guardians did: what lives down there should not be cleared out by",
+    "the place it lives in."
   ],
   "replace": false,
   "values": [

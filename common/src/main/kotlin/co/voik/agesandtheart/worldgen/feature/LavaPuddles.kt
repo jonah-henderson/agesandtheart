@@ -243,13 +243,16 @@ object LavaPuddles {
     private const val CLEARS_EVERYTHING = 12
 
     /**
-     * How often a chunk in volcanic country holds one.
+     * How often a chunk in volcanic country holds one, for an Age that asked for volcanoes and no more
+     * than that.
      *
-     * **Cut twice, by a factor of forty in all** (Jonah, walked 2026-09-10). A fifth of all chunks holding
-     * one or two put a puddle within sight of the last one everywhere you went; a twenty-fifth was still
-     * *far* too frequent. One chunk in two hundred is about one per two hundred blocks square — something
-     * you come across rather than something the country is made of. What is here now would be the right
-     * amount for an Age that had asked to be teeming, if there were ever a word for it.
+     * One chunk in two hundred is about one per two hundred blocks square — something you come across
+     * rather than something the country is made of.
+     *
+     * **A quantifier multiplies this without touching it**, and that is why there is no rung in here: a
+     * writer who asks for `teeming volcano` scales the whole placed feature through
+     * [FeatureDensity], so this runs as many times over as the claim's amount says. Reading the amount
+     * here as well would square it.
      */
     private const val IN_A_CHUNK = 0.005f
 
