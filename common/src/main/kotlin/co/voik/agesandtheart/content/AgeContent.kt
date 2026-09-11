@@ -898,8 +898,10 @@ object AgeContent {
     /**
      * A star fissure that is still opening — see [co.voik.agesandtheart.worldgen.fissure.CollapsingFissureBlock].
      *
-     * **`randomTicks()` is the whole of what makes it spread**, handing the scheduling to vanilla exactly as
-     * a grass block does. Everything else it is, it is by being a star fissure.
+     * **No `randomTicks()`**: it books its own next turn at a delay that falls as the Age's instability
+     * rises, because vanilla's rate is one number for the whole world and an Age written to come apart
+     * should not spread at the pace of one barely past the threshold. Everything else it is, it is by being
+     * a star fissure.
      */
     val COLLAPSING_FISSURE_BLOCK: CollapsingFissureBlock = CollapsingFissureBlock(
         BlockBehaviour.Properties.of()
@@ -909,7 +911,6 @@ object AgeContent {
             .lightLevel { FISSURE_GLOW }
             .strength(-1.0f, Float.MAX_VALUE)
             .noLootTable()
-            .randomTicks()
             .pushReaction(net.minecraft.world.level.material.PushReaction.BLOCK),
     )
 

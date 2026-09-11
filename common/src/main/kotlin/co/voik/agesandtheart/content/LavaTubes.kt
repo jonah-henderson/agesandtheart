@@ -62,6 +62,38 @@ object LavaTubes {
     }
 
     /**
+     * What a visit found — and the distinction between the last two is the whole of why a tube placed on
+     * flat ground used to stall.
+     *
+     * [NOT_YET] and [NOWHERE_LEFT] both put no lava down, and booking the next tick on that alone stopped
+     * the chain dead on its **second** pass: the first laid a source overhead, and the second found the
+     * space above taken and no *running* lava to harden, because vanilla spreads every thirty ticks against
+     * [WELL_DELAY]'s ten. Nothing was booked and only a random tick ever restarted it. Raising the delay
+     * past thirty would mask that and is the worse answer, since it slows every tube to fix the first two
+     * ticks of one.
+     */
+    enum class Welling(val comeBackIn: Int) {
+        /** A block went in, so there is certainly more to do, and the pool is gaining on the flow. */
+        PLACED(WELL_DELAY),
+
+        /**
+         * Nothing went in, but somewhere within reach could still take lava once vanilla's flow arrives.
+         *
+         * **Waiting happens at vanilla's pace, not ours** (Jonah, 2026-09-11): the thing being waited for
+         * spreads every thirty ticks, so coming back every ten is two walks of the pool wasted out of
+         * three. Nobody notices the wait — the flow is what they are waiting for either way.
+         */
+        NOT_YET(WAITING_ON_THE_FLOW),
+
+        /** Plugged, or the reach is full: nothing will change here until something changes near it. */
+        NOWHERE_LEFT(NEVER),
+        ;
+
+        /** Whether [LavaTubeBlock] should book another visit. */
+        val worthComingBack: Boolean get() = this != NOWHERE_LEFT
+    }
+
+    /**
      * Lay one block of lava, if this tube can reach anywhere to lay it.
      *
      * First the space directly overhead, which is what floods a tunnel somebody has just broken into.
@@ -70,15 +102,18 @@ object LavaTubes {
      * whatever path vanilla's flow actually found. That is a slow ratchet on a fast spread: the flowing
      * lava arrives in seconds and is what hurts, and this is what makes it permanent.
      *
-     * Answers whether anything went in, which is what tells [LavaTubeBlock] whether to come back: a tube
-     * with nowhere left to put lava stops costing anything at all until something changes near it.
+     * Answers what [LavaTubeBlock] needs to decide whether to come back — see [Welling]. A tube with
+     * nowhere left to put lava stops costing anything at all until something changes near it.
      */
-    fun well(level: ServerLevel, at: BlockPos): Boolean {
-        if (plugged(level, at)) return NOTHING_TO_DO
-        if (floodedOverhead(level, at)) return SOMETHING_WENT_IN
-        val running = nearestRunning(level, at) ?: return NOTHING_TO_DO
-        level.setBlockAndUpdate(running, LAVA)
-        return SOMETHING_WENT_IN
+    fun well(level: ServerLevel, at: BlockPos): Welling {
+        if (plugged(level, at)) return Welling.NOWHERE_LEFT
+        if (floodedOverhead(level, at)) return Welling.PLACED
+        val reached = reachable(level, at)
+        reached.running?.let {
+            level.setBlockAndUpdate(it, LAVA)
+            return Welling.PLACED
+        }
+        return if (reached.roomToGrow) Welling.NOT_YET else Welling.NOWHERE_LEFT
     }
 
     /** Whether a block of lava went in directly overhead. */
@@ -89,8 +124,21 @@ object LavaTubes {
         return true
     }
 
+    /** What one walk of the pool found — see [Welling], which is decided from exactly these two. */
+    private class Reached(val running: BlockPos?, val roomToGrow: Boolean)
+
     /**
-     * The closest running lava this tube's own pool leads to, within [REACH].
+     * The closest running lava this tube's own pool leads to within [REACH], **and whether there is
+     * anywhere left for lava to arrive at all**.
+     *
+     * The second answer is what separates *waiting on vanilla's flow* from *finished*, and it costs
+     * nothing extra: the walk is already visiting every neighbour of the pool, so an air block that is
+     * within reach and standing on rock is a place vanilla will eventually flow into and this tube will
+     * eventually harden. None anywhere means the reach is full and the chain may stop.
+     *
+     * **Air is the signal rather than running lava**, which is the trap: on the tick after a tube lays its
+     * first source there is no running lava anywhere yet, so a test for it reads a tube that has barely
+     * started as one that has finished.
      *
      * **Walked outward through source lava rather than scanned in a box**, which buys three things at
      * once: the nearest is found first by construction, the search stops the moment it reaches a frontier
@@ -113,11 +161,12 @@ object LavaTubes {
      * vanilla only ever puts flowing lava where lava can go, so anywhere it is *supported* is somewhere a
      * pool may sit, and everywhere else is left a fall with its pool re-forming at the foot.
      */
-    private fun nearestRunning(level: ServerLevel, at: BlockPos): BlockPos? {
+    private fun reachable(level: ServerLevel, at: BlockPos): Reached {
         val seen = HashSet<BlockPos>()
         seen += at
         val queue = ArrayDeque(listOf(at))
         var walked = 0
+        var roomToGrow = false
         while (queue.isNotEmpty() && walked < MOST_LOOKED_AT) {
             val here = queue.removeFirst()
             walked++
@@ -132,15 +181,17 @@ object LavaTubes {
                     Fluids.LAVA -> queue += next
                     Fluids.FLOWING_LAVA -> {
                         if (!fluid.getValueOrElse(FlowingFluid.FALLING, false) && standingOnRock(level, next)) {
-                            return next
+                            return Reached(running = next, roomToGrow = true)
                         }
                         queue += next
                     }
-                    else -> Unit
+                    // Somewhere the flow can still arrive, which is what says "come back" rather than
+                    // "finished". Not walked through — this is the pool's edge, not part of it.
+                    else -> if (level.getBlockState(next).isAir && standingOnRock(level, next)) roomToGrow = true
                 }
             }
         }
-        return null
+        return Reached(running = null, roomToGrow = roomToGrow)
     }
 
     /**
@@ -251,8 +302,18 @@ object LavaTubes {
     /** A safety net over a search the reach already bounds — the ball itself is smaller than this. */
     private const val MOST_LOOKED_AT = 2500
 
-    private const val NOTHING_TO_DO = false
-    private const val SOMETHING_WENT_IN = true
+    /**
+     * How often a tube visits while it hardens, and how long it waits on a flow that has not arrived.
+     *
+     * The wait clears vanilla's own thirty-tick spread with a little to spare, so a visit that finds
+     * nothing has something new to look at rather than re-walking the same pool.
+     */
+    private const val WELL_DELAY = 10
+    private const val WAITING_ON_THE_FLOW = 40
+
+    /** [Welling.NOWHERE_LEFT] books nothing, so its delay is never read. */
+    private const val NEVER = 0
+
 
     /** Every block touching this one, corners included. */
     private const val MOST_NEIGHBOURS = 26

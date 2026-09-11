@@ -30,6 +30,10 @@ import net.minecraft.world.level.redstone.Orientation
  * **The chain ends by itself**, which is why it can afford to exist: the reach bounds how much lava a
  * tube may ever harden, so a pass that finds nowhere left to put a block books nothing and the tube goes
  * back to costing one block read per visit.
+ *
+ * **Ending on "nowhere left" and not on "put nothing in"**, which are different answers and were once the
+ * same one — see [LavaTubes.Welling]. A pass waiting on vanilla's own flow books the next tick exactly as
+ * a pass that laid a block does; only a plugged or a full tube stops.
  */
 class LavaTubeBlock(properties: BlockBehaviour.Properties) : Block(properties) {
 
@@ -50,7 +54,8 @@ class LavaTubeBlock(properties: BlockBehaviour.Properties) : Block(properties) {
     }
 
     override fun tick(state: BlockState, level: ServerLevel, at: BlockPos, random: RandomSource) {
-        if (LavaTubes.well(level, at)) keepWelling(level, at)
+        val found = LavaTubes.well(level, at)
+        if (found.worthComingBack) keepWelling(level, at, found.comeBackIn)
     }
 
     /**
@@ -65,22 +70,14 @@ class LavaTubeBlock(properties: BlockBehaviour.Properties) : Block(properties) {
         startWelling(level, at)
     }
 
+    /** The ordinary cadence, which is the one a tube that is getting somewhere keeps — see [LavaTubes.Welling]. */
     private fun startWelling(level: ServerLevel, at: BlockPos) {
         if (LavaTubes.plugged(level, at)) return
-        keepWelling(level, at)
+        keepWelling(level, at, LavaTubes.Welling.PLACED.comeBackIn)
     }
 
-    private fun keepWelling(level: ServerLevel, at: BlockPos) {
+    private fun keepWelling(level: ServerLevel, at: BlockPos, inTicks: Int) {
         if (level.blockTicks.hasScheduledTick(at, this)) return
-        level.scheduleTick(at, this, WELL_DELAY)
-    }
-
-    private companion object {
-        /**
-         * Faster than lava's own spread, which is every thirty ticks, so a pool a tube is hardening
-         * visibly gains on the flow that found the ground for it — and slow enough that filling a whole
-         * reach is minutes rather than a moment.
-         */
-        const val WELL_DELAY = 10
+        level.scheduleTick(at, this, inTicks)
     }
 }

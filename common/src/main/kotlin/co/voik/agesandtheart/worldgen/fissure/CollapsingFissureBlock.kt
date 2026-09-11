@@ -6,7 +6,10 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.util.RandomSource
+import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.redstone.Orientation
 
 /**
  * A star fissure that is **still opening** — the Age coming apart at the bottom (design §5.3).
@@ -20,16 +23,27 @@ import net.minecraft.world.level.block.state.BlockState
  * that are there; nothing is tracked, nothing is derived from a clock, and nothing has to be reconciled if
  * a chunk unloads. That is `decisions.md`'s rule about a phenomenon on our own block, taken at its word.
  *
- * **Vanilla does the scheduling.** `randomTicks()` in the properties is the whole of it: this spreads the
- * way grass, fire and sculk spread, on the same budget, tunable with `randomTickSpeed`, and costing us no
- * tick of our own. An Age nobody is in does not spread, exactly as an unloaded field does not grow grass.
+ * **It books its own turns rather than riding the random tick**, which is the one thing it does not borrow
+ * from grass. `randomTickSpeed` is a single number for the whole server, so an Age written to come apart
+ * spread at exactly the pace of one barely past the threshold. The delay is drawn rather than fixed — a
+ * visibly periodic tear reads as machinery — and its mean falls as the Age's instability rises. Vanilla
+ * persists scheduled ticks with the chunk, so §5.4's "the world is the state" survives intact.
  */
 class CollapsingFissureBlock(properties: Properties) : StarFissureBlock(properties) {
 
     override fun codec(): MapCodec<out CollapsingFissureBlock> = CODEC
 
     /**
-     * Takes one neighbouring column, sometimes.
+     * **A block written at generation gets no placement event**, so [Collapse] lays the first schedule for
+     * the columns it cuts. This covers the other way in: a column the tear spread into arrives through
+     * `setBlock` and is booked here.
+     */
+    override fun onPlace(state: BlockState, level: Level, at: BlockPos, was: BlockState, moving: Boolean) {
+        if (level is ServerLevel && !was.`is`(this)) Collapse.keepTearing(level, at)
+    }
+
+    /**
+     * Takes one neighbouring column, sometimes, and books the next turn.
      *
      * **Only the topmost block of a tear spreads**, which is the whole governor. A tear is a band of these
      * many blocks deep, and letting every one of them reach outward would make the rate scale with the
@@ -39,9 +53,13 @@ class CollapsingFissureBlock(properties: Properties) : StarFissureBlock(properti
      * **Adjacent only** (`decisions.md`): vanilla grass reaches through a 3×3×5 box, and a rule whose edge
      * a player cannot see makes a barrier they cannot trust. A player should be able to look at a tear and
      * know which block goes next.
+     *
+     * The one buried in the band books nothing, which is what keeps a tear costing its edge rather than its
+     * volume: it is not on the frontier and nothing it could do would put it there.
      */
-    override fun randomTick(state: BlockState, level: ServerLevel, pos: BlockPos, random: RandomSource) {
+    override fun tick(state: BlockState, level: ServerLevel, pos: BlockPos, random: RandomSource) {
         if (!level.getBlockState(pos.above()).isAir) return
+        Collapse.keepTearing(level, pos)
         val towards = SIDEWAYS[random.nextInt(SIDEWAYS.size)]
         Collapse.takeColumnBeside(level, pos.relative(towards))
     }
