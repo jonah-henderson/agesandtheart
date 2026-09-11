@@ -64,6 +64,21 @@ class CollapsingFissureBlock(properties: Properties) : StarFissureBlock(properti
         Collapse.takeColumnBeside(level, pos.relative(towards))
     }
 
+    /**
+     * The safety net over the booked chain, and it is the same one [co.voik.agesandtheart.content.LavaTubeBlock]
+     * keeps for the same reason.
+     *
+     * [tick] declines a column with anything over it **before** booking the next turn, which is right — only
+     * the frontier spreads — but it leaves a covered column with nothing to wake it. Uncovering one is a
+     * change to its *neighbour*, so no event of the fissure's own fires, and without this a tear that gravel
+     * or a player once buried would stay inert for the rest of the world's life.
+     *
+     * Costs nothing where a turn is already booked: [Collapse.keepTearing] declines to double-book.
+     */
+    override fun randomTick(state: BlockState, level: ServerLevel, pos: BlockPos, random: RandomSource) {
+        if (level.getBlockState(pos.above()).isAir) Collapse.keepTearing(level, pos)
+    }
+
     private companion object {
         val CODEC: MapCodec<CollapsingFissureBlock> = simpleCodec(::CollapsingFissureBlock)
 
