@@ -149,58 +149,55 @@ data class WaterTable(
             val wetness = floodedness
                 .getValue(worldX / acrossStretch, worldY / downStretch, worldZ / acrossStretch)
                 .coerceIn(-1.0, 1.0)
-            return when {
-                wetness > slide(nearness, SEA_WHEN_SHALLOW, SEA_WHEN_DEEP) -> columnWaterY
-                wetness > slide(nearness, PERCHED_WHEN_SHALLOW, PERCHED_WHEN_DEEP) -> perchedLevel(worldX, worldY, worldZ)
-                else -> BONE_DRY
-            }
+            val seaAt = slide(nearness, SEA_WHEN_SHALLOW, SEA_WHEN_DEEP)
+            val dryAt = slide(nearness, PERCHED_WHEN_SHALLOW, PERCHED_WHEN_DEEP)
+
+            // Rock so flooded it simply stands at the water's own level — the sea, or whatever the shape
+            // carries over this column. Near a submerged surface `seaAt` drops below the noise's own floor,
+            // which is what makes a seabed always flood however the rest is tuned.
+            if (wetness > seaAt) return brimOf(worldY)
+            // And rock too dry to hold any.
+            if (wetness <= dryAt || seaAt <= dryAt) return BONE_DRY
+
+            // **Everything between is a shoreline rather than a threshold**, which is the whole of the
+            // departure from vanilla here (Jonah, 2026-09-11). Vanilla's middle case is a *perched pocket*
+            // at its own banded level, and the edge of one meets dry rock at a face — two neighbouring
+            // columns either side of the threshold coming out full and empty. A walk found that as "a giant
+            // curtain of water down the middle of the cave", and porting vanilla's cell grid did not help,
+            // because the decision is binary however it is arranged in space.
+            //
+            // So the level rises *continuously* with how flooded the rock is: nothing at the dry end, the
+            // water's own level at the wet end, and a pool part-way up the room between. Neighbouring
+            // columns read a smooth noise a block apart, so their levels differ by a block — which is a
+            // shoreline running up the cave floor, and is what water actually looks like.
+            val floor = roomFloor(worldY)
+            val brim = brimOf(worldY)
+            if (brim <= floor) return BONE_DRY
+            val reach = (wetness - dryAt) / (seaAt - dryAt)
+            return floor + ((brim - floor) * reach).roundToInt()
         }
 
-        /** A pocket's own level: a band of the world, nudged by noise, never above the ground. */
+        /** The floor of the room this point is in — where a pool of its water would rest. */
+        private fun roomFloor(worldY: Int): Int = columnSpans?.floorUnder(worldY)?.plus(1) ?: worldY
+
         /**
-         * How high groundwater stands in the **room** this point is in.
+         * As high as water may stand here at all: the water's own level, never over the ground, and never
+         * above the ceiling of the room it is in.
          *
-         * **Per room, not per block — which is the whole of what was wrong** (Jonah, walked 2026-09-11).
-         * The band used to come from the query's own `worldY`, so the answer changed as you moved up a
-         * column: inside band *b* a block is wet while `y < 40b + 20`, which makes the bottom half of every
-         * forty-block slice of the world water and the top half air, over and over, in every cave deep
-         * enough to cross one. What a walk saw was *"a flat slab of water on a specific level"*, repeated —
-         * and water standing against a cave roof, which then poured out of it. That is arithmetic showing
-         * through, not geology.
-         *
-         * **Vanilla does not have this, and the reason is worth keeping.** Its aquifer resolves one fluid
-         * level per *cell* of a jittered 16×12×16 grid and interpolates between the four nearest, so a
-         * block's level comes from somewhere it is *near* rather than from the slice it happens to occupy.
-         * Our copy took the arithmetic and dropped the grid.
-         *
-         * **The room is the cell that suits this generator.** We have the column's spans, so the cave a
-         * point stands in is already known — and it is the honest unit, because a pool's surface has to be
-         * one height for everybody standing in the same water. Taking the band from the room's **floor**
-         * gives every block of one cave the same answer, keeps rooms at different depths on different bands
-         * the way vanilla's stacked aquifers do, and cannot saw-tooth, there being one level per room.
-         *
-         * Still capped by the room's own ceiling and by the column's surface: a pool is bounded by what
-         * holds it.
+         * **The ceiling is the one a walk had to teach.** It was the column's *surface* alone, which under a
+         * hill is the summit — so a pool in a cave was levelled a hundred blocks above its own roof, filled
+         * the cave to the brim and poured out of it. Vanilla caps the same figure at a deliberately low
+         * estimate of the surface; ours had taken the opposite extreme.
          */
-        private fun perchedLevel(worldX: Int, worldY: Int, worldZ: Int): Int {
-            val rock = columnSpans
-            // The floor this water would stand on, which is what decides the band. Nothing below means
-            // open to the world's floor, and the lowest band is as good an answer as any.
-            val roomFloor = rock?.floorUnder(worldY)?.plus(1) ?: worldY
-            val band = floorDiv(roomFloor, PERCHED_BAND)
-            val middle = band * PERCHED_BAND + PERCHED_BAND / 2
-            val nudge = floodedness.getValue(
-                floorDiv(worldX, PERCHED_CELL).toDouble(),
-                band.toDouble(),
-                floorDiv(worldZ, PERCHED_CELL).toDouble(),
-            ) * PERCHED_SPREAD
-            // **Capped by the ceiling of the space this point is in, not by the top of the column.**
-            // `columnSurface` is the highest rock anywhere in the column, which under a hill is the
-            // *hilltop* — so a perched pocket in a big cave was filled to a level hundreds of blocks above
-            // its own roof. Vanilla caps the same number at its `lowestPreliminarySurface`, which is a
-            // deliberately low estimate; ours had taken the opposite extreme.
-            val roomFor = rock?.ceilingAbove(worldY)?.minus(1) ?: columnSurface
-            return minOf(columnSurface, roomFor, middle + nudge.roundToInt())
+        private fun brimOf(worldY: Int): Int {
+            // **The ground caps this only where the ground is above the water.** Under the sea the water's
+            // own level stands *over* the seabed by definition, so capping at the surface there says water
+            // may never rise above the seabed — and a carve into it comes out dry, which is the hole in the
+            // ocean this class exists to prevent. Caught by `WaterTableCheck` the moment it was written.
+            val overhead = if (columnSubmerged) columnWaterY else minOf(columnWaterY, columnSurface)
+            // No rock above means nothing to hold water down: the room is open to whatever is over it.
+            val roomFor = columnSpans?.ceilingAbove(worldY)?.minus(1) ?: Int.MAX_VALUE
+            return minOf(overhead, roomFor)
         }
 
         private var columnSpans: Spans? = null
@@ -261,12 +258,12 @@ data class WaterTable(
         // and a value that only clears the noise at 1.0 still leaves one block in fourteen dry.
         private const val SEA_WHEN_SHALLOW = -1.6
         private const val SEA_WHEN_DEEP = 0.8
+        // **Where a shoreline begins rather than where a pocket does.** These were vanilla's
+        // partially-flooded thresholds, below which rock held nothing and above which it held a perched
+        // pocket at a banded level. They are now the dry end of a ramp: at this floodedness a room holds no
+        // water, and by [SEA_WHEN_DEEP] it holds all it can.
         private const val PERCHED_WHEN_SHALLOW = -0.8
         private const val PERCHED_WHEN_DEEP = 0.4
-
-        private const val PERCHED_BAND = 40
-        private const val PERCHED_CELL = 16
-        private const val PERCHED_SPREAD = 10.0
 
         private fun slide(nearness: Double, whenShallow: Double, whenDeep: Double) =
             whenDeep + (whenShallow - whenDeep) * nearness
