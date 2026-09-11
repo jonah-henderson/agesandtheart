@@ -13,14 +13,18 @@
     "A tag rather than a list in code, for the reason `DeepWater.DEEP_WATER` is one: a pack that adds a",
     "cave biome should be able to keep the abyss out of it without touching the mod.",
     "",
-    "`agesandtheart:abyss` is deliberately NOT here -- that is the biome the deep sea wears. `great_halls`",
-    "is, being ours and underground."
+    "`agesandtheart:abyss` is deliberately NOT here -- that is the biome the deep sea wears. `great_hall`",
+    "is, being ours and underground.",
+    "",
+    "**Every id here must be a biome this pack actually ships.** A tag entry is a registry reference, so a",
+    "name with nothing behind it is left unbound and the BIOME registry fails to FREEZE -- which is a crash",
+    "at world load, not a warning. `great_halls` was written here first and did exactly that."
   ],
   "replace": false,
   "values": [
     "minecraft:lush_caves",
     "minecraft:dripstone_caves",
     "minecraft:deep_dark",
-    "agesandtheart:great_halls"
+    "agesandtheart:great_hall"
   ]
 }
