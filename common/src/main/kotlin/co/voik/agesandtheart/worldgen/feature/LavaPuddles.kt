@@ -158,15 +158,9 @@ object LavaPuddles : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration.
         // the air over the gap or trails the ring away down the slope. Neither is a rim, so it is simply
         // absent — which the ring is already, in three columns out of eight.
         if (abs(standing.y - surface) > LIES_WITHIN) return
-        val ground = level.getBlockState(standing)
-        if (!ground.isSolidRender) return
-        val at = standing.above()
-        if (!level.getBlockState(at).isAir) return
-        level.setBlock(at, ground, UPDATE_NONE)
-        // **What was the top is not the top any more.** Grass under a block is dirt, and vanilla only gets
-        // there by a random tick that worldgen never waits for — so two courses of grass stood in the
-        // column until something happened to notice (Jonah, walked 2026-09-10).
-        BURIED[ground.block]?.let { level.setBlock(standing, it, UPDATE_NONE) }
+        // The column's own surface block, with what was under it buried — see [LaidGround], which is where
+        // that second write lives now that the craters want it too.
+        LaidGround.layOn(level, standing, UPDATE_NONE)
     }
 
     /** Two or three tubes in the bottom of it, which is what makes a puddle a vent rather than a pool. */
@@ -196,13 +190,6 @@ object LavaPuddles : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration.
             val here = level.getHeight(Heightmap.Types.WORLD_SURFACE_WG, x + offsetX * reach, z + offsetZ * reach) - ONE
             abs(here - surface) <= LIES_WITHIN
         }
-
-    /** What a surface block becomes once something is standing on it. */
-    private val BURIED: Map<Block, BlockState> = mapOf(
-        Blocks.GRASS_BLOCK to Blocks.DIRT.defaultBlockState(),
-        Blocks.PODZOL to Blocks.DIRT.defaultBlockState(),
-        Blocks.MYCELIUM to Blocks.DIRT.defaultBlockState(),
-    )
 
     private val LAVA = Blocks.LAVA.defaultBlockState()
     private val AIR = Blocks.AIR.defaultBlockState()

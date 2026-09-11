@@ -65,7 +65,7 @@ object Craters {
      * to a chunk's middle and so never line up with each other.
      */
     private fun small(density: Double): Holder<PlacedFeature> =
-        scattered(CraterScale(SMALL_LEAST, SMALL_MOST, SMALL_KEEPS), rarityFor(SMALL_EVERY, density))
+        scattered(CraterScale(SMALL_LEAST, SMALL_MOST, SMALL_HOLDS, SMALL_KEEPS), rarityFor(SMALL_EVERY, density))
 
     /**
      * And the rare big one, which is a landmark.
@@ -75,7 +75,7 @@ object Craters {
      * go rather than the other way round.
      */
     private fun large(density: Double): Holder<PlacedFeature> =
-        scattered(CraterScale(LARGE_LEAST, LARGE_MOST, LARGE_KEEPS), rarityFor(LARGE_EVERY, density))
+        scattered(CraterScale(LARGE_LEAST, LARGE_MOST, LARGE_HOLDS, LARGE_KEEPS), rarityFor(LARGE_EVERY, density))
 
     private fun scattered(scale: CraterScale, rarity: Int): Holder<PlacedFeature> =
         Holder.direct(
@@ -120,13 +120,41 @@ object Craters {
 
     private const val SMALL_LEAST = 5
     private const val SMALL_MOST = 11
-    private const val SMALL_KEEPS = 1
     private const val SMALL_EVERY = 28
+
+    /**
+     * How many small craters kept a shard, and how many it is when one did.
+     *
+     * **One in twenty, and exactly one shard** — about one shard-bearing pock every five hundred chunks,
+     * which is the *exceedingly rare* the design asks for rather than the one-in-fifty-six the old draw
+     * gave. Astrite is meant to be hunted.
+     *
+     * **Rarity and amount had to be split before either could be set.** This was a `nextInt(1 + 1)`: half
+     * of them held one and half held none, which is a coin toss rather than a dial — there was no value
+     * that made a shard rarer without making it impossible, the count being an integer. Now the roll above
+     * says *whether* and this says *how many*, with a floor of one.
+     *
+     * **The base can afford to be this thin because a writer has a lever.** `teeming meteors` scales how
+     * often a crater is tried at all through [rarityFor], so a player who wants to hunt astrite writes an
+     * Age for it — which is the whole proposition, and the reason the default does not have to be generous.
+     */
+    private const val SMALL_HOLDS = 0.05f
+    private const val SMALL_KEEPS = 1
 
     private const val LARGE_LEAST = 12
     private const val LARGE_MOST = 16
-    private const val LARGE_KEEPS = 5
     private const val LARGE_EVERY = 420
+
+    /**
+     * A landmark usually keeps something, and keeps a cluster of it.
+     *
+     * **Five times in six, and deliberately not always.** The rare big one is a long journey to a thing you
+     * can see from a distance, so it should mostly pay out — arriving to find nothing is a different game
+     * from finding a pock that happens to be empty. But a guarantee turns the hunt into an errand, and the
+     * one trip in six that comes back empty is what keeps it a hunt.
+     */
+    private const val LARGE_HOLDS = 5.0f / 6.0f
+    private const val LARGE_KEEPS = 5
 
     private const val A_TRICKLE = 0.1
     private const val ONE = 1

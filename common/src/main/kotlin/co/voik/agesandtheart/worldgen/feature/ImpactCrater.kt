@@ -65,9 +65,43 @@ object ImpactCrater : Feature<CraterScale>(CraterScale.CODEC) {
                 reshape(level, middle.x + awayX, middle.z + awayZ, struck.offsetAt(awayX, awayZ))
             }
         }
+        dropWhatIsLeftHanging(level, middle, out)
         scatterEjecta(level, middle, struck)
-        seedWithAstrite(level, random, middle, reach, scale.mostShards)
+        seedWithAstrite(level, random, middle, reach, scale)
         return true
+    }
+
+    /**
+     * Clear anything the carve left standing on nothing — **asked of the footprint, not of the column being
+     * cut**.
+     *
+     * Clearing what stands on a column as it is carved is right and is not enough: at `teeming` density two
+     * craters land close together and the later one takes the ground from under ground the earlier one had
+     * already had decorated, which is a column this crater never touches and so never looks at. Grass tufts
+     * and snow layers were left hanging in the air over the second hole (Jonah, walked 2026-09-10).
+     *
+     * **Vanilla's own survival rule is the test**, rather than a list of what counts as decoration: every
+     * plant, layer and sapling already knows what it needs under it, so `canSurvive` catches all of them
+     * and stays right when a pack adds another. A margin of one is swept beyond the reach because the
+     * undermined column is by definition the one just outside the cut.
+     */
+    private fun dropWhatIsLeftHanging(level: WorldGenLevel, middle: BlockPos, out: Int) {
+        val swept = out + ONE
+        val cursor = BlockPos.MutableBlockPos()
+        for (awayX in -swept..swept) {
+            for (awayZ in -swept..swept) {
+                val x = middle.x + awayX
+                val z = middle.z + awayZ
+                val ground = groundAt(level, x, z)
+                // Only the band the carve could have reached, and upward: what is below the ground is rock.
+                for (y in ground..topOf(level, x, z)) {
+                    cursor.set(x, y, z)
+                    val standing = level.getBlockState(cursor)
+                    if (standing.isAir || standing.canSurvive(level, cursor)) continue
+                    level.setBlock(cursor, AIR, Block.UPDATE_CLIENTS)
+                }
+            }
+        }
     }
 
     /**
@@ -80,8 +114,14 @@ object ImpactCrater : Feature<CraterScale>(CraterScale.CODEC) {
      */
     private fun reshape(level: WorldGenLevel, x: Int, z: Int, offset: Int) {
         if (offset == UNMOVED) return
-        if (submerged(level, x, z)) return
         val surface = groundAt(level, x, z)
+        // **A crater by the shore fills rather than stopping at the waterline** (Jonah, 2026-09-10). The
+        // sea it is cut under is put back into everything the cut opened, so the hole is flooded on arrival
+        // and there is no air pocket waiting for something to notice it — which is what submerged columns
+        // used to be skipped to avoid. Whatever the Age's sea is made of, since the fluid is read here
+        // rather than named.
+        val sea = seaOver(level, x, z, surface)
+        fun fillAt(y: Int): BlockState = if (y <= sea.reaches) sea.fluid else AIR
         // **Whatever is *standing* on the column as well as the column itself.** The ground heightmap
         // counts what blocks motion, and grass, bushes and flowers do not — so carving to it took the dirt
         // out from under a meadow and left it hanging (Jonah, 2026-09-09, walked: "trees, grass, bushes
@@ -89,7 +129,7 @@ object ImpactCrater : Feature<CraterScale>(CraterScale.CODEC) {
         val standing = topOf(level, x, z)
         if (offset < UNMOVED) {
             for (y in surface + offset + ONE..maxOf(surface, standing)) {
-                level.setBlock(BlockPos(x, y, z), AIR, Block.UPDATE_CLIENTS)
+                level.setBlock(BlockPos(x, y, z), fillAt(y), Block.UPDATE_CLIENTS)
             }
             return
         }
@@ -99,7 +139,32 @@ object ImpactCrater : Feature<CraterScale>(CraterScale.CODEC) {
         level.setBlock(BlockPos(x, surface + offset, z), top, Block.UPDATE_CLIENTS)
         // And nothing left poking out of what was thrown over it: a trunk taller than the rim is buried
         // to the rim's height and would otherwise stand out of the top of it.
-        for (y in surface + offset + ONE..standing) level.setBlock(BlockPos(x, y, z), AIR, Block.UPDATE_CLIENTS)
+        for (y in surface + offset + ONE..standing) level.setBlock(BlockPos(x, y, z), fillAt(y), Block.UPDATE_CLIENTS)
+    }
+
+    /** The sea standing over a column, and how high it reaches — [Sea.NONE] where the column is dry. */
+    private class Sea(val fluid: BlockState, val reaches: Int) {
+        companion object {
+            /** Nothing stands here, so every height is above the water and fills with air. */
+            val NONE = Sea(Blocks.AIR.defaultBlockState(), Int.MIN_VALUE)
+        }
+    }
+
+    /**
+     * What is standing over this column, read rather than assumed.
+     *
+     * **The fluid is taken from the world instead of named**, so a crater cut into an Age whose sea is lava
+     * floods with lava. Walked up from the ground rather than asked of the level's own sea level, because a
+     * landform may carry water of its own above the waterline (`SeaFill.wet`) and the cut has to put back
+     * exactly what it opened.
+     */
+    private fun seaOver(level: WorldGenLevel, x: Int, z: Int, surface: Int): Sea {
+        val first = BlockPos(x, surface + ONE, z)
+        val standing = level.getFluidState(first)
+        if (standing.isEmpty) return Sea.NONE
+        var top = surface + ONE
+        while (top - surface < DEEPEST_SEA_CUT && !level.getFluidState(BlockPos(x, top + ONE, z)).isEmpty) top++
+        return Sea(standing.createLegacyBlock(), top)
     }
 
     /**
@@ -119,9 +184,10 @@ object ImpactCrater : Feature<CraterScale>(CraterScale.CODEC) {
                 val x = middle.x + awayX
                 val z = middle.z + awayZ
                 if (submerged(level, x, z)) continue
-                val surface = groundAt(level, x, z)
-                val thrown = level.getBlockState(BlockPos(x, surface - ONE, z))
-                level.setBlock(BlockPos(x, surface + ONE, z), thrown, Block.UPDATE_CLIENTS)
+                // **Laid as the column's own surface block, with what was under it buried** — see
+                // [LaidGround]. This took the block *under* the surface and dropped it on top, which is
+                // where the dirt standing on grass came from, and left the grass it covered still grass.
+                LaidGround.layOn(level, BlockPos(x, groundAt(level, x, z), z), Block.UPDATE_CLIENTS)
             }
         }
     }
@@ -138,10 +204,12 @@ object ImpactCrater : Feature<CraterScale>(CraterScale.CODEC) {
         random: RandomSource,
         middle: BlockPos,
         reach: Int,
-        most: Int,
+        scale: CraterScale,
     ) {
-        val kept = random.nextInt(most + ONE)
-        if (kept == NONE) return
+        // Rarity first, amount second — see [CraterScale]. One roll decides whether this crater kept
+        // anything at all, and only then is there a count, which is never nought.
+        if (random.nextFloat() >= scale.holdsShards) return
+        val kept = ONE + random.nextInt(scale.mostShards)
         val inner = (reach * SHARDS_WITHIN).roundToInt().coerceAtLeast(ONE)
         val about = BlockPos(middle.x + spread(random, inner), middle.y, middle.z + spread(random, inner))
         repeat(kept) {
@@ -202,9 +270,11 @@ object ImpactCrater : Feature<CraterScale>(CraterScale.CODEC) {
         level.getHeight(Heightmap.Types.WORLD_SURFACE_WG, x, z) - ONE
 
     /**
-     * Whether this column stands under water. Carving under water would leave an air pocket that nothing
-     * floods until something updates it, so submerged columns are left alone and a crater by the shore
-     * stops at the waterline.
+     * Whether this column stands under water.
+     *
+     * **The carve no longer asks**, [reshape] putting the sea back into whatever it opened, so a crater by
+     * the shore floods rather than stopping at the waterline. What still asks are the things that want dry
+     * land under them: where the ejecta may land and where a shard may stand.
      *
      * **A fluid read rather than two heightmaps**, which is what this used and what made it wrong. The
      * old test was that the surface heightmap stood above the ground one, on the reasoning that only water
@@ -474,6 +544,9 @@ object ImpactCrater : Feature<CraterScale>(CraterScale.CODEC) {
     private const val EJECTA_CARRIES = 1.45
 
     /** Where shards may stand, as a share of the reach — well inside, where the carve reached rock. */
+    /** A bound on the walk up a flooded column, so a crater under an abyss does not climb the whole sea. */
+    private const val DEEPEST_SEA_CUT = 64
+
     private const val SHARDS_WITHIN = 0.45
     private const val TOGETHER = 3
 
@@ -523,14 +596,26 @@ object ImpactCrater : Feature<CraterScale>(CraterScale.CODEC) {
  *
  * One feature with a scale rather than two features, because a small crater and a large one differ in
  * nothing but their numbers — everything that makes them look unalike is drawn inside the feature.
+ *
+ * **Whether a crater kept anything and how much are two dials, not one** (Jonah, walked 2026-09-10). They
+ * were a single `nextInt(mostShards + 1)`, which at a `mostShards` of one is a coin toss: half of all small
+ * craters held none and the rest held exactly one, with no way to make the find rarer without making it
+ * impossible, or commoner without making it two. Splitting them puts rarity on [holdsShards] and leaves
+ * [mostShards] to say how much a crater that kept something kept — so the floor, once it holds any, is one.
  */
-data class CraterScale(val leastReach: Int, val mostReach: Int, val mostShards: Int) : FeatureConfiguration {
+data class CraterScale(
+    val leastReach: Int,
+    val mostReach: Int,
+    val holdsShards: Float,
+    val mostShards: Int,
+) : FeatureConfiguration {
 
     companion object {
         val CODEC: Codec<CraterScale> = RecordCodecBuilder.create { instance ->
             instance.group(
                 Codec.INT.fieldOf("least_reach").forGetter(CraterScale::leastReach),
                 Codec.INT.fieldOf("most_reach").forGetter(CraterScale::mostReach),
+                Codec.FLOAT.fieldOf("holds_shards").forGetter(CraterScale::holdsShards),
                 Codec.INT.fieldOf("most_shards").forGetter(CraterScale::mostShards),
             ).apply(instance, ::CraterScale)
         }
