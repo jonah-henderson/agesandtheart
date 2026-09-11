@@ -150,6 +150,12 @@ data class Vocabulary(
     /** The tags [preset] carries — empty being a preset no word can currently reach. */
     fun tagsOf(preset: Taggable): Map<String, Double> = profileOf(preset).tags
 
+    /**
+     * Whether [preset] is in the world **anyway**, so naming it asks for more of it rather than for it at
+     * all — see [PresetProfile.presentAnyway], which is what the mention bump turns on.
+     */
+    fun isPresentAnyway(preset: Taggable): Boolean = profileOf(preset).presentAnyway
+
     /** How willingly the Art reaches for [preset] when nothing asked for it. */
     fun readinessOf(preset: Taggable): Double =
         profileOf(preset).readiness ?: PresetProfile.ORDINARY_READINESS

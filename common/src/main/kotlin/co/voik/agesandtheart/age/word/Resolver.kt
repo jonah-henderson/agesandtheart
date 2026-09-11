@@ -108,6 +108,9 @@ object Resolver {
     // How much more of the world naming a member asks for, on top of the ordinary share it already had.
     private const val A_MENTION_IS_WORTH = 1.0
 
+    /** What naming a member the world would not otherwise have adds: nothing, the naming being the ask. */
+    private const val NOTHING_MORE = 0.0
+
     // As much of the world as any one member of a population may be talked into taking, so that a
     // sentence full of words agreeing about one biome cannot quietly make an Age of nothing else. Room
     // for the loudest thing a writer can say about one member and no more: `teeming <member>`, which is
@@ -1312,11 +1315,22 @@ object Resolver {
         // scoring it here too made every named member arrive at the ceiling — a share no rung could move
         // and no second word could add to.
         val insisted = insisting.sumOf { it.word.pullIn(aspect, tags) * it.word.tier.weight }
-        // **Naming a member asks for more of it**, which is the whole of what naming one does to a
-        // population: every member of a curated pool is present anyway, so a mention that claimed only
-        // the ordinary share would be a page read, charged, and worth nothing.
+        // **Naming a member asks for more of it — but only where it was going to be there anyway**, which
+        // is the whole of what naming one does to a *population*: a biome is present unless something
+        // strikes it, so a mention that claimed only the ordinary share would be a page read, charged for,
+        // and worth nothing.
+        //
+        // **A member that only exists because a word asked for it takes no bump** (Jonah, 2026-09-10). A
+        // volcano is not in the world until somebody writes one, so naming it is already the whole of the
+        // request; doubling it on top would mean a writer could never ask for *one* mountain, and the
+        // ordinary rung — the thing every quantifier is measured against — would be unreachable.
+        //
+        // **`alreadyInThePool` is deliberately not the test here.** It means listed in the tag table, which
+        // coincides with being present-anyway for biomes and does not for features: tagging the volcanic
+        // features `molten` so `volcanic` could find them would otherwise have handed the bump straight
+        // back. See [PresetProfile.presentAnyway].
         val mentions = speaking.count { it.word.choiceIn(aspect)?.key == member.key }
-        val mentioned = mentions * A_MENTION_IS_WORTH
+        val mentioned = if (vocabulary.isPresentAnyway(member)) mentions * A_MENTION_IS_WORTH else NOTHING_MORE
         // **Every tier leans**, as it does for a catalogue. This counted an evocative word's lean and a
         // narrowing word's *dislike*, and dropped a narrowing word's liking on the floor — so `rich`
         // leaning the ores toward diamond did nothing at all while its dislike of barren bit.
@@ -1343,11 +1357,6 @@ object Resolver {
         // Struck out rather than kept at nothing: a claim of none of something is what `except` says, and
         // saying it that way keeps one mechanism for removal instead of two.
         if (weight <= NONE_OF_IT) return Claim(member.key, Polarity.EXCEPT)
-        // **Ordinary is only silence for a member the pool already had.** One a word put there by name
-        // arrives at ordinary standing and dropping the claim would drop the admission with it — the
-        // member would be reached, weighed, and then quietly left out of the world it was named into.
-        val nothingToSay = polarity == null && Rung.isOrdinary(weight) && alreadyInThePool
-        if (nothingToSay) return null
         // **Described rather than named**, which decides whether this asks for the thing or for more of
         // it where it already is (world model §3). A member reached only by a query is a description; one
         // a word named is a naming. `only` and `except` are neither — they are instructions about what the
@@ -1358,7 +1367,25 @@ object Resolver {
         // as a description that admission could never put one anywhere.
         fun namesItOutright(said: Constraint) =
             said.word.choiceIn(aspect)?.key == member.key || member.key in said.word.admitsIn(aspect)
-        val described = polarity == null && speaking.none(::namesItOutright)
+        val namedOutright = speaking.any(::namesItOutright)
+        val described = polarity == null && !namedOutright
+        // **Ordinary is only silence for a member the world would have had anyway.** One a word put there
+        // by name arrives at ordinary standing and dropping the claim would drop the admission with it —
+        // the member would be reached, weighed, and then quietly left out of the world it was named into.
+        //
+        // **Both conditions, and each was learned by getting it wrong the same afternoon.**
+        //
+        // - Without `isPresentAnyway`: `alreadyInThePool` means *askable*, which a volcano is, so the
+        //   moment naming one stopped carrying [A_MENTION_IS_WORTH] it landed at exactly ordinary and was
+        //   dropped as saying nothing — `age volcano features` resolved to an Age with no volcano in it.
+        // - Without `namedOutright`: every member that is not there anyway stopped being silence *at all*,
+        //   so a sentence about diamonds came back claiming ten features of ours it had never mentioned.
+        //
+        // Together they say the one thing meant: an ordinary weight is silence unless a word actually
+        // named this member and the world would not have had it otherwise.
+        val speaksForItself = namedOutright && !vocabulary.isPresentAnyway(member)
+        val nothingToSay = polarity == null && Rung.isOrdinary(weight) && alreadyInThePool && !speaksForItself
+        if (nothingToSay) return null
         return Claim(
             member.key,
             polarity ?: Polarity.ASSERTED,

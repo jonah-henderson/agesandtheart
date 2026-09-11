@@ -1021,10 +1021,43 @@ data class PresetProfile(
      * rules simply cannot read.
      */
     val replaces: Boolean = false,
+    /**
+     * Whether this member is in the world **anyway**, so that naming it asks for *more* of it rather than
+     * for it at all — the flag the mention bump turns on (`Resolver.claimForMember`, design §3.3).
+     *
+     * **True by default, which is what keeps every entry written before this correct.** A biome, a creature,
+     * a vanilla feature a biome already grows: all present unless something strikes them, so naming one at
+     * the ordinary share would be a page read, charged for, and worth nothing. The bump is what makes the
+     * word mean something.
+     *
+     * **False is for a member that only exists because a word asked** — a volcano, a magma chamber. It goes
+     * in at the ordinary share and is moved from there by the other words in the sentence, which is what a
+     * quantifier is for (Jonah, 2026-09-10: *"if it otherwise would not be in the pool, and the word adds
+     * it, it goes in at the default weight, which other words may then modify"*).
+     *
+     * **Why this is not `alreadyInThePool`, which is the subtlety the design turned on.** That predicate
+     * means *listed in `art/preset_tags/<aspect>.json`*. For biomes it happens to coincide with being
+     * present anyway; for **features** it does not, because `Features.placedIn` starts from what each biome
+     * already carries — so a feature is present-anyway when a biome grows it, which the tag table knows
+     * nothing about. Tagging the volcanic features `molten` so `volcanic` could query them would have put
+     * them "in the pool" and handed the bump straight back.
+     *
+     * Per member rather than per aspect, so a vanilla feature that really does grow anyway keeps its bump
+     * while ours do not. **Revisit if flagging each one becomes a chore** as the pack gains custom features
+     * (Jonah).
+     */
+    val presentAnyway: Boolean = true,
 ) {
     /** This profile with [later] laid over it — a higher-priority pack retuning some of it. */
     fun mergedWith(later: PresetProfile): PresetProfile =
-        PresetProfile(tags + later.tags, later.readiness ?: readiness, dropped + later.dropped, replaces || later.replaces)
+        PresetProfile(
+            tags + later.tags,
+            later.readiness ?: readiness,
+            dropped + later.dropped,
+            replaces || later.replaces,
+            // A later pack saying nothing about this leaves the earlier answer standing, as `readiness` does.
+            later.presentAnyway && presentAnyway,
+        )
 
     /**
      * This profile laid over what was **derived** for the same member (`notes/the-tag-layer.md` §5).
@@ -1050,8 +1083,9 @@ data class PresetProfile(
                 Codec.STRING.listOf().optionalFieldOf("drop", emptyList())
                     .forGetter { it.dropped.toList() },
                 Codec.BOOL.optionalFieldOf("replace", false).forGetter(PresetProfile::replaces),
-            ).apply(instance) { tags, readiness, dropped, replaces ->
-                PresetProfile(tags, readiness.orElse(null), dropped.toSet(), replaces)
+                Codec.BOOL.optionalFieldOf("present_anyway", true).forGetter(PresetProfile::presentAnyway),
+            ).apply(instance) { tags, readiness, dropped, replaces, presentAnyway ->
+                PresetProfile(tags, readiness.orElse(null), dropped.toSet(), replaces, presentAnyway)
             }
         }
     }

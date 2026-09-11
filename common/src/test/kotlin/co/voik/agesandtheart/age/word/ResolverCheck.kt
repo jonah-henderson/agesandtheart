@@ -11,6 +11,7 @@ import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.age.aspect.Aspect
 import co.voik.agesandtheart.age.aspect.Carvers
 import co.voik.agesandtheart.age.aspect.Claim
+import co.voik.agesandtheart.age.aspect.Pool
 import co.voik.agesandtheart.age.aspect.Rung
 import co.voik.agesandtheart.age.aspect.Polarity
 import co.voik.agesandtheart.age.aspect.Skew
@@ -57,6 +58,49 @@ class ResolverCheck : FunSpec({
 
     /** A book, read — null being a row that forgot the `age` page, which is a fixture bug (§4.3.1). */
     fun read(pages: List<String>) = Grammar.read(vocabulary, pages) ?: error("not a book: $pages")
+
+    /** What a sentence claims on one pool, which is the shape every mention-rule question takes. */
+    fun claimsOn(aspect: Aspect, pool: Pool, sentence: String): List<Claim> =
+        Resolver.resolve(vocabulary, read(sentence.split(" ")), SAMPLE_SEED)
+            .composition.optionsFor(aspect, 0).claimsOn(pool)
+
+    /**
+     * **Naming a member that is there anyway asks for *more* of it** — the half of design §3.3's mention
+     * rule that survives offline.
+     *
+     * A biome is present unless something strikes it, so naming one at the ordinary share would be a page
+     * read, charged for, and worth nothing. The bump is what makes the word mean something.
+     *
+     * **The other half cannot be checked here, and it is worth knowing why.** A member the world would
+     * *not* otherwise have — a volcano — takes no bump and goes in at the ordinary share instead, moved
+     * from there by the rest of the sentence. Every such member this pack has is one of ours, and ours are
+     * datapack placed features: the offline vocabulary is built from `MinecraftRegistries.worldgen`, which
+     * is vanilla's, so `volcano` is not a word here at all and the sentence resolves to nothing. It is
+     * measured on a real server instead — `decisions.md`, "A word brings what it names, once" — which is
+     * also how both bugs in it were found while this suite stayed green.
+     */
+    test("naming a biome asks for more of it") {
+        val forest = claimsOn(Aspect.BIOMES, Biomes.GROWN, "age hills landmass forest biomes")
+            .single { it.value == "minecraft:forest" }
+        check(forest.density > Rung.ORDINARY) {
+            "naming a biome asked for ${forest.density} of it, where being named is meant to ask for more"
+        }
+    }
+
+    /**
+     * And that the exemption reaches **only what a word actually named** — the second bug, which the whole
+     * suite stayed green through and a server caught in one line.
+     *
+     * Exempting every not-present-anyway member from `nothingToSay` stopped an ordinary weight being
+     * silence *at all* for them, so a sentence about diamonds came back claiming ten features of ours that
+     * it had never mentioned.
+     */
+    test("a sentence that never mentioned a feature of ours does not claim one") {
+        val claimed = claimsOn(Aspect.FEATURES, Features.PLACES, "age hills landmass ore_diamond features")
+        check(claimed.map { it.value } == listOf("minecraft:ore_diamond")) {
+            "a sentence naming one feature claimed ${claimed.map { it.value }}"
+        }
+    }
 
     /**
      * **A ramp keeps the order it was written in, and a wall of two rocks does not.**
