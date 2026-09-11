@@ -22,6 +22,16 @@ object MagmaChambers {
     /** The placed feature a writer names, and the id everything else keys on. */
     val ID: Identifier = "magma_chamber".location()
 
-    /** Whether this composition asks for them — the terrain's question, which has no amount in it. */
-    fun askedFor(composition: AgeComposition): Boolean = Features.claimNaming(composition, ID) != null
+    /**
+     * **How many of them this composition asks for**, or null where it asks for none.
+     *
+     * The amount and not merely the fact, which is what the terrain has to read: this answered a plain
+     * `Boolean` until 2026-09-11, so `teeming magma_chamber` cut exactly as many hollows as
+     * `magma_chamber` did and the quantifier reached only the vents seated in them. See
+     * [co.voik.agesandtheart.worldgen.VolcanoField.cellFor].
+     */
+    fun amountIn(composition: AgeComposition): Double? = Features.claimNaming(composition, ID)?.density
+
+    /** Whether this composition asks for them at all — [amountIn] is what the terrain wants. */
+    fun askedFor(composition: AgeComposition): Boolean = amountIn(composition) != null
 }

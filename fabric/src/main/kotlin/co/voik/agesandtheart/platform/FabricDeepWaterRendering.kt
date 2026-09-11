@@ -20,12 +20,25 @@ object FabricDeepWaterRendering {
     /**
      * **Our own sprites, and the only thing ours about them is the alpha.**
      *
-     * They are Mojang's water frames with every pixel taken to full opacity, animation `.mcmeta` and all.
+     * They are Mojang's water frames at a uniform alpha of our own, animation `.mcmeta` and all.
      * `Material`'s `forceTranslucent` flag only ever *forces* translucency — it cannot take it away — so
      * whether a fluid can be seen through is decided by whether its sprite has any alpha in it, and
      * vanilla's water is a uniform 180. Referencing the shared sprite meant an abyss you could back away
      * from and look straight through to line up a swim (Jonah, walked 2026-09-10), which no amount of
      * tinting or fog was ever going to fix.
+     *
+     * **Held at 230 on the still frames and 191 on the flowing ones** — nine tenths and three quarters of
+     * full (Jonah, walked 2026-09-11). Full opacity was the first answer to that walk and overshot: a
+     * cave opened under a cold ocean put deep water against open air, and a face you cannot see through
+     * at all reads as a *hole in the world* rather than as the sea. It is still far above vanilla's 180,
+     * so the swim cannot be lined up through it.
+     *
+     * **Two numbers because the renderer draws two sprites**, and that is the whole of how a fluid gets a
+     * per-face alpha: vanilla puts the *still* sprite on the top and bottom faces and the *flow* sprite on
+     * the four sides. So the sides are the more transparent ones, which is what a diver looking along the
+     * boundary sees. The bottom face takes the top's number rather than the sides', being drawn from the
+     * same sprite — it is only ever seen from under an overhang, and splitting it would mean a third
+     * sprite for one face.
      *
      * They need no atlas file: vanilla's `blocks.json` stitches the `block/` directory of *every*
      * namespace, so dropping a texture there is the whole of getting it onto the atlas.

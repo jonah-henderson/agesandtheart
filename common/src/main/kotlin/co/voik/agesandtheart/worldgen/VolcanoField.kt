@@ -16,7 +16,9 @@ import co.voik.agesandtheart.worldgen.field.Union
 import co.voik.agesandtheart.worldgen.field.Variation
 import co.voik.agesandtheart.worldgen.field.Warped
 import net.minecraft.core.Direction
+import co.voik.agesandtheart.age.aspect.Rung
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 /**
  * Volcanic cones, scattered over whatever landform the Age already has (design §7.1.2).
@@ -46,14 +48,14 @@ object VolcanoField {
      * from a positional factory, so asking it twice from two places gives the same answer — which is what
      * lets a feature find a summit the noise raised.
      */
-    fun sites(seed: Long): Placement = Scatter(
-        cellSize = CELL,
+    fun sites(seed: Long, amount: Double = Rung.ORDINARY): Placement = Scatter(
+        cellSize = cellFor(CELL, amount),
         leastPerCell = NONE_AT_ALL,
         mostPerCell = ONE,
         density = Density(
             atOrigin = SPARSE,
             atEdge = SPARSE,
-            falloffRadius = CELL,
+            falloffRadius = cellFor(CELL, amount),
             // Volcanic country comes in fields with quiet ground between, which is what an even sprinkle
             // over the whole world could never read as.
             patchiness = CLUSTERED,
@@ -76,8 +78,8 @@ object VolcanoField {
      * [Instanced] prices its cell scan off the templates' own reach — so the second layer costs a small
      * fraction of the first, and a column nowhere near a summit pays only for the cell walk.
      */
-    fun over(seed: Long): Volcanoes {
-        val mountains = layerOf(SHAPES, sites(seed), seed, SHOULDERS)
+    fun over(seed: Long, amount: Double = Rung.ORDINARY): Volcanoes {
+        val mountains = layerOf(SHAPES, sites(seed, amount), seed, SHOULDERS)
 
         return Volcanoes(
             cones = mountains.cones,
@@ -137,15 +139,16 @@ object VolcanoField {
      * Deep on purpose: a chamber that reached daylight would be a lava lake on a hillside, which is what
      * the small craters are for and what these are emphatically not.
      */
-    fun chambers(seed: Long): Volcanoes {
+    fun chambers(seed: Long, amount: Double = Rung.ORDINARY): Volcanoes {
+        val cell = cellFor(CHAMBER_CELL, amount)
         val placement = Scatter(
-            cellSize = CHAMBER_CELL,
+            cellSize = cell,
             leastPerCell = NONE_AT_ALL,
             mostPerCell = ONE,
             density = Density(
                 atOrigin = CHAMBERS_LIKELY,
                 atEdge = CHAMBERS_LIKELY,
-                falloffRadius = CHAMBER_CELL,
+                falloffRadius = cell,
                 patchiness = CLUSTERED,
                 patchScale = REGION,
                 patchSeed = seed + CHAMBER_SALT,
@@ -591,6 +594,30 @@ object VolcanoField {
      * met one every hundred blocks would be a tunnel nobody digs. About one per two hundred and sixty
      * square, which over a kilometre of country is a dozen or so.
      */
+    /**
+     * A scatter's cell, shrunk to hold [amount] times as many of a thing per unit of ground.
+     *
+     * **This is how a quantifier reaches terrain, and until 2026-09-11 nothing did.** `Volcanoes.askedFor`
+     * and `MagmaChambers.askedFor` answered a plain `Boolean`, so the amount a claim carried was read by
+     * the *features* half and thrown away by the terrain: `teeming magma_chamber` and `magma_chamber` built
+     * exactly the same world, and a writer who asked for more got more vents in the same few chambers
+     * (Jonah, walking V1: *"for an age written with teeming magma chambers, I still was unable to locate
+     * one on my own as a spectator"*).
+     *
+     * **The cell, not the probability.** A [Scatter] holds at most one of these per cell and the chance is
+     * already a coin-flip, so raising it could never buy more than about twice — where area goes as the
+     * square, so dividing the cell by `sqrt(amount)` scales the count per unit of ground by `amount`
+     * exactly and keeps going as far as a quantifier does.
+     *
+     * Floored well above the widest template at its largest pose, so packing them can crowd the country
+     * without instances growing into each other.
+     */
+    private fun cellFor(cell: Double, amount: Double): Double =
+        (cell / sqrt(amount.coerceAtLeast(Rung.ORDINARY))).coerceAtLeast(CLOSEST_TOGETHER)
+
+    /** Wider than the biggest cone's skirt, which is what stops a dense Age becoming one mass of rock. */
+    private const val CLOSEST_TOGETHER = 80.0
+
     private const val CHAMBER_CELL = 260.0
     private const val CHAMBERS_LIKELY = 0.45
 

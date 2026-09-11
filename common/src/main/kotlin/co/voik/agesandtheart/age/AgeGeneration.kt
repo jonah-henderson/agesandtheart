@@ -645,8 +645,11 @@ object AgeGeneration {
      * may ask for. What stands above one is the volcano's business and not theirs.
      */
     internal fun volcanicOverlay(composition: AgeComposition, seed: Long): Overlay {
-        val volcanoes = if (Volcanoes.askedFor(composition)) VolcanoField.over(seed) else null
-        val chambers = if (MagmaChambers.askedFor(composition)) VolcanoField.chambers(seed) else null
+        // **The amount, not merely the fact.** Read as a number here so a quantifier reaches the rock: a
+        // claim's density scales the scatter that places these, where until 2026-09-11 the terrain asked a
+        // yes-or-no question and `teeming volcano` built the same mountains as `volcano`.
+        val volcanoes = Volcanoes.amountIn(composition)?.let { VolcanoField.over(seed, it) }
+        val chambers = MagmaChambers.amountIn(composition)?.let { VolcanoField.chambers(seed, it) }
         // **Named, because both bodies are lava and a feature has to find its own.** See [StandingFluid.named].
         return Overlay(
             raises = volcanoes?.cones,

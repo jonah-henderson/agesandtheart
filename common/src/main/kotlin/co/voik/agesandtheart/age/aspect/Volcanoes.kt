@@ -26,6 +26,16 @@ object Volcanoes {
     /** The placed feature a writer names, and the id everything else keys on. */
     val ID: Identifier = "volcano".location()
 
-    /** Whether this composition asks for volcanoes — the terrain's question, which has no amount in it. */
-    fun askedFor(composition: AgeComposition): Boolean = Features.claimNaming(composition, ID) != null
+    /**
+     * **How many of them this composition asks for**, or null where it asks for none.
+     *
+     * The amount and not merely the fact. This answered a plain `Boolean` until 2026-09-11, so a quantifier
+     * reached the vents and the buried tubes and never the mountains — `teeming volcano` raised exactly as
+     * many cones as `volcano` did, and put four times the vents in them. See
+     * [co.voik.agesandtheart.worldgen.VolcanoField.cellFor].
+     */
+    fun amountIn(composition: AgeComposition): Double? = Features.claimNaming(composition, ID)?.density
+
+    /** Whether this composition asks for volcanoes at all — [amountIn] is what the terrain wants. */
+    fun askedFor(composition: AgeComposition): Boolean = amountIn(composition) != null
 }
