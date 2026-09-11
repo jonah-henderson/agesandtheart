@@ -2,6 +2,7 @@ package co.voik.agesandtheart.age.phenomena
 
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import net.minecraft.core.particles.ParticleTypes
 import net.minecraft.network.syncher.SynchedEntityData
 import net.minecraft.server.level.ServerLevel
@@ -24,8 +25,10 @@ import kotlin.math.sin
  * bomb used to look for the floor under itself and pour lava into it, which meant asking where the ground
  * was in the middle of an explosion that had just moved it — and got it wrong the obvious way, hanging a
  * source block in the air over the hole it had dug. A gobbet has no opinion about any of that. It falls,
- * and whatever it lands on is by definition the floor: the crater settles itself, and the pool it ends up
- * with is the shape of the hole rather than a guess at it.
+ * and whatever it comes down *onto* is by definition the floor: the crater settles itself, and the pool it
+ * ends up with is the shape of the hole rather than a guess at it.
+ *
+ * *Onto* is load-bearing and was learned the hard way underground — see [settle].
  *
  * Being thrown rather than dropped is what spreads them. They come off the burst outward and upward, so a
  * hit on a slope splashes downhill and a hit in a crater falls back into it.
@@ -43,14 +46,29 @@ class LavaDroplet(type: EntityType<out LavaDroplet>, level: Level) : ThrowablePr
     }
 
     /**
-     * Turn to lava where this came to rest.
+     * Turn to lava where this came to rest — **which has to be a floor, and has to be one it fell onto**.
      *
      * Laid in the space *this side* of the face it struck, which is the block it would occupy — putting it
      * inside the block it hit would replace whatever it landed on, so a gobbet would eat the ground rather
      * than pool on it.
+     *
+     * **Two refusals, both walked on 2026-09-11 in a magma chamber.** A bomb thrown up a chamber bursts
+     * against the roof, and its gobbets went straight up into that roof and stuck there — lava hanging off
+     * a ceiling and pouring down it, which reads as a fault rather than as an eruption (Jonah). So:
+     *
+     * - **nothing settles while it is still rising.** A gobbet on its way up has not landed on anything; it
+     *   has run into something.
+     * - **and only the top of a block counts as a floor.** A wall or a ceiling is not somewhere lava pools,
+     *   and a gobbet that clips one is simply spent. Lava still runs *down* a wall — from the ledge above
+     *   it that a gobbet did land on, which is the reading Jonah kept deliberately.
+     *
+     * The two are not the same test and both are wanted: a gobbet falling into a sloped crack can strike a
+     * side face on the way down, and one thrown flat can strike a floor while still rising a little.
      */
     private fun settle(level: ServerLevel, hit: HitResult) {
-        val at = if (hit is BlockHitResult) hit.blockPos.relative(hit.direction) else blockPosition()
+        if (deltaMovement.y > FALLING) return
+        if (hit !is BlockHitResult || hit.direction != Direction.UP) return
+        val at = hit.blockPos.relative(hit.direction)
         val standing = level.getBlockState(at)
         // Somewhere already molten, or somewhere with no room: either way this one is simply spent. Both
         // matter — without them a volcano would keep stacking lava into ground that had already flooded.
@@ -69,6 +87,12 @@ class LavaDroplet(type: EntityType<out LavaDroplet>, level: Level) : ThrowablePr
     override fun getDefaultGravity(): Double = HEAVY
 
     companion object {
+        /**
+         * At rest or on the way down. Zero rather than a tolerance: a gobbet's whole arc is drawn by
+         * gravity, so anything with upward motion left in it has not finished rising.
+         */
+        private const val FALLING = 0.0
+
         private const val HEAVY = 0.07
         private const val NO_DRIFT = 0.0
         private const val HALF = 0.5

@@ -8,6 +8,8 @@ import net.minecraft.world.item.Items
 import net.minecraft.world.level.block.LiquidBlock
 import net.minecraft.world.level.block.SoundType
 import net.minecraft.world.level.block.state.BlockBehaviour
+import net.minecraft.tags.FluidTags
+import net.minecraft.world.level.material.Fluid
 import net.minecraft.world.level.material.MapColor
 import net.minecraft.world.level.material.PushReaction
 import net.neoforged.neoforge.fluids.BaseFlowingFluid
@@ -27,9 +29,35 @@ import net.neoforged.neoforge.registries.RegisterEvent
  * the thing a player actually experiences.
  */
 object NeoForgeDeepWater {
+
+    /**
+     * **Any water counts as the same fluid** — the one thing `BaseFlowingFluid` gives no builder hook for,
+     * and the reason these two subclasses exist at all.
+     *
+     * `FluidRenderer.getHeight` fills a fluid's block to the brim only when the fluid above it is the same
+     * one, so deep water under an ordinary sea rendered an eighth of a block short and left a visible
+     * horizontal gap between the two bodies (Jonah, walked 2026-09-11 on Fabric). The other reader is
+     * `FlowingFluid.hasSameAbove`, which decides the fluid's *physical* height — and a block of deep water
+     * with a sea on top of it is plainly full.
+     *
+     * Nothing about flow moves: every other `isSame` in the fluid engine asks the *neighbour's*
+     * implementation with deep water as the argument, and vanilla's water still answers no.
+     *
+     * Kept in step with `FabricDeepWater.isSame` by hand, which is what the note at the top of this file
+     * means about the two loaders not drifting on what a player experiences.
+     */
+    private class DeepSource(properties: BaseFlowingFluid.Properties) : BaseFlowingFluid.Source(properties) {
+        override fun isSame(fluid: Fluid): Boolean = fluid.`is`(FluidTags.WATER)
+    }
+
+    /** [DeepSource]'s twin; `BaseFlowingFluid` splits the pair and the rule belongs to both. */
+    private class DeepFlowing(properties: BaseFlowingFluid.Properties) : BaseFlowingFluid.Flowing(properties) {
+        override fun isSame(fluid: Fluid): Boolean = fluid.`is`(FluidTags.WATER)
+    }
+
     private var type: FluidType? = null
-    private var stillFluid: BaseFlowingFluid.Source? = null
-    private var flowingFluid: BaseFlowingFluid.Flowing? = null
+    private var stillFluid: DeepSource? = null
+    private var flowingFluid: DeepFlowing? = null
     private var liquid: LiquidBlock? = null
 
     val still: BaseFlowingFluid.Source get() = checkNotNull(stillFluid) { "Deep water asked for before build()" }
@@ -63,8 +91,8 @@ object NeoForgeDeepWater {
             .tickRate(WATERS_OWN_TICK_DELAY)
             .explosionResistance(EXPLOSION_RESISTANCE)
 
-        stillFluid = BaseFlowingFluid.Source(properties)
-        flowingFluid = BaseFlowingFluid.Flowing(properties)
+        stillFluid = DeepSource(properties)
+        flowingFluid = DeepFlowing(properties)
 
         liquid = DeepWaterBlock(
             still,
