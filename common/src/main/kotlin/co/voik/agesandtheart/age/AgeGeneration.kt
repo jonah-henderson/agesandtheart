@@ -36,6 +36,7 @@ import co.voik.agesandtheart.location
 import co.voik.agesandtheart.worldgen.AgeChunkGenerator
 import co.voik.agesandtheart.worldgen.AgeRock
 import co.voik.agesandtheart.worldgen.CeilingField
+import co.voik.agesandtheart.worldgen.Overlay
 import co.voik.agesandtheart.worldgen.VolcanoField
 import co.voik.agesandtheart.worldgen.SpireChunkGenerator
 import co.voik.agesandtheart.worldgen.VerticalWindow
@@ -136,6 +137,11 @@ object AgeGeneration {
         // rock rather than a landform asked for a field it has none of.
         val ourGround = if (Terrain.VANILLA in composition.terrains) null
         else ourGround(composition, landmass, ground, window, seed, torn)
+        // **Built whether or not there is a landform of ours**, which is the whole point of it: an Age
+        // wearing vanilla's rock still gets its mountains, written into the chunk after vanilla's own fill.
+        // `ourGround` has already folded this same object into its field tree, so only the other path reads
+        // it from here — see [Overlay].
+        val overlay = volcanicOverlay(composition, seed)
 
         val chasm = ourGround?.chasm
         val standing = ourGround?.standing
@@ -148,7 +154,9 @@ object AgeGeneration {
             composition.optionsFor(Aspect.SEA, 0),
             flow,
             seed,
-        ).copy(dry = chasm, wet = standing, carried = ourGround?.lakes.orEmpty())
+            // **The bodies are carried whichever path built them**, because `VolcanoVents` finds its lava
+            // through this and would otherwise seat no vents at all in a vanilla-rock Age.
+        ).copy(dry = chasm, wet = standing, carried = overlay.pours)
 
         // What the rock *is*, on the terrain's own map, laid by the fill rather than painted by a rule — which
         // is what lets vanilla's surface tree keep its skin over our fill (see [TerrainFill]).
@@ -294,6 +302,8 @@ object AgeGeneration {
             woundsPerDay = worsening,
             collapseTears = collapse,
             writtenAt = recipe.writtenAt,
+            // Read only where the rock is vanilla's; a landform of ours folded the same object in already.
+            overlay = if (ourGround == null) overlay else Overlay.NONE,
         )
     }
 
@@ -530,13 +540,17 @@ object AgeGeneration {
         //
         // **The chambers answer their own claim**, so deep magma with no surface expression is a world a
         // writer may ask for. What stands above one is the volcano's business and not theirs.
-        val volcanoes = if (Volcanoes.askedFor(composition)) VolcanoField.over(seed) else null
-        val chambers = if (MagmaChambers.askedFor(composition)) VolcanoField.chambers(seed) else null
-        val cones = volcanoes?.cones
+        //
+        // **Built as an [Overlay] rather than folded in here**, so the same statement serves an Age with a
+        // landform of ours and one wearing vanilla's rock. This path folds it into the field tree, where it
+        // is analytic and free; the generator writes it into the chunk for the other. Before that, a word
+        // like `volcano` was taken, charged for and scored, and then produced no mountains at all.
+        val volcanic = volcanicOverlay(composition, seed)
+        val cones = volcanic.raises
         val raised = Union(listOfNotNull(shape, cones, lid)).takeIf { cones != null || lid != null } ?: shape
         // The magma chambers are taken out of everything, cones included: a hollow in a volcano's own root
         // is exactly where one belongs, and the pool poured into it below is the same shape.
-        val standingRock = if (chambers == null) raised else Subtract(raised, chambers.cones)
+        val standingRock = if (volcanic.hollows == null) raised else Subtract(raised, volcanic.hollows)
         return OurGround(
             // The rock the underground was taken out of is **handed to the generator rather than to the
             // sea**. A flat waterline fills any empty space beneath it, so a shape-cut cave or hall comes
@@ -555,10 +569,7 @@ object AgeGeneration {
             // level lake — where fluid may stand is vanilla's fluid to know, and it only knows one block
             // at a time — where the field already knows the crater's floor, its walls and its rim.
             // **Named, because both are lava and a feature has to find its own.** See [StandingFluid.named].
-            lakes = listOfNotNull(
-                volcanoes?.lakes?.let { StandingFluid(it, LAVA, StandingFluid.CRATER_LAKES) },
-                chambers?.lakes?.let { StandingFluid(it, LAVA, StandingFluid.CHAMBER_POOLS) },
-            ),
+            lakes = volcanic.pours,
         )
     }
 
@@ -619,7 +630,31 @@ object AgeGeneration {
             .getOrThrow(ResourceKey.create(Registries.BIOME, PLASMA_BIOME)),
     )
 
-    /** The biome a great hall is, rather than whichever cave biome its climate would otherwise name. */
+    /**
+     * The mountains, the chambers and the lava in both, as one statement (design §7.1.2).
+     *
+     * **Built here rather than inside the field tree, so both kinds of Age can honour it.** The cones are a
+     * layer over whatever ground there is and the chambers are cut out of it, which is the same intent
+     * whether the ground came from a field of ours or from vanilla's router — see [Overlay], which exists
+     * because expressing it only one way meant a writer could say `volcano` and get no mountains.
+     *
+     * **The chambers answer their own claim**, so deep magma with no surface expression is a world a writer
+     * may ask for. What stands above one is the volcano's business and not theirs.
+     */
+    internal fun volcanicOverlay(composition: AgeComposition, seed: Long): Overlay {
+        val volcanoes = if (Volcanoes.askedFor(composition)) VolcanoField.over(seed) else null
+        val chambers = if (MagmaChambers.askedFor(composition)) VolcanoField.chambers(seed) else null
+        // **Named, because both bodies are lava and a feature has to find its own.** See [StandingFluid.named].
+        return Overlay(
+            raises = volcanoes?.cones,
+            hollows = chambers?.cones,
+            pours = listOfNotNull(
+                volcanoes?.lakes?.let { StandingFluid(it, LAVA, StandingFluid.CRATER_LAKES) },
+                chambers?.lakes?.let { StandingFluid(it, LAVA, StandingFluid.CHAMBER_POOLS) },
+            ),
+        )
+    }
+
     /**
      * Where this Age's abyss begins, or null for one that has none — a sea too shallow, or no sea at all.
      *
@@ -660,6 +695,7 @@ object AgeGeneration {
 
     private val ABYSS_BIOME: Identifier = "abyss".location()
 
+    /** The biome a great hall is, rather than whichever cave biome its climate would otherwise name. */
     private fun greatHallBiome(server: MinecraftServer): Holder<Biome> =
         server.registryAccess().lookupOrThrow(Registries.BIOME)
             .getOrThrow(ResourceKey.create(Registries.BIOME, GREAT_HALL_BIOME))

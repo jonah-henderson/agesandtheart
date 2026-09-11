@@ -80,7 +80,9 @@ import net.minecraft.resources.Identifier
  *    `(x, z) -> Spans` where a density function answers `(x, y, z) -> double` on an interpolated cell
  *    grid, and interpolation is what rounds off a `Box`'s faces.
  * 2. [getBaseHeight] and 3. [getBaseColumn] — the same decision from two more angles. These must *agree*
- *    with the fill, since structures and features place against them.
+ *    with the fill, since structures and features place against them. **Which is why an [Overlay] is
+ *    honoured by all three and not just the fill**: a cone raised only in the fill would have vanilla put
+ *    the trees and the villages on the ground *inside* it.
  * 4. [applyCarvers], because an Age's carvers come from its **recipe**, not its biome. Otherwise vanilla's
  *    own algorithm, with one substitution: the source of the list.
  *
@@ -183,6 +185,14 @@ class AgeChunkGenerator(
      * generator and the fast-forward read the same function rather than one of them inferring.
      */
     writtenAt: Long = 0L,
+    /**
+     * Shape of ours laid over whatever rock this Age wears — see [Overlay].
+     *
+     * **Only the vanilla-rock path reads it here.** A landform of ours has already folded the same object
+     * into its own field tree, where it costs nothing; this is the other half of that bargain, and what
+     * stops a word like `volcano` being accepted and then ignored.
+     */
+    val overlay: Overlay = Overlay.NONE,
 ) : NoiseBasedChunkGenerator(
     biomes,
     when (rock) {
@@ -338,7 +348,13 @@ class AgeChunkGenerator(
         chunk: ChunkAccess,
     ): CompletableFuture<ChunkAccess> {
         val ours = rock as? AgeRock.Ours
+            // **Vanilla's rock, and then ours on top of it.** Chained rather than done afterwards so it
+            // lands inside the noise stage, which is what gets it surfaced: `buildSurface` runs next and
+            // paints whatever it finds, so a cone comes out with the biome's own grass or snow or
+            // netherrack on it. A feature could not — it may write only one chunk past its own, and it
+            // would arrive after the surface was already decided.
             ?: return super.fillFromNoise(blender, randomState, structureManager, chunk)
+                .thenApply { filled -> filled.also { layOverlayInto(it) } }
         val chunkMinX = chunk.pos.minBlockX
         val chunkMinZ = chunk.pos.minBlockZ
         val oceanFloor = chunk.getOrCreateHeightmapUnprimed(Heightmap.Types.OCEAN_FLOOR_WG)
@@ -496,6 +512,50 @@ class AgeChunkGenerator(
     // --- Surface height contract: honest answers so structures/features land on the terrain. ---
 
     /**
+     * Write this Age's [Overlay] into a chunk vanilla has just filled.
+     *
+     * **The column is done in one pass, top-level order: raise, hollow, pour.** Raising first means a
+     * caldera can be cut out of the cone that was only just built, and pouring last means a lake stands in
+     * whatever the other two left — which is the same order [Overlay.foldedInto] composes the fields in, so
+     * the two paths cannot come to disagree.
+     *
+     * **Written through the chunk rather than the level**, as `Collapse.carveInto` is and for the same
+     * reason: this runs while the chunk is still being built, where the neighbour and lighting bookkeeping
+     * `setBlock` carries has nothing to do.
+     *
+     * **Vanilla's carvers run after this and may cut straight through a cone**, which is accepted (Jonah,
+     * 2026-09-11): a volcano with a cave through it is a volcano with a cave through it.
+     */
+    private fun layOverlayInto(chunk: ChunkAccess) {
+        if (overlay.isEmpty) return
+        val rockHere = generationSettings.defaultBlock
+        val oceanFloor = chunk.getOrCreateHeightmapUnprimed(Heightmap.Types.OCEAN_FLOOR_WG)
+        val worldSurface = chunk.getOrCreateHeightmapUnprimed(Heightmap.Types.WORLD_SURFACE_WG)
+        val cursor = BlockPos.MutableBlockPos()
+        val lowest = chunk.minY
+        val highest = chunk.minY + chunk.height - 1
+        for (localX in 0..<BLOCKS_PER_SECTION) {
+            for (localZ in 0..<BLOCKS_PER_SECTION) {
+                val worldX = chunk.pos.minBlockX + localX
+                val worldZ = chunk.pos.minBlockZ + localZ
+                val column = overlay.at(worldX, worldZ)
+                if (column.saysNothing) continue
+                column.forEachBlock(rockHere) { y, state ->
+                    if (y in lowest..highest) {
+                        cursor.set(worldX, y, worldZ)
+                        chunk.setBlockState(cursor, state)
+                        // Both heightmaps are re-derived by walking the chunk back down where a write
+                        // *removes* ground, so cutting a caldera lowers the surface rather than leaving
+                        // the cone's old summit standing in a structure's way.
+                        oceanFloor.update(localX, y, localZ, state)
+                        worldSurface.update(localX, y, localZ, state)
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * The first Y *above* the topmost block this column has that [type] counts as ground. Structures place
      * against this and nothing else, so it is answered exactly rather than approximated. Which blocks
      * count is [type]'s business and is asked rather than guessed — getting it wrong puts a shipwreck on
@@ -506,7 +566,7 @@ class AgeChunkGenerator(
      * rather than the sea level, which for a void sea was `Int.MIN_VALUE` and overflowed.
      */
     override fun getBaseHeight(x: Int, z: Int, type: Heightmap.Types, level: LevelHeightAccessor, randomState: RandomState): Int {
-        val ours = rock as? AgeRock.Ours ?: return super.getBaseHeight(x, z, type, level, randomState)
+        val ours = rock as? AgeRock.Ours ?: return overlaidBaseHeight(x, z, type, level, randomState)
         val counts = type.isOpaque()
         // One below the world, so a column with nothing this query counts simply answers the floor.
         val nothing = level.minY - 1
@@ -523,8 +583,47 @@ class AgeChunkGenerator(
         return (maxOf(rockTop, maxOf(mediumTop, carriedTop)) + 1).coerceIn(level.minY, level.maxY + 1)
     }
 
+    /**
+     * Vanilla's own height, **with the overlay laid over it** — the second of the three exits that have to
+     * agree about a cone (see [Overlay.Column]).
+     *
+     * Answered against vanilla's real column rather than the overlay alone, because the overlay only knows
+     * what *it* put here: the ground a cone stands on is vanilla's, and so is the ground under a chamber
+     * the overlay hollowed. Composing the two is the only way to get "the top of the mountain" rather than
+     * "the top of the mountain, or the field under it, whichever we happened to ask".
+     *
+     * **The cheap case is the overwhelmingly common one.** An overlay whose highest opinion lies below the
+     * ground vanilla already reported cannot have moved the surface, so it returns vanilla's answer without
+     * building a column — which is every column of every Age that named no feature, and every column of a
+     * volcanic one but the few hundred round a cone.
+     */
+    private fun overlaidBaseHeight(
+        x: Int,
+        z: Int,
+        type: Heightmap.Types,
+        level: LevelHeightAccessor,
+        randomState: RandomState,
+    ): Int {
+        val vanillaHeight = super.getBaseHeight(x, z, type, level, randomState)
+        if (overlay.isEmpty) return vanillaHeight
+        val column = overlay.at(x, z)
+        val overlayTop = column.topmostY ?: return vanillaHeight
+        // `vanillaHeight` is one *above* the topmost block it counts, so the overlay is clear of the
+        // surface only when it stops below that block — not merely below the height.
+        if (overlayTop < vanillaHeight - 1) return vanillaHeight
+        val counts = type.isOpaque()
+        val rockHere = generationSettings.defaultBlock
+        val vanilla = super.getBaseColumn(x, z, level, randomState)
+        val from = minOf(level.maxY, maxOf(overlayTop, vanillaHeight - 1))
+        for (y in from downTo level.minY) {
+            if (counts.test(column.blockAt(y, rockHere) ?: vanilla.getBlock(y))) return y + 1
+        }
+        // What vanilla answers for a column holding nothing this query counts.
+        return level.minY
+    }
+
     override fun getBaseColumn(x: Int, z: Int, level: LevelHeightAccessor, randomState: RandomState): NoiseColumn {
-        val ours = rock as? AgeRock.Ours ?: return super.getBaseColumn(x, z, level, randomState)
+        val ours = rock as? AgeRock.Ours ?: return overlaidBaseColumn(x, z, level, randomState)
         val spans = ours.field.columnSpans(x, z)
         val sea = seaFill.blockAt(x, z)
         val dryness = seaFill.drynessAt(x, z)
@@ -543,6 +642,26 @@ class AgeChunkGenerator(
             }
         }
         return NoiseColumn(window.minY, column)
+    }
+
+    /**
+     * And the third exit: vanilla's column with the overlay written through it.
+     *
+     * Rebuilt over the *level's* range rather than vanilla's own, which is the same range and is the one
+     * thing reachable from here — `NoiseColumn` hands back air for any Y outside itself, so the two agree
+     * where they overlap and nothing is invented where they do not.
+     */
+    private fun overlaidBaseColumn(x: Int, z: Int, level: LevelHeightAccessor, randomState: RandomState): NoiseColumn {
+        val vanilla = super.getBaseColumn(x, z, level, randomState)
+        if (overlay.isEmpty) return vanilla
+        val column = overlay.at(x, z)
+        if (column.saysNothing) return vanilla
+        val rockHere = generationSettings.defaultBlock
+        val blocks = Array(level.height) { index ->
+            val y = level.minY + index
+            column.blockAt(y, rockHere) ?: vanilla.getBlock(y)
+        }
+        return NoiseColumn(level.minY, blocks)
     }
 
     /**
@@ -862,8 +981,10 @@ class AgeChunkGenerator(
                 // And absent for every Age that is not ending.
                 Codec.INT.optionalFieldOf("collapse_tears", Collapse.NONE).forGetter { it.consequence.collapseTears },
                 Codec.LONG.optionalFieldOf("written_at", 0L).forGetter { it.consequence.writtenAt },
+                // Absent for every Age that asked for no shape of ours over its rock.
+                Overlay.CODEC.codec().optionalFieldOf("overlay", Overlay.NONE).forGetter { it.overlay },
             ).apply(instance) { biomes, rock, seaFill, rule, carvers, underground, tables, structures, climate,
-                                fill, window, wounds, worsening, collapse, writtenAt ->
+                                fill, window, wounds, worsening, collapse, writtenAt, overlay ->
                 AgeChunkGenerator(
                     biomes, rock, seaFill, rule, carvers, underground, tables, structures,
                     climate.orElse(null), fill, window,
@@ -871,6 +992,7 @@ class AgeChunkGenerator(
                     woundsPerDay = worsening,
                     collapseTears = collapse,
                     writtenAt = writtenAt,
+                    overlay = overlay,
                 )
             }
         }
