@@ -57,6 +57,36 @@ class FieldCostCheck : FunSpec({
     }
 
     /**
+     * **How much rock a volcanic Age adds**, which is the other half of what a chunk costs.
+     *
+     * A field being asked its shape is one thing; every block it answers with has to be *written*, and then
+     * surfaced, and then counted into two heightmaps. A cone is a mountain — so if naming `volcano` makes a
+     * chunk slower, the first place to look is not the arithmetic but the sheer number of blocks that
+     * arithmetic asks for.
+     */
+    test("how much rock each volcanic field adds per column, for reading") {
+        val volcanoes = VolcanoField.over(SEED, WRITTEN)
+        val chambers = VolcanoField.chambers(SEED, WRITTEN)
+        val fields = listOf(
+            "cones" to volcanoes.cones,
+            "crater lakes" to volcanoes.lakes,
+            "chamber hollows" to chambers.cones,
+            "chamber pools" to chambers.lakes,
+        )
+        println("  blocks added per column, averaged over ${ACROSS * 2}x${ACROSS * 2} blocks:")
+        for ((named, field) in fields) {
+            var blocks = 0L
+            for (x in -ACROSS..ACROSS step STRIDE) {
+                for (z in -ACROSS..ACROSS step STRIDE) {
+                    for (range in field.columnSpans(x, z).ranges) blocks += range.last - range.first + 1
+                }
+            }
+            val each = blocks / columns()
+            println("    ${named.padEnd(18)} $each blocks/column  (${each * COLUMNS_IN_A_CHUNK} a chunk)")
+        }
+    }
+
+    /**
      * **How much of the work a cull can save**, which is the number that justified having one.
      *
      * `Instanced` walks every cell within the *largest* pose's reach and evaluates whatever each cell drew.
@@ -91,6 +121,9 @@ class FieldCostCheck : FunSpec({
 
         private const val MICROS_PER_MILLI = 1000
         private const val PERCENT = 100
+
+        /** 16 x 16, which is what turns a per-column figure into a per-chunk one. */
+        private const val COLUMNS_IN_A_CHUNK = 256
 
         private fun columns(): Int {
             val side = (ACROSS * 2 / STRIDE) + 1
