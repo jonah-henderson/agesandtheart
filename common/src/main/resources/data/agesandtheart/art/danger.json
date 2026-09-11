@@ -50,7 +50,6 @@
     "EVERY MEASURED SCORE RECORDED BEFORE THIS DATE IS STALE, including the calibration neighbourhood in",
     "scripts/checks/visual-backlog.txt item 1 and the 0.45 that was about to be written into `pays_above`."
   ],
-
   "weights": {
     "materials": 0.28,
     "spawns": 0.24,
@@ -58,14 +57,11 @@
     "features": 0.17,
     "lighting": 0.07
   },
-
   "pays_above": 0.25,
-
   "spawns_full": 2.0,
   "phenomena_full": 1.5,
   "confined_weight": 0.25,
   "wound_hostility": 0.5,
-
   "materials": {
     "minecraft:lava": 0.7,
     "minecraft:fire": 0.9,
@@ -82,7 +78,6 @@
     "minecraft:cobweb": 0.2,
     "minecraft:sweet_berry_bush": 0.15
   },
-
   "spawns": {
     "monsters": 0.3,
     "minecraft:warden": 1.0,
@@ -110,22 +105,20 @@
     "minecraft:endermite": 0.1,
     "minecraft:silverfish": 0.1
   },
-
   "phenomena": {
     "inferno": 1.0,
     "blizzard": 0.8,
     "sandfall": 0.8,
-  "meteors": 0.85,
+    "meteors": 0.85,
+    "tectonics": 0.9,
     "tempest": 0.7,
     "aurora": 0.0,
     "rainbow": 0.0
   },
-
   "lighting": {
     "sealed": 0.55,
     "lightless": 0.35
   },
-
   "features": {
     "agesandtheart:volcano": 1.0,
     "agesandtheart:firespout": 0.7,

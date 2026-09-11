@@ -1,0 +1,31 @@
+{
+  "_comment": [
+    "What a cave-in will not take, however much else it takes (design 5.3).",
+    "",
+    "**A cave-in eats absolutely everything otherwise** (Jonah, 2026-09-11) -- terrain, builds, chests,",
+    "obsidian, and bedrock, which leaves a star fissure behind it rather than a hole into the void. So this",
+    "is the whole of the fence, and it is a tag so a pack can extend it without touching the jar.",
+    "",
+    "**The star fissures are the load-bearing entry.** They are the guaranteed way out of an Age (7.8 makes",
+    "finding one the recovery path for a stranded player), so a collapse that swallowed one would be the",
+    "exact inverse of the mercy 5.3 designs for. The rest are technical: blocks a world is built OF rather",
+    "than blocks a world is made of, which a hillside coming down has no business rearranging."
+  ],
+  "replace": false,
+  "values": [
+    "agesandtheart:star_fissure",
+    "agesandtheart:collapsing_fissure",
+    "minecraft:barrier",
+    "minecraft:structure_void",
+    "minecraft:structure_block",
+    "minecraft:jigsaw",
+    "minecraft:command_block",
+    "minecraft:chain_command_block",
+    "minecraft:repeating_command_block",
+    "minecraft:light",
+    "minecraft:end_portal",
+    "minecraft:end_portal_frame",
+    "minecraft:end_gateway",
+    "minecraft:nether_portal"
+  ]
+}

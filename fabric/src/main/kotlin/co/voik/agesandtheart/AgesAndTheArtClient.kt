@@ -74,6 +74,7 @@ fun initClient() {
     EntityRendererRegistry.register(AgeContent.ASTRITE_GOLEM, ::AstriteGolemRenderer)
     // The storm is a clock standing in the sky and is drawn by the sky, not as an entity.
     EntityRendererRegistry.register(AgeContent.METEOR_STORM) { NoopRenderer(it) }
+    EntityRendererRegistry.register(AgeContent.CAVE_IN) { NoopRenderer(it) }
     BlockEntityRenderers.register(AgeContent.STAR_FISSURE_ENTITY) { StarFissureRenderer() }
     MenuScreens.register(AgeContent.WRITERS_DESK_MENU, ::WritersDeskScreen)
     MenuScreens.register(AgeContent.INK_CASE_MENU, ::InkCaseScreen)

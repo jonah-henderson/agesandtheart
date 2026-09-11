@@ -53,5 +53,13 @@
       "hostile": 0.8,
       "watery": 0.4
     }
+  },
+  "tectonics": {
+    "tags": {
+      "hostile": 0.9,
+      "stony": 1.0,
+      "eroded": 0.8,
+      "cavernous": 0.5
+    }
   }
 }

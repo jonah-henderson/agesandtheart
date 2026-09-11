@@ -183,6 +183,19 @@ enum class Phenomenon(
      * blocks of cushion rather than shattered is where the meteoric material comes from.
      */
     METEORS("meteors", inflictedBy = Manifestation.METEORS),
+
+    /**
+     * Ground that gives way under itself ([co.voik.agesandtheart.age.phenomena.CaveIns]).
+     *
+     * **The one hazard here that takes the world rather than acting on what is in it.** A tempest strikes
+     * you, a blizzard denies you; this removes the place you were standing. What makes it survivable is
+     * that it is announced in the ground itself — a swathe cracks visibly and does not move for three
+     * seconds — so the counterplay is reading the floor, which nothing else in the set asks of a player.
+     *
+     * **It insists on no weather.** Rock does not care what the sky is doing, and `insistsOn` is a floor
+     * that can only raise, so there is nothing here it could say.
+     */
+    TECTONICS("tectonics"),
     ;
 
     /**
@@ -195,7 +208,7 @@ enum class Phenomenon(
      */
     fun insistsAt(howOften: Double): AgeWeather.Conditions = when (this) {
         BLIZZARD -> AgeWeather.Conditions(rainfall = Blizzard.shareOfTheTime(howOften))
-        TEMPEST, INFERNO, AURORA, RAINBOW, SANDFALL, METEORS -> insistsOn
+        TEMPEST, INFERNO, AURORA, RAINBOW, SANDFALL, METEORS, TECTONICS -> insistsOn
     }
 
     override val aspect = Aspect.PHENOMENA

@@ -141,6 +141,7 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
         // The storm is a clock standing in the sky and is drawn by the sky, not as an entity.
         event.registerEntityRenderer(AgeContent.ASTRITE_GOLEM) { AstriteGolemRenderer(it) }
         event.registerEntityRenderer(AgeContent.METEOR_STORM) { NoopRenderer(it) }
+        event.registerEntityRenderer(AgeContent.CAVE_IN) { NoopRenderer(it) }
         // The wound's flicker and the fissure's shaft, both block entities drawn by shader rather than by
         // a baked model — the same event on this loader, where Fabric has a registry of its own.
         event.registerBlockEntityRenderer(AgeContent.STAR_FISSURE_ENTITY) { StarFissureRenderer() }

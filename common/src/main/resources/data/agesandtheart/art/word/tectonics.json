@@ -1,0 +1,21 @@
+{
+  "_comment": [
+    "Ground that gives way under itself (design 5.3). It means the phenomenon outright rather than searching",
+    "for one, which is what `VocabularyCheck` insists on for a phenomenon: a tag query -- 'the one that",
+    "breaks things' -- would also have found whatever else breaks things.",
+    "",
+    "**The only hazard in the set that takes the world rather than acting on what is in it.** A tempest",
+    "strikes you and a blizzard denies you; this removes the place you were standing on. What makes it",
+    "survivable is that it announces itself in the ground: a swathe cracks visibly and does not move for",
+    "three seconds, so the counterplay is reading the floor -- which nothing else here asks of a player.",
+    "",
+    "**One aspect, and no climate or weather bound.** Rock does not care what the sky is doing, and a",
+    "narrowing word is priced in its lowest-ordinal aspect (`Resolver.pricedIn`) with phenomena last, so a",
+    "bound here would quietly reprice this as a word about the weather. `sandfall.json` and `auroral.json`",
+    "both record that trap."
+  ],
+  "tier": "exact",
+  "chooses": {
+    "phenomena": "tectonics"
+  }
+}

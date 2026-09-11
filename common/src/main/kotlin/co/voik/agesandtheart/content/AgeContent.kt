@@ -9,6 +9,7 @@ import co.voik.agesandtheart.book.BindLinkingBookFunction
 import co.voik.agesandtheart.book.WriteFoundBookFunction
 import co.voik.agesandtheart.age.phenomena.SandColumn
 import co.voik.agesandtheart.age.phenomena.LavaDroplet
+import co.voik.agesandtheart.age.phenomena.CaveIn
 import co.voik.agesandtheart.age.phenomena.DriftingOre
 import co.voik.agesandtheart.age.phenomena.Meteor
 import co.voik.agesandtheart.age.phenomena.MeteorStorm
@@ -1055,6 +1056,25 @@ object AgeContent {
      * lowest band is to be *seen from the ground* so that up reads as the direction to explore, and a body
      * that drifts at a fifth of a block a second has nothing worth sending twenty times a second.
      */
+    /**
+     * A collapse in progress — see [co.voik.agesandtheart.age.phenomena.CaveIn].
+     *
+     * **Nothing is drawn and nothing is hit**: it is a place where something is happening, and what a
+     * player sees is the cracks it puts on the ground. Tracked only as far as its own swathe reaches, since
+     * a client that cannot see the blocks has no use for the marker either.
+     */
+    val CAVE_IN: EntityType<CaveIn> = EntityType.Builder
+        .of({ type, level -> CaveIn(type, level) }, MobCategory.MISC)
+        .sized(CAVE_IN_SIZE, CAVE_IN_SIZE)
+        // **Summonable on purpose**, which is how this gets walked at all: the phenomenon only fires near a
+        // player in a written Age, so `/summon agesandtheart:cave_in` is the instrument for looking at one.
+        .clientTrackingRange(CAVE_IN_TRACKING_CHUNKS)
+        .build(ResourceKey.create(Registries.ENTITY_TYPE, "cave_in".location()))
+
+    /** It has no body; the box is only what an entity must have. */
+    private const val CAVE_IN_SIZE = 0.5f
+    private const val CAVE_IN_TRACKING_CHUNKS = 6
+
     val DRIFTING_ORE: EntityType<DriftingOre> = EntityType.Builder
         .of({ type, level -> DriftingOre(type, level) }, MobCategory.MISC)
         .sized(DRIFTING_ORE_SIZE, DRIFTING_ORE_SIZE)
@@ -1171,6 +1191,7 @@ object AgeContent {
     val entities: List<Pair<Identifier, EntityType<*>>> = listOf(
         ASTRITE_GOLEM_ID to ASTRITE_GOLEM,
         HADALFISH_ID to HADALFISH,
+        "cave_in".location() to CAVE_IN,
         "descriptive_book".location() to BOOK_ENTITY,
         "sand_column".location() to SAND_COLUMN,
         "volcanic_bomb".location() to VOLCANIC_BOMB,
