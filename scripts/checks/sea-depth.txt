@@ -1,0 +1,69 @@
+# `shallow` and `deep`: do the new sea words actually move the waterline, and by how much?
+# Run with: scripts/drive-server.sh scripts/checks/sea-depth.txt
+#
+# These are the first words in the corpus to steer `Sea.DEPTH`, and the parameter's mapping changed under
+# them at the same time — from a flat +/-12 to a cubic reaching +/-96.
+#
+# MEASURED 2026-09-10, seed 7, over `hills` (whose own declared waterline is 63):
+#
+#     depth=-0.5      waterline y=51     -12    <-- the old flat lever's whole range, preserved exactly
+#     shallow         waterline y=40     -23
+#     (nothing)       waterline y=63       0
+#     depth=+0.5      waterline y=75     +12    <-- and the same on the way up
+#     deep            waterline y=134    +71
+#
+# `deep` read +55 when this file was first written, its span then being 0.75..0.95. It was RAISED to
+# 0.85..0.98 on 2026-09-10 after `:common:oceandepth` measured that the low end of the old span produced
+# **no abyss on any landform in the pack** — half the word's range was a dud, and a writer got deep water
+# or nothing on a seed roll they could not see.
+#
+# **The +/-0.5 pair landing on exactly +/-12 is the point of the cubic** and the thing to re-check if the
+# curve is ever touched: the fine coastal trim that `DEEPEST_SHIFT`'s old comment is right to want survives
+# in the middle of the range, and only the ends reach an abyss. If those two read as 40-odd, the exponent
+# went missing; if they read as 96, it was applied to the wrong quantity.
+#
+# **AND THE FINDING THAT MATTERS MOST — `deep` alone cannot make deep water, which is the continuity rule
+# earning its place.** At (0,0) in `seadeep` the waterline is y=118 and the probe says:
+#
+#     rock: y=-64..12, y=22..63        filled y=13..117 (63 blocks)
+#
+# — so the rock at y=22..63 splits that into TWO bodies, 9 blocks under it and 54 over it. The longest
+# *continuous* span is 54, well under `DeepWater.DEEPEST_VANILLA_SEA` (80), so no deep water may stand
+# anywhere in this column however deep the sea reads. This is exactly what design §7.1.2 means by the
+# material's gate being the water column that actually results rather than the presence of a word, and it
+# is the measured case for the abyssal landform the table still owes: `deep` supplies the surface and
+# something else has to supply a floor low enough to have 80 unbroken blocks over it.
+#
+# `/age compose` sets the parameter directly, which is the only way to ask for a value no word writes.
+# Note the spelling: the aspect and the parameter are separate tokens (`sea=water sea.depth=0.5..0.5`),
+# braces are not a thing, and a sentence opens with the `age` page.
+
+# A sentence opens with the `age` page, and `/age compose` wants a full `namespace:path` for an open aspect.
+# Both were got wrong when this file was first written; the forms below are the ones the server accepts.
+
+# The baseline: the terrain's own waterline, with nothing steering it.
+age write seaplain 7 age hills landmass water sea
+age probe seaplain 0 0
+
+# Shallow: coastlines walk out, basins keep a little water.
+age write seashallow 7 age hills landmass shallow water sea
+age probe seashallow 0 0
+
+# Deep: an abyss over drowned land.
+age write seadeep 7 age hills landmass deep water sea
+age probe seadeep 0 0
+
+# And the curve's middle, which is what the old flat lever used to be the whole of. `depth=0.5` should come
+# out at about 12 blocks up — if this reads as 40-odd, the cubic was applied twice or not at all.
+age compose seanudge 7 landmass=hills sea=water sea.depth=0.5..0.5 underground=none sky=plain
+age probe seanudge 0 0
+
+# The mirror: -0.5 should be about 12 down.
+age compose seadip 7 landmass=hills sea=water sea.depth=-0.5..-0.5 underground=none sky=plain
+age probe seadip 0 0
+
+# And that the pair genuinely contradict each other. Both words set one parameter opposite ways, so
+# `Vocabulary.antonym` should find them with nothing written into `art/antonyms/` — the write itself is
+# what reports the flaw, there being no subcommand that reads a recipe back.
+age write seaboth 7 age hills landmass shallow deep water sea
+age list

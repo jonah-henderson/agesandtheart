@@ -1,0 +1,19 @@
+{
+  "_comment": [
+    "What can be seen from across an abyss -- see `DeepLights`, which draws every one of these as an",
+    "unfogged point of light out to 120 blocks.",
+    "",
+    "**A tag rather than a list in code, because which blocks are beacons is a content decision.** The sea",
+    "lantern seeds it and an ocean monument is therefore a constellation for free; the deep-sea material",
+    "joins here when it exists, and so does anything a pack wants to navigate by.",
+    "",
+    "**Everything here draws IDENTICALLY, and that is the whole design.** An ore cluster, a monument and a",
+    "hunter's lure are one point of light at range, so approaching any of them is a decision taken without",
+    "knowing which it is. Adding something here that should be safe to approach weakens that -- the tag is",
+    "for things worth crossing an abyss to reach, not for lighting."
+  ],
+  "replace": false,
+  "values": [
+    "minecraft:sea_lantern"
+  ]
+}

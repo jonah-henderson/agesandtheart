@@ -1129,8 +1129,39 @@ object AgeContent {
     private const val GOLEM_WIDTH = 1.4f
     private const val GOLEM_HEIGHT = 2.7f
 
+    private val HADALFISH_ID: Identifier = "hadalfish".location()
+
+    /**
+     * What hunts in the abyss — see [Hadalfish].
+     *
+     * `MONSTER`, which is what it is, and the footprint is a guardian's *unscaled*: `Attributes.SCALE`
+     * multiplies the type's dimensions rather than replacing them, so declaring the big size here would
+     * square it into a fish the width of a house.
+     */
+    val HADALFISH: EntityType<Hadalfish> = EntityType.Builder
+        .of({ type, level -> Hadalfish(type, level) }, MobCategory.MONSTER)
+        .sized(GUARDIAN_WIDTH, GUARDIAN_HEIGHT)
+        .clientTrackingRange(SEEN_FROM_CHUNKS_AWAY)
+        .build(ResourceKey.create(Registries.ENTITY_TYPE, HADALFISH_ID))
+
+    /**
+     * How far away a client is told this exists, in chunks — and it is a **look** decision, not a
+     * networking one.
+     *
+     * The lure is meant to be seen from across an abyss (`HadalfishRenderer`), and the builder's default
+     * of 5 would have put a hard edge at eighty blocks that no falloff of ours could reach past. Ten is the
+     * elder guardian's, which is the widest vanilla uses, and it sits above the ~136 blocks at which
+     * `Entity.shouldRenderAtSqrDistance` stops drawing something this size — so what ends the light is the
+     * fade written for it rather than a pop.
+     */
+    private const val SEEN_FROM_CHUNKS_AWAY = 10
+
+    private const val GUARDIAN_WIDTH = 0.85f
+    private const val GUARDIAN_HEIGHT = 0.85f
+
     val entities: List<Pair<Identifier, EntityType<*>>> = listOf(
         ASTRITE_GOLEM_ID to ASTRITE_GOLEM,
+        HADALFISH_ID to HADALFISH,
         "descriptive_book".location() to BOOK_ENTITY,
         "sand_column".location() to SAND_COLUMN,
         "volcanic_bomb".location() to VOLCANIC_BOMB,

@@ -112,7 +112,11 @@ read_commands() {
         # `#?` lines were an assertion layer; acceptance is Kotest's now (:common:serverTest). They are
         # skipped rather than rejected, so an old check file still drives.
         [[ $line =~ ^[[:space:]]*#\? ]] && continue
-        line=${line%%#*}
+        # **A comment is a `#` that STARTS the line, and only that.** Stripping from the first `#` anywhere
+        # ate the block tag out of `clone … filtered #minecraft:stairs[…]` and left a command that failed
+        # to parse — which reads as the feature being broken rather than the driver eating the argument.
+        # No check file has ever used a trailing comment.
+        [[ $line =~ ^[[:space:]]*# ]] && continue
         line=${line%"${line##*[![:space:]]}"}
         [[ $line ]] || continue
         commands+=("$line")
@@ -127,9 +131,28 @@ use_throwaway_world() {
     [[ -f $PROPERTIES ]] || fail "no $PROPERTIES yet — run ./gradlew :fabric:runServer once first"
     original_level=$(sed -n 's/^level-name=//p' "$PROPERTIES")
     [[ $original_level ]] || fail "$PROPERTIES names no level-name"
+    original_pause=$(sed -n 's/^pause-when-empty-seconds=//p' "$PROPERTIES")
     trap discard_throwaway_world EXIT
     sed -i "s/^level-name=.*/level-name=$level/" "$PROPERTIES"
+    keep_ticking_while_empty
     note "drive-server: using world '$level' (yours is '$original_level', restored on exit)"
+}
+
+# Stop the server pausing itself, and this is not a nicety — it silently invalidates any measurement.
+#
+# A dedicated server with nobody connected stops ticking after `pause-when-empty-seconds` (60 by default):
+# `gameTime` freezes, random ticks stop, and every phenomenon in the mod stops with them. Nothing says so.
+# `/tick query` goes on answering, from a sample window that is no longer moving — which is how a benchmark
+# of an abyss and a benchmark of a plain sea came back byte-for-byte identical, both of them measuring a
+# server that had been asleep for a minute.
+#
+# Nobody ever connects here, so the pause is always wrong for this script. Put back on the way out.
+keep_ticking_while_empty() {
+    if [[ $original_pause ]]; then
+        sed -i "s/^pause-when-empty-seconds=.*/pause-when-empty-seconds=0/" "$PROPERTIES"
+    else
+        printf 'pause-when-empty-seconds=0\n' >> "$PROPERTIES"
+    fi
 }
 
 # Puts `server.properties` back and takes the throwaway world with it.
@@ -145,6 +168,11 @@ use_throwaway_world() {
 # seventy-six of them and a third of a gigabyte is gone.
 discard_throwaway_world() {
     sed -i "s/^level-name=.*/level-name=$original_level/" "$PROPERTIES"
+    if [[ $original_pause ]]; then
+        sed -i "s/^pause-when-empty-seconds=.*/pause-when-empty-seconds=$original_pause/" "$PROPERTIES"
+    else
+        sed -i '/^pause-when-empty-seconds=/d' "$PROPERTIES"
+    fi
     [[ $named_by_hand == no ]] || return 0
     [[ $level =~ $OURS ]] || return 0
     local world="$RUN_DIRECTORY/$level"

@@ -36,7 +36,18 @@ object AgeLooks {
                 level,
                 // Outermost but one: a storm's violet is laid over whatever the Age and its wounds had
                 // made of the light, and a sand column standing in one still blinds you through it.
-                MeteorGlow.paint(level, Storms.paint(level, Corruption.paint(level, AgeAir.paint(level, layers)))),
+                MeteorGlow.paint(
+                    level,
+                    Storms.paint(
+                        level,
+                        Corruption.paint(
+                            level,
+                            // Over the Age's air, because `murk` is a word about the Age's seas and an
+                            // abyss is not one of them — a clear Age still has a black abyss.
+                            DeepWaterFog.paint(level, AgeAir.paint(level, layers)),
+                        ),
+                    ),
+                ),
             )
         }
     }

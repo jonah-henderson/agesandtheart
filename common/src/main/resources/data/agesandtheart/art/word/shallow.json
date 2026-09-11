@@ -1,0 +1,24 @@
+{
+  "_comment": [
+    "A sea standing well below the level the terrain left it: coastlines walk out, basins keep a little",
+    "water, and the high ground grows.",
+    "",
+    "**`deep`'s antonym, and nothing had to be written to make it one.** `Vocabulary.antonym` finds two",
+    "words setting one parameter opposite ways, so the pair is an OPPOSED contradiction on its own. The",
+    "`art/antonyms/` table is about preset *tags* and has no business carrying this.",
+    "",
+    "**Gentler than `deep` is, on purpose, and the asymmetry is the honest bit.** -0.7..-0.5 is about twelve",
+    "to thirty-three blocks down -- roughly half its usual level at the far end, which is what a drained sea",
+    "reads as. Matching `deep`'s reach downward would take the waterline under most landform floors and",
+    "leave no sea at all, which is a different word than this one."
+  ],
+  "tier": "exact",
+  "biases": {
+    "sea": {
+      "#empty": -0.5
+    }
+  },
+  "sets": {
+    "depth": "-0.7..-0.5"
+  }
+}

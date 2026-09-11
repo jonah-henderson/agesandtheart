@@ -14,6 +14,7 @@ import co.voik.agesandtheart.age.phenomena.Happenings
 import co.voik.agesandtheart.age.phenomena.MeteorStorm
 import co.voik.agesandtheart.age.phenomena.Meteors
 import co.voik.agesandtheart.age.reward.EarlyGameRareMaterials
+import co.voik.agesandtheart.content.DeepWater
 import co.voik.agesandtheart.age.reward.Danger
 import co.voik.agesandtheart.worldgen.feature.SheerFace
 import co.voik.agesandtheart.age.aspect.Terrain
@@ -1787,6 +1788,19 @@ object AgeCommand {
         report.fact("filled", wet.size) {
             if (wet.isEmpty()) "  nothing is filled here between y=$PROBE_FROM and the waterline"
             else "  filled y=${wet.first()}..${wet.last()} (${wet.size} blocks)"
+        }
+        // Where the sea turns into an abyss, which nothing else here can answer: `blockAt` is per column
+        // and says only what the sea is *made* of, so a probe over a hundred blocks of water reported
+        // plain water and left the one question this Age was written to settle unanswerable.
+        val sea = seaFill.blockAt(x, z)
+        val surface = seaFill.surfaceY ?: PROBE_FROM
+        val abyss = wet.filter { y -> DeepWater.seaAt(y, DeepWater.lineBelow(surface), sea) != sea }
+        report.fact("deepWater", abyss.size) {
+            if (abyss.isEmpty()) {
+                "  no deep water: nothing here has ${DeepWater.DEEPEST_VANILLA_SEA} unbroken blocks over it"
+            } else {
+                "  deep water y=${abyss.first()}..${abyss.last()} (${abyss.size} blocks)"
+            }
         }
         // The contradiction that flooded every rift: a space kept dry that the aquifer also claims.
         report.only("dryAndAquifer", (PROBE_FROM..seaFill.level).count { dryness.contains(it) && hollow.contains(it) })

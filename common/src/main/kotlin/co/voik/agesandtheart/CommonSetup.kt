@@ -2,6 +2,7 @@ package co.voik.agesandtheart
 
 import co.voik.agesandtheart.age.Ages
 import co.voik.agesandtheart.age.phenomena.AgeWeather
+import co.voik.agesandtheart.content.DeepWaterLogging
 import co.voik.agesandtheart.platform.Services
 import co.voik.agesandtheart.sky.Skies
 import co.voik.ephemeris.LevelWeather
@@ -25,5 +26,16 @@ object CommonSetup {
             Services.PLATFORM.name,
             Services.PLATFORM.environmentName,
         )
+    }
+
+    /**
+     * Shared work that cannot be done until every block, item and fluid of ours exists.
+     *
+     * **A second entry point because registration is where the loaders differ most.** Fabric registers
+     * during its init call and NeoForge on a mod-bus event, so "after `init`" means nothing that both can
+     * honour — each calls this at the point it knows its own content is in.
+     */
+    fun afterContentRegistered() {
+        DeepWaterLogging.settleTheCache()
     }
 }

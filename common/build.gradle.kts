@@ -425,6 +425,11 @@ instrument(
 )
 
 instrument(
+    "waterlogging", "documentation", "co.voik.agesandtheart.preview.WaterloggingSurveyKt",
+    "Prices a second waterlogging property: how many block states it doubles, and whether one interface finds them all.",
+)
+
+instrument(
     "noiseprofile", "documentation", "co.voik.agesandtheart.preview.NoiseProfileKt",
     "Reports what fraction each noise character leaves solid, per threshold.",
 )
@@ -474,3 +479,8 @@ instrument(
     "Reports the claim-value distribution and reprints ClaimTilt's table, ready to paste.",
 )
 
+
+instrument(
+    "oceandepth", "documentation", "co.voik.agesandtheart.preview.OceanDepthSurveyKt",
+    "How deep vanilla's oceans get, from vanilla's own generator — the number DeepWater's threshold clears.",
+)

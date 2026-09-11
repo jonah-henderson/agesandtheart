@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "Pressure is a condition rather than an impact, so armour points have nothing to say about it -- which",
+    "is the same distinction design 7.7 draws about the deretheni suit: it protects against hostile",
+    "*conditions*, not against damage.",
+    "",
+    "This is load-bearing rather than flavour. Without it a diamond suit would be most of the answer to the",
+    "abyss, deretheni would be a marginal upgrade on it, and the reward would gate on gear a player already",
+    "had rather than on the material the dive is for."
+  ],
+  "replace": false,
+  "values": [
+    "agesandtheart:pressure"
+  ]
+}

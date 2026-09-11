@@ -33,9 +33,19 @@ import net.minecraft.server.level.ServerPlayer
  * fight. That trade is the whole point — the Age stops being the thing that kills you and whatever lives
  * in it starts being the thing that does.
  *
- * **Two of the three protections are vanilla's own and cost no code at all.** Never catching fire is
+ * **Two of the protections are vanilla's own and cost no code at all.** Never catching fire is
  * [Attributes.BURNING_TIME] driven to nought, and never freezing is `#minecraft:freeze_immune_wearables`.
  * Lava and open flame damage you where you stand rather than by igniting you, so those need [tick].
+ *
+ * **And the fourth condition it answers lives elsewhere: the deep** (2026-09-10). `DeepWater.press` asks
+ * [wearingTheWholeSuit] and charges [wearOut] on exactly the terms the lava and the cold are charged on, so
+ * a suit spent swimming an abyss is spent the way a suit crossing a lava sea is. It is written there rather
+ * than here because the *reading* — how deep, and how much of it deep water — belongs to the abyss; this
+ * file owns only what the suit is and what wearing all of it means.
+ *
+ * That is design §7.7's claim confirming itself rather than being stretched: the suit protects against
+ * hostile *conditions* and not against damage, and pressure is exactly a condition — which is also why
+ * `agesandtheart:pressure` is in `#minecraft:bypasses_armor` and a diamond kit is no help at all.
  *
  * **It is worn out by the thing it saves you from** (Jonah, 2026-09-05), and that is what pays for how
  * strong it is. Fire immunity while the whole suit is on is unconditional — you may swim through lava, and
@@ -154,7 +164,7 @@ object ProtectiveSuit {
      * would leave three pieces of a suit that has stopped working. When a piece goes the set is broken and
      * the protection stops with it on the next look, which is the failure a player can see coming.
      */
-    private fun wearOut(player: ServerPlayer) {
+    fun wearOut(player: ServerPlayer) {
         for ((slot, piece) in SUIT) {
             val worn = player.getItemBySlot(slot)
             if (worn.item !== piece()) continue
@@ -168,7 +178,7 @@ object ProtectiveSuit {
      * **The full set, where the burning attribute is per piece**, because this is the strong half: a pair
      * of boots should take the edge off an inferno and should not let anybody swim a lava sea.
      */
-    private fun wearingTheWholeSuit(player: ServerPlayer): Boolean =
+    fun wearingTheWholeSuit(player: ServerPlayer): Boolean =
         SUIT.all { (slot, piece) -> player.getItemBySlot(slot).item === piece() }
 
     private val SUIT: Map<EquipmentSlot, () -> Item> = mapOf(

@@ -22,6 +22,7 @@ import co.voik.agesandtheart.client.WritersDeskScreen
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.client.AgeTints
 import co.voik.agesandtheart.client.LureLooks
+import co.voik.agesandtheart.client.light.DeepLights
 import co.voik.agesandtheart.client.light.TintedLights
 import co.voik.agesandtheart.client.Storms
 import net.minecraft.client.multiplayer.ClientLevel
@@ -83,11 +84,14 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
     private fun onChunkLoad(event: ChunkEvent.Load) {
         val level = event.level as? ClientLevel ?: return
         TintedLights.stocked(level, event.chunk)
+        // And what can be seen from across an abyss — the same index shape, for the same reason.
+        DeepLights.stocked(level, event.chunk)
     }
 
     private fun onChunkUnload(event: ChunkEvent.Unload) {
         val level = event.level as? ClientLevel ?: return
         TintedLights.emptied(level, event.chunk.pos)
+        DeepLights.emptied(level, event.chunk.pos)
     }
 
     private fun onClientTick(event: ClientTickEvent.Post) {
@@ -157,6 +161,7 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
         DeskModel.forget()
         Wounds.forget()
         TintedLights.forget()
+        DeepLights.forget()
         // A book open when the connection drops never reaches `Screen.removed`, so its preview level and
         // renderer would outlive the connection that fed them. Fabric forgets in its own entrypoint.
         LinkingPanel.forget()

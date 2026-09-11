@@ -1,0 +1,57 @@
+# Does a block in an abyss hold the abyss rather than air?
+# Run with: scripts/drive-server.sh scripts/checks/deep-waterlogging.txt
+#
+# Vanilla waterlogging is water and only water -- `SimpleWaterloggedBlock` gates on the fluid's IDENTITY,
+# `type == Fluids.WATER`, not on `#minecraft:water` -- so a shipwreck in an abyss came out with every
+# stair, slab, fence and trapdoor dry, and read as full of air pockets. `DeepWaterLogging` is a second
+# block state property carried by three mixins; this is what proves each of them.
+#
+# THE FLUID HALF IS PROVED BY THE BOOT LOG, NOT BY A COMMAND. There is no "what fluid is here" in vanilla,
+# so `BlockStateFluidMixin` is verified by `settleTheCache` reporting how many states it brought into line:
+#
+#   Deep waterlogging: brought 20976 block states into line
+#
+# That number is the arithmetic working out. Vanilla has 29,873 block states of which 20,976 belong to the
+# 410 waterloggable blocks (`./gradlew :common:waterlogging`); the property doubles those to 41,952, half
+# of them logged. **If that line is absent, read no further -- nothing below means anything.**
+
+age write abyss 72 age colossal cliffs landmass deep water sea
+
+# --- the property exists, and is NOT the default --------------------------------------------------
+# `BooleanProperty` orders its values `true, false` and `StateDefinition.any()` takes the first, so
+# without `BlockDefaultStateMixin` every stair in the game defaults to full of deep water -- including on
+# dry land in the overworld. An unloaded chunk answers "That position is not loaded" rather than failing,
+# and a missing property is a PARSE error rather than a failed test, so read the wording.
+forceload add 0 0
+setblock 0 -60 0 minecraft:oak_stairs
+execute if block 0 -60 0 minecraft:oak_stairs[deep_waterlogged=false]
+
+# --- a block placed in the deep takes the abyss in -------------------------------------------------
+# The column at (-35, -8) stands under 132 blocks of sea, so y=35..51 is abyss.
+execute in agesandtheart:abyss run forceload add -35 -8
+age probe abyss -35 -8
+execute in agesandtheart:abyss run setblock -35 40 -8 minecraft:oak_stairs
+# Two commands' worth of server thread, which is what gives the neighbouring abyss its scheduled tick.
+age list
+age list
+execute in agesandtheart:abyss run execute if block -35 40 -8 minecraft:oak_stairs[deep_waterlogged=true]
+# And it must not have taken vanilla's waterlogging too, the two naming the same space.
+execute in agesandtheart:abyss run execute if block -35 40 -8 minecraft:oak_stairs[waterlogged=false]
+
+# --- and the case that started it: a shipwreck the generator laid ----------------------------------
+# Seed 72 puts one at [-176, ~, -544], standing on a floor at y=38 with the abyss running y=39..51 -- so
+# the whole wreck is inside the band. `DeepWater.settleTheAbyss` is what logs it, after decoration.
+#
+# **`clone … filtered` is being used to COUNT**, there being no command that counts blocks: it reports how
+# many matched, and copying them into empty water far above is a side effect nothing reads. Only safe
+# because the world is a throwaway one this script discards -- do not borrow this into `--level world`.
+#
+# Measured 2026-09-10: 76 stairs and 9 slabs logged, and **three stairs left dry** -- which is right rather
+# than a miss. The sweep only takes a block with water against it, so a stair sealed inside the hull with
+# planks on every side holds nothing, exactly as vanilla would leave it. What matters is that the `true`
+# lines report most of the wreck; a `false` line reporting a handful is the interior.
+execute in agesandtheart:abyss run forceload add -200 -570 -150 -380
+execute in agesandtheart:abyss run clone -190 36 -558 -162 56 -530 -190 100 -420 filtered #minecraft:stairs[deep_waterlogged=true]
+execute in agesandtheart:abyss run clone -190 36 -558 -162 56 -530 -190 140 -420 filtered #minecraft:stairs[deep_waterlogged=false]
+execute in agesandtheart:abyss run clone -190 36 -558 -162 56 -530 -190 170 -420 filtered #minecraft:slabs[deep_waterlogged=true]
+execute in agesandtheart:abyss run clone -190 36 -558 -162 56 -530 -190 200 -420 filtered #minecraft:slabs[deep_waterlogged=false]

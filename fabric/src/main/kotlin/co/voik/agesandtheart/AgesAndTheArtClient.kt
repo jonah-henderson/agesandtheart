@@ -4,6 +4,7 @@ import co.voik.agesandtheart.age.consequence.Wounds
 import co.voik.agesandtheart.age.word.LearnedWordsPayload
 import co.voik.agesandtheart.age.word.LexiconPayload
 import co.voik.agesandtheart.client.AstriteGolemRenderer
+import co.voik.agesandtheart.client.HadalfishRenderer
 import co.voik.agesandtheart.client.BookEntityRenderer
 import co.voik.agesandtheart.client.SandColumnRenderer
 import co.voik.agesandtheart.client.ArcBoltRenderer
@@ -19,6 +20,7 @@ import co.voik.agesandtheart.age.phenomena.BlizzardPayload
 import co.voik.agesandtheart.client.AgeTints
 import co.voik.agesandtheart.client.KnownWords
 import co.voik.agesandtheart.client.LureLooks
+import co.voik.agesandtheart.client.light.DeepLights
 import co.voik.agesandtheart.client.light.TintedLights
 import co.voik.agesandtheart.client.Storms
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
@@ -56,6 +58,8 @@ fun initClient() {
     AgeLooks.register()
 
     co.voik.agesandtheart.platform.FabricInkRendering.register()
+    co.voik.agesandtheart.platform.FabricDeepWaterRendering.register()
+    EntityRendererRegistry.register(AgeContent.HADALFISH, ::HadalfishRenderer)
     EntityRendererRegistry.register(AgeContent.BOOK_ENTITY, ::BookEntityRenderer)
     EntityRendererRegistry.register(AgeContent.SAND_COLUMN, ::SandColumnRenderer)
     EntityRendererRegistry.register(AgeContent.VOLCANIC_BOMB) { MoltenLumpRenderer(it, MoltenLumpRenderer.WHOLE_LUMP) }
@@ -122,8 +126,11 @@ fun initClient() {
     ClientChunkEvents.CHUNK_LOAD.register { level, chunk -> Wounds.stocked(level, chunk) }
     // The coloured-light index, filled the same way and off the same palette dismissal.
     ClientChunkEvents.CHUNK_LOAD.register { level, chunk -> TintedLights.stocked(level, chunk) }
+    // And what can be seen from across an abyss — the same index shape, for the same reason.
+    ClientChunkEvents.CHUNK_LOAD.register { level, chunk -> DeepLights.stocked(level, chunk) }
     ClientChunkEvents.CHUNK_UNLOAD.register { level, chunk -> Wounds.emptied(level, chunk.pos) }
     ClientChunkEvents.CHUNK_UNLOAD.register { level, chunk -> TintedLights.emptied(level, chunk.pos) }
+    ClientChunkEvents.CHUNK_UNLOAD.register { level, chunk -> DeepLights.emptied(level, chunk.pos) }
 
     // These keys mean nothing on the next server, and an Age id can be reused.
     ClientPlayConnectionEvents.DISCONNECT.register { _, _ ->
@@ -131,5 +138,6 @@ fun initClient() {
         DeskModel.forget()
         Wounds.forget()
         TintedLights.forget()
+        DeepLights.forget()
     }
 }

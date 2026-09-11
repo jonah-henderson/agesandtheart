@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.worldgen
 
 import co.voik.agesandtheart.age.aspect.Spawns
+import co.voik.agesandtheart.content.DeepWater
 import co.voik.agesandtheart.worldgen.field.SeaFill
 import co.voik.agesandtheart.worldgen.field.Spans
 import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
@@ -292,6 +293,39 @@ class AgeChunkGenerator(
     private val seaLevel = seaFill.level.coerceAtLeast(window.minY)
 
     /**
+     * The topmost block the sea itself occupies — vanilla's own convention, where `seaLevel` is the level
+     * water is poured *below*. What `DeepWater.seaAt` measures its unbroken span down from.
+     */
+    private val seaSurfaceY = seaFill.surfaceY ?: window.minY
+
+    /**
+     * The plane under which this Age's water is abyss — see `DeepWater.lineIn`.
+     *
+     * Below `window.minY` where the Age has no sea worth the name, which is the same as "never".
+     */
+    private val abyssLine = seaFill.surfaceY?.let(DeepWater::lineBelow) ?: (window.minY - 1)
+
+    /**
+     * Whether this column genuinely has an abyss over it — **the sea's own water standing at the line**.
+     *
+     * **The plane alone was not the rule, and taking it for one put deep water in ordinary Ages** (Jonah,
+     * walked 2026-09-10). `abyssLine` is the waterline less eighty, which for a sea at the usual height is
+     * somewhere around y=-18 — so every flooded cave below that came out abyssal, and anything waterlogged
+     * down there came out holding deep water. A patch of glow lichen on a cave ceiling then poured a column
+     * of it into the dark.
+     *
+     * The line says *where* an abyss would be and this says *whether there is one*: the sea has to reach
+     * this column at that depth, which is exactly the eighty blocks of water the rule claims. It keeps the
+     * walked finding it was written for — an aquifer pocket under a real sea floor is still abyss, because
+     * the sea stands over that column at the line even though the pocket itself is sealed.
+     */
+    private fun abyssReachesAt(worldX: Int, worldZ: Int): Boolean {
+        val ours = rock as? AgeRock.Ours ?: return false
+        if (ours.field.columnSpans(worldX, worldZ).contains(abyssLine)) return false
+        return seaFill.fillsAt(abyssLine, seaFill.drynessAt(worldX, worldZ), seaFill.wetnessAt(worldX, worldZ))
+    }
+
+    /**
      * The settings handed to the superclass, read back rather than kept twice — see [settingsFor]. Vanilla
      * reads the same object, so `getSeaLevel`/`getMinY`/`getGenDepth` need no overrides here.
      */
@@ -319,6 +353,9 @@ class AgeChunkGenerator(
         // that field is a few milliseconds, which is what made it worth having over letting the walls
         // stand. Read once per column and not once per block: the answer cannot change going down one.
         val band = ColumnBand(chunkMinX, chunkMinZ, ours.field, seaFill, ours.hollows)
+        // A second cursor: `DeepWater.airOpenedOver` walks back down the column, and sharing `cursor` with
+        // it would move the position the fill is about to write to.
+        val reach = BlockPos.MutableBlockPos()
         // One per chunk, because the object carries a column memo — the same reason carving mints its own.
         val water = WaterTable.aquiferFor(tables, ours.field, underground)
 
@@ -329,6 +366,10 @@ class AgeChunkGenerator(
                 val at = band.indexOf(localX, localZ)
                 val spans = band.spans(at)
                 val sea = seaFill.blockAt(worldX, worldZ)
+                // **Whether an abyss stands over this column at all**, asked once here rather than of
+                // every block. See [abyssReaches] — without it, any Age with a sea grew an abyss in its
+                // deepest caves, eighty blocks under a waterline that never reached them.
+                val abyssal = !spans.contains(abyssLine) && band.fills(at, abyssLine)
 
                 // Whether the block just below came out empty, so a fluid placed on top of nothing can be
                 // told to fall. Nothing is below the window's floor, which is as good as open for this.
@@ -353,8 +394,19 @@ class AgeChunkGenerator(
                         )
                         band.fills(at, y) -> sea
                         else -> null
-                    }?.takeUnless { it.isAir }
+                    }
+                        // **Every water this column produced, not only the sea's.** The aquifer answers
+                        // before the sea does, so a cave flooded from the water table under an abyss came
+                        // out as ordinary water — which read as great pockets of plain sea scattered
+                        // through the deep (Jonah, walked 2026-09-10). Wrapping the whole `when` is what
+                        // makes the boundary one plane rather than one per source of water.
+                        ?.let { if (abyssal) DeepWater.seaAt(y, abyssLine, it) else it }
+                        ?.takeUnless { it.isAir }
                     if (state == null) {
+                        // Air over the abyss takes the pressure out of the water under it — see
+                        // `DeepWater.standsAt`. The fill runs bottom-up, so what this affects is already in
+                        // the chunk and is rewritten rather than predicted.
+                        if (abyssal && y <= abyssLine) DeepWater.airOpenedOver(chunk, reach, worldX, y, worldZ)
                         nothingBelow = true
                         continue
                     }
@@ -482,8 +534,12 @@ class AgeChunkGenerator(
             val y = window.minY + index
             when {
                 spans.contains(y) -> fill.blockAt(x, y, z)
-                else -> seaFill.carriedAt(y, bodies)
-                    ?: if (seaFill.fillsAt(y, dryness, wetness)) sea else AIR
+                // The same abyss the chunk fill lays, so a heightmap query and the blocks agree.
+                else -> DeepWater.seaAt(
+                    y,
+                    abyssLine,
+                    seaFill.carriedAt(y, bodies) ?: if (seaFill.fillsAt(y, dryness, wetness)) sea else AIR,
+                )
             }
         }
         return NoiseColumn(window.minY, column)
@@ -650,6 +706,10 @@ class AgeChunkGenerator(
      */
     override fun applyBiomeDecoration(level: WorldGenLevel, chunk: ChunkAccess, structures: StructureManager) {
         super.applyBiomeDecoration(level, chunk, structures)
+        // **The abyss is put right first, and before the early return below.** A structure brings its own
+        // ordinary water — an ocean monument most of all — and vegetation grows in that water in this same
+        // stage, so there is nowhere to stand between the two. See `DeepWater.settleTheAbyss`.
+        DeepWater.settleTheAbyss(chunk, abyssLine, ::abyssReachesAt)
         val bought = consequence
         if (bought.isNothing) return
         // **The Age's age is read here rather than at open**, so a chunk generated after a week of worsening

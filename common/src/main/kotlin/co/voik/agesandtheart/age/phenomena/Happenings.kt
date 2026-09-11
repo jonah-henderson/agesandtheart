@@ -16,6 +16,7 @@ import co.voik.agesandtheart.age.aspect.Claim
 import co.voik.agesandtheart.age.aspect.Phenomena
 import co.voik.agesandtheart.age.aspect.Phenomenon
 import co.voik.agesandtheart.age.aspect.Skew
+import co.voik.agesandtheart.content.DeepWater
 import co.voik.agesandtheart.age.aspect.Rung
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
@@ -86,6 +87,11 @@ object Happenings {
             // And a dragon an Age was written with needs telling where it is, or it flies to the world
             // origin to hold its pattern — see [Dragons].
             Dragons.findTheirOwnGround(level)
+            // Nor is this: water deep enough to be an abyss becomes one, wherever it came from. **Here and
+            // not beside `ChargedMetal.stir` on purpose** — that walks every level so crystal carried home
+            // still works, where this must reach no Overworld and no End (Jonah, 2026-09-10). Walking the
+            // Ages *is* the carve-out, and a positive one rather than a list to keep extended.
+            DeepWater.seep(level)
         }
     }
 

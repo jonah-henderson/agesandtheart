@@ -1,0 +1,21 @@
+{
+  "_comment": [
+    "Deep water IS water, and saying so here is what buys nearly all of its behaviour for nothing.",
+    "",
+    "`Entity.isInWater`, swimming, drowning, boats, extinguishing, what a squid may live in and what a",
+    "conduit reaches all test `#minecraft:water` -- so an abyss is a sea to everything that asks a question",
+    "about it, and the only thing that differs is what standing under eighty blocks of it does to you.",
+    "",
+    "It is also what makes the continuity scan in `DeepWater.columnFrom` a single tag check: 'water or",
+    "deep water, unbroken' is one predicate rather than two, and the two can never come apart.",
+    "",
+    "The one thing to watch if this is ever revisited: vanilla rules keyed on this tag apply here too --",
+    "freezing, sponges, farmland hydration. None of them can reach an abyss in practice, since deep water",
+    "cannot exist within eighty blocks of a surface, but a rule that reads the tag at depth would."
+  ],
+  "replace": false,
+  "values": [
+    "agesandtheart:deep_water",
+    "agesandtheart:flowing_deep_water"
+  ]
+}

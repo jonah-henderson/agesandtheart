@@ -1,0 +1,24 @@
+{
+  "_comment": [
+    "Bones on the floor of the abyss -- vanilla's fossil, sited at the sea bed instead of buried in a desert.",
+    "",
+    "**It works because of an accident worth writing down.** `FossilFeature` refuses to place where too many",
+    "corners of its bounding box are 'empty', and it counts air, lava and `minecraft:water` -- our deep water",
+    "is a different block and is therefore counted as solid ground. So a fossil laid in open abyss passes a",
+    "check that would have refused it in an ordinary ocean. If deep water ever becomes vanilla water, this",
+    "silently stops generating.",
+    "",
+    "`fossil_coal` rather than the diamond variant: the coal reads as what is left of something that died and",
+    "was pressed, which is exactly what a whalefall is.",
+    "",
+    "The `biome` filter at the end is what confines it -- it re-checks the biome at the chosen position, so",
+    "a sea bed that pokes above the abyss line gets nothing."
+  ],
+  "feature": "minecraft:fossil_coal",
+  "placement": [
+    { "type": "minecraft:rarity_filter", "chance": 10 },
+    { "type": "minecraft:in_square" },
+    { "type": "minecraft:heightmap", "heightmap": "OCEAN_FLOOR_WG" },
+    { "type": "minecraft:biome" }
+  ]
+}

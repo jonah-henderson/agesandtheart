@@ -110,20 +110,40 @@ data class Sea(override val id: Identifier) : RegistryReference {
             "depth",
             help = "How far above or below its usual level the sea stands.",
             landmarks = listOf(
-                Parameter.Landmark(-1.0, "12 blocks down"),
-                Parameter.Landmark(-0.5, "6 down"),
+                Parameter.Landmark(-1.0, "96 blocks down — drained to the basins"),
+                Parameter.Landmark(-0.5, "12 down"),
                 Parameter.Landmark(0.0, "its usual level"),
-                Parameter.Landmark(0.5, "6 up"),
-                Parameter.Landmark(1.0, "12 blocks up"),
+                Parameter.Landmark(0.5, "12 up"),
+                Parameter.Landmark(1.0, "96 blocks up — an abyss over drowned land"),
             ),
         )
 
-        /** Enough to redraw a coastline without drowning or stranding what the terrain built. */
-        private const val DEEPEST_SHIFT = 12
+        /**
+         * How far the ends of the range reach — see [depthShift] for why this is not the whole story.
+         *
+         * **96 rather than the 12 this used to be**, because design §7.1.2's deep sea needs a water column
+         * past what deep water insists on (`DeepWater.DEEPEST_VANILLA_SEA`) and a twelve-block nudge
+         * cannot get near it. The old constant's comment — "enough to redraw a coastline without drowning
+         * or stranding what the terrain built" — was right about what the *middle* of this range is for,
+         * and the curve below is what keeps it true there.
+         */
+        private const val DEEPEST_SHIFT = 96
 
+        /**
+         * The steer, curved so one parameter can do two jobs.
+         *
+         * **Cubic, and the exponent is chosen rather than picked**: it puts `±0.5` at ±12 blocks *exactly*
+         * — the whole of what this lever used to be, landmark and all — while `±1.0` reaches ±96 and can
+         * drown or drain a world. So the fine coastal trim survives in the middle of the range where every
+         * word that wants a nudge sits, and only a word reaching for an end gets an abyss.
+         *
+         * Nothing quantises on the way in: [Options.steer] draws uniformly inside whatever span the word
+         * wrote, so a curve here costs nothing anywhere else.
+         */
         private fun depthShift(options: Options, seed: Long): Int {
             val depth = options.steer(DEPTH, seed) ?: return AS_THE_TERRAIN_LEFT_IT
-            return (depth / Span.NATURAL_MOST * DEEPEST_SHIFT).roundToInt()
+            val share = depth / Span.NATURAL_MOST
+            return (share * share * share * DEEPEST_SHIFT).roundToInt()
         }
 
         private const val AS_THE_TERRAIN_LEFT_IT = 0

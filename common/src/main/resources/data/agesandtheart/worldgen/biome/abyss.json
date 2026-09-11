@@ -1,0 +1,73 @@
+{
+  "_comment": [
+    "The bottom of a deep sea (design 7.1.2). Handed out by height rather than by climate -- see BiomeBand.",
+    "",
+    "**The air is the biome's; the water is `DeepWaterFog`'s.** The camera blends biome attributes over a",
+    "NEIGHBOURHOOD -- `EnvironmentAttributeProbe` Gaussian-samples eight blocks out along every axis, the",
+    "vertical included -- and half that neighbourhood at the floor of an abyss is the rock underneath,",
+    "whose cave biomes carry no water fog. Vanilla's defaults blend back in at that weight, and measured",
+    "2026-09-10 it cost roughly four fifths of what was asked for. So the water fog here is the fallback and",
+    "the client layer is what a diver actually sees; the two are kept at the same numbers on purpose.",
+    "",
+    "The colour is untinted -- green and blue equal, red absent -- and the zero channel is load-bearing for",
+    "the reason `DeepWaterFog.ABYSSAL` records: vanilla brightens the water's fog to full saturation as",
+    "`waterVision` climbs, and skips that entirely for a colour with a channel at zero.",
+    "",
+    "**The empty feature list is the point, not an oversight.** A biome carries what grows in it, so an abyss",
+    "that lists nothing is an abyss where nothing can grow -- which is what finally keeps kelp and seagrass",
+    "out of it, rather than sweeping them away after the fact.",
+    "",
+    "Spawners are empty for now. This is where the hadalfish goes once the material's gating is settled, and",
+    "it is the reason an abyss wants a biome of its own rather than a fog layer.",
+    "",
+    "**The one thing in `features` is the whalefall**, at the UNDERGROUND_STRUCTURES step (index 3) where",
+    "vanilla puts its own fossils. Eleven lists because that is how many decoration steps there are, and a",
+    "biome must name them all -- the rest are empty on purpose, and that emptiness is what keeps kelp and",
+    "seagrass out of the abyss without anything having to sweep them away."
+  ],
+  "has_precipitation": false,
+  "temperature": 0.5,
+  "downfall": 0.5,
+  "attributes": {
+    "minecraft:visual/fog_color": "#02060a",
+    "minecraft:visual/sky_color": "#02060a",
+    "minecraft:visual/water_fog_color": "#000a0a",
+    "minecraft:visual/water_fog_start_distance": 0.0,
+    "minecraft:visual/water_fog_end_distance": 24.0,
+    "minecraft:visual/fog_end_distance": 32.0
+  },
+  "effects": {
+    "water_color": "#0b1a24",
+    "mood_sound": {
+      "sound": "minecraft:ambient.cave",
+      "tick_delay": 6000,
+      "block_search_extent": 8,
+      "offset": 2.0
+    }
+  },
+  "spawners": {
+    "ambient": [],
+    "axolotls": [],
+    "creature": [],
+    "misc": [],
+    "monster": [],
+    "underground_water_creature": [],
+    "water_ambient": [],
+    "water_creature": []
+  },
+  "spawn_costs": {},
+  "carvers": [],
+  "features": [
+    [],
+    [],
+    [],
+    ["agesandtheart:whalefall"],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    []
+  ]
+}

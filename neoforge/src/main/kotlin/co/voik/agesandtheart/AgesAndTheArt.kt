@@ -26,7 +26,9 @@ import co.voik.agesandtheart.desk.DeskPricePayload
 import co.voik.agesandtheart.desk.DeskSyncPayload
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.AstriteGolem
+import co.voik.agesandtheart.content.Hadalfish
 import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent
+import co.voik.agesandtheart.platform.NeoForgeDeepWater
 import co.voik.agesandtheart.platform.NeoForgeInkFluids
 import net.minecraft.core.registries.Registries
 import co.voik.agesandtheart.age.consequence.Worsening
@@ -66,6 +68,9 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
 
         // Content registration is a mod-bus event on NeoForge.
         eventBus.addListener(::onRegister)
+        // And the work that can only be done once all of it exists. Common setup on NeoForge cannot do
+        // this itself: registration is an event, so `init` returns long before the content is in.
+        eventBus.addListener(::onCommonSetup)
         // Payload registration is a mod-bus event, so it cannot be a call from common init the way Fabric's is.
         eventBus.addListener(::onRegisterPayloads)
         eventBus.addListener(::onRegisterCapabilities)
@@ -103,11 +108,20 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
      */
     private fun onCreateAttributes(event: EntityAttributeCreationEvent) {
         event.put(AgeContent.ASTRITE_GOLEM, AstriteGolem.createAttributes().build())
+        event.put(AgeContent.HADALFISH, Hadalfish.createAttributes().build())
+    }
+
+    /** Fires after every `RegisterEvent`, which is exactly the condition [CommonSetup.afterContentRegistered] wants. */
+    private fun onCommonSetup(event: net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent) {
+        event.enqueueWork { CommonSetup.afterContentRegistered() }
     }
 
     private fun onRegister(event: RegisterEvent) {
         // Fluids first: a bucket names its fluid, and the pair is built together.
         NeoForgeInkFluids.register(event)
+        // Deep water goes the same way and for the same reason: its block names a fluid, and only a loader
+        // can build one — see `AgeFluids.DEEP_WATER`.
+        NeoForgeDeepWater.register(event)
 
         event.register(Registries.DATA_COMPONENT_TYPE) { helper ->
             AgeContent.components.forEach { (id, comp) -> helper.register(id, comp) }

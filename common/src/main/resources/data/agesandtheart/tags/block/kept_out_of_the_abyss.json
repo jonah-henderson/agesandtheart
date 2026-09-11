@@ -1,0 +1,24 @@
+{
+  "_comment": [
+    "What an Age's abyss will not carry. Living things, and nothing else -- design 7.1.2's deep water is a",
+    "crushing lightless place and a kelp forest at eighty metres in the dark is not a thing.",
+    "",
+    "**Inorganic stays** (Jonah, 2026-09-10): an ocean monument, a shipwreck, ruins, prismarine and sea",
+    "lanterns are all wanted down there, and are conspicuously absent from this list. What goes is the",
+    "vegetation that grew in the water those structures brought with them.",
+    "",
+    "A tag rather than a list in code, so a pack adding an aquatic plant can keep it out without a jar."
+  ],
+  "replace": false,
+  "values": [
+    "minecraft:kelp",
+    "minecraft:kelp_plant",
+    "minecraft:seagrass",
+    "minecraft:tall_seagrass",
+    "minecraft:sea_pickle",
+    "#minecraft:corals",
+    "#minecraft:coral_plants",
+    "#minecraft:coral_blocks",
+    "#minecraft:wall_corals"
+  ]
+}

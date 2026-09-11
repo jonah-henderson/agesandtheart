@@ -64,10 +64,21 @@ object Structures {
         server: MinecraftServer,
         options: Options,
         standing: List<ResourceKey<VanillaStructureSet>> = OVERWORLD_STRUCTURE_SETS,
+        /**
+         * What the *world* asks for more of, by set id and by how many times as often — the abyss wanting
+         * wrecks on its floor, and anything later with the same shape of claim.
+         *
+         * **Applied only where the writer said nothing about that set**, which is the precedence that
+         * matters: a sentence naming a density is a person deciding, and a rule derived from the shape of
+         * the world must not talk over one.
+         */
+        thickened: Map<Identifier, Double> = emptyMap(),
     ): List<Holder<VanillaStructureSet>> {
         val sets = server.registryAccess().lookupOrThrow(Registries.STRUCTURE_SET)
         val asked = Skew.of(options.claimsOn(BUILT))
         val seated = LinkedHashMap<Identifier, Holder<VanillaStructureSet>>()
+        // Sets a writer named, which [thickened] may not talk over.
+        val spokenFor = HashSet<Identifier>()
         val startsFromNothing = asked.exclusive || asked.wanted.any { it.value == NOTHING }
         if (!startsFromNothing) {
             for (key in standing) seated[key.identifier()] = sets.get(key).orElse(null) ?: continue
@@ -85,6 +96,11 @@ object Structures {
                 continue
             }
             seated[named] = StructureDensity.applied(server, found, claim.density)
+            spokenFor += named
+        }
+        for ((id, factor) in thickened) {
+            if (id in spokenFor) continue
+            seated[id]?.let { seated[id] = StructureDensity.applied(server, it, factor) }
         }
         for (struck in asked.struck) {
             Identifier.tryParse(struck)?.let(seated::remove)

@@ -1,0 +1,137 @@
+# Does the abyss correct itself when the water above it changes?
+# Run with: scripts/drive-server.sh scripts/checks/deep-water-physics.txt
+#
+# The rule is an invariant: a block is deep water exactly where 80 blocks of unbroken water stand over it.
+# Keeping that true across eighty blocks takes three mechanisms, and this walks the one a headless server
+# can reach — `DeepWaterBlock`'s own ticks.
+#
+# **Why a random tick is needed at all.** Cutting the column at y=100 fires `updateShape` on y=99 and no
+# further; the deep water forty-seven blocks below is not a neighbour of anything that changed, and the
+# water between is vanilla's and carries no rule of ours. Only a tick the block gives itself notices. Once
+# one block does, its own change *is* a neighbour update for the block beneath it, so the rest unzips at a
+# block a tick.
+#
+# **`randomTickSpeed` is turned up on purpose.** At vanilla's 3 a given block is picked about once every
+# forty-seven seconds, so this check would be a coin toss on how long it waited. Turning it up does not
+# change the mechanism, only how long the test sits there.
+#
+# **What this file CANNOT check: `DeepWater.seep`**, the seedless path that turns ordinary water into an
+# abyss. It samples chunks around *players* and drive-server has none, so it needs a walk. That also means
+# the second half of the physics — cut the column, then restore it — cannot be shown here: once the abyss
+# reverts there is no deep water left to grow from, and only `seep` can start it again.
+#
+# Seed 7 over `isle` puts deep water at y=28..53 in the column at (-900, 400); `scripts/checks/deep-water.txt`
+# is where that came from.
+#
+# **STATE 2026-09-10: run, and it works, but the timing is not nailed down.** The run showed y=53 reading
+# deep at the first check and ordinary water two checks later — so the reversion demonstrably happens — but
+# the cascade was still in flight while the checks were being asked, so the before/after does not read
+# cleanly. The filler below is a guess at how long to wait. **Verify this one in game rather than trusting
+# the output**; a clean headless read needs the checks spaced further apart than a command round trip.
+
+gamerule randomTickSpeed 400
+age write physics 7 age isle landmass deep water sea
+execute in agesandtheart:physics run forceload add -912 388 -888 412
+
+# --- before: the abyss is there ------------------------------------------------------------------
+execute in agesandtheart:physics if block -900 53 400 agesandtheart:deep_water run say BEFORE-53-IS-DEEP
+execute in agesandtheart:physics if block -900 30 400 agesandtheart:deep_water run say BEFORE-30-IS-DEEP
+
+# --- cut the column well above the abyss, leaving it only 34 blocks of water overhead -------------
+execute in agesandtheart:physics run setblock -900 100 400 minecraft:stone
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+
+# --- after: every block of it should have reverted to ordinary water ------------------------------
+execute in agesandtheart:physics if block -900 53 400 agesandtheart:deep_water run say AFTER-53-STILL-DEEP
+execute in agesandtheart:physics if block -900 30 400 agesandtheart:deep_water run say AFTER-30-STILL-DEEP
+execute in agesandtheart:physics if block -900 53 400 minecraft:water run say AFTER-53-IS-WATER
+execute in agesandtheart:physics if block -900 30 400 minecraft:water run say AFTER-30-IS-WATER

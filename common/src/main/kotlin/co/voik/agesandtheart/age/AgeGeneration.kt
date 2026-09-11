@@ -16,7 +16,8 @@ import co.voik.agesandtheart.sky.SpireSky
 import co.voik.agesandtheart.worldgen.biome.AgeBiomeSource
 import co.voik.agesandtheart.worldgen.biome.Grounding
 import co.voik.agesandtheart.worldgen.biome.RegionalClimate
-import co.voik.agesandtheart.worldgen.biome.Roofed
+import co.voik.agesandtheart.content.DeepWater
+import co.voik.agesandtheart.worldgen.biome.BiomeBand
 import co.voik.agesandtheart.worldgen.field.Fault
 import co.voik.agesandtheart.worldgen.field.SurfacingStrategy
 import co.voik.agesandtheart.worldgen.field.RegionMap
@@ -214,13 +215,27 @@ object AgeGeneration {
                 )
                 // Age-wide like the shore and the treeline: the band is a pair of heights, and an Age has
                 // one set of those however many territories divide it.
-                .roofedBy(
-                    if (ourGround == null) null else composition.terrains
-                        .withIndex()
-                        .firstNotNullOfOrNull { (member, terrain) ->
-                            terrain.undergroundBand(composition.underground, window)
-                        }
-                        ?.let { band -> Roofed(greatHallBiome(server), band.first, band.last) },
+                .banded(
+                    listOfNotNull(
+                        // Age-wide like the shore and the treeline: the band is a pair of heights, and an
+                        // Age has one set of those however many territories divide it.
+                        if (ourGround == null) null else composition.terrains
+                            .withIndex()
+                            .firstNotNullOfOrNull { (member, terrain) ->
+                                terrain.undergroundBand(composition.underground, window)
+                            }
+                            ?.let { band -> BiomeBand(greatHallBiome(server), band.first, band.last) },
+                        // And the abyss, which is the same mechanism for the same reason: eighty blocks of
+                        // sea is a place, and no climate axis means it. Its biome is what keeps anything
+                        // from growing down there — a feature list is a biome's, so an empty one is a rule.
+                        // **Above the sea bed only**, or every cave under the floor comes out as abyss and
+                        // the ordinary cave biomes are clobbered — see [BiomeBand.above].
+                        abyssLineOf(seaFill, window)
+                            ?.takeIf { ourGround != null }
+                            ?.let { line ->
+                                BiomeBand(abyssBiome(server), window.minY, line, ourGround?.rock?.landform)
+                            },
+                    ),
                 ),
             ourGround?.rock ?: AgeRock.Vanillas(Holder.direct(vanillasRockFor(theirRockSettings.value(), composition, fill))),
             seaFill,
@@ -246,6 +261,7 @@ object AgeGeneration {
                 server,
                 composition.optionsFor(Aspect.STRUCTURES, 0),
                 recipe.template.standingStructures,
+                if (abyssLineOf(seaFill, window) == null) emptyMap() else WRECKAGE_ON_AN_ABYSS_FLOOR,
             ),
             // **The climate the biomes are looked up by, and it comes from the same world they do.** This
             // was the overworld's for every Age, so a landform of ours over the infernal template chose
@@ -595,6 +611,46 @@ object AgeGeneration {
     )
 
     /** The biome a great hall is, rather than whichever cave biome its climate would otherwise name. */
+    /**
+     * Where this Age's abyss begins, or null for one that has none — a sea too shallow, or no sea at all.
+     *
+     * One place, because two things read it: the biome band and the wreckage below.
+     */
+    private fun abyssLineOf(seaFill: SeaFill, window: VerticalWindow): Int? =
+        seaFill.surfaceY?.let(DeepWater::lineBelow)?.takeIf { it > window.minY }
+
+    /**
+     * What an abyss gets more of, and why it is structures rather than a biome that carries it.
+     *
+     * **A biome cannot make a structure commoner** — it only gates whether a candidate the *placement*
+     * already proposed is accepted. Density lives in the `StructureSet`'s spacing, and shipping our own
+     * `worldgen/structure_set/` override would change every dimension in the game. `StructureDensity`
+     * applies that same vanilla lever to one Age at a time.
+     *
+     * **Inorganic only** (Jonah, 2026-09-10): the floor of an abyss is realistically very plain, and what
+     * makes it worth crossing should be things that *sank* rather than things that grew. The whalefall in
+     * the abyss biome's own feature list is the other half of the same answer.
+     */
+    private val WRECKAGE_ON_AN_ABYSS_FLOOR: Map<Identifier, Double> = mapOf(
+        "minecraft:shipwrecks".asStructureSet() to FOUR_TIMES,
+        "minecraft:ocean_ruin_cold".asStructureSet() to FOUR_TIMES,
+        "minecraft:ocean_ruin_warm".asStructureSet() to FOUR_TIMES,
+        // Gently: a monument is enormous and several of them close together stop reading as landmarks.
+        "minecraft:ocean_monuments".asStructureSet() to HALF_AGAIN,
+    )
+
+    private const val FOUR_TIMES = 4.0
+
+    private const val HALF_AGAIN = 1.5
+
+    private fun String.asStructureSet(): Identifier = Identifier.parse(this)
+
+    private fun abyssBiome(server: MinecraftServer): Holder<Biome> =
+        server.registryAccess().lookupOrThrow(Registries.BIOME)
+            .getOrThrow(ResourceKey.create(Registries.BIOME, ABYSS_BIOME))
+
+    private val ABYSS_BIOME: Identifier = "abyss".location()
+
     private fun greatHallBiome(server: MinecraftServer): Holder<Biome> =
         server.registryAccess().lookupOrThrow(Registries.BIOME)
             .getOrThrow(ResourceKey.create(Registries.BIOME, GREAT_HALL_BIOME))

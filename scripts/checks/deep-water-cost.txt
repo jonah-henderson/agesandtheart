@@ -1,0 +1,260 @@
+# What does random-ticking an abyss actually cost?
+# Run with: scripts/drive-server.sh scripts/checks/deep-water-cost.txt
+#
+# `DeepWaterBlock` random-ticks so that a block bucketed out eighty above an abyss is eventually noticed —
+# no neighbour update reaches that far. The worry is obvious: an ocean is a great many blocks, and vanilla
+# offers each section three random ticks a tick.
+#
+# **The shortcut that is supposed to make it affordable is an induction.** If the block overhead is deep
+# water it already has eighty blocks of water over it, so this one has at least eighty-one and is valid
+# without asking — an interior block costs two lookups and stops. Only the topmost block of each column
+# pays for the full scan. `DeepWaterCheck` asserts the induction holds; this measures whether it is enough.
+#
+# THREE THINGS ABOUT THE METHOD, each of which cost a wrong reading first:
+#
+#   - **Forceload, not a player.** Random ticks want ticking chunks and drive-server has nobody standing
+#     anywhere. It also means `DeepWater.seep` does not run here at all — it samples around players — so
+#     this measures the block's own ticking only.
+#   - **225 chunks, not 441.** `/forceload add` refuses more than 256 at a time, and a refused forceload
+#     measures an empty world while looking like it measured something.
+#   - **The filler matters.** `tick query` averages the last 100 ticks, so a query straight after `/age gen`
+#     reports the generation spike and nothing else — the first attempt at this read 138ms and it was all
+#     terrain. The `time query` runs below are there to let a hundred quiet ticks pass, one per round trip.
+#
+# Read the two `Average time per tick` figures. They should be close; if the abyss is dramatically dearer,
+# the induction is not firing and interior blocks are paying for full scans.
+
+# Generate both first, so neither measurement carries the other's terrain cost.
+age write costabyss 7 age isle landmass deep water sea
+age gen costabyss
+age write costplain 7 age isle landmass water sea
+age gen costplain
+
+# --- the abyss ------------------------------------------------------------------------------------
+execute in agesandtheart:costabyss run forceload add -112 -112 112 112
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+tick query
+
+# --- the same shape with an ordinary waterline ----------------------------------------------------
+execute in agesandtheart:costabyss run forceload remove all
+execute in agesandtheart:costplain run forceload add -112 -112 112 112
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+time query gametime
+tick query

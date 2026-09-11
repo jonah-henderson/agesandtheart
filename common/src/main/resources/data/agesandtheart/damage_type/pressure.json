@@ -1,0 +1,13 @@
+{
+  "_comment": [
+    "Being crushed by the sea over you (design 7.1.2). Scaled 'never', because the water does not care how",
+    "hard the world is: an abyss is the same depth on peaceful as on hard, and the counterplay is gear and",
+    "nerve rather than a difficulty slider.",
+    "",
+    "Exhaustion is nought. The hunger drain on a hazard you are meant to spend minutes inside would be a",
+    "second, quieter timer nobody asked for, and the descent already has one."
+  ],
+  "message_id": "pressure",
+  "scaling": "never",
+  "exhaustion": 0.0
+}

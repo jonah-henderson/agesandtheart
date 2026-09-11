@@ -1,0 +1,37 @@
+{
+  "_comment": [
+    "A sea standing far above the level the terrain left it -- the first half of the deep-ocean material's",
+    "gate (design 7.1.2). The other half is `deluge`.",
+    "",
+    "**It steers a parameter that already existed and had never been used.** `Sea.DEPTH` has been the",
+    "aspect's one lever over height since the aspect was written, and no word in the corpus reached it. What",
+    "changed for this is not the parameter but its curve: the mapping is cubic, so the middle of the range",
+    "is still the twelve-block coastal trim it always was and only the ends reach an abyss.",
+    "",
+    "**Its low end was a dud and was raised -- measured 2026-09-10** (`:common:oceandepth`). The span was",
+    "0.75..0.95, which the cubic turns into +40..+82 blocks; at +40 the share of columns clearing deep",
+    "water's threshold is **zero on every landform in the pack**, so half the word's range produced no abyss",
+    "at all and a writer got one or not on a seed roll they cannot see. 0.85..0.98 is +59..+90, and the",
+    "flat-floored shapes (`isle`, `islands`, `eroded`) are then abyssal across nearly their whole sea at",
+    "either end of it.",
+    "",
+    "**Still deliberately short of the extreme.** 0.98 is about 90 blocks up rather than the full 96, so",
+    "there is room left for a stronger word later: a word meaning `deep` should not also be the deepest",
+    "thing sayable.",
+    "",
+    "**It pushes `empty` away rather than admitting a pool.** A sea of nothing holds a depth perfectly well;",
+    "the result is simply invisible, so this is a preference and belongs where preferences do (`Sea.DEPTH`",
+    "records the same reasoning from the other side). Nothing here restricts, so the word never eliminates",
+    "a preset it merely dislikes."
+  ],
+  "tier": "exact",
+  "biases": {
+    "sea": {
+      "#empty": -0.8,
+      "#watery": 0.4
+    }
+  },
+  "sets": {
+    "depth": "0.85..0.98"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "_comment": [
+    "What the deep does not crush (design 7.1.2). The hadalfish lives there, and a place should not kill the",
+    "thing whose place it is.",
+    "",
+    "**Named for the rule rather than for the fish**, so it is a seam a pack can use: anything that ought to",
+    "belong at depth goes in here without touching the jar, and the abyss gains a population over time.",
+    "",
+    "**Guardians are in it so a monument standing in the abyss is still a monument** (Jonah, 2026-09-10).",
+    "The alternative was a structure that emptied itself of everything that made it worth entering, which",
+    "is the abyss taking away a fight rather than adding one.",
+    "",
+    "Everything absent from it takes the pressure -- a drowned, a squid, anything that wandered down. An",
+    "abyss that only hurt players would be scenery with a damage tick on it rather than somewhere hostile.",
+    "",
+    "**The nautilus is here to be RIDDEN down** (Jonah, 2026-09-10), and it is the one member of this tag",
+    "that changes what a player can do: `DeepWater.press` exempts whatever is riding something exempt, so a",
+    "saddled nautilus carries you through the abyss. It carries you and nothing more -- dismount to mine and",
+    "the clock starts -- so it is TRAVEL where deretheni is WORK, and the ladder in design 7.1.2 is intact.",
+    "The zombie nautilus comes too, for the reason the guardians did: what lives down there should not be",
+    "cleared out by the place it lives in."
+  ],
+  "replace": false,
+  "values": [
+    "agesandtheart:hadalfish",
+    "minecraft:guardian",
+    "minecraft:elder_guardian",
+    "minecraft:nautilus",
+    "minecraft:zombie_nautilus"
+  ]
+}

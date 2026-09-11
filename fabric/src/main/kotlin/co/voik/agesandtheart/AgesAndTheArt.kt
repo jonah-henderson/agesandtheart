@@ -5,6 +5,7 @@ import co.voik.agesandtheart.age.consequence.Wounds
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents
 import co.voik.agesandtheart.content.ChargedMetal
 import co.voik.agesandtheart.content.ProtectiveSuit
+import co.voik.agesandtheart.platform.FabricDeepWaterFluids
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents
 import co.voik.agesandtheart.age.phenomena.Happenings
 import co.voik.agesandtheart.age.AgeCommand
@@ -34,6 +35,7 @@ import co.voik.agesandtheart.desk.DeskPricePayload
 import co.voik.agesandtheart.desk.DeskSyncPayload
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.content.AstriteGolem
+import co.voik.agesandtheart.content.Hadalfish
 // `object` is a Kotlin keyword and Fabric put one in the package path, so it needs quoting.
 import net.fabricmc.fabric.api.`object`.builder.v1.entity.FabricDefaultAttributeRegistry
 import co.voik.agesandtheart.platform.FabricInkFluids
@@ -65,6 +67,9 @@ fun init() {
     // Register content (components before items). On Fabric this is done directly during init.
     // Fluids before items: a bucket names its fluid, and the pair is built together.
     FabricInkFluids.register()
+    // Deep water is registered here rather than through `AgeContent.blocks`, because its block names a
+    // fluid and only a loader can build one — see `AgeFluids.DEEP_WATER`.
+    FabricDeepWaterFluids.register()
 
     AgeContent.components.forEach { (id, comp) -> Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, id, comp) }
     AgeContent.blocks.forEach { (id, block) -> Registry.register(BuiltInRegistries.BLOCK, id, block) }
@@ -73,6 +78,7 @@ fun init() {
     // The first mob the pack has, and a mob is the one kind of entity that needs its attributes declared
     // separately from its type — without this it has no health and the game refuses to spawn it.
     FabricDefaultAttributeRegistry.register(AgeContent.ASTRITE_GOLEM, AstriteGolem.createAttributes())
+    FabricDefaultAttributeRegistry.register(AgeContent.HADALFISH, Hadalfish.createAttributes())
     AgeContent.soundEvents.forEach { (id, sound) -> Registry.register(BuiltInRegistries.SOUND_EVENT, id, sound) }
     AgeContent.tickets.forEach { (id, type) -> Registry.register(BuiltInRegistries.TICKET_TYPE, id, type) }
     AgeContent.blockEntities.forEach { (id, type) -> Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, id, type) }
@@ -199,4 +205,7 @@ fun init() {
         Wounds.emptied(level, chunk.pos)
         Worsening.chunkLeft(level, chunk.pos)
     }
+
+    // Last, and it has to be: everything of ours is registered by now, which is the whole condition.
+    CommonSetup.afterContentRegistered()
 }

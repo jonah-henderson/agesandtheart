@@ -1,0 +1,33 @@
+# Does an abyssal Age actually grow deep water, and does an ordinary one refuse to?
+# Run with: scripts/drive-server.sh scripts/checks/deep-water.txt
+#
+# Deep water holds only where `DeepWater.DEEPEST_VANILLA_SEA` (80) blocks of UNBROKEN water stand over it.
+# Generation works that out for itself rather than letting the block's settling tick do it, because chunk
+# generation writes block states without firing block updates and that tick never runs on generated ground.
+# So what these probes check is the generator's own arithmetic, on both sides of the line.
+#
+# **`isle` is the pairing to test on, and `caverns` is the trap.** Measured with `:common:oceandepth`, a
+# raise of +61 makes 99.9% of `isle`'s columns abyssal and only 0.045% of `caverns`' — because `isle` has a
+# FLAT floor at y=28 so its whole ocean crosses the line together, where `caverns` has rock reaching y=74-89
+# that cuts every column into bodies of 30-45 blocks. Depth of *sea* is not depth of *water*, and the
+# continuity rule is what makes the difference visible.
+#
+# So: `isle` proves the positive case, `caverns` proves that a deep waterline alone is not enough, and the
+# plain seas at the bottom prove nothing grows an abyss without `deep`.
+
+# --- the abyss ------------------------------------------------------------------------------------
+age write abyss 7 age isle landmass deep water sea
+age probe abyss 0 0
+age probe abyss 600 600
+age probe abyss -900 400
+
+# --- the trap: a deep waterline over rock that cuts the column into short bodies -------------------
+age write cavernabyss 7 age caverns landmass deep water sea
+age probe cavernabyss 0 0
+age probe cavernabyss 200 200
+
+# --- and an ordinary sea over the same rock, which must grow none at all --------------------------
+age write plainsea 7 age isle landmass water sea
+age probe plainsea 0 0
+age probe plainsea 600 600
+age probe plainsea -900 400

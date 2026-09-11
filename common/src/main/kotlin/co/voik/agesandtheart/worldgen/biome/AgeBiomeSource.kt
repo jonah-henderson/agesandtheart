@@ -43,33 +43,41 @@ class AgeBiomeSource(
     private val bent: RegionalClimate = RegionalClimate.NONE,
     /** What the Age's own shape says about its climate, where it has a shape of its own. */
     private val grounding: Grounding? = null,
-    /** The one biome no climate can pick, because "indoors" is a place rather than a climate. */
-    private val roofed: Roofed? = null,
+    /**
+     * Biomes no climate can pick, because a *place* is not a climate — see [BiomeBand].
+     *
+     * A list rather than one, since the great halls were the first to want this and the abyss is the
+     * second. Read in order, so the first band covering a height wins.
+     */
+    private val bands: List<BiomeBand> = emptyList(),
 ) : BiomeSource() {
 
     override fun codec(): MapCodec<out BiomeSource> = CODEC
 
-    fun sampledForDepth(): AgeBiomeSource = AgeBiomeSource(under, AsSampled, bent, grounding, roofed)
+    fun sampledForDepth(): AgeBiomeSource = AgeBiomeSource(under, AsSampled, bent, grounding, bands)
 
     fun groundedIn(terrain: TerrainField): AgeBiomeSource =
-        AgeBiomeSource(under, BelowTerrain(terrain), bent, grounding, roofed)
+        AgeBiomeSource(under, BelowTerrain(terrain), bent, grounding, bands)
 
-    fun suitedTo(grounding: Grounding?): AgeBiomeSource = AgeBiomeSource(under, depth, bent, grounding, roofed)
+    fun suitedTo(grounding: Grounding?): AgeBiomeSource = AgeBiomeSource(under, depth, bent, grounding, bands)
 
-    fun roofedBy(roofed: Roofed?): AgeBiomeSource = AgeBiomeSource(under, depth, bent, grounding, roofed)
+    fun banded(bands: List<BiomeBand>): AgeBiomeSource = AgeBiomeSource(under, depth, bent, grounding, bands)
 
-    fun told(bent: RegionalClimate): AgeBiomeSource = AgeBiomeSource(under, depth, bent, grounding, roofed)
+    fun told(bent: RegionalClimate): AgeBiomeSource = AgeBiomeSource(under, depth, bent, grounding, bands)
 
     override fun getNoiseBiome(quartX: Int, quartY: Int, quartZ: Int, climate: Climate.Sampler): Holder<Biome> {
         // Answered before any climate is consulted at all, because it is not a climate question: the halls
-        // are a *place*, and no table has a coordinate that means "indoors". See [roofed].
-        roofed?.biomeAt(QuartPos.toBlock(quartY))?.let { return it }
+        // are a *place*, and no table has a coordinate meaning "indoors" or "under eighty blocks of sea".
+        val blockX = QuartPos.toBlock(quartX)
+        val blockY = QuartPos.toBlock(quartY)
+        val blockZ = QuartPos.toBlock(quartZ)
+        for (band in bands) band.biomeAt(blockX, blockY, blockZ)?.let { return it }
         return under.getNoiseBiome(quartX, quartY, quartZ, asThisAgeSeesIt(climate))
     }
 
-    /** The world below's own, plus anything only [roofed] hands out — which is in no table and must be said. */
+    /** The world below's own, plus anything only a [BiomeBand] hands out — in no table, so it must be said. */
     override fun collectPossibleBiomes(): Stream<Holder<Biome>> =
-        Stream.concat(under.possibleBiomes().stream(), Stream.ofNullable(roofed?.biome))
+        Stream.concat(under.possibleBiomes().stream(), bands.stream().map(BiomeBand::biome))
 
     /** Whether anything here would move a single number. */
     private val bendsNothing: Boolean
@@ -162,10 +170,10 @@ class AgeBiomeSource(
                 ClimateDepth.CODEC.optionalFieldOf("depth", AsSampled).forGetter { it.depth },
                 RegionalClimate.CODEC.optionalFieldOf("bias", RegionalClimate.NONE).forGetter { it.bent },
                 Grounding.CODEC.optionalFieldOf("grounding").forGetter { Optional.ofNullable(it.grounding) },
-                // Absent for every Age with nothing indoors, which is almost all of them.
-                Roofed.CODEC.optionalFieldOf("roofed").forGetter { Optional.ofNullable(it.roofed) },
-            ).apply(instance) { under, depth, bias, grounded, indoors ->
-                AgeBiomeSource(under, depth, bias, grounded.orElse(null), indoors.orElse(null))
+                // Empty for every Age with nothing indoors and no abyss, which is most of them.
+                BiomeBand.CODEC.listOf().optionalFieldOf("bands", emptyList()).forGetter { it.bands },
+            ).apply(instance) { under, depth, bias, grounded, bands ->
+                AgeBiomeSource(under, depth, bias, grounded.orElse(null), bands)
             }
         }
     }

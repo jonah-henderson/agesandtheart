@@ -4,12 +4,19 @@ import co.voik.ephemeris.Rgba
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
 import net.minecraft.client.renderer.SubmitNodeCollector
+import net.minecraft.client.renderer.rendertype.RenderType
 import net.minecraft.client.renderer.rendertype.RenderTypes
 import net.minecraft.world.phys.Vec3
 import org.joml.Matrix4fc
+import kotlin.math.cos
+import kotlin.math.sin
 
 /**
  * Geometry that is **light rather than a surface** — it adds itself to whatever is behind it.
+ *
+ * **Every shape here fades to nothing at its own edge**, written as alpha on the rim vertices and
+ * interpolated across the triangles. There are no textures anywhere in this file and the vertex format
+ * carries a position and a colour, so a soft edge has to come from the geometry or not at all.
  *
  * `RenderTypes.dragonRays()` is vanilla's own arrangement for exactly this and is borrowed whole: a bare
  * position and a colour, blended `SRC_ALPHA, ONE`, which is what "glowing" means and what an ordinary
@@ -60,6 +67,10 @@ object AddedLight {
      *
      * A core and a much wider, much fainter ring, which added together make a falloff rather than a disc:
      * the same two-quad trick the sky's own glow uses, in world space instead of on the vault.
+     *
+     * [drawnOn] is how the fog treats it, and the two arrangements are opposites: the default fades the
+     * glow out exactly where the fog ends, which is what a meteor wants, while
+     * [AgeRenderTypes.lightThroughFog] ignores the fog entirely and leaves the falloff to the caller.
      */
     fun halo(
         collector: SubmitNodeCollector,
@@ -67,14 +78,15 @@ object AddedLight {
         towardCamera: Vec3,
         colour: Rgba,
         radius: Double,
+        drawnOn: RenderType = RenderTypes.dragonRays(),
     ) {
         val facing = towardCamera.normalize()
         val right = acrossFrom(facing, ANY_OTHER_WAY) ?: acrossFrom(facing, OR_THIS_WAY) ?: return
         val up = facing.cross(right)
-        collector.submitCustomGeometry(poseStack, RenderTypes.dragonRays()) { pose, buffer ->
+        collector.submitCustomGeometry(poseStack, drawnOn) { pose, buffer ->
             val matrix = pose.pose()
-            disc(matrix, buffer, right, up, radius * SPREAD, colour.faded(HALO_KEEPS))
-            disc(matrix, buffer, right, up, radius, colour)
+            bloom(matrix, buffer, right, up, radius * SPREAD, colour.faded(HALO_KEEPS))
+            bloom(matrix, buffer, right, up, radius, colour)
         }
     }
 
@@ -98,7 +110,19 @@ object AddedLight {
         }
     }
 
-    private fun disc(
+    /**
+     * A round bloom with no edge to it: bright in the middle, nothing at all by the rim.
+     *
+     * **A fan rather than a quad, and that is what buys the softness.** The alpha is written per *vertex*
+     * and the rasteriser interpolates it across each triangle, so a centre at full strength and a rim at
+     * zero is a radial gradient with no texture and no shader — which is the only way to get a circle out
+     * of a pipeline whose whole vertex format is a position and a colour. This was two flat squares, one
+     * inside the other, and read as exactly that: a hard-edged box with a second box around it.
+     *
+     * Wound both ways, because the pipeline culls back faces and which way a billboard came out depends on
+     * where the camera happened to be.
+     */
+    private fun bloom(
         pose: Matrix4fc,
         buffer: VertexConsumer,
         right: Vec3,
@@ -106,17 +130,20 @@ object AddedLight {
         radius: Double,
         colour: Rgba,
     ) {
-        fun corner(acrossBy: Double, upBy: Double) {
-            val at = right.scale(acrossBy * radius).add(up.scale(upBy * radius))
+        fun vertex(at: Vec3, alpha: Float) {
             buffer.addVertex(pose, at.x.toFloat(), at.y.toFloat(), at.z.toFloat())
-                .setColor(colour.red, colour.green, colour.blue, colour.alpha)
+                .setColor(colour.red, colour.green, colour.blue, alpha)
         }
-        // Four triangles: the square, and the square again wound the other way.
-        corner(-ONE_WHOLE, -ONE_WHOLE); corner(ONE_WHOLE, -ONE_WHOLE); corner(ONE_WHOLE, ONE_WHOLE)
-        corner(-ONE_WHOLE, -ONE_WHOLE); corner(ONE_WHOLE, ONE_WHOLE); corner(-ONE_WHOLE, ONE_WHOLE)
-
-        corner(ONE_WHOLE, ONE_WHOLE); corner(ONE_WHOLE, -ONE_WHOLE); corner(-ONE_WHOLE, -ONE_WHOLE)
-        corner(-ONE_WHOLE, ONE_WHOLE); corner(ONE_WHOLE, ONE_WHOLE); corner(-ONE_WHOLE, -ONE_WHOLE)
+        fun rim(step: Int): Vec3 {
+            val turn = TURN * step / SIDES
+            return right.scale(cos(turn) * radius).add(up.scale(sin(turn) * radius))
+        }
+        for (step in 0..<SIDES) {
+            val from = rim(step)
+            val to = rim(step + ONE)
+            vertex(MIDDLE, colour.alpha); vertex(from, NONE); vertex(to, NONE)
+            vertex(MIDDLE, colour.alpha); vertex(to, NONE); vertex(from, NONE)
+        }
     }
 
     /** One trail, laid out so a quad of it is two numbers along its length. */
@@ -157,6 +184,13 @@ object AddedLight {
 
     /** Enough for the taper to read; a streak is a shape, not a mesh. */
     private const val SEGMENTS = 8
+
+    /** Enough that a bloom's rim reads as a curve rather than as a polygon at any size it is drawn. */
+    private const val SIDES = 20
+
+    private const val TURN = 2.0 * Math.PI
+    private const val NONE = 0.0f
+    private val MIDDLE = Vec3.ZERO
 
     private const val BARELY_MOVING = 0.05
     private const val EDGE_ON = 1.0e-6

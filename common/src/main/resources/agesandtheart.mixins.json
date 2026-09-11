@@ -3,6 +3,8 @@
   "package": "co.voik.agesandtheart.mixin",
   "compatibilityLevel": "JAVA_${java_version}",
   "mixins": [
+    "BlockDefaultStateMixin",
+    "BlockStateFluidMixin",
     "CarvedPumpkinBlockMixin",
     "DragonHoldingPatternMixin",
     "DragonPhaseAccessor",
@@ -16,11 +18,13 @@
     "PowderSnowBlockMixin",
     "ProjectileMixin",
     "ServerLevelMixin",
-    "ServerPlayerMixin"
+    "ServerPlayerMixin",
+    "StateDefinitionBuilderMixin"
   ],
   "client": [
     "client.ClientLevelMixin",
     "client.LevelRendererMixin",
+    "client.LiquidBlockMixin",
     "client.MainRenderTargetMixin",
     "client.ModelBlockRendererMixin",
     "client.WeatherEffectRendererMixin"

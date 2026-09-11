@@ -1,0 +1,18 @@
+{
+  "_comment": [
+    "The abyss, as a tag -- what `DeepWater` scans for and what `Depths` darkens the water around.",
+    "",
+    "A tag rather than a comparison against the registered objects, for two reasons. It is read once per",
+    "block in an upward scan, so it wants to be a tag lookup and not a service call; and a pack that wants",
+    "a second abyssal fluid of its own should be able to have one without touching code.",
+    "",
+    "Both halves are listed. The flowing one is nearly always transient -- deep water is placed as sources",
+    "by generation -- but a tongue of it running down a shaft somebody opened is still the deep, and it",
+    "should crush and darken while it lasts."
+  ],
+  "replace": false,
+  "values": [
+    "agesandtheart:deep_water",
+    "agesandtheart:flowing_deep_water"
+  ]
+}

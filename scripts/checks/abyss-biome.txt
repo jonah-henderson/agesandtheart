@@ -1,0 +1,44 @@
+# Does the abyss BIOME actually reach the water a diver is standing in?
+# Run with: scripts/drive-server.sh scripts/checks/abyss-biome.txt
+#
+# The Age is the one walked on 2026-09-10 -- same sentence, same seed -- so the column probed is the one
+# the screenshot was taken in (-35, 36, -8).
+#
+# `age probe` says where the waterline stands and where the rock is, which between them fix the abyss
+# line (`DeepWater.lineBelow` = waterline - 1 - 80). Then `execute if biome` asks the SAME question the
+# renderer's attribute probe asks -- `level.getBiome(pos)` -- at heights either side of that line.
+#
+# What a pass looks like: "Test passed" everywhere under the line and "Test failed" above it. A failure
+# everywhere means the band is never consulted, which is a different bug from a band in the wrong place.
+
+age write abyss 72 age colossal cliffs landmass deep water sea
+
+# --- where the line actually falls in the walked column -------------------------------------------
+age probe abyss -35 -8
+age probe abyss 0 0
+
+# --- and what the biome is, down the same column --------------------------------------------------
+# The chunk has to be resident before `if biome` will answer -- it reads the level, not the generator.
+execute in agesandtheart:abyss run forceload add -35 -8
+execute in agesandtheart:abyss positioned -35 20 -8 run execute if biome ~ ~ ~ agesandtheart:abyss
+execute in agesandtheart:abyss positioned -35 36 -8 run execute if biome ~ ~ ~ agesandtheart:abyss
+execute in agesandtheart:abyss positioned -35 45 -8 run execute if biome ~ ~ ~ agesandtheart:abyss
+execute in agesandtheart:abyss positioned -35 50 -8 run execute if biome ~ ~ ~ agesandtheart:abyss
+execute in agesandtheart:abyss positioned -35 52 -8 run execute if biome ~ ~ ~ agesandtheart:abyss
+execute in agesandtheart:abyss positioned -35 60 -8 run execute if biome ~ ~ ~ agesandtheart:abyss
+execute in agesandtheart:abyss positioned -35 90 -8 run execute if biome ~ ~ ~ agesandtheart:abyss
+execute in agesandtheart:abyss positioned -35 120 -8 run execute if biome ~ ~ ~ agesandtheart:abyss
+
+# --- if it is not the abyss, what is it? ---------------------------------------------------------
+execute in agesandtheart:abyss positioned -35 36 -8 run execute if biome ~ ~ ~ minecraft:deep_ocean
+execute in agesandtheart:abyss positioned -35 36 -8 run execute if biome ~ ~ ~ minecraft:ocean
+execute in agesandtheart:abyss positioned -35 36 -8 run execute if biome ~ ~ ~ minecraft:lush_caves
+execute in agesandtheart:abyss positioned -35 36 -8 run execute if biome ~ ~ ~ minecraft:dripstone_caves
+execute in agesandtheart:abyss positioned -35 36 -8 run execute if biome ~ ~ ~ minecraft:deep_dark
+execute in agesandtheart:abyss positioned -35 36 -8 run execute if biome ~ ~ ~ minecraft:frozen_ocean
+execute in agesandtheart:abyss positioned -35 36 -8 run execute if biome ~ ~ ~ minecraft:cold_ocean
+execute in agesandtheart:abyss positioned -35 36 -8 run execute if biome ~ ~ ~ minecraft:warm_ocean
+execute in agesandtheart:abyss positioned -35 36 -8 run execute if biome ~ ~ ~ minecraft:lukewarm_ocean
+execute in agesandtheart:abyss positioned -35 36 -8 run execute if biome ~ ~ ~ minecraft:deep_cold_ocean
+execute in agesandtheart:abyss positioned -35 36 -8 run execute if biome ~ ~ ~ minecraft:deep_frozen_ocean
+execute in agesandtheart:abyss positioned -35 36 -8 run execute if biome ~ ~ ~ minecraft:deep_lukewarm_ocean
