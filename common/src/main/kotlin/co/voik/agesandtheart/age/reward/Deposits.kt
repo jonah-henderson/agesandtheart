@@ -58,7 +58,7 @@ object Deposits {
      */
     fun veinsPerChunk(danger: Danger): Int {
         if (!danger.paysOut) return NOTHING
-        val multiple = if (danger.isTerminal) TERMINAL_MULTIPLE else ORDINARY_MULTIPLE
+        val multiple = if (danger.isTerminal) TERMINAL_VEINS else ORDINARY_MULTIPLE
         return veinsFor(danger.score) * multiple
     }
 
@@ -83,7 +83,7 @@ object Deposits {
      * near the lava and near the wound are the half that is not, and neither is worth a placement modifier.
      */
     private fun depositIn(rock: List<BlockState>, veins: Int, raid: Boolean): Holder<PlacedFeature> {
-        val size = VEIN_SIZE * if (raid) TERMINAL_MULTIPLE else ORDINARY_MULTIPLE
+        val size = VEIN_SIZE * if (raid) TERMINAL_VEIN_SIZE else ORDINARY_MULTIPLE
         val configured = ConfiguredFeature(Feature.ORE, OreConfiguration(targetsIn(rock), size))
         return Holder.direct(
             PlacedFeature(
@@ -105,19 +105,30 @@ object Deposits {
     )
 
     /**
-     * Where a doomed Age keeps it — **inside the band the tear takes**, so the hoard is the first thing the
-     * floor swallows (Jonah, 2026-09-05).
+     * Where a doomed Age keeps it — **reaching down into the band the tear takes, and well above it**.
      *
      * That is the whole shape of §7.7's raid: the reward is absurd, it is at the bottom of a world that is
      * coming apart from the bottom, and every trip down is a race against the ground you are standing on.
-     * Uniform rather than triangular, this being a band two dozen blocks thick rather than a distribution.
+     *
+     * **Sited inside the tear's own band alone, it was almost entirely eaten** (Jonah, walked 2026-09-10).
+     * Putting the hoard where the floor goes first was deliberate and it went too far: a reward you watch
+     * being consumed is drama, one already consumed before you arrive is an empty band. So it reaches
+     * [TELEGRAPHED_FOR] times the tear's depth, and the part above the starfield is what tells you what is
+     * inside it — *"the height limit needs to be higher to telegraph that all the good stuff is down
+     * there"*.
+     *
+     * **The tear does not grow to meet it**, which is the other way this could have been read and the wrong
+     * one: a deeper `Collapse.DEEP` would eat more rather than less.
+     *
+     * Uniform rather than triangular, so the part that survives reads as the same seam continuing down into
+     * the part that does not.
      *
      * Reads [Collapse.DEEP] rather than restating it: if the tear's reach ever moves, the hoard has to move
      * with it or the whole point is lost quietly.
      */
     private fun inTheFloorItself(): HeightRangePlacement = HeightRangePlacement.uniform(
         VerticalAnchor.aboveBottom(JUST_OFF_THE_FLOOR),
-        VerticalAnchor.aboveBottom(Collapse.DEEP),
+        VerticalAnchor.aboveBottom(Collapse.DEEP * TELEGRAPHED_FOR),
     )
 
     /**
@@ -157,13 +168,33 @@ object Deposits {
     private const val NOTHING = 0
 
     /**
-     * What a terminal Age multiplies both the count and the vein size by (§7.7).
+     * What a terminal Age multiplies the vein *count* by (§7.7).
      *
      * Absurd on purpose and unbalanced by design — "grab what you can before you cannot" is not a rate to
-     * be tuned against the ordinary economy, because the Age it comes from cannot be farmed. A first
-     * figure, and expected to move.
+     * be tuned against the ordinary economy, because the Age it comes from cannot be farmed.
+     *
+     * **Split from the size, because the band it is spread through got three times taller.** They were one
+     * number, so the only way to put more ore in a taller band was to grow every vein with it — and ten
+     * times a vein of four is already a boulder, where forty times it is a floor. The count is what "more
+     * ore" means; the size is what one strike is worth.
      */
-    private const val TERMINAL_MULTIPLE = 10
+    private const val TERMINAL_VEINS = 40
+
+    /**
+     * And what it multiplies the vein size by, which is deliberately not [TERMINAL_VEINS].
+     *
+     * A vein of forty against vanilla's diamond four: one strike is a haul, and you still have to find the
+     * next one.
+     */
+    private const val TERMINAL_VEIN_SIZE = 10
+
+    /**
+     * How far past the tear's own depth the hoard reaches, so there is something left to find.
+     *
+     * Three, which puts about a third of the band inside the starfield and the rest above it — enough that
+     * a raid pays even after the floor has taken what it is going to take.
+     */
+    private const val TELEGRAPHED_FOR = 3
 
     private const val ORDINARY_MULTIPLE = 1
 

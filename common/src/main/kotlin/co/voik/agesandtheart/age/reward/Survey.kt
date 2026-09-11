@@ -56,7 +56,7 @@ data class Survey(val deposit: Yield, val earlyMaterials: Set<EarlyGameRareMater
  *
  * Banded on **veins per chunk**, which is what [Deposits] actually places, so the report and the ground
  * cannot drift apart. The bands are wide at the top because there is no ceiling: a terminal Age multiplies
- * its yield tenfold and lands in [IMMENSE] however marginal its score was.
+ * its vein count many times over and lands in [IMMENSE] however marginal its score was.
  */
 enum class Yield(val key: String, val fewestVeins: Int) {
     NONE("none", 0),
