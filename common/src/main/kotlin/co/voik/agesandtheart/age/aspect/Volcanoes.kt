@@ -23,12 +23,13 @@ import net.minecraft.world.level.levelgen.placement.SurfaceRelativeThresholdFilt
 import net.minecraft.world.level.levelgen.structure.templatesystem.TagMatchTest
 
 /**
- * Whether an Age has volcanoes in it (design §7.1.2).
+ * Whether an Age has volcanoes in it (design §7.1.2) — the **mountains**, and only those.
  *
- * **One fact in the recipe, read by four things.** The terrain raises the cones from it, the caldera
- * feature lays the big vent in each crater, this lays the smaller ones through the rest of the rock, and
- * the danger evaluator scores it — so a writer who asks for volcanoes gets all of them, and none can
- * disagree about whether the Age has any.
+ * **One fact in the recipe, read by three things.** The terrain raises the cones from it, the vent feature
+ * seats tubes in the crater lakes they arrive full of, and the danger evaluator scores it — so a writer
+ * who asks for volcanoes gets all of that, and none of the three can disagree about whether the Age has
+ * any. What a volcano no longer drags in with it is the small craters ([Firespouts]) and the deep magma
+ * ([MagmaChambers]); each is written for on its own, and `volcanic` is the word that reaches all three.
  *
  * It rides the features pool rather than being an aspect of its own: what a volcano *is* to a recipe is a
  * thing that gets placed, and the pool already carries a claim's confinement and rungs.
@@ -38,19 +39,8 @@ object Volcanoes {
     /** The placed feature a writer names, and the id everything else keys on. */
     val ID: Identifier = "volcano".location()
 
-    /**
-     * The claim asking for volcanoes, or null for an Age that asks for none.
-     *
-     * Read off the claim rather than the placed feature registry, so it answers the same before an Age is
-     * opened as after — which is what lets the desk survey and `/age danger score` ask it of a recipe that
-     * has never been built.
-     */
-    private fun claimIn(composition: AgeComposition): Claim? =
-        composition.optionsFor(Aspect.FEATURES, 0).claimsOn(Features.PLACES)
-            .firstOrNull { claim -> Identifier.tryParse(claim.value) == ID }
-
     /** Whether this composition asks for volcanoes — the terrain's question, which has no amount in it. */
-    fun askedFor(composition: AgeComposition): Boolean = claimIn(composition) != null
+    fun askedFor(composition: AgeComposition): Boolean = Features.claimNaming(composition, ID) != null
 
     /**
      * The Age's rock, seeded with lava tubes away from the calderas (Jonah, 2026-09-06).
@@ -72,7 +62,7 @@ object Volcanoes {
      * that merely says `volcano` already gets a multiple of the counts below.
      */
     fun layer(composition: AgeComposition): Decoration.Layer? {
-        val asked = claimIn(composition) ?: return null
+        val asked = Features.claimNaming(composition, ID) ?: return null
         return Decoration.layerOf(
             GenerationStep.Decoration.UNDERGROUND_ORES,
             listOf(

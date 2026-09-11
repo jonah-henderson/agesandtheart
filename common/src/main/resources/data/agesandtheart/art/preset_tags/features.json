@@ -213,5 +213,32 @@
       "built": 0.15,
       "ruined": 0.3
     }
+  },
+  "agesandtheart:volcano": {
+    "tags": {
+      "molten": 1.0,
+      "mountainous": 1.0,
+      "hostile": 0.8,
+      "barren": 0.6,
+      "stony": 0.5
+    }
+  },
+  "agesandtheart:firespout": {
+    "tags": {
+      "molten": 1.0,
+      "hostile": 0.8,
+      "scattered": 0.7,
+      "barren": 0.5,
+      "stony": 0.4
+    }
+  },
+  "agesandtheart:magma_chamber": {
+    "tags": {
+      "molten": 1.0,
+      "cavernous": 1.0,
+      "buried": 1.0,
+      "hostile": 0.7,
+      "dark": 0.5
+    }
   }
 }

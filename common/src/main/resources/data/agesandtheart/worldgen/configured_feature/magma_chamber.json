@@ -1,0 +1,9 @@
+{
+  "_comment": [
+    "The lava tubes standing in a magma chamber's pool. The chamber itself is terrain -- an ellipsoid cut",
+    "out of the rock with a level pool poured into its bottom -- and this seats the vents in that pool, the",
+    "same routine the craters get against a different body of lava."
+  ],
+  "type": "agesandtheart:chamber_vents",
+  "config": {}
+}

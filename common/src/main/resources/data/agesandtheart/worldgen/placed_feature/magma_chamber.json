@@ -1,0 +1,10 @@
+{
+  "_comment": [
+    "**Named in a recipe, which is what puts deep magma under an Age.** `MagmaChambers.askedFor` reads the",
+    "same claim and the terrain cuts the hollows from it. It needs no volcano above it: what is down here",
+    "is found by digging rather than by looking.",
+    "One pass per chunk and no modifier that moves it, for the reason `volcano` has none."
+  ],
+  "feature": "agesandtheart:magma_chamber",
+  "placement": [{ "type": "minecraft:count", "count": 1 }]
+}

@@ -127,6 +127,8 @@
   },
 
   "features": {
-    "agesandtheart:volcano": 1.0
+    "agesandtheart:volcano": 1.0,
+    "agesandtheart:firespout": 0.7,
+    "agesandtheart:magma_chamber": 0.5
   }
 }

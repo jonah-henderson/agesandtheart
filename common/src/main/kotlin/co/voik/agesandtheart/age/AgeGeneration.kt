@@ -26,6 +26,7 @@ import co.voik.agesandtheart.worldgen.field.Ridge
 import co.voik.agesandtheart.worldgen.field.Rift
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import co.voik.agesandtheart.worldgen.field.Subtract
+import co.voik.agesandtheart.age.aspect.MagmaChambers
 import co.voik.agesandtheart.worldgen.field.StandingFluid
 import co.voik.agesandtheart.worldgen.field.Union
 import co.voik.agesandtheart.worldgen.field.Weathered
@@ -526,8 +527,11 @@ object AgeGeneration {
         // Volcanoes stand *on* whatever landform the Age has rather than replacing it, so they are a layer
         // over the finished rock — the same shape of thing a roof is, and read from the same recipe fact
         // the lava tubes and the danger evaluator read.
+        //
+        // **The chambers answer their own claim**, so deep magma with no surface expression is a world a
+        // writer may ask for. What stands above one is the volcano's business and not theirs.
         val volcanoes = if (Volcanoes.askedFor(composition)) VolcanoField.over(seed) else null
-        val chambers = if (Volcanoes.askedFor(composition)) VolcanoField.chambers(seed) else null
+        val chambers = if (MagmaChambers.askedFor(composition)) VolcanoField.chambers(seed) else null
         val cones = volcanoes?.cones
         val raised = Union(listOfNotNull(shape, cones, lid)).takeIf { cones != null || lid != null } ?: shape
         // The magma chambers are taken out of everything, cones included: a hollow in a volcano's own root
@@ -550,10 +554,15 @@ object AgeGeneration {
             // A caldera arrives flooded, and the shape is what floods it. Nothing at runtime can lay a
             // level lake — where fluid may stand is vanilla's fluid to know, and it only knows one block
             // at a time — where the field already knows the crater's floor, its walls and its rim.
-            lakes = listOfNotNull(volcanoes?.lakes, chambers?.lakes)
-                .map { StandingFluid(it, Blocks.LAVA.defaultBlockState()) },
+            // **Named, because both are lava and a feature has to find its own.** See [StandingFluid.named].
+            lakes = listOfNotNull(
+                volcanoes?.lakes?.let { StandingFluid(it, LAVA, StandingFluid.CRATER_LAKES) },
+                chambers?.lakes?.let { StandingFluid(it, LAVA, StandingFluid.CHAMBER_POOLS) },
+            ),
         )
     }
+
+    private val LAVA = Blocks.LAVA.defaultBlockState()
 
     private const val WATERLINE_SALT = 0x5EA_1E7EL
 

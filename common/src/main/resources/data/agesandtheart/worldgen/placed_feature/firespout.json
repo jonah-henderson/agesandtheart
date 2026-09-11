@@ -1,0 +1,14 @@
+{
+  "_comment": [
+    "**The rarity lives here rather than inside the feature**, which is what a placement is for -- and it is",
+    "what lets a quantifier scale these the ordinary way, through `FeatureDensity` prepending a count.",
+    "One chunk in two hundred is about one per two hundred blocks square: something you come across rather",
+    "than something the country is made of. Cut twice from a fifth of all chunks, by a factor of forty in",
+    "all, because a puddle within sight of the last one everywhere you went read as terrain."
+  ],
+  "feature": "agesandtheart:firespout",
+  "placement": [
+    { "type": "minecraft:rarity_filter", "chance": 200 },
+    { "type": "minecraft:count", "count": 1 }
+  ]
+}

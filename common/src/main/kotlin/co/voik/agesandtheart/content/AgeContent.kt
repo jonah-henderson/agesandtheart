@@ -90,7 +90,9 @@ import co.voik.agesandtheart.worldgen.feature.RimeCrystal
 import co.voik.agesandtheart.worldgen.feature.SpilledSpring
 import co.voik.agesandtheart.worldgen.feature.TemperedGround
 import co.voik.agesandtheart.worldgen.feature.ImpactCrater
+import co.voik.agesandtheart.worldgen.feature.LavaPuddles
 import co.voik.agesandtheart.worldgen.feature.VolcanoVents
+import co.voik.agesandtheart.worldgen.field.StandingFluid
 import net.minecraft.world.level.levelgen.feature.Feature
 import net.minecraft.world.level.levelgen.carver.WorldCarver
 import net.minecraft.world.level.storage.loot.functions.LootItemFunction
@@ -1526,7 +1528,10 @@ object AgeContent {
         "formation".location() to Formation,
         "rime_crystal".location() to RimeCrystal,
         "tempered_ground".location() to TemperedGround,
-        "volcano_vents".location() to VolcanoVents,
+        // The same routine twice, once per body of lava an Age may carry — see [VolcanoVents].
+        "volcano_vents".location() to VolcanoVents(StandingFluid.CRATER_LAKES),
+        "chamber_vents".location() to VolcanoVents(StandingFluid.CHAMBER_POOLS),
+        "lava_puddles".location() to LavaPuddles,
         "impact_crater".location() to ImpactCrater,
     )
 }

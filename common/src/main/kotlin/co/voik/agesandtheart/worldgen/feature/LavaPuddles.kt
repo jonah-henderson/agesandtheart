@@ -8,6 +8,9 @@ import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.Heightmap
+import net.minecraft.world.level.levelgen.feature.Feature
+import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext
+import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.sqrt
@@ -35,20 +38,21 @@ import kotlin.math.sqrt
  * The other half of the containment is `LavaTubes.POOL_RISES_BY`: a tube at the bottom of a bowl would
  * otherwise creep its pool up to the rim and over it.
  */
-object LavaPuddles {
+object LavaPuddles : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration.CODEC) {
 
     /**
-     * Scatter what this chunk gets, and answer whether anything went down.
+     * Dig what this chunk gets, and answer whether anything went down.
      *
-     * Placed from [VolcanoVents], which already runs once per chunk in a volcanic Age — a second registered
-     * feature would need a second id in the recipe, and what a writer asks for is *volcanoes*, not a list
-     * of the things volcanoes come with.
+     * **Its own placed feature**, so `firespout` is a page a writer lays on its own and a quantifier scales
+     * it the way it scales anything else. How often one turns up is the placement's business now and not
+     * this one's — see the `firespout` placed feature, where the rarity lives.
      */
-    fun scatter(level: WorldGenLevel, origin: BlockPos, random: RandomSource): Boolean {
-        if (random.nextFloat() >= IN_A_CHUNK) return false
+    override fun place(context: FeaturePlaceContext<NoneFeatureConfiguration>): Boolean {
+        val origin = context.origin()
+        val random = context.random()
         val x = origin.x + INSET + random.nextInt(CHUNK - INSET - INSET)
         val z = origin.z + INSET + random.nextInt(CHUNK - INSET - INSET)
-        return dig(level, x, z, random)
+        return dig(context.level(), x, z, random)
     }
 
     /**
@@ -241,20 +245,6 @@ object LavaPuddles {
 
     /** And no further than this, so a puddle under an overhang does not take the ceiling out with it. */
     private const val CLEARS_EVERYTHING = 12
-
-    /**
-     * How often a chunk in volcanic country holds one, for an Age that asked for volcanoes and no more
-     * than that.
-     *
-     * One chunk in two hundred is about one per two hundred blocks square — something you come across
-     * rather than something the country is made of.
-     *
-     * **A quantifier multiplies this without touching it**, and that is why there is no rung in here: a
-     * writer who asks for `teeming volcano` scales the whole placed feature through
-     * [FeatureDensity], so this runs as many times over as the claim's amount says. Reading the amount
-     * here as well would square it.
-     */
-    private const val IN_A_CHUNK = 0.005f
 
     /** How likely each of the four beside the middle is to be a tube as well. */
     private const val ALSO = 0.5f

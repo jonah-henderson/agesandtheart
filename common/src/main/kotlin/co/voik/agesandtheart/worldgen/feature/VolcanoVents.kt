@@ -29,30 +29,35 @@ import kotlin.math.roundToInt
  * So a crater is not looked for at all now. The lake **is** the crater, and the chunk that seats the vent
  * is the one holding the lake's middle — a question every chunk over that lake answers the same way, so
  * exactly one of them says yes without any of them comparing itself against the others.
+ *
+ * **One class, one instance per body of lava** ([body]). A crater lake and a magma chamber's pool want
+ * exactly this routine and differ only in which field they are; registering it twice is what lets
+ * `volcano` and `magma_chamber` be written for separately without either one's vents going missing.
  */
-object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration.CODEC) {
+class VolcanoVents(private val body: String) : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration.CODEC) {
 
     override fun place(context: FeaturePlaceContext<NoneFeatureConfiguration>): Boolean {
         val generator = context.chunkGenerator() as? AgeChunkGenerator ?: return false
         val origin = context.origin()
-        // The small ones first, and independently: they cut their own hollows in the open country between
-        // the craters, so a chunk with no lava in it still gets its share. See [LavaPuddles].
-        val puddled = LavaPuddles.scatter(context.level(), origin, context.random())
-        val lakes = moltenIn(generator) ?: return puddled
-        val anywhere = someLavaIn(lakes, origin) ?: return puddled
+        val lakes = moltenIn(generator) ?: return false
+        val anywhere = someLavaIn(lakes, origin) ?: return false
         val middle = middleOfTheLakeAt(lakes, anywhere)
-        if (!inside(origin, middle)) return puddled
-        return seat(context.level(), lakes, middle, context.random()) || puddled
+        if (!inside(origin, middle)) return false
+        return seat(context.level(), lakes, middle, context.random())
     }
 
     /**
-     * The body of lava this Age's shape carries, or null where it carries none.
+     * This feature's own body of lava, or null where the Age carries none.
      *
-     * Asked of the generator rather than named here, so the vent and the lake it sits under read one
+     * **Found by name and never by substance.** Both bodies are lava, so taking the first one found
+     * returns whichever happens to be listed first and leaves the other unreachable — which is what kept
+     * every magma chamber empty for as long as the cones were listed ahead of them.
+     *
+     * Asked of the generator rather than rebuilt here, so the vent and the lake it sits under read one
      * field and cannot come to describe two different craters.
      */
     private fun moltenIn(generator: AgeChunkGenerator): TerrainField? =
-        generator.seaFill.carried.firstOrNull { it.fluid.`is`(Blocks.LAVA) }?.where
+        generator.seaFill.carried.firstOrNull { it.named == body }?.where
 
     /**
      * Any column of this chunk with lava standing over it, on the [STRIDE] lattice.
@@ -245,6 +250,8 @@ object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration
         (-reach..reach).flatMap { x -> (-reach..reach).map { z -> x to z } }
             .filter { (x, z) -> x * x + z * z <= reach * reach }
 
+    private companion object {
+
     /**
      * How wide the cap is, drawn per crater so two volcanoes are not the same machine.
      *
@@ -302,4 +309,5 @@ object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration
     private const val ONE_WHOLE = 1.0
 
     private const val INT_MASK = 0xFFFF_FFFFL
+    }
 }

@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.age.aspect
 
 import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.worldgen.feature.FeatureDensity
 import co.voik.agesandtheart.worldgen.feature.FeatureShape
 import net.minecraft.core.Holder
@@ -57,6 +58,18 @@ object Features {
 
     /** How an Age says nothing is placed here at all: bare ground, whatever its biomes would have carried. */
     const val NOTHING = "nothing"
+
+    /**
+     * The claim naming [feature] in this composition, or null where nothing asks for it.
+     *
+     * Read off the claim rather than the placed feature registry, so it answers the same before an Age is
+     * opened as after — which is what lets the desk survey and `/age danger score` ask it of a recipe that
+     * has never been built. The amount rides on the claim, so a caller wanting one takes it from here
+     * rather than asking a second time.
+     */
+    fun claimNaming(composition: AgeComposition, feature: Identifier): Claim? =
+        composition.optionsFor(Aspect.FEATURES, 0).claimsOn(PLACES)
+            .firstOrNull { claim -> Identifier.tryParse(claim.value) == feature }
 
     /**
      * How big one of a thing is, how thick a patch of it is, and how deep in the column it sits — the
