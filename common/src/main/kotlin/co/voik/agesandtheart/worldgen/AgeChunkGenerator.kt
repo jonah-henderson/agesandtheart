@@ -435,6 +435,11 @@ class AgeChunkGenerator(
                 val abyssal = !spans.contains(abyssLine) && band.fills(at, abyssLine) &&
                     abyssBelongsIn(chunk, ours, worldX, worldZ)
 
+                // **Whether any lava the shape carries is near enough to line**, asked once for the whole
+                // column — see [MoltenLining]. False everywhere in an Age with no carried body, which is
+                // what keeps the two questions below off the hot path of every ordinary world.
+                val couldLine = band.carriesNear(localX, localZ)
+
                 // Whether the block just below came out empty, so a fluid placed on top of nothing can be
                 // told to fall. Nothing is below the window's floor, which is as good as open for this.
                 var nothingBelow = true
@@ -445,7 +450,13 @@ class AgeChunkGenerator(
                     val state = when {
                         // What the rock *is*, which is vanilla's `default_block` and now ours — the surface
                         // system paints its skin over this afterwards, exactly as it does for vanilla.
-                        isRock -> fill.blockAt(worldX, y, worldZ)
+                        // **Unless it is holding lava in**, in which case it is obsidian: see [MoltenLining]
+                        // for why a volcano that demolishes its own caldera used to leave the lake in the air.
+                        isRock -> MoltenLining.rockAt(
+                            moltenAbove = couldLine && MoltenLining.isMolten(band.carried(at, y + 1)),
+                            moltenBeside = couldLine && band.moltenBeside(localX, localZ, y),
+                            otherwise = fill.blockAt(worldX, y, worldZ),
+                        )
                         // A body the shape carries, which answers before either of the two below it: a
                         // caldera's lava is neither groundwater nor the sea, and both of those would take
                         // the space and put the wrong substance in it.
@@ -543,6 +554,25 @@ class AgeChunkGenerator(
 
         fun fills(at: Int, y: Int): Boolean = seaFill.fillsAt(y, dryness[at]!!, wetness[at]!!)
 
+        /**
+         * Whether this column or any beside it carries a body at all — the gate that keeps the lining
+         * questions off every column of every Age that has no lava in it, which is almost all of them.
+         * Asked once per column rather than once per block.
+         */
+        fun carriesNear(localX: Int, localZ: Int): Boolean =
+            bodies[indexOf(localX, localZ)]!!.isNotEmpty() ||
+                bodies[indexOf(localX - 1, localZ)]!!.isNotEmpty() ||
+                bodies[indexOf(localX + 1, localZ)]!!.isNotEmpty() ||
+                bodies[indexOf(localX, localZ - 1)]!!.isNotEmpty() ||
+                bodies[indexOf(localX, localZ + 1)]!!.isNotEmpty()
+
+        /** Whether a carried body puts lava at this level in any of the four columns beside this one. */
+        fun moltenBeside(localX: Int, localZ: Int, y: Int): Boolean =
+            isMolten(indexOf(localX - 1, localZ), y) || isMolten(indexOf(localX + 1, localZ), y) ||
+                isMolten(indexOf(localX, localZ - 1), y) || isMolten(indexOf(localX, localZ + 1), y)
+
+        private fun isMolten(at: Int, y: Int): Boolean = MoltenLining.isMolten(carried(at, y))
+
         /** Whether any of the four columns beside this one left this level open. */
         fun openBeside(localX: Int, localZ: Int, y: Int): Boolean =
             isOpen(indexOf(localX - 1, localZ), y) || isOpen(indexOf(localX + 1, localZ), y) ||
@@ -582,21 +612,48 @@ class AgeChunkGenerator(
         val cursor = BlockPos.MutableBlockPos()
         val lowest = chunk.minY
         val highest = chunk.minY + chunk.height - 1
+        // **A band with a column of margin, as the field path keeps**, and for the one reason that needs
+        // it: lining a body of lava asks what stands *beside* a block as well as over it, and the columns
+        // past a chunk's edge are outside it. One extra ring is 68 columns on 256 — see [MoltenLining].
+        val around = Array(LINING_SIDE * LINING_SIDE) { index ->
+            val bandX = index / LINING_SIDE
+            val bandZ = index % LINING_SIDE
+            overlay.at(
+                chunk.pos.minBlockX + bandX - LINING_MARGIN,
+                chunk.pos.minBlockZ + bandZ - LINING_MARGIN,
+            )
+        }
+        fun columnAt(localX: Int, localZ: Int) =
+            around[(localX + LINING_MARGIN) * LINING_SIDE + (localZ + LINING_MARGIN)]
+
         for (localX in 0..<BLOCKS_PER_SECTION) {
             for (localZ in 0..<BLOCKS_PER_SECTION) {
                 val worldX = chunk.pos.minBlockX + localX
                 val worldZ = chunk.pos.minBlockZ + localZ
-                val column = overlay.at(worldX, worldZ)
+                val column = columnAt(localX, localZ)
                 if (column.saysNothing) continue
+                val beside = listOf(
+                    columnAt(localX - 1, localZ), columnAt(localX + 1, localZ),
+                    columnAt(localX, localZ - 1), columnAt(localX, localZ + 1),
+                )
                 column.forEachBlock(rockHere) { y, state ->
                     if (y in lowest..highest) {
+                        // The same rule the field path keeps, so a cone on vanilla's rock holds its lava in
+                        // the same obsidian a cone on ours does.
+                        val laid = if (state != rockHere) state else MoltenLining.rockAt(
+                            moltenAbove = MoltenLining.isMolten(column.blockAt(y + 1, rockHere)),
+                            moltenBeside = beside.any { MoltenLining.isMolten(it.blockAt(y, rockHere)) },
+                            otherwise = state,
+                        )
                         cursor.set(worldX, y, worldZ)
-                        chunk.setBlockState(cursor, state)
+                        chunk.setBlockState(cursor, laid)
                         // Both heightmaps are re-derived by walking the chunk back down where a write
                         // *removes* ground, so cutting a caldera lowers the surface rather than leaving
-                        // the cone's old summit standing in a structure's way.
-                        oceanFloor.update(localX, y, localZ, state)
-                        worldSurface.update(localX, y, localZ, state)
+                        // the cone's old summit standing in a structure's way. Told what was **laid**
+                        // rather than what was asked for: the two agree today, obsidian being as solid as
+                        // stone, and a lining that was ever anything else would silently disagree.
+                        oceanFloor.update(localX, y, localZ, laid)
+                        worldSurface.update(localX, y, localZ, laid)
                     }
                 }
             }
@@ -1085,6 +1142,10 @@ class AgeChunkGenerator(
 
         /** Half a chunk, so a chunk is judged by its middle rather than its corner. */
         private const val BLOCKS_PER_SECTION = 16
+
+        /** One column of margin all round, which is what asking "what is beside this" costs. */
+        private const val LINING_MARGIN = 1
+        private const val LINING_SIDE = BLOCKS_PER_SECTION + 2 * LINING_MARGIN
 
         /**
          * **The climate half of a named router, and nothing else.** `ChunkMap` builds the level's

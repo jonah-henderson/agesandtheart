@@ -67,6 +67,38 @@ class VolcanoLakesCheck : FunSpec({
     }
 
     /**
+     * **That a crater's lava stands on the crater's own rock**, which is what the obsidian lining converts.
+     *
+     * `MoltenLining` makes a rock block obsidian where a carried body of lava is over it or beside it, so
+     * the bowl it draws is only as good as the assumption that there *is* rock under the lava. That holds
+     * by construction — the lake is the crater cut intersected with a slab, and the cut is taken out of the
+     * mountain — but it is the one thing the lining cannot check for itself at generation, and a change to
+     * either shape could quietly leave the lava sitting on nothing.
+     *
+     * **A proportion rather than a prohibition, and the exception is the spill.** The rim is floored two
+     * blocks under its own lava on purpose, so the roll notches it somewhere and a lavafall runs down the
+     * flank — at that notch the lava genuinely has open air beneath it, and nothing should convert. Measured
+     * at two columns in a hundred and ninety-seven, against a bound loose enough to keep a spill and tight
+     * enough to fail a lake that came loose from its bowl.
+     */
+    test("a crater's lava stands on the crater's own rock") {
+        for ((atX, atZ) in someVolcanoes()) {
+            var floored = 0
+            var hanging = 0
+            for (column in surfacesAround(atX, atZ)) {
+                val lowest = column.lava.ranges.firstOrNull()?.first ?: continue
+                if (column.rock.contains(lowest - 1)) floored++ else hanging++
+            }
+            if (floored + hanging == 0) continue
+            println("  the crater near ($atX, $atZ): $floored columns of lava on rock, $hanging on nothing")
+            check(hanging <= (floored + hanging) * MOSTLY_ON_ITS_FLOOR) {
+                "the crater near ($atX, $atZ) has lava standing on nothing in $hanging of " +
+                    "${floored + hanging} columns, which is a lake off its bowl rather than a lip weeping"
+            }
+        }
+    }
+
+    /**
      * **How pocked a stretch of volcanic country actually is**, printed rather than asserted — small
      * craters are meant to be met on a walk rather than sought, and that is a density nobody can judge
      * from a rule about cell sizes.
@@ -165,6 +197,14 @@ class VolcanoLakesCheck : FunSpec({
          * loose by an order of magnitude and still fails a wall that is not there.
          */
         private const val MOST_OF_IT_HELD = 0.02
+
+        /**
+         * How much of a lake may stand over open air — the spill notch, and nothing else.
+         *
+         * An order of magnitude over the two-in-197 measured, for the reason [MOST_OF_IT_HELD] is loose:
+         * what this has to fail is a lake that came away from its bowl entirely, not a crater that weeps.
+         */
+        private const val MOSTLY_ON_ITS_FLOOR = 0.10
 
         private val BESIDE = listOf(1 to 0, -1 to 0, 0 to 1, 0 to -1)
 
