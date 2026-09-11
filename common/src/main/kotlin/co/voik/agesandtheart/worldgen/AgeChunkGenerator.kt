@@ -365,15 +365,18 @@ class AgeChunkGenerator(
      * settled by the time the fill asks.
      */
     private fun abyssBelongsIn(chunk: ChunkAccess, ours: AgeRock.Ours, worldX: Int, worldZ: Int): Boolean {
-        // The land rather than the whole rock, as `getBaseHeight` reads it: a lid over a sealed Age is not
-        // a sea floor, and reading it here would call every column of such an Age dry land.
-        val ground = ours.landform.columnSpans(worldX, worldZ).highestSolidY
-        if (ground != null && ground >= seaSurfaceY) return false
-        return !chunk.getNoiseBiome(
+        // **The biome first, because it is an array read and the other is a whole field tree.** This runs
+        // per column of the fill, and the landform of a volcanic Age is the most expensive thing in it.
+        val biome = chunk.getNoiseBiome(
             QuartPos.fromBlock(worldX),
             QuartPos.fromBlock(abyssLine),
             QuartPos.fromBlock(worldZ),
-        ).`is`(DeepWater.NO_ABYSS)
+        )
+        if (biome.`is`(DeepWater.NO_ABYSS)) return false
+        // The land rather than the whole rock, as `getBaseHeight` reads it: a lid over a sealed Age is not
+        // a sea floor, and reading it here would call every column of such an Age dry land.
+        val ground = ours.landform.columnSpans(worldX, worldZ).highestSolidY
+        return ground == null || ground < seaSurfaceY
     }
 
     /**

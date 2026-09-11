@@ -135,13 +135,13 @@ object AgeGeneration {
         // `fillFromNoise` and its companions to the base class. Named at all rather than named alone —
         // `/age compose` refuses the mixture, and a hand-written recipe that says it anyway gets vanilla's
         // rock rather than a landform asked for a field it has none of.
-        val ourGround = if (Terrain.VANILLA in composition.terrains) null
-        else ourGround(composition, landmass, ground, window, seed, torn)
         // **Built whether or not there is a landform of ours**, which is the whole point of it: an Age
         // wearing vanilla's rock still gets its mountains, written into the chunk after vanilla's own fill.
-        // `ourGround` has already folded this same object into its field tree, so only the other path reads
-        // it from here — see [Overlay].
+        // **Built once and shared**, so the rock, the bodies the sea carries and the generator's own copy
+        // are all the same object — see the note on `ourGround`'s parameter.
         val overlay = volcanicOverlay(composition, seed)
+        val ourGround = if (Terrain.VANILLA in composition.terrains) null
+        else ourGround(composition, landmass, ground, window, seed, torn, overlay)
 
         val chasm = ourGround?.chasm
         val standing = ourGround?.standing
@@ -513,6 +513,14 @@ object AgeGeneration {
         window: VerticalWindow,
         seed: Long,
         torn: Double,
+        /**
+         * **Handed in rather than built here, and that is not only tidiness.** `Instanced` poses every
+         * template up front — four cone shapes at four sizes is sixteen whole warped trees — so building
+         * the overlay twice builds those twice. It also made the lava bodies the sea carries a *different*
+         * object from the one the rock was cut from, which is the exact trap `StandingFluid.named` warns
+         * about: a second field is free to disagree with the first.
+         */
+        volcanic: Overlay,
     ): OurGround {
         val grounds = composition.terrains.mapIndexed { member, terrain ->
             terrain.ground(
@@ -548,7 +556,6 @@ object AgeGeneration {
         // landform of ours and one wearing vanilla's rock. This path folds it into the field tree, where it
         // is analytic and free; the generator writes it into the chunk for the other. Before that, a word
         // like `volcano` was taken, charged for and scored, and then produced no mountains at all.
-        val volcanic = volcanicOverlay(composition, seed)
         val cones = volcanic.raises
         val raised = Union(listOfNotNull(shape, cones, lid)).takeIf { cones != null || lid != null } ?: shape
         // The magma chambers are taken out of everything, cones included: a hollow in a volcano's own root

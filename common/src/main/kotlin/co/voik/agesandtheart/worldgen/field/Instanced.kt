@@ -64,8 +64,36 @@ data class Instanced(
         var solid = Spans.EMPTY
         placement.forEachInstanceNear(worldX, worldZ, templateReach, random) { originX, originZ, instanceRandom ->
             val chosen = posedTemplates[instanceRandom.nextInt(posedTemplates.size)]
-            val instance = variation.sample(chosen, worldX - originX, worldZ - originZ, instanceRandom)
-            solid = if (blend <= NO_BLEND) solid.union(instance) else solid.blendedUnion(instance, blend)
+            val acrossX = (worldX - originX).toDouble()
+            val acrossZ = (worldZ - originZ).toDouble()
+            // **Cull against the instance's own reach, not the layer's** — measured 2026-09-11 as most of
+            // the cost of a volcanic Age. The cell walk above can only bound itself by [templateReach],
+            // which is the *largest* pose any cell might have drawn; this one drew a particular template at
+            // a particular size, and a column outside that shape's own radius can only ever come back
+            // empty. On the cones that is three evaluations in five thrown away, each of them a warped and
+            // undulated cone — the dearest template in the game.
+            //
+            // **Safe for a reach because a pose cannot move a template sideways.** `Variation` turns and
+            // lifts; turning preserves distance from the origin and lifting is vertical, so the posed
+            // template's own `horizontalReach` is exact. `Warped` adds its displacement to that figure
+            // rather than hiding it, which is what makes the comparison honest for a wandering outline.
+            //
+            // **And safe for the random stream**, which is the subtle half: `instanceRandom` is positional
+            // (`random.at(cell, index, cell)`) and is rebuilt from scratch by every column that asks. So a
+            // column that skips the draws `sample` would have made changes nothing for any other column or
+            // instance — where a shared sequential stream would have been thrown out of step.
+            //
+            // **A block of slack, because turning rounds.** `Variation.turned` rotates the *query* and
+            // rounds it to the nearest template column, which can land up to about 0.71 blocks nearer the
+            // origin than the true rotated point — so a world column just outside the reach can still meet
+            // solid ground. Culling on the bare figure quietly shaved the outermost ring off every turned
+            // instance: measured as one magma chamber in eighty-seven going missing on seed 4242, which is
+            // exactly the kind of loss that would never have looked like a bug.
+            val reach = chosen.horizontalReach + ROUNDING_SLACK
+            if (acrossX * acrossX + acrossZ * acrossZ <= reach * reach) {
+                val instance = variation.sample(chosen, worldX - originX, worldZ - originZ, instanceRandom)
+                solid = if (blend <= NO_BLEND) solid.union(instance) else solid.blendedUnion(instance, blend)
+            }
         }
         return solid
     }
@@ -85,6 +113,16 @@ data class Instanced(
     companion object {
         /** A plain union — no easing at all, which is every instanced field written before this. */
         const val NO_BLEND = 0.0
+
+        /**
+         * How far past a template's own reach a column may still find it, once turning has rounded.
+         *
+         * One block covers the worst case of `(x, z) -> roundToInt` on a rotated query, which is half a
+         * block on each axis. Generous by a hair rather than exact: the cost of being a block too loose is
+         * one wasted evaluation on a ring of columns, and the cost of being a hair too tight is terrain
+         * silently going missing.
+         */
+        private const val ROUNDING_SLACK = 1.0
 
         fun codec(self: Codec<TerrainField>): MapCodec<Instanced> = RecordCodecBuilder.mapCodec { instance ->
             instance.group(
