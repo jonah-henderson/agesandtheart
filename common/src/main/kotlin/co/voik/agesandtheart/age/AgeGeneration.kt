@@ -289,7 +289,10 @@ object AgeGeneration {
                 Features.placedIn(server, composition.optionsFor(Aspect.FEATURES, 0), seed, rockBlocks),
                 listOfNotNull(
                     Deposits.layer(Danger.of(server, recipe), rockBlocks),
-                    Volcanoes.layer(composition),
+                    // The buried lava tubes were laid here until 2026-09-11. They are their own page now
+                    // (`agesandtheart:lava_tubes`) and reach the world through the ordinary claim path,
+                    // which also gets them the Age's own rock in their ore targets — something a layer
+                    // built by hand never had.
                     Craters.layer(composition, seed),
                     EarlyGameRareMaterials.layer(
                         EarlyGameRareMaterials.grownIn(composition, seed, spending, prices),

@@ -240,5 +240,13 @@
       "hostile": 0.7,
       "dark": 0.5
     }
+  },
+  "agesandtheart:lava_tubes": {
+    "tags": {
+      "molten": 1.0,
+      "buried": 1.0,
+      "stony": 0.6,
+      "hostile": 0.5
+    }
   }
 }

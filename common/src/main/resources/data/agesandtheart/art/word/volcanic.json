@@ -1,20 +1,22 @@
 {
   "_comment": [
-    "A world with fire under it, which is three separate things and one word for them: the mountains, the",
-    "small craters that shell you in open country, and the deep magma nobody sees until they dig into it.",
-    "Each has a page of its own -- `volcano`, `firespout`, `magma_chamber`, all derived from the placed",
-    "features -- and this is the page for wanting the set.",
+    "A world with fire under it, which is four separate things and one word for them: the mountains, the",
+    "small craters that shell you in open country, the deep magma nobody sees until they dig into it, and",
+    "the tubes seeded through the rock that flood the tunnel you open them with. Each has a page of its own",
+    "-- `volcano`, `firespout`, `magma_chamber`, `lava_tubes`, all derived from the placed features -- and",
+    "this is the page for wanting the set.",
     "",
     "**It admits by name and leans by tag, and it has to be both.** Admitting is what puts something in an",
     "Age: a member reached only by a query is read as a *description* (`Claim.onlyWhereItGrows`), which asks",
-    "for more of a thing where it already grows, and none of these three grows anywhere on its own -- no",
+    "for more of a thing where it already grows, and none of these four grows anywhere on its own -- no",
     "biome carries them, so a pure tag query would have found them, weighed them and placed nothing. The",
     "lean is what the tag is for: `#molten` also catches vanilla's lava lakes and springs, which DO grow in",
     "biomes, so a volcanic Age gets more of those where it has them without this word naming either.",
     "",
-    "The cost of naming three is that a fourth molten feature would not be reached until it is added here.",
-    "That is the price of `admits` being by name only, which is deliberate -- being in the tag table is what",
-    "puts a member in the pool, so admitting by tag could never add anything.",
+    "The cost of naming them is that a fifth molten feature would not be reached until it is added here --",
+    "which is exactly what happened when `lava_tubes` was split out of `volcano` on 2026-09-11. That is the",
+    "price of `admits` being by name only, which is deliberate: being in the tag table is what puts a member",
+    "in the pool, so admitting by tag could never add anything.",
     "",
     "**`#molten` reaches far wider than the five features that carry it in `preset_tags`, and that is a fact",
     "about the tag rather than about this word.** It derives from `#fire`, `#soul_fire_base_blocks` and",
@@ -37,7 +39,8 @@
     "features": [
       "agesandtheart:volcano",
       "agesandtheart:firespout",
-      "agesandtheart:magma_chamber"
+      "agesandtheart:magma_chamber",
+      "agesandtheart:lava_tubes"
     ]
   },
   "biases": {

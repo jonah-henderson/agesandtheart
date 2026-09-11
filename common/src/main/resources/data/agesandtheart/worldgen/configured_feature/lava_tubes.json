@@ -1,0 +1,67 @@
+{
+  "_comment": [
+    "**Lava tubes seeded through the Age's rock**, buried so they do nothing until something opens them.",
+    "Mine into one and it wells lava into the space you just made; a big enough one starts throwing.",
+    "",
+    "**Two sizes in one feature, because one word must name one thing** (Jonah, 2026-09-11: writing",
+    "`volcano` and getting volcanoes plus something else is counterintuitive). The interesting question is",
+    "whether the one you found will throw: a seam is under `LavaTubes`' sixteen-block threshold and only",
+    "seeps, where a nest straddles it. They were two placed features on a code-built layer until the split;",
+    "a `random_selector` says the same thing in the one feature a claim can name.",
+    "",
+    "The chance is what the two counts used to be. Seven seams a chunk and one nest every four chunks is",
+    "7 : 0.25, so a nest is 0.25/7.25 = 0.034 of the draws and the placement below counts seven.",
+    "",
+    "Targets are vanilla's two stone tags; **the Age's own rock is added by `FeatureShape`** where it is",
+    "made of something else, which a hand-built layer never did -- so a blackstone Age used to grow none of",
+    "these at all."
+  ],
+  "type": "minecraft:random_selector",
+  "config": {
+    "features": [
+      {
+        "chance": 0.034,
+        "feature": {
+          "feature": {
+            "type": "minecraft:ore",
+            "config": {
+              "size": 30,
+              "discard_chance_on_air_exposure": 0.0,
+              "targets": [
+                {
+                  "target": { "predicate_type": "minecraft:tag_match", "tag": "minecraft:base_stone_overworld" },
+                  "state": { "Name": "agesandtheart:lava_tube" }
+                },
+                {
+                  "target": { "predicate_type": "minecraft:tag_match", "tag": "minecraft:base_stone_nether" },
+                  "state": { "Name": "agesandtheart:lava_tube" }
+                }
+              ]
+            }
+          },
+          "placement": []
+        }
+      }
+    ],
+    "default": {
+      "feature": {
+        "type": "minecraft:ore",
+        "config": {
+          "size": 12,
+          "discard_chance_on_air_exposure": 0.0,
+          "targets": [
+            {
+              "target": { "predicate_type": "minecraft:tag_match", "tag": "minecraft:base_stone_overworld" },
+              "state": { "Name": "agesandtheart:lava_tube" }
+            },
+            {
+              "target": { "predicate_type": "minecraft:tag_match", "tag": "minecraft:base_stone_nether" },
+              "state": { "Name": "agesandtheart:lava_tube" }
+            }
+          ]
+        }
+      },
+      "placement": []
+    }
+  }
+}

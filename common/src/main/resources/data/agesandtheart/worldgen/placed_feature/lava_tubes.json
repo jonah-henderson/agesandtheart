@@ -1,0 +1,31 @@
+{
+  "_comment": [
+    "**Named in a recipe, which is what seeds an Age's rock with lava tubes.** Its own page, split out of",
+    "`volcano` on 2026-09-11: naming the mountains and getting tubes in the bedrock as well meant a word",
+    "brought something it did not say. `volcanic` is the word that asks for all four together.",
+    "",
+    "Seven passes a chunk over the whole height of the world. An ore feature is a no-op wherever it finds",
+    "no stone, so the full range costs a handful of misses rather than a rule about where rock is.",
+    "",
+    "**The threshold filter is the whole of what keeps a cluster safe to find.** A cluster is enclosed by",
+    "the rock it is buried in, so opening one floods the space you opened; one that surfaced on a hillside",
+    "had nothing round it and welled a disc of lava standing proud of the land. Eight blocks of cover is",
+    "enough that nothing of the deepest blob reaches open sky. A cave breaks nothing -- a heightmap is the",
+    "top of the terrain, so a cluster under it can still be in a cavern wall, which is where they belong."
+  ],
+  "feature": "agesandtheart:lava_tubes",
+  "placement": [
+    { "type": "minecraft:count", "count": 7 },
+    { "type": "minecraft:in_square" },
+    {
+      "type": "minecraft:height_range",
+      "height": { "type": "minecraft:uniform", "min_inclusive": { "above_bottom": 0 }, "max_inclusive": { "below_top": 0 } }
+    },
+    {
+      "type": "minecraft:surface_relative_threshold_filter",
+      "heightmap": "OCEAN_FLOOR_WG",
+      "min_inclusive": -4096,
+      "max_inclusive": -8
+    }
+  ]
+}

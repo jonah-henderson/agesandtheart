@@ -4,7 +4,8 @@
     "same claim and the terrain raises its cones from it -- one fact, three readers.",
     "One pass per chunk and no modifier that moves it: the feature scans the chunk for the lake's middle, so",
     "a scattered position would only ask it to look from somewhere arbitrary.",
-    "The small craters and the deep magma are `firespout` and `magma_chamber`, written for separately."
+    "The small craters, the deep magma and the tubes seeded through the rock are `firespout`,",
+    "`magma_chamber` and `lava_tubes`, each written for separately. `volcanic` asks for all four."
   ],
   "feature": "agesandtheart:volcano",
   "placement": [{ "type": "minecraft:count", "count": 1 }]
