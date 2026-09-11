@@ -53,6 +53,45 @@ class WaterTableCheck : FunSpec({
      * threshold, so two blocks in five came out air and the ocean floor filled with pockets.
      */
     /**
+     * **One room, one water level** — no repeating sheets up a tall cave.
+     *
+     * The perched level used to be read from the query block's own `worldY`, so inside every forty-block
+     * slice of the world the bottom half came out water and the top half air, over and over. In a cave tall
+     * enough to cross a band that is a stack of flat sheets with air between them, which is what a walk saw
+     * and called *"a flat slab of water on a specific level"*.
+     *
+     * The property is the one a pool has to have: read straight up through one room, the water is a single
+     * run at the bottom and air above it. Never air, then water again.
+     */
+    test("a tall room holds one pool rather than a stack of sheets") {
+        val roof = 180
+        val floor = -40
+        val hollow = Box(minX = -200, minY = floor, minZ = -200, maxX = 200, maxY = roof, maxZ = 200)
+        val shape = Subtract(Box(minX = -200, minY = -64, minZ = -200, maxX = 200, maxY = 240, maxZ = 200), hollow)
+        val table = tableOver(shape)
+
+        val layered = (-180..180 step 43).flatMap { worldX -> (-180..180 step 47).map { worldX to it } }
+            .filter { (worldX, worldZ) ->
+                // Walk the room bottom to top and count how many times it goes wet after having gone dry.
+                var wasWet = false
+                var dried = false
+                var returns = 0
+                for (worldY in floor..roof) {
+                    val wet = floodsAt(table, shape, worldX, worldY, worldZ)
+                    if (wasWet && !wet) dried = true
+                    if (wet && dried) returns++
+                    wasWet = wet
+                }
+                returns > 0
+            }
+
+        check(layered.isEmpty()) {
+            "water comes back after drying, going up a single room, in ${layered.size} columns — " +
+                "${layered.take(3)} — so the level is being read per block rather than per room"
+        }
+    }
+
+    /**
      * **A pool in a cave never stands against that cave's ceiling** — the water is bounded by the room it
      * is in, not by the hill above it (Jonah, walked 2026-09-11).
      *

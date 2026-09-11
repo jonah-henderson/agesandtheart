@@ -157,8 +157,37 @@ data class WaterTable(
         }
 
         /** A pocket's own level: a band of the world, nudged by noise, never above the ground. */
+        /**
+         * How high groundwater stands in the **room** this point is in.
+         *
+         * **Per room, not per block — which is the whole of what was wrong** (Jonah, walked 2026-09-11).
+         * The band used to come from the query's own `worldY`, so the answer changed as you moved up a
+         * column: inside band *b* a block is wet while `y < 40b + 20`, which makes the bottom half of every
+         * forty-block slice of the world water and the top half air, over and over, in every cave deep
+         * enough to cross one. What a walk saw was *"a flat slab of water on a specific level"*, repeated —
+         * and water standing against a cave roof, which then poured out of it. That is arithmetic showing
+         * through, not geology.
+         *
+         * **Vanilla does not have this, and the reason is worth keeping.** Its aquifer resolves one fluid
+         * level per *cell* of a jittered 16×12×16 grid and interpolates between the four nearest, so a
+         * block's level comes from somewhere it is *near* rather than from the slice it happens to occupy.
+         * Our copy took the arithmetic and dropped the grid.
+         *
+         * **The room is the cell that suits this generator.** We have the column's spans, so the cave a
+         * point stands in is already known — and it is the honest unit, because a pool's surface has to be
+         * one height for everybody standing in the same water. Taking the band from the room's **floor**
+         * gives every block of one cave the same answer, keeps rooms at different depths on different bands
+         * the way vanilla's stacked aquifers do, and cannot saw-tooth, there being one level per room.
+         *
+         * Still capped by the room's own ceiling and by the column's surface: a pool is bounded by what
+         * holds it.
+         */
         private fun perchedLevel(worldX: Int, worldY: Int, worldZ: Int): Int {
-            val band = floorDiv(worldY, PERCHED_BAND)
+            val rock = columnSpans
+            // The floor this water would stand on, which is what decides the band. Nothing below means
+            // open to the world's floor, and the lowest band is as good an answer as any.
+            val roomFloor = rock?.floorUnder(worldY)?.plus(1) ?: worldY
+            val band = floorDiv(roomFloor, PERCHED_BAND)
             val middle = band * PERCHED_BAND + PERCHED_BAND / 2
             val nudge = floodedness.getValue(
                 floorDiv(worldX, PERCHED_CELL).toDouble(),
@@ -168,9 +197,9 @@ data class WaterTable(
             // **Capped by the ceiling of the space this point is in, not by the top of the column.**
             // `columnSurface` is the highest rock anywhere in the column, which under a hill is the
             // *hilltop* — so a perched pocket in a big cave was filled to a level hundreds of blocks above
-            // its own roof, which meant filling the cave to the roof and then pouring out of it for as far
-            // as the hill was tall (Jonah, walked 2026-09-11). A pool is bounded by the room it is in.
-            val roomFor = columnSpans?.ceilingAbove(worldY)?.minus(1) ?: columnSurface
+            // its own roof. Vanilla caps the same number at its `lowestPreliminarySurface`, which is a
+            // deliberately low estimate; ours had taken the opposite extreme.
+            val roomFor = rock?.ceilingAbove(worldY)?.minus(1) ?: columnSurface
             return minOf(columnSurface, roomFor, middle + nudge.roundToInt())
         }
 
