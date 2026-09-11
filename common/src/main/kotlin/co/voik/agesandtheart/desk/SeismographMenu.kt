@@ -136,14 +136,8 @@ private class LiveReading(private val player: ServerPlayer?, private val pos: Bl
     private var bought = NOTHING_BOUGHT
     private var source = SeismographMenu.A_PLAIN_WORLD
 
-    /**
-     * Where the desk was found, so the room is only searched while there is no desk in it.
-     *
-     * A desk broken while the screen is open is caught by the block entity going missing, which puts this
-     * back to null and starts the search again — so the one expensive case is the one where the answer is
-     * "there is no desk here" anyway.
-     */
-    private var deskAt: BlockPos? = null
+    /** Which desk it is reading, and the remembering of it — see [NearbyDesk]. */
+    private val desk = NearbyDesk(pos)
 
     override fun getCount(): Int = SeismographMenu.READINGS
 
@@ -168,7 +162,7 @@ private class LiveReading(private val player: ServerPlayer?, private val pos: Bl
         // on: an instrument beside an empty desk has nothing to read, and saying the *world* is stable
         // there would be answering a question nobody asked while a book was being started (Jonah,
         // 2026-09-09).
-        val laid = laidOutNearby(writer)
+        val laid = desk.laidOutBy(writer)
         val said = laid?.let { sentenceFrom(writer, it) }
         when {
             said != null -> report(said, SeismographMenu.A_SENTENCE)
@@ -217,24 +211,6 @@ private class LiveReading(private val player: ServerPlayer?, private val pos: Bl
         footing = tremor.footing.ordinal
         bought = tremor.manifests.fold(NOTHING_BOUGHT) { mask, it -> mask or (1 shl it.ordinal) }
         this.source = source
-    }
-
-    /** This writer's pages on the desk in the room, or null if there is no desk in the room. */
-    private fun laidOutNearby(writer: ServerPlayer): List<Identifier>? {
-        val level = writer.level()
-        val known = deskAt?.let { level.getBlockEntity(it) as? WritersDeskBlockEntity }
-        if (known != null) return known.compositionFor(writer.uuid)
-        deskAt = null
-        val workshop = WritersDesk.load(level.server.resourceManager, mutableListOf())
-        val reach = workshop.radius
-        val cursor = BlockPos.MutableBlockPos()
-        for (x in -reach..reach) for (y in -reach..reach) for (z in -reach..reach) {
-            cursor.setWithOffset(pos, x, y, z)
-            val desk = level.getBlockEntity(cursor) as? WritersDeskBlockEntity ?: continue
-            deskAt = cursor.immutable()
-            return desk.compositionFor(writer.uuid)
-        }
-        return null
     }
 
     private companion object {

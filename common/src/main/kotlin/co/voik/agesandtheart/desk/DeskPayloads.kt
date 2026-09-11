@@ -1,9 +1,6 @@
 package co.voik.agesandtheart.desk
 
 import co.voik.agesandtheart.Constants
-import co.voik.agesandtheart.age.reward.EarlyGameRareMaterial
-import co.voik.agesandtheart.age.reward.Survey
-import co.voik.agesandtheart.age.reward.Yield
 import co.voik.agesandtheart.age.word.InkTier
 import io.netty.buffer.ByteBuf
 import net.minecraft.network.codec.ByteBufCodecs
@@ -64,13 +61,6 @@ data class DeskSyncPayload(
      * registry-aware buffer, where this panel wants one wrapped paragraph in the reader's own language.
      */
     val reading: String,
-    /**
-     * What the Age would hold, or null where nothing is laid out or nothing in the room can survey it.
-     *
-     * Computed here for the same reason the reading is: it reads a resolved composition, a danger table
-     * and a price list, and none of the three is on the client.
-     */
-    val survey: Survey?,
 ) : CustomPacketPayload {
 
     override fun type(): CustomPacketPayload.Type<DeskSyncPayload> = TYPE
@@ -110,22 +100,6 @@ data class DeskSyncPayload(
             },
         )
 
-        private val MATERIAL_STREAM: StreamCodec<ByteBuf, EarlyGameRareMaterial> =
-            ByteBufCodecs.idMapper({ EarlyGameRareMaterial.entries[it] }, { it.ordinal })
-
-        private val SURVEY_STREAM: StreamCodec<ByteBuf, Survey> = StreamCodec.of(
-            { buffer, value ->
-                ByteBufCodecs.VAR_INT.encode(buffer, value.deposit.ordinal)
-                MATERIAL_STREAM.apply(ByteBufCodecs.list()).encode(buffer, value.earlyMaterials.toList())
-            },
-            { buffer ->
-                Survey(
-                    Yield.entries[ByteBufCodecs.VAR_INT.decode(buffer)],
-                    MATERIAL_STREAM.apply(ByteBufCodecs.list()).decode(buffer).toSet(),
-                )
-            },
-        )
-
         val STREAM_CODEC: StreamCodec<ByteBuf, DeskSyncPayload> = StreamCodec.of(
             { buffer, value ->
                 ARCHIVE_STREAM.encode(buffer, LinkedHashMap(value.archive))
@@ -138,8 +112,6 @@ data class DeskSyncPayload(
                 Identifier.STREAM_CODEC.apply(ByteBufCodecs.list()).encode(buffer, value.composing)
                 QUARREL_STREAM.apply(ByteBufCodecs.list()).encode(buffer, value.quarrels)
                 ByteBufCodecs.STRING_UTF8.encode(buffer, value.reading)
-                ByteBufCodecs.optional(SURVEY_STREAM)
-                    .encode(buffer, java.util.Optional.ofNullable(value.survey))
             },
             { buffer ->
                 DeskSyncPayload(
@@ -153,7 +125,6 @@ data class DeskSyncPayload(
                     composing = Identifier.STREAM_CODEC.apply(ByteBufCodecs.list()).decode(buffer),
                     quarrels = QUARREL_STREAM.apply(ByteBufCodecs.list()).decode(buffer),
                     reading = ByteBufCodecs.STRING_UTF8.decode(buffer),
-                    survey = ByteBufCodecs.optional(SURVEY_STREAM).decode(buffer).orElse(null),
                 )
             },
         )

@@ -138,7 +138,6 @@ object DeskCommands {
                 composing = emptyList(),
                 quarrels = emptyList(),
                 reading = "",
-                survey = null,
             ),
         )
     }

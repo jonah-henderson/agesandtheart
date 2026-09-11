@@ -1,5 +1,18 @@
 {
-  "_comment": "Says what a written Age is likely to hold, before it exists (design 7.7) -- quantities and names, never a forecast of danger. Grants nothing visible yet: the readout is the desk's and is not built, which is the same way bookbinders_press waited for Phase 8.",
+  "_comment": [
+    "Says what a written Age is likely to hold, before it exists (design 7.7) -- quantities and names, never",
+    "a forecast of danger.",
+    "",
+    "**Grants no capability, and that is deliberate**, which is the same ruling seismograph.json carries: what",
+    "the tools do, they do on their OWN screen rather than by unlocking a line on the desk's. Stated once as a",
+    "one-off on 2026-09-07 and true twice now, so it is the rule -- the desk is where you write, and every",
+    "other implement owns the thing you go and look at. A readout crowded onto the desk's panel is a",
+    "paragraph; a block you walk up to is an instrument.",
+    "",
+    "It is still an implement, because a study is furnished by what is standing in it and the page limit",
+    "counts distinct implements -- so owning one lets you write a longer book, the same as any other piece of",
+    "the workshop."
+  ],
   "blocks": ["agesandtheart:geologists_tools"],
-  "grants": ["survey_materials"]
+  "grants": []
 }

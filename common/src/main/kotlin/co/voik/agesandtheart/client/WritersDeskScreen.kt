@@ -1,6 +1,5 @@
 package co.voik.agesandtheart.client
 
-import co.voik.agesandtheart.age.reward.EarlyGameRareMaterial
 import co.voik.agesandtheart.age.word.InkTier
 import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.client.ui.BookWritingWorkSurface
@@ -96,7 +95,6 @@ class WritersDeskScreen(
     private lateinit var inkButtons: List<Button>
     private lateinit var bindButton: Button
     private lateinit var reading: MultiLineTextWidget
-    private lateinit var surveying: MultiLineTextWidget
     private lateinit var columns: Map<DeskTab, FlexColumn>
     private lateinit var bindingRow: LinearLayout
 
@@ -286,14 +284,6 @@ class WritersDeskScreen(
             ::binds,
         )
 
-        // The geologist's tools, under the sentence they are reading. Its own widget rather than more
-        // lines on the one above, because the column sizes it from what it holds — which is what keeps a
-        // long sentence from pushing the survey out of the panel instead of being clipped itself.
-        surveying = addShownOn(
-            MultiLineTextWidget(Component.empty(), font).setMaxWidth(layout.content(DeskTab.BIND).width),
-            ::binds,
-        )
-
         // Width comes from the column it sits in, which is the whole of the bind screen's own.
         ageName = EditBox(font, 0, 0, 0, LINE, Component.empty())
         ageName.setHint(translated("name"))
@@ -340,10 +330,6 @@ class WritersDeskScreen(
             // below both, anchored to the panel's foot by `DeskLayout.bindButton`.
             DeskTab.BIND -> {
                 column.fill(reading)
-                column.gap(GAP)
-                // No height: the survey is however many lines it has today, and the sentence above takes
-                // whatever that leaves.
-                column.add(surveying)
                 column.gap(GAP)
                 column.add(ageName, height = LINE)
             }
@@ -469,50 +455,22 @@ class WritersDeskScreen(
     private fun refreshReading() {
         if (!reading.visible) return
         val said = DeskModel.reading()
-        surveying.message = stacked(surveyLines())
         reading.message = when {
             !DeskModel.can(DeskCapability.READABLE_GRAMMAR) -> translated("grammar_unread")
             said.isEmpty() -> translated("nothing_written")
             else -> Component.literal(said)
         }
-        // Clipped to what the survey leaves it, and the survey is measured rather than allowed for: a
-        // widget that overruns its box draws over the name field rather than stopping at it.
+        // Clipped to what is left above the name field rather than allowed to overrun it: a widget that
+        // overruns its box draws over the field rather than stopping at it.
         reading.setMaxRows(rowsLeftForTheSentence())
         columns[DeskTab.BIND]?.arrangeElements()
     }
 
     private fun rowsLeftForTheSentence(): Int {
-        val room = layout.content(DeskTab.BIND).height - GAP - surveying.height - GAP - LINE
+        val room = layout.content(DeskTab.BIND).height - GAP - LINE
         return (room / TEXT_LINE).coerceAtLeast(ONE_ROW)
     }
 
-    /**
-     * What the geologist's tools make of the sentence (design §7.7) — the materials and roughly how much.
-     *
-     * **Quantities and names, and no forecast of what makes them**, because saying what the danger was
-     * would be a preview of the Age. Empty without the implement, which is the desk's own rule: a writer
-     * with no tools is not told there was anything to read.
-     */
-    private fun surveyLines(): List<Component> {
-        val survey = DeskModel.survey() ?: return emptyList()
-        val deposit = translated(
-            "survey_deposit",
-            Component.translatable(AgeContent.PITCHSTONE.descriptionId),
-            translated("survey_${survey.deposit.key}"),
-        )
-        val grown = survey.earlyMaterials.map { translated("survey_grows", nameOf(it)) }
-        return listOf(translated("survey"), deposit) + grown
-    }
-
-    /**
-     * What an early material is called, taken from the block itself so the survey can never name it
-     * something other than what the player ends up holding.
-     */
-    private fun nameOf(material: EarlyGameRareMaterial): Component = when (material) {
-        EarlyGameRareMaterial.RIME -> AgeContent.RIME_CRYSTAL_BLOCKS.getValue(RimeColour.CYAN).name
-        EarlyGameRareMaterial.TEMPERSTONE -> AgeContent.TEMPERSTONE_BLOCK.name
-        EarlyGameRareMaterial.ARC_CRYSTAL -> AgeContent.ARC_CRYSTAL_CLUSTER.name
-    }
 
     /** [lines] as one component, which is what a `MultiLineTextWidget` reads. */
     private fun stacked(lines: List<Component>): Component =

@@ -24,6 +24,7 @@ import co.voik.agesandtheart.desk.WritersDeskBlock
 import co.voik.agesandtheart.desk.WritersDeskBlockEntity
 import co.voik.agesandtheart.desk.InkCaseMenu
 import co.voik.agesandtheart.desk.SupplyBinMenu
+import co.voik.agesandtheart.desk.GeologistsToolsMenu
 import co.voik.agesandtheart.desk.SeismographMenu
 import co.voik.agesandtheart.desk.WritersDeskMenu
 import co.voik.agesandtheart.location
@@ -672,7 +673,7 @@ object AgeContent {
      * **Filled by a shapeless recipe on purpose** (Jonah, 2026-09-05): how you arrange tools in a box is
      * not a thing the world should have an opinion about. What is shaped is building the box.
      */
-    val GEOLOGISTS_TOOLS_BLOCK: Block = Block(
+    val GEOLOGISTS_TOOLS_BLOCK: GeologistsToolsBlock = GeologistsToolsBlock(
         BlockBehaviour.Properties.of()
             .setId(ResourceKey.create(Registries.BLOCK, GEOLOGISTS_TOOLS_ID))
             .mapColor(MapColor.WOOD)
@@ -1392,12 +1393,19 @@ object AgeContent {
         FeatureFlags.VANILLA_SET,
     )
 
+    /** The geologist's tools' own screen, built the way the seismograph's is and for the same reasons. */
+    val GEOLOGISTS_TOOLS_MENU: MenuType<GeologistsToolsMenu> = MenuType(
+        { containerId, inventory -> GeologistsToolsMenu(containerId, inventory, ContainerLevelAccess.NULL) },
+        FeatureFlags.VANILLA_SET,
+    )
+
     val menus: List<Pair<Identifier, MenuType<*>>> = listOf(
         WRITERS_DESK_ID to WRITERS_DESK_MENU,
         "ink_case".location() to INK_CASE_MENU,
         "supply_bin".location() to SUPPLY_BIN_MENU,
         TOOLBOX_ID to TOOLBOX_MENU,
         SEISMOGRAPH_ID to SEISMOGRAPH_MENU,
+        GEOLOGISTS_TOOLS_ID to GEOLOGISTS_TOOLS_MENU,
     )
 
     val recipeSerializers: List<Pair<Identifier, RecipeSerializer<*>>> =

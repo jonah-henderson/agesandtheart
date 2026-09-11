@@ -16,6 +16,7 @@ import co.voik.agesandtheart.client.DeskModel
 import co.voik.agesandtheart.client.KnownWords
 import co.voik.agesandtheart.client.panel.LinkingPanel
 import co.voik.agesandtheart.client.InkCaseScreen
+import co.voik.agesandtheart.client.GeologistsToolsScreen
 import co.voik.agesandtheart.client.SeismographScreen
 import co.voik.agesandtheart.client.SupplyBinScreen
 import co.voik.agesandtheart.client.WritersDeskScreen
@@ -108,6 +109,7 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
         // Its own screen rather than a line on the desk's -- an implement that does something is the
         // thing you go and look at (Jonah, 2026-09-07).
         event.register(AgeContent.SEISMOGRAPH_MENU, ::SeismographScreen)
+        event.register(AgeContent.GEOLOGISTS_TOOLS_MENU, ::GeologistsToolsScreen)
         // Vanilla's own container screen: a toolbox is a chest's grid with a fence on what may go in it,
         // and the fence lives in the menu rather than in the drawing.
         event.register(AgeContent.TOOLBOX_MENU, ::ContainerScreen)
