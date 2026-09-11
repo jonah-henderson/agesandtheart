@@ -151,8 +151,10 @@ object VolcanoField {
                 patchSeed = seed + CHAMBER_SALT,
             ),
         )
-        // Pivoted on the rock rather than on a cone's foot: a chamber is authored at the depth it sits
-        // at, and scaling about anything else would drag it up or down as it grew.
+        // Pivoted on the rock rather than on a cone's foot, which is the best one pivot can do for six
+        // templates at six depths — and it is not free: scaling about y=0 moves a chamber's middle by
+        // `(scale - 1) × at`, so a deep one grows *downward* as well as outward. See [CHAMBERS], where the
+        // deepest is authored to clear bedrock once that drag is paid.
         val variation = Variation(
             yawSteps = TURNS,
             minScale = SMALLEST,
@@ -502,12 +504,21 @@ object VolcanoField {
      * They differ in kind rather than by a few blocks, like the cones do: a wide shallow sump, a tall
      * narrow shaft, a great flooded hall. How much of each is lava is drawn with them, so some are a pool
      * with a cavern over it and others are nearly full to the roof.
+     *
+     * **The deepest of them is authored to clear bedrock at its largest pose, and that is a real
+     * constraint rather than a taste** (measured 2026-09-11). [Variation] scales about y=0 and has one
+     * pivot for all six, so growing a chamber also *drags it down* by `(scale - 1) × at` — the deepest was
+     * `at = -50`, which at 1.3 lands its middle at −65 and its floor at −77, under an Age's bedrock at −64.
+     * The hollow then came out as its own top half sitting on the world floor, and because [Chamber.pool]
+     * fills from the *bottom*, the part that was lost was all of the lava. Two chambers in fourteen on seed
+     * 4242 were dry rooms. `MagmaChamberCheck` holds the line; if a deeper one is ever wanted, the pose
+     * range has to shrink with it.
      */
     private val CHAMBERS = listOf(
         Chamber(at = -8, across = 15.0, tall = 7.0, flooded = 0.45),
         Chamber(at = -34, across = 11.0, tall = 11.0, flooded = 0.6),
         Chamber(at = 14, across = 19.0, tall = 6.0, flooded = 0.35),
-        Chamber(at = -50, across = 22.0, tall = 9.0, flooded = 0.5),
+        Chamber(at = -38, across = 22.0, tall = 9.0, flooded = 0.5),
         Chamber(at = -22, across = 9.0, tall = 5.0, flooded = 0.7),
         Chamber(at = 2, across = 13.0, tall = 8.0, flooded = 0.4),
     )

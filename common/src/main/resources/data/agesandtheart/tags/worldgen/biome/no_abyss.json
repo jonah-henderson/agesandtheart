@@ -1,0 +1,26 @@
+{
+  "_comment": [
+    "Biomes an abyss may not stand in, however deep the column is (Jonah, walking V3 on 2026-09-11:",
+    "'the caves are just playing havoc with it -- can we tweak deep water not to spawn in cave biomes,",
+    "since they're often considered deep enough even if the ocean itself isn't all that deep').",
+    "",
+    "The abyss plane says WHERE deep water would be and the water table says WHETHER any stands there.",
+    "Neither can tell a trench floor from a flooded cavern: the default table is flat, so every space the",
+    "shape cut below the waterline is wet, and the plane is the waterline less eighty -- which in an Age",
+    "with caves is most of the underground. The biome is the one thing that already knows the difference,",
+    "because a cave biome is precisely the game saying 'you are underground here, not at sea'.",
+    "",
+    "A tag rather than a list in code, for the reason `DeepWater.DEEP_WATER` is one: a pack that adds a",
+    "cave biome should be able to keep the abyss out of it without touching the mod.",
+    "",
+    "`agesandtheart:abyss` is deliberately NOT here -- that is the biome the deep sea wears. `great_halls`",
+    "is, being ours and underground."
+  ],
+  "replace": false,
+  "values": [
+    "minecraft:lush_caves",
+    "minecraft:dripstone_caves",
+    "minecraft:deep_dark",
+    "agesandtheart:great_halls"
+  ]
+}

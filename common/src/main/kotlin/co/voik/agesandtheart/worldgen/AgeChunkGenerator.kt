@@ -17,6 +17,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.Holder
 import net.minecraft.core.HolderLookup
 import net.minecraft.core.HolderSet
+import net.minecraft.core.QuartPos
 import net.minecraft.core.registries.Registries
 import net.minecraft.core.RegistryCodecs
 import net.minecraft.resources.ResourceKey
@@ -329,10 +330,50 @@ class AgeChunkGenerator(
      * walked finding it was written for — an aquifer pocket under a real sea floor is still abyss, because
      * the sea stands over that column at the line even though the pocket itself is sealed.
      */
-    private fun abyssReachesAt(worldX: Int, worldZ: Int): Boolean {
+    private fun abyssReachesAt(chunk: ChunkAccess, worldX: Int, worldZ: Int): Boolean {
         val ours = rock as? AgeRock.Ours ?: return false
         if (ours.field.columnSpans(worldX, worldZ).contains(abyssLine)) return false
-        return seaFill.fillsAt(abyssLine, seaFill.drynessAt(worldX, worldZ), seaFill.wetnessAt(worldX, worldZ))
+        if (!seaFill.fillsAt(abyssLine, seaFill.drynessAt(worldX, worldZ), seaFill.wetnessAt(worldX, worldZ))) {
+            return false
+        }
+        return abyssBelongsIn(chunk, ours, worldX, worldZ)
+    }
+
+    /**
+     * **Whether this column is somewhere an abyss may stand at all**, which is the question the plane and
+     * the water table together could not answer.
+     *
+     * The plane says *where* deep water would be and the table says *whether* any stands there. Neither can
+     * tell the floor of a trench from a flooded cavern — the default table is flat, so every space the shape
+     * cut below the waterline is wet, and the plane is one Y for the whole Age. In an Age with caves that
+     * plane slices straight through the cave system and lays a horizontal sheet of deep water across
+     * everything it meets, eighty blocks under a sea that is nowhere near (Jonah, walking V3, 2026-09-11:
+     * *"the caves are just playing havoc with it"*).
+     *
+     * Two tests, and the first is the one that does the work:
+     *
+     * - **The column has to be seabed.** If this Age's own ground stands *above* the waterline here, you are
+     *   under land and not under sea, and nothing below you is abyss however deep it goes. This keeps the
+     *   walked finding it has to keep — a sealed aquifer pocket under a real sea floor is still abyss, since
+     *   the ground there is below the waterline — while refusing every cave under a hill.
+     * - **And the biome has to allow it** (`#agesandtheart:no_abyss`). Weaker, and deliberately kept as the
+     *   tunable half: a pack adding a cave biome should be able to keep the abyss out without touching code.
+     *   Asked at the abyss line rather than at the surface, because the biome that matters is the one down
+     *   where the water would be.
+     *
+     * Read off the chunk, which is safe here and only here: `BIOMES` runs before `NOISE`, so the biomes are
+     * settled by the time the fill asks.
+     */
+    private fun abyssBelongsIn(chunk: ChunkAccess, ours: AgeRock.Ours, worldX: Int, worldZ: Int): Boolean {
+        // The land rather than the whole rock, as `getBaseHeight` reads it: a lid over a sealed Age is not
+        // a sea floor, and reading it here would call every column of such an Age dry land.
+        val ground = ours.landform.columnSpans(worldX, worldZ).highestSolidY
+        if (ground != null && ground >= seaSurfaceY) return false
+        return !chunk.getNoiseBiome(
+            QuartPos.fromBlock(worldX),
+            QuartPos.fromBlock(abyssLine),
+            QuartPos.fromBlock(worldZ),
+        ).`is`(DeepWater.NO_ABYSS)
     }
 
     /**
@@ -385,7 +426,11 @@ class AgeChunkGenerator(
                 // **Whether an abyss stands over this column at all**, asked once here rather than of
                 // every block. See [abyssReaches] — without it, any Age with a sea grew an abyss in its
                 // deepest caves, eighty blocks under a waterline that never reached them.
-                val abyssal = !spans.contains(abyssLine) && band.fills(at, abyssLine)
+                // The band answers the geometry and the water. Whether this column is *sea* at all is the
+                // third question and neither of those can answer it — see [abyssBelongsIn], which is what
+                // keeps the plane from slicing a sheet of deep water through an Age's caves.
+                val abyssal = !spans.contains(abyssLine) && band.fills(at, abyssLine) &&
+                    abyssBelongsIn(chunk, ours, worldX, worldZ)
 
                 // Whether the block just below came out empty, so a fluid placed on top of nothing can be
                 // told to fall. Nothing is below the window's floor, which is as good as open for this.
@@ -828,7 +873,7 @@ class AgeChunkGenerator(
         // **The abyss is put right first, and before the early return below.** A structure brings its own
         // ordinary water — an ocean monument most of all — and vegetation grows in that water in this same
         // stage, so there is nowhere to stand between the two. See `DeepWater.settleTheAbyss`.
-        DeepWater.settleTheAbyss(chunk, abyssLine, ::abyssReachesAt)
+        DeepWater.settleTheAbyss(chunk, abyssLine) { x, z -> abyssReachesAt(chunk, x, z) }
         val bought = consequence
         if (bought.isNothing) return
         // **The Age's age is read here rather than at open**, so a chunk generated after a week of worsening

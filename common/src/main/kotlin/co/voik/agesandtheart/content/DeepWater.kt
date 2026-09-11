@@ -23,6 +23,7 @@ import net.minecraft.world.entity.Entity
 import net.minecraft.world.item.Items
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.LevelReader
+import net.minecraft.world.level.biome.Biome
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.LiquidBlock
@@ -76,6 +77,16 @@ object DeepWater {
      * that wants a second abyssal fluid should be able to have one without touching code.
      */
     val DEEP_WATER: TagKey<Fluid> = TagKey.create(Registries.FLUID, "deep_water".location())
+
+    /**
+     * Biomes an abyss may not stand in, however deep the column under them is.
+     *
+     * **The third question, beside the plane and the water table** — see `AgeChunkGenerator.abyssBelongsIn`
+     * for why neither of those two can answer it. A tag rather than a list in code for the reason
+     * [DEEP_WATER] is one: a pack adding a cave biome should be able to keep the abyss out of it without
+     * touching the mod.
+     */
+    val NO_ABYSS: TagKey<Biome> = TagKey.create(Registries.BIOME, "no_abyss".location())
 
     /**
      * How much water has to stand over deep water for it to hold.
