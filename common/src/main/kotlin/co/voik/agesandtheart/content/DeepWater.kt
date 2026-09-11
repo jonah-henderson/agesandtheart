@@ -13,6 +13,7 @@ import net.minecraft.server.level.ServerPlayer
 import net.minecraft.tags.FluidTags
 import net.minecraft.tags.TagKey
 import net.minecraft.world.damagesource.DamageSource
+import net.minecraft.world.effect.MobEffectInstance
 import net.minecraft.world.damagesource.DamageType
 import net.minecraft.world.entity.EntityType
 import net.minecraft.world.entity.EquipmentSlot
@@ -333,7 +334,7 @@ object DeepWater {
     // ── Pressure ──────────────────────────────────────────────────────────────────────────────────────
 
     /**
-     * What the deep does to one body standing in it, called by the block that *is* the deep.
+     * Mark one body standing in the deep as being under pressure, called by the block that *is* the deep.
      *
      * **Driven by the water rather than swept for from the players — SETTLED 2026-09-10 (Jonah).** This was
      * a per-second search outward from each player, which needed a radius, a deduplication and a box shape,
@@ -341,30 +342,54 @@ object DeepWater {
      * a player near its top, and took nothing. `entityInside` has no such geometry to get wrong — whatever
      * is in the water is what the water acts on, whether anyone is watching or not.
      *
-     * **Two ways out, and they do different jobs.** A turtle helmet doubles the clock; a deretheni suit
-     * stops it.
+     * **What it hands out is an effect, and [PressureEffect] is what then hurts.** The water says who is in
+     * it; the effect says what that costs, holds the icon and the timer, and is the surface a second
+     * consequence can hang off later. Refreshed on every visit rather than applied once, so the timer reads
+     * as a state rather than a countdown.
      *
      * **`#immune_to_pressure` is read off the body being pressed and never off what it is riding.** A
      * mount in the tag is exempt on its own account — a nautilus drowning under its own rider reads as a
      * bug — but it shelters nobody, or the saddle would be a better suit than the suit. The mount buys
      * travel through the abyss; the rider is pressed exactly as if swimming (design §7.1.2).
+     */
+    fun press(level: Level, body: Entity) {
+        if (level !is ServerLevel) return
+        if (body !is LivingEntity || body.isSpectator) return
+        if (body.type.builtInRegistryHolder().`is`(IMMUNE_TO_PRESSURE)) return
+        if (body.hasEffect(AgeContent.PRESSURE_EFFECT)) return
+        body.addEffect(MobEffectInstance(AgeContent.PRESSURE_EFFECT, HELD_FOR, NO_STRONGER, AMBIENT, SHOWN))
+    }
+
+    /**
+     * Whether the deep still has hold of [body] — what decides when [PressureEffect] lets go.
+     *
+     * **The fluid at the body rather than a reach from the water**, because the effect has to answer this
+     * for itself once a tick with no block to ask. Feet and eyes both, so neither wading out of a pool nor
+     * swimming with your head clear counts as having left it.
+     */
+    fun stillUnderPressure(level: ServerLevel, body: LivingEntity): Boolean =
+        level.getFluidState(body.blockPosition()).`is`(DEEP_WATER) ||
+            level.getFluidState(BlockPos.containing(body.eyePosition)).`is`(DEEP_WATER)
+
+    /**
+     * One second of the deep, and the terms are the ones that have always been here.
+     *
+     * **Two ways out, and they do different jobs.** A turtle helmet doubles the clock; a deretheni suit
+     * stops it and is charged for the saving in the same coin the lava and the cold charge it in.
      *
      * **Uniform, and that is a fix rather than a simplification.** The damage used to square against a depth
      * of twenty-four blocks of abyss, and a real abyss measures twenty-six — so with a turtle helmet's
      * allowance the sharp term topped out near a sixth of a heart a second and the place was survivable by
      * standing still in it. Exactly the mistake the fog made, in the same place, for the same reason. The
-     * budget the design asks for (§7.1.2) is now **time in the abyss** rather than depth into it, which is
+     * budget the design asks for (§7.1.2) is **time in the abyss** rather than depth into it, which is
      * also what the flat fog already says: crossing the line is the event.
      *
-     * **Duplicates cost nothing.** An entity spans two blocks, so this fires twice a tick — and vanilla's
-     * twenty-tick invulnerability window swallows the second, which is the same length as the interval.
+     * The beat is read off the clock rather than off the effect's own duration, which [press] keeps
+     * refreshing and which therefore counts nothing.
      */
-    fun press(level: Level, body: Entity) {
-        if (level !is ServerLevel || level.gameTime % PRESSED_EVERY != 0L) return
-        if (body !is LivingEntity || body.isSpectator) return
-        if (body.type.builtInRegistryHolder().`is`(IMMUNE_TO_PRESSURE)) return
-        // The suit is the answer §7.7 designed it to be, and it is charged for the saving in the same coin
-        // the lava and the cold charge it in. Worn by anything, but only a player has one.
+    fun crush(level: ServerLevel, body: LivingEntity) {
+        if (level.gameTime % PRESSED_EVERY != 0L) return
+        // Worn by anything, but only a player has one.
         if (body is ServerPlayer && ProtectiveSuit.wearingTheWholeSuit(body)) {
             ProtectiveSuit.wearOut(body)
             return
@@ -399,8 +424,23 @@ object DeepWater {
      */
     private const val CRUSHES_BY = 2.0f
 
-    /** Once a second, which is also vanilla's invulnerability window — see [press]. */
+    /** Once a second, which is also vanilla's invulnerability window — see [crush]. */
     private const val PRESSED_EVERY = 20L
+
+    /**
+     * How long the mark lasts without being renewed.
+     *
+     * Short, because [PressureEffect] takes itself off the moment the water is gone and this is only the
+     * net under that — long enough that a tick where the block does not report the body does not flicker
+     * the icon, short enough that it could never read as grace.
+     */
+    private const val HELD_FOR = 40
+
+    private const val NO_STRONGER = 0
+
+    /** Not ambient: this is being done to you, and the HUD should say so at full strength. */
+    private const val AMBIENT = false
+    private const val SHOWN = true
 
     val PRESSURE: ResourceKey<DamageType> =
         ResourceKey.create(Registries.DAMAGE_TYPE, "pressure".location())

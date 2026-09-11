@@ -40,9 +40,12 @@ import co.voik.agesandtheart.worldgen.fissure.StarFissurePiece
 import co.voik.agesandtheart.worldgen.fissure.StarFissureStructure
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType
 import net.minecraft.world.level.levelgen.structure.StructureType
+import net.minecraft.core.Holder
 import net.minecraft.core.component.DataComponentType
 import net.minecraft.core.component.DataComponents
+import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
+import net.minecraft.world.effect.MobEffect
 import net.minecraft.network.codec.ByteBufCodecs
 import net.minecraft.world.flag.FeatureFlags
 import net.minecraft.world.inventory.ContainerLevelAccess
@@ -1523,6 +1526,25 @@ object AgeContent {
     val soundEvents: List<Pair<Identifier, SoundEvent>> = listOf(
         BLIZZARD_SHELTERED_ID to BLIZZARD_SHELTERED,
         BLIZZARD_EXPOSED_ID to BLIZZARD_EXPOSED,
+    )
+
+    private val PRESSURE_EFFECT_ID: Identifier = "pressure".location()
+
+    /**
+     * The abyss on a body — see [PressureEffect], and `DeepWater.press` for what hands it out.
+     *
+     * **The pack's first `MobEffect`**, and it is held as a `Holder` because that is what an effect instance
+     * takes: a bare `MobEffect` cannot be applied to anything. The delegate is resolved lazily against the
+     * registry this list puts it in, so declaring it here does not depend on registration order.
+     */
+    val PRESSURE_EFFECT_INSTANCE: PressureEffect = PressureEffect()
+
+    val PRESSURE_EFFECT: Holder<MobEffect> by lazy {
+        BuiltInRegistries.MOB_EFFECT.wrapAsHolder(PRESSURE_EFFECT_INSTANCE)
+    }
+
+    val mobEffects: List<Pair<Identifier, MobEffect>> = listOf(
+        PRESSURE_EFFECT_ID to PRESSURE_EFFECT_INSTANCE,
     )
 
     val features: List<Pair<Identifier, Feature<*>>> = listOf(

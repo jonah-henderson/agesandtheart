@@ -80,6 +80,7 @@ fun init() {
     FabricDefaultAttributeRegistry.register(AgeContent.ASTRITE_GOLEM, AstriteGolem.createAttributes())
     FabricDefaultAttributeRegistry.register(AgeContent.HADALFISH, Hadalfish.createAttributes())
     AgeContent.soundEvents.forEach { (id, sound) -> Registry.register(BuiltInRegistries.SOUND_EVENT, id, sound) }
+    AgeContent.mobEffects.forEach { (id, effect) -> Registry.register(BuiltInRegistries.MOB_EFFECT, id, effect) }
     AgeContent.tickets.forEach { (id, type) -> Registry.register(BuiltInRegistries.TICKET_TYPE, id, type) }
     AgeContent.blockEntities.forEach { (id, type) -> Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE, id, type) }
     AgeContent.structureTypes.forEach { (id, type) -> Registry.register(BuiltInRegistries.STRUCTURE_TYPE, id, type) }

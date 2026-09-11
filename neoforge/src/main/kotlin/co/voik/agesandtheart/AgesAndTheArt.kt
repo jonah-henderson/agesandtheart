@@ -132,6 +132,9 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         event.register(Registries.SOUND_EVENT) { helper ->
             AgeContent.soundEvents.forEach { (id, sound) -> helper.register(id, sound) }
         }
+        event.register(Registries.MOB_EFFECT) { helper ->
+            AgeContent.mobEffects.forEach { (id, effect) -> helper.register(id, effect) }
+        }
         event.register(Registries.ITEM) { helper ->
             AgeContent.items.forEach { (id, item) -> helper.register(id, item) }
         }
