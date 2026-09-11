@@ -19,6 +19,7 @@ import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.resources.Identifier
 import net.minecraft.server.MinecraftServer
+import net.minecraft.world.level.levelgen.RandomSupport
 import java.util.Optional
 
 /**
@@ -272,8 +273,23 @@ data class AgeRecipe(
         /** An Age from before an Age had an age — read as having been written when the world began. */
         const val UNRECORDED = 0L
 
-        /** The seed an Age gets when nothing has chosen one for it. */
+        /**
+         * The seed an Age gets when nothing has chosen one and it must be **the same every time** — a book
+         * carrying no stamped seed, and a repair, which has to hand back the same Age it was given.
+         *
+         * **Not what a command should use for a missing seed** (Jonah, 2026-09-11): a name's hash looks
+         * random and is not, so writing the same book under the same name over and over kept rebuilding one
+         * world, which is the worst of both readings. See [freshSeed].
+         */
         fun seedFor(id: Identifier): Long = id.hashCode().toLong()
+
+        /**
+         * A seed nobody chose — **what an omitted seed means when someone is asking for an Age**.
+         *
+         * Vanilla's own unique-seed draw, which is what a new world gets. The commands print the seed they
+         * used, so a roll worth keeping can be pinned by writing it back.
+         */
+        fun freshSeed(): Long = RandomSupport.generateUniqueSeed()
 
         /** The world a classic preset names — also what a pre-aspects recipe migrates to. */
         fun worldFor(preset: AgePreset): AgeWorld {

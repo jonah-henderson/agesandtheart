@@ -2077,7 +2077,8 @@ object AgeCommand {
         val recipe = AgeRecipe.written(
             source.server,
             world,
-            seed ?: AgeRecipe.seedFor(id),
+            // As `runWrite`: no seed means roll one, and the report names it.
+            seed ?: AgeRecipe.freshSeed(),
             template,
             instability = instability,
         )
@@ -2133,7 +2134,9 @@ object AgeCommand {
         if (read.isEmpty) return report.fail("An Age needs at least one word the Art can read")
         reportParse(report, read)
 
-        val chosenSeed = seed ?: AgeRecipe.seedFor(id)
+        // **An omitted seed is a roll, not the name's hash.** See `AgeRecipe.freshSeed`; the seed is
+        // printed with the Age, so a world worth keeping can be pinned by writing it back.
+        val chosenSeed = seed ?: AgeRecipe.freshSeed()
         val resolution = Resolver.resolve(vocabulary, read, chosenSeed)
         val recipe = AgeRecipe.written(source.server, resolution, chosenSeed)
         val result = open(source, name, id, recipe, report)
