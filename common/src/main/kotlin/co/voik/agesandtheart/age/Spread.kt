@@ -175,8 +175,15 @@ enum class Seam(val key: String, val share: Double, val frequency: Int) : String
         /** How high a wall stands, raised the more torn the Age. */
         fun wallCrest(torn: Double): Int = (WALL_CREST + (WALL_CREST - WALL_FOOTING) * torn * WALL_TEARS_TO).toInt()
 
-        /** The floor no rift cuts below, whatever the budget. Bedrock is at 0 and severing is not dividing. */
-        const val RIFT_DEEPEST = 16
+        /**
+         * The floor no rift cuts below, whatever the budget.
+         *
+         * **Bedrock in an Age is at −64**, not 0 — every dimension type of ours is `min_y: -64` and
+         * `Terrain` floors the rock at `minY + BEDROCK_MARGIN`, so this leaves about thirty blocks of rock
+         * under the deepest cut a torn Age can make. It must stay **below [RIFT_FLOOR]** or [riftFloor]'s
+         * `coerceAtLeast` inverts the direction and a torn rift comes out shallower than an untorn one.
+         */
+        const val RIFT_DEEPEST = -30
 
         /**
          * How far a scarp throws each side of a seam, in blocks — a 64-block cliff where two territories
@@ -187,11 +194,18 @@ enum class Seam(val key: String, val share: Double, val frequency: Int) : String
         const val SCARP_THROW = 32
 
         /**
-         * The floor a rift cuts down to — about twenty blocks under the sea at 63, so a rift is swimmable
-         * and divides an Age without partitioning it. Not the world's floor: a chasm to bedrock along
-         * every seam would sever the territories outright.
+         * The floor a rift cuts down to, and **the only lever on how deep one reads**.
+         *
+         * [RIFT_RIM] sets where the cut stops at the band's edge, which is the *flare of the walls* rather
+         * than the depth at the seam — so deepening a rift means spending this, and the sever guard with
+         * it. Against [RIFT_RIM] it gives 78 blocks of relief, which is the wall's own
+         * (`WALL_CREST` over `WALL_FOOTING`), across a band the same 48 wide: the two seam forms are the
+         * same size now, and that proportion is the thing to keep if either moves.
+         *
+         * The walls are as steep as that relief over [co.voik.agesandtheart.worldgen.field.Rift]'s
+         * half-width makes them, so **widening a rift flattens it** unless this follows.
          */
-        const val RIFT_FLOOR = 40
+        const val RIFT_FLOOR = -6
 
         /**
          * Where a rift stops cutting. **Above the waterline on purpose**: a rift no longer floods by

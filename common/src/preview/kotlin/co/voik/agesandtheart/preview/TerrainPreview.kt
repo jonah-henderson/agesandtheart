@@ -655,6 +655,13 @@ private val subjects: Map<String, Subject> = mapOf(
         radius = 420,
     ),
 
+    // **Read off `Seam.RIFT_DEEPEST` rather than written down**, so a rift cut deeper than the picture can
+    // hold comes out clipped in the code review rather than in the picture — the silent-clip trap `spire`'s
+    // floor note warns about, met the once: the window was 30 while the floor went to −6, and the chasm
+    // simply ran off the bottom edge looking like a chasm that stopped there.
+    //
+    // `wall` shares it so the two forms stay comparable, which costs the wall some height in the frame.
+
     // **`fault`, `rift` and `fuzz` are the three forms a seam can take, and they are a set to read together.**
     // Each is `Seam.SCARP`, `Seam.RIFT` or `Seam.FUZZED` applied to the SAME two territories, so the pictures
     // differ by nothing but the form. Whether a scarp reads as drama or as breakage is the entire acceptance
@@ -695,7 +702,7 @@ private val subjects: Map<String, Subject> = mapOf(
             footingY = Seam.WALL_FOOTING,
             crestY = Seam.WALL_CREST,
         ),
-        lowestY = 30,
+        lowestY = SEAM_WINDOW_FLOOR,
         highestY = 185,
         // The same window as `rift`, so the two forms can be read against each other.
         radius = 420,
@@ -708,7 +715,7 @@ private val subjects: Map<String, Subject> = mapOf(
             floorY = Seam.RIFT_FLOOR,
             rimY = Seam.RIFT_RIM,
         ),
-        lowestY = 30,
+        lowestY = SEAM_WINDOW_FLOOR,
         highestY = 185,
         radius = 420,
     ),
@@ -964,6 +971,14 @@ private fun reportResistance(subject: Subject) {
     println("  resistance: min ${at(0.0)}, p10 ${at(0.10)}, median ${at(0.50)}, p90 ${at(0.90)}, max ${at(0.999)}")
     println("  a threshold must sit inside that range to select anything")
 }
+
+/**
+ * Low enough to hold the deepest cut a torn rift can make, with room under it to read as a bottom.
+ *
+ * `const`, so it is inlined rather than initialised — a plain `val` down here is still null when the
+ * subject list above it is built.
+ */
+private const val SEAM_WINDOW_FLOOR = Seam.RIFT_DEEPEST - 10
 
 private const val MAGNIFY = 2
 private const val GRID_SPACING = 16
