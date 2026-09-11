@@ -2,16 +2,18 @@ package co.voik.agesandtheart.worldgen.feature
 
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.worldgen.AgeChunkGenerator
-import co.voik.agesandtheart.worldgen.AgeRock
 import co.voik.agesandtheart.worldgen.field.TerrainField
 import net.minecraft.core.BlockPos
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.WorldGenLevel
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.feature.Feature
 import net.minecraft.world.level.levelgen.feature.FeaturePlaceContext
 import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration
 import kotlin.math.abs
+import kotlin.math.roundToInt
+import kotlin.math.sqrt
 import kotlin.math.roundToInt
 
 /**
@@ -32,13 +34,15 @@ object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration
 
     override fun place(context: FeaturePlaceContext<NoneFeatureConfiguration>): Boolean {
         val generator = context.chunkGenerator() as? AgeChunkGenerator ?: return false
-        val land = (generator.rock as? AgeRock.Ours)?.landform ?: return false
-        val lakes = moltenIn(generator) ?: return false
         val origin = context.origin()
-        val anywhere = someLavaIn(lakes, origin) ?: return false
+        // The small ones first, and independently: they cut their own hollows in the open country between
+        // the craters, so a chunk with no lava in it still gets its share. See [LavaPuddles].
+        val puddled = LavaPuddles.scatter(context.level(), origin, context.random())
+        val lakes = moltenIn(generator) ?: return puddled
+        val anywhere = someLavaIn(lakes, origin) ?: return puddled
         val middle = middleOfTheLakeAt(lakes, anywhere)
-        if (!inside(origin, middle)) return false
-        return seat(context.level(), land, middle, context.random())
+        if (!inside(origin, middle)) return puddled
+        return seat(context.level(), lakes, middle, context.random()) || puddled
     }
 
     /**
@@ -118,56 +122,117 @@ object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration
         lakes.columnSpans(x, z).highestSolidY
 
     /**
-     * The top of the rock in this column, or [NO_ROCK] where the field leaves the column empty.
+     * The rock this column's lava is resting on, or null where no body of it reaches [surface] here.
      *
-     * The **field** rather than the world, which is what lets a vent read a crater floor tens of blocks
-     * outside the chunk being decorated: a feature may only write a chunk past its own, but a field is a
-     * pure function of a column and answers anywhere for the cost of the arithmetic.
+     * **Read off the lava rather than off the land — CORRECTED 2026-09-10 (Jonah, walked).** This asked
+     * the *landform* for the top of the rock, which is the same answer for a crater (a lake rests on its
+     * own floor) and completely wrong for a magma chamber, where the land is a hundred blocks overhead.
+     * `floor` came out above `crown`, the loop that seats the tubes ran zero times, and every chamber in
+     * every Age came out as a pool with nothing in it.
+     *
+     * The bottom of the body of lava is the right question in both cases and needs no second field. It
+     * also does the filtering for free: a column with no lava at this level is outside the chamber, so the
+     * cap trims itself to whatever shape it is sitting in.
      */
-    private fun surfaceAt(land: TerrainField, x: Int, z: Int): Int =
-        land.columnSpans(x, z).ranges.lastOrNull()?.last ?: NO_ROCK
+    private fun floorUnderTheLavaAt(lakes: TerrainField, x: Int, z: Int, surface: Int): Int? =
+        lakes.columnSpans(x, z).ranges.firstOrNull { surface in it }?.let { it.first - ONE }
 
     /**
-     * **A cone of tubes rising through the lake, not a disc sunk in its floor** (Jonah, 2026-09-09).
+     * **A broad, shallow cap of tubes on a pedestal of rock — CORRECTED 2026-09-10 (Jonah, walked).**
      *
-     * How often a volcano throws is how many tubes it has, because every one of them is visited on its
-     * own — so a vent that climbs most of the way to the surface throws several times a second where a
-     * skin of one on the floor threw once in ten. Tapering it means the count comes from the base rather
-     * than from a chimney, and what stands under the lava reads as a plug rather than a pillar.
+     * This was a cone rising the whole height of the lake, and the reasoning behind it was half right: how
+     * often a volcano throws *is* how many tubes it has, but not how many it is *made* of. `LavaTubes.plugged`
+     * refuses any tube with a block over it, and `LavaTubeBlock` is a full block — **so a tube with a tube
+     * on top of it neither wells nor throws.** What a vent's output is proportional to is its *exposed top
+     * surface*, and a cone is the shape with the least of it: a tall stack of rings whose crown is a single
+     * column. It looked right and threw almost nothing.
      *
-     * It is laid into whatever is already there, rock or the crater's own lava, and stops [LAVA_OVER_THE_VENT]
-     * short of the surface so the mass stays drowned — a tube in open air over the lake would be a chimney
-     * you could stand on, and the whole force of a caldera comes of it erupting from under its own lake.
+     * So the mass is turned on its side. A disc [VENT_ACROSS] blocks across and only [VENT_DEEP] thick has
+     * two hundred-odd tubes with open lava over them instead of a handful, and the same volcano goes from
+     * a shot now and then to a barrage — with *fewer* tube blocks than the cone it replaces.
+     *
+     * **The pedestal is what a shallow cap needs and a tall cone did not.** The top has to stay
+     * [LAVA_OVER_THE_VENT] under the surface — a vent in open air over its own lake is a chimney you can
+     * stand on, and the force of a caldera comes of it erupting from underneath — but a three-block cap
+     * hung there has nothing beneath it. Filling the column under it with the crater's own rock puts the
+     * mouths near the top of the lake, where a bomb clears the rim, instead of on a floor fifteen blocks
+     * further down where it does not.
      *
      * Columns are filtered once by their own floor: well above the middle's is the crater wall, and tubes
      * up a wall are a seam running out of a hillside rather than a vent under a lake.
      */
-    private fun seat(level: WorldGenLevel, land: TerrainField, middle: BlockPos, random: RandomSource): Boolean {
-        val floor = surfaceAt(land, middle.x, middle.z)
-        val base = NARROWEST_VENT + random.nextInt(WIDEST_VENT - NARROWEST_VENT + 1)
-        val crown = middle.y - LAVA_OVER_THE_VENT
-        val climb = (crown - floor).coerceAtLeast(ONE)
-        val columns = discOf(base).filter { (offsetX, offsetZ) ->
-            abs(surfaceAt(land, middle.x + offsetX, middle.z + offsetZ) - floor) <= FLOOR_RELIEF
-        }
+    private fun seat(level: WorldGenLevel, lakes: TerrainField, middle: BlockPos, random: RandomSource): Boolean {
+        val floor = floorUnderTheLavaAt(lakes, middle.x, middle.z, middle.y) ?: return false
+        // **How much lava there is to hide under decides how much has to be left over it.** A caldera has
+        // fifteen blocks and can spare three; a maar has two, and asking three of it left the crown below
+        // the floor, the loop running zero times and a puddle with no vent in it.
+        val over = minOf(LAVA_OVER_THE_VENT, middle.y - floor - ONE)
+        if (over < ONE) return false
+        val crown = middle.y - over
+        val across = VENT_ACROSS + random.nextInt(VENT_SPREAD)
+        val capFloor = maxOf(floor + ONE, crown - VENT_DEEP + ONE)
+        val mound = across + PEDESTAL_SKIRTS
+        val pedestal = pedestalOf(level, middle.x, floor, middle.z)
         var seatedAnything = false
-        for (y in floor - ROOTED..crown) {
-            val reach = reachAt(base, (y - floor).coerceAtLeast(0), climb)
-            for ((offsetX, offsetZ) in columns) {
-                if (offsetX * offsetX + offsetZ * offsetZ > reach * reach) continue
-                val at = BlockPos(middle.x + offsetX, y, middle.z + offsetZ)
-                val standing = level.getBlockState(at)
-                if (!standing.isSolidRender && !standing.`is`(Blocks.LAVA)) continue
-                level.setBlock(at, AgeContent.LAVA_TUBE_BLOCK.defaultBlockState(), UPDATE_NONE)
-                seatedAnything = true
+        for ((offsetX, offsetZ) in discOf(mound)) {
+            val here = floorUnderTheLavaAt(lakes, middle.x + offsetX, middle.z + offsetZ, middle.y) ?: continue
+            if (abs(here - floor) > FLOOR_RELIEF) continue
+            val away = sqrt((offsetX * offsetX + offsetZ * offsetZ).toDouble())
+            val underTheCap = away <= across
+            for (y in floor - ROOTED..rockUpTo(capFloor, floor, away, mound, underTheCap, random)) {
+                lay(level, BlockPos(middle.x + offsetX, y, middle.z + offsetZ), pedestal)
+            }
+            if (!underTheCap) continue
+            for (y in capFloor..crown) {
+                // Domed a little rather than flat-topped: each layer of the cap is a block narrower than
+                // the one under it, so the rim of the disc is where the deepest lava stands over it.
+                if (away > across - (crown - y)) continue
+                if (lay(level, BlockPos(middle.x + offsetX, y, middle.z + offsetZ), TUBE)) seatedAnything = true
             }
         }
         return seatedAnything
     }
 
-    /** The cone's width this far up it — full at the floor, down to a point's worth at the crown. */
-    private fun reachAt(base: Int, climbed: Int, climb: Int): Int =
-        (base - (base - TIP) * climbed.toDouble() / climb).roundToInt().coerceAtLeast(TIP)
+    /**
+     * How high the rock stands in this column — **flat under the cap and a rough mound outside it**.
+     *
+     * A pedestal that was one cylinder read as a plug somebody had dropped in (Jonah, walked 2026-09-10),
+     * which is what a shape with one radius and one height always reads as. Under the cap it has no
+     * choice: the tubes rest on it and a hole would hang them in the lava. Past the cap it falls away with
+     * distance and wanders a block either side of that, so what shows above the lake is a mound with a
+     * broken edge rather than a disc.
+     */
+    private fun rockUpTo(
+        capFloor: Int,
+        floor: Int,
+        away: Double,
+        mound: Int,
+        underTheCap: Boolean,
+        random: RandomSource,
+    ): Int {
+        val top = capFloor - ONE
+        if (underTheCap) return top
+        val share = ONE_WHOLE - (away / mound).coerceIn(0.0, ONE_WHOLE)
+        val fallen = floor + ((top - floor) * share).roundToInt()
+        return (fallen + random.nextInt(ROUGHNESS) - ONE).coerceIn(floor - ROOTED, top)
+    }
+
+    /** Writes [what] where there is rock or lava to write it into, and says whether it went in. */
+    private fun lay(level: WorldGenLevel, at: BlockPos, what: BlockState): Boolean {
+        val standing = level.getBlockState(at)
+        if (!standing.isSolidRender && !standing.`is`(Blocks.LAVA)) return false
+        level.setBlock(at, what, UPDATE_NONE)
+        return true
+    }
+
+    /**
+     * What the pedestal is built of: **whatever the crater floor is**, so it belongs to the Age rather
+     * than to this feature. An Age written on basalt gets a basalt plug and one on sandstone gets its own.
+     */
+    private fun pedestalOf(level: WorldGenLevel, x: Int, floor: Int, z: Int): BlockState {
+        val standing = level.getBlockState(BlockPos(x, floor, z))
+        return if (standing.isSolidRender) standing else FALLING_BACK_ON
+    }
 
     /**
      * The columns within [reach] of the middle.
@@ -180,12 +245,25 @@ object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration
         (-reach..reach).flatMap { x -> (-reach..reach).map { z -> x to z } }
             .filter { (x, z) -> x * x + z * z <= reach * reach }
 
-    /** How wide the cone is at the floor, drawn per crater so two volcanoes are not the same machine. */
-    private const val NARROWEST_VENT = 3
-    private const val WIDEST_VENT = 4
+    /**
+     * How wide the cap is, drawn per crater so two volcanoes are not the same machine.
+     *
+     * **This is the output dial**, and it is a square one: every tube with open lava over it wells and
+     * throws on its own account, so the mouths go as the square of this. Nine gave about two hundred and
+     * fifty and nine bombs in the air at once, which was too many (Jonah, walked 2026-09-10) — halving the
+     * radius quarters the area, which is the ask.
+     */
+    private const val VENT_ACROSS = 4
+    private const val VENT_SPREAD = 2
 
-    /** And how wide at the crown — a point's worth, so the mass is a cone and not a chimney. */
-    private const val TIP = 1
+    /** How far the rock skirts out past the cap, giving it a mound to stand on rather than a plinth. */
+    private const val PEDESTAL_SKIRTS = 5
+
+    /** A block either way on the mound's own top, which is the whole of what stops it reading as turned. */
+    private const val ROUGHNESS = 3
+
+    /** And how thick — shallow, because everything under the top layer is plugged by the layer above it. */
+    private const val VENT_DEEP = 3
 
     /** How far it carries on under the floor, so a drained crater still has a vent in it. */
     private const val ROOTED = 2
@@ -195,6 +273,11 @@ object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration
 
     /** How far a vent column may sit off the floor at the middle before it counts as the crater wall. */
     private const val FLOOR_RELIEF = 3
+
+    private val TUBE = AgeContent.LAVA_TUBE_BLOCK.defaultBlockState()
+
+    /** Only where a crater floor turned out not to be solid, which nothing has produced. */
+    private val FALLING_BACK_ON = Blocks.STONE.defaultBlockState()
 
     private val BESIDE = listOf(1 to 0, -1 to 0, 0 to 1, 0 to -1)
 
@@ -212,12 +295,11 @@ object VolcanoVents : Feature<NoneFeatureConfiguration>(NoneFeatureConfiguration
     /** Coarse: a crater is tens of blocks across, so every fourth column finds it. */
     private const val STRIDE = 4
 
-    /** Below the world, so an empty column can never be mistaken for a crater floor. */
-    private const val NO_ROCK = Int.MIN_VALUE / 2
-
     private const val UPDATE_NONE = 2
 
     private const val ONE = 1
+
+    private const val ONE_WHOLE = 1.0
 
     private const val INT_MASK = 0xFFFF_FFFFL
 }

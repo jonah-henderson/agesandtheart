@@ -97,10 +97,21 @@ object LavaTubes {
      * instead of reading a thousand columns, and what it finds is connected to *this* tube — so a vent
      * cannot annex the edge of a lava lake that happens to lie next to it.
      *
-     * **Falling lava is never taken**, and that single condition is what stands in for every containment
-     * rule this used to need. Vanilla only ever puts flowing lava where lava can go, so hardening one is
-     * safe everywhere — except in mid-air, where hardening the column of a fall would build a pillar of
-     * lava hanging off a ledge. Skipping it leaves the fall a fall, and the pool re-forms at its foot.
+     * **Neither falling lava nor unsupported lava is taken, and it took both — CORRECTED 2026-09-10
+     * (Jonah, walked).** Refusing the `FALLING` flag alone still built floating discs, and the reason is
+     * one tick of vanilla's own spreading: lava that runs out over a lip exists at that lip as *flowing,
+     * not falling*, for as long as it takes the fall beneath it to appear. Harden one of those and the
+     * result is a **source** hanging in mid-air — and a source never drains, so it pours for ever and the
+     * next visit hardens its neighbour, which is the disc.
+     *
+     * **Spreading is sideways only, and that falls out of the support rule rather than needing a cap of
+     * its own.** A height limit above the vent was tried and is gone: nothing standing on lava is ever
+     * converted, so a pool cannot build a second storey and there is no height to limit. What a tube does
+     * is lay one layer along whatever floor its lava found.
+     *
+     * So what is taken has to be standing on rock. [standingOnRock] is the other half of it:
+     * vanilla only ever puts flowing lava where lava can go, so anywhere it is *supported* is somewhere a
+     * pool may sit, and everywhere else is left a fall with its pool re-forming at the foot.
      */
     private fun nearestRunning(level: ServerLevel, at: BlockPos): BlockPos? {
         val seen = HashSet<BlockPos>()
@@ -116,14 +127,33 @@ object LavaTubes {
                 if (next.distSqr(at) > REACH * REACH) continue
                 val fluid = level.getFluidState(next)
                 when (fluid.type) {
+                    // Walked THROUGH, both of them: a frontier can lie past a tongue of running lava, and
+                    // stopping at the first one it met left a pool unable to reach round its own spill.
                     Fluids.LAVA -> queue += next
-                    Fluids.FLOWING_LAVA -> if (!fluid.getValueOrElse(FlowingFluid.FALLING, false)) return next
+                    Fluids.FLOWING_LAVA -> {
+                        if (!fluid.getValueOrElse(FlowingFluid.FALLING, false) && standingOnRock(level, next)) {
+                            return next
+                        }
+                        queue += next
+                    }
                     else -> Unit
                 }
             }
         }
         return null
     }
+
+    /**
+     * Whether lava at [at] is standing on **rock** — not on more lava, and not on nothing.
+     *
+     * **Lava is not support, and letting it be was the whole bug** (Jonah, walked 2026-09-10). A pool
+     * standing on a pool sounds like what a pool is, but it is what lets a tube climb: convert the block
+     * resting on the source, then the one resting on *that*, and a tube laid on flat ground fills upward
+     * two and three blocks at a time. `blocksMotion` is the exact question — lava does not block motion,
+     * so rock passes and lava does not, with nothing to say about it twice.
+     */
+    private fun standingOnRock(level: ServerLevel, at: BlockPos): Boolean =
+        level.getBlockState(at.below()).blocksMotion()
 
     /**
      * Throw something, if this visit is one of the ones that throws.

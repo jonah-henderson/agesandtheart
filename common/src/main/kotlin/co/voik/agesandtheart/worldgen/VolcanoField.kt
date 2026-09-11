@@ -78,10 +78,10 @@ object VolcanoField {
      */
     fun over(seed: Long): Volcanoes {
         val mountains = layerOf(SHAPES, sites(seed), seed, SHOULDERS)
-        val maars = layerOf(MAARS, vents(seed), seed + MAAR_SALT, Instanced.NO_BLEND)
+
         return Volcanoes(
-            cones = Union(listOf(mountains.cones, maars.cones)),
-            lakes = Union(listOf(mountains.lakes, maars.lakes)),
+            cones = mountains.cones,
+            lakes = mountains.lakes,
         )
     }
 
@@ -116,28 +116,6 @@ object VolcanoField {
             lakes = Instanced(shapes.map { it.lake(seed) }, placement, variation, seed, Instanced.NO_BLEND),
         )
     }
-
-    /**
-     * Where an Age's **small** craters stand — the spatter cones and lava ponds between the mountains
-     * (Jonah, 2026-09-09).
-     *
-     * Far denser than [sites] and patchy on its own scale, so volcanic country has ponds scattered through
-     * it rather than one mountain and then nothing. They cost little to look for: a maar's whole foot is
-     * about a fifth of a stratovolcano's, and the cell scan is priced off exactly that.
-     */
-    fun vents(seed: Long): Placement = Scatter(
-        cellSize = VENT_CELL,
-        leastPerCell = NONE_AT_ALL,
-        mostPerCell = ONE,
-        density = Density(
-            atOrigin = VENTS_LIKELY,
-            atEdge = VENTS_LIKELY,
-            falloffRadius = VENT_CELL,
-            patchiness = CLUSTERED,
-            patchScale = REGION,
-            patchSeed = seed + MAAR_SALT,
-        ),
-    )
 
     /** An Age's volcanoes: the rock they are made of, and the lava standing in their craters. */
     data class Volcanoes(val cones: TerrainField, val lakes: TerrainField)
@@ -519,84 +497,6 @@ object VolcanoField {
     )
 
     /**
-     * The small craters — **the same construction at a fifth the size**, which is the whole reason they
-     * are `Mountain`s rather than a shape of their own: a maar is a crater with a lava pond in it, and
-     * that is what this type already describes.
-     *
-     * What they cannot share is the noise. A roll of seven over a cone that clears the ground by eight is
-     * gravel rather than a rough volcano, and a warp of fourteen on a twenty-block foot tears the outline
-     * off it — so both are cut right down, and the freeboard with them, since a lip six blocks over the
-     * lava on a crater eight deep would leave a pond two thick.
-     *
-     * No skirts: an apron costs radius in the ratio of how far under the ground its cone is based, which
-     * is ruinous at this size (see [Mountain.skirt]).
-     */
-    private val MAARS = listOf(
-        Mountain(
-            rise = 8,
-            foot = 22.0,
-            plateau = 15.0,
-            calderaRadius = 11.0,
-            calderaFloorRadius = 4.0,
-            calderaDepth = 9,
-            skirtRise = NO_SKIRT,
-            skirtFoot = 0.0,
-            freeboard = MAAR_FREEBOARD,
-            roll = MAAR_ROLL,
-            warp = MAAR_WARP,
-            erosion = MAAR_EROSION,
-            salt = 0x5A11L,
-        ),
-        // A pond in the ground with barely a lip, which is what a maar proper is.
-        Mountain(
-            rise = 4,
-            foot = 30.0,
-            plateau = 22.0,
-            calderaRadius = 18.0,
-            calderaFloorRadius = 9.0,
-            calderaDepth = 8,
-            skirtRise = NO_SKIRT,
-            skirtFoot = 0.0,
-            freeboard = MAAR_FREEBOARD,
-            roll = MAAR_ROLL,
-            warp = MAAR_WARP,
-            erosion = MAAR_EROSION,
-            salt = 0x5A2222L,
-        ),
-        // A steep spatter cone, the one that reads as a vent rather than as a pool.
-        Mountain(
-            rise = 13,
-            foot = 18.0,
-            plateau = 11.0,
-            calderaRadius = 8.0,
-            calderaFloorRadius = 3.0,
-            calderaDepth = 10,
-            skirtRise = NO_SKIRT,
-            skirtFoot = 0.0,
-            freeboard = MAAR_FREEBOARD,
-            roll = MAAR_ROLL,
-            warp = MAAR_WARP,
-            erosion = MAAR_EROSION,
-            salt = 0x5A333333L,
-        ),
-        Mountain(
-            rise = 6,
-            foot = 26.0,
-            plateau = 18.0,
-            calderaRadius = 14.0,
-            calderaFloorRadius = 6.0,
-            calderaDepth = 9,
-            skirtRise = NO_SKIRT,
-            skirtFoot = 0.0,
-            freeboard = MAAR_FREEBOARD,
-            roll = MAAR_ROLL,
-            warp = MAAR_WARP,
-            erosion = MAAR_EROSION,
-            salt = 0x5A44444444L,
-        ),
-    )
-
-    /**
      * The chambers an Age holds, spread down the rock rather than sitting on one level.
      *
      * They differ in kind rather than by a few blocks, like the cones do: a wide shallow sump, a tall
@@ -661,28 +561,6 @@ object VolcanoField {
     private const val MOUNTAIN_EROSION = 7.0
 
     /**
-     * What a small crater wears instead, all three cut to its own scale.
-     *
-     * Two of the lip and the rest lava, so a pond you come across reads as full to the brim rather than
-     * as a hole with something at the bottom of it.
-     */
-    private const val MAAR_FREEBOARD = 2
-    private const val MAAR_ROLL = 2.0
-    private const val MAAR_WARP = 3.5
-    private const val MAAR_EROSION = 2.5
-
-    /**
-     * How far apart the small craters sit, and how likely a cell is to hold one.
-     *
-     * Close enough that volcanic country is *pocked* rather than punctuated: at this spacing a walk across
-     * one patch crosses several, where the mountains are half a kilometre apart. The patch noise is shared
-     * with the mountains at its own salt, so the ponds cluster where the cones do without being tied to
-     * them — a field of vents with no mountain in it is a good thing to come across.
-     */
-    private const val VENT_CELL = 120.0
-    private const val VENTS_LIKELY = 0.5
-
-    /**
      * How the summit is eaten into: how far the erosion starts below the rim, how far it wanders, over
      * what wavelength, and how far past the plateau it reaches.
      *
@@ -694,9 +572,6 @@ object VolcanoField {
     private const val BITE_SCALE = 0.8
     private const val BITTEN_MARGIN = 6.0
     private const val BITE_SALT = 0x42_4954_45L
-
-    /** Separates every draw the small craters make from every draw the mountains make. */
-    private const val MAAR_SALT = 0x4D_4141_5253L
 
     /**
      * How far apart the chambers sit, and how likely a cell is to hold one.
