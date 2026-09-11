@@ -10,6 +10,8 @@ import co.voik.agesandtheart.age.Price
 import co.voik.agesandtheart.age.Register
 import co.voik.agesandtheart.age.Spreads
 import co.voik.agesandtheart.age.aspect.Aspect
+import co.voik.agesandtheart.age.aspect.Claim
+import co.voik.agesandtheart.age.aspect.Features
 import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Phenomena
 import co.voik.agesandtheart.age.aspect.Sea
@@ -35,6 +37,47 @@ import io.kotest.core.spec.style.FunSpec
  */
 @Tags(NEEDS_REGISTRIES)
 class DangerCheck : FunSpec({
+
+    /**
+     * **Hazards in the ground add up** (Jonah, 2026-09-11: *"those danger numbers need fixing, I believe
+     * they should all be adding up"*).
+     *
+     * It was the worst entry, on the argument the materials still make — that a wheat field beside a
+     * volcano should not make an Age worse. The materials have to reason that way because an Age is made
+     * of exactly one rock, so its three answers are rivals; a feature list is not rivals, and scoring it as
+     * one meant an Age holding every volcanic hazard read exactly as dangerous as one holding a single
+     * cone. Nothing was traded away to fix it: an unlisted feature is worth a literal zero here, so the
+     * wheat field was always free.
+     */
+    test("what an Age asked to have placed in it adds up rather than counting only its worst") {
+        MinecraftRegistries.ensureStoodUp()
+        val cones = groundScore(growing(VOLCANO)).features
+        val tubes = groundScore(growing(LAVA_TUBES)).features
+        val both = groundScore(growing(VOLCANO, LAVA_TUBES)).features
+
+        check(cones == 0.5) { "a volcano of weight 1.0 against a full world of 2.0 scored $cones" }
+        check(tubes == 0.6 / 2.0) { "lava tubes of weight 0.6 against a full world of 2.0 scored $tubes" }
+        check(both == cones + tubes) { "a volcano ($cones) and tubes ($tubes) together scored $both" }
+        check(both > cones) { "adding a second hazard to a volcano did not make the Age worse" }
+    }
+
+    /** And a hazard the book struck out is not one the Age has. The maximum never checked. */
+    test("a feature written out of an Age stops counting against it") {
+        MinecraftRegistries.ensureStoodUp()
+        val struck = growing(VOLCANO, "$VOLCANO${Claim.OPEN}${Claim.EXCEPT}${Claim.CLOSE}", LAVA_TUBES)
+        check(groundScore(struck).features == 0.6 / 2.0) {
+            "an Age that wrote its volcano out still scored ${groundScore(struck).features}"
+        }
+    }
+
+    /** Scenery is free, which is what lets the sum be a sum. */
+    test("a feature the table has no line for costs nothing") {
+        MinecraftRegistries.ensureStoodUp()
+        val withScenery = growing(VOLCANO, "minecraft:patch_sunflower")
+        check(groundScore(withScenery).features == groundScore(growing(VOLCANO)).features) {
+            "adding a sunflower patch to a volcano moved the score"
+        }
+    }
 
     /**
      * The rule the whole design rests on: an Age is its **average**, not its worst corner.
@@ -266,6 +309,7 @@ class DangerCheck : FunSpec({
             paysAbove = 0.2,
             spawnsFull = 1.0,
             phenomenaFull = 1.0,
+            featuresFull = 1.0,
             confinedWeight = 0.25,
             woundHostility = 0.5,
             materials = mapOf(MAGMA to 1.0, "minecraft:lava" to 1.0),
@@ -274,6 +318,36 @@ class DangerCheck : FunSpec({
             lighting = mapOf("sealed" to 1.0, "lightless" to 0.5),
             features = emptyMap(),
         )
+
+        /**
+         * A table that sees nothing but what is placed, with two hazards of known weight in it.
+         *
+         * **`features_full` is 2.0 here and 1.0 in the shipped file, deliberately.** A divisor of one hides
+         * a divisor that is never applied at all, and this file exists to check the arithmetic rather than
+         * the tuning — so one hazard of weight 1.0 comes out at half a world full, and a bug that dropped
+         * the division would read 1.0 and fail.
+         */
+        private val GROUND_ONLY = TABLE.copy(
+            weights = DangerTable.Weights(
+                materials = 0.0,
+                spawns = 0.0,
+                phenomena = 0.0,
+                lighting = 0.0,
+                features = 1.0,
+            ),
+            featuresFull = 2.0,
+            features = mapOf(VOLCANO to 1.0, LAVA_TUBES to 0.6),
+        )
+
+        private const val VOLCANO = "agesandtheart:volcano"
+        private const val LAVA_TUBES = "agesandtheart:lava_tubes"
+
+        /** An Age over one landform asking for exactly [placed] to be grown in it. */
+        private fun growing(vararg placed: String): AgeComposition =
+            oneTerritory().withOptionsFor(Aspect.FEATURES, 0, Features.PLACES.name, placed.toList())
+
+        private fun groundScore(composition: AgeComposition): Danger =
+            Danger.of(composition, Instability.NONE, SEED, true, GROUND_ONLY, PRICES)
 
         /** One landform covering the whole Age, made of nothing in particular. */
         private fun oneTerritory(): AgeComposition = AgeComposition(terrains = listOf(Terrain.HILLS))

@@ -276,15 +276,30 @@ data class Danger(
         }
 
         /**
-         * The worst of what the Age asked to have placed in it.
+         * Everything the Age asked to have placed in it, added up.
          *
-         * **The worst rather than the sum**, like the materials: an Age with a volcano and a wheat field is
-         * as dangerous as its volcano, and adding scenery to a hazard should not make it worse.
+         * **The sum rather than the worst** (Jonah, 2026-09-11). It was the worst, on the same argument the
+         * materials still make — that adding a wheat field to a volcano should not make an Age worse. But
+         * the materials have to reason that way and this does not: an Age is made of exactly one rock, so
+         * three answers to "what do you stand on" are rivals and the worst of them wins. A feature list is
+         * not rivals. Four volcanic hazards are four hazards, and scoring them as one meant a volcanic Age
+         * with everything in it read exactly as dangerous as one with a single cone.
+         *
+         * **The wheat field is already handled, which is why the old argument did not survive contact.**
+         * [DangerTable.feature] answers nothing for anything it has no line for, so scenery contributes a
+         * literal zero to this sum. Nothing had to be traded away to make it add.
+         *
+         * Read like the spawns beside it: scaled by the amount asked for, cut for a claim confined to one
+         * biome, divided by what counts as a world full of hazard. And **struck claims are dropped**, which
+         * the maximum never did — `volcanic features except volcano` used to score its volcano.
          */
-        private fun featuresOf(composition: AgeComposition, table: DangerTable): Double =
-            composition.optionsFor(Aspect.FEATURES, 0).claimsOn(Features.PLACES)
-                .maxOfOrNull { claim -> table.feature(claim.value) }
-                ?: 0.0
+        private fun featuresOf(composition: AgeComposition, table: DangerTable): Double {
+            val claims = composition.optionsFor(Aspect.FEATURES, 0).claimsOn(Features.PLACES)
+            val asked = wanted(claims).sumOf { claim ->
+                table.feature(claim.value) * claim.density * confinement(claim, table)
+            }
+            return asked / table.featuresFull
+        }
 
         /**
          * How dark it is — **and nothing where nothing walks**.

@@ -40,6 +40,19 @@ data class DangerTable(
     /** The same for what happens here. */
     val phenomenaFull: Double,
     /**
+     * And the same for what the ground holds.
+     *
+     * **Arrived late, with the contributor it divides** (Jonah, 2026-09-11: *"those danger numbers need
+     * fixing, I believe they should all be adding up"*). The features contributor was the worst entry
+     * rather than the sum, so a volcanic Age with all four of its hazards scored exactly what one of them
+     * did.
+     *
+     * Shipped at 1.0, which is the worst single entry in the table: one volcano *is* a world full of
+     * hazardous ground. That also leaves every single-feature score exactly where the maximum left it, so
+     * the only Ages the change moved are the ones asking for several.
+     */
+    val featuresFull: Double,
+    /**
      * What a claim confined to one biome (§4.3.1's `in`) is worth against the same claim made of the whole
      * Age — the nearest thing a non-spatial aspect has to a share.
      */
@@ -150,6 +163,7 @@ data class DangerTable(
             paysAbove = Double.MAX_VALUE,
             spawnsFull = 1.0,
             phenomenaFull = 1.0,
+            featuresFull = 1.0,
             confinedWeight = 0.0,
             woundHostility = 0.0,
             materials = emptyMap(),
@@ -167,6 +181,7 @@ data class DangerTable(
                 Codec.DOUBLE.fieldOf("pays_above").forGetter(DangerTable::paysAbove),
                 Codec.DOUBLE.fieldOf("spawns_full").forGetter(DangerTable::spawnsFull),
                 Codec.DOUBLE.fieldOf("phenomena_full").forGetter(DangerTable::phenomenaFull),
+                Codec.DOUBLE.fieldOf("features_full").forGetter(DangerTable::featuresFull),
                 Codec.DOUBLE.fieldOf("confined_weight").forGetter(DangerTable::confinedWeight),
                 Codec.DOUBLE.fieldOf("wound_hostility").forGetter(DangerTable::woundHostility),
                 RATINGS.fieldOf("materials").forGetter { it.materials },
