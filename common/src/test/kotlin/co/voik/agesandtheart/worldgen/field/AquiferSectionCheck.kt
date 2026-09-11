@@ -38,6 +38,45 @@ import net.minecraft.world.level.levelgen.DensityFunction
 @Tags(NEEDS_REGISTRIES, NEEDS_LANDFORMS)
 class AquiferSectionCheck : FunSpec({
 
+    /**
+     * **The column-by-column reading at a place a walk found water standing against air** — Jonah gave the
+     * block: `-192, 60, 182` on seed 4242.
+     *
+     * The suspicion this settles: `columnSubmerged` is `columnSurface < columnWaterY`, a hard per-column
+     * binary. Under a submerged column the aquifer floods for [dryingDepth] blocks down; one column over,
+     * with its surface a hair above the waterline, it is judged by the deep thresholds and comes out dry.
+     * Two neighbours, opposite answers, all the way down — which seen from the side is a wall of water.
+     *
+     * Hills is the landform that shows it because hills is the landform that *hovers* around the waterline.
+     */
+    test("what the aquifer says either side of the block Jonah found, for reading") {
+        MinecraftRegistries.ensureStoodUp()
+        val window = VerticalWindow.DEFAULT
+        val options = AgeComposition(terrains = listOf(Terrain.HILLS)).optionsFor(Aspect.TERRAIN, 0)
+        val ground = Terrain.HILLS.ground(Underground.NOISE_CAVES, options, options, window, SALT)
+        val sea = SeaFill.of(Blocks.WATER.defaultBlockState(), SEA_LEVEL)
+        val aquifer = WaterTable.matching(sea, SEA_LEVEL, SALT).aquiferFor(ground.shape)
+
+        println("  seed $SALT, z=$FOUND_Z, y=$FOUND_Y — the block Jonah found is x=$FOUND_X")
+        println("     x  surface  submerged  aquifer says")
+        for (worldX in (FOUND_X - 12)..(FOUND_X + 12)) {
+            val surface = ground.shape.columnSpans(worldX, FOUND_Z).highestSolidY
+            val submerged = (surface ?: SEA_LEVEL) < SEA_LEVEL
+            val put = aquifer.computeSubstance(
+                DensityFunction.SinglePointContext(worldX, FOUND_Y, FOUND_Z),
+                -1.0,
+            )
+            val says = when {
+                put == null -> "(solid)"
+                put.fluidState.isEmpty -> "dry"
+                else -> "WATER"
+            }
+            val mark = if (worldX == FOUND_X) " <-- here" else ""
+            println("  ${worldX.toString().padStart(5)}  ${(surface ?: -999).toString().padStart(7)}" +
+                "  ${submerged.toString().padStart(9)}  $says$mark")
+        }
+    }
+
     test("a slice through a hills Age's caves, for reading") {
         MinecraftRegistries.ensureStoodUp()
         val window = VerticalWindow.DEFAULT
@@ -90,6 +129,11 @@ class AquiferSectionCheck : FunSpec({
         private const val WIDE = 128
         private const val STRIDE = 4
         private const val ACROSS_Z = 0
+
+        /** The block a walk found water standing against air on, seed 4242. */
+        private const val FOUND_X = -192
+        private const val FOUND_Y = 60
+        private const val FOUND_Z = 182
 
         private const val LOWEST = -60
         private const val HIGHEST = 150

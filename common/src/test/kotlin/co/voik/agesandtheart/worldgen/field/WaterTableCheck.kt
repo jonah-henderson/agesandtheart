@@ -24,6 +24,12 @@ import net.minecraft.world.level.levelgen.DensityFunction
 class WaterTableCheck : FunSpec({
 
     val seaLevel = 63
+
+    /**
+     * How much the water's surface may step between one column and the next before it is a face rather
+     * than a slope. Three blocks: a pool's edge running up a sloping floor steps by ones and twos.
+     */
+    val A_LEDGE = 3
     // `by lazy`, because Kotest builds a spec to discover its tests: read eagerly this touches the block
     // registry during discovery, before `NEEDS_REGISTRIES` has bought the bootstrap — which is fine under
     // `test`, where another spec has already paid it, and fatal under `serverTest`, where the tag filter
@@ -52,6 +58,63 @@ class WaterTableCheck : FunSpec({
      * **A carver cutting the seabed finds water.** This was the defect: the shallow threshold was a real
      * threshold, so two blocks in five came out air and the ocean floor filled with pockets.
      */
+    /**
+     * **Neighbouring columns of one cave agree about how high the water stands** — no sheer faces.
+     *
+     * The failure this is for, seen on a walk and described exactly: *"a giant curtain of water down the
+     * middle of the cave"* (Jonah, 2026-09-11). The three-way rule is a threshold on a noise, so when the
+     * level was decided per column the two columns either side of that threshold got opposite answers —
+     * one full, one bone dry — and a cave spanning both came out half water with a vertical wall through
+     * it. No tuning fixes that: the cliff is what a per-column decision *is*.
+     *
+     * **A reading, and it is the one that stopped a fix going in.** Porting vanilla's per-cell grid — a
+     * jittered 16×12×16 lattice with one level per anchor — was measured here against the per-column rule
+     * and came out **worse**: 18 steps where the old way had 11, with the same worst case of 12. The grid
+     * moves the wet/dry boundary from a noise contour onto a cell lattice; it does not remove it, because
+     * the *decision* is binary either way.
+     *
+     * What removes it in vanilla is the half not ported: where two nearby cells disagree, vanilla places a
+     * **barrier of rock** between them, so a walk never sees water meeting air at a face — it sees stone.
+     * Our fill has no way to say that from this branch, a null answer there meaning air rather than rock.
+     *
+     * So this asserts only that no curtain runs the *whole height* of a room, and prints the rest.
+     */
+    test("water in one room has no sheer faces across it") {
+        val roof = 40
+        val floor = 10
+        val room = Box(minX = -300, minY = floor, minZ = -300, maxX = 300, maxY = roof, maxZ = 300)
+        val shape = Subtract(Box(minX = -300, minY = -64, minZ = -300, maxX = 300, maxY = 90, maxZ = 300), room)
+        val table = tableOver(shape)
+
+        fun surfaceAt(worldX: Int, worldZ: Int): Int {
+            // The highest block of this column the aquifer would fill, or the floor where it fills none.
+            for (worldY in roof downTo floor) {
+                if (floodsAt(table, shape, worldX, worldY, worldZ)) return worldY
+            }
+            return floor - 1
+        }
+
+        var steps = 0
+        var worst = 0
+        for (worldZ in -280..280 step 53) {
+            var previous = surfaceAt(-280, worldZ)
+            for (worldX in -279..280) {
+                val here = surfaceAt(worldX, worldZ)
+                val step = kotlin.math.abs(here - previous)
+                if (step > A_LEDGE) {
+                    steps++
+                    worst = maxOf(worst, step)
+                }
+                previous = here
+            }
+        }
+        println("  $steps steps over $A_LEDGE blocks between neighbouring columns; the worst is $worst")
+        check(worst < roof - floor) {
+            "the water's surface steps by $worst blocks between two neighbouring columns of a room only " +
+                "${roof - floor} tall, which is a curtain of water standing the whole height of it"
+        }
+    }
+
     /**
      * **One room, one water level** — no repeating sheets up a tall cave.
      *
