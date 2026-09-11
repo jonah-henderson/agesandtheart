@@ -39,6 +39,9 @@ correct itself in place. Rewrite the paragraph that is now wrong.
   `art/preset_tags/`, adding a tag, or authoring a word that queries one.
 - **`notes/terrain-architecture.md`** — the two-tier terrain system (composable field toolkit + bespoke
   presets): the evaluation contract, where things live, the performance budget. Built and shipped.
+- **`notes/walk-list.md`** — **what is built and unwalked**, opened 2026-09-11 and organised by section with
+  a reference per item. Verdicts go to `decisions.md` and the item is struck; when the last one goes, so
+  does the file. Read it before walking anything or before assuming a recent change has been seen.
 - **`notes/decisions.md`** — the compact ledger of settled decisions and hard-won learnings, one line each
   for the decision and the reason. Read it before re-proposing anything; several entries exist because an
   idea was tried and collapsed.
