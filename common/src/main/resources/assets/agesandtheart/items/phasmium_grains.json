@@ -1,0 +1,12 @@
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "agesandtheart:item/phasmium_grains",
+    "tints": [
+      {
+        "type": "minecraft:constant",
+        "value": 9080698
+      }
+    ]
+  }
+}

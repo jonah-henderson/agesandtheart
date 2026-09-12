@@ -1,0 +1,6 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": ["agesandtheart:phasmium_block"],
+  "result": { "id": "agesandtheart:phasmium", "count": 9 }
+}

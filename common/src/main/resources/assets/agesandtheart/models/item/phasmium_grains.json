@@ -1,0 +1,7 @@
+{
+  "_comment": "Vanilla's gunpowder under a tint of ours, until the asset pass -- the bargain the rime crystals struck. Gunpowder because the grains are exactly that: grey, granular, and obviously not finished.",
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "minecraft:item/gunpowder"
+  }
+}

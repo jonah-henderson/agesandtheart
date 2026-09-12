@@ -1,0 +1,20 @@
+{
+  "_comment": [
+    "Four gloomgrit to one glowstone dust. The ratio is HERE and not in the furnace because",
+    "`AbstractCookingRecipe extends SingleItemRecipe` -- one ingredient, one item consumed per operation --",
+    "so no smelting recipe can eat four of anything. Crafting can eat any number, which makes this the place",
+    "for the arithmetic and leaves the furnace to be the slow gate.",
+    "",
+    "Shapeless: the grit and the dust are being mixed, and a shape would imply the arrangement mattered."
+  ],
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "agesandtheart:gloomgrit",
+    "agesandtheart:gloomgrit",
+    "agesandtheart:gloomgrit",
+    "agesandtheart:gloomgrit",
+    "minecraft:glowstone_dust"
+  ],
+  "result": { "id": "agesandtheart:phasmium_grains" }
+}

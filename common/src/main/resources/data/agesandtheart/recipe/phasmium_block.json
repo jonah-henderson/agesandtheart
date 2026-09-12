@@ -1,0 +1,8 @@
+{
+  "_comment": "Nine to the block and nine back, the way a worked metal goes. This is what a linking portal's frame is built out of.",
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": { "X": "agesandtheart:phasmium" },
+  "pattern": ["XXX", "XXX", "XXX"],
+  "result": { "id": "agesandtheart:phasmium_block" }
+}

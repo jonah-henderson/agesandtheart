@@ -1,0 +1,23 @@
+# The phasmium chain: that it registers and that its recipes load.
+# Run with: scripts/drive-server.sh scripts/checks/phasmium.txt
+#
+# **Recipes fail silently and that is the whole reason this file exists.** A malformed one is dropped at
+# load with a line nobody reads, and the first anyone knows is an empty recipe book.
+#
+# `recipe give` is NOT the way to check them. It needs a player, a headless server has none, and "No player
+# was found" comes back for a real id and an invented one alike -- so it proves nothing at all. What proves
+# it is the COUNT on the `Loaded N recipes` line at startup: MEASURED 2026-09-12, **1538 without the five
+# phasmium recipes and 1543 with them**, so all five parse and load. Re-measure both halves if this is ever
+# in doubt; the absolute number moves every time a recipe is added anywhere.
+#
+# `summon item` and `setblock` are the registration half, and they want no player. An unregistered id is a
+# parse failure on both, which reads loudly.
+age write phasmiumtest 7 age isle landmass deep water sea
+# Without this the setblocks answer "That position is not loaded" -- which still proves the id parsed,
+# but proves nothing about the block standing.
+execute in agesandtheart:phasmiumtest run forceload add -16 -16 16 16
+execute in agesandtheart:phasmiumtest run setblock 0 150 0 agesandtheart:phasmium_block
+execute in agesandtheart:phasmiumtest run summon item 0 151 0 {Item:{id:"agesandtheart:phasmium",count:1}}
+execute in agesandtheart:phasmiumtest run summon item 0 151 0 {Item:{id:"agesandtheart:phasmium_grains",count:1}}
+execute in agesandtheart:phasmiumtest run summon item 0 151 0 {Item:{id:"agesandtheart:gloomgrit",count:1}}
+execute in agesandtheart:phasmiumtest run setblock 0 152 0 agesandtheart:vent_lining

@@ -1,0 +1,7 @@
+{
+  "_comment": "Vanilla's iron ingot under a tint, until the asset pass. An ingot shape because nine of them make a block and because what a player has in hand at this point is worked metal.",
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "minecraft:item/iron_ingot"
+  }
+}

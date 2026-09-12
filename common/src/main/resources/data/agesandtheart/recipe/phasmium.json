@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "Iron's numbers exactly -- 200 ticks and 0.7 experience. Phasmium is worked metal and should cost what",
+    "working metal costs; the material's difficulty is the dive and the mixing, never the fire.",
+    "",
+    "`group` is what puts this and the blasting recipe on one line in the recipe book."
+  ],
+  "type": "minecraft:smelting",
+  "category": "misc",
+  "group": "phasmium",
+  "cookingtime": 200,
+  "experience": 0.7,
+  "ingredient": "agesandtheart:phasmium_grains",
+  "result": { "id": "agesandtheart:phasmium" }
+}

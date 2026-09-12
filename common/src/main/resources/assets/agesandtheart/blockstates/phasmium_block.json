@@ -1,0 +1,12 @@
+{
+  "_comment": [
+    "Chiseled quartz stands in until the model pass (Phase 9). It is the closest vanilla has to a pale",
+    "worked mineral with a face that reads as BUILT rather than quarried, which is what a portal frame",
+    "wants -- but it is a borrowed block and it should not survive the asset pass."
+  ],
+  "variants": {
+    "": {
+      "model": "minecraft:block/chiseled_quartz_block"
+    }
+  }
+}

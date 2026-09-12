@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:blasting",
+  "category": "misc",
+  "group": "phasmium",
+  "cookingtime": 100,
+  "experience": 0.7,
+  "ingredient": "agesandtheart:phasmium_grains",
+  "result": { "id": "agesandtheart:phasmium" }
+}

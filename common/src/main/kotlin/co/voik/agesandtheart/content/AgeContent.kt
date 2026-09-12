@@ -350,7 +350,6 @@ object AgeContent {
 
     private const val CRYSTAL_STRENGTH = 1.5f
 
-    private const val GLOOMGRIT_GLOW = 3
     private const val GLOOMGRIT_HEIGHT = 4.0f
     private const val GLOOMGRIT_WIDTH = 3.0f
     private const val VENT_LINING_STRENGTH = 2.0f
@@ -359,6 +358,9 @@ object AgeContent {
     private val VENT_LINING_ID: Identifier = "vent_lining".location()
     private val DEEP_BUBBLE_COLUMN_ID: Identifier = "deep_bubble_column".location()
     private val GLOOMGRIT_ID: Identifier = "gloomgrit".location()
+    private val PHASMIUM_GRAINS_ID: Identifier = "phasmium_grains".location()
+    private val PHASMIUM_ID: Identifier = "phasmium".location()
+    private val PHASMIUM_BLOCK_ID: Identifier = "phasmium_block".location()
 
     /**
      * The hot skin inside a deep-sea vent — see [VentLiningBlock] for the one rule that makes it a design.
@@ -435,8 +437,71 @@ object AgeContent {
         Item.Properties().setId(ResourceKey.create(Registries.ITEM, GLOOMGRIT_ID)).useBlockDescriptionPrefix(),
     )
 
-    /** Near-black with the faintest blue left in it, so it reads as mineral rather than as a hole. */
-    const val GLOOMGRIT_TINT = 0x3A4A57
+    /**
+     * Gloomgrit and glowstone dust, fused but not yet worked — the one thing in the pack whose only purpose
+     * is to become something else.
+     *
+     * **The deliberate exception to §7.1.2's two-uses rule** (Jonah, 2026-09-12). Everything else gets a
+     * second use that is fun on its own, rime's skates setting the bar; this gets none, and that is what
+     * keeps the *refining* the interesting part of this material rather than the finding. A second use
+     * here would be asking for the chain to be shorter than it is meant to be.
+     *
+     * **Four gloomgrit to one glowstone dust, and the ratio lives in the crafting step rather than in the
+     * furnace.** `AbstractCookingRecipe extends SingleItemRecipe` — one ingredient, one item consumed per
+     * operation — so no furnace recipe can ever eat four of anything. Crafting can eat any number, which
+     * makes the mixing the right place for the arithmetic and leaves the furnace to be the slow gate it is
+     * good at being.
+     */
+    val PHASMIUM_GRAINS: Item = Item(
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, PHASMIUM_GRAINS_ID)),
+    )
+
+    /**
+     * Phasmium — what the whole descent was for (design §7.1.2).
+     *
+     * The name is the ghost three times over: the lights on a vent, the hadal zone that is named for Hades,
+     * and the Nether its glowstone came out of. What it builds is a **linking portal** — a frame in the
+     * manner of a nether portal with a linking book set into it, which is §7.1.2's settled answer to
+     * entities crossing between Ages and which has been waiting for a material since 2026-09-07.
+     */
+    val PHASMIUM: Item = Item(
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, PHASMIUM_ID)),
+    )
+
+    /**
+     * Nine phasmium worked together — the block a linking portal's frame is built out of.
+     *
+     * **Iron's numbers, as astrite has**: this is a worked metal, and a frame is something you assemble
+     * rather than something you pile up. Nothing here knows about portals yet and it does not need to — a
+     * frame block that is only a block is the right thing to have first, since it is what a player must
+     * have made before any of the rest can be tried at all.
+     */
+    val PHASMIUM_BLOCK_BLOCK: Block = Block(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, PHASMIUM_BLOCK_ID))
+            .mapColor(MapColor.TERRACOTTA_WHITE)
+            .strength(PHASMIUM_STRENGTH, PHASMIUM_RESISTANCE)
+            .sound(SoundType.METAL)
+            .requiresCorrectToolForDrops(),
+    )
+
+    val PHASMIUM_BLOCK: Item = BlockItem(
+        PHASMIUM_BLOCK_BLOCK,
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, PHASMIUM_BLOCK_ID)).useBlockDescriptionPrefix(),
+    )
+
+    /** Iron's, which is what a block of worked metal should cost to get through. */
+    private const val PHASMIUM_STRENGTH = 5.0f
+    private const val PHASMIUM_RESISTANCE = 6.0f
+
+    /**
+     * Drab, and drab deliberately — a dull warm grey with no hue worth naming.
+     *
+     * It has to read as *grit*: the stuff you scrape off a wall and would walk past in a chest. Everything
+     * this material is worth is on the far side of the glowstone and the furnace, and the block and the
+     * item are held at the same number on purpose — `items/gloomgrit.json` carries it as a constant tint.
+     */
+    const val GLOOMGRIT_TINT = 0x6E6B63
 
 
     private val RIME_SKATES_ID: Identifier = "rime_skates".location()
@@ -1367,6 +1432,7 @@ object AgeContent {
     val blocks: List<Pair<Identifier, Block>> = listOf(
         VENT_LINING_ID to VENT_LINING,
         DEEP_BUBBLE_COLUMN_ID to DEEP_BUBBLE_COLUMN,
+        PHASMIUM_BLOCK_ID to PHASMIUM_BLOCK_BLOCK,
         GLOOMGRIT_ID to GLOOMGRIT_CLUSTER,
         WOUND_ID to WOUND_BLOCK,
         WRITERS_DESK_ID to WRITERS_DESK_BLOCK,
@@ -1541,6 +1607,9 @@ object AgeContent {
     val items: List<Pair<Identifier, Item>> = listOf(
         VENT_LINING_ID to VENT_LINING_ITEM,
         GLOOMGRIT_ID to GLOOMGRIT,
+        PHASMIUM_GRAINS_ID to PHASMIUM_GRAINS,
+        PHASMIUM_ID to PHASMIUM,
+        PHASMIUM_BLOCK_ID to PHASMIUM_BLOCK,
         DESCRIPTIVE_BOOK_ID to DESCRIPTIVE_BOOK,
         PAGE_ID to PAGE,
         NOTEBOOK_ID to NOTEBOOK,
