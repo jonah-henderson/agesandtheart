@@ -65,12 +65,18 @@ class GenerationCheck : FunSpec({
      *
      * This is §3.3's silent drop in the place a writer would least look for it, so the check is the
      * outcome rather than the mechanism — ask for ore in a world of the wrong rock and see ground move.
+     *
+     * **The radius is the bound here**, and it is six for the reason the preamble gives. Ore is placed by
+     * *decoration*, which is the one stage of ours that does not reproduce, so this reading moves with what
+     * else the server has generated: measured at 79 blocks over radius 2 in a clean world and 2 over the
+     * same radius behind the three Ages above, which is a check that passes on the day and fails on the
+     * order. Radius 6 reads 1,149 and puts three orders of magnitude under the bound, like its neighbours.
      */
     test("ores reach an Age made of something other than stone") {
         val blackstone = "landmass=hills[stone=minecraft:blackstone] sea=minecraft:water rock=solid sky=plain"
         server.run("age compose blackbare 4242 $blackstone")
         server.run("age compose blackrich 4242 $blackstone features.places=minecraft:ore_diamond[amount=8]")
-        val differing = differingBlocks(server, "blackbare", "blackrich", radius = 2)
+        val differing = differingBlocks(server, "blackbare", "blackrich", radius = 6)
         check(differing > 0) {
             "an Age of blackstone grew no ore at all: the two agree block for block"
         }

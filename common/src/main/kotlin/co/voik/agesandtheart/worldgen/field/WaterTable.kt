@@ -130,31 +130,43 @@ data class WaterTable(
                 placedFluid = true
                 return fluid
             }
-            val wet = worldY < standingLevel(worldX, worldY, worldZ)
-            placedFluid = wet
-            return if (wet) fluid else AIR
+            val wetness = wetnessAt(worldX, worldY, worldZ)
+            if (worldY < standingLevel(worldX, worldY, worldZ, wetness)) {
+                placedFluid = true
+                return fluid
+            }
+            placedFluid = false
+            return AIR
         }
 
-        private fun standingLevel(worldX: Int, worldY: Int, worldZ: Int): Int {
+        /** How flooded this point's rock is, on the noise the thresholds are read against. */
+        private fun wetnessAt(worldX: Int, worldY: Int, worldZ: Int): Double = floodedness
+            .getValue(worldX / acrossStretch, worldY / downStretch, worldZ / acrossStretch)
+            .coerceIn(-1.0, 1.0)
+
+        /**
+         * How near the surface this point is, as the thresholds read it: 1 just beneath a submerged
+         * surface, falling to 0 [dryingDepth] blocks down. Land columns start at 0, so rock under a hill is
+         * judged by the deep thresholds straight away.
+         */
+        private fun nearnessAt(worldY: Int): Double = if (columnSubmerged) {
+            val depth = (columnSurface + surfaceMargin - worldY).toDouble()
+            (1.0 - depth / dryingDepth).coerceIn(0.0, 1.0)
+        } else {
+            0.0
+        }
+
+        private fun standingLevel(worldX: Int, worldY: Int, worldZ: Int, wetness: Double): Int {
             // No thresholds to consult: a flooded table says the same thing everywhere.
             if (floods) return columnWaterY
-            // 1 just beneath a submerged surface, falling to 0 [dryingDepth] blocks down. Land columns
-            // start at 0, so rock under a hill is judged by the deep thresholds straight away.
-            val nearness = if (columnSubmerged) {
-                val depth = (columnSurface + surfaceMargin - worldY).toDouble()
-                (1.0 - depth / dryingDepth).coerceIn(0.0, 1.0)
-            } else {
-                0.0
-            }
-            val wetness = floodedness
-                .getValue(worldX / acrossStretch, worldY / downStretch, worldZ / acrossStretch)
-                .coerceIn(-1.0, 1.0)
+            val nearness = nearnessAt(worldY)
             return when {
                 wetness > slide(nearness, SEA_WHEN_SHALLOW, SEA_WHEN_DEEP) -> columnWaterY
                 wetness > slide(nearness, PERCHED_WHEN_SHALLOW, PERCHED_WHEN_DEEP) -> perchedLevel(worldX, worldY, worldZ)
                 else -> BONE_DRY
             }
         }
+
 
         /** A pocket's own level: a band of the world, nudged by noise, never above the ground. */
         /**
@@ -184,9 +196,7 @@ data class WaterTable(
          */
         private fun perchedLevel(worldX: Int, worldY: Int, worldZ: Int): Int {
             val rock = columnSpans
-            // The floor this water would stand on, which is what decides the band. Nothing below means
-            // open to the world's floor, and the lowest band is as good an answer as any.
-            val roomFloor = rock?.floorUnder(worldY)?.plus(1) ?: worldY
+            val roomFloor = roomFloorUnder(rock, worldY) ?: return BONE_DRY
             val band = floorDiv(roomFloor, PERCHED_BAND)
             val middle = band * PERCHED_BAND + PERCHED_BAND / 2
             val nudge = floodedness.getValue(
@@ -201,6 +211,28 @@ data class WaterTable(
             // deliberately low estimate; ours had taken the opposite extreme.
             val roomFor = rock?.ceilingAbove(worldY)?.minus(1) ?: columnSurface
             return minOf(columnSurface, roomFor, middle + nudge.roundToInt())
+        }
+
+        /**
+         * **What this water would stand on**, or null where nothing would hold it.
+         *
+         * Three cases, and only the first was written. A point in a **room** stands on that room's floor.
+         * A point **inside rock** has no room, and the fix the band already carries has to reach it too:
+         * the base of the mass it is buried in is one value for the whole mass, where the query's own
+         * height is a different value every block. That fallback used to be `worldY` — the very reading
+         * the band was rewritten to stop using — so a column of unbroken rock came out banded by height
+         * and flooded from bedrock to the waterline, while the column beside it, broken anywhere at all,
+         * read a real band and came out dry. Two neighbours, forty blocks apart, and the face between
+         * them is what a walk found as *"a big wall of water next to an empty gap"* (Jonah, 2026-09-11).
+         *
+         * And a point over **nothing** holds no water, because a perched pool is water standing on
+         * something. `floorUnder` answers null for both of the last two, which is why they are told apart
+         * here rather than there.
+         */
+        private fun roomFloorUnder(rock: Spans?, worldY: Int): Int? {
+            val buriedIn = rock?.ranges?.firstOrNull { worldY in it }
+            if (buriedIn != null) return buriedIn.first
+            return rock?.floorUnder(worldY)?.plus(1)
         }
 
         private var columnSpans: Spans? = null
@@ -263,6 +295,7 @@ data class WaterTable(
         private const val SEA_WHEN_DEEP = 0.8
         private const val PERCHED_WHEN_SHALLOW = -0.8
         private const val PERCHED_WHEN_DEEP = 0.4
+
 
         private const val PERCHED_BAND = 40
         private const val PERCHED_CELL = 16
