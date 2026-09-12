@@ -141,6 +141,12 @@ object AgeCommand {
     /** Below any rift floor, so a probe covers the whole band a chasm could occupy. */
     private const val PROBE_FROM = 0
 
+    /** As high as the blocks readout walks — past any landform's summit without printing empty sky. */
+    private const val PROBE_TO = 200
+
+    /** Wide enough for `y -64..-63`, so the block names line up down the readout. */
+    private const val PROBE_RUN_COLUMN = 12
+
     private const val WORD_ARGUMENT = "word"
     private const val NAME_ARGUMENT = "name"
 
@@ -1777,13 +1783,53 @@ object AgeCommand {
                 "  carried ${body.fluid.block.descriptionId}: ${said(stands)}"
             }
         }
+        // **And what is actually standing there**, which is the half this was missing and the half a
+        // headless walk kept getting wrong (2026-09-11). Everything above is what the *fields* intend;
+        // carvers run after them, and so does the abyss sweep, so the blocks can and do disagree.
+        //
+        // **`getChunk` rather than a `forceload` from the console.** A forceload only schedules generation,
+        // and an ungenerated chunk answers **air** to every query — so probing one too early reports an
+        // empty world and reads exactly like data. Two passes over the same Age disagreed about the same
+        // block before anyone noticed. This blocks until the column is really there.
+        //
+        // Printed as runs, because a column is mostly repetition and its *shape* is the question: where
+        // the water stops, how much air is over it, what the floor is made of.
+        level.getChunk(x shr CHUNK_BITS, z shr CHUNK_BITS)
+        report.say { "  and what actually stands there:" }
+        var runFrom = PROBE_FROM
+        var running = blockName(level, x, PROBE_FROM, z)
+        fun sayRun(from: Int, to: Int, what: String) {
+            val where = if (from == to) "y $from" else "y $from..$to"
+            report.fact("laid", "$where $what") { "    ${where.padEnd(PROBE_RUN_COLUMN)} $what" }
+        }
+        for (y in (PROBE_FROM + 1)..PROBE_TO) {
+            val here = blockName(level, x, y, z)
+            if (here == running) continue
+            sayRun(runFrom, y - 1, running)
+            runFrom = y
+            running = here
+        }
+        sayRun(runFrom, PROBE_TO, running)
+
         // The aquifer's claim, and the one that hid a flooded rift: it is asked *before* the sea and
         // answers from the water table, so anything it claims is wet whatever keeps the sea out.
         val hollow = generator.hollows?.columnSpans(x, z) ?: Spans.EMPTY
         report.fact("aquifer", said(hollow)) { "  aquifer answers for: ${said(hollow)}" }
-        // The verdict, block by block through the band the sea could reach, which is what a walk is looking at.
+        // The verdict, block by block through the band the sea could reach, which is what a walk is looking
+        // at.
+        //
+        // **In the fill's own order, which this had wrong.** It read "the aquifer claims this *or* the sea
+        // fills it", where `fillFromNoise` asks the aquifer **first** and only falls through to the sea for
+        // space the aquifer does not answer for. So a cave under a hill was predicted full of sea to the
+        // waterline when what stands in it is the aquifer's own pool, fifty blocks lower — the instrument
+        // disagreeing with the world by more than the bug being hunted (2026-09-11).
         val wet = (PROBE_FROM..seaFill.level).filter { y ->
-            !rock.contains(y) && (hollow.contains(y) || seaFill.fillsAt(y, dryness, wetness))
+            when {
+                rock.contains(y) -> false
+                // The aquifer owns every hollow of ours, and it is the one that may answer "dry".
+                hollow.contains(y) -> true
+                else -> seaFill.fillsAt(y, dryness, wetness)
+            }
         }
         report.fact("filled", wet.size) {
             if (wet.isEmpty()) "  nothing is filled here between y=$PROBE_FROM and the waterline"
