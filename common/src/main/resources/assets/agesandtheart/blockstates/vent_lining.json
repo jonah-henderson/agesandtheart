@@ -1,0 +1,4 @@
+{
+  "_comment": "Vanilla's gilded blackstone, whose brassy flecks in dark rock are what a sulfide vent wall actually looks like -- and it ships with the game, so this is a reference rather than a copy of Mojang's art in our jar.",
+  "variants": { "": { "model": "agesandtheart:block/vent_lining" } }
+}

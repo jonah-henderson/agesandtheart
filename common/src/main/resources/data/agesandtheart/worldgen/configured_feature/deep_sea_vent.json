@@ -1,0 +1,9 @@
+{
+  "_comment": [
+    "A vent on the floor of an abyss -- see `DeepSeaVent` for the shape and for why each part of it is",
+    "there. Shipped as a configured feature rather than held directly in code so it has an id: only a",
+    "feature with one can be named in a sentence, weighed by a rung, or looked for by the D'ni city."
+  ],
+  "type": "agesandtheart:deep_sea_vent",
+  "config": {}
+}

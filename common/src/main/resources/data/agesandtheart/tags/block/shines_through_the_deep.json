@@ -5,7 +5,7 @@
     "",
     "**A tag rather than a list in code, because which blocks are beacons is a content decision.** The sea",
     "lantern seeds it and an ocean monument is therefore a constellation for free; the deep-sea material",
-    "joins here when it exists, and so does anything a pack wants to navigate by.",
+    "lanterns and the gloomgrit budding inside it are both here, and so is anything a pack wants to navigate by.",
     "",
     "**Everything here draws IDENTICALLY, and that is the whole design.** An ore cluster, a monument and a",
     "hunter's lure are one point of light at range, so approaching any of them is a decision taken without",
@@ -14,6 +14,7 @@
   ],
   "replace": false,
   "values": [
-    "minecraft:sea_lantern"
+    "minecraft:sea_lantern",
+    "agesandtheart:gloomgrit"
   ]
 }

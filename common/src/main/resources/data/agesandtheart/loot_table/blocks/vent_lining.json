@@ -1,0 +1,6 @@
+{
+  "_comment": "Empty on purpose, and not by omission -- budding amethyst's arrangement. A player who could carry the source home would have no reason to come back down, which is the whole of why the vent is a place rather than a deposit.",
+  "type": "minecraft:block",
+  "pools": [],
+  "random_sequence": "agesandtheart:blocks/vent_lining"
+}

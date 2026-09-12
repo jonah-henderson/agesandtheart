@@ -95,6 +95,7 @@ import co.voik.agesandtheart.worldgen.feature.RimeCrystal
 import co.voik.agesandtheart.worldgen.feature.SpilledSpring
 import co.voik.agesandtheart.worldgen.feature.TemperedGround
 import co.voik.agesandtheart.worldgen.feature.ImpactCrater
+import co.voik.agesandtheart.worldgen.feature.DeepSeaVent
 import co.voik.agesandtheart.worldgen.feature.LavaPuddles
 import co.voik.agesandtheart.worldgen.feature.VolcanoVents
 import co.voik.agesandtheart.worldgen.field.StandingFluid
@@ -348,6 +349,76 @@ object AgeContent {
     }
 
     private const val CRYSTAL_STRENGTH = 1.5f
+
+    private const val GLOOMGRIT_GLOW = 3
+    private const val GLOOMGRIT_HEIGHT = 4.0f
+    private const val GLOOMGRIT_WIDTH = 3.0f
+    private const val VENT_LINING_STRENGTH = 2.0f
+    private const val VENT_LINING_RESISTANCE = 6.0f
+
+    private val VENT_LINING_ID: Identifier = "vent_lining".location()
+    private val GLOOMGRIT_ID: Identifier = "gloomgrit".location()
+
+    /**
+     * The hot skin inside a deep-sea vent — see [VentLiningBlock] for the one rule that makes it a design.
+     *
+     * **Nothing drops it**, so its loot table is empty rather than absent: budding amethyst's arrangement,
+     * and for budding amethyst's reason. It keeps its block item so the feature can be tested and built
+     * against in creative, which is also what vanilla does with the block it is modelled on.
+     */
+    val VENT_LINING: VentLiningBlock = VentLiningBlock(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, VENT_LINING_ID))
+            .mapColor(MapColor.COLOR_BLACK)
+            .requiresCorrectToolForDrops()
+            .randomTicks()
+            .sound(SoundType.BASALT)
+            .strength(VENT_LINING_STRENGTH, VENT_LINING_RESISTANCE),
+    )
+
+    val VENT_LINING_ITEM: Item = BlockItem(
+        VENT_LINING,
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, VENT_LINING_ID)).useBlockDescriptionPrefix(),
+    )
+
+    /**
+     * Gloomgrit, growing out of a vent's lining — the deep-ocean **character material** of §7.1.2, and the
+     * first half of phasmium.
+     *
+     * **An amethyst cluster in shape and blockstate**, the bargain the rime crystals already struck: the
+     * mod ships no art, so this is Mojang's cluster under a tint of ours until the asset pass. It is
+     * placeable as well as pickable for the same reason a crystal is — an item that is also a little mound
+     * reads as something you chipped off a wall rather than as an ore drop.
+     *
+     * **It glows faintly and it joins `shines_through_the_deep`**, which is what makes the material
+     * findable at all in a sea whose fog closes at 24 blocks. That tag draws everything in it identically
+     * at range, so a cluster, a vent's lanterns and a hadalfish's lure are one point of light until you
+     * have crossed to it — which is the tag's whole purpose and exactly the trap this material should be
+     * sitting behind.
+     */
+    val GLOOMGRIT_CLUSTER: AmethystClusterBlock = AmethystClusterBlock(
+        GLOOMGRIT_HEIGHT,
+        GLOOMGRIT_WIDTH,
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, GLOOMGRIT_ID))
+            .mapColor(MapColor.COLOR_BLACK)
+            .forceSolidOn()
+            .noOcclusion()
+            .sound(SoundType.AMETHYST_CLUSTER)
+            .strength(CRYSTAL_STRENGTH)
+            // Faint, and faint on purpose: enough that `DeepLights` has something to carry across the
+            // abyss, far too little to light the chamber you are working in.
+            .lightLevel { GLOOMGRIT_GLOW },
+    )
+
+    val GLOOMGRIT: Item = BlockItem(
+        GLOOMGRIT_CLUSTER,
+        Item.Properties().setId(ResourceKey.create(Registries.ITEM, GLOOMGRIT_ID)).useBlockDescriptionPrefix(),
+    )
+
+    /** Near-black with the faintest blue left in it, so it reads as mineral rather than as a hole. */
+    const val GLOOMGRIT_TINT = 0x3A4A57
+
 
     private val RIME_SKATES_ID: Identifier = "rime_skates".location()
 
@@ -1275,6 +1346,8 @@ object AgeContent {
     const val ALGAE_TINT = 0xC4384A
 
     val blocks: List<Pair<Identifier, Block>> = listOf(
+        VENT_LINING_ID to VENT_LINING,
+        GLOOMGRIT_ID to GLOOMGRIT_CLUSTER,
         WOUND_ID to WOUND_BLOCK,
         WRITERS_DESK_ID to WRITERS_DESK_BLOCK,
         STAR_FISSURE_ID to STAR_FISSURE_BLOCK,
@@ -1446,6 +1519,8 @@ object AgeContent {
     )
 
     val items: List<Pair<Identifier, Item>> = listOf(
+        VENT_LINING_ID to VENT_LINING_ITEM,
+        GLOOMGRIT_ID to GLOOMGRIT,
         DESCRIPTIVE_BOOK_ID to DESCRIPTIVE_BOOK,
         PAGE_ID to PAGE,
         NOTEBOOK_ID to NOTEBOOK,
@@ -1587,5 +1662,6 @@ object AgeContent {
         "chamber_vents".location() to VolcanoVents(StandingFluid.CHAMBER_POOLS),
         "lava_puddles".location() to LavaPuddles,
         "impact_crater".location() to ImpactCrater,
+        "deep_sea_vent".location() to DeepSeaVent,
     )
 }

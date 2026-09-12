@@ -289,7 +289,13 @@ object DeepWater {
      */
     private var found: BlockState? = null
 
-    private fun deepWater(): BlockState = found ?: BuiltInRegistries.BLOCK
+    /**
+     * The abyss as a block state, looked up once and remembered.
+     *
+     * Public because anything *writing* an abyss needs it — the generator's own fill, and `DeepSeaVent`,
+     * which cuts a room out of the sea floor and has to put the sea back into it rather than air.
+     */
+    fun deepWater(): BlockState = found ?: BuiltInRegistries.BLOCK
         .getOptional(AgeFluids.DEEP_WATER.block)
         .map { it.defaultBlockState() }
         .orElseGet {

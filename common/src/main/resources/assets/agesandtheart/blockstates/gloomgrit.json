@@ -1,0 +1,109 @@
+{
+  "_comment": "Vanilla's cluster orientations. Both waterlogging properties appear because `DeepWaterLogging` adds its own to every `SimpleWaterloggedBlock` and a blockstate must name every property -- neither changes the model, only which fluid the block reports.",
+  "variants": {
+    "deep_waterlogged=false,facing=down,waterlogged=false": {
+      "model": "agesandtheart:block/gloomgrit",
+      "x": 180
+    },
+    "deep_waterlogged=true,facing=down,waterlogged=false": {
+      "model": "agesandtheart:block/gloomgrit",
+      "x": 180
+    },
+    "deep_waterlogged=false,facing=down,waterlogged=true": {
+      "model": "agesandtheart:block/gloomgrit",
+      "x": 180
+    },
+    "deep_waterlogged=true,facing=down,waterlogged=true": {
+      "model": "agesandtheart:block/gloomgrit",
+      "x": 180
+    },
+    "deep_waterlogged=false,facing=up,waterlogged=false": {
+      "model": "agesandtheart:block/gloomgrit"
+    },
+    "deep_waterlogged=true,facing=up,waterlogged=false": {
+      "model": "agesandtheart:block/gloomgrit"
+    },
+    "deep_waterlogged=false,facing=up,waterlogged=true": {
+      "model": "agesandtheart:block/gloomgrit"
+    },
+    "deep_waterlogged=true,facing=up,waterlogged=true": {
+      "model": "agesandtheart:block/gloomgrit"
+    },
+    "deep_waterlogged=false,facing=north,waterlogged=false": {
+      "model": "agesandtheart:block/gloomgrit",
+      "x": 90
+    },
+    "deep_waterlogged=true,facing=north,waterlogged=false": {
+      "model": "agesandtheart:block/gloomgrit",
+      "x": 90
+    },
+    "deep_waterlogged=false,facing=north,waterlogged=true": {
+      "model": "agesandtheart:block/gloomgrit",
+      "x": 90
+    },
+    "deep_waterlogged=true,facing=north,waterlogged=true": {
+      "model": "agesandtheart:block/gloomgrit",
+      "x": 90
+    },
+    "deep_waterlogged=false,facing=south,waterlogged=false": {
+      "model": "agesandtheart:block/gloomgrit",
+      "x": 90,
+      "y": 180
+    },
+    "deep_waterlogged=true,facing=south,waterlogged=false": {
+      "model": "agesandtheart:block/gloomgrit",
+      "x": 90,
+      "y": 180
+    },
+    "deep_waterlogged=false,facing=south,waterlogged=true": {
+      "model": "agesandtheart:block/gloomgrit",
+      "x": 90,
+      "y": 180
+    },
+    "deep_waterlogged=true,facing=south,waterlogged=true": {
+      "model": "agesandtheart:block/gloomgrit",
+      "x": 90,
+      "y": 180
+    },
+    "deep_waterlogged=false,facing=east,waterlogged=false": {
+      "model": "agesandtheart:block/gloomgrit",
+      "x": 90,
+      "y": 90
+    },
+    "deep_waterlogged=true,facing=east,waterlogged=false": {
+      "model": "agesandtheart:block/gloomgrit",
+      "x": 90,
+      "y": 90
+    },
+    "deep_waterlogged=false,facing=east,waterlogged=true": {
+      "model": "agesandtheart:block/gloomgrit",
+      "x": 90,
+      "y": 90
+    },
+    "deep_waterlogged=true,facing=east,waterlogged=true": {
+      "model": "agesandtheart:block/gloomgrit",
+      "x": 90,
+      "y": 90
+    },
+    "deep_waterlogged=false,facing=west,waterlogged=false": {
+      "model": "agesandtheart:block/gloomgrit",
+      "x": 90,
+      "y": 270
+    },
+    "deep_waterlogged=true,facing=west,waterlogged=false": {
+      "model": "agesandtheart:block/gloomgrit",
+      "x": 90,
+      "y": 270
+    },
+    "deep_waterlogged=false,facing=west,waterlogged=true": {
+      "model": "agesandtheart:block/gloomgrit",
+      "x": 90,
+      "y": 270
+    },
+    "deep_waterlogged=true,facing=west,waterlogged=true": {
+      "model": "agesandtheart:block/gloomgrit",
+      "x": 90,
+      "y": 270
+    }
+  }
+}

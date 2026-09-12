@@ -1,0 +1,57 @@
+# The deep-sea vent: does it build, and does its whirlpool light itself?
+# Run with: scripts/drive-server.sh scripts/checks/deep-sea-vent.txt
+#
+# `place feature` rather than waiting for the rarity roll: the feature reads the sea floor off the
+# heightmap itself and ignores the Y it is handed, so any position over the right column builds a vent
+# from the real floor. That makes this a check of the SHAPE, not of the placement.
+#
+# `isle` under `deep` is the pairing `:common:oceandepth` measured at ~99% of columns clearing the abyss
+# threshold -- a flat floor is what makes an abyss, not a low one. See `sea-depth.txt`.
+#
+# MEASURED 2026-09-12, seed 7, one vent placed at (2000, 2000) where the floor is y=29 under a sea at
+# y=134 -- so the abyss line is 54 and the whole 105-block column is open water:
+#
+#     bubble_column   284    the whirlpool, filling the chamber and the bore to the chimney's mouth
+#     sea_lantern       2    1 + random(0..2), so 1..3 is the range
+#     magma_block      39    the chamber floor, inset a block short of the wall
+#     blackstone      245    chimney and neck
+#     vent_lining     345    the chamber's shell, and nowhere else
+#     gloomgrit        91    after a few seconds at random_tick_speed 2000
+#
+# The two numbers that caught real faults: **blackstone 49 against lining 819** on the first run said the
+# lining had swallowed the whole chimney, and **sea_lantern 0** was the same fault seen from the other
+# side -- the lantern walk looks for the outermost blackstone and there was none to find. The lining is
+# the chamber's alone now, which is also the better design: gloomgrit only grows at the bottom.
+#
+# Each `fill ... replace` DESTROYS what it counts, so the order matters: the bubble column is counted
+# first, because pulling the magma out from under it would take it away.
+#
+# (2000, 2000) on this seed is open sea: the probe reads `rock: y=-64..28` under a sea standing at y=134,
+# so the floor is y=29 and the whole 106-block column clears `DeepWater.DEEPEST_VANILLA_SEA`. The abyss
+# line sits at 54. **(0, 0) is the island itself** and refuses the vent correctly -- worth knowing before
+# reading a "Failed to place feature" as a fault.
+age write ventage 7 age isle landmass deep water sea
+age probe ventage 2000 2000
+execute in agesandtheart:ventage run forceload add 1968 1968 2032 2032
+execute in agesandtheart:ventage run place feature agesandtheart:deep_sea_vent 2000 40 2000
+# Does the lining actually bud? This is the one behaviour that needs TIME rather than a probe, and at
+# vanilla's three random ticks a section it would want an hour of wall clock -- so the rate is cranked and
+# the check simply lets a few seconds of real ticking go by.
+#
+# **`tick sprint` was tried first and cannot be used here**: it returns the moment it starts ("The game is
+# sprinting") and reports completion seconds later, so the count ran a tenth of the way through the sprint
+# and read zero. drive-server's wait proves a command *finished*, which for an asynchronous one is not the
+# same as its work finishing. The filler commands below are what the wait is actually for.
+gamerule random_tick_speed 2000
+age list
+age list
+age list
+age list
+execute in agesandtheart:ventage run fill 1992 15 1992 2008 50 2008 minecraft:air replace agesandtheart:gloomgrit
+gamerule random_tick_speed 3
+execute in agesandtheart:ventage run fill 1992 15 1992 2008 50 2008 minecraft:air replace minecraft:bubble_column
+execute in agesandtheart:ventage run fill 1992 15 1992 2008 50 2008 minecraft:air replace minecraft:sea_lantern
+execute in agesandtheart:ventage run fill 1992 15 1992 2008 50 2008 minecraft:air replace minecraft:magma_block
+execute in agesandtheart:ventage run fill 1992 15 1992 2008 50 2008 minecraft:air replace minecraft:blackstone
+execute in agesandtheart:ventage run fill 1992 15 1992 2008 50 2008 minecraft:air replace agesandtheart:vent_lining
+execute in agesandtheart:ventage run fill 1992 15 1992 2008 50 2008 minecraft:stone replace agesandtheart:deep_water

@@ -1,0 +1,25 @@
+{
+  "_comment": "Vanilla's small amethyst bud under a tint of ours, until the asset pass -- the bargain `rime_crystal` already struck, for the reason AgeTints records. The cross is cut to the bud's own height rather than a full block's, so it reads as a mound chipped onto a wall rather than as a crystal standing off it.",
+  "parent": "minecraft:block/cross",
+  "textures": { "cross": "minecraft:block/small_amethyst_bud" },
+  "elements": [
+    {
+      "from": [3.6, 0, 8], "to": [12.4, 8, 8],
+      "rotation": { "origin": [8, 8, 8], "axis": "y", "angle": 45, "rescale": true },
+      "shade": false,
+      "faces": {
+        "north": { "uv": [0, 8, 16, 16], "texture": "#cross", "tintindex": 0 },
+        "south": { "uv": [0, 8, 16, 16], "texture": "#cross", "tintindex": 0 }
+      }
+    },
+    {
+      "from": [8, 0, 3.6], "to": [8, 8, 12.4],
+      "rotation": { "origin": [8, 8, 8], "axis": "y", "angle": 45, "rescale": true },
+      "shade": false,
+      "faces": {
+        "west": { "uv": [0, 8, 16, 16], "texture": "#cross", "tintindex": 0 },
+        "east": { "uv": [0, 8, 16, 16], "texture": "#cross", "tintindex": 0 }
+      }
+    }
+  ]
+}

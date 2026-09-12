@@ -1,0 +1,18 @@
+{
+  "_comment": [
+    "Bubble columns may stand in the abyss.",
+    "",
+    "**Vanilla's tag names the fluid `minecraft:water` directly, not `#minecraft:water`** -- so deep water",
+    "is excluded from it however thoroughly it is water everywhere else, and a magma block at the bottom of",
+    "an abyss makes no whirlpool at all. `BubbleColumnBlock.canOccupy` reads this tag and then asks for a",
+    "`LiquidBlock` source of at least eight, both of which `DeepWaterBlock` already answers.",
+    "",
+    "The general rule this is an instance of: anywhere vanilla says `Blocks.WATER` or `Fluids.WATER` by",
+    "identity instead of `#minecraft:water`, deep water stops being water. See design SS7.1.2."
+  ],
+  "replace": false,
+  "values": [
+    "agesandtheart:deep_water",
+    "agesandtheart:flowing_deep_water"
+  ]
+}
