@@ -24,6 +24,12 @@ import net.minecraft.world.phys.Vec3
  * **Keyed on the fluid rather than on the abyss line**, which is both exact and free: the client already
  * has the block it is standing in, where the line would have to cross on a payload and then be re-derived.
  * It is also the rule as stated — enter the deep water, get the deep water (Jonah, walked 2026-09-10).
+ *
+ * **The sky is not this file's to put out, and it is put out anyway.** Vanilla draws its sun, moon, stars
+ * and sunset fan on pipelines that carry no fog uniform at all, so an abyss closing at [NOTHING_BEYOND] was
+ * still showing a whole unfogged sunset straight through itself (Jonah, 2026-09-11). Ephemeris's
+ * `SkyThroughFog` declines the sky wherever the medium closes inside a hundred blocks — which this does, by
+ * a wide margin — so there is nothing to register here and nothing to keep in step.
  */
 object DeepWaterFog {
 
