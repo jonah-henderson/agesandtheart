@@ -104,9 +104,14 @@ object DeepWaterLogging {
         }
         var brought = 0
         for (block in BuiltInRegistries.BLOCK) {
-            if (block !is SimpleWaterloggedBlock) continue
+            // **Two kinds of block report the abyss and they say so differently.** A waterlogged one says
+            // it with the property, and only the states carrying it are wrong; a deep bubble column says
+            // it unconditionally, so every one of its states is.
+            val alwaysDeep = block is DeepBubbleColumnBlock
+            if (!alwaysDeep && block !is SimpleWaterloggedBlock) continue
             for (state in block.stateDefinition.possibleStates) {
-                if (!holds(state) || state.fluidState === deep) continue
+                if (!alwaysDeep && !holds(state)) continue
+                if (state.fluidState === deep) continue
                 state.initCache()
                 brought++
             }

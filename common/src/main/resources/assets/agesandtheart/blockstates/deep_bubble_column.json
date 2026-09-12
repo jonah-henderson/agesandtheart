@@ -1,0 +1,4 @@
+{
+  "_comment": "Vanilla's own bubble column blockstate: one variant, the water model, no `drag_down` split. The column is not what you see -- the bubbles are particles from `animateTick`, which is inherited.",
+  "variants": { "": { "model": "minecraft:block/water" } }
+}

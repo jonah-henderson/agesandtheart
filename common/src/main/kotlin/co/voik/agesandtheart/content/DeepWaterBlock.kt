@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.content
 
 import net.minecraft.core.BlockPos
+import net.minecraft.tags.FluidTags
 import net.minecraft.core.Direction
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.InsideBlockEffectApplier
@@ -10,6 +11,7 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.LevelReader
 import net.minecraft.world.level.ScheduledTickAccess
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.BubbleColumnBlock
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.LiquidBlock
 import net.minecraft.world.level.block.state.BlockState
@@ -65,12 +67,23 @@ class DeepWaterBlock(fluid: FlowingFluid, properties: Properties) : LiquidBlock(
     }
 
     /**
-     * The settle itself.
+     * The settle, and the whirlpool.
      *
-     * `super` first, because the inherited tick is what drives bubble columns and this must not eat it.
+     * **`super` is deliberately NOT called, and that is the whole of how the abyss gets its own column.**
+     * `LiquidBlock.tick` does exactly one thing — `updateColumn(Blocks.BUBBLE_COLUMN, …)` — so calling it
+     * would raise a column made of ordinary water through the deep, taking the pressure and the fog out of
+     * whatever is standing in it (see [DeepBubbleColumnBlock]). What replaces it is the same call naming a
+     * different block, which is a parameter Mojang's own signature takes.
+     *
+     * The occupancy test is `LiquidBlock.shouldBubbleColumnOccupy`'s, restated because it is private: a
+     * full source of a fluid the tag admits. `DeepWater`'s own entry in
+     * `#minecraft:bubble_column_can_occupy` is what puts the abyss in that set at all.
      */
     override fun tick(state: BlockState, level: ServerLevel, pos: BlockPos, random: RandomSource) {
-        super.tick(state, level, pos, random)
+        val standing = state.fluidState
+        if (standing.`is`(FluidTags.BUBBLE_COLUMN_CAN_OCCUPY) && standing.isSource && standing.isFull) {
+            BubbleColumnBlock.updateColumn(AgeContent.DEEP_BUBBLE_COLUMN, level, pos, level.getBlockState(pos.below()))
+        }
         settle(state, level, pos)
     }
 

@@ -25,14 +25,15 @@ import kotlin.math.roundToInt
  *
  * - A **chimney** on the sea bed, its bore open at the top and nowhere else, carrying sea lanterns on its
  *   outside. Those are what a diver navigates by: `shines_through_the_deep` draws everything in it as an
- *   unfogged point out to 120 blocks, so a vent is a light across an abyss that reads exactly like an
- *   ore cluster and exactly like a hadalfish's lure. Which of the three it is cannot be known until you
- *   have crossed to it, and that ambiguity is the tag's stated purpose rather than a side effect.
+ *   unfogged point out to 120 blocks, so a vent reads at range exactly like a hadalfish's lure and
+ *   cannot be told from one until you have crossed to it. **The gloomgrit inside does not shine**,
+ *   deliberately: the material is meant to look like nothing until it is refined.
  * - A **neck** through the sea floor, which is why the chamber can only be entered from above.
  * - A **chamber** beneath, lined with [co.voik.agesandtheart.content.VentLiningBlock] and floored with
- *   magma. The magma makes a downward bubble column that fills the bore to the chimney's mouth, so
- *   swimming over the top is what takes you in — and getting out is swimming clear of the column with the
- *   pressure clock already running.
+ *   magma. The magma makes a downward [co.voik.agesandtheart.content.DeepBubbleColumnBlock] that
+ *   fills the bore to the chimney's mouth, so swimming over the top is what takes you in — and
+ *   getting out is swimming clear of it with the pressure clock already running, the column being
+ *   abyss like everything around it rather than a pocket of ordinary water.
  *
  * **Everything it cuts is filled with deep water, never air.** An air pocket takes the abyss out for
  * [DeepWater.DEPRESSURISED_UNDER_AIR] blocks beneath it, which would make the inside of the vent the one

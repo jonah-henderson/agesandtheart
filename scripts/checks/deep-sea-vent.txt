@@ -11,17 +11,24 @@
 # MEASURED 2026-09-12, seed 7, one vent placed at (2000, 2000) where the floor is y=29 under a sea at
 # y=134 -- so the abyss line is 54 and the whole 105-block column is open water:
 #
-#     bubble_column   284    the whirlpool, filling the chamber and the bore to the chimney's mouth
-#     sea_lantern       2    1 + random(0..2), so 1..3 is the range
-#     magma_block      39    the chamber floor, inset a block short of the wall
-#     blackstone      245    chimney and neck
-#     vent_lining     345    the chamber's shell, and nowhere else
-#     gloomgrit        91    after a few seconds at random_tick_speed 2000
+#     deep_bubble_column  311    the whirlpool, filling the chamber and the bore to the chimney's mouth
+#     bubble_column         0    vanilla's, and it MUST be zero -- see the note by that line
+#     sea_lantern           3    1 + random(0..2), so 1..3 is the range
+#     magma_block          36    the chamber floor, inset a block short of the wall
+#     blackstone          353    chimney and neck
+#     vent_lining         398    the chamber's shell, and nowhere else
+#     gloomgrit           117    after a few seconds at random_tick_speed 2000
 #
-# The two numbers that caught real faults: **blackstone 49 against lining 819** on the first run said the
-# lining had swallowed the whole chimney, and **sea_lantern 0** was the same fault seen from the other
-# side -- the lantern walk looks for the outermost blackstone and there was none to find. The lining is
-# the chamber's alone now, which is also the better design: gloomgrit only grows at the bottom.
+# Three faults these numbers caught. **blackstone 49 against lining 819** said the lining had swallowed the
+# whole chimney, and **sea_lantern 0** was the same fault from the other side -- the lantern walk looks for
+# the outermost blackstone and there was none to find. The lining is the chamber's alone now, which is also
+# the better design: gloomgrit grows at the bottom of the descent rather than along it. And **gloomgrit 0**
+# was the gamerule rename, not the budding.
+#
+# The startup line `Deep waterlogging: brought 20976 block states into line` is the other half of the
+# column check: 20976 is the waterlogged states alone, so the deep column's two states needed no settling,
+# which is only true if they had already cached deep water as their fluid. That is what makes the bore
+# press and fog like the rest of the abyss.
 #
 # Each `fill ... replace` DESTROYS what it counts, so the order matters: the bubble column is counted
 # first, because pulling the magma out from under it would take it away.
@@ -49,6 +56,10 @@ age list
 age list
 execute in agesandtheart:ventage run fill 1992 15 1992 2008 50 2008 minecraft:air replace agesandtheart:gloomgrit
 gamerule random_tick_speed 3
+# **Both columns are counted, and vanilla's must read zero.** `DeepWaterBlock.tick` nominates our own
+# column block, so a vanilla `bubble_column` standing anywhere in an abyss means the nomination was
+# bypassed -- and a column of vanilla water is a pressure-free, fog-free lift into the chamber.
+execute in agesandtheart:ventage run fill 1992 15 1992 2008 50 2008 minecraft:air replace agesandtheart:deep_bubble_column
 execute in agesandtheart:ventage run fill 1992 15 1992 2008 50 2008 minecraft:air replace minecraft:bubble_column
 execute in agesandtheart:ventage run fill 1992 15 1992 2008 50 2008 minecraft:air replace minecraft:sea_lantern
 execute in agesandtheart:ventage run fill 1992 15 1992 2008 50 2008 minecraft:air replace minecraft:magma_block

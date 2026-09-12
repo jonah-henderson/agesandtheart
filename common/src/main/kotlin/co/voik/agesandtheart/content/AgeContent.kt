@@ -357,6 +357,7 @@ object AgeContent {
     private const val VENT_LINING_RESISTANCE = 6.0f
 
     private val VENT_LINING_ID: Identifier = "vent_lining".location()
+    private val DEEP_BUBBLE_COLUMN_ID: Identifier = "deep_bubble_column".location()
     private val GLOOMGRIT_ID: Identifier = "gloomgrit".location()
 
     /**
@@ -376,6 +377,26 @@ object AgeContent {
             .strength(VENT_LINING_STRENGTH, VENT_LINING_RESISTANCE),
     )
 
+    /**
+     * The whirlpool a vent's magma raises through the abyss — see [DeepBubbleColumnBlock] for why vanilla's
+     * own could not be used.
+     *
+     * Vanilla's `bubble_column` properties exactly, which is the point: nothing about this differs except
+     * the fluid it reports and that it presses. **No block item and no loot table**, like the block it
+     * copies — a column is something a liquid raises, never something a player holds.
+     */
+    val DEEP_BUBBLE_COLUMN: DeepBubbleColumnBlock = DeepBubbleColumnBlock(
+        BlockBehaviour.Properties.of()
+            .setId(ResourceKey.create(Registries.BLOCK, DEEP_BUBBLE_COLUMN_ID))
+            .mapColor(MapColor.WATER)
+            .replaceable()
+            .noCollision()
+            .noLootTable()
+            .pushReaction(PushReaction.DESTROY)
+            .liquid()
+            .sound(SoundType.EMPTY),
+    )
+
     val VENT_LINING_ITEM: Item = BlockItem(
         VENT_LINING,
         Item.Properties().setId(ResourceKey.create(Registries.ITEM, VENT_LINING_ID)).useBlockDescriptionPrefix(),
@@ -390,11 +411,12 @@ object AgeContent {
      * placeable as well as pickable for the same reason a crystal is — an item that is also a little mound
      * reads as something you chipped off a wall rather than as an ore drop.
      *
-     * **It glows faintly and it joins `shines_through_the_deep`**, which is what makes the material
-     * findable at all in a sea whose fog closes at 24 blocks. That tag draws everything in it identically
-     * at range, so a cluster, a vent's lanterns and a hadalfish's lure are one point of light until you
-     * have crossed to it — which is the tag's whole purpose and exactly the trap this material should be
-     * sitting behind.
+     * **It does not shine, and it is meant to look like nothing** (Jonah, 2026-09-12). A light would be
+     * useless anyway inside the close confines of a chamber you are already standing in — what a diver
+     * navigates by is the vent's own lanterns, and those are what carry `shines_through_the_deep`. More
+     * than that, the *refining* is where this material's interest lives: gloomgrit mixed with glowstone
+     * dust and smelted is what becomes phasmium, and a drab grit that reads as worthless until it is
+     * worked says that better than a pretty crystal ever would.
      */
     val GLOOMGRIT_CLUSTER: AmethystClusterBlock = AmethystClusterBlock(
         GLOOMGRIT_HEIGHT,
@@ -405,10 +427,7 @@ object AgeContent {
             .forceSolidOn()
             .noOcclusion()
             .sound(SoundType.AMETHYST_CLUSTER)
-            .strength(CRYSTAL_STRENGTH)
-            // Faint, and faint on purpose: enough that `DeepLights` has something to carry across the
-            // abyss, far too little to light the chamber you are working in.
-            .lightLevel { GLOOMGRIT_GLOW },
+            .strength(CRYSTAL_STRENGTH),
     )
 
     val GLOOMGRIT: Item = BlockItem(
@@ -1347,6 +1366,7 @@ object AgeContent {
 
     val blocks: List<Pair<Identifier, Block>> = listOf(
         VENT_LINING_ID to VENT_LINING,
+        DEEP_BUBBLE_COLUMN_ID to DEEP_BUBBLE_COLUMN,
         GLOOMGRIT_ID to GLOOMGRIT_CLUSTER,
         WOUND_ID to WOUND_BLOCK,
         WRITERS_DESK_ID to WRITERS_DESK_BLOCK,
