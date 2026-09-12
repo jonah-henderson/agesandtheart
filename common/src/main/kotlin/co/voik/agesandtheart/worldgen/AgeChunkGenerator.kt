@@ -464,9 +464,14 @@ class AgeChunkGenerator(
                         band.carried(at, y) != null -> band.carried(at, y)
                         // Inside the rock a cave system opened: the table answers, not the waterline. Asked
                         // before the sea, since this space is under it and the sea would otherwise take it.
-                        band.hollow(at, y) -> water.computeSubstance(
-                            DensityFunction.SinglePointContext(worldX, y, worldZ),
-                            HOLLOW,
+                        band.hollow(at, y) -> heldBackFrom(
+                            water.computeSubstance(DensityFunction.SinglePointContext(worldX, y, worldZ), HOLLOW),
+                            band,
+                            localX,
+                            localZ,
+                            y,
+                            worldX,
+                            worldZ,
                         )
                         band.fills(at, y) -> sea
                         else -> null
@@ -574,6 +579,21 @@ class AgeChunkGenerator(
 
         private fun isMolten(at: Int, y: Int): Boolean = MoltenLining.isMolten(carried(at, y))
 
+        /**
+         * Whether the **sea** stands against this block — beside it, or over it.
+         *
+         * The sea's own space is what the aquifer does not own: not rock, not a hollow of ours, and under
+         * the waterline. Above is checked as well as beside, because a sea lying on the roof of a dry cave
+         * falls into it the moment the chunk is ticked.
+         */
+        fun seaTouching(localX: Int, localZ: Int, y: Int): Boolean =
+            isSea(indexOf(localX, localZ), y + 1) ||
+                isSea(indexOf(localX - 1, localZ), y) || isSea(indexOf(localX + 1, localZ), y) ||
+                isSea(indexOf(localX, localZ - 1), y) || isSea(indexOf(localX, localZ + 1), y)
+
+        private fun isSea(at: Int, y: Int): Boolean =
+            !spans[at]!!.contains(y) && !hollow(at, y) && carried(at, y) == null && fills(at, y)
+
         /** Whether any of the four columns beside this one left this level open. */
         fun openBeside(localX: Int, localZ: Int, y: Int): Boolean =
             isOpen(indexOf(localX - 1, localZ), y) || isOpen(indexOf(localX + 1, localZ), y) ||
@@ -589,6 +609,45 @@ class AgeChunkGenerator(
     }
 
     // --- Surface height contract: honest answers so structures/features land on the terrain. ---
+
+    /**
+     * **A wall of rock where a dry cave meets the sea** — vanilla's aquifer barrier, in the shape this
+     * generator's seams actually take.
+     *
+     * **Two authorities own the water, and the fault is on their border** (found with `/age probe`,
+     * 2026-09-11). The aquifer owns every hollow of ours and may answer *dry*; the sea fills anything below
+     * the waterline the aquifer does not own. Where one cave crosses that line, the cave side comes out a
+     * pool at its own level — or nothing — and the other side comes out sea at the waterline, and the two
+     * meet at a **face**. A walk finds that as a slab of sea jutting into a cave, or a curtain down the
+     * middle of one, and then watches it pour: the fill marks a perched fluid for post-processing and
+     * vanilla gives it its first tick on load.
+     *
+     * Three attempts inside the aquifer — per room, per cell, a continuous level — all missed, because none
+     * of them is about the border.
+     *
+     * **Vanilla's answer is not to reconcile the two; it is to separate them.** Where two of its aquifers
+     * disagree it computes a pressure between them and puts **stone** in the gap, so a player never sees
+     * water standing against air — they see a wall, which is what a wall between two water tables looks
+     * like. This is that rule with our own two authorities in place of two of its cells.
+     *
+     * **Only where the cave came out dry.** A cave the aquifer filled is already water and wants no wall;
+     * what needs one is emptiness with a sea leaning on it. And only against the *sea* — a dry cave beside
+     * another dry cave is just a cave.
+     */
+    private fun heldBackFrom(
+        answer: BlockState?,
+        band: ColumnBand,
+        localX: Int,
+        localZ: Int,
+        y: Int,
+        worldX: Int,
+        worldZ: Int,
+    ): BlockState? {
+        // The aquifer put something here, so there is nothing to hold back.
+        if (answer != null && !answer.isAir) return answer
+        if (!band.seaTouching(localX, localZ, y)) return answer
+        return fill.blockAt(worldX, y, worldZ)
+    }
 
     /**
      * Write this Age's [Overlay] into a chunk vanilla has just filled.
