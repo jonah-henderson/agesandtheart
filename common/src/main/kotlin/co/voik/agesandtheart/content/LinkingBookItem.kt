@@ -1,13 +1,10 @@
 package co.voik.agesandtheart.content
 
-import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.AgeSavedData
-import co.voik.agesandtheart.age.Ages
 import co.voik.agesandtheart.age.word.WordNames
-import co.voik.agesandtheart.book.BookEntity
 import co.voik.agesandtheart.book.LinkTarget
-import co.voik.ephemeris.sky.LevelAppearance
+import co.voik.agesandtheart.book.Linking
 import net.minecraft.ChatFormatting
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
@@ -41,8 +38,8 @@ class LinkingBookItem(properties: Properties) : Item(properties) {
     override fun use(level: Level, player: Player, hand: InteractionHand): InteractionResult {
         val stack = player.getItemInHand(hand)
         if (level !is ServerLevel || player !is ServerPlayer) return InteractionResult.SUCCESS
-        val target = stack.get(AgeContent.LINK_TARGET)
-        return if (target == null) bind(stack, level, player) else travel(stack, target, level, player, hand)
+        if (stack.get(AgeContent.LINK_TARGET) == null) return bind(stack, level, player)
+        return if (Linking.link(player, level, stack, hand)) InteractionResult.SUCCESS else InteractionResult.FAIL
     }
 
     /** Writing it: the book takes this exact spot, facing the way you were — and the Age behind it. */
@@ -66,56 +63,6 @@ class LinkingBookItem(properties: Properties) : Item(properties) {
         val id = level.dimension().identifier()
         if (id !in AgeSavedData.get(level.server).ages) return null
         return AgeSavedData.get(level.server).recipe(id)
-    }
-
-    /** Puts back an Age this book outlived, or null where there is nothing to put back. */
-    private fun restore(target: LinkTarget, level: ServerLevel): ServerLevel? {
-        val recipe = target.recipe ?: return null
-        Constants.LOG.info("Restoring '{}' from a linking book that outlived it", target.dimension.identifier())
-        return Ages.ensure(level.server, target.dimension.identifier(), recipe)
-    }
-
-    /** Going. The book stays where it was used, exactly as a Descriptive Book does. */
-    private fun travel(
-        stack: ItemStack,
-        target: LinkTarget,
-        level: ServerLevel,
-        player: ServerPlayer,
-        hand: InteractionHand,
-    ): InteractionResult {
-        // Linking is travel *between* worlds. A book that moves you within one is not a linking book —
-        // which is both the lore and, incidentally, what stops this being an overland taxi.
-        if (target.dimension == level.dimension()) {
-            player.sendSystemMessage(Component.translatable("book.agesandtheart.same_world"), true)
-            return InteractionResult.FAIL
-        }
-        // A missing destination is an Age that was collected while this book survived, so the book puts
-        // it back — same terrain, deterministically, and empty of whatever was built in it. Only a
-        // vanilla dimension can still be genuinely unreachable, and none of those is ours to restore.
-        val destination = level.server.getLevel(target.dimension) ?: restore(target, level)
-        if (destination == null) {
-            player.sendSystemMessage(Component.translatable("book.agesandtheart.no_destination"), true)
-            return InteractionResult.FAIL
-        }
-        val leftAt = player.position()
-        val left = stack.copy()
-        player.setItemInHand(hand, ItemStack.EMPTY)
-
-        // Before the move, not after: one stream carries both, so a sky sent first cannot arrive late.
-        LevelAppearance.expecting(player, destination.dimension())
-        player.teleportTo(
-            destination,
-            target.position.x,
-            target.position.y,
-            target.position.z,
-            emptySet(),
-            target.yaw,
-            player.xRot,
-            true,
-        )
-        BookEntity.leaveBehind(level, leftAt, left)
-        player.sendSystemMessage(Component.translatable("book.agesandtheart.linked", target.name), true)
-        return InteractionResult.SUCCESS
     }
 
     /** "<place> Linking Book", so a shelf of them reads at a glance. */

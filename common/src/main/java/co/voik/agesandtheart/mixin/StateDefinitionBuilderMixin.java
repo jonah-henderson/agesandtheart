@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.mixin;
 
+import co.voik.agesandtheart.book.LecternOpening;
 import co.voik.agesandtheart.content.DeepWaterLogging;
 import java.util.Map;
 import net.minecraft.world.level.block.state.StateDefinition;
@@ -12,7 +13,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * Gives every waterloggable block a second waterlogging, for the abyss (design §7.1.2).
+ * Gives vanilla's blocks two properties they lack: every waterloggable block a second waterlogging, for the
+ * abyss (design §7.1.2), and every lectern whether its book lies open (§7.8.2).
  *
  * <p><b>Why a Mixin.</b> Neither loader has an event for adding a block state property, and there could
  * not be one: a block's state definition is built inside its own constructor and frozen there. NeoForge's
@@ -48,6 +50,13 @@ public abstract class StateDefinitionBuilderMixin {
     private void agesandtheart$alsoLogTheAbyss(CallbackInfoReturnable<StateDefinition<?, ?>> callback) {
         if (DeepWaterLogging.belongsOn(this.owner)) {
             this.properties.put(DeepWaterLogging.DEEP_WATERLOGGED.getName(), DeepWaterLogging.DEEP_WATERLOGGED);
+        }
+    }
+
+    @Inject(method = "create", at = @At("HEAD"))
+    private void agesandtheart$letALecternsBookLieOpen(CallbackInfoReturnable<StateDefinition<?, ?>> callback) {
+        if (LecternOpening.belongsOn(this.owner)) {
+            this.properties.put(LecternOpening.BOOK_OPEN.getName(), LecternOpening.BOOK_OPEN);
         }
     }
 }

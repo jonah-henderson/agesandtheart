@@ -18,8 +18,18 @@ import net.minecraft.world.item.ItemStack
 /** Opens the book, kept apart so the item never names a client class directly. */
 object BookScreenOpener {
     fun open(stack: ItemStack, hand: InteractionHand) {
-        Minecraft.getInstance().setScreen(BookScreen(stack, hand))
+        Minecraft.getInstance().setScreen(BookScreen(stack, BookBeingRead.InHand(hand)))
     }
+
+    fun openFromLectern(stack: ItemStack) {
+        Minecraft.getInstance().setScreen(BookScreen(stack, BookBeingRead.OnALectern))
+    }
+}
+
+/** Where the book being read is, which decides whether the screen's panel is its own. */
+sealed interface BookBeingRead {
+    data class InHand(val hand: InteractionHand) : BookBeingRead
+    data object OnALectern : BookBeingRead
 }
 
 /**
@@ -30,12 +40,16 @@ object BookScreenOpener {
  * you — and clicking a page turns it: the right page forward, the left page back.
  *
  * The panel asks for its Age while the book is open and gives it back when it closes (design §7.8.1), which
- * is what makes a live panel affordable at all.
+ * is what makes a live panel affordable at all. A book read off a lectern has no panel here: its own is
+ * already showing in the world, to everybody standing there (§7.8.2).
  */
 class BookScreen(
     private val book: ItemStack,
-    private val hand: InteractionHand,
+    private val held: BookBeingRead,
 ) : Screen(book.hoverName) {
+
+    /** Whether the panel is this screen's own, which a lectern book's is not. */
+    private val showsItsOwnPanel = held is BookBeingRead.InHand
 
     /** Which spread is open. Nought is the panel and the first page of writing. */
     private var spread = 0
@@ -55,19 +69,19 @@ class BookScreen(
         // Learned locally on this frame rather than after the server has rolled an Age (design §4.5). The
         // server still teaches authoritatively, and its payload adds nothing when it lands.
         KnownWords.readFrom(book.get(AgeContent.BOOK_WORDS).orEmpty())
-        LinkingPanel.ask(hand)
+        if (held is BookBeingRead.InHand) LinkingPanel.ask(held.hand)
     }
 
     /** The panel's only tick: its camera's environment probe, and the wait for an unanswered request. */
     override fun tick() {
         super.tick()
-        LinkingPanel.tick()
+        if (showsItsOwnPanel) LinkingPanel.tick()
     }
 
-    /** Gives the ring back, on every way out rather than only the link path. */
+    /** Gives the ring back, on every way out rather than only the link path — where the ring is this screen's. */
     override fun removed() {
         super.removed()
-        LinkingPanel.release()
+        if (showsItsOwnPanel) LinkingPanel.release()
     }
 
     override fun extractRenderState(graphics: GuiGraphicsExtractor, mouseX: Int, mouseY: Int, a: Float) {
@@ -98,6 +112,11 @@ class BookScreen(
         graphics.fill(x - 1, y - 1, x + PANEL_WIDTH + 1, y + PANEL_HEIGHT + 1, EDGE)
         // Under everything, so a mist that thins never shows the page through it.
         graphics.fill(x, y, x + PANEL_WIDTH, y + PANEL_HEIGHT, PANEL)
+        if (!showsItsOwnPanel) {
+            // The mist of a panel that is not showing its Age — this one's is showing on the lectern instead.
+            PanelOverlay.MIST.drawOver(graphics, x, y, PANEL_WIDTH, PANEL_HEIGHT, strength = 1.0f)
+            return
+        }
         drawTheAge(graphics, x, y)
         // Over the Age rather than behind it, at the strength the ring is still missing: the fade *is* the
         // load (design §7.8.1), so the Age comes through the mist as it arrives rather than replacing it.
@@ -334,8 +353,9 @@ class BookScreen(
             onClose()
             return true
         }
-        if (spread == 0 && overPanel(event.x, event.y)) {
-            ClientDeskNetwork.sender?.invoke(LinkRequest(hand))
+        val clickedThePanel = spread == 0 && overPanel(event.x, event.y)
+        if (clickedThePanel && held is BookBeingRead.InHand) {
+            ClientDeskNetwork.sender?.invoke(LinkRequest(held.hand))
             onClose()
             return true
         }

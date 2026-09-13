@@ -11,6 +11,8 @@ import co.voik.agesandtheart.client.MoltenLumpRenderer
 import net.minecraft.client.renderer.entity.NoopRenderer
 import co.voik.agesandtheart.client.ClientDeskNetwork
 import co.voik.agesandtheart.client.StarFissureRenderer
+import co.voik.agesandtheart.client.LecternBookRenderer
+import net.minecraft.world.level.block.entity.BlockEntityType
 import net.neoforged.neoforge.client.event.EntityRenderersEvent
 import co.voik.agesandtheart.client.DeskModel
 import co.voik.agesandtheart.client.KnownWords
@@ -145,6 +147,8 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
         // The wound's flicker and the fissure's shaft, both block entities drawn by shader rather than by
         // a baked model — the same event on this loader, where Fabric has a registry of its own.
         event.registerBlockEntityRenderer(AgeContent.STAR_FISSURE_ENTITY) { StarFissureRenderer() }
+        // In vanilla's place, for the books of ours a lectern can hold; vanilla's own it still draws as before.
+        event.registerBlockEntityRenderer(BlockEntityType.LECTERN) { LecternBookRenderer(it) }
     }
 
     private fun onRegisterFluidModels(event: RegisterFluidModelsEvent) {

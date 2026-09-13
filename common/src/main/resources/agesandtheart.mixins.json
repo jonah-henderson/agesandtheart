@@ -10,6 +10,8 @@
     "DragonPhaseAccessor",
     "EnderDragonMixin",
     "EntityCollidersMixin",
+    "LecternBlockEntityMixin",
+    "LecternBlockMixin",
     "LightningBoltMixin",
     "LivingEntityMixin",
     "MerchantQuickMoveMixin",

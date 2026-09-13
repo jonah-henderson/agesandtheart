@@ -34,7 +34,9 @@ import co.voik.agesandtheart.desk.DeskNoticePayload
 import co.voik.agesandtheart.desk.DeskPricePayload
 import co.voik.agesandtheart.desk.DeskSyncPayload
 import co.voik.agesandtheart.client.StarFissureRenderer
+import co.voik.agesandtheart.client.LecternBookRenderer
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderers
+import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraft.client.gui.screens.MenuScreens
 import net.minecraft.client.gui.screens.inventory.ContainerScreen
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents
@@ -76,6 +78,8 @@ fun initClient() {
     EntityRendererRegistry.register(AgeContent.METEOR_STORM) { NoopRenderer(it) }
     EntityRendererRegistry.register(AgeContent.CAVE_IN) { NoopRenderer(it) }
     BlockEntityRenderers.register(AgeContent.STAR_FISSURE_ENTITY) { StarFissureRenderer() }
+    // In vanilla's place, for the books of ours a lectern can hold; vanilla's own it still draws as before.
+    BlockEntityRenderers.register(BlockEntityType.LECTERN) { LecternBookRenderer(it) }
     MenuScreens.register(AgeContent.WRITERS_DESK_MENU, ::WritersDeskScreen)
     MenuScreens.register(AgeContent.INK_CASE_MENU, ::InkCaseScreen)
     MenuScreens.register(AgeContent.SUPPLY_BIN_MENU, ::SupplyBinScreen)
