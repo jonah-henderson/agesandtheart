@@ -228,7 +228,7 @@ object Happenings {
             // the sea's level is a counted number advanced in [tick] whether or not a player is looking,
             // where these two are the near-player block work that makes it visible. See [Deluge].
             Phenomenon.DELUGE -> {
-                Deluge.flood(level, level.seaSurface() ?: return)
+                Deluge.raise(level, level.seaSurface() ?: return)
                 Deluge.pool(level, fury)
             }
         }
