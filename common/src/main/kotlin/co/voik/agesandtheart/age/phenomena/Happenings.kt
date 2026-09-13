@@ -227,10 +227,11 @@ object Happenings {
             // **The rise is not here**, and that is the one thing to know about this phenomenon's shape:
             // the sea's level is a counted number advanced in [tick] whether or not a player is looking,
             // where these two are the near-player block work that makes it visible. See [Deluge].
-            Phenomenon.DELUGE -> {
-                Deluge.raise(level, level.seaSurface() ?: return)
-                Deluge.pool(level, fury)
-            }
+            // **The pooling rain is PARKED, not deleted** (Jonah, 2026-09-13). It places sources on sky-lit
+            // ground above the waterline, and while the rise itself is still being refined that reads as
+            // random blocks appearing everywhere and drowns out the thing being judged. `Deluge.pool` is
+            // left whole and unreferenced; put this call back when the sea is settled.
+            Phenomenon.DELUGE -> Deluge.raise(level, level.seaSurface() ?: return)
         }
     }
 
