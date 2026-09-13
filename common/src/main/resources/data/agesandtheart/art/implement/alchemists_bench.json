@@ -1,5 +1,7 @@
 {
-  "_comment": "Furniture. Counts toward the tier.",
-  "blocks": ["minecraft:brewing_stand"],
+  "_comment": "An OPEN SLOT, not furniture. It grants nothing and under 7.4's workshop ruling (2026-09-06) it must earn a capability or leave the table -- recorded as a slot on 2026-09-13 so it is not rediscovered as stale data. It still counts toward the desk's tier meanwhile.",
+  "blocks": [
+    "minecraft:brewing_stand"
+  ],
   "grants": []
 }
