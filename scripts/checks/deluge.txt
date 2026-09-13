@@ -1,0 +1,26 @@
+# The deluge: that the sea opens low and that the word reaches the generator.
+# Run with: scripts/drive-server.sh scripts/checks/deluge.txt
+#
+# **Most of this phenomenon cannot be checked headlessly, and that is by design rather than by omission.**
+# The counter advances only where `level.players()` is not empty, and both the catch-up and the pooling are
+# driven by `Sampling.sweep`, which walks the chunks around players. A headless server has none, so the
+# rise, the flooding and the rain all never run. The arithmetic is held by `DelugeCheck` instead, and the
+# rise itself is a walk.
+#
+# What this file does hold is the half that is visible at t=0: an Age written with `deluge` opens with its
+# sea `Deluge.FALLS_BY` blocks under what its recipe names, which is the generator actually reading the
+# counter rather than the phenomenon being decorative.
+#
+# MEASURED 2026-09-12, seed 7, `isle` under `deep`:
+#
+#     no deluge     sea standing at y=134     the written level
+#     deluge        sea standing at y=110     24 short, which is FALLS_BY exactly
+#
+# **`age compose phenomena=deluge` does NOT do this** and came out at 134 — the compose route sets the
+# aspect by a different path than the written claim `phenomena.happens=deluge` that `Happenings` reads.
+# Worth knowing before reaching for compose to test a phenomenon; it is not a fault in the deluge.
+age write plainsea 7 age isle landmass deep water sea
+age probe plainsea 2000 2000
+age write drowning 7 age isle landmass deep water sea deluge phenomena
+age list
+age probe drowning 2000 2000

@@ -22,9 +22,24 @@ class AgeSavedData() : SavedData() {
     private val recipes: MutableMap<Identifier, AgeRecipe> = linkedMapOf()
     private var counter: Int = 0
 
-    private constructor(written: List<WrittenAge>, counter: Int) : this() {
+    /**
+     * How long anybody has spent in each Age, in ticks — **the one counted number §5.4 allows** (design
+     * §5.2, settled 2026-09-10), and the only thing the mod keeps beside a recipe that is not the recipe.
+     *
+     * It exists because the deluge must advance *only while somebody is in the Age*, and there is nothing
+     * to derive that from: an Age has no clock of its own, and vanilla's one "time spent here" counter is
+     * per chunk. The licence is deliberately narrow — one counter for one bounded, resolving phenomenon,
+     * not a ledger — and every register that can still pass §5.4's legibility test must.
+     *
+     * Absent for an Age nobody has stood in, which reads as zero. Written only for Ages that have a number
+     * worth keeping, so an ordinary save gains nothing.
+     */
+    private val presence: MutableMap<Identifier, Long> = linkedMapOf()
+
+    private constructor(written: List<WrittenAge>, counter: Int, presence: List<TimeSpent>) : this() {
         written.forEach { recipes[it.id] = it.recipe }
         this.counter = counter
+        presence.forEach { this.presence[it.id] = it.ticks }
     }
 
     /** Every Age that exists, in the order they were written. */
@@ -36,6 +51,9 @@ class AgeSavedData() : SavedData() {
 
     fun remove(id: Identifier) {
         if (recipes.remove(id) != null) setDirty()
+        // A binned Age's clock goes with it, or an id minted again later would inherit somebody else's
+        // drowning.
+        if (presence.remove(id) != null) setDirty()
     }
 
     /**
@@ -43,6 +61,24 @@ class AgeSavedData() : SavedData() {
      * the Spire preset that every Age was before recipes existed.
      */
     fun recipe(id: Identifier): AgeRecipe = recipes[id] ?: AgeRecipe.of(AgePreset.SPIRE, id)
+
+    /** How many ticks somebody has been standing in [id], counting no faster for a crowd. */
+    fun presenceIn(id: Identifier): Long = presence[id] ?: 0L
+
+    /**
+     * One more tick of somebody being in [id].
+     *
+     * **"Any player present", never the sum of them** (Jonah, 2026-09-12). Counting per player would make
+     * a busy server drown an Age four times faster than a quiet one, and would take away the thing a
+     * writer can read off their own book — how long until the sea gets where it is going.
+     *
+     * Marked dirty every tick it advances, which is what `setDirty` is for; the save itself is written on
+     * the world's own schedule rather than on ours.
+     */
+    fun spendATickIn(id: Identifier) {
+        presence[id] = presenceIn(id) + 1L
+        setDirty()
+    }
 
     /** Returns the next distinct Age index (1, 2, 3, …), persisting the advance. */
     fun allocateIndex(): Int {
@@ -59,6 +95,8 @@ class AgeSavedData() : SavedData() {
                 WrittenAge.LIST_CODEC.fieldOf("recipes")
                     .forGetter { saved -> saved.recipes.map { (id, recipe) -> WrittenAge(id, recipe) } },
                 Codec.INT.optionalFieldOf("counter", 0).forGetter { it.counter },
+                TimeSpent.LIST_CODEC.optionalFieldOf("presence", emptyList())
+                    .forGetter { saved -> saved.presence.map { (id, ticks) -> TimeSpent(id, ticks) } },
             ).apply(instance, ::AgeSavedData)
         }
 
@@ -89,6 +127,24 @@ private data class WrittenAge(val id: Identifier, val recipe: AgeRecipe) {
                 // Inlined rather than nested, so a row reads as one flat record.
                 AgeRecipe.MAP_CODEC.forGetter(WrittenAge::recipe),
             ).apply(instance, ::WrittenAge)
+        }.listOf()
+    }
+}
+
+/**
+ * One Age's clock: how long anybody has stood in it, in ticks.
+ *
+ * A row rather than a map entry for [WrittenAge]'s reason — and separate from that row rather than a field
+ * on it, because the recipe is the Age's description and this is emphatically not. Anything reading the
+ * save should be able to see at a glance which half is which.
+ */
+private data class TimeSpent(val id: Identifier, val ticks: Long) {
+    companion object {
+        val LIST_CODEC: Codec<List<TimeSpent>> = RecordCodecBuilder.create { instance ->
+            instance.group(
+                Identifier.CODEC.fieldOf("id").forGetter(TimeSpent::id),
+                Codec.LONG.fieldOf("ticks").forGetter(TimeSpent::ticks),
+            ).apply(instance, ::TimeSpent)
         }.listOf()
     }
 }

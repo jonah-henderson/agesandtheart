@@ -1,0 +1,28 @@
+{
+  "_comment": [
+    "The sea comes up, under rain that will not stop (design 5.2) -- the blizzard's opposite number, and the",
+    "second gate on the deep-ocean material of 7.1.2.",
+    "",
+    "**Rainfall is a DEMAND and temperature is not mentioned**, which is the asymmetry that makes the",
+    "opposition with `blizzard` exact and lopsided on purpose. A blizzard insists on cold because snow",
+    "driven sideways in a hot Age is a writer asking for two things that cannot both be true; a deluge",
+    "wants no temperature at all -- a warm drowned world and a cold one are both perfectly coherent. What",
+    "the two quarrel over is the SKY, and `Vocabulary.antonym` finds that for free in the rainfall they",
+    "both set.",
+    "",
+    "How far the sea climbs is NOT here and cannot be. The rise is a counted number that advances only",
+    "while somebody is in the Age (5.4's one licensed register), and where it STOPS is the waterline the",
+    "book already names through `deep`, `shallow` or the landform itself. That is what makes the phenomenon",
+    "the Age *arriving* at what was written rather than a punishment with no end -- so a writer who wants a",
+    "deeper drowning writes a deeper sea, not a fiercer deluge.",
+    "",
+    "Pairs with `deep` for the deep-ocean material, and neither alone pays."
+  ],
+  "tier": "exact",
+  "chooses": {
+    "phenomena": "deluge"
+  },
+  "sets": {
+    "rainfall": "0.7..1.0"
+  }
+}

@@ -61,5 +61,14 @@
       "eroded": 0.8,
       "cavernous": 0.5
     }
+  },
+  "deluge": {
+    "_comment": "The sea coming up under rain that will not stop, so `watery` is the whole of what it is made of and what it leaves -- the only phenomenon in the set to carry it at one. `hostile` a shade under the blizzard's: a deluge takes the ground rather than taking you, and a writer who builds up is simply not in danger from it. `dark` because a drowned Age is one whose caves and low ground have gone under, and `eroded` for what a risen sea leaves of a coastline.",
+    "tags": {
+      "watery": 1.0,
+      "hostile": 0.7,
+      "dark": 0.5,
+      "eroded": 0.4
+    }
   }
 }

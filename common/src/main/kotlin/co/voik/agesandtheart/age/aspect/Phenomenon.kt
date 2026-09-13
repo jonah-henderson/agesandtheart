@@ -196,6 +196,30 @@ enum class Phenomenon(
      * that can only raise, so there is nothing here it could say.
      */
     TECTONICS("tectonics"),
+
+    /**
+     * The sea comes up, under rain that will not stop
+     * ([co.voik.agesandtheart.age.phenomena.Deluge]).
+     *
+     * **The blizzard's opposite number, and it should read as one.** Both are precipitation turned up past
+     * weather into a process; the blizzard denies you the surface by burying it, the deluge by drowning it.
+     * Two in one Age is an OPPOSED contradiction and earns instability, as it should — one insists on a
+     * temperature ceiling and the other does not care, but they are competing for the same sky.
+     *
+     * **What it denies is land itself**, which makes it the phenomenon that most changes the *shape* of
+     * play rather than adding a hazard to it: farmland, footpaths and cave access all go, and boats and
+     * everything reachable from above the water arrive. Its answers converge on verticality, which is the
+     * most natural instinct a Minecraft player has.
+     *
+     * **It resolves**, like the inferno — the Age arrives at the level its own recipe names and the
+     * phenomenon is over. It is also the **second gate on the deep-ocean material** (§7.1.2), the peer of
+     * the blizzard on rime and the aurora on arc crystal.
+     *
+     * **It insists on rain as hard as a tempest's and no thunder.** The downpour *is* the phenomenon, where
+     * a tempest's rain is the weather its lightning arrives in — so this asks for the same sky without the
+     * bolts.
+     */
+    DELUGE("deluge", AgeWeather.Conditions(rainfall = MOSTLY)),
     ;
 
     /**
@@ -208,7 +232,9 @@ enum class Phenomenon(
      */
     fun insistsAt(howOften: Double): AgeWeather.Conditions = when (this) {
         BLIZZARD -> AgeWeather.Conditions(rainfall = Blizzard.shareOfTheTime(howOften))
-        TEMPEST, INFERNO, AURORA, RAINBOW, SANDFALL, METEORS, TECTONICS -> insistsOn
+        // **A deluge does not scale here and should not.** Its axis is how far the sea has climbed, which
+        // is a counted number rather than a share of the weather — the rain is simply on until it resolves.
+        TEMPEST, INFERNO, AURORA, RAINBOW, SANDFALL, METEORS, TECTONICS, DELUGE -> insistsOn
     }
 
     override val aspect = Aspect.PHENOMENA

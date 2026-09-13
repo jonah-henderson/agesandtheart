@@ -8,6 +8,7 @@ import co.voik.agesandtheart.age.aspect.Parameter
 import co.voik.agesandtheart.age.aspect.Atmosphere
 import co.voik.agesandtheart.age.AgeComposition
 import co.voik.agesandtheart.age.AgeSavedData
+import co.voik.agesandtheart.worldgen.AgeChunkGenerator
 import co.voik.agesandtheart.age.Manifestation
 import co.voik.agesandtheart.age.Price
 import co.voik.agesandtheart.age.Spending
@@ -49,11 +50,19 @@ object Happenings {
         val saved = AgeSavedData.get(server)
         if (saved.ages.isEmpty()) return
         for (level in server.allLevels) {
-            if (level.players().isEmpty()) continue
             val age = level.dimension().identifier()
             val recipe = saved.takeIf { age in it.ages }?.recipe(age) ?: continue
             val composition = recipe.composition ?: continue
             val happening = claimsIn(composition)
+            // **The sea's level is settled before the emptiness check, and the counter after it.** Where
+            // the sea *stands* has to be right whenever a chunk is made, and a chunk can be made in an Age
+            // nobody is in — a forceload, a teleport arriving, a neighbouring player's view. How far it has
+            // *got* may only advance while somebody is there, which is the whole of what the counted
+            // register was chosen for. See [Deluge].
+            val drowning = happening.any { it.value == Phenomenon.DELUGE.key }
+            Deluge.stand(level, drowning, saved.presenceIn(age))
+            if (level.players().isEmpty()) continue
+            if (drowning) saved.spendATickIn(age)
             // What the Age could not hold, and what that bought. Derived rather than stored, so it comes
             // out the same on every open — see [Spending].
             val spending = Spending.of(server, recipe)
@@ -215,8 +224,19 @@ object Happenings {
             Phenomenon.TECTONICS -> CaveIns.stir(level, density)
             Phenomenon.BLIZZARD -> Blizzard.blow(level, density, fury)
             Phenomenon.METEORS -> Meteors.fall(level, density, fury)
+            // **The rise is not here**, and that is the one thing to know about this phenomenon's shape:
+            // the sea's level is a counted number advanced in [tick] whether or not a player is looking,
+            // where these two are the near-player block work that makes it visible. See [Deluge].
+            Phenomenon.DELUGE -> {
+                Deluge.flood(level, level.seaSurface() ?: return)
+                Deluge.pool(level, fury)
+            }
         }
     }
+
+    /** Where this Age's sea stands right now, or null where it has none to raise. */
+    private fun ServerLevel.seaSurface(): Int? =
+        (chunkSource.generator as? AgeChunkGenerator)?.seaFill?.surfaceY
 
     /** How often a client is reminded what the weather here is, in ticks. */
     private const val TELLING_THE_CLIENT = 20

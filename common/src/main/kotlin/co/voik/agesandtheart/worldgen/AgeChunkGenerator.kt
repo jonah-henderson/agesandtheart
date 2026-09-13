@@ -95,7 +95,7 @@ class AgeChunkGenerator(
     private val biomes: BiomeSource,
     /** Who answers for the rock — the field tree, or vanilla's own router. See [AgeRock]. */
     val rock: AgeRock,
-    val seaFill: SeaFill,
+    private val writtenSea: SeaFill,
     private val surfaceRule: SurfaceRules.RuleSource = SurfacingStrategy.SUPPRESSED,
     /**
      * What is cut back out of the rock, one set per carving — **and they all run**, except where a carving
@@ -199,9 +199,58 @@ class AgeChunkGenerator(
     biomes,
     when (rock) {
         is AgeRock.Vanillas -> rock.settings
-        is AgeRock.Ours -> Holder.direct(settingsFor(seaFill, surfaceRule, climate, fill, window, rock.landform))
+        is AgeRock.Ours -> Holder.direct(settingsFor(writtenSea, surfaceRule, climate, fill, window, rock.landform))
     },
 ) {
+
+    /**
+     * How far under the level it was written with this Age's sea currently stands, in blocks.
+     *
+     * **Zero for every Age but a drowning one**, and zero again once a deluge has resolved — the phenomenon
+     * is the Age *arriving* at what its recipe already names rather than starting there (design §5.2), so
+     * the written sea is the ceiling and this is the distance still to climb.
+     *
+     * `var`, and volatile, for the reason [overlay] is: a generator is built once when its Age is opened
+     * and lives as long as the dimension does, so anything a phenomenon changes about it has to be settable
+     * afterwards. [Deluge] sets it from the Age's counter on every tick of `Happenings`.
+     */
+    @Volatile
+    private var shortBy: Int = 0
+
+    @Volatile
+    private var standingSea: SeaFill = writtenSea
+
+    /**
+     * The sea as it stands **now** — which is the written one in every Age that is not drowning.
+     *
+     * Everything that generates ground reads this rather than the written sea, so a chunk made halfway
+     * through a deluge comes out at the level the rest of the Age is at. That coherence is the whole reason
+     * §5.4 allows the deluge a stored number at all: a chunk generated three thousand blocks out has to
+     * flood to the same line as the one you are standing in, and no sampler could promise that.
+     */
+    val seaFill: SeaFill get() = standingSea
+
+    /** What the Age was written with, which is where the sea is going. */
+    val writtenSeaFill: SeaFill get() = writtenSea
+
+    /**
+     * Stand the sea [blocks] under what was written.
+     *
+     * Cached rather than copied per call: this is read once per column of every chunk generated, and a
+     * `data class` copy there would allocate through the floor.
+     */
+    fun standShortBy(blocks: Int) {
+        val wanted = blocks.coerceAtLeast(0)
+        if (wanted == shortBy) return
+        shortBy = wanted
+        // A sea of NONE has `Int.MIN_VALUE` for a level — a sentinel, not a height — and lowering a
+        // sentinel is how you get an Age with a sea at minus two billion.
+        standingSea = if (wanted == 0 || writtenSea.surfaceY == null) {
+            writtenSea
+        } else {
+            writtenSea.copy(level = writtenSea.level - wanted)
+        }
+    }
 
     /** The rock a cave system was cut out of, or null where there is none — see [AgeRock.Ours.hollows]. */
     val hollows: TerrainField? get() = (rock as? AgeRock.Ours)?.hollows
@@ -302,20 +351,20 @@ class AgeChunkGenerator(
 
     // A sea level of Int.MIN_VALUE means "no sea" (SeaFill.NONE); the machinery below wants a
     // real height, and for a void sea the value is inert anyway since nothing ever fills.
-    private val seaLevel = seaFill.level.coerceAtLeast(window.minY)
+    private val seaLevel = writtenSea.level.coerceAtLeast(window.minY)
 
     /**
      * The topmost block the sea itself occupies — vanilla's own convention, where `seaLevel` is the level
      * water is poured *below*. What `DeepWater.seaAt` measures its unbroken span down from.
      */
-    private val seaSurfaceY = seaFill.surfaceY ?: window.minY
+    private val seaSurfaceY get() = seaFill.surfaceY ?: window.minY
 
     /**
      * The plane under which this Age's water is abyss — see `DeepWater.lineIn`.
      *
      * Below `window.minY` where the Age has no sea worth the name, which is the same as "never".
      */
-    private val abyssLine = seaFill.surfaceY?.let(DeepWater::lineBelow) ?: (window.minY - 1)
+    private val abyssLine get() = seaFill.surfaceY?.let(DeepWater::lineBelow) ?: (window.minY - 1)
 
     /**
      * Whether this column genuinely has an abyss over it — **the sea's own water standing at the line**.
@@ -862,7 +911,7 @@ class AgeChunkGenerator(
 
     // Only ever consulted by the NoiseChunk's own (disabled, unused) aquifer — carving uses [aquifer].
     private val ambientFluid =
-        Aquifer.FluidPicker { x, _, z -> Aquifer.FluidStatus(seaLevel, seaFill.blockAt(x, z)) }
+        Aquifer.FluidPicker { x, _, z -> Aquifer.FluidStatus(seaLevel, writtenSea.blockAt(x, z)) }
 
     /** Cached on the chunk, so surfacing and carving share one — it is the access toll, paid once. */
     private fun noiseChunkFor(chunk: ChunkAccess, randomState: RandomState, structureManager: StructureManager): NoiseChunk =
@@ -1175,7 +1224,7 @@ class AgeChunkGenerator(
             instance.group(
                 BiomeSource.CODEC.fieldOf("biome_source").forGetter { it.biomes },
                 AgeRock.MAP_CODEC.forGetter { it.rock },
-                SeaFill.CODEC.forGetter { it.seaFill },
+                SeaFill.CODEC.forGetter { it.writtenSea },
                 // Optional so field Ages serialised before palettes existed still load.
                 SurfaceRules.RuleSource.CODEC.optionalFieldOf("surface_rule", SurfacingStrategy.SUPPRESSED)
                     .forGetter { it.surfaceRule },
