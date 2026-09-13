@@ -242,7 +242,7 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         }
         registrar.playToServer(PanelOpenRequest.TYPE, PanelOpenRequest.STREAM_CODEC) { payload, context ->
             (context.player() as? net.minecraft.server.level.ServerPlayer)?.let {
-                PanelViews.open(it.level().server ?: return@let, it, payload.hand)
+                PanelViews.open(it.level().server ?: return@let, it, payload.book)
             }
         }
         registrar.playToServer(PanelCloseRequest.TYPE, PanelCloseRequest.STREAM_CODEC) { _, context ->
@@ -287,6 +287,8 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         // And every charged machine anybody is standing near — every level, not only the Ages, since
         // crystal carried home through a book has to work where it is set down.
         ChargedMetal.stir(event.server)
+        // And a lectern's panel held by somebody who has walked away from it, for a client that never let go.
+        PanelViews.tick(event.server)
     }
 
     /**

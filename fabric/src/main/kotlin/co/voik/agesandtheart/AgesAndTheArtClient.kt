@@ -43,6 +43,7 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents
 import co.voik.agesandtheart.book.panel.PanelChunkPayload
 import co.voik.agesandtheart.book.panel.PanelLevelPayload
+import co.voik.agesandtheart.client.panel.LecternPanels
 import co.voik.agesandtheart.client.panel.LinkingPanel
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking
 
@@ -114,6 +115,8 @@ fun initClient() {
     ClientTickEvents.END_CLIENT_TICK.register(Storms::blow)
     // A lure is drawn about its cluster rather than by each block, so it rides the tick as well.
     ClientTickEvents.END_CLIENT_TICK.register(LureLooks::pulse)
+    // Which lectern's panel this client shows, since a lectern has no screen to tick it as a book's does.
+    ClientTickEvents.END_CLIENT_TICK.register(LecternPanels::tick)
     // The linking panel's two, both of which land on the client thread the receiver already runs on.
     ClientPlayNetworking.registerGlobalReceiver(PanelLevelPayload.TYPE) { payload, _ ->
         LinkingPanel.accept(payload)

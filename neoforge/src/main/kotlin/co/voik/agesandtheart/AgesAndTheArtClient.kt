@@ -16,6 +16,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType
 import net.neoforged.neoforge.client.event.EntityRenderersEvent
 import co.voik.agesandtheart.client.DeskModel
 import co.voik.agesandtheart.client.KnownWords
+import co.voik.agesandtheart.client.panel.LecternPanels
 import co.voik.agesandtheart.client.panel.LinkingPanel
 import co.voik.agesandtheart.client.InkCaseScreen
 import co.voik.agesandtheart.client.GeologistsToolsScreen
@@ -102,6 +103,8 @@ class AgesAndTheArtClient(eventBus: IEventBus) {
         Storms.blow(net.minecraft.client.Minecraft.getInstance())
         // A lure is drawn about its cluster rather than by each block, so it rides the tick as well.
         LureLooks.pulse(net.minecraft.client.Minecraft.getInstance())
+        // Which lectern's panel this client shows, since a lectern has no screen to tick it as a book's does.
+        LecternPanels.tick(net.minecraft.client.Minecraft.getInstance())
     }
 
     private fun onRegisterScreens(event: RegisterMenuScreensEvent) {

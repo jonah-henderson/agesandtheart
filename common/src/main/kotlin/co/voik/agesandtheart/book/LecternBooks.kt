@@ -34,6 +34,12 @@ object LecternBooks {
     /** How near a player keeps an open book open — and, on a client, how near its panel resolves. */
     const val REACH_BLOCKS = 8.0
 
+    /**
+     * How near the server lets a lectern's panel stay open: past [REACH_BLOCKS], so the client — which lets
+     * go at the edge — is always the one to, and the two never argue over a player standing on it.
+     */
+    private const val PANEL_HELD_WITHIN_BLOCKS = REACH_BLOCKS + 4.0
+
     /** How long an open book goes between looking round for a reader, so "a few minutes" is at most this. */
     private const val TICKS_BETWEEN_LOOKS_ROUND = 3 * 60 * 20
 
@@ -74,7 +80,7 @@ object LecternBooks {
         val spot = LecternBookPlane.spotLookedAt(facing, pos, player.eyePosition, hit.location)
         when (clickOn(lectern.book, panelPage, spot)) {
             Click.LINK -> linkFrom(level, lectern, player)
-            Click.READ -> read(level, lectern.book, player)
+            Click.READ -> read(level, lectern, player)
             Click.SHUT -> shut(state, level, pos)
         }
         return InteractionResult.SUCCESS
@@ -90,6 +96,20 @@ object LecternBooks {
             return
         }
         shut(state, level, pos)
+    }
+
+    /**
+     * The book lying open on the lectern at [pos], where [viewer] may see its panel: in their own world,
+     * within reach, and a book of ours. Null for anything else, which is every request a client had no
+     * business making.
+     */
+    fun openBookSeenBy(viewer: Player, pos: BlockPos): ItemStack? {
+        val level = viewer.level()
+        if (!level.isLoaded(pos)) return null
+        if (!viewer.position().closerThan(Vec3.atCenterOf(pos), PANEL_HELD_WITHIN_BLOCKS)) return null
+        if (!LecternOpening.isOpen(level.getBlockState(pos))) return null
+        val lectern = level.getBlockEntity(pos) as? LecternBlockEntity ?: return null
+        return lectern.book.takeIf(::isOurs)
     }
 
     /** What a client is told a lectern holds: the book, where it is one of ours, and otherwise that it is not. */
@@ -132,10 +152,10 @@ object LecternBooks {
         if (Linking.go(player, level, lectern.book)) lectern.setChanged()
     }
 
-    private fun read(level: Level, book: ItemStack, player: Player) {
+    private fun read(level: Level, lectern: LecternBlockEntity, player: Player) {
         // Guarded so the screen class is never loaded on a dedicated server.
-        if (level.isClientSide) BookScreenOpener.openFromLectern(book)
-        if (player is ServerPlayer) PageLearning.study(player, book)
+        if (level.isClientSide) BookScreenOpener.openFromLectern(lectern.book, lectern.blockPos)
+        if (player is ServerPlayer) PageLearning.study(player, lectern.book)
     }
 
     private fun open(state: BlockState, level: ServerLevel, pos: BlockPos) {

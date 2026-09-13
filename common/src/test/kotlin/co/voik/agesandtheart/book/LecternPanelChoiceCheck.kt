@@ -1,0 +1,45 @@
+package co.voik.agesandtheart.book
+
+import io.kotest.core.spec.style.FunSpec
+import net.minecraft.core.BlockPos
+
+/** Which lectern gets the one panel a client can draw, and that it does not flicker between two. */
+class LecternPanelChoiceCheck : FunSpec({
+
+    val here = BlockPos(0, 64, 0)
+    val there = BlockPos(6, 64, 0)
+
+    fun at(pos: BlockPos, distance: Double) = NearbyLectern(pos, distance)
+
+    test("nothing near shows nothing") {
+        check(LecternPanelChoice.choose(null, emptyList()) == null)
+    }
+
+    test("a book within reach is taken up") {
+        check(LecternPanelChoice.choose(null, listOf(at(here, 5.0))) == here)
+    }
+
+    test("a book just past reach is not taken up") {
+        check(LecternPanelChoice.choose(null, listOf(at(here, 8.5))) == null)
+    }
+
+    test("but one already showing is kept there") {
+        check(LecternPanelChoice.choose(here, listOf(at(here, 8.5))) == here)
+    }
+
+    test("and let go a block further out") {
+        check(LecternPanelChoice.choose(here, listOf(at(here, 9.5))) == null)
+    }
+
+    test("a nearer book does not take the panel by a little") {
+        check(LecternPanelChoice.choose(here, listOf(at(here, 5.0), at(there, 3.5))) == here)
+    }
+
+    test("but does by more than the margin") {
+        check(LecternPanelChoice.choose(here, listOf(at(here, 6.0), at(there, 3.0))) == there)
+    }
+
+    test("a book that has shut or gone hands the panel on") {
+        check(LecternPanelChoice.choose(here, listOf(at(there, 7.0))) == there)
+    }
+})

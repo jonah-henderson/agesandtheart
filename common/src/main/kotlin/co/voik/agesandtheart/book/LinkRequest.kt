@@ -11,6 +11,7 @@ import net.minecraft.network.codec.ByteBufCodecs
 import net.minecraft.network.codec.StreamCodec
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.resources.Identifier
+import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.InteractionHand
@@ -49,7 +50,7 @@ object Linking {
     fun handle(player: ServerPlayer, request: LinkRequest) {
         val level = player.level() as? ServerLevel ?: return
         val stack = player.getItemInHand(request.hand)
-        if (stack.item !== AgeContent.DESCRIPTIVE_BOOK) return
+        if (!LecternBooks.isOurs(stack)) return
         link(player, level, stack, request.hand)
     }
 
@@ -100,9 +101,7 @@ object Linking {
         // A missing destination is an Age that was collected while this book survived, so the book puts
         // it back — same terrain, deterministically, and empty of whatever was built in it. Only a
         // vanilla dimension can still be genuinely unreachable, and none of those is ours to restore.
-        val destination = level.server.getLevel(target.dimension)
-            ?: restore(target, level)
-            ?: return refuse(player, "no_destination")
+        val destination = destinationOf(target, level.server) ?: return refuse(player, "no_destination")
         // Before the move, not after: one stream carries both, so a sky sent first cannot arrive late.
         LevelAppearance.expecting(player, destination.dimension())
         player.teleportTo(
@@ -119,11 +118,18 @@ object Linking {
         return true
     }
 
+    /**
+     * The world [target] is in, put back first if it is an Age that was collected while the book survived.
+     * Shared with the panel, so what a book shows and where it sends you are one place.
+     */
+    fun destinationOf(target: LinkTarget, server: MinecraftServer): ServerLevel? =
+        server.getLevel(target.dimension) ?: restore(target, server)
+
     /** Puts back an Age a linking book outlived, or null where there is nothing to put back. */
-    private fun restore(target: LinkTarget, level: ServerLevel): ServerLevel? {
+    private fun restore(target: LinkTarget, server: MinecraftServer): ServerLevel? {
         val recipe = target.recipe ?: return null
         Constants.LOG.info("Restoring '{}' from a linking book that outlived it", target.dimension.identifier())
-        return Ages.ensure(level.server, target.dimension.identifier(), recipe)
+        return Ages.ensure(server, target.dimension.identifier(), recipe)
     }
 
     /** The same chain `/age compose` uses, so a written book and a typed command are one act. */

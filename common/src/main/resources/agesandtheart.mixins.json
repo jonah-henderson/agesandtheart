@@ -25,6 +25,7 @@
   ],
   "client": [
     "client.ClientLevelMixin",
+    "client.GameRendererMixin",
     "client.LevelRendererMixin",
     "client.LiquidBlockMixin",
     "client.MainRenderTargetMixin",

@@ -2,6 +2,9 @@ package co.voik.agesandtheart.client
 
 import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.word.grammar.Said
+import co.voik.agesandtheart.book.BookBeingRead
+import co.voik.agesandtheart.book.BookPage
+import co.voik.agesandtheart.book.LecternBooks
 import co.voik.agesandtheart.book.LinkRequest
 import co.voik.agesandtheart.client.panel.LinkingPanel
 import co.voik.agesandtheart.client.panel.PanelDistortion
@@ -11,6 +14,7 @@ import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
 import net.minecraft.client.gui.screens.Screen
+import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.item.ItemStack
@@ -21,22 +25,16 @@ object BookScreenOpener {
         Minecraft.getInstance().setScreen(BookScreen(stack, BookBeingRead.InHand(hand)))
     }
 
-    fun openFromLectern(stack: ItemStack) {
-        Minecraft.getInstance().setScreen(BookScreen(stack, BookBeingRead.OnALectern))
+    fun openFromLectern(stack: ItemStack, pos: BlockPos) {
+        Minecraft.getInstance().setScreen(BookScreen(stack, BookBeingRead.OnALectern(pos)))
     }
 }
 
-/** Where the book being read is, which decides whether the screen's panel is its own. */
-sealed interface BookBeingRead {
-    data class InHand(val hand: InteractionHand) : BookBeingRead
-    data object OnALectern : BookBeingRead
-}
-
 /**
- * A Descriptive Book, held open at one spread.
+ * A book of ours, held open at one spread.
  *
- * The first spread is the linking panel and the opening page of writing; every spread after it is two pages
- * of writing. Clicking the panel goes — nothing else does, because linking spends the book and can strand
+ * A descriptive book's first spread is the linking panel and the opening page of writing; every spread after
+ * it is two pages of writing. A linking book is one spread with its panel on the right and nothing facing it. Clicking the panel goes — nothing else does, because linking spends the book and can strand
  * you — and clicking a page turns it: the right page forward, the left page back.
  *
  * The panel asks for its Age while the book is open and gives it back when it closes (design §7.8.1), which
@@ -45,11 +43,14 @@ sealed interface BookBeingRead {
  */
 class BookScreen(
     private val book: ItemStack,
-    private val held: BookBeingRead,
+    val held: BookBeingRead,
 ) : Screen(book.hoverName) {
 
     /** Whether the panel is this screen's own, which a lectern book's is not. */
     private val showsItsOwnPanel = held is BookBeingRead.InHand
+
+    /** Which leaf the panel is on: a descriptive book's left, beside its writing, and a linking book's right. */
+    private val panelPage = LecternBooks.panelPageOf(book) ?: BookPage.LEFT
 
     /** Which spread is open. Nought is the panel and the first page of writing. */
     private var spread = 0
@@ -69,7 +70,7 @@ class BookScreen(
         // Learned locally on this frame rather than after the server has rolled an Age (design §4.5). The
         // server still teaches authoritatively, and its payload adds nothing when it lands.
         KnownWords.readFrom(book.get(AgeContent.BOOK_WORDS).orEmpty())
-        if (held is BookBeingRead.InHand) LinkingPanel.ask(held.hand)
+        if (held is BookBeingRead.InHand) LinkingPanel.ask(held)
     }
 
     /** The panel's only tick: its camera's environment probe, and the wait for an unanswered request. */
@@ -96,8 +97,12 @@ class BookScreen(
 
         if (spread == 0) {
             drawPanel(graphics, left, top, mouseX, mouseY)
-            scaled(graphics, left + RIGHT_COLUMN_X, top + TITLE_Y, TITLE_SCALE) {
-                graphics.text(font, book.hoverName, 0, 0, INK, false)
+            // A linking book's panel has the right leaf to itself and nothing faces it: the book is a door to
+            // a place, and has no words to show (design §7.8.2).
+            if (panelPage == BookPage.LEFT) {
+                scaled(graphics, left + RIGHT_COLUMN_X, top + TITLE_Y, TITLE_SCALE) {
+                    graphics.text(font, book.hoverName, 0, 0, INK, false)
+                }
             }
         } else {
             drawPage(graphics, left + LEFT_COLUMN_X, top, leftPageOf(spread))
@@ -107,7 +112,7 @@ class BookScreen(
     }
 
     private fun drawPanel(graphics: GuiGraphicsExtractor, left: Int, top: Int, mouseX: Int, mouseY: Int) {
-        val x = left + PANEL_X
+        val x = left + panelAcrossTheBook()
         val y = top + PANEL_Y
         graphics.fill(x - 1, y - 1, x + PANEL_WIDTH + 1, y + PANEL_HEIGHT + 1, EDGE)
         // Under everything, so a mist that thins never shows the page through it.
@@ -317,8 +322,11 @@ class BookScreen(
         return mouseX >= left && mouseX <= left + WIDTH && mouseY >= top && mouseY <= top + HEIGHT
     }
 
+    /** How far across the book the panel begins: [PANEL_X] into whichever leaf it is on. */
+    private fun panelAcrossTheBook(): Int = PANEL_X + if (panelPage == BookPage.RIGHT) WIDTH / 2 else 0
+
     private fun overPanel(mouseX: Double, mouseY: Double): Boolean {
-        val x = (width - WIDTH) / 2 + PANEL_X
+        val x = (width - WIDTH) / 2 + panelAcrossTheBook()
         val y = (height - HEIGHT) / 2 + PANEL_Y
         return mouseX >= x && mouseX <= x + PANEL_WIDTH && mouseY >= y && mouseY <= y + PANEL_HEIGHT
     }

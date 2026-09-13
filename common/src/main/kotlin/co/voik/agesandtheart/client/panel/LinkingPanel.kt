@@ -1,6 +1,7 @@
 package co.voik.agesandtheart.client.panel
 
 import co.voik.agesandtheart.Constants
+import co.voik.agesandtheart.book.BookBeingRead
 import co.voik.agesandtheart.book.panel.PanelChunkPayload
 import co.voik.agesandtheart.book.panel.PanelChunksWanted
 import co.voik.agesandtheart.book.panel.PanelCloseRequest
@@ -9,13 +10,13 @@ import co.voik.agesandtheart.book.panel.PanelOpenRequest
 import net.minecraft.client.Minecraft
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
-import net.minecraft.world.InteractionHand
 
 /**
  * The one panel a client is looking at, if any: its lifetime and its half of the conversation.
  *
  * A panel exists while a book is open and not otherwise (design §7.8.1) — not in an inventory, not on the
- * ground, not on a lectern across the room. How one draws is elsewhere; this decides only when one exists.
+ * ground, and of the books open on lecterns only the nearest one's (§7.8.2, [LecternPanels]). How one draws
+ * is elsewhere; this decides only when one exists.
  */
 object LinkingPanel {
 
@@ -23,7 +24,10 @@ object LinkingPanel {
     private var asked = false
 
     /** Kept so an unanswered request can be repeated verbatim. */
-    private var hand = InteractionHand.MAIN_HAND
+    private var askedFor: BookBeingRead? = null
+
+    /** Which book the panel is for, or null while it is nobody's. */
+    val showingFor: BookBeingRead? get() = if (asked) askedFor else null
     private var askedAt = 0L
     private var asksSoFar = 0
 
@@ -43,18 +47,20 @@ object LinkingPanel {
         }
 
     /**
-     * Asks the server to show whatever bound book is in [hand].
+     * Asks the server to show [book] — a bound book in a hand, or one lying open on a lectern.
      *
-     * Idempotent, so a screen may call it more than once: asking twice would have the server drop and
-     * retake the ring.
+     * Idempotent for the same book, so a screen may call it more than once: asking twice would have the
+     * server drop and retake the ring. A different book takes the panel over.
      */
-    fun ask(hand: InteractionHand) {
-        if (asked) return
+    fun ask(book: BookBeingRead) {
+        if (asked && askedFor == book) return
+        // Torn down here without a word to the server, which drops the old ring when this request arrives.
+        if (asked) drop()
         asked = true
-        this.hand = hand
+        askedFor = book
         askedAt = System.nanoTime()
         asksSoFar = 0
-        send(PanelOpenRequest(hand))
+        send(PanelOpenRequest(book))
     }
 
     /**
@@ -85,7 +91,7 @@ object LinkingPanel {
         askedAt = now
         asksSoFar++
         Constants.LOG.info("Panel: no answer to the last request, asking again ({} of {})", asksSoFar, MOST_ASKS)
-        send(PanelOpenRequest(hand))
+        send(PanelOpenRequest(askedFor ?: return))
     }
 
     /** Called when the level payload arrives, which is the server agreeing to show it. */
@@ -148,6 +154,7 @@ object LinkingPanel {
         showing?.close()
         showing = null
         asked = false
+        askedFor = null
         asksSoFar = 0
         return had
     }

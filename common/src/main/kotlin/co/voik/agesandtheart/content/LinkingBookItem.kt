@@ -4,7 +4,7 @@ import co.voik.agesandtheart.age.AgeRecipe
 import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.age.word.WordNames
 import co.voik.agesandtheart.book.LinkTarget
-import co.voik.agesandtheart.book.Linking
+import co.voik.agesandtheart.client.BookScreenOpener
 import net.minecraft.ChatFormatting
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
@@ -23,7 +23,7 @@ import java.util.function.Consumer
  * A Linking Book: a door to one place that already exists.
  *
  * Blank until it is used, at which point it takes the spot it was written in — so the way you make a way
- * home is to write one *at* home and carry it with you. Used again, it goes there.
+ * home is to write one *at* home and carry it with you. Opened again, its panel goes there (design §7.8.2).
  *
  * **One item, two states**, distinguished by whether it carries a [LinkTarget]. A separate blank item
  * would need its own recipe, model and name for no gain, and the two are the same object in the fiction —
@@ -35,11 +35,18 @@ import java.util.function.Consumer
  */
 class LinkingBookItem(properties: Properties) : Item(properties) {
 
+    /**
+     * Writes a blank book, and opens a bound one rather than linking outright — as a descriptive book does, and
+     * for its reason: linking spends the book and can strand you, so it is a click on the panel inside rather
+     * than one misclick away from a hotbar slot (see [co.voik.agesandtheart.book.Linking]).
+     */
     override fun use(level: Level, player: Player, hand: InteractionHand): InteractionResult {
         val stack = player.getItemInHand(hand)
-        if (level !is ServerLevel || player !is ServerPlayer) return InteractionResult.SUCCESS
-        if (stack.get(AgeContent.LINK_TARGET) == null) return bind(stack, level, player)
-        return if (Linking.link(player, level, stack, hand)) InteractionResult.SUCCESS else InteractionResult.FAIL
+        val bound = stack.get(AgeContent.LINK_TARGET) != null
+        // Guarded so the screen class is never loaded on a dedicated server.
+        if (bound && level.isClientSide) BookScreenOpener.open(stack, hand)
+        if (!bound && level is ServerLevel && player is ServerPlayer) return bind(stack, level, player)
+        return InteractionResult.SUCCESS
     }
 
     /** Writing it: the book takes this exact spot, facing the way you were — and the Age behind it. */

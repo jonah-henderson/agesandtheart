@@ -1,5 +1,6 @@
 package co.voik.agesandtheart.book.panel
 
+import co.voik.agesandtheart.book.BookBeingRead
 import co.voik.agesandtheart.location
 import io.netty.buffer.ByteBuf
 import net.minecraft.core.BlockPos
@@ -11,7 +12,6 @@ import net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData
 import net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData
 import net.minecraft.resources.Identifier
 import net.minecraft.resources.ResourceKey
-import net.minecraft.world.InteractionHand
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 
@@ -23,13 +23,14 @@ import net.minecraft.world.level.Level
 // build the generator. The geometry both sides agree about is `PanelRing`, which is not a message.
 
 /**
- * *"Show me the book in my hand."* — sent when a bound book is opened to its panel.
+ * *"Show me that book."* — sent when a bound book is opened to its panel, in a hand or on a lectern.
  *
- * Names the hand rather than a dimension because the Age may not exist yet: a bound book's world is
- * decided but is not made until something asks for it, and the server resolves the held stack through
- * `BookAge` exactly as linking does. Design §7.5 is satisfied by the binding, not by the panel.
+ * Names where the book is rather than a dimension, because the Age may not exist yet: a bound book's world
+ * is decided but is not made until something asks for it, and the server resolves the stack through
+ * `BookAge` exactly as linking does. A lectern is checked rather than trusted — its book has to be ours,
+ * lying open, and within reach of whoever asks. Design §7.5 is satisfied by the binding, not by the panel.
  */
-data class PanelOpenRequest(val hand: InteractionHand) : CustomPacketPayload {
+data class PanelOpenRequest(val book: BookBeingRead) : CustomPacketPayload {
 
     override fun type(): CustomPacketPayload.Type<PanelOpenRequest> = TYPE
 
@@ -37,12 +38,8 @@ data class PanelOpenRequest(val hand: InteractionHand) : CustomPacketPayload {
         val TYPE: CustomPacketPayload.Type<PanelOpenRequest> =
             CustomPacketPayload.Type("panel_open".location())
 
-        val STREAM_CODEC: StreamCodec<ByteBuf, PanelOpenRequest> = StreamCodec.of(
-            { buffer, value -> buffer.writeBoolean(value.hand == InteractionHand.MAIN_HAND) },
-            { buffer ->
-                PanelOpenRequest(if (buffer.readBoolean()) InteractionHand.MAIN_HAND else InteractionHand.OFF_HAND)
-            },
-        )
+        val STREAM_CODEC: StreamCodec<ByteBuf, PanelOpenRequest> =
+            BookBeingRead.STREAM_CODEC.map(::PanelOpenRequest, PanelOpenRequest::book)
     }
 }
 
@@ -101,7 +98,7 @@ data class PanelLevelPayload(
     val dimension: ResourceKey<Level>,
     /** The dimension type's registry id — the client resolves the holder itself. */
     val dimensionType: Identifier,
-    /** What the orbit is centred on: the Age's arrival point. */
+    /** What the orbit is centred on: where the book would put you — an Age's arrival, or a linking book's spot. */
     val around: BlockPos,
     /**
      * The obfuscated seed, not the world seed: a `ClientLevel` given the raw one zooms its biomes

@@ -138,7 +138,7 @@ fun init() {
     }
 
     ServerPlayNetworking.registerGlobalReceiver(PanelOpenRequest.TYPE) { payload, context ->
-        context.server().execute { PanelViews.open(context.server(), context.player(), payload.hand) }
+        context.server().execute { PanelViews.open(context.server(), context.player(), payload.book) }
     }
     ServerPlayNetworking.registerGlobalReceiver(PanelCloseRequest.TYPE) { _, context ->
         context.server().execute { PanelViews.close(context.server(), context.player()) }
@@ -193,6 +193,9 @@ fun init() {
     // And every charged machine anybody is standing near — every level, not only the Ages, since crystal
     // carried home through a book has to work where it is set down.
     ServerTickEvents.END_SERVER_TICK.register(ChargedMetal::stir)
+
+    // And a lectern's panel held by somebody who has walked away from it, for a client that never let go.
+    ServerTickEvents.END_SERVER_TICK.register(PanelViews::tick)
 
     // Where the wounds are. A wound carries no block entity, so the index is filled by reading each chunk
     // as it loads — see `Wounds`, which dismisses a section off its palette before touching a block.

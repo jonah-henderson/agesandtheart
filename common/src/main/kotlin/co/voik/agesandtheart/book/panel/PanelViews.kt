@@ -4,11 +4,15 @@ import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.AgeSavedData
 import co.voik.agesandtheart.age.Ages
 import co.voik.agesandtheart.book.BookAge
+import co.voik.agesandtheart.book.BookBeingRead
+import co.voik.agesandtheart.book.LecternBooks
+import co.voik.agesandtheart.book.Linking
 import co.voik.agesandtheart.content.AgeContent
 import co.voik.agesandtheart.location
 import co.voik.agesandtheart.platform.Services
 import net.minecraft.util.Util
 import net.minecraft.core.BlockPos
+import net.minecraft.core.GlobalPos
 import net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData
 import net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData
 import net.minecraft.resources.ResourceKey
@@ -16,7 +20,7 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.level.TicketType
-import net.minecraft.world.InteractionHand
+import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.biome.BiomeManager
@@ -27,8 +31,9 @@ import java.util.UUID
 /**
  * Who is looking at what, and the ring of chunks that costs.
  *
- * One panel per player, held only while a book is open (design §7.8.1). Everything it loads it releases:
- * opening a second panel closes the first, closing the book closes it, and leaving the server closes it.
+ * One panel per player, held only while a book is open (design §7.8.1) — in their hand, or on a lectern they
+ * are standing at (§7.8.2). Everything it loads it releases: opening a second panel closes the first,
+ * closing the book closes it, walking away from a lectern closes it, and leaving the server closes it.
  */
 object PanelViews {
 
@@ -39,10 +44,15 @@ object PanelViews {
     private class Watch(
         val dimension: ResourceKey<Level>,
         val centre: ChunkPos,
+        /** The lectern the book lies open on, or null for a book in a hand — whose screen closes it. */
+        val lectern: GlobalPos?,
     ) {
         /** Which of the ring's chunks have gone out, so a re-request can tell them from what has not. */
         val sent = mutableSetOf<Long>()
     }
+
+    /** What a panel looks at: the world a book leads to, and the point in it a visitor would arrive at. */
+    private class Destination(val level: ServerLevel, val around: BlockPos)
 
     private val watching = mutableMapOf<UUID, Watch>()
 
@@ -63,29 +73,40 @@ object PanelViews {
     private const val TICKS_BETWEEN_CHASES = 20L
 
     /**
-     * Opens a panel onto whatever bound book [player] is holding in [hand], streaming its arrival ring.
-     *
-     * Resolves the book through `BookAge`, the same call linking makes, so the world shown and the world
-     * you arrive in are one and whichever asks first is the one that mints it.
+     * Opens a panel onto [book] — in [player]'s hand, or open on a lectern they are standing at — streaming
+     * the ring around where it would put them.
      */
-    fun open(server: MinecraftServer, player: ServerPlayer, hand: InteractionHand) {
+    fun open(server: MinecraftServer, player: ServerPlayer, book: BookBeingRead) {
         if (!allow(server, player, openedOnTick, TICKS_BETWEEN_PANELS)) return
         close(server, player)
 
-        val stack = player.getItemInHand(hand)
-        if (stack.item !== AgeContent.DESCRIPTIVE_BOOK) {
-            Constants.LOG.info("Panel refused: {} is holding {}, which is not a book", player.name.string, stack.item)
+        val stack = when (book) {
+            is BookBeingRead.InHand -> player.getItemInHand(book.hand)
+            is BookBeingRead.OnALectern -> LecternBooks.openBookSeenBy(player, book.pos)
+        }
+        if (stack == null) {
+            Constants.LOG.info("Panel refused: {} asked after a lectern with no open book of ours in reach", player.name.string)
             return
         }
-        val level = BookAge.of(server, stack)
-        if (level == null) {
-            Constants.LOG.warn("Panel wanted the Age of a book in {}'s hand and it would not open", player.name.string)
+        val destination = destinationOf(server, stack)
+        if (destination == null) {
+            Constants.LOG.info("Panel refused: {} asked after {}, which leads nowhere that will open", player.name.string, stack.item)
             return
         }
+        // Where the book would refuse to take you it has nothing to show either — and a second client level
+        // of the dimension the player is already standing in is not one the panel was ever checked against.
+        if (destination.level.dimension() == player.level().dimension()) {
+            Constants.LOG.info("Panel refused: {} is already in {}", player.name.string, destination.level.dimension().identifier())
+            return
+        }
+        // Resolving a descriptive book stamps its Age onto it, and a lectern keeps the stamp.
+        if (book is BookBeingRead.OnALectern) player.level().getBlockEntity(book.pos)?.setChanged()
 
-        val around = arrivalIn(level)
+        val level = destination.level
+        val around = destination.around
         val centre = PanelRing.centreOf(around)
-        watching[player.uuid] = Watch(level.dimension(), centre)
+        val lectern = (book as? BookBeingRead.OnALectern)?.let { GlobalPos.of(player.level().dimension(), it.pos) }
+        watching[player.uuid] = Watch(level.dimension(), centre, lectern)
         hold(level, centre)
 
         val instability = instabilityOf(level)
@@ -141,17 +162,41 @@ object PanelViews {
     }
 
     /** Releases whatever [player] was looking at, if anything. Safe to call when there is nothing. */
-    fun close(server: MinecraftServer, player: ServerPlayer) {
-        val watch = watching.remove(player.uuid) ?: return
-        val level = server.getLevel(watch.dimension) ?: return
-        release(level, watch.centre)
-    }
+    fun close(server: MinecraftServer, player: ServerPlayer) = closeWatchOf(server, player.uuid)
 
     /** Called when a player leaves, since a client that crashed with a book open never says so. */
     fun forget(server: MinecraftServer, player: ServerPlayer) {
         close(server, player)
         openedOnTick.remove(player.uuid)
         chasedOnTick.remove(player.uuid)
+    }
+
+    /**
+     * Lets go of a lectern's panel whose viewer has walked away from it, or whose book has shut or gone.
+     *
+     * The client lets go first and should always be the one to; this is for a client that does not, as
+     * [forget] is for one that crashed. A panel in a hand belongs to its screen and is left alone.
+     */
+    fun tick(server: MinecraftServer) {
+        if (watching.isEmpty()) return
+        val leftBehind = watching.filter { (viewer, watch) -> isLeftBehind(server, viewer, watch) }.keys.toList()
+        for (viewer in leftBehind) {
+            Constants.LOG.info("Panel: a lectern's panel was still held by {} after they left it", viewer)
+            closeWatchOf(server, viewer)
+        }
+    }
+
+    private fun isLeftBehind(server: MinecraftServer, viewer: UUID, watch: Watch): Boolean {
+        val lectern = watch.lectern ?: return false
+        val player = server.playerList.getPlayer(viewer) ?: return true
+        val inTheLecternsWorld = player.level().dimension() == lectern.dimension()
+        return !inTheLecternsWorld || LecternBooks.openBookSeenBy(player, lectern.pos()) == null
+    }
+
+    private fun closeWatchOf(server: MinecraftServer, viewer: UUID) {
+        val watch = watching.remove(viewer) ?: return
+        val level = server.getLevel(watch.dimension) ?: return
+        release(level, watch.centre)
     }
 
     /**
@@ -174,12 +219,20 @@ object PanelViews {
     }
 
     /**
-     * The point a visitor would arrive at, which is what the orbit is centred on.
-     *
-     * Deliberately the same call the link makes, so a panel cannot frame somewhere other than where it
-     * puts you — including when that is underwater or buried.
+     * Where [stack] would put you, resolved by the same calls linking makes — `BookAge` and the Age's arrival
+     * for a descriptive book, the target's own world and spot for a linking one — so a panel cannot frame
+     * anywhere other than where the book takes you, including when that is underwater or buried.
      */
-    private fun arrivalIn(level: ServerLevel): BlockPos = Ages.arrivalIn(level)
+    private fun destinationOf(server: MinecraftServer, stack: ItemStack): Destination? = when {
+        stack.item === AgeContent.DESCRIPTIVE_BOOK ->
+            BookAge.of(server, stack)?.let { Destination(it, Ages.arrivalIn(it)) }
+        stack.item === AgeContent.LINKING_BOOK -> {
+            val target = stack.get(AgeContent.LINK_TARGET)
+            val level = target?.let { Linking.destinationOf(it, server) }
+            if (target == null || level == null) null else Destination(level, BlockPos.containing(target.position))
+        }
+        else -> null
+    }
 
     private fun dimensionTypeIdOf(level: ServerLevel) =
         level.registryAccess()
