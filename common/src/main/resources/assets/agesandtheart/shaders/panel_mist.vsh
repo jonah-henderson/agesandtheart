@@ -7,8 +7,8 @@ in vec3 Position;
 in vec4 Color;
 
 out vec4 vertexColor;
-// Where on the page this fragment is, which is what the mist is a field over. Screen coordinates rather
-// than panel-local ones because `fill` sends corners and nothing else, and mist has no edges to line up.
+// Where on the panel this fragment is, in page-pixels: a panel's picture is laid down measured in them, so the
+// banks are the same size whether the picture ends up in a book or on a lectern.
 out vec2 acrossThePage;
 
 void main() {

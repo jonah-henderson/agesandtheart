@@ -57,10 +57,12 @@ object LecternBookPlane {
     private const val BOOK_HALF_WIDTH = 6.0 / 16.0
     private const val BOOK_HALF_HEIGHT = 5.0 / 16.0
 
-    /** The book screen's panel as a share of its leaf: 104 of 128 across, 65 of 180 tall, 30 down from the top. */
+    /** The book screen's panel as a share of its leaf: 104 of 128 across, and 30 down from the top of 180. */
     private const val PANEL_SHARE_ACROSS = 104.0 / 128.0
-    private const val PANEL_SHARE_TALL = 65.0 / 180.0
     private const val PANEL_SHARE_FROM_THE_TOP = 30.0 / 180.0
+
+    /** And its shape, 65 tall to 104 wide, kept so that a page-pixel is as square here as it is in the book. */
+    private const val PANEL_TALL_FOR_ITS_WIDTH = 65.0 / 104.0
 
     private val UP = Vec3(0.0, 1.0, 0.0)
 
@@ -73,7 +75,7 @@ object LecternBookPlane {
             BookPage.RIGHT -> -(fromTheSpine + width)..-fromTheSpine
         }
         val top = PAGE_HEIGHT / 2 - PAGE_HEIGHT * PANEL_SHARE_FROM_THE_TOP
-        return BookRectangle(across, (top - PAGE_HEIGHT * PANEL_SHARE_TALL)..top)
+        return BookRectangle(across, (top - width * PANEL_TALL_FOR_ITS_WIDTH)..top)
     }
 
     /** Where on the open book a look from [eye] through [through] lands, or null where it misses the book. */

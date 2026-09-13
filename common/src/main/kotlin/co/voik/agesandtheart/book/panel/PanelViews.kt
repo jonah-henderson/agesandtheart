@@ -57,12 +57,16 @@ object PanelViews {
     private val watching = mutableMapOf<UUID, Watch>()
 
     /**
-     * When each player last opened a panel, outliving the view it opened.
+     * When each player last opened a panel, outliving the view it opened — one clock for a hand and another
+     * for a lectern.
      *
      * Opening generates up to [PanelRing.COUNT] chunks and a client decides when it happens. It cannot
-     * live on [Watch]: closing the book removes the watch, and a limit a close resets is not a limit.
+     * live on [Watch]: closing the book removes the watch, and a limit a close resets is not a limit. Two
+     * clocks because a hand outranks every lectern (§7.8.2): a lectern's panel taken up a moment ago must
+     * never refuse a book opened in a hand, whose client would then wait twenty seconds to ask again.
      */
-    private val openedOnTick = mutableMapOf<UUID, Long>()
+    private val openedOnTickInHand = mutableMapOf<UUID, Long>()
+    private val openedOnTickAtALectern = mutableMapOf<UUID, Long>()
 
     /** And when each last asked again, for the same reason and by the same guard. */
     private val chasedOnTick = mutableMapOf<UUID, Long>()
@@ -77,7 +81,8 @@ object PanelViews {
      * the ring around where it would put them.
      */
     fun open(server: MinecraftServer, player: ServerPlayer, book: BookBeingRead) {
-        if (!allow(server, player, openedOnTick, TICKS_BETWEEN_PANELS)) return
+        val clock = if (book is BookBeingRead.InHand) openedOnTickInHand else openedOnTickAtALectern
+        if (!allow(server, player, clock, TICKS_BETWEEN_PANELS)) return
         close(server, player)
 
         val stack = when (book) {
@@ -91,12 +96,6 @@ object PanelViews {
         val destination = destinationOf(server, stack)
         if (destination == null) {
             Constants.LOG.info("Panel refused: {} asked after {}, which leads nowhere that will open", player.name.string, stack.item)
-            return
-        }
-        // Where the book would refuse to take you it has nothing to show either — and a second client level
-        // of the dimension the player is already standing in is not one the panel was ever checked against.
-        if (destination.level.dimension() == player.level().dimension()) {
-            Constants.LOG.info("Panel refused: {} is already in {}", player.name.string, destination.level.dimension().identifier())
             return
         }
         // Resolving a descriptive book stamps its Age onto it, and a lectern keeps the stamp.
@@ -167,7 +166,8 @@ object PanelViews {
     /** Called when a player leaves, since a client that crashed with a book open never says so. */
     fun forget(server: MinecraftServer, player: ServerPlayer) {
         close(server, player)
-        openedOnTick.remove(player.uuid)
+        openedOnTickInHand.remove(player.uuid)
+        openedOnTickAtALectern.remove(player.uuid)
         chasedOnTick.remove(player.uuid)
     }
 

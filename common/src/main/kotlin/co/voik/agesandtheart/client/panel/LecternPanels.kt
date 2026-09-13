@@ -16,29 +16,27 @@ import net.minecraft.world.level.block.entity.LecternBlockEntity
 import net.minecraft.world.phys.Vec3
 
 /**
- * The lectern whose panel this client shows, and the rendering of it with no screen up (design §7.8.2).
+ * The lectern whose panel this client shows, and the laying down of lectern pictures with no screen up (design
+ * §7.8.2).
  *
- * A client draws one panel ([LinkingPanel]), so of every open book of ours within reach the nearest
- * resolves and the rest wear the mist. A book screen with a panel of its own outranks them all: its `ask`
- * takes the panel over, and this stands aside until the screen gives it back.
+ * A client draws one panel ([LinkingPanel]), so of every open book of ours within reach the nearest resolves
+ * and the rest wear the mist. A book screen with a panel of its own outranks them all: its `ask` takes the panel
+ * over, and this stands aside until the screen gives it back.
  *
- * Two beats, because a lectern has no screen to lend it either. The client tick chooses the lectern and
- * ticks the panel, as `BookScreen.tick` would; the frame renders it — and only when the lectern was drawn
- * that frame, since a panel nobody can see is a whole level render for nothing.
+ * Two beats, because a lectern has no screen to lend it either. The client tick chooses the lectern and ticks
+ * the panel, as `BookScreen.tick` would; the frame lays the pictures down ([PanelComposite]) — and only those a
+ * lectern drawn that frame will show, since a panel nobody can see is a whole level render for nothing.
  */
 object LecternPanels {
 
     /** Whether the shown lectern was extracted for this frame. Set during extraction, spent by [drawFrame]. */
-    private var seenThisFrame = false
+    private var shownSeenThisFrame = false
 
-    /** The preview whose picture [PanelTarget] holds now, so a new book never shows the last one's Age. */
-    private var pictured: PreviewLevel? = null
+    /** And whether any lectern wearing the mist was. */
+    private var mistedSeenThisFrame = false
 
     /** The lectern being shown, or null while the panel is a hand's or nobody's. */
     val shown: BlockPos? get() = (LinkingPanel.showingFor as? BookBeingRead.OnALectern)?.pos
-
-    /** Whether [PanelTarget] holds the shown lectern's own Age, which is when its book may draw the picture. */
-    val hasAPicture: Boolean get() = pictured != null && pictured === LinkingPanel.preview
 
     fun tick(minecraft: Minecraft) {
         val level = minecraft.level ?: return
@@ -58,23 +56,31 @@ object LecternPanels {
 
     /** Called by the lectern's renderer as it extracts the lectern being shown. */
     fun sawTheShownLectern() {
-        seenThisFrame = true
+        shownSeenThisFrame = true
+    }
+
+    /** Called by the lectern's renderer as it extracts any other open book of ours. */
+    fun sawAMistedLectern() {
+        mistedSeenThisFrame = true
     }
 
     /**
-     * Renders the shown lectern's panel for this frame, before the GUI is extracted (`GameRendererMixin`).
+     * Lays down the pictures this frame's lecterns will show, before the GUI is extracted (`GameRendererMixin`).
      *
-     * Skipped for the one viewer who cannot see it — whoever has that book's own screen up — whose lectern
-     * goes on showing the last picture, under the screen.
+     * The live one is skipped for the one viewer who cannot see it — whoever has that book's own screen up —
+     * whose lectern goes on showing the last picture, under the screen.
      */
     @JvmStatic
     fun drawFrame(delta: DeltaTracker) {
-        val seen = seenThisFrame
-        seenThisFrame = false
-        val lectern = shown ?: return
-        if (!seen || isReadingItsScreen(lectern)) return
-        val preview = LinkingPanel.preview ?: return
-        if (PanelRenderer.draw(preview, delta)) pictured = preview
+        val lectern = shown
+        val shownIsSeen = shownSeenThisFrame
+        shownSeenThisFrame = false
+        if (lectern != null && shownIsSeen && !isReadingItsScreen(lectern)) {
+            PanelComposite.composeLive(LinkingPanel.preview, delta)
+        }
+        // After the live picture, whose Age may itself have had a lectern of ours in view.
+        if (mistedSeenThisFrame) PanelComposite.composeMisted()
+        mistedSeenThisFrame = false
     }
 
     private fun isReadingItsScreen(lectern: BlockPos): Boolean {

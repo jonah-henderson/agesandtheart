@@ -7,9 +7,9 @@ import co.voik.agesandtheart.book.BookPage
 import co.voik.agesandtheart.book.LecternBooks
 import co.voik.agesandtheart.book.LinkRequest
 import co.voik.agesandtheart.client.panel.LinkingPanel
-import co.voik.agesandtheart.client.panel.PanelDistortion
-import co.voik.agesandtheart.client.panel.PanelOverlay
-import co.voik.agesandtheart.client.panel.PanelRenderer
+import co.voik.agesandtheart.client.panel.PanelComposite
+import co.voik.agesandtheart.client.panel.PanelPicture
+import co.voik.agesandtheart.client.panel.PanelTarget
 import co.voik.agesandtheart.content.AgeContent
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.GuiGraphicsExtractor
@@ -34,8 +34,9 @@ object BookScreenOpener {
  * A book of ours, held open at one spread.
  *
  * A descriptive book's first spread is the linking panel and the opening page of writing; every spread after
- * it is two pages of writing. A linking book is one spread with its panel on the right and nothing facing it. Clicking the panel goes — nothing else does, because linking spends the book and can strand
- * you — and clicking a page turns it: the right page forward, the left page back.
+ * it is two pages of writing. A linking book is one spread with its panel on the right and nothing facing it.
+ * Clicking the panel goes — nothing else does, because linking spends the book and can strand you — and clicking
+ * a page turns it: the right page forward, the left page back.
  *
  * The panel asks for its Age while the book is open and gives it back when it closes (design §7.8.1), which
  * is what makes a live panel affordable at all. A book read off a lectern has no panel here: its own is
@@ -111,23 +112,36 @@ class BookScreen(
         drawTurningCorners(graphics, left, top, mouseX, mouseY)
     }
 
+    /**
+     * The panel: one blit of its finished picture, frame and all — the picture a lectern's book shows too
+     * (design §7.8.2) — and, where the panel is this screen's own, what a pointer and a wait add to it.
+     */
     private fun drawPanel(graphics: GuiGraphicsExtractor, left: Int, top: Int, mouseX: Int, mouseY: Int) {
         val x = left + panelAcrossTheBook()
         val y = top + PANEL_Y
-        graphics.fill(x - 1, y - 1, x + PANEL_WIDTH + 1, y + PANEL_HEIGHT + 1, EDGE)
-        // Under everything, so a mist that thins never shows the page through it.
-        graphics.fill(x, y, x + PANEL_WIDTH, y + PANEL_HEIGHT, PANEL)
-        if (!showsItsOwnPanel) {
-            // The mist of a panel that is not showing its Age — this one's is showing on the lectern instead.
-            PanelOverlay.MIST.drawOver(graphics, x, y, PANEL_WIDTH, PANEL_HEIGHT, strength = 1.0f)
-            return
+        val picture = if (showsItsOwnPanel) {
+            PanelComposite.composeLive(LinkingPanel.preview, Minecraft.getInstance().deltaTracker)
+        } else {
+            // A lectern book's own panel is showing on the lectern, to everybody standing there.
+            PanelComposite.composeMisted()
         }
-        drawTheAge(graphics, x, y)
-        // Over the Age rather than behind it, at the strength the ring is still missing: the fade *is* the
-        // load (design §7.8.1), so the Age comes through the mist as it arrives rather than replacing it.
-        PanelOverlay.MIST.drawOver(graphics, x, y, PANEL_WIDTH, PANEL_HEIGHT, 1.0f - wholeness())
+        val frame = PanelPicture.FRAME_WIDTH
+        // V backwards: a render target's origin is at its bottom.
+        graphics.blit(
+            picture,
+            PanelTarget.sampler(),
+            x - frame,
+            y - frame,
+            x + PanelPicture.WIDTH + frame,
+            y + PanelPicture.HEIGHT + frame,
+            0.0f,
+            1.0f,
+            1.0f,
+            0.0f,
+        )
+        if (!showsItsOwnPanel) return
         if (overPanel(mouseX.toDouble(), mouseY.toDouble())) {
-            graphics.fill(x, y, x + PANEL_WIDTH, y + PANEL_HEIGHT, PANEL_LIT)
+            graphics.fill(x, y, x + PanelPicture.WIDTH, y + PanelPicture.HEIGHT, PANEL_LIT)
         }
         drawWaiting(graphics, x, y)
     }
@@ -149,33 +163,12 @@ class BookScreen(
 
         // Along the panel's own bottom border, which is the track: a picture with something moving in its
         // frame rather than a picture with a bar under it.
-        val along = y + PANEL_HEIGHT
+        val along = y + PanelPicture.HEIGHT
         val throughSweep = ((waited % SWEEP_NANOS).toDouble() / SWEEP_NANOS).toFloat()
         // Back and forth, so the mark never jumps from one end of the border to the other.
         val alongTheTrack = if (throughSweep < 0.5f) throughSweep * 2 else (1.0f - throughSweep) * 2
-        val from = x + ((PANEL_WIDTH - WAITING_MARK) * alongTheTrack).toInt()
+        val from = x + ((PanelPicture.WIDTH - WAITING_MARK) * alongTheTrack).toInt()
         graphics.fill(from, along, from + WAITING_MARK, along + WAITING_HEIGHT, WAITING_INK)
-    }
-
-    /** How much of the Age has arrived, `0..1` — nothing at all before the server has answered. */
-    private fun wholeness(): Float = LinkingPanel.preview?.load?.wholeness ?: 0.0f
-
-    /** The Age itself, drawn over the black. */
-    private fun drawTheAge(graphics: GuiGraphicsExtractor, x: Int, y: Int) {
-        // Null while the server's chunks are still coming, which is the ordinary case for the first
-        // moments of a book and is what the black is for.
-        val preview = LinkingPanel.preview ?: return
-        if (!PanelRenderer.draw(preview, Minecraft.getInstance().deltaTracker)) return
-
-        // A level render leaves its background transparent rather than coloured, so everything the Age
-        // does not cover — the band under the horizon and past the ring — needs the haze behind it.
-        graphics.fill(x, y, x + PANEL_WIDTH, y + PANEL_HEIGHT, PanelRenderer.haze)
-        PanelDistortion.draw(
-            graphics,
-            x, y, PANEL_WIDTH, PANEL_HEIGHT,
-            preview.shots.number,
-            preview.unsettled,
-        )
     }
 
     /** One page of writing, or nothing where the book has no such page. */
@@ -328,7 +321,7 @@ class BookScreen(
     private fun overPanel(mouseX: Double, mouseY: Double): Boolean {
         val x = (width - WIDTH) / 2 + panelAcrossTheBook()
         val y = (height - HEIGHT) / 2 + PANEL_Y
-        return mouseX >= x && mouseX <= x + PANEL_WIDTH && mouseY >= y && mouseY <= y + PANEL_HEIGHT
+        return mouseX >= x && mouseX <= x + PanelPicture.WIDTH && mouseY >= y && mouseY <= y + PanelPicture.HEIGHT
     }
 
     private fun overLeftPage(mouseX: Double, mouseY: Double): Boolean =
@@ -387,12 +380,8 @@ class BookScreen(
         const val WIDTH = 256
         const val HEIGHT = 180
 
-        /** Wider than it is tall, as the games depict a panel — about eight to five. */
-        const val PANEL_WIDTH = 104
-        const val PANEL_HEIGHT = 65
-
         /** Centred on the leaf, which the writing columns are not: they carry a book's wider outer margin. */
-        const val PANEL_X = (WIDTH / 2 - PANEL_WIDTH) / 2
+        const val PANEL_X = (WIDTH / 2 - PanelPicture.WIDTH) / 2
         const val PANEL_Y = 30
 
         /** Where each leaf's writing column begins, clear of the spine and the outer edge. */
@@ -428,8 +417,6 @@ class BookScreen(
         val INK = 0xFF2B2118.toInt()
         val FAINT_INK = 0xFF6B5C46.toInt()
 
-        /** Black until it can show the Age. */
-        val PANEL = 0xFF07070C.toInt()
         val PANEL_LIT = 0x18FFFFFF
 
         /** How long a panel may be empty before it admits to it. */

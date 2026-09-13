@@ -6,12 +6,13 @@ import co.voik.agesandtheart.book.LecternBookPlane
 import co.voik.agesandtheart.book.LecternBooks
 import co.voik.agesandtheart.book.LecternOpening
 import co.voik.agesandtheart.client.panel.LecternPanels
-import co.voik.agesandtheart.client.panel.LinkingPanel
+import co.voik.agesandtheart.client.panel.PanelComposite
+import co.voik.agesandtheart.client.panel.PanelPicture
 import co.voik.agesandtheart.client.panel.PanelRenderTypes
-import co.voik.agesandtheart.client.panel.PanelTexture
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
 import com.mojang.math.Axis
+import net.minecraft.client.Minecraft
 import net.minecraft.client.model.geom.ModelLayers
 import net.minecraft.client.model.`object`.book.BookModel
 import net.minecraft.client.renderer.SubmitNodeCollector
@@ -20,9 +21,9 @@ import net.minecraft.client.renderer.blockentity.EnchantTableRenderer
 import net.minecraft.client.renderer.blockentity.LecternRenderer
 import net.minecraft.client.renderer.blockentity.state.LecternRenderState
 import net.minecraft.client.renderer.feature.ModelFeatureRenderer
+import net.minecraft.client.renderer.rendertype.RenderType
 import net.minecraft.client.renderer.state.level.CameraRenderState
 import net.minecraft.client.renderer.texture.OverlayTexture
-import net.minecraft.util.ARGB
 import net.minecraft.world.level.block.entity.LecternBlockEntity
 import net.minecraft.world.phys.Vec3
 import kotlin.math.abs
@@ -37,7 +38,7 @@ class LecternBookRenderState : LecternRenderState() {
 
     var open: Boolean = false
 
-    /** Whether this is the lectern whose panel the client is showing — the one that may draw its Age. */
+    /** Whether this is the lectern whose panel the client is showing — the one that may show its Age. */
     var isTheShownOne: Boolean = false
 }
 
@@ -67,8 +68,15 @@ class LecternBookRenderer(context: BlockEntityRendererProvider.Context) : Lecter
         if (state !is LecternBookRenderState) return
         state.panelPage = LecternBooks.panelPageOf(lectern.book)
         state.open = LecternOpening.isOpen(lectern.blockState)
-        state.isTheShownOne = state.open && lectern.blockPos == LecternPanels.shown
-        if (state.isTheShownOne) LecternPanels.sawTheShownLectern()
+        state.isTheShownOne = false
+        if (state.panelPage == null || !state.open) return
+
+        // Only a lectern in the player's own world may show the Age. One inside an Age a panel is showing — even
+        // this very lectern, where a book lies on the spot its own panel frames — wears the mist, or the picture
+        // would be drawn into itself.
+        val inThePlayersWorld = lectern.level === Minecraft.getInstance().level
+        state.isTheShownOne = inThePlayersWorld && lectern.blockPos == LecternPanels.shown
+        if (state.isTheShownOne) LecternPanels.sawTheShownLectern() else LecternPanels.sawAMistedLectern()
     }
 
     override fun submit(
@@ -126,63 +134,55 @@ class LecternBookRenderer(context: BlockEntityRendererProvider.Context) : Lecter
     }
 
     /**
-     * The panel on its page: the Age, where this is the lectern being shown and its picture has come, under
-     * mist at the strength the ring is still missing — or mist alone, on every other.
+     * The panel on its page: one quad of its finished picture ([PanelComposite]), frame and all — the live one
+     * on the lectern being shown, the misted one on every other. The same picture a book screen shows.
      */
     private fun submitThePanel(state: LecternBookRenderState, poseStack: PoseStack, collector: SubmitNodeCollector) {
         val page = state.panelPage ?: return
-        val panel = LecternBookPlane.panelOn(page)
-        val showsTheAge = state.isTheShownOne && LecternPanels.hasAPicture
-        if (showsTheAge) {
-            PanelTexture.register()
-            collector.submitCustomGeometry(poseStack, PanelRenderTypes.picture) { pose, buffer ->
-                layOnThePage(panel, PICTURE_LIFT, pose, buffer, ARGB.color(OPAQUE, FULLY, FULLY, FULLY))
-            }
-        }
-        val mist = if (showsTheAge) 1.0f - wholeness() else WHOLLY_MISTED
-        if (mist <= 0.0f) return
-        val alpha = (mist.coerceAtMost(WHOLLY_MISTED) * FULLY).toInt()
-        collector.submitCustomGeometry(poseStack, PanelRenderTypes.mist) { pose, buffer ->
-            layOnThePage(panel, MIST_LIFT, pose, buffer, ARGB.color(alpha, FULLY, FULLY, FULLY))
+        val picture = pictureFor(state) ?: return
+        val framed = framed(LecternBookPlane.panelOn(page))
+        collector.submitCustomGeometry(poseStack, picture) { pose, buffer -> layOnThePage(framed, pose, buffer) }
+    }
+
+    /** Whichever picture this lectern shows, of those that have been laid down. */
+    private fun pictureFor(state: LecternBookRenderState): RenderType? {
+        val showsTheAge = state.isTheShownOne && PanelComposite.liveView() != null
+        return when {
+            showsTheAge -> PanelRenderTypes.livePicture
+            PanelComposite.mistedView() != null -> PanelRenderTypes.mistedPicture
+            else -> null
         }
     }
 
-    private fun wholeness(): Float = LinkingPanel.preview?.load?.wholeness ?: 0.0f
+    /** [panel] with the frame round it that the picture carries, at the panel's own scale. */
+    private fun framed(panel: BookRectangle): BookRectangle {
+        val pagePixel = (panel.across.endInclusive - panel.across.start) / PanelPicture.WIDTH
+        val frame = pagePixel * PanelPicture.FRAME_WIDTH
+        return BookRectangle(
+            across = (panel.across.start - frame)..(panel.across.endInclusive + frame),
+            up = (panel.up.start - frame)..(panel.up.endInclusive + frame),
+        )
+    }
 
     /**
      * [rectangle] laid on the page, the picture the right way up for the reader: its left edge on the
      * reader's left, which is `across`'s larger end, and its top up the page. V runs backwards because a
      * render target's origin is at its bottom.
      */
-    private fun layOnThePage(
-        rectangle: BookRectangle,
-        lift: Float,
-        pose: PoseStack.Pose,
-        buffer: VertexConsumer,
-        colour: Int,
-    ) {
+    private fun layOnThePage(rectangle: BookRectangle, pose: PoseStack.Pose, buffer: VertexConsumer) {
         val left = rectangle.across.endInclusive.toFloat()
         val right = rectangle.across.start.toFloat()
         val top = rectangle.up.endInclusive.toFloat()
         val bottom = rectangle.up.start.toFloat()
-        corner(pose, buffer, left, top, lift, 0.0f, 1.0f, colour)
-        corner(pose, buffer, left, bottom, lift, 0.0f, 0.0f, colour)
-        corner(pose, buffer, right, bottom, lift, 1.0f, 0.0f, colour)
-        corner(pose, buffer, right, top, lift, 1.0f, 1.0f, colour)
+        corner(pose, buffer, left, top, 0.0f, 1.0f)
+        corner(pose, buffer, left, bottom, 0.0f, 0.0f)
+        corner(pose, buffer, right, bottom, 1.0f, 0.0f)
+        corner(pose, buffer, right, top, 1.0f, 1.0f)
     }
 
     /** In the book's own frame: X stands off the page, Y runs up it, and Z toward the reader's left. */
-    private fun corner(
-        pose: PoseStack.Pose,
-        buffer: VertexConsumer,
-        across: Float,
-        up: Float,
-        lift: Float,
-        u: Float,
-        v: Float,
-        colour: Int,
-    ) {
-        buffer.addVertex(pose, pageSurfaceAt(across) + lift, up, across).setUv(u, v).setColor(colour)
+    private fun corner(pose: PoseStack.Pose, buffer: VertexConsumer, across: Float, up: Float, u: Float, v: Float) {
+        buffer.addVertex(pose, pageSurfaceAt(across) + PICTURE_LIFT, up, across).setUv(u, v).setColor(UNTINTED)
     }
 
     /**
@@ -217,9 +217,8 @@ class LecternBookRenderer(context: BlockEntityRendererProvider.Context) : Lecter
         val PAGE_AT_THE_SPINE: Float = (sin(OPENNESS) + LEAF_TOP_UNITS) / MODEL_UNITS_PER_BLOCK
         val PAGE_RISE: Float = cos(OPENNESS) / sin(OPENNESS)
 
-        /** Clear of the page, so the two never fight for the same depth; the mist clear of the picture. */
+        /** Clear of the page, so the two never fight for the same depth. */
         const val PICTURE_LIFT = 0.1f / MODEL_UNITS_PER_BLOCK
-        const val MIST_LIFT = 0.2f / MODEL_UNITS_PER_BLOCK
 
         /** The shut model stands straight out of the slope, and a quarter turn about its spine lays it down. */
         const val QUARTER_TURN = 90.0f
@@ -230,9 +229,6 @@ class LecternBookRenderer(context: BlockEntityRendererProvider.Context) : Lecter
         /** Slid by half its width, so a shut book sits centred rather than hanging off its spine. */
         const val SHUT_SHIFT_TOWARD_THE_LEFT = 3.0f / MODEL_UNITS_PER_BLOCK
 
-        const val WHOLLY_MISTED = 1.0f
-        const val OPAQUE = 255
-        const val FULLY = 255
         const val UNTINTED = -1
         const val NO_OUTLINE = 0
     }
