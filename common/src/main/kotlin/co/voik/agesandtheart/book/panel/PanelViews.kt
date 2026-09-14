@@ -57,16 +57,10 @@ object PanelViews {
     private val watching = mutableMapOf<UUID, Watch>()
 
     /**
-     * When each player last opened a panel, outliving the view it opened — one clock for a hand and another
-     * for a lectern.
-     *
-     * Opening generates up to [PanelRing.COUNT] chunks and a client decides when it happens. It cannot
-     * live on [Watch]: closing the book removes the watch, and a limit a close resets is not a limit. Two
-     * clocks because a hand outranks every lectern (§7.8.2): a lectern's panel taken up a moment ago must
-     * never refuse a book opened in a hand, whose client would then wait twenty seconds to ask again.
+     * How often each player may open a panel. It outlives the view it opened: closing the book removes the
+     * watch, and a limit a close resets is not a limit.
      */
-    private val openedOnTickInHand = mutableMapOf<UUID, Long>()
-    private val openedOnTickAtALectern = mutableMapOf<UUID, Long>()
+    private val pacing = PanelPacing(TICKS_BETWEEN_PANELS)
 
     /** And when each last asked again, for the same reason and by the same guard. */
     private val chasedOnTick = mutableMapOf<UUID, Long>()
@@ -81,9 +75,13 @@ object PanelViews {
      * the ring around where it would put them.
      */
     fun open(server: MinecraftServer, player: ServerPlayer, book: BookBeingRead) {
-        val clock = if (book is BookBeingRead.InHand) openedOnTickInHand else openedOnTickAtALectern
-        if (!allow(server, player, clock, TICKS_BETWEEN_PANELS)) return
-        close(server, player)
+        if (!pacing.admit(player.uuid, book, server.overworld().gameTime)) return
+        openAdmitted(server, player, book)
+    }
+
+    /** The open itself, once [pacing] has let it through — at once, or from [tick] when a held one comes due. */
+    private fun openAdmitted(server: MinecraftServer, player: ServerPlayer, book: BookBeingRead) {
+        closeWatchOf(server, player.uuid)
 
         val stack = when (book) {
             is BookBeingRead.InHand -> player.getItemInHand(book.hand)
@@ -160,24 +158,33 @@ object PanelViews {
         wanted.forEach { send(server, player, level, watch.centre, it) }
     }
 
-    /** Releases whatever [player] was looking at, if anything. Safe to call when there is nothing. */
-    fun close(server: MinecraftServer, player: ServerPlayer) = closeWatchOf(server, player.uuid)
+    /**
+     * Releases whatever [player] was looking at, and drops any open still held for them, since they have stopped
+     * wanting it. Safe to call when there is nothing.
+     */
+    fun close(server: MinecraftServer, player: ServerPlayer) {
+        pacing.cancel(player.uuid)
+        closeWatchOf(server, player.uuid)
+    }
 
     /** Called when a player leaves, since a client that crashed with a book open never says so. */
     fun forget(server: MinecraftServer, player: ServerPlayer) {
         close(server, player)
-        openedOnTickInHand.remove(player.uuid)
-        openedOnTickAtALectern.remove(player.uuid)
+        pacing.forget(player.uuid)
         chasedOnTick.remove(player.uuid)
     }
 
     /**
-     * Lets go of a lectern's panel whose viewer has walked away from it, or whose book has shut or gone.
+     * Opens whatever [pacing] was holding and now lets through, and lets go of a lectern's panel whose viewer
+     * has walked away from it or whose book has shut or gone.
      *
-     * The client lets go first and should always be the one to; this is for a client that does not, as
-     * [forget] is for one that crashed. A panel in a hand belongs to its screen and is left alone.
+     * The client lets go first and should always be the one to; the second half is for a client that does
+     * not, as [forget] is for one that crashed. A panel in a hand belongs to its screen and is left alone.
      */
     fun tick(server: MinecraftServer) {
+        for ((viewer, book) in pacing.due(server.overworld().gameTime)) {
+            server.playerList.getPlayer(viewer)?.let { openAdmitted(server, it, book) }
+        }
         if (watching.isEmpty()) return
         val leftBehind = watching.filter { (viewer, watch) -> isLeftBehind(server, viewer, watch) }.keys.toList()
         for (viewer in leftBehind) {

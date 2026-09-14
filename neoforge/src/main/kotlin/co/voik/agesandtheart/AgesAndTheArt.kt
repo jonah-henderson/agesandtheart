@@ -287,7 +287,7 @@ class AgesAndTheArt(eventBus: IEventBus, modContainer: ModContainer) {
         // And every charged machine anybody is standing near — every level, not only the Ages, since
         // crystal carried home through a book has to work where it is set down.
         ChargedMetal.stir(event.server)
-        // And a lectern's panel held by somebody who has walked away from it, for a client that never let go.
+        // And the linking panel's own beat: an open the pace was holding, and a lectern's panel its viewer has left.
         PanelViews.tick(event.server)
     }
 

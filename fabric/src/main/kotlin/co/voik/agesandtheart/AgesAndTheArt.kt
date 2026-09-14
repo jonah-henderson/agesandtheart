@@ -194,7 +194,7 @@ fun init() {
     // carried home through a book has to work where it is set down.
     ServerTickEvents.END_SERVER_TICK.register(ChargedMetal::stir)
 
-    // And a lectern's panel held by somebody who has walked away from it, for a client that never let go.
+    // And the linking panel's own beat: an open the pace was holding, and a lectern's panel its viewer has left.
     ServerTickEvents.END_SERVER_TICK.register(PanelViews::tick)
 
     // Where the wounds are. A wound carries no block entity, so the index is filled by reading each chunk
