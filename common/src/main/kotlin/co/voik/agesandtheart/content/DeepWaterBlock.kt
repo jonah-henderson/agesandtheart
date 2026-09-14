@@ -72,12 +72,14 @@ class DeepWaterBlock(fluid: FlowingFluid, properties: Properties) : LiquidBlock(
      * **`super` is deliberately NOT called, and that is the whole of how the abyss gets its own column.**
      * `LiquidBlock.tick` does exactly one thing — `updateColumn(Blocks.BUBBLE_COLUMN, …)` — so calling it
      * would raise a column made of ordinary water through the deep, taking the pressure and the fog out of
-     * whatever is standing in it. What replaces it is [DeepBubbleColumnBlock.raise], which raises ours and
-     * stops it at the abyss line. `DeepWater`'s own entry in `#minecraft:bubble_column_can_occupy` is what
-     * lets a column stand in the abyss at all.
+     * whatever is standing in it. What replaces it is [DeepBubbleColumnBlock.raise], which raises ours.
+     * Deep water is kept *off* `#minecraft:bubble_column_can_occupy`, so vanilla's column cannot climb into it
+     * from anywhere else; [DeepBubbleColumnBlock.raise] admits it itself.
      */
     override fun tick(state: BlockState, level: ServerLevel, pos: BlockPos, random: RandomSource) {
         DeepBubbleColumnBlock.raise(level, pos, state, level.getBlockState(pos.below()))
+        // A column raised here settles on its own tick, and settling this block would write water over it.
+        if (!level.getBlockState(pos).`is`(this)) return
         settle(state, level, pos)
     }
 
@@ -90,6 +92,9 @@ class DeepWaterBlock(fluid: FlowingFluid, properties: Properties) : LiquidBlock(
     override fun isRandomlyTicking(state: BlockState): Boolean = true
 
     override fun randomTick(state: BlockState, level: ServerLevel, pos: BlockPos, random: RandomSource) {
+        // Under rock only a change nearby can move the answer, and that schedules a tick of its own; searching
+        // under every roof at the random-tick rate would cost most where nothing has happened.
+        if (DeepWater.isUnderRock(level, pos)) return
         settle(state, level, pos)
     }
 
@@ -118,29 +123,6 @@ class DeepWaterBlock(fluid: FlowingFluid, properties: Properties) : LiquidBlock(
         for (side in Direction.entries) deepen(level, pos.relative(side))
     }
 
-    /**
-     * Take [at] into the abyss, whether it is still ordinary water or a block holding some.
-     *
-     * **Still water only.** Water falling or spreading through the deep stays ordinary: taking it in carries
-     * the deep up a falling tongue block by block until it reaches where the deep may not stand, which gives
-     * the water back, and the block below takes it in again — without end.
-     *
-     * **A block that holds the abyss does not tick**, being a stair rather than a fluid, so the spread
-     * reaches only what the abyss itself touches. That is enough for what changes at runtime — a stair
-     * placed in the deep, a wreck opened into — and generation's own sweep has already done the interiors
-     * (`DeepWater.settleTheAbyss`).
-     */
-    private fun deepen(level: ServerLevel, at: BlockPos) {
-        val state = level.getBlockState(at)
-        if (DeepWaterLogging.couldHold(state)) {
-            if (DeepWater.standsAt(level, at)) level.setBlockAndUpdate(at, DeepWaterLogging.holding(state))
-            return
-        }
-        val isStillWater = state.`is`(Blocks.WATER) && state.fluidState.isSource
-        if (!isStillWater || !DeepWater.standsAt(level, at)) return
-        level.setBlockAndUpdate(at, defaultBlockState())
-        level.scheduleTick(at, this, SETTLES_IN)
-    }
 
     /**
      * Give [at] its ordinary water back, where it was holding the abyss and the column above has opened.
@@ -187,8 +169,39 @@ class DeepWaterBlock(fluid: FlowingFluid, properties: Properties) : LiquidBlock(
         level.scheduleTick(pos, this, SETTLES_IN)
     }
 
-    private companion object {
+    companion object {
         /** One tick, which is "instantly" as far as anybody watching is concerned. */
-        const val SETTLES_IN = 1
+        private const val SETTLES_IN = 1
+
+        /**
+         * Take [at] into the abyss, whether it is still ordinary water, a block holding some, or the ordinary
+         * part of a whirlpool.
+         *
+         * **Still water only.** Water falling or spreading through the deep stays ordinary: taking it in carries
+         * the deep up a falling tongue block by block until it reaches where the deep may not stand, which gives
+         * the water back, and the block below takes it in again — without end.
+         *
+         * **A block that holds the abyss does not tick**, being a stair rather than a fluid, so the spread
+         * reaches only what the abyss itself touches. That is enough for what changes at runtime — a stair
+         * placed in the deep, a wreck opened into — and generation's own sweep has already done the interiors
+         * (`DeepWater.settleTheAbyss`).
+         *
+         * **A whirlpool is taken in like the water it holds**, and ticks to carry the spread on up and down
+         * itself: one raised through ordinary water before the abyss reached it would otherwise stand
+         * ordinary through the deep for good.
+         */
+        fun deepen(level: ServerLevel, at: BlockPos) {
+            val state = level.getBlockState(at)
+            if (DeepWaterLogging.couldHold(state)) {
+                if (DeepWater.standsAt(level, at)) level.setBlockAndUpdate(at, DeepWaterLogging.holding(state))
+                return
+            }
+            val deepWhirlpool = DeepBubbleColumnBlock.deepened(state)
+            val isStillWater = state.`is`(Blocks.WATER) && state.fluidState.isSource
+            val taken = deepWhirlpool ?: DeepWater.deepWater().takeIf { isStillWater } ?: return
+            if (!DeepWater.standsAt(level, at)) return
+            level.setBlockAndUpdate(at, taken)
+            level.scheduleTick(at, taken.block, SETTLES_IN)
+        }
     }
 }

@@ -31,6 +31,7 @@ import net.minecraft.world.level.NoiseColumn
 import net.minecraft.world.level.StructureManager
 import net.minecraft.world.level.biome.BiomeManager
 import net.minecraft.world.level.biome.BiomeSource
+import net.minecraft.world.level.biome.Biomes
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
@@ -264,6 +265,22 @@ class AgeChunkGenerator(
             .compute(DensityFunction.SinglePointContext(worldX, 0, worldZ)),
     ).toInt()
 
+    /** The surface the aquifer reads, which is the one vanilla's surface system reads — as vanilla's aquifer does. */
+    private fun surfaceForTheAquifer(): WaterTable.SurfaceAt = WaterTable.SurfaceAt(::preliminarySurfaceAt)
+
+    /**
+     * Whether a point lies in deep dark, which vanilla's aquifer never floods. Vanilla asks its erosion and
+     * depth; our depth is our own, so this asks the biome those two would have chosen.
+     */
+    private fun deepDarkIn(randomState: RandomState): WaterTable.DeepDarkAt = WaterTable.DeepDarkAt { worldX, worldY, worldZ ->
+        biomeSource.getNoiseBiome(
+            QuartPos.fromBlock(worldX),
+            QuartPos.fromBlock(worldY),
+            QuartPos.fromBlock(worldZ),
+            randomState.sampler(),
+        ).`is`(Biomes.DEEP_DARK)
+    }
+
     /**
      * What this Age's instability bought — **`var`, and volatile, because it can be rewritten under a
      * generator that already exists** (Jonah, 2026-08-09, walked: collapse reported a radius and generated
@@ -476,7 +493,7 @@ class AgeChunkGenerator(
         // it would move the position the fill is about to write to.
         val reach = BlockPos.MutableBlockPos()
         // One per chunk, because the object carries a column memo — the same reason carving mints its own.
-        val water = WaterTable.aquiferFor(tables, ours.field, ours.hollows, underground)
+        val water = WaterTable.aquiferFor(tables, ours.field, surfaceForTheAquifer(), deepDarkIn(randomState), underground)
 
         for (localX in 0..<16) {
             for (localZ in 0..<16) {
@@ -506,6 +523,7 @@ class AgeChunkGenerator(
                 for (y in window.minY..<window.topY) {
                     // The field decides, unless a structure standing here has an opinion of its own.
                     val isRock = adaptation?.verdictAt(worldX, y, worldZ) ?: spans.contains(y)
+                    val askedTheAquifer = !isRock && band.carried(at, y) == null && band.hollow(at, y)
                     val state = when {
                         // What the rock *is*, which is vanilla's `default_block` and now ours — the surface
                         // system paints its skin over this afterwards, exactly as it does for vanilla.
@@ -550,13 +568,18 @@ class AgeChunkGenerator(
                         continue
                     }
                     cursor.set(worldX, y, worldZ)
-                    // **A fluid with anywhere to go is asked to go there.** Where a channel drops faster
-                    // than its own surface does, the shape leaves water standing over a step or against a
-                    // wall of open air — and no arrangement of *levels* can fix that, because the gap is
-                    // where the water is moving. Marked for post-processing, vanilla gives the source its
-                    // first tick on load and it finds its own way down, which is a waterfall.
-                    val perched = nothingBelow || band.openBeside(localX, localZ, y)
-                    if (perched && !state.fluidState.isEmpty) chunk.markPosForPostprocessing(cursor)
+                    // Water the aquifer placed gets its first tick exactly where vanilla's would: where two of
+                    // its cells meet with different water. **Anything else with anywhere to go is asked to go
+                    // there.** Where a channel drops faster than its own surface does, the shape leaves water
+                    // standing over a step or against a wall of open air — and no arrangement of *levels* can
+                    // fix that, because the gap is where the water is moving. Marked for post-processing,
+                    // vanilla gives the source its first tick on load and it finds its own way down.
+                    val wantsToMove = if (askedTheAquifer) {
+                        water.shouldScheduleFluidUpdate()
+                    } else {
+                        nothingBelow || band.openBeside(localX, localZ, y)
+                    }
+                    if (wantsToMove && !state.fluidState.isEmpty) chunk.markPosForPostprocessing(cursor)
                     nothingBelow = false
                     chunk.setBlockState(cursor, state)
                     oceanFloor.update(localX, y, localZ, state)
@@ -987,7 +1010,7 @@ class AgeChunkGenerator(
         val carvingMask = protoChunk.getOrCreateCarvingMask()
         // Fresh per pass: it caches a column and tracks whether the water it just placed needs to
         // settle, so it must not be shared between chunk workers.
-        val aquifer = WaterTable.aquiferFor(tables, rock.field, rock.hollows, underground)
+        val aquifer = WaterTable.aquiferFor(tables, rock.field, surfaceForTheAquifer(), deepDarkIn(randomState), underground)
         // Seeded per *source* chunk rather than per target, so one cave system crosses chunk borders
         // identically however the chunks happen to be generated. The reach matches vanilla's.
         val random = WorldgenRandom(LegacyRandomSource(RandomSupport.generateUniqueSeed()))
@@ -1124,7 +1147,7 @@ class AgeChunkGenerator(
         // **The abyss is put right first, and before the early return below.** A structure brings its own
         // ordinary water — an ocean monument most of all — and vegetation grows in that water in this same
         // stage, so there is nowhere to stand between the two. See `DeepWater.settleTheAbyss`.
-        DeepWater.settleTheAbyss(chunk, abyssLine) { x, z -> abyssReachesAt(chunk, x, z) }
+        DeepWater.settleTheAbyss(level, chunk, abyssLine) { x, z -> abyssReachesAt(chunk, x, z) }
         val bought = consequence
         if (bought.isNothing) return
         // **The Age's age is read here rather than at open**, so a chunk generated after a week of worsening

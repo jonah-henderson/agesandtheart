@@ -5,6 +5,7 @@
   "mixins": [
     "BlockDefaultStateMixin",
     "BlockStateFluidMixin",
+    "BubbleColumnBlockMixin",
     "CarvedPumpkinBlockMixin",
     "DragonHoldingPatternMixin",
     "DragonPhaseAccessor",

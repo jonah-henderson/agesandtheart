@@ -10,6 +10,7 @@ import net.minecraft.core.registries.Registries
 import net.minecraft.resources.ResourceKey
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.tags.BlockTags
 import net.minecraft.tags.FluidTags
 import net.minecraft.tags.TagKey
 import net.minecraft.world.damagesource.DamageSource
@@ -32,6 +33,9 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.material.Fluid
 import net.minecraft.world.phys.AABB
+import it.unimi.dsi.fastutil.longs.LongArrayFIFOQueue
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet
+import kotlin.math.abs
 
 /**
  * The abyss, and the rules that decide where it may exist — design §7.1.2's deep-ocean material.
@@ -150,14 +154,89 @@ object DeepWater {
      */
     fun standsAt(level: LevelReader, pos: BlockPos): Boolean {
         val line = lineIn(level) ?: return false
+        return standsAt(level, pos, line)
+    }
+
+    /**
+     * [standsAt] against a line already known — which is how generation asks, its level being no `ServerLevel`.
+     *
+     * **Rock overhead is not the end of the question** (Jonah, walked 2026-09-14). An overhang, a shelf or a
+     * passage's roof kept the water under it deep right up to the rock, higher than the skin under air beside
+     * it, which outlined every one. So where rock stands within [DEPRESSURISED_UNDER_AIR] overhead, the water
+     * is followed to see whether the same pool's skin reaches here — [reachesTheSkin].
+     */
+    fun standsAt(level: LevelReader, pos: BlockPos, line: Int): Boolean {
         if (pos.y > line) return false
+        return when (overhead(level, pos.x, pos.y, pos.z)) {
+            Overhead.AIR -> false
+            Overhead.WATER -> true
+            Overhead.ROCK -> !reachesTheSkin(level, pos)
+        }
+    }
+
+    /** Whether rock stands within [DEPRESSURISED_UNDER_AIR] over [pos], which is where [standsAt] searches. */
+    fun isUnderRock(level: LevelReader, pos: BlockPos): Boolean = overhead(level, pos.x, pos.y, pos.z) == Overhead.ROCK
+
+    /** What the walk up from a block, through at most [DEPRESSURISED_UNDER_AIR] blocks of water, ends on. */
+    private enum class Overhead { AIR, WATER, ROCK }
+
+    private fun overhead(level: LevelReader, x: Int, y: Int, z: Int): Overhead {
         val at = BlockPos.MutableBlockPos()
         for (step in 1..DEPRESSURISED_UNDER_AIR) {
-            at.set(pos.x, pos.y + step, pos.z)
-            val overhead = level.getBlockState(at)
-            if (!overhead.fluidState.`is`(FluidTags.WATER)) return !overhead.isAir
+            at.set(x, y + step, z)
+            val above = level.getBlockState(at)
+            if (above.fluidState.`is`(FluidTags.WATER)) continue
+            return if (above.isAir) Overhead.AIR else Overhead.ROCK
         }
-        return true
+        return Overhead.WATER
+    }
+
+    /**
+     * Whether the water at [from], followed through water, comes out under air no more than
+     * [DEPRESSURISED_UNDER_AIR] above it — the pool's skin, seen from under a shelf or down a passage.
+     *
+     * A search rather than straight lines, which stopped at a passage's first bend or a step in its roof. It
+     * stays within [SKIN_BELOW] of [from]'s own layer and [SKIN_REACH] across, and the skin it finds must lie
+     * no more than [SKIN_BELOW] above the lowest water on the way — so a passage may dip under a sill, but not
+     * deeper than the skin itself. Highest water first, so it climbs before it spreads. Water three over
+     * [from] ends it as deep, since any surface beyond is further up than that; so does [SEARCHED_AT_MOST],
+     * since a sealed flooded cave is the abyss.
+     */
+    private fun reachesTheSkin(level: LevelReader, from: BlockPos): Boolean {
+        val lowest = from.y - SKIN_BELOW
+        val highest = from.y + SKIN_BELOW
+        // One queue per (lowest water on the way, height), taken best first.
+        val waiting = Array(SEARCH_QUEUES) { LongArrayFIFOQueue() }
+        val seen = LongOpenHashSet()
+        fun queueFor(lowestOnTheWay: Int, y: Int) = (from.y - lowestOnTheWay) * SKIN_LAYERS + (highest - y)
+        seen.add(from.asLong())
+        waiting[queueFor(from.y, from.y)].enqueue(from.asLong())
+        val at = BlockPos.MutableBlockPos()
+        repeat(SEARCHED_AT_MOST) {
+            val queue = waiting.indexOfFirst { !it.isEmpty }
+            if (queue < 0) return false
+            val packed = waiting[queue].dequeueLong()
+            val lowestOnTheWay = from.y - queue / SKIN_LAYERS
+            val x = BlockPos.getX(packed)
+            val y = BlockPos.getY(packed)
+            val z = BlockPos.getZ(packed)
+            val above = level.getBlockState(at.set(x, y + 1, z))
+            val isTheSkin = above.isAir && y - SKIN_BELOW <= lowestOnTheWay
+            if (isTheSkin) return true
+            val reachesTooHigh = y == highest && above.fluidState.`is`(FluidTags.WATER)
+            if (reachesTooHigh) return false
+            for (direction in Direction.entries) {
+                val nextX = x + direction.stepX
+                val nextY = y + direction.stepY
+                val nextZ = z + direction.stepZ
+                val isInReach = nextY in lowest..highest &&
+                    abs(nextX - from.x) <= SKIN_REACH && abs(nextZ - from.z) <= SKIN_REACH
+                if (!isInReach || !seen.add(BlockPos.asLong(nextX, nextY, nextZ))) continue
+                if (!level.getBlockState(at.set(nextX, nextY, nextZ)).fluidState.`is`(FluidTags.WATER)) continue
+                waiting[queueFor(minOf(lowestOnTheWay, nextY), nextY)].enqueue(BlockPos.asLong(nextX, nextY, nextZ))
+            }
+        }
+        return false
     }
 
     /**
@@ -166,6 +245,19 @@ object DeepWater {
      * Three, so a bell or a cave roof carries a visible skin of shallow water rather than a hard edge.
      */
     const val DEPRESSURISED_UNDER_AIR = 3
+
+    /** How far across the water is followed looking for the pool's skin. */
+    private const val SKIN_REACH = 16
+
+    /** How far under its surface block the skin runs, and so how far the search strays from a block's layer. */
+    private const val SKIN_BELOW = DEPRESSURISED_UNDER_AIR - 1
+
+    private const val SKIN_LAYERS = 2 * SKIN_BELOW + 1
+
+    private const val SEARCH_QUEUES = (SKIN_BELOW + 1) * SKIN_LAYERS
+
+    /** How much water the search reads before calling what it has not seen out of the abyss. */
+    private const val SEARCHED_AT_MOST = 256
 
     /** What the abyss will not carry — see `tags/block/kept_out_of_the_abyss.json`. */
     val KEPT_OUT: TagKey<Block> = TagKey.create(Registries.BLOCK, "kept_out_of_the_abyss".location())
@@ -190,8 +282,53 @@ object DeepWater {
      * `ChargedMetal`'s. A section of unbroken deep water holds neither ordinary water nor anything living,
      * so it is skipped whole.
      */
-    fun settleTheAbyss(chunk: ChunkAccess, line: Int, abyssReaches: (Int, Int) -> Boolean) {
+    fun settleTheAbyss(level: LevelReader, chunk: ChunkAccess, line: Int, abyssReaches: (Int, Int) -> Boolean) {
         if (line < chunk.minY) return
+        takeInTheAbyss(chunk, line, abyssReaches)
+        settleTheEdges(level, chunk, line)
+    }
+
+    /**
+     * The abyss's own edges, once it is in: deep water that could not stand where it lies — under an overhang
+     * whose layer opens to air beside it — goes back to ordinary, as the settling tick would take it, and deep
+     * water over a block that raises a bubble column is marked for its first tick, so the column rising there
+     * when the chunk loads is ours rather than vanilla's.
+     *
+     * Read through [level] rather than the chunk, since an overhang's layer can open to air in the chunk beside.
+     */
+    private fun settleTheEdges(level: LevelReader, chunk: ChunkAccess, line: Int) {
+        val top = minOf(line, chunk.maxY)
+        val deep = deepWater().block
+        val at = BlockPos.MutableBlockPos()
+        val below = BlockPos.MutableBlockPos()
+        val originX = chunk.pos.minBlockX
+        val originZ = chunk.pos.minBlockZ
+        for (index in chunk.getSectionIndex(chunk.minY)..chunk.getSectionIndex(top)) {
+            val section = chunk.getSection(index)
+            if (section.hasOnlyAir() || !section.maybeHas { it.`is`(deep) }) continue
+            val floor = chunk.getSectionYFromSectionIndex(index) shl SECTION_BITS
+            for (y in maxOf(floor, chunk.minY + 1)..minOf(floor + SECTION_TOP, top)) {
+                for (x in 0..SECTION_TOP) {
+                    for (z in 0..SECTION_TOP) {
+                        at.set(originX + x, y, originZ + z)
+                        val here = chunk.getBlockState(at)
+                        if (!here.`is`(deep) || !here.fluidState.isSource) continue
+                        if (!standsAt(level, at, line)) {
+                            chunk.setBlockState(at, Blocks.WATER.defaultBlockState())
+                            continue
+                        }
+                        val under = chunk.getBlockState(below.setWithOffset(at, Direction.DOWN))
+                        val raisesAColumn = under.`is`(BlockTags.ENABLES_BUBBLE_COLUMN_DRAG_DOWN) ||
+                            under.`is`(BlockTags.ENABLES_BUBBLE_COLUMN_PUSH_UP)
+                        if (raisesAColumn) chunk.markPosForPostprocessing(at)
+                    }
+                }
+            }
+        }
+    }
+
+    /** Ordinary water turned into abyss under [line], and the space inside a block that holds some. */
+    private fun takeInTheAbyss(chunk: ChunkAccess, line: Int, abyssReaches: (Int, Int) -> Boolean) {
         val top = minOf(line, chunk.maxY)
         val deep = deepWater()
         val at = BlockPos.MutableBlockPos()

@@ -1,0 +1,30 @@
+# Which biome the bottom of the world reads under a frozen ocean, which is the one icebergs and the
+# freezing of the sea's top layer are filtered on: their placement has no height modifier, so vanilla's
+# BiomeFilter tests the biome at the decoration origin, the world's minimum Y.
+# Run with: scripts/drive-server.sh scripts/checks/bottom-biomes.txt
+#
+# Vanilla's depth at y -64 is about 1.1 to 1.5, so a column under the sea still reads its ocean down there
+# unless the climate picks deep dark. Ours measures depth to the rock overhead over 128 blocks, so under a
+# seabed near y 40 it reads about 0.8 -- inside the cave biomes' span, where lush caves need only humidity.
+# If the bottom reads lush caves where the surface reads frozen ocean, icebergs and sea ice skip that column.
+age compose icehills 4242 landmass=hills sea=water rock=caves underground=noise_caves sky=plain climate.temperature=-1.0..-0.6
+execute in agesandtheart:icehills run forceload add -48 -48 -16 -16
+execute in agesandtheart:icehills run forceload add 48 16 80 48
+# Around the deep frozen ocean: the surface, then the bottom of the world.
+execute in agesandtheart:icehills if biome -32 62 -32 minecraft:deep_frozen_ocean
+execute in agesandtheart:icehills if biome -32 -64 -32 minecraft:deep_frozen_ocean
+execute in agesandtheart:icehills if biome -40 62 -40 minecraft:deep_frozen_ocean
+execute in agesandtheart:icehills if biome -40 -64 -40 minecraft:deep_frozen_ocean
+# Around the frozen ocean.
+execute in agesandtheart:icehills if biome 64 62 32 minecraft:frozen_ocean
+execute in agesandtheart:icehills if biome 64 -64 32 minecraft:frozen_ocean
+execute in agesandtheart:icehills if biome 72 62 24 minecraft:frozen_ocean
+execute in agesandtheart:icehills if biome 72 -64 24 minecraft:frozen_ocean
+execute in agesandtheart:icehills if biome 56 62 40 minecraft:frozen_ocean
+execute in agesandtheart:icehills if biome 56 -64 40 minecraft:frozen_ocean
+# And what the bottom is instead, where it is not the ocean.
+execute in agesandtheart:icehills if biome 64 -64 32 minecraft:lush_caves
+execute in agesandtheart:icehills if biome 64 -64 32 minecraft:deep_dark
+execute in agesandtheart:icehills if biome 64 -64 32 minecraft:dripstone_caves
+execute in agesandtheart:icehills if biome -32 -64 -32 minecraft:lush_caves
+execute in agesandtheart:icehills if biome -32 -64 -32 minecraft:deep_dark

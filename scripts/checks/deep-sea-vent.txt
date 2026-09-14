@@ -9,7 +9,7 @@
 # threshold -- a flat floor is what makes an abyss, not a low one. See `sea-depth.txt`.
 #
 # MEASURED 2026-09-12, seed 7, one vent placed at (2000, 2000) where the floor is y=29 under a sea at
-# y=134 -- so the abyss line is 54 and the whole 105-block column is open water:
+# y=134 -- its top water block at 133, so the abyss line is 53 -- and the whole 105-block column is open water:
 #
 #     deep_bubble_column  311    the whirlpool, filling the chamber and the bore to the chimney's mouth
 #     bubble_column         0    vanilla's, and it MUST be zero -- see the note by that line

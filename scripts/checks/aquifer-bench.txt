@@ -5,15 +5,17 @@
 # ONE RUN PER WORLD: a bench over chunks already generated times the cache. The warm-up Age is thrown away so
 # the JIT's first minutes land on neither measurement.
 #
-# **If a run prints nothing after its first command, run it again.** Some runs on 2026-09-14 answered every
-# command with "An unexpected error occurred" from the moment RCON came up, and the same file passed on the
-# next try -- with a client running and without one, first in a chain and second. No stack trace was kept:
-# vanilla logs one only when it believes it is running in an IDE. The first command is sent the instant RCON
-# is up, so a start-up race in the driver is the likelier suspect than anything a check asks.
+# Runs on 2026-09-14 that answered their first commands with "An unexpected error occurred" were the driver:
+# started in the same second the last run stopped, it believed the old log's "Done" line and sent commands to
+# a server with no level yet (the trace, with -DMC_DEBUG_ENABLED=true -DMC_DEBUG_VERBOSE_COMMAND_ERRORS=true,
+# was a null `getLevel()`). drive-server.sh now waits for a new log file rather than a new timestamp.
 #
 # MEASURED 2026-09-14 at stamp 44: vbase 79 ms/chunk, hbase 141 ms/chunk -- 1.78x vanilla, inside the 2x budget.
 # At stamp 45 -- jittered cells, a barrier up to three thick that reaches the floor, and a memo per column --
 # vbase 83, hbase 146: 1.77x, so the wider barrier costs nothing the memo does not pay back.
+# At stamp 52 -- vanilla's aquifer ported (49), the abyss's edges settled at generation (50..52) -- vbase 82,
+# hbase 172: 2.10x, at the budget. With the skin search under rock switched off, vbase 85 and hbase 172 again,
+# so the search costs nothing measurable and the rise since 45 lies in 46..51, most likely the port.
 age compose warmup 7 landmass=hills sea=water rock=caves underground=noise_caves sky=plain
 age bench warmup 3
 # Vanilla's rock, carvers and aquifer.

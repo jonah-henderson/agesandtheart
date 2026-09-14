@@ -191,11 +191,16 @@ await() {
     done
 }
 
-# The server rewrites latest.log at boot, so an old one left over from last time would otherwise
+# The server rolls latest.log over at boot, so an old one left over from last time would otherwise
 # answer for this run — hence waiting for the file itself to be new before believing anything in it.
+#
+# **New means a different file, not a later timestamp.** Modification times are whole seconds, so a run
+# started in the second the last one stopped believed the old log, found its "Done" line, and sent its
+# first commands into a server with no level yet — "An unexpected error occurred" for each, which read as
+# the commands being broken.
 await_startup() {
     local waited=0
-    until [[ -f $LOG && $(stat -c %Y "$LOG") -ge $started_at ]]; do
+    until [[ -f $LOG && $(stat -c %i "$LOG") != "$previous_log" ]]; do
         sleep "$POLL_SECONDS"
         waited=$((waited + POLL_SECONDS))
         ((waited < STARTUP_TIMEOUT_SECONDS)) || fail "the server never wrote a fresh log"
@@ -242,7 +247,7 @@ main() {
     fi
 
     use_throwaway_world
-    started_at=$(date +%s)
+    previous_log=$(stat -c %i "$LOG" 2> /dev/null || true)
 
     # Process substitution rather than a pipe, so a failing gradle run is this script's exit status.
     "$REPOSITORY/gradlew" :fabric:runServer --console=plain < <(drive)

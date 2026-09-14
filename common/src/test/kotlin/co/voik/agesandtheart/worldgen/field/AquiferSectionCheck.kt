@@ -40,7 +40,7 @@ class AquiferSectionCheck : FunSpec({
     val table by lazy { WaterTable.matching(SeaFill.of(Blocks.WATER.defaultBlockState(), SEA_LEVEL), SEA_LEVEL, SEED) }
 
     /** As the generator asks it: the carved rock, and the rock before the caves were cut. */
-    fun aquifer(): Aquifer = table.aquiferFor(ground.shape, uncut)
+    fun aquifer(): Aquifer = table.aquiferFor(ground.shape, WaterTable.surfaceOf(ground.shape, uncut))
 
     /** As it was asked before stamp 43, judging the sea from the carved rock alone. */
     fun carvedOnlyAquifer(): Aquifer = table.aquiferFor(ground.shape)
@@ -167,11 +167,7 @@ class AquiferSectionCheck : FunSpec({
         }
     }
 
-    // The noise the thresholds are read against, rebuilt as `WaterTable.matching` builds it, so the inputs
-    // of each room's level can be printed rather than inferred.
-    val floodedness by lazy { fieldNoise(SEED, -3, listOf(1.0, 1.0)) }
-
-    /** **Every room in a column**, with the band its floor puts it in and the noise at that floor. */
+    /** **Every room in a column**, with the forty-block band its floor sits in. */
     fun printRooms(worldX: Int, worldZ: Int) {
         val carved = ground.shape.columnSpans(worldX, worldZ)
         val uncutTop = uncut.columnSpans(worldX, worldZ).highestSolidY
@@ -187,12 +183,7 @@ class AquiferSectionCheck : FunSpec({
             val roomFloor = ranges[index].last + 1
             val ceiling = ranges.getOrNull(index + 1)?.first
             if (!isHollow(worldX, roomFloor, worldZ)) continue
-            val band = Math.floorDiv(roomFloor, 40)
-            val wetness = floodedness.getValue(worldX / 96.0, roomFloor / 64.0, worldZ / 96.0).coerceIn(-1.0, 1.0)
-            println(
-                "      room ${roomFloor}..${(ceiling ?: surface + 1) - 1}  band $band" +
-                    "  wetness at floor ${"%+.3f".format(wetness)}  (sea > 0.8, perched > 0.4 under land)",
-            )
+            println("      room ${roomFloor}..${(ceiling ?: surface + 1) - 1}  band ${Math.floorDiv(roomFloor, 40)}")
         }
     }
 

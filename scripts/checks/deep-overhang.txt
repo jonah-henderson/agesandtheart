@@ -1,0 +1,99 @@
+# Deep water under an overhang, a shelf or a passage's roof, and bubble columns crossing the abyss's edge --
+# walked 2026-09-14.
+# Run with: scripts/drive-server.sh scripts/checks/deep-overhang.txt
+#
+# A pool built inside the abyss of `isle landmass deep water sea` at seed 7, where the line is 53: a stone
+# block from y 30 to 50 with a cavity from 35 to 45, deep water from 35 to 40, a stone overhang at y 41
+# over the west half, lying on the water, and a stone shelf at y 39 inside the water of the east half. The
+# east half is open to air.
+#
+# THE OVERHANG. Air over water takes the pressure out of the three blocks under it, so on the east y 38..40
+# are ordinary. On the west the walk up hits rock rather than air, and deep water used to stand right up to
+# it -- an outline three blocks higher than the rest. MUST read: no deep water in the west's top three
+# layers; deep water below them on both sides.
+#
+# THE SHELF, at x 2001..2003, z 2003..2007. Walked at stamp 50 in w6 around (178, -26, 70). MUST read: the
+# layer under the shelf (y 38) ordinary, as the skin beside it is; y 35..37 under it deep.
+#
+# THE PASSAGE, walked at stamp 51 in w6 around (247, -26, 147): a second pool at x 2030..2034, z 1998..2006,
+# open to air, with a one-wide passage leading off it under a stone roof at y 41 -- east along z 2002 to x
+# 2038, then south to z 2008 -- and a stone sill at the passage's mouth at y 40, so its top layer reaches
+# the pool only by dipping under the sill. Straight lines stopped at the bend and the sill. MUST read: the
+# passage's y 38..40 all ordinary (11 east, the sill taking one, and 18 south); y 35..37 all deep.
+#
+# THE COLUMNS. A column must run on across the abyss's edge, each block the kind of water it stands in.
+# Magma goes down only once the pools have settled, so the columns rise through settled water.
+#   (2004, 2000), east under air: MUST read deep at y 35..37, ordinary at 38..40.
+#   (2006, 2005), with its foot handed to vanilla -- a vanilla column put in at y 35, then the magma under
+#   it taken away and put back so that it ticks. Vanilla's column must be taken over, and the ordinary foot
+#   it leaves, standing in the deep, taken in. MUST read deep at 35..37, ordinary at 38..40.
+#   (2006, 2001), a stale column: ordinary from top to bottom, put in over the magma through the deep, as
+#   one raised before the abyss reached it stood at stamp 51 in w6 around (234, -38, 127). MUST read deep at
+#   35..37, ordinary at 38..40.
+#   And no minecraft:bubble_column anywhere.
+#
+# THE COUNTS run with random ticks off and `strict`, so a fill that takes away what it counts wakes nothing
+# and leaves every later count reading what the pools settled to.
+age write overhang 7 age isle landmass deep water sea
+execute in agesandtheart:overhang run forceload add 1984 1984 2047 2015
+execute in agesandtheart:overhang run fill 1990 30 1990 2010 50 2010 minecraft:stone
+execute in agesandtheart:overhang run fill 1993 35 1993 2007 45 2007 minecraft:air
+execute in agesandtheart:overhang run fill 1993 35 1993 2007 40 2007 agesandtheart:deep_water
+execute in agesandtheart:overhang run fill 1993 41 1993 1999 41 2007 minecraft:stone
+execute in agesandtheart:overhang run fill 2001 39 2003 2003 39 2007 minecraft:stone
+execute in agesandtheart:overhang run fill 2028 30 1996 2044 50 2010 minecraft:stone
+execute in agesandtheart:overhang run fill 2030 35 1998 2034 45 2006 minecraft:air
+execute in agesandtheart:overhang run fill 2030 35 1998 2034 40 2006 agesandtheart:deep_water
+execute in agesandtheart:overhang run fill 2035 35 2002 2038 40 2002 agesandtheart:deep_water
+execute in agesandtheart:overhang run fill 2038 35 2003 2038 40 2008 agesandtheart:deep_water
+execute in agesandtheart:overhang run setblock 2035 40 2002 minecraft:stone
+# The settling ticks are scheduled a tick or a few out; the fillers are what the driver's wait is for.
+age list
+age list
+age list
+age list
+execute in agesandtheart:overhang run setblock 2004 34 2000 minecraft:magma_block
+execute in agesandtheart:overhang run setblock 2006 34 2005 minecraft:magma_block
+execute in agesandtheart:overhang run setblock 2006 34 2001 minecraft:magma_block
+age list
+age list
+age list
+age list
+execute in agesandtheart:overhang run setblock 2006 35 2005 minecraft:bubble_column[drag_down=true]
+execute in agesandtheart:overhang run setblock 2006 34 2005 minecraft:stone
+execute in agesandtheart:overhang run setblock 2006 34 2005 minecraft:magma_block
+execute in agesandtheart:overhang run fill 2006 35 2001 2006 40 2001 agesandtheart:deep_bubble_column[deep=false,drag_down=true]
+age list
+age list
+age list
+age list
+gamerule random_tick_speed 0
+# The west, under the overhang: its top three layers, then the three below them.
+execute in agesandtheart:overhang run fill 1993 38 1993 1999 40 2007 minecraft:air replace agesandtheart:deep_water strict
+execute in agesandtheart:overhang run fill 1993 38 1993 1999 40 2007 minecraft:air replace minecraft:water strict
+execute in agesandtheart:overhang run fill 1993 35 1993 1999 37 2007 minecraft:air replace agesandtheart:deep_water strict
+# The east, under air, clear of the columns and the shelf: the same.
+execute in agesandtheart:overhang run fill 2000 38 1993 2007 40 1998 minecraft:air replace agesandtheart:deep_water strict
+execute in agesandtheart:overhang run fill 2000 38 1993 2007 40 1998 minecraft:air replace minecraft:water strict
+execute in agesandtheart:overhang run fill 2000 35 1993 2007 37 1998 minecraft:air replace agesandtheart:deep_water strict
+# Under the shelf: the layer under it (15 blocks), then the three below it (45).
+execute in agesandtheart:overhang run fill 2001 38 2003 2003 38 2007 minecraft:air replace agesandtheart:deep_water strict
+execute in agesandtheart:overhang run fill 2001 38 2003 2003 38 2007 minecraft:air replace minecraft:water strict
+execute in agesandtheart:overhang run fill 2001 35 2003 2003 37 2007 minecraft:air replace agesandtheart:deep_water strict
+# The passage: the east leg's top three layers (11) and the south leg's (18), then both below (12 and 18).
+execute in agesandtheart:overhang run fill 2035 38 2002 2038 40 2002 minecraft:air replace agesandtheart:deep_water strict
+execute in agesandtheart:overhang run fill 2035 38 2002 2038 40 2002 minecraft:air replace minecraft:water strict
+execute in agesandtheart:overhang run fill 2038 38 2003 2038 40 2008 minecraft:air replace agesandtheart:deep_water strict
+execute in agesandtheart:overhang run fill 2038 38 2003 2038 40 2008 minecraft:air replace minecraft:water strict
+execute in agesandtheart:overhang run fill 2035 35 2002 2038 37 2002 minecraft:air replace agesandtheart:deep_water strict
+execute in agesandtheart:overhang run fill 2038 35 2003 2038 37 2008 minecraft:air replace agesandtheart:deep_water strict
+# The three columns, each: vanilla's (none), deep (3), ordinary (3).
+execute in agesandtheart:overhang run fill 2004 35 2000 2004 45 2000 minecraft:air replace minecraft:bubble_column strict
+execute in agesandtheart:overhang run fill 2004 35 2000 2004 45 2000 minecraft:air replace agesandtheart:deep_bubble_column[deep=true] strict
+execute in agesandtheart:overhang run fill 2004 35 2000 2004 45 2000 minecraft:air replace agesandtheart:deep_bubble_column[deep=false] strict
+execute in agesandtheart:overhang run fill 2006 35 2005 2006 45 2005 minecraft:air replace minecraft:bubble_column strict
+execute in agesandtheart:overhang run fill 2006 35 2005 2006 45 2005 minecraft:air replace agesandtheart:deep_bubble_column[deep=true] strict
+execute in agesandtheart:overhang run fill 2006 35 2005 2006 45 2005 minecraft:air replace agesandtheart:deep_bubble_column[deep=false] strict
+execute in agesandtheart:overhang run fill 2006 35 2001 2006 45 2001 minecraft:air replace minecraft:bubble_column strict
+execute in agesandtheart:overhang run fill 2006 35 2001 2006 45 2001 minecraft:air replace agesandtheart:deep_bubble_column[deep=true] strict
+execute in agesandtheart:overhang run fill 2006 35 2001 2006 45 2001 minecraft:air replace agesandtheart:deep_bubble_column[deep=false] strict
