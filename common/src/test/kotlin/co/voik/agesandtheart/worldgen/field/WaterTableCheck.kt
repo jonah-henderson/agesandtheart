@@ -73,11 +73,10 @@ class WaterTableCheck : FunSpec({
      * moves the wet/dry boundary from a noise contour onto a cell lattice; it does not remove it, because
      * the *decision* is binary either way.
      *
-     * What removes it in vanilla is the half not ported: where two nearby cells disagree, vanilla places a
-     * **barrier of rock** between them, so a walk never sees water meeting air at a face — it sees stone.
-     * Our fill has no way to say that from this branch, a null answer there meaning air rather than rock.
-     *
-     * So this asserts only that no curtain runs the *whole height* of a room, and prints the rest.
+     * What removes it in vanilla, and here, is a **barrier of rock**: where two neighbours disagree, the dry
+     * one keeps its rock, so a walk never sees water meeting air at a face — it sees stone. That is the test
+     * below this one. This reads the wet verdict, which the barrier leaves alone, so it asserts only that no
+     * curtain runs the *whole height* of a room, and prints the rest.
      */
     test("water in one room has no sheer faces across it") {
         val roof = 40
@@ -113,6 +112,43 @@ class WaterTableCheck : FunSpec({
             "the water's surface steps by $worst blocks between two neighbouring columns of a room only " +
                 "${roof - floor} tall, which is a curtain of water standing the whole height of it"
         }
+    }
+
+    /**
+     * **Water never stands against open air at its own height.** Where two neighbouring columns disagree
+     * about how high the water stands, the dry one answers null — vanilla's barrier between two of its
+     * aquifer cells — and the fill and the carvers both leave the rock there.
+     */
+    test("water beside a dry neighbour is held by rock, not by air") {
+        val roof = 40
+        val floor = 10
+        val room = Box(minX = -300, minY = floor, minZ = -300, maxX = 300, maxY = roof, maxZ = 300)
+        val shape = Subtract(Box(minX = -300, minY = -64, minZ = -300, maxX = 300, maxY = 90, maxZ = 300), room)
+        val aquifer = tableOver(shape).aquiferFor(shape)
+
+        fun answerAt(worldX: Int, worldY: Int, worldZ: Int) =
+            aquifer.computeSubstance(DensityFunction.SinglePointContext(worldX, worldY, worldZ), -1.0)
+
+        var barriers = 0
+        var faces = 0
+        for (worldZ in -280..280 step 53) {
+            for (worldX in -280..280) {
+                for (worldY in floor..roof) {
+                    val here = answerAt(worldX, worldY, worldZ) ?: continue
+                    if (here.fluidState.isEmpty) continue
+                    for (besideX in listOf(worldX - 1, worldX + 1)) {
+                        val beside = answerAt(besideX, worldY, worldZ)
+                        when {
+                            beside == null -> barriers++
+                            beside.isAir -> faces++
+                        }
+                    }
+                }
+            }
+        }
+        println("  $barriers blocks of barrier hold water in; $faces faces of water stand against open air")
+        check(barriers > 0) { "no neighbours disagreed anywhere in this room, so this proves nothing" }
+        check(faces == 0) { "$faces blocks of water stand beside open air at their own height, with no rock between" }
     }
 
     /**

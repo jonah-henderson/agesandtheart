@@ -467,7 +467,7 @@ class AgeChunkGenerator(
         // it would move the position the fill is about to write to.
         val reach = BlockPos.MutableBlockPos()
         // One per chunk, because the object carries a column memo — the same reason carving mints its own.
-        val water = WaterTable.aquiferFor(tables, ours.field, underground)
+        val water = WaterTable.aquiferFor(tables, ours.field, ours.hollows, underground)
 
         for (localX in 0..<16) {
             for (localZ in 0..<16) {
@@ -692,8 +692,11 @@ class AgeChunkGenerator(
         worldX: Int,
         worldZ: Int,
     ): BlockState? {
+        // Null is the aquifer's own barrier between two levels of water, and the rock stays — as it does for
+        // a carver handed the same answer.
+        if (answer == null) return fill.blockAt(worldX, y, worldZ)
         // The aquifer put something here, so there is nothing to hold back.
-        if (answer != null && !answer.isAir) return answer
+        if (!answer.isAir) return answer
         if (!band.seaTouching(localX, localZ, y)) return answer
         return fill.blockAt(worldX, y, worldZ)
     }
@@ -975,7 +978,7 @@ class AgeChunkGenerator(
         val carvingMask = protoChunk.getOrCreateCarvingMask()
         // Fresh per pass: it caches a column and tracks whether the water it just placed needs to
         // settle, so it must not be shared between chunk workers.
-        val aquifer = WaterTable.aquiferFor(tables, rock.field, underground)
+        val aquifer = WaterTable.aquiferFor(tables, rock.field, rock.hollows, underground)
         // Seeded per *source* chunk rather than per target, so one cave system crosses chunk borders
         // identically however the chunks happen to be generated. The reach matches vanilla's.
         val random = WorldgenRandom(LegacyRandomSource(RandomSupport.generateUniqueSeed()))

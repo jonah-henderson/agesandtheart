@@ -1,0 +1,29 @@
+# W6c: the pool Jonah walked around (1, -47) in `age hills landmass` at seed 4242, stamp 43 -- water at one
+# level, mounds of water along its edge, and a long drop on the far side.
+# Run with: scripts/drive-server.sh scripts/checks/hills-edge.txt
+#
+# MEASURED at stamp 43: x=4..10 water y 40..63, x=0..2 dry air over floors at 37..38 -- a 24-block face.
+# MEASURED at stamp 44: x=4..10 water y 40..62, and x=0..2 a dam -- stone from y 40 to 58, dirt 59..61, grass
+# at 62 -- standing a block or two of air above the grassed slope beneath it.
+age write w6b 4242 age hills landmass
+# Across x at z=-47.
+age probe w6b -8 -47
+age probe w6b -6 -47
+age probe w6b -4 -47
+age probe w6b -2 -47
+age probe w6b 0 -47
+age probe w6b 1 -47
+age probe w6b 2 -47
+age probe w6b 4 -47
+age probe w6b 6 -47
+age probe w6b 8 -47
+age probe w6b 10 -47
+# Across z at x=1.
+age probe w6b 1 -55
+age probe w6b 1 -53
+age probe w6b 1 -51
+age probe w6b 1 -49
+age probe w6b 1 -45
+age probe w6b 1 -43
+age probe w6b 1 -41
+age probe w6b 1 -39

@@ -720,7 +720,7 @@ object AgeGeneration {
      * `hills` Age would raise the same hills; and two territories of the same preset in one Age would be
      * identical, leaving nothing for a seam to divide.
      */
-    private fun saltFor(seed: Long, member: Int): Long = seed * TERRITORY_SALT_STRIDE + member
+    internal fun saltFor(seed: Long, member: Int): Long = seed * TERRITORY_SALT_STRIDE + member
 
     /** Odd and large, so consecutive members land far apart in the noise rather than adjacent. */
     private val TERRITORY_SALT_STRIDE = 0x9E37_79B9_7F4A_7C15uL.toLong()

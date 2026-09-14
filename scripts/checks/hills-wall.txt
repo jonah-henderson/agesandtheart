@@ -1,0 +1,28 @@
+# W6: what stands either side of the wall of water walked on 2026-09-13, in `age hills landmass` at seed
+# 4242. Run with: scripts/drive-server.sh scripts/checks/hills-wall.txt
+#
+# `age probe` prints what the fields intend and then what actually stands in the column, as runs. The
+# carvers run after the fields, so the second half is the one a walk sees. A wall is a run of water in one
+# column beside a run of air at the same heights in the next.
+#
+# The wall is between x=-21 and x=-20 at z=-20: a cave from y 10 to 81 that breaks through to the sky at
+# x <= -21 and keeps one block of roof, at y 82, from x=-20 on. MEASURED at stamp 42: water y 10..62 on the
+# open side against y 10..23 on the roofed one. MEASURED at stamp 43: y 10..23 on both sides; at stamp 44,
+# with the nudge stepped by three, y 10..22 on both sides.
+# AquiferSectionCheck draws the same section offline, with the terrain salted as a real Age salts it.
+age write w6b 4242 age hills landmass
+age probe w6b -24 -20
+age probe w6b -23 -20
+age probe w6b -22 -20
+age probe w6b -21 -20
+age probe w6b -20 -20
+age probe w6b -19 -20
+age probe w6b -18 -20
+age probe w6b -17 -20
+age probe w6b -16 -20
+# The step that is left, walk item W6b. MEASURED at stamp 43: x=-36 stands on rock to y 46, which puts its
+# floor in the next forty-block band, and holds water y 47..63 under a roof at 69; x=-35 stands on rock to
+# y 26, above its own band's level of 23, and is open air y 27..71. A 17-block face in one cave.
+age probe w6b -37 -20
+age probe w6b -36 -20
+age probe w6b -35 -20

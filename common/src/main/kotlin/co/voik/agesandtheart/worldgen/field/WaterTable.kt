@@ -3,12 +3,13 @@ package co.voik.agesandtheart.worldgen.field
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
+import net.minecraft.util.Mth
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.Aquifer
 import net.minecraft.world.level.levelgen.DensityFunction
 import java.lang.Math.floorDiv
-import kotlin.math.roundToInt
 
 /**
  * Whether a hollow opened underground is flooded or dry — an Age's aquifer, mirroring the shape of
@@ -62,8 +63,12 @@ data class WaterTable(
     private val acrossStretch = horizontalScale.coerceAtLeast(SMALLEST_STRETCH)
     private val downStretch = verticalScale.coerceAtLeast(SMALLEST_STRETCH)
 
-    /** A fresh aquifer for one carving pass; caches the column, whose surface is the costly part. */
-    fun aquiferFor(field: TerrainField): Aquifer = ColumnAquifer(field)
+    /**
+     * A fresh aquifer for one carving pass; caches the column, whose surface is the costly part.
+     *
+     * [uncut] is the rock as it stood before its caves were cut, where the shape cut any — see [readColumn].
+     */
+    fun aquiferFor(field: TerrainField, uncut: TerrainField? = null): Aquifer = ColumnAquifer(field, uncut)
 
     /**
      * One aquifer per territory, asked whichever owns the column being carved.
@@ -85,27 +90,11 @@ data class WaterTable(
         override fun shouldScheduleFluidUpdate(): Boolean = lastAsked.shouldScheduleFluidUpdate()
     }
 
-    private inner class ColumnAquifer(private val field: TerrainField) : Aquifer {
+    private inner class ColumnAquifer(private val field: TerrainField, private val uncut: TerrainField?) : Aquifer {
         private var placedFluid = false
-        private var columnX = Int.MIN_VALUE
-        private var columnZ = Int.MIN_VALUE
-        private var columnSurface = 0
-        private var columnSubmerged = false
 
-        /**
-         * What water stands over this column — the sea, or higher where the shape carries its own.
-         *
-         * **The level has to travel with the branch.** Deciding that a river bed is submerged and then
-         * answering with the *sea's* height leaves every block between the two dry, which is the same hole
-         * by a longer road.
-         */
-        private var columnWaterY = 0
-
-        /** Where this column's own water actually stands, rather than how high it reaches — see below. */
-        private var columnStanding: Spans? = null
-
-        /** And where each body of something else stands, in [carried]'s own order. */
-        private var columnCarried: List<Spans> = emptyList()
+        /** Every column this pass has read: the barrier asks about the columns beside the one being opened. */
+        private val columns = Long2ObjectOpenHashMap<Column>()
 
         override fun computeSubstance(context: DensityFunction.FunctionContext, substance: Double): BlockState? {
             // Positive means solid: nothing is being removed here, so the block stands as it is.
@@ -113,30 +102,54 @@ data class WaterTable(
             val worldX = context.blockX()
             val worldY = context.blockY()
             val worldZ = context.blockZ()
-            readColumn(worldX, worldZ)
+            val here = substanceAt(worldX, worldY, worldZ)
+            // **Vanilla's barrier between two levels of water**: a block left dry beside water standing at its
+            // height keeps its rock, so where a pool's level steps from one column to the next — a cave floor
+            // crossing a multiple of [PERCHED_BAND], or the noise crossing a threshold — the water is held by
+            // stone rather than standing against open air. Null is what both the fill and a carver read as
+            // "leave the rock".
+            val heldBack = if (here.isAir) waterBeside(worldX, worldY, worldZ) else footsABarrier(worldX, worldY, worldZ)
+            placedFluid = !here.isAir && !heldBack
+            return if (heldBack) null else here
+        }
 
+        /**
+         * Whether this wet block carries a barrier down into its own pool: the water here gives way to air
+         * within [BARRIER_FOOTING] blocks, and water beside that air stands higher. Vanilla takes its barrier
+         * the same distance below the lower of two levels, so a step between two pools is a wall standing in
+         * the lower one rather than a lip of stone resting on its surface.
+         */
+        private fun footsABarrier(worldX: Int, worldY: Int, worldZ: Int): Boolean {
+            val rock = columnAt(worldX, worldZ).rock
+            for (above in worldY + 1..worldY + BARRIER_FOOTING) {
+                // A roof over the water holds it in by itself.
+                if (rock.contains(above)) return false
+                if (!holdsFluid(worldX, above, worldZ)) return waterBeside(worldX, above, worldZ)
+            }
+            return false
+        }
+
+        private fun waterBeside(worldX: Int, worldY: Int, worldZ: Int): Boolean =
+            holdsFluid(worldX - 1, worldY, worldZ) || holdsFluid(worldX + 1, worldY, worldZ) ||
+                holdsFluid(worldX, worldY, worldZ - 1) || holdsFluid(worldX, worldY, worldZ + 1)
+
+        private fun holdsFluid(worldX: Int, worldY: Int, worldZ: Int): Boolean = !substanceAt(worldX, worldY, worldZ).isAir
+
+        /** What a block opened here would hold before any barrier: a fluid, or air. */
+        private fun substanceAt(worldX: Int, worldY: Int, worldZ: Int): BlockState {
+            val column = columnAt(worldX, worldZ)
             // **Water the shape poured is water, and no threshold gets a vote.** A carver cutting into a
             // river or into a chamber's lake must find it: this is a body of water somebody can see, not
             // groundwater to be judged wet or dry by a noise. It was read as a *level* alone, which meant
             // a lake deep under a roofed world was still put to the deep thresholds — where dry is the
             // common case — and most tunnels into one came out as air, leaving holes through the lake.
             // A body made of something else answers first, and answers with what it is made of.
-            for (index in columnCarried.indices) {
-                if (!columnCarried[index].contains(worldY)) continue
-                placedFluid = true
-                return carried[index].fluid
+            for (index in column.carriedSpans.indices) {
+                if (column.carriedSpans[index].contains(worldY)) return carried[index].fluid
             }
-            if (columnStanding?.contains(worldY) == true) {
-                placedFluid = true
-                return fluid
-            }
+            if (column.standingSpans?.contains(worldY) == true) return fluid
             val wetness = wetnessAt(worldX, worldY, worldZ)
-            if (worldY < standingLevel(worldX, worldY, worldZ, wetness)) {
-                placedFluid = true
-                return fluid
-            }
-            placedFluid = false
-            return AIR
+            return if (worldY < standingLevel(column, worldX, worldY, worldZ, wetness)) fluid else AIR
         }
 
         /** How flooded this point's rock is, on the noise the thresholds are read against. */
@@ -149,26 +162,24 @@ data class WaterTable(
          * surface, falling to 0 [dryingDepth] blocks down. Land columns start at 0, so rock under a hill is
          * judged by the deep thresholds straight away.
          */
-        private fun nearnessAt(worldY: Int): Double = if (columnSubmerged) {
-            val depth = (columnSurface + surfaceMargin - worldY).toDouble()
+        private fun nearnessAt(column: Column, worldY: Int): Double = if (column.isSubmerged) {
+            val depth = (column.surface + surfaceMargin - worldY).toDouble()
             (1.0 - depth / dryingDepth).coerceIn(0.0, 1.0)
         } else {
             0.0
         }
 
-        private fun standingLevel(worldX: Int, worldY: Int, worldZ: Int, wetness: Double): Int {
+        private fun standingLevel(column: Column, worldX: Int, worldY: Int, worldZ: Int, wetness: Double): Int {
             // No thresholds to consult: a flooded table says the same thing everywhere.
-            if (floods) return columnWaterY
-            val nearness = nearnessAt(worldY)
+            if (floods) return column.waterY
+            val nearness = nearnessAt(column, worldY)
             return when {
-                wetness > slide(nearness, SEA_WHEN_SHALLOW, SEA_WHEN_DEEP) -> columnWaterY
-                wetness > slide(nearness, PERCHED_WHEN_SHALLOW, PERCHED_WHEN_DEEP) -> perchedLevel(worldX, worldY, worldZ)
+                wetness > slide(nearness, SEA_WHEN_SHALLOW, SEA_WHEN_DEEP) -> column.waterY
+                wetness > slide(nearness, PERCHED_WHEN_SHALLOW, PERCHED_WHEN_DEEP) -> perchedLevel(column, worldX, worldY, worldZ)
                 else -> BONE_DRY
             }
         }
 
-
-        /** A pocket's own level: a band of the world, nudged by noise, never above the ground. */
         /**
          * How high groundwater stands in the **room** this point is in.
          *
@@ -194,8 +205,8 @@ data class WaterTable(
          * Still capped by the room's own ceiling and by the column's surface: a pool is bounded by what
          * holds it.
          */
-        private fun perchedLevel(worldX: Int, worldY: Int, worldZ: Int): Int {
-            val rock = columnSpans
+        private fun perchedLevel(column: Column, worldX: Int, worldY: Int, worldZ: Int): Int {
+            val rock = column.rock
             val roomFloor = roomFloorUnder(rock, worldY) ?: return BONE_DRY
             val band = floorDiv(roomFloor, PERCHED_BAND)
             val middle = band * PERCHED_BAND + PERCHED_BAND / 2
@@ -205,12 +216,14 @@ data class WaterTable(
                 floorDiv(worldZ, PERCHED_CELL).toDouble(),
             ) * PERCHED_SPREAD
             // **Capped by the ceiling of the space this point is in, not by the top of the column.**
-            // `columnSurface` is the highest rock anywhere in the column, which under a hill is the
-            // *hilltop* — so a perched pocket in a big cave was filled to a level hundreds of blocks above
-            // its own roof. Vanilla caps the same number at its `lowestPreliminarySurface`, which is a
-            // deliberately low estimate; ours had taken the opposite extreme.
-            val roomFor = rock?.ceilingAbove(worldY)?.minus(1) ?: columnSurface
-            return minOf(columnSurface, roomFor, middle + nudge.roundToInt())
+            // The column's surface is the highest rock anywhere in it, which under a hill is the *hilltop* —
+            // so a perched pocket in a big cave was filled to a level hundreds of blocks above its own roof.
+            // Vanilla caps the same number at its `lowestPreliminarySurface`, which is a deliberately low
+            // estimate; ours had taken the opposite extreme.
+            val roomFor = rock.ceilingAbove(worldY)?.minus(1) ?: column.surface
+            // Stepped as vanilla steps it, so two neighbouring pools either agree or differ by enough to be a
+            // wall between them rather than a lip — see [footsABarrier].
+            return minOf(column.surface, roomFor, middle + Mth.quantize(nudge, PERCHED_STEP))
         }
 
         /**
@@ -235,24 +248,43 @@ data class WaterTable(
             return rock?.floorUnder(worldY)?.plus(1)
         }
 
-        private var columnSpans: Spans? = null
+        private fun columnAt(worldX: Int, worldZ: Int): Column {
+            val key = (worldX.toLong() shl Int.SIZE_BITS) or (worldZ.toLong() and 0xFFFF_FFFFL)
+            return columns.get(key) ?: Column(worldX, worldZ).also { columns.put(key, it) }
+        }
 
-        private fun readColumn(worldX: Int, worldZ: Int) {
-            if (worldX == columnX && worldZ == columnZ) return
-            columnX = worldX
-            columnZ = worldZ
+        /** What decides the water in one column, read once a pass. */
+        private inner class Column(worldX: Int, worldZ: Int) {
             // Kept whole rather than reduced to its top: a perched pool has to know the ceiling of the
             // room it is standing in, which no single height can answer. See [perchedLevel].
-            val rock = field.columnSpans(worldX, worldZ)
-            columnSpans = rock
-            columnSurface = rock.highestSolidY ?: seaLevel
+            val rock: Spans = field.columnSpans(worldX, worldZ)
+
+            // The ground before its caves were cut, as vanilla's aquifer reads its preliminary surface: a cave
+            // open to the sky must not turn the column it opens in into seabed.
+            val surface: Int = maxOf(
+                rock.highestSolidY ?: seaLevel,
+                uncut?.columnSpans(worldX, worldZ)?.highestSolidY ?: Int.MIN_VALUE,
+            )
+
+            /** Where this column's own water actually stands, rather than how high it reaches. */
+            val standingSpans: Spans? = standing?.columnSpans(worldX, worldZ)
+
+            /** And where each body of something else stands, in [carried]'s own order. */
+            val carriedSpans: List<Spans> =
+                if (carried.isEmpty()) emptyList() else carried.map { it.where.columnSpans(worldX, worldZ) }
+
+            /**
+             * What water stands over this column — the sea, or higher where the shape carries its own.
+             *
+             * **The level has to travel with the branch.** Deciding that a river bed is submerged and then
+             * answering with the *sea's* height leaves every block between the two dry, which is the same
+             * hole by a longer road.
+             */
+            val waterY: Int = maxOf(seaLevel, standingSpans?.highestSolidY ?: Int.MIN_VALUE)
+
             // Under the sea, or under water the shape carries itself. Both are "there is water over this
             // ground"; only one of them is a level.
-            columnStanding = standing?.columnSpans(worldX, worldZ)
-            columnCarried = if (carried.isEmpty()) emptyList() else carried.map { it.where.columnSpans(worldX, worldZ) }
-            val carried = columnStanding?.highestSolidY ?: Int.MIN_VALUE
-            columnWaterY = maxOf(seaLevel, carried)
-            columnSubmerged = columnSurface < columnWaterY
+            val isSubmerged: Boolean = surface < waterY
         }
 
         /**
@@ -272,9 +304,9 @@ data class WaterTable(
          *
          * Without this, `caves` beside `flooded_caves` divided into territories identical by construction.
          */
-        fun aquiferFor(tables: List<WaterTable>, field: TerrainField, territories: RegionMap): Aquifer =
-            tables.singleOrNull()?.aquiferFor(field)
-                ?: RegionalAquifer(tables.map { it.aquiferFor(field) }, territories)
+        fun aquiferFor(tables: List<WaterTable>, field: TerrainField, uncut: TerrainField?, territories: RegionMap): Aquifer =
+            tables.singleOrNull()?.aquiferFor(field, uncut)
+                ?: RegionalAquifer(tables.map { it.aquiferFor(field, uncut) }, territories)
 
         private val AIR: BlockState = Blocks.AIR.defaultBlockState()
 
@@ -300,6 +332,10 @@ data class WaterTable(
         private const val PERCHED_BAND = 40
         private const val PERCHED_CELL = 16
         private const val PERCHED_SPREAD = 10.0
+        private const val PERCHED_STEP = 3
+
+        /** How far below the lower of two levels a barrier reaches — vanilla's `bottomBias`. */
+        private const val BARRIER_FOOTING = 3
 
         private fun slide(nearness: Double, whenShallow: Double, whenDeep: Double) =
             whenDeep + (whenShallow - whenDeep) * nearness

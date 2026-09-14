@@ -1,0 +1,17 @@
+# What the aquifer costs, against vanilla's own generation -- the performance budget is vanilla full
+# generation, and nothing is worth optimising until an Age costs about twice it.
+# Run with: scripts/drive-server.sh scripts/checks/aquifer-bench.txt
+#
+# ONE RUN PER WORLD: a bench over chunks already generated times the cache. The warm-up Age is thrown away so
+# the JIT's first minutes land on neither measurement. And never beside a running client: both go through
+# Gradle's :fabric:runServer or :fabric:runClient, and every command threw while one was up.
+#
+# MEASURED 2026-09-14 at stamp 44: vbase 79 ms/chunk, hbase 141 ms/chunk -- 1.78x vanilla, inside the 2x budget.
+age compose warmup 7 landmass=hills sea=water rock=caves underground=noise_caves sky=plain
+age bench warmup 3
+# Vanilla's rock, carvers and aquifer.
+age compose vbase 4242 landmass=vanilla sea=water rock=caves sky=plain
+age bench vbase 4
+# w6b's recipe exactly: our hills, noise caves handed to our aquifer, and vanilla's carvers asking it too.
+age compose hbase 4242 landmass=hills sea=water rock=caves underground=noise_caves sky=plain
+age bench hbase 4
