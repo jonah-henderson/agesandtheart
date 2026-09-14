@@ -1,0 +1,65 @@
+# Packed ice deep in the caves under a frozen ocean -- walked 2026-09-14, and never seen in vanilla.
+# Run with: scripts/drive-server.sh scripts/checks/frozen-caves.txt
+#
+# W6's hills at seed 4242, held cold so the ocean freezes. A first pass found frozen ocean at (64, 32) and
+# deep frozen ocean at (-32, -32), beside the W6 caves.
+#
+# **Counting packed ice proves nothing on its own**: vanilla's icebergs reach well below sea level in open
+# water. What tells the fault apart is ice below a column's *uncut* seabed, which can only be standing in a
+# cave. `age probe` prints both -- the runs of blocks, and "aquifer answers for", which is the uncut rock.
+age compose icehills 4242 landmass=hills sea=water rock=caves underground=noise_caves sky=plain climate.temperature=-1.0..-0.6
+# Around the deep frozen ocean.
+age probe icehills -48 -48
+age probe icehills -40 -48
+age probe icehills -32 -48
+age probe icehills -24 -48
+age probe icehills -16 -48
+age probe icehills -48 -40
+age probe icehills -40 -40
+age probe icehills -32 -40
+age probe icehills -24 -40
+age probe icehills -16 -40
+age probe icehills -48 -32
+age probe icehills -40 -32
+age probe icehills -32 -32
+age probe icehills -24 -32
+age probe icehills -16 -32
+age probe icehills -48 -24
+age probe icehills -40 -24
+age probe icehills -32 -24
+age probe icehills -24 -24
+age probe icehills -16 -24
+age probe icehills -48 -16
+age probe icehills -40 -16
+age probe icehills -32 -16
+age probe icehills -24 -16
+age probe icehills -16 -16
+# Around the frozen ocean.
+age probe icehills 48 16
+age probe icehills 56 16
+age probe icehills 64 16
+age probe icehills 72 16
+age probe icehills 80 16
+age probe icehills 48 24
+age probe icehills 56 24
+age probe icehills 64 24
+age probe icehills 72 24
+age probe icehills 80 24
+age probe icehills 48 32
+age probe icehills 56 32
+age probe icehills 64 32
+age probe icehills 72 32
+age probe icehills 80 32
+age probe icehills 48 40
+age probe icehills 56 40
+age probe icehills 64 40
+age probe icehills 72 40
+age probe icehills 80 40
+age probe icehills 48 48
+age probe icehills 56 48
+age probe icehills 64 48
+age probe icehills 72 48
+age probe icehills 80 48
+# Cave vines against water, in the temperate hills Jonah walks: where lush caves are, to probe next.
+age write w6b 4242 age hills landmass
+execute in agesandtheart:w6b run locate biome minecraft:lush_caves

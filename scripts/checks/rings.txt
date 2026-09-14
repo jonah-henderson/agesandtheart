@@ -1,0 +1,26 @@
+# Rings of stone with air under them near (-99, 1, -65) in w6, walked 2026-09-14 at stamp 47: concentric
+# rings dividing what is otherwise under water, with walls of water cascading down between them.
+# Run with: scripts/drive-server.sh scripts/checks/rings.txt
+#
+# AquiferSectionCheck draws what the aquifer answers here; this is what actually stands, carvers and
+# features included, which the offline picture cannot show.
+age write w6b 4242 age hills landmass
+# Across x at z=-65.
+age probe w6b -111 -65
+age probe w6b -107 -65
+age probe w6b -103 -65
+age probe w6b -101 -65
+age probe w6b -99 -65
+age probe w6b -97 -65
+age probe w6b -95 -65
+age probe w6b -91 -65
+age probe w6b -87 -65
+# Across z at x=-99.
+age probe w6b -99 -77
+age probe w6b -99 -73
+age probe w6b -99 -69
+age probe w6b -99 -67
+age probe w6b -99 -63
+age probe w6b -99 -61
+age probe w6b -99 -57
+age probe w6b -99 -53

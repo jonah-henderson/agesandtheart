@@ -101,8 +101,9 @@ class DeepWaterBlock(fluid: FlowingFluid, properties: Properties) : LiquidBlock(
      * induction the previous version needed to be affordable at all is simply gone.
      *
      * Two ways to be wrong and both are answered: where `DeepWater.standsAt` says no it reverts to ordinary
-     * water, and any ordinary water it touches that *would* stand is taken in. Each conversion schedules
-     * what it touched, so a correction spreads a block a tick rather than waiting on a random tick apiece.
+     * water, and any still ordinary water it touches that *would* stand is taken in. Each conversion
+     * schedules what it touched, so a correction spreads a block a tick rather than waiting on a random tick
+     * apiece.
      */
     private fun settle(state: BlockState, level: ServerLevel, pos: BlockPos) {
         if (!DeepWater.standsAt(level, pos)) {
@@ -118,7 +119,11 @@ class DeepWaterBlock(fluid: FlowingFluid, properties: Properties) : LiquidBlock(
     }
 
     /**
-     * Take [at] into the abyss, whether it is ordinary water or a block holding some.
+     * Take [at] into the abyss, whether it is still ordinary water or a block holding some.
+     *
+     * **Still water only.** Water falling or spreading through the deep stays ordinary: taking it in carries
+     * the deep up a falling tongue block by block until it reaches where the deep may not stand, which gives
+     * the water back, and the block below takes it in again — without end.
      *
      * **A block that holds the abyss does not tick**, being a stair rather than a fluid, so the spread
      * reaches only what the abyss itself touches. That is enough for what changes at runtime — a stair
@@ -131,8 +136,9 @@ class DeepWaterBlock(fluid: FlowingFluid, properties: Properties) : LiquidBlock(
             if (DeepWater.standsAt(level, at)) level.setBlockAndUpdate(at, DeepWaterLogging.holding(state))
             return
         }
-        if (!state.`is`(Blocks.WATER) || !DeepWater.standsAt(level, at)) return
-        level.setBlockAndUpdate(at, defaultBlockState().setValue(LEVEL, state.getValue(LEVEL)))
+        val isStillWater = state.`is`(Blocks.WATER) && state.fluidState.isSource
+        if (!isStillWater || !DeepWater.standsAt(level, at)) return
+        level.setBlockAndUpdate(at, defaultBlockState())
         level.scheduleTick(at, this, SETTLES_IN)
     }
 

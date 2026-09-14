@@ -3,10 +3,17 @@
 # Run with: scripts/drive-server.sh scripts/checks/aquifer-bench.txt
 #
 # ONE RUN PER WORLD: a bench over chunks already generated times the cache. The warm-up Age is thrown away so
-# the JIT's first minutes land on neither measurement. And never beside a running client: both go through
-# Gradle's :fabric:runServer or :fabric:runClient, and every command threw while one was up.
+# the JIT's first minutes land on neither measurement.
+#
+# **If a run prints nothing after its first command, run it again.** Some runs on 2026-09-14 answered every
+# command with "An unexpected error occurred" from the moment RCON came up, and the same file passed on the
+# next try -- with a client running and without one, first in a chain and second. No stack trace was kept:
+# vanilla logs one only when it believes it is running in an IDE. The first command is sent the instant RCON
+# is up, so a start-up race in the driver is the likelier suspect than anything a check asks.
 #
 # MEASURED 2026-09-14 at stamp 44: vbase 79 ms/chunk, hbase 141 ms/chunk -- 1.78x vanilla, inside the 2x budget.
+# At stamp 45 -- jittered cells, a barrier up to three thick that reaches the floor, and a memo per column --
+# vbase 83, hbase 146: 1.77x, so the wider barrier costs nothing the memo does not pay back.
 age compose warmup 7 landmass=hills sea=water rock=caves underground=noise_caves sky=plain
 age bench warmup 3
 # Vanilla's rock, carvers and aquifer.

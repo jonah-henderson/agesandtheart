@@ -199,7 +199,7 @@ class AgeChunkGenerator(
     biomes,
     when (rock) {
         is AgeRock.Vanillas -> rock.settings
-        is AgeRock.Ours -> Holder.direct(settingsFor(writtenSea, surfaceRule, climate, fill, window, rock.landform))
+        is AgeRock.Ours -> Holder.direct(settingsFor(writtenSea, surfaceRule, climate, fill, window, rock.landform, rock.hollows))
     },
 ) {
 
@@ -254,6 +254,15 @@ class AgeChunkGenerator(
 
     /** The rock a cave system was cut out of, or null where there is none — see [AgeRock.Ours.hollows]. */
     val hollows: TerrainField? get() = (rock as? AgeRock.Ours)?.hollows
+
+    /**
+     * The preliminary surface vanilla's surface system is told at this column — read from the router as
+     * `NoiseChunk` reads it, so this is the number the frozen-ocean icebergs stop at. See [PreliminarySurface].
+     */
+    fun preliminarySurfaceAt(worldX: Int, worldZ: Int): Int = Math.floor(
+        generatorSettings().value().noiseRouter().preliminarySurfaceLevel()
+            .compute(DensityFunction.SinglePointContext(worldX, 0, worldZ)),
+    ).toInt()
 
     /**
      * What this Age's instability bought — **`var`, and volatile, because it can be rewritten under a
@@ -1302,6 +1311,7 @@ class AgeChunkGenerator(
             fill: TerrainFill,
             window: VerticalWindow,
             field: TerrainField,
+            uncut: TerrainField?,
         ) = NoiseGeneratorSettings(
             NoiseSettings.create(window.minY, window.height, NOISE_CELLS_HORIZONTAL, NOISE_CELLS_VERTICAL),
             // The Age's own material, not a constant, which is what makes a surface rule fire over it:
@@ -1310,7 +1320,10 @@ class AgeChunkGenerator(
             // Age, so several materials are recognised over [TerrainFill.representative] only.
             fill.representative,
             seaFill.representative,
-            routerFor(climate, field),
+            routerFor(
+                climate,
+                PreliminarySurface(field, uncut, window.minY, window.topY - 1, QuartPos.toBlock(NOISE_CELLS_VERTICAL)),
+            ),
             surfaceRule,
             emptyList(),
             // Coerced, because VOID's level is a sentinel rather than a height and this one is read as a
@@ -1342,14 +1355,12 @@ class AgeChunkGenerator(
          * inconsistent: depth is ours ([co.voik.agesandtheart.worldgen.biome.ClimateDepth]), and vanilla's
          * own depth function describes vanilla's relief — a terrain function wearing a climate name.
          *
-         * **One exception, and it earns itself: `initialDensityWithoutJaggedness`.** `NoiseChunk` reads that
-         * one slot and nothing else to find a column's preliminary surface, which is what
-         * `abovePreliminarySurface` — and so vanilla's whole rule for *not* dressing a cave floor as ground —
-         * is built on. [RockDensity] answers it from the field tree. Left at zero it is not merely unused but
-         * actively wrong, and the cost of that was grass growing underground.
+         * **One exception, and it earns itself: `preliminarySurfaceLevel`.** `NoiseChunk` floors that slot
+         * into a column's preliminary surface, which is how deep the surface system's frozen-ocean icebergs
+         * reach and what vanilla's `abovePreliminarySurface` compares against. [PreliminarySurface] answers it
+         * from the field tree — as a height, not a density, since a height is what the slot holds.
          */
-        private fun routerFor(climate: Holder<NoiseGeneratorSettings>?, field: TerrainField): NoiseRouter {
-            val surface = RockDensity(field)
+        private fun routerFor(climate: Holder<NoiseGeneratorSettings>?, surface: DensityFunction): NoiseRouter {
             val vanilla = climate?.value()?.noiseRouter() ?: return inertRouterOver(surface)
             val nothing = DensityFunctions.zero()
             return NoiseRouter(
@@ -1357,7 +1368,7 @@ class AgeChunkGenerator(
                 vanilla.temperature(), vanilla.vegetation(), vanilla.continents(), vanilla.erosion(),
                 /* depth = */ nothing,
                 vanilla.ridges(),
-                /* initialDensityWithoutJaggedness = */ surface,
+                /* preliminarySurfaceLevel = */ surface,
                 nothing, nothing, nothing, nothing,
             )
         }

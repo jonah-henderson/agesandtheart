@@ -152,6 +152,43 @@ class WaterTableCheck : FunSpec({
     }
 
     /**
+     * **Water never stands on air.** Under the seabed the sea's threshold slides with depth, so the top of a
+     * tall room can come out wet over a dry bottom; vanilla lays a shelf of rock between two cells stacked
+     * like that, and so does this. Found walking w6 at (103, 9, 10), where glow berry vines grew in the dry
+     * pocket and the water over it fell in the moment the chunk ticked.
+     */
+    test("water over a dry room below it stands on rock, not on air") {
+        val seabed = 40
+        val roof = 30
+        val floor = -40
+        val room = Box(minX = -300, minY = floor, minZ = -300, maxX = 300, maxY = roof, maxZ = 300)
+        val shape = Subtract(Box(minX = -300, minY = -64, minZ = -300, maxX = 300, maxY = seabed, maxZ = 300), room)
+        val aquifer = tableOver(shape).aquiferFor(shape)
+
+        fun answerAt(worldX: Int, worldY: Int, worldZ: Int) =
+            aquifer.computeSubstance(DensityFunction.SinglePointContext(worldX, worldY, worldZ), -1.0)
+
+        var shelves = 0
+        var onAir = 0
+        for (worldZ in -280..280 step 53) {
+            for (worldX in -280..280 step 7) {
+                for (worldY in floor..<roof) {
+                    val above = answerAt(worldX, worldY + 1, worldZ) ?: continue
+                    if (above.fluidState.isEmpty) continue
+                    val here = answerAt(worldX, worldY, worldZ)
+                    when {
+                        here == null -> shelves++
+                        here.isAir -> onAir++
+                    }
+                }
+            }
+        }
+        println("  $shelves blocks of shelf hold water up; $onAir blocks of water stand on open air")
+        check(shelves > 0) { "no room here came out wet over dry, so this proves nothing" }
+        check(onAir == 0) { "$onAir blocks of water stand directly on open air, which falls the moment the chunk ticks" }
+    }
+
+    /**
      * **One room, one water level** — no repeating sheets up a tall cave.
      *
      * The perched level used to be read from the query block's own `worldY`, so inside every forty-block

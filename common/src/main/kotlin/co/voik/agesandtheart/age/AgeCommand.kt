@@ -1815,6 +1815,9 @@ object AgeCommand {
         // answers from the water table, so anything it claims is wet whatever keeps the sea out.
         val hollow = generator.hollows?.columnSpans(x, z) ?: Spans.EMPTY
         report.fact("aquifer", said(hollow)) { "  aquifer answers for: ${said(hollow)}" }
+        // What vanilla's surface system is told the surface is — how deep a frozen ocean's icebergs may reach.
+        val preliminary = generator.preliminarySurfaceAt(x, z)
+        report.fact("preliminarySurface", "$preliminary") { "  preliminary surface, as vanilla's surface system reads it: y=$preliminary" }
         // The verdict, block by block through the band the sea could reach, which is what a walk is looking
         // at.
         //

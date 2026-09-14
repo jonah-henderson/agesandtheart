@@ -8,7 +8,7 @@
 # The wall is between x=-21 and x=-20 at z=-20: a cave from y 10 to 81 that breaks through to the sky at
 # x <= -21 and keeps one block of roof, at y 82, from x=-20 on. MEASURED at stamp 42: water y 10..62 on the
 # open side against y 10..23 on the roofed one. MEASURED at stamp 43: y 10..23 on both sides; at stamp 44,
-# with the nudge stepped by three, y 10..22 on both sides.
+# with the nudge stepped by three, y 10..22 on both sides; at stamp 45 the same.
 # AquiferSectionCheck draws the same section offline, with the terrain salted as a real Age salts it.
 age write w6b 4242 age hills landmass
 age probe w6b -24 -20

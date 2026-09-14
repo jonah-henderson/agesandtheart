@@ -1,0 +1,22 @@
+# Packed ice in the caves under a frozen ocean, counted where no iceberg of vanilla's can reach.
+# Run with: scripts/drive-server.sh scripts/checks/frozen-census.txt
+#
+# Vanilla's frozen-ocean extension turns water to packed ice from sea level down to sea level - T - 6, T an
+# iceberg's height (14..40 as a rule), and cave air down to the chunk's minimum surface level. With the
+# preliminary surface right, that minimum stays a few blocks under the seabed. So packed ice at y -10..10
+# under these oceans is ice in a cave, and should count zero.
+#
+# `fill ... replace` DESTROYS what it counts, which does not matter in a throwaway world.
+age compose icehills 4242 landmass=hills sea=water rock=caves underground=noise_caves sky=plain climate.temperature=-1.0..-0.6
+execute in agesandtheart:icehills run forceload add -64 -64 -1 -1
+execute in agesandtheart:icehills run forceload add 48 16 79 47
+# Around the deep frozen ocean at (-32, -32).
+execute in agesandtheart:icehills run fill -64 -10 -64 -33 10 -33 minecraft:air replace minecraft:packed_ice
+execute in agesandtheart:icehills run fill -32 -10 -64 -1 10 -33 minecraft:air replace minecraft:packed_ice
+execute in agesandtheart:icehills run fill -64 -10 -32 -33 10 -1 minecraft:air replace minecraft:packed_ice
+execute in agesandtheart:icehills run fill -32 -10 -32 -1 10 -1 minecraft:air replace minecraft:packed_ice
+# Around the frozen ocean at (64, 32).
+execute in agesandtheart:icehills run fill 48 -10 16 79 10 47 minecraft:air replace minecraft:packed_ice
+# And blue ice, which grows on packed ice in water from y 30 to 61 -- a second sign of ice in a cave.
+execute in agesandtheart:icehills run fill -64 -10 -64 -33 10 -33 minecraft:air replace minecraft:blue_ice
+execute in agesandtheart:icehills run fill 48 -10 16 79 10 47 minecraft:air replace minecraft:blue_ice

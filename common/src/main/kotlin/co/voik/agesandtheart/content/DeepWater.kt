@@ -208,7 +208,9 @@ object DeepWater {
                         at.set(originX + x, y, originZ + z)
                         if (!abyssReaches(at.x, at.z)) continue
                         val here = chunk.getBlockState(at)
-                        if (here.`is`(Blocks.WATER) || here.`is`(KEPT_OUT)) chunk.setBlockState(at, deep)
+                        // Still water only, as `DeepWaterBlock.deepen` takes it: a flowing tongue stays ordinary.
+                        val isStillWater = here.`is`(Blocks.WATER) && here.fluidState.isSource
+                        if (isStillWater || here.`is`(KEPT_OUT)) chunk.setBlockState(at, deep)
                         // A wreck's stairs and slabs, which vanilla left dry: `SimpleWaterloggedBlock`
                         // waterlogs on the fluid's identity rather than on `#minecraft:water`, so a
                         // structure placed in an abyss comes out full of air pockets. See
@@ -331,7 +333,9 @@ object DeepWater {
             if (chunk.getHeight(Heightmap.Types.MOTION_BLOCKING, inChunkX, inChunkZ) <= line) return@sweep
 
             val spot = at.atY(line)
-            if (!level.getBlockState(spot).`is`(Blocks.WATER)) return@sweep
+            val water = level.getBlockState(spot)
+            // Still water only, as `DeepWaterBlock.deepen` takes it: a flowing tongue stays ordinary.
+            if (!water.`is`(Blocks.WATER) || !water.fluidState.isSource) return@sweep
             if (!standsAt(level, spot)) return@sweep
             level.setBlockAndUpdate(spot, deepWater())
         }

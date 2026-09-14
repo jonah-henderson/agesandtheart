@@ -2,6 +2,7 @@ package co.voik.agesandtheart.worldgen.field
 
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
+import co.voik.agesandtheart.worldgen.VerticalWindow
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import net.minecraft.util.Mth
@@ -60,13 +61,20 @@ data class WaterTable(
     val carried: List<StandingFluid> = emptyList(),
 ) {
     private val floodedness = fieldNoise(seed, firstOctave, amplitudes)
+
+    /** How thick a barrier stands — vanilla's `aquifer_barrier`, on its own seed and at its own octave. */
+    private val barrierThickness = fieldNoise(seed xor BARRIER_SALT, BARRIER_FIRST_OCTAVE, listOf(1.0))
+
+    /** The table's seed, folded to what [cellHash] takes. */
+    private val jitterSalt = (seed xor (seed ushr Int.SIZE_BITS)).toInt()
     private val acrossStretch = horizontalScale.coerceAtLeast(SMALLEST_STRETCH)
     private val downStretch = verticalScale.coerceAtLeast(SMALLEST_STRETCH)
 
     /**
      * A fresh aquifer for one carving pass; caches the column, whose surface is the costly part.
      *
-     * [uncut] is the rock as it stood before its caves were cut, where the shape cut any — see [readColumn].
+     * [uncut] is the rock as it stood before its caves were cut, where the shape cut any — the surface the sea
+     * is judged from.
      */
     fun aquiferFor(field: TerrainField, uncut: TerrainField? = null): Aquifer = ColumnAquifer(field, uncut)
 
@@ -99,57 +107,131 @@ data class WaterTable(
         override fun computeSubstance(context: DensityFunction.FunctionContext, substance: Double): BlockState? {
             // Positive means solid: nothing is being removed here, so the block stands as it is.
             if (substance > 0.0) return null
-            val worldX = context.blockX()
             val worldY = context.blockY()
-            val worldZ = context.blockZ()
-            val here = substanceAt(worldX, worldY, worldZ)
-            // **Vanilla's barrier between two levels of water**: a block left dry beside water standing at its
-            // height keeps its rock, so where a pool's level steps from one column to the next — a cave floor
-            // crossing a multiple of [PERCHED_BAND], or the noise crossing a threshold — the water is held by
-            // stone rather than standing against open air. Null is what both the fill and a carver read as
-            // "leave the rock".
-            val heldBack = if (here.isAir) waterBeside(worldX, worldY, worldZ) else footsABarrier(worldX, worldY, worldZ)
+            val column = columnAt(context.blockX(), context.blockZ())
+            val here = column.substanceAt(worldY)
+            // **Vanilla's barrier between two levels of water**: a block that would hold water back keeps its
+            // rock, so where a pool's level steps from one column to the next — a cave floor crossing a multiple
+            // of [PERCHED_BAND], the edge between two cells' nudges, or the noise crossing a threshold — the
+            // water is held by stone rather than standing against open air. Null is what both the fill and a
+            // carver read as "leave the rock".
+            val heldBack = if (here.isAir) isBarrier(column, worldY) else footsABarrier(column, worldY)
             placedFluid = !here.isAir && !heldBack
             return if (heldBack) null else here
         }
 
         /**
-         * Whether this wet block carries a barrier down into its own pool: the water here gives way to air
-         * within [BARRIER_FOOTING] blocks, and water beside that air stands higher. Vanilla takes its barrier
-         * the same distance below the lower of two levels, so a step between two pools is a wall standing in
-         * the lower one rather than a lip of stone resting on its surface.
+         * Whether this dry block keeps its rock, which it does in two ways that reach differently.
+         *
+         * - **Water beside it at its own height**, as a block opened there would hold it: one block, and asked
+         *   of what a hole *would* hold rather than of what stands there, because a carver opening that rock
+         *   later asks the same question and has to be answered the same way.
+         * - **Open water within a barrier's reach**, at its own height or anywhere above it up the same open,
+         *   dry space — which is what gives a dam its noisy width and takes it down to the floor. Only water
+         *   standing in open space counts: the lowest blocks of any rock mass based in a pool's band *would*
+         *   hold water if opened, and carried down to the floor that walled off whole caves with nothing in them.
+         * - **Water directly over it** — see [waterAbove].
          */
-        private fun footsABarrier(worldX: Int, worldY: Int, worldZ: Int): Boolean {
-            val rock = columnAt(worldX, worldZ).rock
-            for (above in worldY + 1..worldY + BARRIER_FOOTING) {
-                // A roof over the water holds it in by itself.
-                if (rock.contains(above)) return false
-                if (!holdsFluid(worldX, above, worldZ)) return waterBeside(worldX, above, worldZ)
+        private fun isBarrier(column: Column, worldY: Int): Boolean =
+            waterBeside(column, worldY) || waterAbove(column, worldY) || holdsUpWater(column, worldY)
+
+        /**
+         * Whether water stands directly over this block — the shelf vanilla's barrier lays between two of its
+         * cells stacked one on another. A block's branch is read at its own height and the sea's threshold
+         * slides with depth, so the top of a tall room under the seabed can come out wet over a dry bottom, and
+         * without a shelf that water stands on air.
+         *
+         * Open water only where this block is open itself: the rock over a dry room *would* hold water if
+         * opened far more often than water stands there, and a shelf under every such roof would lower cave
+         * ceilings across the world. Where this block is still rock a carver is asking, and it is answered as
+         * the rock above would be if that were cut too.
+         */
+        private fun waterAbove(column: Column, worldY: Int): Boolean {
+            val above = worldY + 1
+            val wetAbove = column.holdsFluid(above)
+            val carverIsAsking = !column.isOpen(worldY)
+            return wetAbove && (column.isOpen(above) || carverIsAsking)
+        }
+
+        private fun waterBeside(column: Column, worldY: Int): Boolean =
+            columnAt(column.x - 1, column.z).holdsFluid(worldY) || columnAt(column.x + 1, column.z).holdsFluid(worldY) ||
+                columnAt(column.x, column.z - 1).holdsFluid(worldY) || columnAt(column.x, column.z + 1).holdsFluid(worldY)
+
+        /**
+         * Whether open water stands within a barrier's reach of this block, or of the open, dry space above it —
+         * see [isBarrier]. **This is what takes a barrier down to the floor**, so a dam never overhangs the ground
+         * beneath it. Walked upwards and remembered for every block passed, so a column costs one walk however
+         * many of its blocks are asked about.
+         */
+        private fun holdsUpWater(column: Column, worldY: Int): Boolean {
+            var top = worldY
+            var holdsUp = false
+            while (true) {
+                val known = column.holdsUpKnownAt(top)
+                if (known != null) {
+                    holdsUp = known
+                    break
+                }
+                if (openWaterWithinReach(column, top)) {
+                    holdsUp = true
+                    break
+                }
+                val above = top + 1
+                // Nothing over the ground is held, and a roof or a pool ends the open space a barrier runs down.
+                val openSpaceEnds = above > column.surface || !column.isOpen(above) || column.holdsFluid(above)
+                if (openSpaceEnds) break
+                top = above
+            }
+            for (passed in worldY..top) column.rememberHoldsUp(passed, holdsUp)
+            return holdsUp
+        }
+
+        /**
+         * Whether open water stands at this height within a barrier's reach of this column, along either axis.
+         *
+         * **The reach is vanilla's noisy thickness**: one block where [barrierThickness] runs low, up to
+         * [THICKEST_BARRIER] where it runs high, so a dam's width wanders rather than running as one clean line.
+         * The noise is only sampled once water is found further off than the one block every barrier needs.
+         */
+        private fun openWaterWithinReach(column: Column, worldY: Int): Boolean {
+            for (step in THINNEST_BARRIER..THICKEST_BARRIER) {
+                val waterThisFar = openWaterAt(column.x - step, worldY, column.z) ||
+                    openWaterAt(column.x + step, worldY, column.z) ||
+                    openWaterAt(column.x, worldY, column.z - step) ||
+                    openWaterAt(column.x, worldY, column.z + step)
+                if (waterThisFar) return step == THINNEST_BARRIER || step <= barrierReachAt(column.x, worldY, column.z)
             }
             return false
         }
 
-        private fun waterBeside(worldX: Int, worldY: Int, worldZ: Int): Boolean =
-            holdsFluid(worldX - 1, worldY, worldZ) || holdsFluid(worldX + 1, worldY, worldZ) ||
-                holdsFluid(worldX, worldY, worldZ - 1) || holdsFluid(worldX, worldY, worldZ + 1)
-
-        private fun holdsFluid(worldX: Int, worldY: Int, worldZ: Int): Boolean = !substanceAt(worldX, worldY, worldZ).isAir
-
-        /** What a block opened here would hold before any barrier: a fluid, or air. */
-        private fun substanceAt(worldX: Int, worldY: Int, worldZ: Int): BlockState {
+        private fun openWaterAt(worldX: Int, worldY: Int, worldZ: Int): Boolean {
             val column = columnAt(worldX, worldZ)
-            // **Water the shape poured is water, and no threshold gets a vote.** A carver cutting into a
-            // river or into a chamber's lake must find it: this is a body of water somebody can see, not
-            // groundwater to be judged wet or dry by a noise. It was read as a *level* alone, which meant
-            // a lake deep under a roofed world was still put to the deep thresholds — where dry is the
-            // common case — and most tunnels into one came out as air, leaving holes through the lake.
-            // A body made of something else answers first, and answers with what it is made of.
-            for (index in column.carriedSpans.indices) {
-                if (column.carriedSpans[index].contains(worldY)) return carried[index].fluid
+            return column.isOpen(worldY) && column.holdsFluid(worldY)
+        }
+
+        private fun barrierReachAt(worldX: Int, worldY: Int, worldZ: Int): Int {
+            val noise = barrierThickness.getValue(worldX.toDouble(), worldY.toDouble(), worldZ.toDouble())
+            return when {
+                noise > BARRIER_THICKEST_ABOVE -> THICKEST_BARRIER
+                noise > BARRIER_THICKER_ABOVE -> THICKER_BARRIER
+                else -> THINNEST_BARRIER
             }
-            if (column.standingSpans?.contains(worldY) == true) return fluid
-            val wetness = wetnessAt(worldX, worldY, worldZ)
-            return if (worldY < standingLevel(column, worldX, worldY, worldZ, wetness)) fluid else AIR
+        }
+
+        /**
+         * Whether this wet block carries a barrier down into its own pool: the water here gives way to air
+         * within [BARRIER_FOOTING] blocks, and that air keeps its rock. Vanilla takes its barrier the same
+         * distance below the lower of two levels, so a step between two pools is a wall standing in the lower
+         * one rather than a lip of stone resting on its surface.
+         */
+        private fun footsABarrier(column: Column, worldY: Int): Boolean {
+            for (above in worldY + 1..worldY + BARRIER_FOOTING) {
+                // A roof over the water holds it in by itself.
+                if (!column.isOpen(above)) return false
+                if (column.holdsFluid(above)) continue
+                return isBarrier(column, above)
+            }
+            return false
         }
 
         /** How flooded this point's rock is, on the noise the thresholds are read against. */
@@ -191,10 +273,10 @@ data class WaterTable(
          * and water standing against a cave roof, which then poured out of it. That is arithmetic showing
          * through, not geology.
          *
-         * **Vanilla does not have this, and the reason is worth keeping.** Its aquifer resolves one fluid
-         * level per *cell* of a jittered 16×12×16 grid and interpolates between the four nearest, so a
-         * block's level comes from somewhere it is *near* rather than from the slice it happens to occupy.
-         * Our copy took the arithmetic and dropped the grid.
+         * **Vanilla does not have this, and the reason is worth keeping.** Its aquifer takes each block's
+         * level from the nearest point of a jittered 16×12×16 grid, so a block's level comes from somewhere
+         * it is *near* rather than from the slice it happens to occupy. The horizontal half of that grid is
+         * [perchedNudge]; the vertical half is the room.
          *
          * **The room is the cell that suits this generator.** We have the column's spans, so the cave a
          * point stands in is already known — and it is the honest unit, because a pool's surface has to be
@@ -210,21 +292,52 @@ data class WaterTable(
             val roomFloor = roomFloorUnder(rock, worldY) ?: return BONE_DRY
             val band = floorDiv(roomFloor, PERCHED_BAND)
             val middle = band * PERCHED_BAND + PERCHED_BAND / 2
-            val nudge = floodedness.getValue(
-                floorDiv(worldX, PERCHED_CELL).toDouble(),
-                band.toDouble(),
-                floorDiv(worldZ, PERCHED_CELL).toDouble(),
-            ) * PERCHED_SPREAD
             // **Capped by the ceiling of the space this point is in, not by the top of the column.**
             // The column's surface is the highest rock anywhere in it, which under a hill is the *hilltop* —
             // so a perched pocket in a big cave was filled to a level hundreds of blocks above its own roof.
             // Vanilla caps the same number at its `lowestPreliminarySurface`, which is a deliberately low
             // estimate; ours had taken the opposite extreme.
             val roomFor = rock.ceilingAbove(worldY)?.minus(1) ?: column.surface
-            // Stepped as vanilla steps it, so two neighbouring pools either agree or differ by enough to be a
-            // wall between them rather than a lip — see [footsABarrier].
-            return minOf(column.surface, roomFor, middle + Mth.quantize(nudge, PERCHED_STEP))
+            return minOf(column.surface, roomFor, middle + perchedNudge(worldX, worldZ, band))
         }
+
+        /**
+         * How far this band's level is nudged here, taken from the cell whose jittered point lies nearest —
+         * vanilla's lookup, on the two horizontal axes because the band already comes from the room.
+         *
+         * Each [PERCHED_CELL]-wide cell holds one point, up to [PERCHED_JITTER] blocks into it at a seeded
+         * offset, and the grid sits [PERCHED_GRID_SHIFT] blocks off the chunks'. So the ground sharing one
+         * level is an irregular polygon rather than a square on chunk lines, which is what the barrier between
+         * two levels traces. Stepped by [PERCHED_STEP] as vanilla's is, so two neighbouring pools agree or
+         * differ by enough to be a wall between them rather than a lip — see [footsABarrier].
+         */
+        private fun perchedNudge(worldX: Int, worldZ: Int, band: Int): Int {
+            val anchorX = floorDiv(worldX - PERCHED_GRID_SHIFT, PERCHED_CELL)
+            val anchorZ = floorDiv(worldZ - PERCHED_GRID_SHIFT, PERCHED_CELL)
+            val saltAcross = jitterSalt xor (band * JITTER_BAND_STRIDE)
+            val saltAlong = saltAcross xor JITTER_Z_SALT
+            var nearestX = anchorX
+            var nearestZ = anchorZ
+            var nearestDistance = Int.MAX_VALUE
+            for (cellX in anchorX..anchorX + 1) {
+                for (cellZ in anchorZ..anchorZ + 1) {
+                    val towardsX = cellX * PERCHED_CELL + jitterInto(cellX, cellZ, saltAcross) - worldX
+                    val towardsZ = cellZ * PERCHED_CELL + jitterInto(cellX, cellZ, saltAlong) - worldZ
+                    val distance = towardsX * towardsX + towardsZ * towardsZ
+                    if (distance < nearestDistance) {
+                        nearestDistance = distance
+                        nearestX = cellX
+                        nearestZ = cellZ
+                    }
+                }
+            }
+            val spread = floodedness.getValue(nearestX.toDouble(), band.toDouble(), nearestZ.toDouble()) * PERCHED_SPREAD
+            return Mth.quantize(spread, PERCHED_STEP)
+        }
+
+        /** How far into its cell a cell's point sits, `0..<PERCHED_JITTER` — vanilla's `nextInt(10)`. */
+        private fun jitterInto(cellX: Int, cellZ: Int, salt: Int): Int =
+            ((cellHash(cellX, cellZ, salt) + 0.5) * PERCHED_JITTER).toInt().coerceAtMost(PERCHED_JITTER - 1)
 
         /**
          * **What this water would stand on**, or null where nothing would hold it.
@@ -241,11 +354,20 @@ data class WaterTable(
          * And a point over **nothing** holds no water, because a perched pool is water standing on
          * something. `floorUnder` answers null for both of the last two, which is why they are told apart
          * here rather than there.
+         *
+         * **Rock hanging over open space holds none either.** Its base is a room's ceiling, not a floor: water
+         * in it would drain into the room below rather than stand. Read as a floor, the lowest blocks of every
+         * cave's roof came out wet, a carver cutting them found water sitting over the dry cave beneath, and the
+         * barrier ringed each ceiling contour with stone to keep that water off the air. Only the column's
+         * lowest mass, which stands on the world's floor, takes its base.
          */
-        private fun roomFloorUnder(rock: Spans?, worldY: Int): Int? {
-            val buriedIn = rock?.ranges?.firstOrNull { worldY in it }
-            if (buriedIn != null) return buriedIn.first
-            return rock?.floorUnder(worldY)?.plus(1)
+        private fun roomFloorUnder(rock: Spans, worldY: Int): Int? {
+            val buriedIn = rock.ranges.firstOrNull { worldY in it }
+            if (buriedIn != null) {
+                val overhangsARoom = buriedIn.first != rock.ranges.first().first
+                return if (overhangsARoom) null else buriedIn.first
+            }
+            return rock.floorUnder(worldY)?.plus(1)
         }
 
         private fun columnAt(worldX: Int, worldZ: Int): Column {
@@ -253,25 +375,82 @@ data class WaterTable(
             return columns.get(key) ?: Column(worldX, worldZ).also { columns.put(key, it) }
         }
 
-        /** What decides the water in one column, read once a pass. */
-        private inner class Column(worldX: Int, worldZ: Int) {
+        /** What decides the water in one column, read once a pass, and what has been decided in it so far. */
+        private inner class Column(val x: Int, val z: Int) {
             // Kept whole rather than reduced to its top: a perched pool has to know the ceiling of the
             // room it is standing in, which no single height can answer. See [perchedLevel].
-            val rock: Spans = field.columnSpans(worldX, worldZ)
+            val rock: Spans = field.columnSpans(x, z)
 
             // The ground before its caves were cut, as vanilla's aquifer reads its preliminary surface: a cave
             // open to the sky must not turn the column it opens in into seabed.
             val surface: Int = maxOf(
                 rock.highestSolidY ?: seaLevel,
-                uncut?.columnSpans(worldX, worldZ)?.highestSolidY ?: Int.MIN_VALUE,
+                uncut?.columnSpans(x, z)?.highestSolidY ?: Int.MIN_VALUE,
             )
 
             /** Where this column's own water actually stands, rather than how high it reaches. */
-            val standingSpans: Spans? = standing?.columnSpans(worldX, worldZ)
+            val standingSpans: Spans? = standing?.columnSpans(x, z)
 
             /** And where each body of something else stands, in [carried]'s own order. */
             val carriedSpans: List<Spans> =
-                if (carried.isEmpty()) emptyList() else carried.map { it.where.columnSpans(worldX, worldZ) }
+                if (carried.isEmpty()) emptyList() else carried.map { it.where.columnSpans(x, z) }
+
+            /**
+             * What each block would hold, as [decide]'s codes, [UNDECIDED] until asked. A barrier reads the
+             * columns around the one being opened, so each block is asked about several times a pass.
+             */
+            private val substances = ByteArray(MEMO_HEIGHT)
+
+            /** Whether each dry block holds up open water — see [holdsUpWater]. */
+            private val holdingUp = ByteArray(MEMO_HEIGHT)
+
+            fun isOpen(worldY: Int): Boolean = !rock.contains(worldY)
+
+            fun holdsFluid(worldY: Int): Boolean = substanceCodeAt(worldY) != DRY
+
+            /** What a block opened here would hold before any barrier: a fluid, or air. */
+            fun substanceAt(worldY: Int): BlockState = when (val code = substanceCodeAt(worldY)) {
+                DRY -> AIR
+                HOLDS_FLUID -> fluid
+                else -> carried[code - CARRIED_FIRST].fluid
+            }
+
+            fun holdsUpKnownAt(worldY: Int): Boolean? {
+                val slot = worldY - MEMO_BOTTOM
+                if (slot !in 0..<MEMO_HEIGHT) return null
+                return when (holdingUp[slot]) {
+                    HOLDS_UP -> true
+                    HOLDS_NOTHING -> false
+                    else -> null
+                }
+            }
+
+            fun rememberHoldsUp(worldY: Int, holdsUp: Boolean) {
+                val slot = worldY - MEMO_BOTTOM
+                if (slot in 0..<MEMO_HEIGHT) holdingUp[slot] = if (holdsUp) HOLDS_UP else HOLDS_NOTHING
+            }
+
+            private fun substanceCodeAt(worldY: Int): Int {
+                val slot = worldY - MEMO_BOTTOM
+                if (slot !in 0..<MEMO_HEIGHT) return decide(worldY)
+                if (substances[slot] == UNDECIDED) substances[slot] = decide(worldY).toByte()
+                return substances[slot].toInt()
+            }
+
+            private fun decide(worldY: Int): Int {
+                // **Water the shape poured is water, and no threshold gets a vote.** A carver cutting into a
+                // river or into a chamber's lake must find it: this is a body of water somebody can see, not
+                // groundwater to be judged wet or dry by a noise. It was read as a *level* alone, which meant
+                // a lake deep under a roofed world was still put to the deep thresholds — where dry is the
+                // common case — and most tunnels into one came out as air, leaving holes through the lake.
+                // A body made of something else answers first, and answers with what it is made of.
+                for (index in carriedSpans.indices) {
+                    if (carriedSpans[index].contains(worldY)) return CARRIED_FIRST + index
+                }
+                if (standingSpans?.contains(worldY) == true) return HOLDS_FLUID
+                val wetness = wetnessAt(x, worldY, z)
+                return if (worldY < standingLevel(this, x, worldY, z, wetness)) HOLDS_FLUID else DRY
+            }
 
             /**
              * What water stands over this column — the sea, or higher where the shape carries its own.
@@ -334,8 +513,39 @@ data class WaterTable(
         private const val PERCHED_SPREAD = 10.0
         private const val PERCHED_STEP = 3
 
+        // Vanilla's jittered grid: the anchor is taken five blocks back, and a point sits `nextInt(10)` into its cell.
+        private const val PERCHED_GRID_SHIFT = 5
+        private const val PERCHED_JITTER = 10
+
+        // Odd constants separating the jitter of one band, and of one axis, from another.
+        private const val JITTER_BAND_STRIDE = 0x632B_E5AB
+        private const val JITTER_Z_SALT = 0x5BD1_E995
+
         /** How far below the lower of two levels a barrier reaches — vanilla's `bottomBias`. */
         private const val BARRIER_FOOTING = 3
+
+        // How thick a barrier stands, by [barrierThickness]: about half are one block, the rest two or three.
+        private const val BARRIER_SALT = 0x6A09_E667_F3BC_C909L
+        private const val BARRIER_FIRST_OCTAVE = -3
+        private const val THINNEST_BARRIER = 1
+        private const val THICKER_BARRIER = 2
+        private const val THICKEST_BARRIER = 3
+        private const val BARRIER_THICKER_ABOVE = 0.0
+        private const val BARRIER_THICKEST_ABOVE = 0.4
+
+        // What a block would hold, as a column remembers it.
+        private const val UNDECIDED: Byte = 0
+        private const val DRY = 1
+        private const val HOLDS_FLUID = 2
+        private const val CARRIED_FIRST = 3
+
+        // Whether a dry block holds up open water, as a column remembers it.
+        private const val HOLDS_NOTHING: Byte = 1
+        private const val HOLDS_UP: Byte = 2
+
+        // The heights a column remembers — an Age's own window; anything outside it is decided afresh.
+        private val MEMO_BOTTOM = VerticalWindow.DEFAULT.minY
+        private val MEMO_HEIGHT = VerticalWindow.DEFAULT.height
 
         private fun slide(nearness: Double, whenShallow: Double, whenDeep: Double) =
             whenDeep + (whenShallow - whenDeep) * nearness

@@ -11,7 +11,6 @@ import co.voik.agesandtheart.worldgen.NEEDS_LANDFORMS
 import co.voik.agesandtheart.worldgen.VerticalWindow
 import io.kotest.core.annotation.Tags
 import io.kotest.core.spec.style.FunSpec
-import net.minecraft.util.Mth
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.levelgen.Aquifer
 import net.minecraft.world.level.levelgen.DensityFunction
@@ -82,7 +81,7 @@ class AquiferSectionCheck : FunSpec({
             isHollow(worldX, worldY, worldZ) -> {
                 val put = aquifer.computeSubstance(DensityFunction.SinglePointContext(worldX, worldY, worldZ), -1.0)
                 when {
-                    put == null -> '#'
+                    put == null -> 'B'
                     !put.fluidState.isEmpty -> 'W'
                     seaTouching() -> '#'
                     else -> '.'
@@ -127,10 +126,14 @@ class AquiferSectionCheck : FunSpec({
         fun census(label: String, aquifer: Aquifer) {
             val faces = mutableListOf<Int>()
             val tall = mutableListOf<Triple<Int, Int, Int>>()
+            var onAir = 0
             for (worldZ in -600..600 step 97) {
                 for (worldX in -600..600 step 3) {
                     var running = 0
                     for (y in SCAN_BOTTOM..SCAN_TOP) {
+                        // Water with open air straight under it, which falls the moment the chunk ticks.
+                        val standsOnAir = shownAt(aquifer, worldX, worldZ, y + 1) == 'W' && shownAt(aquifer, worldX, worldZ, y) == '.'
+                        if (standsOnAir) onAir++
                         val exposed = shownAt(aquifer, worldX, worldZ, y) == 'W' && shownAt(aquifer, worldX + 1, worldZ, y) == '.'
                         if (exposed) {
                             running++
@@ -144,6 +147,7 @@ class AquiferSectionCheck : FunSpec({
                 }
             }
             println("  $label: ${faces.size} exposed water faces; ${faces.count { it > 3 }} over 3 blocks tall; tallest ${faces.maxOrNull() ?: 0}")
+            println("    $onAir blocks of water stand directly on open air")
             println("    heights: ${faces.groupingBy { it }.eachCount().toSortedMap().entries.take(12).joinToString()}")
             tall.take(TALL_LISTED).forEach { (worldX, topY, worldZ) ->
                 println("    a tall face tops out at $worldX, $topY, $worldZ")
@@ -155,7 +159,7 @@ class AquiferSectionCheck : FunSpec({
     /** A section through any line of columns, drawn the way the fill would lay it — see [shownAt]. */
     fun printSection(label: String, columns: List<Pair<Int, Int>>, top: Int, bottom: Int) {
         val after = aquifer()
-        println("  $label")
+        println("  $label    W water  . open air  # rock  B barrier")
         for (y in top downTo bottom) {
             val row = StringBuilder()
             for ((worldX, worldZ) in columns) row.append(shownAt(after, worldX, worldZ, y))
@@ -167,10 +171,7 @@ class AquiferSectionCheck : FunSpec({
     // of each room's level can be printed rather than inferred.
     val floodedness by lazy { fieldNoise(SEED, -3, listOf(1.0, 1.0)) }
 
-    /**
-     * **Every room in a column, and the level the perched branch gives it** — `perchedLevel` recomputed from
-     * its own inputs, beside what the aquifer actually answered at the room's floor.
-     */
+    /** **Every room in a column**, with the band its floor puts it in and the noise at that floor. */
     fun printRooms(worldX: Int, worldZ: Int) {
         val carved = ground.shape.columnSpans(worldX, worldZ)
         val uncutTop = uncut.columnSpans(worldX, worldZ).highestSolidY
@@ -187,18 +188,186 @@ class AquiferSectionCheck : FunSpec({
             val ceiling = ranges.getOrNull(index + 1)?.first
             if (!isHollow(worldX, roomFloor, worldZ)) continue
             val band = Math.floorDiv(roomFloor, 40)
-            val nudge = floodedness.getValue(
-                Math.floorDiv(worldX, 16).toDouble(),
-                band.toDouble(),
-                Math.floorDiv(worldZ, 16).toDouble(),
-            ) * 10.0
-            val level = minOf(surface, (ceiling ?: surface + 1) - 1, band * 40 + 20 + Mth.quantize(nudge, 3))
             val wetness = floodedness.getValue(worldX / 96.0, roomFloor / 64.0, worldZ / 96.0).coerceIn(-1.0, 1.0)
             println(
-                "      room ${roomFloor}..${(ceiling ?: surface + 1) - 1}  band $band  perched level $level" +
+                "      room ${roomFloor}..${(ceiling ?: surface + 1) - 1}  band $band" +
                     "  wetness at floor ${"%+.3f".format(wetness)}  (sea > 0.8, perched > 0.4 under land)",
             )
         }
+    }
+
+    /**
+     * **Where the barriers stand, seen from above, and whether they follow the chunk grid** — which is what a
+     * walk at stamp 44 found: every level boundary on a chunk line, so every dam traced a square.
+     *
+     * One character a column: `#` where a barrier stands anywhere in its hollows, `W` where water does and no
+     * barrier, `.` elsewhere. Then each pair of neighbouring columns where water meets a barrier at one height
+     * is counted, with how many of those pairs straddle a chunk line — one in sixteen if the edges fall
+     * anywhere, nearly all of them if they follow the grid.
+     */
+    test("where the barriers stand, seen from above, for reading") {
+        val after = aquifer()
+        val heights = SCAN_BOTTOM..SCAN_TOP
+
+        fun statesOf(worldX: Int, worldZ: Int): ByteArray {
+            val carved = ground.shape.columnSpans(worldX, worldZ)
+            val before = uncut.columnSpans(worldX, worldZ)
+            return ByteArray(heights.count()) { up ->
+                val worldY = heights.first + up
+                val hollow = before.contains(worldY) && !carved.contains(worldY)
+                val put = if (hollow) {
+                    after.computeSubstance(DensityFunction.SinglePointContext(worldX, worldY, worldZ), -1.0)
+                } else {
+                    Blocks.AIR.defaultBlockState()
+                }
+                when {
+                    put == null -> BARRIER
+                    !put.fluidState.isEmpty -> WATER
+                    else -> NEITHER
+                }
+            }
+        }
+
+        val wide = PLAN_EAST - PLAN_WEST + 2
+        val deep = PLAN_SOUTH - PLAN_NORTH + 2
+        val states = Array(wide) { east -> Array(deep) { south -> statesOf(PLAN_WEST + east, PLAN_NORTH + south) } }
+
+        fun meet(one: ByteArray, other: ByteArray): Boolean = one.indices.any { up ->
+            val waterAgainstBarrier = one[up] == WATER && other[up] == BARRIER
+            val barrierAgainstWater = one[up] == BARRIER && other[up] == WATER
+            waterAgainstBarrier || barrierAgainstWater
+        }
+
+        var pairs = 0
+        var onChunkLines = 0
+        for (east in 0..<wide - 1) {
+            for (south in 0..<deep - 1) {
+                val here = states[east][south]
+                if (meet(here, states[east + 1][south])) {
+                    pairs++
+                    if (Math.floorMod(PLAN_WEST + east, CHUNK_WIDTH) == CHUNK_WIDTH - 1) onChunkLines++
+                }
+                if (meet(here, states[east][south + 1])) {
+                    pairs++
+                    if (Math.floorMod(PLAN_NORTH + south, CHUNK_WIDTH) == CHUNK_WIDTH - 1) onChunkLines++
+                }
+            }
+        }
+
+        println("  seed $SEED, hills, ($PLAN_WEST, $PLAN_NORTH) to ($PLAN_EAST, $PLAN_SOUTH):  # barrier  W water  . neither")
+        for (south in 0..<deep - 1) {
+            val row = StringBuilder()
+            for (east in 0..<wide - 1) {
+                val column = states[east][south]
+                row.append(
+                    when {
+                        BARRIER in column -> '#'
+                        WATER in column -> 'W'
+                        else -> '.'
+                    },
+                )
+            }
+            println("  ${(PLAN_NORTH + south).toString().padStart(5)} $row")
+        }
+        println(
+            "  $pairs pairs of neighbouring columns where water meets a barrier; $onChunkLines straddle a chunk " +
+                "line, where edges falling anywhere would put about ${pairs / CHUNK_WIDTH} there",
+        )
+
+        // How much of the caves the barrier takes: a wall has to be there, but it should be a wall and not
+        // a cave filled in.
+        // The last strip and row are the margin the pairs above read into, not part of the plan.
+        val every = states.dropLast(1).flatMap { strip -> strip.dropLast(1) }
+        val barriers = every.sumOf { column -> column.count { it == BARRIER } }
+        val water = every.sumOf { column -> column.count { it == WATER } }
+        fun tallestRun(column: ByteArray): Int {
+            var tallest = 0
+            var running = 0
+            for (state in column) {
+                running = if (state == BARRIER) running + 1 else 0
+                tallest = maxOf(tallest, running)
+            }
+            return tallest
+        }
+        val runs = every.map(::tallestRun)
+        println(
+            "  $barriers blocks of barrier against $water of water; the tallest wall is ${runs.max()} blocks, and " +
+                "${runs.count { it > TALL_WALL }} columns carry one over $TALL_WALL",
+        )
+        // And both sections through the column carrying the tallest wall, which is the one to look at.
+        val tallestAt = runs.indices.maxBy { runs[it] }
+        val tallestX = PLAN_WEST + tallestAt / (deep - 1)
+        val tallestZ = PLAN_NORTH + tallestAt % (deep - 1)
+        val across = (tallestX - SECTION_HALF_WIDTH)..(tallestX + SECTION_HALF_WIDTH)
+        val along = (tallestZ - SECTION_HALF_WIDTH)..(tallestZ + SECTION_HALF_WIDTH)
+        printSection("the tallest wall is at ($tallestX, $tallestZ); along z=$tallestZ, x from ${across.first}:", across.map { it to tallestZ }, 90, -10)
+        printSection("and along x=$tallestX, z from ${along.first}:", along.map { tallestX to it }, 90, -10)
+    }
+
+    /**
+     * **Where a cave opens through the seabed** — the columns under the sea whose cut rock stands lower than
+     * the rock before its caves were cut, around the frozen oceans `scripts/checks/frozen-caves.txt` found.
+     *
+     * Those are the columns vanilla's surface system reads a lower preliminary surface from than vanilla
+     * would, and the frozen-ocean icebergs reach down to that surface — so they are where to look for packed
+     * ice in a cave. Listed deepest opening first.
+     */
+    test("where caves open through the seabed near the frozen oceans, for reading") {
+        data class Opening(val worldX: Int, val worldZ: Int, val uncutTop: Int, val carvedTop: Int)
+        val openings = mutableListOf<Opening>()
+        for (worldX in OPENINGS_WEST..OPENINGS_EAST) {
+            for (worldZ in OPENINGS_NORTH..OPENINGS_SOUTH) {
+                val uncutTop = uncut.columnSpans(worldX, worldZ).highestSolidY ?: continue
+                val carvedTop = ground.shape.columnSpans(worldX, worldZ).highestSolidY ?: continue
+                val underTheSea = uncutTop < SEA_LEVEL
+                val openedDeep = uncutTop - carvedTop > OPENING_DEPTH
+                if (underTheSea && openedDeep) openings += Opening(worldX, worldZ, uncutTop, carvedTop)
+            }
+        }
+        println("  ${openings.size} columns under the sea opened more than $OPENING_DEPTH blocks below their seabed")
+        openings.sortedByDescending { it.uncutTop - it.carvedTop }.take(OPENINGS_LISTED).forEach {
+            println("    (${it.worldX}, ${it.worldZ})  seabed ${it.uncutTop}, cave floor ${it.carvedTop}")
+        }
+    }
+
+    /**
+     * **Glow berry vines hanging dry in a flooded cave**, walked 2026-09-14 in w6 at (103, 9, 10).
+     *
+     * Vanilla grows cave vines down into air only, so a vine standing in a flood means that air was there
+     * when the features ran and the water beside it was never given a tick. What this can say offline is
+     * whether the spot is a cave of the shape's — answered by the fill — or solid rock a carver cut later,
+     * and what the aquifer answers there either way, which is what a carver would have been handed.
+     */
+    test("a section through the vines at (103, 9, 10), for reading") {
+        printSection("seed $SEED, hills, z=$VINES_Z, x from ${VINES_X - 20} to ${VINES_X + 20}:", (VINES_X - 20..VINES_X + 20).map { it to VINES_Z }, 40, -10)
+        printSection("and x=$VINES_X, z from ${VINES_Z - 20} to ${VINES_Z + 20}:", (VINES_Z - 20..VINES_Z + 20).map { VINES_X to it }, 40, -10)
+        println("  what the aquifer answers in the rock too, as a carver cutting there would be told (W water, . air, B barrier):")
+        val after = aquifer()
+        for (y in 40 downTo -10) {
+            val row = StringBuilder()
+            for (worldX in VINES_X - 20..VINES_X + 20) {
+                val put = after.computeSubstance(DensityFunction.SinglePointContext(worldX, y, VINES_Z), 0.0)
+                row.append(
+                    when {
+                        put == null -> 'B'
+                        !put.fluidState.isEmpty -> 'W'
+                        else -> '.'
+                    },
+                )
+            }
+            println("  ${y.toString().padStart(4)} $row")
+        }
+        printRooms(VINES_X, VINES_Z)
+    }
+
+    /**
+     * **Rings of stone with air under them**, walked 2026-09-14 in w6 near (-99, 1, -65) at stamp 47:
+     * concentric rings dividing what is otherwise under water, with water cascading down between them.
+     */
+    test("a section through the rings near (-99, 1, -65), for reading") {
+        printSection("seed $SEED, hills, z=$RINGS_Z, x from ${RINGS_X - 30} to ${RINGS_X + 30}:", (RINGS_X - 30..RINGS_X + 30).map { it to RINGS_Z }, 70, -40)
+        printSection("and x=$RINGS_X, z from ${RINGS_Z - 30} to ${RINGS_Z + 30}:", (RINGS_Z - 30..RINGS_Z + 30).map { RINGS_X to it }, 70, -40)
+        for (worldX in RINGS_X - 12..RINGS_X + 12 step 6) printRooms(worldX, RINGS_Z)
     }
 
     /**
@@ -218,7 +387,7 @@ class AquiferSectionCheck : FunSpec({
      */
     test("a block-for-block section through the W6 wall, for reading") {
         val after = aquifer()
-        println("  W  water    .  open air    #  rock, or a barrier that holds water back")
+        println("  W  water    .  open air    #  rock    B  barrier")
         println("  seed $SEED, hills, z=$WALL_Z, x from ${WALL_X - 20} to ${WALL_X + 20}:")
         for (y in WALL_TOP downTo WALL_BOTTOM) {
             val row = StringBuilder()
@@ -242,5 +411,34 @@ class AquiferSectionCheck : FunSpec({
 
         private const val WALL_TOP = 90
         private const val WALL_BOTTOM = 0
+
+        /** The plan view: 128 columns square, around the pool walked at (1, -47). */
+        private const val PLAN_WEST = -64
+        private const val PLAN_EAST = 63
+        private const val PLAN_NORTH = -111
+        private const val PLAN_SOUTH = 16
+        private const val CHUNK_WIDTH = 16
+        private const val TALL_WALL = 20
+
+        /** Where the walk of 2026-09-14 found rings of stone over air in a flooded area, in w6. */
+        private const val RINGS_X = -99
+        private const val RINGS_Z = -65
+
+        /** Where the walk of 2026-09-14 found cave vines hanging dry in a flood, in w6. */
+        private const val VINES_X = 103
+        private const val VINES_Z = 10
+
+        /** Around both frozen oceans in the cold hills: (-32, -32) and (64, 32). */
+        private const val OPENINGS_WEST = -128
+        private const val OPENINGS_EAST = 128
+        private const val OPENINGS_NORTH = -128
+        private const val OPENINGS_SOUTH = 128
+        private const val OPENING_DEPTH = 5
+        private const val OPENINGS_LISTED = 25
+        private const val SECTION_HALF_WIDTH = 30
+
+        private const val NEITHER: Byte = 0
+        private const val WATER: Byte = 1
+        private const val BARRIER: Byte = 2
     }
 }

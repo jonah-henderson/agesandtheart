@@ -5,6 +5,8 @@
 # MEASURED at stamp 43: x=4..10 water y 40..63, x=0..2 dry air over floors at 37..38 -- a 24-block face.
 # MEASURED at stamp 44: x=4..10 water y 40..62, and x=0..2 a dam -- stone from y 40 to 58, dirt 59..61, grass
 # at 62 -- standing a block or two of air above the grassed slope beneath it.
+# MEASURED at stamp 45: the same pool, and the dam solid from the floor up -- no air left under it at x=0..2,
+# ore generated through the barrier as through any rock (copper at y 38..39 in x=2), dirt and grass on top.
 age write w6b 4242 age hills landmass
 # Across x at z=-47.
 age probe w6b -8 -47
