@@ -1,0 +1,38 @@
+# The abyss stays under its line: no deep water above it anywhere, and a vent's whirlpool that carries on
+# through ordinary water to the surface. Run with: scripts/drive-server.sh scripts/checks/abyss-line.txt
+#
+# What it guards (walk list W7). Deep water under the ordinary sea used to run vanilla's bubble-column routine
+# on its scheduled ticks with nothing under it to raise a column, and that routine's fall-through "occupies"
+# every source above with the liquid itself -- a pump, carrying deep water up to the surface for the sea's
+# settling to take back. And a real whirlpool, raised the same way, climbed to the surface as deep water.
+#
+# Seed 7 at (2000, 2000), as in deep-sea-vent.txt: floor y=29, sea standing at y=134, so the abyss line is 54.
+# `fill ... replace` DESTROYS what it counts, so each count takes its own block or state and nothing counted
+# is needed afterwards.
+age write lineage 7 age isle landmass deep water sea
+age probe lineage 2000 2000
+execute in agesandtheart:lineage run forceload add 1984 1984 2015 2015
+execute in agesandtheart:lineage run place feature agesandtheart:deep_sea_vent 2000 40 2000
+# Random ticks are what woke the pump: the abyss's top layer settling, and the sea's answer to it. The
+# fillers are what the driver's wait is for -- see deep-sea-vent.txt on why `tick sprint` cannot be used.
+gamerule random_tick_speed 2000
+age list
+age list
+age list
+age list
+age list
+age list
+age list
+age list
+gamerule random_tick_speed 3
+# Deep water above the line: MUST read zero in every quadrant. 16 x 16 x 80 each, under the fill limit.
+execute in agesandtheart:lineage run fill 1984 55 1984 1999 134 1999 minecraft:air replace agesandtheart:deep_water
+execute in agesandtheart:lineage run fill 2000 55 1984 2015 134 1999 minecraft:air replace agesandtheart:deep_water
+execute in agesandtheart:lineage run fill 1984 55 2000 1999 134 2015 minecraft:air replace agesandtheart:deep_water
+execute in agesandtheart:lineage run fill 2000 55 2000 2015 134 2015 minecraft:air replace agesandtheart:deep_water
+# The whirlpool above the line: none of it deep, and some of it there at all if it reaches the surface.
+execute in agesandtheart:lineage run fill 1992 55 1992 2008 134 2008 minecraft:air replace agesandtheart:deep_bubble_column[deep=true]
+execute in agesandtheart:lineage run fill 1992 55 1992 2008 134 2008 minecraft:air replace agesandtheart:deep_bubble_column[deep=false]
+# And below it, the abyss's own: deep, and the vent's chamber and bore full of it.
+execute in agesandtheart:lineage run fill 1992 15 1992 2008 54 2008 minecraft:air replace agesandtheart:deep_bubble_column[deep=true]
+execute in agesandtheart:lineage run fill 1992 15 1992 2008 54 2008 minecraft:air replace agesandtheart:deep_bubble_column[deep=false]

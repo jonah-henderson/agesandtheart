@@ -26,7 +26,7 @@
 # was the gamerule rename, not the budding.
 #
 # The startup line `Deep waterlogging: brought 20976 block states into line` is the other half of the
-# column check: 20976 is the waterlogged states alone, so the deep column's two states needed no settling,
+# column check: 20976 is the waterlogged states alone, so the deep column's deep states needed no settling,
 # which is only true if they had already cached deep water as their fluid. That is what makes the bore
 # press and fog like the rest of the abyss.
 #

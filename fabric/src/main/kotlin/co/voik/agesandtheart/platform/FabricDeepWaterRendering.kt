@@ -27,11 +27,10 @@ object FabricDeepWaterRendering {
      * from and look straight through to line up a swim (Jonah, walked 2026-09-10), which no amount of
      * tinting or fog was ever going to fix.
      *
-     * **Held at 230 on the still frames and 191 on the flowing ones** — nine tenths and three quarters of
-     * full (Jonah, walked 2026-09-11). Full opacity was the first answer to that walk and overshot: a
-     * cave opened under a cold ocean put deep water against open air, and a face you cannot see through
-     * at all reads as a *hole in the world* rather than as the sea. It is still far above vanilla's 180,
-     * so the swim cannot be lined up through it.
+     * **Solid on the still frames and 191 on the flowing ones.** The still sprite is the top a diver
+     * sights along, so it hides what is past it outright; the sides are the ones that must still read as a
+     * fluid. `FluidModel` picks the fluid's layer from both sprites together, so one translucent sprite puts
+     * the whole fluid in the translucent layer — and under a tint this dark, a side at 215 read as a wall.
      *
      * **Two numbers because the renderer draws two sprites**, and that is the whole of how a fluid gets a
      * per-face alpha: vanilla puts the *still* sprite on the top and bottom faces and the *flow* sprite on
