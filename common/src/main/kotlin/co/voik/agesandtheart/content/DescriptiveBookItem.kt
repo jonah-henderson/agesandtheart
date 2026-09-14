@@ -72,13 +72,7 @@ class DescriptiveBookItem(properties: Properties) : Item(properties) {
      * reading the stack as it was, by the time the server had written anything into it.
      */
     override fun inventoryTick(stack: ItemStack, level: ServerLevel, holder: Entity, slot: EquipmentSlot?) {
-        if (!stack.has(AgeContent.BOOK_WORDS)) {
-            FoundBook.write(stack, level.server, level.random.nextLong())
-            // Writing itself is a found book's binding — nothing else ever binds one — so this is the
-            // moment its Age is decided, and the earliest it can be made ready.
-            PanelWarming.whenBound(level.server, stack)
-            return
-        }
+        if (writeIfBlank(stack, level)) return
         PanelWarming.consider(level.server, stack, inHand = slot != null)
     }
 
@@ -99,4 +93,19 @@ class DescriptiveBookItem(properties: Properties) : Item(properties) {
         return InteractionResult.SUCCESS
     }
 
+    companion object {
+        /**
+         * Writes [stack] if nothing has, answering whether it did — on the book's inventory tick, and as it is
+         * opened on a lectern, which runs none (design §7.8.2).
+         */
+        @JvmStatic
+        fun writeIfBlank(stack: ItemStack, level: ServerLevel): Boolean {
+            if (stack.has(AgeContent.BOOK_WORDS)) return false
+            FoundBook.write(stack, level.server, level.random.nextLong())
+            // Writing itself is a found book's binding — nothing else ever binds one — so this is the
+            // moment its Age is decided, and the earliest it can be made ready.
+            PanelWarming.whenBound(level.server, stack)
+            return true
+        }
+    }
 }

@@ -4,6 +4,7 @@ import co.voik.agesandtheart.Constants
 import co.voik.agesandtheart.age.word.PageLearning
 import co.voik.agesandtheart.client.BookScreenOpener
 import co.voik.agesandtheart.content.AgeContent
+import co.voik.agesandtheart.content.DescriptiveBookItem
 import net.minecraft.core.BlockPos
 import net.minecraft.core.HolderLookup
 import net.minecraft.nbt.CompoundTag
@@ -54,6 +55,10 @@ object LecternBooks {
 
     private const val FULL_VOLUME = 1.0f
     private const val NATURAL_PITCH = 1.0f
+
+    /** What a comparator reads off a book of ours lying open, and lying shut. */
+    private const val OPEN_SIGNAL = 15
+    private const val SHUT_SIGNAL = 1
 
     /** What a click on an open book is asking for. */
     private enum class Click { LINK, READ, SHUT }
@@ -128,6 +133,17 @@ object LecternBooks {
         return tag
     }
 
+    /**
+     * What a comparator reads off a lectern holding a book of ours, or null to leave it to vanilla: full while the
+     * book lies open, and while it is shut the least a book can give — vanilla's own floor for a book being there
+     * at all. Vanilla's reading is how far through its pages a book has been read, and ours have none.
+     */
+    @JvmStatic
+    fun signalOf(lectern: LecternBlockEntity): Int? {
+        if (!isOurs(lectern.book)) return null
+        return if (LecternOpening.isOpen(lectern.blockState)) OPEN_SIGNAL else SHUT_SIGNAL
+    }
+
     private fun clickOn(book: ItemStack, panelPage: BookPage, spot: LecternBookSpot?): Click {
         val onThePanel = spot != null && spot.page == panelPage && spot.withinThePanel
         val onTheWriting = spot != null && spot.page != panelPage && book.item === AgeContent.DESCRIPTIVE_BOOK
@@ -142,7 +158,7 @@ object LecternBooks {
     private fun useShut(state: BlockState, level: Level, pos: BlockPos, player: Player, lectern: LecternBlockEntity) {
         if (level !is ServerLevel) return
         val takingItBack = player.isSecondaryUseActive && player.mayBuild()
-        if (takingItBack) takeBack(state, level, pos, player, lectern) else open(state, level, pos)
+        if (takingItBack) takeBack(state, level, pos, player, lectern) else open(state, level, pos, lectern)
     }
 
     /** Goes, and leaves the book on the lectern for the next reader — which is the whole of a lectern's point. */
@@ -158,8 +174,13 @@ object LecternBooks {
         if (player is ServerPlayer) PageLearning.study(player, lectern.book)
     }
 
-    private fun open(state: BlockState, level: ServerLevel, pos: BlockPos) {
+    private fun open(state: BlockState, level: ServerLevel, pos: BlockPos, lectern: LecternBlockEntity) {
+        // A blank descriptive book is written on its inventory tick, which a lectern never runs, and one can reach
+        // a lectern without ever being carried — so it is written here, on the click every reading passes through.
+        if (DescriptiveBookItem.writeIfBlank(lectern.book, level)) lectern.setChanged()
         level.setBlock(pos, state.setValue(LecternOpening.BOOK_OPEN, true), Block.UPDATE_CLIENTS)
+        // A comparator reads whether the book lies open ([signalOf]), and is told only when it is asked to be.
+        level.updateNeighbourForOutputSignal(pos, state.block)
         level.scheduleTick(pos, state.block, TICKS_BETWEEN_LOOKS_ROUND)
         level.playSound(null, pos, SoundEvents.BOOK_PAGE_TURN, SoundSource.BLOCKS, FULL_VOLUME, NATURAL_PITCH)
     }
@@ -167,6 +188,7 @@ object LecternBooks {
     private fun shut(state: BlockState, level: Level, pos: BlockPos) {
         if (level !is ServerLevel) return
         level.setBlock(pos, LecternOpening.closed(state), Block.UPDATE_CLIENTS)
+        level.updateNeighbourForOutputSignal(pos, state.block)
         level.playSound(null, pos, SoundEvents.BOOK_PAGE_TURN, SoundSource.BLOCKS, FULL_VOLUME, NATURAL_PITCH)
     }
 
