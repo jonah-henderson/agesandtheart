@@ -448,8 +448,8 @@ object DeepWater {
      *
      * **The block's own rule can only grow an abyss from an abyss**, which is not enough: a sea deep enough
      * to be one may simply have been built, or poured, or left by a landform whose waterline nothing raised.
-     * The deluge lays its own as it rises, but the deluge is not in every Age (Jonah, 2026-09-10) — so a
-     * column of ordinary water has to be able to turn on its own.
+     * Nothing else lays one — the deluge pours ordinary water too, and is not in every Age (Jonah,
+     * 2026-09-10) — so a column of ordinary water has to be able to turn on its own.
      *
      * **Ages only, and that is the dimension carve-out.** This is called from `Happenings`, which walks the
      * Ages a player is standing in and nothing else, so no Overworld and no End — a positive check rather
